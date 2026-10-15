@@ -196,10 +196,10 @@ Ogni punto che mostra un dispositivo — l'elenco Devices, la pagina Devices di 
 | --- | --- | --- |
 | **Stale** | Nessun polling è stato tentato da ben più dell'intervallo del dispositivo. | Controlla che la sonda del dispositivo sia online e stia al passo con la sua flotta. |
 | **No probe** | Il dispositivo è interrogato dalla sonda ma non ne ha una, o il suo polling è disattivato. | Assegna una sonda in grado di raggiungerlo; fino ad allora nulla lo interroga. |
-| **No monitor** | Il dispositivo usa l'[override con monitor associato](#loverride-con-monitor-associato) e nulla è associato. | Associa un monitor, o riportalo al polling tramite sonda. |
+| **Nessun monitor** | Il dispositivo usa l'[override con monitor associato](#loverride-con-monitor-associato) e nulla è associato. | Associa un monitor, o riportalo al polling tramite sonda. |
 | **SNMP failing** | Attivo al ping, ma l'ultimo walk SNMP è fallito. | Controlla le credenziali, l'agente SNMP o un'ACL. |
 
-L'elenco **Devices** ha un filtro **SNMP** con tre valori: **OK** (l'ultimo walk è riuscito), **Failing** (l'ultimo walk è fallito) e **Not configured** (solo ping, senza credenziali o mai interrogato). «Quali dispositivi hanno credenziali che hanno smesso di funzionare» è a un clic di distanza. La colonna **Interfaces (Up / Down)** dell'elenco riporta **No SNMP** invece di `0 / 0` per un dispositivo che riceve il ping e non viene mai sottoposto a walk: zero porte funzionanti sarebbe un'affermazione diversa, e sbagliata.
+L'elenco **Devices** ha un filtro **SNMP** con tre valori: **OK** (l'ultimo walk è riuscito), **Failing** (l'ultimo walk è fallito) e **Not configured** (solo ping, senza credenziali o mai interrogato). «Quali dispositivi hanno credenziali che hanno smesso di funzionare» è a un clic di distanza. La colonna **Interfaces (Up / Down)** dell'elenco riporta **Senza SNMP** invece di `0 / 0` per un dispositivo che riceve il ping e non viene mai sottoposto a walk: zero porte funzionanti sarebbe un'affermazione diversa, e sbagliata.
 
 ## Credenziali SNMP e profili di credenziali
 
@@ -261,7 +261,7 @@ Alcuni apparati nessuna sonda può raggiungerli o interrogarli utilmente con il 
 | **Sonda** | Il predefinito. Riceve il ping dalla sonda assegnata secondo la sua pianificazione, e il walk SNMP quando ha le credenziali. |
 | **Bound monitor** | Lo stato di un monitor esistente è lo stato di questo dispositivo. |
 
-Passare un dispositivo a **Bound monitor** ne interrompe il polling. La sonda, l'intervallo e l'interruttore del polling lasciano la scheda **Polling & Data Collection**, i vecchi risultati di polling del dispositivo vengono cancellati e il suo stato viene dal monitor che associ. Associarne uno è facoltativo: finché non lo fai, il dispositivo risulta **In sospeso**, contrassegnato da **No monitor**.
+Passare un dispositivo a **Bound monitor** ne interrompe il polling. La sonda, l'intervallo e l'interruttore del polling lasciano la scheda **Polling & Data Collection**, i vecchi risultati di polling del dispositivo vengono cancellati e il suo stato viene dal monitor che associ. Associarne uno è facoltativo: finché non lo fai, il dispositivo risulta **In sospeso**, contrassegnato da **Nessun monitor**.
 
 Tornare a **Sonda** ripristina il polling e chiede una sonda. Un monitor che era associato resta associato e continua a inviare avvisi; semplicemente non decide più lo stato del dispositivo.
 
@@ -533,7 +533,7 @@ Con SNMP attivo, il passaggio **Credenziali SNMP** chiede gli insiemi di credenz
 Fai clic su **Avvia scansione**. La sonda scansiona l'intervallo e riporta quanti host ha scansionato e quanti hanno risposto: quanti hanno risposto a SNMP o, in una scansione solo ping, quanti hanno risposto al ping.
 
 ### Importare ciò che ha trovato
-Fai clic su **Review Results** sulla scansione terminata, seleziona i dispositivi che vuoi e fai clic su **Import Selected**.
+Fai clic su **Review Results** sulla scansione, scegli gli host da importare e fai clic su **Avanti**. Scegli ogni quanto vengono controllati e se ognuno riceve un monitor, poi importali; vedi [Importare ciò che una scansione ha trovato](#importare-ciò-che-una-scansione-ha-trovato).
 :::
 
 | Campo | Descrizione | Obbligatorio |
@@ -589,9 +589,19 @@ Ogni host trovato da una scansione viene importato come dispositivo interrogato 
 - Gli host che hanno risposto a SNMP vengono importati con l'indirizzo che ha risposto come hostname, il nome scelto come descritto sotto e le credenziali che hanno risposto, quindi una scansione v3 importa dispositivi pronti per il walk v3 che iniziano subito a raccogliere interfacce e inventario.
 - Gli host che hanno risposto al ping ma non a SNMP — ogni host trovato da una [scansione solo ping](#scansioni-solo-ping), e gli host che una scansione SNMP non ha potuto identificare — vengono importati senza credenziali. La sonda invia loro il ping secondo la loro pianificazione; aggiungi le credenziali in seguito, sul dispositivo o come profilo su di esso o sul suo sito, e la stessa sonda inizia anche a eseguirne il walk.
 
-I dispositivi già registrati vengono segnalati e saltati. Associa un monitor [Ping](/docs/monitor/ping-monitor) o [IP](/docs/monitor/ip-monitor) a un dispositivo importato solo se vuoi gli incidenti di quel monitor; per una flotta, una [policy di avviso](#policy-di-avviso) è di solito la risposta migliore.
+Un host già registrato come dispositivo è contrassegnato come **Già aggiunto** e non viene mai importato due volte. Il polling dà a ogni dispositivo importato uno stato; per sapere quando uno va giù, dagli un monitor: scegli **Un monitor per ogni dispositivo** quando importi, oppure lascia che una [policy di avviso](#policy-di-avviso) ne dia uno a ogni dispositivo che copre.
 
-Quando una scansione ha trovato host SNMP, **Review Results** offre **Applica il modello del produttore di ogni host SNMP al primo polling (consigliato)**, attivo per impostazione predefinita: ogni dispositivo SNMP importato riceve il [modello del produttore](#modelli-di-salute-dei-produttori) corrispondente a ciò che riporta il suo primo walk, i suoi OID di salute e le sue tabelle SNMP, proprio come i dispositivi portati dentro da una regola di importazione automatica. Un dispositivo il cui produttore non ha un modello resta com'è. Disattiva l'interruttore per un lotto che deve partire senza.
+Quando gli host che importi includono host SNMP, il passo **Monitoraggio** dell'importazione offre **Applica il modello del produttore di ogni host SNMP al primo polling (consigliato)**, attivo per impostazione predefinita: ogni dispositivo SNMP importato riceve il [modello del produttore](#modelli-di-salute-dei-produttori) corrispondente a ciò che riporta il suo primo walk, i suoi OID di salute e le sue tabelle SNMP, proprio come i dispositivi portati dentro da una regola di importazione automatica. Un dispositivo il cui produttore non ha un modello resta com'è. Disattiva l'interruttore per un lotto che deve partire senza.
+
+### Importare ciò che una scansione ha trovato
+
+**Review Results** apre gli host della scansione, quelli trovati finora se è ancora in corso, in una finestra che li importa in tre passi:
+
+1. Il passo **Scegli i dispositivi** elenca ogni host con il nome che avrà il suo dispositivo, il suo indirizzo e il produttore; tutti gli host non ancora aggiunti partono selezionati. Cerca per nome, nome DNS, indirizzo o produttore, oppure digita una subnet (`10.48.11.0/24`) o un intervallo di ottetti (`10.48.11-12.0-255`) per elencare gli host che contiene. **Risposta** (**SNMP** o **Senza SNMP**) e **Nome** (**Con nome** o **Solo indirizzo**) restringono ancora l'elenco. La casella sopra l'elenco seleziona o deseleziona tutti gli host mostrati, su tutte le pagine, e vengono importati solo gli host selezionati che l'elenco mostra.
+2. Il passo **Monitoraggio** chiede, con **Controlla ogni**, ogni quanto la sonda della scansione controlla i dispositivi, che diventa il **Polling Interval (Minutes)** di ogni dispositivo, e chi viene avvisato quando uno va giù. **Solo stato** li importa con uno stato e senza monitor. **Un monitor per ogni dispositivo** dà a ognuno un monitor del dispositivo di rete dal modello che scegli in **Modello di monitor**, e mostra prima dell'importazione cosa genera ogni controllo del modello: un incidente, un avviso o solo lo stato del monitor. Quando alcuni host hanno risposto solo al ping, un controllo che legge un walk SNMP è contrassegnato come **Solo dispositivi SNMP**: quegli host ricevono il ping, ma non il walk, finché non hanno credenziali SNMP. Il modello **Network device alert pack (recommended)** viene proposto per primo, e un progetto che non lo ha ancora lo riceve quando importi. Il riepilogo accanto alle scelte dice cosa creerà l'importazione, compresi i dispositivi che il tuo piano non ha più spazio per monitorare.
+3. Il passo **Importa** conta separatamente dispositivi e monitor, man mano che ognuno viene creato, trovato già presente o fallisce. Alla fine rimanda a ciò che ha creato ed elenca, sotto il motivo, ogni host che non ha importato e ogni dispositivo importato senza il suo monitor. Un nuovo tentativo riprova solo gli host non riusciti e non crea mai nulla due volte. **Interrompi importazione** si ferma dopo l'host in corso di importazione e mantiene ciò che è stato creato.
+
+L'importazione viene eseguita sul server e agisce per conto tuo: ogni dispositivo e ogni monitor viene creato con i tuoi permessi, e ciò che non puoi creare viene elencato con il motivo. Puoi chiudere la finestra in qualsiasi momento: la riga della scansione mostra a che punto è l'importazione, e **Vedi l'avanzamento** la riapre. **Importa altri dispositivi** ricomincia con gli host rimasti. Un'importazione accetta fino a 5.000 host; importa una scansione più grande in più parti, per subnet o in base a ciò a cui gli host hanno risposto. Le importazioni di un progetto vengono eseguite una alla volta: quella richiesta mentre un'altra è in corso la aspetta.
 
 ### Come vengono chiamati i dispositivi rilevati
 
@@ -646,6 +656,8 @@ Un nome può solo migliorare: un dispositivo mantiene il suo nome quando cambia 
 ### Importare automaticamente con le regole di importazione automatica
 
 Rivedere a mano ogni scansione non regge oltre le prime sottoreti. **Rete → Regole → Auto Import Rules** è il posto in cui scrivi l'importazione una volta per tutte: una regola dice quali host rilevati rivendicare (un intervallo IP, e modelli facoltativi di nome di sistema, descrizione e `sysObjectID`) e, facoltativamente, quale modello di monitor e quale [OID Collection Template](#oid-collection-templates) ricevono i dispositivi che importa. Una regola contrassegnata come esclusione non rivendica nulla e pone il veto sulle altre: è così che stampanti e telefoni vengono esclusi da una regola su una sottorete ampia.
+
+In una regola, **Controlla ogni** stabilisce ogni quanto la sonda della scansione interroga ogni dispositivo che la regola importa, come **Controlla ogni** quando importi da **Review Results**; se lasciato vuoto, è ogni 5 minuti. Una regola che importa anche gli host che hanno risposto solo al ping dà anche a loro il suo modello di monitor: la sonda invia loro il ping, quindi i controlli del modello sulla raggiungibilità di un dispositivo e sui trap che invia funzionano subito per loro, e i suoi controlli che leggono un walk SNMP non appena il dispositivo ha le credenziali.
 
 Le regole non hanno una pianificazione propria e non ne hanno bisogno. Le regole abilitate vengono eseguite da sole sui risultati di ogni scansione man mano che arrivano, compresi i risultati parziali che una scansione lunga carica mentre è ancora in corso, quindi gli host vengono importati entro un minuto da quando vengono trovati invece che alla fine dell'intervallo. Attiva **Repeat this scan** su una scansione di rilevamento e la coppia diventa un accordo permanente: la scansione ripercorre il suo intervallo con il tuo intervallo di tempo, e ogni nuovo host che trova viene importato senza che nessuno prema nulla.
 
@@ -972,7 +984,7 @@ La panoramica del dispositivo ha una scheda **Connected to** che indica lo switc
 Un dispositivo mostra **In sospeso** finché nulla ha ancora riferito su di esso. Leggi il qualificatore accanto allo stato:
 
 - **No probe**: assegna una sonda, o riattiva **Polling Enabled**. Nulla interroga il dispositivo finché non lo fai.
-- **No monitor**: il dispositivo è sull'[override con monitor associato](#loverride-con-monitor-associato) senza nulla di associato. Associa un monitor, o usa **Switch to Probe Polling** perché la sua sonda gli invii il ping.
+- **Nessun monitor**: il dispositivo è sull'[override con monitor associato](#loverride-con-monitor-associato) senza nulla di associato. Associa un monitor, o usa **Switch to Probe Polling** perché la sua sonda gli invii il ping.
 - Nessun qualificatore: il dispositivo ha una sonda e attende il suo primo polling. Su una flotta grande una sonda distribuisce un numero limitato di dispositivi per ciclo, quindi il primo polling può richiedere più tempo dell'intervallo del dispositivo.
 
 Se un dispositivo solo ping resta In sospeso per ore mentre i dispositivi con credenziali sulla stessa sonda vanno bene, controlla la versione di quella sonda. Una sonda precedente al polling basato prima sul ping non può inviare il ping a un dispositivo, e affidarle un dispositivo senza credenziali la porterebbe a eseguire il walk con una community predefinita e a segnalare come Down un dispositivo sano. Per questo il server trattiene i dispositivi solo ping da una sonda vecchia e registra un avviso per lotto con il nome della sonda e quanti dispositivi ha trattenuto. Quei dispositivi restano In sospeso, visibilmente in attesa e mai erroneamente Down, finché la sonda non viene aggiornata; poi riferiscono al ciclo successivo senza bisogno di altro.
@@ -1009,7 +1021,9 @@ Se il dispositivo si trova dietro uno switch non gestito o un hub, lo switch ges
 :::
 
 :::details Sono stati importati solo alcuni dei dispositivi rilevati
-Il resoconto dell'esecuzione risponde a questo, nella finestra che si apre al termine di un'esecuzione e non in un log. Un'esecuzione che si è fermata al suo limite di lotto lo dice e indica cosa resta: premi di nuovo **Run Rule** e riprende da dove si era fermata. Un'esecuzione che è terminata ma ha rivendicato meno host di quanti ti aspettavi dice dove è finito il resto: escluso da una regola di esclusione, già registrato a quell'indirizzo, o non corrispondente ai criteri della regola.
+Un'importazione da **Review Results** risponde a questo nel suo ultimo passo: ogni host che non ha importato e ogni dispositivo importato senza il suo monitor sono elencati sotto il motivo, e un nuovo tentativo riprova solo gli host non riusciti. Per rivederla più tardi, fai clic su **Review Results** sulla scansione, poi su **Vedi i risultati**.
+
+Per una regola di importazione automatica, il resoconto dell'esecuzione risponde a questo, nella finestra che si apre al termine di un'esecuzione e non in un log. Un'esecuzione che si è fermata al suo limite di lotto lo dice e indica cosa resta: premi di nuovo **Run Rule** e riprende da dove si era fermata. Un'esecuzione che è terminata ma ha rivendicato meno host di quanti ti aspettavi dice dove è finito il resto: escluso da una regola di esclusione, già registrato a quell'indirizzo, o non corrispondente ai criteri della regola.
 
 Quando i dispositivi ci sono tutti ma i monitor no: dispositivi e monitor sono lavori separati, quindi una regola che ha ricevuto il suo modello di monitor dopo l'importazione dei suoi dispositivi riporta nessun dispositivo importato e solo monitor creati. È la regola che fa esattamente il lavoro rimasto, non un'importazione fallita; vedi [Importare automaticamente con le regole di importazione automatica](#importare-automaticamente-con-le-regole-di-importazione-automatica).
 :::

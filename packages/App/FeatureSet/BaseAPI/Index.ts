@@ -1682,6 +1682,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
+import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
 import OnCallScheduleTimelineAPI from "Common/Server/API/OnCallScheduleTimelineAPI";
 import WorkspaceChannelLinkAPI from "Common/Server/API/WorkspaceChannelLinkAPI";
@@ -5208,6 +5209,18 @@ const BaseAPIFeatureSet: FeatureSet = {
      * are the whole gate.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, ToolImportAPI);
+
+    /*
+     * Importing a discovery scan's hosts as network devices (Network >
+     * Discovery > Review Results). A bare router for the same reason as
+     * ToolImportAPI: its imports are internal rows with no CRUD API, so the
+     * router's own checks are the whole gate, and the import itself acts
+     * as the person who asked for it.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      NetworkDeviceDiscoveryImportAPI,
+    );
 
     /*
      * On-call calendar feeds. The custom router carries the public

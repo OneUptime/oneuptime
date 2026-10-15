@@ -5176,3 +5176,123 @@ describe("renaming devices imported during the run (issue #3677)", () => {
     });
   });
 });
+
+/*
+ * "Check every" on an auto import rule (issue #4811): how often the devices
+ * it imports are polled. The first matching rule that says decides, in the
+ * same order the OID template is chosen; a rule that says nothing leaves the
+ * device's own default (5 minutes), as every auto-imported device had
+ * before the rule could say.
+ */
+describe("how often an auto-imported device is polled", () => {
+  const SECOND_RULE_ID: ObjectID = new ObjectID(
+    "88888888-8888-4888-8888-888888888888",
+  );
+
+  it("is the matching rule's interval", async () => {
+    ruleFindByMock.mockResolvedValue([
+      makeRule({ pollingIntervalInMinutes: 1 }),
+    ]);
+    scanFindOneByMock.mockResolvedValue(
+      makeScan({ discoveredDevices: [makeHost()] }),
+    );
+
+    await processScan();
+
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(createdDevice(0).pollingIntervalInMinutes).toBe(1);
+  });
+
+  it("is read with the rules", async () => {
+    scanFindOneByMock.mockResolvedValue(
+      makeScan({ discoveredDevices: [makeHost()] }),
+    );
+
+    await processScan();
+
+    expect(
+      ruleFindByMock.mock.calls[0]![0].select.pollingIntervalInMinutes,
+    ).toBe(true);
+  });
+
+  it("is the device's default when the rule says nothing", async () => {
+    scanFindOneByMock.mockResolvedValue(
+      makeScan({ discoveredDevices: [makeHost()] }),
+    );
+
+    await processScan();
+
+    expect(createdDevice(0).pollingIntervalInMinutes).toBeUndefined();
+  });
+
+  it("is the first matching rule's that says, whatever the later ones say", async () => {
+    ruleFindByMock.mockResolvedValue([
+      makeRule(),
+      makeRule({
+        id: SECOND_RULE_ID,
+        _id: SECOND_RULE_ID.toString(),
+        pollingIntervalInMinutes: 10,
+      }),
+      makeRule({
+        id: ObjectID.generate(),
+        pollingIntervalInMinutes: 60,
+      }),
+    ]);
+    scanFindOneByMock.mockResolvedValue(
+      makeScan({ discoveredDevices: [makeHost()] }),
+    );
+
+    await processScan();
+
+    expect(createdDevice(0).pollingIntervalInMinutes).toBe(10);
+  });
+
+  it("ignores a stored value the rule form could never have written", async () => {
+    ruleFindByMock.mockResolvedValue([
+      makeRule({ pollingIntervalInMinutes: 7 }),
+    ]);
+    scanFindOneByMock.mockResolvedValue(
+      makeScan({ discoveredDevices: [makeHost()] }),
+    );
+
+    await processScan();
+
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(createdDevice(0).pollingIntervalInMinutes).toBeUndefined();
+  });
+
+  it("applies to a ping-only host the rule imports: its ping is its poll", async () => {
+    ruleFindByMock.mockResolvedValue([
+      makeRule({ includePingOnlyHosts: true, pollingIntervalInMinutes: 2 }),
+    ]);
+    scanFindOneByMock.mockResolvedValue(
+      makeScan({
+        discoveredDevices: [
+          makeHost({ snmpReachable: false, sysName: undefined }),
+        ],
+      }),
+    );
+
+    await processScan();
+
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(createdDevice(0).isPollingEnabled).toBe(true);
+    expect(createdDevice(0).pollingIntervalInMinutes).toBe(2);
+  });
+
+  it("is the run rule's on Run Now, and the rule is read with it", async () => {
+    ruleFindOneByMock.mockResolvedValue(
+      makeRule({ pollingIntervalInMinutes: 30 }),
+    );
+    ruleFindByMock.mockResolvedValue([]);
+    mockRunNowScans([makeScan({ discoveredDevices: [makeHost()] })]);
+
+    await runRule(false);
+
+    expect(
+      ruleFindOneByMock.mock.calls[0]![0].select.pollingIntervalInMinutes,
+    ).toBe(true);
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(createdDevice(0).pollingIntervalInMinutes).toBe(30);
+  });
+});

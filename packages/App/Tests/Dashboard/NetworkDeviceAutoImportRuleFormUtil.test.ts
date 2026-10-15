@@ -329,16 +329,32 @@ describe("Network Device auto-import rule monitor form state", () => {
     expect(canSelectAutoImportMonitorTemplate({})).toBe(true);
   });
 
-  it.each(["isExclusion", "includePingOnlyHosts"] as const)(
-    "hides the monitor step when %s is enabled",
-    (field: "isExclusion" | "includePingOnlyHosts") => {
-      expect(canSelectAutoImportMonitorTemplate({ [field]: true })).toBe(false);
-    },
-  );
+  it("hides the monitor step on an exclusion rule", () => {
+    expect(canSelectAutoImportMonitorTemplate({ isExclusion: true })).toBe(
+      false,
+    );
+  });
 
-  it.each(["isExclusion", "includePingOnlyHosts"] as const)(
+  /*
+   * A ping-only host imports as a probe-polled device, which a template's
+   * reachability check reads - the same monitors an import from Review
+   * Results makes for such hosts. Including them keeps the template.
+   */
+  it("keeps the monitor step for a rule that includes ping-only hosts", () => {
+    expect(
+      canSelectAutoImportMonitorTemplate({ includePingOnlyHosts: true }),
+    ).toBe(true);
+    expect(
+      canSelectAutoImportMonitorTemplate({
+        includePingOnlyHosts: true,
+        isExclusion: true,
+      }),
+    ).toBe(false);
+  });
+
+  it.each(["isExclusion"] as const)(
     "clears a persisted monitor template when %s is enabled",
-    (field: "isExclusion" | "includePingOnlyHosts") => {
+    (field: "isExclusion") => {
       const current: FormValues<NetworkDeviceAutoImportRule> = {
         monitorTemplate: "template-id",
         monitorTemplateId: ObjectID.generate(),

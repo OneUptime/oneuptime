@@ -296,7 +296,7 @@ describe("the policies page is where policies are managed", () => {
     const editor: string = between(
       page,
       "const AlertPolicyScopeEditor",
-      "async function findOrCreateRecommendedTemplate",
+      "export interface RecommendedPolicyEmptyStateProps",
     );
 
     expect(editor).toContain("modelType={NetworkSite}");
@@ -308,16 +308,26 @@ describe("the policies page is where policies are managed", () => {
   /*
    * THE point of the empty state: alerting on a whole estate is one click.
    * It resolves the project's seed ids the way every Ping-monitor surface
-   * does, finds or creates the template by marker through the shared util,
-   * creates the policy, and refreshes the table.
+   * does - saying, when one is missing, that it is the recommended template
+   * that needs it - finds or creates the template by marker through the
+   * shared module the discovery import uses too, creates the policy, and
+   * refreshes the table.
    */
   test("the empty state creates the recommended policy through the shared bootstrap util", () => {
     expect(page).toContain("noItemsMessage={ <RecommendedPolicyEmptyState");
-    expect(page).toContain("PingMonitorSeedIds.resolve()");
     expect(page).toContain(
+      "PingMonitorSeedIds.resolve(SeedIdsPurpose.RecommendedTemplate)",
+    );
+    expect(page).toContain("await findOrCreateRecommendedTemplate({");
+
+    const recommended: string = readCode(
+      "Components/NetworkDevice/RecommendedMonitorTemplate.ts",
+    );
+
+    expect(recommended).toContain(
       "NetworkAlertPolicyBootstrapUtil.findRecommendedTemplate(",
     );
-    expect(page).toContain(
+    expect(recommended).toContain(
       "NetworkAlertPolicyBootstrapUtil.buildRecommendedMonitorTemplate(",
     );
     expect(page).toContain(

@@ -450,6 +450,39 @@ export default class NetworkDeviceAutoImportRule extends RuleBaseModel {
       Permission.EditNetworkDeviceAutoImportRule,
     ],
   })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Polling Interval (Minutes)",
+    description:
+      "How often the scan's probe polls each device this rule imports, in minutes: 1, 2, 5, 10, 15, 30 or 60. The probe pings every device and walks the ones that answered SNMP. Leave it empty for the devices' default, every 5 minutes. The same choice as Check every when importing from Review Results.",
+    example: "5",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public pollingIntervalInMinutes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateNetworkDeviceAutoImportRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadNetworkDeviceAutoImportRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditNetworkDeviceAutoImportRule,
+    ],
+  })
   @Index("IDX_network_device_auto_import_rule_isExclusion")
   @TableColumn({
     required: true,
