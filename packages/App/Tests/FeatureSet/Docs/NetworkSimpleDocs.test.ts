@@ -393,6 +393,83 @@ describe("the device guide opens on the Overview's verdict", () => {
       expect(guide).toContain(drawn(language, "Set up alerts"));
     },
   );
+
+  /*
+   * The first-run path the Overview shows a project with nothing on it:
+   * a probe on the network, then the devices, then the alerts. The guide
+   * names its steps and the probe dialog's button as the Dashboard draws
+   * them, and each is read from the component that draws it.
+   */
+  test.each(LANGUAGES)(
+    "%s: names the first-run path's three steps and the probe dialog",
+    (language: string) => {
+      const guide: string = readGuide(language, DEVICE_GUIDE);
+      const steps: string = readRepoFile(
+        `${DASHBOARD}/Components/Network/NetworkProbeSetup.ts`,
+      );
+      const getStarted: string = readRepoFile(
+        `${DASHBOARD}/Components/Network/NetworkGetStarted.tsx`,
+      );
+
+      for (const title of [
+        "Put a probe on your network",
+        "Bring your devices in",
+        "Get told when a device goes down",
+      ]) {
+        expect(steps).toContain(`"${title}"`);
+        expect(guide).toContain(drawn(language, title));
+      }
+
+      expect(getStarted).toContain('title="Add a probe"');
+      expect(guide).toContain(drawn(language, "Add a probe"));
+    },
+  );
+
+  /*
+   * The other labels the audit put on these pages, each where the guide
+   * says it is.
+   */
+  test.each(LANGUAGES)(
+    "%s: names the probe list's heading, the template offer, the scan's credentials and the neighbours' map link",
+    (language: string) => {
+      const guide: string = readGuide(language, DEVICE_GUIDE);
+
+      for (const [label, file, code] of [
+        [
+          "Your probes",
+          "Components/NetworkDevice/ProbeOptions.ts",
+          'translationKey("Your probes")',
+        ],
+        [
+          "Add health checks",
+          "Components/NetworkDevice/DeviceVendorTemplateBanner.tsx",
+          'title="Add health checks"',
+        ],
+        [
+          "Add more credentials",
+          "Components/NetworkDevice/SnmpConfigListEditor.tsx",
+          'title="Add more credentials"',
+        ],
+        [
+          "Open the map",
+          "Components/NetworkDevice/DeviceAttachmentCard.tsx",
+          'translator.translateText("Open the map")',
+        ],
+      ] as Array<[string, string, string]>) {
+        expect(readRepoFile(`${DASHBOARD}/${file}`)).toContain(code);
+        expect(guide).toContain(drawn(language, label));
+      }
+
+      // The scan's credentials field, by the title the form gives it.
+      expect(
+        readRepoFile(`${DASHBOARD}/Pages/NetworkDevice/Discovery.tsx`),
+      ).toContain('title: "Credentials to try"');
+      expect(guide).toContain(
+        `| ${drawnNetworkLabel(language, "Credentials to try")} |`,
+      );
+      expect(guide).not.toContain("| SNMP Configs |");
+    },
+  );
 });
 
 describe("the guides' menu paths lead somewhere", () => {

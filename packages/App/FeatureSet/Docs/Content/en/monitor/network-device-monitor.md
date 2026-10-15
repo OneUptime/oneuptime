@@ -60,7 +60,7 @@ The device and the monitor do different jobs:
 
 Under it, one line says whether anything raises an incident when a device goes down: how many [alert policies](#alert-policies) are on, or a **Set up alerts** link when none is. The **Add Device** and **Discover Devices** buttons beside it open those forms, and the tiles and lists below carry the detail: devices and sites needing attention, the fleet by vendor, and recent scans.
 
-Before anything is added, the Overview shows the two ways in instead: **Discover devices** scans an address range so you can pick what to add, best for a whole network or a new site, and **Add one device** adds one by its IP address or hostname.
+Before anything is added, the Overview walks you through three steps instead. **Put a probe on your network**: a probe pings and walks your devices from inside their network, so **Add a probe** names one, shows the command that runs it and watches it connect. **Bring your devices in**: **Discover devices** scans an address range so you can pick what to add, best for a whole network or a new site, and **Add one device** adds one by its IP address or hostname. **Get told when a device goes down**: **Set up alerts** opens the [alert policies](#alert-policies), where the recommended policy is one click.
 
 The Network menu keeps what you open every day in view: **Overview**, **Devices**, **Sites**, **Map**, **Traffic**, **Events** and **Discovery**. The rest is folded into sections, and a section opens by itself on any of its pages:
 
@@ -100,7 +100,7 @@ A device's details — its name, description, role, site, labels and addresses �
 | Site | The [Network Site](/docs/monitor/network-sites) the device is in. The site's health rolls up from its devices, and a site with a default probe fills in the probe below. | No |
 | Probe | The probe that pings this device, walks it over SNMP when it has credentials, and receives its traps, syslog and [flow records](/docs/monitor/network-traffic). It must reach the device directly: a probe on the public internet cannot reach a private address. | Yes |
 
-**Probe** fills itself in where it can: a project with exactly one custom probe starts on that one, and picking a site replaces it with the [site's default probe](/docs/monitor/network-sites#monitoring-defaults). It never overwrites a probe you picked yourself. Set a default probe on your sites and a device can be added by its address alone.
+**Probe** fills itself in where it can: a project with exactly one custom probe starts on that one, and picking a site replaces it with the [site's default probe](/docs/monitor/network-sites#monitoring-defaults). It never overwrites a probe you picked yourself. Set a default probe on your sites and a device can be added by its address alone. With no probe of its own, a project is told so under the field: **Add a probe** beside it opens the Overview's dialog in a new tab, so the form stays as you left it, and the project's own probes come first in the list, under **Your probes**.
 
 ### More fields (folded)
 
@@ -320,7 +320,7 @@ In the **Health OIDs** editor, **Vendor Health Template** applies a prebuilt set
 | Ubiquiti EdgeOS / EdgeSwitch / UniFi Switches | CPU load, total and available RAM | — |
 | Ubiquiti UniFi Access Points | Isolated state, load average, total and available RAM | Wi-Fi radios (band, airtime), SSIDs (band, channel, clients, TX power, connection quality), CPU cores |
 
-The template's OIDs are copied into the device's own list, where you can prune or extend them. After the first walk identifies the vendor, the device page suggests the matching template. Matching reads the device's `sysObjectID`, and its `sysDescr` where one enterprise number hosts two operating systems: Extreme Fabric Engine on universal hardware reports the same enterprise (1916) as EXOS, and only its description (`…-FabricEngine (9.0.4.0)`) tells them apart. UniFi access points are told from Ubiquiti's routers the same way (`U6-Pro 6.6.50.15098`), also when older firmware answers with Net-SNMP's arc, and IQ Engine access points from the Aerohive switches that share their arc (`AP230, HiveOS 8.2r1`).
+The template's OIDs are copied into the device's own list, where you can prune or extend them. After the first walk identifies the vendor, the device's Overview offers the matching template while it would add something, and **Add health checks** adds it in one click. Matching reads the device's `sysObjectID`, and its `sysDescr` where one enterprise number hosts two operating systems: Extreme Fabric Engine on universal hardware reports the same enterprise (1916) as EXOS, and only its description (`…-FabricEngine (9.0.4.0)`) tells them apart. UniFi access points are told from Ubiquiti's routers the same way (`U6-Pro 6.6.50.15098`), also when older firmware answers with Net-SNMP's arc, and IQ Engine access points from the Aerohive switches that share their arc (`AP230, HiveOS 8.2r1`).
 
 Devices with **Auto-Apply Vendor Health Template** on get the template's OIDs and tables on their first poll: devices an auto import rule brings in, and devices imported from **Review Results** with its vendor template switch on, which it is unless you turn it off. To give many devices their template at once, such as a discovered fleet that predates the switch, select them on the **Devices** list and use **Apply Vendor Template** (see [Changing Many Devices at Once](#changing-many-devices-at-once)).
 
@@ -539,9 +539,9 @@ Click **Review Results** on the scan, pick the hosts to import, and click **Next
 | Field | Description | Required |
 | --- | --- | --- |
 | Scan Target | The addresses to scan, in [CIDR or octet-range notation](#scan-target-notation). | Yes |
-| Probe | The probe that runs the sweep. It must reach the range directly. A project with exactly one custom probe starts on that one. | Yes |
+| Probe | The probe that runs the sweep. It must reach the range directly. A project with exactly one custom probe starts on that one. A project with no probe of its own is told so, with **Add a probe** beside the field. | Yes |
 | Check SNMP on hosts that answer | A scan pings the range first; this decides whether the hosts that answer are then asked over SNMP for their name and vendor. Turn it off for a [ping-only scan](#ping-only-scans). Chosen when the scan is created and fixed after that. On by default. | No |
-| SNMP Configs | The second step: the credential sets to try, in order. Each host is asked with each set until one answers, so add one set per group of devices that share a version and community or v3 user. | When Check SNMP is on |
+| Credentials to try | The second step: the credential sets to try, in order. Each host is asked with each set until one answers, so add one set per group of devices that share a version and community or v3 user. **Add more credentials** adds one. | When Check SNMP is on |
 
 Folded under **More fields** on the first step, for the scans that need them:
 
@@ -959,7 +959,7 @@ For that, the map has to know which learned MAC is the device's. There are two w
 
 The switch the device hangs off needs **Collect Connected Endpoints** on as well: that is where the port comes from. Addresses are matched within the device's site, since every branch has a `10.0.0.5`; a MAC matches whatever the site.
 
-The device's Overview has a **Connected to** card naming the switch, port and VLAN. On the map, the device's drawer shows the same under **Connected to**, and the link's drawer says it was learned from the switch's forwarding table. The Parent-Child view draws the device beneath its switch. A link you drew by hand under **Device Links** for the same pair merges with the learned one rather than doubling it: the learned port replaces a mistyped one, and a parent you set on the hand-drawn link is kept.
+The device's Overview has a **Connected to** card naming the switch, port and VLAN. A switch, router or firewall that reports its neighbours over LLDP or CDP lists them there instead: its own port, the neighbour (a link when it is a device here) and the port at the far end, with **Open the map** beside them. On the map, the device's drawer shows the same under **Connected to**, and the link's drawer says it was learned from the switch's forwarding table. The Parent-Child view draws the device beneath its switch. A link you drew by hand under **Device Links** for the same pair merges with the learned one rather than doubling it: the learned port replaces a mistyped one, and a parent you set on the hand-drawn link is kept.
 
 ![Parent-Child topology view drawing a ping-only register beneath its switch over a learned link](/docs/static/images/NetworkTopologyLearnedLink.png)
 

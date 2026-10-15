@@ -60,7 +60,7 @@ Enheden og monitoren udfører forskellige opgaver:
 
 Under den siger én linje, om noget opretter en hændelse, når en enhed går ned: hvor mange [advarselspolitikker](#advarselspolitikker) der er slået til, eller et link **Set up alerts**, når der ingen er. Knapperne **Add Device** og **Discover Devices** ved siden af åbner de formularer, og felterne og listerne nedenunder giver detaljerne: enheder og lokationer, der kræver opmærksomhed, flåden pr. producent og de seneste scanninger.
 
-Før noget er tilføjet, viser oversigten i stedet de to måder at komme i gang på: **Find enheder** scanner et adresseområde, så du kan vælge, hvad du vil tilføje, bedst til et helt netværk eller en ny lokation, og **Tilføj én enhed** tilføjer én ud fra dens IP-adresse eller værtsnavn.
+Før noget er tilføjet, fører oversigten dig i stedet gennem tre trin. **Sæt en sonde på dit netværk**: en sonde pinger og gennemgår dine enheder inde fra deres netværk, så **Tilføj en sonde** navngiver en, viser kommandoen, der starter den, og følger med, når den opretter forbindelse. **Tilføj dine enheder**: **Find enheder** scanner et adresseområde, så du kan vælge, hvad du vil tilføje, bedst til et helt netværk eller en ny lokation, og **Tilføj én enhed** tilføjer én ud fra dens IP-adresse eller værtsnavn. **Få besked, når en enhed går ned**: **Set up alerts** åbner [advarselspolitikkerne](#advarselspolitikker), hvor den anbefalede politik er ét klik væk.
 
 Netværk-menuen holder det, du åbner hver dag, synligt: **Oversigt**, **Devices**, **Lokationer**, **Map**, **Traffic**, **Begivenheder** og **Discovery**. Resten er foldet sammen i sektioner, og en sektion folder sig selv ud på hver af sine sider:
 
@@ -100,7 +100,7 @@ En enheds oplysninger — navn, beskrivelse, rolle, lokation, etiketter og adres
 | Site | Den [netværkslokation](/docs/monitor/network-sites), enheden står i. Lokationens tilstand opsummeres fra dens enheder, og en lokation med en standardsonde udfylder sonden nedenfor. | Nej |
 | Sonde | Den sonde, der pinger enheden, walker den via SNMP, når den har loginoplysninger, og modtager dens traps, syslog og [flowposter](/docs/monitor/network-traffic). Den skal kunne nå enheden direkte: en sonde på det offentlige internet kan ikke nå en privat adresse. | Ja |
 
-**Sonde** udfylder sig selv, hvor den kan: et projekt med præcis én brugerdefineret sonde starter med den, og valg af en lokation erstatter den med [lokationens standardsonde](/docs/monitor/network-sites#overvågningsstandarder). Den overskriver aldrig en sonde, du selv har valgt. Sæt en standardsonde på dine lokationer, så kan en enhed tilføjes alene med sin adresse.
+**Sonde** udfylder sig selv, hvor den kan: et projekt med præcis én brugerdefineret sonde starter med den, og valg af en lokation erstatter den med [lokationens standardsonde](/docs/monitor/network-sites#overvågningsstandarder). Den overskriver aldrig en sonde, du selv har valgt. Sæt en standardsonde på dine lokationer, så kan en enhed tilføjes alene med sin adresse. Et projekt uden egen sonde får det at vide under feltet: **Tilføj en sonde** ved siden af åbner oversigtens dialog i en ny fane, så formularen bliver, som du forlod den, og projektets egne sonder står først på listen under **Dine sonder**.
 
 ### Flere felter (foldet sammen)
 
@@ -320,7 +320,7 @@ I editoren **Health OIDs** anvender **Vendor Health Template** et færdigt sæt 
 | Ubiquiti EdgeOS / EdgeSwitch / UniFi Switches | CPU-belastning, samlet og tilgængelig RAM | — |
 | Ubiquiti UniFi Access Points | Isoleret tilstand, load average, samlet og tilgængelig RAM | Wi-Fi-radioer (bånd, airtime), SSID'er (bånd, kanal, klienter, sendestyrke, forbindelseskvalitet), CPU-kerner |
 
-Skabelonens OID'er kopieres til enhedens egen liste, hvor du kan beskære eller udvide dem. Når det første walk har identificeret producenten, foreslår enhedssiden den tilsvarende skabelon. Matchningen læser enhedens `sysObjectID`, og dens `sysDescr`, hvor ét enterprisenummer rummer to operativsystemer: Extreme Fabric Engine på universel hardware rapporterer samme enterprisenummer (1916) som EXOS, og kun dens beskrivelse (`…-FabricEngine (9.0.4.0)`) skiller dem ad. UniFi-access points skilles fra Ubiquitis routere på samme måde (`U6-Pro 6.6.50.15098`), også når ældre firmware svarer med Net-SNMP's gren, og IQ Engine-access points fra de Aerohive-switches, der deler deres gren (`AP230, HiveOS 8.2r1`).
+Skabelonens OID'er kopieres til enhedens egen liste, hvor du kan beskære eller udvide dem. Når det første walk har identificeret producenten, tilbyder enhedens oversigt den tilsvarende skabelon, så længe den vil tilføje noget, og **Tilføj tilstandstjek** tilføjer den med ét klik. Matchningen læser enhedens `sysObjectID`, og dens `sysDescr`, hvor ét enterprisenummer rummer to operativsystemer: Extreme Fabric Engine på universel hardware rapporterer samme enterprisenummer (1916) som EXOS, og kun dens beskrivelse (`…-FabricEngine (9.0.4.0)`) skiller dem ad. UniFi-access points skilles fra Ubiquitis routere på samme måde (`U6-Pro 6.6.50.15098`), også når ældre firmware svarer med Net-SNMP's gren, og IQ Engine-access points fra de Aerohive-switches, der deler deres gren (`AP230, HiveOS 8.2r1`).
 
 Enheder med **Auto-Apply Vendor Health Template** slået til får skabelonens OID'er og tabeller ved deres første polling: enheder, som en auto-importregel henter ind, og enheder importeret fra **Review Results** med kontakten for producentskabelon slået til, hvilket den er, medmindre du slår den fra. For at give mange enheder deres skabelon på én gang, som en fundet flåde fra før kontakten fandtes, markerer du dem på listen **Devices** og bruger **Anvend producentskabelon** (se [Ændr mange enheder på én gang](#ændr-mange-enheder-på-én-gang)).
 
@@ -539,9 +539,9 @@ Klik på **Review Results** på scanningen, vælg de værter, der skal importere
 | Felt | Beskrivelse | Påkrævet |
 | --- | --- | --- |
 | Scanmål | De adresser, der skal scannes, i [CIDR- eller oktetområdenotation](#notation-for-scanmål). | Ja |
-| Sonde | Den sonde, der kører scanningen. Den skal kunne nå området direkte. Et projekt med præcis én brugerdefineret sonde starter med den. | Ja |
+| Sonde | Den sonde, der kører scanningen. Den skal kunne nå området direkte. Et projekt med præcis én brugerdefineret sonde starter med den. Et projekt uden egen sonde får det at vide, med **Tilføj en sonde** ved siden af feltet. | Ja |
 | Check SNMP on hosts that answer | En scanning pinger først området; dette afgør, om de værter, der svarer, derefter spørges via SNMP om deres navn og producent. Slå det fra for en [scanning kun med ping](#scanninger-kun-med-ping). Vælges, når scanningen oprettes, og ligger fast derefter. Til som standard. | Nej |
-| SNMP Configs | Det andet trin: de sæt loginoplysninger, der skal prøves, i rækkefølge. Hver vært spørges med hvert sæt, indtil ét svarer, så tilføj ét sæt pr. gruppe af enheder, der deler version og community eller v3-bruger. | Når SNMP-tjek er slået til |
+| Loginoplysninger, der skal prøves | Det andet trin: de sæt loginoplysninger, der skal prøves, i rækkefølge. Hver vært spørges med hvert sæt, indtil ét svarer, så tilføj ét sæt pr. gruppe af enheder, der deler version og community eller v3-bruger. **Tilføj flere loginoplysninger** tilføjer ét. | Når SNMP-tjek er slået til |
 
 Foldet sammen under **Flere felter** på første trin, til de scanninger, der har brug for dem:
 
@@ -959,7 +959,7 @@ For det skal kortet vide, hvilken lært MAC der er enhedens. Der er to måder, o
 
 Den switch, enheden hænger på, skal også have **Collect Connected Endpoints** slået til: det er derfra, porten kommer. Adresser matches inden for enhedens lokation, da hver filial har en `10.0.0.5`; en MAC matcher uanset lokationen.
 
-Enhedens oversigt har et kort **Connected to**, der nævner switchen, porten og VLAN'et. På kortet viser enhedens skuffe det samme under **Connected to**, og forbindelsens skuffe siger, at den blev lært fra switchens forwardingtabel. Parent-Child-visningen tegner enheden under dens switch. En forbindelse, du har tegnet i hånden under **Device Links** for det samme par, smelter sammen med den lærte i stedet for at fordoble den: den lærte port erstatter en fejlskrevet, og en forælder, du har sat på den håndtegnede forbindelse, bevares.
+Enhedens oversigt har et kort **Connected to**, der nævner switchen, porten og VLAN'et. En switch, router eller firewall, der rapporterer sine naboer over LLDP eller CDP, viser dem der i stedet: sin egen port, naboen (et link, når den er en enhed her) og porten i den anden ende, med **Åbn kortet** ved siden af. På kortet viser enhedens skuffe det samme under **Connected to**, og forbindelsens skuffe siger, at den blev lært fra switchens forwardingtabel. Parent-Child-visningen tegner enheden under dens switch. En forbindelse, du har tegnet i hånden under **Device Links** for det samme par, smelter sammen med den lærte i stedet for at fordoble den: den lærte port erstatter en fejlskrevet, og en forælder, du har sat på den håndtegnede forbindelse, bevares.
 
 ![Parent-Child-topologivisning, der tegner en kasse kun med ping under dens switch via en lært forbindelse](/docs/static/images/NetworkTopologyLearnedLink.png)
 
