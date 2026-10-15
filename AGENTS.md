@@ -89,6 +89,17 @@ Before building or publishing the Android or iOS app, read
 Expo identifiers, the verified release procedure, privacy checks, and the steps
 needed after uploading a binary to actually submit and publish the update.
 
+### Slack and Microsoft Teams app releases
+
+OneUptime Cloud's own Slack and Microsoft Teams apps do not change when the code does. Before changing
+`packages/Common/Server/Utils/Workspace/Slack/app-manifest.json`, `MicrosoftTeamsAPI.getTeamsAppManifest()`,
+or the Slack scopes, Slack events or Microsoft Graph permissions the code relies on, read
+[the Slack guide](packages/Common/Server/Utils/Workspace/Slack/RELEASING.md) and
+[the Microsoft Teams guide](packages/Common/Server/Utils/Workspace/MicrosoftTeams/RELEASING.md). They name the
+published apps and the workspace, tenant and accounts that own them, and say how to apply a manifest change to
+the live apps once it is released, how the Slack Marketplace and Microsoft Partner Center submissions work, and
+what customers must do after a permission change.
+
 ### Commit frequently
 
 Committing frequently helps keep your changes small and manageable. It also makes it easier to identify which changes introduced a bug if something goes wrong. Aim to commit logically related changes together and write clear commit messages that describe the purpose of the change. It also costs less when the work session is interrupted and resumed later.

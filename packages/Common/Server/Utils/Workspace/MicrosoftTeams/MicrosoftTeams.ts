@@ -3453,15 +3453,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   }
 
   @CaptureSpan()
-  public static override async isUserInDirectMessageChannel(_data: {
-    authToken: string;
-    userId: string;
-    directMessageChannelId: string;
-  }): Promise<boolean> {
-    return false; // Placeholder
-  }
-
-  @CaptureSpan()
   public static override async isUserInChannel(_data: {
     authToken: string;
     channelId: string;

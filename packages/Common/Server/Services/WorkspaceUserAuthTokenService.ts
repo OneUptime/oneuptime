@@ -17,6 +17,26 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Who installs the Slack app is linked with no token of their own: the
+   * app asks for no user scopes, so Slack's install names them
+   * (authed_user.id) and gives no user token - OneUptime acts with the
+   * project's bot token and their Slack user id. The required-column check
+   * reads "" as missing, and would refuse that link, failing the install.
+   * An empty token is a value of it; anything else is read as the check
+   * reads it.
+   */
+  protected override isRequiredColumnValueGiven(
+    column: string,
+    value: unknown,
+  ): boolean {
+    if (column === "authToken" && typeof value === "string") {
+      return true;
+    }
+
+    return super.isRequiredColumnValueGiven(column, value);
+  }
+
+  /*
    * A UserSlack / UserMicrosoftTeams notification method is a pointer at the
    * workspace link being deleted here, so it goes down with it (which also
    * deletes the notification rules routing to it, via that service's own

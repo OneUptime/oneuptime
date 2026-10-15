@@ -160,7 +160,7 @@ Open OneUptime onder **Apps** in de zijbalk van Slack: het tabblad **Home** laat
 
 De startpagina leest als jou, dus heeft ze je eigen gekoppelde Slack-account nodig. Zolang dat niet zo is, staat er een knop **Connect Slack account** op, en zodra je het hebt gekoppeld, zie je je startpagina.
 
-Als iemand OneUptime aan een kanaal toevoegt, plaatst het daar een begroeting: hoe je het een vraag stelt en waar je een meldingsregel toevoegt die in het kanaal plaatst.
+Als iemand OneUptime aan een kanaal toevoegt, plaatst het daar een begroeting: hoe je het een vraag stelt en waar je een meldingsregel toevoegt die in het kanaal plaatst. De eerste keer dat je het tabblad **Messages** opent, heet het je daar welkom: wat het in Slack doet en hoe je begint.
 
 ## OneUptime AI vragen vanuit Slack
 
@@ -229,6 +229,18 @@ De knoppen in de Slack-berichten van OneUptime handelen ook als jou: als het One
 
 > [!WARNING]
 > Verwijderen ontkoppelt ook het Slack-account van elk lid van het project, en verwijdert de Slack-meldingsmethoden en de bereikbaarheidsregels die ze gebruikten. Wie in Slack werd opgeroepen, wordt via zijn andere meldingsmethoden opgeroepen tot hij Slack opnieuw toevoegt.
+
+## Je Slack-gegevens
+
+OneUptime leest uit Slack alleen wat deze functies nodig hebben, met de rechten die je geeft als je het installeert:
+
+- **Berichten aan OneUptime.** Een bericht dat het met @ noemt, een bericht dat je het in een direct bericht stuurt en je antwoorden in een gesprek ermee, samen met de eerdere berichten van die thread of dat directe bericht, zodat OneUptime AI kan antwoorden. Slack stuurt het ook de andere berichten van de kanalen en groepsberichten waarin het zit; OneUptime beantwoordt die niet en bewaart ze niet.
+- **Berichten die je als notitie opslaat.** Een bericht waarop je met 📌 of 📢 reageert, of dat je vastmaakt, in het kanaal van een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis, opgeslagen als notitie bij dat record met de naam van de schrijver.
+- **Namen van kanalen en mensen.** De kanalen waarin het kan plaatsen, zodat je ze kunt kiezen, en de namen van mensen, om te laten zien wie iets schreef of deed.
+- **E-mailadressen.** Het e-mailadres dat Slack van iemand heeft, om diens Slack-account aan diens OneUptime-account te koppelen als diegene het niet zelf heeft gekoppeld: om diegene op te roepen, of in een gebruikersgroep voor bereikbaarheid te zetten.
+- **Gebruikersgroepen.** De gebruikersgroepen van je werkruimte, om er een te kiezen voor een bereikbaarheidsschema, en de mensen in een groep die je koppelt, om die gelijk te houden aan wie er dienst heeft.
+
+Wat OneUptime ervan bewaart — de naam van de werkruimte, de kanalen, de Slack-accounts die mensen koppelen, de notities en de gebruikersgroepen — wordt bij je project opgeslagen. Het [Privacybeleid](https://oneuptime.com/legal/privacy) beschrijft hoe OneUptime met je gegevens omgaat.
 
 ## Problemen oplossen
 
