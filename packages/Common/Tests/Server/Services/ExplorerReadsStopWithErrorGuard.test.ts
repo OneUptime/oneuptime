@@ -34,6 +34,8 @@ const EXPLORER_READ_SERVICES: Array<string> = [
   "MetricService.ts",
   "ProfileAggregationService.ts",
   "SecurityEventService.ts",
+  // The explorers' attribute pickers: the key list and the value lookups.
+  "TelemetryAttributeService.ts",
 ];
 
 /*
@@ -58,6 +60,12 @@ const KEEPS_BREAK: Array<{ file: string; line: string; reason: string }> = [
     line: 'timeoutOverflowMode: "break",',
     reason:
       "The service latency profile, read by an unattended 15-minute scanner that discards any answer that may be partial (isPartial) — never by an explorer.",
+  },
+  {
+    file: "TelemetryAttributeService.ts",
+    line: 'read_overflow_mode: "break",',
+    reason:
+      "Not a time limit: the value lookup's rows-read budget (issue #4708). ClickHouse stops reading after a million rows and answers with the values it found as a whole document (AttributeValueSuggestionsClickhouse.test.ts, checked on 24.8 and 26.7), and a suggestion list is a sample by design. Its time limit is SUGGESTION_READ_TIME_LIMIT, which throws.",
   },
 ];
 

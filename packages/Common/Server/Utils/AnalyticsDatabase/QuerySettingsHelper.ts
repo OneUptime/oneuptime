@@ -94,6 +94,27 @@ export const INTERACTIVE_READ_TIME_LIMIT: Readonly<{
   timeoutOverflowMode: "throw",
 };
 
+/*
+ * How long a suggestion lookup may run — the values offered under `@key:` in
+ * the search bars, the chart editors' value boxes, a dashboard's variable
+ * dropdowns (issue #4708) — and how it stops.
+ *
+ * A suggestion is a convenience next to the reader's typing, not the answer
+ * they are waiting for, so it gets far less than a search: a lookup reads a
+ * bounded sample (TelemetryAttributeService) and finishes in well under a
+ * second, and one that has not finished in 10 seconds is stopped with
+ * 'throw', for the same reasons as above. The search bar then says it could
+ * not load the values and the reader types one; the database is not held for
+ * a list nobody is waiting on.
+ */
+export const SUGGESTION_READ_TIME_LIMIT: Readonly<{
+  maxExecutionTimeInSeconds: number;
+  timeoutOverflowMode: TimeoutOverflowMode;
+}> = {
+  maxExecutionTimeInSeconds: 10,
+  timeoutOverflowMode: "throw",
+};
+
 export interface QuerySettingsOptions {
   /**
    * Wall-clock cap in seconds (max_execution_time). Omitted from the

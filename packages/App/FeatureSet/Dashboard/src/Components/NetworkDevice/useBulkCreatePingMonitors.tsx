@@ -30,6 +30,11 @@ import PermissionGate, {
 import ProbeUtil from "../../Utils/Probe";
 import { provisionPingMonitorForDevice } from "./PingMonitorProvisioning";
 import PingMonitorSeedIds from "./PingMonitorSeedIds";
+import {
+  ActiveMonitorLimitAlert,
+  readActiveMonitorLimitIfReached,
+} from "../Monitor/ActiveMonitorLimitNotice";
+import { ActiveMonitorLimitStatus } from "Common/Types/Monitor/ActiveMonitorLimit";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -100,6 +105,15 @@ function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
    * id comment in createPingMonitors.
    */
   const [startupError, setStartupError] = useState<string | null>(null);
+
+  /*
+   * The plan's limit on active monitors, when the project has no room for
+   * any: the other project-level reason the action does not start, said
+   * with the limit's own notice (which limit, how many, what to do, and the
+   * plan a click away).
+   */
+  const [limitReached, setLimitReached] =
+    useState<ActiveMonitorLimitStatus | null>(null);
 
   /*
    * Which open of the modal a probe response belongs to. The modal is
@@ -252,6 +266,22 @@ function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
      * scrolled past. onBulkActionStart is deliberately not called before
      * this resolves, so the table's progress modal never opens on nothing.
      */
+    /*
+     * A project with no room under its plan's limit on active monitors can
+     * get no Ping monitor at all - a reason about the project, so it is said
+     * once, in its own modal, and the action never starts. With some room
+     * left the action runs, and the creates past it are refused one by one,
+     * in the server's words (ActiveMonitorLimit).
+     */
+    const limitStatus: ActiveMonitorLimitStatus | null =
+      await readActiveMonitorLimitIfReached();
+
+    if (limitStatus) {
+      setLimitReached(limitStatus);
+      setBulkActionProps(null);
+      return;
+    }
+
     let seedIds: MonitorCriteriaSeedIds;
 
     try {
@@ -496,6 +526,18 @@ function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
           closeButtonText="Close"
         >
           <ErrorMessage message={startupError} />
+        </Modal>
+      )}
+      {limitReached && (
+        <Modal
+          title="Ping Monitors Could Not Be Created"
+          description="Nothing was created or changed."
+          onClose={(): void => {
+            setLimitReached(null);
+          }}
+          closeButtonText="Close"
+        >
+          <ActiveMonitorLimitAlert status={limitReached} />
         </Modal>
       )}
     </>

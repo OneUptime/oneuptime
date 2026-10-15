@@ -358,7 +358,16 @@
       "amountTooPrecise": "금액은 소수점 이하 두 자리를 초과할 수 없습니다.",
       "reasonRequired": "이 조정에 대한 사유를 입력하세요.",
       "adjustBalanceStepBalance": "잔액",
-      "adjustBalanceStepAmount": "금액 및 사유"
+      "adjustBalanceStepAmount": "금액 및 사유",
+      "monitorLimitCardTitle": "활성 모니터",
+      "monitorLimitCardDescription": "수동 모니터를 제외한 모든 모니터가 켜져 있는지와 관계없이 집계됩니다. 한도에 도달하면 프로젝트는 더 추가할 수 없으며, 기존 모니터는 계속 실행됩니다. 리셀러에게서 구매한 요금제가 이 한도를 정하며, 리셀러가 다음에 등급을 변경하면 덮어씁니다. Free 요금제 프로젝트에는 Free 요금제의 한도도 적용됩니다.",
+      "monitorLimitEditButton": "모니터 한도 편집",
+      "fieldActiveMonitors": "활성 모니터",
+      "fieldMonitorLimit": "활성 모니터 한도",
+      "fieldMonitorLimitDescription": "이 프로젝트가 가질 수 있는 활성 모니터의 최대 수입니다. 한도를 두지 않으려면 비워 두세요.",
+      "noMonitorLimit": "한도 없음",
+      "overMonitorLimit": "한도 {{over}}개 초과",
+      "atMonitorLimit": "한도 도달"
     },
     "projectSupport": {
       "title": "고객 지원 액세스",

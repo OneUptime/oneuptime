@@ -358,7 +358,16 @@
       "amountTooPrecise": "Der Betrag darf höchstens zwei Nachkommastellen haben.",
       "reasonRequired": "Bitte geben Sie einen Grund für diese Anpassung an.",
       "adjustBalanceStepBalance": "Guthaben",
-      "adjustBalanceStepAmount": "Betrag & Grund"
+      "adjustBalanceStepAmount": "Betrag & Grund",
+      "monitorLimitCardTitle": "Aktive Monitore",
+      "monitorLimitCardDescription": "Jeder Monitor außer einem manuellen zählt, ob aktiviert oder nicht. Am Limit kann das Projekt keine weiteren hinzufügen, und die vorhandenen laufen weiter. Ein bei einem Reseller gekaufter Tarif legt dieses Limit fest, und die nächste Tarifänderung des Resellers überschreibt es. Für Projekte im Free-Tarif gilt zusätzlich das Limit des Free-Tarifs.",
+      "monitorLimitEditButton": "Monitor-Limit bearbeiten",
+      "fieldActiveMonitors": "Aktive Monitore",
+      "fieldMonitorLimit": "Limit für aktive Monitore",
+      "fieldMonitorLimitDescription": "Die Höchstzahl aktiver Monitore, die dieses Projekt haben darf. Leer lassen für kein Limit.",
+      "noMonitorLimit": "Kein Limit",
+      "overMonitorLimit": "{{over}} über dem Limit",
+      "atMonitorLimit": "Am Limit"
     },
     "projectSupport": {
       "title": "Kundensupport-Zugriff",

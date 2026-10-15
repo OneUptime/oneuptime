@@ -148,11 +148,19 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import PositiveNumber from "../../Types/PositiveNumber";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
+import ActiveMonitorLimitUtil from "../../Types/Monitor/ActiveMonitorLimit";
 import { IsNull, UpdateResult } from "typeorm";
 
 export interface CurrentPlan {
   plan: PlanType | null;
   isSubscriptionUnpaid: boolean;
+  /*
+   * How many active monitors the project's own plan includes, when it caps
+   * them: a plan bought from a reseller (Project.activeMonitorsLimit). Left
+   * out when it does not. Read and cached with the plan, as it is a part of
+   * it; ActiveMonitorLimit (Utils/Billing) holds creates to it.
+   */
+  activeMonitorsLimit?: number | undefined;
 }
 
 export interface ProjectBalanceAdjustmentResult {
@@ -958,6 +966,18 @@ export class ProjectService extends ProjectReferencesService<Model> {
       .data as unknown as Record<string, unknown>;
 
     this.invalidateAuditLogSettingsCache(updateData, updatedItemIds);
+
+    /*
+     * The active monitor limit is read and cached with the plan
+     * (getCurrentPlan): a new one - a reseller's change of tier, or a master
+     * admin's edit - holds this server's monitor creates at once, and every
+     * other server's within the cache's minute.
+     */
+    if (updateData["activeMonitorsLimit"] !== undefined) {
+      for (const projectId of updatedItemIds) {
+        this.forgetCurrentPlan(projectId);
+      }
+    }
 
     /*
      * Blocked or unblocked: this server reads the flag again on the next
@@ -3750,6 +3770,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
         paymentProviderPlanId: true,
         paymentProviderSubscriptionStatus: true,
         paymentProviderMeteredSubscriptionStatus: true,
+        activeMonitorsLimit: true,
       },
       props: {
         isRoot: true,
@@ -3782,6 +3803,13 @@ export class ProjectService extends ProjectReferencesService<Model> {
           project.paymentProviderMeteredSubscriptionStatus!,
         ),
     };
+
+    const activeMonitorsLimit: number | null =
+      ActiveMonitorLimitUtil.getProjectLimit(project.activeMonitorsLimit);
+
+    if (activeMonitorsLimit !== null) {
+      result.activeMonitorsLimit = activeMonitorsLimit;
+    }
     if (planChangesBeforeRead === this.currentPlanChanges) {
       this.currentPlanCache.set(
         cacheKey,

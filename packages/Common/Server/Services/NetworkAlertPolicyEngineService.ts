@@ -8,31 +8,25 @@ import MonitorTemplate from "../../Models/DatabaseModels/MonitorTemplate";
 import NetworkAlertPolicy from "../../Models/DatabaseModels/NetworkAlertPolicy";
 import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
-import {
-  AllowedActiveMonitorCountInFreePlan,
-  IsBillingEnabled,
-} from "../EnvironmentConfig";
+import { IsBillingEnabled } from "../EnvironmentConfig";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ActiveMonitorLimit from "../Utils/Billing/ActiveMonitorLimit";
 import logger, { LogAttributes } from "../Utils/Logger";
 import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
-import MonitorType, {
-  MonitorTypeHelper,
-} from "../../Types/Monitor/MonitorType";
+import MonitorType from "../../Types/Monitor/MonitorType";
 import NetworkAlertPolicyScope, {
   NetworkAlertPolicyScopeUtil,
 } from "../../Types/NetworkDevice/NetworkAlertPolicyScope";
 import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "../../Types/ObjectID";
 import PartialEntity from "../../Types/Database/PartialEntity";
-import PositiveNumber from "../../Types/PositiveNumber";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 
 /*
@@ -2002,21 +1996,19 @@ class NetworkAlertPolicyEngineServiceClass {
       if (currentPlan.isSubscriptionUnpaid) {
         exception =
           "This project's subscription is unpaid, so no monitors can be provisioned. Update the payment method and settle the outstanding invoices, and the next sync will provision them.";
-      } else if (currentPlan.plan === PlanType.Free) {
-        const monitorCount: PositiveNumber = await MonitorService.countBy({
-          query: {
-            projectId: context.projectId,
-            monitorType: QueryHelper.any(
-              MonitorTypeHelper.getActiveMonitorTypes(),
-            ),
-          },
-          props: {
-            isRoot: true,
-          },
+      } else {
+        /*
+         * The plan's limit on active monitors - the Free plan's, or the
+         * project's own when it bought its plan from a reseller - in the
+         * words every monitor create is refused with (ActiveMonitorLimit).
+         */
+        const refusal: string | null = await ActiveMonitorLimit.getRefusal({
+          projectId: context.projectId,
+          currentPlan: currentPlan,
         });
 
-        if (monitorCount.toNumber() >= AllowedActiveMonitorCountInFreePlan) {
-          exception = `This project has reached the free plan's limit of ${AllowedActiveMonitorCountInFreePlan} active monitors, so alert policies cannot provision more. Upgrade the plan and the next sync will provision them.`;
+        if (refusal) {
+          exception = `${refusal} Alert policies provision the rest of their monitors on the next sync once there is room.`;
         }
       }
     } catch (error) {

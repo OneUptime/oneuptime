@@ -2,6 +2,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useRef,
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
@@ -37,7 +38,9 @@ import RecommendationDismissal from "Common/Models/DatabaseModels/Recommendation
 import Label from "Common/Models/DatabaseModels/Label";
 
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
-import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import RecommendationType from "Common/Types/Recommendation/RecommendationType";
 import MonitorRecommendationCatalog, {
   MonitorRecommendationResourceTypeDefinition,
@@ -86,6 +89,8 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { ActiveMonitorLimitStatus } from "Common/Types/Monitor/ActiveMonitorLimit";
+import { readActiveMonitorLimitIfReached } from "../Monitor/ActiveMonitorLimitNotice";
 
 export interface ComponentProps {
   resourceType: MonitorRecommendationResourceType;
@@ -130,6 +135,43 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [actionError, setActionError] = useState<string>("");
+
+  /*
+   * The plan's limit on active monitors, when the project has no room for
+   * any: the create panel says so above its form and starts nothing. Read
+   * as the panel opens, and again when Create is pressed.
+   */
+  const [limitReached, setLimitReached] =
+    useState<ActiveMonitorLimitStatus | null>(null);
+
+  /*
+   * Which read of the limit an answer belongs to: the newest wins, so a
+   * slow read from when the panel opened never overwrites the one Create
+   * made after it.
+   */
+  const limitReadSequence: React.MutableRefObject<number> = useRef<number>(0);
+
+  /*
+   * The limit, read now; null when the project has room, has no limit, or
+   * it cannot be read. Never rejects. An answer a newer read has overtaken
+   * is dropped.
+   */
+  type ReadLimitFunction = () => Promise<ActiveMonitorLimitStatus | null>;
+
+  const readLimit: ReadLimitFunction =
+    async (): Promise<ActiveMonitorLimitStatus | null> => {
+      limitReadSequence.current += 1;
+      const sequence: number = limitReadSequence.current;
+
+      const status: ActiveMonitorLimitStatus | null =
+        await readActiveMonitorLimitIfReached();
+
+      if (sequence === limitReadSequence.current) {
+        setLimitReached(status);
+      }
+
+      return status;
+    };
 
   const [projectDefaults, setProjectDefaults] =
     useState<ProjectDefaults | null>(null);
@@ -479,6 +521,23 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
   ]);
 
   /*
+   * Opens the create panel - from the card's header or the bar pinned under
+   * the list - and reads the plan's limit on active monitors as it opens: a
+   * project with no room is told so at once, above the form, before anyone
+   * fills it in.
+   */
+  type OpenCreatePanelFunction = () => void;
+
+  const openCreatePanel: OpenCreatePanelFunction = (): void => {
+    setActionError("");
+    setLimitReached(null);
+    setShowCreateSideOver(true);
+
+    // Never rejects: a limit it cannot read is no limit here.
+    void readLimit();
+  };
+
+  /*
    * Takes the ids explicitly rather than reading the derived
    * `selectedRecommendations` below it. Both would work — the handler only
    * fires from a render that got past the early returns — but a create path
@@ -531,6 +590,28 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       setActionError(MONITOR_CONSENT_ERROR);
       setIsCreating(false);
       return;
+    }
+
+    /*
+     * A project with no room under its plan's limit on active monitors can
+     * create none of the recommended monitors: said once, with the limit's
+     * notice in the panel, and the batch never starts - rather than every
+     * row refused in the same words. With some room left the batch runs, and
+     * the server refuses the creates past it one by one (ActiveMonitorLimit).
+     */
+    if (
+      plan.some((item: MonitorRecommendationCreatePlanItem): boolean => {
+        return MonitorTypeHelper.isBilledAsActiveMonitor(
+          item.monitor.monitorType as MonitorType,
+        );
+      })
+    ) {
+      const limitStatus: ActiveMonitorLimitStatus | null = await readLimit();
+
+      if (limitStatus) {
+        setIsCreating(false);
+        return;
+      }
     }
 
     /*
@@ -868,10 +949,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
               selectedRecommendations.length === 0
                 ? "Pick at least one recommendation below first."
                 : undefined,
-            onClick: () => {
-              setActionError("");
-              setShowCreateSideOver(true);
-            },
+            onClick: openCreatePanel,
           },
         ]}
       >
@@ -999,10 +1077,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
               )}
               icon={IconProp.Add}
               buttonStyle={ButtonStyleType.PRIMARY}
-              onClick={() => {
-                setActionError("");
-                setShowCreateSideOver(true);
-              }}
+              onClick={openCreatePanel}
             />
           </div>
         </div>
@@ -1032,6 +1107,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
            * those return before any progress is seeded.
            */
           error={createProgress ? undefined : actionError || undefined}
+          limitReached={limitReached || undefined}
           createProgress={createProgress || undefined}
           /*
            * Closes even mid-batch. The footer's Close is disabled while the

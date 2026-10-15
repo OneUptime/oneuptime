@@ -16,6 +16,9 @@ import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSch
 import ProjectUtil from "../../../UI/Utils/Project";
 import Navigation from "../../../UI/Utils/Navigation";
 import MonitorCreate from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Create";
+import { ACTIVE_MONITOR_LIMIT_ROUTE } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/ActiveMonitorLimitNotice";
+import URL from "../../../Types/API/URL";
+import { APP_API_URL } from "../../../UI/Config";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 import ModelForm, { FormType } from "../../../UI/Components/Forms/ModelForm";
@@ -215,6 +218,24 @@ async function advanceMonitorInfo(): Promise<void> {
   expect(
     await screen.findByTestId("monitor-steps", {}, { timeout: WAIT_TIMEOUT }),
   ).toBeInTheDocument();
+}
+
+// Where the page reads the plan's monitor limit (ActiveMonitorLimitNotice).
+const MONITOR_LIMIT_PATH: string = new window.URL(
+  URL.fromString(APP_API_URL.toString())
+    .addRoute(ACTIVE_MONITOR_LIMIT_ROUTE)
+    .toString(),
+).pathname;
+
+// The GETs the page made, but for the plan's monitor limit: payment checks.
+function paymentChecks(): Array<string> {
+  return (BaseAPI.get as unknown as jest.Mock).mock.calls
+    .map((call: Array<unknown>): string => {
+      return String((call[0] as { url?: unknown } | undefined)?.url || "");
+    })
+    .filter((url: string): boolean => {
+      return new window.URL(url).pathname !== MONITOR_LIMIT_PATH;
+    });
 }
 
 describe("Pay as you go creation notices", () => {
@@ -439,7 +460,12 @@ describe("Pay as you go creation notices", () => {
         expect(
           screen.queryByText(/Add a payment method/),
         ).not.toBeInTheDocument();
-        expect(BaseAPI.get).not.toHaveBeenCalled();
+        /*
+         * No payment check: the one read the page makes is the plan's limit
+         * on active monitors, which any plan may have
+         * (ActiveMonitorLimitNotice).
+         */
+        expect(paymentChecks()).toEqual([]);
       },
     );
 
