@@ -65,12 +65,6 @@ export const RUNBOOK_SCHEDULE_TIMING_COLUMNS: ReadonlyArray<string> = [
 export const RUNBOOK_SCHEDULE_NEEDS_CRON_MESSAGE: string =
   "Set when the runbook runs (Schedule Cron) before turning its schedule on.";
 
-// What an update of the triggers tells its later hooks.
-interface RunbookUpdateCarry {
-  movesSchedule: boolean;
-  turnsWebhookOn: boolean;
-}
-
 /*
  * THE CREDENTIALS A RUNBOOK RUNS WITH ARE ONES ITS AUTHOR MAY READ.
  *
@@ -497,39 +491,6 @@ export class Service extends ProjectReferencesService<Model> {
     return secretKey;
   }
 
-  @CaptureSpan()
-  protected override async onBeforeUpdate(
-    updateBy: UpdateBy<Model>,
-  ): Promise<OnUpdate<Model>> {
-    const onUpdate: OnUpdate<Model> = await super.onBeforeUpdate(updateBy);
-
-    const carry: RunbookUpdateCarry = {
-      movesSchedule: await this.movesSchedule(onUpdate.updateBy),
-      turnsWebhookOn:
-        (onUpdate.updateBy.data as unknown as Record<string, unknown>)[
-          "isWebhookEnabled"
-        ] === true,
-    };
-
-    if (carry.movesSchedule || carry.turnsWebhookOn) {
-      // The update as handed in, and as handed on: the later hooks get one or the other.
-      this.triggerUpdates.set(updateBy, carry);
-      this.triggerUpdates.set(onUpdate.updateBy, carry);
-    }
-
-    // What the hook it extends returned, as it returned it.
-    return onUpdate;
-  }
-
-  /*
-   * The updates that change the schedule or turn the webhook on, from
-   * onBeforeUpdate to onUpdatePermitted and onUpdateSuccess. Keyed on the
-   * update, as the measurement services key theirs, so carryForward stays
-   * the hook it extends' own.
-   */
-  private triggerUpdates: WeakMap<UpdateBy<Model>, RunbookUpdateCarry> =
-    new WeakMap<UpdateBy<Model>, RunbookUpdateCarry>();
-
   /*
    * Clears the next run, and a run waiting for the one before it, of a
    * schedule that is changing - here, after every permission check, and
@@ -543,7 +504,7 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<void> {
     await super.onUpdatePermitted(updateBy);
 
-    if (!this.triggerUpdates.get(updateBy)?.movesSchedule) {
+    if (!(await this.movesSchedule(updateBy))) {
       return;
     }
 
@@ -556,6 +517,13 @@ export class Service extends ProjectReferencesService<Model> {
     data["scheduleQueuedRunAt"] = null;
   }
 
+  /*
+   * After an update that wrote when the schedule runs, its next run is
+   * worked out again - only over an empty column, so it changes something
+   * only when onUpdatePermitted cleared it. A webhook turned on is given its
+   * key - only when it has none, so its URL stays the one it had. Both read
+   * the update itself, so nothing is carried here from the earlier hooks.
+   */
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
@@ -566,18 +534,27 @@ export class Service extends ProjectReferencesService<Model> {
       updatedItemIds,
     );
 
-    const carry: RunbookUpdateCarry | undefined = this.triggerUpdates.get(
-      onUpdate.updateBy,
+    const data: Record<string, unknown> = (onUpdate.updateBy.data ||
+      {}) as unknown as Record<string, unknown>;
+
+    const writesScheduleTiming: boolean = RUNBOOK_SCHEDULE_TIMING_COLUMNS.some(
+      (column: string): boolean => {
+        return data[column] !== undefined;
+      },
     );
-    this.triggerUpdates.delete(onUpdate.updateBy);
+    const turnsWebhookOn: boolean = data["isWebhookEnabled"] === true;
+
+    if (!writesScheduleTiming && !turnsWebhookOn) {
+      return result;
+    }
 
     for (const runbookId of updatedItemIds) {
       try {
-        if (carry?.movesSchedule) {
+        if (writesScheduleTiming) {
           await RunbookScheduler.planNextRun({ runbookId: runbookId });
         }
 
-        if (carry?.turnsWebhookOn) {
+        if (turnsWebhookOn) {
           await this.ensureWebhookSecretKey(runbookId);
         }
       } catch (error) {
