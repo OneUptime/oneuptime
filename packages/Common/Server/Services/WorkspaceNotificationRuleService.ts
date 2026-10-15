@@ -2749,7 +2749,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         projectId: data.projectId?.toString(),
       } as LogAttributes);
 
-      // Log the channel creation
+      /*
+       * Log the channel creation against the record the channel was created
+       * for: a record's Notification Logs page lists its workspace logs by
+       * the record's id.
+       */
       try {
         const logData: {
           projectId: ObjectID;
@@ -2758,6 +2762,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           channelName: string;
           incidentId?: ObjectID;
           alertId?: ObjectID;
+          monitorId?: ObjectID;
+          alertEpisodeId?: ObjectID;
+          incidentEpisodeId?: ObjectID;
           scheduledMaintenanceId?: ObjectID;
           onCallDutyPolicyId?: ObjectID;
         } = {
@@ -2773,6 +2780,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         }
         if (data.notificationFor?.alertId) {
           logData.alertId = data.notificationFor.alertId;
+        }
+        if (data.notificationFor?.monitorId) {
+          logData.monitorId = data.notificationFor.monitorId;
+        }
+        if (data.notificationFor?.alertEpisodeId) {
+          logData.alertEpisodeId = data.notificationFor.alertEpisodeId;
+        }
+        if (data.notificationFor?.incidentEpisodeId) {
+          logData.incidentEpisodeId = data.notificationFor.incidentEpisodeId;
         }
         if (data.notificationFor?.scheduledMaintenanceId) {
           logData.scheduledMaintenanceId =
