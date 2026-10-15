@@ -21,7 +21,6 @@ import {
 import RunbookTriggerType from "Common/Types/Runbook/RunbookTriggerType";
 import {
   RUNBOOK_WEBHOOK_MAX_ACTIVE_RUNS,
-  RUNBOOK_WEBHOOK_ROUTE,
   RUNBOOK_WEBHOOK_SECRET_RESET_ROUTE,
   RUNBOOK_WEBHOOK_SECRET_ROUTE,
   RunbookWebhookMessages,
@@ -87,6 +86,14 @@ import Runbook from "Common/Models/DatabaseModels/Runbook";
  * and run it (RunbookTriggerAccess.assertMayManageWebhook), and are never
  * cached.
  */
+
+/*
+ * The public URL's route, RUNBOOK_WEBHOOK_ROUTE, written out so the guard
+ * against the SPA fallbacks can read the GET this router registers (see
+ * Tests/FeatureSet/PostFrontendRouteReservation.test.ts). The route tests
+ * look the handlers up by RUNBOOK_WEBHOOK_ROUTE, so the two cannot drift.
+ */
+const WEBHOOK_ROUTE: string = "/webhook/:runbookId/:secretKey";
 
 const ACTIVE_STATUSES: Array<string> = [
   RunbookExecutionStatus.Scheduled,
@@ -195,8 +202,14 @@ export default class RunbookWebhookAPI {
   public constructor() {
     this.router = Express.getRouter();
 
-    this.router.post(RUNBOOK_WEBHOOK_ROUTE, this.callWebhook);
-    this.router.get(RUNBOOK_WEBHOOK_ROUTE, this.refuseGet);
+    this.router.post(WEBHOOK_ROUTE, this.callWebhook);
+    /*
+     * Reached on a self-hosted install only because /runbook is reserved
+     * against the Dashboard's SPA fallback (Frontend/RouteReservations.ts),
+     * which is registered first and would otherwise answer this GET with
+     * the Dashboard's page.
+     */
+    this.router.get(WEBHOOK_ROUTE, this.refuseGet);
 
     this.router.post(
       RUNBOOK_WEBHOOK_SECRET_ROUTE,
