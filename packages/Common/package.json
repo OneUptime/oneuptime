@@ -7,6 +7,10 @@
     "url": "https://github.com/OneUptime/oneuptime"
   },
   "main": "index.js",
+  "exports": {
+    "./*": "./build/dist/*.js",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "test": "cd ../.. && export $(grep -v '^#' config.env | xargs) && cd packages/Common && node --max-old-space-size=4096 node_modules/.bin/jest ./Tests --forceExit --maxWorkers=2",
     "test-file": "cd ../.. && export $(grep -v '^#' config.env | xargs) && cd packages/Common && node node_modules/.bin/jest --runInBand $1 --detectOpenHandles",

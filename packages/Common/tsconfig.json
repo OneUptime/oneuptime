@@ -32,7 +32,15 @@
     // "useDefineForClassFields": true,                  /* Emit ECMAScript-standard-compliant class fields. */
 
     /* Modules */
-    "module": "es2022" /* Specify what module code is generated. */,
+    /*
+     * commonjs (not es2022): the published @oneuptime/common package is
+     * consumed by @oneuptime/cli via require("Common/..."). ESM emit used
+     * extensionless relative imports that Node cannot load, so `oneuptime`
+     * failed at startup even after package exports mapped Common/* into
+     * build/dist (see #4872). App FeatureSets still compile Common's .ts
+     * sources through their bundlers; they do not load this emit.
+     */
+    "module": "commonjs" /* Specify what module code is generated. */,
     // "rootDir": "./" /* Specify the root folder within your source files. */,
     "moduleResolution": "node" /* Specify how TypeScript looks up a file from a given module specifier. */,
     // "baseUrl": "./",                                  /* Specify the base directory to resolve non-relative module names. */

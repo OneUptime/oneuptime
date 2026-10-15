@@ -203,4 +203,28 @@ describe("PublishAllPackages", () => {
     expect(packageJson.files).toContain("OneUptimeReactNativeReplay.podspec");
     expect(packageJson.scripts["prepack"]).toBe("npm run build");
   });
+
+  /*
+   * @oneuptime/cli requires deep paths like Common/Models/DatabaseModels/Index.
+   * Without exports, Node looks for those under the package root and misses the
+   * compiled files under build/dist (issue #4872). The wildcard maps every
+   * Common/* import onto the emit tree so the published CLI can resolve them.
+   */
+  it("maps Common/* package subpaths to the compiled build/dist tree", () => {
+    const packageJson: {
+      exports?: Record<string, string>;
+    } = JSON.parse(
+      fs.readFileSync(
+        path.join(REPO_ROOT, "packages/Common/package.json"),
+        "utf8",
+      ),
+    ) as {
+      exports?: Record<string, string>;
+    };
+
+    expect(packageJson.exports).toEqual({
+      "./*": "./build/dist/*.js",
+      "./package.json": "./package.json",
+    });
+  });
 });
