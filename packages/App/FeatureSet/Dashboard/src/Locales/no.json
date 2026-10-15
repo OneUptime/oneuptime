@@ -29335,7 +29335,6 @@
   "Adding it here keeps it in episode {{number}} too.": "Når den legges til her, blir den også værende i episode {{number}}.",
   "Adding it here keeps it in that episode too.": "Når den legges til her, blir den også værende i den andre episoden.",
   "Already in this episode.": "Allerede i denne episoden.",
-  "Creates an episode with the selected {{itemsName}} in it. You can add owners, on-call policies and notes on its page.": "Oppretter en episode med de valgte {{itemsName}}. Du kan legge til eiere, vaktretningslinjer og notater på siden til episoden.",
   "Episode title": "Episodetittel",
   "In another episode": "I en annen episode",
   "In episode {{number}}": "I episode {{number}}",
@@ -29362,7 +29361,6 @@
   "The alerts in this episode, grouped by a rule or added by hand.": "Varslene i denne episoden, gruppert av en regel eller lagt til manuelt.",
   "The incidents in this episode, grouped by a rule or added by hand.": "Hendelsene i denne episoden, gruppert av en regel eller lagt til manuelt.",
   "There are no {{itemsName}} in this project yet.": "Det finnes ingen {{itemsName}} i dette prosjektet ennå.",
-  "There is no episode to add the {{itemsName}} to yet.": "Det finnes ennå ingen episode å legge {{itemsName}} til i.",
   "This alert does not exist in this project, or you do not have access to it.": "Dette varselet finnes ikke i dette prosjektet, eller du har ikke tilgang til det.",
   "This episode is resolved. Adding to it does not reopen it.": "Denne episoden er løst. Å legge til i den åpner den ikke på nytt.",
   "This incident does not exist in this project, or you do not have access to it.": "Denne hendelsen finnes ikke i dette prosjektet, eller du har ikke tilgang til den.",
@@ -29377,11 +29375,13 @@
   "{{count}} {{itemsName}} added to the new episode_one": "{{count}} {{itemName}} lagt til i den nye episoden",
   "{{count}} {{itemsName}} not added": "{{count}} {{itemsName}} ikke lagt til",
   "{{count}} {{itemsName}} not added_one": "{{count}} {{itemName}} ikke lagt til",
-  "{{count}} {{itemsName}} were not added:": "{{count}} {{itemsName}} ble ikke lagt til:",
-  "{{count}} {{itemsName}} were not added:_one": "{{count}} {{itemName}} ble ikke lagt til:",
   "Add to Existing Episode": "Legg til i eksisterende episode",
   "All the {{itemsName}} you can see are in this episode already.": "Alle {{itemsName}} du kan se, er allerede i denne episoden.",
   "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode.": "{{count}} av dem er allerede i en annen episode. De blir værende der også: {{itemsName}} kan være i mer enn én episode.",
   "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode._one": "{{count}} av dem er allerede i en annen episode. Den blir værende der også: {{itemsName}} kan være i mer enn én episode.",
-  "{{itemsName}} that are in another episode stay there too.": "{{itemsName}} som er i en annen episode, blir værende der også."
+  "{{itemsName}} that are in another episode stay there too.": "{{itemsName}} som er i en annen episode, blir værende der også.",
+  "Start one with your selection.": "Opprett en med utvalget ditt.",
+  "You can add owners, on-call policies and notes on the episode's page.": "Du kan legge til eiere, vaktretningslinjer og notater på siden til episoden.",
+  "{{count}} {{itemsName}} were not added": "{{count}} {{itemsName}} ble ikke lagt til",
+  "{{count}} {{itemsName}} were not added_one": "{{count}} {{itemName}} ble ikke lagt til"
 }

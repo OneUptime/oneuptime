@@ -29335,7 +29335,6 @@
   "Adding it here keeps it in episode {{number}} too.": "После добавления сюда останется и в эпизоде {{number}}.",
   "Adding it here keeps it in that episode too.": "После добавления сюда останется и в том эпизоде.",
   "Already in this episode.": "Уже в этом эпизоде.",
-  "Creates an episode with the selected {{itemsName}} in it. You can add owners, on-call policies and notes on its page.": "Создаёт эпизод с выбранными элементами ({{itemsName}}). Владельцев, политики дежурств и заметки можно добавить на его странице.",
   "Episode title": "Название эпизода",
   "In another episode": "В другом эпизоде",
   "In episode {{number}}": "В эпизоде {{number}}",
@@ -29362,7 +29361,6 @@
   "The alerts in this episode, grouped by a rule or added by hand.": "Оповещения в этом эпизоде, сгруппированные правилом или добавленные вручную.",
   "The incidents in this episode, grouped by a rule or added by hand.": "Инциденты в этом эпизоде, сгруппированные правилом или добавленные вручную.",
   "There are no {{itemsName}} in this project yet.": "В этом проекте пока нет элементов ({{itemsName}}).",
-  "There is no episode to add the {{itemsName}} to yet.": "Пока нет эпизода, в который можно добавить элементы ({{itemsName}}).",
   "This alert does not exist in this project, or you do not have access to it.": "Этого оповещения нет в этом проекте, или у вас нет к нему доступа.",
   "This episode is resolved. Adding to it does not reopen it.": "Этот эпизод устранён. Добавление в него не открывает его снова.",
   "This incident does not exist in this project, or you do not have access to it.": "Этого инцидента нет в этом проекте, или у вас нет к нему доступа.",
@@ -29377,11 +29375,13 @@
   "{{count}} {{itemsName}} added to the new episode_one": "Добавлено в новый эпизод: {{count}} ({{itemName}})",
   "{{count}} {{itemsName}} not added": "Не добавлено: {{count}} ({{itemsName}})",
   "{{count}} {{itemsName}} not added_one": "Не добавлено: {{count}} ({{itemName}})",
-  "{{count}} {{itemsName}} were not added:": "Не удалось добавить ({{itemsName}}): {{count}}",
-  "{{count}} {{itemsName}} were not added:_one": "Не удалось добавить ({{itemName}}): {{count}}",
   "Add to Existing Episode": "Добавить в существующий эпизод",
   "All the {{itemsName}} you can see are in this episode already.": "Все элементы ({{itemsName}}), которые вам видны, уже в этом эпизоде.",
   "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode.": "Из выбранных уже в другом эпизоде: {{count}}. Они останутся и там: {{itemsName}} могут входить в несколько эпизодов.",
   "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode._one": "Из выбранных уже в другом эпизоде: {{count}}. Он останется и там: {{itemsName}} могут входить в несколько эпизодов.",
-  "{{itemsName}} that are in another episode stay there too.": "{{itemsName}} из другого эпизода останутся и там."
+  "{{itemsName}} that are in another episode stay there too.": "{{itemsName}} из другого эпизода останутся и там.",
+  "Start one with your selection.": "Создайте эпизод из выбранного.",
+  "You can add owners, on-call policies and notes on the episode's page.": "Владельцев, политики дежурств и заметки можно добавить на странице эпизода.",
+  "{{count}} {{itemsName}} were not added": "Не удалось добавить ({{itemsName}}): {{count}}",
+  "{{count}} {{itemsName}} were not added_one": "Не удалось добавить ({{itemName}}): {{count}}"
 }

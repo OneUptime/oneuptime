@@ -29335,7 +29335,6 @@
   "Adding it here keeps it in episode {{number}} too.": "ここに追加しても、エピソード {{number}} にも残ります。",
   "Adding it here keeps it in that episode too.": "ここに追加しても、そのエピソードにも残ります。",
   "Already in this episode.": "すでにこのエピソードに含まれています。",
-  "Creates an episode with the selected {{itemsName}} in it. You can add owners, on-call policies and notes on its page.": "選択した{{itemsName}}を含むエピソードを作成します。所有者、オンコールポリシー、メモはエピソードのページで追加できます。",
   "Episode title": "エピソードのタイトル",
   "In another episode": "別のエピソードに含まれています",
   "In episode {{number}}": "エピソード {{number}} に含まれています",
@@ -29362,7 +29361,6 @@
   "The alerts in this episode, grouped by a rule or added by hand.": "このエピソードのアラートです。ルールでグループ化されたものと、手動で追加されたものがあります。",
   "The incidents in this episode, grouped by a rule or added by hand.": "このエピソードのインシデントです。ルールでグループ化されたものと、手動で追加されたものがあります。",
   "There are no {{itemsName}} in this project yet.": "このプロジェクトにはまだ{{itemsName}}がありません。",
-  "There is no episode to add the {{itemsName}} to yet.": "{{itemsName}}を追加できるエピソードはまだありません。",
   "This alert does not exist in this project, or you do not have access to it.": "このアラートはこのプロジェクトに存在しないか、アクセス権がありません。",
   "This episode is resolved. Adding to it does not reopen it.": "このエピソードは解決済みです。追加しても再オープンされません。",
   "This incident does not exist in this project, or you do not have access to it.": "このインシデントはこのプロジェクトに存在しないか、アクセス権がありません。",
@@ -29377,11 +29375,13 @@
   "{{count}} {{itemsName}} added to the new episode_one": "{{itemName}}: {{count}} 件を新しいエピソードに追加しました",
   "{{count}} {{itemsName}} not added": "{{itemsName}}: {{count}} 件は追加されませんでした",
   "{{count}} {{itemsName}} not added_one": "{{itemName}}: {{count}} 件は追加されませんでした",
-  "{{count}} {{itemsName}} were not added:": "{{itemsName}} {{count}} 件は追加されませんでした：",
-  "{{count}} {{itemsName}} were not added:_one": "{{itemName}} {{count}} 件は追加されませんでした：",
   "Add to Existing Episode": "既存のエピソードに追加",
   "All the {{itemsName}} you can see are in this episode already.": "表示できる{{itemsName}}はすべて、すでにこのエピソードに含まれています。",
   "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode.": "うち {{count}} 件はすでに別のエピソードに含まれており、そちらにも残ります。{{itemsName}}は複数のエピソードに含めることができます。",
   "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode._one": "うち {{count}} 件はすでに別のエピソードに含まれており、そちらにも残ります。{{itemsName}}は複数のエピソードに含めることができます。",
-  "{{itemsName}} that are in another episode stay there too.": "別のエピソードに含まれている{{itemsName}}は、そちらにも残ります。"
+  "{{itemsName}} that are in another episode stay there too.": "別のエピソードに含まれている{{itemsName}}は、そちらにも残ります。",
+  "Start one with your selection.": "選択した項目で新しいエピソードを作成できます。",
+  "You can add owners, on-call policies and notes on the episode's page.": "所有者、オンコールポリシー、メモはエピソードのページで追加できます。",
+  "{{count}} {{itemsName}} were not added": "{{itemsName}} {{count}} 件は追加されませんでした",
+  "{{count}} {{itemsName}} were not added_one": "{{itemName}} {{count}} 件は追加されませんでした"
 }

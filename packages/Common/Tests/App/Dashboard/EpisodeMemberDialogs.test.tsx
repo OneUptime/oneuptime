@@ -398,11 +398,24 @@ describe("an episode's Add Alerts", () => {
       within(first).getByTestId(`${LIST}-option-severity`),
     ).toHaveTextContent("Critical");
 
+    /*
+     * Private sits on the line of facts with the state and severity, not
+     * beside the title, where a title that wrapped pushed it away.
+     */
+    const privateOne: HTMLElement = optionTitled(
+      LIST,
+      "Payroll export failing",
+    );
     expect(
-      within(optionTitled(LIST, "Payroll export failing")).getByTestId(
+      within(
+        within(privateOne).getByTestId(`${LIST}-option-facts`),
+      ).getByTestId(`${LIST}-option-private`),
+    ).toHaveTextContent("Private");
+    expect(
+      within(optionTitled(LIST, "Checkout API is offline")).queryByTestId(
         `${LIST}-option-private`,
       ),
-    ).toBeInTheDocument();
+    ).not.toBeInTheDocument();
   });
 
   test("one in another episode says which, or only that, when the person cannot see it", async () => {
@@ -498,9 +511,22 @@ describe("an episode's Add Alerts", () => {
       "add-episode-members-not-added",
     );
 
-    expect(box).toHaveTextContent("1 alert was not added:");
-    expect(box).toHaveTextContent(
-      `ALT-2: Checkout p95 latency above 2 s: ${ALERT_NOT_FOUND_REASON}`,
+    // Drawn as the dialog draws any refusal: the danger alert.
+    expect(box).toHaveAttribute("role", "alert");
+    expect(box).toHaveTextContent(/^1 alert was not added/);
+    // The name on its line, the reason on its own: not "name: reason".
+    expect(
+      within(box)
+        .getAllByTestId("add-episode-members-not-added-name")
+        .map((element: HTMLElement) => {
+          return element.textContent;
+        }),
+    ).toEqual(["ALT-2: Checkout p95 latency above 2 s"]);
+    expect(
+      within(box).getByTestId("add-episode-members-not-added-reason"),
+    ).toHaveTextContent(ALERT_NOT_FOUND_REASON);
+    expect(box).not.toHaveTextContent(
+      `Checkout p95 latency above 2 s: ${ALERT_NOT_FOUND_REASON}`,
     );
     expect(onClose).not.toHaveBeenCalled();
     expect(onAdded).toHaveBeenCalledTimes(1);
@@ -520,6 +546,59 @@ describe("an episode's Add Alerts", () => {
       ),
     ).toBe("true");
     expect(submitButton()).toHaveTextContent("Add 1 Alert");
+  });
+
+  test("several refused for one reason are listed under it, the reason said once", async () => {
+    addAnswer = (): EpisodeMembersAddResult => {
+      return {
+        added: [],
+        alreadyInEpisode: [],
+        notAdded: [
+          { id: id(1), reason: ALERT_NOT_FOUND_REASON },
+          { id: id(3), reason: ALERT_NOT_FOUND_REASON },
+          { id: id(2), reason: "The alert was deleted." },
+        ],
+      };
+    };
+
+    open();
+    await listed();
+
+    fireEvent.click(optionTitled(LIST, "Checkout API is offline"));
+    fireEvent.click(optionTitled(LIST, "Disk filling up on db-1"));
+    fireEvent.click(optionTitled(LIST, "Checkout p95 latency above 2 s"));
+    fireEvent.click(submitButton());
+
+    const box: HTMLElement = await screen.findByTestId(
+      "add-episode-members-not-added",
+    );
+
+    expect(box).toHaveTextContent(/^3 alerts were not added/);
+
+    const groups: Array<HTMLElement> = within(box).getAllByTestId(
+      "add-episode-members-not-added-group",
+    );
+    expect(groups).toHaveLength(2);
+    expect(
+      within(groups[0]!)
+        .getAllByTestId("add-episode-members-not-added-name")
+        .map((element: HTMLElement) => {
+          return element.textContent;
+        }),
+    ).toEqual([
+      "ALT-1: Checkout API is offline",
+      "ALT-3: Disk filling up on db-1",
+    ]);
+    expect(
+      within(groups[0]!).getAllByTestId("add-episode-members-not-added-reason"),
+    ).toHaveLength(1);
+    expect(
+      within(groups[1]!).getByTestId("add-episode-members-not-added-reason"),
+    ).toHaveTextContent("The alert was deleted.");
+
+    // Nothing was added: the page has nothing new to show.
+    expect(onAdded).not.toHaveBeenCalled();
+    expect(submitButton()).toHaveTextContent("Add 3 Alerts");
   });
 
   test("a search by number is sent as the number", async () => {
@@ -571,12 +650,36 @@ describe("an episode's Add Alerts", () => {
     ).toHaveTextContent('No alerts match "nothing like this".');
   });
 
-  test("with nothing to add it says why", async () => {
+  test("with nothing to add it says why, and drops the search box that could find nothing", async () => {
     tables.alerts = [];
     open();
 
+    // While it loads, the search box is there and has focus.
+    expect(screen.getByTestId(`${LIST}-search`)).toHaveFocus();
+
     expect(await screen.findByTestId(`${LIST}-empty`)).toHaveTextContent(
       "All the alerts you can see are in this episode already.",
+    );
+    expect(screen.queryByTestId(`${LIST}-search`)).not.toBeInTheDocument();
+    // Focus stays in the dialog: on the list that says why.
+    expect(screen.getByTestId(`${LIST}-list`)).toHaveFocus();
+  });
+
+  test("a search that finds nothing keeps the search box, to search again", async () => {
+    open();
+    await listed();
+
+    fireEvent.change(screen.getByTestId(`${LIST}-search`), {
+      target: { value: "nothing like this" },
+    });
+
+    await screen.findByTestId(
+      `${LIST}-no-match`,
+      {},
+      { timeout: EPISODE_MEMBER_SEARCH_DEBOUNCE_MS * 8 },
+    );
+    expect(screen.getByTestId(`${LIST}-search`)).toHaveValue(
+      "nothing like this",
     );
   });
 
@@ -728,6 +831,35 @@ describe("the lists' Add to Existing Episode", () => {
     expect(resolved).toHaveTextContent("Last week's outage");
     expect(within(ongoing).getAllByText("4 alerts").length).toBeGreaterThan(0);
 
+    /*
+     * Each section is dated by what it is sorted by: an ongoing episode by
+     * when it started, a resolved one by when it was resolved.
+     */
+    const resolvedEpisode: AlertEpisode = tables.episodes.find(
+      (episode: AlertEpisode): boolean => {
+        return episode._id?.toString() === RESOLVED_EPISODE_ID;
+      },
+    )!;
+    expect(
+      optionTitled(LIST, "Last week's outage")
+        .querySelector("time")!
+        .getAttribute("dateTime"),
+    ).toBe(resolvedEpisode.resolvedAt!.toISOString());
+    expect(
+      optionTitled(LIST, "Latency spike")
+        .querySelector("time")!
+        .getAttribute("dateTime"),
+    ).toBe(tables.episodes[1]!.createdAt!.toISOString());
+
+    // The count and the time read as two facts.
+    const facts: HTMLElement = within(
+      optionTitled(LIST, "Latency spike"),
+    ).getByTestId(`${LIST}-option-facts`);
+    expect(within(facts).getByTestId(`${LIST}-option-meta`)).toHaveTextContent(
+      "4 alerts",
+    );
+    expect(facts).toHaveTextContent(/4 alerts\s*·\s*\S/);
+
     // Single choice: radios.
     expect(within(ongoing).getAllByRole("radio").length).toBe(2);
   });
@@ -782,8 +914,11 @@ describe("the lists' Add to Existing Episode", () => {
 
     fireEvent.click(optionTitled(LIST, "Last week's outage"));
 
+    // In the note right above the button that adds them.
     expect(
-      screen.getByTestId("add-to-existing-episode-resolved"),
+      within(screen.getByTestId("add-to-existing-episode-notes")).getByTestId(
+        "add-to-existing-episode-resolved",
+      ),
     ).toHaveTextContent(
       "This episode is resolved. Adding to it does not reopen it.",
     );
@@ -795,10 +930,16 @@ describe("the lists' Add to Existing Episode", () => {
 
     const empty: HTMLElement = await screen.findByTestId(`${LIST}-empty`);
     expect(empty).toHaveTextContent("No episodes yet");
+    expect(empty).toHaveTextContent("Start one with your selection.");
 
-    fireEvent.click(
-      within(empty).getByTestId("add-to-existing-episode-create-instead"),
+    // Nothing to search: the box goes, and the way forward has focus.
+    expect(screen.queryByTestId(`${LIST}-search`)).not.toBeInTheDocument();
+    const createInstead: HTMLElement = within(empty).getByTestId(
+      "add-to-existing-episode-create-instead",
     );
+    expect(createInstead).toHaveFocus();
+
+    fireEvent.click(createInstead);
     expect(onCreateInstead).toHaveBeenCalledTimes(1);
   });
 
@@ -806,11 +947,14 @@ describe("the lists' Add to Existing Episode", () => {
     tables.episodes = [];
     open([id(1)], false);
 
-    await screen.findByTestId(`${LIST}-empty`);
+    const empty: HTMLElement = await screen.findByTestId(`${LIST}-empty`);
 
     expect(
       screen.queryByTestId("add-to-existing-episode-create-instead"),
     ).not.toBeInTheDocument();
+    // Nor told to start one.
+    expect(empty).toHaveTextContent("No episodes yet");
+    expect(empty).not.toHaveTextContent("Start one");
   });
 });
 
@@ -877,9 +1021,15 @@ describe("the lists' Add to New Episode", () => {
     expect(screen.getByTestId("modal-title")).toHaveTextContent(
       "Add 3 Alerts to a New Episode",
     );
-    expect(screen.getByTestId("modal-description")).toHaveTextContent(
-      "1 of them is already in another episode, and stays there too.",
+    /*
+     * The title says what this does; the description says what the form
+     * leaves out, and what happens to the one in another episode.
+     */
+    const description: HTMLElement = screen.getByTestId("modal-description");
+    expect(description).toHaveTextContent(
+      "You can add owners, on-call policies and notes on the episode's page. 1 of them is already in another episode, and stays there too.",
     );
+    expect(description).not.toHaveTextContent("Creates an episode");
   });
 
   test("creating hands back the title, trimmed, and the severity", async () => {

@@ -29335,7 +29335,6 @@
   "Adding it here keeps it in episode {{number}} too.": "新增到這裡後，它仍會保留在片段 {{number}} 中。",
   "Adding it here keeps it in that episode too.": "新增到這裡後，它仍會保留在那個片段中。",
   "Already in this episode.": "已在此片段中。",
-  "Creates an episode with the selected {{itemsName}} in it. You can add owners, on-call policies and notes on its page.": "建立一個包含所選{{itemsName}}的片段。可以在片段頁面上新增擁有者、待命策略和備註。",
   "Episode title": "片段標題",
   "In another episode": "在另一個片段中",
   "In episode {{number}}": "在片段 {{number}} 中",
@@ -29362,7 +29361,6 @@
   "The alerts in this episode, grouped by a rule or added by hand.": "此片段中的警示，由規則分組或手動新增。",
   "The incidents in this episode, grouped by a rule or added by hand.": "此片段中的事件，由規則分組或手動新增。",
   "There are no {{itemsName}} in this project yet.": "此專案中還沒有{{itemsName}}。",
-  "There is no episode to add the {{itemsName}} to yet.": "還沒有可以新增{{itemsName}}的片段。",
   "This alert does not exist in this project, or you do not have access to it.": "此警示在此專案中不存在，或您沒有存取權。",
   "This episode is resolved. Adding to it does not reopen it.": "此片段已解決。新增項目不會重新開啟它。",
   "This incident does not exist in this project, or you do not have access to it.": "此事件在此專案中不存在，或您沒有存取權。",
@@ -29377,11 +29375,13 @@
   "{{count}} {{itemsName}} added to the new episode_one": "已將 {{count}} 個{{itemName}}新增至新片段",
   "{{count}} {{itemsName}} not added": "{{count}} 個{{itemsName}}未新增",
   "{{count}} {{itemsName}} not added_one": "{{count}} 個{{itemName}}未新增",
-  "{{count}} {{itemsName}} were not added:": "{{count}} 個{{itemsName}}未新增：",
-  "{{count}} {{itemsName}} were not added:_one": "{{count}} 個{{itemName}}未新增：",
   "Add to Existing Episode": "新增至現有片段",
   "All the {{itemsName}} you can see are in this episode already.": "您能看到的所有{{itemsName}}都已在此片段中。",
   "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode.": "其中 {{count}} 個已在另一個片段中，也會保留在那裡：{{itemsName}}可以屬於多個片段。",
   "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode._one": "其中 {{count}} 個已在另一個片段中，也會保留在那裡：{{itemsName}}可以屬於多個片段。",
-  "{{itemsName}} that are in another episode stay there too.": "在另一個片段中的{{itemsName}}也會保留在那裡。"
+  "{{itemsName}} that are in another episode stay there too.": "在另一個片段中的{{itemsName}}也會保留在那裡。",
+  "Start one with your selection.": "可以用所選內容建立一個新片段。",
+  "You can add owners, on-call policies and notes on the episode's page.": "可以在片段頁面上新增擁有者、待命策略和備註。",
+  "{{count}} {{itemsName}} were not added": "{{count}} 個{{itemsName}}未新增",
+  "{{count}} {{itemsName}} were not added_one": "{{count}} 個{{itemName}}未新增"
 }

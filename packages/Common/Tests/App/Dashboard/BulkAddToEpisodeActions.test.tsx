@@ -468,6 +468,111 @@ describe("useBulkAddToEpisodeActions", () => {
       expect(link.getAttribute("href")).toBe(route.toString());
     });
 
+    test("no link when none of them is in the episode: every one refused, or the request", async () => {
+      postSpy.mockResolvedValue(
+        new HTTPResponse(
+          200,
+          {
+            added: [],
+            alreadyInEpisode: [],
+            notAdded: [
+              { id: id(1), reason: ALERT_NOT_FOUND_REASON },
+              { id: id(2), reason: ALERT_NOT_FOUND_REASON },
+            ],
+          },
+          {},
+        ) as never,
+      );
+
+      renderHarness();
+      const items: Array<Alert> = makeAlerts(2);
+
+      await click(ADD_TO_EXISTING_EPISODE_ACTION_TITLE, items);
+      await actAsync(async () => {
+        existingDialog!.onPick({ id: EPISODE_ID, number: "AE-12" });
+      });
+      await settle();
+
+      expect(outcome.failed).toHaveLength(2);
+      expect(
+        visibleAction(
+          ADD_TO_EXISTING_EPISODE_ACTION_TITLE,
+          items,
+        ).resultDetails?.(),
+      ).toBeUndefined();
+
+      // A refused request leaves none either, even after a link was shown.
+      outcome = { changed: [], unchanged: [], failed: [], ended: false };
+      postSpy.mockResolvedValue(
+        new HTTPResponse(
+          200,
+          { added: [id(1)], alreadyInEpisode: [], notAdded: [] },
+          {},
+        ) as never,
+      );
+      await click(ADD_TO_EXISTING_EPISODE_ACTION_TITLE, items);
+      await actAsync(async () => {
+        existingDialog!.onPick({ id: EPISODE_ID, number: "AE-12" });
+      });
+      await settle();
+      expect(
+        visibleAction(
+          ADD_TO_EXISTING_EPISODE_ACTION_TITLE,
+          items,
+        ).resultDetails?.(),
+      ).toBeDefined();
+
+      outcome = { changed: [], unchanged: [], failed: [], ended: false };
+      postSpy.mockResolvedValue(
+        new HTTPErrorResponse(
+          400,
+          { message: "You do not have permission to add to this episode." },
+          {},
+        ) as never,
+      );
+      await click(ADD_TO_EXISTING_EPISODE_ACTION_TITLE, items);
+      await actAsync(async () => {
+        existingDialog!.onPick({ id: EPISODE_ID, number: "AE-12" });
+      });
+      await settle();
+      expect(
+        visibleAction(
+          ADD_TO_EXISTING_EPISODE_ACTION_TITLE,
+          items,
+        ).resultDetails?.(),
+      ).toBeUndefined();
+    });
+
+    test("one already in the episode is enough for the link", async () => {
+      postSpy.mockResolvedValue(
+        new HTTPResponse(
+          200,
+          { added: [], alreadyInEpisode: [id(1)], notAdded: [] },
+          {},
+        ) as never,
+      );
+
+      renderHarness();
+      const items: Array<Alert> = makeAlerts(1);
+
+      await click(ADD_TO_EXISTING_EPISODE_ACTION_TITLE, items);
+      await actAsync(async () => {
+        existingDialog!.onPick({ id: EPISODE_ID, number: "AE-12" });
+      });
+      await settle();
+
+      const details: ReactElement | undefined = visibleAction(
+        ADD_TO_EXISTING_EPISODE_ACTION_TITLE,
+        items,
+      ).resultDetails?.() as ReactElement | undefined;
+
+      render(<div data-testid="details">{details}</div>);
+
+      expect(
+        screen.getByRole("link", { name: /Open episode AE-12/ }),
+      ).toBeInTheDocument();
+    });
+
     test("a refused request fails every row, with the server's words", async () => {
       postSpy.mockResolvedValue(
         new HTTPErrorResponse(

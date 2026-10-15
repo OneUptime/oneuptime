@@ -224,6 +224,27 @@ describe("how a row is read", () => {
       }),
     );
   });
+
+  test("an episode row is dated by what its section is sorted by: when it started, or when it was resolved", () => {
+    const createdAt: Date = new Date("2026-10-13T08:00:00.000Z");
+    const resolvedAt: Date = new Date("2026-10-14T09:30:00.000Z");
+
+    const ongoing: AlertEpisode = new AlertEpisode();
+    ongoing._id = id(4);
+    ongoing.createdAt = createdAt;
+
+    const resolved: AlertEpisode = new AlertEpisode();
+    resolved._id = id(5);
+    resolved.createdAt = createdAt;
+    resolved.resolvedAt = resolvedAt;
+
+    expect(getEpisodeRow(ALERT_EPISODE_MEMBER_KIND, ongoing).date).toEqual(
+      createdAt,
+    );
+    expect(getEpisodeRow(ALERT_EPISODE_MEMBER_KIND, resolved).date).toEqual(
+      resolvedAt,
+    );
+  });
 });
 
 describe("what the add dialog lists", () => {

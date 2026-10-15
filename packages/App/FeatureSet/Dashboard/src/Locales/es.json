@@ -29335,7 +29335,6 @@
   "Adding it here keeps it in episode {{number}} too.": "Sigue también en el episodio {{number}} aunque se añada aquí.",
   "Adding it here keeps it in that episode too.": "Sigue también en ese otro episodio aunque se añada aquí.",
   "Already in this episode.": "Ya está en este episodio.",
-  "Creates an episode with the selected {{itemsName}} in it. You can add owners, on-call policies and notes on its page.": "Crea un episodio con los elementos seleccionados ({{itemsName}}). Puede añadir propietarios, políticas de guardia y notas en su página.",
   "Episode title": "Título del episodio",
   "In another episode": "En otro episodio",
   "In episode {{number}}": "En el episodio {{number}}",
@@ -29362,7 +29361,6 @@
   "The alerts in this episode, grouped by a rule or added by hand.": "Las alertas de este episodio, agrupadas por una regla o añadidas a mano.",
   "The incidents in this episode, grouped by a rule or added by hand.": "Los incidentes de este episodio, agrupados por una regla o añadidos a mano.",
   "There are no {{itemsName}} in this project yet.": "Todavía no hay {{itemsName}} en este proyecto.",
-  "There is no episode to add the {{itemsName}} to yet.": "Todavía no hay ningún episodio al que añadir los elementos ({{itemsName}}).",
   "This alert does not exist in this project, or you do not have access to it.": "Esta alerta no existe en este proyecto o no tiene acceso a ella.",
   "This episode is resolved. Adding to it does not reopen it.": "Este episodio está resuelto. Añadirle elementos no lo reabre.",
   "This incident does not exist in this project, or you do not have access to it.": "Este incidente no existe en este proyecto o no tiene acceso a él.",
@@ -29377,11 +29375,13 @@
   "{{count}} {{itemsName}} added to the new episode_one": "{{count}} elemento añadido al episodio nuevo ({{itemName}})",
   "{{count}} {{itemsName}} not added": "{{count}} elementos no añadidos ({{itemsName}})",
   "{{count}} {{itemsName}} not added_one": "{{count}} elemento no añadido ({{itemName}})",
-  "{{count}} {{itemsName}} were not added:": "{{count}} elementos no se añadieron ({{itemsName}}):",
-  "{{count}} {{itemsName}} were not added:_one": "{{count}} elemento no se añadió ({{itemName}}):",
   "Add to Existing Episode": "Añadir a un episodio existente",
   "All the {{itemsName}} you can see are in this episode already.": "Todos los elementos ({{itemsName}}) que puede ver ya están en este episodio.",
   "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode.": "{{count}} elementos de la selección ya están en otro episodio. Siguen ahí también: cada elemento ({{itemsName}}) puede estar en más de un episodio.",
   "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode._one": "{{count}} elemento de la selección ya está en otro episodio. Sigue ahí también: cada elemento ({{itemsName}}) puede estar en más de un episodio.",
-  "{{itemsName}} that are in another episode stay there too.": "Los elementos ({{itemsName}}) que están en otro episodio siguen ahí también."
+  "{{itemsName}} that are in another episode stay there too.": "Los elementos ({{itemsName}}) que están en otro episodio siguen ahí también.",
+  "Start one with your selection.": "Cree uno con su selección.",
+  "You can add owners, on-call policies and notes on the episode's page.": "Puede añadir propietarios, políticas de guardia y notas en la página del episodio.",
+  "{{count}} {{itemsName}} were not added": "{{count}} elementos no se añadieron ({{itemsName}})",
+  "{{count}} {{itemsName}} were not added_one": "{{count}} elemento no se añadió ({{itemName}})"
 }

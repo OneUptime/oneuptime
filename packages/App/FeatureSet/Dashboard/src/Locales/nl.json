@@ -29335,7 +29335,6 @@
   "Adding it here keeps it in episode {{number}} too.": "Na het toevoegen blijft het ook in episode {{number}}.",
   "Adding it here keeps it in that episode too.": "Na het toevoegen blijft het ook in die andere episode.",
   "Already in this episode.": "Al in deze episode.",
-  "Creates an episode with the selected {{itemsName}} in it. You can add owners, on-call policies and notes on its page.": "Maakt een episode met de geselecteerde {{itemsName}} erin. Eigenaren, bereikbaarheidsbeleid en notities voegt u toe op de pagina ervan.",
   "Episode title": "Titel van de episode",
   "In another episode": "Zit in een andere episode",
   "In episode {{number}}": "Zit in episode {{number}}",
@@ -29362,7 +29361,6 @@
   "The alerts in this episode, grouped by a rule or added by hand.": "De waarschuwingen in deze episode, gegroepeerd door een regel of met de hand toegevoegd.",
   "The incidents in this episode, grouped by a rule or added by hand.": "De incidenten in deze episode, gegroepeerd door een regel of met de hand toegevoegd.",
   "There are no {{itemsName}} in this project yet.": "Er zijn nog geen {{itemsName}} in dit project.",
-  "There is no episode to add the {{itemsName}} to yet.": "Er is nog geen episode om de {{itemsName}} aan toe te voegen.",
   "This alert does not exist in this project, or you do not have access to it.": "Deze waarschuwing bestaat niet in dit project, of u hebt er geen toegang toe.",
   "This episode is resolved. Adding to it does not reopen it.": "Deze episode is opgelost. Toevoegen heropent de episode niet.",
   "This incident does not exist in this project, or you do not have access to it.": "Dit incident bestaat niet in dit project, of u hebt er geen toegang toe.",
@@ -29377,11 +29375,13 @@
   "{{count}} {{itemsName}} added to the new episode_one": "{{count}} {{itemName}} aan de nieuwe episode toegevoegd",
   "{{count}} {{itemsName}} not added": "{{count}} {{itemsName}} niet toegevoegd",
   "{{count}} {{itemsName}} not added_one": "{{count}} {{itemName}} niet toegevoegd",
-  "{{count}} {{itemsName}} were not added:": "{{count}} {{itemsName}} zijn niet toegevoegd:",
-  "{{count}} {{itemsName}} were not added:_one": "{{count}} {{itemName}} is niet toegevoegd:",
   "Add to Existing Episode": "Aan bestaande episode toevoegen",
   "All the {{itemsName}} you can see are in this episode already.": "Alle {{itemsName}} die u kunt zien, zitten al in deze episode.",
   "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode.": "{{count}} ervan zitten al in een andere episode. Ze blijven daar ook: {{itemsName}} kunnen in meer dan één episode zitten.",
   "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode._one": "{{count}} ervan zit al in een andere episode. Het blijft daar ook: {{itemsName}} kunnen in meer dan één episode zitten.",
-  "{{itemsName}} that are in another episode stay there too.": "{{itemsName}} die in een andere episode zitten, blijven daar ook."
+  "{{itemsName}} that are in another episode stay there too.": "{{itemsName}} die in een andere episode zitten, blijven daar ook.",
+  "Start one with your selection.": "Begin er een met uw selectie.",
+  "You can add owners, on-call policies and notes on the episode's page.": "Eigenaren, bereikbaarheidsbeleid en notities voegt u toe op de pagina van de episode.",
+  "{{count}} {{itemsName}} were not added": "{{count}} {{itemsName}} zijn niet toegevoegd",
+  "{{count}} {{itemsName}} were not added_one": "{{count}} {{itemName}} is niet toegevoegd"
 }

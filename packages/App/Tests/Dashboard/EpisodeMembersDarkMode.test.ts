@@ -276,9 +276,19 @@ describe("the episode add dialogs in the dark theme", () => {
         "divide-gray-100",
       ]),
     );
-    // What could not be added.
+    /*
+     * The empty state. What could not be added is the shared danger Alert,
+     * as every refusal in a dialog is: its colours are its own.
+     */
     expect(colorTokensOf(codeOf("AddEpisodeMembersModal.tsx"))).toEqual(
-      expect.arrayContaining(["bg-red-50", "text-red-700"]),
+      expect.arrayContaining(["text-gray-900", "text-gray-500"]),
+    );
+    expect(codeOf("AddEpisodeMembersModal.tsx")).toContain(
+      "type={AlertType.DANGER}",
+    );
+    // The note on what adding to the episode picked will do.
+    expect(colorTokensOf(codeOf("AddToExistingEpisodeModal.tsx"))).toEqual(
+      expect.arrayContaining(["bg-gray-50", "text-gray-600", "text-gray-400"]),
     );
     // The link to the episode under the result.
     expect(colorTokensOf(codeOf("BulkAddToEpisodeActions.tsx"))).toEqual(

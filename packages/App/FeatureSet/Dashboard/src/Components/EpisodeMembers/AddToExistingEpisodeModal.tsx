@@ -1,6 +1,7 @@
 import Exception from "Common/Types/Exception/Exception";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import {
@@ -35,7 +36,8 @@ import { EPISODE_MEMBER_SEARCH_DEBOUNCE_MS } from "./AddEpisodeMembersModal";
  * title or number. Each shows its number, state, severity and how many it
  * holds. Before adding, it says what will happen to the ones that are in an
  * episode already - left as they are when it is this one, kept there too
- * when it is another - and that adding does not reopen a resolved episode.
+ * when it is another - and that adding does not reopen a resolved episode,
+ * in a note right above the button that adds them.
  *
  * Picking is all this does: the list's bulk action adds them, in one
  * request, and reports what happened to each.
@@ -275,29 +277,32 @@ const AddToExistingEpisodeModal: FunctionComponent<ComponentProps> = (
 
   const pickNotes: Array<ReactElement> = getPickNotes();
 
+  /*
+   * No episode at all: the way forward is a new one, with what is selected
+   * in it - offered only to whoever may create one.
+   */
   const emptyState: ReactElement = (
     <div className="text-center">
       <div className="text-sm font-medium text-gray-900">
         {translator.translateText("No episodes yet")}
       </div>
-      <div className="mt-1 text-xs leading-5 text-gray-500">
-        {translator.translateTemplate(
-          "There is no episode to add the {{itemsName}} to yet.",
-          { itemsName },
-        )}
-      </div>
       {props.onCreateNewEpisodeInstead && (
-        <div className="mt-3 flex justify-center">
-          <Button
-            dataTestId="add-to-existing-episode-create-instead"
-            title="Add to New Episode"
-            icon={IconProp.PlusCircle}
-            buttonStyle={ButtonStyleType.NORMAL}
-            onClick={() => {
-              props.onCreateNewEpisodeInstead?.();
-            }}
-          />
-        </div>
+        <>
+          <div className="mt-1 text-xs leading-5 text-gray-500">
+            {translator.translateText("Start one with your selection.")}
+          </div>
+          <div className="mt-3 flex justify-center">
+            <Button
+              dataTestId="add-to-existing-episode-create-instead"
+              title="Add to New Episode"
+              icon={IconProp.PlusCircle}
+              buttonStyle={ButtonStyleType.NORMAL}
+              onClick={() => {
+                props.onCreateNewEpisodeInstead?.();
+              }}
+            />
+          </div>
+        </>
       )}
     </div>
   );
@@ -366,11 +371,16 @@ const AddToExistingEpisodeModal: FunctionComponent<ComponentProps> = (
           )}
           footer={
             pickNotes.length > 0 ? (
+              // What adding to the one picked will do: read before adding.
               <div
                 data-testid="add-to-existing-episode-notes"
-                className="space-y-1"
+                className="flex items-start gap-2 rounded-md bg-gray-50 px-3 py-2 text-gray-600"
               >
-                {pickNotes}
+                <Icon
+                  icon={IconProp.Info}
+                  className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
+                />
+                <div className="min-w-0 space-y-1">{pickNotes}</div>
               </div>
             ) : undefined
           }

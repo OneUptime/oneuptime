@@ -29335,7 +29335,6 @@
   "Adding it here keeps it in episode {{number}} too.": "با افزودن در اینجا، در اپیزود {{number}} هم باقی می‌ماند.",
   "Adding it here keeps it in that episode too.": "با افزودن در اینجا، در آن اپیزود هم باقی می‌ماند.",
   "Already in this episode.": "از قبل در این اپیزود است.",
-  "Creates an episode with the selected {{itemsName}} in it. You can add owners, on-call policies and notes on its page.": "اپیزودی با {{itemsName}} انتخاب‌شده می‌سازد. مالکان، سیاست‌های آنکال و یادداشت‌ها را می‌توانید در صفحهٔ آن اضافه کنید.",
   "Episode title": "عنوان اپیزود",
   "In another episode": "در اپیزودی دیگر",
   "In episode {{number}}": "در اپیزود {{number}}",
@@ -29362,7 +29361,6 @@
   "The alerts in this episode, grouped by a rule or added by hand.": "هشدارهای این اپیزود که با یک قاعده گروه‌بندی یا دستی افزوده شده‌اند.",
   "The incidents in this episode, grouped by a rule or added by hand.": "حوادث این اپیزود که با یک قاعده گروه‌بندی یا دستی افزوده شده‌اند.",
   "There are no {{itemsName}} in this project yet.": "هنوز هیچ موردی ({{itemsName}}) در این پروژه نیست.",
-  "There is no episode to add the {{itemsName}} to yet.": "هنوز اپیزودی برای افزودن {{itemsName}} وجود ندارد.",
   "This alert does not exist in this project, or you do not have access to it.": "این هشدار در این پروژه وجود ندارد یا به آن دسترسی ندارید.",
   "This episode is resolved. Adding to it does not reopen it.": "این اپیزود برطرف شده است. افزودن به آن، آن را دوباره باز نمی‌کند.",
   "This incident does not exist in this project, or you do not have access to it.": "این حادثه در این پروژه وجود ندارد یا به آن دسترسی ندارید.",
@@ -29377,11 +29375,13 @@
   "{{count}} {{itemsName}} added to the new episode_one": "{{count}} مورد به اپیزود جدید افزوده شد ({{itemName}})",
   "{{count}} {{itemsName}} not added": "{{count}} مورد افزوده نشد ({{itemsName}})",
   "{{count}} {{itemsName}} not added_one": "{{count}} مورد افزوده نشد ({{itemName}})",
-  "{{count}} {{itemsName}} were not added:": "{{count}} مورد افزوده نشد ({{itemsName}}):",
-  "{{count}} {{itemsName}} were not added:_one": "{{count}} مورد افزوده نشد ({{itemName}}):",
   "Add to Existing Episode": "افزودن به اپیزود موجود",
   "All the {{itemsName}} you can see are in this episode already.": "همهٔ {{itemsName}} که می‌توانید ببینید از قبل در این اپیزود هستند.",
   "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode.": "{{count}} مورد از آن‌ها از قبل در اپیزود دیگری هستند و آنجا هم باقی می‌مانند: {{itemsName}} می‌توانند در بیش از یک اپیزود باشند.",
   "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode._one": "{{count}} مورد از آن‌ها از قبل در اپیزود دیگری است و آنجا هم باقی می‌ماند: {{itemsName}} می‌توانند در بیش از یک اپیزود باشند.",
-  "{{itemsName}} that are in another episode stay there too.": "{{itemsName}} که در اپیزود دیگری هستند، آنجا هم باقی می‌مانند."
+  "{{itemsName}} that are in another episode stay there too.": "{{itemsName}} که در اپیزود دیگری هستند، آنجا هم باقی می‌مانند.",
+  "Start one with your selection.": "با موارد انتخاب‌شده یک اپیزود جدید بسازید.",
+  "You can add owners, on-call policies and notes on the episode's page.": "مالکان، سیاست‌های آنکال و یادداشت‌ها را می‌توانید در صفحهٔ اپیزود اضافه کنید.",
+  "{{count}} {{itemsName}} were not added": "{{count}} مورد افزوده نشد ({{itemsName}})",
+  "{{count}} {{itemsName}} were not added_one": "{{count}} مورد افزوده نشد ({{itemName}})"
 }

@@ -20,8 +20,13 @@ import { EpisodePickerPill } from "./EpisodeMembersApi";
  * a scrolling list of rows, each a native checkbox or radio inside its
  * label - so the keyboard, a screen reader and a click on any part of the
  * row all work as they do for any checkbox - drawn the way the episode's
- * own members card draws its members: the number, the title, then the
- * state and severity pills and when it happened.
+ * own members card draws its members: the number and the title, then a
+ * line of facts - the state and severity pills, Private, a count, when it
+ * happened - that wraps as one line on a phone.
+ *
+ * With nothing at all to pick (no search typed), the search box goes: there
+ * is nothing it could find, and the empty state's own way forward is the
+ * one thing left to do.
  *
  * The dialog owns the data and what is picked; this only draws them.
  */
@@ -78,6 +83,10 @@ export interface ComponentProps {
   footer?: ReactElement | undefined;
 }
 
+// A pill on a row's line of facts: a state, a severity, Private.
+const PILL_CLASS_NAME: string =
+  "inline-flex max-w-full items-center gap-1.5 rounded-full bg-white px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200";
+
 // The state and severity pills, as the episode's members card draws them.
 export const EpisodePickerPillBadge: FunctionComponent<{
   pill: EpisodePickerPill;
@@ -92,7 +101,7 @@ export const EpisodePickerPillBadge: FunctionComponent<{
     <span
       data-testid={props.testId}
       title={props.tooltip}
-      className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-white px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
+      className={PILL_CLASS_NAME}
     >
       <span
         aria-hidden="true"
@@ -111,11 +120,8 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
   const baseId: string = useId();
   const searchInputRef: React.MutableRefObject<HTMLInputElement | null> =
     useRef<HTMLInputElement | null>(null);
-
-  // The search box is where a dialog that picks starts.
-  useEffect(() => {
-    searchInputRef.current?.focus();
-  }, []);
+  const listRef: React.MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
 
   const itemCount: number = props.sections.reduce(
     (count: number, section: EpisodePickerSection): number => {
@@ -125,6 +131,40 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
   );
 
   const hasSearch: boolean = props.searchText.trim().length > 0;
+
+  /*
+   * Nothing to pick and nothing typed: there is nothing a search could
+   * find, so the box goes and the empty state is all the list says.
+   */
+  const showSearch: boolean =
+    hasSearch || props.isLoading || Boolean(props.error) || itemCount > 0;
+
+  // The search box is where a dialog that picks starts.
+  useEffect(() => {
+    searchInputRef.current?.focus();
+  }, []);
+
+  /*
+   * The search box had focus when it went: focus moves to what the empty
+   * state offers instead (Add to New Episode), or to the list, rather than
+   * dropping out of the dialog.
+   */
+  useEffect(() => {
+    if (showSearch || !listRef.current) {
+      return;
+    }
+
+    const active: Element | null = document.activeElement;
+
+    if (active && active !== document.body) {
+      return;
+    }
+
+    const action: HTMLElement | null =
+      listRef.current.querySelector("button, a[href]");
+
+    (action || listRef.current).focus();
+  }, [showSearch]);
 
   const renderItem: (
     item: EpisodePickerItem,
@@ -195,21 +235,16 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
               >
                 {item.title || translator.translateText("Untitled")}
               </span>
-              {item.isPrivate && (
-                <div
-                  data-testid={`${props.testId}-option-private`}
-                  title={translator.translateText(
-                    "Private: only its owners, project admins and project owners can see it.",
-                  )}
-                  className="mt-px inline-flex flex-shrink-0 items-center gap-1 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600"
-                >
-                  <Icon icon={IconProp.Lock} className="h-3 w-3" />
-                  {translator.translateText("Private")}
-                </div>
-              )}
             </div>
-            {(item.state || item.severity || item.meta || item.date) && (
-              <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+            {(item.state ||
+              item.severity ||
+              item.isPrivate ||
+              item.meta ||
+              item.date) && (
+              <div
+                data-testid={`${props.testId}-option-facts`}
+                className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1"
+              >
                 {item.state && (
                   <EpisodePickerPillBadge
                     pill={item.state}
@@ -231,14 +266,46 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
                     )}
                   />
                 )}
-                {item.meta && (
-                  <span className="text-xs text-gray-500">{item.meta}</span>
+                {/*
+                 * Private is a fact about the row like its state, so it sits
+                 * with them: beside the title it was pushed away from it by
+                 * a title that wrapped on a phone.
+                 */}
+                {item.isPrivate && (
+                  <div
+                    data-testid={`${props.testId}-option-private`}
+                    title={translator.translateText(
+                      "Private: only its owners, project admins and project owners can see it.",
+                    )}
+                    className={PILL_CLASS_NAME}
+                  >
+                    <Icon
+                      icon={IconProp.Lock}
+                      className="h-3 w-3 flex-shrink-0 text-gray-500"
+                    />
+                    <span>{translator.translateText("Private")}</span>
+                  </div>
                 )}
-                {item.date && (
-                  <RelativeTime
-                    date={item.date}
-                    className="whitespace-nowrap text-xs tabular-nums text-gray-500"
-                  />
+                {(item.meta || item.date) && (
+                  <span className="inline-flex flex-wrap items-center gap-x-1.5 text-xs text-gray-500">
+                    {item.meta && (
+                      <span data-testid={`${props.testId}-option-meta`}>
+                        {item.meta}
+                      </span>
+                    )}
+                    {item.meta && item.date && (
+                      // A count and a time are two facts, not one phrase.
+                      <span aria-hidden="true" className="text-gray-400">
+                        ·
+                      </span>
+                    )}
+                    {item.date && (
+                      <RelativeTime
+                        date={item.date}
+                        className="whitespace-nowrap tabular-nums"
+                      />
+                    )}
+                  </span>
                 )}
               </div>
             )}
@@ -349,33 +416,39 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
 
   return (
     <div data-testid={props.testId}>
-      <div className="relative">
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-          {props.isLoading && itemCount > 0 ? (
-            <Icon
-              icon={IconProp.Spinner}
-              className="h-4 w-4 animate-spin text-gray-400"
-            />
-          ) : (
-            <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
-          )}
+      {showSearch && (
+        <div className="relative">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+            {props.isLoading && itemCount > 0 ? (
+              <Icon
+                icon={IconProp.Spinner}
+                className="h-4 w-4 animate-spin text-gray-400"
+              />
+            ) : (
+              <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
+            )}
+          </div>
+          <input
+            ref={searchInputRef}
+            type="search"
+            data-testid={`${props.testId}-search`}
+            aria-label={props.searchPlaceholder}
+            placeholder={props.searchPlaceholder}
+            value={props.searchText}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+              props.onSearchTextChange(event.target.value);
+            }}
+            className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          />
         </div>
-        <input
-          ref={searchInputRef}
-          type="search"
-          data-testid={`${props.testId}-search`}
-          aria-label={props.searchPlaceholder}
-          placeholder={props.searchPlaceholder}
-          value={props.searchText}
-          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-            props.onSearchTextChange(event.target.value);
-          }}
-          className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-        />
-      </div>
+      )}
       <div
+        ref={listRef}
+        tabIndex={-1}
         data-testid={`${props.testId}-list`}
-        className="mt-3 max-h-96 overflow-y-auto rounded-lg border border-gray-200 bg-white"
+        className={`max-h-96 overflow-y-auto rounded-lg border border-gray-200 bg-white focus:outline-none ${
+          showSearch ? "mt-3" : ""
+        }`}
       >
         {getBody()}
       </div>

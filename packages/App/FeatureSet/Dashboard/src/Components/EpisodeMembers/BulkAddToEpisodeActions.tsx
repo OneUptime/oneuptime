@@ -282,7 +282,7 @@ function useBulkAddToEpisodeActions<T extends BaseModel>(
     }
 
     const ids: Array<string> = getSelectedIds(props.items);
-    resultEpisodeRef.current = { id: episode.id, number: episode.number };
+    resultEpisodeRef.current = null;
 
     // One request for every selected row; each row reads its own outcome.
     let request: Promise<EpisodeMembersAddResult> | null = null;
@@ -296,6 +296,19 @@ function useBulkAddToEpisodeActions<T extends BaseModel>(
             config: config,
             episodeId: episode.id,
             ids: ids,
+          }).then((result: EpisodeMembersAddResult) => {
+            /*
+             * The way to the episode, once some of them are in it: a
+             * refusal of every one leaves nothing there to open.
+             */
+            if (result.added.length > 0 || result.alreadyInEpisode.length > 0) {
+              resultEpisodeRef.current = {
+                id: episode.id,
+                number: episode.number,
+              };
+            }
+
+            return result;
           });
         }
 

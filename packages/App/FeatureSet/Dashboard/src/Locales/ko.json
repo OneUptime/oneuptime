@@ -29335,7 +29335,6 @@
   "Adding it here keeps it in episode {{number}} too.": "여기에 추가해도 에피소드 {{number}}에 그대로 남습니다.",
   "Adding it here keeps it in that episode too.": "여기에 추가해도 그 에피소드에 그대로 남습니다.",
   "Already in this episode.": "이미 이 에피소드에 있습니다.",
-  "Creates an episode with the selected {{itemsName}} in it. You can add owners, on-call policies and notes on its page.": "선택한 {{itemsName}}을(를) 포함하는 에피소드를 만듭니다. 소유자, 온콜 정책, 노트는 에피소드 페이지에서 추가할 수 있습니다.",
   "Episode title": "에피소드 제목",
   "In another episode": "다른 에피소드에 있음",
   "In episode {{number}}": "에피소드 {{number}}에 있음",
@@ -29362,7 +29361,6 @@
   "The alerts in this episode, grouped by a rule or added by hand.": "이 에피소드의 알림으로, 규칙으로 그룹화되었거나 직접 추가되었습니다.",
   "The incidents in this episode, grouped by a rule or added by hand.": "이 에피소드의 인시던트로, 규칙으로 그룹화되었거나 직접 추가되었습니다.",
   "There are no {{itemsName}} in this project yet.": "이 프로젝트에는 아직 {{itemsName}}이(가) 없습니다.",
-  "There is no episode to add the {{itemsName}} to yet.": "아직 {{itemsName}}을(를) 추가할 에피소드가 없습니다.",
   "This alert does not exist in this project, or you do not have access to it.": "이 경고는 이 프로젝트에 없거나 액세스 권한이 없습니다.",
   "This episode is resolved. Adding to it does not reopen it.": "이 에피소드는 해결되었습니다. 추가해도 다시 열리지 않습니다.",
   "This incident does not exist in this project, or you do not have access to it.": "이 인시던트는 이 프로젝트에 없거나 액세스 권한이 없습니다.",
@@ -29377,11 +29375,13 @@
   "{{count}} {{itemsName}} added to the new episode_one": "{{itemName}} {{count}}개가 새 에피소드에 추가됨",
   "{{count}} {{itemsName}} not added": "{{itemsName}} {{count}}개 추가 안 됨",
   "{{count}} {{itemsName}} not added_one": "{{itemName}} {{count}}개 추가 안 됨",
-  "{{count}} {{itemsName}} were not added:": "{{itemsName}} {{count}}개가 추가되지 않았습니다:",
-  "{{count}} {{itemsName}} were not added:_one": "{{itemName}} {{count}}개가 추가되지 않았습니다:",
   "Add to Existing Episode": "기존 에피소드에 추가",
   "All the {{itemsName}} you can see are in this episode already.": "볼 수 있는 {{itemsName}}이(가) 모두 이미 이 에피소드에 있습니다.",
   "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode.": "그중 {{count}}개는 이미 다른 에피소드에 있으며, 그곳에도 그대로 남습니다. {{itemsName}}은(는) 여러 에피소드에 포함될 수 있습니다.",
   "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode._one": "그중 {{count}}개는 이미 다른 에피소드에 있으며, 그곳에도 그대로 남습니다. {{itemsName}}은(는) 여러 에피소드에 포함될 수 있습니다.",
-  "{{itemsName}} that are in another episode stay there too.": "다른 에피소드에 있는 {{itemsName}}은(는) 그곳에도 그대로 남습니다."
+  "{{itemsName}} that are in another episode stay there too.": "다른 에피소드에 있는 {{itemsName}}은(는) 그곳에도 그대로 남습니다.",
+  "Start one with your selection.": "선택한 항목으로 새 에피소드를 만들 수 있습니다.",
+  "You can add owners, on-call policies and notes on the episode's page.": "소유자, 온콜 정책, 노트는 에피소드 페이지에서 추가할 수 있습니다.",
+  "{{count}} {{itemsName}} were not added": "{{itemsName}} {{count}}개가 추가되지 않았습니다",
+  "{{count}} {{itemsName}} were not added_one": "{{itemName}} {{count}}개가 추가되지 않았습니다"
 }

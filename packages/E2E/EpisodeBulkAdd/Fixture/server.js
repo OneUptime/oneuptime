@@ -42,6 +42,11 @@ const font = path.join(
   repository,
   "packages/Common/Server/Static/Vendor/fonts/InterVariable.woff2",
 );
+// Every person's avatar: the blank one the Dashboard draws without a picture.
+const avatar = path.join(
+  repository,
+  "packages/Common/UI/Images/users/blank-profile.svg",
+);
 /*
  * ?theme=dark draws the page as the Dashboard does in dark mode: the class
  * on <html> that Theme.css reads.
@@ -60,6 +65,11 @@ async function main() {
     if (url.pathname === "/tailwind.js") {
       response.setHeader("Content-Type", "application/javascript");
       fs.createReadStream(tailwind).pipe(response);
+      return;
+    }
+    if (url.pathname.includes("/user/profile-picture/")) {
+      response.setHeader("Content-Type", "image/svg+xml");
+      fs.createReadStream(avatar).pipe(response);
       return;
     }
     if (url.pathname === "/fonts/InterVariable.woff2") {

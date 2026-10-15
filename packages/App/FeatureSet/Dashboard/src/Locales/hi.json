@@ -29335,7 +29335,6 @@
   "Adding it here keeps it in episode {{number}} too.": "यहाँ जोड़ने पर भी यह एपिसोड {{number}} में बना रहेगा।",
   "Adding it here keeps it in that episode too.": "यहाँ जोड़ने पर भी यह उस एपिसोड में बना रहेगा।",
   "Already in this episode.": "पहले से इस एपिसोड में है।",
-  "Creates an episode with the selected {{itemsName}} in it. You can add owners, on-call policies and notes on its page.": "चुने गए {{itemsName}} के साथ एक एपिसोड बनाता है। मालिक, ऑन-कॉल नीतियां और नोट आप एपिसोड के पेज पर जोड़ सकते हैं।",
   "Episode title": "एपिसोड का शीर्षक",
   "In another episode": "किसी दूसरे एपिसोड में",
   "In episode {{number}}": "एपिसोड {{number}} में",
@@ -29362,7 +29361,6 @@
   "The alerts in this episode, grouped by a rule or added by hand.": "इस एपिसोड के अलर्ट, जो किसी नियम से समूहित किए गए या हाथ से जोड़े गए हैं।",
   "The incidents in this episode, grouped by a rule or added by hand.": "इस एपिसोड की घटनाएं, जो किसी नियम से समूहित की गईं या हाथ से जोड़ी गई हैं।",
   "There are no {{itemsName}} in this project yet.": "इस प्रोजेक्ट में अभी कोई {{itemsName}} नहीं है।",
-  "There is no episode to add the {{itemsName}} to yet.": "अभी ऐसा कोई एपिसोड नहीं है जिसमें {{itemsName}} जोड़े जा सकें।",
   "This alert does not exist in this project, or you do not have access to it.": "यह अलर्ट इस प्रोजेक्ट में मौजूद नहीं है, या आपके पास इसकी पहुंच नहीं है।",
   "This episode is resolved. Adding to it does not reopen it.": "यह एपिसोड सुलझ चुका है। इसमें जोड़ने से यह दोबारा नहीं खुलता।",
   "This incident does not exist in this project, or you do not have access to it.": "यह घटना इस प्रोजेक्ट में मौजूद नहीं है, या आपके पास इसकी पहुंच नहीं है।",
@@ -29377,11 +29375,13 @@
   "{{count}} {{itemsName}} added to the new episode_one": "{{count}} {{itemName}} नए एपिसोड में जोड़ा गया",
   "{{count}} {{itemsName}} not added": "{{count}} {{itemsName}} नहीं जोड़े गए",
   "{{count}} {{itemsName}} not added_one": "{{count}} {{itemName}} नहीं जोड़ा गया",
-  "{{count}} {{itemsName}} were not added:": "{{count}} {{itemsName}} नहीं जोड़े जा सके:",
-  "{{count}} {{itemsName}} were not added:_one": "{{count}} {{itemName}} नहीं जोड़ा जा सका:",
   "Add to Existing Episode": "मौजूदा एपिसोड में जोड़ें",
   "All the {{itemsName}} you can see are in this episode already.": "आपको दिखने वाले सभी {{itemsName}} पहले से इस एपिसोड में हैं।",
   "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode.": "इनमें से {{count}} पहले से किसी दूसरे एपिसोड में हैं। वे वहाँ भी बने रहेंगे: {{itemsName}} एक से अधिक एपिसोड में हो सकते हैं।",
   "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode._one": "इनमें से {{count}} पहले से किसी दूसरे एपिसोड में है। वह वहाँ भी बना रहेगा: {{itemsName}} एक से अधिक एपिसोड में हो सकते हैं।",
-  "{{itemsName}} that are in another episode stay there too.": "जो {{itemsName}} किसी दूसरे एपिसोड में हैं, वे वहाँ भी बने रहेंगे।"
+  "{{itemsName}} that are in another episode stay there too.": "जो {{itemsName}} किसी दूसरे एपिसोड में हैं, वे वहाँ भी बने रहेंगे।",
+  "Start one with your selection.": "अपने चयन से एक नया एपिसोड शुरू करें।",
+  "You can add owners, on-call policies and notes on the episode's page.": "मालिक, ऑन-कॉल नीतियां और नोट आप एपिसोड के पेज पर जोड़ सकते हैं।",
+  "{{count}} {{itemsName}} were not added": "{{count}} {{itemsName}} नहीं जोड़े जा सके",
+  "{{count}} {{itemsName}} were not added_one": "{{count}} {{itemName}} नहीं जोड़ा जा सका"
 }

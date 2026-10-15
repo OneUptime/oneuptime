@@ -29335,7 +29335,6 @@
   "Adding it here keeps it in episode {{number}} too.": "Finns kvar i episod {{number}} även efter att ha lagts till här.",
   "Adding it here keeps it in that episode too.": "Finns kvar i den andra episoden även efter att ha lagts till här.",
   "Already in this episode.": "Redan i den här episoden.",
-  "Creates an episode with the selected {{itemsName}} in it. You can add owners, on-call policies and notes on its page.": "Skapar en episod med de valda {{itemsName}}. Du kan lägga till ägare, jourpolicyer och anteckningar på dess sida.",
   "Episode title": "Episodens titel",
   "In another episode": "I en annan episod",
   "In episode {{number}}": "I episod {{number}}",
@@ -29362,7 +29361,6 @@
   "The alerts in this episode, grouped by a rule or added by hand.": "Varningarna i den här episoden, grupperade av en regel eller tillagda manuellt.",
   "The incidents in this episode, grouped by a rule or added by hand.": "Incidenterna i den här episoden, grupperade av en regel eller tillagda manuellt.",
   "There are no {{itemsName}} in this project yet.": "Det finns inga {{itemsName}} i det här projektet ännu.",
-  "There is no episode to add the {{itemsName}} to yet.": "Det finns ännu ingen episod att lägga till {{itemsName}} i.",
   "This alert does not exist in this project, or you do not have access to it.": "Det här larmet finns inte i det här projektet, eller så har du inte åtkomst till det.",
   "This episode is resolved. Adding to it does not reopen it.": "Den här episoden är löst. Att lägga till i den öppnar den inte igen.",
   "This incident does not exist in this project, or you do not have access to it.": "Den här incidenten finns inte i det här projektet, eller så har du inte åtkomst till den.",
@@ -29377,11 +29375,13 @@
   "{{count}} {{itemsName}} added to the new episode_one": "{{count}} {{itemName}} har lagts till i den nya episoden",
   "{{count}} {{itemsName}} not added": "{{count}} {{itemsName}} lades inte till",
   "{{count}} {{itemsName}} not added_one": "{{count}} {{itemName}} lades inte till",
-  "{{count}} {{itemsName}} were not added:": "{{count}} {{itemsName}} lades inte till:",
-  "{{count}} {{itemsName}} were not added:_one": "{{count}} {{itemName}} lades inte till:",
   "Add to Existing Episode": "Lägg till i befintlig episod",
   "All the {{itemsName}} you can see are in this episode already.": "Alla {{itemsName}} som du kan se finns redan i den här episoden.",
   "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode.": "{{count}} av dem finns redan i en annan episod. De finns kvar där också: {{itemsName}} kan ingå i mer än en episod.",
   "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode._one": "{{count}} av dem finns redan i en annan episod. Den finns kvar där också: {{itemsName}} kan ingå i mer än en episod.",
-  "{{itemsName}} that are in another episode stay there too.": "{{itemsName}} som finns i en annan episod finns kvar där också."
+  "{{itemsName}} that are in another episode stay there too.": "{{itemsName}} som finns i en annan episod finns kvar där också.",
+  "Start one with your selection.": "Skapa en med ditt urval.",
+  "You can add owners, on-call policies and notes on the episode's page.": "Du kan lägga till ägare, jourpolicyer och anteckningar på episodens sida.",
+  "{{count}} {{itemsName}} were not added": "{{count}} {{itemsName}} lades inte till",
+  "{{count}} {{itemsName}} were not added_one": "{{count}} {{itemName}} lades inte till"
 }

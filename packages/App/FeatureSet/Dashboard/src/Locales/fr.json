@@ -29335,7 +29335,6 @@
   "Adding it here keeps it in episode {{number}} too.": "Reste aussi dans l'épisode {{number}} après l'ajout ici.",
   "Adding it here keeps it in that episode too.": "Reste aussi dans cet autre épisode après l'ajout ici.",
   "Already in this episode.": "Déjà dans cet épisode.",
-  "Creates an episode with the selected {{itemsName}} in it. You can add owners, on-call policies and notes on its page.": "Crée un épisode qui contient les {{itemsName}} de la sélection. Vous pouvez ajouter des propriétaires, des politiques d'astreinte et des notes sur sa page.",
   "Episode title": "Titre de l'épisode",
   "In another episode": "Dans un autre épisode",
   "In episode {{number}}": "Dans l'épisode {{number}}",
@@ -29362,7 +29361,6 @@
   "The alerts in this episode, grouped by a rule or added by hand.": "Les alertes de cet épisode, regroupées par une règle ou ajoutées à la main.",
   "The incidents in this episode, grouped by a rule or added by hand.": "Les incidents de cet épisode, regroupés par une règle ou ajoutés à la main.",
   "There are no {{itemsName}} in this project yet.": "Il n'y a pas encore d'{{itemsName}} dans ce projet.",
-  "There is no episode to add the {{itemsName}} to yet.": "Il n'y a encore aucun épisode auquel ajouter les {{itemsName}}.",
   "This alert does not exist in this project, or you do not have access to it.": "Cette alerte n'existe pas dans ce projet, ou vous n'y avez pas accès.",
   "This episode is resolved. Adding to it does not reopen it.": "Cet épisode est résolu. Y ajouter des éléments ne le rouvre pas.",
   "This incident does not exist in this project, or you do not have access to it.": "Cet incident n'existe pas dans ce projet, ou vous n'y avez pas accès.",
@@ -29377,11 +29375,13 @@
   "{{count}} {{itemsName}} added to the new episode_one": "{{count}} élément ajouté au nouvel épisode ({{itemName}})",
   "{{count}} {{itemsName}} not added": "{{count}} éléments non ajoutés ({{itemsName}})",
   "{{count}} {{itemsName}} not added_one": "{{count}} élément non ajouté ({{itemName}})",
-  "{{count}} {{itemsName}} were not added:": "{{count}} éléments n'ont pas été ajoutés ({{itemsName}}) :",
-  "{{count}} {{itemsName}} were not added:_one": "{{count}} élément n'a pas été ajouté ({{itemName}}) :",
   "Add to Existing Episode": "Ajouter à un épisode existant",
   "All the {{itemsName}} you can see are in this episode already.": "Tous les éléments ({{itemsName}}) que vous pouvez voir sont déjà dans cet épisode.",
   "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode.": "{{count}} éléments de la sélection sont déjà dans un autre épisode. Ils y restent aussi : les {{itemsName}} peuvent faire partie de plusieurs épisodes.",
   "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode._one": "{{count}} élément de la sélection est déjà dans un autre épisode. Il y reste aussi : les {{itemsName}} peuvent faire partie de plusieurs épisodes.",
-  "{{itemsName}} that are in another episode stay there too.": "Ce qui est déjà dans un autre épisode y reste aussi ({{itemsName}})."
+  "{{itemsName}} that are in another episode stay there too.": "Ce qui est déjà dans un autre épisode y reste aussi ({{itemsName}}).",
+  "Start one with your selection.": "Créez-en un avec votre sélection.",
+  "You can add owners, on-call policies and notes on the episode's page.": "Vous pouvez ajouter des propriétaires, des politiques d'astreinte et des notes sur la page de l'épisode.",
+  "{{count}} {{itemsName}} were not added": "{{count}} éléments n'ont pas été ajoutés ({{itemsName}})",
+  "{{count}} {{itemsName}} were not added_one": "{{count}} élément n'a pas été ajouté ({{itemName}})"
 }

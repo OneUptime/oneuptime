@@ -85,6 +85,10 @@ export interface EpisodeRow {
   severity: EpisodePickerPill | undefined;
   // How many incidents or alerts it holds.
   memberCount: number | undefined;
+  /*
+   * When it started, or - once resolved - when it was resolved: the time
+   * the picker's "Ongoing" and "Recently Resolved" sections are sorted by.
+   */
   date: Date | undefined;
   isResolved: boolean;
 }
@@ -247,6 +251,7 @@ export const getEpisodeRow: (
 ): EpisodeRow => {
   const title: unknown = read(episode, "title");
   const count: unknown = read(episode, config.episodeCountField);
+  const resolvedAt: Date | undefined = readDate(read(episode, "resolvedAt"));
 
   return {
     id: readId(episode._id) || "",
@@ -259,7 +264,7 @@ export const getEpisodeRow: (
     state: getPill(read(episode, config.episodeStateField)),
     severity: getPill(read(episode, config.episodeSeverityField)),
     memberCount: typeof count === "number" ? count : undefined,
-    date: readDate(read(episode, "createdAt")),
+    date: resolvedAt || readDate(read(episode, "createdAt")),
     isResolved: Boolean(read(episode, "resolvedAt")),
   };
 };

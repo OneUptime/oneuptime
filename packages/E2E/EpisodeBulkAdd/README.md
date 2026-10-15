@@ -36,6 +36,13 @@ The suite drives it the way a person does:
   search by number with or without its prefix, several added in one request, what
   could not be added kept in the dialog with why;
 - the same for incidents (`?page=incidents`, `?page=incident-episode`);
+- loading and failing reads (`?slow=<tables>&slowMs=<ms>`, `?fail=<tables>`):
+  the skeleton, then the list; the error, and Refresh reading it again;
+- past what a dialog lists before a search (`?many=<n>`): it says so, and a
+  search reaches the older ones;
+- nothing left to add (`?onlyMembers=1`): the empty state, without a search
+  box that could find nothing;
+- long titles (`?long=1`) at a phone's width;
 - a phone-width screen and dark mode (`?theme=dark`).
 
 Run it with:

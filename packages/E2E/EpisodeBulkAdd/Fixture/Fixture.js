@@ -31,6 +31,16 @@
  *   - failNew=1                    creating an episode is refused
  *   - noEpisodes=1                 the project has no episodes yet
  *   - delay=<ms>                   how long the add takes, to see it run
+ *   - slow=<tables>&slowMs=<ms>    list reads of these tables (comma-
+ *                                  separated, e.g. AlertEpisode,Alert) take
+ *                                  this long, to see the dialogs load
+ *   - fail=<tables>                list reads of these tables fail, to see
+ *                                  the dialogs' error and Retry
+ *   - many=<n>                     n more alerts and incidents (ALT-100 on),
+ *                                  past what a dialog lists before a search
+ *   - long=1                       long titles, the way some are written
+ *   - onlyMembers=1                every alert and incident is in episode
+ *                                  12 already: nothing left to add
  *   - lang=de|ja                   the Dashboard's German or Japanese words
  *   - theme=dark                   the dark theme
  *
@@ -101,6 +111,19 @@ const refused = (params.get("refuse") || "")
 const failNew = params.get("failNew") === "1";
 const noEpisodes = params.get("noEpisodes") === "1";
 const delay = Math.max(0, Number(params.get("delay") || 0));
+const listTables = (name) =>
+  (params.get(name) || "")
+    .split(",")
+    .map((table) => table.trim())
+    .filter(Boolean);
+const slowTables = listTables("slow");
+const slowMs = Math.max(0, Number(params.get("slowMs") || 2000));
+const failTables = listTables("fail");
+const many = Math.min(400, Math.max(0, Number(params.get("many") || 0)));
+const long = params.get("long") === "1";
+const onlyMembers = params.get("onlyMembers") === "1";
+const LONG_TITLE =
+  "Checkout API returns 502 for card payments in eu-west-1 while the payment provider's webhook queue is backed up";
 const language = ["de", "ja"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
@@ -235,6 +258,24 @@ function makeKind(kind) {
     record(56, "CDN error rate above 1%", resolved, major, 95),
   ];
 
+  if (long) {
+    records[1].title = LONG_TITLE;
+  }
+
+  // More than a dialog lists before a search: older, numbered from 100.
+  for (let index = 0; index < many; index++) {
+    const severity = [critical, major, minor][index % 3];
+    records.push(
+      record(
+        100 + index,
+        `Synthetic check ${100 + index} failing in us-east-1`,
+        index % 4 === 3 ? acknowledged : created,
+        severity,
+        120 + index * 5,
+      ),
+    );
+  }
+
   function episode(number, title, state, severity, minutes, isResolved) {
     return model(EpisodeType, {
       _id: episodeId(number),
@@ -258,6 +299,11 @@ function makeKind(kind) {
         episode(11, "Database latency", acknowledged, major, 120, false),
         episode(9, "Network blip in eu-west", resolved, minor, 600, true),
       ];
+
+  if (long && episodes.length > 0) {
+    episodes[1].title =
+      "Database latency across every read replica in eu-west-1 after the storage migration";
+  }
 
   const members = [];
 
@@ -286,6 +332,14 @@ function makeKind(kind) {
     addMember(episodes[1], records[5], 55);
     addMember(episodes[2], records[6], 70);
     addMember(episodes[2], records[7], 95);
+  }
+
+  // Nothing left to add to episode 12: every other one is gone.
+  if (onlyMembers) {
+    const kept = records.filter(
+      (candidate) => idOf(candidate[episodeIdField]) === episodeId(12),
+    );
+    records.splice(0, records.length, ...kept);
   }
 
   return {
@@ -513,6 +567,20 @@ ModelAPI.getList = async (options) => {
     skip,
     limit,
   });
+
+  if (slowTables.includes(tableName)) {
+    await new Promise((resolve) => {
+      setTimeout(resolve, slowMs);
+    });
+  }
+
+  if (failTables.includes(tableName)) {
+    throw new HTTPErrorResponse(
+      500,
+      { message: "The server could not be reached. Try again." },
+      {},
+    );
+  }
 
   const items = sortRows(
     recordsOf(tableName).filter((record) =>

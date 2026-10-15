@@ -122,6 +122,22 @@ async function addsSent(page: Page): Promise<Array<RecordedAdd>> {
   });
 }
 
+interface RecordedListRequest {
+  tableName: string;
+}
+
+async function listRequestsFor(page: Page, tableName: string): Promise<number> {
+  return await page.evaluate((name: string): number => {
+    return (
+      window as unknown as {
+        __fixture: { listRequests: Array<RecordedListRequest> };
+      }
+    ).__fixture.listRequests.filter((request: RecordedListRequest) => {
+      return request.tableName === name;
+    }).length;
+  }, tableName);
+}
+
 async function createsSent(page: Page): Promise<Array<RecordedCreate>> {
   return await page.evaluate((): Array<RecordedCreate> => {
     return (
@@ -258,6 +274,108 @@ test.describe("the alerts list: Add to Existing Episode", () => {
     ).toHaveText("This episode is resolved. Adding to it does not reopen it.");
   });
 
+  test("a resolved episode is dated by when it was resolved, and the notes sit above the button", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openList(page, "alerts");
+    await selectRows(page, [
+      "Checkout API is offline",
+      "Cart service restarts",
+    ]);
+    await (await openBulkMenu(page))
+      .getByRole("menuitem", { name: "Add to Existing Episode" })
+      .click();
+
+    const resolved: Locator = pickerOption(
+      page,
+      "add-to-existing-episode-list",
+      "Network blip in eu-west",
+    );
+    // AE-9 was resolved 570 minutes before the fixture's "now".
+    await expect(resolved.locator("time")).toHaveAttribute(
+      "datetime",
+      "2026-10-14T02:30:00.000Z",
+    );
+    await expect(resolved).toContainText("2 alerts");
+
+    await resolved.click();
+
+    const notes: Locator = dialog(page).getByTestId(
+      "add-to-existing-episode-notes",
+    );
+    await expect(notes).toContainText(
+      "1 of them is already in another episode. It stays there too: alerts can be in more than one episode.",
+    );
+    await expect(notes).toContainText(
+      "This episode is resolved. Adding to it does not reopen it.",
+    );
+
+    // Between the list and the button that adds them.
+    const notesBox: { y: number; height: number } | null =
+      await notes.boundingBox();
+    const listBox: { y: number; height: number } | null = await dialog(page)
+      .getByTestId("add-to-existing-episode-list-list")
+      .boundingBox();
+    const buttonBox: { y: number } | null = await dialog(page)
+      .getByTestId("modal-footer-submit-button")
+      .boundingBox();
+    expect(notesBox!.y).toBeGreaterThanOrEqual(listBox!.y + listBox!.height);
+    expect(buttonBox!.y).toBeGreaterThan(notesBox!.y + notesBox!.height);
+
+    await screenshot(page, "alerts-existing-resolved-picked");
+  });
+
+  test("while the episodes load it shows a skeleton; one that cannot be read says so and reads again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openList(page, "alerts", "&slow=AlertEpisode&slowMs=4000");
+    await selectRows(page, ["Checkout API is offline"]);
+    await (await openBulkMenu(page))
+      .getByRole("menuitem", { name: "Add to Existing Episode" })
+      .click();
+
+    await expect(
+      dialog(page).getByTestId("add-to-existing-episode-list-skeleton"),
+    ).toBeVisible();
+    await expect(dialog(page).getByRole("status")).toContainText("Loading");
+    await expect(
+      dialog(page).getByTestId("add-to-existing-episode-list-search"),
+    ).toBeFocused();
+
+    await expect(
+      pickerOption(page, "add-to-existing-episode-list", "Database latency"),
+    ).toBeVisible({ timeout: 20000 });
+
+    await page.goto(`${PROJECT}/alerts?page=alerts&fail=AlertEpisode`);
+    await expect(page.locator("tbody tr").first()).toBeVisible();
+    await selectRows(page, ["Checkout API is offline"]);
+    await (await openBulkMenu(page))
+      .getByRole("menuitem", { name: "Add to Existing Episode" })
+      .click();
+
+    await expect(dialog(page)).toContainText(
+      "The server could not be reached. Try again.",
+    );
+    // The search box stays: the list may come back.
+    await expect(
+      dialog(page).getByTestId("add-to-existing-episode-list-search"),
+    ).toBeVisible();
+
+    const before: number = await listRequestsFor(page, "AlertEpisode");
+    await dialog(page).getByTestId("refresh-button").click();
+    await expect
+      .poll(async (): Promise<number> => {
+        return await listRequestsFor(page, "AlertEpisode");
+      })
+      .toBeGreaterThan(before);
+
+    await screenshot(page, "alerts-existing-error");
+  });
+
   test("searches every episode by number", async ({ page }: { page: Page }) => {
     await openList(page, "alerts");
     await selectRows(page, ["Checkout API is offline"]);
@@ -323,6 +441,19 @@ test.describe("the alerts list: Add to Existing Episode", () => {
     await expect(
       dialog(page).getByTestId("add-to-existing-episode-list-empty"),
     ).toContainText("No episodes yet");
+    await expect(
+      dialog(page).getByTestId("add-to-existing-episode-list-empty"),
+    ).toContainText("Start one with your selection.");
+
+    // Nothing to search: the box goes, and the way forward has focus.
+    await expect(
+      dialog(page).getByTestId("add-to-existing-episode-list-search"),
+    ).toHaveCount(0);
+    await expect(
+      dialog(page).getByTestId("add-to-existing-episode-create-instead"),
+    ).toBeFocused();
+
+    await screenshot(page, "alerts-existing-no-episodes");
 
     await dialog(page)
       .getByTestId("add-to-existing-episode-create-instead")
@@ -590,13 +721,18 @@ test.describe("an alert episode's Add Alerts", () => {
     await pickerOption(page, LIST, "Disk usage above 90% on db-2").click();
     await dialog(page).getByTestId("modal-footer-submit-button").click();
 
+    // Drawn as a dialog draws any refusal: the danger alert.
     const box: Locator = dialog(page).getByTestId(
       "add-episode-members-not-added",
     );
-    await expect(box).toContainText("1 alert was not added:");
-    await expect(box).toContainText(
-      `ALT-60: Disk usage above 90% on db-2: ${ALERT_NOT_FOUND}`,
-    );
+    await expect(box).toHaveAttribute("role", "alert");
+    await expect(box).toContainText("1 alert was not added");
+    await expect(
+      box.getByTestId("add-episode-members-not-added-name"),
+    ).toHaveText(["ALT-60: Disk usage above 90% on db-2"]);
+    await expect(
+      box.getByTestId("add-episode-members-not-added-reason"),
+    ).toHaveText(ALERT_NOT_FOUND);
 
     // The one added left the list; the one that was not is still picked.
     await expect(
@@ -607,6 +743,119 @@ test.describe("an alert episode's Add Alerts", () => {
     ).toHaveAttribute("data-selected", "true");
 
     await screenshot(page, "alert-episode-not-added");
+  });
+
+  test("a private alert says so on its line of facts, beside its state and severity", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openEpisode(page);
+    await page.getByRole("button", { name: "Add Alerts" }).click();
+
+    const option: Locator = pickerOption(
+      page,
+      LIST,
+      "Payroll export job failing",
+    );
+    await expect(
+      option
+        .getByTestId(`${LIST}-option-facts`)
+        .getByTestId(`${LIST}-option-private`),
+    ).toHaveText("Private");
+
+    // Under the title, not beside it.
+    const titleBox: { y: number; height: number } | null = await option
+      .getByTestId(`${LIST}-option-title`)
+      .boundingBox();
+    const privateBox: { y: number } | null = await option
+      .getByTestId(`${LIST}-option-private`)
+      .boundingBox();
+    expect(privateBox!.y).toBeGreaterThanOrEqual(
+      titleBox!.y + titleBox!.height - 1,
+    );
+  });
+
+  test("while the alerts load it shows a skeleton; then the list", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openEpisode(page, "&slow=Alert&slowMs=4000");
+    await page.getByRole("button", { name: "Add Alerts" }).click();
+
+    await expect(dialog(page).getByTestId(`${LIST}-skeleton`)).toBeVisible();
+    await expect(dialog(page).getByTestId(`${LIST}-search`)).toBeFocused();
+    await expect(
+      pickerOption(page, LIST, "Checkout API is offline"),
+    ).toBeVisible({ timeout: 20000 });
+  });
+
+  test("a list that cannot be read says so, and Refresh reads it again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openEpisode(page, "&fail=Alert");
+    await page.getByRole("button", { name: "Add Alerts" }).click();
+
+    await expect(dialog(page)).toContainText(
+      "The server could not be reached. Try again.",
+    );
+    await expect(
+      dialog(page).getByTestId("modal-footer-submit-button"),
+    ).toBeDisabled();
+
+    const before: number = await listRequestsFor(page, "Alert");
+    await dialog(page).getByTestId("refresh-button").click();
+    await expect
+      .poll(async (): Promise<number> => {
+        return await listRequestsFor(page, "Alert");
+      })
+      .toBeGreaterThan(before);
+
+    await screenshot(page, "alert-episode-add-error");
+  });
+
+  test("past the 50 it lists before a search, it says so", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openEpisode(page, "&many=150");
+    await page.getByRole("button", { name: "Add Alerts" }).click();
+
+    await expect(dialog(page).getByTestId(`${LIST}-option`)).toHaveCount(50);
+    await expect(
+      dialog(page).getByTestId("add-episode-members-shown"),
+    ).toHaveText(
+      "Showing the 50 most recent alerts that are not in this episode. Search to find others.",
+    );
+
+    // A search reaches the older ones.
+    await dialog(page).getByTestId(`${LIST}-search`).fill("ALT-249");
+    await expect(dialog(page).getByTestId(`${LIST}-option-title`)).toHaveText([
+      "Synthetic check 249 failing in us-east-1",
+    ]);
+  });
+
+  test("with nothing left to add it says why, without a search box that could find nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openEpisode(page, "&onlyMembers=1");
+    await page.getByRole("button", { name: "Add Alerts" }).click();
+
+    await expect(dialog(page).getByTestId(`${LIST}-empty`)).toContainText(
+      "All the alerts you can see are in this episode already.",
+    );
+    await expect(dialog(page).getByTestId(`${LIST}-search`)).toHaveCount(0);
+    await expect(
+      dialog(page).getByTestId("modal-footer-submit-button"),
+    ).toBeDisabled();
+
+    await screenshot(page, "alert-episode-add-nothing-left");
   });
 
   test("a viewer's Add Alerts is locked", async ({ page }: { page: Page }) => {
@@ -735,6 +984,81 @@ test.describe("on a phone", () => {
     ).toHaveText("Add 1 Alert");
 
     await screenshot(page, "alert-episode-add-phone");
+  });
+
+  test("a long title wraps inside the dialog, and a private one keeps Private under its title", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(
+      `${PROJECT}/alerts/episodes/${alertEpisodeId(12)}/alerts?page=alert-episode&long=1`,
+    );
+    await page.getByRole("button", { name: "Add Alerts" }).click();
+
+    const LIST: string = "add-episode-members-list";
+    const long: Locator = dialog(page)
+      .getByTestId(`${LIST}-option`)
+      .filter({ hasText: "ALT-62" });
+    await expect(long).toBeVisible();
+
+    const dialogBox: { x: number; width: number } | null =
+      await dialog(page).boundingBox();
+    const titleBox: { x: number; width: number } | null = await long
+      .getByTestId(`${LIST}-option-title`)
+      .boundingBox();
+    expect(titleBox!.x + titleBox!.width).toBeLessThanOrEqual(
+      dialogBox!.x + dialogBox!.width,
+    );
+    expect(
+      await page.evaluate((): number => {
+        return document.documentElement.scrollWidth;
+      }),
+    ).toBeLessThanOrEqual(390);
+
+    const privateOne: Locator = pickerOption(
+      page,
+      LIST,
+      "Payroll export job failing",
+    );
+    const privateTitle: { y: number; height: number } | null = await privateOne
+      .getByTestId(`${LIST}-option-title`)
+      .boundingBox();
+    const privatePill: { y: number } | null = await privateOne
+      .getByTestId(`${LIST}-option-private`)
+      .boundingBox();
+    expect(privatePill!.y).toBeGreaterThanOrEqual(
+      privateTitle!.y + privateTitle!.height - 1,
+    );
+
+    await screenshot(page, "alert-episode-add-phone-long");
+  });
+
+  test("what could not be added fits the screen too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(
+      `${PROJECT}/alerts/episodes/${alertEpisodeId(12)}/alerts?page=alert-episode&refuse=${alertId(60)}`,
+    );
+    await page.getByRole("button", { name: "Add Alerts" }).click();
+
+    const LIST: string = "add-episode-members-list";
+    await pickerOption(page, LIST, "Disk usage above 90% on db-2").click();
+    await dialog(page).getByTestId("modal-footer-submit-button").click();
+
+    const box: Locator = dialog(page).getByTestId(
+      "add-episode-members-not-added",
+    );
+    await expect(box).toBeVisible();
+
+    const boxBounds: { x: number; width: number } | null =
+      await box.boundingBox();
+    expect(boxBounds!.x).toBeGreaterThanOrEqual(0);
+    expect(boxBounds!.x + boxBounds!.width).toBeLessThanOrEqual(390);
+
+    await screenshot(page, "alert-episode-not-added-phone");
   });
 });
 

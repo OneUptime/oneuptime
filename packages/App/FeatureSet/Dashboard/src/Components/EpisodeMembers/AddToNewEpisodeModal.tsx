@@ -161,11 +161,14 @@ const AddToNewEpisodeModal: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
-  // Two whole sentences, run together the way the reader's script does it.
+  /*
+   * The title says what this does, so the description says only what the
+   * form leaves out, and what happens to the ones in another episode:
+   * whole sentences, run together the way the reader's script does it.
+   */
   const description: string = joinSentences([
-    translator.translateTemplate(
-      "Creates an episode with the selected {{itemsName}} in it. You can add owners, on-call policies and notes on its page.",
-      { itemsName },
+    translator.translateText(
+      "You can add owners, on-call policies and notes on the episode's page.",
     ),
     inAnotherEpisode > 0
       ? translator.translatePlural(

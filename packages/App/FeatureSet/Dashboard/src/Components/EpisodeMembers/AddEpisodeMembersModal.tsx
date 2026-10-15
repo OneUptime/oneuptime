@@ -5,6 +5,11 @@ import {
   MAX_EPISODE_MEMBERS_PER_ADD,
 } from "Common/Types/Episode/EpisodeMembersAdd";
 import ObjectID from "Common/Types/ObjectID";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import {
+  BulkItemGroup,
+  groupItemsByReason,
+} from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import {
@@ -40,7 +45,9 @@ import EpisodePickerList, { EpisodePickerItem } from "./EpisodePickerList";
  * ones already in this episode, and says when one is in another episode
  * (it stays there too: one can be in several). Adding is one request
  * (EpisodeMembersAdd). Everything added, the dialog closes; anything that
- * could not be added stays listed in it, with why.
+ * could not be added stays listed in it, with why - drawn as the dialog
+ * draws any refusal (the danger Alert), each name on its line and the
+ * reason under the names it applies to, as a bulk action's result does.
  */
 
 // How long typing has to pause before the list is searched.
@@ -358,6 +365,16 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
 
   const hasSearch: boolean = debouncedSearch.trim().length > 0;
 
+  // What could not be added, by reason: one reason, said once.
+  const notAddedGroups: Array<BulkItemGroup> = groupItemsByReason(
+    notAdded.map((entry: EpisodeMemberNotAdded) => {
+      return {
+        name: getName(entry.id),
+        message: translator.translateText(entry.reason) || entry.reason,
+      };
+    }),
+  );
+
   const getFooter: () => ReactElement | undefined = ():
     | ReactElement
     | undefined => {
@@ -471,35 +488,48 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
     >
       <div data-testid="add-episode-members">
         {notAdded.length > 0 && (
-          <div
-            role="alert"
-            data-testid="add-episode-members-not-added"
-            className="mb-4 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-700 ring-1 ring-inset ring-red-100"
-          >
-            <div className="font-medium">
-              {translator.translatePlural(
-                {
-                  one: "{{count}} {{itemName}} was not added:",
-                  other: "{{count}} {{itemsName}} were not added:",
-                },
-                notAdded.length,
-                { itemName, itemsName },
-              )}
-            </div>
-            <ul className="mt-1 space-y-0.5">
-              {notAdded.map((entry: EpisodeMemberNotAdded) => {
-                return (
-                  <li key={entry.id} className="break-words">
-                    {translator.translateTemplate("{{name}}: {{reason}}", {
-                      name: getName(entry.id),
-                      reason:
-                        translator.translateText(entry.reason) || entry.reason,
-                    })}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+          <Alert
+            type={AlertType.DANGER}
+            className="mb-4"
+            dataTestId="add-episode-members-not-added"
+            strongTitle={translator.translatePlural(
+              {
+                one: "{{count}} {{itemName}} was not added",
+                other: "{{count}} {{itemsName}} were not added",
+              },
+              notAdded.length,
+              { itemName, itemsName },
+            )}
+            title={
+              <ul className="space-y-2">
+                {notAddedGroups.map((group: BulkItemGroup, index: number) => {
+                  return (
+                    <li
+                      key={index}
+                      data-testid="add-episode-members-not-added-group"
+                    >
+                      <ul>
+                        {group.names.map((name: string) => {
+                          return (
+                            <li
+                              key={name}
+                              data-testid="add-episode-members-not-added-name"
+                              className="break-words font-medium"
+                            >
+                              {name}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                      <div data-testid="add-episode-members-not-added-reason">
+                        {group.message}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            }
+          />
         )}
         <EpisodePickerList
           testId="add-episode-members-list"
