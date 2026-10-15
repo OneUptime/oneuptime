@@ -30,7 +30,6 @@ import {
   readDashboardSource,
   sectionByTitle,
   startsCollapsed,
-  stringConstant,
   workspaceSection,
 } from "./DocsDashboardMenus";
 import { boldPaths } from "./DocsPageShape";
@@ -487,7 +486,7 @@ describe("the Notifications group in the docs", () => {
   });
 
   it("is linked from Getting Started's Incident Response cards, right after On-call, and from Core Concepts' on-call section", () => {
-    const gettingStarted: string = section(
+    const gettingStarted: Array<string> = section(
       readPage("en", "introduction/getting-started"),
       "### Incident Response",
     )
@@ -1075,7 +1074,9 @@ describe("notification methods", () => {
   });
 
   it("names each add button as the list draws it: Add, and the method's name", () => {
-    const buttons: Array<[string, { singularName?: string | undefined }]> = [
+    const buttons: Array<
+      [string, { singularName?: string | null | undefined }]
+    > = [
       ["SMS", new UserSMS()],
       ["Telegram", new UserTelegram()],
       ["Webhook", new UserWebhook()],
