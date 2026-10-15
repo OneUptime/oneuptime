@@ -270,7 +270,7 @@ export const ChannelNamePreview: FunctionComponent<ChannelNameExampleProps> = (
   return (
     <div data-testid={props.dataTestId} className="mt-2 space-y-1 text-sm">
       <p className="flex flex-wrap items-center gap-x-2 text-gray-500">
-        <span>{translator.translateText("Preview:")}</span>
+        <span>{translator.translateText("Preview:")}</span>{" "}
         <span
           data-testid="channel-name-preview"
           className="break-all font-mono font-medium text-gray-900"
@@ -324,9 +324,10 @@ export const ChannelNameSummary: FunctionComponent<ChannelNameExampleProps> = (
       )}
       {example ? (
         <>
+          {" "}
           <span className="text-sm text-gray-500">
             {translator.translateText("Example:")}
-          </span>
+          </span>{" "}
           <span
             data-testid="channel-name-example"
             className="break-all font-mono text-sm text-gray-900"
