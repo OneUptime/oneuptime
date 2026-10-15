@@ -483,6 +483,29 @@ describe("the rule's card shows its channel name", () => {
     );
   });
 
+  /*
+   * The rows around the channel name named the workspace by its enum value,
+   * "Create MicrosoftTeams Channel", while the form above them says
+   * "Create Microsoft Teams Channel".
+   */
+  test("Microsoft Teams is called Microsoft Teams on every row of the card", () => {
+    renderCard(rule({}), WorkspaceType.MicrosoftTeams);
+
+    expect(screen.getByText("Create Microsoft Teams Channel")).toBeVisible();
+    expect(
+      screen.getByText("Invite Teams to New Microsoft Teams Channel"),
+    ).toBeVisible();
+    expect(
+      screen.getByText("Invite Users to New Microsoft Teams Channel"),
+    ).toBeVisible();
+    expect(
+      screen.getByText(
+        "Automatically Invite On Call Users to New Microsoft Teams Channel",
+      ),
+    ).toBeVisible();
+    expect(document.body.textContent).not.toContain("MicrosoftTeams");
+  });
+
   test("a rule that creates no channel shows no channel name", () => {
     renderCard(rule({ shouldCreateNewChannel: false }));
 

@@ -254,8 +254,8 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
   > = [
     {
       key: "shouldCreateNewChannel",
-      title: `Create ${props.workspaceType} Channel`,
-      description: `When above conditions are met, create a new ${props.workspaceType} channel.`,
+      title: `Create ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel`,
+      description: `When above conditions are met, create a new ${getWorkspaceTypeDisplayName(props.workspaceType)} channel.`,
       fieldType: FieldType.Boolean,
     },
     {
@@ -328,8 +328,8 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
     },
     {
       key: "shouldInviteOwnersToNewChannel",
-      title: `Invite ${props.eventType} owners to new ${props.workspaceType} Channel`,
-      description: `When new ${props.workspaceType} channel is created, invite ${props.eventType} owners.`,
+      title: `Invite ${props.eventType} owners to new ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel`,
+      description: `When new ${getWorkspaceTypeDisplayName(props.workspaceType)} channel is created, invite ${props.eventType} owners.`,
       fieldType: FieldType.Boolean,
       showIf: (
         formValue:
@@ -342,8 +342,8 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
     },
     {
       key: "inviteTeamsToNewChannel",
-      title: `Invite Teams to New ${props.workspaceType} Channel`,
-      description: `When new ${props.workspaceType} channel is created, invite these teams.`,
+      title: `Invite Teams to New ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel`,
+      description: `When new ${getWorkspaceTypeDisplayName(props.workspaceType)} channel is created, invite these teams.`,
       fieldType: FieldType.Element,
       showIf: (
         formValue:
@@ -370,8 +370,8 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
     },
     {
       key: "inviteUsersToNewChannel",
-      title: `Invite Users to New ${props.workspaceType} Channel`,
-      description: `When new ${props.workspaceType} channel is created, invite these users.`,
+      title: `Invite Users to New ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel`,
+      description: `When new ${getWorkspaceTypeDisplayName(props.workspaceType)} channel is created, invite these users.`,
       fieldType: FieldType.Element,
       showIf: (
         formValue:
@@ -432,8 +432,8 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
     > = [
       {
         key: "shouldAutomaticallyInviteOnCallUsersToNewChannel",
-        title: `Automatically Invite On Call Users to New ${props.workspaceType} Channel`,
-        description: `If this is enabled then all on call users will be invited to the new ${props.workspaceType} channel as they are alerted.`,
+        title: `Automatically Invite On Call Users to New ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel`,
+        description: `If this is enabled then all on call users will be invited to the new ${getWorkspaceTypeDisplayName(props.workspaceType)} channel as they are alerted.`,
         fieldType: FieldType.Boolean,
         showIf: (
           formValue: IncidentNotificationRule | AlertNotificationRule,
