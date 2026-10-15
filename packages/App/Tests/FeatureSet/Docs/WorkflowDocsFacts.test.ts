@@ -34,6 +34,7 @@ import {
   TRUNCATED_VALUE_SUFFIX,
 } from "Common/Types/Workflow/StepTrace";
 import WorkflowPlan from "Common/Types/Workflow/WorkflowPlan";
+import { describeUnresolvedIdReference } from "Common/Server/Types/Workflow/Components/BaseModel/UnresolvedIdReference";
 import WorkflowStatus, {
   getWorkflowStatusLabel,
 } from "Common/Types/Workflow/WorkflowStatus";
@@ -1140,6 +1141,68 @@ describe("the variables page", () => {
     expect(VARIABLES).toContain(
       "The API key needs **Edit Workflow Variables**.",
     );
+  });
+
+  /*
+   * The one place a reference that did not resolve is not left as text: an
+   * ID a data component reads or writes. Every data component reads its IDs
+   * before anything else and stops on one that is still a reference; the
+   * step says so first, and takes its Error output (logComponentError, with
+   * the message as the reason the run's Steps view shows).
+   */
+  it("says an ID that did not resolve stops a data component, as the step itself says", () => {
+    const sentence: string =
+      "The exception is an ID that a data component reads or writes, such as `_id` in its **Query**: there the step stops before reading or writing anything, takes its **Error** output, and says which reference did not resolve and what to check.";
+
+    expect(VARIABLES).toContain(sentence);
+
+    const message: string = describeUnresolvedIdReference({
+      unresolved: {
+        columnName: "_id",
+        reference:
+          "{{local.components.incident-find-one-1.returnValues.model._id}}",
+      },
+      argumentName: "Query",
+    });
+
+    expect(
+      message.startsWith(
+        "The step stopped before reading or writing anything:",
+      ),
+    ).toBe(true);
+    expect(message).toContain(
+      '{{local.components.incident-find-one-1.returnValues.model._id}} in "Query" did not resolve',
+    );
+    expect(message).toContain("Check the step id and the return value name");
+
+    for (const step of [
+      "FindOne",
+      "FindMany",
+      "CreateOne",
+      "CreateMany",
+      "UpdateOne",
+      "UpdateMany",
+      "DeleteOne",
+      "DeleteMany",
+    ]) {
+      const source: string = readSource(
+        `Common/Server/Types/Workflow/Components/BaseModel/${step}BaseModel.ts`,
+      );
+
+      expect({
+        step,
+        checksIds: source.includes("assertIdsAreResolved({"),
+      }).toEqual({
+        step,
+        checksIds: true,
+      });
+      expect({
+        step,
+        takesError: source.includes(
+          "executePort: errorPort,\n        executePortReason: reason,",
+        ),
+      }).toEqual({ step, takesError: true });
+    }
   });
 
   it("says no variable's value can be read back, as the model's read list makes true", () => {

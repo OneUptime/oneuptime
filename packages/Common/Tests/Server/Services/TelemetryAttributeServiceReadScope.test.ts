@@ -1,4 +1,6 @@
-import TelemetryAttributeServiceInstance from "../../../Server/Services/TelemetryAttributeService";
+import TelemetryAttributeServiceInstance, {
+  TelemetryAttributeService,
+} from "../../../Server/Services/TelemetryAttributeService";
 import LogService from "../../../Server/Services/LogService";
 import MutableMetricService from "../../../Server/Services/MutableMetricService";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
@@ -52,6 +54,8 @@ let logQuery: Spy;
 
 beforeEach(() => {
   cache = new Map();
+  // Value answers are kept in this process; each test asks afresh.
+  TelemetryAttributeService.clearValueSuggestionCache();
 
   spyOn(GlobalCache, "getJSONObject").mockImplementation(
     async (_namespace: string, key: string): Promise<JSONObject | null> => {
@@ -194,9 +198,12 @@ describe("attribute values follow the caller's read scope", () => {
     expect(boundLists(statement)).toEqual(
       expect.arrayContaining([[serviceA.toString()], [serviceC.toString()]]),
     );
-    // The scope narrows before ORDER BY / LIMIT pick the values to return.
+    /*
+     * The scope narrows the rows inside the sample, before its LIMIT picks
+     * which rows the values come from.
+     */
     expect(statement.query.indexOf("primaryEntityId IN (")).toBeLessThan(
-      statement.query.indexOf("ORDER BY"),
+      statement.query.indexOf("LIMIT"),
     );
   });
 

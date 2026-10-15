@@ -1,5 +1,6 @@
 import Query from "./Query";
 import QueryHelper from "./QueryHelper";
+import UUIDColumnFilter from "./UUIDColumnFilter";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import EqualToOrNull from "../../../Types/BaseDatabase/EqualToOrNull";
 import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
@@ -183,6 +184,19 @@ export default class QueryUtil {
     for (const key in query) {
       const tableColumnMetadata: TableColumnMetadata =
         model.getTableColumnMetadata(key);
+
+      /*
+       * From here on every id the filter compares a uuid column with is text
+       * Postgres reads as a uuid, or the query has been refused with a 400.
+       * See UUIDColumnFilter.
+       */
+      if (tableColumnMetadata) {
+        query[key] = UUIDColumnFilter.normalizeFilter({
+          columnName: key,
+          column: tableColumnMetadata,
+          value: query[key],
+        }) as any;
+      }
 
       if (query[key] instanceof IncludesAnyOfGroups) {
         if (tableColumnMetadata?.type !== TableColumnType.EntityArray) {

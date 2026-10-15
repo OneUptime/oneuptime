@@ -620,6 +620,28 @@ type GetAttributeValuesFunction = (
   telemetryType: TelemetryType,
 ) => Promise<void>;
 
+/*
+ * An edge of a value lookup's window: an ISO date string, or nothing. Any
+ * other value is refused rather than read as "no window", so a client that
+ * sends a broken range hears about it.
+ */
+const readLookupTime: (value: unknown, name: string) => Date | undefined = (
+  value: unknown,
+  name: string,
+): Date | undefined => {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+
+  const time: Date | null = typeof value === "string" ? new Date(value) : null;
+
+  if (!time || !Number.isFinite(time.getTime())) {
+    throw new BadDataException(`${name} must be a date`);
+  }
+
+  return time;
+};
+
 const getAttributeValues: GetAttributeValuesFunction = async (
   req: ExpressRequest,
   res: ExpressResponse,
@@ -669,6 +691,28 @@ const getAttributeValues: GetAttributeValuesFunction = async (
         ? (req.body["searchText"] as string)
         : undefined;
 
+    /*
+     * The time range the reader is looking at, so the values offered are
+     * those of the rows on screen (issue #4708). Optional: without it the
+     * lookup reads the last day, as it always has.
+     */
+    const startTime: Date | undefined = readLookupTime(
+      req.body["startTime"],
+      "startTime",
+    );
+    const endTime: Date | undefined = readLookupTime(
+      req.body["endTime"],
+      "endTime",
+    );
+
+    if (startTime && endTime && startTime.getTime() > endTime.getTime()) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("startTime must not be after endTime"),
+      );
+    }
+
     // A signal with no attributes to offer (profiles) has nothing to scope.
     if (
       !TelemetryAttributeService.hasAttributeSource(telemetryType, metricName)
@@ -692,6 +736,8 @@ const getAttributeValues: GetAttributeValuesFunction = async (
         attributeKey,
         searchText,
         serviceFilter,
+        startTime,
+        endTime,
       });
 
     return Response.sendJsonObjectResponse(req, res, {

@@ -21,6 +21,11 @@ import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import ColumnRefusalMessage from "Common/Server/Types/Database/Permissions/ColumnRefusalMessage";
+import UUIDColumnFilter, {
+  EXAMPLE_UUID,
+} from "Common/Server/Types/Database/UUIDColumnFilter";
+import Alert from "Common/Models/DatabaseModels/Alert";
+import Incident from "Common/Models/DatabaseModels/Incident";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Search from "Common/Types/BaseDatabase/Search";
@@ -30,6 +35,7 @@ import LIMIT_MAX, {
   DEFAULT_LIMIT,
   LIMIT_PER_PROJECT,
 } from "Common/Types/Database/LimitMax";
+import BadDataException from "Common/Types/Exception/BadDataException";
 import ExceptionCode from "Common/Types/Exception/ExceptionCode";
 import { JSONObject, ObjectType } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -391,6 +397,102 @@ describe("OneUptime API Reference: a request and its answer", () => {
     );
     expect(page).toContain(wrapped);
     expect(englishPage(CMDB_SYNC)).toContain(wrapped);
+  });
+
+  /*
+   * The production 500 this page now answers for: a list filtered by an
+   * object in place of an ID went to Postgres as the uuid "[object Object]".
+   * Every ID a filter or a write gives is held to the rule here
+   * (UUIDColumnFilter), and the page quotes the refusal word for word.
+   */
+  it("takes an ID as text or wrapped, and refuses anything else with a 400 that names the field, in the server's own words", () => {
+    const section: string = englishSection(
+      API_REFERENCE,
+      "### Filter, sort and page",
+    );
+    const sentence: string = lineStartingWith(
+      section,
+      "Every ID a request filters by or writes",
+    );
+    const id: string = ObjectID.generate().toString();
+
+    type RefusalOfFunction = (run: () => unknown) => BadDataException;
+
+    const refusalOf: RefusalOfFunction = (
+      run: () => unknown,
+    ): BadDataException => {
+      try {
+        run();
+      } catch (error) {
+        return error as BadDataException;
+      }
+
+      throw new Error("Nothing was refused.");
+    };
+
+    const filter: (value: unknown) => unknown = (value: unknown): unknown => {
+      return UUIDColumnFilter.normalizeFilter({
+        columnName: "currentIncidentStateId",
+        column: new Incident().getTableColumnMetadata("currentIncidentStateId"),
+        value: value,
+      });
+    };
+
+    // Text and the wrapped form are both an ID; the wrapped one reads as its text.
+    expect(filter(id)).toBe(id);
+    expect(filter({ _type: ObjectType.ObjectID, value: id })).toBe(id);
+
+    // The refusal the page quotes, word for word, and its status.
+    const refused: BadDataException = refusalOf(() => {
+      return filter("resolved");
+    });
+
+    expect(refused).toBeInstanceOf(BadDataException);
+    expect(refused.code).toBe(ExceptionCode.BadDataException);
+    expect(String(ExceptionCode.BadDataException)).toBe("400");
+    expect(codeBlocks(section, "text")).toEqual([refused.message]);
+    expect(refused.message).toContain(EXAMPLE_UUID);
+
+    // An object in place of an ID - the production request - is refused too.
+    expect(
+      refusalOf(() => {
+        return filter({ _id: id });
+      }).message,
+    ).toContain('Invalid ID for "currentIncidentStateId" in the query:');
+
+    // A write says "data", and holds a relation's records to the same rule.
+    expect(
+      refusalOf(() => {
+        return UUIDColumnFilter.normalizeWrittenValue({
+          columnName: "monitorId",
+          column: new Alert().getTableColumnMetadata("monitorId"),
+          value: "checkout-api",
+        });
+      }).message,
+    ).toContain('Invalid ID for "monitorId" in the data:');
+    expect(
+      refusalOf(() => {
+        return UUIDColumnFilter.normalizeWrittenValue({
+          columnName: "labels",
+          column: new Monitor().getTableColumnMetadata("labels"),
+          value: [{ _id: "production" }],
+        });
+      }).message,
+    ).toContain('Invalid ID for "labels" in the data:');
+    expect(
+      UUIDColumnFilter.normalizeWrittenValue({
+        columnName: "labels",
+        column: new Monitor().getTableColumnMetadata("labels"),
+        value: [{ _id: id }],
+      }),
+    ).toEqual([{ _id: id }]);
+
+    expect(sentence).toContain(
+      'Every ID a request filters by or writes - `_id`, a field such as `monitorId`, and each record a relation lists, such as `"labels": [{ "_id": "..." }]` - is a UUID, sent as text or wrapped the way it comes back.',
+    );
+    expect(sentence).toContain(
+      "is refused with a `400` that names the field and says whether it was in the `query` or the `data`, and nothing is read or written:",
+    );
   });
 
   it("gives each status code the exception the server answers it with", () => {

@@ -34,6 +34,10 @@ import ObjectID from "Common/Types/ObjectID";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ProjectUtil from "Common/UI/Utils/Project";
+import useAttributeValueSuggestions, {
+  AttributeValueSuggestionsState,
+} from "Common/UI/Utils/Telemetry/UseAttributeValueSuggestions";
+import { getTimeRangeScope } from "Common/UI/Utils/Telemetry/AttributeValueSuggestions";
 import useStableValue from "Common/UI/Utils/UseStableValue";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -734,15 +738,8 @@ const MetricsViewer: FunctionComponent<Props> = (
     [],
   );
   const [attributesLoading, setAttributesLoading] = useState<boolean>(false);
-
-  // Attribute value suggestions: attributeKey -> Array<value>
-  const [attributeValueSuggestions, setAttributeValueSuggestions] = useState<
-    Record<string, Array<string>>
-  >({});
-  const [attributeValuesLoading, setAttributeValuesLoading] =
-    useState<boolean>(false);
-  const lastValueSuggestionKeyRef: React.MutableRefObject<string> =
-    useRef<string>("");
+  // The key list could not load: the `@key:` value picker then asks for any key.
+  const [attributesFailed, setAttributesFailed] = useState<boolean>(false);
 
   /*
    * The metric names the attribute / entity scope matched, and the scope
@@ -933,7 +930,8 @@ const MetricsViewer: FunctionComponent<Props> = (
         const attrs: Array<string> = await MetricUtil.getTelemetryAttributes();
         setTelemetryAttributes(attrs);
       } catch {
-        // non-critical
+        // Non-critical: the bar still takes a typed key.
+        setAttributesFailed(true);
       } finally {
         setAttributesLoading(false);
       }
@@ -941,46 +939,29 @@ const MetricsViewer: FunctionComponent<Props> = (
     void loadAttributes();
   }, []);
 
-  // Load attribute values when the user types @attribute: in the search bar
-  useEffect(() => {
-    const currentWord: string = (searchValue.split(/\s+/).pop() || "").trim();
-    if (!currentWord.startsWith("@") || !currentWord.includes(":")) {
-      return;
-    }
-    const colonIdx: number = currentWord.indexOf(":");
-    const attrKey: string = currentWord.substring(1, colonIdx);
-
-    if (
-      !attrKey ||
-      METRICS_KNOWN_FIELD_KEYS.has(attrKey.toLowerCase()) ||
-      attrKey === lastValueSuggestionKeyRef.current
-    ) {
-      return;
-    }
-    lastValueSuggestionKeyRef.current = attrKey;
-
-    const loadValues: () => Promise<void> = async () => {
-      try {
-        setAttributeValuesLoading(true);
-        const values: Array<string> =
-          await MetricUtil.getTelemetryAttributeValues({
-            attributeKey: attrKey,
-          });
-        setAttributeValueSuggestions(
-          (
-            prev: Record<string, Array<string>>,
-          ): Record<string, Array<string>> => {
-            return { ...prev, [attrKey]: values };
-          },
-        );
-      } catch {
-        // non-critical
-      } finally {
-        setAttributeValuesLoading(false);
-      }
-    };
-    void loadValues();
-  }, [searchValue]);
+  /*
+   * The values the search bar offers once `@key:` is typed: looked up after
+   * the reader pauses, for a key the project's metrics have, once per key
+   * and time range, from the data points in the range on screen
+   * (issue #4708).
+   */
+  const attributeValues: AttributeValueSuggestionsState =
+    useAttributeValueSuggestions({
+      searchText: searchValue,
+      attributeKeys: telemetryAttributes,
+      isAttributeKeysLoading: attributesLoading,
+      hasAttributeKeysFailed: attributesFailed,
+      ignoreKey: (key: string): boolean => {
+        return METRICS_KNOWN_FIELD_KEYS.has(key.toLowerCase());
+      },
+      scope: `metrics|${ProjectUtil.getCurrentProjectId()?.toString() || ""}|${getTimeRangeScope(timeRange)}`,
+      fetchValues: (attributeKey: string): Promise<Array<string>> => {
+        return MetricUtil.getTelemetryAttributeValues({
+          attributeKey: attributeKey,
+          timeRange: timeRange,
+        });
+      },
+    });
 
   /*
    * The typed search string, compiled. The grammar is the one every explorer
@@ -2012,9 +1993,12 @@ const MetricsViewer: FunctionComponent<Props> = (
       searchPlaceholder="Search metrics — e.g. name:http.server.* service:api @container.name:postgres"
       searchSuggestions={["name", "service"]}
       searchAttributeSuggestions={telemetryAttributes}
-      searchValueSuggestions={attributeValueSuggestions}
+      searchValueSuggestions={attributeValues.valueSuggestions}
       searchAttributesLoading={attributesLoading}
-      searchValuesLoading={attributeValuesLoading}
+      searchValuesLoading={attributeValues.isLoading}
+      searchValuesError={attributeValues.error}
+      onRetrySearchValues={attributeValues.retry}
+      searchHasNoValues={attributeValues.hasNoValues}
       onSearchFieldValueSelect={(
         fieldKey: string,
         value: string,

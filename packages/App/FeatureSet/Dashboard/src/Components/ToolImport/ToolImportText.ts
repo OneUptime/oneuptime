@@ -416,6 +416,9 @@ export const TOOL_IMPORT_NOTE_TEMPLATES: Record<ToolImportNoteCode, string> = {
   [ToolImportNoteCode.MonitorPlanLimit]: translationKey(
     "The Free plan has room for {{limit}} monitors, and this project has no room left for this one. Upgrade the plan to bring it over.",
   ),
+  [ToolImportNoteCode.MonitorLimitReached]: translationKey(
+    "This project's plan includes {{limit}} active monitors, and the project has no room left for this one. Delete monitors you no longer need, or change the plan, to bring it over.",
+  ),
   [ToolImportNoteCode.StatusPagePlanLimit]: translationKey(
     "The Free plan has room for {{limit}} status pages, and this project has no room left for this one. Upgrade the plan to bring it over.",
   ),

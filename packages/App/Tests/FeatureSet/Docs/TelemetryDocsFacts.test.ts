@@ -775,6 +775,64 @@ describe("Search Syntax", () => {
       expect(page).toContain("offers **Try again**");
     });
   });
+
+  /*
+   * The values the search box offers under `@key:` (issue #4708): asked for
+   * once the reader pauses, from the time range on screen, out of a sample
+   * of it - so the page tells the reader a rare value may be missing and
+   * can be typed.
+   */
+  describe("the values suggested under @key:", () => {
+    const COMMON: string = path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "..",
+      "Common",
+    );
+
+    const source: (...parts: Array<string>) => string = (
+      ...parts: Array<string>
+    ): string => {
+      return fs.readFileSync(path.join(COMMON, ...parts), "utf8");
+    };
+
+    const suggestions: string = source(
+      "UI",
+      "Utils",
+      "Telemetry",
+      "AttributeValueSuggestions.ts",
+    );
+    const lookup: string = source(
+      "Server",
+      "Services",
+      "TelemetryAttributeService.ts",
+    );
+
+    it("are asked for once the reader pauses", () => {
+      expect(suggestions).toContain(
+        "export const ATTRIBUTE_VALUE_LOOKUP_PAUSE_IN_MS: number = 400;",
+      );
+      expect(page).toContain("Once you type `@key:` and pause");
+    });
+
+    it("come from the time range on screen", () => {
+      expect(suggestions).toContain("...getLookupWindowBody(data.timeRange),");
+      expect(lookup).toContain("startTime: data.startTime,");
+      expect(page).toContain(
+        "the search box suggests values of that attribute from the time range on screen",
+      );
+    });
+
+    it("are read from a sample of it, so a rare value may not be listed", () => {
+      expect(lookup).toContain("const ROWS_WITH_KEY_LIMIT: number = 10000;");
+      expect(lookup).toContain("const ROWS_READ_BUDGET: number = 1000000;");
+      expect(page).toContain(
+        "The suggestions come from a sample of that range, so a value that is rarely used may not be listed: type it and press Enter.",
+      );
+    });
+  });
 });
 
 describe("Continuous Profiling", () => {

@@ -43,6 +43,16 @@
  *              refresh-status  every refresh-status request fails
  *   ?nav=1     shows links to every fixture monitor in the header, to move
  *              between monitors on the same, still-mounted route.
+ *   ?monitorLimit=  the project's limit on active monitors, as
+ *              GET /monitor/active-monitor-limit answers it: none (default,
+ *              no limit) | under (499 of a plan's 500) | at (500 of 500) |
+ *              over (2,881 of 500: the support report's project) | free-at
+ *              (10 of the Free plan's 10) | fail (the request fails). The
+ *              Dashboard asks it only on a billed install: add ?billing=true
+ *              (handled by server.js, as BILLING_ENABLED).
+ *   ?plan=     free puts the project on the Free plan (with ?billing=true):
+ *              Create Monitor then shows its pricing card. Any other value,
+ *              or none, is no plan the page can name, as before.
  *   ?theme=    dark adds html.dark (handled by server.js).
  *
  * Every read is recorded on window.__monitorOverviewFixture: getItemRequests,
@@ -134,6 +144,7 @@ import {
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { APP_API_URL } from "Common/UI/Config";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -194,6 +205,24 @@ const roleMode = ROLE_KEYS.includes(params.get("role"))
   : "owner";
 const failures = listParam("fail");
 const showNav = params.get("nav") === "1";
+const planMode = params.get("plan") === "free" ? "free" : "none";
+
+/*
+ * The project's limit on active monitors (Types/Monitor/ActiveMonitorLimit),
+ * as the server's JSON carries it.
+ */
+const MONITOR_LIMITS = {
+  none: { limit: null, activeMonitors: null },
+  under: { limit: { limit: 500, kind: "Plan" }, activeMonitors: 499 },
+  at: { limit: { limit: 500, kind: "Plan" }, activeMonitors: 500 },
+  over: { limit: { limit: 500, kind: "Plan" }, activeMonitors: 2881 },
+  "free-at": { limit: { limit: 10, kind: "FreePlan" }, activeMonitors: 10 },
+};
+const monitorLimitMode =
+  params.get("monitorLimit") === "fail" ||
+  Object.keys(MONITOR_LIMITS).includes(params.get("monitorLimit"))
+    ? params.get("monitorLimit")
+    : "none";
 
 /*
  * What every signed-in user holds (AccessTokenService's global permissions),
@@ -277,6 +306,8 @@ const fixture = {
     history: historyMode,
     role: roleMode,
     fail: Array.from(failures),
+    monitorLimit: monitorLimitMode,
+    plan: planMode,
   },
   getItemRequests: [],
   listRequests: [],
@@ -1940,6 +1971,10 @@ ProjectUtil.getCurrentProjectId = () => {
 ProjectUtil.getCurrentProject = () => {
   return project;
 };
+// ?plan=free: the Free plan (isProjectOnFreePlan also needs ?billing=true).
+ProjectUtil.getCurrentPlan = () => {
+  return planMode === "free" ? PlanType.Free : null;
+};
 ModelAPI.getCommonHeaders = () => {
   return { tenantid: PROJECT_ID };
 };
@@ -2205,6 +2240,16 @@ async function handleApi(method, options) {
     headers: serialize(options.headers) || {},
   });
   const parsed = new window.URL(url);
+
+  if (
+    method === "GET" &&
+    parsed.pathname.endsWith("/monitor/active-monitor-limit")
+  ) {
+    if (monitorLimitMode === "fail") {
+      throw fail(500, "The monitor limit could not be read.");
+    }
+    return ok(MONITOR_LIMITS[monitorLimitMode]);
+  }
 
   if (
     method === "GET" &&

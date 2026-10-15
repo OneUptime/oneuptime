@@ -838,6 +838,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/ToolImport/ToolImportPostgres.test.ts --forceExit
 
+      # Clones every migrated table into an isolated schema and holds a
+      # project's active monitor limit through the real MonitorService:
+      # twelve creates that all passed the early check, at a limit with room
+      # for one, add exactly one (the INSERT is counted again in its own
+      # transaction under a per-project advisory lock); a project already
+      # past its limit keeps every monitor and is refused new active ones;
+      # the count the project shows stays what the Monitor table holds.
+      # Billing is turned on inside the suite.
+      - name: Test the active monitor limit on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ACTIVE_MONITOR_LIMIT_TESTS: "true"
+          ACTIVE_MONITOR_LIMIT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ACTIVE_MONITOR_LIMIT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ACTIVE_MONITOR_LIMIT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ActiveMonitorLimitPostgres.test.ts --forceExit
+
       # Clones the migrated McpOAuthClient / McpOAuthGrant / McpOAuthToken
       # tables into an isolated schema and rebuilds the token -> grant foreign
       # key from the migrated definition. Of several requests racing to claim
@@ -885,6 +904,24 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Types/Database/QueryUtilIncludesAnyOfGroupsPostgres.test.ts
+          --forceExit
+
+      # Clones the migrated Incident table into an isolated schema and runs
+      # list filters on its uuid columns: the statement production logged
+      # ("invalid input syntax for type uuid: "[object Object]"") is refused
+      # with a 400 before Postgres sees it, a serialized ObjectID finds the
+      # incidents it names, and what the query layer reads as a uuid is
+      # exactly what Postgres's uuid input accepts.
+      - name: Test filters on uuid columns on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_UUID_COLUMN_FILTER_TESTS: "true"
+          UUID_COLUMN_FILTER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          UUID_COLUMN_FILTER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          UUID_COLUMN_FILTER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Types/Database/UUIDColumnFilterPostgres.test.ts
           --forceExit
 
       - name: Test the inventory overview and status facets on migrated Postgres

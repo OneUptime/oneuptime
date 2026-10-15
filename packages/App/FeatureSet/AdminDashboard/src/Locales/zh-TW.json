@@ -358,7 +358,16 @@
       "amountTooPrecise": "金額的小數位數不得超過兩位。",
       "reasonRequired": "請輸入此次調整的原因。",
       "adjustBalanceStepBalance": "餘額",
-      "adjustBalanceStepAmount": "金額和原因"
+      "adjustBalanceStepAmount": "金額和原因",
+      "monitorLimitCardTitle": "作用中的監測器",
+      "monitorLimitCardDescription": "除手動監測器外，所有監測器無論是否開啟都會計入。達到上限後，專案無法再新增，現有監測器會繼續運作。向經銷商購買的方案會設定此上限，經銷商下次變更等級時會覆寫它。Free 方案的專案同樣受 Free 方案上限的限制。",
+      "monitorLimitEditButton": "編輯監測器上限",
+      "fieldActiveMonitors": "作用中的監測器",
+      "fieldMonitorLimit": "作用中監測器的上限",
+      "fieldMonitorLimitDescription": "此專案可擁有的作用中監測器的最大數量。留空表示不設上限。",
+      "noMonitorLimit": "不設上限",
+      "overMonitorLimit": "超出上限 {{over}} 個",
+      "atMonitorLimit": "已達上限"
     },
     "projectSupport": {
       "title": "客戶支援存取權",
