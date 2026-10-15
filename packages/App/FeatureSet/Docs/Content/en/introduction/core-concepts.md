@@ -92,6 +92,7 @@ A **status page** shows your customers whether your services work. You choose wh
 :::cards
 - [Status Pages Overview](/docs/status-pages/index): Create a status page and decide what it shows.
 - [Subscribers & Announcements](/docs/status-pages/subscribers): Who is told, and when.
+- [Scheduled Maintenance Overview](/docs/scheduled-maintenance/index): How an event runs, and what it pauses.
 :::
 
 ## Telemetry

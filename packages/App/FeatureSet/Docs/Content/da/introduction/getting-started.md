@@ -52,6 +52,7 @@ Dokumentationen er opbygget som sidepanelet, i ni afsnit. Vælg den del, du har 
 - [Vagt](/docs/on-call/index): Politikker, eskaleringsregler, rotationer og hvem der tilkaldes hvornår.
 - [Notifikationer](/docs/notifications/index): Sådan når OneUptime dig: dine metoder, vagtregler og notifikationsindstillinger.
 - [Statussider](/docs/status-pages/index): Hold kunderne orienteret på offentlige eller private statussider.
+- [Planlagt vedligeholdelse](/docs/scheduled-maintenance/index): Annoncér planlagt arbejde, og sæt de monitorer, det berører, på pause.
 - [Workspace-forbindelser](/docs/workspace-connections/slack): Arbejd med hændelser fra Slack og Microsoft Teams.
 :::
 

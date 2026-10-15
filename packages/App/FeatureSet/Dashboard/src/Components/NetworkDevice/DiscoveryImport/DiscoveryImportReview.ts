@@ -16,7 +16,7 @@ import {
   normalizeDiscoveredHosts,
 } from "../DiscoveredHostFilter";
 import { getDiscoveredHosts } from "../DiscoveryScanOutcome";
-import { isWaitingForDiscoveryProgress } from "../DiscoveryScanProgress";
+import { isWaitingForDiscoveryProgress } from "../DiscoveryScanProgressState";
 import {
   DiscoveryImportTemplateChoice,
   getTemplateChoiceValue,

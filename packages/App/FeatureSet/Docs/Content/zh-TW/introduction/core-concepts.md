@@ -92,6 +92,7 @@ flowchart TB
 :::cards
 - [狀態頁概觀](/docs/status-pages/index): 建立狀態頁面並決定它顯示什麼。
 - [訂閱者與公告](/docs/status-pages/subscribers): 通知誰，以及何時通知。
+- [排定維護概觀](/docs/scheduled-maintenance/index): 事件如何進行，以及它會暫停什麼。
 :::
 
 ## 遙測

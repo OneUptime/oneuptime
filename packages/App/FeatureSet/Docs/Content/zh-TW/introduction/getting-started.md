@@ -52,6 +52,7 @@ flowchart TB
 - [待命](/docs/on-call/index): 策略、上報規則、輪值，以及何時呼叫誰。
 - [通知](/docs/notifications/index): OneUptime 如何聯絡你：你的通知方式、待命規則和通知設定。
 - [狀態頁面](/docs/status-pages/index): 透過公開或私人的狀態頁面讓客戶掌握狀況。
+- [排定維護](/docs/scheduled-maintenance/index): 事先公告計畫內的工作，並暫停其涉及的監測器。
 - [工作區連線](/docs/workspace-connections/slack): 在 Slack 和 Microsoft Teams 中處理事件。
 :::
 

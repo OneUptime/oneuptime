@@ -52,6 +52,7 @@ flowchart TB
 - [值班](/docs/on-call/index): 策略、升级规则、轮换，以及何时呼叫谁。
 - [通知](/docs/notifications/index): OneUptime 如何联系你：你的通知方式、值班规则和通知设置。
 - [状态页面](/docs/status-pages/index): 通过公开或私有的状态页面让客户了解情况。
+- [计划维护](/docs/scheduled-maintenance/index): 提前公告计划内的工作，并暂停其涉及的监视器。
 - [工作区连接](/docs/workspace-connections/slack): 在 Slack 和 Microsoft Teams 中处理事件。
 :::
 

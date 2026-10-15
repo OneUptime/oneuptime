@@ -118,9 +118,10 @@ describe("the docs tree", () => {
 
     /*
      * Icons for groups that pages are still being written for may be
-     * waiting; anything else is a leftover.
+     * waiting; anything else is a leftover. None is waiting now: Alerts and
+     * Scheduled Maintenance, the last two, are groups of their own.
      */
-    const waiting: Array<string> = ["Alerts", "Scheduled Maintenance"];
+    const waiting: Array<string> = [];
 
     for (const key of Object.keys(DocsNavIcons)) {
       expect({ key, used: titles.has(key) || waiting.includes(key) }).toEqual({

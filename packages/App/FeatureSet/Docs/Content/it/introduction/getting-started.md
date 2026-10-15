@@ -52,6 +52,7 @@ La documentazione è organizzata come la barra laterale, in nove sezioni. Scegli
 - [Reperibilità](/docs/on-call/index): Policy, regole di escalation, turni e chi viene avvisato quando.
 - [Notifiche](/docs/notifications/index): Come OneUptime vi raggiunge: i vostri metodi, le regole di reperibilità e le impostazioni delle notifiche.
 - [Pagine di stato](/docs/status-pages/index): Tenere informati i clienti su pagine di stato pubbliche o private.
+- [Manutenzione programmata](/docs/scheduled-maintenance/index): Annunciare i lavori pianificati e mettere in pausa i monitor coinvolti.
 - [Connessioni agli spazi di lavoro](/docs/workspace-connections/slack): Gestire gli incidenti da Slack e Microsoft Teams.
 :::
 
