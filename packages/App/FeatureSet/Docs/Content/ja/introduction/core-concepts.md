@@ -92,6 +92,7 @@ flowchart TB
 :::cards
 - [ステータス ページ 概要](/docs/status-pages/index): ステータスページを作成し、表示する内容を決めます。
 - [購読者とお知らせ](/docs/status-pages/subscribers): 誰に、いつ知らせるか。
+- [定期メンテナンスの概要](/docs/scheduled-maintenance/index): イベントの進み方と、一時停止するもの。
 :::
 
 ## テレメトリ

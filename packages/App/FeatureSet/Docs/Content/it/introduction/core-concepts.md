@@ -92,6 +92,7 @@ La **manutenzione programmata** annuncia in anticipo i lavori previsti. Un event
 :::cards
 - [Panoramica delle pagine di stato](/docs/status-pages/index): Creare una pagina di stato e decidere cosa mostra.
 - [Iscritti e annunci](/docs/status-pages/subscribers): Chi viene avvisato, e quando.
+- [Panoramica della manutenzione programmata](/docs/scheduled-maintenance/index): Come si svolge un evento, e cosa mette in pausa.
 :::
 
 ## Telemetria

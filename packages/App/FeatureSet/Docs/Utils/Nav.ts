@@ -554,6 +554,36 @@ const DocsNav: NavGroup[] = [
       },
     ],
   },
+  /*
+   * Planned work, announced on the status pages above: the overview first,
+   * so /docs/scheduled-maintenance opens it.
+   */
+  {
+    title: "Scheduled Maintenance",
+    section: "Incident Response",
+    links: [
+      {
+        title: "Scheduled Maintenance Overview",
+        url: "/docs/scheduled-maintenance/index",
+      },
+      {
+        title: "Creating Maintenance Events",
+        url: "/docs/scheduled-maintenance/creating-events",
+      },
+      {
+        title: "Maintenance States",
+        url: "/docs/scheduled-maintenance/states",
+      },
+      {
+        title: "Templates & Recurring Events",
+        url: "/docs/scheduled-maintenance/templates",
+      },
+      {
+        title: "Maintenance Rules & Settings",
+        url: "/docs/scheduled-maintenance/settings",
+      },
+    ],
+  },
   {
     title: "Workspace Connections",
     section: "Incident Response",

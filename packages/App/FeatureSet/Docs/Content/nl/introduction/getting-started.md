@@ -52,6 +52,7 @@ De documentatie is net als de zijbalk ingedeeld in negen secties. Kies het deel 
 - [Bereikbaarheid](/docs/on-call/index): Beleid, escalatieregels, roosters en wie wanneer wordt opgeroepen.
 - [Meldingen](/docs/notifications/index): Hoe OneUptime je bereikt: je methoden, bereikbaarheidsregels en meldingsinstellingen.
 - [Statuspagina's](/docs/status-pages/index): Klanten op de hoogte houden op openbare of privé-statuspagina's.
+- [Gepland onderhoud](/docs/scheduled-maintenance/index): Gepland werk aankondigen, en de monitoren die het raakt pauzeren.
 - [Workspace-koppelingen](/docs/workspace-connections/slack): Incidenten afhandelen vanuit Slack en Microsoft Teams.
 :::
 

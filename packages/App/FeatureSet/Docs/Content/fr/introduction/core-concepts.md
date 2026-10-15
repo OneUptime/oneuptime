@@ -92,6 +92,7 @@ La **maintenance planifiée** annonce à l'avance des travaux prévus. Un évén
 :::cards
 - [Vue d'ensemble des pages de statut](/docs/status-pages/index): Créer une page de statut et décider de ce qu'elle affiche.
 - [Abonnés et annonces](/docs/status-pages/subscribers): Qui est prévenu, et quand.
+- [Vue d'ensemble de la maintenance planifiée](/docs/scheduled-maintenance/index): Comment se déroule un événement, et ce qu'il met en pause.
 :::
 
 ## Télémétrie
