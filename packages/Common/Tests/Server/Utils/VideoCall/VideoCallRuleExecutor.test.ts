@@ -341,6 +341,42 @@ describe("VideoCallRuleExecutor.startCallsForIncident", () => {
     expect(call.videoCallConnectionId).toBe(undefined);
   });
 
+  /*
+   * Rules whose templates give the same name share the one channel created
+   * for the incident; it names the rule that asked for it first, and keeps
+   * every rule that asked for it (notificationRuleIds).
+   */
+  test("REGRESSION: holds a huddle in the channel the rule shares with a rule that asked for it first", async () => {
+    const rule: WorkspaceNotificationRule = makeRule({
+      name: "Huddle",
+      source: SLACK_HUDDLE_VIDEO_CALL_SOURCE,
+    });
+    const firstRuleId: string = ObjectID.generate().toString();
+
+    const stubs: Stubs = stub({
+      slackRules: [rule],
+      event: makeEvent([
+        {
+          id: "C0INC42",
+          name: "inc-42",
+          workspaceType: WorkspaceType.Slack,
+          notificationRuleId: firstRuleId,
+          notificationRuleIds: [firstRuleId, rule.id!.toString()],
+        },
+      ]),
+    });
+
+    await VideoCallRuleExecutor.startCallsForIncident({
+      projectId: PROJECT_ID,
+      incidentId: INCIDENT_ID,
+    });
+
+    const call: IncidentVideoCall = createdCalls(stubs)[0]!;
+    expect(call.provider).toBe(VideoCallProvider.SlackHuddle);
+    expect(call.joinUrl).toBe("https://app.slack.com/huddle/T0ACME/C0INC42");
+    expect(stubs.announceFailure).not.toHaveBeenCalled();
+  });
+
   test("holds a huddle in the rule's existing channel when it created none", async () => {
     const rule: WorkspaceNotificationRule = makeRule({
       name: "Huddle",

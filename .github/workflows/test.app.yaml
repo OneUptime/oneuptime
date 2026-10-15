@@ -154,13 +154,13 @@ jobs:
             output/playwright/user-flows-ui/test-results
           retention-days: 7
 
-  # Twenty-five browser suites that each bundle real Dashboard or Status Page
-  # sources with esbuild and serve them against fixture data: no database or
-  # Docker stack. They used to run one after another in a single 41-minute
-  # job, the longest of every pull request's checks. They are independent -
-  # each starts its own fixture server on its own port - so they run here in
-  # groups balanced by measured duration (Event Overview alone is ~11.5
-  # minutes), the Workflow Builder suite in one of its own. Each suite still
+  # Browser suites that each bundle real Dashboard or Status Page sources with
+  # esbuild and serve them against fixture data: no database or Docker stack.
+  # They used to run one after another in a single 41-minute job, the longest
+  # of every pull request's checks. They are independent - each starts its
+  # own fixture server on its own port - so they run here in groups balanced
+  # by measured duration, Event Overview (13 to 15.5 minutes) and the
+  # Workflow Builder suite each in a group of their own. Each suite still
   # runs exactly as before: same config, same browsers, one worker.
   #
   # A suite added to packages/E2E needs a place in one group's `suites`, and
@@ -176,27 +176,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Topology runs here (Chromium only, about 2.5 minutes) since the
-          # Workflow Builder suite grew again with its UI review: group 2 had
-          # reached 24.5 of the job's 30 minutes on a slow runner.
+          # Event Overview runs on its own: with the thirteen shorter suites
+          # that shared its group (about 14 minutes together, now group 5) and
+          # the setup, the group passed the job's 30 minutes.
           - group: 1
             browsers: chromium
             suites: >-
               test-event-overview-ui
-              test-slo-burn-rate-ui
-              test-incoming-call-policies-ui
-              test-push-registration-ui
-              test-packet-capture-ui
-              test-llm-provider-test-ui
-              test-custom-field-options-ui
-              test-pagination-ui
-              test-calendar-feed-ui
-              test-topology-ui
-              test-home-overview-ui
-              test-security-operations-ui
-              test-status-timeline-ui
-              test-episode-bulk-add-ui
-              test-runbook-triggers-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Value Picker (the
           # chip editor's caret handling differs in each).
@@ -235,6 +221,27 @@ jobs:
             browsers: chromium
             suites: >-
               test-workflow-builder-ui
+          # The Chromium-only suites that ran after Event Overview in group 1.
+          # Topology is one of them (about 2.5 minutes) since the Workflow
+          # Builder suite grew again with its UI review: group 2 had reached
+          # 24.5 of the job's 30 minutes on a slow runner.
+          - group: 5
+            browsers: chromium
+            suites: >-
+              test-slo-burn-rate-ui
+              test-incoming-call-policies-ui
+              test-push-registration-ui
+              test-packet-capture-ui
+              test-llm-provider-test-ui
+              test-custom-field-options-ui
+              test-pagination-ui
+              test-calendar-feed-ui
+              test-topology-ui
+              test-home-overview-ui
+              test-security-operations-ui
+              test-status-timeline-ui
+              test-episode-bulk-add-ui
+              test-runbook-triggers-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass

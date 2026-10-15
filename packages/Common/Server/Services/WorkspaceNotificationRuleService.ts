@@ -43,7 +43,9 @@ import WorkspaceProjectAuthToken, {
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
 import logger, { LogAttributes } from "../Utils/Logger";
-import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
+import NotificationRuleWorkspaceChannel, {
+  NotificationRuleWorkspaceChannelUtil,
+} from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
 import UserService from "./UserService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -89,6 +91,18 @@ export interface MessageBlocksByWorkspaceType {
 export interface WorkspaceChannelsCreated {
   channelsCreated: Array<NotificationRuleWorkspaceChannel>;
   membersNotAdded: Array<ChannelMembersNotAdded>;
+}
+
+/*
+ * A channel the matching rules ask to be created for a record: its name,
+ * every rule that asked for it (the first one first, as notificationRuleId)
+ * and, for Microsoft Teams, the team to create it in.
+ */
+export interface NotificationRuleChannelToCreate {
+  channelName: string;
+  notificationRuleId: string;
+  notificationRuleIds: Array<string>;
+  teamId?: string;
 }
 
 /*
@@ -1873,6 +1887,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               workspaceType: workspaceType,
               notificationRules: notificationRules,
               notificationChannels: createdWorkspaceChannels,
+              notificationFor: data.notificationFor,
             })),
           );
 
@@ -2027,11 +2042,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
   }
 
   /*
-   * Adds the rules' people to the channels just created for a record, and
-   * hands back who could not be added (no account connected to this
-   * workspace), per rule's channels. It does not tell the channels: the
-   * record's service does, after the record's own first message
-   * (ChannelMembersNotAddedNotice.noteAll).
+   * Adds the rules' people to the channels just created for a record, logs
+   * who was added against the record (notificationFor), and hands back who
+   * could not be added (no account connected to this workspace), per rule's
+   * channels. It does not tell the channels: the record's service does,
+   * after the record's own first message (ChannelMembersNotAddedNotice.noteAll).
    */
   @CaptureSpan()
   public async inviteUsersAndTeamsToChannelsBasedOnRules(data: {
@@ -2040,6 +2055,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     workspaceType: WorkspaceType;
     notificationRules: Array<WorkspaceNotificationRule>;
     notificationChannels: Array<NotificationRuleWorkspaceChannel>;
+    /*
+     * The record the channels were created for. Its invites are logged
+     * against it, so they are listed on the record's Notification Logs page
+     * beside the channel's creation.
+     */
+    notificationFor?: NotificationFor | undefined;
   }): Promise<Array<ChannelMembersNotAdded>> {
     logger.debug(
       "inviteUsersAndTeamsToChannelsBasedOnRules called with data:",
@@ -2069,15 +2090,17 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     for (const inviteUserPayload of inviteUserPayloads) {
       const userIds: Array<ObjectID> = inviteUserPayload.userIds;
       const workspaceUserIds: Array<string> = [];
+      const invitedUserIds: Array<ObjectID> = [];
       const userIdsNotConnected: Array<ObjectID> = [];
 
+      // A channel several rules asked for is each of those rules' channel.
       const channelsOfRule: Array<NotificationRuleWorkspaceChannel> =
         data.notificationChannels.filter(
           (channel: NotificationRuleWorkspaceChannel) => {
-            return (
-              channel.notificationRuleId ===
-              inviteUserPayload.notificationRuleId
-            );
+            return NotificationRuleWorkspaceChannelUtil.isChannelOfRule({
+              channel: channel,
+              notificationRuleId: inviteUserPayload.notificationRuleId,
+            });
           },
         );
 
@@ -2091,6 +2114,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
         if (workspaceUserId) {
           workspaceUserIds.push(workspaceUserId);
+          invitedUserIds.push(userId);
         } else {
           userIdsNotConnected.push(userId);
         }
@@ -2114,6 +2138,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
        * later messages reached it.
        */
       if (workspaceUserIds.length > 0) {
+        let invited: boolean = true;
+
         try {
           await WorkspaceUtil.getWorkspaceTypeUtil(
             data.workspaceType,
@@ -2130,6 +2156,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             projectId: data.projectId,
           });
         } catch (err) {
+          invited = false;
           logger.error("Error inviting users to the new channels", {
             projectId: data.projectId?.toString(),
           } as LogAttributes);
@@ -2137,6 +2164,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             projectId: data.projectId?.toString(),
           } as LogAttributes);
         }
+
+        // Log user invitations: only the people who were invited.
+        await this.logUsersInvitedToChannels({
+          projectId: data.projectId,
+          workspaceType: data.workspaceType,
+          channels: channelsOfRule,
+          userIds: invited ? invitedUserIds : [],
+          notificationFor: data.notificationFor,
+        });
       }
 
       /*
@@ -2170,6 +2206,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     projectId: ObjectID;
     notificationRules: Array<WorkspaceNotificationRule>;
     userIds: Array<ObjectID>;
+    /*
+     * The record the channels belong to. Its invites are logged against it,
+     * so they are listed with the record's other workspace logs (its
+     * Notification Logs page reads them by the record's id).
+     */
+    notificationFor?: NotificationFor | undefined;
     /*
      * Throw what the workspace answered when it refuses an invite, rather
      * than log it and go on: a rule's test reports it to the person testing.
@@ -2243,11 +2285,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         projectId: data.projectId?.toString(),
       } as LogAttributes);
 
+      // A channel several rules asked for is each of those rules' channel.
       const channelsToInviteToBasedOnRule: Array<NotificationRuleWorkspaceChannel> =
         data.workspaceChannels.filter(
           (channel: NotificationRuleWorkspaceChannel) => {
-            return notificationRules.find((rule: WorkspaceNotificationRule) => {
-              return rule.id?.toString() === channel.notificationRuleId;
+            return notificationRules.some((rule: WorkspaceNotificationRule) => {
+              return NotificationRuleWorkspaceChannelUtil.isChannelOfRule({
+                channel: channel,
+                notificationRuleId: rule.id?.toString(),
+              });
             });
           },
         );
@@ -2381,41 +2427,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       });
 
       // Log user invitations: only the people who were invited.
-      try {
-        for (const userId of invited ? invitedUserIds : []) {
-          for (const channel of channelsToInviteToBasedOnRule) {
-            const logData: {
-              projectId: ObjectID;
-              workspaceType: WorkspaceType;
-              channelId: string;
-              channelName: string;
-              userId: ObjectID;
-              incidentId?: ObjectID;
-              alertId?: ObjectID;
-              scheduledMaintenanceId?: ObjectID;
-              onCallDutyPolicyId?: ObjectID;
-            } = {
-              projectId: data.projectId,
-              workspaceType: workspaceType,
-              channelId: channel.id,
-              channelName: channel.name,
-              userId: userId,
-            };
-
-            await WorkspaceNotificationLogService.logInviteUser(logData, {
-              isRoot: true,
-            });
-          }
-        }
-      } catch (err) {
-        logger.error("Error logging user invitations:", {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
-        logger.error(err, {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
-        // Don't throw the error, just log it so the main flow continues
-      }
+      await this.logUsersInvitedToChannels({
+        projectId: data.projectId,
+        workspaceType: workspaceType,
+        channels: channelsToInviteToBasedOnRule,
+        userIds: invited ? invitedUserIds : [],
+        notificationFor: data.notificationFor,
+      });
     }
   }
 
@@ -2425,6 +2443,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     projectId: ObjectID;
     notificationRules: Array<WorkspaceNotificationRule>;
     teamIds: Array<ObjectID>;
+    /*
+     * The record the channels belong to: the team's invites are logged
+     * against it (inviteUsersBasedOnRulesAndWorkspaceChannels).
+     */
+    notificationFor?: NotificationFor | undefined;
   }): Promise<void> {
     // if no rules then return.
     if (data.notificationRules.length === 0) {
@@ -2452,7 +2475,87 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       userIds: usersInTeam.map((user: User) => {
         return user.id!;
       }),
+      notificationFor: data.notificationFor,
     });
+  }
+
+  /*
+   * A Notification Logs row for each person invited, in each channel they
+   * were invited to. The record the channels belong to, when the caller
+   * names it, is on every row: a record's Notification Logs page lists its
+   * workspace logs by the record's id, so the invites are listed there
+   * beside the channel's creation and messages.
+   */
+  private async logUsersInvitedToChannels(data: {
+    projectId: ObjectID;
+    workspaceType: WorkspaceType;
+    channels: Array<NotificationRuleWorkspaceChannel>;
+    userIds: Array<ObjectID>;
+    notificationFor?: NotificationFor | undefined;
+  }): Promise<void> {
+    try {
+      for (const userId of data.userIds) {
+        for (const channel of data.channels) {
+          const logData: {
+            projectId: ObjectID;
+            workspaceType: WorkspaceType;
+            channelId: string;
+            channelName: string;
+            userId: ObjectID;
+            incidentId?: ObjectID;
+            alertId?: ObjectID;
+            monitorId?: ObjectID;
+            alertEpisodeId?: ObjectID;
+            incidentEpisodeId?: ObjectID;
+            scheduledMaintenanceId?: ObjectID;
+            onCallDutyPolicyId?: ObjectID;
+          } = {
+            projectId: data.projectId,
+            workspaceType: data.workspaceType,
+            channelId: channel.id,
+            channelName: channel.name,
+            userId: userId,
+          };
+
+          // Add resource associations only if they exist
+          if (data.notificationFor?.incidentId) {
+            logData.incidentId = data.notificationFor.incidentId;
+          }
+          if (data.notificationFor?.alertId) {
+            logData.alertId = data.notificationFor.alertId;
+          }
+          if (data.notificationFor?.monitorId) {
+            logData.monitorId = data.notificationFor.monitorId;
+          }
+          if (data.notificationFor?.alertEpisodeId) {
+            logData.alertEpisodeId = data.notificationFor.alertEpisodeId;
+          }
+          if (data.notificationFor?.incidentEpisodeId) {
+            logData.incidentEpisodeId = data.notificationFor.incidentEpisodeId;
+          }
+          if (data.notificationFor?.scheduledMaintenanceId) {
+            logData.scheduledMaintenanceId =
+              data.notificationFor.scheduledMaintenanceId;
+          }
+          if (data.notificationFor?.onCallDutyPolicyId) {
+            logData.onCallDutyPolicyId =
+              data.notificationFor.onCallDutyPolicyId;
+          }
+
+          await WorkspaceNotificationLogService.logInviteUser(logData, {
+            isRoot: true,
+          });
+        }
+      }
+    } catch (err) {
+      logger.error("Error logging user invitations:", {
+        projectId: data.projectId?.toString(),
+      } as LogAttributes);
+      logger.error(err, {
+        projectId: data.projectId?.toString(),
+      } as LogAttributes);
+      // Don't throw the error, just log it so the main flow continues
+    }
   }
 
   @CaptureSpan()
@@ -2520,17 +2623,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     const createdWorkspaceChannels: Array<NotificationRuleWorkspaceChannel> =
       [];
-    const createdChannelNames: Array<string> = [];
 
-    const notificationChannels: Array<{
-      channelName: string;
-      notificationRuleId: string;
-      teamId?: string;
-    }> = this.getnotificationChannelssFromNotificationRules({
-      notificationRules: data.notificationRules,
-      channelNameSiffix: data.channelNameSiffix,
-      notificationEventType: data.notificationEventType,
-    });
+    const notificationChannels: Array<NotificationRuleChannelToCreate> =
+      this.getnotificationChannelssFromNotificationRules({
+        notificationRules: data.notificationRules,
+        channelNameSiffix: data.channelNameSiffix,
+        notificationEventType: data.notificationEventType,
+      });
 
     logger.debug("New channel names to be created:", {
       projectId: data.projectId?.toString(),
@@ -2560,13 +2659,34 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     for (const notificationChannel of notificationChannels) {
-      if (
-        createdChannelNames.filter((name: string) => {
-          return name === notificationChannel.channelName;
-        }).length > 0
-      ) {
+      /*
+       * A channel created already has the name asked for: Slack lower-cases
+       * names, so one rule's "Incident-" creates the channel another rule's
+       * "incident-" asks for. That channel is these rules' channel too.
+       */
+      const createdChannel: NotificationRuleWorkspaceChannel | undefined =
+        createdWorkspaceChannels.find(
+          (channel: NotificationRuleWorkspaceChannel) => {
+            return channel.name === notificationChannel.channelName;
+          },
+        );
+
+      if (createdChannel) {
+        const notificationRuleIds: Array<string> =
+          createdChannel.notificationRuleIds || [
+            createdChannel.notificationRuleId,
+          ];
+
+        for (const notificationRuleId of notificationChannel.notificationRuleIds) {
+          if (!notificationRuleIds.includes(notificationRuleId)) {
+            notificationRuleIds.push(notificationRuleId);
+          }
+        }
+
+        createdChannel.notificationRuleIds = notificationRuleIds;
+
         logger.debug(
-          `Channel name ${notificationChannel.channelName} already created. Skipping.`,
+          `Channel name ${notificationChannel.channelName} already created. Adding its rules to it.`,
           { projectId: data.projectId?.toString() } as LogAttributes,
         );
         continue;
@@ -2619,6 +2739,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       const notificationWorkspaceChannel: NotificationRuleWorkspaceChannel = {
         ...channel,
         notificationRuleId: notificationChannel.notificationRuleId,
+        notificationRuleIds: [...notificationChannel.notificationRuleIds],
       };
 
       logger.debug("Channel created:", {
@@ -2674,7 +2795,6 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         // Don't throw the error, just log it so the main flow continues
       }
 
-      createdChannelNames.push(channel.name);
       createdWorkspaceChannels.push(notificationWorkspaceChannel);
     }
 
@@ -2929,22 +3049,14 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationEventType: NotificationRuleEventType;
     notificationRules: Array<WorkspaceNotificationRule>;
     channelNameSiffix: string;
-  }): Array<{
-    channelName: string;
-    notificationRuleId: string;
-    teamId?: string;
-  }> {
+  }): Array<NotificationRuleChannelToCreate> {
     logger.debug(
       "getnotificationChannelssFromNotificationRules called with data:",
       {} as LogAttributes,
     );
     logger.debug(data, {} as LogAttributes);
 
-    const channels: Array<{
-      channelName: string;
-      notificationRuleId: string;
-      teamId?: string;
-    }> = [];
+    const channels: Array<NotificationRuleChannelToCreate> = [];
 
     for (const notificationRule of data.notificationRules) {
       const workspaceRules: CreateChannelNotificationRule =
@@ -2977,25 +3089,20 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         logger.debug("Final channel name with suffix:", {} as LogAttributes);
         logger.debug(channelName, {} as LogAttributes);
 
-        if (
-          channels.filter(
-            (name: {
-              channelName: string;
-              notificationRuleId: string;
-              teamId?: string;
-            }) => {
-              return name.channelName === channelName;
-            },
-          ).length === 0
-        ) {
+        const notificationRuleId: string =
+          notificationRule.id!.toString() || "";
+
+        const sameNameChannel: NotificationRuleChannelToCreate | undefined =
+          channels.find((channel: NotificationRuleChannelToCreate) => {
+            return channel.channelName === channelName;
+          });
+
+        if (!sameNameChannel) {
           // if channel name is not already added then add it.
-          const channelData: {
-            channelName: string;
-            notificationRuleId: string;
-            teamId?: string;
-          } = {
+          const channelData: NotificationRuleChannelToCreate = {
             channelName: channelName,
-            notificationRuleId: notificationRule.id!.toString() || "",
+            notificationRuleId: notificationRuleId,
+            notificationRuleIds: [notificationRuleId],
           };
 
           if (workspaceRules.teamToCreateChannelIn) {
@@ -3008,8 +3115,20 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             {} as LogAttributes,
           );
         } else {
+          /*
+           * One channel for the name, which this rule asked for too: the
+           * people it invites (its users and teams, owners, whoever on-call
+           * pages) are invited to it. Only the first rule's id used to be
+           * kept, so the other rules' people never joined the channel.
+           */
+          if (
+            !sameNameChannel.notificationRuleIds.includes(notificationRuleId)
+          ) {
+            sameNameChannel.notificationRuleIds.push(notificationRuleId);
+          }
+
           logger.debug(
-            `Channel name ${channelName} already exists in the list. Skipping.`,
+            `Channel name ${channelName} already exists in the list. Adding the rule to it.`,
             {} as LogAttributes,
           );
         }

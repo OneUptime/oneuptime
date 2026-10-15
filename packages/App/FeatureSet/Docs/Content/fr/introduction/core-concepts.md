@@ -77,6 +77,7 @@ Une **politique d'astreinte** décide de qui est alerté pour un incident ou une
 Chaque personne décide de la façon dont on la joint. Dans les **Paramètres utilisateur**, chacun conserve les moyens par lesquels OneUptime peut le joindre, comme l'e-mail, le SMS, les appels, les notifications push, Slack ou Microsoft Teams, et ceux à utiliser quand il est alerté.
 
 :::cards
+- [Vue d'ensemble de l'astreinte](/docs/on-call/index): Comment une alerte parvient à quelqu'un, et où se trouve chaque élément.
 - [Règles d'escalade](/docs/on-call/escalation-rules): Alerter niveau par niveau jusqu'à ce que quelqu'un réponde.
 - [Plannings d'astreinte](/docs/on-call/schedules): Rotations, couches et passations.
 - [Comment OneUptime vous joint](/docs/notifications/index): Les méthodes, règles et paramètres qui décident comment chacun est joint.

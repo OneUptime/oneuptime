@@ -49,7 +49,7 @@ A documentação está organizada como a barra lateral, em nove seções. Escolh
 :::cards
 - [Incidentes](/docs/incidents/index): Declarar, coordenar e resolver incidentes, com uma linha do tempo completa.
 - [Alertas](/docs/alerts/index): Examinar problemas antes que seus usuários percebam e agrupar o ruído em episódios.
-- [Plantão](/docs/on-call/schedules): Rodízios, regras de escalonamento e quem é acionado e quando.
+- [Plantão](/docs/on-call/index): Políticas, regras de escalonamento, rodízios e quem é acionado e quando.
 - [Notificações](/docs/notifications/index): Como o OneUptime chega até você: seus métodos, regras de plantão e configurações de notificação.
 - [Páginas de status](/docs/status-pages/index): Manter os clientes informados em páginas de status públicas ou privadas.
 - [Conexões com espaços de trabalho](/docs/workspace-connections/slack): Trabalhar nos incidentes a partir do Slack e do Microsoft Teams.

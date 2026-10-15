@@ -21,6 +21,7 @@ export interface WorkspaceLogData {
   // Relations to resources (optional)
   incidentId?: ObjectID | undefined;
   alertId?: ObjectID | undefined;
+  monitorId?: ObjectID | undefined;
   alertEpisodeId?: ObjectID | undefined;
   incidentEpisodeId?: ObjectID | undefined;
   scheduledMaintenanceId?: ObjectID | undefined;
@@ -86,6 +87,9 @@ export class Service extends ProjectReferencesService<Model> {
     }
     if (data.alertId) {
       log.alertId = data.alertId;
+    }
+    if (data.monitorId) {
+      log.monitorId = data.monitorId;
     }
     if (data.alertEpisodeId) {
       log.alertEpisodeId = data.alertEpisodeId;
@@ -185,6 +189,9 @@ export class Service extends ProjectReferencesService<Model> {
       // Optional resource associations
       incidentId?: ObjectID;
       alertId?: ObjectID;
+      monitorId?: ObjectID;
+      alertEpisodeId?: ObjectID;
+      incidentEpisodeId?: ObjectID;
       scheduledMaintenanceId?: ObjectID;
       onCallDutyPolicyId?: ObjectID;
       statusPageId?: ObjectID;
@@ -210,6 +217,15 @@ export class Service extends ProjectReferencesService<Model> {
     }
     if (data.alertId) {
       logData.alertId = data.alertId;
+    }
+    if (data.monitorId) {
+      logData.monitorId = data.monitorId;
+    }
+    if (data.alertEpisodeId) {
+      logData.alertEpisodeId = data.alertEpisodeId;
+    }
+    if (data.incidentEpisodeId) {
+      logData.incidentEpisodeId = data.incidentEpisodeId;
     }
     if (data.scheduledMaintenanceId) {
       logData.scheduledMaintenanceId = data.scheduledMaintenanceId;

@@ -98,7 +98,7 @@ The rest is in the card's **⋯** menu. **Regenerate link** and **Delete link** 
 
 ### Upcoming shifts and cover
 
-The page also lists your **Upcoming shifts** (the next 30 days), and the **Remind me before shifts** card described further down. Each of your own shifts has a **Get cover** link: it opens User Overrides in the shift's project with a new override pre-filled for that shift, you as **Who is away?** and the shift's times as **Starts** and **Ends** (from now, if the shift has started), so all that is left is **Who covers?**. The override sends all your pages during those times to the person who covers, from every on-call policy; a shift that exists only inside one policy is covered on that policy's User Overrides page instead. Leave **Who covers?** as **Next person in the rotation**, and it skips you instead: each of your turns goes to the next person in the rotation who is not away. A shift you are covering for someone else has no **Get cover**: overrides do not chain, so cover for cover would change nothing.
+The page also lists your **Upcoming shifts** (the next 30 days), and the **Remind me before shifts** card described further down. Each of your own shifts has a **Get cover** link: it opens User Overrides in the shift's project with a new override pre-filled for that shift, you as **Who is away?** and the shift's times as **Starts** and **Ends** (from now, if the shift has started), so all that is left is **Who covers?**. The override sends all your pages during those times to the person who covers, from every on-call policy; a shift that exists only inside one policy is covered on that policy's User Overrides page instead. Leave **Who covers?** as **Next person in the rotation**, and it skips you instead: each of your turns goes to the next person in the rotation who is not away. A shift you are covering for someone else has no **Get cover**: overrides do not chain, so cover for cover would change nothing. See [User Overrides](/docs/on-call/user-overrides).
 
 The same personal link, filtered to one schedule with `?schedule=<id>`, is offered as **Only my shifts on this schedule** on every schedule's page, and the on-call banner and the **My On-Call Policies** page carry an **Add your shifts to your calendar** link to the page above.
 
@@ -233,7 +233,7 @@ When a person leaves their last team in a project, OneUptime also removes them f
 
 ## Planning, not audit
 
-The feed shows the rotation **as it is configured now**, including for past days: an override entered afterwards rewrites history in the calendar. For hours actually spent on call, fairness reviews and compensation, use **On-Call Duty** > **Reports** > **User On Call Time**, which is written from what the pager actually did.
+The feed shows the rotation **as it is configured now**, including for past days: an override entered afterwards rewrites history in the calendar. For hours actually spent on call, fairness reviews and compensation, use **On-Call Duty** > **Reports** > **User On Call Time**, which is written from what the pager actually did. See [User On Call Time](/docs/on-call/readiness#user-on-call-time).
 
 ## Security
 

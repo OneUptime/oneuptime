@@ -6,6 +6,9 @@ import ObjectID from "../../../Types/ObjectID";
 import VideoCallProvider from "../../../Types/VideoCall/VideoCallProvider";
 import NotificationRuleEventType from "../../../Types/Workspace/NotificationRules/EventType";
 import BaseNotificationRule from "../../../Types/Workspace/NotificationRules/BaseNotificationRule";
+import NotificationRuleWorkspaceChannel, {
+  NotificationRuleWorkspaceChannelUtil,
+} from "../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import VideoCallNotificationRule, {
   getRequestedVideoCallSource,
   isSlackHuddleVideoCallSource,
@@ -219,8 +222,9 @@ export default class VideoCallRuleExecutor {
 
   /*
    * The channel a rule's huddle is held in: the one it created for the
-   * event, so the call sits with the responders the rule invited; failing
-   * that, the first existing channel it posts to.
+   * event - alone or with other rules whose templates give the same name -
+   * so the call sits with the responders the rule invited; failing that,
+   * the first existing channel it posts to.
    */
   public static async getSlackChannelForHuddle(data: {
     projectId: ObjectID;
@@ -231,10 +235,13 @@ export default class VideoCallRuleExecutor {
 
     const createdChannel: WorkspaceChannel | undefined =
       data.event.workspaceChannels.find(
-        (channel: WorkspaceChannel & { notificationRuleId?: string }) => {
+        (channel: NotificationRuleWorkspaceChannel) => {
           return (
             channel.workspaceType === WorkspaceType.Slack &&
-            channel.notificationRuleId === ruleId &&
+            NotificationRuleWorkspaceChannelUtil.isChannelOfRule({
+              channel: channel,
+              notificationRuleId: ruleId,
+            }) &&
             Boolean(channel.id)
           );
         },

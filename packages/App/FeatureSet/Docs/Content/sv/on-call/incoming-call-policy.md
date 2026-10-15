@@ -159,7 +159,7 @@ En regel ringer en person på det nummer som personen har verifierat för inkomm
 3. Ange den 6-siffriga kod som OneUptime skickar till numret via SMS under **Verifieringskod** och klicka på **Verifiera**. **Send a new code** skickar en ny.
 :::
 
-Varje person kan ha ett verifierat nummer per projekt. För att byta det tar du först bort det gamla numret. De här numren är skilda från telefonnumren under **Aviseringsmetoder**, som jourlarm använder.
+Varje person kan ha ett verifierat nummer per projekt. För att byta det tar du först bort det gamla numret. De här numren är skilda från telefonnumren under **Aviseringsmetoder**, som jourlarm använder. Se [Aviseringsmetoder](/docs/notifications/notification-methods).
 
 Nummer för inkommande samtal verifieras via SMS, så **SMS** måste först vara påslaget för projektet. En projektägare, en **Billing Admin** eller någon med **Manage Billing** slår på det i kortet **Aviseringskanaler** på **Projektinställningar > Aviseringar > Aviseringsinställningar**.
 
@@ -200,7 +200,7 @@ När ett samtal missas aviserar OneUptime policyns ägare: användarna och medle
 
 Aviseringen säger vem som ringde, vilket nummer personen slog, varför ingen svarade, och vem som ringdes upp och hur varje försök slutade. Den länkar till samtalet i samtalsloggen.
 
-Ägare får e-post som standard. Varje person kan välja andra kanaler (SMS, samtal, push och mer) eller stänga av det i **Användarinställningar** > **Aviseringsinställningar**, under **Jour** > **Inkommande samtalspolicyer** > **Missat samtal**.
+Ägare får e-post som standard. Varje person kan välja andra kanaler (SMS, samtal, push och mer) eller stänga av det i **Användarinställningar** > **Aviseringsinställningar**, under **Jour** > **Inkommande samtalspolicyer** > **Missat samtal**. Se [Aviseringsinställningar](/docs/notifications/notification-settings).
 
 ### Agera på missade samtal i ett arbetsflöde
 

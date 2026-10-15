@@ -86,7 +86,7 @@ flowchart TB
 
 如果改为在 **谁代班？** 中选择某人，则由该人接收此人来自所有计划和所有策略的全部呼叫，而不是由轮换接替其轮次。
 
-以这种方式添加的离岗适用于所有值班策略。它列在 **值班** > **用户覆盖** 下，您可以在那里删除它，让此人提前回来。若只想在一个策略中跳过某人，请在该策略的 **用户覆盖** 页面上添加替班，并保持 **谁代班？** 不变。
+以这种方式添加的离岗适用于所有值班策略。它列在 **值班** > **用户覆盖** 下，您可以在那里删除它，让此人提前回来。若只想在一个策略中跳过某人，请在该策略的 **用户覆盖** 页面上添加替班，并保持 **谁代班？** 不变。请参阅 [用户覆盖](/docs/on-call/user-overrides)。
 
 通过 API 创建用户替班（ `/api/on-call-duty-policy-user-override` ）时，如果不带 `routeAlertsToUserId` ，就会跳过 `overrideUserId` 中的人，时间从 `startsAt` 到 `endsAt` 。
 
@@ -121,4 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [升级规则](/docs/on-call/escalation-rules): 让值班策略的某个级别呼叫此计划。
 - [值班时间线](/docs/on-call/schedule-timeline): 并排查看所有计划及覆盖空档。
 - [日历订阅源](/docs/on-call/calendar-feeds): 将班次放入 Google 日历、Outlook 或 Apple 日历。
+- [个人值班规则](/docs/notifications/on-call-rules): 决定值班时呼叫如何送达你。
 :::

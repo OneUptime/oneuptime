@@ -159,7 +159,7 @@ Una regola fa squillare una persona sul numero che ha verificato per le chiamate
 3. Inserisci il codice a 6 cifre che OneUptime invia al numero via SMS in **Codice di verifica**, e fai clic su **Verifica**. **Send a new code** ne invia un altro.
 :::
 
-Ogni persona può avere un numero verificato per progetto. Per cambiarlo, elimina prima il vecchio numero. Questi numeri sono separati dai numeri di telefono in **Metodi di notifica**, usati dagli avvisi di reperibilità.
+Ogni persona può avere un numero verificato per progetto. Per cambiarlo, elimina prima il vecchio numero. Questi numeri sono separati dai numeri di telefono in **Metodi di notifica**, usati dagli avvisi di reperibilità. Vedi [Metodi di notifica](/docs/notifications/notification-methods).
 
 I numeri per le chiamate in entrata vengono verificati via SMS, quindi gli **SMS** devono prima essere attivi per il progetto. Un proprietario del progetto o qualcuno con il ruolo **Billing Admin** o il permesso **Manage Billing** li attiva nella scheda **Canali di notifica** di **Impostazioni del progetto > Notifiche > Impostazioni notifiche**.
 
@@ -200,7 +200,7 @@ Quando una chiamata viene persa, OneUptime avvisa i proprietari della policy: gl
 
 L'avviso dice chi ha chiamato, quale numero ha composto, perché nessuno ha risposto, chi ha squillato e come è finito ogni tentativo. Collega la chiamata nel registro chiamate.
 
-I proprietari ricevono un'email per impostazione predefinita. Ognuno può scegliere altri canali (SMS, chiamata, push e altro) o disattivarlo in **Impostazioni utente** > **Impostazioni notifiche**, in **Reperibilità** > **Policy chiamate in entrata** > **Chiamata persa**.
+I proprietari ricevono un'email per impostazione predefinita. Ognuno può scegliere altri canali (SMS, chiamata, push e altro) o disattivarlo in **Impostazioni utente** > **Impostazioni notifiche**, in **Reperibilità** > **Policy chiamate in entrata** > **Chiamata persa**. Vedi [Impostazioni notifiche](/docs/notifications/notification-settings).
 
 ### Reagire alle chiamate perse in un workflow
 

@@ -162,6 +162,9 @@ export class Service extends ProjectReferencesService<Model> {
           monitorId: monitorId!,
         }),
         teamIds: [teamId!],
+        notificationFor: {
+          monitorId: monitorId,
+        },
       },
     ).catch((error: Error) => {
       logger.error(error);

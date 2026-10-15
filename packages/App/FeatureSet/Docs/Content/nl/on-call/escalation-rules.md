@@ -84,7 +84,7 @@ Het overzicht boven aan de pagina **Escalatieregels** toont de hele ladder: wann
 
 ### Hoe iedere persoon wordt bereikt
 
-Iedere persoon die een niveau oproept, wordt bereikt zoals diens eigen bereikbaarheidsregels voorschrijven: **Gebruikersinstellingen** > **Bereikbaarheidsregels**, met een tabblad voor incidenten, incidentepisodes, waarschuwingen en waarschuwingsepisodes, en per ernst een kaart die laat zien welke meldingsmethode na hoeveel tijd wordt geprobeerd. Een projectbeheerder kan de regels van een lid bekijken en wijzigen onder **Gebruikers** > het lid > **Bereikbaarheidsregels**.
+Iedere persoon die een niveau oproept, wordt bereikt zoals diens eigen bereikbaarheidsregels voorschrijven: **Gebruikersinstellingen** > **Bereikbaarheidsregels**, met een tabblad voor incidenten, incidentepisodes, waarschuwingen en waarschuwingsepisodes, en per ernst een kaart die laat zien welke meldingsmethode na hoeveel tijd wordt geprobeerd. Een projectbeheerder kan de regels van een lid bekijken en wijzigen onder **Gebruikers** > het lid > **Bereikbaarheidsregels**. Zie [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules).
 
 ```mermaid title="Wie een niveau oproept en hoe iedere persoon wordt bereikt"
 flowchart TB
@@ -101,7 +101,7 @@ flowchart TB
     rules --> methods["Diens meldingsmethoden"]
 ```
 
-Een override die voor een persoon geldt, stuurt diens oproepen naar de persoon die hem of haar vervangt. Een override die niemand als vervanger noemt, slaat de persoon over: die krijgt geen oproepen, de uitvoering van het beleid vermeldt dat die afwezig is en tot wanneer, en in een bereikbaarheidsschema gaat elke beurt van die persoon naar de volgende persoon in de rotatie.
+Een override die voor een persoon geldt, stuurt diens oproepen naar de persoon die hem of haar vervangt. Een override die niemand als vervanger noemt, slaat de persoon over: die krijgt geen oproepen, de uitvoering van het beleid vermeldt dat die afwezig is en tot wanneer, en in een bereikbaarheidsschema gaat elke beurt van die persoon naar de volgende persoon in de rotatie. Zie [Gebruikersoverschrijvingen](/docs/on-call/user-overrides).
 
 Elk bericht is er een dat de provider aanneemt, dus een oproep gaat altijd de deur uit. Zoveel draagt elk kanaal:
 

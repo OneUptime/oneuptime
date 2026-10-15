@@ -159,7 +159,7 @@ A rule rings a person on the number they verified for incoming calls in this pro
 3. Enter the 6-digit code OneUptime sends to it by SMS under **Verification Code**, and click **Verify**. **Send a new code** sends another one.
 :::
 
-Each person can have one verified number per project. To change it, delete the old number first. These numbers are separate from the phone numbers under **Notification Methods**, which on-call pages use.
+Each person can have one verified number per project. To change it, delete the old number first. These numbers are separate from the phone numbers under **Notification Methods**, which on-call pages use. See [Notification Methods](/docs/notifications/notification-methods).
 
 Incoming call numbers are verified by SMS, so **SMS** has to be on for the project first. A project owner, a **Billing Admin** or someone with **Manage Billing** turns it on in the **Notification Channels** card on **Project Settings > Notifications > Notification Settings**.
 
@@ -200,7 +200,7 @@ When a call is missed, OneUptime notifies the policy's owners: the users and the
 
 The notification says who called, which number they dialled, why nobody answered, and who was rung and how each attempt ended. It links to the call in the call log.
 
-Owners are emailed by default. Each person can choose other channels (SMS, call, push and more) or switch it off in **User Settings** > **Notification Settings**, under **On-Call** > **Incoming Call Policies** > **Missed call**.
+Owners are emailed by default. Each person can choose other channels (SMS, call, push and more) or switch it off in **User Settings** > **Notification Settings**, under **On-Call** > **Incoming Call Policies** > **Missed call**. See [Notification Settings](/docs/notifications/notification-settings).
 
 ### React to missed calls in a workflow
 
