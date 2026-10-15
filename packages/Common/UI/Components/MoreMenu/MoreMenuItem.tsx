@@ -197,12 +197,18 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
      * becoming part of its name - the item is still "Delete", not "Delete You
      * do not have permission to delete this Monitor.".
      */
+    /*
+     * Pressing it - the only way to ask on a phone, where nothing hovers -
+     * shows the reason and keeps it until the item is pressed again or the
+     * menu closes.
+     */
     return (
       <>
         <Tooltip
           text={props.tooltip}
           isTriggerAlreadyDescribed={true}
           isShownOnKeyboardFocusOnly={true}
+          isShownOnPress={true}
           placement={MENU_ITEM_TOOLTIP_PLACEMENT}
           fallbackPlacements={MENU_ITEM_TOOLTIP_FALLBACK_PLACEMENTS}
         >

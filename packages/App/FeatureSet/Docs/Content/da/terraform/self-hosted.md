@@ -1,73 +1,125 @@
-# Self-Hosted Setup
+# Selv-hostet opsætning
 
-Everything specific to using the Terraform provider against a self-hosted OneUptime installation: pointing the provider at your instance, choosing the right provider version, mirroring the provider for air-gapped networks, and TLS.
+Provideren virker med din egen OneUptime, som den virker med OneUptime Cloud: de samme ressourcer, de samme attributter og de samme API-nøgler til projektet. Det, du selv skal angive: adressen på din OneUptime, den providerversion, der passer til den, og, hvor du har brug for dem, et spejl til maskiner uden internetadgang og tillid til en privat certifikatudsteder.
 
-The provider itself is identical for cloud and self-hosted — same resources, same attributes. Only the URL and the version-selection rule differ.
+:::cards
+- [Lad provideren pege på din OneUptime](#lad-provideren-pege-på-din-oneuptime): Dens adresse, og en API-nøgle til dit projekt.
+- [Vælg providerversionen](#vælg-providerversionen): Den nyeste provider, der ikke er nyere end din OneUptime.
+- [Uden internetadgang](#uden-internetadgang): Spejl provideren ind i dit netværk.
+- [TLS og certifikater](#tls-og-certifikater): En privat certifikatudsteder, proxyer og almindelig HTTP.
+:::
 
-## Point the provider at your instance
+```mermaid title="Terraform og din egen OneUptime"
+flowchart TB
+    R["Terraform Registry,<br/>OpenTofu Registry<br/>eller dit spejl"] -->|"terraform init"| T["Terraform eller OpenTofu"]
+    T --> P["OneUptime-provideren,<br/>ikke nyere end<br/>din OneUptime"]
+    P -->|"HTTPS, med en<br/>API-nøgle til dit projekt"| O["Din OneUptime:<br/>dens adresse, så /api"]
+```
 
-Set `oneuptime_url` to your instance's origin — scheme and host only, no `/api` suffix, no path:
+## Lad provideren pege på din OneUptime
 
-```hcl
+Sæt `oneuptime_url` til den adresse, du åbner dashboardet på: skemaet og værten, uden sti. Provideren tilføjer `https://`, når adressen ikke har et skema, og `/api` til sidst, så `https://oneuptime.example.com` sender hver forespørgsel til `https://oneuptime.example.com/api`.
+
+```hcl title="main.tf"
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "{{TERRAFORM_PROVIDER_VERSION}}"
+      version = "{{TERRAFORM_PROVIDER_MATCHING}}"
     }
   }
 }
 
 provider "oneuptime" {
   oneuptime_url = "https://oneuptime.example.com"
-  # api_key from ONEUPTIME_API_KEY, or set explicitly:
-  # api_key = var.oneuptime_api_key
+  # The API key comes from the ONEUPTIME_API_KEY environment variable.
 }
 ```
 
-Both settings are also available as environment variables, which keeps configuration portable between cloud and self-hosted roots:
+Adressen kan i stedet komme fra miljøvariablen `ONEUPTIME_URL`, så én konfiguration kan pege på flere installationer:
 
 ```bash
 export ONEUPTIME_URL="https://oneuptime.example.com"
-export ONEUPTIME_API_KEY="your-project-api-key"
+export ONEUPTIME_API_KEY="<your-api-key>"
 ```
 
-The API key is a **project API key** created in your instance's dashboard under **Projektindstillinger > API-nøgler** — exactly as on cloud. Self-hosted master keys do not work and fail with `ProjectId required` (see [Troubleshooting](/docs/terraform/troubleshooting)).
+Adressen er den vært, din installation serveres på: `HOST` og `HTTP_PROTOCOL` i `config.env` med Docker Compose, og `host` og `httpProtocol` i Helm-chartets values.
 
-## Choosing a provider version
+Nøglen er en API-nøgle til det projekt, du styrer, oprettet i din OneUptimes dashboard under **Projektindstillinger → Avanceret → API-nøgler**, som på OneUptime Cloud. Master-API-nøglen på en selv-hostet OneUptime hører ikke til noget projekt, så en oprettelse med den fejler med `ProjectId required`.
 
-Provider versions track OneUptime platform versions. The rule for self-hosted:
+> [!TIP]
+> Din OneUptime skriver denne blok for dig. Åbn en vilkårlig ressource eller liste i dashboardet, og derefter **Udvikler** og **Terraform** i dens sidemenu: provider-blokken, den viser, har din OneUptimes adresse og et versionsinterval, der passer til den.
 
-> Use the **newest published provider version that is less than or equal to your OneUptime platform version.**
+## Vælg providerversionen
 
-- Never use a provider *newer* than your platform — it may drive API fields your installation does not have yet.
-- Do **not** pin an exact patch version. Not every platform patch is published to the registry, so `= {{TERRAFORM_PROVIDER_MAJOR}}.0.7`-style pins routinely fail with `no matching version found`.
+Brug den nyeste udgivne provider, der ikke er nyere end din OneUptime. Providerversioner følger OneUptimes: en OneUptime-release, der ændrer provideren, udgiver den under releasens eget versionsnummer, og en provider, der er nyere end din OneUptime, kan sende indstillinger, som din OneUptime endnu ikke har.
 
-Express the rule as a bounded constraint. For example, if your installation runs platform release `{{TERRAFORM_PROVIDER_MAJOR}}.2.x`:
+Skriv derfor et interval, der slutter ved din OneUptimes version, som dashboardet gør. Blokken ovenfor tager `{{TERRAFORM_PROVIDER_MATCHING}}`, intervallet for den OneUptime, denne dokumentation kommer fra: når du læser den på din egen OneUptime, er det interval dit. Ellers skal du skrive din egen version ind:
 
-```hcl
-version = ">= {{TERRAFORM_PROVIDER_MAJOR}}.0, <= {{TERRAFORM_PROVIDER_MAJOR}}.2"
-```
+:::steps
+### Find din OneUptimes version
 
-Terraform then selects the newest published {{TERRAFORM_PROVIDER_MAJOR}}.x release that does not exceed {{TERRAFORM_PROVIDER_MAJOR}}.2 — automatically skipping any unpublished patches. If you track platform majors loosely and stay reasonably current, `{{TERRAFORM_PROVIDER_VERSION}}` is fine too.
-
-Find your platform version in the OneUptime admin dashboard or from your Helm/Docker Compose deployment values. Published provider versions are listed at [registry.terraform.io/providers/oneuptime/oneuptime/versions](https://registry.terraform.io/providers/oneuptime/oneuptime/versions).
-
-**Upgrade order:** upgrade the OneUptime platform first, then raise the provider constraint and run `terraform init -upgrade`.
-
-## Air-gapped installations: mirroring the provider
-
-If the hosts running Terraform cannot reach `registry.terraform.io`, mirror the provider into your network. On a machine with internet access:
+Spørg din OneUptime om den:
 
 ```bash
-mkdir -p /srv/terraform-mirror
-cd /path/to/your/terraform/config   # a directory whose required_providers includes oneuptime
-terraform providers mirror /srv/terraform-mirror
+curl https://oneuptime.example.com/version
 ```
 
-This downloads the provider releases matching your constraints, for all platforms, into a directory layout Terraform understands. Transfer the directory inside, serve it (plain HTTPS file server) or share it as a filesystem path, and point Terraform at it in the CLI configuration (`~/.terraformrc`):
+Svaret er JSON, som `{"version":"{{TERRAFORM_PROVIDER_MAJOR}}.0.40","commit":"..."}`. Som masteradministrator kan du også åbne udgavemærket i headeren på Admin-dashboardet: se [Find din nuværende version](/docs/installation/upgrading#find-din-nuværende-version).
 
-```hcl
+### Skriv den ind i intervallet
+
+Intervallet starter ved hovedversionen og slutter ved din. For en OneUptime {{TERRAFORM_PROVIDER_MAJOR}}.0.40:
+
+```hcl title="main.tf"
+terraform {
+  required_providers {
+    oneuptime = {
+      source  = "oneuptime/oneuptime"
+      version = ">= {{TERRAFORM_PROVIDER_MAJOR}}.0, <= {{TERRAFORM_PROVIDER_MAJOR}}.0.40"
+    }
+  }
+}
+```
+
+Terraform tager den nyeste provider i intervallet. En OneUptime-release, der ikke ændrede provideren, udgiver ingen, og intervallet springer de versioner over, der ikke findes.
+
+### Hent provideren
+
+Kør `terraform init`. Den viser den version, den installerede, og registrerer den i `.terraform.lock.hcl`.
+:::
+
+Når du opgraderer, så opgradér OneUptime først. Hæv derefter slutningen af intervallet til dens nye version, og kør `terraform init -upgrade`.
+
+## Uden internetadgang
+
+Når de maskiner, der kører Terraform, ikke kan nå registret, skal du kopiere provideren ind i dit netværk én gang og lade Terraform pege på kopien.
+
+:::steps
+### Spejl provideren
+
+Hent på en maskine med internetadgang, i en mappe med din konfiguration, provideren til hver platform, dine maskiner kører på. Uden `-platform` henter kommandoen kun provideren til sin egen platform:
+
+:::tabs
+@tab Terraform
+```bash
+terraform providers mirror -platform=linux_amd64 -platform=darwin_arm64 /srv/terraform-mirror
+```
+@tab OpenTofu
+```bash
+tofu providers mirror -platform=linux_amd64 -platform=darwin_arm64 /srv/terraform-mirror
+```
+:::
+
+Mappen indeholder provideren under registrets adresse, som `registry.terraform.io/oneuptime/oneuptime/`. Kopiér den ind i dit netværk.
+
+### Lad Terraform pege på spejlet
+
+Skriv en CLI-konfigurationsfil, der installerer OneUptime-provideren fra mappen og alt andet som normalt:
+
+:::tabs
+@tab Terraform
+```hcl title="mirror.tfrc"
 provider_installation {
   filesystem_mirror {
     path    = "/srv/terraform-mirror"
@@ -78,18 +130,76 @@ provider_installation {
   }
 }
 ```
+@tab OpenTofu
+```hcl title="mirror.tfrc"
+provider_installation {
+  filesystem_mirror {
+    path    = "/srv/terraform-mirror"
+    include = ["registry.opentofu.org/oneuptime/oneuptime"]
+  }
+  direct {
+    exclude = ["registry.opentofu.org/oneuptime/oneuptime"]
+  }
+}
+```
+:::
 
-`terraform init` now installs the OneUptime provider from the mirror and everything else from wherever it normally would (drop the `direct` block to force mirror-only). Re-run the `mirror` command whenever you raise your version constraint.
+Angiv den i `TF_CLI_CONFIG_FILE`, som både Terraform og OpenTofu læser: `export TF_CLI_CONFIG_FILE=/etc/terraform/mirror.tfrc`.
 
-## TLS notes
+### Initialisér
 
-- Terraform is a Go program: it validates your instance's certificate against the **system trust store** of the machine running Terraform. If your instance uses a certificate from a private CA, install that CA certificate on every machine (and CI runner) that runs Terraform. On Debian/Ubuntu: copy the CA to `/usr/local/share/ca-certificates/` and run `update-ca-certificates`.
-- There is deliberately no "skip TLS verification" attribute. If you see `x509: certificate signed by unknown authority`, fix trust — don't try to disable it.
-- Plain HTTP works for lab environments (`oneuptime_url = "http://oneuptime.lab.internal"`), but the project API key is sent with every request; use TLS for anything beyond a throwaway lab.
-- If OneUptime sits behind a reverse proxy or ingress, `oneuptime_url` is the *external* origin the proxy exposes. Make sure the proxy forwards all `/api` paths unmodified.
+Kør `terraform init`: den installerer provideren fra spejlet. Den advarer om, at låsefilen nu kun har checksums for denne platform. For at registrere dem for alle platforme skal du køre `terraform providers lock` med de samme `-platform`-indstillinger på maskinen med internetadgang og committe `.terraform.lock.hcl` sammen med din konfiguration.
+:::
 
-## Related pages
+Spejl igen, hver gang du hæver versionsintervallet.
 
-- [Registry Usage](/docs/terraform/registry) — how versions are published, release notes
-- [Troubleshooting](/docs/terraform/troubleshooting) — URL, TLS, and key errors in detail
-- [Quick Start](/docs/terraform/quick-start) — first apply, works identically self-hosted
+## TLS og certifikater
+
+Provideren kontrollerer din OneUptimes certifikat mod tillidslageret på den maskine, der kører Terraform, og der er ingen indstilling til at springe kontrollen over. Når certifikatet kommer fra en privat certifikatudsteder, skal du tilføje den udsteder til tillidslageret på hver maskine og CI-runner, der kører Terraform:
+
+:::tabs
+@tab Debian / Ubuntu
+```bash
+sudo cp my-ca.crt /usr/local/share/ca-certificates/
+sudo update-ca-certificates
+```
+@tab RHEL / Fedora
+```bash
+sudo cp my-ca.crt /etc/pki/ca-trust/source/anchors/
+sudo update-ca-trust
+```
+:::
+
+På Linux, hvor du ikke kan ændre tillidslageret, som i en CI-container, skal du sætte `SSL_CERT_FILE` til en fil, der indeholder din udsteder og de offentlige udstedere. På macOS og Windows skal du tilføje udstederen til systemets certifikatlager.
+
+- **Proxyer.** Provideren sender sine forespørgsler gennem proxyen i `HTTPS_PROXY`, undtagen til værterne i `NO_PROXY`. En reverse proxy foran OneUptime skal sende hver `/api`-sti og headeren `APIKey` uændret igennem.
+- **Almindelig HTTP.** En `http://`-adresse virker, til en testinstallation. API-nøglen sendes med hver forespørgsel, så brug HTTPS til alt andet.
+
+## Fejlfinding
+
+:::details Meddelelsen “x509: certificate signed by unknown authority”
+Den maskine, der kører Terraform, stoler ikke på din OneUptimes certifikat: tilføj din certifikatudsteder, som [TLS og certifikater](#tls-og-certifikater) viser.
+:::
+
+:::details Meddelelsen “invalid character '<' looking for beginning of value”
+En webside svarede i stedet for API'et: `oneuptime_url` indeholder en sti, eller en proxy svarede. Sæt den til kun din OneUptimes adresse.
+:::
+
+:::details Meddelelsen “no available releases match the given constraints”
+Ingen udgivet provider passer til versionsbegrænsningen, for eksempel en begrænsning, der nævner én version, som OneUptime aldrig har udgivet. Skriv et interval, som [Vælg providerversionen](#vælg-providerversionen) viser.
+:::
+
+:::details Meddelelsen “ProjectId required”
+Nøglen er master-API-nøglen, som ikke hører til noget projekt. Opret en API-nøgle til projektet under **Projektindstillinger → Avanceret → API-nøgler**.
+:::
+
+[Fejlfinding](/docs/terraform/troubleshooting) har de andre fejl, og hvad hver enkelt betyder.
+
+## Næste skridt
+
+:::cards
+- [Hurtig start](/docs/terraform/quick-start): Opret en API-nøgle, og anvend dine første ressourcer.
+- [Registerbrug](/docs/terraform/registry): Hvor provideren udgives, og hvordan versioner nummereres.
+- [Fejlfinding](/docs/terraform/troubleshooting): Almindelige fejl, og hvordan du retter dem.
+- [Opgradering](/docs/installation/upgrading): Opgradér din OneUptime, før du hæver providerens interval.
+:::

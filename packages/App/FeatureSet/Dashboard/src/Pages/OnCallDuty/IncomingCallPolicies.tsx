@@ -205,7 +205,7 @@ const IncomingCallPoliciesPage: FunctionComponent<
         saveFilterProps={{
           tableId: "incoming-call-policies-table",
         }}
-        isDeleteable={false}
+        isDeleteable={true}
         name="On-Call > Incoming Call Policies"
         showViewIdButton={true}
         isEditable={false}

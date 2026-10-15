@@ -1,4 +1,7 @@
-import AnalyticsDatabaseService from "../../../Server/Services/AnalyticsDatabaseService";
+import AnalyticsDatabaseService, {
+  SORT_KEY_PAGE_BOUND_ALIAS,
+  SORT_KEY_PAGE_VALUES_ALIAS,
+} from "../../../Server/Services/AnalyticsDatabaseService";
 import {
   SQL,
   Statement,
@@ -6,6 +9,7 @@ import {
 import logger from "../../../Server/Utils/Logger";
 import "../TestingUtils/Init";
 import { orderByColumns } from "../TestingUtils/AnalyticsOrderBy";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import Route from "../../../Types/API/Route";
 import AnalyticsTableEngine from "../../../Types/AnalyticsDatabase/AnalyticsTableEngine";
@@ -23,37 +27,38 @@ import {
 } from "@jest/globals";
 
 /*
- * The sort-key boundary filter.
+ * The sort-key page bound (AnalyticsDatabaseService.toSortKeyPageBound).
  *
  * ClickHouse reads in sorting-key order — and stops early — only when the
- * ORDER BY it is handed lines up with the table's physical key. The `_id`
- * tiebreaker appended by toPaginationStableSort is deliberately NOT a
- * sorting-key column, so it denies that plan: the engine reads every row
- * matching the WHERE, sorts the lot in memory, and discards all but one page.
- * On the Logs viewer that turned a 100-row page into a full-window scan and
- * tripped the 3 GiB max_memory_usage ceiling (Code 241, surfacing to users as
- * "Server Error").
+ * ORDER BY lines up with the table's physical key. The `_id` tiebreaker
+ * appended by toPaginationStableSort is deliberately NOT a sorting-key
+ * column, so it denies that plan: the engine reads every row matching the
+ * WHERE and sorts the lot to keep one page. On the Logs viewer that turned a
+ * 100-row page into a full-window scan past the 3 GiB max_memory_usage
+ * ceiling ("Server Error").
  *
- * Measured on ClickHouse 26.7 against a 3M-row table shaped like LogItemV3
- * (140 rows per timestamp, fat attributes Map), one 100-row page:
+ * The bound finds the page in two steps of one statement:
  *
- *   ORDER BY time DESC                  107k rows read,  14.11 MiB peak
- *   ORDER BY time DESC, _id DESC        1.91M rows read, 114.92 MiB peak
- *   ... with the boundary filter         114k rows read,   8.68 MiB peak
+ *   1. a narrow read of the leading sort key alone, in key order, stopping
+ *      after skip + limit matching rows. Its sorted values give the page's
+ *      own key values and how many rows tied with its first value belong to
+ *      earlier pages — one scalar subquery, named in a WITH clause;
+ *   2. the wide read of the rows whose key is one of the page's values,
+ *      sorted with the tiebreaker, skipping those earlier-page ties.
  *
- * The fix does NOT weaken the tiebreaker — that would reintroduce the
- * skip/repeat paging bug it was added for. It bounds the rows the sort has to
- * consider, using a predicate that is result-preserving by construction:
- * `min(k)` over the top `skip + limit` values of the leading sort key is a
- * rank statistic of k's MULTISET, so it does not depend on which of several
- * tied rows the inner LIMIT kept, and every row tied at the boundary value is
- * admitted.
+ * Before #4710 step 2 read every row with key >= min(the first skip + limit
+ * values). A filter matching a few rows spread over the range made that
+ * range cover it all, and with no match min() was the column default (1970):
+ * either way the wide read repeated the range the narrow read had just
+ * scanned. Now a page past the last match reads no granule in step 2, and a
+ * sparse page reads only the granules holding its own values.
  *
- * Because the predicate cannot change results, every gate below is a
- * PERFORMANCE gate: getting one wrong makes a query slower, never wrong. The
- * suites assert that (a) the bound is emitted where it pays, (b) it is
- * withheld where it cannot be proven safe or cannot help, and (c) the page
- * the caller gets back is unchanged either way.
+ * The suites below pin (a) the statement, (b) every gate that withholds the
+ * bound, (c) that the page found this way is the unbounded page — modelled
+ * step by step in the SQL's own terms, over seeded datasets heavy with ties,
+ * both directions, every offset — and (d) what the wide read touches. The
+ * same claims are checked against a real ClickHouse in
+ * App/Tests/Telemetry/PagedFindBoundClickhouse.test.ts.
  */
 
 const TIME_COLUMN: string = "time";
@@ -157,24 +162,79 @@ class NoIdModel extends AnalyticsBaseModel {
 }
 
 /*
- * The boundary subquery is the only place a find statement nests a SELECT,
- * so its presence is the signal that the bound was emitted.
+ * A model whose rows outlive their retention on disk until TTL drops them:
+ * both reads of a bounded find must leave the expired ones out.
  */
-function hasBoundary(statement: Statement): boolean {
-  return statement.query.includes("(SELECT ");
+class RetainedModel extends AnalyticsBaseModel {
+  public constructor() {
+    super({
+      tableName: "<retained-table>",
+      singularName: "<singular-name>",
+      pluralName: "<plural-name>",
+      tableColumns: [
+        new AnalyticsTableColumn({
+          key: TIME_COLUMN,
+          title: "<title>",
+          description: "<description>",
+          required: true,
+          type: TableColumnType.DateTime64,
+        }),
+        new AnalyticsTableColumn({
+          key: "retentionDate",
+          title: "<title>",
+          description: "<description>",
+          required: true,
+          type: TableColumnType.Date,
+        }),
+      ],
+      crudApiPath: new Route("route"),
+      primaryKeys: [TIME_COLUMN],
+      sortKeys: [TIME_COLUMN],
+      partitionKey: TIME_COLUMN,
+      tableEngine: AnalyticsTableEngine.MergeTree,
+      defaultSortColumn: TIME_COLUMN,
+    });
+  }
 }
 
-/* The bound sits in the WHERE, so it precedes the outer ORDER BY. */
-function boundaryClause(statement: Statement): string {
+const SETTINGS: string =
+  "SETTINGS max_execution_time = 45, timeout_overflow_mode = 'throw', max_memory_usage = 3221225472, max_bytes_before_external_group_by = 1610612736, max_bytes_before_external_sort = 1610612736";
+
+// Where the WITH clause hands over to the page's own SELECT.
+const SELECT_AFTER_BOUND: string = `AS ${SORT_KEY_PAGE_BOUND_ALIAS} SELECT `;
+
+const PAGE_OFFSET: string = `OFFSET ifNull(tupleElement(${SORT_KEY_PAGE_BOUND_ALIAS}, 2), 0)`;
+
+// The bound is the only thing that puts a WITH clause in front of a find.
+function hasBound(statement: Statement): boolean {
+  return statement.query.startsWith("WITH (");
+}
+
+// The WITH clause: everything before the page's own SELECT.
+function boundClause(statement: Statement): string {
   const query: string = statement.query;
-  return query.slice(query.indexOf(" AND "), query.lastIndexOf("ORDER BY "));
+  const at: number = query.indexOf(SELECT_AFTER_BOUND);
+  return at < 0 ? "" : query.slice(0, at + SELECT_AFTER_BOUND.length);
+}
+
+// The page's own SELECT, from its SELECT keyword to the end.
+function pageSelect(statement: Statement): string {
+  const query: string = statement.query;
+  const at: number = query.indexOf(SELECT_AFTER_BOUND);
+  return at < 0
+    ? query
+    : query.slice(at + SELECT_AFTER_BOUND.length - "SELECT ".length);
 }
 
 function paramValues(statement: Statement): Array<unknown> {
   return Object.values(statement.query_params);
 }
 
-describe("AnalyticsDatabaseService sort key boundary", () => {
+function count(text: string, piece: string): number {
+  return text.split(piece).length - 1;
+}
+
+describe("AnalyticsDatabaseService sort key page bound", () => {
   let service: AnalyticsDatabaseService<LogLikeModel>;
 
   type FindArgs = {
@@ -222,60 +282,219 @@ describe("AnalyticsDatabaseService sort key boundary", () => {
     jest.restoreAllMocks();
   });
 
-  describe("emitted shape", () => {
-    test("bounds the scan by the leading sort key", () => {
+  describe("emitted statement", () => {
+    /*
+     * The whole statement, so any change to its shape is a decision made
+     * here. Positions are 1-based in ClickHouse arrays: the page is
+     * positions skip + 1 onwards of the sorted first skip + limit values.
+     */
+    test("a newest-first page: the narrow read in a WITH clause, the page's values on the WHERE, its ties as the OFFSET", () => {
       const statement: Statement = runFind({
         sort: { [TIME_COLUMN]: SortOrder.Descending },
         limit: 50,
+        skip: 100,
+      });
+
+      expect(statement.query).toBe(
+        "WITH (SELECT (arraySlice(__sortKeyTopValues, {p0:Int32}), countEqual(arraySlice(__sortKeyTopValues, 1, {p1:Int32}), __sortKeyTopValues[{p2:Int32}])) " +
+          "FROM (SELECT arrayReverseSort(groupArray({p3:Identifier})) AS __sortKeyTopValues " +
+          "FROM (SELECT {p4:Identifier} FROM {p5:Identifier}.{p6:Identifier} WHERE TRUE <where> ORDER BY {p7:Identifier} DESC LIMIT {p8:Int32}))) AS __sortKeyPage " +
+          "SELECT <select> FROM {p9:Identifier}.{p10:Identifier} WHERE TRUE <where> " +
+          "AND {p11:Identifier} GLOBAL IN (SELECT arrayJoin(tupleElement(__sortKeyPage, 1))) " +
+          "ORDER BY {p12:Identifier} DESC, {p13:Identifier} DESC LIMIT {p14:Int32} OFFSET ifNull(tupleElement(__sortKeyPage, 2), 0)\n" +
+          SETTINGS,
+      );
+      expect(statement.query_params).toStrictEqual({
+        p0: 101, // the page starts at position skip + 1
+        p1: 100, // the earlier pages' values: positions 1 .. skip
+        p2: 101, // the page's first value, whose earlier-page ties are skipped
+        p3: TIME_COLUMN,
+        p4: TIME_COLUMN,
+        p5: "oneuptime",
+        p6: "<log-like-table>",
+        p7: TIME_COLUMN,
+        p8: 150, // skip + limit values of the leading key
+        p9: "oneuptime",
+        p10: "<log-like-table>",
+        p11: TIME_COLUMN,
+        p12: TIME_COLUMN,
+        p13: "_id",
+        p14: 50, // the page's own LIMIT is unchanged
+      });
+    });
+
+    test("an oldest-first page sorts the values ascending and reads the key ascending", () => {
+      const statement: Statement = runFind({
+        sort: { [TIME_COLUMN]: SortOrder.Ascending },
+        limit: 25,
         skip: 0,
       });
 
-      expect(hasBoundary(statement)).toBe(true);
-      expect(boundaryClause(statement)).toContain("min(");
-      expect(paramValues(statement)).toContain(TIME_COLUMN);
-    });
-
-    test("the bound is a lower bound for a descending sort", () => {
-      const clause: string = boundaryClause(
-        runFind({ sort: { [TIME_COLUMN]: SortOrder.Descending } }),
+      expect(boundClause(statement)).toContain(
+        "FROM (SELECT arraySort(groupArray({p3:Identifier})) AS __sortKeyTopValues",
       );
-
-      expect(clause).toContain(">=");
-      expect(clause).toContain("min(");
-      expect(clause).not.toContain("max(");
-    });
-
-    test("the bound flips to an upper bound for an ascending sort", () => {
-      const clause: string = boundaryClause(
-        runFind({ sort: { [TIME_COLUMN]: SortOrder.Ascending } }),
+      expect(boundClause(statement)).not.toContain("arrayReverseSort");
+      expect(boundClause(statement)).toContain(
+        "ORDER BY {p7:Identifier} ASC LIMIT {p8:Int32}",
       );
-
-      expect(clause).toContain("<=");
-      expect(clause).toContain("max(");
-      expect(clause).not.toContain("min(");
+      expect(orderByColumns(statement)).toStrictEqual([TIME_COLUMN, "_id"]);
+      expect(pageSelect(statement)).toContain(
+        "ORDER BY {p12:Identifier} ASC, {p13:Identifier} ASC LIMIT",
+      );
     });
 
-    test("the inner sort direction matches the outer one", () => {
+    test("the narrow read sorts in the same direction as the page", () => {
       expect(
-        boundaryClause(
-          runFind({ sort: { [TIME_COLUMN]: SortOrder.Descending } }),
-        ),
-      ).toContain("DESC");
+        boundClause(runFind({ sort: { [TIME_COLUMN]: SortOrder.Descending } })),
+      ).toContain(" DESC LIMIT ");
       expect(
-        boundaryClause(
-          runFind({ sort: { [TIME_COLUMN]: SortOrder.Ascending } }),
-        ),
-      ).toContain("ASC");
+        boundClause(runFind({ sort: { [TIME_COLUMN]: SortOrder.Ascending } })),
+      ).toContain(" ASC LIMIT ");
     });
 
     /*
-     * The bound admits every row that can reach position skip + limit. A
-     * short inner LIMIT would cut the page off; a long one wastes the read.
+     * The narrow read keeps skip + limit values: fewer would cut the page
+     * off, more would waste the read.
      */
-    test("the inner LIMIT is skip + limit", () => {
-      expect(paramValues(runFind({ limit: 50, skip: 100 }))).toContain(150);
-      expect(paramValues(runFind({ limit: 100, skip: 0 }))).toContain(100);
-      expect(paramValues(runFind({ limit: 25, skip: 975 }))).toContain(1000);
+    test.each([
+      [50, 0, 50, 1, 0],
+      [100, 0, 100, 1, 0],
+      [50, 100, 150, 101, 100],
+      [25, 975, 1000, 976, 975],
+      [1, 131100, 131101, 131101, 131100],
+    ])(
+      "limit %i, skip %i: reads %i key values, the page from position %i, ties among the first %i",
+      (
+        limit: number,
+        skip: number,
+        read: number,
+        from: number,
+        earlier: number,
+      ) => {
+        const params: Record<string, unknown> = runFind({
+          limit,
+          skip,
+        }).query_params;
+
+        expect(params["p8"]).toBe(read);
+        expect(params["p0"]).toBe(from);
+        expect(params["p1"]).toBe(earlier);
+        expect(params["p2"]).toBe(from);
+        expect(params["p14"]).toBe(limit);
+      },
+    );
+
+    /*
+     * The narrow read reads only the leading key: one narrow column read in
+     * key order is what lets it stop after skip + limit rows.
+     */
+    test("the narrow read selects the leading sort key and nothing else", () => {
+      const clause: string = boundClause(runFind({}));
+
+      expect(clause).toContain(
+        "FROM (SELECT {p4:Identifier} FROM {p5:Identifier}.{p6:Identifier} WHERE",
+      );
+      expect(clause).not.toContain("<select>");
+    });
+
+    // The bound must be worked out over the rows the page filters on.
+    test("the narrow read repeats the caller's WHERE, regenerated rather than shared", () => {
+      const statement: Statement = runFind({});
+
+      expect(count(boundClause(statement), "<where>")).toBe(1);
+      expect(count(pageSelect(statement), "<where>")).toBe(1);
+      expect(service.statementGenerator.toWhereStatement).toHaveBeenCalledTimes(
+        2,
+      );
+    });
+
+    test("both reads leave expired rows out", () => {
+      const retained: AnalyticsDatabaseService<RetainedModel> =
+        new AnalyticsDatabaseService({ modelType: RetainedModel });
+
+      retained.statementGenerator.toSelectStatement = jest.fn(() => {
+        return { statement: SQL`<select>`, columns: ["<column>"] };
+      });
+      retained.statementGenerator.toWhereStatement = jest.fn(() => {
+        return SQL`<where>`;
+      });
+
+      const statement: Statement = retained.toFindStatement({
+        select: {} as GenericObject,
+        query: {} as GenericObject,
+        props: {} as GenericObject,
+        sort: { [TIME_COLUMN]: SortOrder.Descending },
+        limit: 10,
+        skip: 0,
+      } as never).statement;
+
+      expect(hasBound(statement)).toBe(true);
+      expect(
+        count(boundClause(statement), "<where> AND retentionDate >= now()"),
+      ).toBe(1);
+      expect(
+        count(pageSelect(statement), "<where> AND retentionDate >= now()"),
+      ).toBe(1);
+    });
+
+    /*
+     * A set, not a range: a range from the page's last value to the newest
+     * one is what read the time range twice. GLOBAL, because the table is
+     * Distributed: every shard gets the page's values as a table.
+     */
+    test("the wide read takes the rows whose key is one of the page's values, as a set", () => {
+      const select: string = pageSelect(runFind({}));
+
+      expect(select).toContain(
+        " AND {p11:Identifier} GLOBAL IN (SELECT arrayJoin(tupleElement(__sortKeyPage, 1))) ORDER BY ",
+      );
+      expect(select).not.toContain(">=");
+      expect(select).not.toContain("<=");
+      expect(select).not.toContain("min(");
+      expect(select).not.toContain("max(");
+      expect(select).not.toContain("has(");
+    });
+
+    test("the page's values are its own: no min or max of the values is read", () => {
+      const clause: string = boundClause(runFind({}));
+
+      expect(clause).not.toContain("min(");
+      expect(clause).not.toContain("max(");
+      expect(clause).not.toContain("OrNull(");
+    });
+
+    test("the page skips only the earlier pages' ties with its first value", () => {
+      const statement: Statement = runFind({ limit: 50, skip: 100 });
+
+      expect(statement.query).toContain(`LIMIT {p14:Int32} ${PAGE_OFFSET}\n`);
+      // `skip` itself is only the length of the earlier pages' values.
+      expect(
+        Object.entries(statement.query_params).filter(
+          ([, value]: [string, unknown]): boolean => {
+            return value === 100;
+          },
+        ),
+      ).toStrictEqual([["p1", 100]]);
+    });
+
+    /*
+     * ClickHouse types a scalar subquery Nullable, and OFFSET takes no
+     * Nullable type. The default analyzer folds the value anyway; the
+     * older one (enable_analyzer = 0) refuses it on 26.7 with "Illegal
+     * type Nullable(UInt64) of OFFSET expression", which would fail every
+     * list on such a server. ifNull gives it a plain number; the
+     * subquery always answers its one row, so the 0 is never used.
+     */
+    test("the OFFSET is a plain number on either analyzer: the page's ties, never a Nullable", () => {
+      const query: string = runFind({ limit: 50, skip: 100 }).query;
+
+      expect(count(query, " OFFSET ")).toBe(1);
+      expect(query).toContain(
+        ` OFFSET ifNull(tupleElement(${SORT_KEY_PAGE_BOUND_ALIAS}, 2), 0)\n`,
+      );
+      expect(query).not.toContain(
+        ` OFFSET tupleElement(${SORT_KEY_PAGE_BOUND_ALIAS}, 2)`,
+      );
     });
 
     /*
@@ -290,36 +509,43 @@ describe("AnalyticsDatabaseService sort key boundary", () => {
       expect(orderByColumns(statement)).toStrictEqual([TIME_COLUMN, "_id"]);
     });
 
-    test("the bound sits in the WHERE, before the outer ORDER BY", () => {
-      const query: string = runFind({}).query;
+    test("a page sorted by several keys is bounded by the first one and ordered by all of them", () => {
+      const statement: Statement = runFind({
+        sort: {
+          [TIME_COLUMN]: SortOrder.Descending,
+          [SEVERITY_COLUMN]: SortOrder.Ascending,
+        },
+      });
 
-      expect(query.indexOf("(SELECT ")).toBeLessThan(
-        query.lastIndexOf("ORDER BY "),
-      );
+      expect(statement.query_params["p3"]).toBe(TIME_COLUMN);
+      expect(statement.query_params["p11"]).toBe(TIME_COLUMN);
+      expect(orderByColumns(statement)).toStrictEqual([
+        TIME_COLUMN,
+        SEVERITY_COLUMN,
+        "_id",
+      ]);
     });
 
     /*
-     * A find carries exactly one bound. A second nested SELECT would mean
-     * the filter was appended twice and the parameters bound twice.
+     * One WITH clause, named once and used twice: the narrow read runs
+     * once however often the page's parts are read.
      */
-    test("emits exactly one boundary subquery", () => {
+    test("the narrow read is written once, and its name used twice", () => {
       const query: string = runFind({}).query;
 
-      expect(query.split("(SELECT ").length - 1).toBe(2);
-      expect(query.split("min(").length - 1).toBe(1);
-    });
-
-    /* The bound must read the same rows the outer query filters on. */
-    test("the boundary subquery repeats the caller's WHERE", () => {
-      const query: string = runFind({}).query;
-
-      expect(query.split("<where>").length - 1).toBe(2);
+      expect(count(query, "WITH (")).toBe(1);
+      expect(count(query, `) AS ${SORT_KEY_PAGE_BOUND_ALIAS} `)).toBe(1);
+      expect(count(query, `tupleElement(${SORT_KEY_PAGE_BOUND_ALIAS}, `)).toBe(
+        2,
+      );
+      expect(count(query, "groupArray(")).toBe(1);
+      expect(count(query, " GLOBAL IN ")).toBe(1);
     });
 
     test("renders valid parameter placeholders throughout", () => {
       const statement: Statement = runFind({ limit: 50, skip: 100 });
       const placeholders: Array<string> =
-        statement.query.match(/\{p\d+:[A-Za-z0-9]+\}/g) ?? [];
+        statement.query.match(/\{p\d+:[A-Za-z0-9()]+\}/g) ?? [];
 
       expect(placeholders.length).toBeGreaterThan(0);
 
@@ -327,10 +553,20 @@ describe("AnalyticsDatabaseService sort key boundary", () => {
         const name: string = placeholder.slice(1).split(":")[0]!;
         expect(statement.query_params).toHaveProperty(name);
       }
+
+      expect(Object.keys(statement.query_params)).toHaveLength(
+        placeholders.length,
+      );
+    });
+
+    test("the aliases are internal names, not identifiers a caller passes", () => {
+      expect(SORT_KEY_PAGE_BOUND_ALIAS).toBe("__sortKeyPage");
+      expect(SORT_KEY_PAGE_VALUES_ALIAS).toBe("__sortKeyTopValues");
+      expect(paramValues(runFind({}))).not.toContain(SORT_KEY_PAGE_BOUND_ALIAS);
     });
   });
 
-  describe("gates: the bound is withheld when it cannot help or cannot be proven safe", () => {
+  describe("gates: the bound is withheld when it cannot help or cannot be proven exact", () => {
     /*
      * Under GROUP BY the predicate would restrict the aggregation INPUT
      * rather than the page, which WOULD change results.
@@ -340,12 +576,13 @@ describe("AnalyticsDatabaseService sort key boundary", () => {
         groupBy: { [SEVERITY_COLUMN]: true },
       });
 
-      expect(hasBoundary(statement)).toBe(false);
+      expect(hasBound(statement)).toBe(false);
+      expect(statement.query).not.toContain("GLOBAL IN");
     });
 
     /*
-     * A non-required column is Nullable in the DDL, and `k >= NULL` is
-     * NULL — the bound would DROP those rows rather than narrow the scan.
+     * A non-required column is Nullable in the DDL. A NULL is never IN a
+     * set, so the bound would DROP those rows rather than narrow the scan.
      * `endedAt` IS in sortKeys, so only the `required` gate can stop this.
      */
     test("no bound on a nullable leading sort column", () => {
@@ -353,7 +590,7 @@ describe("AnalyticsDatabaseService sort key boundary", () => {
         sort: { [NULLABLE_SORT_COLUMN]: SortOrder.Descending },
       });
 
-      expect(hasBoundary(statement)).toBe(false);
+      expect(hasBound(statement)).toBe(false);
     });
 
     /*
@@ -365,7 +602,18 @@ describe("AnalyticsDatabaseService sort key boundary", () => {
         sort: { [SEVERITY_COLUMN]: SortOrder.Descending },
       });
 
-      expect(hasBoundary(statement)).toBe(false);
+      expect(hasBound(statement)).toBe(false);
+    });
+
+    test("a key column that only trails the sort does not get the bound", () => {
+      const statement: Statement = runFind({
+        sort: {
+          [SEVERITY_COLUMN]: SortOrder.Descending,
+          [TIME_COLUMN]: SortOrder.Descending,
+        },
+      });
+
+      expect(hasBound(statement)).toBe(false);
     });
 
     test("no bound when the model has no _id column to pay for", () => {
@@ -388,7 +636,7 @@ describe("AnalyticsDatabaseService sort key boundary", () => {
         skip: 0,
       } as never);
 
-      expect(hasBoundary(statement)).toBe(false);
+      expect(hasBound(statement)).toBe(false);
     });
 
     /*
@@ -401,242 +649,591 @@ describe("AnalyticsDatabaseService sort key boundary", () => {
         query: { _id: "<some-id>" } as GenericObject,
       });
 
-      expect(hasBoundary(statement)).toBe(false);
+      expect(hasBound(statement)).toBe(false);
     });
 
     test("no bound on an empty sort", () => {
       const statement: Statement = runFind({ sort: {} as GenericObject });
 
-      expect(hasBoundary(statement)).toBe(false);
+      expect(hasBound(statement)).toBe(false);
     });
 
     /*
-     * The predicate is valid only BECAUSE of LIMIT/OFFSET. A non-finite
-     * bound would admit an unbounded set, so fail back to today's SQL.
+     * The bound is built from LIMIT and OFFSET themselves. A page that is
+     * not a whole number of rows from a whole offset is sent as written.
      */
     test.each([
       ["NaN limit", NaN, 0],
       ["NaN skip", 50, NaN],
       ["undefined limit", undefined, 0],
+      ["undefined skip", 50, undefined],
       ["Infinity limit", Infinity, 0],
       ["zero limit with zero skip", 0, 0],
+      ["zero limit past a skip", 0, 100],
       ["negative limit", -10, 0],
+      ["negative limit that a skip would make positive", -10, 100],
+      ["negative skip", 50, -1],
+      ["fractional limit", 10.5, 0],
+      ["fractional skip", 10, 2.5],
+      ["a limit past the safe integers", 2 ** 53, 0],
     ])("no bound for %s", (_label: string, limit: unknown, skip: unknown) => {
-      expect(hasBoundary(runFind({ limit, skip }))).toBe(false);
+      expect(hasBound(runFind({ limit, skip }))).toBe(false);
+    });
+
+    test("a first page of one row is bounded", () => {
+      expect(hasBound(runFind({ limit: 1, skip: 0 }))).toBe(true);
     });
 
     /*
-     * Every gate returns today's statement verbatim, so a withheld bound is
-     * indistinguishable from the pre-fix SQL.
+     * Every gate returns the statement as it was before the bound existed,
+     * byte for byte: no WITH clause, the caller's OFFSET.
      */
     test("a withheld bound leaves the statement byte-identical to the unbounded form", () => {
-      const bounded: Statement = runFind({
-        sort: { [TIME_COLUMN]: SortOrder.Descending },
-      });
       const withheld: Statement = runFind({
         sort: { [SEVERITY_COLUMN]: SortOrder.Descending },
+        limit: 50,
+        skip: 100,
       });
 
-      expect(hasBoundary(bounded)).toBe(true);
-      expect(withheld.query).not.toContain("(SELECT ");
-      expect(withheld.query).toContain("ORDER BY ");
-      expect(orderByColumns(withheld)).toStrictEqual([SEVERITY_COLUMN, "_id"]);
+      expect(withheld.query).toBe(
+        "SELECT <select> FROM {p0:Identifier}.{p1:Identifier} WHERE TRUE <where> ORDER BY {p2:Identifier} DESC, {p3:Identifier} DESC LIMIT {p4:Int32} OFFSET {p5:Int32}\n" +
+          SETTINGS,
+      );
+      expect(withheld.query_params).toStrictEqual({
+        p0: "oneuptime",
+        p1: "<log-like-table>",
+        p2: SEVERITY_COLUMN,
+        p3: "_id",
+        p4: 50,
+        p5: 100,
+      });
+    });
+
+    test("a withheld bound calls the WHERE generator once", () => {
+      runFind({ groupBy: { [SEVERITY_COLUMN]: true } });
+
+      expect(service.statementGenerator.toWhereStatement).toHaveBeenCalledTimes(
+        1,
+      );
     });
   });
 
   /*
-   * The bound is a rank statistic over the leading key's MULTISET, so it
-   * cannot depend on tie order and cannot exclude a row the unbounded query
-   * would have returned. These tests model that directly: they page a fixed
-   * dataset with and without the bound, under adversarial tie orderings,
-   * and require the pages to match exactly.
+   * The page the bound finds is the unbounded page. Modelled in the SQL's
+   * own terms — what each function of the statement does — and compared
+   * with the unbounded page over seeded datasets heavy with ties, both
+   * directions, one and two sort keys, and every offset up to past the end.
    *
-   * Mirrors the "page boundary behaviour" suite in
-   * AnalyticsDatabasePaginationStability.test.ts, which models the engine's
-   * freedom to reorder ties rather than asserting SQL text.
+   * What the engine is free to do is modelled too: the narrow read's LIMIT
+   * keeps whichever of several tied rows it meets first, so each read
+   * shuffles the rows before sorting them by the key alone.
    */
-  describe("result preservation", () => {
-    type Row = { time: number; _id: string };
+  describe("the page the bound finds is the unbounded page", () => {
+    interface Row {
+      key: number;
+      second: number;
+      _id: string;
+      matches: boolean;
+    }
 
-    /* 12 rows over 3 timestamps, 4 tied on each. */
-    const ROWS: Array<Row> = [
-      { time: 300, _id: "a1" },
-      { time: 300, _id: "a2" },
-      { time: 300, _id: "a3" },
-      { time: 300, _id: "a4" },
-      { time: 200, _id: "b1" },
-      { time: 200, _id: "b2" },
-      { time: 200, _id: "b3" },
-      { time: 200, _id: "b4" },
-      { time: 100, _id: "c1" },
-      { time: 100, _id: "c2" },
-      { time: 100, _id: "c3" },
-      { time: 100, _id: "c4" },
+    interface Sorting {
+      key: SortOrder;
+      // A second sort key between the leading key and the tiebreaker.
+      second?: SortOrder | undefined;
+    }
+
+    const sign: (order: SortOrder) => number = (order: SortOrder): number => {
+      return order === SortOrder.Ascending ? 1 : -1;
+    };
+
+    // ORDER BY key, [second,] _id — the tiebreaker follows the last key.
+    const totalOrder: (
+      sorting: Sorting,
+    ) => (left: Row, right: Row) => number = (sorting: Sorting) => {
+      const tiebreak: SortOrder = sorting.second ?? sorting.key;
+
+      return (left: Row, right: Row): number => {
+        return (
+          sign(sorting.key) * (left.key - right.key) ||
+          (sorting.second
+            ? sign(sorting.second) * (left.second - right.second)
+            : 0) ||
+          sign(tiebreak) * left._id.localeCompare(right._id)
+        );
+      };
+    };
+
+    const shuffled: (rows: Array<Row>, random: SeededRandom) => Array<Row> = (
+      rows: Array<Row>,
+      random: SeededRandom,
+    ): Array<Row> => {
+      const out: Array<Row> = [...rows];
+
+      for (let index: number = out.length - 1; index > 0; index--) {
+        const other: number = random(index + 1);
+        [out[index], out[other]] = [out[other]!, out[index]!];
+      }
+
+      return out;
+    };
+
+    // The find as it was sent before the bound: sort everything, then slice.
+    const unboundedPage: (
+      rows: Array<Row>,
+      sorting: Sorting,
+      skip: number,
+      limit: number,
+    ) => Array<string> = (
+      rows: Array<Row>,
+      sorting: Sorting,
+      skip: number,
+      limit: number,
+    ): Array<string> => {
+      return rows
+        .filter((row: Row): boolean => {
+          return row.matches;
+        })
+        .sort(totalOrder(sorting))
+        .slice(skip, skip + limit)
+        .map((row: Row): string => {
+          return row._id;
+        });
+    };
+
+    // ClickHouse's 1-based array functions, as the statement calls them.
+    const arraySlice: (
+      values: Array<number>,
+      offset: number,
+      length?: number,
+    ) => Array<number> = (
+      values: Array<number>,
+      offset: number,
+      length?: number,
+    ): Array<number> => {
+      return length === undefined
+        ? values.slice(offset - 1)
+        : values.slice(offset - 1, offset - 1 + length);
+    };
+
+    // Out of range, arrayElement is the type's default: 0 here, 1970 for a time.
+    const arrayElement: (values: Array<number>, index: number) => number = (
+      values: Array<number>,
+      index: number,
+    ): number => {
+      return values[index - 1] ?? 0;
+    };
+
+    const countEqual: (values: Array<number>, value: number) => number = (
+      values: Array<number>,
+      value: number,
+    ): number => {
+      return values.filter((each: number): boolean => {
+        return each === value;
+      }).length;
+    };
+
+    interface PageBound {
+      values: Array<number>;
+      offset: number;
+    }
+
+    /*
+     * The WITH clause: the first skip + limit key values in key order —
+     * whichever tied rows the read met first — sorted, then the page's own
+     * values and the count of earlier-page ties with its first value.
+     */
+    const pageBound: (
+      rows: Array<Row>,
+      sorting: Sorting,
+      skip: number,
+      limit: number,
+      random: SeededRandom,
+    ) => PageBound = (
+      rows: Array<Row>,
+      sorting: Sorting,
+      skip: number,
+      limit: number,
+      random: SeededRandom,
+    ): PageBound => {
+      const narrowRead: Array<number> = shuffled(rows, random)
+        .filter((row: Row): boolean => {
+          return row.matches;
+        })
+        // Array.prototype.sort is stable: ties keep the shuffled order.
+        .sort((left: Row, right: Row): number => {
+          return sign(sorting.key) * (left.key - right.key);
+        })
+        .slice(0, skip + limit)
+        .map((row: Row): number => {
+          return row.key;
+        });
+
+      // arrayReverseSort / arraySort of groupArray(key).
+      const topValues: Array<number> = [...narrowRead].sort(
+        (left: number, right: number): number => {
+          return sign(sorting.key) * (left - right);
+        },
+      );
+
+      return {
+        values: arraySlice(topValues, skip + 1),
+        offset: countEqual(
+          arraySlice(topValues, 1, skip),
+          arrayElement(topValues, skip + 1),
+        ),
+      };
+    };
+
+    // The page's SELECT: key IN the page's values, the total order, LIMIT, OFFSET.
+    const boundedPage: (
+      rows: Array<Row>,
+      sorting: Sorting,
+      skip: number,
+      limit: number,
+      random: SeededRandom,
+    ) => Array<string> = (
+      rows: Array<Row>,
+      sorting: Sorting,
+      skip: number,
+      limit: number,
+      random: SeededRandom,
+    ): Array<string> => {
+      const bound: PageBound = pageBound(rows, sorting, skip, limit, random);
+      const values: Set<number> = new Set(bound.values);
+
+      return shuffled(rows, random)
+        .filter((row: Row): boolean => {
+          return row.matches && values.has(row.key);
+        })
+        .sort(totalOrder(sorting))
+        .slice(bound.offset, bound.offset + limit)
+        .map((row: Row): string => {
+          return row._id;
+        });
+    };
+
+    // Rows with keys from a small domain, so ties are everywhere.
+    const dataset: (
+      random: SeededRandom,
+      size: number,
+      keys: number,
+      matchOneIn: number,
+    ) => Array<Row> = (
+      random: SeededRandom,
+      size: number,
+      keys: number,
+      matchOneIn: number,
+    ): Array<Row> => {
+      return Array.from({ length: size }, (_unused: unknown, index: number) => {
+        return {
+          key: 1 + random(keys),
+          second: random(3),
+          // Zero padded, so text order is number order.
+          _id: `row-${String(index).padStart(5, "0")}`,
+          matches: random(matchOneIn) === 0,
+        };
+      });
+    };
+
+    const SORTINGS: Array<[string, Sorting]> = [
+      ["newest first", { key: SortOrder.Descending }],
+      ["oldest first", { key: SortOrder.Ascending }],
+      [
+        "newest first, then a second key ascending",
+        { key: SortOrder.Descending, second: SortOrder.Ascending },
+      ],
+      [
+        "oldest first, then a second key descending",
+        { key: SortOrder.Ascending, second: SortOrder.Descending },
+      ],
     ];
 
-    /*
-     * What the engine is ALLOWED to do: return rows in any order that is
-     * consistent with the requested sort. `tieSeed` picks a different legal
-     * tie ordering per fetch, standing in for part order and thread
-     * scheduling varying between executions.
-     */
-    function scan(rows: Array<Row>, tieSeed: number): Array<Row> {
-      const shuffled: Array<Row> = [...rows];
+    test.each(SORTINGS)(
+      "%s: every page of every size, from every offset, is the unbounded page",
+      (_label: string, sorting: Sorting) => {
+        const random: SeededRandom = seededRandom(4710);
+        let pagesCompared: number = 0;
 
-      /* Rotate within each tie group so the order differs per fetch. */
-      const byTime: Map<number, Array<Row>> = new Map();
-      for (const row of shuffled) {
-        byTime.set(row.time, [...(byTime.get(row.time) ?? []), row]);
-      }
+        for (const [size, keys, matchOneIn] of [
+          [40, 4, 1], // four big tie groups, every row matches
+          [60, 30, 2], // small tie groups, half the rows match
+          [80, 8, 7], // a sparse filter
+          [30, 1, 1], // one tie group holds every row
+          [25, 25, 1], // no ties at all
+          [50, 10, 1000], // almost certainly no match at all
+        ] as Array<[number, number, number]>) {
+          const rows: Array<Row> = dataset(random, size, keys, matchOneIn);
 
-      const out: Array<Row> = [];
-      for (const time of [...byTime.keys()].sort((a: number, b: number) => {
-        return b - a;
-      })) {
-        const group: Array<Row> = byTime.get(time)!;
-        const offset: number = tieSeed % group.length;
-        out.push(...group.slice(offset), ...group.slice(0, offset));
-      }
-      return out;
-    }
+          for (const limit of [1, 2, 3, 5, 7, 13, 50]) {
+            for (let skip: number = 0; skip <= size + limit; skip++) {
+              expect([
+                size,
+                keys,
+                limit,
+                skip,
+                boundedPage(rows, sorting, skip, limit, random),
+              ]).toEqual([
+                size,
+                keys,
+                limit,
+                skip,
+                unboundedPage(rows, sorting, skip, limit),
+              ]);
+              pagesCompared++;
+            }
+          }
+        }
 
-    /* ORDER BY time DESC, _id DESC — a total order, tie-seed independent. */
-    function sortTotal(rows: Array<Row>): Array<Row> {
-      return [...rows].sort((left: Row, right: Row) => {
-        return right.time - left.time || right._id.localeCompare(left._id);
-      });
-    }
+        expect(pagesCompared).toBeGreaterThan(1500);
+      },
+    );
 
-    /* Today's SQL: sort everything the WHERE matched, then slice. */
-    function unboundedPage(
-      skip: number,
-      limit: number,
-      tieSeed: number,
-    ): Array<Row> {
-      return sortTotal(scan(ROWS, tieSeed)).slice(skip, skip + limit);
-    }
+    test.each(SORTINGS)(
+      "%s: paging through the whole result returns every matching row exactly once",
+      (_label: string, sorting: Sorting) => {
+        const random: SeededRandom = seededRandom(14710);
 
-    /*
-     * The fix: min(time) over the top skip+limit rows by time DESC, admit
-     * every row at or after it, then apply the same total order and slice.
-     */
-    function boundedPage(
-      skip: number,
-      limit: number,
-      tieSeed: number,
-    ): Array<Row> {
-      const scanned: Array<Row> = scan(ROWS, tieSeed);
-      const topN: Array<Row> = scanned.slice(0, skip + limit);
+        for (let round: number = 0; round < 20; round++) {
+          const rows: Array<Row> = dataset(
+            random,
+            120,
+            1 + random(12),
+            1 + random(4),
+          );
+          const limit: number = 1 + random(17);
+          const seen: Array<string> = [];
 
-      if (topN.length === 0) {
-        return [];
-      }
+          for (let skip: number = 0; ; skip += limit) {
+            const page: Array<string> = boundedPage(
+              rows,
+              sorting,
+              skip,
+              limit,
+              random,
+            );
 
-      const boundary: number = Math.min(
-        ...topN.map((row: Row): number => {
-          return row.time;
-        }),
-      );
+            if (page.length === 0) {
+              break;
+            }
 
-      const admitted: Array<Row> = scanned.filter((row: Row): boolean => {
-        return row.time >= boundary;
-      });
+            seen.push(...page);
+          }
 
-      return sortTotal(admitted).slice(skip, skip + limit);
-    }
-
-    test("the bound admits every row tied at the boundary value", () => {
-      /* Top 2 rows by time DESC both sit at 300; the bound is 300. */
-      const scanned: Array<Row> = scan(ROWS, 0);
-      const boundary: number = Math.min(
-        ...scanned.slice(0, 2).map((row: Row): number => {
-          return row.time;
-        }),
-      );
-
-      const admitted: Array<Row> = scanned.filter((row: Row): boolean => {
-        return row.time >= boundary;
-      });
-
-      /* All FOUR rows at t=300 survive, not just the two that were scanned. */
-      expect(admitted).toHaveLength(4);
-      expect(
-        admitted
-          .map((row: Row): string => {
-            return row._id;
-          })
-          .sort(),
-      ).toStrictEqual(["a1", "a2", "a3", "a4"]);
-    });
-
-    test.each([
-      [0, 5],
-      [5, 5],
-      [10, 5],
-      [0, 1],
-      [3, 4],
-      [11, 1],
-    ])(
-      "bounded and unbounded pages are identical (skip %i, limit %i)",
-      (skip: number, limit: number) => {
-        for (let tieSeed: number = 0; tieSeed < 4; tieSeed++) {
-          expect(boundedPage(skip, limit, tieSeed)).toStrictEqual(
-            unboundedPage(skip, limit, tieSeed),
+          expect(seen).toStrictEqual(
+            unboundedPage(rows, sorting, 0, rows.length),
           );
         }
       },
     );
 
-    test("paging the whole set with the bound returns every row exactly once", () => {
-      const seen: Array<string> = [];
-
-      for (let page: number = 0; page < 3; page++) {
-        /* A different tie ordering per fetch, as the engine may do. */
-        const rows: Array<Row> = boundedPage(page * 5, 5, page + 1);
-        seen.push(
-          ...rows.map((row: Row): string => {
-            return row._id;
-          }),
-        );
-      }
-
-      expect(seen).toHaveLength(12);
-      expect(new Set(seen).size).toBe(12);
-    });
-
     /*
-     * The final page matches fewer rows than skip + limit. This is why the
-     * bound is min() over a subquery rather than the N-th value directly:
-     * `ORDER BY time DESC LIMIT 1 OFFSET n-1` returns no row here, the
-     * scalar is NULL, `time >= NULL` is NULL, and the page comes back empty.
+     * Ties straddling a page boundary: the rows tied with the page's first
+     * value that belong to earlier pages are skipped, and only those.
      */
-    test("a final page shorter than skip + limit is not truncated", () => {
-      expect(boundedPage(10, 5, 0)).toStrictEqual(unboundedPage(10, 5, 0));
-      expect(boundedPage(10, 5, 0)).toHaveLength(2);
-    });
+    test("the offset is the number of earlier-page rows tied with the page's first value", () => {
+      // Keys, newest first: 9 9 9 | 9 9 7 | 7 7 7 | 5
+      const rows: Array<Row> = [9, 9, 9, 9, 9, 7, 7, 7, 7, 5].map(
+        (key: number, index: number): Row => {
+          return { key, second: 0, _id: `r${index}`, matches: true };
+        },
+      );
+      const random: SeededRandom = seededRandom(1);
+      const newestFirst: Sorting = { key: SortOrder.Descending };
 
-    test("an offset past the end returns nothing, not a full page", () => {
-      expect(boundedPage(50, 5, 0)).toStrictEqual([]);
-      expect(boundedPage(50, 5, 0)).toStrictEqual(unboundedPage(50, 5, 0));
-    });
-
-    test("the bound never narrows the page when every row ties", () => {
-      const allTied: Array<Row> = ROWS.map((row: Row): Row => {
-        return { time: 500, _id: row._id };
+      expect(pageBound(rows, newestFirst, 0, 3, random)).toStrictEqual({
+        values: [9, 9, 9],
+        offset: 0,
       });
+      expect(pageBound(rows, newestFirst, 3, 3, random)).toStrictEqual({
+        values: [9, 9, 7],
+        offset: 3,
+      });
+      expect(pageBound(rows, newestFirst, 6, 3, random)).toStrictEqual({
+        values: [7, 7, 7],
+        offset: 1,
+      });
+      expect(pageBound(rows, newestFirst, 9, 3, random)).toStrictEqual({
+        values: [5],
+        offset: 0,
+      });
+    });
 
-      const scanned: Array<Row> = [...allTied];
-      const boundary: number = Math.min(
-        ...scanned.slice(0, 5).map((row: Row): number => {
-          return row.time;
-        }),
+    test("a page past the last match has no values, so the wide read admits no row", () => {
+      const rows: Array<Row> = [3, 2, 1].map(
+        (key: number, index: number): Row => {
+          return { key, second: 0, _id: `r${index}`, matches: true };
+        },
       );
 
       expect(
-        scanned.filter((row: Row): boolean => {
-          return row.time >= boundary;
+        pageBound(rows, { key: SortOrder.Descending }, 3, 2, seededRandom(2)),
+      ).toStrictEqual({ values: [], offset: 0 });
+      expect(
+        pageBound(rows, { key: SortOrder.Descending }, 10, 2, seededRandom(2)),
+      ).toStrictEqual({ values: [], offset: 0 });
+    });
+
+    test("no match at all gives no values: the column default is never a value", () => {
+      const rows: Array<Row> = [0, 0, 4].map(
+        (key: number, index: number): Row => {
+          return { key, second: 0, _id: `r${index}`, matches: false };
+        },
+      );
+
+      // A real key equal to the type default (0 / 1970) changes nothing.
+      expect(
+        pageBound(rows, { key: SortOrder.Descending }, 0, 5, seededRandom(3)),
+      ).toStrictEqual({ values: [], offset: 0 });
+      expect(
+        boundedPage(rows, { key: SortOrder.Ascending }, 0, 5, seededRandom(3)),
+      ).toStrictEqual([]);
+    });
+  });
+
+  /*
+   * What the wide read touches, on a table laid out in key order in
+   * granules: the unbounded find reads every granule of the range; the
+   * range bound of before #4710 read every granule from min(top values)
+   * to the newest; the page bound reads the granules holding the page's
+   * values. Counted here on a model of the layout; the real-ClickHouse
+   * suite counts the marks ClickHouse selects.
+   */
+  describe("what the wide read touches", () => {
+    const GRANULE_ROWS: number = 8;
+
+    interface Laid {
+      key: number;
+      matches: boolean;
+      granule: number;
+    }
+
+    // 64 granules of 8 rows, one key value per row, oldest first on disk.
+    const layout: (matches: (index: number) => boolean) => Array<Laid> = (
+      matches: (index: number) => boolean,
+    ): Array<Laid> => {
+      return Array.from(
+        { length: 64 * GRANULE_ROWS },
+        (_unused: unknown, index: number) => {
+          return {
+            key: index,
+            matches: matches(index),
+            granule: Math.floor(index / GRANULE_ROWS),
+          };
+        },
+      );
+    };
+
+    // The first skip + limit matching key values, newest first.
+    const topValues: (rows: Array<Laid>, n: number) => Array<number> = (
+      rows: Array<Laid>,
+      n: number,
+    ): Array<number> => {
+      return rows
+        .filter((row: Laid): boolean => {
+          return row.matches;
+        })
+        .map((row: Laid): number => {
+          return row.key;
+        })
+        .sort((left: number, right: number): number => {
+          return right - left;
+        })
+        .slice(0, n);
+    };
+
+    const granulesWhere: (
+      rows: Array<Laid>,
+      admit: (row: Laid) => boolean,
+    ) => number = (
+      rows: Array<Laid>,
+      admit: (row: Laid) => boolean,
+    ): number => {
+      return new Set(
+        rows.filter(admit).map((row: Laid): number => {
+          return row.granule;
         }),
-      ).toHaveLength(12);
+      ).size;
+    };
+
+    // Before #4710: key >= min(top values) — and min() of nothing is 0.
+    const rangeBoundGranules: (
+      rows: Array<Laid>,
+      skip: number,
+      limit: number,
+    ) => number = (rows: Array<Laid>, skip: number, limit: number): number => {
+      const top: Array<number> = topValues(rows, skip + limit);
+      const lowest: number = top.length === 0 ? 0 : Math.min(...top);
+
+      return granulesWhere(rows, (row: Laid): boolean => {
+        return row.key >= lowest;
+      });
+    };
+
+    // Now: key IN the page's values.
+    const pageBoundGranules: (
+      rows: Array<Laid>,
+      skip: number,
+      limit: number,
+    ) => number = (rows: Array<Laid>, skip: number, limit: number): number => {
+      const values: Set<number> = new Set(
+        topValues(rows, skip + limit).slice(skip),
+      );
+
+      return granulesWhere(rows, (row: Laid): boolean => {
+        return values.has(row.key);
+      });
+    };
+
+    const ALL_GRANULES: number = 64;
+
+    test("no match: the range bound read every granule again, the page bound reads none", () => {
+      const rows: Array<Laid> = layout((): boolean => {
+        return false;
+      });
+
+      expect(rangeBoundGranules(rows, 0, 100)).toBe(ALL_GRANULES);
+      expect(pageBoundGranules(rows, 0, 100)).toBe(0);
+    });
+
+    test("a few matches spread over the range: the page bound reads only the granules holding them", () => {
+      // One match in every eighth granule.
+      const rows: Array<Laid> = layout((index: number): boolean => {
+        return index % (8 * GRANULE_ROWS) === 3;
+      });
+
+      expect(rangeBoundGranules(rows, 0, 100)).toBe(ALL_GRANULES);
+      expect(pageBoundGranules(rows, 0, 100)).toBe(8);
+    });
+
+    test("a page past the last match: the page bound reads no granule", () => {
+      const rows: Array<Laid> = layout((index: number): boolean => {
+        return index % 50 === 0;
+      });
+
+      expect(rangeBoundGranules(rows, 1000, 100)).toBeGreaterThan(
+        ALL_GRANULES / 2,
+      );
+      expect(pageBoundGranules(rows, 1000, 100)).toBe(0);
+    });
+
+    test("a deep page of a moderately sparse filter: the page bound reads the page's granules, not the pages before it", () => {
+      // One match in every second granule; page 4 of 5 rows each.
+      const rows: Array<Laid> = layout((index: number): boolean => {
+        return index % (2 * GRANULE_ROWS) === 0;
+      });
+
+      expect(rangeBoundGranules(rows, 15, 5)).toBe(40);
+      expect(pageBoundGranules(rows, 15, 5)).toBe(5);
+    });
+
+    test("every row matches: both read the newest granules only — the saving the bound exists for", () => {
+      const rows: Array<Laid> = layout((): boolean => {
+        return true;
+      });
+
+      expect(rangeBoundGranules(rows, 0, 20)).toBe(3);
+      expect(pageBoundGranules(rows, 0, 20)).toBe(3);
+      expect(pageBoundGranules(rows, 40, 20)).toBe(3);
     });
   });
 });

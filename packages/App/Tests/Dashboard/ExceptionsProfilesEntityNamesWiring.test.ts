@@ -161,8 +161,12 @@ describe("ExceptionsViewer names every entity chip", () => {
   });
 
   test("the ids cover the page scope, the host's stored scope and the user's chips", () => {
+    // The page's id, read by value (issue #4709).
     expect(EXCEPTIONS_VIEWER).toContain(
-      "const scopeEntityId: string | undefined = props.primaryEntityId?.toString();",
+      "const primaryEntityId: ObjectID | undefined = useStableValue( props.primaryEntityId, );",
+    );
+    expect(EXCEPTIONS_VIEWER).toContain(
+      "const scopeEntityId: string | undefined = primaryEntityId?.toString();",
     );
     expect(EXCEPTIONS_VIEWER).toContain(
       "[...hostScope.chips, ...activeFilters]",
@@ -237,7 +241,7 @@ describe("ExceptionsViewer names every entity chip", () => {
     expect(memoDeps).not.toBeNull();
     const deps: string = memoDeps![1]!;
     for (const dep of [
-      "props.primaryEntityId",
+      "primaryEntityId",
       "props.scopeEntityType",
       "hostScope",
       "activeFilters",
@@ -267,14 +271,12 @@ describe("ExceptionsViewer names every entity chip", () => {
   });
 
   test("filtering still uses the raw id", () => {
+    expect(EXCEPTIONS_VIEWER).toContain("q.primaryEntityId = primaryEntityId;");
     expect(EXCEPTIONS_VIEWER).toContain(
-      "q.primaryEntityId = props.primaryEntityId;",
+      "histogramResourceIds.push(primaryEntityId.toString());",
     );
     expect(EXCEPTIONS_VIEWER).toContain(
-      "histogramResourceIds.push(props.primaryEntityId.toString());",
-    );
-    expect(EXCEPTIONS_VIEWER).toContain(
-      "facetResourceIds.push(props.primaryEntityId.toString());",
+      "facetResourceIds.push(primaryEntityId.toString());",
     );
     expect(EXCEPTIONS_VIEWER).toContain("return [f.facetKey, f.value];");
   });

@@ -186,30 +186,41 @@ describe("the initial saved view no longer clobbers a deep link", () => {
      * silently re-window and re-filter a panel the user opened to see that
      * service's logs. `!syncUrlState` is this viewer's marker for embedded,
      * and it is the same line the Traces and Metrics explorers already draw
-     * with enableSavedViews.
+     * with enableSavedViews. One flag, computed once and read both by the
+     * resolver and by the wait for the saved views before the first reads
+     * (issue #4709), so an embed neither applies a default view nor waits
+     * for one.
      */
     const source: string = readSquashed("Components/Logs/LogsViewer.tsx");
 
     expect(source).toContain(
-      "hostOwnsView: Boolean( pinnedTimeRange || props.timeRangeOverride || !props.syncUrlState, )",
+      "const hostOwnsView: boolean = Boolean( pinnedTimeRange || props.timeRangeOverride || !props.syncUrlState, );",
     );
+    expect(source).toContain("hostOwnsView: hostOwnsView, });");
+    expect(source).toContain("mayApplyInitialSavedView({");
   });
 
   test("a URL-named view is applied under the scope the same URL carries", () => {
     /*
      * The trip back from Insights says "the DV-IMS view, but with the window
      * and services I ended up on". The URL is the more recent statement, so
-     * it wins over the view's own window and chips — while the view still
-     * supplies the columns, sort and page size the URL does not carry.
+     * it wins over the view's own window and chips, and its page (a reload
+     * of a view's page 3 opens page 3, issue #4709) — while the view still
+     * supplies the columns, the sort, and the page size unless the URL named
+     * one.
      */
     const source: string = readSquashed("Components/Logs/LogsViewer.tsx");
 
     expect(source).toContain(
-      'resolution.source === "url" && initialUrlState?.hasScope',
+      'resolution.source === "url" && initialUrlState ? {',
     );
     expect(source).toContain("overrideTimeRange: initialUrlState.hasRange");
     expect(source).toContain(
       "overrideFacetFilters: initialUrlState.hasFilters",
+    );
+    expect(source).toContain("overridePage: initialUrlState.page,");
+    expect(source).toContain(
+      "overridePageSize: initialUrlState.hasPageSize ? initialUrlState.pageSize : undefined,",
     );
   });
 

@@ -1,4 +1,5 @@
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ARCHIVE_INSTEAD_OF_DELETE } from "../Archive/ResourceArchiveCopy";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import InventoryItemCustomField from "Common/Models/DatabaseModels/InventoryItemCustomField";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -293,7 +294,11 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
          * Hosts: the row action opens the item, while changes and destructive
          * operations live in the item's own pages with their full context.
          */
-        isDeleteable={false}
+        isDeleteable={true}
+        // An archived item is off the main list already.
+        deleteConfirmationWarning={
+          isArchivedView ? undefined : ARCHIVE_INSTEAD_OF_DELETE
+        }
         isEditable={false}
         isCreateable={!isArchivedView}
         isViewable={true}

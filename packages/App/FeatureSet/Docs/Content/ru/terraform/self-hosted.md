@@ -1,73 +1,125 @@
-# Self-Hosted Setup
+# Настройка собственного хостинга
 
-Everything specific to using the Terraform provider against a self-hosted OneUptime installation: pointing the provider at your instance, choosing the right provider version, mirroring the provider for air-gapped networks, and TLS.
+Провайдер работает с вашим собственным OneUptime так же, как с OneUptime Cloud: те же ресурсы, те же атрибуты и те же API-ключи проекта. Что задаёте вы: адрес вашего OneUptime, подходящую ему версию провайдера и, там, где они нужны, зеркало для машин без доступа к интернету и доверие к частному центру сертификации.
 
-The provider itself is identical for cloud and self-hosted — same resources, same attributes. Only the URL and the version-selection rule differ.
+:::cards
+- [Направьте провайдер на ваш OneUptime](#направьте-провайдер-на-ваш-oneuptime): Его адрес и API-ключ вашего проекта.
+- [Выберите версию провайдера](#выберите-версию-провайдера): Самый новый провайдер, который не новее вашего OneUptime.
+- [Без доступа к интернету](#без-доступа-к-интернету): Сделайте зеркало провайдера в своей сети.
+- [TLS и сертификаты](#tls-и-сертификаты): Частный центр сертификации, прокси и обычный HTTP.
+:::
 
-## Point the provider at your instance
+```mermaid title="Terraform и ваш собственный OneUptime"
+flowchart TB
+    R["Terraform Registry,<br/>OpenTofu Registry<br/>или ваше зеркало"] -->|"terraform init"| T["Terraform или OpenTofu"]
+    T --> P["Провайдер OneUptime,<br/>не новее<br/>вашего OneUptime"]
+    P -->|"HTTPS, с API-ключом<br/>вашего проекта"| O["Ваш OneUptime:<br/>его адрес, затем /api"]
+```
 
-Set `oneuptime_url` to your instance's origin — scheme and host only, no `/api` suffix, no path:
+## Направьте провайдер на ваш OneUptime
 
-```hcl
+Задайте в `oneuptime_url` адрес, по которому вы открываете панель управления: схему и хост, без пути. Провайдер добавляет `https://`, когда у адреса нет схемы, и `/api` в конце, поэтому `https://oneuptime.example.com` отправляет каждый запрос на `https://oneuptime.example.com/api`.
+
+```hcl title="main.tf"
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "{{TERRAFORM_PROVIDER_VERSION}}"
+      version = "{{TERRAFORM_PROVIDER_MATCHING}}"
     }
   }
 }
 
 provider "oneuptime" {
   oneuptime_url = "https://oneuptime.example.com"
-  # api_key from ONEUPTIME_API_KEY, or set explicitly:
-  # api_key = var.oneuptime_api_key
+  # The API key comes from the ONEUPTIME_API_KEY environment variable.
 }
 ```
 
-Both settings are also available as environment variables, which keeps configuration portable between cloud and self-hosted roots:
+Адрес может приходить и из переменной окружения `ONEUPTIME_URL`, чтобы одна конфигурация могла указывать на несколько установок:
 
 ```bash
 export ONEUPTIME_URL="https://oneuptime.example.com"
-export ONEUPTIME_API_KEY="your-project-api-key"
+export ONEUPTIME_API_KEY="<your-api-key>"
 ```
 
-The API key is a **project API key** created in your instance's dashboard under **Настройки проекта > Ключи API** — exactly as on cloud. Self-hosted master keys do not work and fail with `ProjectId required` (see [Troubleshooting](/docs/terraform/troubleshooting)).
+Адрес – это хост, на котором обслуживается ваша установка: `HOST` и `HTTP_PROTOCOL` в `config.env` с Docker Compose и `host` и `httpProtocol` в values чарта Helm.
 
-## Choosing a provider version
+Ключ – это API-ключ проекта, которым вы управляете, созданный в панели управления вашего OneUptime в **Настройки проекта → Расширенный → Ключи API**, как в OneUptime Cloud. Мастер-ключ API OneUptime с собственным хостингом не принадлежит ни одному проекту, поэтому создание с ним завершается ошибкой `ProjectId required`.
 
-Provider versions track OneUptime platform versions. The rule for self-hosted:
+> [!TIP]
+> Ваш OneUptime пишет этот блок за вас. Откройте любой ресурс или список в панели управления, затем **Для разработчиков** и **Terraform** в его боковом меню: показанный там блок провайдера содержит адрес вашего OneUptime и подходящий ему диапазон версий.
 
-> Use the **newest published provider version that is less than or equal to your OneUptime platform version.**
+## Выберите версию провайдера
 
-- Never use a provider *newer* than your platform — it may drive API fields your installation does not have yet.
-- Do **not** pin an exact patch version. Not every platform patch is published to the registry, so `= {{TERRAFORM_PROVIDER_MAJOR}}.0.7`-style pins routinely fail with `no matching version found`.
+Используйте самый новый опубликованный провайдер, который не новее вашего OneUptime. Версии провайдера следуют версиям OneUptime: релиз OneUptime, который меняет провайдер, публикует его под собственным номером версии, а провайдер новее вашего OneUptime может отправлять настройки, которых у вашего OneUptime ещё нет.
 
-Express the rule as a bounded constraint. For example, if your installation runs platform release `{{TERRAFORM_PROVIDER_MAJOR}}.2.x`:
+Поэтому пишите диапазон, который заканчивается версией вашего OneUptime, как это делает панель управления. Блок выше использует `{{TERRAFORM_PROVIDER_MATCHING}}`, диапазон для того OneUptime, с которого взята эта документация: когда вы читаете её на своём OneUptime, этот диапазон – ваш. Иначе впишите свою версию:
 
-```hcl
-version = ">= {{TERRAFORM_PROVIDER_MAJOR}}.0, <= {{TERRAFORM_PROVIDER_MAJOR}}.2"
-```
+:::steps
+### Узнайте версию вашего OneUptime
 
-Terraform then selects the newest published {{TERRAFORM_PROVIDER_MAJOR}}.x release that does not exceed {{TERRAFORM_PROVIDER_MAJOR}}.2 — automatically skipping any unpublished patches. If you track platform majors loosely and stay reasonably current, `{{TERRAFORM_PROVIDER_VERSION}}` is fine too.
-
-Find your platform version in the OneUptime admin dashboard or from your Helm/Docker Compose deployment values. Published provider versions are listed at [registry.terraform.io/providers/oneuptime/oneuptime/versions](https://registry.terraform.io/providers/oneuptime/oneuptime/versions).
-
-**Upgrade order:** upgrade the OneUptime platform first, then raise the provider constraint and run `terraform init -upgrade`.
-
-## Air-gapped installations: mirroring the provider
-
-If the hosts running Terraform cannot reach `registry.terraform.io`, mirror the provider into your network. On a machine with internet access:
+Спросите её у вашего OneUptime:
 
 ```bash
-mkdir -p /srv/terraform-mirror
-cd /path/to/your/terraform/config   # a directory whose required_providers includes oneuptime
-terraform providers mirror /srv/terraform-mirror
+curl https://oneuptime.example.com/version
 ```
 
-This downloads the provider releases matching your constraints, for all platforms, into a directory layout Terraform understands. Transfer the directory inside, serve it (plain HTTPS file server) or share it as a filesystem path, and point Terraform at it in the CLI configuration (`~/.terraformrc`):
+Ответ – JSON вида `{"version":"{{TERRAFORM_PROVIDER_MAJOR}}.0.40","commit":"..."}`. Как главный администратор вы также можете открыть метку редакции в заголовке панели администратора: см. [Узнайте свою текущую версию](/docs/installation/upgrading#узнайте-свою-текущую-версию).
 
-```hcl
+### Впишите её в диапазон
+
+Диапазон начинается с основной версии и заканчивается вашей. Для OneUptime {{TERRAFORM_PROVIDER_MAJOR}}.0.40:
+
+```hcl title="main.tf"
+terraform {
+  required_providers {
+    oneuptime = {
+      source  = "oneuptime/oneuptime"
+      version = ">= {{TERRAFORM_PROVIDER_MAJOR}}.0, <= {{TERRAFORM_PROVIDER_MAJOR}}.0.40"
+    }
+  }
+}
+```
+
+Terraform берёт самый новый провайдер из диапазона. Релиз OneUptime, который не менял провайдер, его не публикует, и диапазон пропускает версии, которых не существует.
+
+### Скачайте провайдер
+
+Выполните `terraform init`. Он выводит установленную версию и записывает её в `.terraform.lock.hcl`.
+:::
+
+При обновлении сначала обновите OneUptime. Затем поднимите конец диапазона до его новой версии и выполните `terraform init -upgrade`.
+
+## Без доступа к интернету
+
+Когда машины, на которых работает Terraform, не могут достучаться до реестра, один раз скопируйте провайдер в свою сеть и направьте Terraform на копию.
+
+:::steps
+### Сделайте зеркало провайдера
+
+На машине с доступом к интернету, в папке с вашей конфигурацией, скачайте провайдер для каждой платформы, на которой работают ваши машины. Без `-platform` команда скачивает провайдер только для своей платформы:
+
+:::tabs
+@tab Terraform
+```bash
+terraform providers mirror -platform=linux_amd64 -platform=darwin_arm64 /srv/terraform-mirror
+```
+@tab OpenTofu
+```bash
+tofu providers mirror -platform=linux_amd64 -platform=darwin_arm64 /srv/terraform-mirror
+```
+:::
+
+Папка содержит провайдер под адресом реестра, например `registry.terraform.io/oneuptime/oneuptime/`. Скопируйте её в свою сеть.
+
+### Направьте Terraform на зеркало
+
+Напишите файл конфигурации CLI, который устанавливает провайдер OneUptime из папки, а всё остальное как обычно:
+
+:::tabs
+@tab Terraform
+```hcl title="mirror.tfrc"
 provider_installation {
   filesystem_mirror {
     path    = "/srv/terraform-mirror"
@@ -78,18 +130,76 @@ provider_installation {
   }
 }
 ```
+@tab OpenTofu
+```hcl title="mirror.tfrc"
+provider_installation {
+  filesystem_mirror {
+    path    = "/srv/terraform-mirror"
+    include = ["registry.opentofu.org/oneuptime/oneuptime"]
+  }
+  direct {
+    exclude = ["registry.opentofu.org/oneuptime/oneuptime"]
+  }
+}
+```
+:::
 
-`terraform init` now installs the OneUptime provider from the mirror and everything else from wherever it normally would (drop the `direct` block to force mirror-only). Re-run the `mirror` command whenever you raise your version constraint.
+Укажите его в `TF_CLI_CONFIG_FILE`, которую читают и Terraform, и OpenTofu: `export TF_CLI_CONFIG_FILE=/etc/terraform/mirror.tfrc`.
 
-## TLS notes
+### Инициализируйте
 
-- Terraform is a Go program: it validates your instance's certificate against the **system trust store** of the machine running Terraform. If your instance uses a certificate from a private CA, install that CA certificate on every machine (and CI runner) that runs Terraform. On Debian/Ubuntu: copy the CA to `/usr/local/share/ca-certificates/` and run `update-ca-certificates`.
-- There is deliberately no "skip TLS verification" attribute. If you see `x509: certificate signed by unknown authority`, fix trust — don't try to disable it.
-- Plain HTTP works for lab environments (`oneuptime_url = "http://oneuptime.lab.internal"`), but the project API key is sent with every request; use TLS for anything beyond a throwaway lab.
-- If OneUptime sits behind a reverse proxy or ingress, `oneuptime_url` is the *external* origin the proxy exposes. Make sure the proxy forwards all `/api` paths unmodified.
+Выполните `terraform init`: он устанавливает провайдер из зеркала. Он предупреждает, что в файле блокировки теперь есть контрольные суммы только для этой платформы. Чтобы записать их для всех платформ, выполните `terraform providers lock` с теми же параметрами `-platform` на машине с доступом к интернету и закоммитьте `.terraform.lock.hcl` вместе с конфигурацией.
+:::
 
-## Related pages
+Обновляйте зеркало каждый раз, когда поднимаете диапазон версий.
 
-- [Registry Usage](/docs/terraform/registry) — how versions are published, release notes
-- [Troubleshooting](/docs/terraform/troubleshooting) — URL, TLS, and key errors in detail
-- [Quick Start](/docs/terraform/quick-start) — first apply, works identically self-hosted
+## TLS и сертификаты
+
+Провайдер проверяет сертификат вашего OneUptime по хранилищу доверенных сертификатов машины, на которой работает Terraform, и настройки, позволяющей пропустить проверку, нет. Если сертификат выдан частным центром сертификации, добавьте этот центр в хранилище доверенных сертификатов каждой машины и каждого CI-раннера, где работает Terraform:
+
+:::tabs
+@tab Debian / Ubuntu
+```bash
+sudo cp my-ca.crt /usr/local/share/ca-certificates/
+sudo update-ca-certificates
+```
+@tab RHEL / Fedora
+```bash
+sudo cp my-ca.crt /etc/pki/ca-trust/source/anchors/
+sudo update-ca-trust
+```
+:::
+
+В Linux, где менять хранилище доверенных сертификатов нельзя, например в CI-контейнере, задайте `SSL_CERT_FILE` с файлом, в котором есть ваш центр сертификации и публичные центры. В macOS и Windows добавьте центр сертификации в системное хранилище сертификатов.
+
+- **Прокси.** Провайдер отправляет запросы через прокси из `HTTPS_PROXY`, кроме запросов к хостам из `NO_PROXY`. Обратный прокси перед OneUptime должен пропускать без изменений каждый путь `/api` и заголовок `APIKey`.
+- **Обычный HTTP.** Адрес `http://` работает для тестовой установки. API-ключ передаётся с каждым запросом, поэтому для всего остального используйте HTTPS.
+
+## Устранение неполадок
+
+:::details Сообщение «x509: certificate signed by unknown authority»
+Машина, на которой работает Terraform, не доверяет сертификату вашего OneUptime: добавьте свой центр сертификации, как показано в [TLS и сертификаты](#tls-и-сертификаты).
+:::
+
+:::details Сообщение «invalid character '<' looking for beginning of value»
+Вместо API ответила веб-страница: в `oneuptime_url` есть путь, или ответил прокси. Задайте в нём только адрес вашего OneUptime.
+:::
+
+:::details Сообщение «no available releases match the given constraints»
+Ни один опубликованный провайдер не подходит под ограничение версии, например ограничение, которое называет одну версию, так и не опубликованную OneUptime. Напишите диапазон, как показано в [Выберите версию провайдера](#выберите-версию-провайдера).
+:::
+
+:::details Сообщение «ProjectId required»
+Ключ – это мастер-ключ API, который не принадлежит ни одному проекту. Создайте API-ключ проекта в **Настройки проекта → Расширенный → Ключи API**.
+:::
+
+В [Устранение неполадок](/docs/terraform/troubleshooting) собраны остальные ошибки и то, что означает каждая.
+
+## Дальнейшие шаги
+
+:::cards
+- [Быстрый старт](/docs/terraform/quick-start): Создайте API-ключ и примените первые ресурсы.
+- [Использование реестра](/docs/terraform/registry): Где публикуется провайдер и как нумеруются версии.
+- [Устранение неполадок](/docs/terraform/troubleshooting): Частые ошибки и способы их исправить.
+- [Обновление](/docs/installation/upgrading): Обновите свой OneUptime, прежде чем поднимать диапазон провайдера.
+:::

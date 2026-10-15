@@ -199,6 +199,51 @@ describe("Table bulk CSV export", () => {
     expect(queryByText("Export CSV")).toBeNull();
   });
 
+  /*
+   * A list whose rows are not deleted from it, with no bulk action of its
+   * own, keeps its selection for Export CSV (isCsvExportOnly) - the selection
+   * it used to get from the Delete added for whoever may delete the model.
+   */
+  test("a table asked for Export CSV alone selects rows and offers Export CSV, and nothing else", () => {
+    const { getByText, getAllByRole, container } = renderTable({
+      bulkActions: { buttons: [], isCsvExportOnly: true },
+      bulkSelectedItems: [data[0]!],
+    });
+
+    expect(container.querySelectorAll('input[type="checkbox"]').length).toBe(
+      data.length + 1,
+    );
+
+    fireEvent.click(getByText("Bulk Actions"));
+
+    expect(
+      getAllByRole("menuitem").map((item: HTMLElement): string => {
+        return (item.textContent || "").trim();
+      }),
+    ).toEqual(["Export CSV"]);
+  });
+
+  test("a table asked for Export CSV alone, with Export CSV turned off, selects nothing", () => {
+    const { queryByText, container } = renderTable({
+      bulkActions: { buttons: [], isCsvExportOnly: true },
+      bulkSelectedItems: [data[0]!],
+      disableBulkCsvExport: true,
+    });
+
+    expect(queryByText("Bulk Actions")).toBeNull();
+    expect(container.querySelectorAll('input[type="checkbox"]').length).toBe(0);
+  });
+
+  test("a table with no bulk actions, not asked for Export CSV alone, selects nothing", () => {
+    const { queryByText, container } = renderTable({
+      bulkActions: { buttons: [] },
+      bulkSelectedItems: [data[0]!],
+    });
+
+    expect(queryByText("Bulk Actions")).toBeNull();
+    expect(container.querySelectorAll('input[type="checkbox"]').length).toBe(0);
+  });
+
   test("the exported CSV carries the values of every selected row", () => {
     spyOnDownload();
 

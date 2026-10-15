@@ -6,6 +6,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { BUILT_IN_TEAM_DELETE_MESSAGE } from "../../Types/Team/BuiltInTeam";
 import Model from "../../Models/DatabaseModels/Team";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ObjectID from "../../Types/ObjectID";
@@ -190,11 +191,12 @@ export class Service extends DatabaseService<Model> {
 
     for (const team of teams) {
       if (!team.isTeamDeleteable) {
-        throw new BadDataException(
-          `${
-            team.name || "This"
-          } team cannot be deleted its a critical team for this project.`,
-        );
+        /*
+         * The words the Teams list's locked Delete says before anyone
+         * clicks (BuiltInTeam): a bulk Delete lists this team, by name,
+         * with them.
+         */
+        throw new BadDataException(BUILT_IN_TEAM_DELETE_MESSAGE);
       }
     }
 

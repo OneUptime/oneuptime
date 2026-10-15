@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
 import AgentVersion from "../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../Components/AgentVersion/AgentKind";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -204,7 +205,8 @@ const VMwareVCenters: FunctionComponent<
           });
           return Promise.resolve(item);
         }}
-        isDeleteable={false}
+        isDeleteable={true}
+        deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
         isCreateable={true}
         createVerb="Connect"

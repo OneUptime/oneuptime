@@ -181,9 +181,9 @@ describe("Docs: every grant and scope narrows what it reaches", () => {
    * Terraform takes a 404 at refresh for a resource deleted outside it, so
    * a key that can no longer read what it manages drops it from the state.
    * The troubleshooting guide says how to keep that from creating a second
-   * copy, in English and Persian, the languages it is written in.
+   * copy, in every docs language.
    */
-  test.each(["en", "fa"])(
+  test.each(LANGUAGES)(
     "the %s Terraform troubleshooting guide says what a 404 at refresh does",
     (language: string) => {
       const page: string = read(language, "terraform/troubleshooting.md");

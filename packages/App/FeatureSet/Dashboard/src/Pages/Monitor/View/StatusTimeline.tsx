@@ -1,5 +1,10 @@
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
+import {
+  boldStartsAt,
+  boldStateName,
+} from "../../../Components/StateTimeline/StateTimelineRowDelete";
 import PageComponentProps from "../../PageComponentProps";
+import DeleteConsequenceParagraph from "Common/UI/Components/DeleteConfirmation/DeleteConsequenceParagraph";
 import { Black } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -345,45 +350,48 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
   ): Promise<DeleteConfirmation> => {
     const effect: StatusEventDeleteEffect | null = await getDeleteEffect(event);
 
-    const bold: (text: string) => ReactElement = (text: string) => {
-      return <strong className="font-semibold text-gray-900">{text}</strong>;
-    };
+    // What deleting it does to the rest of the timeline, when anything.
+    const effectSentence: ReactElement | string | null =
+      effect?.kind === "previous-is-current-again" ? (
+        <TranslatedSentence
+          template="{{status}}, the status before it, becomes the monitor's current status again."
+          slots={{ status: boldStateName(effect.previousStatus) }}
+        />
+      ) : effect?.kind === "previous-takes-over" ? (
+        <TranslatedSentence
+          template="{{status}}, the status before it, takes over its time."
+          slots={{ status: boldStateName(effect.previousStatus) }}
+        />
+      ) : effect?.kind === "not-shown-anymore" ? (
+        translator.translateTemplate(
+          "It ended more than {{days}} days ago, so status pages no longer show it.",
+          { days: KEPT_STATUS_HISTORY_DAYS.toString() },
+        )
+      ) : null;
 
+    /*
+     * The question and that it cannot be undone, then what deleting it does
+     * in a paragraph of its own - as the incident, alert, maintenance and
+     * episode timelines' dialogs say it (StateTimelineRowDelete).
+     */
     return {
       description: (
         <span data-testid="status-event-delete-confirmation">
           <TranslatedSentence
             template="Are you sure you want to delete the {{status}} status event that started {{startsAt}}?"
             slots={{
-              status: bold(getStatusName(event.monitorStatus)),
-              startsAt: bold(formatStartsAt(event)),
+              status: boldStateName(getStatusName(event.monitorStatus)),
+              startsAt: boldStartsAt(formatStartsAt(event)),
             }}
           />{" "}
-          {effect?.kind === "previous-is-current-again" && (
-            <>
-              <TranslatedSentence
-                template="{{status}}, the status before it, becomes the monitor's current status again."
-                slots={{ status: bold(effect.previousStatus) }}
-              />{" "}
-            </>
-          )}
-          {effect?.kind === "previous-takes-over" && (
-            <>
-              <TranslatedSentence
-                template="{{status}}, the status before it, takes over its time."
-                slots={{ status: bold(effect.previousStatus) }}
-              />{" "}
-            </>
-          )}
-          {effect?.kind === "not-shown-anymore" && (
-            <>
-              {translator.translateTemplate(
-                "It ended more than {{days}} days ago, so status pages no longer show it.",
-                { days: KEPT_STATUS_HISTORY_DAYS.toString() },
-              )}{" "}
-            </>
-          )}
           {translator.translateText("This action cannot be undone.")}
+          {effectSentence ? (
+            <DeleteConsequenceParagraph dataTestId="status-event-delete-effect">
+              {effectSentence}
+            </DeleteConsequenceParagraph>
+          ) : (
+            <></>
+          )}
         </span>
       ),
     };

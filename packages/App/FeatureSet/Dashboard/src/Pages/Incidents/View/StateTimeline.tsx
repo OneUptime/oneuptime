@@ -20,6 +20,10 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import useStateTimelineRowDelete, {
+  StateTimelineRowDeleteProps,
+} from "../../../Components/StateTimeline/StateTimelineRowDelete";
+import { StateTimelineRecord } from "Common/Utils/StateTimeline/StateTimelineRowDelete";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
@@ -36,6 +40,19 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+  /*
+   * The incident's only state can't be deleted, and every other row's Delete
+   * says what deleting it does (StateTimelineRowDelete).
+   */
+  const stateRowDelete: StateTimelineRowDeleteProps<IncidentStateTimeline> =
+    useStateTimelineRowDelete<IncidentStateTimeline>({
+      record: StateTimelineRecord.Incident,
+      modelType: IncidentStateTimeline,
+      recordIdColumn: "incidentId",
+      recordId: modelId,
+      stateColumn: "incidentState",
+    });
   const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
   const [logs, setLogs] = useState<string>("");
   const [showRootCause, setShowRootCause] = useState<boolean>(false);
@@ -73,6 +90,13 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
         }}
         isEditable={false}
         isDeleteable={true}
+        getDeleteDisabledReason={stateRowDelete.getDeleteDisabledReason}
+        getDeleteConfirmation={stateRowDelete.getDeleteConfirmation}
+        getItemName={stateRowDelete.getItemName}
+        singularName={stateRowDelete.singularName}
+        pluralName={stateRowDelete.pluralName}
+        deleteConfirmationWarning={stateRowDelete.deleteConfirmationWarning}
+        onFetchSuccess={stateRowDelete.onFetchSuccess}
         isCreateable={true}
         isViewable={false}
         showViewIdButton={true}

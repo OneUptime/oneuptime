@@ -50,6 +50,16 @@ export interface ComponentProps {
    */
   placement?: Placement | undefined;
   fallbackPlacements?: Array<Placement> | undefined;
+  /*
+   * A press - a click, or a tap - shows it and keeps it shown until the
+   * trigger is pressed again, whatever the pointer does in between. For a
+   * trigger whose press does nothing else, such as a locked menu item: on a
+   * phone nothing hovers, and the tap is how a person asks why it is locked.
+   * Hover alone was not enough there - a tap ends with the pointer leaving
+   * (Chrome sends mouseleave the moment the finger lifts), which hid the
+   * reason again before it could be read.
+   */
+  isShownOnPress?: boolean | undefined;
 }
 
 interface PopupProps extends ComponentProps {
@@ -128,8 +138,14 @@ const TooltipPopup: FunctionComponent<PopupProps> = (
         ? { reference: props.reference, showOnCreate: true }
         : { children: props.children })}
       interactive={props.interactive ?? isRich}
-      trigger="mouseenter focus"
-      hideOnClick={false}
+      /*
+       * A press shows it and keeps it until the next press (see
+       * isShownOnPress); everything else shows on hover and focus.
+       */
+      trigger={
+        props.isShownOnPress ? "mouseenter focus click" : "mouseenter focus"
+      }
+      hideOnClick={props.isShownOnPress ? "toggle" : false}
       maxWidth={isRich ? 380 : 350}
       delay={isRich ? [120, 80] : [0, 0]}
       duration={[200, 150]}

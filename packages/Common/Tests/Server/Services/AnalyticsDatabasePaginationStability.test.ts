@@ -316,11 +316,11 @@ describe("AnalyticsDatabaseService pagination stability", () => {
     });
 
     /*
-     * The sort-key boundary filter (toSortKeyBoundaryFilter) puts its own
-     * `ORDER BY <key> LIMIT n` in a subquery inside the WHERE, so the
-     * statement now carries two. The tiebreaker lives on the LAST one —
-     * the outer sort that actually orders the page, which outerOrderBy and
-     * orderByColumns (TestingUtils/AnalyticsOrderBy) read.
+     * The sort-key page bound (toSortKeyPageBound) opens the statement
+     * with a WITH clause whose narrow read has its own `ORDER BY <key>
+     * LIMIT n`, so the statement carries two. The tiebreaker lives on the
+     * LAST one — the outer sort that actually orders the page, which
+     * outerOrderBy and orderByColumns (TestingUtils/AnalyticsOrderBy) read.
      */
 
     /*

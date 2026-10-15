@@ -449,8 +449,12 @@ describe("ExceptionsViewer hosts a stored exception-instance query", () => {
      * is already what narrows the list, the histogram and the facet counts
      * together.
      */
+    // The stored query, read by value (issue #4709).
     expect(EXCEPTIONS_VIEWER).toContain(
-      "buildExceptionQueryScope(props.exceptionInstanceQuery)",
+      "const exceptionInstanceQuery: Query<ExceptionInstance> | undefined = useStableValue(props.exceptionInstanceQuery);",
+    );
+    expect(EXCEPTIONS_VIEWER).toContain(
+      "buildExceptionQueryScope(exceptionInstanceQuery)",
     );
     expect(EXCEPTIONS_VIEWER).toContain(
       "mergeExceptionInstanceScopes(hostScope.instanceScope, userScope)",
@@ -465,7 +469,7 @@ describe("ExceptionsViewer hosts a stored exception-instance query", () => {
 
   test("a hosted view neither seeds from nor writes to the URL", () => {
     expect(EXCEPTIONS_VIEWER).toContain(
-      "const hostOwnsView: boolean = Boolean( props.disableUrlSync || props.exceptionInstanceQuery, );",
+      "const hostOwnsView: boolean = Boolean( props.disableUrlSync || exceptionInstanceQuery, );",
     );
     expect(EXCEPTIONS_VIEWER).toContain("if (hostOwnsView) { return; }");
   });
@@ -512,13 +516,15 @@ describe("ExceptionsViewer hosts a stored exception-instance query", () => {
   test("an in-flight fingerprint resolution reads as loading, not as empty", () => {
     /*
      * While the resolution is in flight the list query carries the no-match
-     * sentinel and comes back empty BY DESIGN. Rendering that as the empty
-     * state would flash "No exceptions found" on an incident card and then
-     * fill in.
+     * sentinel and would come back empty BY DESIGN. Rendering that as the
+     * empty state would flash "No exceptions found" on an incident card and
+     * then fill in. Since issue #4709 the list is not read at all until the
+     * fingerprints are in (holdsReads), and reads as loading meanwhile.
      */
     expect(EXCEPTIONS_VIEWER).toContain(
-      "isLoading={isLoading || isResolvingScope}",
+      "const holdsReads: boolean = isWaitingForServiceNames || isResolvingScope;",
     );
+    expect(EXCEPTIONS_VIEWER).toContain("isLoading={isLoading || holdsReads}");
   });
 
   test("the reason lastSeenAt is dropped is written down next to the code", () => {

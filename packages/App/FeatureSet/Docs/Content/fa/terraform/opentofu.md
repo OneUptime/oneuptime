@@ -1,14 +1,19 @@
 # OpenTofu
 
-ارائه‌دهنده OneUptime علاوه بر Terraform با [OpenTofu](https://opentofu.org) هم کار می‌کند، و در [رجیستری OpenTofu](https://search.opentofu.org/provider/oneuptime/oneuptime/latest) منتشر شده است.
+ارائه‌دهندهٔ OneUptime با [OpenTofu](https://opentofu.org) همان‌طور کار می‌کند که با Terraform. در [OpenTofu Registry](https://search.opentofu.org/provider/oneuptime/oneuptime/latest) منتشر می‌شود، و هر انتشار پیش از انتشار همان آزمون‌های سرتاسری را زیر هر دو می‌گذراند. پیکربندی شما تغییر نمی‌کند: هر جا این مستندات `terraform` را اجرا می‌کنند، `tofu` را اجرا کنید.
 
-این مسیری آزموده است نه فرضی به ارث رسیده از سازگاری با Terraform: مجموعه سرتاسری ارائه‌دهنده در هر درخواست ادغام همان دستگاه‌های آزمون را روی هر دو موتور اجرا می‌کند، و شکستی زیر `tofu` ساخت را شکست می‌دهد.
+:::cards
+- [استفاده از ارائه‌دهنده با OpenTofu](#استفاده-از-ارائهدهنده-با-opentofu): همان پیکربندی، اجراشده با `tofu`.
+- [تفاوت‌ها با Terraform](#تفاوتها-با-terraform): رجیستری‌ها، فایل‌های قفل، فایل‌های `.tofu` و نسخه‌ها.
+- [انتقال یک پیکربندی به OpenTofu](#انتقال-یک-پیکربندی-به-opentofu): یک پیکربندی موجود را در چهار گام جابه‌جا کنید.
+- [یک ماژول بازاستفاده‌پذیر](#یک-ماژول-بازاستفادهپذیر): مانیتورها، یک سیاست آنکال و یک صفحهٔ وضعیت برای یک سرویس.
+:::
 
 ## استفاده از ارائه‌دهنده با OpenTofu
 
-هیچ‌چیز در پیکربندی شما تغییر نمی‌کند. ارائه‌دهنده را دقیقاً همان‌گونه که برای Terraform می‌کردید اعلام کنید و با `tofu` برانیدش:
+به OpenTofu 1.6 یا جدیدتر نیاز دارید. ارائه‌دهنده را همان‌طور که برای Terraform اعلام می‌کنید اعلام کنید:
 
-```hcl
+```hcl title="main.tf"
 terraform {
   required_providers {
     oneuptime = {
@@ -19,60 +24,82 @@ terraform {
 }
 
 provider "oneuptime" {
-  # api_key is read from ONEUPTIME_API_KEY.
-  # oneuptime_url defaults to https://oneuptime.com — set it only if self-hosted.
+  # The API key comes from the ONEUPTIME_API_KEY environment variable.
+  # On a self-hosted OneUptime, add your OneUptime's address:
+  # oneuptime_url = "https://oneuptime.example.com"
 }
 ```
 
+سپس آن را با `tofu` اجرا کنید:
+
 ```bash
-export ONEUPTIME_API_KEY="your-project-api-key"
+export ONEUPTIME_API_KEY="<your-api-key>"
 tofu init
 tofu plan
 tofu apply
 ```
 
-کلید API باید کلید API یک **پروژه** باشد، دقیقاً همان‌طور که در [شروع سریع](/docs/terraform/quick-start) توضیح داده شده است. هر چیزی در [راهنمای کامل](/docs/terraform/complete-guide)، [مراحل مانیتور](/docs/terraform/monitor-steps)، [نمونه‌ها](/docs/terraform/examples) و [وارد کردن منابع](/docs/terraform/importing-resources) بدون تغییر صدق می‌کند — روی خط فرمان به‌جای `terraform` بگذارید `tofu`.
+`tofu init` ارائه‌دهنده را از OpenTofu Registry بارگیری می‌کند. هر آنچه در [شروع سریع](/docs/terraform/quick-start)، [راهنمای کامل](/docs/terraform/complete-guide)، [مراحل مانیتور](/docs/terraform/monitor-steps)، [نمونه‌ها](/docs/terraform/examples) و [وارد کردن منابع](/docs/terraform/importing-resources) آمده است همان‌طور که هست به کار می‌آید، و پیکربندی‌ای که صفحه‌های **Terraform** داشبورد می‌نویسند بدون تغییر کار می‌کند.
 
-## چرا نشانی منبع نام رجیستری را نمی‌برد
+### رجیستری را بیرون از نشانی منبع نگه دارید
 
-مقدار `source = "oneuptime/oneuptime"` هیچ نام میزبانی حمل نمی‌کند، پس هر موتور آن را در برابر رجیستری پیش‌فرض خودش تفکیک می‌کند: `registry.opentofu.org` زیر OpenTofu، ‏`registry.terraform.io` زیر Terraform. ارائه‌دهنده در هر دو منتشر شده است، پس یک نشانی منبع هر دو موتور را پوشش می‌دهد.
+`source = "oneuptime/oneuptime"` هیچ رجیستری‌ای را نام نمی‌برد، پس هر موتور آن را از رجیستری خودش می‌خواند:
 
-نوشتن `source = "registry.terraform.io/oneuptime/oneuptime"` پیکربندی را به رجیستری Terraform سنجاق می‌کند و در محیط‌های هوابرید یا با رجیستری محدود، زیر OpenTofu شکستش می‌دهد. نام میزبان را نگذارید.
+```mermaid title="یک نشانی منبع، دو رجیستری"
+flowchart TB
+    S["source = oneuptime/oneuptime"] --> T["terraform init"]
+    S --> O["tofu init"]
+    T --> TR["registry.terraform.io"]
+    O --> OR["registry.opentofu.org"]
+    TR --> P["همان انتشارهای ارائه‌دهنده"]
+    OR --> P
+```
 
-## تفاوت‌هایی که دانستنشان می‌ارزد
+نام میزبان را کنار بگذارید. با آن، هر موتور از همان رجیستری استفاده می‌کند: با `registry.terraform.io/oneuptime/oneuptime`، OpenTofu هم از Terraform Registry بارگیری می‌کند، و Terraform نسخهٔ OpenTofu Registry را با `authentication signature from unknown issuer` رد می‌کند.
 
-| موضوع | رفتار |
-|-------|-----------|
-| بلوک `terraform` | `terraform` می‌ماند. کلیدواژه‌ای از زبان است، نه ارجاعی به CLI ‏Terraform، و OpenTofu همان‌طور که هست می‌خواندش. |
-| فایل‌های `.tf` در برابر `.tofu` | `.tf` زیر هر دو کار می‌کند. OpenTofu افزون بر آن فایل‌های `.tofu` را می‌خواند و هر فایل `.tf`ای را که خواهر `.tofu` داشته باشد نادیده می‌گیرد — دریچه فراری برای پیکربندی فقط OpenTofu، به قیمت سازگاری با Terraform. |
-| `required_version` | سری نسخه OpenTofu از ۱٫۶٫۰ آغاز می‌شود، پس محدودیتی که برای Terraform نوشته شده (`>= 1.5.0`) با هر انتشار OpenTofu برآورده می‌شود. |
-| فایل‌های قفل | هر دو `.terraform.lock.hcl` می‌نویسند، اما فایل قفل رجیستری‌ای را که در برابرش تفکیک شده ثبت می‌کند — فایل قفل یک موتور دیگری را برآورده نمی‌کند. آن یکی را که CI شما به کار می‌برد کامیت کنید، و پس از جابه‌جایی `tofu init -upgrade` را اجرا کنید. |
-| فایل‌های وضعیت | قالب و نام فایل یکسان. وضعیت موجود بدون تبدیل میان موتورها جابه‌جا می‌شود. |
-| فایل پیکربندی CLI | ‏OpenTofu فایل `~/.tofurc` را می‌خواند (با بازگشت به `~/.terraformrc`)؛ هر دو موتور به متغیر محیطی `TF_CLI_CONFIG_FILE` احترام می‌گذارند. |
-| متغیرها | ‏OpenTofu علاوه بر `TOFU_VAR_*` مقدار `TF_VAR_*` را هم می‌خواند، پس ابزارها و CI موجود به کار کردن ادامه می‌دهند. |
+## تفاوت‌ها با Terraform
 
-## انتخاب نسخه
+| موضوع | زیر OpenTofu |
+| --- | --- |
+| رجیستری | `oneuptime/oneuptime` همان `registry.opentofu.org/oneuptime/oneuptime` است، که همان نسخه‌های Terraform Registry را منتشر می‌کند. |
+| امضاها | `tofu init` می‌گوید اعتبارسنجی امضا رد شد: OpenTofu Registry هیچ کلید امضایی برای این ارائه‌دهنده ندارد، پس OpenTofu بارگیری را با checksumهای رجیستری بررسی می‌کند. |
+| بلوک `terraform` | همان `terraform` می‌ماند: بخشی از زبان است، و OpenTofu آن را همان‌طور که هست می‌خواند. |
+| فایل‌های `.tofu` | OpenTofu 1.8 و جدیدتر فایل‌های `.tofu` را هم می‌خواند، و از فایل `.tf` که فایلی `.tofu` با همان نام کنارش هست می‌گذرد. Terraform فقط فایل‌های `.tf` را می‌خواند. |
+| `required_version` | نسخه‌های OpenTofu از 1.6.0 شروع می‌شوند، پس `>= 1.5.0` که برای Terraform نوشته شده است هر OpenTofu را می‌پذیرد. |
+| فایل قفل | `registry.opentofu.org/oneuptime/oneuptime` را نام می‌برد. جابه‌جا کردن موتور آن مدخل را بازنویسی می‌کند: تغییر را commit کنید. |
+| State | OpenTofu stateی را که Terraform نوشته است همان‌طور که هست می‌خواند. |
+| متغیرها | `TF_VAR_name` زیر OpenTofu هم یک متغیر را تنظیم می‌کند. |
+| فایل پیکربندی CLI | `~/.tofurc` یا `~/.terraformrc`، یا فایلی که `TF_CLI_CONFIG_FILE` نام می‌برد. |
+| بلوک `removed` | بلوک `lifecycle` آن به OpenTofu 1.10 یا جدیدتر نیاز دارد. بدون آن، OpenTofu منبع را فراموش می‌کند و رکورد را نگه می‌دارد، جایی که Terraform آن را نابود می‌کند. |
+| رفتن به نوع منبعی که نامش تغییر کرده است | بلوک `moved` از `oneuptime_io_t_fleet` به `oneuptime_iot_fleet`، یا میان نوع‌های دیگری که نامشان تغییر کرده است، به OpenTofu 1.12 یا جدیدتر نیاز دارد. |
 
-نسخه‌های ارائه‌دهنده نسخه‌های پلتفرم OneUptime را دنبال می‌کنند، و قاعده زیر هر دو موتور یکی است:
+## انتقال یک پیکربندی به OpenTofu
 
-- **‏OneUptime Cloud**: `version = "{{TERRAFORM_PROVIDER_VERSION}}"`.
-- **خودمیزبان**: تازه‌ترین نسخه منتشرشده ارائه‌دهنده که **کوچک‌تر یا مساوی** نسخه پلتفرم شما باشد. [راه‌اندازی خودمیزبان](/docs/terraform/self-hosted) را ببینید.
+پیکربندی‌ای که Terraform مدیریتش می‌کند همان‌طور که هست، با state خود، به OpenTofu منتقل می‌شود:
 
-نسخه وصله دقیقی را سنجاق نکنید — هر وصله پلتفرم منتشر نمی‌شود. توضیح کامل در [استفاده از رجیستری](/docs/terraform/registry) است؛ چون هر دو رجیستری همان انتشارها را سرو می‌کنند، برای رجیستری OpenTofu هم صدق می‌کند.
+:::steps
+### OpenTofu را نصب کنید
 
-## نمونه‌ها و یک ماژول قابل استفاده دوباره
+OpenTofu را نصب کنید: نسخهٔ 1.6 برای ارائه‌دهنده بس است، و 1.12 یا جدیدتر منبعی را به نوعی که نامش تغییر کرده است هم جابه‌جا می‌کند، مانند `oneuptime_io_t_fleet` به `oneuptime_iot_fleet`.
 
-پیکربندی‌های اجراشدنی OpenTofu در [`Examples/opentofu/`](https://github.com/OneUptime/oneuptime/tree/master/Examples/opentofu) در مخزن OneUptime زندگی می‌کنند:
+### با tofu راه‌اندازی کنید
 
-| پوشه | چیست |
-|-----------|------------|
-| `quickstart/` | کوچک‌ترین پیکربندی مفید — یک برچسب، یک مانیتور، یک صفحه وضعیت |
-| `monitoring-and-incident-response/` | دو سرویس که از راه ماژول زیر سیم‌کشی شده‌اند |
-| `modules/monitoring-and-incident-response/` | ماژول قابل استفاده دوباره: مانیتورها، چرخش کشیک، و یک صفحه وضعیت |
+در پوشهٔ پیکربندی، `tofu init` را اجرا کنید. ارائه‌دهنده را از OpenTofu Registry بارگیری می‌کند، و می‌گوید که فایل قفل را تغییر داده است: مدخل ارائه‌دهنده اکنون OpenTofu Registry را نام می‌برد.
 
-این ماژول به سرویسی مانیتورهای HTTP، سیاست کشیکی که هنگام شکستشان فراخوانده می‌شود، و صفحه وضعیتی که فهرستشان می‌کند می‌دهد:
+### پلن
 
-```hcl
+`tofu plan` را اجرا کنید. stateی را که Terraform به جا گذاشته است می‌خواند، و با `No changes.` پاسخ می‌دهد.
+
+### فایل قفل را commit کنید
+
+`.terraform.lock.hcl` را commit کنید، و از این پس پیکربندی را با `tofu` اجرا کنید، در CI هم.
+:::
+
+## یک ماژول بازاستفاده‌پذیر
+
+[`Examples/opentofu/`](https://github.com/OneUptime/oneuptime/tree/master/Examples/opentofu) در مخزن OneUptime پیکربندی‌های قابل اجرا دارد، و ماژولی که یک سرویس را راه می‌اندازد: یک مانیتور وب‌سایت برای هر نشانی‌ای که به آن می‌دهید، یک برچسب روی هر چیزی که می‌سازد، یک سیاست آنکال با یک قاعدهٔ تشدید، و یک صفحهٔ وضعیت که مانیتورها را فهرست می‌کند. HCL ساده است، پس زیر Terraform هم کار می‌کند.
+
+```hcl title="main.tf"
 module "storefront" {
   source = "github.com/OneUptime/terraform-provider-oneuptime//modules/monitoring-and-incident-response?ref=vX.Y.Z"
 
@@ -87,15 +114,29 @@ module "storefront" {
 }
 ```
 
-منبعش به‌جای مخزن اصلی OneUptime، مخزن منتشرشده ارائه‌دهنده است تا `tofu init` به‌جای کل تک‌مخزن، مخزنی کوچک را کلون کند. مقدار `ref` را به برچسبی منتشرشده از ارائه‌دهنده سنجاق کنید — مخزن ارائه‌دهنده در هر انتشار بازتولید می‌شود. ماژول زیر Terraform هم کار می‌کند؛ HCL مستقل از موتور است.
+`vX.Y.Z` را با یک نسخهٔ منتشرشدهٔ ارائه‌دهنده جایگزین کنید، مانند تازه‌ترین در [انتشارهای ارائه‌دهنده](https://github.com/OneUptime/terraform-provider-oneuptime/releases): ماژول همراه ارائه‌دهنده منتشر می‌شود، و مخزن آن با هر انتشار تغییر می‌کند.
 
-عمداً وضعیت مانیتور یا شدت حادثه نمی‌سازد. OneUptime آن‌ها را به ازای هر پروژه بذر می‌پاشد، و ماژولی که به ازای هر سرویس یک بار نمونه‌سازی شود در هر فراخوان مجموعه‌ای تکراری می‌افزود. به‌جایش آن‌ها را با نام جستجو می‌کند — اگر پروژه‌تان تغییر نامشان داده است `operational_monitor_status_name`، `offline_monitor_status_name` یا `incident_severity_name` را بازنویسی کنید.
+ماژول وضعیت مانیتور یا شدت حادثه نمی‌سازد. آن‌هایی را که هر پروژه با آن‌ها شروع می‌شود با نامشان جست‌وجو می‌کند: `Operational`، `Offline` و `Critical Incident`. اگر پروژهٔ شما نام آن‌ها را تغییر داده است، `operational_monitor_status_name`، `offline_monitor_status_name` یا `incident_severity_name` را تنظیم کنید.
 
-## محیط‌های هوابرید
+قاعدهٔ تشدید آن هیچ‌کس را فرانمی‌خواند تا بگویید چه کسی را: با خروجی‌های ماژول یک تیم به آن بیفزایید:
 
-فرمان `tofu providers mirror` ارائه‌دهنده را داخلی آینه می‌کند، همان‌طور که `terraform providers mirror` می‌کند. راهنمای گام‌به‌گام در [راه‌اندازی خودمیزبان](/docs/terraform/self-hosted) با جایگزینی `tofu` به‌جای `terraform` صدق می‌کند.
+```hcl title="main.tf"
+resource "oneuptime_team" "storefront" {
+  name = "Storefront"
+}
 
-## پشتیبانی
+resource "oneuptime_team_on_call_duty_escalation_rule" "storefront" {
+  on_call_duty_policy_id                 = module.storefront.on_call_policy_id
+  on_call_duty_policy_escalation_rule_id = module.storefront.escalation_rule_id
+  team_id                                = oneuptime_team.storefront.id
+}
+```
 
-- اشکال‌ها و درخواست قابلیت، از جمله هر چیز ویژه OpenTofu: [github.com/OneUptime/oneuptime/issues](https://github.com/OneUptime/oneuptime/issues)
-- ارائه‌دهنده از مشخصات OpenAPI در [مخزن اصلی OneUptime](https://github.com/OneUptime/oneuptime) تولید می‌شود؛ مخزن منتشرشده ارائه‌دهنده خروجی ساختِ فقط‌خواندنی است.
+## گام‌های بعدی
+
+:::cards
+- [شروع سریع](/docs/terraform/quick-start): یک کلید API بسازید و نخستین منابع خود را اعمال کنید.
+- [استفاده از رجیستری](/docs/terraform/registry): نسخه‌ها چگونه شماره می‌خورند، و فایل قفل.
+- [راه‌اندازی خودمیزبان](/docs/terraform/self-hosted): OneUptime خودتان، و یک آینه برای ماشین‌های بدون اینترنت.
+- [رفع اشکال](/docs/terraform/troubleshooting): خطاهای رایج و چگونگی رفع آن‌ها.
+:::

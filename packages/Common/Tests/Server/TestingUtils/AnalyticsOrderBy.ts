@@ -3,11 +3,11 @@ import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 /*
  * The outer ORDER BY of an analytics find statement, read the way the
  * statement generator writes it: `{p3:Identifier} DESC, {p4:Identifier}
- * DESC` after the LAST "ORDER BY " and before " LIMIT". The sort-key
- * boundary filter (toSortKeyBoundaryFilter) puts an ORDER BY of its own in a
- * subquery inside the WHERE, so a statement can carry two; the last one is
- * the sort that orders the page. AnalyticsDatabaseSortKeyBoundary and
- * AnalyticsDatabasePaginationStability read it with these.
+ * DESC` after the LAST "ORDER BY " and before " LIMIT". The sort-key page
+ * bound (toSortKeyPageBound) opens the statement with a WITH clause whose
+ * narrow read has an ORDER BY of its own, so a statement can carry two; the
+ * last one is the sort that orders the page. AnalyticsDatabaseSortKeyBoundary
+ * and AnalyticsDatabasePaginationStability read it with these.
  */
 
 const ORDER_BY: string = "ORDER BY ";

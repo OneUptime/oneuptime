@@ -207,6 +207,7 @@ import Field from "../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import Navigation from "../../../UI/Utils/Navigation";
 import FormsCopy from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
+import { getDeleteConsequence } from "../../../UI/Components/DeleteConfirmation/DeleteConsequences";
 import Forms from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/Forms";
 import FormsSubmissions from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/Submissions";
 import FormBuild from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/Build";
@@ -304,7 +305,7 @@ describe("the list of forms", () => {
     );
   });
 
-  test("creates and opens forms; editing and deleting happen on a form's own pages", async () => {
+  test("creates, opens and deletes forms from the list; editing happens on a form's own pages", async () => {
     await renderAt(<Forms {...PAGE_PROPS} />, "/dashboard/p/forms");
 
     const table: Record<string, unknown> = lastTable();
@@ -312,7 +313,8 @@ describe("the list of forms", () => {
     expect(table["isCreateable"]).toBe(true);
     expect(table["isViewable"]).toBe(true);
     expect(table["isEditable"]).toBe(false);
-    expect(table["isDeleteable"]).toBe(false);
+    // Delete in each row's ⋯ menu and in Bulk Actions.
+    expect(table["isDeleteable"]).toBe(true);
   });
 
   test("is the Forms card, with what forms are for, and the forms documentation", async () => {
@@ -588,9 +590,15 @@ describe("a form's pages", () => {
     expect(deletion["modelType"]).toBe(Form);
     expect(String(deletion["modelId"])).toBe(FORM_ID);
 
-    render(deletion["confirmationContent"] as ReactElement);
-
-    expect(screen.getByText(FormsCopy.deleteFormNote)).toBeInTheDocument();
+    /*
+     * What goes with a form is said by ModelDelete itself, from
+     * DeleteConsequences - the words the Forms list's Delete says too - not
+     * by a note of this page's own.
+     */
+    expect(deletion["confirmationContent"]).toBeUndefined();
+    expect(getDeleteConsequence("Form")).toBe(
+      "Deleting a form also deletes its submissions. The incidents and events it created stay.",
+    );
 
     (deletion["onDeleteSuccess"] as () => void)();
 

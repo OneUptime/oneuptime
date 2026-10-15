@@ -146,7 +146,7 @@ const LogPipelines: FunctionComponent<
       saveFilterProps={{
         tableId: "log-pipelines-table",
       }}
-      isDeleteable={false}
+      isDeleteable={true}
       isEditable={false}
       isCreateable={true}
       isViewable={true}

@@ -11,7 +11,10 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
-import { WORKFLOW_ARCHIVE_COPY } from "../../Components/Archive/ResourceArchiveCopy";
+import {
+  WORKFLOW_ARCHIVE_COPY,
+  ARCHIVE_INSTEAD_OF_DELETE,
+} from "../../Components/Archive/ResourceArchiveCopy";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
@@ -141,7 +144,8 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           saveFilterProps={{
             tableId: "workflows-table",
           }}
-          isDeleteable={false}
+          isDeleteable={true}
+          deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
           isEditable={false}
           isCreateable={true}
           /*

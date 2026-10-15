@@ -5,6 +5,7 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import Team from "../../../Models/DatabaseModels/Team";
+import { BUILT_IN_TEAM_DELETE_MESSAGE } from "../../../Types/Team/BuiltInTeam";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -98,7 +99,7 @@ describe("deleting a team removes its members through TeamMemberService", () => 
         query: { projectId: PROJECT_ID },
         props: { isRoot: true },
       }),
-    ).rejects.toThrow("Owners team cannot be deleted");
+    ).rejects.toThrow(BUILT_IN_TEAM_DELETE_MESSAGE);
 
     expect(memberDelete).not.toHaveBeenCalled();
   });
