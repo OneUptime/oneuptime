@@ -59,7 +59,7 @@ Gå til **Vagtpolitikker**, og klik på **Opret Vagtpolitik**. Vælg vagtplanen 
 
 ### Tilføj de næste niveauer
 
-Klik på politikkens side **Eskaleringsregler** på **Tilføj eskaleringsregel** for hvert niveau efter det første: en anden vagtplan, en teamleder, en chef. Se [Eskaleringsregler](/docs/on-call/escalation-rules).
+Klik på politikkens side **Eskaleringsregler** på **Tilføj eskaleringsregel** for hvert niveau efter det første: den næste person i samme vagtplans rotation, en teamleder, en chef. Se [Eskaleringsregler](/docs/on-call/escalation-rules).
 
 ### Kør politikken automatisk
 

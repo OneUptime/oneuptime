@@ -27,6 +27,14 @@ import WorkspaceMessageTime from "../WorkspaceMessageTime";
  *
  *   See every step in OneUptime                             the run's own page
  *
+ * A person paged as the next in a schedule's rotation - the backup after
+ * whoever is on call, which an escalation rule can page at the level after
+ * the schedule's own - says so, as a person covering for somebody does:
+ *
+ *   • Alex: paged once · by SMS
+ *   • Sam (next in the Primary rotation): paged once · by SMS and email
+ *   • Nobody was next in the Secondary rotation
+ *
  * Everybody is in one list - who was paged first, then who was not - with
  * no label over it: Slack sets a blank line between a label and its list,
  * and with a label and a list for each the message ran to fifteen lines,
@@ -136,6 +144,12 @@ export interface OnCallPolicyRunPagedPerson {
   methods: Array<string>;
   // The people an override routed their pages from.
   coveringFor: Array<string>;
+  /*
+   * The schedules they were paged in as the next person in the rotation -
+   * the backup after whoever is on call - by name. Empty when every page
+   * was for another reason.
+   */
+  nextInRotationOf?: Array<string> | undefined;
 }
 
 // Somebody, or some step, the run could not page, once per reason.
@@ -144,6 +158,11 @@ export interface OnCallPolicyRunNotPaged {
   personName?: string | undefined;
   // The schedule that had nobody on call, when it is about a schedule.
   scheduleName?: string | undefined;
+  /*
+   * About that schedule: somebody was on call in it, but nobody was next in
+   * its rotation, for a rule that pages the next person.
+   */
+  nobodyNextInRotation?: boolean | undefined;
   // The team a direct page named that has no members, when it is about one.
   teamName?: string | undefined;
   // The escalation rule that had nobody to page at all.
@@ -279,6 +298,25 @@ export default class OnCallPolicyRunMessageView {
     awayUntil: Date,
   ): MarkdownText {
     return mdText`${personName}: away until ${WorkspaceMessageTime.dateAndTime(awayUntil)}`;
+  }
+
+  /*
+   * Why a person was paged as the backup after whoever is on call: "next in
+   * the Primary rotation". The schedule's name is text.
+   */
+  public static getNextInRotationReason(scheduleName: string): MarkdownText {
+    return mdText`next in the ${scheduleName} rotation`;
+  }
+
+  /*
+   * Why a rule that pages the next person in a schedule's rotation paged
+   * nobody there, for the alarm about a rule that reached nobody: "nobody
+   * was next in the Primary rotation".
+   */
+  public static getNobodyNextInRotationReason(
+    scheduleName: string,
+  ): MarkdownText {
+    return mdText`nobody was next in the ${scheduleName} rotation`;
   }
 
   // The run's message, as Markdown.
@@ -647,13 +685,27 @@ export default class OnCallPolicyRunMessageView {
     return mdText`within ${run.escalateAfterInMinutes} ${run.escalateAfterInMinutes === 1 ? "minute" : "minutes"}`;
   }
 
-  // "**Nitin**: paged twice · by SMS and email".
+  /*
+   * "**Nitin**: paged twice · by SMS and email", with why somebody else's
+   * page reached them: "(covering for Alex)", "(next in the Primary
+   * rotation)".
+   */
   private static getPagedPersonLine(
     person: OnCallPolicyRunPagedPerson,
   ): MarkdownText {
+    const why: Array<MarkdownText> = [];
+
+    if (person.coveringFor.length > 0) {
+      why.push(mdText`covering for ${this.joinNames(person.coveringFor)}`);
+    }
+
+    for (const scheduleName of person.nextInRotationOf || []) {
+      why.push(this.getNextInRotationReason(scheduleName));
+    }
+
     const who: MarkdownText =
-      person.coveringFor.length > 0
-        ? mdText`**${person.name}** (covering for ${this.joinNames(person.coveringFor)})`
+      why.length > 0
+        ? mdText`**${person.name}** (${FeedMarkdown.join(why, "; ")})`
         : mdText`**${person.name}**`;
 
     const facts: Array<MarkdownText> = [];
@@ -697,6 +749,10 @@ export default class OnCallPolicyRunMessageView {
       return !reason || reason === ON_CALL_RUN_NOT_PAGED
         ? mdText`**${entry.personName}**: ${ON_CALL_RUN_NOT_PAGED}`
         : mdText`**${entry.personName}**: ${ON_CALL_RUN_NOT_PAGED} · ${reason}`;
+    }
+
+    if (entry.scheduleName && entry.nobodyNextInRotation) {
+      return mdText`Nobody was next in the **${entry.scheduleName}** rotation`;
     }
 
     if (entry.scheduleName) {
@@ -809,6 +865,10 @@ export default class OnCallPolicyRunMessageView {
 
         if (entry.personName) {
           return mdText`${entry.personName}: ${entry.reason.trim() || ON_CALL_RUN_NOT_PAGED}`;
+        }
+
+        if (entry.scheduleName && entry.nobodyNextInRotation) {
+          return this.getNobodyNextInRotationReason(entry.scheduleName);
         }
 
         if (entry.scheduleName) {

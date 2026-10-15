@@ -14,10 +14,9 @@ import useDiscoveryScanLiveUpdates, {
   DiscoveryScanLiveUpdates,
 } from "../../Components/NetworkDevice/useDiscoveryScanLiveUpdates";
 import { DiscoveryScanStatus } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import ProbeUtil from "../../Utils/Probe";
-import Route from "Common/Types/API/Route";
+import { BILLING_ENABLED } from "Common/UI/Config";
+import useRefreshProbesOnFocus from "../../Components/NetworkDevice/useRefreshProbesOnFocus";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
@@ -64,12 +63,16 @@ import ScanModeUtil, {
 } from "Common/Utils/NetworkDiscovery/ScanModeUtil";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import {
+  ADD_PROBE_LINK_TEXT,
+  SCAN_NO_PROBE_DESCRIPTION,
   getDefaultProbeId,
-  getProbeDropdownOptions,
+  getGroupedProbeDropdownOptions,
+  hasProjectProbe,
 } from "../../Components/NetworkDevice/ProbeOptions";
 import {
   NetworkQuickAction,
   clearNetworkQuickAction,
+  getNetworkQuickActionRoute,
   isNetworkQuickActionRequested,
 } from "../../Components/Network/NetworkQuickActions";
 import {
@@ -256,13 +259,17 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        * a preference. Say so here rather than letting the operator pick
        * a probe in another network and wait for an empty result.
        */
-      description:
-        "The probe that sweeps the range. It has to reach it directly - a probe in another network, or outside the firewall, scans and finds nothing.",
+      description: hasProjectProbe(probes)
+        ? "The probe that sweeps the range. It has to reach it directly - a probe in another network, or outside the firewall, scans and finds nothing."
+        : SCAN_NO_PROBE_DESCRIPTION,
+      /*
+       * The Network Overview's "Add a probe" dialog, in a new tab so the
+       * scan being set up is not lost; the probes are read again when the
+       * person comes back (onWindowFocus, on the page).
+       */
       sideLink: {
-        text: "Create a custom probe",
-        url: RouteUtil.populateRouteParams(
-          RouteMap[PageMap.MONITORS_SETTINGS_PROBES] as Route,
-        ),
+        text: ADD_PROBE_LINK_TEXT,
+        url: getNetworkQuickActionRoute(NetworkQuickAction.AddProbe),
         openLinkInNewTab: true,
       },
       fieldType: FormFieldSchemaType.Dropdown,
@@ -278,7 +285,10 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        * and blanked the entire Discovery Scans page, including the list
        * of existing scans. The Add Device form shares the helper now.
        */
-      dropdownOptions: getProbeDropdownOptions(probes),
+      // The project's own probes first, under their heading.
+      dropdownOptions: getGroupedProbeDropdownOptions(probes, {
+        isOneUptimeCloud: BILLING_ENABLED,
+      }),
       required: true,
       /*
        * The project's one custom probe, when it has exactly one: a question
@@ -558,7 +568,7 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
       field: {
         snmpConfigs: true,
       },
-      title: "SNMP Configs",
+      title: "Credentials to try",
       stepId: "snmp",
       fieldType: FormFieldSchemaType.CustomComponent,
       /*
@@ -570,7 +580,7 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        */
       required: true,
       description:
-        "Every credential set this scan tries, in order, stopping at the first that answers each host. Add one per group of devices that share a version and community or v3 user.",
+        "The scan tries these in order on every host that answers ping, and keeps the first that works. Add more for devices with a different community string or SNMPv3 user; each one adds a wait on hosts that answer none.",
       customValidation: validateSnmpConfigs,
       /*
        * An ICMP-only scan sends no SNMP packet, so it asks for no credentials.
@@ -677,6 +687,9 @@ const NetworkDeviceDiscovery: FunctionComponent<
     });
   }, []);
 
+  // Back from the "Add a probe" tab: the new probe is in the list at once.
+  useRefreshProbesOnFocus(setProbes);
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -706,8 +719,14 @@ const NetworkDeviceDiscovery: FunctionComponent<
         showRefreshButton={true}
         refreshToggle={refreshToggle}
         onFetchSuccess={liveUpdates.onRowsLoaded}
+        /*
+         * The live-progress box, once the scans are read - and only when
+         * there is a scan to report on. With none, it said "Scan results up
+         * to date ... Review their results below" above "No scans yet".
+         */
         topContent={
-          liveUpdates.lastRefreshedAt ? (
+          liveUpdates.lastRefreshedAt &&
+          (liveUpdates.loadedRowCount > 0 || liveUpdates.error) ? (
             <div
               className={`mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3 ${liveUpdates.error ? "border-amber-200 bg-amber-50" : "border-blue-100 bg-blue-50"}`}
             >

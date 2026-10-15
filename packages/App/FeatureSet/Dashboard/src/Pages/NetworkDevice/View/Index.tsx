@@ -15,6 +15,7 @@ import {
   getDeviceNameSourceLabel,
 } from "../../../Components/NetworkDevice/DeviceNameSourceDisplay";
 import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import { isDifferentText } from "../../../Components/NetworkDevice/DeviceDetailText";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -97,14 +98,19 @@ const NetworkDeviceView: FunctionComponent<
 
   return (
     <Fragment>
-      <DeviceVendorTemplateBanner modelId={modelId} />
+      {/*
+       * The device's health first: it is what the page is opened for. The
+       * offer of its vendor's health checks, while it would add any, comes
+       * after it rather than above it on every visit.
+       */}
       <DeviceStatusHero modelId={modelId} />
+      <DeviceVendorTemplateBanner modelId={modelId} />
       <CardModelDetail<NetworkDevice>
         name="Network Device Details"
         cardProps={{
           title: "Device Details",
           description:
-            "Name, address, and organization for this device. SNMP credentials are managed in Settings.",
+            "What this device is called, where it is, and the address its probe reaches it at.",
           buttons: [
             <EditInSettingsLink
               key="edit-in-settings"
@@ -232,8 +238,12 @@ const NetworkDeviceView: FunctionComponent<
               },
               title: "System Name (sysName)",
               fieldType: FieldType.Text,
+              /*
+               * Only when it says something the Name does not: a device
+               * named after its SNMP name showed the same word twice.
+               */
               showIf: (item: NetworkDevice): boolean => {
-                return Boolean(item.sysName);
+                return isDifferentText(item.sysName, item.name);
               },
             },
             {
@@ -242,8 +252,13 @@ const NetworkDeviceView: FunctionComponent<
               },
               title: "System Description (sysDescr)",
               fieldType: FieldType.Text,
+              /*
+               * Only when it differs from the Description: a discovery import
+               * fills the description from it, so the two used to stand one
+               * under the other, word for word.
+               */
               showIf: (item: NetworkDevice): boolean => {
-                return Boolean(item.sysDescr);
+                return isDifferentText(item.sysDescr, item.description);
               },
             },
             {

@@ -1319,6 +1319,9 @@ export class Service {
             return `${nameOfUser(target.userId)} was not paged: they are not a member of this project.`;
           case OnCallNotPagedReason.NobodyOnCall:
             return `Nobody is on call in schedule ${nameOf(data.targets.schedules, target.scheduleId) || "(unnamed)"} right now.`;
+          // A direct page never pages the next person in a rotation; said all the same.
+          case OnCallNotPagedReason.NobodyNextInRotation:
+            return `Nobody is next in the rotation of schedule ${nameOf(data.targets.schedules, target.scheduleId) || "(unnamed)"} right now.`;
           case OnCallNotPagedReason.EmptyTeam:
           default:
             return `Team ${nameOf(data.targets.teams, target.teamId) || "(unnamed)"} has no members.`;

@@ -3,6 +3,16 @@ import {
   DeviceAttachmentLookupResult,
   getDeviceAttachment,
 } from "./DeviceAttachmentLookupUtil";
+import {
+  DeviceNeighbourNames,
+  getDeviceNeighbourNames,
+} from "./DeviceNeighbourLookupUtil";
+import {
+  DeviceNeighbour,
+  NEIGHBOURS_SHOWN,
+  getDeviceNeighbours,
+  isPortNamedAsPort,
+} from "./DeviceNeighbours";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
@@ -49,6 +59,35 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
   const [isLookupPossible, setIsLookupPossible] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  // What the device reports it is cabled to, over LLDP or CDP.
+  const [neighbours, setNeighbours] = useState<Array<DeviceNeighbour>>([]);
+  // This device's port names, by interface index.
+  const [portNames, setPortNames] = useState<Map<number, string>>(new Map());
+  // The neighbours that are devices here, by name (lower case) to their id.
+  const [neighbourDeviceIds, setNeighbourDeviceIds] = useState<
+    Map<string, string>
+  >(new Map());
+
+  /*
+   * The names a neighbour list needs: this device's ports, and which
+   * neighbours are devices in this project (to link them). Best effort: a
+   * failed read leaves the ports as their numbers and the names unlinked.
+   */
+  const fetchNeighbourNames: (
+    found: Array<DeviceNeighbour>,
+  ) => Promise<void> = async (found: Array<DeviceNeighbour>): Promise<void> => {
+    try {
+      const names: DeviceNeighbourNames = await getDeviceNeighbourNames(
+        props.modelId,
+        found,
+      );
+
+      setPortNames(names.portNames);
+      setNeighbourDeviceIds(names.neighbourDeviceIds);
+    } catch {
+      // The list still reads well with port numbers and plain names.
+    }
+  };
 
   const fetchAttachment: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -56,9 +95,19 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
         props.modelId,
       );
 
+      const found: Array<DeviceNeighbour> = getDeviceNeighbours({
+        lldpNeighbors: result.device.lldpNeighbors,
+        cdpNeighbors: result.device.cdpNeighbors,
+      });
+
       setAttachment(result.attachment);
       setIsLookupPossible(result.isLookupPossible);
+      setNeighbours(found);
       setError("");
+
+      if (found.length > 0) {
+        await fetchNeighbourNames(found);
+      }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -154,6 +203,103 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
     );
   };
 
+  type GetNeighboursFunction = () => ReactElement;
+
+  /*
+   * The device's neighbours, each on its own line: this device's port, then
+   * the neighbour (a link when it is a device here) and the port at its end.
+   */
+  const getNeighbours: GetNeighboursFunction = (): ReactElement => {
+    const shown: Array<DeviceNeighbour> = neighbours.slice(0, NEIGHBOURS_SHOWN);
+    const hidden: number = neighbours.length - shown.length;
+
+    return (
+      <div data-testid="device-neighbours">
+        <ul className="divide-y divide-gray-100">
+          {shown.map((neighbour: DeviceNeighbour, index: number) => {
+            const localPort: string | undefined =
+              neighbour.localInterfaceIndex !== undefined
+                ? portNames.get(neighbour.localInterfaceIndex) ||
+                  translator.translateTemplate("ifIndex {{index}}", {
+                    index: neighbour.localInterfaceIndex,
+                  })
+                : undefined;
+            const neighbourId: string | undefined = neighbour.hasAdvertisedName
+              ? neighbourDeviceIds.get(neighbour.name.toLowerCase())
+              : undefined;
+
+            /*
+             * One cable a row: this device's port, then the neighbour and
+             * its port. On a phone the two halves stack, every row the
+             * same way; a wrapping row put short rows on one line and long
+             * ones on two, with the neighbour jumping from right to left.
+             */
+            return (
+              <li
+                key={`${neighbour.name}-${index}`}
+                className="flex flex-col gap-0.5 py-2 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                data-testid="device-neighbour"
+              >
+                <span className="min-w-0 break-words text-gray-500">
+                  {localPort || "—"}
+                </span>
+                <span className="min-w-0 break-words sm:text-right">
+                  {neighbourId ? (
+                    <AppLink
+                      to={RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.NETWORK_DEVICE_VIEW] as Route,
+                        { modelId: new ObjectID(neighbourId) },
+                      )}
+                      className="font-medium text-indigo-600 hover:underline"
+                    >
+                      {neighbour.name}
+                    </AppLink>
+                  ) : (
+                    <span className="font-medium text-gray-900">
+                      {neighbour.name}
+                    </span>
+                  )}
+                  {neighbour.remotePort ? (
+                    <span className="text-gray-500">
+                      {" · "}
+                      {isPortNamedAsPort(neighbour.remotePort)
+                        ? neighbour.remotePort
+                        : translator.translateTemplate("port {{port}}", {
+                            port: neighbour.remotePort,
+                          })}
+                    </span>
+                  ) : (
+                    <></>
+                  )}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+        <p className="mt-3 text-xs text-gray-500">
+          {hidden > 0
+            ? translator.translatePlural(
+                {
+                  one: "Reported over LLDP or CDP, and {{count}} more on the map.",
+                  other:
+                    "Reported over LLDP or CDP, and {{count}} more on the map.",
+                },
+                hidden,
+              )
+            : translator.translateText("Reported over LLDP or CDP.")}{" "}
+          <AppLink
+            to={RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_TOPOLOGY] as Route,
+            )}
+            className="font-medium text-indigo-600 hover:underline"
+          >
+            {translator.translateText("Open the map") || ""}
+          </AppLink>
+        </p>
+      </div>
+    );
+  };
+
   type GetContentFunction = () => ReactElement;
 
   const getContent: GetContentFunction = (): ReactElement => {
@@ -163,6 +309,15 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
 
     if (error) {
       return <ErrorMessage message={error} />;
+    }
+
+    /*
+     * A switch, router or firewall that reports its neighbours: those are
+     * what it is connected to. (The switch-port lookup below is for devices
+     * that report none - a printer, a register, a phone.)
+     */
+    if (!attachment && neighbours.length > 0) {
+      return getNeighbours();
     }
 
     if (!attachment) {
@@ -232,7 +387,7 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title="Connected to"
-      description="Where this device is plugged in, learned from the forwarding and ARP tables of the switches and routers at its site."
+      description="What this device is cabled to: the neighbours it reports, or the switch port a switch at its site sees it on."
     >
       <div data-testid="device-attachment-card">{getContent()}</div>
     </Card>

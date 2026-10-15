@@ -19,6 +19,7 @@ flowchart TB
 - [Qui est alerté en premier](#qui-est-alerté-en-premier): Créer une politique avec son premier niveau.
 - [Ajouter une règle d'escalade](#ajouter-une-règle-descalade): Ajouter le niveau suivant, étape par étape.
 - [Comment les niveaux alertent les personnes](#comment-les-niveaux-alertent-les-personnes): Délais, répétitions et manière de joindre chaque personne.
+- [La personne suivante de la rotation](#escalader-vers-la-personne-suivante-de-la-rotation): Alerter le suppléant de la personne d'astreinte, dans la même rotation.
 - [API et Terraform](#créer-des-règles-avec-lapi-ou-terraform): Créer des politiques et des règles sous forme de code.
 :::
 
@@ -49,6 +50,7 @@ Sous **Notifier**, cliquez sur **Ajouter un intervenant**, recherchez et choisis
 | Intervenant | Qui est alerté quand le niveau s'exécute |
 | --- | --- |
 | Un **planning d'astreinte** | La personne d'astreinte dans ce planning au moment où le niveau s'exécute, et non une personne fixe. |
+| Le **Suivant dans la rotation** d'un planning | La personne qui suit celle d'astreinte dans ce planning, dans la même rotation. Voir [Escalader vers la personne suivante de la rotation](#escalader-vers-la-personne-suivante-de-la-rotation). |
 | Une **équipe** | Chaque membre de l'équipe. |
 | Une **personne** | Cette personne, directement. |
 
@@ -133,6 +135,34 @@ Sur OneUptime Cloud, chaque SMS, appel, message WhatsApp et Telegram est payé s
 > [!IMPORTANT]
 > Les SMS, les appels téléphoniques, WhatsApp et Telegram sont désactivés dans un nouveau projet : sur OneUptime Cloud, chaque message est payé sur le solde du projet, et une installation auto-hébergée a d'abord besoin d'un compte Twilio ou d'un bot Telegram configuré. Tant qu'un canal est désactivé, personne dans le projet ne peut y ajouter de méthode. Seul un propriétaire du projet ou une personne disposant du rôle **Billing Admin** ou de l'autorisation **Manage Billing** peut en activer un, dans la carte **Canaux de notification** de **Paramètres du projet > Notifications > Paramètres de notification** — un administrateur du projet ne le peut pas. Partout où un canal est désactivé, tous les autres apprennent exactement qui peut l'activer : au-dessus de leur propre liste de méthodes sur ce canal, dans leur liste de configuration et dans le message qu'ils reçoivent quand quelque chose en a besoin.
 
+## Escalader vers la personne suivante de la rotation
+
+Un niveau peut alerter la personne suivante de la rotation d'un planning d'astreinte : celle qui suit la personne d'astreinte dans ce planning. Une politique peut ainsi alerter d'abord la personne d'astreinte, puis son suppléant dans la même rotation, puis une équipe ou un manager, le tout à partir d'un seul planning.
+
+| Niveau | Notifier | Qui est alerté |
+| --- | --- | --- |
+| **Level 1** | Le planning Payments primary | La personne d'astreinte dans ce planning, par exemple Alex |
+| **Level 2** | Le **Suivant dans la rotation** du même planning | La personne qui suit Alex dans la rotation, par exemple Sam |
+| **Level 3** | L'équipe Platform | Chaque membre de l'équipe |
+
+:::steps
+1. Vérifiez que le premier niveau de la politique, **Level 1**, notifie le planning d'astreinte.
+2. Cliquez sur **Ajouter une règle d'escalade**, puis sur **Ajouter un intervenant**, et choisissez le même planning sous **Suivant dans la rotation**. Définissez **Escalader après (en minutes)** et cliquez sur **Créer une règle**.
+3. Ajoutez un niveau de plus pour l'équipe ou le manager qui doit être prévenu ensuite.
+:::
+
+La personne suivante est déterminée au moment où le niveau s'exécute, d'après le planning tel qu'il est alors :
+
+- C'est la personne qui suit la personne d'astreinte, dans l'ordre où les personnes de la rotation se relaient. Après la dernière personne revient la première.
+- Les personnes absentes sont passées, que quelqu'un les remplace ou non, de même que toute personne d'astreinte à la place de quelqu'un d'autre.
+- C'est toujours quelqu'un de la même rotation : avec plusieurs couches, la couche d'où vient la personne d'astreinte. Une rotation où il n'y a personne d'autre, ou dont tous les autres membres sont absents, n'a personne de suivant : le niveau n'y alerte personne et l'indique.
+- Quand personne n'est d'astreinte dans le planning, il n'y a personne de suivant non plus, et le niveau est retenté pendant quelques minutes, comme pour le planning lui-même.
+
+Le message de l'exécution dans Slack et Microsoft Teams, le fil d'activité de l'incident et la **Chronologie d'exécution** indiquent qui a été alerté en tant que suivant dans la rotation, et depuis quel planning : « Sam Lee (next in the Payments primary rotation) ».
+
+> [!TIP]
+> Un seul planning suffit : pas de second planning de suppléance à garder en phase avec le premier, et les absences que posent ses membres valent pour les deux niveaux.
+
 ## Modifier, réordonner et supprimer des règles
 
 La carte de chaque règle propose **Modifier la règle**, et un menu **⋯** avec les autres actions :
@@ -148,6 +178,7 @@ Les règles d'escalade sont la ressource `/api/on-call-duty-policy-escalation-ru
 - Une règle créée sans `name` porte le nom de son niveau, comme dans le tableau de bord : **Level 3** pour une règle qui devient le troisième niveau de sa politique. La ressource Terraform des règles d'escalade exige toujours un nom.
 - `escalateAfterInMinutes` n'a pas de valeur par défaut en dehors du tableau de bord. Une règle créée sans cette valeur n'attend pas : le niveau suivant est alerté dès que celui-ci s'est exécuté. Définissez-la explicitement — 30 est la valeur que propose le tableau de bord.
 - Une règle créée avec `onCallSchedules`, `teams` ou `users` (des listes d'identifiants) dans ses `miscDataProps` reçoit ces intervenants ; c'est ainsi que le sélecteur **Notifier** du tableau de bord les envoie. Une règle créée sans eux n'alerte personne tant que vous n'ajoutez pas d'intervenants via les ressources ci-dessus.
+- Une règle créée avec `nextInRotationSchedules` (une liste d'identifiants de plannings) dans ses `miscDataProps` alerte la personne suivante de la rotation de chacun de ces plannings. Sur la ressource `-schedule`, une ligne dont `pageNextInRotation` vaut `true` fait de même ; cette valeur est fixée à la création de la ligne.
 - Les règles qui portent le nom de leur niveau sont renommées lorsque vous déplacez ou supprimez des règles dans le tableau de bord. Modifier `order` via l'API ou Terraform ne change que l'ordre.
 - Créer une politique d'astreinte via `/api/on-call-duty-policy` avec `onCallSchedules`, `teams` ou `users` (des listes d'identifiants) dans ses `miscDataProps` lui donne sa première règle d'escalade, comme le fait le tableau de bord : **Level 1**, qui les alerte, avec un `escalateAfterInMinutes` de 30. Chaque identifiant doit appartenir au projet et l'appelant doit être autorisé à créer des règles d'escalade, sinon la politique n'est pas créée. Une politique créée sans eux n'a pas de règles, comme auparavant ; la ressource Terraform des politiques ne les envoie pas.
 

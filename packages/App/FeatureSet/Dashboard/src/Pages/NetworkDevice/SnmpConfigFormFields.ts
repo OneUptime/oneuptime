@@ -271,9 +271,15 @@ export function getSnmpConfigFormFields(
       fieldType: FormFieldSchemaType.EncryptedText,
       required: false,
       placeholder: "public",
+      /*
+       * The device forms' own words (Add Device, a device's Settings): the
+       * field is optional because a device without it is pinged, and it is
+       * hidden for V3 - so "Required for V1 and V2c. Not used for V3." under
+       * a label reading "(Optional)" said two contradictory things.
+       */
       description:
         options?.communityStringDescription ||
-        "Required for SNMP V1 and V2c. Not used for V3.",
+        "The community string the device answers SNMP with, such as public. Leave it empty to ping the device only.",
       showIf: (item: FormValues<SnmpConfigModelFields>): boolean => {
         return !isV3(item);
       },

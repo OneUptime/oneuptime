@@ -19,6 +19,7 @@ flowchart TB
 - [Wer zuerst alarmiert wird](#wer-zuerst-alarmiert-wird): Eine Richtlinie mit ihrer ersten Stufe anlegen.
 - [Eine Eskalationsregel hinzufügen](#eine-eskalationsregel-hinzufügen): Die nächste Stufe hinzufügen, Schritt für Schritt.
 - [Wie die Stufen Personen alarmieren](#wie-die-stufen-personen-alarmieren): Zeiten, Wiederholungen und wie jede Person erreicht wird.
+- [Die nächste Person in der Rotation](#zur-nächsten-person-in-der-rotation-eskalieren): Das Backup der Person in Bereitschaft aus derselben Rotation alarmieren.
 - [API und Terraform](#regeln-mit-der-api-oder-terraform-anlegen): Richtlinien und Regeln als Code anlegen.
 :::
 
@@ -49,6 +50,7 @@ Klicken Sie unter **Benachrichtigen** auf **Empfänger hinzufügen**, suchen Sie
 | Empfänger | Wer alarmiert wird, wenn die Stufe ausgelöst wird |
 | --- | --- |
 | Ein **Bereitschaftsplan** | Wer gerade Bereitschaft hat, wenn die Stufe ausgelöst wird, nicht eine feste Person. |
+| Die **Nächste in der Rotation** eines Plans | Die Person nach der, die darin gerade Bereitschaft hat, aus derselben Rotation. Siehe [Zur nächsten Person in der Rotation eskalieren](#zur-nächsten-person-in-der-rotation-eskalieren). |
 | Ein **Team** | Jedes Mitglied des Teams. |
 | Eine **Person** | Diese Person, direkt. |
 
@@ -133,6 +135,34 @@ In OneUptime Cloud wird jede SMS, jeder Anruf, jede WhatsApp- und Telegram-Nachr
 > [!IMPORTANT]
 > SMS, Telefonanrufe, WhatsApp und Telegram sind in einem neuen Projekt ausgeschaltet: In OneUptime Cloud wird jede Nachricht vom Guthaben des Projekts bezahlt, und eine selbst gehostete Installation braucht zuerst ein Twilio-Konto oder einen Telegram-Bot. Solange ein Kanal aus ist, kann niemand im Projekt eine Methode dafür hinzufügen. Nur ein Projekteigentümer oder jemand mit der Rolle **Billing Admin** oder der Berechtigung **Manage Billing** kann einen Kanal einschalten, in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** — ein Projektadministrator kann es nicht. Alle anderen erfahren überall, wo ein Kanal aus ist, genau, wer ihn einschalten kann: über ihrer eigenen Liste der Methoden dafür, in ihrer Einrichtungs-Checkliste und in der Meldung, die sie bekommen, wenn etwas den Kanal braucht.
 
+## Zur nächsten Person in der Rotation eskalieren
+
+Eine Stufe kann die nächste Person in der Rotation eines Bereitschaftsplans alarmieren: die Person nach der, die darin gerade Bereitschaft hat. So kann eine Richtlinie zuerst die Person in Bereitschaft alarmieren, dann ihr Backup aus derselben Rotation und dann ein Team oder eine Führungskraft, alles aus einem einzigen Plan.
+
+| Stufe | Benachrichtigen | Wer alarmiert wird |
+| --- | --- | --- |
+| **Level 1** | Der Plan Payments primary | Wer darin gerade Bereitschaft hat, etwa Alex |
+| **Level 2** | Die **Nächste in der Rotation** desselben Plans | Die Person nach Alex in der Rotation, etwa Sam |
+| **Level 3** | Das Team Platform | Jedes Mitglied des Teams |
+
+:::steps
+1. Stellen Sie sicher, dass die erste Stufe der Richtlinie, **Level 1**, den Bereitschaftsplan benachrichtigt.
+2. Klicken Sie auf **Eskalationsregel hinzufügen**, dann auf **Empfänger hinzufügen**, und wählen Sie denselben Plan unter **Nächste in der Rotation**. Legen Sie **Eskalieren nach (in Minuten)** fest und klicken Sie auf **Regel erstellen**.
+3. Fügen Sie eine weitere Stufe für das Team oder die Führungskraft hinzu, die als Nächstes Bescheid bekommen soll.
+:::
+
+Die nächste Person wird ermittelt, wenn die Stufe ausgelöst wird, und zwar aus dem Plan, wie er in diesem Moment ist:
+
+- Es ist die Person nach der, die gerade Bereitschaft hat, in der Reihenfolge, in der sich die Personen der Rotation abwechseln. Nach der letzten Person kommt wieder die erste.
+- Abwesende Personen werden übersprungen, ob jemand sie vertritt oder nicht, ebenso wer gerade für jemand anderen Bereitschaft hat.
+- Es ist immer jemand aus derselben Rotation: bei mehreren Ebenen aus der Ebene, aus der die Person in Bereitschaft kommt. Eine Rotation, in der sonst niemand ist oder alle anderen abwesend sind, hat keine nächste Person; die Stufe alarmiert dort dann niemanden und vermerkt das.
+- Hat im Plan überhaupt niemand Bereitschaft, gibt es auch keine nächste Person, und die Stufe wird einige Minuten lang erneut versucht, wie beim Plan selbst.
+
+Die Nachricht des Laufs in Slack und Microsoft Teams, der Feed des Vorfalls und die **Zeitachse der Ausführung** zeigen, wer als nächste Person in der Rotation alarmiert wurde und aus welchem Plan: „Sam Lee (next in the Payments primary rotation)“.
+
+> [!TIP]
+> Ein Plan genügt: Es gibt keinen zweiten Backup-Plan, den Sie mit dem ersten abgleichen müssen, und die Abwesenheiten, die seine Personen eintragen, gelten für beide Stufen.
+
 ## Regeln bearbeiten, umsortieren und löschen
 
 Die Karte jeder Regel hat **Regel bearbeiten** und ein **⋯**-Menü mit den übrigen Aktionen:
@@ -148,6 +178,7 @@ Eskalationsregeln sind die Ressource `/api/on-call-duty-policy-escalation-rule`;
 - Eine ohne `name` angelegte Regel heißt wie im Dashboard nach ihrer Stufe: **Level 3** für eine Regel, die die dritte Stufe ihrer Richtlinie wird. Die Terraform-Ressource für Eskalationsregeln verlangt weiterhin einen Namen.
 - `escalateAfterInMinutes` hat außerhalb des Dashboards keinen Standardwert. Eine ohne diesen Wert angelegte Regel wartet nicht: Die nächste Stufe wird alarmiert, sobald diese gelaufen ist. Setzen Sie ihn ausdrücklich — 30 ist der Vorschlag des Dashboards.
 - Eine Regel, die mit `onCallSchedules`, `teams` oder `users` (Listen von IDs) in ihren `miscDataProps` angelegt wird, bekommt diese Empfänger; so sendet sie auch die Auswahl **Benachrichtigen** des Dashboards. Eine Regel ohne diese Angaben alarmiert niemanden, bis Sie über die obigen Ressourcen Empfänger hinzufügen.
+- Eine Regel, die mit `nextInRotationSchedules` (einer Liste von Plan-IDs) in ihren `miscDataProps` angelegt wird, alarmiert die nächste Person in der Rotation jedes dieser Pläne. In der Ressource `-schedule` bewirkt eine Zeile, deren `pageNextInRotation` auf `true` steht, dasselbe; der Wert wird beim Anlegen der Zeile gesetzt.
 - Regeln, die nach ihrer Stufe heißen, werden umbenannt, wenn Sie Regeln im Dashboard verschieben oder löschen. Eine Änderung von `order` über die API oder Terraform ändert nur die Reihenfolge.
 - Wird eine Bereitschaftsrichtlinie über `/api/on-call-duty-policy` mit `onCallSchedules`, `teams` oder `users` (Listen von IDs) in ihren `miscDataProps` angelegt, bekommt sie wie im Dashboard ihre erste Eskalationsregel: **Level 1**, die diese alarmiert, mit einem `escalateAfterInMinutes` von 30. Jede ID muss zum Projekt gehören, und der Aufrufer muss Eskalationsregeln anlegen dürfen, sonst wird die Richtlinie nicht angelegt. Ohne diese Angaben hat die Richtlinie wie bisher keine Regeln; die Terraform-Ressource für Richtlinien sendet sie nicht.
 

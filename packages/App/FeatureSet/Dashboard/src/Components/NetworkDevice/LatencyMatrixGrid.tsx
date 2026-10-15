@@ -126,7 +126,7 @@ const LatencyMatrixGrid: FunctionComponent<ComponentProps> = (
           </div>
           <p className="mt-1 text-sm text-gray-500">
             {translator.translateText(
-              "Latency appears here once your probeable monitors run from at least one probe.",
+              "It fills in once a monitor that checks from a probe, such as a Ping, Port or Website monitor, has run.",
             )}
           </p>
         </div>

@@ -19,6 +19,7 @@ flowchart TB
 - [Quem é acionado primeiro](#quem-é-acionado-primeiro): Crie uma política com o primeiro nível.
 - [Adicionar uma regra de escalonamento](#adicionar-uma-regra-de-escalonamento): Adicione o próximo nível, passo a passo.
 - [Como os níveis acionam as pessoas](#como-os-níveis-acionam-as-pessoas): Tempos, repetições e como cada pessoa é contatada.
+- [A próxima pessoa da rotação](#escalonar-para-a-próxima-pessoa-da-rotação): Acione o backup de quem está de plantão, da mesma rotação.
 - [API e Terraform](#criar-regras-com-a-api-ou-o-terraform): Crie políticas e regras como código.
 :::
 
@@ -49,6 +50,7 @@ Em **Notificar**, clique em **Adicionar destinatário**, pesquise e escolha quan
 | Destinatário | Quem é acionado quando o nível é executado |
 | --- | --- |
 | Um **agendamento de plantão** | Quem estiver de plantão nele quando o nível for executado, não uma pessoa fixa. |
+| O **Próximo da rotação** de um agendamento | A pessoa depois de quem estiver de plantão nele, da mesma rotação. Veja [Escalonar para a próxima pessoa da rotação](#escalonar-para-a-próxima-pessoa-da-rotação). |
 | Uma **equipe** | Cada membro da equipe. |
 | Uma **pessoa** | Essa pessoa, diretamente. |
 
@@ -133,6 +135,34 @@ No OneUptime Cloud, cada SMS, chamada, mensagem de WhatsApp e de Telegram é pag
 > [!IMPORTANT]
 > SMS, chamadas telefônicas, WhatsApp e Telegram começam desligados em um projeto novo: no OneUptime Cloud, cada mensagem é paga com o saldo do projeto, e uma instalação auto-hospedada precisa antes de uma conta do Twilio ou de um bot do Telegram configurado. Enquanto um canal está desligado, ninguém no projeto pode adicionar um método nele. Só um proprietário do projeto ou alguém com o papel **Billing Admin** ou a permissão **Manage Billing** pode ligar um, no cartão **Canais de notificação** de **Configurações do projeto > Notificações > Configurações de notificação** — um administrador do projeto não pode. Todos os outros são informados exatamente de quem pode, onde quer que um canal esteja desligado: acima da própria lista de métodos nele, na lista de configuração deles e na mensagem que recebem quando algo precisa dele.
 
+## Escalonar para a próxima pessoa da rotação
+
+Um nível pode acionar a próxima pessoa da rotação de um agendamento de plantão: a pessoa depois de quem estiver de plantão nele. Assim, uma política pode acionar primeiro quem está de plantão, depois o backup dessa pessoa na mesma rotação e depois uma equipe ou um gerente, tudo a partir de um único agendamento.
+
+| Nível | Notificar | Quem é acionado |
+| --- | --- | --- |
+| **Level 1** | O agendamento Payments primary | Quem estiver de plantão nele, digamos Alex |
+| **Level 2** | O **Próximo da rotação** do mesmo agendamento | A pessoa depois de Alex na rotação, digamos Sam |
+| **Level 3** | A equipe Platform | Cada membro da equipe |
+
+:::steps
+1. Confirme que o primeiro nível da política, **Level 1**, notifica o agendamento de plantão.
+2. Clique em **Adicionar regra de escalonamento**, depois em **Adicionar destinatário**, e escolha o mesmo agendamento em **Próximo da rotação**. Defina **Escalonar após (em minutos)** e clique em **Create Rule**.
+3. Adicione mais um nível para a equipe ou o gerente que deve saber em seguida.
+:::
+
+A próxima pessoa é definida quando o nível é executado, com base no agendamento como ele está nesse momento:
+
+- É a pessoa depois de quem está de plantão, na ordem em que as pessoas da rotação se revezam. Depois da última pessoa vem a primeira de novo.
+- Pessoas ausentes são puladas, havendo ou não alguém que as cubra, assim como quem está de plantão no lugar de outra pessoa.
+- É sempre alguém da mesma rotação: com várias camadas, a camada de onde vem quem está de plantão. Uma rotação sem mais ninguém, ou com todos os outros ausentes, não tem próxima pessoa, e o nível não aciona ninguém ali e informa isso.
+- Quando ninguém está de plantão no agendamento, também não há próxima pessoa, e o nível é tentado de novo por alguns minutos, como acontece com o próprio agendamento.
+
+A mensagem da execução no Slack e no Microsoft Teams, o feed do incidente e a **Linha do tempo de execução** dizem quem foi acionado como o próximo da rotação, e de qual agendamento: "Sam Lee (next in the Payments primary rotation)".
+
+> [!TIP]
+> Um agendamento basta: não há um segundo agendamento de backup para manter em sintonia com o primeiro, e as ausências que as pessoas dele registram valem para os dois níveis.
+
 ## Editar, reordenar e excluir regras
 
 O cartão de cada regra tem **Edit rule** e um menu **⋯** com as outras ações:
@@ -148,6 +178,7 @@ As regras de escalonamento são o recurso `/api/on-call-duty-policy-escalation-r
 - Uma regra criada sem `name` recebe o nome do nível, como no painel: **Level 3** para uma regra que vira o terceiro nível da política. O recurso de regra de escalonamento do Terraform continua exigindo um nome.
 - `escalateAfterInMinutes` não tem padrão fora do painel. Uma regra criada sem ele não espera: o próximo nível é acionado assim que este é executado. Defina-o explicitamente — 30 é o que o painel sugere.
 - Uma regra criada com `onCallSchedules`, `teams` ou `users` (listas de IDs) nos `miscDataProps` recebe esses destinatários; é assim que o seletor **Notificar** do painel os envia. Uma regra criada sem eles não aciona ninguém até você adicionar destinatários pelos recursos acima.
+- Uma regra criada com `nextInRotationSchedules` (uma lista de IDs de agendamentos) nos `miscDataProps` aciona a próxima pessoa da rotação de cada um desses agendamentos. No recurso `-schedule`, uma linha com `pageNextInRotation` igual a `true` faz o mesmo; esse valor é definido quando a linha é criada.
 - As regras com o nome do nível são renomeadas quando você move ou exclui regras no painel. Mudar `order` pela API ou pelo Terraform muda só a ordem.
 - Criar uma política de plantão em `/api/on-call-duty-policy` com `onCallSchedules`, `teams` ou `users` (listas de IDs) nos `miscDataProps` dá a ela a primeira regra de escalonamento, como faz o painel: **Level 1**, que os aciona, com um `escalateAfterInMinutes` de 30. Todo ID precisa pertencer ao projeto e quem chama precisa poder criar regras de escalonamento, senão a política não é criada. Uma política criada sem eles não tem regras, como antes; o recurso de política do Terraform não os envia.
 

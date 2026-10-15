@@ -75,10 +75,32 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
             {translator.translateText(
               props.isMonitorBacked
                 ? `This device has no monitor bound to it, so nothing is reporting its health — it is not polled by a probe at all, and its status stays "Pending" until a monitor is bound. The button below creates a Ping monitor on this device's address and binds it to the device for you. To use a monitor that already exists instead, bind it under Settings → Monitor. To have a probe ping it directly instead, switch it to probe polling under Settings.`
-                : `No monitors are alerting on this device yet. Its probe already pings it on schedule, so it has a status either way — a monitor is what turns a failure into an incident. Create one here, or cover this device and others like it at once with an alert policy under Network settings.`,
+                : `Nothing alerts on this device yet. Its probe already pings it on schedule, so it has a status; an alert policy is what turns a failure into an incident - for this device and every one like it. Or create a monitor for this device alone.`,
             )}
           </p>
-          <div className="mt-4 flex justify-center">
+          <div className="mt-4 flex flex-wrap justify-center gap-3">
+            {/*
+             * The policy first: one covers the whole fleet, the devices added
+             * later too. "Under Network settings" used to be a sentence to
+             * go looking for; it is a button now.
+             */}
+            {!props.isMonitorBacked && (
+              <Button
+                title="Set up alerts"
+                icon={IconProp.Alert}
+                buttonStyle={ButtonStyleType.NORMAL}
+                dataTestId="device-monitors-set-up-alerts"
+                onClick={() => {
+                  Navigation.navigate(
+                    RouteUtil.populateRouteParams(
+                      RouteMap[
+                        PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES
+                      ] as Route,
+                    ),
+                  );
+                }}
+              />
+            )}
             <Button
               title={
                 props.isMonitorBacked ? "Create Ping Monitor" : "Create Monitor"

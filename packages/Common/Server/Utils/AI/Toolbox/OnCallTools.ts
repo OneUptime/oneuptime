@@ -79,6 +79,14 @@ const resolveExecutionLogReadPermissions: () => Array<Permission> =
  * schedule must never render as a silent blank the model glosses over.
  */
 const NO_ONE_ON_CALL: string = "No one is on call";
+
+/*
+ * What a rule that pages the next person in a schedule's rotation pages, for
+ * the assistant: never the person on call (task oncall-escalate-next-in-
+ * rotation).
+ */
+export const NEXT_IN_ROTATION_TARGET_NOTE: string =
+  "next in rotation: the person after whoever is on call, passing over anyone away";
 const SCHEDULE_NOT_ACCESSIBLE: string =
   "Schedule not accessible (no read access or deleted)";
 
@@ -200,6 +208,8 @@ async function fetchEscalationData(
         _id: true,
         onCallDutyPolicyEscalationRuleId: true,
         onCallDutyPolicyScheduleId: true,
+        // Whoever is on call in it, or the next person in its rotation.
+        pageNextInRotation: true,
         onCallDutyPolicySchedule: {
           _id: true,
           name: true,
@@ -251,8 +261,13 @@ async function fetchEscalationData(
     if (!ruleKey) {
       continue;
     }
+    const scheduleName: string =
+      link.onCallDutyPolicySchedule?.name || "Unknown schedule";
+
     getOrCreateTargets(data.targetsByRuleId, ruleKey).schedules.push(
-      link.onCallDutyPolicySchedule?.name || "Unknown schedule",
+      link.pageNextInRotation
+        ? `${scheduleName} (${NEXT_IN_ROTATION_TARGET_NOTE})`
+        : scheduleName,
     );
   }
 
@@ -887,7 +902,25 @@ export const GetOnCallStatusTool: ObservabilityTool = {
             "";
           const schedule: OnCallDutyPolicySchedule | undefined =
             scheduleById.get(linkedScheduleId);
-          if (schedule) {
+          if (schedule && link.pageNextInRotation) {
+            /*
+             * The rule pages the backup after whoever is on call, not them:
+             * said as such, so the row is never read as "pages the person
+             * on call".
+             */
+            const onCallName: string | undefined = nameOf(
+              schedule.currentUserOnRoster,
+            );
+
+            rows.push({
+              scheduleId: schedule.id?.toString(),
+              source: `${ruleLabel} — next in rotation of schedule '${schedule.name || ""}'`,
+              onCallNow: onCallName
+                ? `The person after ${onCallName} in the rotation`
+                : NO_ONE_ON_CALL,
+              note: `Pages the ${NEXT_IN_ROTATION_TARGET_NOTE}`,
+            });
+          } else if (schedule) {
             rows.push(
               scheduleStatusRow(
                 schedule,

@@ -59,7 +59,7 @@ Vá para **Políticas de plantão** e clique em **Criar: Política de plantão**
 
 ### Adicionar os próximos níveis
 
-Na página **Regras de escalonamento** da política, clique em **Adicionar regra de escalonamento** para cada nível depois do primeiro: um segundo agendamento, um líder de equipe, um gerente. Veja [Regras de escalonamento](/docs/on-call/escalation-rules).
+Na página **Regras de escalonamento** da política, clique em **Adicionar regra de escalonamento** para cada nível depois do primeiro: a próxima pessoa da rotação do mesmo agendamento, um líder de equipe, um gerente. Veja [Regras de escalonamento](/docs/on-call/escalation-rules).
 
 ### Executar a política automaticamente
 

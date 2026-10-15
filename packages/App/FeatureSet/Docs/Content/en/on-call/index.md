@@ -59,7 +59,7 @@ Go to **On-Call Policies** and click **Create On-Call Policy**. Under **Who gets
 
 ### Add the next levels
 
-On the policy's **Escalation Rules** page, click **Add Escalation Rule** for each level after the first: a second schedule, a team lead, a manager. See [Escalation Rules](/docs/on-call/escalation-rules).
+On the policy's **Escalation Rules** page, click **Add Escalation Rule** for each level after the first: the next person in the same schedule's rotation, a team lead, a manager. See [Escalation Rules](/docs/on-call/escalation-rules).
 
 ### Run the policy automatically
 

@@ -707,6 +707,67 @@ test("a scan walks two steps, and a ping sweep is one page", async ({
   });
 });
 
+/*
+ * The scan's second step: the credential sets it tries, in order. Its
+ * heading used to read "SNMP Configs" twice (the field and the editor), and
+ * its inputs had no labels a screen reader or getByLabel could find.
+ */
+test("the credentials step says what the list is, and every input has its label", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.goto(`${route}?open=discover-devices`);
+
+  const modal: Locator = page.getByTestId("modal");
+  await expect(
+    modal.getByText("Start New Scan", { exact: true }),
+  ).toBeVisible();
+
+  await modal.getByPlaceholder("192.168.1.0/24").fill("10.20.0.0/24");
+  await page.getByTestId("modal-footer-next-button").click();
+
+  await expect(
+    modal.getByText("Credentials to try", { exact: true }),
+  ).toHaveCount(1);
+  await expect(modal.getByText("SNMP Configs")).toHaveCount(0);
+  await expect(
+    modal.getByText(
+      "The scan tries these in order on every host that answers ping, and keeps the first that works.",
+      { exact: false },
+    ),
+  ).toBeVisible();
+
+  // The first set, named by its number and version until it is given a name.
+  const first: Locator = page.getByTestId("snmp-config-card-0");
+  await expect(first).toContainText("Credentials 1 (V2c)");
+
+  // Every input answers to its label.
+  await expect(first.getByLabel("Name")).toBeVisible();
+  await expect(first.getByLabel("SNMP Community String")).toBeVisible();
+  await expect(first.getByLabel("SNMP Port")).toBeVisible();
+  await expect(first.getByLabel("SNMP Version")).toBeVisible();
+
+  await first.getByLabel("SNMP Community String").fill("campus-ro");
+
+  const addMore: Locator = page.getByTestId("add-snmp-config");
+  await expect(addMore).toHaveText("Add more credentials");
+  await addMore.click();
+
+  const second: Locator = page.getByTestId("snmp-config-card-1");
+  await expect(second).toContainText("Credentials 2 (V2c)");
+  await expect(second.getByLabel("SNMP Community String")).toHaveValue("");
+
+  // A named set is called by its name.
+  await second.getByLabel("Name").fill("Core switches");
+  await expect(second).toContainText("Core switches");
+
+  await page.screenshot({
+    path: path.join(screenshots, "discovery-credentials-to-try.png"),
+    fullPage: false,
+  });
+});
+
 test("Start New Scan fits a narrow screen", async ({
   page,
 }: {

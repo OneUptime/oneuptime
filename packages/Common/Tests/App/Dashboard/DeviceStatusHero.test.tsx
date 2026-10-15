@@ -367,7 +367,16 @@ describe("the device Overview status hero", () => {
         screen.queryByText("Nothing is bound to report on it yet"),
       ).toBeNull();
 
-      expect(screen.getByText("Not monitored")).toBeInTheDocument();
+      /*
+       * Its monitor is bound: there is nothing to set up, only that
+       * monitor's first check to wait for.
+       */
+      expect(
+        screen.getByTestId("device-hero-monitor-waiting"),
+      ).toHaveTextContent("Waiting for its monitor to report");
+      expect(screen.queryByText("No alerts yet")).toBeNull();
+      expect(screen.queryByText("Set up alerts")).toBeNull();
+      expect(screen.queryByText("Not monitored")).toBeNull();
       expect(screen.queryByText("No monitor bound")).toBeNull();
       expect(screen.queryByText("Create Ping monitor")).toBeNull();
       expect(screen.queryByText("Bind a monitor")).toBeNull();
@@ -423,7 +432,20 @@ describe("the device Overview status hero", () => {
         screen.queryByText("Reported by the monitor bound to this device"),
       ).toBeNull();
 
-      expect(screen.getByText("Not monitored")).toBeInTheDocument();
+      /*
+       * Its probe watches it, so it is not "Not monitored" (beside a green
+       * Up that read as a contradiction): what it lacks is an alert, and the
+       * tile links to the policies that add one.
+       */
+      const noAlerts: HTMLElement = screen.getByTestId("device-hero-no-alerts");
+
+      expect(noAlerts).toHaveTextContent("No alerts yet");
+      expect(linkHref("Set up alerts")).toBe(
+        RouteUtil.populateRouteParams(
+          RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES] as Route,
+        ).toString(),
+      );
+      expect(screen.queryByText("Not monitored")).toBeNull();
       expect(screen.queryByText("No monitor bound")).toBeNull();
       expect(screen.queryByText("Create Ping monitor")).toBeNull();
       expect(screen.queryByText("Bind a monitor")).toBeNull();

@@ -34,6 +34,14 @@ import ProductBrandingText from "../ProductBrandingText";
  *   On-call policy PolicyX stopped paging because the incident is
  *     acknowledged or resolved.
  *
+ * A rule that pages the next person in a schedule's rotation - the backup
+ * after whoever is on call - says that is why:
+ *
+ *   On-call policy PolicyX paged Sam Lee at escalation rule Level 2 (next
+ *     in the Primary rotation).
+ *   On-call policy PolicyX paged nobody at escalation rule Level 2: nobody
+ *     was next in the Primary rotation.
+ *
  * The record the run is for is not named: the entries are only ever written
  * to that record's own feed, where a link to it is a link to the page it is
  * on.
@@ -66,6 +74,12 @@ export interface OnCallStepFeedTextInput {
   ruleName?: string | undefined;
   // The schedule the person was on call in, as typed.
   scheduleName?: string | undefined;
+  /*
+   * The person was paged as the next in that schedule's rotation - the
+   * backup after whoever is on call - not as its on-call person; with nobody
+   * paged, nobody was next.
+   */
+  isNextInRotation?: boolean | undefined;
   // The team the person was paged as a member of, as typed.
   teamName?: string | undefined;
   // Who was paged, as a link to them; empty or unset when nobody was.
@@ -150,7 +164,8 @@ const getRuleName: (ruleName: string | undefined) => string = (
 
 /*
  * Where the rule sits: "escalation rule **first** (schedule **Primary**)",
- * with the team the person was paged as a member of.
+ * or "(next in the **Primary** rotation)" for the backup after whoever is on
+ * call, with the team the person was paged as a member of.
  */
 const getRuleClause: (input: OnCallStepFeedTextInput) => MarkdownText = (
   input: OnCallStepFeedTextInput,
@@ -158,11 +173,13 @@ const getRuleClause: (input: OnCallStepFeedTextInput) => MarkdownText = (
   const scheduleName: string = (input.scheduleName || "").trim();
   const teamName: string = (input.teamName || "").trim();
 
-  return mdText`escalation rule **${getRuleName(input.ruleName)}**${
-    scheduleName
-      ? mdText` (schedule **${scheduleName}**)`
-      : FeedMarkdown.empty()
-  }${teamName ? mdText`, as a member of **${teamName}**` : FeedMarkdown.empty()}`;
+  const schedule: MarkdownText = !scheduleName
+    ? FeedMarkdown.empty()
+    : input.isNextInRotation
+      ? mdText` (next in the **${scheduleName}** rotation)`
+      : mdText` (schedule **${scheduleName}**)`;
+
+  return mdText`escalation rule **${getRuleName(input.ruleName)}**${schedule}${teamName ? mdText`, as a member of **${teamName}**` : FeedMarkdown.empty()}`;
 };
 
 // A message as a sentence of its own, ending once.
@@ -206,9 +223,11 @@ const getStepHeadline: (input: OnCallStepFeedTextInput) => MarkdownText = (
 
   if (!hasMarkdown(input.recipient)) {
     const scheduleName: string = (input.scheduleName || "").trim();
-    const reason: MarkdownText = scheduleName
-      ? mdText`nobody was on call in schedule **${scheduleName}**`
-      : mdText`this escalation rule has no responders`;
+    const reason: MarkdownText = !scheduleName
+      ? mdText`this escalation rule has no responders`
+      : input.isNextInRotation
+        ? mdText`nobody was next in the **${scheduleName}** rotation`
+        : mdText`nobody was on call in schedule **${scheduleName}**`;
 
     return mdText`${policy} paged nobody at escalation rule **${getRuleName(input.ruleName)}**: ${reason}.`;
   }

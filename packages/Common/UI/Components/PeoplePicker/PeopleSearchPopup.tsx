@@ -464,11 +464,16 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
                   const isPicked: boolean = props.selectedKeys.has(key);
                   const isActive: boolean = index === clampedActiveIndex;
                   const isPending: boolean = pendingKey === key;
+                  /*
+                   * A person's email, else what picking the row does, else
+                   * what kind of record it is.
+                   */
+                  const kindSubtitle: string | undefined =
+                    group.definition.searchSubtitle || group.definition.tag;
                   const subtitle: string | undefined =
                     row.description ||
-                    (group.definition.tag
-                      ? translateString(group.definition.tag) ||
-                        group.definition.tag
+                    (kindSubtitle
+                      ? translateString(kindSubtitle) || kindSubtitle
                       : undefined);
 
                   return (

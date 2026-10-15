@@ -19,6 +19,7 @@ flowchart TB
 - [Who gets paged first](#who-gets-paged-first): Create a policy with its first level.
 - [Adding an escalation rule](#adding-an-escalation-rule): Add the next level, step by step.
 - [How the levels page people](#how-the-levels-page-people): Timing, repeats, and how each person is reached.
+- [The next person in the rotation](#escalating-to-the-next-person-in-the-rotation): Page the on-call person's backup from the same rotation.
 - [API and Terraform](#creating-rules-with-the-api-or-terraform): Create policies and rules as code.
 :::
 
@@ -49,6 +50,7 @@ Under **Notify**, click **Add responder**, search, and pick as many on-call sche
 | Responder | Who is paged when the level runs |
 | --- | --- |
 | An **on-call schedule** | Whoever is on call in it when the level runs, not a fixed person. |
+| A schedule's **Next in rotation** | The person after whoever is on call in it, from the same rotation. See [Escalating to the next person in the rotation](#escalating-to-the-next-person-in-the-rotation). |
 | A **team** | Every member of the team. |
 | A **person** | That person, directly. |
 
@@ -133,6 +135,34 @@ On OneUptime Cloud each SMS, call, WhatsApp and Telegram message is paid from th
 > [!IMPORTANT]
 > SMS, phone calls, WhatsApp and Telegram start off in a new project: on OneUptime Cloud every message is paid from the project's balance, and a self-hosted installation needs a Twilio account or a Telegram bot set up first. Until a channel is on, nobody in the project can add a method on it. Only a project owner, a **Billing Admin** or someone with the **Manage Billing** permission can turn one on, in the **Notification Channels** card on **Project Settings > Notifications > Notification Settings** — a project admin cannot. Everyone else is told exactly who can, wherever a channel is off: above their own list of methods on it, on their setup checklist, and in the message they get when something needs it.
 
+## Escalating to the next person in the rotation
+
+A level can page the next person in an on-call schedule's rotation: the person after whoever is on call in it. So a policy can page the on-call person first, then their backup from the same rotation, then a team or a manager, all from one schedule.
+
+| Level | Notify | Who is paged |
+| --- | --- | --- |
+| **Level 1** | The Payments primary schedule | Whoever is on call in it, say Alex |
+| **Level 2** | The same schedule's **Next in rotation** | The person after Alex in the rotation, say Sam |
+| **Level 3** | The Platform team | Every member of the team |
+
+:::steps
+1. Make sure the policy's first level, **Level 1**, notifies the on-call schedule.
+2. Click **Add Escalation Rule**, then **Add responder**, and pick the same schedule under **Next in rotation**. Set **Escalate after (in minutes)** and click **Create Rule**.
+3. Add one more level for the team or the manager who should hear next.
+:::
+
+The next person is worked out when the level runs, from the schedule as it is then:
+
+- It is the person after whoever is on call, in the order the rotation's people take turns. After the last person comes the first again.
+- People who are away are passed over, whether or not someone covers for them, and so is anyone on call in someone else's place.
+- It is always someone from the same rotation: with several layers, the layer whoever is on call comes from. A rotation with nobody else in it, or with everybody else away, has nobody next, and the level pages nobody there and says so.
+- When nobody is on call in the schedule at all, nobody is next either, and the level is tried again for a few minutes, as for the schedule itself.
+
+The run's message in Slack and Microsoft Teams, the incident's feed and the run's **Execution Timeline** say who was paged as the next in the rotation, and from which schedule: "Sam Lee (next in the Payments primary rotation)".
+
+> [!TIP]
+> One schedule is all it takes: there is no second, backup schedule to keep in step with the first, and the time away its people book counts for both levels.
+
 ## Editing, reordering and deleting rules
 
 Each rule's card has **Edit rule**, and a **⋯** menu with the other actions:
@@ -148,6 +178,7 @@ Escalation rules are the `/api/on-call-duty-policy-escalation-rule` resource; th
 - A rule created without a `name` is named after its level, as in the dashboard: **Level 3** for a rule that becomes the third level of its policy. Terraform's escalation rule resource still takes a name.
 - `escalateAfterInMinutes` has no default outside the dashboard. A rule created without it does not wait: the next level is paged as soon as this one has run. Set it explicitly — 30 is what the dashboard suggests.
 - A rule created with `onCallSchedules`, `teams` or `users` (lists of ids) in its `miscDataProps` gets those responders, which is how the dashboard's **Notify** picker sends them. A rule created without them pages nobody until you add responders through the resources above.
+- A rule created with `nextInRotationSchedules` (a list of schedule ids) in its `miscDataProps` pages the next person in each of those schedules' rotations. On the `-schedule` resource, a row with `pageNextInRotation` set to `true` does the same; it is set when the row is created.
 - Renaming rules that are named after their level happens when you move or delete rules in the dashboard. Changing `order` through the API or Terraform changes only the order.
 - Creating an on-call policy at `/api/on-call-duty-policy` with `onCallSchedules`, `teams` or `users` (lists of ids) in its `miscDataProps` gives it its first escalation rule, as the dashboard does: **Level 1**, paging them, with an `escalateAfterInMinutes` of 30. Every id must belong to the project and the caller must be allowed to create escalation rules, or the policy is not created. A policy created without them has no rules, as before; Terraform's policy resource does not send them.
 

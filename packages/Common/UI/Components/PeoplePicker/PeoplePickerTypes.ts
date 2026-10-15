@@ -39,6 +39,12 @@ export enum PeoplePickerKind {
   // Pages whoever is on call in it: an escalation rule's responders.
   OnCallSchedule = "onCallSchedule",
   /*
+   * An on-call schedule again, paging the next person in its rotation - the
+   * person after whoever is on call - instead: an escalation rule's backup
+   * from the same rotation. The id is the schedule's.
+   */
+  OnCallScheduleNextInRotation = "onCallScheduleNextInRotation",
+  /*
    * Runs its escalation rules: what a workflow's Page an On-Call Policy step
    * pages. Not people, but picked the way they are.
    */
