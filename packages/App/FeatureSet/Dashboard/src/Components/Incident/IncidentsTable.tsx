@@ -23,6 +23,8 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useBulkAddToEpisodeActions from "../EpisodeMembers/BulkAddToEpisodeActions";
+import { INCIDENT_EPISODE_MEMBER_KIND } from "../EpisodeMembers/EpisodeMemberKinds";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
@@ -190,6 +192,10 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
       ownerTeamModelType: IncidentOwnerTeam,
       resourceIdField: "incidentId",
     });
+
+  // Add to Existing Episode / Add to New Episode.
+  const { bulkActions: episodeBulkActions, modals: episodeBulkActionModals } =
+    useBulkAddToEpisodeActions<Incident>(INCIDENT_EPISODE_MEMBER_KIND);
 
   const incidentExtraFacets: Array<ResourceFacet> = [
     {
@@ -630,6 +636,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             getBulkChangeStateAction(),
             ...labelBulkActions,
             ...ownerBulkActions,
+            ...episodeBulkActions,
             ModalTableBulkDefaultActions.Delete,
           ],
         }}
@@ -1142,6 +1149,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
       {labelBulkActionModals}
       {ownerBulkActionModals}
+      {episodeBulkActionModals}
 
       {showBulkStateChangeModal && (
         <BulkChangeStateModal

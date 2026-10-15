@@ -141,7 +141,7 @@ On **On-Call & Owners**, pick an **On-Call Policy** to run when the episode is c
 
 ### Add the alerts
 
-Open the episode's **Member Alerts** page and add the alerts that belong to it, one at a time.
+Open the episode's **Member Alerts** page, click **Add Alerts** and tick the alerts that belong to it, as many as you need at once. To start from the alerts instead, select them on the **Alerts** list and choose **Add to New Episode** under **Bulk Actions** (see [Episodes](/docs/incidents/episodes)).
 :::
 
 An episode you create has no grouping rule, so the list shows its **Grouping Rule** as **Manual**, and no lifecycle setting applies to it. It still resolves itself once every alert in it is resolved.

@@ -878,9 +878,13 @@ describe("Incident docs", () => {
       );
       expect(episodeMembers).toMatch(/title: incident\?\.title,/);
       expect(episodeMembers).toMatch(/title: episode\?\.title,/);
+      /*
+       * Joining, leaving, and the one entry for several joining at once
+       * (EpisodeMembersBatch), which names each through the same helper.
+       */
       expect(
         (episodeMembers.match(/describeIncident\(incident\)/g) || []).length,
-      ).toBe(2);
+      ).toBe(3);
       expect(
         (episodeMembers.match(/describeEpisode\(episode\)/g) || []).length,
       ).toBe(2);
