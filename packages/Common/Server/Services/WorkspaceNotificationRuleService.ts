@@ -2643,6 +2643,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         notificationRules: data.notificationRules,
         channelNameSiffix: data.channelNameSiffix,
         notificationEventType: data.notificationEventType,
+        workspaceType: data.workspaceType,
       });
 
     logger.debug("New channel names to be created:", {
@@ -2672,16 +2673,35 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       return [];
     }
 
+    const workspaceUtil: typeof WorkspaceBase =
+      WorkspaceUtil.getWorkspaceTypeUtil(data.workspaceType);
+
     for (const notificationChannel of notificationChannels) {
+      // The team a Microsoft Teams channel is created in: the rule's, or the project's.
+      let teamId: string | undefined = notificationChannel.teamId;
+
+      if (
+        !teamId &&
+        data.workspaceType === WorkspaceType.MicrosoftTeams &&
+        projectAuth.miscData?.["teamId"]
+      ) {
+        teamId = projectAuth.miscData["teamId"];
+      }
+
       /*
-       * A channel created already has the name asked for: Slack lower-cases
-       * names, so one rule's "Incident-" creates the channel another rule's
-       * "incident-" asks for. That channel is these rules' channel too.
+       * A channel created already is the one asked for, as the workspace
+       * creates names: Slack lower-cases names and drops the characters it
+       * does not take, so one rule's "Incident-" creates the channel another
+       * rule's "incident-" asks for, and asking Slack for it again fails
+       * (name_taken). That channel is these rules' channel too.
        */
       const createdChannel: NotificationRuleWorkspaceChannel | undefined =
         createdWorkspaceChannels.find(
           (channel: NotificationRuleWorkspaceChannel) => {
-            return channel.name === notificationChannel.channelName;
+            return workspaceUtil.isSameChannelToCreate(
+              { channelName: channel.name, teamId: channel.teamId },
+              { channelName: notificationChannel.channelName, teamId: teamId },
+            );
           },
         );
 
@@ -2726,13 +2746,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         createChannelData.isPrivate = true;
       }
 
-      if (notificationChannel.teamId) {
-        createChannelData.teamId = notificationChannel.teamId;
-      } else if (
-        data.workspaceType === WorkspaceType.MicrosoftTeams &&
-        projectAuth.miscData?.["teamId"]
-      ) {
-        createChannelData.teamId = projectAuth.miscData["teamId"];
+      if (teamId) {
+        createChannelData.teamId = teamId;
       }
 
       // Ensure teamId is set for Microsoft Teams
@@ -2746,9 +2761,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       }
 
       const channel: WorkspaceChannel =
-        await WorkspaceUtil.getWorkspaceTypeUtil(
-          data.workspaceType,
-        ).createChannel(createChannelData);
+        await workspaceUtil.createChannel(createChannelData);
 
       const notificationWorkspaceChannel: NotificationRuleWorkspaceChannel = {
         ...channel,
@@ -3079,12 +3092,22 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationEventType: NotificationRuleEventType;
     notificationRules: Array<WorkspaceNotificationRule>;
     channelNameSiffix: string;
+    /*
+     * The workspace the channels are created in: names it creates as one
+     * channel are asked for once (isSameChannelToCreate). Without it, only
+     * the same name is.
+     */
+    workspaceType?: WorkspaceType | undefined;
   }): Array<NotificationRuleChannelToCreate> {
     logger.debug(
       "getnotificationChannelssFromNotificationRules called with data:",
       {} as LogAttributes,
     );
     logger.debug(data, {} as LogAttributes);
+
+    const workspaceUtil: typeof WorkspaceBase = data.workspaceType
+      ? WorkspaceUtil.getWorkspaceTypeUtil(data.workspaceType)
+      : WorkspaceBase;
 
     const channels: Array<NotificationRuleChannelToCreate> = [];
 
@@ -3122,12 +3145,20 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         const notificationRuleId: string =
           notificationRule.id!.toString() || "";
 
-        const sameNameChannel: NotificationRuleChannelToCreate | undefined =
+        /*
+         * Names the workspace creates as one channel are one channel: Slack
+         * creates "Incidents-INC-9" and "incidents -inc-9" as
+         * "incidents-inc-9", and refuses to create it a second time.
+         */
+        const sameChannel: NotificationRuleChannelToCreate | undefined =
           channels.find((channel: NotificationRuleChannelToCreate) => {
-            return channel.channelName === channelName;
+            return workspaceUtil.isSameChannelToCreate(channel, {
+              channelName: channelName,
+              teamId: workspaceRules.teamToCreateChannelIn || undefined,
+            });
           });
 
-        if (!sameNameChannel) {
+        if (!sameChannel) {
           // if channel name is not already added then add it.
           const channelData: NotificationRuleChannelToCreate = {
             channelName: channelName,
@@ -3151,14 +3182,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
            * pages) are invited to it. Only the first rule's id used to be
            * kept, so the other rules' people never joined the channel.
            */
-          if (
-            !sameNameChannel.notificationRuleIds.includes(notificationRuleId)
-          ) {
-            sameNameChannel.notificationRuleIds.push(notificationRuleId);
+          if (!sameChannel.notificationRuleIds.includes(notificationRuleId)) {
+            sameChannel.notificationRuleIds.push(notificationRuleId);
           }
 
           logger.debug(
-            `Channel name ${channelName} already exists in the list. Adding the rule to it.`,
+            `Channel name ${channelName} is the channel ${sameChannel.channelName} already in the list. Adding the rule to it.`,
             {} as LogAttributes,
           );
         }
