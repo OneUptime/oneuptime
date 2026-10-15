@@ -196,7 +196,7 @@ describe("the vendor template offer on a device's Overview", () => {
       deviceRow({
         sysObjectId: CAMBIUM_CNMATRIX_OID,
         snmpOids: cnMatrix().oids,
-        snmpTables: cnMatrix().tables,
+        snmpTables: cnMatrix().tables || [],
       }) as never,
     );
 

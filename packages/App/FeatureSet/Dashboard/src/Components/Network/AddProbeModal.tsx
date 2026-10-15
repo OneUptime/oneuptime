@@ -311,15 +311,14 @@ const AddProbeModal: FunctionComponent<ComponentProps> = (
       title="Run the probe"
       modalWidth={ModalWidth.Medium}
       /*
-       * One button: the probe exists already, so there is nothing to cancel.
-       * "Close" while it is waiting - the first-run step keeps waiting - and
-       * "Done", the primary action, once it has checked in.
+       * One button, a plain way out: the probe exists already, so there is
+       * nothing to cancel and nothing left to do here. "Close" while it is
+       * waiting - the first-run step keeps waiting - and "Done" once it has
+       * checked in; the green line above says so.
        */
       onClose={props.onClose}
       closeButtonText={isConnected ? "Done" : "Close"}
-      closeButtonStyleType={
-        isConnected ? ButtonStyleType.PRIMARY : ButtonStyleType.NORMAL
-      }
+      closeButtonStyleType={ButtonStyleType.NORMAL}
       error={error || undefined}
     >
       <div className="space-y-4" data-testid="add-probe-run-step">
