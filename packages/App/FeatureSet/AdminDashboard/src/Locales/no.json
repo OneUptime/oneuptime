@@ -358,7 +358,16 @@
       "amountTooPrecise": "Beløpet kan ikke ha mer enn to desimaler.",
       "reasonRequired": "Vennligst angi en årsak for denne justeringen.",
       "adjustBalanceStepBalance": "Saldo",
-      "adjustBalanceStepAmount": "Beløp og årsak"
+      "adjustBalanceStepAmount": "Beløp og årsak",
+      "monitorLimitCardTitle": "Aktive monitorer",
+      "monitorLimitCardDescription": "Alle monitorer unntatt manuelle teller med, slått på eller ikke. Ved grensen kan prosjektet ikke legge til flere, og de det har, fortsetter å kjøre. Et abonnement kjøpt hos en forhandler fastsetter denne grensen, og forhandlerens neste nivåendring overskriver den. Prosjekter på Free-abonnementet er også underlagt Free-abonnementets grense.",
+      "monitorLimitEditButton": "Rediger monitorgrense",
+      "fieldActiveMonitors": "Aktive monitorer",
+      "fieldMonitorLimit": "Grense for aktive monitorer",
+      "fieldMonitorLimitDescription": "Det høyeste antallet aktive monitorer dette prosjektet kan ha. La feltet stå tomt for ingen grense.",
+      "noMonitorLimit": "Ingen grense",
+      "overMonitorLimit": "{{over}} over grensen",
+      "atMonitorLimit": "Ved grensen"
     },
     "projectSupport": {
       "title": "Tilgang for kundestøtte",

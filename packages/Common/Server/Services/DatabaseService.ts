@@ -8,6 +8,7 @@ import AggregateBy, {
 import CountBy from "../Types/Database/CountBy";
 import FindAllBy from "../Types/Database/FindAllBy";
 import CreateBy from "../Types/Database/CreateBy";
+import CreateLimit from "../Types/Database/CreateLimit";
 import DeleteBy from "../Types/Database/DeleteBy";
 import DeleteById from "../Types/Database/DeleteById";
 import DeleteOneBy from "../Types/Database/DeleteOneBy";
@@ -43,6 +44,7 @@ import ReadPermission, {
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import QueryUtil from "../Types/Database/QueryUtil";
+import UUIDColumnFilter from "../Types/Database/UUIDColumnFilter";
 import RelationSelect from "../Types/Database/RelationSelect";
 import SearchBy from "../Types/Database/SearchBy";
 import SearchResult from "../Types/Database/SearchResult";
@@ -56,6 +58,7 @@ import PasswordHash from "../Utils/PasswordHash";
 import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import { StatementContext } from "../Utils/Database/StatementOutcome";
 import WriteProgress from "../Utils/Database/WriteProgress";
+import ProjectLimitLock from "../Utils/Database/ProjectLimitLock";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ConfigLogLevel from "../Types/ConfigLogLevel";
 import BaseService from "./BaseService";
@@ -1280,6 +1283,47 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
+   * A limit on how many records of this kind the project may have, as this
+   * create is held to it, or null when none is (Types/Database/CreateLimit).
+   * The create's INSERT is then decided with it, in one transaction holding
+   * the limit's lock (insertWithinCreateLimit), so two creates at the limit
+   * cannot both pass. Asked of every create, one that skips its hooks too -
+   * a limit holds on every path - right before the INSERT, once every
+   * check and hook has passed. Reads what the limit is; the count is the
+   * CreateLimit's own, made under the lock.
+   */
+  protected async getCreateLimit(
+    _createBy: CreateBy<TBaseModel>,
+  ): Promise<CreateLimit | null> {
+    return null;
+  }
+
+  /*
+   * The INSERT of a create held to a limit (getCreateLimit): one
+   * transaction takes the limit's lock in the project, asks the limit
+   * whether the project has room, and inserts the record. The count is so
+   * read once every earlier create held to the same limit has committed
+   * (ProjectLimitLock). A refusal rolls the transaction back: the record is
+   * never written.
+   */
+  private async insertWithinCreateLimit(
+    record: TBaseModel,
+    createLimit: CreateLimit,
+  ): Promise<TBaseModel> {
+    return await ProjectLimitLock.run({
+      limitName: createLimit.limitName,
+      projectId: createLimit.projectId,
+      run: async (manager: EntityManager): Promise<TBaseModel> => {
+        await createLimit.check(manager);
+
+        return await manager
+          .getRepository<TBaseModel>(this.modelType.name)
+          .save(record);
+      },
+    });
+  }
+
+  /*
    * BasicForm wraps every FormFieldSchemaType.Password value in a HashedString
    * before submit, so a model form can post one straight at a hashed column.
    * The same field also collects secrets that are stored rather than hashed —
@@ -1392,6 +1436,48 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     if (error) {
       throw new BadDataException(error);
+    }
+  }
+
+  /*
+   * Every ID a write gives - an ID column's value, the records a relation
+   * names - as text Postgres reads as a uuid, or the write is refused with
+   * one plain message naming the column ('Invalid ID for "monitorId" in the
+   * data: "abc". An ID is a UUID, ...'), before any hook runs and before
+   * anything is written. A serialized ObjectID - as an object, or as the
+   * JSON text a workflow writes for a quoted reference - is written as the
+   * id it holds. Such a value used to reach the database, often first in a
+   * lookup a check or a hook made with it, and come back as a bare 500. The
+   * rule is the one a filter is held to; see
+   * UUIDColumnFilter.normalizeWrittenValue. Asked right after the boolean
+   * check, so a caller who may not write at all is told that first.
+   */
+  private refuseUnstorableIdValues(data: unknown): void {
+    if (!data || typeof data !== "object") {
+      return;
+    }
+
+    const record: Record<string, unknown> = data as Record<string, unknown>;
+
+    for (const columnName of Object.keys(record)) {
+      const column: TableColumnMetadata | undefined =
+        this.model.getTableColumnMetadata(columnName);
+
+      if (!column) {
+        continue;
+      }
+
+      const value: unknown = record[columnName];
+
+      const written: unknown = UUIDColumnFilter.normalizeWrittenValue({
+        columnName: columnName,
+        column: column,
+        value: value,
+      });
+
+      if (written !== value) {
+        record[columnName] = written;
+      }
     }
   }
 
@@ -5218,6 +5304,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     // A switch the database would refuse, in one plain sentence. See the helper.
     this.refuseUnstorableBooleanValues(createBy.data);
 
+    // So is an ID the database would not read as one. See the helper.
+    this.refuseUnstorableIdValues(createBy.data);
+
     this.unwrapHashedStringsForUnhashedColumns(createBy.data);
 
     // Who did something to the record is OneUptime's to say. See the helper.
@@ -5435,6 +5524,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     // Whatever has written to it since the top of create(), this must INSERT.
     this.assertCreateWillInsert(createBy.data, createBy.props);
 
+    // A limit on how many the project may have, decided with the INSERT. See the hook.
+    const createLimit: CreateLimit | null = await this.getCreateLimit(createBy);
+
     /*
      * Whether the caller's permission let this create through only as one
      * they will own (createReliesOnOwnership), on a model with owner rows of
@@ -5446,10 +5538,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       OwnedScopePermission.hasOwnerTables(this.modelType);
 
     try {
-      // The INSERT itself, in save()'s own transaction.
+      /*
+       * The INSERT itself, in save()'s own transaction - or, held to a
+       * limit, in the one that decides it (insertWithinCreateLimit).
+       */
       createBy.data = await handedBack.progress.write(
         true,
         async (): Promise<TBaseModel> => {
+          if (createLimit) {
+            return await this.insertWithinCreateLimit(
+              createBy.data,
+              createLimit,
+            );
+          }
+
           return await this.getRepository().save(createBy.data);
         },
       );
@@ -8680,6 +8782,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       // A switch the database would refuse, in one plain sentence. See the helper.
       this.refuseUnstorableBooleanValues(updateBy.data);
+
+      // So is an ID the database would not read as one. See the helper.
+      this.refuseUnstorableIdValues(updateBy.data);
 
       /*
        * Defense in depth for the tenant confused-deputy on the update path.

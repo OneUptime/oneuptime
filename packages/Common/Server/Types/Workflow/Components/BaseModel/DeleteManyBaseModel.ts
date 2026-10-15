@@ -14,6 +14,7 @@ import ComponentMetadata, {
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import { normalizeModelKeys } from "./ModelArguments";
 import logComponentError from "./LogComponentError";
+import { assertIdsAreResolved } from "./UnresolvedIdReference";
 import logRowsKeptByDelete from "./LogRowsKeptByDelete";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 
@@ -93,6 +94,14 @@ export default class DeleteManyBaseModel<
         );
       }
 
+      // An ID still written as a {{...}} reference stops the step. See the helper.
+      assertIdsAreResolved({
+        json: args["query"] as JSONObject,
+        model: this.modelService.getModel(),
+        metadata: this.getMetadata(),
+        argumentId: "query",
+      });
+
       if (args["skip"] && typeof args["skip"] === "string") {
         args["skip"] = parseInt(args["skip"]);
       }
@@ -168,7 +177,8 @@ export default class DeleteManyBaseModel<
         executePort: successPort,
       };
     } catch (err: any) {
-      logComponentError({
+      // Said in the run log, and again under the step's Error output.
+      const reason: string = logComponentError({
         error: err,
         model: this.modelService?.getModel() || null,
         log: options.log,
@@ -178,6 +188,7 @@ export default class DeleteManyBaseModel<
       return {
         returnValues: {},
         executePort: errorPort,
+        executePortReason: reason,
       };
     }
   }

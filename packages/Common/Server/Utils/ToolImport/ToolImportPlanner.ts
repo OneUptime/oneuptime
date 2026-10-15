@@ -98,6 +98,9 @@ import ToolImportRecordIndex from "./ToolImportRecordIndex";
  *  - The project's plan counts monitors that are checked, status pages and
  *    subscribers as it counts hand-made ones (planRoomByKind): what does
  *    not fit is skipped with the plan's limit. Manual monitors are free.
+ *    Monitors are held to the Free plan's limit or to the project's own
+ *    (a plan bought from a reseller), as every monitor create is
+ *    (ActiveMonitorLimit).
  *  - A monitor paused in the tool is offered unticked, and status page
  *    subscribers are always offered unticked: they come over only when the
  *    person ticks them and confirms they may move them.
@@ -154,6 +157,12 @@ export interface ToolImportProjectState {
 export interface ToolImportPlanRoom {
   room: number;
   limit: number;
+  /*
+   * What a skipped item is told, when not the kind's own plan-limit note
+   * (PLAN_LIMIT_NOTE_CODES): the monitors of a project whose own plan caps
+   * them (ToolImportNoteCode.MonitorLimitReached).
+   */
+  noteCode?: ToolImportNoteCode | undefined;
 }
 
 export interface ToolImportAccess {
@@ -166,9 +175,10 @@ export interface ToolImportAccess {
   // The project is on the Free plan of a billed install: one level per policy.
   isLimitedToOneLevelPerPolicy: boolean;
   /*
-   * Kinds the project's plan counts (monitors, status pages and
-   * subscribers on the Free plan of a billed install): how many more fit.
-   * A kind not here has no such limit.
+   * Kinds the project's plan counts (status pages and subscribers on the
+   * Free plan of a billed install, and monitors that are checked wherever
+   * the plan caps them): how many more fit. A kind not here has no such
+   * limit.
    */
   planRoomByKind?: Map<ToolImportResourceKind, ToolImportPlanRoom> | undefined;
   /*
@@ -803,7 +813,9 @@ class PlanBuilder {
 
     if (used >= room.room) {
       return makeToolImportNote(
-        PLAN_LIMIT_NOTE_CODES[kind] || ToolImportNoteCode.OverLimit,
+        room.noteCode ||
+          PLAN_LIMIT_NOTE_CODES[kind] ||
+          ToolImportNoteCode.OverLimit,
         { limit: room.limit },
       );
     }

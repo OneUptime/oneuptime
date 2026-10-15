@@ -316,8 +316,9 @@ test.describe("Monitor Creation - Representative Types", () => {
        * This suite creates one monitor of every type in a single project. On
        * the Free plan, non-Manual monitors are capped
        * (AllowedActiveMonitorCountInFreePlan), so once the suite passes that
-       * count the remaining creates fail with "reached the maximum allowed
-       * monitor limit" and the wizard stalls on /monitors/create. That cap
+       * count the remaining creates fail with "This project has reached the
+       * Free plan's limit of 10 active monitors" (ActiveMonitorLimit) and the
+       * wizard stalls on /monitors/create. That cap
        * only applies to the Free plan, so when billing is enabled land the
        * project on a paid plan — the same reason MonitorIncidentOnCall picks
        * Growth. With billing disabled there is no limit and no plan step.

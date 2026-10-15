@@ -32,9 +32,11 @@ import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredEx
 import { JSONObject } from "../../../Types/JSON";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
-import MonitorType, {
-  MonitorTypeHelper,
-} from "../../../Types/Monitor/MonitorType";
+import MonitorType from "../../../Types/Monitor/MonitorType";
+import ActiveMonitorLimitUtil, {
+  ActiveMonitorLimitKind,
+  ActiveMonitorLimitStatus,
+} from "../../../Types/Monitor/ActiveMonitorLimit";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
@@ -59,7 +61,6 @@ import { ToolImportInviteTeam } from "../../../Types/ToolImport/ToolImportPlan";
 import ToolImportResourceKind from "../../../Types/ToolImport/ToolImportResourceKind";
 import ToolImportSource from "../../../Types/ToolImport/ToolImportSource";
 import {
-  AllowedActiveMonitorCountInFreePlan,
   AllowedStatusPageCountInFreePlan,
   AllowedSubscribersCountInFreePlan,
   getAllEnvVars,
@@ -85,6 +86,8 @@ import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
 import ModelPermission from "../../Types/Database/Permissions/Index";
 import BillingPermissions from "../../Types/Database/Permissions/BillingPermission";
 import PlanGates from "../../Types/Database/Permissions/PlanGates";
+import ActiveMonitorLimit from "../Billing/ActiveMonitorLimit";
+import logger from "../Logger";
 import CallerPlan from "../Billing/CallerPlan";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import {
@@ -706,12 +709,27 @@ export default class ToolImportProjectStateReader {
         ? await this.readFreePlanRoom({
             projectId: data.projectId,
             kinds: [
-              ToolImportResourceKind.Monitor,
               ToolImportResourceKind.StatusPage,
               ToolImportResourceKind.StatusPageSubscriber,
             ].filter(brings),
           })
         : new Map<ToolImportResourceKind, ToolImportPlanRoom>();
+
+    /*
+     * Monitors that are checked, against the plan's limit on active
+     * monitors - the Free plan's, or the project's own when it bought its
+     * plan from a reseller - counted as every monitor create counts them
+     * (ActiveMonitorLimit), whoever imports: the creates are held to it.
+     */
+    if (brings(ToolImportResourceKind.Monitor)) {
+      const monitorRoom: ToolImportPlanRoom | null = await this.readMonitorRoom(
+        data.projectId,
+      );
+
+      if (monitorRoom) {
+        planRoomByKind.set(ToolImportResourceKind.Monitor, monitorRoom);
+      }
+    }
 
     /*
      * On a billed install, a monitor that is checked has usage charges
@@ -789,10 +807,48 @@ export default class ToolImportProjectStateReader {
   }
 
   /*
-   * How many more monitors that are checked, status pages and subscribers
-   * the Free plan has room for in the project, counted exactly as their
-   * own creates count them (MonitorService, StatusPageService and
-   * StatusPageSubscriberService onBeforeCreate).
+   * How many more monitors that are checked the project's plan has room
+   * for, and which limit says so; null when its plan sets none
+   * (ActiveMonitorLimit). Null too when the plan cannot be read - a billed
+   * project still being set up has none yet: the preview then shows no
+   * room to count, and every monitor the import makes is still held to
+   * the limit by its own create.
+   */
+  private static async readMonitorRoom(
+    projectId: ObjectID,
+  ): Promise<ToolImportPlanRoom | null> {
+    let status: ActiveMonitorLimitStatus;
+
+    try {
+      status = await ActiveMonitorLimit.getStatus(projectId);
+    } catch (error) {
+      logger.warn(
+        `ToolImport: could not read the active monitor limit of project ${projectId.toString()}: ${error}`,
+      );
+      return null;
+    }
+
+    if (!status.limit || status.activeMonitors === null) {
+      return null;
+    }
+
+    return {
+      room: ActiveMonitorLimitUtil.getRoom({
+        limit: status.limit.limit,
+        activeMonitors: status.activeMonitors,
+      }),
+      limit: status.limit.limit,
+      noteCode:
+        status.limit.kind === ActiveMonitorLimitKind.FreePlan
+          ? ToolImportNoteCode.MonitorPlanLimit
+          : ToolImportNoteCode.MonitorLimitReached,
+    };
+  }
+
+  /*
+   * How many more status pages and subscribers the Free plan has room for
+   * in the project, counted exactly as their own creates count them
+   * (StatusPageService and StatusPageSubscriberService onBeforeCreate).
    */
   private static async readFreePlanRoom(data: {
     projectId: ObjectID;
@@ -812,24 +868,6 @@ export default class ToolImportProjectStateReader {
     ): ToolImportPlanRoom => {
       return { room: Math.max(0, limit - used.toNumber()), limit: limit };
     };
-
-    if (data.kinds.includes(ToolImportResourceKind.Monitor)) {
-      room.set(
-        ToolImportResourceKind.Monitor,
-        roomOf(
-          AllowedActiveMonitorCountInFreePlan,
-          await MonitorService.countBy({
-            query: {
-              projectId: data.projectId,
-              monitorType: QueryHelper.any(
-                MonitorTypeHelper.getActiveMonitorTypes(),
-              ),
-            },
-            props: { isRoot: true },
-          }),
-        ),
-      );
-    }
 
     if (data.kinds.includes(ToolImportResourceKind.StatusPage)) {
       room.set(

@@ -3,6 +3,7 @@ import MonitorService, {
   Service as MonitorServiceType,
 } from "../Services/MonitorService";
 import MonitorStatusTimelineService from "../Services/MonitorStatusTimelineService";
+import ActiveMonitorLimit from "../Utils/Billing/ActiveMonitorLimit";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -15,6 +16,9 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
 import OneUptimeDate from "../../Types/Date";
+import ActiveMonitorLimitUtil, {
+  ActiveMonitorLimitStatus,
+} from "../../Types/Monitor/ActiveMonitorLimit";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import { MonitorUptimeSummary } from "../../Types/Monitor/MonitorUptimeSummary";
 import ObjectID from "../../Types/ObjectID";
@@ -23,6 +27,54 @@ import MonitorUptimeSummaryUtil from "../../Utils/Monitor/MonitorUptimeSummaryUt
 export default class MonitorAPI extends BaseAPI<Monitor, MonitorServiceType> {
   public constructor() {
     super(Monitor, MonitorService);
+
+    /*
+     * GET /monitor/active-monitor-limit
+     *
+     * The project's limit on active monitors and, when it has one, how many
+     * it has (ActiveMonitorLimit.getStatus), for the dashboard to say so on
+     * the monitor list and the Create Monitor page before anyone fills in a
+     * form the server would refuse. A project with no limit is answered
+     * without counting anything.
+     *
+     * For a member of the project who may read its monitors. The count is
+     * of every active monitor in the project, as the refusal of a create
+     * says it: one number, which tells nothing of the monitors themselves.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/active-monitor-limit`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const databaseProps: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
+
+          CommonAPI.assertCanReadTable({
+            modelType: Monitor,
+            props: databaseProps,
+            errorMessage:
+              "You do not have permission to read this project's monitors.",
+          });
+
+          const status: ActiveMonitorLimitStatus =
+            await ActiveMonitorLimit.getStatus(projectId);
+
+          // A monitor made or deleted a moment later changes the answer.
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            ActiveMonitorLimitUtil.toJSON(status),
+          );
+        } catch (e) {
+          next(e);
+        }
+      },
+    );
 
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/refresh-status/:monitorId`,

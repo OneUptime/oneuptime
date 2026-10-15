@@ -1,14 +1,12 @@
 import DatabaseConfig from "../DatabaseConfig";
-import {
-  AllowedActiveMonitorCountInFreePlan,
-  InboundEmailDomain,
-  IsBillingEnabled,
-} from "../EnvironmentConfig";
+import { InboundEmailDomain, IsBillingEnabled } from "../EnvironmentConfig";
 import { UpdateResult } from "typeorm";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { ActiveMonitoringMeteredPlan } from "../Types/Billing/MeteredPlan/AllMeteredPlans";
 import CreateBy from "../Types/Database/CreateBy";
+import CreateLimit from "../Types/Database/CreateLimit";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import ActiveMonitorLimit from "../Utils/Billing/ActiveMonitorLimit";
 import QueryHelper from "../Types/Database/QueryHelper";
 import ProjectReferencesService from "./ProjectReferencesService";
 import CustomFieldMappingService from "./CustomFieldMappingService";
@@ -37,7 +35,6 @@ import TeamMemberService from "./TeamMemberService";
 import URL from "../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import MonitoringIntervalValidator from "../Utils/Monitor/MonitoringIntervalValidator";
@@ -55,7 +52,6 @@ import EventFieldChange, {
   EventValuesBeforeUpdate,
   MONITOR_FIELDS,
 } from "../Utils/EventFieldChange";
-import PositiveNumber from "../../Types/PositiveNumber";
 import Model from "../../Models/DatabaseModels/Monitor";
 import MonitorTemplate from "../../Models/DatabaseModels/MonitorTemplate";
 import MonitorOwnerTeam from "../../Models/DatabaseModels/MonitorOwnerTeam";
@@ -717,19 +713,62 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    if (onDelete.deleteBy.props.tenantId && IsBillingEnabled) {
-      try {
-        await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
-          onDelete.deleteBy.props.tenantId,
-        );
-      } catch (error) {
-        logger.error(
-          `Error while reporting active monitor quantity to billing provider for project ${onDelete.deleteBy.props.tenantId?.toString()}: ${error}`,
-        );
+    /*
+     * Every project the deleted monitors were in is counted again: its bill
+     * and Project.currentActiveMonitorsCount (ActiveMonitorLimit
+     * .refreshCount). Taken from the monitors the delete removed
+     * (onBeforeDelete) rather than from the request's project, which a
+     * delete made as OneUptime - a master admin's, a job's - does not
+     * name, and which left the count behind until the next day's report.
+     */
+    if (IsBillingEnabled) {
+      for (const projectId of this.getProjectIdsOfDeletedMonitors(onDelete)) {
+        try {
+          await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
+            projectId,
+          );
+        } catch (error) {
+          logger.error(
+            `Error while reporting active monitor quantity to billing provider for project ${projectId.toString()}: ${error}`,
+          );
+        }
       }
     }
 
     return onDelete;
+  }
+
+  /*
+   * The projects of the monitors a delete removed, each once: those
+   * onBeforeDelete read, or the request's own project when it read none.
+   */
+  private getProjectIdsOfDeletedMonitors(
+    onDelete: OnDelete<Model>,
+  ): Array<ObjectID> {
+    const monitors: Array<Model> | undefined = (
+      onDelete.carryForward as { monitors?: Array<Model> } | undefined
+    )?.monitors;
+
+    const projectIds: Map<string, ObjectID> = new Map();
+
+    for (const monitor of monitors || []) {
+      const projectId: ObjectID | undefined = monitor.projectId as
+        | ObjectID
+        | undefined;
+
+      if (projectId) {
+        projectIds.set(projectId.toString(), projectId);
+      }
+    }
+
+    if (projectIds.size === 0 && onDelete.deleteBy.props.tenantId) {
+      projectIds.set(
+        onDelete.deleteBy.props.tenantId.toString(),
+        onDelete.deleteBy.props.tenantId,
+      );
+    }
+
+    return Array.from(projectIds.values());
   }
 
   @CaptureSpan()
@@ -989,6 +1028,11 @@ export class Service extends ProjectReferencesService<Model> {
           checkedProjects.add(monitor.projectId.toString());
         }
       }
+
+      await this.assertRoomForMonitorsMadeActive({
+        monitors: monitors,
+        monitorType: updateBy.data.monitorType as MonitorType | undefined,
+      });
     }
 
     // What onUpdateSuccess compares the update with, read before the write.
@@ -1003,6 +1047,57 @@ export class Service extends ProjectReferencesService<Model> {
           } as MonitorUpdateCarryForward)
         : null,
     };
+  }
+
+  /*
+   * A Manual monitor given another type becomes an active monitor, so the
+   * plan's limit is asked for as many as the update makes active in each
+   * project (ActiveMonitorLimit). Only OneUptime's own writes may change a
+   * monitor's type. Turning a monitor on, or taking it out of the archive,
+   * makes none active: it was counted all along, as it is on the bill.
+   */
+  private async assertRoomForMonitorsMadeActive(data: {
+    monitors: Array<Model>;
+    monitorType: MonitorType | undefined;
+  }): Promise<void> {
+    if (
+      !data.monitorType ||
+      !MonitorTypeHelper.isBilledAsActiveMonitor(data.monitorType)
+    ) {
+      return;
+    }
+
+    const madeActiveByProject: Map<
+      string,
+      { projectId: ObjectID; count: number }
+    > = new Map();
+
+    for (const monitor of data.monitors) {
+      if (
+        !monitor.projectId ||
+        !monitor.monitorType ||
+        !MonitorTypeHelper.isManualMonitor(monitor.monitorType)
+      ) {
+        continue;
+      }
+
+      const key: string = monitor.projectId.toString();
+      const entry: { projectId: ObjectID; count: number } =
+        madeActiveByProject.get(key) || {
+          projectId: monitor.projectId,
+          count: 0,
+        };
+
+      entry.count += 1;
+      madeActiveByProject.set(key, entry);
+    }
+
+    for (const entry of madeActiveByProject.values()) {
+      await ActiveMonitorLimit.assertRoomFor({
+        projectId: entry.projectId,
+        adding: entry.count,
+      });
+    }
   }
 
   /*
@@ -1791,27 +1886,20 @@ export class Service extends ProjectReferencesService<Model> {
         );
       }
 
+      /*
+       * The plan's limit on active monitors - the Free plan's, or the
+       * project's own when it bought its plan from a reseller - asked
+       * before anything else is prepared. The INSERT asks again, under the
+       * limit's lock, so two creates at the limit cannot both pass
+       * (getCreateLimit). See ActiveMonitorLimit.
+       */
       if (
-        currentPlan.plan === PlanType.Free &&
-        createBy.data.monitorType !== MonitorType.Manual
+        MonitorTypeHelper.isBilledAsActiveMonitor(createBy.data.monitorType)
       ) {
-        const monitorCount: PositiveNumber = await this.countBy({
-          query: {
-            projectId: createBy.props.tenantId,
-            monitorType: QueryHelper.any(
-              MonitorTypeHelper.getActiveMonitorTypes(),
-            ),
-          },
-          props: {
-            isRoot: true,
-          },
+        await ActiveMonitorLimit.assertRoomFor({
+          projectId: createBy.props.tenantId,
+          currentPlan: currentPlan,
         });
-
-        if (monitorCount.toNumber() >= AllowedActiveMonitorCountInFreePlan) {
-          throw new BadDataException(
-            `You have reached the maximum allowed monitor limit for the free plan. Please upgrade your plan to add more monitors.`,
-          );
-        }
       }
     }
 
@@ -1949,6 +2037,22 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * The plan's limit on active monitors, decided together with the INSERT
+   * in one transaction holding the limit's lock in the project, so two
+   * creates at the limit cannot both pass - whichever path made them. None
+   * for a Manual monitor, or in a project whose plan sets no limit. See
+   * ActiveMonitorLimit.
+   */
+  protected override async getCreateLimit(
+    createBy: CreateBy<Model>,
+  ): Promise<CreateLimit | null> {
+    return await ActiveMonitorLimit.getCreateLimit({
+      projectId: createBy.data.projectId || createBy.props.tenantId,
+      monitorType: createBy.data.monitorType,
+    });
   }
 
   /*

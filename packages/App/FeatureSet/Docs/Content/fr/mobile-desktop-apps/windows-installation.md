@@ -1,180 +1,112 @@
-# Guide d'installation Windows
+# Installation Windows
 
-Installez OneUptime comme application de bureau sur Windows pour une surveillance et une gestion des incidents complètes.
+Le tableau de bord OneUptime s'installe sous Windows comme une application, depuis Microsoft Edge ou Google Chrome. Il s'ouvre dans sa propre fenêtre, avec sa propre icône dans la barre des tâches et le menu Démarrer, et peut afficher des notifications. Il n'y a rien à télécharger : l'application est le tableau de bord de votre OneUptime, et elle est à jour dès que votre OneUptime l'est.
 
-## Méthodes d'installation
+:::cards
+- [Installer l'application](#installer-lapplication): Depuis Edge ou Chrome, en quelques clics.
+- [L'épingler et la lancer avec Windows](#lépingler-et-la-lancer-avec-windows): La garder à un clic.
+- [Recevoir des notifications sur cet ordinateur](#recevoir-des-notifications-sur-cet-ordinateur): Enregistrer le navigateur pour les notifications push.
+- [Dépannage](#dépannage): Pas d'icône d'installation, pas de notifications, nouvelle connexion.
+:::
 
-### Méthode 1 : Microsoft Edge (Recommandée)
+## Comment fonctionne l'application de bureau
 
-Edge offre la meilleure intégration PWA Windows avec des fonctionnalités natives.
+```mermaid title="Ce que vous apporte l'installation du tableau de bord"
+flowchart TB
+    Browser["Edge ou Chrome ouvre<br/>votre tableau de bord"]
+    Install["Vous l'installez<br/>comme application"]
+    App["OneUptime dans<br/>sa propre fenêtre,<br/>dans la barre des tâches<br/>et le menu Démarrer"]
+    OneUptime["Votre OneUptime sert<br/>le tableau de bord"]
+    Browser --> Install --> App
+    App -->|"charge le tableau de bord<br/>à chaque ouverture"| OneUptime
+```
 
-1. **Ouvrir OneUptime dans Edge**
+L'application installée partage la connexion, les réglages et l'autorisation de notifications de son navigateur. Fermez le navigateur, et l'application continue de tourner dans sa propre fenêtre.
 
-   - Lancez le navigateur Microsoft Edge
-   - Accédez à l'URL de votre instance OneUptime
-   - Connectez-vous à votre compte OneUptime
-   - Attendez le chargement complet de la page
+## Avant de commencer
 
-2. **Installer l'application**
+- Windows 10 ou Windows 11, avec une version récente de Microsoft Edge ou de Google Chrome.
+- L'adresse de votre OneUptime, en HTTPS : `https://oneuptime.com` sur OneUptime Cloud, ou la vôtre, par exemple `https://oneuptime.example.com`.
+- Un compte avec lequel vous pouvez vous connecter au tableau de bord.
 
-   - Recherchez l'**icône d'installation** (⊞) dans la barre d'adresse
-   - Cliquez sur le bouton **« Installer OneUptime »**
-   - Ou cliquez sur le **menu à trois points** → **Applications** → **Installer ce site comme application**
+## Installer l'application
 
-3. **Personnaliser l'installation**
+:::tabs
+@tab Edge
+1. Ouvrez votre OneUptime dans Edge et connectez-vous.
+2. Sur n'importe quelle page du tableau de bord, cliquez sur l'icône d'installation à droite de la barre d'adresse, puis sur **Installer**. Ou ouvrez **Paramètres et plus (…) → Plus d'outils → Applications → Installer ce site en tant qu'application**.
+3. Edge ouvre OneUptime dans sa propre fenêtre, et peut proposer de l'épingler à la barre des tâches ou à Démarrer.
+@tab Chrome
+1. Ouvrez votre OneUptime dans Chrome et connectez-vous.
+2. Sur n'importe quelle page du tableau de bord, cliquez sur l'icône d'installation à droite de la barre d'adresse, puis sur **Installer**. Ou ouvrez **⋮ → Caster, enregistrer et partager → Installer la page en tant qu'application…**.
+3. Chrome ouvre OneUptime dans sa propre fenêtre et l'ajoute au menu Démarrer.
+:::
 
-   - **Nom de l'application** : Modifiez si souhaité (par défaut : OneUptime)
-   - **Menu Démarrer** : Choisissez d'ajouter au menu Démarrer
-   - **Barre des tâches** : Option d'épingler à la barre des tâches
-   - **Bureau** : Créer un raccourci sur le bureau
+Installez depuis une page du tableau de bord, une fois connecté : la page de connexion n'est pas l'application. Cherchez OneUptime dans le menu Démarrer pour l'ouvrir plus tard.
 
-4. **Terminer l'installation**
-   - Cliquez sur **« Installer »** pour terminer
-   - OneUptime s'ouvrira dans sa propre fenêtre
-   - Trouvez-le dans le menu Démarrer sous les applications installées
+## L'épingler et la lancer avec Windows
 
-### Méthode 2 : Google Chrome
+- **Barre des tâches.** Application ouverte, faites un clic droit sur son icône dans la barre des tâches et choisissez **Épingler à la barre des tâches**.
+- **Lancer avec Windows.** Dans Edge, ouvrez `edge://apps`, choisissez **Détails** sur OneUptime et activez **Démarrage automatique à la connexion de l'appareil**. La même page épingle l'application à la barre des tâches ou à Démarrer, ou crée un raccourci sur le bureau.
 
-Chrome offre une excellente prise en charge PWA avec une riche intégration au bureau.
+## Recevoir des notifications sur cet ordinateur
 
-1. **Ouvrir OneUptime dans Chrome**
+L'application affiche des notifications par son navigateur, une fois que vous avez enregistré le navigateur pour les notifications push dans chaque projet dont vous voulez les recevoir.
 
-   - Lancez Google Chrome
-   - Accédez à votre instance OneUptime
-   - Assurez-vous d'être connecté
-   - Autorisez le chargement complet de la page
+:::steps
+### Ouvrir vos appareils push
+Dans l'application, ouvrez **Paramètres utilisateur → Méthodes de notification** et l'onglet **Push Notifications**.
 
-2. **Installer via la barre d'adresse**
+### Enregistrer ce navigateur
+Cliquez sur **Enregistrer l'appareil**, gardez la valeur proposée dans **Nom de l'appareil**, par exemple `Edge on Windows`, ou modifiez-la, puis cliquez de nouveau sur **Enregistrer l'appareil**. Quand le navigateur demande si OneUptime peut afficher des notifications, choisissez **Autoriser**.
 
-   - Recherchez l'**icône d'installation** (⊞) dans la barre d'adresse
-   - Cliquez sur **« Installer OneUptime »**
-   - Ou utilisez le menu : **trois points** → **Plus d'outils** → **Créer un raccourci**
+### Envoyer un test
+Dans la boîte de dialogue **Browser Registered**, cliquez sur **Send Test Notification**. Si rien n'apparaît, regardez les réglages de notification de Windows : voir [Dépannage](#dépannage).
+:::
 
-3. **Options d'installation**
+Un navigateur ne sonne pas plus fort que Windows ne le permet : il ne peut pas outrepasser Ne pas déranger. Pour les alertes qui doivent vous réveiller, utilisez l'application mobile avec les alertes critiques : voir [Installation Android](/docs/mobile-desktop-apps/android-installation#sonner-malgré-le-mode-silencieux) ou [Installation iOS](/docs/mobile-desktop-apps/ios-installation#sonner-malgré-le-mode-silencieux).
 
-   - Cochez **« Ouvrir comme fenêtre »** pour une expérience similaire à une application
-   - Personnalisez le nom de l'application si souhaité
-   - Cliquez sur **« Installer »** ou **« Créer »**
+Sur un OneUptime auto-hébergé, les notifications du navigateur demandent les clés VAPID du serveur : voir [Notifications push](/docs/self-hosted/push-notifications#configuration-auto-hébergée).
 
-4. **Lancer l'application**
-   - Trouvez OneUptime dans le menu Démarrer de Windows
-   - Ou lancez depuis le raccourci sur le bureau
-   - L'application s'ouvre dans une fenêtre dédiée
+## Mises à jour
 
-### Méthode 3 : Firefox
+Il n'y a rien à mettre à jour. L'application charge le tableau de bord depuis votre OneUptime à chaque ouverture : elle change donc quand votre OneUptime est mis à jour. Si une fenêtre est ouverte depuis la mise à jour, rechargez-la avec Ctrl+R.
 
-Firefox prend en charge l'installation PWA avec une intégration de bureau basique.
+## Désinstaller
 
-1. **Ouvrir OneUptime dans Firefox**
+:::tabs
+@tab Edge
+Ouvrez `edge://apps`, choisissez **Détails** sur OneUptime, puis **Désinstaller**.
+@tab Chrome
+Dans la fenêtre de l'application, ouvrez le menu **⋮**, choisissez l'élément qui désinstalle l'application, puis **Supprimer**.
+:::
 
-   - Lancez le navigateur Firefox
-   - Accédez à l'URL OneUptime
-   - Complétez le processus de connexion
+Windows liste aussi l'application sous **Paramètres → Applications → Applications installées**, où **Désinstaller** la supprime également.
 
-2. **Installer la PWA**
-   - Recherchez l'**invite d'installation** ou la bannière
-   - Ou cliquez sur **menu** → **Installer**
-   - Si disponible, cliquez sur **« Ajouter à l'écran d'accueil »** ou équivalent
-
-### Configuration du démarrage
-
-1. **Démarrage automatique** : Configurez OneUptime pour démarrer avec Windows
-   - Clic droit sur la barre des tâches → Gestionnaire des tâches → Démarrage
-   - Activez OneUptime si souhaité
-2. **Taille par défaut** : Définissez la taille et la position de fenêtre préférées
-
-### Paramètres de notification
-
-1. **Notifications Windows**
-
-   - Paramètres → Système → Notifications et actions
-   - Trouvez OneUptime et configurez les préférences d'alerte
-   - Activez les notifications de bannière pour les incidents
-
-2. **Assistance à la concentration**
-   - Configurez les paramètres Ne pas déranger
-   - Autorisez les notifications critiques OneUptime
-   - Définissez les niveaux de priorité pour les différents types d'alerte
+Désinstaller l'application ne désenregistre pas son navigateur : il reçoit toujours des notifications. Pour les arrêter, supprimez le navigateur sous **Paramètres utilisateur → Méthodes de notification**, dans l'onglet **Push Notifications**, avec **Supprimer**.
 
 ## Dépannage
 
-### Problèmes d'installation
+:::details Pas d'icône d'installation dans la barre d'adresse
+Ouvrez une page du tableau de bord une fois connecté, pas la page de connexion, et vérifiez que l'adresse commence par `https://` : les navigateurs n'installent des applications que depuis des sites sécurisés. Si l'icône n'apparaît toujours pas, utilisez le menu du navigateur comme ci-dessus. D'autres navigateurs n'installent pas forcément des sites comme applications ; utilisez Edge ou Chrome.
+:::
 
-**Le bouton d'installation n'apparaît pas :**
+:::details Aucune notification n'apparaît
+- Dans **Paramètres utilisateur → Méthodes de notification**, onglet **Push Notifications**, vérifiez que ce navigateur est listé, et envoyez-lui une **Notification de test**.
+- Dans Windows, ouvrez **Paramètres → Système → Notifications** : les notifications doivent être activées, pour le navigateur aussi, et Ne pas déranger désactivé. Windows 10 nomme la page « Notifications et actions ».
+- Si le navigateur bloque les notifications pour OneUptime, cliquez sur l'icône à gauche de la barre d'adresse, autorisez les notifications pour le site, et enregistrez à nouveau le navigateur.
+- Sur un OneUptime auto-hébergé, la boîte de dialogue **Enregistrer l'appareil** indique quand le serveur n'a pas de clés VAPID.
+:::
 
-```
-Solutions :
-1. Assurez-vous d'utiliser Edge ou Chrome (navigateurs recommandés)
-2. Vérifiez la connexion HTTPS à l'instance OneUptime
-3. Videz le cache et les cookies du navigateur
-4. Mettez à jour le navigateur vers la dernière version
-5. Vérifiez si les exigences PWA sont satisfaites sur le serveur
-6. Désactivez temporairement les extensions du navigateur
-```
+:::details L'application vous demande de vous reconnecter
+L'application partage la connexion de son navigateur. Se déconnecter dans le navigateur, ou effacer ses cookies, déconnecte aussi l'application.
+:::
 
-**L'installation échoue ou plante :**
+## Étapes suivantes
 
-```
-Solutions :
-1. Exécutez le navigateur en tant qu'administrateur
-2. Vérifiez les paramètres de contrôle de compte d'utilisateur Windows (UAC)
-3. Assurez-vous d'avoir suffisamment d'espace disque (minimum 100 Mo)
-4. Désactivez temporairement le logiciel antivirus
-5. Effacez complètement les données du navigateur
-6. Redémarrez Windows et réessayez
-```
-
-**L'application n'apparaît pas dans le menu Démarrer :**
-
-```
-Solutions :
-1. Recherchez « OneUptime » dans la recherche Windows
-2. Vérifiez si installé sous un nom différent
-3. Regardez dans la section « Récemment ajoutés »
-4. Réinstallez en vous assurant que « Ajouter au menu Démarrer » est coché
-5. Créez manuellement un raccourci si nécessaire
-```
-
-### Problèmes de notification
-
-**Les notifications Windows ne fonctionnent pas :**
-
-```
-Solutions :
-1. Paramètres Windows → Système → Notifications et actions
-2. Activez les notifications pour OneUptime
-3. Vérifiez les paramètres Assistance à la concentration
-4. Assurez-vous des permissions de notification dans OneUptime
-5. Testez avec une notification simple d'abord
-```
-
-## Désinstallation
-
-### Suppression complète
-
-1. **Méthode Paramètres Windows**
-
-   - Paramètres → Applications → Applications et fonctionnalités
-   - Recherchez « OneUptime »
-   - Cliquez et sélectionnez « Désinstaller »
-
-2. **Méthode navigateur**
-
-   - Ouvrez Edge/Chrome
-   - Accédez à edge://apps/ ou chrome://apps/
-   - Trouvez OneUptime
-   - Cliquez sur les options → Désinstaller
-
-3. **Méthode menu Démarrer**
-   - Clic droit sur OneUptime dans le menu Démarrer
-   - Sélectionnez « Désinstaller »
-   - Confirmez la suppression
-
-## Mises à jour et maintenance
-
-### Mises à jour automatiques
-
-- La PWA OneUptime se met à jour automatiquement lorsqu'elle est en ligne
-- Aucune intervention manuelle requise
-- Les mises à jour s'appliquent immédiatement au redémarrage
-- Les correctifs critiques sont déployés instantanément
+:::cards
+- [Installation macOS](/docs/mobile-desktop-apps/macos-installation): La même application sur un Mac.
+- [Installation Android](/docs/mobile-desktop-apps/android-installation): Être alerté sur votre téléphone.
+- [FAQ et dépannage](/docs/mobile-desktop-apps/faq-troubleshooting): Réponses sur les deux applications.
+- [Votre compte](/docs/introduction/your-account): Comment OneUptime vous joint dans chaque projet.
+:::

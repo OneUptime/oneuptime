@@ -1,48 +1,89 @@
-# OneUptime モバイル・デスクトップアプリ
+# アプリの概要
 
-OneUptime では、ブラウザ以外でプラットフォームを利用する方法を 2 つご用意しています:
+OneUptime には、スマートフォン用のアプリとコンピューター用のアプリがあります。iPhone、iPad、Android 用の **OneUptime On-Call** は、オンコール中にあなたを呼び出し、どこにいてもインシデントを確認して解決できるようにします。Windows、macOS、Linux では、OneUptime のダッシュボードをブラウザからデスクトップアプリとしてインストールでき、専用のウィンドウで開きます。どちらも OneUptime Cloud とセルフホストの OneUptime で動作します。
 
-- **ネイティブモバイルアプリ**(iOS および Android 向け)。**Apple App Store** および **Google Play** で公開されています。これらのアプリにより、オンコールのページ、インシデントアラート、確認応答操作を直接スマートフォンへ届けます。
-- **インストール可能なデスクトップアプリ**(Windows、macOS、Linux 向け)。プログレッシブ ウェブ アプリ(PWA)としてブラウザから直接インストールできます。OneUptime のダッシュボードに専用のウィンドウ、アイコン、通知領域をコンピューター上で提供します。
+:::cards
+- [アプリを選ぶ](#アプリを選ぶ): それぞれのアプリでできることを並べて比べます。
+- [アプリが OneUptime に接続するしくみ](#アプリが-oneuptime-に接続するしくみ): サインインとオンコールの呼び出しがたどる経路。
+- [モバイルアプリを入手する](#モバイルアプリを入手する): App Store、Google Play、または GitHub から。
+- [デスクトップアプリを入手する](#デスクトップアプリを入手する): Edge、Chrome、または Safari からダッシュボードをインストールします。
+:::
 
-## モバイル(ネイティブアプリ)
+## アプリを選ぶ
 
-**OneUptime On-Call** アプリは、React Native で構築されたネイティブアプリケーションです。公式ストアを通じて配信されるため、自動アップデート、プッシュ通知、生体認証によるロック解除を利用できます。
+|  | モバイルアプリ | デスクトップアプリ |
+| --- | --- | --- |
+| 概要 | OneUptime On-Call。iPhone、iPad、Android 用のネイティブアプリ | ブラウザからインストールした OneUptime のダッシュボード |
+| 入手先 | App Store、Google Play、または GitHub の APK | お使いの OneUptime。ダウンロードは不要 |
+| オンコールの呼び出し | サイレントモードやおやすみモードでも鳴らせるプッシュ通知 | ブラウザを登録した後のブラウザ通知 |
+| できること | インシデント、アラート、モニター、オンコール中の人の表示。確認、解決、メモの追加 | ダッシュボードでできることすべて |
+| 更新 | ストアから、または新しい APK をインストールして | 開くたびにお使いの OneUptime からダッシュボードを読み込む |
+| 対応環境 | iOS 16.4 以降、Android 7.0 以降 | Windows、macOS、Linux の Edge または Chrome、または macOS Sonoma 14 以降の Safari |
 
-- **iOS** — [App Store からダウンロード](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391)。iOS 15.0 以降が必要です。[iOS インストールガイド](./ios-installation.md)をご覧ください。
-- **Android** — [Google Play で入手](https://play.google.com/store/apps/details?id=com.oneuptime.oncall)。Android 8.0 以降が必要です。Google Play を利用できないデバイス向けに、[APK の直接ダウンロード](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk)も提供しています。[Android インストールガイド](./android-installation.md)をご覧ください。
+両方を使うこともできます。仕事中はデスクトップアプリを開いておき、夜はスマートフォンに起こしてもらいましょう。
 
-## デスクトップ(プログレッシブ ウェブ アプリ)
+## アプリが OneUptime に接続するしくみ
 
-OneUptime のウェブダッシュボードはプログレッシブ ウェブ アプリ(PWA)であるため、ストアを経由せずに最新のブラウザからデスクトップアプリケーションとしてインストールできます。
+```mermaid title="オンコールの呼び出しがスマートフォンとコンピューターに届くまで"
+flowchart TB
+    OneUptime["お使いの OneUptime：<br/>Cloud または<br/>セルフホスト"]
+    Expo["Expo の<br/>プッシュサービス、次に<br/>Apple または Google"]
+    WebPush["ブラウザの<br/>プッシュサービス"]
+    Phone["スマートフォンの<br/>OneUptime On-Call"]
+    Desktop["コンピューターの<br/>デスクトップアプリ"]
+    OneUptime -->|"スマートフォンへ"| Expo
+    OneUptime -->|"登録済みの<br/>ブラウザへ"| WebPush
+    Expo -->|"プッシュ通知"| Phone
+    WebPush -->|"通知"| Desktop
+```
 
-- [Windows へのインストール](./windows-installation.md)
-- [macOS へのインストール](./macos-installation.md)
-- [Linux へのインストール](./linux-installation.md)
+モバイルアプリはお使いの OneUptime にサインインし、あなたがメンバーになっている各プロジェクトにスマートフォンを登録します。それ以降、OneUptime はオンコールの呼び出しを含むスマートフォンのプッシュ通知を Expo のプッシュサービス経由で送信し、Expo がそれを Apple または Google に渡して配信します。セルフホストの OneUptime は、既定では OneUptime のプッシュリレーを通じて送信するため、Apple、Google、Expo の独自のアカウントは不要です。[プッシュ通知](/docs/self-hosted/push-notifications) を参照してください。
 
-### デスクトップ版のはじめ方
+デスクトップアプリは、専用のウィンドウで開くダッシュボードそのものです。そのブラウザをプッシュ通知用に登録すると、通知を表示します。登録の方法は Windows、macOS、Linux の各ページで説明しています。
 
-1. Chromium ベースのブラウザ(Chrome、Edge)または Safari で OneUptime のインスタンスを開きます。
-2. アドレスバーの **インストール** ボタン、または **ファイル → Dock に追加 / アプリ → このサイトをアプリとしてインストール** を探します。
-3. インストールしたアプリをスタートメニュー、Launchpad、またはアプリケーションランチャーから起動します。
+## 始める前に
 
-### デスクトップ版のトラブルシューティング
+- OneUptime プロジェクトのアカウント。呼び出しを受けるには、オンコール中である必要もあります。[エスカレーションルール](/docs/on-call/escalation-rules) を参照してください。
+- お使いの OneUptime のアドレス。OneUptime Cloud では `https://oneuptime.com`、セルフホストの OneUptime では `https://oneuptime.example.com` のような独自のアドレスです。
+- HTTPS で提供されている OneUptime。モバイルアプリは通常の HTTP では接続しません。また、ブラウザが通知を表示し、Edge や Chrome がアプリをインストールできるのも HTTPS のサイトだけです。
 
-**インストールオプションが表示されない:**
+## モバイルアプリを入手する
 
-- サポートされているブラウザを使用しているか確認してください。
-- OneUptime インスタンスが HTTPS で配信されていることを確認してください。
-- ページを再読み込みするか、ブラウザのキャッシュをクリアしてください。
+:::steps
+### OneUptime On-Call をインストールする
+iPhone や iPad では [App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391) から、Android では [Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall) から入手します。Google Play のない Android スマートフォンには、代わりに [APK](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk) をインストールします。同じリンクは、ダッシュボードの **プロジェクト設定 → 通知 → モバイルアプリ** にもあります。
 
-**プッシュ通知が機能しない:**
+### お使いの OneUptime に接続する
+アプリを開き、OneUptime Cloud なら `https://oneuptime.com` のまま、それ以外ならお使いの OneUptime のアドレスを入力して、パスワード、パスキー、またはシングルサインオンでサインインします。
 
-- ブラウザからプロンプトが表示されたら通知の権限を許可してください。
-- オペレーティングシステムのブラウザに関する通知設定を確認してください。
-- セルフホスティング利用者向け: OneUptime インスタンスでプッシュ通知が設定されていることを確認してください。
+### 通知を許可する
+スマートフォンに尋ねられたら許可します。アプリが各プロジェクトにスマートフォンを登録し、オンコールの呼び出しが届くようになります。
+:::
 
-## サポート
+各手順の詳細と、その後に確認することは、[Android インストール](/docs/mobile-desktop-apps/android-installation) と [iOS インストール](/docs/mobile-desktop-apps/ios-installation) を参照してください。
 
-- モバイル固有の問題: [iOS](./ios-installation.md) または [Android](./android-installation.md) のインストールガイドをご確認ください。
-- デスクトップ固有の問題: [Windows](./windows-installation.md)、[macOS](./macos-installation.md)、または [Linux](./linux-installation.md) のインストールガイドをご確認ください。
-- 一般的な質問: [FAQ およびトラブルシューティング](./faq-troubleshooting.md)のページをご覧ください。
-- バグ報告や機能リクエストは、[GitHub リポジトリ](https://github.com/OneUptime/oneuptime)にてお願いします。
+## デスクトップアプリを入手する
+
+:::steps
+### ダッシュボードを開く
+Microsoft Edge か Google Chrome、Mac では Safari でも、お使いの OneUptime にサインインします。
+
+### インストールする
+Edge や Chrome では、アドレスバーの右端にあるインストールアイコンをクリックします。Safari では **ファイル → Dockに追加** を選択します。
+
+### ほかのアプリと同じように開く
+スタートメニュー、Dock、またはアプリランチャーから、専用のウィンドウで開きます。
+:::
+
+ブラウザごとの手順は、[Windows インストール](/docs/mobile-desktop-apps/windows-installation)、[macOS インストール](/docs/mobile-desktop-apps/macos-installation)、[Linux インストール](/docs/mobile-desktop-apps/linux-installation) を参照してください。
+
+## 次のステップ
+
+:::cards
+- [Android インストール](/docs/mobile-desktop-apps/android-installation): Android にアプリをインストールしてサインインし、呼び出しが届くことを確認します。
+- [iOS インストール](/docs/mobile-desktop-apps/ios-installation): iPhone や iPad にアプリをインストールし、重大なアラートをオンにします。
+- [Windows インストール](/docs/mobile-desktop-apps/windows-installation): Edge または Chrome からダッシュボードをインストールします。
+- [macOS インストール](/docs/mobile-desktop-apps/macos-installation): Safari、Chrome、または Edge からダッシュボードを Dock に追加します。
+- [Linux インストール](/docs/mobile-desktop-apps/linux-installation): Chrome、Chromium、または Edge からダッシュボードをインストールします。
+- [FAQ とトラブルシューティング](/docs/mobile-desktop-apps/faq-troubleshooting): よくある質問への回答、解決策、スマートフォンに呼び出しが届かなくなったときの対処。
+:::

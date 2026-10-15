@@ -55,7 +55,13 @@ const AppliedFilters: FunctionComponent<ComponentProps> = (
           return (
             <div
               key={index}
-              className="inline-flex items-center rounded-full bg-white border border-gray-200 px-3 py-1 text-sm text-gray-700 shadow-sm whitespace-nowrap"
+              /*
+               * A chip too wide for the box - a long field name and its
+               * value, in German, on a phone - wraps inside itself instead
+               * of running out past the box's edge. A chip that fits stays
+               * on one line: the list moves it to a line of its own first.
+               */
+              className="inline-flex min-w-0 max-w-full items-center rounded-full bg-white border border-gray-200 px-3 py-1 text-sm text-gray-700 shadow-sm break-words"
             >
               {chip}
             </div>

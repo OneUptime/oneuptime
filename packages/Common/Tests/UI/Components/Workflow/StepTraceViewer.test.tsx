@@ -769,6 +769,172 @@ describe("StepTraceViewer", () => {
     });
   });
 
+  /*
+   * A database step that fails takes its Error output and says why, and the
+   * card shows that first: a step whose ID is a {{...}} reference that did
+   * not resolve stops before reading or writing anything, and the reason
+   * says which reference and what to check. It used to be only in the Full
+   * Log, while the card said Failed and, louder, the runner's warning about
+   * the reference - which points at the step id, not at the Find One that
+   * found nothing.
+   */
+  describe("why a step took its Error output", () => {
+    const STATE_REFERENCE: string =
+      "{{local.components.incident-state-find-one-1.returnValues.model._id}}";
+
+    const REASON: string = `The step stopped before reading or writing anything: ${STATE_REFERENCE} in "Data (JSON Object)" did not resolve, so "currentIncidentStateId" has no ID. Step "incident-state-find-one-1" has not run, or did not return this value - a Find One that finds no record returns no model. Check the step id and the return value name, or handle the empty result before this step.`;
+
+    const WARNING: string = `${STATE_REFERENCE} in "Data (JSON Object)" did not resolve to anything and was left as literal text. Check the step id and the return value name.`;
+
+    const updateOneStep: (
+      overrides?: StepOverrides,
+    ) => WorkflowStepTraceEntry = (
+      overrides?: StepOverrides,
+    ): WorkflowStepTraceEntry => {
+      return aStep({
+        componentId: "incident-update-one-1",
+        metadataId: "incident-update-one",
+        title: "Update One Incident",
+        status: WorkflowStepStatus.Error,
+        argumentValues: {
+          query: { _id: "3e1d9a40-5b7c-4d2e-9f10-6a2b8c4d0e17" },
+          data: { currentIncidentStateId: STATE_REFERENCE },
+        },
+        argumentNames: [
+          { id: "query", name: "Query" },
+          { id: "data", name: "Data (JSON Object)" },
+        ],
+        argumentTemplates: {
+          data: { currentIncidentStateId: STATE_REFERENCE },
+        },
+        executedPort: "error",
+        executedPortTitle: "Error",
+        executedPortReason: REASON,
+        nextSteps: [],
+        warnings: [
+          {
+            message: WARNING,
+            argumentId: "data",
+            unresolvedReferences: [STATE_REFERENCE],
+          },
+        ],
+        ...overrides,
+      });
+    };
+
+    test("shows it under the output it took, without opening the step", () => {
+      renderTrace({ steps: [updateOneStep()] });
+
+      const card: HTMLElement = stepCards()[0]!;
+      const reason: HTMLElement = within(card).getByTestId(
+        "workflow-run-step-reason",
+      );
+
+      expect(reason).toHaveTextContent(REASON);
+      expect(outcomeOf(card)).toHaveTextContent("Took Error");
+      expect(
+        outcomeOf(card).compareDocumentPosition(reason) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    test("draws it as the step's error, not as a small grey note", () => {
+      renderTrace({ steps: [updateOneStep()] });
+
+      const reason: HTMLElement = screen.getByTestId(
+        "workflow-run-step-reason",
+      );
+
+      expect(reason).toHaveClass("text-red-700");
+      expect(reason).toHaveClass("text-sm");
+      expect(reason).not.toHaveClass("text-gray-500");
+      expect(reason).not.toHaveClass("text-xs");
+    });
+
+    test("is not repeated by the warning about the reference it names", () => {
+      renderTrace({ steps: [updateOneStep()] });
+
+      expect(
+        screen.queryByTestId("workflow-run-step-warning"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("leaves the setting marked Did not resolve", () => {
+      renderTrace({ steps: [updateOneStep()] });
+
+      const rows: Array<HTMLElement> = screen.getAllByTestId(
+        "workflow-run-step-value",
+      );
+      const data: HTMLElement = rows.find((row: HTMLElement) => {
+        return row.textContent?.startsWith("Data (JSON Object)Did not resolve");
+      }) as HTMLElement;
+
+      expect(data).toBeDefined();
+      expect(
+        within(data).getByTestId("workflow-run-step-unresolved"),
+      ).toHaveTextContent("Did not resolve");
+    });
+
+    test("keeps a warning about anything it does not name", () => {
+      renderTrace({
+        steps: [
+          updateOneStep({
+            warnings: [
+              {
+                message: WARNING,
+                argumentId: "data",
+                unresolvedReferences: [STATE_REFERENCE],
+              },
+              { message: "Using the cached token." },
+            ],
+          }),
+        ],
+      });
+
+      const warnings: Array<HTMLElement> = screen.getAllByTestId(
+        "workflow-run-step-warning",
+      );
+
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toHaveTextContent("Using the cached token.");
+    });
+
+    test("a step that gave no reason keeps its warning", () => {
+      renderTrace({
+        steps: [updateOneStep({ executedPortReason: undefined })],
+      });
+
+      expect(
+        screen.queryByTestId("workflow-run-step-reason"),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId("workflow-run-step-warning")).toHaveTextContent(
+        WARNING,
+      );
+    });
+
+    // Why a Switch / Case went the way it did is no error.
+    test("the reason for any other output stays a quiet note", () => {
+      renderTrace({
+        steps: [
+          aStep({
+            executedPort: "case-1",
+            executedPortTitle: "Production",
+            executedPortReason:
+              'Matched case 1: "environment" is "production".',
+          }),
+        ],
+      });
+
+      const reason: HTMLElement = screen.getByTestId(
+        "workflow-run-step-reason",
+      );
+
+      expect(reason).toHaveClass("text-xs");
+      expect(reason).toHaveClass("text-gray-500");
+      expect(reason).not.toHaveClass("text-red-700");
+    });
+  });
+
   describe("warnings", () => {
     /*
      * The second half of the report: the unresolved {{...}} was only in the

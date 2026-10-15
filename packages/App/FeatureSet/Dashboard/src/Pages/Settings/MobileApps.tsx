@@ -148,7 +148,7 @@ const downloadRows: Array<DownloadRow> = [
   {
     eyebrow: "iOS",
     title: "Download for iPhone and iPad",
-    description: "Requires iOS 15.0 or later.",
+    description: "Requires iOS 16.4 or later.",
     cta: (
       <>
         <AppleLogo className="h-6 w-6" />
@@ -174,7 +174,7 @@ const downloadRows: Array<DownloadRow> = [
   {
     eyebrow: "Android",
     title: "Download for phones and tablets",
-    description: "Requires Android 8.0 or later.",
+    description: "Requires Android 7.0 or later.",
     cta: (
       <>
         <GooglePlayLogo className="h-6 w-6" />

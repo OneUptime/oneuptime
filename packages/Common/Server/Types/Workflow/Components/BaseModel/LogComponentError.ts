@@ -141,18 +141,25 @@ type LogComponentErrorFunction = (data: {
   log: RunOptions["log"];
   // The step's title, as the builder shows it ("Create One Team Permission").
   stepTitle?: string | undefined;
-}) => void;
+}) => string;
 
 /*
  * Every database component failed the same way before this: two lines in the
  * workflow log and, for all but Create One, nothing at all in the server log.
+ *
+ * Returns what it wrote after "Error running component" - the refusal or the
+ * message, then any tip - as one paragraph. The step hands it on as the
+ * reason it took its Error output (RunReturnType.executePortReason), which
+ * the run window's Steps view shows under that output: a failed database
+ * step used to say why only in the Full Log, while the Steps view - the tab
+ * a run opens on - showed the step failed and nothing more.
  */
 const logComponentError: LogComponentErrorFunction = (data: {
   error: unknown;
   model: BaseModel | null;
   log: RunOptions["log"];
   stepTitle?: string | undefined;
-}): void => {
+}): string => {
   const { error, model, log } = data;
 
   logger.error(error);
@@ -175,12 +182,15 @@ const logComponentError: LogComponentErrorFunction = (data: {
       })
     : null;
 
+  const reason: Array<string> = [refusal || message];
+
   log(refusal || message);
 
   const hint: string | null = model ? buildColumnHint(message, model) : null;
 
   if (hint) {
     log(hint);
+    reason.push(hint);
   }
 
   const templateHint: string | null = buildTemplateColumnHint({
@@ -190,7 +200,10 @@ const logComponentError: LogComponentErrorFunction = (data: {
 
   if (templateHint) {
     log(templateHint);
+    reason.push(templateHint);
   }
+
+  return reason.join(" ");
 };
 
 export default logComponentError;

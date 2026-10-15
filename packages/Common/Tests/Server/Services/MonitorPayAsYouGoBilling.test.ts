@@ -4,6 +4,7 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import PayAsYouGoBillingService from "../../../Server/Services/PayAsYouGoBillingService";
 import BillingService from "../../../Server/Services/BillingService";
 import MonitorStepsProjectValidator from "../../../Server/Utils/Monitor/MonitorStepsProjectValidator";
+import ActiveMonitorLimit from "../../../Server/Utils/Billing/ActiveMonitorLimit";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -11,7 +12,6 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
-import PositiveNumber from "../../../Types/PositiveNumber";
 import SubscriptionPlan, {
   PlanType,
 } from "../../../Types/Billing/SubscriptionPlan";
@@ -131,9 +131,8 @@ beforeEach(() => {
     plan: PlanType.Free,
     isSubscriptionUnpaid: false,
   });
-  jest
-    .spyOn(MonitorService, "countBy")
-    .mockResolvedValue(new PositiveNumber(0));
+  // The project's active monitors, as the plan's limit counts them.
+  jest.spyOn(ActiveMonitorLimit, "countActiveMonitors").mockResolvedValue(0);
   jest
     .spyOn(MonitorStepsProjectValidator, "validateMonitorStepsBelongToProject")
     .mockResolvedValue(undefined);
@@ -162,7 +161,7 @@ describe("monitor creation payment admission", () => {
         hooks.onBeforeCreate(createInput(monitorType)),
       ).rejects.toBeInstanceOf(PaymentRequiredException);
       expect(MonitorStatusService.findOneBy).not.toHaveBeenCalled();
-      expect(MonitorService.countBy).not.toHaveBeenCalled();
+      expect(ActiveMonitorLimit.countActiveMonitors).not.toHaveBeenCalled();
     },
   );
 
@@ -185,7 +184,7 @@ describe("monitor creation payment admission", () => {
         hooks.onBeforeCreate(createInput(MonitorType.Manual)),
       ).resolves.toBeDefined();
       expect(PayAsYouGoBillingService.canUsePayAsYouGo).not.toHaveBeenCalled();
-      expect(MonitorService.countBy).not.toHaveBeenCalled();
+      expect(ActiveMonitorLimit.countActiveMonitors).not.toHaveBeenCalled();
     },
   );
 
@@ -205,17 +204,15 @@ describe("monitor creation payment admission", () => {
     await expect(
       hooks.onBeforeCreate(createInput(MonitorType.Website)),
     ).resolves.toBeDefined();
-    expect(MonitorService.countBy).toHaveBeenCalledTimes(1);
+    expect(ActiveMonitorLimit.countActiveMonitors).toHaveBeenCalledTimes(1);
     jest
-      .spyOn(MonitorService, "countBy")
-      .mockResolvedValue(
-        new PositiveNumber(
-          EnvironmentConfig.AllowedActiveMonitorCountInFreePlan,
-        ),
-      );
+      .spyOn(ActiveMonitorLimit, "countActiveMonitors")
+      .mockResolvedValue(EnvironmentConfig.AllowedActiveMonitorCountInFreePlan);
     await expect(
       hooks.onBeforeCreate(createInput(MonitorType.Website)),
-    ).rejects.toThrow("maximum allowed monitor limit");
+    ).rejects.toThrow(
+      `This project has reached the Free plan's limit of ${EnvironmentConfig.AllowedActiveMonitorCountInFreePlan} active monitors, so no more can be added.`,
+    );
   });
 
   test("retains the existing unpaid subscription refusal after payment admission", async () => {
@@ -406,7 +403,7 @@ describe("monitor operations use the stored subscription plan for payment eligib
       );
       expect(BillingService.hasPaymentMethods).not.toHaveBeenCalled();
       expect(BillingService.getSubscription).not.toHaveBeenCalled();
-      expect(MonitorService.countBy).not.toHaveBeenCalled();
+      expect(ActiveMonitorLimit.countActiveMonitors).not.toHaveBeenCalled();
     },
   );
 
