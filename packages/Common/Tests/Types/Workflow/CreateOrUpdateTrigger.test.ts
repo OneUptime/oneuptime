@@ -182,8 +182,16 @@ describe("a setting that holds What Happened", () => {
       "{{local.components.x.returnValues.model.returnValues.what-happened}}",
     ],
     [
+      "a path that names What Happened twice",
+      "{{local.components.x.returnValues.what-happened.returnValues.what-happened}}",
+    ],
+    [
       "spaces inside the braces, which the run does not read",
       "{{ local.components.incident-on-create-or-update-1.returnValues.what-happened }}",
+    ],
+    [
+      "a space after the opening braces alone",
+      "{{ local.components.incident-on-create-or-update-1.returnValues.what-happened}}",
     ],
     [
       "text around it",
