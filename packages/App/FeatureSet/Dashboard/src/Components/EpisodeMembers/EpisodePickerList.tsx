@@ -370,7 +370,7 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
           onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
             props.onSearchTextChange(event.target.value);
           }}
-          className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-500 focus:border-indigo-500 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         />
       </div>
       <div
