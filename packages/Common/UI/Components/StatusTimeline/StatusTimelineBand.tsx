@@ -16,7 +16,7 @@ import {
   StatusTimelineWindow,
 } from "./StatusTimelineLayout";
 import {
-  formatStatusTimelineEnd,
+  formatStatusTimelineDateRange,
   formatStatusTimelineRange,
   formatStatusTimelineShortDate,
   formatStatusTimelineShortDateTime,
@@ -102,8 +102,11 @@ const getMarkLabel: (data: {
       "{{count}} changes from {{start}} to {{end}}. Zoom in to see them.",
       {
         count: mark.entryIds.length.toString(),
-        start: formatStatusTimelineShortDateTime(mark.start, clock),
-        end: formatStatusTimelineShortDateTime(mark.end, clock),
+        ...formatStatusTimelineDateRange({
+          startsAt: mark.start,
+          endsAt: mark.end,
+          clock: clock,
+        }),
       },
     );
   }
@@ -120,17 +123,12 @@ const getMarkLabel: (data: {
     ),
   );
 
-  const start: string = formatStatusTimelineShortDateTime(
-    entry.startsAt,
-    clock,
-  );
-
   if (!entry.listEnd) {
     return translator.translateTemplate(
       "{{status}}, since {{start}}, {{duration}} so far. Currently Active.",
       {
         status: entry.name,
-        start: start,
+        start: formatStatusTimelineShortDateTime(entry.startsAt, clock),
         duration: duration,
       },
     );
@@ -140,8 +138,7 @@ const getMarkLabel: (data: {
     "{{status}}, {{start}} – {{end}}, {{duration}}",
     {
       status: entry.name,
-      start: start,
-      end: formatStatusTimelineEnd({
+      ...formatStatusTimelineDateRange({
         startsAt: entry.startsAt,
         endsAt: entry.listEnd,
         clock: clock,
@@ -182,17 +179,14 @@ const MarkTooltipContent: FunctionComponent<{
           </span>
         </div>
         <div className="mt-1 font-medium tabular-nums text-gray-700">
-          {translator.translateTemplate("{{start}} – {{end}}", {
-            start: formatStatusTimelineShortDateTime(
-              props.mark.start,
-              props.clock,
-            ),
-            end: formatStatusTimelineEnd({
+          {translator.translateTemplate(
+            "{{start}} – {{end}}",
+            formatStatusTimelineDateRange({
               startsAt: props.mark.start,
               endsAt: props.mark.end,
               clock: props.clock,
             }),
-          })}
+          )}
         </div>
         <div className="text-gray-500">
           {translator.translateText(

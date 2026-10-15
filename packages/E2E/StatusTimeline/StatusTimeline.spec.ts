@@ -46,6 +46,13 @@ const OFFLINE_38_SECONDS: string = eventId(2);
 // Oct 4: five changes within an hour and a quarter - one cluster at a month.
 const OCT_4_CHANGES: Array<string> = [4, 5, 6, 7, 8].map(eventId);
 
+/*
+ * The 38-second blip's name on the band: both ends in one minute, so to
+ * the second (Chromium writes a narrow no-break space before AM).
+ */
+const BLIP_LABEL: RegExp =
+  /^Offline, Oct 9, 7:26:01\sAM – 7:26:39\sAM, 38 secs$/;
+
 const MONITOR_ONLY_EVENT_REFUSAL: string =
   "The monitor's only status event can't be deleted: the monitor would have no status, and status pages would show it gray. To change its status, add a new status event.";
 
@@ -168,6 +175,15 @@ function legendItems(page: Page): Locator {
   return page.getByTestId("status-timeline-legend-item");
 }
 
+// The fixture's Offline status, by its id.
+const OFFLINE_STATUS_ID: string = "61000000-0000-4000-8000-000000000003";
+
+function offlineInLegend(page: Page): Locator {
+  return page.locator(
+    `[data-testid="status-timeline-legend-item"][data-status-key="${OFFLINE_STATUS_ID}"]`,
+  );
+}
+
 async function openEntryMenu(page: Page, id: string): Promise<Locator> {
   await entry(page, id).getByTestId("row-actions-more-button").click();
   const menu: Locator = page.getByRole("menu");
@@ -184,6 +200,134 @@ async function boxOf(
   expect(box).not.toBeNull();
 
   return box!;
+}
+
+interface UnreadableWords {
+  words: string;
+  contrast: number;
+}
+
+/*
+ * Every word the timeline's card draws that reads under WCAG AA (4.5:1)
+ * against what is behind it, measured as Chromium draws it: the text's
+ * colour over its ground, a translucent ground blended down to the first
+ * solid one under it.
+ */
+async function unreadableWords(page: Page): Promise<Array<UnreadableWords>> {
+  return await page.evaluate(() => {
+    const RGB_CHANNELS: RegExp = /rgba?\(([^)]+)\)/;
+
+    type Rgba = [number, number, number, number];
+
+    const parse: (color: string) => Rgba = (color: string): Rgba => {
+      const parts: Array<number> = (
+        color.match(RGB_CHANNELS)?.[1] || "0, 0, 0, 0"
+      )
+        .split(",")
+        .map((part: string): number => {
+          return Number(part.trim());
+        });
+
+      return [
+        parts[0] || 0,
+        parts[1] || 0,
+        parts[2] || 0,
+        parts[3] === undefined ? 1 : parts[3],
+      ];
+    };
+
+    // What is behind an element: its ground, or the nearest one above.
+    const groundOf: (element: Element | null) => Rgba = (
+      element: Element | null,
+    ): Rgba => {
+      let current: Element | null = element;
+
+      while (current) {
+        const ground: Rgba = parse(getComputedStyle(current).backgroundColor);
+
+        if (ground[3] > 0.99) {
+          return ground;
+        }
+
+        if (ground[3] > 0) {
+          const below: Rgba = groundOf(current.parentElement);
+          const alpha: number = ground[3];
+
+          return [
+            ground[0] * alpha + below[0] * (1 - alpha),
+            ground[1] * alpha + below[1] * (1 - alpha),
+            ground[2] * alpha + below[2] * (1 - alpha),
+            1,
+          ];
+        }
+
+        current = current.parentElement;
+      }
+
+      return [255, 255, 255, 1];
+    };
+
+    const luminance: (color: Rgba) => number = (color: Rgba): number => {
+      const linear: Array<number> = color
+        .slice(0, 3)
+        .map((part: number): number => {
+          const value: number = part / 255;
+
+          return value <= 0.03928
+            ? value / 12.92
+            : Math.pow((value + 0.055) / 1.055, 2.4);
+        });
+
+      return 0.2126 * linear[0]! + 0.7152 * linear[1]! + 0.0722 * linear[2]!;
+    };
+
+    const root: Element = document.querySelector('[data-testid="card"]')!;
+    const walker: TreeWalker = document.createTreeWalker(
+      root,
+      NodeFilter.SHOW_TEXT,
+    );
+    const found: Array<{ words: string; contrast: number }> = [];
+
+    while (walker.nextNode()) {
+      const element: Element | null = walker.currentNode.parentElement;
+      const words: string = (walker.currentNode.textContent || "").trim();
+
+      if (
+        !words ||
+        !element ||
+        element.closest('.sr-only, [aria-disabled="true"], :disabled')
+      ) {
+        continue;
+      }
+
+      const box: DOMRect = element.getBoundingClientRect();
+
+      if (box.width === 0 || box.height === 0) {
+        continue;
+      }
+
+      const ground: Rgba = groundOf(element);
+      const text: Rgba = parse(getComputedStyle(element).color);
+      const drawn: Rgba = [
+        text[0] * text[3] + ground[0] * (1 - text[3]),
+        text[1] * text[3] + ground[1] * (1 - text[3]),
+        text[2] * text[3] + ground[2] * (1 - text[3]),
+        1,
+      ];
+      const lighter: number = Math.max(luminance(drawn), luminance(ground));
+      const darker: number = Math.min(luminance(drawn), luminance(ground));
+      const contrast: number = (lighter + 0.05) / (darker + 0.05);
+
+      if (contrast < 4.5) {
+        found.push({
+          words: words,
+          contrast: Math.round(contrast * 100) / 100,
+        });
+      }
+    }
+
+    return found;
+  });
 }
 
 test.describe("a monitor's Status Timeline", () => {
@@ -255,8 +399,9 @@ test.describe("a monitor's Status Timeline", () => {
     await expect(page.getByTestId("status-timeline-now")).toBeVisible();
 
     await expect(legendItems(page)).toHaveText([
-      "Operational99.91% · 29 days 23 hours",
-      "Offline0.09% · 41 mins 1 sec · 7 times",
+      "Operational99.96% · 29 days 23 hours",
+      "Degraded<0.01% · 1 min 47 secs",
+      "Offline0.04% · 15 mins 32 secs · 5 times",
     ]);
   });
 
@@ -486,7 +631,7 @@ test.describe("a monitor's Status Timeline", () => {
     });
   });
 
-  test("an entry's ⋯ holds Show ID, View Cause, View Logs and Delete; View Logs shows what the check recorded", async ({
+  test("an entry's ⋯ holds Show ID, View Logs and Delete - View cause is on its line, not twice; View Logs shows what the check recorded", async ({
     page,
   }: {
     page: Page;
@@ -497,10 +642,14 @@ test.describe("a monitor's Status Timeline", () => {
 
     await expect(menu.getByRole("menuitem")).toHaveText([
       "Show ID",
-      "View Cause",
       "View Logs",
       "Delete",
     ]);
+    await expect(
+      entry(page, OFFLINE_38_SECONDS).getByTestId(
+        "monitor-status-timeline-view-cause",
+      ),
+    ).toBeVisible();
 
     await menu.getByRole("menuitem", { name: "View Logs" }).click();
 
@@ -521,6 +670,8 @@ test.describe("a monitor's Status Timeline", () => {
   }) => {
     await openMonitor(page);
 
+    await expect(offlineInLegend(page)).toContainText("5 times");
+
     const menu: Locator = await openEntryMenu(page, OFFLINE_38_SECONDS);
     await menu.getByRole("menuitem", { name: "Delete" }).click();
 
@@ -540,7 +691,8 @@ test.describe("a monitor's Status Timeline", () => {
     expect((await fixture(page)).deletes).toEqual([
       { tableName: "MonitorStatusTimeline", id: OFFLINE_38_SECONDS },
     ]);
-    await expect(legendItems(page).nth(1)).toContainText("6 times");
+    // One outage fewer in the month.
+    await expect(offlineInLegend(page)).toContainText("4 times");
   });
 
   test("the monitor's only event: Delete locked, saying why in the server's words", async ({
@@ -753,6 +905,81 @@ test.describe("a monitor's Status Timeline", () => {
     await expect(
       page.getByTestId("monitor-status-timeline-empty-create-button"),
     ).toBeVisible();
+    // With no history there is no period to move through.
+    await expect(
+      page.getByTestId("monitor-status-timeline-window-controls"),
+    ).toHaveCount(0);
+  });
+
+  test("a blip shorter than a minute is named to the second for a screen reader, never 7:26 – 7:26", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openMonitor(page);
+
+    await expect(mark(page, OFFLINE_38_SECONDS)).toHaveAttribute(
+      "aria-label",
+      BLIP_LABEL,
+    );
+  });
+
+  test("on a phone, a zoomed period keeps both arrows beside its picker, cut short rather than wrapped", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openMonitor(page);
+
+    await page.getByTestId("status-timeline-cluster").first().click();
+    await expect(
+      page.getByTestId("monitor-status-timeline-reset-zoom"),
+    ).toBeVisible();
+
+    const earlier: { x: number; y: number; width: number } = await boxOf(
+      page.getByTestId("monitor-status-timeline-earlier"),
+    );
+    const picker: { x: number; y: number; width: number } = await boxOf(
+      page.getByTestId("monitor-status-timeline-range-button"),
+    );
+    const later: { x: number; y: number; width: number } = await boxOf(
+      page.getByTestId("monitor-status-timeline-later"),
+    );
+
+    // One line: earlier, the period, later.
+    expect(Math.abs(later.y - earlier.y)).toBeLessThan(2);
+    expect(picker.x).toBeGreaterThan(earlier.x + earlier.width);
+    expect(later.x).toBeGreaterThanOrEqual(picker.x + picker.width);
+    expect(later.x + later.width).toBeLessThanOrEqual(390 - 16);
+    // The whole period is the picker's tooltip.
+    expect(
+      await page
+        .getByTestId("monitor-status-timeline-range-button")
+        .getAttribute("title"),
+    ).toContain(" – ");
+
+    const widths: { scroll: number; client: number } = await page.evaluate(
+      () => {
+        return {
+          scroll: document.documentElement.scrollWidth,
+          client: document.documentElement.clientWidth,
+        };
+      },
+    );
+
+    expect(widths.scroll).toBeLessThanOrEqual(widths.client);
+    await screenshot(page, "monitor-phone-zoomed", false);
+  });
+
+  test("in the light theme, every word the timeline writes reads at AA, as drawn", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openMonitor(page);
+
+    expect(await unreadableWords(page)).toEqual([]);
   });
 
   test("on a phone: nothing runs off the screen, and every entry keeps its actions", async ({
@@ -821,125 +1048,7 @@ test.describe("a monitor's Status Timeline", () => {
   }) => {
     await openMonitor(page, "?theme=dark");
 
-    const unreadable: Array<{ words: string; contrast: number }> =
-      await page.evaluate(() => {
-        const RGB_CHANNELS: RegExp = /rgba?\(([^)]+)\)/;
-
-        type Rgba = [number, number, number, number];
-
-        const parse: (color: string) => Rgba = (color: string): Rgba => {
-          const parts: Array<number> = (
-            color.match(RGB_CHANNELS)?.[1] || "0, 0, 0, 0"
-          )
-            .split(",")
-            .map((part: string): number => {
-              return Number(part.trim());
-            });
-
-          return [
-            parts[0] || 0,
-            parts[1] || 0,
-            parts[2] || 0,
-            parts[3] === undefined ? 1 : parts[3],
-          ];
-        };
-
-        // What is behind an element: its ground, or the nearest one above.
-        const groundOf: (element: Element | null) => Rgba = (
-          element: Element | null,
-        ): Rgba => {
-          let current: Element | null = element;
-
-          while (current) {
-            const ground: Rgba = parse(
-              getComputedStyle(current).backgroundColor,
-            );
-
-            if (ground[3] > 0.99) {
-              return ground;
-            }
-
-            if (ground[3] > 0) {
-              const below: Rgba = groundOf(current.parentElement);
-              const alpha: number = ground[3];
-
-              return [
-                ground[0] * alpha + below[0] * (1 - alpha),
-                ground[1] * alpha + below[1] * (1 - alpha),
-                ground[2] * alpha + below[2] * (1 - alpha),
-                1,
-              ];
-            }
-
-            current = current.parentElement;
-          }
-
-          return [255, 255, 255, 1];
-        };
-
-        const luminance: (color: Rgba) => number = (color: Rgba): number => {
-          const linear: Array<number> = color
-            .slice(0, 3)
-            .map((part: number): number => {
-              const value: number = part / 255;
-
-              return value <= 0.03928
-                ? value / 12.92
-                : Math.pow((value + 0.055) / 1.055, 2.4);
-            });
-
-          return (
-            0.2126 * linear[0]! + 0.7152 * linear[1]! + 0.0722 * linear[2]!
-          );
-        };
-
-        const root: Element = document.querySelector('[data-testid="card"]')!;
-        const walker: TreeWalker = document.createTreeWalker(
-          root,
-          NodeFilter.SHOW_TEXT,
-        );
-        const found: Array<{ words: string; contrast: number }> = [];
-
-        while (walker.nextNode()) {
-          const element: Element | null = walker.currentNode.parentElement;
-          const words: string = (walker.currentNode.textContent || "").trim();
-
-          if (
-            !words ||
-            !element ||
-            element.closest('.sr-only, [aria-disabled="true"], :disabled')
-          ) {
-            continue;
-          }
-
-          const box: DOMRect = element.getBoundingClientRect();
-
-          if (box.width === 0 || box.height === 0) {
-            continue;
-          }
-
-          const ground: Rgba = groundOf(element);
-          const text: Rgba = parse(getComputedStyle(element).color);
-          const drawn: Rgba = [
-            text[0] * text[3] + ground[0] * (1 - text[3]),
-            text[1] * text[3] + ground[1] * (1 - text[3]),
-            text[2] * text[3] + ground[2] * (1 - text[3]),
-            1,
-          ];
-          const lighter: number = Math.max(luminance(drawn), luminance(ground));
-          const darker: number = Math.min(luminance(drawn), luminance(ground));
-          const contrast: number = (lighter + 0.05) / (darker + 0.05);
-
-          if (contrast < 4.5) {
-            found.push({
-              words: words,
-              contrast: Math.round(contrast * 100) / 100,
-            });
-          }
-        }
-
-        return found;
-      });
+    const unreadable: Array<UnreadableWords> = await unreadableWords(page);
 
     expect(unreadable).toEqual([]);
 
@@ -1061,6 +1170,47 @@ test.describe("an incident's Status Timeline", () => {
     await screenshot(page, "incident-ongoing", false);
   });
 
+  test("an incident moved on to a state its project placed after Resolved is done: its band ends, not at Now", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openIncident(page, "scenario=closed");
+
+    // "Closed" carries no flag; its place after Resolved makes it resolved.
+    await expect(
+      page.locator(
+        '[data-testid="status-timeline-entry"][data-ongoing="true"]',
+      ),
+    ).toContainText("Closed");
+    await expect(page.getByTestId("status-timeline-now")).toHaveCount(0);
+    expect(
+      (await fixture(page)).listRequests.some(
+        (request: ListRequest): boolean => {
+          return request.tableName === "IncidentState";
+        },
+      ),
+    ).toBe(true);
+  });
+
+  test("every word reads at AA as drawn, the subscriber notification under each change included, in both themes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openIncident(page);
+
+    // A failed send says so in red, with its details one click away.
+    await expect(
+      page.getByTestId("subscriber-notification-more-details"),
+    ).toBeVisible();
+    expect(await unreadableWords(page)).toEqual([]);
+
+    await openIncident(page, "theme=dark");
+    expect(await unreadableWords(page)).toEqual([]);
+    await screenshot(page, "incident-dark");
+  });
+
   test("the incident's only state: Delete locked, in the server's words", async ({
     page,
   }: {
@@ -1076,5 +1226,232 @@ test.describe("an incident's Status Timeline", () => {
     await expect(
       menu.getByRole("menuitem", { name: "Delete" }),
     ).toHaveAttribute("aria-disabled", "true");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The other five status timeline pages
+ * ---------------------------------------------------------------------------
+ *
+ * An alert's, a scheduled maintenance event's, the two kinds of episode's
+ * and a network site's history open on the same timeline, each with what
+ * its table had: Create where the table had it, the subscriber notification
+ * under a maintenance event's changes, a site's month and no actions.
+ */
+
+interface OtherPage {
+  name: string;
+  page: string;
+  // The legend, each state with its time, in the order the record went.
+  legend: Array<string>;
+  // The band runs on to Now: the record is still open, or a period ends now.
+  runsToNow: boolean;
+  // Create, as the table offered it.
+  createLabel: string | null;
+  // The status page subscribers line under each change.
+  subscriberLines: number;
+  // A period to move through, rather than the record's whole life.
+  hasPeriod: boolean;
+  screenshot: string;
+}
+
+const OTHER_PAGES: Array<OtherPage> = [
+  {
+    name: "an alert's, still open",
+    page: "alert",
+    legend: ["Created9 mins", "Acknowledged31 mins"],
+    runsToNow: true,
+    createLabel: "Create State Change",
+    subscriberLines: 0,
+    hasPeriod: false,
+    screenshot: "alert-ongoing",
+  },
+  {
+    name: "a scheduled maintenance event's, completed",
+    page: "maintenance",
+    legend: [
+      "Scheduled2 days 14 hours",
+      "Ongoing2 hours",
+      "Ended5 mins",
+      "Completed7 hours 55 mins",
+    ],
+    // Completed eight hours ago, after a two-and-a-half-day life: recent.
+    runsToNow: true,
+    createLabel: "Create State Change",
+    subscriberLines: 4,
+    hasPeriod: false,
+    screenshot: "maintenance-completed",
+  },
+  {
+    name: "an incident episode's, resolved a day ago",
+    page: "incident-episode",
+    legend: [
+      "Created20 mins",
+      "Acknowledged2 hours 40 mins",
+      "Resolved1 day 1 hour",
+    ],
+    runsToNow: false,
+    createLabel: "Create State Change",
+    subscriberLines: 0,
+    hasPeriod: false,
+    screenshot: "incident-episode-resolved",
+  },
+  {
+    name: "an alert episode's, still open",
+    page: "alert-episode",
+    legend: ["Created30 mins", "Acknowledged4 hours 30 mins"],
+    runsToNow: true,
+    createLabel: "Create State Change",
+    subscriberLines: 0,
+    hasPeriod: false,
+    screenshot: "alert-episode-ongoing",
+  },
+  {
+    name: "a network site's month",
+    page: "site",
+    legend: [
+      "Operational99.18% · 29 days 18 hours",
+      "Degraded0.72% · 5 hours 10 mins · 2 times",
+      "Offline0.1% · 44 mins 12 secs · 2 times",
+    ],
+    runsToNow: true,
+    createLabel: null,
+    subscriberLines: 0,
+    hasPeriod: true,
+    screenshot: "site-month",
+  },
+];
+
+async function openOtherPage(
+  page: Page,
+  name: string,
+  search: string = "",
+): Promise<void> {
+  await page.goto(
+    `${INCIDENT_ROUTE}?page=${name}${search ? `&${search}` : ""}`,
+  );
+  await expect(page.getByTestId("status-timeline-band")).toBeVisible();
+  await expect(page.getByTestId("status-timeline-loading")).toHaveCount(0);
+}
+
+test.describe("every other status timeline page", () => {
+  for (const otherPage of OTHER_PAGES) {
+    test(`${otherPage.name}: opens on its timeline, with what its table offered, and the table one click away`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openOtherPage(page, otherPage.page);
+
+      await expect(legendItems(page)).toHaveText(otherPage.legend);
+      await expect(page.getByTestId("status-timeline-now")).toHaveCount(
+        otherPage.runsToNow ? 1 : 0,
+      );
+      await expect(
+        page.locator('[data-testid$="-window-controls"]'),
+      ).toHaveCount(otherPage.hasPeriod ? 1 : 0);
+      await expect(
+        page.getByTestId("state-timeline-subscriber-notification"),
+      ).toHaveCount(otherPage.subscriberLines);
+
+      const card: Locator = page
+        .getByTestId("card")
+        .filter({ has: page.getByTestId("status-timeline-band") });
+
+      if (otherPage.createLabel) {
+        await expect(
+          card.getByRole("button", { name: otherPage.createLabel }),
+        ).toBeVisible();
+        // Each change keeps its ⋯, with Delete.
+        await expect(
+          page
+            .getByTestId("status-timeline-entry")
+            .first()
+            .getByTestId("row-actions-more-button"),
+        ).toBeVisible();
+      } else {
+        // A site's history is its rollup's: nothing to add or delete.
+        await expect(card.getByRole("button", { name: /^Create/ })).toHaveCount(
+          0,
+        );
+        await expect(page.getByTestId("row-actions-more-button")).toHaveCount(
+          0,
+        );
+      }
+
+      // Every word reads at AA as drawn, the subscriber line included.
+      if (otherPage.page !== "site") {
+        expect(await unreadableWords(page)).toEqual([]);
+      }
+
+      await screenshot(page, otherPage.screenshot);
+
+      await page.getByTestId("status-timeline-view-table").click();
+      await expect(page.locator("table")).toBeVisible();
+      await expect(page.getByTestId("status-timeline-band")).toHaveCount(0);
+      await page.getByTestId("status-timeline-view-timeline").click();
+      await expect(page.getByTestId("status-timeline-band")).toBeVisible();
+    });
+
+    test(`${otherPage.name}: on a phone, nothing runs off the screen`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await openOtherPage(page, otherPage.page);
+
+      const widths: { scroll: number; client: number } = await page.evaluate(
+        () => {
+          return {
+            scroll: document.documentElement.scrollWidth,
+            client: document.documentElement.clientWidth,
+          };
+        },
+      );
+
+      expect(widths.scroll).toBeLessThanOrEqual(widths.client);
+
+      const band: { x: number; width: number } = await boxOf(
+        page.getByTestId("status-timeline-band"),
+      );
+
+      expect(band.x + band.width).toBeLessThanOrEqual(390 - 16);
+      await screenshot(page, `${otherPage.screenshot}-phone`);
+    });
+  }
+
+  test("a maintenance event in progress runs on to Now", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOtherPage(page, "maintenance", "scenario=ongoing");
+
+    await expect(page.getByTestId("status-timeline-now")).toBeVisible();
+    await expect(
+      page.locator(
+        '[data-testid="status-timeline-entry"][data-ongoing="true"]',
+      ),
+    ).toContainText("Ongoing");
+  });
+
+  test("an alert resolved two days ago ends a little after it was resolved", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOtherPage(page, "alert", "scenario=resolved");
+
+    await expect(page.getByTestId("status-timeline-now")).toHaveCount(0);
+    // Its project's alert states were read to tell that Resolved is done.
+    expect(
+      (await fixture(page)).listRequests.some(
+        (request: ListRequest): boolean => {
+          return request.tableName === "AlertState";
+        },
+      ),
+    ).toBe(true);
   });
 });

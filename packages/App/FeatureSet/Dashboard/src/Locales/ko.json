@@ -29305,5 +29305,15 @@
   "{{count}} older changes not loaded": "이전 변경 사항 {{count}}건을 불러오지 않음",
   "{{count}} older changes not loaded_one": "이전 변경 사항 {{count}}건을 불러오지 않음",
   "{{status}}, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, {{start}}부터, 현재까지 {{duration}}. 현재 활성.",
-  "{{timeline}}, {{start}} to {{end}}. Use the arrow keys to move between statuses.": "{{timeline}}, {{start}}부터 {{end}}까지. 화살표 키로 상태 간에 이동합니다."
+  "{{timeline}}, {{start}} to {{end}}. Use the arrow keys to move between statuses.": "{{timeline}}, {{start}}부터 {{end}}까지. 화살표 키로 상태 간에 이동합니다.",
+  "The status the alert changed to.": "경고가 바뀐 상태입니다.",
+  "The status the episode changed to.": "에피소드가 바뀐 상태입니다.",
+  "The status the event changed to.": "이벤트가 바뀐 상태입니다.",
+  "The status the incident changed to.": "인시던트가 바뀐 상태입니다.",
+  "The status the monitor changed to.": "모니터가 바뀐 상태입니다.",
+  "When the alert changed to this status.": "경고가 이 상태로 바뀐 시각입니다.",
+  "When the episode changed to this status.": "에피소드가 이 상태로 바뀐 시각입니다.",
+  "When the event changed to this status.": "이벤트가 이 상태로 바뀐 시각입니다.",
+  "When the incident changed to this status.": "인시던트가 이 상태로 바뀐 시각입니다.",
+  "When the monitor changed to this status.": "모니터가 이 상태로 바뀐 시각입니다."
 }

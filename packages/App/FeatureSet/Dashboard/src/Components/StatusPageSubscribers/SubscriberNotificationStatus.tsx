@@ -11,10 +11,7 @@ import SubscriberNotificationResend, {
   SubscriberNotificationResendAction,
 } from "Common/Types/StatusPage/SubscriberNotificationResend";
 import IconText from "Common/UI/Components/IconText/IconText";
-import Button, {
-  ButtonStyleType,
-  ButtonSize,
-} from "Common/UI/Components/Button/Button";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -93,6 +90,21 @@ export interface ComponentProps {
 }
 
 type ModalStep = "details" | "confirm";
+
+/*
+ * The status's words are drawn in the theme's text colours, not the icon's
+ * 500 shade: "Notifications Sent" in green-500 on white is 2.3:1, under
+ * AA's 4.5:1, and it sits under every state change of a status timeline.
+ * These read at AA in both themes - Theme.css redefines each for dark mode
+ * - and the fallback after the comma is the light theme's own.
+ */
+export const NOTIFICATION_STATUS_TEXT_COLORS: Record<string, Color> = {
+  gray: new Color("var(--ou-text-muted, #6b7280)"),
+  yellow: new Color("var(--ou-warning-text, #b45309)"),
+  blue: new Color("var(--ou-link, #4f46e5)"),
+  green: new Color("var(--ou-success-text, #166534)"),
+  red: new Color("var(--ou-danger-text, #b91c1c)"),
+};
 
 /**
  * Utility function to get status info for notification status
@@ -262,6 +274,10 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
   const iconColor: Color =
     colorMap[statusInfo.color as keyof typeof colorMap] || Gray500;
 
+  const textColor: Color =
+    NOTIFICATION_STATUS_TEXT_COLORS[statusInfo.color] ||
+    NOTIFICATION_STATUS_TEXT_COLORS["gray"]!;
+
   const openModal: () => void = (): void => {
     setModalStep("details");
     setIsToAllStatusPages(false);
@@ -370,7 +386,7 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
         }
         icon={statusInfo.icon}
         iconColor={iconColor}
-        textColor={iconColor}
+        textColor={textColor}
         iconClassName="h-4 w-4"
         textClassName="text-sm font-medium"
         spacing="sm"
@@ -378,14 +394,18 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
       />
 
       {showMoreButton && (
-        <div className="-ml-2 text-gray-500">
-          <Button
-            title="more details"
-            buttonStyle={ButtonStyleType.SECONDARY_LINK}
-            buttonSize={ButtonSize.Small}
-            onClick={openModal}
-          />
-        </div>
+        /*
+         * A quiet link, but one that reads: gray-600 (7.6:1 on white),
+         * where the secondary link style's gray-400 was 2.5:1.
+         */
+        <button
+          type="button"
+          className="rounded text-sm text-gray-600 underline-offset-2 hover:text-gray-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          data-testid="subscriber-notification-more-details"
+          onClick={openModal}
+        >
+          {tx("more details")}
+        </button>
       )}
 
       {showModal && modalStep === "details" && (

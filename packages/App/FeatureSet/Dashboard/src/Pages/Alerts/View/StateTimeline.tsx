@@ -54,6 +54,7 @@ export const ALERT_STATE_TIMELINE_FORM_FIELDS: Array<
       alertState: true,
     },
     title: "Alert Status",
+    description: "The status the alert changed to.",
     fieldType: FormFieldSchemaType.Dropdown,
     required: true,
     placeholder: "Alert Status",
@@ -71,6 +72,11 @@ export const ALERT_STATE_TIMELINE_FORM_FIELDS: Array<
       startsAt: true,
     },
     title: "Starts At",
+    /*
+     * Its own words, not the column's: the column's are written for the
+     * API, and speak of correcting a time that a new row does not have yet.
+     */
+    description: "When the alert changed to this status.",
     fieldType: FormFieldSchemaType.DateTime,
     required: true,
     placeholder: "Starts At",

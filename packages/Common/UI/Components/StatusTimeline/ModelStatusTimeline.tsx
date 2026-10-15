@@ -816,11 +816,12 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
   };
 
   /*
-   * Every action of an entry is in its ⋯ menu, worded and locked as the
-   * table's row menu words and locks them. The one most entries are opened
-   * for, View cause, is also a link on the entry's own line
-   * (renderEntryInlineAction): a column of identical buttons down the
-   * timeline would be its loudest part.
+   * An entry's actions are in its ⋯ menu, worded, ordered and locked as
+   * the table's row menu words, orders and locks them - all but the one
+   * most entries are opened for, View cause, which is a link on the
+   * entry's own line (renderEntryInlineAction), where the table had its
+   * button: a column of identical buttons down the timeline would be its
+   * loudest part, and the same action twice on one entry is noise.
    */
   const actionButtons: Array<ActionButtonSchema<TBaseModel>> = [];
 
@@ -835,19 +836,6 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
       },
       onClick: (item: TBaseModel, onCompleteAction: () => void) => {
         setViewId(getRecordIdText(item["_id"]));
-        onCompleteAction();
-      },
-    });
-  }
-
-  if (props.causeColumn) {
-    actionButtons.push({
-      title: "View Cause",
-      icon: IconProp.TransparentCube,
-      buttonStyleType: ButtonStyleType.NORMAL,
-      placement: ActionButtonPlacement.MoreMenu,
-      onClick: (item: TBaseModel, onCompleteAction: () => void) => {
-        openCause(item);
         onCompleteAction();
       },
     });

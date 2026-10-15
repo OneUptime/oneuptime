@@ -29305,5 +29305,15 @@
   "{{count}} older changes not loaded": "{{count}} تغییر قدیمی‌تر بارگذاری نشده",
   "{{count}} older changes not loaded_one": "{{count}} تغییر قدیمی‌تر بارگذاری نشده",
   "{{status}}, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}، از {{start}}، تاکنون {{duration}}. در حال حاضر فعال.",
-  "{{timeline}}, {{start}} to {{end}}. Use the arrow keys to move between statuses.": "{{timeline}}، از {{start}} تا {{end}}. برای جابه‌جایی بین وضعیت‌ها از کلیدهای جهت‌نما استفاده کنید."
+  "{{timeline}}, {{start}} to {{end}}. Use the arrow keys to move between statuses.": "{{timeline}}، از {{start}} تا {{end}}. برای جابه‌جایی بین وضعیت‌ها از کلیدهای جهت‌نما استفاده کنید.",
+  "The status the alert changed to.": "وضعیتی که هشدار به آن تغییر کرد.",
+  "The status the episode changed to.": "وضعیتی که اپیزود به آن تغییر کرد.",
+  "The status the event changed to.": "وضعیتی که رویداد به آن تغییر کرد.",
+  "The status the incident changed to.": "وضعیتی که حادثه به آن تغییر کرد.",
+  "The status the monitor changed to.": "وضعیتی که مانیتور به آن تغییر کرد.",
+  "When the alert changed to this status.": "زمانی که هشدار به این وضعیت تغییر کرد.",
+  "When the episode changed to this status.": "زمانی که اپیزود به این وضعیت تغییر کرد.",
+  "When the event changed to this status.": "زمانی که رویداد به این وضعیت تغییر کرد.",
+  "When the incident changed to this status.": "زمانی که حادثه به این وضعیت تغییر کرد.",
+  "When the monitor changed to this status.": "زمانی که مانیتور به این وضعیت تغییر کرد."
 }

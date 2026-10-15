@@ -34,7 +34,7 @@ export interface ComponentProps {
 }
 
 const NAV_BUTTON_CLASS_NAME: string =
-  "inline-flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent";
+  "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent";
 
 const StatusTimelineWindowControls: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -45,15 +45,24 @@ const StatusTimelineWindowControls: FunctionComponent<ComponentProps> = (
   const laterLabel: string =
     translator.translateText("Show the period after") || "";
 
+  /*
+   * The period and the arrows either side of it stay on one line - a long
+   * custom period is cut short to fit a phone, never wrapping the later
+   * arrow away from it - and Reset zoom follows, on a line of its own when
+   * there is no room beside them.
+   */
   return (
     <div
-      className="flex flex-wrap items-center gap-1.5"
+      className="flex min-w-0 max-w-full flex-wrap items-center gap-1.5"
       role="group"
       aria-label={translator.translateText("Time period")}
       data-testid={`${props.dataTestIdPrefix}-window-controls`}
     >
       {props.range && props.onRangeChange && (
-        <>
+        <div
+          className="flex min-w-0 max-w-full items-center gap-1.5"
+          data-testid={`${props.dataTestIdPrefix}-period`}
+        >
           <button
             type="button"
             className={NAV_BUTTON_CLASS_NAME}
@@ -82,12 +91,12 @@ const StatusTimelineWindowControls: FunctionComponent<ComponentProps> = (
           >
             <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
           </button>
-        </>
+        </div>
       )}
       {props.isZoomed && (
         <button
           type="button"
-          className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-indigo-700 transition-colors hover:bg-indigo-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-indigo-700 transition-colors hover:bg-indigo-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           data-testid={`${props.dataTestIdPrefix}-reset-zoom`}
           onClick={props.onResetZoom}
         >

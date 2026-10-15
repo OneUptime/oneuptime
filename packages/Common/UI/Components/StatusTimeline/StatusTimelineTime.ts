@@ -166,6 +166,31 @@ export const formatStatusTimelineShortDateTime: (
       );
 };
 
+// "Oct 9, 07:26:12": the same, to the second.
+export const formatStatusTimelineShortDateTimeWithSeconds: (
+  date: Date,
+  clock: StatusTimelineClock,
+) => string = (date: Date, clock: StatusTimelineClock): string => {
+  const format: Intl.DateTimeFormat | null = getFormat({
+    clock: clock,
+    shape: "short-date-time-seconds",
+    options: {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: clock.use12HourClock,
+    },
+  });
+
+  return format
+    ? format.format(date)
+    : inZone(date, clock).format(
+        clock.use12HourClock ? "MMM D, h:mm:ss A" : "MMM D, HH:mm:ss",
+      );
+};
+
 /*
  * "Friday, October 9, 2026, 7:26:12 AM BST": everything about an instant,
  * for a tooltip or a screen reader.
@@ -240,6 +265,40 @@ export const formatStatusTimelineRange: (data: {
   }
 
   return { start: start, end: end };
+};
+
+/*
+ * When an entry began and ended, read on its own - for a screen reader on
+ * the band, where no day heading says which day it was: "Oct 9, 07:26 -
+ * 07:27", "Sep 15, 17:11 - Oct 4, 05:18". When both ends fall in one minute
+ * they read to the second ("Oct 9, 07:26:01 - 07:26:39"), never "07:26 -
+ * 07:26".
+ */
+export const formatStatusTimelineDateRange: (data: {
+  startsAt: Date;
+  endsAt: Date;
+  clock: StatusTimelineClock;
+}) => { start: string; end: string } = (data: {
+  startsAt: Date;
+  endsAt: Date;
+  clock: StatusTimelineClock;
+}): { start: string; end: string } => {
+  const end: string = formatStatusTimelineEnd(data);
+
+  if (formatStatusTimelineTime(data.startsAt, data.clock) === end) {
+    return {
+      start: formatStatusTimelineShortDateTimeWithSeconds(
+        data.startsAt,
+        data.clock,
+      ),
+      end: formatStatusTimelineTimeWithSeconds(data.endsAt, data.clock),
+    };
+  }
+
+  return {
+    start: formatStatusTimelineShortDateTime(data.startsAt, data.clock),
+    end: end,
+  };
 };
 
 // A tick's label: the hour, or the day, the month or the year it marks.

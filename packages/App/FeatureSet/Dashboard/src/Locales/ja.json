@@ -29305,5 +29305,15 @@
   "{{count}} older changes not loaded": "以前の変更 {{count}} 件は未読み込み",
   "{{count}} older changes not loaded_one": "以前の変更 {{count}} 件は未読み込み",
   "{{status}}, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}、{{start}} から、{{duration}} 経過。現在アクティブ。",
-  "{{timeline}}, {{start}} to {{end}}. Use the arrow keys to move between statuses.": "{{timeline}}、{{start}} から {{end}} まで。矢印キーでステータス間を移動します。"
+  "{{timeline}}, {{start}} to {{end}}. Use the arrow keys to move between statuses.": "{{timeline}}、{{start}} から {{end}} まで。矢印キーでステータス間を移動します。",
+  "The status the alert changed to.": "アラートが変わった先のステータス。",
+  "The status the episode changed to.": "エピソードが変わった先のステータス。",
+  "The status the event changed to.": "イベントが変わった先のステータス。",
+  "The status the incident changed to.": "インシデントが変わった先のステータス。",
+  "The status the monitor changed to.": "モニターが変わった先のステータス。",
+  "When the alert changed to this status.": "アラートがこのステータスに変わった日時。",
+  "When the episode changed to this status.": "エピソードがこのステータスに変わった日時。",
+  "When the event changed to this status.": "イベントがこのステータスに変わった日時。",
+  "When the incident changed to this status.": "インシデントがこのステータスに変わった日時。",
+  "When the monitor changed to this status.": "モニターがこのステータスに変わった日時。"
 }

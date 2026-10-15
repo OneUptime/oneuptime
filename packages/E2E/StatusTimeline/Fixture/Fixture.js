@@ -10,7 +10,9 @@
  *
  * Steered by the query string:
  *   - page=incident          an incident's State Timeline instead of a
- *                            monitor's
+ *                            monitor's; page=alert, maintenance,
+ *                            incident-episode, alert-episode or site for
+ *                            the other five status timeline pages
  *   - scenario=...           for a monitor: screenshot (the default; the
  *                            maintainer's 63 status events, mostly Operational
  *                            with short Offline blips), flapping (700 changes
@@ -19,7 +21,13 @@
  *                            year) or empty;
  *                            for an incident: resolved (the default; Created,
  *                            Acknowledged, Resolved three weeks ago), ongoing
- *                            (still Acknowledged) or declared (its only state)
+ *                            (still Acknowledged), declared (its only state)
+ *                            or closed (moved on to "Closed", a state of the
+ *                            project's own placed after Resolved, with no
+ *                            flag of its own);
+ *                            for an alert: ongoing (the default) or resolved;
+ *                            for a maintenance event: completed (the
+ *                            default) or ongoing
  *   - role=viewer            a member who may read the timeline but not
  *                            create or delete a status event (Viewer); the
  *                            default is a project owner
@@ -47,6 +55,18 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import MonitorStatusTimelinePage from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/StatusTimeline";
 import IncidentStateTimelinePage from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/View/StateTimeline";
+import AlertStateTimelinePage from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/View/StateTimeline";
+import ScheduledMaintenanceStateTimelinePage from "../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/View/StateTimeline";
+import IncidentEpisodeStateTimelinePage from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/EpisodeView/StateTimeline";
+import AlertEpisodeStateTimelinePage from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/EpisodeView/StateTimeline";
+import NetworkSiteStatusTimelinePage from "../../../App/FeatureSet/Dashboard/src/Pages/NetworkSite/View/StatusTimeline";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
+import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
+import IncidentEpisodeStateTimeline from "Common/Models/DatabaseModels/IncidentEpisodeStateTimeline";
+import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
+import NetworkSiteStatusTimeline from "Common/Models/DatabaseModels/NetworkSiteStatusTimeline";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
@@ -88,9 +108,26 @@ const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const USER_ID = "80000000-0000-4000-8000-000000000001";
 const MONITOR_ID = "60000000-0000-4000-8000-000000000001";
 const INCIDENT_ID = "40000000-0000-4000-8000-000000000001";
+const ALERT_ID = "43000000-0000-4000-8000-000000000001";
+const MAINTENANCE_ID = "44000000-0000-4000-8000-000000000001";
+const INCIDENT_EPISODE_ID = "45000000-0000-4000-8000-000000000001";
+const ALERT_EPISODE_ID = "46000000-0000-4000-8000-000000000001";
+const SITE_ID = "47000000-0000-4000-8000-000000000001";
+
+const PAGE_NAMES = [
+  "monitor",
+  "incident",
+  "alert",
+  "maintenance",
+  "incident-episode",
+  "alert-episode",
+  "site",
+];
 
 const params = new URLSearchParams(window.location.search);
-const page = params.get("page") === "incident" ? "incident" : "monitor";
+const page = PAGE_NAMES.includes(params.get("page"))
+  ? params.get("page")
+  : "monitor";
 const scenario = params.get("scenario") || "";
 const role = params.get("role") || "owner";
 const language = ["de", "ja"].includes(params.get("lang"))
@@ -315,35 +352,55 @@ const monitor = (() => {
 
 // ---------------------------------------------------------------- incidents
 
-function incidentState(id, name, color, order, isResolvedState) {
-  const state = new IncidentState();
+// A state of an incident's or an alert's list, with its built-in flag.
+function listState(Model, id, name, color, order, flag) {
+  const state = new Model();
   state._id = id;
   state.projectId = new ObjectID(PROJECT_ID);
   state.name = name;
   state.color = new Color(color);
   state.order = order;
-  state.isResolvedState = Boolean(isResolvedState);
+  if (flag) {
+    state[flag] = true;
+  }
   return state;
 }
 
-const CREATED = incidentState(
+const CREATED = listState(
+  IncidentState,
   "41000000-0000-4000-8000-000000000001",
   "Created",
   "#ef4444",
   1,
+  "isCreatedState",
 );
-const ACKNOWLEDGED = incidentState(
+const ACKNOWLEDGED = listState(
+  IncidentState,
   "41000000-0000-4000-8000-000000000002",
   "Acknowledged",
   "#f59e0b",
   2,
+  "isAcknowledgedState",
 );
-const RESOLVED = incidentState(
+const RESOLVED = listState(
+  IncidentState,
   "41000000-0000-4000-8000-000000000003",
   "Resolved",
   "#10b981",
   3,
-  true,
+  "isResolvedState",
+);
+/*
+ * A state of the project's own, placed after Resolved and carrying no flag:
+ * an incident in it is resolved all the same (Common/Utils/ResolvedState).
+ */
+const CLOSED = listState(
+  IncidentState,
+  "41000000-0000-4000-8000-000000000004",
+  "Closed",
+  "#64748b",
+  4,
+  null,
 );
 
 let incidentRowCount = 0;
@@ -382,6 +439,14 @@ function incidentHistory() {
       incidentEvent(ACKNOWLEDGED, 2 * HOUR + 48 * MINUTE, null),
     ];
   }
+  if (scenario === "closed") {
+    return [
+      incidentEvent(CREATED, declared, declared - 12 * MINUTE),
+      incidentEvent(ACKNOWLEDGED, declared - 12 * MINUTE, 21 * DAY),
+      incidentEvent(RESOLVED, 21 * DAY, 21 * DAY - 30 * MINUTE),
+      incidentEvent(CLOSED, 21 * DAY - 30 * MINUTE, null),
+    ];
+  }
   return [
     incidentEvent(CREATED, declared, declared - 12 * MINUTE),
     incidentEvent(
@@ -394,13 +459,315 @@ function incidentHistory() {
   ];
 }
 
+// ------------------------------------------------- the other timelines
+
+const ALERT_CREATED = listState(
+  AlertState,
+  "48000000-0000-4000-8000-000000000001",
+  "Created",
+  "#ef4444",
+  1,
+  "isCreatedState",
+);
+const ALERT_ACKNOWLEDGED = listState(
+  AlertState,
+  "48000000-0000-4000-8000-000000000002",
+  "Acknowledged",
+  "#f59e0b",
+  2,
+  "isAcknowledgedState",
+);
+const ALERT_RESOLVED = listState(
+  AlertState,
+  "48000000-0000-4000-8000-000000000003",
+  "Resolved",
+  "#10b981",
+  3,
+  "isResolvedState",
+);
+
+const SCHEDULED = listState(
+  ScheduledMaintenanceState,
+  "49000000-0000-4000-8000-000000000001",
+  "Scheduled",
+  "#6366f1",
+  1,
+  "isScheduledState",
+);
+const ONGOING = listState(
+  ScheduledMaintenanceState,
+  "49000000-0000-4000-8000-000000000002",
+  "Ongoing",
+  "#f59e0b",
+  2,
+  "isOngoingState",
+);
+const ENDED = listState(
+  ScheduledMaintenanceState,
+  "49000000-0000-4000-8000-000000000003",
+  "Ended",
+  "#10b981",
+  3,
+  "isEndedState",
+);
+const COMPLETED = listState(
+  ScheduledMaintenanceState,
+  "49000000-0000-4000-8000-000000000004",
+  "Completed",
+  "#059669",
+  4,
+  "isResolvedState",
+);
+
+// The other five pages' timelines: their model, state column and record.
+const TIMELINES = {
+  AlertStateTimeline: {
+    Model: AlertStateTimeline,
+    stateColumn: "alertState",
+    recordColumn: "alertId",
+    recordId: ALERT_ID,
+    prefix: "4a000000",
+    record: StateTimelineRecord.Alert,
+  },
+  ScheduledMaintenanceStateTimeline: {
+    Model: ScheduledMaintenanceStateTimeline,
+    stateColumn: "scheduledMaintenanceState",
+    recordColumn: "scheduledMaintenanceId",
+    recordId: MAINTENANCE_ID,
+    prefix: "4b000000",
+    record: StateTimelineRecord.ScheduledMaintenance,
+  },
+  IncidentEpisodeStateTimeline: {
+    Model: IncidentEpisodeStateTimeline,
+    stateColumn: "incidentState",
+    recordColumn: "incidentEpisodeId",
+    recordId: INCIDENT_EPISODE_ID,
+    prefix: "4c000000",
+    record: StateTimelineRecord.IncidentEpisode,
+  },
+  AlertEpisodeStateTimeline: {
+    Model: AlertEpisodeStateTimeline,
+    stateColumn: "alertState",
+    recordColumn: "alertEpisodeId",
+    recordId: ALERT_EPISODE_ID,
+    prefix: "4d000000",
+    record: StateTimelineRecord.AlertEpisode,
+  },
+  NetworkSiteStatusTimeline: {
+    Model: NetworkSiteStatusTimeline,
+    stateColumn: "monitorStatus",
+    recordColumn: "siteId",
+    recordId: SITE_ID,
+    prefix: "4e000000",
+    record: null,
+  },
+};
+
+const timelineRowCounts = {};
+
+/*
+ * A row of one of those timelines: `from` and `to` are how long before now
+ * it began and ended (`to` null: the record's state now).
+ */
+function timelineEvent(tableName, state, from, to, extra) {
+  const timeline = TIMELINES[tableName];
+  timelineRowCounts[tableName] = (timelineRowCounts[tableName] || 0) + 1;
+  const row = new timeline.Model();
+  row._id = rowId(timeline.prefix, timelineRowCounts[tableName]);
+  row.projectId = new ObjectID(PROJECT_ID);
+  row[timeline.recordColumn] = new ObjectID(timeline.recordId);
+  row[`${timeline.stateColumn}Id`] = new ObjectID(state._id);
+  row[timeline.stateColumn] = state;
+  row.startsAt = new Date(NOW - from);
+  if (to !== null) {
+    row.endsAt = new Date(NOW - to);
+  }
+  Object.assign(row, extra || {});
+  return row;
+}
+
+function alertHistory() {
+  if (scenario === "resolved") {
+    return [
+      timelineEvent(
+        "AlertStateTimeline",
+        ALERT_CREATED,
+        2 * DAY,
+        2 * DAY - 9 * MINUTE,
+      ),
+      timelineEvent(
+        "AlertStateTimeline",
+        ALERT_ACKNOWLEDGED,
+        2 * DAY - 9 * MINUTE,
+        2 * DAY - 47 * MINUTE,
+      ),
+      timelineEvent(
+        "AlertStateTimeline",
+        ALERT_RESOLVED,
+        2 * DAY - 47 * MINUTE,
+        null,
+      ),
+    ];
+  }
+  return [
+    timelineEvent(
+      "AlertStateTimeline",
+      ALERT_CREATED,
+      40 * MINUTE,
+      31 * MINUTE,
+    ),
+    timelineEvent("AlertStateTimeline", ALERT_ACKNOWLEDGED, 31 * MINUTE, null, {
+      createdByUser: ADA,
+    }),
+  ];
+}
+
+// What a maintenance event's status page subscribers were told of a change.
+function told(status, message) {
+  return {
+    subscriberNotificationStatus: status,
+    subscriberNotificationStatusMessage: message,
+  };
+}
+
+function maintenanceHistory() {
+  const sent = told(
+    StatusPageSubscriberNotificationStatus.Success,
+    "Status page subscribers were notified.",
+  );
+  if (scenario === "ongoing") {
+    return [
+      timelineEvent(
+        "ScheduledMaintenanceStateTimeline",
+        SCHEDULED,
+        2 * DAY,
+        45 * MINUTE,
+        sent,
+      ),
+      timelineEvent(
+        "ScheduledMaintenanceStateTimeline",
+        ONGOING,
+        45 * MINUTE,
+        null,
+        sent,
+      ),
+    ];
+  }
+  return [
+    timelineEvent(
+      "ScheduledMaintenanceStateTimeline",
+      SCHEDULED,
+      3 * DAY,
+      10 * HOUR,
+      sent,
+    ),
+    timelineEvent(
+      "ScheduledMaintenanceStateTimeline",
+      ONGOING,
+      10 * HOUR,
+      8 * HOUR,
+      sent,
+    ),
+    timelineEvent(
+      "ScheduledMaintenanceStateTimeline",
+      ENDED,
+      8 * HOUR,
+      8 * HOUR - 5 * MINUTE,
+      sent,
+    ),
+    timelineEvent(
+      "ScheduledMaintenanceStateTimeline",
+      COMPLETED,
+      8 * HOUR - 5 * MINUTE,
+      null,
+      told(
+        StatusPageSubscriberNotificationStatus.Skipped,
+        "Notify Status Page Subscribers was off for this change.",
+      ),
+    ),
+  ];
+}
+
+function incidentEpisodeHistory() {
+  return [
+    timelineEvent(
+      "IncidentEpisodeStateTimeline",
+      CREATED,
+      DAY + 4 * HOUR,
+      DAY + 3 * HOUR + 40 * MINUTE,
+    ),
+    timelineEvent(
+      "IncidentEpisodeStateTimeline",
+      ACKNOWLEDGED,
+      DAY + 3 * HOUR + 40 * MINUTE,
+      DAY + HOUR,
+    ),
+    timelineEvent("IncidentEpisodeStateTimeline", RESOLVED, DAY + HOUR, null),
+  ];
+}
+
+function alertEpisodeHistory() {
+  return [
+    timelineEvent(
+      "AlertEpisodeStateTimeline",
+      ALERT_CREATED,
+      5 * HOUR,
+      4 * HOUR + 30 * MINUTE,
+    ),
+    timelineEvent(
+      "AlertEpisodeStateTimeline",
+      ALERT_ACKNOWLEDGED,
+      4 * HOUR + 30 * MINUTE,
+      null,
+    ),
+  ];
+}
+
+// A month of a site's health, Operational with a few bad stretches.
+function siteHistory() {
+  const lengths = [
+    [OPERATIONAL, 3 * DAY + 4 * HOUR],
+    [DEGRADED, 2 * HOUR + 10 * MINUTE],
+    [OPERATIONAL, 9 * DAY + 7 * HOUR],
+    [OFFLINE, 41 * MINUTE],
+    [DEGRADED, 3 * HOUR],
+    [OPERATIONAL, 12 * DAY + 2 * HOUR],
+    [OFFLINE, 3 * MINUTE + 12 * SECOND],
+    [OPERATIONAL, 30 * DAY],
+  ];
+  const rows = [];
+  let end = 0;
+  lengths.forEach(([status, length], index) => {
+    rows.push(
+      timelineEvent(
+        "NetworkSiteStatusTimeline",
+        status,
+        end + length,
+        index === 0 ? null : end,
+      ),
+    );
+    end += length;
+  });
+  return rows;
+}
+
 // ---------------------------------------------------------------- the API
 
 const RECORDS = {
   MonitorStatus: MONITOR_STATUSES,
   MonitorStatusTimeline: page === "monitor" ? monitorHistory() : [],
-  IncidentState: [CREATED, ACKNOWLEDGED, RESOLVED],
+  IncidentState: [CREATED, ACKNOWLEDGED, RESOLVED, CLOSED],
   IncidentStateTimeline: page === "incident" ? incidentHistory() : [],
+  AlertState: [ALERT_CREATED, ALERT_ACKNOWLEDGED, ALERT_RESOLVED],
+  AlertStateTimeline: page === "alert" ? alertHistory() : [],
+  ScheduledMaintenanceState: [SCHEDULED, ONGOING, ENDED, COMPLETED],
+  ScheduledMaintenanceStateTimeline:
+    page === "maintenance" ? maintenanceHistory() : [],
+  IncidentEpisodeStateTimeline:
+    page === "incident-episode" ? incidentEpisodeHistory() : [],
+  AlertEpisodeStateTimeline:
+    page === "alert-episode" ? alertEpisodeHistory() : [],
+  NetworkSiteStatusTimeline: page === "site" ? siteHistory() : [],
   Monitor: [monitor],
 };
 
@@ -533,9 +900,17 @@ PermissionUtil.getGlobalPermissions = () => ({
 });
 ProjectUtil.getCurrentProjectId = () => new ObjectID(PROJECT_ID);
 ModelAPI.getCommonHeaders = () => ({ tenantid: PROJECT_ID });
-// The record the page is about: the monitor's, or the incident's, id.
-Navigation.getLastParamAsObjectID = () =>
-  new ObjectID(page === "incident" ? INCIDENT_ID : MONITOR_ID);
+// The record the page is about.
+const RECORD_IDS = {
+  monitor: MONITOR_ID,
+  incident: INCIDENT_ID,
+  alert: ALERT_ID,
+  maintenance: MAINTENANCE_ID,
+  "incident-episode": INCIDENT_EPISODE_ID,
+  "alert-episode": ALERT_EPISODE_ID,
+  site: SITE_ID,
+};
+Navigation.getLastParamAsObjectID = () => new ObjectID(RECORD_IDS[page]);
 
 // A read takes as long as a quick one does, so loading states are real.
 function respond(value) {
@@ -667,6 +1042,28 @@ function deleteIncidentEvent(id) {
   );
 }
 
+/*
+ * The other timelines' rows: the record's only row is refused in the
+ * server's words; the row before runs on otherwise.
+ */
+function deleteTimelineEvent(tableName, id) {
+  const rows = sortRows(RECORDS[tableName], { startsAt: SortOrder.Ascending });
+  const index = rows.findIndex((row) => idOf(row._id) === id);
+  if (index < 0) {
+    throw new Error(`${tableName} not found.`);
+  }
+  if (rows.length === 1) {
+    throw new Error(ONLY_STATE_DELETE_MESSAGES[TIMELINES[tableName].record]);
+  }
+  const target = rows[index];
+  const before = rows[index - 1];
+  const after = rows[index + 1];
+  if (before) {
+    before.endsAt = after ? after.startsAt : target.endsAt;
+  }
+  RECORDS[tableName] = RECORDS[tableName].filter((row) => row !== target);
+}
+
 ModelAPI.deleteItem = async (options) => {
   const tableName = new options.modelType().tableName;
   const id = idOf(options.id);
@@ -681,6 +1078,10 @@ ModelAPI.deleteItem = async (options) => {
     deleteIncidentEvent(id);
     return;
   }
+  if (TIMELINES[tableName] && TIMELINES[tableName].record) {
+    deleteTimelineEvent(tableName, id);
+    return;
+  }
   throw new Error(`The fixture does not model deleting ${tableName}.`);
 };
 
@@ -692,20 +1093,33 @@ ModelAPI.createOrUpdate = async (options) => {
   const tableName = new options.modelType().tableName;
   const model = options.model;
   const stateColumn =
-    tableName === "MonitorStatusTimeline" ? "monitorStatus" : "incidentState";
-  const states =
     tableName === "MonitorStatusTimeline"
-      ? MONITOR_STATUSES
-      : RECORDS.IncidentState;
+      ? "monitorStatus"
+      : tableName === "IncidentStateTimeline"
+        ? "incidentState"
+        : TIMELINES[tableName].stateColumn;
+  const states = {
+    monitorStatus: MONITOR_STATUSES,
+    incidentState: RECORDS.IncidentState,
+    alertState: RECORDS.AlertState,
+    scheduledMaintenanceState: RECORDS.ScheduledMaintenanceState,
+  }[stateColumn];
   const stateId = idOfRelation(model[`${stateColumn}Id`] || model[stateColumn]);
   const state = states.find((candidate) => idOf(candidate._id) === stateId);
   const startsAt = model.startsAt ? new Date(model.startsAt) : new Date(NOW);
+
+  const recordColumn =
+    tableName === "MonitorStatusTimeline"
+      ? "monitorId"
+      : tableName === "IncidentStateTimeline"
+        ? "incidentId"
+        : TIMELINES[tableName].recordColumn;
 
   window.__fixture.creates.push({
     tableName,
     state: state ? state.name : null,
     startsAt: startsAt.toISOString(),
-    recordId: idOf(model.monitorId || model.incidentId),
+    recordId: idOf(model[recordColumn]),
   });
 
   const rows = RECORDS[tableName];
@@ -723,10 +1137,11 @@ ModelAPI.createOrUpdate = async (options) => {
   row[`${stateColumn}Id`] = state ? new ObjectID(state._id) : undefined;
   row.startsAt = startsAt;
   row.createdByUser = ADA;
-  if (tableName === "MonitorStatusTimeline") {
-    row.monitorId = new ObjectID(MONITOR_ID);
-  } else {
-    row.incidentId = new ObjectID(INCIDENT_ID);
+  row[recordColumn] = new ObjectID(RECORD_IDS[page]);
+  if (
+    tableName === "IncidentStateTimeline" ||
+    tableName === "ScheduledMaintenanceStateTimeline"
+  ) {
     row.subscriberNotificationStatus =
       StatusPageSubscriberNotificationStatus.Pending;
   }
@@ -765,6 +1180,34 @@ const PAGES = {
   incident: {
     component: IncidentStateTimelinePage,
     trail: ["Incidents", "#42 Checkout API is offline", "Status Timeline"],
+  },
+  alert: {
+    component: AlertStateTimelinePage,
+    trail: [
+      "Alerts",
+      "#318 Checkout API p95 latency over 2s",
+      "Status Timeline",
+    ],
+  },
+  maintenance: {
+    component: ScheduledMaintenanceStateTimelinePage,
+    trail: [
+      "Scheduled Maintenance",
+      "Database upgrade to Postgres 18",
+      "Status Timeline",
+    ],
+  },
+  "incident-episode": {
+    component: IncidentEpisodeStateTimelinePage,
+    trail: ["Incident Episodes", "Checkout outages", "Status Timeline"],
+  },
+  "alert-episode": {
+    component: AlertEpisodeStateTimelinePage,
+    trail: ["Alert Episodes", "Checkout latency alerts", "Status Timeline"],
+  },
+  site: {
+    component: NetworkSiteStatusTimelinePage,
+    trail: ["Network Sites", "London office", "Status Timeline"],
   },
 };
 

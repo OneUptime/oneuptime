@@ -41,6 +41,7 @@ export const INCIDENT_EPISODE_STATE_TIMELINE_FORM_FIELDS: Array<
       incidentState: true,
     },
     title: "Episode Status",
+    description: "The status the episode changed to.",
     fieldType: FormFieldSchemaType.Dropdown,
     required: true,
     placeholder: "Episode Status",
@@ -58,6 +59,11 @@ export const INCIDENT_EPISODE_STATE_TIMELINE_FORM_FIELDS: Array<
       startsAt: true,
     },
     title: "Starts At",
+    /*
+     * Its own words, not the column's: the column's are written for the
+     * API, and speak of correcting a time that a new row does not have yet.
+     */
+    description: "When the episode changed to this status.",
     fieldType: FormFieldSchemaType.DateTime,
     required: true,
     placeholder: "Starts At",

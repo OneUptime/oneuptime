@@ -29305,5 +29305,15 @@
   "{{count}} older changes not loaded": "{{count}} ældre ændringer ikke indlæst",
   "{{count}} older changes not loaded_one": "{{count}} ældre ændring ikke indlæst",
   "{{status}}, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, siden {{start}}, {{duration}} indtil nu. Aktiv nu.",
-  "{{timeline}}, {{start}} to {{end}}. Use the arrow keys to move between statuses.": "{{timeline}}, {{start}} til {{end}}. Brug piletasterne til at skifte mellem statusser."
+  "{{timeline}}, {{start}} to {{end}}. Use the arrow keys to move between statuses.": "{{timeline}}, {{start}} til {{end}}. Brug piletasterne til at skifte mellem statusser.",
+  "The status the alert changed to.": "Den status, advarslen skiftede til.",
+  "The status the episode changed to.": "Den status, episoden skiftede til.",
+  "The status the event changed to.": "Den status, begivenheden skiftede til.",
+  "The status the incident changed to.": "Den status, hændelsen skiftede til.",
+  "The status the monitor changed to.": "Den status, monitoren skiftede til.",
+  "When the alert changed to this status.": "Hvornår advarslen skiftede til denne status.",
+  "When the episode changed to this status.": "Hvornår episoden skiftede til denne status.",
+  "When the event changed to this status.": "Hvornår begivenheden skiftede til denne status.",
+  "When the incident changed to this status.": "Hvornår hændelsen skiftede til denne status.",
+  "When the monitor changed to this status.": "Hvornår monitoren skiftede til denne status."
 }

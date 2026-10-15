@@ -104,12 +104,10 @@ const HISTORY: Array<StatusTimelineDisplayEntry> = [
   }),
 ];
 
-const renderTimeline: (
+const timelineElement: (overrides?: Partial<ComponentProps>) => ReactElement = (
   overrides?: Partial<ComponentProps>,
-) => ReturnType<typeof render> = (
-  overrides?: Partial<ComponentProps>,
-): ReturnType<typeof render> => {
-  return render(
+): ReactElement => {
+  return (
     <StatusTimeline
       entries={HISTORY}
       window={PAST_MONTH}
@@ -118,8 +116,16 @@ const renderTimeline: (
       showShare={true}
       now={NOW}
       {...(overrides || {})}
-    />,
+    />
   );
+};
+
+const renderTimeline: (
+  overrides?: Partial<ComponentProps>,
+) => ReturnType<typeof render> = (
+  overrides?: Partial<ComponentProps>,
+): ReturnType<typeof render> => {
+  return render(timelineElement(overrides));
 };
 
 const segmentFor: (entryId: string) => HTMLElement = (
@@ -276,7 +282,10 @@ describe("the band: every status placed and sized by its time", () => {
     expect(blip).toHaveAttribute("data-widened", "true");
     // 4px of the 800px a band is laid out at before it is measured.
     expect(percentOf(blip.style.width)).toBeCloseTo(0.5, 3);
-    expect(blip).toHaveAccessibleName("Offline, Oct 9, 08:36 – 08:36, 38 secs");
+    // Both ends in one minute: to the second, never "08:36 – 08:36".
+    expect(blip).toHaveAccessibleName(
+      "Offline, Oct 9, 08:36:00 – 08:36:38, 38 secs",
+    );
   });
 
   test("short changes that run together are one cluster, which zooms in to them with a margin", () => {
@@ -311,7 +320,7 @@ describe("the band: every status placed and sized by its time", () => {
 
     expect(cluster).toHaveAttribute("data-entry-ids", "x,y,z");
     expect(cluster).toHaveAccessibleName(
-      "3 changes from Oct 4, 08:36 to Oct 4, 08:39. Zoom in to see them.",
+      "3 changes from Oct 4, 08:36 to 08:39. Zoom in to see them.",
     );
 
     fireEvent.click(cluster);
@@ -568,6 +577,53 @@ describe("states around the timeline", () => {
       }),
     ).toBeInTheDocument();
     expect(screen.queryByTestId("status-timeline-band")).toBeNull();
+  });
+
+  test("nothing recorded at all: no period to move through either, only the empty state", () => {
+    renderTimeline({
+      entries: [],
+      isWindowed: true,
+      toolbar: <div data-testid="period-controls">Past 1 Month</div>,
+    });
+
+    expect(screen.getByTestId("status-timeline-empty")).toBeInTheDocument();
+    expect(screen.queryByTestId("period-controls")).toBeNull();
+  });
+
+  test("a past period with nothing in it keeps its period controls, to move on from it", () => {
+    renderTimeline({
+      window: { start: at(-60 * DAY), end: at(-30 * DAY) },
+      entries: [],
+      isWindowed: true,
+      toolbar: <div data-testid="period-controls">Custom</div>,
+    });
+
+    expect(screen.getByTestId("period-controls")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("status-timeline-nothing-in-window"),
+    ).toBeInTheDocument();
+  });
+
+  test("the period controls stay while the timeline loads, and when a read fails", () => {
+    const { rerender } = renderTimeline({
+      entries: [],
+      isLoading: true,
+      isWindowed: true,
+      toolbar: <div data-testid="period-controls">Past 1 Month</div>,
+    });
+
+    expect(screen.getByTestId("period-controls")).toBeInTheDocument();
+
+    rerender(
+      timelineElement({
+        entries: [],
+        error: "Error connecting to server.",
+        isWindowed: true,
+        toolbar: <div data-testid="period-controls">Past 1 Month</div>,
+      }),
+    );
+
+    expect(screen.getByTestId("period-controls")).toBeInTheDocument();
   });
 
   test("loading: a skeleton a screen reader hears as loading", () => {

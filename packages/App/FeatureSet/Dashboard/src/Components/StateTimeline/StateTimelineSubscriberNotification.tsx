@@ -27,7 +27,11 @@ const StateTimelineSubscriberNotification: FunctionComponent<ComponentProps> = (
       className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1"
       data-testid="state-timeline-subscriber-notification"
     >
-      <span className="text-xs font-medium text-gray-500">
+      {/*
+       * Gray-600, as the entry's own lines: it is read on the chosen
+       * entry's indigo tint too, where gray-500 falls short of AA.
+       */}
+      <span className="text-sm text-gray-600">
         {translator.translateText("Status page subscribers:")}
       </span>
       <SubscriberNotificationStatus

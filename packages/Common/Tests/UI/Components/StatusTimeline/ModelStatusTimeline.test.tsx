@@ -851,7 +851,7 @@ describe("an entry's actions", () => {
     ).toHaveAccessibleName("View the cause of Offline event");
   });
 
-  test("the ⋯ menu holds Show ID, View Cause, View Logs and, last, Delete", async () => {
+  test("the ⋯ menu holds Show ID, View Logs and, last, Delete - View cause is on the entry's line, not twice", async () => {
     await renderMonitor();
 
     const menu: HTMLElement = await openEntryMenu(1);
@@ -862,7 +862,11 @@ describe("an entry's actions", () => {
         .map((item: HTMLElement): string | undefined => {
           return item.textContent?.trim();
         }),
-    ).toEqual(["Show ID", "View Cause", "View Logs", "Delete"]);
+    ).toEqual(["Show ID", "View Logs", "Delete"]);
+    // The cause is one click away on the entry itself.
+    expect(
+      within(entryRow(1)).getByTestId("monitor-status-timeline-view-cause"),
+    ).toBeInTheDocument();
   });
 
   test("View Logs reads the log when asked, and shows it", async () => {

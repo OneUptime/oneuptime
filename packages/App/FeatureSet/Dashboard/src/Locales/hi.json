@@ -29305,5 +29305,15 @@
   "{{count}} older changes not loaded": "{{count}} पुराने परिवर्तन लोड नहीं हुए",
   "{{count}} older changes not loaded_one": "{{count}} पुराना परिवर्तन लोड नहीं हुआ",
   "{{status}}, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, {{start}} से, अब तक {{duration}}। वर्तमान में सक्रिय।",
-  "{{timeline}}, {{start}} to {{end}}. Use the arrow keys to move between statuses.": "{{timeline}}, {{start}} से {{end}} तक। स्थितियों के बीच जाने के लिए तीर कुंजियों का उपयोग करें।"
+  "{{timeline}}, {{start}} to {{end}}. Use the arrow keys to move between statuses.": "{{timeline}}, {{start}} से {{end}} तक। स्थितियों के बीच जाने के लिए तीर कुंजियों का उपयोग करें।",
+  "The status the alert changed to.": "वह स्थिति जिसमें अलर्ट बदला।",
+  "The status the episode changed to.": "वह स्थिति जिसमें एपिसोड बदला।",
+  "The status the event changed to.": "वह स्थिति जिसमें इवेंट बदला।",
+  "The status the incident changed to.": "वह स्थिति जिसमें घटना बदली।",
+  "The status the monitor changed to.": "वह स्थिति जिसमें मॉनिटर बदला।",
+  "When the alert changed to this status.": "अलर्ट इस स्थिति में कब बदला।",
+  "When the episode changed to this status.": "एपिसोड इस स्थिति में कब बदला।",
+  "When the event changed to this status.": "इवेंट इस स्थिति में कब बदला।",
+  "When the incident changed to this status.": "घटना इस स्थिति में कब बदली।",
+  "When the monitor changed to this status.": "मॉनिटर इस स्थिति में कब बदला।"
 }

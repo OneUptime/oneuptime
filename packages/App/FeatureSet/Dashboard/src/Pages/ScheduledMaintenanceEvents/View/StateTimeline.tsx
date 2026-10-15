@@ -52,6 +52,7 @@ export const SCHEDULED_MAINTENANCE_STATE_TIMELINE_FORM_FIELDS: Array<
       scheduledMaintenanceState: true,
     },
     title: "Scheduled Maintenance Status",
+    description: "The status the event changed to.",
     fieldType: FormFieldSchemaType.Dropdown,
     required: true,
     placeholder: "Scheduled Maintenance Status",
@@ -69,6 +70,11 @@ export const SCHEDULED_MAINTENANCE_STATE_TIMELINE_FORM_FIELDS: Array<
       startsAt: true,
     },
     title: "Starts At",
+    /*
+     * Its own words, not the column's: the column's are written for the
+     * API, and speak of correcting a time that a new row does not have yet.
+     */
+    description: "When the event changed to this status.",
     fieldType: FormFieldSchemaType.DateTime,
     required: true,
     placeholder: "Starts At",

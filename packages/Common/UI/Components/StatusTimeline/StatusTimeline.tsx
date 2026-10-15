@@ -331,6 +331,17 @@ const StatusTimeline: FunctionComponent<ComponentProps> = (
     now: now,
   });
 
+  /*
+   * Nothing at all: no status recorded for the record. A period with
+   * nothing in it while later ones may have something (a window in the
+   * past) still draws its empty band, so the reader can move on from it.
+   */
+  const hasNoHistory: boolean =
+    !props.isLoading &&
+    !props.error &&
+    props.entries.length === 0 &&
+    (isAtNow || !props.isWindowed);
+
   const windowEnds: { start: string; end: string } =
     formatStatusTimelineWindowEnds({
       start: timelineWindow.start,
@@ -375,12 +386,7 @@ const StatusTimeline: FunctionComponent<ComponentProps> = (
       );
     }
 
-    /*
-     * Nothing at all: no status recorded for the record. A period with
-     * nothing in it while later ones may have something (a window in the
-     * past) still draws its empty band, so the reader can move on from it.
-     */
-    if (props.entries.length === 0 && (isAtNow || !props.isWindowed)) {
+    if (hasNoHistory) {
       return (
         <div
           className="flex flex-col items-center justify-center px-4 py-10 text-center"
@@ -543,7 +549,11 @@ const StatusTimeline: FunctionComponent<ComponentProps> = (
       className="space-y-4"
       data-testid={props.dataTestId || "status-timeline"}
     >
-      {props.toolbar}
+      {/*
+       * A record with no history has no period worth moving through: the
+       * empty state and its Create are all there is to see.
+       */}
+      {hasNoHistory ? <></> : props.toolbar}
       {getBody()}
     </div>
   );

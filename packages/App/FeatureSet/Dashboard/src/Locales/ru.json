@@ -29305,5 +29305,15 @@
   "{{count}} older changes not loaded": "Не загружено более ранних изменений: {{count}}",
   "{{count}} older changes not loaded_one": "{{count}} более раннее изменение не загружено",
   "{{status}}, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, с {{start}}, уже {{duration}}. Сейчас активно.",
-  "{{timeline}}, {{start}} to {{end}}. Use the arrow keys to move between statuses.": "{{timeline}}, с {{start}} по {{end}}. Используйте клавиши со стрелками, чтобы переходить между статусами."
+  "{{timeline}}, {{start}} to {{end}}. Use the arrow keys to move between statuses.": "{{timeline}}, с {{start}} по {{end}}. Используйте клавиши со стрелками, чтобы переходить между статусами.",
+  "The status the alert changed to.": "Статус, в который перешло оповещение.",
+  "The status the episode changed to.": "Статус, в который перешёл эпизод.",
+  "The status the event changed to.": "Статус, в который перешло событие.",
+  "The status the incident changed to.": "Статус, в который перешёл инцидент.",
+  "The status the monitor changed to.": "Статус, в который перешёл монитор.",
+  "When the alert changed to this status.": "Когда оповещение перешло в этот статус.",
+  "When the episode changed to this status.": "Когда эпизод перешёл в этот статус.",
+  "When the event changed to this status.": "Когда событие перешло в этот статус.",
+  "When the incident changed to this status.": "Когда инцидент перешёл в этот статус.",
+  "When the monitor changed to this status.": "Когда монитор перешёл в этот статус."
 }

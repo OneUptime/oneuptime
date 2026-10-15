@@ -29305,5 +29305,15 @@
   "{{count}} older changes not loaded": "{{count}} 個較早的變更未載入",
   "{{count}} older changes not loaded_one": "{{count}} 個較早的變更未載入",
   "{{status}}, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}，自 {{start}} 起，已持續 {{duration}}。目前進行中。",
-  "{{timeline}}, {{start}} to {{end}}. Use the arrow keys to move between statuses.": "{{timeline}}，{{start}} 至 {{end}}。使用方向鍵在各狀態間移動。"
+  "{{timeline}}, {{start}} to {{end}}. Use the arrow keys to move between statuses.": "{{timeline}}，{{start}} 至 {{end}}。使用方向鍵在各狀態間移動。",
+  "The status the alert changed to.": "警示變更後的狀態。",
+  "The status the episode changed to.": "片段變更後的狀態。",
+  "The status the event changed to.": "維護事件變更後的狀態。",
+  "The status the incident changed to.": "事件變更後的狀態。",
+  "The status the monitor changed to.": "監測器變更後的狀態。",
+  "When the alert changed to this status.": "警示變更為此狀態的時間。",
+  "When the episode changed to this status.": "片段變更為此狀態的時間。",
+  "When the event changed to this status.": "維護事件變更為此狀態的時間。",
+  "When the incident changed to this status.": "事件變更為此狀態的時間。",
+  "When the monitor changed to this status.": "監測器變更為此狀態的時間。"
 }

@@ -4,6 +4,7 @@ import {
   StatusTimelineTickUnit,
 } from "../../../../UI/Components/StatusTimeline/StatusTimelineLayout";
 import {
+  formatStatusTimelineDateRange,
   formatStatusTimelineEnd,
   formatStatusTimelineFullTime,
   formatStatusTimelineMonth,
@@ -194,6 +195,51 @@ describe("formatStatusTimelineRange", () => {
         clock: clock(),
       }),
     ).toEqual({ start: "17:11", end: "Oct 4, 05:18" });
+  });
+});
+
+describe("formatStatusTimelineDateRange: a range read on its own, with its day", () => {
+  test("two ends in different minutes: the day, then the times to the minute", () => {
+    expect(
+      formatStatusTimelineDateRange({
+        startsAt: new Date("2026-10-04T05:30:10.000Z"),
+        endsAt: new Date("2026-10-04T05:31:01.000Z"),
+        clock: clock(),
+      }),
+    ).toEqual({ start: "Oct 4, 06:30", end: "06:31" });
+  });
+
+  test("two ends in one minute read to the second, never Oct 9, 07:26 – 07:26", () => {
+    expect(
+      formatStatusTimelineDateRange({
+        startsAt: new Date("2026-10-09T06:26:12.000Z"),
+        endsAt: new Date("2026-10-09T06:26:50.000Z"),
+        clock: clock(),
+      }),
+    ).toEqual({ start: "Oct 9, 07:26:12", end: "07:26:50" });
+  });
+
+  test("a 12-hour reader reads it to the second too", () => {
+    const range: { start: string; end: string } = formatStatusTimelineDateRange(
+      {
+        startsAt: new Date("2026-10-09T06:26:12.000Z"),
+        endsAt: new Date("2026-10-09T06:26:50.000Z"),
+        clock: clock({ use12HourClock: true }),
+      },
+    );
+
+    expect(plain(range.start)).toBe("Oct 9, 7:26:12 AM");
+    expect(plain(range.end)).toBe("7:26:50 AM");
+  });
+
+  test("an end on another day carries its day", () => {
+    expect(
+      formatStatusTimelineDateRange({
+        startsAt: new Date("2026-09-15T16:11:00.000Z"),
+        endsAt: new Date("2026-10-04T04:18:00.000Z"),
+        clock: clock(),
+      }),
+    ).toEqual({ start: "Sep 15, 17:11", end: "Oct 4, 05:18" });
   });
 });
 

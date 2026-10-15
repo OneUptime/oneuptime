@@ -29305,5 +29305,15 @@
   "{{count}} older changes not loaded": "{{count}} cambi precedenti non caricati",
   "{{count}} older changes not loaded_one": "{{count}} cambio precedente non caricato",
   "{{status}}, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, da {{start}}, {{duration}} finora. Attualmente attivo.",
-  "{{timeline}}, {{start}} to {{end}}. Use the arrow keys to move between statuses.": "{{timeline}}, da {{start}} a {{end}}. Usa i tasti freccia per spostarti tra gli stati."
+  "{{timeline}}, {{start}} to {{end}}. Use the arrow keys to move between statuses.": "{{timeline}}, da {{start}} a {{end}}. Usa i tasti freccia per spostarti tra gli stati.",
+  "The status the alert changed to.": "Lo stato in cui è passato l'avviso.",
+  "The status the episode changed to.": "Lo stato in cui è passato l'episodio.",
+  "The status the event changed to.": "Lo stato in cui è passato l'evento.",
+  "The status the incident changed to.": "Lo stato in cui è passato l'incidente.",
+  "The status the monitor changed to.": "Lo stato in cui è passato il monitor.",
+  "When the alert changed to this status.": "Quando l'avviso è passato a questo stato.",
+  "When the episode changed to this status.": "Quando l'episodio è passato a questo stato.",
+  "When the event changed to this status.": "Quando l'evento è passato a questo stato.",
+  "When the incident changed to this status.": "Quando l'incidente è passato a questo stato.",
+  "When the monitor changed to this status.": "Quando il monitor è passato a questo stato."
 }

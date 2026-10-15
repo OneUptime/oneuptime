@@ -29305,5 +29305,15 @@
   "{{count}} older changes not loaded": "{{count}} ältere Änderungen nicht geladen",
   "{{count}} older changes not loaded_one": "{{count}} ältere Änderung nicht geladen",
   "{{status}}, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, seit {{start}}, bisher {{duration}}. Derzeit aktiv.",
-  "{{timeline}}, {{start}} to {{end}}. Use the arrow keys to move between statuses.": "{{timeline}}, {{start}} bis {{end}}. Mit den Pfeiltasten zwischen den Status wechseln."
+  "{{timeline}}, {{start}} to {{end}}. Use the arrow keys to move between statuses.": "{{timeline}}, {{start}} bis {{end}}. Mit den Pfeiltasten zwischen den Status wechseln.",
+  "The status the alert changed to.": "Der Status, in den die Warnung gewechselt ist.",
+  "The status the episode changed to.": "Der Status, in den die Episode gewechselt ist.",
+  "The status the event changed to.": "Der Status, in den das Ereignis gewechselt ist.",
+  "The status the incident changed to.": "Der Status, in den der Vorfall gewechselt ist.",
+  "The status the monitor changed to.": "Der Status, in den der Monitor gewechselt ist.",
+  "When the alert changed to this status.": "Wann die Warnung in diesen Status gewechselt ist.",
+  "When the episode changed to this status.": "Wann die Episode in diesen Status gewechselt ist.",
+  "When the event changed to this status.": "Wann das Ereignis in diesen Status gewechselt ist.",
+  "When the incident changed to this status.": "Wann der Vorfall in diesen Status gewechselt ist.",
+  "When the monitor changed to this status.": "Wann der Monitor in diesen Status gewechselt ist."
 }

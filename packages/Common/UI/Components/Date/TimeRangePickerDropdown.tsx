@@ -168,15 +168,25 @@ const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
 
   const buttonLabel: string = getTimeRangeButtonLabel(props.value);
 
+  /*
+   * In a row too narrow for a custom range's two dates (a phone), the
+   * label is cut short rather than the row running off the screen; the
+   * whole custom range is the button's tooltip.
+   */
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative min-w-0 max-w-full">
       <button
         ref={buttonRef}
         type="button"
         data-testid={`${props.dataTestIdPrefix}-button`}
         aria-haspopup="true"
         aria-expanded={isOpen}
-        className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors ${
+        title={
+          props.value.range === TimeRange.CUSTOM
+            ? translator.translateText(buttonLabel)
+            : undefined
+        }
+        className={`inline-flex max-w-full items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors ${
           isOpen
             ? "border-indigo-300 bg-indigo-50 text-indigo-700"
             : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
@@ -185,11 +195,13 @@ const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
           setIsOpen(!isOpen);
         }}
       >
-        <Icon icon={IconProp.Clock} className="h-3.5 w-3.5" />
-        <span>{translator.translateText(buttonLabel)}</span>
+        <Icon icon={IconProp.Clock} className="h-3.5 w-3.5 shrink-0" />
+        <span className="min-w-0 truncate">
+          {translator.translateText(buttonLabel)}
+        </span>
         <Icon
           icon={IconProp.ChevronDown}
-          className={`h-3 w-3 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          className={`h-3 w-3 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
 

@@ -29305,5 +29305,15 @@
   "{{count}} older changes not loaded": "{{count}} äldre ändringar inte inlästa",
   "{{count}} older changes not loaded_one": "{{count}} äldre ändring inte inläst",
   "{{status}}, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, sedan {{start}}, {{duration}} hittills. Aktiv nu.",
-  "{{timeline}}, {{start}} to {{end}}. Use the arrow keys to move between statuses.": "{{timeline}}, {{start}} till {{end}}. Använd piltangenterna för att flytta mellan statusar."
+  "{{timeline}}, {{start}} to {{end}}. Use the arrow keys to move between statuses.": "{{timeline}}, {{start}} till {{end}}. Använd piltangenterna för att flytta mellan statusar.",
+  "The status the alert changed to.": "Statusen som larmet ändrades till.",
+  "The status the episode changed to.": "Statusen som episoden ändrades till.",
+  "The status the event changed to.": "Statusen som händelsen ändrades till.",
+  "The status the incident changed to.": "Statusen som incidenten ändrades till.",
+  "The status the monitor changed to.": "Statusen som monitorn ändrades till.",
+  "When the alert changed to this status.": "När larmet ändrades till den här statusen.",
+  "When the episode changed to this status.": "När episoden ändrades till den här statusen.",
+  "When the event changed to this status.": "När händelsen ändrades till den här statusen.",
+  "When the incident changed to this status.": "När incidenten ändrades till den här statusen.",
+  "When the monitor changed to this status.": "När monitorn ändrades till den här statusen."
 }
