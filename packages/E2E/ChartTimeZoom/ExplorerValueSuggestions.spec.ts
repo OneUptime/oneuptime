@@ -34,8 +34,9 @@ import path from "path";
  *
  * The fixture records every API call the page makes (its `requests`); its
  * `timeLimit.attributeValues` makes the value lookups answer as the API
- * answers a read ClickHouse stopped (504), and its `noAttributeValues` as
- * the API answers a key the rows of the range do not carry (no values).
+ * answers a read ClickHouse stopped (504), its `noAttributeValues` as the
+ * API answers a key the rows of the range do not carry (no values), and its
+ * `valuesGate` holds their answers until the spec delivers them.
  */
 
 const PORT: string = process.env["CHART_TIME_ZOOM_FIXTURE_PORT"] || "4233";
@@ -55,6 +56,7 @@ const RETRY_TEST_ID: string = "attribute-values-retry";
 const EMPTY_TEST_ID: string = "attribute-values-empty";
 const KEY_IN_SENTENCE_TEST_ID: string = "attribute-key-in-sentence";
 const SUGGESTIONS_TEST_ID: string = "search-suggestions";
+const LOADING_TEST_ID: string = "search-suggestions-loading";
 
 // The fixture's services, the values of `resource.service.name`.
 const SERVICE_NAMES: Array<string> = [
@@ -86,11 +88,18 @@ interface RecordedRequest {
   body?: Record<string, unknown> | undefined;
 }
 
+interface FixtureGate {
+  mode: string;
+  pending: Array<unknown>;
+  deliver: () => number;
+}
+
 interface FixtureState {
   requests: Array<RecordedRequest>;
   unhandled: Array<Record<string, unknown>>;
   timeLimit: { attributeValues?: boolean | undefined };
   noAttributeValues: boolean;
+  valuesGate: FixtureGate;
 }
 
 interface SpecWindow {
@@ -462,6 +471,73 @@ test.describe("Logs explorer: the @key: value picker", () => {
       sentenceBox!.y + sentenceBox!.height - 1,
     );
     expect(retryBox!.x - dropdownBox!.x).toBeLessThan(dropdownBox!.width / 2);
+  });
+
+  test("while a lookup is out the line says whose values are loading, and its words stay put when it turns into the could-not-load row", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openExplorer(page, LOGS_PATH);
+    const box: Locator = await searchBox(page, SEARCH_LOGS, LOG_KEYS);
+
+    // Hold the lookup's answer until the loading line has been looked at.
+    await page.evaluate(() => {
+      (window as unknown as SpecWindow).__chartTimeZoomFixture.valuesGate.mode =
+        "manual";
+    });
+    await box.pressSequentially("@resource.service.name:", {
+      delay: KEYSTROKE_DELAY_MS,
+    });
+
+    await expect
+      .poll(
+        async (): Promise<number> => {
+          return page.evaluate((): number => {
+            return (window as unknown as SpecWindow).__chartTimeZoomFixture
+              .valuesGate.pending.length;
+          });
+        },
+        { timeout: 15000 },
+      )
+      .toBe(1);
+
+    const loading: Locator = page.getByTestId(LOADING_TEST_ID);
+    await expect(loading).toHaveText(
+      "Loading values for resource.service.name...",
+    );
+    await expect(loading.getByTestId(KEY_IN_SENTENCE_TEST_ID)).toHaveText(
+      "resource.service.name",
+    );
+    const loadingWords: { x: number } | null = await loading
+      .locator("span")
+      .first()
+      .boundingBox();
+
+    await page.screenshot({
+      path: path.join(SCREENSHOTS, "value-suggestions-loading-synthetic.png"),
+    });
+
+    // The held lookup ran out of time.
+    await setValuesStopped(page, true);
+    await page.evaluate((): number => {
+      return (
+        window as unknown as SpecWindow
+      ).__chartTimeZoomFixture.valuesGate.deliver();
+    });
+
+    const error: Locator = page.getByTestId(ERROR_TEST_ID);
+    await expect(error).toBeVisible({ timeout: 15000 });
+    await expect(loading).toHaveCount(0);
+    const errorWords: { x: number } | null = await error
+      .locator("p")
+      .first()
+      .boundingBox();
+
+    expect(loadingWords).not.toBeNull();
+    expect(errorWords).not.toBeNull();
+    // The sentence starts where the loading line's did: nothing jumps.
+    expect(Math.abs(errorWords!.x - loadingWords!.x)).toBeLessThanOrEqual(1);
   });
 
   test("Try again from the keyboard: the down arrow selects it and Enter asks again, the focus staying in the box", async ({

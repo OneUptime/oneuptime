@@ -41,6 +41,9 @@ const MAX_VISIBLE_SUGGESTIONS: number = 8;
 
 // The dropdown under the search box, for tests that read what it offers.
 export const SEARCH_SUGGESTIONS_TEST_ID: string = "search-suggestions";
+// Its loading line ("Loading values for <key>...").
+export const SEARCH_SUGGESTIONS_LOADING_TEST_ID: string =
+  "search-suggestions-loading";
 
 const TelemetrySearchSuggestions: FunctionComponent<
   TelemetrySearchSuggestionsProps
@@ -56,10 +59,18 @@ const TelemetrySearchSuggestions: FunctionComponent<
       data-testid={SEARCH_SUGGESTIONS_TEST_ID}
       className="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
     >
+      {/*
+       * Spinner and words where the could-not-load and no-values rows put
+       * their icon and sentence, so the sentence does not jump when the
+       * line turns into one of them.
+       */}
       {props.isLoading && (
-        <div className="flex w-full items-center px-3 py-2 text-left text-sm text-gray-500">
+        <div
+          data-testid={SEARCH_SUGGESTIONS_LOADING_TEST_ID}
+          className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-gray-500"
+        >
           <svg
-            className="animate-spin -ml-0.5 mr-2 h-4 w-4 text-indigo-500"
+            className="h-4 w-4 flex-none animate-spin text-indigo-500"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"

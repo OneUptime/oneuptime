@@ -13,15 +13,15 @@ or Logs explorer, every double-click on its histogram puts the explorer back on
 its range, whatever moment the zoom's data lands (see "Explorers: a double-click
 right after a drag" below).
 
-| Page                        | Route (from `RouteMap`)                                                            | Production components                                                                                                                         |
-| --------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Kubernetes cluster overview | `KUBERNETES_CLUSTER_VIEW` `/dashboard/:projectId/kubernetes/:id`                   | `Pages/Kubernetes/View/{Layout,Index}` (golden tiles and charts, activity cards, workloads, top consumers, warnings, cluster details)         |
-| Kubernetes cluster insights | `KUBERNETES_CLUSTER_VIEW_INSIGHTS` `/dashboard/:projectId/kubernetes/:id/insights` | `Pages/Kubernetes/View/{Layout,Insights}`: three `EmbeddedMetricCard`s (`MetricView` charts, `KubernetesNetworkThroughputChart`)              |
-| Host overview               | `HOST_VIEW` `/dashboard/:projectId/host/:id`                                       | `Pages/Host/View/{Layout,Overview}`                                                                                                           |
-| Traces explorer             | `TRACES` `/dashboard/:projectId/traces`                                            | `Pages/Traces/{Layout,Index}`: `TracesViewer` ("Traces over time" histogram, facets, span list, saved views)                                  |
-| Logs explorer               | `LOGS` `/dashboard/:projectId/logs`                                                | `Pages/Logs/{Layout,Index}`: the Dashboard's `LogsViewer` ("Log Volume" histogram, facets, log list, saved views)                             |
-| Exceptions explorer         | `EXCEPTIONS_UNRESOLVED` `/dashboard/:projectId/exceptions/unresolved`              | `Pages/Exceptions/{Layout,Unresolved}`: `ExceptionsViewer` ("Exceptions over time" histogram, facets, the error-class counts, exception list) |
-| Metrics explorer            | `METRICS` `/dashboard/:projectId/metrics`                                          | `Pages/Metrics/{Layout,Index}`: `MetricsViewer` (the metric list, a sparkline per row, the Service facet, saved views)                        |
+| Page | Route (from `RouteMap`) | Production components |
+|---|---|---|
+| Kubernetes cluster overview | `KUBERNETES_CLUSTER_VIEW` `/dashboard/:projectId/kubernetes/:id` | `Pages/Kubernetes/View/{Layout,Index}` (golden tiles and charts, activity cards, workloads, top consumers, warnings, cluster details) |
+| Kubernetes cluster insights | `KUBERNETES_CLUSTER_VIEW_INSIGHTS` `/dashboard/:projectId/kubernetes/:id/insights` | `Pages/Kubernetes/View/{Layout,Insights}`: three `EmbeddedMetricCard`s (`MetricView` charts, `KubernetesNetworkThroughputChart`) |
+| Host overview | `HOST_VIEW` `/dashboard/:projectId/host/:id` | `Pages/Host/View/{Layout,Overview}` |
+| Traces explorer | `TRACES` `/dashboard/:projectId/traces` | `Pages/Traces/{Layout,Index}`: `TracesViewer` ("Traces over time" histogram, facets, span list, saved views) |
+| Logs explorer | `LOGS` `/dashboard/:projectId/logs` | `Pages/Logs/{Layout,Index}`: the Dashboard's `LogsViewer` ("Log Volume" histogram, facets, log list, saved views) |
+| Exceptions explorer | `EXCEPTIONS_UNRESOLVED` `/dashboard/:projectId/exceptions/unresolved` | `Pages/Exceptions/{Layout,Unresolved}`: `ExceptionsViewer` ("Exceptions over time" histogram, facets, the error-class counts, exception list) |
+| Metrics explorer | `METRICS` `/dashboard/:projectId/metrics` | `Pages/Metrics/{Layout,Index}`: `MetricsViewer` (the metric list, a sparkline per row, the Service facet, saved views) |
 
 Each page renders inside its production layout: the View layout (`ModelPage`,
 breadcrumbs, side menu with its count badges) for the cluster and host pages, the
@@ -87,7 +87,7 @@ fixes the browser clock to `2026-09-21T12:00:00Z`, so "Past 30 Minutes" is alway
   `LogAggregationService` bucket them: the rows whose minute starts inside the
   window (the start rounded down to its minute, the end excluded), grouped on
   `toStartOfInterval(minute, bucket)`, one `{ time: "YYYY-MM-DD HH:MM:SS", series |
-severity, count }` per bucket and series that has rows, in time order; the logs
+  severity, count }` per bucket and series that has rows, in time order; the logs
   answer also names its `bucketSizeInMinutes` (the server's default for the window
   when the request names none). checkout-api's calls to payments-worker time out in
   a burst at 11:43. The `Log` table's two Kubernetes warning events are listed and
@@ -113,18 +113,18 @@ Any route not listed above renders a "Not modelled" stub (`data-testid="stub-pag
 ## What the fixture records
 
 `window.__chartTimeZoomFixture` holds `dataset` (ids and identifiers), `requests`,
-`unhandled`, three gates and `timeLimit`.
+`unhandled`, four gates, `timeLimit` and `noAttributeValues`.
 
 Every data request is appended to `requests` in order, as
 `{ seq, kind, modelName, ... }`:
 
-| `kind`                                                     | Recorded                                                                                                                                                                                                                                             |
-| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `aggregate`                                                | `metricName`, `attributes`, `aggregationType`, `groupBy`, `groupByAttributeKeys`, `aggregationInterval`, `window` (`startTimestamp` / `endTimestamp`, ISO), `queryTime` (the query's own `InBetween`), `interval` and `rows` (what came back)        |
+| `kind` | Recorded |
+|---|---|
+| `aggregate` | `metricName`, `attributes`, `aggregationType`, `groupBy`, `groupByAttributeKeys`, `aggregationInterval`, `window` (`startTimestamp` / `endTimestamp`, ISO), `queryTime` (the query's own `InBetween`), `interval` and `rows` (what came back) |
 | `getList`, `count`, `analytics.getList`, `analytics.count` | `query`, `select`, `sort`, `limit`, `skip`, and `window` (`{ column, start, end }`) when the query filters a column by an `InBetween`; an `analytics.count` also records `exact` (whether it asked for the exact total) and `count` (what came back) |
-| `getItem`, `updateById`                                    | `id`, `select` or `body`                                                                                                                                                                                                                             |
-| `api`                                                      | `method`, `url`, `body`, and `window` (`{ start, end }`, ISO) when the body names a `startTime` / `endTime`; a histogram also records `bucketSizeInMinutes` and `buckets` (how many came back)                                                       |
-| `realtime`                                                 | `modelName`, `eventType`: the logs explorer's subscription to new rows. Nothing is ever sent on it                                                                                                                                                   |
+| `getItem`, `updateById` | `id`, `select` or `body` |
+| `api` | `method`, `url`, `body`, and `window` (`{ start, end }`, ISO) when the body names a `startTime` / `endTime`; a histogram also records `bucketSizeInMinutes` and `buckets` (how many came back) |
+| `realtime` | `modelName`, `eventType`: the logs explorer's subscription to new rows. Nothing is ever sent on it |
 
 A table, analytics model, metric name, API URL, explorer filter or facet the
 fixture does not model is recorded on `unhandled` too, and the specs fail the test
@@ -132,14 +132,15 @@ on it. That includes an `analytics.count` of any table but the generated ones
 (`SpanItemV3`, `LogItemV3`), and a list or count of those that does not filter
 its time column by an `InBetween`.
 
-The gates let a spec pick the moment data lands. All three answer at once by
+The gates let a spec pick the moment data lands. All four answer at once by
 default, so the other specs never see them:
 
-| Gate            | Holds                                                                                                                                                                                                                                    |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Gate | Holds |
+|---|---|
 | `histogramGate` | the explorers' `/telemetry/traces/histogram`, `/telemetry/traces/facets`, `/telemetry/traces/analytics`, `/telemetry/logs/histogram` and `/telemetry/logs/facets` answers (the Traces explorer awaits its histogram and facets together) |
-| `aggregateGate` | every modelled `AnalyticsModelAPI.aggregate` answer                                                                                                                                                                                      |
-| `listGate`      | the `ModelAPI.getList` answers of the tables named in `listGate.tables` (none by default), such as an explorer's saved views (`LogSavedView`) or its service list (`Service`)                                                            |
+| `aggregateGate` | every modelled `AnalyticsModelAPI.aggregate` answer |
+| `listGate` | the `ModelAPI.getList` answers of the tables named in `listGate.tables` (none by default), such as an explorer's saved views (`LogSavedView`) or its service list (`Service`) |
+| `valuesGate` | the search bars' `@key:` value lookups (every `/telemetry/*/get-attribute-values`), whatever they answer: values, none (`noAttributeValues`) or a stop (`timeLimit.attributeValues`, read when the answer is delivered) |
 
 With `gate.mode = "manual"` later answers wait in `gate.pending`, each described as
 `{ seq, url`, `metricName` or `modelName, window, response }` (`response` only on
@@ -156,12 +157,12 @@ can reach the page, so `window.__chartTimeZoomGates`, set before the page loads
 Each one answers as the API answers such a read, a 504 with the API's sentence,
 until a spec sets it back. Nothing is stopped by default:
 
-| `timeLimit.`      | Stops                                                                                                                                                               |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lists`           | the explorers' span and log lists (`AnalyticsModelAPI.getList` of `SpanItemV3`, `LogItemV3`)                                                                        |
-| `histograms`      | `/telemetry/traces/histogram` and `/telemetry/logs/histogram`                                                                                                       |
-| `facets`          | the facet keys listed: the facet endpoints name them in `timedOutFacets` and answer them empty (a resource facet keeps its list, every count 0), as the server does |
-| `attributeValues` | the search bars' `@key:` value lookups, every `/telemetry/*/get-attribute-values` (issue #4708)                                                                     |
+| `timeLimit.` | Stops |
+|---|---|
+| `lists` | the explorers' span and log lists (`AnalyticsModelAPI.getList` of `SpanItemV3`, `LogItemV3`) |
+| `histograms` | `/telemetry/traces/histogram` and `/telemetry/logs/histogram` |
+| `facets` | the facet keys listed: the facet endpoints name them in `timedOutFacets` and answer them empty (a resource facet keeps its list, every count 0), as the server does |
+| `attributeValues` | the search bars' `@key:` value lookups, every `/telemetry/*/get-attribute-values` (issue #4708) |
 
 A spec whose first load is stopped sets `window.__chartTimeZoomTimeLimit` with
 `page.addInitScript` before the page loads; the fixture starts from it.
@@ -216,11 +217,11 @@ Where a double-click lands: the reset scenarios wait for every chart to stop mov
 double-click a spot of the plot that no series covers, half-way between two
 buckets.
 
-| Page                        | Charts                                                                                                         | Initial range   | Zoom (scenario 1)                     | Released outside                  | Nested                             | Preset       |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------- | ------------------------------------- | --------------------------------- | ---------------------------------- | ------------ |
-| Kubernetes cluster overview | Availability, CPU, Memory, Filesystem, Network                                                                 | Past 30 Minutes | CPU 11:34 to 11:40, so [11:34, 11:41) | Memory, [11:42, 11:52)            | Availability, [11:36:00, 11:39:00) | Past 1 Hour  |
-| Host overview               | Availability, CPU, Memory, Disk space, Network                                                                 | Past 30 Minutes | CPU, [11:34, 11:41)                   | Disk space, [11:42, 11:52)        | Availability, [11:36:00, 11:39:00) | Past 1 Hour  |
-| Kubernetes cluster insights | Node CPU Utilization, Node Memory Usage, Node Filesystem Usage, Network, Pod CPU Utilization, Pod Memory Usage | Past 1 Hour     | Node CPU Utilization, [11:14, 11:34)  | Node Memory Usage, [11:40, 11:53) | Pod Memory Usage, [11:20, 11:26)   | Past 3 Hours |
+| Page | Charts | Initial range | Zoom (scenario 1) | Released outside | Nested | Preset |
+|---|---|---|---|---|---|---|
+| Kubernetes cluster overview | Availability, CPU, Memory, Filesystem, Network | Past 30 Minutes | CPU 11:34 to 11:40, so [11:34, 11:41) | Memory, [11:42, 11:52) | Availability, [11:36:00, 11:39:00) | Past 1 Hour |
+| Host overview | Availability, CPU, Memory, Disk space, Network | Past 30 Minutes | CPU, [11:34, 11:41) | Disk space, [11:42, 11:52) | Availability, [11:36:00, 11:39:00) | Past 1 Hour |
+| Kubernetes cluster insights | Node CPU Utilization, Node Memory Usage, Node Filesystem Usage, Network, Pod CPU Utilization, Pod Memory Usage | Past 1 Hour | Node CPU Utilization, [11:14, 11:34) | Node Memory Usage, [11:40, 11:53) | Pod Memory Usage, [11:20, 11:26) | Past 3 Hours |
 
 A zoom runs from the start of the first dragged bucket to the END of the last one,
 never past the end of the range the page was on.
@@ -320,13 +321,13 @@ double-click (the button down about 55 ms, about 90 ms to the second press, the
 second press and release with click count 2) with the held answers delivered, and
 drawn, at one moment:
 
-|     | The zoomed data lands        |
-| --- | ---------------------------- |
+| | The zoomed data lands |
+|---|---|
 | (a) | long before the double-click |
 | (b) | after the whole double-click |
-| (c) | between the two clicks       |
-| (d) | during the first press       |
-| (e) | during the second press      |
+| (c) | between the two clicks |
+| (d) | during the first press |
+| (e) | during the second press |
 
 each on a bar (3px above the plot's bottom) and on empty plot above the bars (3px
 below the plot's top), and for (a) also in the chart box's top padding strip, outside
@@ -443,7 +444,7 @@ nothing to show; then, once released, one read:
 
 ## Explorers: the `@key:` value picker
 
-`ExplorerValueSuggestions.spec.ts` (13 tests, same fixture and command) pins issue
+`ExplorerValueSuggestions.spec.ts` (14 tests, same fixture and command) pins issue
 #4708 in a real browser: the value picker behind `@key:` asked for a key's values
 whenever the last word looked like `@key:`, so typing a key over the search help's
 `@http.status_code:500` asked for every prefix of it (r, re, res, ... - eighteen
@@ -464,6 +465,9 @@ recorded:
 - Logs: that message draws the key in monospace, and its Try again sits beside the
   hint under the sentence, in the first half of the 1,300 px wide dropdown, not at its
   far end;
+- Logs: while a lookup is held (`valuesGate`) the dropdown says "Loading values for
+  resource.service.name...", and when the held answer is a stop the could-not-load
+  sentence starts exactly where the loading line's words did;
 - Logs: the down arrow selects Try again and Enter presses it, the focus never leaving
   the search box, and Enter neither runs the search nor makes a chip;
 - Logs: a lookup that finds no values (`noAttributeValues`) says "No values to suggest
@@ -475,9 +479,9 @@ recorded:
   for a key asked about before or typed over; a lookup that runs out of time says so
   and the keyboard's Try again asks again; a lookup that finds no values says so.
 
-Screenshots: `value-suggestions-logs`, `value-suggestions-stopped`,
-`value-suggestions-retry-selected`, `value-suggestions-empty` and
-`value-suggestions-stopped-phone-dark`.
+Screenshots: `value-suggestions-logs`, `value-suggestions-loading`,
+`value-suggestions-stopped`, `value-suggestions-retry-selected`,
+`value-suggestions-empty` and `value-suggestions-stopped-phone-dark`.
 
 ## Run it
 
