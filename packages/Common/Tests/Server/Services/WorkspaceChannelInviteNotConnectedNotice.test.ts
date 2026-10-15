@@ -1,7 +1,11 @@
+import User from "../../../Models/DatabaseModels/User";
 import WorkspaceNotificationRule from "../../../Models/DatabaseModels/WorkspaceNotificationRule";
 import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import WorkspaceNotificationLogService from "../../../Server/Services/WorkspaceNotificationLogService";
-import WorkspaceNotificationRuleService from "../../../Server/Services/WorkspaceNotificationRuleService";
+import WorkspaceNotificationRuleService, {
+  NotificationFor,
+} from "../../../Server/Services/WorkspaceNotificationRuleService";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import ChannelMembersNotAddedNotice, {
@@ -56,6 +60,19 @@ const OTHER_RULE_CHANNEL: NotificationRuleWorkspaceChannel = {
   notificationRuleId: OTHER_RULE_ID.toString(),
 };
 
+type RecordField = keyof NotificationFor;
+
+// Every kind of record OneUptime creates channels for and invites people to.
+const RECORD_FIELDS: Array<{ field: RecordField }> = [
+  { field: "incidentId" },
+  { field: "alertId" },
+  { field: "scheduledMaintenanceId" },
+  { field: "onCallDutyPolicyId" },
+  { field: "monitorId" },
+  { field: "incidentEpisodeId" },
+  { field: "alertEpisodeId" },
+];
+
 function rule(
   id: ObjectID,
   workspaceType: WorkspaceType,
@@ -63,6 +80,12 @@ function rule(
   const model: WorkspaceNotificationRule = new WorkspaceNotificationRule();
   model.id = id;
   model.workspaceType = workspaceType;
+  return model;
+}
+
+function user(id: ObjectID): User {
+  const model: User = new User();
+  model.id = id;
   return model;
 }
 
@@ -191,23 +214,12 @@ describe("inviteUsersBasedOnRulesAndWorkspaceChannels (owners, paged on-call peo
   /*
    * The record the channels belong to, when the caller names it, is on the
    * invite's log row: a record's Notification Logs page lists its
-   * workspace logs by its id, so an on-call page's invite is listed there
-   * beside the channel's creation and messages.
+   * workspace logs by its id, so an on-call page's or an owner's invite is
+   * listed there beside the channel's creation and messages.
    */
-  test.each([
-    { field: "incidentId" },
-    { field: "alertId" },
-    { field: "scheduledMaintenanceId" },
-    { field: "onCallDutyPolicyId" },
-  ] as const)(
+  test.each(RECORD_FIELDS)(
     "the invite is logged against the record the channels belong to: $field",
-    async (data: {
-      field:
-        | "incidentId"
-        | "alertId"
-        | "scheduledMaintenanceId"
-        | "onCallDutyPolicyId";
-    }) => {
+    async (data: { field: RecordField }) => {
       const recordId: ObjectID = ObjectID.generate();
 
       await WorkspaceNotificationRuleService.inviteUsersBasedOnRulesAndWorkspaceChannels(
@@ -269,6 +281,45 @@ describe("inviteUsersBasedOnRulesAndWorkspaceChannels (owners, paged on-call peo
   });
 });
 
+describe("inviteTeamsBasedOnRulesAndWorkspaceChannels (owner teams)", () => {
+  /*
+   * A team made an owner of a record is invited as its people, through the
+   * path above: the record it is the owner of goes with them, so the
+   * invites are listed on the record's Notification Logs page.
+   */
+  test.each(RECORD_FIELDS)(
+    "the team's people who were invited are logged against the record the channels belong to: $field",
+    async (data: { field: RecordField }) => {
+      const recordId: ObjectID = ObjectID.generate();
+
+      jest
+        .spyOn(TeamMemberService, "getUsersInTeams")
+        .mockResolvedValue([user(CONNECTED), user(NOT_CONNECTED_1)]);
+
+      await WorkspaceNotificationRuleService.inviteTeamsBasedOnRulesAndWorkspaceChannels(
+        {
+          projectId: PROJECT_ID,
+          notificationRules: [rule(RULE_ID, WorkspaceType.Slack)],
+          workspaceChannels: [RULE_CHANNEL],
+          teamIds: [ObjectID.generate()],
+          notificationFor: { [data.field]: recordId },
+        },
+      );
+
+      expect(invite).toHaveBeenCalledTimes(1);
+      expect(inviteLogSpy).toHaveBeenCalledTimes(1);
+      expect(inviteLogSpy.mock.calls[0]![0]).toEqual({
+        projectId: PROJECT_ID,
+        workspaceType: WorkspaceType.Slack,
+        channelId: "C0INC8",
+        channelName: "inc-inc-8",
+        userId: CONNECTED,
+        [data.field]: recordId,
+      });
+    },
+  );
+});
+
 /*
  * A channel just created: the people who could not be added are handed back,
  * not told yet - the record's service tells the channel right after the
@@ -277,8 +328,16 @@ describe("inviteUsersBasedOnRulesAndWorkspaceChannels (owners, paged on-call peo
  */
 describe("inviteUsersAndTeamsToChannelsBasedOnRules (a channel just created)", () => {
   async function createChannels(
-    workspaceType: WorkspaceType = WorkspaceType.Slack,
+    options: {
+      workspaceType?: WorkspaceType;
+      // The record the channels are created for.
+      notificationFor?: NotificationFor;
+      channels?: Array<NotificationRuleWorkspaceChannel>;
+    } = {},
   ): Promise<Array<ChannelMembersNotAdded>> {
+    const workspaceType: WorkspaceType =
+      options.workspaceType || WorkspaceType.Slack;
+
     jest
       .spyOn(WorkspaceNotificationRuleService, "getUsersIdsToInviteToChannel")
       .mockResolvedValue([
@@ -299,7 +358,11 @@ describe("inviteUsersAndTeamsToChannelsBasedOnRules (a channel just created)", (
         projectAuth: projectAuth,
         workspaceType: workspaceType,
         notificationRules: [rule(RULE_ID, workspaceType)],
-        notificationChannels: [RULE_CHANNEL, OTHER_RULE_CHANNEL],
+        notificationChannels: options.channels || [
+          RULE_CHANNEL,
+          OTHER_RULE_CHANNEL,
+        ],
+        notificationFor: options.notificationFor,
       },
     );
   }
@@ -346,7 +409,7 @@ describe("inviteUsersAndTeamsToChannelsBasedOnRules (a channel just created)", (
     ]);
   });
 
-  test("nobody connected: no invite is sent, and everybody is handed back", async () => {
+  test("nobody connected: no invite is sent, nobody is logged as invited, and everybody is handed back", async () => {
     jest
       .spyOn(
         WorkspaceNotificationRuleService,
@@ -358,6 +421,7 @@ describe("inviteUsersAndTeamsToChannelsBasedOnRules (a channel just created)", (
       await createChannels();
 
     expect(invite).not.toHaveBeenCalled();
+    expect(inviteLogSpy).not.toHaveBeenCalled();
     expect(membersNotAdded[0]!.userIds).toEqual([
       CONNECTED,
       NOT_CONNECTED_1,
@@ -379,12 +443,129 @@ describe("inviteUsersAndTeamsToChannelsBasedOnRules (a channel just created)", (
 
   test("Microsoft Teams goes through the same path; the note itself says nothing there (ChannelMembersNotAddedNotice)", async () => {
     const membersNotAdded: Array<ChannelMembersNotAdded> = await createChannels(
-      WorkspaceType.MicrosoftTeams,
+      { workspaceType: WorkspaceType.MicrosoftTeams },
     );
 
     expect(membersNotAdded[0]!.workspaceType).toBe(
       WorkspaceType.MicrosoftTeams,
     );
     expect(sendMessage).not.toHaveBeenCalled();
+    expect(inviteLogSpy).toHaveBeenCalledTimes(1);
+    expect(inviteLogSpy.mock.calls[0]![0].workspaceType).toBe(
+      WorkspaceType.MicrosoftTeams,
+    );
+  });
+
+  /*
+   * The people a rule adds to the channel it creates for a record used to
+   * be logged nowhere: the record's Notification Logs > Workspace tab
+   * showed the channel created and its messages, and nobody invited.
+   * They are logged against the record, as an owner's or a paged person's
+   * invite is.
+   */
+  test.each(RECORD_FIELDS)(
+    "REGRESSION: the people invited to the new channel are logged as invited, against the record it was created for: $field",
+    async (data: { field: RecordField }) => {
+      const recordId: ObjectID = ObjectID.generate();
+
+      await createChannels({ notificationFor: { [data.field]: recordId } });
+
+      // Only the person invited, and only in the rule's own channel.
+      expect(inviteLogSpy).toHaveBeenCalledTimes(1);
+      expect(inviteLogSpy.mock.calls[0]![0]).toEqual({
+        projectId: PROJECT_ID,
+        workspaceType: WorkspaceType.Slack,
+        channelId: "C0INC8",
+        channelName: "inc-inc-8",
+        userId: CONNECTED,
+        [data.field]: recordId,
+      });
+      expect(inviteLogSpy.mock.calls[0]![1]).toEqual({ isRoot: true });
+    },
+  );
+
+  test("everybody invited is logged once in each of the rule's new channels", async () => {
+    jest
+      .spyOn(
+        WorkspaceNotificationRuleService,
+        "getWorkspaceUserIdFromOneUptimeUserId",
+      )
+      .mockResolvedValue("U0SOMEBODY");
+
+    const warRoom: NotificationRuleWorkspaceChannel = {
+      id: "C0INC8WAR",
+      name: "inc-inc-8-war-room",
+      workspaceType: WorkspaceType.Slack,
+      notificationRuleId: RULE_ID.toString(),
+    };
+
+    await createChannels({
+      channels: [RULE_CHANNEL, warRoom, OTHER_RULE_CHANNEL],
+      notificationFor: { incidentId: ObjectID.generate() },
+    });
+
+    // Still one invite for everybody.
+    expect(invite).toHaveBeenCalledTimes(1);
+
+    const logged: Array<string> = inviteLogSpy.mock.calls
+      .map(
+        (
+          call: Parameters<
+            typeof WorkspaceNotificationLogService.logInviteUser
+          >,
+        ): string => {
+          return `${call[0].userId.toString()} ${call[0].channelId}`;
+        },
+      )
+      .sort();
+
+    expect(logged).toEqual(
+      [CONNECTED, NOT_CONNECTED_1, NOT_CONNECTED_2]
+        .flatMap((userId: ObjectID): Array<string> => {
+          return [
+            `${userId.toString()} C0INC8`,
+            `${userId.toString()} C0INC8WAR`,
+          ];
+        })
+        .sort(),
+    );
+  });
+
+  test("an invite Slack refuses logs nobody as invited", async () => {
+    invite.mockRejectedValueOnce(new Error("Error from Slack ratelimited"));
+
+    await createChannels({
+      notificationFor: { incidentId: ObjectID.generate() },
+    });
+
+    expect(inviteLogSpy).not.toHaveBeenCalled();
+  });
+
+  test("no record named: the invite's log row names none", async () => {
+    await createChannels();
+
+    expect(inviteLogSpy.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      workspaceType: WorkspaceType.Slack,
+      channelId: "C0INC8",
+      channelName: "inc-inc-8",
+      userId: CONNECTED,
+    });
+  });
+
+  test("a log row that cannot be written does not end the channel's setup", async () => {
+    inviteLogSpy.mockRejectedValueOnce(new Error("connection refused"));
+
+    const membersNotAdded: Array<ChannelMembersNotAdded> = await createChannels(
+      {
+        notificationFor: { incidentId: ObjectID.generate() },
+      },
+    );
+
+    expect(invite).toHaveBeenCalledTimes(1);
+    expect(membersNotAdded[0]!.userIds).toEqual([
+      NOT_CONNECTED_1,
+      NOT_CONNECTED_2,
+    ]);
   });
 });
