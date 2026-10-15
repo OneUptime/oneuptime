@@ -36,13 +36,33 @@ import CallerPermission from "../Utils/Permission/CallerPermission";
 import ProjectBalanceType from "../../Types/Billing/ProjectBalanceType";
 import BalanceAdjustmentType from "../../Types/Billing/BalanceAdjustmentType";
 import ObjectID from "../../Types/ObjectID";
-import { JSONObject, JSONValue } from "../../Types/JSON";
+import { JSONArray, JSONObject, JSONValue } from "../../Types/JSON";
+import {
+  NUMBERED_RECORD_KINDS,
+  NumberedRecordKind,
+  RecordNumbering,
+} from "../../Utils/Project/NextNumber";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 
 /*
  * The reason is free text a customer types into the delete confirmation. The
  * column is unbounded text, so the cap is here.
  */
 export const MAX_DELETION_REASON_LENGTH: number = 5000;
+
+/*
+ * Who may read where a project's numbers stand (GET /project/:id/numbering):
+ * those who may read where they start - the read list of the columns that
+ * hold it, one list for all five kinds (ProjectNumberingApi.test holds them
+ * to it) - so the route tells no one more than the model API would.
+ */
+export function getNumberingReadPermissions(): Array<Permission> {
+  return (
+    new Project().getColumnAccessControlFor(
+      NUMBERED_RECORD_KINDS[0]!.startsAtColumn,
+    )?.read || []
+  );
+}
 
 export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
   public constructor() {
@@ -137,6 +157,73 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
           });
 
           return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * Where each kind of number stands in the project - its prefix, the
+     * highest number given out so far and the number the next record gets
+     * (Utils/Project/NextNumber) - for the Numbering pages' Next Number
+     * card, and for anyone automating a move from another tool.
+     *
+     * The counters behind it are no caller's to read through the model API,
+     * so the answer is read as OneUptime and this route checks its caller
+     * itself, on every request: credentials (401 without - an expired
+     * session is refreshed and sent again), a member or API key of the
+     * project the URL names (getUserMiddleware takes the project from the
+     * caller's own tenantid header, so the two must match), and a
+     * permission that reads the project's numbering settings - the read list
+     * of the columns that hold where numbers start, so the route says no
+     * more than the model API would.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:id/numbering`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectPrincipal(props);
+
+          const idParam: string = String(req.params["id"] || "");
+
+          if (
+            !ObjectID.isValidUUID(idParam) ||
+            idParam.toLowerCase() !== projectId.toString().toLowerCase()
+          ) {
+            throw new NotAuthorizedException(
+              "You are not authorized to access this project's data.",
+            );
+          }
+
+          CommonAPI.assertPermittedInProject({
+            databaseProps: props,
+            allowedPermissions: getNumberingReadPermissions(),
+            errorMessage:
+              "You do not have permission to read this project's numbering.",
+          });
+
+          const numbering: Array<RecordNumbering> =
+            await ProjectService.getNumbering(projectId);
+
+          return Response.sendJsonObjectResponse(req, res, {
+            numbering: numbering.map(
+              (entry: RecordNumbering): JSONObject => {
+                return {
+                  kind: entry.kind as NumberedRecordKind,
+                  prefix: entry.prefix,
+                  highestNumber: entry.highestNumber,
+                  nextNumber: entry.nextNumber,
+                  numbersStartAt: entry.numbersStartAt,
+                };
+              },
+            ) as JSONArray,
+          });
         } catch (err) {
           next(err);
         }

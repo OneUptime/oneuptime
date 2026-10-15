@@ -102,6 +102,13 @@ import NumberPrefixUtil, {
   NUMBER_PREFIX_COLUMNS,
   NumberPrefixColumn,
 } from "../../Utils/Project/NumberPrefix";
+import NextNumberUtil, {
+  NUMBERED_RECORD_KINDS,
+  NumberedRecordKind,
+  NumberedRecordKindInfo,
+  NumbersStartAtColumn,
+  RecordNumbering,
+} from "../../Utils/Project/NextNumber";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
@@ -149,7 +156,9 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import ActiveMonitorLimitUtil from "../../Types/Monitor/ActiveMonitorLimit";
-import { IsNull, UpdateResult } from "typeorm";
+import { IsNull, Repository, UpdateResult } from "typeorm";
+import { ColumnMetadata } from "typeorm/metadata/ColumnMetadata";
+import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
 
 export interface CurrentPlan {
   plan: PlanType | null;
@@ -476,6 +485,34 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /*
+   * Runs on every create and update, before the write, for each start of
+   * numbers the data carries (Utils/Project/NextNumber): null or blank text
+   * is stored as null - nothing chosen, the numbers carry on from the
+   * highest one used - and anything but a whole number from 1 to
+   * 1,000,000,000 is refused, naming the column. A start the data does not
+   * carry is left alone, so an update of anything else never touches the
+   * starts. Whether a new start is above the highest number used is checked
+   * once the caller may make the update (checkNumbersStartAboveHighest): it
+   * reads the project's counters.
+   */
+  public applyNextNumberRules(
+    data: Partial<Record<NumbersStartAtColumn, unknown>>,
+  ): void {
+    const values: Record<string, unknown> = data as Record<string, unknown>;
+
+    for (const info of NUMBERED_RECORD_KINDS) {
+      if (values[info.startsAtColumn] === undefined) {
+        continue;
+      }
+
+      values[info.startsAtColumn] = NextNumberUtil.normalize(
+        values[info.startsAtColumn],
+        info.title,
+      );
+    }
+  }
+
+  /*
    * Runs on every create and update, before the write, for each of the
    * project's own daily AI limits the data carries (Types/AI/
    * ProjectAiDailyLimits). A blank one is stored as null - no limit, which
@@ -541,6 +578,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
     this.applyDataResidencyRules(data.data);
     this.applyNumberPrefixRules(data.data);
+    this.applyNextNumberRules(data.data);
     this.applyAiDailyLimitRules(data.data);
 
     if (data.props.userId) {
@@ -1157,6 +1195,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
     this.applyDataResidencyRules(updateBy.data);
     this.applyNumberPrefixRules(updateBy.data);
+    this.applyNextNumberRules(updateBy.data);
     this.applyAiDailyLimitRules(updateBy.data);
 
     await this.assertAuditLogSettingsChangeIsLicensed({
@@ -1214,6 +1253,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
   protected override async onUpdatePermitted(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
+    await this.checkNumbersStartAboveHighest(updateBy);
+
     await SsoRequirementChanges.beforeProjectUpdate({ updateBy });
 
     // What the rules are now, so a write that asks for less is told only where it changes one.
@@ -1222,6 +1263,90 @@ export class ProjectService extends ProjectReferencesService<Model> {
     await this.chargeAutoRechargeTurnedOn(updateBy);
 
     await SsoRequirementChanges.beforeWrite(updateBy);
+  }
+
+  /*
+   * A start of numbers that an update changes must be above the highest
+   * number its kind has given out, in every project the update writes, so
+   * a number is never given twice (Utils/Project/NextNumber). Checked
+   * against the counters of the very rows the update writes, once the
+   * caller may make it - so the refusal, which names the highest number, is
+   * never an answer to someone who may not change the project - and before
+   * anything else the update sets off.
+   *
+   * A start sent as it is stored is no change: Terraform sends every value
+   * it holds on each apply, and a start the records have since passed must
+   * not fail it. Clearing a start is always allowed: the numbers then carry
+   * on from the highest one used.
+   *
+   * A record created between this check and the write takes the one after
+   * the counter at the least, as every record does (takeNextNumber), so it
+   * never takes a number already used: a start only ever moves the numbers
+   * on.
+   */
+  private async checkNumbersStartAboveHighest(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const values: Record<string, unknown> = updateBy.data as Record<
+      string,
+      unknown
+    >;
+
+    const changing: Array<NumberedRecordKindInfo> =
+      NUMBERED_RECORD_KINDS.filter((info: NumberedRecordKindInfo): boolean => {
+        return (
+          values[info.startsAtColumn] !== undefined &&
+          values[info.startsAtColumn] !== null
+        );
+      });
+
+    if (changing.length === 0) {
+      return;
+    }
+
+    const select: Record<string, boolean> = { _id: true };
+
+    for (const info of changing) {
+      select[info.counterColumn] = true;
+      select[info.startsAtColumn] = true;
+    }
+
+    const projects: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      select as Select<Model>,
+    );
+
+    for (const project of projects) {
+      const row: Record<string, unknown> = project as unknown as Record<
+        string,
+        unknown
+      >;
+
+      for (const info of changing) {
+        const startsAt: number | null = NextNumberUtil.toStoredNumber(
+          values[info.startsAtColumn],
+        );
+
+        if (
+          startsAt === null ||
+          startsAt === NextNumberUtil.toStoredNumber(row[info.startsAtColumn])
+        ) {
+          continue;
+        }
+
+        const highestNumber: number =
+          NextNumberUtil.toStoredNumber(row[info.counterColumn]) || 0;
+
+        if (startsAt <= highestNumber) {
+          throw new BadDataException(
+            NextNumberUtil.getNotAboveHighestError({
+              kind: info.kind,
+              highestNumber: highestNumber,
+            }),
+          );
+        }
+      }
+    }
   }
 
   /*
@@ -4808,209 +4933,193 @@ export class ProjectService extends ProjectReferencesService<Model> {
     throw new BadDataException(`Invalid balance type: ${balanceType}`);
   }
 
+  /*
+   * The next number of a kind, taken for a record being created
+   * (Utils/Project/NextNumber): the kind's counter moves to the one after the
+   * highest number given out - or to where the project chose its numbers to
+   * start, when that is higher - and the number it moved to is the record's.
+   *
+   * One statement does it all, and Postgres runs the statements that change
+   * a row one at a time: records created at the same moment each get a
+   * number of their own, every number is higher than any given out before
+   * it, and a start changed meanwhile is wholly before or wholly after each
+   * one. So no lock is needed (the counters used to be read back under one,
+   * in a second statement), and Valkey being down no longer stops a record
+   * from being numbered. The prefix is read in the same statement, as it
+   * stands when the number is taken.
+   */
+  private async takeNextNumber(
+    projectId: ObjectID,
+    kind: NumberedRecordKind,
+  ): Promise<{ counter: number; prefix: string | undefined }> {
+    const info: NumberedRecordKindInfo = NextNumberUtil.getKindInfo(kind);
+    const repository: Repository<Model> = this.getRepository();
+    const metadata: EntityMetadata = repository.metadata;
+
+    // Identifiers from the entity's own metadata, never from a caller.
+    const quoted: (propertyName: string) => string = (
+      propertyName: string,
+    ): string => {
+      const column: ColumnMetadata | undefined =
+        metadata.findColumnWithPropertyName(propertyName);
+
+      if (!column) {
+        throw new BadDataException(`Unknown Project column: ${propertyName}`);
+      }
+
+      return `"${column.databaseName}"`;
+    };
+
+    const counter: string = quoted(info.counterColumn);
+    const startsAt: string = quoted(info.startsAtColumn);
+    const prefix: string = quoted(info.prefixColumn);
+    const primaryColumnName: string =
+      metadata.primaryColumns[0]?.databaseName || "_id";
+
+    const result: unknown = await repository.manager.query(
+      `UPDATE "${metadata.tableName}" SET ${counter} = GREATEST(${counter} + 1, COALESCE(${startsAt}, 0)) WHERE "${primaryColumnName}" = $1 RETURNING ${counter} AS "counter", ${prefix} AS "prefix"`,
+      [projectId.toString()],
+    );
+
+    /*
+     * TypeORM's Postgres driver returns `[rows, affectedCount]` for an
+     * UPDATE and a bare row array for everything else, so both shapes are
+     * unwrapped rather than one being assumed.
+     */
+    const rows: Array<unknown> = Array.isArray(result)
+      ? Array.isArray(result[0])
+        ? (result[0] as Array<unknown>)
+        : (result as Array<unknown>)
+      : [];
+
+    const row: unknown = rows[0];
+
+    const number: number | null =
+      row && typeof row === "object"
+        ? NextNumberUtil.toStoredNumber(
+            (row as Record<string, unknown>)["counter"],
+          )
+        : null;
+
+    if (number === null) {
+      throw new BadDataException(
+        `Could not read ${info.counterColumn} for project ${projectId.toString()}`,
+      );
+    }
+
+    const prefixValue: unknown = (row as Record<string, unknown>)["prefix"];
+
+    return {
+      counter: number,
+      prefix:
+        typeof prefixValue === "string" && prefixValue
+          ? prefixValue
+          : undefined,
+    };
+  }
+
   @CaptureSpan()
   public async incrementAndGetIncidentCounter(
     projectId: ObjectID,
   ): Promise<{ counter: number; prefix: string | undefined }> {
-    const mutex: SemaphoreMutex = await Semaphore.lock({
-      key: projectId.toString(),
-      namespace: "ProjectService.incidentCounter",
-    });
-
-    try {
-      await this.atomicIncrementColumnValueByOne({
-        id: projectId,
-        columnName: "incidentCounter",
-      });
-
-      const project: Model | null = await this.findOneById({
-        id: projectId,
-        select: {
-          incidentCounter: true,
-          incidentNumberPrefix: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!project || project.incidentCounter === undefined) {
-        throw new BadDataException(
-          `Could not read incidentCounter for project ${projectId.toString()}`,
-        );
-      }
-
-      return {
-        counter: project.incidentCounter,
-        prefix: project.incidentNumberPrefix,
-      };
-    } finally {
-      await Semaphore.release(mutex);
-    }
+    return await this.takeNextNumber(projectId, NumberedRecordKind.Incident);
   }
 
   @CaptureSpan()
   public async incrementAndGetAlertCounter(
     projectId: ObjectID,
   ): Promise<{ counter: number; prefix: string | undefined }> {
-    const mutex: SemaphoreMutex = await Semaphore.lock({
-      key: projectId.toString(),
-      namespace: "ProjectService.alertCounter",
-    });
-
-    try {
-      await this.atomicIncrementColumnValueByOne({
-        id: projectId,
-        columnName: "alertCounter",
-      });
-
-      const project: Model | null = await this.findOneById({
-        id: projectId,
-        select: {
-          alertCounter: true,
-          alertNumberPrefix: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!project || project.alertCounter === undefined) {
-        throw new BadDataException(
-          `Could not read alertCounter for project ${projectId.toString()}`,
-        );
-      }
-
-      return {
-        counter: project.alertCounter,
-        prefix: project.alertNumberPrefix,
-      };
-    } finally {
-      await Semaphore.release(mutex);
-    }
+    return await this.takeNextNumber(projectId, NumberedRecordKind.Alert);
   }
 
   @CaptureSpan()
   public async incrementAndGetScheduledMaintenanceCounter(
     projectId: ObjectID,
   ): Promise<{ counter: number; prefix: string | undefined }> {
-    const mutex: SemaphoreMutex = await Semaphore.lock({
-      key: projectId.toString(),
-      namespace: "ProjectService.scheduledMaintenanceCounter",
-    });
-
-    try {
-      await this.atomicIncrementColumnValueByOne({
-        id: projectId,
-        columnName: "scheduledMaintenanceCounter",
-      });
-
-      const project: Model | null = await this.findOneById({
-        id: projectId,
-        select: {
-          scheduledMaintenanceCounter: true,
-          scheduledMaintenanceNumberPrefix: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!project || project.scheduledMaintenanceCounter === undefined) {
-        throw new BadDataException(
-          `Could not read scheduledMaintenanceCounter for project ${projectId.toString()}`,
-        );
-      }
-
-      return {
-        counter: project.scheduledMaintenanceCounter,
-        prefix: project.scheduledMaintenanceNumberPrefix,
-      };
-    } finally {
-      await Semaphore.release(mutex);
-    }
+    return await this.takeNextNumber(
+      projectId,
+      NumberedRecordKind.ScheduledMaintenance,
+    );
   }
 
   @CaptureSpan()
   public async incrementAndGetIncidentEpisodeCounter(
     projectId: ObjectID,
   ): Promise<{ counter: number; prefix: string | undefined }> {
-    const mutex: SemaphoreMutex = await Semaphore.lock({
-      key: projectId.toString(),
-      namespace: "ProjectService.incidentEpisodeCounter",
-    });
-
-    try {
-      await this.atomicIncrementColumnValueByOne({
-        id: projectId,
-        columnName: "incidentEpisodeCounter",
-      });
-
-      const project: Model | null = await this.findOneById({
-        id: projectId,
-        select: {
-          incidentEpisodeCounter: true,
-          incidentEpisodeNumberPrefix: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!project || project.incidentEpisodeCounter === undefined) {
-        throw new BadDataException(
-          `Could not read incidentEpisodeCounter for project ${projectId.toString()}`,
-        );
-      }
-
-      return {
-        counter: project.incidentEpisodeCounter,
-        prefix: project.incidentEpisodeNumberPrefix,
-      };
-    } finally {
-      await Semaphore.release(mutex);
-    }
+    return await this.takeNextNumber(
+      projectId,
+      NumberedRecordKind.IncidentEpisode,
+    );
   }
 
   @CaptureSpan()
   public async incrementAndGetAlertEpisodeCounter(
     projectId: ObjectID,
   ): Promise<{ counter: number; prefix: string | undefined }> {
-    const mutex: SemaphoreMutex = await Semaphore.lock({
-      key: projectId.toString(),
-      namespace: "ProjectService.alertEpisodeCounter",
+    return await this.takeNextNumber(
+      projectId,
+      NumberedRecordKind.AlertEpisode,
+    );
+  }
+
+  /*
+   * Where each kind of number stands in a project: its prefix, the highest
+   * number given out so far, the number the next record gets and the start
+   * the project chose (Utils/Project/NextNumber). Read as OneUptime: the
+   * counters are no caller's to read through the model API, so the route
+   * that answers with this (ProjectAPI, /project/:id/numbering) checks its
+   * caller first.
+   */
+  @CaptureSpan()
+  public async getNumbering(
+    projectId: ObjectID,
+  ): Promise<Array<RecordNumbering>> {
+    const select: Record<string, boolean> = { _id: true };
+
+    for (const info of NUMBERED_RECORD_KINDS) {
+      select[info.counterColumn] = true;
+      select[info.startsAtColumn] = true;
+      select[info.prefixColumn] = true;
+    }
+
+    const project: Model | null = await this.findOneById({
+      id: projectId,
+      select: select as Select<Model>,
+      props: {
+        isRoot: true,
+      },
     });
 
-    try {
-      await this.atomicIncrementColumnValueByOne({
-        id: projectId,
-        columnName: "alertEpisodeCounter",
-      });
-
-      const project: Model | null = await this.findOneById({
-        id: projectId,
-        select: {
-          alertEpisodeCounter: true,
-          alertEpisodeNumberPrefix: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!project || project.alertEpisodeCounter === undefined) {
-        throw new BadDataException(
-          `Could not read alertEpisodeCounter for project ${projectId.toString()}`,
-        );
-      }
-
-      return {
-        counter: project.alertEpisodeCounter,
-        prefix: project.alertEpisodeNumberPrefix,
-      };
-    } finally {
-      await Semaphore.release(mutex);
+    if (!project) {
+      throw new BadDataException("Project not found");
     }
+
+    const row: Record<string, unknown> = project as unknown as Record<
+      string,
+      unknown
+    >;
+
+    return NUMBERED_RECORD_KINDS.map(
+      (info: NumberedRecordKindInfo): RecordNumbering => {
+        const highestNumber: number =
+          NextNumberUtil.toStoredNumber(row[info.counterColumn]) || 0;
+        const numbersStartAt: number | null = NextNumberUtil.toStoredNumber(
+          row[info.startsAtColumn],
+        );
+        const prefix: unknown = row[info.prefixColumn];
+
+        return {
+          kind: info.kind,
+          prefix: typeof prefix === "string" && prefix ? prefix : null,
+          highestNumber: highestNumber,
+          nextNumber: NextNumberUtil.getNextNumber({
+            highestNumber: highestNumber,
+            numbersStartAt: numbersStartAt,
+          }),
+          numbersStartAt: numbersStartAt,
+        };
+      },
+    );
   }
 
   /*
