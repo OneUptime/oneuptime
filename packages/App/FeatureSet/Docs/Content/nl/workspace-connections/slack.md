@@ -139,7 +139,7 @@ OneUptime heeft één commando in Slack, `/oneuptime`. Het woord dat je erachter
 | Commando | Wat het doet |
 | --- | --- |
 | `/oneuptime help` | Toont de commando's, met voorbeelden. |
-| `/oneuptime incident [title]` | Opent het incidentformulier, met de titel ingevuld. |
+| `/oneuptime incident [title or number]` | Opent het incidentformulier, met de titel ingevuld. Het nummer van een incident, zoals `42` of `INC-42`, toont in plaats daarvan dat incident: zie [Een incident beheren vanuit Slack](#een-incident-beheren-vanuit-slack). |
 | `/oneuptime maintenance [title]` | Opent het formulier voor gepland onderhoud, met de titel ingevuld. |
 | `/oneuptime oncall` | Toont wie er nu dienst heeft in elk bereikbaarheidsschema dat je kunt zien, tot wanneer, en wie de volgende is. |
 | `/oneuptime page [who] [message]` | Roept de mensen op die je met @ noemt, over je bericht, of opent een formulier om te kiezen wie je oproept. Zie [Iemand oproepen vanuit Slack](#iemand-oproepen-vanuit-slack). |
@@ -211,6 +211,25 @@ Voor een groep met zowel de primaire als de secundaire dienst koppel je dezelfde
 - **Wat Slack nodig heeft.** Gebruikersgroepen horen bij de betaalde abonnementen van Slack, en een werkruimte kan alleen de eigenaren en beheerders toestaan ze te wijzigen: de kaart zegt welke van de twee, en wat je kunt doen. Als Slack gekoppeld is voordat OneUptime gebruikersgroepen kon bijhouden, koppel het dan één keer opnieuw onder **Projectinstellingen** > **Werkruimte** > **Slack**.
 - **Wie er een mag koppelen.** De rollen die schema's mogen bewerken: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** en **On-Call Member**, of **Edit On-Call Duty Policy Schedule** in een aangepaste rol. In OneUptime Cloud vraagt koppelen het abonnement **Growth**.
 - **Ontkoppelen.** OneUptime past de groep niet meer aan. De groep en de leden blijven in Slack zoals ze zijn.
+
+## Een incident beheren vanuit Slack
+
+Het bericht van een incident heeft vier knoppen, **Acknowledge Incident**, **Resolve Incident**, **Add Note** en **View Incident**, en de rest in zijn menu, de knop met drie puntjes erachter:
+
+| Menu-item | Wat het doet |
+| --- | --- |
+| **Change Severity** | Stelt de ernst van het incident in. |
+| **Change Incident State** | Zet het incident in een latere status. |
+| **Assign Role** | Geeft iemand een rol in het incident, zoals **Incident Commander**. Een rol voor één persoon gaat naar die persoon over. |
+| **Page Someone** | Roept mensen, een team, wie in een schema nu dienst heeft, of een bereikbaarheidsbeleid op over het incident, tot iemand het bevestigt. |
+| **Edit Custom Fields** | Stelt de aangepaste velden van het incident in, elk ingevuld met wat het incident bevat. Een leeg gelaten veld wordt gewist. |
+
+`/oneuptime incident 42` toont incident 42, met deze knoppen en zijn menu, in een bericht dat alleen jij ziet. Typ het nummer zoals OneUptime het toont: `42`, `#42` of `INC-42`. In het eigen kanaal van een incident toont `/oneuptime incident` zonder meer dat incident.
+
+- **Wie ze mag gebruiken.** De mensen die dezelfde wijziging in OneUptime mogen maken. **Change Severity** en **Edit Custom Fields** vereisen toestemming om het incident te bewerken: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** en **Incident Member**, of **Edit Incident** in een aangepaste rol. **Assign Role** vereist **Create Incident Member**, en **Delete Incident Member** om een rol voor één persoon over te dragen. **Page Someone** vereist wat **Execute On-Call Policy** vereist. Ieder ander hoort waarom, en er opent geen formulier.
+- **Wat de formulieren aanbieden.** Wat jij in het project mag lezen. Een aangepast veld dat van de monitor van het incident wordt gekopieerd, ontbreekt, omdat het opnieuw zou worden gekopieerd, en een formulier bevat 40 velden: bewerk de rest in OneUptime.
+- **Wat er gebeurt.** Het formulier sluit, en de wijziging wordt als jij gemaakt, zoals in OneUptime: de feed van het incident, en daarmee de kanalen van het incident, zeggen wat er veranderde, elk aangepast veld met zijn nieuwe waarde. Een waarde die niet bij het veld past, zoals tekst voor een getal, wordt onder het veld genoemd, en het formulier blijft open. **Page Someone** zegt wie werd opgeroepen, of waarom niemand; een incident dat al is opgelost, roept niemand op.
+- **Berichten van vóór het menu.** Ze houden hun knop **Execute On-Call Policy**, en die blijft werken: **Page Someone** roept ook een bereikbaarheidsbeleid op. Waarschuwingen en episodes houden die van hen.
 
 ## Handelen op incidenten, waarschuwingen en gebeurtenissen vanuit Slack
 

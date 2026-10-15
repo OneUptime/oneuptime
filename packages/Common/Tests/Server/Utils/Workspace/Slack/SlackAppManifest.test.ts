@@ -83,7 +83,7 @@ describe("the Slack app manifest's commands", () => {
         description:
           "Declare an incident, schedule maintenance, see who is on call, page someone or ask OneUptime AI",
         usage_hint:
-          "incident [title] | maintenance [title] | oncall | page [who] [message] | ask [question] | help",
+          "incident [title or number] | maintenance [title] | oncall | page [who] [message] | ask [question] | help",
         should_escape: true,
       },
     ]);

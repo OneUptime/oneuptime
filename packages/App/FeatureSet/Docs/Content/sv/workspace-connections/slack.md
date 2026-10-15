@@ -139,7 +139,7 @@ OneUptime har ett enda kommando i Slack, `/oneuptime`. Ordet du skriver efter de
 | Kommando | Vad det gör |
 | --- | --- |
 | `/oneuptime help` | Visar kommandona, med exempel. |
-| `/oneuptime incident [title]` | Öppnar incidentformuläret med titeln ifylld. |
+| `/oneuptime incident [title or number]` | Öppnar incidentformuläret med titeln ifylld. En incidents nummer, som `42` eller `INC-42`, visar i stället den incidenten: se [Hantera en incident från Slack](#hantera-en-incident-från-slack). |
 | `/oneuptime maintenance [title]` | Öppnar formuläret för schemalagt underhåll med titeln ifylld. |
 | `/oneuptime oncall` | Visar vem som har jour just nu i varje jourschema du kan se, till när, och vem som är nästa. |
 | `/oneuptime page [who] [message]` | Larmar personerna du nämner med @ om ditt meddelande, eller öppnar ett formulär där du väljer vem som ska larmas. Se [Larma någon från Slack](#larma-någon-från-slack). |
@@ -211,6 +211,25 @@ För en grupp med både den primära och den sekundära jouren ansluter du samma
 - **Vad Slack kräver.** Användargrupper ingår i Slacks betalda abonnemang, och en arbetsyta kan låta bara sina ägare och administratörer ändra dem: kortet säger vilket, och vad du gör. Om Slack anslöts innan OneUptime kunde hålla användargrupper uppdaterade, ansluter du det igen en gång under **Projektinställningar** > **Arbetsyta** > **Slack**.
 - **Vem som får ansluta en.** De roller som får redigera scheman: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** och **On-Call Member**, eller **Edit On-Call Duty Policy Schedule** i en anpassad roll. På OneUptime Cloud kräver det abonnemanget **Growth** att ansluta en.
 - **Koppla från.** OneUptime slutar ändra gruppen. Gruppen och dess medlemmar stannar i Slack som de är.
+
+## Hantera en incident från Slack
+
+En incidents meddelande har fyra knappar, **Acknowledge Incident**, **Resolve Incident**, **Add Note** och **View Incident**, och resten i dess meny, knappen med tre punkter efter dem:
+
+| Menyval | Vad det gör |
+| --- | --- |
+| **Change Severity** | Anger incidentens allvarlighetsgrad. |
+| **Change Incident State** | Flyttar incidenten till ett senare tillstånd. |
+| **Assign Role** | Ger någon en roll i incidenten, som **Incident Commander**. En roll för en person går över till den personen. |
+| **Page Someone** | Larmar personer, ett team, den som har jour i ett schema just nu, eller en jourpolicy om incidenten, tills någon bekräftar den. |
+| **Edit Custom Fields** | Anger incidentens anpassade fält, vart och ett ifyllt med det incidenten har. Ett fält som lämnas tomt rensas. |
+
+`/oneuptime incident 42` visar incident 42, med de här knapparna och dess meny, i ett meddelande som bara du ser. Skriv numret som OneUptime visar det: `42`, `#42` eller `INC-42`. I en incidents egen kanal visar `/oneuptime incident` ensamt den incidenten.
+
+- **Vem som får använda dem.** De som får göra samma ändring i OneUptime. **Change Severity** och **Edit Custom Fields** kräver behörighet att redigera incidenten: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** och **Incident Member**, eller **Edit Incident** i en anpassad roll. **Assign Role** kräver **Create Incident Member**, och **Delete Incident Member** för att flytta en roll för en person. **Page Someone** kräver samma som **Execute On-Call Policy**. Alla andra får veta varför, och inget formulär öppnas.
+- **Vad formulären erbjuder.** Det du får läsa i projektet. Ett anpassat fält som kopieras från incidentens monitor utelämnas, eftersom det skulle kopieras igen, och ett formulär rymmer 40 fält: redigera resten i OneUptime.
+- **Vad som händer.** Formuläret stängs, och ändringen görs som du, som i OneUptime: incidentens feed, och incidentens kanaler med den, säger vad som ändrades, varje anpassat fält med sitt nya värde. Ett värde som inte passar sitt fält, som text för ett tal, nämns under fältet, och formuläret förblir öppet. **Page Someone** säger vem som larmades, eller varför ingen gjorde det; en incident som redan är löst larmar ingen.
+- **Meddelanden från före menyn.** De behåller sin knapp **Execute On-Call Policy**, och den fungerar fortfarande: **Page Someone** larmar också en jourpolicy. Larm och episoder behåller sina.
 
 ## Agera på incidenter, larm och händelser från Slack
 

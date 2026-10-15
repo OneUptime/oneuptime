@@ -366,7 +366,8 @@ describe("MicrosoftTeamsAPI.getTeamsAppManifest", () => {
       expect(commandsOf(getManifest())).toEqual([
         {
           title: "incident",
-          description: "Declare an incident. Type a title after it.",
+          description:
+            "Declare an incident, or act on one by its number. Type a title or an incident's number after it.",
         },
         {
           title: "maintenance",
@@ -547,7 +548,8 @@ describe("MicrosoftTeamsAPI.getTeamsAppManifest", () => {
    * without it falls back to a fixed version, raised to 1.6.0 when
    * ChatSettings.Read.Chat was added, to 1.7.0 when the commands became
    * the words Slack's /oneuptime takes, to 1.8.0 when "page" joined them,
-   * and to 1.9.0 when the app declared shared and private channels.
+   * to 1.9.0 when the app declared shared and private channels, and to
+   * 1.10.0 when incident took an incident's number as well as a title.
    * Left behind, an admin re-uploading the manifest to pick up a change
    * would have the upload refused.
    */
@@ -576,16 +578,16 @@ describe("MicrosoftTeamsAPI.getTeamsAppManifest", () => {
       expect(unsetAppVersion).toBe("unknown");
 
       mockEnvironmentState.appVersion = unsetAppVersion as string;
-      expect(getManifest()["version"]).toBe("1.9.0");
+      expect(getManifest()["version"]).toBe("1.10.0");
     });
 
     // The check lowercases AppVersion first, so its case does not matter.
     test.each(["unknown", "Unknown", "UNKNOWN"])(
-      "AppVersion %p gets the fallback version 1.9.0",
+      "AppVersion %p gets the fallback version 1.10.0",
       (appVersion: string) => {
         mockEnvironmentState.appVersion = appVersion;
 
-        expect(getManifest()["version"]).toBe("1.9.0");
+        expect(getManifest()["version"]).toBe("1.10.0");
       },
     );
 

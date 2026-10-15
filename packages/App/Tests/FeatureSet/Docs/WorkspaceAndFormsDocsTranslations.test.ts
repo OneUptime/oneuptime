@@ -159,6 +159,25 @@ const CHAT_BUTTONS: Array<string> = [
 const TEAMS_CARD_BUTTONS: Array<string> = ["Escalate", "Escalate."];
 
 /*
+ * An incident's message - Slack's, and Microsoft Teams' card of it - and its
+ * menu, as the apps draw them, in English (WORKSPACE_INCIDENT_BUTTONS,
+ * without the emoji).
+ */
+const INCIDENT_MESSAGE_BUTTONS: Array<string> = [
+  "Acknowledge Incident",
+  "Resolve Incident",
+  "View Incident",
+  "Change Severity",
+  "Change Incident State",
+  "Assign Role",
+  "Page Someone",
+  "Edit Custom Fields",
+];
+
+// The incident role every project starts with, by the name it is given.
+const SEEDED_INCIDENT_ROLES: Array<string> = ["Incident Commander"];
+
+/*
  * The Connect button the app answers a press from an unconnected account
  * with, as each chat shows it: in English, as the server writes it.
  */
@@ -273,6 +292,8 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   [SLACK]: [
     "Growth",
     ...CHAT_BUTTONS,
+    ...INCIDENT_MESSAGE_BUTTONS,
+    ...SEEDED_INCIDENT_ROLES,
     ...SLACK_CONNECT_BUTTON,
     ...SLACK_CONTROLS,
     ...PAGE_FORM,
@@ -282,6 +303,8 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   [TEAMS]: [
     "Growth",
     ...CHAT_BUTTONS,
+    ...INCIDENT_MESSAGE_BUTTONS,
+    ...SEEDED_INCIDENT_ROLES,
     ...TEAMS_CARD_BUTTONS,
     ...TEAMS_CONNECT_BUTTON,
     ...TEAMS_CONTROLS,
@@ -434,6 +457,10 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Anything else opens a form.",
     "Where it shows.",
     "Who may page.",
+    // Managing an incident from Slack: its menu.
+    "What the forms offer.",
+    "What happens.",
+    "Messages posted before the menu.",
     // On-call user groups.
     "What the card shows.",
     "Nobody on call.",
@@ -475,6 +502,10 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Anything else gets a card.",
     "Where it shows.",
     "Who may page.",
+    // Managing an incident from Microsoft Teams: its card's menu.
+    "What happens.",
+    "Where Microsoft Teams differs.",
+    "Cards posted before the menu.",
     // On-call tags.
     "What the card shows.",
     "Nobody on call.",
@@ -600,9 +631,9 @@ const NUMBERS: Record<string, Array<string>> = {
   /*
    * A connect button's days; how often a user group or tag is checked; the
    * longest channel name each workspace takes, and how long Microsoft Teams
-   * keeps a deleted channel's name.
+   * keeps a deleted channel's name; how many custom fields one form holds.
    */
-  [SLACK]: ["7", "15", "80"],
+  [SLACK]: ["7", "15", "80", "40"],
   [TEAMS]: ["7", "15", "50", "30"],
   [VIDEO]: ["40", "30"],
   [BUILDING]: ["50", "100", "500", "20000", "10000", "512", "128"],
@@ -1083,6 +1114,8 @@ describe("the lists this test keeps", () => {
     const external: Array<string> = [
       ...PLANS,
       ...CHAT_BUTTONS,
+      ...INCIDENT_MESSAGE_BUTTONS,
+      ...SEEDED_INCIDENT_ROLES,
       ...SLACK_CONNECT_BUTTON,
       ...TEAMS_CONNECT_BUTTON,
       ...PAGE_FORM,

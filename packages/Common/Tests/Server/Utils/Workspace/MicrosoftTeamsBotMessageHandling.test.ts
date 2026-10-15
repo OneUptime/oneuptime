@@ -1549,7 +1549,7 @@ describe("help, 'show ...' and 'ask' are routed as before", () => {
 
   test("the help says incident and maintenance take a title, as the router reads them, and lists Teams' own lists", () => {
     expect(HELP_ANSWER.markdown).toContain(
-      "\n- **incident [title]**: declare an incident\n",
+      "\n- **incident [title or number]**: declare an incident, or act on one by its number\n",
     );
     expect(HELP_ANSWER.markdown).toContain(
       "\n- **maintenance [title]**: schedule maintenance\n",

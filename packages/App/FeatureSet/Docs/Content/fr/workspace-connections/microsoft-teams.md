@@ -152,7 +152,7 @@ La note est enregistrée en votre nom, avec vos autorisations, et l'application 
 | Message | Ce que fait le bot |
 | --- | --- |
 | `help` | Liste ce qu'il sait faire. |
-| `incident [title]` | Ouvre le formulaire d'incident, avec le titre rempli. |
+| `incident [title or number]` | Ouvre le formulaire d'incident, avec le titre rempli. Le numéro d'un incident, comme `42` ou `INC-42`, affiche plutôt cet incident : voir [Gérer un incident depuis Microsoft Teams](#gérer-un-incident-depuis-microsoft-teams). |
 | `maintenance [title]` | Ouvre le formulaire de maintenance planifiée, avec le titre rempli. |
 | `oncall` | Liste qui est d'astreinte en ce moment dans chaque planning d'astreinte que vous pouvez voir, jusqu'à quand, et qui est le suivant. |
 | `page [who] [message]` | Alerte les personnes que vous mentionnez avec @ au sujet de votre message, ou envoie une carte pour choisir qui alerter. Voir [Alerter quelqu'un depuis Microsoft Teams](#alerter-quelquun-depuis-microsoft-teams). |
@@ -213,6 +213,25 @@ Pour une balise qui contient l'astreinte principale et l'astreinte secondaire, c
 - **Ce dont Microsoft 365 a besoin.** Modifier les balises demande l'autorisation `TeamworkTag.ReadWrite.All` de l'application, qu'un administrateur Microsoft 365 accorde avec **Accorder le consentement administrateur** dans **Paramètres du projet** > **Espace de travail** > **Microsoft Teams**. Si votre organisation a donné son consentement avant que OneUptime puisse tenir des balises à jour, donnez-le une fois de plus.
 - **Qui peut en connecter une.** Les rôles qui peuvent modifier les plannings : **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** et **On-Call Member**, ou **Edit On-Call Duty Policy Schedule** dans un rôle personnalisé. Sur OneUptime Cloud, en connecter une nécessite la formule **Growth**.
 - **Déconnecter.** OneUptime cesse de modifier la balise. La balise et ses membres restent dans Microsoft Teams tels quels.
+
+## Gérer un incident depuis Microsoft Teams
+
+La carte d'un incident a quatre boutons, **Acknowledge Incident**, **Resolve Incident**, **Add Note** et **View Incident**, et le reste dans son menu, le bouton à trois points :
+
+| Élément du menu | Ce qu'il fait |
+| --- | --- |
+| **Change Severity** | Définit la gravité de l'incident. |
+| **Change Incident State** | Fait passer l'incident à un état suivant. |
+| **Assign Role** | Donne à quelqu'un un rôle sur l'incident, comme **Incident Commander**. Un rôle réservé à une seule personne lui revient. |
+| **Page Someone** | Alerte des personnes, une équipe, la personne d'astreinte dans un planning, ou une politique d'astreinte au sujet de l'incident, jusqu'à ce que quelqu'un en accuse réception. |
+| **Edit Custom Fields** | Définit les champs personnalisés de l'incident, chacun rempli avec ce que contient l'incident. Un champ laissé vide est effacé. |
+
+`incident 42`, écrit au bot, répond avec l'incident 42, ces boutons et son menu. Tapez le numéro tel que OneUptime l'affiche : `42`, `#42` ou `INC-42`. Dans le canal propre à un incident, `incident` seul affiche cet incident.
+
+- **Qui peut les utiliser.** Les personnes qui peuvent faire le même changement dans OneUptime, comme dans Slack : voir [Gérer un incident depuis Slack](/docs/workspace-connections/slack#gérer-un-incident-depuis-slack). Chaque élément répond avec une carte, remplie selon ce que la personne qui l'a pressé peut voir de l'incident. Toute personne de la conversation peut soumettre la carte, en son propre nom, avec ses propres autorisations.
+- **Ce qui se passe.** Le changement est fait au nom de la personne qui a soumis la carte, comme dans OneUptime, et le fil de l'incident dit ce qui a changé. Le bot le dit dans une réponse qui la mentionne, et retire la carte, pour que personne ne la soumette deux fois. **Page Someone** indique qui a été alerté, ou pourquoi personne ne l'a été ; un incident déjà résolu n'alerte personne.
+- **Ce qui diffère dans Microsoft Teams.** Une carte ne peut pas indiquer sous un champ ce qui ne va pas : une valeur qui ne convient pas est signalée dans une réponse, et la carte reste pour être corrigée et soumise à nouveau. Un champ de date et d'heure est un jour et une heure, dans votre propre fuseau horaire. Un ancien client Teams affiche le menu comme des boutons supplémentaires. `incident 42` répond dans la conversation, où tous ceux qui y sont peuvent voir l'incident.
+- **Cartes publiées avant le menu.** Elles gardent leur bouton **Execute On-Call Policy**, qui fonctionne toujours : **Page Someone** alerte aussi une politique d'astreinte. Les alertes et les épisodes gardent le leur.
 
 ## Agir sur les incidents, alertes et événements depuis Microsoft Teams
 

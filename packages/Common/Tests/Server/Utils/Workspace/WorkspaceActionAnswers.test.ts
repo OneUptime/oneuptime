@@ -225,6 +225,36 @@ describe("the Connect prompt", () => {
     });
   });
 
+  test("for an item of a message's menu (⋯): choose it from the menu again - there is no button of that name to press", () => {
+    const again: WorkspaceConnectRequestAgain = {
+      kind: WorkspaceConnectRequestAgainKind.MenuItem,
+      label: "Change Severity",
+    };
+
+    expect(
+      WorkspaceActionAnswers.getConnectPrompt({
+        workspaceType: WorkspaceType.Slack,
+        purpose: "change the severity of this incident",
+        again: again,
+      }),
+    ).toEqual({
+      markdown:
+        "🔗 **Connect your Slack account to change the severity of this incident.** It takes one click. Then choose **Change Severity** from the menu again.",
+      text: "Connect your Slack account to change the severity of this incident",
+    });
+
+    expect(
+      WorkspaceActionAnswers.getConnectedAnswer({
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        again: again,
+      }),
+    ).toEqual({
+      markdown:
+        "✅ **Your Microsoft Teams account is connected to OneUptime.** Now choose **Change Severity** from the menu again.",
+      text: "Your Microsoft Teams account is connected to OneUptime. Now choose Change Severity from the menu again.",
+    });
+  });
+
   test("for a command: run it again", () => {
     expect(
       WorkspaceActionAnswers.getConnectPrompt({
@@ -735,6 +765,41 @@ describe("a press that comes too late says who got there first, and when", () =>
     });
   });
 
+  test("Page Someone, from the incident's menu, on a resolved incident says nobody was paged", async () => {
+    jest
+      .spyOn(IncidentStateTimelineService, "findBy")
+      .mockResolvedValue([
+        incidentRow(RESOLVED, "2026-10-08T18:20:00.000Z", SIMON),
+      ]);
+
+    expect(
+      await WorkspaceActionAnswers.getAlreadyAnswer({
+        event: incident(RESOLVED),
+        press: WorkspaceLatePress.Page,
+      }),
+    ).toEqual({
+      markdown: `**[Incident INC-2](${INCIDENT_LINK})** was already resolved by **Simon Lee** at {{TIME(2026-10-08T18:20:00Z)}}, so nobody was paged.`,
+      text: "Incident INC-2 was already resolved by Simon Lee, so nobody was paged",
+    });
+  });
+
+  test("Page Someone whose timeline cannot be read says it is resolved, and that nobody was paged", async () => {
+    jest
+      .spyOn(IncidentStateTimelineService, "findBy")
+      .mockRejectedValue(new Error("database is gone"));
+
+    expect(
+      (
+        await WorkspaceActionAnswers.getAlreadyAnswer({
+          event: incident(RESOLVED),
+          press: WorkspaceLatePress.Page,
+        })
+      ).markdown,
+    ).toBe(
+      `**[Incident INC-2](${INCIDENT_LINK})** is already resolved, so nobody was paged.`,
+    );
+  });
+
   test("a record whose link cannot be built is named in bold, without one", async () => {
     jest
       .spyOn(IncidentService, "getIncidentLinkInDashboard")
@@ -1065,6 +1130,16 @@ describe("a press finished once the account is connected", () => {
       WorkspaceConnectRequestAgainKind.Button,
       undefined,
       "press the button again",
+    ],
+    [
+      WorkspaceConnectRequestAgainKind.MenuItem,
+      "Assign Role",
+      "choose Assign Role from the menu again",
+    ],
+    [
+      WorkspaceConnectRequestAgainKind.MenuItem,
+      undefined,
+      "choose it from the menu again",
     ],
   ])(
     "what to press again, as plain text: %s %s",

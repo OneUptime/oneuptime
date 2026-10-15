@@ -186,6 +186,54 @@ const FORMS: Array<[SlackActionType, string, string]> = [
   ],
 ];
 
+/*
+ * The incident message's menu (⋯): each item, and its form's submission. An
+ * item is chosen from the menu again - there is no button of that name on
+ * the message to press.
+ */
+const MENU_FORMS: Array<[SlackActionType, string, string]> = [
+  [
+    SlackActionType.ViewChangeIncidentSeverity,
+    "change the severity of this incident",
+    "Change Severity",
+  ],
+  [
+    SlackActionType.SubmitChangeIncidentSeverity,
+    "change the severity of this incident",
+    "Change Severity",
+  ],
+  [
+    SlackActionType.ViewAssignIncidentRole,
+    "assign a role on this incident",
+    "Assign Role",
+  ],
+  [
+    SlackActionType.SubmitAssignIncidentRole,
+    "assign a role on this incident",
+    "Assign Role",
+  ],
+  [
+    SlackActionType.ViewPageAboutIncident,
+    "page someone about this incident",
+    "Page Someone",
+  ],
+  [
+    SlackActionType.SubmitPageAboutIncident,
+    "page someone about this incident",
+    "Page Someone",
+  ],
+  [
+    SlackActionType.ViewEditIncidentCustomFields,
+    "edit the custom fields of this incident",
+    "Edit Custom Fields",
+  ],
+  [
+    SlackActionType.SubmitEditIncidentCustomFields,
+    "edit the custom fields of this incident",
+    "Edit Custom Fields",
+  ],
+];
+
 describe("SlackConnectPrompt.describe", () => {
   test.each(PENDING)(
     "$actionType: asks to $purpose, and keeps the press to finish it",
@@ -234,6 +282,43 @@ describe("SlackConnectPrompt.describe", () => {
     },
   );
 
+  test.each(MENU_FORMS)(
+    "%s: asks to %s, then to choose %s from the menu again (an item of the menu, not a button)",
+    (actionType: SlackActionType, purpose: string, item: string) => {
+      expect(
+        SlackConnectPrompt.describe({
+          actionType: actionType,
+          actionValue: RECORD_ID,
+        }),
+      ).toEqual({
+        purpose: purpose,
+        again: { kind: WorkspaceConnectRequestAgainKind.MenuItem, label: item },
+      });
+    },
+  );
+
+  test("Change Incident State, a button on messages posted before the menu and an item of it since: as it was pressed", () => {
+    expect(
+      SlackConnectPrompt.describe({
+        actionType: SlackActionType.ViewChangeIncidentState,
+        actionValue: RECORD_ID,
+        isMenuChoice: true,
+      }).again,
+    ).toEqual({
+      kind: WorkspaceConnectRequestAgainKind.MenuItem,
+      label: "Change Incident State",
+    });
+    expect(
+      SlackConnectPrompt.describe({
+        actionType: SlackActionType.ViewChangeIncidentState,
+        actionValue: RECORD_ID,
+      }).again,
+    ).toEqual({
+      kind: WorkspaceConnectRequestAgainKind.Button,
+      label: "Change Incident State",
+    });
+  });
+
   test.each([
     [SlackActionType.NewIncident, "declare an incident", "/oneuptime incident"],
     [
@@ -267,6 +352,28 @@ describe("SlackConnectPrompt.describe", () => {
         }),
       ).toEqual({
         purpose: purpose,
+        again: {
+          kind: WorkspaceConnectRequestAgainKind.Command,
+          label: command,
+        },
+      });
+    },
+  );
+
+  test.each([
+    ["/oneuptime incident 42"],
+    ["/oneuptime incident INC-42"],
+    ["/irm incident #42"],
+  ])(
+    "an incident shown by its number, typed as %s: asks to see it, then to run exactly that again",
+    (command: string) => {
+      expect(
+        SlackConnectPrompt.describe({
+          actionType: SlackActionType.ShowIncident,
+          command: command,
+        }),
+      ).toEqual({
+        purpose: "see this incident",
         again: {
           kind: WorkspaceConnectRequestAgainKind.Command,
           label: command,

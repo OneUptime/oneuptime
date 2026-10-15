@@ -23,6 +23,27 @@ enum SlackActionType {
   NewIncident = "/incident",
   SubmitNewIncident = "SubmitNewIncident",
 
+  /*
+   * The incident's menu (⋯) - the actions fewer people need on every press
+   * (WorkspaceIncidentActions) - each a form and its submission. Microsoft
+   * Teams' card of the same message presses them by the same ids.
+   */
+  ViewChangeIncidentSeverity = "ViewChangeIncidentSeverity",
+  SubmitChangeIncidentSeverity = "SubmitChangeIncidentSeverity",
+  ViewAssignIncidentRole = "ViewAssignIncidentRole",
+  SubmitAssignIncidentRole = "SubmitAssignIncidentRole",
+  ViewPageAboutIncident = "ViewPageAboutIncident",
+  SubmitPageAboutIncident = "SubmitPageAboutIncident",
+  ViewEditIncidentCustomFields = "ViewEditIncidentCustomFields",
+  SubmitEditIncidentCustomFields = "SubmitEditIncidentCustomFields",
+
+  /*
+   * `/oneuptime incident 42` (or #42, INC-42): the incident of that number,
+   * with its buttons and menu, only to the person who ran it. Its value is
+   * the number as typed.
+   */
+  ShowIncident = "ShowIncident",
+
   // Emoji Reaction Actions
   EmojiReactionAdded = "EmojiReactionAdded",
 

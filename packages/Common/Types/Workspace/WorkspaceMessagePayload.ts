@@ -50,6 +50,40 @@ export interface WorkspaceDateTimePickerBlock extends WorkspaceMessageBlock {
   label: string;
   blockId: string;
   initialValue?: string | undefined;
+  /*
+   * The moment the picker opens on - a custom field's value, say. Slack
+   * takes it as the seconds since 1970.
+   */
+  initialDateTime?: Date | undefined;
+  description?: string | undefined;
+  optional?: boolean | undefined;
+}
+
+/*
+ * A calendar day, with no time of day: a Date custom field. Its value is the
+ * day as "2026-10-15", which is also how the picker gives it back.
+ */
+export interface WorkspaceDatePickerBlock extends WorkspaceMessageBlock {
+  _type: "WorkspaceDatePickerBlock";
+  label: string;
+  blockId: string;
+  // "2026-10-15".
+  initialDate?: string | undefined;
+  placeholder?: string | undefined;
+  description?: string | undefined;
+  optional?: boolean | undefined;
+}
+
+/*
+ * A number - a Number custom field. Slack's input takes only a number, with
+ * a decimal point allowed; what is typed comes back as text.
+ */
+export interface WorkspaceNumberInputBlock extends WorkspaceMessageBlock {
+  _type: "WorkspaceNumberInputBlock";
+  label: string;
+  blockId: string;
+  initialValue?: string | undefined;
+  placeholder?: string | undefined;
   description?: string | undefined;
   optional?: boolean | undefined;
 }
@@ -146,7 +180,17 @@ export interface WorkspacePayloadDivider extends WorkspaceMessageBlock {
 export interface WorkspacePayloadButtons extends WorkspaceMessageBlock {
   _type: "WorkspacePayloadButtons";
   buttons: Array<WorkspaceMessagePayloadButton>;
+  /*
+   * The actions fewer people need, in a menu after the buttons: Slack's
+   * overflow menu (⋯), which holds at most SLACK_OVERFLOW_MENU_MAX_ITEMS,
+   * and Microsoft Teams' card overflow menu (its secondary actions). Each
+   * is pressed as a button with the same action id and value would be.
+   */
+  menuButtons?: Array<WorkspaceMessagePayloadButton> | undefined;
 }
+
+// The most items Slack's overflow menu holds.
+export const SLACK_OVERFLOW_MENU_MAX_ITEMS: number = 5;
 
 export default interface WorkspaceMessagePayload {
   _type: "WorkspaceMessagePayload";

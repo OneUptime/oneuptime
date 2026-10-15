@@ -152,7 +152,7 @@ Schreiben Sie dem Bot in einem persönlichen Chat, oder erwähnen Sie OneUptime 
 | Nachricht | Was der Bot tut |
 | --- | --- |
 | `help` | Listet, was er kann. |
-| `incident [title]` | Öffnet das Vorfallsformular, mit ausgefülltem Titel. |
+| `incident [title or number]` | Öffnet das Vorfallsformular, mit ausgefülltem Titel. Die Nummer eines Vorfalls, etwa `42` oder `INC-42`, zeigt stattdessen diesen Vorfall: siehe [Einen Vorfall aus Microsoft Teams verwalten](#einen-vorfall-aus-microsoft-teams-verwalten). |
 | `maintenance [title]` | Öffnet das Formular für geplante Wartung, mit ausgefülltem Titel. |
 | `oncall` | Listet, wer gerade in jedem Bereitschaftsplan, den Sie sehen können, Bereitschaft hat, bis wann und wer als Nächstes dran ist. |
 | `page [who] [message]` | Alarmiert die Personen, die Sie mit @ erwähnen, wegen Ihrer Nachricht, oder sendet eine Karte, auf der Sie wählen, wer alarmiert wird. Siehe [Jemanden aus Microsoft Teams alarmieren](#jemanden-aus-microsoft-teams-alarmieren). |
@@ -213,6 +213,25 @@ Für ein Tag, das die primäre und die sekundäre Bereitschaft enthält, verbind
 - **Was Microsoft 365 braucht.** Tags zu ändern braucht die Berechtigung `TeamworkTag.ReadWrite.All` der App, die eine Administratorin oder ein Administrator von Microsoft 365 mit **Administratorzustimmung erteilen** unter **Projekteinstellungen** > **Arbeitsbereich** > **Microsoft Teams** erteilt. Hat Ihre Organisation zugestimmt, bevor OneUptime Tags pflegen konnte, stimmen Sie einmal erneut zu.
 - **Wer eines verbinden darf.** Die Rollen, die Bereitschaftspläne bearbeiten dürfen: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** und **On-Call Member**, oder **Edit On-Call Duty Policy Schedule** in einer benutzerdefinierten Rolle. In OneUptime Cloud braucht das Verbinden den Tarif **Growth**.
 - **Trennen.** OneUptime ändert das Tag nicht mehr. Das Tag und seine Mitglieder bleiben in Microsoft Teams, wie sie sind.
+
+## Einen Vorfall aus Microsoft Teams verwalten
+
+Die Karte eines Vorfalls hat vier Schaltflächen, **Acknowledge Incident**, **Resolve Incident**, **Add Note** und **View Incident**, und den Rest in ihrem Menü, der Schaltfläche mit drei Punkten:
+
+| Menüpunkt | Was er tut |
+| --- | --- |
+| **Change Severity** | Legt den Schweregrad des Vorfalls fest. |
+| **Change Incident State** | Versetzt den Vorfall in einen späteren Status. |
+| **Assign Role** | Gibt jemandem eine Rolle im Vorfall, etwa **Incident Commander**. Eine Rolle für nur eine Person geht an diese Person über. |
+| **Page Someone** | Alarmiert Personen, ein Team, wer in einem Bereitschaftsplan gerade Bereitschaft hat, oder eine Bereitschaftsrichtlinie zu dem Vorfall, bis jemand ihn bestätigt. |
+| **Edit Custom Fields** | Setzt die benutzerdefinierten Felder des Vorfalls, jedes ausgefüllt mit dem, was der Vorfall enthält. Ein leer gelassenes Feld wird geleert. |
+
+`incident 42`, an den Bot geschrieben, antwortet mit Vorfall 42, diesen Schaltflächen und seinem Menü. Schreiben Sie die Nummer so, wie OneUptime sie zeigt: `42`, `#42` oder `INC-42`. Im eigenen Kanal eines Vorfalls zeigt `incident` allein diesen Vorfall.
+
+- **Wer sie nutzen darf.** Die Personen, die dieselbe Änderung in OneUptime vornehmen dürfen, wie in Slack: siehe [Einen Vorfall aus Slack verwalten](/docs/workspace-connections/slack#einen-vorfall-aus-slack-verwalten). Jeder Menüpunkt antwortet mit einer Karte, ausgefüllt so, wie die Person, die ihn gedrückt hat, den Vorfall sehen darf. Jede Person im Gespräch darf die Karte absenden, als sie selbst, mit ihren eigenen Berechtigungen.
+- **Was dann passiert.** Die Änderung wird als die Person vorgenommen, die die Karte abgesendet hat, wie in OneUptime, und der Feed des Vorfalls sagt, was sich geändert hat. Der Bot sagt es in einer Antwort, die sie erwähnt, und entfernt die Karte, damit niemand sie zweimal absendet. **Page Someone** sagt, wer alarmiert wurde oder warum niemand; ein bereits behobener Vorfall alarmiert niemanden.
+- **Wo Microsoft Teams anders ist.** Eine Karte kann nicht unter einem Feld sagen, was falsch ist: Ein Wert, der nicht passt, wird in einer Antwort genannt, und die Karte bleibt, um korrigiert und erneut abgesendet zu werden. Ein Feld für Datum und Uhrzeit ist ein Tag und eine Uhrzeit, in Ihrer eigenen Zeitzone. Ein älterer Teams-Client zeigt das Menü als weitere Schaltflächen. `incident 42` antwortet im Gespräch, wo alle darin den Vorfall sehen können.
+- **Karten von vor dem Menü.** Sie behalten ihre Schaltfläche **Execute On-Call Policy**, und sie funktioniert weiter: **Page Someone** alarmiert auch eine Bereitschaftsrichtlinie. Warnungen und Episoden behalten ihre.
 
 ## Aus Microsoft Teams auf Vorfälle, Warnungen und Ereignisse reagieren
 
