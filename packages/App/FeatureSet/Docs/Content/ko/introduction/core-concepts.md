@@ -66,6 +66,7 @@ flowchart TB
 
 :::cards
 - [인시던트 개요](/docs/incidents/index): 인시던트를 선언하고, 처리하고, 해결하는 방법.
+- [경고 개요](/docs/alerts/index): 경고가 생기는 곳과 에피소드가 경고를 묶는 방식.
 - [연결된 알림](/docs/incidents/linked-alerts): 장애가 일으킨 알림을 그 인시던트에 연결합니다.
 :::
 

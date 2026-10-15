@@ -48,6 +48,7 @@ La documentación está organizada como la barra lateral, en nueve secciones. El
 
 :::cards
 - [Incidentes](/docs/incidents/index): Declarar, coordinar y resolver incidentes, con una cronología completa.
+- [Alertas](/docs/alerts/index): Revisa los problemas antes de que tus usuarios los noten y agrupa el ruido en episodios.
 - [Guardia](/docs/on-call/schedules): Rotaciones, reglas de escalado y a quién se avisa y cuándo.
 - [Páginas de estado](/docs/status-pages/index): Mantener informados a tus clientes en páginas de estado públicas o privadas.
 - [Conexiones con espacios de trabajo](/docs/workspace-connections/slack): Trabajar en los incidentes desde Slack y Microsoft Teams.
