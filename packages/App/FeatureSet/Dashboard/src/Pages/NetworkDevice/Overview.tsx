@@ -13,13 +13,16 @@ import {
 } from "../../Components/Network/NetworkSummaryApi";
 import NetworkHealthHero from "../../Components/Network/NetworkHealthHero";
 import NetworkGetStarted from "../../Components/Network/NetworkGetStarted";
+import AddProbeModal from "../../Components/Network/AddProbeModal";
 import {
   NetworkHealthVerdict,
   getNetworkHealthVerdict,
 } from "../../Components/Network/NetworkHealthVerdict";
 import {
   NetworkQuickAction,
+  clearNetworkQuickAction,
   getNetworkQuickActionRoute,
+  isNetworkQuickActionRequested,
 } from "../../Components/Network/NetworkQuickActions";
 import NetworkAlertPolicy from "Common/Models/DatabaseModels/NetworkAlertPolicy";
 import Route from "Common/Types/API/Route";
@@ -97,6 +100,24 @@ const NetworkOverview: FunctionComponent<
   const [enabledAlertPolicyCount, setEnabledAlertPolicyCount] = useState<
     number | null
   >(null);
+
+  /*
+   * Opened to add a probe (?open=add-probe): read once, when the page mounts,
+   * and taken back out of the address so a refresh opens nothing. Before the
+   * first device the first-run path opens the dialog on its own step; after
+   * it, this page does.
+   */
+  const [isAddProbeRequested, setIsAddProbeRequested] = useState<boolean>(
+    (): boolean => {
+      return isNetworkQuickActionRequested(NetworkQuickAction.AddProbe);
+    },
+  );
+
+  useEffect(() => {
+    if (isAddProbeRequested) {
+      clearNetworkQuickAction();
+    }
+  }, []);
 
   /*
    * Read apart from the page's own data, and allowed to fail on its own: a
@@ -199,7 +220,12 @@ const NetworkOverview: FunctionComponent<
    * devices gets the same choice - its sites are waiting for devices.
    */
   if (fleet.total === 0) {
-    return <NetworkGetStarted />;
+    return (
+      <NetworkGetStarted
+        enabledAlertPolicyCount={enabledAlertPolicyCount}
+        isAddProbeRequested={isAddProbeRequested}
+      />
+    );
   }
 
   const verdict: NetworkHealthVerdict | null = getNetworkHealthVerdict({
@@ -240,6 +266,13 @@ const NetworkOverview: FunctionComponent<
 
   return (
     <Fragment>
+      {isAddProbeRequested && (
+        <AddProbeModal
+          onClose={() => {
+            setIsAddProbeRequested(false);
+          }}
+        />
+      )}
       {verdict ? (
         <NetworkHealthHero
           verdict={verdict}

@@ -13,6 +13,12 @@ export enum NetworkQuickAction {
   AddDevice = "add-device",
   // The Discovery page opens its new-scan form.
   DiscoverDevices = "discover-devices",
+  /*
+   * The Overview opens its "Add a probe" dialog: where the probe fields of
+   * Add Device and the scan form send someone whose project has no probe on
+   * its network yet.
+   */
+  AddProbe = "add-probe",
 }
 
 /*

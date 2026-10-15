@@ -2,6 +2,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import ProbeUtil from "../../Utils/Probe";
+import useRefreshProbesOnFocus from "../../Components/NetworkDevice/useRefreshProbesOnFocus";
 import Route from "Common/Types/API/Route";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
@@ -31,8 +32,11 @@ import {
   getDeviceNameForCreate,
 } from "./AddDeviceForm";
 import {
+  ADD_DEVICE_NO_PROBE_DESCRIPTION,
+  ADD_PROBE_LINK_TEXT,
   getDefaultProbeId,
   getProbeDropdownOptions,
+  hasProjectProbe,
 } from "../../Components/NetworkDevice/ProbeOptions";
 import {
   AddDevicePrefill,
@@ -938,6 +942,9 @@ const NetworkDevices: FunctionComponent<
     });
   }, []);
 
+  // Back from the "Add a probe" tab: the new probe is in the list at once.
+  useRefreshProbesOnFocus(setProbes);
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -1251,12 +1258,17 @@ const NetworkDevices: FunctionComponent<
              * nothing walks it, and it sits on Pending wearing "No probe"
              * until somebody notices.
              */
-            description: ADD_DEVICE_PROBE_DESCRIPTION,
+            description: hasProjectProbe(probes)
+              ? ADD_DEVICE_PROBE_DESCRIPTION
+              : ADD_DEVICE_NO_PROBE_DESCRIPTION,
+            /*
+             * The Network Overview's "Add a probe" dialog, in a new tab so
+             * this form is not lost; the probes are read again when the
+             * person comes back (onWindowFocus, below).
+             */
             sideLink: {
-              text: "Create a custom probe",
-              url: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.MONITORS_SETTINGS_PROBES] as Route,
-              ),
+              text: ADD_PROBE_LINK_TEXT,
+              url: getNetworkQuickActionRoute(NetworkQuickAction.AddProbe),
               openLinkInNewTab: true,
             },
             fieldType: FormFieldSchemaType.Dropdown,

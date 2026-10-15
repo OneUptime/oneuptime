@@ -14,10 +14,8 @@ import useDiscoveryScanLiveUpdates, {
   DiscoveryScanLiveUpdates,
 } from "../../Components/NetworkDevice/useDiscoveryScanLiveUpdates";
 import { DiscoveryScanStatus } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import ProbeUtil from "../../Utils/Probe";
-import Route from "Common/Types/API/Route";
+import useRefreshProbesOnFocus from "../../Components/NetworkDevice/useRefreshProbesOnFocus";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
@@ -64,12 +62,16 @@ import ScanModeUtil, {
 } from "Common/Utils/NetworkDiscovery/ScanModeUtil";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import {
+  ADD_PROBE_LINK_TEXT,
+  SCAN_NO_PROBE_DESCRIPTION,
   getDefaultProbeId,
   getProbeDropdownOptions,
+  hasProjectProbe,
 } from "../../Components/NetworkDevice/ProbeOptions";
 import {
   NetworkQuickAction,
   clearNetworkQuickAction,
+  getNetworkQuickActionRoute,
   isNetworkQuickActionRequested,
 } from "../../Components/Network/NetworkQuickActions";
 import {
@@ -256,13 +258,17 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        * a preference. Say so here rather than letting the operator pick
        * a probe in another network and wait for an empty result.
        */
-      description:
-        "The probe that sweeps the range. It has to reach it directly - a probe in another network, or outside the firewall, scans and finds nothing.",
+      description: hasProjectProbe(probes)
+        ? "The probe that sweeps the range. It has to reach it directly - a probe in another network, or outside the firewall, scans and finds nothing."
+        : SCAN_NO_PROBE_DESCRIPTION,
+      /*
+       * The Network Overview's "Add a probe" dialog, in a new tab so the
+       * scan being set up is not lost; the probes are read again when the
+       * person comes back (onWindowFocus, on the page).
+       */
       sideLink: {
-        text: "Create a custom probe",
-        url: RouteUtil.populateRouteParams(
-          RouteMap[PageMap.MONITORS_SETTINGS_PROBES] as Route,
-        ),
+        text: ADD_PROBE_LINK_TEXT,
+        url: getNetworkQuickActionRoute(NetworkQuickAction.AddProbe),
         openLinkInNewTab: true,
       },
       fieldType: FormFieldSchemaType.Dropdown,
@@ -676,6 +682,9 @@ const NetworkDeviceDiscovery: FunctionComponent<
       setError(API.getFriendlyMessage(err));
     });
   }, []);
+
+  // Back from the "Add a probe" tab: the new probe is in the list at once.
+  useRefreshProbesOnFocus(setProbes);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;

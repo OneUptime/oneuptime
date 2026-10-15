@@ -1,5 +1,8 @@
 import Probe from "Common/Models/DatabaseModels/Probe";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The probe pickers on the Add Device form and the new-scan form: which
@@ -56,3 +59,31 @@ export function getDefaultProbeId(probes: Array<Probe>): string {
 
   return customProbes[0]?._id?.toString() || "";
 }
+
+/**
+ * Whether the project has a probe of its own - one that runs on its network.
+ * Global probes do not count: on OneUptime Cloud they are on the internet,
+ * where a private address cannot be reached.
+ */
+export function hasProjectProbe(probes: Array<Probe>): boolean {
+  return probes.some((probe: Probe): boolean => {
+    return probe.isGlobalProbe !== true && Boolean(probe._id);
+  });
+}
+
+/*
+ * What the probe fields say to a project with no probe of its own: the field
+ * is required, and its list holds nothing that can reach the network (or
+ * nothing at all). It says why and what to do, and its link opens the
+ * Network Overview's "Add a probe" dialog in a new tab, so the form being
+ * filled in is not lost.
+ */
+export const ADD_PROBE_LINK_TEXT: string = translationKey("Add a probe");
+
+export const ADD_DEVICE_NO_PROBE_DESCRIPTION: string = translationKey(
+  "You have no probe on your network yet. Add one first: it checks this device from inside your network, which a probe on the internet cannot reach. Then pick it here.",
+);
+
+export const SCAN_NO_PROBE_DESCRIPTION: string = translationKey(
+  "You have no probe on your network yet. Add one first: it sweeps the range from inside your network, which a probe on the internet cannot reach. Then pick it here.",
+);
