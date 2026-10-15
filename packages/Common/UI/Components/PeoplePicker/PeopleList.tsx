@@ -3,7 +3,10 @@ import { translateTemplate } from "../../Utils/TranslateTemplate";
 import useTranslateValue from "../../Utils/Translation";
 import Icon from "../Icon/Icon";
 import PeopleAvatar from "./PeopleAvatar";
-import { getPeoplePickerKindDefinition } from "./PeoplePickerKinds";
+import {
+  getPeoplePickerKindDefinition,
+  PeoplePickerKindDefinition,
+} from "./PeoplePickerKinds";
 import {
   getPeoplePickerOptionKey,
   PeoplePickerKind,
@@ -35,13 +38,25 @@ export const PeopleChip: FunctionComponent<PeopleChipProps> = (
 ): ReactElement => {
   const { translateString } = useTranslateValue();
   const option: PeoplePickerOption | undefined = props.option;
-  const tag: string | undefined = getPeoplePickerKindDefinition(props.kind).tag;
+  const definition: PeoplePickerKindDefinition = getPeoplePickerKindDefinition(
+    props.kind,
+  );
+  const tag: string | undefined = definition.tag;
+  const translatedTag: string | undefined = tag
+    ? translateString(tag) || tag
+    : undefined;
 
   const name: string = option
     ? option.isUnknown
       ? translateString(option.name) || option.name
       : option.name
     : translateString("Loading...") || "Loading...";
+
+  // What the remove button calls the pick (isTagInRemoveLabel).
+  const removeName: string =
+    definition.isTagInRemoveLabel && translatedTag
+      ? `${name} (${translatedTag})`
+      : name;
 
   return (
     <span
@@ -68,9 +83,9 @@ export const PeopleChip: FunctionComponent<PeopleChipProps> = (
       >
         {name}
       </span>
-      {tag && (
+      {translatedTag && (
         <span className="flex-shrink-0 text-xs text-gray-500">
-          {translateString(tag) || tag}
+          {translatedTag}
         </span>
       )}
       {props.onRemove && (
@@ -79,9 +94,9 @@ export const PeopleChip: FunctionComponent<PeopleChipProps> = (
           onClick={props.onRemove}
           disabled={props.disabled}
           aria-label={translateTemplate(REMOVE_PICK_TEMPLATE, {
-            name: name,
+            name: removeName,
           })}
-          title={translateTemplate(REMOVE_PICK_TEMPLATE, { name: name })}
+          title={translateTemplate(REMOVE_PICK_TEMPLATE, { name: removeName })}
           className="flex flex-shrink-0 items-center justify-center rounded-full p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />

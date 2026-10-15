@@ -19,6 +19,7 @@ flowchart TB
 - [Hvem der tilkaldes først](#hvem-der-tilkaldes-først): Opret en politik med dens første niveau.
 - [Tilføj en eskaleringsregel](#tilføj-en-eskaleringsregel): Tilføj næste niveau, trin for trin.
 - [Sådan tilkalder niveauerne folk](#sådan-tilkalder-niveauerne-folk): Timing, gentagelser og hvordan hver person nås.
+- [Den næste person i rotationen](#eskalér-til-den-næste-person-i-rotationen): Tilkald backup for den, der har vagt, fra samme rotation.
 - [API og Terraform](#opret-regler-med-apiet-eller-terraform): Opret politikker og regler som kode.
 :::
 
@@ -49,6 +50,7 @@ Klik under **Underret** på **Tilføj modtager**, søg, og vælg så mange vagtp
 | Modtager | Hvem der tilkaldes, når niveauet kører |
 | --- | --- |
 | En **vagtplan** | Den, der har vagt i den, når niveauet kører, ikke en fast person. |
+| En vagtplans **Næste i rotationen** | Personen efter den, der har vagt i den, fra samme rotation. Se [Eskalér til den næste person i rotationen](#eskalér-til-den-næste-person-i-rotationen). |
 | Et **team** | Alle teamets medlemmer. |
 | En **person** | Den person, direkte. |
 
@@ -133,6 +135,34 @@ På OneUptime Cloud betales hver SMS, hvert opkald, hver WhatsApp- og Telegram-b
 > [!IMPORTANT]
 > SMS, telefonopkald, WhatsApp og Telegram er slået fra i et nyt projekt: på OneUptime Cloud betales hver besked af projektets saldo, og en selvhostet installation skal først have en Twilio-konto eller en Telegram-bot sat op. Så længe en kanal er slået fra, kan ingen i projektet tilføje en metode på den. Kun en projektejer, en **Billing Admin** eller en person med tilladelsen **Manage Billing** kan slå en til, i kortet **Notifikationskanaler** på **Projektindstillinger > Notifikationer > Notifikationsindstillinger** — en projektadministrator kan ikke. Alle andre får præcis at vide, hvem der kan, overalt hvor en kanal er slået fra: over deres egen liste over metoder på den, på deres opsætningstjekliste og i den besked, de får, når noget har brug for den.
 
+## Eskalér til den næste person i rotationen
+
+Et niveau kan tilkalde den næste person i en vagtplans rotation: personen efter den, der har vagt i den. Så kan en politik først tilkalde den, der har vagt, derefter vedkommendes backup fra samme rotation og derefter et team eller en chef, alt sammen fra én vagtplan.
+
+| Niveau | Underret | Hvem der tilkaldes |
+| --- | --- | --- |
+| **Level 1** | Vagtplanen Payments primary | Den, der har vagt i den, fx Alex |
+| **Level 2** | Samme vagtplans **Næste i rotationen** | Personen efter Alex i rotationen, fx Sam |
+| **Level 3** | Teamet Platform | Alle teamets medlemmer |
+
+:::steps
+1. Sørg for, at politikkens første niveau, **Level 1**, underretter vagtplanen.
+2. Klik på **Tilføj eskaleringsregel**, derefter på **Tilføj modtager**, og vælg den samme vagtplan under **Næste i rotationen**. Angiv **Eskalér efter (i minutter)**, og klik på **Create Rule**.
+3. Tilføj ét niveau mere for det team eller den chef, der skal have besked bagefter.
+:::
+
+Den næste person findes, når niveauet kører, ud fra vagtplanen, som den ser ud på det tidspunkt:
+
+- Det er personen efter den, der har vagt, i den rækkefølge, rotationens personer skiftes i. Efter den sidste person kommer den første igen.
+- Fraværende personer springes over, uanset om nogen dækker for dem, og det samme gælder enhver, der har vagt i stedet for en anden.
+- Det er altid en person fra samme rotation: med flere lag det lag, som den, der har vagt, kommer fra. En rotation uden andre i, eller hvor alle andre er fraværende, har ingen næste person, og niveauet tilkalder ingen der og siger det.
+- Når ingen overhovedet har vagt i vagtplanen, er der heller ingen næste person, og niveauet forsøges igen i et par minutter, ligesom for selve vagtplanen.
+
+Kørslens besked i Slack og Microsoft Teams, hændelsens feed og **Tidslinje for udførelsen** viser, hvem der blev tilkaldt som den næste i rotationen, og fra hvilken vagtplan: "Sam Lee (next in the Payments primary rotation)".
+
+> [!TIP]
+> Én vagtplan er nok: der er ingen anden backup-vagtplan, der skal holdes i takt med den første, og det fravær, dens personer registrerer, gælder for begge niveauer.
+
 ## Rediger, omarranger og slet regler
 
 Hver regels kort har **Edit rule** og en **⋯**-menu med de andre handlinger:
@@ -148,6 +178,7 @@ Eskaleringsregler er ressourcen `/api/on-call-duty-policy-escalation-rule`; de p
 - En regel, der oprettes uden `name`, opkaldes efter sit niveau, ligesom i dashboardet: **Level 3** for en regel, der bliver det tredje niveau i sin politik. Terraforms ressource for eskaleringsregler kræver stadig et navn.
 - `escalateAfterInMinutes` har ingen standardværdi uden for dashboardet. En regel, der oprettes uden den, venter ikke: næste niveau tilkaldes, så snart dette har kørt. Angiv den eksplicit — 30 er det, dashboardet foreslår.
 - En regel, der oprettes med `onCallSchedules`, `teams` eller `users` (lister med id'er) i sine `miscDataProps`, får de modtagere; det er sådan, dashboardets vælger **Underret** sender dem. En regel, der oprettes uden dem, tilkalder ingen, før du tilføjer modtagere via ressourcerne ovenfor.
+- En regel, der oprettes med `nextInRotationSchedules` (en liste med vagtplan-id'er) i sine `miscDataProps`, tilkalder den næste person i rotationen for hver af de vagtplaner. På ressourcen `-schedule` gør en række med `pageNextInRotation` sat til `true` det samme; værdien sættes, når rækken oprettes.
 - Regler, der er opkaldt efter deres niveau, omdøbes, når du flytter eller sletter regler i dashboardet. At ændre `order` via API'et eller Terraform ændrer kun rækkefølgen.
 - At oprette en vagtpolitik på `/api/on-call-duty-policy` med `onCallSchedules`, `teams` eller `users` (lister med id'er) i dens `miscDataProps` giver den dens første eskaleringsregel, ligesom dashboardet gør: **Level 1**, som tilkalder dem, med en `escalateAfterInMinutes` på 30. Hvert id skal høre til projektet, og kalderen skal have lov til at oprette eskaleringsregler, ellers oprettes politikken ikke. En politik, der oprettes uden dem, har ingen regler, som før; Terraforms ressource for politikker sender dem ikke.
 

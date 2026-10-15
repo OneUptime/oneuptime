@@ -19,6 +19,7 @@ flowchart TB
 - [Wie als eerste wordt opgeroepen](#wie-als-eerste-wordt-opgeroepen): Maak een beleid met zijn eerste niveau.
 - [Een escalatieregel toevoegen](#een-escalatieregel-toevoegen): Voeg het volgende niveau toe, stap voor stap.
 - [Hoe de niveaus mensen oproepen](#hoe-de-niveaus-mensen-oproepen): Timing, herhalingen en hoe iedere persoon wordt bereikt.
+- [De volgende persoon in de rotatie](#escaleren-naar-de-volgende-persoon-in-de-rotatie): Roep de back-up van wie dienst heeft op, uit dezelfde rotatie.
 - [API en Terraform](#regels-maken-met-de-api-of-terraform): Maak beleid en regels als code.
 :::
 
@@ -49,6 +50,7 @@ Klik onder **Op de hoogte stellen** op **Ontvanger toevoegen**, zoek en kies zov
 | Ontvanger | Wie wordt opgeroepen wanneer het niveau wordt uitgevoerd |
 | --- | --- |
 | Een **bereikbaarheidsschema** | Wie er dienst in heeft wanneer het niveau wordt uitgevoerd, niet een vaste persoon. |
+| De **Volgende in de rotatie** van een schema | De persoon na wie er dienst in heeft, uit dezelfde rotatie. Zie [Escaleren naar de volgende persoon in de rotatie](#escaleren-naar-de-volgende-persoon-in-de-rotatie). |
 | Een **team** | Elk lid van het team. |
 | Een **persoon** | Die persoon, rechtstreeks. |
 
@@ -133,6 +135,34 @@ Op OneUptime Cloud wordt elke SMS, oproep, WhatsApp- en Telegram-bericht betaald
 > [!IMPORTANT]
 > SMS, telefoonoproepen, WhatsApp en Telegram staan uit in een nieuw project: op OneUptime Cloud wordt elk bericht betaald uit het saldo van het project, en een zelfgehoste installatie heeft eerst een Twilio-account of een ingestelde Telegram-bot nodig. Zolang een kanaal uit staat, kan niemand in het project er een methode op toevoegen. Alleen een projecteigenaar of iemand met de rol **Billing Admin** of de machtiging **Manage Billing** kan er een aanzetten, in de kaart **Meldingskanalen** onder **Projectinstellingen > Meldingen > Meldingsinstellingen** — een projectbeheerder kan dat niet. Alle anderen krijgen overal waar een kanaal uit staat precies te horen wie het kan aanzetten: boven hun eigen lijst met methoden op dat kanaal, op hun installatiechecklist en in het bericht dat ze krijgen wanneer iets het kanaal nodig heeft.
 
+## Escaleren naar de volgende persoon in de rotatie
+
+Een niveau kan de volgende persoon in de rotatie van een bereikbaarheidsschema oproepen: de persoon na wie er dienst in heeft. Zo kan een beleid eerst wie dienst heeft oproepen, dan diens back-up uit dezelfde rotatie en dan een team of een manager, allemaal vanuit één schema.
+
+| Niveau | Op de hoogte stellen | Wie wordt opgeroepen |
+| --- | --- | --- |
+| **Level 1** | Het schema Payments primary | Wie er dienst in heeft, bijvoorbeeld Alex |
+| **Level 2** | De **Volgende in de rotatie** van hetzelfde schema | De persoon na Alex in de rotatie, bijvoorbeeld Sam |
+| **Level 3** | Het team Platform | Elk lid van het team |
+
+:::steps
+1. Zorg dat het eerste niveau van het beleid, **Level 1**, het bereikbaarheidsschema op de hoogte stelt.
+2. Klik op **Escalatieregel toevoegen**, dan op **Ontvanger toevoegen**, en kies hetzelfde schema onder **Volgende in de rotatie**. Stel **Escaleren na (in minuten)** in en klik op **Create Rule**.
+3. Voeg nog een niveau toe voor het team of de manager die het daarna moet horen.
+:::
+
+De volgende persoon wordt bepaald wanneer het niveau wordt uitgevoerd, op basis van het schema zoals het dan is:
+
+- Het is de persoon na wie er dienst heeft, in de volgorde waarin de mensen van de rotatie elkaar afwisselen. Na de laatste persoon komt weer de eerste.
+- Afwezige mensen worden overgeslagen, of iemand hen nu vervangt of niet, en ook wie dienst heeft in de plaats van iemand anders.
+- Het is altijd iemand uit dezelfde rotatie: bij meerdere lagen de laag waar wie dienst heeft uit komt. Een rotatie met verder niemand erin, of waarin alle anderen afwezig zijn, heeft geen volgende persoon; het niveau roept daar dan niemand op en meldt dat.
+- Heeft er in het schema helemaal niemand dienst, dan is er ook geen volgende persoon, en wordt het niveau een paar minuten lang opnieuw geprobeerd, net als bij het schema zelf.
+
+Het bericht van de uitvoering in Slack en Microsoft Teams, de feed van het incident en de **Tijdlijn van de uitvoering** vermelden wie als volgende in de rotatie is opgeroepen, en uit welk schema: "Sam Lee (next in the Payments primary rotation)".
+
+> [!TIP]
+> Eén schema is genoeg: er is geen tweede back-upschema dat gelijk moet lopen met het eerste, en de afwezigheid die de mensen erin boeken, telt voor beide niveaus.
+
 ## Regels bewerken, herordenen en verwijderen
 
 De kaart van elke regel heeft **Edit rule**, en een **⋯**-menu met de andere acties:
@@ -148,6 +178,7 @@ Escalatieregels zijn de resource `/api/on-call-duty-policy-escalation-rule`; de 
 - Een regel die zonder `name` wordt gemaakt, wordt net als in het dashboard naar zijn niveau genoemd: **Level 3** voor een regel die het derde niveau van zijn beleid wordt. De Terraform-resource voor escalatieregels vraagt nog steeds om een naam.
 - `escalateAfterInMinutes` heeft buiten het dashboard geen standaardwaarde. Een regel die zonder deze waarde wordt gemaakt, wacht niet: het volgende niveau wordt opgeroepen zodra dit niveau is uitgevoerd. Stel de waarde expliciet in — het dashboard stelt 30 voor.
 - Een regel die wordt gemaakt met `onCallSchedules`, `teams` of `users` (lijsten met id's) in de `miscDataProps`, krijgt die ontvangers; zo stuurt de kiezer **Op de hoogte stellen** van het dashboard ze mee. Een regel die zonder deze lijsten wordt gemaakt, roept niemand op totdat u ontvangers toevoegt via de resources hierboven.
+- Een regel die wordt gemaakt met `nextInRotationSchedules` (een lijst met schema-id's) in de `miscDataProps`, roept de volgende persoon in de rotatie van elk van die schema's op. Op de resource `-schedule` doet een rij met `pageNextInRotation` op `true` hetzelfde; die waarde wordt gezet wanneer de rij wordt gemaakt.
 - Regels die naar hun niveau zijn genoemd, worden hernoemd wanneer u regels in het dashboard verplaatst of verwijdert. Wijzigt u `order` via de API of Terraform, dan verandert alleen de volgorde.
 - Een bereikbaarheidsbeleid dat via `/api/on-call-duty-policy` wordt gemaakt met `onCallSchedules`, `teams` of `users` (lijsten met id's) in de `miscDataProps`, krijgt net als in het dashboard zijn eerste escalatieregel: **Level 1**, die hen oproept, met een `escalateAfterInMinutes` van 30. Elke id moet bij het project horen en de aanroeper moet escalatieregels mogen maken; anders wordt het beleid niet gemaakt. Een beleid dat zonder deze lijsten wordt gemaakt, heeft zoals voorheen geen regels; de Terraform-resource voor beleid stuurt ze niet mee.
 

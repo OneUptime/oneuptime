@@ -10,12 +10,17 @@ import {
   RuleReadinessDetails,
   RuleReadinessLabel,
   RuleReadinessReport,
+  NO_ONE_NEXT_LABEL,
+  NO_ONE_NEXT_TOOLTIP,
   SetupReminderController,
   buildRuleReadinessReport,
+  getResponderGroupKey,
+  isNobodyEverNextInRotation,
   useResponderGroups,
   useSetupReminders,
 } from "./EscalationRuleReadiness";
 import {
+  ESCALATION_RULE_NEXT_IN_ROTATION_SCHEDULES_KEY,
   ESCALATION_RULE_SCHEDULES_KEY,
   ESCALATION_RULE_TEAMS_KEY,
   ESCALATION_RULE_USERS_KEY,
@@ -106,6 +111,10 @@ export interface ComponentProps {
  * The join rows for a single escalation rule. We keep the whole join row (not
  * just the entity) so we have both the entity to render AND the join-row id,
  * which is what we delete when a responder is removed during an edit.
+ *
+ * A schedule row pages whoever is on call in the schedule, or - with
+ * pageNextInRotation - the next person in its rotation, the backup after
+ * them. Both kinds are in scheduleJoins; isNextInRotationJoin tells them apart.
  */
 export interface RuleMembers {
   userJoins: Array<OnCallDutyPolicyEscalationRuleUser>;
@@ -117,6 +126,13 @@ export type MembersByRuleId = Record<string, RuleMembers>;
 
 export const emptyRuleMembers: () => RuleMembers = (): RuleMembers => {
   return { userJoins: [], teamJoins: [], scheduleJoins: [] };
+};
+
+// Whether a rule's schedule row pages the next person in its rotation.
+export const isNextInRotationJoin: (
+  join: OnCallDutyPolicyEscalationRuleSchedule,
+) => boolean = (join: OnCallDutyPolicyEscalationRuleSchedule): boolean => {
+  return Boolean(join.pageNextInRotation);
 };
 
 /*
@@ -134,14 +150,25 @@ export const getRuleResponderIds: (
     return Boolean(id);
   };
 
-  return {
-    onCallSchedules: members.scheduleJoins
+  // The schedules of the rows that page one way or the other.
+  const scheduleIdsOf: (pagesNextInRotation: boolean) => Array<string> = (
+    pagesNextInRotation: boolean,
+  ): Array<string> => {
+    return members.scheduleJoins
+      .filter((join: OnCallDutyPolicyEscalationRuleSchedule): boolean => {
+        return isNextInRotationJoin(join) === pagesNextInRotation;
+      })
       .map(
         (join: OnCallDutyPolicyEscalationRuleSchedule): string | undefined => {
           return join.onCallDutyPolicySchedule?.id?.toString();
         },
       )
-      .filter(present),
+      .filter(present);
+  };
+
+  return {
+    onCallSchedules: scheduleIdsOf(false),
+    nextInRotationSchedules: scheduleIdsOf(true),
     teams: members.teamJoins
       .map((join: OnCallDutyPolicyEscalationRuleTeam): string | undefined => {
         return join.team?.id?.toString();
@@ -252,10 +279,26 @@ export const getEscalationRuleDeletionImpact: (params: {
     );
   }
 
+  /*
+   * Each schedule once: a level that pages a schedule's on-call person and
+   * the next person in its rotation notifies one schedule.
+   */
+  const scheduleIds: Set<string> = new Set<string>(
+    members.scheduleJoins.map(
+      (join: OnCallDutyPolicyEscalationRuleSchedule, index: number): string => {
+        return (
+          join.onCallDutyPolicySchedule?.id?.toString() ||
+          join.id?.toString() ||
+          `row-${index}`
+        );
+      },
+    ),
+  );
+
   return {
     userCount: members.userJoins.length,
     teamCount: members.teamJoins.length,
-    scheduleCount: members.scheduleJoins.length,
+    scheduleCount: scheduleIds.size,
     usersNamedNowhereElse: usersNamedNowhereElse,
     isLastRule: params.ruleIds.length <= 1,
   };
@@ -450,6 +493,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
       users: [],
       teams: [],
       onCallSchedules: [],
+      nextInRotationSchedules: [],
     });
 
   /*
@@ -556,6 +600,8 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
           select: {
             _id: true,
             onCallDutyPolicyEscalationRuleId: true,
+            // Whoever is on call in it, or the next person in its rotation.
+            pageNextInRotation: true,
             onCallDutyPolicySchedule: {
               _id: true,
               name: true,
@@ -753,6 +799,22 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
   });
 
   /*
+   * Whether nobody is ever next in a schedule's rotation, from the roster
+   * the expansion above has read: every layer has one person in it. Until
+   * the roster is read, it is not said.
+   */
+  const isNobodyNextInRotation: (scheduleId: string) => boolean = (
+    scheduleId: string,
+  ): boolean => {
+    return (
+      Boolean(scheduleId) &&
+      isNobodyEverNextInRotation(
+        groupResolutions[getResponderGroupKey("schedule", scheduleId)],
+      )
+    );
+  };
+
+  /*
    * What is wrong on each level, keyed by rule id. Recomputed when the rules,
    * the group expansions or the readiness answer change - all three are inputs
    * to the same sentence, and a card that is a render behind any of them is a
@@ -801,9 +863,24 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
               };
             },
           ),
-        ].filter((group: ResponderGroupRef): boolean => {
-          return Boolean(group.id);
-        });
+        ].filter(
+          (
+            group: ResponderGroupRef,
+            index: number,
+            all: Array<ResponderGroupRef>,
+          ): boolean => {
+            /*
+             * Each group once: a level that pages a schedule's on-call person
+             * and the next person in its rotation reaches the same roster.
+             */
+            return (
+              Boolean(group.id) &&
+              all.findIndex((other: ResponderGroupRef): boolean => {
+                return other.kind === group.kind && other.id === group.id;
+              }) === index
+            );
+          },
+        );
 
         reports[ruleId] = buildRuleReadinessReport({
           directUsers: directUsers,
@@ -939,27 +1016,44 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
       membersByRuleId[ruleId.toString()] || emptyRuleMembers();
     const latest: EscalationRuleResponderIds = editedMembersRef.current;
 
-    // On-call schedules
-    await syncJoinType<OnCallDutyPolicyEscalationRuleSchedule>({
-      latestIds: latest.onCallSchedules,
-      joins: original.scheduleJoins,
-      getEntityId: (join: OnCallDutyPolicyEscalationRuleSchedule) => {
-        return join.onCallDutyPolicySchedule?.id?.toString();
-      },
-      modelType: OnCallDutyPolicyEscalationRuleSchedule,
-      createOne: async (scheduleId: string) => {
-        const model: OnCallDutyPolicyEscalationRuleSchedule =
-          new OnCallDutyPolicyEscalationRuleSchedule();
-        model.projectId = props.projectId;
-        model.onCallDutyPolicyId = props.onCallDutyPolicyId;
-        model.onCallDutyPolicyEscalationRuleId = ruleId;
-        model.onCallDutyPolicyScheduleId = new ObjectID(scheduleId);
-        await ModelAPI.create({
-          modelType: OnCallDutyPolicyEscalationRuleSchedule,
-          model: model,
-        });
-      },
-    });
+    /*
+     * On-call schedules, and the schedules whose next person in the rotation
+     * is paged: two kinds of row in one table, each reconciled against its
+     * own list, so moving a schedule from one to the other replaces its row.
+     */
+    for (const pagesNextInRotation of [false, true]) {
+      await syncJoinType<OnCallDutyPolicyEscalationRuleSchedule>({
+        latestIds: pagesNextInRotation
+          ? latest.nextInRotationSchedules
+          : latest.onCallSchedules,
+        joins: original.scheduleJoins.filter(
+          (join: OnCallDutyPolicyEscalationRuleSchedule): boolean => {
+            return isNextInRotationJoin(join) === pagesNextInRotation;
+          },
+        ),
+        getEntityId: (join: OnCallDutyPolicyEscalationRuleSchedule) => {
+          return join.onCallDutyPolicySchedule?.id?.toString();
+        },
+        modelType: OnCallDutyPolicyEscalationRuleSchedule,
+        createOne: async (scheduleId: string) => {
+          const model: OnCallDutyPolicyEscalationRuleSchedule =
+            new OnCallDutyPolicyEscalationRuleSchedule();
+          model.projectId = props.projectId;
+          model.onCallDutyPolicyId = props.onCallDutyPolicyId;
+          model.onCallDutyPolicyEscalationRuleId = ruleId;
+          model.onCallDutyPolicyScheduleId = new ObjectID(scheduleId);
+
+          if (pagesNextInRotation) {
+            model.pageNextInRotation = true;
+          }
+
+          await ModelAPI.create({
+            modelType: OnCallDutyPolicyEscalationRuleSchedule,
+            model: model,
+          });
+        },
+      });
+    }
 
     // Teams
     await syncJoinType<OnCallDutyPolicyEscalationRuleTeam>({
@@ -1089,48 +1183,108 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
 
   const getScheduleChip: (
     schedule: OnCallDutyPolicySchedule,
-  ) => ReactElement = (schedule: OnCallDutyPolicySchedule): ReactElement => {
+    isNextInRotation?: boolean,
+  ) => ReactElement = (
+    schedule: OnCallDutyPolicySchedule,
+    isNextInRotation?: boolean,
+  ): ReactElement => {
     /*
      * A schedule with nobody on call right now is listed as a responder but
      * would page no one. Rendering it identically to a healthy schedule makes
-     * a broken escalation level look correctly configured.
+     * a broken escalation level look correctly configured. With nobody on
+     * call, nobody is next in its rotation either.
      */
     const isUncovered: boolean = !schedule.currentUserIdOnRoster;
 
+    /*
+     * Somebody is on call, but nobody is ever next in the schedule's
+     * rotation: each of its layers has one person in it. A level that pages
+     * its Next in rotation pages nobody there, so it is drawn as a level that
+     * would page no one - amber, saying why - not as a working backup.
+     */
+    const isNobodyNext: boolean =
+      Boolean(isNextInRotation) &&
+      !isUncovered &&
+      isNobodyNextInRotation(schedule.id?.toString() || "");
+
+    const isWarning: boolean = isUncovered || isNobodyNext;
+
+    /*
+     * The next person in the schedule's rotation - the backup after whoever
+     * is on call - is the schedule's name with "Next in rotation" beside it
+     * and a fast-forward mark, so it never reads as the schedule's own page.
+     */
+    const title: string | undefined = isUncovered
+      ? translator.translateText(
+          "No one is currently on call in this schedule - this level would not notify anyone right now.",
+        )
+      : isNobodyNext
+        ? translator.translateText(NO_ONE_NEXT_TOOLTIP)
+        : isNextInRotation
+          ? translator.translateText(
+              "Pages the next person in this schedule's rotation: the person after whoever is on call, passing over anyone who is away.",
+            )
+          : undefined;
+
     return (
       <span
-        key={`schedule-${schedule.id?.toString()}`}
-        title={
-          isUncovered
-            ? translator.translateText(
-                "No one is currently on call in this schedule - this level would not notify anyone right now.",
-              )
-            : undefined
+        key={`schedule-${isNextInRotation ? "next-" : ""}${schedule.id?.toString()}`}
+        data-testid={
+          isNextInRotation
+            ? "escalation-rule-next-in-rotation-chip"
+            : "escalation-rule-schedule-chip"
         }
-        className={`inline-flex items-center gap-2 rounded-full bg-white py-1 pl-1 pr-3 shadow-sm ring-1 ring-inset ${
-          isUncovered ? "ring-amber-300" : "ring-gray-200"
+        title={title}
+        className={`inline-flex max-w-full items-center gap-2 rounded-full bg-white py-1 pl-1 pr-3 shadow-sm ring-1 ring-inset ${
+          isWarning ? "ring-amber-300" : "ring-gray-200"
         }`}
       >
         <span
-          className={`flex h-6 w-6 items-center justify-center rounded-full ${
-            isUncovered ? "bg-amber-100" : "bg-indigo-100"
+          className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full ${
+            isWarning ? "bg-amber-100" : "bg-indigo-100"
           }`}
         >
           <Icon
-            icon={isUncovered ? IconProp.Alert : IconProp.Calendar}
+            icon={
+              isWarning
+                ? IconProp.Alert
+                : isNextInRotation
+                  ? IconProp.Forward
+                  : IconProp.Calendar
+            }
             className={`h-3.5 w-3.5 ${
-              isUncovered ? "text-amber-600" : "text-indigo-600"
+              isWarning ? "text-amber-600" : "text-indigo-600"
             }`}
           />
         </span>
-        <span className="text-sm font-medium text-gray-700">
-          {schedule.name?.toString()}
-        </span>
-        {isUncovered && (
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">
-            {translator.translateText("No one on call")}
+        {/*
+         * The name, then what it pages and whether anybody is on call - or
+         * next: each phrase kept whole, and moved under the name where the
+         * card is too narrow for one line.
+         */}
+        <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+          <span className="text-sm font-medium text-gray-700">
+            {schedule.name?.toString()}
           </span>
-        )}
+          {isNextInRotation && (
+            <span className="whitespace-nowrap text-xs text-gray-500">
+              {translator.translateText("Next in rotation")}
+            </span>
+          )}
+          {isUncovered && (
+            <span className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+              {translator.translateText("No one on call")}
+            </span>
+          )}
+          {isNobodyNext && (
+            <span
+              data-testid="escalation-rule-no-one-next"
+              className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wide text-amber-700"
+            >
+              {translator.translateText(NO_ONE_NEXT_LABEL)}
+            </span>
+          )}
+        </span>
       </span>
     );
   };
@@ -1138,17 +1292,31 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
   const getNotifiesSection: (members: RuleMembers) => ReactElement = (
     members: RuleMembers,
   ): ReactElement => {
-    const schedules: Array<OnCallDutyPolicySchedule> = members.scheduleJoins
-      .map((join: OnCallDutyPolicyEscalationRuleSchedule) => {
-        return join.onCallDutyPolicySchedule;
-      })
-      .filter(
-        (
-          schedule: OnCallDutyPolicySchedule | undefined,
-        ): schedule is OnCallDutyPolicySchedule => {
-          return Boolean(schedule);
-        },
-      );
+    // The schedules of the rows that page one way or the other.
+    const schedulesOf: (
+      pagesNextInRotation: boolean,
+    ) => Array<OnCallDutyPolicySchedule> = (
+      pagesNextInRotation: boolean,
+    ): Array<OnCallDutyPolicySchedule> => {
+      return members.scheduleJoins
+        .filter((join: OnCallDutyPolicyEscalationRuleSchedule): boolean => {
+          return isNextInRotationJoin(join) === pagesNextInRotation;
+        })
+        .map((join: OnCallDutyPolicyEscalationRuleSchedule) => {
+          return join.onCallDutyPolicySchedule;
+        })
+        .filter(
+          (
+            schedule: OnCallDutyPolicySchedule | undefined,
+          ): schedule is OnCallDutyPolicySchedule => {
+            return Boolean(schedule);
+          },
+        );
+    };
+
+    const schedules: Array<OnCallDutyPolicySchedule> = schedulesOf(false);
+    const nextInRotationSchedules: Array<OnCallDutyPolicySchedule> =
+      schedulesOf(true);
     const teams: Array<Team> = members.teamJoins
       .map((join: OnCallDutyPolicyEscalationRuleTeam) => {
         return join.team;
@@ -1164,7 +1332,11 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
         return Boolean(user);
       });
 
-    const totalCount: number = users.length + teams.length + schedules.length;
+    const totalCount: number =
+      users.length +
+      teams.length +
+      schedules.length +
+      nextInRotationSchedules.length;
 
     if (totalCount === 0) {
       return (
@@ -1186,6 +1358,9 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
       <div className="flex flex-wrap gap-2">
         {schedules.map((schedule: OnCallDutyPolicySchedule) => {
           return getScheduleChip(schedule);
+        })}
+        {nextInRotationSchedules.map((schedule: OnCallDutyPolicySchedule) => {
+          return getScheduleChip(schedule, true);
         })}
         {teams.map((team: Team) => {
           return getTeamChip(team);
@@ -1371,9 +1546,18 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             </div>
 
             <div className="min-w-0 flex-1">
-              {/* Header: name + escalation timing + actions */}
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
+              {/*
+               * Header: name + escalation timing, and the actions at the
+               * right edge on the same line. Where the card is too narrow for
+               * both - a phone, a long name, a longer language - the actions
+               * move under the name, still at the right edge, rather than
+               * squeezing the name to a word per line beside "Edit rule".
+               */}
+              <div
+                data-testid="escalation-rule-card-header"
+                className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2"
+              >
+                <div className="min-w-0 flex-1 basis-48">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-base font-semibold text-gray-900">
                       {getEscalationRuleDisplayName(
@@ -1394,22 +1578,26 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
                       )}
                     </span>
                   </div>
-                  {rule.description?.toString() ? (
-                    <p className="mt-1 text-sm leading-relaxed text-gray-500">
-                      {rule.description.toString()}
-                    </p>
-                  ) : (
-                    <></>
-                  )}
                 </div>
 
                 {/* Actions */}
                 <RowActions<OnCallDutyEscalationRule>
                   item={rule}
                   actionButtons={getRuleActionButtons(rule, index)}
-                  className="shrink-0 justify-end"
+                  className="ml-auto shrink-0 justify-end"
                 />
               </div>
+              {/*
+               * Under the whole header line, so actions that wrap sit under
+               * the name, never under the description.
+               */}
+              {rule.description?.toString() ? (
+                <p className="mt-1 text-sm leading-relaxed text-gray-500">
+                  {rule.description.toString()}
+                </p>
+              ) : (
+                <></>
+              )}
 
               {/* Notifies */}
               <div className="mt-4">
@@ -1586,6 +1774,8 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
          */
         escalateAfterInMinutes: ruleToEdit.escalateAfterInMinutes ?? 0,
         [ESCALATION_RULE_SCHEDULES_KEY]: responders.onCallSchedules,
+        [ESCALATION_RULE_NEXT_IN_ROTATION_SCHEDULES_KEY]:
+          responders.nextInRotationSchedules,
         [ESCALATION_RULE_TEAMS_KEY]: responders.teams,
         [ESCALATION_RULE_USERS_KEY]: responders.users,
       };
@@ -1618,6 +1808,7 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
 
     for (const key of [
       ESCALATION_RULE_SCHEDULES_KEY,
+      ESCALATION_RULE_NEXT_IN_ROTATION_SCHEDULES_KEY,
       ESCALATION_RULE_TEAMS_KEY,
       ESCALATION_RULE_USERS_KEY,
     ]) {
@@ -1655,14 +1846,34 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
 
       const responders: Array<EscalationResponder> = [];
 
-      for (const join of members.scheduleJoins) {
-        if (join.onCallDutyPolicySchedule) {
+      // The schedules' on-call people first, then the next in their rotations.
+      for (const pagesNextInRotation of [false, true]) {
+        for (const join of members.scheduleJoins) {
+          if (
+            !join.onCallDutyPolicySchedule ||
+            isNextInRotationJoin(join) !== pagesNextInRotation
+          ) {
+            continue;
+          }
+
+          const isUncovered: boolean =
+            !join.onCallDutyPolicySchedule.currentUserIdOnRoster;
+
           responders.push({
             type: "schedule",
             label:
               join.onCallDutyPolicySchedule.name?.toString() ||
               "On-call schedule",
-            isUncovered: !join.onCallDutyPolicySchedule.currentUserIdOnRoster,
+            isUncovered: isUncovered,
+            ...(pagesNextInRotation ? { isNextInRotation: true } : {}),
+            // Somebody on call, but nobody ever next: see getScheduleChip.
+            ...(pagesNextInRotation &&
+            !isUncovered &&
+            isNobodyNextInRotation(
+              join.onCallDutyPolicySchedule.id?.toString() || "",
+            )
+              ? { isNobodyNext: true }
+              : {}),
           });
         }
       }

@@ -41,6 +41,7 @@ import {
 import {
   translatePlural,
   translateTemplate,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -143,7 +144,79 @@ export interface ResponderGroupResolution extends ResponderGroupRef {
   state: ResponderGroupState;
   /** The users inside. Empty unless `state` is "resolved". */
   members: Array<ResponderRef>;
+  /*
+   * Schedules only: how many different people the biggest of the schedule's
+   * rotations (its layers) takes turns between. 1 means every layer has one
+   * person, so nobody is ever next in its rotation and a level that pages
+   * the schedule's Next in rotation pages nobody. Unset for a team, and
+   * until the schedule is resolved.
+   */
+  largestRotation?: number | undefined;
 }
+
+/*
+ * What a level's chip says - on its card and in the escalation summary -
+ * when it pages a schedule's Next in rotation and nobody is ever next.
+ */
+export const NO_ONE_NEXT_LABEL: string = translationKey("No one next");
+export const NO_ONE_NEXT_TOOLTIP: string = translationKey(
+  "Nobody else is in this schedule's rotation, so this level would not notify anyone. Add people to the schedule's layers.",
+);
+
+/*
+ * Whether nobody is ever next in a schedule's rotation: each of its layers
+ * takes turns between one person, so a level that pages its Next in rotation
+ * pages nobody, whoever is on call (ScheduleResolution.resolveNextInRotation
+ * looks in the on-call person's own layer only). False while the schedule
+ * is being read or could not be, and for a schedule with nobody in it - that
+ * one has nobody on call, which its chip says already.
+ */
+export const isNobodyEverNextInRotation: (
+  resolution: ResponderGroupResolution | undefined,
+) => boolean = (resolution: ResponderGroupResolution | undefined): boolean => {
+  return (
+    resolution?.kind === "schedule" &&
+    resolution.state === "resolved" &&
+    resolution.largestRotation === 1
+  );
+};
+
+/*
+ * How many different people the biggest rotation takes turns between, from
+ * a schedule's layer users. A row read without its layer counts toward one
+ * shared layer, so a missing layer id can only hide the warning, never raise
+ * it.
+ */
+export const getLargestRotation: (
+  layerUsers: Array<{ layerId: string; userId: string }>,
+) => number = (
+  layerUsers: Array<{ layerId: string; userId: string }>,
+): number => {
+  const peopleByLayer: Map<string, Set<string>> = new Map<
+    string,
+    Set<string>
+  >();
+
+  for (const layerUser of layerUsers) {
+    if (!layerUser.userId) {
+      continue;
+    }
+
+    const people: Set<string> =
+      peopleByLayer.get(layerUser.layerId) || new Set<string>();
+
+    people.add(layerUser.userId.toLowerCase());
+    peopleByLayer.set(layerUser.layerId, people);
+  }
+
+  let largest: number = 0;
+
+  for (const people of peopleByLayer.values()) {
+    largest = Math.max(largest, people.size);
+  }
+
+  return largest;
+};
 
 export type ResponderGroupResolutions = Record<
   string,
@@ -291,6 +364,8 @@ export const fetchScheduleUsers: (params: {
         skip: 0,
         select: {
           _id: true,
+          // Which rotation each person takes turns in: see largestRotation.
+          onCallDutyPolicyScheduleLayerId: true,
           user: {
             _id: true,
             name: true,
@@ -312,6 +387,19 @@ export const fetchScheduleUsers: (params: {
                 layerUser.user?.name?.toString() ||
                 layerUser.user?.email?.toString() ||
                 "",
+            };
+          },
+        ),
+      ),
+      largestRotation: getLargestRotation(
+        layerUsers.data.map(
+          (
+            layerUser: OnCallDutyPolicyScheduleLayerUser,
+          ): { layerId: string; userId: string } => {
+            return {
+              layerId:
+                layerUser.onCallDutyPolicyScheduleLayerId?.toString() || "",
+              userId: layerUser.user?.id?.toString() || "",
             };
           },
         ),

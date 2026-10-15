@@ -59,7 +59,7 @@ Gehen Sie zu **Bereitschaftsrichtlinien** und klicken Sie auf **Bereitschaftsric
 
 ### Die nächsten Stufen hinzufügen
 
-Klicken Sie auf der Seite **Eskalationsregeln** der Richtlinie für jede weitere Stufe auf **Eskalationsregel hinzufügen**: ein zweiter Plan, eine Teamleitung, eine Führungskraft. Siehe [Eskalationsregeln](/docs/on-call/escalation-rules).
+Klicken Sie auf der Seite **Eskalationsregeln** der Richtlinie für jede weitere Stufe auf **Eskalationsregel hinzufügen**: die nächste Person in der Rotation desselben Plans, eine Teamleitung, eine Führungskraft. Siehe [Eskalationsregeln](/docs/on-call/escalation-rules).
 
 ### Die Richtlinie automatisch ausführen
 

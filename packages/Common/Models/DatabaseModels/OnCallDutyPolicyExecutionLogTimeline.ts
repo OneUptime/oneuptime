@@ -808,6 +808,45 @@ export default class OnCallDutyPolicyExecutionLogTimeline extends BaseModel {
   })
   public onCallDutyScheduleId?: ObjectID = undefined;
 
+  /*
+   * Why the step's schedule is on it: true when the rule paged the next
+   * person in the schedule's rotation - after whoever is on call - and false
+   * when it paged whoever is on call. A step with the flag and nobody paged
+   * says nobody was next in the rotation. Written by the escalation runner
+   * only; the statusMessage is rewritten as the page goes out, so the reason
+   * cannot live there.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Paged as Next in Rotation",
+    description:
+      "True when this step paged the person because they are next in the schedule's rotation - after whoever is on call - rather than on call themselves. Paired with the step's schedule. A step with this set and nobody paged means nobody was next in the rotation.",
+    defaultValue: false,
+    canReadOnRelationQuery: false,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public isNextInRotation?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

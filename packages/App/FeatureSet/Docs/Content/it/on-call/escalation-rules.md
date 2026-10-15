@@ -19,6 +19,7 @@ flowchart TB
 - [Chi viene avvisato per primo](#chi-viene-avvisato-per-primo): Crea una policy con il suo primo livello.
 - [Aggiungere una regola di escalation](#aggiungere-una-regola-di-escalation): Aggiungi il livello successivo, passo dopo passo.
 - [Come i livelli avvisano le persone](#come-i-livelli-avvisano-le-persone): Tempi, ripetizioni e come viene raggiunta ogni persona.
+- [La persona successiva nella rotazione](#escalation-alla-persona-successiva-nella-rotazione): Avvisa il backup di chi è reperibile, dalla stessa rotazione.
 - [API e Terraform](#creare-regole-con-lapi-o-terraform): Crea policy e regole come codice.
 :::
 
@@ -49,6 +50,7 @@ In **Notifica**, fai clic su **Aggiungi destinatario**, cerca e scegli tutte le 
 | Destinatario | Chi viene avvisato quando il livello si attiva |
 | --- | --- |
 | Una **pianificazione di reperibilità** | Chi è reperibile in quel momento, non una persona fissa. |
+| Il **Successivo nella rotazione** di una pianificazione | La persona dopo chi è reperibile in quella pianificazione, dalla stessa rotazione. Vedi [Escalation alla persona successiva nella rotazione](#escalation-alla-persona-successiva-nella-rotazione). |
 | Un **team** | Ogni membro del team. |
 | Una **persona** | Quella persona, direttamente. |
 
@@ -133,6 +135,34 @@ Su OneUptime Cloud ogni SMS, chiamata, messaggio WhatsApp e Telegram viene pagat
 > [!IMPORTANT]
 > SMS, chiamate telefoniche, WhatsApp e Telegram sono disattivati in un nuovo progetto: su OneUptime Cloud ogni messaggio viene pagato con il saldo del progetto, e un'installazione self-hosted ha prima bisogno di un account Twilio o di un bot Telegram configurato. Finché un canale è disattivato, nessuno nel progetto può aggiungere un metodo su di esso. Solo un proprietario del progetto o qualcuno con il ruolo **Billing Admin** o il permesso **Manage Billing** può attivarne uno, nella scheda **Canali di notifica** di **Impostazioni del progetto > Notifiche > Impostazioni notifiche**: un amministratore del progetto non può. Tutti gli altri vengono informati esattamente su chi può farlo, ovunque un canale sia disattivato: sopra il proprio elenco di metodi su quel canale, nella propria checklist di configurazione e nel messaggio che ricevono quando qualcosa ne ha bisogno.
 
+## Escalation alla persona successiva nella rotazione
+
+Un livello può avvisare la persona successiva nella rotazione di una pianificazione di reperibilità: la persona dopo chi è reperibile in quella pianificazione. Così una policy può avvisare prima chi è reperibile, poi il suo backup dalla stessa rotazione, poi un team o un manager, tutto da una sola pianificazione.
+
+| Livello | Notifica | Chi viene avvisato |
+| --- | --- | --- |
+| **Level 1** | La pianificazione Payments primary | Chi è reperibile in quella pianificazione, ad esempio Alex |
+| **Level 2** | Il **Successivo nella rotazione** della stessa pianificazione | La persona dopo Alex nella rotazione, ad esempio Sam |
+| **Level 3** | Il team Platform | Ogni membro del team |
+
+:::steps
+1. Assicurati che il primo livello della policy, **Level 1**, notifichi la pianificazione di reperibilità.
+2. Fai clic su **Aggiungi regola di escalation**, poi su **Aggiungi destinatario**, e scegli la stessa pianificazione in **Successivo nella rotazione**. Imposta **Escala dopo (in minuti)** e fai clic su **Create Rule**.
+3. Aggiungi un altro livello per il team o il manager che deve essere avvisato dopo.
+:::
+
+La persona successiva viene individuata quando il livello si attiva, in base alla pianificazione così com'è in quel momento:
+
+- È la persona dopo chi è reperibile, nell'ordine in cui le persone della rotazione si alternano. Dopo l'ultima persona torna la prima.
+- Le persone assenti vengono saltate, che qualcuno le sostituisca o no, e così chiunque sia reperibile al posto di qualcun altro.
+- È sempre qualcuno della stessa rotazione: se la pianificazione ha più livelli, quello da cui viene chi è reperibile. Una rotazione senza nessun altro, o con tutti gli altri assenti, non ha una persona successiva: lì il livello della policy non avvisa nessuno e lo indica.
+- Quando nella pianificazione non è reperibile nessuno, non c'è nemmeno una persona successiva, e il livello viene ritentato per qualche minuto, come per la pianificazione stessa.
+
+Il messaggio dell'esecuzione in Slack e Microsoft Teams, il feed dell'incidente e la **Cronologia di esecuzione** indicano chi è stato avvisato come successivo nella rotazione, e da quale pianificazione: «Sam Lee (next in the Payments primary rotation)».
+
+> [!TIP]
+> Basta una sola pianificazione: non c'è una seconda pianificazione di backup da tenere allineata alla prima, e le assenze che le sue persone registrano valgono per entrambi i livelli.
+
 ## Modificare, riordinare ed eliminare le regole
 
 La scheda di ogni regola ha **Edit rule** e un menu **⋯** con le altre azioni:
@@ -148,6 +178,7 @@ Le regole di escalation sono la risorsa `/api/on-call-duty-policy-escalation-rul
 - Una regola creata senza `name` prende il nome del suo livello, come nella dashboard: **Level 3** per una regola che diventa il terzo livello della sua policy. La risorsa Terraform delle regole di escalation richiede ancora un nome.
 - `escalateAfterInMinutes` non ha un valore predefinito fuori dalla dashboard. Una regola creata senza di esso non attende: il livello successivo viene avvisato non appena questo è stato eseguito. Impostalo esplicitamente: 30 è il valore suggerito dalla dashboard.
 - Una regola creata con `onCallSchedules`, `teams` o `users` (elenchi di ID) nei suoi `miscDataProps` riceve quei destinatari; è così che li invia il selettore **Notifica** della dashboard. Una regola creata senza di essi non avvisa nessuno finché non aggiungi destinatari tramite le risorse indicate sopra.
+- Una regola creata con `nextInRotationSchedules` (un elenco di ID di pianificazioni) nei suoi `miscDataProps` avvisa la persona successiva nella rotazione di ognuna di quelle pianificazioni. Nella risorsa `-schedule`, una riga con `pageNextInRotation` impostato a `true` fa lo stesso; il valore viene impostato quando la riga viene creata.
 - Le regole che prendono il nome dal livello vengono rinominate quando sposti o elimini regole nella dashboard. Cambiare `order` tramite l'API o Terraform cambia solo l'ordine.
 - Creare una policy di reperibilità su `/api/on-call-duty-policy` con `onCallSchedules`, `teams` o `users` (elenchi di ID) nei suoi `miscDataProps` le dà la sua prima regola di escalation, come fa la dashboard: **Level 1**, che li avvisa, con un `escalateAfterInMinutes` di 30. Ogni ID deve appartenere al progetto e il chiamante deve poter creare regole di escalation, altrimenti la policy non viene creata. Una policy creata senza di essi non ha regole, come prima; la risorsa Terraform delle policy non li invia.
 

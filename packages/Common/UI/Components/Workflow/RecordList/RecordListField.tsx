@@ -90,6 +90,14 @@ export const RECORD_LIST_COPY: Record<PeoplePickerKind, RecordListCopy> = {
       "This project has no on-call schedules yet. Create one under On-Call Duty.",
     ),
   },
+  // Not offered as a list of records; listed as its schedules are.
+  [PeoplePickerKind.OnCallScheduleNextInRotation]: {
+    addButtonText: translationKey("Add next in rotation"),
+    searchPlaceholder: translationKey("Search on-call schedules by name"),
+    emptyText: translationKey(
+      "This project has no on-call schedules yet. Create one under On-Call Duty.",
+    ),
+  },
   [PeoplePickerKind.OnCallPolicy]: {
     addButtonText: translationKey("Add on-call policy"),
     searchPlaceholder: translationKey("Search on-call policies by name"),

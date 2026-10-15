@@ -59,7 +59,7 @@ Andate in **Policy di reperibilità** e fate clic su **Crea: Policy di reperibil
 
 ### Aggiungere i livelli successivi
 
-Nella pagina **Regole di escalation** della policy, fate clic su **Aggiungi regola di escalation** per ogni livello dopo il primo: una seconda pianificazione, un team lead, un manager. Vedi [Regole di escalation](/docs/on-call/escalation-rules).
+Nella pagina **Regole di escalation** della policy, fate clic su **Aggiungi regola di escalation** per ogni livello dopo il primo: la persona successiva nella rotazione della stessa pianificazione, un team lead, un manager. Vedi [Regole di escalation](/docs/on-call/escalation-rules).
 
 ### Eseguire la policy automaticamente
 

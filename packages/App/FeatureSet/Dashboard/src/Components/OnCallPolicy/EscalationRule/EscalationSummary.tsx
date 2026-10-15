@@ -10,6 +10,10 @@ import React, {
 import ReadinessDot, { ReadinessUnknownDot } from "../Readiness/ReadinessDot";
 import StatTile from "../Readiness/StatTile";
 import {
+  NO_ONE_NEXT_LABEL,
+  NO_ONE_NEXT_TOOLTIP,
+} from "./EscalationRuleReadiness";
+import {
   ReadinessIndex,
   UserReadinessWire,
   buildReadinessIndex,
@@ -47,6 +51,20 @@ export interface EscalationResponder {
    * drawn in amber rather than identically to a healthy responder.
    */
   isUncovered?: boolean | undefined;
+  /*
+   * Schedule responders only: true when the level pages the next person in
+   * the schedule's rotation - the backup after whoever is on call - rather
+   * than whoever is on call. Drawn with a fast-forward mark and "next in
+   * rotation" beside the name.
+   */
+  isNextInRotation?: boolean | undefined;
+  /*
+   * Next in rotation responders only: true when somebody is on call but
+   * nobody is ever next - each of the schedule's layers has one person in
+   * it - so the level pages nobody there. Drawn in amber, as an uncovered
+   * schedule is.
+   */
+  isNobodyNext?: boolean | undefined;
 }
 
 export interface EscalationLevelSummary {
@@ -156,7 +174,10 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
     const seen: Set<string> = new Set<string>();
     for (const level of levels) {
       for (const responder of level.responders) {
-        seen.add(`${responder.type}:${responder.label}`);
+        // A schedule's on-call person and its next person are two people.
+        seen.add(
+          `${responder.type}:${responder.label}${responder.isNextInRotation ? ":next" : ""}`,
+        );
       }
     }
     return seen.size;
@@ -240,48 +261,101 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
                   })
                 : null;
 
+            // Nobody to page there: nobody on call, or nobody ever next.
+            const isWarning: boolean = Boolean(
+              responder.isUncovered || responder.isNobodyNext,
+            );
+
             return (
               <span
                 key={`r-${i}`}
+                data-testid="escalation-summary-responder"
                 title={
                   responder.isUncovered
                     ? translator.translateText(
                         "No one is currently on call in this schedule.",
                       )
-                    : undefined
+                    : responder.isNobodyNext
+                      ? translator.translateText(NO_ONE_NEXT_TOOLTIP)
+                      : undefined
                 }
-                className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
-                  responder.isUncovered
+                className={`inline-flex max-w-full items-start gap-1 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
+                  isWarning
                     ? "bg-amber-50 text-amber-700 ring-amber-200"
                     : "bg-gray-50 text-gray-700 ring-gray-200"
                 }`}
               >
-                <Icon
-                  icon={
-                    responder.isUncovered
-                      ? IconProp.Alert
-                      : responderIcon(responder.type)
-                  }
-                  className={`h-3 w-3 ${
-                    responder.isUncovered
-                      ? "text-amber-500"
-                      : responderIconColor(responder.type)
-                  }`}
-                />
-                {responder.label}
-                {responder.isUncovered ? (
-                  <span className="text-[10px] font-semibold uppercase tracking-wide">
-                    {translator.translateText("no one on call")}
-                  </span>
-                ) : (
-                  <></>
-                )}
-                {responderReadiness ? (
-                  <ReadinessDot
-                    user={responderReadiness}
-                    label={responder.label}
-                    isFallbackEnabled={isFallbackEnabled}
+                <span className="flex h-4 flex-shrink-0 items-center">
+                  <Icon
+                    icon={
+                      isWarning
+                        ? IconProp.Alert
+                        : responder.isNextInRotation
+                          ? IconProp.Forward
+                          : responderIcon(responder.type)
+                    }
+                    className={`h-3 w-3 ${
+                      isWarning
+                        ? "text-amber-500"
+                        : responderIconColor(responder.type)
+                    }`}
                   />
+                </span>
+                {/*
+                 * The name and what is said about it, as one line of text: a
+                 * long name wraps with "next in rotation" after it, each
+                 * phrase kept whole, rather than each phrase standing in a
+                 * column of its own.
+                 */}
+                <span className="min-w-0 break-words">
+                  {responder.label}
+                  {responder.isNextInRotation ? (
+                    <>
+                      {" "}
+                      <span
+                        className={`whitespace-nowrap font-normal ${
+                          isWarning ? "text-amber-700" : "text-gray-500"
+                        }`}
+                      >
+                        {translator.translateText("next in rotation")}
+                      </span>
+                    </>
+                  ) : (
+                    <></>
+                  )}
+                  {responder.isUncovered ? (
+                    <>
+                      {" "}
+                      <span className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wide">
+                        {translator.translateText("no one on call")}
+                      </span>
+                    </>
+                  ) : (
+                    <></>
+                  )}
+                  {!responder.isUncovered && responder.isNobodyNext ? (
+                    <>
+                      {" "}
+                      <span
+                        data-testid="escalation-summary-no-one-next"
+                        className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wide"
+                      >
+                        {translator.translateText(NO_ONE_NEXT_LABEL)}
+                      </span>
+                    </>
+                  ) : (
+                    <></>
+                  )}
+                </span>
+                {responderReadiness ? (
+                  // Beside the first line of the name, as the icon is.
+                  <span className="flex h-4 flex-shrink-0 items-center">
+                    <ReadinessDot
+                      user={responderReadiness}
+                      label={responder.label}
+                      isFallbackEnabled={isFallbackEnabled}
+                    />
+                  </span>
                 ) : (
                   <></>
                 )}
@@ -294,7 +368,9 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
                 {!responderReadiness &&
                 responder.type === "user" &&
                 isTruncated ? (
-                  <ReadinessUnknownDot label={responder.label} />
+                  <span className="flex h-4 flex-shrink-0 items-center">
+                    <ReadinessUnknownDot label={responder.label} />
+                  </span>
                 ) : (
                   <></>
                 )}
