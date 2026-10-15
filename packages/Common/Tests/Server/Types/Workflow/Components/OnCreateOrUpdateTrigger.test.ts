@@ -573,7 +573,10 @@ describe("one save is one run", () => {
 
 describe("the trigger itself", () => {
   test("registers no route: nothing sends an event of its own", async () => {
-    const router: { get: jest.Mock; post: jest.Mock } = {
+    const router: {
+      get: ReturnType<typeof jest.fn>;
+      post: ReturnType<typeof jest.fn>;
+    } = {
       get: jest.fn(),
       post: jest.fn(),
     };

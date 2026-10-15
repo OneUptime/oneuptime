@@ -298,6 +298,24 @@ describe("Run Workflow on On Create or Update", () => {
     ).toEqual([RunFormCopy.created, RunFormCopy.updated]);
   });
 
+  test("without a workflow to search its records in, it still asks What Happened as a choice", () => {
+    render(
+      <RunModal
+        trigger={incidentTrigger("on-create-or-update")}
+        onClose={jest.fn()}
+        onRun={jest.fn()}
+        loadRunRecords={jest.fn(async () => {
+          return [EIGHT];
+        })}
+      />,
+    );
+
+    expect(screen.getByTestId(RUN_WHAT_HAPPENED_TEST_ID)).toBeInTheDocument();
+    expect(answer("created")).toBeChecked();
+    // The record is typed as an ID there, as for every record trigger.
+    expect(screen.queryByTestId("run-record-field-search")).toBeNull();
+  });
+
   test("the other record triggers ask no such question", () => {
     for (const suffix of ["on-create", "on-update", "on-delete"]) {
       const { unmount } = render(

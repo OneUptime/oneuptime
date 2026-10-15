@@ -169,8 +169,11 @@ const RunForm: React.ForwardRefExoticComponent<
      * A trigger that acts on a record - On Create Incident and the like - runs
      * with one, picked by its number or name rather than typed as an ID.
      */
+    const triggerInfo: RunRecordTriggerInfo | null = getRunRecordTriggerInfo(
+      component.metadata,
+    );
     const recordTrigger: RunRecordTriggerInfo | null = props.workflowId
-      ? getRunRecordTriggerInfo(component.metadata)
+      ? triggerInfo
       : null;
 
     /*
@@ -210,12 +213,13 @@ const RunForm: React.ForwardRefExoticComponent<
       /*
        * On Create or Update's What Happened: a row for each answer, created
        * first and chosen until another is. A choice is always made, so it is
-       * neither required nor optional.
+       * neither required nor optional. Asked whether or not the record can
+       * be searched for here.
        */
       if (
-        recordTrigger &&
-        recordTrigger.whatHappenedArgument &&
-        argument.id === recordTrigger.whatHappenedArgument.id
+        triggerInfo &&
+        triggerInfo.whatHappenedArgument &&
+        argument.id === triggerInfo.whatHappenedArgument.id
       ) {
         return {
           title: RunFormCopy.whatHappened,

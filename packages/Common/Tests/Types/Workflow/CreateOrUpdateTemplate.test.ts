@@ -64,8 +64,7 @@ const WATCHED: JSONObject = nodeOf(TRIGGER).args!["listen-on"] as JSONObject;
 
 describe("the template", () => {
   test("is listed with the incident templates, under its own name", () => {
-    const template: WorkflowTemplate | undefined =
-      getWorkflowTemplate(TEMPLATE_ID);
+    const template: WorkflowTemplate | null = getWorkflowTemplate(TEMPLATE_ID);
 
     expect(template?.name).toBe(
       "Keep another system up to date with your incidents",
