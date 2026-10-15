@@ -47,7 +47,7 @@ Onder het raster toont **On call this week** (**On call this month** in de maand
 - De tijdlijn beslaat 180 dagen terug en 365 dagen vooruit.
 
 > [!NOTE]
-> Eerdere diensten worden opnieuw berekend uit de huidige instellingen van elk schema, dus ze tonen de rotatie zoals die nu is ingesteld, wat kan verschillen van wie destijds echt is opgeroepen. Voor de uren die mensen echt dienst hadden, gebruikt u **Bereikbaarheidsdienst** > **Rapporten** > **Bereikbaarheidstijd gebruiker**.
+> Eerdere diensten worden opnieuw berekend uit de huidige instellingen van elk schema, dus ze tonen de rotatie zoals die nu is ingesteld, wat kan verschillen van wie destijds echt is opgeroepen. Voor de uren die mensen echt dienst hadden, gebruikt u **Bereikbaarheidsdienst** > **Rapporten** > **Bereikbaarheidstijd gebruiker**. Zie [Bereikbaarheidstijd gebruiker](/docs/on-call/readiness#bereikbaarheidstijd-gebruiker).
 
 ## Een schema of een persoon vinden
 

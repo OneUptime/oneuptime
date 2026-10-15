@@ -18,7 +18,7 @@ Op OneUptime Cloud komen sms'jes en telefoonoproepen voor bereikbaarheidsdienste
 :::
 
 > [!TIP]
-> Wanneer u uw telefoonnummer toevoegt of verifieert onder **Gebruikersinstellingen** > **Meldingsmethoden**, krijgt u een code van deze nummers, dus zo controleert u snel of ze doorkomen.
+> Wanneer u uw telefoonnummer toevoegt of verifieert onder **Gebruikersinstellingen** > **Meldingsmethoden**, krijgt u een code van deze nummers, dus zo controleert u snel of ze doorkomen. Zie [Meldingsmethoden](/docs/notifications/notification-methods).
 
 ## Wanneer oproepen van andere nummers komen
 

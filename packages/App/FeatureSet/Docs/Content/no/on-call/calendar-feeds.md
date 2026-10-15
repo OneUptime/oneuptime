@@ -98,7 +98,7 @@ Resten finner du i menyen **⋯** på kortet. **Generer lenke på nytt** og **Sl
 
 ### Kommende vakter og avløsning
 
-Siden viser også **Upcoming shifts** (de neste 30 dagene) og kortet **Påminn meg før vakter**, som er beskrevet lenger ned. Hver av dine egne vakter har en lenke **Finn avløser**: den åpner brukeroverstyringer i vaktens prosjekt med en ny overstyring som allerede er fylt ut for den vakten, med deg som **Hvem er borte?** og vaktens tider som **Starter** og **Slutter** (fra nå, hvis vakten har startet), så det bare gjenstår **Hvem dekker?**. Overstyringen sender alle varslene dine i det tidsrommet til den som dekker, fra alle vaktretningslinjer; en vakt som bare finnes inne i én retningslinje, dekkes i stedet på den retningslinjens side for brukeroverstyringer. Lar du **Hvem dekker?** stå som **Neste person i rotasjonen**, hoppes du i stedet over: hver av vaktene dine går til neste person i rotasjonen som ikke er borte. En vakt der du dekker for noen andre, har ingen **Finn avløser**: overstyringer lenkes ikke sammen, så avløsning for en avløsning ville ikke endre noe.
+Siden viser også **Upcoming shifts** (de neste 30 dagene) og kortet **Påminn meg før vakter**, som er beskrevet lenger ned. Hver av dine egne vakter har en lenke **Finn avløser**: den åpner brukeroverstyringer i vaktens prosjekt med en ny overstyring som allerede er fylt ut for den vakten, med deg som **Hvem er borte?** og vaktens tider som **Starter** og **Slutter** (fra nå, hvis vakten har startet), så det bare gjenstår **Hvem dekker?**. Overstyringen sender alle varslene dine i det tidsrommet til den som dekker, fra alle vaktretningslinjer; en vakt som bare finnes inne i én retningslinje, dekkes i stedet på den retningslinjens side for brukeroverstyringer. Lar du **Hvem dekker?** stå som **Neste person i rotasjonen**, hoppes du i stedet over: hver av vaktene dine går til neste person i rotasjonen som ikke er borte. En vakt der du dekker for noen andre, har ingen **Finn avløser**: overstyringer lenkes ikke sammen, så avløsning for en avløsning ville ikke endre noe. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
 
 Den samme personlige lenken, filtrert til én vaktplan med `?schedule=<id>`, tilbys som **Bare mine vakter i denne vaktplanen** på siden til hver vaktplan, og vaktbanneret og siden **Mine vaktretningslinjer** har en lenke **Legg vaktene dine til i kalenderen din** til siden ovenfor.
 
@@ -233,7 +233,7 @@ Når en person forlater sitt siste team i et prosjekt, fjerner OneUptime også p
 
 ## Planlegging, ikke revisjon
 
-Feeden viser rotasjonen **slik den er satt opp nå**, også for tidligere dager: en overstyring som legges inn i etterkant, skriver om historikken i kalenderen. For timer som faktisk er brukt på vakt, vurderinger av rettferdig fordeling og kompensasjon bruker du **Vakttjeneste** > **Rapporter** > **Brukerens vakttid**, som bygger på hva personsøkeren faktisk gjorde.
+Feeden viser rotasjonen **slik den er satt opp nå**, også for tidligere dager: en overstyring som legges inn i etterkant, skriver om historikken i kalenderen. For timer som faktisk er brukt på vakt, vurderinger av rettferdig fordeling og kompensasjon bruker du **Vakttjeneste** > **Rapporter** > **Brukerens vakttid**, som bygger på hva personsøkeren faktisk gjorde. Se [Brukerens vakttid](/docs/on-call/readiness#brukerens-vakttid).
 
 ## Sikkerhet
 

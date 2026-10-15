@@ -10,7 +10,7 @@ import WorkspaceNotificationRule from "../../../Models/DatabaseModels/WorkspaceN
 import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceNotificationLogService from "../../../Server/Services/WorkspaceNotificationLogService";
 import WorkspaceNotificationRuleService, {
-  RuleChannelToCreate,
+  NotificationRuleChannelToCreate,
   WorkspaceChannelsCreated,
 } from "../../../Server/Services/WorkspaceNotificationRuleService";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
@@ -302,6 +302,20 @@ function createdNames(result: WorkspaceChannelsCreated | null): Array<string> {
   return (result?.channelsCreated || []).map(
     (channel: NotificationRuleWorkspaceChannel): string => {
       return channel.name;
+    },
+  );
+}
+
+/*
+ * The rules each created channel counts for (notificationRuleIds): whose
+ * people are invited to it. Rules that share a channel each count for it.
+ */
+function rulesOfChannels(
+  result: WorkspaceChannelsCreated | null,
+): Array<[string, Array<string>]> {
+  return (result?.channelsCreated || []).map(
+    (channel: NotificationRuleWorkspaceChannel): [string, Array<string>] => {
+      return [channel.name, channel.notificationRuleIds || []];
     },
   );
 }
@@ -862,21 +876,47 @@ describe("a name somebody has already", () => {
 });
 
 describe("rules that ask for the same channel", () => {
-  test("Slack: two rules without a prefix share one channel", async () => {
-    useRules(WorkspaceType.Slack, [
-      rule({
-        workspaceType: WorkspaceType.Slack,
-        eventType: NotificationRuleEventType.Incident,
-      }),
-      rule({
-        workspaceType: WorkspaceType.Slack,
-        eventType: NotificationRuleEventType.Incident,
-        prefix: "  ",
-      }),
-    ]);
+  test("Slack: two rules without a prefix share one channel, and both count for it", async () => {
+    const first: WorkspaceNotificationRule = rule({
+      workspaceType: WorkspaceType.Slack,
+      eventType: NotificationRuleEventType.Incident,
+    });
+    const second: WorkspaceNotificationRule = rule({
+      workspaceType: WorkspaceType.Slack,
+      eventType: NotificationRuleEventType.Incident,
+      prefix: "  ",
+    });
+    useRules(WorkspaceType.Slack, [first, second]);
 
-    expect(createdNames(await createIncident())).toEqual(["inc-123"]);
+    const result: WorkspaceChannelsCreated | null = await createIncident();
+
+    expect(createdNames(result)).toEqual(["inc-123"]);
     expect(slackCreates).toEqual([{ name: "inc-123" }]);
+    // Both rules' people are invited to the one channel.
+    expect(rulesOfChannels(result)).toEqual([
+      ["inc-123", [first.id!.toString(), second.id!.toString()]],
+    ]);
+  });
+
+  test("Slack: rules sharing a name somebody has already share inc-123-2, and both count for it", async () => {
+    slackTaken.add("inc-123");
+    const first: WorkspaceNotificationRule = rule({
+      workspaceType: WorkspaceType.Slack,
+      eventType: NotificationRuleEventType.Incident,
+    });
+    const second: WorkspaceNotificationRule = rule({
+      workspaceType: WorkspaceType.Slack,
+      eventType: NotificationRuleEventType.Incident,
+    });
+    useRules(WorkspaceType.Slack, [first, second]);
+
+    const result: WorkspaceChannelsCreated | null = await createIncident();
+
+    // Created once: the second rule does not make an inc-123-3.
+    expect(slackCreates).toEqual([{ name: "inc-123" }, { name: "inc-123-2" }]);
+    expect(rulesOfChannels(result)).toEqual([
+      ["inc-123-2", [first.id!.toString(), second.id!.toString()]],
+    ]);
   });
 
   // A Slack workspace has one namespace of names, whatever team a rule once named.
@@ -916,21 +956,20 @@ describe("rules that ask for the same channel", () => {
     ]);
   });
 
-  test("Microsoft Teams: rules in two teams each get the channel in their team", async () => {
-    useRules(WorkspaceType.MicrosoftTeams, [
-      rule({
-        workspaceType: WorkspaceType.MicrosoftTeams,
-        eventType: NotificationRuleEventType.Incident,
-        teamToCreateChannelIn: TEAM_OPS,
-      }),
-      rule({
-        workspaceType: WorkspaceType.MicrosoftTeams,
-        eventType: NotificationRuleEventType.Incident,
-        teamToCreateChannelIn: TEAM_WEB,
-      }),
-    ]);
+  test("Microsoft Teams: rules in two teams each get the channel in their team, and count only for their own", async () => {
+    const ops: WorkspaceNotificationRule = rule({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      eventType: NotificationRuleEventType.Incident,
+      teamToCreateChannelIn: TEAM_OPS,
+    });
+    const web: WorkspaceNotificationRule = rule({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      eventType: NotificationRuleEventType.Incident,
+      teamToCreateChannelIn: TEAM_WEB,
+    });
+    useRules(WorkspaceType.MicrosoftTeams, [ops, web]);
 
-    await createIncident();
+    const result: WorkspaceChannelsCreated | null = await createIncident();
 
     expect(
       teamsCreates.map((create: TeamsCreate) => {
@@ -940,28 +979,39 @@ describe("rules that ask for the same channel", () => {
       [TEAM_OPS, "inc-123"],
       [TEAM_WEB, "inc-123"],
     ]);
+    // Each team's channel invites only the people of the rule that asked for it.
+    expect(rulesOfChannels(result)).toEqual([
+      ["inc-123", [ops.id!.toString()]],
+      ["inc-123", [web.id!.toString()]],
+    ]);
   });
 
-  test("Microsoft Teams: a rule in the connected team and one naming that team share the channel", async () => {
-    useRules(WorkspaceType.MicrosoftTeams, [
-      rule({
-        workspaceType: WorkspaceType.MicrosoftTeams,
-        eventType: NotificationRuleEventType.Incident,
-      }),
-      rule({
-        workspaceType: WorkspaceType.MicrosoftTeams,
-        eventType: NotificationRuleEventType.Incident,
-        teamToCreateChannelIn: TEAM_OPS,
-      }),
-    ]);
+  test("Microsoft Teams: a rule in the connected team and one naming that team share the channel, and both count for it", async () => {
+    const connectedTeam: WorkspaceNotificationRule = rule({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      eventType: NotificationRuleEventType.Incident,
+    });
+    const namedTeam: WorkspaceNotificationRule = rule({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      eventType: NotificationRuleEventType.Incident,
+      teamToCreateChannelIn: TEAM_OPS,
+    });
+    useRules(WorkspaceType.MicrosoftTeams, [connectedTeam, namedTeam]);
 
-    await createIncident();
+    const result: WorkspaceChannelsCreated | null = await createIncident();
 
     expect(
       teamsCreates.map((create: TeamsCreate) => {
         return [create.teamId, create.displayName];
       }),
     ).toEqual([[TEAM_OPS, "inc-123"]]);
+    /*
+     * Listed apart (one names no team), created once in the same team: the
+     * second rule's people are invited to the first rule's channel.
+     */
+    expect(rulesOfChannels(result)).toEqual([
+      ["inc-123", [connectedTeam.id!.toString(), namedTeam.id!.toString()]],
+    ]);
   });
 });
 
@@ -978,7 +1028,7 @@ describe("the channels a record's rules ask for (getnotificationChannelssFromNot
       eventType: NotificationRuleEventType.Incident,
     });
 
-    const channels: Array<RuleChannelToCreate> =
+    const channels: Array<NotificationRuleChannelToCreate> =
       WorkspaceNotificationRuleService.getnotificationChannelssFromNotificationRules(
         {
           notificationEventType: NotificationRuleEventType.Incident,
@@ -996,12 +1046,14 @@ describe("the channels a record's rules ask for (getnotificationChannelssFromNot
       {
         channelName: "Ops-inc-123",
         notificationRuleId: first.id!.toString(),
+        notificationRuleIds: [first.id!.toString()],
         teamId: TEAM_WEB,
         prefix: "Ops-",
       },
       {
         channelName: "inc-123",
         notificationRuleId: second.id!.toString(),
+        notificationRuleIds: [second.id!.toString()],
         prefix: "",
       },
     ]);

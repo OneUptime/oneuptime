@@ -86,7 +86,7 @@ Solange die Person abwesend ist:
 
 Wählen Sie stattdessen jemanden unter **Wer vertritt?**, erhält diese Person alle ihre Alarmierungen, aus jedem Plan und jeder Richtlinie, statt dass die Rotation ihre Schichten übernimmt.
 
-So eingetragene Abwesenheit gilt für jede Bereitschaftsrichtlinie. Sie steht unter **Bereitschaftsdienst** > **Benutzerüberschreibungen**, wo Sie sie löschen können, um die Person früher zurückzuholen. Um jemanden nur in einer Richtlinie zu überspringen, legen Sie die Vertretung auf der Seite **Benutzerüberschreibungen** dieser Richtlinie an und lassen **Wer vertritt?**, wie es ist.
+So eingetragene Abwesenheit gilt für jede Bereitschaftsrichtlinie. Sie steht unter **Bereitschaftsdienst** > **Benutzerüberschreibungen**, wo Sie sie löschen können, um die Person früher zurückzuholen. Um jemanden nur in einer Richtlinie zu überspringen, legen Sie die Vertretung auf der Seite **Benutzerüberschreibungen** dieser Richtlinie an und lassen **Wer vertritt?**, wie es ist. Siehe [Benutzerüberschreibungen](/docs/on-call/user-overrides).
 
 Über die API überspringt eine Benutzervertretung (`/api/on-call-duty-policy-user-override`), die ohne `routeAlertsToUserId` angelegt wird, die Person in `overrideUserId` von `startsAt` bis `endsAt`.
 
@@ -121,4 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [Eskalationsregeln](/docs/on-call/escalation-rules): Diesen Plan von einer Stufe einer Bereitschaftsrichtlinie alarmieren lassen.
 - [Zeitachse der Bereitschaftspläne](/docs/on-call/schedule-timeline): Alle Pläne nebeneinander sehen, mit Abdeckungslücken.
 - [Kalender-Feeds](/docs/on-call/calendar-feeds): Schichten in Google Kalender, Outlook oder Apple Kalender bringen.
+- [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules): Legen Sie fest, wie eine Alarmierung Sie erreicht, während Sie Bereitschaft haben.
 :::

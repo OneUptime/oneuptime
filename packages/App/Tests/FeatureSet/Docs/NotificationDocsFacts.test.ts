@@ -494,8 +494,9 @@ describe("the Notifications group in the docs", () => {
       .filter((line: string): boolean => {
         return line.startsWith("- [");
       });
+    // The On-call card opens the On Call group at its overview.
     const onCall: number = gettingStarted.findIndex((line: string): boolean => {
-      return line.includes("(/docs/on-call/schedules)");
+      return line.includes("(/docs/on-call/index)");
     });
 
     expect(onCall).toBeGreaterThanOrEqual(0);

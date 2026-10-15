@@ -157,6 +157,9 @@ export class Service extends ProjectReferencesService<Model> {
             },
           ),
         teamIds: [teamId!],
+        notificationFor: {
+          scheduledMaintenanceId: scheduledMaintenanceId,
+        },
       },
     ).catch((error: Error) => {
       logger.error(error);

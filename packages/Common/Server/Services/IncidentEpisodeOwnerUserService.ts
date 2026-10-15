@@ -220,6 +220,9 @@ export class Service extends ProjectReferencesService<Model> {
             projectId: projectId,
             workspaceChannels: episode.postUpdatesToWorkspaceChannels || [],
             userIds: [userId],
+            notificationFor: {
+              incidentEpisodeId: incidentEpisodeId,
+            },
           },
         ).catch((error: Error) => {
           logger.error(error);

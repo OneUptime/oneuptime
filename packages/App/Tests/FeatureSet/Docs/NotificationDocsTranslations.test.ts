@@ -916,10 +916,9 @@ describe.each(LANGUAGES)("%s introduction pages", (language: string) => {
       language,
       "introduction/getting-started",
     ).split("\n");
+    // The On-call card opens the On Call group at its overview.
     const onCall: number = lines.findIndex((line: string): boolean => {
-      return (
-        line.startsWith("- [") && line.includes("(/docs/on-call/schedules)")
-      );
+      return line.startsWith("- [") && line.includes("(/docs/on-call/index)");
     });
     const card: string = lines[onCall + 1] || "";
     const group: string =
