@@ -949,6 +949,36 @@ test.describe("a monitor's Status Timeline", () => {
   });
 });
 
+test.describe("a monitor's Status Timeline in German", () => {
+  test("the timeline's own words are the reader's language", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openMonitor(page, "?lang=de");
+
+    await expect(page.getByTestId("status-timeline-view-timeline")).toHaveText(
+      "Zeitachse",
+    );
+    await expect(page.getByTestId("status-timeline-view-table")).toHaveText(
+      "Tabelle",
+    );
+    await expect(page.getByTestId("status-timeline-now")).toHaveText("Jetzt");
+    await expect(
+      entry(page, OFFLINE_38_SECONDS).getByTestId(
+        "monitor-status-timeline-view-cause",
+      ),
+    ).toHaveText("Ursache anzeigen");
+    await expect(page.getByTestId("status-timeline-show-earlier")).toHaveText(
+      "Den Zeitraum davor anzeigen",
+    );
+    await expect(
+      page.getByRole("group", { name: "Verlauf anzeigen als" }),
+    ).toBeVisible();
+    await screenshot(page, "monitor-german", false);
+  });
+});
+
 test.describe("an incident's Status Timeline", () => {
   test("its whole life on one band, with no period to pick, and each state's whole time", async ({
     page,
