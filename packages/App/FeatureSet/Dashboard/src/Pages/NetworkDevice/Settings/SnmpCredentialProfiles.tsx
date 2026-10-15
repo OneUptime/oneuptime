@@ -67,7 +67,7 @@ const NetworkSnmpCredentialProfilesPage: FunctionComponent<
         cardProps={{
           title: "SNMP Credentials",
           description:
-            "Credentials you type once and share: point devices, or a whole site, at a profile, and change a community string in one place. A device's own credentials win over a profile, and a profile in use cannot be deleted.",
+            "Reusable SNMP credential sets. A device is walked with the first usable set it finds — its own credentials, then the profile on the device, then the profile on its site — and is pinged only when it has none. A profile that devices or sites still use cannot be deleted.",
         }}
         helpContent={{
           title: "How SNMP Credential Profiles Work",

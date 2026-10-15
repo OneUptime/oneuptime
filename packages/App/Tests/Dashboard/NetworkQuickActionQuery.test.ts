@@ -25,9 +25,15 @@ describe("the quick actions", () => {
     expect(NETWORK_QUICK_ACTION_QUERY_PARAM).toBe("open");
   });
 
-  test("are the two ways a device gets into Network", () => {
+  /*
+   * The two ways a device gets into Network, and the probe both of them
+   * need: a device's probe field and a scan's probe field link to the
+   * Overview's "Add a probe" dialog when the project has no probe of its own.
+   */
+  test("are the two ways a device gets into Network, and the probe they need", () => {
     expect(Object.values(NetworkQuickAction).sort()).toEqual([
       "add-device",
+      "add-probe",
       "discover-devices",
     ]);
   });
@@ -37,6 +43,7 @@ describe("isNetworkQuickActionInSearch", () => {
   test.each([
     [NetworkQuickAction.AddDevice, "?open=add-device"],
     [NetworkQuickAction.DiscoverDevices, "?open=discover-devices"],
+    [NetworkQuickAction.AddProbe, "?open=add-probe"],
   ])(
     "%s is asked for by %s",
     (action: NetworkQuickAction, search: string): void => {
@@ -62,7 +69,7 @@ describe("isNetworkQuickActionInSearch", () => {
     ).toBe(true);
   });
 
-  test("one action never opens the other's form", () => {
+  test("one action never opens another's form", () => {
     expect(
       isNetworkQuickActionInSearch(
         NetworkQuickAction.DiscoverDevices,
@@ -73,6 +80,18 @@ describe("isNetworkQuickActionInSearch", () => {
       isNetworkQuickActionInSearch(
         NetworkQuickAction.AddDevice,
         "?open=discover-devices",
+      ),
+    ).toBe(false);
+    expect(
+      isNetworkQuickActionInSearch(
+        NetworkQuickAction.AddDevice,
+        "?open=add-probe",
+      ),
+    ).toBe(false);
+    expect(
+      isNetworkQuickActionInSearch(
+        NetworkQuickAction.AddProbe,
+        "?open=add-device",
       ),
     ).toBe(false);
   });
@@ -194,6 +213,10 @@ describe("the wiring", () => {
     );
     expect(actions).toContain(
       "[NetworkQuickAction.DiscoverDevices]: PageMap.NETWORK_DEVICE_DISCOVERY,",
+    );
+    // The "Add a probe" dialog lives on the Overview, beside the first-run path.
+    expect(actions).toContain(
+      "[NetworkQuickAction.AddProbe]: PageMap.NETWORK_OVERVIEW,",
     );
   });
 

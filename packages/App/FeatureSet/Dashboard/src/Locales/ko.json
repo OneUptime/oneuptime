@@ -29554,7 +29554,6 @@
   "Cables the map cannot see on its own. Devices read over SNMP are linked to the neighbours they report, so draw a link here only for a cable no switch reports. Bind a monitor to a link to colour it by that monitor's status.": "맵이 스스로 볼 수 없는 케이블입니다. SNMP로 읽은 디바이스는 보고한 이웃과 자동으로 연결되므로, 어떤 스위치도 보고하지 않는 케이블에 대해서만 여기에서 링크를 그리세요. 링크에 모니터를 연결하면 그 모니터의 상태에 따라 링크 색이 바뀝니다.",
   "Click a site to open it.": "사이트를 클릭하면 열립니다.",
   "Credentials to try": "시도할 자격 증명",
-  "Credentials you type once and share: point devices, or a whole site, at a profile, and change a community string in one place. A device's own credentials win over a profile, and a profile in use cannot be deleted.": "한 번 입력해 공유하는 자격 증명입니다. 디바이스나 사이트 전체에 프로필을 지정하면 커뮤니티 문자열을 한 곳에서 바꿀 수 있습니다. 디바이스 자체의 자격 증명이 프로필보다 우선하며, 사용 중인 프로필은 삭제할 수 없습니다.",
   "Credentials {{number}} ({{version}})": "자격 증명 {{number}} ({{version}})",
   "Every device is pinged by its probe, so it has a status within minutes. Give it SNMP credentials and you also see its interfaces, traffic and health.": "각 디바이스는 프로브가 ping을 보내므로 몇 분 안에 상태가 표시됩니다. SNMP 자격 증명을 지정하면 인터페이스, 트래픽, 상태도 볼 수 있습니다.",
   "Get told when a device goes down": "디바이스가 다운되면 알림 받기",
@@ -29566,7 +29565,6 @@
   "No endpoints at this site yet. Turn on Collect Connected Endpoints on one of its switches or routers - its Settings page, Edit Polling - and what is plugged into it appears here after its next poll.": "이 사이트에는 아직 엔드포인트가 없습니다. 사이트의 스위치나 라우터 중 하나에서 Collect Connected Endpoints를 켜면(설정 페이지의 Edit Polling) 다음 폴링 후에 연결된 장치가 여기에 표시됩니다.",
   "No endpoints yet. Turn on Collect Connected Endpoints on a switch or router - its Settings page, Edit Polling - and what is plugged into it appears here after its next poll.": "아직 엔드포인트가 없습니다. 스위치나 라우터에서 Collect Connected Endpoints를 켜면(설정 페이지의 Edit Polling) 다음 폴링 후에 연결된 장치가 여기에 표시됩니다.",
   "None yet: turn on Collect Connected Endpoints on a switch or router.": "아직 없음: 스위치나 라우터에서 Collect Connected Endpoints를 켜세요.",
-  "Nothing alerts on this device yet. Its probe checks it on schedule, so it has a status; an alert policy is what opens an incident when it goes down - for this device and every one like it. Or create a monitor for this device alone.": "이 디바이스에는 아직 알림이 없습니다. 프로브가 일정에 따라 확인하므로 상태는 있지만, 다운되었을 때 인시던트를 여는 것은 알림 정책입니다. 정책은 이 디바이스와 비슷한 모든 디바이스에 적용됩니다. 또는 이 디바이스만을 위한 모니터를 만드세요.",
   "Nothing reporting yet: no devices or sites in it.": "아직 보고 없음: 디바이스나 사이트가 없습니다.",
   "One alert policy raises an incident when any device goes down, for the devices you have now and every one you add later.": "알림 정책 하나로 디바이스가 다운될 때마다 인시던트를 엽니다. 지금 있는 디바이스와 나중에 추가하는 디바이스 모두에 적용됩니다.",
   "One policy alerts on many devices: the ones you have and the ones you add later. The recommended policy opens an incident when a device stops answering or a port goes down, and an alert when a port is saturated, logs errors, or its SNMP readings fail. A device without SNMP credentials is only pinged, so only the stops-answering check can fire on it.": "정책 하나로 여러 디바이스에 알림을 보냅니다. 지금 있는 디바이스와 나중에 추가하는 디바이스 모두에 적용됩니다. 권장 정책은 디바이스가 응답을 멈추거나 포트가 다운되면 인시던트를 열고, 포트가 포화되거나 오류를 기록하거나 SNMP 읽기에 실패하면 알림을 보냅니다. SNMP 자격 증명이 없는 디바이스는 ping만 받으므로 응답 중단 검사만 발생할 수 있습니다.",
@@ -29582,7 +29580,6 @@
   "Run the probe": "프로브 실행",
   "Run this on a computer inside your network that can reach your devices, such as a server or a virtual machine with Docker. Leave it running: {{name}} checks your devices from there.": "디바이스에 도달할 수 있는 네트워크 내부 컴퓨터(Docker가 설치된 서버나 가상 머신 등)에서 이 명령을 실행하세요. 계속 실행해 두면 {{name}}이(가) 그곳에서 디바이스를 확인합니다.",
   "Second floor": "2층",
-  "Switches, routers, firewalls and anything else with an address. Each one is pinged by its probe; add SNMP credentials to also see its interfaces and health.": "스위치, 라우터, 방화벽 등 주소가 있는 모든 것입니다. 각 디바이스는 프로브가 ping을 보냅니다. SNMP 자격 증명을 추가하면 인터페이스와 상태도 볼 수 있습니다.",
   "The community string the device answers SNMP with, such as public. Leave it empty to ping the device only.": "디바이스가 SNMP 응답에 사용하는 커뮤니티 문자열(예: public)입니다. 비워 두면 디바이스에 ping만 보냅니다.",
   "The probe was added, but the server did not say which it is. Open it under Monitors → Settings → Probes to run it.": "프로브가 추가되었지만 서버가 어떤 프로브인지 알려 주지 않았습니다. 모니터 → 설정 → 프로브에서 열어 실행하세요.",
   "The scan tries these in order on every host that answers ping, and keeps the first that works. Add more for devices with a different community string or SNMPv3 user; each one adds a wait on hosts that answer none.": "스캔은 ping에 응답하는 각 호스트에서 이 자격 증명을 순서대로 시도하고, 처음으로 성공한 자격 증명을 사용합니다. 커뮤니티 문자열이나 SNMPv3 사용자가 다른 디바이스가 있으면 더 추가하세요. 세트가 하나 늘 때마다 아무것에도 응답하지 않는 호스트에서 대기 시간이 늘어납니다.",
@@ -29609,5 +29606,6 @@
   "{{name}} is connected.": "{{name}}이(가) 연결되었습니다.",
   "{{name}} is connected. Next, bring your devices in.": "{{name}}이(가) 연결되었습니다. 이제 디바이스를 가져오세요.",
   "{{vendor}} health checks are available": "{{vendor}} 상태 확인을 사용할 수 있습니다",
-  "Network probe": "네트워크 프로브"
+  "Network probe": "네트워크 프로브",
+  "Nothing alerts on this device yet. Its probe already pings it on schedule, so it has a status; an alert policy is what turns a failure into an incident - for this device and every one like it. Or create a monitor for this device alone.": "이 디바이스에는 아직 알림이 없습니다. 프로브가 이미 일정에 따라 ping을 보내므로 상태는 있지만, 장애를 인시던트로 만드는 것은 알림 정책입니다. 정책은 이 디바이스와 비슷한 모든 디바이스에 적용됩니다. 또는 이 디바이스만을 위한 모니터를 만드세요."
 }

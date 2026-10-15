@@ -112,10 +112,23 @@ describe("the empty state is honest about what polling already gives you", () =>
 
   /*
    * ...and it points at the policy, because covering a fleet one device at a
-   * time is the problem alert policies exist to solve.
+   * time is the problem alert policies exist to solve. It used to send people
+   * "under Network settings" to look for it; it is a button now, before the
+   * one-device route, and only where a probe polls the device.
    */
   test("it offers the fleet-wide route as well as the one-device one", () => {
-    expect(CARD).toContain("alert policy under Network settings");
+    expect(CARD).toContain("an alert policy is what turns a failure");
+    expect(CARD).not.toContain("alert policy under Network settings");
+
+    const setUpAlerts: number = CARD.indexOf('title="Set up alerts"');
+    const createMonitor: number = CARD.indexOf('"Create Monitor"');
+
+    expect(setUpAlerts).toBeGreaterThan(-1);
+    expect(createMonitor).toBeGreaterThan(setUpAlerts);
+    expect(CARD).toContain(
+      "RouteMap[ PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES ] as Route",
+    );
+    expect(CARD).toContain("{!props.isMonitorBacked && ( <Button title=\"Set up alerts\"");
   });
 
   /*

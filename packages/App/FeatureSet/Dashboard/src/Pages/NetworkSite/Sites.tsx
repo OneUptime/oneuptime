@@ -499,20 +499,6 @@ const NetworkSites: FunctionComponent<
           { title: "Monitoring Defaults", id: "monitoring-defaults" },
         ]}
         formFields={[
-          /*
-           * The name first: it is what the person adding a site knows. The
-           * type, which decides where the site may sit, follows it.
-           */
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            stepId: "site-details",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "London office",
-          },
           {
             field: {
               networkSiteType: true,
@@ -536,6 +522,16 @@ const NetworkSites: FunctionComponent<
             },
             required: true,
             placeholder: "Select Site Type",
+          },
+          {
+            field: {
+              name: true,
+            },
+            title: "Name",
+            stepId: "site-details",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "London office",
           },
           {
             field: {

@@ -4,18 +4,16 @@ import {
   getDeviceAttachment,
 } from "./DeviceAttachmentLookupUtil";
 import {
+  DeviceNeighbourNames,
+  getDeviceNeighbourNames,
+} from "./DeviceNeighbourLookupUtil";
+import {
   DeviceNeighbour,
   NEIGHBOURS_SHOWN,
   getDeviceNeighbours,
   isPortNamedAsPort,
 } from "./DeviceNeighbours";
 import PageMap from "../../Utils/PageMap";
-import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
-import NetworkInterface from "Common/Models/DatabaseModels/NetworkInterface";
-import Includes from "Common/Types/BaseDatabase/Includes";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
@@ -80,74 +78,14 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
   ) => Promise<void> = async (
     found: Array<DeviceNeighbour>,
   ): Promise<void> => {
-    const advertisedNames: Array<string> = found
-      .filter((neighbour: DeviceNeighbour): boolean => {
-        return neighbour.hasAdvertisedName;
-      })
-      .map((neighbour: DeviceNeighbour): string => {
-        return neighbour.name;
-      });
-
     try {
-      const [interfaces, devices]: [
-        ListResult<NetworkInterface>,
-        ListResult<NetworkDevice>,
-      ] = await Promise.all([
-        ModelAPI.getList<NetworkInterface>({
-          modelType: NetworkInterface,
-          query: {
-            networkDeviceId: props.modelId.toString(),
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            interfaceIndex: true,
-            name: true,
-          },
-          sort: {},
-        }),
-        // Chassis ids alone name no device: nothing to look up then.
-        advertisedNames.length > 0
-          ? ModelAPI.getList<NetworkDevice>({
-              modelType: NetworkDevice,
-              query: {
-                name: new Includes(advertisedNames),
-              },
-              limit: LIMIT_PER_PROJECT,
-              skip: 0,
-              select: {
-                _id: true,
-                name: true,
-              },
-              sort: {},
-            })
-          : Promise.resolve({
-              data: [],
-              count: 0,
-              skip: 0,
-              limit: 0,
-            } as ListResult<NetworkDevice>),
-      ]);
+      const names: DeviceNeighbourNames = await getDeviceNeighbourNames(
+        props.modelId,
+        found,
+      );
 
-      const names: Map<number, string> = new Map<number, string>();
-
-      for (const item of interfaces.data) {
-        if (item.interfaceIndex !== undefined && item.name) {
-          names.set(item.interfaceIndex, item.name);
-        }
-      }
-
-      const ids: Map<string, string> = new Map<string, string>();
-
-      for (const item of devices.data) {
-        if (item.name && item._id) {
-          ids.set(item.name.toLowerCase(), item._id.toString());
-        }
-      }
-
-      setPortNames(names);
-      setNeighbourDeviceIds(ids);
+      setPortNames(names.portNames);
+      setNeighbourDeviceIds(names.neighbourDeviceIds);
     } catch {
       // The list still reads well with port numbers and plain names.
     }
