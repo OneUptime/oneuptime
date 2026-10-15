@@ -151,7 +151,7 @@ Eigentümer erhalten jede Erinnerung als **Warnungserinnerung**, die standardmä
 
 ## Workflows
 
-Jedes Warnungsmodell hat Workflow-Auslöser und -Aktionen, nach ihm benannt: **On Create Alert**, **On Update Alert** und **On Delete Alert**, dasselbe für **Warnungsepisode**, **Statuszeitachse der Warnung** und die anderen, sowie Aktionen wie **Create One Alert** und **Update One Alert**. Die Definitionen benutzerdefinierter Felder für Warnungen sind die einzige Ausnahme: Sie haben keine Workflow-Auslöser. Siehe [Workflows – Übersicht](/docs/workflows/index).
+Jedes Warnungsmodell hat Workflow-Auslöser und -Aktionen, nach ihm benannt: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** und **On Delete Alert**, dasselbe für **Warnungsepisode**, **Statuszeitachse der Warnung** und die anderen, sowie Aktionen wie **Create One Alert** und **Update One Alert**. Die Definitionen benutzerdefinierter Felder für Warnungen sind die einzige Ausnahme: Sie haben keine Workflow-Auslöser. Siehe [Workflows – Übersicht](/docs/workflows/index).
 
 ## Wer das ändern kann
 

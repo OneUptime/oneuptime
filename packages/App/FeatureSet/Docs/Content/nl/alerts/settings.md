@@ -151,7 +151,7 @@ Eigenaren krijgen elke herinnering als **Alert reminder**, dat standaard per e-m
 
 ## Workflows
 
-Elk waarschuwingsmodel heeft workflowtriggers en -acties die naar het model zijn genoemd: **On Create Alert**, **On Update Alert** en **On Delete Alert**, hetzelfde voor **Waarschuwing Episode**, **Waarschuwing Status Tijdlijn** en de andere, en acties zoals **Create One Alert** en **Update One Alert**. De definities van aangepaste velden voor waarschuwingen zijn de enige uitzondering: ze hebben geen workflowtriggers. Zie [Workflows – Overzicht](/docs/workflows/index).
+Elk waarschuwingsmodel heeft workflowtriggers en -acties die naar het model zijn genoemd: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** en **On Delete Alert**, hetzelfde voor **Waarschuwing Episode**, **Waarschuwing Status Tijdlijn** en de andere, en acties zoals **Create One Alert** en **Update One Alert**. De definities van aangepaste velden voor waarschuwingen zijn de enige uitzondering: ze hebben geen workflowtriggers. Zie [Workflows – Overzicht](/docs/workflows/index).
 
 ## Wie dit kan wijzigen
 

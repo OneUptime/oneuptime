@@ -609,15 +609,16 @@ Per vedere che cosa è successo, aprite l'incidente e scegliete **Esecuzioni di 
 
 ## Guidare gli incidenti dai workflow
 
-I trigger di workflow per gli incidenti non sono scritti a mano — OneUptime li genera dai modelli di dati, così ogni modello della famiglia degli incidenti riceve i componenti **On Create X**, **On Update X** e **On Delete X**, chiamati con il nome singolare del modello. I tre principali sono **On Create Incident**, **On Update Incident** e **On Delete Incident**. Li trovate nel pannello **Add Trigger** in `/dashboard/{projectId}/workflows`, sotto **OneUptime resources** → **Incident**; i primi due sono anche sotto **Popular**.
+I trigger di workflow per gli incidenti non sono scritti a mano — OneUptime li genera dai modelli di dati, così ogni modello della famiglia degli incidenti riceve i componenti **On Create X**, **On Update X**, **On Create or Update X** e **On Delete X**, chiamati con il nome singolare del modello. I principali sono **On Create Incident**, **On Update Incident**, **On Create or Update Incident** e **On Delete Incident**. Li trovate nel pannello **Add Trigger** in `/dashboard/{projectId}/workflows`, sotto **OneUptime resources** → **Incident**; i primi due sono anche sotto **Popular**.
 
 La stessa generazione vi dà trigger per la configurazione stessa: **On Create Incident State**, **On Update Incident Severity**, **On Create Incident Template**, **On Create Incident Note Template**, **On Create Incident State Timeline**, **On Create Incident Public Note**, **On Create Incident Internal Note**, **On Create Incident On-Call Rule**, **On Create Incident Role**, **On Create Incident Member** e altri. Ogni modello riceve anche i componenti di azione corrispondenti — **Find One Incident**, **Create One Incident**, **Update One Incident**, **Delete One Incident** e i loro equivalenti per più righe — così un trigger e un'azione con nomi simili stanno fianco a fianco nella stessa categoria. **On Create Incident** avvia un workflow; **Create One Incident** apre un incidente.
 
 Alcuni dettagli che contano quando li collegate:
 
 - **On Update X** accetta un argomento facoltativo **Fields to watch** che restringe il trigger agli aggiornamenti che cambiano campi specifici, qualunque sia il loro nuovo valore: conta anche un interruttore disattivato o un campo svuotato. Un campo salvato con il valore che ha già non è un cambiamento, quindi un modulo di modifica che lo invia di nuovo a ogni salvataggio non risveglia il workflow. Lasciatelo vuoto per scattare a ogni cambiamento. Se un aggiornamento arriva senza traccia di quali campi sono cambiati, il filtro viene saltato e il workflow viene eseguito comunque.
-- **On Create X** e **On Update X** accettano entrambi un argomento obbligatorio **Fields to pass on**; **On Delete X** non accetta argomenti.
-- Tutti e tre espongono un'unica porta di uscita **Success**, e ciascuno accetta un argomento ID così potete eseguire il workflow a mano su un singolo record.
+- **On Create or Update X** viene eseguito una volta per ogni nuovo record e una volta per ogni aggiornamento che il suo **Fields to watch** lascia passare, così un solo workflow copre entrambi i casi. Oltre al record passa `what-happened`: `created` o `updated`.
+- **On Create X**, **On Update X** e **On Create or Update X** accettano un argomento obbligatorio **Fields to pass on**; **On Delete X** non accetta argomenti.
+- Tutti e quattro espongono un'unica porta di uscita **Success**, e ciascuno accetta un argomento ID così potete eseguire il workflow a mano su un singolo record.
 - I nomi vengono dal nome singolare del modello, non dal nome della tabella — per questo vedete **On Create Incident Team Owner** e **On Create Incident User Owner** invece di nomi ricalcati sulle tabelle.
 - Non ci sono trigger per le definizioni dei campi personalizzati degli incidenti. Quel modello è l'unico membro della famiglia degli incidenti con i workflow disattivati.
 

@@ -153,15 +153,16 @@ Si la dirección se filtra, haz clic en **Restablecer dirección** en el mismo l
 
 ## Disparadores de eventos de OneUptime
 
-Casi todo en OneUptime — monitores, incidentes, alertas, eventos de mantenimiento programado, páginas de estado, políticas de guardia, equipos — puede disparar un flujo de trabajo. Cada uno ofrece hasta tres eventos:
+Casi todo en OneUptime — monitores, incidentes, alertas, eventos de mantenimiento programado, páginas de estado, políticas de guardia, equipos — puede disparar un flujo de trabajo. Cada uno ofrece hasta cuatro disparadores:
 
 - **On Create** — salta cuando se añade uno nuevo.
 - **On Update** — salta cuando se cambia uno. Guardar un registro con los valores que ya tiene, como un formulario guardado sin cambios o un interruptor enviado tal como ya está, no es un cambio y no lo dispara.
+- **On Create or Update** — salta en los dos casos: una vez cuando se añade uno nuevo, y una vez cada vez que se cambia uno. Así un solo flujo de trabajo trata igual un registro nuevo y uno cambiado, por ejemplo para mantener al día una copia en otro sistema.
 - **On Delete** — salta cuando se elimina uno.
 
 Así construyes «cuando pase X en OneUptime, haz Y» sin tener que comprobar las cosas en un bucle.
 
-**On Update** se puede limitar a algunos campos con **Fields to watch**: entonces solo salta cuando una actualización cambia uno de ellos, a cualquier valor — desactivar un interruptor o vaciar un campo cuenta.
+**On Update** se puede limitar a algunos campos con **Fields to watch**: entonces solo salta cuando una actualización cambia uno de ellos, a cualquier valor — desactivar un interruptor o vaciar un campo cuenta. **On Create or Update** tiene el mismo **Fields to watch**, solo para sus actualizaciones: cada registro nuevo lo sigue disparando.
 
 ```mermaid title="Cuándo salta un disparador On Update"
 flowchart TB
@@ -174,11 +175,15 @@ flowchart TB
     field -->|"No"| nothing
 ```
 
-**On Create** y **On Update** pasan el registro al bloque siguiente, con los campos que eliges en el **Fields to pass on** del disparador. Por ejemplo, el disparador **Incident → On Create** pasa el incidente nuevo, así que el bloque siguiente puede leer su título, su descripción, su gravedad o cualquier otro campo que hayas seleccionado, como `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un campo que no seleccionaste llega vacío.
+**On Create**, **On Update** y **On Create or Update** pasan el registro al bloque siguiente, con los campos que eliges en el **Fields to pass on** del disparador. Por ejemplo, el disparador **Incident → On Create** pasa el incidente nuevo, así que el bloque siguiente puede leer su título, su descripción, su gravedad o cualquier otro campo que hayas seleccionado, como `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un campo que no seleccionaste llega vacío.
+
+**On Create or Update** también pasa **What Happened**: `created` cuando un registro nuevo inició la ejecución, y `updated` cuando lo hizo un cambio, como en `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Para tratar los dos casos de forma distinta, compáralo en un bloque **If / Else**, o toma un camino para cada uno con **Switch / Case**.
+
+Un guardado lo dispara una vez. Lo que OneUptime rellena mientras crea un registro forma parte de la creación, así que un registro nuevo lo dispara una vez, como `created`. Los cambios que OneUptime hace después, como enlazar el canal de Slack de un incidente, son actualizaciones como cualquier otra: para dejarlos fuera, añade a **Fields to watch** solo los campos que te importan.
 
 **On Delete** solo pasa el ID del registro eliminado: el registro ya no existe cuando se ejecuta el flujo de trabajo, así que sus otros campos no se pueden leer.
 
-Para probar un disparador de evento sin esperar al evento, haz clic en **Ejecutar flujo de trabajo** en el **Constructor** y elige un registro existente: se muestran los más recientes, y al escribir el número de un registro o parte de su nombre encuentras otro. La ejecución lee ese registro con los campos que seleccionaste, como si el evento le acabara de ocurrir; el registro en sí no se modifica ni se elimina.
+Para probar un disparador de evento sin esperar al evento, haz clic en **Ejecutar flujo de trabajo** en el **Constructor** y elige un registro existente: se muestran los más recientes, y al escribir el número de un registro o parte de su nombre encuentras otro. La ejecución lee ese registro con los campos que seleccionaste, como si el evento le acabara de ocurrir; el registro en sí no se modifica ni se elimina. Para **On Create or Update**, elige en **Qué ocurrió** si la ejecución es por la creación o por la actualización del registro.
 
 ### Los eventos más usados
 

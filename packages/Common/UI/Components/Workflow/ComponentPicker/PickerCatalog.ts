@@ -13,7 +13,7 @@ import {
  * How the Add Component and Add Trigger pickers organise the catalog.
  *
  * The catalog is about two thousand steps, and all but some twenty of them
- * are generated: eight actions and three triggers for each of some two
+ * are generated: eight actions and four triggers for each of some two
  * hundred and fifty database models (Create One Incident, Find Many Incident
  * States, Update One On-Call Duty Execution Log, ...). Listed one after the
  * other they buried the handful of steps nearly every workflow is built
@@ -82,7 +82,8 @@ export const COMMON_RESOURCE_TABLE_NAMES: ReadonlyArray<string> = [
 
 /*
  * A resource's steps in the order a person looks for them: what the step
- * does first (create, find, update, delete), one record before many.
+ * does first (create, find, update, delete), one record before many. Among
+ * the triggers, On Create or Update follows the two it stands for.
  */
 export const DATABASE_OPERATION_ORDER: ReadonlyArray<DatabaseOperation> = [
   DatabaseOperation.CreateOne,
@@ -95,6 +96,7 @@ export const DATABASE_OPERATION_ORDER: ReadonlyArray<DatabaseOperation> = [
   DatabaseOperation.DeleteMany,
   DatabaseOperation.OnCreate,
   DatabaseOperation.OnUpdate,
+  DatabaseOperation.OnCreateOrUpdate,
   DatabaseOperation.OnDelete,
 ];
 

@@ -236,8 +236,9 @@ describe("the start view leads with what people use", () => {
     expect(section("OneUptime resources")).toHaveTextContent(
       "Start this workflow when an incident, alert, monitor or any other record in this project is created, updated or deleted.",
     );
+    // On Create, On Update, On Create or Update and On Delete.
     expect(
-      screen.getByRole("button", { name: "Incident, 3 triggers" }),
+      screen.getByRole("button", { name: "Incident, 4 triggers" }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Log" }),

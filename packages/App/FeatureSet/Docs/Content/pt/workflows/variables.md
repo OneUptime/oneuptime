@@ -196,7 +196,7 @@ Faça referência à saída de um bloco anterior assim:
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Um bloco **API** cujo ID é `lookup-user`                  | O código de status: `{{local.components.lookup-user.returnValues.response-status}}`. O corpo: `{{local.components.lookup-user.returnValues.response-body}}`. |
 | Um bloco **Run Custom JavaScript** cujo ID é `transform`  | O que ele devolveu: `{{local.components.transform.returnValues.returnValue}}`.        |
-| Um gatilho **On Create Incident** cujo ID é `incident-on-create-1` | O título do incidente: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Os gatilhos de registro devolvem um único valor, `model`, e você navega dentro dele. |
+| Um gatilho **On Create Incident** cujo ID é `incident-on-create-1` | O título do incidente: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Os gatilhos de registro devolvem o registro como `model`, e você navega dentro dele. |
 
 Os valores dos blocos só existem durante a execução atual. Cada nova execução começa do zero.
 

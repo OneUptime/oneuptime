@@ -151,7 +151,7 @@ Ejere får hver påmindelse som **Alert reminder**, som er slået til via e-mail
 
 ## Workflows
 
-Hver advarselsmodel har workflow-udløsere og -handlinger, opkaldt efter den: **On Create Alert**, **On Update Alert** og **On Delete Alert**, det samme for **Advarsel Episode**, **Advarsel Tilstand Tidslinje** og de andre, og handlinger som **Create One Alert** og **Update One Alert**. Definitionerne af brugerdefinerede felter for advarsler er den eneste undtagelse: De har ingen workflow-udløsere. Se [Workflows – Oversigt](/docs/workflows/index).
+Hver advarselsmodel har workflow-udløsere og -handlinger, opkaldt efter den: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** og **On Delete Alert**, det samme for **Advarsel Episode**, **Advarsel Tilstand Tidslinje** og de andre, og handlinger som **Create One Alert** og **Update One Alert**. Definitionerne af brugerdefinerede felter for advarsler er den eneste undtagelse: De har ingen workflow-udløsere. Se [Workflows – Oversigt](/docs/workflows/index).
 
 ## Hvem der kan ændre dem
 

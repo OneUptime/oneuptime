@@ -196,7 +196,7 @@ OAuth 2.0 वेरिएबल के पेज पर **एक्सेस ट
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | `lookup-user` ID वाला **API** ब्लॉक                       | उसका स्थिति कोड: `{{local.components.lookup-user.returnValues.response-status}}`। उसकी बॉडी: `{{local.components.lookup-user.returnValues.response-body}}`। |
 | `transform` ID वाला **Run Custom JavaScript** ब्लॉक       | जो उसने लौटाया: `{{local.components.transform.returnValues.returnValue}}`।             |
-| `incident-on-create-1` ID वाला **On Create Incident** ट्रिगर | घटना का शीर्षक: `{{local.components.incident-on-create-1.returnValues.model.title}}`। रिकॉर्ड ट्रिगर एक मान, `model`, लौटाते हैं, जिसके अंदर आप जाते हैं। |
+| `incident-on-create-1` ID वाला **On Create Incident** ट्रिगर | घटना का शीर्षक: `{{local.components.incident-on-create-1.returnValues.model.title}}`। रिकॉर्ड ट्रिगर रिकॉर्ड को `model` के रूप में लौटाते हैं, जिसके अंदर आप जाते हैं। |
 
 ब्लॉक के मान सिर्फ़ मौजूदा रन के दौरान होते हैं। हर नया रन शुरू से शुरू होता है।
 

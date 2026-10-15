@@ -153,15 +153,16 @@ Se l'indirizzo trapela, fai clic su **Reimposta indirizzo** nello stesso punto: 
 
 ## Trigger di eventi OneUptime
 
-Quasi tutto in OneUptime — monitor, incidenti, avvisi, eventi di manutenzione pianificata, pagine di stato, policy di reperibilità, team — può avviare un workflow. Ognuno offre fino a tre eventi:
+Quasi tutto in OneUptime — monitor, incidenti, avvisi, eventi di manutenzione pianificata, pagine di stato, policy di reperibilità, team — può avviare un workflow. Ognuno offre fino a quattro trigger:
 
 - **On Create** — scatta quando ne viene aggiunto uno nuovo.
 - **On Update** — scatta quando uno viene modificato. Salvare un record con i valori che ha già, come un modulo salvato senza modifiche o un interruttore inviato com'è già, non è una modifica e non lo fa scattare.
+- **On Create or Update** — scatta in entrambi i casi: una volta quando ne viene aggiunto uno nuovo, e una volta ogni volta che uno viene modificato. Un solo workflow tratta allora allo stesso modo un record nuovo e uno modificato, ad esempio per tenere aggiornata una copia in un altro sistema.
 - **On Delete** — scatta quando uno viene eliminato.
 
 È così che costruisci «quando in OneUptime succede X, fai Y» senza dover controllare le cose in un ciclo.
 
-**On Update** può essere limitato ad alcuni campi con **Fields to watch**: allora scatta solo quando un aggiornamento cambia uno di essi, con qualsiasi valore — anche spegnere un interruttore o svuotare un campo conta.
+**On Update** può essere limitato ad alcuni campi con **Fields to watch**: allora scatta solo quando un aggiornamento cambia uno di essi, con qualsiasi valore — anche spegnere un interruttore o svuotare un campo conta. **On Create or Update** ha lo stesso **Fields to watch**, solo per i suoi aggiornamenti: ogni nuovo record lo fa comunque scattare.
 
 ```mermaid title="Quando scatta un trigger On Update"
 flowchart TB
@@ -174,11 +175,15 @@ flowchart TB
     field -->|"No"| nothing
 ```
 
-**On Create** e **On Update** passano il record al blocco successivo, con i campi che scegli in **Fields to pass on** del trigger. Ad esempio, il trigger **Incident → On Create** passa il nuovo incidente, così il blocco successivo può leggere il suo titolo, la descrizione, la gravità o qualsiasi altro campo selezionato, come `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un campo che non hai selezionato arriva vuoto.
+**On Create**, **On Update** e **On Create or Update** passano il record al blocco successivo, con i campi che scegli in **Fields to pass on** del trigger. Ad esempio, il trigger **Incident → On Create** passa il nuovo incidente, così il blocco successivo può leggere il suo titolo, la descrizione, la gravità o qualsiasi altro campo selezionato, come `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un campo che non hai selezionato arriva vuoto.
+
+**On Create or Update** passa anche **What Happened**: `created` quando l'esecuzione è partita da un nuovo record, e `updated` quando è partita da una modifica, come in `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Per trattare i due casi in modo diverso, confrontalo in un blocco **If / Else**, oppure prendi un percorso per ciascuno con **Switch / Case**.
+
+Un salvataggio lo fa scattare una volta. Ciò che OneUptime compila mentre crea un record fa parte della creazione, quindi un nuovo record lo fa scattare una volta, come `created`. Le modifiche che OneUptime fa in seguito, come collegare il canale Slack di un incidente, sono aggiornamenti come gli altri: per escluderle, aggiungi a **Fields to watch** solo i campi che ti interessano.
 
 **On Delete** passa solo l'ID del record eliminato: quando il workflow viene eseguito il record non c'è più, quindi i suoi altri campi non si possono leggere.
 
-Per provare un trigger di evento senza aspettare l'evento, fai clic su **Esegui flusso di lavoro** nel **Costruttore** e scegli un record esistente: sono elencati i più recenti, e digitando il numero di un record o parte del suo nome ne trovi un altro. L'esecuzione legge quel record con i campi che hai selezionato, come se l'evento gli fosse appena accaduto; il record in sé non viene modificato né eliminato.
+Per provare un trigger di evento senza aspettare l'evento, fai clic su **Esegui flusso di lavoro** nel **Costruttore** e scegli un record esistente: sono elencati i più recenti, e digitando il numero di un record o parte del suo nome ne trovi un altro. L'esecuzione legge quel record con i campi che hai selezionato, come se l'evento gli fosse appena accaduto; il record in sé non viene modificato né eliminato. Per **On Create or Update**, scegli in **Cosa è successo** se l'esecuzione è per la creazione o per l'aggiornamento del record.
 
 ### Gli eventi più usati
 

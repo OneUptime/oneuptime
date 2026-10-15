@@ -185,7 +185,7 @@ Gi dem som bygger automatisering, **Workflow Admin**, og dem som bare starter de
 
 ## Hva arbeidsflyttrinn kan gjøre
 
-Trinnene som leser og endrer OneUptime-poster — komponentene Find, Create, Update og Delete, og triggerne On Create, On Update og On Delete — handler som en **Project Admin** i prosjektet til arbeidsflyten. Uansett hvem som bygde arbeidsflyten, møter et trinn de samme kontrollene som en Project Admin møter i dashbordet og API-et:
+Trinnene som leser og endrer OneUptime-poster — komponentene Find, Create, Update og Delete, og triggerne On Create, On Update, On Create or Update og On Delete — handler som en **Project Admin** i prosjektet til arbeidsflyten. Uansett hvem som bygde arbeidsflyten, møter et trinn de samme kontrollene som en Project Admin møter i dashbordet og API-et:
 
 - **Bare arbeidsflytens eget prosjekt.** Et trinn leser og skriver postene i prosjektet arbeidsflyten hører til, og ingen andre, og en Update flytter aldri en post til et annet prosjekt.
 - **Bare det en Project Admin har lov til.** Et trinn kan bare gi de team- og API-nøkkeltillatelsene en Project Admin selv har, så det kan ikke dele ut **Project Owner**-, fakturerings- eller prosjektslettingstillatelser, og det kan ikke legge noen til i et team der tillatelsene går lenger enn en Project Admins, som eierteamet. Et trinn kan ikke lese hvem som opprettet en probe eller en AI-agent, noe bare prosjekteiere ser.

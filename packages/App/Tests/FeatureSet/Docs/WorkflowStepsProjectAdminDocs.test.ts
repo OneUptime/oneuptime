@@ -70,7 +70,9 @@ describe("the Configuration & Safety page says what a step may do", () => {
       "act as a **Project Admin** of the workflow's project",
     );
     expect(text).toContain("Find, Create, Update and Delete components");
-    expect(text).toContain("On Create, On Update and On Delete triggers");
+    expect(text).toContain(
+      "On Create, On Update, On Create or Update and On Delete triggers",
+    );
   });
 
   test("it names each thing a step is held to", () => {

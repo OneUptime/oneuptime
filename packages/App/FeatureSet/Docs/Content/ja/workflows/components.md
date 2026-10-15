@@ -374,7 +374,7 @@ OneUptime のレコードの種類ごと（モニター、インシデント、�
 | **Delete One Monitor**   | 一致するレコードを 1 件削除します。                                            |
 | **Delete Many Monitors** | 一致するレコードを **Limit** まで削除します。                                  |
 
-同じセットから 3 つのトリガー — **On Create Monitor**、**On Update Monitor**、**On Delete Monitor** — も得られます。[トリガー](/docs/workflows/triggers#oneuptime-のイベントトリガー) を参照してください。
+同じセットから 4 つのトリガー — **On Create Monitor**、**On Update Monitor**、**On Create or Update Monitor**、**On Delete Monitor** — も得られます。[トリガー](/docs/workflows/triggers#oneuptime-のイベントトリガー) を参照してください。
 
 種類が提供するのは、そのモデルが許可するコンポーネントだけです。読み取り専用の種類には 2 つの Find コンポーネントしかないため、パネルで **Delete One Monitor** が見つからない場合、その種類はそれを許可していません。
 

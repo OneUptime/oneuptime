@@ -79,6 +79,7 @@ Hvordan hver person nås, bestemmer de selv. I **Brukerinnstillinger** lagrer hv
 :::cards
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Varsle folk nivå for nivå til noen svarer.
 - [Vaktplaner](/docs/on-call/schedules): Rotasjoner, lag og vaktbytter.
+- [Slik når OneUptime deg](/docs/notifications/index): Metodene, reglene og innstillingene som avgjør hvordan hver person nås.
 :::
 
 ## Statussider og vedlikehold

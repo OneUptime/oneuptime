@@ -115,14 +115,24 @@ const INCIDENT_DELETED: ComponentMetadata = modelStep(
   new Incident(),
   "on-delete",
 );
+// One trigger for both: it hands the record on as the two do.
+const INCIDENT_CREATED_OR_UPDATED: ComponentMetadata = modelStep(
+  new Incident(),
+  "on-create-or-update",
+);
 const ALERT_CREATED: ComponentMetadata = modelStep(new Alert(), "on-create");
 const ALERT_UPDATED: ComponentMetadata = modelStep(new Alert(), "on-update");
+const ALERT_CREATED_OR_UPDATED: ComponentMetadata = modelStep(
+  new Alert(),
+  "on-create-or-update",
+);
 const ALERT_DELETED: ComponentMetadata = modelStep(new Alert(), "on-delete");
 
 describe("a workflow that starts on an incident", () => {
   test.each<[string, ComponentMetadata]>([
     ["created", INCIDENT_CREATED],
     ["updated", INCIDENT_UPDATED],
+    ["created or updated", INCIDENT_CREATED_OR_UPDATED],
   ])(
     "%s: every Page step starts as a page about that incident",
     (_when: string, trigger: ComponentMetadata) => {
@@ -174,6 +184,7 @@ describe("a workflow that starts on an alert", () => {
   test.each<[string, ComponentMetadata]>([
     ["created", ALERT_CREATED],
     ["updated", ALERT_UPDATED],
+    ["created or updated", ALERT_CREATED_OR_UPDATED],
   ])(
     "%s: every Page step starts as a page about that alert",
     (_when: string, trigger: ComponentMetadata) => {

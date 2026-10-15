@@ -609,15 +609,16 @@ flowchart TB
 
 ## 用工作流驱动事件
 
-事件的工作流触发器不是手写的——OneUptime 从数据模型生成它们，所以事件家族中的每个模型都会获得以模型单数名称命名的 **On Create X**、**On Update X** 和 **On Delete X** 组件。最主要的三个是 **On Create Incident**、**On Update Incident** 和 **On Delete Incident**。你可以在 `/dashboard/{projectId}/workflows` 的 **Add Trigger** 面板中，在 **OneUptime resources** → **Incident** 下找到它们；前两个也位于 **Popular** 下。
+事件的工作流触发器不是手写的——OneUptime 从数据模型生成它们，所以事件家族中的每个模型都会获得以模型单数名称命名的 **On Create X**、**On Update X**、**On Create or Update X** 和 **On Delete X** 组件。最主要的是 **On Create Incident**、**On Update Incident**、**On Create or Update Incident** 和 **On Delete Incident**。你可以在 `/dashboard/{projectId}/workflows` 的 **Add Trigger** 面板中，在 **OneUptime resources** → **Incident** 下找到它们；前两个也位于 **Popular** 下。
 
 同样的生成机制还为配置本身提供了触发器：**On Create Incident State**、**On Update Incident Severity**、**On Create Incident Template**、**On Create Incident Note Template**、**On Create Incident State Timeline**、**On Create Incident Public Note**、**On Create Incident Internal Note**、**On Create Incident On-Call Rule**、**On Create Incident Role**、**On Create Incident Member** 等。每个模型还会获得对应的操作组件——**Find One Incident**、**Create One Incident**、**Update One Incident**、**Delete One Incident** 及其多行版本——所以名称相似的触发器和操作会并排出现在同一个类别中。**On Create Incident** 启动工作流；**Create One Incident** 创建一个事件。
 
 连接这些组件时需要注意的几个细节：
 
 - **On Update X** 接受一个可选参数 **Fields to watch**，把触发器限定为更改了特定字段的更新，无论改成了什么：关闭开关或清空字段也算。以原有值保存的字段不算更改，所以每次保存都会把它发回的编辑表单不会唤醒工作流。留空则在任何更改时触发。如果更新到达时没有记录哪些字段发生了变化，过滤会被跳过，工作流照样运行。
-- **On Create X** 和 **On Update X** 都接受一个必填参数 **Fields to pass on**；**On Delete X** 不接受任何参数。
-- 三者都只提供一个 **Success** 输出端口，并且每个都接受一个 ID 参数，所以你可以针对一条记录手动运行工作流。
+- **On Create or Update X** 对每条新记录运行一次，对它自己的 **Fields to watch** 放行的每次更新运行一次，所以一个工作流就能处理两者。除了记录，它还会传下 `what-happened`：`created` 或 `updated`。
+- **On Create X**、**On Update X** 和 **On Create or Update X** 都接受一个必填参数 **Fields to pass on**；**On Delete X** 不接受任何参数。
+- 四者都只提供一个 **Success** 输出端口，并且每个都接受一个 ID 参数，所以你可以针对一条记录手动运行工作流。
 - 名称来自模型的单数名称，而不是它的表名——这就是为什么你会看到 **On Create Incident Team Owner** 和 **On Create Incident User Owner**，而不是表名式的名称。
 - 事件自定义字段定义没有触发器。这个模型是事件家族中唯一禁用了工作流的成员。
 

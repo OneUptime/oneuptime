@@ -50,6 +50,7 @@ flowchart TB
 - [インシデント](/docs/incidents/index): インシデントを宣言、調整、解決し、完全なタイムラインを残します。
 - [アラート](/docs/alerts/index): ユーザーが気付く前に問題を調べ、ノイズをエピソードにまとめます。
 - [オンコール](/docs/on-call/schedules): ローテーション、エスカレーションルール、誰をいつ呼び出すか。
+- [通知](/docs/notifications/index): OneUptime からの連絡の仕組み。通知方法、オンコールルール、通知設定。
 - [ステータスページ](/docs/status-pages/index): 公開または非公開のステータスページで、顧客に状況を伝えます。
 - [ワークスペース連携](/docs/workspace-connections/slack): Slack や Microsoft Teams からインシデントに対応します。
 :::

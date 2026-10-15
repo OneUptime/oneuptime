@@ -487,6 +487,28 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "Notifications",
+    section: "Incident Response",
+    links: [
+      {
+        title: "How OneUptime Reaches You",
+        url: "/docs/notifications/index",
+      },
+      {
+        title: "Notification Methods",
+        url: "/docs/notifications/notification-methods",
+      },
+      {
+        title: "Personal On-Call Rules",
+        url: "/docs/notifications/on-call-rules",
+      },
+      {
+        title: "Notification Settings",
+        url: "/docs/notifications/notification-settings",
+      },
+    ],
+  },
+  {
     title: "Status Pages",
     section: "Incident Response",
     links: [

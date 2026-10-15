@@ -104,6 +104,7 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import Text from "../../Types/Text";
 import Typeof from "../../Types/Typeof";
 import API from "../../Utils/API";
+import RecordsBeingCreated from "../Utils/Database/RecordsBeingCreated";
 import Slug from "../../Utils/Slug";
 import { getRuleCriteriaValidationError } from "../../Utils/Rules/RuleCriteriaMatcher";
 import { getMonitorTypeCriteriaValidationError } from "../../Utils/Rules/MonitorTypeRuleCriteria";
@@ -5127,6 +5128,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     miscData?: JSONObject | undefined, // miscData is used for passing data to workflow.
   ): Promise<void> {
     if (this.getModel().enableWorkflowOn) {
+      /*
+       * An update the record's own create makes, before the create has
+       * announced the record: On Create or Update hears the create, once,
+       * and not these (RecordsBeingCreated). Said beside the event's data,
+       * so what a run receives is what it always was.
+       */
+      const isPartOfCreate: boolean =
+        triggerType === "on-update" &&
+        RecordsBeingCreated.isBeingCreated({
+          tableName: this.getModel().tableName,
+          id: id,
+        });
+
       API.post({
         url: new URL(
           Protocol.HTTP,
@@ -5142,6 +5156,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             _id: id.toString(),
             miscData: miscData,
           },
+          ...(isPartOfCreate ? { isPartOfCreate: true } : {}),
         },
         headers: {
           ...ClusterKeyAuthorization.getClusterKeyHeaders(),
@@ -5537,6 +5552,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       this.createReliesOnOwnership(createBy.props) &&
       OwnedScopePermission.hasOwnerTables(this.modelType);
 
+    /*
+     * Set once the row is written: what marks the record's create done,
+     * however it ends, once its On Create event has gone (finally, below).
+     * Until then the updates its own hooks make are part of it
+     * (RecordsBeingCreated).
+     */
+    let finishCreate: (() => void) | null = null;
+
     try {
       /*
        * The INSERT itself, in save()'s own transaction - or, held to a
@@ -5555,6 +5578,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           return await this.getRepository().save(createBy.data);
         },
       );
+
+      if (createBy.data?.id && this.getModel().tableName) {
+        finishCreate = RecordsBeingCreated.start({
+          tableName: this.getModel().tableName!,
+          id: createBy.data.id,
+        });
+      }
+
       this.applyRuleCriteriaEffectiveEnabledToItem(createBy.data);
 
       // Seed telemetry context with projectId + <model>Id for this create.
@@ -5648,6 +5679,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        * hands it to onCreateError, as it does every failure of a create.
        */
       throw this.getException(error as Exception);
+    } finally {
+      finishCreate?.();
     }
   }
 

@@ -139,3 +139,54 @@ describe("the values Run Workflow sends", () => {
     expect(node.arguments).toEqual({ value: '{"name": "Ada"}' });
   });
 });
+
+describe("On Create or Update's run says what it is for", () => {
+  type IncidentTriggerFunction = (suffix: string) => ComponentMetadata;
+
+  const incidentTrigger: IncidentTriggerFunction = (
+    suffix: string,
+  ): ComponentMetadata => {
+    return BaseModelComponent.getComponents(new Incident()).find(
+      (component: ComponentMetadata): boolean => {
+        return component.id === `incident-${suffix}`;
+      },
+    )!;
+  };
+
+  test("as created until the panel says updated, sent rather than left to the server", () => {
+    expect(
+      getRunValues(
+        nodeOf(incidentTrigger("on-create-or-update"), {
+          _id: " INC-8 ",
+        }),
+      ),
+    ).toEqual({ _id: "INC-8", "what-happened": "created" });
+  });
+
+  test("as the panel asks, in the case the trigger reads", () => {
+    expect(
+      getRunValues(
+        nodeOf(incidentTrigger("on-create-or-update"), {
+          _id: "INC-8",
+          "what-happened": "updated",
+        }),
+      )["what-happened"],
+    ).toBe("updated");
+    expect(
+      getRunValues(
+        nodeOf(incidentTrigger("on-create-or-update"), {
+          _id: "INC-8",
+          "what-happened": " Updated ",
+        }),
+      )["what-happened"],
+    ).toBe("updated");
+  });
+
+  test("the other record triggers send no such value", () => {
+    for (const suffix of ["on-create", "on-update", "on-delete"]) {
+      expect(
+        getRunValues(nodeOf(incidentTrigger(suffix), { _id: "INC-8" })),
+      ).toEqual({ _id: "INC-8" });
+    }
+  });
+});

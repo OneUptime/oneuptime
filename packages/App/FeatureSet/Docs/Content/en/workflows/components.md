@@ -374,7 +374,7 @@ For every kind of record in OneUptime (monitors, incidents, alerts, status pages
 | **Delete One Monitor**   | Delete one matching record.                                          |
 | **Delete Many Monitors** | Delete matching records, up to **Limit**.                            |
 
-The same set gives you three triggers — **On Create Monitor**, **On Update Monitor**, and **On Delete Monitor**. See [Triggers](/docs/workflows/triggers#oneuptime-event-triggers).
+The same set gives you four triggers — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor**, and **On Delete Monitor**. See [Triggers](/docs/workflows/triggers#oneuptime-event-triggers).
 
 A type only offers the components its model allows. A read-only type has the two Find components and nothing else, so if you can't find **Delete One Monitor** in the panel, that type doesn't permit it.
 

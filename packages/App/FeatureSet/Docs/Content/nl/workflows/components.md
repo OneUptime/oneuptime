@@ -374,7 +374,7 @@ Voor elk soort record in OneUptime (monitoren, incidenten, waarschuwingen, statu
 | **Delete One Monitor**   | Verwijdert één overeenkomend record.                                           |
 | **Delete Many Monitors** | Verwijdert overeenkomende records, tot **Limit**.                              |
 
-Dezelfde set geeft je drie triggers — **On Create Monitor**, **On Update Monitor** en **On Delete Monitor**. Zie [Triggers](/docs/workflows/triggers#oneuptime-gebeurtenistriggers).
+Dezelfde set geeft je vier triggers — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** en **On Delete Monitor**. Zie [Triggers](/docs/workflows/triggers#oneuptime-gebeurtenistriggers).
 
 Een type biedt alleen de componenten die zijn model toestaat. Een alleen-lezentype heeft de twee Find-componenten en verder niets, dus als je **Delete One Monitor** niet in het paneel vindt, staat dat type het niet toe.
 

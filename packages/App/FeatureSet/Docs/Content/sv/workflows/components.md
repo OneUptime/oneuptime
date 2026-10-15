@@ -374,7 +374,7 @@ För varje typ av post i OneUptime (monitorer, incidenter, larm, statussidor, jo
 | **Delete One Monitor**   | Tar bort en matchande post.                                                    |
 | **Delete Many Monitors** | Tar bort matchande poster, upp till **Limit**.                                 |
 
-Samma uppsättning ger dig tre utlösare — **On Create Monitor**, **On Update Monitor** och **On Delete Monitor**. Se [Utlösare](/docs/workflows/triggers#utlösare-för-oneuptime-händelser).
+Samma uppsättning ger dig fyra utlösare — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** och **On Delete Monitor**. Se [Utlösare](/docs/workflows/triggers#utlösare-för-oneuptime-händelser).
 
 En typ erbjuder bara de komponenter som dess modell tillåter. En skrivskyddad typ har de två Find-komponenterna och inget annat, så om du inte hittar **Delete One Monitor** i panelen tillåter den typen det inte.
 

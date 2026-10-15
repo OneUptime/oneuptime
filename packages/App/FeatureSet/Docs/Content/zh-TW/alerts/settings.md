@@ -151,7 +151,7 @@ flowchart TB
 
 ## 工作流程
 
-每個警示模型都有以它命名的工作流程觸發器和動作：**On Create Alert**、**On Update Alert** 和 **On Delete Alert**，**警示 片段**、**警示 狀態 時間軸** 等也同樣如此，還有 **Create One Alert** 和 **Update One Alert** 等動作。唯一的例外是警示自訂欄位的定義：它們沒有工作流程觸發器。請參閱 [工作流程概觀](/docs/workflows/index)。
+每個警示模型都有以它命名的工作流程觸發器和動作：**On Create Alert**、**On Update Alert**、**On Create or Update Alert** 和 **On Delete Alert**，**警示 片段**、**警示 狀態 時間軸** 等也同樣如此，還有 **Create One Alert** 和 **Update One Alert** 等動作。唯一的例外是警示自訂欄位的定義：它們沒有工作流程觸發器。請參閱 [工作流程概觀](/docs/workflows/index)。
 
 ## 誰可以變更這些內容
 

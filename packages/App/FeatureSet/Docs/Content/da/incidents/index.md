@@ -199,7 +199,7 @@ Hvad hver side indeholder:
 - **Vagtpolitikker står for tilkaldelsen.** Knyt politikker på trinnet **Vagt og roller** i guiden til at erklære, på en skabelon, eller via **Hændelser → Regler → Vagtregler**. Hver regel, der matcher, udløses — det, der udføres, er foreningen af alle match plus alt, hvad der er knyttet direkte, uden dubletter.
 - **Runbooks fortæller folk, hvad de skal gøre.** Runbook-regler knytter automatisk en procedure til, når en matchende hændelse oprettes, og dem, der reagerer, kan starte en i hånden fra hændelsen. Se [Runbooks – Oversigt](/docs/runbooks/index).
 - **Statussider informerer kunderne.** En hændelse vises i en statussides aktive liste, når siden viser en af dens monitorer, siden har hændelser slået til, hændelsen er markeret som synlig på statussiden, og dens aktuelle tilstand står over den løste tilstand. En hændelse, der er begrænset til nogle statussider, vises kun på dem. Private hændelser er altid skjult for alle statussider. Se [Statussider – Oversigt](/docs/status-pages/index) og [Én statusside pr. målgruppe](/docs/status-pages/one-status-page-per-audience).
-- **Workflows automatiserer omkring den.** Med udløserne **On Create Incident**, **On Update Incident** og **On Delete Incident** bygger du automatisering uden kode oven på hændelsens livscyklus. Se [Workflows – Oversigt](/docs/workflows/index).
+- **Workflows automatiserer omkring den.** Med udløserne **On Create Incident**, **On Update Incident**, **On Create or Update Incident** og **On Delete Incident** bygger du automatisering uden kode oven på hændelsens livscyklus. Se [Workflows – Oversigt](/docs/workflows/index).
 
 ## Næste skridt
 

@@ -185,7 +185,7 @@ Give the people who build automation **Workflow Admin**, and the people who only
 
 ## What workflow steps can do
 
-The steps that read and change OneUptime records — the Find, Create, Update and Delete components, and the On Create, On Update and On Delete triggers — act as a **Project Admin** of the workflow's project. Whoever built the workflow, a step meets the same checks a Project Admin meets in the dashboard and the API:
+The steps that read and change OneUptime records — the Find, Create, Update and Delete components, and the On Create, On Update, On Create or Update and On Delete triggers — act as a **Project Admin** of the workflow's project. Whoever built the workflow, a step meets the same checks a Project Admin meets in the dashboard and the API:
 
 - **Only the workflow's own project.** A step reads and writes the records of the project the workflow belongs to and no other, and an Update never moves a record to another project.
 - **Only what a Project Admin may do.** A step can grant only the team and API key permissions a Project Admin holds itself, so it can't hand out **Project Owner**, billing or project-deletion permissions, and it can't add someone to a team whose permissions go beyond a Project Admin's, such as the owners' team. A step can't read who created a probe or an AI agent, which only project owners see.

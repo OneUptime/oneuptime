@@ -79,6 +79,7 @@ Como cada pessoa é contatada é ela quem decide. Em **Configurações do usuár
 :::cards
 - [Regras de escalonamento](/docs/on-call/escalation-rules): Acionar pessoas nível a nível até alguém responder.
 - [Agendamentos de plantão](/docs/on-call/schedules): Rodízios, camadas e passagens de turno.
+- [Como o OneUptime chega até você](/docs/notifications/index): Os métodos, regras e configurações que decidem como cada pessoa é contatada.
 :::
 
 ## Páginas de status e manutenção

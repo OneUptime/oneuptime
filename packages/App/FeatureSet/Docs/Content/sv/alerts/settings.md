@@ -151,7 +151,7 @@ I **Reminder Settings** ställer du in **Reminder Interval (minutes)**, hur ofta
 
 ## Arbetsflöden
 
-Varje larmmodell har arbetsflödesutlösare och åtgärder som är uppkallade efter den: **On Create Alert**, **On Update Alert** och **On Delete Alert**, samma sak för **Larm Episod**, **Larm Tillstånd Tidslinje** och de andra, och åtgärder som **Create One Alert** och **Update One Alert**. Definitionerna av anpassade fält för larm är det enda undantaget: De har inga arbetsflödesutlösare. Se [Översikt över arbetsflöden](/docs/workflows/index).
+Varje larmmodell har arbetsflödesutlösare och åtgärder som är uppkallade efter den: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** och **On Delete Alert**, samma sak för **Larm Episod**, **Larm Tillstånd Tidslinje** och de andra, och åtgärder som **Create One Alert** och **Update One Alert**. Definitionerna av anpassade fält för larm är det enda undantaget: De har inga arbetsflödesutlösare. Se [Översikt över arbetsflöden](/docs/workflows/index).
 
 ## Vem som kan ändra dem
 
