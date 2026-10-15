@@ -13,6 +13,7 @@ import FeedMarkdown, {
 } from "../../../../../Utils/Markdown/FeedMarkdown";
 import { OnCallPageResult } from "../../../../Services/OnCallPageService";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
+import logger from "../../../Logger";
 import { WorkspaceAnswer, WorkspaceLatePress } from "../../WorkspaceActionAnswers";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 import WorkspaceIncidentActions, {
@@ -272,23 +273,37 @@ export default class MicrosoftTeamsIncidentMoreActions {
     let incidentId: ObjectID | null;
 
     try {
-      props = await MicrosoftTeamsIncidentMoreActions.getSenderProps(data);
-
-      incidentId = await WorkspaceIncidentActions.findForChannel({
+      incidentId = await WorkspaceIncidentActions.findChannelOwner({
         projectId: data.projectId,
         channelId: channelId,
-        props: props,
       });
+
+      if (!incidentId) {
+        return false;
+      }
+
+      props = await MicrosoftTeamsIncidentMoreActions.getSenderProps(data);
+
+      if (
+        !(await WorkspaceIncidentActions.isReadable({
+          projectId: data.projectId,
+          incidentId: incidentId,
+          props: props,
+        }))
+      ) {
+        return false;
+      }
     } catch (err) {
-      MicrosoftTeamsReplies.logFailure(
-        "Could not tell whether a Microsoft Teams command came from an incident's channel",
-        err,
+      /*
+       * Not connected, not a member, or the channel could not be read: the
+       * incident form, as the command always opened - its own check asks
+       * them to connect, or tells them why.
+       */
+      logger.debug(
+        "Could not tell whether a Microsoft Teams command came from an incident's channel.",
         { projectId: data.projectId.toString() },
       );
-      return false;
-    }
-
-    if (!incidentId) {
+      logger.debug(err);
       return false;
     }
 
@@ -432,14 +447,20 @@ export default class MicrosoftTeamsIncidentMoreActions {
         props: data.databaseProps,
       });
 
-    await MicrosoftTeamsIncidentMoreActions.replyDone({
-      turnContext: data.turnContext,
-      answer: await WorkspaceIncidentActions.getSeverityAnswer({
+    await MicrosoftTeamsIncidentMoreActions.confirm(
+      data.turnContext,
+      await WorkspaceIncidentActions.getSeverityAnswer({
         event: incident.event,
         severityName: result.severityName,
         isChanged: result.isChanged,
       }),
-    });
+    );
+
+    // Done: the card goes, so nobody submits it twice.
+    await MicrosoftTeamsReplies.deleteBestEffort(
+      data.turnContext,
+      data.turnContext.activity.replyToId,
+    );
   }
 
   // ---------------------------------------------------------------------
@@ -630,13 +651,19 @@ export default class MicrosoftTeamsIncidentMoreActions {
         props: data.databaseProps,
       });
 
-    await MicrosoftTeamsIncidentMoreActions.replyDone({
-      turnContext: data.turnContext,
-      answer: await WorkspaceIncidentActions.getRoleAnswer({
+    await MicrosoftTeamsIncidentMoreActions.confirm(
+      data.turnContext,
+      await WorkspaceIncidentActions.getRoleAnswer({
         event: incident.event,
         assignment: assignment,
       }),
-    });
+    );
+
+    // Done: the card goes, so nobody submits it twice.
+    await MicrosoftTeamsReplies.deleteBestEffort(
+      data.turnContext,
+      data.turnContext.activity.replyToId,
+    );
   }
 
   // ---------------------------------------------------------------------
@@ -819,10 +846,16 @@ export default class MicrosoftTeamsIncidentMoreActions {
       props: data.databaseProps,
     });
 
-    await MicrosoftTeamsIncidentMoreActions.replyDone({
-      turnContext: data.turnContext,
-      answer: WorkspaceIncidentActions.getPagedAnswer(result),
-    });
+    await MicrosoftTeamsIncidentMoreActions.confirm(
+      data.turnContext,
+      WorkspaceIncidentActions.getPagedAnswer(result),
+    );
+
+    // Paged: the card goes, so nobody pages with it twice.
+    await MicrosoftTeamsReplies.deleteBestEffort(
+      data.turnContext,
+      data.turnContext.activity.replyToId,
+    );
   }
 
   // ---------------------------------------------------------------------
@@ -1018,13 +1051,19 @@ export default class MicrosoftTeamsIncidentMoreActions {
       });
     }
 
-    await MicrosoftTeamsIncidentMoreActions.replyDone({
-      turnContext: data.turnContext,
-      answer: await WorkspaceIncidentActions.getCustomFieldsAnswer({
+    await MicrosoftTeamsIncidentMoreActions.confirm(
+      data.turnContext,
+      await WorkspaceIncidentActions.getCustomFieldsAnswer({
         event: incident.event,
         changedNames: changedNames,
       }),
-    });
+    );
+
+    // Saved: the card goes, so nobody submits it twice.
+    await MicrosoftTeamsReplies.deleteBestEffort(
+      data.turnContext,
+      data.turnContext.activity.replyToId,
+    );
   }
 
   /*
@@ -1249,23 +1288,15 @@ export default class MicrosoftTeamsIncidentMoreActions {
   }
 
   /*
-   * What a submitted card did, mentioning who submitted it; then the card
-   * goes, so nobody submits it twice. Neither may fail the action: it is
-   * done.
+   * What a submitted card did, said in the conversation as the incident's
+   * other cards confirm theirs. Best-effort: the action is done, and a reply
+   * Teams refuses must not read as a failed action, which invites a repeat.
    */
-  private static async replyDone(data: {
-    turnContext: TurnContext;
-    answer: WorkspaceAnswer;
-  }): Promise<void> {
-    await MicrosoftTeamsActionAnswer.reply({
-      turnContext: data.turnContext,
-      answer: data.answer,
-    });
-
-    await MicrosoftTeamsReplies.deleteBestEffort(
-      data.turnContext,
-      data.turnContext.activity.replyToId,
-    );
+  private static async confirm(
+    turnContext: TurnContext,
+    answer: WorkspaceAnswer,
+  ): Promise<void> {
+    await MicrosoftTeamsReplies.sendBestEffort(turnContext, answer.markdown);
   }
 
   // A card's field left wrong: said, mentioning them; the card stays.

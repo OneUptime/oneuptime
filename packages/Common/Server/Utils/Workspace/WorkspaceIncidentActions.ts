@@ -438,20 +438,21 @@ export default class WorkspaceIncidentActions {
 
   /*
    * The incident a channel was made for - its own channel, which a
-   * notification rule created - when the member may read it. Null for any
-   * other channel: one many incidents are posted to belongs to none.
+   * notification rule created - read as OneUptime: which channels are an
+   * incident's own is OneUptime's to know, and nothing of the incident is
+   * told from it. Null for any other channel: one many incidents are posted
+   * to belongs to none. Asked before anything of the person who asked, so a
+   * command in any other channel reads nothing of them twice.
    */
   @CaptureSpan()
-  public static async findForChannel(data: {
+  public static async findChannelOwner(data: {
     projectId: ObjectID;
     channelId: string;
-    props: DatabaseCommonInteractionProps;
   }): Promise<ObjectID | null> {
     if (!data.channelId) {
       return null;
     }
 
-    // Which channels are an incident's own is OneUptime's to read.
     const owner: Incident | null = await IncidentService.findOneBy({
       query: {
         projectId: data.projectId,
@@ -470,31 +471,36 @@ export default class WorkspaceIncidentActions {
       },
     });
 
-    if (!owner?.id) {
-      return null;
-    }
+    return owner?.id || null;
+  }
 
-    // Whether the member may read it is theirs.
-    let readable: Incident | null = null;
-
+  // Whether the member may read the incident: in their project, labels, owners.
+  @CaptureSpan()
+  public static async isReadable(data: {
+    projectId: ObjectID;
+    incidentId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<boolean> {
     try {
-      readable = await IncidentService.findOneBy({
-        query: {
-          _id: owner.id.toString(),
-          projectId: data.projectId,
-        },
-        select: {
-          _id: true,
-        },
-        props: data.props,
-      });
+      return Boolean(
+        await IncidentService.findOneBy({
+          query: {
+            _id: data.incidentId.toString(),
+            projectId: data.projectId,
+          },
+          select: {
+            _id: true,
+          },
+          props: data.props,
+        }),
+      );
     } catch (err) {
       if (!WorkspaceActionAuthorization.isReadRefusal(err)) {
         throw err;
       }
-    }
 
-    return readable?.id || null;
+      return false;
+    }
   }
 
   /*

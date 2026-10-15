@@ -259,27 +259,39 @@ export default class SlackIncidentMoreActions {
     let incidentId: ObjectID | null;
 
     try {
+      incidentId = await WorkspaceIncidentActions.findChannelOwner({
+        projectId: slackRequest.projectId,
+        channelId: slackRequest.slackChannelId,
+      });
+
+      if (!incidentId) {
+        return false;
+      }
+
       props = await WorkspaceActionAuthorization.getProjectMemberProps({
         userId: slackRequest.userId,
         projectId: slackRequest.projectId,
       });
 
-      incidentId = await WorkspaceIncidentActions.findForChannel({
-        projectId: slackRequest.projectId,
-        channelId: slackRequest.slackChannelId,
-        props: props,
-      });
+      if (
+        !(await WorkspaceIncidentActions.isReadable({
+          projectId: slackRequest.projectId,
+          incidentId: incidentId,
+          props: props,
+        }))
+      ) {
+        return false;
+      }
     } catch (err) {
-      // The form's own check tells them, as it always did.
+      /*
+       * Not a member, or the channel could not be read: the incident form,
+       * as the command always opened - its own check tells them why.
+       */
       logger.debug(
         "Could not tell whether a Slack command came from an incident's channel.",
         { projectId: slackRequest.projectId.toString() },
       );
       logger.debug(err);
-      return false;
-    }
-
-    if (!incidentId) {
       return false;
     }
 

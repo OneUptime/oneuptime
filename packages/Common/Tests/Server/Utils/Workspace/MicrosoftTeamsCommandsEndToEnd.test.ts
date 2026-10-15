@@ -554,7 +554,7 @@ describe("help: one card that mentions whoever asked, with the words Slack's /on
 
     expect(answerOf(delivery.posts[0]).split("\n")).toEqual([
       "👋 **Here's what I can do.** In a channel or a group chat, mention @OneUptime first.",
-      "- **incident [title]**: declare an incident",
+      "- **incident [title or number]**: declare an incident, or act on one by its number",
       "- **maintenance [title]**: schedule maintenance",
       "- **oncall**: see who is on call right now",
       "- **page [who] [message]**: page a person, a team or whoever is on call",
