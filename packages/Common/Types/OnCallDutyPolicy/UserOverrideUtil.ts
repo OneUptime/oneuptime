@@ -510,10 +510,69 @@ export default class UserOverrideUtil {
   }
 
   /*
+   * THE NEXT PERSON IN THE ROTATION AFTER A TURN: whom an escalation rule's
+   * "Next in rotation" of an on-call schedule pages - the backup to whoever
+   * is on call, from the same rotation.
+   *
+   * The first person after the turn in the layer's turn order, wrapping
+   * round to the start of the list, who is not away at any moment of
+   * [start, end) - away with a cover or skipped, in this context, exactly as
+   * the skip pass passes them over (applySkipsToLayerEvents) - and is none
+   * of `excludeUserIds`: whoever has the turn now, and whose turn it is,
+   * who are on call already and are never their own backup. Null when there
+   * is nobody: the layer has nobody else in it, or everybody else in it is
+   * away.
+   *
+   * `turnIndex` is the turn's place in the layer's turn order
+   * (ROTATION_TURN_INDEX_KEY): the same person twice in a list ([Alice, Bob,
+   * Alice, Carol]) has a different next person after each of their turns.
+   *
+   * `overrides` are those that apply in the context (getApplicableOverrides).
+   * Pure.
+   */
+  public static getNextInRotation(data: {
+    // The layer's people as ids, in turn order.
+    userIds: Array<string>;
+    turnIndex: number;
+    start: Date;
+    end: Date;
+    overrides: Array<UserOverrideRecord>;
+    excludeUserIds?: Array<string> | undefined;
+  }): string | null {
+    const count: number = data.userIds.length;
+
+    if (
+      count === 0 ||
+      !Number.isInteger(data.turnIndex) ||
+      data.turnIndex < 0 ||
+      data.turnIndex >= count
+    ) {
+      return null;
+    }
+
+    const start: number = OneUptimeDate.fromString(data.start).getTime();
+    const end: number = OneUptimeDate.fromString(data.end).getTime();
+
+    if (!Number.isFinite(start) || !Number.isFinite(end) || !(end > start)) {
+      return null;
+    }
+
+    return UserOverrideUtil.getNextAvailable({
+      userIds: data.userIds,
+      turnIndex: data.turnIndex,
+      start,
+      end,
+      index: UserOverrideUtil.buildAwayIndex(data.overrides),
+      excludeUserIds: new Set<string>(data.excludeUserIds || []),
+    });
+  }
+
+  /*
    * Who has a skipped turn: the first person after it in the layer's turn
    * order, wrapping round, who is not away at any moment of [start, end).
    * The skipped person's own other places in the list are passed over too -
-   * they are away.
+   * they are away. The people in `excludeUserIds` are passed over as well
+   * (getNextInRotation: whoever is on call now).
    */
   private static getNextAvailable(data: {
     userIds: Array<string>;
@@ -521,6 +580,7 @@ export default class UserOverrideUtil {
     start: number;
     end: number;
     index: AwayIndex;
+    excludeUserIds?: Set<string> | undefined;
   }): string | null {
     const count: number = data.userIds.length;
 
@@ -528,7 +588,7 @@ export default class UserOverrideUtil {
       const candidate: string | undefined =
         data.userIds[(data.turnIndex + step) % count];
 
-      if (!candidate) {
+      if (!candidate || data.excludeUserIds?.has(candidate)) {
         continue;
       }
 

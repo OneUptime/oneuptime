@@ -19,6 +19,7 @@ flowchart TB
 - [Hvem som varsles først](#hvem-som-varsles-først): Opprett en retningslinje med det første nivået.
 - [Legg til en eskaleringsregel](#legg-til-en-eskaleringsregel): Legg til neste nivå, steg for steg.
 - [Slik varsler nivåene folk](#slik-varsler-nivåene-folk): Tidsbruk, gjentakelser og hvordan hver person nås.
+- [Neste person i rotasjonen](#eskaler-til-neste-person-i-rotasjonen): Varsle backupen til den som har vakt, fra samme rotasjon.
 - [API og Terraform](#opprett-regler-med-api-et-eller-terraform): Opprett retningslinjer og regler som kode.
 :::
 
@@ -49,6 +50,7 @@ Klikk på **Legg til mottaker** under **Varsle**, søk, og velg så mange vaktpl
 | Mottaker | Hvem som varsles når nivået kjører |
 | --- | --- |
 | En **vaktplan** | Den som har vakt i den når nivået kjører, ikke en fast person. |
+| En vaktplans **Neste i rotasjonen** | Personen etter den som har vakt i den, fra samme rotasjon. Se [Eskaler til neste person i rotasjonen](#eskaler-til-neste-person-i-rotasjonen). |
 | Et **team** | Alle medlemmene i teamet. |
 | En **person** | Den personen, direkte. |
 
@@ -133,6 +135,34 @@ På OneUptime Cloud betales hver SMS, hvert anrop og hver WhatsApp- og Telegram-
 > [!IMPORTANT]
 > SMS, telefonanrop, WhatsApp og Telegram er slått av i et nytt prosjekt: på OneUptime Cloud betales hver melding fra prosjektets saldo, og en selvdriftet installasjon trenger først en Twilio-konto eller en Telegram-bot som er satt opp. Så lenge en kanal er slått av, kan ingen i prosjektet legge til en metode på den. Bare en prosjekteier, en **Billing Admin** eller noen med tillatelsen **Manage Billing** kan slå en på, i kortet **Varslingskanaler** på **Prosjektinnstillinger > Varsler > Varselinnstillinger** — en prosjektadministrator kan ikke. Alle andre får vite nøyaktig hvem som kan, overalt der en kanal er slått av: over sin egen liste med metoder på den, på oppsettsjekklisten sin og i meldingen de får når noe trenger den.
 
+## Eskaler til neste person i rotasjonen
+
+Et nivå kan varsle neste person i en vaktplans rotasjon: personen etter den som har vakt i den. Slik kan en retningslinje først varsle den som har vakt, så backupen fra samme rotasjon og så et team eller en leder, alt fra én vaktplan.
+
+| Nivå | Varsle | Hvem som varsles |
+| --- | --- | --- |
+| **Level 1** | Vaktplanen Payments primary | Den som har vakt i den, for eksempel Alex |
+| **Level 2** | Samme vaktplans **Neste i rotasjonen** | Personen etter Alex i rotasjonen, for eksempel Sam |
+| **Level 3** | Teamet Platform | Alle medlemmene i teamet |
+
+:::steps
+1. Sørg for at det første nivået i retningslinjen, **Level 1**, varsler vaktplanen.
+2. Klikk på **Legg til eskaleringsregel**, deretter på **Legg til mottaker**, og velg den samme vaktplanen under **Neste i rotasjonen**. Angi **Eskaler etter (i minutter)**, og klikk på **Create Rule**.
+3. Legg til ett nivå til for teamet eller lederen som skal få beskjed etterpå.
+:::
+
+Neste person finnes når nivået kjører, ut fra vaktplanen slik den er da:
+
+- Det er personen etter den som har vakt, i den rekkefølgen personene i rotasjonen bytter på. Etter den siste personen kommer den første igjen.
+- Personer som er borte, hoppes over, uansett om noen dekker for dem, og det samme gjelder alle som har vakt i stedet for en annen.
+- Det er alltid noen fra samme rotasjon: med flere lag, laget som den som har vakt, kommer fra. En rotasjon uten andre i, eller der alle andre er borte, har ingen neste person, og nivået varsler ingen der og sier det.
+- Når ingen har vakt i vaktplanen i det hele tatt, er det heller ingen neste person, og nivået prøves på nytt i noen minutter, som for selve vaktplanen.
+
+Kjøringens melding i Slack og Microsoft Teams, hendelsens feed og **Tidslinje for utførelsen** viser hvem som ble varslet som neste i rotasjonen, og fra hvilken vaktplan: "Sam Lee (next in the Payments primary rotation)".
+
+> [!TIP]
+> Én vaktplan er nok: det finnes ingen annen backup-vaktplan å holde i takt med den første, og fraværet som personene i den registrerer, gjelder for begge nivåene.
+
 ## Rediger, endre rekkefølge på og slett regler
 
 Kortet til hver regel har **Edit rule**, og en **⋯**-meny med de andre handlingene:
@@ -148,6 +178,7 @@ Eskaleringsregler er ressursen `/api/on-call-duty-policy-escalation-rule`; perso
 - En regel som opprettes uten `name`, får navn etter nivået sitt, som i dashbordet: **Level 3** for en regel som blir det tredje nivået i retningslinjen. Terraforms ressurs for eskaleringsregler krever fortsatt et navn.
 - `escalateAfterInMinutes` har ingen standardverdi utenfor dashbordet. En regel som opprettes uten den, venter ikke: neste nivå varsles så snart dette har kjørt. Angi den eksplisitt — 30 er det dashbordet foreslår.
 - En regel som opprettes med `onCallSchedules`, `teams` eller `users` (lister med ID-er) i `miscDataProps`, får de mottakerne; det er slik dashbordets velger **Varsle** sender dem. En regel som opprettes uten dem, varsler ingen før du legger til mottakere gjennom ressursene ovenfor.
+- En regel som opprettes med `nextInRotationSchedules` (en liste med vaktplan-ID-er) i `miscDataProps`, varsler neste person i rotasjonen til hver av disse vaktplanene. På ressursen `-schedule` gjør en rad med `pageNextInRotation` satt til `true` det samme; verdien settes når raden opprettes.
 - Regler som har navn etter nivået sitt, får nye navn når du flytter eller sletter regler i dashbordet. Å endre `order` gjennom API-et eller Terraform endrer bare rekkefølgen.
 - Å opprette en vaktretningslinje på `/api/on-call-duty-policy` med `onCallSchedules`, `teams` eller `users` (lister med ID-er) i `miscDataProps` gir den den første eskaleringsregelen, slik dashbordet gjør: **Level 1**, som varsler dem, med en `escalateAfterInMinutes` på 30. Hver ID må høre til prosjektet, og den som kaller, må ha lov til å opprette eskaleringsregler, ellers blir ikke retningslinjen opprettet. En retningslinje som opprettes uten dem, har ingen regler, som før; Terraforms ressurs for retningslinjer sender dem ikke.
 

@@ -114,6 +114,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       select: {
         projectId: true,
         onCallDutyPolicyScheduleId: true,
+        pageNextInRotation: true,
         onCallDutyPolicySchedule: {
           name: true,
         },
@@ -181,6 +182,16 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     const feedOnCallDutyPolicyId: ObjectID | undefined | null =
       createdModel.onCallDutyPolicy?.id;
 
+    /*
+     * A rule that pages the next person in the schedule's rotation - the
+     * backup after whoever is on call - says so in the feed, and does not
+     * page the person on call: they are not told they were added, and no
+     * on-call time is logged for them through this rule.
+     */
+    const pagesNextInRotation: boolean = Boolean(
+      createdModel.pageNextInRotation,
+    );
+
     if (feedOnCallDutyPolicyId) {
       const noCoverageSuffix: MarkdownText = userOnSchedule
         ? FeedMarkdown.empty()
@@ -193,7 +204,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           OnCallDutyPolicyFeedEventType.OnCallDutyScheduleAdded,
         displayColor: userOnSchedule ? Gray500 : Red500,
         feedInfoInMarkdown:
-          mdText`📅 Added on-call schedule **${createdModel.onCallDutyPolicySchedule?.name || ""}** from the [On-Call Policy ${createdModel.onCallDutyPolicy?.name || ""}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(createdModel.projectId!, feedOnCallDutyPolicyId)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.${noCoverageSuffix}`.toString(),
+          mdText`📅 Added on-call schedule **${createdModel.onCallDutyPolicySchedule?.name || ""}**${pagesNextInRotation ? mdText` (next in rotation)` : FeedMarkdown.empty()} from the [On-Call Policy ${createdModel.onCallDutyPolicy?.name || ""}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(createdModel.projectId!, feedOnCallDutyPolicyId)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.${noCoverageSuffix}`.toString(),
         userId: createdModel.createdByUserId || undefined,
         workspaceNotification: {
           sendWorkspaceNotification: true,
@@ -202,7 +213,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       });
     }
 
-    if (!userOnSchedule) {
+    if (!userOnSchedule || pagesNextInRotation) {
       return createdItem;
     }
 
@@ -336,6 +347,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       await this.findRowsAndHoldDeleteToThem(deleteBy, {
         projectId: true,
         onCallDutyPolicyScheduleId: true,
+        pageNextInRotation: true,
         onCallDutyPolicySchedule: {
           name: true,
           _id: true,
@@ -376,7 +388,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
             OnCallDutyPolicyFeedEventType.OwnerTeamRemoved,
           displayColor: Red500,
           feedInfoInMarkdown:
-            mdText`📅 Removed on-call schedule **${onCallSchedule.name}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`.toString(),
+            mdText`📅 Removed on-call schedule **${onCallSchedule.name}**${item.pageNextInRotation ? mdText` (next in rotation)` : FeedMarkdown.empty()} from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`.toString(),
           userId: deleteByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,
@@ -422,6 +434,15 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     }
 
     for (const deletedItem of deletedItems) {
+      /*
+       * A row that paged the next person in the rotation never paged the
+       * person on call: it opened no time log for them and told them
+       * nothing when it was added, so there is nothing to close or say.
+       */
+      if (deletedItem.pageNextInRotation) {
+        continue;
+      }
+
       const userOnSchedule: ObjectID | null =
         await OnCallDutyPolicyScheduleService.getCurrentUserIdInSchedule(
           deletedItem.onCallDutyPolicyScheduleId!,

@@ -29711,5 +29711,16 @@
   "{{field}}: the highest number used is now {{highestNumber}}. Use a number higher than {{highestNumber}}.": "{{field}}: наибольший использованный номер теперь {{highestNumber}}. Укажите номер больше {{highestNumber}}.",
   "Carry on your incident numbers": "Продолжите нумерацию инцидентов",
   "If your team refers to incidents by number, start OneUptime's after your last one in {{tool}}: set Next Incident Number to one past it. A number then never means two different incidents.": "Если ваша команда называет инциденты по номерам, начните номера OneUptime после вашего последнего в {{tool}}: укажите в поле «Следующий номер инцидента» номер, следующий за ним. Тогда один номер никогда не обозначает два разных инцидента.",
-  "Open Incident Numbering": "Открыть нумерацию инцидентов"
+  "Open Incident Numbering": "Открыть нумерацию инцидентов",
+  "Add next in rotation": "Добавить следующего в ротации",
+  "Next in rotation": "Следующий в ротации",
+  "Nobody was next in the rotation": "Следующего в ротации не было",
+  "On-call schedules page whoever is on call; Next in rotation pages the person after them. Teams page every member.": "Расписания дежурств оповещают того, кто сейчас дежурит; «Следующий в ротации» оповещает человека после него. Команды оповещают каждого участника.",
+  "Page Next in Rotation": "Оповещать следующего в ротации",
+  "Paged as Next in Rotation": "Оповещён как следующий в ротации",
+  "Pages the next person in this schedule's rotation: the person after whoever is on call, passing over anyone who is away.": "Оповещает следующего в ротации этого расписания: того, кто идёт после дежурного, пропуская всех отсутствующих.",
+  "next in rotation": "следующий в ротации",
+  "After whoever is on call": "После того, кто сейчас дежурит",
+  "No one next": "Следующего нет",
+  "Nobody else is in this schedule's rotation, so this level would not notify anyone. Add people to the schedule's layers.": "В ротации этого расписания больше никого нет, поэтому этот уровень никого не оповестит. Добавьте людей в слои расписания."
 }

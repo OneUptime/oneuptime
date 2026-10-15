@@ -59,7 +59,7 @@ Ga naar **Bereikbaarheidsbeleid** en klik op **Bereikbaarheidsbeleid aanmaken**.
 
 ### De volgende niveaus toevoegen
 
-Klik op de pagina **Escalatieregels** van het beleid op **Escalatieregel toevoegen** voor elk niveau na het eerste: een tweede schema, een teamleider, een manager. Zie [Escalatieregels](/docs/on-call/escalation-rules).
+Klik op de pagina **Escalatieregels** van het beleid op **Escalatieregel toevoegen** voor elk niveau na het eerste: de volgende persoon in de rotatie van hetzelfde schema, een teamleider, een manager. Zie [Escalatieregels](/docs/on-call/escalation-rules).
 
 ### Het beleid automatisch uitvoeren
 

@@ -59,7 +59,7 @@ Allez dans **Politiques d'astreinte** et cliquez sur **Créer : Politique d'astr
 
 ### Ajouter les niveaux suivants
 
-Sur la page **Règles d'escalade** de la politique, cliquez sur **Ajouter une règle d'escalade** pour chaque niveau après le premier : un deuxième planning, un responsable d'équipe, un manager. Voir [Règles d'escalade](/docs/on-call/escalation-rules).
+Sur la page **Règles d'escalade** de la politique, cliquez sur **Ajouter une règle d'escalade** pour chaque niveau après le premier : la personne suivante de la rotation du même planning, un responsable d'équipe, un manager. Voir [Règles d'escalade](/docs/on-call/escalation-rules).
 
 ### Exécuter la politique automatiquement
 

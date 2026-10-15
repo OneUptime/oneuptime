@@ -29711,5 +29711,16 @@
   "{{field}}: the highest number used is now {{highestNumber}}. Use a number higher than {{highestNumber}}.": "{{field}}: 지금까지 사용된 가장 높은 번호가 이제 {{highestNumber}}입니다. {{highestNumber}}보다 큰 번호를 입력하세요.",
   "Carry on your incident numbers": "인시던트 번호 이어 가기",
   "If your team refers to incidents by number, start OneUptime's after your last one in {{tool}}: set Next Incident Number to one past it. A number then never means two different incidents.": "팀이 인시던트를 번호로 부른다면 OneUptime의 번호를 {{tool}}의 마지막 번호 다음부터 시작하세요. 다음 인시던트 번호를 그 다음 번호로 설정합니다. 그러면 한 번호가 서로 다른 두 인시던트를 가리키는 일이 없습니다.",
-  "Open Incident Numbering": "인시던트 번호 매기기 열기"
+  "Open Incident Numbering": "인시던트 번호 매기기 열기",
+  "Add next in rotation": "로테이션의 다음 사람 추가",
+  "Next in rotation": "로테이션의 다음 사람",
+  "Nobody was next in the rotation": "로테이션에 다음 사람이 없었습니다",
+  "On-call schedules page whoever is on call; Next in rotation pages the person after them. Teams page every member.": "온콜 스케줄은 현재 온콜 담당자에게 알립니다. 로테이션의 다음 사람은 그다음 사람에게 알립니다. 팀은 모든 구성원에게 알립니다.",
+  "Page Next in Rotation": "로테이션의 다음 사람에게 알림",
+  "Paged as Next in Rotation": "로테이션의 다음 사람으로 알림",
+  "Pages the next person in this schedule's rotation: the person after whoever is on call, passing over anyone who is away.": "이 스케줄 로테이션의 다음 사람에게 알립니다. 현재 온콜 담당자 다음 사람이며, 부재 중인 사람은 건너뜁니다.",
+  "next in rotation": "로테이션의 다음 사람",
+  "After whoever is on call": "현재 온콜 담당자 다음",
+  "No one next": "다음 사람 없음",
+  "Nobody else is in this schedule's rotation, so this level would not notify anyone. Add people to the schedule's layers.": "이 스케줄의 로테이션에 다른 사람이 없어 이 단계에서는 아무에게도 알리지 않습니다. 스케줄의 레이어에 사람을 추가하세요."
 }
