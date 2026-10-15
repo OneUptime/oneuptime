@@ -27,6 +27,7 @@ import { BaseTableProps } from "../../../UI/Components/ModelTable/BaseModelTable
 import Column from "../../../UI/Components/ModelTable/Column";
 import ActionButtonSchema from "../../../UI/Components/ActionButton/ActionButtonSchema";
 import { ComponentProps as ModalProps } from "../../../UI/Components/Modal/Modal";
+import DiscoveryImportFakeServer from "./DiscoveryImportFakeServer";
 
 type TableProps = Pick<
   BaseTableProps<NetworkDeviceDiscoveryScan>,
@@ -228,6 +229,13 @@ beforeEach(() => {
     .mockResolvedValue(
       scan({ discoveredDevices: [HOST], isSnmpEnabled: false }),
     );
+  /*
+   * The import API in memory. The page asks for the project's active
+   * imports, and Review Results for the scan's last import before it shows
+   * the hosts; left to the network, that read waits on a lookup of a host
+   * that does not exist, and a slow machine runs the assertions first.
+   */
+  new DiscoveryImportFakeServer().install();
 });
 
 afterEach(() => {
