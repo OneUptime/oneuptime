@@ -23483,8 +23483,8 @@
   "within a minute": "within a minute",
   "your account has no verified notification method, so pages routed to you are being dropped.": "your account has no verified notification method, so pages routed to you are being dropped.",
   "{{action}} when this criteria is met. Change monitor status to:": "{{action}} when this criteria is met. Change monitor status to:",
-  "{{action}} when this criteria is met. These are the alert details:": "{{action}} when this criteria is met. These are the alert details:",
-  "{{action}} when this criteria is met. These are the incident details:": "{{action}} when this criteria is met. These are the incident details:",
+  "{{action}} when this criteria is met. These are the alert details:": "{{action}} lorsque ce critère est rempli. Voici les détails de l'alerte :",
+  "{{action}} when this criteria is met. These are the incident details:": "{{action}} lorsque ce critère est rempli. Voici les détails de l'incident :",
   "{{cadence}} · next {{time}}": "{{cadence}} · next {{time}}",
   "{{category}} · click to zoom in": "{{category}} · click to zoom in",
   "{{condition}} of these can match for this criteria to be met:": "{{condition}} of these can match for this criteria to be met:",
@@ -29711,5 +29711,11 @@
   "{{field}}: the highest number used is now {{highestNumber}}. Use a number higher than {{highestNumber}}.": "{{field}} : le numéro le plus élevé utilisé est désormais {{highestNumber}}. Utilisez un numéro supérieur à {{highestNumber}}.",
   "Carry on your incident numbers": "Poursuivre vos numéros d'incident",
   "If your team refers to incidents by number, start OneUptime's after your last one in {{tool}}: set Next Incident Number to one past it. A number then never means two different incidents.": "Si votre équipe désigne les incidents par leur numéro, faites commencer ceux de OneUptime après votre dernier dans {{tool}} : réglez Prochain numéro d'incident au numéro qui le suit. Un numéro ne désigne alors jamais deux incidents différents.",
-  "Open Incident Numbering": "Ouvrir la numérotation des incidents"
+  "Open Incident Numbering": "Ouvrir la numérotation des incidents",
+  "Open a new alert for every email": "Ouvrir une nouvelle alerte pour chaque e-mail",
+  "Open a new incident and alert for every email": "Ouvrir un nouvel incident et une nouvelle alerte pour chaque e-mail",
+  "Open a new incident for every email": "Ouvrir un nouvel incident pour chaque e-mail",
+  "{{action}} for every email that meets this criteria. These are the alert details:": "{{action}} pour chaque e-mail qui remplit ce critère. Voici les détails de l'alerte :",
+  "{{action}} for every email that meets this criteria. These are the incident details:": "{{action}} pour chaque e-mail qui remplit ce critère. Voici les détails de l'incident :",
+  "Each email that matches opens its own, even while earlier ones are still open, and replies are added to it as notes. When off, later emails open nothing new while one is open.": "Chaque e-mail correspondant en ouvre un, même si les précédents sont encore ouverts, et les réponses y sont ajoutées sous forme de notes. Désactivé, les e-mails suivants n'ouvrent rien de nouveau tant qu'un élément est ouvert."
 }

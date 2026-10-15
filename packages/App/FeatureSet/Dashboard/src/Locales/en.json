@@ -29711,5 +29711,11 @@
   "{{field}}: the highest number used is now {{highestNumber}}. Use a number higher than {{highestNumber}}.": "{{field}}: the highest number used is now {{highestNumber}}. Use a number higher than {{highestNumber}}.",
   "Carry on your incident numbers": "Carry on your incident numbers",
   "If your team refers to incidents by number, start OneUptime's after your last one in {{tool}}: set Next Incident Number to one past it. A number then never means two different incidents.": "If your team refers to incidents by number, start OneUptime's after your last one in {{tool}}: set Next Incident Number to one past it. A number then never means two different incidents.",
-  "Open Incident Numbering": "Open Incident Numbering"
+  "Open Incident Numbering": "Open Incident Numbering",
+  "Open a new alert for every email": "Open a new alert for every email",
+  "Open a new incident and alert for every email": "Open a new incident and alert for every email",
+  "Open a new incident for every email": "Open a new incident for every email",
+  "{{action}} for every email that meets this criteria. These are the alert details:": "{{action}} for every email that meets this criteria. These are the alert details:",
+  "{{action}} for every email that meets this criteria. These are the incident details:": "{{action}} for every email that meets this criteria. These are the incident details:",
+  "Each email that matches opens its own, even while earlier ones are still open, and replies are added to it as notes. When off, later emails open nothing new while one is open.": "Each email that matches opens its own, even while earlier ones are still open, and replies are added to it as notes. When off, later emails open nothing new while one is open."
 }

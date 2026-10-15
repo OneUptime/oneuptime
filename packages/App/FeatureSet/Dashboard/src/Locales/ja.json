@@ -29711,5 +29711,11 @@
   "{{field}}: the highest number used is now {{highestNumber}}. Use a number higher than {{highestNumber}}.": "{{field}}: これまでの最大の番号が {{highestNumber}} になりました。{{highestNumber}} より大きい番号を入力してください。",
   "Carry on your incident numbers": "インシデント番号を引き継ぐ",
   "If your team refers to incidents by number, start OneUptime's after your last one in {{tool}}: set Next Incident Number to one past it. A number then never means two different incidents.": "チームがインシデントを番号で呼んでいるなら、OneUptime の番号を {{tool}} での最後の番号の次から始めましょう。次のインシデント番号をその次の番号に設定します。これで、同じ番号が 2 つの異なるインシデントを指すことはなくなります。",
-  "Open Incident Numbering": "インシデントの採番を開く"
+  "Open Incident Numbering": "インシデントの採番を開く",
+  "Open a new alert for every email": "メールごとに新しいアラートを開く",
+  "Open a new incident and alert for every email": "メールごとに新しいインシデントとアラートを開く",
+  "Open a new incident for every email": "メールごとに新しいインシデントを開く",
+  "{{action}} for every email that meets this criteria. These are the alert details:": "この条件を満たすメールごとに{{action}}します。アラートの詳細は次のとおりです:",
+  "{{action}} for every email that meets this criteria. These are the incident details:": "この条件を満たすメールごとに{{action}}します。インシデントの詳細は次のとおりです:",
+  "Each email that matches opens its own, even while earlier ones are still open, and replies are added to it as notes. When off, later emails open nothing new while one is open.": "一致したメールは、以前のものが開いたままでも、それぞれ個別に開かれます。返信はメモとして追加されます。オフにすると、1 件が開いている間、後続のメールでは何も新しく開かれません。"
 }
