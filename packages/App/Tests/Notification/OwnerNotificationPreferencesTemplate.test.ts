@@ -280,9 +280,10 @@ describe("the footer's directions without a link", () => {
     expect(
       readCommonSource("Server/Services/UserNotificationSettingService.ts"),
     ).toContain("/user-settings/notification-settings");
-    expect(
-      PREFERENCES_URL.endsWith("/user-settings/notification-settings"),
-    ).toBe(true);
+    expect(new URL(PREFERENCES_URL).pathname.split("/").slice(-2)).toEqual([
+      "user-settings",
+      "notification-settings",
+    ]);
   });
 
   test.each([
