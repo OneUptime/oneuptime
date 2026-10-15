@@ -180,7 +180,9 @@ export default class NextNumberUtil {
     }
 
     const number: number =
-      typeof value === "number" ? value : Number(String(value).trim());
+      typeof value === "number" || typeof value === "string"
+        ? NextNumberUtil.parse(value)
+        : Number.NaN;
 
     return Number.isSafeInteger(number) ? number : null;
   }

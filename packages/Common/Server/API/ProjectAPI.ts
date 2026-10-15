@@ -211,6 +211,9 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
           const numbering: Array<RecordNumbering> =
             await ProjectService.getNumbering(projectId);
 
+          // Every record created moves it on: never answered from a cache.
+          Response.setNoCacheHeaders(res);
+
           return Response.sendJsonObjectResponse(req, res, {
             numbering: numbering.map(
               (entry: RecordNumbering): JSONObject => {
