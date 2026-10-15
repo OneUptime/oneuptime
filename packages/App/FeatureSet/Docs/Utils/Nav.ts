@@ -461,8 +461,12 @@ const DocsNav: NavGroup[] = [
     section: "Incident Response",
     links: [
       {
-        title: "Schedule Timeline",
-        url: "/docs/on-call/schedule-timeline",
+        title: "On-Call Overview",
+        url: "/docs/on-call/index",
+      },
+      {
+        title: "On-Call Policies",
+        url: "/docs/on-call/policies",
       },
       {
         title: "Escalation Rules",
@@ -471,6 +475,14 @@ const DocsNav: NavGroup[] = [
       {
         title: "On-Call Schedules",
         url: "/docs/on-call/schedules",
+      },
+      {
+        title: "Schedule Timeline",
+        url: "/docs/on-call/schedule-timeline",
+      },
+      {
+        title: "User Overrides",
+        url: "/docs/on-call/user-overrides",
       },
       {
         title: "Calendar Feeds",
@@ -483,6 +495,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Phone Number Whitelist",
         url: "/docs/on-call/phone-number-whitelist",
+      },
+      {
+        title: "Readiness & Reports",
+        url: "/docs/on-call/readiness",
       },
     ],
   },
