@@ -375,6 +375,102 @@ describe("user settings > notification settings", () => {
       }
     });
 
+    /*
+     * The column names the product, as every other list of channels does.
+     * It was labelled "Teams", the key that means teams of people - and
+     * most languages translate it that way (see
+     * NotificationSettingsMicrosoftTeamsInEveryLanguage.test.tsx).
+     */
+    test("the Microsoft Teams column is labelled with the product's name, between Slack and Webhook", async () => {
+      renderPage();
+      await findEventRow("Incident created");
+
+      const headers: Array<string> = within(screen.getAllByRole("table")[0]!)
+        .getAllByRole("columnheader")
+        .map((header: HTMLElement): string => {
+          return header.textContent?.trim() || "";
+        });
+
+      expect(headers).toEqual([
+        "Event",
+        "Email",
+        "SMS",
+        "Call",
+        "Push",
+        "WhatsApp",
+        "Telegram",
+        "Slack",
+        "Microsoft Teams",
+        "Webhook",
+      ]);
+      expect(headers).not.toContain("Teams");
+    });
+
+    test("its switches say Microsoft Teams, on and off, so a screen reader names the product", async () => {
+      const created: UserNotificationSetting | undefined = rows.find(
+        (row: UserNotificationSetting): boolean => {
+          return (
+            row.eventType ===
+            NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION
+          );
+        },
+      );
+      created!.alertByMicrosoftTeams = true;
+
+      renderPage();
+
+      expect(
+        within(await findEventRow("Incident created")).getByRole("switch", {
+          name: "Microsoft Teams: On. Click to disable.",
+        }),
+      ).toHaveAttribute("aria-checked", "true");
+      expect(
+        within(await findEventRow("Incident note posted")).getByRole("switch", {
+          name: "Microsoft Teams: Off. Click to enable.",
+        }),
+      ).toHaveAttribute("aria-checked", "false");
+    });
+
+    test("a switch in the Microsoft Teams column writes the Microsoft Teams setting", async () => {
+      const updateById: jest.SpyInstance = jest
+        .spyOn(ModelAPI, "updateById")
+        .mockResolvedValue({} as any);
+
+      renderPage();
+      const row: HTMLElement = await findEventRow("Incident note posted");
+      fireEvent.click(
+        within(row).getByRole("switch", { name: /^Microsoft Teams:/ }),
+      );
+
+      await waitFor(() => {
+        expect(updateById).toHaveBeenCalledTimes(1);
+      });
+      expect(updateById.mock.calls[0][0].data).toEqual({
+        alertByMicrosoftTeams: true,
+      });
+    });
+
+    /*
+     * "Microsoft Teams" takes two lines in its column at most widths: the
+     * headers are top-aligned so the icons stay in one row.
+     */
+    test("every channel header is top-aligned, so the icons stay level when a label wraps", async () => {
+      renderPage();
+      await findEventRow("Incident created");
+
+      const channelHeaders: Array<HTMLElement> = within(
+        screen.getAllByRole("table")[0]!,
+      )
+        .getAllByRole("columnheader")
+        .slice(1);
+
+      expect(channelHeaders).toHaveLength(9);
+
+      for (const header of channelHeaders) {
+        expect(header).toHaveClass("align-top");
+      }
+    });
+
     test.each([
       [[WorkspaceType.Slack], "Slack", "Microsoft Teams"],
       [[WorkspaceType.MicrosoftTeams], "Microsoft Teams", "Slack"],
