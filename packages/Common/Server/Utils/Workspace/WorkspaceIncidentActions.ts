@@ -28,7 +28,7 @@ import FeedMarkdown, {
 import WorkspaceIncidentNumberWordReader, {
   WorkspaceIncidentNumberWord,
 } from "./WorkspaceIncidentNumberWord";
-import { WorkspaceCustomFieldsForm } from "./WorkspaceIncidentCustomFields";
+import type { WorkspaceCustomFieldsForm } from "./WorkspaceIncidentCustomFields";
 import IncidentMemberService from "../../Services/IncidentMemberService";
 import IncidentRoleService from "../../Services/IncidentRoleService";
 import IncidentService from "../../Services/IncidentService";
@@ -294,7 +294,10 @@ export default class WorkspaceIncidentActions {
     return {
       _type: "WorkspacePayloadButtons",
       buttons: [
-        button(WORKSPACE_INCIDENT_BUTTONS.acknowledge, data.actions.acknowledge),
+        button(
+          WORKSPACE_INCIDENT_BUTTONS.acknowledge,
+          data.actions.acknowledge,
+        ),
         button(WORKSPACE_INCIDENT_BUTTONS.resolve, data.actions.resolve),
         button(WORKSPACE_INCIDENT_BUTTONS.addNote, data.actions.addNote),
         {
@@ -307,9 +310,15 @@ export default class WorkspaceIncidentActions {
           WORKSPACE_INCIDENT_BUTTONS.changeSeverity,
           data.actions.changeSeverity,
         ),
-        button(WORKSPACE_INCIDENT_BUTTONS.changeState, data.actions.changeState),
+        button(
+          WORKSPACE_INCIDENT_BUTTONS.changeState,
+          data.actions.changeState,
+        ),
         button(WORKSPACE_INCIDENT_BUTTONS.assignRole, data.actions.assignRole),
-        button(WORKSPACE_INCIDENT_BUTTONS.pageSomeone, data.actions.pageSomeone),
+        button(
+          WORKSPACE_INCIDENT_BUTTONS.pageSomeone,
+          data.actions.pageSomeone,
+        ),
         button(
           WORKSPACE_INCIDENT_BUTTONS.editCustomFields,
           data.actions.editCustomFields,
@@ -369,7 +378,9 @@ export default class WorkspaceIncidentActions {
   }
 
   // What a form of the menu opens with: "🚨 INC-42 Checkout is down".
-  public static getFormHeading(incident: WorkspaceIncidentForForm): MarkdownText {
+  public static getFormHeading(
+    incident: WorkspaceIncidentForForm,
+  ): MarkdownText {
     const number: string =
       incident.event.numberWithPrefix ||
       (incident.event.number !== null ? `#${incident.event.number}` : "");
@@ -714,17 +725,18 @@ export default class WorkspaceIncidentActions {
     severityId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): Promise<{ isChanged: boolean; severityName: string }> {
-    const severity: IncidentSeverity | null = await IncidentSeverityService.findOneBy({
-      query: {
-        _id: data.severityId.toString(),
-        projectId: data.event.projectId,
-      },
-      select: {
-        _id: true,
-        name: true,
-      },
-      props: data.props,
-    });
+    const severity: IncidentSeverity | null =
+      await IncidentSeverityService.findOneBy({
+        query: {
+          _id: data.severityId.toString(),
+          projectId: data.event.projectId,
+        },
+        select: {
+          _id: true,
+          name: true,
+        },
+        props: data.props,
+      });
 
     if (!severity?.id) {
       throw new NotAuthorizedException(
@@ -1177,7 +1189,8 @@ export default class WorkspaceIncidentActions {
 
     if (!found) {
       return {
-        markdown: mdText`📄 You added a ${kind} note to the incident.`.toString(),
+        markdown:
+          mdText`📄 You added a ${kind} note to the incident.`.toString(),
         text: `You added a ${kind} note to the incident`,
       };
     }
@@ -1186,9 +1199,10 @@ export default class WorkspaceIncidentActions {
       await WorkspaceActionAnswers.getRecordName(found.event);
 
     return {
-      markdown: mdText`📄 You added a ${kind} note to ${WorkspaceActionAnswers.getRecordMarkdown(
-        record,
-      )}.`.toString(),
+      markdown:
+        mdText`📄 You added a ${kind} note to ${WorkspaceActionAnswers.getRecordMarkdown(
+          record,
+        )}.`.toString(),
       text: `You added a ${kind} note to ${record.label}`,
     };
   }
@@ -1460,9 +1474,7 @@ export default class WorkspaceIncidentActions {
       return "";
     }
 
-    return (
-      user.name?.toString().trim() || user.email?.toString().trim() || ""
-    );
+    return user.name?.toString().trim() || user.email?.toString().trim() || "";
   }
 
   // The name of somebody given a role, read as OneUptime: they are named.

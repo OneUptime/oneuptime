@@ -324,9 +324,8 @@ export default class WorkspaceIncidentCustomFields {
           },
         );
 
-        const held: Array<string> = WorkspaceIncidentCustomFields.toStrings(
-          value,
-        );
+        const held: Array<string> =
+          WorkspaceIncidentCustomFields.toStrings(value);
 
         const tokens: Array<string> = held
           .map((heldValue: string): string | null => {
@@ -391,9 +390,7 @@ export default class WorkspaceIncidentCustomFields {
           submitted: data.submitted[input.inputId],
           definition: data.definitions.find(
             (definition: WorkspaceCustomFieldDefinition): boolean => {
-              return (
-                definition.id.toString() === input.definitionId.toString()
-              );
+              return definition.id.toString() === input.definitionId.toString();
             },
           ),
           held: data.stored[input.name],
@@ -454,7 +451,9 @@ export default class WorkspaceIncidentCustomFields {
         (change: { name: string; value: unknown }): boolean => {
           return !data.inputs.some(
             (input: WorkspaceCustomFieldInput): boolean => {
-              return input.name === change.name && Boolean(problems[input.inputId]);
+              return (
+                input.name === change.name && Boolean(problems[input.inputId])
+              );
             },
           );
         },
@@ -906,7 +905,10 @@ export default class WorkspaceIncidentCustomFields {
   }
 
   // The option a token stands for, among the options the form offered.
-  private static fromToken(token: string, offered: Array<string>): string | null {
+  private static fromToken(
+    token: string,
+    offered: Array<string>,
+  ): string | null {
     const separator: number = token.indexOf("_");
 
     if (!token.startsWith("o") || separator === -1) {
@@ -972,7 +974,9 @@ export default class WorkspaceIncidentCustomFields {
           return false;
         }
 
-        return Math.floor(a.getTime() / 60000) === Math.floor(b.getTime() / 60000);
+        return (
+          Math.floor(a.getTime() / 60000) === Math.floor(b.getTime() / 60000)
+        );
       }
       case WorkspaceCustomFieldInputKind.LongText:
         return (
@@ -980,9 +984,7 @@ export default class WorkspaceIncidentCustomFields {
           customFieldValueToText(data.b).replace(LINE_ENDING, "\n").trim()
         );
       default:
-        return (
-          String(data.a).trim() === customFieldValueToText(data.b).trim()
-        );
+        return String(data.a).trim() === customFieldValueToText(data.b).trim();
     }
   }
 }
