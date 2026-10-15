@@ -14,7 +14,10 @@ import FeedMarkdown, {
 import { OnCallPageResult } from "../../../../Services/OnCallPageService";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import logger from "../../../Logger";
-import { WorkspaceAnswer, WorkspaceLatePress } from "../../WorkspaceActionAnswers";
+import {
+  WorkspaceAnswer,
+  WorkspaceLatePress,
+} from "../../WorkspaceActionAnswers";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 import WorkspaceIncidentActions, {
   WORKSPACE_INCIDENT_FORM_TEXT,
@@ -208,7 +211,11 @@ export default class MicrosoftTeamsIncidentMoreActions {
         commandName: WorkspaceCommandName.Incident,
         connect: {
           purpose: "see this incident",
-          command: WorkspaceCommandName.Incident,
+          /*
+           * With the number: typed again without it, the command would
+           * open the incident form instead of showing this incident.
+           */
+          command: `${WorkspaceCommandName.Incident} ${data.word.word}`,
         },
       });
 
@@ -593,13 +600,12 @@ export default class MicrosoftTeamsIncidentMoreActions {
           ),
         );
 
-        const notShown: string | null = MicrosoftTeamsCardChoices.getNotShownNote(
-          {
+        const notShown: string | null =
+          MicrosoftTeamsCardChoices.getNotShownNote({
             list: shown.people,
             pluralNoun: "people",
             addLaterHint: `Assign anyone else in ${ProductBrandingText.getProductName()}.`,
-          },
-        );
+          });
 
         if (notShown) {
           body.push(MicrosoftTeamsCardChoices.buildNoteElement(notShown));
@@ -1027,9 +1033,10 @@ export default class MicrosoftTeamsIncidentMoreActions {
       await MicrosoftTeamsActionAnswer.reply({
         turnContext: data.turnContext,
         answer: {
-          markdown: mdText`Nothing was saved. Fix these, then press Save again:\n\n${FeedMarkdown.bulletList(
-            problems,
-          )}`.toString(),
+          markdown:
+            mdText`Nothing was saved. Fix these, then press Save again:\n\n${FeedMarkdown.bulletList(
+              problems,
+            )}`.toString(),
           text: "Nothing was saved: some fields need fixing",
         },
       });
