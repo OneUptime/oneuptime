@@ -189,6 +189,62 @@ describe("inviteUsersBasedOnRulesAndWorkspaceChannels (owners, paged on-call peo
   });
 
   /*
+   * The record the channels belong to, when the caller names it, is on the
+   * invite's log row: a record's Notification Logs page lists its
+   * workspace logs by its id, so an on-call page's invite is listed there
+   * beside the channel's creation and messages.
+   */
+  test.each([
+    { field: "incidentId" },
+    { field: "alertId" },
+    { field: "scheduledMaintenanceId" },
+    { field: "onCallDutyPolicyId" },
+  ] as const)(
+    "the invite is logged against the record the channels belong to: $field",
+    async (data: {
+      field:
+        | "incidentId"
+        | "alertId"
+        | "scheduledMaintenanceId"
+        | "onCallDutyPolicyId";
+    }) => {
+      const recordId: ObjectID = ObjectID.generate();
+
+      await WorkspaceNotificationRuleService.inviteUsersBasedOnRulesAndWorkspaceChannels(
+        {
+          projectId: PROJECT_ID,
+          notificationRules: [rule(RULE_ID, WorkspaceType.Slack)],
+          workspaceChannels: [RULE_CHANNEL],
+          userIds: [CONNECTED],
+          notificationFor: { [data.field]: recordId },
+        },
+      );
+
+      expect(inviteLogSpy).toHaveBeenCalledTimes(1);
+      expect(inviteLogSpy.mock.calls[0]![0]).toEqual({
+        projectId: PROJECT_ID,
+        workspaceType: WorkspaceType.Slack,
+        channelId: "C0INC8",
+        channelName: "inc-inc-8",
+        userId: CONNECTED,
+        [data.field]: recordId,
+      });
+    },
+  );
+
+  test("no record named (an owner added): the invite's log row names none, as before", async () => {
+    await inviteThree();
+
+    expect(inviteLogSpy.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      workspaceType: WorkspaceType.Slack,
+      channelId: "C0INC8",
+      channelName: "inc-inc-8",
+      userId: CONNECTED,
+    });
+  });
+
+  /*
    * A rule's test invites the person testing to the channel it creates, and
    * says so when the workspace refuses: "Cannot invite users to the channel.
    * Error from Slack missing_scope". Once invite refusals were only logged

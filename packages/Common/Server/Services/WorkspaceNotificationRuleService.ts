@@ -2205,6 +2205,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationRules: Array<WorkspaceNotificationRule>;
     userIds: Array<ObjectID>;
     /*
+     * The record the channels belong to. Its invites are logged against it,
+     * so they are listed with the record's other workspace logs (its
+     * Notification Logs page reads them by the record's id).
+     */
+    notificationFor?: NotificationFor | undefined;
+    /*
      * Throw what the workspace answered when it refuses an invite, rather
      * than log it and go on: a rule's test reports it to the person testing.
      */
@@ -2435,6 +2441,22 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               channelName: channel.name,
               userId: userId,
             };
+
+            // Add resource associations only if they exist
+            if (data.notificationFor?.incidentId) {
+              logData.incidentId = data.notificationFor.incidentId;
+            }
+            if (data.notificationFor?.alertId) {
+              logData.alertId = data.notificationFor.alertId;
+            }
+            if (data.notificationFor?.scheduledMaintenanceId) {
+              logData.scheduledMaintenanceId =
+                data.notificationFor.scheduledMaintenanceId;
+            }
+            if (data.notificationFor?.onCallDutyPolicyId) {
+              logData.onCallDutyPolicyId =
+                data.notificationFor.onCallDutyPolicyId;
+            }
 
             await WorkspaceNotificationLogService.logInviteUser(logData, {
               isRoot: true,
