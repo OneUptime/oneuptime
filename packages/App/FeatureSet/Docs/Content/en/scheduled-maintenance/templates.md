@@ -24,7 +24,7 @@ flowchart TB
 ## Before you begin
 
 - **Your plan.** On OneUptime Cloud, templates take the **Growth** plan or above.
-- **Your role.** Creating a template takes **Project Owner**, **Project Admin**, **Project Member**, **Scheduled Maintenance Admin** or **Scheduled Maintenance Member**, or a custom role with **Create Scheduled Maintenance Template**.
+- **Your role.** Creating a template takes **Project Owner**, **Project Admin**, **Project Member**, **Scheduled Maintenance Admin** or **Scheduled Maintenance Member**, or a custom role that may create scheduled maintenance templates.
 
 ## Create a template
 
@@ -91,7 +91,7 @@ A recurring template creates the event on a schedule. You set when the first eve
 | **First Event Scheduled At**             | When OneUptime creates the first event, which is when its subscribers are told it is scheduled.     |
 | **First Event Starts At**                | When the first event starts.                                                                        |
 | **First Event Ends At**                  | When the first event ends.                                                                          |
-| **How often should this event recur?**   | A number and a unit: **Hour**, **Day**, **Week**, **Month** or **Year**.                            |
+| **How often should this event recur?**   | A number and a unit: hours, days, weeks, months or years.                                           |
 
 For example, a weekly window with the first event created on a Monday for the Saturday after it:
 

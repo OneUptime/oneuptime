@@ -71,7 +71,7 @@ While an event is in progress, OneUptime treats the outage it plans as expected:
 - **Its other resources stay quiet.** A telemetry monitor that watches many hosts, clusters, databases or services, one series each, raises no incident or alert for a series whose resource the event covers, while the other series keep alerting.
 - **Network sites and SLOs hold back.** A network site the event covers stops counting its planned outage against the sites above it, and an SLO's burn rate rules raise nothing while any of its monitors is in maintenance. See [Network Sites](/docs/monitor/network-sites#scheduled-maintenance-for-network-sites) and [Burn Rate Alerts and Incidents](/docs/slo/burn-rate-alerts#scheduled-maintenance).
 - **Your status pages show it.** The event appears on the status pages you picked, as coming up, then in progress, then over, while **Visible on Status Page** is on in its **Settings**.
-- **Subscribers hear about it.** The subscribers of those pages are told when it is scheduled, when it starts and when it ends, and reminded before it starts if you set reminders. See [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
+- **Subscribers hear about it.** By default, the subscribers of those pages are told when it is scheduled, when it starts and when it ends, and reminded before it starts if you set reminders. See [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
 - **Your team hears about it.** Its owners are told as their [notification settings](/docs/notifications/notification-settings) say, and the Slack and Microsoft Teams rules under **Workspace** post it to your channels.
 
 ## An event's own pages
@@ -96,7 +96,7 @@ Open an event from the list to see its pages. Its side menu holds:
 ## Troubleshooting
 
 :::details An event did not start at its Starts At
-The job that starts events runs every minute, so allow a minute. An event in a state of your own placed before **Scheduled**, such as an approval step, waits for a person and never starts on its own. If the header says **Start overdue**, the event missed its start by more than two minutes: open its **State Timeline** to see where it is.
+The job that starts events runs every minute, so allow a minute. If the header says **Start overdue**, the event missed its start by more than two minutes: start it with the header's button, which does everything the job does, and open its **State Timeline** to see where it was.
 :::
 
 :::details A monitor was still checked during maintenance
