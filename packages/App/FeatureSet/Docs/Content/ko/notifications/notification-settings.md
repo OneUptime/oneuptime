@@ -15,7 +15,6 @@
 flowchart TB
     event["인시던트의 노트 같은<br/>소식"] --> setting["그 이벤트에 대한<br/>내 설정"]
     setting -->|"이메일 켜짐"| emails["인증된 모든<br/>이메일 주소"]
-    setting -->|"SMS 켜짐"| phones["인증된 모든<br/>SMS 번호"]
     setting -->|"모두 꺼짐"| nothing["아무것도 보내지 않음"]
 ```
 

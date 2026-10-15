@@ -15,7 +15,6 @@ Aviseringsinställningar avgör vilka uppdateringar som når dig om det du äger
 flowchart TB
     event["En uppdatering, som en<br/>anteckning på din<br/>incident"] --> setting["Din inställning<br/>för den händelsen"]
     setting -->|"e-post på"| emails["Varje verifierad<br/>e-postadress"]
-    setting -->|"SMS på"| phones["Varje verifierat<br/>SMS-nummer"]
     setting -->|"allt av"| nothing["Ingenting skickas"]
 ```
 

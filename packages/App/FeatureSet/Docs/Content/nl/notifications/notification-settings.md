@@ -15,7 +15,6 @@ Meldingsinstellingen bepalen welk nieuws je bereikt over de items die van jou zi
 flowchart TB
     event["Nieuws, zoals een<br/>notitie bij je incident"] --> setting["Je instelling<br/>voor die gebeurtenis"]
     setting -->|"e-mail aan"| emails["Elk geverifieerd<br/>e-mailadres"]
-    setting -->|"sms aan"| phones["Elk geverifieerd<br/>sms-nummer"]
     setting -->|"alles uit"| nothing["Er wordt niets verstuurd"]
 ```
 

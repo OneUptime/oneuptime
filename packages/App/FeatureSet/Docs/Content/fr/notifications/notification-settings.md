@@ -15,7 +15,6 @@ Les paramètres de notification décident quelles nouvelles vous parviennent sur
 flowchart TB
     event["Une nouvelle, comme<br/>une note sur votre<br/>incident"] --> setting["Votre paramètre<br/>pour cet événement"]
     setting -->|"e-mail activé"| emails["Chaque adresse<br/>e-mail vérifiée"]
-    setting -->|"SMS activé"| phones["Chaque numéro<br/>SMS vérifié"]
     setting -->|"tout désactivé"| nothing["Rien n'est envoyé"]
 ```
 

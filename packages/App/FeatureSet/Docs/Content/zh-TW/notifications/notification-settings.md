@@ -15,7 +15,6 @@
 flowchart TB
     event["一則更新，例如<br/>你的事件上的備註"] --> setting["你對該通知項目<br/>的設定"]
     setting -->|"郵件開啟"| emails["每個已驗證的<br/>電子郵件地址"]
-    setting -->|"簡訊開啟"| phones["每個已驗證的<br/>簡訊號碼"]
     setting -->|"全部關閉"| nothing["不傳送任何內容"]
 ```
 

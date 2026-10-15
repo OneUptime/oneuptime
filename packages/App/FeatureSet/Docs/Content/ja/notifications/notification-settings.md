@@ -15,7 +15,6 @@
 flowchart TB
     event["インシデントへの<br/>メモなどの最新情報"] --> setting["そのイベントの<br/>あなたの設定"]
     setting -->|"メールがオン"| emails["確認済みのすべての<br/>メールアドレス"]
-    setting -->|"SMS がオン"| phones["確認済みのすべての<br/>SMS 用の番号"]
     setting -->|"すべてオフ"| nothing["何も送信されない"]
 ```
 

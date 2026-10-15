@@ -15,7 +15,6 @@ Benachrichtigungseinstellungen entscheiden, welche Neuigkeiten Sie erreichen, zu
 flowchart TB
     event["Eine Neuigkeit, etwa eine<br/>Notiz zu Ihrem Vorfall"] --> setting["Ihre Einstellung<br/>für dieses Ereignis"]
     setting -->|"E-Mail an"| emails["Jede verifizierte<br/>E-Mail-Adresse"]
-    setting -->|"SMS an"| phones["Jede verifizierte<br/>SMS-Nummer"]
     setting -->|"alles aus"| nothing["Nichts wird gesendet"]
 ```
 

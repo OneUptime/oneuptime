@@ -15,7 +15,6 @@
 flowchart TB
     event["一条更新，例如<br/>你的事件上的备注"] --> setting["你对该通知项<br/>的设置"]
     setting -->|"邮件开启"| emails["每个已验证的<br/>邮箱地址"]
-    setting -->|"短信开启"| phones["每个已验证的<br/>短信号码"]
     setting -->|"全部关闭"| nothing["不发送任何内容"]
 ```
 

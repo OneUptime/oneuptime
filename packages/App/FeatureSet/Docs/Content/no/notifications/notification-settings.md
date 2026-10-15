@@ -15,7 +15,6 @@ Varselinnstillinger avgjør hvilke oppdateringer som når deg om det du eier, so
 flowchart TB
     event["En oppdatering, som et<br/>notat på hendelsen din"] --> setting["Innstillingen din<br/>for den hendelsen"]
     setting -->|"e-post på"| emails["Hver verifisert<br/>e-postadresse"]
-    setting -->|"SMS på"| phones["Hvert verifisert<br/>SMS-nummer"]
     setting -->|"alt av"| nothing["Ingenting sendes"]
 ```
 

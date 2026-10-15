@@ -15,7 +15,6 @@ Notification settings decide which updates reach you about the records you own, 
 flowchart TB
     event["An update, such as a<br/>note on your incident"] --> setting["Your setting<br/>for that event"]
     setting -->|"email on"| emails["Every verified<br/>email address"]
-    setting -->|"SMS on"| phones["Every verified<br/>SMS number"]
     setting -->|"all off"| nothing["Nothing is sent"]
 ```
 

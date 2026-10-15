@@ -15,7 +15,6 @@ Los ajustes de notificaciones deciden qué novedades te llegan sobre los registr
 flowchart TB
     event["Una novedad, como una<br/>nota en tu incidente"] --> setting["Tu ajuste<br/>para ese evento"]
     setting -->|"correo activado"| emails["Cada dirección<br/>de correo verificada"]
-    setting -->|"SMS activado"| phones["Cada número<br/>SMS verificado"]
     setting -->|"todo desactivado"| nothing["No se envía nada"]
 ```
 

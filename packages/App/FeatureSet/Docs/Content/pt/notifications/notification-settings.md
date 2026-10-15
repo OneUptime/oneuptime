@@ -15,7 +15,6 @@ As configurações de notificação decidem quais novidades chegam até você so
 flowchart TB
     event["Uma novidade, como<br/>uma nota no seu<br/>incidente"] --> setting["A sua configuração<br/>para esse evento"]
     setting -->|"e-mail ativado"| emails["Cada endereço de<br/>e-mail verificado"]
-    setting -->|"SMS ativado"| phones["Cada número de<br/>SMS verificado"]
     setting -->|"tudo desativado"| nothing["Nada é enviado"]
 ```
 

@@ -15,7 +15,6 @@ Notifikationsindstillinger afgør, hvilke nyheder der når dig om de ting, du ej
 flowchart TB
     event["En nyhed, som en note<br/>på din hændelse"] --> setting["Din indstilling<br/>for den begivenhed"]
     setting -->|"e-mail til"| emails["Hver bekræftet<br/>e-mailadresse"]
-    setting -->|"sms til"| phones["Hvert bekræftet<br/>sms-nummer"]
     setting -->|"alt fra"| nothing["Intet bliver sendt"]
 ```
 

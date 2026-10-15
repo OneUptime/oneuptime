@@ -15,7 +15,6 @@ Le impostazioni delle notifiche decidono quali aggiornamenti vi raggiungono sugl
 flowchart TB
     event["Un aggiornamento, come<br/>una nota sul vostro<br/>incidente"] --> setting["La vostra impostazione<br/>per quell'evento"]
     setting -->|"e-mail attiva"| emails["Ogni indirizzo<br/>e-mail verificato"]
-    setting -->|"SMS attivo"| phones["Ogni numero<br/>SMS verificato"]
     setting -->|"tutto spento"| nothing["Non viene inviato nulla"]
 ```
 
