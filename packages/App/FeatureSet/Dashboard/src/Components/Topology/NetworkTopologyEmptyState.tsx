@@ -1,5 +1,7 @@
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import useTranslator from "Common/UI/Utils/UseTranslator";
+import IconProp from "Common/Types/Icon/IconProp";
+import TableEmptyState, {
+  TableEmptyStateKind,
+} from "Common/UI/Components/Table/TableEmptyState";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -11,28 +13,24 @@ export interface ComponentProps {
  * What a device map says when there is nothing on it: the graph's own empty
  * state, and the whole of the map's card when the network has no device at
  * all (NetworkTopologyLiveView).
+ *
+ * Drawn the way every empty list in the product is (TableEmptyState): the
+ * Devices, Discovery and Endpoints pages a new project opens next to this
+ * one say "nothing yet" with the same illustration, heading and next step.
  */
 const NetworkTopologyEmptyState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
-
   return (
-    <div
-      className="flex items-center justify-center py-16 px-6"
-      data-testid="network-topology-empty-state"
-    >
-      <div className="text-center max-w-md">
-        <div className="text-sm font-medium text-gray-900">
-          {translator.translateText("No network topology discovered yet.")}
-        </div>
-        <p className="mt-1 text-sm text-gray-500">
-          {translator.translateText(
-            "Add your devices and they appear here. Devices read over SNMP are linked to the neighbours they report.",
-          )}
-        </p>
-        {props.footer ? <p className="mt-3">{props.footer}</p> : <></>}
-      </div>
+    <div data-testid="network-topology-empty-state">
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        icon={IconProp.Map}
+        title="No network topology discovered yet."
+        description="Add your devices and they appear here. Devices read over SNMP are linked to the neighbours they report."
+        actionElement={props.footer}
+        dataTestId="network-topology-empty"
+      />
     </div>
   );
 };

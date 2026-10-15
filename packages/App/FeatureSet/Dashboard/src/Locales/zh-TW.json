@@ -29690,7 +29690,7 @@
   "Alert on many devices at once. A policy adds one monitor to every device it covers, including devices added later, and each monitor counts towards your plan. Turning a policy off stands its monitors down; deleting one deletes them.": "一次為多台裝置設定警示。策略會為它涵蓋的每台裝置（包括之後新增的裝置）新增一個監測器，每個監測器都計入你的方案。關閉策略會停用它的監測器；刪除策略會刪除這些監測器。",
   "Alerts are on.": "警示已開啟。",
   "Bring your devices in": "接入你的裝置",
-  "Cables the map cannot see on its own. Devices read over SNMP are linked to the neighbours they report, so draw a link here only for a cable no switch reports. Bind a monitor to a link to colour it by that monitor's status.": "地圖自己看不到的纜線。透過 SNMP 讀取的裝置會自動連到它們回報的鄰居，所以只需在這裡為沒有任何交換器回報的纜線畫一條連結。將監測器繫結到連結上，即可依該監測器的狀態為連結著色。",
+  "Cables the map cannot see on its own. Devices read over SNMP are linked to the neighbours they report, so draw a link here only for a cable no switch reports. Bind a monitor to a link to color it by that monitor's status.": "地圖自己看不到的纜線。透過 SNMP 讀取的裝置會自動連到它們回報的鄰居，所以只需在這裡為沒有任何交換器回報的纜線畫一條連結。將監測器繫結到連結上，即可依該監測器的狀態為連結著色。",
   "Click a site to open it.": "點選站點即可開啟。",
   "Credentials to try": "要嘗試的憑證",
   "Credentials {{number}} ({{version}})": "憑證 {{number}} ({{version}})",
@@ -29727,9 +29727,9 @@
   "The status a monitor watching this device last reported, such as Operational or Offline. It can differ from Reachability, because a monitor can also check things like ports going down. No alerts yet means nothing opens an incident when it goes down.": "監看此裝置的監測器最近一次回報的狀態，例如運作中或離線。它可能與 Reachability 不同，因為監測器還可能檢查連接埠停擺等情況。「尚無警示」表示它停擺時不會建立事件。",
   "The {{template}} template is added. Its health values are read from the next poll and charted on Metrics.": "{{template}} 範本已新增。它的健康值會從下次輪詢開始讀取，並在指標中以圖表顯示。",
   "This OneUptime server runs a probe of its own too. It can check your devices if this server can reach them.": "這台 OneUptime 伺服器自己也執行一個探測器。如果這台伺服器能連到你的裝置，它就可以檢查這些裝置。",
-  "This adds an Alert on every device policy, and the Network device alert pack (recommended) monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan. You can narrow the policy to some devices afterwards.": "這會新增一條 Alert on every device 策略；如果專案中還沒有，也會新增它使用的 Network device alert pack (recommended) 監測器範本。它也會涵蓋之後新增的裝置，並為每台涵蓋的裝置新增一個監測器，每個都計入你的方案。之後你可以將策略縮小到部分裝置。",
-  "This adds an Alert on every device policy, and the Network device alert pack (recommended) monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan: up to {{count}} monitors today. You can narrow the policy to some devices afterwards.": "這會新增一條 Alert on every device 策略；如果專案中還沒有，也會新增它使用的 Network device alert pack (recommended) 監測器範本。它也會涵蓋之後新增的裝置，並為每台涵蓋的裝置新增一個監測器，每個都計入你的方案：目前最多 {{count}} 個監測器。之後你可以將策略縮小到部分裝置。",
-  "This adds an Alert on every device policy, and the Network device alert pack (recommended) monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan: up to {{count}} monitors today. You can narrow the policy to some devices afterwards._one": "這會新增一條 Alert on every device 策略；如果專案中還沒有，也會新增它使用的 Network device alert pack (recommended) 監測器範本。它也會涵蓋之後新增的裝置，並為每台涵蓋的裝置新增一個監測器，每個都計入你的方案：目前最多 {{count}} 個監測器。之後你可以將策略縮小到部分裝置。",
+  "This adds the \"Alert on every device\" policy, and the \"Network device alert pack (recommended)\" monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan. You can narrow the policy to some devices afterwards.": "這會新增一條「Alert on every device」策略；如果專案中還沒有，也會新增它使用的「Network device alert pack (recommended)」監測器範本。它也會涵蓋之後新增的裝置，並為每台涵蓋的裝置新增一個監測器，每個都計入你的方案。之後你可以將策略縮小到部分裝置。",
+  "This adds the \"Alert on every device\" policy, and the \"Network device alert pack (recommended)\" monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan: up to {{count}} monitors today. You can narrow the policy to some devices afterwards.": "這會新增一條「Alert on every device」策略；如果專案中還沒有，也會新增它使用的「Network device alert pack (recommended)」監測器範本。它也會涵蓋之後新增的裝置，並為每台涵蓋的裝置新增一個監測器，每個都計入你的方案：目前最多 {{count}} 個監測器。之後你可以將策略縮小到部分裝置。",
+  "This adds the \"Alert on every device\" policy, and the \"Network device alert pack (recommended)\" monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan: up to {{count}} monitors today. You can narrow the policy to some devices afterwards._one": "這會新增一條「Alert on every device」策略；如果專案中還沒有，也會新增它使用的「Network device alert pack (recommended)」監測器範本。它也會涵蓋之後新增的裝置，並為每台涵蓋的裝置新增一個監測器，每個都計入你的方案：目前最多 {{count}} 個監測器。之後你可以將策略縮小到部分裝置。",
   "This server's probes": "此伺服器的探測器",
   "Waiting for its monitor to report": "正在等待其監測器的首次回報",
   "Waiting for {{name}} to connect. This checks every few seconds, so you can leave it open while you run the command.": "正在等待 {{name}} 連線。系統每隔幾秒檢查一次，你可以在執行指令時保持此視窗開啟。",
@@ -29749,5 +29749,7 @@
   "{{name}} is connected. Next, bring your devices in.": "{{name}} 已連線。接下來，接入你的裝置。",
   "{{vendor}} health checks are available": "{{vendor}} 健康檢查可用",
   "Adding a probe needs the {{planName}} plan. Until then, OneUptime's probes on the internet can check devices with a public address.": "新增探測器需要 {{planName}} 方案。在此之前，網際網路上的 OneUptime 探測器可以檢查具有公開位址的裝置。",
-  "Upgrade plan": "升級方案"
+  "Upgrade plan": "升級方案",
+  "Waiting for {{name}} to connect. This checks every few seconds and turns green once it is running.": "正在等待 {{name}} 連線。系統每隔幾秒檢查一次，探測器一開始執行就會變成綠色。",
+  "{{name}} has to run on a computer inside your network that can reach your devices, such as a server or a virtual machine with Docker.": "{{name}} 需要在你網路內部能連到裝置的一台電腦上執行，例如裝有 Docker 的伺服器或虛擬機器。"
 }

@@ -43,6 +43,9 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Column from "Common/UI/Components/ModelTable/Column";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
+import TableEmptyState, {
+  TableEmptyStateKind,
+} from "Common/UI/Components/Table/TableEmptyState";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -272,20 +275,22 @@ const AlertPolicyScopeEditor: FunctionComponent<AlertPolicyScopeEditorProps> = (
  *
  * Plain words and whole sentences: the confirmation used to be glued
  * together from English pieces around the count, so no language could word
- * it.
+ * it. The policy's and the template's names are quoted, as the names they
+ * will be found under: unquoted, "an Alert on every device policy" read as
+ * a sentence that had lost its grammar.
  */
 export const RECOMMENDED_POLICY_EMPTY_STATE: string = translationKey(
   "One policy alerts on many devices: the ones you have and the ones you add later. The recommended policy opens an incident when a device stops answering or a port goes down, and an alert when a port is saturated, logs errors, or its SNMP readings fail. A device without SNMP credentials is only pinged, so only the stops-answering check can fire on it.",
 );
 
 export const RECOMMENDED_POLICY_CONFIRM: string = translationKey(
-  "This adds an Alert on every device policy, and the Network device alert pack (recommended) monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan. You can narrow the policy to some devices afterwards.",
+  'This adds the "Alert on every device" policy, and the "Network device alert pack (recommended)" monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan. You can narrow the policy to some devices afterwards.',
 );
 
 export const RECOMMENDED_POLICY_CONFIRM_COUNTED: PluralTemplate = {
-  one: "This adds an Alert on every device policy, and the Network device alert pack (recommended) monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan: up to {{count}} monitor today. You can narrow the policy to some devices afterwards.",
+  one: 'This adds the "Alert on every device" policy, and the "Network device alert pack (recommended)" monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan: up to {{count}} monitor today. You can narrow the policy to some devices afterwards.',
   other:
-    "This adds an Alert on every device policy, and the Network device alert pack (recommended) monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan: up to {{count}} monitors today. You can narrow the policy to some devices afterwards.",
+    'This adds the "Alert on every device" policy, and the "Network device alert pack (recommended)" monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan: up to {{count}} monitors today. You can narrow the policy to some devices afterwards.',
 };
 
 export interface RecommendedPolicyEmptyStateProps {
@@ -298,7 +303,7 @@ export interface RecommendedPolicyEmptyStateProps {
  * moment a policy exists and never shows against a search that matched
  * nothing (BaseModelTable overrides the message in that case).
  */
-const RecommendedPolicyEmptyState: FunctionComponent<
+export const RecommendedPolicyEmptyState: FunctionComponent<
   RecommendedPolicyEmptyStateProps
 > = (props: RecommendedPolicyEmptyStateProps): ReactElement => {
   const translator: Translator = useTranslator();
@@ -410,28 +415,35 @@ const RecommendedPolicyEmptyState: FunctionComponent<
       : translator.translateText(RECOMMENDED_POLICY_CONFIRM) || "";
 
   return (
-    <div className="py-4">
-      <p className="text-sm font-medium text-gray-900">
-        {translator.translateText("No alert policies yet")}
-      </p>
-      <p className="mt-1 text-sm text-gray-500">
-        {translator.translateText(RECOMMENDED_POLICY_EMPTY_STATE)}
-      </p>
-      {createGate.isAllowed ? (
-        <div className="mt-4 flex justify-center">
-          <Button
-            title="Create the recommended policy"
-            icon={IconProp.Add}
-            buttonStyle={ButtonStyleType.PRIMARY}
-            dataTestId="create-recommended-alert-policy"
-            onClick={(): void => {
-              openConfirm().catch((err: unknown): void => {
-                setError(API.getFriendlyMessage(err));
-              });
-            }}
-          />
-        </div>
-      ) : (
+    <div>
+      {/*
+       * Drawn the way every empty list in the product is (TableEmptyState),
+       * with the recommended policy as the one primary action: this is
+       * where the Network first-run path's "Set up alerts" lands.
+       */}
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        icon={IconProp.Alert}
+        title="No alert policies yet"
+        description={RECOMMENDED_POLICY_EMPTY_STATE}
+        dataTestId="network-alert-policies-empty"
+        // The table already frames a page's own empty state with room.
+        isCompact={true}
+        actionElement={
+          createGate.isAllowed ? (
+            <Button
+              title="Create the recommended policy"
+              icon={IconProp.Add}
+              buttonStyle={ButtonStyleType.PRIMARY}
+              dataTestId="create-recommended-alert-policy"
+              onClick={(): void => {
+                openConfirm().catch((err: unknown): void => {
+                  setError(API.getFriendlyMessage(err));
+                });
+              }}
+            />
+          ) : undefined
+        }
         /*
          * Say why there is no button, when there is something to say. An
          * empty state that offers nothing and explains nothing reads as a
@@ -440,12 +452,12 @@ const RecommendedPolicyEmptyState: FunctionComponent<
          * still loading, and PermissionGate's contract is to show nothing
          * rather than accuse the user in that window.
          */
-        createGate.disabledReason && (
-          <p className="mt-4 text-sm text-gray-400">
-            {createGate.disabledReason}
-          </p>
-        )
-      )}
+        note={
+          !createGate.isAllowed && createGate.disabledReason
+            ? createGate.disabledReason
+            : undefined
+        }
+      />
       {error && !showConfirm && <ErrorMessage message={error} />}
       {showConfirm && (
         <ConfirmModal

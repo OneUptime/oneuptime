@@ -780,7 +780,11 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
       to={getNetworkQuickActionRoute(NetworkQuickAction.AddDevice)}
       className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
     >
-      Add a device
+      {/*
+       * Looked up here: Link draws its children as they are given, so a
+       * bare string stayed English in every language.
+       */}
+      {translateString("Add a device") || "Add a device"}
     </Link>
   );
 

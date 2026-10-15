@@ -5,9 +5,11 @@ import {
   PROBE_DOCS_PATH,
   RUN_PROBE_CONNECTED,
   RUN_PROBE_INSTRUCTIONS,
+  RUN_PROBE_INSTRUCTIONS_WITHOUT_KEY,
   RUN_PROBE_KEY_HIDDEN,
   RUN_PROBE_OTHER_WAYS,
   RUN_PROBE_WAITING,
+  RUN_PROBE_WAITING_WITHOUT_KEY,
   getDefaultProbeName,
 } from "./AddProbeCopy";
 import {
@@ -109,8 +111,17 @@ const AddProbeModal: FunctionComponent<ComponentProps> = (
   const [planNeeded] = useState<PlanType | null>(() => {
     return props.probe ? null : getPlanNeededToAddProbe();
   });
-  const [probeKey, setProbeKey] = useState<string | null>(null);
-  const [isKeyLoading, setIsKeyLoading] = useState<boolean>(false);
+  /*
+   * The probe's key, once it is read: which probe it was read for, and the
+   * key (null when the server gave none back, or the read failed). Keyed by
+   * the probe so the step never shows one probe's key under another's name,
+   * and never flashes "no key" in the render between the probe being added
+   * and its key being asked for.
+   */
+  const [keyRead, setKeyRead] = useState<{
+    probeId: string;
+    key: string | null;
+  } | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   /*
@@ -174,11 +185,11 @@ const AddProbeModal: FunctionComponent<ComponentProps> = (
     }
 
     let isCurrent: boolean = true;
-    setIsKeyLoading(true);
+    const probeId: string = probe.id;
 
     ModelAPI.getItem<Probe>({
       modelType: Probe,
-      id: new ObjectID(probe.id),
+      id: new ObjectID(probeId),
       select: {
         _id: true,
         key: true,
@@ -186,14 +197,13 @@ const AddProbeModal: FunctionComponent<ComponentProps> = (
     })
       .then((item: Probe | null) => {
         if (isCurrent) {
-          setProbeKey(item?.key || null);
-          setIsKeyLoading(false);
+          setKeyRead({ probeId: probeId, key: item?.key || null });
         }
       })
       .catch((err: Error) => {
         if (isCurrent) {
           setError(API.getFriendlyMessage(err));
-          setIsKeyLoading(false);
+          setKeyRead({ probeId: probeId, key: null });
         }
       });
 
@@ -361,6 +371,17 @@ const AddProbeModal: FunctionComponent<ComponentProps> = (
 
   const oneUptimeUrl: string = `${HTTP_PROTOCOL}${HOST}`;
 
+  /*
+   * The key this step can print: still being read, read, or none - a role
+   * that may not read it, or a read that came back without one. With none,
+   * there is no command, so the step's words ask nobody here to run one.
+   */
+  const isKeyLoading: boolean =
+    canReadProbeKey && keyRead?.probeId !== probe.id;
+  const probeKey: string | null =
+    keyRead?.probeId === probe.id ? keyRead.key : null;
+  const hasCommand: boolean = isKeyLoading || Boolean(probeKey);
+
   return (
     <Modal
       title="Run the probe"
@@ -378,29 +399,38 @@ const AddProbeModal: FunctionComponent<ComponentProps> = (
     >
       <div className="space-y-4" data-testid="add-probe-run-step">
         <p className="text-sm text-gray-600">
-          {translator.translateTemplate(RUN_PROBE_INSTRUCTIONS, {
-            name: probe.name,
-          })}
+          {translator.translateTemplate(
+            hasCommand
+              ? RUN_PROBE_INSTRUCTIONS
+              : RUN_PROBE_INSTRUCTIONS_WITHOUT_KEY,
+            {
+              name: probe.name,
+            },
+          )}
         </p>
 
-        {canReadProbeKey ? (
-          isKeyLoading || !probeKey ? (
-            <div
-              className="h-24 animate-pulse rounded-md bg-gray-100"
-              data-testid="add-probe-command-loading"
-            ></div>
-          ) : (
-            <div data-testid="add-probe-command">
-              <CodeBlock
-                language="bash"
-                code={getProbeDockerRunCommand({
-                  probeId: probe.id,
-                  probeKey: probeKey,
-                  oneUptimeUrl: oneUptimeUrl,
-                })}
-              />
-            </div>
-          )
+        {isKeyLoading ? (
+          <div
+            className="h-24 animate-pulse rounded-md bg-gray-100"
+            data-testid="add-probe-command-loading"
+          ></div>
+        ) : probeKey ? (
+          <div data-testid="add-probe-command">
+            <CodeBlock
+              language="bash"
+              code={getProbeDockerRunCommand({
+                probeId: probe.id,
+                probeKey: probeKey,
+                oneUptimeUrl: oneUptimeUrl,
+              })}
+            />
+          </div>
+        ) : error ? (
+          /*
+           * The key could not be read: the dialog's error says why, and
+           * there is no command to print in its place.
+           */
+          <></>
         ) : (
           <p
             className="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600"
@@ -448,7 +478,11 @@ const AddProbeModal: FunctionComponent<ComponentProps> = (
           )}
           <span>
             {translator.translateTemplate(
-              isConnected ? RUN_PROBE_CONNECTED : RUN_PROBE_WAITING,
+              isConnected
+                ? RUN_PROBE_CONNECTED
+                : hasCommand
+                  ? RUN_PROBE_WAITING
+                  : RUN_PROBE_WAITING_WITHOUT_KEY,
               { name: probe.name },
             )}
           </span>

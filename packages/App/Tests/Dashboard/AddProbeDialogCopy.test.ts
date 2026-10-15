@@ -9,9 +9,11 @@ import {
   PROBE_DOCS_PATH,
   RUN_PROBE_CONNECTED,
   RUN_PROBE_INSTRUCTIONS,
+  RUN_PROBE_INSTRUCTIONS_WITHOUT_KEY,
   RUN_PROBE_KEY_HIDDEN,
   RUN_PROBE_OTHER_WAYS,
   RUN_PROBE_WAITING,
+  RUN_PROBE_WAITING_WITHOUT_KEY,
   getDefaultProbeName,
 } from "../../FeatureSet/Dashboard/src/Components/Network/AddProbeCopy";
 import {
@@ -163,9 +165,11 @@ describe("the dialog's words", () => {
     ADD_PROBE_NAME_DESCRIPTION,
     ADD_PROBE_NAME_PLACEHOLDER,
     RUN_PROBE_INSTRUCTIONS,
+    RUN_PROBE_INSTRUCTIONS_WITHOUT_KEY,
     RUN_PROBE_KEY_HIDDEN,
     RUN_PROBE_OTHER_WAYS,
     RUN_PROBE_WAITING,
+    RUN_PROBE_WAITING_WITHOUT_KEY,
     RUN_PROBE_CONNECTED,
   ])("%s is a Dashboard translation key", (text: string) => {
     expect(EN[text]).toBe(text);
@@ -173,9 +177,45 @@ describe("the dialog's words", () => {
 
   test("the run step and its status name the probe", () => {
     expect(RUN_PROBE_INSTRUCTIONS).toContain("{{name}}");
+    expect(RUN_PROBE_INSTRUCTIONS_WITHOUT_KEY).toContain("{{name}}");
     expect(RUN_PROBE_WAITING).toContain("{{name}}");
+    expect(RUN_PROBE_WAITING_WITHOUT_KEY).toContain("{{name}}");
     expect(RUN_PROBE_CONNECTED).toContain("{{name}}");
     expect(RUN_PROBE_KEY_HIDDEN).toContain("{{name}}");
+  });
+
+  /*
+   * Someone with no command in front of them - a role that may not read the
+   * key, or a key that could not be read - is told where the probe has to
+   * run, for whoever runs it, and is never asked to run "this" or "the
+   * command": the step used to say both over a note that there is none.
+   */
+  test("with no command to show, the step asks nobody to run one", () => {
+    for (const text of [
+      RUN_PROBE_INSTRUCTIONS_WITHOUT_KEY,
+      RUN_PROBE_WAITING_WITHOUT_KEY,
+    ]) {
+      expect(text).not.toMatch(/\bcommand\b/i);
+      expect(text).not.toMatch(/^Run this\b/);
+    }
+
+    expect(RUN_PROBE_INSTRUCTIONS_WITHOUT_KEY).toContain("inside your network");
+    expect(RUN_PROBE_WAITING_WITHOUT_KEY).toContain("turns green");
+  });
+
+  test("the dialog chooses its words by whether there is a command to run", () => {
+    const modal: string = readDashboard(
+      "Components",
+      "Network",
+      "AddProbeModal.tsx",
+    ).replace(/\s+/g, " ");
+
+    expect(modal).toContain(
+      "hasCommand ? RUN_PROBE_INSTRUCTIONS : RUN_PROBE_INSTRUCTIONS_WITHOUT_KEY",
+    );
+    expect(modal).toContain(
+      "hasCommand ? RUN_PROBE_WAITING : RUN_PROBE_WAITING_WITHOUT_KEY",
+    );
   });
 
   /*

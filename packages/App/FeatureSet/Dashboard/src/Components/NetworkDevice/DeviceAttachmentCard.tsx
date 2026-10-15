@@ -228,16 +228,22 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
               ? neighbourDeviceIds.get(neighbour.name.toLowerCase())
               : undefined;
 
+            /*
+             * One cable a row: this device's port, then the neighbour and
+             * its port. On a phone the two halves stack, every row the
+             * same way; a wrapping row put short rows on one line and long
+             * ones on two, with the neighbour jumping from right to left.
+             */
             return (
               <li
                 key={`${neighbour.name}-${index}`}
-                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2 text-sm"
+                className="flex flex-col gap-0.5 py-2 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4"
                 data-testid="device-neighbour"
               >
-                <span className="min-w-0 text-gray-500">
+                <span className="min-w-0 break-words text-gray-500">
                   {localPort || "—"}
                 </span>
-                <span className="min-w-0 text-right">
+                <span className="min-w-0 break-words sm:text-right">
                   {neighbourId ? (
                     <AppLink
                       to={RouteUtil.populateRouteParams(

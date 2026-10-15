@@ -41,7 +41,7 @@ const NetworkDeviceLinks: FunctionComponent<
         cardProps={{
           title: "Device Links",
           description:
-            "Cables the map cannot see on its own. Devices read over SNMP are linked to the neighbours they report, so draw a link here only for a cable no switch reports. Bind a monitor to a link to colour it by that monitor's status.",
+            "Cables the map cannot see on its own. Devices read over SNMP are linked to the neighbours they report, so draw a link here only for a cable no switch reports. Bind a monitor to a link to color it by that monitor's status.",
         }}
         noItemsMessage="No device links yet. Add one to connect two devices the discovery protocols cannot see between."
         filters={[

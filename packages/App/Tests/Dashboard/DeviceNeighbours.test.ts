@@ -177,6 +177,38 @@ describe("getDeviceNeighbours", () => {
     expect(neighbour!.remotePort).toBeUndefined();
   });
 
+  /*
+   * An LLDP agent that names its port by its chassis MAC (port id subtype
+   * MAC address) and advertises no system name: the row would read
+   * "00:11:22:33:44:55 · port 00:11:22:33:44:55".
+   */
+  test("a port id that only repeats the neighbour's name is no port", () => {
+    const [byChassis]: Array<DeviceNeighbour> = getDeviceNeighbours({
+      lldpNeighbors: [
+        lldp({ remoteSysName: "", remotePortId: "00:11:22:33:44:55" }),
+      ],
+    });
+
+    expect(byChassis!.name).toBe("00:11:22:33:44:55");
+    expect(byChassis!.remotePort).toBeUndefined();
+
+    const [byName]: Array<DeviceNeighbour> = getDeviceNeighbours({
+      cdpNeighbors: [cdp({ remotePortId: " EDGE-RTR1 " })],
+    });
+
+    expect(byName!.remotePort).toBeUndefined();
+  });
+
+  test("a port id that differs from the name is kept as it is written", () => {
+    const [neighbour]: Array<DeviceNeighbour> = getDeviceNeighbours({
+      lldpNeighbors: [
+        lldp({ remoteSysName: "", remotePortId: " 00:11:22:33:44:66 " }),
+      ],
+    });
+
+    expect(neighbour!.remotePort).toBe("00:11:22:33:44:66");
+  });
+
   test("the card lists eight before it says how many more are on the map", () => {
     expect(NEIGHBOURS_SHOWN).toBe(8);
   });

@@ -420,6 +420,64 @@ describe("the Connected to card of a device that reports its neighbours", () => 
     );
   });
 
+  /*
+   * On a phone every row stacks the same way - this device's port over the
+   * neighbour - and from sm up it splits into the two ends of the cable. A
+   * wrapping row put short rows on one line and long ones on two, with the
+   * neighbour jumping from the right edge to the left.
+   */
+  test("every row stacks on a phone and splits into two ends from sm up", async () => {
+    deviceRow = switchWithNeighbours([
+      {
+        localInterfaceIndex: 1,
+        remoteSysName: "core-rtr-01",
+        remotePortId: "Gi0/0/1",
+      },
+      {
+        localInterfaceIndex: 2,
+        remoteSysName: "fw-01",
+        remotePortId: "port1",
+      },
+    ]);
+
+    await renderCard();
+
+    for (const row of rows()) {
+      const classes: Array<string> = row.className.split(/\s+/);
+
+      expect(classes).toEqual(
+        expect.arrayContaining([
+          "flex",
+          "flex-col",
+          "sm:flex-row",
+          "sm:justify-between",
+        ]),
+      );
+      expect(classes).not.toContain("flex-wrap");
+
+      const [ourPort, theirEnd] = Array.from(row.children);
+      expect(ourPort!.className).toContain("break-words");
+      expect(theirEnd!.className.split(/\s+/)).toContain("sm:text-right");
+      expect(theirEnd!.className.split(/\s+/)).not.toContain("text-right");
+    }
+  });
+
+  test("a neighbour known by its chassis id, whose port id is that id too, is named once", async () => {
+    deviceRow = switchWithNeighbours([
+      {
+        localInterfaceIndex: 9,
+        remoteChassisId: "70:3a:0e:12:4f:c1",
+        remotePortId: "70:3a:0e:12:4f:c1",
+      },
+    ]);
+
+    await renderCard();
+
+    expect(rows()).toHaveLength(1);
+    expect(rows()[0]).toHaveTextContent("70:3a:0e:12:4f:c1");
+    expect(rows()[0]).not.toHaveTextContent("port 70:3a:0e:12:4f:c1");
+  });
+
   test("a failed name lookup still lists the cables, by port number", async () => {
     isNameLookupFailing = true;
     deviceRow = switchWithNeighbours([

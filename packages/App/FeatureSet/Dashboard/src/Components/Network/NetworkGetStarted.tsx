@@ -109,23 +109,32 @@ interface StepMarkerProps {
   isDone: boolean;
 }
 
+/*
+ * A step's number, or a tick once it is done. Drawn 4px above the step's
+ * row (-mt-1), so its middle sits on the middle of the step's title: a 24px
+ * line beside a 32px circle. A finished step says so to a screen reader
+ * too; a step's number is the list's own.
+ */
 const StepMarker: FunctionComponent<StepMarkerProps> = (
   props: StepMarkerProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   if (props.isDone) {
     return (
       <div
-        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600"
+        className="-mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600"
         data-testid="network-first-run-step-done"
       >
         <Icon icon={IconProp.Check} className="h-4 w-4" />
+        <span className="sr-only">{translator.translateText("Done")}</span>
       </div>
     );
   }
 
   return (
     <div
-      className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-indigo-50 text-sm font-semibold text-indigo-700"
+      className="-mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-indigo-50 text-sm font-semibold text-indigo-700"
       aria-hidden="true"
     >
       {props.number}
@@ -335,7 +344,11 @@ const NetworkGetStarted: FunctionComponent<ComponentProps> = (
                     {translator.translateText(PROBE_STEP_DESCRIPTION)}
                   </p>
                 )}
-                {getProbeStatus()}
+                {/*
+                 * Said aloud when it changes: the step turns green on its
+                 * own while the person is busy running the probe.
+                 */}
+                <div aria-live="polite">{getProbeStatus()}</div>
                 {getProbePlan()}
               </div>
               <div className="flex-shrink-0">{getProbeAction()}</div>

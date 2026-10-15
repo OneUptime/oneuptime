@@ -532,6 +532,94 @@ describe("the Add a probe dialog", () => {
     ).toHaveTextContent(
       "Only project owners and admins can see a probe's key. Ask one of them to run Network probe: it is under Monitors → Settings → Probes.",
     );
+
+    /*
+     * With no command in front of them, nothing asks them to run one: the
+     * step says where the probe has to run, for whoever runs it, and the
+     * waiting line asks for nothing.
+     */
+    const runStep: HTMLElement =
+      within(dialog()).getByTestId("add-probe-run-step");
+    expect(
+      within(runStep).getByText(
+        "Network probe has to run on a computer inside your network that can reach your devices, such as a server or a virtual machine with Docker.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog()).getByTestId("add-probe-connection"),
+    ).toHaveTextContent(
+      "Waiting for Network probe to connect. This checks every few seconds and turns green once it is running.",
+    );
+    expect(runStep).not.toHaveTextContent(/Run this on a computer/);
+    expect(runStep).not.toHaveTextContent(/run the command/);
+  });
+
+  /*
+   * The key could not be read (the request failed): the dialog says why,
+   * and draws neither a command placeholder that pulses for ever nor words
+   * about a command that is not there.
+   */
+  test("a key that cannot be read leaves no command to wait for", async () => {
+    createMock.mockImplementation((async (): Promise<unknown> => {
+      const created: Probe = new Probe();
+      created._id = CREATED_PROBE_ID;
+      return { data: created };
+    }) as never);
+    probeKeyMock.mockImplementation((async (): Promise<never> => {
+      throw new Error("The probe's key could not be read.");
+    }) as never);
+
+    await openDialog();
+    await act(async () => {
+      fireEvent.click(
+        within(dialog()).getByTestId("modal-footer-submit-button"),
+      );
+    });
+    await flush();
+
+    expect(within(dialog()).getByTestId("modal-title")).toHaveTextContent(
+      "Run the probe",
+    );
+    expect(
+      within(dialog()).getByText("The probe's key could not be read."),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog()).queryByTestId("add-probe-command-loading"),
+    ).toBeNull();
+    expect(within(dialog()).queryByTestId("add-probe-command")).toBeNull();
+    expect(
+      within(dialog()).getByTestId("add-probe-connection"),
+    ).toHaveTextContent(
+      "Waiting for Network probe to connect. This checks every few seconds and turns green once it is running.",
+    );
+  });
+
+  // Between the probe being added and its key arriving: the placeholder.
+  test("while the key is read, the command's place is held", async () => {
+    createMock.mockImplementation((async (): Promise<unknown> => {
+      const created: Probe = new Probe();
+      created._id = CREATED_PROBE_ID;
+      return { data: created };
+    }) as never);
+    probeKeyMock.mockImplementation((): Promise<never> => {
+      return new Promise<never>(() => {});
+    });
+
+    await openDialog();
+    await act(async () => {
+      fireEvent.click(
+        within(dialog()).getByTestId("modal-footer-submit-button"),
+      );
+    });
+    await flush();
+
+    expect(
+      within(dialog()).getByTestId("add-probe-command-loading"),
+    ).toBeInTheDocument();
+    expect(within(dialog()).queryByTestId("add-probe-key-hidden")).toBeNull();
+    expect(
+      within(dialog()).getByText(/Run this on a computer inside your network/),
+    ).toBeInTheDocument();
   });
 
   test("a probe the server does not name back is not run blind", async () => {
@@ -665,6 +753,43 @@ describe("the probe step, done", () => {
     expect(
       within(step("probe")).queryByText(/a probe on the internet cannot reach/),
     ).toBeNull();
+  });
+
+  /*
+   * The tick is a picture: a screen reader is told the step is done in
+   * words, and hears the step turn green while the dialog or the probe is
+   * being run elsewhere.
+   */
+  test("a finished step says so in words, and the probe's line is announced when it changes", async () => {
+    probesAre([
+      probeRow({
+        id: RUNNING_PROBE_ID,
+        name: "Data centre probe",
+        connectionStatus: "connected",
+      }),
+    ]);
+    await renderOverview();
+
+    const marker: HTMLElement = within(step("probe")).getByTestId(
+      "network-first-run-step-done",
+    );
+    const words: HTMLElement = within(marker).getByText("Done");
+
+    expect(words).toHaveClass("sr-only");
+    expect(
+      within(step("probe")).getByTestId("network-first-run-probe-status")
+        .parentElement,
+    ).toHaveAttribute("aria-live", "polite");
+  });
+
+  test("a step still to do is numbered for the eye only: the list numbers it", async () => {
+    await renderOverview();
+
+    const steps: HTMLElement = screen.getByTestId("network-first-run-steps");
+    expect(steps.tagName).toBe("OL");
+
+    const number: HTMLElement = within(step("probe")).getByText("1");
+    expect(number).toHaveAttribute("aria-hidden", "true");
   });
 
   test("two connected: counted", async () => {

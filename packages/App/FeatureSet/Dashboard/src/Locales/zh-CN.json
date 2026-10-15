@@ -29690,7 +29690,7 @@
   "Alert on many devices at once. A policy adds one monitor to every device it covers, including devices added later, and each monitor counts towards your plan. Turning a policy off stands its monitors down; deleting one deletes them.": "一次为多台设备设置警报。策略会为它覆盖的每台设备（包括之后添加的设备）添加一个监视器，每个监视器都计入你的套餐。关闭策略会停用它的监视器；删除策略会删除这些监视器。",
   "Alerts are on.": "警报已开启。",
   "Bring your devices in": "接入你的设备",
-  "Cables the map cannot see on its own. Devices read over SNMP are linked to the neighbours they report, so draw a link here only for a cable no switch reports. Bind a monitor to a link to colour it by that monitor's status.": "地图自己看不到的线缆。通过 SNMP 读取的设备会自动连到它们报告的邻居，所以只需在这里为没有任何交换机报告的线缆画一条链路。把监视器绑定到链路上，即可按该监视器的状态为链路着色。",
+  "Cables the map cannot see on its own. Devices read over SNMP are linked to the neighbours they report, so draw a link here only for a cable no switch reports. Bind a monitor to a link to color it by that monitor's status.": "地图自己看不到的线缆。通过 SNMP 读取的设备会自动连到它们报告的邻居，所以只需在这里为没有任何交换机报告的线缆画一条链路。把监视器绑定到链路上，即可按该监视器的状态为链路着色。",
   "Click a site to open it.": "点击站点即可打开。",
   "Credentials to try": "要尝试的凭据",
   "Credentials {{number}} ({{version}})": "凭据 {{number}} ({{version}})",
@@ -29727,9 +29727,9 @@
   "The status a monitor watching this device last reported, such as Operational or Offline. It can differ from Reachability, because a monitor can also check things like ports going down. No alerts yet means nothing opens an incident when it goes down.": "监视此设备的监视器最近一次报告的状态，例如运行正常或离线。它可能与 Reachability 不同，因为监视器还可能检查端口宕掉等情况。“还没有警报”表示它宕机时不会创建事件。",
   "The {{template}} template is added. Its health values are read from the next poll and charted on Metrics.": "{{template}} 模板已添加。它的健康值会从下次轮询开始读取，并在指标中以图表显示。",
   "This OneUptime server runs a probe of its own too. It can check your devices if this server can reach them.": "这台 OneUptime 服务器自己也运行一个探测器。如果这台服务器能访问到你的设备，它就可以检查这些设备。",
-  "This adds an Alert on every device policy, and the Network device alert pack (recommended) monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan. You can narrow the policy to some devices afterwards.": "这会添加一条 Alert on every device 策略；如果项目中还没有，还会添加它使用的 Network device alert pack (recommended) 监视器模板。它也会覆盖之后添加的设备，并为每台被覆盖的设备添加一个监视器，每个都计入你的套餐。之后你可以把策略收窄到部分设备。",
-  "This adds an Alert on every device policy, and the Network device alert pack (recommended) monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan: up to {{count}} monitors today. You can narrow the policy to some devices afterwards.": "这会添加一条 Alert on every device 策略；如果项目中还没有，还会添加它使用的 Network device alert pack (recommended) 监视器模板。它也会覆盖之后添加的设备，并为每台被覆盖的设备添加一个监视器，每个都计入你的套餐：目前最多 {{count}} 个监视器。之后你可以把策略收窄到部分设备。",
-  "This adds an Alert on every device policy, and the Network device alert pack (recommended) monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan: up to {{count}} monitors today. You can narrow the policy to some devices afterwards._one": "这会添加一条 Alert on every device 策略；如果项目中还没有，还会添加它使用的 Network device alert pack (recommended) 监视器模板。它也会覆盖之后添加的设备，并为每台被覆盖的设备添加一个监视器，每个都计入你的套餐：目前最多 {{count}} 个监视器。之后你可以把策略收窄到部分设备。",
+  "This adds the \"Alert on every device\" policy, and the \"Network device alert pack (recommended)\" monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan. You can narrow the policy to some devices afterwards.": "这会添加一条“Alert on every device”策略；如果项目中还没有，还会添加它使用的“Network device alert pack (recommended)”监视器模板。它也会覆盖之后添加的设备，并为每台被覆盖的设备添加一个监视器，每个都计入你的套餐。之后你可以把策略收窄到部分设备。",
+  "This adds the \"Alert on every device\" policy, and the \"Network device alert pack (recommended)\" monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan: up to {{count}} monitors today. You can narrow the policy to some devices afterwards.": "这会添加一条“Alert on every device”策略；如果项目中还没有，还会添加它使用的“Network device alert pack (recommended)”监视器模板。它也会覆盖之后添加的设备，并为每台被覆盖的设备添加一个监视器，每个都计入你的套餐：目前最多 {{count}} 个监视器。之后你可以把策略收窄到部分设备。",
+  "This adds the \"Alert on every device\" policy, and the \"Network device alert pack (recommended)\" monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan: up to {{count}} monitors today. You can narrow the policy to some devices afterwards._one": "这会添加一条“Alert on every device”策略；如果项目中还没有，还会添加它使用的“Network device alert pack (recommended)”监视器模板。它也会覆盖之后添加的设备，并为每台被覆盖的设备添加一个监视器，每个都计入你的套餐：目前最多 {{count}} 个监视器。之后你可以把策略收窄到部分设备。",
   "This server's probes": "此服务器的探测器",
   "Waiting for its monitor to report": "正在等待其监视器的首次报告",
   "Waiting for {{name}} to connect. This checks every few seconds, so you can leave it open while you run the command.": "正在等待 {{name}} 连接。系统每隔几秒检查一次，你可以在运行命令时保持此窗口打开。",
@@ -29749,5 +29749,7 @@
   "{{name}} is connected. Next, bring your devices in.": "{{name}} 已连接。接下来，接入你的设备。",
   "{{vendor}} health checks are available": "{{vendor}} 健康检查可用",
   "Adding a probe needs the {{planName}} plan. Until then, OneUptime's probes on the internet can check devices with a public address.": "添加探测器需要 {{planName}} 套餐。在此之前，互联网上的 OneUptime 探测器可以检查具有公网地址的设备。",
-  "Upgrade plan": "升级套餐"
+  "Upgrade plan": "升级套餐",
+  "Waiting for {{name}} to connect. This checks every few seconds and turns green once it is running.": "正在等待 {{name}} 连接。系统每隔几秒检查一次，探测器一运行就会变成绿色。",
+  "{{name}} has to run on a computer inside your network that can reach your devices, such as a server or a virtual machine with Docker.": "{{name}} 需要运行在你网络内部能访问到设备的一台计算机上，例如装有 Docker 的服务器或虚拟机。"
 }

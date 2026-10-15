@@ -190,6 +190,53 @@ describe("a page with nothing on it draws nothing it cannot fill", () => {
     expect(graph).toContain("<NetworkTopologyEmptyState");
   });
 
+  /*
+   * The map's empty card is drawn as the empty Devices, Discovery and
+   * Endpoints pages beside it are (TableEmptyState), and its way forward is
+   * in the reader's language: Link draws a bare string child as it is, so
+   * "Add a device" stayed English in every language.
+   */
+  test("an empty map looks like every other empty page, in the reader's language", () => {
+    const emptyState: string = readCode(
+      "Components",
+      "Topology",
+      "NetworkTopologyEmptyState.tsx",
+    );
+    const live: string = readCode(
+      "Components",
+      "Topology",
+      "NetworkTopologyLiveView.tsx",
+    );
+
+    expect(emptyState).toContain("<TableEmptyState");
+    expect(emptyState).toContain("kind={TableEmptyStateKind.Empty}");
+    expect(emptyState).toContain('title="No network topology discovered yet."');
+    expect(emptyState).toContain("actionElement={props.footer}");
+    expect(live).toContain(
+      '{translateString("Add a device") || "Add a device"}',
+    );
+  });
+
+  test("an empty Alert Policies page looks like every other empty page, the recommended policy first", () => {
+    const policies: string = readCode(
+      "Pages",
+      "NetworkDevice",
+      "Settings",
+      "AlertPolicies.tsx",
+    );
+    const emptyState: string = policies.slice(
+      policies.indexOf("export const RecommendedPolicyEmptyState"),
+    );
+
+    expect(emptyState).toContain("<TableEmptyState");
+    expect(emptyState).toContain('title="No alert policies yet"');
+    expect(emptyState).toContain(
+      "description={RECOMMENDED_POLICY_EMPTY_STATE}",
+    );
+    expect(emptyState).toContain("buttonStyle={ButtonStyleType.PRIMARY}");
+    expect(emptyState).toContain("note={");
+  });
+
   test("the explorer leaves out its note about the map while the map is empty", () => {
     const explorer: string = readCode(
       "Components",
@@ -299,6 +346,52 @@ describe("words that say what they mean", () => {
     expect(readCode("Pages", "NetworkDevice", "Links.tsx")).toContain(
       "so draw a link here only for a cable no switch reports",
     );
+  });
+
+  // The product spells it "color" everywhere else.
+  test("Device Links spells color as the rest of the product does", () => {
+    const links: string = readCode("Pages", "NetworkDevice", "Links.tsx");
+
+    expect(links).toContain("to color it by that monitor's status");
+    expect(links).not.toContain("colour");
+  });
+
+  /*
+   * The confirmation names what it adds by the names they will be found
+   * under. Unquoted, "This adds an Alert on every device policy" read as a
+   * sentence that had lost its grammar.
+   */
+  test("the recommended policy's confirmation quotes the names of what it adds", () => {
+    const policies: string = readCode(
+      "Pages",
+      "NetworkDevice",
+      "Settings",
+      "AlertPolicies.tsx",
+    );
+
+    expect(policies).toContain(
+      `'This adds the "Alert on every device" policy, and the "Network device alert pack (recommended)" monitor template it uses`,
+    );
+    expect(policies).not.toContain("This adds an Alert on every device policy");
+  });
+
+  /*
+   * A device's page is opened to see whether it is OK: its health leads, and
+   * the offer of its vendor's health checks follows it, rather than standing
+   * above it on every visit until it is taken.
+   */
+  test("a device's Overview opens on its health, the template offer after it", () => {
+    const overview: string = readCode(
+      "Pages",
+      "NetworkDevice",
+      "View",
+      "Index.tsx",
+    );
+    const hero: number = overview.indexOf("<DeviceStatusHero");
+    const offer: number = overview.indexOf("<DeviceVendorTemplateBanner");
+
+    expect(hero).toBeGreaterThan(-1);
+    expect(offer).toBeGreaterThan(hero);
   });
 
   test("site assignment rules say what they do, and what a hand-placed device does", () => {

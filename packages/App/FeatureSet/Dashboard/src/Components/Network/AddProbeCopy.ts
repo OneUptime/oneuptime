@@ -45,6 +45,20 @@ export const RUN_PROBE_KEY_HIDDEN: string = translationKey(
   "Only project owners and admins can see a probe's key. Ask one of them to run {{name}}: it is under Monitors → Settings → Probes.",
 );
 
+/*
+ * The run step for someone who has no command to run: a role that may add a
+ * probe but not read its key, or a key that could not be read. The step
+ * still says where the probe has to run, for whoever runs it, and its
+ * waiting line asks them to run nothing.
+ */
+export const RUN_PROBE_INSTRUCTIONS_WITHOUT_KEY: string = translationKey(
+  "{{name}} has to run on a computer inside your network that can reach your devices, such as a server or a virtual machine with Docker.",
+);
+
+export const RUN_PROBE_WAITING_WITHOUT_KEY: string = translationKey(
+  "Waiting for {{name}} to connect. This checks every few seconds and turns green once it is running.",
+);
+
 export const RUN_PROBE_OTHER_WAYS: string = translationKey(
   "Other ways to run it: Docker Compose, Kubernetes, and through a proxy",
 );

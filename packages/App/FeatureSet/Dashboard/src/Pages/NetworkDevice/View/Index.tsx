@@ -98,8 +98,13 @@ const NetworkDeviceView: FunctionComponent<
 
   return (
     <Fragment>
-      <DeviceVendorTemplateBanner modelId={modelId} />
+      {/*
+       * The device's health first: it is what the page is opened for. The
+       * offer of its vendor's health checks, while it would add any, comes
+       * after it rather than above it on every visit.
+       */}
       <DeviceStatusHero modelId={modelId} />
+      <DeviceVendorTemplateBanner modelId={modelId} />
       <CardModelDetail<NetworkDevice>
         name="Network Device Details"
         cardProps={{

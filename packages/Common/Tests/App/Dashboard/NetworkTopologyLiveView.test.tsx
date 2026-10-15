@@ -15,6 +15,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -603,7 +604,28 @@ describe("network topology live view: Export PDF", () => {
       "network-topology-empty-state",
     );
 
-    expect(emptyState).toHaveTextContent("No network topology discovered yet.");
+    /*
+     * Drawn as every empty list in the product is (TableEmptyState): the
+     * illustration, the heading - without its full stop - what puts
+     * devices on the map, and the way to add one.
+     */
+    expect(
+      within(emptyState).getByTestId("network-topology-empty-illustration"),
+    ).toBeInTheDocument();
+    expect(
+      within(emptyState).getByTestId("network-topology-empty-title"),
+    ).toHaveTextContent(/^No network topology discovered yet$/);
+    expect(
+      within(emptyState).getByTestId("network-topology-empty-description"),
+    ).toHaveTextContent(
+      "Add your devices and they appear here. Devices read over SNMP are linked to the neighbours they report.",
+    );
+    const addDevice: HTMLElement = within(emptyState).getByRole("link", {
+      name: "Add a device",
+    });
+    expect(addDevice.getAttribute("href")).toContain(
+      "network-devices?open=add-device",
+    );
     expect(screen.queryByTestId("live-network-graph")).toBeNull();
     expect(screen.queryByRole("button", { name: "Export PDF" })).toBeNull();
     expect(screen.queryByText("Read the map:")).toBeNull();

@@ -397,6 +397,30 @@ test("someone who may add a probe but not read its key is told who can", async (
   );
   await expect(modal.getByTestId("add-probe-command")).toHaveCount(0);
 
+  /*
+   * With no command in front of them, nothing asks them to run one: the
+   * step says where the probe has to run, for whoever runs it, and the
+   * waiting line asks for nothing.
+   */
+  await expect(
+    modal.getByText(
+      "Network probe has to run on a computer inside your network that can reach your devices, such as a server or a virtual machine with Docker.",
+    ),
+  ).toBeVisible();
+  await expect(modal.getByTestId("add-probe-connection")).toHaveText(
+    "Waiting for Network probe to connect. This checks every few seconds and turns green once it is running.",
+  );
+  await expect(modal.getByTestId("add-probe-run-step")).not.toContainText(
+    "Run this on a computer",
+  );
+  await expect(modal.getByTestId("add-probe-run-step")).not.toContainText(
+    "run the command",
+  );
+  await settledDialog(page);
+  await page.screenshot({
+    path: path.join(SCREENSHOTS, "network-run-probe-without-key.png"),
+  });
+
   // The key was never asked for.
   const state: FixtureState = await fixture(page);
   expect(
@@ -504,6 +528,48 @@ test("opened to add a probe from a device's probe field: the dialog opens, and t
  * Every width, both themes, another language
  * ---------------------------------------------------------------------------
  */
+
+/*
+ * Each step's number (or tick) sits on the first line of its title: a 32px
+ * circle beside a 24px line used to hang 4px below the title's middle. On a
+ * phone a long title wraps, and the marker stays on its first line.
+ */
+test("each step's marker sits on its title's first line, on a desktop and a phone", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width: width, height: 900 });
+    await openFirstRun(page, "probes=connected&connectAfter=never");
+
+    for (const name of ["probe", "devices", "alerts"] as const) {
+      const offset: number = await step(page, name).evaluate(
+        (item: Element): number => {
+          const marker: Element = item.firstElementChild as Element;
+          const title: Element = item.querySelector("h3") as Element;
+          const markerBox: DOMRect = marker.getBoundingClientRect();
+          const titleBox: DOMRect = title.getBoundingClientRect();
+          const lineHeight: number = parseFloat(
+            getComputedStyle(title).lineHeight,
+          );
+
+          return Math.abs(
+            markerBox.top +
+              markerBox.height / 2 -
+              (titleBox.top + lineHeight / 2),
+          );
+        },
+      );
+
+      expect({ width, name, offset: offset <= 1 }).toEqual({
+        width,
+        name,
+        offset: true,
+      });
+    }
+  }
+});
 
 test("the path and the dialog fit a phone", async ({
   page,

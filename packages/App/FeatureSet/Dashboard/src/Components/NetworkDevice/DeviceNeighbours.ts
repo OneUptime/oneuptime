@@ -51,6 +51,22 @@ function readText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+/*
+ * The neighbour's port, unless it only repeats the neighbour's name: an
+ * LLDP agent that names its port by its chassis MAC (port id subtype MAC
+ * address) and gives no system name would otherwise read
+ * "70:3a:0e:12:4f:c1 · port 70:3a:0e:12:4f:c1".
+ */
+function readRemotePort(value: unknown, name: string): string | undefined {
+  const port: string = readText(value);
+
+  if (!port || port.toLowerCase() === name.toLowerCase()) {
+    return undefined;
+  }
+
+  return port;
+}
+
 function readIndex(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value)
     ? value
@@ -105,7 +121,7 @@ export function getDeviceNeighbours(data: {
     add({
       name: name,
       hasAdvertisedName: Boolean(sysName),
-      remotePort: readText(row?.remotePortId) || undefined,
+      remotePort: readRemotePort(row?.remotePortId, name),
       localInterfaceIndex: readIndex(row?.localInterfaceIndex),
       protocol: NeighbourProtocol.Lldp,
     });
@@ -121,7 +137,7 @@ export function getDeviceNeighbours(data: {
     add({
       name: name,
       hasAdvertisedName: true,
-      remotePort: readText(row?.remotePortId) || undefined,
+      remotePort: readRemotePort(row?.remotePortId, name),
       localInterfaceIndex: readIndex(row?.localInterfaceIndex),
       protocol: NeighbourProtocol.Cdp,
     });
