@@ -141,7 +141,7 @@ Dans **Astreinte et propriétaires**, choisissez une **Politique d'astreinte** �
 
 ### Ajouter les alertes
 
-Ouvrez la page **Alertes des membres** de l'épisode et ajoutez les alertes qui en font partie, une par une.
+Ouvrez la page **Alertes des membres** de l'épisode, cliquez sur **Ajouter des alertes** et cochez les alertes qui en font partie, autant qu'il vous en faut à la fois. Pour partir plutôt des alertes, sélectionnez-les dans la liste **Alertes** et choisissez **Ajouter à un nouvel épisode** dans **Actions groupées** (voir [Épisodes](/docs/incidents/episodes)).
 :::
 
 Un épisode que vous créez n'a pas de règle de regroupement : la liste affiche donc sa **Règle de regroupement** comme **Manuel**, et aucun paramètre de cycle de vie ne s'applique à lui. Il se résout tout de même de lui-même dès que toutes ses alertes sont résolues.

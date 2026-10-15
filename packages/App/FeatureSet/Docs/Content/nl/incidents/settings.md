@@ -609,15 +609,16 @@ Om te zien wat er gebeurde, open je het incident en kies je **Bereikbaarheidsuit
 
 ## Incidenten aansturen vanuit workflows
 
-Workflow-triggers voor incidenten zijn niet met de hand geschreven — OneUptime genereert ze uit de datamodellen, dus elk model uit de incidentfamilie krijgt de componenten **On Create X**, **On Update X** en **On Delete X**, genoemd naar de enkelvoudige naam van het model. De belangrijkste drie zijn **On Create Incident**, **On Update Incident** en **On Delete Incident**. Je vindt ze in het paneel **Add Trigger** op `/dashboard/{projectId}/workflows`, onder **OneUptime resources** → **Incident**; de eerste twee staan ook onder **Popular**.
+Workflow-triggers voor incidenten zijn niet met de hand geschreven — OneUptime genereert ze uit de datamodellen, dus elk model uit de incidentfamilie krijgt de componenten **On Create X**, **On Update X**, **On Create or Update X** en **On Delete X**, genoemd naar de enkelvoudige naam van het model. De belangrijkste zijn **On Create Incident**, **On Update Incident**, **On Create or Update Incident** en **On Delete Incident**. Je vindt ze in het paneel **Add Trigger** op `/dashboard/{projectId}/workflows`, onder **OneUptime resources** → **Incident**; de eerste twee staan ook onder **Popular**.
 
 Dezelfde generatie geeft je triggers voor de configuratie zelf: **On Create Incident State**, **On Update Incident Severity**, **On Create Incident Template**, **On Create Incident Note Template**, **On Create Incident State Timeline**, **On Create Incident Public Note**, **On Create Incident Internal Note**, **On Create Incident On-Call Rule**, **On Create Incident Role**, **On Create Incident Member** en meer. Elk model krijgt ook bijpassende actiecomponenten — **Find One Incident**, **Create One Incident**, **Update One Incident**, **Delete One Incident** en hun tegenhangers voor meerdere rijen — dus een trigger en een actie met vergelijkbare namen staan naast elkaar in dezelfde categorie. **On Create Incident** start een workflow; **Create One Incident** opent een incident.
 
 Een paar details die ertoe doen als je ze aansluit:
 
 - **On Update X** neemt een optioneel argument **Fields to watch** dat de trigger beperkt tot updates die specifieke velden wijzigen, waarin ze ook veranderen: een schakelaar die wordt uitgezet of een veld dat wordt gewist, telt ook. Een veld dat wordt opgeslagen met de waarde die het al heeft, is geen wijziging, dus een bewerkingsformulier dat het bij elke keer opslaan terugstuurt, wekt de workflow niet. Laat het leeg om bij elke wijziging af te gaan. Komt een update binnen zonder vastlegging van welke velden veranderden, dan wordt het filter overgeslagen en draait de workflow toch.
-- **On Create X** en **On Update X** nemen allebei een verplicht argument **Fields to pass on**; **On Delete X** neemt geen argumenten.
-- Alle drie hebben één uitgangspoort **Success**, en elk accepteert een ID-argument zodat je de workflow met de hand op één record kunt uitvoeren.
+- **On Create or Update X** draait één keer voor elk nieuw record en één keer voor elke update die zijn eigen **Fields to watch** doorlaat, zodat één workflow beide afhandelt. Naast het record geeft hij `what-happened` door: `created` of `updated`.
+- **On Create X**, **On Update X** en **On Create or Update X** nemen een verplicht argument **Fields to pass on**; **On Delete X** neemt geen argumenten.
+- Alle vier hebben één uitgangspoort **Success**, en elk accepteert een ID-argument zodat je de workflow met de hand op één record kunt uitvoeren.
 - Namen komen van de enkelvoudige naam van het model, niet van de tabelnaam — daarom zie je **On Create Incident Team Owner** en **On Create Incident User Owner** in plaats van namen in de vorm van tabellen.
 - Er zijn geen triggers voor de definities van aangepaste incidentvelden. Dat model is het enige lid van de incidentfamilie waarvoor workflows zijn uitgeschakeld.
 

@@ -609,15 +609,16 @@ For å se hva som skjedde, åpner du hendelsen og velger **Vaktutførelser** i s
 
 ## Styr hendelser fra arbeidsflyter
 
-Utløsere for arbeidsflyter for hendelser er ikke håndskrevne — OneUptime genererer dem fra datamodellene, så hver modell i hendelsesfamilien får komponentene **On Create X**, **On Update X** og **On Delete X**, navngitt etter modellens navn i entall. De tre viktigste er **On Create Incident**, **On Update Incident** og **On Delete Incident**. Du finner dem i panelet **Add Trigger** på `/dashboard/{projectId}/workflows`, under **OneUptime resources** → **Incident**; de to første står også under **Popular**.
+Utløsere for arbeidsflyter for hendelser er ikke håndskrevne — OneUptime genererer dem fra datamodellene, så hver modell i hendelsesfamilien får komponentene **On Create X**, **On Update X**, **On Create or Update X** og **On Delete X**, navngitt etter modellens navn i entall. De viktigste er **On Create Incident**, **On Update Incident**, **On Create or Update Incident** og **On Delete Incident**. Du finner dem i panelet **Add Trigger** på `/dashboard/{projectId}/workflows`, under **OneUptime resources** → **Incident**; de to første står også under **Popular**.
 
 Den samme genereringen gir deg utløsere for selve konfigurasjonen: **On Create Incident State**, **On Update Incident Severity**, **On Create Incident Template**, **On Create Incident Note Template**, **On Create Incident State Timeline**, **On Create Incident Public Note**, **On Create Incident Internal Note**, **On Create Incident On-Call Rule**, **On Create Incident Role**, **On Create Incident Member** og flere. Hver modell får også tilsvarende handlingskomponenter — **Find One Incident**, **Create One Incident**, **Update One Incident**, **Delete One Incident** og deres motstykker for mange rader — så en utløser og en handling med lignende navn står side om side i samme kategori. **On Create Incident** starter en arbeidsflyt; **Create One Incident** åpner en hendelse.
 
 Noen detaljer som betyr noe når du kobler dem sammen:
 
 - **On Update X** tar et valgfritt argument **Fields to watch** som snevrer inn utløseren til oppdateringer som endrer bestemte felt, uansett hva de endres til: en bryter som slås av eller et felt som tømmes, teller også. Et felt som lagres med verdien det allerede har, er ikke en endring, så et redigeringsskjema som sender det tilbake ved hver lagring, vekker ikke arbeidsflyten. La det stå tomt for å utløse ved enhver endring. Kommer en oppdatering inn uten en oversikt over hvilke felt som endret seg, hoppes filteret over, og arbeidsflyten kjører likevel.
-- **On Create X** og **On Update X** tar begge et påkrevd argument **Fields to pass on**; **On Delete X** tar ingen argumenter.
-- Alle tre har én enkelt utgangsport **Success**, og hver godtar et ID-argument slik at du kan kjøre arbeidsflyten for hånd mot én post.
+- **On Create or Update X** kjører én gang for hver ny post og én gang for hver oppdatering som dens egne **Fields to watch** slipper gjennom, så én arbeidsflyt håndterer begge deler. I tillegg til posten sender den `what-happened` videre: `created` eller `updated`.
+- **On Create X**, **On Update X** og **On Create or Update X** tar et påkrevd argument **Fields to pass on**; **On Delete X** tar ingen argumenter.
+- Alle fire har én enkelt utgangsport **Success**, og hver godtar et ID-argument slik at du kan kjøre arbeidsflyten for hånd mot én post.
 - Navnene kommer fra modellens navn i entall, ikke fra tabellnavnet — derfor ser du **On Create Incident Team Owner** og **On Create Incident User Owner** i stedet for navn i tabellform.
 - Det finnes ingen utløsere for definisjoner av egendefinerte hendelsesfelt. Den modellen er det eneste medlemmet av hendelsesfamilien der arbeidsflyter er slått av.
 

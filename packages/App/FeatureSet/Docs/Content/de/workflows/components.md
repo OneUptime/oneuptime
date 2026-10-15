@@ -374,7 +374,7 @@ Für jede Art von Datensatz in OneUptime (Monitore, Vorfälle, Warnungen, Status
 | **Delete One Monitor**   | Einen passenden Datensatz löschen.                                   |
 | **Delete Many Monitors** | Passende Datensätze löschen, bis zu **Limit**.                       |
 
-Dieselbe Reihe gibt Ihnen drei Trigger – **On Create Monitor**, **On Update Monitor** und **On Delete Monitor**. Siehe [Trigger](/docs/workflows/triggers#oneuptime-ereignis-trigger).
+Dieselbe Reihe gibt Ihnen vier Trigger – **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** und **On Delete Monitor**. Siehe [Trigger](/docs/workflows/triggers#oneuptime-ereignis-trigger).
 
 Ein Typ bietet nur die Komponenten an, die sein Modell erlaubt. Ein schreibgeschützter Typ hat die beiden Find-Komponenten und sonst nichts; finden Sie **Delete One Monitor** also nicht im Bereich, erlaubt dieser Typ es nicht.
 

@@ -196,7 +196,7 @@ Reference an earlier block's output like this:
 | --------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | An **API** block whose ID is `lookup-user`          | Its status code: `{{local.components.lookup-user.returnValues.response-status}}`. Its body: `{{local.components.lookup-user.returnValues.response-body}}`. |
 | A **Run Custom JavaScript** block whose ID is `transform` | What it returned: `{{local.components.transform.returnValues.returnValue}}`.       |
-| An **On Create Incident** trigger whose ID is `incident-on-create-1` | The incident's title: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Record triggers return one value, `model`, and you drill into it. |
+| An **On Create Incident** trigger whose ID is `incident-on-create-1` | The incident's title: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Record triggers return the record as `model`, and you drill into it. |
 
 Block values only exist during the current run. Each new run starts fresh.
 

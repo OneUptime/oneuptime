@@ -432,6 +432,27 @@ export const OPERATION_KEYWORDS: Readonly<
     "acknowledged",
     "status",
   ],
+  /*
+   * What people call a trigger for both: "created or updated", "new or
+   * changed", "saved", and the words of keeping another system in step. A
+   * search for one of the two ("incident created") still puts that one
+   * first: it has the same words, and is earlier in the resource's list.
+   */
+  [DatabaseOperation.OnCreateOrUpdate]: [
+    "created",
+    "updated",
+    "changed",
+    "new",
+    "added",
+    "edited",
+    "modified",
+    "save",
+    "saved",
+    "upsert",
+    "sync",
+    "either",
+    "both",
+  ],
   [DatabaseOperation.OnDelete]: ["deleted", "removed"],
 };
 

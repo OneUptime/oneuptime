@@ -459,3 +459,92 @@ describe("the fields a database step reads", () => {
     );
   });
 });
+
+/*
+ * On Create or Update hands on the record, as On Create and On Update do,
+ * and What Happened: "created" or "updated". A later step's value picker
+ * lists both under the trigger - the record opening to its fields, the ones
+ * it passes on first; What Happened as the plain text it is.
+ */
+describe("On Create or Update, before the step being set up", () => {
+  const trigger: NodeDataProp = step(
+    "incident-on-create-or-update",
+    "incident-on-create-or-update-1",
+    { select: { title: true } },
+  );
+
+  test("offers the record and What Happened, in that order", () => {
+    const groups: Array<ValueSuggestionGroup> = buildStepValueGroups({
+      upstreamComponents: [trigger],
+    });
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0]!.title).toBe("On Create or Update Incident");
+    expect(groups[0]!.subtitle).toBe("incident-on-create-or-update-1");
+    expect(
+      groups[0]!.items.map((item: ValueSuggestion) => {
+        return [item.label, item.reference, item.typeLabel];
+      }),
+    ).toEqual([
+      [
+        "Incident",
+        "{{local.components.incident-on-create-or-update-1.returnValues.model}}",
+        groups[0]!.items[0]!.typeLabel,
+      ],
+      [
+        "What Happened",
+        "{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}",
+        groups[0]!.items[1]!.typeLabel,
+      ],
+    ]);
+    expect(groups[0]!.items[1]!.description).toBe(
+      '"created" for a new Incident, "updated" for a change to one.',
+    );
+  });
+
+  test("What Happened is plain text, picked whole: nothing to open", () => {
+    const whatHappened: ValueSuggestion = buildStepValueGroups({
+      upstreamComponents: [trigger],
+    })[0]!.items[1]!;
+
+    expect(whatHappened.drillIn).toBeUndefined();
+    expect(whatHappened.isUnavailable).toBeUndefined();
+  });
+
+  test("the record opens to its fields, the ones passed on first, as On Update's does", async () => {
+    const model: ValueSuggestion = buildStepValueGroups(
+      { upstreamComponents: [trigger] },
+      {
+        loadRecordColumns: async (): Promise<Array<ModelSchemaColumn>> => {
+          return COLUMNS;
+        },
+      },
+    )[0]!.items[0]!;
+
+    expect(model.drillIn?.wholeValueLabel).toBe("The whole Incident");
+
+    const fields: Array<ValueSuggestion> = await model.drillIn!.loadChildren!();
+
+    expect(
+      fields.map((field: ValueSuggestion) => {
+        return [field.label, Boolean(field.isEmptyHere)];
+      }),
+    ).toEqual([
+      ["ID", false],
+      ["Title", false],
+      ["Description", true],
+    ]);
+    expect(model.drillIn?.emptyHereNote).toEqual({
+      template:
+        "{{step}} doesn't pass these on, so they are empty here. Add them to its {{setting}} to use them.",
+      values: {
+        step: "On Create or Update Incident",
+        setting: "Fields to pass on",
+      },
+    });
+  });
+
+  test("reads which fields it passes on from Fields to pass on, as every record step does", () => {
+    expect(selectedColumnIds(trigger)).toEqual(["_id", "title"]);
+  });
+});

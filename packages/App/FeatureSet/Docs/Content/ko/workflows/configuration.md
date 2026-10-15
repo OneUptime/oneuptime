@@ -185,7 +185,7 @@ API 블록과 그 밖의 HTTP 블록은 OneUptime에서 요청을 보내고, IRC
 
 ## 워크플로 단계가 할 수 있는 일
 
-OneUptime 레코드를 읽고 바꾸는 단계 — Find, Create, Update, Delete 구성 요소와 On Create, On Update, On Delete 트리거 — 는 워크플로 프로젝트의 **Project Admin**으로 동작합니다. 누가 워크플로를 만들었든, 단계는 Project Admin이 대시보드와 API에서 받는 것과 같은 검사를 받습니다.
+OneUptime 레코드를 읽고 바꾸는 단계 — Find, Create, Update, Delete 구성 요소와 On Create, On Update, On Create or Update, On Delete 트리거 — 는 워크플로 프로젝트의 **Project Admin**으로 동작합니다. 누가 워크플로를 만들었든, 단계는 Project Admin이 대시보드와 API에서 받는 것과 같은 검사를 받습니다.
 
 - **워크플로 자체의 프로젝트만.** 단계는 워크플로가 속한 프로젝트의 레코드만 읽고 쓰며 다른 프로젝트는 건드리지 않고, Update는 레코드를 다른 프로젝트로 옮기지 않습니다.
 - **Project Admin에게 허용된 것만.** 단계는 Project Admin 자신이 가진 팀 및 API 키 권한만 부여할 수 있으므로, **Project Owner**, 청구, 프로젝트 삭제 권한을 나눠 주거나, 소유자 팀처럼 Project Admin을 넘어서는 권한을 가진 팀에 누군가를 추가할 수 없습니다. 단계는 프로브나 AI 에이전트를 누가 만들었는지 읽을 수 없으며, 그것은 프로젝트 소유자만 봅니다.

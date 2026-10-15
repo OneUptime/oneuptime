@@ -153,15 +153,16 @@ Gelangt die Adresse nach außen, klicken Sie an derselben Stelle auf **Adresse z
 
 ## OneUptime-Ereignis-Trigger
 
-Fast alles in OneUptime – Monitore, Vorfälle, Warnungen, geplante Wartungen, Statusseiten, Bereitschaftsrichtlinien, Teams – kann einen Workflow auslösen. Jedes bietet bis zu drei Ereignisse:
+Fast alles in OneUptime – Monitore, Vorfälle, Warnungen, geplante Wartungen, Statusseiten, Bereitschaftsrichtlinien, Teams – kann einen Workflow auslösen. Jedes bietet bis zu vier Trigger:
 
 - **On Create** – löst aus, wenn ein neues hinzugefügt wird.
 - **On Update** – löst aus, wenn eines geändert wird. Einen Datensatz mit den Werten zu speichern, die er schon hat, etwa ein Formular, das ohne Änderung gespeichert wird, oder einen Schalter, der so gesendet wird, wie er schon steht, ist keine Änderung und löst ihn nicht aus.
+- **On Create or Update** – löst für beides aus: einmal, wenn ein neues hinzugefügt wird, und einmal bei jeder Änderung. Ein Workflow behandelt dann einen neuen und einen geänderten Datensatz gleich, etwa um eine Kopie in einem anderen System aktuell zu halten.
 - **On Delete** – löst aus, wenn eines gelöscht wird.
 
 So bauen Sie "wenn X in OneUptime passiert, tue Y", ohne Dinge in einer Schleife prüfen zu müssen.
 
-**On Update** lässt sich mit **Fields to watch** auf einige Felder eingrenzen: Dann löst er nur aus, wenn eine Änderung eines davon ändert, auf welchen Wert auch immer – einen Schalter auszuschalten oder ein Feld zu leeren zählt.
+**On Update** lässt sich mit **Fields to watch** auf einige Felder eingrenzen: Dann löst er nur aus, wenn eine Änderung eines davon ändert, auf welchen Wert auch immer – einen Schalter auszuschalten oder ein Feld zu leeren zählt. **On Create or Update** hat dieselben **Fields to watch**, nur für seine Änderungen: Jeder neue Datensatz löst ihn trotzdem aus.
 
 ```mermaid title="Wann ein On-Update-Trigger auslöst"
 flowchart TB
@@ -174,11 +175,15 @@ flowchart TB
     field -->|"Nein"| nothing
 ```
 
-**On Create** und **On Update** reichen den Datensatz an den nächsten Baustein weiter, mit den Feldern, die Sie unter **Fields to pass on** des Triggers wählen. Zum Beispiel reicht der Trigger **Incident → On Create** den neuen Vorfall weiter, sodass der nächste Baustein seinen Titel, seine Beschreibung, seinen Schweregrad oder jedes andere ausgewählte Feld lesen kann, etwa `{{local.components.incident-on-create-1.returnValues.model.title}}`. Ein Feld, das Sie nicht ausgewählt haben, kommt leer an.
+**On Create**, **On Update** und **On Create or Update** reichen den Datensatz an den nächsten Baustein weiter, mit den Feldern, die Sie unter **Fields to pass on** des Triggers wählen. Zum Beispiel reicht der Trigger **Incident → On Create** den neuen Vorfall weiter, sodass der nächste Baustein seinen Titel, seine Beschreibung, seinen Schweregrad oder jedes andere ausgewählte Feld lesen kann, etwa `{{local.components.incident-on-create-1.returnValues.model.title}}`. Ein Feld, das Sie nicht ausgewählt haben, kommt leer an.
+
+**On Create or Update** reicht außerdem **What Happened** weiter: `created`, wenn ein neuer Datensatz den Lauf gestartet hat, und `updated`, wenn es eine Änderung war, wie in `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Um beides unterschiedlich zu behandeln, vergleichen Sie es in einem **If / Else**-Baustein oder nehmen mit **Switch / Case** für jedes einen eigenen Pfad.
+
+Ein Speichern löst ihn einmal aus. Was OneUptime beim Erstellen eines Datensatzes noch ausfüllt, gehört zum Erstellen, daher löst ein neuer Datensatz ihn einmal aus, als `created`. Änderungen, die OneUptime später vornimmt, etwa das Verknüpfen des Slack-Kanals eines Vorfalls, sind Änderungen wie jede andere: Um sie auszulassen, nehmen Sie nur die Felder in **Fields to watch** auf, die Ihnen wichtig sind.
 
 **On Delete** reicht nur die ID des gelöschten Datensatzes weiter: Der Datensatz ist weg, wenn der Workflow läuft, daher lassen sich seine anderen Felder nicht lesen.
 
-Um einen Ereignis-Trigger zu testen, ohne auf das Ereignis zu warten, klicken Sie im **Editor** auf **Arbeitsablauf ausführen** und wählen einen vorhandenen Datensatz aus: Die neuesten sind aufgelistet, und wenn Sie die Nummer eines Datensatzes oder einen Teil seines Namens eintippen, finden Sie einen anderen. Die Ausführung liest diesen Datensatz mit den Feldern, die Sie ausgewählt haben, als wäre das Ereignis gerade bei ihm eingetreten; der Datensatz selbst wird weder geändert noch gelöscht.
+Um einen Ereignis-Trigger zu testen, ohne auf das Ereignis zu warten, klicken Sie im **Editor** auf **Arbeitsablauf ausführen** und wählen einen vorhandenen Datensatz aus: Die neuesten sind aufgelistet, und wenn Sie die Nummer eines Datensatzes oder einen Teil seines Namens eintippen, finden Sie einen anderen. Die Ausführung liest diesen Datensatz mit den Feldern, die Sie ausgewählt haben, als wäre das Ereignis gerade bei ihm eingetreten; der Datensatz selbst wird weder geändert noch gelöscht. Bei **On Create or Update** wählen Sie unter **Was ist passiert**, ob der Lauf für das Erstellen oder das Ändern des Datensatzes gilt.
 
 ### Die am häufigsten genutzten Ereignisse
 

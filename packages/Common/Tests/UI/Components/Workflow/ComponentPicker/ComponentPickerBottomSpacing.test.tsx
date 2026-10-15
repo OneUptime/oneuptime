@@ -227,7 +227,7 @@ describe("the Add Trigger picker leaves room under the last row", () => {
     renderPicker(ComponentType.Trigger);
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Incident, 3 triggers" }),
+      screen.getByRole("button", { name: "Incident, 4 triggers" }),
     );
 
     expectRoomBelow(

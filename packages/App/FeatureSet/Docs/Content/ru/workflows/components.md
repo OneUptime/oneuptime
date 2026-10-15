@@ -374,7 +374,7 @@ return {
 | **Delete One Monitor**   | Удаляет одну подходящую запись.                                                |
 | **Delete Many Monitors** | Удаляет подходящие записи, не больше **Limit**.                                |
 
-Тот же набор даёт три триггера — **On Create Monitor**, **On Update Monitor** и **On Delete Monitor**. См. [Триггеры](/docs/workflows/triggers#триггеры-событий-oneuptime).
+Тот же набор даёт четыре триггера — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** и **On Delete Monitor**. См. [Триггеры](/docs/workflows/triggers#триггеры-событий-oneuptime).
 
 Тип предлагает только те компоненты, которые допускает его модель. У типа только для чтения есть два компонента Find и ничего больше, поэтому если вы не находите **Delete One Monitor** на панели, этот тип такого не допускает.
 

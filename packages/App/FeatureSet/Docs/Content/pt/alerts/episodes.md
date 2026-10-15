@@ -141,7 +141,7 @@ Em **Plantão e proprietários**, escolha uma **Política de plantão** a execut
 
 ### Adicionar os alertas
 
-Abra a página **Alertas de membros** do episódio e adicione os alertas que pertencem a ele, um de cada vez.
+Abra a página **Alertas de membros** do episódio, clique em **Adicionar alertas** e marque os alertas que pertencem a ele, quantos precisar de uma vez. Para começar pelos alertas, selecione-os na lista **Alertas** e escolha **Adicionar a um novo episódio** em **Ações em massa** (veja [Episódios](/docs/incidents/episodes)).
 :::
 
 Um episódio que você cria não tem regra de agrupamento, então a lista mostra sua **Regra de Agrupamento** como **Manual**, e nenhuma configuração de ciclo de vida se aplica a ele. Ainda assim, ele se resolve sozinho quando todos os seus alertas estão resolvidos.

@@ -141,7 +141,7 @@ En **Guardia y propietarios**, elige una **Política de guardia** que se ejecute
 
 ### Añadir las alertas
 
-Abre la página **Alertas miembro** del episodio y añade las alertas que le pertenecen, una a una.
+Abre la página **Alertas miembro** del episodio, haz clic en **Añadir alertas** y marca las alertas que le pertenecen, tantas como necesites a la vez. Para empezar por las alertas, selecciónalas en la lista **Alertas** y elige **Añadir a un episodio nuevo** en **Acciones masivas** (consulta [Episodios](/docs/incidents/episodes)).
 :::
 
 Un episodio que creas tú no tiene regla de agrupación, así que la lista muestra su **Regla de agrupación** como **Manual**, y no se le aplica ningún ajuste de ciclo de vida. Aun así se resuelve solo cuando todas sus alertas están resueltas.

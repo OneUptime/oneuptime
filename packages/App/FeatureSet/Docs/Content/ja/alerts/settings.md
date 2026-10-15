@@ -151,7 +151,7 @@ flowchart TB
 
 ## ワークフロー
 
-アラートの各モデルには、その名前の付いたワークフローのトリガーとアクションがあります。**On Create Alert**、**On Update Alert**、**On Delete Alert**、**アラートエピソード** や **アラートの状態タイムライン** などにも同じものがあり、**Create One Alert** や **Update One Alert** のようなアクションもあります。唯一の例外はアラートのカスタムフィールドの定義で、ワークフローのトリガーはありません。[ワークフロー 概要](/docs/workflows/index) を参照してください。
+アラートの各モデルには、その名前の付いたワークフローのトリガーとアクションがあります。**On Create Alert**、**On Update Alert**、**On Create or Update Alert**、**On Delete Alert**、**アラートエピソード** や **アラートの状態タイムライン** などにも同じものがあり、**Create One Alert** や **Update One Alert** のようなアクションもあります。唯一の例外はアラートのカスタムフィールドの定義で、ワークフローのトリガーはありません。[ワークフロー 概要](/docs/workflows/index) を参照してください。
 
 ## 変更できる人
 

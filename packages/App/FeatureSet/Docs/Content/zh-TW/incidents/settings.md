@@ -609,15 +609,16 @@ flowchart TB
 
 ## 用工作流程驅動事件
 
-事件的工作流程觸發器不是手寫的——OneUptime 從資料模型產生它們，所以事件家族中的每個模型都會取得以模型單數名稱命名的 **On Create X**、**On Update X** 和 **On Delete X** 元件。最主要的三個是 **On Create Incident**、**On Update Incident** 和 **On Delete Incident**。你可以在 `/dashboard/{projectId}/workflows` 的 **Add Trigger** 面板中，在 **OneUptime resources** → **Incident** 下找到它們；前兩個也位於 **Popular** 下。
+事件的工作流程觸發器不是手寫的——OneUptime 從資料模型產生它們，所以事件家族中的每個模型都會取得以模型單數名稱命名的 **On Create X**、**On Update X**、**On Create or Update X** 和 **On Delete X** 元件。最主要的是 **On Create Incident**、**On Update Incident**、**On Create or Update Incident** 和 **On Delete Incident**。你可以在 `/dashboard/{projectId}/workflows` 的 **Add Trigger** 面板中，在 **OneUptime resources** → **Incident** 下找到它們；前兩個也位於 **Popular** 下。
 
 同樣的產生機制還為設定本身提供了觸發器：**On Create Incident State**、**On Update Incident Severity**、**On Create Incident Template**、**On Create Incident Note Template**、**On Create Incident State Timeline**、**On Create Incident Public Note**、**On Create Incident Internal Note**、**On Create Incident On-Call Rule**、**On Create Incident Role**、**On Create Incident Member** 等。每個模型還會取得對應的操作元件——**Find One Incident**、**Create One Incident**、**Update One Incident**、**Delete One Incident** 及其多列版本——所以名稱相似的觸發器和操作會並排出現在同一個類別中。**On Create Incident** 啟動工作流程；**Create One Incident** 建立一個事件。
 
 串接這些元件時需要注意的幾個細節：
 
 - **On Update X** 接受一個選用參數 **Fields to watch**，把觸發器限定為變更了特定欄位的更新，無論改成了什麼：關閉開關或清除欄位也算。以原有值儲存的欄位不算變更，所以每次儲存都會把它傳回的編輯表單不會喚醒工作流程。留空則在任何變更時觸發。如果更新送達時沒有記錄哪些欄位變更了，篩選會被略過，工作流程照樣執行。
-- **On Create X** 和 **On Update X** 都接受一個必填參數 **Fields to pass on**；**On Delete X** 不接受任何參數。
-- 三者都只提供一個 **Success** 輸出連接埠，而且每個都接受一個 ID 參數，所以你可以針對一筆紀錄手動執行工作流程。
+- **On Create or Update X** 對每筆新記錄執行一次，對它自己的 **Fields to watch** 放行的每次更新執行一次，所以一個工作流程就能處理兩者。除了記錄，它還會傳下 `what-happened`：`created` 或 `updated`。
+- **On Create X**、**On Update X** 和 **On Create or Update X** 都接受一個必填參數 **Fields to pass on**；**On Delete X** 不接受任何參數。
+- 四者都只提供一個 **Success** 輸出連接埠，而且每個都接受一個 ID 參數，所以你可以針對一筆紀錄手動執行工作流程。
 - 名稱來自模型的單數名稱，而不是它的資料表名稱——這就是為什麼你會看到 **On Create Incident Team Owner** 和 **On Create Incident User Owner**，而不是資料表式的名稱。
 - 事件自訂欄位定義沒有觸發器。這個模型是事件家族中唯一停用了工作流程的成員。
 

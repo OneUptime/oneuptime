@@ -125,7 +125,7 @@ describe("the picker's lists hold to the real catalog", () => {
           .length,
         triggers: (TRIGGERS.resourcesByKey.get(tableName)?.components || [])
           .length,
-      }).toEqual({ tableName, actions: 8, triggers: 3 });
+      }).toEqual({ tableName, actions: 8, triggers: 4 });
     }
 
     expect(
@@ -310,13 +310,26 @@ describe("the searches from the report, on the real catalog", () => {
   });
 
   test("the trigger picker", () => {
-    expect(titles(TRIGGER_INDEX, "incident").slice(0, 3)).toEqual([
+    expect(titles(TRIGGER_INDEX, "incident").slice(0, 4)).toEqual([
       "On Create Incident",
       "On Update Incident",
+      "On Create or Update Incident",
       "On Delete Incident",
     ]);
     expect(titles(TRIGGER_INDEX, "incident created")[0]).toBe(
       "On Create Incident",
+    );
+    expect(titles(TRIGGER_INDEX, "incident updated")[0]).toBe(
+      "On Update Incident",
+    );
+    expect(titles(TRIGGER_INDEX, "incident created or updated")[0]).toBe(
+      "On Create or Update Incident",
+    );
+    expect(titles(TRIGGER_INDEX, "alert created or updated")[0]).toBe(
+      "On Create or Update Alert",
+    );
+    expect(titles(TRIGGER_INDEX, "monitor save")[0]).toBe(
+      "On Create or Update Monitor",
     );
     expect(titles(TRIGGER_INDEX, "webhook")[0]).toBe("Webhook");
     expect(titles(TRIGGER_INDEX, "every hour")[0]).toBe("Schedule");

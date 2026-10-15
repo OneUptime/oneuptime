@@ -153,15 +153,16 @@ Si l'adresse fuite, cliquez sur **Réinitialiser l'adresse** au même endroit : 
 
 ## Déclencheurs d'événements OneUptime
 
-Presque tout ce qui existe dans OneUptime — moniteurs, incidents, alertes, événements de maintenance planifiée, pages de statut, politiques d'astreinte, équipes — peut déclencher un workflow. Chacun propose jusqu'à trois événements :
+Presque tout ce qui existe dans OneUptime — moniteurs, incidents, alertes, événements de maintenance planifiée, pages de statut, politiques d'astreinte, équipes — peut déclencher un workflow. Chacun propose jusqu'à quatre déclencheurs :
 
 - **On Create** — se produit quand un nouvel élément est ajouté.
 - **On Update** — se produit quand un élément est modifié. Enregistrer un enregistrement avec les valeurs qu'il a déjà, comme un formulaire enregistré sans modification ou un interrupteur envoyé dans la position où il est déjà, n'est pas un changement et ne le déclenche pas.
+- **On Create or Update** — se produit dans les deux cas : une fois quand un nouvel élément est ajouté, et une fois à chaque modification. Un seul workflow traite alors de la même façon un nouvel enregistrement et un enregistrement modifié, par exemple pour tenir à jour une copie dans un autre système.
 - **On Delete** — se produit quand un élément est supprimé.
 
 C'est ainsi que vous construisez « quand X se produit dans OneUptime, faire Y » sans avoir à vérifier en boucle.
 
-**On Update** peut être restreint à certains champs avec **Fields to watch** : il ne se produit alors que lorsqu'une modification change l'un d'eux, vers n'importe quelle valeur — désactiver un interrupteur ou vider un champ compte.
+**On Update** peut être restreint à certains champs avec **Fields to watch** : il ne se produit alors que lorsqu'une modification change l'un d'eux, vers n'importe quelle valeur — désactiver un interrupteur ou vider un champ compte. **On Create or Update** a le même **Fields to watch**, pour ses mises à jour seulement : chaque nouvel enregistrement le déclenche toujours.
 
 ```mermaid title="Quand un déclencheur On Update se produit"
 flowchart TB
@@ -174,11 +175,15 @@ flowchart TB
     field -->|"Non"| nothing
 ```
 
-**On Create** et **On Update** transmettent l'enregistrement au bloc suivant, avec les champs que vous choisissez dans le **Fields to pass on** du déclencheur. Par exemple, le déclencheur **Incident → On Create** transmet le nouvel incident : le bloc suivant peut lire son titre, sa description, sa gravité ou tout autre champ sélectionné, comme `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un champ que vous n'avez pas sélectionné arrive vide.
+**On Create**, **On Update** et **On Create or Update** transmettent l'enregistrement au bloc suivant, avec les champs que vous choisissez dans le **Fields to pass on** du déclencheur. Par exemple, le déclencheur **Incident → On Create** transmet le nouvel incident : le bloc suivant peut lire son titre, sa description, sa gravité ou tout autre champ sélectionné, comme `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un champ que vous n'avez pas sélectionné arrive vide.
+
+**On Create or Update** transmet aussi **What Happened** : `created` quand un nouvel enregistrement a lancé l'exécution, et `updated` quand c'est une modification, comme dans `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Pour traiter les deux différemment, comparez-le dans un bloc **If / Else**, ou prenez un chemin pour chacun avec **Switch / Case**.
+
+Une sauvegarde le déclenche une fois. Ce que OneUptime remplit pendant qu'il crée un enregistrement fait partie de la création : un nouvel enregistrement le déclenche donc une fois, comme `created`. Les modifications que OneUptime fait ensuite, comme lier le canal Slack d'un incident, sont des mises à jour comme les autres : pour les écarter, ajoutez à **Fields to watch** seulement les champs qui vous importent.
 
 **On Delete** ne transmet que l'ID de l'enregistrement supprimé : l'enregistrement n'existe plus quand le workflow s'exécute, ses autres champs ne peuvent donc pas être lus.
 
-Pour tester un déclencheur d'événement sans attendre l'événement, cliquez sur **Exécuter le flux de travail** dans le **Constructeur** et choisissez un enregistrement existant : les plus récents sont listés, et saisir le numéro d'un enregistrement ou une partie de son nom en trouve un autre. L'exécution lit cet enregistrement avec les champs que vous avez sélectionnés, comme si l'événement venait de lui arriver ; l'enregistrement lui-même n'est ni modifié ni supprimé.
+Pour tester un déclencheur d'événement sans attendre l'événement, cliquez sur **Exécuter le flux de travail** dans le **Constructeur** et choisissez un enregistrement existant : les plus récents sont listés, et saisir le numéro d'un enregistrement ou une partie de son nom en trouve un autre. L'exécution lit cet enregistrement avec les champs que vous avez sélectionnés, comme si l'événement venait de lui arriver ; l'enregistrement lui-même n'est ni modifié ni supprimé. Pour **On Create or Update**, choisissez sous **Ce qui s'est passé** si l'exécution porte sur la création ou sur la modification de l'enregistrement.
 
 ### Les événements les plus utilisés
 

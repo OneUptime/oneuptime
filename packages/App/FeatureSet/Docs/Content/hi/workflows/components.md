@@ -374,7 +374,7 @@ OneUptime में हर तरह के रिकॉर्ड (मॉनि�
 | **Delete One Monitor**   | एक मेल खाने वाला रिकॉर्ड हटाता है।                                             |
 | **Delete Many Monitors** | मेल खाने वाले रिकॉर्ड, **Limit** तक, हटाता है।                                 |
 
-यही सेट आपको तीन ट्रिगर देता है — **On Create Monitor**, **On Update Monitor** और **On Delete Monitor**। देखें [ट्रिगर](/docs/workflows/triggers#oneuptime-इवेंट-ट्रिगर)।
+यही सेट आपको चार ट्रिगर देता है — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** और **On Delete Monitor**। देखें [ट्रिगर](/docs/workflows/triggers#oneuptime-इवेंट-ट्रिगर)।
 
 कोई प्रकार सिर्फ़ वही घटक देता है जिनकी उसका मॉडल अनुमति देता है। केवल-पढ़ने वाले प्रकार में दो Find घटक होते हैं और कुछ नहीं, इसलिए अगर आपको पैनल में **Delete One Monitor** नहीं मिलता, तो वह प्रकार इसकी अनुमति नहीं देता।
 

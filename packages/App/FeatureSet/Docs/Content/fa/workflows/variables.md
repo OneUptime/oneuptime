@@ -196,7 +196,7 @@ sequenceDiagram
 | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | یک بلوک **API** با شناسه `lookup-user`                           | کد وضعیتش: `{{local.components.lookup-user.returnValues.response-status}}`. بدنه‌اش: `{{local.components.lookup-user.returnValues.response-body}}`. |
 | یک بلوک **Run Custom JavaScript** با شناسه `transform`           | آنچه برگرداند: `{{local.components.transform.returnValues.returnValue}}`.              |
-| یک تریگر **On Create Incident** با شناسه `incident-on-create-1`  | عنوان حادثه: `{{local.components.incident-on-create-1.returnValues.model.title}}`. تریگرهای رکورد یک مقدار برمی‌گردانند، `model`، و شما درون آن می‌روید. |
+| یک تریگر **On Create Incident** با شناسه `incident-on-create-1`  | عنوان حادثه: `{{local.components.incident-on-create-1.returnValues.model.title}}`. تریگرهای رکورد خود رکورد را به‌صورت `model` برمی‌گردانند، و شما درون آن می‌روید. |
 
 مقدارهای بلوک فقط در طول اجرای جاری وجود دارند. هر اجرای تازه از نو شروع می‌شود.
 

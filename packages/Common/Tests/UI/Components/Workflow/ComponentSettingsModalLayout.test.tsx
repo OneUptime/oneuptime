@@ -106,9 +106,9 @@ const isDatabaseDeleteTrigger: IsDatabaseDeleteTriggerFunction = (
 };
 
 /*
- * Every non-database component, and all eleven database components of one
+ * Every non-database component, and all twelve database components of one
  * model (Incident has all four of create, read, update and delete on, so it
- * has every kind: the three triggers, find, create, update and delete).
+ * has every kind: the four triggers, find, create, update and delete).
  */
 const COMPONENTS_TO_RENDER: Array<ComponentMetadata> = [
   ...Components,
