@@ -326,8 +326,9 @@ describe("the Slack app manifest's Home tab and hello", () => {
  * (chat:write); it opens no conversation of its own (conversations.open:
  * im:write, mpim:write), sets no channel's topic or purpose
  * (channels:write.topic), and acts with the bot's token and a person's
- * Slack user id, never a token of theirs. im:read stays: conversations.info
- * and conversations.members read a direct message's channel too.
+ * Slack user id, never a token of theirs. im:read stays, with mpim:read:
+ * conversations.info and conversations.members take any conversation's id,
+ * a direct message's included.
  *
  * Each Slack Web API method the server calls - read from the source, so a
  * new one cannot be called unlisted - and each event the app hears, with the
@@ -496,7 +497,7 @@ describe("the scopes the Slack app asks for", () => {
     }
 
     expect(bot).toContain("chat:write");
-    // conversations.info and conversations.members on a direct message.
+    // conversations.info and conversations.members take a direct message's id too.
     expect(bot).toContain("im:read");
   });
 
