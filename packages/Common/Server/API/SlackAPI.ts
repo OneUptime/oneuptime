@@ -106,6 +106,7 @@ import SlackAiConversations, {
 } from "../Utils/Workspace/Slack/SlackAiConversations";
 import WorkspaceAiAnswerSources from "../Utils/Workspace/WorkspaceAiAnswerSources";
 import SlackHome from "../Utils/Workspace/Slack/SlackHome";
+import SlackDirectMessageHelp from "../Utils/Workspace/Slack/SlackDirectMessageHelp";
 import SlackMessagesWelcome from "../Utils/Workspace/Slack/SlackMessagesWelcome";
 import SlackWelcome from "../Utils/Workspace/Slack/SlackWelcome";
 import WorkspaceCommands from "../Utils/Workspace/WorkspaceCommands";
@@ -1949,8 +1950,9 @@ export default class SlackAPI {
    * A message addressed to OneUptime (SlackAiConversations.read): an
    * @mention, a direct message, or a reply in a conversation with OneUptime
    * AI by somebody in it. Answered by OneUptime AI in the thread - the one
-   * it is in, or the one it starts. Detached from the request: Slack has
-   * its 200 already.
+   * it is in, or the one it starts - except a direct message that is only
+   * "help", answered with the commands (SlackDirectMessageHelp). Detached
+   * from the request: Slack has its 200 already.
    */
   private static async answerMessage(data: {
     req: ExpressRequest;
@@ -1999,6 +2001,21 @@ export default class SlackAPI {
         "Slack AI Ops event has no question text. Skipping.",
         getLogAttributesFromRequest(req as any),
       );
+      return;
+    }
+
+    /*
+     * "help" in the app's direct messages: the commands, for anybody -
+     * connected or not, with AI on or off (SlackDirectMessageHelp).
+     */
+    if (
+      message.kind === SlackMessageKind.DirectMessage &&
+      SlackDirectMessageHelp.isHelp(questionText)
+    ) {
+      await SlackDirectMessageHelp.answer({
+        projectAuthToken: context.projectAuthToken,
+        message: message,
+      });
       return;
     }
 
