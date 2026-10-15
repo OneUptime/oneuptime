@@ -106,6 +106,7 @@ import SlackAiConversations, {
 } from "../Utils/Workspace/Slack/SlackAiConversations";
 import WorkspaceAiAnswerSources from "../Utils/Workspace/WorkspaceAiAnswerSources";
 import SlackHome from "../Utils/Workspace/Slack/SlackHome";
+import SlackMessagesWelcome from "../Utils/Workspace/Slack/SlackMessagesWelcome";
 import SlackWelcome from "../Utils/Workspace/Slack/SlackWelcome";
 import WorkspaceCommands from "../Utils/Workspace/WorkspaceCommands";
 
@@ -1480,10 +1481,21 @@ export default class SlackAPI {
           /*
            * The OneUptime app's Home tab was opened: it is drawn for whoever
            * opened it (SlackHome) - their on-call shifts, the open incidents
-           * and alerts, and what they can do. Slack has its 200 first.
+           * and alerts, and what they can do. Its Messages tab: whoever
+           * opened it is welcomed there, the first time
+           * (SlackMessagesWelcome). Slack has its 200 first.
            */
           if (event["type"] === "app_home_opened") {
             Response.sendTextResponse(req, res, "ok");
+
+            if (event["tab"] === "messages") {
+              await SlackMessagesWelcome.handleMessagesTabOpened({
+                teamId: (payload["team_id"] as string) || "",
+                slackUserId: (event["user"] as string) || "",
+              });
+
+              return;
+            }
 
             await SlackHome.handleHomeOpened({
               teamId: (payload["team_id"] as string) || "",
