@@ -86,7 +86,7 @@ flowchart TB
 
 대신 **누가 대신하나요?** 에서 누군가를 고르면, 로테이션이 순번을 넘겨받는 대신 그 사람이 모든 스케줄과 모든 정책에서 오는 호출을 모두 받습니다.
 
-이렇게 추가한 부재는 모든 온콜 정책에 적용됩니다. **온콜 듀티** > **사용자 재정의** 에 표시되며, 거기서 삭제하면 그 사람을 일찍 복귀시킬 수 있습니다. 한 정책에서만 건너뛰려면 그 정책의 **사용자 재정의** 페이지에서 재정의를 추가하고 **누가 대신하나요?** 는 그대로 두세요.
+이렇게 추가한 부재는 모든 온콜 정책에 적용됩니다. **온콜 듀티** > **고급** > **사용자 재정의** 에 표시되며, 거기서 삭제하면 그 사람을 일찍 복귀시킬 수 있습니다. 한 정책에서만 건너뛰려면 그 정책의 **사용자 재정의** 페이지에서 재정의를 추가하고 **누가 대신하나요?** 는 그대로 두세요. [사용자 재정의](/docs/on-call/user-overrides) 를 참조하세요.
 
 API에서는 사용자 재정의( `/api/on-call-duty-policy-user-override` )를 `routeAlertsToUserId` 없이 만들면 `overrideUserId` 의 사람을 `startsAt` 부터 `endsAt` 까지 건너뜁니다.
 
@@ -121,4 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [에스컬레이션 규칙](/docs/on-call/escalation-rules): 온콜 정책의 단계에서 이 스케줄을 호출합니다.
 - [스케줄 타임라인](/docs/on-call/schedule-timeline): 모든 스케줄을 커버리지 공백과 함께 나란히 봅니다.
 - [캘린더 피드](/docs/on-call/calendar-feeds): 근무를 Google 캘린더, Outlook, Apple 캘린더에 넣습니다.
+- [개인 온콜 규칙](/docs/notifications/on-call-rules): 온콜 중에 호출이 어떻게 전달될지 정합니다.
 :::

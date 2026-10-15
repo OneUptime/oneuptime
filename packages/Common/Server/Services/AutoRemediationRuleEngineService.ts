@@ -61,6 +61,7 @@ import ResourceAiAccessService, {
 } from "./ResourceAiAccessService";
 import ProjectService from "./ProjectService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
+import RunbookTriggerType from "../../Types/Runbook/RunbookTriggerType";
 import RunnerJobService from "./RunnerJobService";
 import AIInvestigationQueue from "../Utils/AI/SRE/InvestigationQueue";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
@@ -3155,6 +3156,7 @@ class AutoRemediationRuleEngineServiceClass {
         projectId: data.projectId,
         runbookId: data.runbook.id!,
         linkage: runbookLinkage,
+        trigger: RunbookTriggerType.AutoRemediation,
       });
 
     if (!execution) {

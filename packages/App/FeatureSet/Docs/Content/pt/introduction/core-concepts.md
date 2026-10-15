@@ -66,6 +66,7 @@ Um **episódio** agrupa incidentes relacionados, ou alertas relacionados, para q
 
 :::cards
 - [Visão geral dos incidentes](/docs/incidents/index): Como os incidentes são declarados, tratados e resolvidos.
+- [Visão geral dos alertas](/docs/alerts/index): De onde vêm os alertas e como os episódios os agrupam.
 - [Alertas vinculados](/docs/incidents/linked-alerts): Vincular ao incidente os alertas gerados por uma queda.
 :::
 
@@ -76,8 +77,10 @@ Uma **política de plantão** decide quem é acionado sobre um incidente ou aler
 Como cada pessoa é contatada é ela quem decide. Em **Configurações do usuário**, cada um guarda as formas pelas quais o OneUptime pode contatá-lo, como e-mail, SMS, chamadas, notificações push, Slack ou Microsoft Teams, e quais usar quando for acionado.
 
 :::cards
+- [Visão geral do plantão](/docs/on-call/index): Como um acionamento chega a alguém e onde fica cada peça.
 - [Regras de escalonamento](/docs/on-call/escalation-rules): Acionar pessoas nível a nível até alguém responder.
 - [Agendamentos de plantão](/docs/on-call/schedules): Rodízios, camadas e passagens de turno.
+- [Como o OneUptime chega até você](/docs/notifications/index): Os métodos, regras e configurações que decidem como cada pessoa é contatada.
 :::
 
 ## Páginas de status e manutenção

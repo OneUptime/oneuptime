@@ -66,6 +66,7 @@ An **episode** groups related incidents, or related alerts, so your team works o
 
 :::cards
 - [Incidents Overview](/docs/incidents/index): How incidents are declared, worked and resolved.
+- [Alerts Overview](/docs/alerts/index): Where alerts come from, and how episodes group them.
 - [Linked Alerts](/docs/incidents/linked-alerts): Tie the alerts an outage raised to its incident.
 :::
 
@@ -76,8 +77,10 @@ An **on-call policy** decides who is paged about an incident or alert, and who i
 How each person is reached is up to them. In **User Settings**, everyone keeps the ways OneUptime can reach them, such as email, SMS, phone calls, push notifications, Slack or Microsoft Teams, and which of them to use when they are paged.
 
 :::cards
+- [On-Call Overview](/docs/on-call/index): How a page reaches someone, and where each piece lives.
 - [Escalation Rules](/docs/on-call/escalation-rules): Page people level by level until someone responds.
 - [On-Call Schedules](/docs/on-call/schedules): Rotations, layers and hand-offs.
+- [How OneUptime Reaches You](/docs/notifications/index): The methods, rules and settings that decide how each person is reached.
 :::
 
 ## Status pages and maintenance

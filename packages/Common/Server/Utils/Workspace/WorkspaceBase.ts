@@ -53,6 +53,15 @@ export interface WorkspaceChannel {
 }
 
 /*
+ * A channel the workspace is asked to create (createChannel): its name and,
+ * for Microsoft Teams, the team it is created in.
+ */
+export interface WorkspaceChannelToCreate {
+  channelName: string;
+  teamId?: string | undefined;
+}
+
+/*
  * Where a message OneUptime keeps up to date sits, as the workspace needs it
  * to edit the message: the channel (or Microsoft Teams chat) and, for a
  * Teams channel, its team.
@@ -129,6 +138,17 @@ export default class WorkspaceBase {
    * posting again would fail the same way, or post twice.
    */
   public static isMessageGoneError(_error: unknown): boolean {
+    return false;
+  }
+
+  /*
+   * Whether creating a channel failed because a channel has that name
+   * already - one in use, an archived or deleted one the workspace keeps the
+   * name of, another project's - so it can be created under another name
+   * (WorkspaceNotificationRuleService tries name-2, name-3 and so on). Any
+   * other refusal is not: another name would be refused the same way.
+   */
+  public static isChannelNameTakenError(_error: unknown): boolean {
     return false;
   }
 
@@ -328,6 +348,19 @@ export default class WorkspaceBase {
     isPrivate?: boolean;
   }): Promise<WorkspaceChannel> {
     throw new NotImplementedException();
+  }
+
+  /*
+   * Whether the workspace creates two channels it is asked for as one
+   * channel, and so refuses to create the second. Names are taken as they
+   * are here; a workspace that changes the names it is given compares them
+   * as it changes them.
+   */
+  public static isSameChannelToCreate(
+    channel: WorkspaceChannelToCreate,
+    otherChannel: WorkspaceChannelToCreate,
+  ): boolean {
+    return channel.channelName === otherChannel.channelName;
   }
 
   @CaptureSpan()

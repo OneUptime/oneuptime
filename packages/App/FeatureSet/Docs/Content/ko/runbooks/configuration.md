@@ -82,6 +82,8 @@ Runbook 권한은 `Runbook` 권한 그룹에 있습니다.
 
 역할은 그 범위가 닿는 Runbook을 실행합니다. 일부 레이블로 제한된 `RunbookMember`, `RunbookAdmin` 또는 `ProjectMember` 부여는 그 레이블이 붙은 Runbook의 실행을 시작하고 진행시키며, **Owned**로 제한된 부여는 그 팀이 소유한 Runbook의 실행을 시작하고 진행시킵니다. 팀이 레이블을 차단하면 그 Runbook은 그 팀의 대상에서 빠집니다. `CreateRunbookExecution`과 `EditRunbookExecution`은 레이블이 없는 실행에 관한 권한이므로 프로젝트의 모든 Runbook에 닿습니다. Runbook을 시작하는 해결 제안의 승인도 같은 방식으로 확인합니다.
 
+Runbook의 일정과 웹훅은 아무도 없을 때 실행을 시작하므로, 둘 중 하나를 설정하려면 Runbook을 편집하고 실행할 권한이 필요하며, 웹훅 URL을 볼 때도 마찬가지입니다. 끄는 데는 편집 권한만 있으면 됩니다. [Runbook 트리거](/docs/runbooks/triggers#트리거를-설정할-수-있는-사람)를 참고하세요.
+
 자격 증명과 시크릿은 `RunbookAdmin` 밖에 있습니다. 이를 관리하려면 `ProjectOwner` 또는 `ProjectAdmin`, 또는 `CreateRunbookCredential`, `EditRunbookCredential`, `DeleteRunbookCredential`, `ReadRunbookCredential`과 `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret`, `ReadRunbookSecret` 권한이 필요합니다. [Runbook 자격 증명](/docs/runbooks/credentials)을 참조하세요.
 
 **런북 → 설정** 아래의 소유자 규칙과 레이블 규칙도 `RunbookAdmin` 밖에 있습니다. 이를 관리하려면 `ProjectOwner` 또는 `ProjectAdmin`, 또는 `CreateRunbookOwnerRule`과 `CreateRunbookLabelRule` 권한과 각각의 편집, 삭제, 읽기 권한이 필요합니다.

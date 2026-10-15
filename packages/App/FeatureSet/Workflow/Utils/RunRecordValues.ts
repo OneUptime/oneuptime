@@ -6,6 +6,12 @@ import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedExceptio
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
+  WHAT_HAPPENED_ID,
+  WhatHappenedForRun,
+  getWhatHappenedForRun,
+  isCreateOrUpdateTrigger,
+} from "Common/Types/Workflow/CreateOrUpdateTrigger";
+import {
   RUN_RECORD_ARGUMENT_ID,
   RunRecordMessages,
   RunRecordOption,
@@ -25,6 +31,12 @@ import {
  * the caller's own permissions, by its exact ID or number. Part of a title is
  * not enough to run with, so it is refused with what to do instead. An ID is
  * passed on as it always was.
+ *
+ * On Create or Update also runs with What Happened: whether the run is for
+ * the record being created or updated. It is read as the trigger reads it -
+ * "created" when it says nothing - and anything but the two is refused here,
+ * before the run is queued, rather than failing the run
+ * (Types/Workflow/CreateOrUpdateTrigger).
  */
 
 type ResolveRunRecordValuesFunction = (data: {
@@ -45,11 +57,16 @@ export const resolveRunRecordValues: ResolveRunRecordValuesFunction =
     const value: unknown = data.values[RUN_RECORD_ARGUMENT_ID];
 
     // Nothing named, or an ID: nothing to look up.
-    if (
-      typeof value !== "string" ||
-      value.trim() === "" ||
-      isRunRecordId(value)
-    ) {
+    const isRecordToLookUp: boolean =
+      typeof value === "string" && value.trim() !== "" && !isRunRecordId(value);
+
+    // What Happened, which only On Create or Update reads.
+    const asksWhatHappened: boolean = Object.prototype.hasOwnProperty.call(
+      data.values,
+      WHAT_HAPPENED_ID,
+    );
+
+    if (!isRecordToLookUp && !asksWhatHappened) {
       return data.values;
     }
 
@@ -60,6 +77,29 @@ export const resolveRunRecordValues: ResolveRunRecordValuesFunction =
     // Not a trigger that runs on a record: its values go on as they came.
     if (!trigger) {
       return data.values;
+    }
+
+    let values: JSONObject = data.values;
+
+    if (asksWhatHappened && isCreateOrUpdateTrigger(trigger.metadata)) {
+      const whatHappened: WhatHappenedForRun = getWhatHappenedForRun(
+        values[WHAT_HAPPENED_ID],
+      );
+
+      if (!whatHappened.whatHappened) {
+        throw new BadDataException(
+          whatHappened.error || "What Happened is not set.",
+        );
+      }
+
+      values = {
+        ...values,
+        [WHAT_HAPPENED_ID]: whatHappened.whatHappened,
+      };
+    }
+
+    if (!isRecordToLookUp || typeof value !== "string") {
+      return values;
     }
 
     const reference: RunRecordReference = parseRunRecordReference(value);
@@ -99,7 +139,7 @@ export const resolveRunRecordValues: ResolveRunRecordValuesFunction =
     }
 
     return {
-      ...data.values,
+      ...values,
       [RUN_RECORD_ARGUMENT_ID]: record.id,
     };
   };

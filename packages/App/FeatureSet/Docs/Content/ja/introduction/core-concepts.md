@@ -66,6 +66,7 @@ flowchart TB
 
 :::cards
 - [インシデント 概要](/docs/incidents/index): インシデントがどのように宣言、対応、解決されるか。
+- [アラートの概要](/docs/alerts/index): アラートの発生元と、エピソードによるまとめ方。
 - [リンクされたアラート](/docs/incidents/linked-alerts): 障害が発生させたアラートを、そのインシデントに結び付けます。
 :::
 
@@ -76,8 +77,10 @@ flowchart TB
 それぞれの人への連絡方法は、本人が決めます。各自が **ユーザー設定** で、OneUptime から連絡を受ける方法（メール、SMS、電話、プッシュ通知、Slack、Microsoft Teams など）と、呼び出されたときにどれを使うかを管理します。
 
 :::cards
+- [オンコールの概要](/docs/on-call/index): 呼び出しが人に届く仕組みと、各要素の場所。
 - [エスカレーションルール](/docs/on-call/escalation-rules): 誰かが応答するまで、レベルごとに人を呼び出します。
 - [オンコールスケジュール](/docs/on-call/schedules): ローテーション、レイヤー、引き継ぎ。
+- [OneUptime からの連絡の仕組み](/docs/notifications/index): 一人ひとりへの連絡方法を決める通知方法、ルール、設定。
 :::
 
 ## ステータスページとメンテナンス

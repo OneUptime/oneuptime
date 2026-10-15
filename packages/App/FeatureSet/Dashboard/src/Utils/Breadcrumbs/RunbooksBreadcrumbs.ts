@@ -35,6 +35,12 @@ export function getRunbooksBreadcrumbs(path: string): Array<Link> | undefined {
       "Executions",
       "Execution",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOK_VIEW_TRIGGERS, [
+      "Project",
+      "Runbooks",
+      "View Runbook",
+      "Triggers",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOK_VIEW_SETTINGS, [
       "Project",
       "Runbooks",

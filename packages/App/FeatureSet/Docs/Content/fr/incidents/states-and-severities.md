@@ -191,20 +191,18 @@ Passer de **Résolu** à un état qui le suit — **Closed**, par exemple — n'
 
 ## La chronologie d'état
 
-La page **Chronologie d'état** du menu latéral de l'incident est la piste d'audit de chaque état par lequel l'incident est passé. La carte de cette page s'intitule **Chronologie de statut**, et elle est triée de la plus récente à la plus ancienne.
+La page **Chronologie d'état** du menu latéral de l'incident est la piste d'audit de chaque état par lequel l'incident est passé. La carte de cette page s'intitule **Chronologie de statut**, et elle dessine toute la vie de l'incident sous forme de chronologie :
 
-| Colonne                                  | Ce qu'elle montre                                                                                                                                                                                                                                              |
-| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Statut de l'incident**                 | Une pastille colorée avec le nom et la couleur de l'état.                                                                                                                                                                                                      |
-| **Commence le**                          | Quand l'incident est entré dans cet état.                                                                                                                                                                                                                      |
-| **Se termine le**                        | Quand il l'a quitté. L'état courant affiche `Currently Active`.                                                                                                                                                                                                |
-| **Durée**                                | Le temps passé dans l'état, compté jusqu'à maintenant pour l'état courant.                                                                                                                                                                                     |
-| **Statut de notification de l'abonné**   | Si la notification de page de statut pour ce changement a été envoyée, ignorée ou est encore en attente, avec un lien **plus de détails** et — quand l'envoi a échoué — une action **Réessayer**. **Réessayer** renvoie le changement d'état à chaque page de statut que l'incident atteint maintenant, y compris les abonnés qui l'ont déjà reçu. |
+- **La bande** montre chaque état comme une portion de sa couleur, aussi longue que l'incident y est resté, de sorte que le déroulement de l'incident se lit d'un coup d'œil. Tant que l'incident est ouvert, la bande va jusqu'à **Maintenant** ; une fois l'incident résolu, elle s'arrête peu après son dernier changement. Pointez une portion pour voir quand elle a commencé et combien de temps elle a duré, et cliquez dessus pour retrouver son changement dans la liste. Les changements trop rapprochés pour être distingués sont dessinés en une seule portion rayée : cliquez dessus, ou faites glisser le pointeur sur la bande, pour zoomer, et **Reset zoom** revient en arrière.
+- **Au-dessus de la bande**, chaque état est indiqué avec le temps que l'incident y a passé.
+- **Sous la bande**, chaque changement est listé du plus récent au plus ancien, groupé par jour et dans votre fuseau horaire : quand il a commencé et s'est terminé, combien de temps il a duré, qui l'a fait et, en dessous, **Abonnés à la page de statut :** si la notification de page de statut pour ce changement a été envoyée, ignorée ou est encore en attente, avec un lien **plus de détails** et — quand l'envoi a échoué — une action **Réessayer**. **Réessayer** renvoie le changement d'état à chaque page de statut que l'incident atteint maintenant, y compris les abonnés qui l'ont déjà reçu.
 
-Chaque ligne a deux actions :
+Chaque changement a deux actions :
 
 - **Voir la cause** — ouvre une boîte de dialogue **Cause racine** qui affiche le Markdown enregistré avec ce changement d'état.
 - **Voir les journaux** — ouvre une boîte de dialogue qui explique pourquoi le statut a changé, avec une visionneuse **Journal des états de l'incident**.
+
+**Chronologie** et **Tableau**, dans l'en-tête de la carte, passent de la chronologie au tableau qu'était la page auparavant, et inversement : une ligne par changement avec **Commence le**, **Se termine le** et **Durée**, des filtres, des vues enregistrées et des actions groupées. Votre choix est conservé dans votre navigateur, pour chaque chronologie de statut. Les alertes, les épisodes et les événements de maintenance planifiée dessinent leur chronologie d'état de la même façon. La **Chronologie de statut** d'un moniteur et d'un site réseau s'ouvre plutôt sur le dernier mois, choisi comme n'importe quelle autre plage temporelle, avec la période précédente et la suivante à un clic.
 
 Dans le tableau de bord, les lignes de chronologie peuvent être ajoutées et supprimées, mais pas modifiées ; un incident garde toujours au moins une ligne. Par l'API, le `startsAt` d'une ligne peut être corrigé, et chaque mesure calculée à partir de la chronologie le suit.
 

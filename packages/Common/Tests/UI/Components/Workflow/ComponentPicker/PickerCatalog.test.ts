@@ -196,9 +196,11 @@ describe("database steps, by resource", () => {
       "Delete One Incident",
       "Delete Many Incidents",
     ]);
+    // On Create or Update after the two it stands for.
     expect(titlesOf(resource(TRIGGERS, "Incident").components)).toEqual([
       "On Create Incident",
       "On Update Incident",
+      "On Create or Update Incident",
       "On Delete Incident",
     ]);
   });
@@ -325,7 +327,9 @@ describe("telling the steps apart", () => {
     ).toBeNull();
     expect(getOperationRank(null)).toBe(DATABASE_OPERATION_ORDER.length);
     expect(getOperationRank(DatabaseOperation.CreateOne)).toBe(0);
-    expect(getOperationRank(DatabaseOperation.OnDelete)).toBe(10);
+    expect(getOperationRank(DatabaseOperation.OnUpdate)).toBe(9);
+    expect(getOperationRank(DatabaseOperation.OnCreateOrUpdate)).toBe(10);
+    expect(getOperationRank(DatabaseOperation.OnDelete)).toBe(11);
   });
 
   test("a table name reads as words", () => {

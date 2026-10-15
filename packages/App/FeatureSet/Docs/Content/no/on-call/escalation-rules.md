@@ -84,7 +84,7 @@ Oversikten øverst på siden **Eskaleringsregler** viser hele stigen: når hvert
 
 ### Slik nås hver person
 
-Hver person et nivå varsler, nås slik personens egne vaktregler sier: **Brukerinnstillinger** > **Vaktregler**, med en fane for hendelser, hendelsesepisoder, varsler og varselepisoder, og et kort per alvorlighetsgrad som viser hvilken varselmetode som prøves og etter hvor lang tid. En prosjektadministrator kan se og endre reglene til et medlem under **Brukere** > medlemmet > **Vaktregler**.
+Hver person et nivå varsler, nås slik personens egne vaktregler sier: **Brukerinnstillinger** > **Vaktregler**, med en fane for hendelser, hendelsesepisoder, varsler og varselepisoder, og et kort per alvorlighetsgrad som viser hvilken varselmetode som prøves og etter hvor lang tid. En prosjektadministrator kan se og endre reglene til et medlem under **Brukere** > medlemmet > **Vaktregler**. Se [Personlige vaktregler](/docs/notifications/on-call-rules).
 
 ```mermaid title="Hvem et nivå varsler, og hvordan hver person nås"
 flowchart TB
@@ -101,7 +101,7 @@ flowchart TB
     rules --> methods["Personens varselmetoder"]
 ```
 
-En brukeroverstyring som gjelder for en person, sender varslene til den som dekker for personen i stedet. En overstyring som ikke navngir noen til å dekke, hopper over personen: personen får ingen varsler, kjøringen av retningslinjen viser at personen er borte og til når, og i en vaktplan går hver av personens vakter til neste person i rotasjonen.
+En brukeroverstyring som gjelder for en person, sender varslene til den som dekker for personen i stedet. En overstyring som ikke navngir noen til å dekke, hopper over personen: personen får ingen varsler, kjøringen av retningslinjen viser at personen er borte og til når, og i en vaktplan går hver av personens vakter til neste person i rotasjonen. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
 
 Hver melding er en som leverandøren tar imot, så et varsel går alltid ut. Så mye bærer hver kanal:
 

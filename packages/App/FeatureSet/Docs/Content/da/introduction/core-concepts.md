@@ -66,6 +66,7 @@ En **episode** samler relaterede hændelser, eller relaterede advarsler, så dit
 
 :::cards
 - [Hændelser – Oversigt](/docs/incidents/index): Hvordan hændelser erklæres, håndteres og løses.
+- [Advarsler – Oversigt](/docs/alerts/index): Hvor advarsler kommer fra, og hvordan episoder grupperer dem.
 - [Tilknyttede advarsler](/docs/incidents/linked-alerts): Knyt de advarsler, et nedbrud udløste, til dets hændelse.
 :::
 
@@ -76,8 +77,10 @@ En **vagtpolitik** afgør, hvem der tilkaldes om en hændelse eller advarsel, og
 Hvordan hver person kontaktes, bestemmer vedkommende selv. I **Brugerindstillinger** gemmer hver person de måder, OneUptime kan kontakte dem på, for eksempel e-mail, SMS, opkald, push-notifikationer, Slack eller Microsoft Teams, og hvilke der bruges ved et tilkald.
 
 :::cards
+- [Vagt – Oversigt](/docs/on-call/index): Hvordan et tilkald når frem, og hvor hver del findes.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Tilkald personer niveau for niveau, indtil nogen reagerer.
 - [Vagtplaner](/docs/on-call/schedules): Rotationer, lag og vagtskifter.
+- [Sådan når OneUptime dig](/docs/notifications/index): De metoder, regler og indstillinger, der afgør, hvordan hver person nås.
 :::
 
 ## Statussider og vedligeholdelse

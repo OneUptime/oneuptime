@@ -1,5 +1,6 @@
 import logger from "Common/Server/Utils/Logger";
 import RunnerService from "Common/Server/Services/RunnerService";
+import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
 import RunnerJobService, {
   MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR,
 } from "Common/Server/Services/RunnerJobService";
@@ -393,6 +394,8 @@ describe("AI command capability gating on the agent ingress", () => {
     claimNextJobSpy = jest
       .spyOn(RunnerJobService, "claimNextJob")
       .mockResolvedValue(null);
+    // A runbook job's run is read for its inputs; these runs have none.
+    jest.spyOn(RunbookExecutionService, "findOneById").mockResolvedValue(null);
 
     (RunbookSecretsUtil.loadForAgent as unknown as jest.Mock).mockResolvedValue(
       [],
@@ -578,6 +581,64 @@ describe("AI command capability gating on the agent ingress", () => {
       expect(job).not.toHaveProperty("runbookExecutionId");
       expect(job["jobId"]).toBe(JOB_ID.toString());
       expect(job["script"]).toBe("systemctl restart nginx");
+    });
+
+    test("hands a runbook Bash job its run's inputs and trigger beside the script, never in it", async () => {
+      const executionId: ObjectID = ObjectID.generate();
+      const inputs: JSONObject = { host: "web-1; rm -rf /" };
+
+      jest.spyOn(RunbookExecutionService, "findOneById").mockResolvedValue({
+        projectId: projectId,
+        inputs: inputs,
+        triggerType: "Webhook",
+      } as never);
+
+      claimNextJobSpy.mockResolvedValue(
+        buildClaimedJob({
+          origin: RunnerJobOrigin.Runbook,
+          stepType: RunbookStepType.Bash,
+          script: 'printf "%s" "$ONEUPTIME_INPUT_HOST"',
+          runbookExecutionId: executionId,
+        }),
+      );
+
+      await callRoute({
+        uri: CLAIM_ROUTE,
+        agent: buildAgent({ canRunRunbooks: true }),
+      });
+
+      const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
+
+      expect(job["inputs"]).toEqual(inputs);
+      expect(job["trigger"]).toBe("Webhook");
+      // The script is the author's, exactly: the inputs are not in it.
+      expect(job["script"]).toBe('printf "%s" "$ONEUPTIME_INPUT_HOST"');
+    });
+
+    test("hands an AI-composed command no inputs, and reads no run for it", async () => {
+      const readRun: jest.SpyInstance = jest.spyOn(
+        RunbookExecutionService,
+        "findOneById",
+      );
+
+      claimNextJobSpy.mockResolvedValue(
+        buildClaimedJob({
+          origin: RunnerJobOrigin.AiRemediation,
+          stepType: RunbookStepType.Bash,
+          script: "systemctl restart nginx",
+        }),
+      );
+
+      await callRoute({
+        uri: CLAIM_ROUTE,
+        agent: buildAgent({ canRunAiCommands: true }),
+      });
+
+      const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
+
+      expect(job).not.toHaveProperty("inputs");
+      expect(job).not.toHaveProperty("trigger");
+      expect(readRun).not.toHaveBeenCalled();
     });
 
     test("still includes runbookExecutionId and a Runbook origin for runbook jobs", async () => {

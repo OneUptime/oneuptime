@@ -3,6 +3,18 @@ import fs from "fs";
 import Path from "path";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import { beforeAll, describe, expect, test } from "@jest/globals";
+import {
+  SettingsMenuSection,
+  SettingsMenus,
+  WrittenPath,
+  readableText,
+  settingsMenus,
+  writtenPaths,
+} from "../Dashboard/SettingsMenuPaths";
+import {
+  readCommonSource,
+  readDashboardSource,
+} from "../FeatureSet/Docs/DocsDashboardMenus";
 
 const TEMPLATES_DIR: string = Path.resolve(
   __dirname,
@@ -11,8 +23,7 @@ const TEMPLATES_DIR: string = Path.resolve(
 const handlebars: typeof Handlebars = Handlebars.create();
 const PREFERENCES_URL: string =
   "https://oneuptime.example.com/dashboard/11111111-1111-4111-8111-111111111111/user-settings/notification-settings";
-const FALLBACK: string =
-  "Dashboard > More > User Settings > Notification Settings";
+const FALLBACK: string = "Dashboard > User Settings > Notification Settings";
 
 function readTemplate(name: string): string {
   return fs.readFileSync(Path.join(TEMPLATES_DIR, name), "utf8");
@@ -192,6 +203,105 @@ describe("owner notification preferences footer", () => {
 
       expect(withOwnerPreferences).toBe(original);
       expect(withOwnerPreferences).not.toContain(PREFERENCES_URL);
+    },
+  );
+});
+
+/*
+ * Without a link (the server could not tell the Dashboard's address), the
+ * footer says where to go in words. They said "Dashboard > More > User
+ * Settings > Notification Settings" long after User Settings moved onto the
+ * bar and the More menu became Products. They are held here to the menus as
+ * the Dashboard draws them (SettingsMenuPaths), and to the page the link
+ * opens.
+ */
+describe("the footer's directions without a link", () => {
+  const menus: SettingsMenus = settingsMenus();
+
+  function directions(vars: Record<string, unknown> = {}): string {
+    return handlebars.compile(
+      readTemplate("Partials/UnsubscribeOwnerEmail.hbs"),
+    )(vars);
+  }
+
+  test("walk the real menus: User Settings on the bar, then Notification Settings", () => {
+    const paths: Array<WrittenPath> = writtenPaths(directions(), menus);
+
+    expect(
+      paths.map((written: WrittenPath): Array<string> => {
+        return [written.menu, ...written.steps];
+      }),
+    ).toEqual([["User Settings", "Notification Settings"]]);
+    expect(paths[0]?.problems).toEqual([]);
+    expect(readableText(directions())).toContain(
+      "Go to OneUptime Dashboard > User Settings > Notification Settings to choose which notification emails you receive.",
+    );
+  });
+
+  test("name no section: Notification Settings is in one that starts open", () => {
+    const home: SettingsMenuSection | undefined =
+      menus.userSettings.sections.find(
+        (section: SettingsMenuSection): boolean => {
+          return section.items.includes("Notification Settings");
+        },
+      );
+
+    expect(home?.title).toBe("Alerts & Notifications");
+    expect(home?.folded).toBe(false);
+    expect(readableText(directions())).not.toContain(home?.title);
+  });
+
+  test("put nothing between the Dashboard and User Settings: no More menu", () => {
+    const text: string = readableText(directions());
+
+    expect(text).not.toContain("More");
+    expect(text).toContain("Dashboard > User Settings");
+    expect(
+      writtenPaths(
+        "Go to OneUptime Dashboard &gt; More &gt; User Settings &gt; Notification Settings to choose which notification emails you receive.",
+        menus,
+      )[0]?.problems,
+    ).toEqual(['puts "More" before User Settings, which is on the bar itself']);
+  });
+
+  test("name the page the link opens, which the side menu's entry opens too", () => {
+    const routes: string = readDashboardSource("Utils/RouteMap.ts");
+    const menu: string = readDashboardSource("Pages/UserSettings/SideMenu.tsx");
+    const entry: string = menu.slice(
+      menu.indexOf('title: "Notification Settings"'),
+      menu.indexOf("icon:", menu.indexOf('title: "Notification Settings"')),
+    );
+
+    expect(routes).toContain(
+      '[PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS]: "notification-settings"',
+    );
+    expect(routes).toContain("/user-settings/*");
+    expect(entry).toContain("PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS");
+    expect(
+      readCommonSource("Server/Services/UserNotificationSettingService.ts"),
+    ).toContain("/user-settings/notification-settings");
+    expect(new URL(PREFERENCES_URL).pathname.split("/").slice(-2)).toEqual([
+      "user-settings",
+      "notification-settings",
+    ]);
+  });
+
+  test.each([
+    ["Acme Watch", "Acme Watch"],
+    ["Acme & Partners", Handlebars.escapeExpression("Acme & Partners")],
+  ])(
+    "an installation that goes by %s names its own Dashboard",
+    (productName: string, written: string) => {
+      const html: string = directions({
+        isBrandRenamed: true,
+        brandProductName: productName,
+      });
+
+      expect(html).toContain(
+        `Go to ${written} Dashboard &gt; User Settings &gt; Notification Settings`,
+      );
+      expect(html).not.toContain("OneUptime");
+      expect(writtenPaths(html, menus)[0]?.problems).toEqual([]);
     },
   );
 });

@@ -374,7 +374,7 @@ return {
 | **Delete One Monitor**   | 刪除一筆相符的記錄。                                                           |
 | **Delete Many Monitors** | 刪除相符的記錄，最多 **Limit** 筆。                                            |
 
-同一組還會給你三個觸發器——**On Create Monitor**、**On Update Monitor** 和 **On Delete Monitor**。請參閱 [觸發器](/docs/workflows/triggers#oneuptime-事件觸發器)。
+同一組還會給你四個觸發器——**On Create Monitor**、**On Update Monitor**、**On Create or Update Monitor** 和 **On Delete Monitor**。請參閱 [觸發器](/docs/workflows/triggers#oneuptime-事件觸發器)。
 
 一種類型只會提供其模型允許的元件。唯讀類型只有兩個 Find 元件，沒有其他的，所以如果你在面板中找不到 **Delete One Monitor**，就表示那種類型不允許。
 

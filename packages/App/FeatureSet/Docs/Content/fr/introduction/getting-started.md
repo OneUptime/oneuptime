@@ -48,7 +48,9 @@ La documentation est organisée comme la barre latérale, en neuf sections. Choi
 
 :::cards
 - [Incidents](/docs/incidents/index): Déclarer, coordonner et résoudre des incidents, avec une chronologie complète.
-- [Astreinte](/docs/on-call/schedules): Rotations, règles d'escalade, et qui est alerté et quand.
+- [Alertes](/docs/alerts/index): Examiner les problèmes avant que vos utilisateurs ne les remarquent, et regrouper le bruit en épisodes.
+- [Astreinte](/docs/on-call/index): Politiques, règles d'escalade, rotations, et qui est alerté et quand.
+- [Notifications](/docs/notifications/index): Comment OneUptime vous joint : vos méthodes, vos règles d'astreinte et vos paramètres de notification.
 - [Pages de statut](/docs/status-pages/index): Tenir vos clients informés sur des pages de statut publiques ou privées.
 - [Connexions aux espaces de travail](/docs/workspace-connections/slack): Traiter les incidents depuis Slack et Microsoft Teams.
 :::

@@ -28,6 +28,7 @@ import {
 import Dictionary from "../../../Types/Dictionary";
 import ComponentMetadata, {
   Argument,
+  ArgumentChoice,
   ComponentInputType,
   ComponentType,
   NodeDataProp,
@@ -307,6 +308,20 @@ const namesOnStep: NamesOnStepFunction = (
         return argument.name;
       },
     ),
+    /*
+     * The answers a choice offers, as drawn: a row each in the settings
+     * (ChoiceSettingField) or in Run Workflow - On Create or Update's
+     * "Just created" and "Just updated" (RunModalCreateOrUpdate holds the
+     * panel to them).
+     */
+    ...[
+      ...metadata.arguments,
+      ...(metadata.runWorkflowManuallyArguments || []),
+    ].flatMap((argument: Argument) => {
+      return (argument.choices || []).map((choice: ArgumentChoice) => {
+        return choice.label;
+      });
+    }),
     ...[...metadata.inPorts, ...metadata.outPorts].map((port: Port) => {
       return port.title;
     }),

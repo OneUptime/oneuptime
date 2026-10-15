@@ -1,0 +1,167 @@
+# Advarselsregler og indstillinger
+
+Konfigurationen af advarsler ligger under **Advarsler**, ikke i **Projektindstillinger**: de regler, der handler på hver ny advarsel, og de indstillinger, der former hver advarsel i projektet. Denne side er opslagsværket for hver af dem og for det, der kører af sig selv, når en advarsel oprettes.
+
+:::cards
+- [De regler, en ny advarsel passerer](#de-regler-en-ny-advarsel-passerer): I rækkefølge, og hvad hver af dem gør.
+- [Vagtregler](#vagtregler): Tilkald de rigtige personer uden at vælge en politik hver gang.
+- [Påmindelsesregler](#påmindelsesregler): Påmind ejere, mens en advarsel forbliver åben.
+- [Indstillinger](#indstillinger): Noteskabeloner, brugerdefinerede felter, målinger og nummerpræfikser.
+:::
+
+## Hvor advarselsindstillingerne ligger
+
+Åbn **Advarsler** fra menuen **Produkter** i topbjælken. Sektionerne **Regler** og **Indstillinger** i dens sidemenu er foldet sammen fra start, så fold dem ud først. Hver side her gælder for hele projektet, på adresser, der begynder med `/dashboard/{projectId}/alerts/settings/`.
+
+| Regelside             | Hvad den gør                                                                                   |
+| --------------------- | ---------------------------------------------------------------------------------------------- |
+| **Grupperingsregler** | Samler relaterede advarsler i episoder. Se [Advarselsepisoder og grupperingsregler](/docs/alerts/episodes). |
+| **Vagtregler**        | Kører vagtpolitikker for matchende advarsler og episoder.                                      |
+| **Ejerregler**        | Tilføjer ejere til matchende advarsler og episoder.                                            |
+| **Runbook-regler**    | Starter runbooks for matchende advarsler.                                                      |
+| **Privatlivsregler**  | Gør matchende advarsler og episoder private.                                                   |
+| **Etiketregler**      | Tilføjer etiketter til matchende advarsler og episoder.                                        |
+| **Reminder Rules**    | Påminder ejere med et interval, mens en advarsel er åben.                                      |
+
+Sektionen **Indstillinger** rummer **Advarselsstatus** og **Advarselsalvor**, som er beskrevet på [Advarselstilstande og alvorsgrader](/docs/alerts/states-and-severities), og derefter **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger** og **Nummerpræfiks**, som er beskrevet nedenfor.
+
+To andre sektioner handler på advarsler. **Advarsler → AI → Indstillinger** afgør, hvad OneUptime AI gør af sig selv: **Undersøg nye advarsler**, slået til for nye projekter, og **Ret nye advarsler automatisk**, slået fra, indtil du slår det til. Se [AI SRE](/docs/ai/ai-sre). **Advarsler → Arbejdsområde** rummer de Slack- og Microsoft Teams-regler, der slår advarsler og episoder op i kanaler, og dens fane **Summary**. Se [Slack](/docs/workspace-connections/slack).
+
+## De regler, en ny advarsel passerer
+
+```mermaid title="De regler, en ny advarsel passerer, i rækkefølge"
+flowchart TB
+    subgraph shape["Hvem der ser og ejer den"]
+        direction LR
+        privacy["Privatlivsregler"] --> owner["Ejerregler"]
+    end
+    subgraph more["Hvad den får med"]
+        direction LR
+        label["Etiketregler"] --> oncall["Vagtregler"]
+    end
+    subgraph page["Hvad den starter"]
+        direction LR
+        runbook["Runbook-regler"] --> execute["Politikker kører"]
+    end
+    subgraph follow["Bagefter"]
+        direction LR
+        grouping["Grupperingsregler"] --> reminder["Påmindelsesregler"]
+    end
+    shape --> more
+    more --> page
+    page --> follow
+```
+
+Reglerne adskiller sig i, hvordan flere match afgøres:
+
+- **Grupperingsregler** og **Reminder Rules** kontrolleres oppefra og ned i deres liste, og det første match vinder. Træk en regel for at ændre dens plads; en ny regel kommer sidst.
+- **Vagtregler**, **Ejerregler**, **Etiketregler**, **Privatlivsregler** og **Runbook-regler** handler alle, når de matcher. Vagtpolitikker, ejere og etiketter, som flere regler tilføjer, tilføjes én gang.
+
+**Vagtregler**, **Ejerregler**, **Etiketregler** og **Privatlivsregler** har to faner: **Alert Rules** for advarsler og **Episode Rules**, som handler på samme måde på hver ny advarselsepisode. En ny regel starter aktiveret; slå **Aktiveret** fra på dens redigeringsformular for at sætte den på pause, og listen viser et grønt **Aktiveret** eller et rødt **Deaktiveret** for hver regel.
+
+De fleste regler handler på advarsler og episoder, der oprettes, efter at du har gemt dem. For at anvende en ejer-, etiket- eller privatlivsregel på dem, du allerede har, bruger du **Run Now**: se [Kør regler på eksisterende ressourcer](/docs/configuration/run-rules-now). Påmindelsesregler er undtagelsen: Når du gemmer en, matches hver åben advarsel igen.
+
+### Betingelser
+
+En regels betingelser afgør, hvilke advarsler den handler på, og læses som sætninger: "Hvis **Advarselstitel** indeholder `database`", "Og **Overvågningsetiketter** har en af *Production*". En regel uden betingelser matcher hver advarsel.
+
+| Betingelse                                                    | Sammenligner med                                                                                               |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Monitorer**, **Advarsel Alvorligheder**, **Advarselsmærkater**, **Overvågningsetiketter** | **Har en af**, **Har alle** eller **Har ingen af** de værdier, du vælger.                    |
+| **Advarselstitel**, **Beskrivelse af advarsel**, **Overvågningsnavn**, **Overvågningsbeskrivelse** | **Indeholder**, **Indeholder ikke**, **Er lig med**, **Er ikke lig med**, **Starter med**, **Slutter med**, uden hensyn til store og små bogstaver, eller **Matcher mønster** og **Matcher ikke mønster** for et regulært udtryk eller et `*`-jokertegn. |
+
+Med to eller flere betingelser vælger du **Alle skal matche**, hvor hver skal holde, eller **Én skal matche**, hvor én er nok. Episoderegler matcher i stedet en episodes alvorsgrad, etiketter, titel og beskrivelse.
+
+## Vagtregler
+
+**Advarsler → Regler → Vagtregler** gør tilkaldelse automatisk. Hver matchende regel tilføjer sine politikker til den nye advarsel, og advarslen kører dem sammen med de politikker, den allerede havde, hver én gang.
+
+:::steps
+### Navngiv reglen
+
+Klik på **Opret Alert On-Call Rule**. Under **Grundlæggende oplysninger** giver du den et **Navn**, for eksempel "Tilkald databaseteamet ved enhver DB-advarsel", og en **Beskrivelse**, hvis du vil.
+
+### Vælg advarslerne
+
+Under **Matchkriterier** tilføjer du de betingelser, en advarsel skal opfylde. Lad dem være tomme for at matche hver ny advarsel.
+
+### Vælg politikkerne
+
+Under **Vagtpolitikker** vælger du de **Vagtpolitikker**, reglen kører, og opretter derefter reglen.
+:::
+
+En alvorsgrad tilkalder ingen af sig selv: En vagtregel, der matcher på **Advarsel Alvorligheder**, er måden at sætte "tilkald databaseteamet ved hver High-advarsel" op på. For at se, hvad der kørte for én advarsel, åbner du dens side **Vagtudførelser**. Hver person nås derefter på den måde, de har sat op under **Brugerindstillinger → Vagtregler** på fanen **Advarsler**; se [Eskaleringsregler](/docs/on-call/escalation-rules).
+
+## Ejer- og etiketregler
+
+**Ejerregler** tilføjer ejerbrugere og -teams til nye advarsler, der matcher, og **Etiketregler** tilføjer etiketter. At oprette en tager to trin: **Match**, betingelserne, og derefter **Ejere** eller **Etiketter**, det, reglen tilføjer. Reglens **Navn** følger det, du vælger, indtil du skriver dit eget.
+
+- **En regel kan nedarve.** Foldet sammen under **Nedarv ejere** eller **Nedarv etiketter** giver seks kontakter ejerne eller etiketterne videre fra advarslens monitor, hosts, Kubernetes-klynger, Docker-hosts, Podman-hosts og tjenester. Episoderegler har ingen sådanne kontakter.
+- **En ny regel skal tilføje noget**: Vælg mindst én ejer eller etiket, eller slå en kontakt til.
+- **Underret ejere**, under **Flere felter** på en ejerregel, afgør, om de tilføjede personer får besked.
+
+[Etiket- og ejerregler](/docs/configuration/label-and-owner-rules) gennemgår formularen trin for trin for alle typer ressourcer.
+
+## Privatlivs- og runbook-regler
+
+**Privatlivsregler** gør nye advarsler, der matcher, private, før noget andet kører: Kun deres ejere og projektets administratorer og ejere kan se dem. En regel har et trin **Grundlæggende oplysninger** og et trin **Matchkriterier** og gør hver advarsel, den matcher, privat. Se [Private advarsler](/docs/alerts/index#private-advarsler).
+
+**Runbook-regler** starter en runbook, når en ny advarsel matcher, medmindre advarslen blev oprettet løst. Se [Runbook-regler](/docs/runbooks/rules).
+
+## Påmindelsesregler
+
+**Advarsler → Regler → Reminder Rules** påminder en advarsels ejere, mens den forbliver åben. Hver ny advarsel får den første regel, der matcher den, oppefra og ned i listen.
+
+:::steps
+### Navngiv påmindelsesreglen
+
+Klik på **Opret Alert Reminder Rule**. Under **Rule Info** giver du den et **Navn**, for eksempel "Critical Alert Reminders".
+
+### Vælg, hvilke advarsler der skal påmindes om
+
+Under **Matchkriterier** vælger du de **Advarsel Alvorligheder** og **Etiketter**, den gælder for. Lad dem være tomme for at påminde om hver advarsel.
+
+### Indstil intervallet
+
+Under **Reminder Settings** indstiller du **Reminder Interval (minutes)**, hvor ofte ejere påmindes, og **Stop Reminders When**: **Løst**, standarden, eller **Bekræftet**. Opret derefter reglen.
+:::
+
+Ejere får hver påmindelse som **Alert reminder**, som er slået til via e-mail som standard. En advarsels regel matches igen, når dens alvorsgrad eller etiketter ændres. For at stoppe påmindelserne for én advarsel slår du **Send påmindelser** fra på dens side **Indstillinger**; den gemmer i det øjeblik, du slår den om.
+
+## Indstillinger
+
+### Noteskabeloner
+
+**Advarsler → Indstillinger → Noteskabeloner** rummer færdig tekst til private noter. Kortet **Skabeloner til private noter for advarsler** viser dem; **Opret Advarsel Note Skabelon** beder om et **Skabelonnavn**, en **Skabelonbeskrivelse** og **Note**. En skabelon tilbydes, når nogen skriver en privat note på en advarsel eller en episode, og når de bekræfter eller løser en, og dens tekst kan redigeres, før den slås op. Noteskabeloner for advarsler er ren tekst: I modsætning til noteskabeloner for hændelser udfylder de ingen variabler.
+
+### Brugerdefinerede felter
+
+**Advarsler → Indstillinger → Brugerdefinerede felter** tilføjer dine egne felter til hver advarsel, for eksempel et kundeniveau eller en sagsreference. Udfyld dem på advarslens side **Brugerdefinerede felter** eller via API'et som `customFields`. Et felt kan kopiere sin værdi fra et brugerdefineret felt på en monitor i stedet for at blive skrevet ind: se [Felter, der kopieres fra en monitor](/docs/incidents/settings#felter-der-kopieres-fra-en-monitor), som fungerer på samme måde for advarsler.
+
+### Målinger
+
+**Advarsler → Indstillinger → Målinger** tager tid på, hvor længe ting tager for hver advarsel. Vælg **Tid til bekræftelse** eller **Tid til løsning** eller to tidspunkter efter eget valg, for eksempel når **Advarslen bliver oprettet**, og når den går ind i en tilstand, du vælger. Hver måling vises på advarslens side og i diagrammer som `oneuptime.alert.measurement.<key>`. Se [Målinger](/docs/incidents/settings#målinger), som fungerer på samme måde for advarsler.
+
+### Nummerpræfiks
+
+**Advarsler → Indstillinger → Nummerpræfiks** angiver teksten foran advarsels- og episodenumre: `ALT-` og `AE-` i et nyt projekt, eller `#` uden præfiks. **Opdater** åbner **Nummerpræfiks for advarsel** og **Nummerpræfiks for advarselsepisode** med en forhåndsvisning, mens du skriver. Kun advarsler og episoder, der oprettes bagefter, får det nye præfiks. Reglerne for et præfiks står under [Nummerpræfikser](/docs/incidents/settings#nummerpræfikser).
+
+> [!NOTE]
+> På OneUptime Cloud kræver noteskabeloner og brugerdefinerede felter planen **Growth** eller højere.
+
+## Workflows
+
+Hver advarselsmodel har workflow-udløsere og -handlinger, opkaldt efter den: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** og **On Delete Alert**, det samme for **Advarsel Episode**, **Advarsel Tilstand Tidslinje** og de andre, og handlinger som **Create One Alert** og **Update One Alert**. Definitionerne af brugerdefinerede felter for advarsler er den eneste undtagelse: De har ingen workflow-udløsere. Se [Workflows – Oversigt](/docs/workflows/index).
+
+## Hvem der kan ændre dem
+
+Regler, brugerdefinerede felter og målinger kræver en Project Owner eller Project Admin eller en brugerdefineret rolle med reglens egen tilladelse. **Alert Member** arbejder med advarsler og episoder, deres noter, ejere og tilstandstidslinjer og noteskabeloner, og **Alert Admin** administrerer også advarselstilstande og alvorsgrader. Se [Brugere, teams og tilladelser](/docs/permissions/index).
+
+## Næste skridt
+
+:::cards
+- [Advarselsepisoder og grupperingsregler](/docs/alerts/episodes): Grupperingsreglerne i dybden.
+- [Eskaleringsregler](/docs/on-call/escalation-rules): Hvad der sker, når en vagtregel kører en politik.
+- [Etiket- og ejerregler](/docs/configuration/label-and-owner-rules): Regelformularen trin for trin.
+- [AI SRE](/docs/ai/ai-sre): Undersøg og ret nye advarsler af sig selv.
+:::

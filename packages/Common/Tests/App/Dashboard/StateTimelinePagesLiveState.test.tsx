@@ -117,6 +117,10 @@ import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateT
 import Route from "../../../Types/API/Route";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  forgetStatusTimelineView,
+  showStatusTimelinesAsTable,
+} from "../../Helpers/StatusTimelineViewChoice";
 
 // What the recorded columns are handed: the two dates every timeline row has.
 interface TimelineRow {
@@ -238,6 +242,8 @@ function advance(milliseconds: number): void {
 beforeEach(() => {
   jest.useFakeTimers({ now: NOW });
   recordedTableProps = null;
+  // These read the table, one click from the timeline each page opens on.
+  showStatusTimelinesAsTable();
   jest
     .spyOn(Navigation, "getLastParamAsObjectID")
     .mockReturnValue(new ObjectID("aaaaaaaa-0000-4000-8000-000000000001"));
@@ -247,6 +253,7 @@ afterEach(() => {
   cleanup();
   jest.useRealTimers();
   jest.restoreAllMocks();
+  forgetStatusTimelineView();
 });
 
 describe.each(TIMELINE_PAGES)("$name", (page: TimelinePage) => {

@@ -82,6 +82,8 @@ flowchart TB
 
 Роль запускает те runbook-и, до которых дотягивается её область. Назначение `RunbookMember`, `RunbookAdmin` или `ProjectMember`, ограниченное некоторыми метками, запускает и ведёт дальше выполнения runbook-ов с этими метками, ограниченное **Owned** — выполнения runbook-ов, которыми владеет его команда, а блокировка метки для команды забирает у неё эти runbook-и. `CreateRunbookExecution` и `EditRunbookExecution` относятся к выполнениям, у которых нет меток, поэтому они дотягиваются до каждого runbook-а проекта. Подтверждение предложения по устранению, которое запускает runbook, проверяется так же.
 
+Расписание и webhook runbook-а запускают выполнения без участия человека, поэтому для настройки любого из них нужно право изменять runbook и запускать его; то же нужно, чтобы видеть его URL webhook. Для выключения достаточно права изменять его. См. [Триггеры runbook-а](/docs/runbooks/triggers#кто-может-настраивать-триггеры).
+
 Учётные данные и секреты находятся вне `RunbookAdmin`. Для управления ими нужны `ProjectOwner` или `ProjectAdmin` либо разрешения `CreateRunbookCredential`, `EditRunbookCredential`, `DeleteRunbookCredential`, `ReadRunbookCredential` и `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret`, `ReadRunbookSecret`. См. [Учётные данные runbook-ов](/docs/runbooks/credentials).
 
 Правила владельцев и правила меток в **Сборники инструкций → Настройки** тоже находятся вне `RunbookAdmin`. Для управления ими нужны `ProjectOwner` или `ProjectAdmin` либо разрешения `CreateRunbookOwnerRule` и `CreateRunbookLabelRule` и их аналоги для изменения, удаления и чтения.

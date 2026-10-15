@@ -86,7 +86,7 @@ Zolang die persoon afwezig is:
 
 Kies je in plaats daarvan iemand onder **Wie vervangt?**, dan krijgt die alle oproepen van de persoon, uit elk schema en elk beleid, in plaats van dat de rotatie de beurten overneemt.
 
-Afwezigheid die zo is toegevoegd, geldt voor elk bereikbaarheidsbeleid. Ze staat onder **Bereikbaarheidsdienst** > **Gebruikersoverschrijvingen**, waar je ze kunt verwijderen om de persoon eerder terug te halen. Om iemand in maar één beleid over te slaan, voeg je de override toe op de pagina **Gebruikersoverschrijvingen** van dat beleid en laat je **Wie vervangt?** zoals het is.
+Afwezigheid die zo is toegevoegd, geldt voor elk bereikbaarheidsbeleid. Ze staat onder **Bereikbaarheidsdienst** > **Geavanceerd** > **Gebruikersoverschrijvingen**, waar je ze kunt verwijderen om de persoon eerder terug te halen. Om iemand in maar één beleid over te slaan, voeg je de override toe op de pagina **Gebruikersoverschrijvingen** van dat beleid en laat je **Wie vervangt?** zoals het is. Zie [Gebruikersoverschrijvingen](/docs/on-call/user-overrides).
 
 Via de API slaat een gebruikersoverride (`/api/on-call-duty-policy-user-override`) die zonder `routeAlertsToUserId` wordt gemaakt, de persoon in `overrideUserId` over van `startsAt` tot `endsAt`.
 
@@ -121,4 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [Escalatieregels](/docs/on-call/escalation-rules): Laat een niveau van een bereikbaarheidsbeleid dit schema oproepen.
 - [Tijdlijn van bereikbaarheidsschema's](/docs/on-call/schedule-timeline): Bekijk alle schema's naast elkaar, met de dekkingsgaten.
 - [Agendafeeds](/docs/on-call/calendar-feeds): Zet diensten in Google Agenda, Outlook of Apple Agenda.
+- [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules): Bepaal hoe een oproep je bereikt terwijl je bereikbaarheidsdienst hebt.
 :::

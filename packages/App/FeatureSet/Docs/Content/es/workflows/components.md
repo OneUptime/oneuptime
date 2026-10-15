@@ -374,7 +374,7 @@ Para cada tipo de registro de OneUptime (monitores, incidentes, alertas, página
 | **Delete One Monitor**   | Elimina un registro coincidente.                                               |
 | **Delete Many Monitors** | Elimina los registros coincidentes, hasta **Limit**.                           |
 
-El mismo conjunto te da tres disparadores: **On Create Monitor**, **On Update Monitor** y **On Delete Monitor**. Consulta [Disparadores](/docs/workflows/triggers#disparadores-de-eventos-de-oneuptime).
+El mismo conjunto te da cuatro disparadores: **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** y **On Delete Monitor**. Consulta [Disparadores](/docs/workflows/triggers#disparadores-de-eventos-de-oneuptime).
 
 Un tipo solo ofrece los componentes que permite su modelo. Un tipo de solo lectura tiene los dos componentes Find y nada más, así que, si no encuentras **Delete One Monitor** en el panel, ese tipo no lo permite.
 

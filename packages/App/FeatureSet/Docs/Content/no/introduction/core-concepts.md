@@ -66,6 +66,7 @@ En **episode** samler relaterte hendelser, eller relaterte varsler, slik at team
 
 :::cards
 - [Hendelser – Oversikt](/docs/incidents/index): Hvordan hendelser erklæres, håndteres og løses.
+- [Varsler – Oversikt](/docs/alerts/index): Hvor varsler kommer fra, og hvordan episoder grupperer dem.
 - [Koblede varsler](/docs/incidents/linked-alerts): Koble varslene et brudd utløste, til hendelsen.
 :::
 
@@ -76,8 +77,10 @@ En **vaktpolicy** avgjør hvem som varsles om en hendelse eller et varsel, og hv
 Hvordan hver person nås, bestemmer de selv. I **Brukerinnstillinger** lagrer hver person måtene OneUptime kan nå dem på, som e-post, SMS, anrop, push-varsler, Slack eller Microsoft Teams, og hvilke som brukes når de varsles.
 
 :::cards
+- [Vakt – Oversikt](/docs/on-call/index): Hvordan et varsel når frem, og hvor hver del finnes.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Varsle folk nivå for nivå til noen svarer.
 - [Vaktplaner](/docs/on-call/schedules): Rotasjoner, lag og vaktbytter.
+- [Slik når OneUptime deg](/docs/notifications/index): Metodene, reglene og innstillingene som avgjør hvordan hver person nås.
 :::
 
 ## Statussider og vedlikehold

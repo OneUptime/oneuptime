@@ -17,10 +17,11 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
-import { JSONArray } from "../../Types/JSON";
+import { JSONArray, JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import RunbookExecutionStatus from "../../Types/Runbook/RunbookExecutionStatus";
+import RunbookTriggerType from "../../Types/Runbook/RunbookTriggerType";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation()
@@ -633,6 +634,96 @@ export default class RunbookExecution extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public triggeredByUserId?: ObjectID = undefined;
+
+  /*
+   * What started the run, its details, and the values it was started with.
+   * Written by the one start path every run goes through
+   * (Server/Utils/Runbook/RunbookStarter), as OneUptime: nobody may set them
+   * through the API, so a run cannot claim a trigger it did not have, nor
+   * hand its steps inputs nobody sent.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookExecution,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Trigger",
+    description:
+      'What started this run: "Manual" (a person, or the API), "Rule" (a runbook rule), "AutoRemediation", "AI" (OneUptime AI), "Schedule" (the runbook\'s schedule) or "Webhook" (a call to the runbook\'s webhook URL). Empty for runs started before it was recorded.',
+    example: "Webhook",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public triggerType?: RunbookTriggerType = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookExecution,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Trigger Details",
+    description:
+      "More about what started this run: for a scheduled run, the time it was due (scheduledFor) and whether it made up for times OneUptime missed (isCatchUp) or waited for the run before it (waitedForPreviousRun); for a webhook call, the address it came from (callerIp).",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public triggerDetails?: JSONObject = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookExecution,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Inputs",
+    description:
+      "The values this run was started with: the JSON body of the webhook call that started it. Steps read them as data - Bash as ONEUPTIME_INPUT_<NAME> environment variables, JavaScript as args.inputs - never as script text.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public inputs?: JSONObject = undefined;
 
   @ColumnAccessControl({
     create: [],

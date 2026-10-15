@@ -84,7 +84,7 @@ The summary at the top of the **Escalation Rules** page shows the whole ladder: 
 
 ### How each person is reached
 
-Each person a level pages is reached the way their own on-call rules say: **User Settings** > **On-Call Rules**, with a tab for incidents, incident episodes, alerts and alert episodes, and a card per severity listing which notification method is tried and after how long. A project admin can see and change a member's rules under **Users** > the member > **On-Call Rules**.
+Each person a level pages is reached the way their own on-call rules say: **User Settings** > **On-Call Rules**, with a tab for incidents, incident episodes, alerts and alert episodes, and a card per severity listing which notification method is tried and after how long. A project admin can see and change a member's rules under **Users** > the member > **On-Call Rules**. See [Personal On-Call Rules](/docs/notifications/on-call-rules).
 
 ```mermaid title="Who a level pages, and how each person is reached"
 flowchart TB
@@ -101,7 +101,7 @@ flowchart TB
     rules --> methods["Their notification methods"]
 ```
 
-A user override that is in effect for a person sends their pages to the person covering for them instead. One that names nobody to cover skips them: they are not paged, the policy's run says they are away and until when, and in an on-call schedule each of their turns goes to the next person in the rotation.
+A user override that is in effect for a person sends their pages to the person covering for them instead. One that names nobody to cover skips them: they are not paged, the policy's run says they are away and until when, and in an on-call schedule each of their turns goes to the next person in the rotation. See [User Overrides](/docs/on-call/user-overrides).
 
 Every message is one its provider takes, so a page always goes out. Each channel carries this much:
 

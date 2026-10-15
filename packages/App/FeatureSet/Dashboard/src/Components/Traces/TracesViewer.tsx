@@ -51,6 +51,13 @@ import {
 import { RESOURCE_FACET_CATALOG_KEYS } from "Common/Types/Telemetry/ResourceFacetCatalog";
 import { buildResourceFacetConfigs } from "Common/UI/Components/TelemetryViewer/ResourceFacetConfigs";
 import ProjectUtil from "Common/UI/Utils/Project";
+import useAttributeValueSuggestions, {
+  AttributeValueSuggestionsState,
+} from "Common/UI/Utils/Telemetry/UseAttributeValueSuggestions";
+import {
+  fetchAttributeValueSuggestions,
+  getTimeRangeScope,
+} from "Common/UI/Utils/Telemetry/AttributeValueSuggestions";
 import { getStableValueKey } from "Common/UI/Utils/UseStableValue";
 import API from "Common/UI/Utils/API/API";
 import URL from "Common/Types/API/URL";
@@ -930,13 +937,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     [],
   );
   const [attributesLoading, setAttributesLoading] = useState<boolean>(false);
-  const [attributeValueSuggestions, setAttributeValueSuggestions] = useState<
-    Record<string, Array<string>>
-  >({});
-  const [attributeValuesLoading, setAttributeValuesLoading] =
-    useState<boolean>(false);
-  const lastValueSuggestionKeyRef: React.MutableRefObject<string> =
-    useRef<string>("");
+  // The key list could not load: the `@key:` value picker then asks for any key.
+  const [attributesFailed, setAttributesFailed] = useState<boolean>(false);
 
   // Service lookup map
   const serviceById: Record<string, Service> = useMemo(() => {
@@ -1519,7 +1521,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           (response.data["attributes"] || []) as Array<string>,
         );
       } catch {
-        // non-critical
+        // Non-critical: the bar still takes a typed key.
+        setAttributesFailed(true);
       } finally {
         setAttributesLoading(false);
       }
@@ -1527,57 +1530,29 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     void loadAttributes();
   }, []);
 
-  // Load attribute values when user types @attribute: in search bar
-  useEffect(() => {
-    const currentWord: string = (searchValue.split(/\s+/).pop() || "").trim();
-    if (!currentWord.startsWith("@") || !currentWord.includes(":")) {
-      return;
-    }
-    const colonIdx: number = currentWord.indexOf(":");
-    const attrKey: string = currentWord.substring(1, colonIdx);
-
-    if (
-      !attrKey ||
-      TRACE_KNOWN_FIELD_KEYS.has(attrKey) ||
-      attrKey === lastValueSuggestionKeyRef.current
-    ) {
-      return;
-    }
-    lastValueSuggestionKeyRef.current = attrKey;
-
-    const loadValues: () => Promise<void> = async () => {
-      try {
-        setAttributeValuesLoading(true);
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.post({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(
-              "/telemetry/traces/get-attribute-values",
-            ),
-            data: { attributeKey: attrKey },
-            headers: {
-              ...ModelAPI.getCommonHeaders(),
-            },
-          });
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
-        }
-        const values: Array<string> = (response.data["values"] ||
-          []) as Array<string>;
-        setAttributeValueSuggestions(
-          (
-            prev: Record<string, Array<string>>,
-          ): Record<string, Array<string>> => {
-            return { ...prev, [attrKey]: values };
-          },
-        );
-      } catch {
-        // non-critical
-      } finally {
-        setAttributeValuesLoading(false);
-      }
-    };
-    void loadValues();
-  }, [searchValue]);
+  /*
+   * The values the search bar offers once `@key:` is typed: looked up after
+   * the reader pauses, for a key the project's spans have, once per key and
+   * time range, from the spans in the range on screen (issue #4708).
+   */
+  const attributeValues: AttributeValueSuggestionsState =
+    useAttributeValueSuggestions({
+      searchText: searchValue,
+      attributeKeys: telemetryAttributes,
+      isAttributeKeysLoading: attributesLoading,
+      hasAttributeKeysFailed: attributesFailed,
+      ignoreKey: (key: string): boolean => {
+        return TRACE_KNOWN_FIELD_KEYS.has(key.toLowerCase());
+      },
+      scope: `traces|${ProjectUtil.getCurrentProjectId()?.toString() || ""}|${getTimeRangeScope(timeRange)}`,
+      fetchValues: (attributeKey: string): Promise<Array<string>> => {
+        return fetchAttributeValueSuggestions({
+          signal: "traces",
+          attributeKey: attributeKey,
+          timeRange: timeRange,
+        });
+      },
+    });
 
   /*
    * The newest span-list and histogram requests. A zoom, a reset, a new
@@ -3392,9 +3367,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         "duration",
       ]}
       searchAttributeSuggestions={telemetryAttributes}
-      searchValueSuggestions={attributeValueSuggestions}
+      searchValueSuggestions={attributeValues.valueSuggestions}
       searchAttributesLoading={attributesLoading}
-      searchValuesLoading={attributeValuesLoading}
+      searchValuesLoading={attributeValues.isLoading}
+      searchValuesError={attributeValues.error}
+      onRetrySearchValues={attributeValues.retry}
+      searchHasNoValues={attributeValues.hasNoValues}
       onSearchFieldValueSelect={(fieldKey: string, value: string) => {
         /*
          * Turn a typed `key:value` into a chip via the same path as a facet

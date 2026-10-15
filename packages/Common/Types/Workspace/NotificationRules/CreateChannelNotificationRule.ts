@@ -11,7 +11,13 @@ export default interface CreateChannelNotificationRule
   inviteTeamsToNewChannel: Array<ObjectID>;
   inviteUsersToNewChannel: Array<ObjectID>;
   shouldInviteOwnersToNewChannel: boolean;
-  newChannelTemplateName: string;
+  /*
+   * The prefix of the channels the rule creates (Channel Name Prefix in the
+   * rule form): prod- names incident INC-42's channel prod-inc-42. Optional:
+   * without one - empty, or only spaces - the channel is the record's own
+   * name, inc-42 (Utils/Workspace/WorkspaceChannelName).
+   */
+  newChannelTemplateName?: string | undefined;
 
   /*
    * if selected this would archive channel when incident, alert, scheduled maintenance reaches the last state (is resolved)

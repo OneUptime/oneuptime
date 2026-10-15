@@ -533,7 +533,7 @@ With SNMP on, the **SNMP Credentials** step asks for the credential sets to try.
 Click **Start Scan**. The probe sweeps the range and reports how many hosts it scanned and how many answered: how many answered SNMP, or, on a ping-only scan, how many answered ping.
 
 ### Import what it found
-Click **Review Results** on the finished scan, select the devices you want, and click **Import Selected**.
+Click **Review Results** on the scan, pick the hosts to import, and click **Next**. Choose how often they are checked and whether each gets a monitor, then import them; see [Importing what a scan found](#importing-what-a-scan-found).
 :::
 
 | Field | Description | Required |
@@ -589,9 +589,19 @@ Every host a scan finds imports as a probe-polled device, with the scan's probe 
 - Hosts that answered SNMP import with the address that answered as the hostname, the name chosen as below, and the credentials that answered, so a v3 scan imports devices ready to walk over v3 that start collecting interfaces and inventory at once.
 - Hosts that answered ping but not SNMP — every host a [ping-only scan](#ping-only-scans) finds, and the hosts an SNMP scan could not identify — import with no credentials. The probe pings them on their schedule; add credentials later, on the device or as a profile on it or its site, and the same probe starts walking them too.
 
-Devices already registered are flagged and skipped. Bind a [Ping](/docs/monitor/ping-monitor) or [IP](/docs/monitor/ip-monitor) monitor to an imported device only if you want that monitor's incidents; an [alert policy](#alert-policies) is usually the better answer for a fleet.
+A host already registered as a device is marked **Already added** and is never imported twice. Polling gives each imported device a status; to hear when one goes down, give it a monitor: choose **A monitor for each device** when you import, or let an [alert policy](#alert-policies) give one to every device it covers.
 
-When a scan found SNMP hosts, **Review Results** offers **Apply each SNMP host's vendor template on its first poll (recommended)**, on by default: each imported SNMP device gets the [vendor template](#vendor-health-templates) for what its first walk reports, its health OIDs and SNMP tables, just as devices an auto import rule brings in do. A device whose vendor has no template is left as it is. Turn the switch off for a batch that should start without.
+When the hosts you import include SNMP ones, the import's **Monitoring** step offers **Apply each SNMP host's vendor template on its first poll (recommended)**, on by default: each imported SNMP device gets the [vendor template](#vendor-health-templates) for what its first walk reports, its health OIDs and SNMP tables, just as devices an auto import rule brings in do. A device whose vendor has no template is left as it is. Turn the switch off for a batch that should start without.
+
+### Importing what a scan found
+
+**Review Results** opens the scan's hosts, the ones found so far if it is still running, in a dialog that imports them in three steps:
+
+1. **Choose devices** lists each host under the name its device will get, with its address and vendor; every host not yet added starts selected. Search by name, DNS name, address or vendor, or type a subnet (`10.48.11.0/24`) or an octet range (`10.48.11-12.0-255`) to list the hosts in it. **Responded** (**SNMP** or **No SNMP**) and **Name** (**Named** or **Address only**) narrow the list further. The checkbox above the list selects or clears every host shown, on every page, and only the selected hosts the list shows are imported.
+2. **Monitoring** asks how often the scan's probe checks the devices, **Check every**, which becomes each device's **Polling Interval (Minutes)**, and who hears when one goes down. **Status only** imports them with a status and no monitor. **A monitor for each device** gives each one a Network Device monitor from the template you pick under **Monitor template**, and shows before you import what each of the template's checks raises: an incident, an alert, or only the monitor's status. When some hosts answered ping only, a check that reads an SNMP walk is marked **SNMP devices only**: those hosts are pinged, not walked, until they have SNMP credentials. **Network device alert pack (recommended)** is offered first, and a project that does not have it yet gets it when you import. The summary beside the choices says what the import will create, including any devices your plan has no room to monitor.
+3. **Import** counts devices and monitors apart, as each is created, found already there, or fails. When it ends, it links to what it created and lists, under the reason, every host it did not import and every device it imported without its monitor. A retry tries again only the hosts that failed, and never creates anything twice. **Stop import** stops after the host being imported and keeps what was created.
+
+The import runs on the server and acts as you: each device and monitor is created with your permissions, and one you may not create is listed with the reason. You can close the dialog at any time: the scan's row shows how far the import has got, and **View progress** opens it again. **Import more devices** starts over with the hosts that are left. One import takes up to 5,000 hosts, so import a larger scan in parts, by subnet or by what the hosts answered. A project's imports run one at a time: one asked for while another runs waits for it.
 
 ### How discovered devices are named
 
@@ -646,6 +656,8 @@ A name is only ever improved: a device keeps its name when its DNS record change
 ### Importing Automatically with Auto Import Rules
 
 Reviewing every scan by hand does not scale past the first few subnets. **Network → Rules → Auto Import Rules** is where you write the import down once: a rule says which discovered hosts to claim (an IP range, and optional system name, description and `sysObjectID` patterns) and, optionally, which monitor template and [OID Collection Template](#oid-collection-templates) the devices it imports get. A rule marked as an exclusion claims nothing and vetoes the others: that is how printers and phones are carved out of a broad subnet rule.
+
+A rule's **Check every** sets how often the scan's probe polls each device the rule imports, as **Check every** does when you import from **Review Results**; left empty, it is every 5 minutes. A rule that also imports hosts that answered ping only gives them its monitor template too: the probe pings them, so the template's checks on whether a device is up, and on the traps it sends, work for them at once, and its checks that read an SNMP walk start once the device has credentials.
 
 Rules have no schedule of their own and need none. Enabled rules run by themselves against each scan's results as they arrive, including the partial results a long sweep uploads while it is still running, so hosts are imported within a minute of being found rather than at the end of the range. Turn on **Repeat this scan** on a discovery scan and the pair becomes a standing arrangement: the scan sweeps its range again on your interval, and every new host it finds is imported without anyone pressing anything.
 
@@ -1009,7 +1021,9 @@ If the device is behind an unmanaged switch or a hub, the managed switch learns 
 :::
 
 :::details Only some discovered devices were imported
-The run report answers this, in the dialog that opens when a run finishes rather than in a log. A run that stopped at its batch limit says so and names what is left: press **Run Rule** again and it continues where it stopped. A run that finished but claimed fewer hosts than you expected says where the rest went: vetoed by an exclusion rule, already registered at that address, or not matched by the rule's criteria.
+An import from **Review Results** answers this on its last step: every host it did not import, and every device it imported without its monitor, is listed under the reason, and a retry tries again only the hosts that failed. To see it later, click **Review Results** on the scan, then **View results**.
+
+For an auto import rule, the run report answers this, in the dialog that opens when a run finishes rather than in a log. A run that stopped at its batch limit says so and names what is left: press **Run Rule** again and it continues where it stopped. A run that finished but claimed fewer hosts than you expected says where the rest went: vetoed by an exclusion rule, already registered at that address, or not matched by the rule's criteria.
 
 When the devices are all there but the monitors are not: devices and monitors are separate work, so a rule that got its monitor template after its devices were imported reports no devices imported and only monitors created. That is the rule doing exactly the work that was left, not a failed import; see [Importing Automatically with Auto Import Rules](#importing-automatically-with-auto-import-rules).
 :::

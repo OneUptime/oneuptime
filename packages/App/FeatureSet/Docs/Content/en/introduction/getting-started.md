@@ -48,7 +48,9 @@ The docs are organized like the sidebar, in nine sections. Pick the part you nee
 
 :::cards
 - [Incidents](/docs/incidents/index): Declare, coordinate and resolve incidents, with a full timeline.
-- [On-call](/docs/on-call/schedules): Rotations, escalation rules and who gets paged when.
+- [Alerts](/docs/alerts/index): Look into problems before your users notice, and group the noise into episodes.
+- [On-call](/docs/on-call/index): Policies, escalation rules, rotations and who gets paged when.
+- [Notifications](/docs/notifications/index): How OneUptime reaches you: your methods, on-call rules and notification settings.
 - [Status pages](/docs/status-pages/index): Keep customers informed on public or private status pages.
 - [Workspace connections](/docs/workspace-connections/slack): Work on incidents from Slack and Microsoft Teams.
 :::

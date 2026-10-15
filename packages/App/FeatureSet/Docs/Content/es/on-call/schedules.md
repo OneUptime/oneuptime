@@ -86,7 +86,7 @@ Mientras está ausente:
 
 Si eliges a alguien en **¿Quién cubre?**, esa persona recibe todos sus avisos, de cada programación y cada política, en lugar de que la rotación se quede con sus turnos.
 
-Una ausencia añadida así se aplica a todas las políticas de guardia. Aparece en **Guardia** > **Sustituciones de usuarios**, donde puedes eliminarla para que vuelva antes. Para omitir a alguien en una sola política, añade la sustitución en la página **Sustituciones de usuarios** de esa política y deja **¿Quién cubre?** como está.
+Una ausencia añadida así se aplica a todas las políticas de guardia. Aparece en **Guardia** > **Avanzado** > **Sustituciones de usuarios**, donde puedes eliminarla para que vuelva antes. Para omitir a alguien en una sola política, añade la sustitución en la página **Sustituciones de usuarios** de esa política y deja **¿Quién cubre?** como está. Consulta [Sustituciones de usuarios](/docs/on-call/user-overrides).
 
 Con la API, una sustitución de usuario (`/api/on-call-duty-policy-user-override`) creada sin `routeAlertsToUserId` omite a la persona de `overrideUserId` desde `startsAt` hasta `endsAt`.
 
@@ -121,4 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [Reglas de escalado](/docs/on-call/escalation-rules): Haz que un nivel de una política de guardia avise a esta programación.
 - [Línea de tiempo de guardias](/docs/on-call/schedule-timeline): Ve todas las programaciones lado a lado, con sus huecos de cobertura.
 - [Feeds de calendario](/docs/on-call/calendar-feeds): Lleva los turnos a Google Calendar, Outlook o el Calendario de Apple.
+- [Reglas de guardia personales](/docs/notifications/on-call-rules): Decide cómo te llega un aviso mientras estás de guardia.
 :::

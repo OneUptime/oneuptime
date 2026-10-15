@@ -9,6 +9,7 @@ import WorkspaceNotificationRuleService, {
 import logger from "../../Logger";
 import SlackAlertMessages from "../Slack/Messages/Alert";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import WorkspaceChannelName from "../../../../Utils/Workspace/WorkspaceChannelName";
 
 export default class AlertWorkspaceMessages {
   @CaptureSpan()
@@ -28,8 +29,11 @@ export default class AlertWorkspaceMessages {
             alertId: data.alertId,
           },
           notificationRuleEventType: NotificationRuleEventType.Alert,
-          channelNameSiffix:
-            data.alertNumberWithPrefix || data.alertNumber.toString(),
+          channelNameParts: WorkspaceChannelName.forNumberedRecord({
+            eventType: NotificationRuleEventType.Alert,
+            number: data.alertNumber,
+            numberWithPrefix: data.alertNumberWithPrefix,
+          }),
           ...(data.isPrivate ? { isPrivate: true } : {}),
         },
       );

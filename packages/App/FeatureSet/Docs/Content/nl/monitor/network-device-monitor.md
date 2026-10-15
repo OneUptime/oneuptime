@@ -196,10 +196,10 @@ Elke plek die een apparaat toont — de lijst Devices, de Devices-pagina van een
 | --- | --- | --- |
 | **Stale** | Er is al ruim langer dan het interval van het apparaat geen poll geprobeerd. | Controleer of de sonde van het apparaat online is en haar vloot bijhoudt. |
 | **No probe** | Het apparaat wordt door een sonde gepolld maar heeft er geen, of het pollen staat uit. | Wijs een sonde toe die het kan bereiken; tot dan pollt niets het. |
-| **No monitor** | Het apparaat gebruikt de [override met gekoppelde monitor](#de-override-met-gekoppelde-monitor) en er is niets gekoppeld. | Koppel een monitor, of zet het terug op pollen door de sonde. |
+| **Geen monitor** | Het apparaat gebruikt de [override met gekoppelde monitor](#de-override-met-gekoppelde-monitor) en er is niets gekoppeld. | Koppel een monitor, of zet het terug op pollen door de sonde. |
 | **SNMP failing** | Bereikbaar via ping, maar de laatste SNMP-walk is mislukt. | Controleer de inloggegevens, de SNMP-agent of een ACL. |
 
-De lijst **Devices** heeft een filter **SNMP** met drie waarden: **OK** (de laatste walk is gelukt), **Failing** (de laatste walk is mislukt) en **Not configured** (alleen ping, geen inloggegevens, of nooit gepolld). "Welke apparaten hebben inloggegevens die niet meer werken" is één klik. De kolom **Interfaces (Up / Down)** van de lijst toont **No SNMP** in plaats van `0 / 0` voor een apparaat dat gepingd en nooit gewalkt wordt: nul werkende poorten zou een andere bewering zijn, en een onjuiste.
+De lijst **Devices** heeft een filter **SNMP** met drie waarden: **OK** (de laatste walk is gelukt), **Failing** (de laatste walk is mislukt) en **Not configured** (alleen ping, geen inloggegevens, of nooit gepolld). "Welke apparaten hebben inloggegevens die niet meer werken" is één klik. De kolom **Interfaces (Up / Down)** van de lijst toont **Geen SNMP** in plaats van `0 / 0` voor een apparaat dat gepingd en nooit gewalkt wordt: nul werkende poorten zou een andere bewering zijn, en een onjuiste.
 
 ## SNMP-inloggegevens en inloggegevensprofielen
 
@@ -261,7 +261,7 @@ Sommige apparatuur kan geen sonde bereiken of zinvol pingen: een apparaat achter
 | **Sonde** | De standaard. Gepingd door de toegewezen sonde volgens haar schema, en via SNMP gewalkt als het inloggegevens heeft. |
 | **Bound monitor** | De status van een bestaande monitor is de status van dit apparaat. |
 
-Een apparaat op **Bound monitor** zetten, stopt het pollen ervan. De sonde, het interval en de pollschakelaar verdwijnen van de kaart **Polling & Data Collection**, de oude pollresultaten van het apparaat worden gewist, en de status komt van de monitor die je koppelt. Er een koppelen is optioneel: tot je dat doet, toont het apparaat **In behandeling**, gemarkeerd met **No monitor**.
+Een apparaat op **Bound monitor** zetten, stopt het pollen ervan. De sonde, het interval en de pollschakelaar verdwijnen van de kaart **Polling & Data Collection**, de oude pollresultaten van het apparaat worden gewist, en de status komt van de monitor die je koppelt. Er een koppelen is optioneel: tot je dat doet, toont het apparaat **In behandeling**, gemarkeerd met **Geen monitor**.
 
 Terugzetten naar **Sonde** herstelt het pollen en vraagt om een sonde. Een monitor die gekoppeld was, blijft gekoppeld en blijft waarschuwen; hij bepaalt alleen niet langer de status van het apparaat.
 
@@ -533,7 +533,7 @@ Met SNMP aan vraagt de stap **SNMP-inloggegevens** om de sets inloggegevens die 
 Klik op **Scan starten**. De sonde scant het bereik en meldt hoeveel hosts ze heeft gescand en hoeveel er antwoordden: hoeveel er op SNMP antwoordden, of, bij een scan met alleen ping, hoeveel er op ping antwoordden.
 
 ### Importeren wat er gevonden is
-Klik op **Review Results** bij de voltooide scan, selecteer de apparaten die je wilt en klik op **Import Selected**.
+Klik op **Review Results** bij de scan, kies de hosts om te importeren en klik op **Volgende**. Kies hoe vaak ze worden gecontroleerd en of elk een monitor krijgt, en importeer ze dan; zie [Importeren wat een scan heeft gevonden](#importeren-wat-een-scan-heeft-gevonden).
 :::
 
 | Veld | Beschrijving | Verplicht |
@@ -589,9 +589,19 @@ Elke host die een scan vindt, wordt geïmporteerd als door een sonde gepold appa
 - Hosts die op SNMP antwoordden, worden geïmporteerd met het adres dat antwoordde als hostnaam, de naam zoals hieronder gekozen, en de inloggegevens die antwoordden, dus een v3-scan importeert apparaten die klaar zijn voor een v3-walk en meteen interfaces en inventaris beginnen te verzamelen.
 - Hosts die op ping antwoordden maar niet op SNMP — elke host die een [scan met alleen ping](#scans-met-alleen-ping) vindt, en de hosts die een SNMP-scan niet kon identificeren — worden zonder inloggegevens geïmporteerd. De sonde pingt ze volgens hun schema; voeg later inloggegevens toe, op het apparaat of als profiel erop of op zijn locatie, en dezelfde sonde begint ze ook te walken.
 
-Apparaten die al geregistreerd zijn, worden gemarkeerd en overgeslagen. Koppel alleen een [Ping](/docs/monitor/ping-monitor)- of [IP](/docs/monitor/ip-monitor)-monitor aan een geïmporteerd apparaat als je de incidenten van die monitor wilt; voor een vloot is een [waarschuwingsbeleid](#waarschuwingsbeleid) meestal het betere antwoord.
+Een host die al als apparaat geregistreerd is, is gemarkeerd als **Al toegevoegd** en wordt nooit twee keer geïmporteerd. Pollen geeft elk geïmporteerd apparaat een status; om te horen wanneer er een uitvalt, geef je het een monitor: kies **Een monitor per apparaat** bij het importeren, of laat een [waarschuwingsbeleid](#waarschuwingsbeleid) er een geven aan elk apparaat dat het dekt.
 
-Als een scan SNMP-hosts vond, biedt **Review Results** **Leverancierssjabloon van elke SNMP-host toepassen bij de eerste poll (aanbevolen)** aan, standaard aan: elk geïmporteerd SNMP-apparaat krijgt het [leverancierssjabloon](#gezondheidssjablonen-van-leveranciers) voor wat zijn eerste walk meldt, zijn gezondheids-OID's en SNMP-tabellen, net als apparaten die een auto-importregel binnenbrengt. Een apparaat waarvan de leverancier geen sjabloon heeft, blijft zoals het is. Zet de schakelaar uit voor een batch die zonder moet beginnen.
+Als de hosts die je importeert SNMP-hosts bevatten, biedt de stap **Bewaking** van de import de schakelaar **Leverancierssjabloon van elke SNMP-host toepassen bij de eerste poll (aanbevolen)** aan, standaard aan: elk geïmporteerd SNMP-apparaat krijgt het [leverancierssjabloon](#gezondheidssjablonen-van-leveranciers) voor wat zijn eerste walk meldt, zijn gezondheids-OID's en SNMP-tabellen, net als apparaten die een auto-importregel binnenbrengt. Een apparaat waarvan de leverancier geen sjabloon heeft, blijft zoals het is. Zet de schakelaar uit voor een batch die zonder moet beginnen.
+
+### Importeren wat een scan heeft gevonden
+
+**Review Results** opent de hosts van de scan, de tot nu toe gevonden als hij nog loopt, in een dialoogvenster dat ze in drie stappen importeert:
+
+1. De stap **Apparaten kiezen** toont elke host onder de naam die zijn apparaat krijgt, met zijn adres en leverancier; alle nog niet toegevoegde hosts zijn eerst geselecteerd. Zoek op naam, DNS-naam, adres of leverancier, of typ een subnet (`10.48.11.0/24`) of een octetbereik (`10.48.11-12.0-255`) om de hosts daarin te tonen. **Antwoord** (**SNMP** of **Geen SNMP**) en **Naam** (**Met naam** of **Alleen adres**) beperken de lijst verder. Het selectievakje boven de lijst selecteert of wist alle getoonde hosts, op alle pagina's, en alleen de geselecteerde hosts die de lijst toont worden geïmporteerd.
+2. De stap **Bewaking** vraagt met **Controleer elke** hoe vaak de sonde van de scan de apparaten controleert, wat het **Polling Interval (Minutes)** van elk apparaat wordt, en wie het hoort als er een uitvalt. **Alleen status** importeert ze met een status en zonder monitor. **Een monitor per apparaat** geeft elk een netwerkapparaatmonitor uit het sjabloon dat je kiest bij **Monitorsjabloon**, en toont vóór de import wat elke controle van het sjabloon oplevert: een incident, een waarschuwing of alleen de status van de monitor. Als sommige hosts alleen op ping antwoordden, is een controle die een SNMP-walk leest gemarkeerd als **Alleen SNMP-apparaten**: die hosts worden gepingd, maar niet gewalkt, tot ze SNMP-inloggegevens hebben. Het sjabloon **Network device alert pack (recommended)** wordt als eerste aangeboden, en een project dat het nog niet heeft, krijgt het bij de import. De samenvatting naast de keuzes zegt wat de import zal maken, ook hoeveel apparaten je abonnement niet meer kan bewaken.
+3. De stap **Importeren** telt apparaten en monitors apart, naarmate elk wordt gemaakt, al aanwezig blijkt of mislukt. Aan het eind linkt hij naar wat hij maakte en toont hij, onder de reden, elke host die hij niet importeerde en elk apparaat dat hij zonder zijn monitor importeerde. Een nieuwe poging probeert alleen de mislukte hosts opnieuw en maakt nooit iets dubbel. **Import stoppen** stopt na de host die nu wordt geïmporteerd en behoudt wat al gemaakt is.
+
+De import draait op de server en handelt namens jou: elk apparaat en elke monitor wordt gemaakt met jouw rechten, en wat je niet mag maken, staat in de lijst met de reden. Je kunt het dialoogvenster op elk moment sluiten: de rij van de scan toont hoe ver de import is, en **Voortgang bekijken** opent hem weer. **Meer apparaten importeren** begint opnieuw met de hosts die over zijn. Eén import neemt tot 5.000 hosts; importeer een grotere scan in delen, per subnet of naar wat de hosts beantwoordden. De imports van een project draaien één voor één: een import die wordt gevraagd terwijl een andere draait, wacht daarop.
 
 ### Hoe ontdekte apparaten hun naam krijgen
 
@@ -646,6 +656,8 @@ Een naam wordt alleen verbeterd: een apparaat houdt zijn naam als zijn DNS-recor
 ### Automatisch importeren met auto-importregels
 
 Elke scan met de hand beoordelen schaalt niet voorbij de eerste paar subnetten. **Netwerk → Regels → Auto Import Rules** is waar je de import één keer vastlegt: een regel zegt welke ontdekte hosts hij claimt (een IP-bereik, en optionele patronen voor systeemnaam, beschrijving en `sysObjectID`) en, optioneel, welk monitorsjabloon en welke [OID Collection Template](#oid-collection-templates) de apparaten krijgen die hij importeert. Een regel die als uitsluiting is gemarkeerd, claimt niets en spreekt een veto uit over de andere: zo worden printers en telefoons uit een brede subnetregel gehaald.
+
+In een regel bepaalt **Controleer elke** hoe vaak de sonde van de scan elk apparaat pollt dat de regel importeert, net als **Controleer elke** bij het importeren vanuit **Review Results**; leeg is het elke 5 minuten. Een regel die ook hosts importeert die alleen op ping antwoordden, geeft ook hun zijn monitorsjabloon: de sonde pingt ze, dus de controles van het sjabloon op of een apparaat bereikbaar is en op de traps die het stuurt, werken meteen voor ze, en zijn controles die een SNMP-walk lezen zodra het apparaat inloggegevens heeft.
 
 Regels hebben geen eigen schema en hebben er ook geen nodig. Ingeschakelde regels draaien vanzelf tegen de resultaten van elke scan zodra die binnenkomen, inclusief de deelresultaten die een lange scan uploadt terwijl hij nog loopt, dus hosts worden binnen een minuut na het vinden geïmporteerd in plaats van aan het einde van het bereik. Zet **Repeat this scan** aan op een discovery-scan en het paar wordt een vaste afspraak: de scan scant zijn bereik opnieuw met jouw interval, en elke nieuwe host die hij vindt, wordt geïmporteerd zonder dat iemand ergens op drukt.
 
@@ -972,7 +984,7 @@ Het overzicht van het apparaat heeft een kaart **Connected to** die de switch, d
 Een apparaat toont **In behandeling** zolang er nog niets over is gerapporteerd. Lees de toevoeging naast de status:
 
 - **No probe**: wijs een sonde toe, of zet **Polling Enabled** weer aan. Tot je dat doet, pollt niets het apparaat.
-- **No monitor**: het apparaat staat op de [override met gekoppelde monitor](#de-override-met-gekoppelde-monitor) zonder dat er iets is gekoppeld. Koppel een monitor, of gebruik **Switch to Probe Polling** om zijn sonde het te laten pingen.
+- **Geen monitor**: het apparaat staat op de [override met gekoppelde monitor](#de-override-met-gekoppelde-monitor) zonder dat er iets is gekoppeld. Koppel een monitor, of gebruik **Switch to Probe Polling** om zijn sonde het te laten pingen.
 - Helemaal geen toevoeging: het apparaat heeft een sonde en wacht op zijn eerste poll. Bij een grote vloot deelt een sonde per cyclus een beperkt aantal apparaten uit, dus de eerste poll kan langer duren dan het interval van het apparaat.
 
 Als een apparaat met alleen ping urenlang In behandeling blijft terwijl apparaten met inloggegevens op dezelfde sonde in orde zijn, controleer dan de versie van die sonde. Een sonde van vóór het pollen met ping eerst kan een apparaat niet pingen, en haar een apparaat zonder inloggegevens geven, zou haar laten walken met een standaardcommunity en een gezond apparaat als Down laten melden. Daarom houdt de server apparaten met alleen ping achter voor een oude sonde en logt hij één waarschuwing per batch met de naam van de sonde en hoeveel apparaten hij achterhield. Die apparaten blijven In behandeling, zichtbaar wachtend en nooit ten onrechte Down, tot de sonde is bijgewerkt; dan rapporteren ze bij de volgende cyclus zonder dat er verder iets hoeft te gebeuren.
@@ -1009,7 +1021,9 @@ Als het apparaat achter een onbeheerde switch of een hub zit, leert de beheerde 
 :::
 
 :::details Maar een deel van de ontdekte apparaten is geïmporteerd
-Het rapport van de run beantwoordt dit, in het dialoogvenster dat opent als een run klaar is, niet in een log. Een run die stopte bij zijn batchlimiet, zegt dat en noemt wat er nog over is: druk opnieuw op **Run Rule** en hij gaat verder waar hij stopte. Een run die klaar is maar minder hosts claimde dan je verwachtte, zegt waar de rest bleef: tegengehouden door een uitsluitingsregel, al geregistreerd op dat adres, of niet passend op de criteria van de regel.
+Een import vanuit **Review Results** beantwoordt dit in zijn laatste stap: elke host die hij niet importeerde en elk apparaat dat hij zonder zijn monitor importeerde, staat onder de reden, en een nieuwe poging probeert alleen de mislukte hosts opnieuw. Om hem later te zien, klik je bij de scan op **Review Results** en daarna op **Resultaten bekijken**.
+
+Voor een auto-importregel beantwoordt het rapport van de run dit, in het dialoogvenster dat opent als een run klaar is, niet in een log. Een run die stopte bij zijn batchlimiet, zegt dat en noemt wat er nog over is: druk opnieuw op **Run Rule** en hij gaat verder waar hij stopte. Een run die klaar is maar minder hosts claimde dan je verwachtte, zegt waar de rest bleef: tegengehouden door een uitsluitingsregel, al geregistreerd op dat adres, of niet passend op de criteria van de regel.
 
 Als de apparaten er allemaal zijn maar de monitors niet: apparaten en monitors zijn apart werk, dus een regel die zijn monitorsjabloon kreeg nadat zijn apparaten waren geïmporteerd, meldt geen geïmporteerde apparaten en alleen gemaakte monitors. Dat is de regel die precies het werk doet dat er nog lag, geen mislukte import; zie [Automatisch importeren met auto-importregels](#automatisch-importeren-met-auto-importregels).
 :::

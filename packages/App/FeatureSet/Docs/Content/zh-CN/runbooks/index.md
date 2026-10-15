@@ -6,6 +6,7 @@ Runbook 是可重复使用的响应流程：一份由手动步骤和自动步骤
 - [编写 Runbook](/docs/runbooks/authoring): 创建 Runbook 并编写其步骤。
 - [Runbook 规则](/docs/runbooks/rules): 在新的事件、警报和维护事件上启动 Runbook。
 - [运行 Runbook](/docs/runbooks/running): 启动一次执行，完成并批准其步骤，或取消它。
+- [Runbook 触发器](/docs/runbooks/triggers): 按计划运行 Runbook，或从其他工具通过其 Webhook URL 运行。
 - [Runbook 代理](/docs/runbooks/agents): 安装在你自己的基础设施中运行脚本的 Runner。
 :::
 
@@ -73,6 +74,8 @@ HTTP 和 AI 步骤在 OneUptime Worker 上运行。JavaScript、Bash、SSH 和 K
 | **运行 Runbook** | 事件、警报或计划维护事件的 **运行手册** 页面 | 该事件、警报或计划维护事件 |
 | **Run Now** | Runbook 的 **概览** 页面 | 无：一次临时运行 |
 | 自动修复规则 | 参见 [AI SRE](/docs/ai/ai-sre) | 事件或警报 |
+| Runbook 的计划 | Runbook 的 **触发器** 页面，参见 [Runbook 触发器](/docs/runbooks/triggers#按计划运行) | 无：一次无人值守的运行 |
+| 对 Runbook Webhook URL 的调用 | Runbook 的 **触发器** 页面，参见 [Runbook 触发器](/docs/runbooks/triggers#调用-webhook) | 无：运行会保留调用发送的值 |
 
 如果 Runbook 在 **设置** 页面上关闭了 **运行此 Runbook** 开关，以上任何方式都不会启动它。已经开始的执行会继续进行。
 
@@ -86,6 +89,7 @@ Runbook 位于 **产品** 下的 **仪表板与自动化** 分组中。
 | Runbook 的 **步骤** | 编写步骤并调整顺序，然后选择 **Save Steps** 。 |
 | Runbook 的 **概览** | 查看最近的执行和结果，并点击 **Run Now** 。 |
 | Runbook 的 **执行** | 该 Runbook 的所有运行，可按状态或开始日期筛选。 |
+| Runbook 的 **触发器** | 按[计划](/docs/runbooks/triggers#按计划运行)运行，或从其他工具通过其 [Webhook URL](/docs/runbooks/triggers#调用-webhook) 运行。 |
 | Runbook 的 **所有者** | 添加对它负责的人员和团队。 |
 | Runbook 的 **设置** | 在不删除 Runbook 的情况下关闭 **运行此 Runbook** 。 |
 | **运行手册 → 执行** | 项目中所有 Runbook 的所有运行。 |

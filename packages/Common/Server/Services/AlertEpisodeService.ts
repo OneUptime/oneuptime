@@ -37,7 +37,10 @@ import ProjectScopedReferenceValidator, {
   getWrittenRelationReferences,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
-import AlertEpisodeMemberService from "./AlertEpisodeMemberService";
+import AlertEpisodeMemberService, {
+  AlertsForNewEpisode,
+} from "./AlertEpisodeMemberService";
+import { ALERT_IDS_TO_ADD_KEY } from "../../Types/Episode/EpisodeMembersAdd";
 import AlertEpisodeOwnerUserService from "./AlertEpisodeOwnerUserService";
 import AlertEpisodeOwnerTeamService from "./AlertEpisodeOwnerTeamService";
 import TeamMemberService from "./TeamMemberService";
@@ -90,6 +93,15 @@ const ALERT_STATE_KEYS: Array<string> = [
   "currentAlertStateId",
   "currentAlertState",
 ];
+
+/*
+ * What onBeforeCreate hands to onCreateSuccess: how far along the episode
+ * starts (StartingStage), and the alerts it is being created with, checked
+ * and each once - empty unless it is created with alerts.
+ */
+type AlertEpisodeCreateCarryForward = StartingStageCarryForward & {
+  alertIdsToAdd: Array<ObjectID>;
+};
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -231,6 +243,43 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.data as unknown as Record<string, unknown>;
 
     /*
+     * Created with the alerts it is for (EpisodeMembersAdd): the alerts
+     * lists' Add to New Episode, or the API. The ids are checked here,
+     * before the episode number is taken and before anything is written, so
+     * an alert the caller cannot see - or a caller who may not add alerts to
+     * episodes - refuses the whole create instead of leaving an episode
+     * without some of the alerts it was created for. They are added in
+     * onCreateSuccess, once the episode exists. An episode created with
+     * alerts and no severity takes the most severe of theirs.
+     */
+    const alertIdsToAdd: unknown =
+      createBy.miscDataProps?.[ALERT_IDS_TO_ADD_KEY];
+
+    const alertsToAdd: AlertsForNewEpisode | null =
+      alertIdsToAdd !== undefined && alertIdsToAdd !== null
+        ? await AlertEpisodeMemberService.validateAlertsForNewEpisode({
+            projectId: projectId,
+            alertIds: alertIdsToAdd,
+            props: createBy.props,
+          })
+        : null;
+
+    if (
+      alertsToAdd?.mostSevereAlertSeverityId &&
+      !RelationIdUtil.readConsistent(
+        createData,
+        ["alertSeverityId", "alertSeverity"],
+        "Alert Severity",
+      )
+    ) {
+      RelationIdUtil.stamp(
+        createData,
+        ["alertSeverityId", "alertSeverity"],
+        alertsToAdd.mostSevereAlertSeverityId,
+      );
+    }
+
+    /*
      * The state the episode starts in, when the write picks one: the Create
      * Alert Episode form's Initial State sends the relation, the API,
      * Terraform and workflows the ID column. Either name, and the two must
@@ -339,11 +388,81 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.data.lastAlertAddedAt = OneUptimeDate.getCurrentDate();
     }
 
-    const carryForward: StartingStageCarryForward = {
+    const carryForward: AlertEpisodeCreateCarryForward = {
       startingStage: startingStage,
+      alertIdsToAdd: alertsToAdd?.alertIds || [],
     };
 
     return { createBy, carryForward: carryForward };
+  }
+
+  // The validated alert ids an episode is being created with, if any.
+  private getAlertIdsCreatedWith(onCreate: OnCreate<Model>): Array<ObjectID> {
+    const carryForward: AlertEpisodeCreateCarryForward | null =
+      (onCreate.carryForward as AlertEpisodeCreateCarryForward | null) || null;
+
+    return carryForward?.alertIdsToAdd || [];
+  }
+
+  /*
+   * Who created the episode, as the one who added the alerts it was created
+   * with: the person making the request, as DatabaseService stamped them -
+   * nobody for an API key or a workflow. OneUptime's own writes name the
+   * creator themselves.
+   */
+  private getCreatingUserId(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): ObjectID | undefined {
+    if (onCreate.createBy.props.isRoot) {
+      return createdItem.createdByUserId || undefined;
+    }
+
+    return onCreate.createBy.props.userId || undefined;
+  }
+
+  /*
+   * The episode was created with alerts (see onBeforeCreate): add them now
+   * that it exists - after its privacy rules have run, since each alert's
+   * own feed entry leaves out a private episode's title. Awaited, unlike the
+   * chain in onCreateSuccess, so the episode the person lands on already
+   * lists its alerts. Written as OneUptime's writes, because the caller's
+   * right to add them was checked before the episode was created. Never
+   * rejects: an alert that cannot be added is logged. Hands back the ids
+   * added.
+   */
+  @CaptureSpan()
+  private async addAlertsCreatedWith(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+    privacyRulesApplied: Promise<void>,
+  ): Promise<Array<ObjectID>> {
+    const alertIds: Array<ObjectID> = this.getAlertIdsCreatedWith(onCreate);
+
+    if (alertIds.length === 0 || !createdItem.projectId || !createdItem.id) {
+      return [];
+    }
+
+    await privacyRulesApplied;
+
+    try {
+      return await AlertEpisodeMemberService.addAlertsToNewEpisode({
+        projectId: createdItem.projectId,
+        alertEpisodeId: createdItem.id,
+        alertIds: alertIds,
+        addedByUserId: this.getCreatingUserId(onCreate, createdItem),
+      });
+    } catch (error) {
+      logger.error(
+        `Adding the alerts an episode was created with failed in AlertEpisodeService.onCreateSuccess: ${error}`,
+        {
+          projectId: createdItem.projectId.toString(),
+          alertEpisodeId: createdItem.id.toString(),
+        } as LogAttributes,
+      );
+
+      return [];
+    }
   }
 
   @CaptureSpan()
@@ -380,14 +499,16 @@ export class Service extends ProjectReferencesService<Model> {
      */
     let membersNotAddedToNewChannels: Array<ChannelMembersNotAdded> = [];
 
-    // Create initial state timeline entry
-    Promise.resolve()
-      .then(async () => {
-        /*
-         * Apply privacy rules BEFORE workspace operations so the workspace
-         * channel is created with the correct privacy setting. This may set
-         * createdItem.isPrivate=true in memory.
-         */
+    /*
+     * Apply privacy rules BEFORE workspace operations so the workspace
+     * channel is created with the correct privacy setting. This may set
+     * createdItem.isPrivate=true in memory. Kept as its own promise (it never
+     * rejects) so the alerts the episode is created with are added once the
+     * rules have settled its privacy: each alert's own feed entry leaves out
+     * a private episode's title.
+     */
+    const privacyRulesApplied: Promise<void> = Promise.resolve().then(
+      async () => {
         try {
           await AlertEpisodePrivacyRuleEngineService.applyRulesToEpisode(
             createdItem,
@@ -401,7 +522,18 @@ export class Service extends ProjectReferencesService<Model> {
             } as LogAttributes,
           );
         }
-      })
+      },
+    );
+
+    // The alerts it was created with, if any (never rejects).
+    const alertsAdded: Promise<Array<ObjectID>> = this.addAlertsCreatedWith(
+      onCreate,
+      createdItem,
+      privacyRulesApplied,
+    );
+
+    // Create initial state timeline entry
+    privacyRulesApplied
       .then(async () => {
         /*
          * No channel is opened for an episode created resolved. Its created
@@ -467,6 +599,23 @@ export class Service extends ProjectReferencesService<Model> {
           projectId: createdItem.projectId,
           membersNotAdded: membersNotAddedToNewChannels,
         });
+      })
+      .then(async () => {
+        /*
+         * Created with alerts: name them once, here - after "Episode
+         * Created" and after the episode's Slack / Microsoft Teams channels
+         * exist - rather than once per alert as each is added.
+         */
+        const addedAlertIds: Array<ObjectID> = await alertsAdded;
+
+        if (addedAlertIds.length > 0) {
+          await AlertEpisodeMemberService.createAlertsAddedFeedItem({
+            projectId: createdItem.projectId!,
+            alertEpisodeId: createdItem.id!,
+            alertIds: addedAlertIds,
+            addedByUserId: this.getCreatingUserId(onCreate, createdItem),
+          });
+        }
       })
       .then(async () => {
         // Apply owner rules: add matched owner users/teams to the episode.
@@ -545,6 +694,12 @@ export class Service extends ProjectReferencesService<Model> {
           } as LogAttributes,
         );
       });
+
+    /*
+     * The episode's alerts are in it before the create answers, so the
+     * episode the person opens next already lists them.
+     */
+    await alertsAdded;
 
     return createdItem;
   }

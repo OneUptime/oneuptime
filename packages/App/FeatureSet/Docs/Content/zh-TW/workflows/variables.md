@@ -196,7 +196,7 @@ OAuth 2.0 變數頁面上的 **存取權杖** 卡片會顯示以下狀態之一�
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | ID 為 `lookup-user` 的 **API** 區塊                       | 它的狀態碼：`{{local.components.lookup-user.returnValues.response-status}}`。它的內文：`{{local.components.lookup-user.returnValues.response-body}}`。 |
 | ID 為 `transform` 的 **Run Custom JavaScript** 區塊       | 它傳回的內容：`{{local.components.transform.returnValues.returnValue}}`。              |
-| ID 為 `incident-on-create-1` 的 **On Create Incident** 觸發器 | 事件的標題：`{{local.components.incident-on-create-1.returnValues.model.title}}`。記錄觸發器會傳回一個值 `model`，你深入其中讀取。 |
+| ID 為 `incident-on-create-1` 的 **On Create Incident** 觸發器 | 事件的標題：`{{local.components.incident-on-create-1.returnValues.model.title}}`。記錄觸發器會以 `model` 傳回記錄，你深入其中讀取。 |
 
 區塊的值只在目前這次執行期間存在。每次新的執行都從頭開始。
 

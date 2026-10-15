@@ -777,6 +777,8 @@ export default class QuietChannelsWorld {
     policy.id = POLICY_ID;
     policy.projectId = PROJECT_ID;
     policy.name = "PolicyX";
+    // Repeats only count while "Repeat if no one acknowledges" is on.
+    policy.repeatPolicyIfNoOneAcknowledges = this.repeatsAllowed > 0;
     policy.repeatPolicyIfNoOneAcknowledgesNoOfTimes = this.repeatsAllowed;
     return policy;
   }

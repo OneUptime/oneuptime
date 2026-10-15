@@ -23,6 +23,7 @@ import IncidentPublicNoteService from "../../../Services/IncidentPublicNoteServi
 import OnCallDutyPolicyService from "../../../Services/OnCallDutyPolicyService";
 import RunbookService from "../../../Services/RunbookService";
 import RunbookRuleEngineService from "../../../Services/RunbookRuleEngineService";
+import RunbookTriggerType from "../../../../Types/Runbook/RunbookTriggerType";
 import { assertCanExecuteRunbooks } from "../../Runbook/RunbookExecutePermission";
 import RunbookRunAccess from "../../Runbook/RunbookRunAccess";
 import logger from "../../Logger";
@@ -378,6 +379,7 @@ export const RunRunbookTool: ObservabilityTool = {
         projectId: ctx.projectId,
         runbookId: runbookId,
         linkage: incidentId ? { incidentId: incidentId } : {},
+        trigger: RunbookTriggerType.AI,
         triggeredByUserId: userId,
       });
 

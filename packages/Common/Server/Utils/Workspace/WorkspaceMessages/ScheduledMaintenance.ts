@@ -9,6 +9,7 @@ import WorkspaceNotificationRuleService, {
 import logger from "../../Logger";
 import SlackScheduledMaintenanceMessages from "../Slack/Messages/ScheduledMaintenance";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import WorkspaceChannelName from "../../../../Utils/Workspace/WorkspaceChannelName";
 
 export default class ScheduledMaintenanceWorkspaceMessages {
   @CaptureSpan()
@@ -28,7 +29,11 @@ export default class ScheduledMaintenanceWorkspaceMessages {
           },
           notificationRuleEventType:
             NotificationRuleEventType.ScheduledMaintenance,
-          channelNameSiffix: data.scheduledMaintenanceNumber.toString(),
+          channelNameParts: WorkspaceChannelName.forNumberedRecord({
+            eventType: NotificationRuleEventType.ScheduledMaintenance,
+            number: data.scheduledMaintenanceNumber,
+            numberWithPrefix: data.scheduledMaintenanceNumberWithPrefix,
+          }),
         },
       );
     } catch (err) {

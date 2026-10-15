@@ -425,8 +425,34 @@ const DocsNav: NavGroup[] = [
         url: "/docs/incidents/linked-alerts",
       },
       {
+        title: "Episodes",
+        url: "/docs/incidents/episodes",
+      },
+      {
         title: "Incident Settings & Automation",
         url: "/docs/incidents/settings",
+      },
+    ],
+  },
+  {
+    title: "Alerts",
+    section: "Incident Response",
+    links: [
+      {
+        title: "Alerts Overview",
+        url: "/docs/alerts/index",
+      },
+      {
+        title: "Alert States & Severities",
+        url: "/docs/alerts/states-and-severities",
+      },
+      {
+        title: "Alert Episodes & Grouping Rules",
+        url: "/docs/alerts/episodes",
+      },
+      {
+        title: "Alert Rules & Settings",
+        url: "/docs/alerts/settings",
       },
     ],
   },
@@ -435,8 +461,12 @@ const DocsNav: NavGroup[] = [
     section: "Incident Response",
     links: [
       {
-        title: "Schedule Timeline",
-        url: "/docs/on-call/schedule-timeline",
+        title: "On-Call Overview",
+        url: "/docs/on-call/index",
+      },
+      {
+        title: "On-Call Policies",
+        url: "/docs/on-call/policies",
       },
       {
         title: "Escalation Rules",
@@ -445,6 +475,14 @@ const DocsNav: NavGroup[] = [
       {
         title: "On-Call Schedules",
         url: "/docs/on-call/schedules",
+      },
+      {
+        title: "Schedule Timeline",
+        url: "/docs/on-call/schedule-timeline",
+      },
+      {
+        title: "User Overrides",
+        url: "/docs/on-call/user-overrides",
       },
       {
         title: "Calendar Feeds",
@@ -457,6 +495,32 @@ const DocsNav: NavGroup[] = [
       {
         title: "Phone Number Whitelist",
         url: "/docs/on-call/phone-number-whitelist",
+      },
+      {
+        title: "Readiness & Reports",
+        url: "/docs/on-call/readiness",
+      },
+    ],
+  },
+  {
+    title: "Notifications",
+    section: "Incident Response",
+    links: [
+      {
+        title: "How OneUptime Reaches You",
+        url: "/docs/notifications/index",
+      },
+      {
+        title: "Notification Methods",
+        url: "/docs/notifications/notification-methods",
+      },
+      {
+        title: "Personal On-Call Rules",
+        url: "/docs/notifications/on-call-rules",
+      },
+      {
+        title: "Notification Settings",
+        url: "/docs/notifications/notification-settings",
       },
     ],
   },
@@ -843,6 +907,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Running a Runbook",
         url: "/docs/runbooks/running",
+      },
+      {
+        title: "Runbook Triggers",
+        url: "/docs/runbooks/triggers",
       },
       {
         title: "Runbook Agents",

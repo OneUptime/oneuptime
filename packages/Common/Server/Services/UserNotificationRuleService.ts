@@ -5337,9 +5337,15 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("Either incidentId or alertId is required.");
     }
 
-    // get notification rule where inviteOwners is true.
+    /*
+     * The rules that invite on-call users to the channel they created
+     * ("Automatically Invite On Call Users to New Channel"). This used to
+     * read the rules that invite owners: a rule that invited on-call users
+     * but not owners never added the person it paged, and a rule that
+     * invited owners but not on-call users added everybody paged.
+     */
     const notificationRules: Array<WorkspaceNotificationRule> =
-      await WorkspaceNotificationRuleService.getNotificationRulesWhereInviteOwnersIsTrue(
+      await WorkspaceNotificationRuleService.getNotificationRulesWhereOnCallIsTrue(
         {
           projectId: data.projectId!,
           notificationFor: {
@@ -5372,6 +5378,10 @@ export class Service extends ProjectReferencesService<Model> {
         projectId: data.projectId!,
         workspaceChannels: workspaceChannels,
         userIds: [data.userId],
+        notificationFor: {
+          incidentId: data.incidentId,
+          alertId: data.alertId,
+        },
       },
     ).catch((error: Error) => {
       logger.error(error, {
@@ -7457,7 +7467,7 @@ export class Service extends ProjectReferencesService<Model> {
       }
 
       warnings.push(
-        `Every verified method left on this account is on a channel the project can switch off (${channels.join(", ")}) - check On-Call > Readiness to confirm this user can still be paged.`,
+        `Every verified method left on this account is on a channel the project can switch off (${channels.join(", ")}) - check On-Call Duty > Readiness to confirm this user can still be paged.`,
       );
     }
 

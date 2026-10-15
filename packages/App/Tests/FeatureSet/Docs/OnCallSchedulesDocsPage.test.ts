@@ -19,6 +19,11 @@ import {
   getLayerName,
 } from "Common/Types/OnCallDutyPolicy/ScheduleLayerDefaults";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import {
+  menuSections,
+  sectionByTitle,
+  startsCollapsed,
+} from "./DocsDashboardMenus";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -105,6 +110,7 @@ const AWAY_LABELS: Array<string> = [
   EVERYONE_AWAY,
   "Schedule Timeline",
   "On-Call Duty",
+  "Advanced",
   "User Overrides",
 ];
 
@@ -218,13 +224,14 @@ function onCallGroup(): NavGroup {
 
 describe("the On-Call Schedules docs page", () => {
   describe("in the nav", () => {
-    it("is linked from the On Call group, after the timeline and the escalation rules", () => {
+    it("is linked from the On Call group, right after the escalation rules", () => {
       const links: Array<NavLink> = onCallGroup().links;
 
-      // Both keep their places (their own pages pin them).
-      expect(links[0]?.title).toBe("Schedule Timeline");
-      expect(links[1]?.title).toBe("Escalation Rules");
-      expect(links[2]).toEqual({ title: PAGE_TITLE, url: PAGE_URL });
+      // The overview, the policies and their escalation rules come first.
+      expect(links[0]?.title).toBe("On-Call Overview");
+      expect(links[1]?.title).toBe("On-Call Policies");
+      expect(links[2]?.title).toBe("Escalation Rules");
+      expect(links[3]).toEqual({ title: PAGE_TITLE, url: PAGE_URL });
       expect(
         links.filter((link: NavLink): boolean => {
           return link.url === PAGE_URL;
@@ -408,11 +415,18 @@ describe("the On-Call Schedules docs page", () => {
       expect(away).toContain("Nobody else's turns move");
       expect(away).toContain("the layers below it take over");
 
-      // Where it is listed, and that it reaches every policy.
-      expect(readRepoFile(ON_CALL_SIDE_MENU_FILE)).toContain(
-        'title: "User Overrides"',
+      /*
+       * Where it is listed - in On-Call Duty's Advanced section, which starts
+       * folded, so the path names it - and that it reaches every policy.
+       */
+      const sideMenu: string = readRepoFile(ON_CALL_SIDE_MENU_FILE);
+      expect(
+        sectionByTitle(menuSections(sideMenu), "Advanced").items,
+      ).toContain("User Overrides");
+      expect(startsCollapsed(sideMenu, "Advanced")).toBe(true);
+      expect(away).toContain(
+        "**On-Call Duty** > **Advanced** > **User Overrides**",
       );
-      expect(away).toContain("**On-Call Duty** > **User Overrides**");
       expect(away).toContain("applies to every on-call policy");
     });
 

@@ -196,7 +196,7 @@ Henvis til en tidligere bloks output sådan her:
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | En **API**-blok med ID'et `lookup-user`                   | Dens statuskode: `{{local.components.lookup-user.returnValues.response-status}}`. Dens body: `{{local.components.lookup-user.returnValues.response-body}}`. |
 | En **Run Custom JavaScript**-blok med ID'et `transform`   | Det, den returnerede: `{{local.components.transform.returnValues.returnValue}}`.      |
-| En **On Create Incident**-trigger med ID'et `incident-on-create-1` | Hændelsens titel: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Posttriggere returnerer én værdi, `model`, som du går ned i. |
+| En **On Create Incident**-trigger med ID'et `incident-on-create-1` | Hændelsens titel: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Posttriggere returnerer posten som `model`, som du går ned i. |
 
 Blokværdier findes kun under den aktuelle kørsel. Hver ny kørsel starter forfra.
 

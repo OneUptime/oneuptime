@@ -153,15 +153,16 @@ Lækker adressen, så klik på **Nulstil adresse** samme sted: workflowet får e
 
 ## OneUptime-begivenhedstriggere
 
-Næsten alt i OneUptime — monitorer, hændelser, advarsler, planlagte vedligeholdelser, statussider, vagtpolitikker, teams — kan starte et workflow. Hver tilbyder op til tre begivenheder:
+Næsten alt i OneUptime — monitorer, hændelser, advarsler, planlagte vedligeholdelser, statussider, vagtpolitikker, teams — kan starte et workflow. Hver tilbyder op til fire triggere:
 
 - **On Create** — udløses, når en ny tilføjes.
 - **On Update** — udløses, når en ændres. At gemme en post med de værdier, den allerede har, som en formular gemt uden ændringer eller en kontakt sendt, som den allerede står, er ikke en ændring og udløser den ikke.
+- **On Create or Update** — udløses i begge tilfælde: én gang, når en ny tilføjes, og én gang, hver gang en ændres. Ét workflow behandler så en ny og en ændret post ens, for eksempel for at holde en kopi i et andet system opdateret.
 - **On Delete** — udløses, når en slettes.
 
 Sådan bygger du «når X sker i OneUptime, så gør Y» uden at skulle tjekke ting i en løkke.
 
-**On Update** kan begrænses til nogle felter med **Fields to watch**: så udløses den kun, når en opdatering ændrer et af dem, til en hvilken som helst værdi — at slå en kontakt fra eller rydde et felt tæller med.
+**On Update** kan begrænses til nogle felter med **Fields to watch**: så udløses den kun, når en opdatering ændrer et af dem, til en hvilken som helst værdi — at slå en kontakt fra eller rydde et felt tæller med. **On Create or Update** har de samme **Fields to watch**, kun for sine opdateringer: hver ny post udløser den stadig.
 
 ```mermaid title="Hvornår en On Update-trigger udløses"
 flowchart TB
@@ -174,11 +175,15 @@ flowchart TB
     field -->|"Nej"| nothing
 ```
 
-**On Create** og **On Update** sender posten videre til den næste blok, med de felter, du vælger i triggerens **Fields to pass on**. For eksempel sender triggeren **Incident → On Create** den nye hændelse videre, så den næste blok kan læse dens titel, beskrivelse, alvorlighed eller ethvert andet felt, du har valgt, som `{{local.components.incident-on-create-1.returnValues.model.title}}`. Et felt, du ikke valgte, kommer tomt frem.
+**On Create**, **On Update** og **On Create or Update** sender posten videre til den næste blok, med de felter, du vælger i triggerens **Fields to pass on**. For eksempel sender triggeren **Incident → On Create** den nye hændelse videre, så den næste blok kan læse dens titel, beskrivelse, alvorlighed eller ethvert andet felt, du har valgt, som `{{local.components.incident-on-create-1.returnValues.model.title}}`. Et felt, du ikke valgte, kommer tomt frem.
+
+**On Create or Update** sender også **What Happened** videre: `created`, når en ny post startede kørslen, og `updated`, når en ændring gjorde, som i `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. For at behandle de to forskelligt sammenligner du det i en **If / Else**-blok eller tager en vej for hver med **Switch / Case**.
+
+Én gemning udløser den én gang. Det, OneUptime udfylder, mens den opretter en post, hører med til oprettelsen, så en ny post udløser den én gang, som `created`. Ændringer, OneUptime laver senere, som at knytte en hændelses Slack-kanal til, er opdateringer som alle andre: for at holde dem ude skal du kun føje de felter, du interesserer dig for, til **Fields to watch**.
 
 **On Delete** sender kun den slettede posts ID videre: posten er væk, når workflowet kører, så dens andre felter kan ikke læses.
 
-For at teste en begivenhedstrigger uden at vente på begivenheden klikker du på **Kør arbejdsgang** i **Bygger** og vælger en eksisterende post: de seneste er vist, og når du skriver en posts nummer eller en del af dens navn, finder du en anden. Kørslen læser den post med de felter, du valgte, som om begivenheden lige var sket for den; selve posten bliver hverken ændret eller slettet.
+For at teste en begivenhedstrigger uden at vente på begivenheden klikker du på **Kør arbejdsgang** i **Bygger** og vælger en eksisterende post: de seneste er vist, og når du skriver en posts nummer eller en del af dens navn, finder du en anden. Kørslen læser den post med de felter, du valgte, som om begivenheden lige var sket for den; selve posten bliver hverken ændret eller slettet. For **On Create or Update** vælger du under **Hvad der skete**, om kørslen gælder oprettelsen eller opdateringen af posten.
 
 ### Begivenheder, som teams bruger mest
 

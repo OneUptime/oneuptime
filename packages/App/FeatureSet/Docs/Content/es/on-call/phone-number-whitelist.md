@@ -18,7 +18,7 @@ En OneUptime Cloud, los SMS y las llamadas de guardia llegan desde los números 
 :::
 
 > [!TIP]
-> Añadir o verificar tu número de teléfono en **Ajustes de usuario** > **Métodos de notificación** te envía un código desde estos números, así que es una forma rápida de comprobar que llegan.
+> Añadir o verificar tu número de teléfono en **Ajustes de usuario** > **Métodos de notificación** te envía un código desde estos números, así que es una forma rápida de comprobar que llegan. Consulta [Métodos de notificación](/docs/notifications/notification-methods).
 
 ## Cuando los avisos llegan desde otros números
 

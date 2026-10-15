@@ -51,6 +51,9 @@ const PROJECT_SCOPED_ROUTES: Array<string> = [
   "/status-page/listing-monitors",
   // How many records hold each value of a custom field (#4564).
   "/option-usage",
+  // Several alerts or incidents added to an episode in one request.
+  "/alert-episode-member/add-alerts",
+  "/incident-episode-member/add-incidents",
 ];
 
 /*
@@ -112,6 +115,14 @@ const GUARDED_PAGES: Array<GuardedPage> = [
   {
     page: ["Components", "CustomFields", "CustomFieldOptionUsage.ts"],
     routePrefix: "/option-usage",
+  },
+  /*
+   * An episode's Add Alerts / Add Incidents and the lists' Add to Existing
+   * Episode all add through this one helper.
+   */
+  {
+    page: ["Components", "EpisodeMembers", "EpisodeMembersApi.ts"],
+    routePrefix: "-episode-member/add-",
   },
 ];
 

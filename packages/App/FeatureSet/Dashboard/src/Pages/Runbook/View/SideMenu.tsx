@@ -51,6 +51,16 @@ const RunbookViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Play}
         />
+        <SideMenuItem
+          link={{
+            title: "Triggers",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.RUNBOOK_VIEW_TRIGGERS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Bolt}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Owners">

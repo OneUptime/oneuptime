@@ -66,6 +66,7 @@ En **episod** samlar relaterade incidenter, eller relaterade varningar, så att 
 
 :::cards
 - [Incidenter – Översikt](/docs/incidents/index): Hur incidenter deklareras, hanteras och löses.
+- [Larm – Översikt](/docs/alerts/index): Var larm kommer ifrån, och hur episoder grupperar dem.
 - [Länkade larm](/docs/incidents/linked-alerts): Koppla varningarna som ett avbrott utlöste till dess incident.
 :::
 
@@ -76,8 +77,10 @@ En **jourpolicy** avgör vem som larmas om en incident eller en varning, och vem
 Hur varje person nås bestämmer de själva. I **Användarinställningar** sparar var och en sätten som OneUptime kan nå dem på, till exempel e-post, SMS, samtal, pushaviseringar, Slack eller Microsoft Teams, och vilka som används när de larmas.
 
 :::cards
+- [Jour – Översikt](/docs/on-call/index): Hur ett larm når fram och var varje del finns.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Larma personer nivå för nivå tills någon svarar.
 - [Jourscheman](/docs/on-call/schedules): Rotationer, lager och överlämningar.
+- [Så når OneUptime dig](/docs/notifications/index): Metoderna, reglerna och inställningarna som avgör hur varje person nås.
 :::
 
 ## Statussidor och underhåll

@@ -188,7 +188,7 @@ describe("UserSlackService", () => {
       getProjectAuth.mockResolvedValue(null as never);
 
       await expect(callOnBeforeCreate(createBy())).rejects.toThrow(
-        "This project is not connected to Slack. Please ask a project admin to connect Slack in Project Settings > Slack Integration.",
+        "This project is not connected to Slack. Please ask a project admin to connect Slack in Project Settings > Workspace > Slack.",
       );
     });
 

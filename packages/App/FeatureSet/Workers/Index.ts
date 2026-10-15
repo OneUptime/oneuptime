@@ -82,6 +82,8 @@ import "./Jobs/NetworkDeviceOwners/SendOwnerAddedNotification";
 // Network Device Discovery
 import "./Jobs/NetworkDeviceDiscovery/RequeueRecurringScans";
 import "./Jobs/NetworkDeviceDiscovery/ProcessAutoImportRules";
+import "./Jobs/NetworkDeviceDiscovery/RunDiscoveryImports";
+import "./Jobs/NetworkDeviceDiscovery/SweepDiscoveryImports";
 
 // Network Sites
 import "./Jobs/NetworkSite/RecomputeStaleRollups";
@@ -199,6 +201,13 @@ import "./Jobs/Workflow/TimeoutJobs";
  * were never redelivered, so an execution can never hang in Running.
  */
 import "./Jobs/Runbook/TimeoutStuckExecutions";
+
+/*
+ * Starts the runs runbooks' schedules are due for, once a minute. Each due
+ * time is claimed before its run starts, so no time starts two runs however
+ * many Workers run it.
+ */
+import "./Jobs/Runbook/StartScheduledRuns";
 
 /*
  * Status page subscriber notifications are sent inside a single queue job

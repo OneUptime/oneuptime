@@ -374,7 +374,7 @@ For hver slags post i OneUptime (monitorer, hændelser, advarsler, statussider, 
 | **Delete One Monitor**   | Sletter én matchende post.                                                     |
 | **Delete Many Monitors** | Sletter matchende poster, op til **Limit**.                                    |
 
-Det samme sæt giver dig tre triggere — **On Create Monitor**, **On Update Monitor** og **On Delete Monitor**. Se [Triggere](/docs/workflows/triggers#oneuptime-begivenhedstriggere).
+Det samme sæt giver dig fire triggere — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** og **On Delete Monitor**. Se [Triggere](/docs/workflows/triggers#oneuptime-begivenhedstriggere).
 
 En type tilbyder kun de komponenter, dens model tillader. En skrivebeskyttet type har de to Find-komponenter og intet andet, så finder du ikke **Delete One Monitor** i panelet, tillader den type det ikke.
 

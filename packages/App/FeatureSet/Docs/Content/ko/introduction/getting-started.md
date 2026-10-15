@@ -48,7 +48,9 @@ flowchart TB
 
 :::cards
 - [인시던트](/docs/incidents/index): 인시던트를 선언, 조율, 해결하고 전체 타임라인을 남깁니다.
-- [온콜](/docs/on-call/schedules): 로테이션, 에스컬레이션 규칙, 누가 언제 호출되는지.
+- [경고](/docs/alerts/index): 사용자가 알아차리기 전에 문제를 살피고, 잡음을 에피소드로 묶습니다.
+- [온콜](/docs/on-call/index): 정책, 에스컬레이션 규칙, 로테이션, 누가 언제 호출되는지.
+- [알림](/docs/notifications/index): OneUptime이 연락하는 방법. 알림 방법, 온콜 규칙, 알림 설정.
 - [상태 페이지](/docs/status-pages/index): 공개 또는 비공개 상태 페이지로 고객에게 상황을 알립니다.
 - [워크스페이스 연결](/docs/workspace-connections/slack): Slack과 Microsoft Teams에서 인시던트에 대응합니다.
 :::

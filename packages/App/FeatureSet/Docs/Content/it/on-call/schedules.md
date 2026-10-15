@@ -86,7 +86,7 @@ Mentre è assente:
 
 Se invece scegli qualcuno in **Chi sostituisce?**, quella persona riceve tutti i suoi avvisi, da ogni pianificazione e da ogni policy, invece che la rotazione prenda i suoi turni.
 
-Un'assenza aggiunta così vale per tutte le policy di reperibilità. È elencata in **Reperibilità** > **Sostituzioni utente**, dove puoi eliminarla per farla rientrare prima. Per saltare qualcuno in una sola policy, aggiungi la sostituzione nella pagina **Sostituzioni utente** di quella policy e lascia **Chi sostituisce?** com'è.
+Un'assenza aggiunta così vale per tutte le policy di reperibilità. È elencata in **Reperibilità** > **Avanzato** > **Sostituzioni utente**, dove puoi eliminarla per farla rientrare prima. Per saltare qualcuno in una sola policy, aggiungi la sostituzione nella pagina **Sostituzioni utente** di quella policy e lascia **Chi sostituisce?** com'è. Vedi [Sostituzioni utente](/docs/on-call/user-overrides).
 
 Con l'API, una sostituzione utente (`/api/on-call-duty-policy-user-override`) creata senza `routeAlertsToUserId` salta la persona in `overrideUserId` da `startsAt` a `endsAt`.
 
@@ -121,4 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [Regole di escalation](/docs/on-call/escalation-rules): Fai avvisare questa pianificazione da un livello di una policy di reperibilità.
 - [Cronologia delle reperibilità](/docs/on-call/schedule-timeline): Guarda tutte le pianificazioni affiancate, con i buchi di copertura.
 - [Feed calendario](/docs/on-call/calendar-feeds): Porta i turni in Google Calendar, Outlook o Calendario di Apple.
+- [Regole di reperibilità personali](/docs/notifications/on-call-rules): Decidete come vi raggiunge un avviso mentre siete reperibili.
 :::

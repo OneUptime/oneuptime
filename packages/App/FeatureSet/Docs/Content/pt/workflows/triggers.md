@@ -153,15 +153,16 @@ Se o endereço vazar, clique em **Redefinir endereço** no mesmo lugar: o workfl
 
 ## Gatilhos de eventos do OneUptime
 
-Quase tudo no OneUptime — monitores, incidentes, alertas, eventos de manutenção agendada, páginas de status, políticas de plantão, equipes — pode disparar um workflow. Cada um oferece até três eventos:
+Quase tudo no OneUptime — monitores, incidentes, alertas, eventos de manutenção agendada, páginas de status, políticas de plantão, equipes — pode disparar um workflow. Cada um oferece até quatro gatilhos:
 
 - **On Create** — dispara quando um novo é adicionado.
 - **On Update** — dispara quando um é alterado. Salvar um registro com os valores que ele já tem, como um formulário salvo sem alterações ou uma chave enviada na posição em que já estava, não é uma alteração e não o dispara.
+- **On Create or Update** — dispara nos dois casos: uma vez quando um novo é adicionado, e uma vez cada vez que um é alterado. Um só workflow trata então do mesmo jeito um registro novo e um alterado, por exemplo para manter atualizada uma cópia em outro sistema.
 - **On Delete** — dispara quando um é excluído.
 
 É assim que você monta «quando X acontecer no OneUptime, faça Y» sem precisar ficar verificando em um loop.
 
-**On Update** pode ser restrito a alguns campos com **Fields to watch**: aí ele só dispara quando uma atualização muda um deles, para qualquer valor — desligar uma chave ou limpar um campo conta.
+**On Update** pode ser restrito a alguns campos com **Fields to watch**: aí ele só dispara quando uma atualização muda um deles, para qualquer valor — desligar uma chave ou limpar um campo conta. **On Create or Update** tem o mesmo **Fields to watch**, só para as atualizações dele: todo registro novo ainda o dispara.
 
 ```mermaid title="Quando um gatilho On Update dispara"
 flowchart TB
@@ -174,11 +175,15 @@ flowchart TB
     field -->|"Não"| nothing
 ```
 
-**On Create** e **On Update** repassam o registro ao próximo bloco, com os campos que você escolhe no **Fields to pass on** do gatilho. Por exemplo, o gatilho **Incident → On Create** repassa o novo incidente, então o próximo bloco pode ler o título, a descrição, a gravidade ou qualquer outro campo que você selecionou, como `{{local.components.incident-on-create-1.returnValues.model.title}}`. Um campo que você não selecionou chega vazio.
+**On Create**, **On Update** e **On Create or Update** repassam o registro ao próximo bloco, com os campos que você escolhe no **Fields to pass on** do gatilho. Por exemplo, o gatilho **Incident → On Create** repassa o novo incidente, então o próximo bloco pode ler o título, a descrição, a gravidade ou qualquer outro campo que você selecionou, como `{{local.components.incident-on-create-1.returnValues.model.title}}`. Um campo que você não selecionou chega vazio.
+
+**On Create or Update** também repassa **What Happened**: `created` quando um registro novo iniciou a execução, e `updated` quando foi uma alteração, como em `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Para tratar os dois casos de forma diferente, compare-o em um bloco **If / Else**, ou siga um caminho para cada um com **Switch / Case**.
+
+Um salvamento o dispara uma vez. O que o OneUptime preenche enquanto cria um registro faz parte da criação, então um registro novo o dispara uma vez, como `created`. As alterações que o OneUptime faz depois, como vincular o canal do Slack de um incidente, são atualizações como qualquer outra: para deixá-las de fora, adicione a **Fields to watch** só os campos que importam para você.
 
 **On Delete** repassa só o ID do registro excluído: o registro já não existe quando o workflow roda, então os outros campos dele não podem ser lidos.
 
-Para testar um gatilho de evento sem esperar o evento, clique em **Executar fluxo de trabalho** no **Construtor** e escolha um registro existente: os mais recentes são listados, e digitar o número de um registro ou parte do nome dele encontra outro. A execução lê esse registro com os campos que você selecionou, como se o evento tivesse acabado de acontecer com ele; o registro em si não é alterado nem excluído.
+Para testar um gatilho de evento sem esperar o evento, clique em **Executar fluxo de trabalho** no **Construtor** e escolha um registro existente: os mais recentes são listados, e digitar o número de um registro ou parte do nome dele encontra outro. A execução lê esse registro com os campos que você selecionou, como se o evento tivesse acabado de acontecer com ele; o registro em si não é alterado nem excluído. Para **On Create or Update**, escolha em **O que aconteceu** se a execução é pela criação ou pela alteração do registro.
 
 ### Os eventos mais usados
 

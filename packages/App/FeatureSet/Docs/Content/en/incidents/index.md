@@ -181,7 +181,7 @@ Open an incident and its own side menu groups its pages like this:
 What each one holds:
 
 - **Overview** — the response at a glance. Under the header, stat tiles show time to acknowledge, time to resolve and total **Duration**. The **AI Investigation** card leads the page — what OneUptime AI found, or why it did not start — with the **Incident Feed** below it. Beside them sit the **Video Call** card, the **Incident Details** card (title, severity, labels, incident number, declared at, declared by, on-call policies, and the incident's ID on a small **ID** line at its foot, one click from your clipboard), **Incident Roles**, an **Affected Resources** card and the incident's custom fields. When your project has [measurements](/docs/incidents/settings#measurements), a **Measurements** card under **Incident Details** says what each one reads for this incident: **12 minutes**, **Running for 5 minutes**, **Not reached**.
-- **State Timeline** — every state the incident has been in, with **Starts At**, **Ends At**, **Duration** and the subscriber notification status for each transition. **View Cause** and **View Logs** explain why each change happened.
+- **State Timeline** — every state the incident has been in, drawn as a timeline: a band with each state as long as it lasted, and under it each change with when it began and ended, how long it lasted and the subscriber notification status. **View Cause** and **View Logs** explain why each change happened, and **Table** shows the same changes as a table, with **Starts At**, **Ends At** and **Duration**.
 - **SLA** — SLA tracking for this incident.
 - **Description**, **Root Cause**, **Remediation** — three markdown pages. The description is the one that shows on your status page.
 - **Runbooks** — runbook executions attached to this incident.
@@ -199,7 +199,7 @@ What each one holds:
 - **On-call policies do the paging.** Attach policies on the **On-Call & Roles** step of the declare wizard, on a template, or through **Incidents → Rules → On-Call Rules**. Every matching rule fires — the executed set is the union of all matches plus anything attached directly, deduplicated.
 - **Runbooks tell people what to do.** Runbook rules attach a procedure automatically when a matching incident is created, and responders can start one by hand from the incident. See [Runbooks Overview](/docs/runbooks/index).
 - **Status pages tell customers.** An incident shows in a status page's active list when the page lists one of its monitors, the page has incidents enabled, the incident is marked visible on the status page, and its current state sits above the resolved state. An incident limited to some status pages shows only on those. Private incidents are hidden from every status page, always. See [Status Pages Overview](/docs/status-pages/index) and [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
-- **Workflows automate around it.** The **On Create Incident**, **On Update Incident** and **On Delete Incident** triggers let you build no-code automation on top of the incident lifecycle. See [Workflows Overview](/docs/workflows/index).
+- **Workflows automate around it.** The **On Create Incident**, **On Update Incident**, **On Create or Update Incident** and **On Delete Incident** triggers let you build no-code automation on top of the incident lifecycle. See [Workflows Overview](/docs/workflows/index).
 
 ## Next steps
 

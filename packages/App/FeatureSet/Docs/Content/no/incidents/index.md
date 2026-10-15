@@ -181,7 +181,7 @@ Selve listen over hendelser viser **Hendelsesnummer**, **Tittel**, **Tilstand**,
 Hva hver side inneholder:
 
 - **Oversikt** — responsen med ett blikk. Under overskriften viser statistikkfliser tiden til bekreftelse, tiden til løsning og den samlede **Varighet**. Kortet **AI Investigation** står øverst på siden — hva OneUptime AI fant, eller hvorfor den ikke startet — med **Hendelse Feed** under seg. Ved siden av står kortet **Video Call**, kortet **Hendelsesdetaljer** (tittel, alvorlighetsgrad, etiketter, hendelsesnummer, erklært den, erklært av, vaktpolicyer og hendelsens ID på en liten linje **ID** nederst, ett klikk fra utklippstavlen), **Hendelsesroller**, et kort **Berørte ressurser** og hendelsens egendefinerte felt. Har prosjektet ditt [målinger](/docs/incidents/settings#målinger), sier et kort **Målinger** under **Hendelsesdetaljer** hva hver måling viser for denne hendelsen: **12 minutter**, **Har pågått i 5 minutter**, **Ikke nådd**.
-- **Tilstandstidslinje** — hver tilstand hendelsen har vært i, med **Begynner den**, **Slutter den**, **Varighet** og abonnentenes varselstatus for hver overgang. **Vis årsak** og **Vis logger** forklarer hvorfor hver endring skjedde.
+- **Tilstandstidslinje** — hver tilstand hendelsen har vært i, tegnet som en tidslinje: et bånd med hver tilstand så lang som den varte, og under det hver endring med start og slutt, varighet og abonnentenes varselstatus. **Vis årsak** og **Vis logger** forklarer hvorfor hver endring skjedde, og **Tabell** viser de samme endringene som en tabell, med **Begynner den**, **Slutter den** og **Varighet**.
 - **SLA** — oppfølging av SLA for denne hendelsen.
 - **Beskrivelse**, **Rotårsak**, **Utbedring** — tre Markdown-sider. Beskrivelsen er den som vises på statussiden din.
 - **Runbooks** — runbook-kjøringene som er knyttet til denne hendelsen.
@@ -199,7 +199,7 @@ Hva hver side inneholder:
 - **Vaktpolicyer står for tilkallingen.** Knytt policyer på trinnet **Vakt og roller** i veiviseren for å erklære, på en mal eller via **Hendelser → Regler → Vaktregler**. Hver regel som samsvarer, utløses — det som kjøres, er foreningen av alle treff pluss alt som er knyttet direkte, uten duplikater.
 - **Runbooks forteller folk hva de skal gjøre.** Runbook-regler knytter automatisk til en prosedyre når en samsvarende hendelse opprettes, og de som responderer, kan starte en for hånd fra hendelsen. Se [Runbooks – Oversikt](/docs/runbooks/index).
 - **Statussider informerer kundene.** En hendelse vises i en statussides aktive liste når siden viser en av monitorene, siden har hendelser slått på, hendelsen er merket som synlig på statussiden, og den gjeldende tilstanden står over den løste tilstanden. En hendelse som er begrenset til noen statussider, vises bare på dem. Private hendelser er alltid skjult for alle statussider. Se [Statussider – Oversikt](/docs/status-pages/index) og [Én statusside per målgruppe](/docs/status-pages/one-status-page-per-audience).
-- **Arbeidsflyter automatiserer rundt den.** Med utløserne **On Create Incident**, **On Update Incident** og **On Delete Incident** bygger du automatisering uten kode på toppen av hendelsens livssyklus. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
+- **Arbeidsflyter automatiserer rundt den.** Med utløserne **On Create Incident**, **On Update Incident**, **On Create or Update Incident** og **On Delete Incident** bygger du automatisering uten kode på toppen av hendelsens livssyklus. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
 
 ## Neste steg
 

@@ -374,7 +374,7 @@ Pour chaque type d'enregistrement de OneUptime (moniteurs, incidents, alertes, p
 | **Delete One Monitor**   | Supprime un enregistrement correspondant.                                      |
 | **Delete Many Monitors** | Supprime les enregistrements correspondants, jusqu'à **Limit**.                |
 
-Le même ensemble vous donne trois déclencheurs — **On Create Monitor**, **On Update Monitor** et **On Delete Monitor**. Voir [Déclencheurs](/docs/workflows/triggers#déclencheurs-dévénements-oneuptime).
+Le même ensemble vous donne quatre déclencheurs — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** et **On Delete Monitor**. Voir [Déclencheurs](/docs/workflows/triggers#déclencheurs-dévénements-oneuptime).
 
 Un type ne propose que les composants que son modèle autorise. Un type en lecture seule n'a que les deux composants Find : si vous ne trouvez pas **Delete One Monitor** dans le panneau, c'est que ce type ne le permet pas.
 

@@ -162,11 +162,11 @@ export class NotificationRuleConditionUtil {
         }
       }
 
-      if (notificationRule.shouldCreateNewChannel) {
-        if (!notificationRule.newChannelTemplateName?.trim()) {
-          return "New " + workspaceDisplayName + " channel name is required";
-        }
-      }
+      /*
+       * A channel the rule creates needs no name: it is named after its
+       * record (inc-42), and the rule's prefix, when it has one, goes in
+       * front (WorkspaceChannelName).
+       */
     }
 
     if (notificationRule.shouldPostToExistingChat) {

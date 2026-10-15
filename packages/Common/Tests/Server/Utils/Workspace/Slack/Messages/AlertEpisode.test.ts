@@ -77,7 +77,7 @@ describe("SlackAlertEpisodeMessages.getAlertEpisodeCreateMessageBlocks", () => {
       }),
     ).toEqual([
       "🔗 View Episode",
-      "📞 Execute On Call",
+      "📞 Execute On-Call Policy",
       "👀 Acknowledge Episode",
       "✅ Resolve Episode",
       "➡️ Change Episode State",

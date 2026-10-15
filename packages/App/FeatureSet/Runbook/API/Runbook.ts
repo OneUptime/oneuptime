@@ -27,6 +27,7 @@ import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMainten
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RunbookExecutionStatus from "Common/Types/Runbook/RunbookExecutionStatus";
+import RunbookTriggerType from "Common/Types/Runbook/RunbookTriggerType";
 import RunbookStepExecutionStatus from "Common/Types/Runbook/RunbookStepExecutionStatus";
 import { RunbookStep } from "Common/Types/Runbook/RunbookStep";
 import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecution";
@@ -152,6 +153,8 @@ export default class RunbookAPI {
       execution.runbookNameSnapshot = runbook.name || "Runbook";
       execution.status = RunbookExecutionStatus.Scheduled;
       execution.stepExecutions = stepExecutions as unknown as JSONArray;
+      // A person, or the API with a person's or an API key's credentials.
+      execution.triggerType = RunbookTriggerType.Manual;
 
       // Absent for an API key — there is no user behind the request.
       if (props.userId) {

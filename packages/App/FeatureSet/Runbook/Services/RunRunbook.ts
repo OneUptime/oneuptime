@@ -39,6 +39,9 @@ export default class RunRunbook {
           alertId: true,
           scheduledMaintenanceId: true,
           triggeredByUserId: true,
+          triggerType: true,
+          triggerDetails: true,
+          inputs: true,
         },
         props: { isRoot: true },
       });
@@ -160,6 +163,9 @@ export default class RunRunbook {
           scheduledMaintenanceId: execution.scheduledMaintenanceId,
           triggeredByUserId: execution.triggeredByUserId,
           previousStepExecutions: stepExecutions.slice(0, i),
+          trigger: execution.triggerType,
+          triggerDetails: execution.triggerDetails,
+          inputs: execution.inputs,
         });
       } catch (err) {
         result = {

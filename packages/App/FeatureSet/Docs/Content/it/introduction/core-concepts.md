@@ -66,6 +66,7 @@ Un **episodio** raggruppa incidenti correlati, o avvisi correlati, perché il tu
 
 :::cards
 - [Panoramica degli incidenti](/docs/incidents/index): Come gli incidenti vengono dichiarati, gestiti e risolti.
+- [Panoramica degli avvisi](/docs/alerts/index): Da dove arrivano gli avvisi, e come gli episodi li raggruppano.
 - [Avvisi collegati](/docs/incidents/linked-alerts): Collegare all'incidente gli avvisi generati da un'interruzione.
 :::
 
@@ -76,8 +77,10 @@ Una **policy di reperibilità** decide chi viene avvisato per un incidente o un 
 Come viene raggiunta ogni persona lo decide lei. Nelle **Impostazioni utente**, ognuno conserva i modi in cui OneUptime può raggiungerlo, come e-mail, SMS, chiamate, notifiche push, Slack o Microsoft Teams, e quali usare quando viene avvisato.
 
 :::cards
+- [Panoramica della reperibilità](/docs/on-call/index): Come un avviso raggiunge qualcuno e dove si trova ogni elemento.
 - [Regole di escalation](/docs/on-call/escalation-rules): Avvisare le persone livello per livello finché qualcuno risponde.
 - [Pianificazioni di reperibilità](/docs/on-call/schedules): Turni, livelli e passaggi di consegne.
+- [Come OneUptime vi raggiunge](/docs/notifications/index): I metodi, le regole e le impostazioni che decidono come viene raggiunta ogni persona.
 :::
 
 ## Pagine di stato e manutenzione

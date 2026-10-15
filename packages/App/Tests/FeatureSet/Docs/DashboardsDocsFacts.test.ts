@@ -179,6 +179,8 @@ const DATA_SOURCE_TYPE_PICKER: string = `${DASHBOARD_APP}/Components/DataSource/
 const DATA_SOURCE_QUERY_EDITOR: string = `${DASHBOARD_COMPONENTS_DIR}/Canvas/DataSourceQueryEditor.tsx`;
 const ATTRIBUTE_SERVICE: string =
   "Common/Server/Services/TelemetryAttributeService.ts";
+const ATTRIBUTE_LIMITS: string =
+  "Common/Types/Telemetry/AttributeSuggestionLimits.ts";
 const PUBLIC_RESOURCE_LISTS: string =
   "Common/Server/Utils/Dashboard/PublicDashboardResourceListPolicy.ts";
 const DATA_SOURCE_CONNECTORS: string =
@@ -1857,15 +1859,20 @@ describe("Dashboard Variables & Filters, against the variable code", () => {
   });
 
   it("offers up to 100 telemetry attribute values from the past day", () => {
+    const limits: string = readSource(ATTRIBUTE_LIMITS);
     const service: string = readSource(ATTRIBUTE_SERVICE);
-    const limit: RegExpMatchArray | null = service.match(
+    const limit: RegExpMatchArray | null = limits.match(
       /ATTRIBUTE_VALUES_LIMIT: number = (\d+);/,
     );
-    const days: RegExpMatchArray | null = service.match(
-      /LOOKBACK_WINDOW_IN_DAYS: number = (\d+);/,
+    /*
+     * A dashboard variable sends no time range, so its lookup reads the
+     * value lookups' default window: the last day (issue #4708).
+     */
+    const hours: RegExpMatchArray | null = service.match(
+      /VALUE_LOOKUP_DEFAULT_WINDOW_IN_MS: number = (\d+) \* 60 \* 60 \* 1000;/,
     );
 
-    expect([limit?.[1], days?.[1]]).toEqual(["100", "1"]);
+    expect([limit?.[1], hours?.[1]]).toEqual(["100", "24"]);
     expect(sectionOf(page, "### Telemetry Attribute")).toContain(
       `The picker offers up to ${limit?.[1]} values of that key, read from your metrics of the past day`,
     );

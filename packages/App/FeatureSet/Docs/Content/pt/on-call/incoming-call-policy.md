@@ -159,7 +159,7 @@ Uma regra faz tocar uma pessoa no número que ela verificou para chamadas recebi
 3. Digite o código de 6 dígitos que o OneUptime envia por SMS para o número em **Código de verificação** e clique em **Verificar**. **Send a new code** envia outro.
 :::
 
-Cada pessoa pode ter um número verificado por projeto. Para trocá-lo, exclua antes o número antigo. Esses números são separados dos números de telefone em **Métodos de notificação**, que os acionamentos de plantão usam.
+Cada pessoa pode ter um número verificado por projeto. Para trocá-lo, exclua antes o número antigo. Esses números são separados dos números de telefone em **Métodos de notificação**, que os acionamentos de plantão usam. Veja [Métodos de notificação](/docs/notifications/notification-methods).
 
 Os números para chamadas recebidas são verificados por SMS, então o **SMS** precisa estar ligado no projeto antes. Um proprietário do projeto ou alguém com o papel **Billing Admin** ou a permissão **Manage Billing** o liga no cartão **Canais de notificação** de **Configurações do projeto > Notificações > Configurações de notificação**.
 
@@ -200,7 +200,7 @@ Quando uma chamada é perdida, o OneUptime avisa os proprietários da política:
 
 O aviso diz quem ligou, qual número foi discado, por que ninguém atendeu, e quem tocou e como cada tentativa terminou. Ele traz um link para a chamada no registro de chamadas.
 
-Os proprietários recebem um e-mail por padrão. Cada pessoa pode escolher outros canais (SMS, chamada, push e mais) ou desligá-lo em **Configurações do usuário** > **Configurações de notificação**, em **Plantão** > **Políticas de chamadas recebidas** > **Chamada perdida**.
+Os proprietários recebem um e-mail por padrão. Cada pessoa pode escolher outros canais (SMS, chamada, push e mais) ou desligá-lo em **Configurações do usuário** > **Configurações de notificação**, em **Plantão** > **Políticas de chamadas recebidas** > **Chamada perdida**. Veja [Configurações de notificação](/docs/notifications/notification-settings).
 
 ### Reaja a chamadas perdidas em um fluxo de trabalho
 

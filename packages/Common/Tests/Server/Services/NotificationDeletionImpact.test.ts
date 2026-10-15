@@ -1522,7 +1522,10 @@ describe("reachability after the deletion", () => {
 
     expect(warning).toHaveLength(1);
     expect(warning[0]).toContain("SMS, Call");
-    expect(warning[0]).toContain("On-Call > Readiness");
+    expect(warning[0]).toContain(
+      "check On-Call Duty > Readiness to confirm this user can still be paged.",
+    );
+    expect(warning[0]).not.toContain("On-Call > Readiness");
   });
 
   test("deleting an UNVERIFIED method changes nothing about reachability", async () => {

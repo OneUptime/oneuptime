@@ -609,15 +609,16 @@ flowchart TB
 
 ## راندن حادثه‌ها از گردش‌های کاری
 
-تریگرهای گردش کاری برای حادثه‌ها دست‌نویس نیستند — OneUptime آن‌ها را از مدل‌های داده تولید می‌کند، پس هر مدل از خانواده حادثه مؤلفه‌های **On Create X**، **On Update X** و **On Delete X** را می‌گیرد، که از نام مفرد مدل نام‌گذاری می‌شوند. سه‌تای اصلی **On Create Incident**، **On Update Incident** و **On Delete Incident** هستند. آن‌ها را در پنل **Add Trigger** در `/dashboard/{projectId}/workflows`، زیر **OneUptime resources** → **Incident** می‌یابید؛ دو تای نخست زیر **Popular** هم هستند.
+تریگرهای گردش کاری برای حادثه‌ها دست‌نویس نیستند — OneUptime آن‌ها را از مدل‌های داده تولید می‌کند، پس هر مدل از خانواده حادثه مؤلفه‌های **On Create X**، **On Update X**، **On Create or Update X** و **On Delete X** را می‌گیرد، که از نام مفرد مدل نام‌گذاری می‌شوند. اصلی‌ها **On Create Incident**، **On Update Incident**، **On Create or Update Incident** و **On Delete Incident** هستند. آن‌ها را در پنل **Add Trigger** در `/dashboard/{projectId}/workflows`، زیر **OneUptime resources** → **Incident** می‌یابید؛ دو تای نخست زیر **Popular** هم هستند.
 
 همان تولید، تریگرهایی برای خود پیکربندی هم به شما می‌دهد: **On Create Incident State**، **On Update Incident Severity**، **On Create Incident Template**، **On Create Incident Note Template**، **On Create Incident State Timeline**، **On Create Incident Public Note**، **On Create Incident Internal Note**، **On Create Incident On-Call Rule**، **On Create Incident Role**، **On Create Incident Member** و بیشتر. هر مدل مؤلفه‌های کنش متناظر هم می‌گیرد — **Find One Incident**، **Create One Incident**، **Update One Incident**، **Delete One Incident** و معادل‌های چندسطری‌شان — پس تریگر و کنشی با نام‌های مشابه کنار هم در همان دسته می‌نشینند. **On Create Incident** گردش کاری را آغاز می‌کند؛ **Create One Incident** حادثه‌ای باز می‌کند.
 
 چند جزئیات که هنگام سیم‌کشی این‌ها مهم‌اند:
 
 - **On Update X** آرگومان اختیاری **Fields to watch** می‌گیرد که تریگر را به به‌روزرسانی‌هایی محدود می‌کند که فیلدهای مشخصی را تغییر می‌دهند، به هر مقداری که تغییر کنند: خاموش کردن یک کلید یا پاک کردن یک فیلد هم شمرده می‌شود. فیلدی که با همان مقداری که دارد ذخیره شود تغییر نیست، پس فرم ویرایشی که آن را با هر ذخیره پس می‌فرستد گردش کار را بیدار نمی‌کند. برای اجرا روی هر تغییری خالی بگذاریدش. اگر به‌روزرسانی‌ای بدون سابقه‌ای از اینکه کدام فیلدها تغییر کرده‌اند برسد، پالایه نادیده گرفته می‌شود و گردش کار به‌هرحال اجرا می‌شود.
-- **On Create X** و **On Update X** هر دو آرگومان الزامی **Fields to pass on** می‌گیرند؛ **On Delete X** آرگومانی نمی‌گیرد.
-- هر سه یک درگاه خروجی **Success** دارند، و هر کدام آرگومان شناسه‌ای می‌پذیرند تا بتوانید گردش کار را دستی روی یک رکورد اجرا کنید.
+- **On Create or Update X** برای هر رکورد تازه یک بار و برای هر به‌روزرسانی‌ای که **Fields to watch** خودش اجازه دهد یک بار اجرا می‌شود، پس یک گردش کار هر دو را پوشش می‌دهد. کنار رکورد، `what-happened` را هم می‌فرستد: `created` یا `updated`.
+- **On Create X**، **On Update X** و **On Create or Update X** آرگومان الزامی **Fields to pass on** می‌گیرند؛ **On Delete X** آرگومانی نمی‌گیرد.
+- هر چهار یک درگاه خروجی **Success** دارند، و هر کدام آرگومان شناسه‌ای می‌پذیرند تا بتوانید گردش کار را دستی روی یک رکورد اجرا کنید.
 - نام‌ها از نام مفرد مدل می‌آیند، نه از نام جدولش — به همین دلیل **On Create Incident Team Owner** و **On Create Incident User Owner** را می‌بینید نه نام‌هایی به شکل جدول.
 - برای تعریف‌های فیلدهای سفارشی حادثه تریگری وجود ندارد. آن مدل تنها عضو خانواده حادثه است که گردش‌های کاری‌اش غیرفعال است.
 

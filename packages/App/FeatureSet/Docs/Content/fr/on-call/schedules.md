@@ -86,7 +86,7 @@ Pendant son absence :
 
 Choisissez plutôt quelqu'un sous **Qui remplace ?**, et cette personne reçoit toutes ses alertes, de chaque planning et de chaque politique, au lieu que la rotation reprenne ses tours.
 
-Une absence ajoutée ainsi s'applique à toutes les politiques d'astreinte. Elle figure dans **Astreinte** > **Remplacements d'utilisateur**, où vous pouvez la supprimer pour faire revenir la personne plus tôt. Pour faire passer son tour à quelqu'un dans une seule politique, ajoutez le remplacement sur la page **Remplacements d'utilisateur** de cette politique et laissez **Qui remplace ?** tel quel.
+Une absence ajoutée ainsi s'applique à toutes les politiques d'astreinte. Elle figure dans **Astreinte** > **Avancé** > **Remplacements d'utilisateur**, où vous pouvez la supprimer pour faire revenir la personne plus tôt. Pour faire passer son tour à quelqu'un dans une seule politique, ajoutez le remplacement sur la page **Remplacements d'utilisateur** de cette politique et laissez **Qui remplace ?** tel quel. Voir [Remplacements d'utilisateur](/docs/on-call/user-overrides).
 
 Avec l'API, un remplacement d'utilisateur (`/api/on-call-duty-policy-user-override`) créé sans `routeAlertsToUserId` fait passer son tour à la personne de `overrideUserId` de `startsAt` à `endsAt`.
 
@@ -121,4 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [Règles d'escalade](/docs/on-call/escalation-rules): Faire alerter ce planning par un niveau d'une politique d'astreinte.
 - [Chronologie des astreintes](/docs/on-call/schedule-timeline): Voir tous les plannings côte à côte, avec les trous de couverture.
 - [Flux de calendrier](/docs/on-call/calendar-feeds): Mettre les permanences dans Google Agenda, Outlook ou Apple Calendrier.
+- [Règles d'astreinte personnelles](/docs/notifications/on-call-rules): Choisissez comment une alerte vous parvient pendant votre astreinte.
 :::

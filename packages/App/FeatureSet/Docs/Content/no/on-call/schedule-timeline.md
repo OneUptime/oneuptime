@@ -47,7 +47,7 @@ Under rutenettet viser **On call this week** (**On call this month** i månedsvi
 - Tidslinjen dekker 180 dager bakover og 365 dager fremover.
 
 > [!NOTE]
-> Tidligere vakter beregnes på nytt ut fra hver vaktplans nåværende oppsett, så de viser rotasjonen slik den er satt opp nå, noe som kan avvike fra hvem som faktisk ble varslet den gangen. For timene folk faktisk hadde vakt, bruker du **Vakttjeneste** > **Rapporter** > **Brukerens vakttid**.
+> Tidligere vakter beregnes på nytt ut fra hver vaktplans nåværende oppsett, så de viser rotasjonen slik den er satt opp nå, noe som kan avvike fra hvem som faktisk ble varslet den gangen. For timene folk faktisk hadde vakt, bruker du **Vakttjeneste** > **Rapporter** > **Brukerens vakttid**. Se [Brukerens vakttid](/docs/on-call/readiness#brukerens-vakttid).
 
 ## Finn en vaktplan eller en person
 

@@ -185,7 +185,7 @@ Ge dem som bygger automatisering **Workflow Admin**, och dem som bara startar de
 
 ## Vad arbetsflödessteg får göra
 
-De steg som läser och ändrar OneUptime-poster — komponenterna Find, Create, Update och Delete, och utlösarna On Create, On Update och On Delete — agerar som en **Project Admin** i arbetsflödets projekt. Vem som än byggde arbetsflödet möter ett steg samma kontroller som en Project Admin möter i instrumentpanelen och API:t:
+De steg som läser och ändrar OneUptime-poster — komponenterna Find, Create, Update och Delete, och utlösarna On Create, On Update, On Create or Update och On Delete — agerar som en **Project Admin** i arbetsflödets projekt. Vem som än byggde arbetsflödet möter ett steg samma kontroller som en Project Admin möter i instrumentpanelen och API:t:
 
 - **Bara arbetsflödets eget projekt.** Ett steg läser och skriver posterna i det projekt som arbetsflödet tillhör och inget annat, och en Update flyttar aldrig en post till ett annat projekt.
 - **Bara det en Project Admin får göra.** Ett steg kan bara bevilja de team- och API-nyckelbehörigheter som en Project Admin själv har, så det kan inte dela ut **Project Owner**-, fakturerings- eller projektborttagningsbehörigheter, och det kan inte lägga till någon i ett team vars behörigheter går utöver en Project Admins, som ägarteamet. Ett steg kan inte läsa vem som skapade en probe eller en AI-agent, vilket bara projektägare ser.

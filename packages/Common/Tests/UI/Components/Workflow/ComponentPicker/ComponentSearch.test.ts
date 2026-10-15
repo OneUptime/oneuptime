@@ -546,11 +546,62 @@ describe("hand-written steps and resources together", () => {
     expect(titles(TRIGGERS, "cron")).toEqual(["Schedule"]);
     expect(titles(TRIGGERS, "every hour")).toEqual(["Schedule"]);
     expect(titles(TRIGGERS, "webhook")[0]).toBe("Webhook");
-    expect(titles(TRIGGERS, "incident").slice(0, 3)).toEqual([
+    expect(titles(TRIGGERS, "incident").slice(0, 4)).toEqual([
       "On Create Incident",
       "On Update Incident",
+      "On Create or Update Incident",
       "On Delete Incident",
     ]);
+  });
+
+  /*
+   * One trigger for a new record and a changed one. Searched for by what it
+   * does - "created or updated", "new or changed", "save", "upsert", "sync"
+   * - it comes first. Searched for by one of the two it stands for, that
+   * one still does: "incident created" is On Create Incident.
+   */
+  test("the words people use for On Create or Update find it, and do not push the other two down", () => {
+    for (const search of [
+      "incident created or updated",
+      "when an incident is created or updated",
+      "create or update incident",
+      "on create or update incident",
+      "incident new or changed",
+      "incident added or edited",
+      "incident save",
+      "saved incident",
+      "upsert incident",
+      "sync incidents",
+    ]) {
+      expect([search, titles(TRIGGERS, search)[0]]).toEqual([
+        search,
+        "On Create or Update Incident",
+      ]);
+    }
+
+    expect(titles(TRIGGERS, "incident created")[0]).toBe("On Create Incident");
+    expect(titles(TRIGGERS, "incident created")[1]).toBe(
+      "On Create or Update Incident",
+    );
+    expect(titles(TRIGGERS, "incident updated")[0]).toBe("On Update Incident");
+    expect(titles(TRIGGERS, "incident changed")[0]).toBe("On Update Incident");
+    expect(titles(TRIGGERS, "new incident")[0]).toBe("On Create Incident");
+    expect(titles(TRIGGERS, "incident deleted")[0]).toBe("On Delete Incident");
+    // Not one of the common resources: its own two still come first too.
+    expect(titles(TRIGGERS, "incident state created")[0]).toBe(
+      "On Create Incident State",
+    );
+    expect(titles(TRIGGERS, "incident state created or updated")[0]).toBe(
+      "On Create or Update Incident State",
+    );
+  });
+
+  test("an action search never offers the trigger", () => {
+    for (const search of ["create or update incident", "upsert incident"]) {
+      expect(titles(ACTIONS, search)).not.toContain(
+        "On Create or Update Incident",
+      );
+    }
   });
 });
 

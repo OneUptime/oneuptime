@@ -40,6 +40,12 @@ export interface ComponentProps {
 export const WORKFLOW_NODE_SETUP_TEXT: string =
   translationKey("Click to set up");
 
+/*
+ * The most lines a step's name takes on its card: enough for nearly every
+ * step there is, "On Create or Update Incident Episode" included.
+ */
+export const WORKFLOW_NODE_TITLE_MAX_LINES: number = 2;
+
 type StepSummaryFunction = (data: WorkflowNodeRenderData) => string | null;
 
 /*
@@ -476,6 +482,8 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   const badgeColors: BadgeColorScheme = hasError
     ? ERROR_BADGE_COLORS
     : WARNING_BADGE_COLORS;
+  const showsIssueBadge: boolean =
+    !props.data.isPreview && issues.badgeTone !== WorkflowLintTone.Clean;
 
   const stepSummary: string | null = getStepSummary(props.data);
 
@@ -559,7 +567,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         actually wrong. Empty required settings are not on it: those are the
         "Click to set up" prompt below.
       */}
-      {!props.data.isPreview && issues.badgeTone !== WorkflowLintTone.Clean && (
+      {showsIssueBadge && (
         <Tooltip text={issues.badgeText}>
           <div
             data-testid="workflow-node-issue-badge"
@@ -592,11 +600,16 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         </Tooltip>
       )}
 
-      {/* Header bar with gradient */}
+      {/*
+        Header bar with gradient. With the problem indicator in its corner,
+        the name stops short of it rather than running under it.
+      */}
       <div
         style={{
           background: colors.headerBg,
-          padding: "0.625rem 0.875rem",
+          padding: showsIssueBadge
+            ? "0.625rem 1.875rem 0.625rem 0.875rem"
+            : "0.625rem 0.875rem",
           display: "flex",
           alignItems: "center",
           gap: "0.5rem",
@@ -626,15 +639,28 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             />
           </div>
         )}
+        {/*
+          The step's name, on up to two lines. On one line, "On Create or
+          Update Incident" and "On Create or Update Incident Episode" were
+          both "On Create or Update Incid…", and so were most of the steps of
+          a model with a long name. A name longer still ends in "…", and is
+          said whole on hover.
+        */}
         <span
+          data-testid="workflow-node-title"
+          title={props.data.metadata.title}
           style={{
             color: colors.headerText,
             fontSize: "0.8125rem",
             fontWeight: 600,
             letterSpacing: "0.01em",
+            lineHeight: "1.125rem",
+            minWidth: 0,
             overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            overflowWrap: "anywhere",
+            display: "-webkit-box",
+            WebkitLineClamp: WORKFLOW_NODE_TITLE_MAX_LINES,
+            WebkitBoxOrient: "vertical",
           }}
         >
           {props.data.metadata.title}

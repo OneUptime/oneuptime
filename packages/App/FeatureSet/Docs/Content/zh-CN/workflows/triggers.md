@@ -153,15 +153,16 @@ OneUptime 会给工作流一个专属的邮件地址。每封发到这个地址�
 
 ## OneUptime 事件触发器
 
-OneUptime 中几乎所有东西——监视器、事件、警报、计划维护、状态页面、值班策略、团队——都可以启动工作流。每一种最多提供三个事件：
+OneUptime 中几乎所有东西——监视器、事件、警报、计划维护、状态页面、值班策略、团队——都可以启动工作流。每一种最多提供四个触发器：
 
 - **On Create** —— 新增一个时触发。
 - **On Update** —— 有一个被更改时触发。用记录已有的值保存它，例如未作更改就保存的表单，或按原状态提交的开关，不算更改，不会触发。
+- **On Create or Update** —— 两种情况都会触发：新增一个时触发一次，每次更改时再触发一次。这样一个工作流就能同样处理新记录和更改后的记录，例如让另一个系统中的副本保持最新。
 - **On Delete** —— 有一个被删除时触发。
 
 这样，你就能搭建“当 OneUptime 中发生 X 时，做 Y”，而无需在循环里反复检查。
 
-**On Update** 可以用 **Fields to watch** 限定在某些字段上：这样只有当更新把其中某个字段改成任何值时才会触发——关闭开关或清空字段也算。
+**On Update** 可以用 **Fields to watch** 限定在某些字段上：这样只有当更新把其中某个字段改成任何值时才会触发——关闭开关或清空字段也算。**On Create or Update** 也有同样的 **Fields to watch**，只作用于它的更新：每条新记录仍然会触发它。
 
 ```mermaid title="On Update 触发器何时触发"
 flowchart TB
@@ -174,11 +175,15 @@ flowchart TB
     field -->|"否"| nothing
 ```
 
-**On Create** 和 **On Update** 会把记录传给下一个块，带上你在触发器的 **Fields to pass on** 中选择的字段。例如，**Incident → On Create** 触发器会传下新事件，下一个块就能读取它的标题、描述、严重程度或你选择的任何其他字段，例如 `{{local.components.incident-on-create-1.returnValues.model.title}}`。你没有选择的字段到达时为空。
+**On Create**、**On Update** 和 **On Create or Update** 会把记录传给下一个块，带上你在触发器的 **Fields to pass on** 中选择的字段。例如，**Incident → On Create** 触发器会传下新事件，下一个块就能读取它的标题、描述、严重程度或你选择的任何其他字段，例如 `{{local.components.incident-on-create-1.returnValues.model.title}}`。你没有选择的字段到达时为空。
+
+**On Create or Update** 还会传下 **What Happened**：由新记录启动运行时为 `created`，由更改启动时为 `updated`，例如 `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`。要区别处理这两种情况，可以在 **If / Else** 块中比较它，或用 **Switch / Case** 为每种情况走一条路径。
+
+一次保存只触发一次。OneUptime 在创建记录时填写的内容属于创建的一部分，所以新记录只以 `created` 触发一次。OneUptime 之后做的更改，例如关联事件的 Slack 频道，和其他更新一样：要排除它们，只把你关心的字段加到 **Fields to watch** 中。
 
 **On Delete** 只传下被删除记录的 ID：工作流运行时记录已经不在了，所以无法读取它的其他字段。
 
-要不等事件发生就测试事件触发器，在 **生成器** 中点击 **运行工作流**，然后选择一条现有记录：列表中会列出最近的记录，输入记录的编号或名称的一部分可以找到其他记录。这次运行会读取那条记录及你选择的字段，就像事件刚刚发生在它身上一样；记录本身不会被更改或删除。
+要不等事件发生就测试事件触发器，在 **生成器** 中点击 **运行工作流**，然后选择一条现有记录：列表中会列出最近的记录，输入记录的编号或名称的一部分可以找到其他记录。这次运行会读取那条记录及你选择的字段，就像事件刚刚发生在它身上一样；记录本身不会被更改或删除。对于 **On Create or Update**，在 **发生了什么** 中选择这次运行是针对记录的创建还是更新。
 
 ### 团队最常用的事件
 

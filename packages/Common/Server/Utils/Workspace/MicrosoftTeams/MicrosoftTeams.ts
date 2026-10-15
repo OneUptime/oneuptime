@@ -24,6 +24,7 @@ import logger from "../../Logger";
 import Dictionary from "../../../../Types/Dictionary";
 import WorkspaceBase, {
   WorkspaceChannel,
+  WorkspaceChannelToCreate,
   WorkspaceMessageLocation,
   WorkspaceSendMessageResponse,
   WorkspaceThread,
@@ -1392,6 +1393,72 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     return workspaceChannels;
   }
 
+  /*
+   * Whether Microsoft Graph refused a new channel's name because a channel
+   * of the team has it already - one in use, or one deleted in the last 30
+   * days: Microsoft Teams keeps a deleted channel's name until it is gone
+   * for good. Graph answers 400 BadRequest, "Channel name already existed,
+   * please use other name.", inner code NameAlreadyExists. Read off the
+   * response's fields rather than its class: an error from another realm
+   * (the botbuilder test harness) is not an HTTPErrorResponse there.
+   */
+  public static override isChannelNameTakenError(error: unknown): boolean {
+    const statusCode: unknown = (error as { statusCode?: unknown } | null)
+      ?.statusCode;
+
+    if (statusCode !== 400 && statusCode !== 409) {
+      return false;
+    }
+
+    let body: string = "";
+
+    try {
+      body = JSON.stringify(
+        (error as { data?: unknown; jsonData?: unknown }).data ??
+          (error as { jsonData?: unknown }).jsonData ??
+          "",
+      );
+    } catch {
+      body = "";
+    }
+
+    const text: string =
+      `${body} ${WorkspaceBase.getSendErrorMessage(error)}`.toLowerCase();
+
+    return (
+      text.includes("namealreadyexists") || text.includes("name already exist")
+    );
+  }
+
+  /*
+   * The name Microsoft Teams creates a channel by: characters not valid in
+   * Teams channel names are stripped, and its case and spaces are kept.
+   */
+  public static getChannelNameToCreate(channelName: string): string {
+    return channelName.replace(/[^a-zA-Z0-9\-_\s]/g, "");
+  }
+
+  /*
+   * A channel's name is its team's own, and names a team creates by the
+   * same name, whatever their case, are one channel of that team. Microsoft
+   * does not say whether a team takes "Incidents-inc-9" beside
+   * "incidents-inc-9", but each of its channels is a folder of the team's
+   * SharePoint site, whose names are case-insensitive, and channels are
+   * found by name case-insensitively here (getWorkspaceChannelByName). Two
+   * rules that share one channel lose nothing; a second name Graph refuses
+   * (NameAlreadyExists) loses the channel created for the first.
+   */
+  public static override isSameChannelToCreate(
+    channel: WorkspaceChannelToCreate,
+    otherChannel: WorkspaceChannelToCreate,
+  ): boolean {
+    return (
+      channel.teamId === otherChannel.teamId &&
+      this.getChannelNameToCreate(channel.channelName).toLowerCase() ===
+        this.getChannelNameToCreate(otherChannel.channelName).toLowerCase()
+    );
+  }
+
   @CaptureSpan()
   public static override async createChannel(data: {
     authToken: string;
@@ -1402,8 +1469,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   }): Promise<WorkspaceChannel> {
     const teamId: string = data.teamId;
 
-    // Sanitize channel name: strip characters not valid in Teams channel names.
-    data.channelName = data.channelName.replace(/[^a-zA-Z0-9\-_\s]/g, "");
+    /*
+     * As Microsoft Teams creates it (getChannelNameToCreate). A rule's
+     * channel arrives named so already (WorkspaceChannelName), and no longer
+     * than Teams' 50 characters.
+     */
+    data.channelName = this.getChannelNameToCreate(data.channelName);
 
     // Get valid access token
     const accessToken: string = await this.getValidAccessToken({

@@ -191,20 +191,18 @@ Von **Behoben** in einen Status danach zu wechseln – etwa **Closed** – ist k
 
 ## Die Statuszeitachse
 
-Die Seite **Zustands-Zeitachse** im Seitenmenü des Vorfalls ist der Prüfpfad jedes Status, in dem der Vorfall war. Die Karte auf dieser Seite heißt **Status-Zeitachse** und ist absteigend nach Neuheit sortiert.
+Die Seite **Zustands-Zeitachse** im Seitenmenü des Vorfalls ist der Prüfpfad jedes Status, in dem der Vorfall war. Die Karte auf dieser Seite heißt **Status-Zeitachse** und zeichnet das ganze Leben des Vorfalls als Zeitachse:
 
-| Spalte | Was sie zeigt |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Vorfallstatus** | Ein farbiges Etikett mit Name und Farbe des Status. |
-| **Beginnt am** | Wann der Vorfall in diesen Status kam. |
-| **Endet am** | Wann er ihn verließ. Der aktuelle Status zeigt `Currently Active`. |
-| **Dauer** | Die im Status verbrachte Zeit, beim aktuellen bis jetzt gezählt. |
-| **Abonnenten-Benachrichtigungsstatus** | Ob die Statusseiten-Benachrichtigung für diese Änderung gesendet, übersprungen wurde oder noch aussteht, mit einem Link **weitere Details** und – wenn das Senden fehlschlug – einer Aktion **Wiederholen**. **Wiederholen** sendet den Statuswechsel erneut an jede Statusseite, die der Vorfall jetzt erreicht, auch an die Abonnenten, die ihn schon erhalten haben. |
+- **Das Band** zeigt jeden Status als Abschnitt in seiner Farbe, so lang, wie der Vorfall darin war – so lässt sich der Verlauf des Vorfalls auf einen Blick ablesen. Solange der Vorfall offen ist, reicht das Band bis **Jetzt**; ist er gelöst, endet das Band kurz nach seiner letzten Änderung. Zeigen Sie auf einen Abschnitt, um zu sehen, wann er begann und wie lange er dauerte, und klicken Sie darauf, um seine Änderung in der Liste zu finden. Änderungen, die zu dicht beieinander liegen, um sie zu unterscheiden, werden als ein gestreifter Abschnitt gezeichnet: Klicken Sie darauf oder ziehen Sie über das Band, um hineinzuzoomen, und **Zoom zurücksetzen** führt zurück.
+- **Über dem Band** steht jeder Status mit der Zeit, die der Vorfall darin verbracht hat.
+- **Unter dem Band** steht jede Änderung, die neueste zuerst, nach Tagen gruppiert und in Ihrer Zeitzone: wann sie begann und endete, wie lange sie dauerte, wer sie vorgenommen hat und darunter **Statusseiten-Abonnenten:** ob die Statusseiten-Benachrichtigung für die Änderung gesendet, übersprungen wurde oder noch aussteht, mit einem Link **weitere Details** und – wenn das Senden fehlschlug – einer Aktion **Wiederholen**. **Wiederholen** sendet den Statuswechsel erneut an jede Statusseite, die der Vorfall jetzt erreicht, auch an die Abonnenten, die ihn schon erhalten haben.
 
-Jede Zeile hat zwei Aktionen:
+Jede Änderung hat zwei Aktionen:
 
 - **Ursache anzeigen** – öffnet einen Dialog **Grundursache** mit dem Markdown, das mit diesem Statuswechsel festgehalten wurde.
 - **Protokolle anzeigen** – öffnet einen Dialog, der erklärt, warum sich der Status geändert hat, mit einem Betrachter **Vorfallstatus-Protokoll**.
+
+**Zeitachse** und **Tabelle** im Kopf der Karte wechseln zwischen der Zeitachse und der Tabelle, die die Seite früher war: eine Zeile pro Änderung mit **Beginnt am**, **Endet am** und **Dauer**, Filtern, gespeicherten Ansichten und Massenaktionen. Ihre Wahl wird in Ihrem Browser gespeichert, für jede Status-Zeitachse. Warnungen, Episoden und geplante Wartungsereignisse zeichnen ihre Zustands-Zeitachsen genauso. Die **Status-Zeitachse** eines Monitors und eines Netzwerkstandorts öffnet stattdessen auf dem letzten Monat, gewählt wie jeder andere Zeitbereich, mit dem Zeitraum davor und danach nur einen Klick entfernt.
 
 Im Dashboard lassen sich Zeitachsenzeilen hinzufügen und löschen, aber nicht bearbeiten; ein Vorfall behält immer mindestens eine Zeile. Über die API lässt sich das `startsAt` einer Zeile korrigieren, und jede aus der Zeitachse berechnete Messung folgt dem.
 

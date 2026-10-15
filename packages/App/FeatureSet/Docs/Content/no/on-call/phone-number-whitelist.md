@@ -18,7 +18,7 @@ På OneUptime Cloud kommer SMS-er og telefonanrop for vakter fra numrene nedenfo
 :::
 
 > [!TIP]
-> Når du legger til eller verifiserer telefonnummeret ditt under **Brukerinnstillinger** > **Varselmetoder**, får du en kode fra disse numrene, så det er en rask måte å sjekke at de kommer gjennom.
+> Når du legger til eller verifiserer telefonnummeret ditt under **Brukerinnstillinger** > **Varselmetoder**, får du en kode fra disse numrene, så det er en rask måte å sjekke at de kommer gjennom. Se [Varselmetoder](/docs/notifications/notification-methods).
 
 ## Når varsler kommer fra andre numre
 

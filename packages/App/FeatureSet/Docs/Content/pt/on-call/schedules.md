@@ -86,7 +86,7 @@ Enquanto ela está ausente:
 
 Se, em vez disso, você escolher alguém em **Quem cobre?**, essa pessoa recebe todos os acionamentos dela, de todo agendamento e de toda política, em vez de a rotação ficar com os turnos dela.
 
-Uma ausência adicionada assim vale para todas as políticas de plantão. Ela aparece em **Plantão** > **Substituições de usuário**, onde você pode excluí-la para trazer a pessoa de volta antes. Para pular alguém em uma única política, adicione a substituição na página **Substituições de usuário** dessa política e deixe **Quem cobre?** como está.
+Uma ausência adicionada assim vale para todas as políticas de plantão. Ela aparece em **Plantão** > **Avançado** > **Substituições de usuário**, onde você pode excluí-la para trazer a pessoa de volta antes. Para pular alguém em uma única política, adicione a substituição na página **Substituições de usuário** dessa política e deixe **Quem cobre?** como está. Veja [Substituições de usuário](/docs/on-call/user-overrides).
 
 Com a API, uma substituição de usuário (`/api/on-call-duty-policy-user-override`) criada sem `routeAlertsToUserId` pula a pessoa em `overrideUserId` de `startsAt` até `endsAt`.
 
@@ -121,4 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [Regras de escalonamento](/docs/on-call/escalation-rules): Faça um nível de uma política de plantão acionar este agendamento.
 - [Linha do tempo de plantões](/docs/on-call/schedule-timeline): Veja todos os agendamentos lado a lado, com as lacunas de cobertura.
 - [Feeds de calendário](/docs/on-call/calendar-feeds): Leve os turnos para o Google Agenda, o Outlook ou o Calendário da Apple.
+- [Regras de Plantão pessoais](/docs/notifications/on-call-rules): Decida como um acionamento chega até você enquanto está de plantão.
 :::

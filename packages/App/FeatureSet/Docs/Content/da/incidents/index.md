@@ -181,7 +181,7 @@ Selve listen over hændelser viser **Hændelsesnummer**, **Titel**, **Tilstand**
 Hvad hver side indeholder:
 
 - **Oversigt** — indsatsen med ét blik. Under hovedet viser nøgletalsfelter tiden til bekræftelse, tiden til løsning og den samlede **Varighed**. Kortet **AI Investigation** står øverst på siden — hvad OneUptime AI fandt, eller hvorfor den ikke gik i gang — med **Hændelse Feed** under sig. Ved siden af står kortet **Video Call**, kortet **Hændelsesdetaljer** (titel, alvorsgrad, etiketter, hændelsesnummer, erklæret den, erklæret af, vagtpolitikker og hændelsens ID på en lille linje **ID** nederst, ét klik fra din udklipsholder), **Hændelsesroller**, et kort **Berørte ressourcer** og hændelsens brugerdefinerede felter. Har dit projekt [målinger](/docs/incidents/settings#målinger), siger et kort **Målinger** under **Hændelsesdetaljer**, hvad hver måling viser for denne hændelse: **12 minutter**, **Har kørt i 5 minutter**, **Ikke nået**.
-- **Tilstandstidslinje** — hver tilstand, hændelsen har været i, med **Begynder den**, **Slutter den**, **Varighed** og abonnenternes notifikationsstatus for hver overgang. **Vis årsag** og **Vis logge** forklarer, hvorfor hver ændring skete.
+- **Tilstandstidslinje** — hver tilstand, hændelsen har været i, tegnet som en tidslinje: et bånd med hver tilstand så lang, som den varede, og under det hver ændring med start og slut, varighed og abonnenternes notifikationsstatus. **Vis årsag** og **Vis logge** forklarer, hvorfor hver ændring skete, og **Tabel** viser de samme ændringer som en tabel, med **Begynder den**, **Slutter den** og **Varighed**.
 - **SLA** — opfølgning på SLA for denne hændelse.
 - **Beskrivelse**, **Grundårsag**, **Afhjælpning** — tre Markdown-sider. Beskrivelsen er den, der vises på din statusside.
 - **Runbooks** — de runbook-kørsler, der er knyttet til denne hændelse.
@@ -199,7 +199,7 @@ Hvad hver side indeholder:
 - **Vagtpolitikker står for tilkaldelsen.** Knyt politikker på trinnet **Vagt og roller** i guiden til at erklære, på en skabelon, eller via **Hændelser → Regler → Vagtregler**. Hver regel, der matcher, udløses — det, der udføres, er foreningen af alle match plus alt, hvad der er knyttet direkte, uden dubletter.
 - **Runbooks fortæller folk, hvad de skal gøre.** Runbook-regler knytter automatisk en procedure til, når en matchende hændelse oprettes, og dem, der reagerer, kan starte en i hånden fra hændelsen. Se [Runbooks – Oversigt](/docs/runbooks/index).
 - **Statussider informerer kunderne.** En hændelse vises i en statussides aktive liste, når siden viser en af dens monitorer, siden har hændelser slået til, hændelsen er markeret som synlig på statussiden, og dens aktuelle tilstand står over den løste tilstand. En hændelse, der er begrænset til nogle statussider, vises kun på dem. Private hændelser er altid skjult for alle statussider. Se [Statussider – Oversigt](/docs/status-pages/index) og [Én statusside pr. målgruppe](/docs/status-pages/one-status-page-per-audience).
-- **Workflows automatiserer omkring den.** Med udløserne **On Create Incident**, **On Update Incident** og **On Delete Incident** bygger du automatisering uden kode oven på hændelsens livscyklus. Se [Workflows – Oversigt](/docs/workflows/index).
+- **Workflows automatiserer omkring den.** Med udløserne **On Create Incident**, **On Update Incident**, **On Create or Update Incident** og **On Delete Incident** bygger du automatisering uden kode oven på hændelsens livscyklus. Se [Workflows – Oversigt](/docs/workflows/index).
 
 ## Næste skridt
 

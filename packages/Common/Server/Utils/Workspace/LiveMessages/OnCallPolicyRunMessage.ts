@@ -13,6 +13,7 @@ import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import ObjectID from "../../../../Types/ObjectID";
 import OnCallDutyExecutionLogTimelineStatus from "../../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import { ON_CALL_POLICY_ARCHIVED_EXECUTION_STOPPED_MESSAGE } from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyArchive";
+import { getOnCallPolicyRepeatsAllowed } from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRepeat";
 import {
   ON_CALL_POLICY_RUN_RECORD_HANDLED_MESSAGE_START,
   ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
@@ -717,6 +718,7 @@ export default class OnCallPolicyRunMessage {
           onCallDutyPolicy: {
             _id: true,
             name: true,
+            repeatPolicyIfNoOneAcknowledges: true,
             repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
           },
           // Who started a direct page.
@@ -1502,9 +1504,10 @@ export default class OnCallPolicyRunMessage {
         (executionLog.onCallPolicyExecutionRepeatCount || 1) - 1,
         0,
       ),
-      repeatsAllowed:
-        executionLog.onCallDutyPolicy
-          ?.repeatPolicyIfNoOneAcknowledgesNoOfTimes || 0,
+      // None while the policy's "Repeat if no one acknowledges" is off.
+      repeatsAllowed: getOnCallPolicyRepeatsAllowed(
+        executionLog.onCallDutyPolicy,
+      ),
       paged: Array.from(pagedByUserId.values()),
       notPaged: notPaged,
       firstRuleThatReachedNobody: firstRule

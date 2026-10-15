@@ -86,7 +86,7 @@ flowchart TB
 
 如果改為在 **誰代班？** 中選擇某人，則由該人接收此人來自所有排程和所有策略的全部呼叫，而不是由輪換接替其輪次。
 
-以這種方式新增的離崗適用於所有待命策略。它列在 **待命** > **使用者覆寫** 下，您可以在那裡刪除它，讓此人提早回來。若只想在一個策略中略過某人，請在該策略的 **使用者覆寫** 頁面上新增覆寫，並保持 **誰代班？** 不變。
+以這種方式新增的離崗適用於所有待命策略。它列在 **待命** > **進階** > **使用者覆寫** 下，您可以在那裡刪除它，讓此人提早回來。若只想在一個策略中略過某人，請在該策略的 **使用者覆寫** 頁面上新增覆寫，並保持 **誰代班？** 不變。請參閱 [使用者覆寫](/docs/on-call/user-overrides)。
 
 透過 API 建立使用者覆寫（ `/api/on-call-duty-policy-user-override` ）時，如果不帶 `routeAlertsToUserId` ，就會略過 `overrideUserId` 中的人，時間從 `startsAt` 到 `endsAt` 。
 
@@ -121,4 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [上報規則](/docs/on-call/escalation-rules): 讓待命策略的某個級別呼叫此排程。
 - [待命時間軸](/docs/on-call/schedule-timeline): 並排查看所有排程及涵蓋空檔。
 - [行事曆訂閱源](/docs/on-call/calendar-feeds): 將班次放進 Google 日曆、Outlook 或 Apple 行事曆。
+- [個人待命規則](/docs/notifications/on-call-rules): 決定待命時呼叫如何送達你。
 :::

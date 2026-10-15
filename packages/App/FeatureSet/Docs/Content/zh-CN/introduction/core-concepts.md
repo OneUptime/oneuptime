@@ -66,6 +66,7 @@ flowchart TB
 
 :::cards
 - [事件概览](/docs/incidents/index): 事件如何被声明、处理和解决。
+- [警报概览](/docs/alerts/index): 警报从何而来，以及片段如何对它们分组。
 - [关联的告警](/docs/incidents/linked-alerts): 把一次故障引发的告警关联到它的事件。
 :::
 
@@ -76,8 +77,10 @@ flowchart TB
 如何联系每个人由他们自己决定。在 **用户设置** 中，每个人都保存了 OneUptime 可以联系他们的方式，例如邮件、短信、电话、推送通知、Slack 或 Microsoft Teams，以及被呼叫时使用其中哪些方式。
 
 :::cards
+- [值班概览](/docs/on-call/index): 呼叫如何送达某人，以及各部分位于何处。
 - [升级规则](/docs/on-call/escalation-rules): 逐级呼叫人员，直到有人响应。
 - [值班计划](/docs/on-call/schedules): 轮换、层级和交接。
+- [OneUptime 如何联系你](/docs/notifications/index): 决定如何联系每个人的通知方式、规则和设置。
 :::
 
 ## 状态页面和维护

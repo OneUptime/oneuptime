@@ -196,7 +196,7 @@ Fai riferimento all'output di un blocco precedente così:
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Un blocco **API** il cui ID è `lookup-user`               | Il suo codice di stato: `{{local.components.lookup-user.returnValues.response-status}}`. Il suo corpo: `{{local.components.lookup-user.returnValues.response-body}}`. |
 | Un blocco **Run Custom JavaScript** il cui ID è `transform` | Ciò che ha restituito: `{{local.components.transform.returnValues.returnValue}}`.    |
-| Un trigger **On Create Incident** il cui ID è `incident-on-create-1` | Il titolo dell'incidente: `{{local.components.incident-on-create-1.returnValues.model.title}}`. I trigger dei record restituiscono un solo valore, `model`, in cui scendi. |
+| Un trigger **On Create Incident** il cui ID è `incident-on-create-1` | Il titolo dell'incidente: `{{local.components.incident-on-create-1.returnValues.model.title}}`. I trigger dei record restituiscono il record come `model`, in cui scendi. |
 
 I valori dei blocchi esistono solo durante l'esecuzione corrente. Ogni nuova esecuzione riparte da zero.
 

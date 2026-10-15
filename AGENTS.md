@@ -4,6 +4,10 @@ Things to keep in mind while developing:
 
 Do not worry about circular dependencies. All the import should be on the top of the file.
 
+### Keep OneUptime simple to use
+
+OneUptime should be as simple as possible to use. Every UI change must be easy for people to understand and must look great. Show what most people need first, with sensible defaults, and hide advanced settings away - for example in a folded Advanced section - so nobody faces decision paralysis (choice paralysis) when they set something up.
+
 ### Migrations
 
 #### Postgres
@@ -56,6 +60,8 @@ Please run "npm run compile" in projects that you made changes to make sure comp
 Please write extensive tests for your changes. If you are adding a new feature, please write unit tests and integration tests. If you are fixing a bug, please write a regression test.
 
 There are a lot of tests in the app, please do not run all of them, run only the tests that are relevant to your changes. Running all the tests is a waste of time and resources. We run all the tests in CI, so you can be sure that your changes are not breaking anything. Only run test suites relevant to your changes.
+
+Do not run whole test folders or packages - for example all of `packages/App/Tests/Dashboard`, `packages/Common/Tests/UI`, `packages/App/Tests/FeatureSet/Docs` or the `packages/Home` tests - and do not re-run them after merging master into your branch. CI runs them on master, and failures there are fixed together on master. Run the tests you added or changed, and the tests that read or scan the files you changed (search the test folders for those files' paths and names).
 
 Property tests, fuzz sweeps and generated fixtures draw their pseudo-random inputs from `seededRandom(seed)` in `packages/Common/Tests/Helpers/SeededRandom.ts` (`random()` is a fraction, `random(limit)` a whole number below the limit), and texts made of an alphabet's pieces from `generatedTexts` in `packages/Common/Tests/Helpers/GeneratedTexts.ts`, so every run draws the same inputs and a failure can be run again. Shuffle with `shuffled(items, random)` from the same file. Do not write a generator of your own: the copies of `state * 1103515245 + 12345` the tests used to carry repeated within a few thousand draws, and `SeededRandomGuard.test.ts` fails a test file that rolls one of the kinds they carried (an LCG, mulberry32, xorshift).
 

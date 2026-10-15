@@ -55,7 +55,7 @@ const operationsOf: (enableWorkflowOn: EnableWorkflowOn) => Array<string> = (
 
 describe("EnableWorkflowOn.writeSteps", () => {
   test("left out, every flag offers its trigger and its write steps, as before", () => {
-    expect(operationsOf(ALL_FLAGS)).toHaveLength(11);
+    expect(operationsOf(ALL_FLAGS)).toHaveLength(12);
     expect(operationsOf({ ...ALL_FLAGS, writeSteps: true })).toEqual(
       operationsOf(ALL_FLAGS),
     );
@@ -68,6 +68,8 @@ describe("EnableWorkflowOn.writeSteps", () => {
       DatabaseOperation.OnDelete,
       DatabaseOperation.OnCreate,
       DatabaseOperation.OnUpdate,
+      // A trigger, not a step that writes: kept with the two it stands for.
+      DatabaseOperation.OnCreateOrUpdate,
     ]);
   });
 
@@ -85,6 +87,14 @@ describe("EnableWorkflowOn.writeSteps", () => {
   test.each([
     [{ create: true }, [DatabaseOperation.OnCreate]],
     [{ update: true }, [DatabaseOperation.OnUpdate]],
+    [
+      { create: true, update: true },
+      [
+        DatabaseOperation.OnCreate,
+        DatabaseOperation.OnUpdate,
+        DatabaseOperation.OnCreateOrUpdate,
+      ],
+    ],
     [{ delete: true }, [DatabaseOperation.OnDelete]],
     [{ read: true }, [DatabaseOperation.FindOne, DatabaseOperation.FindMany]],
   ])(
@@ -146,6 +156,7 @@ describe("WRITE_DATABASE_OPERATIONS", () => {
       DatabaseOperation.FindMany,
       DatabaseOperation.OnCreate,
       DatabaseOperation.OnUpdate,
+      DatabaseOperation.OnCreateOrUpdate,
       DatabaseOperation.OnDelete,
     ]) {
       expect(WRITE_DATABASE_OPERATIONS).not.toContain(operation);

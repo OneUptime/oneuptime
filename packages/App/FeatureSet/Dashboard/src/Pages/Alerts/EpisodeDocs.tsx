@@ -113,7 +113,7 @@ const AlertEpisodeDocs: FunctionComponent<
     {
       title: "Set Episode Template",
       description:
-        "Optionally configure an episode title template using placeholders like {alertTitle}, {monitorName}, {alertSeverity}.",
+        "Optionally write an episode title template with variables such as {{alertTitle}}, {{monitorName}} and {{alertSeverity}}.",
     },
     {
       title: "Assign On-Call Policies",
@@ -425,11 +425,9 @@ const AlertEpisodeDocs: FunctionComponent<
                 )}
               </li>
               <li>
-                <strong>
-                  {translator.translateText("Default Team/User Assignment:")}
-                </strong>{" "}
+                <strong>{translator.translateText("Episode Owners:")}</strong>{" "}
                 {translator.translateText(
-                  "Grouping rules can also specify default team or user ownership for episodes. This determines who is responsible for the episode even if on-call policies aren't configured.",
+                  "Grouping rules can name Episode Owners: people and teams who become owners of every episode the rule opens, and are notified like any other owner.",
                 )}
               </li>
               <li>

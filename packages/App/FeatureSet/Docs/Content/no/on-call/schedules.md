@@ -86,7 +86,7 @@ Mens de er borte:
 
 Velg i stedet noen under **Hvem dekker?**, så får den personen alle varslene deres fra alle vaktplaner og alle retningslinjer, i stedet for at rotasjonen tar vaktene deres.
 
-Fravær som legges til på denne måten, gjelder for alle vaktretningslinjer. Det står under **Vakttjeneste** > **Brukeroverstyringer**, der du kan slette det for å få dem tilbake tidligere. For å hoppe over noen i bare én retningslinje legger du til overstyringen på den retningslinjens side **Brukeroverstyringer** og lar **Hvem dekker?** være som det er.
+Fravær som legges til på denne måten, gjelder for alle vaktretningslinjer. Det står under **Vakttjeneste** > **Avansert** > **Brukeroverstyringer**, der du kan slette det for å få dem tilbake tidligere. For å hoppe over noen i bare én retningslinje legger du til overstyringen på den retningslinjens side **Brukeroverstyringer** og lar **Hvem dekker?** være som det er. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
 
 Via API-et hopper en brukeroverstyring (`/api/on-call-duty-policy-user-override`) som opprettes uten `routeAlertsToUserId`, over personen i `overrideUserId` fra `startsAt` til `endsAt`.
 
@@ -121,4 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [Eskaleringsregler](/docs/on-call/escalation-rules): La et nivå i en vaktretningslinje varsle denne vaktplanen.
 - [Tidslinje for vaktplaner](/docs/on-call/schedule-timeline): Se alle vaktplanene side om side, med hull i dekningen.
 - [Kalenderfeeder](/docs/on-call/calendar-feeds): Få vakter inn i Google Kalender, Outlook eller Apple Kalender.
+- [Personlige vaktregler](/docs/notifications/on-call-rules): Bestem hvordan et varsel når deg mens du har vakt.
 :::

@@ -110,7 +110,7 @@ const BUILT_IN_TRIGGERS: Array<ComponentMetadata> = Components.filter(
   },
 );
 
-// On Create, On Update and On Delete of every model a workflow can use.
+// On Create, On Update, On Create or Update and On Delete of every model a workflow can use.
 const DATABASE_TRIGGERS: Array<ComponentMetadata> = Entities.flatMap(
   (modelType: { new (): BaseModel }): Array<ComponentMetadata> => {
     return BaseModelComponent.getComponents(new modelType()).filter(
@@ -193,8 +193,8 @@ describe("every trigger's Testing it says Run Workflow works while the workflow 
         return component.id;
       });
 
-    // On Create, On Update and On Delete.
-    expect(incidentTriggers).toHaveLength(3);
+    // On Create, On Update, On Create or Update and On Delete.
+    expect(incidentTriggers).toHaveLength(4);
     expect(ids).toEqual(expect.arrayContaining(incidentTriggers));
     expect(DATABASE_TRIGGERS.length).toBeGreaterThan(30);
   });

@@ -6,6 +6,7 @@ Runbook 是可重複使用的應變程序：一份由手動步驟和自動步驟
 - [撰寫 Runbook](/docs/runbooks/authoring): 建立 Runbook 並撰寫其步驟。
 - [Runbook 規則](/docs/runbooks/rules): 在新的事件、警示和維護事件上啟動 Runbook。
 - [執行 Runbook](/docs/runbooks/running): 啟動一次執行，完成並核准其步驟，或取消它。
+- [Runbook 觸發器](/docs/runbooks/triggers): 依排程執行 Runbook，或從其他工具透過其 Webhook URL 執行。
 - [Runbook 代理程式](/docs/runbooks/agents): 安裝在您自己的基礎架構中執行指令碼的 Runner。
 :::
 
@@ -73,6 +74,8 @@ HTTP 和 AI 步驟在 OneUptime Worker 上執行。JavaScript、Bash、SSH 和 K
 | **執行操作手冊** | 事件、警示或排定維護事件的 **運行手冊** 頁面 | 該事件、警示或排定維護事件 |
 | **Run Now** | Runbook 的 **概覽** 頁面 | 無：一次臨時執行 |
 | 自動修復規則 | 請參閱 [AI SRE](/docs/ai/ai-sre) | 事件或警示 |
+| Runbook 的排程 | Runbook 的 **觸發器** 頁面，請參閱 [Runbook 觸發器](/docs/runbooks/triggers#依排程執行) | 無：一次無人看管的執行 |
+| 對 Runbook Webhook URL 的呼叫 | Runbook 的 **觸發器** 頁面，請參閱 [Runbook 觸發器](/docs/runbooks/triggers#呼叫-webhook) | 無：執行會保留呼叫傳送的值 |
 
 如果 Runbook 在 **設定** 頁面上關閉了 **執行此操作手冊** 開關，以上任何方式都不會啟動它。已經開始的執行會繼續進行。
 
@@ -86,6 +89,7 @@ Runbook 位於 **產品** 下的 **儀表板與自動化** 群組中。
 | Runbook 的 **步驟** | 撰寫步驟並調整順序，然後選擇 **Save Steps** 。 |
 | Runbook 的 **概覽** | 查看最近的執行和結果，並點選 **Run Now** 。 |
 | Runbook 的 **執行次數** | 該 Runbook 的所有執行，可依狀態或開始日期篩選。 |
+| Runbook 的 **觸發器** | 依[排程](/docs/runbooks/triggers#依排程執行)執行，或從其他工具透過其 [Webhook URL](/docs/runbooks/triggers#呼叫-webhook) 執行。 |
 | Runbook 的 **擁有者** | 新增對它負責的人員和團隊。 |
 | Runbook 的 **設定** | 在不刪除 Runbook 的情況下關閉 **執行此操作手冊** 。 |
 | **運行手冊 → 執行次數** | 專案中所有 Runbook 的所有執行。 |
