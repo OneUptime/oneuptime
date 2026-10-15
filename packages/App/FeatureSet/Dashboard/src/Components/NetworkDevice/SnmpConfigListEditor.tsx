@@ -643,7 +643,7 @@ const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
       </div>
 
       {props.error && (
-        <div className="mt-2 text-sm text-red-400">{props.error}</div>
+        <div className="mt-2 text-sm text-red-600">{props.error}</div>
       )}
     </div>
   );

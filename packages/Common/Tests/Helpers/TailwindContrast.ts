@@ -50,6 +50,10 @@ export const TAILWIND_COLOURS: Record<string, string> = {
   "red-50": "#fef2f2",
   "red-600": "#dc2626",
   "red-700": "#b91c1c",
+  "emerald-50": "#ecfdf5",
+  "emerald-600": "#059669",
+  "emerald-700": "#047857",
+  "emerald-800": "#065f46",
 };
 
 // What WCAG AA asks of text smaller than 18px (or 14px bold).

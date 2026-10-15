@@ -392,7 +392,7 @@ const AddProbeModal: FunctionComponent<ComponentProps> = (
             />
           ) : (
             <span className="relative mt-1.5 flex h-2 w-2 flex-shrink-0">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75"></span>
+              <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-500 opacity-75 motion-safe:animate-ping"></span>
               <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-500"></span>
             </span>
           )}

@@ -317,6 +317,23 @@ describe("the probe fields, for a project with no probe of its own", () => {
     },
   );
 
+  /*
+   * A device's own Settings (Edit Polling) picks its probe from the same
+   * list, with the same way to add one - and no longer throws on a probe row
+   * without a name, which blanked the whole page.
+   */
+  test("a device's Settings picks its probe from the same list, with the same link", () => {
+    const code: string = readPage("View/Settings.tsx");
+
+    expect(code).toContain("getGroupedProbeDropdownOptions(probes, {");
+    expect(code).toContain("text: ADD_PROBE_LINK_TEXT,");
+    expect(code).toContain(
+      "url: getNetworkQuickActionRoute(NetworkQuickAction.AddProbe)",
+    );
+    expect(code).toContain("useRefreshProbesOnFocus(setProbes);");
+    expect(code).not.toContain("Probe name or id is missing");
+  });
+
   test("the words are translation keys", () => {
     const en: Record<string, unknown> = JSON.parse(
       fs.readFileSync(
