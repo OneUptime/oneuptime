@@ -1,8 +1,8 @@
 import { MigrationName1739209832500 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1739209832500-MigrationName";
 import {
   KEEP_CHANNEL_NAME_PREFIX_UPDATE,
-  KeepChannelNamePrefixOfRulesWithoutOne1802200000000,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1802200000000-KeepChannelNamePrefixOfRulesWithoutOne";
+  KeepChannelNamePrefixOfRulesWithoutOne1802250000000,
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1802250000000-KeepChannelNamePrefixOfRulesWithoutOne";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import NotificationRuleEventType from "../../../../Types/Workspace/NotificationRules/EventType";
 import WorkspaceChannelName from "../../../../Utils/Workspace/WorkspaceChannelName";
@@ -35,7 +35,7 @@ import { QueryRunner } from "typeorm";
  */
 
 const MIGRATION_NAME: string =
-  "KeepChannelNamePrefixOfRulesWithoutOne1802200000000";
+  "KeepChannelNamePrefixOfRulesWithoutOne1802250000000";
 
 type MigrationClass = new () => {
   up: (queryRunner: QueryRunner) => Promise<void>;
@@ -67,13 +67,13 @@ function registeredNames(): Array<string> {
   );
 }
 
-describe("KeepChannelNamePrefixOfRulesWithoutOne1802200000000", () => {
+describe("KeepChannelNamePrefixOfRulesWithoutOne1802250000000", () => {
   test("is registered once, under the name its class carries", () => {
-    expect(new KeepChannelNamePrefixOfRulesWithoutOne1802200000000().name).toBe(
+    expect(new KeepChannelNamePrefixOfRulesWithoutOne1802250000000().name).toBe(
       MIGRATION_NAME,
     );
     expect(SchemaMigrations).toContain(
-      KeepChannelNamePrefixOfRulesWithoutOne1802200000000,
+      KeepChannelNamePrefixOfRulesWithoutOne1802250000000,
     );
     expect(
       registeredNames().filter((name: string): boolean => {
@@ -108,7 +108,7 @@ describe("KeepChannelNamePrefixOfRulesWithoutOne1802200000000", () => {
   test("up() runs the one UPDATE, with no parameters", async () => {
     expect(
       await recordQueries(
-        KeepChannelNamePrefixOfRulesWithoutOne1802200000000,
+        KeepChannelNamePrefixOfRulesWithoutOne1802250000000,
         "up",
       ),
     ).toEqual([
@@ -119,7 +119,7 @@ describe("KeepChannelNamePrefixOfRulesWithoutOne1802200000000", () => {
   test("down() changes nothing", async () => {
     expect(
       await recordQueries(
-        KeepChannelNamePrefixOfRulesWithoutOne1802200000000,
+        KeepChannelNamePrefixOfRulesWithoutOne1802250000000,
         "down",
       ),
     ).toEqual([]);

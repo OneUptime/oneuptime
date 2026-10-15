@@ -196,10 +196,10 @@ Hvert sted som viser en enhet — listen Devices, en lokasjons Devices-side, ove
 | --- | --- | --- |
 | **Stale** | Ingen polling er forsøkt på godt over enhetens intervall. | Kontroller at enhetens sonde er online og henger med flåten sin. |
 | **No probe** | Enheten polles av en sonde, men har ingen, eller pollingen er slått av. | Tildel en sonde som kan nå den; ingenting poller den før det. |
-| **No monitor** | Enheten bruker [overstyringen med bundet monitor](#overstyringen-med-bundet-monitor), og ingenting er bundet. | Bind en monitor, eller bytt den tilbake til polling med sonde. |
+| **Ingen overvåking** | Enheten bruker [overstyringen med bundet monitor](#overstyringen-med-bundet-monitor), og ingenting er bundet. | Bind en monitor, eller bytt den tilbake til polling med sonde. |
 | **SNMP failing** | Oppe på ping, men det siste SNMP-walket feilet. | Kontroller påloggingsinformasjonen, SNMP-agenten eller en ACL. |
 
-Listen **Devices** har et filter **SNMP** med tre verdier: **OK** (det siste walket lyktes), **Failing** (det siste walket feilet) og **Not configured** (bare ping, ingen påloggingsinformasjon eller aldri pollet). "Hvilke enheter har påloggingsinformasjon som har sluttet å virke" er ett klikk unna. Listens kolonne **Interfaces (Up / Down)** viser **No SNMP** i stedet for `0 / 0` for en enhet som pinges og aldri walkes: null fungerende porter ville vært en annen påstand, og en feil påstand.
+Listen **Devices** har et filter **SNMP** med tre verdier: **OK** (det siste walket lyktes), **Failing** (det siste walket feilet) og **Not configured** (bare ping, ingen påloggingsinformasjon eller aldri pollet). "Hvilke enheter har påloggingsinformasjon som har sluttet å virke" er ett klikk unna. Listens kolonne **Interfaces (Up / Down)** viser **Ingen SNMP** i stedet for `0 / 0` for en enhet som pinges og aldri walkes: null fungerende porter ville vært en annen påstand, og en feil påstand.
 
 ## SNMP-påloggingsinformasjon og påloggingsprofiler
 
@@ -261,7 +261,7 @@ Noe utstyr kan ingen sonde nå eller pinge på en nyttig måte: en enhet bak en 
 | **Sonde** | Standard. Pinges av den tildelte sonden etter dens tidsplan, og walkes via SNMP når den har påloggingsinformasjon. |
 | **Bound monitor** | Statusen til en eksisterende monitor er denne enhetens status. |
 
-Å bytte en enhet til **Bound monitor** stopper pollingen av den. Sonden, intervallet og pollingbryteren forsvinner fra kortet **Polling & Data Collection**, enhetens gamle pollingresultater slettes, og statusen kommer fra monitoren du binder. Det er valgfritt å binde en: til du gjør det, viser enheten **Venter**, merket med **No monitor**.
+Å bytte en enhet til **Bound monitor** stopper pollingen av den. Sonden, intervallet og pollingbryteren forsvinner fra kortet **Polling & Data Collection**, enhetens gamle pollingresultater slettes, og statusen kommer fra monitoren du binder. Det er valgfritt å binde en: til du gjør det, viser enheten **Venter**, merket med **Ingen overvåking**.
 
 Å bytte tilbake til **Sonde** gjenoppretter pollingen og ber om en sonde. En monitor som var bundet, forblir bundet og fortsetter å varsle; den bestemmer bare ikke lenger enhetens status.
 
@@ -533,7 +533,7 @@ Med SNMP slått på ber trinnet **SNMP-påloggingsinformasjon** om settene med p
 Klikk på **Start skanning**. Sonden skanner området og rapporterer hvor mange verter den skannet og hvor mange som svarte: hvor mange som svarte på SNMP, eller, ved en skanning med bare ping, hvor mange som svarte på ping.
 
 ### Importer det den fant
-Klikk på **Review Results** på den ferdige skanningen, merk enhetene du vil ha, og klikk på **Import Selected**.
+Klikk på **Review Results** på skanningen, velg vertene som skal importeres, og klikk på **Neste**. Velg hvor ofte de sjekkes og om hver får en monitor, og importer dem så; se [Import av det en skanning fant](#import-av-det-en-skanning-fant).
 :::
 
 | Felt | Beskrivelse | Påkrevd |
@@ -589,9 +589,19 @@ Hver vert en skanning finner, importeres som en sondepollet enhet, med skanninge
 - Verter som svarte på SNMP, importeres med adressen som svarte som vertsnavn, navnet valgt som beskrevet nedenfor, og påloggingsinformasjonen som svarte, så en v3-skanning importerer enheter som er klare for v3-walk og begynner å samle inn grensesnitt og inventar med en gang.
 - Verter som svarte på ping, men ikke på SNMP — hver vert en [skanning med bare ping](#skanninger-med-bare-ping) finner, og vertene en SNMP-skanning ikke kunne identifisere — importeres uten påloggingsinformasjon. Sonden pinger dem etter tidsplanen deres; legg til påloggingsinformasjon senere, på enheten eller som en profil på den eller lokasjonen, så begynner den samme sonden også å walke dem.
 
-Enheter som allerede er registrert, flagges og hoppes over. Bind bare en [Ping](/docs/monitor/ping-monitor)- eller [IP](/docs/monitor/ip-monitor)-monitor til en importert enhet hvis du vil ha den monitorens hendelser; for en flåte er en [varslingspolicy](#varslingspolicyer) som regel det bedre svaret.
+En vert som allerede er registrert som enhet, er merket **Allerede lagt til** og importeres aldri to ganger. Polling gir hver importert enhet en status; for å få vite når en går ned, gir du den en monitor: velg **Én overvåking for hver enhet** når du importerer, eller la en [varslingspolicy](#varslingspolicyer) gi én til hver enhet den dekker.
 
-Når en skanning fant SNMP-verter, tilbyr **Review Results** **Bruk hver SNMP-verts produsentmal ved første polling (anbefalt)**, slått på som standard: hver importert SNMP-enhet får [produsentmalen](#produsentenes-helsemaler) som passer til det første walket rapporterer, helse-OID-ene og SNMP-tabellene, akkurat som enheter en automatisk importregel henter inn. En enhet der produsenten ikke har noen mal, blir stående som den er. Slå av bryteren for en batch som skal starte uten.
+Når vertene du importerer, omfatter SNMP-verter, tilbyr trinnet **Overvåking** i importen bryteren **Bruk hver SNMP-verts produsentmal ved første polling (anbefalt)**, slått på som standard: hver importert SNMP-enhet får [produsentmalen](#produsentenes-helsemaler) som passer til det første walket rapporterer, helse-OID-ene og SNMP-tabellene, akkurat som enheter en automatisk importregel henter inn. En enhet der produsenten ikke har noen mal, blir stående som den er. Slå av bryteren for en batch som skal starte uten.
+
+### Import av det en skanning fant
+
+**Review Results** åpner skanningens verter, de som er funnet så langt hvis den fortsatt kjører, i en dialog som importerer dem i tre trinn:
+
+1. Trinnet **Velg enheter** viser hver vert under navnet enheten får, med adressen og produsenten; alle verter som ikke er lagt til ennå, er valgt fra start. Søk etter navn, DNS-navn, adresse eller produsent, eller skriv inn et subnett (`10.48.11.0/24`) eller et oktettområde (`10.48.11-12.0-255`) for å vise vertene i det. **Svar** (**SNMP** eller **Ingen SNMP**) og **Navn** (**Med navn** eller **Bare adresse**) snevrer inn listen ytterligere. Avmerkingsboksen over listen velger eller fjerner alle viste verter, på alle sider, og bare de valgte vertene listen viser, importeres.
+2. Trinnet **Overvåking** spør med **Sjekk hvert** hvor ofte skanningens sonde sjekker enhetene, som blir hver enhets **Polling Interval (Minutes)**, og hvem som får vite det når en går ned. **Bare status** importerer dem med en status og uten monitor. **Én overvåking for hver enhet** gir hver en nettverksenhetsmonitor fra malen du velger under **Overvåkingsmal**, og viser før importen hva hver av malens kontroller utløser: en hendelse, et varsel eller bare monitorens status. Når noen verter bare svarte på ping, er en kontroll som leser et SNMP-walk, merket **Bare SNMP-enheter**: de vertene pinges, men walkes ikke, før de har SNMP-påloggingsinformasjon. Malen **Network device alert pack (recommended)** tilbys først, og et prosjekt som ikke har den ennå, får den når du importerer. Sammendraget ved siden av valgene sier hva importen vil opprette, også hvor mange enheter abonnementet ditt ikke har plass til å overvåke.
+3. Trinnet **Importer** teller enheter og monitorer hver for seg, etter hvert som hver opprettes, finnes fra før eller mislykkes. Til slutt lenker det til det som ble opprettet, og viser under årsaken hver vert det ikke importerte, og hver enhet det importerte uten monitoren sin. Et nytt forsøk prøver bare de mislykkede vertene igjen og oppretter aldri noe to ganger. **Stopp importen** stopper etter verten som importeres nå, og beholder det som ble opprettet.
+
+Importen kjører på serveren og handler på dine vegne: hver enhet og hver monitor opprettes med dine tillatelser, og det du ikke har lov til å opprette, vises med årsaken. Du kan lukke dialogen når som helst: skanningens rad viser hvor langt importen har kommet, og **Vis fremdrift** åpner den igjen. **Importer flere enheter** begynner på nytt med vertene som er igjen. Én import tar opptil 5 000 verter; importer en større skanning i deler, etter subnett eller etter hva vertene svarte på. Et prosjekts importer kjører én om gangen: en som bestilles mens en annen kjører, venter på den.
 
 ### Slik får oppdagede enheter navn
 
@@ -646,6 +656,8 @@ Et navn blir bare bedre: en enhet beholder navnet når DNS-oppføringen endres, 
 ### Importer automatisk med automatiske importregler
 
 Å gå gjennom hver skanning for hånd skalerer ikke forbi de første delnettene. **Nettverk → Regler → Auto Import Rules** er der du skriver ned importen én gang: en regel sier hvilke oppdagede verter den gjør krav på (et IP-område, og valgfrie mønstre for systemnavn, beskrivelse og `sysObjectID`) og eventuelt hvilken monitormal og hvilken [OID Collection Template](#oid-collection-templates) enhetene den importerer, får. En regel som er merket som unntak, gjør ikke krav på noe og nedlegger veto mot de andre: slik skjæres skrivere og telefoner ut av en bred delnettsregel.
+
+I en regel bestemmer **Sjekk hvert** hvor ofte skanningens sonde poller hver enhet regelen importerer, slik **Sjekk hvert** gjør når du importerer fra **Review Results**; tomt er det hvert 5. minutt. En regel som også importerer verter som bare svarte på ping, gir også dem monitormalen sin: sonden pinger dem, så malens kontroller av om en enhet er oppe, og av trapene den sender, virker for dem med en gang, og kontrollene som leser et SNMP-walk, så snart enheten har påloggingsinformasjon.
 
 Regler har ingen egen tidsplan og trenger ingen. Aktiverte regler kjører av seg selv mot hver skannings resultater etter hvert som de kommer, inkludert delresultatene en lang skanning laster opp mens den fortsatt pågår, så verter importeres innen ett minutt etter at de er funnet i stedet for på slutten av området. Slå på **Repeat this scan** på en discovery-skanning, så blir paret en fast ordning: skanningen skanner området sitt på nytt med intervallet ditt, og hver nye vert den finner, importeres uten at noen trykker på noe.
 
@@ -972,7 +984,7 @@ Enhetens oversikt har et kort **Connected to** som navngir svitsjen, porten og V
 En enhet viser **Venter** så lenge ingenting har rapportert om den ennå. Les tillegget ved siden av statusen:
 
 - **No probe**: tildel en sonde, eller slå **Polling Enabled** på igjen. Ingenting poller enheten før du gjør det.
-- **No monitor**: enheten har [overstyringen med bundet monitor](#overstyringen-med-bundet-monitor) uten noe bundet. Bind en monitor, eller bruk **Switch to Probe Polling** slik at sonden pinger den.
+- **Ingen overvåking**: enheten har [overstyringen med bundet monitor](#overstyringen-med-bundet-monitor) uten noe bundet. Bind en monitor, eller bruk **Switch to Probe Polling** slik at sonden pinger den.
 - Ingen tillegg i det hele tatt: enheten har en sonde og venter på første polling. I en stor flåte deler en sonde ut et begrenset antall enheter per syklus, så den første pollingen kan ta lengre tid enn enhetens intervall.
 
 Hvis en enhet med bare ping blir stående som Venter i timevis mens enheter med påloggingsinformasjon på den samme sonden går fint, sjekk den sondens versjon. En sonde fra før polling med ping først kan ikke pinge en enhet, og å gi den en enhet uten påloggingsinformasjon ville fått den til å walke med en standard-community og rapportere en frisk enhet som Down. Derfor holder serveren tilbake enheter med bare ping fra en gammel sonde og logger én advarsel per batch som navngir sonden og hvor mange enheter den holdt tilbake. De enhetene blir stående som Venter, synlig ventende og aldri feilaktig Down, til sonden oppgraderes; da rapporterer de ved neste syklus uten at noe annet må gjøres.
@@ -1009,7 +1021,9 @@ Hvis enheten står bak en ikke-administrert svitsj eller en hub, lærer den admi
 :::
 
 :::details Bare noen av de oppdagede enhetene ble importert
-Kjøringsrapporten svarer på det, i dialogen som åpnes når en kjøring er ferdig, ikke i en logg. En kjøring som stoppet ved batchgrensen, sier det og navngir det som gjenstår: trykk på **Run Rule** igjen, så fortsetter den der den stoppet. En kjøring som ble ferdig, men gjorde krav på færre verter enn du forventet, sier hvor resten ble av: stoppet av en unntaksregel, allerede registrert på den adressen, eller ikke truffet av regelens kriterier.
+En import fra **Review Results** svarer på dette i sitt siste trinn: hver vert den ikke importerte, og hver enhet den importerte uten monitoren sin, står under årsaken, og et nytt forsøk prøver bare de mislykkede vertene igjen. For å se den senere klikker du på **Review Results** på skanningen og så på **Vis resultater**.
+
+For en automatisk importregel svarer kjøringsrapporten på det, i dialogen som åpnes når en kjøring er ferdig, ikke i en logg. En kjøring som stoppet ved batchgrensen, sier det og navngir det som gjenstår: trykk på **Run Rule** igjen, så fortsetter den der den stoppet. En kjøring som ble ferdig, men gjorde krav på færre verter enn du forventet, sier hvor resten ble av: stoppet av en unntaksregel, allerede registrert på den adressen, eller ikke truffet av regelens kriterier.
 
 Når enhetene er der, men ikke monitorene: enheter og monitorer er separat arbeid, så en regel som fikk monitormalen sin etter at enhetene ble importert, rapporterer ingen importerte enheter og bare opprettede monitorer. Det er regelen som gjør nøyaktig det arbeidet som gjensto, ikke en mislykket import; se [Importer automatisk med automatiske importregler](#importer-automatisk-med-automatiske-importregler).
 :::

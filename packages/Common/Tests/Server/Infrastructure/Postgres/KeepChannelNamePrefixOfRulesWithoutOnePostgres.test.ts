@@ -1,4 +1,4 @@
-import { KeepChannelNamePrefixOfRulesWithoutOne1802200000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1802200000000-KeepChannelNamePrefixOfRulesWithoutOne";
+import { KeepChannelNamePrefixOfRulesWithoutOne1802250000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1802250000000-KeepChannelNamePrefixOfRulesWithoutOne";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import NotificationRuleEventType from "../../../../Types/Workspace/NotificationRules/EventType";
@@ -270,7 +270,7 @@ describePostgres(
 
     async function up(): Promise<void> {
       await runInSchema(async (queryRunner: QueryRunner) => {
-        await new KeepChannelNamePrefixOfRulesWithoutOne1802200000000().up(
+        await new KeepChannelNamePrefixOfRulesWithoutOne1802250000000().up(
           queryRunner,
         );
       });

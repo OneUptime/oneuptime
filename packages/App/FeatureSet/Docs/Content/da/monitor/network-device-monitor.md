@@ -196,10 +196,10 @@ Hvert sted, der viser en enhed — listen Devices, en lokations Devices-side, ov
 | --- | --- | --- |
 | **Stale** | Der er ikke forsøgt nogen polling i et godt stykke længere end enhedens interval. | Kontrollér, at enhedens sonde er online og følger med sin flåde. |
 | **No probe** | Enheden polles af en sonde, men har ingen, eller dens polling er slået fra. | Tildel en sonde, der kan nå den; indtil da poller intet den. |
-| **No monitor** | Enheden bruger [tilsidesættelsen med bundet monitor](#tilsidesættelsen-med-bundet-monitor), og intet er bundet. | Bind en monitor, eller skift den tilbage til polling med sonde. |
+| **Ingen overvågning** | Enheden bruger [tilsidesættelsen med bundet monitor](#tilsidesættelsen-med-bundet-monitor), og intet er bundet. | Bind en monitor, eller skift den tilbage til polling med sonde. |
 | **SNMP failing** | Oppe på ping, men det seneste SNMP-walk fejlede. | Kontrollér loginoplysningerne, SNMP-agenten eller en ACL. |
 
-Listen **Devices** har et filter **SNMP** med tre værdier: **OK** (det seneste walk lykkedes), **Failing** (det seneste walk fejlede) og **Not configured** (kun ping, ingen loginoplysninger eller aldrig pollet). "Hvilke enheder har loginoplysninger, der er holdt op med at virke" er ét klik væk. Listens kolonne **Interfaces (Up / Down)** viser **No SNMP** i stedet for `0 / 0` for en enhed, der pinges og aldrig walkes: nul fungerende porte ville være en anden påstand, og en forkert.
+Listen **Devices** har et filter **SNMP** med tre værdier: **OK** (det seneste walk lykkedes), **Failing** (det seneste walk fejlede) og **Not configured** (kun ping, ingen loginoplysninger eller aldrig pollet). "Hvilke enheder har loginoplysninger, der er holdt op med at virke" er ét klik væk. Listens kolonne **Interfaces (Up / Down)** viser **Ingen SNMP** i stedet for `0 / 0` for en enhed, der pinges og aldrig walkes: nul fungerende porte ville være en anden påstand, og en forkert.
 
 ## SNMP-loginoplysninger og loginprofiler
 
@@ -261,7 +261,7 @@ Noget udstyr kan ingen sonde nå eller pinge meningsfuldt: en enhed bag en NAT, 
 | **Sonde** | Standarden. Pinges af den tildelte sonde efter dens tidsplan og walkes via SNMP, når den har loginoplysninger. |
 | **Bound monitor** | En eksisterende monitors status er denne enheds status. |
 
-At skifte en enhed til **Bound monitor** stopper pollingen af den. Sonden, intervallet og pollingkontakten forsvinder fra kortet **Polling & Data Collection**, enhedens gamle pollingresultater ryddes, og dens status kommer fra den monitor, du binder. Det er valgfrit at binde en: indtil du gør det, viser enheden **Afventer**, markeret med **No monitor**.
+At skifte en enhed til **Bound monitor** stopper pollingen af den. Sonden, intervallet og pollingkontakten forsvinder fra kortet **Polling & Data Collection**, enhedens gamle pollingresultater ryddes, og dens status kommer fra den monitor, du binder. Det er valgfrit at binde en: indtil du gør det, viser enheden **Afventer**, markeret med **Ingen overvågning**.
 
 At skifte tilbage til **Sonde** genopretter pollingen og beder om en sonde. En monitor, der var bundet, forbliver bundet og bliver ved med at advare; den bestemmer bare ikke længere enhedens status.
 
@@ -533,7 +533,7 @@ Med SNMP slået til beder trinnet **SNMP-loginoplysninger** om de sæt loginoply
 Klik på **Start scanning**. Sonden scanner området og rapporterer, hvor mange værter den scannede, og hvor mange der svarede: hvor mange der svarede på SNMP, eller, ved en scanning kun med ping, hvor mange der svarede på ping.
 
 ### Importér det, den fandt
-Klik på **Review Results** på den færdige scanning, markér de enheder, du vil have, og klik på **Import Selected**.
+Klik på **Review Results** på scanningen, vælg de værter, der skal importeres, og klik på **Næste**. Vælg, hvor ofte de tjekkes, og om hver får en monitor, og importér dem så; se [Import af det, en scanning fandt](#import-af-det-en-scanning-fandt).
 :::
 
 | Felt | Beskrivelse | Påkrævet |
@@ -589,9 +589,19 @@ Hver vært, en scanning finder, importeres som en sonde-pollet enhed med scannin
 - Værter, der svarede på SNMP, importeres med den adresse, der svarede, som værtsnavn, navnet valgt som beskrevet nedenfor, og de loginoplysninger, der svarede, så en v3-scanning importerer enheder, der er klar til v3-walk og straks begynder at indsamle interfaces og inventar.
 - Værter, der svarede på ping, men ikke på SNMP — hver vært, en [scanning kun med ping](#scanninger-kun-med-ping) finder, og de værter, en SNMP-scanning ikke kunne identificere — importeres uden loginoplysninger. Sonden pinger dem efter deres tidsplan; tilføj loginoplysninger senere, på enheden eller som en profil på den eller dens lokation, og den samme sonde begynder også at walke dem.
 
-Enheder, der allerede er registreret, markeres og springes over. Bind kun en [Ping](/docs/monitor/ping-monitor)- eller [IP](/docs/monitor/ip-monitor)-monitor til en importeret enhed, hvis du vil have den monitors hændelser; til en flåde er en [advarselspolitik](#advarselspolitikker) som regel det bedre svar.
+En vært, der allerede er registreret som enhed, er markeret **Allerede tilføjet** og importeres aldrig to gange. Polling giver hver importeret enhed en status; for at høre, når en går ned, giver du den en monitor: vælg **En overvågning for hver enhed**, når du importerer, eller lad en [advarselspolitik](#advarselspolitikker) give én til hver enhed, den dækker.
 
-Når en scanning fandt SNMP-værter, tilbyder **Review Results** **Anvend hver SNMP-værts producentskabelon ved første polling (anbefalet)**, slået til som standard: hver importeret SNMP-enhed får den [producentskabelon](#producenternes-tilstandsskabeloner), der passer til det, dens første walk rapporterer, dens tilstands-OID'er og SNMP-tabeller, ligesom enheder, som en auto-importregel henter ind. En enhed, hvis producent ikke har nogen skabelon, forbliver, som den er. Slå kontakten fra for en batch, der skal starte uden.
+Når de værter, du importerer, omfatter SNMP-værter, tilbyder trinnet **Overvågning** i importen kontakten **Anvend hver SNMP-værts producentskabelon ved første polling (anbefalet)**, slået til som standard: hver importeret SNMP-enhed får den [producentskabelon](#producenternes-tilstandsskabeloner), der passer til det, dens første walk rapporterer, dens tilstands-OID'er og SNMP-tabeller, ligesom enheder, som en auto-importregel henter ind. En enhed, hvis producent ikke har nogen skabelon, forbliver, som den er. Slå kontakten fra for en batch, der skal starte uden.
+
+### Import af det, en scanning fandt
+
+**Review Results** åbner scanningens værter, dem den har fundet indtil nu, hvis den stadig kører, i en dialog, der importerer dem i tre trin:
+
+1. Trinnet **Vælg enheder** viser hver vært under det navn, dens enhed får, med dens adresse og producent; alle værter, der endnu ikke er tilføjet, er markeret fra start. Søg efter navn, DNS-navn, adresse eller producent, eller skriv et subnet (`10.48.11.0/24`) eller et oktetområde (`10.48.11-12.0-255`) for at vise værterne i det. **Svar** (**SNMP** eller **Ingen SNMP**) og **Navn** (**Navngivne** eller **Kun adresse**) indsnævrer listen yderligere. Afkrydsningsfeltet over listen markerer eller fjerner markeringen af alle viste værter på alle sider, og kun de markerede værter, listen viser, importeres.
+2. Trinnet **Overvågning** spørger med **Tjek hvert**, hvor ofte scanningens sonde tjekker enhederne, hvilket bliver hver enheds **Polling Interval (Minutes)**, og hvem der hører om det, når en går ned. **Kun status** importerer dem med en status og uden monitor. **En overvågning for hver enhed** giver hver en netværksenhedsmonitor fra den skabelon, du vælger under **Overvågningsskabelon**, og viser før importen, hvad hver af skabelonens kontroller udløser: en hændelse, en advarsel eller kun monitorens status. Når nogle værter kun svarede på ping, er en kontrol, der læser et SNMP-walk, markeret **Kun SNMP-enheder**: de værter pinges, men walkes ikke, før de har SNMP-loginoplysninger. Skabelonen **Network device alert pack (recommended)** tilbydes først, og et projekt, der ikke har den endnu, får den, når du importerer. Oversigten ved siden af valgene siger, hvad importen vil oprette, også hvor mange enheder dit abonnement ikke har plads til at overvåge.
+3. Trinnet **Importér** tæller enheder og monitorer hver for sig, efterhånden som hver oprettes, findes i forvejen eller mislykkes. Til sidst linker det til det, det oprettede, og viser under årsagen hver vært, det ikke importerede, og hver enhed, det importerede uden dens monitor. Et nyt forsøg prøver kun de mislykkede værter igen og opretter aldrig noget to gange. **Stop importen** stopper efter den vært, der importeres nu, og beholder det, der blev oprettet.
+
+Importen kører på serveren og handler på dine vegne: hver enhed og hver monitor oprettes med dine tilladelser, og det, du ikke må oprette, vises med årsagen. Du kan lukke dialogen når som helst: scanningens række viser, hvor langt importen er nået, og **Se forløb** åbner den igen. **Importér flere enheder** starter forfra med de værter, der er tilbage. Én import tager op til 5.000 værter; importér en større scanning i dele, efter subnet eller efter, hvad værterne svarede på. Et projekts importer kører én ad gangen: en, der bestilles, mens en anden kører, venter på den.
 
 ### Sådan navngives fundne enheder
 
@@ -646,6 +656,8 @@ Et navn bliver kun bedre: en enhed beholder sit navn, når dens DNS-post ændres
 ### Importér automatisk med auto-importregler
 
 At gennemgå hver scanning i hånden skalerer ikke ud over de første par subnet. **Netværk → Regler → Auto Import Rules** er der, hvor du skriver importen ned én gang: en regel siger, hvilke fundne værter den gør krav på (et IP-område og valgfrie mønstre for systemnavn, beskrivelse og `sysObjectID`), og eventuelt hvilken monitorskabelon og hvilken [OID Collection Template](#oid-collection-templates) de enheder, den importerer, får. En regel, der er markeret som undtagelse, gør ikke krav på noget og nedlægger veto mod de andre: sådan skæres printere og telefoner ud af en bred subnetregel.
+
+I en regel bestemmer **Tjek hvert**, hvor ofte scanningens sonde poller hver enhed, reglen importerer, ligesom **Tjek hvert**, når du importerer fra **Review Results**; tomt er det hvert 5. minut. En regel, der også importerer værter, som kun svarede på ping, giver også dem sin monitorskabelon: sonden pinger dem, så skabelonens kontroller af, om en enhed er oppe, og af de traps, den sender, virker for dem med det samme, og dens kontroller, der læser et SNMP-walk, så snart enheden har loginoplysninger.
 
 Regler har ingen egen tidsplan og behøver ingen. Aktiverede regler kører af sig selv mod hver scannings resultater, efterhånden som de kommer, inklusive de delresultater, en lang scanning uploader, mens den stadig kører, så værter importeres inden for et minut efter at være fundet i stedet for ved slutningen af området. Slå **Repeat this scan** til på en discovery-scanning, og parret bliver en stående ordning: scanningen scanner sit område igen med dit interval, og hver ny vært, den finder, importeres, uden at nogen trykker på noget.
 
@@ -972,7 +984,7 @@ Enhedens oversigt har et kort **Connected to**, der nævner switchen, porten og 
 En enhed viser **Afventer**, så længe intet har rapporteret om den endnu. Læs tilføjelsen ved siden af statussen:
 
 - **No probe**: tildel en sonde, eller slå **Polling Enabled** til igen. Intet poller enheden, før du gør det.
-- **No monitor**: enheden er på [tilsidesættelsen med bundet monitor](#tilsidesættelsen-med-bundet-monitor) uden noget bundet. Bind en monitor, eller brug **Switch to Probe Polling** for at få dens sonde til at pinge den.
+- **Ingen overvågning**: enheden er på [tilsidesættelsen med bundet monitor](#tilsidesættelsen-med-bundet-monitor) uden noget bundet. Bind en monitor, eller brug **Switch to Probe Polling** for at få dens sonde til at pinge den.
 - Ingen tilføjelse overhovedet: enheden har en sonde og venter på sin første polling. På en stor flåde deler en sonde et begrænset antal enheder ud pr. cyklus, så den første polling kan tage længere tid end enhedens interval.
 
 Hvis en enhed kun med ping bliver ved med at stå som Afventer i timevis, mens enheder med loginoplysninger på den samme sonde er fine, så tjek sondens version. En sonde fra før polling med ping først kan ikke pinge en enhed, og at give den en enhed uden loginoplysninger ville få den til at walke med et standard-community og rapportere en sund enhed som Down. Derfor holder serveren enheder kun med ping tilbage fra en gammel sonde og logger én advarsel pr. batch, der nævner sonden, og hvor mange enheder den holdt tilbage. De enheder bliver ved med at stå som Afventer, synligt ventende og aldrig fejlagtigt Down, indtil sonden opgraderes; så rapporterer de ved næste cyklus uden at skulle gøre andet.
@@ -1009,7 +1021,9 @@ Hvis enheden står bag en ikke-administreret switch eller en hub, lærer den adm
 :::
 
 :::details Kun nogle af de fundne enheder blev importeret
-Kørselsrapporten besvarer det, i den dialog, der åbner, når en kørsel er færdig, ikke i en log. En kørsel, der stoppede ved sin batchgrænse, siger det og nævner, hvad der er tilbage: tryk på **Run Rule** igen, og den fortsætter, hvor den stoppede. En kørsel, der blev færdig, men gjorde krav på færre værter, end du forventede, siger, hvor resten blev af: nedlagt veto af en undtagelsesregel, allerede registreret på den adresse eller ikke matchet af reglens kriterier.
+En import fra **Review Results** besvarer det i sit sidste trin: hver vært, den ikke importerede, og hver enhed, den importerede uden dens monitor, står under årsagen, og et nyt forsøg prøver kun de mislykkede værter igen. For at se den senere skal du klikke på **Review Results** på scanningen og derefter på **Se resultater**.
+
+For en auto-importregel besvarer kørselsrapporten det, i den dialog, der åbner, når en kørsel er færdig, ikke i en log. En kørsel, der stoppede ved sin batchgrænse, siger det og nævner, hvad der er tilbage: tryk på **Run Rule** igen, og den fortsætter, hvor den stoppede. En kørsel, der blev færdig, men gjorde krav på færre værter, end du forventede, siger, hvor resten blev af: nedlagt veto af en undtagelsesregel, allerede registreret på den adresse eller ikke matchet af reglens kriterier.
 
 Når enhederne alle er der, men monitorerne ikke er: enheder og monitorer er adskilt arbejde, så en regel, der fik sin monitorskabelon, efter dens enheder blev importeret, rapporterer ingen importerede enheder og kun oprettede monitorer. Det er reglen, der udfører præcis det arbejde, der var tilbage, ikke en mislykket import; se [Importér automatisk med auto-importregler](#importér-automatisk-med-auto-importregler).
 :::

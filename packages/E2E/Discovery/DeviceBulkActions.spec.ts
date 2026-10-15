@@ -81,6 +81,18 @@ function dialog(page: Page): Locator {
   return page.getByRole("dialog").last();
 }
 
+// "Import 3 devices", once the step has read the project, to its finish.
+async function importThree(page: Page): Promise<void> {
+  const submit: Locator = page.getByRole("button", {
+    name: "Import 3 devices",
+  });
+  await expect(submit).toBeEnabled();
+  await submit.click();
+  await expect(page.getByTestId("discovery-import-progress-title")).toHaveText(
+    "Import finished",
+  );
+}
+
 async function waitForResult(page: Page): Promise<Locator> {
   await expect(page.getByText("Completed", { exact: true })).toBeVisible({
     timeout: 30000,
@@ -382,6 +394,8 @@ test("an import from Review Results applies each SNMP host's vendor template, an
     .getByRole("row")
     .filter({ hasText: "Datacenter routers" });
   await scanRow.getByRole("button", { name: /Review/ }).click();
+  // The switch is on the import's second step, with how the devices are monitored.
+  await page.getByRole("button", { name: "Next", exact: true }).click();
 
   const vendorSwitch: Locator = page.getByTestId(
     "discovered-device-apply-vendor-templates",
@@ -395,7 +409,7 @@ test("an import from Review Results applies each SNMP host's vendor template, an
     path: path.join(screenshots, "discovery-review-vendor-templates.png"),
   });
 
-  await page.getByRole("button", { name: /Import Selected/ }).click();
+  await importThree(page);
   await expect
     .poll(async () => {
       return (await created(page)).length;
@@ -419,13 +433,14 @@ test("an import from Review Results applies each SNMP host's vendor template, an
     .filter({ hasText: "Datacenter routers" })
     .getByRole("button", { name: /Review/ })
     .click();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
   const switchAgain: Locator = page.getByTestId(
     "discovered-device-apply-vendor-templates",
   );
   await expect(switchAgain).toHaveAttribute("aria-checked", "true");
   await switchAgain.click();
   await expect(switchAgain).toHaveAttribute("aria-checked", "false");
-  await page.getByRole("button", { name: /Import Selected/ }).click();
+  await importThree(page);
   await expect
     .poll(async () => {
       return (await created(page)).length;

@@ -39,10 +39,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  */
 export const KEEP_CHANNEL_NAME_PREFIX_UPDATE: string = `UPDATE "WorkspaceNotificationRule" SET "notificationRule" = jsonb_set("notificationRule", '{newChannelTemplateName}', to_jsonb('oneuptime-' || lower("eventType") || '-')) WHERE jsonb_typeof("notificationRule") = 'object' AND (CASE jsonb_typeof("notificationRule"->'shouldCreateNewChannel') WHEN 'boolean' THEN ("notificationRule"->>'shouldCreateNewChannel')::boolean WHEN 'string' THEN "notificationRule"->>'shouldCreateNewChannel' <> '' WHEN 'number' THEN ("notificationRule"->>'shouldCreateNewChannel')::numeric <> 0 WHEN 'object' THEN true WHEN 'array' THEN true ELSE false END) AND (NOT ("notificationRule" ? 'newChannelTemplateName') OR "notificationRule"->'newChannelTemplateName' IN ('null'::jsonb, '""'::jsonb, 'false'::jsonb, '0'::jsonb))`;
 
-export class KeepChannelNamePrefixOfRulesWithoutOne1802200000000
+export class KeepChannelNamePrefixOfRulesWithoutOne1802250000000
   implements MigrationInterface
 {
-  public name: string = "KeepChannelNamePrefixOfRulesWithoutOne1802200000000";
+  public name: string = "KeepChannelNamePrefixOfRulesWithoutOne1802250000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(KEEP_CHANNEL_NAME_PREFIX_UPDATE);

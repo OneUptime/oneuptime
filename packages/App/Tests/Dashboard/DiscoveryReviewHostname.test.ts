@@ -49,7 +49,8 @@ import path from "path";
  * The App suite runs in a plain Node environment, so the dialog cannot be
  * mounted and read. Restating the row's rule in a local helper and testing
  * THAT would be circular — it would pass with the row deleted. So instead the
- * row's own name/second-line expressions are LIFTED OUT OF Discovery.tsx by
+ * row's own name/second-line expressions are LIFTED OUT OF the host list
+ * (DiscoveredHostTable.tsx) by
  * `rowNameSource()` and COMPILED, then run against the real shared builders.
  * Every test below that says "the row" is running the page's own code:
  *
@@ -70,11 +71,12 @@ import path from "path";
  *
  * A scan can now ask for its hosts to be named by the first label of their
  * hostname. Every naming function takes the scan's naming choice as a
- * REQUIRED argument, so the row, the import, the collision retry and the Ping
- * monitor name each have to be handed one — and this file checks that the
- * row is handed the SAME scan the import builds from, that the row shows the
- * short name the device will be created with, and that the full name the
- * short one was cut from is still readable on the row's second line.
+ * REQUIRED argument, so the row, the import and its collision retry each
+ * have to be handed one — and this file checks that the row is drawn from
+ * the SAME scan, read with the same naming choice, that the server's import
+ * builds from, that the row shows the short name the device will be created
+ * with, and that the full name the short one was cut from is still readable
+ * on the row's second line.
  *
  * NETBIOS NAMES (issues #3677, #4518)
  *
@@ -95,6 +97,12 @@ import path from "path";
 const FULL_NAMES: DiscoveredHostNaming = { useShortDeviceNames: false };
 const SHORT_NAMES: DiscoveredHostNaming = { useShortDeviceNames: true };
 
+/*
+ * The import dialog's host list (Network > Discovery > Review Results),
+ * where every row is drawn. The name the row shows is the name the server's
+ * import creates the device with: DiscoveryImportRunner builds it from the
+ * same scan, read with the same naming choice (see the final describe).
+ */
 const DISCOVERY_PAGE: string = path.join(
   __dirname,
   "..",
@@ -102,9 +110,10 @@ const DISCOVERY_PAGE: string = path.join(
   "FeatureSet",
   "Dashboard",
   "src",
-  "Pages",
+  "Components",
   "NetworkDevice",
-  "Discovery.tsx",
+  "DiscoveryImport",
+  "DiscoveredHostTable.tsx",
 );
 
 /*
@@ -133,7 +142,7 @@ function readSource(): string {
 function readEnglishLocale(): Record<string, string> {
   return JSON.parse(
     fs.readFileSync(
-      path.join(DISCOVERY_PAGE, "..", "..", "..", "Locales", "en.json"),
+      path.join(DISCOVERY_PAGE, "..", "..", "..", "..", "Locales", "en.json"),
       "utf8",
     ),
   );
@@ -161,6 +170,86 @@ function stripComments(source: string): string {
 function readCode(): string {
   return stripComments(readSource()).replace(/\s+/g, " ");
 }
+
+/*
+ * The other files the WYSIWYG contract runs through, now that the import is
+ * the server's (issue #4812): the runner that creates the devices, the
+ * auto-import engine whose scan select it reads with, and the dialog's
+ * fresh read of the scan.
+ */
+const COMMON_ROOT: string = path.join(__dirname, "..", "..", "..", "Common");
+const RUNNER_MODULE: string = path.join(
+  COMMON_ROOT,
+  "Server",
+  "Utils",
+  "NetworkDiscovery",
+  "DiscoveryImportRunner.ts",
+);
+const AUTO_IMPORT_ENGINE: string = path.join(
+  COMMON_ROOT,
+  "Server",
+  "Services",
+  "NetworkDeviceAutoImportRuleEngineService.ts",
+);
+const REVIEW_MODULE: string = path.join(
+  DISCOVERY_PAGE,
+  "..",
+  "DiscoveryImportReview.ts",
+);
+const DIALOG_MODULE: string = path.join(
+  DISCOVERY_PAGE,
+  "..",
+  "DiscoveryImportDialog.tsx",
+);
+
+const cachedFiles: Map<string, string> = new Map<string, string>();
+
+function readFile(file: string): string {
+  if (!cachedFiles.has(file)) {
+    cachedFiles.set(file, fs.readFileSync(file, "utf8"));
+  }
+
+  return cachedFiles.get(file)!;
+}
+
+const WHITESPACE: RegExp = /\s+/g;
+const TRAILING_COMMA: RegExp = /,$/;
+
+function readFileCode(file: string): string {
+  return stripComments(readFile(file)).replace(WHITESPACE, " ");
+}
+
+function readRunnerCode(): string {
+  return readFileCode(RUNNER_MODULE);
+}
+
+// The PTR name, re-normalised where the row computes it.
+const PTR_NAME_NORMALISED: RegExp =
+  /normalizeReverseDnsName\(\s*entry\.dnsHostname\s*,?\s*\)/;
+
+// The runner's collision retry: the fallback name, from the host and the scan, created.
+const RUNNER_COLLISION_RETRY: RegExp =
+  /attempted\s*=\s*build\(\s*buildFallbackDeviceName\(\s*host\s*,\s*state\.scan\s*,?\s*\)\s*,?\s*\);\s*try\s*\{\s*created\s*=\s*await\s+NetworkDeviceService\.create\(/;
+
+// The device the runner builds, from the host and the scan it read.
+const RUNNER_BUILDS_FROM_SCAN: RegExp =
+  /buildNetworkDeviceFromDiscoveredHost\(\{[^}]*?host:\s*host\s*,\s*scan:\s*state\.scan\s*,?\s*\}\)/;
+
+// Every call that names a device.
+const NAMING_CALL: RegExp =
+  /\b(?:buildDeviceName|buildFallbackDeviceName)\(([^)]*)\)/g;
+
+const RUNNER_SCAN_SELECT_HAS_BUILDER_COLUMNS: RegExp =
+  /DISCOVERY_IMPORT_SCAN_SELECT[\s\S]*?=\s*\{[^}]*\.\.\.AUTO_IMPORT_SCAN_BUILDER_SELECT/;
+
+const BUILDER_SELECT_HAS_NAMING_CHOICE: RegExp =
+  /export const AUTO_IMPORT_SCAN_BUILDER_SELECT[\s\S]*?=\s*\{[^}]*\buseShortDeviceNames:\s*true\b/;
+
+const REVIEW_SELECT_HAS_NAMING_CHOICE: RegExp =
+  /export const DISCOVERY_REVIEW_SCAN_SELECT[\s\S]*?=\s*\{[^}]*\buseShortDeviceNames:\s*true\b/;
+
+const DIALOG_READS_WITH_REVIEW_SELECT: RegExp =
+  /ModelAPI\.getItem<NetworkDeviceDiscoveryScan>\(\{[^)]*?select:\s*DISCOVERY_REVIEW_SCAN_SELECT\b/;
 
 /*
  * THE ROW'S OWN NAMING CODE, READ OUT OF THE PAGE.
@@ -263,7 +352,7 @@ function rowNameSource(): RowNameSource {
 
   if (!match) {
     throw new Error(
-      "Discovery.tsx no longer computes `buildDeviceName(entry, <scan>)` into" +
+      "DiscoveredHostTable.tsx no longer computes `buildDeviceName(entry, <scan>)` into" +
         " a const before the discovered-host row's `return (`. The Review" +
         " dialog's name line is what issues #3529 and #3678 changed; if it" +
         " moved, move these tests with it rather than deleting them.",
@@ -380,7 +469,7 @@ let cachedRowNaming: RowNamingFunction | null = null;
  * by running the row's own statements, with the real shared builders injected.
  *
  * The parameter names are the page's own call names, so an alias-rename in
- * Discovery.tsx fails the extraction loudly instead of quietly.
+ * DiscoveredHostTable.tsx fails the extraction loudly instead of quietly.
  */
 function rowNamingFor(
   host: DiscoveredNetworkDevice,
@@ -865,7 +954,7 @@ describe("the Review dialog names hosts by their PTR record (issue #3529)", () =
 
 describe("the row's second line surfaces a PTR name the first line does not", () => {
   /*
-   * Every test here runs Discovery.tsx's own second-line expression — see
+   * Every test here runs the host list's own second-line expression — see
    * `rowNameSource` above. Inverting the row's gate, dropping the
    * normalisation, or deleting the computation each fails at least one of
    * them, which is the whole reason the block is lifted rather than restated.
@@ -1921,7 +2010,7 @@ describe("the Review dialog names hosts by their own hostname first (issue #4518
   });
 });
 
-describe("Discovery.tsx wires the row to the shared recipe", () => {
+describe("the host list wires the row to the shared recipe", () => {
   /*
    * What execution above cannot see: that the computed values are actually
    * RENDERED, and that the old inline rule is gone. Matched against the
@@ -1938,28 +2027,27 @@ describe("Discovery.tsx wires the row to the shared recipe", () => {
      * stopped working (an unterminated block comment, a changed regex), the
      * whole describe would go green against the prose alone.
      *
-     * "dhcp-pool.corp.example.com" sits inside the comment that separates the
-     * create's `catch` from the fallback assignment, which is the one comment
-     * the retry assertion at the bottom of this file depends on being removed.
+     * "attacker-chosen bytes" sits inside the comment over the re-normalised
+     * PTR name, one statement of the very block the tests above execute.
      *
      * This couples two assertions to two comment WORDINGS: reword either
-     * comment in Discovery.tsx and this test fails for a reason unrelated to
+     * comment in the host list and this test fails for a reason unrelated to
      * behaviour. That is deliberate — it fails loudly, in the direction that
      * cannot let a broken stripper through silently.
      */
     const code: string = readCode();
 
-    expect(readSource()).toContain("WYSIWYG");
-    expect(code).not.toContain("WYSIWYG");
-    expect(readSource()).toContain("dhcp-pool.corp.example.com");
-    expect(code).not.toContain("dhcp-pool.corp.example.com");
+    expect(readSource()).toContain("character for character");
+    expect(code).not.toContain("character for character");
+    expect(readSource()).toContain("attacker-chosen bytes");
+    expect(code).not.toContain("attacker-chosen bytes");
   });
 
   test("the stripper also removes line comments, and spares URLs", () => {
     /*
      * The test above only proves the BLOCK-comment branch, because nothing
      * banned or matched by this file currently lives in a `//` comment on
-     * Discovery.tsx. The day one does, the stripper's second regex becomes
+     * the host list. The day one does, the stripper's second regex becomes
      * load-bearing with nothing having ever checked it — so it is checked
      * here, on a synthetic input, along with the `[^:]` guard that is the only
      * reason it does not eat the rest of a line containing "https://".
@@ -1976,14 +2064,15 @@ describe("Discovery.tsx wires the row to the shared recipe", () => {
     expect(stripped).toContain('"https://oneuptime.com/docs"');
   });
 
-  test("the page imports the shared name builders", () => {
+  test("the list and the import use the shared name builders", () => {
     const code: string = readCode();
 
     expect(code).toMatch(
       /import\s*\{[^}]*\bbuildDeviceName\b[^}]*\}\s*from\s*"Common\/Utils\/NetworkDiscovery\/DiscoveredDeviceBuilder"/,
     );
-    expect(code).toMatch(
-      /import\s*\{[^}]*\bbuildFallbackDeviceName\b[^}]*\}\s*from\s*"Common\/Utils\/NetworkDiscovery\/DiscoveredDeviceBuilder"/,
+    // The collision retry is the import's, on the server.
+    expect(readRunnerCode()).toMatch(
+      /import\s*\{[^}]*\bbuildFallbackDeviceName\b[^}]*\}\s*from\s*"\.\.\/\.\.\/\.\.\/Utils\/NetworkDiscovery\/DiscoveredDeviceBuilder"/,
     );
     expect(code).toMatch(
       /import\s*\{[^}]*\bnormalizeReverseDnsName\b[^}]*\}\s*from\s*"Common\/Utils\/NetworkDiscovery\/ReverseDnsNameUtil"/,
@@ -2074,9 +2163,13 @@ describe("Discovery.tsx wires the row to the shared recipe", () => {
      */
     const identifier: string = rowNameSource().displayNameIdentifier;
 
+    /*
+     * The class is a string, or a template literal that opens with
+     * `truncate` (a row already added is drawn dimmer).
+     */
     expect(readCode()).toMatch(
       new RegExp(
-        `<div\\s+className="truncate[^"]*"\\s+title=\\{${identifier}\\}\\s*>\\s*\\{${identifier}\\}\\s*</div>`,
+        `<div\\s+className=(?:"truncate[^"]*"|\\{\`truncate[^\`]*\`\\})\\s+title=\\{${identifier}\\}\\s*>\\s*\\{${identifier}\\}\\s*</div>`,
       ),
     );
   });
@@ -2149,9 +2242,7 @@ describe("Discovery.tsx wires the row to the shared recipe", () => {
     const source: RowNameSource = rowNameSource();
 
     // Normalised at the point of render, not trusted from the jsonb column.
-    expect(source.statements).toContain(
-      "normalizeReverseDnsName(entry.dnsHostname)",
-    );
+    expect(source.statements).toMatch(PTR_NAME_NORMALISED);
 
     expect(source.secondaryIdentifiers).toHaveLength(2);
 
@@ -2221,95 +2312,70 @@ describe("Discovery.tsx wires the row to the shared recipe", () => {
     );
   });
 
+  /*
+   * THE IMPORT NAMES BY THE SAME SCAN. Since the import moved to the server
+   * (issue #4812), the device a ticked row becomes is built by
+   * DiscoveryImportRunner, not in this file - so what has to hold is that
+   * the runner builds every device, and every collision retry, from the
+   * scan, read with the same naming choice the row is drawn with. The
+   * runner's own suite executes it (DiscoveryImportRunner.test.ts); this
+   * pins the shape the WYSIWYG contract (issue #3678) rests on.
+   */
   test("a failed create is retried once under the address-qualified name", () => {
     /*
-     * The wildcard-PTR collision, pinned in the source because the App suite
-     * cannot run importSelectedDevices. What has to hold is the SHAPE: the
-     * fallback name is assigned inside the create's catch and a second create
-     * follows it. `buildFallbackDeviceName` appearing anywhere on the page
-     * would not prove any of that — an import that computed the name and
-     * never retried would satisfy a bare identifier match.
+     * The wildcard-PTR collision: the fallback name is built from the host
+     * and the scan, and created; a bare identifier match would be satisfied
+     * by an import that computed the name and never retried.
      */
-    expect(readCode()).toMatch(
-      /catch\s*\(\s*\w+\s*\)\s*\{\s*device\.name\s*=\s*buildFallbackDeviceName\(\s*entry\s*,\s*\w+\s*,?\s*\);\s*try\s*\{\s*await\s+ModelAPI\.create/,
-    );
+    expect(readRunnerCode()).toMatch(RUNNER_COLLISION_RETRY);
   });
 
-  test("the row, the import, the retry and the Ping monitor all name by the scan under review", () => {
-    /*
-     * Issue #3678's WYSIWYG contract, pinned where the App suite can see it.
-     * The naming argument is required, so the compiler already insists each
-     * call passes SOMETHING — but `{}` compiles too, and would show
-     * "wb-0660-kds01" on the row while the retry created
-     * "wb-0660-kds01.wbhq.com (10.18.167.31)". So every naming argument on the
-     * page has to be the very identifier the row passes, and that identifier
-     * has to be the component's review state — the scan the fresh read put
-     * there — rather than a local literal.
-     */
-    const code: string = readCode();
-    const naming: string = rowNameSource().namingIdentifier;
+  test("the row and the import name by the scan, read with its naming choice", () => {
+    const runner: string = readRunnerCode();
 
-    expect(code).toMatch(
-      new RegExp(`const\\s*\\[\\s*${naming}\\s*,\\s*set\\w+\\s*\\]\\s*=`),
+    // The row is named by the scan it is handed: the dialog's fresh read.
+    expect(readCode()).toMatch(
+      new RegExp(
+        `const\\s+${rowNameSource().namingIdentifier}\\s*:\\s*NetworkDeviceDiscoveryScan\\s*=\\s*props\\.scan\\s*;`,
+      ),
     );
 
-    // The device the import builds.
-    const build: RegExpMatchArray | null = code.match(
-      /buildNetworkDeviceFromDiscoveredHost\(\{\s*projectId:[^}]*?host:\s*entry\s*,\s*scan:\s*(\w+)\s*,?\s*\}\)/,
-    );
-
-    expect(build?.[1]).toBe(naming);
-
-    // The collision retry.
-    const retry: RegExpMatchArray | null = code.match(
-      /catch\s*\(\s*\w+\s*\)\s*\{\s*device\.name\s*=\s*buildFallbackDeviceName\(\s*entry\s*,\s*(\w+)\s*,?\s*\);/,
-    );
-
-    expect(retry?.[1]).toBe(naming);
-
-    // The Ping monitor's name.
-    const monitor: RegExpMatchArray | null = code.match(
-      /const\s+monitorSubjectName\s*(?::[^=]*)?=\s*device\.name\s*&&\s*device\.name\s*!==\s*entry\.ipAddress\s*\?\s*buildFallbackDeviceName\(\s*entry\s*,\s*(\w+)\s*,?\s*\)/,
-    );
-
-    expect(monitor?.[1]).toBe(naming);
+    // The device the import builds, with the same scan.
+    expect(runner).toMatch(RUNNER_BUILDS_FROM_SCAN);
 
     /*
-     * And no naming call anywhere on the page passes anything else — including
-     * one added later that none of the patterns above know about.
+     * And no naming call in the runner passes anything else — including one
+     * added later that the patterns above do not know about.
      */
     const namingCalls: Array<string> = Array.from(
-      code.matchAll(
-        /\b(?:buildDeviceName|buildFallbackDeviceName)\(([^)]*)\)/g,
-      ),
+      runner.matchAll(NAMING_CALL),
       (call: RegExpMatchArray): string => {
-        return call[1]!.replace(/\s+/g, "").replace(/,$/, "");
+        return call[1]!.replace(WHITESPACE, "").replace(TRAILING_COMMA, "");
       },
     );
 
-    expect(namingCalls.length).toBeGreaterThanOrEqual(3);
+    expect(namingCalls.length).toBeGreaterThanOrEqual(2);
 
     for (const args of namingCalls) {
-      expect(args).toBe(`entry,${naming}`);
+      expect(["host,state.scan", "host,data.scan"]).toContain(args);
     }
+
+    // The scan the runner reads carries the naming choice.
+    expect(runner).toMatch(RUNNER_SCAN_SELECT_HAS_BUILDER_COLUMNS);
+    expect(readFile(AUTO_IMPORT_ENGINE)).toMatch(
+      BUILDER_SELECT_HAS_NAMING_CHOICE,
+    );
   });
 
   test("the scan the dialog reviews is fetched with its naming choice", () => {
     /*
-     * A column the fresh read does not select arrives as undefined, which the
-     * builder reads as "full names" — so a scan set to short names would
-     * silently preview and import full ones. The rendered test in
-     * Common/Tests/App/Dashboard/DiscoveryReviewInventoryRefresh pins the
-     * exact select; this is the source-level half, next to the naming tests
-     * that depend on it.
+     * A column the fresh read does not select arrives as undefined, which
+     * the builder reads as "full names" — so a scan set to short names would
+     * silently preview full ones while the import created short ones.
      */
-    const code: string = readCode();
-
-    expect(code).toMatch(
-      /ModelAPI\.getItem<NetworkDeviceDiscoveryScan>\(\{[^)]*?select:\s*\{[^}]*\buseShortDeviceNames:\s*true\b[^}]*\}/,
-    );
-    expect(code).toMatch(
-      /selectMoreFields=\{\{[^}]*\buseShortDeviceNames:\s*true\b[^}]*\}\}/,
+    expect(readFile(REVIEW_MODULE)).toMatch(REVIEW_SELECT_HAS_NAMING_CHOICE);
+    expect(readFileCode(DIALOG_MODULE)).toMatch(
+      DIALOG_READS_WITH_REVIEW_SELECT,
     );
   });
 });

@@ -6,21 +6,22 @@ import {
   summarizeScope,
   toScope,
 } from "../../../Components/NetworkDevice/AlertPolicyScopeFormFields";
-import PingMonitorSeedIds from "../../../Components/NetworkDevice/PingMonitorSeedIds";
+import PingMonitorSeedIds, {
+  SeedIdsPurpose,
+} from "../../../Components/NetworkDevice/PingMonitorSeedIds";
+import { findOrCreateRecommendedTemplate } from "../../../Components/NetworkDevice/RecommendedMonitorTemplate";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import NetworkAlertPolicy from "Common/Models/DatabaseModels/NetworkAlertPolicy";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceRole from "Common/Models/DatabaseModels/NetworkDeviceRole";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Gray500, Green, Red } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
-import { JSONArray, JSONObject } from "Common/Types/JSON";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import NetworkAlertPolicyScope from "Common/Types/NetworkDevice/NetworkAlertPolicyScope";
 import ObjectID from "Common/Types/ObjectID";
@@ -251,65 +252,6 @@ const AlertPolicyScopeEditor: FunctionComponent<AlertPolicyScopeEditorProps> = (
   );
 };
 
-/*
- * The recommended template, found by its marker or created. Returns its id.
- *
- * Listed with a narrow select and matched client-side rather than searched
- * by description on the server: a project holds a handful of Network Device
- * templates, and the marker check is one string test per row.
- */
-async function findOrCreateRecommendedTemplate(data: {
-  projectId: ObjectID;
-  seedIds: MonitorCriteriaSeedIds;
-}): Promise<ObjectID> {
-  const templates: ListResult<MonitorTemplate> =
-    await ModelAPI.getList<MonitorTemplate>({
-      modelType: MonitorTemplate,
-      query: {
-        projectId: data.projectId,
-        monitorType: MonitorType.NetworkDevice,
-      },
-      select: {
-        _id: true,
-        templateDescription: true,
-      },
-      sort: { createdAt: SortOrder.Ascending },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-    });
-
-  const existingTemplate: MonitorTemplate | null =
-    NetworkAlertPolicyBootstrapUtil.findRecommendedTemplate(templates.data);
-
-  if (existingTemplate?.id) {
-    return existingTemplate.id;
-  }
-
-  const response: HTTPResponse<
-    JSONObject | JSONArray | MonitorTemplate | Array<MonitorTemplate>
-  > = await ModelAPI.create<MonitorTemplate>({
-    model: NetworkAlertPolicyBootstrapUtil.buildRecommendedMonitorTemplate({
-      projectId: data.projectId,
-      incidentSeverityId: data.seedIds.defaultIncidentSeverityId,
-      alertSeverityId: data.seedIds.defaultAlertSeverityId,
-      onlineMonitorStatusId: data.seedIds.onlineMonitorStatusId,
-      offlineMonitorStatusId: data.seedIds.offlineMonitorStatusId,
-    }),
-    modelType: MonitorTemplate,
-  });
-
-  const createdTemplateId: ObjectID | undefined =
-    (response.data as MonitorTemplate | undefined)?.id ?? undefined;
-
-  if (!createdTemplateId) {
-    throw new BadDataException(
-      "The recommended monitor template was created but the server did not return its id. Refresh the page and try again; the template will be found rather than created twice.",
-    );
-  }
-
-  return createdTemplateId;
-}
-
 export interface RecommendedPolicyEmptyStateProps {
   onCreated: () => void;
 }
@@ -390,7 +332,7 @@ const RecommendedPolicyEmptyState: FunctionComponent<
          * until all four ids resolve.
          */
         const seedIds: MonitorCriteriaSeedIds =
-          await PingMonitorSeedIds.resolve();
+          await PingMonitorSeedIds.resolve(SeedIdsPurpose.RecommendedTemplate);
 
         const monitorTemplateId: ObjectID =
           await findOrCreateRecommendedTemplate({

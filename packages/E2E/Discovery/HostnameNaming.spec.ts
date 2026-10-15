@@ -11,8 +11,9 @@ import path from "path";
  * WB0024KDS05 only answer NetBIOS, and their reverse zone spells them
  * wb-0024-kds04.wbhq.com and wb-0024-kds05.wbhq.com; 10.16.42.52 answers
  * nothing. Review Results names each display by its own hostname with the
- * DNS name beside the address, and Import Selected creates exactly those
- * names, recording where each came from.
+ * DNS name beside the address, and the import creates exactly those names,
+ * recording where each came from: the fixture's import builds every device
+ * with the server's own builder, from the same scan (ImportFixture.js).
  */
 
 interface CreatedDevice {
@@ -56,6 +57,19 @@ async function openReview(page: Page): Promise<void> {
     .getByRole("button", { name: "Review Results" })
     .click();
   await expect(page.getByText("WB0024KDS04", { exact: true })).toBeVisible();
+}
+
+// Next, then Import: the dialog's two steps to an import.
+async function importAll(page: Page, count: number): Promise<void> {
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  const submit: Locator = page.getByRole("button", {
+    name: `Import ${count} devices`,
+  });
+  await expect(submit).toBeEnabled();
+  await submit.click();
+  await expect(page.getByTestId("discovery-import-progress-title")).toHaveText(
+    "Import finished",
+  );
 }
 
 // The line under a row's name: the address, then what else names it.
@@ -125,13 +139,13 @@ test("Review Results names each display by its hostname, with the DNS name besid
   expect(errors).toEqual([]);
 });
 
-test("Import Selected creates the hostnames the rows show, keeps the DNS names, and records where each name came from", async ({
+test("the import creates the hostnames the rows show, keeps the DNS names, and records where each name came from", async ({
   page,
 }: {
   page: Page;
 }) => {
   await openReview(page);
-  await page.getByRole("button", { name: /Import Selected/ }).click();
+  await importAll(page, 4);
 
   await expect
     .poll(async () => {

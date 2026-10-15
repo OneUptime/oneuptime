@@ -5,6 +5,16 @@ import {
 } from "Common/Utils/NetworkDiscovery/DiscoveryImportEligibility";
 import { normalizeDiscoveredHosts } from "Common/Utils/NetworkDiscovery/DiscoveredHostUtil";
 import {
+  DiscoveredHostNaming,
+  getDiscoveredHostDisplayName,
+  getDiscoveredHostFullName,
+  getDiscoveredHostNameSource,
+} from "Common/Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
+import { normalizeReverseDnsName } from "Common/Utils/NetworkDiscovery/ReverseDnsNameUtil";
+import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
+import SnmpVendorTemplateUtil from "Common/Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
+import { DeviceNameSource } from "Common/Types/NetworkDevice/DeviceNameSource";
+import {
   getGlobalTranslator,
   translateTemplate,
   translationKey,
@@ -52,6 +62,219 @@ export enum DiscoveredHostFilter {
   NoSnmp = "NoSnmp",
 }
 
+/*
+ * The second way a reviewer narrows a scan: by whether the host has a name
+ * at all (OneUptime issue #4813). The customer asked for four overlapping
+ * filters - has a hostname, has none, has a DNS name, address only - for
+ * one decision: "import the hosts I can tell apart, leave the anonymous
+ * ones". A host can carry a Windows name AND a DNS name, so the four
+ * overlapped and still had to be read together. One facet answers the
+ * decision; each row says where its name came from (its own name over SNMP
+ * or NetBIOS, or its DNS name), and the search finds any of them.
+ */
+export enum DiscoveredHostNameFilter {
+  // Every host.
+  Any = "Any",
+  // Named by something other than its address: SNMP, NetBIOS or DNS.
+  Named = "Named",
+  // Nothing named it: it imports under its address.
+  AddressOnly = "AddressOnly",
+}
+
+/*
+ * Everything that decides which hosts the dialog shows - and so which ticked
+ * hosts Import brings in. The bare DiscoveredHostFilter every caller used to
+ * pass still works: it is this query with only `answered` set.
+ */
+export interface DiscoveredHostQuery {
+  answered: DiscoveredHostFilter;
+  name?: DiscoveredHostNameFilter | undefined;
+  /*
+   * Text to find in a host's name, DNS name, address, vendor or
+   * description - or, when it is a subnet or an octet range such as
+   * 10.48.11.0/24 or 10.48.11-12.0-255, the hosts whose address is in it.
+   */
+  search?: string | undefined;
+  // Leave out hosts that are already devices.
+  hideAlreadyAdded?: boolean | undefined;
+  /*
+   * How the scan names its hosts, so a search matches the name the row
+   * shows (a short name, when the scan asks for short names).
+   */
+  naming?: DiscoveredHostNaming | undefined;
+}
+
+export type DiscoveredHostFilterInput =
+  | DiscoveredHostFilter
+  | DiscoveredHostQuery;
+
+export function toDiscoveredHostQuery(
+  filter: DiscoveredHostFilterInput | null | undefined,
+): DiscoveredHostQuery {
+  if (filter && typeof filter === "object") {
+    return filter;
+  }
+
+  return {
+    answered: typeof filter === "string" ? filter : DiscoveredHostFilter.All,
+  };
+}
+
+/*
+ * True when something other than the host's address names it. The name the
+ * dialog shows is the one its device gets, so a host "named" here is one
+ * whose device will not be called by its IP address.
+ */
+export function isNamedDiscoveredHost(
+  host: DiscoveredNetworkDevice | null | undefined,
+): boolean {
+  if (!host) {
+    return false;
+  }
+
+  const source: DeviceNameSource | undefined =
+    getDiscoveredHostNameSource(host);
+
+  return Boolean(source && source !== DeviceNameSource.Address);
+}
+
+export function matchesDiscoveredHostNameFilter(data: {
+  host: DiscoveredNetworkDevice;
+  name: DiscoveredHostNameFilter | null | undefined;
+}): boolean {
+  if (data.name === DiscoveredHostNameFilter.Named) {
+    return isNamedDiscoveredHost(data.host);
+  }
+
+  if (data.name === DiscoveredHostNameFilter.AddressOnly) {
+    return !isNamedDiscoveredHost(data.host);
+  }
+
+  return true;
+}
+
+/*
+ * Who makes a host, as the vendor templates tell it from its sysObjectID and
+ * sysDescr (a UniFi access point that answers with Net-SNMP's arc is
+ * Ubiquiti's) - the same answer the device's own page gives once it is
+ * imported. Undefined for a host that answered ping only, or a vendor the
+ * catalog does not name.
+ */
+export function getDiscoveredHostVendor(
+  host: DiscoveredNetworkDevice | null | undefined,
+): string | undefined {
+  const sysObjectId: string =
+    typeof host?.sysObjectId === "string" ? host.sysObjectId.trim() : "";
+
+  if (!sysObjectId) {
+    return undefined;
+  }
+
+  return SnmpVendorTemplateUtil.getVendorName({
+    sysObjectId: sysObjectId,
+    sysDescr: typeof host?.sysDescr === "string" ? host.sysDescr : undefined,
+  });
+}
+
+/*
+ * Everything a search can find a host by, lower-cased and joined: the name
+ * its row shows, the full name that was shortened, its DNS name, its
+ * address, its vendor and its description. Worked out once per host by the
+ * dialog, so typing in the search box never re-runs the naming rules over a
+ * whole scan per keystroke.
+ */
+const SEARCH_TEXT_CACHE: WeakMap<
+  DiscoveredNetworkDevice,
+  { short?: string | undefined; full?: string | undefined }
+> = new WeakMap();
+
+export function getDiscoveredHostSearchText(
+  host: DiscoveredNetworkDevice,
+  naming?: DiscoveredHostNaming | undefined,
+): string {
+  /*
+   * Cached per host object and naming choice: the dialog's hosts are read
+   * once per review, and a scan of thousands is searched on every keystroke.
+   */
+  const isShort: boolean = naming?.useShortDeviceNames === true;
+  const cached: { short?: string | undefined; full?: string | undefined } =
+    (host && typeof host === "object" && SEARCH_TEXT_CACHE.get(host)) || {};
+  const cachedText: string | undefined = isShort ? cached.short : cached.full;
+
+  if (cachedText !== undefined) {
+    return cachedText;
+  }
+
+  const text: string = buildDiscoveredHostSearchText(host, naming);
+
+  if (host && typeof host === "object") {
+    SEARCH_TEXT_CACHE.set(
+      host,
+      isShort ? { ...cached, short: text } : { ...cached, full: text },
+    );
+  }
+
+  return text;
+}
+
+function buildDiscoveredHostSearchText(
+  host: DiscoveredNetworkDevice,
+  naming?: DiscoveredHostNaming | undefined,
+): string {
+  const parts: Array<string> = [
+    String(host.ipAddress ?? ""),
+    getDiscoveredHostDisplayName(host, naming || {}),
+    getDiscoveredHostFullName(host),
+    normalizeReverseDnsName(host.dnsHostname) || "",
+    getDiscoveredHostVendor(host) || "",
+    typeof host.sysDescr === "string" ? host.sysDescr : "",
+  ];
+
+  return parts.join("\n").toLowerCase();
+}
+
+/*
+ * The search as a range of addresses, when it reads as one: a subnet in
+ * CIDR notation or an octet range, the two notations a scan target takes.
+ * A bare address does not - "10.48.11.3" is someone part-way through typing
+ * 10.48.11.31, and must keep matching it - and neither does a hostname with
+ * dashes in it, which never parses as a target.
+ */
+export function readSearchAsAddressRange(search: string): string | null {
+  const text: string = search.trim();
+
+  if (!text || !(text.includes("/") || text.includes("-"))) {
+    return null;
+  }
+
+  return ScanTargetUtil.isValid(text) ? text : null;
+}
+
+export function matchesDiscoveredHostSearch(data: {
+  host: DiscoveredNetworkDevice;
+  search: string | null | undefined;
+  naming?: DiscoveredHostNaming | undefined;
+  // The host's search text, when the caller worked it out already.
+  searchText?: string | undefined;
+}): boolean {
+  const search: string = (data.search || "").trim();
+
+  if (!search) {
+    return true;
+  }
+
+  const range: string | null = readSearchAsAddressRange(search);
+
+  if (range) {
+    return ScanTargetUtil.contains(range, String(data.host.ipAddress ?? ""));
+  }
+
+  const haystack: string =
+    data.searchText ?? getDiscoveredHostSearchText(data.host, data.naming);
+
+  return haystack.includes(search.toLowerCase());
+}
+
 /** Group sizes for the filter badges. */
 export interface DiscoveredHostCounts {
   all: number;
@@ -85,15 +308,49 @@ export function isPingOnlyDiscoveredHost(
 
 export function matchesDiscoveredHostFilter(data: {
   host: DiscoveredNetworkDevice;
-  filter: DiscoveredHostFilter;
+  filter: DiscoveredHostFilterInput;
+  // The host's search text, when the caller worked it out already.
+  searchText?: string | undefined;
+}): boolean {
+  const query: DiscoveredHostQuery = toDiscoveredHostQuery(data.filter);
+
+  if (query.hideAlreadyAdded && data.host?.isAlreadyRegistered) {
+    return false;
+  }
+
+  if (!matchesDiscoveredHostNameFilter({ host: data.host, name: query.name })) {
+    return false;
+  }
+
+  if (
+    !matchesDiscoveredHostSearch({
+      host: data.host,
+      search: query.search,
+      naming: query.naming,
+      searchText: data.searchText,
+    })
+  ) {
+    return false;
+  }
+
+  return matchesDiscoveredHostAnswered({
+    host: data.host,
+    answered: query.answered,
+  });
+}
+
+// The SNMP / No SNMP facet on its own: whether the host answered SNMP.
+export function matchesDiscoveredHostAnswered(data: {
+  host: DiscoveredNetworkDevice;
+  answered: DiscoveredHostFilter;
 }): boolean {
   const isPingOnly: boolean = isPingOnlyDiscoveredHost(data.host);
 
-  if (data.filter === DiscoveredHostFilter.NoSnmp) {
+  if (data.answered === DiscoveredHostFilter.NoSnmp) {
     return isPingOnly;
   }
 
-  if (data.filter === DiscoveredHostFilter.Snmp) {
+  if (data.answered === DiscoveredHostFilter.Snmp) {
     return !isPingOnly;
   }
 
@@ -142,7 +399,7 @@ export function isSelectedIpAddress(data: {
  */
 export function filterDiscoveredHosts(data: {
   hosts: Array<DiscoveredNetworkDevice>;
-  filter: DiscoveredHostFilter;
+  filter: DiscoveredHostFilterInput;
 }): Array<DiscoveredNetworkDevice> {
   return data.hosts.filter((host: DiscoveredNetworkDevice) => {
     return matchesDiscoveredHostFilter({ host: host, filter: data.filter });
@@ -176,7 +433,7 @@ export interface ShownDiscoveredHost {
  */
 export function getShownDiscoveredHosts(data: {
   hosts: Array<DiscoveredNetworkDevice>;
-  filter: DiscoveredHostFilter;
+  filter: DiscoveredHostFilterInput;
 }): Array<ShownDiscoveredHost> {
   const shown: Array<ShownDiscoveredHost> = [];
 
@@ -219,6 +476,148 @@ export function countDiscoveredHosts(
   }
 
   return counts;
+}
+
+/*
+ * The hosts a facet's buttons count: every host the REST of the view lets
+ * through - the other facet, the search, the already-added switch - so a
+ * button says how many hosts pressing it would show. A facet never narrows
+ * its own counts, which is what keeps every button but the pressed one from
+ * reading zero (the reason the counts were taken off the whole scan when
+ * the dialog had one facet and no search).
+ */
+export function getHostsCountedByFacet(data: {
+  hosts: Array<DiscoveredNetworkDevice>;
+  query: DiscoveredHostQuery;
+  facet: "answered" | "name";
+}): Array<DiscoveredNetworkDevice> {
+  const query: DiscoveredHostQuery =
+    data.facet === "answered"
+      ? { ...data.query, answered: DiscoveredHostFilter.All }
+      : { ...data.query, name: DiscoveredHostNameFilter.Any };
+
+  return filterDiscoveredHosts({ hosts: data.hosts, filter: query });
+}
+
+export interface DiscoveredHostNameCounts {
+  all: number;
+  named: number;
+  addressOnly: number;
+}
+
+export function countDiscoveredHostsByName(
+  hosts: Array<DiscoveredNetworkDevice>,
+): DiscoveredHostNameCounts {
+  const counts: DiscoveredHostNameCounts = {
+    all: hosts.length,
+    named: 0,
+    addressOnly: 0,
+  };
+
+  for (const host of hosts) {
+    if (isNamedDiscoveredHost(host)) {
+      counts.named = counts.named + 1;
+    } else {
+      counts.addressOnly = counts.addressOnly + 1;
+    }
+  }
+
+  return counts;
+}
+
+// The name facet's buttons, in English: looked up where they are drawn.
+export function getDiscoveredHostNameFilterLabel(
+  filter: DiscoveredHostNameFilter,
+): string {
+  if (filter === DiscoveredHostNameFilter.Named) {
+    return translationKey("Named");
+  }
+
+  if (filter === DiscoveredHostNameFilter.AddressOnly) {
+    return translationKey("Address only");
+  }
+
+  return translationKey("All");
+}
+
+export interface DiscoveredHostNameFilterOption {
+  label: string;
+  value: DiscoveredHostNameFilter;
+  count: number;
+}
+
+export function getDiscoveredHostNameFilterOptions(
+  hosts: Array<DiscoveredNetworkDevice>,
+  translator: Translator = getGlobalTranslator(),
+): Array<DiscoveredHostNameFilterOption> {
+  const counts: DiscoveredHostNameCounts = countDiscoveredHostsByName(hosts);
+
+  const countByFilter: Record<DiscoveredHostNameFilter, number> = {
+    [DiscoveredHostNameFilter.Any]: counts.all,
+    [DiscoveredHostNameFilter.Named]: counts.named,
+    [DiscoveredHostNameFilter.AddressOnly]: counts.addressOnly,
+  };
+
+  return [
+    DiscoveredHostNameFilter.Any,
+    DiscoveredHostNameFilter.Named,
+    DiscoveredHostNameFilter.AddressOnly,
+  ].map((filter: DiscoveredHostNameFilter) => {
+    const count: number = countByFilter[filter];
+
+    return {
+      label: `${translator.translateTerm(
+        getDiscoveredHostNameFilterLabel(filter),
+      )} (${count.toLocaleString("en-US")})`,
+      value: filter,
+      count: count,
+    };
+  });
+}
+
+/*
+ * Whether the view narrows the scan at all beyond the SNMP / No SNMP facet -
+ * the case where an empty list is the reader's filters, not the scan, and
+ * the dialog offers to clear them.
+ */
+export function isDiscoveredHostQueryNarrowed(
+  query: DiscoveredHostQuery,
+): boolean {
+  return Boolean(
+    (query.search || "").trim() ||
+      (query.name && query.name !== DiscoveredHostNameFilter.Any) ||
+      query.hideAlreadyAdded ||
+      query.answered !== DiscoveredHostFilter.All,
+  );
+}
+
+/*
+ * How many hosts are ticked across the whole scan, shown or not, and how
+ * many of those the view hides: "514 selected - 34 hidden by your filters
+ * will not be imported" is how a reviewer learns that Import brings in what
+ * they can see.
+ */
+export function countSelectedDiscoveredHosts(data: {
+  hosts: Array<DiscoveredNetworkDevice>;
+  filter: DiscoveredHostFilterInput;
+  selectedIpAddresses: Record<string, boolean>;
+}): { selected: number; hiddenSelected: number } {
+  const selected: number = getDiscoveredHostsToImport({
+    hosts: data.hosts,
+    filter: DiscoveredHostFilter.All,
+    selectedIpAddresses: data.selectedIpAddresses,
+  }).length;
+
+  const shownSelected: number = getDiscoveredHostsToImport({
+    hosts: data.hosts,
+    filter: data.filter,
+    selectedIpAddresses: data.selectedIpAddresses,
+  }).length;
+
+  return {
+    selected: selected,
+    hiddenSelected: Math.max(0, selected - shownSelected),
+  };
 }
 
 /**
@@ -486,12 +885,12 @@ export function getInitialSelection(
  *
  * Scoping the import to the active filter is the whole point of #3322. The
  * alternative — importing everything ticked, including hosts the filter has
- * hidden — would make "filter to SNMP, press Import Selected" quietly create
+ * hidden — would make "filter to SNMP, press Next, import" quietly create
  * the 2,890 ping-only devices the operator just filtered away, which is the
  * exact outcome the issue is asking to avoid. Nothing is lost by it either:
  * ticks on hidden hosts survive in state and come back with the filter, and
- * the submit button's count is computed from this same list, so the number on
- * the button always matches what the press will do.
+ * the count under the list and on the Import button is computed from this
+ * same list, so the number always matches what the press will do.
  *
  * Duplicate addresses collapse to one device. A single checkbox is keyed by
  * address and governs every row carrying it, so importing each row would
@@ -501,7 +900,7 @@ export function getInitialSelection(
  */
 export function getDiscoveredHostsToImport(data: {
   hosts: Array<DiscoveredNetworkDevice>;
-  filter: DiscoveredHostFilter;
+  filter: DiscoveredHostFilterInput;
   selectedIpAddresses: Record<string, boolean>;
 }): Array<DiscoveredNetworkDevice> {
   const seenIpAddresses: Set<string> = new Set<string>();
@@ -542,7 +941,7 @@ export function getDiscoveredHostsToImport(data: {
  */
 export function countSelectableShownHosts(data: {
   hosts: Array<DiscoveredNetworkDevice>;
-  filter: DiscoveredHostFilter;
+  filter: DiscoveredHostFilterInput;
 }): number {
   const seenIpAddresses: Set<string> = new Set<string>();
 
@@ -567,7 +966,7 @@ export function countSelectableShownHosts(data: {
  */
 export function areAllShownHostsSelected(data: {
   hosts: Array<DiscoveredNetworkDevice>;
-  filter: DiscoveredHostFilter;
+  filter: DiscoveredHostFilterInput;
   selectedIpAddresses: Record<string, boolean>;
 }): boolean {
   const selectableCount: number = countSelectableShownHosts({
@@ -602,7 +1001,7 @@ export function areAllShownHostsSelected(data: {
  */
 export function toggleSelectionForShownHosts(data: {
   hosts: Array<DiscoveredNetworkDevice>;
-  filter: DiscoveredHostFilter;
+  filter: DiscoveredHostFilterInput;
   selectedIpAddresses: Record<string, boolean>;
 }): Record<string, boolean> {
   const shouldClear: boolean = areAllShownHostsSelected(data);
