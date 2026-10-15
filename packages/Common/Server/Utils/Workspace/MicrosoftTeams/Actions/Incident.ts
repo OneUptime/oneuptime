@@ -1,4 +1,5 @@
 import { MicrosoftTeamsIncidentActionType } from "./ActionTypes";
+import MicrosoftTeamsIncidentMoreActions from "./IncidentMoreActions";
 import logger from "../../../Logger";
 import ObjectID from "../../../../../Types/ObjectID";
 import IncidentService from "../../../../Services/IncidentService";
@@ -79,7 +80,9 @@ export default class MicrosoftTeamsIncidentActions {
       data.actionType ===
         MicrosoftTeamsIncidentActionType.SubmitChangeIncidentState ||
       data.actionType === MicrosoftTeamsIncidentActionType.NewIncident ||
-      data.actionType === MicrosoftTeamsIncidentActionType.SubmitNewIncident
+      data.actionType === MicrosoftTeamsIncidentActionType.SubmitNewIncident ||
+      // The incident card's menu (…): Change Severity, Assign Role, ...
+      MicrosoftTeamsIncidentMoreActions.isAction(data.actionType)
     );
   }
 
@@ -101,6 +104,17 @@ export default class MicrosoftTeamsIncidentActions {
       databaseProps,
       turnContext,
     } = data;
+
+    if (MicrosoftTeamsIncidentMoreActions.isAction(actionType)) {
+      return await MicrosoftTeamsIncidentMoreActions.handle({
+        actionType: actionType,
+        actionValue: actionValue,
+        value: value,
+        projectId: projectId,
+        databaseProps: databaseProps,
+        turnContext: turnContext,
+      });
+    }
 
     if (actionType === MicrosoftTeamsIncidentActionType.AckIncident) {
       if (!actionValue) {

@@ -95,7 +95,14 @@ const PENDING_PRESSES: Partial<Record<SlackActionType, PendingPress>> = {
 
 // What a form does, the record it is on, and the button that opens it.
 interface FormPress {
-  does: "addNote" | "changeState" | "executeOnCallPolicy";
+  does:
+    | "addNote"
+    | "changeState"
+    | "executeOnCallPolicy"
+    | "changeSeverity"
+    | "assignRole"
+    | "pageSomeone"
+    | "editCustomFields";
   eventType: WorkspaceEventType;
   // The button's title as the message draws it, without its emoji.
   button: string;
@@ -131,6 +138,47 @@ const FORM_PRESSES: Partial<Record<SlackActionType, FormPress>> = {
     does: "executeOnCallPolicy",
     eventType: WorkspaceEventType.Incident,
     button: "Execute On-Call Policy",
+  },
+  // The incident's menu (⋯), named as the menu draws each item.
+  [SlackActionType.ViewChangeIncidentSeverity]: {
+    does: "changeSeverity",
+    eventType: WorkspaceEventType.Incident,
+    button: "Change Severity",
+  },
+  [SlackActionType.SubmitChangeIncidentSeverity]: {
+    does: "changeSeverity",
+    eventType: WorkspaceEventType.Incident,
+    button: "Change Severity",
+  },
+  [SlackActionType.ViewAssignIncidentRole]: {
+    does: "assignRole",
+    eventType: WorkspaceEventType.Incident,
+    button: "Assign Role",
+  },
+  [SlackActionType.SubmitAssignIncidentRole]: {
+    does: "assignRole",
+    eventType: WorkspaceEventType.Incident,
+    button: "Assign Role",
+  },
+  [SlackActionType.ViewPageAboutIncident]: {
+    does: "pageSomeone",
+    eventType: WorkspaceEventType.Incident,
+    button: "Page Someone",
+  },
+  [SlackActionType.SubmitPageAboutIncident]: {
+    does: "pageSomeone",
+    eventType: WorkspaceEventType.Incident,
+    button: "Page Someone",
+  },
+  [SlackActionType.ViewEditIncidentCustomFields]: {
+    does: "editCustomFields",
+    eventType: WorkspaceEventType.Incident,
+    button: "Edit Custom Fields",
+  },
+  [SlackActionType.SubmitEditIncidentCustomFields]: {
+    does: "editCustomFields",
+    eventType: WorkspaceEventType.Incident,
+    button: "Edit Custom Fields",
   },
   [SlackActionType.ViewAddAlertNote]: {
     does: "addNote",
@@ -288,6 +336,11 @@ const COMMAND_PRESSES: Partial<Record<SlackActionType, CommandPress>> = {
    */
   [SlackActionType.PageSomeone]: PAGE_SOMEONE,
   [SlackActionType.SubmitPageSomeone]: PAGE_SOMEONE,
+  // `/oneuptime incident 42`: run again, as it was typed.
+  [SlackActionType.ShowIncident]: {
+    purpose: "see this incident",
+    command: WorkspaceCommandName.Incident,
+  },
 };
 
 export default class SlackConnectPrompt {
@@ -478,6 +531,14 @@ export default class SlackConnectPrompt {
         return `change the state of this ${noun}`;
       case "executeOnCallPolicy":
         return `execute an on-call policy for this ${noun}`;
+      case "changeSeverity":
+        return `change the severity of this ${noun}`;
+      case "assignRole":
+        return `assign a role on this ${noun}`;
+      case "pageSomeone":
+        return `page someone about this ${noun}`;
+      case "editCustomFields":
+        return `edit the custom fields of this ${noun}`;
     }
   }
 }

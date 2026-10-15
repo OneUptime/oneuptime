@@ -21,7 +21,6 @@ import {
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import FeedMarkdown, {
   MarkdownText,
-  mdText,
 } from "../../../../../Utils/Markdown/FeedMarkdown";
 import { OnCallPageResult } from "../../../../Services/OnCallPageService";
 import { ExpressRequest, ExpressResponse } from "../../../Express";
@@ -950,9 +949,9 @@ export default class SlackIncidentMoreActions {
       }),
       {
         _type: "WorkspacePayloadContext",
-        text: SlackIncidentMoreActions.getCustomFieldsNote(
-          form.fields,
-        ).toString(),
+        text: WorkspaceIncidentActions.getCustomFieldsNote({
+          form: form.fields,
+        }).toString(),
       } as WorkspacePayloadContext,
     ];
 
@@ -1224,35 +1223,6 @@ export default class SlackIncidentMoreActions {
         return block;
       }
     }
-  }
-
-  /*
-   * What the custom fields form says under its fields: that an emptied
-   * field is cleared, and what it leaves out - fields copied from the
-   * incident's monitor, and fields past what one form holds.
-   */
-  public static getCustomFieldsNote(
-    form: WorkspaceCustomFieldsForm,
-  ): MarkdownText {
-    const parts: Array<MarkdownText> = [
-      mdText`${WORKSPACE_INCIDENT_FORM_TEXT.customFieldsHint}`,
-    ];
-
-    if (form.copiedFieldNames.length > 0) {
-      parts.push(
-        mdText`${WorkspaceIncidentActions.joinBoldNames(
-          form.copiedFieldNames,
-        )} ${form.copiedFieldNames.length === 1 ? "is" : "are"} copied from the incident's monitor, so ${form.copiedFieldNames.length === 1 ? "it is" : "they are"} not here.`,
-      );
-    }
-
-    if (form.notShownCount > 0) {
-      parts.push(
-        mdText`${form.notShownCount} more ${form.notShownCount === 1 ? "field is" : "fields are"} edited in ${ProductBrandingText.getProductName()}.`,
-      );
-    }
-
-    return FeedMarkdown.join(parts, " ");
   }
 
   // The values a submitted custom fields form holds, by input id.

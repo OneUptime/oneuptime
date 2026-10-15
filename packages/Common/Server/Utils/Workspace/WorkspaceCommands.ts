@@ -16,6 +16,9 @@ import { WorkspaceAnswer } from "./WorkspaceActionAnswers";
  * one command of OneUptime's own:
  *
  *   /oneuptime incident [title]       declare an incident
+ *   /oneuptime incident [number]      act on incident 42 (or #42, INC-42)
+ *                                     from its buttons and menu
+ *                                     (WorkspaceIncidentActions)
  *   /oneuptime maintenance [title]    schedule a maintenance event
  *   /oneuptime oncall                 who is on call right now
  *   /oneuptime page [who] [message]   page a person, a team or whoever is
@@ -78,9 +81,13 @@ export interface WorkspaceCommandDefinition {
  * in both chats, so those keep working, in both.
  */
 export const WORKSPACE_COMMANDS: ReadonlyArray<WorkspaceCommandDefinition> = [
+  /*
+   * A title declares an incident; an incident's number - 42, #42, INC-42 -
+   * shows that incident, to act on (WorkspaceIncidentNumberWord).
+   */
   {
     name: WorkspaceCommandName.Incident,
-    argument: "title",
+    argument: "title or number",
     aliases: ["create incident"],
     example: "Checkout is down",
   },
@@ -222,7 +229,7 @@ export default class WorkspaceCommands {
   public static getSummary(name: WorkspaceCommandName): string {
     switch (name) {
       case WorkspaceCommandName.Incident:
-        return "declare an incident";
+        return "declare an incident, or act on one by its number";
       case WorkspaceCommandName.Maintenance:
         return "schedule maintenance";
       case WorkspaceCommandName.OnCall:

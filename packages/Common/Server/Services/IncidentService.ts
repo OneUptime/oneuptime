@@ -13,6 +13,7 @@ import IncidentCustomField from "../../Models/DatabaseModels/IncidentCustomField
 import CustomFieldMappingService from "./CustomFieldMappingService";
 import IncidentCustomFieldService from "./IncidentCustomFieldService";
 import { CustomFieldDefinition } from "../../Types/CustomField/CustomFieldDefinition";
+import CustomFieldFeedChange from "../Utils/CustomField/CustomFieldFeedChange";
 import { mergeTemplateCustomFields } from "../../Types/CustomField/CustomFieldTemplateMerge";
 import {
   CustomFieldValueValidationError,
@@ -271,6 +272,12 @@ type UpdateCarryForward = Dictionary<{
    * a real change (recordStoredValuesBeforeUpdate, EventFieldChange).
    */
   valuesBeforeUpdate?: EventValuesBeforeUpdate | undefined;
+  /*
+   * The custom field values the incident held before the update - read only
+   * when the update writes them - so its feed item names the fields that
+   * really changed (CustomFieldFeedChange).
+   */
+  customFieldsBeforeUpdate?: JSONObject | null | undefined;
 }>;
 
 /*
@@ -1197,7 +1204,16 @@ export class Service extends ProjectReferencesService<Model> {
 
     const isFieldWritten: boolean = EventFieldChange.isAnySet(fieldsWritten);
 
-    if (!writtenSeverityId && !isPostmortemCompared && !isFieldWritten) {
+    // The custom fields are one bag: it is read when the update writes it.
+    const isCustomFieldsWritten: boolean =
+      updateBy.data.customFields !== undefined;
+
+    if (
+      !writtenSeverityId &&
+      !isPostmortemCompared &&
+      !isFieldWritten &&
+      !isCustomFieldsWritten
+    ) {
       return;
     }
 
@@ -1227,6 +1243,11 @@ export class Service extends ProjectReferencesService<Model> {
           }
         : {}),
       ...(EventFieldChange.getSelect(fieldsWritten) as Select<Model>),
+      ...(isCustomFieldsWritten
+        ? {
+            customFields: true,
+          }
+        : {}),
     };
 
     const incidents: Array<Model> = await this.findIncidentsForUpdateHook({
@@ -1283,6 +1304,12 @@ export class Service extends ProjectReferencesService<Model> {
                 record: incident,
                 fields: fieldsWritten,
               }),
+            }
+          : {}),
+        ...(isCustomFieldsWritten
+          ? {
+              customFieldsBeforeUpdate:
+                (incident.customFields as JSONObject | undefined) || null,
             }
           : {}),
       };
@@ -1386,6 +1413,40 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return result;
+  }
+
+  /*
+   * The "updated" feed item's lines for the custom fields an update changed
+   * (CustomFieldFeedChange): against the bag the incident held before the
+   * write, read when the update wrote one. Empty when it wrote none, or
+   * changed none - or when the bag before it was not read (an incident the
+   * read before the write did not see), so nothing is said that may not be
+   * so.
+   */
+  private async getCustomFieldsFeedMarkdown(data: {
+    projectId: ObjectID;
+    written: unknown;
+    carryForward: UpdateCarryForward[string] | undefined;
+  }): Promise<MarkdownText> {
+    if (
+      data.written === undefined ||
+      !data.carryForward ||
+      data.carryForward.customFieldsBeforeUpdate === undefined
+    ) {
+      return FeedMarkdown.empty();
+    }
+
+    const definitions: Array<CustomFieldDefinition> =
+      await this.getCustomFieldDefinitionsForValidation(data.projectId);
+
+    return CustomFieldFeedChange.getFeedMarkdown({
+      changes: CustomFieldFeedChange.getChanges({
+        written: data.written,
+        before: data.carryForward.customFieldsBeforeUpdate,
+        definitions: definitions,
+      }),
+      definitions: definitions,
+    });
   }
 
   private hasCustomFieldValuesToValidate(customFields: unknown): boolean {
@@ -5310,6 +5371,28 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
 
         if (!fieldsMarkdown.isEmpty()) {
           feedInfoInMarkdown += fieldsMarkdown.toString();
+          shouldAddIncidentFeed = true;
+        }
+
+        /*
+         * The custom fields whose value the update really changed - set
+         * from the Custom Fields card, Slack, Microsoft Teams or the API -
+         * each with its new value, so the feed and the incident's channels
+         * hear of it. Writing back the bag the incident holds adds none.
+         */
+        const customFieldsMarkdown: MarkdownText =
+          await this.getCustomFieldsFeedMarkdown({
+            projectId: projectId,
+            written: (updatedIncidentData as Record<string, unknown>)[
+              "customFields"
+            ],
+            carryForward: (
+              onUpdate.carryForward as UpdateCarryForward | undefined
+            )?.[incidentId.toString()],
+          });
+
+        if (!customFieldsMarkdown.isEmpty()) {
+          feedInfoInMarkdown += customFieldsMarkdown.toString();
           shouldAddIncidentFeed = true;
         }
 

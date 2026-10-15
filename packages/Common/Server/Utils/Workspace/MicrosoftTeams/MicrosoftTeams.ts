@@ -105,6 +105,7 @@ import MicrosoftTeamsScheduledMaintenanceActions from "./Actions/ScheduledMainte
 import MicrosoftTeamsOnCallDutyActions from "./Actions/OnCallDutyPolicy";
 import MicrosoftTeamsActivityDeduplicator from "./MicrosoftTeamsActivityDeduplicator";
 import MicrosoftTeamsCreateCommands from "./MicrosoftTeamsCreateCommands";
+import MicrosoftTeamsIncidentMoreActions from "./Actions/IncidentMoreActions";
 import MicrosoftTeamsPage from "./MicrosoftTeamsPage";
 import MicrosoftTeamsMentionText from "./MicrosoftTeamsMentionText";
 import MicrosoftTeamsHome from "./MicrosoftTeamsHome";
@@ -3901,8 +3902,25 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           });
           return;
         case WorkspaceCommandName.Incident:
-          // "incident <title>" opens the form with the title filled in.
           logger.debug("Processing the incident command");
+
+          /*
+           * "incident 42" shows incident 42 with its buttons, and plain
+           * "incident" in an incident's own channel shows that incident
+           * (MicrosoftTeamsIncidentMoreActions).
+           */
+          if (
+            await MicrosoftTeamsIncidentMoreActions.handleIncidentCommand({
+              turnContext: data.turnContext,
+              activity: data.activity,
+              projectId: projectId,
+              text: input.text,
+            })
+          ) {
+            return;
+          }
+
+          // "incident <title>" opens the form with the title filled in.
           await MicrosoftTeamsCreateCommands.handleCreateIncidentCommand({
             turnContext: data.turnContext,
             activity: data.activity,

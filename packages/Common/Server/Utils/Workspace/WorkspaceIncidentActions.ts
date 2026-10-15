@@ -28,6 +28,7 @@ import FeedMarkdown, {
 import WorkspaceIncidentNumberWordReader, {
   WorkspaceIncidentNumberWord,
 } from "./WorkspaceIncidentNumberWord";
+import { WorkspaceCustomFieldsForm } from "./WorkspaceIncidentCustomFields";
 import IncidentMemberService from "../../Services/IncidentMemberService";
 import IncidentRoleService from "../../Services/IncidentRoleService";
 import IncidentService from "../../Services/IncidentService";
@@ -1234,6 +1235,44 @@ export default class WorkspaceIncidentActions {
 
   public static getOnlyCopiedCustomFieldsMessage(): string {
     return `Every custom field of this incident is copied from its monitor, so there is nothing to edit here. Change them on the monitor in ${ProductBrandingText.getProductName()}.`;
+  }
+
+  /*
+   * What the custom fields form says under its fields, in both chats: that
+   * an emptied field is cleared, the zone a time is read in (Teams), and
+   * what it leaves out - fields copied from the incident's monitor, and
+   * fields past what one form holds.
+   */
+  public static getCustomFieldsNote(data: {
+    form: WorkspaceCustomFieldsForm;
+    timezoneLabel?: string | undefined;
+  }): MarkdownText {
+    const { form } = data;
+    const parts: Array<MarkdownText> = [
+      mdText`${WORKSPACE_INCIDENT_FORM_TEXT.customFieldsHint}`,
+    ];
+
+    if (data.timezoneLabel) {
+      parts.push(mdText`Times are in ${data.timezoneLabel}.`);
+    }
+
+    if (form.copiedFieldNames.length > 0) {
+      const isOne: boolean = form.copiedFieldNames.length === 1;
+
+      parts.push(
+        mdText`${WorkspaceIncidentActions.joinBoldNames(
+          form.copiedFieldNames,
+        )} ${isOne ? "is" : "are"} copied from the incident's monitor, so ${isOne ? "it is" : "they are"} not here.`,
+      );
+    }
+
+    if (form.notShownCount > 0) {
+      parts.push(
+        mdText`${form.notShownCount} more ${form.notShownCount === 1 ? "field is" : "fields are"} edited in ${ProductBrandingText.getProductName()}.`,
+      );
+    }
+
+    return FeedMarkdown.join(parts, " ");
   }
 
   // Who holds which role: "👤 Incident Commander: Nawaz Dhandala · Scribe: Ana Ruiz".

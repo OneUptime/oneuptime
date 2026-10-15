@@ -687,28 +687,6 @@ export default class WorkspaceIncidentCustomFields {
   }
 
   /*
-   * A value as it reads in a chat's answer: "High", "Yes", "Oct 15, 2026",
-   * "eu-west, us-east". Empty for none.
-   */
-  public static toReadableValue(data: {
-    customFieldType: CustomFieldType | undefined;
-    value: unknown;
-  }): string {
-    if (isCustomFieldValueEmpty(data.value)) {
-      return "";
-    }
-
-    switch (data.customFieldType) {
-      case CustomFieldType.Boolean:
-        return data.value === true || data.value === "true" ? "Yes" : "No";
-      case CustomFieldType.Date:
-        return formatCustomFieldCalendarDate(data.value);
-      default:
-        return customFieldValueToText(data.value);
-    }
-  }
-
-  /*
    * Whether a field's input can open with the value it holds: a number
    * input with a number, a date picker with a day, a date and time picker
    * with a moment. Every other input can, and so can every input of a field

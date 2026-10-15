@@ -134,10 +134,81 @@ const PENDING_PRESSES: ReadonlyMap<string, PendingPress> = new Map<
 
 // A button that opens a form: what the form does, its record, the button.
 interface FormPress {
-  does: "addNote" | "changeState" | "executeOnCallPolicy";
+  does:
+    | "addNote"
+    | "changeState"
+    | "executeOnCallPolicy"
+    | "changeSeverity"
+    | "assignRole"
+    | "pageSomeone"
+    | "editCustomFields";
   eventType: WorkspaceEventType;
   // The button's title as the card draws it, without its emoji.
   button: string;
+}
+
+/*
+ * The incident card's menu (…), each item named as the menu draws it: its
+ * form, opened and submitted.
+ */
+function incidentMenuPresses(): Array<[string, FormPress]> {
+  const items: Array<{
+    does: FormPress["does"];
+    button: string;
+    actions: Array<string>;
+  }> = [
+    {
+      does: "changeSeverity",
+      button: "Change Severity",
+      actions: [
+        MicrosoftTeamsIncidentActionType.ViewChangeIncidentSeverity,
+        MicrosoftTeamsIncidentActionType.SubmitChangeIncidentSeverity,
+      ],
+    },
+    {
+      does: "assignRole",
+      button: "Assign Role",
+      actions: [
+        MicrosoftTeamsIncidentActionType.ViewAssignIncidentRole,
+        MicrosoftTeamsIncidentActionType.SubmitAssignIncidentRole,
+      ],
+    },
+    {
+      does: "pageSomeone",
+      button: "Page Someone",
+      actions: [
+        MicrosoftTeamsIncidentActionType.ViewPageAboutIncident,
+        MicrosoftTeamsIncidentActionType.SubmitPageAboutIncident,
+      ],
+    },
+    {
+      does: "editCustomFields",
+      button: "Edit Custom Fields",
+      actions: [
+        MicrosoftTeamsIncidentActionType.ViewEditIncidentCustomFields,
+        MicrosoftTeamsIncidentActionType.SubmitEditIncidentCustomFields,
+      ],
+    },
+  ];
+
+  return items.flatMap(
+    (item: {
+      does: FormPress["does"];
+      button: string;
+      actions: Array<string>;
+    }): Array<[string, FormPress]> => {
+      return item.actions.map((action: string): [string, FormPress] => {
+        return [
+          action,
+          {
+            does: item.does,
+            eventType: WorkspaceEventType.Incident,
+            button: item.button,
+          },
+        ];
+      });
+    },
+  );
 }
 
 function formPresses(
@@ -196,6 +267,7 @@ const FORM_PRESSES: ReadonlyMap<string, FormPress> = new Map<string, FormPress>(
       },
       "Change Incident State",
     ),
+    ...incidentMenuPresses(),
     ...formPresses(
       WorkspaceEventType.Alert,
       {
@@ -605,6 +677,14 @@ export default class MicrosoftTeamsConnectPrompt {
         return `change the state of this ${noun}`;
       case "executeOnCallPolicy":
         return `execute an on-call policy for this ${noun}`;
+      case "changeSeverity":
+        return `change the severity of this ${noun}`;
+      case "assignRole":
+        return `assign a role on this ${noun}`;
+      case "pageSomeone":
+        return `page someone about this ${noun}`;
+      case "editCustomFields":
+        return `edit the custom fields of this ${noun}`;
     }
   }
 }
