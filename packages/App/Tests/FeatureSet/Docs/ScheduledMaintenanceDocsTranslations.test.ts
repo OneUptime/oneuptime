@@ -538,9 +538,11 @@ describe("the lists this test keeps", () => {
       expect({ page, stale }).toEqual({ page, stale: [] });
 
       for (const text of listed(SERVER_TEXT, page)) {
-        expect({ page, text, quoted: englishPage(page).includes(text) }).toEqual(
-          { page, text, quoted: true },
-        );
+        expect({
+          page,
+          text,
+          quoted: englishPage(page).includes(text),
+        }).toEqual({ page, text, quoted: true });
       }
     }
   });
@@ -883,10 +885,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
 
       it("names every Dashboard label and path the English page names, as this language's Dashboard draws it", () => {
         const translated: string = readPage(language, entry.page);
-        const missing: Array<string> = englishBoldDrawings(
-          language,
-          entry.page,
-        )
+        const missing: Array<string> = englishBoldDrawings(language, entry.page)
           .map((drawing: [string, string]): string => {
             return drawing[1];
           })
@@ -1021,7 +1020,10 @@ describe.each(LANGUAGES)("%s", (language: string) => {
         ),
       ).toBe(true);
       expect(card).toBe(
-        cardIndex(linesOf("en", "introduction/core-concepts"), GROUP_CARD_TARGET),
+        cardIndex(
+          linesOf("en", "introduction/core-concepts"),
+          GROUP_CARD_TARGET,
+        ),
       );
     });
   });
@@ -1066,9 +1068,7 @@ describe("the helpers, on these pages' shapes", () => {
 
   it("tell the Dashboard's labels from the words a page keeps", () => {
     // A role's name is kept, not drawn.
-    expect(dashboardLabels(RULES_AND_SETTINGS)).not.toContain(
-      "Project Admin",
-    );
+    expect(dashboardLabels(RULES_AND_SETTINGS)).not.toContain("Project Admin");
     // A workflow component's name is kept.
     expect(dashboardLabels(RULES_AND_SETTINGS)).not.toContain(
       "Scheduled Maintenance State Timeline",
@@ -1079,9 +1079,9 @@ describe("the helpers, on these pages' shapes", () => {
     expect(dashboardLabels(MAINTENANCE_STATES)).toContain(
       "Create Scheduled Maintenance State",
     );
-    expect(drawnActionLabel("de", "Create Scheduled Maintenance State")).not.toBe(
-      "Create Scheduled Maintenance State",
-    );
+    expect(
+      drawnActionLabel("de", "Create Scheduled Maintenance State"),
+    ).not.toBe("Create Scheduled Maintenance State");
     expect(
       dashboardPaths(RULES_AND_SETTINGS).map(
         (segments: Array<string>): string => {

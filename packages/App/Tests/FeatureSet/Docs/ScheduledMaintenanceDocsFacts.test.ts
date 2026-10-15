@@ -752,7 +752,9 @@ describe("how an event runs", () => {
     }
 
     expect(ongoingJob).toContain("startsAt: QueryHelper.lessThan(now)");
-    expect(ongoingJob).toContain("ScheduledMaintenanceStartUtil.getOngoingState(");
+    expect(ongoingJob).toContain(
+      "ScheduledMaintenanceStartUtil.getOngoingState(",
+    );
     expect(endedJob).toContain("endsAt: QueryHelper.lessThan(now)");
     expect(overview).toContain(
       "A job that runs every minute moves it on at both ends of the window, so you schedule the work once and OneUptime does the rest.",
@@ -768,9 +770,10 @@ describe("how an event runs", () => {
     for (const file of fs.readdirSync(jobsDir)) {
       const job: string = fs.readFileSync(path.join(jobsDir, file), "utf8");
 
-      expect({ job: file, completes: job.includes("getCompletedState") }).toEqual(
-        { job: file, completes: false },
-      );
+      expect({
+        job: file,
+        completes: job.includes("getCompletedState"),
+      }).toEqual({ job: file, completes: false });
     }
 
     expect(overview).toContain(
@@ -813,7 +816,9 @@ describe("maintenance against announcements", () => {
     );
 
     expect(info?.defaultForNewProjects).toBe(MAINTENANCE_NUMBER_PREFIX);
-    expect(NumberPrefixUtil.getExample(MAINTENANCE_NUMBER_PREFIX)).toBe("SM-42");
+    expect(NumberPrefixUtil.getExample(MAINTENANCE_NUMBER_PREFIX)).toBe(
+      "SM-42",
+    );
     expect(table).toContain("| **Numbers in a new project** | `SM-42`");
   });
 
@@ -827,7 +832,9 @@ describe("maintenance against announcements", () => {
 
     expect(announcement).toContain("public showAnnouncementAt?: Date");
     expect(announcement).toContain("public endAnnouncementAt?: Date");
-    expect(announcementJob).toContain("showAnnouncementAt: QueryHelper.lessThan(");
+    expect(announcementJob).toContain(
+      "showAnnouncementAt: QueryHelper.lessThan(",
+    );
     expect(table).toContain(
       "It shows from its start time until its end time, if it has one",
     );
@@ -844,7 +851,9 @@ describe("where events come from", () => {
   );
 
   it("opens the form from the list and from a resource's Scheduled Maintenance tab, and from a template", () => {
-    expect(LIST_TABLE).toContain('title: "Create Scheduled Maintenance Event",');
+    expect(LIST_TABLE).toContain(
+      'title: "Create Scheduled Maintenance Event",',
+    );
     expect(LIST_TABLE).toContain('title: "Create from Template",');
     expect(sources).toContain(
       "Click **Create Scheduled Maintenance Event** on the list of events, or on the **Scheduled Maintenance** tab of a host, a cluster, a service, a network site or another resource, which picks that resource for you.",
@@ -910,10 +919,14 @@ describe("what an event affects", () => {
     expect(TIMELINE_SERVICE).toContain(
       "disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true, /// This will stop active monitoring.",
     );
-    expect(TIMELINE_SERVICE).toContain("await this.applyMonitorStatusWhenStarting({");
+    expect(TIMELINE_SERVICE).toContain(
+      "await this.applyMonitorStatusWhenStarting({",
+    );
     expect(
       readDashboardSource("Components/Monitor/DisabledWarning.tsx"),
-    ).toContain('const PAUSED_TITLE: string = translationKey("This monitor is disabled");');
+    ).toContain(
+      'const PAUSED_TITLE: string = translationKey("This monitor is disabled");',
+    );
     expect(affects).toContain(
       "Every monitor under **Monitors** stops being checked, and each one's pages say **This monitor is disabled**.",
     );
@@ -927,13 +940,17 @@ describe("what an event affects", () => {
     );
 
     expect(release).toContain("isOperationalState: true,");
-    expect(release).toContain("await this.isMonitorHeldInMaintenanceByAnyEvent(");
+    expect(release).toContain(
+      "await this.isMonitorHeldInMaintenanceByAnyEvent(",
+    );
     expect(release.indexOf("if (isHeldByAnotherEvent) {")).toBeLessThan(
       release.indexOf(
         "disableActiveMonitoringBecauseOfScheduledMaintenanceEvent:\n                  false",
       ),
     );
-    expect(EVENT_SERVICE).toContain("protected override async onDeleteSuccess(");
+    expect(EVENT_SERVICE).toContain(
+      "protected override async onDeleteSuccess(",
+    );
     expect(affects).toContain(
       "When the event ends, or is deleted, checks resume and each monitor goes back to operational, unless another event in progress still holds it.",
     );
@@ -1005,7 +1022,9 @@ describe("the overview's troubleshooting", () => {
   const overview: string = english(MAINTENANCE_OVERVIEW);
 
   it("calls a start overdue after two minutes, as the header does", () => {
-    expect(SCHEDULED_MAINTENANCE_OVERDUE_GRACE_PERIOD_IN_MS).toBe(2 * 60 * 1000);
+    expect(SCHEDULED_MAINTENANCE_OVERDUE_GRACE_PERIOD_IN_MS).toBe(
+      2 * 60 * 1000,
+    );
     expect(
       detailsBody(overview, "An event did not start at its Starts At"),
     ).toContain(
@@ -1174,9 +1193,10 @@ describe("the seeded maintenance states", () => {
       "isEndedState",
       "isResolvedState",
     ]) {
-      expect({ column, found: Boolean(model.getTableColumnMetadata(column)) }).toEqual(
-        { column, found: true },
-      );
+      expect({
+        column,
+        found: Boolean(model.getTableColumnMetadata(column)),
+      }).toEqual({ column, found: true });
     }
 
     expect(states).toContain(
@@ -1258,11 +1278,15 @@ describe("what moves an event", () => {
     expect(CHANGE_STATE).toContain(
       'translator.translateTemplate("Mark as {{state}}", {',
     );
-    expect(CHANGE_STATE).toContain('"Mark Scheduled Maintenance as {{state}}",');
+    expect(CHANGE_STATE).toContain(
+      '"Mark Scheduled Maintenance as {{state}}",',
+    );
     expect(
       readDashboardSource("Components/EventView/EventStatusPanel.tsx"),
     ).toContain('title={props.moreMenuTitle || "Change state to"}');
-    expect(stateChangeFields).toContain('title: "Notify Status Page Subscribers",');
+    expect(stateChangeFields).toContain(
+      'title: "Notify Status Page Subscribers",',
+    );
     expect(stateChangeFields).toContain(
       '[BulkStateChangeNoteType.Public]: translationKey("Add a public note"),',
     );
@@ -1273,7 +1297,9 @@ describe("what moves an event", () => {
 
   it("adds a timeline row by hand with the state and when it began", () => {
     const formFields: string = STATE_TIMELINE_PAGE.slice(
-      STATE_TIMELINE_PAGE.indexOf("SCHEDULED_MAINTENANCE_STATE_TIMELINE_FORM_FIELDS"),
+      STATE_TIMELINE_PAGE.indexOf(
+        "SCHEDULED_MAINTENANCE_STATE_TIMELINE_FORM_FIELDS",
+      ),
       STATE_TIMELINE_PAGE.indexOf("];"),
     );
 
@@ -1314,15 +1340,21 @@ describe("what moves an event", () => {
 
   it("offers, while the event waits, a button to start it and one to end it, and once it runs only the second", () => {
     const actions: string = CHANGE_STATE.slice(
-      CHANGE_STATE.indexOf("if (stateKind === ScheduledMaintenanceStateKind.Scheduled) {"),
+      CHANGE_STATE.indexOf(
+        "if (stateKind === ScheduledMaintenanceStateKind.Scheduled) {",
+      ),
       CHANGE_STATE.indexOf("const overdueNotice"),
     );
     const scheduledBranch: string = actions.slice(
       0,
-      actions.indexOf("} else if (stateKind === ScheduledMaintenanceStateKind.Ongoing"),
+      actions.indexOf(
+        "} else if (stateKind === ScheduledMaintenanceStateKind.Ongoing",
+      ),
     );
     const ongoingBranch: string = actions.slice(
-      actions.indexOf("} else if (stateKind === ScheduledMaintenanceStateKind.Ongoing"),
+      actions.indexOf(
+        "} else if (stateKind === ScheduledMaintenanceStateKind.Ongoing",
+      ),
     );
 
     expect(scheduledBranch).toContain("label: markAsOngoingText,");
@@ -1330,7 +1362,7 @@ describe("what moves an event", () => {
     expect(ongoingBranch).not.toContain("markAsOngoingText");
     expect(ongoingBranch).toContain("label: markAsCompleteText,");
     expect(CHANGE_STATE).toContain(
-      "const markAsOngoingText: string = getMarkAsText(\n    ongoingState?.name || \"Ongoing\",",
+      'const markAsOngoingText: string = getMarkAsText(\n    ongoingState?.name || "Ongoing",',
     );
     expect(CHANGE_STATE).toContain(
       "ScheduledMaintenanceStartUtil.getEndedState({",
@@ -1341,11 +1373,15 @@ describe("what moves an event", () => {
   });
 
   it("lists in the ⋯ menu every other state after the current one", () => {
-    const records: Array<{ id: string; order: number }> = seededStateRecords().map(
-      (record: Record<string, unknown>): { id: string; order: number } => {
-        return { id: record["_id"] as string, order: record["order"] as number };
-      },
-    );
+    const records: Array<{ id: string; order: number }> =
+      seededStateRecords().map(
+        (record: Record<string, unknown>): { id: string; order: number } => {
+          return {
+            id: record["_id"] as string,
+            order: record["order"] as number,
+          };
+        },
+      );
     const ids: (states: Array<{ id: string }>) => Array<string> = (
       menuStates: Array<{ id: string }>,
     ): Array<string> => {
@@ -1378,8 +1414,13 @@ describe("what moves an event", () => {
       "The **⋯** menu lists every other state after the current one.",
     );
     expect(
-      detailsBody(states, "The completed state is missing from the header's buttons"),
-    ).toContain("Completing it is in the **⋯** menu, under **Change state to**.");
+      detailsBody(
+        states,
+        "The completed state is missing from the header's buttons",
+      ),
+    ).toContain(
+      "Completing it is in the **⋯** menu, under **Change state to**.",
+    );
   });
 });
 
@@ -1491,7 +1532,9 @@ describe("what starting and ending do", () => {
   });
 
   it("changes a monitor added while the event runs too", () => {
-    expect(EVENT_SERVICE).toContain("private async holdMonitorsAttachedToEvent(");
+    expect(EVENT_SERVICE).toContain(
+      "private async holdMonitorsAttachedToEvent(",
+    );
     expect(startAndEnd).toContain(
       "A monitor you add to the event while it runs changes too.",
     );
@@ -1499,7 +1542,9 @@ describe("what starting and ending do", () => {
 
   it("tells owners who turned the state change notification on, and lists the event under Ongoing Events", () => {
     expect(
-      readWorkerSource("ScheduledMaintenanceOwners/SendStateChangeNotification.ts"),
+      readWorkerSource(
+        "ScheduledMaintenanceOwners/SendStateChangeNotification.ts",
+      ),
     ).toContain(
       "NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION",
     );
@@ -1515,7 +1560,10 @@ describe("what starting and ending do", () => {
 // ---- The header's clock -------------------------------------------------------------
 
 describe("the header's clock", () => {
-  const clock: string = section(english(MAINTENANCE_STATES), "## The header's clock");
+  const clock: string = section(
+    english(MAINTENANCE_STATES),
+    "## The header's clock",
+  );
   const startsAt: Date = new Date("2030-06-01T02:00:00Z");
   const endsAt: Date = new Date("2030-06-01T04:00:00Z");
   const minutes: (count: number, from: Date) => Date = (
@@ -1551,7 +1599,9 @@ describe("the header's clock", () => {
     expect(late.isOverdue).toBe(true);
     expect(overrunning.phase).toBe(ScheduledMaintenancePhase.EndOverdue);
     expect(overrunning.isOverdue).toBe(true);
-    expect(SCHEDULED_MAINTENANCE_OVERDUE_GRACE_PERIOD_IN_MS).toBe(2 * 60 * 1000);
+    expect(SCHEDULED_MAINTENANCE_OVERDUE_GRACE_PERIOD_IN_MS).toBe(
+      2 * 60 * 1000,
+    );
     expect(clock).toContain(
       "When the event misses a boundary by more than two minutes, an amber notice says so:",
     );
@@ -1584,7 +1634,9 @@ describe("the header's clock", () => {
       now: minutes(1, startsAt),
     });
 
-    expect(SCHEDULED_MAINTENANCE_STATE_RECHECK_WINDOW_IN_MS).toBe(5 * 60 * 1000);
+    expect(SCHEDULED_MAINTENANCE_STATE_RECHECK_WINDOW_IN_MS).toBe(
+      5 * 60 * 1000,
+    );
     expect(
       shouldRecheckScheduledMaintenanceState(timing, minutes(4, startsAt)),
     ).toBe(true);
@@ -1605,8 +1657,14 @@ describe("the order every state change is held to", () => {
   const records: Array<Record<string, unknown>> = seededStateRecords();
 
   it("quotes the refusals of a backwards move and of a move to the same state, as the order rule words them", () => {
-    const ongoing: Record<string, unknown> = records[1] as Record<string, unknown>;
-    const scheduled: Record<string, unknown> = records[0] as Record<string, unknown>;
+    const ongoing: Record<string, unknown> = records[1] as Record<
+      string,
+      unknown
+    >;
+    const scheduled: Record<string, unknown> = records[0] as Record<
+      string,
+      unknown
+    >;
     const backwards: string | null = StateMoveUtil.getMoveRefusal({
       record: StateMoveRecord.ScheduledMaintenance,
       from: ongoing as { _id: string; name: string; order: number },
@@ -1774,7 +1832,12 @@ describe("states of your own", () => {
       model.getUpdateBillingPlan(),
       model.getReadBillingPlan(),
       model.getDeleteBillingPlan(),
-    ]).toEqual([PlanType.Growth, PlanType.Growth, PlanType.Free, PlanType.Free]);
+    ]).toEqual([
+      PlanType.Growth,
+      PlanType.Growth,
+      PlanType.Free,
+      PlanType.Free,
+    ]);
     expect(states).toContain(
       "> On OneUptime Cloud, adding or changing maintenance states takes the **Growth** plan or above. Every plan can read them, use them and delete a state you added.",
     );
@@ -1794,7 +1857,9 @@ describe("an event's state timeline", () => {
       "UI/Components/StatusTimeline/StatusTimelineView.tsx",
     );
     const table: string = STATE_TIMELINE_PAGE.slice(
-      STATE_TIMELINE_PAGE.indexOf("<ModelTable<ScheduledMaintenanceStateTimeline>"),
+      STATE_TIMELINE_PAGE.indexOf(
+        "<ModelTable<ScheduledMaintenanceStateTimeline>",
+      ),
     );
     const columns: string = table.slice(table.indexOf("columns={["));
 
@@ -1822,7 +1887,9 @@ describe("an event's state timeline", () => {
     expect(
       decideStateRowDelete({ hasStateBefore: false, hasStateAfter: false }),
     ).toBe(StateRowDeleteEffect.OnlyState);
-    expect(ONLY_STATE_DELETE_MESSAGES[StateTimelineRecord.ScheduledMaintenance]).toBe(
+    expect(
+      ONLY_STATE_DELETE_MESSAGES[StateTimelineRecord.ScheduledMaintenance],
+    ).toBe(
       "The event's only state can't be deleted: a scheduled maintenance event always has a state. To change it, add a new state.",
     );
     expect(timeline).toContain(
@@ -1958,7 +2025,9 @@ describe("the create form", () => {
     expect(creating).toContain(
       "Only the title has to be typed; everything else starts with a sensible default.",
     );
-    expect(fieldsTable).toContain("| **Title**                            | **Event**          | Empty, and required");
+    expect(fieldsTable).toContain(
+      "| **Title**                            | **Event**          | Empty, and required",
+    );
   });
 
   it("starts the window at the next full hour, for an hour, and moves the end with the start", () => {
@@ -1989,13 +2058,17 @@ describe("the create form", () => {
     expect(fieldObject(CREATE_PAGE, "Ends At")).toContain(
       "return getMaintenanceEndsAtError(values);",
     );
-    expect(detailsBody(creating, "Ends At says it must be after Starts At")).toContain(
+    expect(
+      detailsBody(creating, "Ends At says it must be after Starts At"),
+    ).toContain(
       "The window has to be in order: the event ends after it starts.",
     );
   });
 
   it("folds Owners and Labels under More fields", () => {
-    expect(readCommonSource("UI/Components/FoldedSection/FoldedSectionTitles.ts")).toContain(
+    expect(
+      readCommonSource("UI/Components/FoldedSection/FoldedSectionTitles.ts"),
+    ).toContain(
       'MORE_FIELDS_SECTION_TITLE: string = translationKey("More fields")',
     );
     expect(CREATE_PAGE).toContain(
@@ -2017,7 +2090,10 @@ describe("the create form", () => {
       "Once you pick one, **Change Monitor Status to** appears under them: the status the monitors change to when the event starts.",
     );
     expect(
-      detailsBody(creating, "Change Monitor Status to is missing from the form"),
+      detailsBody(
+        creating,
+        "Change Monitor Status to is missing from the form",
+      ),
     ).toContain("It is asked only once the event has a monitor.");
   });
 
@@ -2086,9 +2162,11 @@ describe("starting from a resource or a template", () => {
       (definition: CreateFromRecordKindDefinition): boolean => {
         return Boolean(definition.tabs[CreatedRecordKind.ScheduledMaintenance]);
       },
-    ).map((definition: CreateFromRecordKindDefinition): CreateFromRecordKind => {
-      return definition.kind;
-    });
+    ).map(
+      (definition: CreateFromRecordKindDefinition): CreateFromRecordKind => {
+        return definition.kind;
+      },
+    );
 
     expect([...kinds].sort()).toEqual(
       [
@@ -2123,7 +2201,9 @@ describe("starting from a resource or a template", () => {
   });
 
   it("picks, from an inventory item's tab, the host, service or Kubernetes cluster it points at", () => {
-    expect(readDashboardSource("Components/Inventory/LinkedResource.ts")).toContain(
+    expect(
+      readDashboardSource("Components/Inventory/LinkedResource.ts"),
+    ).toContain(
       'export enum LinkedResourceKind {\n  Service = "Service",\n  Host = "Host",\n  KubernetesCluster = "KubernetesCluster",\n}',
     );
     expect(
@@ -2135,9 +2215,13 @@ describe("starting from a resource or a template", () => {
   });
 
   it("asks for a template beside the create button, and opens the form filled in from it", () => {
-    expect(LIST_TABLE).toContain('title: "Select Scheduled Maintenance Template",');
+    expect(LIST_TABLE).toContain(
+      'title: "Select Scheduled Maintenance Template",',
+    );
     expect(LIST_TABLE).toContain('submitButtonText="Create from Template"');
-    expect(LIST_TABLE).toContain("scheduledMaintenanceTemplateId:\n                      scheduledMaintenanceTemplateId.toString(),");
+    expect(LIST_TABLE).toContain(
+      "scheduledMaintenanceTemplateId:\n                      scheduledMaintenanceTemplateId.toString(),",
+    );
     expect(start).toContain(
       "**Create from Template**, beside the create button, asks you to **Select Scheduled Maintenance Template**, then opens the form filled in from the template.",
     );
@@ -2169,7 +2253,10 @@ function inOrder(positions: Array<number>): boolean {
 
 describe("what happens when an event is created", () => {
   const creating: string = english(CREATING_EVENTS);
-  const happens: string = section(creating, "## What happens when you create it");
+  const happens: string = section(
+    creating,
+    "## What happens when you create it",
+  );
 
   it("numbers it from a per-project counter with the prefix, and starts it in the scheduled state whatever a request names", () => {
     expect(EVENT_SERVICE).toContain(
@@ -2228,13 +2315,17 @@ describe("what happens when an event is created", () => {
     );
     const trigger: string = `On Create ${new ScheduledMaintenance().singularName}`;
 
-    expect(subscriberJob).toContain("{ schedule: EVERY_MINUTE, runOnStartup: false }");
+    expect(subscriberJob).toContain(
+      "{ schedule: EVERY_MINUTE, runOnStartup: false }",
+    );
     expect(subscriberJob).toContain(
       "shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,",
     );
     expect(componentTitles(new ScheduledMaintenance())).toContain(trigger);
     expect(
-      readWorkerSource("ScheduledMaintenanceOwners/SendCreatedResourceNotification.ts"),
+      readWorkerSource(
+        "ScheduledMaintenanceOwners/SendCreatedResourceNotification.ts",
+      ),
     ).toContain(
       "NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION",
     );
@@ -2282,8 +2373,9 @@ describe("changing an event later", () => {
     }
 
     expect(
-      event.getColumnAccessControlFor("sendSubscriberNotificationsOnBeforeTheEvent")
-        ?.update.length,
+      event.getColumnAccessControlFor(
+        "sendSubscriberNotificationsOnBeforeTheEvent",
+      )?.update.length,
     ).toBeGreaterThan(0);
     expect(later).toContain(
       "Everything on the form can be changed on the event's own pages, except the three subscriber moments, which are set once, when the event is created.",
@@ -2346,19 +2438,24 @@ describe("notes on an event", () => {
 });
 
 describe("creating events from code", () => {
-  const code: string = section(english(CREATING_EVENTS), "## Create events from code");
+  const code: string = section(
+    english(CREATING_EVENTS),
+    "## Create events from code",
+  );
 
   it("creates an event at the model's API address, with an API key in the apikey header", () => {
     expect(new ScheduledMaintenance().getCrudApiPath()?.toString()).toBe(
       "/scheduled-maintenance",
     );
-    expect(readCommonSource("Server/Middleware/ProjectAuthorization.ts")).toContain(
-      'req.headers?.["apikey"]',
-    );
+    expect(
+      readCommonSource("Server/Middleware/ProjectAuthorization.ts"),
+    ).toContain('req.headers?.["apikey"]');
     expect(code).toContain(
       "so `POST /api/scheduled-maintenance` creates an event. Authenticate with an API key from **Project Settings → Advanced → API Keys**, sent in the `apikey` header",
     );
-    expect(code).toContain("curl -X POST https://oneuptime.com/api/scheduled-maintenance");
+    expect(code).toContain(
+      "curl -X POST https://oneuptime.com/api/scheduled-maintenance",
+    );
   });
 
   it("names only columns the model has, and ignores the state a request names", () => {
@@ -2386,9 +2483,10 @@ describe("creating events from code", () => {
     ]);
 
     for (const field of fields) {
-      expect({ field, found: Boolean(event.getTableColumnMetadata(field)) }).toEqual(
-        { field, found: true },
-      );
+      expect({
+        field,
+        found: Boolean(event.getTableColumnMetadata(field)),
+      }).toEqual({ field, found: true });
     }
 
     expect(EVENT_SERVICE).toContain('  "currentScheduledMaintenanceStateId",');
@@ -2421,7 +2519,8 @@ describe("maintenance templates", () => {
   const templates: string = english(TEMPLATES_AND_RECURRING);
 
   it("need Growth, and the roles the page names", () => {
-    const template: ScheduledMaintenanceTemplate = new ScheduledMaintenanceTemplate();
+    const template: ScheduledMaintenanceTemplate =
+      new ScheduledMaintenanceTemplate();
 
     expect(template.getCreateBillingPlan()).toBe(PlanType.Growth);
     expect(rolesOf(template.getCreatePermissions())).toEqual([...ROLE_NAMES]);
@@ -2469,8 +2568,14 @@ describe("maintenance templates", () => {
   });
 
   it("always asks for Change Monitor Status to, and takes five kinds of other affected resource", () => {
-    const status: string = fieldObject(TEMPLATES_PAGE, "Change Monitor Status to");
-    const others: string = fieldObject(TEMPLATES_PAGE, "Other Affected Resources");
+    const status: string = fieldObject(
+      TEMPLATES_PAGE,
+      "Change Monitor Status to",
+    );
+    const others: string = fieldObject(
+      TEMPLATES_PAGE,
+      "Other Affected Resources",
+    );
 
     expect(status).not.toContain("showIf");
     expect(others).toContain(
@@ -2484,7 +2589,9 @@ describe("maintenance templates", () => {
   it("fill in the create form with everything but the window", () => {
     const fill: string = CREATE_PAGE.slice(
       CREATE_PAGE.indexOf("monitors: scheduledMaintenanceTemplate.monitors"),
-      CREATE_PAGE.indexOf("setInitialValuesForScheduledMaintenance(initialValue);"),
+      CREATE_PAGE.indexOf(
+        "setInitialValuesForScheduledMaintenance(initialValue);",
+      ),
     );
 
     for (const fieldName of [
@@ -2616,7 +2723,9 @@ describe("recurring events", () => {
       expect(update).toContain(message);
     }
 
-    expect(TEMPLATE_SERVICE).toContain("this.validateEventTemplate(createBy.data);");
+    expect(TEMPLATE_SERVICE).toContain(
+      "this.validateEventTemplate(createBy.data);",
+    );
     expect(templates).toContain(
       "All three times must be in the future when you create the template, the event has to be created before it starts and ends, and it has to start before it ends; the form says which rule a time breaks.",
     );
@@ -2625,11 +2734,15 @@ describe("recurring events", () => {
         templates,
         "Creating a recurring template says a time should be in the future",
       ),
-    ).toContain("All three first times have to be ahead of now when you create it.");
+    ).toContain(
+      "All three first times have to be ahead of now when you create it.",
+    );
   });
 
   it("is run every minute: the job moves a template's next time on by one interval and creates the event", () => {
-    expect(recurringJob).toContain("{ schedule: EVERY_MINUTE, runOnStartup: false }");
+    expect(recurringJob).toContain(
+      "{ schedule: EVERY_MINUTE, runOnStartup: false }",
+    );
     expect(recurringJob).toContain(RECURRING_TEMPLATES_QUERY);
     expect(
       inOrder(
@@ -2739,7 +2852,9 @@ describe("where maintenance settings live", () => {
   });
 
   it("puts every Rules and Settings page at the address the page gives", () => {
-    const routes: Array<string> = routeGroup("ScheduledMaintenanceEventsRoutePath");
+    const routes: Array<string> = routeGroup(
+      "ScheduledMaintenanceEventsRoutePath",
+    );
     const keys: Array<string> = Array.from(
       MAINTENANCE_MENU_SOURCE.matchAll(
         /PageMap\.(SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_\w+)/g,
@@ -2823,15 +2938,21 @@ describe("the rules a new event passes through", () => {
   });
 
   it("starts a rule enabled, shows Enabled or Disabled, and runs owner and label rules on existing events with Run Now", () => {
-    const ruleTable: string = readCommonSource("UI/Components/RuleRun/RuleTable.tsx");
+    const ruleTable: string = readCommonSource(
+      "UI/Components/RuleRun/RuleTable.tsx",
+    );
     const ruleRun: string = readCommonSource("Types/Rules/RuleRun.ts");
 
     expect(ruleTable).toContain(
       "Every rule starts on: the create form leaves out the rule's Enabled\n * switch, which stays on the edit form and in the table (RuleEnabledField).",
     );
     expect(ruleTable).toContain('title: "Run Now",');
-    expect(ruleRun).toContain('ScheduledMaintenanceLabelRule = "ScheduledMaintenanceLabelRule",');
-    expect(ruleRun).toContain('ScheduledMaintenanceOwnerRule = "ScheduledMaintenanceOwnerRule",');
+    expect(ruleRun).toContain(
+      'ScheduledMaintenanceLabelRule = "ScheduledMaintenanceLabelRule",',
+    );
+    expect(ruleRun).toContain(
+      'ScheduledMaintenanceOwnerRule = "ScheduledMaintenanceOwnerRule",',
+    );
     expect(OWNER_RULES_PAGE).toContain('<Pill color={Green} text="Enabled" />');
     expect(OWNER_RULES_PAGE).toContain('<Pill color={Red} text="Disabled" />');
     expect(passes).toContain(
@@ -2892,7 +3013,9 @@ describe("owner and label rules", () => {
       "**Monitors**, **Event Labels**, **Monitor Labels**",
       "**Event Title**, **Event Description**, **Monitor Name**, **Monitor Description**",
     ]);
-    expect(rules).toContain("A pattern, as a regular expression, ignoring case.");
+    expect(rules).toContain(
+      "A pattern, as a regular expression, ignoring case.",
+    );
   });
 
   it("match only when every condition filled in holds", () => {
@@ -2907,9 +3030,9 @@ describe("owner and label rules", () => {
   it("fold six inherit switches, and refuse a new rule that adds nothing", () => {
     expect(RULE_FORM).toContain('title: "Inherit Labels",');
     expect(RULE_FORM).toContain('title: "Inherit Owners",');
-    expect(
-      OWNER_RULES_PAGE.match(/`Inherit Owners From [^`]+`/g)?.length,
-    ).toBe(6);
+    expect(OWNER_RULES_PAGE.match(/`Inherit Owners From [^`]+`/g)?.length).toBe(
+      6,
+    );
     expect(RULE_FORM).toContain("A new rule must add something:");
     expect(rules).toContain(
       "- **A rule can inherit.** Folded under **Inherit Owners** or **Inherit Labels**, six switches hand on the owners or labels of the event's monitors, hosts, Kubernetes clusters, Docker hosts, Podman hosts and services.",
@@ -2951,7 +3074,8 @@ describe("reminder rules", () => {
     english(RULES_AND_SETTINGS),
     "## Reminder rules",
   );
-  const rule: ScheduledMaintenanceReminderRule = new ScheduledMaintenanceReminderRule();
+  const rule: ScheduledMaintenanceReminderRule =
+    new ScheduledMaintenanceReminderRule();
 
   it("walk Rule Info, Match Criteria and Reminder Settings, with the fields the steps name", () => {
     expect(REMINDER_RULES_PAGE).toContain(
@@ -2976,7 +3100,9 @@ describe("reminder rules", () => {
         title,
         step: stepOf(
           fieldObject(
-            REMINDER_RULES_PAGE.slice(REMINDER_RULES_PAGE.indexOf("formFields={[")),
+            REMINDER_RULES_PAGE.slice(
+              REMINDER_RULES_PAGE.indexOf("formFields={["),
+            ),
             title,
           ),
         ),
@@ -2986,19 +3112,21 @@ describe("reminder rules", () => {
     expect(`Create ${rule.singularName}`).toBe(
       "Create Scheduled Maintenance Reminder Rule",
     );
-    expect(REMINDER_RULES_PAGE).toContain('placeholder: "Maintenance Event Reminders",');
+    expect(REMINDER_RULES_PAGE).toContain(
+      'placeholder: "Maintenance Event Reminders",',
+    );
     expect(reminders).toContain(
       'Click **Create Scheduled Maintenance Reminder Rule**. On **Rule Info**, give it a **Name**, such as "Maintenance Event Reminders", and a **Description** if you like.',
     );
   });
 
   it("start with the defaults the table gives", () => {
-    expect(rule.getTableColumnMetadata("stopRemindersOnState").defaultValue).toBe(
-      ScheduledMaintenanceReminderStopState.Completed,
-    );
-    expect(rule.getTableColumnMetadata("remindWhileScheduled").defaultValue).toBe(
-      false,
-    );
+    expect(
+      rule.getTableColumnMetadata("stopRemindersOnState").defaultValue,
+    ).toBe(ScheduledMaintenanceReminderStopState.Completed);
+    expect(
+      rule.getTableColumnMetadata("remindWhileScheduled").defaultValue,
+    ).toBe(false);
     expect(rule.getTableColumnMetadata("isEnabled").defaultValue).toBe(true);
     expect(REMINDER_RULES_PAGE).toContain(
       'value: ScheduledMaintenanceReminderStopState.Ongoing,\n                label: "Stop when event starts (Ongoing)",',
@@ -3006,9 +3134,12 @@ describe("reminder rules", () => {
     expect(REMINDER_RULES_PAGE).toContain(
       'value: ScheduledMaintenanceReminderStopState.Completed,\n                label: "Remind until event is Completed",',
     );
-    expect(fieldObject(REMINDER_RULES_PAGE.slice(REMINDER_RULES_PAGE.indexOf("formFields={[")), "Reminder Interval (minutes)")).toContain(
-      "required: true",
-    );
+    expect(
+      fieldObject(
+        REMINDER_RULES_PAGE.slice(REMINDER_RULES_PAGE.indexOf("formFields={[")),
+        "Reminder Interval (minutes)",
+      ),
+    ).toContain("required: true");
     expect(firstColumn(reminders)).toEqual([
       "**Reminder Interval (minutes)**",
       "**Stop Reminders When**",
@@ -3042,15 +3173,19 @@ describe("reminder rules", () => {
   });
 
   it("re-match every event not completed when a rule is saved, changed or deleted", () => {
-    for (const hook of ["onCreateSuccess(", "onUpdateSuccess(", "onDeleteSuccess("]) {
+    for (const hook of [
+      "onCreateSuccess(",
+      "onUpdateSuccess(",
+      "onDeleteSuccess(",
+    ]) {
       const at: number = REMINDER_RULE_SERVICE.indexOf(
         `protected override async ${hook}`,
       );
 
       expect(at).toBeGreaterThanOrEqual(0);
-      expect(
-        REMINDER_RULE_SERVICE.slice(at, at + 600),
-      ).toContain("this.refreshSchedulesForOpenScheduledMaintenances(");
+      expect(REMINDER_RULE_SERVICE.slice(at, at + 600)).toContain(
+        "this.refreshSchedulesForOpenScheduledMaintenances(",
+      );
     }
 
     expect(REMINDER_RULE_SERVICE).toContain(
@@ -3073,13 +3208,17 @@ describe("the Settings section's pages", () => {
     expect(NOTE_TEMPLATES_PAGE).toContain(
       "Pick one when writing a public or private note on a scheduled maintenance event, or when changing its state, and edit it before posting.",
     );
-    expect(`Create ${new ScheduledMaintenanceNoteTemplate().singularName}`).toBe(
-      "Create Scheduled Maintenance Note Template",
-    );
-    expect(quotedTitles(NOTE_TEMPLATES_PAGE.slice(NOTE_TEMPLATES_PAGE.indexOf("formFields={["), NOTE_TEMPLATES_PAGE.indexOf("showRefreshButton")))).toEqual([
-      "Template Name",
-      "Template Description",
-    ]);
+    expect(
+      `Create ${new ScheduledMaintenanceNoteTemplate().singularName}`,
+    ).toBe("Create Scheduled Maintenance Note Template");
+    expect(
+      quotedTitles(
+        NOTE_TEMPLATES_PAGE.slice(
+          NOTE_TEMPLATES_PAGE.indexOf("formFields={["),
+          NOTE_TEMPLATES_PAGE.indexOf("showRefreshButton"),
+        ),
+      ),
+    ).toEqual(["Template Name", "Template Description"]);
     expect(
       readDashboardSource("Components/NoteTemplate/NoteTemplateFormCopy.ts"),
     ).toContain('noteFieldTitle: "Note",');
@@ -3102,9 +3241,13 @@ describe("the Settings section's pages", () => {
     expect(
       new ScheduledMaintenance().getTableColumnMetadata("customFields"),
     ).toBeTruthy();
-    expect(eventMenu()[eventMenu().length - 1]?.items).toContain("Custom Fields");
+    expect(eventMenu()[eventMenu().length - 1]?.items).toContain(
+      "Custom Fields",
+    );
     expect(
-      readCommonSource("Server/Utils/CustomField/CustomFieldMappingRegistry.ts"),
+      readCommonSource(
+        "Server/Utils/CustomField/CustomFieldMappingRegistry.ts",
+      ),
     ).toContain('targetName: "Scheduled Maintenance",');
     expect(settingsSection).toContain(
       "Fill them in on an event's **Custom Fields** page, or through the API as `customFields`. A field can copy its value from a monitor custom field instead of being typed in",
@@ -3125,7 +3268,9 @@ describe("the Settings section's pages", () => {
       "Something else",
     ]);
     expect(
-      readCommonSource("Server/Services/ScheduledMaintenanceMeasurementService.ts"),
+      readCommonSource(
+        "Server/Services/ScheduledMaintenanceMeasurementService.ts",
+      ),
     ).toContain('"oneuptime.scheduled-maintenance.measurement.";');
     expect(settingsSection).toContain(
       "Pick **Start delay**, from the planned start until the event starts, **Overrun**, from the planned end until it ends, or **Maintenance duration**, from when it starts until it ends; or two moments of your own with **Something else**. Each measurement is shown on the event's page and charted as `oneuptime.scheduled-maintenance.measurement.<key>`.",
@@ -3178,7 +3323,10 @@ describe("the Settings section's pages", () => {
 });
 
 describe("workflows for maintenance", () => {
-  const workflows: string = section(english(RULES_AND_SETTINGS), "## Workflows");
+  const workflows: string = section(
+    english(RULES_AND_SETTINGS),
+    "## Workflows",
+  );
 
   it("names the triggers and actions as the workflow builder titles them", () => {
     const titles: Array<string> = componentTitles(new ScheduledMaintenance());
@@ -3198,8 +3346,12 @@ describe("workflows for maintenance", () => {
 
   it("gives custom field definitions and measurement values no workflow steps", () => {
     expect(componentTitles(new ScheduledMaintenanceCustomField())).toEqual([]);
-    expect(componentTitles(new ScheduledMaintenanceMeasurementValue())).toEqual([]);
-    expect(componentTitles(new ScheduledMaintenanceMeasurement()).length).toBeGreaterThan(0);
+    expect(componentTitles(new ScheduledMaintenanceMeasurementValue())).toEqual(
+      [],
+    );
+    expect(
+      componentTitles(new ScheduledMaintenanceMeasurement()).length,
+    ).toBeGreaterThan(0);
     expect(workflows).toContain(
       "Custom field definitions and measurement values are the exceptions: they have no workflow steps.",
     );
@@ -3207,7 +3359,10 @@ describe("workflows for maintenance", () => {
 });
 
 describe("who can change maintenance", () => {
-  const who: string = section(english(RULES_AND_SETTINGS), "## Who can change these");
+  const who: string = section(
+    english(RULES_AND_SETTINGS),
+    "## Who can change these",
+  );
 
   // Whether a role is among each of a model's create, update and delete permissions.
   function changes(model: DatabaseBaseModel, role: Permission): boolean {
@@ -3243,12 +3398,16 @@ describe("who can change maintenance", () => {
       Permission.ScheduledMaintenanceViewer,
     );
 
-    for (const model of [...memberModels, ...projectAdminModels, new ScheduledMaintenanceState()]) {
+    for (const model of [
+      ...memberModels,
+      ...projectAdminModels,
+      new ScheduledMaintenanceState(),
+    ]) {
       expect({
         table: model.tableName,
-        creates: model.getCreatePermissions().includes(
-          Permission.ScheduledMaintenanceViewer,
-        ),
+        creates: model
+          .getCreatePermissions()
+          .includes(Permission.ScheduledMaintenanceViewer),
       }).toEqual({ table: model.tableName, creates: false });
     }
 
@@ -3277,7 +3436,10 @@ describe("who can change maintenance", () => {
 
   it("lets an admin also create, change and delete maintenance states", () => {
     expect(
-      changes(new ScheduledMaintenanceState(), Permission.ScheduledMaintenanceAdmin),
+      changes(
+        new ScheduledMaintenanceState(),
+        Permission.ScheduledMaintenanceAdmin,
+      ),
     ).toBe(true);
 
     for (const model of memberModels) {
@@ -3315,7 +3477,10 @@ describe("who can change maintenance", () => {
   });
 
   it("lets Project Member work with events and templates, as a maintenance member does", () => {
-    for (const model of [new ScheduledMaintenance(), new ScheduledMaintenanceTemplate()]) {
+    for (const model of [
+      new ScheduledMaintenance(),
+      new ScheduledMaintenanceTemplate(),
+    ]) {
       expect(changes(model, Permission.ProjectMember)).toBe(true);
     }
 
@@ -3411,7 +3576,9 @@ describe("every menu path the maintenance pages give is in that menu", () => {
 });
 
 describe("every dashboard address the maintenance pages give is a route", () => {
-  const routes: Array<string> = routeGroup("ScheduledMaintenanceEventsRoutePath");
+  const routes: Array<string> = routeGroup(
+    "ScheduledMaintenanceEventsRoutePath",
+  );
   const ADDRESS: RegExp =
     /`\/dashboard\/\{projectId\}\/scheduled-maintenance-events(\/[^`]*)?`/g;
   const LEADING_SLASH: RegExp = /^\//;
@@ -3465,9 +3632,10 @@ describe("every dashboard address the maintenance pages give is a route", () => 
 describe("the readers", () => {
   it("read every table the pages draw", () => {
     for (const entry of SCHEDULED_MAINTENANCE_PAGES) {
-      expect({ page: entry.page, tables: tables(english(entry.page)).length > 0 }).toEqual(
-        { page: entry.page, tables: true },
-      );
+      expect({
+        page: entry.page,
+        tables: tables(english(entry.page)).length > 0,
+      }).toEqual({ page: entry.page, tables: true });
     }
   });
 
@@ -3476,9 +3644,9 @@ describe("the readers", () => {
       "resources-affected",
     );
     expect(stepOf(fieldObject(CREATE_PAGE, "Title"))).toBe("event");
-    expect(fieldObject(CREATE_PAGE, "Show event on these status pages")).toContain(
-      'title: "Show event on these status pages ",',
-    );
+    expect(
+      fieldObject(CREATE_PAGE, "Show event on these status pages"),
+    ).toContain('title: "Show event on these status pages ",');
   });
 
   it("read the seeded states with their colours", () => {

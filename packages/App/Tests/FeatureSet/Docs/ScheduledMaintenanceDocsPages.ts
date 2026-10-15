@@ -20,7 +20,8 @@ export interface ScheduledMaintenanceDocsPageEntry {
 export const MAINTENANCE_OVERVIEW: string = "scheduled-maintenance/index";
 export const CREATING_EVENTS: string = "scheduled-maintenance/creating-events";
 export const MAINTENANCE_STATES: string = "scheduled-maintenance/states";
-export const TEMPLATES_AND_RECURRING: string = "scheduled-maintenance/templates";
+export const TEMPLATES_AND_RECURRING: string =
+  "scheduled-maintenance/templates";
 export const RULES_AND_SETTINGS: string = "scheduled-maintenance/settings";
 
 /*
@@ -223,7 +224,8 @@ export const PRODUCT_NAMES: ReadonlyArray<string> = [
  * Core Concepts' status pages and maintenance cards end with it.
  */
 export const GETTING_STARTED_CARD_AFTER: string = "/docs/status-pages/index";
-export const CORE_CONCEPTS_CARD_AFTER: string = "/docs/status-pages/subscribers";
+export const CORE_CONCEPTS_CARD_AFTER: string =
+  "/docs/status-pages/subscribers";
 
 /*
  * The project's seeded event number prefix, as the pages name it.
