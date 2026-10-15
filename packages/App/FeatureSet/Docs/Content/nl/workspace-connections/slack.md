@@ -15,8 +15,8 @@ Koppel OneUptime aan Slack om incidenten, waarschuwingen, episodes, gepland onde
 ```mermaid title="Van een gebeurtenis in OneUptime naar een bericht in Slack"
 flowchart TB
     event["Een incident, waarschuwing of gebeurtenis<br/>wordt aangemaakt of verandert"] --> rules{"Meldingsregels<br/>waarvan de voorwaarden kloppen"}
-    rules -->|"Create Slack Channel"| own["Een eigen kanaal,<br/>met de mensen uitgenodigd"]
-    rules -->|"Post to Existing Slack Channel"| existing["Je bestaande kanalen"]
+    rules -->|"Een kanaal<br/>voor elk"| own["Een eigen kanaal,<br/>met de mensen uitgenodigd zodra ze erbij komen"]
+    rules -->|"In bestaande kanalen plaatsen"| existing["Je bestaande kanalen"]
     own --> message["Een bericht met knoppen"]
     existing --> message
     message -->|"Een responder drukt er een in"| change["De wijziging gebeurt in OneUptime,<br/>als die responder"]
@@ -47,7 +47,7 @@ Het installeren van de app koppelt het account van wie de app installeerde. Alle
 
 ### Een meldingsregel toevoegen
 
-Ga naar **Incidenten** > **Werkruimte** > **Slack**. De sectie **Werkruimte** toont alleen de chatworkspaces die je project heeft gekoppeld, dus **Slack** verschijnt daar zodra het is gekoppeld. Maak een regel aan, bijvoorbeeld een die voor elk nieuw incident een Slack-kanaal aanmaakt en de eigenaren van het incident uitnodigt. Zie [Meldingsregels](#meldingsregels).
+Ga naar **Incidenten** > **Werkruimte** > **Slack**. De sectie **Werkruimte** toont alleen de chatworkspaces die je project heeft gekoppeld, dus **Slack** verschijnt daar zodra het is gekoppeld. Maak een regel aan, bijvoorbeeld een die voor elk nieuw incident een Slack-kanaal aanmaakt met iedereen die eraan werkt: de opgeroepen mensen, de Incident Commander en de eigenaren. Zie [Meldingsregels](#meldingsregels).
 
 ### De regel testen
 
@@ -71,13 +71,17 @@ Een regel aanmaken gaat in vier stappen:
 | Stap | Wat je instelt |
 | --- | --- |
 | **Basis** | **Regelnaam** en **Regelbeschrijving**. |
-| **Voorwaarden** | Voor welke gebeurtenissen de regel afgaat, bijvoorbeeld op ernst, status, label, monitor of woorden in de titel. Zonder voorwaarden gaat hij af voor elke gebeurtenis. Met twee of meer bepaalt **Overeenkomstvoorwaarde** of ze allemaal moeten kloppen, of één ervan. |
-| **Bestemming** | Waar hij plaatst: **Post to Existing Slack Channel** met de kanaalnamen, **Create Slack Channel** met de naam van het nieuwe kanaal en wie er wordt uitgenodigd, of allebei. |
+| **Voorwaarden** | Voor welke gebeurtenissen de regel geldt, bijvoorbeeld op ernst, status, label, monitor of woorden in de titel. Ze worden gecontroleerd wanneer een gebeurtenis wordt aangemaakt en opnieuw bij elke update die OneUptime erover plaatst, dus een regel voor bevestigde incidenten werkt zodra een incident wordt bevestigd. Zonder voorwaarden geldt de regel voor elke gebeurtenis. Met twee of meer bepaalt **Overeenkomstvoorwaarde** of ze allemaal moeten kloppen, of één ervan. |
+| **Bestemming** | Waar hij plaatst: **In bestaande kanalen plaatsen** met de kanaalnamen, **Een kanaal aanmaken voor elk incident** (of waarschuwing, episode, evenement, monitor of bereikbaarheidsbeleid) met wie er lid van wordt, of allebei. Onder de stap zegt **Wat deze regel doet** het in zinnen, zoals de kaart van de regel. |
 | **Video Call** | Alleen incidenten en waarschuwingen: start voor elk een gesprek. Zie [Videogesprekken](/docs/workspace-connections/video-calls). |
 
 Een kanaal dat de regel aanmaakt, krijgt de naam van zijn record: incident INC-42 krijgt `inc-42`, waarschuwing ALT-7 krijgt `alt-7` en in een project zonder nummervoorvoegsels krijgt incident 42 `incident-42`. Tekst in **Voorvoegsel van de kanaalnaam** komt ervoor, dus `prod-` wordt `prod-inc-42`, en het formulier toont de naam terwijl je typt. Bij een geplande onderhoudsgebeurtenis neemt het voorvoegsel de plaats in van het nummervoorvoegsel: SM-5 krijgt `sm-5` en `maint-` wordt `maint-5`. Slack neemt kleine letters, cijfers, `-` en `_`, tot 80 tekens. Bestaat er al een kanaal met die naam, zoals dat van een ander project of een gearchiveerd kanaal, dan voegt OneUptime `-2`, `-3` enzovoort toe.
 
-Alleen een aangemaakt kanaal krijgt de mensen die de regel uitnodigt: de eigenaren van het record, gekozen teams en gebruikers en, bij incidenten en waarschuwingen, de mensen van de dienst zodra ze worden opgeroepen. Een privé-incident, -waarschuwing of -episode krijgt een privékanaal. Elke latere update van het record — een statuswijziging, een notitie, een nieuwe eigenaar — wordt in zijn kanalen geplaatst en in de bestaande kanalen die zijn regels noemen. Een incident, waarschuwing of episode die al opgelost werd aangemaakt, krijgt geen eigen kanaal; het aanmaakbericht gaat nog wel naar de kanalen die je regels noemen. Zie [Al bevestigd of opgelost gemeld](/docs/incidents/declaring-incidents#al-bevestigd-of-opgelost-gemeld).
+Een regel maakt zijn kanaal aan de eerste keer dat een gebeurtenis eraan voldoet: wanneer de gebeurtenis wordt aangemaakt, of later, wanneer een update haar laat voldoen terwijl ze nog open is. Een regel voor bevestigde incidenten maakt het kanaal aan zodra het incident wordt bevestigd. Een privé-incident, -waarschuwing of -episode krijgt een privékanaal.
+
+**Wie lid wordt van het kanaal** toont wie de regel aan zijn kanaal toevoegt, ieder zodra die bij het record komt, niet alleen bij het aanmaken van het kanaal: **Bereikbare medewerkers, zodra ze worden opgeroepen**, **Incident Commander en andere incidentrollen, zodra ze worden toegewezen** (incidenten en incidentepisodes) en **Eigenaren, zodra ze worden toegevoegd**, bij een nieuwe regel allemaal aangevinkt, en de mensen en teams in **Ook uitnodigen** bij het aanmaken van het kanaal. De Incident Commander wordt meestal toegewezen wanneer iemand het incident voor het eerst bevestigt, en wordt dan lid van het kanaal. Een regel die is opgeslagen voordat incidentrollen een eigen vakje hadden, voegt ze toe wanneer hij de eigenaren of de bereikbare medewerkers toevoegt, en zijn vakje staat aangevinkt. Een bestaand kanaal waarin een regel plaatst, krijgt niemand.
+
+Elke latere update van het record — een statuswijziging, een notitie, een nieuwe eigenaar — wordt in zijn kanalen geplaatst, en in de bestaande kanalen die zijn regels noemen zolang hun voorwaarden kloppen. Met **Kanaal archiveren wanneer het incident is opgelost** aan, of de tegenhanger ervan voor waarschuwingen, episodes, evenementen, monitoren en bereikbaarheidsbeleid, archiveert de regel die een kanaal aanmaakte het wanneer het record is opgelost, voltooid of verwijderd, wat zijn voorwaarden dan ook zeggen. Een incident, waarschuwing of episode die al opgelost werd aangemaakt, krijgt geen eigen kanaal; het aanmaakbericht gaat nog wel naar de kanalen die je regels noemen. Zie [Al bevestigd of opgelost gemeld](/docs/incidents/declaring-incidents#al-bevestigd-of-opgelost-gemeld).
 
 Een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis met een eigen kanaal heeft **Openen in Slack** in de kop van zijn pagina in OneUptime, naast de statusknoppen. Die opent dat kanaal in een nieuw tabblad, in de Slack-app of in de browser. Een record met twee eigen kanalen toont ze allebei onder de knop. Een record met kanalen in zowel Slack als Microsoft Teams heeft in plaats daarvan één knop **Kanaal openen**, die ze allemaal toont. De bestaande kanalen waarin uw regels posten, worden niet aangeboden.
 
@@ -246,6 +250,10 @@ Wat OneUptime ervan bewaart — de naam van de werkruimte, de kanalen, de Slack-
 
 :::details Een regel plaatst niets
 Controleer de voorwaarden van de regel met **Testregel**: komt de test aan, dan klopten de voorwaarden van de regel niet voor de gebeurtenis. Komt hij niet aan, dan zegt de Slack-pagina waarom. Nodig voor een privékanaal eerst de app van OneUptime uit in Slack. Elk bericht dat OneUptime plaatst, en elk bericht dat Slack weigerde, staat in **Projectinstellingen** > **Meldingen** > **Meldingslogboeken**, op het tabblad **Werkruimte**.
+:::
+
+:::details Iemand ontbreekt in het kanaal van een regel
+De kaart van de regel zegt onder **Daarna** wie de regel uitnodigt. Elk soort persoon wordt lid zodra die bij het record komt: de opgeroepen mensen zodra ze worden opgeroepen, de Incident Commander zodra die wordt toegewezen, een eigenaar zodra die wordt toegevoegd, en wie al bij het record hoorde toen het kanaal werd aangemaakt. Iemand van wie het Slack-account niet aan OneUptime is gekoppeld, kan niet worden toegevoegd; OneUptime noemt die persoon in het kanaal, met een link om het account te koppelen.
 :::
 
 :::details Slack is niet gekoppeld

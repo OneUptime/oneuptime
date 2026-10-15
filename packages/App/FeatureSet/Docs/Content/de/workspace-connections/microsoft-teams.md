@@ -15,7 +15,7 @@ Verbinden Sie OneUptime mit Microsoft Teams, um Vorfälle, Warnungen, Episoden, 
 ```mermaid title="Von einem Ereignis in OneUptime zu einer Karte in Microsoft Teams"
 flowchart TB
     event["Ein Vorfall, eine Warnung oder ein Ereignis<br/>entsteht oder ändert sich"] --> rules{"Benachrichtigungsregeln,<br/>deren Bedingungen passen"}
-    rules -->|"Create Microsoft Teams Channel"| own["Ein eigener Kanal<br/>im gewählten Team"]
+    rules -->|"Ein Kanal<br/>für jeden"| own["Ein eigener Kanal<br/>im gewählten Team"]
     rules -->|"In einen bestehenden<br/>Kanal oder Chat posten"| existing["Ihre Kanäle und Chats"]
     own --> card["Eine Karte mit Schaltflächen"]
     existing --> card
@@ -84,13 +84,15 @@ Eine Regel wird in vier Schritten angelegt:
 | Schritt | Was Sie festlegen |
 | --- | --- |
 | **Grundlegend** | **Regelname** und **Regelbeschreibung**. |
-| **Bedingungen** | Für welche Ereignisse die Regel auslöst, zum Beispiel nach Schweregrad, Status, Beschriftung, Monitor oder Wörtern im Titel. Ohne Bedingungen löst sie bei jedem Ereignis aus. Bei zwei oder mehr legt **Abgleichsbedingung** fest, ob alle zutreffen müssen oder eine genügt. |
-| **Ziel** | Wohin sie postet: in einen bestehenden Kanal eines gewählten Teams, in die gewählten Chats, in einen neuen Kanal in einem gewählten Team, oder in mehrere davon zugleich. |
+| **Bedingungen** | Für welche Ereignisse die Regel gilt, zum Beispiel nach Schweregrad, Status, Beschriftung, Monitor oder Wörtern im Titel. Sie werden geprüft, wenn ein Ereignis erstellt wird, und erneut bei jedem Update, das OneUptime dazu postet, sodass eine Regel für bestätigte Vorfälle greift, sobald ein Vorfall bestätigt wird. Ohne Bedingungen gilt die Regel für jedes Ereignis. Bei zwei oder mehr legt **Abgleichsbedingung** fest, ob alle zutreffen müssen oder eine genügt. |
+| **Ziel** | Wohin sie postet: in einen bestehenden Kanal eines gewählten Teams, in die gewählten Chats, in einen Kanal für jeden Vorfall (oder jede Warnung, Episode, jedes Ereignis, jeden Monitor oder jede Bereitschaftsrichtlinie), der in einem gewählten Team erstellt wird, oder in mehrere davon zugleich. Unter dem Schritt sagt **Was diese Regel tut** in Sätzen, was sie tut, wie die Karte der Regel. |
 | **Videoanruf** | Nur Vorfälle und Warnungen: für jeden einen Anruf starten. Siehe [Videoanrufe](/docs/workspace-connections/video-calls). |
 
 Ein Kanal, den die Regel anlegt, wird nach seinem Datensatz benannt: Vorfall INC-42 bekommt `inc-42`, Warnung ALT-7 bekommt `alt-7`, und in einem Projekt ohne Nummernpräfixe bekommt Vorfall 42 `incident-42`. Text in **Präfix für Kanalnamen** steht davor, aus `prod-` wird also `prod-inc-42`, und das Formular zeigt den Namen schon beim Tippen. Bei einem geplanten Wartungsereignis tritt das Präfix an die Stelle seines Nummernpräfixes: SM-5 bekommt `sm-5`, und aus `maint-` wird `maint-5`. OneUptime behält Buchstaben, Ziffern, Leerzeichen, `-` und `_`, bis zu den 50 Zeichen, die Microsoft Teams annimmt. Hat das Team schon einen Kanal mit diesem Namen, etwa den eines anderen Projekts oder einen in den letzten 30 Tagen gelöschten, hängt OneUptime `-2`, `-3` und so weiter an.
 
-Nur ein angelegter Kanal bekommt die Personen, die die Regel einlädt. Ein privater Vorfall, eine private Warnung oder Episode bekommt einen privaten Kanal. Jede spätere Änderung des Datensatzes — ein Statuswechsel, eine Notiz, ein neuer Eigentümer — wird in seinen Kanälen und Chats gepostet.
+Eine Regel erstellt ihren Kanal, wenn ein Ereignis zum ersten Mal auf sie zutrifft: beim Erstellen des Ereignisses oder später, wenn es durch ein Update zutrifft, solange es noch offen ist. Eine Regel für bestätigte Vorfälle erstellt den Kanal, sobald der Vorfall bestätigt wird. Microsoft Teams zeigt die Kanäle eines Teams allen im Team, daher fügt OneUptime niemanden einzeln zu einem Kanal hinzu: Alle im gewählten Team können ihn öffnen, wie das Regelformular unter **Wer dem Kanal beitritt** sagt. Ein privater Vorfall, eine private Warnung oder Episode bekommt einen privaten Kanal, den nur seine Mitglieder sehen; fügen Sie Personen in Microsoft Teams hinzu.
+
+Jede spätere Änderung des Datensatzes — ein Statuswechsel, eine Notiz, ein neuer Eigentümer — wird in seinen Kanälen gepostet und in den bestehenden Kanälen und Chats, die seine Regeln nennen, solange deren Bedingungen zutreffen. OneUptime kann keinen Microsoft Teams-Kanal archivieren, daher bleibt der Kanal einer Regel bestehen, wenn sein Datensatz abgeschlossen ist; archivieren oder löschen Sie ihn in Microsoft Teams.
 
 Ein Vorfall, eine Warnung, eine Episode oder ein geplantes Wartungsereignis mit einem eigenen Kanal hat im Kopf seiner Seite in OneUptime, neben den Statusschaltflächen, **In Microsoft Teams öffnen**. Das öffnet diesen Kanal in einem neuen Tab, in der Microsoft-Teams-App oder im Browser. Ein Datensatz mit zwei eigenen Kanälen listet beide unter der Schaltfläche. Ein Datensatz mit Kanälen in Slack und in Microsoft Teams hat stattdessen eine Schaltfläche **Kanal öffnen**, die sie alle auflistet. Die bestehenden Kanäle und Chats, in die Ihre Regeln posten, werden nicht angeboten.
 

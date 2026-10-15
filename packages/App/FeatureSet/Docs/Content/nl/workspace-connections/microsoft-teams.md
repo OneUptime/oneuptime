@@ -15,7 +15,7 @@ Koppel OneUptime aan Microsoft Teams om incidenten, waarschuwingen, episodes, ge
 ```mermaid title="Van een gebeurtenis in OneUptime naar een kaart in Microsoft Teams"
 flowchart TB
     event["Een incident, waarschuwing of gebeurtenis<br/>wordt aangemaakt of verandert"] --> rules{"Meldingsregels<br/>waarvan de voorwaarden kloppen"}
-    rules -->|"Create Microsoft Teams Channel"| own["Een eigen kanaal<br/>in het team dat je kiest"]
+    rules -->|"Een kanaal<br/>voor elk"| own["Een eigen kanaal<br/>in het team dat je kiest"]
     rules -->|"Plaatsen in een bestaand<br/>kanaal of een bestaande chat"| existing["Je kanalen en chats"]
     own --> card["Een kaart met knoppen"]
     existing --> card
@@ -84,13 +84,15 @@ Een regel aanmaken gaat in vier stappen:
 | Stap | Wat je instelt |
 | --- | --- |
 | **Basis** | **Regelnaam** en **Regelbeschrijving**. |
-| **Voorwaarden** | Voor welke gebeurtenissen de regel afgaat, bijvoorbeeld op ernst, status, label, monitor of woorden in de titel. Zonder voorwaarden gaat hij af voor elke gebeurtenis. Met twee of meer bepaalt **Overeenkomstvoorwaarde** of ze allemaal moeten kloppen, of één ervan. |
-| **Bestemming** | Waar hij plaatst: een bestaand kanaal van een team dat je kiest, de chats die je kiest, een nieuw kanaal dat wordt aangemaakt in een team dat je kiest, of meerdere daarvan samen. |
+| **Voorwaarden** | Voor welke gebeurtenissen de regel geldt, bijvoorbeeld op ernst, status, label, monitor of woorden in de titel. Ze worden gecontroleerd wanneer een gebeurtenis wordt aangemaakt en opnieuw bij elke update die OneUptime erover plaatst, dus een regel voor bevestigde incidenten werkt zodra een incident wordt bevestigd. Zonder voorwaarden geldt de regel voor elke gebeurtenis. Met twee of meer bepaalt **Overeenkomstvoorwaarde** of ze allemaal moeten kloppen, of één ervan. |
+| **Bestemming** | Waar hij plaatst: een bestaand kanaal van een team dat je kiest, de chats die je kiest, een kanaal voor elk incident (of waarschuwing, episode, evenement, monitor of bereikbaarheidsbeleid) dat wordt aangemaakt in een team dat je kiest, of meerdere daarvan samen. Onder de stap zegt **Wat deze regel doet** het in zinnen, zoals de kaart van de regel. |
 | **Video Call** | Alleen incidenten en waarschuwingen: start voor elk een gesprek. Zie [Videogesprekken](/docs/workspace-connections/video-calls). |
 
 Een kanaal dat de regel aanmaakt, krijgt de naam van zijn record: incident INC-42 krijgt `inc-42`, waarschuwing ALT-7 krijgt `alt-7` en in een project zonder nummervoorvoegsels krijgt incident 42 `incident-42`. Tekst in **Voorvoegsel van de kanaalnaam** komt ervoor, dus `prod-` wordt `prod-inc-42`, en het formulier toont de naam terwijl je typt. Bij een geplande onderhoudsgebeurtenis neemt het voorvoegsel de plaats in van het nummervoorvoegsel: SM-5 krijgt `sm-5` en `maint-` wordt `maint-5`. OneUptime houdt letters, cijfers, spaties, `-` en `_` over, tot de 50 tekens die Microsoft Teams aanneemt. Heeft het team al een kanaal met die naam, zoals dat van een ander project of een kanaal dat de afgelopen 30 dagen is verwijderd, dan voegt OneUptime `-2`, `-3` enzovoort toe.
 
-Alleen een aangemaakt kanaal krijgt de mensen die de regel uitnodigt. Een privé-incident, -waarschuwing of -episode krijgt een privékanaal. Elke latere update van het record — een statuswijziging, een notitie, een nieuwe eigenaar — wordt in zijn kanalen en chats geplaatst.
+Een regel maakt zijn kanaal aan de eerste keer dat een gebeurtenis eraan voldoet: wanneer de gebeurtenis wordt aangemaakt, of later, wanneer een update haar laat voldoen terwijl ze nog open is. Een regel voor bevestigde incidenten maakt het kanaal aan zodra het incident wordt bevestigd. Microsoft Teams toont de kanalen van een team aan iedereen in het team, dus OneUptime voegt niemand een voor een aan een kanaal toe: iedereen in het team dat je kiest kan het openen, zoals het regelformulier zegt onder **Wie lid wordt van het kanaal**. Een privé-incident, -waarschuwing of -episode krijgt een privékanaal, dat alleen de leden ervan zien; voeg mensen toe in Microsoft Teams.
+
+Elke latere update van het record — een statuswijziging, een notitie, een nieuwe eigenaar — wordt in zijn kanalen geplaatst, en in de bestaande kanalen en chats die zijn regels noemen zolang hun voorwaarden kloppen. OneUptime kan een Microsoft Teams-kanaal niet archiveren, dus het kanaal van een regel blijft bestaan wanneer het record voorbij is; archiveer of verwijder het in Microsoft Teams.
 
 Een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis met een eigen kanaal heeft **Openen in Microsoft Teams** in de kop van zijn pagina in OneUptime, naast de statusknoppen. Die opent dat kanaal in een nieuw tabblad, in de Microsoft Teams-app of in de browser. Een record met twee eigen kanalen toont ze allebei onder de knop. Een record met kanalen in zowel Slack als Microsoft Teams heeft in plaats daarvan één knop **Kanaal openen**, die ze allemaal toont. De bestaande kanalen en chats waarin uw regels posten, worden niet aangeboden.
 
