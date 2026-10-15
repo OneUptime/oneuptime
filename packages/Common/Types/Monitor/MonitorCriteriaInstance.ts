@@ -41,6 +41,14 @@ export interface MonitorCriteriaInstanceType {
    * Grafana alert name) instead of a single active incident per criteria.
    */
   incidentGrouping?: IncidentGroupingConfig | undefined;
+  /**
+   * Incoming Email monitors only: every email that matches this criteria
+   * opens an incident (and an alert) of its own, even while earlier ones
+   * are open, instead of one at a time. A reply is added to the incident
+   * its thread opened as a note, the same email delivered twice opens one,
+   * and automatic replies open none (IncomingEmailOpenForEveryEmail).
+   */
+  openForEveryEmail?: boolean | undefined;
   id: string;
 }
 
@@ -2194,6 +2202,32 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     return this;
   }
 
+  public setOpenForEveryEmail(
+    openForEveryEmail: boolean | undefined,
+  ): MonitorCriteriaInstance {
+    if (this.data) {
+      this.data.openForEveryEmail = openForEveryEmail;
+    }
+
+    return this;
+  }
+
+  /*
+   * Whether this criteria opens an incident and an alert for every email
+   * that matches it: on an Incoming Email monitor, with the switch on. The
+   * switch means nothing on any other monitor, and a criteria copied there
+   * with it on is read as off.
+   */
+  public static isOpenForEveryEmail(input: {
+    monitorType: MonitorType | undefined;
+    criteriaInstance: MonitorCriteriaInstance | null | undefined;
+  }): boolean {
+    return (
+      input.monitorType === MonitorType.IncomingEmail &&
+      input.criteriaInstance?.data?.openForEveryEmail === true
+    );
+  }
+
   public override toJSON(): JSONObject {
     if (!this.data) {
       return MonitorCriteriaInstance.getNewMonitorCriteriaInstanceAsJSON();
@@ -2213,6 +2247,10 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createIncidents: this.data.createIncidents,
         isEnabled: this.data.isEnabled,
         incidentGrouping: this.data.incidentGrouping,
+        // Written only when on, so a criteria without it reads as it did.
+        ...(this.data.openForEveryEmail === true
+          ? { openForEveryEmail: true }
+          : {}),
         name: this.data.name,
         description: this.data.description,
       } as any,
@@ -2329,6 +2367,10 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       isEnabled:
         json["isEnabled"] === undefined ? true : (json["isEnabled"] as boolean),
       incidentGrouping: (json["incidentGrouping"] as any) || undefined,
+      // Only a real `true` turns it on: anything else is the old behaviour.
+      ...(json["openForEveryEmail"] === true
+        ? { openForEveryEmail: true }
+        : {}),
       filters: filters as any,
       incidents: incidents as any,
       alerts: alerts as any,
@@ -2357,6 +2399,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: Zod.boolean().optional(),
         isEnabled: Zod.boolean().optional(),
         incidentGrouping: IncidentGroupingConfigSchema.optional(),
+        openForEveryEmail: Zod.boolean().optional(),
       }).openapi({
         type: "object",
         example: {
