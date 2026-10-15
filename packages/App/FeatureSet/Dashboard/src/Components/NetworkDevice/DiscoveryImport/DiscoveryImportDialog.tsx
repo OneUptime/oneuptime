@@ -756,30 +756,36 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
       nextButtonDataTestId: "discovery-import-next",
       isNextButtonDisabled: isNextDisabled,
     }).secondaryButton;
-    leftFooterElement = (
-      <p
-        className={`text-sm ${
-          hostsToImport.length > MAX_HOSTS_PER_DISCOVERY_IMPORT
-            ? "font-medium text-amber-700"
-            : "text-gray-600"
-        }`}
-        data-testid="discovery-import-choose-summary"
-      >
-        {hostsToImport.length > MAX_HOSTS_PER_DISCOVERY_IMPORT
-          ? translator.translateTemplate(
-              "One import brings in up to {{max}} hosts: narrow the selection, then import the rest after.",
-              { max: translator.formatNumber(MAX_HOSTS_PER_DISCOVERY_IMPORT) },
-            )
-          : translator.translatePlural(
-              {
-                one: "{{count}} host will be imported",
-                other: "{{count}} hosts will be imported",
-              },
-              hostsToImport.length,
-              { count: translator.formatNumber(hostsToImport.length) },
-            )}
-      </p>
-    );
+
+    // Not while the scan is read: "0 hosts will be imported" is not true yet.
+    if (scan && !isLoading) {
+      leftFooterElement = (
+        <p
+          className={`text-sm ${
+            hostsToImport.length > MAX_HOSTS_PER_DISCOVERY_IMPORT
+              ? "font-medium text-amber-700"
+              : "text-gray-600"
+          }`}
+          data-testid="discovery-import-choose-summary"
+        >
+          {hostsToImport.length > MAX_HOSTS_PER_DISCOVERY_IMPORT
+            ? translator.translateTemplate(
+                "One import brings in up to {{max}} hosts: narrow the selection, then import the rest after.",
+                {
+                  max: translator.formatNumber(MAX_HOSTS_PER_DISCOVERY_IMPORT),
+                },
+              )
+            : translator.translatePlural(
+                {
+                  one: "{{count}} host will be imported",
+                  other: "{{count}} hosts will be imported",
+                },
+                hostsToImport.length,
+                { count: translator.formatNumber(hostsToImport.length) },
+              )}
+        </p>
+      );
+    }
   } else if (step === DiscoveryImportStep.Monitoring) {
     secondaryButton = {
       title: translationKey("Back"),

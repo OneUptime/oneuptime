@@ -656,12 +656,19 @@ describe("Discovery review waits for a successful current response", () => {
     expect(screen.getByText("Refreshing inventory")).toBeInTheDocument();
     expect(next()).toBeDisabled();
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    // No "0 hosts will be imported" while the hosts are still being read.
+    expect(
+      screen.queryByTestId("discovery-import-choose-summary"),
+    ).not.toBeInTheDocument();
 
     await act(async () => {
       pending.resolve(scan([host("10.0.0.1", true)]));
       await opening;
     });
     expect(checkbox("10.0.0.1")).toBeDisabled();
+    expect(
+      screen.getByTestId("discovery-import-choose-summary"),
+    ).toHaveTextContent("0 hosts will be imported");
     expect(server.startBodies).toEqual([]);
   });
 
