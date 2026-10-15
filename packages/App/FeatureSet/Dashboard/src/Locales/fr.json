@@ -15503,7 +15503,7 @@
   "Reset layout": "Reset layout",
   "Reset the AI agent?": "Réinitialiser l'agent IA ?",
   "Reset the dashboard to the time range it had before the zoom": "Reset the dashboard to the time range it had before the zoom",
-  "Reset zoom": "Réinitialiser le zoom",
+  "Reset zoom": "Reset zoom",
   "Reset {{columnName}}": "Réinitialiser : {{columnName}}",
   "Resetting the secret key will generate a new key. Secret is used to authenticate probe requests.": "Resetting the secret key will generate a new key. Secret is used to authenticate probe requests.",
   "Resetting the secret key will generate a new key. The secret is used to authenticate this Runner's requests. This Runner will stop connecting until the new key is configured on it, so re-run the setup command on its host afterwards.": "Resetting the secret key will generate a new key. The secret is used to authenticate this Runner's requests. This Runner will stop connecting until the new key is configured on it, so re-run the setup command on its host afterwards.",

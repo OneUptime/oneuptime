@@ -191,20 +191,18 @@ Pasar de **Resuelto** a un estado posterior —**Closed**, por ejemplo— no es 
 
 ## La cronología de estados
 
-La página **Cronología de estados** del menú lateral del incidente es el registro de auditoría de cada estado por el que ha pasado el incidente. La tarjeta de esa página se titula **Cronología de estados**, y está ordenada de más reciente a más antigua.
+La página **Cronología de estados** del menú lateral del incidente es el registro de auditoría de cada estado por el que ha pasado el incidente. La tarjeta de esa página se titula **Cronología de estados** y dibuja toda la vida del incidente como una cronología:
 
-| Columna                                   | Qué muestra                                                                                                                                                                                                                                                    |
-| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Estado del incidente**                  | Una etiqueta de color con el nombre y el color del estado.                                                                                                                                                                                                     |
-| **Comienza en**                           | Cuándo entró el incidente en este estado.                                                                                                                                                                                                                      |
-| **Termina en**                            | Cuándo salió. El estado actual muestra `Currently Active`.                                                                                                                                                                                                     |
-| **Duración**                              | El tiempo pasado en el estado, contado hasta ahora para el actual.                                                                                                                                                                                             |
-| **Estado de notificación del suscriptor** | Si la notificación de la página de estado para este cambio se envió, se omitió o sigue pendiente, con un enlace **más detalles** y, cuando el envío falló, una acción **Reintentar**. **Reintentar** vuelve a enviar el cambio de estado a cada página de estado a la que llega ahora el incidente, incluidos los suscriptores que ya lo recibieron. |
+- **La banda** muestra cada estado como un tramo de su color, tan largo como el incidente estuvo en él, para que la evolución del incidente se lea de un vistazo. Mientras el incidente está abierto, la banda llega hasta **Ahora**; una vez resuelto, termina poco después de su último cambio. Señala un tramo para ver cuándo empezó y cuánto duró, y haz clic en él para encontrar su cambio en la lista. Los cambios demasiado juntos para distinguirlos se dibujan como un solo tramo rayado: haz clic en él, o arrastra sobre la banda, para acercar, y **Restablecer zoom** vuelve atrás.
+- **Encima de la banda**, cada estado aparece con el tiempo que el incidente pasó en él.
+- **Debajo de la banda**, cada cambio aparece del más reciente al más antiguo, agrupado por día y en tu zona horaria: cuándo empezó y terminó, cuánto duró, quién lo hizo y, debajo, **Suscriptores de la página de estado:** si la notificación de la página de estado de ese cambio se envió, se omitió o sigue pendiente, con un enlace **más detalles** y, cuando el envío falló, una acción **Reintentar**. **Reintentar** vuelve a enviar el cambio de estado a cada página de estado a la que llega ahora el incidente, incluidos los suscriptores que ya lo recibieron.
 
-Cada fila tiene dos acciones:
+Cada cambio tiene dos acciones:
 
 - **Ver causa** — abre un diálogo **Causa raíz** que muestra el Markdown registrado con ese cambio de estado.
 - **Ver registros** — abre un diálogo que explica por qué cambió el estado, con un visor **Registro de estados del incidente**.
+
+**Cronología** y **Tabla**, en la cabecera de la tarjeta, cambian entre la cronología y la tabla que era antes la página: una fila por cambio con **Comienza en**, **Termina en** y **Duración**, filtros, vistas guardadas y acciones masivas. Tu elección se guarda en tu navegador, para todas las cronologías de estado. Las alertas, los episodios y los eventos de mantenimiento programado dibujan sus cronologías de estados de la misma forma. La **Cronología de estados** de un monitor y de un sitio de red se abre en cambio en el último mes, elegido como cualquier otro intervalo de tiempo, con el periodo anterior y el siguiente a un clic.
 
 En el panel, las filas de la cronología se pueden añadir y eliminar, pero no editar; un incidente siempre conserva al menos una fila. Por la API se puede corregir el `startsAt` de una fila, y cada medición calculada a partir de la cronología lo sigue.
 

@@ -191,20 +191,18 @@ En hendelse er løst når den går fra en tilstand over den løste tilstanden di
 
 ## Tilstandstidslinjen
 
-Hendelsens side **Tilstandstidslinje** i hendelsens sidemeny er revisjonssporet for hver tilstand hendelsen har vært i. Kortet på den siden heter **Statustidslinje**, og det er sortert med de nyeste først.
+Hendelsens side **Tilstandstidslinje** i hendelsens sidemeny er revisjonssporet for hver tilstand hendelsen har vært i. Kortet på den siden heter **Statustidslinje**, og det tegner hele hendelsens forløp som en tidslinje:
 
-| Kolonne                            | Hva den viser                                                                                                                                                                                                                                                  |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Hendelsesstatus**                | Et farget merke med tilstandens navn og farge.                                                                                                                                                                                                                 |
-| **Begynner den**                   | Når hendelsen gikk inn i denne tilstanden.                                                                                                                                                                                                                     |
-| **Slutter den**                    | Når den forlot den. Den gjeldende tilstanden viser `Currently Active`.                                                                                                                                                                                         |
-| **Varighet**                       | Tiden i tilstanden, for den gjeldende talt frem til nå.                                                                                                                                                                                                        |
-| **Abonnentvarselsstatus**          | Om statussidens varsel for denne endringen ble sendt, hoppet over eller fortsatt venter, med en lenke **flere detaljer**, og — når sendingen feilet — en handling **Prøv på nytt**. **Prøv på nytt** sender tilstandsendringen på nytt til hver statusside hendelsen når nå, også til abonnentene som allerede har fått den. |
+- **Båndet** viser hver tilstand som et stykke i sin farge, så langt som hendelsen var i den, slik at forløpet kan leses med ett blikk. Så lenge hendelsen er åpen, går båndet frem til **Nå**; når den er løst, slutter båndet like etter den siste endringen. Pek på et stykke for å se når det begynte og hvor lenge det varte, og klikk på det for å finne endringen i listen. Endringer som ligger for tett til å skilles, tegnes som ett stripete stykke: klikk på det, eller dra over båndet, for å zoome inn, og **Reset zoom** går tilbake.
+- **Over båndet** står hver tilstand med tiden hendelsen var i den.
+- **Under båndet** står hver endring, nyeste først, gruppert etter dag og i din tidssone: når den begynte og sluttet, hvor lenge den varte, hvem som gjorde den og under den **Abonnenter på statussiden:** om statussidevarselet for endringen ble sendt, hoppet over eller fortsatt venter, med en lenke **flere detaljer** og — når sendingen mislyktes — en handling **Prøv på nytt**. **Prøv på nytt** sender tilstandsendringen på nytt til hver statusside hendelsen når nå, også til abonnentene som allerede har fått den.
 
-Hver rad har to handlinger:
+Hver endring har to handlinger:
 
 - **Vis årsak** — åpner en dialog **Rotårsak** som viser Markdown-en som ble registrert med tilstandsendringen.
 - **Vis logger** — åpner en dialog som forklarer hvorfor statusen endret seg, med en visning **Hendelsestilstandslogg**.
+
+**Tidslinje** og **Tabell** i kortets overskrift bytter mellom tidslinjen og tabellen siden var før: en rad per endring med **Begynner den**, **Slutter den** og **Varighet**, filtre, lagrede visninger og massehandlinger. Valget ditt lagres i nettleseren, for alle statustidslinjer. Varsler, episoder og planlagte vedlikeholdshendelser tegner sine tilstandstidslinjer på samme måte. En monitors og en nettverkslokasjons **Statustidslinje** åpner i stedet på den siste måneden, valgt som et hvilket som helst annet tidsintervall, med perioden før og etter ett klikk unna.
 
 I dashbordet kan tidslinjerader legges til og slettes, men ikke redigeres; en hendelse beholder alltid minst én rad. Via API-et kan `startsAt` for en rad rettes, og hver måling som regnes ut fra tidslinjen, følger med.
 

@@ -191,20 +191,18 @@ Passare da **Risolto** a uno stato successivo — **Closed**, ad esempio — non
 
 ## La cronologia degli stati
 
-La pagina **Cronologia stato** nel menu laterale dell'incidente è la traccia di audit di ogni stato in cui è stato l'incidente. La scheda di quella pagina si intitola **Cronologia di stato**, ed è ordinata dalla più recente.
+La pagina **Cronologia stato** nel menu laterale dell'incidente è la traccia di audit di ogni stato in cui è stato l'incidente. La scheda di quella pagina si intitola **Cronologia di stato**, e disegna l'intera vita dell'incidente come una cronologia:
 
-| Colonna                         | Che cosa mostra                                                                                                                                                                                                                                                |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Stato dell'incidente**        | Un'etichetta colorata con il nome e il colore dello stato.                                                                                                                                                                                                     |
-| **Inizia il**                   | Quando l'incidente è entrato in questo stato.                                                                                                                                                                                                                  |
-| **Termina il**                  | Quando ne è uscito. Lo stato attuale mostra `Currently Active`.                                                                                                                                                                                                |
-| **Durata**                      | Il tempo passato nello stato, contato fino ad adesso per quello attuale.                                                                                                                                                                                       |
-| **Stato notifica iscritto**     | Se la notifica della pagina di stato per questo cambiamento è stata inviata, saltata o è ancora in attesa, con un link **maggiori dettagli** e — quando l'invio è fallito — un'azione **Riprova**. **Riprova** invia di nuovo il cambio di stato a ogni pagina di stato che l'incidente raggiunge adesso, compresi gli iscritti che l'hanno già ricevuto. |
+- **La banda** mostra ogni stato come un tratto del suo colore, lungo quanto l'incidente vi è rimasto, così l'andamento dell'incidente si legge a colpo d'occhio. Finché l'incidente è aperto, la banda arriva fino a **Ora**; una volta risolto, termina poco dopo il suo ultimo cambio. Puntate un tratto per vedere quando è iniziato e quanto è durato, e fateci clic per trovarne il cambio nell'elenco. I cambi troppo vicini per distinguerli sono disegnati come un unico tratto a righe: fateci clic, o trascinate sulla banda, per ingrandire, e **Reset zoom** torna indietro.
+- **Sopra la banda**, ogni stato è elencato con il tempo che l'incidente vi ha trascorso.
+- **Sotto la banda**, ogni cambio è elencato dal più recente, raggruppato per giorno e nel vostro fuso orario: quando è iniziato e finito, quanto è durato, chi l'ha fatto e, sotto, **Iscritti alla pagina di stato:** se la notifica della pagina di stato per quel cambio è stata inviata, saltata o è ancora in attesa, con un link **maggiori dettagli** e — quando l'invio è fallito — un'azione **Riprova**. **Riprova** invia di nuovo il cambio di stato a ogni pagina di stato che l'incidente raggiunge adesso, compresi gli iscritti che l'hanno già ricevuto.
 
-Ogni riga ha due azioni:
+Ogni cambio ha due azioni:
 
 - **Visualizza causa** — apre una finestra **Causa principale** che mostra il Markdown registrato con quel cambio di stato.
 - **Visualizza log** — apre una finestra che spiega perché lo stato è cambiato, con un visualizzatore **Log dello stato dell'incidente**.
+
+**Cronologia** e **Tabella**, nell'intestazione della scheda, passano dalla cronologia alla tabella che era prima la pagina e viceversa: una riga per cambio con **Inizia il**, **Termina il** e **Durata**, filtri, viste salvate e azioni di massa. La scelta resta salvata nel vostro browser, per ogni cronologia di stato. Avvisi, episodi ed eventi di manutenzione pianificata disegnano le loro cronologie di stato allo stesso modo. La **Cronologia di stato** di un monitor e di un sito di rete si apre invece sull'ultimo mese, scelto come qualsiasi altro intervallo di tempo, con il periodo precedente e quello successivo a un clic.
 
 Nella dashboard, le righe della cronologia possono essere aggiunte ed eliminate, ma non modificate; un incidente mantiene sempre almeno una riga. Tramite l'API, lo `startsAt` di una riga può essere corretto, e ogni misurazione calcolata dalla cronologia lo segue.
 
