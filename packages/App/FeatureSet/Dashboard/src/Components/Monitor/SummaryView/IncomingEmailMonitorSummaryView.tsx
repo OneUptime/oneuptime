@@ -71,7 +71,12 @@ const IncomingEmailMonitorSummaryView: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="space-y-5">
-      <div className="flex space-x-3 justify-between flex-wrap">
+      {/*
+       * A gap, not space-x: a card that wraps onto a line of its own keeps
+       * no margin from the card before it, so on a phone the cards stack
+       * flush instead of each one after the first stepping in.
+       */}
+      <div className="flex flex-wrap justify-between gap-x-3">
         <InfoCard
           className="w-full sm:w-auto flex-1 shadow-none border-2 border-gray-100 mb-3"
           title="Last Email Received At"

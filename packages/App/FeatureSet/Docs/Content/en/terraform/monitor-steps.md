@@ -245,6 +245,7 @@ Grouped metric monitors are the one exception. When a metric monitor's query is 
 | `alerts` | list | The alerts to open. Leave it out unless `create_alerts = true`. |
 | `is_enabled` | bool | `true` on the server when not set. Set `false` to keep a criteria without judging with it. |
 | `incident_grouping` | string (JSON) | Incoming Request monitors only: one incident for each value found in the request, such as `jsonencode({ groupByJSONPath = "..." })`. |
+| `open_for_every_email` | bool | Incoming Email monitors only: `true` opens an incident (and an alert) for every email that matches, instead of one at a time. |
 
 ### Incidents and alerts
 

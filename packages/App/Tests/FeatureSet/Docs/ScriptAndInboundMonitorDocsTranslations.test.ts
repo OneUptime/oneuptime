@@ -276,6 +276,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "The old address stops working immediately",
     "Your criteria see it too.",
     "Verification belongs to the address.",
+    // The warning of "Open an incident for every email".
+    "Anyone who knows the address can open incidents.",
     "not",
     "A title gets one line of each.",
     "This monitor's address is masked.",

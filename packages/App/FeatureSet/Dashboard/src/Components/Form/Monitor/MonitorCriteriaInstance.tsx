@@ -50,6 +50,10 @@ import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import CriteriaNameUtil from "../../../Utils/Form/Monitor/CriteriaName";
 import { getCriteriaFilterCountText } from "../../../Utils/Form/Monitor/CriteriaFilterCount";
+import Link from "Common/UI/Components/Link/Link";
+import URL from "Common/Types/API/URL";
+import { DOCS_URL } from "Common/UI/Config";
+import { OPEN_FOR_EVERY_EMAIL_DOCS_PATH } from "Common/Types/Monitor/IncomingEmailMonitor/OpenForEveryEmail";
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -255,6 +259,10 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
   const [showIncidentGrouping, setShowIncidentGrouping] = useState<boolean>(
     Boolean(props.value?.data?.incidentGrouping?.groupByJSONPath),
   );
+
+  // Read from the criteria itself: the switch has nothing to seed.
+  const isOpenForEveryEmail: boolean =
+    monitorCriteriaInstance.data?.openForEveryEmail === true;
 
   const incidentGrouping: IncidentGroupingConfig | undefined =
     monitorCriteriaInstance?.data?.incidentGrouping;
@@ -661,6 +669,68 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               />
             </div>
           )}
+
+          {/*
+           * An Incoming Email monitor can open an incident (and alert) for
+           * every email instead of one at a time - for people who raise
+           * incidents by emailing the address. Only once the criteria opens
+           * something; the switch keeps its value while both are off.
+           *
+           * Below the actions, set apart by a rule: it is not an action of
+           * its own, it says how often the alert and incident above open.
+           * Its label and help name what the criteria opens.
+           */}
+          {props.monitorType === MonitorType.IncomingEmail &&
+            (showIncidentControl || showAlertControl) && (
+              <div
+                className="mt-6 border-t border-gray-100 pt-4"
+                data-testid="monitor-criteria-open-for-every-email"
+              >
+                <Toggle
+                  value={isOpenForEveryEmail}
+                  dataTestId="monitor-criteria-open-for-every-email-toggle"
+                  title={
+                    showIncidentControl && showAlertControl
+                      ? "Open a new incident and alert for every email"
+                      : showIncidentControl
+                        ? "Open a new incident for every email"
+                        : "Open a new alert for every email"
+                  }
+                  description={
+                    <>
+                      {translator.translateText(
+                        showIncidentControl && showAlertControl
+                          ? "Each email that matches opens its own incident and alert, even while earlier ones are open. Replies are added to them as notes until they are resolved."
+                          : showIncidentControl
+                            ? "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved."
+                            : "Each email that matches opens its own alert, even while earlier ones are open. Replies are added to that alert as notes until it is resolved.",
+                      )}{" "}
+                      {/* Styled as the incident form's docs link above it. */}
+                      <Link
+                        className="underline text-blue-600 hover:text-blue-800"
+                        openInNewTab={true}
+                        to={URL.fromString(
+                          DOCS_URL.toString() + OPEN_FOR_EVERY_EMAIL_DOCS_PATH,
+                        )}
+                      >
+                        {translator.translateText("How it works")}
+                      </Link>
+                    </>
+                  }
+                  onChange={(value: boolean) => {
+                    monitorCriteriaInstance.setOpenForEveryEmail(
+                      value ? true : undefined,
+                    );
+
+                    if (props.onChange) {
+                      props.onChange(
+                        MonitorCriteriaInstance.clone(monitorCriteriaInstance),
+                      );
+                    }
+                  }}
+                />
+              </div>
+            )}
         </div>
       </CollapsibleSection>
 

@@ -29775,6 +29775,11 @@
   "Carry on your incident numbers": "インシデント番号を引き継ぐ",
   "If your team refers to incidents by number, start OneUptime's after your last one in {{tool}}: set Next Incident Number to one past it. A number then never means two different incidents.": "チームがインシデントを番号で呼んでいるなら、OneUptime の番号を {{tool}} での最後の番号の次から始めましょう。次のインシデント番号をその次の番号に設定します。これで、同じ番号が 2 つの異なるインシデントを指すことはなくなります。",
   "Open Incident Numbering": "インシデントの採番を開く",
+  "Open a new alert for every email": "メールごとに新しいアラートを開く",
+  "Open a new incident and alert for every email": "メールごとに新しいインシデントとアラートを開く",
+  "Open a new incident for every email": "メールごとに新しいインシデントを開く",
+  "{{action}} for every email that meets this criteria. These are the alert details:": "この条件を満たすメールごとに{{action}}します。アラートの詳細は次のとおりです:",
+  "{{action}} for every email that meets this criteria. These are the incident details:": "この条件を満たすメールごとに{{action}}します。インシデントの詳細は次のとおりです:",
   "Add next in rotation": "ローテーションの次の人を追加",
   "Next in rotation": "ローテーションの次の人",
   "Nobody was next in the rotation": "ローテーションに次の人はいませんでした",
@@ -29793,5 +29798,11 @@
   "Adding a probe needs the {{planName}} plan. Until then, OneUptime's probes on the internet can check devices with a public address.": "プローブを追加するには、{{planName}} プランが必要です。それまでは、インターネット上の OneUptime のプローブで、パブリックアドレスを持つデバイスを確認できます。",
   "Upgrade plan": "プランをアップグレード",
   "Waiting for {{name}} to connect. This checks every few seconds and turns green once it is running.": "{{name}} の接続を待っています。数秒ごとに確認し、プローブが動き始めるとすぐに緑色になります。",
-  "{{name}} has to run on a computer inside your network that can reach your devices, such as a server or a virtual machine with Docker.": "{{name}} は、デバイスに到達できるネットワーク内のコンピューター (Docker を使えるサーバーや仮想マシンなど) で実行する必要があります。"
+  "{{name}} has to run on a computer inside your network that can reach your devices, such as a server or a virtual machine with Docker.": "{{name}} は、デバイスに到達できるネットワーク内のコンピューター (Docker を使えるサーバーや仮想マシンなど) で実行する必要があります。",
+  "Each email that matches opens its own alert, even while earlier ones are open. Replies are added to that alert as notes until it is resolved.": "一致したメールは、以前のものが開いたままでも、それぞれ個別のアラートを開きます。返信は、そのアラートが解決されるまでメモとして追加されます。",
+  "Each email that matches opens its own incident and alert, even while earlier ones are open. Replies are added to them as notes until they are resolved.": "一致したメールは、以前のものが開いたままでも、それぞれ個別のインシデントとアラートを開きます。返信は、それらが解決されるまでメモとして追加されます。",
+  "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "一致したメールは、以前のものが開いたままでも、それぞれ個別のインシデントを開きます。返信は、そのインシデントが解決されるまでメモとして追加されます。",
+  "alerts for every email": "メールごとのアラート",
+  "incidents for every email": "メールごとのインシデント",
+  "alerts and incidents for every email": "メールごとのアラートとインシデント"
 }
