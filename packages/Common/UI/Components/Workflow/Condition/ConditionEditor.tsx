@@ -139,8 +139,8 @@ export const CONDITION_COMPARISON_OPTIONS: Array<
 type CompareWithPlaceholderFunction = (
   translator: Translator,
   type: ConditionValueType,
-  // What it is compared with, as written: a reference, or text.
-  valueToCheck?: string | undefined,
+  // The value to check, as stored: a reference, text, or anything older.
+  valueToCheck?: unknown,
 ) => string;
 
 /*
@@ -150,7 +150,7 @@ type CompareWithPlaceholderFunction = (
 export const getCompareWithPlaceholder: CompareWithPlaceholderFunction = (
   translator: Translator,
   type: ConditionValueType,
-  valueToCheck?: string | undefined,
+  valueToCheck?: unknown,
 ): string => {
   if (type === ConditionValueType.Number) {
     return translator.translateTemplate("e.g. {{example}}", {
