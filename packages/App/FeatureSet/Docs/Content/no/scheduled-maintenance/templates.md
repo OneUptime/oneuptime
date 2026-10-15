@@ -100,9 +100,9 @@ For eksempel et ukentlig vindu der den første hendelsen opprettes en mandag for
 | Den første   | `2030-06-03 09:00` | `2030-06-08 02:00` | `2030-06-08 04:00` |
 | Den andre    | `2030-06-10 09:00` | `2030-06-15 02:00` | `2030-06-15 04:00` |
 
-Sett **Første hendelse planlagt til** så langt før starten som du vil at kundene dine skal høre om arbeidet. Alle tre tidspunktene må ligge i fremtiden når du lagrer malen, hendelsen må opprettes før den starter og slutter, og den må starte før den slutter; skjemaet sier hvilken regel et tidspunkt bryter.
+Sett **Første hendelse planlagt til** så langt før starten som du vil at kundene dine skal høre om arbeidet. Alle tre tidspunktene må ligge i fremtiden når du oppretter malen, hendelsen må opprettes før den starter og slutter, og den må starte før den slutter; skjemaet sier hvilken regel et tidspunkt bryter.
 
-En jobb sjekker de gjentakende malene hvert minutt. Når det neste tidspunktet til en mal kommer, oppretter den hendelsen og flytter deretter det neste tidspunktet ett intervall frem. Mallisten viser det tidspunktet i kolonnen **Gjentakende hendelse**. En hendelse som er opprettet fra tidsplanen, er som alle andre: reglene kjører, eierne legges til, og abonnentene får vite at den er planlagt.
+En jobb sjekker de gjentakende malene hvert minutt. Når det neste tidspunktet til en mal kommer, flytter den tidspunktet ett intervall frem og oppretter hendelsen. Mallisten viser det tidspunktet i kolonnen **Gjentakende hendelse**. En hendelse som er opprettet fra tidsplanen, er som alle andre: reglene kjører, eierne legges til, og abonnentene får vite at den er planlagt.
 
 ## Endre eller stopp en mal
 
@@ -116,8 +116,8 @@ Endringer gjelder hendelsene som opprettes etter at du har lagret dem; hendelser
 
 ## Feilsøking
 
-:::details Når en gjentakende mal lagres, står det at et tidspunkt må ligge i fremtiden
-Alle tre første tidspunktene må ligge etter nå når du lagrer. Flytt dem frem: tidsplanen fortsetter deretter fra den første hendelsen.
+:::details Når en gjentakende mal opprettes, står det at et tidspunkt må ligge i fremtiden
+Alle tre første tidspunktene må ligge etter nå når du oppretter den. Flytt dem frem: tidsplanen fortsetter deretter fra den første hendelsen.
 :::
 
 :::details En gjentakende mal opprettet ingen hendelse

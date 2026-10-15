@@ -134,7 +134,7 @@ Tenete i vostri stati sotto **Programmato**: ogni nuovo evento parte da lì, e u
 
 La pagina **Cronologia stato** dell'evento è la registrazione di ogni stato in cui è stato. La sua scheda, **Cronologia di stato**, li disegna come una cronologia: una banda con ogni stato lungo quanto è durato e, sotto, ogni cambio, il più recente per primo. **Tabella**, nell'intestazione della scheda, li elenca invece come righe, con **Stato della manutenzione programmata**, **Inizia il**, **Termina il**, **Durata**, se gli iscritti dovevano essere avvisati e com'è andata la loro notifica.
 
-Le righe si possono aggiungere ed eliminare, ma non modificare, e un evento ne conserva sempre almeno una. Eliminare la riga più recente riporta l'evento allo stato della riga precedente.
+Nella dashboard le righe si possono aggiungere ed eliminare, ma non modificare, e un evento ne conserva sempre almeno una. Tramite l'API si può correggere lo `startsAt` di una riga, e ogni misurazione calcolata dalla cronologia lo segue. Eliminare la riga più recente riporta l'evento allo stato della riga precedente.
 
 > [!WARNING]
 > Eliminare una riga riscrive la storia dell'evento e ogni misurazione calcolata da essa. Usatelo per correggere un errore, non per fare ordine.

@@ -100,9 +100,9 @@ Bijvoorbeeld een wekelijks venster waarvan de eerste gebeurtenis op een maandag 
 | De eerste    | `2030-06-03 09:00` | `2030-06-08 02:00` | `2030-06-08 04:00` |
 | De tweede    | `2030-06-10 09:00` | `2030-06-15 02:00` | `2030-06-15 04:00` |
 
-Zet **Eerste gebeurtenis gepland op** zo ver vóór het begin als je wilt dat je klanten van het werk horen. Alle drie de tijden moeten in de toekomst liggen wanneer je het sjabloon opslaat, de gebeurtenis moet worden gemaakt voordat ze begint en eindigt, en ze moet beginnen voordat ze eindigt; het formulier zegt welke regel een tijd overtreedt.
+Zet **Eerste gebeurtenis gepland op** zo ver vóór het begin als je wilt dat je klanten van het werk horen. Alle drie de tijden moeten in de toekomst liggen wanneer je het sjabloon maakt, de gebeurtenis moet worden gemaakt voordat ze begint en eindigt, en ze moet beginnen voordat ze eindigt; het formulier zegt welke regel een tijd overtreedt.
 
-Een taak controleert de terugkerende sjablonen elke minuut. Wanneer de volgende tijd van een sjabloon aanbreekt, maakt ze de gebeurtenis en schuift ze de volgende tijd één interval op. De sjabloonlijst toont die tijd in haar kolom **Terugkerende gebeurtenis**. Een gebeurtenis die door de planning is gemaakt, is als elke andere: haar regels draaien, haar eigenaren worden toegevoegd en haar abonnees horen dat ze gepland is.
+Een taak controleert de terugkerende sjablonen elke minuut. Wanneer de volgende tijd van een sjabloon aanbreekt, schuift ze die tijd één interval op en maakt ze de gebeurtenis. De sjabloonlijst toont die tijd in haar kolom **Terugkerende gebeurtenis**. Een gebeurtenis die door de planning is gemaakt, is als elke andere: haar regels draaien, haar eigenaren worden toegevoegd en haar abonnees horen dat ze gepland is.
 
 ## Een sjabloon wijzigen of stoppen
 
@@ -116,8 +116,8 @@ Wijzigingen gelden voor de gebeurtenissen die worden gemaakt nadat je ze opslaat
 
 ## Probleemoplossing
 
-:::details Bij het opslaan van een terugkerend sjabloon staat er dat een tijd in de toekomst moet liggen
-Alle drie de eerste tijden moeten bij het opslaan na het huidige moment liggen. Schuif ze naar voren: de planning gaat daarna verder vanaf de eerste gebeurtenis.
+:::details Bij het maken van een terugkerend sjabloon staat er dat een tijd in de toekomst moet liggen
+Alle drie de eerste tijden moeten bij het maken na het huidige moment liggen. Schuif ze naar voren: de planning gaat daarna verder vanaf de eerste gebeurtenis.
 :::
 
 :::details Een terugkerend sjabloon heeft geen gebeurtenis gemaakt

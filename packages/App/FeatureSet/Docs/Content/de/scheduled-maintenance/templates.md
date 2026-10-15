@@ -100,9 +100,9 @@ Zum Beispiel ein wöchentliches Zeitfenster, dessen erstes Ereignis an einem Mon
 | Das erste    | `2030-06-03 09:00` | `2030-06-08 02:00` | `2030-06-08 04:00` |
 | Das zweite   | `2030-06-10 09:00` | `2030-06-15 02:00` | `2030-06-15 04:00` |
 
-Setzen Sie **Erstes Ereignis geplant für** so weit vor den Beginn, wie Ihre Kunden im Voraus von der Arbeit erfahren sollen. Alle drei Zeiten müssen beim Speichern der Vorlage in der Zukunft liegen, das Ereignis muss vor seinem Beginn und Ende erstellt werden, und es muss beginnen, bevor es endet; das Formular sagt, gegen welche Regel eine Zeit verstößt.
+Setzen Sie **Erstes Ereignis geplant für** so weit vor den Beginn, wie Ihre Kunden im Voraus von der Arbeit erfahren sollen. Alle drei Zeiten müssen beim Erstellen der Vorlage in der Zukunft liegen, das Ereignis muss vor seinem Beginn und Ende erstellt werden, und es muss beginnen, bevor es endet; das Formular sagt, gegen welche Regel eine Zeit verstößt.
 
-Ein Job prüft die wiederkehrenden Vorlagen jede Minute. Wenn die nächste Zeit einer Vorlage kommt, erstellt er das Ereignis und schiebt die nächste Zeit um ein Intervall weiter. Die Vorlagenliste zeigt diese Zeit in ihrer Spalte **Wiederkehrendes Ereignis**. Ein nach Zeitplan erstelltes Ereignis ist wie jedes andere: Seine Regeln laufen, seine Eigentümer werden hinzugefügt, und seine Abonnenten erfahren, dass es geplant ist.
+Ein Job prüft die wiederkehrenden Vorlagen jede Minute. Wenn die nächste Zeit einer Vorlage kommt, schiebt er diese Zeit um ein Intervall weiter und erstellt das Ereignis. Die Vorlagenliste zeigt diese Zeit in ihrer Spalte **Wiederkehrendes Ereignis**. Ein nach Zeitplan erstelltes Ereignis ist wie jedes andere: Seine Regeln laufen, seine Eigentümer werden hinzugefügt, und seine Abonnenten erfahren, dass es geplant ist.
 
 ## Eine Vorlage ändern oder stoppen
 
@@ -116,8 +116,8 @@ Ein Job prüft die wiederkehrenden Vorlagen jede Minute. Wenn die nächste Zeit 
 
 ## Fehlerbehebung
 
-:::details Beim Speichern einer wiederkehrenden Vorlage heißt es, eine Zeit sollte in der Zukunft liegen
-Alle drei ersten Zeiten müssen beim Speichern nach dem jetzigen Zeitpunkt liegen. Verschieben Sie sie nach vorn: Der Zeitplan setzt sich dann ab dem ersten Ereignis fort.
+:::details Beim Erstellen einer wiederkehrenden Vorlage heißt es, eine Zeit sollte in der Zukunft liegen
+Alle drei ersten Zeiten müssen beim Erstellen nach dem jetzigen Zeitpunkt liegen. Verschieben Sie sie nach vorn: Der Zeitplan setzt sich dann ab dem ersten Ereignis fort.
 :::
 
 :::details Eine wiederkehrende Vorlage hat kein Ereignis erstellt

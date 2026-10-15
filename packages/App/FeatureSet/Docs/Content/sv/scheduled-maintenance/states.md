@@ -134,7 +134,7 @@ Håll dina tillstånd under **Schemalagd**: varje ny händelse börjar där, och
 
 Händelsens sida **Tillståndstidslinje** är registret över varje tillstånd den har varit i. Dess kort, **Statustidslinje**, ritar dem som en tidslinje: ett band med varje tillstånd så långt som det varade, och under det varje ändring, den senaste först. **Tabell**, i kortets sidhuvud, listar dem som rader i stället, med **Status för schemalagt underhåll**, **Börjar den**, **Slutar den**, **Varaktighet**, om prenumeranterna skulle meddelas och hur deras avisering gick.
 
-Rader kan läggas till och tas bort, men inte redigeras, och en händelse behåller alltid minst en. Tar du bort den senaste raden går händelsen tillbaka till tillståndet i raden före.
+I instrumentpanelen kan rader läggas till och tas bort, men inte redigeras, och en händelse behåller alltid minst en. Via API:et kan en rads `startsAt` rättas, och varje mätning som har beräknats utifrån tidslinjen följer med. Tar du bort den senaste raden går händelsen tillbaka till tillståndet i raden före.
 
 > [!WARNING]
 > Att ta bort en rad skriver om händelsens historik och varje mätning som har beräknats utifrån den. Använd det för att rätta ett misstag, inte för att städa.

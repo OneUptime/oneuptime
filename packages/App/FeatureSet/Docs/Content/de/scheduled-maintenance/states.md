@@ -134,7 +134,7 @@ Halten Sie Ihre Status unterhalb von **Geplant**: Jedes neue Ereignis beginnt do
 
 Die Seite **Zustands-Zeitachse** des Ereignisses verzeichnet jeden Status, in dem es war. Ihre Karte, **Status-Zeitachse**, zeichnet sie als Zeitachse: ein Band mit jedem Status so lang, wie er gedauert hat, und darunter jede Änderung, die neueste zuerst. **Tabelle**, in der Kopfzeile der Karte, listet sie stattdessen als Zeilen, mit **Status der geplanten Wartung**, **Beginnt am**, **Endet am**, **Dauer**, ob die Abonnenten informiert werden sollten und wie ihre Benachrichtigung verlief.
 
-Zeilen lassen sich hinzufügen und löschen, aber nicht bearbeiten, und ein Ereignis behält immer mindestens eine. Wenn Sie die neueste Zeile löschen, kehrt das Ereignis in den Status der Zeile davor zurück.
+Im Dashboard lassen sich Zeilen hinzufügen und löschen, aber nicht bearbeiten, und ein Ereignis behält immer mindestens eine. Über die API lässt sich der `startsAt` einer Zeile korrigieren, und jede aus der Zeitachse berechnete Messung folgt ihm. Wenn Sie die neueste Zeile löschen, kehrt das Ereignis in den Status der Zeile davor zurück.
 
 > [!WARNING]
 > Eine Zeile zu löschen schreibt die Geschichte des Ereignisses und jede daraus berechnete Messung um. Nutzen Sie es, um einen Fehler zu korrigieren, nicht zum Aufräumen.

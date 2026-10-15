@@ -94,7 +94,7 @@ Deze herinneringen zijn voor je team. De herinneringen die de abonnees van je st
 
 ### Notitiesjablonen
 
-**Geplande onderhoud → Instellingen → Notitie-sjablonen** bevat kant-en-klare tekst voor onderhoudsupdates. De kaart **Openbare of privénotitiesjablonen voor geplande onderhoudsevenementen** toont ze; **Gepland Onderhoud Notitie Sjabloon aanmaken** vraagt om een **Sjabloonnaam**, een **Sjabloonbeschrijving** en de **Notitie**. Een sjabloon wordt aangeboden wanneer iemand een openbare of privénotitie bij een gebeurtenis schrijft en wanneer iemand haar status wijzigt, en de tekst kan vóór het plaatsen worden bewerkt. Notitiesjablonen voor onderhoud zijn platte tekst: anders dan notitiesjablonen voor incidenten vullen ze geen variabelen in.
+**Geplande onderhoud → Instellingen → Notitie-sjablonen** bevat kant-en-klare tekst voor onderhoudsupdates. De kaart **Openbare of privénotitiesjablonen voor geplande onderhoudsevenementen** toont ze; **Gepland Onderhoud Notitie Sjabloon aanmaken** vraagt om een **Sjabloonnaam**, een **Sjabloonbeschrijving** en de **Notitie**. Een sjabloon wordt aangeboden wanneer iemand een openbare of privénotitie bij een gebeurtenis schrijft en wanneer iemand haar status wijzigt, en de tekst kan vóór het plaatsen worden bewerkt. Anders dan notitiesjablonen voor incidenten vullen notitiesjablonen voor onderhoud geen variabelen in.
 
 ### Aangepaste velden
 
@@ -106,7 +106,7 @@ Deze herinneringen zijn voor je team. De herinneringen die de abonnees van je st
 
 ### Nummervoorvoegsel
 
-**Geplande onderhoud → Instellingen → Nummervoorvoegsel** bepaalt de tekst vóór de nummers van gebeurtenissen: `SM-` in een nieuw project, of `#` zonder voorvoegsel. **Bijwerken** opent **Nummerprefix van geplande onderhoud**, met een voorbeeld terwijl je typt. Alleen gebeurtenissen die daarna worden gemaakt, krijgen het nieuwe voorvoegsel; bestaande houden hun nummers. De regels voor een voorvoegsel staan in [Nummervoorvoegsels](/docs/incidents/settings#nummervoorvoegsels).
+**Geplande onderhoud → Instellingen → Nummervoorvoegsel** bepaalt de tekst vóór de nummers van gebeurtenissen: `SM-` in een nieuw project, of `#` zonder voorvoegsel. **Bijwerken** vraagt om het **Nummerprefix van geplande onderhoud** en toont het nummer als voorbeeld terwijl je typt. Alleen gebeurtenissen die daarna worden gemaakt, krijgen het nieuwe voorvoegsel; bestaande houden hun nummers. De regels voor een voorvoegsel staan in [Nummervoorvoegsels](/docs/incidents/settings#nummervoorvoegsels).
 
 > [!NOTE]
 > In OneUptime Cloud vragen aangepaste velden het abonnement **Growth** of hoger, net als het toevoegen en wijzigen van onderhoudsstatussen en sjablonen.

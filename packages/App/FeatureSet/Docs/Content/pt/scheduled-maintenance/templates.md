@@ -100,9 +100,9 @@ Por exemplo, uma janela semanal cujo primeiro evento é criado numa segunda-feir
 | O primeiro   | `2030-06-03 09:00` | `2030-06-08 02:00` | `2030-06-08 04:00` |
 | O segundo    | `2030-06-10 09:00` | `2030-06-15 02:00` | `2030-06-15 04:00` |
 
-Defina **Primeiro evento agendado para** com toda a antecedência com que você quer que seus clientes fiquem sabendo do trabalho. Os três horários precisam estar no futuro quando você salva o modelo, o evento precisa ser criado antes de começar e de terminar, e precisa começar antes de terminar; o formulário diz qual regra um horário viola.
+Defina **Primeiro evento agendado para** com toda a antecedência com que você quer que seus clientes fiquem sabendo do trabalho. Os três horários precisam estar no futuro quando você cria o modelo, o evento precisa ser criado antes de começar e de terminar, e precisa começar antes de terminar; o formulário diz qual regra um horário viola.
 
-Uma tarefa verifica os modelos recorrentes a cada minuto. Quando chega o próximo horário de um modelo, ela cria o evento e adianta o próximo horário em um intervalo. A lista de modelos mostra esse horário na coluna **Evento Recorrente**. Um evento criado pelo agendamento é como qualquer outro: suas regras rodam, seus proprietários são adicionados e seus assinantes ficam sabendo que ele foi agendado.
+Uma tarefa verifica os modelos recorrentes a cada minuto. Quando chega o próximo horário de um modelo, ela adianta esse horário em um intervalo e cria o evento. A lista de modelos mostra esse horário na coluna **Evento Recorrente**. Um evento criado pelo agendamento é como qualquer outro: suas regras rodam, seus proprietários são adicionados e seus assinantes ficam sabendo que ele foi agendado.
 
 ## Alterar ou parar um modelo
 
@@ -116,8 +116,8 @@ As alterações valem para os eventos criados depois de você salvá-las; os eve
 
 ## Solução de problemas
 
-:::details Ao salvar um modelo recorrente aparece que um horário deveria estar no futuro
-Os três primeiros horários precisam estar depois do momento atual quando você salva. Adiante-os: o agendamento continua depois a partir do primeiro evento.
+:::details Ao criar um modelo recorrente aparece que um horário deveria estar no futuro
+Os três primeiros horários precisam estar depois do momento atual quando você cria o modelo. Adiante-os: o agendamento continua depois a partir do primeiro evento.
 :::
 
 :::details Um modelo recorrente não criou nenhum evento

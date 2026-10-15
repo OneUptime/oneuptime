@@ -100,9 +100,9 @@ Por ejemplo, una ventana semanal cuyo primer evento se crea un lunes para el sá
 | El primero   | `2030-06-03 09:00` | `2030-06-08 02:00` | `2030-06-08 04:00` |
 | El segundo   | `2030-06-10 09:00` | `2030-06-15 02:00` | `2030-06-15 04:00` |
 
-Pon **Primer evento programado a las** con tanta antelación al inicio como quieras que tus clientes se enteren del trabajo. Las tres horas deben estar en el futuro al guardar la plantilla, el evento debe crearse antes de empezar y de terminar, y debe empezar antes de terminar; el formulario dice qué regla incumple una hora.
+Pon **Primer evento programado a las** con tanta antelación al inicio como quieras que tus clientes se enteren del trabajo. Las tres horas deben estar en el futuro al crear la plantilla, el evento debe crearse antes de empezar y de terminar, y debe empezar antes de terminar; el formulario dice qué regla incumple una hora.
 
-Una tarea revisa las plantillas recurrentes cada minuto. Cuando llega la próxima hora de una plantilla, crea el evento y adelanta la próxima hora un intervalo. La lista de plantillas muestra esa hora en su columna **Evento recurrente**. Un evento creado por la programación es como cualquier otro: se ejecutan sus reglas, se añaden sus propietarios y sus suscriptores se enteran de que está programado.
+Una tarea revisa las plantillas recurrentes cada minuto. Cuando llega la próxima hora de una plantilla, adelanta esa hora un intervalo y crea el evento. La lista de plantillas muestra esa hora en su columna **Evento recurrente**. Un evento creado por la programación es como cualquier otro: se ejecutan sus reglas, se añaden sus propietarios y sus suscriptores se enteran de que está programado.
 
 ## Cambiar o detener una plantilla
 
@@ -116,8 +116,8 @@ Los cambios se aplican a los eventos creados después de guardarlos; los eventos
 
 ## Solución de problemas
 
-:::details Al guardar una plantilla recurrente dice que una hora debería estar en el futuro
-Las tres primeras horas deben ser posteriores al momento actual cuando guardas. Adelántalas: la programación continúa después a partir del primer evento.
+:::details Al crear una plantilla recurrente dice que una hora debería estar en el futuro
+Las tres primeras horas deben ser posteriores al momento actual cuando la creas. Adelántalas: la programación continúa después a partir del primer evento.
 :::
 
 :::details Una plantilla recurrente no creó ningún evento

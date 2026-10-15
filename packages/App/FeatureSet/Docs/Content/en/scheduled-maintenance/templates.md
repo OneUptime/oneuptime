@@ -100,9 +100,9 @@ For example, a weekly window with the first event created on a Monday for the Sa
 | The first    | `2030-06-03 09:00` | `2030-06-08 02:00` | `2030-06-08 04:00` |
 | The second   | `2030-06-10 09:00` | `2030-06-15 02:00` | `2030-06-15 04:00` |
 
-Set **First Event Scheduled At** as far ahead of the start as you want your customers to hear about the work. All three times must be in the future when you save the template, the event has to be created before it starts and ends, and it has to start before it ends; the form says which rule a time breaks.
+Set **First Event Scheduled At** as far ahead of the start as you want your customers to hear about the work. All three times must be in the future when you create the template, the event has to be created before it starts and ends, and it has to start before it ends; the form says which rule a time breaks.
 
-A job checks the recurring templates every minute. When a template's next time comes, it creates the event, then moves the next time on by one interval. The templates list shows that time in its **Recurring Event** column. An event created from the schedule is like any other: its rules run, its owners are added, and its subscribers are told it is scheduled.
+A job checks the recurring templates every minute. When a template's next time comes, it moves that time on by one interval and creates the event. The templates list shows that time in its **Recurring Event** column. An event created from the schedule is like any other: its rules run, its owners are added, and its subscribers are told it is scheduled.
 
 ## Change or stop a template
 
@@ -116,8 +116,8 @@ Changes apply to the events created after you save them; events already created 
 
 ## Troubleshooting
 
-:::details Saving a recurring template says a time should be in the future
-All three first times have to be ahead of now when you save. Move them forward: the schedule then continues from the first event.
+:::details Creating a recurring template says a time should be in the future
+All three first times have to be ahead of now when you create it. Move them forward: the schedule then continues from the first event.
 :::
 
 :::details A recurring template created no event

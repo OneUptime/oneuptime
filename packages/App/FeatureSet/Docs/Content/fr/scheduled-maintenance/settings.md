@@ -94,7 +94,7 @@ Ces rappels sont pour votre équipe. Les rappels que reçoivent les abonnés de 
 
 ### Modèles de notes
 
-**Maintenance planifiée → Paramètres → Modèles de notes** contient des textes prêts à l'emploi pour les mises à jour de maintenance. La carte **Modèles de notes publiques ou privées pour les événements de maintenance planifiée** les liste ; **Créer : Modèle de note de maintenance planifiée** demande un **Nom du modèle**, une **Description du modèle** et la **Note**. Un modèle est proposé quand quelqu'un écrit une note publique ou privée sur un événement, et quand quelqu'un change son état, et son texte peut être modifié avant publication. Les modèles de notes de maintenance sont du texte brut : contrairement aux modèles de notes d'incident, ils ne remplissent aucune variable.
+**Maintenance planifiée → Paramètres → Modèles de notes** contient des textes prêts à l'emploi pour les mises à jour de maintenance. La carte **Modèles de notes publiques ou privées pour les événements de maintenance planifiée** les liste ; **Créer : Modèle de note de maintenance planifiée** demande un **Nom du modèle**, une **Description du modèle** et la **Note**. Un modèle est proposé quand quelqu'un écrit une note publique ou privée sur un événement, et quand quelqu'un change son état, et son texte peut être modifié avant publication. Contrairement aux modèles de notes d'incident, les modèles de notes de maintenance ne remplissent aucune variable.
 
 ### Champs personnalisés
 
@@ -106,7 +106,7 @@ Ces rappels sont pour votre équipe. Les rappels que reçoivent les abonnés de 
 
 ### Préfixe de numéro
 
-**Maintenance planifiée → Paramètres → Préfixe de numéro** définit le texte devant les numéros d'événement : `SM-` dans un nouveau projet, ou `#` sans préfixe. **Mettre à jour** ouvre **Préfixe du numéro de maintenance planifiée**, avec un aperçu pendant la saisie. Seuls les événements créés ensuite reçoivent le nouveau préfixe ; les existants gardent leurs numéros. Les règles d'un préfixe sont décrites dans [Préfixes de numéro](/docs/incidents/settings#préfixes-de-numéro).
+**Maintenance planifiée → Paramètres → Préfixe de numéro** définit le texte devant les numéros d'événement : `SM-` dans un nouveau projet, ou `#` sans préfixe. **Mettre à jour** demande le **Préfixe du numéro de maintenance planifiée** et affiche un aperçu du numéro pendant la saisie. Seuls les événements créés ensuite reçoivent le nouveau préfixe ; les existants gardent leurs numéros. Les règles d'un préfixe sont décrites dans [Préfixes de numéro](/docs/incidents/settings#préfixes-de-numéro).
 
 > [!NOTE]
 > Sur OneUptime Cloud, les champs personnalisés requièrent le forfait **Growth** ou supérieur, tout comme l'ajout et la modification d'états de maintenance et de modèles.

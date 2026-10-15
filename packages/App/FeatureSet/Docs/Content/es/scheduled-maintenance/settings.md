@@ -94,7 +94,7 @@ Estos recordatorios son para tu equipo. Los recordatorios que reciben los suscri
 
 ### Plantillas de notas
 
-**Mantenimiento programado → Ajustes → Plantillas de notas** guarda textos listos para las actualizaciones de mantenimiento. La tarjeta **Plantillas de notas públicas o privadas para eventos de mantenimiento programado** los lista; **Crear Plantilla de nota de mantenimiento programado** pide un **Nombre de la plantilla**, una **Descripción de la plantilla** y la **Nota**. Se ofrece una plantilla cuando alguien escribe una nota pública o privada en un evento y cuando cambia su estado, y su texto se puede editar antes de publicarlo. Las plantillas de notas de mantenimiento son texto sin formato: a diferencia de las plantillas de notas de incidentes, no rellenan variables.
+**Mantenimiento programado → Ajustes → Plantillas de notas** guarda textos listos para las actualizaciones de mantenimiento. La tarjeta **Plantillas de notas públicas o privadas para eventos de mantenimiento programado** los lista; **Crear Plantilla de nota de mantenimiento programado** pide un **Nombre de la plantilla**, una **Descripción de la plantilla** y la **Nota**. Se ofrece una plantilla cuando alguien escribe una nota pública o privada en un evento y cuando cambia su estado, y su texto se puede editar antes de publicarlo. A diferencia de las plantillas de notas de incidentes, las plantillas de notas de mantenimiento no rellenan variables.
 
 ### Campos personalizados
 
@@ -106,7 +106,7 @@ Estos recordatorios son para tu equipo. Los recordatorios que reciben los suscri
 
 ### Prefijo de número
 
-**Mantenimiento programado → Ajustes → Prefijo de número** define el texto delante de los números de evento: `SM-` en un proyecto nuevo, o `#` sin ninguno. **Actualizar** abre **Prefijo del número del mantenimiento programado**, con una vista previa mientras escribes. Solo los eventos creados después reciben el prefijo nuevo; los existentes conservan sus números. Las reglas de un prefijo están en [Prefijos de número](/docs/incidents/settings#prefijos-de-número).
+**Mantenimiento programado → Ajustes → Prefijo de número** define el texto delante de los números de evento: `SM-` en un proyecto nuevo, o `#` sin ninguno. **Actualizar** pide el **Prefijo del número del mantenimiento programado** y muestra una vista previa del número mientras escribes. Solo los eventos creados después reciben el prefijo nuevo; los existentes conservan sus números. Las reglas de un prefijo están en [Prefijos de número](/docs/incidents/settings#prefijos-de-número).
 
 > [!NOTE]
 > En OneUptime Cloud, los campos personalizados requieren el plan **Growth** o superior, igual que añadir y cambiar estados de mantenimiento y plantillas.

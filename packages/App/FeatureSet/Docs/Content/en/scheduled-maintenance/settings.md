@@ -94,7 +94,7 @@ These reminders are for your team. The reminders your status page subscribers ge
 
 ### Note templates
 
-**Scheduled Maintenance → Settings → Note Templates** holds ready-made text for maintenance updates. The **Public or Private Note Templates for Scheduled Maintenance Events** card lists them; **Create Scheduled Maintenance Note Template** asks for a **Template Name**, a **Template Description** and the **Note**. A template is offered when someone writes a public or private note on an event, and when they change its state, and its text can be edited before it is posted. Maintenance note templates are plain text: unlike incident note templates, they fill in no variables.
+**Scheduled Maintenance → Settings → Note Templates** holds ready-made text for maintenance updates. The **Public or Private Note Templates for Scheduled Maintenance Events** card lists them; **Create Scheduled Maintenance Note Template** asks for a **Template Name**, a **Template Description** and the **Note**. A template is offered when someone writes a public or private note on an event, and when they change its state, and its text can be edited before it is posted. Unlike incident note templates, maintenance note templates fill in no variables.
 
 ### Custom fields
 
@@ -106,7 +106,7 @@ These reminders are for your team. The reminders your status page subscribers ge
 
 ### Number prefix
 
-**Scheduled Maintenance → Settings → Number Prefix** sets the text in front of event numbers: `SM-` in a new project, or `#` with none. **Update** opens **Scheduled Maintenance Number Prefix**, with a preview as you type. Only events created afterwards get the new prefix; existing ones keep their numbers. The rules for a prefix are on [Number prefixes](/docs/incidents/settings#number-prefixes).
+**Scheduled Maintenance → Settings → Number Prefix** sets the text in front of event numbers: `SM-` in a new project, or `#` with none. **Update** asks for the **Scheduled Maintenance Number Prefix**, and previews the number as you type. Only events created afterwards get the new prefix; existing ones keep their numbers. The rules for a prefix are on [Number prefixes](/docs/incidents/settings#number-prefixes).
 
 > [!NOTE]
 > On OneUptime Cloud, custom fields take the **Growth** plan or above, and so do adding and changing maintenance states and templates.

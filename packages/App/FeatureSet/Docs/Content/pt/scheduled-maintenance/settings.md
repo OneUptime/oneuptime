@@ -94,7 +94,7 @@ Esses lembretes são para a sua equipe. Os lembretes que os assinantes das suas 
 
 ### Modelos de notas
 
-**Manutenção programada → Configurações → Modelos de notas** guarda textos prontos para atualizações de manutenção. O cartão **Modelos de nota pública ou privada para eventos de manutenção programada** os lista; **Criar: Agendado Manutenção Nota Modelo** pede um **Nome do modelo**, uma **Descrição do modelo** e a **Nota**. Um modelo é oferecido quando alguém escreve uma nota pública ou privada em um evento e quando muda o estado dele, e o texto pode ser editado antes de ser publicado. Os modelos de nota de manutenção são texto simples: ao contrário dos modelos de nota de incidentes, eles não preenchem variáveis.
+**Manutenção programada → Configurações → Modelos de notas** guarda textos prontos para atualizações de manutenção. O cartão **Modelos de nota pública ou privada para eventos de manutenção programada** os lista; **Criar: Agendado Manutenção Nota Modelo** pede um **Nome do modelo**, uma **Descrição do modelo** e a **Nota**. Um modelo é oferecido quando alguém escreve uma nota pública ou privada em um evento e quando muda o estado dele, e o texto pode ser editado antes de ser publicado. Ao contrário dos modelos de nota de incidentes, os modelos de nota de manutenção não preenchem variáveis.
 
 ### Campos personalizados
 
@@ -106,7 +106,7 @@ Esses lembretes são para a sua equipe. Os lembretes que os assinantes das suas 
 
 ### Prefixo do número
 
-**Manutenção programada → Configurações → Prefixo do número** define o texto antes dos números dos eventos: `SM-` em um projeto novo, ou `#` sem nenhum. **Atualizar** abre **Prefixo do número da manutenção programada**, com uma prévia enquanto você digita. Só os eventos criados depois recebem o prefixo novo; os existentes mantêm seus números. As regras de um prefixo estão em [Prefixos de número](/docs/incidents/settings#prefixos-de-número).
+**Manutenção programada → Configurações → Prefixo do número** define o texto antes dos números dos eventos: `SM-` em um projeto novo, ou `#` sem nenhum. **Atualizar** pede o **Prefixo do número da manutenção programada** e mostra uma prévia do número enquanto você digita. Só os eventos criados depois recebem o prefixo novo; os existentes mantêm seus números. As regras de um prefixo estão em [Prefixos de número](/docs/incidents/settings#prefixos-de-número).
 
 > [!NOTE]
 > No OneUptime Cloud, os campos personalizados requerem o plano **Growth** ou superior, assim como adicionar e alterar estados de manutenção e modelos.

@@ -100,9 +100,9 @@ For eksempel et ugentligt vindue, hvor den første begivenhed oprettes en mandag
 | Den første   | `2030-06-03 09:00` | `2030-06-08 02:00` | `2030-06-08 04:00` |
 | Den anden    | `2030-06-10 09:00` | `2030-06-15 02:00` | `2030-06-15 04:00` |
 
-Sæt **Første begivenhed planlagt til** så langt før starten, som du vil have, at dine kunder hører om arbejdet. Alle tre tidspunkter skal ligge i fremtiden, når du gemmer skabelonen, begivenheden skal oprettes, før den starter og slutter, og den skal starte, før den slutter; formularen siger, hvilken regel et tidspunkt bryder.
+Sæt **Første begivenhed planlagt til** så langt før starten, som du vil have, at dine kunder hører om arbejdet. Alle tre tidspunkter skal ligge i fremtiden, når du opretter skabelonen, begivenheden skal oprettes, før den starter og slutter, og den skal starte, før den slutter; formularen siger, hvilken regel et tidspunkt bryder.
 
-Et job kontrollerer de tilbagevendende skabeloner hvert minut. Når en skabelons næste tidspunkt kommer, opretter det begivenheden og flytter derefter det næste tidspunkt ét interval frem. Skabelonlisten viser det tidspunkt i sin kolonne **Tilbagevendende begivenhed**. En begivenhed, der er oprettet ud fra tidsplanen, er som enhver anden: dens regler kører, dens ejere tilføjes, og dens abonnenter får at vide, at den er planlagt.
+Et job kontrollerer de tilbagevendende skabeloner hvert minut. Når en skabelons næste tidspunkt kommer, flytter det tidspunktet ét interval frem og opretter begivenheden. Skabelonlisten viser det tidspunkt i sin kolonne **Tilbagevendende begivenhed**. En begivenhed, der er oprettet ud fra tidsplanen, er som enhver anden: dens regler kører, dens ejere tilføjes, og dens abonnenter får at vide, at den er planlagt.
 
 ## Ændr eller stop en skabelon
 
@@ -116,8 +116,8 @@ Et job kontrollerer de tilbagevendende skabeloner hvert minut. Når en skabelons
 
 ## Fejlfinding
 
-:::details Når en tilbagevendende skabelon gemmes, står der, at et tidspunkt skal ligge i fremtiden
-Alle tre første tidspunkter skal ligge efter nu, når du gemmer. Flyt dem frem: tidsplanen fortsætter derefter fra den første begivenhed.
+:::details Når en tilbagevendende skabelon oprettes, står der, at et tidspunkt skal ligge i fremtiden
+Alle tre første tidspunkter skal ligge efter nu, når du opretter den. Flyt dem frem: tidsplanen fortsætter derefter fra den første begivenhed.
 :::
 
 :::details En tilbagevendende skabelon oprettede ingen begivenhed

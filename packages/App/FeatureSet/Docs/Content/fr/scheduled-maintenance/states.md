@@ -134,7 +134,7 @@ Gardez vos états sous **Planifié** : chaque nouvel événement commence là, e
 
 La page **Chronologie d'état** de l'événement est l'historique de chaque état dans lequel il a été. Sa carte, **Chronologie de statut**, les dessine sous forme de chronologie : une bande où chaque état dure ce qu'il a duré, et en dessous chaque changement, le plus récent en premier. **Tableau**, dans l'en-tête de la carte, les liste plutôt en lignes, avec **Statut de la maintenance planifiée**, **Commence le**, **Se termine le**, **Durée**, si les abonnés devaient être prévenus et comment s'est passée leur notification.
 
-Les lignes peuvent être ajoutées et supprimées, mais pas modifiées, et un événement en garde toujours au moins une. Supprimer la ligne la plus récente remet l'événement dans l'état de la ligne précédente.
+Dans le tableau de bord, les lignes peuvent être ajoutées et supprimées, mais pas modifiées, et un événement en garde toujours au moins une. Via l'API, le `startsAt` d'une ligne peut être corrigé, et chaque mesure calculée à partir de la chronologie le suit. Supprimer la ligne la plus récente remet l'événement dans l'état de la ligne précédente.
 
 > [!WARNING]
 > Supprimer une ligne réécrit l'historique de l'événement et chaque mesure qui en est calculée. Servez-vous-en pour corriger une erreur, pas pour faire du rangement.

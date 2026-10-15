@@ -134,7 +134,7 @@ Houd je statussen onder **Gepland**: elke nieuwe gebeurtenis begint daar, en een
 
 De pagina **Statustijdlijn** van de gebeurtenis is het overzicht van elke status waarin ze heeft gestaan. Haar kaart, **Statustijdlijn**, tekent ze als tijdlijn: een band met elke status zo lang als die duurde, en daaronder elke wijziging, de nieuwste eerst. **Tabel**, in de kop van de kaart, toont ze in plaats daarvan als rijen, met **Status van geplande onderhoud**, **Begint op**, **Eindigt op**, **Duur**, of abonnees bericht moesten krijgen en hoe hun melding verliep.
 
-Rijen kunnen worden toegevoegd en verwijderd, maar niet bewerkt, en een gebeurtenis houdt er altijd minstens één. Als je de nieuwste rij verwijdert, gaat de gebeurtenis terug naar de status van de rij ervoor.
+In het dashboard kunnen rijen worden toegevoegd en verwijderd, maar niet bewerkt, en een gebeurtenis houdt er altijd minstens één. Via de API kan de `startsAt` van een rij worden gecorrigeerd, en elke meting die uit de tijdlijn wordt berekend, volgt die. Als je de nieuwste rij verwijdert, gaat de gebeurtenis terug naar de status van de rij ervoor.
 
 > [!WARNING]
 > Een rij verwijderen herschrijft de geschiedenis van de gebeurtenis en elke meting die daaruit is berekend. Gebruik het om een fout te corrigeren, niet om op te ruimen.

@@ -94,7 +94,7 @@ De här påminnelserna är för ditt team. De påminnelser som dina statussidepr
 
 ### Anteckningsmallar
 
-**Schemalagt underhåll → Inställningar → Anteckningsmallar** rymmer färdigskriven text för uppdateringar om underhåll. Kortet **Mallar för offentliga eller privata anteckningar för schemalagda underhållshändelser** listar dem; **Skapa Schemalagd Underhåll Anteckning Mall** frågar efter ett **Mallnamn**, en **Mallbeskrivning** och **Anteckning**. En mall erbjuds när någon skriver en offentlig eller privat anteckning på en händelse, och när de ändrar dess tillstånd, och dess text kan redigeras innan den publiceras. Anteckningsmallar för underhåll är ren text: till skillnad från anteckningsmallar för incidenter fyller de inte i några variabler.
+**Schemalagt underhåll → Inställningar → Anteckningsmallar** rymmer färdigskriven text för uppdateringar om underhåll. Kortet **Mallar för offentliga eller privata anteckningar för schemalagda underhållshändelser** listar dem; **Skapa Schemalagd Underhåll Anteckning Mall** frågar efter ett **Mallnamn**, en **Mallbeskrivning** och **Anteckning**. En mall erbjuds när någon skriver en offentlig eller privat anteckning på en händelse, och när de ändrar dess tillstånd, och dess text kan redigeras innan den publiceras. Till skillnad från anteckningsmallar för incidenter fyller anteckningsmallar för underhåll inte i några variabler.
 
 ### Anpassade fält
 
@@ -106,7 +106,7 @@ De här påminnelserna är för ditt team. De påminnelser som dina statussidepr
 
 ### Nummerprefix
 
-**Schemalagt underhåll → Inställningar → Nummerprefix** anger texten framför händelsenummer: `SM-` i ett nytt projekt, eller `#` utan prefix. **Uppdatera** öppnar **Nummerprefix för schemalagt underhåll**, med en förhandsvisning medan du skriver. Bara händelser som skapas efteråt får det nya prefixet; befintliga behåller sina nummer. Reglerna för ett prefix finns på [Nummerprefix](/docs/incidents/settings#nummerprefix).
+**Schemalagt underhåll → Inställningar → Nummerprefix** anger texten framför händelsenummer: `SM-` i ett nytt projekt, eller `#` utan prefix. **Uppdatera** frågar efter **Nummerprefix för schemalagt underhåll** och visar numret i en förhandsvisning medan du skriver. Bara händelser som skapas efteråt får det nya prefixet; befintliga behåller sina nummer. Reglerna för ett prefix finns på [Nummerprefix](/docs/incidents/settings#nummerprefix).
 
 > [!NOTE]
 > På OneUptime Cloud kräver anpassade fält abonnemanget **Growth** eller högre, och detsamma gäller att lägga till och ändra underhållstillstånd och mallar.

@@ -94,7 +94,7 @@ Questi promemoria sono per il vostro team. I promemoria che gli iscritti delle v
 
 ### Modelli di note
 
-**Manutenzione programmata → Impostazioni → Modelli di note** contiene testi pronti per gli aggiornamenti sulla manutenzione. La scheda **Modelli di nota pubblica o privata per gli eventi di manutenzione programmata** li elenca; **Crea: Pianificato Manutenzione Nota Modello** chiede un **Nome del modello**, una **Descrizione del modello** e la **Nota**. Un modello viene offerto quando qualcuno scrive una nota pubblica o privata su un evento e quando ne cambia lo stato, e il suo testo si può modificare prima della pubblicazione. I modelli di nota della manutenzione sono testo semplice: a differenza dei modelli di nota degli incidenti, non compilano variabili.
+**Manutenzione programmata → Impostazioni → Modelli di note** contiene testi pronti per gli aggiornamenti sulla manutenzione. La scheda **Modelli di nota pubblica o privata per gli eventi di manutenzione programmata** li elenca; **Crea: Pianificato Manutenzione Nota Modello** chiede un **Nome del modello**, una **Descrizione del modello** e la **Nota**. Un modello viene offerto quando qualcuno scrive una nota pubblica o privata su un evento e quando ne cambia lo stato, e il suo testo si può modificare prima della pubblicazione. A differenza dei modelli di nota degli incidenti, i modelli di nota della manutenzione non compilano variabili.
 
 ### Campi personalizzati
 
@@ -106,7 +106,7 @@ Questi promemoria sono per il vostro team. I promemoria che gli iscritti delle v
 
 ### Prefisso del numero
 
-**Manutenzione programmata → Impostazioni → Prefisso del numero** imposta il testo davanti ai numeri degli eventi: `SM-` in un nuovo progetto, oppure `#` senza prefisso. **Aggiorna** apre **Prefisso del numero della manutenzione programmata**, con un'anteprima mentre scrivete. Solo gli eventi creati dopo ricevono il nuovo prefisso; quelli esistenti mantengono i loro numeri. Le regole per un prefisso sono in [Prefissi del numero](/docs/incidents/settings#prefissi-dei-numeri).
+**Manutenzione programmata → Impostazioni → Prefisso del numero** imposta il testo davanti ai numeri degli eventi: `SM-` in un nuovo progetto, oppure `#` senza prefisso. **Aggiorna** chiede il **Prefisso del numero della manutenzione programmata** e mostra un'anteprima del numero mentre scrivete. Solo gli eventi creati dopo ricevono il nuovo prefisso; quelli esistenti mantengono i loro numeri. Le regole per un prefisso sono in [Prefissi del numero](/docs/incidents/settings#prefissi-dei-numeri).
 
 > [!NOTE]
 > Su OneUptime Cloud, i campi personalizzati richiedono il piano **Growth** o superiore, così come aggiungere e modificare stati di manutenzione e modelli.

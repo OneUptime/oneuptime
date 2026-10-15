@@ -134,7 +134,7 @@ Hold tilstandene dine under **Planlagt**: hver ny hendelse starter der, og en he
 
 Siden **Tilstandstidslinje** for hendelsen er registeret over hver tilstand den har vært i. Kortet, **Statustidslinje**, tegner dem som en tidslinje: et bånd med hver tilstand så lang som den varte, og under det hver endring, den nyeste først. **Tabell**, i overskriften på kortet, viser dem som rader i stedet, med **Status for planlagt vedlikehold**, **Begynner den**, **Slutter den**, **Varighet**, om abonnentene skulle varsles, og hvordan varselet gikk.
 
-Rader kan legges til og slettes, men ikke redigeres, og en hendelse beholder alltid minst én. Sletter du den nyeste raden, går hendelsen tilbake til tilstanden i raden før.
+I dashbordet kan rader legges til og slettes, men ikke redigeres, og en hendelse beholder alltid minst én. Gjennom API-et kan `startsAt` for en rad rettes, og hver måling som er beregnet ut fra tidslinjen, følger med. Sletter du den nyeste raden, går hendelsen tilbake til tilstanden i raden før.
 
 > [!WARNING]
 > Å slette en rad skriver om historikken til hendelsen og hver måling som er beregnet ut fra den. Bruk det til å rette en feil, ikke til å rydde.

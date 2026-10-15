@@ -100,9 +100,9 @@ Per esempio, una finestra settimanale il cui primo evento viene creato un luned�
 | Il primo     | `2030-06-03 09:00` | `2030-06-08 02:00` | `2030-06-08 04:00` |
 | Il secondo   | `2030-06-10 09:00` | `2030-06-15 02:00` | `2030-06-15 04:00` |
 
-Impostate **Primo evento pianificato alle** con tutto l'anticipo con cui volete che i vostri clienti vengano a sapere del lavoro. Tutte e tre le ore devono essere nel futuro quando salvate il modello, l'evento deve essere creato prima di iniziare e di terminare, e deve iniziare prima di terminare; il modulo dice quale regola viola un'ora.
+Impostate **Primo evento pianificato alle** con tutto l'anticipo con cui volete che i vostri clienti vengano a sapere del lavoro. Tutte e tre le ore devono essere nel futuro quando create il modello, l'evento deve essere creato prima di iniziare e di terminare, e deve iniziare prima di terminare; il modulo dice quale regola viola un'ora.
 
-Un processo controlla i modelli ricorrenti ogni minuto. Quando arriva la prossima ora di un modello, crea l'evento, poi sposta la prossima ora avanti di un intervallo. L'elenco dei modelli mostra quell'ora nella sua colonna **Evento ricorrente**. Un evento creato dalla pianificazione è come qualsiasi altro: le sue regole vengono eseguite, i suoi proprietari vengono aggiunti e i suoi iscritti vengono a sapere che è pianificato.
+Un processo controlla i modelli ricorrenti ogni minuto. Quando arriva la prossima ora di un modello, sposta quell'ora avanti di un intervallo e crea l'evento. L'elenco dei modelli mostra quell'ora nella sua colonna **Evento ricorrente**. Un evento creato dalla pianificazione è come qualsiasi altro: le sue regole vengono eseguite, i suoi proprietari vengono aggiunti e i suoi iscritti vengono a sapere che è pianificato.
 
 ## Modificare o fermare un modello
 
@@ -116,8 +116,8 @@ Le modifiche valgono per gli eventi creati dopo averle salvate; gli eventi già 
 
 ## Risoluzione dei problemi
 
-:::details Salvando un modello ricorrente compare che un'ora dovrebbe essere nel futuro
-Tutte e tre le prime ore devono essere successive al momento attuale quando salvate. Spostatele in avanti: la pianificazione prosegue poi dal primo evento.
+:::details Creando un modello ricorrente compare che un'ora dovrebbe essere nel futuro
+Tutte e tre le prime ore devono essere successive al momento attuale quando create il modello. Spostatele in avanti: la pianificazione prosegue poi dal primo evento.
 :::
 
 :::details Un modello ricorrente non ha creato nessun evento

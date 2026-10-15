@@ -134,7 +134,7 @@ Keep your states below **Scheduled**: every new event starts there, and an event
 
 The event's **State Timeline** page is the record of every state it has been in. Its card, **Status Timeline**, draws them as a timeline: a band with each state as long as it lasted, and under it every change, newest first. **Table**, in the card's header, lists them as rows instead, with **Scheduled Maintenance Status**, **Starts At**, **Ends At**, **Duration**, whether subscribers were to be notified, and how their notification went.
 
-Rows can be added and deleted, but not edited, and an event always keeps at least one. Deleting the latest row puts the event back in the state of the row before it.
+In the dashboard, rows can be added and deleted, but not edited, and an event always keeps at least one. Through the API, a row's `startsAt` can be corrected, and every measurement worked out from the timeline follows it. Deleting the latest row puts the event back in the state of the row before it.
 
 > [!WARNING]
 > Deleting a row rewrites the event's history and every measurement worked out from it. Use it to correct a mistake, not to tidy up.

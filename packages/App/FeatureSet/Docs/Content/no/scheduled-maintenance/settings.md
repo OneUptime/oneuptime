@@ -94,7 +94,7 @@ Disse påminnelsene er for teamet ditt. Påminnelsene statussideabonnentene dine
 
 ### Notatmaler
 
-**Planlagt vedlikehold → Innstillinger → Notatmaler** rommer ferdigskrevet tekst for oppdateringer om vedlikehold. Kortet **Maler for offentlige eller private notater for planlagte vedlikeholdshendelser** viser dem; **Opprett Planlagt Vedlikehold Notat Mal** ber om et **Malnavn**, en **Malbeskrivelse** og **Notat**. En mal tilbys når noen skriver et offentlig eller privat notat på en hendelse, og når de endrer tilstanden, og teksten kan redigeres før den publiseres. Notatmaler for vedlikehold er ren tekst: i motsetning til notatmalene for uplanlagte hendelser fyller de ikke ut noen variabler.
+**Planlagt vedlikehold → Innstillinger → Notatmaler** rommer ferdigskrevet tekst for oppdateringer om vedlikehold. Kortet **Maler for offentlige eller private notater for planlagte vedlikeholdshendelser** viser dem; **Opprett Planlagt Vedlikehold Notat Mal** ber om et **Malnavn**, en **Malbeskrivelse** og **Notat**. En mal tilbys når noen skriver et offentlig eller privat notat på en hendelse, og når de endrer tilstanden, og teksten kan redigeres før den publiseres. I motsetning til notatmalene for uplanlagte hendelser fyller notatmaler for vedlikehold ikke ut noen variabler.
 
 ### Egendefinerte felt
 
@@ -106,7 +106,7 @@ Disse påminnelsene er for teamet ditt. Påminnelsene statussideabonnentene dine
 
 ### Nummerprefiks
 
-**Planlagt vedlikehold → Innstillinger → Nummerprefiks** angir teksten foran hendelsesnumre: `SM-` i et nytt prosjekt, eller `#` uten prefiks. **Oppdater** åpner **Nummerprefiks for planlagt vedlikehold**, med en forhåndsvisning mens du skriver. Bare hendelser som opprettes etterpå, får det nye prefikset; eksisterende beholder numrene sine. Reglene for et prefiks står på [Nummerprefikser](/docs/incidents/settings#nummerprefikser).
+**Planlagt vedlikehold → Innstillinger → Nummerprefiks** angir teksten foran hendelsesnumre: `SM-` i et nytt prosjekt, eller `#` uten prefiks. **Oppdater** ber om **Nummerprefiks for planlagt vedlikehold** og viser nummeret i en forhåndsvisning mens du skriver. Bare hendelser som opprettes etterpå, får det nye prefikset; eksisterende beholder numrene sine. Reglene for et prefiks står på [Nummerprefikser](/docs/incidents/settings#nummerprefikser).
 
 > [!NOTE]
 > På OneUptime Cloud krever egendefinerte felt abonnementet **Growth** eller høyere, og det samme gjelder å legge til og endre vedlikeholdstilstander og maler.

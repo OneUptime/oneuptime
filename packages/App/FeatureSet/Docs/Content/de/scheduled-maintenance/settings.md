@@ -94,7 +94,7 @@ Diese Erinnerungen sind für Ihr Team. Die Erinnerungen, die die Abonnenten Ihre
 
 ### Notizvorlagen
 
-**Geplante Wartung → Einstellungen → Notiz-Vorlagen** enthält vorgefertigte Texte für Wartungs-Updates. Die Karte **Vorlagen für öffentliche oder private Notizen für geplante Wartungsereignisse** listet sie auf; **Notizvorlage für geplante Wartungen erstellen** fragt nach einem **Vorlagenname**, einer **Vorlagenbeschreibung** und der **Notiz**. Eine Vorlage wird angeboten, wenn jemand eine öffentliche oder private Notiz zu einem Ereignis schreibt und wenn jemand seinen Status ändert, und ihr Text lässt sich vor dem Posten bearbeiten. Notizvorlagen für Wartungen sind reiner Text: Anders als Notizvorlagen für Vorfälle füllen sie keine Variablen aus.
+**Geplante Wartung → Einstellungen → Notiz-Vorlagen** enthält vorgefertigte Texte für Wartungs-Updates. Die Karte **Vorlagen für öffentliche oder private Notizen für geplante Wartungsereignisse** listet sie auf; **Notizvorlage für geplante Wartungen erstellen** fragt nach einem **Vorlagenname**, einer **Vorlagenbeschreibung** und der **Notiz**. Eine Vorlage wird angeboten, wenn jemand eine öffentliche oder private Notiz zu einem Ereignis schreibt und wenn jemand seinen Status ändert, und ihr Text lässt sich vor dem Posten bearbeiten. Anders als Notizvorlagen für Vorfälle füllen Notizvorlagen für Wartungen keine Variablen aus.
 
 ### Benutzerdefinierte Felder
 
@@ -106,7 +106,7 @@ Diese Erinnerungen sind für Ihr Team. Die Erinnerungen, die die Abonnenten Ihre
 
 ### Nummernpräfix
 
-**Geplante Wartung → Einstellungen → Nummernpräfix** legt den Text vor den Ereignisnummern fest: `SM-` in einem neuen Projekt, oder `#` ohne Präfix. **Aktualisieren** öffnet **Nummernpräfix der geplanten Wartung**, mit einer Vorschau während der Eingabe. Nur danach erstellte Ereignisse erhalten das neue Präfix; bestehende behalten ihre Nummern. Die Regeln für ein Präfix stehen unter [Nummernpräfixe](/docs/incidents/settings#nummernpräfixe).
+**Geplante Wartung → Einstellungen → Nummernpräfix** legt den Text vor den Ereignisnummern fest: `SM-` in einem neuen Projekt, oder `#` ohne Präfix. **Aktualisieren** fragt nach dem **Nummernpräfix der geplanten Wartung** und zeigt die Nummer während der Eingabe in einer Vorschau. Nur danach erstellte Ereignisse erhalten das neue Präfix; bestehende behalten ihre Nummern. Die Regeln für ein Präfix stehen unter [Nummernpräfixe](/docs/incidents/settings#nummernpräfixe).
 
 > [!NOTE]
 > In OneUptime Cloud erfordern benutzerdefinierte Felder den Plan **Growth** oder höher, ebenso das Hinzufügen und Ändern von Wartungsstatus und Vorlagen.

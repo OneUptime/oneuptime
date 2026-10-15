@@ -100,9 +100,9 @@ Till exempel ett veckofönster där den första händelsen skapas en måndag fö
 | Den första   | `2030-06-03 09:00` | `2030-06-08 02:00` | `2030-06-08 04:00` |
 | Den andra    | `2030-06-10 09:00` | `2030-06-15 02:00` | `2030-06-15 04:00` |
 
-Sätt **Första händelsen schemalagd** så långt före starten som du vill att dina kunder ska få höra om arbetet. Alla tre tiderna måste ligga i framtiden när du sparar mallen, händelsen måste skapas innan den börjar och slutar, och den måste börja innan den slutar; formuläret säger vilken regel en tid bryter mot.
+Sätt **Första händelsen schemalagd** så långt före starten som du vill att dina kunder ska få höra om arbetet. Alla tre tiderna måste ligga i framtiden när du skapar mallen, händelsen måste skapas innan den börjar och slutar, och den måste börja innan den slutar; formuläret säger vilken regel en tid bryter mot.
 
-Ett jobb kontrollerar de återkommande mallarna varje minut. När en malls nästa tid kommer skapar det händelsen och flyttar sedan nästa tid ett intervall framåt. Malllistan visar den tiden i sin kolumn **Återkommande händelse**. En händelse som har skapats från schemat är som vilken annan som helst: dess regler körs, dess ägare läggs till och dess prenumeranter får veta att den är schemalagd.
+Ett jobb kontrollerar de återkommande mallarna varje minut. När en malls nästa tid kommer flyttar det den tiden ett intervall framåt och skapar händelsen. Malllistan visar den tiden i sin kolumn **Återkommande händelse**. En händelse som har skapats från schemat är som vilken annan som helst: dess regler körs, dess ägare läggs till och dess prenumeranter får veta att den är schemalagd.
 
 ## Ändra eller stoppa en mall
 
@@ -116,8 +116,8 @@ Ett jobb kontrollerar de återkommande mallarna varje minut. När en malls näst
 
 ## Felsökning
 
-:::details När en återkommande mall sparas står det att en tid ska ligga i framtiden
-Alla tre första tiderna måste ligga efter nu när du sparar. Flytta fram dem: schemat fortsätter sedan från den första händelsen.
+:::details När en återkommande mall skapas står det att en tid ska ligga i framtiden
+Alla tre första tiderna måste ligga efter nu när du skapar den. Flytta fram dem: schemat fortsätter sedan från den första händelsen.
 :::
 
 :::details En återkommande mall skapade ingen händelse

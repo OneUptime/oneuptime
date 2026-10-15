@@ -94,7 +94,7 @@ Disse påmindelser er til dit team. De påmindelser, dine statussideabonnenter f
 
 ### Noteskabeloner
 
-**Planlagt vedligeholdelse → Indstillinger → Noteskabeloner** rummer færdigskrevet tekst til opdateringer om vedligeholdelse. Kortet **Skabeloner til offentlige eller private noter for planlagte vedligeholdelseshændelser** viser dem; **Opret Planlagt Vedligeholdelse Note Skabelon** beder om et **Skabelonnavn**, en **Skabelonbeskrivelse** og **Note**. En skabelon tilbydes, når nogen skriver en offentlig eller privat note på en begivenhed, og når de ændrer dens tilstand, og dens tekst kan redigeres, før den postes. Noteskabeloner for vedligeholdelse er ren tekst: i modsætning til noteskabeloner for hændelser udfylder de ingen variabler.
+**Planlagt vedligeholdelse → Indstillinger → Noteskabeloner** rummer færdigskrevet tekst til opdateringer om vedligeholdelse. Kortet **Skabeloner til offentlige eller private noter for planlagte vedligeholdelseshændelser** viser dem; **Opret Planlagt Vedligeholdelse Note Skabelon** beder om et **Skabelonnavn**, en **Skabelonbeskrivelse** og **Note**. En skabelon tilbydes, når nogen skriver en offentlig eller privat note på en begivenhed, og når de ændrer dens tilstand, og dens tekst kan redigeres, før den postes. I modsætning til noteskabeloner for hændelser udfylder noteskabeloner for vedligeholdelse ingen variabler.
 
 ### Brugerdefinerede felter
 
@@ -106,7 +106,7 @@ Disse påmindelser er til dit team. De påmindelser, dine statussideabonnenter f
 
 ### Nummerpræfiks
 
-**Planlagt vedligeholdelse → Indstillinger → Nummerpræfiks** angiver teksten foran begivenhedsnumre: `SM-` i et nyt projekt, eller `#` uden præfiks. **Opdater** åbner **Nummerpræfiks for planlagt vedligeholdelse** med en forhåndsvisning, mens du skriver. Kun begivenheder, der oprettes bagefter, får det nye præfiks; eksisterende beholder deres numre. Reglerne for et præfiks står på [Nummerpræfikser](/docs/incidents/settings#nummerpræfikser).
+**Planlagt vedligeholdelse → Indstillinger → Nummerpræfiks** angiver teksten foran begivenhedsnumre: `SM-` i et nyt projekt, eller `#` uden præfiks. **Opdater** beder om **Nummerpræfiks for planlagt vedligeholdelse** og viser nummeret i en forhåndsvisning, mens du skriver. Kun begivenheder, der oprettes bagefter, får det nye præfiks; eksisterende beholder deres numre. Reglerne for et præfiks står på [Nummerpræfikser](/docs/incidents/settings#nummerpræfikser).
 
 > [!NOTE]
 > På OneUptime Cloud kræver brugerdefinerede felter abonnementet **Growth** eller højere, og det samme gør tilføjelse og ændring af vedligeholdelsestilstande og skabeloner.

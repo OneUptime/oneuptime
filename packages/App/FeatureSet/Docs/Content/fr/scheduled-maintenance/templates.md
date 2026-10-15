@@ -100,9 +100,9 @@ Par exemple, une fenêtre hebdomadaire dont le premier événement est créé un
 | Le premier   | `2030-06-03 09:00` | `2030-06-08 02:00` | `2030-06-08 04:00` |
 | Le deuxième  | `2030-06-10 09:00` | `2030-06-15 02:00` | `2030-06-15 04:00` |
 
-Placez **Premier événement planifié à** aussi longtemps avant le début que vous voulez que vos clients soient informés des travaux. Les trois heures doivent être dans le futur quand vous enregistrez le modèle, l'événement doit être créé avant de commencer et de se terminer, et il doit commencer avant de se terminer ; le formulaire indique quelle règle une heure enfreint.
+Placez **Premier événement planifié à** aussi longtemps avant le début que vous voulez que vos clients soient informés des travaux. Les trois heures doivent être dans le futur quand vous créez le modèle, l'événement doit être créé avant de commencer et de se terminer, et il doit commencer avant de se terminer ; le formulaire indique quelle règle une heure enfreint.
 
-Une tâche vérifie les modèles récurrents chaque minute. Quand arrive la prochaine heure d'un modèle, elle crée l'événement, puis décale la prochaine heure d'un intervalle. La liste des modèles affiche cette heure dans sa colonne **Événement récurrent**. Un événement créé par la planification est comme les autres : ses règles s'exécutent, ses propriétaires sont ajoutés et ses abonnés apprennent qu'il est planifié.
+Une tâche vérifie les modèles récurrents chaque minute. Quand arrive la prochaine heure d'un modèle, elle décale cette heure d'un intervalle et crée l'événement. La liste des modèles affiche cette heure dans sa colonne **Événement récurrent**. Un événement créé par la planification est comme les autres : ses règles s'exécutent, ses propriétaires sont ajoutés et ses abonnés apprennent qu'il est planifié.
 
 ## Modifier ou arrêter un modèle
 
@@ -116,8 +116,8 @@ Les modifications s'appliquent aux événements créés après leur enregistreme
 
 ## Dépannage
 
-:::details L'enregistrement d'un modèle récurrent indique qu'une heure devrait être dans le futur
-Les trois premières heures doivent être après l'instant présent quand vous enregistrez. Avancez-les : la planification se poursuit ensuite à partir du premier événement.
+:::details La création d'un modèle récurrent indique qu'une heure devrait être dans le futur
+Les trois premières heures doivent être après l'instant présent quand vous créez le modèle. Avancez-les : la planification se poursuit ensuite à partir du premier événement.
 :::
 
 :::details Un modèle récurrent n'a créé aucun événement
