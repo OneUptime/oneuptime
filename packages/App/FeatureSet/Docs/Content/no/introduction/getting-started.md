@@ -52,6 +52,7 @@ Dokumentasjonen er organisert som sidefeltet, i ni deler. Velg den delen du tren
 - [Vakt](/docs/on-call/index): Retningslinjer, eskaleringsregler, rotasjoner og hvem som varsles når.
 - [Notifikasjoner](/docs/notifications/index): Slik når OneUptime deg: metodene, vaktreglene og varselinnstillingene dine.
 - [Statussider](/docs/status-pages/index): Hold kundene oppdatert på offentlige eller private statussider.
+- [Planlagt vedlikehold](/docs/scheduled-maintenance/index): Kunngjør planlagt arbeid, og sett monitorene det berører på pause.
 - [Arbeidsområdetilkoblinger](/docs/workspace-connections/slack): Jobb med hendelser fra Slack og Microsoft Teams.
 :::
 

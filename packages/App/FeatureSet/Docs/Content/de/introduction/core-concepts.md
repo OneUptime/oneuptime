@@ -92,6 +92,7 @@ Eine **Statusseite** zeigt Ihren Kunden, ob Ihre Dienste funktionieren. Sie wäh
 :::cards
 - [Statusseiten – Übersicht](/docs/status-pages/index): Eine Statusseite anlegen und festlegen, was sie zeigt.
 - [Abonnenten & Ankündigungen](/docs/status-pages/subscribers): Wer informiert wird, und wann.
+- [Geplante Wartung – Übersicht](/docs/scheduled-maintenance/index): Wie ein Ereignis abläuft, und was es pausiert.
 :::
 
 ## Telemetrie

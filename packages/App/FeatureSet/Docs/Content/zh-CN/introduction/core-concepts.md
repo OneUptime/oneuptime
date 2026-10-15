@@ -92,6 +92,7 @@ flowchart TB
 :::cards
 - [状态页概览](/docs/status-pages/index): 创建状态页面并决定它显示什么。
 - [订阅者与公告](/docs/status-pages/subscribers): 通知谁，以及何时通知。
+- [计划维护概览](/docs/scheduled-maintenance/index): 事件如何进行，以及它会暂停什么。
 :::
 
 ## 遥测

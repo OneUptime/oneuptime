@@ -92,6 +92,7 @@ En **statussida** visar dina kunder om dina tjänster fungerar. Du väljer vilka
 :::cards
 - [Statussidor – Översikt](/docs/status-pages/index): Skapa en statussida och bestäm vad den visar.
 - [Prenumeranter och meddelanden](/docs/status-pages/subscribers): Vem som får besked, och när.
+- [Schemalagt underhåll – Översikt](/docs/scheduled-maintenance/index): Hur en händelse förlöper, och vad den pausar.
 :::
 
 ## Telemetri
