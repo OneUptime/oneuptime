@@ -6,6 +6,8 @@ import RunnerService, {
   Service as RunnerServiceClass,
 } from "Common/Server/Services/RunnerService";
 import RunnerJobService from "Common/Server/Services/RunnerJobService";
+import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
+import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import KubernetesClusterAiAccessService, {
   KubernetesAgentRegistrationRefusedException,
   RegisterKubernetesAgentRunnerResult,
@@ -42,6 +44,12 @@ import Express, {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
+
+// What a claimed job's run hands its step besides the script.
+export interface RunInputsForJob {
+  inputs: JSONObject;
+  trigger: string | null;
+}
 
 export default class RunnerIngressAPI {
   public router!: ExpressRouter;
@@ -534,6 +542,13 @@ export default class RunnerIngressAPI {
         }
       }
 
+      const runInputs: RunInputsForJob | null =
+        await RunnerIngressAPI.getRunInputsForJob({
+          job,
+          projectId: agent.projectId,
+          isAgentRunnerRow,
+        });
+
       return Response.sendJsonObjectResponse(req, res, {
         job: {
           jobId: job.id?.toString(),
@@ -548,11 +563,69 @@ export default class RunnerIngressAPI {
           leaseExpiresAt: job.leaseExpiresAt?.toISOString(),
           ...(job.payload ? { payload: job.payload } : {}),
           ...(credential ? { credential } : {}),
+          ...(runInputs
+            ? { inputs: runInputs.inputs, trigger: runInputs.trigger }
+            : {}),
         },
       });
     } catch (err) {
       next(err);
     }
+  }
+
+  /*
+   * The values the job's run was started with - the JSON body of the webhook
+   * call that started it - and what started it, for the steps that take data
+   * from outside: a Bash step's environment and a JavaScript step's args
+   * (Types/Runbook/RunbookInputs). Sent BESIDE the script, never into it:
+   * the script the Runner gets is the one the runbook's author wrote, so a
+   * value a caller sends cannot become a command.
+   *
+   * Only for a runbook's own Bash and JavaScript steps, read from the run
+   * the job belongs to in the Runner's own project. Never for an
+   * AI-composed command, nor for a kubernetes-agent Runner, which runs
+   * kubectl only. Null when there is nothing to send.
+   */
+  public static async getRunInputsForJob(data: {
+    job: RunnerJob;
+    projectId: ObjectID;
+    isAgentRunnerRow: boolean;
+  }): Promise<RunInputsForJob | null> {
+    const origin: RunnerJobOrigin = data.job.origin || RunnerJobOrigin.Runbook;
+
+    if (
+      data.isAgentRunnerRow ||
+      origin !== RunnerJobOrigin.Runbook ||
+      !data.job.runbookExecutionId ||
+      (data.job.stepType !== RunbookStepType.Bash &&
+        data.job.stepType !== RunbookStepType.JavaScript)
+    ) {
+      return null;
+    }
+
+    const execution: RunbookExecution | null =
+      await RunbookExecutionService.findOneById({
+        id: data.job.runbookExecutionId,
+        select: { projectId: true, inputs: true, triggerType: true },
+        props: { isRoot: true },
+      });
+
+    if (
+      !execution ||
+      execution.projectId?.toString() !== data.projectId.toString()
+    ) {
+      return null;
+    }
+
+    return {
+      inputs:
+        execution.inputs &&
+        typeof execution.inputs === "object" &&
+        !Array.isArray(execution.inputs)
+          ? execution.inputs
+          : {},
+      trigger: execution.triggerType || null,
+    };
   }
 
   public async heartbeatJob(
