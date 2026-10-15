@@ -138,6 +138,9 @@ export class Service extends ProjectReferencesService<Model> {
       // Optional resource associations
       incidentId?: ObjectID;
       alertId?: ObjectID;
+      monitorId?: ObjectID;
+      alertEpisodeId?: ObjectID;
+      incidentEpisodeId?: ObjectID;
       scheduledMaintenanceId?: ObjectID;
       onCallDutyPolicyId?: ObjectID;
       statusPageId?: ObjectID;
@@ -162,6 +165,15 @@ export class Service extends ProjectReferencesService<Model> {
     }
     if (data.alertId) {
       logData.alertId = data.alertId;
+    }
+    if (data.monitorId) {
+      logData.monitorId = data.monitorId;
+    }
+    if (data.alertEpisodeId) {
+      logData.alertEpisodeId = data.alertEpisodeId;
+    }
+    if (data.incidentEpisodeId) {
+      logData.incidentEpisodeId = data.incidentEpisodeId;
     }
     if (data.scheduledMaintenanceId) {
       logData.scheduledMaintenanceId = data.scheduledMaintenanceId;

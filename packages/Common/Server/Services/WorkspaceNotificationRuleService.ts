@@ -1469,7 +1469,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
    * A Notification Logs row for every channel a message about a record
    * reached, and for every one it failed to reach - otherwise a chat or
    * channel send that errors (e.g. the OneUptime app was removed from a chat
-   * a rule still references) is invisible in the notification logs.
+   * a rule still references) is invisible in the notification logs. Every
+   * row names the record the message is about: a record's Notification Logs
+   * page lists its workspace logs by the record's id.
    */
   @CaptureSpan()
   public async logSendResponses(data: {
@@ -1541,6 +1543,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         if (data.notificationFor.alertEpisodeId) {
           log.alertEpisodeId = data.notificationFor.alertEpisodeId;
         }
+        if (data.notificationFor.monitorId) {
+          log.monitorId = data.notificationFor.monitorId;
+        }
+        if (data.notificationFor.onCallDutyPolicyId) {
+          log.onCallDutyPolicyId = data.notificationFor.onCallDutyPolicyId;
+        }
 
         if (data.notifyUserId) {
           log.userId = data.notifyUserId;
@@ -1585,6 +1593,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         }
         if (data.notificationFor.alertEpisodeId) {
           log.alertEpisodeId = data.notificationFor.alertEpisodeId;
+        }
+        if (data.notificationFor.monitorId) {
+          log.monitorId = data.notificationFor.monitorId;
+        }
+        if (data.notificationFor.onCallDutyPolicyId) {
+          log.onCallDutyPolicyId = data.notificationFor.onCallDutyPolicyId;
         }
 
         if (data.notifyUserId) {
@@ -2788,7 +2802,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         projectId: data.projectId?.toString(),
       } as LogAttributes);
 
-      // Log the channel creation
+      /*
+       * Log the channel creation against the record the channel was created
+       * for: a record's Notification Logs page lists its workspace logs by
+       * the record's id.
+       */
       try {
         const logData: {
           projectId: ObjectID;
@@ -2797,6 +2815,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           channelName: string;
           incidentId?: ObjectID;
           alertId?: ObjectID;
+          monitorId?: ObjectID;
+          alertEpisodeId?: ObjectID;
+          incidentEpisodeId?: ObjectID;
           scheduledMaintenanceId?: ObjectID;
           onCallDutyPolicyId?: ObjectID;
         } = {
@@ -2812,6 +2833,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         }
         if (data.notificationFor?.alertId) {
           logData.alertId = data.notificationFor.alertId;
+        }
+        if (data.notificationFor?.monitorId) {
+          logData.monitorId = data.notificationFor.monitorId;
+        }
+        if (data.notificationFor?.alertEpisodeId) {
+          logData.alertEpisodeId = data.notificationFor.alertEpisodeId;
+        }
+        if (data.notificationFor?.incidentEpisodeId) {
+          logData.incidentEpisodeId = data.notificationFor.incidentEpisodeId;
         }
         if (data.notificationFor?.scheduledMaintenanceId) {
           logData.scheduledMaintenanceId =
