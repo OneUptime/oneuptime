@@ -29258,5 +29258,9 @@
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}.": "Free 套餐最多允许 {{count}} 个活动监视器，此项目有 {{activeMonitors}} 个。",
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}._one": "Free 套餐最多允许 {{count}} 个活动监视器，此项目有 {{activeMonitors}} 个。",
   "You're over the Free plan's monitor limit": "已超出 Free 套餐的监视器限额",
-  "You're over your plan's monitor limit": "已超出您套餐的监视器限额"
+  "You're over your plan's monitor limit": "已超出您套餐的监视器限额",
+  "Every new {{record}}, and every change to one, runs this workflow.": "每次新建或更改{{record}}，都会运行此工作流。",
+  "What Happened": "发生了什么",
+  "Just created": "刚刚创建",
+  "Just updated": "刚刚更新"
 }

@@ -2,7 +2,7 @@
  * The Add Component and Add Trigger picker.
  *
  * About two thousand steps can be added to a workflow, and all but some
- * twenty of them are the eight actions and three triggers generated for each
+ * twenty of them are the eight actions and four triggers generated for each
  * database model. This panel used to list every one of them, a card each,
  * grouped by model in registration order, and re-rendered the lot on every
  * keystroke; it took seconds to open on a slow machine, froze while typing,

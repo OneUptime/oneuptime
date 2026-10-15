@@ -29258,5 +29258,9 @@
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}.": "Максимум активных мониторов в тарифе Free: {{count}}, а в этом проекте: {{activeMonitors}}.",
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}._one": "Тариф Free допускает не более {{count}} активного монитора, а в этом проекте их {{activeMonitors}}.",
   "You're over the Free plan's monitor limit": "Превышен лимит мониторов тарифа Free",
-  "You're over your plan's monitor limit": "Превышен лимит мониторов вашего тарифа"
+  "You're over your plan's monitor limit": "Превышен лимит мониторов вашего тарифа",
+  "Every new {{record}}, and every change to one, runs this workflow.": "Каждая новая запись ({{record}}) и каждое её изменение запускают этот рабочий процесс.",
+  "What Happened": "Что произошло",
+  "Just created": "Создание",
+  "Just updated": "Обновление"
 }

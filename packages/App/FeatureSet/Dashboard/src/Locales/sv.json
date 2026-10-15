@@ -29258,5 +29258,9 @@
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}.": "Abonnemanget Free tillåter upp till {{count}} aktiva monitorer, och det här projektet har {{activeMonitors}}.",
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}._one": "Abonnemanget Free tillåter upp till {{count}} aktiv monitor, och det här projektet har {{activeMonitors}}.",
   "You're over the Free plan's monitor limit": "Du har överskridit gränsen för monitorer i abonnemanget Free",
-  "You're over your plan's monitor limit": "Du har överskridit gränsen för monitorer i ditt abonnemang"
+  "You're over your plan's monitor limit": "Du har överskridit gränsen för monitorer i ditt abonnemang",
+  "Every new {{record}}, and every change to one, runs this workflow.": "Varje nytt objekt ({{record}}), och varje ändring av ett objekt, kör det här arbetsflödet.",
+  "What Happened": "Vad som hände",
+  "Just created": "Nyss skapad",
+  "Just updated": "Nyss uppdaterad"
 }

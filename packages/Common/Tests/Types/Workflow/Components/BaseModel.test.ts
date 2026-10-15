@@ -107,7 +107,45 @@ describe("BaseModelComponent.getComponents", () => {
     ]);
   });
 
-  test("all four flags together yield 11 unique, table-scoped components", () => {
+  /*
+   * On Create or Update stands for the On Create and On Update triggers
+   * together, so a model has it exactly when it has both - never with one
+   * of them alone (Types/Workflow/CreateOrUpdateTrigger).
+   */
+  test("create and update together add On Create or Update after the update steps; neither alone does", () => {
+    const prefix: string = Text.pascalCaseToDashes("WidgetGizmo");
+
+    expect(
+      idsOf(
+        BaseModelComponent.getComponents(
+          makeModel({ enableWorkflowOn: { create: true, update: true } }),
+        ),
+      ),
+    ).toEqual([
+      `${prefix}-on-create`,
+      `${prefix}-create-one`,
+      `${prefix}-create-many`,
+      `${prefix}-on-update`,
+      `${prefix}-update-one`,
+      `${prefix}-update-many`,
+      `${prefix}-on-create-or-update`,
+    ]);
+
+    for (const enableWorkflowOn of [
+      { create: true },
+      { update: true },
+      { create: true, read: true, delete: true },
+      { update: true, read: true, delete: true },
+    ] as Array<EnableWorkflowOn>) {
+      expect(
+        idsOf(
+          BaseModelComponent.getComponents(makeModel({ enableWorkflowOn })),
+        ),
+      ).not.toContain(`${prefix}-on-create-or-update`);
+    }
+  });
+
+  test("all four flags together yield 12 unique, table-scoped components", () => {
     const components: Array<ComponentMetadata> =
       BaseModelComponent.getComponents(
         makeModel({
@@ -120,7 +158,7 @@ describe("BaseModelComponent.getComponents", () => {
         }),
       );
 
-    expect(components.length).toBe(11);
+    expect(components.length).toBe(12);
 
     const ids: Array<string> = idsOf(components);
     expect(new Set<string>(ids).size).toBe(ids.length);
@@ -214,12 +252,17 @@ describe("BaseModelComponent.getComponents", () => {
       }
     }
 
-    // The three change-triggers are exactly the Trigger-typed blocks.
+    // The four change-triggers are exactly the Trigger-typed blocks.
     const triggers: Array<ComponentMetadata> = components.filter(
       (component: ComponentMetadata) => {
         return component.componentType === ComponentType.Trigger;
       },
     );
-    expect(triggers.length).toBe(3);
+    expect(idsOf(triggers)).toEqual([
+      "widget-gizmo-on-delete",
+      "widget-gizmo-on-create",
+      "widget-gizmo-on-update",
+      "widget-gizmo-on-create-or-update",
+    ]);
   });
 });

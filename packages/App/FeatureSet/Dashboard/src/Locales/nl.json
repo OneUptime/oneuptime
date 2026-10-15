@@ -29258,5 +29258,9 @@
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}.": "Het Free-abonnement staat maximaal {{count}} actieve monitoren toe, en dit project heeft er {{activeMonitors}}.",
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}._one": "Het Free-abonnement staat maximaal {{count}} actieve monitor toe, en dit project heeft er {{activeMonitors}}.",
   "You're over the Free plan's monitor limit": "Je zit boven de monitorlimiet van het Free-abonnement",
-  "You're over your plan's monitor limit": "Je zit boven de monitorlimiet van je abonnement"
+  "You're over your plan's monitor limit": "Je zit boven de monitorlimiet van je abonnement",
+  "Every new {{record}}, and every change to one, runs this workflow.": "Elk nieuw item ({{record}}), en elke wijziging eraan, voert deze workflow uit.",
+  "What Happened": "Wat er gebeurde",
+  "Just created": "Zojuist aangemaakt",
+  "Just updated": "Zojuist bijgewerkt"
 }

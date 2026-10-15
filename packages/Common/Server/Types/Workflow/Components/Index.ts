@@ -13,6 +13,7 @@ import DeleteOneBaseModel from "./BaseModel/DeleteOneBaseModel";
 import FindManyBaseModel from "./BaseModel/FindManyBaseModel";
 import FindOneBaseModel from "./BaseModel/FindOneBaseModel";
 import OnCreateBaseModel from "./BaseModel/OnCreateBaseModel";
+import OnCreateOrUpdateBaseModel from "./BaseModel/OnCreateOrUpdateBaseModel";
 import OnDeleteBaseModel from "./BaseModel/OnDeleteBaseModel";
 import OnUpdateBaseModel from "./BaseModel/OnUpdateBaseModel";
 import UpdateManyBaseModel from "./BaseModel/UpdateManyBaseModel";
@@ -42,6 +43,10 @@ import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/Datab
 import Dictionary from "../../../../Types/Dictionary";
 import Text from "../../../../Types/Text";
 import ComponentID from "../../../../Types/Workflow/ComponentID";
+import {
+  getCreateOrUpdateTriggerId,
+  hasCreateOrUpdateTrigger,
+} from "../../../../Types/Workflow/CreateOrUpdateTrigger";
 import ApiPatch from "./API/Patch";
 
 const Components: Dictionary<ComponentCode> = {
@@ -133,6 +138,12 @@ for (const baseModelService of Services) {
         baseModelService as any,
       );
     }
+  }
+
+  // Mirrors BaseModelComponent.getComponents: both triggers it stands for.
+  if (hasCreateOrUpdateTrigger(model.enableWorkflowOn)) {
+    Components[getCreateOrUpdateTriggerId(model.tableName!)] =
+      new OnCreateOrUpdateBaseModel(baseModelService as any);
   }
 
   if (model.enableWorkflowOn.delete) {

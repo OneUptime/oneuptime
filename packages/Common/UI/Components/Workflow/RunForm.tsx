@@ -1,3 +1,4 @@
+import ChoiceRows, { ChoiceRowOption } from "../ChoiceRows/ChoiceRows";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicForm, { FormProps } from "../Forms/BasicForm";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
@@ -25,11 +26,17 @@ import {
   NodeDataProp,
 } from "../../../Types/Workflow/Component";
 import {
+  WHAT_HAPPENED_VALUES,
+  WhatHappened,
+  readWhatHappened,
+} from "../../../Types/Workflow/CreateOrUpdateTrigger";
+import {
   RunRecordOption,
   RunRecordReferenceKind,
   RunRecordTriggerInfo,
   getRunRecordTriggerInfo,
   parseRunRecordReference,
+  withRunRecordEvent,
 } from "../../../Types/Workflow/RunRecord";
 import React, {
   ReactElement,
@@ -53,11 +60,34 @@ export const RUN_WORKFLOW_SUBMIT_TITLE: string = translationKey(
 
 export const RunFormCopy: {
   readonly noValues: string;
+  readonly whatHappened: string;
+  readonly created: string;
+  readonly updated: string;
 } = {
   noValues: translationKey(
     "This trigger needs no values. Click {{button}} to start the run.",
   ),
+  /*
+   * On Create or Update's question, beside the record: is the run for it
+   * being created or updated? Its run value's own name (WHAT_HAPPENED_NAME),
+   * and its value's two answers.
+   */
+  whatHappened: translationKey("What Happened"),
+  /*
+   * Not "Created" and "Updated": those keys are column titles too, and
+   * read as one in some languages ("Creation time").
+   */
+  created: translationKey("Just created"),
+  updated: translationKey("Just updated"),
 };
+
+// What the panel offers for What Happened, in order: the first is the default.
+const WHAT_HAPPENED_LABELS: Record<WhatHappened, string> = {
+  [WhatHappened.Created]: RunFormCopy.created,
+  [WhatHappened.Updated]: RunFormCopy.updated,
+};
+
+export const RUN_WHAT_HAPPENED_TEST_ID: string = "run-what-happened";
 
 /*
  * What the panel around the form can ask of it: to say what is missing. The
@@ -144,6 +174,14 @@ const RunForm: React.ForwardRefExoticComponent<
       : null;
 
     /*
+     * The same, with what the run is for: On Create or Update asks whether
+     * the record was created or updated, and the record's help says which.
+     */
+    const runRecordTrigger: RunRecordTriggerInfo | null = recordTrigger
+      ? withRunRecordEvent(recordTrigger, component.arguments)
+      : null;
+
+    /*
      * Same hydration ArgumentsForm does: a StringDictionary renders as key/value
      * rows, and those need a real object rather than the JSON string older
      * workflows stored. The field type is chosen from the same value, so the two
@@ -169,12 +207,68 @@ const RunForm: React.ForwardRefExoticComponent<
     type FieldForArgumentFunction = (argument: Argument) => any;
 
     const fieldForArgument: FieldForArgumentFunction = (argument: Argument) => {
+      /*
+       * On Create or Update's What Happened: a row for each answer, created
+       * first and chosen until another is. A choice is always made, so it is
+       * neither required nor optional.
+       */
       if (
         recordTrigger &&
+        recordTrigger.whatHappenedArgument &&
+        argument.id === recordTrigger.whatHappenedArgument.id
+      ) {
+        return {
+          title: RunFormCopy.whatHappened,
+          field: {
+            [argument.id]: true,
+          },
+          required: false,
+          hideOptionalLabel: true,
+          fieldType: FormFieldSchemaType.CustomComponent,
+          getCustomElement: (
+            _values: FormValues<JSONObject>,
+            customProps: CustomElementProps,
+          ): ReactElement => {
+            const options: Array<ChoiceRowOption<WhatHappened>> =
+              WHAT_HAPPENED_VALUES.map(
+                (value: WhatHappened): ChoiceRowOption<WhatHappened> => {
+                  return {
+                    value: value,
+                    title: WHAT_HAPPENED_LABELS[value],
+                    dataTestId: `${RUN_WHAT_HAPPENED_TEST_ID}-${value}`,
+                  };
+                },
+              );
+
+            return (
+              <div
+                className="overflow-hidden rounded-lg border border-gray-200 bg-white"
+                data-testid={RUN_WHAT_HAPPENED_TEST_ID}
+              >
+                <ChoiceRows<WhatHappened>
+                  value={
+                    readWhatHappened(customProps.initialValue) ||
+                    WhatHappened.Created
+                  }
+                  options={options}
+                  onPick={(value: WhatHappened) => {
+                    void customProps.onChange?.(value);
+                  }}
+                  ariaLabel={RunFormCopy.whatHappened}
+                />
+              </div>
+            );
+          },
+        };
+      }
+
+      if (
+        recordTrigger &&
+        runRecordTrigger &&
         props.workflowId &&
         argument.id === recordTrigger.argument.id
       ) {
-        const info: RunRecordTriggerInfo = recordTrigger;
+        const info: RunRecordTriggerInfo = runRecordTrigger;
         const workflowId: ObjectID = props.workflowId;
 
         return {

@@ -29258,5 +29258,9 @@
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}.": "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}.",
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}._one": "The Free plan allows up to {{count}} active monitor, and this project has {{activeMonitors}}.",
   "You're over the Free plan's monitor limit": "You're over the Free plan's monitor limit",
-  "You're over your plan's monitor limit": "You're over your plan's monitor limit"
+  "You're over your plan's monitor limit": "You're over your plan's monitor limit",
+  "Every new {{record}}, and every change to one, runs this workflow.": "Every new {{record}}, and every change to one, runs this workflow.",
+  "What Happened": "What Happened",
+  "Just created": "Just created",
+  "Just updated": "Just updated"
 }

@@ -29258,5 +29258,9 @@
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}.": "Free-abonnementet tillater opptil {{count}} aktive monitorer, og dette prosjektet har {{activeMonitors}}.",
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}._one": "Free-abonnementet tillater opptil {{count}} aktiv monitor, og dette prosjektet har {{activeMonitors}}.",
   "You're over the Free plan's monitor limit": "Du er over Free-abonnementets grense for monitorer",
-  "You're over your plan's monitor limit": "Du er over abonnementets grense for monitorer"
+  "You're over your plan's monitor limit": "Du er over abonnementets grense for monitorer",
+  "Every new {{record}}, and every change to one, runs this workflow.": "Hvert nytt element ({{record}}), og hver endring av et element, kjører denne arbeidsflyten.",
+  "What Happened": "Hva som skjedde",
+  "Just created": "Nettopp opprettet",
+  "Just updated": "Nettopp oppdatert"
 }

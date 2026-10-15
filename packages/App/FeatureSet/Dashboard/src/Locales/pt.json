@@ -29258,5 +29258,9 @@
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}.": "O plano Free permite até {{count}} monitores ativos, e este projeto tem {{activeMonitors}}.",
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}._one": "O plano Free permite até {{count}} monitor ativo, e este projeto tem {{activeMonitors}}.",
   "You're over the Free plan's monitor limit": "Você ultrapassou o limite de monitores do plano Free",
-  "You're over your plan's monitor limit": "Você ultrapassou o limite de monitores do seu plano"
+  "You're over your plan's monitor limit": "Você ultrapassou o limite de monitores do seu plano",
+  "Every new {{record}}, and every change to one, runs this workflow.": "Cada novo item ({{record}}), e cada alteração em um item, executa este fluxo de trabalho.",
+  "What Happened": "O que aconteceu",
+  "Just created": "Criação",
+  "Just updated": "Atualização"
 }

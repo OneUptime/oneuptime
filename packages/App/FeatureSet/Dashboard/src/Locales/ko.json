@@ -29258,5 +29258,9 @@
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}.": "Free 요금제에서는 활성 모니터를 최대 {{count}}개까지 사용할 수 있으며, 이 프로젝트에는 {{activeMonitors}}개가 있습니다.",
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}._one": "Free 요금제에서는 활성 모니터를 최대 {{count}}개까지 사용할 수 있으며, 이 프로젝트에는 {{activeMonitors}}개가 있습니다.",
   "You're over the Free plan's monitor limit": "Free 요금제의 모니터 한도를 초과했습니다",
-  "You're over your plan's monitor limit": "요금제의 모니터 한도를 초과했습니다"
+  "You're over your plan's monitor limit": "요금제의 모니터 한도를 초과했습니다",
+  "Every new {{record}}, and every change to one, runs this workflow.": "{{record}}이(가) 새로 생길 때마다, 그리고 바뀔 때마다 이 워크플로가 실행됩니다.",
+  "What Happened": "발생한 일",
+  "Just created": "방금 생성됨",
+  "Just updated": "방금 업데이트됨"
 }

@@ -3,6 +3,13 @@ import IconProp from "../../Icon/IconProp";
 import Text from "../../Text";
 import { getCreateFromTemplateArgument } from "../CreateFromTemplate";
 import {
+  WHAT_HAPPENED_ID,
+  WHAT_HAPPENED_NAME,
+  WhatHappened,
+  getCreateOrUpdateTriggerId,
+  hasCreateOrUpdateTrigger,
+} from "../CreateOrUpdateTrigger";
+import {
   DatabaseOperation,
   getDatabaseOperation,
   WRITE_DATABASE_OPERATIONS,
@@ -64,6 +71,31 @@ export default class BaseModelComponent {
     const selectDescription: string = `The ${model.singularName} fields the next steps can use. A field you leave out is empty in later steps.`;
 
     const listenOnDescription: string = `Run only when an update changes one of these fields. Leave it empty to run on every change to the ${model.singularName}.`;
+
+    /*
+     * The same list on On Create or Update, which a create always runs:
+     * Fields to watch is about updates only.
+     */
+    const createOrUpdateListenOnDescription: string = `Run on an update only when it changes one of these fields. A new ${model.singularName} always runs this workflow. Leave it empty to run on every change.`;
+
+    /*
+     * What every record trigger asks Run Workflow for: the record to run
+     * with. The panel finds it by its number or name (RunRecordField). A
+     * fresh copy for each trigger, so no trigger's metadata shares an object
+     * with another's.
+     */
+    type RunRecordArgumentFunction = () => Argument;
+
+    const runRecordArgument: RunRecordArgumentFunction = (): Argument => {
+      return {
+        type: ComponentInputType.Text,
+        name: `${model.singularName} ID`,
+        description: `Please provide the ID of the ${model.singularName}, if you wish to run this workflow manually.`,
+        required: true,
+        id: "_id",
+        placeholder: `ID of the ${model.singularName}`,
+      };
+    };
 
     const dataDescription: string = `${model.singularName} fields to write, as a JSON object. ${columnHint}`;
 
@@ -235,16 +267,7 @@ export default class BaseModelComponent {
         iconProp: IconProp.Bolt,
         tableName: model.tableName!,
         componentType: ComponentType.Trigger,
-        runWorkflowManuallyArguments: [
-          {
-            type: ComponentInputType.Text,
-            name: `${model.singularName} ID`,
-            description: `Please provide the ID of the ${model.singularName}, if you wish to run this workflow manually.`,
-            required: true,
-            id: "_id",
-            placeholder: `ID of the ${model.singularName}`,
-          },
-        ],
+        runWorkflowManuallyArguments: [runRecordArgument()],
         arguments: [],
         returnValues: [
           {
@@ -394,16 +417,7 @@ export default class BaseModelComponent {
         iconProp: IconProp.Bolt,
         tableName: model.tableName!,
         componentType: ComponentType.Trigger,
-        runWorkflowManuallyArguments: [
-          {
-            type: ComponentInputType.Text,
-            name: `${model.singularName} ID`,
-            description: `Please provide the ID of the ${model.singularName}, if you wish to run this workflow manually.`,
-            required: true,
-            id: "_id",
-            placeholder: `ID of the ${model.singularName}`,
-          },
-        ],
+        runWorkflowManuallyArguments: [runRecordArgument()],
         arguments: [
           {
             type: ComponentInputType.Select,
@@ -565,16 +579,7 @@ export default class BaseModelComponent {
         iconProp: IconProp.Bolt,
         tableName: model.tableName!,
         componentType: ComponentType.Trigger,
-        runWorkflowManuallyArguments: [
-          {
-            type: ComponentInputType.Text,
-            name: `${model.singularName} ID`,
-            description: `Please provide the ID of the ${model.singularName}, if you wish to run this workflow manually.`,
-            required: true,
-            id: "_id",
-            placeholder: `ID of the ${model.singularName}`,
-          },
-        ],
+        runWorkflowManuallyArguments: [runRecordArgument()],
         arguments: [
           {
             type: ComponentInputType.Select,
@@ -742,6 +747,83 @@ export default class BaseModelComponent {
             description:
               "This is executed when there is an error updating data from the database",
             id: "error",
+          },
+        ],
+      });
+    }
+
+    /*
+     * One trigger for a new record and a changed one, for every model with
+     * both triggers it stands for (Types/Workflow/CreateOrUpdateTrigger). Its
+     * settings are On Update's, under the same ids, so the field lists, the
+     * value picker and the run treat them alike; only what Fields to watch
+     * says differs, since a create always runs it. What Happened says which
+     * of the two started the run, and Run Workflow asks which to test.
+     */
+    if (hasCreateOrUpdateTrigger(model.enableWorkflowOn)) {
+      components.push({
+        id: getCreateOrUpdateTriggerId(model.tableName!),
+        title: `On Create or Update ${model.singularName}`,
+        category: `${model.singularName}`,
+        description: `When the ${model.singularName} is created or updated...`,
+        iconProp: IconProp.Bolt,
+        tableName: model.tableName!,
+        componentType: ComponentType.Trigger,
+        runWorkflowManuallyArguments: [
+          runRecordArgument(),
+          {
+            type: ComponentInputType.Choice,
+            name: WHAT_HAPPENED_NAME,
+            description: `Run as if the ${model.singularName} had just been created, or just been updated.`,
+            required: false,
+            id: WHAT_HAPPENED_ID,
+            // As Run Workflow words them (RunForm).
+            choices: [
+              { value: WhatHappened.Created, label: "Just created" },
+              { value: WhatHappened.Updated, label: "Just updated" },
+            ],
+          },
+        ],
+        arguments: [
+          {
+            type: ComponentInputType.Select,
+            name: WATCHED_FIELDS_NAME,
+            description: createOrUpdateListenOnDescription,
+            required: false,
+            id: "listen-on",
+            placeholder: 'Example: {"columnName": true, ...}',
+          },
+          {
+            type: ComponentInputType.Select,
+            name: SELECT_FIELDS_NAME,
+            description: selectDescription,
+            required: true,
+            id: "select",
+            placeholder: selectPlaceholder,
+          },
+        ],
+        returnValues: [
+          {
+            id: "model",
+            name: `${model.singularName}`,
+            description: `The ${model.singularName} that was created or updated`,
+            type: ComponentInputType.BaseModel,
+            required: true,
+          },
+          {
+            id: WHAT_HAPPENED_ID,
+            name: WHAT_HAPPENED_NAME,
+            description: `"${WhatHappened.Created}" when the ${model.singularName} was just created, "${WhatHappened.Updated}" when it was just updated.`,
+            type: ComponentInputType.Text,
+            required: true,
+          },
+        ],
+        inPorts: [],
+        outPorts: [
+          {
+            title: "Success",
+            description: `This is executed when the ${model.singularName} is created, and when it is updated.`,
+            id: "success",
           },
         ],
       });

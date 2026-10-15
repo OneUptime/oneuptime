@@ -1,5 +1,5 @@
 /*
- * The generated database components: eleven per model, across 227 models that
+ * The generated database components: twelve per model, across 227 models that
  * enable workflows. Nothing here is written by hand, so a single wrong string
  * in the generator is a wrong string on well over a thousand components — which
  * is how one shared documentation file came to be attached to eight of them and
@@ -21,6 +21,10 @@ import ComponentMetadata, {
 } from "../../../Types/Workflow/Component";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorSecret from "../../../Models/DatabaseModels/MonitorSecret";
+import {
+  DatabaseOperation,
+  getDatabaseOperation,
+} from "../../../Types/Workflow/DatabaseOperation";
 import { describe, expect, test } from "@jest/globals";
 
 const COMPONENTS: Array<ComponentMetadata> = BaseModelComponent.getComponents(
@@ -74,11 +78,16 @@ const COMPONENT_IDS: Array<string> = [
   "-delete-many",
 ];
 
-const TRIGGER_IDS: Array<string> = ["-on-create", "-on-update", "-on-delete"];
+const TRIGGER_IDS: Array<string> = [
+  "-on-create",
+  "-on-update",
+  "-on-create-or-update",
+  "-on-delete",
+];
 
 describe("generated database components", () => {
-  test("a model with everything enabled gets eleven components", () => {
-    expect(COMPONENTS).toHaveLength(11);
+  test("a model with everything enabled gets twelve components", () => {
+    expect(COMPONENTS).toHaveLength(12);
   });
 
   test("a model with workflows disabled gets none", () => {
@@ -333,6 +342,7 @@ describe("what the palette says each component does", () => {
     for (const idSuffix of [
       "-on-create",
       "-on-update",
+      "-on-create-or-update",
       "-find-one",
       "-find-many",
     ]) {
@@ -375,6 +385,7 @@ describe("return values", () => {
       "-create-one",
       "-on-create",
       "-on-update",
+      "-on-create-or-update",
       "-on-delete",
     ]) {
       expect(returnValueOf(find(idSuffix), "model")?.type).toBe(
@@ -464,25 +475,39 @@ describe("a model that enables only some operations", () => {
     }
   });
 
+  /*
+   * Told apart by the operation the id ends in, never by a part of it:
+   * "-on-create-or-update" holds "-create-", and is a trigger.
+   */
   test("each component's help is about its own operation", () => {
+    const verbs: Record<DatabaseOperation, RegExp> = {
+      [DatabaseOperation.CreateOne]: /^Creates /,
+      [DatabaseOperation.CreateMany]: /^Creates /,
+      [DatabaseOperation.FindOne]: /^Finds /,
+      [DatabaseOperation.FindMany]: /^Finds /,
+      [DatabaseOperation.UpdateOne]: /^Changes /,
+      [DatabaseOperation.UpdateMany]: /^Changes /,
+      [DatabaseOperation.DeleteOne]: /^Deletes /,
+      [DatabaseOperation.DeleteMany]: /^Deletes /,
+      [DatabaseOperation.OnCreate]: /^Starts this workflow /,
+      [DatabaseOperation.OnUpdate]: /^Starts this workflow /,
+      [DatabaseOperation.OnCreateOrUpdate]: /^Starts this workflow /,
+      [DatabaseOperation.OnDelete]: /^Starts this workflow /,
+    };
+
     for (const component of secretComponents) {
       const summary: string =
         getComponentDocumentation({
           metadata: component,
           stepId: `${component.id}-1`,
         })?.summary || "";
+      const operation: DatabaseOperation | null = getDatabaseOperation({
+        componentId: component.id,
+        tableName: component.tableName || "",
+      });
 
-      if (component.id.includes("-create-")) {
-        expect(summary).toMatch(/^Creates /);
-      } else if (component.id.includes("-find-")) {
-        expect(summary).toMatch(/^Finds /);
-      } else if (component.id.includes("-update-")) {
-        expect(summary).toMatch(/^Changes /);
-      } else if (component.id.includes("-delete-")) {
-        expect(summary).toMatch(/^Deletes /);
-      } else {
-        expect(summary).toMatch(/^Starts this workflow /);
-      }
+      expect(operation).not.toBeNull();
+      expect(summary).toMatch(verbs[operation!]);
     }
   });
 });

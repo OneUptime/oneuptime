@@ -29258,5 +29258,9 @@
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}.": "طرح Free حداکثر {{count}} مانیتور فعال را مجاز می‌داند و این پروژه {{activeMonitors}} مانیتور دارد.",
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}._one": "طرح Free حداکثر {{count}} مانیتور فعال را مجاز می‌داند و این پروژه {{activeMonitors}} مانیتور دارد.",
   "You're over the Free plan's monitor limit": "از سقف مانیتورهای طرح Free فراتر رفته‌اید",
-  "You're over your plan's monitor limit": "از سقف مانیتورهای طرح خود فراتر رفته‌اید"
+  "You're over your plan's monitor limit": "از سقف مانیتورهای طرح خود فراتر رفته‌اید",
+  "Every new {{record}}, and every change to one, runs this workflow.": "هر مورد تازه ({{record}}) و هر تغییر در آن، این گردش کاری را اجرا می‌کند.",
+  "What Happened": "چه اتفاقی افتاد",
+  "Just created": "تازه ساخته‌شده",
+  "Just updated": "تازه به‌روزرسانی‌شده"
 }

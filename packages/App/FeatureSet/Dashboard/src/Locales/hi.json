@@ -29258,5 +29258,9 @@
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}.": "Free प्लान में अधिकतम {{count}} सक्रिय मॉनिटर रखे जा सकते हैं, और इस प्रोजेक्ट में {{activeMonitors}} हैं।",
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}._one": "Free प्लान में अधिकतम {{count}} सक्रिय मॉनिटर रखा जा सकता है, और इस प्रोजेक्ट में {{activeMonitors}} हैं।",
   "You're over the Free plan's monitor limit": "आप Free प्लान की मॉनिटर सीमा से आगे निकल गए हैं",
-  "You're over your plan's monitor limit": "आप अपने प्लान की मॉनिटर सीमा से आगे निकल गए हैं"
+  "You're over your plan's monitor limit": "आप अपने प्लान की मॉनिटर सीमा से आगे निकल गए हैं",
+  "Every new {{record}}, and every change to one, runs this workflow.": "हर नए {{record}} पर, और उसमें हर बदलाव पर, यह वर्कफ़्लो चलता है।",
+  "What Happened": "क्या हुआ",
+  "Just created": "अभी बनाया गया",
+  "Just updated": "अभी अपडेट किया गया"
 }

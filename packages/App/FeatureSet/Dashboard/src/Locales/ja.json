@@ -29258,5 +29258,9 @@
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}.": "Free プランで使えるアクティブなモニターは最大 {{count}} 個で、このプロジェクトには {{activeMonitors}} 個あります。",
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}._one": "Free プランで使えるアクティブなモニターは最大 {{count}} 個で、このプロジェクトには {{activeMonitors}} 個あります。",
   "You're over the Free plan's monitor limit": "Free プランのモニター上限を超えています",
-  "You're over your plan's monitor limit": "プランのモニター上限を超えています"
+  "You're over your plan's monitor limit": "プランのモニター上限を超えています",
+  "Every new {{record}}, and every change to one, runs this workflow.": "{{record}}が作成されるたび、また変更されるたびに、このワークフローが実行されます。",
+  "What Happened": "何が起きたか",
+  "Just created": "作成された",
+  "Just updated": "更新された"
 }

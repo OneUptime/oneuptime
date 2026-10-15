@@ -29258,5 +29258,9 @@
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}.": "Free 方案最多允許 {{count}} 個作用中的監測器，此專案有 {{activeMonitors}} 個。",
   "The Free plan allows up to {{count}} active monitors, and this project has {{activeMonitors}}._one": "Free 方案最多允許 {{count}} 個作用中的監測器，此專案有 {{activeMonitors}} 個。",
   "You're over the Free plan's monitor limit": "已超出 Free 方案的監測器上限",
-  "You're over your plan's monitor limit": "已超出您方案的監測器上限"
+  "You're over your plan's monitor limit": "已超出您方案的監測器上限",
+  "Every new {{record}}, and every change to one, runs this workflow.": "每次新建或變更{{record}}，都會執行此工作流程。",
+  "What Happened": "發生了什麼",
+  "Just created": "剛剛建立",
+  "Just updated": "剛剛更新"
 }

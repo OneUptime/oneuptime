@@ -1,7 +1,7 @@
 /*
- * Help for the eleven steps generated for every model a workflow can use:
- * Find, Create, Update and Delete (one and many), and the On Create, On Update
- * and On Delete triggers.
+ * Help for the twelve steps generated for every model a workflow can use:
+ * Find, Create, Update and Delete (one and many), and the On Create, On
+ * Update, On Create or Update and On Delete triggers.
  *
  * This used to be five Markdown files shared by all 227 models, which is why
  * Create One Incident explained "Create Many" and On Delete described a Select
@@ -15,6 +15,7 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import { JSONObject } from "../../JSON";
 import { Argument, NodeDataProp } from "../Component";
 import { getCreateFromTemplateArgument } from "../CreateFromTemplate";
+import { WHAT_HAPPENED_ID, WhatHappened } from "../CreateOrUpdateTrigger";
 import {
   CUSTOM_FIELDS_COLUMN,
   hasCustomFieldsColumn,
@@ -56,7 +57,7 @@ import {
 } from "./ModelExamples";
 
 /*
- * Which of the eleven generated steps a component is, read off the end of
+ * Which of the twelve generated steps a component is, read off the end of
  * its id. It lives in Types/Workflow/DatabaseOperation so the Add Component
  * picker can use it without loading this help; re-exported here for the
  * code and tests that have always imported it from this file.
@@ -696,6 +697,72 @@ const onCreateOrUpdate: UpdateOrDeleteFunction = (
   };
 };
 
+/*
+ * On Create or Update: one trigger for a new record and a changed one
+ * (Types/Workflow/CreateOrUpdateTrigger). What its help has to get across,
+ * past what On Create's and On Update's say: a create always runs it, Fields
+ * to watch only narrows the updates, What Happened tells the two apart, and
+ * one save is one run.
+ */
+const onCreateOrUpdateTrigger: BuildFunction = (
+  context: ComponentDocumentationContext,
+  words: ModelWords,
+): ComponentDocumentation => {
+  return {
+    summary: `Starts this workflow each time a new ${words.one} is created in this project, and each time one changes.`,
+    steps: [
+      `To run on an update only when particular fields change, add them to **Fields to watch**. A new ${words.one} always starts a run.`,
+      `Under **Fields to pass on**, choose the fields of the ${words.one} later steps need.`,
+      `Connect **Success** to the steps to run. **What Happened** says whether the ${words.one} was \`${WhatHappened.Created}\` or \`${WhatHappened.Updated}\`.`,
+      `Turn the workflow on. Only ${words.many} created or changed while it is on start a run.`,
+    ],
+    examples: [
+      {
+        title: `Read a field of the ${words.one} in a later step`,
+        code: ownReference(context, "model", [words.display.id]),
+        description:
+          words.display.id === ID_COLUMN_ID
+            ? undefined
+            : `\`${words.display.id}\` must be one of the **Fields to pass on**.`,
+      },
+      {
+        title: "Tell a new one from a change",
+        code: ownReference(context, WHAT_HAPPENED_ID),
+        description: `\`${WhatHappened.Created}\` or \`${WhatHappened.Updated}\`. Compare it in an **If / Else** step, or take a path for each with **Switch / Case**.`,
+      },
+    ],
+    notes: [
+      {
+        type: ComponentDocumentationNoteType.Warning,
+        text: `A field left out of **Fields to pass on** is empty in later steps, even though the ${words.one} has it.`,
+      },
+      {
+        type: ComponentDocumentationNoteType.Tip,
+        text: `One save starts one run. What OneUptime fills in while it creates the ${words.one} is part of the create, so a new ${words.one} runs it once, as \`${WhatHappened.Created}\`.`,
+      },
+      {
+        type: ComponentDocumentationNoteType.Tip,
+        text: "A field saved with the value it already has is not a change, so it does not start a run. **Fields to watch** is no guarantee either: when an update does not say which fields changed, the workflow runs anyway.",
+      },
+    ],
+    learnMore: [
+      {
+        title: "Changes OneUptime makes",
+        paragraphs: [
+          `OneUptime changes ${words.many} itself too, after they are created - an incident gets its Slack channel, say. Each such change is an update, and starts a run like any other. To run only for the changes you care about, add those fields to **Fields to watch**.`,
+        ],
+      },
+      {
+        title: "Testing it",
+        paragraphs: [
+          `Click **Run Workflow** in the builder's toolbar and ${pickOneRecord(words)} Under **What Happened**, choose whether the workflow runs as if that ${words.one} had just been created or just been updated. ${WORKFLOW_TEST_WHILE_OFF_HELP}`,
+        ],
+      },
+    ],
+    links: triggerLinks(words),
+  };
+};
+
 const onDelete: BuildFunction = (
   context: ComponentDocumentationContext,
   words: ModelWords,
@@ -736,7 +803,7 @@ export type GetDatabaseDocumentationFunction = (
 
 /**
  * The help for a generated database step, or null when the step is not one of
- * the eleven or its model cannot be found.
+ * the twelve or its model cannot be found.
  */
 export const getDatabaseDocumentation: GetDatabaseDocumentationFunction = (
   context: ComponentDocumentationContext,
@@ -785,6 +852,8 @@ export const getDatabaseDocumentation: GetDatabaseDocumentationFunction = (
       return onCreateOrUpdate(context, words, false);
     case DatabaseOperation.OnUpdate:
       return onCreateOrUpdate(context, words, true);
+    case DatabaseOperation.OnCreateOrUpdate:
+      return onCreateOrUpdateTrigger(context, words);
     case DatabaseOperation.OnDelete:
       return onDelete(context, words);
   }
