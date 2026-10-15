@@ -6,9 +6,10 @@ export default interface NotificationRuleWorkspaceChannel
   notificationRuleId: string;
   /*
    * Every rule that asked for the channel, the first one first. Rules whose
-   * templates give the same name share one channel, and each of them counts
-   * for who is invited to it. Channels stored before this was recorded have
-   * only notificationRuleId.
+   * templates give names the workspace creates as one channel ("incidents-"
+   * and "Incidents-" in Slack) share it, and each of them counts for who is
+   * invited to it. Channels stored before this was recorded have only
+   * notificationRuleId.
    */
   notificationRuleIds?: Array<string> | undefined;
 }

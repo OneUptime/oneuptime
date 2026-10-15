@@ -25,6 +25,7 @@ import Dictionary from "../../../../Types/Dictionary";
 import BadRequestException from "../../../../Types/Exception/BadRequestException";
 import WorkspaceBase, {
   WorkspaceChannel,
+  WorkspaceChannelToCreate,
   WorkspaceMessageLocation,
   WorkspaceSendMessageResponse,
   WorkspaceThread,
@@ -2496,6 +2497,30 @@ export default class SlackUtil extends WorkspaceBase {
     );
   }
 
+  /*
+   * The name Slack creates a channel by: Slack only allows lowercase
+   * letters, numbers, hyphens, and underscores, so the name is lower-cased
+   * and all other characters (including #) are removed. "#Incidents -INC-9"
+   * is created as "incidents-inc-9".
+   */
+  public static getChannelNameToCreate(channelName: string): string {
+    return channelName.toLowerCase().replace(/[^a-z0-9\-_]/g, "");
+  }
+
+  /*
+   * Names Slack creates by the same name are one channel: asked to create
+   * it a second time, Slack answers name_taken.
+   */
+  public static override isSameChannelToCreate(
+    channel: WorkspaceChannelToCreate,
+    otherChannel: WorkspaceChannelToCreate,
+  ): boolean {
+    return (
+      this.getChannelNameToCreate(channel.channelName) ===
+      this.getChannelNameToCreate(otherChannel.channelName)
+    );
+  }
+
   @CaptureSpan()
   public static override async createChannel(data: {
     authToken: string;
@@ -2504,14 +2529,11 @@ export default class SlackUtil extends WorkspaceBase {
     isPrivate?: boolean;
   }): Promise<WorkspaceChannel> {
     /*
-     * Sanitize channel name: Slack only allows lowercase letters, numbers,
-     * hyphens, and underscores. Remove all other characters (including #).
-     * A rule's channel arrives named so already (WorkspaceChannelName), and
-     * no longer than Slack's 80 characters.
+     * As Slack creates it (getChannelNameToCreate). A rule's channel arrives
+     * named so already (WorkspaceChannelName), and no longer than Slack's
+     * 80 characters.
      */
-    data.channelName = data.channelName
-      .toLowerCase()
-      .replace(/[^a-z0-9\-_]/g, "");
+    data.channelName = this.getChannelNameToCreate(data.channelName);
 
     const createChannelLogAttributes: LogAttributes = {
       projectId: data.projectId?.toString(),

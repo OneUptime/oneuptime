@@ -23,6 +23,7 @@ import BaseNotificationRule from "../../Types/Workspace/NotificationRules/BaseNo
 import CreateChannelNotificationRule from "../../Types/Workspace/NotificationRules/CreateChannelNotificationRule";
 import WorkspaceBase, {
   WorkspaceChannel,
+  WorkspaceChannelToCreate,
   WorkspaceSendMessageResponse,
   WorkspaceThread,
 } from "../Utils/Workspace/WorkspaceBase";
@@ -112,6 +113,16 @@ export interface NotificationRuleChannelToCreate {
   notificationRuleIds: Array<string>;
   teamId?: string;
   prefix: string;
+}
+
+/*
+ * A channel created for a record, with the channel it was asked as - its
+ * name and team before the workspace named it (name-2 when the name was
+ * taken) - which later requests are matched to.
+ */
+interface CreatedRuleChannel {
+  askedFor: WorkspaceChannelToCreate;
+  channel: NotificationRuleWorkspaceChannel;
 }
 
 /*
@@ -2662,14 +2673,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     const createdWorkspaceChannels: Array<NotificationRuleWorkspaceChannel> =
       [];
 
-    /*
-     * The channels created so far, by the name they asked for and, in
-     * Microsoft Teams, their team: rules that ask for the same channel share
-     * it, and in two teams each team gets its own. Keyed by the name asked
-     * for, not the one the channel got: a taken name is created as name-2.
-     */
-    const channelsAskedFor: Map<string, NotificationRuleWorkspaceChannel> =
-      new Map<string, NotificationRuleWorkspaceChannel>();
+    // The channels created so far, with the channel each was asked as.
+    const channelsAskedFor: Array<CreatedRuleChannel> = [];
 
     const notificationChannels: Array<NotificationRuleChannelToCreate> =
       this.getnotificationChannelssFromNotificationRules({
@@ -2706,58 +2711,42 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       return [];
     }
 
+    const workspaceUtil: typeof WorkspaceBase =
+      WorkspaceUtil.getWorkspaceTypeUtil(data.workspaceType);
+
     for (const notificationChannel of notificationChannels) {
-      logger.debug(
-        `Creating new channel with name: ${notificationChannel.channelName}`,
-        { projectId: data.projectId?.toString() } as LogAttributes,
-      );
-      const createChannelData: {
-        authToken: string;
-        channelName: string;
-        projectId: ObjectID;
-        teamId?: string;
-        isPrivate?: boolean;
-      } = {
-        authToken: data.projectOrUserAuthTokenForWorkspace,
-        channelName: notificationChannel.channelName,
-        projectId: data.projectId,
-      };
+      // The team a Microsoft Teams channel is created in: the rule's, or the project's.
+      let teamId: string | undefined = notificationChannel.teamId;
 
-      if (data.isPrivate) {
-        createChannelData.isPrivate = true;
-      }
-
-      if (notificationChannel.teamId) {
-        createChannelData.teamId = notificationChannel.teamId;
-      } else if (
+      if (
+        !teamId &&
         data.workspaceType === WorkspaceType.MicrosoftTeams &&
         projectAuth.miscData?.["teamId"]
       ) {
-        createChannelData.teamId = projectAuth.miscData["teamId"];
+        teamId = projectAuth.miscData["teamId"];
       }
 
-      // Ensure teamId is set for Microsoft Teams
-      if (
-        data.workspaceType === WorkspaceType.MicrosoftTeams &&
-        !createChannelData.teamId
-      ) {
-        throw new BadDataException(
-          "teamId is required for Microsoft Teams channels",
-        );
-      }
-
-      const channelAskedFor: string =
-        data.workspaceType === WorkspaceType.MicrosoftTeams
-          ? `${createChannelData.teamId}|${notificationChannel.channelName}`
-          : notificationChannel.channelName;
+      const askedFor: WorkspaceChannelToCreate = {
+        channelName: notificationChannel.channelName,
+        teamId: teamId,
+      };
 
       /*
-       * A channel created already for the name asked for (in Microsoft
-       * Teams, in the same team) is these rules' channel too: the people
-       * they invite are invited to it.
+       * A channel created already is the one asked for, as the workspace
+       * creates names (isSameChannelToCreate): Slack lower-cases names and
+       * drops the characters it does not take, and a Microsoft Teams team
+       * tells names apart without their case, so asking for it again would
+       * be refused as taken. That channel is these rules' channel too. It is
+       * matched by the name it was asked for, not the one it got: a taken
+       * name is created as name-2.
        */
       const createdChannel: NotificationRuleWorkspaceChannel | undefined =
-        channelsAskedFor.get(channelAskedFor);
+        channelsAskedFor.find((created: CreatedRuleChannel): boolean => {
+          return workspaceUtil.isSameChannelToCreate(
+            created.askedFor,
+            askedFor,
+          );
+        })?.channel;
 
       if (createdChannel) {
         const notificationRuleIds: Array<string> =
@@ -2780,6 +2769,40 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         continue;
       }
 
+      logger.debug(
+        `Creating new channel with name: ${notificationChannel.channelName}`,
+        { projectId: data.projectId?.toString() } as LogAttributes,
+      );
+      const createChannelData: {
+        authToken: string;
+        channelName: string;
+        projectId: ObjectID;
+        teamId?: string;
+        isPrivate?: boolean;
+      } = {
+        authToken: data.projectOrUserAuthTokenForWorkspace,
+        channelName: notificationChannel.channelName,
+        projectId: data.projectId,
+      };
+
+      if (data.isPrivate) {
+        createChannelData.isPrivate = true;
+      }
+
+      if (teamId) {
+        createChannelData.teamId = teamId;
+      }
+
+      // Ensure teamId is set for Microsoft Teams
+      if (
+        data.workspaceType === WorkspaceType.MicrosoftTeams &&
+        !createChannelData.teamId
+      ) {
+        throw new BadDataException(
+          "teamId is required for Microsoft Teams channels",
+        );
+      }
+
       const channel: WorkspaceChannel = await this.createChannelUnderFreeName({
         workspaceType: data.workspaceType,
         createChannelData: createChannelData,
@@ -2793,7 +2816,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         notificationRuleIds: [...notificationChannel.notificationRuleIds],
       };
 
-      channelsAskedFor.set(channelAskedFor, notificationWorkspaceChannel);
+      channelsAskedFor.push({
+        askedFor: askedFor,
+        channel: notificationWorkspaceChannel,
+      });
 
       logger.debug("Channel created:", {
         projectId: data.projectId?.toString(),
@@ -3235,6 +3261,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     channelNameParts: WorkspaceChannelNameParts;
     workspaceType: WorkspaceType;
   }): Array<NotificationRuleChannelToCreate> {
+    const workspaceUtil: typeof WorkspaceBase =
+      WorkspaceUtil.getWorkspaceTypeUtil(data.workspaceType);
+
     const channels: Array<NotificationRuleChannelToCreate> = [];
 
     for (const notificationRule of data.notificationRules) {
@@ -3257,15 +3286,18 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       const notificationRuleId: string = notificationRule.id?.toString() || "";
 
-      // A Slack workspace has one namespace of channel names; Teams one per team.
+      /*
+       * Names the workspace creates as one channel are one channel
+       * (isSameChannelToCreate): in Slack by the name Slack creates, whatever
+       * team a rule once named - a workspace has one namespace of names - and
+       * in Microsoft Teams within the team, whatever the case.
+       */
       const sameChannel: NotificationRuleChannelToCreate | undefined =
         channels.find((channel: NotificationRuleChannelToCreate): boolean => {
-          return (
-            channel.channelName === channelName &&
-            (data.workspaceType !== WorkspaceType.MicrosoftTeams ||
-              (channel.teamId || "") ===
-                (workspaceRules.teamToCreateChannelIn || ""))
-          );
+          return workspaceUtil.isSameChannelToCreate(channel, {
+            channelName: channelName,
+            teamId: workspaceRules.teamToCreateChannelIn || undefined,
+          });
         });
 
       if (sameChannel) {
@@ -3280,7 +3312,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         }
 
         logger.debug(
-          `Channel name ${channelName} already exists in the list. Adding the rule to it.`,
+          `Channel name ${channelName} is the channel ${sameChannel.channelName} already in the list. Adding the rule to it.`,
           {} as LogAttributes,
         );
         continue;

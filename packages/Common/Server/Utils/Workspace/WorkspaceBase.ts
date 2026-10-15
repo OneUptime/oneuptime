@@ -53,6 +53,15 @@ export interface WorkspaceChannel {
 }
 
 /*
+ * A channel the workspace is asked to create (createChannel): its name and,
+ * for Microsoft Teams, the team it is created in.
+ */
+export interface WorkspaceChannelToCreate {
+  channelName: string;
+  teamId?: string | undefined;
+}
+
+/*
  * Where a message OneUptime keeps up to date sits, as the workspace needs it
  * to edit the message: the channel (or Microsoft Teams chat) and, for a
  * Teams channel, its team.
@@ -339,6 +348,19 @@ export default class WorkspaceBase {
     isPrivate?: boolean;
   }): Promise<WorkspaceChannel> {
     throw new NotImplementedException();
+  }
+
+  /*
+   * Whether the workspace creates two channels it is asked for as one
+   * channel, and so refuses to create the second. Names are taken as they
+   * are here; a workspace that changes the names it is given compares them
+   * as it changes them.
+   */
+  public static isSameChannelToCreate(
+    channel: WorkspaceChannelToCreate,
+    otherChannel: WorkspaceChannelToCreate,
+  ): boolean {
+    return channel.channelName === otherChannel.channelName;
   }
 
   @CaptureSpan()
