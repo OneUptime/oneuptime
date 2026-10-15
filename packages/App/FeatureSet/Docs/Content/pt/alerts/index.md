@@ -16,7 +16,7 @@ A maioria dos alertas é gerada por um monitor cujos critérios correspondem. Al
 ```mermaid title="De um sinal às pessoas que cuidam dele"
 flowchart TB
     sources["Monitores, SLOs, chat,<br/>a API ou uma pessoa"] --> alert["Novo alerta"]
-    alert --> rules["As regras são executadas"]
+    alert --> rules["As regras de alerta<br/>são executadas"]
     rules --> people["Plantão acionado,<br/>proprietários notificados"]
     rules --> episode["Agrupado em<br/>um episódio"]
 ```

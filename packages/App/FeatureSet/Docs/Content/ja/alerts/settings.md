@@ -31,7 +31,7 @@
 
 ```mermaid title="新しいアラートが通るルール (順番どおり)"
 flowchart TB
-    subgraph shape["誰が見て、誰が所有するか"]
+    subgraph shape["誰が見て所有するか"]
         direction LR
         privacy["プライバシールール"] --> owner["所有者ルール"]
     end

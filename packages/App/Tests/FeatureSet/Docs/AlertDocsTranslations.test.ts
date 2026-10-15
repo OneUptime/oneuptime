@@ -109,10 +109,10 @@ const PAGE_NAMES: Array<string> = ALERT_PAGES.map(
  * 590px docs column. Every diagram fits the column without scrolling.
  */
 const WIDEST_DIAGRAM_LINE: Record<string, ReadonlyArray<number>> = {
-  [ALERTS_OVERVIEW]: [28],
-  [ALERT_STATES]: [28],
-  [ALERT_EPISODES]: [28, 28],
-  [ALERT_SETTINGS]: [28],
+  [ALERTS_OVERVIEW]: [25],
+  [ALERT_STATES]: [21],
+  [ALERT_EPISODES]: [25, 26],
+  [ALERT_SETTINGS]: [25],
 };
 
 /*
