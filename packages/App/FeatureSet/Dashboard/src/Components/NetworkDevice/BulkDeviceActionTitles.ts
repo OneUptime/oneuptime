@@ -26,8 +26,8 @@ export const APPLY_VENDOR_TEMPLATE_ACTION_TITLE: string = translationKey(
 );
 
 /*
- * The discovery Review dialog's switch, counted by the SNMP hosts it is about
- * (Pages/NetworkDevice/Discovery).
+ * The discovery import's switch, on its Monitoring step, counted by the SNMP
+ * hosts it is about (DiscoveryImport/DiscoveryImportMonitoringStep).
  */
 export const IMPORT_VENDOR_TEMPLATES_TOGGLE_TITLE: PluralTemplate = {
   one: "Apply each SNMP host's vendor template on its first poll (recommended) — {{count}} host",

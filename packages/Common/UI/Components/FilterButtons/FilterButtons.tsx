@@ -13,6 +13,12 @@ export interface ComponentProps {
   selectedValue: string;
   onSelect: (value: string) => void;
   className?: string | undefined;
+  /*
+   * What the group filters by ("Status", "Name"), in English: looked up in
+   * the reader's language here. Two groups on one screen that are both
+   * "Filter options" to a screen reader cannot be told apart.
+   */
+  ariaLabel?: string | undefined;
 }
 
 const FilterButtons: FunctionComponent<ComponentProps> = (
@@ -24,7 +30,7 @@ const FilterButtons: FunctionComponent<ComponentProps> = (
     <div
       className={`inline-flex gap-1 ${props.className || ""}`}
       role="radiogroup"
-      aria-label={translator.translateText("Filter options")}
+      aria-label={translator.translateText(props.ariaLabel || "Filter options")}
     >
       {props.options.map((option: FilterButtonOption) => {
         const isActive: boolean = props.selectedValue === option.value;

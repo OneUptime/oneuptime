@@ -347,6 +347,14 @@ export function buildNetworkDeviceFromDiscoveredHost(data: {
    * poll, with nobody having to touch it afterwards.
    */
   oidTemplateId?: ObjectID | undefined;
+  /*
+   * How often, in minutes, the scan's probe polls the device - pings it, and
+   * walks it when it answered SNMP. Chosen in the import dialog ("Check
+   * every"); left out, the column's own default (5) applies, which is what
+   * every discovered device was polled at before anyone could choose.
+   * Applied to ping-only hosts too: their ping IS their poll.
+   */
+  pollingIntervalInMinutes?: number | undefined;
 }): NetworkDevice {
   const host: DiscoveredNetworkDevice = data.host;
 
@@ -458,6 +466,20 @@ export function buildNetworkDeviceFromDiscoveredHost(data: {
    * than trusting a default that a ping-only host used to override to false.
    */
   device.isPollingEnabled = true;
+
+  /*
+   * Only a whole number of minutes of at least one is written: anything else
+   * is a caller's mistake, and the probe would clamp it to a minute anyway.
+   * Left unset otherwise, so the column default stays the one place the
+   * default lives.
+   */
+  if (
+    typeof data.pollingIntervalInMinutes === "number" &&
+    Number.isInteger(data.pollingIntervalInMinutes) &&
+    data.pollingIntervalInMinutes >= 1
+  ) {
+    device.pollingIntervalInMinutes = data.pollingIntervalInMinutes;
+  }
 
   if (isPingOnlyDiscoveredHost(host)) {
     /*

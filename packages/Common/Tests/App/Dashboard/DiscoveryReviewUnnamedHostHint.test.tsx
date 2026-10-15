@@ -47,9 +47,10 @@ import {
   explainUnnamedDiscoveredHost,
 } from "../../../Utils/NetworkDiscovery/DiscoveredHostNamingDiagnosis";
 import { DiscoveryScanStatus } from "../../../Utils/NetworkDiscovery/DiscoveryScanStatus";
+import DiscoveryImportFakeServer from "./DiscoveryImportFakeServer";
 
 /*
- * OneUptime issue #3916, RENDERED: the Review Discovered Devices dialog says
+ * OneUptime issue #3916, RENDERED: the import dialog (Review Results) says
  * why a host is listed by its bare address.
  *
  * The report: an ICMP-only scan of twelve kitchen displays named four of them
@@ -119,13 +120,24 @@ jest.mock("../../../UI/Components/Modal/Modal", () => {
           <p>{props.description}</p>
           {props.error && <p role="alert">{props.error}</p>}
           {props.isBodyLoading ? <p>Refreshing inventory</p> : props.children}
+          {props.leftFooterElement}
           <button onClick={props.onClose}>Close review</button>
-          <button
-            disabled={props.disableSubmitButton || props.isLoading}
-            onClick={props.onSubmit}
-          >
-            {props.submitButtonText}
-          </button>
+          {props.secondaryButton && (
+            <button
+              disabled={props.secondaryButton.disabled}
+              onClick={props.secondaryButton.onClick}
+            >
+              {props.secondaryButton.title}
+            </button>
+          )}
+          {props.submitButtonText && (
+            <button
+              disabled={props.disableSubmitButton || props.isLoading}
+              onClick={props.onSubmit}
+            >
+              {props.submitButtonText}
+            </button>
+          )}
         </div>
       );
     },
@@ -150,6 +162,7 @@ const UNNAMED_HINT_NAME: RegExp = /^About why .+ has no name$/;
 
 let getItemSpy: jest.SpyInstance;
 let createSpy: jest.SpyInstance;
+let server: DiscoveryImportFakeServer;
 let getAllProbesSpy: jest.SpyInstance;
 
 interface ScanShape {
@@ -324,18 +337,9 @@ async function explanationShownFor(ipAddress: string): Promise<string> {
   return text;
 }
 
-/*
- * The row element for an address: the checkbox's row, found by walking up to
- * the element that carries the row's bottom border.
- */
+// The row element for an address, by the test id the row carries.
 function rowOf(ipAddress: string): HTMLElement {
-  const row: HTMLElement | null = checkbox(ipAddress).closest(".border-b");
-
-  if (!row) {
-    throw new Error(`No row found for ${ipAddress}`);
-  }
-
-  return row as HTMLElement;
+  return screen.getByTestId(`discovered-host-row-${ipAddress}`);
 }
 
 beforeEach(() => {
@@ -350,6 +354,14 @@ beforeEach(() => {
   createSpy = jest
     .spyOn(ModelAPI, "create")
     .mockResolvedValue(undefined as never);
+  // The monitoring step's lists: nothing in them is needed here.
+  jest.spyOn(ModelAPI, "getList").mockResolvedValue({
+    data: [],
+    count: 0,
+    skip: 0,
+    limit: 0,
+  } as never);
+  server = new DiscoveryImportFakeServer().install();
 });
 
 afterEach(() => {
@@ -618,9 +630,8 @@ describe("the reporter's ICMP-only scan says why each unnamed host has no name (
 
     expect(checkbox("10.18.166.51")).toBeChecked();
     expect(createSpy).not.toHaveBeenCalled();
-    expect(
-      screen.getByRole("button", { name: /Import Selected/ }),
-    ).toHaveTextContent("Import Selected (5)");
+    expect(server.startBodies).toEqual([]);
+    expect(screen.getByText("5 hosts will be imported")).toBeInTheDocument();
   });
 
   test("the explanation opens on keyboard focus too", async () => {
@@ -641,25 +652,40 @@ describe("the reporter's ICMP-only scan says why each unnamed host has no name (
     );
   });
 
-  test("the unnamed hosts still import under their address, exactly as before", async () => {
+  /*
+   * The hint explains; it never holds a host back. The unnamed hosts are
+   * imported with the named ones - under their address, which is the name
+   * their rows show and the name the server's import gives them (its suite,
+   * DiscoveryImportRunner.test.ts, builds each device from the same scan).
+   */
+  test("the unnamed hosts are imported with the rest, under the name their rows show", async () => {
     await renderPage();
     await openReviewOf(reporterScan());
 
-    fireEvent.click(screen.getByRole("button", { name: /Import Selected/ }));
-    await waitFor(() => {
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(rowOf("10.18.166.51")).toHaveTextContent("10.18.166.51");
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    const submit: HTMLElement = await screen.findByRole("button", {
+      name: "Import 5 devices",
     });
 
-    const names: Array<string> = createSpy.mock.calls.map(
-      (call: Array<{ model: { name?: string } }>): string => {
-        return String(call[0]!.model.name);
-      },
-    );
+    await waitFor(() => {
+      expect(submit).toBeEnabled();
+    });
 
-    expect(names).toEqual([
-      "wb-0660-kds01.wbhq.com",
+    await act(async () => {
+      fireEvent.click(submit);
+    });
+
+    await waitFor(() => {
+      expect(server.startBodies).toHaveLength(1);
+    });
+
+    expect(server.startBodies[0]!["ipAddresses"]).toEqual([
+      "10.18.166.50",
       "10.18.166.51",
-      "wb-0660-kds02.wbhq.com",
+      "10.18.166.52",
       "10.18.166.53",
       "10.18.166.54",
     ]);

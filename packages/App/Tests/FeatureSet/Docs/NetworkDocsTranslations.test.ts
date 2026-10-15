@@ -63,8 +63,8 @@ import { describe, expect, it } from "@jest/globals";
  *   - A bold Dashboard label is its value in that language's Dashboard
  *     locale, Persian included (NetworkDocsLabels.drawnNetworkLabel). A few
  *     are drawn from a longer string and named by its start: the Bound
- *     monitor option, the vendor template switch, Import Selected, the
- *     Target Prefix field and the table editor's placeholders.
+ *     monitor option, the vendor template switch, the Target Prefix field
+ *     and the table editor's placeholders.
  *   - A menu path is drawn segment by segment: one bold span with " → "
  *     between the segments, or, in Persian, a bold span per segment with
  *     " > " between them.
@@ -1040,7 +1040,6 @@ describe("the helpers, on these pages' shapes", () => {
       }),
     ).toBe("Monitor vinculado");
     expect(drawnNetworkLabel("ja", "Target Prefix")).not.toContain("（");
-    expect(drawnNetworkLabel("ja", "Import Selected")).not.toContain("count");
     expect(
       drawnNetworkLabel(
         "zh-CN",

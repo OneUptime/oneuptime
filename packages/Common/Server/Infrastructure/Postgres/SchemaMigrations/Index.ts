@@ -95,6 +95,7 @@ import { AddStatusPageSubscriberRestrictions1802000000000 } from "./180200000000
 import { AddIncidentFeedApiKeyActor1802050000000 } from "./1802050000000-AddIncidentFeedApiKeyActor";
 import { AddWorkspaceUserGroup1802100000000 } from "./1802100000000-AddWorkspaceUserGroup";
 import { AddSecurityCases1802150000000 } from "./1802150000000-AddSecurityCases";
+import { AddNetworkDeviceDiscoveryImport1802200000000 } from "./1802200000000-AddNetworkDeviceDiscoveryImport";
 import { AddRunbookTriggers1802400000000 } from "./1802400000000-AddRunbookTriggers";
 import { AddRunbookScheduleNextRunIndex1802450000000 } from "./1802450000000-AddRunbookScheduleNextRunIndex";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
@@ -1394,6 +1395,7 @@ export default [
   AddIncidentFeedApiKeyActor1802050000000,
   AddWorkspaceUserGroup1802100000000,
   AddSecurityCases1802150000000,
+  AddNetworkDeviceDiscoveryImport1802200000000,
   AddRunbookTriggers1802400000000,
   AddRunbookScheduleNextRunIndex1802450000000,
 ];

@@ -1,6 +1,9 @@
 import { defineConfig } from "@playwright/test";
 import path from "path";
 
+// The fixture server's port: see Discovery/server.js.
+const port: number = Number(process.env["DISCOVERY_FIXTURE_PORT"] || 4198);
+
 export default defineConfig({
   testDir: "./Discovery",
   testMatch: "**/*.spec.ts",
@@ -12,7 +15,7 @@ export default defineConfig({
   reporter: [["list"]],
   outputDir: "../../output/playwright/discovery/test-results",
   use: {
-    baseURL: "http://127.0.0.1:4198",
+    baseURL: `http://127.0.0.1:${port}`,
     browserName: "chromium",
     viewport: { width: 1440, height: 1050 },
     timezoneId: "UTC",
@@ -23,7 +26,7 @@ export default defineConfig({
   webServer: {
     command: "node Discovery/server.js",
     cwd: path.resolve(__dirname),
-    url: "http://127.0.0.1:4198",
+    url: `http://127.0.0.1:${port}`,
     timeout: 300000,
     reuseExistingServer: !process.env["CI"],
   },

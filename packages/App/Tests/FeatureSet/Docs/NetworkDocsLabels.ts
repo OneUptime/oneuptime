@@ -14,9 +14,8 @@ import { escapeRegExp } from "./DocsTranslationChecks";
  *     — an existing monitor's status is ...");
  *   - a field whose title or placeholder ends in a parenthetical
  *     ("Target Prefix (optional)", "Value labels (optional, e.g., ...)");
- *   - a button or switch whose text carries a count ("Import Selected
- *     ({{count}})", the vendor template switch "... (recommended) —
- *     {{count}} hosts").
+ *   - a switch whose text carries a count (the vendor template switch
+ *     "... (recommended) — {{count}} hosts").
  *
  * A menu path is drawn segment by segment. Every language but Persian
  * writes it as one bold span with " → " between the segments; Persian,
@@ -60,10 +59,6 @@ export const LABELS_WITH_A_TAIL: Readonly<Record<string, LabelWithATail>> = {
   "Apply each SNMP host's vendor template on its first poll (recommended)": {
     key: "Apply each SNMP host's vendor template on its first poll (recommended) — {{count}} hosts",
     tail: LabelTail.Explanation,
-  },
-  "Import Selected": {
-    key: "Import Selected ({{count}})",
-    tail: LabelTail.Parenthetical,
   },
   "Target Prefix": {
     key: "Target Prefix (optional)",
