@@ -141,7 +141,7 @@ Wählen Sie unter **Bereitschaft & Eigentümer** eine **Bereitschaftsrichtlinie*
 
 ### Die Warnungen hinzufügen
 
-Öffnen Sie die Seite **Mitglieder-Warnungen** der Episode und fügen Sie die Warnungen, die dazugehören, einzeln hinzu.
+Öffnen Sie die Seite **Mitglieder-Warnungen** der Episode, klicken Sie auf **Warnungen hinzufügen** und haken Sie die Warnungen an, die dazugehören, so viele Sie auf einmal brauchen. Um stattdessen bei den Warnungen zu beginnen, wählen Sie sie in der Liste **Warnungen** aus und wählen unter **Massenaktionen** den Eintrag **Zu neuer Episode hinzufügen** (siehe [Episoden](/docs/incidents/episodes)).
 :::
 
 Eine Episode, die Sie erstellen, hat keine Gruppierungsregel, deshalb zeigt die Liste ihre **Gruppierungsregel** als **Manuell**, und keine Lebenszyklus-Einstellung gilt für sie. Sie behebt sich trotzdem selbst, sobald jede Warnung in ihr behoben ist.

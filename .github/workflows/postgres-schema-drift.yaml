@@ -182,6 +182,22 @@ jobs:
           Tests/Server/Services/EpisodeMemberPrivateEndsPostgres.test.ts
           --forceExit
 
+      # Several incidents or alerts added to an episode in one request, or an
+      # episode created with them: each answered, only those the person can
+      # see added, and the episode's count, severity and one feed entry
+      # written once.
+      - name: Test adding several to an episode at once on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_EPISODE_MEMBERS_BULK_ADD_TESTS: "true"
+          EPISODE_MEMBERS_BULK_ADD_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EPISODE_MEMBERS_BULK_ADD_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EPISODE_MEMBERS_BULK_ADD_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/EpisodeMembersBulkAddPostgres.test.ts
+          --forceExit
+
       # An incident's or alert's episode follows the episode's members only:
       # a create or update that names it is refused for every caller, and
       # joining and leaving through the members still moves it.

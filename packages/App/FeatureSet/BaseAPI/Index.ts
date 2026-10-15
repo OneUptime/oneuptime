@@ -110,6 +110,8 @@ import ScheduledMaintenancePublicNoteAPI from "Common/Server/API/ScheduledMainte
 import IncidentAPI from "Common/Server/API/IncidentAPI";
 import FormAPI from "Common/Server/API/FormAPI";
 import IncidentEpisodeAPI from "Common/Server/API/IncidentEpisodeAPI";
+import IncidentEpisodeMemberAPI from "Common/Server/API/IncidentEpisodeMemberAPI";
+import AlertEpisodeMemberAPI from "Common/Server/API/AlertEpisodeMemberAPI";
 import ScheduledMaintenanceAPI from "Common/Server/API/ScheduledMaintenanceAPI";
 import AlertAPI from "Common/Server/API/AlertAPI";
 // User Notification methods.
@@ -236,9 +238,6 @@ import AlertEpisodeFeedService, {
 import AlertEpisodeInternalNoteService, {
   Service as AlertEpisodeInternalNoteServiceType,
 } from "Common/Server/Services/AlertEpisodeInternalNoteService";
-import AlertEpisodeMemberService, {
-  Service as AlertEpisodeMemberServiceType,
-} from "Common/Server/Services/AlertEpisodeMemberService";
 import AlertEpisodeOwnerTeamService, {
   Service as AlertEpisodeOwnerTeamServiceType,
 } from "Common/Server/Services/AlertEpisodeOwnerTeamService";
@@ -257,9 +256,6 @@ import IncidentEpisodeFeedService, {
 import IncidentEpisodeInternalNoteService, {
   Service as IncidentEpisodeInternalNoteServiceType,
 } from "Common/Server/Services/IncidentEpisodeInternalNoteService";
-import IncidentEpisodeMemberService, {
-  Service as IncidentEpisodeMemberServiceType,
-} from "Common/Server/Services/IncidentEpisodeMemberService";
 import IncidentAlertService, {
   Service as IncidentAlertServiceType,
 } from "Common/Server/Services/IncidentAlertService";
@@ -1272,7 +1268,6 @@ import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline"
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeFeed from "Common/Models/DatabaseModels/AlertEpisodeFeed";
 import AlertEpisodeInternalNote from "Common/Models/DatabaseModels/AlertEpisodeInternalNote";
-import AlertEpisodeMember from "Common/Models/DatabaseModels/AlertEpisodeMember";
 import AlertEpisodeOwnerTeam from "Common/Models/DatabaseModels/AlertEpisodeOwnerTeam";
 import AlertEpisodeOwnerUser from "Common/Models/DatabaseModels/AlertEpisodeOwnerUser";
 import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
@@ -1356,7 +1351,6 @@ import ScheduledMaintenanceReminderRule from "Common/Models/DatabaseModels/Sched
 // IncidentEpisode Models
 import IncidentEpisodeFeed from "Common/Models/DatabaseModels/IncidentEpisodeFeed";
 import IncidentEpisodeInternalNote from "Common/Models/DatabaseModels/IncidentEpisodeInternalNote";
-import IncidentEpisodeMember from "Common/Models/DatabaseModels/IncidentEpisodeMember";
 import IncidentAlert from "Common/Models/DatabaseModels/IncidentAlert";
 import IncidentEpisodeOwnerTeam from "Common/Models/DatabaseModels/IncidentEpisodeOwnerTeam";
 import IncidentEpisodeOwnerUser from "Common/Models/DatabaseModels/IncidentEpisodeOwnerUser";
@@ -2547,12 +2541,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(AlertEpisodeInternalNote, AlertEpisodeInternalNoteService).getRouter(),
     );
 
+    // The CRUD routes, and adding several alerts to an episode at once.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<AlertEpisodeMember, AlertEpisodeMemberServiceType>(
-        AlertEpisodeMember,
-        AlertEpisodeMemberService,
-      ).getRouter(),
+      new AlertEpisodeMemberAPI().getRouter(),
     );
 
     app.use(
@@ -2607,12 +2599,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // The CRUD routes, and adding several incidents to an episode at once.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentEpisodeMember, IncidentEpisodeMemberServiceType>(
-        IncidentEpisodeMember,
-        IncidentEpisodeMemberService,
-      ).getRouter(),
+      new IncidentEpisodeMemberAPI().getRouter(),
     );
 
     app.use(

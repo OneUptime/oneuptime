@@ -121,7 +121,7 @@ describe("optional email navigation", () => {
 
       expect(html).not.toMatch(/<a\b/i);
       expect(html).toContain(
-        "OneUptime Dashboard &gt; More &gt; User Settings &gt; Notification Settings",
+        "OneUptime Dashboard &gt; User Settings &gt; Notification Settings",
       );
     },
   );

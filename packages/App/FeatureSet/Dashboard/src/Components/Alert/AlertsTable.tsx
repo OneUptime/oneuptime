@@ -18,6 +18,8 @@ import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelAction
 import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkIncidentLinkActions from "./BulkIncidentLinkActions";
+import useBulkAddToEpisodeActions from "../EpisodeMembers/BulkAddToEpisodeActions";
+import { ALERT_EPISODE_MEMBER_KIND } from "../EpisodeMembers/EpisodeMemberKinds";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -187,6 +189,10 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
     bulkActions: incidentLinkBulkActions,
     modals: incidentLinkBulkActionModals,
   } = useBulkIncidentLinkActions();
+
+  // Add to Existing Episode / Add to New Episode.
+  const { bulkActions: episodeBulkActions, modals: episodeBulkActionModals } =
+    useBulkAddToEpisodeActions<Alert>(ALERT_EPISODE_MEMBER_KIND);
 
   const alertExtraFacets: Array<ResourceFacet> = [
     {
@@ -659,6 +665,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             ...labelBulkActions,
             ...ownerBulkActions,
             ...incidentLinkBulkActions,
+            ...episodeBulkActions,
             ModalTableBulkDefaultActions.Delete,
           ],
         }}
@@ -1116,6 +1123,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
       {labelBulkActionModals}
       {ownerBulkActionModals}
       {incidentLinkBulkActionModals}
+      {episodeBulkActionModals}
 
       {showBulkStateChangeModal && (
         <BulkChangeStateModal

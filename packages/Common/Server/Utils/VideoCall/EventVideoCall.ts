@@ -463,7 +463,7 @@ export default class EventVideoCall {
 
     if (!teamId) {
       throw new BadDataException(
-        "Slack is not connected to this project. Connect it in Project Settings > Slack.",
+        "Slack is not connected to this project. Connect it in Project Settings > Workspace > Slack.",
       );
     }
 

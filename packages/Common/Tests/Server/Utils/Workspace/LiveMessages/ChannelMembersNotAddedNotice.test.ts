@@ -302,7 +302,7 @@ describe("ChannelMembersNotAddedNotice", () => {
     await note([NB_USER_3]);
 
     expect(postedText(0)).toBe(
-      "👥 **NB User 3** could not be added to this channel: they have not connected their Slack account to Acme Status yet. Add them here yourself, or ask them to connect Slack in Acme Status under **User Settings → Slack**.",
+      "👥 **NB User 3** could not be added to this channel: they have not connected their Slack account to Acme Status yet. Add them here yourself, or ask them to connect Slack in Acme Status under **User Settings → Workspace → Slack**.",
     );
   });
 

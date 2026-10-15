@@ -141,7 +141,7 @@ I **Jour och ägare** väljer du en **Jourpolicy** som ska köras när episoden 
 
 ### Lägg till larmen
 
-Öppna episodens sida **Medlemsvarningar** och lägg till larmen som hör till den, ett i taget.
+Öppna episodens sida **Medlemsvarningar**, klicka på **Lägg till varningar** och markera larmen som hör till den, så många du behöver på en gång. Vill du hellre börja från larmen markerar du dem i listan **Varningar** och väljer **Lägg till i ny episod** under **Massåtgärder** (se [Episoder](/docs/incidents/episodes)).
 :::
 
 En episod som du skapar har ingen grupperingsregel, så listan visar dess **Grupperingsregel** som **Manual**, och ingen livscykelinställning gäller för den. Den löser ändå sig själv när varje larm i den är löst.
