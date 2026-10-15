@@ -1014,7 +1014,9 @@ describe("The note a reply leaves", () => {
     expect(note).not.toContain("[Click here](");
     expect(note).not.toContain("![tracker](");
     expect(note).not.toContain("<!channel>");
-    expect(note).not.toContain("<script>");
+    // Every "<" of a tag is escaped: the renderers show it as text.
+    expect(note).toContain("\\<script>");
+    expect(note.split("\\<script>").join("")).not.toContain("<script>");
     // As written, once the invisible breaks are taken out.
     expect(FeedMarkdown.withoutInvisibleBreaks(note)).toContain("@here");
   });
