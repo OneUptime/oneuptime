@@ -135,9 +135,11 @@ describe("WorkspaceRecordPeople: the owners of each kind of record", () => {
   );
 
   test("an on-call policy: its owner users and the members of its owner teams", async () => {
-    const ownerUser: OnCallDutyPolicyOwnerUser = new OnCallDutyPolicyOwnerUser();
+    const ownerUser: OnCallDutyPolicyOwnerUser =
+      new OnCallDutyPolicyOwnerUser();
     ownerUser.userId = USER_A;
-    const ownerTeam: OnCallDutyPolicyOwnerTeam = new OnCallDutyPolicyOwnerTeam();
+    const ownerTeam: OnCallDutyPolicyOwnerTeam =
+      new OnCallDutyPolicyOwnerTeam();
     ownerTeam.teamId = TEAM_ID;
 
     const userQuery: Array<JSONObject> = [];
@@ -151,12 +153,12 @@ describe("WorkspaceRecordPeople: the owners of each kind of record", () => {
       .spyOn(OnCallDutyPolicyOwnerTeamService, "findBy")
       .mockResolvedValue([ownerTeam] as never);
     const teamsAsked: Array<Array<ObjectID>> = [];
-    jest
-      .spyOn(TeamMemberService, "getUsersInTeams")
-      .mockImplementation((async (teamIds: Array<ObjectID>) => {
-        teamsAsked.push(teamIds);
-        return [user(USER_B), user(USER_A)];
-      }) as never);
+    jest.spyOn(TeamMemberService, "getUsersInTeams").mockImplementation((async (
+      teamIds: Array<ObjectID>,
+    ) => {
+      teamsAsked.push(teamIds);
+      return [user(USER_B), user(USER_A)];
+    }) as never);
 
     const ids: Array<ObjectID> = await WorkspaceRecordPeople.getUserIds({
       record: { onCallDutyPolicyId: RECORD_ID },
@@ -260,12 +262,10 @@ describe("WorkspaceRecordPeople: the people paged for the record", () => {
 
   test("a record no on-call policy pages for has nobody paged", async () => {
     let read: boolean = false;
-    jest
-      .spyOn(UserOnCallLogService, "findBy")
-      .mockImplementation((async () => {
-        read = true;
-        return [];
-      }) as never);
+    jest.spyOn(UserOnCallLogService, "findBy").mockImplementation((async () => {
+      read = true;
+      return [];
+    }) as never);
 
     expect(
       await WorkspaceRecordPeople.getUserIds({
@@ -313,9 +313,14 @@ describe("WorkspaceRecordChannels.read", () => {
       .spyOn(AlertEpisodeService, "getEpisodeLinkInDashboard")
       .mockResolvedValue(LINK);
     jest
-      .spyOn(ScheduledMaintenanceService, "getScheduledMaintenanceLinkInDashboard")
+      .spyOn(
+        ScheduledMaintenanceService,
+        "getScheduledMaintenanceLinkInDashboard",
+      )
       .mockResolvedValue(LINK);
-    jest.spyOn(MonitorService, "getMonitorLinkInDashboard").mockResolvedValue(LINK);
+    jest
+      .spyOn(MonitorService, "getMonitorLinkInDashboard")
+      .mockResolvedValue(LINK);
     jest
       .spyOn(OnCallDutyPolicyService, "getOnCallDutyPolicyLinkInDashboard")
       .mockResolvedValue(LINK);
@@ -399,15 +404,14 @@ describe("WorkspaceRecordChannels.read", () => {
   });
 
   test("a resolved incident is not going on", async () => {
-    jest
-      .spyOn(IncidentService, "findOneById")
-      .mockResolvedValue(incident([]));
+    jest.spyOn(IncidentService, "findOneById").mockResolvedValue(incident([]));
     jest
       .spyOn(IncidentStateService, "isResolvedIncidentState")
       .mockResolvedValue(true);
 
     expect(
-      (await WorkspaceRecordChannels.read({ incidentId: RECORD_ID }))?.isOngoing,
+      (await WorkspaceRecordChannels.read({ incidentId: RECORD_ID }))
+        ?.isOngoing,
     ).toBe(false);
   });
 
@@ -429,7 +433,9 @@ describe("WorkspaceRecordChannels.read", () => {
     alert.currentAlertStateId = STATE_ID;
     alert.postUpdatesToWorkspaceChannels = [];
     jest.spyOn(AlertService, "findOneById").mockResolvedValue(alert);
-    jest.spyOn(AlertStateService, "isResolvedAlertState").mockResolvedValue(true);
+    jest
+      .spyOn(AlertStateService, "isResolvedAlertState")
+      .mockResolvedValue(true);
 
     const incidentEpisode: IncidentEpisode = new IncidentEpisode();
     incidentEpisode.projectId = PROJECT_ID;
@@ -459,7 +465,9 @@ describe("WorkspaceRecordChannels.read", () => {
     event.title = "Database upgrade";
     event.scheduledMaintenanceNumber = 5;
     event.scheduledMaintenanceNumberWithPrefix = "SM-5";
-    jest.spyOn(ScheduledMaintenanceService, "findOneById").mockResolvedValue(event);
+    jest
+      .spyOn(ScheduledMaintenanceService, "findOneById")
+      .mockResolvedValue(event);
     jest
       .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceCompleted")
       .mockResolvedValue(false);
@@ -472,7 +480,9 @@ describe("WorkspaceRecordChannels.read", () => {
     const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
     policy.projectId = PROJECT_ID;
     policy.name = "Primary";
-    jest.spyOn(OnCallDutyPolicyService, "findOneById").mockResolvedValue(policy);
+    jest
+      .spyOn(OnCallDutyPolicyService, "findOneById")
+      .mockResolvedValue(policy);
 
     const alertState: WorkspaceRecordChannelState | null =
       await WorkspaceRecordChannels.read({ alertId: RECORD_ID });
@@ -622,12 +632,13 @@ describe("WorkspaceRecordChannels.channelsOf", () => {
 describe("WorkspaceRecordChannels.runExclusive", () => {
   test("runs under the record's lock and gives it back", async () => {
     const lockKeys: Array<string> = [];
-    jest
-      .spyOn(Semaphore, "lock")
-      .mockImplementation((async (data: { key: string; namespace: string }) => {
-        lockKeys.push(`${data.namespace}:${data.key}`);
-        return { identifier: "held" } as never;
-      }) as never);
+    jest.spyOn(Semaphore, "lock").mockImplementation((async (data: {
+      key: string;
+      namespace: string;
+    }) => {
+      lockKeys.push(`${data.namespace}:${data.key}`);
+      return { identifier: "held" } as never;
+    }) as never);
     let released: number = 0;
     jest.spyOn(Semaphore, "release").mockImplementation((async () => {
       released++;

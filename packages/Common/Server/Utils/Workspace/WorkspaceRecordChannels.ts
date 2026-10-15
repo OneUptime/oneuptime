@@ -560,7 +560,7 @@ export default class WorkspaceRecordChannels {
           currentIncidentStateId: true,
           isPrivate: true,
           postUpdatesToWorkspaceChannels: true,
-        createdAt: true,
+          createdAt: true,
         },
         props: {
           isRoot: true,
@@ -679,7 +679,7 @@ export default class WorkspaceRecordChannels {
           scheduledMaintenanceNumber: true,
           scheduledMaintenanceNumberWithPrefix: true,
           postUpdatesToWorkspaceChannels: true,
-        createdAt: true,
+          createdAt: true,
         },
         props: {
           isRoot: true,
@@ -781,7 +781,7 @@ export default class WorkspaceRecordChannels {
           projectId: true,
           name: true,
           postUpdatesToWorkspaceChannels: true,
-        createdAt: true,
+          createdAt: true,
         },
         props: {
           isRoot: true,

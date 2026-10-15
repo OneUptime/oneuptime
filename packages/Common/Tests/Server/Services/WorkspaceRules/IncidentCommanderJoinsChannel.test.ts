@@ -183,20 +183,22 @@ describe("the commander is assigned when the incident is acknowledged", () => {
 
     // The member row is stored, then its hook runs, as create does.
     const createdMembers: Array<IncidentMember> = [];
-    jest.spyOn(IncidentMemberService, "create").mockImplementation((async (data: {
-      data: IncidentMember;
-    }): Promise<IncidentMember> => {
-      createdMembers.push(data.data);
-      world.incidentMembers.push(data.data.userId!);
-      await IncidentMemberService.onCreateSuccess(
-        {
-          createBy: { data: data.data, props: { isRoot: true } },
-          carryForward: null,
-        },
-        data.data,
-      );
-      return data.data;
-    }) as never);
+    jest
+      .spyOn(IncidentMemberService, "create")
+      .mockImplementation((async (data: {
+        data: IncidentMember;
+      }): Promise<IncidentMember> => {
+        createdMembers.push(data.data);
+        world.incidentMembers.push(data.data.userId!);
+        await IncidentMemberService.onCreateSuccess(
+          {
+            createBy: { data: data.data, props: { isRoot: true } },
+            carryForward: null,
+          },
+          data.data,
+        );
+        return data.data;
+      }) as never);
 
     await (
       IncidentStateTimelineService as unknown as {
@@ -217,9 +219,7 @@ describe("the commander is assigned when the incident is acknowledged", () => {
     expect(createdMembers[0]!.incidentRoleId?.toString()).toBe(
       COMMANDER_ROLE_ID.toString(),
     );
-    expect(world.slackUsersInvitedTo(incidentChannelId())).toEqual([
-      "U0CMDR",
-    ]);
+    expect(world.slackUsersInvitedTo(incidentChannelId())).toEqual(["U0CMDR"]);
   });
 });
 
@@ -245,9 +245,7 @@ describe("the rule's own switch for incident roles", () => {
     await world.page(ON_CALL);
     await world.assignCommander(COMMANDER);
 
-    expect(world.slackUsersInvitedTo(incidentChannelId())).toEqual([
-      "U0CMDR",
-    ]);
+    expect(world.slackUsersInvitedTo(incidentChannelId())).toEqual(["U0CMDR"]);
   });
 
   test("a rule that adds nobody of the incident's, and does not say about roles, does not add the commander", async () => {
@@ -265,9 +263,7 @@ describe("the rule's own switch for incident roles", () => {
     await world.createIncidentChannels();
     await world.assignCommander(COMMANDER);
 
-    expect(world.slackUsersInvitedTo(incidentChannelId())).toEqual([
-      "U0CMDR",
-    ]);
+    expect(world.slackUsersInvitedTo(incidentChannelId())).toEqual(["U0CMDR"]);
   });
 });
 
@@ -297,9 +293,7 @@ describe("whose channel the commander joins", () => {
     world.incident.severityId = MINOR_SEVERITY_ID;
     await world.assignCommander(COMMANDER);
 
-    expect(world.slackUsersInvitedTo(incidentChannelId())).toEqual([
-      "U0CMDR",
-    ]);
+    expect(world.slackUsersInvitedTo(incidentChannelId())).toEqual(["U0CMDR"]);
   });
 
   test("not the channel of another rule: only the rules that created one of the incident's channels count", async () => {

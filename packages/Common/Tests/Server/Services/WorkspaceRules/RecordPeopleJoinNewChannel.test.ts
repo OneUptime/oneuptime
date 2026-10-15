@@ -75,10 +75,7 @@ describe("the people on the incident when its channel is created", () => {
 
     await world.createIncidentChannels();
 
-    expect(world.slackUsersInvitedTo("C0NEW1")).toEqual([
-      "U0OWNER",
-      "U0TEAM",
-    ]);
+    expect(world.slackUsersInvitedTo("C0NEW1")).toEqual(["U0OWNER", "U0TEAM"]);
   });
 
   test("its owners do not join when the rule does not add owners", async () => {
@@ -194,9 +191,11 @@ describe("the people on the incident when its channel is created", () => {
 
     await world.createIncidentChannels();
 
-    expect(world.graphCreates.map((create: { displayName: string }) => {
-      return create.displayName;
-    })).toEqual(["inc-42"]);
+    expect(
+      world.graphCreates.map((create: { displayName: string }) => {
+        return create.displayName;
+      }),
+    ).toEqual(["inc-42"]);
     expect(world.slackRequests).toEqual([]);
   });
 });
@@ -267,7 +266,9 @@ describe("the channel is on the incident before anybody is invited", () => {
 
 describe("the incident's list of channels says its setup ran", () => {
   test("an empty list when no rule asked for a channel", async () => {
-    world.rules = [makeRule({ createsChannel: false, existingChannels: "#ops" })];
+    world.rules = [
+      makeRule({ createsChannel: false, existingChannels: "#ops" }),
+    ];
 
     await world.createIncidentChannels();
 

@@ -36,15 +36,27 @@ describe("NotificationRuleInvites.getInvitees", () => {
     ],
     [
       NotificationRuleEventType.Alert,
-      [NotificationRuleInvitee.OnCallResponders, NotificationRuleInvitee.Owners],
+      [
+        NotificationRuleInvitee.OnCallResponders,
+        NotificationRuleInvitee.Owners,
+      ],
     ],
     [
       NotificationRuleEventType.AlertEpisode,
-      [NotificationRuleInvitee.OnCallResponders, NotificationRuleInvitee.Owners],
+      [
+        NotificationRuleInvitee.OnCallResponders,
+        NotificationRuleInvitee.Owners,
+      ],
     ],
-    [NotificationRuleEventType.ScheduledMaintenance, [NotificationRuleInvitee.Owners]],
+    [
+      NotificationRuleEventType.ScheduledMaintenance,
+      [NotificationRuleInvitee.Owners],
+    ],
     [NotificationRuleEventType.Monitor, [NotificationRuleInvitee.Owners]],
-    [NotificationRuleEventType.OnCallDutyPolicy, [NotificationRuleInvitee.Owners]],
+    [
+      NotificationRuleEventType.OnCallDutyPolicy,
+      [NotificationRuleInvitee.Owners],
+    ],
   ] as Array<[NotificationRuleEventType, Array<NotificationRuleInvitee>]>)(
     "a %s rule can add %j, in the form's order",
     (
@@ -61,9 +73,7 @@ describe("NotificationRuleInvites.getInvitees", () => {
         NotificationRuleInvites.getInvitees(eventType);
 
       expect(invitees).toContain(NotificationRuleInvitee.Owners);
-      expect(
-        invitees.includes(NotificationRuleInvitee.OnCallResponders),
-      ).toBe(
+      expect(invitees.includes(NotificationRuleInvitee.OnCallResponders)).toBe(
         [
           NotificationRuleEventType.Incident,
           NotificationRuleEventType.Alert,
@@ -76,9 +86,9 @@ describe("NotificationRuleInvites.getInvitees", () => {
 
   test("an unknown kind of record has nobody to add", () => {
     expect(NotificationRuleInvites.getInvitees(undefined)).toEqual([]);
-    expect(
-      NotificationRuleInvites.getInvitees("Status Page" as never),
-    ).toEqual([]);
+    expect(NotificationRuleInvites.getInvitees("Status Page" as never)).toEqual(
+      [],
+    );
   });
 });
 

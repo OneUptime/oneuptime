@@ -156,10 +156,7 @@ describe("the customer's rule: Incident State contains any Acknowledged", () => 
     await world.page(ON_CALL);
     await acknowledge();
 
-    expect(world.slackUsersInvitedTo("C0NEW1")).toEqual([
-      "U0ONCALL",
-      "U0CMDR",
-    ]);
+    expect(world.slackUsersInvitedTo("C0NEW1")).toEqual(["U0ONCALL", "U0CMDR"]);
 
     const invites: Array<WorkspaceNotificationLog> = world.logRowsOf(
       WorkspaceNotificationActionType.InviteUser,
@@ -186,11 +183,13 @@ describe("the customer's rule: Incident State contains any Acknowledged", () => 
 
     const order: Array<string> = world.events.filter(
       (event: string): boolean => {
-        return [
-          "slack:conversations.create",
-          "slack:chat.postMessage",
-          "slack:conversations.invite",
-        ].includes(event) || event.startsWith("store:incident:");
+        return (
+          [
+            "slack:conversations.create",
+            "slack:chat.postMessage",
+            "slack:conversations.invite",
+          ].includes(event) || event.startsWith("store:incident:")
+        );
       },
     );
 
@@ -319,9 +318,11 @@ describe("an incident created before channels were opened this way", () => {
     await acknowledge();
 
     expect(world.slackChannelsCreated()).toEqual(["inc-42"]);
-    expect(storedChannels().map((stored: NotificationRuleWorkspaceChannel) => {
-      return stored.name;
-    })).toEqual(["inc-42"]);
+    expect(
+      storedChannels().map((stored: NotificationRuleWorkspaceChannel) => {
+        return stored.name;
+      }),
+    ).toEqual(["inc-42"]);
   });
 });
 
@@ -526,27 +527,29 @@ describe("Microsoft Teams", () => {
     ];
 
     const sent: Array<WorkspaceMessagePayload> = [];
-    jest.spyOn(MicrosoftTeamsUtil, "sendMessage").mockImplementation((async (
-      data: { workspaceMessagePayload: WorkspaceMessagePayload },
-    ): Promise<WorkspaceSendMessageResponse> => {
-      sent.push(data.workspaceMessagePayload);
-      return {
-        workspaceType: WorkspaceType.MicrosoftTeams,
-        threads: data.workspaceMessagePayload.channelIds.map(
-          (channelId: string) => {
-            return {
-              channel: {
-                id: channelId,
-                name: "inc-42",
-                workspaceType: WorkspaceType.MicrosoftTeams,
-              },
-              threadId: "1",
-            };
-          },
-        ),
-        errors: [],
-      };
-    }) as never);
+    jest
+      .spyOn(MicrosoftTeamsUtil, "sendMessage")
+      .mockImplementation((async (data: {
+        workspaceMessagePayload: WorkspaceMessagePayload;
+      }): Promise<WorkspaceSendMessageResponse> => {
+        sent.push(data.workspaceMessagePayload);
+        return {
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          threads: data.workspaceMessagePayload.channelIds.map(
+            (channelId: string) => {
+              return {
+                channel: {
+                  id: channelId,
+                  name: "inc-42",
+                  workspaceType: WorkspaceType.MicrosoftTeams,
+                },
+                threadId: "1",
+              };
+            },
+          ),
+          errors: [],
+        };
+      }) as never);
 
     await world.createIncidentChannels();
     expect(world.graphCreates).toEqual([]);

@@ -669,8 +669,6 @@ export default class WorkspaceRuleWorld {
 
   // Every fake in place, on the real services.
   public install(): void {
-    const world: WorkspaceRuleWorld = this;
-
     // The far ends: Slack's Web API and Microsoft Graph.
     jest.spyOn(API, "post").mockImplementation((async (data: {
       url: { toString: () => string };
@@ -681,7 +679,7 @@ export default class WorkspaceRuleWorld {
 
       const graph: HTTPResponse<JSONObject> | HTTPErrorResponse | null =
         url.startsWith("https://graph.microsoft.com/")
-          ? world.answerGraph(url, body)
+          ? this.answerGraph(url, body)
           : null;
 
       if (graph) {
@@ -689,11 +687,11 @@ export default class WorkspaceRuleWorld {
       }
 
       const method: string = url.split("/api/")[1] || "";
-      world.slackRequests.push({ method: method, body: body });
-      world.events.push(`slack:${method}`);
-      world.onSlackRequest?.({ method: method, body: body });
+      this.slackRequests.push({ method: method, body: body });
+      this.events.push(`slack:${method}`);
+      this.onSlackRequest?.({ method: method, body: body });
 
-      const answer: JSONObject = world.answerSlack(method, body);
+      const answer: JSONObject = this.answerSlack(method, body);
 
       return {
         jsonData: answer,
@@ -720,11 +718,11 @@ export default class WorkspaceRuleWorld {
           eventType?: NotificationRuleEventType;
         };
       }): Promise<Array<WorkspaceNotificationRule>> => {
-        return world.rules.filter((rule: WorkspaceNotificationRule): boolean => {
+        return this.rules.filter((rule: WorkspaceNotificationRule): boolean => {
           return (
             rule.workspaceType === data.query.workspaceType &&
             rule.eventType === data.query.eventType &&
-            world.connected.includes(rule.workspaceType!)
+            this.connected.includes(rule.workspaceType!)
           );
         });
       }) as never);
@@ -733,12 +731,12 @@ export default class WorkspaceRuleWorld {
     jest
       .spyOn(IncidentService, "findOneById")
       .mockImplementation((async (): Promise<Incident> => {
-        return world.incidentModel();
+        return this.incidentModel();
       }) as never);
     jest
       .spyOn(IncidentService, "findOneBy")
       .mockImplementation((async (): Promise<Incident> => {
-        return world.incidentModel();
+        return this.incidentModel();
       }) as never);
 
     // Its channels are stored on it.
@@ -748,12 +746,13 @@ export default class WorkspaceRuleWorld {
         data: { postUpdatesToWorkspaceChannels?: unknown };
       }): Promise<void> => {
         if ("postUpdatesToWorkspaceChannels" in data.data) {
-          world.incident.channels = [
-            ...((data.data.postUpdatesToWorkspaceChannels as Array<NotificationRuleWorkspaceChannel>) ||
+          this.incident.channels = [
+            ...((data.data
+              .postUpdatesToWorkspaceChannels as Array<NotificationRuleWorkspaceChannel>) ||
               []),
           ];
-          world.events.push(
-            `store:incident:${world.incident.channels
+          this.events.push(
+            `store:incident:${this.incident.channels
               .map((channel: NotificationRuleWorkspaceChannel): string => {
                 return channel.name;
               })
@@ -774,10 +773,10 @@ export default class WorkspaceRuleWorld {
     jest
       .spyOn(IncidentService, "findOwners")
       .mockImplementation(async (): Promise<Array<User>> => {
-        const owners: Array<ObjectID> = [...world.incidentOwnerUsers];
+        const owners: Array<ObjectID> = [...this.incidentOwnerUsers];
 
         if (
-          world.incidentOwnerTeams.some((teamId: ObjectID): boolean => {
+          this.incidentOwnerTeams.some((teamId: ObjectID): boolean => {
             return teamId.toString() === TEAM_ID.toString();
           })
         ) {
@@ -786,10 +785,10 @@ export default class WorkspaceRuleWorld {
 
         return owners
           .filter((userId: ObjectID): boolean => {
-            return world.isMember(userId);
+            return this.isMember(userId);
           })
           .map((userId: ObjectID): User => {
-            return world.user(userId);
+            return this.user(userId);
           });
       });
 
@@ -797,15 +796,13 @@ export default class WorkspaceRuleWorld {
     jest
       .spyOn(IncidentMemberService, "findBy")
       .mockImplementation((async (): Promise<Array<IncidentMember>> => {
-        return world.incidentMembers.map(
-          (userId: ObjectID): IncidentMember => {
-            const member: IncidentMember = new IncidentMember();
-            member.userId = userId;
-            member.incidentId = INCIDENT_ID;
-            member.incidentRoleId = COMMANDER_ROLE_ID;
-            return member;
-          },
-        );
+        return this.incidentMembers.map((userId: ObjectID): IncidentMember => {
+          const member: IncidentMember = new IncidentMember();
+          member.userId = userId;
+          member.incidentId = INCIDENT_ID;
+          member.incidentRoleId = COMMANDER_ROLE_ID;
+          return member;
+        });
       }) as never);
 
     jest
@@ -823,7 +820,7 @@ export default class WorkspaceRuleWorld {
       .mockImplementation((async (): Promise<
         Array<IncidentEpisodeRoleMember>
       > => {
-        return world.episodeRoleMembers.map(
+        return this.episodeRoleMembers.map(
           (userId: ObjectID): IncidentEpisodeRoleMember => {
             const member: IncidentEpisodeRoleMember =
               new IncidentEpisodeRoleMember();
@@ -840,7 +837,7 @@ export default class WorkspaceRuleWorld {
       .mockImplementation((async (data: {
         query: JSONObject;
       }): Promise<Array<UserOnCallLog>> => {
-        return world.pages.filter((pageRow: UserOnCallLog): boolean => {
+        return this.pages.filter((pageRow: UserOnCallLog): boolean => {
           return Object.entries(data.query).every(
             ([key, value]: [string, unknown]): boolean => {
               return (
@@ -857,7 +854,7 @@ export default class WorkspaceRuleWorld {
       .mockImplementation((async (data: {
         data: UserOnCallLog;
       }): Promise<UserOnCallLog> => {
-        world.pages.push(data.data);
+        this.pages.push(data.data);
         return data.data;
       }) as never);
 
@@ -874,7 +871,7 @@ export default class WorkspaceRuleWorld {
       .mockImplementation(
         (data: Parameters<typeof runWorkspaceRules>[0]): Promise<void> => {
           const step: Promise<void> = runWorkspaceRules(data);
-          world.started.push(
+          this.started.push(
             step.catch((): void => {
               return undefined;
             }),
@@ -895,7 +892,7 @@ export default class WorkspaceRuleWorld {
       .mockImplementation(
         (data: Parameters<typeof inviteUsers>[0]): Promise<void> => {
           const step: Promise<void> = inviteUsers(data);
-          world.started.push(
+          this.started.push(
             step.catch((): void => {
               return undefined;
             }),
@@ -930,15 +927,15 @@ export default class WorkspaceRuleWorld {
         state._id = CREATED_STATE_ID.toString();
         alert.currentAlertState = state;
         alert.labels = [];
-        if (world.alert.channels !== null) {
-          alert.postUpdatesToWorkspaceChannels = world.alert.channels;
+        if (this.alert.channels !== null) {
+          alert.postUpdatesToWorkspaceChannels = this.alert.channels;
         }
         return alert;
       }) as never);
     jest
       .spyOn(AlertStateService, "isResolvedAlertState")
       .mockImplementation(async (): Promise<boolean> => {
-        return world.alert.resolved;
+        return this.alert.resolved;
       });
 
     jest
@@ -950,14 +947,14 @@ export default class WorkspaceRuleWorld {
         episode.title = "Payments are failing";
         episode.episodeNumber = 3;
         episode.episodeNumberWithPrefix = "IE-3";
-        episode.currentIncidentStateId = world.incidentEpisode.stateId;
+        episode.currentIncidentStateId = this.incidentEpisode.stateId;
         const state: IncidentState = new IncidentState();
-        state._id = world.incidentEpisode.stateId.toString();
+        state._id = this.incidentEpisode.stateId.toString();
         episode.currentIncidentState = state;
         episode.labels = [];
-        if (world.incidentEpisode.channels !== null) {
+        if (this.incidentEpisode.channels !== null) {
           episode.postUpdatesToWorkspaceChannels =
-            world.incidentEpisode.channels;
+            this.incidentEpisode.channels;
         }
         return episode;
       }) as never);
@@ -974,7 +971,7 @@ export default class WorkspaceRuleWorld {
           return teamIds.some((teamId: ObjectID): boolean => {
             return teamId.toString() === TEAM_ID.toString();
           })
-            ? [world.user(TEAM_USER)]
+            ? [this.user(TEAM_USER)]
             : [];
         },
       );
@@ -987,7 +984,7 @@ export default class WorkspaceRuleWorld {
         }): Promise<Array<ObjectID>> => {
           return data.userIds
             .filter((userId: ObjectID | string): boolean => {
-              return world.isMember(userId);
+              return this.isMember(userId);
             })
             .map((userId: ObjectID | string): ObjectID => {
               return new ObjectID(userId.toString());
@@ -1007,7 +1004,7 @@ export default class WorkspaceRuleWorld {
                 return userId.toString();
               })
               .filter((userId: string): boolean => {
-                return world.isMember(userId);
+                return this.isMember(userId);
               }),
           );
         },
@@ -1019,9 +1016,9 @@ export default class WorkspaceRuleWorld {
       .mockImplementation((async (): Promise<
         Array<WorkspaceProjectAuthToken>
       > => {
-        return world.connected.map(
+        return this.connected.map(
           (workspaceType: WorkspaceType): WorkspaceProjectAuthToken => {
-            return world.projectAuth(workspaceType);
+            return this.projectAuth(workspaceType);
           },
         );
       }) as never);
@@ -1031,8 +1028,8 @@ export default class WorkspaceRuleWorld {
       .mockImplementation((async (data: {
         workspaceType: WorkspaceType;
       }): Promise<WorkspaceProjectAuthToken | null> => {
-        return world.connected.includes(data.workspaceType)
-          ? world.projectAuth(data.workspaceType)
+        return this.connected.includes(data.workspaceType)
+          ? this.projectAuth(data.workspaceType)
           : null;
       }) as never);
 
@@ -1042,8 +1039,8 @@ export default class WorkspaceRuleWorld {
         query: { workspaceType?: WorkspaceType };
       }): Promise<WorkspaceProjectAuthToken | null> => {
         return data.query.workspaceType &&
-          world.connected.includes(data.query.workspaceType)
-          ? world.projectAuth(data.query.workspaceType)
+          this.connected.includes(data.query.workspaceType)
+          ? this.projectAuth(data.query.workspaceType)
           : null;
       }) as never);
 
@@ -1076,7 +1073,7 @@ export default class WorkspaceRuleWorld {
         data: ChannelMembersNotAdded & { projectId: ObjectID },
       ): Promise<void> => {
         if (data.userIds.length > 0) {
-          world.notesOfMembersNotAdded.push(data);
+          this.notesOfMembersNotAdded.push(data);
         }
       }) as never);
     jest
@@ -1084,7 +1081,7 @@ export default class WorkspaceRuleWorld {
       .mockImplementation((async (data: {
         membersNotAdded?: Array<ChannelMembersNotAdded> | undefined;
       }): Promise<void> => {
-        world.notesOfMembersNotAdded.push(...(data.membersNotAdded || []));
+        this.notesOfMembersNotAdded.push(...(data.membersNotAdded || []));
       }) as never);
 
     // The Notification Logs rows, and the refusals read back from them.
@@ -1093,7 +1090,7 @@ export default class WorkspaceRuleWorld {
       .mockImplementation((async (data: {
         data: WorkspaceNotificationLog;
       }): Promise<WorkspaceNotificationLog> => {
-        world.logRows.push(data.data);
+        this.logRows.push(data.data);
         return data.data;
       }) as never);
 
@@ -1103,7 +1100,7 @@ export default class WorkspaceRuleWorld {
         query: JSONObject;
       }): Promise<WorkspaceNotificationLog | null> => {
         return (
-          world.logRows.find((row: WorkspaceNotificationLog): boolean => {
+          this.logRows.find((row: WorkspaceNotificationLog): boolean => {
             return Object.entries(data.query).every(
               ([key, value]: [string, unknown]): boolean => {
                 return (
@@ -1122,7 +1119,7 @@ export default class WorkspaceRuleWorld {
       .mockImplementation((async (data: {
         feedInfoInMarkdown: string;
       }): Promise<void> => {
-        world.feedItems.push(data.feedInfoInMarkdown);
+        this.feedItems.push(data.feedInfoInMarkdown);
       }) as never);
 
     jest

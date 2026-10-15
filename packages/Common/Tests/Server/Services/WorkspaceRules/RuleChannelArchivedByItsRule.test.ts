@@ -199,7 +199,10 @@ describe("an episode's channels are archived when it is resolved", () => {
   );
 
   let archiveCalls: Array<{
-    notificationFor: { incidentEpisodeId?: ObjectID; alertEpisodeId?: ObjectID };
+    notificationFor: {
+      incidentEpisodeId?: ObjectID;
+      alertEpisodeId?: ObjectID;
+    };
     sendMessageBeforeArchiving: WorkspacePayloadMarkdown;
   }>;
 
@@ -330,7 +333,9 @@ describe("an episode's channels are archived when it is resolved", () => {
   });
 
   test("an alert episode resolved: its channels are archived, saying so", async () => {
-    jest.spyOn(AlertStateService, "isResolvedAlertState").mockResolvedValue(true);
+    jest
+      .spyOn(AlertStateService, "isResolvedAlertState")
+      .mockResolvedValue(true);
     jest
       .spyOn(AlertStateService, "isAcknowledgedAlertState")
       .mockResolvedValue(true);
