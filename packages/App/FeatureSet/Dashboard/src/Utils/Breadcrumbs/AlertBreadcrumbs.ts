@@ -146,11 +146,11 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
     ]),
 
     // Alert Settings (Product-level)
-    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_NUMBER_PREFIX, [
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_NUMBERING, [
       "Project",
       "Alerts",
       "Settings",
-      "Number Prefix",
+      "Numbering",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_STATE, [
       "Project",

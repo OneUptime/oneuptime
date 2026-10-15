@@ -3,18 +3,20 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The Number Prefix pages' own markup: the prefix chip, the example number
- * and the live preview under each field (Components/NumberPrefix).
+ * The Numbering pages' own markup: the prefix chip, the example number and
+ * the live preview under each field (Components/NumberPrefix), and the next
+ * number chip, the highest number used and the preview under each next
+ * number field (Components/NextNumber).
  *
  * The dark theme does not use Tailwind's dark: variants. Theme.css re-colours
  * the light utility classes under html.dark, one rule per class. A class it
  * has no rule for keeps its light colour in the dark theme - a pale chip on a
  * slate card - and nothing fails. So this holds every colour class these
  * components use to what Theme.css actually remaps, reading every module of
- * the folder, .ts as well as .tsx.
+ * both folders, .ts as well as .tsx.
  */
 
-const COMPONENT_DIR: string = path.join(
+const COMPONENTS_DIR: string = path.join(
   __dirname,
   "..",
   "..",
@@ -22,8 +24,9 @@ const COMPONENT_DIR: string = path.join(
   "Dashboard",
   "src",
   "Components",
-  "NumberPrefix",
 );
+
+const FOLDERS: Array<string> = ["NumberPrefix", "NextNumber"];
 
 const THEME_CSS_PATH: string = path.join(
   __dirname,
@@ -36,17 +39,23 @@ const THEME_CSS_PATH: string = path.join(
   "Theme.css",
 );
 
-const MODULES: Array<string> = fs
-  .readdirSync(COMPONENT_DIR)
-  .filter((file: string): boolean => {
-    return file.endsWith(".ts") || file.endsWith(".tsx");
-  })
-  .sort();
+const MODULES: Array<string> = FOLDERS.flatMap(
+  (folder: string): Array<string> => {
+    return fs
+      .readdirSync(path.join(COMPONENTS_DIR, folder))
+      .filter((file: string): boolean => {
+        return file.endsWith(".ts") || file.endsWith(".tsx");
+      })
+      .map((file: string): string => {
+        return `${folder}/${file}`;
+      });
+  },
+).sort();
 
 // Comments hold prose, not classes.
 const CODE: string = MODULES.map((file: string): string => {
   return fs
-    .readFileSync(path.join(COMPONENT_DIR, file), "utf8")
+    .readFileSync(path.join(COMPONENTS_DIR, file), "utf8")
     .replace(/\/\*[\s\S]*?\*\//g, " ")
     .replace(/\/\/.*$/gm, " ");
 }).join("\n");
@@ -132,14 +141,18 @@ const COLOR_TOKENS: Array<string> = Array.from(
   ),
 );
 
-describe("the Number Prefix components in the dark theme", () => {
-  test("reads every module of the folder", () => {
+describe("the Numbering components in the dark theme", () => {
+  test("reads every module of both folders", () => {
     expect(MODULES).toEqual(
       expect.arrayContaining([
-        "NumberPrefixCard.tsx",
-        "NumberPrefixExample.tsx",
-        "NumberPrefixSettings.ts",
-        "MovedNumberPrefixPageRedirect.tsx",
+        "NumberPrefix/NumberPrefixCard.tsx",
+        "NumberPrefix/NumberPrefixExample.tsx",
+        "NumberPrefix/NumberPrefixSettings.ts",
+        "NumberPrefix/MovedNumberPrefixPageRedirect.tsx",
+        "NextNumber/NextNumberCard.tsx",
+        "NextNumber/NextNumberValue.tsx",
+        "NextNumber/NextNumberSettings.ts",
+        "NextNumber/NumberingAPI.ts",
       ]),
     );
   });

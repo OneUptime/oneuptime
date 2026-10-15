@@ -233,12 +233,12 @@ Incidenten die zo worden gemeld, worden verborgen voor statuspagina's gemeld, me
 Elk incident krijgt een opvolgend nummer uit een teller per project, dat de server bij het aanmaken toekent. Twee kolommen bevatten het: `incidentNumber` (het kale gehele getal) en `incidentNumberWithPrefix` (wat je daadwerkelijk ziet). Zonder ingesteld voorvoegsel is de weergegeven waarde `#42`.
 
 :::steps
-1. Ga naar **Incidenten → Instellingen → Nummervoorvoegsel** en klik op **Bijwerken**.
+1. Ga naar **Incidenten → Instellingen → Nummering** en klik op **Bijwerken** op de kaart **Nummervoorvoegsel**.
 2. Typ het voorvoegsel in **Voorvoegsel incidentnummer**. Het veld toont tijdens het typen een voorbeeld van het nummer: `INC-` maakt er `INC-42` van. Laat het leeg om de standaard `#` te houden.
 3. Klik op **Wijzigingen opslaan**. Incidenten die vanaf nu worden gemeld, krijgen het nieuwe voorvoegsel; bestaande incidenten houden hun nummer.
 :::
 
-Hetzelfde dialoogvenster heeft **Nummervoorvoegsel voor incident-episode** voor de nummering van episodes. [Nummervoorvoegsels](/docs/incidents/settings#nummervoorvoegsels) noemt de regels waaraan een voorvoegsel voldoet.
+Hetzelfde dialoogvenster heeft **Nummervoorvoegsel voor incident-episode** voor de nummering van episodes. [Nummervoorvoegsels](/docs/incidents/settings#nummervoorvoegsels) noemt de regels waaraan een voorvoegsel voldoet. Om de nummers van een andere tool voort te zetten, stel je **Volgend incidentnummer** in op de kaart **Volgend nummer** van dezelfde pagina: zie [Volgende nummers](/docs/incidents/settings#volgende-nummers).
 
 Het nummer verschijnt als eerste kolom van de incidentenlijst, linkt naar het incident en staat als **Incidentnummer** op het **Overzicht** van het incident.
 

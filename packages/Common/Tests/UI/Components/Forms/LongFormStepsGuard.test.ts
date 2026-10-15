@@ -328,7 +328,13 @@ export const UNCOUNTABLE_FORMS: Array<ListedForm> = [
     file: `${DASHBOARD}/Components/NumberPrefix/NumberPrefixCard.tsx`,
     form: "CardModelDetail #1",
     reason:
-      "The Number Prefix pages' card builds one prefix field per kind of number from the page's rows (NumberPrefixSettings): two fields on the Incidents and Alerts pages, one on Scheduled Maintenance.",
+      "The Numbering pages' Number Prefix card builds one prefix field per kind of number from the page's rows (NumberPrefixSettings): two fields on the Incidents and Alerts pages, one on Scheduled Maintenance.",
+  },
+  {
+    file: `${DASHBOARD}/Components/NextNumber/NextNumberCard.tsx`,
+    form: "BasicFormModal #1",
+    reason:
+      "The Numbering pages' Next Number card builds one next number field per kind of number from the page's rows (NextNumberSettings): two fields on the Incidents and Alerts pages, one on Scheduled Maintenance.",
   },
   {
     file: `${DASHBOARD}/Pages/Slo/View/Index.tsx`,

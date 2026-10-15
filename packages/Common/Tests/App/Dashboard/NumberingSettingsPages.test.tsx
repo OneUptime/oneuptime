@@ -20,14 +20,15 @@ import fs from "fs";
 import path from "path";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
-import IncidentNumberPrefix from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentNumberPrefix";
-import AlertNumberPrefix from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertNumberPrefix";
-import ScheduledMaintenanceNumberPrefix from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceNumberPrefix";
+import IncidentNumbering from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentNumbering";
+import AlertNumbering from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertNumbering";
+import ScheduledMaintenanceNumbering from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceNumbering";
 import {
   ALERT_NUMBER_PREFIXES,
   INCIDENT_NUMBER_PREFIXES,
   MORE_SETTINGS_PATH,
   NUMBER_PREFIX_PAGES,
+  NUMBER_PREFIX_PATH,
   NumberPrefixPage,
   NumberPrefixRow,
   SCHEDULED_MAINTENANCE_NUMBER_PREFIXES,
@@ -54,6 +55,9 @@ import Link from "../../../Types/Link";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import API from "../../../UI/Utils/API/API";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import { JSONObject } from "../../../Types/JSON";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import User from "../../../UI/Utils/User";
 import NumberPrefixUtil, {
@@ -75,8 +79,10 @@ jest.mock("react-i18next", () => {
 });
 
 /*
- * The Number Prefix pages: Incidents, Alerts and Scheduled Maintenance →
- * Settings → Number Prefix.
+ * The Number Prefix card of the Numbering pages: Incidents, Alerts and
+ * Scheduled Maintenance → Settings → Numbering (the page was called Number
+ * Prefix until it held the Next Number card too - NextNumberCard.test.tsx
+ * covers that card).
  *
  * The maintainer, looking at the Number Prefix card on More Settings: "Can
  * you please create a new page called 'prefix' (or something better) and
@@ -114,8 +120,8 @@ const PAGES: Array<PageUnderTest> = [
   {
     name: "Incidents",
     page: INCIDENT_NUMBER_PREFIXES,
-    Component: IncidentNumberPrefix,
-    pageMapKey: PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX,
+    Component: IncidentNumbering,
+    pageMapKey: PageMap.INCIDENTS_SETTINGS_NUMBERING,
     routePaths: IncidentsRoutePath,
     productPath: "incidents",
     getBreadcrumbs: getIncidentsBreadcrumbs,
@@ -132,8 +138,8 @@ const PAGES: Array<PageUnderTest> = [
   {
     name: "Alerts",
     page: ALERT_NUMBER_PREFIXES,
-    Component: AlertNumberPrefix,
-    pageMapKey: PageMap.ALERTS_SETTINGS_NUMBER_PREFIX,
+    Component: AlertNumbering,
+    pageMapKey: PageMap.ALERTS_SETTINGS_NUMBERING,
     routePaths: AlertsRoutePath,
     productPath: "alerts",
     getBreadcrumbs: getAlertsBreadcrumbs,
@@ -150,8 +156,8 @@ const PAGES: Array<PageUnderTest> = [
   {
     name: "Scheduled Maintenance",
     page: SCHEDULED_MAINTENANCE_NUMBER_PREFIXES,
-    Component: ScheduledMaintenanceNumberPrefix,
-    pageMapKey: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX,
+    Component: ScheduledMaintenanceNumbering,
+    pageMapKey: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING,
     routePaths: ScheduledMaintenanceEventsRoutePath,
     productPath: "scheduled-maintenance-events",
     getBreadcrumbs: getScheduleMaintenanceBreadcrumbs,
@@ -199,7 +205,7 @@ function grant(permissions: Array<Permission>, isMasterAdmin?: boolean): void {
 }
 
 function pagePath(under: PageUnderTest): string {
-  return `/dashboard/${PROJECT_ID}/${under.productPath}/settings/number-prefix`;
+  return `/dashboard/${PROJECT_ID}/${under.productPath}/settings/numbering`;
 }
 
 function openPage(under: PageUnderTest): void {
@@ -382,6 +388,12 @@ beforeEach(() => {
     .mockImplementation(async (): Promise<number> => {
       return 0;
     });
+  // The Next Number card under this one reads where the numbers stand.
+  jest.spyOn(API, "get").mockImplementation((async (): Promise<
+    HTTPResponse<JSONObject>
+  > => {
+    return new HTTPResponse(200, { numbering: [] }, {});
+  }) as never);
   createOrUpdateSpy = jest
     .spyOn(ModelAPI, "createOrUpdate")
     .mockImplementation(async (): Promise<never> => {
@@ -396,29 +408,29 @@ afterEach(() => {
 
 describe("where the pages live", () => {
   test.each(PAGES)(
-    "$name: a Settings page at settings/number-prefix",
+    "$name: a Settings page at settings/numbering",
     (under: PageUnderTest) => {
-      expect(under.routePaths[under.pageMapKey]).toBe("settings/number-prefix");
+      expect(under.routePaths[under.pageMapKey]).toBe("settings/numbering");
       expect((RouteMap[under.pageMapKey] as Route).toString()).toBe(
-        `/dashboard/:projectId/${under.productPath}/settings/number-prefix`,
+        `/dashboard/:projectId/${under.productPath}/settings/numbering`,
       );
     },
   );
 
   test.each(PAGES)(
-    "$name: the trail reads Project / product / Settings / Number Prefix",
+    "$name: the trail reads Project / product / Settings / Numbering",
     (under: PageUnderTest) => {
       goTo(pagePath(under));
 
       const trail: Array<Link> | undefined = under.getBreadcrumbs(
-        `/dashboard/:projectId/${under.productPath}/settings/number-prefix`,
+        `/dashboard/:projectId/${under.productPath}/settings/numbering`,
       );
 
       expect(
         (trail || []).map((link: Link): string => {
           return link.title;
         }),
-      ).toEqual(["Project", under.productCrumb, "Settings", "Number Prefix"]);
+      ).toEqual(["Project", under.productCrumb, "Settings", "Numbering"]);
       for (const link of trail || []) {
         expect(link.to.toString()).not.toContain(":");
       }
@@ -426,21 +438,24 @@ describe("where the pages live", () => {
     },
   );
 
-  test("More Settings is gone from every product's route table", () => {
+  test("More Settings and Number Prefix are gone from every product's route table", () => {
     for (const routePaths of [
       IncidentsRoutePath,
       AlertsRoutePath,
       ScheduledMaintenanceEventsRoutePath,
     ]) {
       expect(Object.values(routePaths)).not.toContain(MORE_SETTINGS_PATH);
+      expect(Object.values(routePaths)).not.toContain(NUMBER_PREFIX_PATH);
     }
     for (const key of Object.keys(PageMap)) {
       expect(key).not.toMatch(/_SETTINGS_MORE$/);
+      expect(key).not.toMatch(/_SETTINGS_NUMBER_PREFIX$/);
     }
   });
 
-  test("the old address is the one each product's More Settings had", () => {
+  test("the old addresses are the ones each product's page had", () => {
     expect(MORE_SETTINGS_PATH).toBe("settings/more");
+    expect(NUMBER_PREFIX_PATH).toBe("settings/number-prefix");
   });
 });
 
@@ -506,17 +521,22 @@ describe("what each page is for", () => {
 });
 
 describe.each(PAGES)(
-  "$name → Settings → Number Prefix",
+  "$name → Settings → Numbering: the Number Prefix card",
   (under: PageUnderTest) => {
     const columns: Array<string> = getNumberPrefixColumns(under.page);
     const firstColumn: string = columns[0]!;
 
-    test("shows one card, Number Prefix, saying what a prefix is", async () => {
+    test("comes first, saying what a prefix is, with the Next Number card under it", async () => {
       openPage(under);
 
       const cardElement: HTMLElement = await card();
+      await screen.findByText("Next Number", {}, { timeout: WAIT_TIMEOUT });
 
-      expect(screen.getAllByTestId("card")).toHaveLength(1);
+      const cards: Array<HTMLElement> = screen.getAllByTestId("card");
+
+      expect(cards).toHaveLength(2);
+      expect(cards[0]).toBe(cardElement);
+      expect(within(cards[1]!).getByText("Next Number")).toBeInTheDocument();
       expect(
         within(cardElement).getByText(under.description),
       ).toBeInTheDocument();

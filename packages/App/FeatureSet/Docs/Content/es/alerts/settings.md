@@ -6,7 +6,7 @@ La configuración de las alertas está dentro de **Alertas**, no en **Ajustes de
 - [Las reglas por las que pasa una nueva alerta](#las-reglas-por-las-que-pasa-una-nueva-alerta): En orden, y qué hace cada una.
 - [Reglas de guardia](#reglas-de-guardia): Avisa a las personas adecuadas sin elegir una política cada vez.
 - [Reglas de recordatorio](#reglas-de-recordatorio): Recuerda a los propietarios mientras una alerta sigue abierta.
-- [Ajustes](#ajustes): Plantillas de notas, campos personalizados, mediciones y prefijos de número.
+- [Ajustes](#ajustes): Plantillas de notas, campos personalizados, mediciones y numeración.
 :::
 
 ## Dónde están los ajustes de las alertas
@@ -23,7 +23,7 @@ Abre **Alertas** desde el menú **Productos** de la barra superior. Las seccione
 | **Reglas de etiquetas**       | Añade etiquetas a las alertas y los episodios que coinciden.                                   |
 | **Reglas de recordatorio**    | Recuerda a los propietarios a intervalos mientras una alerta está abierta.                     |
 
-La sección **Ajustes** contiene **Estado de la alerta** y **Gravedad de la alerta**, que se tratan en [Estados y severidades de alertas](/docs/alerts/states-and-severities), y después **Plantillas de notas**, **Campos personalizados**, **Mediciones** y **Prefijo de número**, que se tratan más abajo.
+La sección **Ajustes** contiene **Estado de la alerta** y **Gravedad de la alerta**, que se tratan en [Estados y severidades de alertas](/docs/alerts/states-and-severities), y después **Plantillas de notas**, **Campos personalizados**, **Mediciones** y **Numeración**, que se tratan más abajo.
 
 Otras dos secciones actúan sobre las alertas. **Alertas → IA → Ajustes** decide lo que OneUptime AI hace por su cuenta: **Investigar las alertas nuevas**, activado en los proyectos nuevos, y **Corregir automáticamente las alertas nuevas**, desactivado hasta que lo actives. Consulta [AI SRE](/docs/ai/ai-sre). **Alertas → Espacio de trabajo** contiene las reglas de Slack y Microsoft Teams que publican alertas y episodios en canales, y su pestaña **Resumen**. Consulta [Slack](/docs/workspace-connections/slack).
 
@@ -142,9 +142,11 @@ Los propietarios reciben cada recordatorio como **Recordatorio de alerta**, que 
 
 **Alertas → Ajustes → Mediciones** mide cuánto tardan las cosas en cada alerta. Elige **Tiempo hasta el reconocimiento** o **Tiempo hasta la resolución**, o dos momentos propios, como cuando **Se crea la alerta** y cuando entra en un estado que elijas. Cada medición se muestra en la página de la alerta y se representa en gráficos como `oneuptime.alert.measurement.<key>`. Consulta [Mediciones](/docs/incidents/settings#mediciones), que funciona igual para las alertas.
 
-### Prefijo de número
+### Numeración
 
-**Alertas → Ajustes → Prefijo de número** fija el texto delante de los números de alerta y de episodio: `ALT-` y `AE-` en un proyecto nuevo, o `#` sin ninguno. **Actualizar** abre **Prefijo de número de alerta** y **Prefijo de número del episodio de alerta**, con una vista previa mientras escribes. Solo las alertas y los episodios creados después reciben el nuevo prefijo. Las reglas de un prefijo están en [Prefijos de número](/docs/incidents/settings#prefijos-de-número).
+**Alertas → Ajustes → Numeración** fija el texto delante de los números de alerta y de episodio: `ALT-` y `AE-` en un proyecto nuevo, o `#` sin ninguno. **Actualizar** abre **Prefijo de número de alerta** y **Prefijo de número del episodio de alerta**, con una vista previa mientras escribes. Solo las alertas y los episodios creados después reciben el nuevo prefijo. Las reglas de un prefijo están en [Prefijos de número](/docs/incidents/settings#prefijos-de-número).
+
+La tarjeta **Próximo número** de debajo fija el número que reciben la próxima alerta y el próximo episodio, para continuar los números de otra herramienta: **Actualizar** abre **Próximo número de alerta** y **Próximo número de episodio de alerta**, cada uno mayor que el más alto usado hasta ahora. Consulta [Próximos números](/docs/incidents/settings#próximos-números).
 
 > [!NOTE]
 > En OneUptime Cloud, las plantillas de notas y los campos personalizados requieren el plan **Growth** o superior.

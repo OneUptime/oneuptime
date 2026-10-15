@@ -194,13 +194,13 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Clock,
         },
-        // The text in front of event numbers (SM-42).
+        // How event numbers look (SM-42) and which comes next.
         {
           link: {
-            title: "Number Prefix",
+            title: "Numbering",
             to: RouteUtil.populateRouteParams(
               RouteMap[
-                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING
               ] as Route,
             ),
           },

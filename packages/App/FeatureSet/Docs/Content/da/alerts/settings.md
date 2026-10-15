@@ -6,7 +6,7 @@ Konfigurationen af advarsler ligger under **Advarsler**, ikke i **Projektindstil
 - [De regler, en ny advarsel passerer](#de-regler-en-ny-advarsel-passerer): I rækkefølge, og hvad hver af dem gør.
 - [Vagtregler](#vagtregler): Tilkald de rigtige personer uden at vælge en politik hver gang.
 - [Påmindelsesregler](#påmindelsesregler): Påmind ejere, mens en advarsel forbliver åben.
-- [Indstillinger](#indstillinger): Noteskabeloner, brugerdefinerede felter, målinger og nummerpræfikser.
+- [Indstillinger](#indstillinger): Noteskabeloner, brugerdefinerede felter, målinger og nummerering.
 :::
 
 ## Hvor advarselsindstillingerne ligger
@@ -23,7 +23,7 @@ Konfigurationen af advarsler ligger under **Advarsler**, ikke i **Projektindstil
 | **Etiketregler**      | Tilføjer etiketter til matchende advarsler og episoder.                                        |
 | **Reminder Rules**    | Påminder ejere med et interval, mens en advarsel er åben.                                      |
 
-Sektionen **Indstillinger** rummer **Advarselsstatus** og **Advarselsalvor**, som er beskrevet på [Advarselstilstande og alvorsgrader](/docs/alerts/states-and-severities), og derefter **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger** og **Nummerpræfiks**, som er beskrevet nedenfor.
+Sektionen **Indstillinger** rummer **Advarselsstatus** og **Advarselsalvor**, som er beskrevet på [Advarselstilstande og alvorsgrader](/docs/alerts/states-and-severities), og derefter **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger** og **Nummerering**, som er beskrevet nedenfor.
 
 To andre sektioner handler på advarsler. **Advarsler → AI → Indstillinger** afgør, hvad OneUptime AI gør af sig selv: **Undersøg nye advarsler**, slået til for nye projekter, og **Ret nye advarsler automatisk**, slået fra, indtil du slår det til. Se [AI SRE](/docs/ai/ai-sre). **Advarsler → Arbejdsområde** rummer de Slack- og Microsoft Teams-regler, der slår advarsler og episoder op i kanaler, og dens fane **Summary**. Se [Slack](/docs/workspace-connections/slack).
 
@@ -142,9 +142,11 @@ Ejere får hver påmindelse som **Alert reminder**, som er slået til via e-mail
 
 **Advarsler → Indstillinger → Målinger** tager tid på, hvor længe ting tager for hver advarsel. Vælg **Tid til bekræftelse** eller **Tid til løsning** eller to tidspunkter efter eget valg, for eksempel når **Advarslen bliver oprettet**, og når den går ind i en tilstand, du vælger. Hver måling vises på advarslens side og i diagrammer som `oneuptime.alert.measurement.<key>`. Se [Målinger](/docs/incidents/settings#målinger), som fungerer på samme måde for advarsler.
 
-### Nummerpræfiks
+### Nummerering
 
-**Advarsler → Indstillinger → Nummerpræfiks** angiver teksten foran advarsels- og episodenumre: `ALT-` og `AE-` i et nyt projekt, eller `#` uden præfiks. **Opdater** åbner **Nummerpræfiks for advarsel** og **Nummerpræfiks for advarselsepisode** med en forhåndsvisning, mens du skriver. Kun advarsler og episoder, der oprettes bagefter, får det nye præfiks. Reglerne for et præfiks står under [Nummerpræfikser](/docs/incidents/settings#nummerpræfikser).
+**Advarsler → Indstillinger → Nummerering** angiver teksten foran advarsels- og episodenumre: `ALT-` og `AE-` i et nyt projekt, eller `#` uden præfiks. **Opdater** åbner **Nummerpræfiks for advarsel** og **Nummerpræfiks for advarselsepisode** med en forhåndsvisning, mens du skriver. Kun advarsler og episoder, der oprettes bagefter, får det nye præfiks. Reglerne for et præfiks står under [Nummerpræfikser](/docs/incidents/settings#nummerpræfikser).
+
+Kortet **Næste nummer** nedenunder sætter det nummer, den næste advarsel og den næste episode får, for at fortsætte et andet værktøjs numre: **Opdater** åbner **Næste advarselsnummer** og **Næste nummer for advarselsepisode**, hver højere end det højeste indtil nu. Se [Næste numre](/docs/incidents/settings#næste-numre).
 
 > [!NOTE]
 > På OneUptime Cloud kræver noteskabeloner og brugerdefinerede felter planen **Growth** eller højere.

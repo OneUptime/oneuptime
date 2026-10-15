@@ -453,44 +453,48 @@ describe("Alerts side menu", () => {
           href: routeFor(PageMap.ALERTS_SETTINGS_MEASUREMENTS),
         },
         /*
-         * The number prefixes, on a page named for them. It replaced More
-         * Settings, which held nothing else.
+         * How numbers look and which comes next, on a page named for them.
+         * It was More Settings, then Number Prefix.
          */
         {
-          title: "Number Prefix",
-          href: routeFor(PageMap.ALERTS_SETTINGS_NUMBER_PREFIX),
+          title: "Numbering",
+          href: routeFor(PageMap.ALERTS_SETTINGS_NUMBERING),
         },
       ]);
     });
 
-    test("lists Number Prefix last, at settings/number-prefix", async () => {
+    test("lists Numbering last, at settings/numbering", async () => {
       await renderAlertsMenu();
 
       const settings: Array<MenuLink> = linksIn("Settings");
 
       expect(settings[settings.length - 1]).toEqual({
-        title: "Number Prefix",
-        href: `/dashboard/${PROJECT_ID}/alerts/settings/number-prefix`,
+        title: "Numbering",
+        href: `/dashboard/${PROJECT_ID}/alerts/settings/numbering`,
       });
     });
 
-    test("has no More Settings entry, and nothing points at the old address", async () => {
+    test("has no More Settings or Number Prefix entry, and nothing points at their old addresses", async () => {
       await renderAlertsMenu();
 
       expect(titlesInMenu()).not.toContain("More Settings");
+      expect(titlesInMenu()).not.toContain("Number Prefix");
       expect(hrefsInMenu()).not.toContain(
         `/dashboard/${PROJECT_ID}/alerts/settings/more`,
+      );
+      expect(hrefsInMenu()).not.toContain(
+        `/dashboard/${PROJECT_ID}/alerts/settings/number-prefix`,
       );
     });
 
     // Settings is collapsed by default, so it must open itself on its pages.
-    test("opens itself on the Number Prefix page, and marks it", async () => {
-      goTo(`/dashboard/${PROJECT_ID}/alerts/settings/number-prefix`);
+    test("opens itself on the Numbering page, and marks it", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/alerts/settings/numbering`);
       await renderAlertsMenu();
 
       expect(isExpanded("Settings")).toBe(true);
       expect(isExpanded("Rules")).toBe(false);
-      expect(activeLinkTitles()).toEqual(["Number Prefix"]);
+      expect(activeLinkTitles()).toEqual(["Numbering"]);
     });
 
     test("does not hold the AI settings page or the auto-remediation rules, which are in AI", async () => {
@@ -540,8 +544,8 @@ describe("Alerts side menu", () => {
       PageMap.ALERTS_SETTINGS_PRIVACY_RULES,
       PageMap.ALERTS_SETTINGS_LABEL_RULES,
       PageMap.ALERTS_SETTINGS_REMINDER_RULES,
-      // More Settings, renamed for the one thing it held.
-      PageMap.ALERTS_SETTINGS_NUMBER_PREFIX,
+      // More Settings, then Number Prefix: named for what it holds.
+      PageMap.ALERTS_SETTINGS_NUMBERING,
     ];
 
     test("every settings page reachable before the move is still reachable", async () => {
@@ -628,11 +632,11 @@ describe("Alerts side menu", () => {
       expect(mobileSummaryText()).toContain("Settings / Alert State");
     });
 
-    test("names the Settings section on the Number Prefix page", async () => {
-      goTo(`/dashboard/${PROJECT_ID}/alerts/settings/number-prefix`);
+    test("names the Settings section on the Numbering page", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/alerts/settings/numbering`);
       await renderAlertsMenu();
 
-      expect(mobileSummaryText()).toContain("Settings / Number Prefix");
+      expect(mobileSummaryText()).toContain("Settings / Numbering");
     });
   });
 });

@@ -90,6 +90,9 @@ Abre cada programación en **Guardia** > **Programaciones de guardia** y comprue
 ### Asegúrate de que se pueda avisar a todos
 Las personas invitadas aceptan su invitación y luego añaden un número de teléfono, una dirección de correo o la aplicación móvil para recibir los avisos. **Guardia** > **Preparación** muestra a quién todavía no se puede localizar.
 
+### Continúa la numeración de tus incidentes
+Si tu equipo nombra los incidentes por su número, haz que los de OneUptime empiecen después del último que tuviste en incident.io: en **Incidentes** > **Ajustes** > **Numeración**, fija **Próximo número de incidente** en la tarjeta **Próximo número** al número que le sigue. Así un número nunca designa dos incidentes distintos.
+
 ### Envía tus alertas a OneUptime
 Dirige tus monitores y las herramientas que generan alertas a OneUptime, y avísate una vez para probarlo.
 

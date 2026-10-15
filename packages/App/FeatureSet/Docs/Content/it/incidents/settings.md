@@ -1,6 +1,6 @@
 # Impostazioni e automazione degli incidenti
 
-La configurazione degli incidenti si trova in **Incidenti**, non in **Impostazioni del progetto**: gli stati e le gravità, i modelli, i campi personalizzati, i ruoli, le misurazioni e i prefissi dei numeri, e le regole che agiscono su ogni nuovo incidente. Questa pagina è il riferimento per ciascuna di queste pagine, e per ciò che viene eseguito da solo nel momento in cui un incidente viene dichiarato.
+La configurazione degli incidenti si trova in **Incidenti**, non in **Impostazioni del progetto**: gli stati e le gravità, i modelli, i campi personalizzati, i ruoli, le misurazioni e la numerazione, e le regole che agiscono su ogni nuovo incidente. Questa pagina è il riferimento per ciascuna di queste pagine, e per ciò che viene eseguito da solo nel momento in cui un incidente viene dichiarato.
 
 :::cards
 - [Modelli di incidenti](#modelli-di-incidenti): Dichiarate lo stesso tipo di incidente, precompilato, ogni volta.
@@ -24,7 +24,7 @@ Aprite **Incidenti** dal menu **Prodotti** nella barra superiore, poi espandete 
 | **Ruoli incidente**             | Definire i ruoli a cui assegnate i responder, come Comandante dell'incidente.                      |
 | **Misurazioni**                 | Misurare quanto tempo richiedono le cose, come il tempo di riconoscimento o di risoluzione, su ogni incidente. |
 | **Avvisi collegati**            | Scegliere se gli avvisi collegati a un incidente vengono riconosciuti e risolti insieme a esso. Entrambi sono attivi nei nuovi progetti. |
-| **Prefisso del numero**         | Il testo davanti ai numeri di incidente e di episodio, come `INC-` in `INC-42`.                    |
+| **Numerazione**                 | Il testo davanti ai numeri di incidente e di episodio, come `INC-` in `INC-42`, e il numero che riceve il successivo. |
 
 Ciò che OneUptime AI fa da sola non si imposta qui: ha una sezione propria, **Incidenti → IA**, su route che iniziano con `/dashboard/{projectId}/incidents/ai/`. La sua pagina **Impostazioni** attiva o disattiva l'esame dei nuovi incidenti, la loro correzione automatica (disattivata finché non la attivate) — con le pull request di correzione e di telemetria mancante, che fanno parte della correzione, raccolte sotto di essa — e le bozze di post-mortem, ciascuna salvata non appena la cambiate; le regole di indagine e le regole di rimedio automatico che restringono quali incidenti vengono esaminati e corretti, e i limiti facoltativi entro cui lavora l'IA, sono ripiegati sotto **Altre impostazioni**, e nessuno si applica finché non lo impostate. **Informazioni** e **Registri** sono accanto: ciò che l'IA ha imparato dai vostri incidenti, e tutto ciò che ha fatto. Vedete [AI SRE](/docs/ai/ai-sre).
 
@@ -469,7 +469,7 @@ I ruoli sono solo definizioni. Vi assegnate le persone incidente per incidente �
 
 Ogni incidente riceve un numero da un contatore del progetto. Senza prefisso compare come `#42`; con uno compare come `INC-42`. Se il vostro team dice «INC-42» ad alta voce, fatelo dire anche al prodotto. I nuovi progetti partono con `INC-` per gli incidenti e `IE-` per gli episodi degli incidenti.
 
-Andate in **Incidenti → Impostazioni → Prefisso del numero** (`/dashboard/{projectId}/incidents/settings/number-prefix`). La scheda **Prefisso del numero** ha una riga per **Incidenti** e una per **Incidente Episodi**. Ciascuna mostra il suo prefisso e un esempio del numero che produce: `INC-`, poi **Esempio:** `INC-42`. Un progetto senza prefisso mostra **Nessun prefisso** e `#42`.
+Andate in **Incidenti → Impostazioni → Numerazione** (`/dashboard/{projectId}/incidents/settings/numbering`). La scheda **Prefisso del numero** ha una riga per **Incidenti** e una per **Incidente Episodi**. Ciascuna mostra il suo prefisso e un esempio del numero che produce: `INC-`, poi **Esempio:** `INC-42`. Un progetto senza prefisso mostra **Nessun prefisso** e `#42`.
 
 :::steps
 1. Fate clic su **Aggiorna**. Si apre la finestra **Modifica prefisso del numero**, con due campi: **Prefisso del numero dell'incidente** (segnaposto `INC-`) e **Prefisso del numero dell'episodio dell'incidente** (segnaposto `IE-`).
@@ -489,7 +489,33 @@ La finestra dice che cosa non va prima del salvataggio, e l'API rifiuta gli stes
 
 I Project Owners, i Project Admins e chiunque abbia **Edit Project** possono cambiare i prefissi. Tutti gli altri li vedono con il pulsante **Aggiorna** bloccato.
 
-Avvisi ed eventi di manutenzione programmata hanno la stessa pagina: **Avvisi → Impostazioni → Prefisso del numero** per i numeri di avvisi ed episodi di avvisi (`ALT-` e `AE-` nei nuovi progetti), e **Manutenzione programmata → Impostazioni → Prefisso del numero** per i numeri degli eventi (`SM-`). In tutti e tre, il vecchio indirizzo di **Altre impostazioni** (`…/settings/more`) funziona ancora e apre **Prefisso del numero**.
+Avvisi ed eventi di manutenzione programmata hanno la stessa pagina: **Avvisi → Impostazioni → Numerazione** per i numeri di avvisi ed episodi di avvisi (`ALT-` e `AE-` nei nuovi progetti), e **Manutenzione programmata → Impostazioni → Numerazione** per i numeri degli eventi (`SM-`). In tutti e tre, i vecchi indirizzi della pagina funzionano ancora e aprono **Numerazione**: **Altre impostazioni** (`…/settings/more`) e **Prefisso del numero** (`…/settings/number-prefix`).
+
+## Numeri successivi
+
+Ogni nuovo incidente riceve il numero dopo il più alto usato finora, e ogni nuovo episodio anche: `INC-1`, `INC-2`, `INC-3` dal primo di un progetto. Arrivate da un altro strumento? Fate partire i numeri di OneUptime dopo l'ultimo di quello strumento, così un numero non indica mai due incidenti diversi: un team il cui ultimo incidente nel vecchio strumento era `INC-2345` imposta il numero successivo a `2346`, oppure a `10000` per distinguere a colpo d'occhio i suoi incidenti in OneUptime.
+
+La scheda **Numero successivo**, sotto **Prefisso del numero** nella stessa pagina, ha una riga per **Incidenti** e una per **Incidente Episodi**. Ciascuna mostra il numero che riceve il successivo, con il suo prefisso, poi **Il più alto finora:** e il numero più alto usato, oppure **Nessuno usato finora**.
+
+:::steps
+1. Fate clic su **Aggiorna** nella scheda **Numero successivo**. Si apre la finestra **Modifica numero successivo**, con **Numero successivo dell'incidente** e **Numero successivo dell'episodio di incidente**, ciascuno compilato con il numero che viene dopo e con l'indicazione di che cosa deve superare.
+2. Digitate il numero che deve ricevere il successivo. Sotto ogni campo, **Anteprima:** lo mostra con il suo prefisso, così vedete `INC-10000` prima di salvare `10000`.
+3. Fate clic su **Salva modifiche**. Il prossimo incidente riceve quel numero, e quelli dopo contano da lì: `INC-10000`, `INC-10001`.
+:::
+
+Un numero successivo:
+
+- è un numero intero da 1 a 1.000.000.000;
+- deve essere maggiore del numero più alto usato finora — contano anche gli incidenti eliminati —, così un numero non viene mai usato due volte;
+- si può riabbassare finché nessun incidente l'ha usato: un errore di battitura come `100000` invece di `10000` si annulla salvando `10000`.
+
+La finestra dice che cosa non va prima del salvataggio, e vengono salvati solo i numeri che avete cambiato. Il server controlla le stesse regole e, se un incidente ha preso il numero mentre la finestra era aperta, lo dice e la finestra mostra il nuovo numero più alto.
+
+**Che cosa cambia un nuovo numero successivo.** Gli incidenti e gli episodi esistenti mantengono il loro numero. Il server assegna ogni numero in un solo passaggio mentre il record viene creato, così gli incidenti dichiarati nello stesso momento — da un monitor, un workflow e una persona — ricevono ciascuno un numero proprio, anche mentre qualcuno cambia il numero successivo. Nell'API e in Terraform, il numero successivo è il punto da cui partono i numeri: `incidentNumbersStartAt` e `incidentEpisodeNumbersStartAt` del progetto (`incident_numbers_start_at` e `incident_episode_numbers_start_at` in Terraform). Un valore uguale o inferiore al numero più alto usato viene rifiutato, mentre il valore già impostato, inviato di nuovo, viene accettato, così un apply di Terraform riesce ancora quando gli incidenti lo hanno superato.
+
+I Project Owners, i Project Admins e chiunque abbia **Edit Project** possono cambiare i numeri successivi, come i prefissi. Tutti gli altri li vedono con il pulsante **Aggiorna** bloccato.
+
+Avvisi ed eventi di manutenzione programmata hanno la stessa scheda nelle loro pagine **Numerazione**: **Numero successivo dell'avviso** e **Numero successivo dell'episodio di avviso**, e **Numero successivo della manutenzione programmata**. [Importa da un altro strumento](/docs/moving-to-oneuptime/incident-io) porta la vostra configurazione, non i vostri incidenti passati, quindi lascia i numeri come sono: impostate i numeri successivi prima che in OneUptime venga dichiarato il primo incidente.
 
 ## Interruttori degli avvisi collegati
 

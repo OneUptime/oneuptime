@@ -233,12 +233,12 @@ Os incidentes relatados assim são declarados ocultos das páginas de status, co
 Todo incidente recebe um número sequencial de um contador do projeto, atribuído pelo servidor na criação. Duas colunas o guardam: `incidentNumber` (o inteiro puro) e `incidentNumberWithPrefix` (o que você realmente vê). Sem prefixo configurado, o valor exibido é `#42`.
 
 :::steps
-1. Vá em **Incidentes → Configurações → Prefixo do número** e clique em **Atualizar**.
+1. Vá em **Incidentes → Configurações → Numeração** e clique em **Atualizar** no cartão **Prefixo do número**.
 2. Digite o prefixo em **Prefixo de número de incidente**. O campo mostra uma prévia do número enquanto você digita: `INC-` o transforma em `INC-42`. Deixe-o vazio para manter o `#` padrão.
 3. Clique em **Salvar alterações**. Os incidentes declarados a partir de agora recebem o novo prefixo; os incidentes existentes mantêm seus números.
 :::
 
-A mesma caixa de diálogo tem **Prefixo de número de episódio de incidente** para a numeração dos episódios. [Prefixos de número](/docs/incidents/settings#prefixos-de-número) lista as regras que um prefixo segue.
+A mesma caixa de diálogo tem **Prefixo de número de episódio de incidente** para a numeração dos episódios. [Prefixos de número](/docs/incidents/settings#prefixos-de-número) lista as regras que um prefixo segue. Para continuar os números de outra ferramenta, defina **Próximo número de incidente** no cartão **Próximo número** da mesma página: veja [Próximos números](/docs/incidents/settings#próximos-números).
 
 O número aparece como a primeira coluna da lista de incidentes, leva ao incidente e aparece como **Número do incidente** na **Visão geral** do incidente.
 

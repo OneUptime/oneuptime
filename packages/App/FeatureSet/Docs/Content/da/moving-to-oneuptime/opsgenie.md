@@ -87,6 +87,9 @@ En forhåndsvisning gemmes i en dag. Kun den person, der læste kontoen, kan mar
 ### Sørg for, at alle kan tilkaldes
 Inviterede personer accepterer deres invitation og tilføjer derefter et telefonnummer, en e-mailadresse eller mobilappen, de kan tilkaldes på. **Vagtordning** > **Parathed** viser, hvem der endnu ikke kan nås.
 
+### Fortsæt dine hændelsesnumre
+Hvis dit team omtaler hændelser ved nummer, så lad OneUptimes numre starte efter dit sidste i Opsgenie: Under **Hændelser** > **Indstillinger** > **Nummerering** sætter du **Næste hændelsesnummer** på kortet **Næste nummer** til nummeret efter det. Et nummer betyder så aldrig to forskellige hændelser.
+
 ### Send dine alarmer til OneUptime
 Ret dine monitorer og de værktøjer, der udløser alarmer, mod OneUptime, og tilkald dig selv én gang for at teste det.
 

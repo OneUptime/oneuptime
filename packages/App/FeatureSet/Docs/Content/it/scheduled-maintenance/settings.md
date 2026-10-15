@@ -5,7 +5,7 @@ La configurazione della manutenzione si trova dentro **Manutenzione programmata*
 :::cards
 - [Le regole che un nuovo evento attraversa](#le-regole-che-un-nuovo-evento-attraversa): In ordine, e cosa fa ciascuna.
 - [Regole di promemoria](#regole-di-promemoria): Ricordare l'evento ai proprietari finché non è completato.
-- [Impostazioni](#impostazioni): Modelli di note, campi personalizzati, misurazioni e prefissi del numero.
+- [Impostazioni](#impostazioni): Modelli di note, campi personalizzati, misurazioni e numerazione.
 - [Chi può modificarle](#chi-può-modificarle): I ruoli della manutenzione, e i piani.
 :::
 
@@ -20,7 +20,7 @@ Aprite **Manutenzione programmata** dal menu **Prodotti** nella barra superiore.
 | **Regole etichette** | Aggiunge etichette agli eventi che corrispondono.                 |
 | **Reminder Rules** | Ricorda l'evento ai proprietari a intervalli finché non è completato. |
 
-La sezione **Impostazioni** contiene **Stato evento**, trattato in [Stati della manutenzione](/docs/scheduled-maintenance/states), **Modelli di eventi**, trattato in [Modelli ed eventi ricorrenti](/docs/scheduled-maintenance/templates), poi **Modelli di note**, **Campi personalizzati**, **Misurazioni** e **Prefisso del numero**, trattati più sotto.
+La sezione **Impostazioni** contiene **Stato evento**, trattato in [Stati della manutenzione](/docs/scheduled-maintenance/states), **Modelli di eventi**, trattato in [Modelli ed eventi ricorrenti](/docs/scheduled-maintenance/templates), poi **Modelli di note**, **Campi personalizzati**, **Misurazioni** e **Numerazione**, trattati più sotto.
 
 La sezione **Area di lavoro** contiene le regole Slack e Microsoft Teams che pubblicano gli eventi nei canali. Vedere [Slack](/docs/workspace-connections/slack#regole-di-notifica) e [Microsoft Teams](/docs/workspace-connections/microsoft-teams#regole-di-notifica).
 
@@ -104,9 +104,11 @@ Questi promemoria sono per il vostro team. I promemoria che gli iscritti delle v
 
 **Manutenzione programmata → Impostazioni → Misurazioni** misura quanto durano le cose in ogni evento. Scegliete **Ritardo di inizio**, dall'inizio pianificato a quando inizia, **Sforamento**, dalla fine pianificata a quando termina, oppure **Durata della manutenzione**, da quando inizia a quando termina; oppure due momenti vostri con **Qualcos'altro**. Ogni misurazione viene mostrata sulla pagina dell'evento e rappresentata come `oneuptime.scheduled-maintenance.measurement.<key>`. Vedere [Misurazioni](/docs/incidents/settings#misurazioni), che funziona allo stesso modo per gli eventi.
 
-### Prefisso del numero
+### Numerazione
 
-**Manutenzione programmata → Impostazioni → Prefisso del numero** imposta il testo davanti ai numeri degli eventi: `SM-` in un nuovo progetto, oppure `#` senza prefisso. **Aggiorna** chiede il **Prefisso del numero della manutenzione programmata** e mostra un'anteprima del numero mentre scrivete. Solo gli eventi creati dopo ricevono il nuovo prefisso; quelli esistenti mantengono i loro numeri. Le regole per un prefisso sono in [Prefissi del numero](/docs/incidents/settings#prefissi-dei-numeri).
+**Manutenzione programmata → Impostazioni → Numerazione** imposta il testo davanti ai numeri degli eventi: `SM-` in un nuovo progetto, oppure `#` senza prefisso. **Aggiorna** chiede il **Prefisso del numero della manutenzione programmata** e mostra un'anteprima del numero mentre scrivete. Solo gli eventi creati dopo ricevono il nuovo prefisso; quelli esistenti mantengono i loro numeri. Le regole per un prefisso sono in [Prefissi del numero](/docs/incidents/settings#prefissi-dei-numeri).
+
+La scheda **Numero successivo** sotto imposta il numero che riceve il prossimo evento, per proseguire i numeri di un altro strumento: **Aggiorna** apre **Numero successivo della manutenzione programmata**, che deve essere maggiore del più alto usato finora. Vedete [Numeri successivi](/docs/incidents/settings#numeri-successivi).
 
 > [!NOTE]
 > Su OneUptime Cloud, i campi personalizzati richiedono il piano **Growth** o superiore, così come aggiungere e modificare stati di manutenzione e modelli.

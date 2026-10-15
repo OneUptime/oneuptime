@@ -5,7 +5,7 @@ La configuración del mantenimiento está dentro de **Mantenimiento programado**
 :::cards
 - [Las reglas por las que pasa un evento nuevo](#las-reglas-por-las-que-pasa-un-evento-nuevo): En orden, y qué hace cada una.
 - [Reglas de recordatorio](#reglas-de-recordatorio): Recordar a los propietarios hasta que un evento se completa.
-- [Ajustes](#ajustes): Plantillas de notas, campos personalizados, mediciones y prefijos de número.
+- [Ajustes](#ajustes): Plantillas de notas, campos personalizados, mediciones y numeración.
 - [Quién puede cambiarlos](#quién-puede-cambiarlos): Los roles de mantenimiento, y los planes.
 :::
 
@@ -20,7 +20,7 @@ Abre **Mantenimiento programado** desde el menú **Productos** de la barra super
 | **Reglas de etiquetas** | Añade etiquetas a los eventos que coinciden.                   |
 | **Reglas de recordatorio** | Recuerda a los propietarios a intervalos hasta que un evento se completa. |
 
-La sección **Ajustes** contiene **Estado del evento**, tratado en [Estados del mantenimiento](/docs/scheduled-maintenance/states), **Plantillas de eventos**, tratado en [Plantillas y eventos recurrentes](/docs/scheduled-maintenance/templates), y después **Plantillas de notas**, **Campos personalizados**, **Mediciones** y **Prefijo de número**, que se tratan más abajo.
+La sección **Ajustes** contiene **Estado del evento**, tratado en [Estados del mantenimiento](/docs/scheduled-maintenance/states), **Plantillas de eventos**, tratado en [Plantillas y eventos recurrentes](/docs/scheduled-maintenance/templates), y después **Plantillas de notas**, **Campos personalizados**, **Mediciones** y **Numeración**, que se tratan más abajo.
 
 La sección **Espacio de trabajo** contiene las reglas de Slack y Microsoft Teams que publican eventos en canales. Consulta [Slack](/docs/workspace-connections/slack#reglas-de-notificación) y [Microsoft Teams](/docs/workspace-connections/microsoft-teams#reglas-de-notificación).
 
@@ -104,9 +104,11 @@ Estos recordatorios son para tu equipo. Los recordatorios que reciben los suscri
 
 **Mantenimiento programado → Ajustes → Mediciones** mide cuánto tardan las cosas en cada evento. Elige **Retraso del inicio**, desde el inicio planificado hasta que empieza, **Exceso de tiempo**, desde el fin planificado hasta que termina, o **Duración del mantenimiento**, desde que empieza hasta que termina; o dos momentos propios con **Otra cosa**. Cada medición se muestra en la página del evento y se representa como `oneuptime.scheduled-maintenance.measurement.<key>`. Consulta [Mediciones](/docs/incidents/settings#mediciones), que funciona igual para los eventos.
 
-### Prefijo de número
+### Numeración
 
-**Mantenimiento programado → Ajustes → Prefijo de número** define el texto delante de los números de evento: `SM-` en un proyecto nuevo, o `#` sin ninguno. **Actualizar** pide el **Prefijo del número del mantenimiento programado** y muestra una vista previa del número mientras escribes. Solo los eventos creados después reciben el prefijo nuevo; los existentes conservan sus números. Las reglas de un prefijo están en [Prefijos de número](/docs/incidents/settings#prefijos-de-número).
+**Mantenimiento programado → Ajustes → Numeración** define el texto delante de los números de evento: `SM-` en un proyecto nuevo, o `#` sin ninguno. **Actualizar** pide el **Prefijo del número del mantenimiento programado** y muestra una vista previa del número mientras escribes. Solo los eventos creados después reciben el prefijo nuevo; los existentes conservan sus números. Las reglas de un prefijo están en [Prefijos de número](/docs/incidents/settings#prefijos-de-número).
+
+La tarjeta **Próximo número** de debajo fija el número que recibe el próximo evento, para continuar los números de otra herramienta: **Actualizar** abre **Próximo número de mantenimiento programado**, que debe ser mayor que el más alto usado hasta ahora. Consulta [Próximos números](/docs/incidents/settings#próximos-números).
 
 > [!NOTE]
 > En OneUptime Cloud, los campos personalizados requieren el plan **Growth** o superior, igual que añadir y cambiar estados de mantenimiento y plantillas.

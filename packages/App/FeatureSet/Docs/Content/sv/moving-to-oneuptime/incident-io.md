@@ -90,6 +90,9 @@ En förhandsgranskning sparas i en dag. Bara den som läste kontot kan markera o
 ### Se till att alla kan larmas
 Inbjudna personer accepterar sin inbjudan och lägger sedan till ett telefonnummer, en e-postadress eller mobilappen att larmas på. **Jourtjänst** > **Beredskap** visar vem som inte kan nås än.
 
+### Fortsätt dina incidentnummer
+Om ditt team hänvisar till incidenter med nummer, låt numren i OneUptime börja efter ditt sista i incident.io: under **Incidenter** > **Inställningar** > **Numrering** sätter du **Nästa incidentnummer** på kortet **Nästa nummer** till numret efter det. Ett nummer betyder då aldrig två olika incidenter.
+
 ### Skicka dina larm till OneUptime
 Rikta dina monitorer och verktygen som skapar larm mot OneUptime, och larma dig själv en gång för att testa.
 

@@ -6,7 +6,7 @@ La configurazione degli avvisi sta dentro **Avvisi**, non nelle **Impostazioni d
 - [Le regole che un nuovo avviso attraversa](#le-regole-che-un-nuovo-avviso-attraversa): In ordine, e che cosa fa ciascuna.
 - [Regole di reperibilità](#regole-di-reperibilità): Chiamare le persone giuste senza scegliere una policy ogni volta.
 - [Regole di promemoria](#regole-di-promemoria): Ricordare ai proprietari un avviso finché resta aperto.
-- [Impostazioni](#impostazioni): Modelli di note, campi personalizzati, misurazioni e prefissi dei numeri.
+- [Impostazioni](#impostazioni): Modelli di note, campi personalizzati, misurazioni e numerazione.
 :::
 
 ## Dove si trovano le impostazioni degli avvisi
@@ -23,7 +23,7 @@ Aprite **Avvisi** dal menu **Prodotti** nella barra superiore. Le sezioni **Rego
 | **Regole etichette**           | Aggiunge etichette agli avvisi e agli episodi corrispondenti.                                  |
 | **Reminder Rules**             | Ricorda ai proprietari, a intervalli, un avviso finché è aperto.                               |
 
-La sezione **Impostazioni** contiene **Stato avviso** e **Gravità avviso**, trattati in [Stati e gravità degli avvisi](/docs/alerts/states-and-severities), poi **Modelli di note**, **Campi personalizzati**, **Misurazioni** e **Prefisso del numero**, trattati più sotto.
+La sezione **Impostazioni** contiene **Stato avviso** e **Gravità avviso**, trattati in [Stati e gravità degli avvisi](/docs/alerts/states-and-severities), poi **Modelli di note**, **Campi personalizzati**, **Misurazioni** e **Numerazione**, trattati più sotto.
 
 Altre due sezioni agiscono sugli avvisi. **Avvisi → IA → Impostazioni** decide che cosa fa OneUptime AI da solo: **Indaga sui nuovi avvisi**, attivo nei nuovi progetti, e **Correggi automaticamente i nuovi avvisi**, disattivato finché non lo attivate. Vedere [AI SRE](/docs/ai/ai-sre). **Avvisi → Area di lavoro** contiene le regole di Slack e Microsoft Teams che pubblicano avvisi ed episodi nei canali, e la sua scheda **Summary**. Vedere [Slack](/docs/workspace-connections/slack).
 
@@ -142,9 +142,11 @@ I proprietari ricevono ogni promemoria come **Alert reminder**, attivo via e-mai
 
 **Avvisi → Impostazioni → Misurazioni** misura quanto tempo richiedono le cose su ogni avviso. Scegliete **Tempo di riconoscimento** o **Tempo di risoluzione**, o due momenti vostri, come quando **L'avviso viene creato** e quando entra in uno stato che scegliete. Ogni misurazione è mostrata nella pagina dell'avviso e riportata nei grafici come `oneuptime.alert.measurement.<key>`. Vedere [Misurazioni](/docs/incidents/settings#misurazioni), che funziona allo stesso modo per gli avvisi.
 
-### Prefisso del numero
+### Numerazione
 
-**Avvisi → Impostazioni → Prefisso del numero** imposta il testo davanti ai numeri di avvisi ed episodi: `ALT-` e `AE-` in un nuovo progetto, o `#` senza prefisso. **Aggiorna** apre **Prefisso del numero dell'avviso** e **Prefisso del numero dell'episodio di avviso**, con un'anteprima mentre digitate. Solo gli avvisi e gli episodi creati in seguito ricevono il nuovo prefisso. Le regole per un prefisso sono in [Prefissi dei numeri](/docs/incidents/settings#prefissi-dei-numeri).
+**Avvisi → Impostazioni → Numerazione** imposta il testo davanti ai numeri di avvisi ed episodi: `ALT-` e `AE-` in un nuovo progetto, o `#` senza prefisso. **Aggiorna** apre **Prefisso del numero dell'avviso** e **Prefisso del numero dell'episodio di avviso**, con un'anteprima mentre digitate. Solo gli avvisi e gli episodi creati in seguito ricevono il nuovo prefisso. Le regole per un prefisso sono in [Prefissi dei numeri](/docs/incidents/settings#prefissi-dei-numeri).
+
+La scheda **Numero successivo** sotto imposta il numero che ricevono il prossimo avviso e il prossimo episodio, per proseguire i numeri di un altro strumento: **Aggiorna** apre **Numero successivo dell'avviso** e **Numero successivo dell'episodio di avviso**, ciascuno maggiore del più alto usato finora. Vedete [Numeri successivi](/docs/incidents/settings#numeri-successivi).
 
 > [!NOTE]
 > Su OneUptime Cloud, i modelli di note e i campi personalizzati richiedono il piano **Growth** o superiore.
