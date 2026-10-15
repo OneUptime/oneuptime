@@ -374,12 +374,21 @@ function linksByLine(markdown: string): Array<string> {
 /*
  * The prose lines of a translation that are still the English line in their
  * place: three or more Latin words of four letters, once code, link targets,
- * names and the words kept in English are taken out.
+ * names, the words kept in English and the labels this language's Dashboard
+ * still draws in English are taken out. A table row that is nothing but
+ * such a label and its API field is translated as far as it can be.
  */
 function untranslatedLines(language: string, page: string): Array<string> {
   const english: Array<string> = englishPage(page).split("\n");
   const translated: Array<string> = readPage(language, page).split("\n");
   const found: Array<string> = [];
+  const drawnInEnglish: Array<string> = englishBoldDrawings(language, page)
+    .filter((drawing: [string, string]): boolean => {
+      return drawing[0] === drawing[1];
+    })
+    .map((drawing: [string, string]): string => {
+      return drawing[0];
+    });
   let inFence: boolean = false;
 
   english.forEach((line: string, index: number): void => {
@@ -396,7 +405,7 @@ function untranslatedLines(language: string, page: string): Array<string> {
       .replace(INLINE_CODE_SPAN, " ")
       .replace(LINK_TARGET, "]");
 
-    for (const kept of keptWords(page)) {
+    for (const kept of [...keptWords(page), ...drawnInEnglish]) {
       text = text.split(kept).join(" ");
     }
 
