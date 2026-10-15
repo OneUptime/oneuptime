@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { ALERT_FINAL_STATE } from "../../../Components/StateTimeline/StateTimelineFinalState";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -10,6 +11,14 @@ import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
+import ModelStatusTimeline from "Common/UI/Components/StatusTimeline/ModelStatusTimeline";
+import StatusTimelineViewSwitch, {
+  StatusTimelineView,
+  useStatusTimelineView,
+} from "Common/UI/Components/StatusTimeline/StatusTimelineView";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import Pill from "Common/UI/Components/Pill/Pill";
 import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewer";
 import {
@@ -33,9 +42,60 @@ import React, {
 } from "react";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
+/*
+ * What adding a state asks: the state, and when it began - now, unless it
+ * began earlier. The timeline and the table ask the same.
+ */
+export const ALERT_STATE_TIMELINE_FORM_FIELDS: Array<
+  ModelField<AlertStateTimeline>
+> = [
+  {
+    field: {
+      alertState: true,
+    },
+    title: "Alert Status",
+    description: "The status the alert changed to.",
+    fieldType: FormFieldSchemaType.Dropdown,
+    required: true,
+    placeholder: "Alert Status",
+    dropdownModal: {
+      type: AlertState,
+      labelField: "name",
+      valueField: "_id",
+      sort: {
+        order: SortOrder.Ascending,
+      },
+    },
+  },
+  {
+    field: {
+      startsAt: true,
+    },
+    title: "Starts At",
+    /*
+     * Its own words, not the column's: the column's are written for the
+     * API, and speak of correcting a time that a new row does not have yet.
+     */
+    description: "When the alert changed to this status.",
+    fieldType: FormFieldSchemaType.DateTime,
+    required: true,
+    placeholder: "Starts At",
+    getDefaultValue: () => {
+      return OneUptimeDate.getCurrentDate();
+    },
+  },
+];
+
+const NO_ROOT_CAUSE_TEXT: string = translationKey("No root cause identified.");
+const NO_LOGS_TEXT: string = translationKey("No logs for this state event.");
+const LOGS_DESCRIPTION: string = translationKey(
+  "What OneUptime recorded when this alert changed to this status, such as the monitor check that caused it.",
+);
+
 const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   /*
@@ -55,6 +115,72 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
 
   const [showRootCause, setShowRootCause] = useState<boolean>(false);
   const [rootCause, setRootCause] = useState<string>("");
+
+  const onBeforeCreate: (
+    item: AlertStateTimeline,
+  ) => Promise<AlertStateTimeline> = (
+    item: AlertStateTimeline,
+  ): Promise<AlertStateTimeline> => {
+    if (!props.currentProject || !props.currentProject._id) {
+      throw new BadDataException("Project ID cannot be null");
+    }
+    item.alertId = modelId;
+    item.projectId = new ObjectID(props.currentProject._id);
+    return Promise.resolve(item);
+  };
+
+  /*
+   * The alert's states as a timeline (ModelStatusTimeline), fitted to its
+   * whole life, with the table it used to be one click away.
+   */
+  const [view, setView] = useStatusTimelineView();
+
+  const viewSwitch: ReactElement = (
+    <StatusTimelineViewSwitch
+      key="status-timeline-view-switch"
+      value={view}
+      onChange={setView}
+    />
+  );
+
+  if (view === StatusTimelineView.Timeline) {
+    return (
+      <ModelStatusTimeline<AlertStateTimeline>
+        modelType={AlertStateTimeline}
+        id="alert-status-timeline"
+        name="Alert > State Timeline"
+        title="Status Timeline"
+        description="Each status this alert has been in, when it began and how long it lasted."
+        headerElement={viewSwitch}
+        query={{
+          alertId: modelId,
+          projectId: ProjectUtil.getCurrentProjectId()!,
+        }}
+        stateColumn="alertState"
+        stateSelect={ALERT_FINAL_STATE.stateSelect}
+        getFinalStateRule={ALERT_FINAL_STATE.getFinalStateRule}
+        ariaLabel="Status timeline of this alert"
+        emptyMessage="No status recorded for this alert yet."
+        isCreateable={true}
+        formFields={ALERT_STATE_TIMELINE_FORM_FIELDS}
+        onBeforeCreate={onBeforeCreate}
+        singularName={stateRowDelete.singularName}
+        isDeleteable={true}
+        getDeleteDisabledReason={stateRowDelete.getDeleteDisabledReason}
+        getDeleteConfirmation={stateRowDelete.getDeleteConfirmation}
+        getItemName={stateRowDelete.getItemName}
+        deleteConfirmationWarning={stateRowDelete.deleteConfirmationWarning}
+        onFetchSuccess={stateRowDelete.onFetchSuccess}
+        causeColumn="rootCause"
+        noCauseText={NO_ROOT_CAUSE_TEXT}
+        logColumn="stateChangeLog"
+        logsDescription={LOGS_DESCRIPTION}
+        logViewerTitle="Alert State Log"
+        noLogsText={NO_LOGS_TEXT}
+        showViewIdButton={true}
+      />
+    );
+  }
 
   return (
     <Fragment>
@@ -98,7 +224,8 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
               setRootCause(
                 item["rootCause"]
                   ? item["rootCause"].toString()
-                  : "No root cause identified.",
+                  : translator.translateText(NO_ROOT_CAUSE_TEXT) ||
+                      NO_ROOT_CAUSE_TEXT,
               );
               setShowRootCause(true);
 
@@ -116,7 +243,7 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
               setLogs(
                 item["stateChangeLog"]
                   ? JSON.stringify(item["stateChangeLog"], null, 2)
-                  : "No logs for this state event.",
+                  : translator.translateText(NO_LOGS_TEXT) || NO_LOGS_TEXT,
               );
               setShowViewLogsModal(true);
 
@@ -124,55 +251,17 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
             },
           },
         ]}
-        onBeforeCreate={(
-          item: AlertStateTimeline,
-        ): Promise<AlertStateTimeline> => {
-          if (!props.currentProject || !props.currentProject._id) {
-            throw new BadDataException("Project ID cannot be null");
-          }
-          item.alertId = modelId;
-          item.projectId = new ObjectID(props.currentProject._id);
-          return Promise.resolve(item);
-        }}
+        onBeforeCreate={onBeforeCreate}
         cardProps={{
           title: "Status Timeline",
           description:
             "Each status this alert has been in, when it began and how long it lasted.",
+          rightElement: viewSwitch,
         }}
         noItemsMessage={"No status timeline created for this alert so far."}
         sortBy="startsAt"
         sortOrder={SortOrder.Descending}
-        formFields={[
-          {
-            field: {
-              alertState: true,
-            },
-            title: "Alert Status",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            placeholder: "Alert Status",
-            dropdownModal: {
-              type: AlertState,
-              labelField: "name",
-              valueField: "_id",
-              sort: {
-                order: SortOrder.Ascending,
-              },
-            },
-          },
-          {
-            field: {
-              startsAt: true,
-            },
-            title: "Starts At",
-            fieldType: FormFieldSchemaType.DateTime,
-            required: true,
-            placeholder: "Starts At",
-            getDefaultValue: () => {
-              return OneUptimeDate.getCurrentDate();
-            },
-          },
-        ]}
+        formFields={ALERT_STATE_TIMELINE_FORM_FIELDS}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[
@@ -246,7 +335,7 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
       {showViewLogsModal ? (
         <Modal
           title={"Why did the status change?"}
-          description="What OneUptime recorded when this alert changed to this status, such as the monitor check that caused it."
+          description={LOGS_DESCRIPTION}
           isLoading={false}
           modalWidth={ModalWidth.Large}
           onSubmit={() => {

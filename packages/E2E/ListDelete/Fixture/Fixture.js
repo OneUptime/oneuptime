@@ -87,6 +87,10 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import User from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
+import {
+  StatusTimelineView,
+  writeStatusTimelineView,
+} from "Common/UI/Components/StatusTimeline/StatusTimelineView";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import JA from "../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 
@@ -94,6 +98,16 @@ const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const USER_ID = "80000000-0000-4000-8000-000000000001";
 const params = new URLSearchParams(window.location.search);
 const page = params.get("page") || "list";
+
+/*
+ * An incident's State Timeline opens on the timeline (StatusTimelineView).
+ * These specs drive its table - a row's ⋯, the bulk bar - so the table is
+ * picked first, as the page's Timeline | Table switch picks it.
+ * E2E/StatusTimeline drives the timeline itself.
+ */
+if (page === "incident-timeline") {
+  writeStatusTimelineView(StatusTimelineView.Table);
+}
 const isArchivedPage = page === "archived";
 const role = params.get("role") || "owner";
 const refused = (params.get("refuse") || "")

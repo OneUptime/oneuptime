@@ -25,7 +25,9 @@ The suite drives Delete the way a person does, through every confirmation:
   missing permission on hover, and nothing sent;
 - the Archived page (`?page=archived`), which does not offer to archive;
 - a phone-width screen and dark mode (`?theme=dark`);
-- an incident's State Timeline (`?page=incident-timeline`): the only state's
+- an incident's State Timeline (`?page=incident-timeline`), in its table - the
+  page opens on the timeline, and the fixture picks Table as the page's switch
+  does (`E2E/StatusTimeline` drives the timeline): the only state's
   Delete locked in the server's words; each other state's dialog naming it and
   its start and saying what deleting it does (the state before becomes current
   again, or takes over its time); a bulk Delete naming each row by its state

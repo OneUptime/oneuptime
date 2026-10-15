@@ -191,20 +191,18 @@ Att gå vidare från **Löst** till ett senare tillstånd — **Closed** till ex
 
 ## Tillståndstidslinjen
 
-Incidentens sida **Tillståndstidslinje** i incidentens sidomeny är granskningsspåret för varje tillstånd som incidenten har varit i. Kortet på den sidan heter **Statustidslinje**, och det är sorterat med de senaste först.
+Incidentens sida **Tillståndstidslinje** i incidentens sidomeny är granskningsspåret för varje tillstånd som incidenten har varit i. Kortet på den sidan heter **Statustidslinje**, och det ritar incidentens hela förlopp som en tidslinje:
 
-| Kolumn                             | Vad den visar                                                                                                                                                                                                                                                  |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Incidentstatus**                 | Ett färgat märke med tillståndets namn och färg.                                                                                                                                                                                                               |
-| **Börjar den**                     | När incidenten gick in i det här tillståndet.                                                                                                                                                                                                                  |
-| **Slutar den**                     | När den lämnade det. Det aktuella tillståndet visar `Currently Active`.                                                                                                                                                                                        |
-| **Varaktighet**                    | Tiden i tillståndet, för det aktuella räknat fram till nu.                                                                                                                                                                                                     |
-| **Prenumerantaviseringsstatus**    | Om statussidans avisering för den här ändringen skickades, hoppades över eller fortfarande väntar, med en länk **mer information**, och — när utskicket misslyckades — en åtgärd **Försök igen**. **Försök igen** skickar tillståndsändringen igen till varje statussida som incidenten når nu, även till prenumeranterna som redan har fått den. |
+- **Bandet** visar varje tillstånd som ett stycke i sin färg, lika långt som incidenten var i det, så att förloppet går att läsa av med en blick. Så länge incidenten är öppen går bandet fram till **Nu**; när den är löst slutar bandet strax efter den senaste ändringen. Peka på ett stycke för att se när det började och hur länge det varade, och klicka på det för att hitta ändringen i listan. Ändringar som ligger för tätt för att skiljas åt ritas som ett randigt stycke: klicka på det, eller dra över bandet, för att zooma in, och **Reset zoom** går tillbaka.
+- **Ovanför bandet** står varje tillstånd med den tid incidenten var i det.
+- **Under bandet** står varje ändring, senaste först, grupperad per dag och i din tidszon: när den började och slutade, hur länge den varade, vem som gjorde den och under den **Statussidans prenumeranter:** om statussidans avisering för ändringen skickades, hoppades över eller fortfarande väntar, med en länk **mer information** och — när utskicket misslyckades — en åtgärd **Försök igen**. **Försök igen** skickar tillståndsändringen igen till varje statussida som incidenten når nu, även till de prenumeranter som redan har fått den.
 
-Varje rad har två åtgärder:
+Varje ändring har två åtgärder:
 
 - **Visa orsak** — öppnar en dialog **Rotorsak** som visar den Markdown som registrerades med tillståndsändringen.
 - **Visa loggar** — öppnar en dialog som förklarar varför statusen ändrades, med en vy **Incidenttillståndslogg**.
+
+**Tidslinje** och **Tabell** i kortets rubrik växlar mellan tidslinjen och tabellen som sidan var tidigare: en rad per ändring med **Börjar den**, **Slutar den** och **Varaktighet**, filter, sparade vyer och massåtgärder. Ditt val sparas i webbläsaren, för alla statustidslinjer. Larm, episoder och schemalagda underhållshändelser ritar sina tillståndstidslinjer på samma sätt. En monitors och en nätverksplats **Statustidslinje** öppnas i stället på den senaste månaden, vald som vilket annat tidsintervall som helst, med perioden före och efter ett klick bort.
 
 I instrumentpanelen kan tidslinjerader läggas till och tas bort, men inte redigeras; en incident behåller alltid minst en rad. Via API:t kan en rads `startsAt` rättas, och varje mätning som räknas fram från tidslinjen följer med.
 
