@@ -198,18 +198,26 @@ export default class MicrosoftTeamsAPI {
 
     const manifest: JSONObject = {
       $schema:
-        "https://developer.microsoft.com/json-schemas/teams/v1.23/MicrosoftTeams.schema.json",
-      manifestVersion: "1.23",
+        "https://developer.microsoft.com/json-schemas/teams/v1.25/MicrosoftTeams.schema.json",
+      manifestVersion: "1.25",
       /*
        * Teams only takes an uploaded package as an update when its version is
        * higher than the installed one. Release images carry APP_VERSION; a
        * build without it uses this fallback, so bump it whenever the manifest
        * changes (1.6.0: ChatSettings.Read.Chat added; 1.7.0: the commands
-       * are the words Slack's /oneuptime takes; 1.8.0: page).
+       * are the words Slack's /oneuptime takes; 1.8.0: page; 1.9.0: shared
+       * and private channels).
        */
       version: AppVersion.toLowerCase().includes("unknown")
-        ? "1.8.0"
+        ? "1.9.0"
         : AppVersion,
+      /*
+       * The app works in shared and private channels as in standard ones: it
+       * posts where it is added and answers whoever mentions it. Partner
+       * Center refuses a store package without this (manifest v1.25 and
+       * later), and Teams only offers the app in those channels with it.
+       */
+      supportsChannelFeatures: "tier1",
       id: MicrosoftTeamsAppClientId,
       developer: {
         name: "HackerBay Inc",
