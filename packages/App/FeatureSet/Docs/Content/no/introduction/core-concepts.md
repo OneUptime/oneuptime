@@ -66,6 +66,7 @@ En **episode** samler relaterte hendelser, eller relaterte varsler, slik at team
 
 :::cards
 - [Hendelser – Oversikt](/docs/incidents/index): Hvordan hendelser erklæres, håndteres og løses.
+- [Varsler – Oversikt](/docs/alerts/index): Hvor varsler kommer fra, og hvordan episoder grupperer dem.
 - [Koblede varsler](/docs/incidents/linked-alerts): Koble varslene et brudd utløste, til hendelsen.
 :::
 
