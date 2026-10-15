@@ -1,9 +1,10 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
+import {
+  ACTIVE_MONITOR_LIMIT_ROUTE,
+  fetchActiveMonitorLimitStatus,
+} from "./ActiveMonitorLimitStatusApi";
 import Route from "Common/Types/API/Route";
-import URL from "Common/Types/API/URL";
-import { JSONObject } from "Common/Types/JSON";
 import ActiveMonitorLimitUtil, {
   ActiveMonitorLimitKind,
   ActiveMonitorLimitStatus,
@@ -11,9 +12,7 @@ import ActiveMonitorLimitUtil, {
 } from "Common/Types/Monitor/ActiveMonitorLimit";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Link from "Common/UI/Components/Link/Link";
-import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
-import API from "Common/UI/Utils/API/API";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { BILLING_ENABLED } from "Common/UI/Config";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -94,21 +93,8 @@ export const joinSentences: (sentences: Array<string>) => string = (
   }, "");
 };
 
-export const ACTIVE_MONITOR_LIMIT_ROUTE: string =
-  "/monitor/active-monitor-limit";
-
-// The project's limit and, when it has one, how many active monitors it has.
-export const fetchActiveMonitorLimitStatus: () => Promise<ActiveMonitorLimitStatus> =
-  async (): Promise<ActiveMonitorLimitStatus> => {
-    const response: HTTPResponse<JSONObject> = (await API.get<JSONObject>({
-      url: URL.fromString(APP_API_URL.toString()).addRoute(
-        ACTIVE_MONITOR_LIMIT_ROUTE,
-      ),
-      headers: ModelAPI.getCommonHeaders(),
-    })) as HTTPResponse<JSONObject>;
-
-    return ActiveMonitorLimitUtil.fromJSON(response.data);
-  };
+// Read by modules that import no React (ActiveMonitorLimitStatusApi.ts).
+export { ACTIVE_MONITOR_LIMIT_ROUTE, fetchActiveMonitorLimitStatus };
 
 // The words for a project at or past its limit.
 export const getActiveMonitorLimitNoticeCopy: (data: {

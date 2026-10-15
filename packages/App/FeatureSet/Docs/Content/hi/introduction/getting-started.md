@@ -52,6 +52,7 @@ flowchart TB
 - [ऑन-कॉल](/docs/on-call/index): नीतियां, एस्केलेशन नियम, रोटेशन, और किसे कब पेज किया जाता है।
 - [सूचनाएं](/docs/notifications/index): OneUptime आप तक कैसे पहुँचता है: आपकी विधियां, ऑन-कॉल नियम और सूचना सेटिंग्स।
 - [स्थिति पृष्ठ](/docs/status-pages/index): सार्वजनिक या निजी स्थिति पृष्ठों पर ग्राहकों को जानकारी देते रहें।
+- [अनुसूचित रखरखाव](/docs/scheduled-maintenance/index): योजनाबद्ध काम की पहले से घोषणा करें, और उससे जुड़े मॉनिटर रोकें।
 - [वर्कस्पेस कनेक्शन](/docs/workspace-connections/slack): Slack और Microsoft Teams से घटनाओं पर काम करें।
 :::
 

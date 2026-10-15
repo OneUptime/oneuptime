@@ -52,6 +52,7 @@ Dokumentationen är ordnad som sidofältet, i nio avsnitt. Välj den del du beh�
 - [Jour](/docs/on-call/index): Policyer, eskaleringsregler, rotationer och vem som larmas när.
 - [Aviseringar](/docs/notifications/index): Så når OneUptime dig: dina metoder, jourregler och aviseringsinställningar.
 - [Statussidor](/docs/status-pages/index): Håll kunderna informerade på offentliga eller privata statussidor.
+- [Schemalagt underhåll](/docs/scheduled-maintenance/index): Meddela planerat arbete i förväg, och pausa de monitorer det berör.
 - [Arbetsytekopplingar](/docs/workspace-connections/slack): Arbeta med incidenter från Slack och Microsoft Teams.
 :::
 

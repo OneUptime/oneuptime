@@ -92,6 +92,7 @@ flowchart TB
 :::cards
 - [상태 페이지 개요](/docs/status-pages/index): 상태 페이지를 만들고 무엇을 보여 줄지 정합니다.
 - [구독자 및 공지](/docs/status-pages/subscribers): 누구에게, 언제 알리는지.
+- [예정된 유지 관리 개요](/docs/scheduled-maintenance/index): 이벤트가 어떻게 진행되는지, 무엇을 일시 중지하는지.
 :::
 
 ## 텔레메트리
