@@ -29395,7 +29395,6 @@
   "Each new channel is named after its incident. Anything you write here goes in front of that name.": "Each new channel is named after its incident. Anything you write here goes in front of that name.",
   "Each new channel is named after its monitor. Anything you write here goes in front of that name.": "Each new channel is named after its monitor. Anything you write here goes in front of that name.",
   "Each new channel is named after its on-call policy. Anything you write here goes in front of that name.": "Each new channel is named after its on-call policy. Anything you write here goes in front of that name.",
-  "Each new channel is named after its scheduled maintenance event. Anything you write here goes in front of that name.": "Each new channel is named after its scheduled maintenance event. Anything you write here goes in front of that name.",
   "For alert episode {{record}}.": "For alert episode {{record}}.",
   "For alert {{record}}.": "For alert {{record}}.",
   "For incident episode {{record}}.": "For incident episode {{record}}.",
@@ -29408,5 +29407,7 @@
   "OneUptime uses only letters, numbers, spaces, - and _ in Microsoft Teams channel names.": "OneUptime uses only letters, numbers, spaces, - and _ in Microsoft Teams channel names.",
   "Shortened to Slack's limit of {{count}} characters.": "Shortened to Slack's limit of {{count}} characters.",
   "Shortened to the Microsoft Teams limit of {{count}} characters.": "Shortened to the Microsoft Teams limit of {{count}} characters.",
-  "Slack channel names use only lowercase letters, numbers, - and _.": "Slack channel names use only lowercase letters, numbers, - and _."
+  "Slack channel names use only lowercase letters, numbers, - and _.": "Slack channel names use only lowercase letters, numbers, - and _.",
+  "Each new channel is named after its scheduled maintenance event. Anything you write here replaces the event's number prefix.": "Each new channel is named after its scheduled maintenance event. Anything you write here replaces the event's number prefix.",
+  "e.g. prod-": "e.g. prod-"
 }

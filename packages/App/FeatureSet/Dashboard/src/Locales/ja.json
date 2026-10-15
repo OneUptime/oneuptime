@@ -29395,7 +29395,6 @@
   "Each new channel is named after its incident. Anything you write here goes in front of that name.": "新しいチャネルにはそれぞれインシデントの名前が付きます。ここに入力した文字は、その名前の前に付きます。",
   "Each new channel is named after its monitor. Anything you write here goes in front of that name.": "新しいチャネルにはそれぞれモニターの名前が付きます。ここに入力した文字は、その名前の前に付きます。",
   "Each new channel is named after its on-call policy. Anything you write here goes in front of that name.": "新しいチャネルにはそれぞれオンコールポリシーの名前が付きます。ここに入力した文字は、その名前の前に付きます。",
-  "Each new channel is named after its scheduled maintenance event. Anything you write here goes in front of that name.": "新しいチャネルにはそれぞれ定期メンテナンスイベントの名前が付きます。ここに入力した文字は、その名前の前に付きます。",
   "For alert episode {{record}}.": "アラートエピソード {{record}} の場合。",
   "For alert {{record}}.": "アラート {{record}} の場合。",
   "For incident episode {{record}}.": "インシデントエピソード {{record}} の場合。",
@@ -29408,5 +29407,7 @@
   "OneUptime uses only letters, numbers, spaces, - and _ in Microsoft Teams channel names.": "OneUptime が Microsoft Teams のチャネル名に使うのは、文字、数字、スペース、- と _ だけです。",
   "Shortened to Slack's limit of {{count}} characters.": "Slack の上限の {{count}} 文字に短縮しました。",
   "Shortened to the Microsoft Teams limit of {{count}} characters.": "Microsoft Teams の上限の {{count}} 文字に短縮しました。",
-  "Slack channel names use only lowercase letters, numbers, - and _.": "Slack のチャネル名に使えるのは英小文字、数字、- と _ だけです。"
+  "Slack channel names use only lowercase letters, numbers, - and _.": "Slack のチャネル名に使えるのは英小文字、数字、- と _ だけです。",
+  "Each new channel is named after its scheduled maintenance event. Anything you write here replaces the event's number prefix.": "新しいチャネルにはそれぞれ定期メンテナンスイベントの名前が付きます。ここに入力した文字は、イベントの番号プレフィックスの代わりに付きます。",
+  "e.g. prod-": "例: prod-"
 }

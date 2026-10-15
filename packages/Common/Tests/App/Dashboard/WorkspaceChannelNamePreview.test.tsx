@@ -18,6 +18,8 @@ import React from "react";
 const JAPANESE: Record<string, string> = {
   "Preview:": "プレビュー:",
   "For incident {{record}}.": "インシデント {{record}} の場合。",
+  "Slack channel names use only lowercase letters, numbers, - and _.":
+    "Slack のチャネル名に使えるのは英小文字、数字、- と _ だけです。",
   "If Slack already has a channel with this name, OneUptime adds -2 to the end.":
     "Slack に同じ名前のチャネルがすでにある場合、OneUptime は末尾に -2 を付けます。",
 };
@@ -70,6 +72,7 @@ import {
   CHANNEL_NAME_TAKEN_NOTES,
   ChannelNamePreview,
   ChannelNameSummary,
+  getChannelNameTakenNote,
   getShownChannelName,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/ChannelNamePreview";
 import NotificationRuleViewElement from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleViewElement/NotificationRuleViewElement";
@@ -78,6 +81,7 @@ import NotificationRuleEventType from "../../../Types/Workspace/NotificationRule
 import IncidentNotificationRule from "../../../Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import { WorkspaceChannelNumberPrefixes } from "../../../Utils/Workspace/WorkspaceChannelName";
+import { Translator } from "../../../UI/Utils/TranslateTemplate";
 
 const PREFIXES: WorkspaceChannelNumberPrefixes = {
   [NotificationRuleEventType.Incident]: "INC-",
@@ -103,9 +107,11 @@ function renderPreview(props: {
   eventType?: NotificationRuleEventType;
   numberPrefixes?: WorkspaceChannelNumberPrefixes | undefined;
   exampleRecordName?: string | undefined;
+  id?: string | undefined;
 }): void {
   render(
     <ChannelNamePreview
+      id={props.id}
       workspaceType={props.workspaceType || WorkspaceType.Slack}
       eventType={props.eventType || NotificationRuleEventType.Incident}
       prefix={props.prefix}
@@ -126,14 +132,61 @@ function notes(): string {
   return screen.getByTestId("channel-name-preview-notes").textContent || "";
 }
 
+function takenNote(): string {
+  return screen.getByTestId("channel-name-preview-taken").textContent || "";
+}
+
 describe("the preview under the Channel Name Prefix field", () => {
   test("no prefix: the incident's own name, which incident it is, and what happens to a taken name", () => {
     renderPreview({ prefix: undefined });
 
     expect(screen.getByTestId("preview")).toHaveTextContent("Preview: #inc-42");
     expect(shownName()).toBe("#inc-42");
+    expect(notes()).toBe("For incident INC-42.");
+    expect(takenNote()).toBe(
+      "If Slack already has a channel with this name, OneUptime adds -2 to the end.",
+    );
+  });
+
+  test("the name runs on from its label in one line of text, so the two share a baseline and wrap together", () => {
+    renderPreview({ prefix: "prod-" });
+
+    const line: HTMLElement = screen.getByTestId("channel-name-preview")
+      .parentElement as HTMLElement;
+
+    // One paragraph of text, not a row of flex items centred on each other.
+    expect(line.tagName).toBe("P");
+    expect(line.className).not.toMatch(/\bflex\b/);
+    expect(line).toHaveTextContent(/^Preview: #prod-inc-42$/);
+    // A long name breaks inside itself only when it is longer than a line.
+    expect(screen.getByTestId("channel-name-preview")).toHaveClass(
+      "break-words",
+    );
+    expect(screen.getByTestId("channel-name-preview")).not.toHaveClass(
+      "break-all",
+    );
+  });
+
+  test("what happens to a taken name is a line of its own, under the sentences about the name shown", () => {
+    renderPreview({ prefix: "Prod Team #1-" });
+
     expect(notes()).toBe(
-      "For incident INC-42. If Slack already has a channel with this name, OneUptime adds -2 to the end.",
+      "For incident INC-42. Slack channel names use only lowercase letters, numbers, - and _.",
+    );
+    expect(takenNote()).toBe(
+      "If Slack already has a channel with this name, OneUptime adds -2 to the end.",
+    );
+    expect(
+      screen.getByTestId("channel-name-preview-taken").previousElementSibling,
+    ).toBe(screen.getByTestId("channel-name-preview-notes"));
+  });
+
+  test("takes the id the prefix field is described by", () => {
+    renderPreview({ prefix: "", id: "channel-name-preview-of-the-field" });
+
+    expect(screen.getByTestId("preview")).toHaveAttribute(
+      "id",
+      "channel-name-preview-of-the-field",
     );
   });
 
@@ -150,8 +203,9 @@ describe("the preview under the Channel Name Prefix field", () => {
     });
 
     expect(shownName()).toBe("Ops Team-inc-42");
-    expect(notes()).toBe(
-      "For incident INC-42. If the team already has a channel with this name, OneUptime adds -2 to the end.",
+    expect(notes()).toBe("For incident INC-42.");
+    expect(takenNote()).toBe(
+      "If the team already has a channel with this name, OneUptime adds -2 to the end.",
     );
   });
 
@@ -165,8 +219,10 @@ describe("the preview under the Channel Name Prefix field", () => {
         "For incident INC-42.",
         "Slack channel names use only lowercase letters, numbers, - and _.",
         "Shortened to Slack's limit of 80 characters.",
-        "If Slack already has a channel with this name, OneUptime adds -2 to the end.",
       ].join(" "),
+    );
+    expect(takenNote()).toBe(
+      "If Slack already has a channel with this name, OneUptime adds -2 to the end.",
     );
   });
 
@@ -227,8 +283,9 @@ describe("the preview under the Channel Name Prefix field", () => {
     expect(screen.getByTestId("preview")).toHaveTextContent(
       "Vorschau: #inc-42",
     );
-    expect(notes()).toBe(
-      "Für Vorfall INC-42. Wenn Slack bereits einen Kanal mit diesem Namen hat, hängt OneUptime -2 an.",
+    expect(notes()).toBe("Für Vorfall INC-42.");
+    expect(takenNote()).toBe(
+      "Wenn Slack bereits einen Kanal mit diesem Namen hat, hängt OneUptime -2 an.",
     );
     // The record sentence is asked for with its placeholder, never in pieces.
     expect(askedFor).toContain("For incident {{record}}.");
@@ -236,10 +293,39 @@ describe("the preview under the Channel Name Prefix field", () => {
 
   test("sentences that end the way Japanese ends one run on without a space", () => {
     language = "ja";
-    renderPreview({ prefix: "" });
+    renderPreview({ prefix: "Prod Team #1-" });
 
     expect(notes()).toBe(
-      "インシデント INC-42 の場合。Slack に同じ名前のチャネルがすでにある場合、OneUptime は末尾に -2 を付けます。",
+      "インシデント INC-42 の場合。Slack のチャネル名に使えるのは英小文字、数字、- と _ だけです。",
+    );
+    expect(takenNote()).toBe(
+      "Slack に同じ名前のチャネルがすでにある場合、OneUptime は末尾に -2 を付けます。",
+    );
+  });
+
+  test("a scheduled maintenance event's prefix takes the place of its number prefix, as its field says", () => {
+    renderPreview({
+      prefix: "",
+      eventType: NotificationRuleEventType.ScheduledMaintenance,
+    });
+
+    expect(shownName()).toBe("#sm-42");
+
+    cleanup();
+
+    renderPreview({
+      prefix: "maint-",
+      eventType: NotificationRuleEventType.ScheduledMaintenance,
+    });
+
+    expect(shownName()).toBe("#maint-42");
+    expect(notes()).toBe("For scheduled maintenance event SM-42.");
+    expect(
+      CHANNEL_NAME_PREFIX_DESCRIPTIONS[
+        NotificationRuleEventType.ScheduledMaintenance
+      ],
+    ).toBe(
+      "Each new channel is named after its scheduled maintenance event. Anything you write here replaces the event's number prefix.",
     );
   });
 });
@@ -271,6 +357,30 @@ describe("the channel name on a rule's card", () => {
     );
     expect(screen.getByTestId("channel-name-example")).toHaveTextContent(
       "#prod-inc-42",
+    );
+  });
+
+  test("Example: and its name are one piece, and the pieces share a baseline", () => {
+    renderSummary(
+      "a-very-long-prefix-for-the-production-environment-",
+      PREFIXES,
+    );
+
+    /*
+     * A long prefix wraps the example onto the next line as a whole: the
+     * label never stays behind at the end of the first line.
+     */
+    expect(
+      screen.getByTestId("channel-name-example").parentElement,
+    ).toHaveTextContent(
+      /^Example: #a-very-long-prefix-for-the-production-environment-inc-42$/,
+    );
+    expect(screen.getByTestId("summary")).toHaveClass("items-baseline");
+    expect(screen.getByTestId("summary")).not.toHaveClass("items-center");
+    // A prefix longer than the card wraps inside its chip.
+    expect(screen.getByTestId("channel-name-prefix-value")).toHaveClass(
+      "min-w-0",
+      "break-words",
     );
   });
 
@@ -384,13 +494,41 @@ describe("the rule's card shows its channel name", () => {
 describe("the words", () => {
   test("one description, one record sentence for every kind of record", () => {
     for (const eventType of ALL_EVENT_TYPES) {
+      /*
+       * A prefix goes in front of the record's own name - but a scheduled
+       * maintenance event's takes the place of its number prefix (sm-42,
+       * maint-42), and its description says so.
+       */
       expect(CHANNEL_NAME_PREFIX_DESCRIPTIONS[eventType]).toMatch(
-        /^Each new channel is named after its .+\. Anything you write here goes in front of that name\.$/,
+        eventType === NotificationRuleEventType.ScheduledMaintenance
+          ? /^Each new channel is named after its scheduled maintenance event\. Anything you write here replaces the event's number prefix\.$/
+          : /^Each new channel is named after its .+\. Anything you write here goes in front of that name\.$/,
       );
       expect(CHANNEL_NAME_EXAMPLE_RECORD_SENTENCES[eventType]).toMatch(
         /^For .*\{\{record\}\}\.$/,
       );
     }
+  });
+
+  test("the taken-name line, in each workspace's words", () => {
+    const translator: Translator = {
+      translateText: (text: string): string => {
+        return text;
+      },
+    } as unknown as Translator;
+
+    expect(
+      getChannelNameTakenNote({
+        workspaceType: WorkspaceType.Slack,
+        translator: translator,
+      }),
+    ).toBe(CHANNEL_NAME_TAKEN_NOTES[WorkspaceType.Slack]);
+    expect(
+      getChannelNameTakenNote({
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        translator: translator,
+      }),
+    ).toBe(CHANNEL_NAME_TAKEN_NOTES[WorkspaceType.MicrosoftTeams]);
   });
 
   test("each workspace has its own notes", () => {

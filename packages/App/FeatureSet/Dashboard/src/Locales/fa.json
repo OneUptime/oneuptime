@@ -29395,7 +29395,6 @@
   "Each new channel is named after its incident. Anything you write here goes in front of that name.": "هر کانال تازه به نام حادثه‌اش نام‌گذاری می‌شود. آنچه این‌جا بنویسید پیش از آن نام می‌آید.",
   "Each new channel is named after its monitor. Anything you write here goes in front of that name.": "هر کانال تازه به نام مانیتورش نام‌گذاری می‌شود. آنچه این‌جا بنویسید پیش از آن نام می‌آید.",
   "Each new channel is named after its on-call policy. Anything you write here goes in front of that name.": "هر کانال تازه به نام سیاست آنکالش نام‌گذاری می‌شود. آنچه این‌جا بنویسید پیش از آن نام می‌آید.",
-  "Each new channel is named after its scheduled maintenance event. Anything you write here goes in front of that name.": "هر کانال تازه به نام رویداد تعمیر و نگهداری زمان‌بندی‌شده‌اش نام‌گذاری می‌شود. آنچه این‌جا بنویسید پیش از آن نام می‌آید.",
   "For alert episode {{record}}.": "برای اپیزود هشدار {{record}}.",
   "For alert {{record}}.": "برای هشدار {{record}}.",
   "For incident episode {{record}}.": "برای اپیزود حادثه {{record}}.",
@@ -29408,5 +29407,7 @@
   "OneUptime uses only letters, numbers, spaces, - and _ in Microsoft Teams channel names.": "OneUptime در نام کانال‌های Microsoft Teams فقط از حروف، اعداد، فاصله، - و _ استفاده می‌کند.",
   "Shortened to Slack's limit of {{count}} characters.": "به سقف {{count}} نویسه‌ای Slack کوتاه شد.",
   "Shortened to the Microsoft Teams limit of {{count}} characters.": "به سقف {{count}} نویسه‌ای Microsoft Teams کوتاه شد.",
-  "Slack channel names use only lowercase letters, numbers, - and _.": "نام کانال‌های Slack فقط از حروف کوچک، اعداد، - و _ ساخته می‌شود."
+  "Slack channel names use only lowercase letters, numbers, - and _.": "نام کانال‌های Slack فقط از حروف کوچک، اعداد، - و _ ساخته می‌شود.",
+  "Each new channel is named after its scheduled maintenance event. Anything you write here replaces the event's number prefix.": "هر کانال تازه به نام رویداد تعمیر و نگهداری زمان‌بندی‌شده‌اش نام‌گذاری می‌شود. آنچه این‌جا بنویسید جای پیشوند شمارهٔ رویداد را می‌گیرد.",
+  "e.g. prod-": "برای نمونه prod-"
 }

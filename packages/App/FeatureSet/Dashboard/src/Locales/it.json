@@ -29395,7 +29395,6 @@
   "Each new channel is named after its incident. Anything you write here goes in front of that name.": "Ogni nuovo canale prende il nome dal suo incidente. Ciò che scrivi qui va prima di quel nome.",
   "Each new channel is named after its monitor. Anything you write here goes in front of that name.": "Ogni nuovo canale prende il nome dal suo monitor. Ciò che scrivi qui va prima di quel nome.",
   "Each new channel is named after its on-call policy. Anything you write here goes in front of that name.": "Ogni nuovo canale prende il nome dalla sua policy di reperibilità. Ciò che scrivi qui va prima di quel nome.",
-  "Each new channel is named after its scheduled maintenance event. Anything you write here goes in front of that name.": "Ogni nuovo canale prende il nome dal suo evento di manutenzione pianificata. Ciò che scrivi qui va prima di quel nome.",
   "For alert episode {{record}}.": "Per l'episodio di avviso {{record}}.",
   "For alert {{record}}.": "Per l'avviso {{record}}.",
   "For incident episode {{record}}.": "Per l'episodio di incidente {{record}}.",
@@ -29408,5 +29407,7 @@
   "OneUptime uses only letters, numbers, spaces, - and _ in Microsoft Teams channel names.": "OneUptime usa solo lettere, numeri, spazi, - e _ nei nomi dei canali di Microsoft Teams.",
   "Shortened to Slack's limit of {{count}} characters.": "Accorciato al limite di {{count}} caratteri di Slack.",
   "Shortened to the Microsoft Teams limit of {{count}} characters.": "Accorciato al limite di {{count}} caratteri di Microsoft Teams.",
-  "Slack channel names use only lowercase letters, numbers, - and _.": "I nomi dei canali Slack usano solo lettere minuscole, numeri, - e _."
+  "Slack channel names use only lowercase letters, numbers, - and _.": "I nomi dei canali Slack usano solo lettere minuscole, numeri, - e _.",
+  "Each new channel is named after its scheduled maintenance event. Anything you write here replaces the event's number prefix.": "Ogni nuovo canale prende il nome dal suo evento di manutenzione pianificata. Ciò che scrivi qui sostituisce il prefisso del numero dell'evento.",
+  "e.g. prod-": "ad es. prod-"
 }

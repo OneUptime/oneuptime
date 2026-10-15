@@ -17,6 +17,7 @@ import React, {
   FunctionComponent,
   MutableRefObject,
   ReactElement,
+  useId,
   useRef,
 } from "react";
 import Team from "Common/Models/DatabaseModels/Team";
@@ -103,6 +104,9 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
   const latestValue: MutableRefObject<IncidentNotificationRule | undefined> =
     useRef<IncidentNotificationRule | undefined>(props.value);
   latestValue.current = props.value;
+
+  // The channel name preview, which describes the Channel Name Prefix field.
+  const channelNamePreviewId: string = useId();
 
   /*
    * When the rule fires: its conditions, then - once there are two to
@@ -343,7 +347,9 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
      * Optional: without a prefix, a channel is named after its record -
      * inc-42 for incident INC-42 - and a prefix goes in front of that name,
      * prod-inc-42. The preview under the field shows the name as it is
-     * typed, worked out as the server names channels (WorkspaceChannelName).
+     * typed, worked out as the server names channels (WorkspaceChannelName),
+     * and describes the field to a screen reader. The placeholder shows the
+     * usual shape of a prefix: a word and a hyphen.
      */
     {
       field: {
@@ -359,13 +365,16 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       required: false,
       description: CHANNEL_NAME_PREFIX_DESCRIPTIONS[props.eventType],
       fieldType: FormFieldSchemaType.Text,
+      placeholder: "e.g. prod-",
       disableSpellCheck: true,
       dataTestId: "channel-name-prefix",
+      ariaDescribedby: channelNamePreviewId,
       getFooterElement: (
         formValue: FormValues<NotificationRulesType>,
       ): ReactElement => {
         return (
           <ChannelNamePreview
+            id={channelNamePreviewId}
             workspaceType={props.workspaceType}
             eventType={props.eventType}
             prefix={

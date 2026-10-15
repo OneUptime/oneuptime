@@ -29395,7 +29395,6 @@
   "Each new channel is named after its incident. Anything you write here goes in front of that name.": "새 채널마다 해당 인시던트의 이름이 붙습니다. 여기에 입력한 내용은 그 이름 앞에 붙습니다.",
   "Each new channel is named after its monitor. Anything you write here goes in front of that name.": "새 채널마다 해당 모니터의 이름이 붙습니다. 여기에 입력한 내용은 그 이름 앞에 붙습니다.",
   "Each new channel is named after its on-call policy. Anything you write here goes in front of that name.": "새 채널마다 해당 온콜 정책의 이름이 붙습니다. 여기에 입력한 내용은 그 이름 앞에 붙습니다.",
-  "Each new channel is named after its scheduled maintenance event. Anything you write here goes in front of that name.": "새 채널마다 해당 예정된 유지보수 이벤트의 이름이 붙습니다. 여기에 입력한 내용은 그 이름 앞에 붙습니다.",
   "For alert episode {{record}}.": "경고 에피소드 {{record}} 기준입니다.",
   "For alert {{record}}.": "경고 {{record}} 기준입니다.",
   "For incident episode {{record}}.": "인시던트 에피소드 {{record}} 기준입니다.",
@@ -29408,5 +29407,7 @@
   "OneUptime uses only letters, numbers, spaces, - and _ in Microsoft Teams channel names.": "OneUptime은 Microsoft Teams 채널 이름에 문자, 숫자, 공백, - 및 _만 사용합니다.",
   "Shortened to Slack's limit of {{count}} characters.": "Slack의 {{count}}자 제한에 맞게 줄였습니다.",
   "Shortened to the Microsoft Teams limit of {{count}} characters.": "Microsoft Teams의 {{count}}자 제한에 맞게 줄였습니다.",
-  "Slack channel names use only lowercase letters, numbers, - and _.": "Slack 채널 이름에는 영문 소문자, 숫자, - 및 _만 쓸 수 있습니다."
+  "Slack channel names use only lowercase letters, numbers, - and _.": "Slack 채널 이름에는 영문 소문자, 숫자, - 및 _만 쓸 수 있습니다.",
+  "Each new channel is named after its scheduled maintenance event. Anything you write here replaces the event's number prefix.": "새 채널마다 해당 예정된 유지보수 이벤트의 이름이 붙습니다. 여기에 입력한 내용은 이벤트의 번호 접두사를 대신합니다.",
+  "e.g. prod-": "예: prod-"
 }

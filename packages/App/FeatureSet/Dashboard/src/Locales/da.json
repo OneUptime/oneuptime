@@ -29395,7 +29395,6 @@
   "Each new channel is named after its incident. Anything you write here goes in front of that name.": "Hver ny kanal får navn efter sin hændelse. Det, du skriver her, sættes foran det navn.",
   "Each new channel is named after its monitor. Anything you write here goes in front of that name.": "Hver ny kanal får navn efter sin overvågning. Det, du skriver her, sættes foran det navn.",
   "Each new channel is named after its on-call policy. Anything you write here goes in front of that name.": "Hver ny kanal får navn efter sin vagtpolitik. Det, du skriver her, sættes foran det navn.",
-  "Each new channel is named after its scheduled maintenance event. Anything you write here goes in front of that name.": "Hver ny kanal får navn efter sin planlagte vedligeholdelsesbegivenhed. Det, du skriver her, sættes foran det navn.",
   "For alert episode {{record}}.": "For advarselsepisode {{record}}.",
   "For alert {{record}}.": "For advarsel {{record}}.",
   "For incident episode {{record}}.": "For hændelsesepisode {{record}}.",
@@ -29408,5 +29407,7 @@
   "OneUptime uses only letters, numbers, spaces, - and _ in Microsoft Teams channel names.": "OneUptime bruger kun bogstaver, tal, mellemrum, - og _ i kanalnavne i Microsoft Teams.",
   "Shortened to Slack's limit of {{count}} characters.": "Forkortet til Slacks grænse på {{count}} tegn.",
   "Shortened to the Microsoft Teams limit of {{count}} characters.": "Forkortet til Microsoft Teams' grænse på {{count}} tegn.",
-  "Slack channel names use only lowercase letters, numbers, - and _.": "Kanalnavne i Slack bruger kun små bogstaver, tal, - og _."
+  "Slack channel names use only lowercase letters, numbers, - and _.": "Kanalnavne i Slack bruger kun små bogstaver, tal, - og _.",
+  "Each new channel is named after its scheduled maintenance event. Anything you write here replaces the event's number prefix.": "Hver ny kanal får navn efter sin planlagte vedligeholdelsesbegivenhed. Det, du skriver her, erstatter begivenhedens nummerpræfiks.",
+  "e.g. prod-": "f.eks. prod-"
 }

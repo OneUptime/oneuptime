@@ -29395,7 +29395,6 @@
   "Each new channel is named after its incident. Anything you write here goes in front of that name.": "Elk nieuw kanaal krijgt de naam van zijn incident. Wat u hier invult, komt vóór die naam.",
   "Each new channel is named after its monitor. Anything you write here goes in front of that name.": "Elk nieuw kanaal krijgt de naam van zijn monitor. Wat u hier invult, komt vóór die naam.",
   "Each new channel is named after its on-call policy. Anything you write here goes in front of that name.": "Elk nieuw kanaal krijgt de naam van zijn bereikbaarheidsbeleid. Wat u hier invult, komt vóór die naam.",
-  "Each new channel is named after its scheduled maintenance event. Anything you write here goes in front of that name.": "Elk nieuw kanaal krijgt de naam van zijn geplande onderhoudsgebeurtenis. Wat u hier invult, komt vóór die naam.",
   "For alert episode {{record}}.": "Voor waarschuwingsepisode {{record}}.",
   "For alert {{record}}.": "Voor waarschuwing {{record}}.",
   "For incident episode {{record}}.": "Voor incidentepisode {{record}}.",
@@ -29408,5 +29407,7 @@
   "OneUptime uses only letters, numbers, spaces, - and _ in Microsoft Teams channel names.": "OneUptime gebruikt alleen letters, cijfers, spaties, - en _ in kanaalnamen van Microsoft Teams.",
   "Shortened to Slack's limit of {{count}} characters.": "Ingekort tot de limiet van {{count}} tekens van Slack.",
   "Shortened to the Microsoft Teams limit of {{count}} characters.": "Ingekort tot de limiet van {{count}} tekens van Microsoft Teams.",
-  "Slack channel names use only lowercase letters, numbers, - and _.": "Kanaalnamen in Slack bevatten alleen kleine letters, cijfers, - en _."
+  "Slack channel names use only lowercase letters, numbers, - and _.": "Kanaalnamen in Slack bevatten alleen kleine letters, cijfers, - en _.",
+  "Each new channel is named after its scheduled maintenance event. Anything you write here replaces the event's number prefix.": "Elk nieuw kanaal krijgt de naam van zijn geplande onderhoudsgebeurtenis. Wat u hier invult, vervangt het nummervoorvoegsel van de gebeurtenis.",
+  "e.g. prod-": "bijv. prod-"
 }

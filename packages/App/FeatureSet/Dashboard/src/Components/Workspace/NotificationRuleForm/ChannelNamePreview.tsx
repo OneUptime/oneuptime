@@ -33,6 +33,12 @@ import React, { FunctionComponent, ReactElement } from "react";
 /*
  * What the prefix field says it is for, by the kind of record the rule is
  * for. The preview under the field shows the name.
+ *
+ * A scheduled maintenance event's says what a prefix does to its name: the
+ * prefix takes the place of the event's number prefix (sm-42 without one,
+ * maint-42 with maint-), as rules with a prefix have always named those
+ * channels (WorkspaceChannelName.forNumberedRecord). "Goes in front of that
+ * name" would promise maint-sm-42, and the preview would show otherwise.
  */
 export const CHANNEL_NAME_PREFIX_DESCRIPTIONS: Record<
   NotificationRuleEventType,
@@ -51,7 +57,7 @@ export const CHANNEL_NAME_PREFIX_DESCRIPTIONS: Record<
     "Each new channel is named after its alert episode. Anything you write here goes in front of that name.",
   ),
   [NotificationRuleEventType.ScheduledMaintenance]: translationKey(
-    "Each new channel is named after its scheduled maintenance event. Anything you write here goes in front of that name.",
+    "Each new channel is named after its scheduled maintenance event. Anything you write here replaces the event's number prefix.",
   ),
   [NotificationRuleEventType.Monitor]: translationKey(
     "Each new channel is named after its monitor. Anything you write here goes in front of that name.",
@@ -141,6 +147,12 @@ export interface ChannelNameExampleInput {
 }
 
 export interface ChannelNameExampleProps extends ChannelNameExampleInput {
+  /*
+   * The element's id. The prefix field names the preview as what describes
+   * it (aria-describedby), so a screen reader reads the channel name with
+   * the field.
+   */
+  id?: string | undefined;
   dataTestId?: string | undefined;
 }
 
@@ -193,9 +205,9 @@ export const getChannelNameExample: (
 };
 
 /*
- * The sentences under a preview, in the reader's language: which record the
- * example is for, what the workspace changed, and what happens when the
- * name is taken.
+ * The sentences under a preview about the name shown, in the reader's
+ * language: which record the example is for, and what the workspace changed
+ * in what was typed.
  */
 export const getChannelNamePreviewNotes: (data: {
   workspaceType: WorkspaceType;
@@ -236,21 +248,39 @@ export const getChannelNamePreviewNotes: (data: {
     );
   }
 
-  notes.push(
-    data.translator.translateText(
-      CHANNEL_NAME_TAKEN_NOTES[data.workspaceType],
-    ) || "",
-  );
-
   return notes.filter((note: string): boolean => {
     return Boolean(note);
   });
 };
 
 /*
+ * What happens when the workspace already has a channel by the name, in the
+ * reader's language. The same for every name, so the preview gives it a line
+ * of its own, under the sentences about the name shown.
+ */
+export const getChannelNameTakenNote: (data: {
+  workspaceType: WorkspaceType;
+  translator: Translator;
+}) => string = (data: {
+  workspaceType: WorkspaceType;
+  translator: Translator;
+}): string => {
+  return (
+    data.translator.translateText(
+      CHANNEL_NAME_TAKEN_NOTES[data.workspaceType],
+    ) || ""
+  );
+};
+
+/*
  * Under the Channel Name Prefix field: the name an example record's channel
- * gets with the prefix as it is typed - "Preview: #prod-inc-42" - and under
- * it which record that is, and what the workspace changed.
+ * gets with the prefix as it is typed - "Preview: #prod-inc-42" - then which
+ * record that is and what the workspace changed, and on a line of its own
+ * what happens to a name that is taken.
+ *
+ * The name runs on from its label as text does, so the two share a baseline
+ * whatever the fonts, and a long name wraps after the label rather than
+ * leaving it alone on a line.
  */
 export const ChannelNamePreview: FunctionComponent<ChannelNameExampleProps> = (
   props: ChannelNameExampleProps,
@@ -276,20 +306,32 @@ export const ChannelNamePreview: FunctionComponent<ChannelNameExampleProps> = (
     translator: translator,
   });
 
+  const takenNote: string = getChannelNameTakenNote({
+    workspaceType: props.workspaceType,
+    translator: translator,
+  });
+
   return (
-    <div data-testid={props.dataTestId} className="mt-2 space-y-1 text-sm">
-      <p className="flex flex-wrap items-center gap-x-2 text-gray-500">
-        <span>{translator.translateText("Preview:")}</span>{" "}
+    <div
+      id={props.id}
+      data-testid={props.dataTestId}
+      className="mt-2 space-y-1 text-sm text-gray-500"
+    >
+      <p>
+        {translator.translateText("Preview:")}{" "}
         <span
           data-testid="channel-name-preview"
-          className="break-all font-mono font-medium text-gray-900"
+          className="ml-1 break-words font-mono font-medium text-gray-900"
         >
           {getShownChannelName(props.workspaceType, example.description.name)}
         </span>
       </p>
-      <p data-testid="channel-name-preview-notes" className="text-gray-500">
-        {joinSentences(notes)}
-      </p>
+      <p data-testid="channel-name-preview-notes">{joinSentences(notes)}</p>
+      {takenNote ? (
+        <p data-testid="channel-name-preview-taken">{takenNote}</p>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };
@@ -298,6 +340,11 @@ export const ChannelNamePreview: FunctionComponent<ChannelNameExampleProps> = (
  * On a rule's card: the rule's prefix, or "No prefix", and the name an
  * example record's channel gets - "prod-   Example: #prod-inc-42", as the
  * Number Prefix pages show a prefix and its number.
+ *
+ * "Example:" and its name are one piece that wraps as a whole, so a long
+ * prefix never leaves the label at the end of one line and its name on the
+ * next; the pieces share a baseline, and a prefix or name longer than the
+ * card wraps inside it.
  */
 export const ChannelNameSummary: FunctionComponent<ChannelNameExampleProps> = (
   props: ChannelNameExampleProps,
@@ -317,12 +364,12 @@ export const ChannelNameSummary: FunctionComponent<ChannelNameExampleProps> = (
   return (
     <div
       data-testid={props.dataTestId}
-      className="flex flex-wrap items-center gap-x-3 gap-y-1"
+      className="flex flex-wrap items-baseline gap-x-3 gap-y-1"
     >
       {prefix ? (
         <code
           data-testid="channel-name-prefix-value"
-          className="rounded-md bg-gray-100 px-2 py-0.5 font-mono text-sm font-semibold text-gray-900"
+          className="min-w-0 break-words rounded-md bg-gray-100 px-2 py-0.5 font-mono text-sm font-semibold text-gray-900"
         >
           {prefix}
         </code>
@@ -337,14 +384,17 @@ export const ChannelNameSummary: FunctionComponent<ChannelNameExampleProps> = (
       {example ? (
         <>
           {" "}
-          <span className="text-sm text-gray-500">
-            {translator.translateText("Example:")}
-          </span>{" "}
-          <span
-            data-testid="channel-name-example"
-            className="break-all font-mono text-sm text-gray-900"
-          >
-            {getShownChannelName(props.workspaceType, example.description.name)}
+          <span className="min-w-0 text-sm text-gray-500">
+            {translator.translateText("Example:")}{" "}
+            <span
+              data-testid="channel-name-example"
+              className="ml-1 break-words font-mono text-gray-900"
+            >
+              {getShownChannelName(
+                props.workspaceType,
+                example.description.name,
+              )}
+            </span>
           </span>
         </>
       ) : (

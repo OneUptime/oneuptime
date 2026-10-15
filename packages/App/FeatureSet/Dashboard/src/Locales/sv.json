@@ -29395,7 +29395,6 @@
   "Each new channel is named after its incident. Anything you write here goes in front of that name.": "Varje ny kanal får namn efter sin incident. Det du skriver här hamnar före det namnet.",
   "Each new channel is named after its monitor. Anything you write here goes in front of that name.": "Varje ny kanal får namn efter sin övervakning. Det du skriver här hamnar före det namnet.",
   "Each new channel is named after its on-call policy. Anything you write here goes in front of that name.": "Varje ny kanal får namn efter sin jourpolicy. Det du skriver här hamnar före det namnet.",
-  "Each new channel is named after its scheduled maintenance event. Anything you write here goes in front of that name.": "Varje ny kanal får namn efter sin schemalagda underhållshändelse. Det du skriver här hamnar före det namnet.",
   "For alert episode {{record}}.": "För larmepisod {{record}}.",
   "For alert {{record}}.": "För larm {{record}}.",
   "For incident episode {{record}}.": "För incidentepisod {{record}}.",
@@ -29408,5 +29407,7 @@
   "OneUptime uses only letters, numbers, spaces, - and _ in Microsoft Teams channel names.": "OneUptime använder bara bokstäver, siffror, mellanslag, - och _ i kanalnamn i Microsoft Teams.",
   "Shortened to Slack's limit of {{count}} characters.": "Förkortat till Slacks gräns på {{count}} tecken.",
   "Shortened to the Microsoft Teams limit of {{count}} characters.": "Förkortat till gränsen i Microsoft Teams på {{count}} tecken.",
-  "Slack channel names use only lowercase letters, numbers, - and _.": "Kanalnamn i Slack använder bara små bokstäver, siffror, - och _."
+  "Slack channel names use only lowercase letters, numbers, - and _.": "Kanalnamn i Slack använder bara små bokstäver, siffror, - och _.",
+  "Each new channel is named after its scheduled maintenance event. Anything you write here replaces the event's number prefix.": "Varje ny kanal får namn efter sin schemalagda underhållshändelse. Det du skriver här ersätter händelsens nummerprefix.",
+  "e.g. prod-": "t.ex. prod-"
 }

@@ -244,7 +244,10 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-// The Channel Name Prefix field, found by its label: it has no placeholder.
+/*
+ * The Channel Name Prefix field, found by its label: its placeholder is an
+ * example ("e.g. prod-"), not a value.
+ */
 async function prefixField(): Promise<HTMLElement> {
   return within(dialog()).findByRole("textbox", {
     name: /^Channel Name Prefix/,
@@ -846,6 +849,14 @@ describe("Name the channel a rule creates", () => {
     );
   }
 
+  // What happens to a taken name: a line of its own under the notes.
+  function previewTakenNote(): string {
+    return (
+      within(dialog()).getByTestId("channel-name-preview-taken").textContent ||
+      ""
+    );
+  }
+
   test("the prefix is optional, and the preview shows the channel named after the incident", async () => {
     const user: UserEvent = await renderForm(
       NotificationRuleEventType.Incident,
@@ -864,9 +875,54 @@ describe("Name the channel a rule creates", () => {
     ).toBeVisible();
 
     expect(preview()).toBe("#inc-42");
-    expect(previewNotes()).toBe(
-      "For incident INC-42. If Slack already has a channel with this name, OneUptime adds -2 to the end.",
+    expect(previewNotes()).toBe("For incident INC-42.");
+    expect(previewTakenNote()).toBe(
+      "If Slack already has a channel with this name, OneUptime adds -2 to the end.",
     );
+  });
+
+  test("the field shows the usual shape of a prefix, and a screen reader hears the channel name with it", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toNewChannel(user);
+
+    // An example, not a value: the field is empty and the name has no prefix.
+    expect(await prefixField()).toHaveAttribute("placeholder", "e.g. prod-");
+    expect(await prefixField()).toHaveValue("");
+
+    // The preview describes the field, and follows what is typed.
+    expect(await prefixField()).toHaveAccessibleDescription(
+      "Preview: #inc-42 For incident INC-42. If Slack already has a channel with this name, OneUptime adds -2 to the end.",
+    );
+
+    await typePrefix("prod-");
+
+    expect(await prefixField()).toHaveAccessibleDescription(
+      /^Preview: #prod-inc-42 /,
+    );
+  });
+
+  test("a scheduled maintenance rule says its prefix replaces the event's number prefix, as the preview shows", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.ScheduledMaintenance,
+    );
+
+    await toNewChannel(user);
+
+    expect(
+      within(dialog()).getByText(
+        "Each new channel is named after its scheduled maintenance event. Anything you write here replaces the event's number prefix.",
+      ),
+    ).toBeVisible();
+    expect(preview()).toBe("#sm-42");
+
+    await typePrefix("maint-");
+
+    // maint- takes the place of SM-: maint-42, as such rules always named it.
+    expect(preview()).toBe("#maint-42");
+    expect(previewNotes()).toBe("For scheduled maintenance event SM-42.");
   });
 
   test("creates the rule without a prefix: no channel name is required any more", async () => {
@@ -1050,8 +1106,9 @@ describe("Name the channel a rule creates", () => {
     await toNewChannel(user, "Microsoft Teams");
 
     expect(preview()).toBe("inc-42");
-    expect(previewNotes()).toBe(
-      "For incident INC-42. If the team already has a channel with this name, OneUptime adds -2 to the end.",
+    expect(previewNotes()).toBe("For incident INC-42.");
+    expect(previewTakenNote()).toBe(
+      "If the team already has a channel with this name, OneUptime adds -2 to the end.",
     );
 
     await typePrefix("Prod Team #1-");
