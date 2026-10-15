@@ -106,6 +106,8 @@ import SlackAiConversations, {
 } from "../Utils/Workspace/Slack/SlackAiConversations";
 import WorkspaceAiAnswerSources from "../Utils/Workspace/WorkspaceAiAnswerSources";
 import SlackHome from "../Utils/Workspace/Slack/SlackHome";
+import SlackDirectMessageHelp from "../Utils/Workspace/Slack/SlackDirectMessageHelp";
+import SlackMessagesWelcome from "../Utils/Workspace/Slack/SlackMessagesWelcome";
 import SlackWelcome from "../Utils/Workspace/Slack/SlackWelcome";
 import WorkspaceCommands from "../Utils/Workspace/WorkspaceCommands";
 
@@ -571,11 +573,22 @@ export default class SlackAPI {
             ] as JSONObject
           )["scopes"] as JSONObject;
 
+          /*
+           * The app asks for no user scopes: OneUptime acts with the bot's
+           * token, and Slack names who installed it all the same
+           * (authed_user.id). A user_scope goes only with a manifest that
+           * asks for one.
+           */
+          const userScopes: Array<string> =
+            (scopes["user"] as Array<string>) || [];
+
           const authorizationUrl: string = `https://slack.com/oauth/v2/authorize?scope=${encodeURIComponent(
             ((scopes["bot"] as Array<string>) || []).join(","),
-          )}&user_scope=${encodeURIComponent(
-            ((scopes["user"] as Array<string>) || []).join(","),
-          )}&client_id=${encodeURIComponent(
+          )}${
+            userScopes.length > 0
+              ? `&user_scope=${encodeURIComponent(userScopes.join(","))}`
+              : ""
+          }&client_id=${encodeURIComponent(
             SlackAppClientId,
           )}&redirect_uri=${encodeURIComponent(
             SlackAPI.getInstallRedirectUri({ projectId, userId }),
@@ -703,7 +716,8 @@ export default class SlackAPI {
           /*
            * Neither the token request nor the token response is logged: the
            * request carries the app client secret and the authorization
-           * code, and the response carries the bot and user access tokens.
+           * code, and the response carries the bot's access token (and a
+           * user's, for an app whose manifest asks for user scopes).
            */
           logger.debug(
             "Exchanging Slack authorization code for an access token.",
@@ -748,12 +762,17 @@ export default class SlackAPI {
            *         "id": "E12345678"
            *     },
            *     "authed_user": {
-           *         "id": "U1234",
-           *         "scope": "chat:write",
-           *         "access_token": "sample-token",
-           *         "token_type": "user"
+           *         "id": "U1234"
            *     }
            * }
+           *
+           * authed_user is who installed the app. It carries a token of
+           * theirs (access_token, scope, token_type) only for an app that
+           * asks for user scopes, and this one asks for none: OneUptime acts
+           * with the bot's token and their Slack user id, so their account
+           * is linked with an empty token (WorkspaceUserAuthTokenService).
+           * An app created from an older manifest still gets one; it is kept
+           * as before, and used for nothing.
            */
 
           const team: JSONObject | undefined = responseBody["team"] as
@@ -1480,10 +1499,21 @@ export default class SlackAPI {
           /*
            * The OneUptime app's Home tab was opened: it is drawn for whoever
            * opened it (SlackHome) - their on-call shifts, the open incidents
-           * and alerts, and what they can do. Slack has its 200 first.
+           * and alerts, and what they can do. Its Messages tab: whoever
+           * opened it is welcomed there, the first time
+           * (SlackMessagesWelcome). Slack has its 200 first.
            */
           if (event["type"] === "app_home_opened") {
             Response.sendTextResponse(req, res, "ok");
+
+            if (event["tab"] === "messages") {
+              await SlackMessagesWelcome.handleMessagesTabOpened({
+                teamId: (payload["team_id"] as string) || "",
+                slackUserId: (event["user"] as string) || "",
+              });
+
+              return;
+            }
 
             await SlackHome.handleHomeOpened({
               teamId: (payload["team_id"] as string) || "",
@@ -1920,8 +1950,9 @@ export default class SlackAPI {
    * A message addressed to OneUptime (SlackAiConversations.read): an
    * @mention, a direct message, or a reply in a conversation with OneUptime
    * AI by somebody in it. Answered by OneUptime AI in the thread - the one
-   * it is in, or the one it starts. Detached from the request: Slack has
-   * its 200 already.
+   * it is in, or the one it starts - except a direct message that is only
+   * "help", answered with the commands (SlackDirectMessageHelp). Detached
+   * from the request: Slack has its 200 already.
    */
   private static async answerMessage(data: {
     req: ExpressRequest;
@@ -1970,6 +2001,21 @@ export default class SlackAPI {
         "Slack AI Ops event has no question text. Skipping.",
         getLogAttributesFromRequest(req as any),
       );
+      return;
+    }
+
+    /*
+     * "help" in the app's direct messages: the commands, for anybody -
+     * connected or not, with AI on or off (SlackDirectMessageHelp).
+     */
+    if (
+      message.kind === SlackMessageKind.DirectMessage &&
+      SlackDirectMessageHelp.isHelp(questionText)
+    ) {
+      await SlackDirectMessageHelp.answer({
+        projectAuthToken: context.projectAuthToken,
+        message: message,
+      });
       return;
     }
 

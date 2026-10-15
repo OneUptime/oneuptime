@@ -326,7 +326,16 @@ describe("Slack OAuth state", () => {
     };
   }
 
-  function stubInstallTokenExchange(): void {
+  /*
+   * Slack's answer to the install. Who installed it comes with a token of
+   * theirs only for an app that asks for user scopes: one created from an
+   * older manifest (`withUserToken`), not from this one.
+   */
+  function stubInstallTokenExchange(options?: {
+    withUserToken?: boolean | undefined;
+  }): void {
+    const withUserToken: boolean = options?.withUserToken !== false;
+
     postSpy.mockImplementation(async () => {
       return new HTTPResponse<JSONObject>(
         200,
@@ -335,7 +344,9 @@ describe("Slack OAuth state", () => {
           access_token: "xoxb-bot-token",
           bot_user_id: "UBOT",
           team: { id: SLACK_TEAM_ID, name: "Acme" },
-          authed_user: { id: "U123", access_token: "xoxp-user-token" },
+          authed_user: withUserToken
+            ? { id: "U123", access_token: "xoxp-user-token" }
+            : { id: "U123" },
         },
         {},
       ) as any;
@@ -442,9 +453,9 @@ describe("Slack OAuth state", () => {
       expect(query.get("scope")).toBe(
         (scopes["bot"] as Array<string>).join(","),
       );
-      expect(query.get("user_scope")).toBe(
-        (scopes["user"] as Array<string>).join(","),
-      );
+      // The app asks for no user scopes, so no user_scope - not even empty.
+      expect(scopes["user"]).toEqual([]);
+      expect(query.has("user_scope")).toBe(false);
       expect(query.get("redirect_uri")).toBe(
         `${AppApiClientUrl.toString()}/slack/auth/${projectId.toString()}/${userId.toString()}`,
       );
@@ -516,6 +527,50 @@ describe("Slack OAuth state", () => {
       expect((userWrite["userId"] as ObjectID).toString()).toBe(
         userId.toString(),
       );
+      // An app created from an older manifest still gets a user token: kept.
+      expect(userWrite["authToken"]).toBe("xoxp-user-token");
+    });
+
+    test("installs with no user token - the app asks for no user scopes, so Slack names who installed it and gives no token of theirs - and links their Slack account all the same", async () => {
+      const { state, browser } = await startFlow(INSTALL_START);
+      stubInstallTokenExchange({ withUserToken: false });
+
+      const response: ProbeResponse = await callback(
+        installCallbackPath(),
+        { code: "slack-code", state },
+        browser,
+      );
+
+      expect(response.status).toBe(302);
+      expect(response.location).toBe(slackPage());
+
+      expect(refreshProjectAuth).toHaveBeenCalledTimes(1);
+      const projectWrite: JSONObject = refreshProjectAuth.mock
+        .calls[0]![0] as JSONObject;
+      expect(projectWrite["authToken"]).toBe("xoxb-bot-token");
+      expect(projectWrite["miscData"]).toEqual({
+        teamId: SLACK_TEAM_ID,
+        teamName: "Acme",
+        botUserId: "UBOT",
+      });
+
+      expect(refreshUserAuth).toHaveBeenCalledTimes(1);
+      const userWrite: JSONObject = refreshUserAuth.mock
+        .calls[0]![0] as JSONObject;
+      expect((userWrite["projectId"] as ObjectID).toString()).toBe(
+        projectId.toString(),
+      );
+      expect((userWrite["userId"] as ObjectID).toString()).toBe(
+        userId.toString(),
+      );
+      expect(userWrite["workspaceType"]).toBe(WorkspaceType.Slack);
+      expect(userWrite["workspaceUserId"]).toBe("U123");
+      expect(userWrite["miscData"]).toEqual({ userId: "U123" });
+      /*
+       * Linked with an empty token, which the service keeps
+       * (WorkspaceUserAuthTokenWithoutUserToken.test.ts).
+       */
+      expect(userWrite["authToken"]).toBe("");
     });
 
     test("refuses a path naming a different project from the state", async () => {

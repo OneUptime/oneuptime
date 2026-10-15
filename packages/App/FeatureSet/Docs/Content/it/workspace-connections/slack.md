@@ -160,7 +160,7 @@ Apri OneUptime da **Apps** nella barra laterale di Slack: la sua scheda **Home**
 
 La home legge come te, quindi richiede il tuo account Slack collegato. Finché non lo è, la home mostra un pulsante **Connect Slack account**, e ti mostra la tua home non appena lo hai collegato.
 
-Quando qualcuno aggiunge OneUptime a un canale, vi pubblica un saluto: come fargli una domanda e dove aggiungere una regola di notifica che pubblica nel canale.
+Quando qualcuno aggiunge OneUptime a un canale, vi pubblica un saluto: come fargli una domanda e dove aggiungere una regola di notifica che pubblica nel canale. La prima volta che apri la sua scheda **Messages**, ti dà il benvenuto lì: cosa fa in Slack e come iniziare.
 
 ## Chiedere a OneUptime AI da Slack
 
@@ -229,6 +229,18 @@ Anche i pulsanti dei messaggi Slack di OneUptime agiscono a tuo nome: come l'acc
 
 > [!WARNING]
 > Disinstallare scollega anche l'account Slack di ogni membro del progetto, e rimuove i metodi di notifica Slack e le regole di reperibilità che li usavano. Chi veniva chiamato in Slack viene chiamato sugli altri suoi metodi di notifica finché non aggiunge di nuovo Slack.
+
+## I tuoi dati di Slack
+
+OneUptime legge da Slack solo ciò che serve a queste funzioni, con le autorizzazioni che concedi quando lo installi:
+
+- **Messaggi rivolti a OneUptime.** Un messaggio che lo menziona con @, uno che gli mandi in un messaggio diretto e le tue risposte in una conversazione con lui, insieme ai messaggi precedenti di quel thread o messaggio diretto, perché OneUptime AI possa rispondere. Slack gli invia anche gli altri messaggi dei canali e dei messaggi diretti di gruppo in cui si trova; OneUptime non vi risponde e non li conserva.
+- **Messaggi che salvi come note.** Un messaggio a cui reagisci con 📌 o 📢, o che fissi, nel canale di un incidente, di un avviso, di un episodio o di un evento di manutenzione programmata, salvato come nota su quel record con il nome del suo autore.
+- **Nomi di canali e persone.** I canali in cui può pubblicare, così puoi sceglierli, e i nomi delle persone, per mostrare chi ha scritto o fatto qualcosa.
+- **Indirizzi email.** L'indirizzo email che Slack ha per una persona, per abbinare il suo account Slack al suo account OneUptime quando non lo ha collegato: per chiamarla, o per inserirla in un gruppo di utenti di reperibilità.
+- **Gruppi di utenti.** I gruppi di utenti della tua area di lavoro, per sceglierne uno per una pianificazione di reperibilità, e le persone di uno che colleghi, per mantenerlo uguale a chi è reperibile.
+
+Ciò che OneUptime ne conserva — il nome dell'area di lavoro, i suoi canali, gli account Slack che le persone collegano, le note e i gruppi di utenti — viene archiviato con il tuo progetto. L'[Informativa sulla privacy](https://oneuptime.com/legal/privacy) spiega come OneUptime tratta i tuoi dati.
 
 ## Risoluzione dei problemi
 

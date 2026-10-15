@@ -3572,66 +3572,6 @@ export default class SlackUtil extends WorkspaceBase {
   }
 
   @CaptureSpan()
-  public static override async isUserInDirectMessageChannel(data: {
-    authToken: string;
-    userId: string;
-    directMessageChannelId: string;
-  }): Promise<boolean> {
-    // check of the user id is in the direct message channel id
-    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post({
-        url: URL.fromString("https://slack.com/api/conversations.info"),
-        data: {
-          channel: data.directMessageChannelId,
-        },
-        headers: {
-          Authorization: `Bearer ${data.authToken}`,
-          ["Content-Type"]: "application/x-www-form-urlencoded",
-        },
-        options: {
-          retries: 3,
-          exponentialBackoff: true,
-        },
-      });
-
-    if (response instanceof HTTPErrorResponse) {
-      logger.error("Error response from Slack API:", {
-        channelId: data.directMessageChannelId,
-      } as LogAttributes);
-      logger.error(response, {
-        channelId: data.directMessageChannelId,
-      } as LogAttributes);
-      throw response;
-    }
-
-    // check for ok response
-
-    if ((response.jsonData as JSONObject)?.["ok"] !== true) {
-      logger.error("Invalid response from Slack API:", {
-        channelId: data.directMessageChannelId,
-      } as LogAttributes);
-      logger.error(response.jsonData, {
-        channelId: data.directMessageChannelId,
-      } as LogAttributes);
-      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
-        "error"
-      ] as string;
-      throw new BadRequestException("Error from Slack " + messageFromSlack);
-    }
-
-    // check if the user is in the channel
-    const user: JSONObject = (
-      (response.jsonData as JSONObject)["channel"] as JSONObject
-    )["user"] as JSONObject;
-
-    if (user?.["user_id"]?.toString() === data.userId.toString()) {
-      return true;
-    }
-
-    return false;
-  }
-
-  @CaptureSpan()
   public static override async isUserInChannel(data: {
     authToken: string;
     channelId: string;

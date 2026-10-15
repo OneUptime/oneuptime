@@ -176,9 +176,10 @@ const SLACK_CONTROLS: Array<string> = [
   "Pin to channel",
   "Create New Incident",
   "Create Scheduled Event",
-  // Where the app is in Slack's sidebar, and its Home tab.
+  // Where the app is in Slack's sidebar, and its Home and Messages tabs.
   "Apps",
   "Home",
+  "Messages",
 ];
 
 /*
@@ -444,6 +445,12 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Your on-call.",
     "What is open.",
     "Its buttons.",
+    // What OneUptime reads from Slack, and why.
+    "Messages addressed to OneUptime.",
+    "Messages you save as notes.",
+    "Names of channels and people.",
+    "Email addresses.",
+    "User groups.",
   ],
   [TEAMS]: [
     "The project's connection",
