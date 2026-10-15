@@ -66,6 +66,7 @@ Um **episódio** agrupa incidentes relacionados, ou alertas relacionados, para q
 
 :::cards
 - [Visão geral dos incidentes](/docs/incidents/index): Como os incidentes são declarados, tratados e resolvidos.
+- [Visão geral dos alertas](/docs/alerts/index): De onde vêm os alertas e como os episódios os agrupam.
 - [Alertas vinculados](/docs/incidents/linked-alerts): Vincular ao incidente os alertas gerados por uma queda.
 :::
 
