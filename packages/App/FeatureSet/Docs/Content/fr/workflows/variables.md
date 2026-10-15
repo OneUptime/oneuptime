@@ -196,7 +196,7 @@ Faites référence à la sortie d'un bloc précédent ainsi :
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Un bloc **API** dont l'ID est `lookup-user`              | Son code de statut : `{{local.components.lookup-user.returnValues.response-status}}`. Son corps : `{{local.components.lookup-user.returnValues.response-body}}`. |
 | Un bloc **Run Custom JavaScript** dont l'ID est `transform` | Ce qu'il a renvoyé : `{{local.components.transform.returnValues.returnValue}}`.     |
-| Un déclencheur **On Create Incident** dont l'ID est `incident-on-create-1` | Le titre de l'incident : `{{local.components.incident-on-create-1.returnValues.model.title}}`. Les déclencheurs d'enregistrement renvoient une seule valeur, `model`, dans laquelle vous descendez. |
+| Un déclencheur **On Create Incident** dont l'ID est `incident-on-create-1` | Le titre de l'incident : `{{local.components.incident-on-create-1.returnValues.model.title}}`. Les déclencheurs d'enregistrement renvoient l'enregistrement comme `model`, dans lequel vous descendez. |
 
 Les valeurs des blocs n'existent que pendant l'exécution en cours. Chaque nouvelle exécution repart de zéro.
 

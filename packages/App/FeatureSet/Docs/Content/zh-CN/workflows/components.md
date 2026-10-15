@@ -374,7 +374,7 @@ return {
 | **Delete One Monitor**   | 删除一条匹配的记录。                                                           |
 | **Delete Many Monitors** | 删除匹配的记录，最多 **Limit** 条。                                            |
 
-同一组还给你三个触发器——**On Create Monitor**、**On Update Monitor** 和 **On Delete Monitor**。参见 [触发器](/docs/workflows/triggers#oneuptime-事件触发器)。
+同一组还给你四个触发器——**On Create Monitor**、**On Update Monitor**、**On Create or Update Monitor** 和 **On Delete Monitor**。参见 [触发器](/docs/workflows/triggers#oneuptime-事件触发器)。
 
 一种类型只提供其模型允许的组件。只读类型只有两个 Find 组件，没有别的，所以如果你在面板中找不到 **Delete One Monitor**，说明那种类型不允许。
 

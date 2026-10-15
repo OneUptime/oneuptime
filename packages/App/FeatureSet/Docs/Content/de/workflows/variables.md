@@ -196,7 +196,7 @@ Verweisen Sie so auf die Ausgabe eines früheren Bausteins:
 | ------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | Einem **API**-Baustein mit der ID `lookup-user`         | Seinen Statuscode: `{{local.components.lookup-user.returnValues.response-status}}`. Seinen Body: `{{local.components.lookup-user.returnValues.response-body}}`. |
 | Einem **Run Custom JavaScript**-Baustein mit der ID `transform` | Was er zurückgegeben hat: `{{local.components.transform.returnValues.returnValue}}`. |
-| Einem **On Create Incident**-Trigger mit der ID `incident-on-create-1` | Den Titel des Vorfalls: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Datensatz-Trigger geben einen Wert zurück, `model`, in den Sie hineinlesen. |
+| Einem **On Create Incident**-Trigger mit der ID `incident-on-create-1` | Den Titel des Vorfalls: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Datensatz-Trigger geben den Datensatz als `model` zurück, in den Sie hineinlesen. |
 
 Die Werte von Bausteinen gibt es nur während der aktuellen Ausführung. Jede neue Ausführung beginnt von vorn.
 

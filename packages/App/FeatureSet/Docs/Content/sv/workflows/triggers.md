@@ -153,15 +153,16 @@ Om adressen läcker klickar du på **Återställ adress** på samma ställe: arb
 
 ## Utlösare för OneUptime-händelser
 
-Nästan allt i OneUptime — monitorer, incidenter, larm, schemalagda underhåll, statussidor, jourpolicyer, team — kan starta ett arbetsflöde. Var och en erbjuder upp till tre händelser:
+Nästan allt i OneUptime — monitorer, incidenter, larm, schemalagda underhåll, statussidor, jourpolicyer, team — kan starta ett arbetsflöde. Var och en erbjuder upp till fyra utlösare:
 
 - **On Create** — aktiveras när en ny läggs till.
 - **On Update** — aktiveras när en ändras. Att spara en post med de värden den redan har, som ett formulär sparat utan ändringar eller en brytare skickad som den redan står, är ingen ändring och aktiverar den inte.
+- **On Create or Update** — aktiveras i båda fallen: en gång när en ny läggs till, och en gång varje gång en ändras. Ett arbetsflöde hanterar då en ny och en ändrad post på samma sätt, till exempel för att hålla en kopia i ett annat system uppdaterad.
 - **On Delete** — aktiveras när en tas bort.
 
 Så bygger du ”när X händer i OneUptime, gör Y” utan att behöva kontrollera saker i en loop.
 
-**On Update** kan begränsas till vissa fält med **Fields to watch**: då aktiveras den bara när en uppdatering ändrar något av dem, till vilket värde som helst — att slå av en brytare eller tömma ett fält räknas.
+**On Update** kan begränsas till vissa fält med **Fields to watch**: då aktiveras den bara när en uppdatering ändrar något av dem, till vilket värde som helst — att slå av en brytare eller tömma ett fält räknas. **On Create or Update** har samma **Fields to watch**, bara för sina uppdateringar: varje ny post aktiverar den ändå.
 
 ```mermaid title="När en On Update-utlösare aktiveras"
 flowchart TB
@@ -174,11 +175,15 @@ flowchart TB
     field -->|"Nej"| nothing
 ```
 
-**On Create** och **On Update** skickar posten vidare till nästa block, med de fält du väljer i utlösarens **Fields to pass on**. Till exempel skickar utlösaren **Incident → On Create** den nya incidenten vidare, så att nästa block kan läsa dess titel, beskrivning, allvarlighetsgrad eller vilket annat fält du har valt, som `{{local.components.incident-on-create-1.returnValues.model.title}}`. Ett fält du inte valde kommer fram tomt.
+**On Create**, **On Update** och **On Create or Update** skickar posten vidare till nästa block, med de fält du väljer i utlösarens **Fields to pass on**. Till exempel skickar utlösaren **Incident → On Create** den nya incidenten vidare, så att nästa block kan läsa dess titel, beskrivning, allvarlighetsgrad eller vilket annat fält du har valt, som `{{local.components.incident-on-create-1.returnValues.model.title}}`. Ett fält du inte valde kommer fram tomt.
+
+**On Create or Update** skickar också vidare **What Happened**: `created` när en ny post startade körningen, och `updated` när en ändring gjorde det, som i `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. För att hantera de två olika jämför du det i ett **If / Else**-block, eller tar en väg för vardera med **Switch / Case**.
+
+En sparning aktiverar den en gång. Det som OneUptime fyller i medan den skapar en post hör till skapandet, så en ny post aktiverar den en gång, som `created`. Ändringar som OneUptime gör senare, som att koppla en incidents Slack-kanal, är uppdateringar som alla andra: för att hålla dem utanför lägger du bara till de fält som spelar roll för dig i **Fields to watch**.
 
 **On Delete** skickar bara vidare ID:t för den borttagna posten: posten är borta när arbetsflödet körs, så dess övriga fält kan inte läsas.
 
-För att testa en händelseutlösare utan att vänta på händelsen klickar du på **Kör arbetsflöde** i **Byggare** och väljer en befintlig post: de senaste visas i listan, och genom att skriva en posts nummer eller en del av dess namn hittar du en annan. Körningen läser den posten med de fält du valde, som om händelsen just hade inträffat för den; själva posten varken ändras eller tas bort.
+För att testa en händelseutlösare utan att vänta på händelsen klickar du på **Kör arbetsflöde** i **Byggare** och väljer en befintlig post: de senaste visas i listan, och genom att skriva en posts nummer eller en del av dess namn hittar du en annan. Körningen läser den posten med de fält du valde, som om händelsen just hade inträffat för den; själva posten varken ändras eller tas bort. För **On Create or Update** väljer du under **Vad som hände** om körningen gäller att posten skapades eller uppdaterades.
 
 ### Händelserna team använder mest
 

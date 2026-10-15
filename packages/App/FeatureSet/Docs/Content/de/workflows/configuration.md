@@ -185,7 +185,7 @@ Geben Sie den Personen, die Automatisierungen bauen, **Workflow Admin** und dene
 
 ## Was Workflow-Schritte dürfen
 
-Die Schritte, die OneUptime-Datensätze lesen und ändern – die Find-, Create-, Update- und Delete-Komponenten sowie die Trigger On Create, On Update und On Delete –, handeln als **Project Admin** des Projekts des Workflows. Wer den Workflow auch gebaut hat, ein Schritt unterliegt denselben Prüfungen wie ein Project Admin im Dashboard und in der API:
+Die Schritte, die OneUptime-Datensätze lesen und ändern – die Find-, Create-, Update- und Delete-Komponenten sowie die Trigger On Create, On Update, On Create or Update und On Delete –, handeln als **Project Admin** des Projekts des Workflows. Wer den Workflow auch gebaut hat, ein Schritt unterliegt denselben Prüfungen wie ein Project Admin im Dashboard und in der API:
 
 - **Nur das eigene Projekt des Workflows.** Ein Schritt liest und schreibt die Datensätze des Projekts, zu dem der Workflow gehört, und keines anderen, und ein Update verschiebt nie einen Datensatz in ein anderes Projekt.
 - **Nur, was ein Project Admin darf.** Ein Schritt kann nur die Team- und API-Schlüssel-Berechtigungen vergeben, die ein Project Admin selbst hat, daher kann er weder **Project Owner** noch Abrechnungs- oder Projektlöschungs-Berechtigungen vergeben, und er kann niemanden zu einem Team hinzufügen, dessen Berechtigungen über die eines Project Admin hinausgehen, etwa zum Team der Eigentümer. Ein Schritt kann nicht lesen, wer eine Probe oder einen KI-Agenten angelegt hat; das sehen nur Projekteigentümer.

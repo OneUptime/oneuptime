@@ -609,15 +609,16 @@ Para ver o que aconteceu, abra o incidente e escolha **Execuções de plantão**
 
 ## Conduzir incidentes a partir de workflows
 
-Os gatilhos de workflow para incidentes não são escritos à mão — o OneUptime os gera a partir dos modelos de dados, então todo modelo da família de incidentes recebe os componentes **On Create X**, **On Update X** e **On Delete X**, com o nome singular do modelo. Os três principais são **On Create Incident**, **On Update Incident** e **On Delete Incident**. Você os encontra no painel **Add Trigger** em `/dashboard/{projectId}/workflows`, em **OneUptime resources** → **Incident**; os dois primeiros também ficam em **Popular**.
+Os gatilhos de workflow para incidentes não são escritos à mão — o OneUptime os gera a partir dos modelos de dados, então todo modelo da família de incidentes recebe os componentes **On Create X**, **On Update X**, **On Create or Update X** e **On Delete X**, com o nome singular do modelo. Os principais são **On Create Incident**, **On Update Incident**, **On Create or Update Incident** e **On Delete Incident**. Você os encontra no painel **Add Trigger** em `/dashboard/{projectId}/workflows`, em **OneUptime resources** → **Incident**; os dois primeiros também ficam em **Popular**.
 
 A mesma geração dá a você gatilhos para a própria configuração: **On Create Incident State**, **On Update Incident Severity**, **On Create Incident Template**, **On Create Incident Note Template**, **On Create Incident State Timeline**, **On Create Incident Public Note**, **On Create Incident Internal Note**, **On Create Incident On-Call Rule**, **On Create Incident Role**, **On Create Incident Member** e mais. Cada modelo também recebe os componentes de ação correspondentes — **Find One Incident**, **Create One Incident**, **Update One Incident**, **Delete One Incident** e os equivalentes para muitas linhas — então um gatilho e uma ação com nomes parecidos ficam lado a lado na mesma categoria. **On Create Incident** inicia um workflow; **Create One Incident** abre um incidente.
 
 Alguns detalhes que importam quando você os conecta:
 
 - **On Update X** aceita um argumento opcional **Fields to watch** que restringe o gatilho a atualizações que mudam campos específicos, seja qual for o novo valor: um interruptor desativado ou um campo apagado também conta. Um campo salvo com o valor que já tem não é uma mudança, então um formulário de edição que o envia de volta a cada salvamento não desperta o workflow. Deixe-o vazio para disparar a cada mudança. Se uma atualização chegar sem registro de quais campos mudaram, o filtro é pulado e o workflow roda mesmo assim.
-- **On Create X** e **On Update X** aceitam um argumento obrigatório **Fields to pass on**; **On Delete X** não aceita argumentos.
-- Os três expõem uma única porta de saída **Success**, e cada um aceita um argumento de ID para que você possa executar o workflow manualmente em um registro.
+- **On Create or Update X** roda uma vez para cada registro novo e uma vez para cada atualização que o próprio **Fields to watch** deixa passar, então um só workflow cobre os dois casos. Além do registro, repassa `what-happened`: `created` ou `updated`.
+- **On Create X**, **On Update X** e **On Create or Update X** aceitam um argumento obrigatório **Fields to pass on**; **On Delete X** não aceita argumentos.
+- Os quatro expõem uma única porta de saída **Success**, e cada um aceita um argumento de ID para que você possa executar o workflow manualmente em um registro.
 - Os nomes vêm do nome singular do modelo, não do nome da tabela — é por isso que você vê **On Create Incident Team Owner** e **On Create Incident User Owner** em vez de nomes com cara de tabela.
 - Não há gatilhos para as definições de campos personalizados de incidente. Esse modelo é o único membro da família de incidentes com os workflows desativados.
 

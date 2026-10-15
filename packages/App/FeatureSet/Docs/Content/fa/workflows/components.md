@@ -374,7 +374,7 @@ return {
 | **Delete One Monitor**   | یک رکورد مطابق را حذف می‌کند.                                                  |
 | **Delete Many Monitors** | رکوردهای مطابق را، تا **Limit**، حذف می‌کند.                                   |
 
-همین مجموعه سه تریگر هم به شما می‌دهد — **On Create Monitor**، **On Update Monitor** و **On Delete Monitor**. [تریگرها](/docs/workflows/triggers#تریگرهای-رویداد-oneuptime) را ببینید.
+همین مجموعه چهار تریگر هم به شما می‌دهد — **On Create Monitor**، **On Update Monitor**، **On Create or Update Monitor** و **On Delete Monitor**. [تریگرها](/docs/workflows/triggers#تریگرهای-رویداد-oneuptime) را ببینید.
 
 یک نوع فقط مؤلفه‌هایی را ارائه می‌دهد که مدلش اجازه می‌دهد. یک نوع فقط‌خواندنی دو مؤلفه Find دارد و هیچ چیز دیگر، پس اگر **Delete One Monitor** را در پنل پیدا نکردید، آن نوع اجازه‌اش را نمی‌دهد.
 

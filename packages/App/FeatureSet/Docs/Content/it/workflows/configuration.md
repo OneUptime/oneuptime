@@ -185,7 +185,7 @@ Assegna **Workflow Admin** alle persone che costruiscono l'automazione, e **Work
 
 ## Cosa possono fare i passaggi di un workflow
 
-I passaggi che leggono e modificano i record di OneUptime — i componenti Find, Create, Update e Delete, e i trigger On Create, On Update e On Delete — agiscono come **Project Admin** del progetto del workflow. Chiunque abbia costruito il workflow, un passaggio supera gli stessi controlli che supera un Project Admin nella dashboard e nell'API:
+I passaggi che leggono e modificano i record di OneUptime — i componenti Find, Create, Update e Delete, e i trigger On Create, On Update, On Create or Update e On Delete — agiscono come **Project Admin** del progetto del workflow. Chiunque abbia costruito il workflow, un passaggio supera gli stessi controlli che supera un Project Admin nella dashboard e nell'API:
 
 - **Solo il progetto del workflow.** Un passaggio legge e scrive i record del progetto a cui appartiene il workflow e di nessun altro, e un Update non sposta mai un record in un altro progetto.
 - **Solo ciò che può fare un Project Admin.** Un passaggio può concedere solo i permessi di team e di chiave API che un Project Admin possiede, quindi non può assegnare **Project Owner**, permessi di fatturazione o di eliminazione del progetto, e non può aggiungere qualcuno a un team i cui permessi vanno oltre quelli di un Project Admin, come il team dei proprietari. Un passaggio non può leggere chi ha creato una sonda o un agente IA, cosa che vedono solo i proprietari del progetto.

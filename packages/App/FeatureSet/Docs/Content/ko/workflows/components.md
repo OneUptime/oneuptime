@@ -374,7 +374,7 @@ OneUptime의 레코드 종류마다(모니터, 인시던트, 경고, 상태 페�
 | **Delete One Monitor**   | 일치하는 레코드 하나를 삭제합니다.                                             |
 | **Delete Many Monitors** | 일치하는 레코드를 **Limit**까지 삭제합니다.                                    |
 
-같은 세트로 트리거 세 가지 — **On Create Monitor**, **On Update Monitor**, **On Delete Monitor** — 도 얻습니다. [트리거](/docs/workflows/triggers#oneuptime-이벤트-트리거)를 참조하세요.
+같은 세트로 트리거 네 가지 — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor**, **On Delete Monitor** — 도 얻습니다. [트리거](/docs/workflows/triggers#oneuptime-이벤트-트리거)를 참조하세요.
 
 종류는 그 모델이 허용하는 구성 요소만 제공합니다. 읽기 전용 종류에는 Find 구성 요소 두 개만 있으므로, 패널에서 **Delete One Monitor**를 찾을 수 없다면 그 종류는 그것을 허용하지 않는 것입니다.
 

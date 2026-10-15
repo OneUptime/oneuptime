@@ -185,7 +185,7 @@ Donnez **Workflow Admin** aux personnes qui construisent l'automatisation, et **
 
 ## Ce que les étapes d'un workflow peuvent faire
 
-Les étapes qui lisent et modifient des enregistrements OneUptime — les composants Find, Create, Update et Delete, et les déclencheurs On Create, On Update et On Delete — agissent en tant que **Project Admin** du projet du workflow. Quelle que soit la personne qui a construit le workflow, une étape est soumise aux mêmes vérifications qu'un Project Admin dans le tableau de bord et l'API :
+Les étapes qui lisent et modifient des enregistrements OneUptime — les composants Find, Create, Update et Delete, et les déclencheurs On Create, On Update, On Create or Update et On Delete — agissent en tant que **Project Admin** du projet du workflow. Quelle que soit la personne qui a construit le workflow, une étape est soumise aux mêmes vérifications qu'un Project Admin dans le tableau de bord et l'API :
 
 - **Uniquement le projet du workflow.** Une étape lit et écrit les enregistrements du projet auquel appartient le workflow et d'aucun autre, et un Update ne déplace jamais un enregistrement vers un autre projet.
 - **Uniquement ce qu'un Project Admin peut faire.** Une étape ne peut accorder que les autorisations d'équipe et de clé d'API qu'un Project Admin détient lui-même : elle ne peut donc pas donner **Project Owner**, ni les autorisations de facturation ou de suppression du projet, et elle ne peut pas ajouter quelqu'un à une équipe dont les autorisations dépassent celles d'un Project Admin, comme l'équipe des propriétaires. Une étape ne peut pas lire qui a créé une sonde ou un agent IA, ce que seuls les propriétaires du projet voient.

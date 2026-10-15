@@ -185,7 +185,7 @@ API ブロックやその他の HTTP ブロックは OneUptime からリクエ�
 
 ## ワークフローのステップができること
 
-OneUptime のレコードを読み書きするステップ — Find、Create、Update、Delete のコンポーネントと、On Create、On Update、On Delete のトリガー — は、ワークフローのプロジェクトの **Project Admin** として動作します。誰がワークフローを作ったかにかかわらず、ステップは Project Admin がダッシュボードと API で受けるのと同じチェックを受けます。
+OneUptime のレコードを読み書きするステップ — Find、Create、Update、Delete のコンポーネントと、On Create、On Update、On Create or Update、On Delete のトリガー — は、ワークフローのプロジェクトの **Project Admin** として動作します。誰がワークフローを作ったかにかかわらず、ステップは Project Admin がダッシュボードと API で受けるのと同じチェックを受けます。
 
 - **ワークフロー自身のプロジェクトだけ。** ステップが読み書きするのはワークフローが属するプロジェクトのレコードだけで、それ以外のプロジェクトには触れません。Update がレコードを別のプロジェクトに移すこともありません。
 - **Project Admin に許されることだけ。** ステップが付与できるのは、Project Admin 自身が持つチームと API キーの権限だけです。そのため、**Project Owner**、課金、プロジェクト削除の権限を配ることはできず、オーナーのチームのように Project Admin を超える権限を持つチームに誰かを追加することもできません。プローブや AI エージェントを誰が作成したかも、ステップは読めません。それを見られるのはプロジェクトの所有者だけです。

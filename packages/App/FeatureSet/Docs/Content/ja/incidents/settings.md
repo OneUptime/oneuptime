@@ -609,15 +609,16 @@ flowchart TB
 
 ## ワークフローでインシデントを動かす
 
-インシデントのワークフローのトリガーは手書きではありません。OneUptime がデータモデルから生成するので、インシデント関連のすべてのモデルが、モデルの単数形の名前を付けた **On Create X**、**On Update X**、**On Delete X** のコンポーネントを持ちます。中心となる 3 つは **On Create Incident**、**On Update Incident**、**On Delete Incident** です。`/dashboard/{projectId}/workflows` の **Add Trigger** パネルの **OneUptime resources** → **Incident** の下にあり、最初の 2 つは **Popular** の下にもあります。
+インシデントのワークフローのトリガーは手書きではありません。OneUptime がデータモデルから生成するので、インシデント関連のすべてのモデルが、モデルの単数形の名前を付けた **On Create X**、**On Update X**、**On Create or Update X**、**On Delete X** のコンポーネントを持ちます。中心となるのは **On Create Incident**、**On Update Incident**、**On Create or Update Incident**、**On Delete Incident** です。`/dashboard/{projectId}/workflows` の **Add Trigger** パネルの **OneUptime resources** → **Incident** の下にあり、最初の 2 つは **Popular** の下にもあります。
 
 同じ生成によって、設定そのもののトリガーもあります。**On Create Incident State**、**On Update Incident Severity**、**On Create Incident Template**、**On Create Incident Note Template**、**On Create Incident State Timeline**、**On Create Incident Public Note**、**On Create Incident Internal Note**、**On Create Incident On-Call Rule**、**On Create Incident Role**、**On Create Incident Member** などです。各モデルには対応するアクションのコンポーネント（**Find One Incident**、**Create One Incident**、**Update One Incident**、**Delete One Incident** と、その複数行版）もあるので、似た名前のトリガーとアクションが同じカテゴリーに並びます。**On Create Incident** はワークフローを開始し、**Create One Incident** はインシデントを開きます。
 
 これらを組み合わせるときに重要な点:
 
 - **On Update X** は任意の引数 **Fields to watch** を取り、特定の項目を変更する更新だけにトリガーを絞り込みます。変更後の値は問いません。スイッチをオフにした場合や項目を消去した場合も含まれます。すでにある値のまま保存された項目は変更ではないので、保存のたびにそれを送り返す編集フォームでワークフローが起動することはありません。どの変更でも起動するには空のままにします。どの項目が変わったかの記録がない更新が届いた場合、フィルターはスキップされ、ワークフローはそのまま実行されます。
-- **On Create X** と **On Update X** はどちらも必須の引数 **Fields to pass on** を取ります。**On Delete X** は引数を取りません。
-- 3 つとも出力ポートは **Success** の 1 つだけで、それぞれ ID 引数を受け付けるので、1 つの記録に対して手動でワークフローを実行できます。
+- **On Create or Update X** は、新しいレコードごとに 1 回、自身の **Fields to watch** が通す更新ごとに 1 回実行されるので、1 つのワークフローで両方を扱えます。レコードとあわせて `what-happened` を渡し、値は `created` または `updated` です。
+- **On Create X**、**On Update X**、**On Create or Update X** はどれも必須の引数 **Fields to pass on** を取ります。**On Delete X** は引数を取りません。
+- 4 つとも出力ポートは **Success** の 1 つだけで、それぞれ ID 引数を受け付けるので、1 つの記録に対して手動でワークフローを実行できます。
 - 名前はテーブル名ではなくモデルの単数形の名前から付くので、テーブル風の名前ではなく **On Create Incident Team Owner** と **On Create Incident User Owner** が表示されます。
 - インシデントのカスタムフィールドの定義にはトリガーがありません。このモデルは、インシデント関連の中で唯一ワークフローが無効になっています。
 

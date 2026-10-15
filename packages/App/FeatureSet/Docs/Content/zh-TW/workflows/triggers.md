@@ -153,15 +153,16 @@ OneUptime 會給工作流程一個專屬的電子郵件地址。每封寄到這�
 
 ## OneUptime 事件觸發器
 
-OneUptime 中幾乎所有東西——監測器、事件、警示、排定的維護、狀態頁面、待命策略、團隊——都可以啟動工作流程。每一種最多提供三種事件：
+OneUptime 中幾乎所有東西——監測器、事件、警示、排定的維護、狀態頁面、待命策略、團隊——都可以啟動工作流程。每一種最多提供四種觸發器：
 
 - **On Create** —— 新增一個時觸發。
 - **On Update** —— 有一個被變更時觸發。用記錄已有的值儲存它，例如未作變更就儲存的表單，或依原狀態送出的開關，不算變更，不會觸發。
+- **On Create or Update** —— 兩種情況都會觸發：新增一個時觸發一次，每次變更時再觸發一次。如此一個工作流程就能同樣處理新記錄和變更後的記錄，例如讓另一個系統中的副本保持最新。
 - **On Delete** —— 有一個被刪除時觸發。
 
 如此一來，你就能建構「當 OneUptime 中發生 X 時，就做 Y」，而不必在迴圈中反覆檢查。
 
-**On Update** 可以用 **Fields to watch** 限定在某些欄位上：這樣只有在更新把其中某個欄位改成任何值時才會觸發——關閉開關或清空欄位也算。
+**On Update** 可以用 **Fields to watch** 限定在某些欄位上：這樣只有在更新把其中某個欄位改成任何值時才會觸發——關閉開關或清空欄位也算。**On Create or Update** 也有同樣的 **Fields to watch**，只作用於它的更新：每筆新記錄仍然會觸發它。
 
 ```mermaid title="On Update 觸發器何時觸發"
 flowchart TB
@@ -174,11 +175,15 @@ flowchart TB
     field -->|"否"| nothing
 ```
 
-**On Create** 和 **On Update** 會把記錄傳給下一個區塊，並帶上你在觸發器的 **Fields to pass on** 中選擇的欄位。例如，**Incident → On Create** 觸發器會傳下新的事件，下一個區塊就能讀取它的標題、描述、嚴重程度或你選擇的任何其他欄位，例如 `{{local.components.incident-on-create-1.returnValues.model.title}}`。你沒有選擇的欄位到達時為空。
+**On Create**、**On Update** 和 **On Create or Update** 會把記錄傳給下一個區塊，並帶上你在觸發器的 **Fields to pass on** 中選擇的欄位。例如，**Incident → On Create** 觸發器會傳下新的事件，下一個區塊就能讀取它的標題、描述、嚴重程度或你選擇的任何其他欄位，例如 `{{local.components.incident-on-create-1.returnValues.model.title}}`。你沒有選擇的欄位到達時為空。
+
+**On Create or Update** 還會傳下 **What Happened**：由新記錄啟動執行時為 `created`，由變更啟動時為 `updated`，例如 `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`。要區別處理這兩種情況，可以在 **If / Else** 區塊中比較它，或用 **Switch / Case** 為每種情況走一條路徑。
+
+一次儲存只觸發一次。OneUptime 在建立記錄時填寫的內容屬於建立的一部分，所以新記錄只以 `created` 觸發一次。OneUptime 之後做的變更，例如連結事件的 Slack 頻道，和其他更新一樣：要排除它們，只把你在意的欄位加到 **Fields to watch** 中。
 
 **On Delete** 只會傳下被刪除記錄的 ID：工作流程執行時記錄已經不在了，所以無法讀取它的其他欄位。
 
-要不等事件發生就測試事件觸發器，在 **建構器** 中點選 **執行工作流程**，然後選擇一筆現有記錄：清單中會列出最近的記錄，輸入記錄的編號或名稱的一部分可以找到其他記錄。這次執行會讀取那筆記錄以及你選擇的欄位，就像事件剛剛發生在它身上一樣；記錄本身不會被變更或刪除。
+要不等事件發生就測試事件觸發器，在 **建構器** 中點選 **執行工作流程**，然後選擇一筆現有記錄：清單中會列出最近的記錄，輸入記錄的編號或名稱的一部分可以找到其他記錄。這次執行會讀取那筆記錄以及你選擇的欄位，就像事件剛剛發生在它身上一樣；記錄本身不會被變更或刪除。對於 **On Create or Update**，在 **發生了什麼** 中選擇這次執行是針對記錄的建立還是更新。
 
 ### 團隊最常用的事件
 
