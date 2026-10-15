@@ -408,10 +408,11 @@ describe("an update", () => {
       ],
     });
 
-    expect(runsOf(event).map((run: [string, JSONObject]) => run[0])).toEqual([
-      UPDATE_WORKFLOW,
-      BOTH_WATCHING_NAME,
-    ]);
+    expect(
+      runsOf(event).map((run: [string, JSONObject]) => {
+        return run[0];
+      }),
+    ).toEqual([UPDATE_WORKFLOW, BOTH_WATCHING_NAME]);
   });
 
   test("starts On Update's workflow beside it exactly as before", async () => {
@@ -454,9 +455,11 @@ describe("one save is one run", () => {
       isPartOfCreate: true,
     });
 
-    expect(runsOf(event).map((run: [string, JSONObject]) => run[0])).toEqual([
-      UPDATE_WORKFLOW,
-    ]);
+    expect(
+      runsOf(event).map((run: [string, JSONObject]) => {
+        return run[0];
+      }),
+    ).toEqual([UPDATE_WORKFLOW]);
   });
 
   test("a create with two updates of its own starts it once, as created; a later change once more, as updated", async () => {

@@ -51,7 +51,10 @@ async function openRunPanel(page: Page, query: string = ""): Promise<Locator> {
   return panel;
 }
 
-function answer(panel: Locator, name: "Just created" | "Just updated"): Locator {
+function answer(
+  panel: Locator,
+  name: "Just created" | "Just updated",
+): Locator {
   return panel
     .getByTestId("run-what-happened")
     .getByRole("radio", { name: name });

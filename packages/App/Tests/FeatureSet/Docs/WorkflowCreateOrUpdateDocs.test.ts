@@ -160,44 +160,45 @@ describe("the triggers page, in English", () => {
   });
 });
 
-describe.each(DOCS_LANGUAGES.filter((language: string) => language !== "en"))(
-  "the triggers page in %s",
-  (language: string) => {
-    const page: string = readPage(language, "workflows/triggers");
+describe.each(
+  DOCS_LANGUAGES.filter((language: string) => {
+    return language !== "en";
+  }),
+)("the triggers page in %s", (language: string) => {
+  const page: string = readPage(language, "workflows/triggers");
 
-    it("names On Create or Update as often as the English page does", () => {
-      expect(countOf(page, "**On Create or Update**")).toBe(
-        countOf(TRIGGERS, "**On Create or Update**"),
-      );
-    });
+  it("names On Create or Update as often as the English page does", () => {
+    expect(countOf(page, "**On Create or Update**")).toBe(
+      countOf(TRIGGERS, "**On Create or Update**"),
+    );
+  });
 
-    it("keeps the value's own name in English, as the value picker lists it", () => {
-      expect(page).toContain(`**${WHAT_HAPPENED_NAME}**`);
-    });
+  it("keeps the value's own name in English, as the value picker lists it", () => {
+    expect(page).toContain(`**${WHAT_HAPPENED_NAME}**`);
+  });
 
-    it("names Run Workflow's question as this language's Dashboard draws it", () => {
-      const drawn: string = drawnDashboardLabel(language, WHAT_HAPPENED_NAME);
+  it("names Run Workflow's question as this language's Dashboard draws it", () => {
+    const drawn: string = drawnDashboardLabel(language, WHAT_HAPPENED_NAME);
 
-      // Every Dashboard language translates it.
-      expect(drawn).not.toBe(WHAT_HAPPENED_NAME);
-      expect(
-        linesWith(page, ["**On Create or Update**", `**${drawn}**`]),
-      ).toHaveLength(1);
-    });
+    // Every Dashboard language translates it.
+    expect(drawn).not.toBe(WHAT_HAPPENED_NAME);
+    expect(
+      linesWith(page, ["**On Create or Update**", `**${drawn}**`]),
+    ).toHaveLength(1);
+  });
 
-    it("quotes the two values and the reference exactly", () => {
-      const code: Array<string> = inlineCode(page);
+  it("quotes the two values and the reference exactly", () => {
+    const code: Array<string> = inlineCode(page);
 
-      expect(code).toContain(REFERENCE);
-      expect(
-        code.filter((span: string): boolean => {
-          return span === WhatHappened.Created;
-        }),
-      ).toHaveLength(2);
-      expect(code).toContain(WhatHappened.Updated);
-    });
-  },
-);
+    expect(code).toContain(REFERENCE);
+    expect(
+      code.filter((span: string): boolean => {
+        return span === WhatHappened.Created;
+      }),
+    ).toHaveLength(2);
+    expect(code).toContain(WhatHappened.Updated);
+  });
+});
 
 describe.each(DOCS_LANGUAGES)("the other pages in %s", (language: string) => {
   it("components: the Monitor set's four triggers, as the catalog names them", () => {
