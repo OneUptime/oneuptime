@@ -911,6 +911,32 @@ test.describe("a monitor's Status Timeline", () => {
     ).toHaveCount(0);
   });
 
+  test("a read that fails says why, keeps the period to move on from, and reads again when asked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${MONITOR_ROUTE}?fail=timeline`);
+
+    await expect(page.getByTestId("card")).toContainText(
+      "Error connecting to server. Please try again in a few minutes.",
+    );
+    await expect(page.getByTestId("status-timeline-band")).toHaveCount(0);
+    await expect(
+      page.getByTestId("monitor-status-timeline-window-controls"),
+    ).toBeVisible();
+
+    const reads: number = (await bandReads(page)).length;
+
+    await page.getByTestId("refresh-button").click();
+
+    await expect
+      .poll(async () => {
+        return (await bandReads(page)).length;
+      })
+      .toBeGreaterThan(reads);
+  });
+
   test("a blip shorter than a minute is named to the second for a screen reader, never 7:26 – 7:26", async ({
     page,
   }: {

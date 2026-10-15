@@ -32,6 +32,10 @@
  *                            create or delete a status event (Viewer); the
  *                            default is a project owner
  *   - lang=de|ja             the Dashboard's German or Japanese words
+ *   - fail=timeline          every read of the timeline's rows fails, as a
+ *                            server that cannot be reached does
+ *   - delay=<ms>             each read takes this long (60 ms otherwise), to
+ *                            see the timeline while it loads
  *   - theme=dark             (read by server.js) the dark theme
  *
  * Every list request is recorded on `window.__fixture.listRequests` (with
@@ -130,6 +134,8 @@ const page = PAGE_NAMES.includes(params.get("page"))
   : "monitor";
 const scenario = params.get("scenario") || "";
 const role = params.get("role") || "owner";
+const failure = params.get("fail") || "";
+const readDelay = Number(params.get("delay") || 60);
 const language = ["de", "ja"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
@@ -915,7 +921,7 @@ Navigation.getLastParamAsObjectID = () => new ObjectID(RECORD_IDS[page]);
 // A read takes as long as a quick one does, so loading states are real.
 function respond(value) {
   return new Promise((resolve) => {
-    setTimeout(() => resolve(value), 60);
+    setTimeout(() => resolve(value), readDelay);
   });
 }
 
@@ -934,6 +940,13 @@ ModelAPI.getList = async (options) => {
     skip,
     limit,
   });
+
+  if (failure === "timeline" && tableName.endsWith("Timeline")) {
+    await respond(undefined);
+    throw new Error(
+      "Error connecting to server. Please try again in a few minutes.",
+    );
+  }
 
   const items = sortRows(
     (RECORDS[tableName] || []).filter((record) => matchesQuery(record, query)),
