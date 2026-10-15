@@ -57,6 +57,7 @@ import Permission from "../../../Types/Permission";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import API from "../../../UI/Utils/API/API";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
+import { JSONObject } from "../../../Types/JSON";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import User from "../../../UI/Utils/User";
 import NumberPrefixUtil, {
@@ -389,7 +390,7 @@ beforeEach(() => {
     });
   // The Next Number card under this one reads where the numbers stand.
   jest.spyOn(API, "get").mockImplementation((async (): Promise<
-    HTTPResponse<Record<string, unknown>>
+    HTTPResponse<JSONObject>
   > => {
     return new HTTPResponse(200, { numbering: [] }, {});
   }) as never);
