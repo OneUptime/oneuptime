@@ -512,7 +512,7 @@ describe("an override as the page sends it", () => {
     expect(override.projectId?.toString()).toBe(PROJECT);
   });
 
-  test("from On-Call Duty > User Overrides, it is global: no policy", () => {
+  test("from On-Call Duty > Advanced > User Overrides, it is global: no policy", () => {
     const override: OnCallDutyPolicyUserOverride = prepareUserOverrideForCreate(
       newOverride({ overrideUserId: ALEX, routeAlertsToUserId: SAM }),
       { projectId: new ObjectID(PROJECT), onCallDutyPolicyId: undefined },

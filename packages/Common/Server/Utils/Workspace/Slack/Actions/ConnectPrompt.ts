@@ -125,12 +125,12 @@ const FORM_PRESSES: Partial<Record<SlackActionType, FormPress>> = {
   [SlackActionType.ViewExecuteIncidentOnCallPolicy]: {
     does: "executeOnCallPolicy",
     eventType: WorkspaceEventType.Incident,
-    button: "Execute On Call",
+    button: "Execute On-Call Policy",
   },
   [SlackActionType.SubmitExecuteIncidentOnCallPolicy]: {
     does: "executeOnCallPolicy",
     eventType: WorkspaceEventType.Incident,
-    button: "Execute On Call",
+    button: "Execute On-Call Policy",
   },
   [SlackActionType.ViewAddAlertNote]: {
     does: "addNote",
@@ -155,12 +155,12 @@ const FORM_PRESSES: Partial<Record<SlackActionType, FormPress>> = {
   [SlackActionType.ViewExecuteAlertOnCallPolicy]: {
     does: "executeOnCallPolicy",
     eventType: WorkspaceEventType.Alert,
-    button: "Execute On Call",
+    button: "Execute On-Call Policy",
   },
   [SlackActionType.SubmitExecuteAlertOnCallPolicy]: {
     does: "executeOnCallPolicy",
     eventType: WorkspaceEventType.Alert,
-    button: "Execute On Call",
+    button: "Execute On-Call Policy",
   },
   [SlackActionType.ViewAddIncidentEpisodeNote]: {
     does: "addNote",
@@ -185,12 +185,12 @@ const FORM_PRESSES: Partial<Record<SlackActionType, FormPress>> = {
   [SlackActionType.ViewExecuteIncidentEpisodeOnCallPolicy]: {
     does: "executeOnCallPolicy",
     eventType: WorkspaceEventType.IncidentEpisode,
-    button: "Execute On Call",
+    button: "Execute On-Call Policy",
   },
   [SlackActionType.SubmitExecuteIncidentEpisodeOnCallPolicy]: {
     does: "executeOnCallPolicy",
     eventType: WorkspaceEventType.IncidentEpisode,
-    button: "Execute On Call",
+    button: "Execute On-Call Policy",
   },
   [SlackActionType.ViewAddAlertEpisodeNote]: {
     does: "addNote",
@@ -215,12 +215,12 @@ const FORM_PRESSES: Partial<Record<SlackActionType, FormPress>> = {
   [SlackActionType.ViewExecuteAlertEpisodeOnCallPolicy]: {
     does: "executeOnCallPolicy",
     eventType: WorkspaceEventType.AlertEpisode,
-    button: "Execute On Call",
+    button: "Execute On-Call Policy",
   },
   [SlackActionType.SubmitExecuteAlertEpisodeOnCallPolicy]: {
     does: "executeOnCallPolicy",
     eventType: WorkspaceEventType.AlertEpisode,
-    button: "Execute On Call",
+    button: "Execute On-Call Policy",
   },
   [SlackActionType.ViewAddScheduledMaintenanceNote]: {
     does: "addNote",

@@ -7,6 +7,8 @@ import {
   test,
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
+import fs from "fs";
+import path from "path";
 
 /*
  * The press a Connect button carries (WorkspaceConnectRequest) is kept in
@@ -601,6 +603,49 @@ describe("the New Incident form is filled in as the member", (): void => {
     },
   );
 
+  /*
+   * The policies to page when the incident is created, named as Microsoft
+   * Teams' create card names them ("Execute On-Call Policies (Optional)":
+   * Slack marks an optional field itself) and as the Dashboard names the
+   * action, not "Execute On Call Policy".
+   */
+  test("the form's on-call policies are named as Microsoft Teams' card names them", async () => {
+    mockMember([Permission.ProjectMember]);
+    stubLists();
+
+    await SlackIncidentActions.viewNewIncidentModal(
+      handlerArgs(SlackActionType.NewIncident, "Checkout is down"),
+    );
+
+    const policies: WorkspaceDropdownBlock | undefined = shownModal()
+      .blocks.filter((block: WorkspaceMessageBlock): boolean => {
+        return block._type === "WorkspaceDropdownBlock";
+      })
+      .map((block: WorkspaceMessageBlock): WorkspaceDropdownBlock => {
+        return block as WorkspaceDropdownBlock;
+      })
+      .find((dropdown: WorkspaceDropdownBlock): boolean => {
+        return dropdown.blockId === "onCallDutyPolicies";
+      });
+
+    expect(policies).toMatchObject({
+      label: "Execute On-Call Policies",
+      placeholder:
+        "Select on-call policies to execute when this incident is created",
+      multiSelect: true,
+      optional: true,
+    });
+    expect(
+      fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Incident.ts",
+        ),
+        "utf8",
+      ),
+    ).toContain(`label: "${policies!.label} (Optional)"`);
+  });
+
   test("a list the member may not read is left off the form, and the rest are offered", async () => {
     mockMember([Permission.IncidentMember]);
     stubLists(["monitors", "labels", "onCallPolicies"]);
@@ -748,6 +793,8 @@ describe("Execute On-Call Policy pickers ask first, then offer what the member m
     resourceService: { findOneBy: unknown };
     refusal: string;
     open: (id: string) => Promise<void>;
+    // The form's submission, as it always was.
+    submit: SlackActionType;
   }
 
   const PICKERS: Array<PickerCase> = [
@@ -760,6 +807,7 @@ describe("Execute On-Call Policy pickers ask first, then offer what the member m
           handlerArgs(SlackActionType.ViewExecuteIncidentOnCallPolicy, id),
         );
       },
+      submit: SlackActionType.SubmitExecuteIncidentOnCallPolicy,
     },
     {
       name: "an alert",
@@ -770,6 +818,7 @@ describe("Execute On-Call Policy pickers ask first, then offer what the member m
           handlerArgs(SlackActionType.ViewExecuteAlertOnCallPolicy, id),
         );
       },
+      submit: SlackActionType.SubmitExecuteAlertOnCallPolicy,
     },
     {
       name: "an incident episode",
@@ -783,6 +832,7 @@ describe("Execute On-Call Policy pickers ask first, then offer what the member m
           ),
         );
       },
+      submit: SlackActionType.SubmitExecuteIncidentEpisodeOnCallPolicy,
     },
     {
       name: "an alert episode",
@@ -793,6 +843,7 @@ describe("Execute On-Call Policy pickers ask first, then offer what the member m
           handlerArgs(SlackActionType.ViewExecuteAlertEpisodeOnCallPolicy, id),
         );
       },
+      submit: SlackActionType.SubmitExecuteAlertEpisodeOnCallPolicy,
     },
   ];
 
@@ -834,6 +885,40 @@ describe("Execute On-Call Policy pickers ask first, then offer what the member m
       ).toEqual(["onCallPolicies"]);
       expectReadAsTheMember(reads);
       expect(reads[0]!.query["isArchived"]).toBe(false);
+    },
+  );
+
+  /*
+   * Titled as the Dashboard's form and Microsoft Teams' card are, within the
+   * 24 characters Slack allows a modal's title, and asking for the On-Call
+   * Policy as they do. Only the words changed: the press and the form's
+   * submission carry the ids they always did.
+   */
+  test.each(PICKERS)(
+    "on $name: the picker is the Dashboard's Execute On-Call Policy, in words Slack takes",
+    async (picker: PickerCase) => {
+      mockMember([Permission.OnCallMember]);
+      stubLists();
+      jest
+        .spyOn(picker.resourceService as never, "findOneBy" as never)
+        .mockResolvedValue({ _id: ObjectID.generate().toString() } as never);
+
+      await picker.open(ObjectID.generate().toString());
+
+      const modal: WorkspaceModalBlock = shownModal();
+
+      expect(modal.title).toBe("Execute On-Call Policy");
+      expect(modal.title.length).toBeLessThanOrEqual(
+        SlackUtil.MODAL_TITLE_MAX_LENGTH,
+      );
+      expect(modal.actionId).toBe(picker.submit);
+      expect(modal.blocks).toHaveLength(1);
+      expect(modal.blocks[0]).toMatchObject({
+        _type: "WorkspaceDropdownBlock",
+        blockId: "onCallPolicy",
+        label: "On-Call Policy",
+        placeholder: "Select On-Call Policy",
+      });
     },
   );
 

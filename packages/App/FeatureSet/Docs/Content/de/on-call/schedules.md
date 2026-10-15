@@ -86,7 +86,7 @@ Solange die Person abwesend ist:
 
 Wählen Sie stattdessen jemanden unter **Wer vertritt?**, erhält diese Person alle ihre Alarmierungen, aus jedem Plan und jeder Richtlinie, statt dass die Rotation ihre Schichten übernimmt.
 
-So eingetragene Abwesenheit gilt für jede Bereitschaftsrichtlinie. Sie steht unter **Bereitschaftsdienst** > **Benutzerüberschreibungen**, wo Sie sie löschen können, um die Person früher zurückzuholen. Um jemanden nur in einer Richtlinie zu überspringen, legen Sie die Vertretung auf der Seite **Benutzerüberschreibungen** dieser Richtlinie an und lassen **Wer vertritt?**, wie es ist. Siehe [Benutzerüberschreibungen](/docs/on-call/user-overrides).
+So eingetragene Abwesenheit gilt für jede Bereitschaftsrichtlinie. Sie steht unter **Bereitschaftsdienst** > **Erweitert** > **Benutzerüberschreibungen**, wo Sie sie löschen können, um die Person früher zurückzuholen. Um jemanden nur in einer Richtlinie zu überspringen, legen Sie die Vertretung auf der Seite **Benutzerüberschreibungen** dieser Richtlinie an und lassen **Wer vertritt?**, wie es ist. Siehe [Benutzerüberschreibungen](/docs/on-call/user-overrides).
 
 Über die API überspringt eine Benutzervertretung (`/api/on-call-duty-policy-user-override`), die ohne `routeAlertsToUserId` angelegt wird, die Person in `overrideUserId` von `startsAt` bis `endsAt`.
 
