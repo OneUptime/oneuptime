@@ -142,7 +142,7 @@ const PROBLEM_MESSAGES: Record<NextNumberProblem, string> = {
   [NextNumberProblem.BelowOne]: "Use a number of 1 or more.",
   [NextNumberProblem.TooLarge]: "Use a number no higher than 1,000,000,000.",
   [NextNumberProblem.NotAboveHighest]:
-    "Use a number higher than {{highestNumber}}, the highest number used so far.",
+    "Use a number higher than {{highestNumber}}.",
 };
 
 export default class NextNumberUtil {
@@ -306,6 +306,64 @@ export default class NextNumberUtil {
     }
 
     return NextNumberUtil.parse(value);
+  }
+
+  /*
+   * The numbering route's answer (GET /project/:id/numbering), read back:
+   * one entry per kind it knows, in the order the kinds are listed. An
+   * entry of a kind it does not know, or with a value of the wrong shape, is
+   * left out rather than shown wrong.
+   */
+  public static parseNumbering(value: unknown): Array<RecordNumbering> {
+    const entries: Array<unknown> =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? ((value as Record<string, unknown>)["numbering"] as Array<unknown>)
+        : [];
+
+    if (!Array.isArray(entries)) {
+      return [];
+    }
+
+    const parsed: Array<RecordNumbering> = [];
+
+    for (const info of NUMBERED_RECORD_KINDS) {
+      const entry: unknown = entries.find((candidate: unknown): boolean => {
+        return (
+          Boolean(candidate) &&
+          typeof candidate === "object" &&
+          (candidate as Record<string, unknown>)["kind"] === info.kind
+        );
+      });
+
+      if (!entry) {
+        continue;
+      }
+
+      const row: Record<string, unknown> = entry as Record<string, unknown>;
+      const highestNumber: number | null = NextNumberUtil.toStoredNumber(
+        row["highestNumber"],
+      );
+      const nextNumber: number | null = NextNumberUtil.toStoredNumber(
+        row["nextNumber"],
+      );
+
+      if (highestNumber === null || nextNumber === null) {
+        continue;
+      }
+
+      parsed.push({
+        kind: info.kind,
+        prefix:
+          typeof row["prefix"] === "string" && row["prefix"]
+            ? (row["prefix"] as string)
+            : null,
+        highestNumber: highestNumber,
+        nextNumber: nextNumber,
+        numbersStartAt: NextNumberUtil.toStoredNumber(row["numbersStartAt"]),
+      });
+    }
+
+    return parsed;
   }
 
   /*

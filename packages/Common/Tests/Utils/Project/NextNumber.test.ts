@@ -356,7 +356,7 @@ describe("NextNumberUtil.getProblemMessage", () => {
     expect(
       NextNumberUtil.getProblemMessage(NextNumberProblem.NotAboveHighest),
     ).toBe(
-      "Use a number higher than {{highestNumber}}, the highest number used so far.",
+      "Use a number higher than {{highestNumber}}.",
     );
   });
 

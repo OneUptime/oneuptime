@@ -5,17 +5,19 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Location, Navigate, useLocation } from "react-router-dom";
 
 export interface ComponentProps {
-  // The Number Prefix page that replaced More Settings at this URL.
+  // The Numbering page that replaced the page at this URL.
   pageMap: PageMap;
 }
 
 /*
  * Number prefixes lived on a page called More Settings
  * (…/incidents/settings/more, and the same under alerts and scheduled
- * maintenance) until they got a Number Prefix page of their own. Bookmarks
- * and older docs still point at the old address, so it forwards to the new
- * page - in the same project, keeping the query string and the hash, and
- * replacing the history entry so Back does not bounce through it.
+ * maintenance), then on a Number Prefix page of their own
+ * (…/settings/number-prefix), which became Numbering once it held the next
+ * numbers too. Bookmarks and older docs still point at the old addresses,
+ * so each forwards to Numbering - in the same project, keeping the query
+ * string and the hash, and replacing the history entry so Back does not
+ * bounce through it.
  */
 const MovedNumberPrefixPageRedirect: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

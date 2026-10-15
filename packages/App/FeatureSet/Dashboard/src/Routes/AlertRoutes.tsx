@@ -72,9 +72,12 @@ import AlertSettingsLabelRules from "../Pages/Alerts/Settings/AlertLabelRules";
 
 import AlertSettingsMeasurements from "../Pages/Alerts/Settings/AlertMeasurements";
 
-import AlertSettingsNumberPrefix from "../Pages/Alerts/Settings/AlertNumberPrefix";
+import AlertSettingsNumbering from "../Pages/Alerts/Settings/AlertNumbering";
 import MovedNumberPrefixPageRedirect from "../Components/NumberPrefix/MovedNumberPrefixPageRedirect";
-import { MORE_SETTINGS_PATH } from "../Components/NumberPrefix/NumberPrefixSettings";
+import {
+  MORE_SETTINGS_PATH,
+  NUMBER_PREFIX_PATH,
+} from "../Components/NumberPrefix/NumberPrefixSettings";
 import AlertSettingsAI from "../Pages/Alerts/Settings/AlertAISettings";
 import AlertAIInsights from "../Pages/Alerts/AI/Insights";
 import AlertAILogs from "../Pages/Alerts/AI/Logs";
@@ -135,15 +138,23 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
   return (
     <Routes>
       {/*
-       * Number prefixes were on More Settings. Its old URL forwards to the
-       * Number Prefix page - outside the layout, so the side menu never
-       * flashes on the way.
+       * Numbering was More Settings, then Number Prefix. Their old URLs
+       * forward to it - outside the layout, so the side menu never flashes
+       * on the way.
        */}
       <PageRoute
         path={MORE_SETTINGS_PATH}
         element={
           <MovedNumberPrefixPageRedirect
-            pageMap={PageMap.ALERTS_SETTINGS_NUMBER_PREFIX}
+            pageMap={PageMap.ALERTS_SETTINGS_NUMBERING}
+          />
+        }
+      />
+      <PageRoute
+        path={NUMBER_PREFIX_PATH}
+        element={
+          <MovedNumberPrefixPageRedirect
+            pageMap={PageMap.ALERTS_SETTINGS_NUMBERING}
           />
         }
       />
@@ -487,12 +498,12 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_NUMBER_PREFIX] || ""}
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_NUMBERING] || ""}
           element={
-            <AlertSettingsNumberPrefix
+            <AlertSettingsNumbering
               {...props}
               pageRoute={
-                RouteMap[PageMap.ALERTS_SETTINGS_NUMBER_PREFIX] as Route
+                RouteMap[PageMap.ALERTS_SETTINGS_NUMBERING] as Route
               }
             />
           }
