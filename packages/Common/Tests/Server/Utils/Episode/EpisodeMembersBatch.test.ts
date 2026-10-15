@@ -203,6 +203,21 @@ describe("a member added together with others", () => {
     ).toBe(false);
   });
 
+  test("a create without props is not root, so is added on its own", () => {
+    expect(
+      EpisodeMembersBatch.isAddedTogether({
+        miscDataProps: EpisodeMembersBatch.getMiscDataProps(),
+      }),
+    ).toBe(false);
+
+    expect(
+      EpisodeMembersBatch.isAddedTogether({
+        props: undefined,
+        miscDataProps: EpisodeMembersBatch.getMiscDataProps(),
+      }),
+    ).toBe(false);
+  });
+
   test("anything but true is no marker", () => {
     for (const value of ["true", 1, null, undefined, {}]) {
       expect(

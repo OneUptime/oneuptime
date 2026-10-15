@@ -32,6 +32,8 @@ const TRIGGERS_AND_READS: Array<string> = [
   "incoming-call-log-find-many",
   "incoming-call-log-on-create",
   "incoming-call-log-on-update",
+  // With both On Create and On Update, a model also gets the combined trigger.
+  "incoming-call-log-on-create-or-update",
 ];
 
 const WRITES: Array<string> = [
@@ -87,6 +89,7 @@ describe("Incoming Call Log in workflows", () => {
     expect(titles).toEqual([
       "On Create Incoming Call Log",
       "On Update Incoming Call Log",
+      "On Create or Update Incoming Call Log",
     ]);
   });
 

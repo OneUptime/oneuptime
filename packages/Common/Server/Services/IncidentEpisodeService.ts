@@ -375,8 +375,11 @@ export class Service extends ProjectReferencesService<Model> {
         "Incident Severity",
       )
     ) {
-      createBy.data.incidentSeverityId =
-        incidentsToAdd.mostSevereIncidentSeverityId;
+      RelationIdUtil.stamp(
+        createData,
+        ["incidentSeverityId", "incidentSeverity"],
+        incidentsToAdd.mostSevereIncidentSeverityId,
+      );
     }
 
     /*

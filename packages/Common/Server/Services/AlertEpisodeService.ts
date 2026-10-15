@@ -272,7 +272,11 @@ export class Service extends ProjectReferencesService<Model> {
         "Alert Severity",
       )
     ) {
-      createBy.data.alertSeverityId = alertsToAdd.mostSevereAlertSeverityId;
+      RelationIdUtil.stamp(
+        createData,
+        ["alertSeverityId", "alertSeverity"],
+        alertsToAdd.mostSevereAlertSeverityId,
+      );
     }
 
     /*
