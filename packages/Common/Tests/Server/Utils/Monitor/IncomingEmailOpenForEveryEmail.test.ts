@@ -1205,7 +1205,9 @@ describe("A reply added as a note is remembered by its Message-ID", () => {
     });
 
     expect(incidentNotes).toHaveLength(2);
-    expect(incidentNotes[0]!.note).toContain("The reply has no plain text.");
+    expect(incidentNotes[0]!.note).toContain(
+      "_The reply has no text to show._",
+    );
   });
 
   it("so a reply that names only the reply it answers finds the thread", async () => {
@@ -1704,29 +1706,74 @@ describe(`A monitor opens at most ${MAX_OPENED_FROM_EMAILS_PER_HOUR} an hour fro
 });
 
 describe("The note a reply leaves", () => {
-  it("names the sender and keeps the reply's lines", () => {
+  it("names who replied first, then keeps the reply's lines and paragraphs", () => {
     const note: string = IncomingEmailOpenForEveryEmail.getReplyNote({
       from: "colleague@acme.example",
-      body: "Still broken.\nIt shows error 41 again.",
+      body: "Still broken.\nIt shows error 41 again.\n\n\nThanks,\nPriya\n",
     });
 
-    expect(note.split("\n")[0]).toContain("**Reply by email from");
-    expect(FeedMarkdown.withoutInvisibleBreaks(note)).toContain(
-      "colleague@acme.example",
+    /*
+     * Each line ends with a hard break, as a form's multi-line answer does:
+     * a bare line break reads as a space, and "Thanks,\nPriya" read
+     * "Thanks, Priya". A blank line, or a run of them, is one paragraph
+     * break.
+     */
+    expect(note).toBe(
+      [
+        "**colleague@acme.example** replied by email:",
+        "",
+        "Still broken.  ",
+        "It shows error 41 again.",
+        "",
+        "Thanks,  ",
+        "Priya",
+      ].join("\n"),
     );
-    expect(FeedMarkdown.withoutInvisibleBreaks(note)).toContain(
-      "Still broken.",
-    );
-    expect(note.split("\n").length).toBeGreaterThanOrEqual(4);
   });
 
-  it("reads what the sender wrote as text: no link, image, heading or chat mention acts", () => {
+  it("leaves out the earlier emails the reply quotes: the incident has them", () => {
+    const note: string = IncomingEmailOpenForEveryEmail.getReplyNote({
+      from: "colleague@acme.example",
+      body: [
+        "Same here on floor 4.",
+        "",
+        "On Wed, Oct 15, 2026 at 9:02 AM Tom <tom@acme.example> wrote:",
+        "> The printer on floor 2 shows E-17.",
+      ].join("\n"),
+    });
+
+    expect(note).toBe(
+      "**colleague@acme.example** replied by email:\n\nSame here on floor 4.",
+    );
+  });
+
+  it("leaves out the email an Outlook reply quotes under its rule", () => {
+    const note: string = IncomingEmailOpenForEveryEmail.getReplyNote({
+      from: "facilities@acme.example",
+      body: [
+        "Fixed - wrong toner.",
+        "________________________________",
+        "From: Tom <tom@acme.example>",
+        "Sent: Wednesday, October 15, 2026 9:02 AM",
+        "",
+        "The printer on floor 2 shows E-17.",
+      ].join("\n"),
+    });
+
+    expect(FeedMarkdown.withoutInvisibleBreaks(note)).not.toContain("E-17");
+    expect(note).toContain("Fixed - wrong toner.");
+  });
+
+  it("reads what the sender wrote as text: no link, image, heading, list or chat mention acts", () => {
     const body: string = [
       "# Heading",
       "[Click here](javascript:alert(1))",
       "![tracker](https://evil.example/pixel.png)",
       "<!channel> <@U123> @here",
       "<script>alert(1)</script>",
+      "- not a list",
+      "1. not numbered",
+      "    not code",
     ].join("\n");
 
     const note: string = IncomingEmailOpenForEveryEmail.getReplyNote({
@@ -1734,8 +1781,8 @@ describe("The note a reply leaves", () => {
       body,
     });
 
-    // Placed as text: the same as FeedMarkdown places a multi-line value.
-    expect(note).toContain(FeedMarkdown.multilineText(body).toString());
+    // Each line is text, escaped where it starts a line.
+    expect(note).toContain("\\# Heading");
     expect(note).not.toContain("\n# Heading");
     // The brackets are escaped, so neither is a link or an image.
     expect(note).toContain("\\[Click here\\]");
@@ -1745,6 +1792,10 @@ describe("The note a reply leaves", () => {
     // Every "<" of a tag is escaped: the renderers show it as text.
     expect(note).toContain("\\<script>");
     expect(note.split("\\<script>").join("")).not.toContain("<script>");
+    // No list starts, and no line is indented into a code block.
+    expect(note).toContain("\\- not a list");
+    expect(note).toContain("1\\. not numbered");
+    expect(note).not.toContain("    not code");
     // As written, once the invisible breaks are taken out.
     expect(FeedMarkdown.withoutInvisibleBreaks(note)).toContain("@here");
   });
@@ -1756,6 +1807,7 @@ describe("The note a reply leaves", () => {
     });
 
     expect(note).not.toContain("[boss](https://evil.example)");
+    expect(note.split("\n")[0]).toContain("replied by email:");
   });
 
   it(`cuts a long reply at ${MAX_REPLY_NOTE_TEXT_LENGTH} characters and says so`, () => {
@@ -1768,6 +1820,18 @@ describe("The note a reply leaves", () => {
     expect(note).toContain("_The rest of this reply is not shown._");
     expect(note).toContain("x".repeat(MAX_REPLY_NOTE_TEXT_LENGTH));
     expect(note).not.toContain("x".repeat(MAX_REPLY_NOTE_TEXT_LENGTH + 1));
+  });
+
+  it("measures the reply's own text against the limit, not the thread it quotes", () => {
+    const own: string = "y".repeat(MAX_REPLY_NOTE_TEXT_LENGTH - 10);
+    const note: string = IncomingEmailOpenForEveryEmail.getReplyNote({
+      from: "x@acme.example",
+      body: `${own}\n\nOn Wed, Oct 15, 2026 Tom <tom@acme.example> wrote:\n> ${"z".repeat(MAX_REPLY_NOTE_TEXT_LENGTH)}`,
+    });
+
+    expect(note).toContain(own);
+    expect(note).not.toContain("not shown");
+    expect(note).not.toContain("z");
   });
 
   it("a reply of exactly the limit is whole", () => {
@@ -1795,16 +1859,29 @@ describe("The note a reply leaves", () => {
     ).toBe(true);
   });
 
-  it("a reply with no plain text, and a sender with no address", () => {
+  it("a reply with no text, and a sender with no address", () => {
     expect(
       IncomingEmailOpenForEveryEmail.getReplyNote({ from: "", body: "  " }),
-    ).toBe("**Reply by email**\n\nThe reply has no plain text.");
+    ).toBe("**Someone** replied by email:\n\n_The reply has no text to show._");
   });
 
   it("a megabyte of reply is noted in linear time, well under two seconds", () => {
     // The clock is faked for the other tests: time this one on the real one.
     jest.useRealTimers();
     const body: string = `${"<!channel> [a](b) ".repeat(60000)}\n`.repeat(2);
+    const start: number = Date.now();
+
+    IncomingEmailOpenForEveryEmail.getReplyNote({
+      from: "x@acme.example",
+      body,
+    });
+
+    expect(Date.now() - start).toBeLessThan(2000);
+  });
+
+  it("a hundred thousand short lines are noted in linear time too", () => {
+    jest.useRealTimers();
+    const body: string = "> a\nb\n".repeat(100000);
     const start: number = Date.now();
 
     IncomingEmailOpenForEveryEmail.getReplyNote({

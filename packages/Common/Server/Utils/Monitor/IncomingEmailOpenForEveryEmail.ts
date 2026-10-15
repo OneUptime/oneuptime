@@ -13,6 +13,7 @@ import MonitorEvaluationSummary, {
 } from "../../../Types/Monitor/MonitorEvaluationSummary";
 import ObjectID from "../../../Types/ObjectID";
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
+import EmailReplyText from "../../../Utils/Email/EmailReplyText";
 import EmailThreadHeaders from "../../../Utils/Email/EmailThreadHeaders";
 import FeedMarkdown, {
   MarkdownText,
@@ -90,10 +91,12 @@ import DataToProcess from "./DataToProcess";
 export const MAX_OPENED_FROM_EMAILS_PER_HOUR: number = 20;
 
 /*
- * The longest reply text a note quotes. A reply quotes the whole thread
- * below it; the newest text is at the top.
+ * The longest reply text a note holds: the reply's own text, the thread it
+ * quotes taken away (EmailReplyText).
  */
 export const MAX_REPLY_NOTE_TEXT_LENGTH: number = 10000;
+
+const LINE_BREAK_PATTERN: RegExp = /\r\n|\r|\n/;
 
 /*
  * How long what a reply was added to is remembered. Longer than a delivery
@@ -317,7 +320,7 @@ export default class IncomingEmailOpenForEveryEmail {
           kind: record.kind,
           record: record,
           title: `${IncomingEmailOpenForEveryEmail.noun(record.kind)} already opened for this email: ${record.title}`,
-          message: `This email was delivered before and already opened this ${record.kind}. An email opens one ${record.kind}, however often it is delivered.`,
+          message: `This email was delivered before and already opened this ${record.kind}.`,
         });
       }
 
@@ -382,7 +385,7 @@ export default class IncomingEmailOpenForEveryEmail {
           kind: record.kind,
           record: record,
           title: `Reply added to the ${record.kind} as a note: ${record.title}`,
-          message: `This email replies in the thread of the email that opened this ${record.kind}, so it was added to the ${record.kind} as a note instead of opening a new one.`,
+          message: `This email is a reply in the thread that opened this ${record.kind}, so it was added to the ${record.kind} as a private note instead of opening a new one.`,
         });
       }
 
@@ -445,35 +448,38 @@ export default class IncomingEmailOpenForEveryEmail {
   }
 
   /*
-   * The private note a reply leaves on what its thread opened: who sent it,
-   * and what they wrote, as text - nothing in it is read as Markdown, a link
-   * or a chat mention - with its lines kept and the rest of a long reply cut.
+   * The private note a reply leaves on what its thread opened, as a person
+   * reads a reply in their mail program: who sent it, then what they wrote -
+   * without the earlier emails it quotes (EmailReplyText), which the
+   * incident and its notes hold already, and with its lines and paragraphs
+   * as they were written. Everything the sender wrote is text: nothing in
+   * it is read as Markdown, a link or a chat mention. The rest of a long
+   * reply is cut.
    */
   public static getReplyNote(input: {
     from: string | null | undefined;
     body: string | null | undefined;
   }): string {
     const from: string = (input.from || "").trim();
-    const body: string = (input.body || "").trim();
+    const text: string = EmailReplyText.getOwnText(input.body);
 
-    const heading: MarkdownText = from
-      ? mdText`**Reply by email from ${from}**`
-      : mdText`**Reply by email**`;
+    // Who replied leads, as a chat message's sender does.
+    const heading: MarkdownText = mdText`**${from || "Someone"}** replied by email:`;
 
-    if (!body) {
+    if (!text) {
       return mdText`${heading}
 
-The reply has no plain text.`.toString();
+_The reply has no text to show._`.toString();
     }
 
-    if (body.length <= MAX_REPLY_NOTE_TEXT_LENGTH) {
+    if (text.length <= MAX_REPLY_NOTE_TEXT_LENGTH) {
       return mdText`${heading}
 
-${FeedMarkdown.multilineText(body)}`.toString();
+${IncomingEmailOpenForEveryEmail.getLinesMarkdown(text)}`.toString();
     }
 
     let end: number = MAX_REPLY_NOTE_TEXT_LENGTH;
-    const lastCharCode: number = body.charCodeAt(end - 1);
+    const lastCharCode: number = text.charCodeAt(end - 1);
 
     // Never end on the first half of a surrogate pair, such as an emoji.
     if (lastCharCode >= 0xd800 && lastCharCode <= 0xdbff) {
@@ -482,9 +488,42 @@ ${FeedMarkdown.multilineText(body)}`.toString();
 
     return mdText`${heading}
 
-${FeedMarkdown.multilineText(body.slice(0, end))}
+${IncomingEmailOpenForEveryEmail.getLinesMarkdown(text.slice(0, end))}
 
 _The rest of this reply is not shown._`.toString();
+  }
+
+  /*
+   * Plain text as Markdown that keeps its lines: each line ends with a hard
+   * break, as a form's multi-line answer does (FormSubmissionNote) - a bare
+   * line break is read as a space, so "Thanks,\nPriya" read "Thanks,
+   * Priya" - and a blank line, or a run of them, starts a new paragraph.
+   * Each line is text, escaped where it stands (FeedMarkdown.join).
+   */
+  private static getLinesMarkdown(text: string): MarkdownText {
+    const paragraphs: Array<MarkdownText> = [];
+    let lines: Array<string> = [];
+
+    const endParagraph: () => void = (): void => {
+      if (lines.length > 0) {
+        paragraphs.push(FeedMarkdown.join(lines, "  \n"));
+        lines = [];
+      }
+    };
+
+    for (const line of text.split(LINE_BREAK_PATTERN)) {
+      const words: string = line.trim();
+
+      if (words) {
+        lines.push(words);
+      } else {
+        endParagraph();
+      }
+    }
+
+    endParagraph();
+
+    return FeedMarkdown.join(paragraphs, "\n\n");
   }
 
   /*
