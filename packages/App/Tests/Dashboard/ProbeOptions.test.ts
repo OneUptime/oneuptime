@@ -227,10 +227,9 @@ describe("getGroupedProbeDropdownOptions", () => {
 
   test("a list of one kind has no headings: one heading over everything says nothing", () => {
     expect(
-      getGroupedProbeDropdownOptions(
-        [probe({ id: HQ, name: "HQ Probe" })],
-        { isOneUptimeCloud: true },
-      ),
+      getGroupedProbeDropdownOptions([probe({ id: HQ, name: "HQ Probe" })], {
+        isOneUptimeCloud: true,
+      }),
     ).toEqual([{ label: "HQ Probe", value: HQ }]);
     expect(
       getGroupedProbeDropdownOptions(
@@ -245,10 +244,9 @@ describe("getGroupedProbeDropdownOptions", () => {
 
   test("a probe with no id is left out of its group too", () => {
     const groups: Array<ProbeDropdownOption | ProbeDropdownOptionGroup> =
-      getGroupedProbeDropdownOptions(
-        [...BOTH, probe({ name: "Ghost" })],
-        { isOneUptimeCloud: true },
-      );
+      getGroupedProbeDropdownOptions([...BOTH, probe({ name: "Ghost" })], {
+        isOneUptimeCloud: true,
+      });
 
     expect((groups[0] as ProbeDropdownOptionGroup).options).toHaveLength(2);
   });
@@ -292,9 +290,7 @@ describe("the probe fields, for a project with no probe of its own", () => {
   );
 
   function readPage(name: string): string {
-    return fs
-      .readFileSync(path.join(PAGES, name), "utf8")
-      .replace(/\s+/g, " ");
+    return fs.readFileSync(path.join(PAGES, name), "utf8").replace(/\s+/g, " ");
   }
 
   test.each([

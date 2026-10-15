@@ -141,10 +141,7 @@ import { RUN_PROBE_POLL_INTERVAL_IN_MS } from "../../../../App/FeatureSet/Dashbo
 import Probe from "../../../Models/DatabaseModels/Probe";
 import { BILLING_ENABLED } from "../../../UI/Config";
 import Navigation from "../../../UI/Utils/Navigation";
-import {
-  AA_TEXT_CONTRAST,
-  contrastOf,
-} from "../../Helpers/TailwindContrast";
+import { AA_TEXT_CONTRAST, contrastOf } from "../../Helpers/TailwindContrast";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 const ALERT_POLICIES_PATH: string = `/dashboard/${PROJECT_ID}/network-devices/settings/alert-policies`;
@@ -258,7 +255,11 @@ beforeEach(() => {
     return probe;
   }) as never);
   probeStatusMock.mockResolvedValue(new Probe() as never);
-  window.history.replaceState({}, "", `/dashboard/${PROJECT_ID}/network-devices`);
+  window.history.replaceState(
+    {},
+    "",
+    `/dashboard/${PROJECT_ID}/network-devices`,
+  );
   navigateSpy = jest.spyOn(Navigation, "navigate").mockImplementation(() => {
     return undefined;
   });
@@ -314,7 +315,9 @@ describe("the probe step, with no probe yet", () => {
     await renderOverview();
 
     expect(
-      within(step("probe")).getByText(/a probe on the internet cannot reach private addresses like 10\.0\.0\.1/),
+      within(step("probe")).getByText(
+        /a probe on the internet cannot reach private addresses like 10\.0\.0\.1/,
+      ),
     ).toBeInTheDocument();
   });
 
@@ -406,11 +409,14 @@ describe("the Add a probe dialog", () => {
     );
     fireEvent.change(name, { target: { value: "Branch probe" } });
     await act(async () => {
-      fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
+      fireEvent.click(
+        within(dialog()).getByTestId("modal-footer-submit-button"),
+      );
     });
     await flush();
 
-    const sent: Probe = (createMock.mock.calls[0]![0] as { model: Probe }).model;
+    const sent: Probe = (createMock.mock.calls[0]![0] as { model: Probe })
+      .model;
 
     expect(sent.name).toBe("Branch probe");
     expect(sent.projectId?.toString()).toBe(PROJECT_ID);
@@ -421,14 +427,15 @@ describe("the Add a probe dialog", () => {
     const command: string =
       within(dialog()).getByTestId("add-probe-command").textContent || "";
 
-    expect(command).toContain("docker run --name oneuptime-probe --network host");
+    expect(command).toContain(
+      "docker run --name oneuptime-probe --network host",
+    );
     expect(command).toContain(`PROBE_ID=${CREATED_PROBE_ID}`);
     expect(command).toContain(`PROBE_KEY=${PROBE_KEY}`);
     expect(command).toContain("oneuptime/probe:release");
-    expect(within(dialog()).getByTestId("add-probe-connection")).toHaveAttribute(
-      "data-connected",
-      "false",
-    );
+    expect(
+      within(dialog()).getByTestId("add-probe-connection"),
+    ).toHaveAttribute("data-connected", "false");
     expect(
       within(dialog()).getByTestId("add-probe-connection"),
     ).toHaveTextContent("Waiting for Branch probe to connect.");
@@ -450,7 +457,9 @@ describe("the Add a probe dialog", () => {
 
     await openDialog();
     await act(async () => {
-      fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
+      fireEvent.click(
+        within(dialog()).getByTestId("modal-footer-submit-button"),
+      );
     });
     await flush();
 
@@ -480,7 +489,9 @@ describe("the Add a probe dialog", () => {
 
     await openDialog();
     await act(async () => {
-      fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
+      fireEvent.click(
+        within(dialog()).getByTestId("modal-footer-submit-button"),
+      );
     });
     await flush();
 
@@ -508,7 +519,9 @@ describe("the Add a probe dialog", () => {
 
     await openDialog();
     await act(async () => {
-      fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
+      fireEvent.click(
+        within(dialog()).getByTestId("modal-footer-submit-button"),
+      );
     });
     await flush();
 
@@ -526,7 +539,9 @@ describe("the Add a probe dialog", () => {
 
     await openDialog();
     await act(async () => {
-      fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
+      fireEvent.click(
+        within(dialog()).getByTestId("modal-footer-submit-button"),
+      );
     });
     await flush();
 
@@ -814,13 +829,9 @@ describe("the first-run path can be read", () => {
     expectReadable(
       within(step("probe")).getByText(/A probe is a small program/),
     );
-    expectReadable(
-      within(step("probe")).getByText(/Office probe is added/),
-    );
+    expectReadable(within(step("probe")).getByText(/Office probe is added/));
     expectReadable(within(step("probe")).getByText("1"));
-    expectReadable(
-      within(step("alerts")).getByText("Set up alerts"),
-    );
+    expectReadable(within(step("alerts")).getByText("Set up alerts"));
     expectReadable(
       within(step("alerts")).getByText(/One alert policy raises an incident/),
     );

@@ -128,7 +128,9 @@ describe("the empty state is honest about what polling already gives you", () =>
     expect(CARD).toContain(
       "RouteMap[ PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES ] as Route",
     );
-    expect(CARD).toContain("{!props.isMonitorBacked && ( <Button title=\"Set up alerts\"");
+    expect(CARD).toContain(
+      '{!props.isMonitorBacked && ( <Button title="Set up alerts"',
+    );
   });
 
   /*

@@ -349,7 +349,9 @@ const NetworkOverview: FunctionComponent<
           tooltip={NETWORK_DEVICE_METRIC_DESCRIPTIONS.fleetInterfacesDown}
           onClick={() => {
             Navigation.navigate(
-              getDeviceListRouteForFacet(DEVICES_WITH_INTERFACES_DOWN_SELECTION),
+              getDeviceListRouteForFacet(
+                DEVICES_WITH_INTERFACES_DOWN_SELECTION,
+              ),
             );
           }}
           value={

@@ -113,12 +113,15 @@ describe("the surfaces that name a site's type", () => {
         "SiteStatusHero.tsx",
       ],
     ],
-  ])("%s reads it through getNetworkSiteTypeName", (_surface: string, parts: Array<string>) => {
-    const code: string = read(...parts);
+  ])(
+    "%s reads it through getNetworkSiteTypeName",
+    (_surface: string, parts: Array<string>) => {
+      const code: string = read(...parts);
 
-    expect(code).toContain("getNetworkSiteTypeName(");
-    expect(code).toContain('from "Common/Utils/NetworkSite/SiteTypeName"');
-  });
+      expect(code).toContain("getNetworkSiteTypeName(");
+      expect(code).toContain('from "Common/Utils/NetworkSite/SiteTypeName"');
+    },
+  );
 
   test("the site header and the Overview list read the relation's name with the site", () => {
     expect(

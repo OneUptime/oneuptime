@@ -176,9 +176,7 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
    * How many devices the device graph below holds, once it is read (null
    * until then): the note over a flat map is left out while there are none.
    */
-  const [flatMapNodeCount, setFlatMapNodeCount] = useState<number | null>(
-    null,
-  );
+  const [flatMapNodeCount, setFlatMapNodeCount] = useState<number | null>(null);
   /*
    * WHICH level `levelData` describes. Load-bearing, not bookkeeping: a
    * drill commits the new site id one render before the response for it

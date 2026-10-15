@@ -175,9 +175,7 @@ async function scrollsSideways(page: Page): Promise<boolean> {
 async function contrastOf(locator: Locator): Promise<number> {
   return locator.evaluate((element: Element): number => {
     function rgb(value: string): Array<number> {
-      const parts: Array<number> = (value.match(/[\d.]+/g) || []).map(
-        Number,
-      );
+      const parts: Array<number> = (value.match(/[\d.]+/g) || []).map(Number);
       return [parts[0] || 0, parts[1] || 0, parts[2] || 0, parts[3] ?? 1];
     }
 
@@ -208,9 +206,7 @@ async function contrastOf(locator: Locator): Promise<number> {
     const text: number = luminance(rgb(getComputedStyle(element).color));
     const ground: number = luminance(background(element));
 
-    return (
-      (Math.max(text, ground) + 0.05) / (Math.min(text, ground) + 0.05)
-    );
+    return (Math.max(text, ground) + 0.05) / (Math.min(text, ground) + 0.05);
   });
 }
 
@@ -339,9 +335,7 @@ test("adding a probe: name it, run the command it prints, and watch it connect",
   await expect(
     step(page, "probe").getByTestId("network-first-run-probe-status"),
   ).toHaveText("Branch office probe is connected.");
-  await expect(page.getByTestId("network-first-run-add-probe")).toHaveCount(
-    0,
-  );
+  await expect(page.getByTestId("network-first-run-add-probe")).toHaveCount(0);
   await screenshot(page, "network-first-run-probe-done");
 });
 
@@ -374,9 +368,7 @@ test("a probe added earlier and not running: How to run it opens its command", a
   ).toHaveText(
     "Office probe is added. Run it on a computer on your network and this step turns green.",
   );
-  await expect(page.getByTestId("network-first-run-add-probe")).toHaveCount(
-    0,
-  );
+  await expect(page.getByTestId("network-first-run-add-probe")).toHaveCount(0);
 
   await page.getByTestId("network-first-run-run-probe").click();
   await expect(dialog(page).getByTestId("modal-title")).toHaveText(
@@ -408,9 +400,11 @@ test("someone who may add a probe but not read its key is told who can", async (
   // The key was never asked for.
   const state: FixtureState = await fixture(page);
   expect(
-    state.itemRequests.filter((request: { select: Record<string, unknown> }) => {
-      return Boolean(request.select["key"]);
-    }),
+    state.itemRequests.filter(
+      (request: { select: Record<string, unknown> }) => {
+        return Boolean(request.select["key"]);
+      },
+    ),
   ).toEqual([]);
 });
 
@@ -437,9 +431,7 @@ test("the second step's choices open their forms", async ({
     "data-page",
     "NETWORK_DEVICES",
   );
-  await expect(page.getByTestId("stub-page")).toContainText(
-    "?open=add-device",
-  );
+  await expect(page.getByTestId("stub-page")).toContainText("?open=add-device");
 });
 
 test("the alerts step: a link until a policy is on, then ticked", async ({
@@ -449,7 +441,9 @@ test("the alerts step: a link until a policy is on, then ticked", async ({
 }) => {
   await openFirstRun(page);
 
-  await step(page, "alerts").getByRole("link", { name: "Set up alerts" }).click();
+  await step(page, "alerts")
+    .getByRole("link", { name: "Set up alerts" })
+    .click();
   await expect(page.getByTestId("stub-page")).toHaveAttribute(
     "data-page",
     "NETWORK_DEVICE_SETTINGS_ALERT_POLICIES",
@@ -494,9 +488,9 @@ test("opened to add a probe from a device's probe field: the dialog opens, and t
     "Add a probe",
   );
   // The suggested name, while no probe of the project's has it.
-  await expect(dialog(page).getByPlaceholder("London office probe")).toHaveValue(
-    "Network probe",
-  );
+  await expect(
+    dialog(page).getByPlaceholder("London office probe"),
+  ).toHaveValue("Network probe");
   await expect
     .poll((): string => {
       return new URL(page.url()).search;
@@ -511,7 +505,11 @@ test("opened to add a probe from a device's probe field: the dialog opens, and t
  * ---------------------------------------------------------------------------
  */
 
-test("the path and the dialog fit a phone", async ({ page }: { page: Page }) => {
+test("the path and the dialog fit a phone", async ({
+  page,
+}: {
+  page: Page;
+}) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openFirstRun(page, "connectAfter=never");
 

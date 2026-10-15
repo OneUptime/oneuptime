@@ -75,9 +75,7 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
    */
   const fetchNeighbourNames: (
     found: Array<DeviceNeighbour>,
-  ) => Promise<void> = async (
-    found: Array<DeviceNeighbour>,
-  ): Promise<void> => {
+  ) => Promise<void> = async (found: Array<DeviceNeighbour>): Promise<void> => {
     try {
       const names: DeviceNeighbourNames = await getDeviceNeighbourNames(
         props.modelId,
@@ -277,7 +275,8 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
             ? translator.translatePlural(
                 {
                   one: "Reported over LLDP or CDP, and {{count}} more on the map.",
-                  other: "Reported over LLDP or CDP, and {{count}} more on the map.",
+                  other:
+                    "Reported over LLDP or CDP, and {{count}} more on the map.",
                 },
                 hidden,
               )

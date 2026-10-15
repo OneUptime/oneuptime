@@ -347,7 +347,13 @@ describe("the Connected to card of a device that reports its neighbours", () => 
           remotePortId: "Gi1/0/1",
         },
       ],
-      [{ localInterfaceIndex: 50, remoteDeviceId: "edge-rtr1", remotePortId: "port3" }],
+      [
+        {
+          localInterfaceIndex: 50,
+          remoteDeviceId: "edge-rtr1",
+          remotePortId: "port3",
+        },
+      ],
     );
     interfaceRows = [interfaceRow(49, "Te1/1/1"), interfaceRow(50, "Te1/1/2")];
     const core: NetworkDevice = new NetworkDevice();
@@ -381,9 +387,7 @@ describe("the Connected to card of a device that reports its neighbours", () => 
 
     const footer: HTMLElement = screen.getByTestId("device-neighbours");
     expect(footer).toHaveTextContent("Reported over LLDP or CDP.");
-    expect(
-      screen.queryByTestId("device-attachment-empty"),
-    ).toBeNull();
+    expect(screen.queryByTestId("device-attachment-empty")).toBeNull();
   });
 
   test("lists eight, counts the rest, and puts the map one click away", async () => {
@@ -419,7 +423,11 @@ describe("the Connected to card of a device that reports its neighbours", () => 
   test("a failed name lookup still lists the cables, by port number", async () => {
     isNameLookupFailing = true;
     deviceRow = switchWithNeighbours([
-      { localInterfaceIndex: 49, remoteSysName: "core-sw1", remotePortId: "Gi1/0/1" },
+      {
+        localInterfaceIndex: 49,
+        remoteSysName: "core-sw1",
+        remotePortId: "Gi1/0/1",
+      },
     ]);
 
     await renderCard();
@@ -432,7 +440,11 @@ describe("the Connected to card of a device that reports its neighbours", () => 
 
   test("a device also seen on another switch's port shows that port", async () => {
     deviceRow = switchWithNeighbours([
-      { localInterfaceIndex: 49, remoteSysName: "core-sw1", remotePortId: "Gi1/0/1" },
+      {
+        localInterfaceIndex: 49,
+        remoteSysName: "core-sw1",
+        remotePortId: "Gi1/0/1",
+      },
     ]);
     deviceRow.macAddress = REGISTER_MAC;
     endpointRows = [

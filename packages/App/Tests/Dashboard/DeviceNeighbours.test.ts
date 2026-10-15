@@ -118,8 +118,12 @@ describe("getDeviceNeighbours", () => {
 
   test("a Cisco neighbour speaking both protocols on one port is one cable", () => {
     const neighbours: Array<DeviceNeighbour> = getDeviceNeighbours({
-      lldpNeighbors: [lldp({ remoteSysName: "Core-SW1", localInterfaceIndex: 3 })],
-      cdpNeighbors: [cdp({ remoteDeviceId: "core-sw1", localInterfaceIndex: 3 })],
+      lldpNeighbors: [
+        lldp({ remoteSysName: "Core-SW1", localInterfaceIndex: 3 }),
+      ],
+      cdpNeighbors: [
+        cdp({ remoteDeviceId: "core-sw1", localInterfaceIndex: 3 }),
+      ],
     });
 
     expect(neighbours).toHaveLength(1);
@@ -159,9 +163,7 @@ describe("getDeviceNeighbours", () => {
 
   test("a port index that is not a number is no port index", () => {
     const [neighbour]: Array<DeviceNeighbour> = getDeviceNeighbours({
-      lldpNeighbors: [
-        lldp({ localInterfaceIndex: "7" as unknown as number }),
-      ],
+      lldpNeighbors: [lldp({ localInterfaceIndex: "7" as unknown as number })],
     });
 
     expect(neighbour!.localInterfaceIndex).toBeUndefined();
@@ -188,12 +190,16 @@ describe("isPortNamedAsPort", () => {
     },
   );
 
-  test.each(["Gi1/0/1", "49", "eth0", "GigabitEthernet0/0", "portal", "airport1"])(
-    "%s gets the word port in front",
-    (port: string) => {
-      expect(isPortNamedAsPort(port)).toBe(false);
-    },
-  );
+  test.each([
+    "Gi1/0/1",
+    "49",
+    "eth0",
+    "GigabitEthernet0/0",
+    "portal",
+    "airport1",
+  ])("%s gets the word port in front", (port: string) => {
+    expect(isPortNamedAsPort(port)).toBe(false);
+  });
 
   /*
    * A port id is text a device sends, so the pattern that reads it has to
@@ -238,7 +244,10 @@ describe("getDeviceNeighbourNames", () => {
     getListMock.mockReset();
   });
 
-  function interfaceRow(interfaceIndex: number, name: string): NetworkInterface {
+  function interfaceRow(
+    interfaceIndex: number,
+    name: string,
+  ): NetworkInterface {
     const row: NetworkInterface = new NetworkInterface();
     row.interfaceIndex = interfaceIndex;
     row.name = name;
@@ -262,9 +271,7 @@ describe("getDeviceNeighbourNames", () => {
         }
 
         return {
-          data: [
-            deviceRow("3f1b6b0e-0000-4000-8000-00000000c001", "Core-SW1"),
-          ],
+          data: [deviceRow("3f1b6b0e-0000-4000-8000-00000000c001", "Core-SW1")],
         };
       },
     );

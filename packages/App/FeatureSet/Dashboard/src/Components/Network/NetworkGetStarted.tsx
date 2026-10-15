@@ -287,10 +287,7 @@ const NetworkGetStarted: FunctionComponent<ComponentProps> = (
           </div>
         </li>
 
-        <li
-          className="flex gap-4"
-          data-testid="network-first-run-step-devices"
-        >
+        <li className="flex gap-4" data-testid="network-first-run-step-devices">
           <StepMarker number={2} isDone={false} />
           <div className="min-w-0 flex-1">
             <h3 className="text-base font-semibold text-gray-900">

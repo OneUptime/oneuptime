@@ -129,9 +129,13 @@ describe("the Overview with nothing on it", () => {
     expect(GET_STARTED).toContain(
       "RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES]",
     );
-    expect(GET_STARTED).toContain('data-testid="network-first-run-set-up-alerts"');
+    expect(GET_STARTED).toContain(
+      'data-testid="network-first-run-set-up-alerts"',
+    );
     expect(GET_STARTED).toContain("{!areAlertsOn && (");
-    expect(GET_STARTED).toContain('data-testid="network-first-run-alerts-status"');
+    expect(GET_STARTED).toContain(
+      'data-testid="network-first-run-alerts-status"',
+    );
   });
 
   test("no longer draws the old empty state that only linked to lists", () => {

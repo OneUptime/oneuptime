@@ -10,10 +10,7 @@ import {
   RUN_PROBE_WAITING,
   getDefaultProbeName,
 } from "./AddProbeCopy";
-import {
-  NetworkProbeFacts,
-  isProbeConnected,
-} from "./NetworkProbeSetup";
+import { NetworkProbeFacts, isProbeConnected } from "./NetworkProbeSetup";
 import { getProbeDockerRunCommand } from "../Probe/ProbeRunCommand";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -99,9 +96,8 @@ const AddProbeModal: FunctionComponent<ComponentProps> = (
    * cannot be read) the plain suggestion stands, and the server refuses a
    * name that is taken in words of its own.
    */
-  const [existingProbeNames, setExistingProbeNames] = useState<
-    Array<string> | null
-  >(props.probe ? [] : null);
+  const [existingProbeNames, setExistingProbeNames] =
+    useState<Array<string> | null>(props.probe ? [] : null);
 
   const canReadProbeKey: boolean = PermissionGate.canReadColumn(
     new Probe(),

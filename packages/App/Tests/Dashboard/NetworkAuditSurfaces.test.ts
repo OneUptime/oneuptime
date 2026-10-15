@@ -119,8 +119,9 @@ describe("the Overview's tiles and lists go where they talk about", () => {
   });
 
   test("Interfaces Down opens the device list filtered to devices with ports down", () => {
-    expect(tile("Interfaces Down")).toContain(
-      "Navigation.navigate( getDeviceListRouteForFacet(DEVICES_WITH_INTERFACES_DOWN_SELECTION), );",
+    // However prettier wraps the call.
+    expect(tile("Interfaces Down")).toMatch(
+      /Navigation\.navigate\( ?getDeviceListRouteForFacet\( ?DEVICES_WITH_INTERFACES_DOWN_SELECTION,? ?\),? ?\);/,
     );
     expect(DEVICES_WITH_INTERFACES_DOWN_SELECTION).toEqual({
       facetKey: DEVICE_INTERFACES_FACET_KEY,
@@ -213,7 +214,9 @@ describe("a page with nothing on it draws nothing it cannot fill", () => {
     const card: string = readCode("Components", "NetworkSite", "SiteCard.tsx");
 
     expect(card).not.toContain('"No unit rollup yet"');
-    expect(card).toContain('"Nothing reporting yet: no devices or sites in it."');
+    expect(card).toContain(
+      '"Nothing reporting yet: no devices or sites in it."',
+    );
   });
 });
 
@@ -226,9 +229,10 @@ describe("words that say what they mean", () => {
     ]) {
       const code: string = readCode(...parts);
 
-      expect({ parts, says: code.includes('translateText("Top level")') }).toEqual(
-        { parts, says: true },
-      );
+      expect({
+        parts,
+        says: code.includes('translateText("Top level")'),
+      }).toEqual({ parts, says: true });
       expect(code).not.toContain('translateText("Root")');
       expect(code).not.toContain('translateText("Root site")');
     }
@@ -249,7 +253,12 @@ describe("words that say what they mean", () => {
   });
 
   test("a device's details show its SNMP name and description only when they add something", () => {
-    const view: string = readCode("Pages", "NetworkDevice", "View", "Index.tsx");
+    const view: string = readCode(
+      "Pages",
+      "NetworkDevice",
+      "View",
+      "Index.tsx",
+    );
 
     expect(view).toContain("return isDifferentText(item.sysName, item.name);");
     expect(view).toContain(
@@ -271,7 +280,9 @@ describe("words that say what they mean", () => {
   });
 
   test("the community string is optional, and its help says so", () => {
-    expect(readCode("Pages", "NetworkDevice", "SnmpConfigFormFields.ts")).toContain(
+    expect(
+      readCode("Pages", "NetworkDevice", "SnmpConfigFormFields.ts"),
+    ).toContain(
       "The community string the device answers SNMP with, such as public. Leave it empty to ping the device only.",
     );
   });
@@ -291,13 +302,19 @@ describe("words that say what they mean", () => {
   });
 
   test("site assignment rules say what they do, and what a hand-placed device does", () => {
-    const rules: string = readCode("Pages", "NetworkSite", "AssignmentRules.tsx");
+    const rules: string = readCode(
+      "Pages",
+      "NetworkSite",
+      "AssignmentRules.tsx",
+    );
 
     expect(rules).toContain('title: "Site Assignment Rules",');
     expect(rules).toContain(
       "A device you put in a site by hand stays there until its address or name changes.",
     );
-    expect(rules).toContain("Run Now applies a rule to the devices you already have.");
+    expect(rules).toContain(
+      "Run Now applies a rule to the devices you already have.",
+    );
   });
 
   test("the map of sites says what a click does", () => {
@@ -320,7 +337,11 @@ describe("words that say what they mean", () => {
   });
 
   test("the scan's credentials step says what the list is", () => {
-    const discovery: string = readCode("Pages", "NetworkDevice", "Discovery.tsx");
+    const discovery: string = readCode(
+      "Pages",
+      "NetworkDevice",
+      "Discovery.tsx",
+    );
 
     expect(discovery).toContain('title: "Credentials to try",');
     expect(discovery).toContain(

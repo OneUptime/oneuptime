@@ -53,7 +53,10 @@ function probe(overrides: Partial<NetworkProbeFacts> = {}): NetworkProbeFacts {
 describe("isProbeConnected", () => {
   test("a probe the worker has stamped connected is connected", () => {
     expect(
-      isProbeConnected(probe({ connectionStatus: PROBE_CONNECTED_STATUS }), NOW),
+      isProbeConnected(
+        probe({ connectionStatus: PROBE_CONNECTED_STATUS }),
+        NOW,
+      ),
     ).toBe(true);
   });
 
@@ -103,23 +106,17 @@ describe("isProbeConnected", () => {
   });
 
   test("a heartbeat from the future (a skewed clock) counts as recent", () => {
-    expect(
-      isProbeConnected(probe({ lastAlive: minutesAgo(-10) }), NOW),
-    ).toBe(true);
+    expect(isProbeConnected(probe({ lastAlive: minutesAgo(-10) }), NOW)).toBe(
+      true,
+    );
   });
 
   test("a heartbeat read back as a string is read as a date", () => {
     expect(
-      isProbeConnected(
-        probe({ lastAlive: minutesAgo(1).toISOString() }),
-        NOW,
-      ),
+      isProbeConnected(probe({ lastAlive: minutesAgo(1).toISOString() }), NOW),
     ).toBe(true);
     expect(
-      isProbeConnected(
-        probe({ lastAlive: minutesAgo(30).toISOString() }),
-        NOW,
-      ),
+      isProbeConnected(probe({ lastAlive: minutesAgo(30).toISOString() }), NOW),
     ).toBe(false);
   });
 
@@ -183,10 +180,7 @@ describe("getNetworkProbeSetup", () => {
       connectionStatus: PROBE_CONNECTED_STATUS,
     });
     const idle: NetworkProbeFacts = probe();
-    const setup: NetworkProbeSetup = getNetworkProbeSetup(
-      [idle, running],
-      NOW,
-    );
+    const setup: NetworkProbeSetup = getNetworkProbeSetup([idle, running], NOW);
 
     expect(setup.kind).toBe(NetworkProbeSetupKind.Connected);
     expect(setup.connected).toEqual([running]);
@@ -224,9 +218,9 @@ describe("getNetworkProbeSetup", () => {
 
 describe("shouldPollProbeSetup", () => {
   test("asks again only while a probe is added and not running", () => {
-    expect(
-      shouldPollProbeSetup(getNetworkProbeSetup([probe()], NOW)),
-    ).toBe(true);
+    expect(shouldPollProbeSetup(getNetworkProbeSetup([probe()], NOW))).toBe(
+      true,
+    );
     expect(shouldPollProbeSetup(getNetworkProbeSetup([], NOW))).toBe(false);
     expect(
       shouldPollProbeSetup(

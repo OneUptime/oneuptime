@@ -127,9 +127,9 @@ describe("the vendor template offer on a device's Overview", () => {
       `Add the ${cnMatrix().label} template and every poll also reads this device's health`,
     );
     expect(banner).toHaveTextContent("Nothing it already collects changes.");
-    expect(screen.getByTestId("device-vendor-template-apply")).toHaveTextContent(
-      "Add health checks",
-    );
+    expect(
+      screen.getByTestId("device-vendor-template-apply"),
+    ).toHaveTextContent("Add health checks");
   });
 
   test("reads only what the decision needs", async () => {
@@ -165,7 +165,9 @@ describe("the vendor template offer on a device's Overview", () => {
 
     await renderBanner();
     await act(async () => {
-      fireEvent.click(await screen.findByTestId("device-vendor-template-apply"));
+      fireEvent.click(
+        await screen.findByTestId("device-vendor-template-apply"),
+      );
     });
 
     const request: {
@@ -233,7 +235,9 @@ describe("the vendor template offer on a device's Overview", () => {
 
     await renderBanner();
     await act(async () => {
-      fireEvent.click(await screen.findByTestId("device-vendor-template-apply"));
+      fireEvent.click(
+        await screen.findByTestId("device-vendor-template-apply"),
+      );
     });
 
     expect(

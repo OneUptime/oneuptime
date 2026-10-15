@@ -706,9 +706,9 @@ describe("POST /network-device/overview — the type of a site needing attention
 
     await callOverview();
 
-    const select: JSONObject = (siteService.findBy.mock.calls[0]![0] as JSONObject)[
-      "select"
-    ] as JSONObject;
+    const select: JSONObject = (
+      siteService.findBy.mock.calls[0]![0] as JSONObject
+    )["select"] as JSONObject;
 
     expect(select["networkSiteType"]).toEqual({ name: true });
     expect(select["siteType"]).toBe(true);
@@ -735,9 +735,7 @@ describe("POST /network-device/overview — the type of a site needing attention
   });
 
   test("a site with neither reads Other, never a blank", async () => {
-    siteService.findBy.mockResolvedValue([
-      site({ name: "Untyped" }),
-    ] as never);
+    siteService.findBy.mockResolvedValue([site({ name: "Untyped" })] as never);
 
     await callOverview();
 

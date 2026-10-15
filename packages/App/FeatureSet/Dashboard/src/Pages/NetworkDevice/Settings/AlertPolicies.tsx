@@ -403,7 +403,10 @@ const RecommendedPolicyEmptyState: FunctionComponent<
    */
   const confirmDescription: string =
     deviceCount !== null
-      ? translator.translatePlural(RECOMMENDED_POLICY_CONFIRM_COUNTED, deviceCount)
+      ? translator.translatePlural(
+          RECOMMENDED_POLICY_CONFIRM_COUNTED,
+          deviceCount,
+        )
       : translator.translateText(RECOMMENDED_POLICY_CONFIRM) || "";
 
   return (

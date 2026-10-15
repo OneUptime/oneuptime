@@ -14,10 +14,7 @@ import Button, {
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
-import {
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import React, {
