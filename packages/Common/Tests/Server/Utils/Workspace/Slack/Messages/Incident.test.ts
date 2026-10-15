@@ -448,11 +448,10 @@ describe("the incident's card as Microsoft Teams draws it: the buttons, then the
       },
     )!;
 
-    const card: JSONObject = MicrosoftTeamsUtil.buildAdaptiveCardFromMessageBlocks(
-      {
+    const card: JSONObject =
+      MicrosoftTeamsUtil.buildAdaptiveCardFromMessageBlocks({
         messageBlocks: teams.messageBlocks,
-      },
-    );
+      });
 
     const id: string = incidentId.toString();
 

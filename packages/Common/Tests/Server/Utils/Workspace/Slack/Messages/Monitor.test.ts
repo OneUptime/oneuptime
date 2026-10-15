@@ -145,11 +145,10 @@ describe("SlackMonitorMessages.getMonitorCreateMessageBlocks", () => {
       }),
     ).toEqual([WorkspaceType.Slack, WorkspaceType.MicrosoftTeams]);
 
-    const card: JSONObject = MicrosoftTeamsUtil.buildAdaptiveCardFromMessageBlocks(
-      {
+    const card: JSONObject =
+      MicrosoftTeamsUtil.buildAdaptiveCardFromMessageBlocks({
         messageBlocks: byType[1]!.messageBlocks,
-      },
-    );
+      });
 
     expect(card["actions"]).toEqual([
       {
@@ -173,7 +172,8 @@ describe("every message builder adds the buttons it builds", () => {
   );
 
   const BUTTON_PUSH: RegExp = /\bbuttons\.push\(/;
-  const BLOCK_PUSH: RegExp = /blockSlack\.push\(\s*workspacePayloadButtons\s*\)/;
+  const BLOCK_PUSH: RegExp =
+    /blockSlack\.push\(\s*workspacePayloadButtons\s*\)/;
 
   const builders: Array<string> = fs
     .readdirSync(MESSAGES_DIRECTORY)
@@ -195,17 +195,20 @@ describe("every message builder adds the buttons it builds", () => {
     );
   });
 
-  test.each(builders)("%s: buttons built are added to the message", (file: string) => {
-    const source: string = fs.readFileSync(
-      path.join(MESSAGES_DIRECTORY, file),
-      "utf8",
-    );
+  test.each(builders)(
+    "%s: buttons built are added to the message",
+    (file: string) => {
+      const source: string = fs.readFileSync(
+        path.join(MESSAGES_DIRECTORY, file),
+        "utf8",
+      );
 
-    if (BUTTON_PUSH.test(source)) {
-      expect({ file: file, addsButtons: BLOCK_PUSH.test(source) }).toEqual({
-        file: file,
-        addsButtons: true,
-      });
-    }
-  });
+      if (BUTTON_PUSH.test(source)) {
+        expect({ file: file, addsButtons: BLOCK_PUSH.test(source) }).toEqual({
+          file: file,
+          addsButtons: true,
+        });
+      }
+    },
+  );
 });

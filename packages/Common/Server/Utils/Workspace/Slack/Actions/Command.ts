@@ -204,8 +204,8 @@ export default class SlackCommandActions {
     );
 
     switch (action?.actionType) {
+      // And `/oneuptime incident 42`: that incident, with its buttons.
       case SlackActionType.NewIncident:
-      // `/oneuptime incident 42`: that incident, with its buttons.
       case SlackActionType.ShowIncident:
         return await SlackIncidentActions.handleIncidentAction({
           slackRequest: slackRequest,

@@ -323,7 +323,8 @@ describe("an update that changes an incident's custom fields", () => {
   });
 
   test("a field emptied, or left out of the bag, reads cleared", async () => {
-    const { Due: _due, ...withoutDue } = STORED_CUSTOM_FIELDS;
+    const withoutDue: JSONObject = { ...STORED_CUSTOM_FIELDS };
+    delete withoutDue["Due"];
 
     await runUpdate({ customFields: { ...withoutDue, Ticket: "" } });
 

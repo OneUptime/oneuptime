@@ -110,7 +110,9 @@ describe("CustomFieldFeedChange.getChanges: only what really changed", () => {
   });
 
   test("a field left out of a bag the update writes is gone from the incident: cleared, after the fields written", () => {
-    const { Ticket: _ticket, Due: _due, ...rest } = STORED;
+    const rest: Record<string, unknown> = { ...STORED };
+    delete rest["Ticket"];
+    delete rest["Due"];
 
     expect(changesOf({ ...rest, Public: true })).toEqual([
       { name: "Public", value: true },

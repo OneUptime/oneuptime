@@ -325,9 +325,7 @@ export default class MicrosoftTeamsIncidentMoreActions {
     return true;
   }
 
-  // ---------------------------------------------------------------------
   // Change Severity
-  // ---------------------------------------------------------------------
 
   private static readonly SEVERITY_CHECK: WorkspaceIncidentFormCheck = {
     kind: "update",
@@ -470,9 +468,7 @@ export default class MicrosoftTeamsIncidentMoreActions {
     );
   }
 
-  // ---------------------------------------------------------------------
   // Assign Role
-  // ---------------------------------------------------------------------
 
   private static readonly ROLE_CHECK: WorkspaceIncidentFormCheck = {
     kind: "create",
@@ -672,9 +668,7 @@ export default class MicrosoftTeamsIncidentMoreActions {
     );
   }
 
-  // ---------------------------------------------------------------------
   // Page Someone
-  // ---------------------------------------------------------------------
 
   private static readonly PAGE_CHECK: WorkspaceIncidentFormCheck = {
     kind: "create",
@@ -864,9 +858,7 @@ export default class MicrosoftTeamsIncidentMoreActions {
     );
   }
 
-  // ---------------------------------------------------------------------
   // Edit Custom Fields
-  // ---------------------------------------------------------------------
 
   private static readonly CUSTOM_FIELDS_CHECK: WorkspaceIncidentFormCheck = {
     kind: "update",
@@ -1173,9 +1165,7 @@ export default class MicrosoftTeamsIncidentMoreActions {
     return elements;
   }
 
-  // ---------------------------------------------------------------------
   // Shared
-  // ---------------------------------------------------------------------
 
   /*
    * The incident, with its buttons and menu - the blocks of its message,

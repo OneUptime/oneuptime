@@ -43,7 +43,9 @@ import WorkspaceMemberActions, {
   WorkspaceEventType,
 } from "../../WorkspaceMemberActions";
 import SlackActionAnswer from "./Answer";
-import { WorkspaceLatePress } from "../../WorkspaceActionAnswers";
+import WorkspaceActionAnswers, {
+  WorkspaceLatePress,
+} from "../../WorkspaceActionAnswers";
 import IncidentStateTimeline from "../../../../../Models/DatabaseModels/IncidentStateTimeline";
 import IncidentPublicNote from "../../../../../Models/DatabaseModels/IncidentPublicNote";
 import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
@@ -54,7 +56,6 @@ import SlackActionAuthorization, {
 } from "./Authorization";
 import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
 import SlackIncidentMoreActions from "./IncidentMoreActions";
-import WorkspaceActionAnswers from "../../WorkspaceActionAnswers";
 import { WorkspacePendingActionKind } from "../../WorkspaceConnectRequest";
 import WorkspaceIncidentActions from "../../WorkspaceIncidentActions";
 import WorkspaceCommands from "../../WorkspaceCommands";

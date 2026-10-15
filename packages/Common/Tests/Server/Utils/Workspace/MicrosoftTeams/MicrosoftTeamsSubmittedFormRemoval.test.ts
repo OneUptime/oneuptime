@@ -155,7 +155,10 @@ import MicrosoftTeamsReplies from "../../../../../Server/Utils/Workspace/Microso
 import WorkspacePage, {
   WorkspacePageOutcome,
 } from "../../../../../Server/Utils/Workspace/WorkspacePage";
-import { OnCallPageRecordType } from "../../../../../Server/Services/OnCallPageService";
+import {
+  OnCallPageRecordType,
+  OnCallPageResult,
+} from "../../../../../Server/Services/OnCallPageService";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import WorkspaceActionAuthorization from "../../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import WorkspaceIncidentActions, {
@@ -170,7 +173,6 @@ import WorkspaceMemberActions, {
   WorkspaceEventRecord,
   WorkspaceEventType,
 } from "../../../../../Server/Utils/Workspace/WorkspaceMemberActions";
-import { OnCallPageResult } from "../../../../../Server/Services/OnCallPageService";
 import CustomFieldType from "../../../../../Types/CustomField/CustomFieldType";
 import URL from "../../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";

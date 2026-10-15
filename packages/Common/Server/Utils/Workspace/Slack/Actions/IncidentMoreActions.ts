@@ -334,9 +334,7 @@ export default class SlackIncidentMoreActions {
     }
   }
 
-  // ---------------------------------------------------------------------
   // Change Severity
-  // ---------------------------------------------------------------------
 
   private static readonly SEVERITY_CHECK: WorkspaceIncidentFormCheck = {
     kind: "update",
@@ -410,10 +408,7 @@ export default class SlackIncidentMoreActions {
         cancelButtonTitle: WORKSPACE_INCIDENT_FORM_TEXT.cancel,
         actionId: SlackActionType.SubmitChangeIncidentSeverity,
         actionValue: form.incident.event.id.toString(),
-        blocks: [
-          SlackIncidentMoreActions.heading(form.incident),
-          severity,
-        ],
+        blocks: [SlackIncidentMoreActions.heading(form.incident), severity],
       },
     });
   }
@@ -460,7 +455,10 @@ export default class SlackIncidentMoreActions {
       await SlackActionAuthorization.runForRequester({
         requester: data.slackRequest,
         action: "change the severity",
-        run: async (): Promise<{ isChanged: boolean; severityName: string }> => {
+        run: async (): Promise<{
+          isChanged: boolean;
+          severityName: string;
+        }> => {
           return await WorkspaceIncidentActions.changeSeverity({
             event: authorized.incident.event,
             severityId: new ObjectID(severityId),
@@ -495,9 +493,7 @@ export default class SlackIncidentMoreActions {
     });
   }
 
-  // ---------------------------------------------------------------------
   // Assign Role
-  // ---------------------------------------------------------------------
 
   private static readonly ROLE_CHECK: WorkspaceIncidentFormCheck = {
     kind: "create",
@@ -707,9 +703,7 @@ export default class SlackIncidentMoreActions {
     });
   }
 
-  // ---------------------------------------------------------------------
   // Page Someone
-  // ---------------------------------------------------------------------
 
   private static readonly PAGE_CHECK: WorkspaceIncidentFormCheck = {
     kind: "create",
@@ -900,9 +894,7 @@ export default class SlackIncidentMoreActions {
     });
   }
 
-  // ---------------------------------------------------------------------
   // Edit Custom Fields
-  // ---------------------------------------------------------------------
 
   private static readonly CUSTOM_FIELDS_CHECK: WorkspaceIncidentFormCheck = {
     kind: "update",
@@ -1282,9 +1274,7 @@ export default class SlackIncidentMoreActions {
     });
   }
 
-  // ---------------------------------------------------------------------
   // Shared
-  // ---------------------------------------------------------------------
 
   /*
    * The incident, with its buttons and menu, only to the person who asked
@@ -1455,9 +1445,8 @@ export default class SlackIncidentMoreActions {
     incident: WorkspaceIncidentForForm,
     more?: MarkdownText | null,
   ): WorkspacePayloadMarkdown {
-    const heading: MarkdownText = WorkspaceIncidentActions.getFormHeading(
-      incident,
-    );
+    const heading: MarkdownText =
+      WorkspaceIncidentActions.getFormHeading(incident);
 
     return {
       _type: "WorkspacePayloadMarkdown",
@@ -1480,7 +1469,10 @@ export default class SlackIncidentMoreActions {
   }
 
   // Slack is answered at once: the press, or the form, is taken.
-  private static clear(data: { req: ExpressRequest; res: ExpressResponse }): void {
+  private static clear(data: {
+    req: ExpressRequest;
+    res: ExpressResponse;
+  }): void {
     if (!data.res.headersSent) {
       Response.sendJsonObjectResponse(data.req, data.res, {
         response_action: "clear",
