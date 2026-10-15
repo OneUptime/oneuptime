@@ -15,6 +15,7 @@ import useDiscoveryScanLiveUpdates, {
 } from "../../Components/NetworkDevice/useDiscoveryScanLiveUpdates";
 import { DiscoveryScanStatus } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
 import ProbeUtil from "../../Utils/Probe";
+import { BILLING_ENABLED } from "Common/UI/Config";
 import useRefreshProbesOnFocus from "../../Components/NetworkDevice/useRefreshProbesOnFocus";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import Probe from "Common/Models/DatabaseModels/Probe";
@@ -65,7 +66,7 @@ import {
   ADD_PROBE_LINK_TEXT,
   SCAN_NO_PROBE_DESCRIPTION,
   getDefaultProbeId,
-  getProbeDropdownOptions,
+  getGroupedProbeDropdownOptions,
   hasProjectProbe,
 } from "../../Components/NetworkDevice/ProbeOptions";
 import {
@@ -284,7 +285,10 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
        * and blanked the entire Discovery Scans page, including the list
        * of existing scans. The Add Device form shares the helper now.
        */
-      dropdownOptions: getProbeDropdownOptions(probes),
+      // The project's own probes first, under their heading.
+      dropdownOptions: getGroupedProbeDropdownOptions(probes, {
+        isOneUptimeCloud: BILLING_ENABLED,
+      }),
       required: true,
       /*
        * The project's one custom probe, when it has exactly one: a question

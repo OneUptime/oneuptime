@@ -1070,11 +1070,25 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500"
         data-testid="network-topology-map-guide"
       >
+        {/*
+         * In the reader's language, and saying what the numbers on a device
+         * are: its ports up and down. The legend names colours and shapes,
+         * and nothing on the map explained "7/2".
+         */}
         <span>
-          <span className="font-medium text-gray-700">Read the map:</span>{" "}
-          devices are nodes; lines are network connections.
+          <span className="font-medium text-gray-700">
+            {translateString("Read the map:") || "Read the map:"}
+          </span>{" "}
+          {translateString(
+            "devices are nodes, lines are network connections, and the numbers on a device are its ports up / down.",
+          ) ||
+            "devices are nodes, lines are network connections, and the numbers on a device are its ports up / down."}
         </span>
-        <span>Click to inspect · Drag to arrange · Updates every minute</span>
+        <span>
+          {translateString(
+            "Click to inspect · Drag to arrange · Updates every minute",
+          ) || "Click to inspect · Drag to arrange · Updates every minute"}
+        </span>
       </div>
 
       <NetworkDeviceGraph

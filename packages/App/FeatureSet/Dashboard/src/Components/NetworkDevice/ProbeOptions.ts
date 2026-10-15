@@ -1,6 +1,7 @@
 import Probe from "Common/Models/DatabaseModels/Probe";
 import {
   translateTemplate,
+  translateText,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 
@@ -16,6 +17,23 @@ export interface ProbeDropdownOption {
   label: string;
   value: string;
 }
+
+export interface ProbeDropdownOptionGroup {
+  label: string;
+  options: Array<ProbeDropdownOption>;
+}
+
+export const OWN_PROBES_GROUP_LABEL: string = translationKey("Your probes");
+
+// OneUptime Cloud: the global probes are on the internet.
+export const CLOUD_PROBES_GROUP_LABEL: string = translationKey(
+  "OneUptime probes, on the internet",
+);
+
+// A self-hosted server: its global probes run beside it.
+export const SERVER_PROBES_GROUP_LABEL: string = translationKey(
+  "This server's probes",
+);
 
 /**
  * The probes as dropdown options.
@@ -39,6 +57,53 @@ export function getProbeDropdownOptions(
         value: id,
       };
     });
+}
+
+/**
+ * The probes as dropdown options, the project's own first and OneUptime's
+ * after them, each under a heading - so "which of these is on my network?"
+ * is answered by the list itself. A list of only one kind has no headings:
+ * one heading over everything says nothing.
+ *
+ * `isOneUptimeCloud` names OneUptime's probes for where they run: on the
+ * internet on OneUptime Cloud (billing on), beside the server on a
+ * self-hosted one.
+ */
+export function getGroupedProbeDropdownOptions(
+  probes: Array<Probe>,
+  options: { isOneUptimeCloud: boolean },
+): Array<ProbeDropdownOption | ProbeDropdownOptionGroup> {
+  const own: Array<ProbeDropdownOption> = getProbeDropdownOptions(
+    probes.filter((probe: Probe): boolean => {
+      return probe.isGlobalProbe !== true;
+    }),
+  );
+  const oneUptimes: Array<ProbeDropdownOption> = getProbeDropdownOptions(
+    probes.filter((probe: Probe): boolean => {
+      return probe.isGlobalProbe === true;
+    }),
+  );
+
+  if (own.length === 0 || oneUptimes.length === 0) {
+    return [...own, ...oneUptimes];
+  }
+
+  return [
+    {
+      label: translateText(OWN_PROBES_GROUP_LABEL) || OWN_PROBES_GROUP_LABEL,
+      options: own,
+    },
+    {
+      label:
+        (options.isOneUptimeCloud
+          ? translateText(CLOUD_PROBES_GROUP_LABEL)
+          : translateText(SERVER_PROBES_GROUP_LABEL)) ||
+        (options.isOneUptimeCloud
+          ? CLOUD_PROBES_GROUP_LABEL
+          : SERVER_PROBES_GROUP_LABEL),
+      options: oneUptimes,
+    },
+  ];
 }
 
 /**

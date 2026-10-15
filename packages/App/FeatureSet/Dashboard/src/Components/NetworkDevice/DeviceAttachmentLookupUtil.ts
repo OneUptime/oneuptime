@@ -447,6 +447,13 @@ export async function getDeviceAttachment(
       hostname: true,
       macAddress: true,
       siteId: true,
+      /*
+       * What the device itself reports it is cabled to, read in the same
+       * request: the card lists these neighbours for a device that speaks
+       * LLDP or CDP (DeviceNeighbours).
+       */
+      lldpNeighbors: true,
+      cdpNeighbors: true,
     },
   });
 

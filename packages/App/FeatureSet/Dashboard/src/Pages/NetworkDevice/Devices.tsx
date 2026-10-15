@@ -2,6 +2,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import ProbeUtil from "../../Utils/Probe";
+import { BILLING_ENABLED } from "Common/UI/Config";
 import useRefreshProbesOnFocus from "../../Components/NetworkDevice/useRefreshProbesOnFocus";
 import Route from "Common/Types/API/Route";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -34,7 +35,10 @@ import {
 import {
   ADD_DEVICE_NO_PROBE_DESCRIPTION,
   ADD_PROBE_LINK_TEXT,
+  ProbeDropdownOption,
+  ProbeDropdownOptionGroup,
   getDefaultProbeId,
+  getGroupedProbeDropdownOptions,
   getProbeDropdownOptions,
   hasProjectProbe,
 } from "../../Components/NetworkDevice/ProbeOptions";
@@ -768,6 +772,15 @@ const NetworkDevices: FunctionComponent<
     return getProbeDropdownOptions(probes);
   }, [probes]);
 
+  // The same probes for the dropdown, the project's own under their heading.
+  const groupedProbeOptions: Array<
+    ProbeDropdownOption | ProbeDropdownOptionGroup
+  > = useMemo(() => {
+    return getGroupedProbeDropdownOptions(probes, {
+      isOneUptimeCloud: BILLING_ENABLED,
+    });
+  }, [probes]);
+
   /*
    * The prefilled address, and the probe it was received by when that is a
    * probe the form offers (else the form's own default probe stands).
@@ -1273,7 +1286,7 @@ const NetworkDevices: FunctionComponent<
               openLinkInNewTab: true,
             },
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: probeOptions,
+            dropdownOptions: groupedProbeOptions,
             required: true,
             // "" when the project has no single obvious probe — see above.
             defaultValue: defaultProbeId,
@@ -1932,6 +1945,14 @@ const NetworkDevices: FunctionComponent<
             title: "Labels",
             type: FieldType.EntityArray,
             hideOnMobile: true,
+            /*
+             * Hidden by default, like Template, Role and Probe: at a laptop's
+             * width the list ran past its card, cutting Last Seen in half and
+             * hiding the row's actions, and "No labels attached." on every
+             * row was the widest cell. The Labels filter above the list and
+             * Customize Columns still have it.
+             */
+            isHiddenByDefault: true,
             getElement: (item: NetworkDevice): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
             },
