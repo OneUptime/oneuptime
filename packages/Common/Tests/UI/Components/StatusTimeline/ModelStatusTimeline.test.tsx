@@ -1077,12 +1077,15 @@ describe("a read that fails", () => {
 });
 
 describe("an incident's timeline: its whole history on one band", () => {
+  let stateCounter: number = 0;
+
   const incidentState: (name: string, color: string) => IncidentState = (
     name: string,
     color: string,
   ): IncidentState => {
+    stateCounter++;
     const value: IncidentState = new IncidentState();
-    value._id = ObjectID.generate().toString();
+    value._id = `9a1f0a0e-5555-4c1e-9a1e-${String(stateCounter).padStart(12, "0")}`;
     value.name = name;
     value.color = new Color(color);
     return value;
