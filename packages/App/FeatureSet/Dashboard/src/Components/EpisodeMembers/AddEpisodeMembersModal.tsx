@@ -509,10 +509,10 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
                       data-testid="add-episode-members-not-added-group"
                     >
                       <ul>
-                        {group.names.map((name: string) => {
+                        {group.names.map((name: string, nameIndex: number) => {
                           return (
                             <li
-                              key={name}
+                              key={nameIndex}
                               data-testid="add-episode-members-not-added-name"
                               className="break-words font-medium"
                             >

@@ -862,6 +862,18 @@ describe("the lists' Add to Existing Episode", () => {
 
     // Single choice: radios.
     expect(within(ongoing).getAllByRole("radio").length).toBe(2);
+
+    // Each section's list is named by its heading, for a screen reader.
+    expect(
+      within(screen.getByRole("list", { name: "Ongoing" })).getAllByRole(
+        "radio",
+      ),
+    ).toHaveLength(2);
+    expect(
+      within(
+        screen.getByRole("list", { name: "Recently Resolved" }),
+      ).getAllByRole("radio"),
+    ).toHaveLength(1);
   });
 
   test("nothing is added until one is picked; then the one picked is handed back", async () => {

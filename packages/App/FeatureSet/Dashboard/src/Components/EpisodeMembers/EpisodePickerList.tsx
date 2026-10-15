@@ -396,13 +396,22 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
               >
                 {section.title && (
                   <div
-                    role="presentation"
+                    id={`${baseId}-${section.key}-title`}
                     className="sticky top-0 z-10 border-b border-gray-100 bg-gray-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500"
                   >
                     {section.title}
                   </div>
                 )}
-                <ul className="divide-y divide-gray-100">
+                {/*
+                 * A screen reader hears which section a row is in: the
+                 * list is named by its heading ("Ongoing, list, 2 items").
+                 */}
+                <ul
+                  className="divide-y divide-gray-100"
+                  aria-labelledby={
+                    section.title ? `${baseId}-${section.key}-title` : undefined
+                  }
+                >
                   {section.items.map((item: EpisodePickerItem) => {
                     return renderItem(item, section.key);
                   })}
