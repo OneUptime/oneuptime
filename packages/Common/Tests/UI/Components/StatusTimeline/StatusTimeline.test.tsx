@@ -29,6 +29,7 @@ import {
 } from "../../../../UI/Components/StatusTimeline/StatusTimelineLayout";
 import OneUptimeDate from "../../../../Types/Date";
 import Timezone from "../../../../Types/Timezone";
+import getJestMockFunction, { MockFunction } from "../../../MockType";
 
 /*
  * The shared status timeline, drawn: the legend, the band (every status a
@@ -160,7 +161,9 @@ beforeEach(() => {
   jest.useFakeTimers({ now: NOW });
   OneUptimeDate.setUserTimezone("UTC" as Timezone);
   // A reader on a 24-hour clock, whatever the machine running the suite is on.
-  jest.spyOn(OneUptimeDate, "getUserPrefers12HourFormat").mockReturnValue(false);
+  jest
+    .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+    .mockReturnValue(false);
 });
 
 afterEach(() => {
@@ -273,20 +276,27 @@ describe("the band: every status placed and sized by its time", () => {
     expect(blip).toHaveAttribute("data-widened", "true");
     // 4px of the 800px a band is laid out at before it is measured.
     expect(percentOf(blip.style.width)).toBeCloseTo(0.5, 3);
-    expect(blip).toHaveAccessibleName(
-      "Offline, Oct 9, 08:36 – 08:36, 38 secs",
-    );
+    expect(blip).toHaveAccessibleName("Offline, Oct 9, 08:36 – 08:36, 38 secs");
   });
 
   test("short changes that run together are one cluster, which zooms in to them with a margin", () => {
-    const onZoom: jest.Mock = jest.fn();
+    const onZoom: MockFunction = getJestMockFunction();
 
     renderTimeline({
       onZoom: onZoom as unknown as ComponentProps["onZoom"],
       entries: [
         entry({ from: -30 * DAY, to: -10 * DAY }),
-        entry({ offline: true, from: -10 * DAY, to: -10 * DAY + MINUTE, id: "x" }),
-        entry({ from: -10 * DAY + MINUTE, to: -10 * DAY + 2 * MINUTE, id: "y" }),
+        entry({
+          offline: true,
+          from: -10 * DAY,
+          to: -10 * DAY + MINUTE,
+          id: "x",
+        }),
+        entry({
+          from: -10 * DAY + MINUTE,
+          to: -10 * DAY + 2 * MINUTE,
+          id: "y",
+        }),
         entry({
           offline: true,
           from: -10 * DAY + 2 * MINUTE,
@@ -325,7 +335,7 @@ describe("the band: every status placed and sized by its time", () => {
   });
 
   test("older changes not loaded: the band says how many, and loads them", () => {
-    const onLoadOlder: jest.Mock = jest.fn();
+    const onLoadOlder: MockFunction = getJestMockFunction();
 
     renderTimeline({
       entries: [entry({ from: -5 * DAY, to: null })],
@@ -381,12 +391,16 @@ describe("the list: every status, newest first, under the day it began", () => {
     expect(
       screen
         .getAllByTestId("status-timeline-day-heading")
-        .map((heading: HTMLElement) => heading.textContent),
+        .map((heading: HTMLElement): string | null => {
+          return heading.textContent;
+        }),
     ).toEqual(["Friday, October 9, 2026", "Friday, September 4, 2026"]);
     expect(
       screen
         .getAllByTestId("status-timeline-entry")
-        .map((row: HTMLElement) => row.getAttribute("data-entry-id")),
+        .map((row: HTMLElement): string | null => {
+          return row.getAttribute("data-entry-id");
+        }),
     ).toEqual(["current", "blip", "long-up"]);
   });
 
@@ -401,9 +415,9 @@ describe("the list: every status, newest first, under the day it began", () => {
     expect(
       within(blip).getByTestId("status-timeline-entry-range"),
     ).toHaveTextContent("08:36:00 – 08:36:38");
-    expect(within(blip).getByTestId("state-timeline-duration")).toHaveTextContent(
-      "38 secs",
-    );
+    expect(
+      within(blip).getByTestId("state-timeline-duration"),
+    ).toHaveTextContent("38 secs");
 
     const current: HTMLElement = entryRow("current");
 
@@ -510,7 +524,7 @@ describe("the list: every status, newest first, under the day it began", () => {
   });
 
   test("the period before is a click away under the list", () => {
-    const onShowEarlier: jest.Mock = jest.fn();
+    const onShowEarlier: MockFunction = getJestMockFunction();
 
     renderTimeline({ onShowEarlier: onShowEarlier as unknown as () => void });
 
@@ -520,7 +534,7 @@ describe("the list: every status, newest first, under the day it began", () => {
   });
 
   test("older changes not loaded: said under the list, with a button to load them", () => {
-    const onLoadOlder: jest.Mock = jest.fn();
+    const onLoadOlder: MockFunction = getJestMockFunction();
 
     renderTimeline({
       loadedFrom: at(-5 * DAY),
@@ -549,7 +563,9 @@ describe("states around the timeline", () => {
 
     expect(empty).toHaveTextContent("No status recorded for this monitor yet.");
     expect(
-      within(empty).getByRole("button", { name: "Create Monitor Status Event" }),
+      within(empty).getByRole("button", {
+        name: "Create Monitor Status Event",
+      }),
     ).toBeInTheDocument();
     expect(screen.queryByTestId("status-timeline-band")).toBeNull();
   });
@@ -564,7 +580,7 @@ describe("states around the timeline", () => {
   });
 
   test("a failed read says why, with a way to try again", () => {
-    const onRetry: jest.Mock = jest.fn();
+    const onRetry: MockFunction = getJestMockFunction();
 
     renderTimeline({
       error: "Error connecting to server.",
@@ -615,7 +631,7 @@ describe("one view: the band and the list point at each other", () => {
       many.push(
         entry({
           offline: index % 2 === 1,
-          from: -(index + 1) * DAY / 2,
+          from: (-(index + 1) * DAY) / 2,
           to: index === 0 ? null : (-index * DAY) / 2,
           id: `folded-${index}`,
         }),

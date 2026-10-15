@@ -19,6 +19,7 @@ import { DRAG_TO_ZOOM_THRESHOLD_PX } from "../../../../UI/Components/StatusTimel
 import { StatusTimelineWindow } from "../../../../UI/Components/StatusTimeline/StatusTimelineLayout";
 import OneUptimeDate from "../../../../Types/Date";
 import Timezone from "../../../../Types/Timezone";
+import getJestMockFunction, { MockFunction } from "../../../MockType";
 
 /*
  * Dragging across the band zooms to the stretch dragged over - the way the
@@ -77,7 +78,7 @@ const boxOf: (element: Element) => DOMRect = (element: Element): DOMRect => {
   } as DOMRect;
 };
 
-let onZoom: jest.Mock;
+let onZoom: MockFunction;
 
 /*
  * jsdom has no PointerEvent, so testing-library would dispatch a plain
@@ -177,7 +178,7 @@ const release: (band: HTMLElement, fraction: number) => void = (
 };
 
 beforeEach(() => {
-  onZoom = jest.fn();
+  onZoom = getJestMockFunction();
   OneUptimeDate.setUserTimezone("UTC" as Timezone);
   jest
     .spyOn(HTMLElement.prototype, "getBoundingClientRect")

@@ -91,8 +91,7 @@ interface ListCall {
 }
 
 const listCalls: Array<ListCall> = [];
-const getItemCalls: Array<{ id: string; select: Record<string, unknown> }> =
-  [];
+const getItemCalls: Array<{ id: string; select: Record<string, unknown> }> = [];
 const deleteCalls: Array<string> = [];
 let rowsInStore: Array<unknown> = [];
 let failReads: boolean = false;
@@ -270,6 +269,7 @@ import Permission from "../../../../Types/Permission";
 import TimeRange from "../../../../Types/Time/TimeRange";
 import Timezone from "../../../../Types/Timezone";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import getJestMockFunction, { MockFunction } from "../../../MockType";
 
 const SECOND: number = 1000;
 const MINUTE: number = 60 * SECOND;
@@ -357,7 +357,7 @@ const monitorRow: (data: {
   return row;
 };
 
-let onFetchSuccess: jest.Mock;
+let onFetchSuccess: MockFunction;
 
 const monitorProps: (
   overrides?: Partial<ComponentProps<MonitorStatusTimeline>>,
@@ -442,31 +442,32 @@ const openEntryMenu: (index: number) => Promise<HTMLElement> = async (
   return screen.findByRole("menu");
 };
 
-const STANDARD_HISTORY: () => Array<MonitorStatusTimeline> = (): Array<
-  MonitorStatusTimeline
-> => {
-  return [
-    // Began long before the period, and was still in effect when it began.
-    monitorRow({ status: OPERATIONAL, from: -60 * DAY, to: -5 * DAY }),
-    monitorRow({
-      status: OFFLINE,
-      from: -5 * DAY,
-      to: -5 * DAY + 38 * SECOND,
-      rootCause: "Response status code is **503**.",
-    }),
-    monitorRow({
-      status: OPERATIONAL,
-      from: -5 * DAY + 38 * SECOND,
-      to: null,
-      changedBy: "Ada Lovelace",
-    }),
-  ];
-};
+const STANDARD_HISTORY: () => Array<MonitorStatusTimeline> =
+  (): Array<MonitorStatusTimeline> => {
+    return [
+      // Began long before the period, and was still in effect when it began.
+      monitorRow({ status: OPERATIONAL, from: -60 * DAY, to: -5 * DAY }),
+      monitorRow({
+        status: OFFLINE,
+        from: -5 * DAY,
+        to: -5 * DAY + 38 * SECOND,
+        rootCause: "Response status code is **503**.",
+      }),
+      monitorRow({
+        status: OPERATIONAL,
+        from: -5 * DAY + 38 * SECOND,
+        to: null,
+        changedBy: "Ada Lovelace",
+      }),
+    ];
+  };
 
 beforeEach(() => {
   jest.useFakeTimers({ now: NOW });
   OneUptimeDate.setUserTimezone("UTC" as Timezone);
-  jest.spyOn(OneUptimeDate, "getUserPrefers12HourFormat").mockReturnValue(false);
+  jest
+    .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+    .mockReturnValue(false);
   permissionsForTest = [Permission.ProjectOwner];
   listCalls.length = 0;
   getItemCalls.length = 0;
@@ -476,7 +477,7 @@ beforeEach(() => {
   failDelete = "";
   countOverride = null;
   createModalProps = null;
-  onFetchSuccess = jest.fn();
+  onFetchSuccess = getJestMockFunction();
 });
 
 afterEach(() => {
@@ -551,9 +552,11 @@ describe("what a monitor's timeline reads", () => {
     await renderMonitor();
 
     expect(
-      screen.getAllByTestId("status-timeline-entry-name").map((element) => {
-        return element.textContent;
-      }),
+      screen
+        .getAllByTestId("status-timeline-entry-name")
+        .map((element: HTMLElement): string | null => {
+          return element.textContent;
+        }),
     ).toEqual(["Operational", "Offline", "Operational"]);
     expect(
       within(entryRow(0)).getByTestId("status-timeline-entry-changed-by"),
@@ -639,7 +642,9 @@ describe("moving through time", () => {
 
     await renderMonitor();
 
-    expect(screen.getByTestId("monitor-status-timeline-earlier")).toBeDisabled();
+    expect(
+      screen.getByTestId("monitor-status-timeline-earlier"),
+    ).toBeDisabled();
     expect(screen.queryByTestId("status-timeline-show-earlier")).toBeNull();
   });
 
@@ -657,7 +662,11 @@ describe("moving through time", () => {
         from: -10 * DAY + 2 * MINUTE,
         to: -10 * DAY + 3 * MINUTE,
       }),
-      monitorRow({ status: OPERATIONAL, from: -10 * DAY + 3 * MINUTE, to: null }),
+      monitorRow({
+        status: OPERATIONAL,
+        from: -10 * DAY + 3 * MINUTE,
+        to: null,
+      }),
     ];
 
     await renderMonitor();
@@ -692,7 +701,9 @@ describe("moving through time", () => {
     expect(
       screen.getByTestId("monitor-status-timeline-range-button"),
     ).toHaveTextContent("Past 1 Month");
-    expect(screen.queryByTestId("monitor-status-timeline-reset-zoom")).toBeNull();
+    expect(
+      screen.queryByTestId("monitor-status-timeline-reset-zoom"),
+    ).toBeNull();
   });
 
   test("Refresh reads the period again", async () => {
@@ -737,11 +748,12 @@ describe("creating a status event", () => {
   });
 
   test("hands the page's onBeforeCreate the new row", async () => {
-    const onBeforeCreate: jest.Mock = jest.fn(
-      async (item: unknown): Promise<unknown> => {
-        return item;
-      },
-    );
+    const onBeforeCreate: MockFunction =
+      getJestMockFunction().mockImplementation(
+        async (item: unknown): Promise<unknown> => {
+          return item;
+        },
+      );
 
     await renderMonitor({
       onBeforeCreate: onBeforeCreate as unknown as (
@@ -803,7 +815,10 @@ describe("an entry's actions", () => {
     });
 
     expect(getItemCalls).toEqual([
-      { id: (rowsInStore[1] as MonitorStatusTimeline)._id!, select: { rootCause: true } },
+      {
+        id: (rowsInStore[1] as MonitorStatusTimeline)._id!,
+        select: { rootCause: true },
+      },
     ]);
     expect(await screen.findByTestId("markdown")).toHaveTextContent(
       "Response status code is **503**.",
@@ -811,7 +826,10 @@ describe("an entry's actions", () => {
   });
 
   test("an event with no recorded cause says so", async () => {
-    await renderMonitor({ noCauseText: "No root cause. This monitor status could be created manually." });
+    await renderMonitor({
+      noCauseText:
+        "No root cause. This monitor status could be created manually.",
+    });
 
     await act(async () => {
       fireEvent.click(
@@ -840,7 +858,9 @@ describe("an entry's actions", () => {
     expect(
       within(menu)
         .getAllByRole("menuitem")
-        .map((item: HTMLElement) => item.textContent?.trim()),
+        .map((item: HTMLElement): string | undefined => {
+          return item.textContent?.trim();
+        }),
     ).toEqual(["Show ID", "View Cause", "View Logs", "Delete"]);
   });
 
@@ -850,7 +870,9 @@ describe("an entry's actions", () => {
     const menu: HTMLElement = await openEntryMenu(1);
 
     await act(async () => {
-      fireEvent.click(within(menu).getByRole("menuitem", { name: "View Logs" }));
+      fireEvent.click(
+        within(menu).getByRole("menuitem", { name: "View Logs" }),
+      );
     });
 
     expect(getItemCalls[0]!.select).toEqual({ statusChangeLog: true });
@@ -882,17 +904,18 @@ describe("an entry's actions", () => {
 
 describe("deleting a status event", () => {
   test("asks with the page's own words, then deletes that one event and reads the period again", async () => {
-    const getDeleteConfirmation: jest.Mock = jest.fn(
-      async (): Promise<DeleteConfirmation> => {
-        return {
-          description: (
-            <span data-testid="page-delete-words">
-              Are you sure you want to delete the Offline status event?
-            </span>
-          ),
-        };
-      },
-    );
+    const getDeleteConfirmation: MockFunction =
+      getJestMockFunction().mockImplementation(
+        async (): Promise<DeleteConfirmation> => {
+          return {
+            description: (
+              <span data-testid="page-delete-words">
+                Are you sure you want to delete the Offline status event?
+              </span>
+            ),
+          };
+        },
+      );
 
     await renderMonitor({
       getDeleteConfirmation: getDeleteConfirmation as unknown as (
@@ -900,7 +923,8 @@ describe("deleting a status event", () => {
       ) => Promise<DeleteConfirmation>,
     });
 
-    const target: MonitorStatusTimeline = rowsInStore[1] as MonitorStatusTimeline;
+    const target: MonitorStatusTimeline =
+      rowsInStore[1] as MonitorStatusTimeline;
     const menu: HTMLElement = await openEntryMenu(1);
 
     await act(async () => {
@@ -979,7 +1003,8 @@ describe("deleting a status event", () => {
   });
 
   test("the server's refusal is shown, and nothing is drawn as deleted", async () => {
-    failDelete = "You do not have permission to delete this Monitor Status Event.";
+    failDelete =
+      "You do not have permission to delete this Monitor Status Event.";
 
     await renderMonitor({
       getDeleteConfirmation: async (): Promise<DeleteConfirmation> => {
@@ -1026,9 +1051,7 @@ describe("deleting a status event", () => {
 
     const menu: HTMLElement = await openEntryMenu(1);
 
-    expect(
-      within(menu).queryByRole("menuitem", { name: "Delete" }),
-    ).toBeNull();
+    expect(within(menu).queryByRole("menuitem", { name: "Delete" })).toBeNull();
   });
 });
 
@@ -1038,9 +1061,7 @@ describe("a read that fails", () => {
 
     await renderMonitor();
 
-    expect(
-      screen.getByText("Error connecting to server."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Error connecting to server.")).toBeInTheDocument();
 
     failReads = false;
 
@@ -1126,7 +1147,10 @@ describe("an incident's timeline: its whole history on one band", () => {
 
   beforeEach(() => {
     const created: IncidentState = incidentState("Created", "#ef4444");
-    const acknowledged: IncidentState = incidentState("Acknowledged", "#eab308");
+    const acknowledged: IncidentState = incidentState(
+      "Acknowledged",
+      "#eab308",
+    );
     const resolved: IncidentState = incidentState("Resolved", "#10b981");
 
     rowsInStore = [
@@ -1144,7 +1168,9 @@ describe("an incident's timeline: its whole history on one band", () => {
     expect(timelineReads()[0]!.query["incidentId"]).toEqual(
       new ObjectID(MONITOR_ID),
     );
-    expect(timelineReads()[0]!.sort).toEqual({ startsAt: SortOrder.Descending });
+    expect(timelineReads()[0]!.sort).toEqual({
+      startsAt: SortOrder.Descending,
+    });
   });
 
   test("has no period to pick: the band is fitted to the incident's life", async () => {
@@ -1167,13 +1193,18 @@ describe("an incident's timeline: its whole history on one band", () => {
     expect(
       screen
         .getAllByTestId("status-timeline-legend-item")
-        .map((item: HTMLElement) => item.textContent),
+        .map((item: HTMLElement): string | null => {
+          return item.textContent;
+        }),
     ).toEqual(["Created1 hour", "Acknowledged1 hour", "Resolved21 days"]);
   });
 
   test("still open, it runs on to now, however long ago it last changed", async () => {
     const created: IncidentState = incidentState("Created", "#ef4444");
-    const acknowledged: IncidentState = incidentState("Acknowledged", "#eab308");
+    const acknowledged: IncidentState = incidentState(
+      "Acknowledged",
+      "#eab308",
+    );
 
     rowsInStore = [
       incidentRow(created, -3 * HOUR, -3 * HOUR + 12 * MINUTE),

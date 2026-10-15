@@ -130,14 +130,12 @@ async function timelineReads(page: Page): Promise<Array<ListRequest>> {
 
 // The reads of the rows the band draws: the ones that ask for a status.
 async function bandReads(page: Page): Promise<Array<ListRequest>> {
-  return (await timelineReads(page)).filter(
-    (request: ListRequest): boolean => {
-      return (
-        request.selectKeys.includes("monitorStatus") ||
-        request.selectKeys.includes("incidentState")
-      );
-    },
-  );
+  return (await timelineReads(page)).filter((request: ListRequest): boolean => {
+    return (
+      request.selectKeys.includes("monitorStatus") ||
+      request.selectKeys.includes("incidentState")
+    );
+  });
 }
 
 async function openMonitor(page: Page, search: string = ""): Promise<void> {
@@ -147,7 +145,9 @@ async function openMonitor(page: Page, search: string = ""): Promise<void> {
 }
 
 async function openIncident(page: Page, search: string = ""): Promise<void> {
-  await page.goto(`${INCIDENT_ROUTE}?page=incident${search ? `&${search}` : ""}`);
+  await page.goto(
+    `${INCIDENT_ROUTE}?page=incident${search ? `&${search}` : ""}`,
+  );
   await expect(page.getByTestId("status-timeline-band")).toBeVisible();
   await expect(page.getByTestId("status-timeline-loading")).toHaveCount(0);
 }
@@ -309,7 +309,9 @@ test.describe("a monitor's Status Timeline", () => {
       .getByTestId("status-timeline-cluster")
       .filter({ has: page.locator(":scope") })
       .and(
-        page.locator(`[data-entry-ids="${OCT_4_CHANGES.slice().reverse().join(",")}"], [data-entry-ids="${OCT_4_CHANGES.join(",")}"]`),
+        page.locator(
+          `[data-entry-ids="${OCT_4_CHANGES.slice().reverse().join(",")}"], [data-entry-ids="${OCT_4_CHANGES.join(",")}"]`,
+        ),
       );
 
     await expect(cluster).toHaveCount(1);
@@ -374,15 +376,14 @@ test.describe("a monitor's Status Timeline", () => {
       .toBeGreaterThan(2);
 
     const zoomed: ListRequest = (await bandReads(page))[2]!;
-    const from: number =
-      Date.parse(MONTH_BEFORE_NOW) + 0.5 * 30 * DAY_IN_MS;
+    const from: number = Date.parse(MONTH_BEFORE_NOW) + 0.5 * 30 * DAY_IN_MS;
     const to: number = Date.parse(MONTH_BEFORE_NOW) + 0.7 * 30 * DAY_IN_MS;
 
     // Within a pixel of where the drag began and ended.
     const pixel: number = (30 * DAY_IN_MS) / band.width;
-    expect(
-      Math.abs(Date.parse(zoomed.startsAt!.from!) - from),
-    ).toBeLessThan(2 * pixel);
+    expect(Math.abs(Date.parse(zoomed.startsAt!.from!) - from)).toBeLessThan(
+      2 * pixel,
+    );
     expect(Math.abs(Date.parse(zoomed.startsAt!.to!) - to)).toBeLessThan(
       2 * pixel,
     );
@@ -398,10 +399,14 @@ test.describe("a monitor's Status Timeline", () => {
   }) => {
     await openMonitor(page);
 
-    await expect(page.getByTestId("monitor-status-timeline-later")).toBeDisabled();
+    await expect(
+      page.getByTestId("monitor-status-timeline-later"),
+    ).toBeDisabled();
 
     await page.getByTestId("monitor-status-timeline-range-button").click();
-    await page.getByRole("button", { name: "Past 1 Week", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Past 1 Week", exact: true })
+      .click();
 
     await expect
       .poll(async () => {
@@ -426,7 +431,9 @@ test.describe("a monitor's Status Timeline", () => {
     const before: ListRequest = (await bandReads(page))[4]!;
 
     expect(before.startsAt!.to).toBe(week.startsAt!.from);
-    await expect(page.getByTestId("monitor-status-timeline-later")).toBeEnabled();
+    await expect(
+      page.getByTestId("monitor-status-timeline-later"),
+    ).toBeEnabled();
 
     await page.getByTestId("monitor-status-timeline-later").click();
 
@@ -594,9 +601,9 @@ test.describe("a monitor's Status Timeline", () => {
     );
 
     await expect(current).toHaveCount(1);
-    await expect(
-      current.getByTestId("status-timeline-entry-name"),
-    ).toHaveText("Degraded");
+    await expect(current.getByTestId("status-timeline-entry-name")).toHaveText(
+      "Degraded",
+    );
   });
 
   test("a member who may not create or delete sees both locked, saying which permission is missing", async ({
@@ -675,10 +682,9 @@ test.describe("a monitor's Status Timeline", () => {
     await page.reload();
 
     await expect(page.locator("tbody tr").first()).toBeVisible();
-    await expect(page.getByTestId("status-timeline-view-table")).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    await expect(
+      page.getByTestId("status-timeline-view-table"),
+    ).toHaveAttribute("aria-pressed", "true");
 
     await page.getByTestId("status-timeline-view-timeline").click();
 
@@ -722,16 +728,16 @@ test.describe("a monitor's Status Timeline", () => {
     await openMonitor(page, "?scenario=new");
 
     await expect(page.getByTestId("status-timeline-entry")).toHaveCount(1);
-    await expect(page.getByTestId("monitor-status-timeline-earlier")).toBeDisabled();
+    await expect(
+      page.getByTestId("monitor-status-timeline-earlier"),
+    ).toBeDisabled();
     await expect(page.getByTestId("status-timeline-show-earlier")).toHaveCount(
       0,
     );
     await expect(
       page.locator('[data-testid="status-timeline-gap"][data-kind="no-data"]'),
     ).toHaveCount(1);
-    await expect(legendItems(page)).toHaveText([
-      "Operational100% · 1 hour",
-    ]);
+    await expect(legendItems(page)).toHaveText(["Operational100% · 1 hour"]);
   });
 
   test("a monitor with no status yet says so, and offers Create where the reader looks", async ({
@@ -781,7 +787,9 @@ test.describe("a monitor's Status Timeline", () => {
     }
 
     const newest: Locator = entry(page, NEWEST_OPERATIONAL);
-    await expect(newest.getByTestId("row-actions-more-button")).toBeInViewport();
+    await expect(
+      newest.getByTestId("row-actions-more-button"),
+    ).toBeInViewport();
     await expect(
       newest.getByTestId("monitor-status-timeline-view-cause"),
     ).toBeInViewport();
@@ -885,9 +893,7 @@ test.describe("a monitor's Status Timeline", () => {
           );
         };
 
-        const root: Element = document.querySelector(
-          '[data-testid="card"]',
-        )!;
+        const root: Element = document.querySelector('[data-testid="card"]')!;
         const walker: TreeWalker = document.createTreeWalker(
           root,
           NodeFilter.SHOW_TEXT,
@@ -1048,7 +1054,9 @@ test.describe("an incident's Status Timeline", () => {
 
     await expect(page.getByTestId("status-timeline-now")).toBeVisible();
     await expect(
-      page.locator('[data-testid="status-timeline-entry"][data-ongoing="true"]'),
+      page.locator(
+        '[data-testid="status-timeline-entry"][data-ongoing="true"]',
+      ),
     ).toContainText("Acknowledged");
     await screenshot(page, "incident-ongoing", false);
   });

@@ -101,10 +101,11 @@ const HISTORY_MODELS: Array<string> = TIMELINE_MODELS.filter(
   },
 );
 
-const DASHBOARD_FILES: Array<{ file: string; code: string }> =
-  listSourceFiles(DASHBOARD_SRC).map((file: string) => {
-    return { file: path.relative(DASHBOARD_SRC, file), code: readCode(file) };
-  });
+const DASHBOARD_FILES: Array<{ file: string; code: string }> = listSourceFiles(
+  DASHBOARD_SRC,
+).map((file: string) => {
+  return { file: path.relative(DASHBOARD_SRC, file), code: readCode(file) };
+});
 
 const filesDrawing: (tag: string, model: string) => Array<string> = (
   tag: string,
@@ -157,8 +158,10 @@ describe("every status and state history is drawn as a timeline", () => {
           },
         )!.code;
 
-        expect({ file, hasSwitch: code.includes("<StatusTimelineViewSwitch") })
-          .toEqual({ file, hasSwitch: true });
+        expect({
+          file,
+          hasSwitch: code.includes("<StatusTimelineViewSwitch"),
+        }).toEqual({ file, hasSwitch: true });
         expect({
           file,
           readsChoice: code.includes("useStatusTimelineView()"),

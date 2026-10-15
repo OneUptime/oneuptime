@@ -419,7 +419,8 @@ const PAGES: Array<PageCase> = [
     causeColumn: undefined,
     logColumn: undefined,
     hasSubscriberNotification: false,
-    onlyRowRefusal: ONLY_STATE_DELETE_MESSAGES[StateTimelineRecord.AlertEpisode],
+    onlyRowRefusal:
+      ONLY_STATE_DELETE_MESSAGES[StateTimelineRecord.AlertEpisode],
     finalStates: [{ isResolvedState: true }],
   },
   {
@@ -650,10 +651,9 @@ describe.each(PAGES)("$name", (pageCase: PageCase) => {
     await renderPage(pageCase);
 
     fireEvent.click(
-      within(screen.getByTestId("model-status-timeline")).getByRole(
-        "button",
-        { name: "Table" },
-      ),
+      within(screen.getByTestId("model-status-timeline")).getByRole("button", {
+        name: "Table",
+      }),
     );
 
     expect(screen.queryByTestId("model-status-timeline")).toBeNull();

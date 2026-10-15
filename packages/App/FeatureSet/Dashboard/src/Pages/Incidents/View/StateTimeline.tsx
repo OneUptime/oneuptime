@@ -20,7 +20,7 @@ import StatusTimelineViewSwitch, {
   StatusTimelineView,
   useStatusTimelineView,
 } from "Common/UI/Components/StatusTimeline/StatusTimelineView";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import StateTimelineSubscriberNotification from "../../../Components/StateTimeline/StateTimelineSubscriberNotification";
 import Pill from "Common/UI/Components/Pill/Pill";
 import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewer";
@@ -48,7 +48,6 @@ import React, {
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * What adding a state asks: the state, when it began (now, unless earlier),

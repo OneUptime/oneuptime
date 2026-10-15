@@ -29,7 +29,7 @@ import {
  */
 
 // Intl writes a narrow no-break space before AM/PM in newer ICU versions.
-const NARROW_SPACES: RegExp = /[  ]/g;
+const NARROW_SPACES: RegExp = /[\u202f\u00a0]/g;
 
 const plain: (text: string) => string = (text: string): string => {
   return text.replace(NARROW_SPACES, " ");
@@ -37,21 +37,24 @@ const plain: (text: string) => string = (text: string): string => {
 
 const NOW: Date = new Date("2026-10-14T08:36:00.000Z");
 
-const clock: (overrides?: Partial<StatusTimelineClock>) => StatusTimelineClock =
-  (overrides?: Partial<StatusTimelineClock>): StatusTimelineClock => {
-    return {
-      timezone: "Europe/London",
-      language: "en",
-      use12HourClock: false,
-      now: NOW,
-      ...(overrides || {}),
-    };
+const clock: (
+  overrides?: Partial<StatusTimelineClock>,
+) => StatusTimelineClock = (
+  overrides?: Partial<StatusTimelineClock>,
+): StatusTimelineClock => {
+  return {
+    timezone: "Europe/London",
+    language: "en",
+    use12HourClock: false,
+    now: NOW,
+    ...(overrides || {}),
   };
+};
 
 const tick: (
   at: string,
   unit: StatusTimelineTickUnit,
-  isDayStart: boolean = false,
+  isDayStart?: boolean,
 ) => StatusTimelineTick = (
   at: string,
   unit: StatusTimelineTickUnit,
@@ -256,10 +259,7 @@ describe("the axis's labels", () => {
     ).toEqual({ start: "Sep 14, 09:36", end: "Oct 14, 09:36" });
     expect(
       plain(
-        formatStatusTimelineShortDateTime(
-          NOW,
-          clock({ use12HourClock: true }),
-        ),
+        formatStatusTimelineShortDateTime(NOW, clock({ use12HourClock: true })),
       ),
     ).toBe("Oct 14, 9:36 AM");
   });
@@ -279,16 +279,12 @@ describe("the list's day headings and tooltips", () => {
       zoneName: "BST",
     });
     expect(
-      getStatusTimelineDayHeading(
-        new Date("2026-10-13T06:00:00.000Z"),
-        clock(),
-      ).relativeLabel,
+      getStatusTimelineDayHeading(new Date("2026-10-13T06:00:00.000Z"), clock())
+        .relativeLabel,
     ).toBe("Yesterday");
     expect(
-      getStatusTimelineDayHeading(
-        new Date("2026-10-09T06:00:00.000Z"),
-        clock(),
-      ).relativeLabel,
+      getStatusTimelineDayHeading(new Date("2026-10-09T06:00:00.000Z"), clock())
+        .relativeLabel,
     ).toBeUndefined();
   });
 

@@ -155,12 +155,10 @@ const MarkTooltipContent: FunctionComponent<{
   mark: StatusTimelineBandMark;
   entry: ResolvedStatusTimelineEntry | undefined;
   clock: StatusTimelineClock;
-  label: string;
 }> = (props: {
   mark: StatusTimelineBandMark;
   entry: ResolvedStatusTimelineEntry | undefined;
   clock: StatusTimelineClock;
-  label: string;
 }): ReactElement => {
   const translator: Translator = useTranslator();
 
@@ -566,8 +564,10 @@ const StatusTimelineBand: FunctionComponent<ComponentProps> = (
     }
   };
 
-  // ---- the axis ----------------------------------------------------------
-  // Where the band begins, so the first tick is never the reader's only bearing.
+  /*
+   * ---- the axis ----------------------------------------------------------
+   * Where the band begins, so the first tick is never the reader's only bearing.
+   */
   const isShortWindow: boolean =
     props.window.end.getTime() - props.window.start.getTime() <
     24 * 60 * 60 * 1000;
@@ -724,7 +724,6 @@ const StatusTimelineBand: FunctionComponent<ComponentProps> = (
                   mark={mark}
                   entry={entry}
                   clock={props.clock}
-                  label={label}
                 />
               }
             >

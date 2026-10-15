@@ -88,7 +88,8 @@ const entry: (data: {
         : status === "offline"
           ? "Offline"
           : "Degraded",
-    color: status === "operational" ? GREEN : status === "offline" ? RED : AMBER,
+    color:
+      status === "operational" ? GREEN : status === "offline" ? RED : AMBER,
     startsAt: at(data.from),
     endsAt: data.to === null ? null : at(data.to),
     rank:
@@ -156,42 +157,44 @@ const markFor: (
  * effect), a 38 s Offline blip, 5 days Operational, a 49 s blip, then the
  * Oct 4 morning's four quick changes, and 18 days Operational before them.
  */
-const screenshotEntries: () => Array<StatusTimelineEntry> = (): Array<
-  StatusTimelineEntry
-> => {
-  const lengths: Array<["operational" | "offline", number]> = [
-    ["operational", 5 * DAY + HOUR + 9 * MINUTE + 21 * SECOND],
-    ["offline", 38 * SECOND],
-    ["operational", 5 * DAY + 54 * MINUTE + 12 * SECOND],
-    ["offline", 49 * SECOND],
-    ["operational", 3 * MINUTE + 51 * SECOND],
-    ["offline", MINUTE + 43 * SECOND],
-    ["operational", 55 * MINUTE + 29 * SECOND],
-    ["offline", 12 * MINUTE + 2 * SECOND],
-    ["operational", 18 * DAY + 12 * HOUR + 7 * MINUTE + 8 * SECOND],
-    ["offline", 20 * SECOND],
-  ];
+const screenshotEntries: () => Array<StatusTimelineEntry> =
+  (): Array<StatusTimelineEntry> => {
+    const lengths: Array<["operational" | "offline", number]> = [
+      ["operational", 5 * DAY + HOUR + 9 * MINUTE + 21 * SECOND],
+      ["offline", 38 * SECOND],
+      ["operational", 5 * DAY + 54 * MINUTE + 12 * SECOND],
+      ["offline", 49 * SECOND],
+      ["operational", 3 * MINUTE + 51 * SECOND],
+      ["offline", MINUTE + 43 * SECOND],
+      ["operational", 55 * MINUTE + 29 * SECOND],
+      ["offline", 12 * MINUTE + 2 * SECOND],
+      ["operational", 18 * DAY + 12 * HOUR + 7 * MINUTE + 8 * SECOND],
+      ["offline", 20 * SECOND],
+    ];
 
-  const result: Array<StatusTimelineEntry> = [];
-  let end: number = 0;
+    const result: Array<StatusTimelineEntry> = [];
+    let end: number = 0;
 
-  lengths.forEach(
-    ([status, length]: ["operational" | "offline", number], index: number) => {
-      const from: number = end - length;
-      result.push(
-        entry({
-          status,
-          from: from,
-          to: index === 0 ? null : end,
-          id: `screenshot-${index}`,
-        }),
-      );
-      end = from;
-    },
-  );
+    lengths.forEach(
+      (
+        [status, length]: ["operational" | "offline", number],
+        index: number,
+      ) => {
+        const from: number = end - length;
+        result.push(
+          entry({
+            status,
+            from: from,
+            to: index === 0 ? null : end,
+            id: `screenshot-${index}`,
+          }),
+        );
+        end = from;
+      },
+    );
 
-  return result;
-};
+    return result;
+  };
 
 describe("resolveStatusTimelineEntries", () => {
   test("orders entries oldest first, whatever order they came in", () => {
@@ -473,8 +476,7 @@ describe("layoutStatusTimelineBand: short blips stay visible and clickable", () 
 
     // Centred on the 38 seconds: 20 of the 30 days in, at 2/3 of the band.
     const centre: number = blip.left + blip.width / 2;
-    const expected: number =
-      ((20 * DAY + 19 * SECOND) / (30 * DAY)) * 100;
+    const expected: number = ((20 * DAY + 19 * SECOND) / (30 * DAY)) * 100;
     expect(centre).toBeCloseTo(expected, 3);
 
     // Its own time, not the widened mark's.
@@ -504,7 +506,12 @@ describe("layoutStatusTimelineBand: short blips stay visible and clickable", () 
   test("a blip at the very start or end stays inside the band", () => {
     const bandLayout: StatusTimelineBandLayout = layout({
       entries: [
-        entry({ status: "offline", from: -DAY, to: -DAY + SECOND, id: "first" }),
+        entry({
+          status: "offline",
+          from: -DAY,
+          to: -DAY + SECOND,
+          id: "first",
+        }),
         entry({ from: -DAY + SECOND, to: -SECOND, id: "middle" }),
         entry({ status: "offline", from: -SECOND, to: null, id: "last" }),
       ],
@@ -599,9 +606,23 @@ describe("layoutStatusTimelineBand: blips that run together are one cluster", ()
     const bandLayout: StatusTimelineBandLayout = layout({
       entries: [
         entry({ from: -30 * DAY, to: -10 * DAY }),
-        entry({ status: "offline", from: -10 * DAY, to: -10 * DAY + MINUTE, id: "x" }),
-        entry({ from: -10 * DAY + MINUTE, to: -10 * DAY + 2 * MINUTE, id: "y" }),
-        entry({ status: "offline", from: -10 * DAY + 2 * MINUTE, to: -10 * DAY + 3 * MINUTE, id: "z" }),
+        entry({
+          status: "offline",
+          from: -10 * DAY,
+          to: -10 * DAY + MINUTE,
+          id: "x",
+        }),
+        entry({
+          from: -10 * DAY + MINUTE,
+          to: -10 * DAY + 2 * MINUTE,
+          id: "y",
+        }),
+        entry({
+          status: "offline",
+          from: -10 * DAY + 2 * MINUTE,
+          to: -10 * DAY + 3 * MINUTE,
+          id: "z",
+        }),
         entry({ from: -10 * DAY + 3 * MINUTE, to: null }),
       ],
       window: windowOf(-30 * DAY, 0),
@@ -619,9 +640,19 @@ describe("layoutStatusTimelineBand: blips that run together are one cluster", ()
     const bandLayout: StatusTimelineBandLayout = layout({
       entries: [
         entry({ from: -30 * DAY, to: -20 * DAY }),
-        entry({ status: "offline", from: -20 * DAY, to: -20 * DAY + MINUTE, id: "first" }),
+        entry({
+          status: "offline",
+          from: -20 * DAY,
+          to: -20 * DAY + MINUTE,
+          id: "first",
+        }),
         entry({ from: -20 * DAY + MINUTE, to: -10 * DAY }),
-        entry({ status: "offline", from: -10 * DAY, to: -10 * DAY + MINUTE, id: "second" }),
+        entry({
+          status: "offline",
+          from: -10 * DAY,
+          to: -10 * DAY + MINUTE,
+          id: "second",
+        }),
         entry({ from: -10 * DAY + MINUTE, to: null }),
       ],
       window: windowOf(-30 * DAY, 0),
@@ -651,7 +682,7 @@ describe("getClusterColor", () => {
     expect(
       getClusterColor([
         { color: GREEN, rank: 1, durationMs: 50 * SECOND, startsAt: at(-3) },
-        { color: RED, rank: 3, durationMs: 1 * SECOND, startsAt: at(-2) },
+        { color: RED, rank: 3, durationMs: SECOND, startsAt: at(-2) },
         { color: AMBER, rank: 2, durationMs: 9 * SECOND, startsAt: at(-1) },
       ]),
     ).toBe(RED);
@@ -661,7 +692,7 @@ describe("getClusterColor", () => {
     expect(
       getClusterColor([
         { color: GREEN, rank: 3, durationMs: 50 * SECOND, startsAt: at(-3) },
-        { color: RED, rank: 3, durationMs: 1 * SECOND, startsAt: at(-2) },
+        { color: RED, rank: 3, durationMs: SECOND, startsAt: at(-2) },
       ]),
     ).toBe(GREEN);
   });
@@ -685,7 +716,7 @@ describe("getClusterColor", () => {
     expect(
       getClusterColor([
         { color: GREEN, durationMs: 60 * SECOND, startsAt: at(-3) },
-        { color: RED, rank: 0, durationMs: 1 * SECOND, startsAt: at(-2) },
+        { color: RED, rank: 0, durationMs: SECOND, startsAt: at(-2) },
       ]),
     ).toBe(RED);
   });
@@ -984,7 +1015,11 @@ describe("summarizeStatusTimeline: the legend", () => {
     const entries: Array<ResolvedStatusTimelineEntry> =
       resolveStatusTimelineEntries(
         [
-          entry({ status: "offline", from: -21 * DAY - 2 * HOUR, to: -21 * DAY }),
+          entry({
+            status: "offline",
+            from: -21 * DAY - 2 * HOUR,
+            to: -21 * DAY,
+          }),
           entry({ from: -21 * DAY, to: null }),
         ],
         NOW,
@@ -1263,7 +1298,11 @@ describe("getStatusTimelineFitWindow: a record's whole history on one band", () 
     expect(
       getStatusTimelineFitWindow({
         entries: [
-          entry({ status: "offline", from: -21 * DAY - 2 * HOUR, to: -21 * DAY - HOUR }),
+          entry({
+            status: "offline",
+            from: -21 * DAY - 2 * HOUR,
+            to: -21 * DAY - HOUR,
+          }),
           entry({ status: "degraded", from: -21 * DAY - HOUR, to: -21 * DAY }),
           entry({ from: -21 * DAY, to: null }),
         ],
@@ -1276,8 +1315,16 @@ describe("getStatusTimelineFitWindow: a record's whole history on one band", () 
     expect(
       getStatusTimelineFitWindow({
         entries: [
-          entry({ status: "offline", from: -3 * HOUR, to: -3 * HOUR + 12 * MINUTE }),
-          entry({ status: "degraded", from: -3 * HOUR + 12 * MINUTE, to: null }),
+          entry({
+            status: "offline",
+            from: -3 * HOUR,
+            to: -3 * HOUR + 12 * MINUTE,
+          }),
+          entry({
+            status: "degraded",
+            from: -3 * HOUR + 12 * MINUTE,
+            to: null,
+          }),
         ],
         now: NOW,
         isOpen: true,
@@ -1288,8 +1335,16 @@ describe("getStatusTimelineFitWindow: a record's whole history on one band", () 
     expect(
       getStatusTimelineFitWindow({
         entries: [
-          entry({ status: "offline", from: -3 * HOUR, to: -3 * HOUR + 12 * MINUTE }),
-          entry({ status: "degraded", from: -3 * HOUR + 12 * MINUTE, to: null }),
+          entry({
+            status: "offline",
+            from: -3 * HOUR,
+            to: -3 * HOUR + 12 * MINUTE,
+          }),
+          entry({
+            status: "degraded",
+            from: -3 * HOUR + 12 * MINUTE,
+            to: null,
+          }),
         ],
         now: NOW,
         isOpen: false,
@@ -1303,7 +1358,11 @@ describe("getStatusTimelineFitWindow: a record's whole history on one band", () 
       lastChangeAgo: number,
     ): Array<StatusTimelineEntry> => {
       return [
-        entry({ status: "offline", from: -lastChangeAgo - span, to: -lastChangeAgo }),
+        entry({
+          status: "offline",
+          from: -lastChangeAgo - span,
+          to: -lastChangeAgo,
+        }),
         entry({ from: -lastChangeAgo, to: null }),
       ];
     };
@@ -1593,7 +1652,9 @@ describe("getStatusTimelineContinuationMask", () => {
         continuesAfter: false,
         widthPx: 400,
       }),
-    ).toBe(`linear-gradient(to right, transparent, #000 ${CONTINUATION_FADE_PX}px)`);
+    ).toBe(
+      `linear-gradient(to right, transparent, #000 ${CONTINUATION_FADE_PX}px)`,
+    );
     expect(
       getStatusTimelineContinuationMask({
         continuesBefore: true,

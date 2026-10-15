@@ -23,6 +23,7 @@ import StatusTimelineViewSwitch, {
   useStatusTimelineView,
 } from "../../../../UI/Components/StatusTimeline/StatusTimelineView";
 import { forgetStatusTimelineView } from "../../../Helpers/StatusTimelineViewChoice";
+import getJestMockFunction, { MockFunction } from "../../../MockType";
 import {
   AA_TEXT_CONTRAST,
   PAGE_TEXT_CLASS,
@@ -77,6 +78,12 @@ const pick: (pageName: string, view: "Timeline" | "Table") => void = (
     );
   });
 };
+
+// Storage's index signature hides its methods from jest.spyOn's typing.
+interface StorageMethods {
+  getItem: (key: string) => string | null;
+  setItem: (key: string, value: string) => void;
+}
 
 const stored: () => string | null = (): string | null => {
   return window.localStorage.getItem(STATUS_TIMELINE_VIEW_STORAGE_KEY);
@@ -157,7 +164,7 @@ describe("switching", () => {
   });
 
   test("the view already shown: clicking it changes nothing", () => {
-    const onChange: jest.Mock = jest.fn();
+    const onChange: MockFunction = getJestMockFunction();
 
     render(
       <StatusTimelineViewSwitch
@@ -176,9 +183,11 @@ describe("switching", () => {
 
 describe("a browser that will not store the choice", () => {
   test("writes refused: the choice still holds for this session", () => {
-    jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
-      throw new Error("QuotaExceededError");
-    });
+    jest
+      .spyOn(Storage.prototype as StorageMethods, "setItem")
+      .mockImplementation(() => {
+        throw new Error("QuotaExceededError");
+      });
 
     const { unmount } = render(<Page name="Monitor" />);
 
@@ -193,9 +202,11 @@ describe("a browser that will not store the choice", () => {
   });
 
   test("reads refused: the timeline, or this session's choice", () => {
-    jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
-      throw new Error("SecurityError");
-    });
+    jest
+      .spyOn(Storage.prototype as StorageMethods, "getItem")
+      .mockImplementation(() => {
+        throw new Error("SecurityError");
+      });
 
     expect(readStatusTimelineView()).toBe(StatusTimelineView.Timeline);
 
@@ -210,10 +221,9 @@ describe("for a screen reader and a keyboard", () => {
   test("one named group of two real buttons, the shown view pressed", () => {
     render(<Page name="Monitor" />);
 
-    const group: HTMLElement = within(pageNamed("Monitor")).getByRole(
-      "group",
-      { name: "Show the history as" },
-    );
+    const group: HTMLElement = within(pageNamed("Monitor")).getByRole("group", {
+      name: "Show the history as",
+    });
     const buttons: Array<HTMLElement> = within(group).getAllByRole("button");
 
     expect(

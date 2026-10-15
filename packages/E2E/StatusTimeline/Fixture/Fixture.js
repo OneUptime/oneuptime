@@ -500,7 +500,8 @@ function sortRows(rows, sort) {
   }
   const direction = order === SortOrder.Descending ? -1 : 1;
   return [...rows].sort((first, second) => {
-    const a = first[field] instanceof Date ? timeOf(first[field]) : first[field];
+    const a =
+      first[field] instanceof Date ? timeOf(first[field]) : first[field];
     const b =
       second[field] instanceof Date ? timeOf(second[field]) : second[field];
     return a > b ? direction : a < b ? -direction : 0;
@@ -703,9 +704,7 @@ ModelAPI.createOrUpdate = async (options) => {
     tableName === "MonitorStatusTimeline"
       ? MONITOR_STATUSES
       : RECORDS.IncidentState;
-  const stateId = idOfRelation(
-    model[`${stateColumn}Id`] || model[stateColumn],
-  );
+  const stateId = idOfRelation(model[`${stateColumn}Id`] || model[stateColumn]);
   const state = states.find((candidate) => idOf(candidate._id) === stateId);
   const startsAt = model.startsAt ? new Date(model.startsAt) : new Date(NOW);
 

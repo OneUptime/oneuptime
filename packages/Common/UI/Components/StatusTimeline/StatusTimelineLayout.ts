@@ -618,9 +618,11 @@ const getBandGaps: (data: {
   return gaps;
 };
 
-// ---------------------------------------------------------------------------
-// Time spent in each status
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * Time spent in each status
+ * ---------------------------------------------------------------------------
+ */
 
 export interface StatusTimelineSummaryItem {
   statusKey: string;
@@ -803,9 +805,11 @@ export const formatStatusTimelineCompactDuration: (
   return words.slice(0, 4).join(" ");
 };
 
-// ---------------------------------------------------------------------------
-// The window: moving through time
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * The window: moving through time
+ * ---------------------------------------------------------------------------
+ */
 
 /*
  * The window as long as this one, just before it - or just after it, but
@@ -1013,9 +1017,11 @@ export const getStatusTimelineFitWindow: (data: {
   return { start: new Date(start), end: new Date(end) };
 };
 
-// ---------------------------------------------------------------------------
-// The axis under the band
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * The axis under the band
+ * ---------------------------------------------------------------------------
+ */
 
 export enum StatusTimelineTickUnit {
   Minute = "minute",
@@ -1352,9 +1358,11 @@ export const getVisibleStatusTimelineTickIndexes: (data: {
   return kept;
 };
 
-// ---------------------------------------------------------------------------
-// Moving through the band with the keyboard
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * Moving through the band with the keyboard
+ * ---------------------------------------------------------------------------
+ */
 
 /*
  * The mark the arrow keys move to from `currentIndex`, or null for a key
