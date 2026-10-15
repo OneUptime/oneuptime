@@ -9,6 +9,7 @@ import WorkspaceNotificationRuleService, {
 import logger from "../../Logger";
 import SlackOnCallDutyPolicyMessages from "../Slack/Messages/OnCallDutyPolicy";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import WorkspaceChannelName from "../../../../Utils/Workspace/WorkspaceChannelName";
 
 export default class OnCallDutyPolicyWorkspaceMessages {
   @CaptureSpan()
@@ -26,7 +27,10 @@ export default class OnCallDutyPolicyWorkspaceMessages {
             onCallDutyPolicyId: data.onCallDutyPolicyId,
           },
           notificationRuleEventType: NotificationRuleEventType.OnCallDutyPolicy,
-          channelNameSiffix: data.onCallDutyPolicyName.toString().toLowerCase(),
+          channelNameParts: WorkspaceChannelName.forNamedRecord({
+            eventType: NotificationRuleEventType.OnCallDutyPolicy,
+            name: data.onCallDutyPolicyName.toString(),
+          }),
         },
       );
     } catch (err) {

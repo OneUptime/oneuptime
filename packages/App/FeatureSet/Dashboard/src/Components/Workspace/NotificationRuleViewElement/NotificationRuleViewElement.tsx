@@ -30,6 +30,8 @@ import {
 } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnection";
 import VideoCallRuleSummary from "./VideoCallRuleSummary";
+import { WorkspaceChannelNumberPrefixes } from "Common/Utils/Workspace/WorkspaceChannelName";
+import { ChannelNameSummary } from "../NotificationRuleForm/ChannelNamePreview";
 
 export interface ComponentProps {
   value:
@@ -52,6 +54,9 @@ export interface ComponentProps {
   microsoftTeamsChats?: Array<MicrosoftTeamsChat>;
   users: Array<User>;
   videoCallConnections?: Array<VideoCallConnection> | undefined;
+  // For the example of the name of the channel the rule creates.
+  numberPrefixes?: WorkspaceChannelNumberPrefixes | undefined;
+  exampleRecordName?: string | undefined;
 }
 
 const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
@@ -285,12 +290,14 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
         return <span>N/A</span>;
       },
     },
+    /*
+     * The rule's prefix, or "No prefix", and the name an example record's
+     * channel gets: "prod-   Example: #prod-inc-42".
+     */
     {
       key: "newChannelTemplateName",
-      title: `${props.workspaceType} Channel Template Name`,
-      description: `If your new channel name is "oneuptime-${props.eventType?.toLowerCase()}-", then we will append the ${props.eventType} in the end so, it'll look like "oneuptime-${props.eventType?.toLowerCase()}-X".`,
-      fieldType: FieldType.Text,
-      placeholder: `oneuptime-${props.eventType?.toLowerCase()}-`,
+      title: "Channel Name Prefix",
+      fieldType: FieldType.Element,
       showIf: (
         formValue:
           | IncidentNotificationRule
@@ -298,6 +305,25 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
           | ScheduledMaintenanceNotificationRule,
       ) => {
         return formValue.shouldCreateNewChannel || false;
+      },
+      getElement: (): ReactElement => {
+        return (
+          <ChannelNameSummary
+            workspaceType={props.workspaceType}
+            eventType={props.eventType}
+            prefix={
+              (
+                props.value as
+                  | IncidentNotificationRule
+                  | AlertNotificationRule
+                  | ScheduledMaintenanceNotificationRule
+              ).newChannelTemplateName
+            }
+            numberPrefixes={props.numberPrefixes}
+            exampleRecordName={props.exampleRecordName}
+            dataTestId="channel-name-summary"
+          />
+        );
       },
     },
     {

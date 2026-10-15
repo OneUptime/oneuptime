@@ -1392,6 +1392,43 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     return workspaceChannels;
   }
 
+  /*
+   * Whether Microsoft Graph refused a new channel's name because a channel
+   * of the team has it already - one in use, or one deleted in the last 30
+   * days: Microsoft Teams keeps a deleted channel's name until it is gone
+   * for good. Graph answers 400 BadRequest, "Channel name already existed,
+   * please use other name.", inner code NameAlreadyExists. Read off the
+   * response's fields rather than its class: an error from another realm
+   * (the botbuilder test harness) is not an HTTPErrorResponse there.
+   */
+  public static override isChannelNameTakenError(error: unknown): boolean {
+    const statusCode: unknown = (error as { statusCode?: unknown } | null)
+      ?.statusCode;
+
+    if (statusCode !== 400 && statusCode !== 409) {
+      return false;
+    }
+
+    let body: string = "";
+
+    try {
+      body = JSON.stringify(
+        (error as { data?: unknown; jsonData?: unknown }).data ??
+          (error as { jsonData?: unknown }).jsonData ??
+          "",
+      );
+    } catch {
+      body = "";
+    }
+
+    const text: string =
+      `${body} ${WorkspaceBase.getSendErrorMessage(error)}`.toLowerCase();
+
+    return (
+      text.includes("namealreadyexists") || text.includes("name already exist")
+    );
+  }
+
   @CaptureSpan()
   public static override async createChannel(data: {
     authToken: string;
@@ -1402,7 +1439,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   }): Promise<WorkspaceChannel> {
     const teamId: string = data.teamId;
 
-    // Sanitize channel name: strip characters not valid in Teams channel names.
+    /*
+     * Sanitize channel name: strip characters not valid in Teams channel
+     * names. A rule's channel arrives named so already
+     * (WorkspaceChannelName), and no longer than Teams' 50 characters.
+     */
     data.channelName = data.channelName.replace(/[^a-zA-Z0-9\-_\s]/g, "");
 
     // Get valid access token

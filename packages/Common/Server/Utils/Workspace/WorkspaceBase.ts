@@ -132,6 +132,17 @@ export default class WorkspaceBase {
     return false;
   }
 
+  /*
+   * Whether creating a channel failed because a channel has that name
+   * already - one in use, an archived or deleted one the workspace keeps the
+   * name of, another project's - so it can be created under another name
+   * (WorkspaceNotificationRuleService tries name-2, name-3 and so on). Any
+   * other refusal is not: another name would be refused the same way.
+   */
+  public static isChannelNameTakenError(_error: unknown): boolean {
+    return false;
+  }
+
   @CaptureSpan()
   public static async isUserInDirectMessageChannel(_data: {
     authToken: string;

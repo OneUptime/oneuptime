@@ -73,6 +73,12 @@ import ChannelMembersNotAddedNotice, {
 } from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
 import WorkspaceMessageTime from "../Utils/Workspace/WorkspaceMessageTime";
 import WorkspaceNotificationText from "../Utils/Workspace/WorkspaceNotificationText";
+import WorkspaceChannelName, {
+  NUMBER_PREFIX_COLUMN_BY_EVENT_TYPE,
+  WorkspaceChannelNameParts,
+  WorkspaceChannelNumberPrefixes,
+} from "../../Utils/Workspace/WorkspaceChannelName";
+import { NumberPrefixColumn } from "../../Utils/Project/NumberPrefix";
 
 export interface MessageBlocksByWorkspaceType {
   workspaceType: WorkspaceType;
@@ -99,6 +105,19 @@ export interface WorkspaceChannelsCreated {
 export interface WorkspaceChannelToSkip {
   workspaceType: WorkspaceType;
   channelId: string;
+}
+
+/*
+ * A channel one of a record's rules creates: the name it asks for (the
+ * record's name with the rule's prefix in front), the rule, the Microsoft
+ * Teams team it goes in, and the prefix, for the names to try after it when
+ * that one is taken.
+ */
+export interface RuleChannelToCreate {
+  channelName: string;
+  notificationRuleId: string;
+  teamId?: string;
+  prefix: string;
 }
 
 export interface NotificationFor {
@@ -243,7 +262,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     let createdChannels: NotificationRuleWorkspaceChannel[] = [];
 
     if ((notificationRule as IncidentNotificationRule).shouldCreateNewChannel) {
-      const generateRandomString: string = Text.generateRandomText(5);
+      /*
+       * A channel of its own, named as the rule names a record's, with a few
+       * random letters for the record: prod-abcde, or test-abcde for a rule
+       * without a prefix.
+       */
+      const channelNameParts: WorkspaceChannelNameParts =
+        WorkspaceChannelName.forTest({
+          randomText: Text.generateRandomText(5),
+        });
 
       try {
         // create channel
@@ -252,7 +279,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           projectOrUserAuthTokenForWorkspace: projectAuthToken,
           workspaceType: rule.workspaceType!,
           notificationRules: [rule],
-          channelNameSiffix: generateRandomString,
+          channelNameParts: channelNameParts,
           notificationEventType: rule.eventType!,
         });
       } catch (err) {
@@ -1766,12 +1793,19 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     return existingChannels;
   }
 
+  /*
+   * Creates a record's own channels in every connected workspace, as its
+   * matching rules ask, and adds the rules' people to them.
+   * channelNameParts is the record's name for its channels
+   * (WorkspaceChannelName.forNumberedRecord / forNamedRecord); each rule
+   * puts its prefix, if it has one, in front.
+   */
   @CaptureSpan()
   public async createChannelsAndInviteUsersToChannelsBasedOnRules(data: {
     projectId: ObjectID;
     notificationRuleEventType: NotificationRuleEventType;
     notificationFor: NotificationFor;
-    channelNameSiffix: string;
+    channelNameParts: WorkspaceChannelNameParts;
     isPrivate?: boolean;
   }): Promise<WorkspaceChannelsCreated | null> {
     try {
@@ -1850,7 +1884,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               projectOrUserAuthTokenForWorkspace: authToken,
               workspaceType: workspaceType,
               notificationRules: notificationRules,
-              channelNameSiffix: data.channelNameSiffix,
+              channelNameParts: data.channelNameParts,
               notificationEventType: data.notificationRuleEventType,
               notificationFor: data.notificationFor,
               ...(data.isPrivate ? { isPrivate: true } : {}),
@@ -2506,7 +2540,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     projectOrUserAuthTokenForWorkspace: string;
     workspaceType: WorkspaceType;
     notificationRules: Array<WorkspaceNotificationRule>;
-    channelNameSiffix: string;
+    channelNameParts: WorkspaceChannelNameParts;
     notificationEventType: NotificationRuleEventType;
     notificationFor?: NotificationFor;
     isPrivate?: boolean;
@@ -2520,17 +2554,21 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     const createdWorkspaceChannels: Array<NotificationRuleWorkspaceChannel> =
       [];
-    const createdChannelNames: Array<string> = [];
 
-    const notificationChannels: Array<{
-      channelName: string;
-      notificationRuleId: string;
-      teamId?: string;
-    }> = this.getnotificationChannelssFromNotificationRules({
-      notificationRules: data.notificationRules,
-      channelNameSiffix: data.channelNameSiffix,
-      notificationEventType: data.notificationEventType,
-    });
+    /*
+     * The channels set up so far, by the name they asked for and, in
+     * Microsoft Teams, their team: two rules that name the same channel share
+     * it, as they always have - and in two teams, each team gets its own.
+     */
+    const channelsAskedFor: Set<string> = new Set<string>();
+
+    const notificationChannels: Array<RuleChannelToCreate> =
+      this.getnotificationChannelssFromNotificationRules({
+        notificationRules: data.notificationRules,
+        channelNameParts: data.channelNameParts,
+        notificationEventType: data.notificationEventType,
+        workspaceType: data.workspaceType,
+      });
 
     logger.debug("New channel names to be created:", {
       projectId: data.projectId?.toString(),
@@ -2560,18 +2598,6 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     for (const notificationChannel of notificationChannels) {
-      if (
-        createdChannelNames.filter((name: string) => {
-          return name === notificationChannel.channelName;
-        }).length > 0
-      ) {
-        logger.debug(
-          `Channel name ${notificationChannel.channelName} already created. Skipping.`,
-          { projectId: data.projectId?.toString() } as LogAttributes,
-        );
-        continue;
-      }
-
       logger.debug(
         `Creating new channel with name: ${notificationChannel.channelName}`,
         { projectId: data.projectId?.toString() } as LogAttributes,
@@ -2611,10 +2637,27 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         );
       }
 
-      const channel: WorkspaceChannel =
-        await WorkspaceUtil.getWorkspaceTypeUtil(
-          data.workspaceType,
-        ).createChannel(createChannelData);
+      const channelAskedFor: string =
+        data.workspaceType === WorkspaceType.MicrosoftTeams
+          ? `${createChannelData.teamId}|${notificationChannel.channelName}`
+          : notificationChannel.channelName;
+
+      if (channelsAskedFor.has(channelAskedFor)) {
+        logger.debug(
+          `Channel name ${notificationChannel.channelName} already created. Skipping.`,
+          { projectId: data.projectId?.toString() } as LogAttributes,
+        );
+        continue;
+      }
+
+      channelsAskedFor.add(channelAskedFor);
+
+      const channel: WorkspaceChannel = await this.createChannelUnderFreeName({
+        workspaceType: data.workspaceType,
+        createChannelData: createChannelData,
+        prefix: notificationChannel.prefix,
+        channelNameParts: data.channelNameParts,
+      });
 
       const notificationWorkspaceChannel: NotificationRuleWorkspaceChannel = {
         ...channel,
@@ -2674,7 +2717,6 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         // Don't throw the error, just log it so the main flow continues
       }
 
-      createdChannelNames.push(channel.name);
       createdWorkspaceChannels.push(notificationWorkspaceChannel);
     }
 
@@ -2686,6 +2728,114 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     } as LogAttributes);
 
     return createdWorkspaceChannels;
+  }
+
+  /*
+   * Creates a rule's channel under the first of its names nobody has taken:
+   * the name, then the name with -2, -3 and so on after it, up to
+   * WorkspaceChannelName.MAX_NAME_ATTEMPTS names. Without a prefix, inc-42
+   * is the kind of name somebody may already have: another project in the
+   * same workspace numbering its incidents INC-, an archived channel (Slack
+   * keeps an archived channel's name, Microsoft Teams a deleted one's for
+   * 30 days), a channel made by hand or by another tool. Any other refusal
+   * is thrown as it is.
+   */
+  private async createChannelUnderFreeName(data: {
+    workspaceType: WorkspaceType;
+    createChannelData: {
+      authToken: string;
+      channelName: string;
+      projectId: ObjectID;
+      teamId?: string;
+      isPrivate?: boolean;
+    };
+    prefix: string;
+    channelNameParts: WorkspaceChannelNameParts;
+  }): Promise<WorkspaceChannel> {
+    const workspace: typeof WorkspaceBase = WorkspaceUtil.getWorkspaceTypeUtil(
+      data.workspaceType,
+    );
+
+    for (let attempt: number = 1; ; attempt++) {
+      const channelName: string =
+        attempt === 1
+          ? data.createChannelData.channelName
+          : WorkspaceChannelName.getChannelName({
+              workspaceType: data.workspaceType,
+              prefix: data.prefix,
+              parts: data.channelNameParts,
+              attempt: attempt,
+            });
+
+      try {
+        return await workspace.createChannel({
+          ...data.createChannelData,
+          channelName: channelName,
+        });
+      } catch (err) {
+        if (
+          attempt >= WorkspaceChannelName.MAX_NAME_ATTEMPTS ||
+          !workspace.isChannelNameTakenError(err)
+        ) {
+          throw err;
+        }
+
+        logger.debug(
+          `The channel name ${channelName} is taken in ${data.workspaceType}. Trying the next one.`,
+          {
+            projectId: data.createChannelData.projectId?.toString(),
+          } as LogAttributes,
+        );
+      }
+    }
+  }
+
+  /*
+   * The project's number prefixes by the kind of record a rule is for
+   * (Incident: "INC-", or null for none), for the rule form's preview of
+   * the name of the channel a rule creates. Read as OneUptime: the route
+   * that hands them out has already asked whether its caller may read the
+   * project's notification rules.
+   */
+  @CaptureSpan()
+  public async getRecordNumberPrefixes(
+    projectId: ObjectID,
+  ): Promise<WorkspaceChannelNumberPrefixes> {
+    const columns: Array<[NotificationRuleEventType, NumberPrefixColumn]> =
+      Object.entries(NUMBER_PREFIX_COLUMN_BY_EVENT_TYPE) as Array<
+        [NotificationRuleEventType, NumberPrefixColumn]
+      >;
+
+    const select: Record<string, boolean> = {};
+
+    for (const [, column] of columns) {
+      select[column] = true;
+    }
+
+    const project: Project | null = await ProjectService.findOneById({
+      id: projectId,
+      select: select,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!project) {
+      throw new BadDataException("Project not found");
+    }
+
+    const numberPrefixes: WorkspaceChannelNumberPrefixes = {};
+
+    for (const [eventType, column] of columns) {
+      const prefix: unknown = (project as unknown as Record<string, unknown>)[
+        column
+      ];
+
+      numberPrefixes[eventType] =
+        typeof prefix === "string" && prefix ? prefix : null;
+    }
+
+    return numberPrefixes;
   }
 
   @CaptureSpan()
@@ -2925,95 +3075,72 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     );
   }
 
+  /*
+   * The channels a record's rules create in one workspace: one for each
+   * rule that creates a channel, named after the record with the rule's
+   * prefix, if it has one, in front (WorkspaceChannelName) - inc-42, or
+   * prod-inc-42. Rules that ask for the same name share the channel; in
+   * Microsoft Teams, only rules that create it in the same team.
+   */
   public getnotificationChannelssFromNotificationRules(data: {
     notificationEventType: NotificationRuleEventType;
     notificationRules: Array<WorkspaceNotificationRule>;
-    channelNameSiffix: string;
-  }): Array<{
-    channelName: string;
-    notificationRuleId: string;
-    teamId?: string;
-  }> {
-    logger.debug(
-      "getnotificationChannelssFromNotificationRules called with data:",
-      {} as LogAttributes,
-    );
-    logger.debug(data, {} as LogAttributes);
-
-    const channels: Array<{
-      channelName: string;
-      notificationRuleId: string;
-      teamId?: string;
-    }> = [];
+    channelNameParts: WorkspaceChannelNameParts;
+    workspaceType: WorkspaceType;
+  }): Array<RuleChannelToCreate> {
+    const channels: Array<RuleChannelToCreate> = [];
 
     for (const notificationRule of data.notificationRules) {
-      const workspaceRules: CreateChannelNotificationRule =
-        notificationRule.notificationRule as CreateChannelNotificationRule;
+      const workspaceRules: CreateChannelNotificationRule | undefined =
+        notificationRule.notificationRule as
+          | CreateChannelNotificationRule
+          | undefined;
 
-      logger.debug("Processing notification rule:", {} as LogAttributes);
-      logger.debug(workspaceRules, {} as LogAttributes);
-
-      if (workspaceRules.shouldCreateNewChannel) {
-        const notificationChannels: string =
-          workspaceRules.newChannelTemplateName ||
-          `oneuptime-${data.notificationEventType.toLowerCase()}-`;
-
-        logger.debug("New channel template name:", {} as LogAttributes);
-        logger.debug(notificationChannels, {} as LogAttributes);
-
-        /*
-         * Sanitize the suffix for workspace channel names.
-         * When no custom prefix is set, the default "#" prefix (e.g. "#42") produces
-         * invalid Slack channel names (e.g. "oneuptime-alert-#42"). Strip characters
-         * that are not valid in Slack/Teams channel names.
-         */
-        const sanitizedSuffix: string = data.channelNameSiffix
-          .toLowerCase()
-          .replace(/[^a-z0-9\-_]/g, "");
-
-        // add suffix and then check if it is already added or not.
-        const channelName: string = notificationChannels + sanitizedSuffix;
-
-        logger.debug("Final channel name with suffix:", {} as LogAttributes);
-        logger.debug(channelName, {} as LogAttributes);
-
-        if (
-          channels.filter(
-            (name: {
-              channelName: string;
-              notificationRuleId: string;
-              teamId?: string;
-            }) => {
-              return name.channelName === channelName;
-            },
-          ).length === 0
-        ) {
-          // if channel name is not already added then add it.
-          const channelData: {
-            channelName: string;
-            notificationRuleId: string;
-            teamId?: string;
-          } = {
-            channelName: channelName,
-            notificationRuleId: notificationRule.id!.toString() || "",
-          };
-
-          if (workspaceRules.teamToCreateChannelIn) {
-            channelData.teamId = workspaceRules.teamToCreateChannelIn;
-          }
-
-          channels.push(channelData);
-          logger.debug(
-            `Channel name ${channelName} added to the list.`,
-            {} as LogAttributes,
-          );
-        } else {
-          logger.debug(
-            `Channel name ${channelName} already exists in the list. Skipping.`,
-            {} as LogAttributes,
-          );
-        }
+      if (!workspaceRules?.shouldCreateNewChannel) {
+        continue;
       }
+
+      const prefix: string = WorkspaceChannelName.getPrefix(workspaceRules);
+
+      const channelName: string = WorkspaceChannelName.getChannelName({
+        workspaceType: data.workspaceType,
+        prefix: prefix,
+        parts: data.channelNameParts,
+      });
+
+      const teamId: string =
+        data.workspaceType === WorkspaceType.MicrosoftTeams
+          ? workspaceRules.teamToCreateChannelIn || ""
+          : "";
+
+      const isListed: boolean = channels.some(
+        (channel: RuleChannelToCreate): boolean => {
+          return (
+            channel.channelName === channelName &&
+            (channel.teamId || "") === teamId
+          );
+        },
+      );
+
+      if (isListed) {
+        logger.debug(
+          `Channel name ${channelName} already exists in the list. Skipping.`,
+          {} as LogAttributes,
+        );
+        continue;
+      }
+
+      const channel: RuleChannelToCreate = {
+        channelName: channelName,
+        notificationRuleId: notificationRule.id?.toString() || "",
+        prefix: prefix,
+      };
+
+      if (workspaceRules.teamToCreateChannelIn) {
+        channel.teamId = workspaceRules.teamToCreateChannelIn;
+      }
+
+      channels.push(channel);
     }
 
     logger.debug("Final list of new channel names:", {} as LogAttributes);

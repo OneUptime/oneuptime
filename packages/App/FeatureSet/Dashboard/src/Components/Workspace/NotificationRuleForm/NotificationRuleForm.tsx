@@ -35,6 +35,11 @@ import {
   MicrosoftTeamsChat,
   MicrosoftTeamsTeam,
 } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
+import { WorkspaceChannelNumberPrefixes } from "Common/Utils/Workspace/WorkspaceChannelName";
+import {
+  CHANNEL_NAME_PREFIX_DESCRIPTIONS,
+  ChannelNamePreview,
+} from "./ChannelNamePreview";
 
 /*
  * Which half of a rule this form edits. The rule wizard asks the two on
@@ -72,6 +77,12 @@ export interface ComponentProps {
   microsoftTeamsTeams?: Array<MicrosoftTeamsTeam>;
   microsoftTeamsChats?: Array<MicrosoftTeamsChat>;
   users: Array<User>;
+  /*
+   * The project's number prefixes and a monitor's or on-call policy's name,
+   * for the preview of the name of the channel the rule creates.
+   */
+  numberPrefixes?: WorkspaceChannelNumberPrefixes | undefined;
+  exampleRecordName?: string | undefined;
   error?: string | undefined;
 }
 
@@ -328,21 +339,45 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
             })
           : [],
     },
+    /*
+     * Optional: without a prefix, a channel is named after its record -
+     * inc-42 for incident INC-42 - and a prefix goes in front of that name,
+     * prod-inc-42. The preview under the field shows the name as it is
+     * typed, worked out as the server names channels (WorkspaceChannelName).
+     */
     {
       field: {
         newChannelTemplateName: true,
       },
-      title: `New ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Name`,
+      title: "Channel Name Prefix",
       showIf: (formValue: FormValues<NotificationRulesType>) => {
         return (
           (formValue as CreateNewSlackChannelNotificationRuleType)
             .shouldCreateNewChannel || false
         );
       },
-      required: true,
-      description: `If your new channel name is "oneuptime-${props.eventType.toLowerCase()}-", then we will append the ${props.eventType === NotificationRuleEventType.Monitor ? "monitor name" : `${props.eventType} number`} in the end so, it'll look like "oneuptime-${props.eventType.toLowerCase()}-${props.eventType === NotificationRuleEventType.Monitor ? "monitor-name" : "X"}".`,
+      required: false,
+      description: CHANNEL_NAME_PREFIX_DESCRIPTIONS[props.eventType],
       fieldType: FormFieldSchemaType.Text,
-      placeholder: `oneuptime-${props.eventType.toLowerCase()}-`,
+      disableSpellCheck: true,
+      dataTestId: "channel-name-prefix",
+      getFooterElement: (
+        formValue: FormValues<NotificationRulesType>,
+      ): ReactElement => {
+        return (
+          <ChannelNamePreview
+            workspaceType={props.workspaceType}
+            eventType={props.eventType}
+            prefix={
+              (formValue as CreateNewSlackChannelNotificationRuleType)
+                .newChannelTemplateName
+            }
+            numberPrefixes={props.numberPrefixes}
+            exampleRecordName={props.exampleRecordName}
+            dataTestId="channel-name-prefix-preview"
+          />
+        );
+      },
     },
     {
       field: {

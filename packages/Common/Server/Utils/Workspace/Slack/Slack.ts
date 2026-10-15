@@ -51,6 +51,9 @@ import {
 } from "../../../../Utils/Markdown/SlowMarkdown";
 import { replacePipeTables } from "../../../../Utils/Markdown/PipeTables";
 
+// What conversations.create answers for a name a channel has already.
+export const SLACK_CHANNEL_NAME_TAKEN_ERROR: string = "name_taken";
+
 /*
  * What slackify reads a "%" that starts no escape as (see
  * getSlackifySafeMarkdown), and what encodeURI makes of it in an address.
@@ -2481,6 +2484,18 @@ export default class SlackUtil extends WorkspaceBase {
     return buttonsBlock;
   }
 
+  /*
+   * Whether conversations.create refused a channel's name because a channel
+   * has it already: one in use, or an archived one - Slack keeps an archived
+   * channel's name. The channel can then be created under another name.
+   */
+  public static override isChannelNameTakenError(error: unknown): boolean {
+    return (
+      WorkspaceBase.getSendErrorMessage(error) ===
+      `Error from Slack ${SLACK_CHANNEL_NAME_TAKEN_ERROR}`
+    );
+  }
+
   @CaptureSpan()
   public static override async createChannel(data: {
     authToken: string;
@@ -2491,6 +2506,8 @@ export default class SlackUtil extends WorkspaceBase {
     /*
      * Sanitize channel name: Slack only allows lowercase letters, numbers,
      * hyphens, and underscores. Remove all other characters (including #).
+     * A rule's channel arrives named so already (WorkspaceChannelName), and
+     * no longer than Slack's 80 characters.
      */
     data.channelName = data.channelName
       .toLowerCase()
