@@ -2546,6 +2546,9 @@ describe("recurring events", () => {
   const recurringJob: string = readWorkerSource(
     "ScheduledMaintenance/ScheduleRecurringEvents.ts",
   );
+  // The templates the job reads: recurring ones whose next time has come.
+  const RECURRING_TEMPLATES_QUERY: string =
+    "query: {\n          isRecurringEvent: true,\n          scheduleNextEventAt: QueryHelper.lessThanEqualTo(";
 
   it("asks for the schedule on the Recurring step, only once Recurring Event is on", () => {
     expect(stepOf(fieldObject(TEMPLATES_PAGE, "Recurring Event"))).toBe(
@@ -2627,10 +2630,7 @@ describe("recurring events", () => {
 
   it("is run every minute: the job moves a template's next time on by one interval and creates the event", () => {
     expect(recurringJob).toContain("{ schedule: EVERY_MINUTE, runOnStartup: false }");
-    expect(recurringJob).toContain("isRecurringEvent: true,");
-    expect(recurringJob).toContain(
-      "scheduleNextEventAt: QueryHelper.lessThanEqualTo(",
-    );
+    expect(recurringJob).toContain(RECURRING_TEMPLATES_QUERY);
     expect(
       inOrder(
         positionsIn(recurringJob, [
@@ -2689,7 +2689,7 @@ describe("recurring events", () => {
   });
 
   it("stops when Recurring Event is turned off or the template is deleted", () => {
-    expect(recurringJob).toContain("isRecurringEvent: true,");
+    expect(recurringJob).toContain(RECURRING_TEMPLATES_QUERY);
     expect(templates).toContain(
       "To stop a schedule, turn **Recurring Event** off in **Edit**, or delete the template.",
     );
