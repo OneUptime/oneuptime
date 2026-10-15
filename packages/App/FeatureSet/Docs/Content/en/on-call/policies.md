@@ -74,7 +74,7 @@ Every time a policy runs, it writes an execution log, and the log moves through 
 flowchart TB
     start["The policy runs"] --> rule["The next escalation<br/>rule pages"]
     rule --> ack{"Acknowledged<br/>in time?"}
-    ack -->|Yes| done["Execution Completed"]
+    ack -->|Yes| done["Paging stops"]
     ack -->|No| last{"Was it the<br/>last rule?"}
     last -->|No| rule
     last -->|Yes| again{"A repeat left?"}
