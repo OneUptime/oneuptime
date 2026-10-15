@@ -221,7 +221,8 @@ describe("the templates a reader can pick", () => {
 
   test("a template with no id is not offered; one with no name is still named", () => {
     const unnamed: MonitorTemplate = posTemplate();
-    unnamed.templateName = undefined;
+    // As a list read that did not select the name hands it back.
+    delete unnamed.templateName;
 
     expect(
       namesOf(
