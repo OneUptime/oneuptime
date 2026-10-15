@@ -15,6 +15,13 @@ import React from "react";
  * it knows and marks every key it is asked for.
  */
 
+const JAPANESE: Record<string, string> = {
+  "Preview:": "プレビュー:",
+  "For incident {{record}}.": "インシデント {{record}} の場合。",
+  "If Slack already has a channel with this name, OneUptime adds -2 to the end.":
+    "Slack に同じ名前のチャネルがすでにある場合、OneUptime は末尾に -2 を付けます。",
+};
+
 const GERMAN: Record<string, string> = {
   "Preview:": "Vorschau:",
   "For incident {{record}}.": "Für Vorfall {{record}}.",
@@ -25,7 +32,7 @@ const GERMAN: Record<string, string> = {
 };
 
 const askedFor: Array<string> = [];
-let language: "en" | "de" = "en";
+let language: "en" | "de" | "ja" = "en";
 
 jest.mock("../../../UI/Utils/Translation", () => {
   return {
@@ -37,9 +44,15 @@ jest.mock("../../../UI/Utils/Translation", () => {
             askedFor.push(value);
           }
 
-          return language === "de" && value && GERMAN[value]
-            ? GERMAN[value]
-            : value;
+          if (language === "de" && value && GERMAN[value]) {
+            return GERMAN[value];
+          }
+
+          if (language === "ja" && value && JAPANESE[value]) {
+            return JAPANESE[value];
+          }
+
+          return value;
         },
         translateValue: (value: unknown): unknown => {
           return value;
@@ -221,6 +234,15 @@ describe("the preview under the Channel Name Prefix field", () => {
     );
     // The record sentence is asked for with its placeholder, never in pieces.
     expect(askedFor).toContain("For incident {{record}}.");
+  });
+
+  test("sentences that end the way Japanese ends one run on without a space", () => {
+    language = "ja";
+    renderPreview({ prefix: "" });
+
+    expect(notes()).toBe(
+      "インシデント INC-42 の場合。Slack に同じ名前のチャネルがすでにある場合、OneUptime は末尾に -2 を付けます。",
+    );
   });
 });
 

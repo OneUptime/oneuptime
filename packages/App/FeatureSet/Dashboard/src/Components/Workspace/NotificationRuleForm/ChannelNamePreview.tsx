@@ -1,5 +1,6 @@
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import WorkspaceChannelName, {
@@ -282,7 +283,7 @@ export const ChannelNamePreview: FunctionComponent<ChannelNameExampleProps> = (
         data-testid="channel-name-preview-notes"
         className="text-gray-500"
       >
-        {notes.join(" ")}
+        {joinSentences(notes)}
       </p>
     </div>
   );
