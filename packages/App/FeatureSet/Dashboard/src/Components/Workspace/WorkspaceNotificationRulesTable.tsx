@@ -73,13 +73,6 @@ import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import { WorkspaceChannelNumberPrefixes } from "Common/Utils/Workspace/WorkspaceChannelName";
 
 /*
- * The project's number prefixes, by the kind of record a rule is for, for
- * the preview of the name of the channel a rule creates.
- */
-export const RULE_NUMBER_PREFIXES_ROUTE: string =
-  "/workspace-notification-rule/number-prefixes";
-
-/*
  * The form key the Video Call step is registered under. Like the
  * Destination step, it edits the rule's notificationRule column, so it needs
  * a key of its own; it is form-only and never sent.
@@ -437,7 +430,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           | HTTPResponse<JSONObject>
           | HTTPErrorResponse = await API.get({
           url: URL.fromString(APP_API_URL.toString()).addRoute(
-            RULE_NUMBER_PREFIXES_ROUTE,
+            "/workspace-notification-rule/number-prefixes",
           ),
           headers: ModelAPI.getCommonHeaders(),
         });

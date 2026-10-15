@@ -156,6 +156,16 @@ describe("Project-scoped custom GET routes send the tenant header", () => {
       filePath: NOTIFICATION_RULES_TABLE,
       route: "/workspace-notification-rule/test/",
     },
+    /*
+     * The project's number prefixes, for the preview of the name of the
+     * channel a rule creates: the route answers only a member of the
+     * tenant's own project.
+     */
+    {
+      name: "the workspace notification rules table reading the project's number prefixes",
+      filePath: NOTIFICATION_RULES_TABLE,
+      route: "/workspace-notification-rule/number-prefixes",
+    },
   ];
 
   for (const testCase of cases) {

@@ -88,7 +88,9 @@ Creating a rule walks four steps:
 | **Destination** | Where it posts: an existing channel of a team you pick, the chats you pick, a new channel created in a team you pick, or any of these together. |
 | **Video Call** | Incidents and alerts only: start a call for each one. See [Video Calls](/docs/workspace-connections/video-calls). |
 
-A channel the rule creates is named from **New Microsoft Teams Channel Name** followed by the record's number, such as `oneuptime-incident-42`, and only a channel that was created gets the people the rule invites. A private incident, alert or episode gets a private channel. Every later update of the record — a state change, a note, a new owner — is posted to its channels and chats.
+A channel the rule creates is named after its record: incident INC-42 gets `inc-42`, alert ALT-7 gets `alt-7`, and in a project without number prefixes, incident 42 gets `incident-42`. Text in **Channel Name Prefix** goes in front, so `prod-` makes `prod-inc-42`, and the form shows the name as you type. OneUptime keeps letters, numbers, spaces, `-` and `_`, up to the 50 characters Microsoft Teams takes. If the team already has a channel by that name, such as another project's or one deleted in the last 30 days, OneUptime adds `-2`, `-3` and so on.
+
+Only a channel that was created gets the people the rule invites. A private incident, alert or episode gets a private channel. Every later update of the record — a state change, a note, a new owner — is posted to its channels and chats.
 
 An incident, alert, episode or scheduled maintenance event with a channel of its own has **Open in Microsoft Teams** in the header of its page in OneUptime, beside its state buttons. It opens that channel in a new tab, in the Microsoft Teams app or in the browser. A record with two channels of its own lists both under the button. A record with channels in both Slack and Microsoft Teams has one **Open channel** button instead, which lists them all. The existing channels and chats your rules post to are not offered.
 
