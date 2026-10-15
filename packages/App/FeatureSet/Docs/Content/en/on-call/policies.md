@@ -84,7 +84,7 @@ flowchart TB
 
 | Status | What it means |
 | --- | --- |
-| **Scheduled**, **Started** | The run is being set up. One still here after five minutes is stopped as **Error**. |
+| **Scheduled**, **Started** | The run is being set up. One still here after 5 minutes is stopped as **Error**. |
 | **Executing** | The run is paging. OneUptime moves it on every minute. |
 | **Execution Completed** | Someone acknowledged, the incident or alert was resolved, every rule and repeat was used, or the policy was archived. |
 | **Execution Completed - No One Notified** | The run went through every rule and paged nobody: usually a schedule with nobody on call. |
