@@ -11,6 +11,15 @@ import {
   settingsMenus,
   writtenPaths,
 } from "./SettingsMenuPaths";
+import {
+  CODE_FILE,
+  FoundText,
+  PACKAGES_ROOT,
+  REPO_ROOT,
+  filesUnder,
+  productTexts,
+  relative,
+} from "./ProductTextScan";
 import { readDashboardSource } from "../FeatureSet/Docs/DocsDashboardMenus";
 import WorkspaceType, {
   getWorkspaceTypeDisplayName,
@@ -45,211 +54,24 @@ import ts from "typescript";
  *   - no label beside the Microsoft Teams icon or workspace is the bare
  *     "Teams".
  *
- * Strings are read with the TypeScript scanner, so a comment does not count
+ * Strings are read with the TypeScript scanner (ProductTextScan, which the
+ * On-Call Duty paths guard reads them with too), so a comment does not count
  * and a sentence written as a template literal does; a ModelTable's `name`
  * (never drawn) is left out. The email templates are read as text. ee/ is
  * read where it is checked out: the App Test job deletes it, and the
  * Enterprise Edition Test workflow (test.ee.yaml) runs this suite with it.
  */
 
-const PACKAGES_ROOT: string = path.resolve(__dirname, "../../..");
-const REPO_ROOT: string = path.resolve(PACKAGES_ROOT, "..");
 const LOCALES_DIR: string = path.join(
   PACKAGES_ROOT,
   "App/FeatureSet/Dashboard/src/Locales",
 );
 
-const SKIPPED_DIRECTORIES: ReadonlyArray<string> = [
-  "node_modules",
-  "build",
-  "dist",
-  "Tests",
-  "__tests__",
-  ".claude",
-];
-
-const CODE_FILE: RegExp = /\.(ts|tsx)$/;
-const TEMPLATE_FILE: RegExp = /\.(hbs|ejs)$/;
-const TEST_FILE: RegExp = /\.(test|spec)\.(ts|tsx)$/;
-
-// Where OneUptime's own words are: the server, the emails, every frontend.
-const SCANNED_ROOTS: ReadonlyArray<string> = [
-  path.join(PACKAGES_ROOT, "Common", "Server"),
-  path.join(PACKAGES_ROOT, "Common", "Utils"),
-  path.join(PACKAGES_ROOT, "Common", "Types"),
-  path.join(PACKAGES_ROOT, "Common", "UI"),
-  path.join(PACKAGES_ROOT, "Common", "Models"),
-  path.join(PACKAGES_ROOT, "App", "FeatureSet"),
-  path.join(REPO_ROOT, "ee", "Server"),
-  path.join(REPO_ROOT, "ee", "Dashboard"),
-  path.join(REPO_ROOT, "ee", "AdminDashboard"),
-];
-
-function filesUnder(root: string): Array<string> {
-  if (!fs.existsSync(root)) {
-    return [];
-  }
-
-  const files: Array<string> = [];
-
-  for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
-    const full: string = path.join(root, entry.name);
-
-    if (entry.isDirectory()) {
-      if (!SKIPPED_DIRECTORIES.includes(entry.name)) {
-        files.push(...filesUnder(full));
-      }
-      continue;
-    }
-
-    const isCode: boolean =
-      CODE_FILE.test(entry.name) &&
-      !TEST_FILE.test(entry.name) &&
-      !entry.name.endsWith(".d.ts");
-
-    if (isCode || TEMPLATE_FILE.test(entry.name)) {
-      files.push(full);
-    }
-  }
-
-  return files;
-}
-
-function relative(file: string): string {
-  return path.relative(PACKAGES_ROOT, file);
-}
-
-// A JSX attribute that is never drawn: a ModelTable's `name`.
-function isUndrawnAttribute(node: ts.Node): boolean {
-  let current: ts.Node | undefined = node.parent;
-
-  for (let depth: number = 0; current && depth < 3; depth++) {
-    if (ts.isJsxAttribute(current)) {
-      return current.name.getText() === "name";
-    }
-
-    current = current.parent;
-  }
-
-  return false;
-}
-
-interface FoundText {
-  file: string;
-  line: number;
-  text: string;
-}
-
-// The strings and template literals of a code file, as a reader sees them.
-function codeTexts(file: string, source: string): Array<FoundText> {
-  const sourceFile: ts.SourceFile = ts.createSourceFile(
-    file,
-    source,
-    ts.ScriptTarget.Latest,
-    true,
-    file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
-  );
-  const texts: Array<FoundText> = [];
-
-  const add: (node: ts.Node, text: string) => void = (
-    node: ts.Node,
-    text: string,
-  ): void => {
-    texts.push({
-      file: relative(file),
-      line: sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1,
-      text: text,
-    });
-  };
-
-  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
-    if (
-      (ts.isStringLiteral(node) ||
-        ts.isNoSubstitutionTemplateLiteral(node) ||
-        ts.isJsxText(node)) &&
-      !isUndrawnAttribute(node)
-    ) {
-      add(node, node.text);
-    } else if (ts.isTemplateExpression(node) && !isUndrawnAttribute(node)) {
-      // The sentence as a reader sees it, with a placeholder per value.
-      add(
-        node,
-        node.head.text +
-          node.templateSpans
-            .map((span: ts.TemplateSpan): string => {
-              return `{value}${span.literal.text}`;
-            })
-            .join(""),
-      );
-    }
-
-    ts.forEachChild(node, visit);
-  };
-
-  visit(sourceFile);
-
-  return texts;
-}
-
-// Text between two markers removed: a template's comments.
-function withoutBetween(text: string, open: string, close: string): string {
-  let result: string = "";
-  let from: number = 0;
-
-  while (from < text.length) {
-    const start: number = text.indexOf(open, from);
-
-    if (start < 0) {
-      result += text.slice(from);
-      break;
-    }
-
-    result += text.slice(from, start);
-
-    const end: number = text.indexOf(close, start + open.length);
-
-    if (end < 0) {
-      break;
-    }
-
-    from = end + close.length;
-  }
-
-  return result;
-}
-
-// An email or page template's text, line by line, without its comments.
-function templateTexts(file: string, source: string): Array<FoundText> {
-  const text: string = withoutBetween(
-    withoutBetween(source, "{{!--", "--}}"),
-    "<!--",
-    "-->",
-  );
-
-  return text.split("\n").map((line: string, index: number): FoundText => {
-    return { file: relative(file), line: index + 1, text: line };
-  });
-}
-
-// Every text the scan reads that writes a path through a settings menu.
+// Every text the scan reads that may write a path through a settings menu.
 function textsWithPaths(): Array<FoundText> {
-  const texts: Array<FoundText> = [];
-
-  for (const file of SCANNED_ROOTS.flatMap(filesUnder)) {
-    const source: string = fs.readFileSync(file, "utf8");
-
-    if (!source.includes(USER_SETTINGS) && !source.includes(PROJECT_SETTINGS)) {
-      continue;
-    }
-
-    texts.push(
-      ...(TEMPLATE_FILE.test(file)
-        ? templateTexts(file, source)
-        : codeTexts(file, source)),
-    );
-  }
-
-  return texts;
+  return productTexts((source: string): boolean => {
+    return source.includes(USER_SETTINGS) || source.includes(PROJECT_SETTINGS);
+  });
 }
 
 interface FoundPath extends WrittenPath {

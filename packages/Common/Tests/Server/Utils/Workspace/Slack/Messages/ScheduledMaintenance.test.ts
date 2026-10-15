@@ -237,7 +237,11 @@ describe("SlackScheduledMaintenanceMessages.getScheduledMaintenanceCreateMessage
       },
     );
 
-    expect(titles).not.toContain("📞 Execute On Call");
+    expect(
+      titles.some((title: string) => {
+        return title.includes("Execute On");
+      }),
+    ).toBe(false);
     expect(
       titles.some((title: string) => {
         return title.includes("Acknowledge");

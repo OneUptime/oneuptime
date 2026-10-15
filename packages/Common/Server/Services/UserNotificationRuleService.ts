@@ -7467,7 +7467,7 @@ export class Service extends ProjectReferencesService<Model> {
       }
 
       warnings.push(
-        `Every verified method left on this account is on a channel the project can switch off (${channels.join(", ")}) - check On-Call > Readiness to confirm this user can still be paged.`,
+        `Every verified method left on this account is on a channel the project can switch off (${channels.join(", ")}) - check On-Call Duty > Readiness to confirm this user can still be paged.`,
       );
     }
 
