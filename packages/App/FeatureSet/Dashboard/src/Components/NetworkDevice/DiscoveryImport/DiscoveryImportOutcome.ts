@@ -71,7 +71,8 @@ export interface DiscoveryImportOutcome {
   raisesAlerts: boolean;
   /*
    * Ping-only devices whose monitor can raise nothing: every check of the
-   * template reads an SNMP walk, and these devices are only pinged.
+   * template that opens an incident or an alert reads an SNMP walk, and
+   * these devices are only pinged.
    */
   pingOnlyHostsWithoutAlerts: number;
   // Enabled policies that cover every device, by name.
@@ -134,9 +135,7 @@ export function getDiscoveryImportOutcome(data: {
     },
   ).length;
 
-  const raisesIncidents: boolean = Boolean(
-    template?.summary.raisesIncidents,
-  );
+  const raisesIncidents: boolean = Boolean(template?.summary.raisesIncidents);
   const raisesAlerts: boolean = Boolean(template?.summary.raisesAlerts);
   const raisesOnPingOnly: boolean = Boolean(
     template &&

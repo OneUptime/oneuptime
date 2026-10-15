@@ -26,14 +26,19 @@ import ObjectID from "../../Types/ObjectID";
  */
 
 /*
- * The checks a ping-only poll answers. A device with no SNMP credentials is
- * pinged and nothing else, so every other Network Device check reads a walk
- * that never happens and is not evaluated - never "met", never "healthy".
- * Only the reachability verdict - the same one the device's own status is -
- * is there to read.
+ * The checks that can be met on a device that only answers ping. Such a
+ * device has no SNMP credentials, so its probe pings it and walks nothing,
+ * and every check that reads a walk is not evaluated on its polls - never
+ * "met", never "healthy" (SnmpMonitorCriteria's walk-dependent checks). What
+ * is left: the reachability verdict, the same one the device's own status
+ * is, and the trap checks - a trap is judged when the device sends one to
+ * the probe, whatever its polls do. Held to the evaluator's own list by a
+ * test, so the preview cannot promise what the monitors will not do.
  */
 export const PING_ONLY_EVALUATED_CHECKS: ReadonlyArray<CheckOn> = [
   CheckOn.SnmpIsOnline,
+  CheckOn.SnmpTrapReceived,
+  CheckOn.SnmpTrapVarbindValue,
 ];
 
 export interface MonitorCriteriaAlertSummary {
@@ -56,7 +61,10 @@ export interface MonitorCriteriaAlertSummary {
   onCallPolicyIds: Array<string>;
   // What it checks, in the order its filters are written.
   checks: Array<CheckOn>;
-  // Whether it can be met on a device that is pinged and not walked.
+  /*
+   * Whether it can be met on a device that is pinged and not walked: it
+   * reads reachability or traps, not the walk.
+   */
   isEvaluatedOnPingOnlyDevices: boolean;
 }
 
@@ -91,7 +99,9 @@ function readSteps(
   }
 }
 
-function idsOf(values: Array<ObjectID | string | undefined | null>): Array<string> {
+function idsOf(
+  values: Array<ObjectID | string | undefined | null>,
+): Array<string> {
   const ids: Array<string> = [];
 
   for (const value of values) {
@@ -109,7 +119,7 @@ function idsOf(values: Array<ObjectID | string | undefined | null>): Array<strin
  * Whether a criterion can be met on a device that is only pinged. Its
  * filters are joined by its condition: with All, every filter must be
  * evaluated, so one walk-only filter keeps the criterion from ever being met;
- * with Any, one reachability filter is enough.
+ * with Any, one filter that reads reachability or a trap is enough.
  */
 export function isCriterionEvaluatedOnPingOnlyDevices(data: {
   checks: ReadonlyArray<CheckOn | undefined>;
@@ -237,7 +247,9 @@ export function summarizeMonitorTemplateAlerts(
     }),
     raisesIncidentsOnPingOnlyDevices: enabled.some(
       (criterion: MonitorCriteriaAlertSummary) => {
-        return criterion.raisesIncident && criterion.isEvaluatedOnPingOnlyDevices;
+        return (
+          criterion.raisesIncident && criterion.isEvaluatedOnPingOnlyDevices
+        );
       },
     ),
     raisesAlertsOnPingOnlyDevices: enabled.some(

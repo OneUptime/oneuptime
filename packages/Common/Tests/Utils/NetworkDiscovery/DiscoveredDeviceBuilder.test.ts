@@ -247,6 +247,59 @@ describe("buildNetworkDeviceFromDiscoveredHost - vendor template auto-apply flag
   });
 });
 
+/*
+ * "Check every" in the import dialog and on an auto import rule (issue
+ * #4811): how often the scan's probe polls the device it creates. Left out,
+ * the column default (5 minutes) applies, as it did for every discovered
+ * device before anyone could choose.
+ */
+describe("buildNetworkDeviceFromDiscoveredHost - how often it is polled", () => {
+  it("is the column's default unless the caller chooses", () => {
+    expect(build({}).pollingIntervalInMinutes).toBeUndefined();
+  });
+
+  it.each([[1], [2], [10], [60]])(
+    "is %i minutes on an SNMP host when chosen",
+    (minutes: number) => {
+      const device: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
+        projectId: PROJECT_ID,
+        host: snmpHost(),
+        scan: fullScanSource(),
+        pollingIntervalInMinutes: minutes,
+      });
+
+      expect(device.pollingIntervalInMinutes).toBe(minutes);
+    },
+  );
+
+  // Its ping is its poll: a register checked every minute is pinged every minute.
+  it("applies to a ping-only host too", () => {
+    const device: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
+      projectId: PROJECT_ID,
+      host: snmpHost({ snmpReachable: false, sysName: undefined }),
+      scan: fullScanSource(),
+      pollingIntervalInMinutes: 1,
+    });
+
+    expect(device.isPollingEnabled).toBe(true);
+    expect(device.pollingIntervalInMinutes).toBe(1);
+  });
+
+  it.each([[0], [-5], [2.5], [NaN], [Infinity]])(
+    "a caller's mistake (%p) leaves the default rather than writing it",
+    (minutes: number) => {
+      const device: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
+        projectId: PROJECT_ID,
+        host: snmpHost(),
+        scan: fullScanSource(),
+        pollingIntervalInMinutes: minutes,
+      });
+
+      expect(device.pollingIntervalInMinutes).toBeUndefined();
+    },
+  );
+});
+
 describe("buildNetworkDeviceFromDiscoveredHost - SNMP host", () => {
   it("maps identity fields: sysName to name, address to hostname, sysDescr to description", () => {
     const device: NetworkDevice = build({});

@@ -402,7 +402,9 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
               options={getPollingIntervalOptions()}
               value={{
                 value: settings.pollingIntervalInMinutes,
-                label: getPollingIntervalLabel(settings.pollingIntervalInMinutes),
+                label: getPollingIntervalLabel(
+                  settings.pollingIntervalInMinutes,
+                ),
               }}
               onChange={(
                 value: DropdownValue | Array<DropdownValue> | null,
@@ -411,7 +413,9 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
                   Array.isArray(value) ? value[0] : value,
                 );
 
-                if (DISCOVERY_IMPORT_POLLING_INTERVALS_IN_MINUTES.includes(picked)) {
+                if (
+                  DISCOVERY_IMPORT_POLLING_INTERVALS_IN_MINUTES.includes(picked)
+                ) {
                   props.onSettingsChange({
                     ...settings,
                     pollingIntervalInMinutes: picked,
@@ -675,12 +679,14 @@ export const OutcomeSummary: FunctionComponent<{
         tone: "warning",
         text: translator.translatePlural(
           {
-            one: "Every check of this template reads an SNMP walk, so the {{count}} device that answers ping only will raise nothing until it has SNMP credentials.",
+            one: "The {{count}} device that answers ping only will raise nothing: every check of this template that opens an incident or an alert reads an SNMP walk, and it is not walked until it has SNMP credentials.",
             other:
-              "Every check of this template reads an SNMP walk, so the {{count}} devices that answer ping only will raise nothing until they have SNMP credentials.",
+              "The {{count}} devices that answer ping only will raise nothing: every check of this template that opens an incident or an alert reads an SNMP walk, and they are not walked until they have SNMP credentials.",
           },
           outcome.pingOnlyHostsWithoutAlerts,
-          { count: translator.formatNumber(outcome.pingOnlyHostsWithoutAlerts) },
+          {
+            count: translator.formatNumber(outcome.pingOnlyHostsWithoutAlerts),
+          },
         ),
       });
     }
@@ -747,27 +753,25 @@ export const OutcomeSummary: FunctionComponent<{
         )}
       </p>
       <ul className="mt-3 space-y-2.5">
-        {lines.map(
-          (line: { key: string; text: string; tone?: "warning" }) => {
-            return (
-              <li
-                key={line.key}
-                className={`flex gap-2 text-sm ${
-                  line.tone === "warning" ? "text-amber-800" : "text-gray-700"
+        {lines.map((line: { key: string; text: string; tone?: "warning" }) => {
+          return (
+            <li
+              key={line.key}
+              className={`flex gap-2 text-sm ${
+                line.tone === "warning" ? "text-amber-800" : "text-gray-700"
+              }`}
+              data-testid={`discovery-import-outcome-${line.key}`}
+            >
+              <span
+                aria-hidden="true"
+                className={`mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full ${
+                  line.tone === "warning" ? "bg-amber-500" : "bg-gray-400"
                 }`}
-                data-testid={`discovery-import-outcome-${line.key}`}
-              >
-                <span
-                  aria-hidden="true"
-                  className={`mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full ${
-                    line.tone === "warning" ? "bg-amber-500" : "bg-gray-400"
-                  }`}
-                />
-                <span>{line.text}</span>
-              </li>
-            );
-          },
-        )}
+              />
+              <span>{line.text}</span>
+            </li>
+          );
+        })}
       </ul>
     </aside>
   );

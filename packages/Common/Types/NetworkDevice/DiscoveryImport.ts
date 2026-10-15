@@ -148,7 +148,8 @@ export interface DiscoveryImportSettings {
 }
 
 export const DEFAULT_DISCOVERY_IMPORT_SETTINGS: DiscoveryImportSettings = {
-  pollingIntervalInMinutes: DEFAULT_DISCOVERY_IMPORT_POLLING_INTERVAL_IN_MINUTES,
+  pollingIntervalInMinutes:
+    DEFAULT_DISCOVERY_IMPORT_POLLING_INTERVAL_IN_MINUTES,
   applyVendorTemplates: true,
   alerting: DiscoveryImportAlerting.None,
 };
@@ -160,7 +161,10 @@ export function isDiscoveryImportPollingInterval(value: unknown): boolean {
   );
 }
 
-export const DISCOVERY_IMPORT_POLLING_INTERVAL_REFUSAL: string = `Check every ${DISCOVERY_IMPORT_POLLING_INTERVALS_IN_MINUTES.join(", ")} minutes: pick one of these intervals.`;
+// "1, 2, 5, 10, 15, 30 or 60": the choices as a sentence says them.
+const POLLING_INTERVAL_CHOICES_TEXT: string = `${DISCOVERY_IMPORT_POLLING_INTERVALS_IN_MINUTES.slice(0, -1).join(", ")} or ${DISCOVERY_IMPORT_POLLING_INTERVALS_IN_MINUTES[DISCOVERY_IMPORT_POLLING_INTERVALS_IN_MINUTES.length - 1]}`;
+
+export const DISCOVERY_IMPORT_POLLING_INTERVAL_REFUSAL: string = `Pick how often devices are checked: every ${POLLING_INTERVAL_CHOICES_TEXT} minutes.`;
 
 /*
  * A polling interval as a request or a row carries it: one of the choices,
@@ -344,7 +348,9 @@ export function isMonitorOutcomeSettled(
   return outcome !== DiscoveryImportMonitorOutcome.Pending;
 }
 
-export function isHostResultSettled(result: DiscoveryImportHostResult): boolean {
+export function isHostResultSettled(
+  result: DiscoveryImportHostResult,
+): boolean {
   return (
     isDeviceOutcomeSettled(result.device) &&
     isMonitorOutcomeSettled(result.monitor)
