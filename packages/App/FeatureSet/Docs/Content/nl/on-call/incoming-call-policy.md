@@ -159,7 +159,7 @@ Een regel laat een persoon overgaan op het nummer dat die persoon in dit project
 3. Vul de 6-cijferige code die OneUptime per SMS naar het nummer stuurt in onder **Verificatiecode**, en klik op **Verifiëren**. **Send a new code** stuurt een nieuwe.
 :::
 
-Iedereen kan één geverifieerd nummer per project hebben. Om het te wijzigen, verwijdert u eerst het oude nummer. Deze nummers staan los van de telefoonnummers onder **Meldingsmethoden**, die oproepen voor bereikbaarheidsdiensten gebruiken.
+Iedereen kan één geverifieerd nummer per project hebben. Om het te wijzigen, verwijdert u eerst het oude nummer. Deze nummers staan los van de telefoonnummers onder **Meldingsmethoden**, die oproepen voor bereikbaarheidsdiensten gebruiken. Zie [Meldingsmethoden](/docs/notifications/notification-methods).
 
 Nummers voor inkomende oproepen worden per sms geverifieerd, dus **SMS** moet eerst aan staan voor het project. Een projecteigenaar, een **Billing Admin** of iemand met **Manage Billing** zet het aan in de kaart **Meldingskanalen** op **Projectinstellingen > Meldingen > Meldingsinstellingen**.
 
@@ -200,7 +200,7 @@ Wanneer een gesprek is gemist, stelt OneUptime de eigenaren van het beleid op de
 
 De melding zegt wie er belde, welk nummer werd gekozen, waarom niemand opnam, en wie er is gebeld en hoe elke poging eindigde. Ze linkt naar het gesprek in het belogboek.
 
-Eigenaren krijgen standaard een e-mail. Iedereen kan andere kanalen kiezen (sms, oproep, push en meer) of de melding uitzetten in **Gebruikersinstellingen** > **Meldingsinstellingen**, onder **Bereikbaarheid** > **Beleid inkomende gesprekken** > **Gemiste oproep**.
+Eigenaren krijgen standaard een e-mail. Iedereen kan andere kanalen kiezen (sms, oproep, push en meer) of de melding uitzetten in **Gebruikersinstellingen** > **Meldingsinstellingen**, onder **Bereikbaarheid** > **Beleid inkomende gesprekken** > **Gemiste oproep**. Zie [Meldingsinstellingen](/docs/notifications/notification-settings).
 
 ### Op gemiste oproepen reageren in een workflow
 
