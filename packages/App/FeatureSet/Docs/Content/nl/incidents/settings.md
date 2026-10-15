@@ -1,6 +1,6 @@
 # Incidentinstellingen en automatisering
 
-De incidentconfiguratie staat onder **Incidenten**, niet onder **Projectinstellingen**: de statussen en ernstniveaus, sjablonen, aangepaste velden, rollen, metingen en nummervoorvoegsels, en de regels die op elk nieuw incident werken. Deze pagina is het naslagwerk voor elk van die pagina's, en voor wat er vanzelf draait op het moment dat een incident wordt gemeld.
+De incidentconfiguratie staat onder **Incidenten**, niet onder **Projectinstellingen**: de statussen en ernstniveaus, sjablonen, aangepaste velden, rollen, metingen en nummering, en de regels die op elk nieuw incident werken. Deze pagina is het naslagwerk voor elk van die pagina's, en voor wat er vanzelf draait op het moment dat een incident wordt gemeld.
 
 :::cards
 - [Incidentsjablonen](#incidentsjablonen): Meld elke keer hetzelfde soort incident, vooraf ingevuld.
@@ -24,7 +24,7 @@ Open **Incidenten** vanuit het menu **Producten** in de bovenbalk en klap dan **
 | **Incidentrollen**           | De rollen definiëren waaraan je responders toewijst, zoals Incident Commander.               |
 | **Metingen**                 | Meten hoe lang dingen duren, zoals de tijd tot bevestiging of tot oplossing, op elk incident. |
 | **Gekoppelde waarschuwingen** | Kiezen of de waarschuwingen die aan een incident gekoppeld zijn, samen met het incident worden bevestigd en opgelost. Beide staan aan in nieuwe projecten. |
-| **Nummervoorvoegsel**        | De tekst vóór incident- en episodenummers, zoals `INC-` in `INC-42`.                         |
+| **Nummering**                | De tekst vóór incident- en episodenummers, zoals `INC-` in `INC-42`, en het nummer dat het volgende krijgt. |
 
 Wat OneUptime AI zelf doet, stel je hier niet in: daarvoor is er een eigen sectie, **Incidenten → AI**, op routes die beginnen met `/dashboard/{projectId}/incidents/ai/`. De pagina **Instellingen** daarvan zet het onderzoeken van nieuwe incidenten aan of uit, het automatisch herstellen ervan (uit tot je het aanzet), met de pull requests voor fixes en voor ontbrekende telemetrie die bij het herstellen horen eronder gegroepeerd, en het schrijven van concepten voor postmortems, en elke instelling wordt opgeslagen zodra je haar omzet; de onderzoeksregels en de regels voor automatisch herstel die beperken welke incidenten worden onderzocht en hersteld, en de optionele limieten waaronder AI werkt, zijn ingeklapt onder **Meer instellingen**, en geen ervan geldt tot je het instelt. **Inzichten** en **Logboeken** staan ernaast: wat AI van je incidenten heeft geleerd, en alles wat het deed. Zie [AI SRE](/docs/ai/ai-sre).
 
@@ -469,7 +469,7 @@ Rollen zijn alleen definities. Je wijst er per incident mensen aan toe — de me
 
 Elk incident krijgt een nummer uit een teller per project. Zonder voorvoegsel verschijnt het als `#42`; met een voorvoegsel als `INC-42`. Zegt je team hardop "INC-42", laat het product het dan ook zeggen. Nieuwe projecten beginnen met `INC-` voor incidenten en `IE-` voor incidentepisodes.
 
-Ga naar **Incidenten → Instellingen → Nummervoorvoegsel** (`/dashboard/{projectId}/incidents/settings/number-prefix`). De kaart **Nummervoorvoegsel** heeft een rij voor **Incidenten** en een voor **Incidentepisodes**. Elke rij toont het voorvoegsel en een voorbeeld van het nummer dat het vormt: `INC-`, en dan **Voorbeeld:** `INC-42`. Een project zonder voorvoegsel toont **Geen voorvoegsel** en `#42`.
+Ga naar **Incidenten → Instellingen → Nummering** (`/dashboard/{projectId}/incidents/settings/numbering`). De kaart **Nummervoorvoegsel** heeft een rij voor **Incidenten** en een voor **Incidentepisodes**. Elke rij toont het voorvoegsel en een voorbeeld van het nummer dat het vormt: `INC-`, en dan **Voorbeeld:** `INC-42`. Een project zonder voorvoegsel toont **Geen voorvoegsel** en `#42`.
 
 :::steps
 1. Klik op **Bijwerken**. Het dialoogvenster **Nummervoorvoegsel bewerken** opent, met twee velden: **Voorvoegsel incidentnummer** (voorbeeldtekst `INC-`) en **Nummervoorvoegsel voor incident-episode** (voorbeeldtekst `IE-`).
@@ -489,7 +489,33 @@ Het dialoogvenster zegt wat er mis is voordat je opslaat, en de API weigert deze
 
 Project Owners, Project Admins en iedereen met **Edit Project** kunnen de voorvoegsels wijzigen. Alle anderen zien ze met de knop **Bijwerken** vergrendeld.
 
-Waarschuwingen en gepland-onderhoudsevenementen hebben dezelfde pagina: **Waarschuwingen → Instellingen → Nummervoorvoegsel** voor de nummers van waarschuwingen en waarschuwingsepisodes (`ALT-` en `AE-` in nieuwe projecten), en **Geplande onderhoud → Instellingen → Nummervoorvoegsel** voor de nummers van evenementen (`SM-`). Bij alle drie werkt het oude adres van **Meer instellingen** (`…/settings/more`) nog en opent het **Nummervoorvoegsel**.
+Waarschuwingen en gepland-onderhoudsevenementen hebben dezelfde pagina: **Waarschuwingen → Instellingen → Nummering** voor de nummers van waarschuwingen en waarschuwingsepisodes (`ALT-` en `AE-` in nieuwe projecten), en **Geplande onderhoud → Instellingen → Nummering** voor de nummers van evenementen (`SM-`). Bij alle drie werken de oude adressen van de pagina nog en openen ze **Nummering**: **Meer instellingen** (`…/settings/more`) en **Nummervoorvoegsel** (`…/settings/number-prefix`).
+
+## Volgende nummers
+
+Elk nieuw incident krijgt het nummer na het hoogste dat tot nu toe is gebruikt, en elke nieuwe episode ook: `INC-1`, `INC-2`, `INC-3` vanaf het eerste van een project. Overgestapt van een andere tool? Laat de nummers van OneUptime beginnen na het laatste van die tool, zodat een nummer nooit voor twee verschillende incidenten staat: een team waarvan het laatste incident in de oude tool `INC-2345` was, zet het volgende nummer op `2346`, of op `10000` om de incidenten in OneUptime in één oogopslag te onderscheiden.
+
+De kaart **Volgend nummer**, onder **Nummervoorvoegsel** op dezelfde pagina, heeft een rij voor **Incidenten** en een voor **Incidentepisodes**. Elke rij toont het nummer dat het volgende krijgt, met het voorvoegsel, en dan **Hoogste tot nu toe:** en het hoogste gebruikte nummer, of **Nog geen gebruikt**.
+
+:::steps
+1. Klik op **Bijwerken** op de kaart **Volgend nummer**. Het dialoogvenster **Volgend nummer bewerken** opent met **Volgend incidentnummer** en **Volgend incidentepisodenummer**, elk ingevuld met het nummer dat hierna komt en met waar het boven moet liggen.
+2. Typ het nummer dat het volgende moet krijgen. Onder elk veld toont **Voorvertoning:** het met het voorvoegsel, zodat je `INC-10000` ziet voordat je `10000` opslaat.
+3. Klik op **Wijzigingen opslaan**. Het volgende incident krijgt dat nummer, en de incidenten daarna tellen vanaf daar verder: `INC-10000`, `INC-10001`.
+:::
+
+Een volgend nummer:
+
+- is een heel getal van 1 tot 1.000.000.000;
+- moet hoger zijn dan het hoogste nummer dat tot nu toe is gebruikt — verwijderde incidenten tellen mee —, zodat een nummer nooit twee keer wordt gebruikt;
+- kan weer omlaag zolang geen incident het heeft gebruikt: een typfout zoals `100000` voor `10000` maak je ongedaan door `10000` op te slaan.
+
+Het dialoogvenster zegt wat er mis is voordat je opslaat, en alleen de nummers die je hebt gewijzigd worden opgeslagen. De server controleert dezelfde regels, en als een incident het nummer heeft genomen terwijl het dialoogvenster openstond, zegt hij dat en toont het dialoogvenster het nieuwe hoogste nummer.
+
+**Wat een nieuw volgend nummer verandert.** Bestaande incidenten en episodes houden hun nummer. De server deelt elk nummer in één stap uit terwijl het record wordt aangemaakt, zodat incidenten die op hetzelfde moment worden gemeld — door een monitor, een workflow en een persoon — elk een eigen nummer krijgen, ook terwijl iemand het volgende nummer wijzigt. In de API en in Terraform is het volgende nummer het punt waar de nummers beginnen: `incidentNumbersStartAt` en `incidentEpisodeNumbersStartAt` van het project (`incident_numbers_start_at` en `incident_episode_numbers_start_at` in Terraform). Een waarde gelijk aan of lager dan het hoogste gebruikte nummer wordt geweigerd, en de al ingestelde waarde, opnieuw verzonden, wordt geaccepteerd, zodat een Terraform-apply nog slaagt nadat incidenten haar zijn gepasseerd.
+
+Project Owners, Project Admins en iedereen met **Edit Project** kunnen de volgende nummers wijzigen, net als de voorvoegsels. Alle anderen zien ze met de knop **Bijwerken** vergrendeld.
+
+Waarschuwingen en gepland-onderhoudsevenementen hebben dezelfde kaart op hun pagina's **Nummering**: **Volgend waarschuwingsnummer** en **Volgend waarschuwingsepisodenummer**, en **Volgend nummer van gepland onderhoud**. [Importeren uit een andere tool](/docs/moving-to-oneuptime/incident-io) neemt je inrichting over, niet je eerdere incidenten, en laat de nummers dus zoals ze zijn: stel de volgende nummers in voordat in OneUptime het eerste incident wordt gemeld.
 
 ## Schakelaars voor gekoppelde waarschuwingen
 

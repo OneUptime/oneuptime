@@ -233,12 +233,12 @@ So gemeldete Vorfälle werden vor Statusseiten verborgen und mit ausgeschaltetem
 Jeder Vorfall erhält eine fortlaufende Nummer aus einem Zähler pro Projekt, die der Server beim Anlegen vergibt. Zwei Spalten halten sie: `incidentNumber` (die rohe Ganzzahl) und `incidentNumberWithPrefix` (was Sie tatsächlich sehen). Ohne konfiguriertes Präfix lautet der Anzeigewert `#42`.
 
 :::steps
-1. Gehen Sie zu **Vorfälle → Einstellungen → Nummernpräfix** und klicken Sie auf **Aktualisieren**.
+1. Gehen Sie zu **Vorfälle → Einstellungen → Nummerierung** und klicken Sie auf der Karte **Nummernpräfix** auf **Aktualisieren**.
 2. Geben Sie das Präfix in **Vorfallnummern-Präfix** ein. Das Feld zeigt die Nummer beim Tippen in der Vorschau: `INC-` macht daraus `INC-42`. Lassen Sie es leer, um das Standard-`#` zu behalten.
 3. Klicken Sie auf **Änderungen speichern**. Ab jetzt gemeldete Vorfälle erhalten das neue Präfix; bestehende Vorfälle behalten ihre Nummern.
 :::
 
-Derselbe Dialog hat **Nummernpräfix der Vorfall-Episode** für die Nummerierung von Episoden. [Nummernpräfixe](/docs/incidents/settings#nummernpräfixe) listet die Regeln, denen ein Präfix folgt.
+Derselbe Dialog hat **Nummernpräfix der Vorfall-Episode** für die Nummerierung von Episoden. [Nummernpräfixe](/docs/incidents/settings#nummernpräfixe) listet die Regeln, denen ein Präfix folgt. Um die Nummern eines anderen Tools fortzusetzen, setzen Sie **Nächste Vorfallnummer** auf der Karte **Nächste Nummer** derselben Seite: siehe [Nächste Nummern](/docs/incidents/settings#nächste-nummern).
 
 Die Nummer steht in der ersten Spalte der Vorfallliste, verlinkt auf den Vorfall und erscheint als **Vorfallnummer** auf der **Übersicht** des Vorfalls.
 

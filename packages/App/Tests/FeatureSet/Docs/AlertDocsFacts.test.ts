@@ -2522,6 +2522,33 @@ describe("alert rules and settings", () => {
     );
   });
 
+  it("names the next number card and its fields as the page draws them, and links to the rules", () => {
+    const nextNumbers: string = readDashboardSource(
+      "Components/NextNumber/NextNumberSettings.ts",
+    );
+    const alertPage: string = nextNumbers.slice(
+      nextNumbers.indexOf("export const ALERT_NEXT_NUMBERS"),
+      nextNumbers.indexOf("export const SCHEDULED_MAINTENANCE_NEXT_NUMBERS"),
+    );
+
+    expect(nextNumbers).toContain(
+      'export const NEXT_NUMBER_CARD_TITLE: string = translationKey("Next Number");',
+    );
+    expect(alertPage).toContain(
+      'formTitle: translationKey("Next Alert Number"),',
+    );
+    expect(alertPage).toContain(
+      'formTitle: translationKey("Next Alert Episode Number"),',
+    );
+    expect(page).toContain(
+      "The **Next Number** card under it sets the number the next alert and the next episode get, to carry on from another tool's numbers: **Update** opens **Next Alert Number** and **Next Alert Episode Number**, each higher than the highest used so far.",
+    );
+    // The rules are the incidents' rules, on the page the paragraph links to.
+    expect(page).toContain(
+      "See [Next numbers](/docs/incidents/settings#next-numbers).",
+    );
+  });
+
   it("names the measurements' ready-made ones and their moments as the form offers them", () => {
     const moments: string = readCommonSource(
       "Utils/Measurement/MeasurementMoments.ts",

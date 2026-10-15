@@ -1,6 +1,6 @@
 # Vorfalleinstellungen & Automatisierung
 
-Die Vorfallkonfiguration liegt in **Vorfälle**, nicht in den **Projekteinstellungen**: die Status und Schweregrade, Vorlagen, benutzerdefinierten Felder, Rollen, Messungen und Nummernpräfixe sowie die Regeln, die auf jeden neuen Vorfall wirken. Diese Seite ist die Referenz für jede dieser Seiten und für das, was von selbst läuft, sobald ein Vorfall gemeldet wird.
+Die Vorfallkonfiguration liegt in **Vorfälle**, nicht in den **Projekteinstellungen**: die Status und Schweregrade, Vorlagen, benutzerdefinierten Felder, Rollen, Messungen und die Nummerierung sowie die Regeln, die auf jeden neuen Vorfall wirken. Diese Seite ist die Referenz für jede dieser Seiten und für das, was von selbst läuft, sobald ein Vorfall gemeldet wird.
 
 :::cards
 - [Vorfall-Vorlagen](#vorfall-vorlagen): Dieselbe Art von Vorfall jedes Mal vorausgefüllt melden.
@@ -24,7 +24,7 @@ Die Vorfallkonfiguration liegt in **Vorfälle**, nicht in den **Projekteinstellu
 | **Vorfallsrollen**            | Die Rollen definieren, denen Sie Responder zuweisen, etwa Vorfall-Kommandant.                      |
 | **Messungen**                 | Messen, wie lange Dinge dauern, etwa die Zeit bis zur Bestätigung oder bis zur Behebung, an jedem Vorfall. |
 | **Verknüpfte Warnungen**      | Wählen, ob die mit einem Vorfall verknüpften Warnungen mit ihm bestätigt und behoben werden. Beides ist in neuen Projekten an. |
-| **Nummernpräfix**             | Der Text vor Vorfall- und Episodennummern, etwa `INC-` in `INC-42`.                                |
+| **Nummerierung**              | Der Text vor Vorfall- und Episodennummern, etwa `INC-` in `INC-42`, und die Nummer, die als Nächstes vergeben wird. |
 
 Was OneUptime AI selbstständig tut, wird nicht hier eingestellt: Dafür gibt es einen eigenen Abschnitt, **Vorfälle → KI**, unter Routen, die mit `/dashboard/{projectId}/incidents/ai/` beginnen. Seine Seite **Einstellungen** schaltet das Untersuchen neuer Vorfälle, ihr automatisches Beheben (aus, bis Sie es einschalten) – mit den Pull Requests für Korrekturen und fehlende Telemetrie, die zum Beheben gehören, darunter angeordnet – und Postmortem-Entwürfe ein oder aus, und jeder Schalter speichert, sobald Sie ihn umlegen. Die Untersuchungsregeln und Auto-Behebungsregeln, die eingrenzen, welche Vorfälle untersucht und behoben werden, und die optionalen Grenzen, unter denen die KI arbeitet, sind unter **Weitere Einstellungen** eingeklappt, und keine davon gilt, bevor Sie sie setzen. Daneben liegen **Einblicke** und **Protokolle**: was die KI aus Ihren Vorfällen gelernt und was sie alles getan hat. Siehe [AI SRE](/docs/ai/ai-sre).
 
@@ -469,7 +469,7 @@ Rollen sind nur Definitionen. Personen weisen Sie ihnen pro Vorfall zu – der M
 
 Jeder Vorfall bekommt eine Nummer aus einem Zähler pro Projekt. Ohne Präfix erscheint sie als `#42`, mit einem als `INC-42`. Wenn Ihr Team „INC-42“ laut ausspricht, lassen Sie es auch das Produkt sagen. Neue Projekte beginnen mit `INC-` für Vorfälle und `IE-` für Vorfall-Episoden.
 
-Gehen Sie zu **Vorfälle → Einstellungen → Nummernpräfix** (`/dashboard/{projectId}/incidents/settings/number-prefix`). Die Karte **Nummernpräfix** hat eine Zeile für **Vorfälle** und eine für **Vorfallsepisoden**. Jede zeigt ihr Präfix und ein Beispiel für die Nummer, die es bildet: `INC-`, dann **Beispiel:** `INC-42`. Ein Projekt ohne Präfix zeigt **Kein Präfix** und `#42`.
+Gehen Sie zu **Vorfälle → Einstellungen → Nummerierung** (`/dashboard/{projectId}/incidents/settings/numbering`). Die Karte **Nummernpräfix** hat eine Zeile für **Vorfälle** und eine für **Vorfallsepisoden**. Jede zeigt ihr Präfix und ein Beispiel für die Nummer, die es bildet: `INC-`, dann **Beispiel:** `INC-42`. Ein Projekt ohne Präfix zeigt **Kein Präfix** und `#42`.
 
 :::steps
 1. Klicken Sie auf **Aktualisieren**. Der Dialog **Nummernpräfix bearbeiten** öffnet sich, mit zwei Feldern: **Vorfallnummern-Präfix** (Platzhalter `INC-`) und **Nummernpräfix der Vorfall-Episode** (Platzhalter `IE-`).
@@ -489,7 +489,33 @@ Der Dialog sagt vor dem Speichern, was falsch ist, und die API lehnt dieselben P
 
 Project Owners, Project Admins und jeder mit **Edit Project** können die Präfixe ändern. Alle anderen sehen sie, mit gesperrter Schaltfläche **Aktualisieren**.
 
-Warnungen und geplante Wartungsereignisse haben dieselbe Seite: **Warnungen → Einstellungen → Nummernpräfix** für Warnungs- und Warnungsepisodennummern (`ALT-` und `AE-` für neue Projekte) und **Geplante Wartung → Einstellungen → Nummernpräfix** für Ereignisnummern (`SM-`). In allen dreien funktioniert die alte Adresse von **Weitere Einstellungen** (`…/settings/more`) weiter und öffnet **Nummernpräfix**.
+Warnungen und geplante Wartungsereignisse haben dieselbe Seite: **Warnungen → Einstellungen → Nummerierung** für Warnungs- und Warnungsepisodennummern (`ALT-` und `AE-` für neue Projekte) und **Geplante Wartung → Einstellungen → Nummerierung** für Ereignisnummern (`SM-`). In allen dreien funktionieren die alten Adressen der Seite weiter und öffnen **Nummerierung**: **Weitere Einstellungen** (`…/settings/more`) und **Nummernpräfix** (`…/settings/number-prefix`).
+
+## Nächste Nummern
+
+Jeder neue Vorfall bekommt die Nummer nach der höchsten bisher vergebenen, und jede neue Episode ebenso: `INC-1`, `INC-2`, `INC-3` ab dem ersten eines Projekts. Sie wechseln von einem anderen Tool? Lassen Sie die Nummern von OneUptime nach der letzten Nummer dieses Tools beginnen, damit eine Nummer nie zwei verschiedene Vorfälle bezeichnet: Ein Team, dessen letzter Vorfall im alten Tool `INC-2345` war, setzt die nächste Nummer auf `2346` oder auf `10000`, um seine Vorfälle in OneUptime auf einen Blick zu unterscheiden.
+
+Die Karte **Nächste Nummer** unter **Nummernpräfix** auf derselben Seite hat eine Zeile für **Vorfälle** und eine für **Vorfallsepisoden**. Jede zeigt die Nummer, die als Nächstes vergeben wird, mit ihrem Präfix, dann **Bisher höchste:** und die höchste vergebene Nummer oder **Noch keine vergeben**.
+
+:::steps
+1. Klicken Sie auf der Karte **Nächste Nummer** auf **Aktualisieren**. Der Dialog **Nächste Nummer bearbeiten** öffnet sich mit **Nächste Vorfallnummer** und **Nächste Nummer der Vorfallsepisode**, jeweils mit der Nummer gefüllt, die als Nächstes kommt, und mit dem Hinweis, über welcher Nummer sie liegen muss.
+2. Tippen Sie die Nummer ein, die als Nächstes vergeben werden soll. Unter jedem Feld zeigt **Vorschau:** sie mit ihrem Präfix, sodass Sie `INC-10000` sehen, bevor Sie `10000` speichern.
+3. Klicken Sie auf **Änderungen speichern**. Der nächste Vorfall bekommt diese Nummer, und die folgenden zählen von dort weiter: `INC-10000`, `INC-10001`.
+:::
+
+Eine nächste Nummer:
+
+- ist eine ganze Zahl von 1 bis 1.000.000.000;
+- muss höher sein als die höchste bisher vergebene Nummer — gelöschte Vorfälle zählen mit —, damit eine Nummer nie zweimal vergeben wird;
+- kann wieder gesenkt werden, solange kein Vorfall sie benutzt hat: Ein Tippfehler wie `100000` statt `10000` wird behoben, indem Sie `10000` speichern.
+
+Der Dialog sagt vor dem Speichern, was falsch ist, und gespeichert werden nur die Nummern, die Sie geändert haben. Der Server prüft dieselben Regeln, und hat ein Vorfall die Nummer genommen, während der Dialog offen war, sagt er es, und der Dialog zeigt die neue höchste Nummer.
+
+**Was eine neue nächste Nummer ändert.** Bestehende Vorfälle und Episoden behalten ihre Nummern. Der Server vergibt jede Nummer in einem Schritt, während der Datensatz angelegt wird, sodass Vorfälle, die im selben Moment gemeldet werden — von einem Monitor, einem Workflow und einer Person —, jeweils eine eigene Nummer bekommen, auch während jemand die nächste Nummer ändert. Über die API und in Terraform ist die nächste Nummer der Punkt, an dem die Nummern beginnen: `incidentNumbersStartAt` und `incidentEpisodeNumbersStartAt` des Projekts (`incident_numbers_start_at` und `incident_episode_numbers_start_at` in Terraform). Ein Wert bei oder unter der höchsten vergebenen Nummer wird abgelehnt, und der bereits gesetzte Wert wird, erneut gesendet, angenommen, sodass ein Terraform-Apply weiter gelingt, nachdem Vorfälle ihn überholt haben.
+
+Project Owners, Project Admins und jeder mit **Edit Project** können die nächsten Nummern ändern, so wie die Präfixe. Alle anderen sehen sie, mit gesperrter Schaltfläche **Aktualisieren**.
+
+Warnungen und geplante Wartungsereignisse haben dieselbe Karte auf ihren Seiten **Nummerierung**: **Nächste Warnungsnummer** und **Nächste Nummer der Warnungsepisode** sowie **Nächste Nummer der geplanten Wartung**. [Aus einem anderen Tool importieren](/docs/moving-to-oneuptime/incident-io) übernimmt Ihre Einrichtung, nicht Ihre vergangenen Vorfälle, und lässt die Nummern daher, wie sie sind: Legen Sie die nächsten Nummern fest, bevor in OneUptime der erste Vorfall gemeldet wird.
 
 ## Schalter für verknüpfte Warnungen
 

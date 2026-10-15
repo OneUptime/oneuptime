@@ -88,6 +88,9 @@ Ouvrez chaque planning sous **Astreinte** > **Plannings d'astreinte** et vérifi
 ### S'assurer que chacun peut être alerté
 Les personnes invitées acceptent leur invitation, puis ajoutent un numéro de téléphone, une adresse e-mail ou l'application mobile sur lesquels être alertées. **Astreinte** > **Disponibilité** montre qui ne peut pas encore être joint.
 
+### Poursuivre vos numéros d'incident
+Si votre équipe désigne les incidents par leur numéro, faites commencer ceux de OneUptime après votre dernier dans PagerDuty : sous **Incidents** > **Paramètres** > **Numérotation**, réglez **Prochain numéro d'incident** sur la carte **Prochain numéro** au numéro qui le suit. Un numéro ne désigne alors jamais deux incidents différents.
+
 ### Envoyer vos alertes à OneUptime
 Dirigez vos moniteurs et les outils qui déclenchent des alertes vers OneUptime, et alertez-vous une fois pour tester.
 

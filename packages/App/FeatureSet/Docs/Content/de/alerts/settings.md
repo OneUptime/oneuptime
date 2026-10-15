@@ -6,7 +6,7 @@ Die Konfiguration von Warnungen liegt unter **Warnungen**, nicht in den **Projek
 - [Die Regeln, die eine neue Warnung durchläuft](#die-regeln-die-eine-neue-warnung-durchläuft): Der Reihe nach, und was jede bewirkt.
 - [Bereitschaftsregeln](#bereitschaftsregeln): Die richtigen Personen alarmieren, ohne jedes Mal eine Richtlinie zu wählen.
 - [Erinnerungsregeln](#erinnerungsregeln): Eigentümer erinnern, solange eine Warnung offen bleibt.
-- [Einstellungen](#einstellungen): Notiz-Vorlagen, benutzerdefinierte Felder, Messungen und Nummernpräfixe.
+- [Einstellungen](#einstellungen): Notiz-Vorlagen, benutzerdefinierte Felder, Messungen und Nummerierung.
 :::
 
 ## Wo die Warnungseinstellungen liegen
@@ -23,7 +23,7 @@ Die Konfiguration von Warnungen liegt unter **Warnungen**, nicht in den **Projek
 | **Beschriftungsregeln** | Fügt passenden Warnungen und Episoden Beschriftungen hinzu.                                     |
 | **Erinnerungsregeln**   | Erinnert Eigentümer in einem Intervall, solange eine Warnung offen ist.                         |
 
-Der Bereich **Einstellungen** enthält **Warnungsstatus** und **Warnungsschweregrad**, beschrieben unter [Warnungsstatus & Schweregrade](/docs/alerts/states-and-severities), dann **Notiz-Vorlagen**, **Benutzerdefinierte Felder**, **Messungen** und **Nummernpräfix**, beschrieben weiter unten.
+Der Bereich **Einstellungen** enthält **Warnungsstatus** und **Warnungsschweregrad**, beschrieben unter [Warnungsstatus & Schweregrade](/docs/alerts/states-and-severities), dann **Notiz-Vorlagen**, **Benutzerdefinierte Felder**, **Messungen** und **Nummerierung**, beschrieben weiter unten.
 
 Zwei weitere Bereiche wirken auf Warnungen. **Warnungen → KI → Einstellungen** entscheidet, was OneUptime AI von selbst tut: **Neue Warnungen untersuchen**, in neuen Projekten eingeschaltet, und **Neue Warnungen automatisch beheben**, aus, bis Sie es einschalten. Siehe [AI SRE](/docs/ai/ai-sre). **Warnungen → Arbeitsbereich** enthält die Slack- und Microsoft-Teams-Regeln, die Warnungen und Episoden in Kanäle posten, und seinen Tab **Zusammenfassung**. Siehe [Slack](/docs/workspace-connections/slack).
 
@@ -142,9 +142,11 @@ Eigentümer erhalten jede Erinnerung als **Warnungserinnerung**, die standardmä
 
 **Warnungen → Einstellungen → Messungen** misst, wie lange Dinge bei jeder Warnung dauern. Wählen Sie **Zeit bis zur Bestätigung** oder **Zeit bis zur Behebung** oder zwei eigene Zeitpunkte, etwa wenn **Die Warnung wird erstellt** und wenn sie einen Status erreicht, den Sie wählen. Jede Messung wird auf der Seite der Warnung angezeigt und als `oneuptime.alert.measurement.<key>` in Diagrammen dargestellt. Siehe [Messungen](/docs/incidents/settings#messungen), was für Warnungen genauso funktioniert.
 
-### Nummernpräfix
+### Nummerierung
 
-**Warnungen → Einstellungen → Nummernpräfix** legt den Text vor Warnungs- und Episodennummern fest: `ALT-` und `AE-` in einem neuen Projekt, oder `#` ohne Präfix. **Aktualisieren** öffnet **Warnungsnummernpräfix** und **Warnungs-Episoden-Nummernpräfix**, mit einer Vorschau beim Tippen. Nur danach erstellte Warnungen und Episoden bekommen das neue Präfix. Die Regeln für ein Präfix stehen unter [Nummernpräfixe](/docs/incidents/settings#nummernpräfixe).
+**Warnungen → Einstellungen → Nummerierung** legt den Text vor Warnungs- und Episodennummern fest: `ALT-` und `AE-` in einem neuen Projekt, oder `#` ohne Präfix. **Aktualisieren** öffnet **Warnungsnummernpräfix** und **Warnungs-Episoden-Nummernpräfix**, mit einer Vorschau beim Tippen. Nur danach erstellte Warnungen und Episoden bekommen das neue Präfix. Die Regeln für ein Präfix stehen unter [Nummernpräfixe](/docs/incidents/settings#nummernpräfixe).
+
+Die Karte **Nächste Nummer** darunter legt die Nummer fest, die die nächste Warnung und die nächste Episode bekommen, um die Nummern eines anderen Tools fortzusetzen: **Aktualisieren** öffnet **Nächste Warnungsnummer** und **Nächste Nummer der Warnungsepisode**, jede höher als die bisher höchste. Siehe [Nächste Nummern](/docs/incidents/settings#nächste-nummern).
 
 > [!NOTE]
 > In OneUptime Cloud brauchen Notiz-Vorlagen und benutzerdefinierte Felder den Plan **Growth** oder höher.
