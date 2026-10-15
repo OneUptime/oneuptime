@@ -33,6 +33,11 @@
  */
 
 import Text from "../Text";
+import {
+  ParsedReferencePath,
+  ReferenceRootType,
+  parseReferencePath,
+} from "./TemplateSyntax";
 
 // The value that says what started the run, and the run value that asks it.
 export const WHAT_HAPPENED_ID: string = "what-happened";
@@ -106,6 +111,49 @@ export const readWhatHappened: ReadWhatHappenedFunction = (
     WHAT_HAPPENED_VALUES.find((option: WhatHappened): boolean => {
       return option === normalized;
     }) || null
+  );
+};
+
+type IsWhatHappenedReferenceFunction = (value: unknown) => boolean;
+
+/**
+ * Whether a setting holds What Happened itself, and nothing else:
+ * {{local.components.<step>.returnValues.what-happened}}. If / Else and
+ * Switch / Case then say what to compare it with - "created or updated" -
+ * where they would suggest "e.g. production". Written as the runtime reads
+ * it: no spaces inside the braces, no path past the value.
+ */
+export const isWhatHappenedReference: IsWhatHappenedReferenceFunction = (
+  value: unknown,
+): boolean => {
+  if (typeof value !== "string") {
+    return false;
+  }
+
+  const text: string = value.trim();
+
+  if (!text.startsWith("{{") || !text.endsWith("}}")) {
+    return false;
+  }
+
+  const inner: string = text.slice(2, -2);
+
+  if (
+    inner !== inner.trim() ||
+    inner.includes("{") ||
+    inner.includes("}") ||
+    // local.components.<step>.returnValues.what-happened, and no deeper.
+    inner.split(".").length !== 5 ||
+    !inner.endsWith(`.returnValues.${WHAT_HAPPENED_ID}`)
+  ) {
+    return false;
+  }
+
+  const path: ParsedReferencePath = parseReferencePath(inner);
+
+  return (
+    path.rootType === ReferenceRootType.ComponentReturnValue &&
+    path.returnValueId === WHAT_HAPPENED_ID
   );
 };
 

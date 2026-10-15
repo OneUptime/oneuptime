@@ -14,7 +14,9 @@ import { expect, Locator, Page, test } from "@playwright/test";
  * where the Add Trigger panel lists it and what finds it, what a new one
  * starts with and what its Fields to watch say, Run Workflow's question and
  * what follows its answer, a later step's value list offering What Happened,
- * and the question on a phone and in the dark theme.
+ * and the question on a phone and in the dark theme. And from the UI review:
+ * its name is drawn whole on the canvas, and an If / Else or a Switch / Case
+ * on What Happened says the two words to compare it with.
  */
 
 type Box = { x: number; y: number; width: number; height: number };
@@ -80,6 +82,30 @@ async function startedRuns(page: Page): Promise<Array<StartedRun>> {
   return page.evaluate((): Array<StartedRun> => {
     return (window as unknown as { __runs: Array<StartedRun> }).__runs;
   });
+}
+
+interface TitleDrawing {
+  text: string;
+  lines: number;
+  isCut: boolean;
+}
+
+// How a step card's name is drawn: its words, its lines, and whether any is cut.
+async function titleOf(card: Locator): Promise<TitleDrawing> {
+  return card
+    .getByTestId("workflow-node-title")
+    .evaluate((element: Element): TitleDrawing => {
+      const title: HTMLElement = element as HTMLElement;
+      const lineHeight: number = parseFloat(getComputedStyle(title).lineHeight);
+
+      return {
+        text: title.textContent || "",
+        lines: Math.round(title.getBoundingClientRect().height / lineHeight),
+        isCut:
+          title.scrollHeight > title.clientHeight + 1 ||
+          title.scrollWidth > title.clientWidth + 1,
+      };
+    });
 }
 
 async function boxOf(locator: Locator): Promise<Box> {
@@ -294,6 +320,119 @@ test.describe("Workflow builder: On Create or Update", () => {
     await expect(option).toContainText("What Happened");
     // Plain text, picked whole: nothing to open, nothing greyed.
     await expect(option).not.toHaveAttribute("data-empty-here", "true");
+  });
+
+  /*
+   * Cut to one line, the card read "On Create or Update Incid…" - and so
+   * did On Create or Update Incident Episode, Note, Feed... The name takes
+   * two lines now, whole.
+   */
+  test("on the canvas its name is drawn whole, on two lines", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openBuilder(page);
+
+    expect(await titleOf(stepCard(page, TRIGGER_ID))).toEqual({
+      text: "On Create or Update Incident",
+      lines: 2,
+      isCut: false,
+    });
+
+    // A short name keeps to one line.
+    expect(await titleOf(stepCard(page, "log-1"))).toEqual({
+      text: "Log",
+      lines: 1,
+      isCut: false,
+    });
+  });
+
+  test("a longer one, added from the picker, is drawn whole too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto("/?scenario=record-new");
+    await page
+      .locator(".react-flow__node", {
+        hasText: "Choose what starts this workflow",
+      })
+      .click();
+
+    const panel: Locator = page.getByTestId("side-over");
+
+    await panel
+      .locator("#workflow-component-search")
+      .fill("create or update incident episode");
+    await expect(panel.getByRole("option").first()).toHaveAccessibleName(
+      "On Create or Update Incident Episode",
+    );
+    await panel.getByRole("option").first().click();
+
+    const card: Locator = stepCard(
+      page,
+      "incident-episode-on-create-or-update-1",
+    );
+
+    await expect(card).toBeVisible();
+    expect(await titleOf(card)).toEqual({
+      text: "On Create or Update Incident Episode",
+      lines: 2,
+      isCut: false,
+    });
+  });
+
+  /*
+   * What Happened holds "created" or "updated", written as they are. The
+   * field it is compared with says both, where any other text value gets
+   * "e.g. production".
+   */
+  test("an If / Else on What Happened says the two words to compare it with", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openBuilder(page, "&next=if-else");
+    await stepCard(page, "if-else-1").click();
+
+    const dialog: Locator = page.locator(SETTINGS_DIALOG);
+    const compareWith: Locator = dialog.getByRole("textbox", {
+      name: "Compare with",
+    });
+
+    await expect(compareWith).toHaveAttribute(
+      "aria-placeholder",
+      "created or updated",
+    );
+    await expect(
+      dialog.getByTestId("workflow-argument-input-2-box"),
+    ).toContainText("created or updated");
+
+    await compareWith.click();
+    await page.keyboard.type("updated");
+
+    const yes: Locator = dialog.getByTestId("if-else-summary-yes");
+
+    await expect(yes).toContainText("What Happened");
+    await expect(yes).toContainText("“updated”");
+  });
+
+  test("a Switch / Case on What Happened says them in every case", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openBuilder(page, "&next=switch");
+    await stepCard(page, "switch-1").click();
+
+    const dialog: Locator = page.locator(SETTINGS_DIALOG);
+
+    for (const number of [1, 2]) {
+      await expect(
+        dialog.getByRole("textbox", { name: `Value for case ${number}` }),
+      ).toHaveAttribute("aria-placeholder", "created or updated");
+    }
   });
 
   test("the question fits a phone's width and reads in the dark theme", async ({

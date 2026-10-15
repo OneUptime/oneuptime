@@ -135,13 +135,18 @@ describe("On Create or Update's help", () => {
    */
   test("says OneUptime's own changes are updates too, and what to do about them", () => {
     expect(topicOf("Changes OneUptime makes").paragraphs).toEqual([
-      "OneUptime makes changes of its own too - it gives a new incident its Slack channel, say. A change it makes to the Incident is an update like any other, and starts a run. To run only for the changes you care about, add those fields to **Fields to watch**.",
+      "OneUptime makes changes of its own too, such as giving a new incident its Slack channel. A change it makes to the Incident is an update like any other, and starts a run. To run only for the changes you care about, add those fields to **Fields to watch**.",
     ]);
   });
 
+  /*
+   * In the order Run Workflow asks - What Happened above the record - and
+   * naming its two answers as the panel draws them (RunModalCreateOrUpdate
+   * holds the two together).
+   */
   test("tests it with Run Workflow, as a create or an update, while the workflow is still off", () => {
     expect(topicOf("Testing it").paragraphs).toEqual([
-      `Click **Run Workflow** in the builder's toolbar and pick one Incident: type its number or part of its name. Under **What Happened**, choose whether the workflow runs as if that Incident had just been created or just been updated. ${WORKFLOW_TEST_WHILE_OFF_HELP}`,
+      `Click **Run Workflow** in the builder's toolbar. Under **What Happened**, choose **Just created** or **Just updated**, then pick one Incident: type its number or part of its name. The workflow runs as if that Incident had just been created or updated. ${WORKFLOW_TEST_WHILE_OFF_HELP}`,
     ]);
   });
 
@@ -152,7 +157,7 @@ describe("On Create or Update's help", () => {
     );
     // A monitor secret has a name too; whatever it has, the sentence holds.
     expect(docsOf(new MonitorSecret()).learnMore[1]!.paragraphs[0]).toMatch(
-      /^Click \*\*Run Workflow\*\* in the builder's toolbar and (pick one Monitor Secret: |paste the ID of one Monitor Secret\.)/,
+      /^Click \*\*Run Workflow\*\* in the builder's toolbar\. Under \*\*What Happened\*\*, choose \*\*Just created\*\* or \*\*Just updated\*\*, then (pick one Monitor Secret: |paste the ID of one Monitor Secret\.)/,
     );
   });
 

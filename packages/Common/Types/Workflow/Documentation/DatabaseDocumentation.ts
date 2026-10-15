@@ -749,13 +749,17 @@ const onCreateOrUpdateTrigger: BuildFunction = (
       {
         title: "Changes OneUptime makes",
         paragraphs: [
-          `OneUptime makes changes of its own too - it gives a new incident its Slack channel, say. A change it makes to the ${words.one} is an update like any other, and starts a run. To run only for the changes you care about, add those fields to **Fields to watch**.`,
+          `OneUptime makes changes of its own too, such as giving a new incident its Slack channel. A change it makes to the ${words.one} is an update like any other, and starts a run. To run only for the changes you care about, add those fields to **Fields to watch**.`,
         ],
       },
       {
+        /*
+         * In the order Run Workflow asks, and in its words: What Happened
+         * first, then the record.
+         */
         title: "Testing it",
         paragraphs: [
-          `Click **Run Workflow** in the builder's toolbar and ${pickOneRecord(words)} Under **What Happened**, choose whether the workflow runs as if that ${words.one} had just been created or just been updated. ${WORKFLOW_TEST_WHILE_OFF_HELP}`,
+          `Click **Run Workflow** in the builder's toolbar. Under **What Happened**, choose **Just created** or **Just updated**, then ${pickOneRecord(words)} The workflow runs as if that ${words.one} had just been created or updated. ${WORKFLOW_TEST_WHILE_OFF_HELP}`,
         ],
       },
     ],

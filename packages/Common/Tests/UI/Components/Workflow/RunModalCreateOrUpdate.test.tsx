@@ -35,12 +35,17 @@ import {
   WHAT_HAPPENED_ID,
   WHAT_HAPPENED_NAME,
 } from "../../../../Types/Workflow/CreateOrUpdateTrigger";
+import { ComponentDocumentationTopic } from "../../../../Types/Workflow/Documentation/ComponentDocumentation";
+import { getComponentDocumentation } from "../../../../Types/Workflow/Documentation/Index";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   RunRecordMatch,
   RunRecordOption,
 } from "../../../../Types/Workflow/RunRecord";
 import { resetPageScrollLockForTesting } from "../../../../UI/Utils/PageScrollLock";
+
+// The help's **bold** markers, which the panel does not draw.
+const MARKDOWN_BOLD_MARKERS: RegExp = /\*\*/g;
 
 const WORKFLOW_ID: ObjectID = new ObjectID(
   "b0c3f6d2-5d2e-4c55-9a0e-6f1e2d3c4b5a",
@@ -296,6 +301,42 @@ describe("Run Workflow on On Create or Update", () => {
         return choice.label;
       }),
     ).toEqual([RunFormCopy.created, RunFormCopy.updated]);
+
+    /*
+     * And the step's help tells how to test it in the panel's words, in the
+     * panel's order: What Happened's two answers, then the record.
+     */
+    const metadata: ComponentMetadata = incidentTrigger(
+      "on-create-or-update",
+    ).metadata;
+    const testing: string = (
+      getComponentDocumentation({
+        metadata: metadata,
+        stepId: `${metadata.id}-1`,
+      })!.learnMore.find((topic: ComponentDocumentationTopic): boolean => {
+        return topic.title === "Testing it";
+      })!.paragraphs[0] || ""
+    ).replace(MARKDOWN_BOLD_MARKERS, "");
+
+    const asked: Array<number> = [
+      RunFormCopy.whatHappened,
+      RunFormCopy.created,
+      RunFormCopy.updated,
+      "pick one Incident",
+    ].map((words: string): number => {
+      return testing.indexOf(words);
+    });
+
+    expect(
+      asked.every((index: number): boolean => {
+        return index >= 0;
+      }),
+    ).toBe(true);
+    expect(
+      [...asked].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(asked);
   });
 
   test("without a workflow to search its records in, it still asks What Happened as a choice", () => {

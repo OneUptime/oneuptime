@@ -62,6 +62,10 @@ import {
   ConditionValueType,
 } from "../../../../Types/Workflow/Components/Condition";
 import {
+  WhatHappened,
+  isWhatHappenedReference,
+} from "../../../../Types/Workflow/CreateOrUpdateTrigger";
+import {
   CONDITION_COMPARE_AS_OPTIONS,
   CONDITION_COMPARISON_GROUPS,
   ConditionCompareAsOption,
@@ -135,6 +139,8 @@ export const CONDITION_COMPARISON_OPTIONS: Array<
 type CompareWithPlaceholderFunction = (
   translator: Translator,
   type: ConditionValueType,
+  // What it is compared with, as written: a reference, or text.
+  valueToCheck?: string | undefined,
 ) => string;
 
 /*
@@ -144,6 +150,7 @@ type CompareWithPlaceholderFunction = (
 export const getCompareWithPlaceholder: CompareWithPlaceholderFunction = (
   translator: Translator,
   type: ConditionValueType,
+  valueToCheck?: string | undefined,
 ): string => {
   if (type === ConditionValueType.Number) {
     return translator.translateTemplate("e.g. {{example}}", {
@@ -155,6 +162,17 @@ export const getCompareWithPlaceholder: CompareWithPlaceholderFunction = (
     return translator.translateTemplate("{{trueValue}} or {{falseValue}}", {
       trueValue: "true",
       falseValue: "false",
+    });
+  }
+
+  /*
+   * On Create or Update's What Happened holds one of two words, and only
+   * those, written as they are: say both, as for true and false.
+   */
+  if (isWhatHappenedReference(valueToCheck)) {
+    return translator.translateTemplate("{{first}} or {{second}}", {
+      first: WhatHappened.Created,
+      second: WhatHappened.Updated,
     });
   }
 
@@ -397,6 +415,7 @@ const ConditionEditor: FunctionComponent<ConditionEditorProps> = (
                 placeholder={getCompareWithPlaceholder(
                   translator,
                   compareAsType || ConditionValueType.Text,
+                  state.valueToCheck,
                 )}
                 ariaLabel={COMPARE_WITH_LABEL}
                 dataTestId={CONDITION_TEST_IDS.compareWith}

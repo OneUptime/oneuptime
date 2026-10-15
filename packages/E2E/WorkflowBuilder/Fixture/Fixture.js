@@ -23,7 +23,10 @@
  *                         ?select= and ?watch= set what the two lists hold
  *                         (JSON; &stored=text keeps it as the text older
  *                         workflows saved). ?trigger=create-or-update makes
- *                         the trigger On Create or Update Incident. ?schema=fail and ?schema=slow,
+ *                         the trigger On Create or Update Incident, and
+ *                         &next=if-else or &next=switch puts an If / Else or
+ *                         a Switch / Case on its What Happened after it, in
+ *                         place of the Log. ?schema=fail and ?schema=slow,
  *                         ?records=none, =fail and =slow stand in for a
  *                         server that errs, is slow or has nothing; the slow
  *                         ones answer once window.releaseSchema() or
@@ -166,19 +169,55 @@ if (scenario === "empty" || scenario === "record-new") {
       ? "incident-on-create-or-update"
       : "incident-on-update";
 
-  initialNodes = [
-    step(recordTrigger, 1, 160, 64, {
-      "listen-on": storedFields("watch", {}),
-      select: storedFields("select", { title: true }),
-    }),
-    step("log", 1, 160, 320, {
-      value:
-        "{{local.components." + recordTrigger + "-1.returnValues.model.title}}",
-    }),
-  ];
-  initialEdges = [
-    edge("canvas-" + recordTrigger + "-1", "success", "canvas-log-1"),
-  ];
+  const triggerStep = step(recordTrigger, 1, 160, 64, {
+    "listen-on": storedFields("watch", {}),
+    select: storedFields("select", { title: true }),
+  });
+  // What started the run: "created" or "updated" (On Create or Update).
+  const whatHappened =
+    "{{local.components." + recordTrigger + "-1.returnValues.what-happened}}";
+  const next = params.get("next") || "log";
+
+  if (next === "if-else") {
+    initialNodes = [
+      triggerStep,
+      step("if-else", 1, 160, 320, {
+        "input-1": whatHappened,
+        operator: "==",
+        "input-2": "",
+      }),
+    ];
+    initialEdges = [
+      edge("canvas-" + recordTrigger + "-1", "success", "canvas-if-else-1"),
+    ];
+  } else if (next === "switch") {
+    initialNodes = [
+      triggerStep,
+      step("switch", 1, 160, 320, {
+        value: whatHappened,
+        cases: [
+          { id: "case-1", comparison: "==", value: "", compareAs: "" },
+          { id: "case-2", comparison: "==", value: "", compareAs: "" },
+        ],
+      }),
+    ];
+    initialEdges = [
+      edge("canvas-" + recordTrigger + "-1", "success", "canvas-switch-1"),
+    ];
+  } else {
+    initialNodes = [
+      triggerStep,
+      step("log", 1, 160, 320, {
+        value:
+          "{{local.components." +
+          recordTrigger +
+          "-1.returnValues.model.title}}",
+      }),
+    ];
+    initialEdges = [
+      edge("canvas-" + recordTrigger + "-1", "success", "canvas-log-1"),
+    ];
+  }
 } else if (scenario === "record-branch") {
   initialNodes = [
     step("incident-on-update", 1, 160, 32, {

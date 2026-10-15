@@ -16,6 +16,7 @@ import {
   getWhatHappenedForRun,
   hasCreateOrUpdateTrigger,
   isCreateOrUpdateTrigger,
+  isWhatHappenedReference,
   readWhatHappened,
 } from "../../../Types/Workflow/CreateOrUpdateTrigger";
 import {
@@ -142,6 +143,80 @@ describe("What Happened", () => {
       expect(readWhatHappened(value)).toBeNull();
     },
   );
+});
+
+/*
+ * Where a setting holds What Happened alone - an If / Else or Switch /
+ * Case comparing it - the field to compare it with names its two words.
+ */
+describe("a setting that holds What Happened", () => {
+  test("is the trigger's What Happened, of whichever step it is", () => {
+    expect(
+      isWhatHappenedReference(
+        "{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}",
+      ),
+    ).toBe(true);
+    // A renamed step, and space around the whole value.
+    expect(
+      isWhatHappenedReference(
+        "  {{local.components.sync-trigger.returnValues.what-happened}} ",
+      ),
+    ).toBe(true);
+  });
+
+  test.each([
+    [
+      "another value of the trigger",
+      "{{local.components.incident-on-create-or-update-1.returnValues.model}}",
+    ],
+    [
+      "a field of the record",
+      "{{local.components.incident-on-create-or-update-1.returnValues.model.title}}",
+    ],
+    [
+      "a path past What Happened",
+      "{{local.components.incident-on-create-or-update-1.returnValues.what-happened.length}}",
+    ],
+    [
+      "a field of the record named like it",
+      "{{local.components.x.returnValues.model.returnValues.what-happened}}",
+    ],
+    [
+      "spaces inside the braces, which the run does not read",
+      "{{ local.components.incident-on-create-or-update-1.returnValues.what-happened }}",
+    ],
+    [
+      "text around it",
+      "Incident {{local.components.incident-on-create-or-update-1.returnValues.what-happened}}",
+    ],
+    [
+      "two references",
+      "{{local.components.a.returnValues.what-happened}}{{local.components.b.returnValues.what-happened}}",
+    ],
+    ["a variable named like it", "{{local.variables.what-happened}}"],
+    ["the word itself", "what-happened"],
+    ["an answer", "created"],
+    ["an empty text", ""],
+    ["nothing", undefined],
+    ["a number", 1],
+  ] as Array<[string, unknown]>)(
+    "is not %s",
+    (_label: string, value: unknown) => {
+      expect(isWhatHappenedReference(value)).toBe(false);
+    },
+  );
+
+  test("reads a huge value in about the time of a short one", () => {
+    const started: number = Date.now();
+
+    for (let attempt: number = 0; attempt < 20; attempt++) {
+      isWhatHappenedReference(
+        "{{" + "local.".repeat(70000) + "returnValues.what-happened}}",
+      );
+    }
+
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
 });
 
 describe("what a run started by hand is for", () => {
