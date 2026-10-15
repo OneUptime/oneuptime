@@ -6,16 +6,13 @@ import Runbook from "../../Models/DatabaseModels/Runbook";
 import RunbookExecution from "../../Models/DatabaseModels/RunbookExecution";
 import RunbookRule from "../../Models/DatabaseModels/RunbookRule";
 import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenance";
-import { JSONArray } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import RunbookExecutionStatus from "../../Types/Runbook/RunbookExecutionStatus";
 import RunbookRuleTriggerEntity from "../../Types/Runbook/RunbookRuleTriggerEntity";
-import RunbookStepExecutionStatus from "../../Types/Runbook/RunbookStepExecutionStatus";
-import { RunbookStep } from "../../Types/Runbook/RunbookStep";
-import { RunbookStepExecutionState } from "../../Types/Runbook/RunbookStepExecution";
-import RunbookExecutionService from "./RunbookExecutionService";
 import RunbookRuleService from "./RunbookRuleService";
-import RunbookService from "./RunbookService";
+import RunbookTriggerType from "../../Types/Runbook/RunbookTriggerType";
+import RunbookStarter, {
+  RunbookStartResult,
+} from "../Utils/Runbook/RunbookStarter";
 import Select from "../Types/Database/Select";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -61,9 +58,6 @@ type RuleSeveritiesGetter = (
 type RuleMatcher = (rule: RunbookRule) => Promise<boolean>;
 
 class RunbookRuleEngineServiceClass {
-  // Lazily-set queue hook so Common doesn't depend on App/FeatureSet.
-  private enqueue: EnqueueExecutionFn | null = null;
-
   /*
    * Everything a rule is matched on, whatever its trigger: a rule of one
    * trigger has nothing in another trigger's columns.
@@ -84,8 +78,12 @@ class RunbookRuleEngineServiceClass {
     runbooks: { _id: true },
   };
 
+  /*
+   * Kept for the Runbook feature set, which hands its queue over here when
+   * it starts: every run now starts through RunbookStarter, which queues it.
+   */
   public registerExecutionEnqueuer(fn: EnqueueExecutionFn): void {
-    this.enqueue = fn;
+    RunbookStarter.registerEnqueuer(fn);
   }
 
   /*
@@ -212,6 +210,7 @@ class RunbookRuleEngineServiceClass {
           projectId: data.projectId,
           runbookId: new ObjectID(runbookIdStr),
           linkage: data.linkage,
+          trigger: RunbookTriggerType.Rule,
         });
       }
 
@@ -592,6 +591,13 @@ class RunbookRuleEngineServiceClass {
     }
   }
 
+  /*
+   * Starts a run of a runbook for the rule engine, auto-remediation and
+   * OneUptime AI, through the one start path (RunbookStarter): the run, or
+   * null when the runbook is missing, another project's, turned off or has
+   * no steps. A run that could not be queued comes back failed, with the
+   * reason, rather than left waiting for a Worker that will never come.
+   */
   @CaptureSpan()
   public async startRunbookFor(data: {
     projectId: ObjectID;
@@ -601,95 +607,23 @@ class RunbookRuleEngineServiceClass {
       alertId?: ObjectID;
       scheduledMaintenanceId?: ObjectID;
     };
+    // What started it: a runbook rule, auto-remediation or OneUptime AI.
+    trigger: RunbookTriggerType;
     triggeredByUserId?: ObjectID;
   }): Promise<RunbookExecution | null> {
-    const runbook: Runbook | null = await RunbookService.findOneById({
-      id: data.runbookId,
-      select: {
-        _id: true,
-        projectId: true,
-        name: true,
-        steps: true,
-        isEnabled: true,
-      },
-      props: { isRoot: true },
+    const result: RunbookStartResult = await RunbookStarter.start({
+      projectId: data.projectId,
+      runbookId: data.runbookId,
+      trigger: data.trigger,
+      triggeredByUserId: data.triggeredByUserId,
+      linkage: data.linkage,
     });
 
-    if (!runbook) {
-      return null;
+    if (result.isStarted) {
+      return result.execution;
     }
 
-    if (runbook.projectId?.toString() !== data.projectId.toString()) {
-      return null;
-    }
-
-    if (runbook.isEnabled === false) {
-      return null;
-    }
-
-    const steps: RunbookStep[] =
-      (runbook.steps as unknown as RunbookStep[]) || [];
-
-    if (steps.length === 0) {
-      return null;
-    }
-
-    const stepExecutions: RunbookStepExecutionState[] = steps
-      .slice()
-      .sort((a: RunbookStep, b: RunbookStep) => {
-        return a.order - b.order;
-      })
-      .map((step: RunbookStep) => {
-        return {
-          step,
-          status: RunbookStepExecutionStatus.Pending,
-        };
-      });
-
-    const execution: RunbookExecution = new RunbookExecution();
-    execution.projectId = runbook.projectId;
-    execution.runbookId = new ObjectID(runbook._id!);
-    execution.runbookNameSnapshot = runbook.name || "Runbook";
-    execution.status = RunbookExecutionStatus.Scheduled;
-    execution.stepExecutions = stepExecutions as unknown as JSONArray;
-    if (data.linkage.incidentId) {
-      execution.incidentId = data.linkage.incidentId;
-    }
-    if (data.linkage.alertId) {
-      execution.alertId = data.linkage.alertId;
-    }
-    if (data.linkage.scheduledMaintenanceId) {
-      execution.scheduledMaintenanceId = data.linkage.scheduledMaintenanceId;
-    }
-    if (data.triggeredByUserId) {
-      execution.triggeredByUserId = data.triggeredByUserId;
-    }
-
-    const created: RunbookExecution = await RunbookExecutionService.create({
-      data: execution,
-      props: { isRoot: true },
-    });
-
-    if (this.enqueue) {
-      try {
-        await this.enqueue({
-          runbookExecutionId: new ObjectID(created._id!),
-        });
-      } catch (err) {
-        logger.error(
-          `RunbookRuleEngine: failed to enqueue runbook execution: ${err}`,
-          {
-            runbookExecutionId: created._id?.toString(),
-          } as LogAttributes,
-        );
-      }
-    } else {
-      logger.warn(
-        "RunbookRuleEngine: enqueue hook not registered; execution created but not started.",
-      );
-    }
-
-    return created;
+    return result.execution || null;
   }
 }
 

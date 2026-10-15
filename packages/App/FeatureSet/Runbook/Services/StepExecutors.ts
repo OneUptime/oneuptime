@@ -23,6 +23,7 @@ import RunnerJobStatus from "Common/Types/Runbook/RunnerJobStatus";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecution";
 import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
+import RunbookTriggerType from "Common/Types/Runbook/RunbookTriggerType";
 
 export interface StepRunResult {
   success: boolean;
@@ -44,6 +45,15 @@ export interface StepExecutionContext {
   scheduledMaintenanceId?: ObjectID | undefined;
   triggeredByUserId?: ObjectID | undefined;
   previousStepExecutions?: Array<RunbookStepExecutionState> | undefined;
+  /*
+   * What started the run, more about it (a scheduled time), and the values
+   * it was started with (a webhook call's body). The AI step's trigger
+   * context names them; Bash and JavaScript steps get the inputs from the
+   * Runner, as data (Types/Runbook/RunbookInputs).
+   */
+  trigger?: RunbookTriggerType | undefined;
+  triggerDetails?: JSONObject | undefined;
+  inputs?: JSONObject | undefined;
 }
 
 const MAX_OUTPUT_BYTES: number = 50_000;

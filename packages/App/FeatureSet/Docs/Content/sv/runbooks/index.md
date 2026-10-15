@@ -6,6 +6,7 @@ Ett runbook är en återanvändbar responsprocedur: en ordnad lista med manuella
 - [Skriva ett runbook](/docs/runbooks/authoring): Skapa ett runbook och skriv dess steg.
 - [Runbook-regler](/docs/runbooks/rules): Starta runbooks vid nya incidenter, larm och underhållshändelser.
 - [Köra ett runbook](/docs/runbooks/running): Starta en körning, slutför och godkänn dess steg, avbryt den.
+- [Runbook-utlösare](/docs/runbooks/triggers): Kör ett runbook enligt ett schema, eller från ett annat verktyg via dess webhook-URL.
 - [Runbook-agenter](/docs/runbooks/agents): Installera den Runner som kör dina skript i din egen infrastruktur.
 :::
 
@@ -73,6 +74,8 @@ Ett runbook kan blanda alla. Styrkan med runbooks är att väva samman mänsklig
 | **Kör Runbook** | Sidan **Runbooks** för en incident, ett larm eller en schemalagd underhållshändelse | Den händelsen |
 | **Run Now** | Runbookets sida **Översikt** | Ingenting: en ad hoc-körning |
 | En regel för automatisk åtgärd | Se [AI SRE](/docs/ai/ai-sre) | Incidenten eller larmet |
+| Runbookets schema | Runbookets sida **Utlösare**, se [Runbook-utlösare](/docs/runbooks/triggers#kör-enligt-ett-schema) | Ingenting: en obevakad körning |
+| Ett anrop till runbookets webhook-URL | Runbookets sida **Utlösare**, se [Runbook-utlösare](/docs/runbooks/triggers#anropa-webhooken) | Ingenting: körningen sparar värdena som anropet skickade |
 
 Ett runbook vars brytare **Kör det här runbooket** är avstängd på sidan **Inställningar** startas inte av något av dessa. Körningar som redan har startat fortsätter.
 
@@ -86,6 +89,7 @@ Runbooks finns under **Produkter**, i gruppen **Instrumentpaneler och automatise
 | Ett runbooks **Steg** | Skriv och ordna om dess steg och välj sedan **Save Steps**. |
 | Ett runbooks **Översikt** | Se den senaste körningen och resultaten, och klicka på **Run Now**. |
 | Ett runbooks **Körningar** | Alla körningar av det här runbooket, filtrerade efter status eller startdatum. |
+| Ett runbooks **Utlösare** | Kör det enligt ett [schema](/docs/runbooks/triggers#kör-enligt-ett-schema), eller från ett annat verktyg via dess [webhook-URL](/docs/runbooks/triggers#anropa-webhooken). |
 | Ett runbooks **Ägare** | Lägg till de personer och team som ansvarar för det. |
 | Ett runbooks **Inställningar** | Stäng av **Kör det här runbooket** utan att ta bort runbooket. |
 | **Runbooks → Körningar** | Alla körningar av alla runbooks i projektet. |

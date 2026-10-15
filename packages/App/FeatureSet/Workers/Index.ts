@@ -203,6 +203,13 @@ import "./Jobs/Workflow/TimeoutJobs";
 import "./Jobs/Runbook/TimeoutStuckExecutions";
 
 /*
+ * Starts the runs runbooks' schedules are due for, once a minute. Each due
+ * time is claimed before its run starts, so no time starts two runs however
+ * many Workers run it.
+ */
+import "./Jobs/Runbook/StartScheduledRuns";
+
+/*
  * Status page subscriber notifications are sent inside a single queue job
  * too. This fails the ones a dead Worker left In progress, so a notification
  * can never hang in "being sent" and can always be retried.

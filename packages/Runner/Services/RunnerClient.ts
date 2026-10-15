@@ -38,6 +38,16 @@ export interface ClaimedJob {
    */
   payload?: JSONObject | undefined;
   credential?: JSONObject | undefined;
+  /*
+   * The values the step's run was started with (the JSON body of the
+   * webhook call that started it) and what started it - for a runbook's own
+   * Bash and JavaScript steps only, and absent from a server that predates
+   * them. Data for the step, never part of its script: a Bash step reads
+   * them as environment variables, a JavaScript step as `args`
+   * (Common/Types/Runbook/RunbookInputs).
+   */
+  inputs?: JSONObject | undefined;
+  trigger?: string | null | undefined;
 }
 
 const http: AxiosInstance = axios.create({

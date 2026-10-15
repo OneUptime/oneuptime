@@ -6,6 +6,7 @@ Runbook은 재사용할 수 있는 대응 절차입니다. 인시던트, 알림 
 - [Runbook 작성](/docs/runbooks/authoring): Runbook을 만들고 단계를 작성합니다.
 - [Runbook 규칙](/docs/runbooks/rules): 새 인시던트, 알림, 유지 관리 이벤트에서 Runbook을 시작합니다.
 - [Runbook 실행](/docs/runbooks/running): 실행을 시작하고, 단계를 완료하고 승인하고, 실행을 취소합니다.
+- [Runbook 트리거](/docs/runbooks/triggers): 일정에 따라, 또는 다른 도구에서 웹훅 URL로 Runbook을 실행합니다.
 - [Runbook 에이전트](/docs/runbooks/agents): 자체 인프라에서 스크립트를 실행하는 Runner를 설치합니다.
 :::
 
@@ -73,6 +74,8 @@ HTTP와 AI 단계는 OneUptime Worker에서 실행됩니다. JavaScript, Bash, S
 | **런북 실행** | 인시던트, 알림 또는 예정된 유지 관리 이벤트의 **런북** 페이지 | 해당 이벤트 |
 | **Run Now** | Runbook의 **개요** 페이지 | 없음(일회성 실행) |
 | 자동 해결 규칙 | [AI SRE](/docs/ai/ai-sre) 참조 | 인시던트 또는 알림 |
+| Runbook의 일정 | Runbook의 **트리거** 페이지, [Runbook 트리거](/docs/runbooks/triggers#일정에-따라-실행) 참고 | 없음: 무인 실행 |
+| Runbook 웹훅 URL 호출 | Runbook의 **트리거** 페이지, [Runbook 트리거](/docs/runbooks/triggers#웹훅-호출) 참고 | 없음: 실행은 호출이 보낸 값을 보관합니다 |
 
 **설정** 페이지에서 **이 런북 실행** 스위치가 꺼진 Runbook은 어떤 방법으로도 시작되지 않습니다. 이미 시작된 실행은 계속됩니다.
 
@@ -86,6 +89,7 @@ Runbook은 **제품**의 **대시보드 및 자동화** 그룹에 있습니다.
 | Runbook의 **단계** | 단계를 작성하고 순서를 바꾼 다음 **Save Steps**를 선택합니다. |
 | Runbook의 **개요** | 최근 실행과 결과를 보고 **Run Now**를 클릭합니다. |
 | Runbook의 **실행** | 이 Runbook의 모든 실행을 상태나 시작 날짜로 필터링해 봅니다. |
+| Runbook의 **트리거** | [일정](/docs/runbooks/triggers#일정에-따라-실행)에 따라, 또는 다른 도구에서 [웹훅 URL](/docs/runbooks/triggers#웹훅-호출)로 실행합니다. |
 | Runbook의 **소유자** | 책임지는 사람과 팀을 추가합니다. |
 | Runbook의 **설정** | Runbook을 삭제하지 않고 **이 런북 실행**을 끕니다. |
 | **런북 → 실행** | 프로젝트에 있는 모든 Runbook의 모든 실행입니다. |

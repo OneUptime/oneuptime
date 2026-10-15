@@ -82,6 +82,8 @@ Runbook 權限位於 `Runbook` 權限群組中：
 
 角色會執行其範圍所及的 Runbook。限定於某些標籤的 `RunbookMember`、`RunbookAdmin` 或 `ProjectMember` 授權，可以啟動並推進帶有這些標籤之 Runbook 的執行；限定於 **Owned** 的授權，可以啟動並推進其團隊擁有之 Runbook 的執行；團隊對某個標籤的封鎖會把這些 Runbook 排除在外。`CreateRunbookExecution` 和 `EditRunbookExecution` 針對的是沒有標籤的執行，因此能觸及專案中的每個 Runbook。核准一項會啟動 Runbook 的修復建議，也以同樣方式檢查。
 
+Runbook 的排程和 Webhook 會在無人在場時啟動執行，因此設定其中任何一個都需要編輯並執行該 Runbook 的權限，檢視其 Webhook URL 也是如此。關閉它們只需要編輯權限。請參閱 [Runbook 觸發器](/docs/runbooks/triggers#誰可以設定觸發器)。
+
 憑證和密鑰不在 `RunbookAdmin` 的範圍內。管理它們需要 `ProjectOwner` 或 `ProjectAdmin`，或者 `CreateRunbookCredential`、`EditRunbookCredential`、`DeleteRunbookCredential`、`ReadRunbookCredential` 和 `CreateRunbookSecret`、`EditRunbookSecret`、`DeleteRunbookSecret`、`ReadRunbookSecret` 權限。請參閱 [Runbook 憑證](/docs/runbooks/credentials)。
 
 **運行手冊 → 設定** 下的擁有者規則和標籤規則同樣不在 `RunbookAdmin` 的範圍內。管理它們需要 `ProjectOwner` 或 `ProjectAdmin`，或者 `CreateRunbookOwnerRule` 和 `CreateRunbookLabelRule` 權限及其對應的編輯、刪除和讀取權限。

@@ -19,7 +19,7 @@ import NumberPrefixUtil, { NumberPrefixColumn } from "../Project/NumberPrefix";
  * require one, and a rule saved without one - through the API, or a monitor
  * or on-call policy rule, whose form never asked - was given
  * "oneuptime-incident-" and the like (getLegacyDefaultPrefix); the migration
- * KeepChannelNamePrefixOfRulesWithoutOne1802250000000 writes that into those
+ * KeepChannelNamePrefixOfRulesWithoutOne1802500000000 writes that into those
  * rules, so they keep naming channels as they did, and an empty prefix now
  * means none.
  *
@@ -196,7 +196,7 @@ export default class WorkspaceChannelName {
    * The prefix every rule saved without one used to get: oneuptime-incident-,
    * oneuptime-scheduled maintenance- (the space is left out of the name, in
    * Slack). Written into those rules once (the migration
-   * KeepChannelNamePrefixOfRulesWithoutOne1802250000000, which spells it
+   * KeepChannelNamePrefixOfRulesWithoutOne1802500000000, which spells it
    * out in SQL), so their channels keep their names now that an empty
    * prefix means none.
    */
