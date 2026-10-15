@@ -29534,7 +29534,7 @@
   "{{probe}}, the probe that ran the scan, pings every device on this schedule and walks the ones that answered SNMP for interfaces, inventory and health. You can change it on each device later.": "{{probe}}, die Sonde, die den Scan ausgeführt hat, pingt jedes Gerät nach diesem Zeitplan an und fragt die, die auf SNMP geantwortet haben, nach Schnittstellen, Inventar und Integrität ab. Sie können das später für jedes Gerät ändern.",
   "Network Device templates read each device's own polls. Edit a template under Monitors → Settings → Templates; monitors made from it follow.": "Netzwerkgeräte-Vorlagen lesen die eigenen Abfragen jedes Geräts. Bearbeiten Sie eine Vorlage unter Überwachungen → Einstellungen → Vorlagen; die daraus erstellten Überwachungen folgen.",
   "Responded": "Antwort",
-  "A device that takes its status from a monitor bound to it gets no Network Device monitor: it would have nothing to read.": "Ein Gerät, das seinen Status von einer an es gebundenen Überwachung erhält, bekommt keine Netzwerkgeräte-Überwachung: Sie hätte nichts zu lesen.",
+  "A device that takes its status from a monitor bound to it gets no Network Device monitor: it would have nothing to read.": "Ein Gerät, das seinen Status von einer an es gebundenen Überwachung erhält, bekommt keine Netzwerkgeräte-Überwachung, denn diese hätte nichts zu lesen.",
   "Search hosts by name, address, subnet or vendor": "Hosts nach Name, Adresse, Subnetz oder Hersteller durchsuchen",
   "The device was not imported, so it has no monitor.": "Das Gerät wurde nicht importiert und hat daher keine Überwachung.",
   "The import stopped before it finished.": "Der Import wurde vor dem Ende angehalten.",
