@@ -15,6 +15,7 @@ import WorkspaceHome, {
 import { WorkspaceOpenRecordList } from "../../../../Server/Utils/Workspace/WorkspaceOpenRecords";
 import WorkspaceMessageTime from "../../../../Server/Utils/Workspace/WorkspaceMessageTime";
 import DatabaseConfig from "../../../../Server/DatabaseConfig";
+import Markdown from "../../../../Server/Types/Markdown";
 import ProductBrandingText from "../../../../Server/Utils/ProductBrandingText";
 import AlertService from "../../../../Server/Services/AlertService";
 import AlertStateService from "../../../../Server/Services/AlertStateService";
@@ -155,6 +156,9 @@ function at(date: Date): string {
 }
 
 const PRIMARY_LINK: string = `${DASHBOARD}/${PROJECT_ID.toString()}/on-call-duty/schedules/${PRIMARY_ID.toString()}`;
+
+// A sentence's end with a full stop right after it: "Acme Inc..".
+const DOUBLED_FULL_STOP: RegExp = /[.!?]\./;
 
 describe("what the Home reads, as the person", () => {
   test("their shifts now: the schedules whose roster has them on call, read with their props", async () => {
@@ -548,6 +552,91 @@ describe("what the Home says", () => {
     expect(textOf(blocks[1]!)).not.toContain("[Prod](");
     expect(textOf(blocks[1]!)).not.toContain(" *now*");
   });
+
+  test.each([
+    ["Acme Inc.", "Here's what is happening in **Acme Inc.**"],
+    ["Yahoo!", "Here's what is happening in **Yahoo!**"],
+    ["Who broke prod?", "Here's what is happening in **Who broke prod?**"],
+    ["Acme Production", "Here's what is happening in **Acme Production**."],
+  ])(
+    "a project named %j: its line ends with one full stop, the name's own when it has one",
+    (projectName: string, expected: string) => {
+      const blocks: Array<WorkspaceMessageBlock> = WorkspaceHome.getBlocks({
+        workspaceType: WorkspaceType.Slack,
+        view: view({ projectName: projectName }),
+        actions: ACTIONS,
+      });
+
+      expect(textOf(blocks[1]!)).toBe(expected);
+    },
+  );
+
+  test.each([
+    [
+      "on call in one schedule, no hand-off known",
+      {
+        now: [{ scheduleName: "Primary.", scheduleLink: null, at: null }],
+        next: null,
+        isNowCut: false,
+      },
+    ],
+    [
+      "on call in one schedule, its link",
+      {
+        now: [
+          { scheduleName: "Primary.", scheduleLink: PRIMARY_LINK, at: null },
+        ],
+        next: null,
+        isNowCut: false,
+      },
+    ],
+    [
+      "not on call, the next shift known",
+      {
+        now: [],
+        next: {
+          scheduleName: "Primary.",
+          scheduleLink: PRIMARY_LINK,
+          at: NEXT_START,
+        },
+        isNowCut: false,
+      },
+    ],
+  ])(
+    "%s, every name ending with a full stop: no sentence in Slack or Teams ends with a second",
+    (_name: string, onCall: unknown) => {
+      for (const workspaceType of [
+        WorkspaceType.Slack,
+        WorkspaceType.MicrosoftTeams,
+      ]) {
+        const blocks: Array<WorkspaceMessageBlock> = WorkspaceHome.getBlocks({
+          workspaceType: workspaceType,
+          view: view({
+            projectName: "Acme Inc.",
+            onCall: onCall as WorkspaceHomeView["onCall"],
+          }),
+          actions: ACTIONS,
+        });
+
+        for (const block of blocks) {
+          if (
+            block._type !== "WorkspacePayloadMarkdown" &&
+            block._type !== "WorkspacePayloadContext"
+          ) {
+            continue;
+          }
+
+          // As a reader sees it: no bold markers, no link addresses.
+          const text: string = Markdown.convertToPlainText(textOf(block));
+
+          expect({
+            text: text,
+            isDoubled: DOUBLED_FULL_STOP.test(text),
+          }).toEqual({ text: text, isDoubled: false });
+        }
+      }
+    },
+  );
 });
 
 describe("the person's shifts, said", () => {
@@ -574,6 +663,35 @@ describe("the person's shifts, said", () => {
         isNowCut: false,
       },
       "🟢 You're on call in **Primary**.",
+    ],
+    [
+      "on call in a schedule whose name ends with a full stop: none more after it",
+      {
+        now: [{ scheduleName: "Primary.", scheduleLink: null, at: null }],
+        next: null,
+        isNowCut: false,
+      },
+      "🟢 You're on call in **Primary.**",
+    ],
+    [
+      "on call in a schedule whose name ends with a question mark, as a link",
+      {
+        now: [
+          { scheduleName: "Who's up?", scheduleLink: PRIMARY_LINK, at: null },
+        ],
+        next: null,
+        isNowCut: false,
+      },
+      `🟢 You're on call in [Who's up?](${PRIMARY_LINK})`,
+    ],
+    [
+      "not on call, the next shift in a schedule whose name ends with a full stop",
+      {
+        now: [],
+        next: { scheduleName: "Nights.", scheduleLink: null, at: NEXT_START },
+        isNowCut: false,
+      },
+      `⚪ You're not on call right now. Your next shift starts ${WorkspaceMessageTime.dateAndTime(NEXT_START).toString()}, in **Nights.**`,
     ],
     [
       "on call in two schedules: a list",
@@ -743,6 +861,40 @@ describe("what a notification of the Home says", () => {
         },
       }),
       "You're on call in Primary. 1 open incident",
+    ],
+    [
+      "on call in a schedule whose name ends with a full stop: no second one",
+      view({
+        onCall: {
+          now: [{ scheduleName: "Acme Inc.", scheduleLink: null, at: null }],
+          next: null,
+          isNowCut: false,
+        },
+        incidents: {
+          kind: WorkspaceOpenRecordKind.Incidents,
+          list: list(1),
+          refused: false,
+          failed: false,
+        },
+      }),
+      "You're on call in Acme Inc. 1 open incident",
+    ],
+    [
+      "on call in a schedule whose name ends with an exclamation mark",
+      view({
+        onCall: {
+          now: [{ scheduleName: "Nights!", scheduleLink: null, at: null }],
+          next: null,
+          isNowCut: false,
+        },
+        incidents: {
+          kind: WorkspaceOpenRecordKind.Incidents,
+          list: list(2),
+          refused: false,
+          failed: false,
+        },
+      }),
+      "You're on call in Nights! 2 open incidents",
     ],
     [
       "not on call, more open than the Home shows",
