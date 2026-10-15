@@ -960,4 +960,21 @@ describe("long text", () => {
 
     expect(Date.now() - started).toBeLessThan(2000);
   });
+
+  // The worst case for trimming a Teams name's end: runs of spaces that do not end it.
+  test("a 400,000-character Microsoft Teams prefix of spaces and tabs is named in well under 2 seconds", () => {
+    const started: number = Date.now();
+
+    const name: string = WorkspaceChannelName.getChannelName({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      prefix: `${"\t".repeat(200000)}x${" \t".repeat(100000)}`,
+      parts: incident("INC-42"),
+    });
+
+    expect(Date.now() - started).toBeLessThan(2000);
+    expect(name.endsWith("inc-42")).toBe(true);
+    expect(name.length).toBeLessThanOrEqual(
+      WorkspaceChannelName.MICROSOFT_TEAMS_MAX_LENGTH,
+    );
+  });
 });

@@ -138,9 +138,12 @@ const NOT_IN_TEAMS_CHANNEL_NAME: RegExp = /[^a-zA-Z0-9\-_\s]/g;
 
 const HAS_LETTER: RegExp = /[a-z]/;
 
-// What a Microsoft Teams channel name may not start or end with.
+/*
+ * What a Microsoft Teams channel name may not start with. Its end is
+ * trimmed with trimEnd(): a pattern for trailing spaces is retried from
+ * every run of spaces, in time that grows with the square of the name.
+ */
 const TEAMS_NAME_START: RegExp = /^[\s_]+/;
-const TEAMS_NAME_END: RegExp = /\s+$/;
 
 // The separators a record's own name does not start with.
 const LEADING_SEPARATORS: RegExp = /^[-_]+/;
@@ -445,7 +448,7 @@ export default class WorkspaceChannelName {
     name: string,
   ): string {
     if (workspaceType === WorkspaceType.MicrosoftTeams) {
-      return name.replace(TEAMS_NAME_START, "").replace(TEAMS_NAME_END, "");
+      return name.replace(TEAMS_NAME_START, "").trimEnd();
     }
 
     return name;
