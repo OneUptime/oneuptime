@@ -26,6 +26,7 @@ import NetworkEndpointService from "Common/Server/Services/NetworkEndpointServic
 import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import { getNetworkSiteTypeName } from "Common/Utils/NetworkSite/SiteTypeName";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import {
   DeviceHealthGroup,
@@ -514,6 +515,10 @@ async function getSitesNeedingAttention(data: {
     select: {
       _id: true,
       name: true,
+      // The type's name: the relation, and the old column as its fallback.
+      networkSiteType: {
+        name: true,
+      },
       siteType: true,
       currentMonitorStatusId: true,
     },
@@ -533,7 +538,7 @@ async function getSitesNeedingAttention(data: {
     return {
       _id: site.id?.toString() || "",
       name: site.name || "",
-      siteType: site.siteType?.toString() || null,
+      siteType: getNetworkSiteTypeName(site),
       statusName: status?.name || null,
       statusColor: status?.color?.toString() || null,
     };
