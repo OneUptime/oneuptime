@@ -879,6 +879,24 @@ describe("rules that ask for the same channel", () => {
     expect(slackCreates).toEqual([{ name: "inc-123" }]);
   });
 
+  // A Slack workspace has one namespace of names, whatever team a rule once named.
+  test("Slack: a rule still holding a Teams team shares the channel too", async () => {
+    useRules(WorkspaceType.Slack, [
+      rule({
+        workspaceType: WorkspaceType.Slack,
+        eventType: NotificationRuleEventType.Incident,
+      }),
+      rule({
+        workspaceType: WorkspaceType.Slack,
+        eventType: NotificationRuleEventType.Incident,
+        teamToCreateChannelIn: TEAM_WEB,
+      }),
+    ]);
+
+    expect(createdNames(await createIncident())).toEqual(["inc-123"]);
+    expect(slackCreates).toEqual([{ name: "inc-123" }]);
+  });
+
   test("Slack: a rule with a prefix gets a channel of its own", async () => {
     useRules(WorkspaceType.Slack, [
       rule({

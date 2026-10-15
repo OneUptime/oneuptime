@@ -3108,16 +3108,14 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         parts: data.channelNameParts,
       });
 
-      const teamId: string =
-        data.workspaceType === WorkspaceType.MicrosoftTeams
-          ? workspaceRules.teamToCreateChannelIn || ""
-          : "";
-
+      // A Slack workspace has one namespace of channel names; Teams one per team.
       const isListed: boolean = channels.some(
         (channel: RuleChannelToCreate): boolean => {
           return (
             channel.channelName === channelName &&
-            (channel.teamId || "") === teamId
+            (data.workspaceType !== WorkspaceType.MicrosoftTeams ||
+              (channel.teamId || "") ===
+                (workspaceRules.teamToCreateChannelIn || ""))
           );
         },
       );

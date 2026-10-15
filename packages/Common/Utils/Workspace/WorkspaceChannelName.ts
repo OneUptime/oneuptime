@@ -15,10 +15,11 @@ import NumberPrefixUtil, { NumberPrefixColumn } from "../Project/NumberPrefix";
  *     "API Health";
  *   - with a prefix, the prefix comes first: prod- makes prod-inc-42.
  *
- * The prefix is the rule's newChannelTemplateName. It used to be required,
- * and a rule saved without one through the API was given
- * "oneuptime-incident-" and the like (getLegacyDefaultPrefix); the data
- * migration KeepChannelNamePrefixOfRulesWithoutOne writes that into those
+ * The prefix is the rule's newChannelTemplateName. The rule form used to
+ * require one, and a rule saved without one - through the API, or a monitor
+ * or on-call policy rule, whose form never asked - was given
+ * "oneuptime-incident-" and the like (getLegacyDefaultPrefix); the migration
+ * KeepChannelNamePrefixOfRulesWithoutOne1802200000000 writes that into those
  * rules, so they keep naming channels as they did, and an empty prefix now
  * means none.
  *
@@ -194,9 +195,10 @@ export default class WorkspaceChannelName {
   /*
    * The prefix every rule saved without one used to get: oneuptime-incident-,
    * oneuptime-scheduled maintenance- (the space is left out of the name, in
-   * Slack). Written into those rules once (the data migration
-   * KeepChannelNamePrefixOfRulesWithoutOne), so their channels keep their
-   * names now that an empty prefix means none.
+   * Slack). Written into those rules once (the migration
+   * KeepChannelNamePrefixOfRulesWithoutOne1802200000000, which spells it
+   * out in SQL), so their channels keep their names now that an empty
+   * prefix means none.
    */
   public static getLegacyDefaultPrefix(
     eventType: NotificationRuleEventType,
