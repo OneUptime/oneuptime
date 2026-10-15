@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import React from "react";
 
 /*
@@ -484,25 +484,24 @@ describe("the rule's card shows its channel name", () => {
   });
 
   /*
-   * The rows around the channel name named the workspace by its enum value,
-   * "Create MicrosoftTeams Channel", while the form above them says
-   * "Create Microsoft Teams Channel".
+   * The card's rows named the workspace by its enum value, "Create
+   * MicrosoftTeams Channel", and listed every switch Yes or No. It says what
+   * the rule does now, the way the workspace does it: in Microsoft Teams the
+   * channel's name has no #, and everyone in the team sees the channel.
    */
-  test("Microsoft Teams is called Microsoft Teams on every row of the card", () => {
+  test("Microsoft Teams: the card says what the rule does, the way Teams does it", () => {
     renderCard(rule({}), WorkspaceType.MicrosoftTeams);
 
-    expect(screen.getByText("Create Microsoft Teams Channel")).toBeVisible();
     expect(
-      screen.getByText("Invite Teams to New Microsoft Teams Channel"),
-    ).toBeVisible();
-    expect(
-      screen.getByText("Invite Users to New Microsoft Teams Channel"),
-    ).toBeVisible();
-    expect(
-      screen.getByText(
-        "Automatically Invite On Call Users to New Microsoft Teams Channel",
-      ),
-    ).toBeVisible();
+      within(screen.getByTestId("notification-rule-summary"))
+        .getAllByRole("listitem")
+        .map((item: HTMLElement): string => {
+          return item.textContent || "";
+        }),
+    ).toEqual([
+      "Creates a channel like inc-42 for each incident.",
+      "Everyone in the team can open the channel.",
+    ]);
     expect(document.body.textContent).not.toContain("MicrosoftTeams");
   });
 

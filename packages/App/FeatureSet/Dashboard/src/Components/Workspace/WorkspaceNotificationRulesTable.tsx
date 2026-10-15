@@ -71,6 +71,15 @@ import { getVideoCallValidationError } from "Common/Types/Workspace/Notification
 import NotificationRuleVideoCallForm from "./NotificationRuleForm/NotificationRuleVideoCallForm";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import { WorkspaceChannelNumberPrefixes } from "Common/Utils/Workspace/WorkspaceChannelName";
+import NotificationRuleInvites from "Common/Types/Workspace/NotificationRules/NotificationRuleInvites";
+import {
+  NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS,
+  NOTIFICATION_RULE_CONDITIONS_TITLES,
+  NOTIFICATION_RULE_DESTINATION_DESCRIPTION,
+  NOTIFICATION_RULE_DESTINATION_TITLES,
+  NOTIFICATION_RULES_CARD_DESCRIPTIONS,
+  NOTIFICATION_RULES_CARD_TITLE,
+} from "./NotificationRuleForm/NotificationRuleCopy";
 
 /*
  * The form key the Video Call step is registered under. Like the
@@ -692,17 +701,28 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
          * OneUptime does by default; the step asks All or Any only once
          * there are two conditions (NotificationRuleForm), and a rule with
          * fewer is saved with this.
+         *
+         * A channel it creates gets everybody the record has, as they join
+         * it: the people paged, the Incident Commander and other roles, the
+         * owners (NotificationRuleInvites.getNewRuleSwitches). The boxes are
+         * ticked from the start; they count only once the rule creates a
+         * channel.
          */
         createInitialValues={{
           notificationRule: {
             filterCondition: FilterCondition.All,
             filters: [],
+            ...NotificationRuleInvites.getNewRuleSwitches(props.eventType),
           },
         }}
         isCreateable={true}
+        /*
+         * What a rule is, said where the rules are: which records it is
+         * for, then what it does with them.
+         */
         cardProps={{
-          title: `${props.eventType} - ${getWorkspaceTypeDisplayName(props.workspaceType)} Notification Rules`,
-          description: `Manage ${props.eventType} notification rules for ${getWorkspaceTypeDisplayName(props.workspaceType)}.`,
+          title: NOTIFICATION_RULES_CARD_TITLE,
+          description: NOTIFICATION_RULES_CARD_DESCRIPTIONS[props.eventType],
         }}
         showAs={ShowAs.List}
         noItemsMessage={"No notification rules found."}
@@ -749,8 +769,15 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             field: {
               notificationRule: true,
             },
-            title: `Notify ${getWorkspaceTypeDisplayName(props.workspaceType)} on ${props.eventType} when...`,
-            description: `Set the conditions to notify ${getWorkspaceTypeDisplayName(props.workspaceType)} on ${props.eventType}. If you do not set any conditions, then this rule will trigger for every ${props.eventType}.`,
+            /*
+             * Which records the rule is for, and when that is checked: when
+             * a record is created and each time it changes.
+             */
+            title: NOTIFICATION_RULE_CONDITIONS_TITLES[props.eventType],
+            description:
+              NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS[props.eventType],
+            // A rule without conditions is for every record: nothing to ask for.
+            hideOptionalLabel: true,
             fieldType: FormFieldSchemaType.CustomComponent,
             /*
              * No conditions is a rule that fires for every event, so the
@@ -794,8 +821,8 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             },
             overrideFieldKey: NOTIFICATION_RULE_DESTINATION_FIELD_KEY,
             formOnly: true,
-            title: `Then, in ${getWorkspaceTypeDisplayName(props.workspaceType)}...`,
-            description: `Where the notification goes when the conditions are met.`,
+            title: NOTIFICATION_RULE_DESTINATION_TITLES[props.workspaceType],
+            description: NOTIFICATION_RULE_DESTINATION_DESCRIPTION,
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             hideOptionalLabel: true,
@@ -966,7 +993,12 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             field: {
               notificationRule: true,
             },
-            title: "Notification Rules",
+            /*
+             * No label of its own: the rule's When and Then are labelled
+             * inside it (NotificationRuleViewElement), and a third label
+             * over them only nested one more.
+             */
+            title: "",
             type: FieldType.Element,
             getElement: (value: WorkspaceNotificationRule): ReactElement => {
               return (

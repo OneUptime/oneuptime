@@ -1,14 +1,22 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * NotificationRuleForm draws one half of a workspace notification rule: the
- * Conditions (when it fires) or the Destination (where it posts), each on
- * its own step of the rule wizard.
+ * Conditions (which records it is for) or the Destination (where it posts,
+ * and who joins the channel it creates), each on its own step of the rule
+ * wizard.
  *
  * It also has to start from the rule it is handed. It used to be handed the
  * rule only as `values`, and BasicForm starts from its initialValues - so it
@@ -16,6 +24,14 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * sent back only the switches, dropping everything else in the rule. With
  * the rule split over two steps, that would lose the conditions the moment a
  * destination was picked.
+ *
+ * Who joins the channel is the people the record has, each kind as its own
+ * box - on-call responders as they are paged, the Incident Commander and the
+ * other incident roles as they are assigned, owners as they are added - and
+ * anybody the rule names. A rule saved before incident roles had a box of
+ * their own shows the box as the rule acts: ticked when it adds the owners
+ * or the people paged, which is how the customer's rule now gets its
+ * commander into the channel.
  */
 
 jest.mock("../../../UI/Utils/Translation", () => {
@@ -45,6 +61,7 @@ import {
 } from "../../../Types/Workspace/NotificationRules/NotificationRuleCondition";
 import IncidentNotificationRule from "../../../Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import { MicrosoftTeamsTeam } from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 
 const SAVED_RULE: IncidentNotificationRule = {
   _type: "IncidentNotificationRule",
@@ -72,10 +89,21 @@ const SAVED_RULE: IncidentNotificationRule = {
   shouldAutomaticallyInviteOnCallUsersToNewChannel: false,
 } as IncidentNotificationRule;
 
+const ON_CALL_BOX: RegExp = /^On-call responders, as they are paged/;
+const ROLES_BOX: RegExp =
+  /^Incident Commander and other incident roles, as they are assigned/;
+const OWNERS_BOX: RegExp = /^Owners, as they are added/;
+
+const OPS_TEAM: MicrosoftTeamsTeam = {
+  id: "team-ops",
+  name: "Ops",
+} as MicrosoftTeamsTeam;
+
 async function renderPart(data: {
   part: NotificationRuleFormPart;
   value?: IncidentNotificationRule | undefined;
   workspaceType?: WorkspaceType | undefined;
+  eventType?: NotificationRuleEventType | undefined;
   onChange?: MockFunction | undefined;
 }): Promise<MockFunction> {
   const onChange: MockFunction = data.onChange || getJestMockFunction();
@@ -88,7 +116,7 @@ async function renderPart(data: {
         onChange={(value: IncidentNotificationRule) => {
           onChange(value);
         }}
-        eventType={NotificationRuleEventType.Incident}
+        eventType={data.eventType || NotificationRuleEventType.Incident}
         monitors={[]}
         labels={[]}
         alertStates={[]}
@@ -100,6 +128,15 @@ async function renderPart(data: {
         workspaceType={data.workspaceType || WorkspaceType.Slack}
         teams={[]}
         users={[]}
+        microsoftTeamsTeams={[OPS_TEAM]}
+        microsoftTeamsChats={[]}
+        numberPrefixes={{
+          [NotificationRuleEventType.Incident]: "INC-",
+          [NotificationRuleEventType.Alert]: "ALT-",
+          [NotificationRuleEventType.IncidentEpisode]: "IE-",
+          [NotificationRuleEventType.AlertEpisode]: "AE-",
+          [NotificationRuleEventType.ScheduledMaintenance]: "SM-",
+        }}
       />,
     );
   });
@@ -124,6 +161,21 @@ async function settle(): Promise<void> {
   });
 }
 
+function lastChange(onChange: MockFunction): IncidentNotificationRule {
+  return onChange.mock.calls[
+    onChange.mock.calls.length - 1
+  ]![0] as IncidentNotificationRule;
+}
+
+// What the box under the step says the rule does, one sentence a line.
+function summary(): Array<string> {
+  return within(screen.getByTestId("notification-rule-summary"))
+    .queryAllByRole("listitem")
+    .map((item: HTMLElement): string => {
+      return item.textContent || "";
+    });
+}
+
 afterEach(() => {
   cleanup();
 });
@@ -135,7 +187,11 @@ describe("the Conditions half", () => {
     expect(
       await screen.findByRole("button", { name: "Add Condition" }),
     ).toBeVisible();
-    // No conditions yet: nothing to combine, so no All / Any.
+    // No conditions yet: the rule is for every incident, and says so.
+    expect(
+      screen.getByTestId("notification-rule-no-conditions-yet"),
+    ).toHaveTextContent("No conditions: the rule is for every incident.");
+    // Nothing to combine, so no All / Any.
     expect(screen.queryAllByRole("radio")).toHaveLength(0);
     expect(screen.queryAllByRole("switch")).toHaveLength(0);
   });
@@ -164,6 +220,10 @@ describe("the Conditions half", () => {
     expect(
       screen.getByRole("radiogroup", { name: /^Match Condition/ }),
     ).toBeVisible();
+    // With conditions, the line that says there are none is gone.
+    expect(
+      screen.queryByTestId("notification-rule-no-conditions-yet"),
+    ).not.toBeInTheDocument();
   });
 
   test("opens on a saved rule's match", async () => {
@@ -191,9 +251,7 @@ describe("the Conditions half", () => {
       expect(onChange).toHaveBeenCalled();
     });
 
-    const changed: IncidentNotificationRule = onChange.mock.calls[
-      onChange.mock.calls.length - 1
-    ]![0] as IncidentNotificationRule;
+    const changed: IncidentNotificationRule = lastChange(onChange);
 
     expect(changed.filterCondition).toBe(FilterCondition.Any);
     expect(changed.filters).toEqual(SAVED_RULE.filters);
@@ -208,16 +266,22 @@ describe("the Destination half", () => {
 
     expect(
       await screen.findByRole("switch", {
-        name: /^Post to Existing Slack Channel/,
+        name: /^Post to existing channels/,
       }),
     ).toBeVisible();
     expect(
-      screen.getByRole("switch", { name: /^Create Slack Channel/ }),
+      screen.getByRole("switch", {
+        name: /^Create a channel for each incident/,
+      }),
     ).toBeVisible();
     expect(
       screen.queryByRole("button", { name: "Add Condition" }),
     ).not.toBeInTheDocument();
     expect(screen.queryAllByRole("radio")).toHaveLength(0);
+    // Nothing picked yet: the box under the step says what is to pick.
+    expect(screen.getByTestId("notification-rule-summary")).toHaveTextContent(
+      "Pick where this rule posts: existing channels, a channel of its own for each one, or both.",
+    );
   });
 
   test("offers a Microsoft Teams chat too", async () => {
@@ -227,9 +291,7 @@ describe("the Destination half", () => {
     });
 
     expect(
-      await screen.findByRole("switch", {
-        name: /^Post to Existing Microsoft Teams Chat/,
-      }),
+      await screen.findByRole("switch", { name: /^Post to chats/ }),
     ).toBeVisible();
   });
 
@@ -242,9 +304,17 @@ describe("the Destination half", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("switch", { name: /^Create Slack Channel/ }),
+        screen.getByRole("switch", {
+          name: /^Create a channel for each incident/,
+        }),
       ).toHaveAttribute("aria-checked", "true");
     });
+
+    // The prefix is rarely needed: folded under More fields, value kept.
+    expect(screen.getByTestId("channel-name-prefix")).not.toBeVisible();
+    await userEvent
+      .setup({ delay: null })
+      .click(screen.getByRole("button", { name: "More fields" }));
     expect(
       screen.getByRole("textbox", { name: /^Channel Name Prefix/ }),
     ).toHaveValue("oneuptime-incident-");
@@ -258,7 +328,7 @@ describe("the Destination half", () => {
 
     await userEvent.setup({ delay: null }).click(
       await screen.findByRole("switch", {
-        name: /^Post to Existing Slack Channel/,
+        name: /^Post to existing channels/,
       }),
     );
 
@@ -266,13 +336,268 @@ describe("the Destination half", () => {
       expect(onChange).toHaveBeenCalled();
     });
 
-    const changed: IncidentNotificationRule = onChange.mock.calls[
-      onChange.mock.calls.length - 1
-    ]![0] as IncidentNotificationRule;
+    const changed: IncidentNotificationRule = lastChange(onChange);
 
     expect(changed.shouldPostToExistingChannel).toBe(true);
     expect(changed.filters).toEqual(SAVED_RULE.filters);
     expect(changed.filterCondition).toBe(FilterCondition.All);
     expect(changed.shouldCreateNewChannel).toBe(true);
+    // The people picker's own key is the form's, never the rule's.
+    expect(Object.keys(changed)).not.toContain("alsoInviteToNewChannel");
+    expect(Object.keys(changed)).not.toContain("teamsWhoJoinsNote");
+  });
+
+  test("says what the rule does, as sentences, under the step", async () => {
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      value: {
+        ...SAVED_RULE,
+        newChannelTemplateName: "",
+        shouldAutomaticallyInviteOnCallUsersToNewChannel: true,
+        shouldInviteIncidentRolesToNewChannel: true,
+        shouldInviteOwnersToNewChannel: true,
+        archiveChannelAutomatically: true,
+        shouldPostToExistingChannel: true,
+        existingChannelNames: "#ops, #incidents",
+      } as IncidentNotificationRule,
+    });
+
+    expect(
+      screen.getByRole("heading", { name: "What this rule does" }),
+    ).toBeVisible();
+    expect(summary()).toEqual([
+      "Creates a channel like #inc-42 for each incident.",
+      "Invites on-call responders as they are paged, the Incident Commander and other incident roles as they are assigned and owners as they are added.",
+      "Archives the channel when the incident is resolved.",
+      "Posts updates in #ops and #incidents.",
+    ]);
+  });
+});
+
+describe("who joins the channel a rule creates", () => {
+  test("is asked only once the rule creates a channel", async () => {
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      value: { ...SAVED_RULE, shouldCreateNewChannel: false },
+    });
+
+    await screen.findByRole("switch", { name: /^Post to existing channels/ });
+
+    expect(
+      screen.queryByRole("heading", { name: "Who joins the channel" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("checkbox", { name: OWNERS_BOX }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("an incident's people: on-call responders, incident roles and owners, then anybody else", async () => {
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      value: SAVED_RULE,
+    });
+
+    const heading: HTMLElement = await screen.findByRole("heading", {
+      name: "Who joins the channel",
+    });
+
+    expect(heading).toBeVisible();
+    expect(
+      screen.getByText(
+        "People are added as they join, not only when the channel is created. Someone without a connected Slack account is named in the channel instead.",
+      ),
+    ).toBeVisible();
+
+    const boxes: Array<HTMLElement> = [
+      screen.getByRole("checkbox", { name: ON_CALL_BOX }),
+      screen.getByRole("checkbox", { name: ROLES_BOX }),
+      screen.getByRole("checkbox", { name: OWNERS_BOX }),
+    ];
+
+    // In that order, after the heading.
+    expect(
+      heading.compareDocumentPosition(boxes[0]!) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      boxes[0]!.compareDocumentPosition(boxes[1]!) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      boxes[1]!.compareDocumentPosition(boxes[2]!) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        "The commander is usually assigned when someone first acknowledges or changes the state.",
+      ),
+    ).toBeVisible();
+    // Anybody else the rule names, people or teams, in one picker.
+    expect(
+      screen.getByRole("button", { name: /Add people or teams/ }),
+    ).toBeVisible();
+  });
+
+  test("an alert has no incident roles; a monitor's channel gets its owners", async () => {
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      eventType: NotificationRuleEventType.Alert,
+      value: SAVED_RULE,
+    });
+
+    expect(
+      await screen.findByRole("checkbox", { name: ON_CALL_BOX }),
+    ).toBeVisible();
+    expect(screen.getByRole("checkbox", { name: OWNERS_BOX })).toBeVisible();
+    expect(
+      screen.queryByRole("checkbox", { name: ROLES_BOX }),
+    ).not.toBeInTheDocument();
+
+    cleanup();
+
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      eventType: NotificationRuleEventType.Monitor,
+      value: SAVED_RULE,
+    });
+
+    expect(
+      await screen.findByRole("checkbox", { name: OWNERS_BOX }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("checkbox", { name: ON_CALL_BOX }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("checkbox", { name: ROLES_BOX }),
+    ).not.toBeInTheDocument();
+  });
+
+  /*
+   * The customer's rule: "Automatically Invite On Call Users to New Slack
+   * Channel" on, saved before incident roles had a box. It adds the people
+   * given a role too now, so the commander assigned at acknowledgement
+   * joins - and the box says so.
+   */
+  test("the customer's on-call rule shows the incident roles box ticked, as it now acts", async () => {
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      value: {
+        ...SAVED_RULE,
+        shouldAutomaticallyInviteOnCallUsersToNewChannel: true,
+      } as IncidentNotificationRule,
+    });
+
+    expect(
+      await screen.findByRole("checkbox", { name: ON_CALL_BOX }),
+    ).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: ROLES_BOX })).toBeChecked();
+    expect(
+      screen.getByRole("checkbox", { name: OWNERS_BOX }),
+    ).not.toBeChecked();
+    expect(summary()).toContain(
+      "Invites on-call responders as they are paged and the Incident Commander and other incident roles as they are assigned.",
+    );
+  });
+
+  test("a saved rule that invites nobody shows every box empty, and says so", async () => {
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      value: SAVED_RULE,
+    });
+
+    for (const box of [ON_CALL_BOX, ROLES_BOX, OWNERS_BOX]) {
+      expect(
+        await screen.findByRole("checkbox", { name: box }),
+      ).not.toBeChecked();
+    }
+
+    expect(summary()).toContain(
+      "Invites nobody to the channel: add people to it yourself.",
+    );
+  });
+
+  // Once the rule is saved again, it says out loud what it did quietly.
+  test("a change saves the incident roles box as the rule acted on it", async () => {
+    const onChange: MockFunction = await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      value: {
+        ...SAVED_RULE,
+        shouldInviteOwnersToNewChannel: true,
+      } as IncidentNotificationRule,
+    });
+
+    await userEvent.setup({ delay: null }).click(
+      await screen.findByRole("switch", {
+        name: /^Archive the channel when the incident is resolved/,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalled();
+    });
+
+    const changed: IncidentNotificationRule = lastChange(onChange);
+
+    expect(changed.archiveChannelAutomatically).toBe(true);
+    expect(changed.shouldInviteIncidentRolesToNewChannel).toBe(true);
+    expect(changed.shouldInviteOwnersToNewChannel).toBe(true);
+  });
+
+  test("unticking incident roles keeps the commander out, and is saved", async () => {
+    const onChange: MockFunction = await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      value: {
+        ...SAVED_RULE,
+        shouldAutomaticallyInviteOnCallUsersToNewChannel: true,
+        shouldInviteIncidentRolesToNewChannel: true,
+      } as IncidentNotificationRule,
+    });
+
+    await userEvent
+      .setup({ delay: null })
+      .click(await screen.findByRole("checkbox", { name: ROLES_BOX }));
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalled();
+    });
+
+    const changed: IncidentNotificationRule = lastChange(onChange);
+
+    expect(changed.shouldInviteIncidentRolesToNewChannel).toBe(false);
+    expect(changed.shouldAutomaticallyInviteOnCallUsersToNewChannel).toBe(true);
+  });
+
+  /*
+   * Microsoft Teams shows a team's channels to everybody in the team:
+   * OneUptime adds nobody one by one there, so the step says who sees the
+   * channel instead of asking who joins it. Nor can OneUptime archive a
+   * Teams channel, so there is no switch for it.
+   */
+  test("Microsoft Teams: a note in place of the boxes, and no archive switch", async () => {
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      value: {
+        ...SAVED_RULE,
+        teamToCreateChannelIn: "team-ops",
+        archiveChannelAutomatically: true,
+      } as IncidentNotificationRule,
+    });
+
+    expect(await screen.findByTestId("who-joins-teams-note")).toHaveTextContent(
+      "Everyone in the team can open the channel: Microsoft Teams shows a team's channels to all of its members.",
+    );
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+    expect(
+      screen.queryByRole("switch", { name: /^Archive the channel/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Add people or teams/ }),
+    ).not.toBeInTheDocument();
+    // The channel's name as Teams shows it: no #.
+    expect(summary()).toEqual([
+      "Creates a channel like oneuptime-incident-inc-42 for each incident.",
+      "Everyone in Ops can open the channel.",
+    ]);
   });
 });

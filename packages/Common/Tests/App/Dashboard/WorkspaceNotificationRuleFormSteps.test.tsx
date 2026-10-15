@@ -246,13 +246,40 @@ afterEach(() => {
 
 /*
  * The Channel Name Prefix field, found by its label: its placeholder is an
- * example ("e.g. prod-"), not a value.
+ * example ("e.g. prod-"), not a value. Most rules need no prefix, so it is
+ * folded under More fields; this opens the fold first.
  */
 async function prefixField(): Promise<HTMLElement> {
+  const fold: HTMLElement = await within(dialog()).findByRole("button", {
+    name: "More fields",
+  });
+
+  if (fold.getAttribute("aria-expanded") !== "true") {
+    fireEvent.click(fold);
+  }
+
   return within(dialog()).findByRole("textbox", {
     name: /^Channel Name Prefix/,
   });
 }
+
+// What the box under the Destination step says the rule does, a line each.
+function summary(): Array<string> {
+  return within(within(dialog()).getByTestId("notification-rule-summary"))
+    .queryAllByRole("listitem")
+    .map((item: HTMLElement): string => {
+      return item.textContent || "";
+    });
+}
+
+function box(name: RegExp): HTMLElement {
+  return within(dialog()).getByRole("checkbox", { name });
+}
+
+const ON_CALL_BOX: RegExp = /^On-call responders, as they are paged/;
+const ROLES_BOX: RegExp =
+  /^Incident Commander and other incident roles, as they are assigned/;
+const OWNERS_BOX: RegExp = /^Owners, as they are added/;
 
 function dialog(): HTMLElement {
   return screen.getByRole("dialog", { name: "Create Notification Rule" });
@@ -348,7 +375,7 @@ async function toDestination(user: UserEvent): Promise<void> {
   await next(user);
   await waitForStep("Destination");
   await within(dialog()).findByRole("switch", {
-    name: /^Post to Existing Slack Channel/,
+    name: /^Post to existing channels/,
   });
   await settle();
 }
@@ -400,9 +427,16 @@ describe("Create a Slack notification rule for incidents", () => {
 
     await toConditions(user);
 
+    // Which incidents the rule is for, and when that is checked.
+    expect(within(dialog()).getByText("Which incidents")).toBeVisible();
     expect(
-      within(dialog()).getByText("Notify Slack on Incident when..."),
+      within(dialog()).getByText(
+        "Conditions are checked when an incident is created and again each time it changes, so a rule for acknowledged incidents acts when an incident is acknowledged.",
+      ),
     ).toBeVisible();
+    expect(
+      within(dialog()).getByTestId("notification-rule-no-conditions-yet"),
+    ).toHaveTextContent("No conditions: the rule is for every incident.");
     expect(
       within(dialog()).getByRole("button", { name: "Add Condition" }),
     ).toBeVisible();
@@ -410,11 +444,13 @@ describe("Create a Slack notification rule for incidents", () => {
     expect(within(dialog()).queryAllByRole("radio")).toHaveLength(0);
     expect(
       within(dialog()).queryByRole("switch", {
-        name: /^Post to Existing Slack Channel/,
+        name: /^Post to existing channels/,
       }),
     ).not.toBeInTheDocument();
     expect(
-      within(dialog()).queryByRole("switch", { name: /^Create Slack Channel/ }),
+      within(dialog()).queryByRole("switch", {
+        name: /^Create a channel for each incident/,
+      }),
     ).not.toBeInTheDocument();
   });
 
@@ -455,9 +491,9 @@ describe("Create a Slack notification rule for incidents", () => {
 
     await toDestination(user);
 
-    expect(within(dialog()).getByText("Then, in Slack...")).toBeVisible();
-    expect(switchNamed(/^Post to Existing Slack Channel/)).toBeVisible();
-    expect(switchNamed(/^Create Slack Channel/)).toBeVisible();
+    expect(within(dialog()).getByText("Then, in Slack")).toBeVisible();
+    expect(switchNamed(/^Post to existing channels/)).toBeVisible();
+    expect(switchNamed(/^Create a channel for each incident/)).toBeVisible();
     expect(
       within(dialog()).queryByRole("button", { name: "Add Condition" }),
     ).not.toBeInTheDocument();
@@ -501,7 +537,7 @@ describe("Create a Slack notification rule for incidents", () => {
     );
 
     await toDestination(user);
-    await user.click(switchNamed(/^Post to Existing Slack Channel/));
+    await user.click(switchNamed(/^Post to existing channels/));
     await next(user);
 
     expect(
@@ -519,11 +555,9 @@ describe("Create a Slack notification rule for incidents", () => {
     );
 
     await toDestination(user);
-    await user.click(switchNamed(/^Post to Existing Slack Channel/));
+    await user.click(switchNamed(/^Post to existing channels/));
     fireEvent.change(
-      await within(dialog()).findByPlaceholderText(
-        "#channel-name, #general, etc.",
-      ),
+      await within(dialog()).findByPlaceholderText("#incidents, #ops"),
       { target: { value: "#incidents" } },
     );
     await settle();
@@ -553,6 +587,112 @@ describe("Create a Slack notification rule for incidents", () => {
     expect(rule["shouldStartVideoCall"]).toBeUndefined();
     // The Destination and Video Call steps' own keys are form-only: never sent.
     expect(call.miscDataProps).toEqual({});
+    expect(Object.keys(rule)).not.toContain("alsoInviteToNewChannel");
+  });
+
+  /*
+   * A channel the rule creates gets everybody the incident has, each as
+   * they join it: a new rule starts with every box ticked, and is saved so.
+   */
+  test("a new rule's channel gets everyone the incident has, ticked from the start", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toDestination(user);
+
+    // Asked only once the rule creates a channel.
+    expect(
+      within(dialog()).queryByRole("heading", {
+        name: "Who joins the channel",
+      }),
+    ).not.toBeInTheDocument();
+
+    await user.click(switchNamed(/^Create a channel for each incident/));
+    await settle();
+
+    expect(
+      await within(dialog()).findByRole("heading", {
+        name: "Who joins the channel",
+      }),
+    ).toBeVisible();
+    expect(box(ON_CALL_BOX)).toBeChecked();
+    expect(box(ROLES_BOX)).toBeChecked();
+    expect(box(OWNERS_BOX)).toBeChecked();
+
+    await toVideoCall(user);
+    await submit(user);
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const rule: JSONObject = createCall().model
+      .notificationRule as unknown as JSONObject;
+
+    expect(rule["shouldCreateNewChannel"]).toBe(true);
+    expect(rule["shouldAutomaticallyInviteOnCallUsersToNewChannel"]).toBe(true);
+    expect(rule["shouldInviteIncidentRolesToNewChannel"]).toBe(true);
+    expect(rule["shouldInviteOwnersToNewChannel"]).toBe(true);
+  });
+
+  test("the box under the step says what the rule does, as the choices are made", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toDestination(user);
+
+    expect(
+      within(dialog()).getByTestId("notification-rule-summary"),
+    ).toHaveTextContent(
+      "Pick where this rule posts: existing channels, a channel of its own for each one, or both.",
+    );
+
+    await user.click(switchNamed(/^Create a channel for each incident/));
+    await settle();
+
+    expect(summary()).toEqual([
+      "Creates a channel like #inc-42 for each incident.",
+      "Invites on-call responders as they are paged, the Incident Commander and other incident roles as they are assigned and owners as they are added.",
+    ]);
+
+    await user.click(box(OWNERS_BOX));
+    await settle();
+    await user.click(
+      switchNamed(/^Archive the channel when the incident is resolved/),
+    );
+    await settle();
+    await user.click(switchNamed(/^Post to existing channels/));
+    await settle();
+    fireEvent.change(
+      await within(dialog()).findByPlaceholderText("#incidents, #ops"),
+      { target: { value: "#ops" } },
+    );
+    await settle();
+
+    expect(summary()).toEqual([
+      "Creates a channel like #inc-42 for each incident.",
+      "Invites on-call responders as they are paged and the Incident Commander and other incident roles as they are assigned.",
+      "Archives the channel when the incident is resolved.",
+      "Posts updates in #ops.",
+    ]);
+
+    await toVideoCall(user);
+    await submit(user);
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const rule: JSONObject = createCall().model
+      .notificationRule as unknown as JSONObject;
+
+    // What the sentences said is what was saved.
+    expect(rule["shouldInviteOwnersToNewChannel"]).toBe(false);
+    expect(rule["shouldInviteIncidentRolesToNewChannel"]).toBe(true);
+    expect(rule["archiveChannelAutomatically"]).toBe(true);
+    expect(rule["existingChannelNames"]).toBe("#ops");
   });
 
   /*
@@ -597,7 +737,7 @@ describe("Create a Slack notification rule for incidents", () => {
     await next(user);
     await waitForStep("Destination");
     await settle();
-    await user.click(switchNamed(/^Create Slack Channel/));
+    await user.click(switchNamed(/^Create a channel for each incident/));
     fireEvent.change(await prefixField(), {
       target: { value: "oneuptime-incident-" },
     });
@@ -643,7 +783,7 @@ describe("Create a Slack notification rule for incidents", () => {
     await next(user);
     await waitForStep("Destination");
     await settle();
-    await user.click(switchNamed(/^Create Slack Channel/));
+    await user.click(switchNamed(/^Create a channel for each incident/));
     fireEvent.change(await prefixField(), {
       target: { value: "oneuptime-incident-" },
     });
@@ -670,7 +810,7 @@ describe("Create a Slack notification rule for incidents", () => {
     );
 
     await toDestination(user);
-    await user.click(switchNamed(/^Create Slack Channel/));
+    await user.click(switchNamed(/^Create a channel for each incident/));
     fireEvent.change(await prefixField(), {
       target: { value: "oneuptime-incident-" },
     });
@@ -695,7 +835,7 @@ describe("Create a Slack notification rule for incidents", () => {
     );
 
     await toDestination(user);
-    await user.click(switchNamed(/^Create Slack Channel/));
+    await user.click(switchNamed(/^Create a channel for each incident/));
     fireEvent.change(await prefixField(), {
       target: { value: "oneuptime-incident-" },
     });
@@ -739,13 +879,16 @@ describe("Create a Slack notification rule for incidents", () => {
     );
 
     await toDestination(user);
-    await user.click(switchNamed(/^Create Slack Channel/));
+    await user.click(switchNamed(/^Create a channel for each incident/));
     await waitFor(() => {
-      expect(switchNamed(/^Create Slack Channel/)).toHaveAttribute(
-        "aria-checked",
-        "true",
-      );
+      expect(
+        switchNamed(/^Create a channel for each incident/),
+      ).toHaveAttribute("aria-checked", "true");
     });
+    await settle();
+    await user.click(box(OWNERS_BOX));
+    fireEvent.change(await prefixField(), { target: { value: "prod-" } });
+    await settle();
 
     await user.click(within(progress()).getByText("Conditions"));
     await waitForStep("Conditions");
@@ -754,11 +897,16 @@ describe("Create a Slack notification rule for incidents", () => {
 
     expect(
       await within(dialog()).findByRole("switch", {
-        name: /^Create Slack Channel/,
+        name: /^Create a channel for each incident/,
       }),
     ).toHaveAttribute("aria-checked", "true");
     // And its own options with it.
-    expect(await prefixField()).toBeVisible();
+    expect(box(OWNERS_BOX)).not.toBeChecked();
+    expect(box(ON_CALL_BOX)).toBeChecked();
+    expect(await prefixField()).toHaveValue("prod-");
+    expect(summary()[0]).toBe(
+      "Creates a channel like #prod-inc-42 for each incident.",
+    );
   });
 });
 
@@ -776,6 +924,58 @@ describe("Create a Slack notification rule for monitors", () => {
     await renderForm(NotificationRuleEventType.Monitor);
 
     expect(stepTitles()).toEqual(["Basic", "Conditions", "Destination"]);
+  });
+
+  // Nobody is paged for a monitor, and it has no roles: its owners join.
+  test("a monitor's channel gets the monitor's owners", async () => {
+    const user: UserEvent = await renderForm(NotificationRuleEventType.Monitor);
+
+    await toConditions(user);
+
+    expect(within(dialog()).getByText("Which monitors")).toBeVisible();
+    expect(
+      within(dialog()).getByText(
+        "Conditions are checked when a monitor is created and again each time it changes.",
+      ),
+    ).toBeVisible();
+
+    await next(user);
+    await waitForStep("Destination");
+    await settle();
+    await user.click(
+      await within(dialog()).findByRole("switch", {
+        name: /^Create a channel for each monitor/,
+      }),
+    );
+    await settle();
+
+    expect(box(OWNERS_BOX)).toBeChecked();
+    expect(
+      within(dialog()).queryByRole("checkbox", { name: ON_CALL_BOX }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog()).queryByRole("checkbox", { name: ROLES_BOX }),
+    ).not.toBeInTheDocument();
+    expect(summary()).toEqual([
+      "Creates a channel like #website for each monitor.",
+      "Invites owners as they are added.",
+    ]);
+
+    // The last step: its button creates the rule.
+    await submit(user);
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const rule: JSONObject = createCall().model
+      .notificationRule as unknown as JSONObject;
+
+    expect(rule["shouldInviteOwnersToNewChannel"]).toBe(true);
+    expect(rule["shouldAutomaticallyInviteOnCallUsersToNewChannel"]).toBe(
+      undefined,
+    );
+    expect(rule["shouldInviteIncidentRolesToNewChannel"]).toBe(undefined);
   });
 });
 
@@ -808,10 +1008,7 @@ describe("Name the channel a rule creates", () => {
     numberPrefixesAnswer = PREFIXES;
   });
 
-  async function toNewChannel(
-    user: UserEvent,
-    workspaceName: string = "Slack",
-  ): Promise<void> {
+  async function toNewChannel(user: UserEvent): Promise<void> {
     fireEvent.change(screen.getByPlaceholderText(NAME_PLACEHOLDER), {
       target: { value: "Open a channel" },
     });
@@ -824,7 +1021,7 @@ describe("Name the channel a rule creates", () => {
     await settle();
     await user.click(
       await within(dialog()).findByRole("switch", {
-        name: new RegExp(`^Create ${workspaceName} Channel`),
+        name: /^Create a channel for each /,
       }),
     );
     await prefixField();
@@ -1103,7 +1300,7 @@ describe("Name the channel a rule creates", () => {
       WorkspaceType.MicrosoftTeams,
     );
 
-    await toNewChannel(user, "Microsoft Teams");
+    await toNewChannel(user);
 
     expect(preview()).toBe("inc-42");
     expect(previewNotes()).toBe("For incident INC-42.");
