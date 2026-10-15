@@ -140,12 +140,18 @@ describe.each(PRODUCTS)("$name → Settings → Numbering", (product: Product) =
     expect(read(product.sideMenu)).not.toContain("_SETTINGS_NUMBER_PREFIX");
   });
 
-  test("the page draws the Number Prefix card, then the Next Number card under it", () => {
+  test("the page draws its Number Prefix and Next Number cards through NumberingCards", () => {
     const code: string = dense(`${product.page}.tsx`);
 
     expect(code).toContain(
-      `<Fragment><NumberPrefixCardpage={${product.prefixes}}/><NextNumberCardpage={${product.nextNumbers}}/></Fragment>`,
+      `<NumberingCardsprefixes={${product.prefixes}}nextNumbers={${product.nextNumbers}}/>`,
     );
+    expect(code).toContain(
+      'importNumberingCardsfrom"../../../Components/NextNumber/NumberingCards";',
+    );
+    // Never a card of its own beside them, out of step with the other.
+    expect(code).not.toContain("<NumberPrefixCard");
+    expect(code).not.toContain("<NextNumberCard");
   });
 
   test("the page is mounted with its own pageRoute", () => {
@@ -206,6 +212,32 @@ describe.each(PRODUCTS)("$name → Settings → Numbering", (product: Product) =
 
     expect(dense(product.breadcrumbs)).toContain(
       `...BuildBreadcrumbLinksByTitles(PageMap.${product.pageKey},[${crumbs}`,
+    );
+  });
+});
+
+/*
+ * Each Numbering page is the Number Prefix card, then the Next Number card
+ * under it. The Next Number card shows every number with its prefix, so a
+ * prefix saved above reads the numbers again: INC-2346 becomes OPS-2346 at
+ * once, not after a reload. NextNumberCard.test.tsx saves a prefix on each
+ * real page and watches the next number change.
+ */
+describe("the Numbering page's two cards", () => {
+  test("are the Number Prefix card, then the Next Number card, which reads the numbers again when the prefixes are saved", () => {
+    const code: string = dense("Components/NextNumber/NumberingCards.tsx");
+
+    expect(code).toContain(
+      "<Fragment><NumberPrefixCardpage={props.prefixes}onSaveSuccess={()=>{setPrefixSaves((count:number):number=>{returncount+1;});}}/><NextNumberCardpage={props.nextNumbers}refreshToken={prefixSaves}/></Fragment>",
+    );
+  });
+
+  test("the Number Prefix card reports its saves, and the Next Number card reads again on each", () => {
+    expect(dense("Components/NumberPrefix/NumberPrefixCard.tsx")).toContain(
+      "onSaveSuccess={()=>{props.onSaveSuccess?.();}}",
+    );
+    expect(dense("Components/NextNumber/NextNumberCard.tsx")).toContain(
+      "useEffect(()=>{voidload();},[props.refreshToken]);",
     );
   });
 });

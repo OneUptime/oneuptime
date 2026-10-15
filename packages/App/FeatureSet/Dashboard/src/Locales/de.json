@@ -29684,7 +29684,7 @@
   "Alert Episode Numbers Start At": "Nummern der Warnungsepisoden beginnen bei",
   "Alert Numbers Start At": "Warnungsnummern beginnen bei",
   "Edit Next Number": "Nächste Nummer bearbeiten",
-  "Highest so far:": "Bisher höchste:",
+  "Highest so far:": "Bisher höchste Nummer:",
   "Incident Episode Numbers Start At": "Nummern der Vorfallsepisoden beginnen bei",
   "Incident Numbers Start At": "Vorfallnummern beginnen bei",
   "Must be higher than {{highestNumber}}, the highest used so far.": "Muss höher sein als {{highestNumber}}, die bisher höchste.",
@@ -29707,5 +29707,9 @@
   "Use a number higher than {{highestNumber}}.": "Verwenden Sie eine Nummer höher als {{highestNumber}}.",
   "Use a number no higher than 1,000,000,000.": "Verwenden Sie eine Nummer bis höchstens 1.000.000.000.",
   "Use a number of 1 or more.": "Verwenden Sie eine Nummer ab 1.",
-  "Use a whole number, like 1000.": "Verwenden Sie eine ganze Zahl, etwa 1000."
+  "Use a whole number, like 1000.": "Verwenden Sie eine ganze Zahl, etwa 1000.",
+  "{{field}}: the highest number used is now {{highestNumber}}. Use a number higher than {{highestNumber}}.": "{{field}}: Die höchste vergebene Nummer ist jetzt {{highestNumber}}. Verwenden Sie eine Nummer höher als {{highestNumber}}.",
+  "Carry on your incident numbers": "Ihre Vorfallnummern fortsetzen",
+  "If your team refers to incidents by number, start OneUptime's after your last one in {{tool}}: set Next Incident Number to one past it. A number then never means two different incidents.": "Wenn Ihr Team Vorfälle bei ihrer Nummer nennt, lassen Sie die Nummern von OneUptime nach Ihrer letzten in {{tool}} beginnen: Setzen Sie die Nächste Vorfallnummer auf die Nummer danach. Eine Nummer bezeichnet dann nie zwei verschiedene Vorfälle.",
+  "Open Incident Numbering": "Vorfallnummerierung öffnen"
 }

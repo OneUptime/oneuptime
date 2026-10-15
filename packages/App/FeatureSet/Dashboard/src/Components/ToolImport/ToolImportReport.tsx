@@ -442,6 +442,26 @@ const FinishTheSwitch: FunctionComponent<{
               ),
             },
           },
+          /*
+           * The import brings the setup over, not past incidents, so it
+           * leaves the numbers alone: a team that says "INC-2345" carries
+           * on after it, before its first incident is declared here.
+           */
+          {
+            title: translator.translateTemplate(
+              "Carry on your incident numbers",
+            ),
+            description: translator.translateTemplate(
+              "If your team refers to incidents by number, start OneUptime's after your last one in {{tool}}: set Next Incident Number to one past it. A number then never means two different incidents.",
+              toolValues,
+            ),
+            link: {
+              title: translator.translateTemplate("Open Incident Numbering"),
+              route: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.INCIDENTS_SETTINGS_NUMBERING] as Route,
+              ),
+            },
+          },
           {
             title: translator.translateTemplate(
               "Send your alerts to OneUptime",

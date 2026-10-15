@@ -1,9 +1,8 @@
 import PageComponentProps from "../../PageComponentProps";
-import NextNumberCard from "../../../Components/NextNumber/NextNumberCard";
 import { ALERT_NEXT_NUMBERS } from "../../../Components/NextNumber/NextNumberSettings";
-import NumberPrefixCard from "../../../Components/NumberPrefix/NumberPrefixCard";
+import NumberingCards from "../../../Components/NextNumber/NumberingCards";
 import { ALERT_NUMBER_PREFIXES } from "../../../Components/NumberPrefix/NumberPrefixSettings";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 
 export type ComponentProps = PageComponentProps;
 
@@ -18,10 +17,10 @@ const AlertNumbering: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,
 ): ReactElement => {
   return (
-    <Fragment>
-      <NumberPrefixCard page={ALERT_NUMBER_PREFIXES} />
-      <NextNumberCard page={ALERT_NEXT_NUMBERS} />
-    </Fragment>
+    <NumberingCards
+      prefixes={ALERT_NUMBER_PREFIXES}
+      nextNumbers={ALERT_NEXT_NUMBERS}
+    />
   );
 };
 

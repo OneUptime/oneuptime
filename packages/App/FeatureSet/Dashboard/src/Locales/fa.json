@@ -29707,5 +29707,9 @@
   "Use a number higher than {{highestNumber}}.": "شماره‌ای بیشتر از {{highestNumber}} به کار ببرید.",
   "Use a number no higher than 1,000,000,000.": "شماره‌ای حداکثر 1,000,000,000 به کار ببرید.",
   "Use a number of 1 or more.": "شماره‌ای از 1 به بالا به کار ببرید.",
-  "Use a whole number, like 1000.": "یک عدد صحیح به کار ببرید، مانند 1000."
+  "Use a whole number, like 1000.": "یک عدد صحیح به کار ببرید، مانند 1000.",
+  "{{field}}: the highest number used is now {{highestNumber}}. Use a number higher than {{highestNumber}}.": "{{field}}: بیشترین شماره به کار رفته اکنون {{highestNumber}} است. شماره‌ای بیشتر از {{highestNumber}} به کار ببرید.",
+  "Carry on your incident numbers": "شماره‌های حادثه خود را ادامه دهید",
+  "If your team refers to incidents by number, start OneUptime's after your last one in {{tool}}: set Next Incident Number to one past it. A number then never means two different incidents.": "اگر تیم شما حادثه‌ها را با شماره‌شان می‌شناسد، شماره‌های OneUptime را پس از آخرین شماره خود در {{tool}} آغاز کنید: شماره بعدی حادثه را یکی بیشتر از آن بگذارید. آن‌گاه یک شماره هرگز به دو حادثه متفاوت اشاره نمی‌کند.",
+  "Open Incident Numbering": "باز کردن شماره‌گذاری حادثه‌ها"
 }

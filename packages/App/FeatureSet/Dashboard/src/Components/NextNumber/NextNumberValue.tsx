@@ -11,9 +11,14 @@ import React, { FunctionComponent, ReactElement } from "react";
  * next record gets, with its prefix - built by the same function the server
  * numbers records with, so it is what people will see - then the highest
  * number used so far, or that none has been: "INC-2346   Highest so far:
- * INC-2345". The same chip, label and value as the Number Prefix card's
- * rows above it ("INC-   Example: INC-42"): a label and its value, never a
+ * 2345". The same chip, label and value as the Number Prefix card's rows
+ * above it ("INC-   Example: INC-42"): a label and its value, never a
  * sentence glued together, so it reads the same in every language.
+ *
+ * The highest is the bare number, as the dialog says what a next number
+ * must be higher than. A record keeps the prefix it was numbered with, so
+ * after a prefix change the highest was given out under the old one: with
+ * today's prefix in front it would name a record that does not exist.
  *
  * font-mono sits on each element that holds code text itself: index.ejs
  * gives every element Inter (`* { font-family }`), which beats a font
@@ -53,10 +58,7 @@ export const NextNumberValue: FunctionComponent<NextNumberValueProps> = (
             data-testid="next-number-highest"
             className="font-mono text-sm text-gray-900"
           >
-            {NumberPrefixUtil.formatNumber(
-              props.numbering.prefix,
-              props.numbering.highestNumber,
-            )}
+            {String(props.numbering.highestNumber)}
           </span>
         </>
       ) : (

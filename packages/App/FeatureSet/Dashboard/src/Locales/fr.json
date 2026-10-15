@@ -29707,5 +29707,9 @@
   "Use a number higher than {{highestNumber}}.": "Utilisez un numéro supérieur à {{highestNumber}}.",
   "Use a number no higher than 1,000,000,000.": "Utilisez un numéro inférieur ou égal à 1 000 000 000.",
   "Use a number of 1 or more.": "Utilisez un numéro supérieur ou égal à 1.",
-  "Use a whole number, like 1000.": "Utilisez un nombre entier, par exemple 1000."
+  "Use a whole number, like 1000.": "Utilisez un nombre entier, par exemple 1000.",
+  "{{field}}: the highest number used is now {{highestNumber}}. Use a number higher than {{highestNumber}}.": "{{field}} : le numéro le plus élevé utilisé est désormais {{highestNumber}}. Utilisez un numéro supérieur à {{highestNumber}}.",
+  "Carry on your incident numbers": "Poursuivre vos numéros d'incident",
+  "If your team refers to incidents by number, start OneUptime's after your last one in {{tool}}: set Next Incident Number to one past it. A number then never means two different incidents.": "Si votre équipe désigne les incidents par leur numéro, faites commencer ceux de OneUptime après votre dernier dans {{tool}} : réglez Prochain numéro d'incident au numéro qui le suit. Un numéro ne désigne alors jamais deux incidents différents.",
+  "Open Incident Numbering": "Ouvrir la numérotation des incidents"
 }

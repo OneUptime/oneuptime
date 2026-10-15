@@ -4,13 +4,16 @@ import {
   NEXT_NUMBER_CARD_TITLE,
   NEXT_NUMBER_EDIT_BUTTON_TITLE,
   NEXT_NUMBER_EDIT_MODAL_TITLE,
+  NUMBER_TAKEN_MEANWHILE_TEMPLATE,
   NextNumberPage,
   NextNumberRow,
+  NumberTakenMeanwhile,
   NumberingByKind,
   getNextNumberChanges,
   getNextNumberColumns,
   getNextNumberFormValues,
   getNumberingByKind,
+  getNumbersTakenMeanwhile,
   getStartsAtColumn,
 } from "./NextNumberSettings";
 import { NextNumberPreview, NextNumberValue } from "./NextNumberValue";
@@ -39,7 +42,10 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  translatableTerm,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import SelectFormFields from "Common/UI/Types/SelectEntityField";
 import NextNumberUtil, {
@@ -55,6 +61,12 @@ import React, {
 
 export interface ComponentProps {
   page: NextNumberPage;
+  /*
+   * The numbers are read again when it changes, keeping the ones on screen
+   * until they arrive: the Numbering page bumps it when the prefixes above
+   * are saved, since every number here is shown with its prefix.
+   */
+  refreshToken?: number | undefined;
 }
 
 /*
@@ -82,28 +94,33 @@ const NextNumberCard: FunctionComponent<ComponentProps> = (
 
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-  const load: () => Promise<void> = async (): Promise<void> => {
-    if (!projectId) {
-      return;
-    }
+  // Reads the numbers, and hands back what it read: null when it could not.
+  const load: () => Promise<NumberingByKind | null> =
+    async (): Promise<NumberingByKind | null> => {
+      if (!projectId) {
+        return null;
+      }
 
-    setIsLoading(true);
-    setLoadError("");
+      setIsLoading(true);
+      setLoadError("");
 
-    try {
-      setNumbering(
-        getNumberingByKind(await NumberingAPI.getNumbering(projectId)),
-      );
-    } catch (error) {
-      setLoadError(API.getFriendlyMessage(error));
-    }
+      let loaded: NumberingByKind | null = null;
 
-    setIsLoading(false);
-  };
+      try {
+        loaded = getNumberingByKind(await NumberingAPI.getNumbering(projectId));
+        setNumbering(loaded);
+      } catch (error) {
+        setLoadError(API.getFriendlyMessage(error));
+      }
+
+      setIsLoading(false);
+
+      return loaded;
+    };
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [props.refreshToken]);
 
   /*
    * The starts take Project Owner, Project Admin or Edit Project, as the
@@ -239,13 +256,37 @@ const NextNumberCard: FunctionComponent<ComponentProps> = (
       setShowModal(false);
       await load();
     } catch (error) {
-      setSaveError(API.getFriendlyMessage(error));
-
       /*
        * Most often a record took the number meanwhile: read the numbers
-       * again, so each field says what it must be higher than now.
+       * again, so each field says what it must be higher than now, and say
+       * so in the dialog's words - the server's names the API column.
+       * Anything else is the server's own answer.
        */
-      await load();
+      const reloaded: NumberingByKind | null = await load();
+
+      const taken: Array<NumberTakenMeanwhile> = reloaded
+        ? getNumbersTakenMeanwhile({
+            page: props.page,
+            sent: changes,
+            numbering: reloaded,
+          })
+        : [];
+
+      setSaveError(
+        taken.length > 0
+          ? taken
+              .map((takenNumber: NumberTakenMeanwhile): string => {
+                return translator.translateTemplate(
+                  NUMBER_TAKEN_MEANWHILE_TEMPLATE,
+                  {
+                    field: translatableTerm(takenNumber.row.formTitle),
+                    highestNumber: String(takenNumber.highestNumber),
+                  },
+                );
+              })
+              .join(" ")
+          : API.getFriendlyMessage(error),
+      );
     }
 
     setIsSaving(false);
@@ -278,7 +319,6 @@ const NextNumberCard: FunctionComponent<ComponentProps> = (
               id={`next-number-detail-${props.page.name}`}
               item={numbering}
               fields={detailFields}
-              showRecordLine={false}
             />
           ) : (
             <></>

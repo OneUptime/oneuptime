@@ -29707,5 +29707,9 @@
   "Use a number higher than {{highestNumber}}.": "Укажите номер больше {{highestNumber}}.",
   "Use a number no higher than 1,000,000,000.": "Укажите номер не больше 1 000 000 000.",
   "Use a number of 1 or more.": "Укажите номер от 1.",
-  "Use a whole number, like 1000.": "Укажите целое число, например 1000."
+  "Use a whole number, like 1000.": "Укажите целое число, например 1000.",
+  "{{field}}: the highest number used is now {{highestNumber}}. Use a number higher than {{highestNumber}}.": "{{field}}: наибольший использованный номер теперь {{highestNumber}}. Укажите номер больше {{highestNumber}}.",
+  "Carry on your incident numbers": "Продолжите нумерацию инцидентов",
+  "If your team refers to incidents by number, start OneUptime's after your last one in {{tool}}: set Next Incident Number to one past it. A number then never means two different incidents.": "Если ваша команда называет инциденты по номерам, начните номера OneUptime после вашего последнего в {{tool}}: укажите в поле «Следующий номер инцидента» номер, следующий за ним. Тогда один номер никогда не обозначает два разных инцидента.",
+  "Open Incident Numbering": "Открыть нумерацию инцидентов"
 }

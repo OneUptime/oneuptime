@@ -1,9 +1,8 @@
 import PageComponentProps from "../../PageComponentProps";
-import NextNumberCard from "../../../Components/NextNumber/NextNumberCard";
 import { SCHEDULED_MAINTENANCE_NEXT_NUMBERS } from "../../../Components/NextNumber/NextNumberSettings";
-import NumberPrefixCard from "../../../Components/NumberPrefix/NumberPrefixCard";
+import NumberingCards from "../../../Components/NextNumber/NumberingCards";
 import { SCHEDULED_MAINTENANCE_NUMBER_PREFIXES } from "../../../Components/NumberPrefix/NumberPrefixSettings";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 
 export type ComponentProps = PageComponentProps;
 
@@ -18,10 +17,10 @@ const ScheduledMaintenanceNumbering: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,
 ): ReactElement => {
   return (
-    <Fragment>
-      <NumberPrefixCard page={SCHEDULED_MAINTENANCE_NUMBER_PREFIXES} />
-      <NextNumberCard page={SCHEDULED_MAINTENANCE_NEXT_NUMBERS} />
-    </Fragment>
+    <NumberingCards
+      prefixes={SCHEDULED_MAINTENANCE_NUMBER_PREFIXES}
+      nextNumbers={SCHEDULED_MAINTENANCE_NEXT_NUMBERS}
+    />
   );
 };
 

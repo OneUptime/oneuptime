@@ -29707,5 +29707,9 @@
   "Use a number higher than {{highestNumber}}.": "{{highestNumber}} より大きい番号を入力してください。",
   "Use a number no higher than 1,000,000,000.": "1,000,000,000 以下の番号を入力してください。",
   "Use a number of 1 or more.": "1 以上の番号を入力してください。",
-  "Use a whole number, like 1000.": "1000 のような整数を入力してください。"
+  "Use a whole number, like 1000.": "1000 のような整数を入力してください。",
+  "{{field}}: the highest number used is now {{highestNumber}}. Use a number higher than {{highestNumber}}.": "{{field}}: これまでの最大の番号が {{highestNumber}} になりました。{{highestNumber}} より大きい番号を入力してください。",
+  "Carry on your incident numbers": "インシデント番号を引き継ぐ",
+  "If your team refers to incidents by number, start OneUptime's after your last one in {{tool}}: set Next Incident Number to one past it. A number then never means two different incidents.": "チームがインシデントを番号で呼んでいるなら、OneUptime の番号を {{tool}} での最後の番号の次から始めましょう。次のインシデント番号をその次の番号に設定します。これで、同じ番号が 2 つの異なるインシデントを指すことはなくなります。",
+  "Open Incident Numbering": "インシデントの採番を開く"
 }

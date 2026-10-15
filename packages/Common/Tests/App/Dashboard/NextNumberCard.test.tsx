@@ -34,6 +34,7 @@ import {
   NEXT_NUMBER_PAGES,
   NEXT_NUMBER_PROBLEM_MESSAGES,
   NONE_USED_YET,
+  NUMBER_TAKEN_MEANWHILE_TEMPLATE,
   NextNumberPage,
   NextNumberRow,
   SCHEDULED_MAINTENANCE_NEXT_NUMBERS,
@@ -41,6 +42,7 @@ import {
   getNextNumberColumns,
   getNextNumberFormValues,
   getNumberingByKind,
+  getNumbersTakenMeanwhile,
   getStartsAtColumn,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NextNumber/NextNumberSettings";
 import NumberingAPI from "../../../../App/FeatureSet/Dashboard/src/Components/NextNumber/NumberingAPI";
@@ -124,13 +126,13 @@ const PAGES: Array<PageUnderTest> = [
         kind: NumberedRecordKind.Incident,
         label: "Incidents",
         next: "INC-2346",
-        highest: "INC-2345",
+        highest: "2345",
       },
       {
         kind: NumberedRecordKind.IncidentEpisode,
         label: "Incident Episodes",
         next: "IE-13",
-        highest: "IE-12",
+        highest: "12",
       },
     ],
   },
@@ -144,13 +146,13 @@ const PAGES: Array<PageUnderTest> = [
         kind: NumberedRecordKind.Alert,
         label: "Alerts",
         next: "ALT-48211",
-        highest: "ALT-48210",
+        highest: "48210",
       },
       {
         kind: NumberedRecordKind.AlertEpisode,
         label: "Alert Episodes",
         next: "AE-311",
-        highest: "AE-310",
+        highest: "310",
       },
     ],
   },
@@ -164,7 +166,7 @@ const PAGES: Array<PageUnderTest> = [
         kind: NumberedRecordKind.ScheduledMaintenance,
         label: "Events",
         next: "SM-58",
-        highest: "SM-57",
+        highest: "57",
       },
     ],
   },
@@ -684,7 +686,7 @@ describe.each(PAGES)(
 
       expect(await rowShows(first)).toEqual([
         "#2346",
-        `${HIGHEST_SO_FAR_LABEL} #2345`,
+        `${HIGHEST_SO_FAR_LABEL} 2345`,
       ]);
     });
 
@@ -694,8 +696,27 @@ describe.each(PAGES)(
 
       expect(await rowShows(first)).toEqual([
         "OPS-10000",
-        `${HIGHEST_SO_FAR_LABEL} OPS-2345`,
+        `${HIGHEST_SO_FAR_LABEL} 2345`,
       ]);
+    });
+
+    test("the highest is the bare number: a record keeps the prefix it was numbered with", async () => {
+      /*
+       * After INC- became OPS-, the highest record is still INC-2345: with
+       * today's prefix in front, it would name OPS-2345, which no record is.
+       */
+      setEntry(entry(first, "OPS-", 2345));
+      openPage(under);
+
+      const element: HTMLElement = await row(first);
+
+      expect(within(element).getByTestId("next-number-value").textContent).toBe(
+        "OPS-2346",
+      );
+      expect(
+        within(element).getByTestId("next-number-highest").textContent,
+      ).toBe("2345");
+      expect(element.textContent).not.toContain("OPS-2345");
     });
 
     test("draws the numbers in monospace, on the elements that hold them", async () => {
@@ -1001,7 +1022,14 @@ describe.each(PAGES)(
 describe("when the server refuses a number", () => {
   const under: PageUnderTest = PAGES[0]!;
 
-  test("the dialog stays open, says why, keeps what was typed, and reads the numbers again", async () => {
+  const TAKEN_INCIDENT_NUMBER: string = NUMBER_TAKEN_MEANWHILE_TEMPLATE.replace(
+    "{{field}}",
+    "Next Incident Number",
+  )
+    .split("{{highestNumber}}")
+    .join("2400");
+
+  test("the dialog stays open, says why in its own words, keeps what was typed, and reads the numbers again", async () => {
     updateAnswer = "refuse";
     openPage(under);
 
@@ -1009,13 +1037,23 @@ describe("when the server refuses a number", () => {
     type(await field(dialog, NumberedRecordKind.Incident), "2400");
     submit(dialog);
 
+    // The field's own title, never the API column the server names.
     expect(
       await screen.findByText(
-        "Incident Numbers Start At must be higher than 2400, the highest incident number used so far. A number is never used twice.",
+        "Next Incident Number: the highest number used is now 2400. Use a number higher than 2400.",
         {},
         { timeout: WAIT_TIMEOUT },
       ),
     ).toBeInTheDocument();
+    expect(TAKEN_INCIDENT_NUMBER).toBe(
+      "Next Incident Number: the highest number used is now 2400. Use a number higher than 2400.",
+    );
+    expect(
+      screen.queryByText(/Incident Numbers Start At/),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole("dialog")).getByTestId("modal-error"),
+    ).toHaveTextContent(TAKEN_INCIDENT_NUMBER);
 
     const open: HTMLElement = screen.getByRole("dialog");
     const input: HTMLInputElement = await field(
@@ -1040,6 +1078,280 @@ describe("when the server refuses a number", () => {
     ).toBeInTheDocument();
     expect(numberingReads()).toBe(2);
   });
+
+  test("names every number records reached, each by its own field", async () => {
+    updateSpy.mockImplementation((async (): Promise<unknown> => {
+      setEntry(entry(NumberedRecordKind.Incident, "INC-", 2400));
+      setEntry(entry(NumberedRecordKind.IncidentEpisode, "IE-", 40));
+      throw new HTTPErrorResponse(
+        400,
+        {
+          message:
+            "Incident Numbers Start At must be higher than 2400, the highest incident number used so far. A number is never used twice.",
+        },
+        {},
+      );
+    }) as never);
+    openPage(under);
+
+    const dialog: HTMLElement = await openDialog();
+    type(await field(dialog, NumberedRecordKind.Incident), "2400");
+    type(await field(dialog, NumberedRecordKind.IncidentEpisode), "30");
+    submit(dialog);
+
+    const error: HTMLElement = await screen.findByTestId(
+      "modal-error",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    await waitFor(
+      () => {
+        expect(error).toHaveTextContent(
+          "Next Incident Number: the highest number used is now 2400. Use a number higher than 2400. Next Incident Episode Number: the highest number used is now 40. Use a number higher than 40.",
+        );
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+  });
+
+  test("a number left as it was is not named, though records moved on", async () => {
+    updateSpy.mockImplementation((async (): Promise<unknown> => {
+      setEntry(entry(NumberedRecordKind.Incident, "INC-", 2400));
+      // Episodes moved on too, but their number was not sent.
+      setEntry(entry(NumberedRecordKind.IncidentEpisode, "IE-", 99));
+      throw new HTTPErrorResponse(
+        400,
+        { message: "Incident Numbers Start At must be higher than 2400." },
+        {},
+      );
+    }) as never);
+    openPage(under);
+
+    const dialog: HTMLElement = await openDialog();
+    type(await field(dialog, NumberedRecordKind.Incident), "2400");
+    submit(dialog);
+
+    const error: HTMLElement = await screen.findByTestId(
+      "modal-error",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    await waitFor(
+      () => {
+        expect(error).toHaveTextContent(TAKEN_INCIDENT_NUMBER);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(error).not.toHaveTextContent("Next Incident Episode Number");
+  });
+
+  test("a refusal for anything else shows the server's own answer", async () => {
+    updateSpy.mockImplementation((async (): Promise<unknown> => {
+      throw new HTTPErrorResponse(
+        400,
+        { message: "You do not have permission to change this project." },
+        {},
+      );
+    }) as never);
+    openPage(under);
+
+    const dialog: HTMLElement = await openDialog();
+    type(await field(dialog, NumberedRecordKind.Incident), "10000");
+    submit(dialog);
+
+    expect(
+      await screen.findByText(
+        "You do not have permission to change this project.",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      ),
+    ).toBeInTheDocument();
+
+    // The typed number is still there, and still previewed.
+    const open: HTMLElement = screen.getByRole("dialog");
+    await waitFor(
+      async () => {
+        expect((await field(open, NumberedRecordKind.Incident)).value).toBe(
+          "10000",
+        );
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    await waitForPreview(open, NumberedRecordKind.Incident, "INC-10000");
+  });
+
+  test("when the numbers cannot be read again, the server's answer is shown", async () => {
+    updateSpy.mockImplementation((async (): Promise<unknown> => {
+      numberingAnswer = "error";
+      throw new HTTPErrorResponse(
+        400,
+        {
+          message:
+            "Incident Numbers Start At must be higher than 2400, the highest incident number used so far. A number is never used twice.",
+        },
+        {},
+      );
+    }) as never);
+    openPage(under);
+
+    const dialog: HTMLElement = await openDialog();
+    type(await field(dialog, NumberedRecordKind.Incident), "2400");
+    submit(dialog);
+
+    expect(
+      await screen.findByText(
+        "Incident Numbers Start At must be higher than 2400, the highest incident number used so far. A number is never used twice.",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      ),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("getNumbersTakenMeanwhile", () => {
+  const byKind: (
+    ...entries: Array<RecordNumbering>
+  ) => Partial<Record<NumberedRecordKind, RecordNumbering>> = (
+    ...entries: Array<RecordNumbering>
+  ): Partial<Record<NumberedRecordKind, RecordNumbering>> => {
+    return getNumberingByKind(entries);
+  };
+
+  test("names each sent number that records have reached, with the highest now", () => {
+    expect(
+      getNumbersTakenMeanwhile({
+        page: INCIDENT_NEXT_NUMBERS,
+        sent: {
+          incidentNumbersStartAt: 2400,
+          incidentEpisodeNumbersStartAt: 30,
+        },
+        numbering: byKind(
+          entry(NumberedRecordKind.Incident, "INC-", 2401),
+          entry(NumberedRecordKind.IncidentEpisode, "IE-", 30),
+        ),
+      }),
+    ).toEqual([
+      { row: INCIDENT_NEXT_NUMBERS.rows[0], highestNumber: 2401 },
+      { row: INCIDENT_NEXT_NUMBERS.rows[1], highestNumber: 30 },
+    ]);
+  });
+
+  test("leaves out a number still above the highest, and one that was not sent", () => {
+    expect(
+      getNumbersTakenMeanwhile({
+        page: INCIDENT_NEXT_NUMBERS,
+        sent: { incidentNumbersStartAt: 2400 },
+        numbering: byKind(
+          entry(NumberedRecordKind.Incident, "INC-", 2399),
+          entry(NumberedRecordKind.IncidentEpisode, "IE-", 500),
+        ),
+      }),
+    ).toEqual([]);
+  });
+
+  test("reads only the page's own kinds, and needs the numbers read again", () => {
+    expect(
+      getNumbersTakenMeanwhile({
+        page: ALERT_NEXT_NUMBERS,
+        sent: { incidentNumbersStartAt: 1, alertNumbersStartAt: 7 },
+        numbering: byKind(
+          entry(NumberedRecordKind.Incident, "INC-", 50),
+          entry(NumberedRecordKind.Alert, "ALT-", 7),
+        ),
+      }),
+    ).toEqual([{ row: ALERT_NEXT_NUMBERS.rows[0], highestNumber: 7 }]);
+
+    expect(
+      getNumbersTakenMeanwhile({
+        page: SCHEDULED_MAINTENANCE_NEXT_NUMBERS,
+        sent: { scheduledMaintenanceNumbersStartAt: 7 },
+        numbering: byKind(),
+      }),
+    ).toEqual([]);
+  });
+});
+
+/*
+ * The Next Number card shows each number with its prefix, so a saved prefix
+ * shows there at once: the page reads the numbers again.
+ */
+describe("the prefixes and the next numbers stay in step", () => {
+  test.each(PAGES)(
+    "$name: saving the prefixes reads the numbers again, so each shows its new prefix",
+    async (under: PageUnderTest) => {
+      const kind: NumberedRecordKind = under.rows[0]!.kind;
+      const prefixColumn: string =
+        NextNumberUtil.getKindInfo(kind).prefixColumn;
+
+      const createOrUpdateSpy: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(ModelAPI, "createOrUpdate")
+        .mockImplementation((async (options: {
+          model: Project;
+        }): Promise<unknown> => {
+          // The server stores the prefix; its numbering route answers with it.
+          const saved: unknown = (
+            options.model as unknown as Record<string, unknown>
+          )[prefixColumn];
+          const current: RecordNumbering = numbering.find(
+            (candidate: RecordNumbering): boolean => {
+              return candidate.kind === kind;
+            },
+          )!;
+          setEntry({ ...current, prefix: (saved as string) || null });
+          return { data: {} };
+        }) as never);
+
+      openPage(under);
+      expect((await rowShows(kind))[0]).toBe(under.rows[0]!.next);
+      expect(numberingReads()).toBe(1);
+
+      // The Number Prefix card, above.
+      const prefixCard: HTMLElement = (
+        await screen.findByText("Number Prefix", {}, { timeout: WAIT_TIMEOUT })
+      ).closest('[data-testid="card"]') as HTMLElement;
+      fireEvent.click(
+        (
+          await within(prefixCard).findByText(
+            "Update",
+            {},
+            { timeout: WAIT_TIMEOUT },
+          )
+        ).closest("button") as HTMLElement,
+      );
+
+      const dialog: HTMLElement = await screen.findByRole(
+        "dialog",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      );
+      const input: HTMLInputElement = (await within(dialog).findByTestId(
+        `number-prefix-field-${prefixColumn}`,
+        {},
+        { timeout: WAIT_TIMEOUT },
+      )) as HTMLInputElement;
+      type(input, "OPS-");
+      submit(dialog);
+
+      await waitFor(
+        () => {
+          expect(createOrUpdateSpy).toHaveBeenCalledTimes(1);
+        },
+        { timeout: WAIT_TIMEOUT },
+      );
+
+      const number: string = under.rows[0]!.next.split("-").pop()!;
+
+      await waitFor(
+        async () => {
+          expect((await rowShows(kind))[0]).toBe(`OPS-${number}`);
+        },
+        { timeout: WAIT_TIMEOUT },
+      );
+      expect(numberingReads()).toBe(2);
+    },
+  );
 });
 
 describe("who may change the next numbers", () => {
@@ -1168,6 +1480,7 @@ describe("translations", () => {
     NONE_USED_YET,
     HIGHER_THAN_HIGHEST_TEMPLATE,
     ANY_NUMBER_FROM_ONE,
+    NUMBER_TAKEN_MEANWHILE_TEMPLATE,
     ...NEXT_NUMBER_PROBLEM_MESSAGES,
     ...NEXT_NUMBER_PAGES.flatMap((page: NextNumberPage): Array<string> => {
       return [
@@ -1203,6 +1516,7 @@ describe("translations", () => {
       for (const text of [
         HIGHER_THAN_HIGHEST_TEMPLATE,
         NEXT_NUMBER_PROBLEM_MESSAGES[3]!,
+        NUMBER_TAKEN_MEANWHILE_TEMPLATE,
       ]) {
         expect({
           file,
@@ -1210,6 +1524,14 @@ describe("translations", () => {
           kept: locale(file)[text]!.includes("{{highestNumber}}"),
         }).toEqual({ file, text, kept: true });
       }
+
+      // The refused save names the field it is about.
+      expect({
+        file,
+        kept: locale(file)[NUMBER_TAKEN_MEANWHILE_TEMPLATE]!.includes(
+          "{{field}}",
+        ),
+      }).toEqual({ file, kept: true });
     }
   });
 });

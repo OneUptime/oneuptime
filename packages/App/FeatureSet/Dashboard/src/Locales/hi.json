@@ -29684,7 +29684,7 @@
   "Alert Episode Numbers Start At": "अलर्ट एपिसोड संख्याओं की शुरुआत",
   "Alert Numbers Start At": "अलर्ट संख्याओं की शुरुआत",
   "Edit Next Number": "अगली संख्या संपादित करें",
-  "Highest so far:": "अब तक की सबसे बड़ी:",
+  "Highest so far:": "अब तक की सबसे बड़ी संख्या:",
   "Incident Episode Numbers Start At": "घटना एपिसोड संख्याओं की शुरुआत",
   "Incident Numbers Start At": "घटना संख्याओं की शुरुआत",
   "Must be higher than {{highestNumber}}, the highest used so far.": "{{highestNumber}} से बड़ी होनी चाहिए, जो अब तक की सबसे बड़ी है।",
@@ -29707,5 +29707,9 @@
   "Use a number higher than {{highestNumber}}.": "{{highestNumber}} से बड़ी संख्या इस्तेमाल करें।",
   "Use a number no higher than 1,000,000,000.": "1,000,000,000 से अधिक न होने वाली संख्या इस्तेमाल करें।",
   "Use a number of 1 or more.": "1 या उससे बड़ी संख्या इस्तेमाल करें।",
-  "Use a whole number, like 1000.": "पूर्ण संख्या इस्तेमाल करें, जैसे 1000।"
+  "Use a whole number, like 1000.": "पूर्ण संख्या इस्तेमाल करें, जैसे 1000।",
+  "{{field}}: the highest number used is now {{highestNumber}}. Use a number higher than {{highestNumber}}.": "{{field}}: अब तक इस्तेमाल हुई सबसे बड़ी संख्या अब {{highestNumber}} है। {{highestNumber}} से बड़ी संख्या इस्तेमाल करें।",
+  "Carry on your incident numbers": "अपनी घटना संख्याएँ जारी रखें",
+  "If your team refers to incidents by number, start OneUptime's after your last one in {{tool}}: set Next Incident Number to one past it. A number then never means two different incidents.": "अगर आपकी टीम घटनाओं को संख्या से पुकारती है, तो OneUptime की संख्याएँ {{tool}} में आपकी आख़िरी संख्या के बाद से शुरू करें: अगली घटना संख्या को उसके बाद की संख्या पर सेट करें। तब एक संख्या कभी दो अलग-अलग घटनाओं का मतलब नहीं होती।",
+  "Open Incident Numbering": "घटना क्रमांकन खोलें"
 }

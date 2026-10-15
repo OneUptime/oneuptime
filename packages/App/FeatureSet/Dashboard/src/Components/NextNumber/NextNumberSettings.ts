@@ -1,6 +1,7 @@
 import { JSONObject } from "Common/Types/JSON";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import NextNumberUtil, {
+  NextNumberProblem,
   NumberedRecordKind,
   NumbersStartAtColumn,
   RecordNumbering,
@@ -42,6 +43,18 @@ export const HIGHER_THAN_HIGHEST_TEMPLATE: string = translationKey(
 
 export const ANY_NUMBER_FROM_ONE: string = translationKey(
   "None used yet: any number from 1 will do.",
+);
+
+/*
+ * At the top of the dialog when the server refused a save because records
+ * took the numbers while it was open: the field's title, then what the
+ * highest number is now and what to do. Said in the dialog's own words, in
+ * the reader's language - the server's own answer names the API column
+ * ("Incident Numbers Start At"), which the dialog never shows. A template:
+ * the field's title and the highest number go where it says.
+ */
+export const NUMBER_TAKEN_MEANWHILE_TEMPLATE: string = translationKey(
+  "{{field}}: the highest number used is now {{highestNumber}}. Use a number higher than {{highestNumber}}.",
 );
 
 /*
@@ -219,4 +232,46 @@ export function getNextNumberChanges(data: {
   }
 
   return changes;
+}
+
+export interface NumberTakenMeanwhile {
+  row: NextNumberRow;
+  // The highest number of the row's kind now: at or above the one sent.
+  highestNumber: number;
+}
+
+/*
+ * After the server refused a save: the rows whose number, as the save sent
+ * it (getNextNumberChanges), records have reached since the dialog read the
+ * numbers - read again after the refusal. A save is refused for this when a
+ * record takes the number while the dialog is open; the dialog then says so
+ * for each of these rows. None means the refusal was for something else,
+ * and the server's own answer is shown.
+ */
+export function getNumbersTakenMeanwhile(data: {
+  page: NextNumberPage;
+  sent: JSONObject;
+  numbering: NumberingByKind;
+}): Array<NumberTakenMeanwhile> {
+  const taken: Array<NumberTakenMeanwhile> = [];
+
+  for (const row of data.page.rows) {
+    const entry: RecordNumbering | undefined = data.numbering[row.kind];
+
+    /*
+     * A number the save did not send - one left as it was - is no whole
+     * number here, so it is never named, however far records moved on.
+     */
+    if (
+      entry &&
+      NextNumberUtil.getProblem(
+        data.sent[getStartsAtColumn(row.kind)],
+        entry.highestNumber,
+      ) === NextNumberProblem.NotAboveHighest
+    ) {
+      taken.push({ row: row, highestNumber: entry.highestNumber });
+    }
+  }
+
+  return taken;
 }

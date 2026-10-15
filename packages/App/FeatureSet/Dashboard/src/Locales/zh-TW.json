@@ -29707,5 +29707,9 @@
   "Use a number higher than {{highestNumber}}.": "請使用大於 {{highestNumber}} 的編號。",
   "Use a number no higher than 1,000,000,000.": "請使用不大於 1,000,000,000 的編號。",
   "Use a number of 1 or more.": "請使用 1 或更大的編號。",
-  "Use a whole number, like 1000.": "請使用整數，例如 1000。"
+  "Use a whole number, like 1000.": "請使用整數，例如 1000。",
+  "{{field}}: the highest number used is now {{highestNumber}}. Use a number higher than {{highestNumber}}.": "{{field}}：目前已用的最大編號現在是 {{highestNumber}}。請使用大於 {{highestNumber}} 的編號。",
+  "Carry on your incident numbers": "延續你的事件編號",
+  "If your team refers to incidents by number, start OneUptime's after your last one in {{tool}}: set Next Incident Number to one past it. A number then never means two different incidents.": "如果你的團隊以編號稱呼事件，請讓 OneUptime 的編號從你在 {{tool}} 中的最後一個編號之後開始：將下一個事件編號設為它的下一個編號。這樣一個編號就絕不會指稱兩個不同的事件。",
+  "Open Incident Numbering": "開啟事件編號規則"
 }

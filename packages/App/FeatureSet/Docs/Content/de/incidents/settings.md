@@ -495,7 +495,7 @@ Warnungen und geplante Wartungsereignisse haben dieselbe Seite: **Warnungen → 
 
 Jeder neue Vorfall bekommt die Nummer nach der höchsten bisher vergebenen, und jede neue Episode ebenso: `INC-1`, `INC-2`, `INC-3` ab dem ersten eines Projekts. Sie wechseln von einem anderen Tool? Lassen Sie die Nummern von OneUptime nach der letzten Nummer dieses Tools beginnen, damit eine Nummer nie zwei verschiedene Vorfälle bezeichnet: Ein Team, dessen letzter Vorfall im alten Tool `INC-2345` war, setzt die nächste Nummer auf `2346` oder auf `10000`, um seine Vorfälle in OneUptime auf einen Blick zu unterscheiden.
 
-Die Karte **Nächste Nummer** unter **Nummernpräfix** auf derselben Seite hat eine Zeile für **Vorfälle** und eine für **Vorfallsepisoden**. Jede zeigt die Nummer, die als Nächstes vergeben wird, mit ihrem Präfix, dann **Bisher höchste:** und die höchste vergebene Nummer oder **Noch keine vergeben**.
+Die Karte **Nächste Nummer** unter **Nummernpräfix** auf derselben Seite hat eine Zeile für **Vorfälle** und eine für **Vorfallsepisoden**. Jede zeigt die Nummer, die als Nächstes vergeben wird, mit ihrem Präfix, dann **Bisher höchste Nummer:** und die höchste vergebene Nummer oder **Noch keine vergeben**.
 
 :::steps
 1. Klicken Sie auf der Karte **Nächste Nummer** auf **Aktualisieren**. Der Dialog **Nächste Nummer bearbeiten** öffnet sich mit **Nächste Vorfallnummer** und **Nächste Nummer der Vorfallsepisode**, jeweils mit der Nummer gefüllt, die als Nächstes kommt, und mit dem Hinweis, über welcher Nummer sie liegen muss.
