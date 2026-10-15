@@ -29319,5 +29319,9 @@
   "When the episode changed to this status.": "Når episoden endret seg til denne statusen.",
   "When the event changed to this status.": "Når vedlikeholdet endret seg til denne statusen.",
   "When the incident changed to this status.": "Når hendelsen endret seg til denne statusen.",
-  "When the monitor changed to this status.": "Når monitoren endret seg til denne statusen."
+  "When the monitor changed to this status.": "Når monitoren endret seg til denne statusen.",
+  "Every new {{record}}, and every change to one, runs this workflow.": "Hvert nytt element ({{record}}), og hver endring av et element, kjører denne arbeidsflyten.",
+  "What Happened": "Hva som skjedde",
+  "Just created": "Nettopp opprettet",
+  "Just updated": "Nettopp oppdatert"
 }

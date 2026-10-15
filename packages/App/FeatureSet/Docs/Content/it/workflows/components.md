@@ -374,7 +374,7 @@ Per ogni tipo di record in OneUptime (monitor, incidenti, avvisi, pagine di stat
 | **Delete One Monitor**   | Elimina un record corrispondente.                                              |
 | **Delete Many Monitors** | Elimina i record corrispondenti, fino a **Limit**.                             |
 
-Lo stesso insieme ti dà tre trigger: **On Create Monitor**, **On Update Monitor** e **On Delete Monitor**. Vedi [Trigger](/docs/workflows/triggers#trigger-di-eventi-oneuptime).
+Lo stesso insieme ti dà quattro trigger: **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** e **On Delete Monitor**. Vedi [Trigger](/docs/workflows/triggers#trigger-di-eventi-oneuptime).
 
 Un tipo offre solo i componenti che il suo modello consente. Un tipo di sola lettura ha i due componenti Find e nient'altro, quindi se nel pannello non trovi **Delete One Monitor**, quel tipo non lo consente.
 

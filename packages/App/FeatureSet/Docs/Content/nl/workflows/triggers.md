@@ -153,15 +153,16 @@ Lekt het adres uit, klik dan op dezelfde plek op **Adres opnieuw instellen**: de
 
 ## OneUptime-gebeurtenistriggers
 
-Bijna alles in OneUptime — monitoren, incidenten, waarschuwingen, gepland onderhoud, statuspagina's, bereikbaarheidsbeleid, teams — kan een workflow starten. Elk biedt tot drie gebeurtenissen:
+Bijna alles in OneUptime — monitoren, incidenten, waarschuwingen, gepland onderhoud, statuspagina's, bereikbaarheidsbeleid, teams — kan een workflow starten. Elk biedt tot vier triggers:
 
 - **On Create** — gaat af als er een nieuwe wordt toegevoegd.
 - **On Update** — gaat af als er een wordt gewijzigd. Een record opslaan met de waarden die het al heeft, zoals een formulier dat zonder wijzigingen wordt opgeslagen of een schakelaar die wordt verstuurd zoals hij al stond, is geen wijziging en laat hem niet afgaan.
+- **On Create or Update** — gaat in beide gevallen af: één keer als er een nieuwe wordt toegevoegd, en één keer bij elke wijziging. Eén workflow behandelt dan een nieuw en een gewijzigd record hetzelfde, bijvoorbeeld om een kopie in een ander systeem bij te werken.
 - **On Delete** — gaat af als er een wordt verwijderd.
 
 Zo bouw je «als X gebeurt in OneUptime, doe dan Y» zonder dingen in een lus te hoeven controleren.
 
-**On Update** kun je beperken tot sommige velden met **Fields to watch**: hij gaat dan alleen af als een update een van die velden wijzigt, naar welke waarde ook — een schakelaar uitzetten of een veld leegmaken telt mee.
+**On Update** kun je beperken tot sommige velden met **Fields to watch**: hij gaat dan alleen af als een update een van die velden wijzigt, naar welke waarde ook — een schakelaar uitzetten of een veld leegmaken telt mee. **On Create or Update** heeft dezelfde **Fields to watch**, alleen voor zijn updates: elk nieuw record laat hem nog steeds afgaan.
 
 ```mermaid title="Wanneer een On Update-trigger afgaat"
 flowchart TB
@@ -174,11 +175,15 @@ flowchart TB
     field -->|"Nee"| nothing
 ```
 
-**On Create** en **On Update** geven het record door aan het volgende blok, met de velden die je in **Fields to pass on** van de trigger kiest. Zo geeft de trigger **Incident → On Create** het nieuwe incident door, zodat het volgende blok de titel, de beschrijving, de ernst of elk ander geselecteerd veld kan lezen, zoals `{{local.components.incident-on-create-1.returnValues.model.title}}`. Een veld dat je niet selecteerde, komt leeg aan.
+**On Create**, **On Update** en **On Create or Update** geven het record door aan het volgende blok, met de velden die je in **Fields to pass on** van de trigger kiest. Zo geeft de trigger **Incident → On Create** het nieuwe incident door, zodat het volgende blok de titel, de beschrijving, de ernst of elk ander geselecteerd veld kan lezen, zoals `{{local.components.incident-on-create-1.returnValues.model.title}}`. Een veld dat je niet selecteerde, komt leeg aan.
+
+**On Create or Update** geeft ook **What Happened** door: `created` als een nieuw record de uitvoering startte, en `updated` als een wijziging dat deed, zoals in `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Om die twee verschillend te behandelen, vergelijk je het in een **If / Else**-blok, of neem je met **Switch / Case** voor elk een eigen pad.
+
+Eén keer opslaan laat hem één keer afgaan. Wat OneUptime invult terwijl het een record aanmaakt, hoort bij het aanmaken, dus een nieuw record laat hem één keer afgaan, als `created`. Wijzigingen die OneUptime later maakt, zoals het koppelen van het Slack-kanaal van een incident, zijn updates zoals elke andere: om ze buiten te houden, zet je alleen de velden die ertoe doen in **Fields to watch**.
 
 **On Delete** geeft alleen de ID van het verwijderde record door: het record is weg als de workflow draait, dus de andere velden ervan kunnen niet worden gelezen.
 
-Om een gebeurtenistrigger te testen zonder op de gebeurtenis te wachten, klik je op **Workflow uitvoeren** in de **Bouwer** en kies je een bestaand record: de meest recente staan in de lijst, en door het nummer van een record of een deel van de naam te typen vind je een ander. De uitvoering leest dat record met de velden die je selecteerde, alsof de gebeurtenis het net is overkomen; het record zelf wordt niet gewijzigd of verwijderd.
+Om een gebeurtenistrigger te testen zonder op de gebeurtenis te wachten, klik je op **Workflow uitvoeren** in de **Bouwer** en kies je een bestaand record: de meest recente staan in de lijst, en door het nummer van een record of een deel van de naam te typen vind je een ander. De uitvoering leest dat record met de velden die je selecteerde, alsof de gebeurtenis het net is overkomen; het record zelf wordt niet gewijzigd of verwijderd. Kies bij **On Create or Update** onder **Wat er gebeurde** of de uitvoering voor het aanmaken of voor het bijwerken van het record is.
 
 ### Meest gebruikte gebeurtenissen
 

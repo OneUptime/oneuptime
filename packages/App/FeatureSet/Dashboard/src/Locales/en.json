@@ -29319,5 +29319,9 @@
   "When the episode changed to this status.": "When the episode changed to this status.",
   "When the event changed to this status.": "When the event changed to this status.",
   "When the incident changed to this status.": "When the incident changed to this status.",
-  "When the monitor changed to this status.": "When the monitor changed to this status."
+  "When the monitor changed to this status.": "When the monitor changed to this status.",
+  "Every new {{record}}, and every change to one, runs this workflow.": "Every new {{record}}, and every change to one, runs this workflow.",
+  "What Happened": "What Happened",
+  "Just created": "Just created",
+  "Just updated": "Just updated"
 }

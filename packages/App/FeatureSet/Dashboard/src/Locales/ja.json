@@ -29319,5 +29319,9 @@
   "When the episode changed to this status.": "エピソードがこのステータスに変わった日時。",
   "When the event changed to this status.": "イベントがこのステータスに変わった日時。",
   "When the incident changed to this status.": "インシデントがこのステータスに変わった日時。",
-  "When the monitor changed to this status.": "モニターがこのステータスに変わった日時。"
+  "When the monitor changed to this status.": "モニターがこのステータスに変わった日時。",
+  "Every new {{record}}, and every change to one, runs this workflow.": "{{record}}が作成されるたび、また変更されるたびに、このワークフローが実行されます。",
+  "What Happened": "何が起きたか",
+  "Just created": "作成された",
+  "Just updated": "更新された"
 }

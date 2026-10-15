@@ -29319,5 +29319,9 @@
   "When the episode changed to this status.": "片段变更为此状态的时间。",
   "When the event changed to this status.": "维护事件变更为此状态的时间。",
   "When the incident changed to this status.": "事件变更为此状态的时间。",
-  "When the monitor changed to this status.": "监视器变更为此状态的时间。"
+  "When the monitor changed to this status.": "监视器变更为此状态的时间。",
+  "Every new {{record}}, and every change to one, runs this workflow.": "每次新建或更改{{record}}，都会运行此工作流。",
+  "What Happened": "发生了什么",
+  "Just created": "刚刚创建",
+  "Just updated": "刚刚更新"
 }

@@ -153,15 +153,16 @@ If the address leaks, click **Reset address** in the same place: the workflow ge
 
 ## OneUptime event triggers
 
-Almost every thing in OneUptime — monitors, incidents, alerts, scheduled maintenance events, status pages, on-call policies, teams — can trigger a workflow. Each offers up to three events:
+Almost every thing in OneUptime — monitors, incidents, alerts, scheduled maintenance events, status pages, on-call policies, teams — can trigger a workflow. Each offers up to four triggers:
 
 - **On Create** — fires when a new one is added.
 - **On Update** — fires when one is changed. Saving a record with the values it already has, such as a form saved without edits or a switch sent as it already stands, is not a change and does not fire it.
+- **On Create or Update** — fires for both: once when a new one is added, and once each time one is changed. One workflow then handles a new record and a changed one alike, such as keeping a copy in another system up to date.
 - **On Delete** — fires when one is deleted.
 
 This is how you build "when X happens in OneUptime, do Y" without needing to check things in a loop.
 
-**On Update** can be narrowed to some fields with **Fields to watch**: it then fires only when an update changes one of them, to any value — turning a switch off or clearing a field counts.
+**On Update** can be narrowed to some fields with **Fields to watch**: it then fires only when an update changes one of them, to any value — turning a switch off or clearing a field counts. **On Create or Update** has the same **Fields to watch**, for its updates only: every new record still fires it.
 
 ```mermaid title="When an On Update trigger fires"
 flowchart TB
@@ -174,11 +175,15 @@ flowchart TB
     field -->|"No"| nothing
 ```
 
-**On Create** and **On Update** pass the record to the next block, with the fields you pick in the trigger's **Fields to pass on**. For example, the **Incident → On Create** trigger passes the new incident, so the next block can read its title, description, severity, or any other field you selected, such as `{{local.components.incident-on-create-1.returnValues.model.title}}`. A field you didn't select comes through empty.
+**On Create**, **On Update** and **On Create or Update** pass the record to the next block, with the fields you pick in the trigger's **Fields to pass on**. For example, the **Incident → On Create** trigger passes the new incident, so the next block can read its title, description, severity, or any other field you selected, such as `{{local.components.incident-on-create-1.returnValues.model.title}}`. A field you didn't select comes through empty.
+
+**On Create or Update** also passes **What Happened**: `created` when a new record started the run, and `updated` when a change did, as in `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. To handle the two differently, compare it in an **If / Else** block, or take a path for each with **Switch / Case**.
+
+One save fires it once. What OneUptime fills in while it creates a record is part of the create, so a new record fires it once, as `created`. Changes OneUptime makes later, such as linking an incident's Slack channel, are updates like any other: to leave them out, add only the fields you care about to **Fields to watch**.
 
 **On Delete** passes only the deleted record's ID: the record is gone by the time the workflow runs, so its other fields can't be read.
 
-To test an event trigger without waiting for the event, click **Run Workflow** on the **Builder** and pick an existing record: the most recent ones are listed, and typing a record's number or part of its name finds another. The run reads that record with the fields you selected, as if the event had just happened to it; the record itself is not changed or deleted.
+To test an event trigger without waiting for the event, click **Run Workflow** on the **Builder** and pick an existing record: the most recent ones are listed, and typing a record's number or part of its name finds another. The run reads that record with the fields you selected, as if the event had just happened to it; the record itself is not changed or deleted. For **On Create or Update**, choose under **What Happened** whether the run is for the record being created or updated.
 
 ### Events teams use most
 

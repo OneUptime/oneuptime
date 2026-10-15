@@ -29319,5 +29319,9 @@
   "When the episode changed to this status.": "Quando l'episodio è passato a questo stato.",
   "When the event changed to this status.": "Quando l'evento è passato a questo stato.",
   "When the incident changed to this status.": "Quando l'incidente è passato a questo stato.",
-  "When the monitor changed to this status.": "Quando il monitor è passato a questo stato."
+  "When the monitor changed to this status.": "Quando il monitor è passato a questo stato.",
+  "Every new {{record}}, and every change to one, runs this workflow.": "Ogni nuovo elemento ({{record}}), e ogni modifica a un elemento, esegue questo flusso di lavoro.",
+  "What Happened": "Cosa è successo",
+  "Just created": "Creazione",
+  "Just updated": "Aggiornamento"
 }

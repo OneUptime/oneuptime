@@ -29319,5 +29319,9 @@
   "When the episode changed to this status.": "Когда эпизод перешёл в этот статус.",
   "When the event changed to this status.": "Когда событие перешло в этот статус.",
   "When the incident changed to this status.": "Когда инцидент перешёл в этот статус.",
-  "When the monitor changed to this status.": "Когда монитор перешёл в этот статус."
+  "When the monitor changed to this status.": "Когда монитор перешёл в этот статус.",
+  "Every new {{record}}, and every change to one, runs this workflow.": "Каждая новая запись ({{record}}) и каждое её изменение запускают этот рабочий процесс.",
+  "What Happened": "Что произошло",
+  "Just created": "Создание",
+  "Just updated": "Обновление"
 }

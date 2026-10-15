@@ -374,7 +374,7 @@ Para cada tipo de registro do OneUptime (monitores, incidentes, alertas, página
 | **Delete One Monitor**   | Exclui um registro correspondente.                                             |
 | **Delete Many Monitors** | Exclui os registros correspondentes, até **Limit**.                            |
 
-O mesmo conjunto dá a você três gatilhos — **On Create Monitor**, **On Update Monitor** e **On Delete Monitor**. Veja [Gatilhos](/docs/workflows/triggers#gatilhos-de-eventos-do-oneuptime).
+O mesmo conjunto dá a você quatro gatilhos — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** e **On Delete Monitor**. Veja [Gatilhos](/docs/workflows/triggers#gatilhos-de-eventos-do-oneuptime).
 
 Um tipo só oferece os componentes que o modelo dele permite. Um tipo somente leitura tem os dois componentes Find e nada mais, então, se você não encontra **Delete One Monitor** no painel, esse tipo não permite isso.
 

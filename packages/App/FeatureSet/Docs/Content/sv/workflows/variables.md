@@ -196,7 +196,7 @@ Hänvisa till ett tidigare blocks utdata så här:
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Ett **API**-block med ID:t `lookup-user`                  | Dess statuskod: `{{local.components.lookup-user.returnValues.response-status}}`. Dess body: `{{local.components.lookup-user.returnValues.response-body}}`. |
 | Ett **Run Custom JavaScript**-block med ID:t `transform`  | Det det returnerade: `{{local.components.transform.returnValues.returnValue}}`.       |
-| En **On Create Incident**-utlösare med ID:t `incident-on-create-1` | Incidentens titel: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Postutlösare returnerar ett värde, `model`, som du går ned i. |
+| En **On Create Incident**-utlösare med ID:t `incident-on-create-1` | Incidentens titel: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Postutlösare returnerar posten som `model`, som du går ned i. |
 
 Blockvärden finns bara under den aktuella körningen. Varje ny körning börjar om från början.
 

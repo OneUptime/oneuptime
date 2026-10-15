@@ -199,7 +199,7 @@ stateDiagram-v2
 - **呼叫由待命策略完成。** 在宣告精靈的 **待命與角色** 步驟、範本上，或透過 **事件 → 規則 → 待命規則** 附加策略。每條相符的規則都會觸發——執行的集合是所有相符項目與直接附加項目的聯集，並去除重複。
 - **Runbook 告訴大家該做什麼。** Runbook 規則會在相符的事件建立時自動附加一套程序，應變人員也可以從事件中手動啟動。請參閱 [Runbook 概觀](/docs/runbooks/index)。
 - **狀態頁面告訴客戶。** 當狀態頁面列出事件的某個監測器、頁面啟用了事件、事件被標記為在狀態頁面上可見，而且其目前狀態位於解決狀態之上時，事件就會出現在狀態頁面的進行中清單中。限定到部分狀態頁面的事件只會顯示在那些頁面上。私人事件一律在所有狀態頁面上隱藏。請參閱 [狀態頁概觀](/docs/status-pages/index) 和 [每個受眾一個狀態頁](/docs/status-pages/one-status-page-per-audience)。
-- **工作流程圍繞它實現自動化。** **On Create Incident**、**On Update Incident** 和 **On Delete Incident** 觸發器讓你在事件生命週期之上建構無程式碼自動化。請參閱 [工作流程概觀](/docs/workflows/index)。
+- **工作流程圍繞它實現自動化。** **On Create Incident**、**On Update Incident**、**On Create or Update Incident** 和 **On Delete Incident** 觸發器讓你在事件生命週期之上建構無程式碼自動化。請參閱 [工作流程概觀](/docs/workflows/index)。
 
 ## 後續步驟
 

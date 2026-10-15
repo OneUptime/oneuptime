@@ -29319,5 +29319,9 @@
   "When the episode changed to this status.": "에피소드가 이 상태로 바뀐 시각입니다.",
   "When the event changed to this status.": "이벤트가 이 상태로 바뀐 시각입니다.",
   "When the incident changed to this status.": "인시던트가 이 상태로 바뀐 시각입니다.",
-  "When the monitor changed to this status.": "모니터가 이 상태로 바뀐 시각입니다."
+  "When the monitor changed to this status.": "모니터가 이 상태로 바뀐 시각입니다.",
+  "Every new {{record}}, and every change to one, runs this workflow.": "{{record}}이(가) 새로 생길 때마다, 그리고 바뀔 때마다 이 워크플로가 실행됩니다.",
+  "What Happened": "발생한 일",
+  "Just created": "방금 생성됨",
+  "Just updated": "방금 업데이트됨"
 }

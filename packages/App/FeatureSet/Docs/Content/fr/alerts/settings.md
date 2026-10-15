@@ -151,7 +151,7 @@ Les propriétaires reçoivent chaque rappel sous la forme **Rappel d'alerte**, a
 
 ## Workflows
 
-Chaque modèle d'alerte a des déclencheurs et des actions de workflow, nommés d'après lui : **On Create Alert**, **On Update Alert** et **On Delete Alert**, de même pour **Épisode d'alerte**, **Chronologie des états de l'alerte** et les autres, et des actions comme **Create One Alert** et **Update One Alert**. Les définitions de champs personnalisés d'alerte sont la seule exception : elles n'ont pas de déclencheurs de workflow. Voir [Présentation des workflows](/docs/workflows/index).
+Chaque modèle d'alerte a des déclencheurs et des actions de workflow, nommés d'après lui : **On Create Alert**, **On Update Alert**, **On Create or Update Alert** et **On Delete Alert**, de même pour **Épisode d'alerte**, **Chronologie des états de l'alerte** et les autres, et des actions comme **Create One Alert** et **Update One Alert**. Les définitions de champs personnalisés d'alerte sont la seule exception : elles n'ont pas de déclencheurs de workflow. Voir [Présentation des workflows](/docs/workflows/index).
 
 ## Qui peut les modifier
 

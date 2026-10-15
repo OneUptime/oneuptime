@@ -196,7 +196,7 @@ Verwijs zo naar de uitvoer van een eerder blok:
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Een **API**-blok met de ID `lookup-user`                  | De statuscode: `{{local.components.lookup-user.returnValues.response-status}}`. De body: `{{local.components.lookup-user.returnValues.response-body}}`. |
 | Een **Run Custom JavaScript**-blok met de ID `transform`  | Wat het teruggaf: `{{local.components.transform.returnValues.returnValue}}`.           |
-| Een **On Create Incident**-trigger met de ID `incident-on-create-1` | De titel van het incident: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Recordtriggers geven één waarde terug, `model`, en daarin ga je dieper. |
+| Een **On Create Incident**-trigger met de ID `incident-on-create-1` | De titel van het incident: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Recordtriggers geven het record terug als `model`, en daarin ga je dieper. |
 
 Blokwaarden bestaan alleen tijdens de huidige uitvoering. Elke nieuwe uitvoering begint opnieuw.
 

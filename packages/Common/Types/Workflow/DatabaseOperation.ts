@@ -1,10 +1,12 @@
 import Text from "../Text";
 
 /*
- * The eleven kinds of step BaseModelComponent.getComponents generates for
+ * The twelve kinds of step BaseModelComponent.getComponents generates for
  * every model a workflow can use, by the end of their component id:
  * Find, Create, Update and Delete (one and many), and the On Create, On
- * Update and On Delete triggers.
+ * Update, On Create or Update and On Delete triggers. A model has the On
+ * Create or Update trigger when it has both of the triggers it combines
+ * (Types/Workflow/CreateOrUpdateTrigger).
  *
  * Kept apart from the documentation that explains them, so anything that
  * only needs to know which operation a step is - the Add Component picker
@@ -22,6 +24,11 @@ export enum DatabaseOperation {
   DeleteMany = "delete-many",
   OnCreate = "on-create",
   OnUpdate = "on-update",
+  /*
+   * Ends neither in "-on-create" nor in "-on-update", so nothing that tells
+   * the triggers apart by the end of their id takes it for one of the two.
+   */
+  OnCreateOrUpdate = "on-create-or-update",
   OnDelete = "on-delete",
 }
 

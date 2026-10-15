@@ -609,15 +609,16 @@ flowchart TB
 
 ## वर्कफ़्लो से घटनाएँ चलाना
 
-घटनाओं के वर्कफ़्लो ट्रिगर हाथ से नहीं लिखे जाते — OneUptime उन्हें डेटा मॉडल से बनाता है, इसलिए घटना परिवार के हर मॉडल को **On Create X**, **On Update X** और **On Delete X** घटक मिलते हैं, जिनके नाम मॉडल के एकवचन नाम से रखे जाते हैं। मुख्य तीन **On Create Incident**, **On Update Incident** और **On Delete Incident** हैं। आप इन्हें `/dashboard/{projectId}/workflows` पर **Add Trigger** पैनल में, **OneUptime resources** → **Incident** के नीचे पाएँगे; पहले दो **Popular** के नीचे भी हैं।
+घटनाओं के वर्कफ़्लो ट्रिगर हाथ से नहीं लिखे जाते — OneUptime उन्हें डेटा मॉडल से बनाता है, इसलिए घटना परिवार के हर मॉडल को **On Create X**, **On Update X**, **On Create or Update X** और **On Delete X** घटक मिलते हैं, जिनके नाम मॉडल के एकवचन नाम से रखे जाते हैं। मुख्य **On Create Incident**, **On Update Incident**, **On Create or Update Incident** और **On Delete Incident** हैं। आप इन्हें `/dashboard/{projectId}/workflows` पर **Add Trigger** पैनल में, **OneUptime resources** → **Incident** के नीचे पाएँगे; पहले दो **Popular** के नीचे भी हैं।
 
 वही बनाने की प्रक्रिया आपको कॉन्फ़िगरेशन के लिए भी ट्रिगर देती है: **On Create Incident State**, **On Update Incident Severity**, **On Create Incident Template**, **On Create Incident Note Template**, **On Create Incident State Timeline**, **On Create Incident Public Note**, **On Create Incident Internal Note**, **On Create Incident On-Call Rule**, **On Create Incident Role**, **On Create Incident Member** और भी। हर मॉडल को मेल खाते कार्रवाई घटक भी मिलते हैं — **Find One Incident**, **Create One Incident**, **Update One Incident**, **Delete One Incident** और उनके कई-पंक्ति वाले रूप — इसलिए मिलते-जुलते नामों वाले ट्रिगर और कार्रवाई एक ही श्रेणी में साथ-साथ होते हैं। **On Create Incident** वर्कफ़्लो शुरू करता है; **Create One Incident** एक घटना खोलता है।
 
 इन्हें जोड़ते समय मायने रखने वाली कुछ बातें:
 
 - **On Update X** एक वैकल्पिक **Fields to watch** आर्ग्युमेंट लेता है जो ट्रिगर को उन अपडेट तक सीमित करता है जो ख़ास फ़ील्ड बदलते हैं, वे चाहे जिस मान पर बदलें: बंद किया गया स्विच या साफ़ किया गया फ़ील्ड भी गिना जाता है। अपने मौजूदा मान से सहेजा गया फ़ील्ड बदलाव नहीं है, इसलिए हर सहेजने पर उसे वापस भेजने वाला संपादन फ़ॉर्म वर्कफ़्लो को नहीं जगाता। किसी भी बदलाव पर चलाने के लिए इसे ख़ाली छोड़ें। अगर कोई अपडेट इस रिकॉर्ड के बिना आता है कि कौन-से फ़ील्ड बदले, तो फ़िल्टर छोड़ दिया जाता है और वर्कफ़्लो फिर भी चलता है।
-- **On Create X** और **On Update X** दोनों एक आवश्यक **Fields to pass on** आर्ग्युमेंट लेते हैं; **On Delete X** कोई आर्ग्युमेंट नहीं लेता।
-- तीनों एक ही **Success** आउट-पोर्ट देते हैं, और हर एक एक ID आर्ग्युमेंट स्वीकार करता है ताकि आप वर्कफ़्लो को किसी एक रिकॉर्ड पर हाथ से चला सकें।
+- **On Create or Update X** हर नए रिकॉर्ड के लिए एक बार और हर उस अपडेट के लिए एक बार चलता है जिसे उसका अपना **Fields to watch** आगे जाने देता है, इसलिए एक ही वर्कफ़्लो दोनों संभालता है। रिकॉर्ड के साथ यह `what-happened` भी भेजता है: `created` या `updated`।
+- **On Create X**, **On Update X** और **On Create or Update X** एक आवश्यक **Fields to pass on** आर्ग्युमेंट लेते हैं; **On Delete X** कोई आर्ग्युमेंट नहीं लेता।
+- चारों एक ही **Success** आउट-पोर्ट देते हैं, और हर एक एक ID आर्ग्युमेंट स्वीकार करता है ताकि आप वर्कफ़्लो को किसी एक रिकॉर्ड पर हाथ से चला सकें।
 - नाम मॉडल के एकवचन नाम से आते हैं, उसकी तालिका के नाम से नहीं — इसीलिए आप तालिका जैसे नामों के बजाय **On Create Incident Team Owner** और **On Create Incident User Owner** देखते हैं।
 - घटना कस्टम फ़ील्ड परिभाषाओं के लिए कोई ट्रिगर नहीं हैं। वह मॉडल घटना परिवार का अकेला सदस्य है जिसके वर्कफ़्लो बंद हैं।
 

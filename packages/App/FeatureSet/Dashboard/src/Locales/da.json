@@ -29319,5 +29319,9 @@
   "When the episode changed to this status.": "Hvornår episoden skiftede til denne status.",
   "When the event changed to this status.": "Hvornår begivenheden skiftede til denne status.",
   "When the incident changed to this status.": "Hvornår hændelsen skiftede til denne status.",
-  "When the monitor changed to this status.": "Hvornår monitoren skiftede til denne status."
+  "When the monitor changed to this status.": "Hvornår monitoren skiftede til denne status.",
+  "Every new {{record}}, and every change to one, runs this workflow.": "Hvert nyt element ({{record}}), og hver ændring af et element, kører denne arbejdsgang.",
+  "What Happened": "Hvad der skete",
+  "Just created": "Lige oprettet",
+  "Just updated": "Lige opdateret"
 }

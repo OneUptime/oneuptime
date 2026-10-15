@@ -151,7 +151,7 @@ I proprietari ricevono ogni promemoria come **Alert reminder**, attivo via e-mai
 
 ## Workflow
 
-Ogni modello di avviso ha trigger e azioni di workflow che portano il suo nome: **On Create Alert**, **On Update Alert** e **On Delete Alert**, lo stesso per **Avviso Episodio**, **Avviso Stato Cronologia** e gli altri, e azioni come **Create One Alert** e **Update One Alert**. Le definizioni dei campi personalizzati degli avvisi sono l'unica eccezione: non hanno trigger di workflow. Vedere [Panoramica dei workflow](/docs/workflows/index).
+Ogni modello di avviso ha trigger e azioni di workflow che portano il suo nome: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** e **On Delete Alert**, lo stesso per **Avviso Episodio**, **Avviso Stato Cronologia** e gli altri, e azioni come **Create One Alert** e **Update One Alert**. Le definizioni dei campi personalizzati degli avvisi sono l'unica eccezione: non hanno trigger di workflow. Vedere [Panoramica dei workflow](/docs/workflows/index).
 
 ## Chi può modificarle
 

@@ -196,7 +196,7 @@ OAuth 2.0 변수 페이지의 **접근 토큰** 카드에는 다음 상태 중 �
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | ID가 `lookup-user` 인 **API** 블록                        | 상태 코드: `{{local.components.lookup-user.returnValues.response-status}}`. 본문: `{{local.components.lookup-user.returnValues.response-body}}`. |
 | ID가 `transform` 인 **Run Custom JavaScript** 블록        | 반환한 것: `{{local.components.transform.returnValues.returnValue}}`.                  |
-| ID가 `incident-on-create-1` 인 **On Create Incident** 트리거 | 인시던트 제목: `{{local.components.incident-on-create-1.returnValues.model.title}}`. 레코드 트리거는 값 하나 `model` 을 반환하며, 그 안으로 들어가 읽습니다. |
+| ID가 `incident-on-create-1` 인 **On Create Incident** 트리거 | 인시던트 제목: `{{local.components.incident-on-create-1.returnValues.model.title}}`. 레코드 트리거는 레코드를 `model` 로 반환하며, 그 안으로 들어가 읽습니다. |
 
 블록 값은 현재 실행 중에만 존재합니다. 새 실행은 매번 처음부터 시작합니다.
 

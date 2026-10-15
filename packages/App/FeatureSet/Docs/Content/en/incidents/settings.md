@@ -611,15 +611,16 @@ To see what happened, open the incident and choose **On-Call Executions** in its
 
 ## Driving incidents from workflows
 
-Workflow triggers for incidents are not hand-written — OneUptime generates them from the data models, so every incident-family model gets **On Create X**, **On Update X** and **On Delete X** components, named from the model's singular name. The headline three are **On Create Incident**, **On Update Incident** and **On Delete Incident**. You'll find them in the **Add Trigger** panel at `/dashboard/{projectId}/workflows`, under **OneUptime resources** → **Incident**; the first two are also under **Popular**.
+Workflow triggers for incidents are not hand-written — OneUptime generates them from the data models, so every incident-family model gets **On Create X**, **On Update X**, **On Create or Update X** and **On Delete X** components, named from the model's singular name. The headline ones are **On Create Incident**, **On Update Incident**, **On Create or Update Incident** and **On Delete Incident**. You'll find them in the **Add Trigger** panel at `/dashboard/{projectId}/workflows`, under **OneUptime resources** → **Incident**; the first two are also under **Popular**.
 
 The same generation gives you triggers for the configuration itself: **On Create Incident State**, **On Update Incident Severity**, **On Create Incident Template**, **On Create Incident Note Template**, **On Create Incident State Timeline**, **On Create Incident Public Note**, **On Create Incident Internal Note**, **On Create Incident On-Call Rule**, **On Create Incident Role**, **On Create Incident Member** and more. Each model also gets matching action components — **Find One Incident**, **Create One Incident**, **Update One Incident**, **Delete One Incident** and their many-row equivalents — so a trigger and an action with similar names sit side by side in the same category. **On Create Incident** starts a workflow; **Create One Incident** opens one.
 
 A few details that matter when you wire these up:
 
 - **On Update X** takes an optional **Fields to watch** argument that narrows the trigger to updates that change specific fields, whatever they change to: a switch turned off or a field cleared counts too. A field saved with the value it already has is not a change, so an edit form that sends it back with every save does not wake the workflow. Leave it blank to fire on any change. If an update arrives without a record of which fields changed, the filter is skipped and the workflow runs anyway.
-- **On Create X** and **On Update X** both take a required **Fields to pass on** argument; **On Delete X** takes no arguments.
-- All three expose a single **Success** out-port, and each accepts an ID argument so you can run the workflow by hand against one record.
+- **On Create or Update X** runs once for each new record and once for each update its own **Fields to watch** lets through, so one workflow handles both. Beside the record it passes `what-happened`: `created` or `updated`.
+- **On Create X**, **On Update X** and **On Create or Update X** take a required **Fields to pass on** argument; **On Delete X** takes no arguments.
+- All four expose a single **Success** out-port, and each accepts an ID argument so you can run the workflow by hand against one record.
 - Names come from the model's singular name, not its table name — which is why you see **On Create Incident Team Owner** and **On Create Incident User Owner** rather than the table-shaped names.
 - There are no triggers for incident custom field definitions. That model is the one member of the incident family with workflows disabled.
 

@@ -151,7 +151,7 @@ Eiere får hver påminnelse som **Alert reminder**, som er slått på via e-post
 
 ## Arbeidsflyter
 
-Hver varselmodell har arbeidsflytutløsere og -handlinger oppkalt etter seg: **On Create Alert**, **On Update Alert** og **On Delete Alert**, det samme for **Varsel Episode**, **Varsel Tilstand Tidslinje** og de andre, og handlinger som **Create One Alert** og **Update One Alert**. Definisjonene av egendefinerte felt for varsler er det eneste unntaket: De har ingen arbeidsflytutløsere. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
+Hver varselmodell har arbeidsflytutløsere og -handlinger oppkalt etter seg: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** og **On Delete Alert**, det samme for **Varsel Episode**, **Varsel Tilstand Tidslinje** og de andre, og handlinger som **Create One Alert** og **Update One Alert**. Definisjonene av egendefinerte felt for varsler er det eneste unntaket: De har ingen arbeidsflytutløsere. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
 
 ## Hvem som kan endre dem
 

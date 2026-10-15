@@ -17,6 +17,7 @@ import {
   RunRecordOption,
   RunRecordTriggerInfo,
   getRunRecordTriggerInfo,
+  withRunRecordEvent,
 } from "../../../Types/Workflow/RunRecord";
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -79,11 +80,15 @@ export const getRunConfirmTemplate: GetConfirmTemplateFunction = (
     return RunModalCopy.confirmRunsForReal;
   }
 
-  return recordTrigger.event === RunRecordEvent.Created
-    ? RunModalCopy.confirmCreated
+  /*
+   * On Create or Update says what its What Happened asks
+   * (RunRecord.withRunRecordEvent): created until it is asked.
+   */
+  return recordTrigger.event === RunRecordEvent.Deleted
+    ? RunModalCopy.confirmDeleted
     : recordTrigger.event === RunRecordEvent.Updated
       ? RunModalCopy.confirmUpdated
-      : RunModalCopy.confirmDeleted;
+      : RunModalCopy.confirmCreated;
 };
 
 type GetConfirmDescriptionFunction = (data: {
@@ -188,8 +193,15 @@ const RunModal: FunctionComponent<ComponentProps> = (
   const runFormRef: React.MutableRefObject<RunFormHandle | null> =
     useRef<RunFormHandle | null>(null);
 
-  const recordTrigger: RunRecordTriggerInfo | null = props.workflowId
+  /*
+   * What the run is for: On Create or Update's is whichever the panel's
+   * What Happened asks, so the confirmation says created or updated.
+   */
+  const triggerInfo: RunRecordTriggerInfo | null = props.workflowId
     ? getRunRecordTriggerInfo(component.metadata)
+    : null;
+  const recordTrigger: RunRecordTriggerInfo | null = triggerInfo
+    ? withRunRecordEvent(triggerInfo, component.arguments)
     : null;
 
   /*

@@ -196,7 +196,7 @@ sequenceDiagram
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Блок **API** с ID `lookup-user`                           | Код статуса: `{{local.components.lookup-user.returnValues.response-status}}`. Тело: `{{local.components.lookup-user.returnValues.response-body}}`. |
 | Блок **Run Custom JavaScript** с ID `transform`           | То, что он вернул: `{{local.components.transform.returnValues.returnValue}}`.          |
-| Триггер **On Create Incident** с ID `incident-on-create-1` | Заголовок инцидента: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Триггеры записей возвращают одно значение, `model`, внутрь которого вы спускаетесь. |
+| Триггер **On Create Incident** с ID `incident-on-create-1` | Заголовок инцидента: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Триггеры записей возвращают запись как `model`, внутрь которой вы спускаетесь. |
 
 Значения блоков существуют только в течение текущего запуска. Каждый новый запуск начинается с чистого листа.
 

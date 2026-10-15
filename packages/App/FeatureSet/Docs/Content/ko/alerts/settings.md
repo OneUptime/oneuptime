@@ -151,7 +151,7 @@ flowchart TB
 
 ## 워크플로우
 
-모든 경고 모델에는 그 이름을 딴 워크플로우 트리거와 작업이 있습니다. **On Create Alert**, **On Update Alert**, **On Delete Alert**, 그리고 **경고 에피소드**, **경고 상태 타임라인** 등에도 같은 것이 있으며, **Create One Alert**, **Update One Alert** 같은 작업도 있습니다. 유일한 예외는 경고 사용자 정의 필드 정의로, 워크플로우 트리거가 없습니다. [워크플로우 개요](/docs/workflows/index)를 참고하세요.
+모든 경고 모델에는 그 이름을 딴 워크플로우 트리거와 작업이 있습니다. **On Create Alert**, **On Update Alert**, **On Create or Update Alert**, **On Delete Alert**, 그리고 **경고 에피소드**, **경고 상태 타임라인** 등에도 같은 것이 있으며, **Create One Alert**, **Update One Alert** 같은 작업도 있습니다. 유일한 예외는 경고 사용자 정의 필드 정의로, 워크플로우 트리거가 없습니다. [워크플로우 개요](/docs/workflows/index)를 참고하세요.
 
 ## 변경할 수 있는 사람
 

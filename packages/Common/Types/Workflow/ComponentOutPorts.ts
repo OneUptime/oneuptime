@@ -109,11 +109,13 @@ type GetNewStepArgumentsFunction = (
 
 /*
  * The steps that pass a record on, whose Fields to pass on a new step fills
- * in: the On Create and On Update triggers and the two Find steps.
+ * in: the On Create, On Update and On Create or Update triggers and the two
+ * Find steps.
  */
 const PASSES_RECORD_ON: Array<DatabaseOperation> = [
   DatabaseOperation.OnCreate,
   DatabaseOperation.OnUpdate,
+  DatabaseOperation.OnCreateOrUpdate,
   DatabaseOperation.FindOne,
   DatabaseOperation.FindMany,
 ];

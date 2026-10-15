@@ -185,7 +185,7 @@ API 块和其他 HTTP 块从 OneUptime 发出请求，IRC 块从 OneUptime 连�
 
 ## 工作流步骤可以做什么
 
-读取和更改 OneUptime 记录的步骤——Find、Create、Update 和 Delete 组件，以及 On Create、On Update 和 On Delete 触发器——以工作流所在项目的 **Project Admin** 身份执行。无论工作流是谁搭建的，步骤都要通过与 Project Admin 在仪表板和 API 中相同的检查：
+读取和更改 OneUptime 记录的步骤——Find、Create、Update 和 Delete 组件，以及 On Create、On Update、On Create or Update 和 On Delete 触发器——以工作流所在项目的 **Project Admin** 身份执行。无论工作流是谁搭建的，步骤都要通过与 Project Admin 在仪表板和 API 中相同的检查：
 
 - **只限工作流自己的项目。** 步骤只读写工作流所属项目的记录，不涉及其他项目，Update 也绝不会把记录移到另一个项目。
 - **只限 Project Admin 可以做的事。** 步骤只能授予 Project Admin 自己拥有的团队和 API 密钥权限，所以它不能分发 **Project Owner**、计费或删除项目的权限，也不能把人加入权限超出 Project Admin 的团队，例如所有者团队。步骤无法读取是谁创建了探针或 AI 代理，那只有项目所有者能看到。

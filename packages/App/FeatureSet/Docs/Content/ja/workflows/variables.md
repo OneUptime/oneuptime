@@ -196,7 +196,7 @@ OAuth 2.0 変数のページにある **アクセストークン** カードに�
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | ID が `lookup-user` の **API** ブロック                   | ステータスコード: `{{local.components.lookup-user.returnValues.response-status}}`。本文: `{{local.components.lookup-user.returnValues.response-body}}`。 |
 | ID が `transform` の **Run Custom JavaScript** ブロック   | 返したもの: `{{local.components.transform.returnValues.returnValue}}`。                |
-| ID が `incident-on-create-1` の **On Create Incident** トリガー | インシデントのタイトル: `{{local.components.incident-on-create-1.returnValues.model.title}}`。レコードのトリガーは 1 つの値 `model` を返し、その中をたどります。 |
+| ID が `incident-on-create-1` の **On Create Incident** トリガー | インシデントのタイトル: `{{local.components.incident-on-create-1.returnValues.model.title}}`。レコードのトリガーはレコードを `model` として返し、その中をたどります。 |
 
 ブロックの値は、現在の実行のあいだだけ存在します。新しい実行はそれぞれ白紙から始まります。
 

@@ -185,7 +185,7 @@ API 區塊和其他 HTTP 區塊會從 OneUptime 發出請求，IRC 區塊會從 
 
 ## 工作流程步驟可以做什麼
 
-讀取和變更 OneUptime 記錄的步驟——Find、Create、Update 和 Delete 元件，以及 On Create、On Update 和 On Delete 觸發器——以工作流程所在專案的 **Project Admin** 身分執行。無論工作流程是誰建構的，步驟都要通過與 Project Admin 在儀表板和 API 中相同的檢查：
+讀取和變更 OneUptime 記錄的步驟——Find、Create、Update 和 Delete 元件，以及 On Create、On Update、On Create or Update 和 On Delete 觸發器——以工作流程所在專案的 **Project Admin** 身分執行。無論工作流程是誰建構的，步驟都要通過與 Project Admin 在儀表板和 API 中相同的檢查：
 
 - **只限工作流程自己的專案。** 步驟只會讀寫工作流程所屬專案的記錄，不涉及其他專案，Update 也絕不會把記錄移到另一個專案。
 - **只限 Project Admin 可以做的事。** 步驟只能授予 Project Admin 自己擁有的團隊和 API 金鑰權限，所以它不能分派 **Project Owner**、計費或刪除專案的權限，也不能把人加入權限超出 Project Admin 的團隊，例如擁有者團隊。步驟無法讀取是誰建立了探針或 AI 代理程式，那只有專案擁有者才看得到。

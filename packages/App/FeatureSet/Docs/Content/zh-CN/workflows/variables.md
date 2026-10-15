@@ -196,7 +196,7 @@ OAuth 2.0 变量页面上的 **访问令牌** 卡片会显示以下状态之一�
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | ID 为 `lookup-user` 的 **API** 块                         | 它的状态码：`{{local.components.lookup-user.returnValues.response-status}}`。它的正文：`{{local.components.lookup-user.returnValues.response-body}}`。 |
 | ID 为 `transform` 的 **Run Custom JavaScript** 块         | 它返回的内容：`{{local.components.transform.returnValues.returnValue}}`。              |
-| ID 为 `incident-on-create-1` 的 **On Create Incident** 触发器 | 事件的标题：`{{local.components.incident-on-create-1.returnValues.model.title}}`。记录触发器返回一个值 `model`，你深入其中读取。 |
+| ID 为 `incident-on-create-1` 的 **On Create Incident** 触发器 | 事件的标题：`{{local.components.incident-on-create-1.returnValues.model.title}}`。记录触发器以 `model` 返回记录，你深入其中读取。 |
 
 块的值只在当前运行期间存在。每次新的运行都从头开始。
 

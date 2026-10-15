@@ -29319,5 +29319,9 @@
   "When the episode changed to this status.": "एपिसोड इस स्थिति में कब बदला।",
   "When the event changed to this status.": "इवेंट इस स्थिति में कब बदला।",
   "When the incident changed to this status.": "घटना इस स्थिति में कब बदली।",
-  "When the monitor changed to this status.": "मॉनिटर इस स्थिति में कब बदला।"
+  "When the monitor changed to this status.": "मॉनिटर इस स्थिति में कब बदला।",
+  "Every new {{record}}, and every change to one, runs this workflow.": "हर नए {{record}} पर, और उसमें हर बदलाव पर, यह वर्कफ़्लो चलता है।",
+  "What Happened": "क्या हुआ",
+  "Just created": "अभी बनाया गया",
+  "Just updated": "अभी अपडेट किया गया"
 }

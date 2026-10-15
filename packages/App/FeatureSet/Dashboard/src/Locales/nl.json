@@ -29319,5 +29319,9 @@
   "When the episode changed to this status.": "Wanneer de episode naar deze status is gewijzigd.",
   "When the event changed to this status.": "Wanneer de gebeurtenis naar deze status is gewijzigd.",
   "When the incident changed to this status.": "Wanneer het incident naar deze status is gewijzigd.",
-  "When the monitor changed to this status.": "Wanneer de monitor naar deze status is gewijzigd."
+  "When the monitor changed to this status.": "Wanneer de monitor naar deze status is gewijzigd.",
+  "Every new {{record}}, and every change to one, runs this workflow.": "Elk nieuw item ({{record}}), en elke wijziging eraan, voert deze workflow uit.",
+  "What Happened": "Wat er gebeurde",
+  "Just created": "Zojuist aangemaakt",
+  "Just updated": "Zojuist bijgewerkt"
 }

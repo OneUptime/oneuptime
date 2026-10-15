@@ -29319,5 +29319,9 @@
   "When the episode changed to this status.": "När episoden ändrades till den här statusen.",
   "When the event changed to this status.": "När händelsen ändrades till den här statusen.",
   "When the incident changed to this status.": "När incidenten ändrades till den här statusen.",
-  "When the monitor changed to this status.": "När monitorn ändrades till den här statusen."
+  "When the monitor changed to this status.": "När monitorn ändrades till den här statusen.",
+  "Every new {{record}}, and every change to one, runs this workflow.": "Varje nytt objekt ({{record}}), och varje ändring av ett objekt, kör det här arbetsflödet.",
+  "What Happened": "Vad som hände",
+  "Just created": "Nyss skapad",
+  "Just updated": "Nyss uppdaterad"
 }

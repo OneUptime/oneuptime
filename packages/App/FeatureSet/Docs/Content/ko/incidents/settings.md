@@ -609,15 +609,16 @@ flowchart TB
 
 ## 워크플로우로 인시던트 움직이기
 
-인시던트용 워크플로우 트리거는 손으로 쓰지 않습니다. OneUptime이 데이터 모델에서 생성하므로, 인시던트 계열의 모든 모델이 모델의 단수형 이름을 딴 **On Create X**, **On Update X**, **On Delete X** 구성 요소를 받습니다. 핵심 세 가지는 **On Create Incident**, **On Update Incident**, **On Delete Incident**입니다. `/dashboard/{projectId}/workflows`의 **Add Trigger** 패널에서 **OneUptime resources** → **Incident** 아래에 있으며, 처음 두 개는 **Popular** 아래에도 있습니다.
+인시던트용 워크플로우 트리거는 손으로 쓰지 않습니다. OneUptime이 데이터 모델에서 생성하므로, 인시던트 계열의 모든 모델이 모델의 단수형 이름을 딴 **On Create X**, **On Update X**, **On Create or Update X**, **On Delete X** 구성 요소를 받습니다. 핵심은 **On Create Incident**, **On Update Incident**, **On Create or Update Incident**, **On Delete Incident**입니다. `/dashboard/{projectId}/workflows`의 **Add Trigger** 패널에서 **OneUptime resources** → **Incident** 아래에 있으며, 처음 두 개는 **Popular** 아래에도 있습니다.
 
 같은 생성 방식이 설정 자체의 트리거도 줍니다. **On Create Incident State**, **On Update Incident Severity**, **On Create Incident Template**, **On Create Incident Note Template**, **On Create Incident State Timeline**, **On Create Incident Public Note**, **On Create Incident Internal Note**, **On Create Incident On-Call Rule**, **On Create Incident Role**, **On Create Incident Member** 등입니다. 각 모델은 대응하는 작업 구성 요소(**Find One Incident**, **Create One Incident**, **Update One Incident**, **Delete One Incident**와 그 여러 행 버전)도 받으므로, 이름이 비슷한 트리거와 작업이 같은 범주에 나란히 놓입니다. **On Create Incident**는 워크플로우를 시작하고, **Create One Incident**는 인시던트를 엽니다.
 
 이것들을 엮을 때 중요한 몇 가지:
 
 - **On Update X**는 선택적 인수 **Fields to watch**를 받아, 무엇으로 바뀌든 특정 항목을 바꾸는 업데이트로 트리거를 좁힙니다. 스위치를 끄거나 항목을 지운 것도 셉니다. 이미 가진 값으로 저장된 항목은 변경이 아니므로, 저장할 때마다 그것을 다시 보내는 편집 양식은 워크플로우를 깨우지 않습니다. 어떤 변경에든 실행되게 하려면 비워 두세요. 어떤 항목이 바뀌었는지 기록 없이 업데이트가 들어오면 필터를 건너뛰고 워크플로우는 그대로 실행됩니다.
-- **On Create X**와 **On Update X**는 둘 다 필수 인수 **Fields to pass on**을 받습니다. **On Delete X**는 인수를 받지 않습니다.
-- 세 가지 모두 출력 포트는 **Success** 하나이며, 각각 ID 인수를 받으므로 기록 하나에 대해 워크플로우를 직접 실행할 수 있습니다.
+- **On Create or Update X**는 새 레코드마다 한 번, 자신의 **Fields to watch**가 통과시키는 업데이트마다 한 번 실행되므로, 워크플로우 하나로 둘 다 처리합니다. 레코드와 함께 `what-happened`를 넘기며, 값은 `created` 또는 `updated`입니다.
+- **On Create X**, **On Update X**, **On Create or Update X**는 모두 필수 인수 **Fields to pass on**을 받습니다. **On Delete X**는 인수를 받지 않습니다.
+- 네 가지 모두 출력 포트는 **Success** 하나이며, 각각 ID 인수를 받으므로 기록 하나에 대해 워크플로우를 직접 실행할 수 있습니다.
 - 이름은 테이블 이름이 아니라 모델의 단수형 이름에서 오므로, 테이블 같은 이름이 아니라 **On Create Incident Team Owner**와 **On Create Incident User Owner**가 보입니다.
 - 인시던트 사용자 정의 필드 정의에는 트리거가 없습니다. 그 모델은 인시던트 계열에서 유일하게 워크플로우가 비활성화되어 있습니다.
 
