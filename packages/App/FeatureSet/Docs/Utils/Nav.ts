@@ -425,6 +425,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/incidents/linked-alerts",
       },
       {
+        title: "Episodes",
+        url: "/docs/incidents/episodes",
+      },
+      {
         title: "Incident Settings & Automation",
         url: "/docs/incidents/settings",
       },

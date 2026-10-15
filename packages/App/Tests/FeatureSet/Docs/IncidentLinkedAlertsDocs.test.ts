@@ -317,6 +317,8 @@ const EXPECTED_PAGES: ReadonlyArray<ExpectedPage> = [
   },
   { title: "Incident Notes, Owners & Feed", page: FEED_PAGE },
   { title: LINKED_ALERTS_TITLE, page: LINKED_ALERTS_PAGE },
+  // Grouping incidents, or alerts, into episodes, and adding to one by hand.
+  { title: "Episodes", page: "incidents/episodes" },
   { title: "Incident Settings & Automation", page: SETTINGS_PAGE },
 ];
 

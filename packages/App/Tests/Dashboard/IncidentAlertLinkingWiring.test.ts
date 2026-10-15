@@ -442,11 +442,12 @@ describe("the alerts table bulk actions", () => {
     expect(code).toContain(
       "const{bulkActions:incidentLinkBulkActions,modals:incidentLinkBulkActionModals,}=useBulkIncidentLinkActions();",
     );
+    // Then the episode actions (EpisodeMembersWiring), then Delete.
     expect(code).toContain(
-      "buttons:[getBulkChangeStateAction(),...labelBulkActions,...ownerBulkActions,...incidentLinkBulkActions,ModalTableBulkDefaultActions.Delete,]",
+      "buttons:[getBulkChangeStateAction(),...labelBulkActions,...ownerBulkActions,...incidentLinkBulkActions,...episodeBulkActions,ModalTableBulkDefaultActions.Delete,]",
     );
     expect(code).toContain(
-      "{labelBulkActionModals}{ownerBulkActionModals}{incidentLinkBulkActionModals}",
+      "{labelBulkActionModals}{ownerBulkActionModals}{incidentLinkBulkActionModals}{episodeBulkActionModals}",
     );
   });
 
