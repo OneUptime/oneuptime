@@ -572,11 +572,22 @@ export default class SlackAPI {
             ] as JSONObject
           )["scopes"] as JSONObject;
 
+          /*
+           * The app asks for no user scopes: OneUptime acts with the bot's
+           * token, and Slack names who installed it all the same
+           * (authed_user.id). A user_scope goes only with a manifest that
+           * asks for one.
+           */
+          const userScopes: Array<string> =
+            (scopes["user"] as Array<string>) || [];
+
           const authorizationUrl: string = `https://slack.com/oauth/v2/authorize?scope=${encodeURIComponent(
             ((scopes["bot"] as Array<string>) || []).join(","),
-          )}&user_scope=${encodeURIComponent(
-            ((scopes["user"] as Array<string>) || []).join(","),
-          )}&client_id=${encodeURIComponent(
+          )}${
+            userScopes.length > 0
+              ? `&user_scope=${encodeURIComponent(userScopes.join(","))}`
+              : ""
+          }&client_id=${encodeURIComponent(
             SlackAppClientId,
           )}&redirect_uri=${encodeURIComponent(
             SlackAPI.getInstallRedirectUri({ projectId, userId }),
@@ -704,7 +715,8 @@ export default class SlackAPI {
           /*
            * Neither the token request nor the token response is logged: the
            * request carries the app client secret and the authorization
-           * code, and the response carries the bot and user access tokens.
+           * code, and the response carries the bot's access token (and a
+           * user's, for an app whose manifest asks for user scopes).
            */
           logger.debug(
             "Exchanging Slack authorization code for an access token.",
@@ -749,12 +761,17 @@ export default class SlackAPI {
            *         "id": "E12345678"
            *     },
            *     "authed_user": {
-           *         "id": "U1234",
-           *         "scope": "chat:write",
-           *         "access_token": "sample-token",
-           *         "token_type": "user"
+           *         "id": "U1234"
            *     }
            * }
+           *
+           * authed_user is who installed the app. It carries a token of
+           * theirs (access_token, scope, token_type) only for an app that
+           * asks for user scopes, and this one asks for none: OneUptime acts
+           * with the bot's token and their Slack user id, so their account
+           * is linked with an empty token (WorkspaceUserAuthTokenService).
+           * An app created from an older manifest still gets one; it is kept
+           * as before, and used for nothing.
            */
 
           const team: JSONObject | undefined = responseBody["team"] as

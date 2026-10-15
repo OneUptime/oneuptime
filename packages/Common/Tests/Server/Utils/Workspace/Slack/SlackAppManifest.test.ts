@@ -262,12 +262,14 @@ describe("apps created from an older manifest", () => {
  *
  * Slack shows an app's Home tab only when the manifest enables it, and
  * tells the app it was opened (app_home_opened) only when the app asks for
- * that event: OneUptime draws the Home then (SlackHome). member_joined_channel
- * tells it a person added it to a channel, where it says hello once
- * (SlackWelcome). Neither event needs a scope of its own beyond what the app
- * has: app_home_opened none, member_joined_channel the channels:read and
- * groups:read it reads channels with already - so turning them on asks no
- * workspace to install the app again.
+ * that event: OneUptime draws the Home then (SlackHome), and welcomes
+ * somebody opening the Messages tab for the first time
+ * (SlackMessagesWelcome). member_joined_channel tells it a person added it
+ * to a channel, where it says hello once (SlackWelcome). Neither event
+ * needs a scope of its own beyond what the app has: app_home_opened none
+ * (the welcome is a chat.postMessage, chat:write), member_joined_channel the
+ * channels:read and groups:read it reads channels with already - so turning
+ * them on asks no workspace to install the app again.
  */
 describe("the Slack app manifest's Home tab and hello", () => {
   const appHome: JSONObject = features["app_home"] as JSONObject;
@@ -310,5 +312,272 @@ describe("the Slack app manifest's Home tab and hello", () => {
 
       expect(route).toContain(`event["type"] === "${event}"`);
     }
+  });
+});
+
+/*
+ * THE SCOPES THE APP ASKS FOR: THE ONES IT USES, AND NO MORE.
+ *
+ * Slack's review of the app for the Slack Marketplace: "The im:read and
+ * im:write scopes are not required for sending messages in the 'Messages'
+ * tab and chat:write can be used for this ... The user token for users:read
+ * does not appear required." OneUptime posts to a person's id with
+ * chat.postMessage, which Slack delivers to the app's direct messages
+ * (chat:write); it opens no conversation of its own (conversations.open:
+ * im:write, mpim:write), sets no channel's topic or purpose
+ * (channels:write.topic), and acts with the bot's token and a person's
+ * Slack user id, never a token of theirs. im:read stays: conversations.info
+ * and conversations.members read a direct message's channel too.
+ *
+ * Each Slack Web API method the server calls - read from the source, so a
+ * new one cannot be called unlisted - and each event the app hears, with the
+ * bot scopes Slack takes for it on the kinds of conversation OneUptime uses
+ * it on: each has a scope the manifest asks for, and each scope the manifest
+ * asks for is one of theirs.
+ */
+
+// Any one of them lets the app call the method, as OneUptime calls it.
+const METHOD_SCOPES: Record<string, Array<string>> = {
+  // The two OAuth exchanges, and the Home and modals: no scope.
+  "oauth.v2.access": [],
+  "openid.connect.token": [],
+  "views.open": [],
+  "views.publish": [],
+  "chat.postMessage": ["chat:write"],
+  "chat.postEphemeral": ["chat:write"],
+  "chat.update": ["chat:write"],
+  "chat.delete": ["chat:write"],
+  "conversations.list": ["channels:read", "groups:read"],
+  "conversations.info": [
+    "channels:read",
+    "groups:read",
+    "im:read",
+    "mpim:read",
+  ],
+  "conversations.members": [
+    "channels:read",
+    "groups:read",
+    "im:read",
+    "mpim:read",
+  ],
+  "conversations.history": [
+    "channels:history",
+    "groups:history",
+    "im:history",
+    "mpim:history",
+  ],
+  "conversations.replies": [
+    "channels:history",
+    "groups:history",
+    "im:history",
+    "mpim:history",
+  ],
+  // A public or a private channel: OneUptime creates no direct message.
+  "conversations.create": ["channels:manage", "groups:write"],
+  "conversations.archive": ["channels:manage", "groups:write"],
+  "conversations.invite": ["channels:write.invites", "groups:write"],
+  "conversations.join": ["channels:join"],
+  "files.getUploadURLExternal": ["files:write"],
+  "files.completeUploadExternal": ["files:write"],
+  "users.info": ["users:read"],
+  "users.lookupByEmail": ["users:read.email"],
+  "usergroups.list": ["usergroups:read"],
+  "usergroups.users.list": ["usergroups:read"],
+  "usergroups.create": ["usergroups:write"],
+  "usergroups.users.update": ["usergroups:write"],
+  "usergroups.disable": ["usergroups:write"],
+  "usergroups.enable": ["usergroups:write"],
+};
+
+// The events the app hears, with the scopes Slack sends each with.
+const EVENT_SCOPES: Record<string, Array<string>> = {
+  app_home_opened: [],
+  app_mention: ["app_mentions:read"],
+  member_joined_channel: ["channels:read", "groups:read"],
+  "message.channels": ["channels:history"],
+  "message.groups": ["groups:history"],
+  "message.im": ["im:history"],
+  "message.mpim": ["mpim:history"],
+  pin_added: ["pins:read"],
+  reaction_added: ["reactions:read"],
+};
+
+// Where the server calls Slack: the workspace utilities, and the Slack routes.
+const SLACK_SOURCES: Array<string> = [
+  path.resolve(__dirname, "../../../../../Server/Utils/Workspace"),
+  path.resolve(__dirname, "../../../../../Server/API/SlackAPI.ts"),
+];
+
+// How the source names a method: a URL, or a method its helpers are handed.
+const METHOD_MARKERS: Array<string> = [
+  "slack.com/api/",
+  'method: "',
+  'apiMethod: "',
+];
+
+// A character of a method's name, as in "usergroups.users.update".
+const METHOD_CHARACTER: RegExp = /^[A-Za-z0-9_.]$/;
+
+function typeScriptFiles(at: string): Array<string> {
+  if (!fs.statSync(at).isDirectory()) {
+    return [at];
+  }
+
+  return fs.readdirSync(at).flatMap((name: string): Array<string> => {
+    const child: string = path.join(at, name);
+
+    if (fs.statSync(child).isDirectory()) {
+      return typeScriptFiles(child);
+    }
+
+    return name.endsWith(".ts") ? [child] : [];
+  });
+}
+
+function isMethodCharacter(character: string): boolean {
+  return METHOD_CHARACTER.test(character);
+}
+
+// Every Slack method the source names, once each.
+function calledMethods(): Array<string> {
+  const methods: Set<string> = new Set();
+
+  for (const file of SLACK_SOURCES.flatMap(typeScriptFiles)) {
+    const source: string = fs.readFileSync(file, "utf8");
+
+    for (const marker of METHOD_MARKERS) {
+      let from: number = source.indexOf(marker);
+
+      while (from !== -1) {
+        const start: number = from + marker.length;
+        let end: number = start;
+
+        while (end < source.length && isMethodCharacter(source[end]!)) {
+          end++;
+        }
+
+        // A sentence's full stop is not the method's.
+        let name: string = source.substring(start, end);
+
+        while (name.endsWith(".")) {
+          name = name.substring(0, name.length - 1);
+        }
+
+        // "slack.com/api/${method}" names none; a method is "noun.verb".
+        if (name.includes(".")) {
+          methods.add(name);
+        }
+
+        from = source.indexOf(marker, end);
+      }
+    }
+  }
+
+  return Array.from(methods).sort();
+}
+
+describe("the scopes the Slack app asks for", () => {
+  const scopes: JSONObject = (manifest["oauth_config"] as JSONObject)[
+    "scopes"
+  ] as JSONObject;
+  const bot: Array<string> = scopes["bot"] as unknown as Array<string>;
+  const events: Array<string> = (
+    (manifest["settings"] as JSONObject)["event_subscriptions"] as JSONObject
+  )["bot_events"] as unknown as Array<string>;
+  const methods: Array<string> = calledMethods();
+
+  test("no user scopes: Slack names who installed the app all the same, and OneUptime never acts with a token of theirs", () => {
+    expect(scopes["user"]).toEqual([]);
+  });
+
+  test("none of the scopes Slack's review found unneeded: no im:write or mpim:write - chat:write reaches the Messages tab - and no channels:write.topic", () => {
+    for (const scope of ["im:write", "mpim:write", "channels:write.topic"]) {
+      expect(bot).not.toContain(scope);
+    }
+
+    expect(bot).toContain("chat:write");
+    // conversations.info and conversations.members on a direct message.
+    expect(bot).toContain("im:read");
+  });
+
+  test("the source scan finds the methods it is there for", () => {
+    expect(methods).toEqual(
+      expect.arrayContaining([
+        "chat.postMessage",
+        "conversations.info",
+        // Handed to a helper, not written as a URL.
+        "conversations.history",
+        "usergroups.users.update",
+        "users.lookupByEmail",
+      ]),
+    );
+    expect(methods).not.toContain("conversations.open");
+  });
+
+  test("every Slack Web API method the server calls is a known one, with a scope the manifest asks for", () => {
+    for (const method of methods) {
+      expect({ method, known: true }).toEqual({
+        method,
+        known: Object.keys(METHOD_SCOPES).includes(method),
+      });
+
+      const allowedBy: Array<string> = METHOD_SCOPES[method] || [];
+
+      expect({ method, allowed: true }).toEqual({
+        method,
+        allowed:
+          allowedBy.length === 0 ||
+          allowedBy.some((scope: string): boolean => {
+            return bot.includes(scope);
+          }),
+      });
+    }
+  });
+
+  test("every event the app subscribes to comes with a scope the manifest asks for", () => {
+    for (const event of events) {
+      expect({ event, known: true }).toEqual({
+        event,
+        known: Object.keys(EVENT_SCOPES).includes(event),
+      });
+
+      const sentWith: Array<string> = EVENT_SCOPES[event] || [];
+
+      expect({ event, allowed: true }).toEqual({
+        event,
+        allowed:
+          sentWith.length === 0 ||
+          sentWith.some((scope: string): boolean => {
+            return bot.includes(scope);
+          }),
+      });
+    }
+  });
+
+  test("every scope the manifest asks for is one a method the server calls, an event it hears, or its command needs", () => {
+    const used: Set<string> = new Set();
+
+    for (const method of methods) {
+      for (const scope of METHOD_SCOPES[method] || []) {
+        used.add(scope);
+      }
+    }
+
+    for (const event of events) {
+      for (const scope of EVENT_SCOPES[event] || []) {
+        used.add(scope);
+      }
+    }
+
+    // /oneuptime, and the two shortcuts.
+    if (slashCommands.length > 0 || shortcuts.length > 0) {
+      used.add("commands");
+    }
+
+    expect(
+      bot.filter((scope: string): boolean => {
+        return !used.has(scope);
+      }),
+    ).toEqual([]);
   });
 });
