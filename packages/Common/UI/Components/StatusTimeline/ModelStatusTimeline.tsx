@@ -93,6 +93,13 @@ import React, {
 
 export const STATUS_TIMELINE_PAGE_SIZE: number = 500;
 
+/*
+ * Whether a record in this state is done with: an incident in its project's
+ * Resolved state, or in a state the project placed after it. Answered per
+ * state, from the project's own list of states.
+ */
+export type StatusTimelineFinalStateRule = (state: JSONObject) => boolean;
+
 // The create dialog's title, as the table words it.
 const CREATE_NEW_TEMPLATE: string = translationKey("Create New {{itemName}}");
 
@@ -123,12 +130,16 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   // How serious a status is, higher being worse (StatusTimelineEntry.rank).
   getStateRank?: ((state: JSONObject) => number | undefined) | undefined;
   /*
-   * Whether a record in this state is done with (an incident's Resolved).
-   * A whole-history band of a record that is not runs on to now
-   * (getStatusTimelineFitWindow's isOpen); the state's flags it reads go in
-   * stateSelect.
+   * Which states the record is done with - an incident's Resolved, and any
+   * state its project placed after it - read with the rows, so the band is
+   * drawn once: the project's own list of states decides it
+   * (Common/Utils/ResolvedState, ScheduledMaintenanceStart), never a flag
+   * on its own. A whole-history band of a record that is not done runs on
+   * to now (getStatusTimelineFitWindow's isOpen). The state's columns the
+   * rule reads go in stateSelect. A rule that can't be read leaves the
+   * band fitted to the changes.
    */
-  isFinalState?: ((state: JSONObject) => boolean) | undefined;
+  getFinalStateRule?: (() => Promise<StatusTimelineFinalStateRule>) | undefined;
   /*
    * The period the timeline opens on, for a record whose history grows for
    * ever. Absent: the whole history, fitted to the band.
@@ -188,6 +199,8 @@ interface LoadedTimeline<TBaseModel extends BaseModel> {
   rowBeforeWindow: TBaseModel | null;
   // How many rows the period (or the whole history) holds.
   totalCount: number;
+  // Which states the record is done with (getFinalStateRule), when known.
+  isFinalState: StatusTimelineFinalStateRule | null;
 }
 
 const DEFAULT_STATUS_COLOR: string = "#6b7280";
@@ -341,6 +354,24 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
     });
   };
 
+  /*
+   * The rule for which states the record is done with. It only shapes the
+   * band (whether it runs on to now), so a rule that can't be read is no
+   * error: the band is fitted to the changes instead.
+   */
+  const readFinalStateRule: () => Promise<StatusTimelineFinalStateRule | null> =
+    async (): Promise<StatusTimelineFinalStateRule | null> => {
+      if (!props.getFinalStateRule) {
+        return null;
+      }
+
+      try {
+        return await props.getFinalStateRule();
+      } catch {
+        return null;
+      }
+    };
+
   const load: () => Promise<void> = async (): Promise<void> => {
     const requestId: number = ++requestCounter.current;
     const targetWindow: StatusTimelineWindow | null = getTargetWindow();
@@ -352,9 +383,10 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
     }
 
     try {
-      const [inWindow, before]: [
+      const [inWindow, before, isFinalState]: [
         ListResult<TBaseModel>,
         ListResult<TBaseModel> | null,
+        StatusTimelineFinalStateRule | null,
       ] = await Promise.all([
         readRows({ window: targetWindow, skip: 0 }),
         targetWindow
@@ -370,6 +402,7 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
               sort: sort,
             })
           : Promise.resolve(null),
+        readFinalStateRule(),
       ]);
 
       if (requestId !== requestCounter.current) {
@@ -381,6 +414,7 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
         rows: inWindow.data,
         rowBeforeWindow: before?.data[0] || null,
         totalCount: Math.max(inWindow.count, inWindow.data.length),
+        isFinalState: isFinalState,
       });
       setError("");
       props.onFetchSuccess?.();
@@ -526,7 +560,10 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
 
   // The record is still open: its current state is not a final one.
   const isRecordOpen: boolean = useMemo(() => {
-    if (!props.isFinalState) {
+    const isFinalState: StatusTimelineFinalStateRule | null =
+      loaded?.isFinalState || null;
+
+    if (!isFinalState) {
       return false;
     }
 
@@ -540,10 +577,10 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
       return false;
     }
 
-    return !props.isFinalState(
+    return !isFinalState(
       (readValue(current, props.stateColumn) as JSONObject | undefined) || {},
     );
-  }, [rows]);
+  }, [rows, loaded]);
 
   // The period the band shows.
   const timelineWindow: StatusTimelineWindow = useMemo(() => {

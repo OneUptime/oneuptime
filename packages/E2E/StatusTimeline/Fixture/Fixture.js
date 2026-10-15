@@ -79,6 +79,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
+// The suites' one seeded generator, so every run draws the same history.
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import JA from "../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 
@@ -215,15 +217,6 @@ function monitorEvent(status, from, to, extra) {
     row.createdByUserId = new ObjectID(USER_ID);
   }
   return row;
-}
-
-// A seeded generator, so every run draws the same history.
-function seededRandom(seed) {
-  let state = seed;
-  return () => {
-    state = (state * 48271) % 2147483647;
-    return state / 2147483647;
-  };
 }
 
 /*

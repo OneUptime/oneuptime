@@ -89,7 +89,9 @@ interface RecordedProps {
   // The timeline's own.
   stateColumn?: string;
   stateSelect?: Record<string, unknown>;
-  isFinalState?: (state: Record<string, unknown>) => boolean;
+  getFinalStateRule?: () => Promise<
+    (state: Record<string, unknown>) => boolean
+  >;
   defaultRange?: unknown;
   headerElement?: ReactElement;
   renderEntryDetails?: (
@@ -162,6 +164,22 @@ interface ListRead {
 }
 
 const listReads: Array<ListRead> = [];
+
+/*
+ * A project's own list of states, as the Dashboard reads it (ModelListCache
+ * over ModelAPI.getList): the incident, alert and scheduled maintenance
+ * states, by model.
+ */
+interface ProjectState {
+  _id: string;
+  name: string;
+  order: number;
+  // Whether a record in it is done with, as the project's rule says.
+  isFinal: boolean;
+  [flag: string]: unknown;
+}
+
+let mockProjectStates: Record<string, Array<ProjectState>> = {};
 const updates: Array<{ id: string; data: Record<string, unknown> }> = [];
 
 // The record's timeline, in any order; the column naming the record.
@@ -189,6 +207,18 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
         updates.push({ id: data.id.toString(), data: data.data });
       },
       getList: async (read: ListRead): Promise<unknown> => {
+        const projectStates: Array<ProjectState> | undefined =
+          mockProjectStates[read.modelType.name];
+
+        if (projectStates) {
+          return {
+            data: projectStates,
+            count: projectStates.length,
+            skip: 0,
+            limit: read.limit,
+          };
+        }
+
         listReads.push(read);
 
         const ofThisRecord: boolean =
@@ -246,6 +276,7 @@ import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/St
 import Project from "../../../Models/DatabaseModels/Project";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
+import ModelListCache from "../../../UI/Utils/ModelListCache";
 import {
   ONLY_STATE_DELETE_MESSAGES,
   StateTimelineRecord,
@@ -317,11 +348,67 @@ interface PageCase {
    */
   onlyRowRefusal: string | undefined;
   /*
-   * The states a record is done with: its band ends with its last change.
-   * Undefined for a monitor and a site, which are never done.
+   * The record's project's list of states, and which of them the record is
+   * done in: its band ends with its last change there. What the rule reads
+   * of a row's state is read with it. Undefined for a monitor and a site,
+   * which are never done.
    */
-  finalStates: Array<Record<string, boolean>> | undefined;
+  finalStates:
+    | {
+        stateModel: string;
+        select: Array<string>;
+        states: Array<ProjectState>;
+      }
+    | undefined;
 }
+
+const projectState: (
+  index: number,
+  name: string,
+  isFinal: boolean,
+  flags: Record<string, boolean>,
+) => ProjectState = (
+  index: number,
+  name: string,
+  isFinal: boolean,
+  flags: Record<string, boolean>,
+): ProjectState => {
+  return {
+    _id: `7c000000-0000-4000-8000-0000000002${String(index).padStart(2, "0")}`,
+    name: name,
+    order: index,
+    isFinal: isFinal,
+    ...flags,
+  };
+};
+
+/*
+ * An incident's (or an alert's) states, with one of the project's own
+ * placed after Resolved: "Closed" carries no flag, yet a record in it is
+ * resolved (Common/Utils/ResolvedState) - a flag read on its own would
+ * leave its band running on to now for ever.
+ */
+const INCIDENT_AND_ALERT_STATES: Array<ProjectState> = [
+  projectState(1, "Created", false, { isCreatedState: true }),
+  projectState(2, "Acknowledged", false, { isAcknowledgedState: true }),
+  projectState(3, "Resolved", true, { isResolvedState: true }),
+  projectState(4, "Closed", true, {}),
+];
+
+/*
+ * A maintenance event is done once over: Ended, Completed, or a state of
+ * the project's own after Ended ("Reviewing") - never while it waits
+ * ("Confirmed") or runs ("Verifying").
+ */
+const SCHEDULED_MAINTENANCE_STATES: Array<ProjectState> = [
+  projectState(1, "Scheduled", false, { isScheduledState: true }),
+  projectState(2, "Confirmed", false, {}),
+  projectState(3, "Ongoing", false, { isOngoingState: true }),
+  projectState(4, "Verifying", false, {}),
+  projectState(5, "Ended", true, { isEndedState: true }),
+  projectState(6, "Reviewing", true, {}),
+  projectState(7, "Completed", true, { isResolvedState: true }),
+];
 
 const PAGES: Array<PageCase> = [
   {
@@ -354,7 +441,11 @@ const PAGES: Array<PageCase> = [
     logColumn: "stateChangeLog",
     hasSubscriberNotification: true,
     onlyRowRefusal: ONLY_STATE_DELETE_MESSAGES[StateTimelineRecord.Incident],
-    finalStates: [{ isResolvedState: true }],
+    finalStates: {
+      stateModel: "IncidentState",
+      select: ["order", "isResolvedState"],
+      states: INCIDENT_AND_ALERT_STATES,
+    },
   },
   {
     name: "an alert's Status Timeline",
@@ -370,7 +461,11 @@ const PAGES: Array<PageCase> = [
     logColumn: "stateChangeLog",
     hasSubscriberNotification: false,
     onlyRowRefusal: ONLY_STATE_DELETE_MESSAGES[StateTimelineRecord.Alert],
-    finalStates: [{ isResolvedState: true }],
+    finalStates: {
+      stateModel: "AlertState",
+      select: ["order", "isResolvedState"],
+      states: INCIDENT_AND_ALERT_STATES,
+    },
   },
   {
     name: "a scheduled maintenance event's Status Timeline",
@@ -387,7 +482,17 @@ const PAGES: Array<PageCase> = [
     hasSubscriberNotification: true,
     onlyRowRefusal:
       ONLY_STATE_DELETE_MESSAGES[StateTimelineRecord.ScheduledMaintenance],
-    finalStates: [{ isEndedState: true }, { isResolvedState: true }],
+    finalStates: {
+      stateModel: "ScheduledMaintenanceState",
+      select: [
+        "order",
+        "isScheduledState",
+        "isOngoingState",
+        "isEndedState",
+        "isResolvedState",
+      ],
+      states: SCHEDULED_MAINTENANCE_STATES,
+    },
   },
   {
     name: "an incident episode's Status Timeline",
@@ -404,7 +509,11 @@ const PAGES: Array<PageCase> = [
     hasSubscriberNotification: false,
     onlyRowRefusal:
       ONLY_STATE_DELETE_MESSAGES[StateTimelineRecord.IncidentEpisode],
-    finalStates: [{ isResolvedState: true }],
+    finalStates: {
+      stateModel: "IncidentState",
+      select: ["order", "isResolvedState"],
+      states: INCIDENT_AND_ALERT_STATES,
+    },
   },
   {
     name: "an alert episode's Status Timeline",
@@ -421,7 +530,11 @@ const PAGES: Array<PageCase> = [
     hasSubscriberNotification: false,
     onlyRowRefusal:
       ONLY_STATE_DELETE_MESSAGES[StateTimelineRecord.AlertEpisode],
-    finalStates: [{ isResolvedState: true }],
+    finalStates: {
+      stateModel: "AlertState",
+      select: ["order", "isResolvedState"],
+      states: INCIDENT_AND_ALERT_STATES,
+    },
   },
   {
     name: "a network site's Status Timeline",
@@ -613,6 +726,12 @@ beforeEach(() => {
   timeline = [];
   recordColumn = "";
   forgetStatusTimelineView();
+  ModelListCache.invalidateAll();
+  mockProjectStates = {
+    IncidentState: INCIDENT_AND_ALERT_STATES,
+    AlertState: INCIDENT_AND_ALERT_STATES,
+    ScheduledMaintenanceState: SCHEDULED_MAINTENANCE_STATES,
+  };
   jest.spyOn(Navigation, "getLastParamAsObjectID").mockReturnValue(RECORD_ID);
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
 });
@@ -695,31 +814,71 @@ describe.each(PAGES)("$name", (pageCase: PageCase) => {
     expect(timelineProps.logColumn).toBe(pageCase.logColumn);
   });
 
-  test("a record still open runs to now: the page says which states it is done in", async () => {
+  test("a record still open runs to now: its project's own list of states says which states it is done in", async () => {
     await renderPage(pageCase);
 
     const props: RecordedProps = recordedTimelineProps!;
 
     if (!pageCase.finalStates) {
       // A monitor and a site are never done: they show a period instead.
-      expect(props.isFinalState).toBeUndefined();
+      expect(props.getFinalStateRule).toBeUndefined();
       return;
     }
 
-    for (const flags of pageCase.finalStates) {
-      // The flag is read with the state, and makes it final.
-      for (const flag of Object.keys(flags)) {
-        expect(props.stateSelect?.[flag]).toBe(true);
-      }
-
-      expect(props.isFinalState!({ name: "Done", ...flags })).toBe(true);
+    // What the rule reads of a row's state - its place and flags - is read.
+    for (const column of pageCase.finalStates.select) {
+      expect(props.stateSelect?.[column]).toBe(true);
     }
 
-    expect(props.isFinalState!({ name: "Acknowledged" })).toBe(false);
+    const isFinalState: (state: Record<string, unknown>) => boolean =
+      await props.getFinalStateRule!();
+
+    // The project's states were read, through the Dashboard's cached list.
     expect(
-      props.isFinalState!({ name: "Acknowledged", isResolvedState: false }),
-    ).toBe(false);
+      pageCase.finalStates.states.map((state: ProjectState): string => {
+        return `${state.name}: ${isFinalState(state) ? "done" : "open"}`;
+      }),
+    ).toEqual(
+      pageCase.finalStates.states.map((state: ProjectState): string => {
+        return `${state.name}: ${state.isFinal ? "done" : "open"}`;
+      }),
+    );
   });
+
+  if (pageCase.finalStates) {
+    test("a state the project placed after its final one is done too, flag or not", async () => {
+      await renderPage(pageCase);
+
+      const isFinalState: (state: Record<string, unknown>) => boolean =
+        await recordedTimelineProps!.getFinalStateRule!();
+      const ownState: ProjectState = pageCase.finalStates!.states.find(
+        (state: ProjectState): boolean => {
+          return state.name === "Closed" || state.name === "Reviewing";
+        },
+      )!;
+
+      // It carries no flag of its own: its place decides.
+      expect(
+        Object.keys(ownState).filter((key: string): boolean => {
+          return key.startsWith("is") && key !== "isFinal";
+        }),
+      ).toEqual([]);
+      expect(isFinalState(ownState)).toBe(true);
+    });
+
+    test("with no project to read the states of, the rule is not made up: it fails, and the timeline fits the band to the changes", async () => {
+      await renderPage(pageCase);
+
+      jest
+        .spyOn(ProjectUtil, "getCurrentProjectId")
+        .mockReturnValue(null as unknown as ObjectID);
+      ModelListCache.invalidateAll();
+
+      await expect(
+        recordedTimelineProps!.getFinalStateRule!(),
+      ).rejects.toThrow();
+    });
+  }
 
   if (pageCase.isCreateable) {
     test("a new row is made this record's, in this project, from either view", async () => {

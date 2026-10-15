@@ -250,6 +250,7 @@ jest.mock("../../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 import ModelStatusTimeline, {
   ComponentProps,
   STATUS_TIMELINE_PAGE_SIZE,
+  StatusTimelineFinalStateRule,
 } from "../../../../UI/Components/StatusTimeline/ModelStatusTimeline";
 import { DeleteConfirmation } from "../../../../UI/Components/ModelTable/BaseModelTable";
 import MonitorStatusTimeline from "../../../../Models/DatabaseModels/MonitorStatusTimeline";
@@ -1214,21 +1215,110 @@ describe("an incident's timeline: its whole history on one band", () => {
       incidentRow(acknowledged, -3 * HOUR + 12 * MINUTE, null),
     ];
 
+    const askedAbout: Array<string> = [];
+
     await renderIncident({
-      stateSelect: { isResolvedState: true },
-      isFinalState: (state: JSONObject): boolean => {
-        return state["isResolvedState"] === true;
+      stateSelect: { order: true },
+      getFinalStateRule: async (): Promise<StatusTimelineFinalStateRule> => {
+        // The project's rule: here, only a state named Resolved is done.
+        return (state: JSONObject): boolean => {
+          askedAbout.push(String(state["name"]));
+          return state["name"] === "Resolved";
+        };
       },
     });
 
-    // The flag is read with the state.
+    // What the rule reads of the state is read with it.
     expect(timelineReads()[0]!.select["incidentState"]).toEqual({
       _id: true,
       name: true,
       color: true,
-      isResolvedState: true,
+      order: true,
     });
+    // It is asked about the state the incident is in now.
+    expect(askedAbout).toContain("Acknowledged");
     expect(screen.getByTestId("status-timeline-now")).toBeInTheDocument();
+  });
+
+  test("the rule is read with the rows, so the band is drawn once, already running to now", async () => {
+    const created: IncidentState = incidentState("Created", "#ef4444");
+    const acknowledged: IncidentState = incidentState(
+      "Acknowledged",
+      "#eab308",
+    );
+
+    rowsInStore = [
+      incidentRow(created, -3 * HOUR, -3 * HOUR + 12 * MINUTE),
+      incidentRow(acknowledged, -3 * HOUR + 12 * MINUTE, null),
+    ];
+
+    let releaseRule: () => void = (): void => {};
+    const ruleRead: Promise<void> = new Promise<void>((resolve: () => void) => {
+      releaseRule = resolve;
+    });
+
+    await act(async () => {
+      render(
+        <ModelStatusTimeline<IncidentStateTimeline>
+          modelType={IncidentStateTimeline}
+          id="incident-status-timeline"
+          name="Incident > State Timeline"
+          title="Status Timeline"
+          description="Each status this incident has been in, when it began and how long it lasted."
+          query={{
+            incidentId: new ObjectID(MONITOR_ID),
+            projectId: new ObjectID(PROJECT_ID),
+          }}
+          stateColumn="incidentState"
+          ariaLabel="Status timeline of this incident"
+          emptyMessage="No status recorded for this incident yet."
+          getFinalStateRule={async (): Promise<StatusTimelineFinalStateRule> => {
+            await ruleRead;
+            return (): boolean => {
+              return false;
+            };
+          }}
+        />,
+      );
+    });
+
+    // The rows are in, the rule is not: the band waits rather than jump.
+    expect(screen.getByTestId("status-timeline-loading")).toBeInTheDocument();
+    expect(screen.queryByTestId("status-timeline-band")).toBeNull();
+
+    await act(async () => {
+      releaseRule();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("status-timeline-now")).toBeInTheDocument();
+    });
+  });
+
+  test("a rule that can't be read is no error: the band is fitted to the changes", async () => {
+    const created: IncidentState = incidentState("Created", "#ef4444");
+    const acknowledged: IncidentState = incidentState(
+      "Acknowledged",
+      "#eab308",
+    );
+
+    rowsInStore = [
+      incidentRow(created, -30 * HOUR, -30 * HOUR + 12 * MINUTE),
+      incidentRow(acknowledged, -30 * HOUR + 12 * MINUTE, null),
+    ];
+
+    await renderIncident({
+      getFinalStateRule: async (): Promise<StatusTimelineFinalStateRule> => {
+        throw new Error("The project's states could not be read.");
+      },
+    });
+
+    expect(screen.getByTestId("status-timeline-band")).toBeInTheDocument();
+    expect(
+      screen.queryByText("The project's states could not be read."),
+    ).toBeNull();
+    // Last changed long after its first change: fitted, not run to now.
+    expect(screen.queryByTestId("status-timeline-now")).toBeNull();
   });
 
   test("resolved, it ends a little after its last change", async () => {
@@ -1242,9 +1332,11 @@ describe("an incident's timeline: its whole history on one band", () => {
     ];
 
     await renderIncident({
-      stateSelect: { isResolvedState: true },
-      isFinalState: (state: JSONObject): boolean => {
-        return state["isResolvedState"] === true;
+      stateSelect: { order: true },
+      getFinalStateRule: async (): Promise<StatusTimelineFinalStateRule> => {
+        return (state: JSONObject): boolean => {
+          return state["name"] === "Resolved";
+        };
       },
     });
 

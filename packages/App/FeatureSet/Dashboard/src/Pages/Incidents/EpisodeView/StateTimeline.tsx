@@ -1,8 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
-import {
-  isResolvedState,
-  RESOLVED_STATE_SELECT,
-} from "../../../Components/StateTimeline/StateTimelineFinalState";
+import { INCIDENT_FINAL_STATE } from "../../../Components/StateTimeline/StateTimelineFinalState";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -129,8 +126,8 @@ const EpisodeViewStateTimeline: FunctionComponent<PageComponentProps> = (
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         stateColumn="incidentState"
-        stateSelect={RESOLVED_STATE_SELECT}
-        isFinalState={isResolvedState}
+        stateSelect={INCIDENT_FINAL_STATE.stateSelect}
+        getFinalStateRule={INCIDENT_FINAL_STATE.getFinalStateRule}
         ariaLabel="Status timeline of this episode"
         emptyMessage="No status recorded for this episode yet."
         isCreateable={true}
