@@ -333,7 +333,8 @@ const AddToExistingEpisodeModal: FunctionComponent<ComponentProps> = (
           sections={[
             {
               key: "open",
-              title: translator.translateText("Open"),
+              // "Ongoing", not "Open": the adjective, never the verb.
+              title: translator.translateText("Ongoing"),
               items: episodes.open.map(toItem),
             },
             {

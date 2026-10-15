@@ -1,6 +1,7 @@
 import Color from "Common/Types/Color";
 import { JSONValue } from "Common/Types/JSON";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -158,7 +159,8 @@ const AddToNewEpisodeModal: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
-  const description: string = [
+  // Two whole sentences, run together the way the reader's script does it.
+  const description: string = joinSentences([
     translator.translateTemplate(
       "Creates an episode with the selected {{itemsName}} in it. You can add owners, on-call policies and notes on its page.",
       { itemsName },
@@ -173,11 +175,7 @@ const AddToNewEpisodeModal: FunctionComponent<ComponentProps> = (
           inAnotherEpisode,
         )
       : "",
-  ]
-    .filter((sentence: string): boolean => {
-      return Boolean(sentence);
-    })
-    .join(" ");
+  ]);
 
   return (
     <BasicFormModal<NewEpisodeFormData>
