@@ -2124,10 +2124,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
    * posts it once this returns, the new channel included).
    *
    * Never for a record:
-   * - whose own setup has not run (its channel list is null): one being
-   *   created right now opens its channels itself, and one created before
-   *   channels were opened this way, or while no workspace was connected,
-   *   has none to open later;
+   * - whose own setup is still running: one created moments ago that holds
+   *   no list of channels yet opens its channels itself
+   *   (WorkspaceRecordChannelState.isSetUp). One created before channels
+   *   were opened this way, or while no workspace was connected, or whose
+   *   setup failed, is set up once that window is over;
    * - that is over - resolved, or a completed maintenance event;
    * - that has the rule's channel already, or one by the name the rule asks
    *   for (a channel shared with another rule before rules shared channels);
@@ -2343,12 +2344,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
   /*
    * Whether a record may have a channel opened for it now: its own setup ran
-   * (it holds a list of channels) and it is not over.
+   * (WorkspaceRecordChannelState.isSetUp) and it is not over.
    */
   private mayOpenChannelsLaterFor(
     record: WorkspaceRecordChannelState,
   ): boolean {
-    return record.channels !== null && record.isOngoing;
+    return record.isSetUp && record.isOngoing;
   }
 
   /*

@@ -6,6 +6,7 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import URL from "../../../Types/API/URL";
+import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import NotificationRuleEventType from "../../../Types/Workspace/NotificationRules/EventType";
 import NotificationRuleWorkspaceChannel from "../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
@@ -42,6 +43,14 @@ export const WORKSPACE_RECORD_CHANNELS_LOCK_NAMESPACE: string =
   "WorkspaceRecordChannels";
 
 /*
+ * How long after a record is created its own channel setup is taken to be
+ * still running when it holds no list of channels yet. The setup runs
+ * within seconds of the record's creation; ten minutes leaves room for a
+ * slow workspace without opening a channel twice.
+ */
+export const RECORD_CHANNEL_SETUP_WINDOW_IN_MINUTES: number = 10;
+
+/*
  * A RECORD'S OWN CHANNELS, AS A RULE THAT STARTS TO MATCH IT LATER NEEDS
  * THEM.
  *
@@ -65,6 +74,16 @@ export interface WorkspaceRecordChannelState {
    * a channel.
    */
   channels: Array<NotificationRuleWorkspaceChannel> | null;
+  /*
+   * Whether its own channel setup has run, so a rule that starts to match
+   * it may open a channel now: it holds a list of channels, or it was
+   * created long enough ago (RECORD_CHANNEL_SETUP_WINDOW_IN_MINUTES) that
+   * its setup is over - it was created before OneUptime opened channels
+   * this way, while no workspace was connected, or its setup failed. A
+   * record created moments ago without a list is still being set up: its
+   * own setup opens its channels.
+   */
+  isSetUp: boolean;
   /*
    * Whether it is still going on: not resolved (an incident, an alert, an
    * episode), not completed (a scheduled maintenance event). A monitor and
@@ -370,6 +389,32 @@ export default class WorkspaceRecordChannels {
   }
 
   /*
+   * Whether a record's own channel setup has run: it holds a list of
+   * channels, or it was created more than
+   * RECORD_CHANNEL_SETUP_WINDOW_IN_MINUTES ago (WorkspaceRecordChannelState
+   * .isSetUp).
+   */
+  public static isSetUp(data: {
+    channels: unknown;
+    createdAt: Date | undefined | null;
+  }): boolean {
+    if (WorkspaceRecordChannels.channelsOf(data.channels) !== null) {
+      return true;
+    }
+
+    if (!data.createdAt) {
+      return false;
+    }
+
+    return (
+      OneUptimeDate.getDifferenceInMinutes(
+        OneUptimeDate.getCurrentDate(),
+        data.createdAt,
+      ) >= RECORD_CHANNEL_SETUP_WINDOW_IN_MINUTES
+    );
+  }
+
+  /*
    * The channels a record holds, as stored: a list, or null when nothing
    * was ever stored (JSON that is not a list reads as null).
    */
@@ -394,6 +439,7 @@ export default class WorkspaceRecordChannels {
         currentIncidentStateId: true,
         isPrivate: true,
         postUpdatesToWorkspaceChannels: true,
+        createdAt: true,
       },
       props: {
         isRoot: true,
@@ -417,6 +463,10 @@ export default class WorkspaceRecordChannels {
       channels: WorkspaceRecordChannels.channelsOf(
         incident.postUpdatesToWorkspaceChannels,
       ),
+      isSetUp: WorkspaceRecordChannels.isSetUp({
+        channels: incident.postUpdatesToWorkspaceChannels,
+        createdAt: incident.createdAt,
+      }),
       isOngoing: !isResolved,
       isPrivate: incident.isPrivate === true,
       channelNameParts: WorkspaceChannelName.forNumberedRecord({
@@ -449,6 +499,7 @@ export default class WorkspaceRecordChannels {
         currentAlertStateId: true,
         isPrivate: true,
         postUpdatesToWorkspaceChannels: true,
+        createdAt: true,
       },
       props: {
         isRoot: true,
@@ -472,6 +523,10 @@ export default class WorkspaceRecordChannels {
       channels: WorkspaceRecordChannels.channelsOf(
         alert.postUpdatesToWorkspaceChannels,
       ),
+      isSetUp: WorkspaceRecordChannels.isSetUp({
+        channels: alert.postUpdatesToWorkspaceChannels,
+        createdAt: alert.createdAt,
+      }),
       isOngoing: !isResolved,
       isPrivate: alert.isPrivate === true,
       channelNameParts: WorkspaceChannelName.forNumberedRecord({
@@ -505,6 +560,7 @@ export default class WorkspaceRecordChannels {
           currentIncidentStateId: true,
           isPrivate: true,
           postUpdatesToWorkspaceChannels: true,
+        createdAt: true,
         },
         props: {
           isRoot: true,
@@ -528,6 +584,10 @@ export default class WorkspaceRecordChannels {
       channels: WorkspaceRecordChannels.channelsOf(
         episode.postUpdatesToWorkspaceChannels,
       ),
+      isSetUp: WorkspaceRecordChannels.isSetUp({
+        channels: episode.postUpdatesToWorkspaceChannels,
+        createdAt: episode.createdAt,
+      }),
       isOngoing: !isResolved,
       isPrivate: episode.isPrivate === true,
       channelNameParts: WorkspaceChannelName.forNumberedRecord({
@@ -560,6 +620,7 @@ export default class WorkspaceRecordChannels {
         currentAlertStateId: true,
         isPrivate: true,
         postUpdatesToWorkspaceChannels: true,
+        createdAt: true,
       },
       props: {
         isRoot: true,
@@ -583,6 +644,10 @@ export default class WorkspaceRecordChannels {
       channels: WorkspaceRecordChannels.channelsOf(
         episode.postUpdatesToWorkspaceChannels,
       ),
+      isSetUp: WorkspaceRecordChannels.isSetUp({
+        channels: episode.postUpdatesToWorkspaceChannels,
+        createdAt: episode.createdAt,
+      }),
       isOngoing: !isResolved,
       isPrivate: episode.isPrivate === true,
       channelNameParts: WorkspaceChannelName.forNumberedRecord({
@@ -614,6 +679,7 @@ export default class WorkspaceRecordChannels {
           scheduledMaintenanceNumber: true,
           scheduledMaintenanceNumberWithPrefix: true,
           postUpdatesToWorkspaceChannels: true,
+        createdAt: true,
         },
         props: {
           isRoot: true,
@@ -635,6 +701,10 @@ export default class WorkspaceRecordChannels {
       channels: WorkspaceRecordChannels.channelsOf(
         event.postUpdatesToWorkspaceChannels,
       ),
+      isSetUp: WorkspaceRecordChannels.isSetUp({
+        channels: event.postUpdatesToWorkspaceChannels,
+        createdAt: event.createdAt,
+      }),
       isOngoing: !isCompleted,
       isPrivate: false,
       channelNameParts: WorkspaceChannelName.forNumberedRecord({
@@ -664,6 +734,7 @@ export default class WorkspaceRecordChannels {
         projectId: true,
         name: true,
         postUpdatesToWorkspaceChannels: true,
+        createdAt: true,
       },
       props: {
         isRoot: true,
@@ -680,6 +751,10 @@ export default class WorkspaceRecordChannels {
       channels: WorkspaceRecordChannels.channelsOf(
         monitor.postUpdatesToWorkspaceChannels,
       ),
+      isSetUp: WorkspaceRecordChannels.isSetUp({
+        channels: monitor.postUpdatesToWorkspaceChannels,
+        createdAt: monitor.createdAt,
+      }),
       isOngoing: true,
       isPrivate: false,
       channelNameParts: WorkspaceChannelName.forNamedRecord({
@@ -706,6 +781,7 @@ export default class WorkspaceRecordChannels {
           projectId: true,
           name: true,
           postUpdatesToWorkspaceChannels: true,
+        createdAt: true,
         },
         props: {
           isRoot: true,
@@ -722,6 +798,10 @@ export default class WorkspaceRecordChannels {
       channels: WorkspaceRecordChannels.channelsOf(
         policy.postUpdatesToWorkspaceChannels,
       ),
+      isSetUp: WorkspaceRecordChannels.isSetUp({
+        channels: policy.postUpdatesToWorkspaceChannels,
+        createdAt: policy.createdAt,
+      }),
       isOngoing: true,
       isPrivate: false,
       channelNameParts: WorkspaceChannelName.forNamedRecord({
