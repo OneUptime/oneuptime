@@ -442,12 +442,15 @@ describe("Microsoft Teams' card is titled the same, and asks for the On-Call Pol
     props: DatabaseCommonInteractionProps,
   ) => Promise<JSONObject | null>;
 
-  // The card each record's button opens, built by its own actions.
-  const CARDS: ReadonlyArray<{
+  // The card a record's button opens, built by the record's own actions.
+  interface TeamsCard {
     record: string;
-    actions: object;
+    actions: unknown;
+    // The private method that builds it.
     builder: string;
-  }> = [
+  }
+
+  const CARDS: ReadonlyArray<TeamsCard> = [
     {
       record: "incident",
       actions: MicrosoftTeamsIncidentActions,
@@ -472,7 +475,7 @@ describe("Microsoft Teams' card is titled the same, and asks for the On-Call Pol
 
   test.each(CARDS)(
     "$record: the card is titled Execute On-Call Policy",
-    async (card: { record: string; actions: object; builder: string }) => {
+    async (card: TeamsCard) => {
       const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
       policy._id = ObjectID.generate().toString();
       policy.name = "Primary on-call";

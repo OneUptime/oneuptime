@@ -1192,6 +1192,16 @@ describe("The readiness detail", () => {
     expect(screen.getByTestId("rule-responder-unchecked")).toHaveTextContent(
       "does not cover Sam Doe, so they are unknown rather than ready",
     );
+    /*
+     * Where the full list is, as the bar names the product: On-Call Duty,
+     * not "On-Call", which is no menu.
+     */
+    expect(screen.getByTestId("rule-responder-unchecked")).toHaveTextContent(
+      "Open On-Call Duty > Readiness for the full list.",
+    );
+    expect(
+      screen.getByTestId("rule-responder-unchecked"),
+    ).not.toHaveTextContent("On-Call > Readiness");
   });
 
   test("a team that could not be read says so, and says what follows from it", () => {
