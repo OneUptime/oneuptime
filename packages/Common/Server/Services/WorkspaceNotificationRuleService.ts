@@ -1452,7 +1452,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
    * A Notification Logs row for every channel a message about a record
    * reached, and for every one it failed to reach - otherwise a chat or
    * channel send that errors (e.g. the OneUptime app was removed from a chat
-   * a rule still references) is invisible in the notification logs.
+   * a rule still references) is invisible in the notification logs. Every
+   * row names the record the message is about: a record's Notification Logs
+   * page lists its workspace logs by the record's id.
    */
   @CaptureSpan()
   public async logSendResponses(data: {
@@ -1524,6 +1526,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         if (data.notificationFor.alertEpisodeId) {
           log.alertEpisodeId = data.notificationFor.alertEpisodeId;
         }
+        if (data.notificationFor.monitorId) {
+          log.monitorId = data.notificationFor.monitorId;
+        }
+        if (data.notificationFor.onCallDutyPolicyId) {
+          log.onCallDutyPolicyId = data.notificationFor.onCallDutyPolicyId;
+        }
 
         if (data.notifyUserId) {
           log.userId = data.notifyUserId;
@@ -1568,6 +1576,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         }
         if (data.notificationFor.alertEpisodeId) {
           log.alertEpisodeId = data.notificationFor.alertEpisodeId;
+        }
+        if (data.notificationFor.monitorId) {
+          log.monitorId = data.notificationFor.monitorId;
+        }
+        if (data.notificationFor.onCallDutyPolicyId) {
+          log.onCallDutyPolicyId = data.notificationFor.onCallDutyPolicyId;
         }
 
         if (data.notifyUserId) {
