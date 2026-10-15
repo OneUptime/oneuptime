@@ -147,13 +147,16 @@ export interface ChannelNameExampleInput {
 }
 
 export interface ChannelNameExampleProps extends ChannelNameExampleInput {
+  dataTestId?: string | undefined;
+}
+
+export interface ChannelNamePreviewProps extends ChannelNameExampleProps {
   /*
-   * The element's id. The prefix field names the preview as what describes
+   * The preview's id. The prefix field names the preview as what describes
    * it (aria-describedby), so a screen reader reads the channel name with
    * the field.
    */
   id?: string | undefined;
-  dataTestId?: string | undefined;
 }
 
 export interface ChannelNameExample {
@@ -282,8 +285,8 @@ export const getChannelNameTakenNote: (data: {
  * whatever the fonts, and a long name wraps after the label rather than
  * leaving it alone on a line.
  */
-export const ChannelNamePreview: FunctionComponent<ChannelNameExampleProps> = (
-  props: ChannelNameExampleProps,
+export const ChannelNamePreview: FunctionComponent<ChannelNamePreviewProps> = (
+  props: ChannelNamePreviewProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
