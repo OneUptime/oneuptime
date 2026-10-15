@@ -163,7 +163,11 @@ function formPresses(
       (action: string): [string, FormPress] => {
         return [
           action,
-          { does: "executeOnCallPolicy", eventType, button: "Execute On Call" },
+          {
+            does: "executeOnCallPolicy",
+            eventType,
+            button: "Execute On-Call Policy",
+          },
         ];
       },
     ),

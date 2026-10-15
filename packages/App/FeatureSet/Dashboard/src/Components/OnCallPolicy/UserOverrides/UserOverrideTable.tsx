@@ -38,9 +38,9 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
- * The user overrides of one on-call policy (its User Overrides tab), or the
- * project's global ones (On-Call Duty > User Overrides), which apply to
- * every policy.
+ * The user overrides of one on-call policy (its User Overrides page), or the
+ * project's global ones (On-Call Duty > Advanced > User Overrides), which
+ * apply to every policy.
  *
  * Each row reads as the override does: who is away, who covers, from when,
  * until when. Adding one asks the same four things, with you as the person
@@ -48,10 +48,15 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
  * named to cover is a skip, and its row says the rotation covers: "Next
  * person in the rotation".
  *
- * "Get cover" on an upcoming shift (User Settings > Calendar Feed) opens
- * this page with the shift's window in its address: Add User Override opens
- * on that window, with you away, so all that is left is who covers
- * (UserOverrideCoverRequest.ts).
+ * "Get cover" on an upcoming shift (User Settings > Calendar > Calendar
+ * Feed) opens this page with the shift's window in its address: Add User
+ * Override opens on that window, with you away, so all that is left is who
+ * covers (UserOverrideCoverRequest.ts).
+ *
+ * Each card's description says where the other one is. Both pages sit in a
+ * folded Advanced section - the global one in the On-Call Duty menu, a
+ * policy's own in the policy's menu - so the way there names Advanced
+ * (OnCallDutyMenuPathsInProductText holds such paths to the menu).
  */
 
 export interface ComponentProps {
@@ -265,8 +270,8 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
             ? "On-Call Policy User Overrides"
             : "Global User Overrides",
           description: props.onCallDutyPolicyId
-            ? "While someone is away, their pages from this policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides."
-            : "While someone is away, their pages from every on-call policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on one policy only, add the override on that policy's User Overrides page.",
+            ? "While someone is away, their pages from this policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on every policy at once, add the override under On-Call Duty > Advanced > User Overrides."
+            : "While someone is away, their pages from every on-call policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on one policy only, add the override on that policy's User Overrides page, under Advanced.",
         }}
         formFields={formFields}
         noItemsMessage={

@@ -35,7 +35,7 @@ export default class MicrosoftTeamsAlertMessages {
     /*
      * now add buttons.
      * View data.
-     * Execute On Call
+     * Execute On-Call Policy.
      * Acknowledge alert
      * Resolve data.
      * Change Alert State.
@@ -58,10 +58,13 @@ export default class MicrosoftTeamsAlertMessages {
 
     buttons.push(viewAlertButton);
 
-    // execute on call.
+    /*
+     * Execute On-Call Policy: named as the Actions menu of the record's feed
+     * in the Dashboard names it, and as the form it opens is titled.
+     */
     const executeOnCallButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: "📞 Execute On Call",
+      title: "📞 Execute On-Call Policy",
       value: data.alertId?.toString() || "",
       actionId: MicrosoftTeamsAlertActionType.ExecuteAlertOnCallPolicy,
     };

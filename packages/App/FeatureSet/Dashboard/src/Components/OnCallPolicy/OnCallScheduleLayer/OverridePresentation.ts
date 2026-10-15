@@ -86,8 +86,8 @@ export function formatUserLabel(
  * Whether an override applies through every policy or through exactly one.
  *
  * This is the difference the user themselves chose when they created it: from
- * the project's On-Call Duty > User Overrides page (global) or from a single
- * policy's own User Overrides tab (scoped). A screen that shows the
+ * the project's On-Call Duty > Advanced > User Overrides page (global) or
+ * from a single policy's own User Overrides page (scoped). A screen that shows the
  * substitution without the scope leaves the reader unable to answer "will this
  * cover the page I actually care about?", which for a policy-scoped override is
  * frequently no.

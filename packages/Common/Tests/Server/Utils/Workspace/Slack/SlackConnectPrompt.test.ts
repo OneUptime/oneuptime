@@ -156,7 +156,7 @@ const FORMS: Array<[SlackActionType, string, string]> = [
   [
     SlackActionType.SubmitExecuteIncidentOnCallPolicy,
     "execute an on-call policy for this incident",
-    "Execute On Call",
+    "Execute On-Call Policy",
   ],
   [SlackActionType.ViewAddAlertNote, "add a note to this alert", "Add Note"],
   [
@@ -167,7 +167,7 @@ const FORMS: Array<[SlackActionType, string, string]> = [
   [
     SlackActionType.ViewExecuteAlertEpisodeOnCallPolicy,
     "execute an on-call policy for this alert episode",
-    "Execute On Call",
+    "Execute On-Call Policy",
   ],
   [
     SlackActionType.ViewChangeIncidentEpisodeState,
