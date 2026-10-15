@@ -609,15 +609,16 @@ För att se vad som hände öppnar du incidenten och väljer **Jourexekveringar*
 
 ## Styr incidenter från arbetsflöden
 
-Utlösare för arbetsflöden för incidenter är inte handskrivna — OneUptime genererar dem från datamodellerna, så varje modell i incidentfamiljen får komponenterna **On Create X**, **On Update X** och **On Delete X**, namngivna efter modellens namn i singular. De tre viktigaste är **On Create Incident**, **On Update Incident** och **On Delete Incident**. Du hittar dem i panelen **Add Trigger** på `/dashboard/{projectId}/workflows`, under **OneUptime resources** → **Incident**; de två första finns också under **Popular**.
+Utlösare för arbetsflöden för incidenter är inte handskrivna — OneUptime genererar dem från datamodellerna, så varje modell i incidentfamiljen får komponenterna **On Create X**, **On Update X**, **On Create or Update X** och **On Delete X**, namngivna efter modellens namn i singular. De viktigaste är **On Create Incident**, **On Update Incident**, **On Create or Update Incident** och **On Delete Incident**. Du hittar dem i panelen **Add Trigger** på `/dashboard/{projectId}/workflows`, under **OneUptime resources** → **Incident**; de två första finns också under **Popular**.
 
 Samma generering ger dig utlösare för själva konfigurationen: **On Create Incident State**, **On Update Incident Severity**, **On Create Incident Template**, **On Create Incident Note Template**, **On Create Incident State Timeline**, **On Create Incident Public Note**, **On Create Incident Internal Note**, **On Create Incident On-Call Rule**, **On Create Incident Role**, **On Create Incident Member** och fler. Varje modell får också matchande åtgärdskomponenter — **Find One Incident**, **Create One Incident**, **Update One Incident**, **Delete One Incident** och deras motsvarigheter för många rader — så en utlösare och en åtgärd med liknande namn står sida vid sida i samma kategori. **On Create Incident** startar ett arbetsflöde; **Create One Incident** öppnar en incident.
 
 Några detaljer som spelar roll när du kopplar ihop dem:
 
 - **On Update X** tar ett valfritt argument **Fields to watch** som snävar in utlösaren till uppdateringar som ändrar specifika fält, vad de än ändras till: ett reglage som stängs av eller ett fält som rensas räknas också. Ett fält som sparas med värdet som det redan har är ingen ändring, så ett redigeringsformulär som skickar tillbaka det vid varje sparning väcker inte arbetsflödet. Lämna det tomt för att utlösa vid varje ändring. Kommer en uppdatering in utan en registrering av vilka fält som ändrades hoppas filtret över och arbetsflödet körs ändå.
-- **On Create X** och **On Update X** tar båda ett obligatoriskt argument **Fields to pass on**; **On Delete X** tar inga argument.
-- Alla tre har en enda utgångsport **Success**, och var och en accepterar ett ID-argument så att du kan köra arbetsflödet för hand mot en post.
+- **On Create or Update X** körs en gång för varje ny post och en gång för varje uppdatering som dess egna **Fields to watch** släpper igenom, så att ett arbetsflöde hanterar båda. Utöver posten skickar den vidare `what-happened`: `created` eller `updated`.
+- **On Create X**, **On Update X** och **On Create or Update X** tar ett obligatoriskt argument **Fields to pass on**; **On Delete X** tar inga argument.
+- Alla fyra har en enda utgångsport **Success**, och var och en accepterar ett ID-argument så att du kan köra arbetsflödet för hand mot en post.
 - Namnen kommer från modellens namn i singular, inte från dess tabellnamn — därför ser du **On Create Incident Team Owner** och **On Create Incident User Owner** i stället för namn i tabellform.
 - Det finns inga utlösare för definitioner av anpassade incidentfält. Den modellen är den enda medlemmen i incidentfamiljen där arbetsflöden är avstängda.
 

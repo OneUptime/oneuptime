@@ -651,6 +651,7 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
                   placeholder={getCompareWithPlaceholder(
                     translator,
                     conditionState.compareAs.type || ConditionValueType.Text,
+                    state.valueToCheck,
                   )}
                   ariaLabel={translator.translateTemplate(
                     "Value for case {{number}}",

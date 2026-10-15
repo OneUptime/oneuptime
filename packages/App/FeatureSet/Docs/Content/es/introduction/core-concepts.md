@@ -79,6 +79,7 @@ Cómo se localiza a cada persona lo decide ella. En los **Ajustes de usuario**, 
 :::cards
 - [Reglas de escalado](/docs/on-call/escalation-rules): Avisar a las personas nivel a nivel hasta que alguien responda.
 - [Programaciones de guardia](/docs/on-call/schedules): Rotaciones, capas y relevos.
+- [Cómo te contacta OneUptime](/docs/notifications/index): Los métodos, reglas y ajustes que deciden cómo se contacta a cada persona.
 :::
 
 ## Páginas de estado y mantenimiento

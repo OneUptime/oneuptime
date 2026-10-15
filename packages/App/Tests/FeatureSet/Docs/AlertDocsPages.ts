@@ -47,6 +47,7 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
     [ALERT_SETTINGS]: [
       "On Create Alert",
       "On Update Alert",
+      "On Create or Update Alert",
       "On Delete Alert",
       "Create One Alert",
       "Update One Alert",

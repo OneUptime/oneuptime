@@ -2132,6 +2132,28 @@ describe("alert episodes and grouping rules", () => {
       expect(steps).toContain(`**${name}**`);
     }
 
+    /*
+     * Alerts are added several at a time, from the episode's Add Alerts
+     * dialog, or an episode is started from the alerts list.
+     */
+    expect(
+      readDashboardSource("Pages/Alerts/EpisodeView/Alerts.tsx"),
+    ).toContain('title: "Add Alerts",');
+    expect(
+      readDashboardSource(
+        "Components/EpisodeMembers/BulkAddToEpisodeActions.tsx",
+      ),
+    ).toContain('translationKey("Add to New Episode")');
+    for (const name of [
+      "Add Alerts",
+      "Alerts",
+      "Add to New Episode",
+      "Bulk Actions",
+    ]) {
+      expect(steps).toContain(`**${name}**`);
+    }
+    expect(steps).not.toContain("one at a time");
+
     expect(page).toContain(
       "the list shows its **Grouping Rule** as **Manual**",
     );
@@ -2591,7 +2613,12 @@ describe("alert rules and settings", () => {
       "Types/Workflow/Components/BaseModel.ts",
     );
 
-    for (const verb of ["On Create", "On Update", "On Delete"]) {
+    for (const verb of [
+      "On Create",
+      "On Update",
+      "On Create or Update",
+      "On Delete",
+    ]) {
       expect(components).toContain(`${verb} \${model.singularName}`);
     }
 

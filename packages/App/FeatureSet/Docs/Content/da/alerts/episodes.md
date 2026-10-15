@@ -141,7 +141,7 @@ På **Vagt og ejere** vælger du en **Vagtpolitik**, der skal køre, når episod
 
 ### Tilføj advarslerne
 
-Åbn episodens side **Medlemsadvarsler**, og tilføj de advarsler, der hører til den, én ad gangen.
+Åbn episodens side **Medlemsadvarsler**, klik på **Tilføj advarsler**, og sæt flueben ved de advarsler, der hører til den, så mange du har brug for på én gang. Vil du hellere starte fra advarslerne, så vælg dem på listen **Advarsler**, og vælg **Tilføj til ny episode** under **Massehandlinger** (se [Episoder](/docs/incidents/episodes)).
 :::
 
 En episode, du opretter, har ingen grupperingsregel, så listen viser dens **Grupperingsregel** som **Manual**, og ingen livscyklusindstilling gælder for den. Den løser stadig sig selv, når hver advarsel i den er løst.

@@ -179,6 +179,14 @@ export interface BulkActionButtonSchema<T extends GenericObject> {
         failed: PluralTemplate;
       }
     | undefined;
+  /*
+   * Drawn last in the result, once the action has finished: where to go
+   * next, when the action made or changed one thing the reader will want
+   * to open - the episode the selected alerts were added to, say. Read when
+   * the result is drawn, so it can name what the run produced. Nothing is
+   * drawn when it returns undefined.
+   */
+  resultDetails?: (() => ReactElement | undefined) | undefined;
 }
 
 export interface ComponentProps<T extends GenericObject> {
@@ -391,6 +399,8 @@ const BulkUpdateForm: <T extends GenericObject>(
       const hasFailures: boolean = progressInfo.failed.length > 0;
       const hasSuccesses: boolean = progressInfo.successItems.length > 0;
       const hasUnchanged: boolean = unchangedItems.length > 0;
+      const resultDetails: ReactElement | undefined =
+        runningAction?.resultDetails?.();
 
       return (
         <div className="space-y-4">
@@ -495,6 +505,11 @@ const BulkUpdateForm: <T extends GenericObject>(
               }),
               "bulk-action-unchanged-items",
             )}
+
+          {/* Where to go next, when the action says (resultDetails). */}
+          {resultDetails && (
+            <div data-testid="bulk-action-result-details">{resultDetails}</div>
+          )}
         </div>
       );
     }

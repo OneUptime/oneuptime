@@ -58,6 +58,7 @@ import {
   isJSON5ToleratedInputType,
 } from "../../../Types/Workflow/Component";
 import ComponentID from "../../../Types/Workflow/ComponentID";
+import { isCreateOrUpdateTrigger } from "../../../Types/Workflow/CreateOrUpdateTrigger";
 import { DropdownOption } from "../Dropdown/Dropdown";
 import { PeoplePickerKind } from "../PeoplePicker/PeoplePickerTypes";
 import {
@@ -117,7 +118,7 @@ export interface ComponentProps {
   onFormChange: (value: NodeDataProp) => void;
 }
 
-// The On Update trigger's Fields to watch, as it is stored.
+// The Fields to watch of On Update and On Create or Update, as stored.
 const WATCHED_FIELDS_ARGUMENT_ID: string = "listen-on";
 
 const SINGLE_FIELD_KINDS: Partial<
@@ -412,6 +413,14 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                 arg.id === WATCHED_FIELDS_ARGUMENT_ID
                   ? FieldPickerMode.Watch
                   : FieldPickerMode.PassOn
+              }
+              /*
+               * On Create or Update runs for every new record whatever its
+               * Fields to watch hold: they narrow the updates only.
+               */
+              createAlwaysRuns={
+                arg.id === WATCHED_FIELDS_ARGUMENT_ID &&
+                isCreateOrUpdateTrigger(component.metadata)
               }
               initialValue={customProps.initialValue}
               onChange={(value: string) => {

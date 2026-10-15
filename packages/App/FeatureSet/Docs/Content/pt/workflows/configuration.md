@@ -185,7 +185,7 @@ Dê **Workflow Admin** a quem monta a automação, e **Workflow Member** a quem 
 
 ## O que os passos de um workflow podem fazer
 
-Os passos que leem e alteram registros do OneUptime — os componentes Find, Create, Update e Delete, e os gatilhos On Create, On Update e On Delete — agem como **Project Admin** do projeto do workflow. Seja quem for que montou o workflow, um passo passa pelas mesmas verificações que um Project Admin passa no dashboard e na API:
+Os passos que leem e alteram registros do OneUptime — os componentes Find, Create, Update e Delete, e os gatilhos On Create, On Update, On Create or Update e On Delete — agem como **Project Admin** do projeto do workflow. Seja quem for que montou o workflow, um passo passa pelas mesmas verificações que um Project Admin passa no dashboard e na API:
 
 - **Só o projeto do próprio workflow.** Um passo lê e grava os registros do projeto ao qual o workflow pertence e de nenhum outro, e um Update nunca move um registro para outro projeto.
 - **Só o que um Project Admin pode fazer.** Um passo só pode conceder as permissões de equipe e de chave de API que um Project Admin tem, então não pode dar **Project Owner**, permissões de cobrança ou de exclusão do projeto, e não pode adicionar alguém a uma equipe cujas permissões vão além das de um Project Admin, como a equipe de proprietários. Um passo não pode ler quem criou uma sonda ou um agente de IA, o que só os proprietários do projeto veem.

@@ -196,7 +196,7 @@ Haz referencia a la salida de un bloque anterior así:
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Un bloque **API** cuyo ID es `lookup-user`                | Su código de estado: `{{local.components.lookup-user.returnValues.response-status}}`. Su cuerpo: `{{local.components.lookup-user.returnValues.response-body}}`. |
 | Un bloque **Run Custom JavaScript** cuyo ID es `transform` | Lo que devolvió: `{{local.components.transform.returnValues.returnValue}}`.          |
-| Un disparador **On Create Incident** cuyo ID es `incident-on-create-1` | El título del incidente: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Los disparadores de registros devuelven un solo valor, `model`, y profundizas en él. |
+| Un disparador **On Create Incident** cuyo ID es `incident-on-create-1` | El título del incidente: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Los disparadores de registros devuelven el registro como `model`, y profundizas en él. |
 
 Los valores de los bloques solo existen durante la ejecución actual. Cada ejecución nueva empieza de cero.
 

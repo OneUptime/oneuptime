@@ -425,6 +425,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/incidents/linked-alerts",
       },
       {
+        title: "Episodes",
+        url: "/docs/incidents/episodes",
+      },
+      {
         title: "Incident Settings & Automation",
         url: "/docs/incidents/settings",
       },
@@ -479,6 +483,28 @@ const DocsNav: NavGroup[] = [
       {
         title: "Phone Number Whitelist",
         url: "/docs/on-call/phone-number-whitelist",
+      },
+    ],
+  },
+  {
+    title: "Notifications",
+    section: "Incident Response",
+    links: [
+      {
+        title: "How OneUptime Reaches You",
+        url: "/docs/notifications/index",
+      },
+      {
+        title: "Notification Methods",
+        url: "/docs/notifications/notification-methods",
+      },
+      {
+        title: "Personal On-Call Rules",
+        url: "/docs/notifications/on-call-rules",
+      },
+      {
+        title: "Notification Settings",
+        url: "/docs/notifications/notification-settings",
       },
     ],
   },

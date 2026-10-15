@@ -8,6 +8,7 @@ import {
 } from "../../../../Utils/Express";
 import logger, { LogAttributes } from "../../../../Utils/Logger";
 import Response from "../../../../Utils/Response";
+import QueryHelper from "../../../Database/QueryHelper";
 import Select from "../../../Database/Select";
 import { RunOptions, RunReturnType } from "../../ComponentCode";
 import TriggerCode, { ExecuteWorkflowType, InitProps } from "../../TriggerCode";
@@ -22,6 +23,13 @@ import ComponentMetadata, {
   Port,
 } from "../../../../../Types/Workflow/Component";
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
+import {
+  WHAT_HAPPENED_ID,
+  WhatHappened,
+  getCreateOrUpdateTriggerId,
+  hasCreateOrUpdateTrigger,
+} from "../../../../../Types/Workflow/CreateOrUpdateTrigger";
+import { DatabaseOperation } from "../../../../../Types/Workflow/DatabaseOperation";
 import { getWatchedColumns } from "../../../../../Types/Workflow/WatchedFields";
 import Workflow from "../../../../../Models/DatabaseModels/Workflow";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
@@ -33,6 +41,13 @@ export default class OnTriggerBaseModel<
 > extends TriggerCode {
   public modelId: string = "";
   public type: string = "";
+
+  /*
+   * The model's On Create or Update trigger, on its On Create and On Update
+   * triggers: a create or an update starts that trigger's workflows too
+   * (initTrigger). Null on every other trigger, and on a model without one.
+   */
+  public createOrUpdateTriggerId: string | null = null;
 
   public service: DatabaseService<TBaseModel> | null = null;
 
@@ -60,6 +75,16 @@ export default class OnTriggerBaseModel<
       );
     }
     this.setMetadata(BaseModelComponent);
+
+    if (
+      (type === DatabaseOperation.OnCreate ||
+        type === DatabaseOperation.OnUpdate) &&
+      hasCreateOrUpdateTrigger(modelService.getModel().enableWorkflowOn)
+    ) {
+      this.createOrUpdateTriggerId = getCreateOrUpdateTriggerId(
+        modelService.getModel().tableName!,
+      );
+    }
   }
 
   @CaptureSpan()
@@ -231,9 +256,24 @@ export default class OnTriggerBaseModel<
     // get all the enabled workflows with this trigger.
     Response.sendJsonObjectResponse(req, res, { status: "Triggered" });
 
+    /*
+     * A create or an update also starts the workflows of the model's On
+     * Create or Update trigger, which has no route of its own: one event,
+     * one lookup, and each workflow started once
+     * (Types/Workflow/CreateOrUpdateTrigger).
+     */
+    const triggerIds: Array<string> = [this.getMetadata().id];
+
+    if (this.createOrUpdateTriggerId) {
+      triggerIds.push(this.createOrUpdateTriggerId);
+    }
+
     const workflows: Array<Workflow> = await WorkflowService.findBy({
       query: {
-        triggerId: this.getMetadata().id,
+        triggerId:
+          triggerIds.length === 1
+            ? triggerIds[0]!
+            : QueryHelper.any(triggerIds),
         projectId: new ObjectID(req.params["projectId"] as string),
         isEnabled: true,
         // An archived workflow never runs, whatever its toggle says.
@@ -246,6 +286,7 @@ export default class OnTriggerBaseModel<
       skip: 0,
       select: {
         _id: true,
+        triggerId: true,
         triggerArguments: true,
       },
     });
@@ -254,83 +295,141 @@ export default class OnTriggerBaseModel<
 
     const requestData: JSONObject = req.body.data;
 
+    /*
+     * An update the record's own create made, before OneUptime announced
+     * the record (DatabaseService, RecordsBeingCreated): part of that create,
+     * whose On Create event follows.
+     */
+    const isPartOfCreate: boolean = req.body?.["isPartOfCreate"] === true;
+
     for (const workflow of workflows) {
       /// Run Graph.
 
+      const isCreateOrUpdate: boolean =
+        Boolean(this.createOrUpdateTriggerId) &&
+        workflow.triggerId === this.createOrUpdateTriggerId;
+
+      /*
+       * On Create or Update runs once for a new record: for its On Create
+       * event, never also for the updates its create made. On Update hears
+       * those as it always has.
+       */
       if (
-        this.type === "on-update" &&
-        workflow.triggerArguments?.["listen-on"]
+        isCreateOrUpdate &&
+        this.type === DatabaseOperation.OnUpdate &&
+        isPartOfCreate
       ) {
-        let listenOn: JSONObject = workflow.triggerArguments?.[
-          "listen-on"
-        ] as JSONObject;
-        const miscData: JSONObject =
-          (requestData?.["miscData"] as JSONObject) || {};
+        continue;
+      }
 
-        if (
-          listenOn &&
-          Object.keys(listenOn).length > 0 &&
-          miscData &&
-          Object.keys(miscData).length > 0
-        ) {
-          try {
-            if (typeof listenOn === "string") {
-              listenOn = JSON.parse(listenOn);
-            }
-          } catch (err) {
-            logger.error(err, {
-              projectId: req.params["projectId"],
-              workflowId: workflow.id?.toString(),
-            });
-            continue;
-          }
-
-          const updatedFields: JSONObject = miscData[
-            "updatedFields"
-          ] as JSONObject;
-
-          if (updatedFields && Object.keys(updatedFields).length > 0) {
-            let isUpdated: boolean = false;
-
-            /*
-             * updatedFields holds the fields the update changed
-             * (DatabaseService.getChangedColumns), with their new values.
-             * A field is listened on when it is among them, whatever it
-             * changed to: a switch turned off (false), a count set to 0 or
-             * a text cleared is a change too. Reading the value instead of
-             * the key skipped every one of those.
-             *
-             * A relation to one record is reported by the column holding
-             * its ID, so watching "Current Incident State" hears a change
-             * of currentIncidentStateId (Types/Workflow/WatchedFields).
-             */
-            for (const key of getWatchedColumns({
-              listenOn: listenOn,
-              model: this.service!.getModel(),
-            })) {
-              if (Object.prototype.hasOwnProperty.call(updatedFields, key)) {
-                isUpdated = true;
-                break;
-              }
-            }
-
-            if (!isUpdated) {
-              continue;
-            }
-          }
-        }
+      /*
+       * Fields to watch narrow the updates, on On Update and on On Create
+       * or Update alike. A create always runs On Create or Update.
+       */
+      if (
+        this.type === DatabaseOperation.OnUpdate &&
+        !this.isUpdateWatched({
+          workflow: workflow,
+          requestData: requestData,
+          projectId: req.params["projectId"] as string,
+        })
+      ) {
+        continue;
       }
 
       const executeWorkflow: ExecuteWorkflowType = {
         workflowId: workflow.id!,
-        returnValues: {
-          data: requestData,
-        },
+        returnValues: isCreateOrUpdate
+          ? {
+              data: requestData,
+              // What started the run, for its What Happened.
+              [WHAT_HAPPENED_ID]:
+                this.type === DatabaseOperation.OnCreate
+                  ? WhatHappened.Created
+                  : WhatHappened.Updated,
+            }
+          : {
+              data: requestData,
+            },
       };
 
       promises.push(props.executeWorkflow(executeWorkflow));
     }
 
     await Promise.all(promises);
+  }
+
+  /*
+   * Whether an update reaches a workflow through its Fields to watch
+   * (stored as "listen-on"): yes with nothing watched, and yes when the
+   * update says it changed one of the watched fields. An update that says
+   * nothing of what it changed skips the check, as it always has.
+   */
+  private isUpdateWatched(data: {
+    workflow: Workflow;
+    requestData: JSONObject;
+    projectId: string;
+  }): boolean {
+    const workflow: Workflow = data.workflow;
+
+    if (!workflow.triggerArguments?.["listen-on"]) {
+      return true;
+    }
+
+    let listenOn: JSONObject = workflow.triggerArguments?.[
+      "listen-on"
+    ] as JSONObject;
+    const miscData: JSONObject =
+      (data.requestData?.["miscData"] as JSONObject) || {};
+
+    if (
+      !listenOn ||
+      Object.keys(listenOn).length === 0 ||
+      !miscData ||
+      Object.keys(miscData).length === 0
+    ) {
+      return true;
+    }
+
+    try {
+      if (typeof listenOn === "string") {
+        listenOn = JSON.parse(listenOn);
+      }
+    } catch (err) {
+      logger.error(err, {
+        projectId: data.projectId,
+        workflowId: workflow.id?.toString(),
+      });
+      return false;
+    }
+
+    const updatedFields: JSONObject = miscData["updatedFields"] as JSONObject;
+
+    if (!updatedFields || Object.keys(updatedFields).length === 0) {
+      return true;
+    }
+
+    /*
+     * updatedFields holds the fields the update changed
+     * (DatabaseService.getChangedColumns), with their new values.
+     * A field is listened on when it is among them, whatever it
+     * changed to: a switch turned off (false), a count set to 0 or
+     * a text cleared is a change too. Reading the value instead of
+     * the key skipped every one of those.
+     *
+     * A relation to one record is reported by the column holding
+     * its ID, so watching "Current Incident State" hears a change
+     * of currentIncidentStateId (Types/Workflow/WatchedFields).
+     */
+    for (const key of getWatchedColumns({
+      listenOn: listenOn,
+      model: this.service!.getModel(),
+    })) {
+      if (Object.prototype.hasOwnProperty.call(updatedFields, key)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }

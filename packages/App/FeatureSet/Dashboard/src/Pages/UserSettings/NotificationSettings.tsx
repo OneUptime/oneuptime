@@ -101,9 +101,16 @@ const CHANNELS: ReadonlyArray<ChannelDef> = [
     color: Purple500,
     workspaceType: WorkspaceType.Slack,
   },
+  /*
+   * The product's own name, as every other list of channels writes it. The
+   * bare "Teams" key means teams of people, and most languages translate it
+   * that way (French "Equipes", Spanish "Equipos"), so a column labelled
+   * with it named something other than the Microsoft Teams messages it
+   * switches.
+   */
   {
     key: "alertByMicrosoftTeams",
-    label: "Teams",
+    label: "Microsoft Teams",
     icon: IconProp.MicrosoftTeams,
     color: Blue500,
     workspaceType: WorkspaceType.MicrosoftTeams,
@@ -668,11 +675,18 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
                     {translateString("Event")}
                   </th>
                   {shownChannels.map((channel: ChannelDef) => {
+                    /*
+                     * Top-aligned, so the icons stay in one row when a
+                     * label takes two lines ("Microsoft Teams" in a narrow
+                     * column, or a long translation such as "Correo
+                     * electronico"); the Event header, centred, then sits
+                     * level with the labels' first line.
+                     */
                     return (
                       <th
                         key={channel.key}
                         scope="col"
-                        className="px-3 py-3 text-center"
+                        className="px-3 py-3 text-center align-top"
                       >
                         <div className="flex flex-col items-center gap-1">
                           <Icon

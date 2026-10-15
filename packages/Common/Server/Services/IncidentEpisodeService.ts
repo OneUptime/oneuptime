@@ -34,7 +34,11 @@ import ProjectScopedReferenceValidator, {
   getWrittenRelationReferences,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
-import IncidentEpisodeMemberService from "./IncidentEpisodeMemberService";
+import IncidentEpisodeMemberService, {
+  IncidentsForNewEpisode,
+} from "./IncidentEpisodeMemberService";
+import { INCIDENT_IDS_TO_ADD_KEY } from "../../Types/Episode/EpisodeMembersAdd";
+import FeedApiKeyActorUtil from "../Utils/Feed/FeedApiKeyActor";
 import IncidentEpisodeOwnerUserService from "./IncidentEpisodeOwnerUserService";
 import IncidentEpisodeOwnerTeamService from "./IncidentEpisodeOwnerTeamService";
 import TeamMemberService from "./TeamMemberService";
@@ -98,6 +102,15 @@ const GROUPING_RULE_KEYS: Array<string> = [
   "incidentGroupingRuleId",
   "incidentGroupingRule",
 ];
+
+/*
+ * What onBeforeCreate hands to onCreateSuccess: how far along the episode
+ * starts (StartingStage), and the incidents it is being created with,
+ * checked and each once - empty unless it is created with incidents.
+ */
+type IncidentEpisodeCreateCarryForward = StartingStageCarryForward & {
+  incidentIdsToAdd: Array<ObjectID>;
+};
 
 /*
  * Why an episode's first timeline row sends status page subscribers
@@ -332,6 +345,44 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.data as unknown as Record<string, unknown>;
 
     /*
+     * Created with the incidents it is for (EpisodeMembersAdd): the
+     * incidents lists' Add to New Episode, or the API. The ids are checked
+     * here, before the episode number is taken and before anything is
+     * written, so an incident the caller cannot see - or a caller who may
+     * not add incidents to episodes - refuses the whole create instead of
+     * leaving an episode without some of the incidents it was created for.
+     * They are added in onCreateSuccess, once the episode exists. An episode
+     * created with incidents and no severity takes the most severe of
+     * theirs.
+     */
+    const incidentIdsToAdd: unknown =
+      createBy.miscDataProps?.[INCIDENT_IDS_TO_ADD_KEY];
+
+    const incidentsToAdd: IncidentsForNewEpisode | null =
+      incidentIdsToAdd !== undefined && incidentIdsToAdd !== null
+        ? await IncidentEpisodeMemberService.validateIncidentsForNewEpisode({
+            projectId: projectId,
+            incidentIds: incidentIdsToAdd,
+            props: createBy.props,
+          })
+        : null;
+
+    if (
+      incidentsToAdd?.mostSevereIncidentSeverityId &&
+      !RelationIdUtil.readConsistent(
+        createData,
+        ["incidentSeverityId", "incidentSeverity"],
+        "Incident Severity",
+      )
+    ) {
+      RelationIdUtil.stamp(
+        createData,
+        ["incidentSeverityId", "incidentSeverity"],
+        incidentsToAdd.mostSevereIncidentSeverityId,
+      );
+    }
+
+    /*
      * The state the episode starts in, when the write picks one: the Create
      * Incident Episode form's Initial State sends the relation, the API,
      * Terraform and workflows the ID column. Either name, and the two must
@@ -489,11 +540,87 @@ export class Service extends ProjectReferencesService<Model> {
         false;
     }
 
-    const carryForward: StartingStageCarryForward = {
+    const carryForward: IncidentEpisodeCreateCarryForward = {
       startingStage: startingStage,
+      incidentIdsToAdd: incidentsToAdd?.incidentIds || [],
     };
 
     return { createBy, carryForward: carryForward };
+  }
+
+  // The validated incident ids an episode is being created with, if any.
+  private getIncidentIdsCreatedWith(
+    onCreate: OnCreate<Model>,
+  ): Array<ObjectID> {
+    const carryForward: IncidentEpisodeCreateCarryForward | null =
+      (onCreate.carryForward as IncidentEpisodeCreateCarryForward | null) ||
+      null;
+
+    return carryForward?.incidentIdsToAdd || [];
+  }
+
+  /*
+   * Who created the episode, as the one who added the incidents it was
+   * created with: the person making the request, as DatabaseService stamped
+   * them - nobody for an API key or a workflow. OneUptime's own writes name
+   * the creator themselves.
+   */
+  private getCreatingUserId(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): ObjectID | undefined {
+    if (onCreate.createBy.props.isRoot) {
+      return createdItem.createdByUserId || undefined;
+    }
+
+    return onCreate.createBy.props.userId || undefined;
+  }
+
+  /*
+   * The episode was created with incidents (see onBeforeCreate): add them
+   * now that it exists - after its privacy rules have run, since each
+   * incident's own feed entry leaves out a private episode's title. Awaited,
+   * unlike the chain in onCreateSuccess, so the episode the person lands on
+   * already lists its incidents. Written as OneUptime's writes, because the
+   * caller's right to add them was checked before the episode was created;
+   * the API key that created it, when no person did, is named on each
+   * incident's entry. Never rejects: an incident that cannot be added is
+   * logged. Hands back the ids added.
+   */
+  @CaptureSpan()
+  private async addIncidentsCreatedWith(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+    privacyRulesApplied: Promise<void>,
+  ): Promise<Array<ObjectID>> {
+    const incidentIds: Array<ObjectID> =
+      this.getIncidentIdsCreatedWith(onCreate);
+
+    if (incidentIds.length === 0 || !createdItem.projectId || !createdItem.id) {
+      return [];
+    }
+
+    await privacyRulesApplied;
+
+    try {
+      return await IncidentEpisodeMemberService.addIncidentsToNewEpisode({
+        projectId: createdItem.projectId,
+        incidentEpisodeId: createdItem.id,
+        incidentIds: incidentIds,
+        addedByUserId: this.getCreatingUserId(onCreate, createdItem),
+        apiKeyActor: FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
+      });
+    } catch (error) {
+      logger.error(
+        `Adding the incidents an episode was created with failed in IncidentEpisodeService.onCreateSuccess: ${error}`,
+        {
+          projectId: createdItem.projectId.toString(),
+          incidentEpisodeId: createdItem.id.toString(),
+        } as LogAttributes,
+      );
+
+      return [];
+    }
   }
 
   @CaptureSpan()
@@ -530,14 +657,16 @@ export class Service extends ProjectReferencesService<Model> {
      */
     let membersNotAddedToNewChannels: Array<ChannelMembersNotAdded> = [];
 
-    // Create initial state timeline entry
-    Promise.resolve()
-      .then(async () => {
-        /*
-         * Apply privacy rules BEFORE workspace operations so the workspace
-         * channel is created with the correct privacy setting. This may set
-         * createdItem.isPrivate=true in memory.
-         */
+    /*
+     * Apply privacy rules BEFORE workspace operations so the workspace
+     * channel is created with the correct privacy setting. This may set
+     * createdItem.isPrivate=true in memory. Kept as its own promise (it never
+     * rejects) so the incidents the episode is created with are added once
+     * the rules have settled its privacy: each incident's own feed entry
+     * leaves out a private episode's title.
+     */
+    const privacyRulesApplied: Promise<void> = Promise.resolve().then(
+      async () => {
         try {
           await IncidentEpisodePrivacyRuleEngineService.applyRulesToEpisode(
             createdItem,
@@ -551,7 +680,15 @@ export class Service extends ProjectReferencesService<Model> {
             } as LogAttributes,
           );
         }
-      })
+      },
+    );
+
+    // The incidents it was created with, if any (never rejects).
+    const incidentsAdded: Promise<Array<ObjectID>> =
+      this.addIncidentsCreatedWith(onCreate, createdItem, privacyRulesApplied);
+
+    // Create initial state timeline entry
+    privacyRulesApplied
       .then(async () => {
         /*
          * No channel is opened for an episode created resolved. Its created
@@ -619,6 +756,23 @@ export class Service extends ProjectReferencesService<Model> {
           projectId: createdItem.projectId,
           membersNotAdded: membersNotAddedToNewChannels,
         });
+      })
+      .then(async () => {
+        /*
+         * Created with incidents: name them once, here - after "Episode
+         * Created" and after the episode's Slack / Microsoft Teams channels
+         * exist - rather than once per incident as each is added.
+         */
+        const addedIncidentIds: Array<ObjectID> = await incidentsAdded;
+
+        if (addedIncidentIds.length > 0) {
+          await IncidentEpisodeMemberService.createIncidentsAddedFeedItem({
+            projectId: createdItem.projectId!,
+            incidentEpisodeId: createdItem.id!,
+            incidentIds: addedIncidentIds,
+            addedByUserId: this.getCreatingUserId(onCreate, createdItem),
+          });
+        }
       })
       .then(async () => {
         // Apply owner rules: add matched owner users/teams to the episode.
@@ -697,6 +851,12 @@ export class Service extends ProjectReferencesService<Model> {
           } as LogAttributes,
         );
       });
+
+    /*
+     * The episode's incidents are in it before the create answers, so the
+     * episode the person opens next already lists them.
+     */
+    await incidentsAdded;
 
     return createdItem;
   }

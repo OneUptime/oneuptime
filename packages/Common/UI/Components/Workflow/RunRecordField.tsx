@@ -142,17 +142,21 @@ type GetRunRecordDescriptionFunction = (
   info: RunRecordTriggerInfo,
 ) => string;
 
-/** The field's help: what the run does with the record. */
+/**
+ * The field's help: what the run does with the record. On Create or Update
+ * says what its What Happened asks (RunRecord.withRunRecordEvent), and
+ * created until it is asked.
+ */
 export const getRunRecordDescription: GetRunRecordDescriptionFunction = (
   translator: Translator,
   info: RunRecordTriggerInfo,
 ): string => {
   const template: string =
-    info.event === RunRecordEvent.Created
-      ? RunRecordFieldCopy.runsAsIfCreated
+    info.event === RunRecordEvent.Deleted
+      ? RunRecordFieldCopy.runsAsIfDeleted
       : info.event === RunRecordEvent.Updated
         ? RunRecordFieldCopy.runsAsIfUpdated
-        : RunRecordFieldCopy.runsAsIfDeleted;
+        : RunRecordFieldCopy.runsAsIfCreated;
 
   return translator.translateTemplate(template, {
     record: translatableTerm(info.singularName, { inSentence: true }),

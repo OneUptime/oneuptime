@@ -153,15 +153,16 @@ Lekker adressen, klikker du på **Tilbakestill adresse** på samme sted: arbeids
 
 ## OneUptime-begivenhetstriggere
 
-Nesten alt i OneUptime — monitorer, hendelser, varsler, planlagte vedlikehold, statussider, vaktpolicyer, team — kan starte en arbeidsflyt. Hver tilbyr opptil tre begivenheter:
+Nesten alt i OneUptime — monitorer, hendelser, varsler, planlagte vedlikehold, statussider, vaktpolicyer, team — kan starte en arbeidsflyt. Hver tilbyr opptil fire triggere:
 
 - **On Create** — utløses når en ny legges til.
 - **On Update** — utløses når en endres. Å lagre en post med verdiene den allerede har, som et skjema lagret uten endringer eller en bryter sendt slik den allerede står, er ikke en endring og utløser den ikke.
+- **On Create or Update** — utløses i begge tilfeller: én gang når en ny legges til, og én gang hver gang en endres. Én arbeidsflyt behandler da en ny og en endret post likt, for eksempel for å holde en kopi i et annet system oppdatert.
 - **On Delete** — utløses når en slettes.
 
 Slik bygger du «når X skjer i OneUptime, gjør Y» uten å måtte sjekke ting i en løkke.
 
-**On Update** kan begrenses til noen felt med **Fields to watch**: da utløses den bare når en oppdatering endrer ett av dem, til en hvilken som helst verdi — å slå av en bryter eller tømme et felt teller med.
+**On Update** kan begrenses til noen felt med **Fields to watch**: da utløses den bare når en oppdatering endrer ett av dem, til en hvilken som helst verdi — å slå av en bryter eller tømme et felt teller med. **On Create or Update** har de samme **Fields to watch**, bare for sine oppdateringer: hver ny post utløser den fortsatt.
 
 ```mermaid title="Når en On Update-trigger utløses"
 flowchart TB
@@ -174,11 +175,15 @@ flowchart TB
     field -->|"Nei"| nothing
 ```
 
-**On Create** og **On Update** sender posten videre til neste blokk, med feltene du velger i triggerens **Fields to pass on**. For eksempel sender triggeren **Incident → On Create** den nye hendelsen videre, slik at neste blokk kan lese tittelen, beskrivelsen, alvorlighetsgraden eller et hvilket som helst annet felt du har valgt, som `{{local.components.incident-on-create-1.returnValues.model.title}}`. Et felt du ikke valgte, kommer tomt frem.
+**On Create**, **On Update** og **On Create or Update** sender posten videre til neste blokk, med feltene du velger i triggerens **Fields to pass on**. For eksempel sender triggeren **Incident → On Create** den nye hendelsen videre, slik at neste blokk kan lese tittelen, beskrivelsen, alvorlighetsgraden eller et hvilket som helst annet felt du har valgt, som `{{local.components.incident-on-create-1.returnValues.model.title}}`. Et felt du ikke valgte, kommer tomt frem.
+
+**On Create or Update** sender også **What Happened** videre: `created` når en ny post startet kjøringen, og `updated` når en endring gjorde det, som i `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. For å behandle de to ulikt sammenligner du det i en **If / Else**-blokk, eller tar en vei for hver med **Switch / Case**.
+
+Én lagring utløser den én gang. Det OneUptime fyller ut mens den oppretter en post, hører til opprettingen, så en ny post utløser den én gang, som `created`. Endringer OneUptime gjør senere, som å koble til Slack-kanalen til en hendelse, er oppdateringer som alle andre: for å holde dem utenfor legger du bare feltene du bryr deg om, til i **Fields to watch**.
 
 **On Delete** sender bare ID-en til den slettede posten videre: posten er borte når arbeidsflyten kjører, så de andre feltene kan ikke leses.
 
-For å teste en begivenhetstrigger uten å vente på begivenheten klikker du på **Kjør arbeidsflyt** i **Bygger** og velger en eksisterende post: de nyeste er listet opp, og når du skriver inn nummeret til en post eller en del av navnet, finner du en annen. Kjøringen leser den posten med feltene du valgte, som om begivenheten nettopp hadde skjedd med den; selve posten blir verken endret eller slettet.
+For å teste en begivenhetstrigger uten å vente på begivenheten klikker du på **Kjør arbeidsflyt** i **Bygger** og velger en eksisterende post: de nyeste er listet opp, og når du skriver inn nummeret til en post eller en del av navnet, finner du en annen. Kjøringen leser den posten med feltene du valgte, som om begivenheten nettopp hadde skjedd med den; selve posten blir verken endret eller slettet. For **On Create or Update** velger du under **Hva som skjedde** om kjøringen gjelder opprettingen eller oppdateringen av posten.
 
 ### Begivenhetene team bruker mest
 

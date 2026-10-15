@@ -7,7 +7,8 @@
  *     on hover, and no red badge for that alone;
  *   - a badge for anything else the checks found: red for an error, which
  *     also reddens the border, amber for a warning;
- *   - nothing of either in a preview, and nothing on the trigger placeholder.
+ *   - nothing of either in a preview, and nothing on the trigger placeholder;
+ *   - the step's name on up to two lines, never cut to one.
  *
  * jsdom's CSS parser drops var() and color-mix() values, so the colour checks
  * read the raw style objects through react-test-renderer.
@@ -15,6 +16,7 @@
 
 import WorkflowNode, {
   WORKFLOW_NODE_SETUP_TEXT,
+  WORKFLOW_NODE_TITLE_MAX_LINES,
 } from "../../../../UI/Components/Workflow/Component";
 import {
   WorkflowLintTone,
@@ -467,6 +469,103 @@ describe("Workflow step card: colours that hold in dark mode", () => {
         "var(--ou-surface-primary",
       );
     }
+  });
+});
+
+/*
+ * A step's name is what the canvas is read by. Cut to one line, "On Create
+ * or Update Incident" and "On Create or Update Incident Episode" both read
+ * "On Create or Update Incid…", and so did most steps of a model with a long
+ * name. It takes up to two lines now; longer still, it ends in "…" and is
+ * said whole on hover. The real browser checks the drawing
+ * (E2E/WorkflowBuilder/WorkflowBuilderCreateOrUpdate.spec.ts).
+ */
+describe("Workflow step card: its name", () => {
+  const LONG_TITLE: string = "On Create or Update Incident Episode";
+
+  type TitleStyleFunction = (data: WorkflowNodeRenderData) => {
+    title: ReactTestInstance;
+    header: ReactTestInstance;
+  };
+
+  const drawTitle: TitleStyleFunction = (
+    data: WorkflowNodeRenderData,
+  ): { title: ReactTestInstance; header: ReactTestInstance } => {
+    let tree: ReactTestRenderer | null = null;
+    renderer.act(() => {
+      tree = renderer.create(<WorkflowNode data={data} selected={false} />);
+    });
+
+    const title: ReactTestInstance = (
+      tree as unknown as ReactTestRenderer
+    ).root.find((instance: ReactTestInstance) => {
+      return (
+        typeof instance.type === "string" &&
+        instance.props["data-testid"] === "workflow-node-title"
+      );
+    });
+
+    return { title: title, header: title.parent as ReactTestInstance };
+  };
+
+  const longStep: () => WorkflowNodeRenderData = (): WorkflowNodeRenderData => {
+    return makeData({
+      metadata: {
+        ...METADATA,
+        title: LONG_TITLE,
+        componentType: ComponentType.Trigger,
+      },
+      componentType: ComponentType.Trigger,
+    });
+  };
+
+  test("wraps onto a second line instead of being cut on the first", () => {
+    const style: React.CSSProperties = drawTitle(longStep()).title.props[
+      "style"
+    ] as React.CSSProperties;
+
+    expect(WORKFLOW_NODE_TITLE_MAX_LINES).toBe(2);
+    expect(style.whiteSpace).toBeUndefined();
+    expect(style.textOverflow).toBeUndefined();
+    expect(style.display).toBe("-webkit-box");
+    expect(style.WebkitBoxOrient).toBe("vertical");
+    expect(style.WebkitLineClamp).toBe(WORKFLOW_NODE_TITLE_MAX_LINES);
+    expect(style.overflow).toBe("hidden");
+  });
+
+  test("is said whole, on hover too", () => {
+    renderCard(longStep());
+
+    const title: HTMLElement = screen.getByTestId("workflow-node-title");
+
+    expect(title).toHaveTextContent(LONG_TITLE);
+    expect(title).toHaveAttribute("title", LONG_TITLE);
+  });
+
+  test("stops short of the problem badge in the corner, and has the width back without one", () => {
+    const withBadge: React.CSSProperties = drawTitle(
+      makeData({ issueSummary: summary({ errorMessages: [BAD_JSON] }) }),
+    ).header.props["style"] as React.CSSProperties;
+
+    // Room on the right for the 22px badge set 8px in from the edge.
+    expect(withBadge.padding).toBe("0.625rem 1.875rem 0.625rem 0.875rem");
+
+    const withoutBadge: React.CSSProperties = drawTitle(
+      makeData({ arguments: { "webhook-url": "x", text: "y" } }),
+    ).header.props["style"] as React.CSSProperties;
+
+    expect(withoutBadge.padding).toBe("0.625rem 0.875rem");
+  });
+
+  test("a preview, which never has the badge, keeps the whole width", () => {
+    const style: React.CSSProperties = drawTitle(
+      makeData({
+        isPreview: true,
+        issueSummary: summary({ errorMessages: [BAD_JSON] }),
+      }),
+    ).header.props["style"] as React.CSSProperties;
+
+    expect(style.padding).toBe("0.625rem 0.875rem");
   });
 });
 

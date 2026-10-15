@@ -136,7 +136,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!projectAuth || !projectAuth.authToken) {
       throw new BadDataException(
-        "This project is not connected to Slack. Please ask a project admin to connect Slack in Project Settings > Slack Integration.",
+        "This project is not connected to Slack. Please ask a project admin to connect Slack in Project Settings > Workspace > Slack.",
       );
     }
 

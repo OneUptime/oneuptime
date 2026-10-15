@@ -71,6 +71,7 @@ export const ModelFieldPickerCopy: {
   readonly chosenFields: string;
   readonly remove: string;
   readonly emptyWatch: string;
+  readonly emptyWatchWithCreate: string;
   readonly emptyPassOn: string;
   readonly pickAtLeastOne: string;
   readonly unknownField: string;
@@ -88,6 +89,10 @@ export const ModelFieldPickerCopy: {
   remove: translationKey("Remove {{field}}"),
   emptyWatch: translationKey(
     "Every change to the {{record}} runs this workflow.",
+  ),
+  // On Create or Update, which a create always runs.
+  emptyWatchWithCreate: translationKey(
+    "Every new {{record}}, and every change to one, runs this workflow.",
   ),
   emptyPassOn: translationKey("Pick the fields the next steps need."),
   pickAtLeastOne: translationKey("Pick at least one field."),
@@ -114,6 +119,11 @@ export interface ComponentProps {
   tableName: string;
   // Fields to pass on (the default) or Fields to watch.
   mode?: FieldPickerMode | undefined;
+  /*
+   * Fields to watch on a trigger a create always runs - On Create or
+   * Update: the list watches updates only, and says so while it is empty.
+   */
+  createAlwaysRuns?: boolean | undefined;
   initialValue?: string | JSONObject | null | undefined;
   onChange: (value: string) => void;
   onBlur?: (() => void) | undefined;
@@ -549,7 +559,9 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
             >
               {mode === FieldPickerMode.Watch
                 ? translator.translateTemplate(
-                    ModelFieldPickerCopy.emptyWatch,
+                    props.createAlwaysRuns
+                      ? ModelFieldPickerCopy.emptyWatchWithCreate
+                      : ModelFieldPickerCopy.emptyWatch,
                     {
                       record: translatableTerm(recordName, {
                         inSentence: true,

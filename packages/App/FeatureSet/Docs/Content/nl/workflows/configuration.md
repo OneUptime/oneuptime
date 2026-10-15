@@ -185,7 +185,7 @@ Geef **Workflow Admin** aan de mensen die automatisering bouwen, en **Workflow M
 
 ## Wat workflowstappen mogen
 
-De stappen die OneUptime-records lezen en wijzigen — de componenten Find, Create, Update en Delete, en de triggers On Create, On Update en On Delete — handelen als **Project Admin** van het project van de workflow. Wie de workflow ook bouwde, een stap krijgt dezelfde controles als een Project Admin in het dashboard en de API:
+De stappen die OneUptime-records lezen en wijzigen — de componenten Find, Create, Update en Delete, en de triggers On Create, On Update, On Create or Update en On Delete — handelen als **Project Admin** van het project van de workflow. Wie de workflow ook bouwde, een stap krijgt dezelfde controles als een Project Admin in het dashboard en de API:
 
 - **Alleen het eigen project van de workflow.** Een stap leest en schrijft de records van het project waartoe de workflow behoort en van geen ander, en een Update verplaatst een record nooit naar een ander project.
 - **Alleen wat een Project Admin mag.** Een stap kan alleen de team- en API-sleutelmachtigingen toekennen die een Project Admin zelf heeft, dus hij kan geen **Project Owner**, factuur- of projectverwijderingsmachtigingen uitdelen, en hij kan niemand toevoegen aan een team waarvan de machtigingen verder gaan dan die van een Project Admin, zoals het eigenaarsteam. Een stap kan niet lezen wie een probe of een AI-agent heeft gemaakt; dat zien alleen projecteigenaren.

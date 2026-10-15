@@ -26,6 +26,9 @@ describe("the trigger a workflow is run with", () => {
     ["incident-on-create", IncidentService],
     ["incident-on-update", IncidentService],
     ["incident-on-delete", IncidentService],
+    // One trigger for a create and an update: a record trigger like them.
+    ["incident-on-create-or-update", IncidentService],
+    ["alert-on-create-or-update", AlertService],
     ["alert-on-create", AlertService],
     ["scheduled-maintenance-on-update", ScheduledMaintenanceService],
   ])(

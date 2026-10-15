@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "14.0.58",
+  "version": "14.0.59",
   "description": "",
   "repository": {
     "type": "git",
@@ -50,7 +50,8 @@
     "test-pagination-ui": "playwright test --config playwright.pagination-ui.config.ts",
     "test-calendar-feed-ui": "playwright test --config playwright.calendar-feed-ui.config.ts",
     "test-list-delete-ui": "playwright test --config playwright.list-delete-ui.config.ts",
-    "test-status-timeline-ui": "playwright test --config playwright.status-timeline-ui.config.ts"
+    "test-status-timeline-ui": "playwright test --config playwright.status-timeline-ui.config.ts",
+    "test-episode-bulk-add-ui": "playwright test --config playwright.episode-bulk-add-ui.config.ts"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

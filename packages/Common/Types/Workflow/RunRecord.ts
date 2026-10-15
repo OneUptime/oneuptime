@@ -1,7 +1,7 @@
 /*
- * Running a workflow whose trigger acts on a record - On Create, On Update or
- * On Delete Incident, and the same trigger of every other model a workflow
- * can watch - with a record a person can name.
+ * Running a workflow whose trigger acts on a record - On Create, On Update,
+ * On Create or Update or On Delete Incident, and the same trigger of every
+ * other model a workflow can watch - with a record a person can name.
  *
  * Run Workflow used to ask for the record's ID, a UUID nobody knows by heart:
  * "Instead of UUID can I enter the user-facing incident ID, for convenience?
@@ -30,8 +30,14 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
 import { TableColumnMetadata, getTableColumns } from "../Database/TableColumn";
 import TableColumnType from "../Database/TableColumnType";
 import Dictionary from "../Dictionary";
+import { JSONObject } from "../JSON";
 import ObjectID from "../ObjectID";
 import ComponentMetadata, { Argument, ComponentType } from "./Component";
+import {
+  WHAT_HAPPENED_ID,
+  WhatHappened,
+  readWhatHappened,
+} from "./CreateOrUpdateTrigger";
 import { DatabaseOperation, getDatabaseOperation } from "./DatabaseOperation";
 import {
   ID_COLUMN_ID,
@@ -530,11 +536,21 @@ export enum RunRecordEvent {
   Created = "Created",
   Updated = "Updated",
   Deleted = "Deleted",
+  /*
+   * On Create or Update: created or updated, as the run's What Happened
+   * says (getRunRecordEvent). Never drawn as it is.
+   */
+  CreatedOrUpdated = "CreatedOrUpdated",
 }
 
 export interface RunRecordTriggerInfo {
   argument: Argument;
   event: RunRecordEvent;
+  /*
+   * On Create or Update's What Happened, which Run Workflow asks with the
+   * record: whether the run is for the record being created or updated.
+   */
+  whatHappenedArgument?: Argument | undefined;
   // "Incident", "Scheduled Maintenance Event".
   singularName: string;
   pluralName: string;
@@ -572,7 +588,9 @@ export const getRunRecordTriggerInfo: GetRunRecordTriggerInfoFunction = (
         ? RunRecordEvent.Updated
         : operation === DatabaseOperation.OnDelete
           ? RunRecordEvent.Deleted
-          : null;
+          : operation === DatabaseOperation.OnCreateOrUpdate
+            ? RunRecordEvent.CreatedOrUpdated
+            : null;
 
   const model: BaseModel | null = getWorkflowModel(metadata.tableName);
 
@@ -582,14 +600,68 @@ export const getRunRecordTriggerInfo: GetRunRecordTriggerInfoFunction = (
 
   const columns: RunRecordColumns = getRunRecordColumns(model);
 
+  const whatHappenedArgument: Argument | undefined =
+    event === RunRecordEvent.CreatedOrUpdated
+      ? (metadata.runWorkflowManuallyArguments || []).find(
+          (runArgument: Argument): boolean => {
+            return runArgument.id === WHAT_HAPPENED_ID;
+          },
+        )
+      : undefined;
+
   return {
     argument: argument,
     event: event,
+    ...(whatHappenedArgument
+      ? { whatHappenedArgument: whatHappenedArgument }
+      : {}),
     singularName: model.singularName || metadata.tableName,
     pluralName: model.pluralName || model.singularName || metadata.tableName,
     hasNumber: Boolean(columns.number),
     hasName: Boolean(columns.nameColumn),
   };
+};
+
+type GetRunRecordEventFunction = (
+  info: RunRecordTriggerInfo,
+  // What Run Workflow holds for the trigger.
+  values: JSONObject | null | undefined,
+) => RunRecordEvent;
+
+/**
+ * What a run pretends just happened to its record: the trigger's own event,
+ * or for On Create or Update, what its What Happened asks - created until it
+ * says updated, as an empty choice is its first.
+ */
+export const getRunRecordEvent: GetRunRecordEventFunction = (
+  info: RunRecordTriggerInfo,
+  values: JSONObject | null | undefined,
+): RunRecordEvent => {
+  if (info.event !== RunRecordEvent.CreatedOrUpdated) {
+    return info.event;
+  }
+
+  return readWhatHappened(values?.[WHAT_HAPPENED_ID]) === WhatHappened.Updated
+    ? RunRecordEvent.Updated
+    : RunRecordEvent.Created;
+};
+
+type WithRunRecordEventFunction = (
+  info: RunRecordTriggerInfo,
+  values: JSONObject | null | undefined,
+) => RunRecordTriggerInfo;
+
+/**
+ * The trigger's info with the event a run is for (getRunRecordEvent), for
+ * what says it in words: the record field's help and the confirmation.
+ */
+export const withRunRecordEvent: WithRunRecordEventFunction = (
+  info: RunRecordTriggerInfo,
+  values: JSONObject | null | undefined,
+): RunRecordTriggerInfo => {
+  const event: RunRecordEvent = getRunRecordEvent(info, values);
+
+  return event === info.event ? info : { ...info, event: event };
 };
 
 type IsRunRecordIdFunction = (value: unknown) => boolean;

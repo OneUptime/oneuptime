@@ -30,8 +30,14 @@ const TelemetryTimeRangePicker: FunctionComponent<
    * for a zoom of this picker's range, so a viewer nested in a zoomed page
    * does not offer to reset the page.
    */
+  /*
+   * No wider than the row it sits in: the picker cuts a long custom range
+   * short (TimeRangePickerDropdown) only when this group may shrink, and
+   * Reset zoom keeps its width (shrink-0). Sized to its content, the group
+   * ran a zoomed range past its card at 768px.
+   */
   return (
-    <div className="inline-flex items-center gap-1.5">
+    <div className="inline-flex min-w-0 max-w-full items-center gap-1.5">
       <TimeRangePickerDropdown
         value={props.value}
         onChange={props.onChange}

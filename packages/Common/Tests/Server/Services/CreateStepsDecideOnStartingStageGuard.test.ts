@@ -142,6 +142,8 @@ const SERVICES: Array<ServiceSteps> = [
       "AlertEpisodeLabelRuleEngineService.applyRulesToEpisode": "its labels",
       "AlertEpisodeOnCallRuleEngineService.applyRulesToEpisode":
         "which on-call policies it lists",
+      "AlertEpisodeMemberService.createAlertsAddedFeedItem":
+        "the entry naming the alerts it was created with",
     },
     decidedByOngoing: ["this.handleEpisodeWorkspaceOperationsAsync"],
     handedIsOngoing: [],
@@ -160,6 +162,8 @@ const SERVICES: Array<ServiceSteps> = [
       "IncidentEpisodeLabelRuleEngineService.applyRulesToEpisode": "its labels",
       "IncidentEpisodeOnCallRuleEngineService.applyRulesToEpisode":
         "which on-call policies it lists",
+      "IncidentEpisodeMemberService.createIncidentsAddedFeedItem":
+        "the entry naming the incidents it was created with",
     },
     decidedByOngoing: ["this.handleEpisodeWorkspaceOperationsAsync"],
     handedIsOngoing: [],

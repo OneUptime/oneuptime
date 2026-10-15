@@ -185,7 +185,7 @@ Giv dem, der bygger automatisering, **Workflow Admin**, og dem, der kun starter 
 
 ## Hvad workflow-trin må gøre
 
-De trin, der læser og ændrer OneUptime-poster — komponenterne Find, Create, Update og Delete og triggerne On Create, On Update og On Delete — handler som en **Project Admin** i workflowets projekt. Uanset hvem der byggede workflowet, møder et trin de samme kontroller, som en Project Admin møder i dashboardet og API'et:
+De trin, der læser og ændrer OneUptime-poster — komponenterne Find, Create, Update og Delete og triggerne On Create, On Update, On Create or Update og On Delete — handler som en **Project Admin** i workflowets projekt. Uanset hvem der byggede workflowet, møder et trin de samme kontroller, som en Project Admin møder i dashboardet og API'et:
 
 - **Kun workflowets eget projekt.** Et trin læser og skriver posterne i det projekt, workflowet hører til, og intet andet, og en Update flytter aldrig en post til et andet projekt.
 - **Kun det, en Project Admin må.** Et trin kan kun tildele de team- og API-nøgletilladelser, som en Project Admin selv har, så det kan ikke uddele **Project Owner**-, fakturerings- eller projektsletningstilladelser, og det kan ikke tilføje nogen til et team, hvis tilladelser går ud over en Project Admins, såsom ejernes team. Et trin kan ikke læse, hvem der oprettede en probe eller en AI-agent, hvilket kun projektejere ser.

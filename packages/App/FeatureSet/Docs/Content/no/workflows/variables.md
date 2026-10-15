@@ -196,7 +196,7 @@ Vis til utdataene fra en tidligere blokk slik:
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | En **API**-blokk med ID-en `lookup-user`                  | Statuskoden: `{{local.components.lookup-user.returnValues.response-status}}`. Bodyen: `{{local.components.lookup-user.returnValues.response-body}}`. |
 | En **Run Custom JavaScript**-blokk med ID-en `transform`  | Det den returnerte: `{{local.components.transform.returnValues.returnValue}}`.         |
-| En **On Create Incident**-trigger med ID-en `incident-on-create-1` | Tittelen på hendelsen: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Posttriggere returnerer én verdi, `model`, som du går ned i. |
+| En **On Create Incident**-trigger med ID-en `incident-on-create-1` | Tittelen på hendelsen: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Posttriggere returnerer posten som `model`, som du går ned i. |
 
 Blokkverdier finnes bare under den gjeldende kjøringen. Hver ny kjøring starter på nytt.
 

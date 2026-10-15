@@ -270,7 +270,7 @@ export default class ChannelMembersNotAddedNotice {
 
     const missing: MarkdownText = mdText`👥 ${this.listNames(names)} could not be added to this channel: they have not connected ${accounts} to ${productName} yet.`;
 
-    let whatToDo: MarkdownText = mdText`Add them here yourself, or ask them to connect Slack in ${productName} under **User Settings → Slack**.`;
+    let whatToDo: MarkdownText = mdText`Add them here yourself, or ask them to connect Slack in ${productName} under **User Settings → Workspace → Slack**.`;
 
     try {
       const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();

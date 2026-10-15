@@ -79,6 +79,7 @@ Hoe iemand bereikt wordt, bepaalt die persoon zelf. In de **Gebruikersinstelling
 :::cards
 - [Escalatieregels](/docs/on-call/escalation-rules): Mensen niveau voor niveau oproepen tot iemand reageert.
 - [Bereikbaarheidsschema's](/docs/on-call/schedules): Roosters, lagen en overdrachten.
+- [Hoe OneUptime je bereikt](/docs/notifications/index): De methoden, regels en instellingen die bepalen hoe iedereen wordt bereikt.
 :::
 
 ## Statuspagina's en onderhoud

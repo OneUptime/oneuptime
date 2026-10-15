@@ -185,7 +185,7 @@ Da **Workflow Admin** a las personas que construyen la automatización, y **Work
 
 ## Qué pueden hacer los pasos de un flujo de trabajo
 
-Los pasos que leen y cambian registros de OneUptime — los componentes Find, Create, Update y Delete, y los disparadores On Create, On Update y On Delete — actúan como **Project Admin** del proyecto del flujo de trabajo. Lo haya construido quien lo haya construido, un paso pasa las mismas comprobaciones que pasa un Project Admin en el panel y en la API:
+Los pasos que leen y cambian registros de OneUptime — los componentes Find, Create, Update y Delete, y los disparadores On Create, On Update, On Create or Update y On Delete — actúan como **Project Admin** del proyecto del flujo de trabajo. Lo haya construido quien lo haya construido, un paso pasa las mismas comprobaciones que pasa un Project Admin en el panel y en la API:
 
 - **Solo el proyecto del propio flujo de trabajo.** Un paso lee y escribe los registros del proyecto al que pertenece el flujo de trabajo y de ningún otro, y un Update nunca mueve un registro a otro proyecto.
 - **Solo lo que puede hacer un Project Admin.** Un paso solo puede conceder los permisos de equipo y de clave de API que tiene el propio Project Admin, así que no puede dar **Project Owner** ni permisos de facturación o de eliminación del proyecto, y no puede añadir a alguien a un equipo cuyos permisos van más allá de los de un Project Admin, como el equipo de propietarios. Un paso no puede leer quién creó una sonda o un agente de IA, algo que solo ven los propietarios del proyecto.

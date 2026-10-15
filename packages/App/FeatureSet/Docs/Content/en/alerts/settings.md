@@ -151,7 +151,7 @@ Owners get each reminder as **Alert reminder**, which is on by email by default.
 
 ## Workflows
 
-Every alert model has workflow triggers and actions, named after it: **On Create Alert**, **On Update Alert** and **On Delete Alert**, the same for **Alert Episode**, **Alert State Timeline** and the others, and actions such as **Create One Alert** and **Update One Alert**. Alert custom field definitions are the one exception: they have no workflow triggers. See [Workflows Overview](/docs/workflows/index).
+Every alert model has workflow triggers and actions, named after it: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** and **On Delete Alert**, the same for **Alert Episode**, **Alert State Timeline** and the others, and actions such as **Create One Alert** and **Update One Alert**. Alert custom field definitions are the one exception: they have no workflow triggers. See [Workflows Overview](/docs/workflows/index).
 
 ## Who can change these
 

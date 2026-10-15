@@ -24,6 +24,12 @@ import {
   NodeDataProp,
 } from "../../../Types/Workflow/Component";
 import {
+  WHAT_HAPPENED_ID,
+  WhatHappened,
+  isCreateOrUpdateTrigger,
+  readWhatHappened,
+} from "../../../Types/Workflow/CreateOrUpdateTrigger";
+import {
   RUN_RECORD_ARGUMENT_ID,
   getRunRecordArgument,
 } from "../../../Types/Workflow/RunRecord";
@@ -76,6 +82,16 @@ export const getRunValues: GetRunValuesFunction = (
     values[RUN_RECORD_ARGUMENT_ID] = (
       values[RUN_RECORD_ARGUMENT_ID] as string
     ).trim();
+  }
+
+  /*
+   * On Create or Update runs as created until the panel's What Happened
+   * says updated, and says so in what it sends rather than leaving the
+   * server to assume it.
+   */
+  if (isCreateOrUpdateTrigger(component.metadata)) {
+    values[WHAT_HAPPENED_ID] =
+      readWhatHappened(values[WHAT_HAPPENED_ID]) || WhatHappened.Created;
   }
 
   return values;

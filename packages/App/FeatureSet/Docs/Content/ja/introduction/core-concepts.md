@@ -79,6 +79,7 @@ flowchart TB
 :::cards
 - [エスカレーションルール](/docs/on-call/escalation-rules): 誰かが応答するまで、レベルごとに人を呼び出します。
 - [オンコールスケジュール](/docs/on-call/schedules): ローテーション、レイヤー、引き継ぎ。
+- [OneUptime からの連絡の仕組み](/docs/notifications/index): 一人ひとりへの連絡方法を決める通知方法、ルール、設定。
 :::
 
 ## ステータスページとメンテナンス
