@@ -675,11 +675,18 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
                     {translateString("Event")}
                   </th>
                   {shownChannels.map((channel: ChannelDef) => {
+                    /*
+                     * Top-aligned, so the icons stay in one row when a
+                     * label takes two lines ("Microsoft Teams" in a narrow
+                     * column, or a long translation such as "Correo
+                     * electronico"); the Event header, centred, then sits
+                     * level with the labels' first line.
+                     */
                     return (
                       <th
                         key={channel.key}
                         scope="col"
-                        className="px-3 py-3 text-center"
+                        className="px-3 py-3 text-center align-top"
                       >
                         <div className="flex flex-col items-center gap-1">
                           <Icon
