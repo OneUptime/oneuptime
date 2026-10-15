@@ -171,6 +171,15 @@ test.describe("Workflow builder: Run Workflow for a record trigger", () => {
     page: Page;
     isMobile: boolean;
   }) => {
+    /*
+     * The newest incident is made 20 minutes before the page loads
+     * (Fixture.js), and its row is checked to say "Today". So the page's
+     * clock starts at noon: on the real clock, a run in the first 20
+     * minutes after midnight saw "Yesterday". The clock keeps running, so
+     * the box's timers still fire.
+     */
+    await page.clock.setSystemTime(new Date("2026-10-14T12:00:00.000Z"));
+
     const panel: Locator = await openRunPanel(page);
 
     await expect(
