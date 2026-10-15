@@ -296,10 +296,17 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           notificationRules: [rule],
           channelNameParts: channelNameParts,
           notificationEventType: rule.eventType!,
+          // A test says why the channel could not be created.
+          throwOnCreateChannelError: true,
         });
       } catch (err) {
+        /*
+         * What the workspace answered, readable whatever was thrown: Slack
+         * and Microsoft Graph throw an HTTP error response itself.
+         */
         throw new BadDataException(
-          "Cannot create a new channel. " + (err as Error)?.message,
+          "Cannot create a new channel. " +
+            WorkspaceBase.getSendErrorMessage(err),
         );
       }
 
@@ -2153,6 +2160,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           },
         );
 
+      // A rule whose channel the workspace did not create has none to invite to.
+      if (channelsOfRule.length === 0) {
+        continue;
+      }
+
       for (const userId of userIds) {
         const workspaceUserId: string | null =
           await this.getWorkspaceUserIdFromOneUptimeUserId({
@@ -2662,6 +2674,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationEventType: NotificationRuleEventType;
     notificationFor?: NotificationFor;
     isPrivate?: boolean;
+    /*
+     * Throw what the workspace answered when it does not create a channel,
+     * rather than log it and go on with the next: a rule's test reports it
+     * to the person testing.
+     */
+    throwOnCreateChannelError?: boolean | undefined;
   }): Promise<Array<NotificationRuleWorkspaceChannel>> {
     logger.debug("createChannelsBasedOnRules called with data:", {
       projectId: data.projectId?.toString(),
@@ -2793,22 +2811,50 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         createChannelData.teamId = teamId;
       }
 
-      // Ensure teamId is set for Microsoft Teams
-      if (
-        data.workspaceType === WorkspaceType.MicrosoftTeams &&
-        !createChannelData.teamId
-      ) {
-        throw new BadDataException(
-          "teamId is required for Microsoft Teams channels",
-        );
-      }
+      let channel: WorkspaceChannel;
 
-      const channel: WorkspaceChannel = await this.createChannelUnderFreeName({
-        workspaceType: data.workspaceType,
-        createChannelData: createChannelData,
-        prefix: notificationChannel.prefix,
-        channelNameParts: data.channelNameParts,
-      });
+      /*
+       * A channel the workspace does not create - Slack refuses a name over
+       * 80 characters (invalid_name_maxlength), Microsoft one over 50 or one
+       * that starts with "_", or neither can be reached - is logged, and the
+       * channels after it are still created. Its error used to end the setup
+       * of the workspace's channels, so the record never kept the channels
+       * created already: nobody was invited to them, and none of the
+       * record's updates were posted there.
+       */
+      try {
+        // Ensure teamId is set for Microsoft Teams
+        if (
+          data.workspaceType === WorkspaceType.MicrosoftTeams &&
+          !createChannelData.teamId
+        ) {
+          throw new BadDataException(
+            "teamId is required for Microsoft Teams channels",
+          );
+        }
+
+        // A name somebody has already is tried again as name-2 and so on first.
+        channel = await this.createChannelUnderFreeName({
+          workspaceType: data.workspaceType,
+          createChannelData: createChannelData,
+          prefix: notificationChannel.prefix,
+          channelNameParts: data.channelNameParts,
+        });
+      } catch (err) {
+        await this.logChannelNotCreated({
+          projectId: data.projectId,
+          workspaceType: data.workspaceType,
+          channelName: notificationChannel.channelName,
+          error: err,
+          notificationFor: data.notificationFor,
+        });
+
+        if (data.throwOnCreateChannelError) {
+          throw err;
+        }
+
+        continue;
+      }
 
       const notificationWorkspaceChannel: NotificationRuleWorkspaceChannel = {
         ...channel,
@@ -3009,6 +3055,52 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     return numberPrefixes;
+  }
+
+  /*
+   * A channel the workspace did not create, with what it answered: in the
+   * server log, and in a Notification Logs row against the record the
+   * channel was asked for (when the caller names it), so the record's
+   * Notification Logs page lists it beside the channels that were created.
+   */
+  private async logChannelNotCreated(data: {
+    projectId: ObjectID;
+    workspaceType: WorkspaceType;
+    channelName: string;
+    error: unknown;
+    notificationFor?: NotificationFor | undefined;
+  }): Promise<void> {
+    logger.error(`Error creating channel ${data.channelName}:`, {
+      projectId: data.projectId?.toString(),
+    } as LogAttributes);
+    logger.error(data.error, {
+      projectId: data.projectId?.toString(),
+    } as LogAttributes);
+
+    try {
+      await WorkspaceNotificationLogService.logCreateChannelError(
+        {
+          ...data.notificationFor,
+          projectId: data.projectId,
+          workspaceType: data.workspaceType,
+          channelName: data.channelName,
+          /*
+           * Readable whatever was thrown: Slack and Microsoft Graph throw an
+           * HTTP error response itself.
+           */
+          error: WorkspaceBase.getSendErrorMessage(data.error),
+        },
+        { isRoot: true },
+      );
+    } catch (err) {
+      logger.error("Error logging channel creation failure:", {
+        projectId: data.projectId?.toString(),
+      } as LogAttributes);
+      logger.error(err, {
+        projectId: data.projectId?.toString(),
+      } as LogAttributes);
+      // Don't throw the error, just log it so the main flow continues
+    }
   }
 
   @CaptureSpan()
