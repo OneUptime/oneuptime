@@ -191,20 +191,18 @@ At gå videre fra **Løst** til en senere tilstand — **Closed** for eksempel �
 
 ## Tilstandstidslinjen
 
-Hændelsens side **Tilstandstidslinje** i hændelsens sidemenu er revisionssporet for hver tilstand, hændelsen har været i. Kortet på den side hedder **Statustidslinje**, og det er sorteret med de nyeste først.
+Hændelsens side **Tilstandstidslinje** i hændelsens sidemenu er revisionssporet for hver tilstand, hændelsen har været i. Kortet på den side hedder **Statustidslinje**, og det tegner hele hændelsens forløb som en tidslinje:
 
-| Kolonne                            | Hvad den viser                                                                                                                                                                                                                                                 |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Hændelsesstatus**                | Et farvet mærke med tilstandens navn og farve.                                                                                                                                                                                                                 |
-| **Begynder den**                   | Hvornår hændelsen gik ind i denne tilstand.                                                                                                                                                                                                                    |
-| **Slutter den**                    | Hvornår den forlod den. Den aktuelle tilstand viser `Currently Active`.                                                                                                                                                                                        |
-| **Varighed**                       | Tiden i tilstanden, for den aktuelle talt indtil nu.                                                                                                                                                                                                           |
-| **Abonnentnotifikationsstatus**    | Om statussidens notifikation for denne ændring blev sendt, sprunget over eller stadig afventer, med et link **flere detaljer**, og — når afsendelsen fejlede — en handling **Prøv igen**. **Prøv igen** sender tilstandsændringen igen til hver statusside, hændelsen når nu, også til de abonnenter, der allerede har fået den. |
+- **Båndet** viser hver tilstand som et stykke i sin farve, så langt som hændelsen var i den, så hændelsens forløb kan aflæses med det samme. Så længe hændelsen er åben, går båndet frem til **Nu**; når den er løst, slutter båndet kort efter dens sidste ændring. Peg på et stykke for at se, hvornår det begyndte, og hvor længe det varede, og klik på det for at finde ændringen i listen. Ændringer, der ligger for tæt til at skelne, tegnes som ét stribet stykke: klik på det, eller træk hen over båndet, for at zoome ind, og **Reset zoom** går tilbage.
+- **Over båndet** står hver tilstand med den tid, hændelsen tilbragte i den.
+- **Under båndet** står hver ændring, nyeste først, grupperet efter dag og i din tidszone: hvornår den begyndte og sluttede, hvor længe den varede, hvem der foretog den og under den **Statusside-abonnenter:** om statussidens notifikation for ændringen blev sendt, sprunget over eller stadig venter, med et link **flere detaljer** og — når afsendelsen mislykkedes — en handling **Prøv igen**. **Prøv igen** sender tilstandsændringen igen til hver statusside, hændelsen når nu, også til de abonnenter, der allerede har fået den.
 
-Hver række har to handlinger:
+Hver ændring har to handlinger:
 
 - **Vis årsag** — åbner en dialog **Grundårsag**, der viser den Markdown, der blev registreret med tilstandsændringen.
 - **Vis logge** — åbner en dialog, der forklarer, hvorfor statussen ændrede sig, med en visning **Hændelsestilstandslog**.
+
+**Tidslinje** og **Tabel** i kortets overskrift skifter mellem tidslinjen og den tabel, siden var før: en række pr. ændring med **Begynder den**, **Slutter den** og **Varighed**, filtre, gemte visninger og massehandlinger. Dit valg gemmes i din browser, for alle statustidslinjer. Advarsler, episoder og planlagte vedligeholdelseshændelser tegner deres tilstandstidslinjer på samme måde. En monitors og en netværkslokations **Statustidslinje** åbner i stedet på den seneste måned, valgt som ethvert andet tidsinterval, med perioden før og efter et klik væk.
 
 I dashboardet kan tidslinjerækker tilføjes og slettes, men ikke redigeres; en hændelse beholder altid mindst én række. Via API'et kan en rækkes `startsAt` rettes, og hver måling, der beregnes ud fra tidslinjen, følger med.
 

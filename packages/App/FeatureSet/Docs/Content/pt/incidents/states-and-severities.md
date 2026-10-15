@@ -191,20 +191,18 @@ Passar de **Resolvido** para um estado posterior — **Closed**, por exemplo —
 
 ## A linha do tempo de estados
 
-A página **Linha do tempo de estado** no menu lateral do incidente é a trilha de auditoria de cada estado em que o incidente esteve. O cartão dessa página se chama **Linha do tempo de status**, e é ordenado do mais recente para o mais antigo.
+A página **Linha do tempo de estado** no menu lateral do incidente é a trilha de auditoria de cada estado em que o incidente esteve. O cartão dessa página se chama **Linha do tempo de status**, e desenha toda a vida do incidente como uma linha do tempo:
 
-| Coluna                                  | O que mostra                                                                                                                                                                                                                                                   |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status do Incidente**                 | Uma etiqueta colorida com o nome e a cor do estado.                                                                                                                                                                                                            |
-| **Começa em**                           | Quando o incidente entrou neste estado.                                                                                                                                                                                                                        |
-| **Termina em**                          | Quando ele saiu. O estado atual mostra `Currently Active`.                                                                                                                                                                                                     |
-| **Duração**                             | O tempo passado no estado, contado até agora para o atual.                                                                                                                                                                                                     |
-| **Status de notificação do assinante**  | Se a notificação da página de status para esta mudança foi enviada, ignorada ou ainda está pendente, com um link **mais detalhes** e — quando o envio falhou — uma ação **Tentar novamente**. **Tentar novamente** envia de novo a mudança de estado a todas as páginas de status que o incidente alcança agora, incluindo os assinantes que já a receberam. |
+- **A faixa** mostra cada estado como um trecho da sua cor, tão longo quanto o incidente ficou nele, para que o andamento do incidente se leia num relance. Enquanto o incidente está aberto, a faixa vai até **Agora**; depois de resolvido, ela termina pouco depois da sua última alteração. Aponte para um trecho para ver quando começou e quanto durou, e clique nele para encontrar a alteração na lista. Alterações próximas demais para distinguir são desenhadas como um só trecho listrado: clique nele, ou arraste sobre a faixa, para ampliar, e **Reset zoom** volta atrás.
+- **Acima da faixa**, cada estado aparece com o tempo que o incidente passou nele.
+- **Abaixo da faixa**, cada alteração aparece da mais recente para a mais antiga, agrupada por dia e no seu fuso horário: quando começou e terminou, quanto durou, quem a fez e, abaixo dela, **Assinantes da página de status:** se a notificação da página de status dessa alteração foi enviada, ignorada ou ainda está pendente, com um link **mais detalhes** e — quando o envio falhou — uma ação **Tentar novamente**. **Tentar novamente** envia de novo a mudança de estado a todas as páginas de status que o incidente alcança agora, incluindo os assinantes que já a receberam.
 
-Cada linha tem duas ações:
+Cada alteração tem duas ações:
 
 - **Ver causa** — abre uma caixa de diálogo **Causa raiz** que mostra o Markdown registrado com aquela mudança de estado.
 - **Ver registros** — abre uma caixa de diálogo explicando por que o status mudou, com um visualizador **Registro de Estado do Incidente**.
+
+**Linha do tempo** e **Tabela**, no cabeçalho do cartão, alternam entre a linha do tempo e a tabela que a página era antes: uma linha por alteração com **Começa em**, **Termina em** e **Duração**, filtros, visualizações salvas e ações em massa. A sua escolha fica guardada no navegador, para todas as linhas do tempo de status. Alertas, episódios e eventos de manutenção programada desenham as suas linhas do tempo de estado da mesma forma. A **Linha do tempo de status** de um monitor e de um local de rede abre, em vez disso, no último mês, escolhido como qualquer outro intervalo de tempo, com o período anterior e o seguinte a um clique.
 
 No painel, as linhas da linha do tempo podem ser adicionadas e excluídas, mas não editadas; um incidente sempre mantém pelo menos uma linha. Pela API, o `startsAt` de uma linha pode ser corrigido, e toda medição calculada a partir da linha do tempo o acompanha.
 

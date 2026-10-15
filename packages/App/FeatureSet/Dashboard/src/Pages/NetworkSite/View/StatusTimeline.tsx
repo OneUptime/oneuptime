@@ -18,6 +18,13 @@ import { NETWORK_SITE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDesc
 import NetworkSiteStatusTimeline from "Common/Models/DatabaseModels/NetworkSiteStatusTimeline";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import ModelStatusTimeline from "Common/UI/Components/StatusTimeline/ModelStatusTimeline";
+import StatusTimelineViewSwitch, {
+  StatusTimelineView,
+  useStatusTimelineView,
+} from "Common/UI/Components/StatusTimeline/StatusTimelineView";
+import TimeRange from "Common/Types/Time/TimeRange";
+import { JSONObject } from "Common/Types/JSON";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import {
   getStateTimelineDurationColumn,
@@ -38,6 +45,16 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const UPTIME_WINDOWS_IN_DAYS: Array<number> = [1, 7, 30, 90];
+
+/*
+ * How serious a site's status is, for its timeline: its priority (higher is
+ * worse), so a cluster of short changes shows the worst of them.
+ */
+const getSiteStatusRank: (state: JSONObject) => number | undefined = (
+  state: JSONObject,
+): number | undefined => {
+  return typeof state["priority"] === "number" ? state["priority"] : undefined;
+};
 const DAILY_STRIP_DAYS: number = 30;
 const DAILY_UPTIME_TITLE: string = `Daily Uptime — Last ${DAILY_STRIP_DAYS} Days`;
 
@@ -187,6 +204,20 @@ const NetworkSiteStatusTimelinePage: FunctionComponent<
     });
   }, []);
 
+  /*
+   * Every health change as a timeline over a period - the last month first
+   * - with the table it used to be one click away.
+   */
+  const [view, setView] = useStatusTimelineView();
+
+  const viewSwitch: ReactElement = (
+    <StatusTimelineViewSwitch
+      key="status-timeline-view-switch"
+      value={view}
+      onChange={setView}
+    />
+  );
+
   return (
     <Fragment>
       {uptimeByWindow && (
@@ -250,79 +281,104 @@ const NetworkSiteStatusTimelinePage: FunctionComponent<
           <SiteDailyUptimeStrip entries={dailyEntries} />
         </div>
       )}
-      <ModelTable<NetworkSiteStatusTimeline>
-        modelType={NetworkSiteStatusTimeline}
-        id="network-site-status-timeline-table"
-        userPreferencesKey="network-site-status-timeline-table"
-        query={{ siteId: modelId }}
-        isDeleteable={false}
-        isEditable={false}
-        isCreateable={false}
-        isViewable={false}
-        showRefreshButton={true}
-        name="Site Status Timeline"
-        sortBy="startsAt"
-        sortOrder={SortOrder.Descending}
-        cardProps={{
-          title: "Status Timeline",
-          description:
-            "Every health change this site's rollup recorded — when it entered each status and for how long.",
-        }}
-        noItemsMessage="No status history yet. The timeline fills in as the site's health rollup records changes."
-        filters={[
-          {
-            field: {
-              startsAt: true,
+      {view === StatusTimelineView.Timeline ? (
+        <ModelStatusTimeline<NetworkSiteStatusTimeline>
+          modelType={NetworkSiteStatusTimeline}
+          id="network-site-status-timeline"
+          name="Site Status Timeline"
+          title="Status Timeline"
+          description="Every health change this site's rollup recorded — when it entered each status and for how long."
+          headerElement={viewSwitch}
+          query={{ siteId: modelId }}
+          stateColumn="monitorStatus"
+          stateSelect={{ priority: true }}
+          getStateRank={getSiteStatusRank}
+          defaultRange={TimeRange.PAST_ONE_MONTH}
+          showShare={true}
+          ariaLabel="Status timeline of this site"
+          emptyMessage="No status history yet. The timeline fills in as the site's health rollup records changes."
+        />
+      ) : (
+        <></>
+      )}
+      {view === StatusTimelineView.Table ? (
+        <ModelTable<NetworkSiteStatusTimeline>
+          modelType={NetworkSiteStatusTimeline}
+          id="network-site-status-timeline-table"
+          userPreferencesKey="network-site-status-timeline-table"
+          query={{ siteId: modelId }}
+          isDeleteable={false}
+          isEditable={false}
+          isCreateable={false}
+          isViewable={false}
+          showRefreshButton={true}
+          name="Site Status Timeline"
+          sortBy="startsAt"
+          sortOrder={SortOrder.Descending}
+          cardProps={{
+            title: "Status Timeline",
+            description:
+              "Every health change this site's rollup recorded — when it entered each status and for how long.",
+            rightElement: viewSwitch,
+          }}
+          noItemsMessage="No status history yet. The timeline fills in as the site's health rollup records changes."
+          filters={[
+            {
+              field: {
+                startsAt: true,
+              },
+              title: "From",
+              type: FieldType.Date,
             },
-            title: "From",
-            type: FieldType.Date,
-          },
-        ]}
-        selectMoreFields={{
-          endsAt: true,
-        }}
-        columns={[
-          {
-            field: {
-              monitorStatus: {
-                name: true,
-                color: true,
+          ]}
+          selectMoreFields={{
+            endsAt: true,
+          }}
+          columns={[
+            {
+              field: {
+                monitorStatus: {
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "Status",
+              type: FieldType.Entity,
+              getElement: (item: NetworkSiteStatusTimeline): ReactElement => {
+                if (!item.monitorStatus?.name) {
+                  return <span className="text-sm text-gray-400">—</span>;
+                }
+                return (
+                  <Pill
+                    text={item.monitorStatus.name}
+                    color={item.monitorStatus.color || Gray500}
+                    size={PillSize.Small}
+                  />
+                );
               },
             },
-            title: "Status",
-            type: FieldType.Entity,
-            getElement: (item: NetworkSiteStatusTimeline): ReactElement => {
-              if (!item.monitorStatus?.name) {
-                return <span className="text-sm text-gray-400">—</span>;
-              }
-              return (
-                <Pill
-                  text={item.monitorStatus.name}
-                  color={item.monitorStatus.color || Gray500}
-                  size={PillSize.Small}
-                />
-              );
+            {
+              field: {
+                startsAt: true,
+              },
+              title: "From",
+              type: FieldType.DateTime,
             },
-          },
-          {
-            field: {
-              startsAt: true,
-            },
-            title: "From",
-            type: FieldType.DateTime,
-          },
-          /*
-           * The same two columns as every other status timeline - the
-           * pulsing "Currently Active" marker and a live duration - in this
-           * page's own words, with the marker sized to the status pill.
-           */
-          getStateTimelineEndsAtColumn<NetworkSiteStatusTimeline>({
-            title: "Until",
-            indicatorSize: PillSize.Small,
-          }),
-          getStateTimelineDurationColumn<NetworkSiteStatusTimeline>(),
-        ]}
-      />
+            /*
+             * The same two columns as every other status timeline - the
+             * pulsing "Currently Active" marker and a live duration - in this
+             * page's own words, with the marker sized to the status pill.
+             */
+            getStateTimelineEndsAtColumn<NetworkSiteStatusTimeline>({
+              title: "Until",
+              indicatorSize: PillSize.Small,
+            }),
+            getStateTimelineDurationColumn<NetworkSiteStatusTimeline>(),
+          ]}
+        />
+      ) : (
+        <></>
+      )}
     </Fragment>
   );
 };

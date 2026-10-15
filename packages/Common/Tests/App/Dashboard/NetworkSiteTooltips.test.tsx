@@ -144,6 +144,10 @@ import NetworkSiteStatusTimeline from "../../../Models/DatabaseModels/NetworkSit
 import { Green } from "../../../Types/BrandColors";
 import NetworkDeviceMonitoringMethod from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  forgetStatusTimelineView,
+  showStatusTimelinesAsTable,
+} from "../../Helpers/StatusTimelineViewChoice";
 
 const DESCRIPTIONS: Record<NetworkSiteMetric, string> =
   NETWORK_SITE_METRIC_DESCRIPTIONS;
@@ -286,11 +290,14 @@ beforeEach(() => {
   modelTableMock.mockReset();
 
   fetchMaintenanceWindowsMock.mockResolvedValue([]);
+  // The site's status history is read here as the table it can be shown as.
+  showStatusTimelinesAsTable();
 });
 
 afterEach(() => {
   cleanup();
   jest.useRealTimers();
+  forgetStatusTimelineView();
 });
 
 // ---------------------------------------------------------------- the hero
