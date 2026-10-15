@@ -137,7 +137,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!projectAuth || !projectAuth.authToken) {
       throw new BadDataException(
-        "This project is not connected to Microsoft Teams. Please ask a project admin to connect Microsoft Teams in Project Settings > Microsoft Teams Integration.",
+        "This project is not connected to Microsoft Teams. Please ask a project admin to connect Microsoft Teams in Project Settings > Workspace > Microsoft Teams.",
       );
     }
 

@@ -1885,14 +1885,32 @@ describe("notification settings", () => {
       "WhatsApp",
       "Telegram",
       "Slack",
-      "Teams",
+      "Microsoft Teams",
       "Webhook",
     ]);
     expect(page).toContain("workspaceType: WorkspaceType.Slack,");
     expect(page).toContain("workspaceType: WorkspaceType.MicrosoftTeams,");
+
+    const columns: string =
+      "Email, SMS, Call, Push, WhatsApp, Telegram, Slack and Microsoft Teams, and Webhook.";
+
     expect(settings).toContain(
-      "Email, SMS, Call, Push, WhatsApp, Telegram, Slack and Microsoft Teams, and Webhook. Slack and Microsoft Teams are columns only when the project has connected them.",
+      `${columns} Slack and Microsoft Teams are columns only when the project has connected them.`,
     );
+
+    /*
+     * Every column by the label the matrix draws, in its order: the page
+     * names no column otherwise. The Microsoft Teams column was labelled
+     * "Teams", a word most languages translate as teams of people.
+     */
+    let from: number = 0;
+
+    for (const channel of channels) {
+      const at: number = columns.indexOf(channel, from);
+
+      expect({ channel, named: at >= 0 }).toEqual({ channel, named: true });
+      from = at + channel.length;
+    }
   });
 
   it("sends to every verified method of a channel that is on, and nothing without a setting", () => {

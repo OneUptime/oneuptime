@@ -338,7 +338,7 @@ export const getUserGroupProblemText: (
  * them ({{name}}) and saying what would put them in.
  */
 const SLACK_NOT_FOUND: string = translationKey(
-  "{{name}} is on call but isn't in the group: OneUptime can't find them in Slack. They can connect their Slack account in User Settings > Slack, or use the same email address in both.",
+  "{{name}} is on call but isn't in the group: OneUptime can't find them in Slack. They can connect their Slack account in User Settings > Workspace > Slack, or use the same email address in both.",
 );
 
 const TEAMS_NOT_IN_TEAM: string = translationKey(

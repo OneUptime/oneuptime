@@ -183,7 +183,7 @@ describe("UserMicrosoftTeamsService", () => {
       getProjectAuth.mockResolvedValue(null as never);
 
       await expect(callOnBeforeCreate(createBy())).rejects.toThrow(
-        "This project is not connected to Microsoft Teams. Please ask a project admin to connect Microsoft Teams in Project Settings > Microsoft Teams Integration.",
+        "This project is not connected to Microsoft Teams. Please ask a project admin to connect Microsoft Teams in Project Settings > Workspace > Microsoft Teams.",
       );
     });
 
