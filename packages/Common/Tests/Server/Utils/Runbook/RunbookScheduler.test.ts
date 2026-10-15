@@ -4,11 +4,14 @@ import RunbookService from "../../../../Server/Services/RunbookService";
 import logger from "../../../../Server/Utils/Logger";
 import ProjectScopedReferenceValidator from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import RunbookScheduler, {
+  RUNBOOK_SCHEDULE_SELECT,
   RunbookScheduledTimeOutcome,
   RunbookSchedulerClass,
   RunbookSchedulerPassResult,
 } from "../../../../Server/Utils/Runbook/RunbookScheduler";
-import RunbookStarter from "../../../../Server/Utils/Runbook/RunbookStarter";
+import RunbookStarter, {
+  RUNBOOK_START_SELECT,
+} from "../../../../Server/Utils/Runbook/RunbookStarter";
 import Runbook from "../../../../Models/DatabaseModels/Runbook";
 import ObjectID from "../../../../Types/ObjectID";
 import RunbookExecutionStatus from "../../../../Types/Runbook/RunbookExecutionStatus";
@@ -815,6 +818,66 @@ describe("whole nights, a pass every minute", () => {
         to: "2026-10-19T14:00:00.000Z",
       }),
     ).toEqual(["2026-10-16T13:00:00.000Z", "2026-10-19T13:00:00.000Z"]);
+  });
+});
+
+describe("what a pass reads", () => {
+  /*
+   * The in-memory table hands back every column whatever the select says,
+   * so the select is checked here: a pass that read no project started
+   * nothing against a real database.
+   */
+  test("reads everything the start path needs, and the schedule", () => {
+    expect(RUNBOOK_SCHEDULE_SELECT).toEqual({
+      ...RUNBOOK_START_SELECT,
+      isScheduleEnabled: true,
+      scheduleCron: true,
+      scheduleTimezone: true,
+      scheduleOverlapPolicy: true,
+      scheduleMissedRunPolicy: true,
+      scheduleNextRunAt: true,
+      scheduleQueuedRunAt: true,
+    });
+    expect(RUNBOOK_START_SELECT).toEqual({
+      _id: true,
+      projectId: true,
+      name: true,
+      steps: true,
+      isEnabled: true,
+    });
+  });
+
+  test("asks the database for those columns in every step of a pass", async () => {
+    setUp([
+      runbookRow(),
+      runbookRow({
+        _id: OTHER_RUNBOOK_ID,
+        slug: "other",
+        scheduleNextRunAt: null,
+        scheduleQueuedRunAt: at("2026-10-15T08:00:00.000Z"),
+      }),
+    ]);
+
+    await RunbookScheduler.runDueSchedules(at("2026-10-15T09:00:10.000Z"));
+
+    const selects: Array<Record<string, unknown>> = (
+      runbooks.repository.find.mock.calls as Array<
+        Array<{ select?: Record<string, unknown> }>
+      >
+    ).map((call: Array<{ select?: Record<string, unknown> }>) => {
+      return call[0]!.select || {};
+    });
+
+    expect(selects.length).toBeGreaterThanOrEqual(3);
+
+    for (const select of selects) {
+      for (const column of ["_id", "projectId", "steps", "isEnabled"]) {
+        expect({ column, selected: Boolean(select[column]) }).toEqual({
+          column,
+          selected: true,
+        });
+      }
+    }
   });
 });
 

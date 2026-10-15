@@ -309,6 +309,22 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/WorkflowIncomingEmailSecretKeyPostgres.test.ts --forceExit
 
+      # Clones the migrated Runbook and RunbookExecution tables into an
+      # isolated schema: Workers racing for a runbook schedule's due time
+      # start one run (the compare-and-set on scheduleNextRunAt), a missed
+      # time starts one catch-up run, a waiting run starts once, and racing
+      # writers give a webhook one key.
+      - name: Test runbook schedules against Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_RUNBOOK_SCHEDULER_TESTS: "true"
+          RUNBOOK_SCHEDULER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          RUNBOOK_SCHEDULER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          RUNBOOK_SCHEDULER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/RunbookSchedulerPostgres.test.ts --forceExit
+
       # Clones the migrated Incident, Alert, Scheduled Maintenance, episode and
       # Monitor tables - each with its label and owner tables - into an
       # isolated schema, and looks records up the way Run Workflow does: by

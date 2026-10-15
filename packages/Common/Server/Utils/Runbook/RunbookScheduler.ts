@@ -4,7 +4,6 @@ import QueryHelper from "../../Types/Database/QueryHelper";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import RunbookStarter, {
-  RUNBOOK_START_SELECT,
   RunbookStartRefusal,
   RunbookStartResult,
 } from "./RunbookStarter";
@@ -102,7 +101,13 @@ export interface RunbookSchedulerPassResult {
   startedFromQueue: number;
 }
 
-// What a pass reads of a runbook.
+/*
+ * What a pass reads of a runbook: what the start path needs
+ * (RUNBOOK_START_SELECT) and the schedule. Written out rather than spread
+ * from RUNBOOK_START_SELECT: RunbookStarter, RunbookService and this file
+ * import one another, and a spread made while one of them is still loading
+ * reads it as nothing - a pass then read no project, and started nothing.
+ */
 export const RUNBOOK_SCHEDULE_SELECT: {
   _id: true;
   projectId: true;
@@ -117,7 +122,11 @@ export const RUNBOOK_SCHEDULE_SELECT: {
   scheduleNextRunAt: true;
   scheduleQueuedRunAt: true;
 } = {
-  ...RUNBOOK_START_SELECT,
+  _id: true,
+  projectId: true,
+  name: true,
+  steps: true,
+  isEnabled: true,
   isScheduleEnabled: true,
   scheduleCron: true,
   scheduleTimezone: true,
