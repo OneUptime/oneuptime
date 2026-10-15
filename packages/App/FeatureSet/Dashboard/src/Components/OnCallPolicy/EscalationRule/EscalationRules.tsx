@@ -10,8 +10,12 @@ import {
   RuleReadinessDetails,
   RuleReadinessLabel,
   RuleReadinessReport,
+  NO_ONE_NEXT_LABEL,
+  NO_ONE_NEXT_TOOLTIP,
   SetupReminderController,
   buildRuleReadinessReport,
+  getResponderGroupKey,
+  isNobodyEverNextInRotation,
   useResponderGroups,
   useSetupReminders,
 } from "./EscalationRuleReadiness";
@@ -795,6 +799,22 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
   });
 
   /*
+   * Whether nobody is ever next in a schedule's rotation, from the roster
+   * the expansion above has read: every layer has one person in it. Until
+   * the roster is read, it is not said.
+   */
+  const isNobodyNextInRotation: (scheduleId: string) => boolean = (
+    scheduleId: string,
+  ): boolean => {
+    return (
+      Boolean(scheduleId) &&
+      isNobodyEverNextInRotation(
+        groupResolutions[getResponderGroupKey("schedule", scheduleId)],
+      )
+    );
+  };
+
+  /*
    * What is wrong on each level, keyed by rule id. Recomputed when the rules,
    * the group expansions or the readiness answer change - all three are inputs
    * to the same sentence, and a card that is a render behind any of them is a
@@ -1177,6 +1197,19 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
     const isUncovered: boolean = !schedule.currentUserIdOnRoster;
 
     /*
+     * Somebody is on call, but nobody is ever next in the schedule's
+     * rotation: each of its layers has one person in it. A level that pages
+     * its Next in rotation pages nobody there, so it is drawn as a level that
+     * would page no one - amber, saying why - not as a working backup.
+     */
+    const isNobodyNext: boolean =
+      Boolean(isNextInRotation) &&
+      !isUncovered &&
+      isNobodyNextInRotation(schedule.id?.toString() || "");
+
+    const isWarning: boolean = isUncovered || isNobodyNext;
+
+    /*
      * The next person in the schedule's rotation - the backup after whoever
      * is on call - is the schedule's name with "Next in rotation" beside it
      * and a fast-forward mark, so it never reads as the schedule's own page.
@@ -1185,11 +1218,13 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
       ? translator.translateText(
           "No one is currently on call in this schedule - this level would not notify anyone right now.",
         )
-      : isNextInRotation
-        ? translator.translateText(
-            "Pages the next person in this schedule's rotation: the person after whoever is on call, passing over anyone who is away.",
-          )
-        : undefined;
+      : isNobodyNext
+        ? translator.translateText(NO_ONE_NEXT_TOOLTIP)
+        : isNextInRotation
+          ? translator.translateText(
+              "Pages the next person in this schedule's rotation: the person after whoever is on call, passing over anyone who is away.",
+            )
+          : undefined;
 
     return (
       <span
@@ -1201,31 +1236,31 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
         }
         title={title}
         className={`inline-flex max-w-full items-center gap-2 rounded-full bg-white py-1 pl-1 pr-3 shadow-sm ring-1 ring-inset ${
-          isUncovered ? "ring-amber-300" : "ring-gray-200"
+          isWarning ? "ring-amber-300" : "ring-gray-200"
         }`}
       >
         <span
           className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full ${
-            isUncovered ? "bg-amber-100" : "bg-indigo-100"
+            isWarning ? "bg-amber-100" : "bg-indigo-100"
           }`}
         >
           <Icon
             icon={
-              isUncovered
+              isWarning
                 ? IconProp.Alert
                 : isNextInRotation
                   ? IconProp.Forward
                   : IconProp.Calendar
             }
             className={`h-3.5 w-3.5 ${
-              isUncovered ? "text-amber-600" : "text-indigo-600"
+              isWarning ? "text-amber-600" : "text-indigo-600"
             }`}
           />
         </span>
         {/*
-         * The name, then what it pages and whether anybody is on call: each
-         * phrase kept whole, and moved under the name where the card is too
-         * narrow for one line.
+         * The name, then what it pages and whether anybody is on call - or
+         * next: each phrase kept whole, and moved under the name where the
+         * card is too narrow for one line.
          */}
         <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
           <span className="text-sm font-medium text-gray-700">
@@ -1239,6 +1274,14 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
           {isUncovered && (
             <span className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wide text-amber-700">
               {translator.translateText("No one on call")}
+            </span>
+          )}
+          {isNobodyNext && (
+            <span
+              data-testid="escalation-rule-no-one-next"
+              className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wide text-amber-700"
+            >
+              {translator.translateText(NO_ONE_NEXT_LABEL)}
             </span>
           )}
         </span>
@@ -1503,9 +1546,18 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             </div>
 
             <div className="min-w-0 flex-1">
-              {/* Header: name + escalation timing + actions */}
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
+              {/*
+               * Header: name + escalation timing, and the actions at the
+               * right edge on the same line. Where the card is too narrow for
+               * both - a phone, a long name, a longer language - the actions
+               * move under the name, still at the right edge, rather than
+               * squeezing the name to a word per line beside "Edit rule".
+               */}
+              <div
+                data-testid="escalation-rule-card-header"
+                className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2"
+              >
+                <div className="min-w-0 flex-1 basis-48">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-base font-semibold text-gray-900">
                       {getEscalationRuleDisplayName(
@@ -1526,22 +1578,26 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
                       )}
                     </span>
                   </div>
-                  {rule.description?.toString() ? (
-                    <p className="mt-1 text-sm leading-relaxed text-gray-500">
-                      {rule.description.toString()}
-                    </p>
-                  ) : (
-                    <></>
-                  )}
                 </div>
 
                 {/* Actions */}
                 <RowActions<OnCallDutyEscalationRule>
                   item={rule}
                   actionButtons={getRuleActionButtons(rule, index)}
-                  className="shrink-0 justify-end"
+                  className="ml-auto shrink-0 justify-end"
                 />
               </div>
+              {/*
+               * Under the whole header line, so actions that wrap sit under
+               * the name, never under the description.
+               */}
+              {rule.description?.toString() ? (
+                <p className="mt-1 text-sm leading-relaxed text-gray-500">
+                  {rule.description.toString()}
+                </p>
+              ) : (
+                <></>
+              )}
 
               {/* Notifies */}
               <div className="mt-4">
@@ -1800,13 +1856,24 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             continue;
           }
 
+          const isUncovered: boolean =
+            !join.onCallDutyPolicySchedule.currentUserIdOnRoster;
+
           responders.push({
             type: "schedule",
             label:
               join.onCallDutyPolicySchedule.name?.toString() ||
               "On-call schedule",
-            isUncovered: !join.onCallDutyPolicySchedule.currentUserIdOnRoster,
+            isUncovered: isUncovered,
             ...(pagesNextInRotation ? { isNextInRotation: true } : {}),
+            // Somebody on call, but nobody ever next: see getScheduleChip.
+            ...(pagesNextInRotation &&
+            !isUncovered &&
+            isNobodyNextInRotation(
+              join.onCallDutyPolicySchedule.id?.toString() || "",
+            )
+              ? { isNobodyNext: true }
+              : {}),
           });
         }
       }

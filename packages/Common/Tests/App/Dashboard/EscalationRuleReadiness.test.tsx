@@ -137,10 +137,12 @@ import {
   describeResponderVia,
   fetchScheduleUsers,
   fetchTeamMembers,
+  getLargestRotation,
   getResponderGroupKey,
   getResponderGroupName,
   getRuleWarningLabel,
   getRuleWarningLevel,
+  isNobodyEverNextInRotation,
   readSetupReminderStatuses,
   requestSetupReminders,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRuleReadiness";
@@ -2000,6 +2002,144 @@ describe("Expanding the groups a level notifies", () => {
     expect(resolution.state).toBe("unavailable");
     expect(resolution.members).toEqual([]);
     expect(resolution.label).toBe("Payments");
+  });
+
+  /*
+   * Whether anybody is ever next in the schedule's rotation: the next person
+   * comes from the on-call person's own layer, so it is the biggest layer
+   * that counts (a level that pages the schedule's Next in rotation pages
+   * nobody when every layer has one person).
+   */
+  test("a schedule's roster says how many people its biggest rotation takes turns between", async () => {
+    const LAYER_A: string = "1a7e0000-0000-4000-8000-00000000000a";
+    const LAYER_B: string = "1a7e0000-0000-4000-8000-00000000000b";
+
+    getListMock.mockResolvedValue({
+      data: [
+        {
+          onCallDutyPolicyScheduleLayerId: new ObjectID(LAYER_A),
+          user: { id: new ObjectID(USER_ALEX), name: "Alex Chen" },
+        },
+        {
+          onCallDutyPolicyScheduleLayerId: new ObjectID(LAYER_B),
+          user: { id: new ObjectID(USER_SAM), name: "Sam Doe" },
+        },
+        {
+          onCallDutyPolicyScheduleLayerId: new ObjectID(LAYER_B),
+          user: { id: new ObjectID(USER_ALEX), name: "Alex Chen" },
+        },
+      ],
+      count: 3,
+      skip: 0,
+      limit: 50,
+    } as never);
+
+    const resolution: ResponderGroupResolution = await fetchScheduleUsers({
+      group: SCHEDULE_REF,
+      projectId: PROJECT_ID,
+    });
+
+    // Each row is read with its layer.
+    expect(
+      (getListMock as any).mock.calls[0][0].select
+        .onCallDutyPolicyScheduleLayerId,
+    ).toBe(true);
+    expect(resolution.largestRotation).toBe(2);
+    expect(isNobodyEverNextInRotation(resolution)).toBe(false);
+  });
+
+  test("every layer with one person: nobody is ever next", async () => {
+    getListMock.mockResolvedValue({
+      data: [
+        {
+          onCallDutyPolicyScheduleLayerId: new ObjectID(
+            "1a7e0000-0000-4000-8000-00000000000a",
+          ),
+          user: { id: new ObjectID(USER_ALEX), name: "Alex Chen" },
+        },
+        {
+          onCallDutyPolicyScheduleLayerId: new ObjectID(
+            "1a7e0000-0000-4000-8000-00000000000b",
+          ),
+          user: { id: new ObjectID(USER_SAM), name: "Sam Doe" },
+        },
+      ],
+      count: 2,
+      skip: 0,
+      limit: 50,
+    } as never);
+
+    const resolution: ResponderGroupResolution = await fetchScheduleUsers({
+      group: SCHEDULE_REF,
+      projectId: PROJECT_ID,
+    });
+
+    expect(resolution.largestRotation).toBe(1);
+    expect(isNobodyEverNextInRotation(resolution)).toBe(true);
+    // Two people are still two responders the readiness label checks.
+    expect(resolution.members).toHaveLength(2);
+  });
+
+  test("the biggest rotation: people counted once per layer, a row with no user not at all", () => {
+    expect(getLargestRotation([])).toBe(0);
+    expect(
+      getLargestRotation([
+        { layerId: "a", userId: USER_ALEX },
+        { layerId: "a", userId: USER_ALEX.toUpperCase() },
+        { layerId: "a", userId: "" },
+      ]),
+    ).toBe(1);
+    expect(
+      getLargestRotation([
+        { layerId: "a", userId: USER_ALEX },
+        { layerId: "b", userId: USER_SAM },
+        { layerId: "b", userId: USER_JO },
+        { layerId: "b", userId: USER_ALEX },
+      ]),
+    ).toBe(3);
+    /*
+     * A row read without its layer counts toward one shared layer: a
+     * missing layer can hide the warning, never raise it.
+     */
+    expect(
+      getLargestRotation([
+        { layerId: "", userId: USER_ALEX },
+        { layerId: "", userId: USER_SAM },
+      ]),
+    ).toBe(2);
+  });
+
+  test("nobody is said to be never next until a schedule's roster is known", () => {
+    const resolved: ResponderGroupResolution = {
+      key: getResponderGroupKey("schedule", SCHEDULE_ID),
+      kind: "schedule",
+      id: SCHEDULE_ID,
+      label: "Primary",
+      state: "resolved",
+      members: [{ userId: USER_ALEX, label: "Alex Chen" }],
+      largestRotation: 1,
+    };
+
+    expect(isNobodyEverNextInRotation(resolved)).toBe(true);
+    expect(isNobodyEverNextInRotation(undefined)).toBe(false);
+    expect(
+      isNobodyEverNextInRotation({ ...resolved, state: "resolving" }),
+    ).toBe(false);
+    expect(
+      isNobodyEverNextInRotation({ ...resolved, state: "unavailable" }),
+    ).toBe(false);
+    // Nobody in it at all: nobody is on call, which the chip says already.
+    expect(
+      isNobodyEverNextInRotation({
+        ...resolved,
+        members: [],
+        largestRotation: 0,
+      }),
+    ).toBe(false);
+    // A team has no rotation.
+    expect(isNobodyEverNextInRotation({ ...resolved, kind: "team" })).toBe(
+      false,
+    );
   });
 
   test("a schedule that cannot be read is unavailable too", async () => {

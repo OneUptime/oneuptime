@@ -127,11 +127,13 @@ jest.mock("../../../UI/Utils/Permission", () => {
 });
 
 import EscalationRules from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRules";
+import { NO_ONE_NEXT_TOOLTIP } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRuleReadiness";
 import OnCallDutyEscalationRule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyEscalationRuleSchedule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
 import OnCallDutyPolicyEscalationRuleTeam from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
 import OnCallDutyPolicyEscalationRuleUser from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
 import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
+import OnCallDutyPolicyScheduleLayerUser from "../../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import Team from "../../../Models/DatabaseModels/Team";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
@@ -181,6 +183,8 @@ interface ScheduleJoinRow {
   scheduleId: string;
   // The row pages the next person in the schedule's rotation.
   next?: boolean | undefined;
+  // Nobody is on call in the schedule right now.
+  uncovered?: boolean | undefined;
 }
 
 interface PageFixture {
@@ -188,6 +192,11 @@ interface PageFixture {
   // Who each rule notifies, by rule id.
   users?: Record<string, Array<{ joinId: string; userId: string }>>;
   schedules?: Record<string, Array<ScheduleJoinRow>>;
+  /*
+   * Who takes turns in each schedule, layer by layer, by schedule id: what
+   * the page reads to tell whether anybody is ever next in its rotation.
+   */
+  rotations?: Record<string, Array<Array<string>>>;
 }
 
 const PEOPLE: Record<string, { name: string; email: string }> = {
@@ -302,7 +311,9 @@ function servePage(fixture: PageFixture): void {
                 onCallDutyPolicySchedule: {
                   id: new ObjectID(join.scheduleId),
                   name: "Primary rotation",
-                  currentUserIdOnRoster: new ObjectID(USER_SAM),
+                  ...(join.uncovered
+                    ? {}
+                    : { currentUserIdOnRoster: new ObjectID(USER_SAM) }),
                 },
               };
             });
@@ -313,6 +324,28 @@ function servePage(fixture: PageFixture): void {
 
     if (params.modelType === OnCallDutyPolicyEscalationRuleTeam) {
       return list([]);
+    }
+
+    // A schedule's roster: who takes turns in each of its layers.
+    if (params.modelType === OnCallDutyPolicyScheduleLayerUser) {
+      const scheduleId: string = String(
+        query["onCallDutyPolicyScheduleId"] || "",
+      );
+      const layers: Array<Array<string>> =
+        fixture.rotations?.[scheduleId] || [];
+
+      return list(
+        layers.flatMap((userIds: Array<string>, layerIndex: number) => {
+          return userIds.map((userId: string) => {
+            return {
+              onCallDutyPolicyScheduleLayerId: new ObjectID(
+                `1a7e0000-0000-4000-8000-00000000000${layerIndex + 1}`,
+              ),
+              user: { id: new ObjectID(userId), name: PEOPLE[userId]!.name },
+            };
+          });
+        }),
+      );
     }
 
     // The Notify picker's search list, and its look-ups by id.
@@ -1359,13 +1392,16 @@ describe("paging the next person in a schedule's rotation", () => {
       ]);
     });
 
-    const removeButtons: Array<HTMLElement> = await screen.findAllByRole(
-      "button",
-      { name: "Remove Primary rotation" },
-    );
+    // Each chip's remove button says which of the two picks it removes.
+    expect(
+      await screen.findAllByRole("button", { name: "Remove Primary rotation" }),
+    ).toHaveLength(1);
 
-    // The second chip is the next person's.
-    fireEvent.click(removeButtons[1]!);
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Remove Primary rotation (Next in rotation)",
+      }),
+    );
 
     await waitFor(() => {
       expect(chipKinds()).toEqual([`onCallSchedule:${SCHEDULE_PRIMARY}`]);
@@ -1382,5 +1418,300 @@ describe("paging the next person in a schedule's rotation", () => {
       id: new ObjectID(PRIMARY_NEXT_JOIN_ID),
     });
     expect(createMock).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A NEXT IN ROTATION THAT WOULD PAGE NOBODY, SAID WHERE THE LEVEL IS SET UP.
+ *
+ * Nobody is ever next in a schedule's rotation when each of its layers has
+ * one person in it (the next person comes from the on-call person's own
+ * layer): a level that pages the schedule's Next in rotation then pages
+ * nobody, whoever is on call. Its chip says so - amber, "No one next", with
+ * why and the fix - on the level's card and in the escalation summary, as a
+ * schedule with nobody on call already did, rather than the level being
+ * found to page nobody in the middle of an incident.
+ */
+describe("a Next in rotation that would page nobody", () => {
+  const ONE_PERSON: Record<string, Array<Array<string>>> = {
+    [SCHEDULE_PRIMARY]: [[USER_SAM]],
+  };
+
+  function summary(): HTMLElement {
+    return screen
+      .getByText("Escalation summary")
+      .closest("div.rounded-xl") as HTMLElement;
+  }
+
+  // The schedule's roster has been read, and what it says is drawn.
+  async function rosterRead(): Promise<void> {
+    await waitFor(() => {
+      expect(
+        getListMock.mock.calls.some((call: Array<unknown>): boolean => {
+          return (
+            (call[0] as { modelType?: unknown }).modelType ===
+            OnCallDutyPolicyScheduleLayerUser
+          );
+        }),
+      ).toBe(true);
+    });
+
+    await act(async (): Promise<void> => {});
+  }
+
+  test("one person in the rotation: the level's chip says No one next, and why", async () => {
+    const cards: Array<HTMLElement> = await renderPage({
+      ...PRIMARY_THEN_BACKUP,
+      rotations: ONE_PERSON,
+    });
+
+    const tag: HTMLElement = await within(cards[1]!).findByTestId(
+      "escalation-rule-no-one-next",
+    );
+
+    expect(tag).toHaveTextContent("No one next");
+
+    const chip: HTMLElement = within(cards[1]!).getByTestId(
+      "escalation-rule-next-in-rotation-chip",
+    );
+
+    // Still the schedule's Next in rotation, drawn as a level that pages no one.
+    expect(chip).toHaveTextContent("Primary rotation");
+    expect(chip).toHaveTextContent("Next in rotation");
+    expect(chip.className).toContain("ring-amber-300");
+    expect(chip.getAttribute("title")).toBe(NO_ONE_NEXT_TOOLTIP);
+    expect(NO_ONE_NEXT_TOOLTIP).toBe(
+      "Nobody else is in this schedule's rotation, so this level would not notify anyone. Add people to the schedule's layers.",
+    );
+  });
+
+  test("the escalation summary says it too", async () => {
+    await renderPage({ ...PRIMARY_THEN_BACKUP, rotations: ONE_PERSON });
+
+    const tag: HTMLElement = await within(summary()).findByTestId(
+      "escalation-summary-no-one-next",
+    );
+
+    expect(tag).toHaveTextContent("No one next");
+
+    const responder: HTMLElement = tag.closest(
+      '[data-testid="escalation-summary-responder"]',
+    ) as HTMLElement;
+
+    expect(responder).toHaveTextContent("Primary rotation next in rotation");
+    expect(responder.className).toContain("bg-amber-50");
+    expect(responder.getAttribute("title")).toBe(NO_ONE_NEXT_TOOLTIP);
+  });
+
+  test("one person in each of two layers: still nobody next - the next person is from the on-call person's own layer", async () => {
+    const cards: Array<HTMLElement> = await renderPage({
+      ...PRIMARY_THEN_BACKUP,
+      rotations: { [SCHEDULE_PRIMARY]: [[USER_SAM], [USER_ALEX]] },
+    });
+
+    expect(
+      await within(cards[1]!).findByTestId("escalation-rule-no-one-next"),
+    ).toBeInTheDocument();
+  });
+
+  test("two people taking turns: a working backup, and no warning", async () => {
+    const cards: Array<HTMLElement> = await renderPage({
+      ...PRIMARY_THEN_BACKUP,
+      rotations: { [SCHEDULE_PRIMARY]: [[USER_SAM, USER_ALEX]] },
+    });
+
+    await rosterRead();
+
+    const chip: HTMLElement = within(cards[1]!).getByTestId(
+      "escalation-rule-next-in-rotation-chip",
+    );
+
+    expect(
+      within(cards[1]!).queryByTestId("escalation-rule-no-one-next"),
+    ).toBeNull();
+    expect(chip.className).toContain("ring-gray-200");
+    expect(chip.getAttribute("title")).toBe(
+      "Pages the next person in this schedule's rotation: the person after whoever is on call, passing over anyone who is away.",
+    );
+    expect(
+      within(summary()).queryByTestId("escalation-summary-no-one-next"),
+    ).toBeNull();
+  });
+
+  test("the same person twice in one layer is still one person: nobody next", async () => {
+    const cards: Array<HTMLElement> = await renderPage({
+      ...PRIMARY_THEN_BACKUP,
+      rotations: { [SCHEDULE_PRIMARY]: [[USER_SAM, USER_SAM]] },
+    });
+
+    expect(
+      await within(cards[1]!).findByTestId("escalation-rule-no-one-next"),
+    ).toBeInTheDocument();
+  });
+
+  test("the schedule's own chip never says No one next: it pages whoever is on call", async () => {
+    const cards: Array<HTMLElement> = await renderPage({
+      ...PRIMARY_THEN_BACKUP,
+      rotations: ONE_PERSON,
+    });
+
+    await within(cards[1]!).findByTestId("escalation-rule-no-one-next");
+
+    const chip: HTMLElement = within(cards[0]!).getByTestId(
+      "escalation-rule-schedule-chip",
+    );
+
+    expect(chip).not.toHaveTextContent("No one next");
+    expect(chip.className).toContain("ring-gray-200");
+  });
+
+  test("nobody on call at all: the chip says No one on call - not No one next", async () => {
+    const cards: Array<HTMLElement> = await renderPage({
+      ...PRIMARY_THEN_BACKUP,
+      schedules: {
+        [RULE_TWO_ID]: [
+          {
+            joinId: PRIMARY_NEXT_JOIN_ID,
+            scheduleId: SCHEDULE_PRIMARY,
+            next: true,
+            uncovered: true,
+          },
+        ],
+      },
+      rotations: ONE_PERSON,
+    });
+
+    await rosterRead();
+
+    const chip: HTMLElement = within(cards[1]!).getByTestId(
+      "escalation-rule-next-in-rotation-chip",
+    );
+
+    expect(chip).toHaveTextContent("No one on call");
+    expect(
+      within(cards[1]!).queryByTestId("escalation-rule-no-one-next"),
+    ).toBeNull();
+    expect(chip.getAttribute("title")).toBe(
+      "No one is currently on call in this schedule - this level would not notify anyone right now.",
+    );
+  });
+
+  test("a schedule nobody could read is not accused: no warning until its roster is known", async () => {
+    servePage({ ...PRIMARY_THEN_BACKUP, rotations: ONE_PERSON });
+
+    const serve: (params: any) => Promise<any> =
+      getListMock.getMockImplementation() as (params: any) => Promise<any>;
+
+    getListMock.mockImplementation(async (params: any): Promise<any> => {
+      if (params.modelType === OnCallDutyPolicyScheduleLayerUser) {
+        throw new Error("schedules are down");
+      }
+
+      return serve(params);
+    });
+
+    render(
+      <EscalationRules onCallDutyPolicyId={POLICY_ID} projectId={PROJECT_ID} />,
+    );
+
+    const cards: Array<HTMLElement> = await waitFor(() => {
+      const found: Array<HTMLElement> = screen.getAllByTestId(
+        "escalation-rule-card",
+      );
+      expect(found).toHaveLength(2);
+      return found;
+    });
+
+    await rosterRead();
+
+    expect(
+      within(cards[1]!).queryByTestId("escalation-rule-no-one-next"),
+    ).toBeNull();
+  });
+});
+
+/*
+ * THE ESCALATION SUMMARY'S CHIPS READ AS ONE LINE OF TEXT.
+ *
+ * A schedule's name and what is said about it ("next in rotation", "no one
+ * on call") used to be flex items of their own, so a long name on a phone
+ * broke into columns: "Payments platform primary on- | next in" over "call
+ * (EMEA business hours) | rotation". They are one run of text now, which
+ * wraps after the name, each phrase whole.
+ */
+describe("the escalation summary's chips", () => {
+  test("a schedule's name and next in rotation are one run of text, each phrase kept whole", async () => {
+    await renderPage(PRIMARY_THEN_BACKUP);
+
+    const summaryCard: HTMLElement = screen
+      .getByText("Escalation summary")
+      .closest("div.rounded-xl") as HTMLElement;
+
+    const phrase: HTMLElement =
+      within(summaryCard).getByText("next in rotation");
+
+    expect(phrase.parentElement).toHaveTextContent(
+      "Primary rotation next in rotation",
+    );
+    expect(phrase.className).toContain("whitespace-nowrap");
+    // The chip may shrink to its line and wrap inside it.
+    expect(
+      phrase.closest('[data-testid="escalation-summary-responder"]')!.className,
+    ).toContain("max-w-full");
+  });
+});
+
+/*
+ * A LEVEL'S CARD HEADER ON A NARROW SCREEN.
+ *
+ * The name and its wait sat in a column squeezed beside "Edit rule" and the
+ * ... menu: on a phone "Level 1" broke a word per line ("Le / 1" in German)
+ * and the wait became a three-line pill. The header line now wraps: the name
+ * keeps at least 12rem, and the actions move under it - still at the right
+ * edge - when both do not fit. The description sits under the whole line,
+ * so the actions never land under it.
+ */
+describe("a level's card header", () => {
+  test("wraps the actions under the name, at the right edge, and never under the description", async () => {
+    const cards: Array<HTMLElement> = await renderPage({
+      rules: [
+        {
+          id: RULE_ONE_ID,
+          name: "Backup from the same rotation",
+          description: "Pages the person after whoever is on call.",
+        },
+      ],
+    });
+
+    const header: HTMLElement = within(cards[0]!).getByTestId(
+      "escalation-rule-card-header",
+    );
+
+    expect(header.className).toContain("flex-wrap");
+
+    const title: HTMLElement = within(header).getByRole("heading", {
+      name: "Backup from the same rotation",
+    });
+
+    // The name's column keeps 12rem before the actions give way.
+    expect(title.closest(".basis-48")).not.toBeNull();
+
+    const actions: HTMLElement = within(header).getByTestId("row-actions");
+
+    expect(actions.className).toContain("ml-auto");
+    expect(
+      within(actions).getByRole("button", { name: "Edit rule" }),
+    ).toBeInTheDocument();
+
+    const description: HTMLElement = within(cards[0]!).getByText(
+      "Pages the person after whoever is on call.",
+    );
+
+    expect(header.contains(description)).toBe(false);
+    // ...and under it: the description follows the header line.
+    expect(
+      header.compareDocumentPosition(description) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });

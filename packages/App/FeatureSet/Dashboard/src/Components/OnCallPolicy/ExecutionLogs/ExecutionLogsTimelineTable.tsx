@@ -326,7 +326,11 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
             },
             title: "Schedule",
             type: FieldType.Element,
-            hideOnMobile: true,
+            /*
+             * On a phone too: it is the only place a step says it paged the
+             * next person in the rotation, and which rotation nobody was next
+             * in - without it the backup's page reads like any other.
+             */
             getElement: (
               item: OnCallDutyPolicyExecutionLogTimeline,
             ): ReactElement => {

@@ -70,6 +70,13 @@ export interface PeoplePickerKindDefinition {
    * "After whoever is on call". The tag is shown when this is left out.
    */
   searchSubtitle?: string | undefined;
+  /*
+   * The tag is part of what a pick is: the same record can be picked as
+   * this kind and as another (a schedule, and its Next in rotation), so the
+   * chip's remove button names the tag too - "Remove Primary (Next in
+   * rotation)" - and two of them never read the same to a screen reader.
+   */
+  isTagInRemoveLabel?: boolean | undefined;
   // The name shown for a pick that can no longer be found.
   unknownName: string;
   avatar: PeoplePickerAvatarStyle;
@@ -721,6 +728,8 @@ export const PEOPLE_PICKER_KIND_DEFINITIONS: Record<
     groupTitle: NEXT_IN_ROTATION_GROUP_TITLE,
     tag: NEXT_IN_ROTATION_TAG,
     searchSubtitle: NEXT_IN_ROTATION_SEARCH_SUBTITLE,
+    // The same schedule can be picked as itself too.
+    isTagInRemoveLabel: true,
     unknownName: UNKNOWN_ON_CALL_SCHEDULE_NAME,
     // Fast-forward: the one after.
     avatar: { type: "icon", icon: IconProp.Forward },

@@ -17,6 +17,10 @@
  *                         (ExecutionLogsTimelineTable) of a direct page -
  *                         two people paged, a schedule with nobody on call,
  *                         and a team with no members
+ *                         &run=next-in-rotation is a policy's run instead:
+ *                         Level 1 pages whoever is on call in Primary, Level
+ *                         2 the next person in its rotation, and nobody is
+ *                         next in the Secondary rotation
  *
  * Nothing of the tables is faked: the columns, the cells' wrapping, the
  * phone layout and the card are the Dashboard's own. Only the API is stood
@@ -30,6 +34,7 @@
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicyExecutionLogTimeline from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
@@ -59,6 +64,9 @@ import ExecutionLogTimelineTable from "../../../App/FeatureSet/Dashboard/src/Com
 export const ON_CALL_LOGS_PROJECT_ID = "22222222-2222-4222-8222-222222222222";
 export const PAGING_WORKFLOW_ID = "44444444-4444-4444-8444-444444444444";
 export const DIRECT_PAGE_RUN_ID = "0193c0de-1111-4aaa-8bbb-000000000001";
+
+// The policy whose run escalated to the next person in a rotation.
+const NEXT_IN_ROTATION_POLICY_ID = "dddddddd-0000-4000-8000-000000000009";
 
 // A name nobody would call short: it has to wrap, and not widen the table.
 export const LONG_WORKFLOW_NAME =
@@ -91,6 +99,11 @@ const ALEX = person(
   "10000000-0000-4000-8000-000000000003",
   "Alex Kim",
   "alex@example.com",
+);
+const SAM = person(
+  "10000000-0000-4000-8000-000000000004",
+  "Sam Lee",
+  "sam@example.com",
 );
 
 function policy(name, number) {
@@ -222,6 +235,21 @@ function step(data) {
     model.onCallDutyScheduleId = new ObjectID(schedule._id);
   }
 
+  // An escalation rule of a policy's run, by name.
+  if (data.ruleName) {
+    const rule = new OnCallDutyPolicyEscalationRule();
+    rule._id = `e5ca0000-0000-4000-8000-00000000000${data.id}`;
+    rule.name = data.ruleName;
+    rule.onCallDutyPolicyId = new ObjectID(NEXT_IN_ROTATION_POLICY_ID);
+    model.onCallDutyPolicyEscalationRule = rule;
+    model.onCallDutyPolicyId = new ObjectID(NEXT_IN_ROTATION_POLICY_ID);
+  }
+
+  // Paged as the next person in the schedule's rotation, or nobody was next.
+  if (data.isNextInRotation) {
+    model.isNextInRotation = true;
+  }
+
   if (data.teamName) {
     const team = new Team();
     team._id = "7eae0000-0000-4000-8000-000000000009";
@@ -271,6 +299,47 @@ const TIMELINE = [
     statusMessage: "Skipped because this team has no members.",
   }),
 ];
+
+/*
+ * A policy's run that escalated to the next person in a rotation: Level 1
+ * paged whoever was on call in Primary, Level 2 the person after them in
+ * Primary's rotation - and nobody was next in Secondary's.
+ */
+const NEXT_IN_ROTATION_TIMELINE = [
+  step({
+    id: 5,
+    ruleName: "Level 1",
+    user: ALEX,
+    scheduleName: "Primary",
+    status: OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+    statusMessage: "Notification sent by SMS and email.",
+  }),
+  step({
+    id: 6,
+    ruleName: "Level 2",
+    user: SAM,
+    scheduleName: "Primary",
+    isNextInRotation: true,
+    status: OnCallDutyExecutionLogTimelineStatus.NotificationSent,
+    statusMessage: "Notification sent by SMS and email.",
+  }),
+  step({
+    id: 7,
+    ruleName: "Level 2",
+    scheduleName: "Secondary",
+    isNextInRotation: true,
+    status: OnCallDutyExecutionLogTimelineStatus.Skipped,
+    statusMessage:
+      "Skipped because nobody is next in this schedule's rotation: it has nobody else in it, or everybody else in it is away.",
+  }),
+];
+
+// The run the timeline is of: a direct page, or &run=next-in-rotation.
+function shownTimeline() {
+  const shown = new URLSearchParams(window.location.search).get("run");
+
+  return shown === "next-in-rotation" ? NEXT_IN_ROTATION_TIMELINE : TIMELINE;
+}
 
 function result(rows, data) {
   return { data: rows, count: rows.length, skip: 0, limit: data.limit };
@@ -356,7 +425,7 @@ export function installOnCallLogs() {
     }
 
     if (data.modelType === OnCallDutyPolicyExecutionLogTimeline) {
-      return result(TIMELINE, data);
+      return result(shownTimeline(), data);
     }
 
     return result([], data);

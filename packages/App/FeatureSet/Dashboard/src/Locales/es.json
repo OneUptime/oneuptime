@@ -29689,5 +29689,7 @@
   "Paged as Next in Rotation": "Avisado como siguiente en la rotación",
   "Pages the next person in this schedule's rotation: the person after whoever is on call, passing over anyone who is away.": "Avisa a la siguiente persona de la rotación de esta programación: la que va después de quien está de guardia, saltando a quien esté ausente.",
   "next in rotation": "siguiente en la rotación",
-  "After whoever is on call": "Después de quien está de guardia"
+  "After whoever is on call": "Después de quien está de guardia",
+  "No one next": "Sin siguiente",
+  "Nobody else is in this schedule's rotation, so this level would not notify anyone. Add people to the schedule's layers.": "No hay nadie más en la rotación de esta programación, así que este nivel no avisaría a nadie. Añade personas a las capas de la programación."
 }

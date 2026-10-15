@@ -66,6 +66,7 @@ const RUN_ID: string = "aaaaaaaa-0000-4000-8000-000000000001";
 
 interface RecordedColumn {
   title: string;
+  hideOnMobile?: boolean;
   getElement?: (item: unknown) => ReactElement;
 }
 
@@ -208,6 +209,23 @@ describe("a step that found nobody next in the rotation", () => {
       "No one was on call",
     );
   });
+});
+
+/*
+ * The Schedule column is the only place a step says it paged the next
+ * person in a rotation - and which rotation nobody was next in. Hidden on a
+ * phone, the backup's page read like any other page there (UI review of
+ * PR #4865), so it is shown at every width.
+ */
+test("a phone shows the Schedule column too: the backup's page says why it was sent", () => {
+  const schedule: RecordedColumn | undefined = table().columns.find(
+    (column: RecordedColumn): boolean => {
+      return column.title === "Schedule";
+    },
+  );
+
+  expect(schedule).toBeDefined();
+  expect(schedule!.hideOnMobile).toBeFalsy();
 });
 
 test("every step is read with whether it paged the next person in the rotation", () => {
