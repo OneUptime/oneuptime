@@ -156,11 +156,23 @@ afterEach(() => {
 });
 
 describe("Run Workflow on On Create or Update", () => {
-  test("asks for the incident, then What Happened, created chosen until another is", () => {
+  test("asks What Happened, then for the incident, created chosen until another is", () => {
     renderPanel(incidentTrigger("on-create-or-update"));
 
     expect(screen.getByText("Incident")).toBeInTheDocument();
     expect(screen.getByTestId("run-record-field-search")).toBeInTheDocument();
+
+    /*
+     * Above the incident: its search opens with its list under it, and a
+     * question under an open list would move away from the press that
+     * closes the list.
+     */
+    expect(
+      screen
+        .getByTestId(RUN_WHAT_HAPPENED_TEST_ID)
+        .compareDocumentPosition(screen.getByTestId("run-record-field")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
 
     expect(screen.getByText(WHAT_HAPPENED_NAME)).toBeInTheDocument();
     const group: HTMLElement = within(

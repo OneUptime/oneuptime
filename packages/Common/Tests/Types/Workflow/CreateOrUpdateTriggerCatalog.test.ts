@@ -380,7 +380,7 @@ describe("what it hands on", () => {
     expect(whatHappened.type).toBe(ComponentInputType.Text);
     expect(whatHappened.required).toBe(true);
     expect(whatHappened.description).toBe(
-      '"created" when the Incident was just created, "updated" when it was just updated.',
+      '"created" for a new Incident, "updated" for a change to one.',
     );
   });
 
@@ -399,7 +399,12 @@ describe("what it hands on", () => {
 });
 
 describe("Run Workflow", () => {
-  test("asks for the record as the other record triggers do, then What Happened", () => {
+  /*
+   * What Happened comes first: the record's search opens on arrival with
+   * its list under it, and a question under the open list moved away from
+   * the press that closed the list.
+   */
+  test("asks What Happened, then for the record as the other record triggers do", () => {
     const runArguments: Array<Argument> =
       INCIDENT_TRIGGER.runWorkflowManuallyArguments || [];
 
@@ -407,8 +412,8 @@ describe("Run Workflow", () => {
       runArguments.map((argument: Argument): string => {
         return argument.id;
       }),
-    ).toEqual(["_id", WHAT_HAPPENED_ID]);
-    expect(runArguments[0]).toEqual(
+    ).toEqual([WHAT_HAPPENED_ID, "_id"]);
+    expect(runArguments[1]).toEqual(
       (INCIDENT_ON_UPDATE.runWorkflowManuallyArguments || [])[0],
     );
     expect(getRunRecordArgument(INCIDENT_TRIGGER)).toEqual(

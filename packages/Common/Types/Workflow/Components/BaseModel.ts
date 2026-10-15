@@ -769,8 +769,12 @@ export default class BaseModelComponent {
         iconProp: IconProp.Bolt,
         tableName: model.tableName!,
         componentType: ComponentType.Trigger,
+        /*
+         * What Happened first: the record's search opens on arrival with its
+         * list under it, and a question under an open list moved away from
+         * the press that closed the list, so its first press did nothing.
+         */
         runWorkflowManuallyArguments: [
-          runRecordArgument(),
           {
             type: ComponentInputType.Choice,
             name: WHAT_HAPPENED_NAME,
@@ -783,6 +787,7 @@ export default class BaseModelComponent {
               { value: WhatHappened.Updated, label: "Just updated" },
             ],
           },
+          runRecordArgument(),
         ],
         arguments: [
           {
@@ -813,7 +818,8 @@ export default class BaseModelComponent {
           {
             id: WHAT_HAPPENED_ID,
             name: WHAT_HAPPENED_NAME,
-            description: `"${WhatHappened.Created}" when the ${model.singularName} was just created, "${WhatHappened.Updated}" when it was just updated.`,
+            // Short enough for one line of the value list.
+            description: `"${WhatHappened.Created}" for a new ${model.singularName}, "${WhatHappened.Updated}" for a change to one.`,
             type: ComponentInputType.Text,
             required: true,
           },

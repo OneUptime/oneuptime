@@ -498,7 +498,7 @@ describe("On Create or Update, before the step being set up", () => {
       ],
     ]);
     expect(groups[0]!.items[1]!.description).toBe(
-      '"created" when the Incident was just created, "updated" when it was just updated.',
+      '"created" for a new Incident, "updated" for a change to one.',
     );
   });
 

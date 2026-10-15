@@ -22,7 +22,8 @@
  *                         incidents, by the rules the server uses.
  *                         ?select= and ?watch= set what the two lists hold
  *                         (JSON; &stored=text keeps it as the text older
- *                         workflows saved). ?schema=fail and ?schema=slow,
+ *                         workflows saved). ?trigger=create-or-update makes
+ *                         the trigger On Create or Update Incident. ?schema=fail and ?schema=slow,
  *                         ?records=none, =fail and =slow stand in for a
  *                         server that errs, is slow or has nothing; the slow
  *                         ones answer once window.releaseSchema() or
@@ -160,18 +161,23 @@ function storedFields(name, fallback) {
 if (scenario === "empty" || scenario === "record-new") {
   initialNodes = [getPlaceholderTriggerNode()];
 } else if (scenario === "record") {
+  const recordTrigger =
+    params.get("trigger") === "create-or-update"
+      ? "incident-on-create-or-update"
+      : "incident-on-update";
+
   initialNodes = [
-    step("incident-on-update", 1, 160, 64, {
+    step(recordTrigger, 1, 160, 64, {
       "listen-on": storedFields("watch", {}),
       select: storedFields("select", { title: true }),
     }),
     step("log", 1, 160, 320, {
       value:
-        "{{local.components.incident-on-update-1.returnValues.model.title}}",
+        "{{local.components." + recordTrigger + "-1.returnValues.model.title}}",
     }),
   ];
   initialEdges = [
-    edge("canvas-incident-on-update-1", "success", "canvas-log-1"),
+    edge("canvas-" + recordTrigger + "-1", "success", "canvas-log-1"),
   ];
 } else if (scenario === "record-branch") {
   initialNodes = [

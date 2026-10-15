@@ -158,10 +158,10 @@ jobs:
   # sources with esbuild and serve them against fixture data: no database or
   # Docker stack. They used to run one after another in a single 41-minute
   # job, the longest of every pull request's checks. They are independent -
-  # each starts its own fixture server on its own port - so they run here as
-  # three groups of about 13 minutes each, balanced by measured duration
-  # (Event Overview alone is ~11.5 of them). Each suite still runs exactly as
-  # before: same config, same browsers, one worker.
+  # each starts its own fixture server on its own port - so they run here in
+  # groups balanced by measured duration (Event Overview alone is ~11.5
+  # minutes), the Workflow Builder suite in one of its own. Each suite still
+  # runs exactly as before: same config, same browsers, one worker.
   #
   # A suite added to packages/E2E needs a place in one group's `suites`, and
   # its output paths in the upload step below.
@@ -201,7 +201,6 @@ jobs:
             browsers: chromium firefox
             suites: >-
               test-chart-time-zoom-ui
-              test-workflow-builder-ui
               test-code-editor-ui
               test-exception-detail-ui
               test-alerts-ui
@@ -225,6 +224,14 @@ jobs:
               test-diagrams-ui
               test-navigation-search-ui
               test-list-delete-ui
+          # The Workflow Builder suite runs on its own: it sat in group 2 near
+          # the job's 30 minutes, and its On Create or Update spec would take
+          # that group past them. Its two projects, a laptop and a phone, are
+          # both Chromium.
+          - group: 4
+            browsers: chromium
+            suites: >-
+              test-workflow-builder-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
