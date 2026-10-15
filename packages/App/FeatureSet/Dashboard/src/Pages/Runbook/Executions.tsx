@@ -9,6 +9,10 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RunbookExecutionStatus from "Common/Types/Runbook/RunbookExecutionStatus";
+import RunbookExecutionTriggerCell, {
+  RUNBOOK_EXECUTION_TRIGGER_CELL_SELECT,
+} from "../../Components/Runbook/Triggers/RunbookExecutionTriggerCell";
+import { getTriggerFilterOptions } from "../../Components/Runbook/Triggers/RunbookExecutionTrigger";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
@@ -112,6 +116,12 @@ const RunbooksExecutions: FunctionComponent<
             ),
           },
           {
+            field: { triggerType: true },
+            title: "Triggered by",
+            type: FieldType.Dropdown,
+            filterDropdownOptions: getTriggerFilterOptions(),
+          },
+          {
             field: { createdAt: true },
             title: "Started At",
             type: FieldType.Date,
@@ -129,6 +139,15 @@ const RunbooksExecutions: FunctionComponent<
             type: FieldType.Element,
             getElement: (item: RunbookExecution): ReactElement => {
               return statusPill(item.status as RunbookExecutionStatus);
+            },
+          },
+          {
+            field: RUNBOOK_EXECUTION_TRIGGER_CELL_SELECT,
+            title: "Triggered by",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: RunbookExecution): ReactElement => {
+              return <RunbookExecutionTriggerCell execution={item} />;
             },
           },
           {

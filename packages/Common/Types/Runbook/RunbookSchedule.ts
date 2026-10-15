@@ -362,30 +362,83 @@ export function isValidRunbookScheduleTimezone(timezone: unknown): boolean {
 }
 
 /*
- * What is wrong with a cron as a runbook schedule, in a sentence, or null
- * when nothing is. The server refuses a save with it and the dialog shows it
- * under the field, so both say the same.
+ * What can be wrong with a schedule. The server refuses a save with the
+ * problem's English message; the dashboard says the same in the reader's
+ * language, from its own template for each code filled with the problem's
+ * values (Dashboard Components/Runbook/Triggers/RunbookTriggersCopy, held
+ * to these messages by a test).
  */
-export function getRunbookScheduleCronError(cron: unknown): string | null {
+export enum RunbookScheduleProblemCode {
+  CronMissing = "CronMissing",
+  CronTooLong = "CronTooLong",
+  CronFieldCount = "CronFieldCount",
+  // The cron parser's own words, in `reason`.
+  CronInvalid = "CronInvalid",
+  CronNeverRuns = "CronNeverRuns",
+  MinuteInterval = "MinuteInterval",
+  HourInterval = "HourInterval",
+  MinutePastHour = "MinutePastHour",
+  TimeOfDay = "TimeOfDay",
+  NoDays = "NoDays",
+  NoRepeat = "NoRepeat",
+}
+
+export interface RunbookScheduleProblem {
+  code: RunbookScheduleProblemCode;
+  // The sentence, in English.
+  message: string;
+  // What the sentence was filled with.
+  values: Record<string, string | number>;
+}
+
+function problem(
+  code: RunbookScheduleProblemCode,
+  message: string,
+  values: Record<string, string | number> = {},
+): RunbookScheduleProblem {
+  return { code, message, values };
+}
+
+/*
+ * What is wrong with a cron as a runbook schedule, or null when nothing is.
+ * The server refuses a save with it and the dialog shows it under the field,
+ * so both say the same.
+ */
+export function getRunbookScheduleCronProblem(
+  cron: unknown,
+): RunbookScheduleProblem | null {
   if (typeof cron !== "string" || cron.trim().length === 0) {
-    return 'Enter a cron expression, such as "0 9 * * 1-5" (09:00 on weekdays).';
+    return problem(
+      RunbookScheduleProblemCode.CronMissing,
+      'Enter a cron expression, such as "0 9 * * 1-5" (09:00 on weekdays).',
+    );
   }
 
   if (cron.length > RUNBOOK_SCHEDULE_MAX_CRON_LENGTH) {
-    return `A cron expression is at most ${RUNBOOK_SCHEDULE_MAX_CRON_LENGTH} characters long.`;
+    return problem(
+      RunbookScheduleProblemCode.CronTooLong,
+      `A cron expression is at most ${RUNBOOK_SCHEDULE_MAX_CRON_LENGTH} characters long.`,
+      { maxLength: RUNBOOK_SCHEDULE_MAX_CRON_LENGTH },
+    );
   }
 
   const expression: string = normalizeRunbookScheduleCron(cron);
   const fieldCount: number = expression.split(" ").length;
 
   if (fieldCount !== 5) {
-    return `A runbook schedule has five fields - minute, hour, day of month, month and day of week - and this one has ${fieldCount}. Runbooks run at most once a minute, so there is no seconds field.`;
+    return problem(
+      RunbookScheduleProblemCode.CronFieldCount,
+      `A runbook schedule has five fields - minute, hour, day of month, month and day of week - and this one has ${fieldCount}. Runbooks run at most once a minute, so there is no seconds field.`,
+      { count: fieldCount },
+    );
   }
 
   const error: string | null = CronTab.getValidationError(expression);
 
   if (error) {
-    return error;
+    return problem(RunbookScheduleProblemCode.CronInvalid, error, {
+      reason: error,
+    });
   }
 
   if (
@@ -395,46 +448,84 @@ export function getRunbookScheduleCronError(cron: unknown): string | null {
       after: new Date(Date.UTC(2000, 0, 1)),
     }) === null
   ) {
-    return "This schedule never runs: no date matches it, such as the 31st of February.";
+    return problem(
+      RunbookScheduleProblemCode.CronNeverRuns,
+      "This schedule never runs: no date matches it, such as the 31st of February.",
+    );
   }
 
   return null;
 }
 
+// The same, as the sentence alone.
+export function getRunbookScheduleCronError(cron: unknown): string | null {
+  return getRunbookScheduleCronProblem(cron)?.message ?? null;
+}
+
 // What is wrong with a dialog choice, or null when nothing is.
-export function getRunbookScheduleChoiceError(
+export function getRunbookScheduleChoiceProblem(
   choice: RunbookScheduleChoice,
-): string | null {
+): RunbookScheduleProblem | null {
+  const timeOfDay: RunbookScheduleProblem = problem(
+    RunbookScheduleProblemCode.TimeOfDay,
+    "Pick the time of day the runbook runs at.",
+  );
+
   switch (choice.repeat) {
-    case RunbookScheduleRepeat.Minutes:
+    case RunbookScheduleRepeat.Minutes: {
+      const choices: string = RUNBOOK_SCHEDULE_MINUTE_INTERVALS.join(", ");
+
       return RUNBOOK_SCHEDULE_MINUTE_INTERVALS.includes(choice.every)
         ? null
-        : `Pick how many minutes apart the runs are: ${RUNBOOK_SCHEDULE_MINUTE_INTERVALS.join(", ")}.`;
-    case RunbookScheduleRepeat.Hours:
+        : problem(
+            RunbookScheduleProblemCode.MinuteInterval,
+            `Pick how many minutes apart the runs are: ${choices}.`,
+            { choices },
+          );
+    }
+    case RunbookScheduleRepeat.Hours: {
       if (!RUNBOOK_SCHEDULE_HOUR_INTERVALS.includes(choice.every)) {
-        return `Pick how many hours apart the runs are: ${RUNBOOK_SCHEDULE_HOUR_INTERVALS.join(", ")}.`;
+        const choices: string = RUNBOOK_SCHEDULE_HOUR_INTERVALS.join(", ");
+
+        return problem(
+          RunbookScheduleProblemCode.HourInterval,
+          `Pick how many hours apart the runs are: ${choices}.`,
+          { choices },
+        );
       }
 
       return isMinute(choice.minute)
         ? null
-        : "Pick the minute past the hour, from 0 to 59.";
+        : problem(
+            RunbookScheduleProblemCode.MinutePastHour,
+            "Pick the minute past the hour, from 0 to 59.",
+          );
+    }
     case RunbookScheduleRepeat.Daily:
-      return isMinute(choice.minute) && isHour(choice.hour)
-        ? null
-        : "Pick the time of day the runbook runs at.";
+      return isMinute(choice.minute) && isHour(choice.hour) ? null : timeOfDay;
     case RunbookScheduleRepeat.Weekly:
       if (!(isMinute(choice.minute) && isHour(choice.hour))) {
-        return "Pick the time of day the runbook runs at.";
+        return timeOfDay;
       }
 
       return sortedDays(choice.days).length > 0
         ? null
-        : "Pick at least one day.";
+        : problem(RunbookScheduleProblemCode.NoDays, "Pick at least one day.");
     case RunbookScheduleRepeat.Cron:
-      return getRunbookScheduleCronError(choice.cron);
+      return getRunbookScheduleCronProblem(choice.cron);
     default:
-      return "Pick how often the runbook runs.";
+      return problem(
+        RunbookScheduleProblemCode.NoRepeat,
+        "Pick how often the runbook runs.",
+      );
   }
+}
+
+// The same, as the sentence alone.
+export function getRunbookScheduleChoiceError(
+  choice: RunbookScheduleChoice,
+): string | null {
+  return getRunbookScheduleChoiceProblem(choice)?.message ?? null;
 }
 
 function isMinute(value: number): boolean {

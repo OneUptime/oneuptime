@@ -1,0 +1,61 @@
+import { JSONObject } from "Common/Types/JSON";
+import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import React, { FunctionComponent, ReactElement } from "react";
+import {
+  RunbookTriggersCopy,
+  TriggerDetailCopy,
+  translateCopy,
+} from "./RunbookTriggersCopy";
+
+/*
+ * "Inputs", on a run's page: the values its webhook call sent, as JSON, and
+ * how the steps read them. Drawn as text, never as markup - they came from
+ * outside OneUptime.
+ */
+
+export interface ComponentProps {
+  inputs: JSONObject;
+}
+
+export const RUNBOOK_RUN_INPUTS_TEST_ID: string = "runbook-run-inputs";
+
+const RunbookRunInputs: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  const translator: Translator = useTranslator();
+  const translate: (text: string) => string = (text: string): string => {
+    return translateCopy(translator, text);
+  };
+  const json: string = JSON.stringify(props.inputs, null, 2);
+
+  return (
+    <div
+      className="mb-6 rounded-lg border border-gray-200 bg-white px-4 py-3"
+      data-testid={RUNBOOK_RUN_INPUTS_TEST_ID}
+    >
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <div className="text-xs uppercase tracking-wide text-gray-500">
+          {translate(TriggerDetailCopy.inputsCardTitle)}
+        </div>
+        <CopyTextButton
+          textToBeCopied={json}
+          label={translate(RunbookTriggersCopy.copyExample)}
+          copiedLabel={translate(RunbookTriggersCopy.copied)}
+          size="sm"
+          variant="soft"
+          title={translate(TriggerDetailCopy.copyInputsTitle)}
+        />
+      </div>
+      <p className="mb-2 text-sm text-gray-500">
+        {translate(TriggerDetailCopy.inputsCardDescription)}
+      </p>
+      <pre className="max-h-80 overflow-auto rounded-md border border-gray-200 bg-gray-50 px-3 py-2 font-mono text-xs leading-5 text-gray-800">
+        <code className="font-mono">{json}</code>
+      </pre>
+    </div>
+  );
+};
+
+export default RunbookRunInputs;
