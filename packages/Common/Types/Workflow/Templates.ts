@@ -7989,6 +7989,97 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
       ],
     },
   },
+  /*
+   * One workflow for a new incident and a changed one: On Create or Update
+   * (Types/Workflow/CreateOrUpdateTrigger). The body says which it was, so
+   * the system on the other end creates its copy once and updates it after.
+   * It watches only what that copy shows, so OneUptime's own bookkeeping on
+   * the incident sends nothing.
+   */
+  {
+    id: "incident-created-or-updated-forward",
+    name: "Keep another system up to date with your incidents",
+    description:
+      "POSTs each new incident, and each change to its title, description, state or severity, to a URL of yours, saying which it was.",
+    teaches:
+      "How one trigger covers a new record and a change to one, and how What Happened tells the two apart.",
+    category: WorkflowTemplateCategory.Incidents,
+    icon: IconProp.Refresh,
+    workflowName: "Keep incidents in step with another system",
+    workflowDescription:
+      "POSTs each new or changed incident to an endpoint you control, saying whether it was created or updated.",
+    variables: [
+      {
+        name: "forwardUrl",
+        title: "Destination URL",
+        description:
+          "The endpoint that should receive the POST. It will get a JSON body with the incident's fields, and whether the incident was created or updated.",
+        placeholder: "https://example.com/hooks/oneuptime-incidents",
+        required: true,
+        isSecret: true,
+      },
+    ],
+    graph: {
+      nodes: [
+        {
+          componentId: "incident-on-create-or-update-1",
+          metadataId: "incident-on-create-or-update",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: {
+            "listen-on": {
+              title: true,
+              description: true,
+              currentIncidentStateId: true,
+              incidentSeverityId: true,
+            },
+            select: INCIDENT_SELECT,
+          },
+        },
+        {
+          componentId: "api-post-1",
+          metadataId: ComponentID.ApiPost,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            url: "{{local.variables.forwardUrl}}",
+            "request-body": [
+              "{",
+              '  "event": "{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}",',
+              '  "id": "{{local.components.incident-on-create-or-update-1.returnValues.model._id}}",',
+              '  "number": "{{local.components.incident-on-create-or-update-1.returnValues.model.incidentNumber}}",',
+              '  "title": "{{local.components.incident-on-create-or-update-1.returnValues.model.title}}",',
+              '  "severity": "{{local.components.incident-on-create-or-update-1.returnValues.model.incidentSeverity.name}}",',
+              '  "state": "{{local.components.incident-on-create-or-update-1.returnValues.model.currentIncidentState.name}}"',
+              "}",
+            ].join("\n"),
+          },
+        },
+        {
+          componentId: "log-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 500 },
+          args: {
+            value:
+              "❌ Could not send the incident: {{local.components.api-post-1.returnValues.error}}",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "incident-on-create-or-update-1",
+          toComponentId: "api-post-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "api-post-1",
+          toComponentId: "log-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  },
   {
     id: "incident-created-ai-summary",
     name: "Summarise a new incident with AI, then post it",

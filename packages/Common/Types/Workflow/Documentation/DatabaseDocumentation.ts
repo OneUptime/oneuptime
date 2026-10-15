@@ -749,7 +749,7 @@ const onCreateOrUpdateTrigger: BuildFunction = (
       {
         title: "Changes OneUptime makes",
         paragraphs: [
-          `OneUptime changes ${words.many} itself too, after they are created - an incident gets its Slack channel, say. Each such change is an update, and starts a run like any other. To run only for the changes you care about, add those fields to **Fields to watch**.`,
+          `OneUptime makes changes of its own too - it gives a new incident its Slack channel, say. A change it makes to the ${words.one} is an update like any other, and starts a run. To run only for the changes you care about, add those fields to **Fields to watch**.`,
         ],
       },
       {
