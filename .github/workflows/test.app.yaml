@@ -195,6 +195,7 @@ jobs:
               test-home-overview-ui
               test-security-operations-ui
               test-status-timeline-ui
+              test-runbook-triggers-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Value Picker (the
           # chip editor's caret handling differs in each).
@@ -362,4 +363,6 @@ jobs:
             output/playwright/list-delete-ui/test-results
             output/playwright/status-timeline-ui/*.png
             output/playwright/status-timeline-ui/test-results
+            output/playwright/runbook-triggers-ui/*.png
+            output/playwright/runbook-triggers-ui/test-results
           retention-days: 7

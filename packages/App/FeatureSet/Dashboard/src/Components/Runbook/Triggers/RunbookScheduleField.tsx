@@ -49,6 +49,13 @@ const pad: (value: number) => string = (value: number): string => {
 
 const TIME_VALUE: RegExp = /^(\d{1,2}):(\d{2})/;
 
+/*
+ * Input's own look, in a fixed-width font: a className given to Input
+ * replaces its classes rather than adding to them.
+ */
+const CRON_INPUT_CLASS_NAME: string =
+  "block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 font-mono text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm";
+
 const RunbookScheduleField: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -269,7 +276,7 @@ const RunbookScheduleField: FunctionComponent<ComponentProps> = (
           id={`${id}-cron`}
           value={choice.cron}
           placeholder="0 9 * * 1-5"
-          className="font-mono"
+          className={CRON_INPUT_CLASS_NAME}
           dataTestId={`${RunbookTriggersTestIds.scheduleField}-cron`}
           onChange={(value: string) => {
             change({ cron: value });
@@ -282,16 +289,22 @@ const RunbookScheduleField: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * What the choice needs, beside Repeat on a two-column row: every few
+   * hours wraps its minute past the hour onto a row of its own rather than
+   * squeeze three menus into one. A cron expression gets the whole width,
+   * under a Repeat menu that has the whole width too.
+   */
   const getDetails: () => ReactElement = (): ReactElement => {
     switch (choice.repeat) {
       case RunbookScheduleRepeat.Minutes:
         return getEverySelect();
       case RunbookScheduleRepeat.Hours:
         return (
-          <div className="grid grid-cols-2 gap-3">
+          <>
             {getEverySelect()}
             {getMinuteSelect()}
-          </div>
+          </>
         );
       case RunbookScheduleRepeat.Daily:
       case RunbookScheduleRepeat.Weekly:
@@ -302,13 +315,17 @@ const RunbookScheduleField: FunctionComponent<ComponentProps> = (
     }
   };
 
+  const isCron: boolean = choice.repeat === RunbookScheduleRepeat.Cron;
+
   return (
     <div
       className="space-y-3"
       data-testid={RunbookTriggersTestIds.scheduleField}
       data-repeat={choice.repeat}
     >
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div
+        className={`grid grid-cols-1 gap-3 ${isCron ? "" : "sm:grid-cols-2"}`}
+      >
         <div>
           {label(RunbookTriggersCopy.repeatLabel, `${id}-repeat`)}
           <Dropdown
@@ -329,10 +346,10 @@ const RunbookScheduleField: FunctionComponent<ComponentProps> = (
             }}
           />
         </div>
-        {choice.repeat !== RunbookScheduleRepeat.Cron ? getDetails() : <></>}
+        {getDetails()}
       </div>
       {choice.repeat === RunbookScheduleRepeat.Weekly ? getDays() : <></>}
-      {choice.repeat === RunbookScheduleRepeat.Cron ? getCron() : <></>}
+      {isCron ? getCron() : <></>}
     </div>
   );
 };

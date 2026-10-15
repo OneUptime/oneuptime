@@ -108,12 +108,16 @@ export interface ScheduleFormValues {
 }
 
 /*
- * The dialog's folded More options: what happens when a run is still going
+ * The dialog's folded More fields: what happens when a run is still going
  * and when OneUptime missed a time. Right for most people as they start, so
- * folded, saying in a sentence each what they are set to.
+ * folded, saying in a sentence each what they are set to - default or not,
+ * so no field is drawn as a chip as well.
  */
 const MORE_OPTIONS: FormFieldCollapsibleSection<ScheduleFormValues> =
   getAdvancedFormSection<ScheduleFormValues>({
+    isConfigured: (): boolean => {
+      return false;
+    },
     getSummary: (values: FormValues<ScheduleFormValues>): Array<string> => {
       return [
         OVERLAP_SUMMARIES[

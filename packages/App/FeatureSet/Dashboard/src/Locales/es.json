@@ -21701,7 +21701,7 @@
   "This {{resource}} is part of the {{engine}} database cluster {{database}}.": "This {{resource}} is part of the {{engine}} database cluster {{database}}.",
   "This {{resource}} runs the {{engine}} database {{database}}.": "This {{resource}} runs the {{engine}} database {{database}}.",
   "Time macros: {{macros}} (UTC). Dashboard variables: {{variableSyntax}}.": "Time macros: {{macros}} (UTC). Dashboard variables: {{variableSyntax}}.",
-  "Times are in {{timezone}}.": "Times are in {{timezone}}.",
+  "Times are in {{timezone}}.": "Las horas están en {{timezone}}.",
   "Title for the alert.": "Title for the alert.",
   "Title for the incident.": "Title for the incident.",
   "Too many to count in time. Narrow the time range for an exact total.": "Demasiados para contarlos a tiempo. Acota el intervalo de tiempo para obtener un total exacto.",
