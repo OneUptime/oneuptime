@@ -15,7 +15,7 @@ Gereedheid beantwoordt een vraag voordat een incident dat doet: als er nu iets a
 flowchart TB
     who["Iemand die een beleid<br/>kan oproepen"] --> member{"Lid van<br/>het project?"}
     member -->|"Nee"| unreachable["Unreachable"]
-    member -->|"Ja"| usable{"Een geverifieerde methode<br/>op een actief kanaal?"}
+    member -->|"Ja"| usable{"Geverifieerde methode<br/>op een actief kanaal?"}
     usable -->|"Nee"| unreachable
     usable -->|"Ja"| rules{"Een regel voor<br/>elke ernst?"}
     rules -->|"Nee"| setup["Needs setup"]

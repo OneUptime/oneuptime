@@ -14,10 +14,10 @@ Solange jemand abwesend ist, schickt eine Benutzerüberschreibung die Alarme, di
 ```mermaid title="Was eine Überschreibung mit einem Alarm macht"
 flowchart TB
     page["Eine Regel alarmiert<br/>eine Person"] --> away{"Gilt für sie eine<br/>Überschreibung?"}
-    away -->|"Nein"| them["Sie wird alarmiert"]
+    away -->|"Nein"| them["Sie wird<br/>alarmiert"]
     away -->|"Ja"| cover{"Nennt sie, wer<br/>vertritt?"}
     cover -->|"Ja"| covering["Die Vertretung wird<br/>stattdessen alarmiert"]
-    cover -->|"Nein"| skip["Sie wird übersprungen"]
+    cover -->|"Nein"| skip["Sie wird<br/>übersprungen"]
 ```
 
 Solange eine Überschreibung gilt, von ihrem Beginn bis zu ihrem Ende:

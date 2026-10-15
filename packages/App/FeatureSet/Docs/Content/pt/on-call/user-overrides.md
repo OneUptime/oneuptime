@@ -14,10 +14,10 @@ Enquanto alguém está ausente, uma substituição de usuário envia os acioname
 ```mermaid title="O que uma substituição faz com um acionamento"
 flowchart TB
     page["Uma regra aciona<br/>alguém"] --> away{"Há uma substituição<br/>em vigor para a pessoa?"}
-    away -->|"Não"| them["A pessoa é acionada"]
+    away -->|"Não"| them["A pessoa<br/>é acionada"]
     away -->|"Sim"| cover{"Ela indica<br/>quem cobre?"}
     cover -->|"Sim"| covering["Quem cobre é<br/>acionado no lugar"]
-    cover -->|"Não"| skip["A pessoa é pulada"]
+    cover -->|"Não"| skip["A pessoa<br/>é pulada"]
 ```
 
 Enquanto uma substituição está em vigor, do início ao fim:

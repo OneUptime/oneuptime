@@ -13,11 +13,11 @@ Mientras alguien está ausente, una sustitución de usuario envía los avisos qu
 
 ```mermaid title="Qué hace una sustitución con un aviso"
 flowchart TB
-    page["Una regla avisa<br/>a alguien"] --> away{"¿Hay una sustitución<br/>vigente para esa persona?"}
-    away -->|"No"| them["Se avisa a esa persona"]
+    page["Una regla avisa<br/>a alguien"] --> away{"¿Hay una sustitución<br/>vigente para ella?"}
+    away -->|"No"| them["Se avisa a<br/>esa persona"]
     away -->|"Sí"| cover{"¿Nombra a<br/>quien cubre?"}
     cover -->|"Sí"| covering["Se avisa a quien<br/>cubre, en su lugar"]
-    cover -->|"No"| skip["Se omite a esa persona"]
+    cover -->|"No"| skip["Se omite a<br/>esa persona"]
 ```
 
 Mientras una sustitución está vigente, desde su inicio hasta su fin:

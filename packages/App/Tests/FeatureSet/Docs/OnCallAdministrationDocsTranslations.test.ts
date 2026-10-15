@@ -121,9 +121,9 @@ const PAGE_NAMES: Array<string> = NEW_ON_CALL_PAGES.map(
  * 590px docs column. Every diagram fits the column without scrolling.
  */
 const WIDEST_DIAGRAM_LINE: Record<string, ReadonlyArray<number>> = {
-  [ON_CALL_OVERVIEW]: [26],
-  [ON_CALL_POLICIES]: [26],
-  [USER_OVERRIDES]: [26],
+  [ON_CALL_OVERVIEW]: [24],
+  [ON_CALL_POLICIES]: [24],
+  [USER_OVERRIDES]: [23],
   [READINESS_AND_REPORTS]: [26],
 };
 
