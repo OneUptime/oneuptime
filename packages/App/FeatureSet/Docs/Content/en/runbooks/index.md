@@ -6,6 +6,7 @@ A runbook is a reusable response procedure: an ordered list of manual and automa
 - [Authoring a Runbook](/docs/runbooks/authoring): Create a runbook and write its steps.
 - [Runbook Rules](/docs/runbooks/rules): Start runbooks on new incidents, alerts and maintenance events.
 - [Running a Runbook](/docs/runbooks/running): Start a run, complete and approve its steps, cancel it.
+- [Runbook Triggers](/docs/runbooks/triggers): Run a runbook on a schedule, or from another tool through its webhook URL.
 - [Runbook Agents](/docs/runbooks/agents): Install the Runner that runs your scripts in your own infrastructure.
 :::
 
@@ -73,6 +74,8 @@ A runbook can mix all of them. The strength of runbooks is interleaving human ch
 | **Run Runbook** | The **Runbooks** page of an incident, alert or scheduled maintenance event | That event |
 | **Run Now** | The runbook's **Overview** page | Nothing: an ad-hoc run |
 | An auto-remediation rule | See [AI SRE](/docs/ai/ai-sre) | The incident or alert |
+| The runbook's schedule | The runbook's **Triggers** page, see [Runbook Triggers](/docs/runbooks/triggers#run-on-a-schedule) | Nothing: an unattended run |
+| A call to the runbook's webhook URL | The runbook's **Triggers** page, see [Runbook Triggers](/docs/runbooks/triggers#call-the-webhook) | Nothing: the run keeps the values the call sent |
 
 A runbook whose **Run this runbook** switch is off, on its **Settings** page, is not started by any of these. Runs that already started carry on.
 
@@ -86,6 +89,7 @@ Runbooks is under **Products**, in the **Dashboards & Automation** group.
 | A runbook's **Steps** | Write and reorder its steps, then **Save Steps**. |
 | A runbook's **Overview** | See its last run and outcomes, and click **Run Now**. |
 | A runbook's **Executions** | Every run of this runbook, filtered by status or start date. |
+| A runbook's **Triggers** | Run it on a [schedule](/docs/runbooks/triggers#run-on-a-schedule), or from another tool through its [webhook URL](/docs/runbooks/triggers#call-the-webhook). |
 | A runbook's **Owners** | Add the people and teams responsible for it. |
 | A runbook's **Settings** | Turn **Run this runbook** off without deleting the runbook. |
 | **Runbooks → Executions** | Every run of every runbook in the project. |

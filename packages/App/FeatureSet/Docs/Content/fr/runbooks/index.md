@@ -6,6 +6,7 @@ Un runbook est une procédure de réponse réutilisable : une liste ordonnée d'
 - [Rédiger un runbook](/docs/runbooks/authoring): Créer un runbook et écrire ses étapes.
 - [Règles de runbook](/docs/runbooks/rules): Démarrer des runbooks sur les nouveaux incidents, alertes et événements de maintenance.
 - [Exécuter un runbook](/docs/runbooks/running): Lancer une exécution, terminer et approuver ses étapes, l'annuler.
+- [Déclencheurs de runbook](/docs/runbooks/triggers): Exécuter un runbook selon une planification, ou depuis un autre outil via son URL de webhook.
 - [Agents de runbook](/docs/runbooks/agents): Installer l'agent Runbook qui exécute vos scripts dans votre propre infrastructure.
 :::
 
@@ -73,6 +74,8 @@ Un runbook peut tous les mélanger. La force des runbooks est d'entremêler des 
 | **Exécuter le Runbook** | La page **Runbooks** d'un incident, d'une alerte ou d'un événement de maintenance planifiée | Cet événement |
 | **Run Now** | La page **Vue d'ensemble** du runbook | Rien : une exécution ponctuelle |
 | Une règle de remédiation automatique | Voir [AI SRE](/docs/ai/ai-sre) | L'incident ou l'alerte |
+| La planification du runbook | La page **Déclencheurs** du runbook, voir [Déclencheurs de runbook](/docs/runbooks/triggers#exécuter-selon-une-planification) | Rien : une exécution sans surveillance |
+| Un appel à l'URL de webhook du runbook | La page **Déclencheurs** du runbook, voir [Déclencheurs de runbook](/docs/runbooks/triggers#appeler-le-webhook) | Rien : l'exécution conserve les valeurs envoyées par l'appel |
 
 Un runbook dont l'interrupteur **Exécuter ce runbook** est désactivé, sur sa page **Paramètres**, n'est lancé par aucun de ces moyens. Les exécutions déjà démarrées continuent.
 
@@ -86,6 +89,7 @@ Runbooks se trouve sous **Produits**, dans le groupe **Tableaux de bord et autom
 | Les **Étapes** d'un runbook | Écrire et réordonner ses étapes, puis **Save Steps**. |
 | La **Vue d'ensemble** d'un runbook | Voir sa dernière exécution et ses résultats, et cliquer sur **Run Now**. |
 | Les **Exécutions** d'un runbook | Toutes les exécutions de ce runbook, filtrées par statut ou date de début. |
+| Les **Déclencheurs** d'un runbook | L'exécuter selon une [planification](/docs/runbooks/triggers#exécuter-selon-une-planification), ou depuis un autre outil via son [URL de webhook](/docs/runbooks/triggers#appeler-le-webhook). |
 | Les **Propriétaires** d'un runbook | Ajouter les personnes et les équipes qui en sont responsables. |
 | Les **Paramètres** d'un runbook | Désactiver **Exécuter ce runbook** sans supprimer le runbook. |
 | **Runbooks → Exécutions** | Toutes les exécutions de tous les runbooks du projet. |

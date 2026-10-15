@@ -6,6 +6,7 @@ Runbook は再利用できる対応手順です。インシデント、アラー
 - [Runbook を作成する](/docs/runbooks/authoring): Runbook を作成し、そのステップを書きます。
 - [Runbook ルール](/docs/runbooks/rules): 新しいインシデント、アラート、メンテナンスイベントで Runbook を開始します。
 - [Runbook を実行する](/docs/runbooks/running): 実行を開始し、ステップを完了・承認し、キャンセルします。
+- [Runbook のトリガー](/docs/runbooks/triggers): スケジュールに従って、またはほかのツールから Webhook URL 経由で Runbook を実行します。
 - [Runbook エージェント](/docs/runbooks/agents): 自社インフラでスクリプトを実行する Runner をインストールします。
 :::
 
@@ -73,6 +74,8 @@ HTTP と AI のステップは OneUptime Worker で実行されます。JavaScri
 | **Runbook を実行** | インシデント、アラート、定期メンテナンスイベントの **Runbook** ページ | そのイベント |
 | **今すぐ実行** | Runbook の **概要** ページ | なし（その場限りの実行） |
 | 自動修復ルール | [AI SRE](/docs/ai/ai-sre) を参照 | インシデントまたはアラート |
+| Runbook のスケジュール | Runbook の **トリガー** ページ。[Runbook のトリガー](/docs/runbooks/triggers#スケジュールで実行する) を参照 | なし: 無人の実行 |
+| Runbook の Webhook URL の呼び出し | Runbook の **トリガー** ページ。[Runbook のトリガー](/docs/runbooks/triggers#webhook-を呼び出す) を参照 | なし: 実行は呼び出しが送った値を保持します |
 
 **設定** ページで **この Runbook を実行** スイッチがオフになっている Runbook は、どの方法でも開始されません。すでに開始した実行は続行します。
 
@@ -86,6 +89,7 @@ Runbook は **製品** の **ダッシュボードと自動化** グループに
 | Runbook の **ステップ** | ステップを書いて並べ替え、 **ステップを保存** を選びます。 |
 | Runbook の **概要** | 最新の実行と結果を確認し、 **今すぐ実行** をクリックします。 |
 | Runbook の **実行** | この Runbook のすべての実行を、ステータスや開始日で絞り込んで表示します。 |
+| Runbook の **トリガー** | [スケジュール](/docs/runbooks/triggers#スケジュールで実行する) で、またはほかのツールから [Webhook URL](/docs/runbooks/triggers#webhook-を呼び出す) 経由で実行します。 |
 | Runbook の **所有者** | 担当する人とチームを追加します。 |
 | Runbook の **設定** | Runbook を削除せずに **この Runbook を実行** をオフにします。 |
 | **Runbook → 実行** | プロジェクト内のすべての Runbook のすべての実行です。 |

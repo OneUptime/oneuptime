@@ -29441,5 +29441,7 @@
   "Weekdays": "Wochentage",
   "When OneUptime was down or being upgraded at a scheduled time.": "Wenn OneUptime zu einem geplanten Zeitpunkt nicht lief oder aktualisiert wurde.",
   "When it runs": "Wann es läuft",
-  "Write the body as a JSON object, such as {\"host\": \"web-1\"}.": "Schreiben Sie den Text als JSON-Objekt, z. B. {\"host\": \"web-1\"}."
+  "Write the body as a JSON object, such as {\"host\": \"web-1\"}.": "Schreiben Sie den Text als JSON-Objekt, z. B. {\"host\": \"web-1\"}.",
+  "On these days": "An diesen Tagen",
+  "Time of day": "Uhrzeit"
 }

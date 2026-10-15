@@ -37,11 +37,13 @@ Een nieuwe uitvoering staat op **Gepland** tot een Worker haar oppakt en als **A
 
 ## Een uitvoering starten
 
-Een runbook-uitvoering ontstaat op drie manieren:
+Een runbook-uitvoering ontstaat op vijf manieren:
 
 1. **Automatisch via een regel**: een [runbook-regel](/docs/runbooks/rules) start haar wanneer een overeenkomend incident, overeenkomende waarschuwing of overeenkomend gepland onderhoudsevenement ontstaat. Ook een regel voor automatisch herstel kan er een starten; zie [AI SRE](/docs/ai/ai-sre).
 2. **Handmatig vanuit een evenement**: klik op een incident, waarschuwing of gepland onderhoudsevenement op **Runbook uitvoeren**. De uitvoering hangt aan dat evenement.
 3. **Handmatig vanaf de runbookpagina**: klik op de pagina **Overzicht** van een runbook op **Run Now**. De uitvoering hangt aan geen enkel incident, geen waarschuwing en geen gepland onderhoudsevenement.
+4. **Volgens een schema**: het schema van het runbook start haar op vaste tijden. Zie [Uitvoeren volgens een schema](/docs/runbooks/triggers#uitvoeren-volgens-een-schema).
+5. **Vanuit een ander hulpmiddel**: een `POST` naar de webhook-URL van het runbook start haar, met de waarden die de aanroep verstuurt. Zie [De webhook aanroepen](/docs/runbooks/triggers#de-webhook-aanroepen).
 
 Zo start u er een met de hand:
 

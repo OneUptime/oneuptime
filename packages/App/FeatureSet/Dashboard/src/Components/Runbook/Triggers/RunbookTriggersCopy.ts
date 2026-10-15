@@ -165,9 +165,13 @@ export const RunbookTriggersCopy: {
   ),
   repeatLabel: translationKey("Repeat"),
   everyLabel: translationKey("Every"),
-  atLabel: translationKey("At"),
+  /*
+   * Labels of their own: "At" and "On" are also the Dashboard's words for a
+   * date and a switch that is on, and some languages word them that way.
+   */
+  atLabel: translationKey("Time of day"),
   atMinuteLabel: translationKey("Minutes past the hour"),
-  onDaysLabel: translationKey("On"),
+  onDaysLabel: translationKey("On these days"),
   cronLabel: translationKey("Cron expression"),
   cronHint: translationKey(
     "Five fields: minute, hour, day of month, month and day of week. For example, 0 9 * * 1-5 runs at 09:00 on weekdays.",

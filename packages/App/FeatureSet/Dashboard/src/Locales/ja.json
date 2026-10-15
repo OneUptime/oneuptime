@@ -29441,5 +29441,7 @@
   "Weekdays": "平日",
   "When OneUptime was down or being upgraded at a scheduled time.": "スケジュールされた時刻に OneUptime が停止していた、またはアップグレード中だった場合。",
   "When it runs": "実行タイミング",
-  "Write the body as a JSON object, such as {\"host\": \"web-1\"}.": "JSON オブジェクトとして本文を書いてください (例: {\"host\": \"web-1\"})。"
+  "Write the body as a JSON object, such as {\"host\": \"web-1\"}.": "JSON オブジェクトとして本文を書いてください (例: {\"host\": \"web-1\"})。",
+  "On these days": "実行する曜日",
+  "Time of day": "時刻"
 }

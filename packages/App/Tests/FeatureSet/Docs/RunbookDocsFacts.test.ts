@@ -42,6 +42,40 @@ import RunbookStepType, {
   RUNNER_EXECUTED_STEP_TYPES,
 } from "Common/Types/Runbook/RunbookStepType";
 import RunnerJobStatus from "Common/Types/Runbook/RunnerJobStatus";
+import {
+  DEFAULT_RUNBOOK_SCHEDULE_MISSED_RUN_POLICY,
+  DEFAULT_RUNBOOK_SCHEDULE_OVERLAP_POLICY,
+  RUNBOOK_SCHEDULE_HOUR_INTERVALS,
+  RUNBOOK_SCHEDULE_MINUTE_INTERVALS,
+  RUNBOOK_SCHEDULE_MISSED_RUN_GRACE_IN_MS,
+  RunbookScheduleMissedRunPolicy,
+  RunbookScheduleOverlapPolicy,
+  getNextRunbookRuns,
+} from "Common/Types/Runbook/RunbookSchedule";
+import {
+  RUNBOOK_WEBHOOK_CALLS_PER_ADDRESS_PER_MINUTE,
+  RUNBOOK_WEBHOOK_MAX_ACTIVE_RUNS,
+  RUNBOOK_WEBHOOK_MAX_BODY_BYTES,
+  RUNBOOK_WEBHOOK_RUNS_PER_MINUTE,
+  RUNBOOK_WEBHOOK_SECRET_KEY_LENGTH,
+  RunbookWebhookMessages,
+} from "Common/Types/Runbook/RunbookWebhook";
+import {
+  RUNBOOK_INPUTS_MAX_BYTES,
+  RUNBOOK_INPUTS_MAX_DEPTH,
+  RUNBOOK_INPUTS_VARIABLE,
+  RUNBOOK_INPUT_MAX_NAME_LENGTH,
+  RUNBOOK_INPUT_MAX_VARIABLES,
+  RUNBOOK_INPUT_VARIABLE_PREFIX,
+  RUNBOOK_TRIGGER_VARIABLE,
+  getRunbookInputVariableName,
+  getRunbookInputVariables,
+} from "Common/Types/Runbook/RunbookInputs";
+import {
+  RUNBOOK_TRIGGER_COLUMNS,
+  RUNBOOK_TRIGGER_REFUSED_MESSAGE,
+} from "Common/Server/Utils/Runbook/RunbookTriggerAccess";
+import ExceptionCode from "Common/Types/Exception/ExceptionCode";
 import RunnerLiveStatus, {
   getRunnerLiveStatus,
   getRunnerLiveStatusLabel,
@@ -93,6 +127,7 @@ const RULES: string = readPage("en", "runbooks/rules");
 const AGENTS: string = readPage("en", "runbooks/agents");
 const CREDENTIALS: string = readPage("en", "runbooks/credentials");
 const CONFIGURATION: string = readPage("en", "runbooks/configuration");
+const TRIGGERS: string = readPage("en", "runbooks/triggers");
 
 const PAGES: Record<string, string> = {
   index: INDEX,
@@ -102,6 +137,7 @@ const PAGES: Record<string, string> = {
   agents: AGENTS,
   credentials: CREDENTIALS,
   configuration: CONFIGURATION,
+  triggers: TRIGGERS,
 };
 
 const STEP_EXECUTORS: string = readSource(
@@ -1706,5 +1742,301 @@ describe("the runbook pages' configuration reference", () => {
         }).toEqual({ menuPath, inSection: true });
       }
     }
+  });
+});
+
+/*
+ * The Runbook Triggers page: a runbook's schedule and its webhook, held to
+ * the shared constants and messages the dialog, the Worker and the webhook
+ * route read, the dashboard's own words (read as text), and the schedule
+ * arithmetic itself on the nights the clocks change.
+ */
+describe("runbook triggers", () => {
+  const WEBHOOK_ROUTE: string = readSource(
+    "App/FeatureSet/Runbook/API/RunbookWebhook.ts",
+  );
+  const TRIGGERS_COPY: string = readDashboard(
+    "Components/Runbook/Triggers/RunbookTriggersCopy.ts",
+  );
+  const VIEW_SIDE_MENU: string = readDashboard(
+    "Pages/Runbook/View/SideMenu.tsx",
+  );
+  // The copy with its line breaks as spaces: prettier wraps a long key.
+  const TRIGGERS_COPY_TEXT: string = TRIGGERS_COPY.replace(/\s+/g, " ");
+
+  // Whether the dashboard's copy has this English as a translation key.
+  const isTriggersKey: (english: string) => boolean = (
+    english: string,
+  ): boolean => {
+    return (
+      TRIGGERS_COPY_TEXT.includes(`translationKey("${english}")`) ||
+      TRIGGERS_COPY_TEXT.includes(`translationKey( "${english}", )`)
+    );
+  };
+
+  it("offer the minute and hour steps the dialog offers", () => {
+    expect(TRIGGERS).toContain(
+      `| **Every few minutes** | **Every**: ${englishList(RUNBOOK_SCHEDULE_MINUTE_INTERVALS.map(String), "or")} minutes |`,
+    );
+    expect(TRIGGERS).toContain(
+      `| **Every few hours** | **Every**: ${englishList(RUNBOOK_SCHEDULE_HOUR_INTERVALS.map(String), "or")} hours, and **Minutes past the hour** |`,
+    );
+  });
+
+  it("name every Repeat choice, policy and field as the dashboard words it", () => {
+    for (const label of [
+      "Every few minutes",
+      "Every few hours",
+      "Every day",
+      "On days of the week",
+      "Custom (cron expression)",
+      "Skip that time",
+      "Run once it ends",
+      "Run once when OneUptime is back",
+      "Skip the missed times",
+      "If a run is still going",
+      "If OneUptime missed a time",
+      "Minutes past the hour",
+      "Time of day",
+      "On these days",
+      "Cron expression",
+      "Set Up Schedule",
+      "Save Schedule",
+      "Edit Schedule",
+      "Run on this schedule",
+      "Run when this URL is called",
+      "Webhook URL",
+      "Copy URL",
+      "Send Test Request",
+      "Reset URL",
+    ]) {
+      expect({ label, drawn: isTriggersKey(label) }).toEqual({
+        label,
+        drawn: true,
+      });
+      expect(TRIGGERS).toContain(`**${label}**`);
+    }
+  });
+
+  it("say the defaults the dialog starts a schedule on", () => {
+    expect(DEFAULT_RUNBOOK_SCHEDULE_OVERLAP_POLICY).toBe(
+      RunbookScheduleOverlapPolicy.Skip,
+    );
+    expect(DEFAULT_RUNBOOK_SCHEDULE_MISSED_RUN_POLICY).toBe(
+      RunbookScheduleMissedRunPolicy.RunOnce,
+    );
+    expect(TRIGGERS).toContain("| **Skip that time** (default) |");
+    expect(TRIGGERS).toContain(
+      "| **Run once when OneUptime is back** (default) |",
+    );
+  });
+
+  it("say when a scheduled time counts as missed", () => {
+    expect(RUNBOOK_SCHEDULE_MISSED_RUN_GRACE_IN_MS).toBe(5 * 60 * 1000);
+    expect(TRIGGERS).toContain(
+      `the time is missed once it is more than ${RUNBOOK_SCHEDULE_MISSED_RUN_GRACE_IN_MS / 60000} minutes late`,
+    );
+  });
+
+  it("describe the nights the clocks change as the schedule works them out", () => {
+    // Europe/London goes forward at 01:00 GMT on 29 March 2026: 01:30 does not exist.
+    expect(
+      getNextRunbookRuns({
+        cron: "30 1 * * *",
+        timezone: "Europe/London",
+        after: new Date("2026-03-28T12:00:00.000Z"),
+        count: 1,
+      })[0]!.toISOString(),
+    ).toBe("2026-03-29T01:30:00.000Z"); // 02:30 BST: an hour later on the clock
+
+    // And back at 02:00 BST on 25 October 2026: 01:30 comes twice.
+    const after: Date = new Date("2026-10-24T23:50:00.000Z");
+    const hourly: Array<string> = getNextRunbookRuns({
+      cron: "30 * * * *",
+      timezone: "Europe/London",
+      after,
+      count: 3,
+    }).map((run: Date): string => {
+      return run.toISOString();
+    });
+    expect(hourly).toEqual([
+      "2026-10-25T00:30:00.000Z", // 01:30 BST
+      "2026-10-25T01:30:00.000Z", // 01:30 GMT, the hour again
+      "2026-10-25T02:30:00.000Z",
+    ]);
+
+    const daily: Array<string> = getNextRunbookRuns({
+      cron: "30 1 * * *",
+      timezone: "Europe/London",
+      after,
+      count: 2,
+    }).map((run: Date): string => {
+      return run.toISOString();
+    });
+    expect(daily).toEqual([
+      "2026-10-25T00:30:00.000Z",
+      "2026-10-26T01:30:00.000Z",
+    ]);
+
+    expect(TRIGGERS).toContain(
+      "a time that does not exist that night runs an hour later on the clock",
+    );
+    expect(TRIGGERS).toContain(
+      "a schedule that runs every hour runs in both, and any other schedule runs once, at the first",
+    );
+  });
+
+  it("give the webhook's limits as the route enforces them", () => {
+    expect(TRIGGERS).toContain(
+      `| \`413\` | The body is larger than ${RUNBOOK_WEBHOOK_MAX_BODY_BYTES / 1024} KB. |`,
+    );
+    expect(RUNBOOK_INPUTS_MAX_BYTES).toBe(RUNBOOK_WEBHOOK_MAX_BODY_BYTES);
+    expect(TRIGGERS).toContain(
+      `is nested more than ${RUNBOOK_INPUTS_MAX_DEPTH} levels deep`,
+    );
+    expect(TRIGGERS).toContain(
+      `The webhook started ${RUNBOOK_WEBHOOK_RUNS_PER_MINUTE} runs in the last minute, ${RUNBOOK_WEBHOOK_MAX_ACTIVE_RUNS} of its runs are still going, or one address made more than ${RUNBOOK_WEBHOOK_CALLS_PER_ADDRESS_PER_MINUTE} calls to runbook webhooks in a minute.`,
+    );
+    expect(TRIGGERS).toContain(
+      `The key is ${RUNBOOK_WEBHOOK_SECRET_KEY_LENGTH} random characters`,
+    );
+  });
+
+  it("answer each refusal with the status the page names", () => {
+    const answers: Array<[string, number]> = [
+      ["BadDataException", 400],
+      ["ForbiddenException", 403],
+      ["NotFoundException", 404],
+      ["PayloadTooLargeException", 413],
+      ["TooManyRequestsException", 429],
+      ["ServiceUnavailableException", 503],
+    ];
+
+    for (const [exception, status] of answers) {
+      expect({
+        exception,
+        used: WEBHOOK_ROUTE.includes(`new ${exception}(`),
+      }).toEqual({
+        exception,
+        used: true,
+      });
+      expect(
+        (ExceptionCode as unknown as Record<string, number>)[exception],
+      ).toBe(status);
+      expect(TRIGGERS).toContain(`| \`${status}\` |`);
+    }
+
+    // A GET is answered 405 before anything is looked up.
+    expect(WEBHOOK_ROUTE).toContain("{ statusCode: new StatusCode(405) }");
+    expect(TRIGGERS).toContain("| `405` | The request is a `GET`.");
+  });
+
+  it("quote the webhook's and the API's refusals as they are written", () => {
+    expect(TRIGGERS).toContain(`"${RunbookWebhookMessages.runbookOff}"`);
+
+    for (const [message, sentence] of [
+      [
+        RunbookWebhookMessages.notFound,
+        "No runbook webhook answers at this URL.",
+      ],
+      [
+        RunbookWebhookMessages.webhookOff,
+        "This runbook's webhook is turned off, so the runbook was not started.",
+      ],
+      [
+        RUNBOOK_TRIGGER_REFUSED_MESSAGE,
+        "You do not have permission to set up this runbook's schedule or webhook.",
+      ],
+    ] as Array<[string, string]>) {
+      expect(message.startsWith(sentence)).toBe(true);
+      expect(TRIGGERS).toContain(`"${sentence}"`);
+    }
+  });
+
+  it("name the variables a Bash step gets, and how a name is written", () => {
+    expect(TRIGGERS).toContain(`\`${RUNBOOK_INPUT_VARIABLE_PREFIX}<NAME>\``);
+    expect(TRIGGERS).toContain(`\`${RUNBOOK_INPUTS_VARIABLE}\``);
+    expect(TRIGGERS).toContain(`\`${RUNBOOK_TRIGGER_VARIABLE}\``);
+    expect(getRunbookInputVariableName("host-name")).toBe(
+      "ONEUPTIME_INPUT_HOST_NAME",
+    );
+    expect(TRIGGERS).toContain(
+      "`host-name` becomes `ONEUPTIME_INPUT_HOST_NAME`",
+    );
+    expect(TRIGGERS).toContain(
+      `A step gets at most ${RUNBOOK_INPUT_MAX_VARIABLES} of these variables, and a name longer than ${RUNBOOK_INPUT_MAX_NAME_LENGTH} characters becomes none`,
+    );
+    expect(
+      getRunbookInputVariableName(
+        "x".repeat(RUNBOOK_INPUT_MAX_NAME_LENGTH + 1),
+      ),
+    ).toBe(null);
+    expect(
+      Object.keys(
+        getRunbookInputVariables({
+          inputs: Object.fromEntries(
+            Array.from(
+              { length: RUNBOOK_INPUT_MAX_VARIABLES + 5 },
+              (_: unknown, i: number) => {
+                return [`v${i}`, i];
+              },
+            ),
+          ),
+          trigger: "Webhook",
+        }),
+      ).filter((name: string): boolean => {
+        return name.startsWith(RUNBOOK_INPUT_VARIABLE_PREFIX);
+      }),
+    ).toHaveLength(RUNBOOK_INPUT_MAX_VARIABLES);
+  });
+
+  it("say who may set triggers up: the trigger columns' editors who also run runbooks", () => {
+    const runbook: Runbook = new Runbook();
+
+    for (const column of RUNBOOK_TRIGGER_COLUMNS) {
+      const access: ColumnAccessControl | null =
+        runbook.getColumnAccessControlFor(column);
+
+      expect({ column, update: access?.update }).toEqual({
+        column,
+        update: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.EditRunbook,
+          Permission.RunbookAdmin,
+        ],
+      });
+    }
+
+    for (const runs of [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.RunbookAdmin,
+      Permission.ProjectMember,
+      Permission.RunbookMember,
+      Permission.CreateRunbookExecution,
+    ]) {
+      expect(RUNBOOK_RUN_PERMISSIONS).toContain(runs);
+    }
+
+    expect(TRIGGERS).toContain(
+      `${title(Permission.ProjectOwner)}, ${title(Permission.ProjectAdmin)} or ${title(Permission.RunbookAdmin)}, or **${title(Permission.EditRunbook)}** together with ${title(Permission.ProjectMember)}, ${title(Permission.RunbookMember)} or **${title(Permission.CreateRunbookExecution)}**.`,
+    );
+  });
+
+  it("find the page from the runbook's menu, and the dashboard's links on its headings", () => {
+    expect(VIEW_SIDE_MENU).toContain('title: "Triggers"');
+    expect(TRIGGERS).toContain("click **Triggers** in its menu");
+
+    for (const heading of ["Run on a schedule", "Call the webhook"]) {
+      expect(TRIGGERS).toContain(`\n## ${heading}\n`);
+    }
+
+    expect(TRIGGERS_COPY).toContain(
+      '"/docs/runbooks/triggers#run-on-a-schedule"',
+    );
+    expect(TRIGGERS_COPY).toContain(
+      '"/docs/runbooks/triggers#call-the-webhook"',
+    );
   });
 });

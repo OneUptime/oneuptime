@@ -58,6 +58,7 @@ const PAGES: ReadonlyArray<RunbookPage> = [
   { page: "runbooks/authoring", navTitle: "Authoring a Runbook" },
   { page: "runbooks/rules", navTitle: "Runbook Rules" },
   { page: "runbooks/running", navTitle: "Running a Runbook" },
+  { page: "runbooks/triggers", navTitle: "Runbook Triggers" },
   { page: "runbooks/agents", navTitle: "Runbook Agents" },
   { page: "runbooks/credentials", navTitle: "Runbook Credentials" },
   {
@@ -93,6 +94,10 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   // The step types table: the editor and the execution page name them in English.
   "runbooks/index": STEP_TYPE_NAMES,
   "runbooks/running": [
+    // A permission's name, as a custom role's permission list shows it.
+    "Create Runbook Execution",
+  ],
+  "runbooks/triggers": [
     // A permission's name, as a custom role's permission list shows it.
     "Create Runbook Execution",
   ],
@@ -145,6 +150,13 @@ const SERVER_MESSAGES: Record<string, Array<string>> = {
   "runbooks/rules": [
     "Alert Severities can only be used by alert runbook rules.",
   ],
+  // What the webhook answers a refused call with, and the API a refused set-up.
+  "runbooks/triggers": [
+    "This runbook is turned off, so it was not started. Turn it on with Run this runbook, under the runbook's Settings.",
+    "You do not have permission to set up this runbook's schedule or webhook.",
+    "No runbook webhook answers at this URL.",
+    "This runbook's webhook is turned off, so the runbook was not started.",
+  ],
 };
 
 /*
@@ -156,6 +168,8 @@ const DASHBOARD_MESSAGES: Record<string, Array<string>> = {
     "You do not have permission to start runbook executions in this project.",
   ],
   "runbooks/agents": ["You do not have permission to view this Runner's key"],
+  // How the Executions lists and a run's page mark a run that made up for missed times.
+  "runbooks/triggers": ["Run once to make up for times OneUptime missed"],
 };
 
 const PATH_SEPARATOR: string = " → ";

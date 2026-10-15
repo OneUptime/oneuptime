@@ -82,6 +82,8 @@ Runbook-machtigingen staan in de machtigingsgroep `Runbook`:
 
 Een rol voert de runbooks uit die binnen zijn bereik vallen. Een toekenning van `RunbookMember`, `RunbookAdmin` of `ProjectMember` die tot bepaalde labels is beperkt, start en bevordert uitvoeringen van de runbooks met die labels, een toekenning beperkt tot **Owned** die van de runbooks die zijn team bezit, en de blokkering van een label door een team neemt die runbooks weg. `CreateRunbookExecution` en `EditRunbookExecution` gaan over uitvoeringen, die geen labels dragen, en bereiken dus elk runbook in het project. Het goedkeuren van een herstelvoorstel dat een runbook start, wordt op dezelfde manier gecontroleerd.
 
+Het schema en de webhook van een runbook starten uitvoeringen zonder dat er iemand bij is, dus een van beide instellen vraagt toestemming om het runbook te bewerken en uit te voeren, en dat geldt ook voor het zien van de webhook-URL. Ze uitzetten vraagt alleen toestemming om het te bewerken. Zie [Runbook-triggers](/docs/runbooks/triggers#wie-triggers-mag-instellen).
+
 Inloggegevens en geheimen vallen buiten `RunbookAdmin`. Ze beheren vereist `ProjectOwner` of `ProjectAdmin`, of de machtigingen `CreateRunbookCredential`, `EditRunbookCredential`, `DeleteRunbookCredential`, `ReadRunbookCredential` en `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret`, `ReadRunbookSecret`. Zie [Runbook-inloggegevens](/docs/runbooks/credentials).
 
 Ook de eigenaars- en labelregels onder **Runbooks → Instellingen** vallen buiten `RunbookAdmin`. Ze beheren vereist `ProjectOwner` of `ProjectAdmin`, of de machtigingen `CreateRunbookOwnerRule` en `CreateRunbookLabelRule` met hun tegenhangers voor bewerken, verwijderen en lezen.

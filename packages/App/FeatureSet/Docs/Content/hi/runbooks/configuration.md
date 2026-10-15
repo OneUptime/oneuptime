@@ -82,6 +82,8 @@ Runbook अनुमतियाँ `Runbook` अनुमति समूह �
 
 कोई भूमिका वही Runbook चलाती है जिन तक उसका दायरा पहुँचता है। कुछ लेबल तक सीमित `RunbookMember`, `RunbookAdmin` या `ProjectMember` अनुदान उन लेबल वाले Runbook के रन शुरू करता और आगे बढ़ाता है, **Owned** तक सीमित अनुदान उन Runbook के जो उसकी टीम के हैं, और किसी टीम का किसी लेबल पर ब्लॉक उन Runbook को उससे हटा देता है। `CreateRunbookExecution` और `EditRunbookExecution` रन से जुड़ी हैं, जिन पर कोई लेबल नहीं होता, इसलिए वे प्रोजेक्ट के हर Runbook तक पहुँचती हैं। Runbook शुरू करने वाले किसी उपचार सुझाव का अनुमोदन भी इसी तरह जाँचा जाता है।
 
+किसी Runbook का शेड्यूल और वेबहुक बिना किसी के मौजूद रहे रन शुरू करते हैं, इसलिए इनमें से किसी को भी सेट करने के लिए Runbook को संपादित करने और चलाने की अनुमति चाहिए, और उसका वेबहुक URL देखने के लिए भी। इन्हें बंद करने के लिए केवल संपादित करने की अनुमति चाहिए। देखें [Runbook ट्रिगर](/docs/runbooks/triggers#कौन-ट्रिगर-सेट-कर-सकता-है)।
+
 क्रेडेंशियल और सीक्रेट `RunbookAdmin` से बाहर हैं। उन्हें प्रबंधित करने के लिए `ProjectOwner` या `ProjectAdmin`, या `CreateRunbookCredential`, `EditRunbookCredential`, `DeleteRunbookCredential`, `ReadRunbookCredential` और `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret`, `ReadRunbookSecret` अनुमतियाँ चाहिए। [Runbook क्रेडेंशियल](/docs/runbooks/credentials) देखें।
 
 **रनबुक → सेटिंग्स** के नीचे के स्वामी नियम और लेबल नियम भी `RunbookAdmin` से बाहर हैं। उन्हें प्रबंधित करने के लिए `ProjectOwner` या `ProjectAdmin`, या `CreateRunbookOwnerRule` और `CreateRunbookLabelRule` अनुमतियाँ और उनकी संपादन, हटाने और पढ़ने वाली संगत अनुमतियाँ चाहिए।

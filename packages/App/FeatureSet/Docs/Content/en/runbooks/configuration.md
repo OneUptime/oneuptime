@@ -82,6 +82,8 @@ Runbook permissions live in the `Runbook` permission group:
 
 A role runs the runbooks its scope reaches. A `RunbookMember`, `RunbookAdmin` or `ProjectMember` grant limited to some labels starts and moves along runs of the runbooks that carry those labels, one scoped to **Owned** those of the runbooks its team owns, and a team's block on a label takes those runbooks away. `CreateRunbookExecution` and `EditRunbookExecution` are about runs, which carry no labels, so they reach every runbook in the project. Approving a remediation suggestion that starts a runbook is checked the same way.
 
+A runbook's schedule and webhook start runs with nobody there, so setting either up takes permission to edit the runbook and to run it, and so does seeing its webhook URL. Turning either off takes only permission to edit it. See [Runbook Triggers](/docs/runbooks/triggers#who-may-set-up-triggers).
+
 Credentials and secrets sit outside `RunbookAdmin`. Managing them takes `ProjectOwner` or `ProjectAdmin`, or the `CreateRunbookCredential`, `EditRunbookCredential`, `DeleteRunbookCredential`, `ReadRunbookCredential` and `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret`, `ReadRunbookSecret` permissions. See [Runbook Credentials](/docs/runbooks/credentials).
 
 The owner rules and label rules under **Runbooks → Settings** sit outside `RunbookAdmin` too. Managing them takes `ProjectOwner` or `ProjectAdmin`, or the `CreateRunbookOwnerRule` and `CreateRunbookLabelRule` permissions and their edit, delete and read counterparts.

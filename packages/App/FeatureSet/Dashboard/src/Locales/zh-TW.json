@@ -11667,7 +11667,7 @@
   "Input delay": "Input delay",
   "Input did not have the shape the parser expected.": "Input did not have the shape the parser expected.",
   "Input tokens": "輸入 token",
-  "Inputs": "輸入",
+  "Inputs": "Inputs",
   "Inputs masked": "Inputs masked",
   "Inputs masked, page text recorded": "Inputs masked, page text recorded",
   "Insert": "插入",
@@ -13144,7 +13144,7 @@
   "Next page": "Next page",
   "Next rail row (when the rail has focus)": "Next rail row (when the rail has focus)",
   "Next row in the current rail tab": "Next row in the current rail tab",
-  "Next runs": "下次執行",
+  "Next runs": "Next runs",
   "Next scan is scheduled when this run finishes": "Next scan is scheduled when this run finishes",
   "Next scheduled poll (UTC)": "Next scheduled poll (UTC)",
   "Next scheduled poll reads": "Next scheduled poll reads",
@@ -29441,5 +29441,7 @@
   "Weekdays": "平日",
   "When OneUptime was down or being upgraded at a scheduled time.": "OneUptime 在排程時間停機或正在升級時。",
   "When it runs": "執行時間",
-  "Write the body as a JSON object, such as {\"host\": \"web-1\"}.": "請將本文寫成 JSON 物件，例如 {\"host\": \"web-1\"}。"
+  "Write the body as a JSON object, such as {\"host\": \"web-1\"}.": "請將本文寫成 JSON 物件，例如 {\"host\": \"web-1\"}。",
+  "On these days": "在這些日子",
+  "Time of day": "時間"
 }
