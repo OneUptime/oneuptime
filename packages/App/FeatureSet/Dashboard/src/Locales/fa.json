@@ -29540,5 +29540,6 @@
   "The import stopped before it finished.": "واردکردن پیش از پایان متوقف شد.",
   "The import was stopped.": "واردکردن متوقف شد.",
   "What it has imported so far stays.": "آنچه تا اینجا وارد شده است باقی می‌ماند.",
-  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "آنچه پیش از توقف وارد شد باقی می‌ماند. تلاش دوباره بقیه را دوباره امتحان می‌کند و هیچ چیزی دو بار ایجاد نمی‌شود."
+  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "آنچه پیش از توقف وارد شد باقی می‌ماند. تلاش دوباره بقیه را دوباره امتحان می‌کند و هیچ چیزی دو بار ایجاد نمی‌شود.",
+  "No monitors: nobody is alerted when one of these devices goes down.": "بدون مانیتور: وقتی یکی از این دستگاه‌ها از کار بیفتد به هیچ‌کس هشدار داده نمی‌شود."
 }

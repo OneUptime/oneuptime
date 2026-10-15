@@ -29540,5 +29540,6 @@
   "The import stopped before it finished.": "Importen stannade innan den var klar.",
   "The import was stopped.": "Importen stoppades.",
   "What it has imported so far stays.": "Det som hittills har importerats finns kvar.",
-  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "Det som importerades innan den stoppades finns kvar. Försök igen provar resten på nytt, och inget skapas två gånger."
+  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "Det som importerades innan den stoppades finns kvar. Försök igen provar resten på nytt, och inget skapas två gånger.",
+  "No monitors: nobody is alerted when one of these devices goes down.": "Inga övervakningar: ingen larmas när någon av de här enheterna går ner."
 }

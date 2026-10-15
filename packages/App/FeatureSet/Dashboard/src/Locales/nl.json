@@ -29540,5 +29540,6 @@
   "The import stopped before it finished.": "De import is gestopt voordat hij klaar was.",
   "The import was stopped.": "De import is gestopt.",
   "What it has imported so far stays.": "Wat er tot nu toe is geïmporteerd, blijft behouden.",
-  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "Wat vóór het stoppen is geïmporteerd, blijft behouden. Opnieuw proberen probeert de rest nog eens, en niets wordt twee keer gemaakt."
+  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "Wat vóór het stoppen is geïmporteerd, blijft behouden. Opnieuw proberen probeert de rest nog eens, en niets wordt twee keer gemaakt.",
+  "No monitors: nobody is alerted when one of these devices goes down.": "Geen monitors: niemand krijgt een waarschuwing als een van deze apparaten uitvalt."
 }

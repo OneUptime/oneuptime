@@ -29540,5 +29540,6 @@
   "The import stopped before it finished.": "インポートは完了する前に止まりました。",
   "The import was stopped.": "インポートは停止されました。",
   "What it has imported so far stays.": "ここまでにインポートしたものはそのまま残ります。",
-  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "停止する前にインポートしたものはそのまま残ります。再試行すると残りをもう一度試し、何も二重に作成されません。"
+  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "停止する前にインポートしたものはそのまま残ります。再試行すると残りをもう一度試し、何も二重に作成されません。",
+  "No monitors: nobody is alerted when one of these devices goes down.": "モニターなし: これらのデバイスが停止しても、誰にもアラートが送られません。"
 }

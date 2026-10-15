@@ -29540,5 +29540,6 @@
   "The import stopped before it finished.": "导入在完成前停止了。",
   "The import was stopped.": "导入已被停止。",
   "What it has imported so far stays.": "已导入的内容会保留。",
-  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "停止前已导入的内容会保留。重试会再次尝试其余主机，不会重复创建任何内容。"
+  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "停止前已导入的内容会保留。重试会再次尝试其余主机，不会重复创建任何内容。",
+  "No monitors: nobody is alerted when one of these devices goes down.": "没有监视器：这些设备中任何一台宕机时都不会有人收到警报。"
 }

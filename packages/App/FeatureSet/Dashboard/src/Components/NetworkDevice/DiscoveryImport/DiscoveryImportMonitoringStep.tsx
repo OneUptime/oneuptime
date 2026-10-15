@@ -527,6 +527,7 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
       <OutcomeSummary
         outcome={outcome}
         monitorRoom={facts?.monitorRoom ?? null}
+        canPickMonitors={!choiceLockedReason}
       />
     </div>
   );
@@ -580,9 +581,16 @@ const PolicyNote: FunctionComponent<{
 export const OutcomeSummary: FunctionComponent<{
   outcome: DiscoveryImportOutcome;
   monitorRoom: number | null;
+  /*
+   * Whether "A monitor for each device" can be picked at all. When it
+   * cannot - the plan has no room, or the reader may not create monitors -
+   * the summary does not suggest picking a template.
+   */
+  canPickMonitors?: boolean | undefined;
 }> = (props: {
   outcome: DiscoveryImportOutcome;
   monitorRoom: number | null;
+  canPickMonitors?: boolean | undefined;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const outcome: DiscoveryImportOutcome = props.outcome;
@@ -726,9 +734,14 @@ export const OutcomeSummary: FunctionComponent<{
     lines.push({
       key: "nobody",
       tone: "warning",
-      text: translator.translateText(
-        "No monitors: nobody is alerted when one of these devices goes down. Pick a monitor template, or set up an alert policy later.",
-      ) as string,
+      text:
+        props.canPickMonitors === false
+          ? (translator.translateText(
+              "No monitors: nobody is alerted when one of these devices goes down.",
+            ) as string)
+          : (translator.translateText(
+              "No monitors: nobody is alerted when one of these devices goes down. Pick a monitor template, or set up an alert policy later.",
+            ) as string),
     });
   }
 

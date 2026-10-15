@@ -29540,5 +29540,6 @@
   "The import stopped before it finished.": "आयात पूरा होने से पहले रुक गया।",
   "The import was stopped.": "आयात रोक दिया गया।",
   "What it has imported so far stays.": "अब तक जो आयात हुआ है, वह बना रहेगा।",
-  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "रुकने से पहले जो आयात हुआ, वह बना रहता है। दोबारा आज़माने पर बाकी फिर से आज़माए जाते हैं, और कुछ भी दो बार नहीं बनता।"
+  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "रुकने से पहले जो आयात हुआ, वह बना रहता है। दोबारा आज़माने पर बाकी फिर से आज़माए जाते हैं, और कुछ भी दो बार नहीं बनता।",
+  "No monitors: nobody is alerted when one of these devices goes down.": "कोई मॉनिटर नहीं: इनमें से कोई डिवाइस बंद होने पर किसी को अलर्ट नहीं मिलेगा।"
 }

@@ -29540,5 +29540,6 @@
   "The import stopped before it finished.": "가져오기가 끝나기 전에 멈췄습니다.",
   "The import was stopped.": "가져오기가 중지되었습니다.",
   "What it has imported so far stays.": "지금까지 가져온 항목은 그대로 남습니다.",
-  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "중지되기 전에 가져온 항목은 그대로 남습니다. 다시 시도하면 나머지를 다시 시도하며 아무것도 두 번 만들지 않습니다."
+  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "중지되기 전에 가져온 항목은 그대로 남습니다. 다시 시도하면 나머지를 다시 시도하며 아무것도 두 번 만들지 않습니다.",
+  "No monitors: nobody is alerted when one of these devices goes down.": "모니터 없음: 이 장치 중 하나가 중단되어도 아무도 경고를 받지 않습니다."
 }

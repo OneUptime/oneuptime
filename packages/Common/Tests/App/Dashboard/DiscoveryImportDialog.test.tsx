@@ -912,7 +912,10 @@ describe("how the devices are monitored", () => {
       "3 devices answered ping only: they are pinged every 5 min.",
     );
     expect(outcomeLine("vendor")).toBeInTheDocument();
-    expect(outcomeLine("nobody")).toBeInTheDocument();
+    // A template can be picked here, so the summary says so.
+    expect(outcomeLine("nobody")).toHaveTextContent(
+      "No monitors: nobody is alerted when one of these devices goes down. Pick a monitor template, or set up an alert policy later.",
+    );
 
     await submitImport();
 
@@ -1059,6 +1062,10 @@ describe("how the devices are monitored", () => {
       screen.getByTestId("discovery-import-alerting-locked-reason"),
     ).not.toBeEmptyDOMElement();
     expect(screen.getByTestId("discovery-import-alerting-none")).toBeChecked();
+    // The summary does not suggest a template that cannot be picked.
+    expect(outcomeLine("nobody")).toHaveTextContent(
+      /^No monitors: nobody is alerted when one of these devices goes down\.$/,
+    );
   });
 
   test("a plan at its monitor limit locks the monitors, and says so", async () => {
@@ -1078,6 +1085,9 @@ describe("how the devices are monitored", () => {
       screen.getByTestId("discovery-import-alerting-locked-reason"),
     ).toHaveTextContent(
       "Your plan has no room for more monitors, so the devices are imported without one.",
+    );
+    expect(outcomeLine("nobody")).toHaveTextContent(
+      /^No monitors: nobody is alerted when one of these devices goes down\.$/,
     );
   });
 

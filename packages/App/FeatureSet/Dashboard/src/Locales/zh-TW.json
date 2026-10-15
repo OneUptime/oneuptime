@@ -29540,5 +29540,6 @@
   "The import stopped before it finished.": "匯入在完成前停止了。",
   "The import was stopped.": "匯入已被停止。",
   "What it has imported so far stays.": "已匯入的內容會保留。",
-  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "停止前已匯入的內容會保留。重試會再次嘗試其餘主機，且不會重複建立任何項目。"
+  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "停止前已匯入的內容會保留。重試會再次嘗試其餘主機，且不會重複建立任何項目。",
+  "No monitors: nobody is alerted when one of these devices goes down.": "沒有監測器：這些裝置任何一台停止運作時都不會有人收到警示。"
 }

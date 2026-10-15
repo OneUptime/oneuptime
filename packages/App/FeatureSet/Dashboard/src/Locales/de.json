@@ -29540,5 +29540,6 @@
   "The import stopped before it finished.": "Der Import wurde vor dem Ende angehalten.",
   "The import was stopped.": "Der Import wurde angehalten.",
   "What it has imported so far stays.": "Was bisher importiert wurde, bleibt erhalten.",
-  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "Was vor dem Anhalten importiert wurde, bleibt erhalten. Ein erneuter Versuch probiert den Rest noch einmal, und nichts wird doppelt erstellt."
+  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "Was vor dem Anhalten importiert wurde, bleibt erhalten. Ein erneuter Versuch probiert den Rest noch einmal, und nichts wird doppelt erstellt.",
+  "No monitors: nobody is alerted when one of these devices goes down.": "Keine Überwachungen: Niemand wird gewarnt, wenn eines dieser Geräte ausfällt."
 }
