@@ -472,6 +472,42 @@ describe.each(BARS)(
       expect(screen.getByText("production")).toBeInTheDocument();
     });
 
+    test("a key too long for the dropdown wraps inside it, in every line that names it", () => {
+      const longKey: string =
+        "k8s.deployment.annotations.kubectl.kubernetes.io/last-applied-configuration";
+      const { rerender } = renderBar(Bar, {
+        value: `@${longKey}:`,
+        isValuesLoading: true,
+      });
+
+      // The loading line's words may shrink below the key's length, and break.
+      const loadingWords: HTMLElement = keyInSentence(dropdown())
+        .parentElement as HTMLElement;
+      expect(loadingWords).toHaveClass("min-w-0", "break-words");
+
+      rerender({
+        value: `@${longKey}:`,
+        valuesError: TIMED_OUT,
+        onRetryValues: jest.fn(),
+      });
+      expect(
+        keyInSentence(
+          screen.getByTestId(ATTRIBUTE_VALUES_LOAD_ERROR_TEST_ID),
+        ).closest("p"),
+      ).toHaveClass("break-words");
+
+      rerender({
+        value: `@${longKey}:`,
+        valueSuggestions: { [longKey]: [] },
+        hasNoValues: true,
+      });
+      expect(
+        keyInSentence(
+          screen.getByTestId(ATTRIBUTE_VALUES_EMPTY_TEST_ID),
+        ).closest("p"),
+      ).toHaveClass("break-words");
+    });
+
     test("no values, no error, not loading, nothing found: no dropdown at all", () => {
       renderBar(Bar, { value: "@env:" });
 

@@ -62,15 +62,16 @@ const TelemetrySearchSuggestions: FunctionComponent<
       {/*
        * Spinner and words where the could-not-load and no-values rows put
        * their icon and sentence, so the sentence does not jump when the
-       * line turns into one of them.
+       * line turns into one of them - and wraps as theirs does, a long key
+       * included, instead of running out of the dropdown.
        */}
       {props.isLoading && (
         <div
           data-testid={SEARCH_SUGGESTIONS_LOADING_TEST_ID}
-          className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-gray-500"
+          className="flex w-full items-start gap-2.5 px-3 py-2.5 text-left text-sm text-gray-500"
         >
           <svg
-            className="h-4 w-4 flex-none animate-spin text-indigo-500"
+            className="mt-0.5 h-4 w-4 flex-none animate-spin text-indigo-500"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -90,7 +91,7 @@ const TelemetrySearchSuggestions: FunctionComponent<
               d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
             ></path>
           </svg>
-          <span>
+          <span className="min-w-0 break-words">
             {props.loadingMessage || translator.translateText("Loading...")}
           </span>
         </div>
