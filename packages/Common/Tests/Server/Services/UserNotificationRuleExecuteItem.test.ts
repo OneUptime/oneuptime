@@ -1341,7 +1341,7 @@ describe("UserNotificationRuleService.startUserNotificationRulesExecution", () =
 
     const getRules: jest.SpyInstance = jest.spyOn(
       WorkspaceNotificationRuleService,
-      "getNotificationRulesWhereInviteOwnersIsTrue",
+      "getNotificationRulesWhereOnCallIsTrue",
     );
 
     await expect(
@@ -1372,6 +1372,7 @@ describe("UserNotificationRuleService.startUserNotificationRulesExecution", () =
 
 describe("UserNotificationRuleService.runWorkspaceRulesForOnCallNotification", () => {
   let getRules: jest.SpyInstance;
+  let getOwnerRules: jest.SpyInstance;
   let inviteUsers: jest.SpyInstance;
   let incidentChannels: jest.SpyInstance;
   let alertChannels: jest.SpyInstance;
@@ -1383,6 +1384,13 @@ describe("UserNotificationRuleService.runWorkspaceRulesForOnCallNotification", (
     });
 
     getRules = jest
+      .spyOn(
+        WorkspaceNotificationRuleService,
+        "getNotificationRulesWhereOnCallIsTrue",
+      )
+      .mockResolvedValue([] as never);
+
+    getOwnerRules = jest
       .spyOn(
         WorkspaceNotificationRuleService,
         "getNotificationRulesWhereInviteOwnersIsTrue",
@@ -1517,6 +1525,25 @@ describe("UserNotificationRuleService.runWorkspaceRulesForOnCallNotification", (
     expect(incidentChannels).not.toHaveBeenCalled();
   });
 
+  /*
+   * REGRESSION: the person paged was invited by the rules that invite
+   * OWNERS. A rule with "Automatically Invite On Call Users" on and "Invite
+   * Owners" off created the incident's channel and never added the on-call
+   * user it paged (OnCallUsersInvitedToNewChannel.test.ts).
+   */
+  test("REGRESSION: the rules are the ones that invite on-call users, never the ones that invite owners", async () => {
+    for (const record of [{ incidentId: INCIDENT_ID }, { alertId: ALERT_ID }]) {
+      await UserNotificationRuleService.runWorkspaceRulesForOnCallNotification({
+        projectId: PROJECT_ID,
+        userId: USER_ID,
+        ...record,
+      });
+    }
+
+    expect(getRules).toHaveBeenCalledTimes(2);
+    expect(getOwnerRules).not.toHaveBeenCalled();
+  });
+
   test("only the notified user is invited, with the resolved rules and channels", async () => {
     const rules: Array<unknown> = [{ _id: "rule-1" }];
     const channels: Array<unknown> = [{ id: "channel-1", name: "#incidents" }];
@@ -1546,6 +1573,53 @@ describe("UserNotificationRuleService.runWorkspaceRulesForOnCallNotification", (
     expect(inviteArg.projectId.toString()).toBe(PROJECT_ID.toString());
     expect(inviteArg.userIds).toHaveLength(1);
     expect(inviteArg.userIds[0]?.toString()).toBe(USER_ID.toString());
+  });
+
+  /*
+   * The invite is logged against the record it was for, so it is listed on
+   * the incident's (or alert's) Notification Logs > Workspace tab, beside
+   * the channel's creation and messages - not only on the project's.
+   */
+  test("the invite names the incident it was for, and no alert", async () => {
+    await UserNotificationRuleService.runWorkspaceRulesForOnCallNotification({
+      projectId: PROJECT_ID,
+      incidentId: INCIDENT_ID,
+      userId: USER_ID,
+    });
+
+    const inviteArg: {
+      notificationFor: { incidentId?: ObjectID; alertId?: ObjectID };
+    } = inviteUsers.mock.calls[0][0] as {
+      notificationFor: { incidentId?: ObjectID; alertId?: ObjectID };
+    };
+    expect(inviteArg.notificationFor.incidentId?.toString()).toBe(
+      INCIDENT_ID.toString(),
+    );
+    expect(inviteArg.notificationFor.alertId).toBeUndefined();
+  });
+
+  test("the invite names the alert it was for, and no incident", async () => {
+    const channels: Array<unknown> = [{ id: "channel-2", name: "alert-12" }];
+    alertChannels.mockResolvedValue(channels as never);
+
+    await UserNotificationRuleService.runWorkspaceRulesForOnCallNotification({
+      projectId: PROJECT_ID,
+      alertId: ALERT_ID,
+      userId: USER_ID,
+    });
+
+    const inviteArg: {
+      workspaceChannels: Array<unknown>;
+      notificationFor: { incidentId?: ObjectID; alertId?: ObjectID };
+    } = inviteUsers.mock.calls[0][0] as {
+      workspaceChannels: Array<unknown>;
+      notificationFor: { incidentId?: ObjectID; alertId?: ObjectID };
+    };
+    expect(inviteArg.workspaceChannels).toBe(channels);
+    expect(inviteArg.notificationFor.alertId?.toString()).toBe(
+      ALERT_ID.toString(),
+    );
+    expect(inviteArg.notificationFor.incidentId).toBeUndefined();
   });
 
   test("a failing invite is swallowed and logged - it never rejects the caller", async () => {
