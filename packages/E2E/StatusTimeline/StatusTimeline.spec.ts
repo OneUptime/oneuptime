@@ -1237,6 +1237,25 @@ test.describe("an incident's Status Timeline", () => {
     await screenshot(page, "incident-dark");
   });
 
+  test("the subscriber notification under each change is in the reader's language", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openIncident(page, "lang=de");
+
+    const notifications: Locator = page.getByTestId(
+      "state-timeline-subscriber-notification",
+    );
+
+    await expect(notifications.first()).toContainText(
+      "Gesendete Benachrichtigungen",
+    );
+    await expect(
+      page.getByText("Notifications Sent", { exact: true }),
+    ).toHaveCount(0);
+  });
+
   test("the incident's only state: Delete locked, in the server's words", async ({
     page,
   }: {

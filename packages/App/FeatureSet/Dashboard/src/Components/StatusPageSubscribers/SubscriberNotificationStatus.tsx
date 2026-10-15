@@ -380,9 +380,14 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
     <div className={`flex items-center gap-2 ${className}`}>
       <IconText
         text={
-          statusText
-            ? translateString(statusText) || statusText
-            : statusInfo.text
+          /*
+           * In the reader's language, the badge's own words as much as a
+           * caller's: "Notifications Sent" was drawn in English on every
+           * page whatever the language.
+           */
+          translateString(statusText || statusInfo.text) ||
+          statusText ||
+          statusInfo.text
         }
         icon={statusInfo.icon}
         iconColor={iconColor}
