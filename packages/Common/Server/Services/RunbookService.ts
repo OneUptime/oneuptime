@@ -66,7 +66,7 @@ export const RUNBOOK_SCHEDULE_TIMING_COLUMNS: ReadonlyArray<string> = [
 export const RUNBOOK_SCHEDULE_NEEDS_CRON_MESSAGE: string =
   "Set when the runbook runs (Schedule Cron) before turning its schedule on.";
 
-// What an update tells its later hooks (onBeforeUpdate's carryForward).
+// What an update of the triggers tells its later hooks.
 interface RunbookUpdateCarry {
   movesSchedule: boolean;
   turnsWebhookOn: boolean;
@@ -512,21 +512,24 @@ export class Service extends ProjectReferencesService<Model> {
         ] === true,
     };
 
-    if (carry.movesSchedule) {
-      this.updatesThatMoveTheSchedule.add(onUpdate.updateBy);
+    if (carry.movesSchedule || carry.turnsWebhookOn) {
+      // The update as handed in, and as handed on: the later hooks get one or the other.
+      this.triggerUpdates.set(updateBy, carry);
+      this.triggerUpdates.set(onUpdate.updateBy, carry);
     }
 
-    return { updateBy: onUpdate.updateBy, carryForward: carry };
+    // What the hook it extends returned, as it returned it.
+    return onUpdate;
   }
 
   /*
-   * The updates that change when the schedule runs, from onBeforeUpdate to
-   * onUpdatePermitted. Keyed on the update, as the measurement services
-   * key theirs.
+   * The updates that change the schedule or turn the webhook on, from
+   * onBeforeUpdate to onUpdatePermitted and onUpdateSuccess. Keyed on the
+   * update, as the measurement services key theirs, so carryForward stays
+   * the hook it extends' own.
    */
-  private updatesThatMoveTheSchedule: WeakSet<UpdateBy<Model>> = new WeakSet<
-    UpdateBy<Model>
-  >();
+  private triggerUpdates: WeakMap<UpdateBy<Model>, RunbookUpdateCarry> =
+    new WeakMap<UpdateBy<Model>, RunbookUpdateCarry>();
 
   /*
    * Clears the next run, and a run waiting for the one before it, of a
@@ -541,7 +544,7 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<void> {
     await super.onUpdatePermitted(updateBy);
 
-    if (!this.updatesThatMoveTheSchedule.delete(updateBy)) {
+    if (!this.triggerUpdates.get(updateBy)?.movesSchedule) {
       return;
     }
 
@@ -564,8 +567,10 @@ export class Service extends ProjectReferencesService<Model> {
       updatedItemIds,
     );
 
-    const carry: RunbookUpdateCarry | null =
-      (onUpdate.carryForward as RunbookUpdateCarry | null) || null;
+    const carry: RunbookUpdateCarry | undefined = this.triggerUpdates.get(
+      onUpdate.updateBy,
+    );
+    this.triggerUpdates.delete(onUpdate.updateBy);
 
     for (const runbookId of updatedItemIds) {
       try {
