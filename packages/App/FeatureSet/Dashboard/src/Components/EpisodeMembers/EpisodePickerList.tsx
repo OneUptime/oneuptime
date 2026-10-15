@@ -170,6 +170,11 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
             disabled={isDisabled}
             aria-describedby={item.note ? noteId : undefined}
             onChange={() => {
+              // A row that cannot be picked is not, however it is reached.
+              if (isDisabled) {
+                return;
+              }
+
               props.onToggle(item.id);
             }}
           />
