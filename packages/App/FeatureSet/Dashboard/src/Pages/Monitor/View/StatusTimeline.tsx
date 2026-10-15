@@ -19,6 +19,14 @@ import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
+import ModelStatusTimeline from "Common/UI/Components/StatusTimeline/ModelStatusTimeline";
+import StatusTimelineViewSwitch, {
+  StatusTimelineView,
+  useStatusTimelineView,
+} from "Common/UI/Components/StatusTimeline/StatusTimelineView";
+import TimeRange from "Common/Types/Time/TimeRange";
+import { JSONObject } from "Common/Types/JSON";
 import {
   DeleteConfirmation,
   ModalTableBulkDefaultActions,
@@ -62,6 +70,68 @@ type StatusEventDeleteEffect =
   | { kind: "previous-is-current-again"; previousStatus: string }
   | { kind: "previous-takes-over"; previousStatus: string }
   | { kind: "not-shown-anymore" };
+
+/*
+ * What adding a status event asks: the status, and when it began - now,
+ * unless it began earlier. The timeline and the table ask the same.
+ */
+export const MONITOR_STATUS_EVENT_FORM_FIELDS: Array<
+  ModelField<MonitorStatusTimeline>
+> = [
+  {
+    field: {
+      monitorStatus: true,
+    },
+    title: "Monitor Status",
+    description: "The status the monitor changed to.",
+    fieldType: FormFieldSchemaType.Dropdown,
+    required: true,
+    placeholder: "Monitor Status",
+    dropdownModal: {
+      type: MonitorStatus,
+      labelField: "name",
+      valueField: "_id",
+      sort: {
+        priority: SortOrder.Ascending,
+      },
+    },
+  },
+  {
+    field: {
+      startsAt: true,
+    },
+    title: "Starts At",
+    /*
+     * Its own words, not the column's: the column's are written for the
+     * API, and speak of correcting a time that a new row does not have yet.
+     */
+    description: "When the monitor changed to this status.",
+    fieldType: FormFieldSchemaType.DateTime,
+    required: true,
+    placeholder: "Starts At",
+    getDefaultValue: () => {
+      return OneUptimeDate.getCurrentDate();
+    },
+  },
+];
+
+const NO_ROOT_CAUSE_TEXT: string = translationKey(
+  "No root cause. This monitor status could be created manually.",
+);
+const NO_LOGS_TEXT: string = translationKey("No logs for this status event.");
+const LOGS_DESCRIPTION: string = translationKey(
+  "What OneUptime recorded when this monitor changed to this status, such as the check that caused it.",
+);
+
+/*
+ * How serious a monitor status is, for the timeline: its priority (higher
+ * is worse), so a cluster of short changes shows the worst of them.
+ */
+const getMonitorStatusRank: (state: JSONObject) => number | undefined = (
+  state: JSONObject,
+): number | undefined => {
+  return typeof state["priority"] === "number" ? state["priority"] : undefined;
+};
 
 // A status event's start, as the table's Starts At column shows it.
 const formatStartsAt: (event: MonitorStatusTimeline) => string = (
@@ -397,6 +467,79 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
     };
   };
 
+  const onBeforeCreate: (
+    item: MonitorStatusTimeline,
+  ) => Promise<MonitorStatusTimeline> = (
+    item: MonitorStatusTimeline,
+  ): Promise<MonitorStatusTimeline> => {
+    if (!props.currentProject || !props.currentProject._id) {
+      throw new BadDataException("Project ID cannot be null");
+    }
+    item.monitorId = modelId;
+    item.projectId = new ObjectID(props.currentProject._id);
+    return Promise.resolve(item);
+  };
+
+  /*
+   * The status history is a timeline (ModelStatusTimeline): a band drawn to
+   * scale over a period - the last month first - and every status under it.
+   * The table it used to be is one click away, for what only a table does:
+   * selecting events to delete them together, filters, saved views and a
+   * CSV export.
+   */
+  const [view, setView] = useStatusTimelineView();
+
+  const viewSwitch: ReactElement = (
+    <StatusTimelineViewSwitch
+      key="status-timeline-view-switch"
+      value={view}
+      onChange={setView}
+    />
+  );
+
+  if (view === StatusTimelineView.Timeline) {
+    return (
+      <Fragment>
+        <DisabledWarning monitorId={modelId} />
+        <ModelStatusTimeline<MonitorStatusTimeline>
+          modelType={MonitorStatusTimeline}
+          id="monitor-status-timeline"
+          name="Monitor > Status Timeline"
+          title="Status Timeline"
+          description="Each status this monitor has been in, when it began and how long it lasted."
+          headerElement={viewSwitch}
+          query={{
+            monitorId: modelId,
+            projectId: ProjectUtil.getCurrentProjectId()!,
+          }}
+          stateColumn="monitorStatus"
+          stateSelect={{ priority: true }}
+          getStateRank={getMonitorStatusRank}
+          defaultRange={TimeRange.PAST_ONE_MONTH}
+          showShare={true}
+          ariaLabel="Status timeline of this monitor"
+          emptyMessage="No status recorded for this monitor yet."
+          isCreateable={true}
+          formFields={MONITOR_STATUS_EVENT_FORM_FIELDS}
+          onBeforeCreate={onBeforeCreate}
+          isDeleteable={true}
+          getDeleteDisabledReason={getDeleteDisabledReason}
+          getDeleteConfirmation={getDeleteConfirmation}
+          getItemName={getStatusEventName}
+          onFetchSuccess={() => {
+            void loadDeleteLock();
+          }}
+          causeColumn="rootCause"
+          noCauseText={NO_ROOT_CAUSE_TEXT}
+          logColumn="statusChangeLog"
+          logsDescription={LOGS_DESCRIPTION}
+          noLogsText={NO_LOGS_TEXT}
+          showViewIdButton={true}
+        />
+      </Fragment>
+    );
+  }
+
   return (
     <Fragment>
       <DisabledWarning monitorId={modelId} />
@@ -445,7 +588,8 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
               setRootCause(
                 item["rootCause"]
                   ? item["rootCause"].toString()
-                  : "No root cause. This monitor status could be created manually.",
+                  : translator.translateText(NO_ROOT_CAUSE_TEXT) ||
+                      NO_ROOT_CAUSE_TEXT,
               );
               setShowRootCause(true);
 
@@ -463,7 +607,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
               setLogs(
                 item["statusChangeLog"]
                   ? JSON.stringify(item["statusChangeLog"], null, 2)
-                  : "No logs for this status event.",
+                  : translator.translateText(NO_LOGS_TEXT) || NO_LOGS_TEXT,
               );
               setShowViewLogsModal(true);
 
@@ -477,53 +621,15 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
         }}
         sortBy="startsAt"
         sortOrder={SortOrder.Descending}
-        onBeforeCreate={(
-          item: MonitorStatusTimeline,
-        ): Promise<MonitorStatusTimeline> => {
-          if (!props.currentProject || !props.currentProject._id) {
-            throw new BadDataException("Project ID cannot be null");
-          }
-          item.monitorId = modelId;
-          item.projectId = new ObjectID(props.currentProject._id);
-          return Promise.resolve(item);
-        }}
+        onBeforeCreate={onBeforeCreate}
         cardProps={{
           title: "Status Timeline",
           description:
             "Each status this monitor has been in, when it began and how long it lasted.",
+          rightElement: viewSwitch,
         }}
         noItemsMessage={"No status timeline created for this monitor so far."}
-        formFields={[
-          {
-            field: {
-              monitorStatus: true,
-            },
-            title: "Monitor Status",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            placeholder: "Monitor Status",
-            dropdownModal: {
-              type: MonitorStatus,
-              labelField: "name",
-              valueField: "_id",
-              sort: {
-                priority: SortOrder.Ascending,
-              },
-            },
-          },
-          {
-            field: {
-              startsAt: true,
-            },
-            title: "Starts At",
-            fieldType: FormFieldSchemaType.DateTime,
-            required: true,
-            placeholder: "Starts At",
-            getDefaultValue: () => {
-              return OneUptimeDate.getCurrentDate();
-            },
-          },
-        ]}
+        formFields={MONITOR_STATUS_EVENT_FORM_FIELDS}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[
@@ -597,7 +703,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
       {showViewLogsModal ? (
         <Modal
           title={"Why did the status change?"}
-          description="What OneUptime recorded when this monitor changed to this status, such as the check that caused it."
+          description={LOGS_DESCRIPTION}
           isLoading={false}
           modalWidth={ModalWidth.Large}
           onSubmit={() => {

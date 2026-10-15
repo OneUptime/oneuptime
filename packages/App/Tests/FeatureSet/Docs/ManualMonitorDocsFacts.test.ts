@@ -41,6 +41,8 @@ const MONITOR_STATUS_SETTINGS_FILE: string =
   "App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorStatus.tsx";
 const MODEL_TABLE_FILE: string =
   "Common/UI/Components/ModelTable/BaseModelTable.tsx";
+const TIMELINE_VIEW_FILE: string =
+  "Common/UI/Components/StatusTimeline/ModelStatusTimeline.tsx";
 const TIMELINE_SERVICE_FILE: string =
   "Common/Server/Services/MonitorStatusTimelineService.ts";
 const INCIDENT_SERVICE_FILE: string =
@@ -200,7 +202,17 @@ describe("changing its status in the dashboard", () => {
     const singularName: string = new MonitorStatusTimeline().singularName!;
 
     expect(singularName).toBe("Monitor Status Event");
-    expect(timeline).toContain("isCreateable={true}");
+    /*
+     * The page opens on the timeline (ModelStatusTimeline) and keeps the
+     * table one click away; both offer the button, worded the same.
+     */
+    expect(
+      timeline.split("isCreateable={true}").length - 1,
+    ).toBeGreaterThanOrEqual(2);
+    expect(timeline).toContain("<ModelStatusTimeline<MonitorStatusTimeline>");
+    expect(readRepoFile(TIMELINE_VIEW_FILE)).toContain(
+      "const createButtonTitle: string = translateCreateAction(translator, {",
+    );
     // ModelTable's create button and the dialog's submit: "Create {{itemName}}".
     expect(readRepoFile(MODEL_TABLE_FILE)).toContain(
       'Create: translationKey("Create {{itemName}}"),',
@@ -213,13 +225,22 @@ describe("changing its status in the dashboard", () => {
 
   it("asks for the status and when it starts, now by default", () => {
     const timeline: string = readRepoFile(STATUS_TIMELINE_PAGE_FILE);
-    const fields: string = sourceBetween(timeline, "formFields={[", "]}");
+    const fields: string = sourceBetween(
+      timeline,
+      "export const MONITOR_STATUS_EVENT_FORM_FIELDS",
+      "];",
+    );
 
     expect(fields).toContain('title: "Monitor Status",');
     expect(fields).toContain('title: "Starts At",');
     expect(fields).toContain(
-      "getDefaultValue: () => {\n              return OneUptimeDate.getCurrentDate();",
+      "getDefaultValue: () => {\n      return OneUptimeDate.getCurrentDate();",
     );
+    // The timeline and the table ask the same.
+    expect(
+      timeline.split("formFields={MONITOR_STATUS_EVENT_FORM_FIELDS}").length -
+        1,
+    ).toBe(2);
     expect(dashboard).toContain(
       "Pick the **Monitor Status**. **Starts At** is now; set an earlier time if the change happened earlier.",
     );

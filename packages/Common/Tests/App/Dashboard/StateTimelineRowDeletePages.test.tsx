@@ -196,6 +196,10 @@ import AlertStateTimelinePage from "../../../../App/FeatureSet/Dashboard/src/Pag
 import ScheduledMaintenanceStateTimelinePage from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/View/StateTimeline";
 import IncidentEpisodeStateTimelinePage from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/EpisodeView/StateTimeline";
 import AlertEpisodeStateTimelinePage from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/EpisodeView/StateTimeline";
+import {
+  forgetStatusTimelineView,
+  showStatusTimelinesAsTable,
+} from "../../Helpers/StatusTimelineViewChoice";
 
 const WHITESPACE_RUN: RegExp = /\s+/g;
 
@@ -411,11 +415,17 @@ beforeEach(() => {
   readsFail = false;
   jest.spyOn(Navigation, "getLastParamAsObjectID").mockReturnValue(RECORD_ID);
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+  /*
+   * These read the table, one click from the timeline each page opens on;
+   * StatusTimelineDeleteLock holds the timeline to the same rules.
+   */
+  showStatusTimelinesAsTable();
 });
 
 afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
+  forgetStatusTimelineView();
 });
 
 describe.each(PAGES)("$name", (pageCase: PageCase) => {

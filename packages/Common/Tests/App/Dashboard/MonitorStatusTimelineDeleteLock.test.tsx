@@ -159,6 +159,10 @@ import {
   ONLY_STATUS_EVENT_MESSAGE,
 } from "../../../Utils/Monitor/MonitorStatusEventDelete";
 import { ModalTableBulkDefaultActions } from "../../../UI/Components/ModelTable/BaseModelTable";
+import {
+  forgetStatusTimelineView,
+  showStatusTimelinesAsTable,
+} from "../../Helpers/StatusTimelineViewChoice";
 
 const NOW: Date = new Date("2026-10-14T12:00:00.000Z");
 const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
@@ -285,12 +289,18 @@ beforeEach(() => {
   afterAnswer = { data: [], count: 0 };
   jest.spyOn(Navigation, "getLastParamAsObjectID").mockReturnValue(MONITOR_ID);
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+  /*
+   * These read the table, one click from the timeline the page opens on;
+   * StatusTimelineDeleteLock holds the timeline to the same rules.
+   */
+  showStatusTimelinesAsTable();
 });
 
 afterEach(() => {
   cleanup();
   jest.useRealTimers();
   jest.restoreAllMocks();
+  forgetStatusTimelineView();
 });
 
 describe("the monitor's Status Timeline locks the Delete the server refuses", () => {
