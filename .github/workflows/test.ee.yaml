@@ -71,6 +71,14 @@ jobs:
       - name: Run App's UI source guards with ee/ present
         working-directory: packages/App
         run: node node_modules/.bin/jest Tests/MoreMenuItemIconsGuard.test.ts Tests/RecordIdLineGuard.test.ts Tests/ShowIdDialogGuard.test.ts Tests/Dashboard/ListDeletePolicy.test.ts --forceExit
+      # App's guard that every menu path a text writes ("User Settings >
+      # Notification Settings", "Project Settings > Workspace > Slack") is one
+      # a reader can follow reads ee/Server, ee/Dashboard and ee/AdminDashboard
+      # too. The App Test job deletes ee/ first, so only this run holds the
+      # Enterprise texts to it. It only reads files.
+      - name: Run App's menu path guard with ee/ present
+        working-directory: packages/App
+        run: node node_modules/.bin/jest Tests/Dashboard/SettingsMenuPathsInProductText.test.ts --forceExit
       # App's docs facts that hold a page to code in ee/ as well as in core:
       # the identity pages to the SCIM server and its pages, the SLO pages to
       # the audit log settings, the upgrading notes to the enterprise Health

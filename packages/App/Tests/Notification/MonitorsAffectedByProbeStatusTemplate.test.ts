@@ -77,7 +77,7 @@ const XSS_MONITOR_NAME: string = "<img src=x onerror=alert(1)>";
 const XSS_LINK_NAME: string = '<a href="https://evil">x</a>';
 
 const PREFERENCES_FALLBACK: string =
-  "Dashboard > More > User Settings > Notification Settings";
+  "Dashboard > User Settings > Notification Settings";
 
 const OWNERSHIP_SENTENCES: Record<ProbeMonitorsRecipientOwnership, string> = {
   [ProbeMonitorsRecipientOwnership.MonitorOwner]:
