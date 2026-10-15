@@ -57,6 +57,7 @@ const PAGE_MODULES: Record<string, string> = {
   "View/Steps": "Steps",
   "View/Executions": "RunbookExecutions",
   "View/ExecutionView": "ExecutionView",
+  "View/Triggers": "Triggers",
   "View/Owners": "Owners",
   "View/AuditLogs": "AuditLogs",
   "View/Settings": "RunbookSettings",
@@ -204,6 +205,7 @@ describe("the Runner pages are routed inside Runbooks", () => {
     for (const runbookTab of [
       "Steps",
       "RunbookExecutions",
+      "Triggers",
       "Owners",
       "AuditLogs",
       "RunbookSettings",
@@ -288,6 +290,12 @@ describe("the rest of the Runbooks route group is where it was", () => {
       "ExecutionView",
       "view-layout",
       PageMap.RUNBOOK_VIEW_EXECUTION,
+    ],
+    [
+      `${BASE}/${ID}/triggers`,
+      "Triggers",
+      "view-layout",
+      PageMap.RUNBOOK_VIEW_TRIGGERS,
     ],
     [
       `${BASE}/${ID}/owners`,
