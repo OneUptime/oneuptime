@@ -575,9 +575,9 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     const fieldAt: number = form.indexOf('title: "Channel Name Prefix"');
 
     expect(fieldAt).toBeGreaterThan(-1);
-    expect(
-      form.slice(fieldAt, form.indexOf("fieldType:", fieldAt)),
-    ).toContain("required: false,");
+    expect(form.slice(fieldAt, form.indexOf("fieldType:", fieldAt))).toContain(
+      "required: false,",
+    );
 
     // The server names every channel with it, rule by rule.
     expect(service).toContain("WorkspaceChannelName.getPrefix(workspaceRules)");

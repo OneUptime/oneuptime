@@ -69,9 +69,9 @@ function registeredNames(): Array<string> {
 
 describe("KeepChannelNamePrefixOfRulesWithoutOne1802200000000", () => {
   test("is registered once, under the name its class carries", () => {
-    expect(
-      new KeepChannelNamePrefixOfRulesWithoutOne1802200000000().name,
-    ).toBe(MIGRATION_NAME);
+    expect(new KeepChannelNamePrefixOfRulesWithoutOne1802200000000().name).toBe(
+      MIGRATION_NAME,
+    );
     expect(SchemaMigrations).toContain(
       KeepChannelNamePrefixOfRulesWithoutOne1802200000000,
     );

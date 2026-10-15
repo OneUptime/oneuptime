@@ -141,9 +141,7 @@ describe("the Destination step's check", () => {
 
   // Named after its record (inc-42), with the rule's prefix, if any, in front.
   test("passes a rule that creates a channel without a prefix", () => {
-    expect(
-      destinationError(rule({ shouldCreateNewChannel: true })),
-    ).toBeNull();
+    expect(destinationError(rule({ shouldCreateNewChannel: true }))).toBeNull();
   });
 
   test("offers Microsoft Teams chats as a destination too", () => {

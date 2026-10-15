@@ -400,9 +400,11 @@ describe("the customer's question: inc-123 instead of foo-inc-123", () => {
 
     await createIncident();
 
-    expect(teamsCreates.map((create: TeamsCreate) => {
-      return [create.teamId, create.displayName];
-    })).toEqual([[TEAM_OPS, "foo-inc-123"]]);
+    expect(
+      teamsCreates.map((create: TeamsCreate) => {
+        return [create.teamId, create.displayName];
+      }),
+    ).toEqual([[TEAM_OPS, "foo-inc-123"]]);
   });
 
   test("both workspaces connected: each is asked for inc-123", async () => {
@@ -422,9 +424,11 @@ describe("the customer's question: inc-123 instead of foo-inc-123", () => {
     const result: WorkspaceChannelsCreated | null = await createIncident();
 
     expect(slackCreates).toEqual([{ name: "inc-123" }]);
-    expect(teamsCreates.map((create: TeamsCreate) => {
-      return create.displayName;
-    })).toEqual(["inc-123"]);
+    expect(
+      teamsCreates.map((create: TeamsCreate) => {
+        return create.displayName;
+      }),
+    ).toEqual(["inc-123"]);
     expect(createdNames(result)).toEqual(["inc-123", "inc-123"]);
   });
 
@@ -562,49 +566,67 @@ describe("every kind of record that creates channels", () => {
     },
   ];
 
-  for (const recordCase of CASES) {
-    for (const workspaceType of [
-      WorkspaceType.Slack,
-      WorkspaceType.MicrosoftTeams,
-    ]) {
-      test(`${recordCase.kind} in ${workspaceType}: ${recordCase.withoutPrefix} without a prefix, ${recordCase.withPrefix} with ops-`, async () => {
-        useRules(workspaceType, [
-          rule({
-            workspaceType,
-            eventType: recordCase.eventType,
-            prefix: "",
-          }),
-        ]);
+  // Each kind of record, in each workspace.
+  const RECORDS_IN_WORKSPACES: Array<[string, RecordCase, WorkspaceType]> =
+    CASES.flatMap(
+      (recordCase: RecordCase): Array<[string, RecordCase, WorkspaceType]> => {
+        return [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams].map(
+          (
+            workspaceType: WorkspaceType,
+          ): [string, RecordCase, WorkspaceType] => {
+            return [
+              `${recordCase.kind} in ${workspaceType}: ${recordCase.withoutPrefix} without a prefix, ${recordCase.withPrefix} with ops-`,
+              recordCase,
+              workspaceType,
+            ];
+          },
+        );
+      },
+    );
 
-        expect(createdNames(await recordCase.create())).toEqual([
-          recordCase.withoutPrefix,
-        ]);
+  test.each(RECORDS_IN_WORKSPACES)(
+    "%s",
+    async (
+      _title: string,
+      recordCase: RecordCase,
+      workspaceType: WorkspaceType,
+    ) => {
+      useRules(workspaceType, [
+        rule({
+          workspaceType,
+          eventType: recordCase.eventType,
+          prefix: "",
+        }),
+      ]);
 
-        useRules(workspaceType, [
-          rule({
-            workspaceType,
-            eventType: recordCase.eventType,
-            prefix: "ops-",
-          }),
-        ]);
+      expect(createdNames(await recordCase.create())).toEqual([
+        recordCase.withoutPrefix,
+      ]);
 
-        expect(createdNames(await recordCase.create())).toEqual([
-          recordCase.withPrefix,
-        ]);
+      useRules(workspaceType, [
+        rule({
+          workspaceType,
+          eventType: recordCase.eventType,
+          prefix: "ops-",
+        }),
+      ]);
 
-        const asked: Array<string> =
-          workspaceType === WorkspaceType.Slack
-            ? slackCreates.map((create: SlackCreate) => {
-                return create.name;
-              })
-            : teamsCreates.map((create: TeamsCreate) => {
-                return create.displayName;
-              });
+      expect(createdNames(await recordCase.create())).toEqual([
+        recordCase.withPrefix,
+      ]);
 
-        expect(asked).toEqual([recordCase.withoutPrefix, recordCase.withPrefix]);
-      });
-    }
-  }
+      const asked: Array<string> =
+        workspaceType === WorkspaceType.Slack
+          ? slackCreates.map((create: SlackCreate) => {
+              return create.name;
+            })
+          : teamsCreates.map((create: TeamsCreate) => {
+              return create.displayName;
+            });
+
+      expect(asked).toEqual([recordCase.withoutPrefix, recordCase.withPrefix]);
+    },
+  );
 
   test("a project that writes its incidents #42 gets incident-42, not a channel named 42", async () => {
     useRules(WorkspaceType.Slack, [
@@ -626,11 +648,7 @@ describe("every kind of record that creates channels", () => {
 
 describe("existing rules keep their names", () => {
   test.each([
-    [
-      WorkspaceType.Slack,
-      "oneuptime-incident-",
-      "oneuptime-incident-inc-123",
-    ],
+    [WorkspaceType.Slack, "oneuptime-incident-", "oneuptime-incident-inc-123"],
     [
       WorkspaceType.MicrosoftTeams,
       "oneuptime-incident-",
@@ -674,7 +692,9 @@ describe("existing rules keep their names", () => {
       },
     );
 
-    expect(slackCreates).toEqual([{ name: "oneuptime-scheduledmaintenance-9" }]);
+    expect(slackCreates).toEqual([
+      { name: "oneuptime-scheduledmaintenance-9" },
+    ]);
   });
 });
 
@@ -740,10 +760,7 @@ describe("a name somebody has already", () => {
 
     const result: WorkspaceChannelsCreated | null = await createIncident();
 
-    expect(slackCreates).toEqual([
-      { name: "inc-123" },
-      { name: "inc-123-2" },
-    ]);
+    expect(slackCreates).toEqual([{ name: "inc-123" }, { name: "inc-123-2" }]);
     expect(createdNames(result)).toEqual(["inc-123-2"]);
   });
 
@@ -822,9 +839,11 @@ describe("a name somebody has already", () => {
 
     const result: WorkspaceChannelsCreated | null = await createIncident();
 
-    expect(teamsCreates.map((create: TeamsCreate) => {
-      return create.displayName;
-    })).toEqual(["inc-123", "inc-123-2"]);
+    expect(
+      teamsCreates.map((create: TeamsCreate) => {
+        return create.displayName;
+      }),
+    ).toEqual(["inc-123", "inc-123-2"]);
     expect(createdNames(result)).toEqual(["inc-123-2"]);
   });
 
@@ -895,9 +914,11 @@ describe("rules that ask for the same channel", () => {
 
     await createIncident();
 
-    expect(teamsCreates.map((create: TeamsCreate) => {
-      return [create.teamId, create.displayName];
-    })).toEqual([
+    expect(
+      teamsCreates.map((create: TeamsCreate) => {
+        return [create.teamId, create.displayName];
+      }),
+    ).toEqual([
       [TEAM_OPS, "inc-123"],
       [TEAM_WEB, "inc-123"],
     ]);
@@ -918,9 +939,11 @@ describe("rules that ask for the same channel", () => {
 
     await createIncident();
 
-    expect(teamsCreates.map((create: TeamsCreate) => {
-      return [create.teamId, create.displayName];
-    })).toEqual([[TEAM_OPS, "inc-123"]]);
+    expect(
+      teamsCreates.map((create: TeamsCreate) => {
+        return [create.teamId, create.displayName];
+      }),
+    ).toEqual([[TEAM_OPS, "inc-123"]]);
   });
 });
 

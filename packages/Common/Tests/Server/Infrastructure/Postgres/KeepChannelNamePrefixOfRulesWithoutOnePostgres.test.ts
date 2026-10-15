@@ -185,8 +185,7 @@ describePostgres(
       .toString()
       .replace(/-/g, "")}`;
     let database: DataSource;
-    let requiredColumns: Array<{ column_name: string; udt_name: string }> =
-      [];
+    let requiredColumns: Array<{ column_name: string; udt_name: string }> = [];
 
     const ids: Map<string, string> = new Map();
     const rulesBefore: Map<string, JSONValue> = new Map();

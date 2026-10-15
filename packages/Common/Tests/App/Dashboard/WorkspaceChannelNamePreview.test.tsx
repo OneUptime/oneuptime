@@ -130,9 +130,7 @@ describe("the preview under the Channel Name Prefix field", () => {
   test("no prefix: the incident's own name, which incident it is, and what happens to a taken name", () => {
     renderPreview({ prefix: undefined });
 
-    expect(screen.getByTestId("preview")).toHaveTextContent(
-      "Preview: #inc-42",
-    );
+    expect(screen.getByTestId("preview")).toHaveTextContent("Preview: #inc-42");
     expect(shownName()).toBe("#inc-42");
     expect(notes()).toBe(
       "For incident INC-42. If Slack already has a channel with this name, OneUptime adds -2 to the end.",
@@ -247,7 +245,10 @@ describe("the preview under the Channel Name Prefix field", () => {
 });
 
 describe("the channel name on a rule's card", () => {
-  function renderSummary(prefix: unknown, numberPrefixes?: WorkspaceChannelNumberPrefixes | undefined): void {
+  function renderSummary(
+    prefix: unknown,
+    numberPrefixes?: WorkspaceChannelNumberPrefixes | undefined,
+  ): void {
     render(
       <ChannelNameSummary
         workspaceType={WorkspaceType.Slack}
@@ -304,7 +305,9 @@ describe("the channel name on a rule's card", () => {
 });
 
 describe("the rule's card shows its channel name", () => {
-  function rule(fields: Partial<IncidentNotificationRule>): IncidentNotificationRule {
+  function rule(
+    fields: Partial<IncidentNotificationRule>,
+  ): IncidentNotificationRule {
     return {
       _type: "IncidentNotificationRule",
       filterCondition: FilterCondition.All,
@@ -321,7 +324,10 @@ describe("the rule's card shows its channel name", () => {
     } as IncidentNotificationRule;
   }
 
-  function renderCard(value: IncidentNotificationRule, workspaceType: WorkspaceType = WorkspaceType.Slack): void {
+  function renderCard(
+    value: IncidentNotificationRule,
+    workspaceType: WorkspaceType = WorkspaceType.Slack,
+  ): void {
     render(
       <NotificationRuleViewElement
         value={value}

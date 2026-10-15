@@ -256,7 +256,9 @@ export default class WorkspaceChannelName {
    * prefix and a few random letters (prod-abcde), or test-abcde for a rule
    * without a prefix.
    */
-  public static forTest(data: { randomText: string }): WorkspaceChannelNameParts {
+  public static forTest(data: {
+    randomText: string;
+  }): WorkspaceChannelNameParts {
     const randomText: string = WorkspaceChannelName.toRecordPart(
       data.randomText,
     );
@@ -272,7 +274,9 @@ export default class WorkspaceChannelName {
    * scheduled maintenance events) rather than named (monitors, on-call
    * policies).
    */
-  public static isNumberedRecord(eventType: NotificationRuleEventType): boolean {
+  public static isNumberedRecord(
+    eventType: NotificationRuleEventType,
+  ): boolean {
     return Boolean(NUMBER_PREFIX_COLUMN_BY_EVENT_TYPE[eventType]);
   }
 
@@ -368,7 +372,12 @@ export default class WorkspaceChannelName {
      * not hold, a monitor named "!!!"): the record's own name, rather than
      * a name the workspace refuses.
      */
-    if (!WorkspaceChannelName.toFinalName(data.workspaceType, prefixPart + recordPart)) {
+    if (
+      !WorkspaceChannelName.toFinalName(
+        data.workspaceType,
+        prefixPart + recordPart,
+      )
+    ) {
       prefixPart = "";
       recordPart = data.parts.ownName;
     }
@@ -451,10 +460,9 @@ export default class WorkspaceChannelName {
     eventType: NotificationRuleEventType;
     text: string;
   }): string {
-    const ownName: string = WorkspaceChannelName.toRecordPart(data.text).replace(
-      LEADING_SEPARATORS,
-      "",
-    );
+    const ownName: string = WorkspaceChannelName.toRecordPart(
+      data.text,
+    ).replace(LEADING_SEPARATORS, "");
 
     if (HAS_LETTER.test(ownName)) {
       return ownName;

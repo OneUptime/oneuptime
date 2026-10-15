@@ -125,7 +125,8 @@ export const getShownChannelName: (
   return workspaceType === WorkspaceType.Slack ? `#${name}` : name;
 };
 
-export interface ChannelNameExampleProps {
+// What a channel name is shown for: the rule, its prefix and the project.
+export interface ChannelNameExampleInput {
   workspaceType: WorkspaceType;
   eventType: NotificationRuleEventType;
   // The prefix as the rule holds it, or as the field holds it while typed.
@@ -137,6 +138,9 @@ export interface ChannelNameExampleProps {
   numberPrefixes?: WorkspaceChannelNumberPrefixes | undefined;
   // A monitor's or on-call policy's name to show the name with.
   exampleRecordName?: string | undefined;
+}
+
+export interface ChannelNameExampleProps extends ChannelNameExampleInput {
   dataTestId?: string | undefined;
 }
 
@@ -158,9 +162,9 @@ const getPrefixOf: (value: unknown) => string = (value: unknown): string => {
  * the project's number prefixes are not known.
  */
 export const getChannelNameExample: (
-  props: ChannelNameExampleProps,
+  props: ChannelNameExampleInput,
 ) => ChannelNameExample | null = (
-  props: ChannelNameExampleProps,
+  props: ChannelNameExampleInput,
 ): ChannelNameExample | null => {
   if (
     WorkspaceChannelName.isNumberedRecord(props.eventType) &&
@@ -171,13 +175,11 @@ export const getChannelNameExample: (
 
   const prefix: string = getPrefixOf(props.prefix);
 
-  const example: WorkspaceChannelNameExample = WorkspaceChannelName.getExample(
-    {
-      eventType: props.eventType,
-      numberPrefixes: props.numberPrefixes,
-      recordName: props.exampleRecordName,
-    },
-  );
+  const example: WorkspaceChannelNameExample = WorkspaceChannelName.getExample({
+    eventType: props.eventType,
+    numberPrefixes: props.numberPrefixes,
+    recordName: props.exampleRecordName,
+  });
 
   return {
     example: example,
@@ -255,7 +257,13 @@ export const ChannelNamePreview: FunctionComponent<ChannelNameExampleProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
-  const example: ChannelNameExample | null = getChannelNameExample(props);
+  const example: ChannelNameExample | null = getChannelNameExample({
+    workspaceType: props.workspaceType,
+    eventType: props.eventType,
+    prefix: props.prefix,
+    numberPrefixes: props.numberPrefixes,
+    exampleRecordName: props.exampleRecordName,
+  });
 
   if (!example) {
     return <></>;
@@ -279,10 +287,7 @@ export const ChannelNamePreview: FunctionComponent<ChannelNameExampleProps> = (
           {getShownChannelName(props.workspaceType, example.description.name)}
         </span>
       </p>
-      <p
-        data-testid="channel-name-preview-notes"
-        className="text-gray-500"
-      >
+      <p data-testid="channel-name-preview-notes" className="text-gray-500">
         {joinSentences(notes)}
       </p>
     </div>
@@ -301,7 +306,13 @@ export const ChannelNameSummary: FunctionComponent<ChannelNameExampleProps> = (
 
   const prefix: string = getPrefixOf(props.prefix);
 
-  const example: ChannelNameExample | null = getChannelNameExample(props);
+  const example: ChannelNameExample | null = getChannelNameExample({
+    workspaceType: props.workspaceType,
+    eventType: props.eventType,
+    prefix: props.prefix,
+    numberPrefixes: props.numberPrefixes,
+    exampleRecordName: props.exampleRecordName,
+  });
 
   return (
     <div

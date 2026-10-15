@@ -160,31 +160,39 @@ describe("a rule without a prefix names the channel after its record", () => {
 
   test("a number prefix of characters a channel name may not hold falls back to what the record is", () => {
     // Number prefixes take letters of any script and - _ . / : #.
-    expect(nameOf({ workspaceType: SLACK, prefix: "", parts: incident("事件-42") })).toBe(
-      "incident-42",
-    );
-    expect(nameOf({ workspaceType: TEAMS, prefix: "", parts: incident("Инц-42") })).toBe(
-      "incident-42",
-    );
-    expect(nameOf({ workspaceType: SLACK, prefix: "", parts: incident("#:42") })).toBe(
-      "incident-42",
-    );
+    expect(
+      nameOf({ workspaceType: SLACK, prefix: "", parts: incident("事件-42") }),
+    ).toBe("incident-42");
+    expect(
+      nameOf({ workspaceType: TEAMS, prefix: "", parts: incident("Инц-42") }),
+    ).toBe("incident-42");
+    expect(
+      nameOf({ workspaceType: SLACK, prefix: "", parts: incident("#:42") }),
+    ).toBe("incident-42");
   });
 
   test("a number prefix with symbols keeps its letters and numbers", () => {
-    expect(nameOf({ workspaceType: SLACK, prefix: "", parts: incident("OPS/INC:42") })).toBe(
-      "opsinc42",
-    );
-    expect(nameOf({ workspaceType: SLACK, prefix: "", parts: incident("Ops_Inc.42") })).toBe(
-      "ops_inc42",
-    );
+    expect(
+      nameOf({
+        workspaceType: SLACK,
+        prefix: "",
+        parts: incident("OPS/INC:42"),
+      }),
+    ).toBe("opsinc42");
+    expect(
+      nameOf({
+        workspaceType: SLACK,
+        prefix: "",
+        parts: incident("Ops_Inc.42"),
+      }),
+    ).toBe("ops_inc42");
     // Never starting with a separator.
-    expect(nameOf({ workspaceType: SLACK, prefix: "", parts: incident("-INC-42") })).toBe(
-      "inc-42",
-    );
-    expect(nameOf({ workspaceType: TEAMS, prefix: "", parts: incident("_INC-42") })).toBe(
-      "inc-42",
-    );
+    expect(
+      nameOf({ workspaceType: SLACK, prefix: "", parts: incident("-INC-42") }),
+    ).toBe("inc-42");
+    expect(
+      nameOf({ workspaceType: TEAMS, prefix: "", parts: incident("_INC-42") }),
+    ).toBe("inc-42");
   });
 
   test("a monitor's or on-call policy's channel is its name, as channels after names have always been written", () => {
@@ -252,8 +260,11 @@ describe("a rule without a prefix names the channel after its record", () => {
       ".",
     ]);
 
-    const badNames: Array<{ eventType: string; text: string; ownName: string }> =
-      [];
+    const badNames: Array<{
+      eventType: string;
+      text: string;
+      ownName: string;
+    }> = [];
 
     for (const eventType of ALL_EVENT_TYPES) {
       for (const text of names) {
@@ -289,9 +300,9 @@ describe("a rule without a prefix names the channel after its record", () => {
       ).toBe("");
 
       for (const workspaceType of BOTH) {
-        expect(nameOf({ workspaceType, prefix, parts: incident("INC-42") })).toBe(
-          "inc-42",
-        );
+        expect(
+          nameOf({ workspaceType, prefix, parts: incident("INC-42") }),
+        ).toBe("inc-42");
       }
     },
   );
@@ -329,15 +340,27 @@ describe("a rule with a prefix puts it in front", () => {
   );
 
   test("Slack lowercases the prefix and leaves out what it does not take; Teams keeps capitals and spaces", () => {
-    expect(nameOf({ workspaceType: SLACK, prefix: "Prod Team #1/", parts: incident("INC-42") })).toBe(
-      "prodteam1inc-42",
-    );
-    expect(nameOf({ workspaceType: TEAMS, prefix: "Prod Team #1/", parts: incident("INC-42") })).toBe(
-      "Prod Team 1inc-42",
-    );
-    expect(nameOf({ workspaceType: TEAMS, prefix: "Incident ", parts: incident("INC-42") })).toBe(
-      "Incident inc-42",
-    );
+    expect(
+      nameOf({
+        workspaceType: SLACK,
+        prefix: "Prod Team #1/",
+        parts: incident("INC-42"),
+      }),
+    ).toBe("prodteam1inc-42");
+    expect(
+      nameOf({
+        workspaceType: TEAMS,
+        prefix: "Prod Team #1/",
+        parts: incident("INC-42"),
+      }),
+    ).toBe("Prod Team 1inc-42");
+    expect(
+      nameOf({
+        workspaceType: TEAMS,
+        prefix: "Incident ",
+        parts: incident("INC-42"),
+      }),
+    ).toBe("Incident inc-42");
   });
 
   test("a scheduled maintenance event's channel keeps its bare number after a prefix, as it always had", () => {
@@ -378,10 +401,18 @@ describe("a rule with a prefix puts it in front", () => {
 
     expect(maintenancePrefix).toBe("oneuptime-scheduled maintenance-");
     expect(
-      nameOf({ workspaceType: SLACK, prefix: maintenancePrefix, parts: maintenance }),
+      nameOf({
+        workspaceType: SLACK,
+        prefix: maintenancePrefix,
+        parts: maintenance,
+      }),
     ).toBe("oneuptime-scheduledmaintenance-42");
     expect(
-      nameOf({ workspaceType: TEAMS, prefix: maintenancePrefix, parts: maintenance }),
+      nameOf({
+        workspaceType: TEAMS,
+        prefix: maintenancePrefix,
+        parts: maintenance,
+      }),
     ).toBe("oneuptime-scheduled maintenance-42");
 
     const policy: WorkspaceChannelNameParts =
@@ -394,9 +425,9 @@ describe("a rule with a prefix puts it in front", () => {
     );
 
     expect(policyPrefix).toBe("oneuptime-on-call duty policy-");
-    expect(nameOf({ workspaceType: SLACK, prefix: policyPrefix, parts: policy })).toBe(
-      "oneuptime-on-calldutypolicy-primary",
-    );
+    expect(
+      nameOf({ workspaceType: SLACK, prefix: policyPrefix, parts: policy }),
+    ).toBe("oneuptime-on-calldutypolicy-primary");
   });
 
   test.each(ALL_EVENT_TYPES)(
@@ -409,9 +440,9 @@ describe("a rule with a prefix puts it in front", () => {
   );
 
   test("a prefix of characters no channel name holds leaves the record's part as it always followed one", () => {
-    expect(nameOf({ workspaceType: SLACK, prefix: "#", parts: incident("INC-42") })).toBe(
-      "inc-42",
-    );
+    expect(
+      nameOf({ workspaceType: SLACK, prefix: "#", parts: incident("INC-42") }),
+    ).toBe("inc-42");
     expect(
       nameOf({
         workspaceType: SLACK,
@@ -441,16 +472,28 @@ describe("a rule with a prefix puts it in front", () => {
   });
 
   test("a Microsoft Teams name does not start with a space or an underscore", () => {
-    expect(nameOf({ workspaceType: TEAMS, prefix: " prod-", parts: incident("INC-42") })).toBe(
-      "prod-inc-42",
-    );
-    expect(nameOf({ workspaceType: TEAMS, prefix: "__prod-", parts: incident("INC-42") })).toBe(
-      "prod-inc-42",
-    );
+    expect(
+      nameOf({
+        workspaceType: TEAMS,
+        prefix: " prod-",
+        parts: incident("INC-42"),
+      }),
+    ).toBe("prod-inc-42");
+    expect(
+      nameOf({
+        workspaceType: TEAMS,
+        prefix: "__prod-",
+        parts: incident("INC-42"),
+      }),
+    ).toBe("prod-inc-42");
     // Slack leaves them out, or keeps an underscore, as it always did.
-    expect(nameOf({ workspaceType: SLACK, prefix: "_prod-", parts: incident("INC-42") })).toBe(
-      "_prod-inc-42",
-    );
+    expect(
+      nameOf({
+        workspaceType: SLACK,
+        prefix: "_prod-",
+        parts: incident("INC-42"),
+      }),
+    ).toBe("_prod-inc-42");
   });
 
   /*
@@ -516,7 +559,10 @@ describe("a rule with a prefix puts it in front", () => {
         } else {
           records.push({
             eventType,
-            parts: WorkspaceChannelName.forNamedRecord({ eventType, name: text }),
+            parts: WorkspaceChannelName.forNamedRecord({
+              eventType,
+              name: text,
+            }),
             suffix: text.toLowerCase(),
           });
         }
@@ -534,7 +580,8 @@ describe("a rule with a prefix puts it in front", () => {
     }> = [];
 
     for (const workspaceType of BOTH) {
-      const maxLength: number = WorkspaceChannelName.getMaxLength(workspaceType);
+      const maxLength: number =
+        WorkspaceChannelName.getMaxLength(workspaceType);
 
       for (const prefix of prefixes) {
         for (const record of records) {
@@ -597,7 +644,8 @@ describe("names fit the workspace", () => {
   test.each(BOTH)(
     "a long prefix is shortened, and the record's part stays whole (%s)",
     (workspaceType: WorkspaceType) => {
-      const maxLength: number = WorkspaceChannelName.getMaxLength(workspaceType);
+      const maxLength: number =
+        WorkspaceChannelName.getMaxLength(workspaceType);
 
       const description: WorkspaceChannelNameDescription =
         WorkspaceChannelName.describe({
@@ -616,7 +664,8 @@ describe("names fit the workspace", () => {
   test.each(BOTH)(
     "a record's part longer than the workspace takes is cut, and no prefix is left (%s)",
     (workspaceType: WorkspaceType) => {
-      const maxLength: number = WorkspaceChannelName.getMaxLength(workspaceType);
+      const maxLength: number =
+        WorkspaceChannelName.getMaxLength(workspaceType);
 
       const parts: WorkspaceChannelNameParts =
         WorkspaceChannelName.forNamedRecord({
@@ -763,20 +812,32 @@ describe("what the rule form's preview is told", () => {
     const parts: WorkspaceChannelNameParts = incident("INC-42");
 
     expect(
-      WorkspaceChannelName.describe({ workspaceType: SLACK, prefix: "Prod-", parts })
-        .prefixChanged,
+      WorkspaceChannelName.describe({
+        workspaceType: SLACK,
+        prefix: "Prod-",
+        parts,
+      }).prefixChanged,
     ).toBe(true);
     expect(
-      WorkspaceChannelName.describe({ workspaceType: TEAMS, prefix: "Prod-", parts })
-        .prefixChanged,
+      WorkspaceChannelName.describe({
+        workspaceType: TEAMS,
+        prefix: "Prod-",
+        parts,
+      }).prefixChanged,
     ).toBe(false);
     expect(
-      WorkspaceChannelName.describe({ workspaceType: TEAMS, prefix: "Prod#", parts })
-        .prefixChanged,
+      WorkspaceChannelName.describe({
+        workspaceType: TEAMS,
+        prefix: "Prod#",
+        parts,
+      }).prefixChanged,
     ).toBe(true);
     expect(
-      WorkspaceChannelName.describe({ workspaceType: SLACK, prefix: "prod-", parts })
-        .prefixChanged,
+      WorkspaceChannelName.describe({
+        workspaceType: SLACK,
+        prefix: "prod-",
+        parts,
+      }).prefixChanged,
     ).toBe(false);
     expect(
       WorkspaceChannelName.describe({ workspaceType: SLACK, prefix: "", parts })

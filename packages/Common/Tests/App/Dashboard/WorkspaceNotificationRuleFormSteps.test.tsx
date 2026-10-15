@@ -595,10 +595,9 @@ describe("Create a Slack notification rule for incidents", () => {
     await waitForStep("Destination");
     await settle();
     await user.click(switchNamed(/^Create Slack Channel/));
-    fireEvent.change(
-      await prefixField(),
-      { target: { value: "oneuptime-incident-" } },
-    );
+    fireEvent.change(await prefixField(), {
+      target: { value: "oneuptime-incident-" },
+    });
     await settle();
     await toVideoCall(user);
     await submit(user);
@@ -642,10 +641,9 @@ describe("Create a Slack notification rule for incidents", () => {
     await waitForStep("Destination");
     await settle();
     await user.click(switchNamed(/^Create Slack Channel/));
-    fireEvent.change(
-      await prefixField(),
-      { target: { value: "oneuptime-incident-" } },
-    );
+    fireEvent.change(await prefixField(), {
+      target: { value: "oneuptime-incident-" },
+    });
     await settle();
     await toVideoCall(user);
     await submit(user);
@@ -670,10 +668,9 @@ describe("Create a Slack notification rule for incidents", () => {
 
     await toDestination(user);
     await user.click(switchNamed(/^Create Slack Channel/));
-    fireEvent.change(
-      await prefixField(),
-      { target: { value: "oneuptime-incident-" } },
-    );
+    fireEvent.change(await prefixField(), {
+      target: { value: "oneuptime-incident-" },
+    });
     await settle();
     await toVideoCall(user);
 
@@ -696,10 +693,9 @@ describe("Create a Slack notification rule for incidents", () => {
 
     await toDestination(user);
     await user.click(switchNamed(/^Create Slack Channel/));
-    fireEvent.change(
-      await prefixField(),
-      { target: { value: "oneuptime-incident-" } },
-    );
+    fireEvent.change(await prefixField(), {
+      target: { value: "oneuptime-incident-" },
+    });
     await settle();
     await toVideoCall(user);
 
@@ -759,9 +755,7 @@ describe("Create a Slack notification rule for incidents", () => {
       }),
     ).toHaveAttribute("aria-checked", "true");
     // And its own options with it.
-    expect(
-      await prefixField(),
-    ).toBeVisible();
+    expect(await prefixField()).toBeVisible();
   });
 });
 
@@ -840,7 +834,9 @@ describe("Name the channel a rule creates", () => {
   }
 
   function preview(): string {
-    return within(dialog()).getByTestId("channel-name-preview").textContent || "";
+    return (
+      within(dialog()).getByTestId("channel-name-preview").textContent || ""
+    );
   }
 
   function previewNotes(): string {
@@ -851,7 +847,9 @@ describe("Name the channel a rule creates", () => {
   }
 
   test("the prefix is optional, and the preview shows the channel named after the incident", async () => {
-    const user: UserEvent = await renderForm(NotificationRuleEventType.Incident);
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
 
     await toNewChannel(user);
 
@@ -872,14 +870,14 @@ describe("Name the channel a rule creates", () => {
   });
 
   test("creates the rule without a prefix: no channel name is required any more", async () => {
-    const user: UserEvent = await renderForm(NotificationRuleEventType.Incident);
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
 
     await toNewChannel(user);
     await toVideoCall(user);
 
-    expect(within(dialog()).queryByText(/channel name is required/)).toBe(
-      null,
-    );
+    expect(within(dialog()).queryByText(/channel name is required/)).toBe(null);
 
     await submit(user);
 
@@ -895,7 +893,9 @@ describe("Name the channel a rule creates", () => {
   });
 
   test("the customer's foo- shows foo-inc-42, and is saved as typed", async () => {
-    const user: UserEvent = await renderForm(NotificationRuleEventType.Incident);
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
 
     await toNewChannel(user);
     await typePrefix("foo-");
@@ -917,7 +917,9 @@ describe("Name the channel a rule creates", () => {
   });
 
   test("the preview follows the prefix as it is typed, and cleared again", async () => {
-    const user: UserEvent = await renderForm(NotificationRuleEventType.Incident);
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
 
     await toNewChannel(user);
 
@@ -932,7 +934,9 @@ describe("Name the channel a rule creates", () => {
   });
 
   test("says what Slack does to capitals, spaces and symbols", async () => {
-    const user: UserEvent = await renderForm(NotificationRuleEventType.Incident);
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
 
     await toNewChannel(user);
     await typePrefix("Prod Team #1-");
@@ -947,7 +951,9 @@ describe("Name the channel a rule creates", () => {
   });
 
   test("says when a long prefix is shortened to Slack's 80 characters", async () => {
-    const user: UserEvent = await renderForm(NotificationRuleEventType.Incident);
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
 
     await toNewChannel(user);
     await typePrefix("a".repeat(100));
@@ -967,7 +973,9 @@ describe("Name the channel a rule creates", () => {
       "Scheduled Maintenance": null,
     };
 
-    const user: UserEvent = await renderForm(NotificationRuleEventType.Incident);
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
 
     await toNewChannel(user);
 
@@ -988,7 +996,9 @@ describe("Name the channel a rule creates", () => {
   test("without the project's number prefixes, the field works and nothing is guessed", async () => {
     numberPrefixesAnswer = "refuse";
 
-    const user: UserEvent = await renderForm(NotificationRuleEventType.Incident);
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
 
     await toNewChannel(user);
     await typePrefix("ops-");
