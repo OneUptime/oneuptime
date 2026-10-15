@@ -590,11 +590,18 @@ export default class MicrosoftTeamsIncidentMoreActions {
           ...(you ? { value: you } : {}),
         });
 
-        body.push(
-          MicrosoftTeamsCardChoices.buildNoteElement(
-            WORKSPACE_INCIDENT_FORM_TEXT.roleHint,
-          ),
+        const hint: string = WorkspaceIncidentActions.getRoleHint(
+          data.form.roles,
         );
+
+        if (hint) {
+          // Role names are text: Markdown in them does not act.
+          body.push(
+            MicrosoftTeamsCardChoices.buildNoteElement(
+              mdText`${hint}`.toString(),
+            ),
+          );
+        }
 
         const notShown: string | null =
           MicrosoftTeamsCardChoices.getNotShownNote({
@@ -788,7 +795,7 @@ export default class MicrosoftTeamsIncidentMoreActions {
         if (leftOut > 0) {
           body.push(
             MicrosoftTeamsCardChoices.buildNoteElement(
-              `${leftOut} more ${leftOut === 1 ? "choice" : "choices"} could not fit on this card. Page them from the incident in ${ProductBrandingText.getProductName()}.`,
+              `${leftOut} more ${leftOut === 1 ? "choice" : "choices"} could not fit on this card: page their team or on-call schedule instead.`,
             ),
           );
         }
@@ -928,18 +935,11 @@ export default class MicrosoftTeamsIncidentMoreActions {
       );
     }
 
-    const hasDateTime: boolean = data.form.inputs.some(
-      (input: WorkspaceCustomFieldInput): boolean => {
-        return input.kind === WorkspaceCustomFieldInputKind.DateTime;
-      },
-    );
-
-    // The note under the fields, with the zone a time is read in.
+    // The note under the fields: what an emptied field does, what is left off.
     body.push(
       MicrosoftTeamsCardChoices.buildNoteElement(
         WorkspaceIncidentActions.getCustomFieldsNote({
           form: data.form,
-          timezoneLabel: hasDateTime ? data.timezone.label : undefined,
         }).toString(),
       ),
     );
@@ -1145,9 +1145,14 @@ export default class MicrosoftTeamsIncidentMoreActions {
           label: input.name,
           ...(zoned ? { value: zoned.format("YYYY-MM-DD") } : {}),
         });
+        /*
+         * The time says the zone it is read in, where it is typed: Teams'
+         * time input has none of its own.
+         */
         elements.push({
           type: "Input.Time",
           id: `${input.inputId}${TIME_SUFFIX}`,
+          label: `Time in ${data.timezone.label}`,
           ...(zoned ? { value: zoned.format("HH:mm") } : {}),
         });
         break;
@@ -1285,15 +1290,20 @@ export default class MicrosoftTeamsIncidentMoreActions {
   }
 
   /*
-   * What a submitted card did, said in the conversation as the incident's
-   * other cards confirm theirs. Best-effort: the action is done, and a reply
-   * Teams refuses must not read as a failed action, which invites a repeat.
+   * What a submitted card did, said in the conversation, mentioning who did
+   * it: anyone in a channel may submit a card, and Teams has no message only
+   * they see (MicrosoftTeamsActionAnswer). Its summary is what a
+   * notification shows. Best-effort: the action is done, and a reply Teams
+   * refuses must not read as a failed action, which invites a repeat.
    */
   private static async confirm(
     turnContext: TurnContext,
     answer: WorkspaceAnswer,
   ): Promise<void> {
-    await MicrosoftTeamsReplies.sendBestEffort(turnContext, answer.markdown);
+    await MicrosoftTeamsActionAnswer.reply({
+      turnContext: turnContext,
+      answer: answer,
+    });
   }
 
   // A card's field left wrong: said, mentioning them; the card stays.

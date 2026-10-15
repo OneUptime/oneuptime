@@ -158,7 +158,40 @@ const FORMS: Array<[SlackActionType, string, string]> = [
     "execute an on-call policy for this incident",
     "Execute On-Call Policy",
   ],
-  // The incident message's menu (⋯): each item, and its form's submission.
+  [SlackActionType.ViewAddAlertNote, "add a note to this alert", "Add Note"],
+  [
+    SlackActionType.SubmitChangeAlertState,
+    "change the state of this alert",
+    "Change Alert State",
+  ],
+  [
+    SlackActionType.ViewExecuteAlertEpisodeOnCallPolicy,
+    "execute an on-call policy for this alert episode",
+    "Execute On-Call Policy",
+  ],
+  [
+    SlackActionType.ViewChangeIncidentEpisodeState,
+    "change the state of this incident episode",
+    "Change Episode State",
+  ],
+  [
+    SlackActionType.SubmitScheduledMaintenanceNote,
+    "add a note to this scheduled maintenance event",
+    "Add Note",
+  ],
+  [
+    SlackActionType.ViewChangeScheduledMaintenanceState,
+    "change the state of this scheduled maintenance event",
+    "Change State",
+  ],
+];
+
+/*
+ * The incident message's menu (⋯): each item, and its form's submission. An
+ * item is chosen from the menu again - there is no button of that name on
+ * the message to press.
+ */
+const MENU_FORMS: Array<[SlackActionType, string, string]> = [
   [
     SlackActionType.ViewChangeIncidentSeverity,
     "change the severity of this incident",
@@ -198,32 +231,6 @@ const FORMS: Array<[SlackActionType, string, string]> = [
     SlackActionType.SubmitEditIncidentCustomFields,
     "edit the custom fields of this incident",
     "Edit Custom Fields",
-  ],
-  [SlackActionType.ViewAddAlertNote, "add a note to this alert", "Add Note"],
-  [
-    SlackActionType.SubmitChangeAlertState,
-    "change the state of this alert",
-    "Change Alert State",
-  ],
-  [
-    SlackActionType.ViewExecuteAlertEpisodeOnCallPolicy,
-    "execute an on-call policy for this alert episode",
-    "Execute On-Call Policy",
-  ],
-  [
-    SlackActionType.ViewChangeIncidentEpisodeState,
-    "change the state of this incident episode",
-    "Change Episode State",
-  ],
-  [
-    SlackActionType.SubmitScheduledMaintenanceNote,
-    "add a note to this scheduled maintenance event",
-    "Add Note",
-  ],
-  [
-    SlackActionType.ViewChangeScheduledMaintenanceState,
-    "change the state of this scheduled maintenance event",
-    "Change State",
   ],
 ];
 
@@ -274,6 +281,43 @@ describe("SlackConnectPrompt.describe", () => {
       });
     },
   );
+
+  test.each(MENU_FORMS)(
+    "%s: asks to %s, then to choose %s from the menu again (an item of the menu, not a button)",
+    (actionType: SlackActionType, purpose: string, item: string) => {
+      expect(
+        SlackConnectPrompt.describe({
+          actionType: actionType,
+          actionValue: RECORD_ID,
+        }),
+      ).toEqual({
+        purpose: purpose,
+        again: { kind: WorkspaceConnectRequestAgainKind.MenuItem, label: item },
+      });
+    },
+  );
+
+  test("Change Incident State, a button on messages posted before the menu and an item of it since: as it was pressed", () => {
+    expect(
+      SlackConnectPrompt.describe({
+        actionType: SlackActionType.ViewChangeIncidentState,
+        actionValue: RECORD_ID,
+        isMenuChoice: true,
+      }).again,
+    ).toEqual({
+      kind: WorkspaceConnectRequestAgainKind.MenuItem,
+      label: "Change Incident State",
+    });
+    expect(
+      SlackConnectPrompt.describe({
+        actionType: SlackActionType.ViewChangeIncidentState,
+        actionValue: RECORD_ID,
+      }).again,
+    ).toEqual({
+      kind: WorkspaceConnectRequestAgainKind.Button,
+      label: "Change Incident State",
+    });
+  });
 
   test.each([
     [SlackActionType.NewIncident, "declare an incident", "/oneuptime incident"],

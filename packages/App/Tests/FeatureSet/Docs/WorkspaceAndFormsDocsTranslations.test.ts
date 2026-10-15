@@ -457,7 +457,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Anything else opens a form.",
     "Where it shows.",
     "Who may page.",
-    // Acting on an incident from Slack: its menu.
+    // Managing an incident from Slack: its menu.
     "What the forms offer.",
     "What happens.",
     "Messages posted before the menu.",
@@ -502,7 +502,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Anything else gets a card.",
     "Where it shows.",
     "Who may page.",
-    // Acting on an incident from Microsoft Teams: its card's menu.
+    // Managing an incident from Microsoft Teams: its card's menu.
     "What happens.",
     "Where Microsoft Teams differs.",
     "Cards posted before the menu.",

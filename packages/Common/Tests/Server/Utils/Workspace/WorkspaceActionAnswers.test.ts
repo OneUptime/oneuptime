@@ -225,6 +225,36 @@ describe("the Connect prompt", () => {
     });
   });
 
+  test("for an item of a message's menu (⋯): choose it from the menu again - there is no button of that name to press", () => {
+    const again: WorkspaceConnectRequestAgain = {
+      kind: WorkspaceConnectRequestAgainKind.MenuItem,
+      label: "Change Severity",
+    };
+
+    expect(
+      WorkspaceActionAnswers.getConnectPrompt({
+        workspaceType: WorkspaceType.Slack,
+        purpose: "change the severity of this incident",
+        again: again,
+      }),
+    ).toEqual({
+      markdown:
+        "🔗 **Connect your Slack account to change the severity of this incident.** It takes one click. Then choose **Change Severity** from the menu again.",
+      text: "Connect your Slack account to change the severity of this incident",
+    });
+
+    expect(
+      WorkspaceActionAnswers.getConnectedAnswer({
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        again: again,
+      }),
+    ).toEqual({
+      markdown:
+        "✅ **Your Microsoft Teams account is connected to OneUptime.** Now choose **Change Severity** from the menu again.",
+      text: "Your Microsoft Teams account is connected to OneUptime. Now choose Change Severity from the menu again.",
+    });
+  });
+
   test("for a command: run it again", () => {
     expect(
       WorkspaceActionAnswers.getConnectPrompt({
@@ -1100,6 +1130,16 @@ describe("a press finished once the account is connected", () => {
       WorkspaceConnectRequestAgainKind.Button,
       undefined,
       "press the button again",
+    ],
+    [
+      WorkspaceConnectRequestAgainKind.MenuItem,
+      "Assign Role",
+      "choose Assign Role from the menu again",
+    ],
+    [
+      WorkspaceConnectRequestAgainKind.MenuItem,
+      undefined,
+      "choose it from the menu again",
     ],
   ])(
     "what to press again, as plain text: %s %s",

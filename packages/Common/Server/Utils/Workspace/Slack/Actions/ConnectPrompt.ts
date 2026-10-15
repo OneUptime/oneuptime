@@ -106,6 +106,11 @@ interface FormPress {
   eventType: WorkspaceEventType;
   // The button's title as the message draws it, without its emoji.
   button: string;
+  /*
+   * An item of the message's menu (⋯), not a button: chosen from the menu
+   * again, which the answer says, since there is no button to find.
+   */
+  isMenuItem?: boolean | undefined;
 }
 
 const FORM_PRESSES: Partial<Record<SlackActionType, FormPress>> = {
@@ -144,41 +149,49 @@ const FORM_PRESSES: Partial<Record<SlackActionType, FormPress>> = {
     does: "changeSeverity",
     eventType: WorkspaceEventType.Incident,
     button: "Change Severity",
+    isMenuItem: true,
   },
   [SlackActionType.SubmitChangeIncidentSeverity]: {
     does: "changeSeverity",
     eventType: WorkspaceEventType.Incident,
     button: "Change Severity",
+    isMenuItem: true,
   },
   [SlackActionType.ViewAssignIncidentRole]: {
     does: "assignRole",
     eventType: WorkspaceEventType.Incident,
     button: "Assign Role",
+    isMenuItem: true,
   },
   [SlackActionType.SubmitAssignIncidentRole]: {
     does: "assignRole",
     eventType: WorkspaceEventType.Incident,
     button: "Assign Role",
+    isMenuItem: true,
   },
   [SlackActionType.ViewPageAboutIncident]: {
     does: "pageSomeone",
     eventType: WorkspaceEventType.Incident,
     button: "Page Someone",
+    isMenuItem: true,
   },
   [SlackActionType.SubmitPageAboutIncident]: {
     does: "pageSomeone",
     eventType: WorkspaceEventType.Incident,
     button: "Page Someone",
+    isMenuItem: true,
   },
   [SlackActionType.ViewEditIncidentCustomFields]: {
     does: "editCustomFields",
     eventType: WorkspaceEventType.Incident,
     button: "Edit Custom Fields",
+    isMenuItem: true,
   },
   [SlackActionType.SubmitEditIncidentCustomFields]: {
     does: "editCustomFields",
     eventType: WorkspaceEventType.Incident,
     button: "Edit Custom Fields",
+    isMenuItem: true,
   },
   [SlackActionType.ViewAddAlertNote]: {
     does: "addNote",
@@ -355,6 +368,12 @@ export default class SlackConnectPrompt {
     payloadType?: string | undefined;
     // How a slash command was typed: "/oneuptime incident" (SlackAction).
     command?: string | undefined;
+    /*
+     * Chosen from a message's menu (⋯), not pressed as a button: Change
+     * Incident State is one or the other, on messages posted before and
+     * after the menu (SlackAction).
+     */
+    isMenuChoice?: boolean | undefined;
   }): SlackPressDescription {
     const actionType: SlackActionType = data.actionType as SlackActionType;
 
@@ -387,7 +406,10 @@ export default class SlackConnectPrompt {
       return {
         purpose: SlackConnectPrompt.getFormPurpose(form),
         again: {
-          kind: WorkspaceConnectRequestAgainKind.Button,
+          kind:
+            form.isMenuItem || data.isMenuChoice
+              ? WorkspaceConnectRequestAgainKind.MenuItem
+              : WorkspaceConnectRequestAgainKind.Button,
           label: form.button,
         },
       };

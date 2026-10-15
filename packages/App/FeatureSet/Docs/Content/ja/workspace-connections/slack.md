@@ -139,7 +139,7 @@ OneUptime の Slack コマンドは `/oneuptime` の一つだけです。その�
 | コマンド | 動作 |
 | --- | --- |
 | `/oneuptime help` | コマンドの一覧を例とともに表示します。 |
-| `/oneuptime incident [title or number]` | タイトルを入力した状態でインシデントのフォームを開きます。 `42` や `INC-42` のようなインシデントの番号を指定すると、代わりにそのインシデントを表示します。 [Slack からインシデントを操作する](#slack-からインシデントを操作する) を参照してください。 |
+| `/oneuptime incident [title or number]` | タイトルを入力した状態でインシデントのフォームを開きます。 `42` や `INC-42` のようなインシデントの番号を指定すると、代わりにそのインシデントを表示します。 [Slack からインシデントを管理する](#slack-からインシデントを管理する) を参照してください。 |
 | `/oneuptime maintenance [title]` | タイトルを入力した状態で定期メンテナンスのフォームを開きます。 |
 | `/oneuptime oncall` | 表示できる各オンコールスケジュールで、今オンコールの人、いつまでか、次は誰かを一覧表示します。 |
 | `/oneuptime page [who] [message]` | @メンションした人を、メッセージの内容で呼び出します。または、誰を呼び出すかを選ぶフォームを開きます。[Slack から誰かを呼び出す](#slack-から誰かを呼び出す) を参照してください。 |
@@ -212,7 +212,7 @@ OneUptime は、自分に向けられたものにだけ応答します。
 - **接続できる人。** スケジュールを編集できるロールです。 **Project Owner**、 **Project Admin**、 **Project Member**、 **On-Call Admin**、 **On-Call Member**、またはカスタムロールの **Edit On-Call Duty Policy Schedule** です。OneUptime Cloud では、接続には **Growth** プランが必要です。
 - **切断するとき。** OneUptime はグループの変更をやめます。グループとそのメンバーは、Slack にそのまま残ります。
 
-## Slack からインシデントを操作する
+## Slack からインシデントを管理する
 
 インシデントのメッセージには 4 つのボタン **Acknowledge Incident**、 **Resolve Incident**、 **Add Note**、 **View Incident** があり、残りはその後ろにある三点ボタンのメニューにあります。
 

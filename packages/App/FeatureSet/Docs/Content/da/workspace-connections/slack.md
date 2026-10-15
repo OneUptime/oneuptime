@@ -139,7 +139,7 @@ OneUptime har én kommando i Slack, `/oneuptime`. Ordet, du skriver efter den, s
 | Kommando | Hvad den gør |
 | --- | --- |
 | `/oneuptime help` | Viser kommandoerne med eksempler. |
-| `/oneuptime incident [title or number]` | Åbner hændelsesformularen med titlen udfyldt. En hændelses nummer, som `42` eller `INC-42`, viser i stedet den hændelse: se [Handl på en hændelse fra Slack](#handl-på-en-hændelse-fra-slack). |
+| `/oneuptime incident [title or number]` | Åbner hændelsesformularen med titlen udfyldt. En hændelses nummer, som `42` eller `INC-42`, viser i stedet den hændelse: se [Håndter en hændelse fra Slack](#håndter-en-hændelse-fra-slack). |
 | `/oneuptime maintenance [title]` | Åbner formularen til planlagt vedligeholdelse med titlen udfyldt. |
 | `/oneuptime oncall` | Viser, hvem der har vagt lige nu i hver vagtplan, du kan se, til hvornår, og hvem der er den næste. |
 | `/oneuptime page [who] [message]` | Tilkalder de personer, du nævner med @, om din besked, eller åbner en formular, hvor du vælger, hvem der skal tilkaldes. Se [Tilkald nogen fra Slack](#tilkald-nogen-fra-slack). |
@@ -212,7 +212,7 @@ Til en gruppe med både den primære og den sekundære vagt forbinder du den sam
 - **Hvem der må forbinde en.** De roller, der må redigere vagtplaner: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** og **On-Call Member**, eller **Edit On-Call Duty Policy Schedule** i en brugerdefineret rolle. På OneUptime Cloud kræver det abonnementet **Growth** at forbinde en.
 - **Afbryd forbindelsen.** OneUptime holder op med at ændre gruppen. Gruppen og dens medlemmer bliver i Slack, som de er.
 
-## Handl på en hændelse fra Slack
+## Håndter en hændelse fra Slack
 
 En hændelses besked har fire knapper, **Acknowledge Incident**, **Resolve Incident**, **Add Note** og **View Incident**, og resten i dens menu, knappen med tre prikker efter dem:
 

@@ -139,7 +139,7 @@ OneUptime a une seule commande dans Slack, `/oneuptime`. Le mot que vous tapez a
 | Commande | Ce qu'elle fait |
 | --- | --- |
 | `/oneuptime help` | Liste les commandes, avec des exemples. |
-| `/oneuptime incident [title or number]` | Ouvre le formulaire d'incident, avec le titre rempli. Le numéro d'un incident, comme `42` ou `INC-42`, affiche plutôt cet incident : voir [Agir sur un incident depuis Slack](#agir-sur-un-incident-depuis-slack). |
+| `/oneuptime incident [title or number]` | Ouvre le formulaire d'incident, avec le titre rempli. Le numéro d'un incident, comme `42` ou `INC-42`, affiche plutôt cet incident : voir [Gérer un incident depuis Slack](#gérer-un-incident-depuis-slack). |
 | `/oneuptime maintenance [title]` | Ouvre le formulaire de maintenance planifiée, avec le titre rempli. |
 | `/oneuptime oncall` | Liste qui est d'astreinte en ce moment dans chaque planning d'astreinte que vous pouvez voir, jusqu'à quand, et qui est le suivant. |
 | `/oneuptime page [who] [message]` | Alerte les personnes que vous mentionnez avec @ au sujet de votre message, ou ouvre un formulaire pour choisir qui alerter. Voir [Alerter quelqu'un depuis Slack](#alerter-quelquun-depuis-slack). |
@@ -212,7 +212,7 @@ Pour un groupe qui contient l'astreinte principale et l'astreinte secondaire, co
 - **Qui peut en connecter un.** Les rôles qui peuvent modifier les plannings : **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** et **On-Call Member**, ou **Edit On-Call Duty Policy Schedule** dans un rôle personnalisé. Sur OneUptime Cloud, en connecter un nécessite la formule **Growth**.
 - **Déconnecter.** OneUptime cesse de modifier le groupe. Le groupe et ses membres restent dans Slack tels quels.
 
-## Agir sur un incident depuis Slack
+## Gérer un incident depuis Slack
 
 Le message d'un incident a quatre boutons, **Acknowledge Incident**, **Resolve Incident**, **Add Note** et **View Incident**, et le reste dans son menu, le bouton à trois points qui les suit :
 

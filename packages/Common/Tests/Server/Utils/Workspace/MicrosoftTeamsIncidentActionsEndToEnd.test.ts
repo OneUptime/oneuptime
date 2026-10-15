@@ -998,7 +998,7 @@ describe("harness: the real botbuilder stack", () => {
 
 describe("incident <number>, typed to the bot: the incident, with its buttons and menu", () => {
   test.each([["incident 42"], ["incident #42"], ["incident INC-42"]])(
-    "%s: incident 42's card - its line, who holds its roles, four buttons, then five in its menu (…)",
+    "%s: incident 42's card - its number and title, what it is now, who holds its roles, four buttons, then five in its menu (…)",
     async (typed: string) => {
       const delivery: Delivery = await deliver(message(typed));
 
@@ -1011,9 +1011,19 @@ describe("incident <number>, typed to the bot: the incident, with its buttons an
       const card: JSONObject = cardOf(posts[0]);
       const body: Array<JSONObject> = card["body"] as Array<JSONObject>;
 
-      expect(String(body[0]!["text"])).toBe(
-        `🚨 **[INC-42](${incidentUrl()})** Checkout is down · Minor · Identified · since {{DATE(2026-10-15T09:30:00Z, SHORT)}} at {{TIME(2026-10-15T09:30:00Z)}}\n\n👤 Incident Commander: **Ana Ruiz**`,
-      );
+      /*
+       * Each line a text block of its own: Teams runs lines one break apart
+       * together in one block.
+       */
+      expect(
+        body.map((block: JSONObject): string => {
+          return String(block["text"]);
+        }),
+      ).toEqual([
+        `🚨 **[INC-42](${incidentUrl()})** · **Checkout is down**`,
+        "Severity: Minor · State: Identified · Declared {{DATE(2026-10-15T09:30:00Z, SHORT)}} at {{TIME(2026-10-15T09:30:00Z)}}",
+        "👤 Incident Commander: **Ana Ruiz**",
+      ]);
 
       expect(
         (card["actions"] as Array<JSONObject>).map(
@@ -1175,7 +1185,16 @@ describe("the incident card's menu: each form, as a card, filled in as Simon rea
       ).map((choice: JSONObject) => {
         return choice["title"];
       }),
-    ).toEqual(["Ana Ruiz", "Nawaz Dhandala", "Simon Lee (you)"]);
+    ).toEqual(["Simon Lee (you)", "Ana Ruiz", "Nawaz Dhandala"]);
+    // The role that takes one person, by name, and what picking does.
+    expect(
+      (card["body"] as Array<JSONObject>).some((block: JSONObject): boolean => {
+        return (
+          block["text"] ===
+          "Incident Commander takes one person: picking someone replaces whoever has it."
+        );
+      }),
+    ).toBe(true);
     expect(elementOf(card, "incidentRolePerson")["value"]).toBe(
       SIMON.toString(),
     );
@@ -1232,18 +1251,49 @@ describe("the incident card's menu: each form, as a card, filled in as Simon rea
         `${WorkspaceIncidentCustomFields.getInputId(STARTED_FIELD)}__date`,
       )["type"],
     ).toBe("Input.Date");
+    // The time is labelled, with the zone it is read in: UTC, none known.
     expect(
       elementOf(
         card,
         `${WorkspaceIncidentCustomFields.getInputId(STARTED_FIELD)}__time`,
-      )["type"],
-    ).toBe("Input.Time");
+      ),
+    ).toMatchObject({ type: "Input.Time", label: "Time in UTC" });
     expect(
       (card["actions"] as Array<JSONObject>)[0]!["data"] as JSONObject,
     ).toMatchObject({
       action: "SubmitEditIncidentCustomFields",
       actionValue: INCIDENT_ID.toString(),
     });
+  });
+
+  test("Edit Custom Fields from someone whose Teams says their zone: the time in it, named where it is typed", async () => {
+    incident.customFields = {
+      ...incident.customFields,
+      Started: "2026-10-15T09:30:00.000Z",
+    };
+
+    const activity: JSONObject = press("ViewEditIncidentCustomFields");
+    activity["localTimezone"] = "Europe/Berlin";
+
+    const card: JSONObject = cardOf(posted(await deliver(activity))[0]);
+
+    expect(
+      elementOf(
+        card,
+        `${WorkspaceIncidentCustomFields.getInputId(STARTED_FIELD)}__time`,
+      ),
+    ).toMatchObject({
+      type: "Input.Time",
+      label: "Time in Europe/Berlin",
+      value: "11:30",
+    });
+    // Said at the time itself, so the note under the fields does not.
+    expect(JSON.stringify(card["body"])).not.toContain("Times are in");
+    expect(
+      ((card["actions"] as Array<JSONObject>)[0]!["data"] as JSONObject)[
+        "timezone"
+      ],
+    ).toBe("Europe/Berlin");
   });
 
   test("a project with no custom fields: no empty card - where to add them", async () => {
@@ -1275,10 +1325,17 @@ describe("a form card, submitted: the change as Simon, said in the conversation,
       },
     ]);
 
+    /*
+     * Said in the conversation, mentioning who did it - anyone there may
+     * submit a card - with what a notification of it shows.
+     */
     const posts: Array<ConnectorRequest> = posted(delivery);
     expect(posts).toHaveLength(1);
-    expect(posts[0]!.activity["text"]).toBe(
+    expect(answerOf(posts[0])).toBe(
       `⚠️ ${recordMarkdown()} is now **Critical**.`,
+    );
+    expect(posts[0]!.activity["summary"]).toBe(
+      "Incident INC-42 is now Critical",
     );
     expect(removals(delivery)).toEqual([FORM_CARD_ID]);
   });
@@ -1310,7 +1367,7 @@ describe("a form card, submitted: the change as Simon, said in the conversation,
     expect(membersDeleted).toEqual([
       { id: ANA_AS_COMMANDER, props: memberProps },
     ]);
-    expect(posted(delivery)[0]!.activity["text"]).toBe(
+    expect(answerOf(posted(delivery)[0])).toBe(
       `👤 **Simon Lee** is now **Incident Commander** on ${recordMarkdown()}, in place of **Ana Ruiz**.`,
     );
     expect(removals(delivery)).toEqual([FORM_CARD_ID]);
@@ -1333,7 +1390,7 @@ describe("a form card, submitted: the change as Simon, said in the conversation,
         props: memberProps,
       },
     ]);
-    expect(posted(delivery)[0]!.activity["text"]).toBe(
+    expect(answerOf(posted(delivery)[0])).toBe(
       `📟 Paged **Nawaz Dhandala** about ${recordMarkdown()}`,
     );
     expect(removals(delivery)).toEqual([FORM_CARD_ID]);
@@ -1393,7 +1450,7 @@ describe("a form card, submitted: the change as Simon, said in the conversation,
         props: memberProps,
       },
     ]);
-    expect(posted(delivery)[0]!.activity["text"]).toBe(
+    expect(answerOf(posted(delivery)[0])).toBe(
       `📝 Updated **Customer Impact**, **Affected Users** and **Started** on ${recordMarkdown()}.`,
     );
     expect(removals(delivery)).toEqual([FORM_CARD_ID]);
@@ -1474,7 +1531,7 @@ describe("somebody who may not: told why, mentioning them, and no card", () => {
       "Edit Custom Fields",
     ],
   ])(
-    "%s from a Teams account not connected: asked to connect, for exactly that, then to press it again",
+    "%s from a Teams account not connected: asked to connect, for exactly that, then to choose it from the menu again",
     async (action: string, purpose: string, item: string) => {
       jest
         .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
@@ -1484,8 +1541,9 @@ describe("somebody who may not: told why, mentioning them, and no card", () => {
 
       const delivery: Delivery = await deliver(press(action));
 
+      // An item of the card's menu (…), not a button: chosen again there.
       expect(answerOf(posted(delivery)[0])).toBe(
-        `🔗 **Connect your Microsoft Teams account to ${purpose}.** It takes one click. Then press **${item}** again.`,
+        `🔗 **Connect your Microsoft Teams account to ${purpose}.** It takes one click. Then choose **${item}** from the menu again.`,
       );
 
       const button: JSONObject = (
@@ -1500,7 +1558,7 @@ describe("somebody who may not: told why, mentioning them, and no card", () => {
         await WorkspaceConnectRequest.peek(token);
       expect(kept).toMatchObject({
         purpose: purpose,
-        again: { kind: WorkspaceConnectRequestAgainKind.Button, label: item },
+        again: { kind: WorkspaceConnectRequestAgainKind.MenuItem, label: item },
       });
     },
   );

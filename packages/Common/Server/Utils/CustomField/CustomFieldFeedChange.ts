@@ -1,5 +1,6 @@
 import { CustomFieldDefinition } from "../../../Types/CustomField/CustomFieldDefinition";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
+import OneUptimeDate from "../../../Types/Date";
 import {
   customFieldValueToDate,
   customFieldValueToText,
@@ -21,8 +22,9 @@ import FeedMarkdown, {
  * the API left no trace in the feed, and the channel never heard of it.
  *
  * Now the item lists the fields whose value changed, each with its new value
- * as it reads ("High", "Yes", "2026-10-15", "eu-west, us-east"), or that it
- * was cleared:
+ * as it reads ("High", "Yes", "2026-10-15", "Oct 15 2026, 09:12 UTC",
+ * "eu-west, us-east"), or that it was cleared, in the order the Custom Fields
+ * card lists them:
  *
  *   📝 Custom Fields:
  *   - Customer Impact: High
@@ -62,9 +64,12 @@ export default class CustomFieldFeedChange {
 
   /*
    * The fields whose value `written` - the bag an update stores - changed
-   * from `before`, the bag the record held, in the order `written` lists
-   * them, then those it dropped. Empty when `written` is not a bag: the
-   * update does not write the custom fields.
+   * from `before`, the bag the record held: in the order `definitions` lists
+   * them (the Custom Fields card's, when the caller sorts them so), then any
+   * field no definition names, in the order `written` lists them, then those
+   * it dropped. The database keeps a bag's keys in an order of its own, so
+   * the order a bag is written in says nothing. Empty when `written` is not
+   * a bag: the update does not write the custom fields.
    */
   public static getChanges(data: {
     written: unknown;
@@ -116,7 +121,50 @@ export default class CustomFieldFeedChange {
       }
     }
 
-    return changes;
+    const placeOf: (name: string) => number = (name: string): number => {
+      const index: number = data.definitions.findIndex(
+        (definition: CustomFieldDefinition): boolean => {
+          return definition.name === name;
+        },
+      );
+
+      return index === -1 ? Number.POSITIVE_INFINITY : index;
+    };
+
+    // Stable: fields no definition names keep the order they came in.
+    return changes
+      .map((change: CustomFieldFeedChangeItem, index: number) => {
+        return { change: change, index: index, place: placeOf(change.name) };
+      })
+      .sort(
+        (
+          a: {
+            change: CustomFieldFeedChangeItem;
+            index: number;
+            place: number;
+          },
+          b: {
+            change: CustomFieldFeedChangeItem;
+            index: number;
+            place: number;
+          },
+        ): number => {
+          if (a.place !== b.place) {
+            return a.place < b.place ? -1 : 1;
+          }
+
+          return a.index - b.index;
+        },
+      )
+      .map(
+        (entry: {
+          change: CustomFieldFeedChangeItem;
+          index: number;
+          place: number;
+        }): CustomFieldFeedChangeItem => {
+          return entry.change;
+        },
+      );
   }
 
   /*
@@ -169,8 +217,9 @@ export default class CustomFieldFeedChange {
 
   /*
    * A value as it reads to a person, on one line: "High", "Yes", "No",
-   * "2026-10-15" for a Date field, "eu-west, us-east" for a list. Empty for
-   * none.
+   * "2026-10-15" for a Date field, "Oct 15 2026, 09:12 UTC" for a Date and
+   * time field - its zone named, as the feed's other times are - and
+   * "eu-west, us-east" for a list. Empty for none.
    */
   public static toReadableValue(data: {
     customFieldType: CustomFieldType | undefined;
@@ -189,6 +238,14 @@ export default class CustomFieldFeedChange {
       case CustomFieldType.Date:
         text = formatCustomFieldCalendarDate(data.value);
         break;
+      case CustomFieldType.DateTime: {
+        const date: Date | null = customFieldValueToDate(data.value);
+
+        text = date
+          ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date)
+          : customFieldValueToText(data.value);
+        break;
+      }
       default:
         text = customFieldValueToText(data.value);
     }

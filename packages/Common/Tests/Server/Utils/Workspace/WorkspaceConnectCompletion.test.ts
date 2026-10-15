@@ -562,9 +562,16 @@ describe("WorkspaceConnectCompletion.getAgainOutcome: what the settings page say
     ).toBe(ConnectRequestOutcome.AskAgain);
   });
 
+  /*
+   * A menu item (Change Severity, from an incident message's menu) is what
+   * a button is to the page: the chat itself says to choose it from the
+   * menu.
+   */
   test.each([
     [WorkspaceConnectRequestAgainKind.Button, "Add Note"],
     [WorkspaceConnectRequestAgainKind.Button, undefined],
+    [WorkspaceConnectRequestAgainKind.MenuItem, "Change Severity"],
+    [WorkspaceConnectRequestAgainKind.MenuItem, undefined],
   ])(
     "a %s (%s) is pressed again",
     (kind: WorkspaceConnectRequestAgainKind, label: string | undefined) => {

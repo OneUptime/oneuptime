@@ -139,7 +139,7 @@ OneUptime hat in Slack einen einzigen Befehl, `/oneuptime`. Das Wort, das Sie da
 | Befehl | Was er tut |
 | --- | --- |
 | `/oneuptime help` | Listet die Befehle auf, mit Beispielen. |
-| `/oneuptime incident [title or number]` | Öffnet das Vorfallsformular, mit ausgefülltem Titel. Die Nummer eines Vorfalls, etwa `42` oder `INC-42`, zeigt stattdessen diesen Vorfall: siehe [Aus Slack auf einen Vorfall reagieren](#aus-slack-auf-einen-vorfall-reagieren). |
+| `/oneuptime incident [title or number]` | Öffnet das Vorfallsformular, mit ausgefülltem Titel. Die Nummer eines Vorfalls, etwa `42` oder `INC-42`, zeigt stattdessen diesen Vorfall: siehe [Einen Vorfall aus Slack verwalten](#einen-vorfall-aus-slack-verwalten). |
 | `/oneuptime maintenance [title]` | Öffnet das Formular für geplante Wartung, mit ausgefülltem Titel. |
 | `/oneuptime oncall` | Listet, wer gerade in jedem Bereitschaftsplan, den Sie sehen können, Bereitschaft hat, bis wann und wer als Nächstes dran ist. |
 | `/oneuptime page [who] [message]` | Alarmiert die Personen, die Sie mit @ erwähnen, wegen Ihrer Nachricht, oder öffnet ein Formular, in dem Sie wählen, wer alarmiert wird. Siehe [Jemanden aus Slack alarmieren](#jemanden-aus-slack-alarmieren). |
@@ -212,7 +212,7 @@ Für eine Gruppe, die die primäre und die sekundäre Bereitschaft enthält, ver
 - **Wer eine verbinden darf.** Die Rollen, die Bereitschaftspläne bearbeiten dürfen: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** und **On-Call Member**, oder **Edit On-Call Duty Policy Schedule** in einer benutzerdefinierten Rolle. In OneUptime Cloud braucht das Verbinden den Tarif **Growth**.
 - **Trennen.** OneUptime ändert die Gruppe nicht mehr. Die Gruppe und ihre Mitglieder bleiben in Slack, wie sie sind.
 
-## Aus Slack auf einen Vorfall reagieren
+## Einen Vorfall aus Slack verwalten
 
 Die Nachricht eines Vorfalls hat vier Schaltflächen, **Acknowledge Incident**, **Resolve Incident**, **Add Note** und **View Incident**, und den Rest in ihrem Menü, der Schaltfläche mit drei Punkten dahinter:
 

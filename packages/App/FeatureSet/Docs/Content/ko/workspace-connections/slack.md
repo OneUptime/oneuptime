@@ -139,7 +139,7 @@ OneUptime 의 Slack 명령은 `/oneuptime` 하나입니다. 그 뒤에 입력하
 | 명령 | 하는 일 |
 | --- | --- |
 | `/oneuptime help` | 명령 목록을 예와 함께 보여 줍니다. |
-| `/oneuptime incident [title or number]` | 제목이 채워진 인시던트 양식을 엽니다. `42` 나 `INC-42` 같은 인시던트 번호를 쓰면 대신 그 인시던트를 보여 줍니다. [Slack 에서 인시던트 조치하기](#slack-에서-인시던트-조치하기) 를 참조하세요. |
+| `/oneuptime incident [title or number]` | 제목이 채워진 인시던트 양식을 엽니다. `42` 나 `INC-42` 같은 인시던트 번호를 쓰면 대신 그 인시던트를 보여 줍니다. [Slack 에서 인시던트 관리하기](#slack-에서-인시던트-관리하기) 를 참조하세요. |
 | `/oneuptime maintenance [title]` | 제목이 채워진 예정된 유지 관리 양식을 엽니다. |
 | `/oneuptime oncall` | 볼 수 있는 각 온콜 스케줄에서 지금 온콜인 사람, 언제까지인지, 다음은 누구인지 나열합니다. |
 | `/oneuptime page [who] [message]` | @멘션한 사람들을 메시지 내용으로 호출하거나, 누구를 호출할지 고르는 양식을 엽니다. [Slack 에서 누군가 호출하기](#slack-에서-누군가-호출하기) 를 참조하세요. |
@@ -212,7 +212,7 @@ OneUptime 은 자신에게 향한 것에만 답변합니다.
 - **연결할 수 있는 사람.** 스케줄을 편집할 수 있는 역할입니다. **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin**, **On-Call Member**, 또는 사용자 지정 역할의 **Edit On-Call Duty Policy Schedule** 입니다. OneUptime Cloud 에서는 연결하려면 **Growth** 플랜이 필요합니다.
 - **연결을 해제하면.** OneUptime 은 그룹 변경을 멈춥니다. 그룹과 멤버는 Slack 에 그대로 남습니다.
 
-## Slack 에서 인시던트 조치하기
+## Slack 에서 인시던트 관리하기
 
 인시던트 메시지에는 **Acknowledge Incident**, **Resolve Incident**, **Add Note**, **View Incident** 네 개의 버튼이 있고, 나머지는 그 뒤의 점 세 개 버튼인 메뉴에 있습니다.
 

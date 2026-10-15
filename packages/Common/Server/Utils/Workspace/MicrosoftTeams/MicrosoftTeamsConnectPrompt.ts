@@ -145,6 +145,11 @@ interface FormPress {
   eventType: WorkspaceEventType;
   // The button's title as the card draws it, without its emoji.
   button: string;
+  /*
+   * An item of the card's menu (…), not a button: chosen from the menu
+   * again, which the answer says, since there is no button to find.
+   */
+  isMenuItem?: boolean | undefined;
 }
 
 /*
@@ -204,6 +209,7 @@ function incidentMenuPresses(): Array<[string, FormPress]> {
             does: item.does,
             eventType: WorkspaceEventType.Incident,
             button: item.button,
+            isMenuItem: true,
           },
         ];
       });
@@ -434,7 +440,9 @@ export default class MicrosoftTeamsConnectPrompt {
       return {
         purpose: MicrosoftTeamsConnectPrompt.getFormPurpose(form),
         again: {
-          kind: WorkspaceConnectRequestAgainKind.Button,
+          kind: form.isMenuItem
+            ? WorkspaceConnectRequestAgainKind.MenuItem
+            : WorkspaceConnectRequestAgainKind.Button,
           label: form.button,
         },
       };

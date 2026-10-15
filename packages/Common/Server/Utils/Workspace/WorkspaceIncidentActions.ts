@@ -19,7 +19,6 @@ import {
   WorkspacePayloadContext,
   WorkspacePayloadMarkdown,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
-import WorkspaceOpenRecordKind from "../../../Types/Workspace/WorkspaceOpenRecordKind";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import FeedMarkdown, {
   MarkdownText,
@@ -56,7 +55,7 @@ import WorkspaceMemberActions, {
   WorkspaceEventRecord,
   WorkspaceEventType,
 } from "./WorkspaceMemberActions";
-import WorkspaceOpenRecords from "./WorkspaceOpenRecords";
+import WorkspaceMessageTime from "./WorkspaceMessageTime";
 import WorkspacePage, {
   WORKSPACE_PAGE_FORM_TEXT,
   WORKSPACE_PAGE_MAX_WAIT_FOR_RECORD_IN_MS,
@@ -145,7 +144,6 @@ export const WORKSPACE_INCIDENT_FORM_TEXT: {
   rolePlaceholder: string;
   personLabel: string;
   personPlaceholder: string;
-  roleHint: string;
   pageTitle: string;
   pageHint: string;
   customFieldsTitle: string;
@@ -163,9 +161,6 @@ export const WORKSPACE_INCIDENT_FORM_TEXT: {
   rolePlaceholder: "Select a role",
   personLabel: "Person",
   personPlaceholder: "Select a person",
-  // What happens to whoever has a role that takes one person.
-  roleHint:
-    "A role that takes one person moves to whoever you pick. Others take several people.",
   pageTitle: "Page Someone",
   pageHint:
     "They are paged about this incident until somebody acknowledges it. A schedule pages whoever is on call in it now; a policy pages through its escalation rules.",
@@ -262,6 +257,12 @@ export interface WorkspaceRoleAssignment {
 
 // How many people the role form lists: Slack shows 100 options.
 export const WORKSPACE_INCIDENT_MAX_PEOPLE: number = 100;
+
+// A run of spaces and line breaks: a title on the card is one line.
+const WHITESPACE_RUN: RegExp = /\s+/g;
+
+// How many roles that take one person the role form's hint names.
+const ROLE_HINT_MAX_NAMES: number = 3;
 
 export default class WorkspaceIncidentActions {
   /*
@@ -515,16 +516,20 @@ export default class WorkspaceIncidentActions {
   }
 
   /*
-   * The incident as a command answers it, read as the member:
+   * The incident as a command answers it, read as the member - its number
+   * and title first, in bold, then what it is now, each on a line of its
+   * own:
    *
-   *   🚨 INC-42 Checkout is down · Critical · Identified · since 5:15 PM
+   *   🚨 INC-42 · Checkout is down
+   *   Severity: Critical · State: Identified · Declared today at 5:15 PM
    *   👤 Incident Commander: Nawaz Dhandala
    *   [👀 Acknowledge Incident] [✅ Resolve Incident] [📄 Add Note]
    *   [🔗 View Incident] [⋯]
    *
-   * Asked in the incident's own channel, it says how to declare another
-   * incident instead, which is what the command did there before. Null for
-   * an incident they may not read.
+   * "Declared", not "since": a command shows any incident, a resolved one
+   * too, which is not resolved "since" it began. Asked in the incident's own
+   * channel, it says how to declare another incident instead, which is what
+   * the command did there before. Null for an incident they may not read.
    */
   @CaptureSpan()
   public static async getCard(data: {
@@ -577,22 +582,35 @@ export default class WorkspaceIncidentActions {
       incident.incidentNumberWithPrefix || `#${incident.incidentNumber ?? ""}`;
     const title: string = incident.title || "";
 
-    const line: MarkdownText = WorkspaceOpenRecords.getLine(
-      WorkspaceOpenRecordKind.Incidents,
+    /*
+     * Each line a block of its own: Slack stacks them as lines, and Teams
+     * runs lines of one text block together unless a blank line parts them.
+     */
+    const messageBlocks: Array<WorkspaceMessageBlock> = [
       {
-        number: number,
-        title: title,
-        link: link.toString(),
-        severity: incident.incidentSeverity?.name || null,
-        state: incident.currentIncidentState?.name || null,
-        startsAt: WorkspaceIncidentActions.toDate(
-          incident.declaredAt || incident.createdAt,
-        ),
-        endsAt: null,
-      },
-    );
+        _type: "WorkspacePayloadMarkdown",
+        text: WorkspaceIncidentActions.getCardHeading({
+          number: number,
+          title: title,
+          link: link.toString(),
+        }).toString(),
+      } as WorkspacePayloadMarkdown,
+    ];
 
-    const lines: Array<MarkdownText> = [mdText`🚨 ${line}`];
+    const facts: MarkdownText | null = WorkspaceIncidentActions.getFactsLine({
+      severity: incident.incidentSeverity?.name || null,
+      state: incident.currentIncidentState?.name || null,
+      declaredAt: WorkspaceIncidentActions.toDate(
+        incident.declaredAt || incident.createdAt,
+      ),
+    });
+
+    if (facts) {
+      messageBlocks.push({
+        _type: "WorkspacePayloadMarkdown",
+        text: facts.toString(),
+      } as WorkspacePayloadMarkdown);
+    }
 
     const holders: Array<WorkspaceIncidentRoleHolder> =
       await WorkspaceIncidentActions.readHolders({
@@ -605,21 +623,19 @@ export default class WorkspaceIncidentActions {
       WorkspaceIncidentActions.getHoldersMarkdown(holders);
 
     if (rolesLine) {
-      lines.push(rolesLine);
+      messageBlocks.push({
+        _type: "WorkspacePayloadMarkdown",
+        text: rolesLine.toString(),
+      } as WorkspacePayloadMarkdown);
     }
 
-    const messageBlocks: Array<WorkspaceMessageBlock> = [
-      {
-        _type: "WorkspacePayloadMarkdown",
-        // Each its own paragraph: Teams runs lines one break apart together.
-        text: FeedMarkdown.join(lines, "\n\n").toString(),
-      } as WorkspacePayloadMarkdown,
+    messageBlocks.push(
       WorkspaceIncidentActions.getButtonsBlock({
         incidentId: incident.id,
         incidentLink: link,
         actions: data.actions,
       }),
-    ];
+    );
 
     if (data.isAskedInItsChannel) {
       messageBlocks.push({
@@ -634,6 +650,53 @@ export default class WorkspaceIncidentActions {
       messageBlocks: messageBlocks,
       text: `${number} ${title}`.trim(),
     };
+  }
+
+  /*
+   * The card's first line: "🚨 INC-42 · Checkout is down", in bold, the
+   * number linked to the incident. The title is text: Markdown in it does
+   * not act.
+   */
+  public static getCardHeading(data: {
+    number: string;
+    title: string;
+    link: string;
+  }): MarkdownText {
+    const title: string = data.title.replace(WHITESPACE_RUN, " ").trim();
+
+    return title
+      ? mdText`🚨 **[${data.number}](${data.link})** · **${title}**`
+      : mdText`🚨 **[${data.number}](${data.link})**`;
+  }
+
+  /*
+   * What the incident is now, on the card's second line: "Severity:
+   * Critical · State: Identified · Declared today at 5:15 PM", each part
+   * there only when the incident has it. Null for none. The moment reads in
+   * each reader's own time (WorkspaceMessageTime).
+   */
+  public static getFactsLine(data: {
+    severity: string | null;
+    state: string | null;
+    declaredAt: Date | null;
+  }): MarkdownText | null {
+    const parts: Array<MarkdownText> = [];
+
+    if (data.severity) {
+      parts.push(mdText`Severity: ${data.severity}`);
+    }
+
+    if (data.state) {
+      parts.push(mdText`State: ${data.state}`);
+    }
+
+    if (data.declaredAt) {
+      parts.push(
+        mdText`Declared ${WorkspaceMessageTime.dateAndTime(data.declaredAt)}`,
+      );
+    }
+
+    return parts.length > 0 ? FeedMarkdown.join(parts, " · ") : null;
   }
 
   /*
@@ -863,8 +926,22 @@ export default class WorkspaceIncidentActions {
       });
     }
 
+    /*
+     * By name, with whoever opened the form first: "I'll take it" is what
+     * most people pick, and it stays listed in a project of more people
+     * than the form shows.
+     */
+    const yourId: string = data.props.userId?.toString().toLowerCase() || "";
+
     people.sort(
       (a: WorkspaceIncidentPersonChoice, b: WorkspaceIncidentPersonChoice) => {
+        const isA: boolean = a.userId.toString().toLowerCase() === yourId;
+        const isB: boolean = b.userId.toString().toLowerCase() === yourId;
+
+        if (isA !== isB) {
+          return isA ? -1 : 1;
+        }
+
         return a.name.localeCompare(b.name);
       },
     );
@@ -1259,22 +1336,18 @@ export default class WorkspaceIncidentActions {
 
   /*
    * What the custom fields form says under its fields, in both chats: that
-   * an emptied field is cleared, the zone a time is read in (Teams), and
-   * what it leaves out - fields copied from the incident's monitor, and
-   * fields past what one form holds.
+   * an emptied field is cleared, and what it leaves out - fields copied from
+   * the incident's monitor, and fields past what one form holds. The zone a
+   * time is read in is said at the time itself (Teams' time input names it;
+   * Slack's picker shows each person their own).
    */
   public static getCustomFieldsNote(data: {
     form: WorkspaceCustomFieldsForm;
-    timezoneLabel?: string | undefined;
   }): MarkdownText {
     const { form } = data;
     const parts: Array<MarkdownText> = [
       mdText`${WORKSPACE_INCIDENT_FORM_TEXT.customFieldsHint}`,
     ];
-
-    if (data.timezoneLabel) {
-      parts.push(mdText`Times are in ${data.timezoneLabel}.`);
-    }
 
     if (form.copiedFieldNames.length > 0) {
       const isOne: boolean = form.copiedFieldNames.length === 1;
@@ -1287,12 +1360,53 @@ export default class WorkspaceIncidentActions {
     }
 
     if (form.notShownCount > 0) {
+      const isOne: boolean = form.notShownCount === 1;
+
       parts.push(
-        mdText`${form.notShownCount} more ${form.notShownCount === 1 ? "field is" : "fields are"} edited in ${ProductBrandingText.getProductName()}.`,
+        mdText`${form.notShownCount} more ${isOne ? "field doesn't" : "fields don't"} fit here: edit ${isOne ? "it" : "them"} in ${ProductBrandingText.getProductName()}.`,
       );
     }
 
     return FeedMarkdown.join(parts, " ");
+  }
+
+  /*
+   * What the role form says under its fields, as plain text: the roles that
+   * take one person, by name, and what picking someone for one does -
+   * "Incident Commander takes one person: picking someone replaces whoever
+   * has it." The form's heading says who has each role now. Empty when every
+   * role takes several people. Three roles are named at most.
+   */
+  public static getRoleHint(roles: Array<WorkspaceIncidentRoleChoice>): string {
+    const names: Array<string> = roles
+      .filter((role: WorkspaceIncidentRoleChoice): boolean => {
+        return !role.canAssignMultipleUsers;
+      })
+      .map((role: WorkspaceIncidentRoleChoice): string => {
+        return role.name;
+      });
+
+    if (names.length === 0) {
+      return "";
+    }
+
+    const replaces: string = "picking someone replaces whoever has it.";
+
+    if (names.length === 1) {
+      return `${names[0]!} takes one person: ${replaces}`;
+    }
+
+    const named: Array<string> =
+      names.length > ROLE_HINT_MAX_NAMES
+        ? [
+            ...names.slice(0, ROLE_HINT_MAX_NAMES),
+            `${names.length - ROLE_HINT_MAX_NAMES} more ${
+              names.length - ROLE_HINT_MAX_NAMES === 1 ? "role" : "roles"
+            }`,
+          ]
+        : names;
+
+    return `${WorkspaceIncidentActions.joinNames(named)} take one person each: ${replaces}`;
   }
 
   // Who holds which role: "👤 Incident Commander: Nawaz Dhandala · Scribe: Ana Ruiz".

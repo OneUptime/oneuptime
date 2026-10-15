@@ -139,7 +139,7 @@ OneUptime heeft één commando in Slack, `/oneuptime`. Het woord dat je erachter
 | Commando | Wat het doet |
 | --- | --- |
 | `/oneuptime help` | Toont de commando's, met voorbeelden. |
-| `/oneuptime incident [title or number]` | Opent het incidentformulier, met de titel ingevuld. Het nummer van een incident, zoals `42` of `INC-42`, toont in plaats daarvan dat incident: zie [Handelen op een incident vanuit Slack](#handelen-op-een-incident-vanuit-slack). |
+| `/oneuptime incident [title or number]` | Opent het incidentformulier, met de titel ingevuld. Het nummer van een incident, zoals `42` of `INC-42`, toont in plaats daarvan dat incident: zie [Een incident beheren vanuit Slack](#een-incident-beheren-vanuit-slack). |
 | `/oneuptime maintenance [title]` | Opent het formulier voor gepland onderhoud, met de titel ingevuld. |
 | `/oneuptime oncall` | Toont wie er nu dienst heeft in elk bereikbaarheidsschema dat je kunt zien, tot wanneer, en wie de volgende is. |
 | `/oneuptime page [who] [message]` | Roept de mensen op die je met @ noemt, over je bericht, of opent een formulier om te kiezen wie je oproept. Zie [Iemand oproepen vanuit Slack](#iemand-oproepen-vanuit-slack). |
@@ -212,7 +212,7 @@ Voor een groep met zowel de primaire als de secundaire dienst koppel je dezelfde
 - **Wie er een mag koppelen.** De rollen die schema's mogen bewerken: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** en **On-Call Member**, of **Edit On-Call Duty Policy Schedule** in een aangepaste rol. In OneUptime Cloud vraagt koppelen het abonnement **Growth**.
 - **Ontkoppelen.** OneUptime past de groep niet meer aan. De groep en de leden blijven in Slack zoals ze zijn.
 
-## Handelen op een incident vanuit Slack
+## Een incident beheren vanuit Slack
 
 Het bericht van een incident heeft vier knoppen, **Acknowledge Incident**, **Resolve Incident**, **Add Note** en **View Incident**, en de rest in zijn menu, de knop met drie puntjes erachter:
 

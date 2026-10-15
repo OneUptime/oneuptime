@@ -139,7 +139,7 @@ O OneUptime tem um único comando no Slack, `/oneuptime`. A palavra que você di
 | Comando | O que faz |
 | --- | --- |
 | `/oneuptime help` | Lista os comandos, com exemplos. |
-| `/oneuptime incident [title or number]` | Abre o formulário de incidente, com o título preenchido. O número de um incidente, como `42` ou `INC-42`, mostra esse incidente em vez disso: consulte [Agir sobre um incidente pelo Slack](#agir-sobre-um-incidente-pelo-slack). |
+| `/oneuptime incident [title or number]` | Abre o formulário de incidente, com o título preenchido. O número de um incidente, como `42` ou `INC-42`, mostra esse incidente em vez disso: consulte [Gerenciar um incidente pelo Slack](#gerenciar-um-incidente-pelo-slack). |
 | `/oneuptime maintenance [title]` | Abre o formulário de manutenção programada, com o título preenchido. |
 | `/oneuptime oncall` | Lista quem está de plantão agora em cada agendamento de plantão que você pode ver, até quando, e quem é o próximo. |
 | `/oneuptime page [who] [message]` | Aciona as pessoas que você menciona com @ sobre a sua mensagem, ou abre um formulário para escolher quem acionar. Consulte [Acionar alguém pelo Slack](#acionar-alguém-pelo-slack). |
@@ -212,7 +212,7 @@ Para um grupo com o plantão principal e o secundário, conecte o mesmo grupo na
 - **Quem pode conectar um.** As funções que podem editar agendamentos: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** e **On-Call Member**, ou **Edit On-Call Duty Policy Schedule** em uma função personalizada. No OneUptime Cloud, conectar um exige o plano **Growth**.
 - **Desconectar.** O OneUptime para de mudar o grupo. O grupo e os membros dele ficam no Slack como estão.
 
-## Agir sobre um incidente pelo Slack
+## Gerenciar um incidente pelo Slack
 
 A mensagem de um incidente tem quatro botões, **Acknowledge Incident**, **Resolve Incident**, **Add Note** e **View Incident**, e o resto no menu dela, o botão de três pontos depois deles:
 

@@ -39,6 +39,12 @@ export interface SlackAction {
   actionValue?: string | undefined;
   actionType?: SlackActionType | undefined;
   /*
+   * Chosen from a message's menu (⋯), as the press of the button it stands
+   * for (SlackOverflowMenu): an answer that asks to press it again says to
+   * choose it from the menu.
+   */
+  isMenuChoice?: boolean | undefined;
+  /*
    * For a slash command: how it was typed, without what followed it -
    * "/oneuptime incident", or an older app's "/incident" - for an answer
    * that asks to run it again (SlackConnectPrompt). A button, a form or a
@@ -228,6 +234,7 @@ export default class SlackAuthAction {
           return {
             actionValue: choice.actionValue,
             actionType: choice.actionType as SlackActionType,
+            isMenuChoice: true,
           };
         }
       }
@@ -561,6 +568,7 @@ export default class SlackAuthAction {
           actionValue: refusal.action.actionValue,
           payloadType: slackRequest.payloadType,
           command: refusal.action.command,
+          isMenuChoice: refusal.action.isMenuChoice,
         }),
       });
     } catch (err) {

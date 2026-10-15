@@ -57,6 +57,7 @@ import Permission, { UserPermission } from "../../../../Types/Permission";
 import {
   WorkspaceMessageBlock,
   WorkspacePayloadButtons,
+  WorkspacePayloadMarkdown,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 
@@ -430,6 +431,88 @@ describe("WorkspaceIncidentActions.getFormHeading", () => {
   });
 });
 
+describe("WorkspaceIncidentActions.getCardHeading and getFactsLine: the card's first two lines", () => {
+  test("the number, linked, and the title, both in bold", () => {
+    expect(
+      WorkspaceIncidentActions.getCardHeading({
+        number: "INC-42",
+        title: "Checkout is down",
+        link: INCIDENT_LINK,
+      }).toString(),
+    ).toBe(`🚨 **[INC-42](${INCIDENT_LINK})** · **Checkout is down**`);
+  });
+
+  test("the title is text, on one line: Markdown in it does not act, a line break is a space", () => {
+    expect(
+      WorkspaceIncidentActions.getCardHeading({
+        number: "INC-42",
+        title: "  **Down**\n[now](https://evil.test)  ",
+        link: INCIDENT_LINK,
+      }).toString(),
+    ).toBe(
+      `🚨 **[INC-42](${INCIDENT_LINK})** · **\\*\\*Down\\*\\* \\[now\\](https://evil.test)**`,
+    );
+  });
+
+  test("no title: the number alone", () => {
+    expect(
+      WorkspaceIncidentActions.getCardHeading({
+        number: "#42",
+        title: " ",
+        link: INCIDENT_LINK,
+      }).toString(),
+    ).toBe(`🚨 **[#42](${INCIDENT_LINK})**`);
+  });
+
+  test.each([
+    [
+      { severity: "Critical", state: "Identified" },
+      "Severity: Critical · State: Identified · Declared {{DATE(2026-10-15T09:30:00Z, SHORT)}} at {{TIME(2026-10-15T09:30:00Z)}}",
+    ],
+    [
+      { severity: null, state: "Resolved" },
+      "State: Resolved · Declared {{DATE(2026-10-15T09:30:00Z, SHORT)}} at {{TIME(2026-10-15T09:30:00Z)}}",
+    ],
+    [
+      { severity: "Minor", state: null },
+      "Severity: Minor · Declared {{DATE(2026-10-15T09:30:00Z, SHORT)}} at {{TIME(2026-10-15T09:30:00Z)}}",
+    ],
+  ])(
+    "%p: each part there only when the incident has it",
+    (
+      parts: { severity: string | null; state: string | null },
+      line: string,
+    ) => {
+      expect(
+        WorkspaceIncidentActions.getFactsLine({
+          ...parts,
+          declaredAt: new Date("2026-10-15T09:30:00.000Z"),
+        })!.toString(),
+      ).toBe(line);
+    },
+  );
+
+  test("a severity or state named in Markdown is text", () => {
+    expect(
+      WorkspaceIncidentActions.getFactsLine({
+        severity: "*P1*",
+        state: null,
+        declaredAt: null,
+      })!.toString(),
+    ).toBe("Severity: \\*P1\\*");
+  });
+
+  test("nothing known: no line", () => {
+    expect(
+      WorkspaceIncidentActions.getFactsLine({
+        severity: null,
+        state: null,
+        declaredAt: null,
+      }),
+    ).toBeNull();
+  });
+});
+
 describe("WorkspaceIncidentActions.findByNumber: the incident a number names, as the member reads it", () => {
   function stubIncident(
     numberWithPrefix: string | null,
@@ -616,14 +699,21 @@ describe("WorkspaceIncidentActions.isReadable", () => {
 });
 
 describe("WorkspaceIncidentActions.getCard: the incident, as `/oneuptime incident 42` answers it", () => {
-  // The incident as the member reads it; `isBare`: its number and title only.
+  /*
+   * The incident as the member reads it; `isBare`: its number and title
+   * only, and when it was created, when given.
+   */
   function stubIncident(
-    options: { isBare?: boolean } = {},
+    options: { isBare?: boolean; stateName?: string; createdAt?: Date } = {},
   ): SpyInstance<typeof IncidentService.findOneBy> {
     const incident: Incident = new Incident();
     incident.id = INCIDENT_ID;
     incident.title = "Checkout is down";
     incident.incidentNumber = 42;
+
+    if (options.createdAt) {
+      incident.createdAt = options.createdAt;
+    }
 
     if (!options.isBare) {
       incident.incidentNumberWithPrefix = "INC-42";
@@ -632,16 +722,37 @@ describe("WorkspaceIncidentActions.getCard: the incident, as `/oneuptime inciden
       severity.name = "Critical";
       incident.incidentSeverity = severity;
       const state: IncidentState = new IncidentState();
-      state.name = "Identified";
+      state.name = options.stateName || "Identified";
       incident.currentIncidentState = state;
     }
 
     return jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(incident);
   }
 
-  const LINE: string = `🚨 **[INC-42](${INCIDENT_LINK})** Checkout is down · Critical · Identified · since {{DATE(2026-10-15T09:30:00Z, SHORT)}} at {{TIME(2026-10-15T09:30:00Z)}}`;
+  // Its number and title, in bold, first: what the card is about.
+  const HEADING: WorkspacePayloadMarkdown = {
+    _type: "WorkspacePayloadMarkdown",
+    text: `🚨 **[INC-42](${INCIDENT_LINK})** · **Checkout is down**`,
+  };
 
-  test("its number, title, severity, state and when it started; who holds its roles; then its buttons and menu", async () => {
+  // Then what it is now, each part named.
+  const FACTS: WorkspacePayloadMarkdown = {
+    _type: "WorkspacePayloadMarkdown",
+    text: "Severity: Critical · State: Identified · Declared {{DATE(2026-10-15T09:30:00Z, SHORT)}} at {{TIME(2026-10-15T09:30:00Z)}}",
+  };
+
+  // The blocks of a card, but its buttons.
+  function linesOf(card: WorkspaceIncidentCard | null): Array<string> {
+    return card!.messageBlocks
+      .filter((block: WorkspaceMessageBlock): boolean => {
+        return block._type === "WorkspacePayloadMarkdown";
+      })
+      .map((block: WorkspaceMessageBlock): string => {
+        return (block as WorkspacePayloadMarkdown).text;
+      });
+  }
+
+  test("its number and title, in bold; then its severity, state and when it was declared; who holds its roles; then its buttons and menu", async () => {
     const props: DatabaseCommonInteractionProps = memberProps();
     const read: SpyInstance<typeof IncidentService.findOneBy> = stubIncident();
     stubHolders([ANA_AS_COMMANDER, LEE_AS_SCRIBE]);
@@ -657,10 +768,16 @@ describe("WorkspaceIncidentActions.getCard: the incident, as `/oneuptime inciden
 
     expect(card).not.toBeNull();
     expect(card!.text).toBe("INC-42 Checkout is down");
+    /*
+     * Each line a block of its own: Slack stacks them as lines, and Teams
+     * would run lines of one text block together.
+     */
     expect(card!.messageBlocks).toEqual([
+      HEADING,
+      FACTS,
       {
         _type: "WorkspacePayloadMarkdown",
-        text: `${LINE}\n\n👤 Incident Commander: **Ana Ruiz** · Scribe: **Lee Wong**`,
+        text: "👤 Incident Commander: **Ana Ruiz** · Scribe: **Lee Wong**",
       },
       WorkspaceIncidentActions.getButtonsBlock({
         incidentId: INCIDENT_ID,
@@ -690,8 +807,11 @@ describe("WorkspaceIncidentActions.getCard: the incident, as `/oneuptime inciden
         actions: SLACK_INCIDENT_ACTION_IDS,
       });
 
-    const buttons: WorkspacePayloadButtons = card!
-      .messageBlocks[1] as WorkspacePayloadButtons;
+    const buttons: WorkspacePayloadButtons = card!.messageBlocks.find(
+      (block: WorkspaceMessageBlock): boolean => {
+        return block._type === "WorkspacePayloadButtons";
+      },
+    ) as WorkspacePayloadButtons;
 
     expect(
       buttons.buttons.map((button: { title: string; value: string }) => {
@@ -729,11 +849,51 @@ describe("WorkspaceIncidentActions.getCard: the incident, as `/oneuptime inciden
         actions: SLACK_INCIDENT_ACTION_IDS,
       });
 
-    expect(card!.messageBlocks[0]).toEqual({
-      _type: "WorkspacePayloadMarkdown",
-      text: `🚨 **[#42](${INCIDENT_LINK})** Checkout is down`,
-    });
+    // Nothing to say of what it is now: no line for it.
+    expect(linesOf(card)).toEqual([
+      `🚨 **[#42](${INCIDENT_LINK})** · **Checkout is down**`,
+    ]);
     expect(card!.text).toBe("#42 Checkout is down");
+  });
+
+  test("a resolved incident: 'Declared', never 'since', which would say it is resolved since it began", async () => {
+    stubIncident({ stateName: "Resolved" });
+    stubHolders([]);
+
+    const card: WorkspaceIncidentCard | null =
+      await WorkspaceIncidentActions.getCard({
+        incidentId: INCIDENT_ID,
+        projectId: PROJECT_ID,
+        props: memberProps(),
+        workspaceType: WorkspaceType.Slack,
+        actions: SLACK_INCIDENT_ACTION_IDS,
+      });
+
+    expect(linesOf(card)[1]).toBe(
+      "Severity: Critical · State: Resolved · Declared {{DATE(2026-10-15T09:30:00Z, SHORT)}} at {{TIME(2026-10-15T09:30:00Z)}}",
+    );
+    expect(linesOf(card).join("\n")).not.toContain("since");
+  });
+
+  test("declared when it was created, for an incident with no declared time", async () => {
+    stubIncident({
+      isBare: true,
+      createdAt: new Date("2026-10-14T22:05:00.000Z"),
+    });
+    stubHolders([]);
+
+    const card: WorkspaceIncidentCard | null =
+      await WorkspaceIncidentActions.getCard({
+        incidentId: INCIDENT_ID,
+        projectId: PROJECT_ID,
+        props: memberProps(),
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        actions: SLACK_INCIDENT_ACTION_IDS,
+      });
+
+    expect(linesOf(card)[1]).toBe(
+      "Declared {{DATE(2026-10-14T22:05:00Z, SHORT)}} at {{TIME(2026-10-14T22:05:00Z)}}",
+    );
   });
 
   test("role holders the member may not read: no roles line, the card all the same", async () => {
@@ -751,10 +911,7 @@ describe("WorkspaceIncidentActions.getCard: the incident, as `/oneuptime inciden
         actions: SLACK_INCIDENT_ACTION_IDS,
       });
 
-    expect(card!.messageBlocks[0]).toEqual({
-      _type: "WorkspacePayloadMarkdown",
-      text: LINE,
-    });
+    expect(linesOf(card)).toEqual([HEADING.text, FACTS.text]);
   });
 
   test.each([
@@ -782,8 +939,10 @@ describe("WorkspaceIncidentActions.getCard: the incident, as `/oneuptime inciden
           isAskedInItsChannel: true,
         });
 
-      expect(card!.messageBlocks).toHaveLength(3);
-      expect(card!.messageBlocks[2]).toEqual({
+      // Last, under the buttons: it is about another incident.
+      expect(card!.messageBlocks).toHaveLength(4);
+      expect(card!.messageBlocks[2]!._type).toBe("WorkspacePayloadButtons");
+      expect(card!.messageBlocks[3]).toEqual({
         _type: "WorkspacePayloadContext",
         text: line,
       });
@@ -1000,7 +1159,7 @@ describe("WorkspaceIncidentActions.changeSeverity: the incident's update, as the
 });
 
 describe("WorkspaceIncidentActions.getRoleForm", () => {
-  test("the roles (the primary first), the project's people (you marked) by name, and who holds what", async () => {
+  test("the roles (the primary first), the project's people - you first, marked, then by name - and who holds what", async () => {
     const props: DatabaseCommonInteractionProps = memberProps();
     const roleRead: SpyInstance<typeof IncidentRoleService.findBy> = jest
       .spyOn(IncidentRoleService, "findBy")
@@ -1035,7 +1194,7 @@ describe("WorkspaceIncidentActions.getRoleForm", () => {
       form.people.map((person: { label: string }) => {
         return person.label;
       }),
-    ).toEqual(["ana@acme.test", "Lee Wong", "Nawaz Dhandala (you)"]);
+    ).toEqual(["Nawaz Dhandala (you)", "ana@acme.test", "Lee Wong"]);
     expect(form.notShownPeopleCount).toBe(0);
     expect(form.holders).toEqual([
       {
@@ -1085,6 +1244,107 @@ describe("WorkspaceIncidentActions.getRoleForm", () => {
     expect(form.people).toHaveLength(100);
     expect(form.people[0]!.name).toBe("Person 000");
     expect(form.notShownPeopleCount).toBe(3);
+  });
+
+  test("past 100 people, whoever opened the form is listed - first - even when their name comes last", async () => {
+    jest.spyOn(IncidentRoleService, "findBy").mockResolvedValue([COMMANDER]);
+    jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([
+      ...Array.from({ length: 150 }, (_value: unknown, index: number) => {
+        const padded: string = String(index).padStart(3, "0");
+        return teamMember(
+          new ObjectID(`00000000-0000-4000-8000-000000000${padded}`),
+          `Person ${padded}`,
+          `p${padded}@acme.test`,
+        );
+      }),
+      teamMember(USER_ID, "Zoe Zimmermann", "zoe@acme.test"),
+    ]);
+    stubHolders([]);
+
+    const form: WorkspaceIncidentRoleForm =
+      await WorkspaceIncidentActions.getRoleForm({
+        event: incidentEvent(),
+        props: memberProps(),
+      });
+
+    // "I'll take it" is what most people pick: never left off the list.
+    expect(form.people).toHaveLength(100);
+    expect(form.people[0]).toEqual({
+      userId: USER_ID,
+      name: "Zoe Zimmermann",
+      label: "Zoe Zimmermann (you)",
+    });
+    expect(form.people[1]!.name).toBe("Person 000");
+    expect(form.notShownPeopleCount).toBe(51);
+  });
+});
+
+describe("WorkspaceIncidentActions.getRoleHint: what the role form says under its fields", () => {
+  function choice(
+    name: string,
+    canAssignMultipleUsers: boolean,
+  ): { id: ObjectID; name: string; canAssignMultipleUsers: boolean } {
+    return {
+      id: ObjectID.generate(),
+      name: name,
+      canAssignMultipleUsers: canAssignMultipleUsers,
+    };
+  }
+
+  test("the role that takes one person, by name, and what picking someone for it does", () => {
+    expect(
+      WorkspaceIncidentActions.getRoleHint([
+        choice("Incident Commander", false),
+        choice("Scribe", true),
+      ]),
+    ).toBe(
+      "Incident Commander takes one person: picking someone replaces whoever has it.",
+    );
+  });
+
+  test("several: each by name", () => {
+    expect(
+      WorkspaceIncidentActions.getRoleHint([
+        choice("Incident Commander", false),
+        choice("Scribe", true),
+        choice("Communications Lead", false),
+      ]),
+    ).toBe(
+      "Incident Commander and Communications Lead take one person each: picking someone replaces whoever has it.",
+    );
+  });
+
+  test("more than three: three by name, and how many more", () => {
+    expect(
+      WorkspaceIncidentActions.getRoleHint([
+        choice("Incident Commander", false),
+        choice("Communications Lead", false),
+        choice("Operations Lead", false),
+        choice("Planning Lead", false),
+        choice("Logistics Lead", false),
+      ]),
+    ).toBe(
+      "Incident Commander, Communications Lead, Operations Lead and 2 more roles take one person each: picking someone replaces whoever has it.",
+    );
+    expect(
+      WorkspaceIncidentActions.getRoleHint([
+        choice("Incident Commander", false),
+        choice("Communications Lead", false),
+        choice("Operations Lead", false),
+        choice("Planning Lead", false),
+      ]),
+    ).toBe(
+      "Incident Commander, Communications Lead, Operations Lead and 1 more role take one person each: picking someone replaces whoever has it.",
+    );
+  });
+
+  test("every role takes several people: nothing to say", () => {
+    expect(
+      WorkspaceIncidentActions.getRoleHint([
+        choice("Scribe", true),
+        choice("Subject Matter Expert", true),
+      ]),
+    ).toBe("");
   });
 });
 
@@ -1637,48 +1897,35 @@ describe("WorkspaceIncidentActions.getCustomFieldsNote: what the custom fields f
     return { inputs: [], notShownCount: 0, copiedFieldNames: [], ...more };
   }
 
+  /*
+   * The zone a time is read in is not here: Teams' time input names it, and
+   * Slack's picker shows each person their own.
+   */
   test.each([
-    [form({}), undefined, "Leave a field empty to clear it."],
-    [
-      form({}),
-      "Europe/Berlin (UTC+02:00)",
-      "Leave a field empty to clear it. Times are in Europe/Berlin (UTC+02:00).",
-    ],
+    [form({}), "Leave a field empty to clear it."],
     [
       form({ copiedFieldNames: ["Region"] }),
-      undefined,
       "Leave a field empty to clear it. **Region** is copied from the incident's monitor, so it is not here.",
     ],
     [
       form({ copiedFieldNames: ["Region", "Team"] }),
-      undefined,
       "Leave a field empty to clear it. **Region** and **Team** are copied from the incident's monitor, so they are not here.",
     ],
     [
       form({ notShownCount: 1 }),
-      undefined,
-      "Leave a field empty to clear it. 1 more field is edited in OneUptime.",
+      "Leave a field empty to clear it. 1 more field doesn't fit here: edit it in OneUptime.",
     ],
     [
       form({ notShownCount: 3 }),
-      undefined,
-      "Leave a field empty to clear it. 3 more fields are edited in OneUptime.",
+      "Leave a field empty to clear it. 3 more fields don't fit here: edit them in OneUptime.",
     ],
-  ])(
-    "%#: %p with %p",
-    (
-      data: WorkspaceCustomFieldsForm,
-      timezoneLabel: string | undefined,
-      note: string,
-    ) => {
-      expect(
-        WorkspaceIncidentActions.getCustomFieldsNote({
-          form: data,
-          timezoneLabel: timezoneLabel,
-        }).toString(),
-      ).toBe(note);
-    },
-  );
+  ])("%#: %p", (data: WorkspaceCustomFieldsForm, note: string) => {
+    expect(
+      WorkspaceIncidentActions.getCustomFieldsNote({
+        form: data,
+      }).toString(),
+    ).toBe(note);
+  });
 });
 
 describe("WorkspaceIncidentActions.getHoldersMarkdown", () => {

@@ -139,7 +139,7 @@ OneUptime has one command in Slack, `/oneuptime`. The word you type after it say
 | Command | What it does |
 | --- | --- |
 | `/oneuptime help` | Lists the commands, with examples. |
-| `/oneuptime incident [title or number]` | Opens the incident form, with the title filled in. An incident's number, such as `42` or `INC-42`, shows that incident instead: see [Acting on an incident from Slack](#acting-on-an-incident-from-slack). |
+| `/oneuptime incident [title or number]` | Opens the incident form, with the title filled in. An incident's number, such as `42` or `INC-42`, shows that incident instead: see [Managing an incident from Slack](#managing-an-incident-from-slack). |
 | `/oneuptime maintenance [title]` | Opens the scheduled maintenance form, with the title filled in. |
 | `/oneuptime oncall` | Lists who is on call right now in each on-call schedule you can see, until when, and who is next. |
 | `/oneuptime page [who] [message]` | Pages the people you @mention about your message, or opens a form to pick who to page. See [Paging someone from Slack](#paging-someone-from-slack). |
@@ -212,7 +212,7 @@ For a group that holds the primary and the secondary on call, connect the same g
 - **Who may connect one.** The roles that may edit schedules: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Edit On-Call Duty Policy Schedule** in a custom role. On OneUptime Cloud, connecting one needs the **Growth** plan.
 - **Disconnecting.** OneUptime stops changing the group. The group, and the people in it, stay in Slack as they are.
 
-## Acting on an incident from Slack
+## Managing an incident from Slack
 
 An incident's message has four buttons, **Acknowledge Incident**, **Resolve Incident**, **Add Note** and **View Incident**, and the rest in its menu, the button with three dots after them:
 

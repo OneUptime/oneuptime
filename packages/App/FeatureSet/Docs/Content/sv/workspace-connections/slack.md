@@ -139,7 +139,7 @@ OneUptime har ett enda kommando i Slack, `/oneuptime`. Ordet du skriver efter de
 | Kommando | Vad det gör |
 | --- | --- |
 | `/oneuptime help` | Visar kommandona, med exempel. |
-| `/oneuptime incident [title or number]` | Öppnar incidentformuläret med titeln ifylld. En incidents nummer, som `42` eller `INC-42`, visar i stället den incidenten: se [Agera på en incident från Slack](#agera-på-en-incident-från-slack). |
+| `/oneuptime incident [title or number]` | Öppnar incidentformuläret med titeln ifylld. En incidents nummer, som `42` eller `INC-42`, visar i stället den incidenten: se [Hantera en incident från Slack](#hantera-en-incident-från-slack). |
 | `/oneuptime maintenance [title]` | Öppnar formuläret för schemalagt underhåll med titeln ifylld. |
 | `/oneuptime oncall` | Visar vem som har jour just nu i varje jourschema du kan se, till när, och vem som är nästa. |
 | `/oneuptime page [who] [message]` | Larmar personerna du nämner med @ om ditt meddelande, eller öppnar ett formulär där du väljer vem som ska larmas. Se [Larma någon från Slack](#larma-någon-från-slack). |
@@ -212,7 +212,7 @@ För en grupp med både den primära och den sekundära jouren ansluter du samma
 - **Vem som får ansluta en.** De roller som får redigera scheman: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** och **On-Call Member**, eller **Edit On-Call Duty Policy Schedule** i en anpassad roll. På OneUptime Cloud kräver det abonnemanget **Growth** att ansluta en.
 - **Koppla från.** OneUptime slutar ändra gruppen. Gruppen och dess medlemmar stannar i Slack som de är.
 
-## Agera på en incident från Slack
+## Hantera en incident från Slack
 
 En incidents meddelande har fyra knappar, **Acknowledge Incident**, **Resolve Incident**, **Add Note** och **View Incident**, och resten i dess meny, knappen med tre punkter efter dem:
 

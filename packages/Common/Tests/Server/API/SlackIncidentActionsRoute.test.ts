@@ -1212,19 +1212,21 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
         COMMANDER.toString(),
       );
 
+      // Simon first - "I'll take it" - then everybody else by name.
       const person: JSONObject = elementOf(view, "incidentRolePerson");
       expect(optionTexts(person["options"])).toEqual([
+        "Simon Lee (you)",
         "Ana Ruiz",
         "Nawaz Dhandala",
-        "Simon Lee (you)",
       ]);
       expect((person["initial_option"] as JSONObject)["value"]).toBe(
         SIMON.toString(),
       );
+      // The role that takes one person, by name, and what picking does.
       expect(
         (inputOf(view, "incidentRolePerson")["hint"] as JSONObject)["text"],
       ).toBe(
-        "A role that takes one person moves to whoever you pick. Others take several people.",
+        "Incident Commander takes one person: picking someone replaces whoever has it.",
       );
     });
 
@@ -1728,8 +1730,9 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
         const said: SlackCall = await onlyAnswer();
 
         expect(said.url).toBe(PRESS_RESPONSE_URL);
+        // An item of the menu, not a button: chosen from the menu again.
         expect(textOf(said.data["blocks"])).toContain(
-          `🔗 *Connect your Slack account to ${purpose}.* It takes one click. Then press *${item}* again.`,
+          `🔗 *Connect your Slack account to ${purpose}.* It takes one click. Then choose *${item}* from the menu again.`,
         );
 
         // The Connect button carries the request, for this Slack account.
@@ -1750,11 +1753,60 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
         expect(request!.purpose).toBe(purpose);
         expect(request!.workspaceUserId).toBe(SLACK_USER_ID);
         expect(request!.again).toEqual({
-          kind: WorkspaceConnectRequestAgainKind.Button,
+          kind: WorkspaceConnectRequestAgainKind.MenuItem,
           label: item,
         });
       },
     );
+
+    test("Change Incident State, an item of the menu now and a button on messages posted before it: each asked again as it was pressed", async () => {
+      linkedUser = null;
+
+      await choose(`ViewChangeIncidentState:${ID}`);
+      const fromMenu: SlackCall = await onlyAnswer();
+
+      expect(textOf(fromMenu.data["blocks"])).toContain(
+        "Then choose *Change Incident State* from the menu again.",
+      );
+
+      slackCalls.splice(0);
+
+      // The same action, pressed as the button an older message carries.
+      await postForm({
+        port: app.port,
+        path: "/api/slack/interactive",
+        fields: {
+          payload: JSON.stringify({
+            type: "block_actions",
+            user: { id: SLACK_USER_ID, username: "simon", name: "simon" },
+            team: { id: SLACK_TEAM_ID },
+            channel: { id: INCIDENT_CHANNEL_ID, name: "incident-42" },
+            container: {
+              type: "message",
+              channel_id: INCIDENT_CHANNEL_ID,
+              message_ts: "1760000000.000100",
+            },
+            message: { ts: "1760000000.000100" },
+            response_url: PRESS_RESPONSE_URL,
+            trigger_id: TRIGGER_ID,
+            actions: [
+              {
+                type: "button",
+                action_id: "ViewChangeIncidentState",
+                block_id: "incident-buttons",
+                value: ID,
+                action_ts: "1760000001.000400",
+              },
+            ],
+          }),
+        },
+      });
+      const fromButton: SlackCall = await onlyAnswer();
+
+      expect(textOf(fromButton.data["blocks"])).toContain(
+        "Then press *Change Incident State* again.",
+      );
+    });
   });
 
   describe("/oneuptime incident <number>: the incident, with its buttons and menu, only to whoever asked", () => {
@@ -1774,11 +1826,23 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
         expect(said.url).toBe(COMMAND_RESPONSE_URL);
         expect(said.data["response_type"]).toBe("ephemeral");
         expect(said.data["text"]).toBe("INC-42 Checkout is down");
-        // Its line, in each reader's own calendar and clock; who holds its roles.
-        expect(blocks[0]!["type"]).toBe("section");
+        /*
+         * Its number and title, in bold, first; then what it is now - its
+         * declared time in each reader's own calendar and clock - and who
+         * holds its roles, each a line of its own.
+         */
+        expect(
+          blocks.slice(0, 3).map((block: JSONObject): string => {
+            return String(block["type"]);
+          }),
+        ).toEqual(["section", "section", "section"]);
         expect(textOf([blocks[0]])).toBe(
-          `🚨 *<${INCIDENT_URL}|INC-42>* Checkout is down · Minor · Identified · since <!date^1792056600^{date_short_pretty}|2026-10-15> at <!date^1792056600^{time}|09:30 UTC>\n\n👤 Incident Commander: *Ana Ruiz*\n`,
+          `🚨 *<${INCIDENT_URL}|INC-42>* · *Checkout is down*\n`,
         );
+        expect(textOf([blocks[1]])).toBe(
+          "Severity: Minor · State: Identified · Declared <!date^1792056600^{date_short_pretty}|2026-10-15> at <!date^1792056600^{time}|09:30 UTC>\n",
+        );
+        expect(textOf([blocks[2]])).toBe("👤 Incident Commander: *Ana Ruiz*\n");
 
         // Its four buttons, then its menu of five.
         const actions: JSONObject = blocks.find((block: JSONObject) => {
@@ -1956,7 +2020,7 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
     });
   });
 
-  test("Slack taking longer than its three seconds to open a form: told to press it again", async () => {
+  test("Slack taking longer than its three seconds to open a form: told to try again", async () => {
     viewsOpenError = "expired_trigger_id";
 
     await choose(`ViewChangeIncidentSeverity:${ID}`);
@@ -1964,8 +2028,9 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
 
     expect(calls[0]!.url).toBe("https://slack.com/api/views.open");
     expect(calls[1]!.url).toBe(PRESS_RESPONSE_URL);
+    // Chosen from a menu, not pressed: "try again" says what to do in both.
     expect(textOf(calls[1]!.data["blocks"])).toBe(
-      "OneUptime couldn't open the form in time. Please press it again.\n",
+      "OneUptime couldn't open the form in time. Please try again.\n",
     );
   });
 });

@@ -152,7 +152,7 @@ Skriv till boten i en personlig chatt, eller nämn OneUptime med @ i en kanal el
 | Meddelande | Vad boten gör |
 | --- | --- |
 | `help` | Visar vad den kan göra. |
-| `incident [title or number]` | Öppnar incidentformuläret med titeln ifylld. En incidents nummer, som `42` eller `INC-42`, visar i stället den incidenten: se [Agera på en incident från Microsoft Teams](#agera-på-en-incident-från-microsoft-teams). |
+| `incident [title or number]` | Öppnar incidentformuläret med titeln ifylld. En incidents nummer, som `42` eller `INC-42`, visar i stället den incidenten: se [Hantera en incident från Microsoft Teams](#hantera-en-incident-från-microsoft-teams). |
 | `maintenance [title]` | Öppnar formuläret för schemalagt underhåll med titeln ifylld. |
 | `oncall` | Visar vem som har jour just nu i varje jourschema du kan se, till när, och vem som är nästa. |
 | `page [who] [message]` | Larmar personerna du nämner med @ om ditt meddelande, eller skickar ett kort där du väljer vem som ska larmas. Se [Larma någon från Microsoft Teams](#larma-någon-från-microsoft-teams). |
@@ -214,7 +214,7 @@ För en tagg med både den primära och den sekundära jouren ansluter du samma 
 - **Vem som får ansluta en.** De roller som får redigera scheman: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** och **On-Call Member**, eller **Edit On-Call Duty Policy Schedule** i en anpassad roll. På OneUptime Cloud kräver det abonnemanget **Growth** att ansluta en.
 - **Koppla från.** OneUptime slutar ändra taggen. Taggen och dess medlemmar stannar i Microsoft Teams som de är.
 
-## Agera på en incident från Microsoft Teams
+## Hantera en incident från Microsoft Teams
 
 En incidents kort har fyra knappar, **Acknowledge Incident**, **Resolve Incident**, **Add Note** och **View Incident**, och resten i dess meny, knappen med tre punkter:
 
@@ -228,7 +228,7 @@ En incidents kort har fyra knappar, **Acknowledge Incident**, **Resolve Incident
 
 `incident 42`, skrivet till boten, svarar med incident 42, de här knapparna och dess meny. Skriv numret som OneUptime visar det: `42`, `#42` eller `INC-42`. I en incidents egen kanal visar `incident` ensamt den incidenten.
 
-- **Vem som får använda dem.** De som får göra samma ändring i OneUptime, som i Slack: se [Agera på en incident från Slack](/docs/workspace-connections/slack#agera-på-en-incident-från-slack). Varje val svarar med ett kort, ifyllt så som personen som tryckte på det får se incidenten. Alla i konversationen får skicka kortet, som sig själva, med sina egna behörigheter.
+- **Vem som får använda dem.** De som får göra samma ändring i OneUptime, som i Slack: se [Hantera en incident från Slack](/docs/workspace-connections/slack#hantera-en-incident-från-slack). Varje val svarar med ett kort, ifyllt så som personen som tryckte på det får se incidenten. Alla i konversationen får skicka kortet, som sig själva, med sina egna behörigheter.
 - **Vad som händer.** Ändringen görs som personen som skickade kortet, som i OneUptime, och incidentens feed säger vad som ändrades. Boten säger det i ett svar som nämner personen, och tar bort kortet, så att ingen skickar det två gånger. **Page Someone** säger vem som larmades, eller varför ingen gjorde det; en incident som redan är löst larmar ingen.
 - **Där Microsoft Teams skiljer sig.** Ett kort kan inte säga under ett fält vad som är fel: ett värde som inte passar nämns i ett svar, och kortet ligger kvar för att rättas och skickas igen. Ett fält för datum och tid är en dag och en tid, i din egen tidszon. En äldre Teams-klient visar menyn som fler knappar. `incident 42` svarar i konversationen, där alla i den kan se incidenten.
 - **Kort från före menyn.** De behåller sin knapp **Execute On-Call Policy**, och den fungerar fortfarande: **Page Someone** larmar också en jourpolicy. Larm och episoder behåller sina.

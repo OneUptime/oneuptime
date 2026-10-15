@@ -139,7 +139,7 @@ OneUptime 在 Slack 中只有一个命令：`/oneuptime`。在它后面输入的
 | 命令 | 作用 |
 | --- | --- |
 | `/oneuptime help` | 列出所有命令，并附示例。 |
-| `/oneuptime incident [title or number]` | 打开已填好标题的事件表单。如果写的是事件编号，例如 `42` 或 `INC-42`，则改为显示该事件：请参阅 [从 Slack 操作一个事件](#从-slack-操作一个事件)。 |
+| `/oneuptime incident [title or number]` | 打开已填好标题的事件表单。如果写的是事件编号，例如 `42` 或 `INC-42`，则改为显示该事件：请参阅 [从 Slack 管理一个事件](#从-slack-管理一个事件)。 |
 | `/oneuptime maintenance [title]` | 打开已填好标题的计划维护表单。 |
 | `/oneuptime oncall` | 列出您能看到的每个值班计划中当前由谁值班、值班到何时，以及下一位是谁。 |
 | `/oneuptime page [who] [message]` | 就您的消息呼叫您 @提及的人，或打开一个表单来选择要呼叫的人。请参阅 [从 Slack 呼叫他人](#从-slack-呼叫他人)。 |
@@ -212,7 +212,7 @@ OneUptime 只回答发给它的内容。
 - **谁可以连接。** 可以编辑值班计划的角色： **Project Owner**、 **Project Admin**、 **Project Member**、 **On-Call Admin** 和 **On-Call Member**，或自定义角色中的 **Edit On-Call Duty Policy Schedule**。在 OneUptime Cloud 上，连接需要 **Growth** 套餐。
 - **断开连接后。** OneUptime 不再更改该组。该组及其成员会按原样保留在 Slack 中。
 
-## 从 Slack 操作一个事件
+## 从 Slack 管理一个事件
 
 事件的消息有四个按钮： **Acknowledge Incident**、 **Resolve Incident**、 **Add Note** 和 **View Incident**，其余操作在它们后面的三点按钮菜单中：
 

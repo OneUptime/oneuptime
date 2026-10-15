@@ -438,6 +438,43 @@ type HandlerFamily =
  */
 const MENU_INCIDENT_LINK: string = `${DASHBOARD_URL}/${PROJECT_ID.toString()}/incidents/${INCIDENT_ID}`;
 const MENU_INCIDENT: string = `**[Incident INC-42](${MENU_INCIDENT_LINK})**`;
+
+/*
+ * An incident menu form's confirmation, as Teams receives it: a small card
+ * that mentions who submitted the form (Alex) - anyone in the channel may -
+ * with what a notification of it shows (MicrosoftTeamsActionAnswer).
+ */
+function menuConfirmation(markdown: string, summary: string): string {
+  return JSON.stringify({
+    attachments: [
+      {
+        contentType: "application/vnd.microsoft.card.adaptive",
+        content: {
+          type: "AdaptiveCard",
+          $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+          version: "1.5",
+          body: [
+            {
+              type: "TextBlock",
+              text: `<at>Alex</at> ${markdown}`,
+              wrap: true,
+            },
+          ],
+          msteams: {
+            entities: [
+              {
+                type: "mention",
+                text: "<at>Alex</at>",
+                mentioned: { id: "29:teams-user", name: "Alex" },
+              },
+            ],
+          },
+        },
+      },
+    ],
+    summary: summary,
+  });
+}
 const ROLE_ID: string = "c2d3e4f5-a6b7-4c8d-9e0f-1a2b3c4d5e6f";
 const ASSIGNEE_ID: string = "d3e4f5a6-b7c8-4d9e-8f0a-2b3c4d5e6f7a";
 const TICKET_FIELD_ID: string = "e4f5a6b7-c8d9-4e0f-9a1b-3c4d5e6f7a8b";
@@ -758,7 +795,10 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
     actionType: MicrosoftTeamsIncidentActionType.SubmitChangeIncidentSeverity,
     actionValue: INCIDENT_ID,
     fields: { incidentSeverity: SEVERITY_ID },
-    confirmation: `⚠️ ${MENU_INCIDENT} is now **SEV 1**.`,
+    confirmation: menuConfirmation(
+      `⚠️ ${MENU_INCIDENT} is now **SEV 1**.`,
+      "Incident INC-42 is now SEV 1",
+    ),
     failureReply: ACTION_FAILED,
     stubWrite: (failure?: Error): WriteCheck => {
       const checked: WriteCheck = stubMenuCheck({
@@ -796,7 +836,10 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
     actionType: MicrosoftTeamsIncidentActionType.SubmitAssignIncidentRole,
     actionValue: INCIDENT_ID,
     fields: { incidentRole: ROLE_ID, incidentRolePerson: ASSIGNEE_ID },
-    confirmation: `👤 **Nawaz Dhandala** is now **Incident Commander** on ${MENU_INCIDENT}, in place of **Ana Ruiz**.`,
+    confirmation: menuConfirmation(
+      `👤 **Nawaz Dhandala** is now **Incident Commander** on ${MENU_INCIDENT}, in place of **Ana Ruiz**.`,
+      "Nawaz Dhandala is now Incident Commander on Incident INC-42",
+    ),
     failureReply: ACTION_FAILED,
     stubWrite: (failure?: Error): WriteCheck => {
       const checked: WriteCheck = stubMenuCheck({
@@ -837,7 +880,10 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
     actionType: MicrosoftTeamsIncidentActionType.SubmitPageAboutIncident,
     actionValue: INCIDENT_ID,
     fields: { incidentPageTargets: `user:${ASSIGNEE_ID}` },
-    confirmation: `📟 Paged **Nawaz Dhandala** about ${MENU_INCIDENT}`,
+    confirmation: menuConfirmation(
+      `📟 Paged **Nawaz Dhandala** about ${MENU_INCIDENT}`,
+      "Paged Nawaz Dhandala about Incident INC-42",
+    ),
     failureReply: ACTION_FAILED,
     stubWrite: (failure?: Error): WriteCheck => {
       const checked: WriteCheck = stubMenuCheck({
@@ -878,7 +924,10 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
     fields: {
       [WorkspaceIncidentCustomFields.getInputId(TICKET_FIELD.id)]: "OPS-200",
     },
-    confirmation: `📝 Updated **Ticket** on ${MENU_INCIDENT}.`,
+    confirmation: menuConfirmation(
+      `📝 Updated **Ticket** on ${MENU_INCIDENT}.`,
+      "Updated Ticket on Incident INC-42",
+    ),
     failureReply: ACTION_FAILED,
     stubWrite: (failure?: Error): WriteCheck => {
       const checked: WriteCheck = stubMenuCheck({

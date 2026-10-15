@@ -589,10 +589,11 @@ export default class SlackIncidentMoreActions {
         ? { initialValue: form.userId.toString() }
         : {}),
       description: [
-        WORKSPACE_INCIDENT_FORM_TEXT.roleHint,
-        SlackIncidentMoreActions.getNotListedNote(
-          form.roles.notShownPeopleCount,
-        ),
+        WorkspaceIncidentActions.getRoleHint(form.roles.roles),
+        SlackIncidentMoreActions.getNotListedNote({
+          count: form.roles.notShownPeopleCount,
+          instead: `assign them in ${ProductBrandingText.getProductName()}.`,
+        }),
       ]
         .filter((sentence: string): boolean => {
           return sentence.length > 0;
@@ -788,14 +789,15 @@ export default class SlackIncidentMoreActions {
       multiSelect: true,
       description: [
         WORKSPACE_INCIDENT_FORM_TEXT.pageHint,
-        SlackIncidentMoreActions.getNotListedNote(
-          form.choices.reduce(
+        SlackIncidentMoreActions.getNotListedNote({
+          count: form.choices.reduce(
             (count: number, group: WorkspacePageChoiceGroup): number => {
               return count + (group.notShownCount || 0);
             },
             0,
           ),
-        ),
+          instead: "page their team or on-call schedule instead.",
+        }),
       ]
         .filter((sentence: string): boolean => {
           return sentence.length > 0;
@@ -1419,7 +1421,7 @@ export default class SlackIncidentMoreActions {
 
       await SlackActionAuthorization.sendRefusal({
         requester: data.slackRequest,
-        message: `${ProductBrandingText.getProductName()} couldn't open the form in time. Please press it again.`,
+        message: `${ProductBrandingText.getProductName()} couldn't open the form in time. Please try again.`,
       });
     }
   }
@@ -1457,15 +1459,21 @@ export default class SlackIncidentMoreActions {
     };
   }
 
-  // "52 more people aren't listed: assign or page them in OneUptime."
-  private static getNotListedNote(count: number): string {
-    if (count <= 0) {
+  /*
+   * "52 more people aren't listed: assign them in OneUptime." - people past
+   * what a list holds, and what to do about them (`instead`).
+   */
+  private static getNotListedNote(data: {
+    count: number;
+    instead: string;
+  }): string {
+    if (data.count <= 0) {
       return "";
     }
 
-    return count === 1
-      ? `1 more person isn't listed: pick them in ${ProductBrandingText.getProductName()}.`
-      : `${count} more people aren't listed: pick them in ${ProductBrandingText.getProductName()}.`;
+    return data.count === 1
+      ? `1 more person isn't listed: ${data.instead}`
+      : `${data.count} more people aren't listed: ${data.instead}`;
   }
 
   // Slack is answered at once: the press, or the form, is taken.

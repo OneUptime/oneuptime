@@ -14,6 +14,7 @@ import CustomFieldMappingService from "./CustomFieldMappingService";
 import IncidentCustomFieldService from "./IncidentCustomFieldService";
 import { CustomFieldDefinition } from "../../Types/CustomField/CustomFieldDefinition";
 import CustomFieldFeedChange from "../Utils/CustomField/CustomFieldFeedChange";
+import { sortCustomFieldDefinitions } from "../../Types/CustomField/CustomFieldOrder";
 import { mergeTemplateCustomFields } from "../../Types/CustomField/CustomFieldTemplateMerge";
 import {
   CustomFieldValueValidationError,
@@ -215,6 +216,11 @@ interface AddedStatusPagesDecision {
   action: IncidentScopeAddedPagesNotificationAction;
   recordToSeed: Array<string> | undefined;
 }
+
+// A custom field's definition, with its place on the Custom Fields card.
+type CustomFieldDefinitionInOrder = CustomFieldDefinition & {
+  sortOrder?: number | null | undefined;
+};
 
 // key is incidentId for this dictionary.
 type UpdateCarryForward = Dictionary<{
@@ -1380,7 +1386,7 @@ export class Service extends ProjectReferencesService<Model> {
    */
   private async getCustomFieldDefinitionsForValidation(
     projectId: ObjectID,
-  ): Promise<Array<CustomFieldDefinition>> {
+  ): Promise<Array<CustomFieldDefinitionInOrder>> {
     const definitions: Array<IncidentCustomField> =
       await IncidentCustomFieldService.findBy({
         query: {
@@ -1390,6 +1396,8 @@ export class Service extends ProjectReferencesService<Model> {
           name: true,
           customFieldType: true,
           dropdownOptions: true,
+          // The order the Custom Fields card shows them in, for the feed.
+          sortOrder: true,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
@@ -1398,7 +1406,7 @@ export class Service extends ProjectReferencesService<Model> {
         },
       });
 
-    const result: Array<CustomFieldDefinition> = [];
+    const result: Array<CustomFieldDefinitionInOrder> = [];
 
     for (const definition of definitions) {
       if (typeof definition.name !== "string") {
@@ -1409,6 +1417,7 @@ export class Service extends ProjectReferencesService<Model> {
         name: definition.name,
         customFieldType: definition.customFieldType,
         dropdownOptions: definition.dropdownOptions,
+        sortOrder: definition.sortOrder,
       });
     }
 
@@ -1436,8 +1445,11 @@ export class Service extends ProjectReferencesService<Model> {
       return FeedMarkdown.empty();
     }
 
+    // In the Custom Fields card's order: the feed lists them as it does.
     const definitions: Array<CustomFieldDefinition> =
-      await this.getCustomFieldDefinitionsForValidation(data.projectId);
+      sortCustomFieldDefinitions(
+        await this.getCustomFieldDefinitionsForValidation(data.projectId),
+      );
 
     return CustomFieldFeedChange.getFeedMarkdown({
       changes: CustomFieldFeedChange.getChanges({

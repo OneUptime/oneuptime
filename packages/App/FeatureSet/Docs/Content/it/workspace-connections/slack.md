@@ -139,7 +139,7 @@ OneUptime ha un solo comando in Slack, `/oneuptime`. La parola che scrivi dopo d
 | Comando | Cosa fa |
 | --- | --- |
 | `/oneuptime help` | Elenca i comandi, con esempi. |
-| `/oneuptime incident [title or number]` | Apre il modulo dell'incidente, con il titolo compilato. Il numero di un incidente, come `42` o `INC-42`, mostra invece quell'incidente: vedi [Agire su un incidente da Slack](#agire-su-un-incidente-da-slack). |
+| `/oneuptime incident [title or number]` | Apre il modulo dell'incidente, con il titolo compilato. Il numero di un incidente, come `42` o `INC-42`, mostra invece quell'incidente: vedi [Gestire un incidente da Slack](#gestire-un-incidente-da-slack). |
 | `/oneuptime maintenance [title]` | Apre il modulo della manutenzione programmata, con il titolo compilato. |
 | `/oneuptime oncall` | Elenca chi è reperibile in questo momento in ogni pianificazione di reperibilità che puoi vedere, fino a quando, e chi è il prossimo. |
 | `/oneuptime page [who] [message]` | Chiama le persone che menzioni con @ per il tuo messaggio, oppure apre un modulo per scegliere chi chiamare. Vedi [Chiamare qualcuno da Slack](#chiamare-qualcuno-da-slack). |
@@ -212,7 +212,7 @@ Per un gruppo che contenga la reperibilità primaria e quella secondaria, colleg
 - **Chi può collegarne uno.** I ruoli che possono modificare le pianificazioni: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** e **On-Call Member**, oppure **Edit On-Call Duty Policy Schedule** in un ruolo personalizzato. Su OneUptime Cloud, collegarne uno richiede il piano **Growth**.
 - **Scollegare.** OneUptime smette di modificare il gruppo. Il gruppo e i suoi membri restano in Slack come sono.
 
-## Agire su un incidente da Slack
+## Gestire un incidente da Slack
 
 Il messaggio di un incidente ha quattro pulsanti, **Acknowledge Incident**, **Resolve Incident**, **Add Note** e **View Incident**, e il resto nel suo menu, il pulsante con tre puntini che li segue:
 

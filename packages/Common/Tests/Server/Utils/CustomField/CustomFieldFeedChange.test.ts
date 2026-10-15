@@ -4,6 +4,7 @@ import CustomFieldFeedChange, {
 } from "../../../../Server/Utils/CustomField/CustomFieldFeedChange";
 import { CustomFieldDefinition } from "../../../../Types/CustomField/CustomFieldDefinition";
 import CustomFieldType from "../../../../Types/CustomField/CustomFieldType";
+import OneUptimeDate from "../../../../Types/Date";
 
 /*
  * WHAT AN UPDATE CHANGED OF AN INCIDENT'S CUSTOM FIELDS, IN ITS FEED.
@@ -81,16 +82,40 @@ describe("CustomFieldFeedChange.getChanges: only what really changed", () => {
     ).toEqual([]);
   });
 
-  test("a field changed is listed with its new value, in the order the bag lists them", () => {
-    expect(
-      changesOf({
+  test("a field changed is listed with its new value, in the order the definitions list them - not the bag's", () => {
+    /*
+     * The database keeps a bag's keys in an order of its own (shortest
+     * first), so the Custom Fields card writes them back in any order: the
+     * feed lists them as the card does.
+     */
+    const written: Record<string, unknown> = Object.fromEntries(
+      Object.entries({
         ...STORED,
         Ticket: "OPS-200",
         "Customer Impact": "High",
-      }),
-    ).toEqual([
+        Summary: "Fixed for most cards.",
+      }).reverse(),
+    );
+
+    expect(changesOf(written)).toEqual([
       { name: "Customer Impact", value: "High" },
       { name: "Ticket", value: "OPS-200" },
+      { name: "Summary", value: "Fixed for most cards." },
+    ]);
+  });
+
+  test("a field no definition names comes after those that are, in the order the bag lists them", () => {
+    expect(
+      changesOf({
+        "Old Field": "b",
+        ...STORED,
+        "Older Field": "c",
+        Ticket: "OPS-200",
+      }),
+    ).toEqual([
+      { name: "Ticket", value: "OPS-200" },
+      { name: "Old Field", value: "b" },
+      { name: "Older Field", value: "c" },
     ]);
   });
 
@@ -109,14 +134,14 @@ describe("CustomFieldFeedChange.getChanges: only what really changed", () => {
     ]);
   });
 
-  test("a field left out of a bag the update writes is gone from the incident: cleared, after the fields written", () => {
+  test("a field left out of a bag the update writes is gone from the incident: cleared, in its place among the fields", () => {
     const rest: Record<string, unknown> = { ...STORED };
     delete rest["Ticket"];
     delete rest["Due"];
 
     expect(changesOf({ ...rest, Public: true })).toEqual([
-      { name: "Public", value: true },
       { name: "Ticket", value: null },
+      { name: "Public", value: true },
       { name: "Due", value: null },
     ]);
   });
@@ -254,11 +279,16 @@ describe("CustomFieldFeedChange.toReadableValue", () => {
     [CustomFieldType.Boolean, false, "No"],
     [CustomFieldType.Date, "2026-10-20", "2026-10-20"],
     [CustomFieldType.Date, "2026-10-20T04:00:00.000Z", "2026-10-20"],
+    // As the feed's other times read: "Oct 15 2026, 09:30 UTC", zone named.
     [
       CustomFieldType.DateTime,
       "2026-10-15T09:30:00.000Z",
-      "2026-10-15T09:30:00.000Z",
+      OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+        new Date("2026-10-15T09:30:00.000Z"),
+      ),
     ],
+    // Text that is no time reads as it is.
+    [CustomFieldType.DateTime, "soon", "soon"],
     [CustomFieldType.MultiSelectDropdown, ["a", "", "b"], "a, b"],
     [CustomFieldType.Number, 0, "0"],
     [CustomFieldType.Text, "  spaced   out\n\ttext ", "spaced out text"],

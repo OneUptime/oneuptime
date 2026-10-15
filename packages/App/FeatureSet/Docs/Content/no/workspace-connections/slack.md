@@ -139,7 +139,7 @@ OneUptime har én kommando i Slack, `/oneuptime`. Ordet du skriver etter den, si
 | Kommando | Hva den gjør |
 | --- | --- |
 | `/oneuptime help` | Viser kommandoene, med eksempler. |
-| `/oneuptime incident [title or number]` | Åpner hendelsesskjemaet med tittelen fylt ut. Nummeret til en hendelse, som `42` eller `INC-42`, viser i stedet den hendelsen: se [Handle på en hendelse fra Slack](#handle-på-en-hendelse-fra-slack). |
+| `/oneuptime incident [title or number]` | Åpner hendelsesskjemaet med tittelen fylt ut. Nummeret til en hendelse, som `42` eller `INC-42`, viser i stedet den hendelsen: se [Håndter en hendelse fra Slack](#håndter-en-hendelse-fra-slack). |
 | `/oneuptime maintenance [title]` | Åpner skjemaet for planlagt vedlikehold med tittelen fylt ut. |
 | `/oneuptime oncall` | Viser hvem som har vakt akkurat nå i hver vaktplan du kan se, til når, og hvem som er neste. |
 | `/oneuptime page [who] [message]` | Tilkaller personene du nevner med @, om meldingen din, eller åpner et skjema der du velger hvem som skal tilkalles. Se [Tilkall noen fra Slack](#tilkall-noen-fra-slack). |
@@ -212,7 +212,7 @@ For en gruppe med både primær og sekundær vakt kobler du den samme gruppen ti
 - **Hvem som kan koble til en.** Rollene som kan redigere vaktplaner: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** og **On-Call Member**, eller **Edit On-Call Duty Policy Schedule** i en egendefinert rolle. På OneUptime Cloud krever det abonnementet **Growth** å koble til en.
 - **Koble fra.** OneUptime slutter å endre gruppen. Gruppen og medlemmene blir værende i Slack som de er.
 
-## Handle på en hendelse fra Slack
+## Håndter en hendelse fra Slack
 
 Meldingen til en hendelse har fire knapper, **Acknowledge Incident**, **Resolve Incident**, **Add Note** og **View Incident**, og resten i menyen, knappen med tre prikker etter dem:
 

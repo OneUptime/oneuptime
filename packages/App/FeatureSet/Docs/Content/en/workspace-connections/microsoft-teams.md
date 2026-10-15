@@ -152,7 +152,7 @@ Message the bot in a personal chat, or @mention OneUptime in a channel or a grou
 | Message | What the bot does |
 | --- | --- |
 | `help` | Lists what it can do. |
-| `incident [title or number]` | Opens the incident form, with the title filled in. An incident's number, such as `42` or `INC-42`, shows that incident instead: see [Acting on an incident from Microsoft Teams](#acting-on-an-incident-from-microsoft-teams). |
+| `incident [title or number]` | Opens the incident form, with the title filled in. An incident's number, such as `42` or `INC-42`, shows that incident instead: see [Managing an incident from Microsoft Teams](#managing-an-incident-from-microsoft-teams). |
 | `maintenance [title]` | Opens the scheduled maintenance form, with the title filled in. |
 | `oncall` | Lists who is on call right now in each on-call schedule you can see, until when, and who is next. |
 | `page [who] [message]` | Pages the people you @mention about your message, or sends a card to pick who to page. See [Paging someone from Microsoft Teams](#paging-someone-from-microsoft-teams). |
@@ -214,7 +214,7 @@ For a tag that holds the primary and the secondary on call, connect the same tag
 - **Who may connect one.** The roles that may edit schedules: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Edit On-Call Duty Policy Schedule** in a custom role. On OneUptime Cloud, connecting one needs the **Growth** plan.
 - **Disconnecting.** OneUptime stops changing the tag. The tag, and the people in it, stay in Microsoft Teams as they are.
 
-## Acting on an incident from Microsoft Teams
+## Managing an incident from Microsoft Teams
 
 An incident's card has four buttons, **Acknowledge Incident**, **Resolve Incident**, **Add Note** and **View Incident**, and the rest in its menu, the button with three dots:
 
@@ -228,7 +228,7 @@ An incident's card has four buttons, **Acknowledge Incident**, **Resolve Inciden
 
 `incident 42`, typed to the bot, answers with incident 42, these buttons and its menu. Type the number as OneUptime shows it: `42`, `#42` or `INC-42`. In an incident's own channel, `incident` alone shows that incident.
 
-- **Who may use them.** The people who may make the same change in OneUptime, as in Slack: see [Acting on an incident from Slack](/docs/workspace-connections/slack#acting-on-an-incident-from-slack). Each item answers with a card, filled in as the person who pressed it may see the incident. Anyone in the conversation may submit the card, as themselves, with their own permissions.
+- **Who may use them.** The people who may make the same change in OneUptime, as in Slack: see [Managing an incident from Slack](/docs/workspace-connections/slack#managing-an-incident-from-slack). Each item answers with a card, filled in as the person who pressed it may see the incident. Anyone in the conversation may submit the card, as themselves, with their own permissions.
 - **What happens.** The change is made as the person who submitted the card, as in OneUptime, and the incident's feed says what changed. The bot says so in a reply that mentions them, and removes the card, so nobody submits it twice. **Page Someone** says who was paged, or why nobody was; an incident that is resolved already pages nobody.
 - **Where Microsoft Teams differs.** A card cannot say what is wrong under a field: a value that does not fit is said in a reply, and the card stays to be fixed and submitted again. A date and time field is a day and a time, in your own time zone. An older Teams client draws the menu as more buttons. `incident 42` answers in the conversation, where everyone in it can see the incident.
 - **Cards posted before the menu.** They keep their **Execute On-Call Policy** button, and it keeps working: **Page Someone** pages an on-call policy too. Alerts and episodes keep theirs.

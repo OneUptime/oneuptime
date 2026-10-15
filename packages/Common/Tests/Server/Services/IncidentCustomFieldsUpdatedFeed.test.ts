@@ -12,6 +12,7 @@ import TelemetryUtil from "../../../Server/Utils/Telemetry/Telemetry";
 import URL from "../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
+import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
@@ -77,7 +78,15 @@ const DEFINITIONS: Array<{
     options: "eu-west\nus-east\nap-south",
   },
   { name: "Due", type: CustomFieldType.Date },
+  // Holds nothing yet.
+  { name: "Started", type: CustomFieldType.DateTime },
 ];
+
+/*
+ * Each field's place on the Custom Fields card (its sort order), by name;
+ * a field with none comes after those with one, in the order they are read.
+ */
+let sortOrders: Record<string, number> = {};
 
 // What the incident holds, as the database stores it.
 const STORED_CUSTOM_FIELDS: JSONObject = {
@@ -139,6 +148,7 @@ beforeEach(() => {
     customFields: { ...STORED_CUSTOM_FIELDS },
     title: STORED_TITLE,
   };
+  sortOrders = {};
 
   stubRowsCallerMayWriteLikeFindBy(
     IncidentService,
@@ -219,6 +229,10 @@ beforeEach(() => {
 
           if (definition.options) {
             row.dropdownOptions = definition.options;
+          }
+
+          if (sortOrders[definition.name] !== undefined) {
+            row.sortOrder = sortOrders[definition.name]!;
           }
 
           return row;
@@ -331,6 +345,44 @@ describe("an update that changes an incident's custom fields", () => {
     expect(onlyFeedItem()).toBe(
       `${UPDATED_LINE}\n\n**📝 Custom Fields**:\n\n- **Ticket**: cleared\n- **Due**: cleared\n`,
     );
+  });
+
+  test("the fields in the Custom Fields card's order, however the bag lists them - the database keeps a bag's keys in an order of its own", async () => {
+    sortOrders = { Due: 1, Ticket: 2, "Customer Impact": 3 };
+
+    const written: JSONObject = Object.fromEntries(
+      Object.entries({
+        ...STORED_CUSTOM_FIELDS,
+        "Customer Impact": "High",
+        Ticket: "OPS-200",
+        Public: true,
+        Due: "2026-11-01",
+      }).reverse(),
+    ) as JSONObject;
+
+    await runUpdate({ customFields: written });
+
+    expect(onlyFeedItem()).toBe(
+      `${UPDATED_LINE}\n\n**📝 Custom Fields**:\n\n- **Due**: 2026-11-01\n- **Ticket**: OPS-200\n- **Customer Impact**: High\n- **Public**: Yes\n`,
+    );
+    // Read with their place on the card.
+    expect(
+      (definitionReads.mock.calls[0]![0] as { select: Dictionary<unknown> })
+        .select["sortOrder"],
+    ).toBe(true);
+  });
+
+  test("a date and time reads as the feed's other times do, its zone named - not as the ISO text it is stored as", async () => {
+    await runUpdate(
+      customFieldsCardSave({ Started: "2026-10-15T09:12:00.000Z" }),
+    );
+
+    expect(onlyFeedItem()).toBe(
+      `${UPDATED_LINE}\n\n**📝 Custom Fields**:\n\n- **Started**: ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+        new Date("2026-10-15T09:12:00.000Z"),
+      )}\n`,
+    );
+    expect(onlyFeedItem()).not.toContain("2026-10-15T09:12");
   });
 
   test("a value set on an incident that held no custom fields", async () => {
