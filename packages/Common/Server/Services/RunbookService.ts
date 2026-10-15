@@ -8,7 +8,7 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import ObjectID from "../../Types/ObjectID";
 import RunbookStepType from "../../Types/Runbook/RunbookStepType";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate } from "../Types/Database/Hooks";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { JsonReferenceColumn } from "../Utils/Database/ProjectReferenceCheck";
 import {
@@ -26,7 +26,6 @@ import RunbookCredentialReaders from "../Utils/AutoRemediation/RunbookCredential
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import BadDataException from "../../Types/Exception/BadDataException";
 import PartialEntity from "../../Types/Database/PartialEntity";
-import { OnUpdate } from "../Types/Database/Hooks";
 import RunbookScheduler from "../Utils/Runbook/RunbookScheduler";
 import RunbookTriggerAccess from "../Utils/Runbook/RunbookTriggerAccess";
 import {

@@ -113,13 +113,18 @@ function inspect(
       continue;
     }
 
-    for (const key of Object.keys(item.value as object)) {
+    const record: Record<string, unknown> = item.value as Record<
+      string,
+      unknown
+    >;
+
+    for (const key of Object.keys(record)) {
       if (key.indexOf(NUL) !== -1) {
         return { depth: deepest, hasNul: true };
       }
 
       pending.push({
-        value: (item.value as Record<string, unknown>)[key],
+        value: record[key],
         depth: depth,
       });
     }
