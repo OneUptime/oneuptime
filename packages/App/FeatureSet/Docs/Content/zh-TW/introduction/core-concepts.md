@@ -66,6 +66,7 @@ flowchart TB
 
 :::cards
 - [事件概觀](/docs/incidents/index): 事件如何被宣告、處理和解決。
+- [警示概觀](/docs/alerts/index): 警示從何而來，以及片段如何將它們分組。
 - [已連結的警示](/docs/incidents/linked-alerts): 把一次故障引發的警示連結到它的事件。
 :::
 

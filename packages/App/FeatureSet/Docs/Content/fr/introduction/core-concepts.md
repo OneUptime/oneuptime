@@ -66,6 +66,7 @@ Un **épisode** regroupe des incidents liés, ou des alertes liées, pour que vo
 
 :::cards
 - [Vue d'ensemble des incidents](/docs/incidents/index): Comment les incidents sont déclarés, traités et résolus.
+- [Vue d'ensemble des alertes](/docs/alerts/index): D'où viennent les alertes, et comment les épisodes les regroupent.
 - [Alertes liées](/docs/incidents/linked-alerts): Rattacher les alertes déclenchées par une panne à son incident.
 :::
 

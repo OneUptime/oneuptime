@@ -170,7 +170,12 @@ describe("TelemetryAttributeService - security event attribute keys query", () =
     expect(Object.values(statement.query_params)).toContain("time");
     expect(statement.query).toMatch(/>= \{p\d+:DateTime\}/);
     expect(statement.query).toContain("max_execution_time = 45");
-    expect(statement.query).toContain("timeout_overflow_mode = 'break'");
+    /*
+     * 'throw', not 'break': ClickHouse answers an aggregation it broke off
+     * with an empty body, never the partial key list 'break' promises.
+     */
+    expect(statement.query).toContain("timeout_overflow_mode = 'throw'");
+    expect(statement.query).not.toContain("'break'");
   });
 
   test("skips rows with no attributes at all", () => {
@@ -220,8 +225,16 @@ describe("TelemetryAttributeService - security event attribute values query", ()
 
     expect(params).toContain(AnalyticsTableName.SecurityEvent);
     expect(params).toContain("attributes");
+    expect(params).toContain("attributeKeys");
     expect(params).toContain("device.hostname");
-    expect(statement.query).toContain("mapContains(");
+    /*
+     * Rows are picked on the keys array, which idx_attribute_keys can skip
+     * granules for; mapContains(attributes, ...) reads every row's map.
+     */
+    expect(statement.query).toMatch(
+      /has\(\{p\d+:Identifier\}, \{p\d+:String\}\)/,
+    );
+    expect(statement.query).not.toContain("mapContains(");
   });
 
   /*
@@ -250,7 +263,10 @@ describe("TelemetryAttributeService - security event attribute values query", ()
   test("caps the number of values returned", () => {
     const statement: Statement = buildValues();
 
-    expect(statement.query).toContain("ORDER BY attributeValue ASC");
+    expect(statement.query).toContain("SELECT DISTINCT attributeValue");
     expect(statement.query).toContain("LIMIT ");
+    expect(Object.values(statement.query_params)).toContain(100);
+    // No ORDER BY: it would make the read visit every row with the key.
+    expect(statement.query).not.toContain("ORDER BY");
   });
 });

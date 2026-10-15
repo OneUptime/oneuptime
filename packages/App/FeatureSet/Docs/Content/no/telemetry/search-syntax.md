@@ -197,6 +197,7 @@ Brikker er en del av den lagrede visningen og av sidens URL, så et filter overl
 - Numeriske sammenligninger virker på attributtverdier som er lagret som tekst; en verdi som ikke er et tall, oppfyller aldri en sammenligning.
 - I logger og spor slås en nøyaktig verdi, for eksempel `@http.route:/orders`, `@k:(a OR b)` eller en verdi du klikker på i fasettsidepanelet, opp i en indeks, så et søk etter en verdi som få rader har, forblir raskt over lange tidsintervaller. Jokertegn, "inneholder", utelukkelser og sammenligninger leser hver logglinje eller hvert span i intervallet: når et slikt søk er tregt, legg til en nøyaktig verdi eller velg et kortere intervall.
 - Et søk som kjører i mer enn 45 sekunder, stoppes. Utforskeren sier fra der resultatene ville stått, beholder søket og filtrene dine slik de var, og tilbyr **Prøv igjen**; diagrammet og filtertellingene sier fra på sin egen plass når tiden renner ut for dem. Velg et kortere intervall eller legg til en nøyaktig verdi for å få søket gjennom.
+- Så snart du skriver `@key:` og tar en pause, foreslår søkefeltet verdier for det attributtet fra det viste intervallet. Forslagene kommer fra et utvalg av intervallet, så en verdi som sjelden brukes, kan mangle: skriv den inn og trykk Enter.
 
 ## Neste trinn
 

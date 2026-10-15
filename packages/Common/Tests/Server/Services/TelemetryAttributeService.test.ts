@@ -42,7 +42,11 @@ describe("TelemetryAttributeService.buildAttributeValuesStatement", () => {
     const statement: Statement = buildValuesStatement();
 
     expect(statement.query).not.toContain("ILIKE");
-    expect(statement.query).toContain("ORDER BY attributeValue ASC");
+    /*
+     * Not sorted in SQL: an ORDER BY makes ClickHouse read every row with the
+     * key before it can answer (issue #4708). The answer is sorted after.
+     */
+    expect(statement.query).not.toContain("ORDER BY");
   });
 
   test("omits the ILIKE filter when search text is only whitespace", () => {

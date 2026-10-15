@@ -5,6 +5,8 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
 import { JSONObject } from "Common/Types/JSON";
+import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
+import { getLookupWindowBody } from "Common/UI/Utils/Telemetry/AttributeValueSuggestions";
 
 /*
  * The attribute keys a project's security events actually carry.
@@ -54,6 +56,8 @@ export default class SecurityEventAttributeUtil {
   public static async getAttributeValues(
     attributeKey: string,
     searchText?: string | undefined,
+    // The time range on screen: the values of the events in it (#4708).
+    timeRange?: RangeStartAndEndDateTime | undefined,
   ): Promise<Array<string>> {
     if (!attributeKey) {
       return [];
@@ -67,6 +71,7 @@ export default class SecurityEventAttributeUtil {
         data: {
           attributeKey: attributeKey,
           ...(searchText ? { searchText: searchText } : {}),
+          ...getLookupWindowBody(timeRange),
         },
         headers: {
           ...AnalyticsModelAPI.getCommonHeaders(),

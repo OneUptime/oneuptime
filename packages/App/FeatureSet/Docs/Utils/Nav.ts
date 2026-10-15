@@ -435,6 +435,28 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "Alerts",
+    section: "Incident Response",
+    links: [
+      {
+        title: "Alerts Overview",
+        url: "/docs/alerts/index",
+      },
+      {
+        title: "Alert States & Severities",
+        url: "/docs/alerts/states-and-severities",
+      },
+      {
+        title: "Alert Episodes & Grouping Rules",
+        url: "/docs/alerts/episodes",
+      },
+      {
+        title: "Alert Rules & Settings",
+        url: "/docs/alerts/settings",
+      },
+    ],
+  },
+  {
     title: "On Call",
     section: "Incident Response",
     links: [

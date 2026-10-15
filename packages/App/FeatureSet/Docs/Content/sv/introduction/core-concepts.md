@@ -66,6 +66,7 @@ En **episod** samlar relaterade incidenter, eller relaterade varningar, så att 
 
 :::cards
 - [Incidenter – Översikt](/docs/incidents/index): Hur incidenter deklareras, hanteras och löses.
+- [Larm – Översikt](/docs/alerts/index): Var larm kommer ifrån, och hur episoder grupperar dem.
 - [Länkade larm](/docs/incidents/linked-alerts): Koppla varningarna som ett avbrott utlöste till dess incident.
 :::
 

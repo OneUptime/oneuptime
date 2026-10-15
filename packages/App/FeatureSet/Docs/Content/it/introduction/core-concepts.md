@@ -66,6 +66,7 @@ Un **episodio** raggruppa incidenti correlati, o avvisi correlati, perché il tu
 
 :::cards
 - [Panoramica degli incidenti](/docs/incidents/index): Come gli incidenti vengono dichiarati, gestiti e risolti.
+- [Panoramica degli avvisi](/docs/alerts/index): Da dove arrivano gli avvisi, e come gli episodi li raggruppano.
 - [Avvisi collegati](/docs/incidents/linked-alerts): Collegare all'incidente gli avvisi generati da un'interruzione.
 :::
 
