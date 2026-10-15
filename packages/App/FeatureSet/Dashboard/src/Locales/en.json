@@ -29464,5 +29464,6 @@
   "{{count}} selected hosts are hidden by the filters and will not be imported._one": "{{count}} selected host is hidden by the filters and will not be imported.",
   "{{name}} - created when you import": "{{name}} - created when you import",
   "{{probe}}, the probe that ran the scan, pings every device on this schedule and walks the ones that answered SNMP for interfaces, inventory and health. You can change it on each device later.": "{{probe}}, the probe that ran the scan, pings every device on this schedule and walks the ones that answered SNMP for interfaces, inventory and health. You can change it on each device later.",
-  "Network Device templates read each device's own polls. Edit a template under Monitors → Settings → Templates; monitors made from it follow.": "Network Device templates read each device's own polls. Edit a template under Monitors → Settings → Templates; monitors made from it follow."
+  "Network Device templates read each device's own polls. Edit a template under Monitors → Settings → Templates; monitors made from it follow.": "Network Device templates read each device's own polls. Edit a template under Monitors → Settings → Templates; monitors made from it follow.",
+  "Responded": "Responded"
 }

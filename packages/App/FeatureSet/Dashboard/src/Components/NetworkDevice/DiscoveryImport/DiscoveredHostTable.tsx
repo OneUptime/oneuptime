@@ -271,8 +271,13 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
               className="flex items-center gap-2"
               data-testid="discovered-host-answered-facet"
             >
+              {/*
+               * "Responded", the word the scans table's Responded Hosts
+               * column uses - not "Answered", whose translations are a
+               * phone call's (Incoming Call Policy logs share that key).
+               */}
               <span className="text-xs font-medium text-gray-500">
-                {translator.translateText("Answered")}
+                {translator.translateText("Responded")}
               </span>
               <FilterButtons
                 className="flex-wrap [&>button]:whitespace-nowrap"

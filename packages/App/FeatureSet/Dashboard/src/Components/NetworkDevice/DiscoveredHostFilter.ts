@@ -885,12 +885,12 @@ export function getInitialSelection(
  *
  * Scoping the import to the active filter is the whole point of #3322. The
  * alternative — importing everything ticked, including hosts the filter has
- * hidden — would make "filter to SNMP, press Import Selected" quietly create
+ * hidden — would make "filter to SNMP, press Next, import" quietly create
  * the 2,890 ping-only devices the operator just filtered away, which is the
  * exact outcome the issue is asking to avoid. Nothing is lost by it either:
  * ticks on hidden hosts survive in state and come back with the filter, and
- * the submit button's count is computed from this same list, so the number on
- * the button always matches what the press will do.
+ * the count under the list and on the Import button is computed from this
+ * same list, so the number always matches what the press will do.
  *
  * Duplicate addresses collapse to one device. A single checkbox is keyed by
  * address and governs every row carrying it, so importing each row would

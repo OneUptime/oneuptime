@@ -22931,7 +22931,7 @@
   "Scoped to {{scope}}": "Scoped to {{scope}}",
   "Search for {{botUsername}}": "Search for {{botUsername}}",
   "Search {{label}}...": "Search {{label}}...",
-  "Select all {{count}}": "Select all {{count}}",
+  "Select all {{count}}": "Seleccionar los {{count}}",
   "Select timezone": "Select timezone",
   "Send {{command}}": "Send {{command}}",
   "Services defined in the swarm at the agent's latest inventory snapshot, whatever their state, including ones scaled to 0. The cluster's overview shows how many have every wanted copy running.": "Services defined in the swarm at the agent's latest inventory snapshot, whatever their state, including ones scaled to 0. The cluster's overview shows how many have every wanted copy running.",
@@ -23793,7 +23793,7 @@
   "Evaluated At": "Evaluated At",
   "Every allowed fix runs on its own. Changes that always need a person still ask.": "Toda corrección permitida se ejecuta por sí sola. Los cambios que siempre necesitan a una persona siguen pidiendo aprobación.",
   "Every command OneUptime AI ran on this {{noun}} through the {{agent}} — while investigating (read-only), for fixes, and for connection tests — with its result.": "Every command OneUptime AI ran on this {{noun}} through the {{agent}} — while investigating (read-only), for fixes, and for connection tests — with its result.",
-  "Every host in this scan answered SNMP.": "Every host in this scan answered SNMP.",
+  "Every host in this scan answered SNMP.": "Todos los hosts de este escaneo respondieron a SNMP.",
   "Existing Ping monitors keep their current names.": "Existing Ping monitors keep their current names.",
   "External scraper: {{scraper}}": "External scraper: {{scraper}}",
   "Feature flag": "Feature flag",
@@ -23822,7 +23822,7 @@
   "New formula": "New formula",
   "No broker metrics in this range": "No broker metrics in this range",
   "No email yet": "No email yet",
-  "No host in this scan answered SNMP.": "No host in this scan answered SNMP.",
+  "No host in this scan answered SNMP.": "Ningún host de este escaneo respondió a SNMP.",
   "No metric selected": "No metric selected",
   "No path was recorded": "No path was recorded",
   "No project is selected, so a Ping monitor cannot be created.": "No project is selected, so a Ping monitor cannot be created.",
@@ -23983,7 +23983,7 @@
   "This project needs at least one alert severity before Ping monitors can be created. Add one under Project Settings, then try again.": "This project needs at least one alert severity before Ping monitors can be created. Add one under Project Settings, then try again.",
   "This project needs at least one incident severity before Ping monitors can be created. Add one under Project Settings, then try again.": "This project needs at least one incident severity before Ping monitors can be created. Add one under Project Settings, then try again.",
   "This project needs both an operational and an offline monitor status before Ping monitors can be created. Add them under Project Settings, then try again.": "This project needs both an operational and an offline monitor status before Ping monitors can be created. Add them under Project Settings, then try again.",
-  "This scan did not find any responding hosts.": "This scan did not find any responding hosts.",
+  "This scan did not find any responding hosts.": "Este escaneo no encontró ningún host que respondiera.",
   "This service has not reported which runtime it uses, so only the recommendations that apply to every service are shown. Once its SDK reports telemetry.sdk.language — or you set the tech stack under Settings — the runtime-specific ones appear here too.": "This service has not reported which runtime it uses, so only the recommendations that apply to every service are shown. Once its SDK reports telemetry.sdk.language — or you set the tech stack under Settings — the runtime-specific ones appear here too.",
   "This template has no OIDs yet, so it adds nothing to this device — only the device-specific OIDs below are collected.": "This template has no OIDs yet, so it adds nothing to this device — only the device-specific OIDs below are collected.",
   "Tower — server": "Tower — server",
@@ -29464,5 +29464,6 @@
   "{{count}} selected hosts are hidden by the filters and will not be imported._one": "{{count}} host seleccionado está oculto por los filtros y no se importará.",
   "{{name}} - created when you import": "{{name}} - se crea al importar",
   "{{probe}}, the probe that ran the scan, pings every device on this schedule and walks the ones that answered SNMP for interfaces, inventory and health. You can change it on each device later.": "{{probe}}, la sonda que ejecutó el escaneo, hace ping a cada dispositivo con esta frecuencia y recorre los que respondieron por SNMP para obtener interfaces, inventario y estado. Puede cambiarlo en cada dispositivo más adelante.",
-  "Network Device templates read each device's own polls. Edit a template under Monitors → Settings → Templates; monitors made from it follow.": "Las plantillas de dispositivo de red leen los propios sondeos de cada dispositivo. Edite una plantilla en Monitores → Configuración → Plantillas; los monitores creados a partir de ella la siguen."
+  "Network Device templates read each device's own polls. Edit a template under Monitors → Settings → Templates; monitors made from it follow.": "Las plantillas de dispositivo de red leen los propios sondeos de cada dispositivo. Edite una plantilla en Monitores → Configuración → Plantillas; los monitores creados a partir de ella la siguen.",
+  "Responded": "Respuesta"
 }

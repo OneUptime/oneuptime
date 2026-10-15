@@ -20624,7 +20624,7 @@
   "{{count}} failed": "{{count}} 件失敗",
   "{{count}} failed queries": "失敗したクエリ {{count}} 件",
   "{{count}} failed queries_one": "{{count}} failed query",
-  "{{count}} failed_one": "{{count}} failed",
+  "{{count}} failed_one": "{{count}} 件失敗",
   "{{count}} from traces": "トレースから {{count}} 件",
   "{{count}} groups": "グループ {{count}} 個",
   "{{count}} groups_one": "{{count}} group",
@@ -20702,7 +20702,7 @@
   "{{count}} severities": "重大度 {{count}} 個",
   "{{count}} severities_one": "{{count}} severity",
   "{{count}} skipped": "スキップ {{count}} 件",
-  "{{count}} skipped_one": "{{count}} skipped",
+  "{{count}} skipped_one": "スキップ {{count}} 件",
   "{{count}} storage volumes": "ストレージボリューム {{count}} 個",
   "{{count}} storage volumes_one": "{{count}} storage volume",
   "{{count}} subscribers added successfully": "{{count}} 人の購読者を追加しました",
@@ -29464,5 +29464,6 @@
   "{{count}} selected hosts are hidden by the filters and will not be imported._one": "選択した {{count}} 件のホストはフィルターで非表示になっており、インポートされません。",
   "{{name}} - created when you import": "{{name}} - インポート時に作成",
   "{{probe}}, the probe that ran the scan, pings every device on this schedule and walks the ones that answered SNMP for interfaces, inventory and health. You can change it on each device later.": "スキャンを実行したプローブ {{probe}} は、このスケジュールですべてのデバイスに ping し、SNMP に応答したデバイスをインターフェイス、インベントリ、ヘルスのためにウォークします。後でデバイスごとに変更できます。",
-  "Network Device templates read each device's own polls. Edit a template under Monitors → Settings → Templates; monitors made from it follow.": "ネットワークデバイステンプレートは各デバイス自身のポーリングを読み取ります。テンプレートは モニター → 設定 → テンプレート で編集でき、そこから作成したモニターにも反映されます。"
+  "Network Device templates read each device's own polls. Edit a template under Monitors → Settings → Templates; monitors made from it follow.": "ネットワークデバイステンプレートは各デバイス自身のポーリングを読み取ります。テンプレートは モニター → 設定 → テンプレート で編集でき、そこから作成したモニターにも反映されます。",
+  "Responded": "応答"
 }
