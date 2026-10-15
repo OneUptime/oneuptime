@@ -169,7 +169,7 @@ const AddToNewEpisodeModal: FunctionComponent<ComponentProps> = (
   const description: string = joinSentences([
     translator.translateText(
       "You can add owners, on-call policies and notes on the episode's page.",
-    ),
+    ) || "",
     inAnotherEpisode > 0
       ? translator.translatePlural(
           {
