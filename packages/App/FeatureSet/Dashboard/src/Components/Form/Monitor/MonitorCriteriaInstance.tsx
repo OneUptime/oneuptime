@@ -675,11 +675,15 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
            * every email instead of one at a time - for people who raise
            * incidents by emailing the address. Only once the criteria opens
            * something; the switch keeps its value while both are off.
+           *
+           * Below the actions, set apart by a rule: it is not an action of
+           * its own, it says how often the alert and incident above open.
+           * Its label and help name what the criteria opens.
            */}
           {props.monitorType === MonitorType.IncomingEmail &&
             (showIncidentControl || showAlertControl) && (
               <div
-                className="mt-4"
+                className="mt-6 border-t border-gray-100 pt-4"
                 data-testid="monitor-criteria-open-for-every-email"
               >
                 <Toggle
@@ -695,7 +699,11 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                   description={
                     <>
                       {translator.translateText(
-                        "Each email that matches opens its own, even while earlier ones are still open, and replies are added to it as notes. When off, later emails open nothing new while one is open.",
+                        showIncidentControl && showAlertControl
+                          ? "Each email that matches opens its own incident and alert, even while earlier ones are open. Replies are added to them as notes until they are resolved."
+                          : showIncidentControl
+                            ? "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved."
+                            : "Each email that matches opens its own alert, even while earlier ones are open. Replies are added to that alert as notes until it is resolved.",
                       )}{" "}
                       {/* Styled as the incident form's docs link above it. */}
                       <Link

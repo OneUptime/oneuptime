@@ -175,14 +175,46 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
 
     // Actions
     const actions: Array<string> = [];
+
+    /*
+     * An Incoming Email criteria that opens an incident (and alert) for
+     * every email says so here too, so a folded criteria reads apart from
+     * one that opens one at a time.
+     */
+    const isOpenForEveryEmail: boolean =
+      MonitorCriteriaInstance.isOpenForEveryEmail({
+        monitorType: props.monitorType,
+        criteriaInstance: instance,
+      });
+
     if (instance.data?.monitorStatusId) {
       actions.push(translator.translateText("status change") as string);
     }
-    if (instance.data?.createAlerts) {
-      actions.push(translator.translateText("alerts") as string);
-    }
-    if (instance.data?.createIncidents) {
-      actions.push(translator.translateText("incidents") as string);
+    if (
+      isOpenForEveryEmail &&
+      instance.data?.createAlerts &&
+      instance.data?.createIncidents
+    ) {
+      actions.push(
+        translator.translateText(
+          "alerts and incidents for every email",
+        ) as string,
+      );
+    } else {
+      if (instance.data?.createAlerts) {
+        actions.push(
+          translator.translateText(
+            isOpenForEveryEmail ? "alerts for every email" : "alerts",
+          ) as string,
+        );
+      }
+      if (instance.data?.createIncidents) {
+        actions.push(
+          translator.translateText(
+            isOpenForEveryEmail ? "incidents for every email" : "incidents",
+          ) as string,
+        );
+      }
     }
 
     if (actions.length > 0) {
