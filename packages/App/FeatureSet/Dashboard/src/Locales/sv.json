@@ -29483,7 +29483,7 @@
   "Every": "Var",
   "Every few hours": "Med några timmars mellanrum",
   "Every few minutes": "Med några minuters mellanrum",
-  "Five fields: minute, hour, day of month, month and day of week. For example, 0 9 * * 1-5 runs at 09:00 on weekdays.": "Fem fält: minut, timme, dag i månaden, månad och veckodag. Till exempel körs 0 9 * * 1-5 kl. 09:00 på vardagar.",
+  "Five fields: minute, hour, day of month, month and day of week. For example, {{example}} runs at 09:00 on weekdays.": "Fem fält: minut, timme, dag i månaden, månad och veckodag. Till exempel körs {{example}} kl. 09:00 på vardagar.",
   "Fri": "fre",
   "Friday": "fredag",
   "How schedules work": "Så fungerar scheman",

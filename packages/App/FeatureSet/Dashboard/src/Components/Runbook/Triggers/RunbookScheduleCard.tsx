@@ -616,7 +616,9 @@ const RunbookScheduleCard: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
-          <div data-testid={`${RunbookTriggersTestIds.scheduleDetails}-last-run`}>
+          <div
+            data-testid={`${RunbookTriggersTestIds.scheduleDetails}-last-run`}
+          >
             <p className={SECTION_LABEL_CLASS_NAME}>
               {translator.translateText(
                 RunbookTriggersCopy.lastScheduledRunTitle,

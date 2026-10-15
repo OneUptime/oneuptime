@@ -29483,7 +29483,7 @@
   "Every": "Toutes les",
   "Every few hours": "Toutes les quelques heures",
   "Every few minutes": "Toutes les quelques minutes",
-  "Five fields: minute, hour, day of month, month and day of week. For example, 0 9 * * 1-5 runs at 09:00 on weekdays.": "Cinq champs : minute, heure, jour du mois, mois et jour de la semaine. Par exemple, 0 9 * * 1-5 s'exécute à 09:00 en semaine.",
+  "Five fields: minute, hour, day of month, month and day of week. For example, {{example}} runs at 09:00 on weekdays.": "Cinq champs : minute, heure, jour du mois, mois et jour de la semaine. Par exemple, {{example}} s'exécute à 09:00 en semaine.",
   "Fri": "ven.",
   "Friday": "vendredi",
   "How schedules work": "Fonctionnement des planifications",

@@ -29483,7 +29483,7 @@
   "Every": "Каждые",
   "Every few hours": "Раз в несколько часов",
   "Every few minutes": "Раз в несколько минут",
-  "Five fields: minute, hour, day of month, month and day of week. For example, 0 9 * * 1-5 runs at 09:00 on weekdays.": "Пять полей: минута, час, день месяца, месяц и день недели. Например, 0 9 * * 1-5 запускается в 09:00 по будням.",
+  "Five fields: minute, hour, day of month, month and day of week. For example, {{example}} runs at 09:00 on weekdays.": "Пять полей: минута, час, день месяца, месяц и день недели. Например, {{example}} запускается в 09:00 по будням.",
   "Fri": "Пт",
   "Friday": "пятница",
   "How schedules work": "Как работают расписания",

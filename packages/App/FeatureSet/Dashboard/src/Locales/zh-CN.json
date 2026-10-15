@@ -29483,7 +29483,7 @@
   "Every": "每",
   "Every few hours": "每隔几小时",
   "Every few minutes": "每隔几分钟",
-  "Five fields: minute, hour, day of month, month and day of week. For example, 0 9 * * 1-5 runs at 09:00 on weekdays.": "五个字段：分钟、小时、日期、月份和星期。例如，0 9 * * 1-5 在工作日 09:00 运行。",
+  "Five fields: minute, hour, day of month, month and day of week. For example, {{example}} runs at 09:00 on weekdays.": "五个字段：分钟、小时、日期、月份和星期。例如，{{example}} 在工作日 09:00 运行。",
   "Fri": "周五",
   "Friday": "星期五",
   "How schedules work": "计划的工作方式",

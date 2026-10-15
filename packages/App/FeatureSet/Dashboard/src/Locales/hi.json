@@ -29483,7 +29483,7 @@
   "Every": "हर",
   "Every few hours": "हर कुछ घंटों में",
   "Every few minutes": "हर कुछ मिनटों में",
-  "Five fields: minute, hour, day of month, month and day of week. For example, 0 9 * * 1-5 runs at 09:00 on weekdays.": "पाँच फ़ील्ड: मिनट, घंटा, महीने का दिन, महीना और सप्ताह का दिन। उदाहरण के लिए, 0 9 * * 1-5 कार्यदिवसों पर 09:00 बजे चलता है।",
+  "Five fields: minute, hour, day of month, month and day of week. For example, {{example}} runs at 09:00 on weekdays.": "पाँच फ़ील्ड: मिनट, घंटा, महीने का दिन, महीना और सप्ताह का दिन। उदाहरण के लिए, {{example}} कार्यदिवसों पर 09:00 बजे चलता है।",
   "Fri": "शुक्र",
   "Friday": "शुक्रवार",
   "How schedules work": "शेड्यूल कैसे काम करते हैं",

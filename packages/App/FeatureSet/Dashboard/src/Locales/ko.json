@@ -29483,7 +29483,7 @@
   "Every": "간격",
   "Every few hours": "몇 시간마다",
   "Every few minutes": "몇 분마다",
-  "Five fields: minute, hour, day of month, month and day of week. For example, 0 9 * * 1-5 runs at 09:00 on weekdays.": "다섯 필드: 분, 시, 일, 월, 요일. 예를 들어 0 9 * * 1-5는 평일 09:00에 실행됩니다.",
+  "Five fields: minute, hour, day of month, month and day of week. For example, {{example}} runs at 09:00 on weekdays.": "다섯 필드: 분, 시, 일, 월, 요일. 예를 들어 {{example}}는 평일 09:00에 실행됩니다.",
   "Fri": "금",
   "Friday": "금요일",
   "How schedules work": "일정 작동 방식",

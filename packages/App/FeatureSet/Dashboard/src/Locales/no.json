@@ -29483,7 +29483,7 @@
   "Every": "Hver",
   "Every few hours": "Med noen timers mellomrom",
   "Every few minutes": "Med noen minutters mellomrom",
-  "Five fields: minute, hour, day of month, month and day of week. For example, 0 9 * * 1-5 runs at 09:00 on weekdays.": "Fem felt: minutt, time, dag i måneden, måned og ukedag. For eksempel kjører 0 9 * * 1-5 kl. 09:00 på hverdager.",
+  "Five fields: minute, hour, day of month, month and day of week. For example, {{example}} runs at 09:00 on weekdays.": "Fem felt: minutt, time, dag i måneden, måned og ukedag. For eksempel kjører {{example}} kl. 09:00 på hverdager.",
   "Fri": "fre",
   "Friday": "fredag",
   "How schedules work": "Slik fungerer tidsplaner",

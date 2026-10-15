@@ -29483,7 +29483,7 @@
   "Every": "Every",
   "Every few hours": "Every few hours",
   "Every few minutes": "Every few minutes",
-  "Five fields: minute, hour, day of month, month and day of week. For example, 0 9 * * 1-5 runs at 09:00 on weekdays.": "Five fields: minute, hour, day of month, month and day of week. For example, 0 9 * * 1-5 runs at 09:00 on weekdays.",
+  "Five fields: minute, hour, day of month, month and day of week. For example, {{example}} runs at 09:00 on weekdays.": "Five fields: minute, hour, day of month, month and day of week. For example, {{example}} runs at 09:00 on weekdays.",
   "Fri": "Fri",
   "Friday": "Friday",
   "How schedules work": "How schedules work",

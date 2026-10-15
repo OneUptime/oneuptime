@@ -177,8 +177,9 @@ export const RunbookTriggersCopy: {
   atMinuteLabel: translationKey("Minutes past the hour"),
   onDaysLabel: translationKey("On these days"),
   cronLabel: translationKey("Cron expression"),
+  // {{example}} is a cron expression, drawn as code on one line.
   cronHint: translationKey(
-    "Five fields: minute, hour, day of month, month and day of week. For example, 0 9 * * 1-5 runs at 09:00 on weekdays.",
+    "Five fields: minute, hour, day of month, month and day of week. For example, {{example}} runs at 09:00 on weekdays.",
   ),
   weekdaysShortcut: translationKey("Weekdays"),
   everyDayShortcut: translationKey("Every day"),
@@ -260,6 +261,9 @@ export const RunbookTriggersCopy: {
     "Setting up a webhook takes permission to edit this runbook and to run it.",
   ),
 };
+
+// The cron expression the hint gives as an example: the same in every language.
+export const CRON_HINT_EXAMPLE: string = "0 9 * * 1-5";
 
 // The choices the schedule dialog's Repeat menu offers, in its order.
 export const REPEAT_LABELS: Readonly<Record<RunbookScheduleRepeat, string>> = {
@@ -726,10 +730,7 @@ const getCalendarDaysBetween: (data: {
   timezone: string;
 }) => number = (data: { from: Date; to: Date; timezone: string }): number => {
   const dayNumber: (date: Date) => number = (date: Date): number => {
-    const [year, month, day]: Array<number> = getFeedDayKey(
-      date,
-      data.timezone,
-    )
+    const [year, month, day]: Array<number> = getFeedDayKey(date, data.timezone)
       .split("-")
       .map(Number) as Array<number>;
 

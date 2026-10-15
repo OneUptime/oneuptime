@@ -659,6 +659,7 @@ describe("in every language", () => {
       RunbookTriggersCopy.noStepsSchedule,
       RunbookTriggersCopy.runbookOffWebhook,
       RunbookTriggersCopy.noStepsWebhook,
+      RunbookTriggersCopy.cronHint,
       TriggerDetailCopy.inputsCardDescription,
     ];
 

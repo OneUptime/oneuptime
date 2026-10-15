@@ -645,6 +645,22 @@ describe("the Schedule card of a runbook with no schedule", () => {
       `${RunbookTriggersTestIds.scheduleField}-cron`,
     ) as HTMLInputElement;
     expect(cron.value).toBe("0 9 * * 1,2,3,4,5");
+
+    // The hint's example is code, in one piece that never breaks after "0".
+    const hint: HTMLElement = within(dialog()).getByText(
+      (_content: string, element: Element | null): boolean => {
+        return (
+          element?.tagName === "P" &&
+          (element.textContent || "").startsWith("Five fields:")
+        );
+      },
+    );
+    expect(hint).toHaveTextContent(
+      "Five fields: minute, hour, day of month, month and day of week. For example, 0 9 * * 1-5 runs at 09:00 on weekdays.",
+    );
+    const example: HTMLElement = hint.querySelector("code") as HTMLElement;
+    expect(example).toHaveTextContent("0 9 * * 1-5");
+    expect(example).toHaveClass("whitespace-nowrap");
     expect(
       within(preview()).getByText(
         "Runs on the cron schedule 0 9 * * 1,2,3,4,5",
@@ -875,7 +891,9 @@ describe("the Schedule card of a runbook with a schedule", () => {
     expect(note).toHaveTextContent(
       "This runbook is turned off, so its schedule starts nothing. Turn it on under Settings.",
     );
-    expect(within(note).getByRole("link", { name: "Settings" })).toHaveAttribute(
+    expect(
+      within(note).getByRole("link", { name: "Settings" }),
+    ).toHaveAttribute(
       "href",
       `/dashboard/${PROJECT_ID.toString()}/runbooks/${RUNBOOK_ID}/settings`,
     );
@@ -1298,7 +1316,9 @@ describe("the Webhook card", () => {
     expect(note).toHaveTextContent(
       "This runbook is turned off, so calls to this URL are refused. Turn it on under Settings.",
     );
-    expect(within(note).getByRole("link", { name: "Settings" })).toHaveAttribute(
+    expect(
+      within(note).getByRole("link", { name: "Settings" }),
+    ).toHaveAttribute(
       "href",
       `/dashboard/${PROJECT_ID.toString()}/runbooks/${RUNBOOK_ID}/settings`,
     );

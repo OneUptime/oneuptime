@@ -29483,7 +29483,7 @@
   "Every": "間隔",
   "Every few hours": "数時間ごと",
   "Every few minutes": "数分ごと",
-  "Five fields: minute, hour, day of month, month and day of week. For example, 0 9 * * 1-5 runs at 09:00 on weekdays.": "5 つのフィールド: 分、時、日、月、曜日。例えば 0 9 * * 1-5 は平日の 09:00 に実行されます。",
+  "Five fields: minute, hour, day of month, month and day of week. For example, {{example}} runs at 09:00 on weekdays.": "5 つのフィールド: 分、時、日、月、曜日。例えば {{example}} は平日の 09:00 に実行されます。",
   "Fri": "金",
   "Friday": "金曜日",
   "How schedules work": "スケジュールのしくみ",

@@ -3,6 +3,7 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
@@ -16,6 +17,7 @@ import {
 } from "Common/Types/Runbook/RunbookSchedule";
 import React, { FunctionComponent, ReactElement, useId } from "react";
 import {
+  CRON_HINT_EXAMPLE,
   DAY_NAMES,
   DAY_SHORT_NAMES,
   REPEAT_LABELS,
@@ -285,7 +287,17 @@ const RunbookScheduleField: FunctionComponent<ComponentProps> = (
           }}
         />
         <p className="mt-1 text-xs text-gray-500">
-          {translator.translateText(RunbookTriggersCopy.cronHint)}
+          <TranslatedSentence
+            template={RunbookTriggersCopy.cronHint}
+            slots={{
+              // One line: an expression broken after "0" reads as two.
+              example: (
+                <code className="whitespace-nowrap font-mono text-gray-700">
+                  {CRON_HINT_EXAMPLE}
+                </code>
+              ),
+            }}
+          />
         </p>
       </div>
     );

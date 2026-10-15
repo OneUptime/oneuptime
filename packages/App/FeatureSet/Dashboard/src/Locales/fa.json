@@ -29483,7 +29483,7 @@
   "Every": "هر",
   "Every few hours": "هر چند ساعت",
   "Every few minutes": "هر چند دقیقه",
-  "Five fields: minute, hour, day of month, month and day of week. For example, 0 9 * * 1-5 runs at 09:00 on weekdays.": "پنج فیلد: دقیقه، ساعت، روز ماه، ماه و روز هفته. برای مثال 0 9 * * 1-5 در روزهای کاری ساعت 09:00 اجرا می‌شود.",
+  "Five fields: minute, hour, day of month, month and day of week. For example, {{example}} runs at 09:00 on weekdays.": "پنج فیلد: دقیقه، ساعت، روز ماه، ماه و روز هفته. برای مثال {{example}} در روزهای کاری ساعت 09:00 اجرا می‌شود.",
   "Fri": "ج",
   "Friday": "جمعه",
   "How schedules work": "زمان‌بندی‌ها چگونه کار می‌کنند",

@@ -29483,7 +29483,7 @@
   "Every": "Elke",
   "Every few hours": "Om de paar uur",
   "Every few minutes": "Om de paar minuten",
-  "Five fields: minute, hour, day of month, month and day of week. For example, 0 9 * * 1-5 runs at 09:00 on weekdays.": "Vijf velden: minuut, uur, dag van de maand, maand en dag van de week. Zo draait 0 9 * * 1-5 om 09:00 op werkdagen.",
+  "Five fields: minute, hour, day of month, month and day of week. For example, {{example}} runs at 09:00 on weekdays.": "Vijf velden: minuut, uur, dag van de maand, maand en dag van de week. Zo draait {{example}} om 09:00 op werkdagen.",
   "Fri": "vr",
   "Friday": "vrijdag",
   "How schedules work": "Zo werken schema's",
