@@ -158,7 +158,7 @@ Open OneUptime under **Apps** in Slack's sidebar, and its **Home** tab shows wha
 
 The Home reads as you, so it needs your own Slack account connected. Until it is, the Home holds a **Connect Slack account** button, and shows you your Home once you have connected it.
 
-When somebody adds OneUptime to a channel, it posts a hello there: how to ask it a question, and where to add a notification rule that posts to the channel.
+When somebody adds OneUptime to a channel, it posts a hello there: how to ask it a question, and where to add a notification rule that posts to the channel. The first time you open its **Messages** tab, it welcomes you there: what it does in Slack, and how to start.
 
 ## Asking OneUptime AI from Slack
 
@@ -227,6 +227,18 @@ The buttons on OneUptime's Slack messages act as you too: as the OneUptime accou
 
 > [!WARNING]
 > Uninstalling also unlinks every member's own Slack account in the project, and removes the Slack notification methods and the on-call rules that used them. People who were paged in Slack are paged on their other notification methods until they add Slack again.
+
+## Your Slack data
+
+OneUptime reads from Slack only what these features need, with the permissions you grant when you install it:
+
+- **Messages addressed to OneUptime.** A message that @mentions it, one you send it in a direct message, and your replies in a conversation with it, with the earlier messages of that thread or direct message, so OneUptime AI can answer. Slack also sends it the other messages of the channels and group DMs it is in; OneUptime neither answers nor keeps them.
+- **Messages you save as notes.** A message you react to with 📌 or 📢, or pin, in the channel of an incident, alert, episode or scheduled maintenance event, saved as a note on that record with its author's name.
+- **Names of channels and people.** The channels it can post to, so you can pick them, and people's names, to show who wrote or did something.
+- **Email addresses.** The email address Slack has for a person, to match their Slack account to their OneUptime account when they have not connected it: to page them, or to put them in an on-call user group.
+- **User groups.** Your workspace's user groups, to pick one for an on-call schedule, and the people in one you connect, to keep it equal to whoever is on call.
+
+What OneUptime keeps of it — the workspace's name, its channels, the Slack accounts people connect, the notes and the user groups — is stored with your project. The [Privacy Policy](https://oneuptime.com/legal/privacy) says how OneUptime handles your data.
 
 ## Troubleshooting
 

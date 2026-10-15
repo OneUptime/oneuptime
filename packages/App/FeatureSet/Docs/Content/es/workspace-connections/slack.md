@@ -158,7 +158,7 @@ Abre OneUptime en **Apps**, en la barra lateral de Slack: su pestaña **Home** m
 
 El inicio lee como tú, así que necesita tu propia cuenta de Slack conectada. Mientras no lo esté, el inicio muestra un botón **Connect Slack account**, y te muestra tu inicio en cuanto la hayas conectado.
 
-Cuando alguien añade OneUptime a un canal, publica allí un saludo: cómo hacerle una pregunta y dónde añadir una regla de notificación que publique en el canal.
+Cuando alguien añade OneUptime a un canal, publica allí un saludo: cómo hacerle una pregunta y dónde añadir una regla de notificación que publique en el canal. La primera vez que abres su pestaña **Messages**, te da allí la bienvenida: qué hace en Slack y cómo empezar.
 
 ## Preguntar a OneUptime AI desde Slack
 
@@ -227,6 +227,18 @@ Los botones de los mensajes de OneUptime en Slack también actúan como tú: com
 
 > [!WARNING]
 > Desinstalar también desvincula la cuenta de Slack de cada miembro del proyecto, y elimina los métodos de notificación de Slack y las reglas de guardia que los usaban. Quienes recibían avisos en Slack los reciben en sus otros métodos de notificación hasta que vuelvan a añadir Slack.
+
+## Tus datos de Slack
+
+OneUptime lee de Slack solo lo que necesitan estas funciones, con los permisos que concedes al instalarlo:
+
+- **Mensajes dirigidos a OneUptime.** Un mensaje que lo menciona con @, uno que le envías en un mensaje directo y tus respuestas en una conversación con él, junto con los mensajes anteriores de ese hilo o mensaje directo, para que OneUptime AI pueda responder. Slack también le envía los demás mensajes de los canales y mensajes directos de grupo en los que está; OneUptime ni los responde ni los guarda.
+- **Mensajes que guardas como notas.** Un mensaje al que reaccionas con 📌 o 📢, o que fijas, en el canal de un incidente, una alerta, un episodio o un evento de mantenimiento programado, guardado como nota en ese registro con el nombre de su autor.
+- **Nombres de canales y personas.** Los canales en los que puede publicar, para que puedas elegirlos, y los nombres de las personas, para mostrar quién escribió o hizo algo.
+- **Direcciones de correo electrónico.** La dirección de correo electrónico que Slack tiene de una persona, para asociar su cuenta de Slack con su cuenta de OneUptime cuando no la ha conectado: para avisarla o para ponerla en un grupo de usuarios de guardia.
+- **Grupos de usuarios.** Los grupos de usuarios de tu espacio de trabajo, para elegir uno para una programación de guardia, y las personas de uno que conectes, para mantenerlo igual a quienes están de guardia.
+
+Lo que OneUptime guarda de todo ello — el nombre del espacio de trabajo, sus canales, las cuentas de Slack que conecta la gente, las notas y los grupos de usuarios — se almacena con tu proyecto. La [Política de privacidad](https://oneuptime.com/legal/privacy) explica cómo trata OneUptime tus datos.
 
 ## Solución de problemas
 
