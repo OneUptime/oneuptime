@@ -1,8 +1,9 @@
-import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import {
-  DiscoveryScanStatus,
-  DISCOVERY_SCAN_STARTED_MESSAGE,
-} from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
+  formatDiscoveryDuration,
+  isWaitingForDiscoveryProgress,
+} from "./DiscoveryScanProgressState";
+import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import { DiscoveryScanStatus } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
 import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
 import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
 import React, {
@@ -18,18 +19,8 @@ interface ComponentProps {
   scan: NetworkDeviceDiscoveryScan;
 }
 
-/**
- * A recurring scan retains the preceding result until its first report.
- * The claim marker separates that snapshot from this run's real progress.
- */
-export function isWaitingForDiscoveryProgress(
-  scan: NetworkDeviceDiscoveryScan | null,
-): boolean {
-  return (
-    scan?.status === DiscoveryScanStatus.InProgress &&
-    scan.statusMessage === DISCOVERY_SCAN_STARTED_MESSAGE
-  );
-}
+// Read by modules that import no React (DiscoveryScanProgressState.ts).
+export { formatDiscoveryDuration, isWaitingForDiscoveryProgress };
 
 function timestamp(value: Date | undefined): number | null {
   if (!value) {
@@ -38,18 +29,6 @@ function timestamp(value: Date | undefined): number | null {
 
   const milliseconds: number = new Date(value).getTime();
   return Number.isFinite(milliseconds) ? milliseconds : null;
-}
-
-export function formatDiscoveryDuration(milliseconds: number): string {
-  const seconds: number = Math.max(0, Math.floor(milliseconds / 1000));
-  if (seconds < 60) {
-    return `${seconds}s`;
-  }
-  const minutes: number = Math.floor(seconds / 60);
-  if (minutes < 60) {
-    return `${minutes}m ${seconds % 60}s`;
-  }
-  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 }
 
 const DiscoveryScanProgress: FunctionComponent<ComponentProps> = (
