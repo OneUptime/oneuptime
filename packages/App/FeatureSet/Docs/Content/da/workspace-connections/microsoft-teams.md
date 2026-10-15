@@ -88,7 +88,9 @@ At oprette en regel går gennem fire trin:
 | **Destination** | Hvor den slår op: en eksisterende kanal i et team, du vælger, de chats, du vælger, en ny kanal, der oprettes i et team, du vælger, eller flere af dem sammen. |
 | **Video Call** | Kun hændelser og advarsler: start et opkald for hver. Se [Videoopkald](/docs/workspace-connections/video-calls). |
 
-En kanal, som reglen opretter, får sit navn fra **New Microsoft Teams Channel Name** efterfulgt af postens nummer, som `oneuptime-incident-42`, og kun en oprettet kanal får de folk, reglen inviterer. En privat hændelse, advarsel eller episode får en privat kanal. Hver senere opdatering af posten — en tilstandsændring, en note, en ny ejer — slås op i dens kanaler og chats.
+En kanal, som reglen opretter, får navn efter sin post: hændelse INC-42 får `inc-42`, advarsel ALT-7 får `alt-7`, og i et projekt uden nummerpræfikser får hændelse 42 `incident-42`. Tekst i **Præfiks for kanalnavn** sættes foran, så `prod-` giver `prod-inc-42`, og formularen viser navnet, mens du skriver. For en planlagt vedligeholdelse træder præfikset i stedet for dens nummerpræfiks: SM-5 får `sm-5`, og `maint-` giver `maint-5`. OneUptime beholder bogstaver, tal, mellemrum, `-` og `_`, op til de 50 tegn, Microsoft Teams tager imod. Har teamet allerede en kanal med det navn, fx et andet projekts eller en, der er slettet inden for de sidste 30 dage, tilføjer OneUptime `-2`, `-3` og så videre.
+
+Kun en oprettet kanal får de folk, reglen inviterer. En privat hændelse, advarsel eller episode får en privat kanal. Hver senere opdatering af posten — en tilstandsændring, en note, en ny ejer — slås op i dens kanaler og chats.
 
 En hændelse, advarsel, episode eller planlagt vedligeholdelse med sin egen kanal har **Åbn i Microsoft Teams** i toppen af sin side i OneUptime, ved siden af tilstandsknapperne. Den åbner kanalen i en ny fane, i Microsoft Teams-appen eller i browseren. En post med to egne kanaler viser dem begge under knappen. En post med kanaler i både Slack og Microsoft Teams har i stedet én knap, **Åbn kanal**, der viser dem alle. De eksisterende kanaler og chats, dine regler slår op i, tilbydes ikke.
 

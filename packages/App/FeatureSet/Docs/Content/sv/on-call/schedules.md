@@ -86,7 +86,7 @@ Medan personen är borta:
 
 Väljer du i stället någon under **Vem täcker upp?** får den personen alla hens larm, från varje schema och varje policy, i stället för att rotationen tar hens pass.
 
-Frånvaro som läggs till på det här sättet gäller för alla jourpolicyer. Den listas under **Jourtjänst** > **Användaråsidosättningar**, där du kan ta bort den för att få tillbaka personen tidigare. För att hoppa över någon i bara en policy lägger du till åsidosättningen på den policyns sida **Användaråsidosättningar** och låter **Vem täcker upp?** vara som det är. Se [Användaråsidosättningar](/docs/on-call/user-overrides).
+Frånvaro som läggs till på det här sättet gäller för alla jourpolicyer. Den listas under **Jourtjänst** > **Avancerad** > **Användaråsidosättningar**, där du kan ta bort den för att få tillbaka personen tidigare. För att hoppa över någon i bara en policy lägger du till åsidosättningen på den policyns sida **Användaråsidosättningar** och låter **Vem täcker upp?** vara som det är. Se [Användaråsidosättningar](/docs/on-call/user-overrides).
 
 Via API:et hoppar en användaråsidosättning (`/api/on-call-duty-policy-user-override`) som skapas utan `routeAlertsToUserId` över personen i `overrideUserId` från `startsAt` till `endsAt`.
 

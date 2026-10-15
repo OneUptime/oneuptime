@@ -241,6 +241,7 @@ jobs:
               test-security-operations-ui
               test-status-timeline-ui
               test-episode-bulk-add-ui
+              test-runbook-triggers-ui
               test-network-first-run-ui
     steps:
       - uses: actions/checkout@v4
@@ -373,6 +374,8 @@ jobs:
             output/playwright/status-timeline-ui/test-results
             output/playwright/episode-bulk-add-ui/*.png
             output/playwright/episode-bulk-add-ui/test-results
+            output/playwright/runbook-triggers-ui/*.png
+            output/playwright/runbook-triggers-ui/test-results
             output/playwright/network-first-run-ui/*.png
             output/playwright/network-first-run-ui/test-results
           retention-days: 7

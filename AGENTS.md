@@ -4,6 +4,10 @@ Things to keep in mind while developing:
 
 Do not worry about circular dependencies. All the import should be on the top of the file.
 
+### Keep OneUptime simple to use
+
+OneUptime should be as simple as possible to use. Every UI change must be easy for people to understand and must look great. Show what most people need first, with sensible defaults, and hide advanced settings away - for example in a folded Advanced section - so nobody faces decision paralysis (choice paralysis) when they set something up.
+
 ### Migrations
 
 #### Postgres
@@ -57,6 +61,8 @@ Please write extensive tests for your changes. If you are adding a new feature, 
 
 There are a lot of tests in the app, please do not run all of them, run only the tests that are relevant to your changes. Running all the tests is a waste of time and resources. We run all the tests in CI, so you can be sure that your changes are not breaking anything. Only run test suites relevant to your changes.
 
+Do not run whole test folders or packages - for example all of `packages/App/Tests/Dashboard`, `packages/Common/Tests/UI`, `packages/App/Tests/FeatureSet/Docs` or the `packages/Home` tests - and do not re-run them after merging master into your branch. CI runs them on master, and failures there are fixed together on master. Run the tests you added or changed, and the tests that read or scan the files you changed (search the test folders for those files' paths and names).
+
 Property tests, fuzz sweeps and generated fixtures draw their pseudo-random inputs from `seededRandom(seed)` in `packages/Common/Tests/Helpers/SeededRandom.ts` (`random()` is a fraction, `random(limit)` a whole number below the limit), and texts made of an alphabet's pieces from `generatedTexts` in `packages/Common/Tests/Helpers/GeneratedTexts.ts`, so every run draws the same inputs and a failure can be run again. Shuffle with `shuffled(items, random)` from the same file. Do not write a generator of your own: the copies of `state * 1103515245 + 12345` the tests used to carry repeated within a few thousand draws, and `SeededRandomGuard.test.ts` fails a test file that rolls one of the kinds they carried (an LCG, mulberry32, xorshift).
 
 ### Helm chart
@@ -82,6 +88,17 @@ Before building or publishing the Android or iOS app, read
 [packages/MobileApp/RELEASING.md](packages/MobileApp/RELEASING.md). It contains the existing store and
 Expo identifiers, the verified release procedure, privacy checks, and the steps
 needed after uploading a binary to actually submit and publish the update.
+
+### Slack and Microsoft Teams app releases
+
+OneUptime Cloud's own Slack and Microsoft Teams apps do not change when the code does. Before changing
+`packages/Common/Server/Utils/Workspace/Slack/app-manifest.json`, `MicrosoftTeamsAPI.getTeamsAppManifest()`,
+or the Slack scopes, Slack events or Microsoft Graph permissions the code relies on, read
+[the Slack guide](packages/Common/Server/Utils/Workspace/Slack/RELEASING.md) and
+[the Microsoft Teams guide](packages/Common/Server/Utils/Workspace/MicrosoftTeams/RELEASING.md). They name the
+published apps and the workspace, tenant and accounts that own them, and say how to apply a manifest change to
+the live apps once it is released, how the Slack Marketplace and Microsoft Partner Center submissions work, and
+what customers must do after a permission change.
 
 ### Commit frequently
 

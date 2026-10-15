@@ -75,7 +75,9 @@ Een regel aanmaken gaat in vier stappen:
 | **Bestemming** | Waar hij plaatst: **Post to Existing Slack Channel** met de kanaalnamen, **Create Slack Channel** met de naam van het nieuwe kanaal en wie er wordt uitgenodigd, of allebei. |
 | **Video Call** | Alleen incidenten en waarschuwingen: start voor elk een gesprek. Zie [Videogesprekken](/docs/workspace-connections/video-calls). |
 
-Een kanaal dat de regel aanmaakt, krijgt zijn naam van **New Slack Channel Name** gevolgd door het nummer van het record, zoals `oneuptime-incident-42`, en alleen een aangemaakt kanaal krijgt de mensen die de regel uitnodigt: de eigenaren van het record, gekozen teams en gebruikers en, bij incidenten en waarschuwingen, de mensen van de dienst zodra ze worden opgeroepen. Een privé-incident, -waarschuwing of -episode krijgt een privékanaal. Elke latere update van het record — een statuswijziging, een notitie, een nieuwe eigenaar — wordt in zijn kanalen geplaatst en in de bestaande kanalen die zijn regels noemen. Een incident, waarschuwing of episode die al opgelost werd aangemaakt, krijgt geen eigen kanaal; het aanmaakbericht gaat nog wel naar de kanalen die je regels noemen. Zie [Al bevestigd of opgelost gemeld](/docs/incidents/declaring-incidents#al-bevestigd-of-opgelost-gemeld).
+Een kanaal dat de regel aanmaakt, krijgt de naam van zijn record: incident INC-42 krijgt `inc-42`, waarschuwing ALT-7 krijgt `alt-7` en in een project zonder nummervoorvoegsels krijgt incident 42 `incident-42`. Tekst in **Voorvoegsel van de kanaalnaam** komt ervoor, dus `prod-` wordt `prod-inc-42`, en het formulier toont de naam terwijl je typt. Bij een geplande onderhoudsgebeurtenis neemt het voorvoegsel de plaats in van het nummervoorvoegsel: SM-5 krijgt `sm-5` en `maint-` wordt `maint-5`. Slack neemt kleine letters, cijfers, `-` en `_`, tot 80 tekens. Bestaat er al een kanaal met die naam, zoals dat van een ander project of een gearchiveerd kanaal, dan voegt OneUptime `-2`, `-3` enzovoort toe.
+
+Alleen een aangemaakt kanaal krijgt de mensen die de regel uitnodigt: de eigenaren van het record, gekozen teams en gebruikers en, bij incidenten en waarschuwingen, de mensen van de dienst zodra ze worden opgeroepen. Een privé-incident, -waarschuwing of -episode krijgt een privékanaal. Elke latere update van het record — een statuswijziging, een notitie, een nieuwe eigenaar — wordt in zijn kanalen geplaatst en in de bestaande kanalen die zijn regels noemen. Een incident, waarschuwing of episode die al opgelost werd aangemaakt, krijgt geen eigen kanaal; het aanmaakbericht gaat nog wel naar de kanalen die je regels noemen. Zie [Al bevestigd of opgelost gemeld](/docs/incidents/declaring-incidents#al-bevestigd-of-opgelost-gemeld).
 
 Een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis met een eigen kanaal heeft **Openen in Slack** in de kop van zijn pagina in OneUptime, naast de statusknoppen. Die opent dat kanaal in een nieuw tabblad, in de Slack-app of in de browser. Een record met twee eigen kanalen toont ze allebei onder de knop. Een record met kanalen in zowel Slack als Microsoft Teams heeft in plaats daarvan één knop **Kanaal openen**, die ze allemaal toont. De bestaande kanalen waarin uw regels posten, worden niet aangeboden.
 
@@ -158,7 +160,7 @@ Open OneUptime onder **Apps** in de zijbalk van Slack: het tabblad **Home** laat
 
 De startpagina leest als jou, dus heeft ze je eigen gekoppelde Slack-account nodig. Zolang dat niet zo is, staat er een knop **Connect Slack account** op, en zodra je het hebt gekoppeld, zie je je startpagina.
 
-Als iemand OneUptime aan een kanaal toevoegt, plaatst het daar een begroeting: hoe je het een vraag stelt en waar je een meldingsregel toevoegt die in het kanaal plaatst.
+Als iemand OneUptime aan een kanaal toevoegt, plaatst het daar een begroeting: hoe je het een vraag stelt en waar je een meldingsregel toevoegt die in het kanaal plaatst. De eerste keer dat je het tabblad **Messages** opent, heet het je daar welkom: wat het in Slack doet en hoe je begint.
 
 ## OneUptime AI vragen vanuit Slack
 
@@ -227,6 +229,18 @@ De knoppen in de Slack-berichten van OneUptime handelen ook als jou: als het One
 
 > [!WARNING]
 > Verwijderen ontkoppelt ook het Slack-account van elk lid van het project, en verwijdert de Slack-meldingsmethoden en de bereikbaarheidsregels die ze gebruikten. Wie in Slack werd opgeroepen, wordt via zijn andere meldingsmethoden opgeroepen tot hij Slack opnieuw toevoegt.
+
+## Je Slack-gegevens
+
+OneUptime leest uit Slack alleen wat deze functies nodig hebben, met de rechten die je geeft als je het installeert:
+
+- **Berichten aan OneUptime.** Een bericht dat het met @ noemt, een bericht dat je het in een direct bericht stuurt en je antwoorden in een gesprek ermee, samen met de eerdere berichten van die thread of dat directe bericht, zodat OneUptime AI kan antwoorden. Slack stuurt het ook de andere berichten van de kanalen en groepsberichten waarin het zit; OneUptime beantwoordt die niet en bewaart ze niet.
+- **Berichten die je als notitie opslaat.** Een bericht waarop je met 📌 of 📢 reageert, of dat je vastmaakt, in het kanaal van een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis, opgeslagen als notitie bij dat record met de naam van de schrijver.
+- **Namen van kanalen en mensen.** De kanalen waarin het kan plaatsen, zodat je ze kunt kiezen, en de namen van mensen, om te laten zien wie iets schreef of deed.
+- **E-mailadressen.** Het e-mailadres dat Slack van iemand heeft, om diens Slack-account aan diens OneUptime-account te koppelen als diegene het niet zelf heeft gekoppeld: om diegene op te roepen, of in een gebruikersgroep voor bereikbaarheid te zetten.
+- **Gebruikersgroepen.** De gebruikersgroepen van je werkruimte, om er een te kiezen voor een bereikbaarheidsschema, en de mensen in een groep die je koppelt, om die gelijk te houden aan wie er dienst heeft.
+
+Wat OneUptime ervan bewaart — de naam van de werkruimte, de kanalen, de Slack-accounts die mensen koppelen, de notities en de gebruikersgroepen — wordt bij je project opgeslagen. Het [Privacybeleid](https://oneuptime.com/legal/privacy) beschrijft hoe OneUptime met je gegevens omgaat.
 
 ## Problemen oplossen
 

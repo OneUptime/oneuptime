@@ -75,7 +75,9 @@ Att skapa en regel går igenom fyra steg:
 | **Mål** | Var den publicerar: **Post to Existing Slack Channel** med kanalnamnen, **Create Slack Channel** med den nya kanalens namn och vilka som bjuds in, eller båda. |
 | **Video Call** | Endast incidenter och larm: starta ett samtal för var och en. Se [Videosamtal](/docs/workspace-connections/video-calls). |
 
-En kanal som regeln skapar får sitt namn från **New Slack Channel Name** följt av postens nummer, som `oneuptime-incident-42`, och bara en skapad kanal får de personer som regeln bjuder in: postens ägare, valda team och användare och, för incidenter och larm, de jourhavande allteftersom de larmas. En privat incident, ett privat larm eller en privat episod får en privat kanal. Varje senare uppdatering av posten — en tillståndsändring, en anteckning, en ny ägare — publiceras i dess kanaler och i de befintliga kanaler som dess regler anger. En incident, ett larm eller en episod som skapades redan löst får ingen egen kanal; skapandemeddelandet går ändå till de kanaler som dina regler anger. Se [Deklarerad redan bekräftad eller löst](/docs/incidents/declaring-incidents#deklarerad-redan-bekräftad-eller-löst).
+En kanal som regeln skapar får namn efter sin post: incident INC-42 får `inc-42`, larm ALT-7 får `alt-7`, och i ett projekt utan nummerprefix får incident 42 `incident-42`. Text i **Prefix för kanalnamn** hamnar framför, så `prod-` ger `prod-inc-42`, och formuläret visar namnet medan du skriver. För en schemalagd underhållshändelse ersätter prefixet dess nummerprefix: SM-5 får `sm-5`, och `maint-` ger `maint-5`. Slack tar små bokstäver, siffror, `-` och `_`, upp till 80 tecken. Finns det redan en kanal med det namnet, till exempel ett annat projekts eller en arkiverad kanal, lägger OneUptime till `-2`, `-3` och så vidare.
+
+Bara en skapad kanal får de personer som regeln bjuder in: postens ägare, valda team och användare och, för incidenter och larm, de jourhavande allteftersom de larmas. En privat incident, ett privat larm eller en privat episod får en privat kanal. Varje senare uppdatering av posten — en tillståndsändring, en anteckning, en ny ägare — publiceras i dess kanaler och i de befintliga kanaler som dess regler anger. En incident, ett larm eller en episod som skapades redan löst får ingen egen kanal; skapandemeddelandet går ändå till de kanaler som dina regler anger. Se [Deklarerad redan bekräftad eller löst](/docs/incidents/declaring-incidents#deklarerad-redan-bekräftad-eller-löst).
 
 En incident, ett larm, en episod eller en schemalagd underhållshändelse med en egen kanal har **Öppna i Slack** i sidhuvudet på sin sida i OneUptime, bredvid tillståndsknapparna. Den öppnar kanalen i en ny flik, i Slack-appen eller i webbläsaren. En post med två egna kanaler listar båda under knappen. En post med kanaler i både Slack och Microsoft Teams har i stället en knapp, **Öppna kanal**, som listar alla. De befintliga kanaler som dina regler publicerar i erbjuds inte.
 
@@ -158,7 +160,7 @@ Svaren på `help` och `oncall` är meddelanden som bara du ser, under kommandot.
 
 Startsidan läser som du, så den behöver ditt eget anslutna Slack-konto. Tills det är anslutet har startsidan knappen **Connect Slack account**, och den visar din startsida så snart du har anslutit det.
 
-När någon lägger till OneUptime i en kanal publicerar den en hälsning där: hur man ställer en fråga till den, och var man lägger till en aviseringsregel som publicerar i kanalen.
+När någon lägger till OneUptime i en kanal publicerar den en hälsning där: hur man ställer en fråga till den, och var man lägger till en aviseringsregel som publicerar i kanalen. Första gången du öppnar fliken **Messages** välkomnar den dig där: vad den gör i Slack, och hur du kommer igång.
 
 ## Fråga OneUptime AI från Slack
 
@@ -227,6 +229,18 @@ Knapparna i OneUptimes Slack-meddelanden agerar också som dig: som det OneUptim
 
 > [!WARNING]
 > Att avinstallera kopplar också från varje medlems eget Slack-konto i projektet, och tar bort aviseringsmetoderna för Slack och de jourregler som använde dem. De som larmades i Slack larmas via sina andra aviseringsmetoder tills de lägger till Slack igen.
+
+## Dina Slack-data
+
+OneUptime läser bara det från Slack som de här funktionerna behöver, med de behörigheter du ger när du installerar den:
+
+- **Meddelanden till OneUptime.** Ett meddelande som nämner den med @, ett som du skickar den i ett direktmeddelande och dina svar i en konversation med den, tillsammans med de tidigare meddelandena i den tråden eller det direktmeddelandet, så att OneUptime AI kan svara. Slack skickar också de andra meddelandena i de kanaler och gruppmeddelanden den är med i; OneUptime varken svarar på dem eller sparar dem.
+- **Meddelanden du sparar som anteckningar.** Ett meddelande du reagerar på med 📌 eller 📢, eller fäster, i kanalen för en incident, ett larm, en episod eller en schemalagd underhållshändelse, sparat som en anteckning på den posten med författarens namn.
+- **Namn på kanaler och personer.** Kanalerna den kan publicera i, så att du kan välja dem, och personers namn, för att visa vem som skrev eller gjorde något.
+- **E-postadresser.** Den e-postadress Slack har för en person, för att matcha personens Slack-konto med personens OneUptime-konto när personen inte har anslutit det: för att larma personen, eller lägga personen i en jouranvändargrupp.
+- **Användargrupper.** Arbetsytans användargrupper, så att du kan välja en till ett jourschema, och personerna i en grupp du ansluter, för att hålla den lika med dem som har jour.
+
+Det OneUptime sparar av detta — arbetsytans namn, dess kanaler, de Slack-konton som personer ansluter, anteckningarna och användargrupperna — lagras med ditt projekt. [Integritetspolicyn](https://oneuptime.com/legal/privacy) beskriver hur OneUptime hanterar dina data.
 
 ## Felsökning
 

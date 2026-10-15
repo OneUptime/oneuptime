@@ -397,15 +397,16 @@ export default class SlackAlertEpisodeActions {
 
     const onCallPolicyDropdown: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",
-      label: "On Call Policy",
+      label: "On-Call Policy",
       blockId: "onCallPolicy",
-      placeholder: "Select On Call Policy",
+      placeholder: "Select On-Call Policy",
       options: dropdownOption,
     };
 
     const modalBlock: WorkspaceModalBlock = {
       _type: "WorkspaceModalBlock",
-      title: "Execute On Call Policy",
+      // At most 24 characters: Slack refuses a longer modal title.
+      title: "Execute On-Call Policy",
       submitButtonTitle: "Submit",
       cancelButtonTitle: "Cancel",
       actionId: SlackActionType.SubmitExecuteAlertEpisodeOnCallPolicy,

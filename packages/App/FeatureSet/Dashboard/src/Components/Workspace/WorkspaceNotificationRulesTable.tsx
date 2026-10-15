@@ -69,6 +69,8 @@ import {
 import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnection";
 import { getVideoCallValidationError } from "Common/Types/Workspace/NotificationRules/VideoCallNotificationRule";
 import NotificationRuleVideoCallForm from "./NotificationRuleForm/NotificationRuleVideoCallForm";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import { WorkspaceChannelNumberPrefixes } from "Common/Utils/Workspace/WorkspaceChannelName";
 
 /*
  * The form key the Video Call step is registered under. Like the
@@ -127,6 +129,12 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   const [videoCallConnections, setVideoCallConnections] = React.useState<
     Array<VideoCallConnection>
   >([]);
+  const [numberPrefixes, setNumberPrefixes] = React.useState<
+    WorkspaceChannelNumberPrefixes | undefined
+  >(undefined);
+  const [onCallPolicyName, setOnCallPolicyName] = React.useState<
+    string | undefined
+  >(undefined);
 
   const [showTestModal, setShowTestModal] = React.useState<boolean>(false);
   const [isTestLoading, setIsTestLoading] = React.useState<boolean>(false);
@@ -411,6 +419,60 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       setUsers(uniqueUsers);
 
       /*
+       * What the name of the channel a rule creates is made of: the
+       * project's number prefixes (incident INC-42's channel is inc-42),
+       * and for an on-call policy rule, one of the project's policies. The
+       * preview of the name is left out when they cannot be read; nothing
+       * else on the page needs them.
+       */
+      try {
+        const numberPrefixesResponse:
+          | HTTPResponse<JSONObject>
+          | HTTPErrorResponse = await API.get({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            "/workspace-notification-rule/number-prefixes",
+          ),
+          headers: ModelAPI.getCommonHeaders(),
+        });
+
+        if (!(numberPrefixesResponse instanceof HTTPErrorResponse)) {
+          setNumberPrefixes(
+            ((numberPrefixesResponse.data as JSONObject)?.[
+              "numberPrefixes"
+            ] as WorkspaceChannelNumberPrefixes) || {},
+          );
+        }
+      } catch {
+        setNumberPrefixes(undefined);
+      }
+
+      if (props.eventType === NotificationRuleEventType.OnCallDutyPolicy) {
+        try {
+          const policies: ListResult<OnCallDutyPolicy> = await ModelAPI.getList(
+            {
+              modelType: OnCallDutyPolicy,
+              query: {
+                projectId: ProjectUtil.getCurrentProjectId()!,
+              },
+              select: {
+                _id: true,
+                name: true,
+              },
+              skip: 0,
+              limit: 1,
+              sort: {
+                name: SortOrder.Ascending,
+              },
+            },
+          );
+
+          setOnCallPolicyName(policies.data[0]?.name || undefined);
+        } catch {
+          setOnCallPolicyName(undefined);
+        }
+      }
+
+      /*
        * The connections a rule's video call can be held with. A member who
        * may not read them still edits the rule's other steps, so a refusal
        * here leaves the list empty rather than failing the page.
@@ -510,6 +572,17 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
     elementProps: CustomElementProps,
   ) => ReactElement;
 
+  /*
+   * A monitor's or on-call policy's name, one of the project's, to show the
+   * name of the channel a monitor or on-call policy rule creates with.
+   */
+  const exampleRecordName: string | undefined =
+    props.eventType === NotificationRuleEventType.Monitor
+      ? monitors[0]?.name || undefined
+      : props.eventType === NotificationRuleEventType.OnCallDutyPolicy
+        ? onCallPolicyName
+        : undefined;
+
   const renderRuleForm: RenderRuleFormFunction = (
     part: NotificationRuleFormPart,
     values: FormValues<WorkspaceNotificationRule>,
@@ -534,6 +607,8 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         microsoftTeamsTeams={microsoftTeamsTeams}
         microsoftTeamsChats={microsoftTeamsChats}
         users={users}
+        numberPrefixes={numberPrefixes}
+        exampleRecordName={exampleRecordName}
       />
     );
   };
@@ -913,6 +988,8 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
                     microsoftTeamsChats={microsoftTeamsChats}
                     users={users}
                     videoCallConnections={videoCallConnections}
+                    numberPrefixes={numberPrefixes}
+                    exampleRecordName={exampleRecordName}
                   />
                 </Fragment>
               );

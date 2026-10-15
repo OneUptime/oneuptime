@@ -34,11 +34,10 @@ export default class SlackScheduledMaintenanceMessages {
 
     /*
      * now add buttons.
-     * View data.
-     * Execute On Call
-     * Acknowledge scheduledMaintenance
-     * Resolve data.
-     * Change ScheduledMaintenance State.
+     * View Event.
+     * Mark as Ongoing.
+     * Mark as Completed.
+     * Change State.
      * Add Note.
      */
 

@@ -9,9 +9,19 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
+import CommonAPI from "./CommonAPI";
 import TestSendAccess, { TestSendCaller } from "./TestSendAccess";
 import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../Types/ObjectID";
+import { WorkspaceChannelNumberPrefixes } from "../../Utils/Workspace/WorkspaceChannelName";
+
+/*
+ * What a caller who may not read the project's notification rules is told
+ * when asking for its number prefixes.
+ */
+export const RULE_NUMBER_PREFIXES_PERMISSION_MESSAGE: string =
+  "You do not have permission to read this project's notification rules.";
 
 export default class WorkspaceNotificationRuleAPI extends BaseAPI<
   WorkspaceNotificationRule,
@@ -19,6 +29,52 @@ export default class WorkspaceNotificationRuleAPI extends BaseAPI<
 > {
   public constructor() {
     super(WorkspaceNotificationRule, WorkspaceNotificationRuleService);
+
+    /*
+     * GET /workspace-notification-rule/number-prefixes
+     *
+     * The project's number prefixes by the kind of record a rule is for -
+     * { "Incident": "INC-", "Alert": "ALT-", ... }, null for none - so the
+     * rule form can show the name of the channel a rule creates as it is
+     * typed: incident INC-42's channel is inc-42, or prod-inc-42 with a
+     * prefix (WorkspaceChannelName). The form shows it to everyone who may
+     * edit rules, and a Settings Member may without reading the project's
+     * settings, so the prefixes are read as OneUptime - they are no secret:
+     * every incident's number and every channel a rule creates carries one.
+     *
+     * For a member of the project who may read its notification rules.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/number-prefixes`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const databaseProps: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
+
+          CommonAPI.assertCanReadTable({
+            modelType: WorkspaceNotificationRule,
+            props: databaseProps,
+            errorMessage: RULE_NUMBER_PREFIXES_PERMISSION_MESSAGE,
+          });
+
+          const numberPrefixes: WorkspaceChannelNumberPrefixes =
+            await this.service.getRecordNumberPrefixes(projectId);
+
+          // A prefix changed a moment later changes the answer.
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(req, res, {
+            numberPrefixes: numberPrefixes,
+          });
+        } catch (e) {
+          next(e);
+        }
+      },
+    );
 
     /*
      * "Test Rule": posts a test message for one rule into its Slack or

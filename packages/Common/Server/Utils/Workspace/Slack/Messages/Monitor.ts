@@ -33,12 +33,7 @@ export default class SlackMonitorMessages {
 
     /*
      * now add buttons.
-     * View data.
-     * Execute On Call
-     * Acknowledge Monitor
-     * Resolve data.
-     * Change Monitor State.
-     * Add Note.
+     * View Monitor.
      */
 
     const buttons: Array<WorkspaceMessagePayloadButton> = [];

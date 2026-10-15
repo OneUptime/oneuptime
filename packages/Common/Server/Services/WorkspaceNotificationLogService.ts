@@ -6,6 +6,7 @@ import WorkspaceNotificationActionType from "../../Types/Workspace/WorkspaceNoti
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import ObjectID from "../../Types/ObjectID";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import ColumnLength from "../../Types/Database/ColumnLength";
 
 export interface WorkspaceLogData {
   projectId: ObjectID;
@@ -138,6 +139,9 @@ export class Service extends ProjectReferencesService<Model> {
       // Optional resource associations
       incidentId?: ObjectID;
       alertId?: ObjectID;
+      monitorId?: ObjectID;
+      alertEpisodeId?: ObjectID;
+      incidentEpisodeId?: ObjectID;
       scheduledMaintenanceId?: ObjectID;
       onCallDutyPolicyId?: ObjectID;
       statusPageId?: ObjectID;
@@ -163,6 +167,15 @@ export class Service extends ProjectReferencesService<Model> {
     if (data.alertId) {
       logData.alertId = data.alertId;
     }
+    if (data.monitorId) {
+      logData.monitorId = data.monitorId;
+    }
+    if (data.alertEpisodeId) {
+      logData.alertEpisodeId = data.alertEpisodeId;
+    }
+    if (data.incidentEpisodeId) {
+      logData.incidentEpisodeId = data.incidentEpisodeId;
+    }
     if (data.scheduledMaintenanceId) {
       logData.scheduledMaintenanceId = data.scheduledMaintenanceId;
     }
@@ -177,6 +190,51 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return await this.createWorkspaceLog(logData, props);
+  }
+
+  /*
+   * A channel the workspace did not create: the name it was asked for and
+   * what it answered. Both are cut to their columns - a name too long for
+   * the workspace is one reason it refuses a channel - since an over-long
+   * value fails the whole insert; the message keeps the name whole.
+   */
+  public async logCreateChannelError(
+    data: {
+      projectId: ObjectID;
+      workspaceType: WorkspaceType;
+      channelName: string;
+      error: string;
+      // Optional resource associations
+      incidentId?: ObjectID | undefined;
+      alertId?: ObjectID | undefined;
+      monitorId?: ObjectID | undefined;
+      alertEpisodeId?: ObjectID | undefined;
+      incidentEpisodeId?: ObjectID | undefined;
+      scheduledMaintenanceId?: ObjectID | undefined;
+      onCallDutyPolicyId?: ObjectID | undefined;
+    },
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Model> {
+    // Each resource association is set only when it exists (createWorkspaceLog).
+    return await this.createWorkspaceLog(
+      {
+        projectId: data.projectId,
+        workspaceType: data.workspaceType,
+        channelName: data.channelName.substring(0, ColumnLength.ShortText),
+        actionType: WorkspaceNotificationActionType.CreateChannel,
+        status: WorkspaceNotificationStatus.Error,
+        statusMessage: data.error.substring(0, ColumnLength.LongText),
+        message: `Channel "${data.channelName}" was not created`,
+        incidentId: data.incidentId,
+        alertId: data.alertId,
+        monitorId: data.monitorId,
+        alertEpisodeId: data.alertEpisodeId,
+        incidentEpisodeId: data.incidentEpisodeId,
+        scheduledMaintenanceId: data.scheduledMaintenanceId,
+        onCallDutyPolicyId: data.onCallDutyPolicyId,
+      },
+      props,
+    );
   }
 
   public async logInviteUser(

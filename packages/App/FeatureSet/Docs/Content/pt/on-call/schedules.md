@@ -86,7 +86,7 @@ Enquanto ela está ausente:
 
 Se, em vez disso, você escolher alguém em **Quem cobre?**, essa pessoa recebe todos os acionamentos dela, de todo agendamento e de toda política, em vez de a rotação ficar com os turnos dela.
 
-Uma ausência adicionada assim vale para todas as políticas de plantão. Ela aparece em **Plantão** > **Substituições de usuário**, onde você pode excluí-la para trazer a pessoa de volta antes. Para pular alguém em uma única política, adicione a substituição na página **Substituições de usuário** dessa política e deixe **Quem cobre?** como está. Veja [Substituições de usuário](/docs/on-call/user-overrides).
+Uma ausência adicionada assim vale para todas as políticas de plantão. Ela aparece em **Plantão** > **Avançado** > **Substituições de usuário**, onde você pode excluí-la para trazer a pessoa de volta antes. Para pular alguém em uma única política, adicione a substituição na página **Substituições de usuário** dessa política e deixe **Quem cobre?** como está. Veja [Substituições de usuário](/docs/on-call/user-overrides).
 
 Com a API, uma substituição de usuário (`/api/on-call-duty-policy-user-override`) criada sem `routeAlertsToUserId` pula a pessoa em `overrideUserId` de `startsAt` até `endsAt`.
 

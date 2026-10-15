@@ -86,7 +86,7 @@ Zolang die persoon afwezig is:
 
 Kies je in plaats daarvan iemand onder **Wie vervangt?**, dan krijgt die alle oproepen van de persoon, uit elk schema en elk beleid, in plaats van dat de rotatie de beurten overneemt.
 
-Afwezigheid die zo is toegevoegd, geldt voor elk bereikbaarheidsbeleid. Ze staat onder **Bereikbaarheidsdienst** > **Gebruikersoverschrijvingen**, waar je ze kunt verwijderen om de persoon eerder terug te halen. Om iemand in maar één beleid over te slaan, voeg je de override toe op de pagina **Gebruikersoverschrijvingen** van dat beleid en laat je **Wie vervangt?** zoals het is. Zie [Gebruikersoverschrijvingen](/docs/on-call/user-overrides).
+Afwezigheid die zo is toegevoegd, geldt voor elk bereikbaarheidsbeleid. Ze staat onder **Bereikbaarheidsdienst** > **Geavanceerd** > **Gebruikersoverschrijvingen**, waar je ze kunt verwijderen om de persoon eerder terug te halen. Om iemand in maar één beleid over te slaan, voeg je de override toe op de pagina **Gebruikersoverschrijvingen** van dat beleid en laat je **Wie vervangt?** zoals het is. Zie [Gebruikersoverschrijvingen](/docs/on-call/user-overrides).
 
 Via de API slaat een gebruikersoverride (`/api/on-call-duty-policy-user-override`) die zonder `routeAlertsToUserId` wordt gemaakt, de persoon in `overrideUserId` over van `startsAt` tot `endsAt`.
 

@@ -6,6 +6,7 @@ Een runbook is een herbruikbare responsprocedure: een geordende lijst van handma
 - [Een runbook schrijven](/docs/runbooks/authoring): Een runbook maken en de stappen schrijven.
 - [Runbook-regels](/docs/runbooks/rules): Runbooks starten bij nieuwe incidenten, waarschuwingen en onderhoudsevenementen.
 - [Een runbook uitvoeren](/docs/runbooks/running): Een uitvoering starten, de stappen voltooien en goedkeuren, de uitvoering annuleren.
+- [Runbook-triggers](/docs/runbooks/triggers): Een runbook volgens een schema uitvoeren, of vanuit een ander hulpmiddel via zijn webhook-URL.
 - [Runbook-agenten](/docs/runbooks/agents): De Runner installeren die uw scripts in uw eigen infrastructuur uitvoert.
 :::
 
@@ -73,6 +74,8 @@ Een runbook kan ze allemaal combineren. De kracht van runbooks zit in het afwiss
 | **Runbook uitvoeren** | De pagina **Runbooks** van een incident, een waarschuwing of een gepland onderhoudsevenement | Dat evenement |
 | **Run Now** | De pagina **Overzicht** van het runbook | Niets: een losse uitvoering |
 | Een regel voor automatisch herstel | Zie [AI SRE](/docs/ai/ai-sre) | Het incident of de waarschuwing |
+| Het schema van het runbook | De pagina **Triggers** van het runbook, zie [Runbook-triggers](/docs/runbooks/triggers#uitvoeren-volgens-een-schema) | Niets: een onbewaakte uitvoering |
+| Een aanroep van de webhook-URL van het runbook | De pagina **Triggers** van het runbook, zie [Runbook-triggers](/docs/runbooks/triggers#de-webhook-aanroepen) | Niets: de uitvoering bewaart de waarden die de aanroep verstuurde |
 
 Een runbook waarvan de schakelaar **Dit runbook uitvoeren** op de pagina **Instellingen** uit staat, wordt via geen van deze wegen gestart. Uitvoeringen die al begonnen zijn, lopen door.
 
@@ -86,6 +89,7 @@ Runbooks staat onder **Producten**, in de groep **Dashboards & automatisering**.
 | De **Stappen** van een runbook | De stappen schrijven en herordenen, dan **Save Steps**. |
 | Het **Overzicht** van een runbook | De laatste uitvoering en de resultaten zien, en op **Run Now** klikken. |
 | De **Uitvoeringen** van een runbook | Elke uitvoering van dit runbook, gefilterd op status of startdatum. |
+| **Triggers** van een runbook | Het volgens een [schema](/docs/runbooks/triggers#uitvoeren-volgens-een-schema) uitvoeren, of vanuit een ander hulpmiddel via zijn [webhook-URL](/docs/runbooks/triggers#de-webhook-aanroepen). |
 | De **Eigenaren** van een runbook | De mensen en teams toevoegen die ervoor verantwoordelijk zijn. |
 | De **Instellingen** van een runbook | **Dit runbook uitvoeren** uitschakelen zonder het runbook te verwijderen. |
 | **Runbooks → Uitvoeringen** | Elke uitvoering van elk runbook in het project. |

@@ -37,11 +37,13 @@ En ny kørsel er **Planlagt**, indtil en Worker tager den og markerer den som **
 
 ## Start en kørsel
 
-En runbook-udførelse oprettes på tre måder:
+Der er fem måder, en runbook-udførelse oprettes på:
 
 1. **Automatisk via en regel**: en [runbook-regel](/docs/runbooks/rules) starter den, når en matchende hændelse, advarsel eller planlagt vedligeholdelsesbegivenhed oprettes. En regel for automatisk afhjælpning kan også starte en; se [AI SRE](/docs/ai/ai-sre).
 2. **Manuelt fra en begivenhed**: klik på **Kør runbook** på en hændelse, advarsel eller planlagt vedligeholdelsesbegivenhed. Udførelsen knyttes til den begivenhed.
 3. **Manuelt fra runbookets side**: klik på **Run Now** på et runbooks side **Oversigt**. Kørslen knyttes ikke til nogen hændelse, advarsel eller planlagt vedligeholdelsesbegivenhed.
+4. **Efter en tidsplan**: runbookets tidsplan starter den på faste tidspunkter. Se [Kør efter en tidsplan](/docs/runbooks/triggers#kør-efter-en-tidsplan).
+5. **Fra et andet værktøj**: en `POST` til runbookets webhook-URL starter den med de værdier, kaldet sender. Se [Kald webhooken](/docs/runbooks/triggers#kald-webhooken).
 
 Sådan starter du en manuelt:
 

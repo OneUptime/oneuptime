@@ -158,6 +158,22 @@ function buildApp(options: BuildOptions): any {
   );
   app.use(["/server-monitor-ingest", "/"], serverMonitor);
 
+  // Runbook feature set: a runbook's webhook URL refuses GET with 405.
+  const runbookWebhook: any = express.Router();
+  runbookWebhook.get(
+    "/webhook/:runbookId/:secretKey",
+    (_req: any, res: any): void => {
+      res.status(405).json({ message: "Send a POST request" });
+    },
+  );
+  runbookWebhook.post(
+    "/webhook/:runbookId/:secretKey",
+    (_req: any, res: any): void => {
+      res.status(200).json({ started: true });
+    },
+  );
+  app.use("/runbook", runbookWebhook);
+
   // 4. addDefaultRoutes.
   app.get("*", (_req: any, res: any): void => {
     res.status(404).json({ error: "Page not found" });
@@ -343,6 +359,66 @@ describe("#2986's heartbeat path", () => {
 
     expect(reply.contentType).toContain("application/json");
     expect(JSON.parse(reply.body)).toEqual({ ok: "post" });
+  });
+});
+
+describe("a runbook's webhook URL", () => {
+  const WEBHOOK_URL: string = `/runbook/webhook/22222222-2222-4222-8222-2222222222f2/${"k".repeat(43)}`;
+
+  test("a GET gets the webhook's 405, not the Dashboard's page, self-hosted", async () => {
+    /*
+     * Found by running the real-stack spec against a self-hosted App: the
+     * Dashboard fallback answered this GET with its page at HTTP 200, which
+     * a tool set to the wrong method reads as success.
+     */
+    const reply: Reply = await request(
+      buildApp({ isBillingEnabled: false }),
+      PRIMARY_HOST,
+      WEBHOOK_URL,
+    );
+
+    expect(reply.status).toBe(405);
+    expect(reply.contentType).toContain("application/json");
+  });
+
+  test("and on a Kubernetes-service Host or a custom domain, billing on or off", async () => {
+    for (const isBillingEnabled of [false, true]) {
+      for (const host of [KEDA_HOST, CUSTOM_DOMAIN]) {
+        const reply: Reply = await request(
+          buildApp({ isBillingEnabled }),
+          host,
+          WEBHOOK_URL,
+        );
+
+        expect({ host, isBillingEnabled, status: reply.status }).toEqual({
+          host,
+          isBillingEnabled,
+          status: 405,
+        });
+      }
+    }
+  });
+
+  test("a POST starts a run, as it always could", async () => {
+    const reply: Reply = await request(
+      buildApp({ isBillingEnabled: false }),
+      PRIMARY_HOST,
+      WEBHOOK_URL,
+      "POST",
+    );
+
+    expect(JSON.parse(reply.body)).toEqual({ started: true });
+  });
+
+  test("/runbooks, the marketing site's address, is not reserved by it", async () => {
+    const reply: Reply = await request(
+      buildApp({ isBillingEnabled: false }),
+      PRIMARY_HOST,
+      "/runbooks",
+    );
+
+    expect(reply.status).toBe(200);
+    expect(reply.body).toContain("Dashboard SPA");
   });
 });
 

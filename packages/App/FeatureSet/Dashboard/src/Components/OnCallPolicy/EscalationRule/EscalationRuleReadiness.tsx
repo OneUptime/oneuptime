@@ -1479,7 +1479,7 @@ export const RuleReadinessDetails: FunctionComponent<
             {report.unchecked.length > 0 ? (
               <p className="mt-0.5 text-sm leading-relaxed text-gray-600">
                 {translator.translateTemplate(
-                  "The readiness answer for this policy does not cover {{names}}, so they are unknown rather than ready. Open On-Call > Readiness for the full list.",
+                  "The readiness answer for this policy does not cover {{names}}, so they are unknown rather than ready. Open On-Call Duty > Readiness for the full list.",
                   {
                     names: report.unchecked
                       .map((issue: ResponderIssue): string => {

@@ -1,5 +1,6 @@
 import {
   MenuSection,
+  developerSection,
   menuSections,
   readDashboardSource,
   startsCollapsed,
@@ -34,6 +35,10 @@ import {
  * What follows a page (a tab, a card) is not checked. Project Settings paths
  * are checked where they lead to the Slack or Microsoft Teams page, which
  * are in its folded Workspace section.
+ *
+ * A product's own menu is walked the same way, from the product's name on
+ * the bar: On-Call Duty's ("On-Call Duty > Advanced > User Overrides",
+ * OnCallDutyMenuPathsInProductText).
  *
  * App tests must not import the Dashboard's React modules, so the menus are
  * read as text, with the readers the docs suites use (DocsDashboardMenus).
@@ -108,6 +113,34 @@ export function userSettingsMenu(): SettingsMenu {
             return item !== connect;
           }),
         },
+      }),
+    ),
+  };
+}
+
+// The On-Call Duty product, as the bar names it.
+export const ON_CALL_DUTY: string = "On-Call Duty";
+
+/*
+ * The On-Call Duty product's side menu, as it draws it: its own sections,
+ * the Workspace section where the menu adds it (with every entry it can
+ * show: the connected workspaces, or the one that connects a workspace), and
+ * the Developer section every product menu ends with.
+ */
+export function onCallDutyMenu(): SettingsMenu {
+  const file: string = readDashboardSource("Pages/OnCallDuty/SideMenu.tsx");
+  // The sections on: the "Timeline" above is Execution Logs' sub-entry.
+  const source: string = file.slice(
+    file.indexOf("const sections: SideMenuSectionProps[]"),
+  );
+
+  return {
+    name: ON_CALL_DUTY,
+    sections: withFolds(
+      source,
+      menuSections(source, {
+        "...(workspaceSection ?": workspaceSection(),
+        "addDeveloperSideMenuSection(sections": developerSection(),
       }),
     ),
   };
@@ -347,6 +380,60 @@ function pathStarts(
   }
 
   return starts;
+}
+
+/*
+ * Every path a text writes through a product's menu - each place the menu's
+ * name is followed by a separator, "On-Call Duty > Advanced > User
+ * Overrides" - walked as the menu draws it.
+ */
+export function pathsThrough(
+  text: string,
+  menu: SettingsMenu,
+): Array<WrittenPath> {
+  const readable: string = readableText(text);
+
+  return pathStarts(readable, menu.name).map(
+    (start: { index: number; rest: string }): WrittenPath => {
+      const walked: { steps: Array<string>; problems: Array<string> } = walk(
+        menu,
+        start.rest,
+      );
+
+      return {
+        menu: menu.name,
+        steps: walked.steps,
+        problems: walked.problems,
+        text: preview(readable.slice(start.index)),
+      };
+    },
+  );
+}
+
+/*
+ * Where a text starts a path at a name no menu has - "Open On-Call >
+ * Readiness", when the bar's entry is On-Call Duty - as the text from the
+ * name on. A name that goes on ("On-Call Duty") is another name, and one
+ * with a separator before it is a step of a longer path (a member's page
+ * has an On-Call section), not where a path starts.
+ */
+export function pathsStartingAt(text: string, name: string): Array<string> {
+  const readable: string = readableText(text);
+
+  return pathStarts(readable, name)
+    .filter((start: { index: number; rest: string }): boolean => {
+      const before: string = readable.slice(0, start.index);
+      const previous: string = before.slice(-1) || " ";
+
+      return (
+        !SEPARATOR_BEHIND.test(before) &&
+        !LETTER_OR_DIGIT.test(previous) &&
+        !NAME_CONTINUES.test(previous)
+      );
+    })
+    .map((start: { index: number; rest: string }): string => {
+      return preview(readable.slice(start.index));
+    });
 }
 
 export interface SettingsMenus {

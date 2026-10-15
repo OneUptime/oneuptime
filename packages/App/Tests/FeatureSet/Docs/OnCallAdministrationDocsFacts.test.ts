@@ -736,7 +736,7 @@ describe("what runs a policy", () => {
     ).toContain('text: "Execute On-Call Policy"');
     expect(
       readCommonSource("Server/Utils/Workspace/Slack/Messages/Incident.ts"),
-    ).toContain("Execute On Call");
+    ).toContain('title: "📞 Execute On-Call Policy"');
     expect(english(ON_CALL_POLICIES)).toContain(
       "| By hand | **Execute On-Call Policy**, in the **Actions** menu of a feed, or on a Slack or Microsoft Teams message |",
     );

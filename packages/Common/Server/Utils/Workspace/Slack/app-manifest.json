@@ -43,7 +43,7 @@
   "oauth_config": {
     "redirect_urls": ["{{SERVER_URL}}/api/slack/auth"],
     "scopes": {
-      "user": ["users:read"],
+      "user": [],
       "bot": [
         "commands",
         "app_mentions:read",
@@ -52,7 +52,6 @@
         "channels:manage",
         "channels:read",
         "channels:write.invites",
-        "channels:write.topic",
         "chat:write",
         "files:write",
         "users:read",
@@ -63,10 +62,8 @@
         "groups:write",
         "groups:history",
         "im:read",
-        "im:write",
         "im:history",
         "mpim:read",
-        "mpim:write",
         "mpim:history",
         "pins:read",
         "reactions:read"

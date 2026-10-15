@@ -23,8 +23,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * ADDING AN ON-CALL OVERRIDE ASKS WHO IS AWAY AND WHO COVERS, IN PLAIN
  * WORDS, STARTING NOW - on the real User Overrides pages (a policy's own
- * tab, and On-Call Duty > User Overrides for every policy), with only the
- * network stubbed.
+ * page, and On-Call Duty > Advanced > User Overrides for every policy), with
+ * only the network stubbed.
  *
  * The dialog used to ask "Override User - Select the user who will override
  * the on-call duty" and "Route Alerts To User" over two steps (Users, Time
@@ -618,10 +618,17 @@ describe.each(["global", "policy"] as Array<Page>)(
 
       const description: string =
         page === "policy"
-          ? "While someone is away, their pages from this policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on every policy at once, add the override under On-Call Duty > User Overrides."
-          : "While someone is away, their pages from every on-call policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on one policy only, add the override on that policy's User Overrides page.";
+          ? "While someone is away, their pages from this policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on every policy at once, add the override under On-Call Duty > Advanced > User Overrides."
+          : "While someone is away, their pages from every on-call policy go to the person who covers for them. With nobody named, each of their turns goes to the next person in the rotation. To cover someone on one policy only, add the override on that policy's User Overrides page, under Advanced.";
 
       expect(await screen.findByText(description)).toBeInTheDocument();
+      /*
+       * The other User Overrides page is named with the folded Advanced
+       * section it sits in: On-Call Duty's menu, or the policy's own.
+       */
+      expect(document.body).not.toHaveTextContent(
+        "On-Call Duty > User Overrides",
+      );
       // The old one-sentence version ran a dash and a colon together.
       expect(document.body).not.toHaveTextContent("skips them, so the next");
     });

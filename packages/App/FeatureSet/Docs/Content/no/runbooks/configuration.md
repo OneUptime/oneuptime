@@ -82,6 +82,8 @@ Runbook-tillatelser ligger i tillatelsesgruppen `Runbook`:
 
 En rolle kjører runbookene omfanget dens når. En tildeling av `RunbookMember`, `RunbookAdmin` eller `ProjectMember` som er begrenset til bestemte etiketter, starter og fører videre kjøringer av runbookene som har de etikettene, en tildeling begrenset til **Owned** kjøringer av runbookene teamet eier, og et teams blokkering av en etikett tar de runbookene fra det. `CreateRunbookExecution` og `EditRunbookExecution` handler om kjøringer, som ikke har etiketter, så de når alle runbooks i prosjektet. Å godkjenne et utbedringsforslag som starter et runbook, kontrolleres på samme måte.
 
+Et runbooks tidsplan og webhook starter kjøringer uten at noen er til stede, så å sette opp en av dem krever tillatelse til å redigere runbooket og til å kjøre det, og det samme gjelder å se webhook-URL-en. Å slå dem av krever bare tillatelse til å redigere det. Se [Runbook-utløsere](/docs/runbooks/triggers#hvem-som-kan-sette-opp-utløsere).
+
 Påloggingsinformasjon og hemmeligheter ligger utenfor `RunbookAdmin`. Å administrere dem krever `ProjectOwner` eller `ProjectAdmin` eller tillatelsene `CreateRunbookCredential`, `EditRunbookCredential`, `DeleteRunbookCredential`, `ReadRunbookCredential` og `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret`, `ReadRunbookSecret`. Se [Runbook-påloggingsinformasjon](/docs/runbooks/credentials).
 
 Eierreglene og etikettreglene under **Runbooks → Innstillinger** ligger også utenfor `RunbookAdmin`. Å administrere dem krever `ProjectOwner` eller `ProjectAdmin` eller tillatelsene `CreateRunbookOwnerRule` og `CreateRunbookLabelRule` og motstykkene deres for redigering, sletting og lesing.

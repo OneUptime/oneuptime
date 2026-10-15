@@ -52,6 +52,7 @@ import AlertFeedService from "../Services/AlertFeedService";
 import AutoRemediationSuggestionService from "../Services/AutoRemediationSuggestionService";
 import IncidentFeedService from "../Services/IncidentFeedService";
 import RunbookRuleEngineService from "../Services/RunbookRuleEngineService";
+import RunbookTriggerType from "../../Types/Runbook/RunbookTriggerType";
 import RunnerService from "../Services/RunnerService";
 import KubernetesClusterAiAccessService from "../Services/KubernetesClusterAiAccessService";
 import CommandPlanExecutor from "../Utils/AutoRemediation/CommandPlanExecutor";
@@ -1144,6 +1145,7 @@ router.post(
           projectId: suggestion.projectId,
           runbookId: suggestion.runbookId,
           linkage: runbookLinkage,
+          trigger: RunbookTriggerType.AutoRemediation,
           triggeredByUserId: props.userId!,
         });
       } catch (error) {

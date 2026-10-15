@@ -16,6 +16,7 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RunbookExecutionStatus from "Common/Types/Runbook/RunbookExecutionStatus";
+import RunbookTriggerType from "Common/Types/Runbook/RunbookTriggerType";
 import RunbookStepExecutionStatus from "Common/Types/Runbook/RunbookStepExecutionStatus";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import { RunbookStep } from "Common/Types/Runbook/RunbookStep";
@@ -1077,6 +1078,31 @@ describe("Runbook execution routes require an authorized member of the runbook's
       expect(createdData.projectId?.toString()).toBe(
         callerProjectId.toString(),
       );
+    });
+
+    test("a person's run is recorded as Manual, whatever the body claims, and carries no inputs", async () => {
+      memberProps([Permission.ProjectMember]);
+      mockRunbookInProject(callerProjectId);
+
+      const result: RouteCallResult = await callRoute({
+        uri: RUN_ROUTE,
+        params: runParams(),
+        body: {
+          triggerType: RunbookTriggerType.Webhook,
+          triggerDetails: { callerIp: "203.0.113.7" },
+          inputs: { host: "$(rm -rf /)" },
+        },
+      });
+
+      expect(result.nextCallCount).toBe(0);
+
+      const createdData: RunbookExecution = (
+        executionCreateSpy.mock.calls[0]![0] as { data: RunbookExecution }
+      ).data;
+
+      expect(createdData.triggerType).toBe(RunbookTriggerType.Manual);
+      expect(createdData.triggerDetails).toBeUndefined();
+      expect(createdData.inputs).toBeUndefined();
     });
 
     test("completing a manual step records the completer from the session", async () => {
