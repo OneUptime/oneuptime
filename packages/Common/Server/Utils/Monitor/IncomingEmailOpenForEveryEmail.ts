@@ -5,9 +5,12 @@ import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInterna
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../Types/Date";
+import { JSONObject } from "../../../Types/JSON";
 import IncomingEmailMonitorRequest from "../../../Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
-import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
+import MonitorEvaluationSummary, {
+  MonitorEvaluationEvent,
+} from "../../../Types/Monitor/MonitorEvaluationSummary";
 import ObjectID from "../../../Types/ObjectID";
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
 import EmailThreadHeaders from "../../../Utils/Email/EmailThreadHeaders";
@@ -16,10 +19,14 @@ import FeedMarkdown, {
   mdText,
 } from "../../../Utils/Markdown/FeedMarkdown";
 import MetricSeriesFingerprint from "../../../Utils/Metrics/MetricSeriesFingerprint";
+import GlobalCache from "../../Infrastructure/GlobalCache";
 import AlertInternalNoteService from "../../Services/AlertInternalNoteService";
 import AlertService from "../../Services/AlertService";
+import AlertStateService from "../../Services/AlertStateService";
 import IncidentInternalNoteService from "../../Services/IncidentInternalNoteService";
 import IncidentService from "../../Services/IncidentService";
+import IncidentStateService from "../../Services/IncidentStateService";
+import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
@@ -39,20 +46,26 @@ import DataToProcess from "./DataToProcess";
  *
  * Each record such an email opens carries the email's fingerprint
  * (seriesFingerprint, the column grouped monitors key their per-series
- * records by): a hash of its Message-ID. That is what tells an email from
- * another, so:
+ * records by): "email:" and a hash of its Message-ID. That is what tells an
+ * email from another, so:
  *
  *   - the same email delivered twice - a retried delivery, a mailing list it
  *     reached the address through twice - opens one, as long as anything it
  *     opened is still there, open or resolved;
- *   - a reply - its In-Reply-To or References name an email that opened an
- *     incident or an alert on this monitor - is added to that incident and
- *     alert as a private note, open or resolved, and opens nothing: a thread
- *     is one report, and a "Thanks!" pages nobody;
+ *   - a reply - its In-Reply-To or References name an email of the thread -
+ *     is added as a private note to what the thread opened while that is
+ *     still open, and opens nothing: a "Same here" pages nobody. Once
+ *     everything the thread opened is resolved, a reply is a new report and
+ *     opens its own: "It's broken again" on an old thread is not lost;
  *   - an automatic reply (an out-of-office message, a bounce) opens nothing;
  *   - a monitor opens at most MAX_OPENED_FROM_EMAILS_PER_HOUR incidents (and
  *     as many alerts) from emails in an hour, so a mail loop, or a stranger
  *     who learnt the address, cannot page the team without end.
+ *
+ * A reply added as a note opened nothing to carry its fingerprint, so what
+ * it was added to is remembered for REPLY_MEMORY_IN_DAYS (GlobalCache): a
+ * second delivery of it adds nothing, and a reply to it finds the thread even
+ * when its mail program named only the reply.
  *
  * Only an email that has just arrived does any of this. A scheduled check -
  * the Email Received criteria's look for email that should have come - has
@@ -69,7 +82,10 @@ import DataToProcess from "./DataToProcess";
 /*
  * The most incidents - and, apart, the most alerts - one monitor opens from
  * emails in an hour. Far more than people report by email in an hour, and a
- * bound on what a mail loop or a flood of email can do.
+ * bound on what a mail loop or a flood of email can do. It is checked before
+ * each email, which then opens one record per template of its criteria: with
+ * more than one template, the email that reaches the bound can pass it by
+ * the rest of its templates.
  */
 export const MAX_OPENED_FROM_EMAILS_PER_HOUR: number = 20;
 
@@ -79,8 +95,26 @@ export const MAX_OPENED_FROM_EMAILS_PER_HOUR: number = 20;
  */
 export const MAX_REPLY_NOTE_TEXT_LENGTH: number = 10000;
 
+/*
+ * How long what a reply was added to is remembered. Longer than a delivery
+ * is retried for (SendGrid retries for three days), and than most threads
+ * last; a reply to an older one is read by its References alone.
+ */
+export const REPLY_MEMORY_IN_DAYS: number = 30;
+
+/*
+ * What every fingerprint an email gives its records starts with: no series
+ * fingerprint (MetricSeriesFingerprint, a bare hash) does, so an email's
+ * records are told from anything else that keys records on the monitor -
+ * and counted apart from them for the hourly bound.
+ */
+export const EMAIL_FINGERPRINT_PREFIX: string = "email:";
+
 // The label an email's fingerprint is computed from.
 export const EMAIL_MESSAGE_ID_FINGERPRINT_LABEL: string = "email.messageId";
+
+// Where what a reply was added to is remembered (GlobalCache).
+export const REPLY_MEMORY_NAMESPACE: string = "incoming-email-reply-notes";
 
 /*
  * The most incidents (and, apart, alerts) read for one email: what it and
@@ -98,23 +132,49 @@ export interface EveryEmailMatches {
   alerts?: Array<PerSeriesCriteriaMatch> | undefined;
 }
 
-// The incidents and alerts of a monitor that some emails opened.
-interface OpenedByEmails {
-  incidents: Array<Incident>;
-  alerts: Array<Alert>;
+type RecordKind = "incident" | "alert";
+
+// An incident or an alert an email opened, read the same way for both.
+interface EmailRecord {
+  kind: RecordKind;
+  id: ObjectID;
+  title: string;
+  number: number | undefined;
+  numberWithPrefix: string | undefined;
+  createdAt: Date | undefined;
+  // The fingerprint of the email that opened it.
+  fingerprint: string | undefined;
+  // In a state of its project that is not resolved.
+  isOpen: boolean;
 }
 
-type RecordKind = "incident" | "alert";
+// What a reply added as a note was added to, as remembered.
+interface RememberedReply {
+  incidentIds: Array<string>;
+  alertIds: Array<string>;
+}
+
+// An event about an email, before its summary and criteria are filled in.
+interface EmailEvent {
+  kind: RecordKind;
+  // The record it is about, when there is one.
+  record?: EmailRecord | undefined;
+  title: string;
+  message: string;
+}
 
 export default class IncomingEmailOpenForEveryEmail {
   /*
-   * An email's fingerprint: what the records it opens carry, computed the
-   * way a series' is (MetricSeriesFingerprint), from its Message-ID.
+   * An email's fingerprint: what the records it opens carry.
+   * EMAIL_FINGERPRINT_PREFIX, then a hash of its Message-ID computed the way
+   * a series' is (MetricSeriesFingerprint).
    */
   public static getEmailFingerprint(messageId: string): string {
-    return MetricSeriesFingerprint.computeFingerprint({
-      [EMAIL_MESSAGE_ID_FINGERPRINT_LABEL]: messageId,
-    });
+    return `${EMAIL_FINGERPRINT_PREFIX}${MetricSeriesFingerprint.computeFingerprint(
+      {
+        [EMAIL_MESSAGE_ID_FINGERPRINT_LABEL]: messageId,
+      },
+    )}`;
   }
 
   /*
@@ -123,7 +183,7 @@ export default class IncomingEmailOpenForEveryEmail {
    * criteria opens an incident for every email and an email has just
    * arrived.
    *
-   * Notes a reply on what its thread opened as it goes, and says in the
+   * Adds a reply to what its thread opened as it goes, and says in the
    * evaluation summary why an email opened nothing.
    */
   @CaptureSpan()
@@ -144,12 +204,17 @@ export default class IncomingEmailOpenForEveryEmail {
       return {};
     }
 
-    const createsIncidents: boolean =
-      input.criteriaInstance.data?.createIncidents === true;
-    const createsAlerts: boolean =
-      input.criteriaInstance.data?.createAlerts === true;
+    // The kinds of record the criteria opens.
+    const kinds: Array<RecordKind> = [
+      ...(input.criteriaInstance.data?.createIncidents === true
+        ? ["incident" as RecordKind]
+        : []),
+      ...(input.criteriaInstance.data?.createAlerts === true
+        ? ["alert" as RecordKind]
+        : []),
+    ];
 
-    if (!createsIncidents && !createsAlerts) {
+    if (kinds.length === 0) {
       return {};
     }
 
@@ -168,25 +233,33 @@ export default class IncomingEmailOpenForEveryEmail {
       return {};
     }
 
-    const opensNothing: EveryEmailMatches = {
-      incidents: createsIncidents ? [] : undefined,
-      alerts: createsAlerts ? [] : undefined,
-    };
+    const opensNothing: EveryEmailMatches = {};
+
+    for (const kind of kinds) {
+      opensNothing[IncomingEmailOpenForEveryEmail.listOf(kind)] = [];
+    }
 
     const criteriaId: string | undefined =
       input.criteriaInstance.data?.id?.toString();
 
-    if (EmailThreadHeaders.isAutomaticReply(email.emailHeaders)) {
-      IncomingEmailOpenForEveryEmail.recordSkipped({
+    const recordEvent: (event: EmailEvent) => void = (
+      event: EmailEvent,
+    ): void => {
+      IncomingEmailOpenForEveryEmail.recordEvent({
+        ...event,
         evaluationSummary: input.evaluationSummary,
         criteriaId: criteriaId,
-        createsIncidents: createsIncidents,
-        createsAlerts: createsAlerts,
-        incidentMessage:
-          "This email is an automatic reply, such as an out-of-office message, so it opened no incident.",
-        alertMessage:
-          "This email is an automatic reply, such as an out-of-office message, so it opened no alert.",
       });
+    };
+
+    if (EmailThreadHeaders.isAutomaticReply(email.emailHeaders)) {
+      for (const kind of kinds) {
+        recordEvent({
+          kind: kind,
+          title: `${IncomingEmailOpenForEveryEmail.noun(kind)} creation skipped`,
+          message: `This email is an automatic reply, such as an out-of-office message, so it opened no ${kind}.`,
+        });
+      }
 
       return opensNothing;
     }
@@ -204,6 +277,7 @@ export default class IncomingEmailOpenForEveryEmail {
         messageId || `no-message-id:${ObjectID.generate().toString()}`,
       );
 
+    // The fingerprints of the emails it answers, the one it replies to first.
     const answeredFingerprints: Array<string> =
       EmailThreadHeaders.getReferencedMessageIds(email.emailHeaders).map(
         (id: string): string => {
@@ -211,76 +285,123 @@ export default class IncomingEmailOpenForEveryEmail {
         },
       );
 
-    const opened: OpenedByEmails =
-      await IncomingEmailOpenForEveryEmail.findOpenedByEmails({
+    // What this email and the emails it answers opened, open or resolved.
+    const opened: Array<EmailRecord> =
+      await IncomingEmailOpenForEveryEmail.findRecords({
         monitorId: monitorId,
         projectId: projectId,
-        fingerprints: [
-          ...(messageId ? [fingerprint] : []),
-          ...answeredFingerprints,
-        ],
+        incidentQuery: {
+          seriesFingerprint: QueryHelper.any([
+            fingerprint,
+            ...answeredFingerprints,
+          ]),
+        },
+        alertQuery: {
+          seriesFingerprint: QueryHelper.any([
+            fingerprint,
+            ...answeredFingerprints,
+          ]),
+        },
       });
 
-    // This very email was delivered before.
-    const openedByThisEmail: OpenedByEmails = {
-      incidents: opened.incidents.filter((incident: Incident): boolean => {
-        return incident.seriesFingerprint === fingerprint;
-      }),
-      alerts: opened.alerts.filter((alert: Alert): boolean => {
-        return alert.seriesFingerprint === fingerprint;
-      }),
-    };
+    // This very email was delivered before, and opened something...
+    const openedByThisEmail: Array<EmailRecord> = opened.filter(
+      (record: EmailRecord): boolean => {
+        return record.fingerprint === fingerprint;
+      },
+    );
 
-    if (
-      openedByThisEmail.incidents.length > 0 ||
-      openedByThisEmail.alerts.length > 0
-    ) {
-      IncomingEmailOpenForEveryEmail.recordAlreadyOpened({
-        evaluationSummary: input.evaluationSummary,
-        criteriaId: criteriaId,
-        opened: openedByThisEmail,
+    if (openedByThisEmail.length > 0) {
+      for (const record of openedByThisEmail) {
+        recordEvent({
+          kind: record.kind,
+          record: record,
+          title: `${IncomingEmailOpenForEveryEmail.noun(record.kind)} already opened for this email: ${record.title}`,
+          message: `This email was delivered before and already opened this ${record.kind}. An email opens one ${record.kind}, however often it is delivered.`,
+        });
+      }
+
+      return opensNothing;
+    }
+
+    const [rememberedThisEmail, ...rememberedAnswered] =
+      await IncomingEmailOpenForEveryEmail.recallReplies({
+        monitorId: monitorId,
+        fingerprints: [fingerprint, ...answeredFingerprints],
       });
+
+    // ...or was a reply, and was added as a note.
+    if (rememberedThisEmail) {
+      for (const kind of kinds) {
+        recordEvent({
+          kind: kind,
+          title: `${IncomingEmailOpenForEveryEmail.noun(kind)} creation skipped`,
+          message: `This reply was delivered before and was already added as a note, so it opened no ${kind}.`,
+        });
+      }
 
       return opensNothing;
     }
 
     /*
-     * A reply: it is added to what the email it answers opened - the newest
-     * of the thread's emails that opened something, as a thread has one in
-     * the usual case - and opens nothing.
+     * A reply: what its thread opened - by the fingerprints the emails it
+     * answers gave their records, and through the thread's replies that were
+     * added as notes - is added to while it is open.
      */
-    const answered: OpenedByEmails =
-      IncomingEmailOpenForEveryEmail.getAnswered(opened);
+    const thread: Array<EmailRecord> = [
+      ...opened,
+      ...(await IncomingEmailOpenForEveryEmail.findRemembered({
+        monitorId: monitorId,
+        projectId: projectId,
+        replies: rememberedAnswered,
+        alreadyFound: opened,
+      })),
+    ];
 
-    if (answered.incidents.length > 0 || answered.alerts.length > 0) {
+    const answered: Array<EmailRecord> =
+      IncomingEmailOpenForEveryEmail.getAnswered(thread);
+
+    if (answered.length > 0) {
       const note: string = IncomingEmailOpenForEveryEmail.getReplyNote({
         from: email.emailFrom,
         body: email.emailBody,
       });
 
-      for (const incident of answered.incidents) {
-        await IncomingEmailOpenForEveryEmail.addIncidentNote({
-          projectId: projectId,
-          incident: incident,
-          note: note,
-          evaluationSummary: input.evaluationSummary,
-          criteriaId: criteriaId,
+      await Promise.all(
+        answered.map((record: EmailRecord): Promise<void> => {
+          return IncomingEmailOpenForEveryEmail.addNote({
+            projectId: projectId,
+            record: record,
+            note: note,
+          });
+        }),
+      );
+
+      for (const record of answered) {
+        recordEvent({
+          kind: record.kind,
+          record: record,
+          title: `Reply added to the ${record.kind} as a note: ${record.title}`,
+          message: `This email replies in the thread of the email that opened this ${record.kind}, so it was added to the ${record.kind} as a note instead of opening a new one.`,
         });
       }
 
-      for (const alert of answered.alerts) {
-        await IncomingEmailOpenForEveryEmail.addAlertNote({
-          projectId: projectId,
-          alert: alert,
-          note: note,
-          evaluationSummary: input.evaluationSummary,
-          criteriaId: criteriaId,
+      if (messageId) {
+        await IncomingEmailOpenForEveryEmail.rememberReply({
+          monitorId: monitorId,
+          fingerprint: fingerprint,
+          records: answered,
         });
       }
 
       return opensNothing;
     }
 
+    /*
+     * A new email - or a reply whose thread opened nothing still open, which
+     * is a new report: it opens its own, while the monitor is under its
+     * hourly bound.
+     */
     const match: PerSeriesCriteriaMatch = {
       criteriaMetId: criteriaId || "",
       fingerprint: fingerprint,
@@ -289,34 +410,36 @@ export default class IncomingEmailOpenForEveryEmail {
       rootCause: input.rootCause,
     };
 
+    const allowed: Array<boolean> = await Promise.all(
+      kinds.map((kind: RecordKind): Promise<boolean> => {
+        return IncomingEmailOpenForEveryEmail.isUnderHourlyLimit({
+          kind: kind,
+          monitorId: monitorId,
+          projectId: projectId,
+        });
+      }),
+    );
+
     const matches: EveryEmailMatches = {};
 
-    if (createsIncidents) {
-      matches.incidents =
-        (await IncomingEmailOpenForEveryEmail.isUnderHourlyLimit({
-          kind: "incident",
-          monitorId: monitorId,
-          projectId: projectId,
-          evaluationSummary: input.evaluationSummary,
-          criteriaId: criteriaId,
-        }))
-          ? [match]
-          : [];
-    }
+    kinds.forEach((kind: RecordKind, index: number): void => {
+      if (allowed[index]) {
+        matches[IncomingEmailOpenForEveryEmail.listOf(kind)] = [match];
+        return;
+      }
 
-    if (createsAlerts) {
-      matches.alerts = (await IncomingEmailOpenForEveryEmail.isUnderHourlyLimit(
-        {
-          kind: "alert",
-          monitorId: monitorId,
-          projectId: projectId,
-          evaluationSummary: input.evaluationSummary,
-          criteriaId: criteriaId,
-        },
-      ))
-        ? [match]
-        : [];
-    }
+      logger.debug(
+        `${monitorId.toString()} - Opened ${MAX_OPENED_FROM_EMAILS_PER_HOUR} ${kind}s from emails in the past hour; this email opens none.`,
+      );
+
+      recordEvent({
+        kind: kind,
+        title: `${IncomingEmailOpenForEveryEmail.noun(kind)} creation skipped`,
+        message: `This monitor opened ${MAX_OPENED_FROM_EMAILS_PER_HOUR} ${kind}s from emails in the past hour, the most it opens in an hour, so this email opened none.`,
+      });
+
+      matches[IncomingEmailOpenForEveryEmail.listOf(kind)] = [];
+    });
 
     return matches;
   }
@@ -365,224 +488,287 @@ _The rest of this reply is not shown._`.toString();
   }
 
   /*
-   * Of the records a reply's thread opened, those the email it answers
-   * opened: the newest record's email - a criteria with two incident
-   * templates opens two incidents from one email, each carrying it.
+   * What a reply is added to: the open records the newest email of its
+   * thread opened - a criteria with two incident templates opens two
+   * incidents from one email, each carrying it. Nothing when all the thread
+   * opened is resolved.
    */
-  private static getAnswered(opened: OpenedByEmails): OpenedByEmails {
-    const newestIncident: Incident | undefined = opened.incidents[0];
-    const newestAlert: Alert | undefined = opened.alerts[0];
+  private static getAnswered(thread: Array<EmailRecord>): Array<EmailRecord> {
+    const open: Array<EmailRecord> = thread.filter(
+      (record: EmailRecord): boolean => {
+        return record.isOpen;
+      },
+    );
 
-    const createdAtOf: (record: Incident | Alert) => number = (
-      record: Incident | Alert,
+    if (open.length === 0) {
+      return [];
+    }
+
+    const createdAtOf: (record: EmailRecord) => number = (
+      record: EmailRecord,
     ): number => {
       return record.createdAt ? new Date(record.createdAt).getTime() || 0 : 0;
     };
 
-    const newest: Incident | Alert | undefined =
-      newestIncident && newestAlert
-        ? createdAtOf(newestAlert) > createdAtOf(newestIncident)
-          ? newestAlert
-          : newestIncident
-        : newestIncident || newestAlert;
+    const newest: EmailRecord = open.reduce(
+      (newestSoFar: EmailRecord, record: EmailRecord): EmailRecord => {
+        return createdAtOf(record) > createdAtOf(newestSoFar)
+          ? record
+          : newestSoFar;
+      },
+    );
 
-    const answeredFingerprint: string | undefined =
-      newest?.seriesFingerprint || undefined;
+    const added: Set<string> = new Set<string>();
 
-    if (!answeredFingerprint) {
-      return { incidents: [], alerts: [] };
-    }
+    return open.filter((record: EmailRecord): boolean => {
+      const key: string = IncomingEmailOpenForEveryEmail.keyOf(record);
 
-    return {
-      incidents: opened.incidents.filter((incident: Incident): boolean => {
-        return incident.seriesFingerprint === answeredFingerprint;
-      }),
-      alerts: opened.alerts.filter((alert: Alert): boolean => {
-        return alert.seriesFingerprint === answeredFingerprint;
-      }),
-    };
+      if (added.has(key) || record.fingerprint !== newest.fingerprint) {
+        return false;
+      }
+
+      added.add(key);
+      return true;
+    });
   }
 
   /*
-   * The incidents and alerts of this monitor that the emails with these
-   * fingerprints opened, open or resolved, newest first.
+   * The records the remembered replies were added to (rememberReply), but
+   * those in `alreadyFound`.
    */
-  private static async findOpenedByEmails(input: {
+  private static async findRemembered(input: {
     monitorId: ObjectID;
     projectId: ObjectID;
-    fingerprints: Array<string>;
-  }): Promise<OpenedByEmails> {
-    if (input.fingerprints.length === 0) {
-      return { incidents: [], alerts: [] };
+    replies: Array<RememberedReply | null>;
+    alreadyFound: Array<EmailRecord>;
+  }): Promise<Array<EmailRecord>> {
+    const found: Set<string> = new Set<string>(
+      input.alreadyFound.map((record: EmailRecord): string => {
+        return IncomingEmailOpenForEveryEmail.keyOf(record);
+      }),
+    );
+
+    const idsOf: (kind: RecordKind) => Array<string> = (
+      kind: RecordKind,
+    ): Array<string> => {
+      const ids: Set<string> = new Set<string>();
+
+      for (const reply of input.replies) {
+        const replyIds: Array<string> =
+          (kind === "incident" ? reply?.incidentIds : reply?.alertIds) || [];
+
+        for (const id of replyIds) {
+          if (!found.has(`${kind}:${id}`)) {
+            ids.add(id);
+          }
+        }
+      }
+
+      return Array.from(ids);
+    };
+
+    const incidentIds: Array<string> = idsOf("incident");
+    const alertIds: Array<string> = idsOf("alert");
+
+    if (incidentIds.length === 0 && alertIds.length === 0) {
+      return [];
     }
 
+    return await IncomingEmailOpenForEveryEmail.findRecords({
+      monitorId: input.monitorId,
+      projectId: input.projectId,
+      incidentQuery:
+        incidentIds.length > 0 ? { _id: QueryHelper.any(incidentIds) } : null,
+      alertQuery:
+        alertIds.length > 0 ? { _id: QueryHelper.any(alertIds) } : null,
+    });
+  }
+
+  /*
+   * This monitor's incidents and alerts that match each query (null: none of
+   * that kind), newest first, each read as open or not by its project's
+   * states.
+   */
+  private static async findRecords(input: {
+    monitorId: ObjectID;
+    projectId: ObjectID;
+    incidentQuery: Query<Incident> | null;
+    alertQuery: Query<Alert> | null;
+  }): Promise<Array<EmailRecord>> {
     const [incidents, alerts] = await Promise.all([
-      IncidentService.findBy({
-        query: {
-          projectId: input.projectId,
-          monitors: [input.monitorId],
-          seriesFingerprint: QueryHelper.any(input.fingerprints),
-        },
-        select: {
-          _id: true,
-          title: true,
-          createdAt: true,
-          incidentNumber: true,
-          incidentNumberWithPrefix: true,
-          seriesFingerprint: true,
-        },
-        sort: {
-          createdAt: SortOrder.Descending,
-        },
-        skip: 0,
-        limit: MAX_RECORDS_READ_FOR_AN_EMAIL,
-        props: {
-          isRoot: true,
-        },
-      }),
-      AlertService.findBy({
-        query: {
-          projectId: input.projectId,
-          monitorId: input.monitorId,
-          seriesFingerprint: QueryHelper.any(input.fingerprints),
-        },
-        select: {
-          _id: true,
-          title: true,
-          createdAt: true,
-          alertNumber: true,
-          alertNumberWithPrefix: true,
-          seriesFingerprint: true,
-        },
-        sort: {
-          createdAt: SortOrder.Descending,
-        },
-        skip: 0,
-        limit: MAX_RECORDS_READ_FOR_AN_EMAIL,
-        props: {
-          isRoot: true,
-        },
-      }),
+      input.incidentQuery
+        ? IncidentService.findBy({
+            query: {
+              ...input.incidentQuery,
+              projectId: input.projectId,
+              monitors: [input.monitorId],
+            },
+            select: {
+              _id: true,
+              title: true,
+              createdAt: true,
+              incidentNumber: true,
+              incidentNumberWithPrefix: true,
+              seriesFingerprint: true,
+              currentIncidentStateId: true,
+            },
+            sort: {
+              createdAt: SortOrder.Descending,
+            },
+            skip: 0,
+            limit: MAX_RECORDS_READ_FOR_AN_EMAIL,
+            props: {
+              isRoot: true,
+            },
+          })
+        : Promise.resolve([]),
+      input.alertQuery
+        ? AlertService.findBy({
+            query: {
+              ...input.alertQuery,
+              projectId: input.projectId,
+              monitorId: input.monitorId,
+            },
+            select: {
+              _id: true,
+              title: true,
+              createdAt: true,
+              alertNumber: true,
+              alertNumberWithPrefix: true,
+              seriesFingerprint: true,
+              currentAlertStateId: true,
+            },
+            sort: {
+              createdAt: SortOrder.Descending,
+            },
+            skip: 0,
+            limit: MAX_RECORDS_READ_FOR_AN_EMAIL,
+            props: {
+              isRoot: true,
+            },
+          })
+        : Promise.resolve([]),
     ]);
 
-    return { incidents: incidents, alerts: alerts };
+    // Open: in a state of the project's that is not resolved.
+    const [unresolvedIncidentStateIds, unresolvedAlertStateIds] =
+      await Promise.all([
+        incidents.length > 0
+          ? IncidentStateService.getUnresolvedIncidentStateIds(input.projectId)
+          : Promise.resolve([]),
+        alerts.length > 0
+          ? AlertStateService.getUnresolvedAlertStateIds(input.projectId)
+          : Promise.resolve([]),
+      ]);
+
+    const isOneOf: (
+      stateId: ObjectID | undefined,
+      stateIds: Array<ObjectID>,
+    ) => boolean = (
+      stateId: ObjectID | undefined,
+      stateIds: Array<ObjectID>,
+    ): boolean => {
+      const value: string | undefined = stateId?.toString();
+
+      return (
+        Boolean(value) &&
+        stateIds.some((id: ObjectID): boolean => {
+          return id.toString() === value;
+        })
+      );
+    };
+
+    return [
+      ...incidents.map((incident: Incident): EmailRecord => {
+        return {
+          kind: "incident",
+          id: incident.id!,
+          title: incident.title || "",
+          number: incident.incidentNumber,
+          numberWithPrefix: incident.incidentNumberWithPrefix,
+          createdAt: incident.createdAt,
+          fingerprint: incident.seriesFingerprint || undefined,
+          isOpen: isOneOf(
+            incident.currentIncidentStateId,
+            unresolvedIncidentStateIds,
+          ),
+        };
+      }),
+      ...alerts.map((alert: Alert): EmailRecord => {
+        return {
+          kind: "alert",
+          id: alert.id!,
+          title: alert.title || "",
+          number: alert.alertNumber,
+          numberWithPrefix: alert.alertNumberWithPrefix,
+          createdAt: alert.createdAt,
+          fingerprint: alert.seriesFingerprint || undefined,
+          isOpen: isOneOf(alert.currentAlertStateId, unresolvedAlertStateIds),
+        };
+      }),
+    ];
   }
 
   /*
    * Whether this monitor may open one more incident (or alert) from an
-   * email: it opened fewer than MAX_OPENED_FROM_EMAILS_PER_HOUR in the past
-   * hour. Records opened from emails are the monitor's records with a
-   * fingerprint - an Incoming Email monitor has no others. Says so in the
-   * evaluation summary when it may not.
+   * email: it opened fewer than MAX_OPENED_FROM_EMAILS_PER_HOUR of them in
+   * the past hour - its records whose fingerprint is an email's.
    */
   private static async isUnderHourlyLimit(input: {
     kind: RecordKind;
     monitorId: ObjectID;
     projectId: ObjectID;
-    evaluationSummary?: MonitorEvaluationSummary | undefined;
-    criteriaId: string | undefined;
   }): Promise<boolean> {
     const since: Date = OneUptimeDate.addRemoveHours(
       OneUptimeDate.getCurrentDate(),
       -1,
     );
 
-    const openedInTheHour: number =
+    const openedInTheHour: number = (
       input.kind === "incident"
-        ? (
-            await IncidentService.findBy({
-              query: {
-                projectId: input.projectId,
-                monitors: [input.monitorId],
-                seriesFingerprint: QueryHelper.notNull(),
-                createdAt: QueryHelper.greaterThanEqualTo(since),
-              },
-              select: {
-                _id: true,
-              },
-              skip: 0,
-              limit: MAX_OPENED_FROM_EMAILS_PER_HOUR,
-              props: {
-                isRoot: true,
-              },
-            })
-          ).length
-        : (
-            await AlertService.findBy({
-              query: {
-                projectId: input.projectId,
-                monitorId: input.monitorId,
-                seriesFingerprint: QueryHelper.notNull(),
-                createdAt: QueryHelper.greaterThanEqualTo(since),
-              },
-              select: {
-                _id: true,
-              },
-              skip: 0,
-              limit: MAX_OPENED_FROM_EMAILS_PER_HOUR,
-              props: {
-                isRoot: true,
-              },
-            })
-          ).length;
+        ? await IncidentService.countBy({
+            query: {
+              projectId: input.projectId,
+              monitors: [input.monitorId],
+              seriesFingerprint: QueryHelper.startsWith(
+                EMAIL_FINGERPRINT_PREFIX,
+              ),
+              createdAt: QueryHelper.greaterThanEqualTo(since),
+            },
+            limit: MAX_OPENED_FROM_EMAILS_PER_HOUR,
+            props: {
+              isRoot: true,
+            },
+          })
+        : await AlertService.countBy({
+            query: {
+              projectId: input.projectId,
+              monitorId: input.monitorId,
+              seriesFingerprint: QueryHelper.startsWith(
+                EMAIL_FINGERPRINT_PREFIX,
+              ),
+              createdAt: QueryHelper.greaterThanEqualTo(since),
+            },
+            limit: MAX_OPENED_FROM_EMAILS_PER_HOUR,
+            props: {
+              isRoot: true,
+            },
+          })
+    ).toNumber();
 
-    if (openedInTheHour < MAX_OPENED_FROM_EMAILS_PER_HOUR) {
-      return true;
-    }
-
-    logger.debug(
-      `${input.monitorId.toString()} - Opened ${MAX_OPENED_FROM_EMAILS_PER_HOUR} ${input.kind}s from emails in the past hour; this email opens none.`,
-    );
-
-    input.evaluationSummary?.events.push({
-      type: input.kind === "incident" ? "incident-skipped" : "alert-skipped",
-      title:
-        input.kind === "incident"
-          ? "Incident creation skipped"
-          : "Alert creation skipped",
-      message:
-        input.kind === "incident"
-          ? `This monitor opened ${MAX_OPENED_FROM_EMAILS_PER_HOUR} incidents from emails in the past hour, the most it opens in an hour, so this email opened none.`
-          : `This monitor opened ${MAX_OPENED_FROM_EMAILS_PER_HOUR} alerts from emails in the past hour, the most it opens in an hour, so this email opened none.`,
-      relatedCriteriaId: input.criteriaId,
-      at: OneUptimeDate.getCurrentDate(),
-    });
-
-    return false;
+    return openedInTheHour < MAX_OPENED_FROM_EMAILS_PER_HOUR;
   }
 
-  /*
-   * Adds the reply to the incident as a private note, unless the same note
-   * is already there: the reply was delivered twice.
-   */
-  private static async addIncidentNote(input: {
+  // Adds the reply to the incident or alert as a private note.
+  private static async addNote(input: {
     projectId: ObjectID;
-    incident: Incident;
+    record: EmailRecord;
     note: string;
-    evaluationSummary?: MonitorEvaluationSummary | undefined;
-    criteriaId: string | undefined;
   }): Promise<void> {
-    const incidentId: ObjectID = input.incident.id!;
-
-    const alreadyNoted: IncidentInternalNote | null =
-      await IncidentInternalNoteService.findOneBy({
-        query: {
-          projectId: input.projectId,
-          incidentId: incidentId,
-          note: input.note,
-        },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!alreadyNoted) {
+    if (input.record.kind === "incident") {
       const note: IncidentInternalNote = new IncidentInternalNote();
       note.projectId = input.projectId;
-      note.incidentId = incidentId;
+      note.incidentId = input.record.id;
       note.note = input.note;
 
       await IncidentInternalNoteService.create({
@@ -591,145 +777,197 @@ _The rest of this reply is not shown._`.toString();
           isRoot: true,
         },
       });
+
+      return;
     }
 
-    input.evaluationSummary?.events.push({
-      type: "incident-skipped",
-      title: alreadyNoted
-        ? `Reply already added to the incident as a note: ${input.incident.title || ""}`
-        : `Reply added to the incident as a note: ${input.incident.title || ""}`,
-      message: alreadyNoted
-        ? "This reply was delivered before and is already a note on this incident, so nothing was added."
-        : "This email replies to an email that opened this incident, so it was added to the incident as a note instead of opening a new one.",
-      relatedCriteriaId: input.criteriaId,
-      relatedIncidentId: incidentId.toString(),
-      relatedIncidentNumber: input.incident.incidentNumber,
-      relatedIncidentNumberWithPrefix: input.incident.incidentNumberWithPrefix,
-      relatedIncidentCreatedAt: input.incident.createdAt,
-      at: OneUptimeDate.getCurrentDate(),
+    const note: AlertInternalNote = new AlertInternalNote();
+    note.projectId = input.projectId;
+    note.alertId = input.record.id;
+    note.note = input.note;
+
+    await AlertInternalNoteService.create({
+      data: note,
+      props: {
+        isRoot: true,
+      },
     });
   }
 
-  // The same, for an alert.
-  private static async addAlertNote(input: {
-    projectId: ObjectID;
-    alert: Alert;
-    note: string;
-    evaluationSummary?: MonitorEvaluationSummary | undefined;
-    criteriaId: string | undefined;
+  /*
+   * Remembers what a reply was added to, by its fingerprint, for
+   * REPLY_MEMORY_IN_DAYS. Without the cache the notes stay, and a second
+   * delivery of the reply adds them again.
+   */
+  private static async rememberReply(input: {
+    monitorId: ObjectID;
+    fingerprint: string;
+    records: Array<EmailRecord>;
   }): Promise<void> {
-    const alertId: ObjectID = input.alert.id!;
+    const idsOf: (kind: RecordKind) => Array<string> = (
+      kind: RecordKind,
+    ): Array<string> => {
+      return input.records
+        .filter((record: EmailRecord): boolean => {
+          return record.kind === kind;
+        })
+        .map((record: EmailRecord): string => {
+          return record.id.toString();
+        });
+    };
 
-    const alreadyNoted: AlertInternalNote | null =
-      await AlertInternalNoteService.findOneBy({
-        query: {
-          projectId: input.projectId,
-          alertId: alertId,
-          note: input.note,
-        },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+    const remembered: RememberedReply = {
+      incidentIds: idsOf("incident"),
+      alertIds: idsOf("alert"),
+    };
 
-    if (!alreadyNoted) {
-      const note: AlertInternalNote = new AlertInternalNote();
-      note.projectId = input.projectId;
-      note.alertId = alertId;
-      note.note = input.note;
-
-      await AlertInternalNoteService.create({
-        data: note,
-        props: {
-          isRoot: true,
+    try {
+      await GlobalCache.setString(
+        REPLY_MEMORY_NAMESPACE,
+        IncomingEmailOpenForEveryEmail.replyMemoryKey(
+          input.monitorId,
+          input.fingerprint,
+        ),
+        JSON.stringify(remembered),
+        {
+          expiresInSeconds:
+            OneUptimeDate.getSecondsInDays(REPLY_MEMORY_IN_DAYS),
         },
+      );
+    } catch (error) {
+      logger.debug(
+        `${input.monitorId.toString()} - Could not remember an email reply: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  /*
+   * What the replies with these fingerprints were added to, in their order
+   * (null: not remembered). Without the cache, nothing is remembered.
+   */
+  private static async recallReplies(input: {
+    monitorId: ObjectID;
+    fingerprints: Array<string>;
+  }): Promise<Array<RememberedReply | null>> {
+    try {
+      const values: Array<string | null> = await GlobalCache.getStrings(
+        REPLY_MEMORY_NAMESPACE,
+        input.fingerprints.map((fingerprint: string): string => {
+          return IncomingEmailOpenForEveryEmail.replyMemoryKey(
+            input.monitorId,
+            fingerprint,
+          );
+        }),
+      );
+
+      return input.fingerprints.map(
+        (_fingerprint: string, index: number): RememberedReply | null => {
+          return IncomingEmailOpenForEveryEmail.readRememberedReply(
+            values[index] || null,
+          );
+        },
+      );
+    } catch (error) {
+      logger.debug(
+        `${input.monitorId.toString()} - Could not read remembered email replies: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+
+      return input.fingerprints.map((): null => {
+        return null;
       });
     }
+  }
 
-    input.evaluationSummary?.events.push({
-      type: "alert-skipped",
-      title: alreadyNoted
-        ? `Reply already added to the alert as a note: ${input.alert.title || ""}`
-        : `Reply added to the alert as a note: ${input.alert.title || ""}`,
-      message: alreadyNoted
-        ? "This reply was delivered before and is already a note on this alert, so nothing was added."
-        : "This email replies to an email that opened this alert, so it was added to the alert as a note instead of opening a new one.",
+  // A remembered reply as stored, or null for anything else.
+  private static readRememberedReply(
+    value: string | null,
+  ): RememberedReply | null {
+    if (!value) {
+      return null;
+    }
+
+    let parsed: unknown = null;
+
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      return null;
+    }
+
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return null;
+    }
+
+    const idsOf: (list: unknown) => Array<string> = (
+      list: unknown,
+    ): Array<string> => {
+      return Array.isArray(list)
+        ? list.filter((id: unknown): id is string => {
+            return typeof id === "string" && ObjectID.isValidUUID(id);
+          })
+        : [];
+    };
+
+    return {
+      incidentIds: idsOf((parsed as JSONObject)["incidentIds"]),
+      alertIds: idsOf((parsed as JSONObject)["alertIds"]),
+    };
+  }
+
+  private static replyMemoryKey(
+    monitorId: ObjectID,
+    fingerprint: string,
+  ): string {
+    return `${monitorId.toString()}:${fingerprint}`;
+  }
+
+  private static keyOf(record: EmailRecord): string {
+    return `${record.kind}:${record.id.toString()}`;
+  }
+
+  private static listOf(kind: RecordKind): keyof EveryEmailMatches {
+    return kind === "incident" ? "incidents" : "alerts";
+  }
+
+  private static noun(kind: RecordKind): string {
+    return kind === "incident" ? "Incident" : "Alert";
+  }
+
+  // Adds an event to the evaluation summary, about a record when there is one.
+  private static recordEvent(input: {
+    evaluationSummary?: MonitorEvaluationSummary | undefined;
+    criteriaId: string | undefined;
+    kind: RecordKind;
+    record?: EmailRecord | undefined;
+    title: string;
+    message: string;
+  }): void {
+    const event: MonitorEvaluationEvent = {
+      type: input.kind === "incident" ? "incident-skipped" : "alert-skipped",
+      title: input.title,
+      message: input.message,
       relatedCriteriaId: input.criteriaId,
-      relatedAlertId: alertId.toString(),
-      relatedAlertNumber: input.alert.alertNumber,
-      relatedAlertNumberWithPrefix: input.alert.alertNumberWithPrefix,
-      relatedAlertCreatedAt: input.alert.createdAt,
       at: OneUptimeDate.getCurrentDate(),
-    });
-  }
+    };
 
-  // "Already opened" for each record a second delivery of an email finds.
-  private static recordAlreadyOpened(input: {
-    evaluationSummary?: MonitorEvaluationSummary | undefined;
-    criteriaId: string | undefined;
-    opened: OpenedByEmails;
-  }): void {
-    for (const incident of input.opened.incidents) {
-      input.evaluationSummary?.events.push({
-        type: "incident-skipped",
-        title: `Incident already opened for this email: ${incident.title || ""}`,
-        message:
-          "This email was delivered before and already opened this incident. An email opens one incident, however often it is delivered.",
-        relatedCriteriaId: input.criteriaId,
-        relatedIncidentId: incident.id?.toString(),
-        relatedIncidentNumber: incident.incidentNumber,
-        relatedIncidentNumberWithPrefix: incident.incidentNumberWithPrefix,
-        relatedIncidentCreatedAt: incident.createdAt,
-        at: OneUptimeDate.getCurrentDate(),
-      });
+    if (input.record?.kind === "incident") {
+      event.relatedIncidentId = input.record.id.toString();
+      event.relatedIncidentNumber = input.record.number;
+      event.relatedIncidentNumberWithPrefix = input.record.numberWithPrefix;
+      event.relatedIncidentCreatedAt = input.record.createdAt;
     }
 
-    for (const alert of input.opened.alerts) {
-      input.evaluationSummary?.events.push({
-        type: "alert-skipped",
-        title: `Alert already opened for this email: ${alert.title || ""}`,
-        message:
-          "This email was delivered before and already opened this alert. An email opens one alert, however often it is delivered.",
-        relatedCriteriaId: input.criteriaId,
-        relatedAlertId: alert.id?.toString(),
-        relatedAlertNumber: alert.alertNumber,
-        relatedAlertNumberWithPrefix: alert.alertNumberWithPrefix,
-        relatedAlertCreatedAt: alert.createdAt,
-        at: OneUptimeDate.getCurrentDate(),
-      });
-    }
-  }
-
-  // Why an email opened nothing, for each kind of record the criteria opens.
-  private static recordSkipped(input: {
-    evaluationSummary?: MonitorEvaluationSummary | undefined;
-    criteriaId: string | undefined;
-    createsIncidents: boolean;
-    createsAlerts: boolean;
-    incidentMessage: string;
-    alertMessage: string;
-  }): void {
-    if (input.createsIncidents) {
-      input.evaluationSummary?.events.push({
-        type: "incident-skipped",
-        title: "Incident creation skipped",
-        message: input.incidentMessage,
-        relatedCriteriaId: input.criteriaId,
-        at: OneUptimeDate.getCurrentDate(),
-      });
+    if (input.record?.kind === "alert") {
+      event.relatedAlertId = input.record.id.toString();
+      event.relatedAlertNumber = input.record.number;
+      event.relatedAlertNumberWithPrefix = input.record.numberWithPrefix;
+      event.relatedAlertCreatedAt = input.record.createdAt;
     }
 
-    if (input.createsAlerts) {
-      input.evaluationSummary?.events.push({
-        type: "alert-skipped",
-        title: "Alert creation skipped",
-        message: input.alertMessage,
-        relatedCriteriaId: input.criteriaId,
-        at: OneUptimeDate.getCurrentDate(),
-      });
-    }
+    input.evaluationSummary?.events.push(event);
   }
 }

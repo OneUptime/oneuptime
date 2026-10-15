@@ -257,7 +257,7 @@ Von da an behandelt das Kriterium jede E-Mail für sich:
 | --- | --- |
 | Eine neue E-Mail | Eröffnet einen eigenen Vorfall, auch wenn frühere noch offen sind. |
 | Dieselbe E-Mail, erneut zugestellt | Eröffnet nichts weiter: OneUptime unterscheidet E-Mails an ihrem Header `Message-ID`. |
-| Eine Antwort auf eine E-Mail, die einen Vorfall eröffnet hat | Wird diesem Vorfall als private Notiz hinzugefügt und eröffnet nichts, auch nachdem der Vorfall behoben ist. |
+| Eine Antwort auf eine E-Mail, die einen Vorfall eröffnet hat | Wird diesem Vorfall als private Notiz hinzugefügt und eröffnet nichts, solange der Vorfall offen ist. Sobald der Vorfall behoben ist, eröffnet eine Antwort einen neuen Vorfall. |
 | Eine automatische Antwort, etwa eine Abwesenheitsnotiz | Eröffnet nichts. |
 | Eine E-Mail, nachdem der Monitor in der letzten Stunde 20 Vorfälle aus E-Mails eröffnet hat | Eröffnet nichts, damit eine Mail-Schleife oder eine Flut von E-Mails Ihr Team nicht endlos alarmieren kann. |
 

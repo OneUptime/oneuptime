@@ -559,13 +559,17 @@ describe("Open an incident for every email", () => {
     expect(server).toContain("EmailThreadHeaders.getMessageId(");
   });
 
-  test("adds a reply to its incident as a private note, as the server does", () => {
+  test("adds a reply to its open incident as a private note, and opens one once it is resolved, as the server does", () => {
     expect(everyEmail).toContain(
-      "| A reply to an email that opened an incident | Is added to that incident as a private note and opens nothing, even after the incident is resolved. |",
+      "| A reply to an email that opened an incident | Is added to that incident as a private note and opens nothing while the incident is open. Once the incident is resolved, a reply opens a new incident. |",
     );
     expect(server).toContain("IncidentInternalNoteService.create(");
-    // The lookup reads open and resolved incidents alike.
-    expect(server).not.toContain("currentIncidentStateId");
+    // Open: in one of the project's states that are not resolved.
+    expect(server).toContain(
+      "IncidentStateService.getUnresolvedIncidentStateIds(",
+    );
+    expect(server).toContain("currentIncidentStateId: true,");
+    expect(server).toContain("return record.isOpen;");
     expect(
       EmailThreadHeaders.getReferencedMessageIds({
         "In-Reply-To": "<a@example.com>",

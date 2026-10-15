@@ -257,7 +257,7 @@ Vanaf dan behandelt het criterium elke e-mail afzonderlijk:
 | --- | --- |
 | Een nieuwe e-mail | Opent een eigen incident, ook als eerdere nog openstaan. |
 | Dezelfde e-mail, opnieuw bezorgd | Opent niets meer: OneUptime onderscheidt e-mails aan hun header `Message-ID`. |
-| Een antwoord op een e-mail die een incident heeft geopend | Wordt als privénotitie aan dat incident toegevoegd en opent niets, ook nadat het incident is opgelost. |
+| Een antwoord op een e-mail die een incident heeft geopend | Wordt als privénotitie aan dat incident toegevoegd en opent niets zolang het incident open is. Zodra het incident is opgelost, opent een antwoord een nieuw incident. |
 | Een automatisch antwoord, zoals een afwezigheidsbericht | Opent niets. |
 | Een e-mail nadat de monitor het afgelopen uur 20 incidenten uit e-mails heeft geopend | Opent niets, zodat een e-maillus of een stortvloed aan e-mails uw team niet eindeloos kan oproepen. |
 

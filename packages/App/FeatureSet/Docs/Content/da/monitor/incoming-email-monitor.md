@@ -257,7 +257,7 @@ Fra da af behandler kriteriet hver e-mail for sig:
 | --- | --- |
 | En ny e-mail | Åbner sin egen hændelse, også mens tidligere er åbne. |
 | Den samme e-mail, leveret igen | Åbner ikke mere: OneUptime skelner e-mails fra hinanden på deres header `Message-ID`. |
-| Et svar på en e-mail, der åbnede en hændelse | Føjes til den hændelse som en privat note og åbner intet, også efter at hændelsen er løst. |
+| Et svar på en e-mail, der åbnede en hændelse | Føjes til den hændelse som en privat note og åbner intet, mens hændelsen er åben. Når hændelsen er løst, åbner et svar en ny hændelse. |
 | Et automatisk svar, såsom en fraværsbesked | Åbner intet. |
 | En e-mail, efter at monitoren har åbnet 20 hændelser fra e-mails i den seneste time | Åbner intet, så en mail-løkke eller en strøm af e-mails ikke kan kalde jeres team ud i det uendelige. |
 

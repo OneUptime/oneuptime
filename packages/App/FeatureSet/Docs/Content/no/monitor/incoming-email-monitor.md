@@ -257,7 +257,7 @@ Fra da av behandler kriteriet hver e-post for seg:
 | --- | --- |
 | En ny e-post | Åpner sin egen hendelse, selv mens tidligere er åpne. |
 | Den samme e-posten, levert på nytt | Åpner ikke noe mer: OneUptime skiller e-poster fra hverandre på headeren `Message-ID`. |
-| Et svar på en e-post som åpnet en hendelse | Legges til den hendelsen som et privat notat og åpner ingenting, selv etter at hendelsen er løst. |
+| Et svar på en e-post som åpnet en hendelse | Legges til den hendelsen som et privat notat og åpner ingenting mens hendelsen er åpen. Når hendelsen er løst, åpner et svar en ny hendelse. |
 | Et automatisk svar, som en fraværsmelding | Åpner ingenting. |
 | En e-post etter at monitoren har åpnet 20 hendelser fra e-poster den siste timen | Åpner ingenting, slik at en e-postløkke eller en flom av e-poster ikke kan varsle teamet ditt i det uendelige. |
 

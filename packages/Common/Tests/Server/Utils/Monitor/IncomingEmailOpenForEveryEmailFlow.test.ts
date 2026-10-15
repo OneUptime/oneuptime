@@ -12,6 +12,7 @@ import IncidentInternalNote from "../../../../Models/DatabaseModels/IncidentInte
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentStateTimeline from "../../../../Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
 import AlertService from "../../../../Server/Services/AlertService";
 import IncidentInternalNoteService from "../../../../Server/Services/IncidentInternalNoteService";
@@ -51,6 +52,7 @@ import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
+import PositiveNumber from "../../../../Types/PositiveNumber";
 import ProbeApiIngestResponse from "../../../../Types/Probe/ProbeApiIngestResponse";
 import {
   INCIDENT_STATE_IDS,
@@ -106,6 +108,7 @@ const START: Date = new Date("2026-10-15T09:00:00.000Z");
 let table: Array<Incident> = [];
 let notes: Array<IncidentInternalNote> = [];
 let nextNumber: number = 1;
+let cache: Map<string, string> = new Map<string, string>();
 
 function sqlOf(operator: unknown): string {
   const getSql: ((alias: string) => string) | undefined = (
@@ -129,10 +132,19 @@ function isIn(operator: unknown, value: string | undefined): boolean {
   return (parameterOf(operator) as Array<string>).includes(value);
 }
 
-// The rows of the table a findBy reads, newest first.
-function readIncidents(query: JSONObject, limit: number): Array<Incident> {
+// The rows of the table a findBy or countBy reads, newest first.
+function readIncidents(
+  query: JSONObject,
+  limit: number | undefined,
+): Array<Incident> {
   return table
     .filter((incident: Incident): boolean => {
+      const id: unknown = query["_id"];
+
+      if (id !== undefined && !isIn(id, incident.id?.toString())) {
+        return false;
+      }
+
       const state: unknown = query["currentIncidentStateId"];
 
       if (
@@ -147,8 +159,14 @@ function readIncidents(query: JSONObject, limit: number): Array<Incident> {
       if (fingerprint !== undefined) {
         const sql: string = sqlOf(fingerprint);
 
-        if (sql.includes("IS NOT NULL")) {
-          if (!incident.seriesFingerprint) {
+        if (sql.includes("ILIKE")) {
+          // A prefix, such as "email:%".
+          const prefix: string = (parameterOf(fingerprint) as string).slice(
+            0,
+            -1,
+          );
+
+          if (!(incident.seriesFingerprint || "").startsWith(prefix)) {
             return false;
           }
         } else if (!isIn(fingerprint, incident.seriesFingerprint)) {
@@ -171,7 +189,12 @@ function readIncidents(query: JSONObject, limit: number): Array<Incident> {
     .sort((a: Incident, b: Incident): number => {
       return b.createdAt!.getTime() - a.createdAt!.getTime();
     })
-    .slice(0, limit);
+    .slice(0, limit ?? Infinity);
+}
+
+// Someone resolves the incident by hand.
+function resolveByHand(incident: Incident): void {
+  incident.currentIncidentStateId = INCIDENT_STATE_IDS.resolved;
 }
 
 function isOpen(incident: Incident): boolean {
@@ -371,6 +394,7 @@ beforeEach(() => {
   table = [];
   notes = [];
   nextNumber = 1;
+  cache = new Map<string, string>();
 
   mockProjectStates();
 
@@ -430,6 +454,33 @@ beforeEach(() => {
     return readIncidents(findBy.query, findBy.limit);
   }) as never);
 
+  jest.spyOn(IncidentService, "countBy").mockImplementation((async (countBy: {
+    query: JSONObject;
+    limit?: number | undefined;
+  }): Promise<PositiveNumber> => {
+    return new PositiveNumber(
+      readIncidents(countBy.query, countBy.limit).length,
+    );
+  }) as never);
+
+  // The cache: what replies added as notes were added to.
+  jest.spyOn(GlobalCache, "getStrings").mockImplementation((async (
+    namespace: string,
+    keys: Array<string>,
+  ): Promise<Array<string | null>> => {
+    return keys.map((key: string): string | null => {
+      return cache.get(`${namespace}-${key}`) ?? null;
+    });
+  }) as never);
+
+  jest.spyOn(GlobalCache, "setString").mockImplementation((async (
+    namespace: string,
+    key: string,
+    value: string,
+  ): Promise<void> => {
+    cache.set(`${namespace}-${key}`, value);
+  }) as never);
+
   jest.spyOn(IncidentService, "create").mockImplementation((async (createBy: {
     data: Incident;
   }): Promise<Incident> => {
@@ -461,22 +512,6 @@ beforeEach(() => {
 
       incident!.currentIncidentStateId = createBy.data.incidentStateId!;
       return createBy.data;
-    }) as never);
-
-  jest
-    .spyOn(IncidentInternalNoteService, "findOneBy")
-    .mockImplementation((async (findOneBy: {
-      query: JSONObject;
-    }): Promise<IncidentInternalNote | null> => {
-      return (
-        notes.find((note: IncidentInternalNote): boolean => {
-          return (
-            note.incidentId!.toString() ===
-              (findOneBy.query["incidentId"] as ObjectID).toString() &&
-            note.note === findOneBy.query["note"]
-          );
-        }) || null
-      );
     }) as never);
 
   jest
@@ -617,6 +652,113 @@ describe("With the criteria opening an incident for every email", () => {
     expect(eventTitles(reply)).toEqual([
       "incident-skipped: Reply added to the incident as a note: VPN is down",
     ]);
+  });
+
+  it("the same reply delivered twice adds one note", async () => {
+    await deliver(
+      received({ messageId: "r1@acme.example", subject: "VPN is down" }),
+    );
+    const reply: IncomingEmailMonitorRequest = received({
+      messageId: "reply-1@acme.example",
+      subject: "Re: VPN is down",
+      body: "Same here.",
+      headers: { "In-Reply-To": "<r1@acme.example>" },
+    });
+
+    await deliver(reply);
+    await deliver(reply);
+
+    expect(titles(table)).toEqual(["VPN is down"]);
+    expect(notes).toHaveLength(1);
+  });
+
+  it("two people's replies with the same words are both added", async () => {
+    await deliver(
+      received({ messageId: "r1@acme.example", subject: "VPN is down" }),
+    );
+
+    for (const messageId of ["plus-1@acme.example", "plus-2@acme.example"]) {
+      await deliver(
+        received({
+          messageId: messageId,
+          subject: "Re: VPN is down",
+          body: "+1",
+          headers: { "In-Reply-To": "<r1@acme.example>" },
+        }),
+      );
+    }
+
+    expect(titles(table)).toEqual(["VPN is down"]);
+    expect(notes).toHaveLength(2);
+  });
+
+  it("a reply to a reply, naming only that reply, is added to the same incident", async () => {
+    await deliver(
+      received({ messageId: "r1@acme.example", subject: "VPN is down" }),
+    );
+    await deliver(
+      received({
+        messageId: "reply-1@acme.example",
+        subject: "Re: VPN is down",
+        headers: { "In-Reply-To": "<r1@acme.example>" },
+      }),
+    );
+    await deliver(
+      received({
+        messageId: "reply-2@acme.example",
+        subject: "Re: Re: VPN is down",
+        headers: { "In-Reply-To": "<reply-1@acme.example>" },
+      }),
+    );
+
+    expect(titles(table)).toEqual(["VPN is down"]);
+    expect(
+      notes.map((note: IncidentInternalNote): string => {
+        return note.incidentId!.toString();
+      }),
+    ).toEqual([table[0]!.id!.toString(), table[0]!.id!.toString()]);
+  });
+
+  it("once the reporter's incident is resolved, a reply on its thread opens a new one", async () => {
+    await deliver(
+      received({ messageId: "r1@acme.example", subject: "VPN is down" }),
+    );
+    resolveByHand(table[0]!);
+
+    const reply: MonitorEvaluationSummary = await deliver(
+      received({
+        messageId: "again@acme.example",
+        subject: "Re: VPN is down",
+        body: "It's down again.",
+        headers: {
+          "In-Reply-To": "<r1@acme.example>",
+          References: "<r1@acme.example>",
+        },
+      }),
+    );
+
+    expect(titles(table)).toEqual(["VPN is down", "Re: VPN is down"]);
+    expect(isOpen(table[1]!)).toBe(true);
+    expect(notes).toEqual([]);
+    expect(eventTitles(reply)).toEqual([
+      "incident-created: Incident created: Re: VPN is down",
+    ]);
+
+    // The thread's replies from then on go to the new incident.
+    await deliver(
+      received({
+        messageId: "on-it@acme.example",
+        subject: "Re: VPN is down",
+        headers: {
+          "In-Reply-To": "<again@acme.example>",
+          References: "<r1@acme.example> <again@acme.example>",
+        },
+      }),
+    );
+
+    expect(table).toHaveLength(2);
+    expect(notes).toHaveLength(1);
+    expect(notes[0]!.incidentId!.toString()).toBe(table[1]!.id!.toString());
   });
 
   it("an email from outside the company matches no criteria: the From filter is the allow-list", async () => {

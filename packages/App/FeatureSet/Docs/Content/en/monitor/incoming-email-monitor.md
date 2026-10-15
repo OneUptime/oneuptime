@@ -257,7 +257,7 @@ From then on, the criteria handles each email on its own:
 | --- | --- |
 | A new email | Opens an incident of its own, even while earlier ones are open. |
 | The same email, delivered again | Opens nothing more: OneUptime tells emails apart by their `Message-ID` header. |
-| A reply to an email that opened an incident | Is added to that incident as a private note and opens nothing, even after the incident is resolved. |
+| A reply to an email that opened an incident | Is added to that incident as a private note and opens nothing while the incident is open. Once the incident is resolved, a reply opens a new incident. |
 | An automatic reply, such as an out-of-office message | Opens nothing. |
 | An email after the monitor opened 20 incidents from emails in the past hour | Opens nothing, so a mail loop or a flood of email cannot page your team without end. |
 

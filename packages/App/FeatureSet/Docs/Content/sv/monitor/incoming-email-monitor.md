@@ -257,7 +257,7 @@ Från och med då hanterar kriteriet varje e-postmeddelande för sig:
 | --- | --- |
 | Ett nytt e-postmeddelande | Öppnar en egen incident, även medan tidigare är öppna. |
 | Samma e-postmeddelande, levererat igen | Öppnar inget mer: OneUptime skiljer e-postmeddelanden åt på deras rubrik `Message-ID`. |
-| Ett svar på ett e-postmeddelande som öppnade en incident | Läggs till i den incidenten som en privat anteckning och öppnar inget, även efter att incidenten har lösts. |
+| Ett svar på ett e-postmeddelande som öppnade en incident | Läggs till i den incidenten som en privat anteckning och öppnar inget medan incidenten är öppen. När incidenten har lösts öppnar ett svar en ny incident. |
 | Ett automatiskt svar, som ett frånvaromeddelande | Öppnar inget. |
 | Ett e-postmeddelande efter att monitorn har öppnat 20 incidenter från e-post under den senaste timmen | Öppnar inget, så att en e-postslinga eller en flod av e-post inte kan larma ert team i all oändlighet. |
 

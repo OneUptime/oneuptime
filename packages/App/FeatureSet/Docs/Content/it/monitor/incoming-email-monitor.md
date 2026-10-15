@@ -257,7 +257,7 @@ Da quel momento il criterio tratta ogni email a sé:
 | --- | --- |
 | Una nuova email | Apre un incidente tutto suo, anche se quelli precedenti sono ancora aperti. |
 | La stessa email, consegnata di nuovo | Non apre altro: OneUptime distingue le email dalla loro intestazione `Message-ID`. |
-| Una risposta a un'email che ha aperto un incidente | Viene aggiunta a quell'incidente come nota privata e non apre nulla, anche dopo che l'incidente è stato risolto. |
+| Una risposta a un'email che ha aperto un incidente | Viene aggiunta a quell'incidente come nota privata e non apre nulla finché l'incidente è aperto. Una volta risolto l'incidente, una risposta apre un nuovo incidente. |
 | Una risposta automatica, come un messaggio di assenza | Non apre nulla. |
 | Un'email arrivata dopo che il monitor ha aperto 20 incidenti da email nell'ultima ora | Non apre nulla, così un loop di posta o un'ondata di email non può allertare il vostro team all'infinito. |
 
