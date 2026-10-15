@@ -160,7 +160,7 @@ Svarene på `help` og `oncall` er meldinger bare du ser, under kommandoen. Et f�
 
 Startsiden leser som deg, så den trenger din egen tilkoblede Slack-konto. Til den er koblet til, har startsiden knappen **Connect Slack account**, og den viser deg startsiden din så snart du har koblet den til.
 
-Når noen legger til OneUptime i en kanal, publiserer den en hilsen der: hvordan man stiller den et spørsmål, og hvor man legger til en varslingsregel som publiserer i kanalen.
+Når noen legger til OneUptime i en kanal, publiserer den en hilsen der: hvordan man stiller den et spørsmål, og hvor man legger til en varslingsregel som publiserer i kanalen. Første gang du åpner fanen **Messages**, ønsker den deg velkommen der: hva den gjør i Slack, og hvordan du kommer i gang.
 
 ## Spør OneUptime AI fra Slack
 
@@ -229,6 +229,18 @@ Knappene i OneUptimes Slack-meldinger handler også som deg: som OneUptime-konto
 
 > [!WARNING]
 > Å avinstallere kobler også fra hvert medlems egen Slack-konto i prosjektet, og fjerner Slack-varselmetodene og vaktreglene som brukte dem. De som ble tilkalt i Slack, tilkalles via de andre varselmetodene sine til de legger til Slack igjen.
+
+## Dine Slack-data
+
+OneUptime leser bare det fra Slack som disse funksjonene trenger, med tillatelsene du gir når du installerer den:
+
+- **Meldinger til OneUptime.** En melding som nevner den med @, en du sender den i en direktemelding, og svarene dine i en samtale med den, sammen med de tidligere meldingene i den tråden eller direktemeldingen, slik at OneUptime AI kan svare. Slack sender den også de andre meldingene i kanalene og gruppemeldingene den er med i; OneUptime verken svarer på dem eller tar vare på dem.
+- **Meldinger du lagrer som notater.** En melding du reagerer på med 📌 eller 📢, eller fester, i kanalen til en hendelse, et varsel, en episode eller en planlagt vedlikeholdsbegivenhet, lagret som et notat på den posten med navnet til den som skrev den.
+- **Navn på kanaler og personer.** Kanalene den kan publisere i, så du kan velge dem, og navnene til personer, for å vise hvem som skrev eller gjorde noe.
+- **E-postadresser.** E-postadressen Slack har for en person, for å koble personens Slack-konto til OneUptime-kontoen når vedkommende ikke har koblet den til selv: for å tilkalle vedkommende, eller sette vedkommende i en vakt-brukergruppe.
+- **Brukergrupper.** Brukergruppene i arbeidsområdet ditt, så du kan velge én for en vaktplan, og personene i en du kobler til, for å holde den lik dem som har vakt.
+
+Det OneUptime tar vare på av dette — navnet på arbeidsområdet, kanalene, Slack-kontoene folk kobler til, notatene og brukergruppene — lagres sammen med prosjektet ditt. [Personvernerklæringen](https://oneuptime.com/legal/privacy) forklarer hvordan OneUptime behandler dataene dine.
 
 ## Feilsøking
 

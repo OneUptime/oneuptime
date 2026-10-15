@@ -52,6 +52,7 @@ A documentação está organizada como a barra lateral, em nove seções. Escolh
 - [Plantão](/docs/on-call/index): Políticas, regras de escalonamento, rodízios e quem é acionado e quando.
 - [Notificações](/docs/notifications/index): Como o OneUptime chega até você: seus métodos, regras de plantão e configurações de notificação.
 - [Páginas de status](/docs/status-pages/index): Manter os clientes informados em páginas de status públicas ou privadas.
+- [Manutenção programada](/docs/scheduled-maintenance/index): Anunciar trabalhos planejados e pausar os monitores afetados.
 - [Conexões com espaços de trabalho](/docs/workspace-connections/slack): Trabalhar nos incidentes a partir do Slack e do Microsoft Teams.
 :::
 

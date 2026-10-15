@@ -92,6 +92,7 @@ El **mantenimiento programado** anuncia con antelación los trabajos previstos. 
 :::cards
 - [Visión general de las páginas de estado](/docs/status-pages/index): Crear una página de estado y decidir qué muestra.
 - [Suscriptores y anuncios](/docs/status-pages/subscribers): A quién se avisa, y cuándo.
+- [Visión general del mantenimiento programado](/docs/scheduled-maintenance/index): Cómo transcurre un evento, y qué pone en pausa.
 :::
 
 ## Telemetría

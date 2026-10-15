@@ -52,6 +52,7 @@ flowchart TB
 - [온콜](/docs/on-call/index): 정책, 에스컬레이션 규칙, 로테이션, 누가 언제 호출되는지.
 - [알림](/docs/notifications/index): OneUptime이 연락하는 방법. 알림 방법, 온콜 규칙, 알림 설정.
 - [상태 페이지](/docs/status-pages/index): 공개 또는 비공개 상태 페이지로 고객에게 상황을 알립니다.
+- [예정된 유지 관리](/docs/scheduled-maintenance/index): 계획된 작업을 미리 알리고, 영향을 받는 모니터를 일시 중지합니다.
 - [워크스페이스 연결](/docs/workspace-connections/slack): Slack과 Microsoft Teams에서 인시던트에 대응합니다.
 :::
 

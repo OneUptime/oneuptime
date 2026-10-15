@@ -26,6 +26,7 @@ import WorkspaceUserAuthTokenService from "../../../Server/Services/WorkspaceUse
 import ObservabilityAssistant from "../../../Server/Utils/AI/Chat/ObservabilityAssistant";
 import ProductBrandingText from "../../../Server/Utils/ProductBrandingText";
 import logger from "../../../Server/Utils/Logger";
+import SlackDirectMessageHelp from "../../../Server/Utils/Workspace/Slack/SlackDirectMessageHelp";
 import WorkspaceActionAuthorization from "../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import WorkspaceConnectCompletion from "../../../Server/Utils/Workspace/WorkspaceConnectCompletion";
 import WorkspaceConnectRequest, {
@@ -1773,6 +1774,179 @@ describe("direct messages to the app", () => {
     expect(timesLogged(A_BOT_OR_A_CHANGE)).toBe(1);
     expect(slackCalls).toEqual([]);
     expect(databaseReads).toBe(0);
+  });
+});
+
+/*
+ * "HELP" IN THE APP'S DIRECT MESSAGES: THE COMMANDS, WITHOUT AI.
+ *
+ * Slack's reviewers write "help" in the Messages tab, in a project with no AI
+ * model connected. It was a question for OneUptime AI like any other, so they
+ * were told "AI features are disabled for this project" - or, not connected,
+ * asked to connect. Now a direct message that is only the help word is
+ * answered with what /oneuptime help lists, in a thread under it, for anybody
+ * - and anything else is answered as before.
+ */
+describe("help in a direct message: the commands, with or without AI", () => {
+  const AI_OFF: string =
+    "AI features are disabled for this project. Enable them in Project Settings → AI Features.";
+
+  function helpText(): string {
+    return SlackDirectMessageHelp.getAnswerText();
+  }
+
+  test("what it says: every command, as /oneuptime help lists them", () => {
+    expect(helpText()).toContain(
+      `👋 ${ZWSP}*Here's what \`/oneuptime\` can do*${ZWSP}`,
+    );
+    expect(helpText()).toContain(
+      "•   `/oneuptime incident [title]`: declare an incident",
+    );
+    expect(helpText()).toContain("•   `/oneuptime help`: list every command");
+  });
+
+  test("from somebody connected, with AI off: the commands, in a thread under the message - AI is not asked, nothing is read", async () => {
+    aiEnabled = false;
+
+    const sent: Said = await directMessage({ user: ALICE, text: "help" });
+
+    expect(sent.statuses).toEqual([200]);
+    expect(await untilWrites(1)).toEqual([
+      threadPost("D0ALICE", sent.ts, helpText()),
+    ]);
+    expect(reads()).toEqual([]);
+    expect(assistantCalls).toEqual([]);
+  });
+
+  test("from somebody not connected: the commands too - not a Connect prompt", async () => {
+    aiEnabled = false;
+
+    const sent: Said = await directMessage({ user: CAROL, text: "Help?" });
+
+    expect(await untilWrites(1)).toEqual([
+      threadPost("D0CAROL", sent.ts, helpText()),
+    ]);
+    expect(assistantCalls).toEqual([]);
+
+    // Asked again, answered again: the help is no prompt, asked once.
+    const again: Said = await directMessage({ user: CAROL, text: "help" });
+
+    expect(await untilWrites(2)).toEqual([
+      threadPost("D0CAROL", sent.ts, helpText()),
+      threadPost("D0CAROL", again.ts, helpText()),
+    ]);
+  });
+
+  test("with AI on, from somebody connected: the commands, not an answer from AI", async () => {
+    const sent: Said = await directMessage({ user: ALICE, text: "HELP" });
+
+    expect(await untilWrites(1)).toEqual([
+      threadPost("D0ALICE", sent.ts, helpText()),
+    ]);
+    expect(assistantCalls).toEqual([]);
+  });
+
+  test("with the app @mentioned, or the command typed as a message: the commands", async () => {
+    const mentioned: Said = await directMessage({
+      user: ALICE,
+      text: `<@${ONEUPTIME}> help`,
+    });
+
+    expect(await untilWrites(1)).toEqual([
+      threadPost("D0ALICE", mentioned.ts, helpText()),
+    ]);
+
+    const typed: Said = await directMessage({
+      user: ALICE,
+      text: " /oneuptime help",
+    });
+
+    expect(await untilWrites(2)).toEqual([
+      threadPost("D0ALICE", mentioned.ts, helpText()),
+      threadPost("D0ALICE", typed.ts, helpText()),
+    ]);
+    expect(assistantCalls).toEqual([]);
+  });
+
+  test("in a thread of the direct messages: answered in that thread", async () => {
+    const asked: Said = await directMessage({
+      user: ALICE,
+      text: "which monitors are down?",
+    });
+
+    await untilWrites(2);
+
+    const sent: Said = await directMessage({
+      user: ALICE,
+      text: "help",
+      threadTs: asked.ts,
+    });
+
+    const posted: Array<SlackCall> = await untilWrites(3);
+
+    expect(posted[2]).toEqual(threadPost("D0ALICE", asked.ts, helpText()));
+    expect(sent.statuses).toEqual([200]);
+    expect(assistantCalls).toHaveLength(1);
+  });
+
+  test("anything else is answered as before: a question with help in it goes to OneUptime AI", async () => {
+    const sent: Said = await directMessage({
+      user: ALICE,
+      text: "help me find slow queries",
+    });
+
+    expect(await untilWrites(2)).toEqual(aiAnswer("D0ALICE", sent.ts));
+    expect(assistantCalls).toEqual([
+      {
+        question: "help me find slow queries",
+        userId: ALICE_ID.toString(),
+        history: [],
+      },
+    ]);
+  });
+
+  test("…and with AI off, it is told so, as before", async () => {
+    aiEnabled = false;
+
+    const sent: Said = await directMessage({
+      user: ALICE,
+      text: "which monitors are down?",
+    });
+
+    expect(await untilWrites(1)).toEqual([
+      threadPost("D0ALICE", sent.ts, AI_OFF),
+    ]);
+    expect(assistantCalls).toEqual([]);
+  });
+
+  test("…and somebody not connected is asked to connect, as before", async () => {
+    await directMessage({ user: CAROL, text: "which monitors are down?" });
+
+    const posted: Array<SlackCall> = await untilWrites(1);
+
+    expect(posted[0]!.data["channel"]).toBe(CAROL);
+    expect(posted[0]!.data["text"]).toBe(CONNECT_PROMPT_NOTIFICATION);
+  });
+
+  test("a Slack workspace connected to no project: nothing answered, as before", async () => {
+    workspaceConnected = false;
+
+    await directMessage({ user: ALICE, text: "help" });
+
+    await untilLogged(
+      "Slack AI Ops event: workspace not connected to any project.",
+    );
+    expect(slackCalls).toEqual([]);
+  });
+
+  test("help in a channel is a question for AI, as before: only a direct message is answered with the commands", async () => {
+    const asked: Said = await say({
+      user: ALICE,
+      text: `<@${ONEUPTIME}> help`,
+    });
+
+    expect(await untilWrites(2)).toEqual(aiAnswer(OPS, asked.ts));
+    expect(assistantCalls).toHaveLength(1);
   });
 });
 
