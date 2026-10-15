@@ -65,7 +65,7 @@ const AddToNewEpisodeModal: FunctionComponent<ComponentProps> = (
   const config: EpisodeMemberKindConfig = props.config;
   const count: number = props.recordIds.length;
 
-  const itemsName: TranslatableTerm = translatableTerm(config.plural, {
+  const itemsName: TranslatableTerm = translatableTerm(config.pluralTitle, {
     inSentence: true,
   });
   const itemTitle: TranslatableTerm = translatableTerm(config.singularTitle);

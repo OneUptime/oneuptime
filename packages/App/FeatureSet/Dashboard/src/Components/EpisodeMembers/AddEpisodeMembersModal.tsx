@@ -61,10 +61,10 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
   const config: EpisodeMemberKindConfig = props.config;
   const episodeIdString: string = props.episodeId.toString().toLowerCase();
 
-  const itemName: TranslatableTerm = translatableTerm(config.singular, {
+  const itemName: TranslatableTerm = translatableTerm(config.singularTitle, {
     inSentence: true,
   });
-  const itemsName: TranslatableTerm = translatableTerm(config.plural, {
+  const itemsName: TranslatableTerm = translatableTerm(config.pluralTitle, {
     inSentence: true,
   });
   const itemTitle: TranslatableTerm = translatableTerm(config.singularTitle);
@@ -364,23 +364,18 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
     if (rows.length >= EPISODE_MEMBER_PICKER_LIMIT) {
       lines.push(
         <p key="limit" data-testid="add-episode-members-shown">
+          {/*
+           * Only shown at the limit, so the count is always the limit: a
+           * whole sentence, not a plural.
+           */}
           {hasSearch
-            ? translator.translatePlural(
-                {
-                  one: "Showing the first {{count}} match. Type more to narrow it down.",
-                  other:
-                    "Showing the first {{count}} matches. Type more to narrow them down.",
-                },
-                rows.length,
+            ? translator.translateTemplate(
+                "Showing the first {{count}} matches. Type more to narrow them down.",
+                { count: translator.formatNumber(rows.length) },
               )
-            : translator.translatePlural(
-                {
-                  one: "Showing the most recent {{itemName}} that is not in this episode. Search to find others.",
-                  other:
-                    "Showing the {{count}} most recent {{itemsName}} that are not in this episode. Search to find others.",
-                },
-                rows.length,
-                { itemName, itemsName },
+            : translator.translateTemplate(
+                "Showing the {{count}} most recent {{itemsName}} that are not in this episode. Search to find others.",
+                { count: translator.formatNumber(rows.length), itemsName },
               )}
         </p>,
       );
@@ -390,7 +385,7 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
       lines.push(
         <p key="other-episode" data-testid="add-episode-members-other-note">
           {translator.translateTemplate(
-            "{{itemsName}} that are in another episode stay there too: one can be in several episodes.",
+            "{{itemsName}} that are in another episode stay there too.",
             { itemsName: itemsTitle },
           )}
         </p>,
@@ -428,8 +423,8 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
       <div className="mt-1 text-xs leading-5 text-gray-500">
         {memberIds && memberIds.length > 0
           ? translator.translateTemplate(
-              "Every {{itemName}} you can see is in this episode already.",
-              { itemName },
+              "All the {{itemsName}} you can see are in this episode already.",
+              { itemsName },
             )
           : translator.translateTemplate(
               "There are no {{itemsName}} in this project yet.",

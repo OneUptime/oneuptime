@@ -66,10 +66,10 @@ const AddToExistingEpisodeModal: FunctionComponent<ComponentProps> = (
   const config: EpisodeMemberKindConfig = props.config;
   const count: number = props.recordIds.length;
 
-  const itemName: TranslatableTerm = translatableTerm(config.singular, {
+  const itemName: TranslatableTerm = translatableTerm(config.singularTitle, {
     inSentence: true,
   });
-  const itemsName: TranslatableTerm = translatableTerm(config.plural, {
+  const itemsName: TranslatableTerm = translatableTerm(config.pluralTitle, {
     inSentence: true,
   });
   const itemTitle: TranslatableTerm = translatableTerm(config.singularTitle);
@@ -249,12 +249,12 @@ const AddToExistingEpisodeModal: FunctionComponent<ComponentProps> = (
         <p key="in-another" data-testid="add-to-existing-episode-in-another">
           {translator.translatePlural(
             {
-              one: "{{count}} of them is already in another episode. It stays there too: an {{itemName}} can be in more than one episode.",
+              one: "{{count}} of them is already in another episode. It stays there too: {{itemsName}} can be in more than one episode.",
               other:
-                "{{count}} of them are already in another episode. They stay there too: an {{itemName}} can be in more than one episode.",
+                "{{count}} of them are already in another episode. They stay there too: {{itemsName}} can be in more than one episode.",
             },
             inAnotherEpisode,
-            { itemName },
+            { itemsName },
           )}
         </p>,
       );

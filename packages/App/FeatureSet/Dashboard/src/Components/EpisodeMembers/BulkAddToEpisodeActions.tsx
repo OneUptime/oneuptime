@@ -67,9 +67,11 @@ import {
  * on the menu, locked, saying why.
  */
 
-export const ADD_TO_EXISTING_EPISODE_ACTION_TITLE: string =
-  "Add to Existing Episode";
-export const ADD_TO_NEW_EPISODE_ACTION_TITLE: string = "Add to New Episode";
+export const ADD_TO_EXISTING_EPISODE_ACTION_TITLE: string = translationKey(
+  "Add to Existing Episode",
+);
+export const ADD_TO_NEW_EPISODE_ACTION_TITLE: string =
+  translationKey("Add to New Episode");
 
 /*
  * The server's reasons, as keys the dashboard translates where the result
