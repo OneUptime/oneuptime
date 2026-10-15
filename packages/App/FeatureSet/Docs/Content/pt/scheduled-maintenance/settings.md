@@ -5,7 +5,7 @@ A configuração da manutenção fica dentro de **Manutenção programada**, nã
 :::cards
 - [As regras pelas quais um evento novo passa](#as-regras-pelas-quais-um-evento-novo-passa): Em ordem, e o que cada uma faz.
 - [Regras de lembrete](#regras-de-lembrete): Lembrar os proprietários até um evento ser concluído.
-- [Configurações](#configurações): Modelos de notas, campos personalizados, medições e prefixos de número.
+- [Configurações](#configurações): Modelos de notas, campos personalizados, medições e numeração.
 - [Quem pode alterá-las](#quem-pode-alterá-las): As funções de manutenção, e os planos.
 :::
 
@@ -20,7 +20,7 @@ Abra **Manutenção programada** no menu **Produtos** da barra superior. As seç
 | **Regras de Rótulos** | Adiciona rótulos aos eventos que correspondem.                   |
 | **Reminder Rules** | Lembra os proprietários em intervalos até um evento ser concluído.  |
 
-A seção **Configurações** reúne **Estado do evento**, tratado em [Estados da manutenção](/docs/scheduled-maintenance/states), **Modelos de eventos**, tratado em [Modelos e eventos recorrentes](/docs/scheduled-maintenance/templates), e depois **Modelos de notas**, **Campos personalizados**, **Medições** e **Prefixo do número**, tratados abaixo.
+A seção **Configurações** reúne **Estado do evento**, tratado em [Estados da manutenção](/docs/scheduled-maintenance/states), **Modelos de eventos**, tratado em [Modelos e eventos recorrentes](/docs/scheduled-maintenance/templates), e depois **Modelos de notas**, **Campos personalizados**, **Medições** e **Numeração**, tratados abaixo.
 
 A seção **Espaço de trabalho** reúne as regras do Slack e do Microsoft Teams que publicam eventos em canais. Veja [Slack](/docs/workspace-connections/slack#regras-de-notificação) e [Microsoft Teams](/docs/workspace-connections/microsoft-teams#regras-de-notificação).
 
@@ -104,9 +104,11 @@ Esses lembretes são para a sua equipe. Os lembretes que os assinantes das suas 
 
 **Manutenção programada → Configurações → Medições** mede quanto tempo as coisas levam em cada evento. Escolha **Atraso no início**, do início planejado até ele começar, **Excesso de tempo**, do fim planejado até ele terminar, ou **Duração da manutenção**, de quando ele começa até terminar; ou dois momentos próprios com **Outra coisa**. Cada medição aparece na página do evento e é traçada em gráfico como `oneuptime.scheduled-maintenance.measurement.<key>`. Veja [Medições](/docs/incidents/settings#medições), que funciona da mesma forma para eventos.
 
-### Prefixo do número
+### Numeração
 
-**Manutenção programada → Configurações → Prefixo do número** define o texto antes dos números dos eventos: `SM-` em um projeto novo, ou `#` sem nenhum. **Atualizar** pede o **Prefixo do número da manutenção programada** e mostra uma prévia do número enquanto você digita. Só os eventos criados depois recebem o prefixo novo; os existentes mantêm seus números. As regras de um prefixo estão em [Prefixos de número](/docs/incidents/settings#prefixos-de-número).
+**Manutenção programada → Configurações → Numeração** define o texto antes dos números dos eventos: `SM-` em um projeto novo, ou `#` sem nenhum. **Atualizar** pede o **Prefixo do número da manutenção programada** e mostra uma prévia do número enquanto você digita. Só os eventos criados depois recebem o prefixo novo; os existentes mantêm seus números. As regras de um prefixo estão em [Prefixos de número](/docs/incidents/settings#prefixos-de-número).
+
+O cartão **Próximo número** abaixo define o número que o próximo evento recebe, para continuar os números de outra ferramenta: **Atualizar** abre **Próximo número de manutenção programada**, que deve ser maior que o mais alto usado até agora. Veja [Próximos números](/docs/incidents/settings#próximos-números).
 
 > [!NOTE]
 > No OneUptime Cloud, os campos personalizados requerem o plano **Growth** ou superior, assim como adicionar e alterar estados de manutenção e modelos.

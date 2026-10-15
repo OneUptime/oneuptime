@@ -5,7 +5,7 @@ Die Konfiguration der Wartung liegt in **Geplante Wartung**, nicht in den **Proj
 :::cards
 - [Die Regeln, die ein neues Ereignis durchläuft](#die-regeln-die-ein-neues-ereignis-durchläuft): In Reihenfolge, und was jede tut.
 - [Erinnerungsregeln](#erinnerungsregeln): Eigentümer erinnern, bis ein Ereignis abgeschlossen ist.
-- [Einstellungen](#einstellungen): Notizvorlagen, benutzerdefinierte Felder, Messungen und Nummernpräfixe.
+- [Einstellungen](#einstellungen): Notizvorlagen, benutzerdefinierte Felder, Messungen und Nummerierung.
 - [Wer sie ändern darf](#wer-sie-ändern-darf): Die Wartungsrollen und die Pläne.
 :::
 
@@ -20,7 +20,7 @@ Die Konfiguration der Wartung liegt in **Geplante Wartung**, nicht in den **Proj
 | **Beschriftungsregeln** | Fügt passenden Ereignissen Beschriftungen hinzu.               |
 | **Erinnerungsregeln** | Erinnert Eigentümer in einem Intervall, bis ein Ereignis abgeschlossen ist. |
 
-Der Abschnitt **Einstellungen** enthält **Ereignisstatus**, behandelt unter [Wartungsstatus](/docs/scheduled-maintenance/states), **Ereignis-Vorlagen**, behandelt unter [Vorlagen & wiederkehrende Ereignisse](/docs/scheduled-maintenance/templates), dann **Notiz-Vorlagen**, **Benutzerdefinierte Felder**, **Messungen** und **Nummernpräfix**, die unten behandelt werden.
+Der Abschnitt **Einstellungen** enthält **Ereignisstatus**, behandelt unter [Wartungsstatus](/docs/scheduled-maintenance/states), **Ereignis-Vorlagen**, behandelt unter [Vorlagen & wiederkehrende Ereignisse](/docs/scheduled-maintenance/templates), dann **Notiz-Vorlagen**, **Benutzerdefinierte Felder**, **Messungen** und **Nummerierung**, die unten behandelt werden.
 
 Der Abschnitt **Arbeitsbereich** enthält die Slack- und Microsoft-Teams-Regeln, die Ereignisse in Kanäle posten. Siehe [Slack](/docs/workspace-connections/slack#benachrichtigungsregeln) und [Microsoft Teams](/docs/workspace-connections/microsoft-teams#benachrichtigungsregeln).
 
@@ -104,9 +104,11 @@ Diese Erinnerungen sind für Ihr Team. Die Erinnerungen, die die Abonnenten Ihre
 
 **Geplante Wartung → Einstellungen → Messungen** misst, wie lange Dinge bei jedem Ereignis dauern. Wählen Sie **Startverzögerung**, vom geplanten Beginn bis zum tatsächlichen Beginn, **Überziehung**, vom geplanten Ende bis zum tatsächlichen Ende, oder **Wartungsdauer**, vom Beginn bis zum Ende; oder zwei eigene Momente mit **Etwas anderes**. Jede Messung wird auf der Seite des Ereignisses angezeigt und als `oneuptime.scheduled-maintenance.measurement.<key>` als Diagramm dargestellt. Siehe [Messungen](/docs/incidents/settings#messungen), was für Ereignisse genauso funktioniert.
 
-### Nummernpräfix
+### Nummerierung
 
-**Geplante Wartung → Einstellungen → Nummernpräfix** legt den Text vor den Ereignisnummern fest: `SM-` in einem neuen Projekt, oder `#` ohne Präfix. **Aktualisieren** fragt nach dem **Nummernpräfix der geplanten Wartung** und zeigt die Nummer während der Eingabe in einer Vorschau. Nur danach erstellte Ereignisse erhalten das neue Präfix; bestehende behalten ihre Nummern. Die Regeln für ein Präfix stehen unter [Nummernpräfixe](/docs/incidents/settings#nummernpräfixe).
+**Geplante Wartung → Einstellungen → Nummerierung** legt den Text vor den Ereignisnummern fest: `SM-` in einem neuen Projekt, oder `#` ohne Präfix. **Aktualisieren** fragt nach dem **Nummernpräfix der geplanten Wartung** und zeigt die Nummer während der Eingabe in einer Vorschau. Nur danach erstellte Ereignisse erhalten das neue Präfix; bestehende behalten ihre Nummern. Die Regeln für ein Präfix stehen unter [Nummernpräfixe](/docs/incidents/settings#nummernpräfixe).
+
+Die Karte **Nächste Nummer** darunter legt die Nummer fest, die das nächste Ereignis bekommt, um die Nummern eines anderen Tools fortzusetzen: **Aktualisieren** öffnet **Nächste Nummer der geplanten Wartung**, die höher sein muss als die bisher höchste. Siehe [Nächste Nummern](/docs/incidents/settings#nächste-nummern).
 
 > [!NOTE]
 > In OneUptime Cloud erfordern benutzerdefinierte Felder den Plan **Growth** oder höher, ebenso das Hinzufügen und Ändern von Wartungsstatus und Vorlagen.

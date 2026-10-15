@@ -5,7 +5,7 @@ De configuratie van onderhoud staat in **Geplande onderhoud**, niet in de **Proj
 :::cards
 - [De regels die een nieuwe gebeurtenis doorloopt](#de-regels-die-een-nieuwe-gebeurtenis-doorloopt): Op volgorde, en wat elke regel doet.
 - [Herinneringsregels](#herinneringsregels): Eigenaren herinneren tot een gebeurtenis voltooid is.
-- [Instellingen](#instellingen): Notitiesjablonen, aangepaste velden, metingen en nummervoorvoegsels.
+- [Instellingen](#instellingen): Notitiesjablonen, aangepaste velden, metingen en nummering.
 - [Wie ze mag wijzigen](#wie-ze-mag-wijzigen): De onderhoudsrollen, en de abonnementen.
 :::
 
@@ -20,7 +20,7 @@ Open **Geplande onderhoud** via het menu **Producten** in de bovenste balk. De s
 | **Labelregels**    | Voegt labels toe aan passende gebeurtenissen.                       |
 | **Reminder Rules** | Herinnert eigenaren met een interval tot een gebeurtenis voltooid is. |
 
-De sectie **Instellingen** bevat **Status gebeurtenis**, behandeld in [Onderhoudsstatussen](/docs/scheduled-maintenance/states), **Gebeurtenis-sjablonen**, behandeld in [Sjablonen en terugkerende gebeurtenissen](/docs/scheduled-maintenance/templates), en daarna **Notitie-sjablonen**, **Aangepaste velden**, **Metingen** en **Nummervoorvoegsel**, die hieronder worden behandeld.
+De sectie **Instellingen** bevat **Status gebeurtenis**, behandeld in [Onderhoudsstatussen](/docs/scheduled-maintenance/states), **Gebeurtenis-sjablonen**, behandeld in [Sjablonen en terugkerende gebeurtenissen](/docs/scheduled-maintenance/templates), en daarna **Notitie-sjablonen**, **Aangepaste velden**, **Metingen** en **Nummering**, die hieronder worden behandeld.
 
 De sectie **Werkruimte** bevat de Slack- en Microsoft Teams-regels die gebeurtenissen in kanalen plaatsen. Zie [Slack](/docs/workspace-connections/slack#meldingsregels) en [Microsoft Teams](/docs/workspace-connections/microsoft-teams#meldingsregels).
 
@@ -104,9 +104,11 @@ Deze herinneringen zijn voor je team. De herinneringen die de abonnees van je st
 
 **Geplande onderhoud → Instellingen → Metingen** meet hoe lang dingen duren bij elke gebeurtenis. Kies **Vertraagde start**, van de geplande start tot de echte start, **Uitloop**, van het geplande einde tot het echte einde, of **Duur van het onderhoud**, van de start tot het einde; of twee eigen momenten met **Iets anders**. Elke meting wordt getoond op de pagina van de gebeurtenis en in een grafiek gezet als `oneuptime.scheduled-maintenance.measurement.<key>`. Zie [Metingen](/docs/incidents/settings#metingen), wat voor gebeurtenissen net zo werkt.
 
-### Nummervoorvoegsel
+### Nummering
 
-**Geplande onderhoud → Instellingen → Nummervoorvoegsel** bepaalt de tekst vóór de nummers van gebeurtenissen: `SM-` in een nieuw project, of `#` zonder voorvoegsel. **Bijwerken** vraagt om het **Nummerprefix van geplande onderhoud** en toont het nummer als voorbeeld terwijl je typt. Alleen gebeurtenissen die daarna worden gemaakt, krijgen het nieuwe voorvoegsel; bestaande houden hun nummers. De regels voor een voorvoegsel staan in [Nummervoorvoegsels](/docs/incidents/settings#nummervoorvoegsels).
+**Geplande onderhoud → Instellingen → Nummering** bepaalt de tekst vóór de nummers van gebeurtenissen: `SM-` in een nieuw project, of `#` zonder voorvoegsel. **Bijwerken** vraagt om het **Nummerprefix van geplande onderhoud** en toont het nummer als voorbeeld terwijl je typt. Alleen gebeurtenissen die daarna worden gemaakt, krijgen het nieuwe voorvoegsel; bestaande houden hun nummers. De regels voor een voorvoegsel staan in [Nummervoorvoegsels](/docs/incidents/settings#nummervoorvoegsels).
+
+De kaart **Volgend nummer** eronder stelt het nummer in dat de volgende gebeurtenis krijgt, om de nummers van een andere tool voort te zetten: **Bijwerken** opent **Volgend nummer van gepland onderhoud**, dat hoger moet zijn dan het hoogste tot nu toe. Zie [Volgende nummers](/docs/incidents/settings#volgende-nummers).
 
 > [!NOTE]
 > In OneUptime Cloud vragen aangepaste velden het abonnement **Growth** of hoger, net als het toevoegen en wijzigen van onderhoudsstatussen en sjablonen.

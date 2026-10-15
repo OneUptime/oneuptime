@@ -57,7 +57,7 @@ Open **Scheduled Maintenance** from the **Products** menu in the top bar. The li
 | **Overview**  | **All Events** and **Ongoing Events**, whose badge counts the events in progress right now.                                 |
 | **Workspace** | **Slack** and **Microsoft Teams**, whichever the project has connected, or **Connect Slack or Teams** when it has neither. |
 | **Rules**     | **Owner Rules**, **Runbook Rules**, **Label Rules**, **Reminder Rules**.                                                   |
-| **Settings**  | **Event State**, **Event Templates**, **Note Templates**, **Custom Fields**, **Measurements**, **Number Prefix**.           |
+| **Settings**  | **Event State**, **Event Templates**, **Note Templates**, **Custom Fields**, **Measurements**, **Numbering**.           |
 
 **Overview** is open; **Workspace**, **Rules**, **Settings** and **Developer** start folded, and a section opens by itself when you are on one of its pages. **Developer** holds **Terraform**, **API** and **AI Assistants**, for managing maintenance from code. Everything about maintenance lives here, not in **Project Settings**.
 

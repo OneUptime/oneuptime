@@ -5,7 +5,7 @@ Maintenance configuration lives inside **Scheduled Maintenance**, not in **Proje
 :::cards
 - [The rules a new event passes through](#the-rules-a-new-event-passes-through): In order, and what each one does.
 - [Reminder rules](#reminder-rules): Remind owners until an event is completed.
-- [Settings](#settings): Note templates, custom fields, measurements and number prefixes.
+- [Settings](#settings): Note templates, custom fields, measurements and numbering.
 - [Who can change these](#who-can-change-these): The maintenance roles, and the plans.
 :::
 
@@ -20,7 +20,7 @@ Open **Scheduled Maintenance** from the **Products** menu in the top bar. The **
 | **Label Rules**    | Adds labels to matching events.                                     |
 | **Reminder Rules** | Reminds owners at an interval until an event is completed.          |
 
-The **Settings** section holds **Event State**, covered on [Maintenance States](/docs/scheduled-maintenance/states), **Event Templates**, covered on [Templates & Recurring Events](/docs/scheduled-maintenance/templates), then **Note Templates**, **Custom Fields**, **Measurements** and **Number Prefix**, covered below.
+The **Settings** section holds **Event State**, covered on [Maintenance States](/docs/scheduled-maintenance/states), **Event Templates**, covered on [Templates & Recurring Events](/docs/scheduled-maintenance/templates), then **Note Templates**, **Custom Fields**, **Measurements** and **Numbering**, covered below.
 
 The **Workspace** section holds the Slack and Microsoft Teams rules that post events to channels. See [Slack](/docs/workspace-connections/slack#notification-rules) and [Microsoft Teams](/docs/workspace-connections/microsoft-teams#notification-rules).
 
@@ -104,9 +104,11 @@ These reminders are for your team. The reminders your status page subscribers ge
 
 **Scheduled Maintenance → Settings → Measurements** times how long things take on every event. Pick **Start delay**, from the planned start until the event starts, **Overrun**, from the planned end until it ends, or **Maintenance duration**, from when it starts until it ends; or two moments of your own with **Something else**. Each measurement is shown on the event's page and charted as `oneuptime.scheduled-maintenance.measurement.<key>`. See [Measurements](/docs/incidents/settings#measurements), which works the same way for events.
 
-### Number prefix
+### Numbering
 
-**Scheduled Maintenance → Settings → Number Prefix** sets the text in front of event numbers: `SM-` in a new project, or `#` with none. **Update** asks for the **Scheduled Maintenance Number Prefix**, and previews the number as you type. Only events created afterwards get the new prefix; existing ones keep their numbers. The rules for a prefix are on [Number prefixes](/docs/incidents/settings#number-prefixes).
+**Scheduled Maintenance → Settings → Numbering** sets the text in front of event numbers: `SM-` in a new project, or `#` with none. **Update** asks for the **Scheduled Maintenance Number Prefix**, and previews the number as you type. Only events created afterwards get the new prefix; existing ones keep their numbers. The rules for a prefix are on [Number prefixes](/docs/incidents/settings#number-prefixes).
+
+The **Next Number** card under it sets the number the next event gets, to carry on from another tool's numbers: **Update** opens **Next Scheduled Maintenance Number**, which must be higher than the highest used so far. See [Next numbers](/docs/incidents/settings#next-numbers).
 
 > [!NOTE]
 > On OneUptime Cloud, custom fields take the **Growth** plan or above, and so do adding and changing maintenance states and templates.
