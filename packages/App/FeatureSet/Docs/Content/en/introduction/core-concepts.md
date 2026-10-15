@@ -66,6 +66,7 @@ An **episode** groups related incidents, or related alerts, so your team works o
 
 :::cards
 - [Incidents Overview](/docs/incidents/index): How incidents are declared, worked and resolved.
+- [Alerts Overview](/docs/alerts/index): Where alerts come from, and how episodes group them.
 - [Linked Alerts](/docs/incidents/linked-alerts): Tie the alerts an outage raised to its incident.
 :::
 

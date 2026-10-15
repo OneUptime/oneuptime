@@ -66,6 +66,7 @@ En **episode** samler relaterede hændelser, eller relaterede advarsler, så dit
 
 :::cards
 - [Hændelser – Oversigt](/docs/incidents/index): Hvordan hændelser erklæres, håndteres og løses.
+- [Advarsler – Oversigt](/docs/alerts/index): Hvor advarsler kommer fra, og hvordan episoder grupperer dem.
 - [Tilknyttede advarsler](/docs/incidents/linked-alerts): Knyt de advarsler, et nedbrud udløste, til dets hændelse.
 :::
 

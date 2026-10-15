@@ -2594,7 +2594,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
       const resolvedAlertState: AlertState = new AlertState();
       resolvedAlertState.name = "Resolved";
       resolvedAlertState.description =
-        "When an incident is resolved, it belongs to this state.";
+        "When an alert is resolved, it belongs to this state.";
       resolvedAlertState.color = Green;
       resolvedAlertState.isResolvedState = true;
       resolvedAlertState.projectId = projectId;

@@ -48,6 +48,7 @@ La documentation est organisée comme la barre latérale, en neuf sections. Choi
 
 :::cards
 - [Incidents](/docs/incidents/index): Déclarer, coordonner et résoudre des incidents, avec une chronologie complète.
+- [Alertes](/docs/alerts/index): Examiner les problèmes avant que vos utilisateurs ne les remarquent, et regrouper le bruit en épisodes.
 - [Astreinte](/docs/on-call/schedules): Rotations, règles d'escalade, et qui est alerté et quand.
 - [Pages de statut](/docs/status-pages/index): Tenir vos clients informés sur des pages de statut publiques ou privées.
 - [Connexions aux espaces de travail](/docs/workspace-connections/slack): Traiter les incidents depuis Slack et Microsoft Teams.
