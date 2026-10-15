@@ -18225,7 +18225,7 @@
   "Unnamed": "Unnamed",
   "Unnamed Key": "Unnamed Key",
   "Unnamed Label": "Unnamed Label",
-  "Unnamed Network Device template": "Unnamed Network Device template",
+  "Unnamed Network Device template": "Modello per dispositivi di rete senza nome",
   "Unnamed Network Site": "Unnamed Network Site",
   "Unnamed OID Collection Template": "Unnamed OID Collection Template",
   "Unnamed Project": "Unnamed Project",
@@ -20613,8 +20613,8 @@
   "{{count}} days rolling_one": "{{count}} day rolling",
   "{{count}} deployments": "{{count}} deployments",
   "{{count}} deployments_one": "{{count}} deployment",
-  "{{count}} devices": "{{count}} devices",
-  "{{count}} devices_one": "{{count}} device",
+  "{{count}} devices": "{{count}} dispositivi",
+  "{{count}} devices_one": "{{count}} dispositivo",
   "{{count}} down": "{{count}} down",
   "{{count}} down_one": "{{count}} down",
   "{{count}} enabled monitor rules decide which monitors this SLO measures. Matching monitors are attached automatically, so monitors cannot be added by hand, and monitors a rule attached cannot be removed here. Monitors attached by hand before the rules were enabled can still be removed. Disable every rule to pick monitors yourself.": "{{count}} enabled monitor rules decide which monitors this SLO measures. Matching monitors are attached automatically, so monitors cannot be added by hand, and monitors a rule attached cannot be removed here. Monitors attached by hand before the rules were enabled can still be removed. Disable every rule to pick monitors yourself.",
@@ -29533,5 +29533,12 @@
   "{{name}} is on call but isn't in the group: OneUptime can't find them in Slack. They can connect their Slack account in User Settings > Workspace > Slack, or use the same email address in both.": "{{name}} è reperibile ma non è nel gruppo: OneUptime non trova questa persona in Slack. Può collegare il suo account Slack in Impostazioni utente > Area di lavoro > Slack, oppure usare lo stesso indirizzo email in entrambi.",
   "{{probe}}, the probe that ran the scan, pings every device on this schedule and walks the ones that answered SNMP for interfaces, inventory and health. You can change it on each device later.": "{{probe}}, la sonda che ha eseguito la scansione, invia un ping a ogni dispositivo con questa frequenza e legge via SNMP quelli che hanno risposto, per interfacce, inventario e integrità. Puoi modificarla su ogni dispositivo in seguito.",
   "Network Device templates read each device's own polls. Edit a template under Monitors → Settings → Templates; monitors made from it follow.": "I modelli per dispositivi di rete leggono le interrogazioni di ogni dispositivo. Modifica un modello in Monitor → Impostazioni → Modelli; i monitor creati da esso si aggiornano.",
-  "Responded": "Risposta"
+  "Responded": "Risposta",
+  "A device that takes its status from a monitor bound to it gets no Network Device monitor: it would have nothing to read.": "Un dispositivo che prende il proprio stato da un monitor associato non riceve un monitor per dispositivi di rete: non avrebbe nulla da leggere.",
+  "Search hosts by name, address, subnet or vendor": "Cerca host per nome, indirizzo, sottorete o produttore",
+  "The device was not imported, so it has no monitor.": "Il dispositivo non è stato importato, quindi non ha un monitor.",
+  "The import stopped before it finished.": "L'importazione si è interrotta prima di finire.",
+  "The import was stopped.": "L'importazione è stata interrotta.",
+  "What it has imported so far stays.": "Ciò che ha importato finora resta.",
+  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "Ciò che ha importato prima dell'interruzione resta. Riprova ritenta il resto, e nulla viene creato due volte."
 }

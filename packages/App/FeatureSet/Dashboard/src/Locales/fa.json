@@ -18225,7 +18225,7 @@
   "Unnamed": "Unnamed",
   "Unnamed Key": "Unnamed Key",
   "Unnamed Label": "Unnamed Label",
-  "Unnamed Network Device template": "Unnamed Network Device template",
+  "Unnamed Network Device template": "قالب بی‌نام دستگاه شبکه",
   "Unnamed Network Site": "Unnamed Network Site",
   "Unnamed OID Collection Template": "Unnamed OID Collection Template",
   "Unnamed Project": "Unnamed Project",
@@ -20613,8 +20613,8 @@
   "{{count}} days rolling_one": "{{count}} day rolling",
   "{{count}} deployments": "{{count}} deployments",
   "{{count}} deployments_one": "{{count}} deployment",
-  "{{count}} devices": "{{count}} devices",
-  "{{count}} devices_one": "{{count}} device",
+  "{{count}} devices": "{{count}} دستگاه",
+  "{{count}} devices_one": "{{count}} دستگاه",
   "{{count}} down": "{{count}} down",
   "{{count}} down_one": "{{count}} down",
   "{{count}} enabled monitor rules decide which monitors this SLO measures. Matching monitors are attached automatically, so monitors cannot be added by hand, and monitors a rule attached cannot be removed here. Monitors attached by hand before the rules were enabled can still be removed. Disable every rule to pick monitors yourself.": "{{count}} enabled monitor rules decide which monitors this SLO measures. Matching monitors are attached automatically, so monitors cannot be added by hand, and monitors a rule attached cannot be removed here. Monitors attached by hand before the rules were enabled can still be removed. Disable every rule to pick monitors yourself.",
@@ -29533,5 +29533,12 @@
   "{{name}} is on call but isn't in the group: OneUptime can't find them in Slack. They can connect their Slack account in User Settings > Workspace > Slack, or use the same email address in both.": "{{name}} آنکال است اما در گروه نیست: OneUptime این فرد را در Slack پیدا نمی‌کند. او می‌تواند حساب Slack خود را در تنظیمات کاربر > فضای کاری > Slack متصل کند یا در هر دو از یک نشانی ایمیل استفاده کند.",
   "{{probe}}, the probe that ran the scan, pings every device on this schedule and walks the ones that answered SNMP for interfaces, inventory and health. You can change it on each device later.": "{{probe}}، پرابی که اسکن را اجرا کرد، طبق این زمان‌بندی همه دستگاه‌ها را پینگ می‌کند و آن‌هایی را که به SNMP پاسخ دادند برای رابط‌ها، موجودی و سلامت پیمایش می‌کند. بعداً می‌توانید آن را برای هر دستگاه تغییر دهید.",
   "Network Device templates read each device's own polls. Edit a template under Monitors → Settings → Templates; monitors made from it follow.": "قالب‌های دستگاه شبکه پرس‌وجوهای خود هر دستگاه را می‌خوانند. قالب را در مانیتورها → تنظیمات → قالب‌ها ویرایش کنید؛ مانیتورهایی که از آن ساخته شده‌اند هم دنبال می‌کنند.",
-  "Responded": "پاسخ"
+  "Responded": "پاسخ",
+  "A device that takes its status from a monitor bound to it gets no Network Device monitor: it would have nothing to read.": "دستگاهی که وضعیتش را از مانیتوری می‌گیرد که به آن متصل است، مانیتور دستگاه شبکه نمی‌گیرد: چیزی برای خواندن نخواهد داشت.",
+  "Search hosts by name, address, subnet or vendor": "جست‌وجوی میزبان‌ها بر اساس نام، نشانی، زیرشبکه یا سازنده",
+  "The device was not imported, so it has no monitor.": "دستگاه وارد نشد، پس مانیتوری ندارد.",
+  "The import stopped before it finished.": "واردکردن پیش از پایان متوقف شد.",
+  "The import was stopped.": "واردکردن متوقف شد.",
+  "What it has imported so far stays.": "آنچه تا اینجا وارد شده است باقی می‌ماند.",
+  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "آنچه پیش از توقف وارد شد باقی می‌ماند. تلاش دوباره بقیه را دوباره امتحان می‌کند و هیچ چیزی دو بار ایجاد نمی‌شود."
 }

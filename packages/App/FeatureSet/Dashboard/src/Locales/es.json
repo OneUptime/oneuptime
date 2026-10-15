@@ -29533,5 +29533,12 @@
   "{{name}} is on call but isn't in the group: OneUptime can't find them in Slack. They can connect their Slack account in User Settings > Workspace > Slack, or use the same email address in both.": "{{name}} está de guardia, pero no está en el grupo: OneUptime no encuentra a esta persona en Slack. Puede conectar su cuenta de Slack en Ajustes de usuario > Espacio de trabajo > Slack o usar el mismo correo electrónico en ambos.",
   "{{probe}}, the probe that ran the scan, pings every device on this schedule and walks the ones that answered SNMP for interfaces, inventory and health. You can change it on each device later.": "{{probe}}, la sonda que ejecutó el escaneo, hace ping a cada dispositivo con esta frecuencia y recorre los que respondieron por SNMP para obtener interfaces, inventario y estado. Puede cambiarlo en cada dispositivo más adelante.",
   "Network Device templates read each device's own polls. Edit a template under Monitors → Settings → Templates; monitors made from it follow.": "Las plantillas de dispositivo de red leen los propios sondeos de cada dispositivo. Edite una plantilla en Monitores → Configuración → Plantillas; los monitores creados a partir de ella la siguen.",
-  "Responded": "Respuesta"
+  "Responded": "Respuesta",
+  "A device that takes its status from a monitor bound to it gets no Network Device monitor: it would have nothing to read.": "Un dispositivo que toma su estado de un monitor vinculado a él no recibe un monitor de dispositivo de red: no tendría nada que leer.",
+  "Search hosts by name, address, subnet or vendor": "Buscar hosts por nombre, dirección, subred o fabricante",
+  "The device was not imported, so it has no monitor.": "El dispositivo no se importó, así que no tiene monitor.",
+  "The import stopped before it finished.": "La importación se detuvo antes de terminar.",
+  "The import was stopped.": "La importación se detuvo.",
+  "What it has imported so far stays.": "Lo que ya ha importado se conserva.",
+  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "Lo que se importó antes de detenerse se conserva. Al reintentar se vuelve a intentar el resto, y nada se crea dos veces."
 }

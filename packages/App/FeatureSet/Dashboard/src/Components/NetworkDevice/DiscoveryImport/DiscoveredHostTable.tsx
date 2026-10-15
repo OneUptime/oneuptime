@@ -222,16 +222,27 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
 
   return (
     <div className="space-y-3" data-testid="discovered-host-table">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="group relative w-full lg:max-w-md">
+      {/*
+       * The search on the left, the facets on the right, each facet's name
+       * above its buttons: the buttons of two facets line up however long
+       * either name is, in any language, and on a phone each facet is a
+       * block of its own. The search lines up with the buttons' row.
+       */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between lg:gap-x-6">
+        <div className="group relative w-full lg:w-auto lg:min-w-[16rem] lg:max-w-md lg:flex-1">
           <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400 transition-colors duration-150 group-focus-within:text-indigo-500">
             <Icon icon={IconProp.Search} className="h-4 w-4" />
           </span>
           <input
             type="text"
             value={query.search || ""}
+            /*
+             * Says everything the box finds a host by - the subnet the
+             * placeholder offers included - so the name a screen reader
+             * reads holds the words on screen.
+             */
             aria-label={translator.translateText(
-              "Search hosts by name, DNS name, address or vendor",
+              "Search hosts by name, address, subnet or vendor",
             )}
             data-testid="discovered-host-search"
             placeholder={translator.translateText(
@@ -260,7 +271,7 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
             <></>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
           {/*
            * Not offered on a scan that asked nothing about SNMP: every host
            * would be in one group, and an empty "SNMP (0)" reads as a
@@ -268,7 +279,7 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
            */}
           {!props.isIcmpOnly && (
             <div
-              className="flex items-center gap-2"
+              className="flex min-w-0 flex-col gap-1.5"
               data-testid="discovered-host-answered-facet"
             >
               {/*
@@ -276,11 +287,15 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
                * column uses - not "Answered", whose translations are a
                * phone call's (Incoming Call Policy logs share that key).
                */}
-              <span className="text-xs font-medium text-gray-500">
+              <span
+                className="text-xs font-medium text-gray-500"
+                aria-hidden="true"
+              >
                 {translator.translateText("Responded")}
               </span>
               <FilterButtons
                 className="flex-wrap [&>button]:whitespace-nowrap"
+                ariaLabel="Responded"
                 options={answeredOptions}
                 selectedValue={query.answered}
                 onSelect={(value: string) => {
@@ -293,14 +308,18 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
             </div>
           )}
           <div
-            className="flex items-center gap-2"
+            className="flex min-w-0 flex-col gap-1.5"
             data-testid="discovered-host-name-facet"
           >
-            <span className="text-xs font-medium text-gray-500">
+            <span
+              className="text-xs font-medium text-gray-500"
+              aria-hidden="true"
+            >
               {translator.translateText("Name")}
             </span>
             <FilterButtons
               className="flex-wrap [&>button]:whitespace-nowrap"
+              ariaLabel="Name"
               options={nameOptions}
               selectedValue={query.name || DiscoveredHostNameFilter.Any}
               onSelect={(value: string) => {
@@ -352,14 +371,20 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
               { count: translator.formatNumber(shownSelectedCount) },
             )}
           </span>
+          {/*
+           * Links in the product's link colour: in the grey of a secondary
+           * link, "Select all 511" and "Clear selection" read as disabled
+           * text beside the bold count.
+           */}
           {selectableShownCount > 0 && !areAllShownSelected && (
             <Button
               title={translator.translateTemplate("Select all {{count}}", {
                 count: translator.formatNumber(selectableShownCount),
               })}
               dataTestId="discovered-host-select-shown"
-              buttonStyle={ButtonStyleType.SECONDARY_LINK}
-              buttonSize={ButtonSize.Small}
+              buttonStyle={ButtonStyleType.LINK}
+              buttonSize={ButtonSize.ExtraSmall}
+              className="text-sm font-medium"
               disabled={props.isDisabled}
               onClick={toggleShown}
             />
@@ -368,8 +393,9 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
             <Button
               title="Clear selection"
               dataTestId="discovered-host-clear-selection"
-              buttonStyle={ButtonStyleType.SECONDARY_LINK}
-              buttonSize={ButtonSize.Small}
+              buttonStyle={ButtonStyleType.LINK}
+              buttonSize={ButtonSize.ExtraSmall}
+              className="text-sm font-medium"
               disabled={props.isDisabled}
               onClick={() => {
                 props.onSelectionChange(() => {
@@ -456,8 +482,9 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
                 <Button
                   title="Clear filters"
                   dataTestId="discovered-host-clear-filters"
-                  buttonStyle={ButtonStyleType.SECONDARY_LINK}
-                  buttonSize={ButtonSize.Small}
+                  buttonStyle={ButtonStyleType.LINK}
+                  buttonSize={ButtonSize.ExtraSmall}
+                  className="text-sm font-medium"
                   onClick={clearFilters}
                 />
               </div>
@@ -713,7 +740,12 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
         </div>
       </div>
       {props.hasVendorColumn && (
-        <div className="min-w-0 pl-8 md:pl-0">
+        /*
+         * On a phone the vendor and the badges sit under the name, indented
+         * to start where the name starts: the box's column (28px) and the
+         * gap after it (12px).
+         */
+        <div className="min-w-0 pl-10 md:pl-0">
           {vendor ? (
             <div
               className="truncate text-sm text-gray-700"
@@ -725,8 +757,15 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
             <></>
           )}
           {entry.sysDescr ? (
+            /*
+             * Under the vendor, the small print; with no vendor to put it
+             * under, the description is the cell's one line, and reads as
+             * one rather than as a faint footnote to nothing.
+             */
             <div
-              className="truncate text-xs text-gray-400"
+              className={`truncate ${
+                vendor ? "text-xs text-gray-400" : "text-sm text-gray-600"
+              }`}
               title={entry.sysDescr}
             >
               {entry.sysDescr}
@@ -740,7 +779,7 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
           )}
         </div>
       )}
-      <div className="flex flex-wrap items-center gap-2 pl-8 md:justify-end md:pl-0">
+      <div className="flex flex-wrap items-center gap-2 pl-10 md:justify-end md:pl-0">
         {isPingOnly ? (
           <span
             className="inline-flex flex-shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"

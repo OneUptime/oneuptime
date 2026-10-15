@@ -216,6 +216,13 @@ test.describe("choosing the hosts", () => {
       .boundingBox();
     expect(modalBox!.width).toBeGreaterThan(1000);
 
+    // One line under the title: the scan it imports from.
+    await expect(page.getByTestId("modal-description")).toHaveText(
+      `${POS_SCAN} (10.48-79.0-255.31-32)`,
+    );
+    // The name facet is a radio group a screen reader can tell apart.
+    await expect(page.getByRole("radiogroup", { name: "Name" })).toBeVisible();
+
     await page.screenshot({
       path: path.join(screenshots, "discovery-import-choose-desktop.png"),
     });
@@ -270,9 +277,13 @@ test.describe("choosing the hosts", () => {
 
     await page.getByTestId("discovered-host-clear-selection").click();
     await expect(summary(page)).toHaveText("0 hosts will be imported");
-    await expect(
-      page.getByRole("button", { name: "Next", exact: true }),
-    ).toBeDisabled();
+    const nextButton: Locator = page.getByRole("button", {
+      name: "Next",
+      exact: true,
+    });
+    await expect(nextButton).toBeDisabled();
+    // Dimmed, not a Next that looks like any other.
+    await expect(nextButton).toHaveCSS("opacity", "0.5");
 
     await search(page, "10.48.11.0/24");
     await page.getByTestId("discovered-host-select-shown").click();
@@ -555,6 +566,22 @@ test.describe("the import as it runs", () => {
       page.getByTestId("discovery-import-issue-NotReached"),
     ).toContainText("were not reached");
     await expect(
+      page.getByTestId("discovery-import-issue-NotReached"),
+    ).toContainText("The import was stopped.");
+    // The bar says how far it got, not a full bar over the hosts not reached.
+    const reached: string =
+      (await page
+        .getByTestId("discovery-import-devices-progress")
+        .getByTestId("progress-bar-count")
+        .textContent()) || "";
+    expect(reached).toMatch(/^\d+ of 511 Devices$/);
+    expect(reached).not.toBe("511 of 511 Devices");
+    await expect(
+      page.getByText(
+        "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.",
+      ),
+    ).toBeVisible();
+    await expect(
       page.getByRole("button", { name: /^Retry \d+ hosts$/ }),
     ).toBeVisible();
   });
@@ -615,10 +642,28 @@ test.describe("on a phone", () => {
       path: path.join(screenshots, "discovery-import-choose-phone.png"),
     });
 
+    // Down the host list, then on: the next step opens at its top.
+    await page.evaluate((): void => {
+      const modal: Element | null = document.querySelector(
+        '[data-testid="modal"]',
+      );
+      for (const element of Array.from(modal?.querySelectorAll("*") || [])) {
+        const style: CSSStyleDeclaration = window.getComputedStyle(element);
+        if (
+          (style.overflowY === "auto" || style.overflowY === "scroll") &&
+          element.scrollHeight > element.clientHeight
+        ) {
+          element.scrollTop = element.scrollHeight;
+        }
+      }
+    });
     await toMonitoring(page);
     await expect(page.getByTestId("discovery-import-steps")).toContainText(
       "Monitoring · Step 2 of 3",
     );
+    await expect(
+      page.getByTestId("discovery-import-step-phone"),
+    ).toBeInViewport();
     await page.getByTestId("discovery-import-alerting-template").check();
     await expectNoSidewaysScroll(page, 390);
     await page.screenshot({

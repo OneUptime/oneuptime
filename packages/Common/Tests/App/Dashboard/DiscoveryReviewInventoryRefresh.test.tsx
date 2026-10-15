@@ -203,6 +203,20 @@ function next(): HTMLElement {
   return screen.getByRole("button", { name: "Next" });
 }
 
+/*
+ * A scan that could not be read leaves nothing to choose from: no Next, no
+ * count of hosts - only Try again, which reads it again in place.
+ */
+function expectOnlyTryAgain(): void {
+  expect(
+    screen.queryByRole("button", { name: "Next" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByTestId("discovery-import-choose-summary"),
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Try again" })).toBeEnabled();
+}
+
 // On to the monitoring step, then Import: what the server is asked to import.
 async function importSelected(): Promise<JSONObject> {
   const before: number = server.startBodies.length;
@@ -660,7 +674,7 @@ describe("Discovery review waits for a successful current response", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Inventory refresh failed",
     );
-    expect(next()).toBeDisabled();
+    expectOnlyTryAgain();
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
 
     await closeReview();
@@ -680,8 +694,33 @@ describe("Discovery review waits for a successful current response", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "This discovery scan could not be found.",
     );
-    expect(next()).toBeDisabled();
+    expectOnlyTryAgain();
     expect(server.startBodies).toEqual([]);
+  });
+
+  test("Try again reads the scan again in place, and a read that works shows its hosts", async () => {
+    getItemSpy.mockRejectedValueOnce(new Error("Inventory refresh failed"));
+    await renderPage();
+    await openReview(scan([host("10.0.0.1", false)]));
+
+    expectOnlyTryAgain();
+    const readsBefore: number = getItemSpy.mock.calls.length;
+
+    getItemSpy.mockResolvedValue(scan([host("10.0.0.1", false)]));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(getItemSpy.mock.calls.length).toBe(readsBefore + 1);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(checkbox("10.0.0.1")).toBeChecked();
+    expect(next()).toBeEnabled();
+    expect(
+      screen.queryByRole("button", { name: "Try again" }),
+    ).not.toBeInTheDocument();
   });
 
   test("closing during a pending read does not reopen the dialog when the read completes", async () => {

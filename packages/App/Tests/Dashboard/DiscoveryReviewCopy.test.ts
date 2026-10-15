@@ -75,6 +75,15 @@ const TABLE_SOURCE: string = path.join(
 );
 
 /*
+ * The monitoring step: its "What this import does" summary is where what
+ * each kind of host imports as is said, with the counts of each.
+ */
+const MONITORING_SOURCE: string = path.join(
+  DISCOVERY_IMPORT_DIR,
+  "DiscoveryImportMonitoringStep.tsx",
+);
+
+/*
  * Read once per run, not once per helper call.
  *
  * The helpers below call this forty-odd times, twice inside a single test in
@@ -163,21 +172,35 @@ function sliceBetween(data: {
   return data.code.slice(start, end);
 }
 
-/** Everything the import dialog renders and says, from its description on. */
+/** Everything the import dialog renders and says, from the scan's label on. */
 function dialogSection(): string {
   return sliceBetween({
     code: readCode(DIALOG_SOURCE),
-    from: "const description: string",
+    from: "const scanLabel: string",
   });
 }
 
-/** The sentence under the dialog's title: one per kind of scan. */
-function descriptionSection(): string {
-  return sliceBetween({
-    code: readCode(DIALOG_SOURCE),
-    from: "const description: string",
-    to: "const progressView",
+/*
+ * The summary's line for the hosts that answered SNMP, and its line for the
+ * hosts that answered ping only - each with the condition it is shown under.
+ */
+function outcomeLineSection(key: "snmp" | "ping"): string {
+  const summary: string = sliceBetween({
+    code: readCode(MONITORING_SOURCE),
+    from: "export const OutcomeSummary",
+    to: "if (outcome.appliesVendorTemplates)",
   });
+
+  return key === "snmp"
+    ? sliceBetween({
+        code: summary,
+        from: "if (outcome.snmpHostCount > 0) {",
+        to: "if (outcome.pingOnlyHostCount > 0) {",
+      })
+    : sliceBetween({
+        code: summary,
+        from: "if (outcome.pingOnlyHostCount > 0) {",
+      });
 }
 
 /** The host list, from its facets to its last row. */
@@ -564,7 +587,8 @@ describe("the dialog puts that copy on screen", () => {
      * assertion.
      */
     expect(dialogSection().length).toBeGreaterThan(0);
-    expect(descriptionSection().length).toBeGreaterThan(0);
+    expect(outcomeLineSection("snmp").length).toBeGreaterThan(0);
+    expect(outcomeLineSection("ping").length).toBeGreaterThan(0);
     expect(tableSection().length).toBeGreaterThan(0);
     expect(emptyStateSection().length).toBeGreaterThan(0);
     expect(checkboxSection().length).toBeGreaterThan(0);
@@ -612,7 +636,23 @@ describe("the dialog puts that copy on screen", () => {
     }
   });
 
-  test("the description explains what each kind of host imports as", () => {
+  test("the dialog's description is the scan it imports from, on every step", () => {
+    /*
+     * It was a sentence per kind of scan, seven lines on a phone above the
+     * list, saying again what the monitoring step's summary says with the
+     * counts. One line - the scan and its range - leaves the steps the room,
+     * and can never describe a kind of host the scan does not have.
+     */
+    const code: string = readCode(DIALOG_SOURCE);
+
+    expect(code).toContain(
+      'title="Import Discovered Devices" description={scanLabel}',
+    );
+    expect(code).not.toContain("const description: string");
+    expect(dialogSection()).not.toContain("Hosts that answered");
+  });
+
+  test("the summary says what each kind of host imports as", () => {
     /*
      * It once ended "hosts without SNMP cannot be imported", which stopped
      * being true when ping-only hosts started importing - and a dialog whose
@@ -621,17 +661,20 @@ describe("the dialog puts that copy on screen", () => {
      * arrives with the credentials that answered it and is walked, the rest
      * are pinged by the scan's probe until credentials are added.
      */
-    const description: string = descriptionSection();
+    const snmp: string = outcomeLineSection("snmp");
+    const ping: string = outcomeLineSection("ping");
 
-    expect(description).not.toContain("cannot be imported");
-    expect(description).not.toContain("without SNMP cannot");
+    for (const line of [snmp, ping]) {
+      expect(line).not.toContain("cannot be imported");
+      expect(line).not.toContain("without SNMP cannot");
+      expect(line).not.toContain("monitor-backed");
+      expect(line).not.toContain("polling off");
+    }
 
-    const snmpBranch: string = reviewDescriptionBranches().snmp;
-
-    expect(snmpBranch).toContain("credentials");
-    expect(snmpBranch).toContain("pinged by the scan's probe");
-    expect(snmpBranch).not.toContain("monitor-backed");
-    expect(snmpBranch).not.toContain("polling off");
+    expect(snmp).toContain("with the credentials that answered");
+    expect(snmp).toContain("walked every {{minutes}} min");
+    expect(ping).toContain("pinged every {{minutes}} min");
+    expect(ping).toContain("Add SNMP credentials later");
   });
 
   test("a row's checkbox says which host it is for", () => {
@@ -687,41 +730,24 @@ describe("the dialog puts that copy on screen", () => {
  * last describe.
  */
 
-interface ReviewDescriptionBranches {
-  icmpOnly: string;
-  snmp: string;
-}
-
 /*
- * The two halves of the description's ternary: the English sentence each arm
- * looks up in the reader's language. Each is one whole sentence that opens
- * with the scanned range (#4280) - `translator.translateTemplate("Hosts that
- * answered ... in {{range}}. ...", { range: scanLabel })` - so a locale can
- * word and order it its own way. The pattern pins both arms' `range` to the
- * scan's own label, so the sentences asserted below are exactly what the
- * dialog fills in and shows.
- *
- * Same refusal-to-lie contract as sliceBetween: a regex that no longer
- * matches would otherwise hand back empty strings, and every `toContain`
- * below would pass against nothing. If the description stops being a ternary
- * on the scan's mode, this must be the thing that fails, by name.
+ * The summary's two lines as the English sentences they look up: each is a
+ * plural template whose `other` sentence is its key. Read off the source so
+ * what is asserted is exactly what the step shows.
  */
-// Not preceded by `!`, so arms swapped by a negated condition fail here.
-const REVIEW_DESCRIPTION_TERNARY: RegExp =
-  /(?<![!\w.])isIcmpOnly\s*\?\s*translator\.translateTemplate\(\s*"([^"]+)"\s*,\s*\{\s*range:\s*scanLabel\s*,?\s*\}\s*,?\s*\)\s*:\s*translator\.translateTemplate\(\s*"([^"]+)"\s*,\s*\{\s*range:\s*scanLabel\s*,?\s*\}\s*,?\s*\)/;
+const PLURAL_OTHER: RegExp = /other:\s*"([^"]+)"/;
 
-function reviewDescriptionBranches(): ReviewDescriptionBranches {
-  const match: RegExpMatchArray | null = descriptionSection().match(
-    REVIEW_DESCRIPTION_TERNARY,
-  );
+function outcomeSentence(key: "snmp" | "ping"): string {
+  const match: RegExpMatchArray | null =
+    outcomeLineSection(key).match(PLURAL_OTHER);
 
-  if (!match || !match[1] || !match[2]) {
+  if (!match || !match[1]) {
     throw new Error(
-      "The import dialog's description is no longer a ternary on isIcmpOnly",
+      `The summary's ${key} line is no longer a plural template with an "other" sentence`,
     );
   }
 
-  return { icmpOnly: match[1], snmp: match[2] };
+  return match[1];
 }
 
 /*
@@ -739,8 +765,8 @@ function answeredFacetGuardSection(): string {
 
 describe("the import dialog reads differently for a scan that only pinged", () => {
   test("the anchors the ICMP-only slices depend on are still in the files", () => {
-    expect(reviewDescriptionBranches().icmpOnly.length).toBeGreaterThan(0);
-    expect(reviewDescriptionBranches().snmp.length).toBeGreaterThan(0);
+    expect(outcomeSentence("snmp").length).toBeGreaterThan(0);
+    expect(outcomeSentence("ping").length).toBeGreaterThan(0);
     expect(answeredFacetGuardSection().length).toBeGreaterThan(0);
   });
 
@@ -770,88 +796,71 @@ describe("the import dialog reads differently for a scan that only pinged", () =
     expect(readCode(DIALOG_SOURCE)).toContain("isIcmpOnly={isIcmpOnly}");
   });
 
-  test("the description has a branch for a scan that sent no SNMP", () => {
-    const branches: ReviewDescriptionBranches = reviewDescriptionBranches();
-
-    expect(branches.icmpOnly).not.toEqual(branches.snmp);
+  test("each kind of host has its own line, shown only when the scan has one", () => {
+    /*
+     * An ICMP-only sweep has no host that answered SNMP, so its summary has
+     * no SNMP line: nothing on screen describes a kind of host the sweep
+     * cannot have (#3445). Each line is gated on its own count.
+     */
+    expect(outcomeLineSection("snmp")).toMatch(
+      /^if \(outcome\.snmpHostCount > 0\) \{ lines\.push\(\{ key: "snmp",/,
+    );
+    expect(outcomeLineSection("ping")).toMatch(
+      /^if \(outcome\.pingOnlyHostCount > 0\) \{ lines\.push\(\{ key: "ping",/,
+    );
   });
 
-  test("the ICMP-only branch says what those hosts import as, and what to add later", () => {
+  test("the ping-only line says what those hosts import as, and what to add later", () => {
     /*
      * The two facts an operator needs before importing a sweep that asked
-     * nothing about SNMP: what arrives in the inventory - "pinged by the
-     * scan's probe", the same phrase the No SNMP pill and the SNMP branch
-     * use - and what is still worth adding: SNMP credentials.
+     * nothing about SNMP: what arrives in the inventory - pinged, the word
+     * the No SNMP pill uses - and what is still worth adding: SNMP
+     * credentials.
      */
-    const icmpOnly: string = reviewDescriptionBranches().icmpOnly;
-
-    expect(icmpOnly).toContain("ICMP only");
-    expect(icmpOnly).toContain("pinged by the scan's probe");
-    expect(icmpOnly).toContain("SNMP credentials");
-  });
-
-  test("the ICMP-only branch is exactly this sentence", () => {
-    expect(reviewDescriptionBranches().icmpOnly).toEqual(
-      "Hosts that answered ping in {{range}}. This scan checked ICMP only, so every host imports as a device pinged by the scan's probe; add SNMP credentials later to walk them for interfaces and inventory.",
+    expect(outcomeSentence("ping")).toEqual(
+      "{{count}} devices answered ping only: they are pinged every {{minutes}} min. Add SNMP credentials later to walk them too.",
     );
   });
 
-  test("the SNMP branch is exactly this sentence", () => {
-    expect(reviewDescriptionBranches().snmp).toEqual(
-      "Hosts that answered in {{range}}. A host that answered SNMP imports with the credentials that answered it; the rest are pinged by the scan's probe until you add some.",
+  test("the SNMP line is exactly this sentence", () => {
+    expect(outcomeSentence("snmp")).toEqual(
+      "{{count}} devices answered SNMP: they are walked every {{minutes}} min for interfaces, inventory and health, with the credentials that answered them.",
     );
   });
 
-  test("both branches open with the scanned range and ask for nothing else", () => {
+  test("both lines ask for the count and the interval only, and are recorded for translation", () => {
     /*
-     * {{range}} is the only value either asks for — a placeholder nobody
-     * fills is shown to the operator as "{{range}}". Both sentences are
-     * recorded for translation.
+     * A placeholder nobody fills is shown to the operator as "{{range}}".
+     * Both sentences are keys of en.json, with their one-host forms.
      */
     const placeholder: RegExp = /\{\{\s*[\w.]+\s*\}\}/g;
     const english: Record<string, string> = readEnglishLocale();
-    const branches: ReviewDescriptionBranches = reviewDescriptionBranches();
 
-    for (const branch of [branches.icmpOnly, branches.snmp]) {
-      expect(branch.startsWith("Hosts that answered")).toBe(true);
-      expect(branch).toContain(" in {{range}}. ");
-      expect(branch.match(placeholder)).toEqual(["{{range}}"]);
-      expect(english[branch]).toEqual(branch);
+    for (const sentence of [outcomeSentence("snmp"), outcomeSentence("ping")]) {
+      expect(sentence.match(placeholder)).toEqual(["{{count}}", "{{minutes}}"]);
+      expect(english[sentence]).toEqual(sentence);
+      expect(english[`${sentence}_one`]).toBeTruthy();
     }
   });
 
-  test("the ICMP-only branch does not describe a choice that is not on screen", () => {
-    const icmpOnly: string = reviewDescriptionBranches().icmpOnly;
+  test("the ping-only line never frames its own results as a shortfall", () => {
+    const ping: string = outcomeSentence("ping");
 
-    expect(icmpOnly).not.toContain("Filter to a group");
-    expect(icmpOnly).not.toContain("answered SNMP");
-    expect(icmpOnly).not.toContain("SNMP hosts");
-  });
-
-  test("the ICMP-only branch never frames its own results as a shortfall", () => {
-    const icmpOnly: string = reviewDescriptionBranches().icmpOnly;
-
-    expect(icmpOnly).not.toContain("without SNMP");
-    expect(icmpOnly).not.toContain("cannot be imported");
-    expect(icmpOnly).not.toContain("cannot");
+    expect(ping).not.toContain("without SNMP");
+    expect(ping).not.toContain("cannot be imported");
+    expect(ping).not.toContain("cannot");
   });
 
   test("the new copy did not reintroduce the banned sentence frame", () => {
-    for (const branch of [
-      reviewDescriptionBranches().icmpOnly,
-      reviewDescriptionBranches().snmp,
-    ]) {
-      expect(branch).not.toContain("hosts in this scan.");
+    for (const sentence of [outcomeSentence("snmp"), outcomeSentence("ping")]) {
+      expect(sentence).not.toContain("hosts in this scan.");
     }
   });
 
-  test("both branches are punctuated as the sentences they are", () => {
-    const branches: ReviewDescriptionBranches = reviewDescriptionBranches();
-
-    for (const branch of [branches.icmpOnly, branches.snmp]) {
-      expect(branch.trim()).toEqual(branch);
-      expect(branch.slice(0, 1)).toEqual(branch.slice(0, 1).toUpperCase());
-      expect(branch.endsWith(".")).toBe(true);
+  test("both lines are punctuated as the sentences they are", () => {
+    for (const sentence of [outcomeSentence("snmp"), outcomeSentence("ping")]) {
+      expect(sentence.trim()).toEqual(sentence);
+      expect(sentence.endsWith(".")).toBe(true);
     }
   });
 });
@@ -870,7 +879,7 @@ describe("the SNMP / No SNMP facet is not offered on a sweep that sent no SNMP",
      * the facet on screen.
      */
     expect(answeredFacetGuardSection().trim()).toEqual(
-      '{!props.isIcmpOnly && ( <div className="flex items-center gap-2"',
+      '{!props.isIcmpOnly && ( <div className="flex min-w-0 flex-col gap-1.5"',
     );
   });
 
@@ -906,7 +915,7 @@ describe("the per-row No SNMP pill stays exactly where it was", () => {
 
   test("the pill still explains what the host imports as and what to add to it", () => {
     /*
-     * The same facts the ICMP-only description carries, in the same words,
+     * The same facts the summary's ping-only line carries, in the same words,
      * one row at a time. `title` is the only place they can live on a pill
      * this small. The sentences of the imports it no longer does are banned.
      */
@@ -920,14 +929,15 @@ describe("the per-row No SNMP pill stays exactly where it was", () => {
     expect(badge).not.toContain("no polling");
   });
 
-  test("the pill's wording and the description's agree about what arrives", () => {
+  test("the pill's wording and the summary's agree about what arrives", () => {
+    /*
+     * One row at a time on the pill, all of them at once in the summary:
+     * pinged, and SNMP credentials to add later.
+     */
     expect(pingOnlyBadgeSection()).toContain("pinged by the scan's probe");
-    expect(reviewDescriptionBranches().icmpOnly).toContain(
-      "pinged by the scan's probe",
-    );
-    expect(reviewDescriptionBranches().snmp).toContain(
-      "pinged by the scan's probe",
-    );
+    expect(pingOnlyBadgeSection()).toContain("SNMP credentials");
+    expect(outcomeSentence("ping")).toContain("pinged every");
+    expect(outcomeSentence("ping")).toContain("SNMP credentials");
   });
 
   test("nothing in the dialog still describes the imports it no longer does", () => {

@@ -18225,7 +18225,7 @@
   "Unnamed": "Unnamed",
   "Unnamed Key": "Unnamed Key",
   "Unnamed Label": "Unnamed Label",
-  "Unnamed Network Device template": "Unnamed Network Device template",
+  "Unnamed Network Device template": "Navnløs mal for nettverksenheter",
   "Unnamed Network Site": "Unnamed Network Site",
   "Unnamed OID Collection Template": "Unnamed OID Collection Template",
   "Unnamed Project": "Unnamed Project",
@@ -20613,8 +20613,8 @@
   "{{count}} days rolling_one": "{{count}} day rolling",
   "{{count}} deployments": "{{count}} deployments",
   "{{count}} deployments_one": "{{count}} deployment",
-  "{{count}} devices": "{{count}} devices",
-  "{{count}} devices_one": "{{count}} device",
+  "{{count}} devices": "{{count}} enheter",
+  "{{count}} devices_one": "{{count}} enhet",
   "{{count}} down": "{{count}} down",
   "{{count}} down_one": "{{count}} down",
   "{{count}} enabled monitor rules decide which monitors this SLO measures. Matching monitors are attached automatically, so monitors cannot be added by hand, and monitors a rule attached cannot be removed here. Monitors attached by hand before the rules were enabled can still be removed. Disable every rule to pick monitors yourself.": "{{count}} enabled monitor rules decide which monitors this SLO measures. Matching monitors are attached automatically, so monitors cannot be added by hand, and monitors a rule attached cannot be removed here. Monitors attached by hand before the rules were enabled can still be removed. Disable every rule to pick monitors yourself.",
@@ -29533,5 +29533,12 @@
   "{{name}} is on call but isn't in the group: OneUptime can't find them in Slack. They can connect their Slack account in User Settings > Workspace > Slack, or use the same email address in both.": "{{name}} har vakt, men er ikke i gruppen: OneUptime finner ikke personen i Slack. Personen kan koble til Slack-kontoen sin under Brukerinnstillinger > Arbeidsområde > Slack, eller bruke samme e-postadresse begge steder.",
   "{{probe}}, the probe that ran the scan, pings every device on this schedule and walks the ones that answered SNMP for interfaces, inventory and health. You can change it on each device later.": "{{probe}}, sonden som kjørte skanningen, pinger hver enhet etter denne planen og går gjennom dem som svarte på SNMP, for grensesnitt, inventar og helse. Du kan endre det på hver enhet senere.",
   "Network Device templates read each device's own polls. Edit a template under Monitors → Settings → Templates; monitors made from it follow.": "Nettverksenhetsmaler leser hver enhets egne forespørsler. Rediger en mal under Overvåkinger → Innstillinger → Maler; overvåkinger laget fra den følger med.",
-  "Responded": "Svar"
+  "Responded": "Svar",
+  "A device that takes its status from a monitor bound to it gets no Network Device monitor: it would have nothing to read.": "En enhet som får statusen sin fra en overvåking som er knyttet til den, får ingen nettverksenhetsovervåking: den ville ikke hatt noe å lese.",
+  "Search hosts by name, address, subnet or vendor": "Søk etter verter på navn, adresse, delnett eller produsent",
+  "The device was not imported, so it has no monitor.": "Enheten ble ikke importert, så den har ingen overvåking.",
+  "The import stopped before it finished.": "Importen stoppet før den var ferdig.",
+  "The import was stopped.": "Importen ble stoppet.",
+  "What it has imported so far stays.": "Det den har importert så langt, blir værende.",
+  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "Det som ble importert før den stoppet, blir værende. Prøv på nytt forsøker resten igjen, og ingenting opprettes to ganger."
 }

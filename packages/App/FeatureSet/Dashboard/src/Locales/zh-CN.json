@@ -18225,7 +18225,7 @@
   "Unnamed": "Unnamed",
   "Unnamed Key": "Unnamed Key",
   "Unnamed Label": "Unnamed Label",
-  "Unnamed Network Device template": "Unnamed Network Device template",
+  "Unnamed Network Device template": "未命名的网络设备模板",
   "Unnamed Network Site": "Unnamed Network Site",
   "Unnamed OID Collection Template": "Unnamed OID Collection Template",
   "Unnamed Project": "Unnamed Project",
@@ -20613,7 +20613,7 @@
   "{{count}} days rolling_one": "{{count}} day rolling",
   "{{count}} deployments": "{{count}} deployments",
   "{{count}} deployments_one": "{{count}} deployment",
-  "{{count}} devices": "{{count}} devices",
+  "{{count}} devices": "{{count}} 台设备",
   "{{count}} devices_one": "{{count}} device",
   "{{count}} down": "{{count}} down",
   "{{count}} down_one": "{{count}} down",
@@ -29533,5 +29533,12 @@
   "{{name}} is on call but isn't in the group: OneUptime can't find them in Slack. They can connect their Slack account in User Settings > Workspace > Slack, or use the same email address in both.": "{{name}} 正在值班，但不在该组中：OneUptime 在 Slack 中找不到此人。此人可以在“用户设置 > 工作区 > Slack”中连接 Slack 帐户，或在两边使用相同的电子邮件地址。",
   "{{probe}}, the probe that ran the scan, pings every device on this schedule and walks the ones that answered SNMP for interfaces, inventory and health. You can change it on each device later.": "运行扫描的探测器 {{probe}} 会按此计划 ping 每台设备，并对应答 SNMP 的设备进行遍历，以获取接口、清单和健康状况。之后可以在每台设备上更改。",
   "Network Device templates read each device's own polls. Edit a template under Monitors → Settings → Templates; monitors made from it follow.": "网络设备模板读取每台设备自身的轮询。可在 监视器 → 设置 → 模板 中编辑模板；由它创建的监视器会随之更新。",
-  "Responded": "应答"
+  "Responded": "应答",
+  "A device that takes its status from a monitor bound to it gets no Network Device monitor: it would have nothing to read.": "从绑定的监视器获取状态的设备不会获得网络设备监视器：它没有可读取的数据。",
+  "Search hosts by name, address, subnet or vendor": "按名称、地址、子网或供应商搜索主机",
+  "The device was not imported, so it has no monitor.": "设备未导入，因此没有监视器。",
+  "The import stopped before it finished.": "导入在完成前停止了。",
+  "The import was stopped.": "导入已被停止。",
+  "What it has imported so far stays.": "已导入的内容会保留。",
+  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "停止前已导入的内容会保留。重试会再次尝试其余主机，不会重复创建任何内容。"
 }

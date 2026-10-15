@@ -9,6 +9,7 @@ import {
   countSettledMonitors,
   getRetryableHostResults,
 } from "Common/Types/NetworkDevice/DiscoveryImport";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * WHAT THE PROGRESS VIEW SAYS ABOUT AN IMPORT (OneUptime issue #4812).
@@ -42,6 +43,23 @@ export enum DiscoveryImportPhase {
  */
 export const DISCOVERY_IMPORT_WAITING_AFTER_MS: number = 15 * 1000;
 
+/*
+ * The import's own reasons for a host it did not finish
+ * (DISCOVERY_IMPORT_OWN_REASONS in Common/Types/NetworkDevice/DiscoveryImport),
+ * recorded here so every language has its words for them: the progress
+ * view looks each group's reason up, and these are the ones the import
+ * writes itself. DiscoveryImportProgressModel.test holds this list to the
+ * shared one, so a reworded reason cannot fall back to English unnoticed.
+ */
+export const DISCOVERY_IMPORT_TRANSLATED_REASONS: ReadonlyArray<string> = [
+  translationKey("The import was stopped."),
+  translationKey("The import stopped before it finished."),
+  translationKey(
+    "A device that takes its status from a monitor bound to it gets no Network Device monitor: it would have nothing to read.",
+  ),
+  translationKey("The device was not imported, so it has no monitor."),
+];
+
 export enum DiscoveryImportIssueKind {
   // The device could not be created.
   DeviceFailed = "DeviceFailed",
@@ -74,6 +92,14 @@ export interface DiscoveryImportProgressModel {
   devicesSettled: number;
   monitorsRequested: number;
   monitorsSettled: number;
+  /*
+   * What the bars fill with: the devices and monitors the import GOT TO -
+   * made, found, or refused. A host it never reached (it was stopped, or
+   * failed, first) is settled but not progress: a stopped import's bar
+   * shows how far it got, not a full bar over "491 not reached".
+   */
+  devicesReached: number;
+  monitorsReached: number;
   // 0-100, of the hosts whose device and monitor are both settled.
   overallPercent: number;
   progress: DiscoveryImportProgress;
@@ -208,6 +234,29 @@ export function countRetryableHosts(view: DiscoveryImportView): number {
   );
 }
 
+// Devices the import got to: made, found already there, or refused.
+export function countReachedDevices(progress: DiscoveryImportProgress): number {
+  return (
+    progress.devicesCreated +
+    progress.devicesAlreadyAdded +
+    progress.devicesFailed
+  );
+}
+
+/*
+ * Monitors the import got to. A host it never reached has its monitor
+ * skipped with it (DiscoveryImportRunner.markNotReached), one for one, when
+ * the import makes monitors at all - so those are taken back off.
+ */
+export function countReachedMonitors(
+  progress: DiscoveryImportProgress,
+): number {
+  const notReached: number =
+    progress.monitorsRequested > 0 ? progress.devicesNotReached : 0;
+
+  return Math.max(0, countSettledMonitors(progress) - notReached);
+}
+
 export function getDiscoveryImportProgressModel(
   view: DiscoveryImportView,
   now: number = Date.now(),
@@ -225,6 +274,8 @@ export function getDiscoveryImportProgressModel(
     devicesSettled: countSettledDevices(progress),
     monitorsRequested: progress.monitorsRequested,
     monitorsSettled: countSettledMonitors(progress),
+    devicesReached: countReachedDevices(progress),
+    monitorsReached: countReachedMonitors(progress),
     overallPercent:
       progress.hosts > 0
         ? Math.min(100, Math.floor((progress.hostsDone * 100) / progress.hosts))

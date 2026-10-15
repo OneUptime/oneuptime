@@ -19,7 +19,11 @@ import Color from "Common/Types/Color";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import NetworkAlertPolicyBootstrapUtil from "Common/Utils/NetworkDevice/NetworkAlertPolicyBootstrapUtil";
-import { summarizeDiscoveryImportResults } from "Common/Types/NetworkDevice/DiscoveryImport";
+import {
+  DISCOVERY_IMPORT_NO_DEVICE_NO_MONITOR_REASON,
+  DISCOVERY_IMPORT_STOPPED_REASON,
+  summarizeDiscoveryImportResults,
+} from "Common/Types/NetworkDevice/DiscoveryImport";
 import {
   buildDeviceName,
   buildNetworkDeviceFromDiscoveredHost,
@@ -306,8 +310,7 @@ export function createImportApi(control) {
           result.deviceError = reason;
           if (result.monitor === "Pending") {
             result.monitor = "Skipped";
-            result.monitorError =
-              "The device was not imported, so it has no monitor.";
+            result.monitorError = DISCOVERY_IMPORT_NO_DEVICE_NO_MONITOR_REASON;
           }
           continue;
         }
@@ -365,17 +368,14 @@ export function createImportApi(control) {
       for (const result of record.results) {
         if (result.device === "Pending") {
           result.device = "NotReached";
-          result.deviceError =
-            "The import was stopped before it reached this host.";
+          result.deviceError = DISCOVERY_IMPORT_STOPPED_REASON;
           if (result.monitor === "Pending") {
             result.monitor = "Skipped";
-            result.monitorError =
-              "The device was not imported, so it has no monitor.";
+            result.monitorError = DISCOVERY_IMPORT_NO_DEVICE_NO_MONITOR_REASON;
           }
         } else if (result.monitor === "Pending") {
           result.monitor = "Failed";
-          result.monitorError =
-            "The import was stopped before it reached this host.";
+          result.monitorError = DISCOVERY_IMPORT_STOPPED_REASON;
         }
       }
       record.status = "Stopped";

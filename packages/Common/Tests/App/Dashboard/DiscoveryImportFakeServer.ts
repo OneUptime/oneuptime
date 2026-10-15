@@ -3,6 +3,8 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import URL from "../../../Types/API/URL";
 import { JSONObject } from "../../../Types/JSON";
 import {
+  DISCOVERY_IMPORT_NO_DEVICE_NO_MONITOR_REASON,
+  DISCOVERY_IMPORT_STOPPED_REASON,
   DiscoveryImportAlerting,
   DiscoveryImportDeviceOutcome,
   DiscoveryImportHostResult,
@@ -501,8 +503,7 @@ export default class DiscoveryImportFakeServer {
 
       if (result.monitor === DiscoveryImportMonitorOutcome.Pending) {
         result.monitor = DiscoveryImportMonitorOutcome.Skipped;
-        result.monitorError =
-          "The device was not imported, so it has no monitor.";
+        result.monitorError = DISCOVERY_IMPORT_NO_DEVICE_NO_MONITOR_REASON;
       }
 
       return;
@@ -537,14 +538,12 @@ export default class DiscoveryImportFakeServer {
     for (const result of record.results) {
       if (result.device === DiscoveryImportDeviceOutcome.Pending) {
         result.device = DiscoveryImportDeviceOutcome.NotReached;
-        result.deviceError =
-          "The import was stopped before this host. Retry imports it.";
+        result.deviceError = DISCOVERY_IMPORT_STOPPED_REASON;
       }
 
       if (result.monitor === DiscoveryImportMonitorOutcome.Pending) {
         result.monitor = DiscoveryImportMonitorOutcome.Skipped;
-        result.monitorError =
-          "The device was not imported, so it has no monitor.";
+        result.monitorError = DISCOVERY_IMPORT_NO_DEVICE_NO_MONITOR_REASON;
       }
     }
 

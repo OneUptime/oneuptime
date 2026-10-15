@@ -279,7 +279,7 @@ describe("an answer that arrives too late changes nothing", () => {
     const open: string = section(
       DIALOG,
       "useEffect(() => { openRequestRef",
-      "}, [scanId]);",
+      "}, [scanId, openAttempt]);",
     );
 
     expect(open).toContain(
@@ -287,6 +287,24 @@ describe("an answer that arrives too late changes nothing", () => {
     );
     expect(count(open, "request !== openRequestRef.current")).toBe(1);
     expect(count(open, "request === openRequestRef.current")).toBe(2);
+  });
+
+  test("Try again reads the scan again through the same numbered open", () => {
+    /*
+     * A scan that could not be read offers only Try again, which bumps the
+     * attempt the open effect depends on - so a retry goes through the very
+     * numbering that drops a late answer, not around it.
+     */
+    const code: string = readCode(DIALOG);
+
+    expect(code).toContain(
+      "const couldNotOpen: boolean = Boolean(loadError) && !scan && !isLoading;",
+    );
+    expect(
+      section(DIALOG, "if (couldNotOpen) {", "} else if (step ==="),
+    ).toContain(
+      'submitButtonText = translationKey("Try again"); onSubmit = () => { setOpenAttempt((attempt: number) => { return attempt + 1; }); };',
+    );
   });
 
   test("another scan's review is a new dialog, never this one's state", () => {

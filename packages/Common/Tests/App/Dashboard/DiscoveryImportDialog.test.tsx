@@ -9,7 +9,9 @@ import {
 } from "@testing-library/react";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
-import DiscoveryImportDialog from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImport/DiscoveryImportDialog";
+import DiscoveryImportDialog, {
+  scrollToTopOfScroller,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImport/DiscoveryImportDialog";
 import DiscoveryImportRowStatus from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImport/DiscoveryImportRowStatus";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
@@ -32,6 +34,7 @@ import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import {
   DEFAULT_DISCOVERY_IMPORT_SETTINGS,
+  DISCOVERY_IMPORT_STOPPED_REASON,
   DiscoveryImportAlerting,
   DiscoveryImportDeviceOutcome,
   DiscoveryImportStatus,
@@ -606,6 +609,13 @@ describe("opening the import", () => {
     expect(screen.getByTestId("discovery-import-last")).toHaveTextContent(
       "1 imported, 1 failed.",
     );
+    /*
+     * How long ago, from the browser's own words for it (Intl), not
+     * moment's fromNow - which is English on every page, a German one too.
+     */
+    expect(screen.getByTestId("discovery-import-last")).toHaveTextContent(
+      "Last import from this scan, 1 hour ago: 1 imported, 1 failed.",
+    );
 
     await act(async () => {
       fireEvent.click(screen.getByTestId("discovery-import-view-last"));
@@ -621,7 +631,7 @@ describe("opening the import", () => {
     expect(last.id).toBeTruthy();
   });
 
-  test("a scan that cannot be read says why, and nothing can be imported", async () => {
+  test("a scan that cannot be read says why, and offers only to try again", async () => {
     getItemSpy.mockRejectedValue(
       new Error("This discovery scan could not be found."),
     );
@@ -631,7 +641,46 @@ describe("opening the import", () => {
     expect(
       screen.getByText("This discovery scan could not be found."),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
+    // Nothing to choose from: no steps, no count, no Next.
+    expect(
+      screen.queryByRole("button", { name: "Next" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("discovery-import-steps"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("discovery-import-choose-summary"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("modal-footer-close-button")).toHaveTextContent(
+      "Close",
+    );
+    expect(button("Try again")).toBeEnabled();
+  });
+
+  test("Try again reads the scan again, and a read that works opens the choice of hosts", async () => {
+    getItemSpy.mockRejectedValueOnce(
+      new Error("The scan could not be read. Check your connection."),
+    );
+
+    await openDialog();
+
+    expect(getItemSpy).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      fireEvent.click(button("Try again"));
+    });
+    await flush();
+    await flush();
+
+    expect(getItemSpy).toHaveBeenCalledTimes(2);
+    expect(
+      screen.queryByText("The scan could not be read. Check your connection."),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("discovered-host-table")).toBeInTheDocument();
+    expect(chooseSummary()).toBe("5 hosts will be imported");
+    expect(
+      screen.queryByRole("button", { name: "Try again" }),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -727,7 +776,13 @@ describe("choosing the hosts", () => {
     expect(
       screen.getByTestId("discovered-host-name-facet"),
     ).toBeInTheDocument();
-    expect(screen.getByText(/This scan checked ICMP only/)).toBeInTheDocument();
+    /*
+     * What a ping-only host imports as is said on its No SNMP pill and in
+     * the monitoring step's summary; the dialog's description is the scan.
+     */
+    expect(screen.getByTestId("modal-description")).toHaveTextContent(
+      /^Store 1100 \(10\.48\.11\.0\/23\)$/,
+    );
   });
 
   test("select all and clear act on the hosts shown", async () => {
@@ -819,7 +874,16 @@ describe("choosing the hosts", () => {
     expect(chooseSummary()).toBe(
       "One import brings in up to 5,000 hosts: narrow the selection, then import the rest after.",
     );
+    // Said in the warning colour, not as one more grey count.
+    expect(screen.getByTestId("discovery-import-choose-summary")).toHaveClass(
+      "text-amber-700",
+    );
     expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
+    // A Next that cannot be pressed looks it.
+    expect(screen.getByRole("button", { name: "Next" })).toHaveClass(
+      "disabled:opacity-50",
+      "disabled:cursor-not-allowed",
+    );
     // Fifty rows at a time, however large the scan.
     expect(screen.getAllByTestId(/^discovered-host-row-/)).toHaveLength(50);
   });
@@ -1252,6 +1316,10 @@ describe("the import as it runs", () => {
       screen.getByTestId("discovery-import-progress-title"),
     ).toHaveTextContent("Stopping after the host being imported now…");
     expect(
+      screen.getByText("What it has imported so far stays."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/the import carries on/)).not.toBeInTheDocument();
+    expect(
       screen.queryByTestId("discovery-import-stop"),
     ).not.toBeInTheDocument();
 
@@ -1264,7 +1332,41 @@ describe("the import as it runs", () => {
     expect(
       screen.getByTestId("discovery-import-issue-NotReached"),
     ).toHaveTextContent("4 hosts were not reached");
+    // One reason for all four, worded for a heading over any number of hosts.
+    expect(
+      within(
+        screen.getByTestId("discovery-import-issue-NotReached"),
+      ).getByTestId("discovery-import-issue-reason"),
+    ).toHaveTextContent(DISCOVERY_IMPORT_STOPPED_REASON);
     expect(button("Retry 4 hosts")).toBeInTheDocument();
+
+    /*
+     * The bar shows how far the import got - one host of five - not a full
+     * bar over "4 not reached".
+     */
+    const devices: HTMLElement = screen.getByTestId(
+      "discovery-import-devices-progress",
+    );
+    expect(within(devices).getByTestId("progress-bar-count")).toHaveTextContent(
+      "1 of 5 Devices",
+    );
+    expect(within(devices).getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "20",
+    );
+    expect(
+      screen.getByTestId("discovery-import-devices-counts"),
+    ).toHaveTextContent("1 imported · 4 not reached");
+
+    // Nothing to fix after a stop: what stays, and what Retry does.
+    expect(
+      screen.getByText(
+        "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/^Fix what is listed below/),
+    ).not.toBeInTheDocument();
   });
 
   test("an import queued behind another says it is waiting, not stuck", async () => {
@@ -1384,6 +1486,258 @@ describe("the import as it runs", () => {
     expect(
       screen.getByTestId("discovery-import-progress-title"),
     ).toHaveTextContent("Importing 1 device…");
+  });
+});
+
+/*
+ * What the UI review of the dialog changed (PR #4849): the header says
+ * which scan, every step opens at its top, the facets are named for a screen
+ * reader, a long group of failed hosts scrolls, and the loading and lone-bar
+ * states read as the rest of the product does.
+ */
+describe("the dialog, as a reader meets it", () => {
+  test("the description is the scan it imports from, on every step", async () => {
+    await openDialog();
+
+    const description: () => string = (): string => {
+      return screen.getByTestId("modal-description").textContent || "";
+    };
+
+    expect(description()).toBe("Store 1100 (10.48.11.0/23)");
+
+    await next();
+    expect(description()).toBe("Store 1100 (10.48.11.0/23)");
+
+    await submitImport();
+    expect(description()).toBe("Store 1100 (10.48.11.0/23)");
+  });
+
+  test("each facet is a radio group named after what it filters by", async () => {
+    await openDialog();
+
+    const responded: HTMLElement = screen.getByRole("radiogroup", {
+      name: "Responded",
+    });
+    const name: HTMLElement = screen.getByRole("radiogroup", { name: "Name" });
+
+    expect(
+      within(responded).getByRole("radio", { name: "SNMP (3)" }),
+    ).toBeInTheDocument();
+    expect(
+      within(name).getByRole("radio", { name: "Address only (1)" }),
+    ).toBeInTheDocument();
+    // No group is left with the shared component's generic name.
+    expect(
+      screen.queryByRole("radiogroup", { name: "Filter options" }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the search box's name says everything it finds a host by", async () => {
+    await openDialog();
+
+    expect(
+      screen.getByRole("textbox", {
+        name: "Search hosts by name, address, subnet or vendor",
+      }),
+    ).toHaveAttribute("placeholder", "Search by name, address or subnet");
+  });
+
+  test("the selection's links are the product's links, not grey text", async () => {
+    await openDialog();
+
+    expect(screen.getByTestId("discovered-host-clear-selection")).toHaveClass(
+      "text-indigo-600",
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("discovered-host-clear-selection"));
+    });
+
+    expect(screen.getByTestId("discovered-host-select-shown")).toHaveClass(
+      "text-indigo-600",
+    );
+    expect(screen.getByTestId("discovered-host-select-shown")).not.toHaveClass(
+      "text-gray-400",
+    );
+  });
+
+  test("a new step takes the keyboard's focus, so it is read from its top", async () => {
+    await openDialog();
+    await next();
+
+    expect(document.activeElement).toBe(
+      screen.getByTestId("discovery-import-dialog"),
+    );
+    expect(
+      screen.getByTestId("discovery-import-monitoring-step"),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("discovery-import-back"));
+    });
+    await flush();
+
+    expect(document.activeElement).toBe(
+      screen.getByTestId("discovery-import-dialog"),
+    );
+    expect(screen.getByTestId("discovered-host-table")).toBeInTheDocument();
+  });
+
+  test("a new step opens at the top of the dialog's scrolling body, whatever lies between", () => {
+    const scroller: HTMLDivElement = document.createElement("div");
+    const between: HTMLDivElement = document.createElement("div");
+    const content: HTMLDivElement = document.createElement("div");
+
+    scroller.style.overflowY = "auto";
+    // A box that does not scroll is passed over, though it may be tall.
+    between.style.overflowY = "visible";
+    Object.defineProperty(scroller, "scrollHeight", { value: 2400 });
+    Object.defineProperty(scroller, "clientHeight", { value: 600 });
+    Object.defineProperty(between, "scrollHeight", { value: 2400 });
+    Object.defineProperty(between, "clientHeight", { value: 600 });
+
+    scroller.appendChild(between);
+    between.appendChild(content);
+    document.body.appendChild(scroller);
+
+    scroller.scrollTop = 1500;
+    between.scrollTop = 0;
+    scrollToTopOfScroller(content);
+
+    expect(scroller.scrollTop).toBe(0);
+
+    // Nothing to scroll, or nothing at all: nothing happens, nothing throws.
+    expect(() => {
+      scrollToTopOfScroller(null);
+      scrollToTopOfScroller(document.createElement("div"));
+    }).not.toThrow();
+
+    scroller.remove();
+  });
+
+  test("on a phone, the one-line step names itself to a screen reader", async () => {
+    await openDialog();
+
+    const line: HTMLElement = screen.getByTestId("discovery-import-step-phone");
+
+    expect(line).not.toHaveAttribute("aria-hidden");
+    expect(line).toHaveTextContent("Choose devices · Step 1 of 3");
+  });
+
+  test("while the project is read, the choices' box holds the product's loader", async () => {
+    let releaseTemplates: () => void = (): void => {};
+    const getList: jest.SpyInstance = jest.spyOn(ModelAPI, "getList");
+    const answer: (request: { modelType: unknown }) => Promise<unknown> =
+      getList.getMockImplementation() as never;
+
+    getList.mockImplementation((async (request: { modelType: unknown }) => {
+      if (request.modelType === MonitorTemplate) {
+        await new Promise<void>((resolve: () => void) => {
+          releaseTemplates = resolve;
+        });
+      }
+
+      return answer(request);
+    }) as never);
+
+    await openDialog();
+    await next();
+
+    expect(
+      screen.getByTestId("discovery-import-facts-loading"),
+    ).toHaveAttribute("aria-busy", "true");
+    expect(
+      within(screen.getByTestId("discovery-import-facts-loading")).getByRole(
+        "status",
+        { name: "Loading" },
+      ),
+    ).toBeInTheDocument();
+    expect(button(/^Import \d+ devices?$/)).toBeDisabled();
+
+    await act(async () => {
+      releaseTemplates();
+    });
+    await flush();
+    await flush();
+
+    expect(
+      screen.queryByTestId("discovery-import-facts-loading"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("discovery-import-alerting")).toBeInTheDocument();
+  });
+
+  test("an import with no monitors draws its one bar across the panel", async () => {
+    await openDialog();
+    await next();
+    await submitImport();
+
+    const devices: HTMLElement = screen.getByTestId(
+      "discovery-import-devices-progress",
+    );
+
+    expect(
+      screen.queryByTestId("discovery-import-monitors-progress"),
+    ).not.toBeInTheDocument();
+    expect(devices.parentElement).not.toHaveClass("md:grid-cols-2");
+  });
+
+  test("an import with monitors draws its two bars side by side", async () => {
+    await openDialog();
+    await next();
+    await pickMonitorsForEachDevice();
+    await submitImport();
+
+    expect(
+      screen.getByTestId("discovery-import-devices-progress").parentElement,
+    ).toHaveClass("md:grid-cols-2");
+  });
+
+  test("a group of more hosts than it names opens into a list of every host, in a box of its own", async () => {
+    const many: Array<DiscoveredNetworkDevice> = Array.from(
+      { length: 30 },
+      (_value: unknown, index: number): DiscoveredNetworkDevice => {
+        return { ipAddress: `10.70.0.${index + 1}`, snmpReachable: false };
+      },
+    );
+    getItemSpy.mockResolvedValue(scanRow({ discoveredDevices: many }) as never);
+
+    for (const host of many) {
+      server.control.failDevices.set(
+        host.ipAddress,
+        "This project has reached its plan's limit of network devices.",
+      );
+    }
+
+    await openDialog();
+    await next();
+    await submitImport();
+
+    const group: HTMLElement = screen.getByTestId(
+      "discovery-import-issue-DeviceFailed",
+    );
+
+    expect(group).toHaveTextContent("30 hosts were not imported");
+    // Twelve named, the rest counted.
+    expect(group).toHaveTextContent("10.70.0.12");
+    expect(group).not.toHaveTextContent("10.70.0.13,");
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("discovery-import-issue-more-DeviceFailed"),
+      );
+    });
+
+    const hosts: HTMLElement = screen.getByTestId(
+      "discovery-import-issue-hosts-DeviceFailed",
+    );
+
+    // Every host, one a line, in a box that scrolls rather than grows.
+    expect(within(hosts).getAllByRole("listitem")).toHaveLength(30);
+    expect(hosts).toHaveClass("max-h-48", "overflow-y-auto");
+    expect(within(hosts).getByText("10.70.0.30")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("discovery-import-issue-more-DeviceFailed"),
+    ).not.toBeInTheDocument();
   });
 });
 

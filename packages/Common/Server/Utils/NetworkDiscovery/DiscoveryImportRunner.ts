@@ -16,6 +16,10 @@ import { JSONObject } from "../../../Types/JSON";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import {
   ACTIVE_DISCOVERY_IMPORT_STATUSES,
+  DISCOVERY_IMPORT_MONITOR_BACKED_REASON,
+  DISCOVERY_IMPORT_NO_DEVICE_NO_MONITOR_REASON,
+  DISCOVERY_IMPORT_STOPPED_REASON,
+  DISCOVERY_IMPORT_UNFINISHED_REASON,
   DISCOVERY_IMPORT_VIEW_RESULT_LIMIT,
   DiscoveryImportAlerting,
   DiscoveryImportDeviceOutcome,
@@ -225,17 +229,19 @@ export const DISCOVERY_IMPORT_VIEW_SELECT: {
 };
 
 /*
- * Why a host's monitor was not made, said once, in the words the progress
- * view lists them under.
+ * Why a host's device or monitor was not made, said once, in the words the
+ * progress view lists them under. The sentences are the shared types' own
+ * (DISCOVERY_IMPORT_OWN_REASONS), worded to read right under a heading for
+ * one host or for hundreds, and translated in the Dashboard.
  */
 export const MONITOR_SKIPPED_DEVICE_NOT_IMPORTED: string =
-  "The device was not imported, so it has no monitor.";
+  DISCOVERY_IMPORT_NO_DEVICE_NO_MONITOR_REASON;
 export const MONITOR_SKIPPED_MONITOR_BACKED: string =
-  "This device takes its status from a monitor bound to it, so a Network Device monitor would have nothing to read.";
+  DISCOVERY_IMPORT_MONITOR_BACKED_REASON;
 export const DEVICE_NOT_REACHED_STOPPED: string =
-  "The import was stopped before it reached this host.";
+  DISCOVERY_IMPORT_STOPPED_REASON;
 export const DEVICE_NOT_REACHED_FAILED: string =
-  "The import stopped before it reached this host.";
+  DISCOVERY_IMPORT_UNFINISHED_REASON;
 
 // The state one worker keeps while it imports one import's hosts.
 interface ImportRunState {

@@ -13,9 +13,8 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
-import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
+import CompactLoader from "Common/UI/Components/ComponentLoader/CompactLoader";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
-import { VeryLightGray } from "Common/Types/BrandColors";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -450,8 +449,16 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
             </p>
           </div>
           {props.isLoadingFacts ? (
-            <div className="flex items-center gap-2 py-4 text-sm text-gray-500">
-              <Loader loaderType={LoaderType.Bar} color={VeryLightGray} />
+            /*
+             * The product's loader, in the box the choices will fill, so
+             * the step does not jump when they arrive.
+             */
+            <div
+              className="rounded-lg border border-gray-200 py-4"
+              data-testid="discovery-import-facts-loading"
+              aria-busy="true"
+            >
+              <CompactLoader />
             </div>
           ) : (
             <>

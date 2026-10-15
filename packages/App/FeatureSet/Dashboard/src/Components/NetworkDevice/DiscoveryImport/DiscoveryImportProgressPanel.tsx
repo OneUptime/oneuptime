@@ -115,6 +115,13 @@ export function getIssueGroupTitle(
 // How many host names an issue group shows before "and N more".
 export const ISSUE_GROUP_NAMES_SHOWN: number = 12;
 
+// A host in an issue group: its name, and its address when that is not the name.
+export function getIssueHostLabel(host: DiscoveryImportIssueHost): string {
+  return host.name && host.name !== host.ipAddress
+    ? `${host.name} (${host.ipAddress})`
+    : host.ipAddress;
+}
+
 const IssueGroup: FunctionComponent<{
   group: DiscoveryImportIssueGroup;
 }> = (props: { group: DiscoveryImportIssueGroup }): ReactElement => {
@@ -124,10 +131,11 @@ const IssueGroup: FunctionComponent<{
   const isWarning: boolean =
     group.kind === DiscoveryImportIssueKind.DeviceFailed ||
     group.kind === DiscoveryImportIssueKind.MonitorFailed;
-  const shownHosts: Array<DiscoveryImportIssueHost> = isExpanded
-    ? group.hosts
-    : group.hosts.slice(0, ISSUE_GROUP_NAMES_SHOWN);
-  const hiddenCount: number = group.hosts.length - shownHosts.length;
+  const previewHosts: Array<DiscoveryImportIssueHost> = group.hosts.slice(
+    0,
+    ISSUE_GROUP_NAMES_SHOWN,
+  );
+  const hiddenCount: number = group.hosts.length - previewHosts.length;
 
   return (
     <li
@@ -153,33 +161,59 @@ const IssueGroup: FunctionComponent<{
               {translator.translateText(group.reason) || group.reason}
             </p>
           )}
-          <p className="mt-1 break-words text-xs text-gray-500">
-            {shownHosts
-              .map((host: DiscoveryImportIssueHost): string => {
-                return host.name && host.name !== host.ipAddress
-                  ? `${host.name} (${host.ipAddress})`
-                  : host.ipAddress;
-              })
-              .join(", ")}
-            {hiddenCount > 0 && (
-              <>
-                {" "}
-                <button
-                  type="button"
-                  className="font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:underline"
-                  onClick={() => {
-                    setIsExpanded(true);
-                  }}
-                >
-                  {translator.translatePlural(
-                    { one: "and {{count}} more", other: "and {{count}} more" },
-                    hiddenCount,
-                    { count: translator.formatNumber(hiddenCount) },
-                  )}
-                </button>
-              </>
-            )}
-          </p>
+          {isExpanded ? (
+            /*
+             * Every host, one a line, in a box of its own height: a group
+             * can hold thousands, and a paragraph of five hundred names
+             * would push the rest of the summary out of reach.
+             */
+            <ul
+              className="mt-2 grid max-h-48 grid-cols-1 gap-x-6 gap-y-1 overflow-y-auto rounded-md border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-600 sm:grid-cols-2"
+              data-testid={`discovery-import-issue-hosts-${group.kind}`}
+            >
+              {group.hosts.map(
+                (host: DiscoveryImportIssueHost, index: number) => {
+                  const label: string = getIssueHostLabel(host);
+
+                  return (
+                    <li
+                      key={`${host.ipAddress}-${index}`}
+                      className="truncate"
+                      title={label}
+                    >
+                      {label}
+                    </li>
+                  );
+                },
+              )}
+            </ul>
+          ) : (
+            <p className="mt-1 break-words text-xs text-gray-500">
+              {previewHosts.map(getIssueHostLabel).join(", ")}
+              {hiddenCount > 0 && (
+                <>
+                  {" "}
+                  <button
+                    type="button"
+                    className="font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:underline"
+                    data-testid={`discovery-import-issue-more-${group.kind}`}
+                    onClick={() => {
+                      setIsExpanded(true);
+                    }}
+                  >
+                    {translator.translatePlural(
+                      {
+                        one: "and {{count}} more",
+                        other: "and {{count}} more",
+                      },
+                      hiddenCount,
+                      { count: translator.formatNumber(hiddenCount) },
+                    )}
+                  </button>
+                </>
+              )}
+            </p>
+          )}
         </div>
       </div>
     </li>
@@ -336,6 +370,62 @@ export function getPhaseTitle(
   }
 }
 
+/*
+ * The line under the headline: what the reader can do now. A stopped import
+ * has nothing to fix - the reader stopped it - so it says what stays and
+ * what Retry does instead of asking for a fix.
+ */
+export function getPhaseDescription(
+  translator: Translator,
+  model: DiscoveryImportProgressModel,
+  view: DiscoveryImportView,
+): string {
+  if (model.phase === DiscoveryImportPhase.Waiting) {
+    return translator.translateText(
+      "Imports in a project run one at a time, so the same address is never imported twice. This one starts as soon as the one before it finishes.",
+    ) as string;
+  }
+
+  if (model.phase === DiscoveryImportPhase.Stopping) {
+    return translator.translateText(
+      "What it has imported so far stays.",
+    ) as string;
+  }
+
+  if (model.isActive) {
+    return translator.translateText(
+      "You can close this window: the import carries on, and Review Results shows where it stands.",
+    ) as string;
+  }
+
+  if (model.retryableCount > 0) {
+    return model.phase === DiscoveryImportPhase.Stopped
+      ? (translator.translateText(
+          "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.",
+        ) as string)
+      : (translator.translateText(
+          "Fix what is listed below, then retry: only those hosts are tried again, and nothing is created twice.",
+        ) as string);
+  }
+
+  /*
+   * "Monitored from" only when every device got its monitor: a device that
+   * takes its status from a monitor bound to it is skipped, and listed below.
+   */
+  if (
+    view.monitorTemplateName &&
+    model.progress.monitorsRequested > 0 &&
+    model.progress.monitorsSkipped === 0
+  ) {
+    return translator.translateTemplate(
+      "Every host is in the inventory, monitored from “{{template}}”.",
+      { template: view.monitorTemplateName },
+    );
+  }
+
+  return translator.translateText("Every host is in the inventory.") as string;
+}
+
 const DiscoveryImportProgressPanel: FunctionComponent<
   DiscoveryImportProgressPanelProps
 > = (props: DiscoveryImportProgressPanelProps): ReactElement => {
@@ -464,27 +554,7 @@ const DiscoveryImportProgressPanel: FunctionComponent<
             {getPhaseTitle(translator, model)}
           </h4>
           <p className="mt-0.5 text-sm text-gray-500">
-            {model.phase === DiscoveryImportPhase.Waiting
-              ? translator.translateText(
-                  "Imports in a project run one at a time, so the same address is never imported twice. This one starts as soon as the one before it finishes.",
-                )
-              : model.isActive
-                ? translator.translateText(
-                    "You can close this window: the import carries on, and Review Results shows where it stands.",
-                  )
-                : model.retryableCount > 0
-                  ? translator.translateText(
-                      "Fix what is listed below, then retry: only those hosts are tried again, and nothing is created twice.",
-                    )
-                  : props.view.monitorTemplateName &&
-                      progress.monitorsRequested > 0
-                    ? translator.translateTemplate(
-                        "Every host is in the inventory, monitored from “{{template}}”.",
-                        { template: props.view.monitorTemplateName },
-                      )
-                    : translator.translateText(
-                        "Every host is in the inventory.",
-                      )}
+            {getPhaseDescription(translator, model, props.view)}
           </p>
         </div>
       </div>
@@ -497,10 +567,18 @@ const DiscoveryImportProgressPanel: FunctionComponent<
         />
       )}
 
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+      {/*
+       * Side by side when there are monitors to count too; the devices bar
+       * alone takes the width rather than half of it.
+       */}
+      <div
+        className={`grid grid-cols-1 gap-5 ${
+          model.monitorsRequested > 0 ? "md:grid-cols-2" : ""
+        }`}
+      >
         <div data-testid="discovery-import-devices-progress">
           <ProgressBar
-            count={model.devicesSettled}
+            count={model.devicesReached}
             totalCount={model.hostCount}
             suffix="Devices"
             size={ProgressBarSize.Small}
@@ -515,7 +593,7 @@ const DiscoveryImportProgressPanel: FunctionComponent<
         {model.monitorsRequested > 0 ? (
           <div data-testid="discovery-import-monitors-progress">
             <ProgressBar
-              count={model.monitorsSettled}
+              count={model.monitorsReached}
               totalCount={model.monitorsRequested}
               suffix="Monitors"
               size={ProgressBarSize.Small}

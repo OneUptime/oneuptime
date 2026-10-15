@@ -18225,7 +18225,7 @@
   "Unnamed": "Unnamed",
   "Unnamed Key": "Unnamed Key",
   "Unnamed Label": "Unnamed Label",
-  "Unnamed Network Device template": "Unnamed Network Device template",
+  "Unnamed Network Device template": "이름 없는 네트워크 장치 템플릿",
   "Unnamed Network Site": "Unnamed Network Site",
   "Unnamed OID Collection Template": "Unnamed OID Collection Template",
   "Unnamed Project": "Unnamed Project",
@@ -20613,7 +20613,7 @@
   "{{count}} days rolling_one": "{{count}} day rolling",
   "{{count}} deployments": "{{count}} deployments",
   "{{count}} deployments_one": "{{count}} deployment",
-  "{{count}} devices": "{{count}} devices",
+  "{{count}} devices": "장치 {{count}}개",
   "{{count}} devices_one": "{{count}} device",
   "{{count}} down": "{{count}} down",
   "{{count}} down_one": "{{count}} down",
@@ -29533,5 +29533,12 @@
   "{{name}} is on call but isn't in the group: OneUptime can't find them in Slack. They can connect their Slack account in User Settings > Workspace > Slack, or use the same email address in both.": "{{name}} 님은 온콜이지만 그룹에 포함되지 않았습니다: OneUptime이 Slack에서 이 사용자를 찾을 수 없습니다. 사용자 설정 > 워크스페이스 > Slack에서 Slack 계정을 연결하거나 양쪽에서 같은 이메일 주소를 사용하면 됩니다.",
   "{{probe}}, the probe that ran the scan, pings every device on this schedule and walks the ones that answered SNMP for interfaces, inventory and health. You can change it on each device later.": "스캔을 실행한 프로브인 {{probe}}이(가) 이 일정에 따라 모든 장치에 ping하고, SNMP에 응답한 장치는 인터페이스, 인벤토리, 상태를 위해 워크합니다. 나중에 장치마다 바꿀 수 있습니다.",
   "Network Device templates read each device's own polls. Edit a template under Monitors → Settings → Templates; monitors made from it follow.": "네트워크 장치 템플릿은 각 장치 자신의 폴링을 읽습니다. 템플릿은 모니터 → 설정 → 템플릿에서 편집하며, 그 템플릿으로 만든 모니터도 따라갑니다.",
-  "Responded": "응답"
+  "Responded": "응답",
+  "A device that takes its status from a monitor bound to it gets no Network Device monitor: it would have nothing to read.": "연결된 모니터에서 상태를 가져오는 장치에는 네트워크 장치 모니터가 만들어지지 않습니다. 읽을 데이터가 없기 때문입니다.",
+  "Search hosts by name, address, subnet or vendor": "이름, 주소, 서브넷 또는 제조업체로 호스트 검색",
+  "The device was not imported, so it has no monitor.": "장치를 가져오지 않았으므로 모니터가 없습니다.",
+  "The import stopped before it finished.": "가져오기가 끝나기 전에 멈췄습니다.",
+  "The import was stopped.": "가져오기가 중지되었습니다.",
+  "What it has imported so far stays.": "지금까지 가져온 항목은 그대로 남습니다.",
+  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "중지되기 전에 가져온 항목은 그대로 남습니다. 다시 시도하면 나머지를 다시 시도하며 아무것도 두 번 만들지 않습니다."
 }

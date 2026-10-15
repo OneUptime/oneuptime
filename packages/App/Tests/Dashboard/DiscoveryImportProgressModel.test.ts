@@ -1,6 +1,13 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import {
   DEFAULT_DISCOVERY_IMPORT_SETTINGS,
+  DISCOVERY_IMPORT_MONITOR_BACKED_REASON,
+  DISCOVERY_IMPORT_NO_DEVICE_NO_MONITOR_REASON,
+  DISCOVERY_IMPORT_OWN_REASONS,
+  DISCOVERY_IMPORT_STOPPED_REASON,
+  DISCOVERY_IMPORT_UNFINISHED_REASON,
   DiscoveryImportDeviceOutcome,
   DiscoveryImportHostResult,
   DiscoveryImportMonitorOutcome,
@@ -10,11 +17,14 @@ import {
   summarizeDiscoveryImportResults,
 } from "Common/Types/NetworkDevice/DiscoveryImport";
 import {
+  DISCOVERY_IMPORT_TRANSLATED_REASONS,
   DISCOVERY_IMPORT_WAITING_AFTER_MS,
   DiscoveryImportIssueGroup,
   DiscoveryImportIssueKind,
   DiscoveryImportPhase,
   DiscoveryImportProgressModel,
+  countReachedDevices,
+  countReachedMonitors,
   countRetryableHosts,
   getDiscoveryImportIssueKind,
   getDiscoveryImportPhase,
@@ -395,3 +405,224 @@ describe("the bars", () => {
     ).toBe(true);
   });
 });
+
+describe("the bars fill with what the import got to", () => {
+  /*
+   * A stopped import: one host imported with its monitor, one refused, and
+   * three it never reached - marked the way the runner marks them, each
+   * not-reached device with its monitor skipped.
+   */
+  function stopped(): DiscoveryImportView {
+    return view(
+      [
+        result(
+          "10.0.0.1",
+          DiscoveryImportDeviceOutcome.Created,
+          DiscoveryImportMonitorOutcome.Created,
+        ),
+        result(
+          "10.0.0.2",
+          DiscoveryImportDeviceOutcome.Failed,
+          DiscoveryImportMonitorOutcome.Skipped,
+          {
+            deviceError: NAME_TAKEN,
+            monitorError: DISCOVERY_IMPORT_NO_DEVICE_NO_MONITOR_REASON,
+          },
+        ),
+        ...["10.0.0.3", "10.0.0.4", "10.0.0.5"].map(
+          (ipAddress: string): DiscoveryImportHostResult => {
+            return result(
+              ipAddress,
+              DiscoveryImportDeviceOutcome.NotReached,
+              DiscoveryImportMonitorOutcome.Skipped,
+              {
+                deviceError: DISCOVERY_IMPORT_STOPPED_REASON,
+                monitorError: DISCOVERY_IMPORT_NO_DEVICE_NO_MONITOR_REASON,
+              },
+            );
+          },
+        ),
+      ],
+      { status: DiscoveryImportStatus.Stopped },
+    );
+  }
+
+  test("a stopped import's bars show how far it got, not five of five", () => {
+    const model: DiscoveryImportProgressModel = getDiscoveryImportProgressModel(
+      stopped(),
+      CREATED_AT_MS,
+    );
+
+    // Settled, every host is - but three were never reached.
+    expect(model.devicesSettled).toBe(5);
+    expect(model.monitorsSettled).toBe(5);
+    // What the import got to: one imported, one refused.
+    expect(model.devicesReached).toBe(2);
+    expect(model.monitorsReached).toBe(2);
+    expect(model.hostCount).toBe(5);
+    expect(model.monitorsRequested).toBe(5);
+  });
+
+  test("a finished import got to every host, so the bars are full", () => {
+    const model: DiscoveryImportProgressModel = getDiscoveryImportProgressModel(
+      view(
+        [
+          result(
+            "10.0.0.1",
+            DiscoveryImportDeviceOutcome.Created,
+            DiscoveryImportMonitorOutcome.Created,
+          ),
+          result(
+            "10.0.0.2",
+            DiscoveryImportDeviceOutcome.AlreadyAdded,
+            DiscoveryImportMonitorOutcome.AlreadyThere,
+          ),
+          result(
+            "10.0.0.3",
+            DiscoveryImportDeviceOutcome.Failed,
+            DiscoveryImportMonitorOutcome.Skipped,
+            { deviceError: NAME_TAKEN },
+          ),
+        ],
+        { status: DiscoveryImportStatus.Completed },
+      ),
+    );
+
+    expect(model.devicesReached).toBe(model.hostCount);
+    expect(model.monitorsReached).toBe(model.monitorsRequested);
+  });
+
+  test("an import without monitors takes nothing off a monitor count it does not have", () => {
+    const progress: ReturnType<typeof summarizeDiscoveryImportResults> =
+      summarizeDiscoveryImportResults([
+        result(
+          "10.0.0.1",
+          DiscoveryImportDeviceOutcome.Created,
+          DiscoveryImportMonitorOutcome.NotRequested,
+        ),
+        result(
+          "10.0.0.2",
+          DiscoveryImportDeviceOutcome.NotReached,
+          DiscoveryImportMonitorOutcome.NotRequested,
+          { deviceError: DISCOVERY_IMPORT_STOPPED_REASON },
+        ),
+      ]);
+
+    expect(countReachedDevices(progress)).toBe(1);
+    expect(countReachedMonitors(progress)).toBe(0);
+  });
+
+  test("while it runs, the bars and the settled counts agree", () => {
+    const running: DiscoveryImportView = view([
+      result(
+        "10.0.0.1",
+        DiscoveryImportDeviceOutcome.Created,
+        DiscoveryImportMonitorOutcome.Created,
+      ),
+      result(
+        "10.0.0.2",
+        DiscoveryImportDeviceOutcome.Pending,
+        DiscoveryImportMonitorOutcome.Pending,
+      ),
+    ]);
+    const model: DiscoveryImportProgressModel = getDiscoveryImportProgressModel(
+      running,
+      CREATED_AT_MS,
+    );
+
+    expect(model.devicesReached).toBe(model.devicesSettled);
+    expect(model.monitorsReached).toBe(model.monitorsSettled);
+  });
+
+  test("the counts never go below zero, whatever the progress says", () => {
+    const progress: ReturnType<typeof summarizeDiscoveryImportResults> = {
+      ...emptyDiscoveryImportProgress(),
+      hosts: 3,
+      devicesNotReached: 3,
+      monitorsRequested: 3,
+    };
+
+    expect(countReachedMonitors(progress)).toBe(0);
+  });
+});
+
+describe("the import's own reasons are in every language", () => {
+  const ENGLISH_LOCALE: string = path.join(
+    __dirname,
+    "..",
+    "..",
+    "FeatureSet",
+    "Dashboard",
+    "src",
+    "Locales",
+    "en.json",
+  );
+
+  test("the Dashboard records exactly the reasons the import writes", () => {
+    /*
+     * The progress view looks each group's reason up in the reader's
+     * language. A reason the runner writes that the Dashboard never recorded
+     * would read English in every language - this list is held to the
+     * shared one so a reworded reason cannot slip through.
+     */
+    expect([...DISCOVERY_IMPORT_TRANSLATED_REASONS].sort()).toEqual(
+      [...DISCOVERY_IMPORT_OWN_REASONS].sort(),
+    );
+  });
+
+  test("each is a key of en.json, mapped to itself", () => {
+    const english: Record<string, string> = JSON.parse(
+      fs.readFileSync(ENGLISH_LOCALE, "utf8"),
+    );
+
+    for (const reason of DISCOVERY_IMPORT_OWN_REASONS) {
+      expect([reason, english[reason]]).toEqual([reason, reason]);
+    }
+  });
+
+  test("each reads right under a heading for one host or for hundreds", () => {
+    /*
+     * "491 hosts were not reached" over "The import was stopped before it
+     * reached this host." read as a mistake: the reasons are listed once for
+     * a whole group, so none may speak of "this host".
+     */
+    for (const reason of DISCOVERY_IMPORT_OWN_REASONS) {
+      expect(reason).not.toMatch(THIS_HOST);
+      expect(reason.endsWith(".")).toBe(true);
+    }
+
+    expect(DISCOVERY_IMPORT_STOPPED_REASON).toBe("The import was stopped.");
+    expect(DISCOVERY_IMPORT_UNFINISHED_REASON).toBe(
+      "The import stopped before it finished.",
+    );
+    expect(DISCOVERY_IMPORT_MONITOR_BACKED_REASON).not.toMatch(THIS_DEVICE);
+  });
+
+  test("a stopped import's hosts are grouped under the stopped reason", () => {
+    const groups: Array<DiscoveryImportIssueGroup> = groupDiscoveryImportIssues(
+      [
+        result(
+          "10.0.0.3",
+          DiscoveryImportDeviceOutcome.NotReached,
+          DiscoveryImportMonitorOutcome.Skipped,
+          { deviceError: DISCOVERY_IMPORT_STOPPED_REASON },
+        ),
+        result(
+          "10.0.0.4",
+          DiscoveryImportDeviceOutcome.NotReached,
+          DiscoveryImportMonitorOutcome.Skipped,
+          { deviceError: DISCOVERY_IMPORT_STOPPED_REASON },
+        ),
+      ],
+    );
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0]!.kind).toBe(DiscoveryImportIssueKind.NotReached);
+    expect(groups[0]!.reason).toBe(DISCOVERY_IMPORT_STOPPED_REASON);
+    expect(DISCOVERY_IMPORT_TRANSLATED_REASONS).toContain(groups[0]!.reason);
+  });
+});
+
+// "this host", "this device": a reason that names one host as if alone.
+const THIS_HOST: RegExp = /\bthis host\b/i;
+const THIS_DEVICE: RegExp = /\bthis device\b/i;

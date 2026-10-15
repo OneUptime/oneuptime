@@ -429,22 +429,6 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
               "Also import hosts that answered ping but not SNMP. Off by default: a wrong SNMP credential makes every host on a subnet report as ping-only, and this rule would then import all of them as half-identified devices.",
           },
           {
-            field: { pollingIntervalInMinutes: true },
-            title: "Check every",
-            stepId: "behavior",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: getPollingIntervalOptions(),
-            required: false,
-            placeholder: "Every 5 minutes (the default)",
-            description:
-              "How often the scan's probe polls each device this rule imports: it pings every device, and walks the ones that answered SNMP. The same choice as Check every when you import from Review Results.",
-            showIf: (
-              values: FormValues<NetworkDeviceAutoImportRule>,
-            ): boolean => {
-              return !values.isExclusion;
-            },
-          },
-          {
             field: { isExclusion: true },
             title: "Is Exclusion Rule",
             stepId: "behavior",
@@ -466,6 +450,26 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
                   value === true,
                 ),
               );
+            },
+          },
+          /*
+           * Below Is Exclusion Rule, which hides it: a switch that takes away
+           * the fields under it, never one above the switch itself.
+           */
+          {
+            field: { pollingIntervalInMinutes: true },
+            title: "Check every",
+            stepId: "behavior",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: getPollingIntervalOptions(),
+            required: false,
+            placeholder: "Every 5 minutes (the default)",
+            description:
+              "How often the scan's probe polls each device this rule imports: it pings every device, and walks the ones that answered SNMP. The same choice as Check every when you import from Review Results.",
+            showIf: (
+              values: FormValues<NetworkDeviceAutoImportRule>,
+            ): boolean => {
+              return !values.isExclusion;
             },
           },
           ...(canPickOidTemplate

@@ -18225,7 +18225,7 @@
   "Unnamed": "Unnamed",
   "Unnamed Key": "Unnamed Key",
   "Unnamed Label": "Unnamed Label",
-  "Unnamed Network Device template": "Unnamed Network Device template",
+  "Unnamed Network Device template": "Шаблон сетевого устройства без названия",
   "Unnamed Network Site": "Unnamed Network Site",
   "Unnamed OID Collection Template": "Unnamed OID Collection Template",
   "Unnamed Project": "Unnamed Project",
@@ -20613,8 +20613,8 @@
   "{{count}} days rolling_one": "{{count}} day rolling",
   "{{count}} deployments": "{{count}} deployments",
   "{{count}} deployments_one": "{{count}} deployment",
-  "{{count}} devices": "{{count}} devices",
-  "{{count}} devices_one": "{{count}} device",
+  "{{count}} devices": "Устройств: {{count}}",
+  "{{count}} devices_one": "{{count}} устройство",
   "{{count}} down": "{{count}} down",
   "{{count}} down_one": "{{count}} down",
   "{{count}} enabled monitor rules decide which monitors this SLO measures. Matching monitors are attached automatically, so monitors cannot be added by hand, and monitors a rule attached cannot be removed here. Monitors attached by hand before the rules were enabled can still be removed. Disable every rule to pick monitors yourself.": "{{count}} enabled monitor rules decide which monitors this SLO measures. Matching monitors are attached automatically, so monitors cannot be added by hand, and monitors a rule attached cannot be removed here. Monitors attached by hand before the rules were enabled can still be removed. Disable every rule to pick monitors yourself.",
@@ -29533,5 +29533,12 @@
   "{{name}} is on call but isn't in the group: OneUptime can't find them in Slack. They can connect their Slack account in User Settings > Workspace > Slack, or use the same email address in both.": "{{name}} дежурит, но не входит в группу: OneUptime не находит этого человека в Slack. Он может подключить свой аккаунт Slack в разделе Настройки пользователя > Рабочее пространство > Slack или использовать один и тот же адрес электронной почты в обоих сервисах.",
   "{{probe}}, the probe that ran the scan, pings every device on this schedule and walks the ones that answered SNMP for interfaces, inventory and health. You can change it on each device later.": "{{probe}}, зонд, выполнивший сканирование, пингует каждое устройство по этому расписанию и обходит по SNMP те, что ответили по SNMP, для интерфейсов, инвентаря и состояния. Позже это можно изменить для каждого устройства.",
   "Network Device templates read each device's own polls. Edit a template under Monitors → Settings → Templates; monitors made from it follow.": "Шаблоны сетевых устройств читают собственные опросы каждого устройства. Изменить шаблон можно в разделе Мониторы → Настройки → Шаблоны; созданные из него мониторы последуют за ним.",
-  "Responded": "Ответ"
+  "Responded": "Ответ",
+  "A device that takes its status from a monitor bound to it gets no Network Device monitor: it would have nothing to read.": "Устройство, получающее статус от привязанного к нему монитора, не получает монитор сетевого устройства: ему нечего было бы считывать.",
+  "Search hosts by name, address, subnet or vendor": "Поиск хостов по имени, адресу, подсети или производителю",
+  "The device was not imported, so it has no monitor.": "Устройство не было импортировано, поэтому у него нет монитора.",
+  "The import stopped before it finished.": "Импорт остановился, не завершившись.",
+  "The import was stopped.": "Импорт был остановлен.",
+  "What it has imported so far stays.": "Всё, что уже импортировано, сохранится.",
+  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "Всё, что было импортировано до остановки, сохранится. Повтор попробует остальное ещё раз, и ничего не будет создано дважды."
 }

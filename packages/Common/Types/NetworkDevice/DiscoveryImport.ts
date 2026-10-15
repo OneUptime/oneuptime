@@ -299,6 +299,38 @@ export enum DiscoveryImportMonitorOutcome {
   Skipped = "Skipped",
 }
 
+/*
+ * The import's OWN reasons for a host it did not finish, as each host's
+ * result carries them (deviceError / monitorError).
+ *
+ * The progress view lists the hosts that ended the same way under one
+ * heading - "491 hosts were not reached", then the reason - so each reason
+ * is worded to read right under a heading for one host or for hundreds. The
+ * Dashboard has a translation of each (DiscoveryImportProgressModel's
+ * DISCOVERY_IMPORT_TRANSLATED_REASONS, held to this list by a test); a
+ * reason the server words itself - a plan's limit, a refused permission -
+ * reads as written.
+ */
+// A host the import never got to, because someone stopped it.
+export const DISCOVERY_IMPORT_STOPPED_REASON: string =
+  "The import was stopped.";
+// A host the import never got to, because the import itself failed.
+export const DISCOVERY_IMPORT_UNFINISHED_REASON: string =
+  "The import stopped before it finished.";
+// A device that takes its status from a monitor bound to it.
+export const DISCOVERY_IMPORT_MONITOR_BACKED_REASON: string =
+  "A device that takes its status from a monitor bound to it gets no Network Device monitor: it would have nothing to read.";
+// A host whose device was not imported, so its monitor was not made either.
+export const DISCOVERY_IMPORT_NO_DEVICE_NO_MONITOR_REASON: string =
+  "The device was not imported, so it has no monitor.";
+
+export const DISCOVERY_IMPORT_OWN_REASONS: ReadonlyArray<string> = [
+  DISCOVERY_IMPORT_STOPPED_REASON,
+  DISCOVERY_IMPORT_UNFINISHED_REASON,
+  DISCOVERY_IMPORT_MONITOR_BACKED_REASON,
+  DISCOVERY_IMPORT_NO_DEVICE_NO_MONITOR_REASON,
+];
+
 export interface DiscoveryImportHostResult {
   ipAddress: string;
   // The name the device was given, or will be given.

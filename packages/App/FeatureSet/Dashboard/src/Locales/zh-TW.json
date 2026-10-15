@@ -18225,7 +18225,7 @@
   "Unnamed": "Unnamed",
   "Unnamed Key": "Unnamed Key",
   "Unnamed Label": "Unnamed Label",
-  "Unnamed Network Device template": "Unnamed Network Device template",
+  "Unnamed Network Device template": "未命名的網路裝置範本",
   "Unnamed Network Site": "Unnamed Network Site",
   "Unnamed OID Collection Template": "Unnamed OID Collection Template",
   "Unnamed Project": "Unnamed Project",
@@ -20613,7 +20613,7 @@
   "{{count}} days rolling_one": "{{count}} day rolling",
   "{{count}} deployments": "{{count}} deployments",
   "{{count}} deployments_one": "{{count}} deployment",
-  "{{count}} devices": "{{count}} devices",
+  "{{count}} devices": "{{count}} 台裝置",
   "{{count}} devices_one": "{{count}} device",
   "{{count}} down": "{{count}} down",
   "{{count}} down_one": "{{count}} down",
@@ -29533,5 +29533,12 @@
   "{{name}} is on call but isn't in the group: OneUptime can't find them in Slack. They can connect their Slack account in User Settings > Workspace > Slack, or use the same email address in both.": "{{name}} 正在待命，但不在該群組中：OneUptime 在 Slack 中找不到此人。此人可以在「使用者設定 > 工作區 > Slack」中連線 Slack 帳戶，或在兩邊使用相同的電子郵件地址。",
   "{{probe}}, the probe that ran the scan, pings every device on this schedule and walks the ones that answered SNMP for interfaces, inventory and health. You can change it on each device later.": "執行掃描的探測器 {{probe}} 會依此排程 ping 每台裝置，並對回應 SNMP 的裝置進行走訪，以取得介面、清單與健康狀況。之後可在每台裝置上變更。",
   "Network Device templates read each device's own polls. Edit a template under Monitors → Settings → Templates; monitors made from it follow.": "網路裝置範本會讀取每台裝置自身的輪詢。可在 監測器 → 設定 → 範本 中編輯範本；以它建立的監測器會隨之更新。",
-  "Responded": "回應"
+  "Responded": "回應",
+  "A device that takes its status from a monitor bound to it gets no Network Device monitor: it would have nothing to read.": "從繫結的監測器取得狀態的裝置不會取得網路裝置監測器：它沒有可讀取的資料。",
+  "Search hosts by name, address, subnet or vendor": "依名稱、位址、子網路或供應商搜尋主機",
+  "The device was not imported, so it has no monitor.": "裝置未匯入，因此沒有監測器。",
+  "The import stopped before it finished.": "匯入在完成前停止了。",
+  "The import was stopped.": "匯入已被停止。",
+  "What it has imported so far stays.": "已匯入的內容會保留。",
+  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "停止前已匯入的內容會保留。重試會再次嘗試其餘主機，且不會重複建立任何項目。"
 }

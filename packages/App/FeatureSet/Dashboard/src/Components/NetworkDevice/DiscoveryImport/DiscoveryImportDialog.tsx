@@ -48,6 +48,7 @@ import {
 } from "../DiscoveredHostFilter";
 import DiscoveryScanStatusMessage from "../DiscoveryScanStatusMessage";
 import { findOrCreateRecommendedTemplate } from "../RecommendedMonitorTemplate";
+import { formatRelativeTime } from "../../Home/HomeRelativeTime";
 import DiscoveredHostTable from "./DiscoveredHostTable";
 import {
   getDiscoveryImport,
@@ -123,6 +124,30 @@ export interface DiscoveryImportDialogProps {
   importId?: string | undefined;
 }
 
+/*
+ * The dialog's body scrolls on its own. A new step starts at its top: the
+ * host list of step one can be scrolled a long way down, and the monitoring
+ * step used to open where it had been - on a phone, half way down its
+ * choices, with its first question out of sight.
+ */
+export function scrollToTopOfScroller(element: HTMLElement | null): void {
+  let node: HTMLElement | null = element?.parentElement || null;
+
+  while (node) {
+    const overflowY: string = window.getComputedStyle(node).overflowY;
+
+    if (
+      (overflowY === "auto" || overflowY === "scroll") &&
+      node.scrollHeight > node.clientHeight
+    ) {
+      node.scrollTop = 0;
+      return;
+    }
+
+    node = node.parentElement;
+  }
+}
+
 const StepIndicator: FunctionComponent<{
   step: DiscoveryImportStep;
 }> = (props: { step: DiscoveryImportStep }): ReactElement => {
@@ -145,9 +170,13 @@ const StepIndicator: FunctionComponent<{
     >
       {/*
        * A phone has no room for three steps on a line: it says which step
-       * this is, and the line of steps starts at sm.
+       * this is, and the line of steps starts at sm. Each is hidden (display
+       * none) where the other shows, so a screen reader hears exactly one.
        */}
-      <p className="text-sm sm:hidden" aria-hidden="true">
+      <p
+        className="text-sm sm:hidden"
+        data-testid="discovery-import-step-phone"
+      >
         <span className="font-semibold text-indigo-700">
           {translator.translateText(steps[currentIndex]?.title || "")}
         </span>
@@ -250,7 +279,13 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
     useState<boolean>(false);
   const [allResultsError, setAllResultsError] = useState<string>("");
   const [now, setNow] = useState<number>(Date.now());
+  // Bumped by "Try again" after the scan could not be read, to read it again.
+  const [openAttempt, setOpenAttempt] = useState<number>(0);
   const openRequestRef: React.MutableRefObject<number> = useRef<number>(0);
+  const contentRef: React.MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+  const shownStepRef: React.MutableRefObject<DiscoveryImportStep> =
+    useRef<DiscoveryImportStep>(step);
 
   const scanId: string = props.scan._id?.toString() || "";
 
@@ -346,7 +381,22 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
     };
 
     void open();
-  }, [scanId]);
+  }, [scanId, openAttempt]);
+
+  /*
+   * A new step opens at its top, with the keyboard's focus on it: the
+   * button that was pressed (Next, Import, Back) is gone or means something
+   * else now, and a screen reader starts reading the new step.
+   */
+  useEffect(() => {
+    if (shownStepRef.current === step) {
+      return;
+    }
+
+    shownStepRef.current = step;
+    scrollToTopOfScroller(contentRef.current);
+    contentRef.current?.focus({ preventScroll: true });
+  }, [step]);
 
   // The clock the "waiting" state is told apart by, while an import is active.
   useEffect(() => {
@@ -640,19 +690,16 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
     setStep(DiscoveryImportStep.Progress);
   };
 
+  /*
+   * The dialog's description is the scan it imports from, on every step:
+   * one line, so the steps keep the room (on a phone it was seven lines
+   * of prose above the list). What each kind of host imports as is said
+   * where the reader decides it - the monitoring step's "What this import
+   * does" - and on each ping-only row's No SNMP pill.
+   */
   const scanLabel: string =
     ScanNameUtil.getScanLabel(scan || props.scan) ||
     (translator.translateText("this scan") as string);
-
-  const description: string = isIcmpOnly
-    ? translator.translateTemplate(
-        "Hosts that answered ping in {{range}}. This scan checked ICMP only, so every host imports as a device pinged by the scan's probe; add SNMP credentials later to walk them for interfaces and inventory.",
-        { range: scanLabel },
-      )
-    : translator.translateTemplate(
-        "Hosts that answered in {{range}}. A host that answered SNMP imports with the credentials that answered it; the rest are pinged by the scan's probe until you add some.",
-        { range: scanLabel },
-      );
 
   const progressView: DiscoveryImportView | null = polling.view;
   const progressModel: DiscoveryImportProgressModel | null = progressView
@@ -681,7 +728,21 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
   let isSubmitDisabled: boolean = false;
   let leftFooterElement: ReactElement | undefined = undefined;
 
-  if (step === DiscoveryImportStep.Choose) {
+  /*
+   * The scan could not be read, so there is nothing to choose from: no
+   * steps, no count of hosts, and one way forward - read it again.
+   */
+  const couldNotOpen: boolean = Boolean(loadError) && !scan && !isLoading;
+
+  if (couldNotOpen) {
+    closeButtonText = translationKey("Close");
+    submitButtonText = translationKey("Try again");
+    onSubmit = () => {
+      setOpenAttempt((attempt: number) => {
+        return attempt + 1;
+      });
+    };
+  } else if (step === DiscoveryImportStep.Choose) {
     const isNextDisabled: boolean =
       isLoading ||
       hostsToImport.length === 0 ||
@@ -697,7 +758,11 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
     }).secondaryButton;
     leftFooterElement = (
       <p
-        className="text-sm text-gray-600"
+        className={`text-sm ${
+          hostsToImport.length > MAX_HOSTS_PER_DISCOVERY_IMPORT
+            ? "font-medium text-amber-700"
+            : "text-gray-600"
+        }`}
         data-testid="discovery-import-choose-summary"
       >
         {hostsToImport.length > MAX_HOSTS_PER_DISCOVERY_IMPORT
@@ -793,9 +858,7 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
   return (
     <Modal
       title="Import Discovered Devices"
-      description={
-        step === DiscoveryImportStep.Progress ? scanLabel : description
-      }
+      description={scanLabel}
       modalWidth={ModalWidth.Large}
       isBodyLoading={isLoading}
       isLoading={isActing && step !== DiscoveryImportStep.Progress}
@@ -813,8 +876,13 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
         ? { closeButtonStyleType: closeButtonStyleType }
         : {})}
     >
-      <div className="space-y-5" data-testid="discovery-import-dialog">
-        <StepIndicator step={step} />
+      <div
+        className="space-y-5 focus:outline-none"
+        data-testid="discovery-import-dialog"
+        ref={contentRef}
+        tabIndex={-1}
+      >
+        {!couldNotOpen && <StepIndicator step={step} />}
 
         {step === DiscoveryImportStep.Choose && scan && (
           <div className="space-y-4">
@@ -835,37 +903,50 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
             )}
             {lastImport && (
               <div
-                className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                className="flex items-start gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 sm:items-center"
                 data-testid="discovery-import-last"
               >
-                <p className="text-sm text-gray-700">
-                  {translator.translateTemplate(
-                    "Last import from this scan, {{time}}: {{imported}} imported, {{failed}} failed.",
-                    {
-                      time: OneUptimeDate.fromNow(
-                        OneUptimeDate.fromString(
-                          lastImport.completedAt || lastImport.createdAt,
+                <Icon
+                  icon={IconProp.Clock}
+                  className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400 sm:mt-0"
+                />
+                <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                  <p className="text-sm text-gray-700">
+                    {translator.translateTemplate(
+                      "Last import from this scan, {{time}}: {{imported}} imported, {{failed}} failed.",
+                      {
+                        /*
+                         * In the reader's language ("vor 5 Minuten"), from
+                         * the browser's own words for it - not moment's
+                         * fromNow, which is English on every page.
+                         */
+                        time: formatRelativeTime({
+                          date: OneUptimeDate.fromString(
+                            lastImport.completedAt || lastImport.createdAt,
+                          ),
+                          now: new Date(now),
+                          language: translator.language,
+                        }),
+                        imported: translator.formatNumber(
+                          lastImport.progress.devicesCreated,
                         ),
-                      ),
-                      imported: translator.formatNumber(
-                        lastImport.progress.devicesCreated,
-                      ),
-                      failed: translator.formatNumber(
-                        lastImport.progress.devicesFailed +
-                          lastImport.progress.devicesNotReached +
-                          lastImport.progress.monitorsFailed,
-                      ),
-                    },
-                  )}
-                </p>
-                <button
-                  type="button"
-                  className="self-start text-sm font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:underline sm:self-auto"
-                  data-testid="discovery-import-view-last"
-                  onClick={viewLastImport}
-                >
-                  {translator.translateText("View results")}
-                </button>
+                        failed: translator.formatNumber(
+                          lastImport.progress.devicesFailed +
+                            lastImport.progress.devicesNotReached +
+                            lastImport.progress.monitorsFailed,
+                        ),
+                      },
+                    )}
+                  </p>
+                  <button
+                    type="button"
+                    className="self-start whitespace-nowrap text-sm font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:underline sm:self-auto"
+                    data-testid="discovery-import-view-last"
+                    onClick={viewLastImport}
+                  >
+                    {translator.translateText("View results")}
+                  </button>
+                </div>
               </div>
             )}
             {scan.statusMessage && (

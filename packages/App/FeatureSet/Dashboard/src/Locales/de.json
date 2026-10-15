@@ -20613,8 +20613,8 @@
   "{{count}} days rolling_one": "{{count}} day rolling",
   "{{count}} deployments": "{{count}} deployments",
   "{{count}} deployments_one": "{{count}} deployment",
-  "{{count}} devices": "{{count}} devices",
-  "{{count}} devices_one": "{{count}} device",
+  "{{count}} devices": "{{count}} Geräte",
+  "{{count}} devices_one": "{{count}} Gerät",
   "{{count}} down": "{{count}} down",
   "{{count}} down_one": "{{count}} down",
   "{{count}} enabled monitor rules decide which monitors this SLO measures. Matching monitors are attached automatically, so monitors cannot be added by hand, and monitors a rule attached cannot be removed here. Monitors attached by hand before the rules were enabled can still be removed. Disable every rule to pick monitors yourself.": "{{count}} enabled monitor rules decide which monitors this SLO measures. Matching monitors are attached automatically, so monitors cannot be added by hand, and monitors a rule attached cannot be removed here. Monitors attached by hand before the rules were enabled can still be removed. Disable every rule to pick monitors yourself.",
@@ -29533,5 +29533,12 @@
   "{{name}} is on call but isn't in the group: OneUptime can't find them in Slack. They can connect their Slack account in User Settings > Workspace > Slack, or use the same email address in both.": "{{name}} hat Bereitschaft, ist aber nicht in der Gruppe: OneUptime findet die Person nicht in Slack. Sie kann ihr Slack-Konto unter Benutzereinstellungen > Arbeitsbereich > Slack verbinden oder in beiden dieselbe E-Mail-Adresse verwenden.",
   "{{probe}}, the probe that ran the scan, pings every device on this schedule and walks the ones that answered SNMP for interfaces, inventory and health. You can change it on each device later.": "{{probe}}, die Sonde, die den Scan ausgeführt hat, pingt jedes Gerät nach diesem Zeitplan an und fragt die, die auf SNMP geantwortet haben, nach Schnittstellen, Inventar und Integrität ab. Sie können das später für jedes Gerät ändern.",
   "Network Device templates read each device's own polls. Edit a template under Monitors → Settings → Templates; monitors made from it follow.": "Netzwerkgeräte-Vorlagen lesen die eigenen Abfragen jedes Geräts. Bearbeiten Sie eine Vorlage unter Überwachungen → Einstellungen → Vorlagen; die daraus erstellten Überwachungen folgen.",
-  "Responded": "Antwort"
+  "Responded": "Antwort",
+  "A device that takes its status from a monitor bound to it gets no Network Device monitor: it would have nothing to read.": "Ein Gerät, das seinen Status von einer an es gebundenen Überwachung erhält, bekommt keine Netzwerkgeräte-Überwachung: Sie hätte nichts zu lesen.",
+  "Search hosts by name, address, subnet or vendor": "Hosts nach Name, Adresse, Subnetz oder Hersteller durchsuchen",
+  "The device was not imported, so it has no monitor.": "Das Gerät wurde nicht importiert und hat daher keine Überwachung.",
+  "The import stopped before it finished.": "Der Import wurde vor dem Ende angehalten.",
+  "The import was stopped.": "Der Import wurde angehalten.",
+  "What it has imported so far stays.": "Was bisher importiert wurde, bleibt erhalten.",
+  "What it imported before it stopped stays. Retry tries the rest again, and nothing is created twice.": "Was vor dem Anhalten importiert wurde, bleibt erhalten. Ein erneuter Versuch probiert den Rest noch einmal, und nichts wird doppelt erstellt."
 }
