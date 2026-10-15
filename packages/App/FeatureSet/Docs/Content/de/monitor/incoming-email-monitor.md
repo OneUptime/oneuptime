@@ -6,6 +6,7 @@ Ein Monitor für eingehende E-Mails gibt Ihnen eine E-Mail-Adresse, die genau ei
 - [Den Monitor erstellen](#einen-monitor-für-eingehende-e-mails-erstellen): Eine Adresse erhalten und Ihren Absender darauf richten.
 - [Die Adresse bestätigen](#die-adresse-beim-absender-bestätigen): Die Bestätigungs-E-Mail eines Absenders am Monitor lesen.
 - [Kriterien schreiben](#verfügbare-filtertypen): Auf Betreff, Absender oder Text prüfen oder alarmieren, wenn keine E-Mail mehr kommt.
+- [Ein Vorfall für jede E-Mail](#für-jede-e-mail-einen-vorfall-eröffnen): Personen Vorfälle per E-Mail an die Adresse melden lassen.
 - [Die E-Mail in Warnungen verwenden](#vorlagenvariablen): Betreff und Text in Titel und Beschreibungen übernehmen.
 :::
 
@@ -27,7 +28,7 @@ sequenceDiagram
 
 1. Wenn Sie einen Monitor für eingehende E-Mails erstellen, gibt OneUptime ihm eine eindeutige E-Mail-Adresse.
 2. Jede an diese Adresse gesendete E-Mail wird am Monitor gespeichert und gegen seine Kriterien geprüft, von oben nach unten; das erste Kriterium, das zutrifft, entscheidet.
-3. Ein zutreffendes Kriterium kann den Status des Monitors ändern, eine Warnung erstellen und einen Vorfall eröffnen. Ein Vorfall mit eingeschaltetem **Vorfall automatisch beheben** oder eine Warnung mit eingeschaltetem **Warnung automatisch beheben** wird behoben, wenn später ein anderes Kriterium zutrifft — zum Beispiel das, das den Monitor als online markiert.
+3. Ein zutreffendes Kriterium kann den Status des Monitors ändern, eine Warnung erstellen und einen Vorfall eröffnen. Ein Vorfall mit eingeschaltetem **Vorfall automatisch beheben** oder eine Warnung mit eingeschaltetem **Warnung automatisch beheben** wird behoben, wenn später ein anderes Kriterium zutrifft — zum Beispiel das, das den Monitor als online markiert. Solange der Vorfall eines Kriteriums offen ist, eröffnen spätere E-Mails, die das Kriterium erfüllen, nichts Neues, es sei denn, das Kriterium [eröffnet für jede E-Mail einen Vorfall](#für-jede-e-mail-einen-vorfall-eröffnen).
 
 ## Einen Monitor für eingehende E-Mails erstellen
 
@@ -232,6 +233,43 @@ Setzen Sie das kritische Kriterium an den Anfang: Kriterien werden von oben gepr
 
 Das erste Kriterium löst aus, wenn 60 Minuten lang keine E-Mail eingetroffen ist — nützlich für geplante Jobs oder Stapelprozesse, die eine Abschluss-E-Mail senden. Das zweite behebt die Warnung, sobald eine eintrifft. Minuten, in denen OneUptime selbst keine E-Mails empfangen hat, zählen nicht zu den 60, wie [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving) erklärt.
 
+## Für jede E-Mail einen Vorfall eröffnen
+
+Ein Kriterium hält jeweils einen Vorfall offen: Solange er offen ist, eröffnen spätere E-Mails, die das Kriterium erfüllen, nichts Neues. Das passt zu einem System, dessen E-Mails über eine einzige Sache berichten, etwa ein nächtliches Backup. Ist jede E-Mail eine eigene Meldung, etwa wenn Personen Vorfälle melden, indem sie an die Adresse schreiben, schalten Sie im Kriterium **Für jede E-Mail einen neuen Vorfall eröffnen** ein.
+
+:::steps
+### Die E-Mails auswählen
+
+Geben Sie dem Kriterium einen Filter, der die E-Mails erfasst, für die Vorfälle eröffnet werden sollen. Um nur Meldungen Ihrer eigenen Leute anzunehmen, verwenden Sie **Email From Address** mit **Ends With** und Ihrer Domain, etwa `@example.com`.
+
+### Den Vorfall deklarieren
+
+Schalten Sie unter **Aktionen** die Option **Wenn Filter übereinstimmen, einen Vorfall deklarieren.** ein. Geben Sie dem Vorfall den Titel `{{emailSubject}}` und die Beschreibung `{{emailBody}}`, damit jeder Vorfall sagt, was in seiner E-Mail stand.
+
+### Den Schalter einschalten
+
+Schalten Sie unter dem Vorfall **Für jede E-Mail einen neuen Vorfall eröffnen** ein und speichern Sie den Monitor.
+:::
+
+Von da an behandelt das Kriterium jede E-Mail für sich:
+
+| E-Mail | Was passiert |
+| --- | --- |
+| Eine neue E-Mail | Eröffnet einen eigenen Vorfall, auch wenn frühere noch offen sind. |
+| Dieselbe E-Mail, erneut zugestellt | Eröffnet nichts weiter: OneUptime unterscheidet E-Mails an ihrem Header `Message-ID`. |
+| Eine Antwort auf eine E-Mail, die einen Vorfall eröffnet hat | Wird diesem Vorfall als private Notiz hinzugefügt und eröffnet nichts, auch nachdem der Vorfall behoben ist. |
+| Eine automatische Antwort, etwa eine Abwesenheitsnotiz | Eröffnet nichts. |
+| Eine E-Mail, nachdem der Monitor in der letzten Stunde 20 Vorfälle aus E-Mails eröffnet hat | Eröffnet nichts, damit eine Mail-Schleife oder eine Flut von E-Mails Ihr Team nicht endlos alarmieren kann. |
+
+Jede E-Mail bekommt weiterhin eine Zeile in **Überwachungsprotokolle**, und **Zusammenfassung anzeigen** in dieser Zeile sagt, was die E-Mail eröffnet hat oder warum sie nichts eröffnet hat. Erstellt das Kriterium auch Warnungen, heißt der Schalter **Für jede E-Mail einen neuen Vorfall und eine neue Warnung eröffnen**, und jede E-Mail eröffnet auf dieselbe Weise eine eigene Warnung.
+
+Diese Vorfälle bleiben offen, bis jemand sie behebt. Mit eingeschaltetem **Vorfall automatisch beheben** werden sie außerdem behoben, wenn eine spätere E-Mail ein anderes Kriterium erfüllt, wie jeder Vorfall; eine spätere E-Mail, die dasselbe Kriterium erfüllt, behebt die früheren nie. Eine Prüfung auf fehlende E-Mails (**Email Received**) ist keine E-Mail und eröffnet deshalb weiterhin jeweils einen Vorfall.
+
+> [!WARNING]
+> **Wer die Adresse kennt, kann Vorfälle eröffnen.** Halten Sie die Adresse geheim, filtern Sie wie oben nach dem Absender und [setzen Sie die Adresse zurück](#die-e-mail-adresse-zurücksetzen-oder-anpassen), wenn sie bekannt wird. Die Adresse eines Absenders lässt sich fälschen, daher hält der Filter verirrte E-Mails fern, aber niemanden, der es darauf anlegt.
+
+Für mehr Kontrolle, etwa einen aus dem Betreff gelesenen Schweregrad oder ein nach Absender gewähltes Team, starten Sie stattdessen mit jeder E-Mail einen Workflow: siehe [Incoming-Email-Trigger](/docs/workflows/triggers#incoming-email).
+
 ## Anwendungsfälle
 
 | Anwendungsfall | Was der Monitor tut |
@@ -240,6 +278,7 @@ Das erste Kriterium löst aus, wenn 60 Minuten lang keine E-Mail eingetroffen is
 | Dienste von Drittanbietern | Empfängt Benachrichtigungen von Cloud-Anbietern (AWS, GCP, Azure), Sicherheitsscannern, Backup-Werkzeugen und Warnungen zu ablaufenden Zertifikaten. |
 | Geplante Jobs | Alarmiert, wenn eine Abschluss-E-Mail überfällig ist oder ein Job einen Fehlschlag meldet. |
 | Bündelung von Warnungen | Sammelt E-Mail-Warnungen aus Nagios, Zabbix oder anderen Werkzeugen, sodass OneUptime der eine Ort ist, an dem Sie sie verwalten. |
+| Vorfälle per E-Mail melden | Eröffnet einen Vorfall für jede E-Mail, die Personen an die Adresse senden, und hängt die Antworten als Notizen daran. |
 
 ## Vorlagenvariablen
 
@@ -307,6 +346,7 @@ Solange er nicht eingerichtet ist, meldet die Adresskarte des Monitors, dass ein
 2. Prüfen Sie, ob die Überwachung eingeschaltet ist: Seite **Einstellungen** des Monitors, Karte **Überwachung**.
 3. Öffnen Sie **Überwachungsprotokolle** und klicken Sie in der Zeile der E-Mail auf **Zusammenfassung anzeigen**, um zu sehen, was die Kriterien gelesen haben.
 4. Prüfen Sie die Reihenfolge Ihrer Kriterien: Das erste, das zutrifft, entscheidet.
+5. Wenn das Kriterium für jede E-Mail einen Vorfall eröffnet, ist die E-Mail vielleicht eine Antwort, eine zweite Zustellung oder eine automatische Antwort, oder der Monitor hat in der letzten Stunde schon 20 Vorfälle aus E-Mails eröffnet. **Zusammenfassung anzeigen** in der Zeile der E-Mail sagt, was davon zutrifft.
 
 ### Warnungen werden nicht behoben
 

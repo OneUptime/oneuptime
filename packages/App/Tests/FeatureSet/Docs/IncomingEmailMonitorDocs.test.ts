@@ -8,6 +8,8 @@ import TemplateVariablesCatalog, {
   TemplateVariableGroup,
 } from "Common/UI/Components/MonitorTemplateVariables/TemplateVariablesCatalog";
 import { INCOMING_EMAIL_SCHEDULED_CHECK_LABEL } from "Common/Utils/Monitor/MonitorLogSummaryUtil";
+import { OPEN_FOR_EVERY_EMAIL_DOCS_PATH } from "Common/Types/Monitor/IncomingEmailMonitor/OpenForEveryEmail";
+import EmailThreadHeaders from "Common/Utils/Email/EmailThreadHeaders";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -478,5 +480,172 @@ describe("The template variables the page lists", () => {
       "(/docs/monitor/incoming-email-monitor#template-variables)",
     );
     expect(headingSlugs(page)).toContain("template-variables");
+  });
+});
+
+/*
+ * "Open an incident for every email": the answer to a customer who raises
+ * incidents by emailing the monitor's address and found that, while one was
+ * open, later emails opened nothing. The section names the criteria form's
+ * switch, the form links to the section, and the section quotes the rules
+ * the server keeps (IncomingEmailOpenForEveryEmail) - so each is read here
+ * from where it lives.
+ */
+describe("Open an incident for every email", () => {
+  const HEADING: string = "## Open an incident for every email";
+  const everyEmail: string = sectionOf(HEADING);
+  const form: string = readDashboard(
+    "Components/Form/Monitor/MonitorCriteriaInstance.tsx",
+  );
+  const readOnlyView: string = readDashboard(
+    "Components/Monitor/MonitorSteps/MonitorCriteriaInstance.tsx",
+  );
+  const server: string = fs.readFileSync(
+    path.join(
+      PACKAGES_DIR,
+      "Common/Server/Utils/Monitor/IncomingEmailOpenForEveryEmail.ts",
+    ),
+    "utf8",
+  );
+  const limit: string | undefined = server.match(
+    /export const MAX_OPENED_FROM_EMAILS_PER_HOUR: number = (\d+);/,
+  )?.[1];
+
+  test("the criteria form's link lands on the section's heading", () => {
+    const [docsPage, anchor] = OPEN_FOR_EVERY_EMAIL_DOCS_PATH.split("#");
+
+    expect(docsPage).toBe("/monitor/incoming-email-monitor");
+    expect(slugify(HEADING.replace(/^#+ /, ""))).toBe(anchor);
+    expect(headingSlugs(page)).toContain(anchor);
+    expect(form).toContain(
+      "DOCS_URL.toString() + OPEN_FOR_EVERY_EMAIL_DOCS_PATH",
+    );
+  });
+
+  test("names the switch, and the actions above it, as the form draws them", () => {
+    for (const title of [
+      "Open a new incident for every email",
+      "Open a new incident and alert for every email",
+    ]) {
+      expect(everyEmail).toContain(`**${title}**`);
+      expect(form).toContain(`"${title}"`);
+    }
+
+    expect(form).toContain('"Open a new alert for every email"');
+    expect(everyEmail).toContain(
+      "Under **Actions**, turn on **When filters match, declare an incident.**",
+    );
+    expect(form).toContain('title="Actions"');
+    expect(form).toContain('title="When filters match, declare an incident."');
+  });
+
+  test("says the switch belongs to Incoming Email monitors' criteria that open something", () => {
+    expect(form).toContain(
+      "props.monitorType === MonitorType.IncomingEmail &&",
+    );
+    expect(form).toContain("(showIncidentControl || showAlertControl)");
+    expect(readOnlyView).toContain(
+      '"{{action}} for every email that meets this criteria. These are the incident details:"',
+    );
+  });
+
+  test("tells emails apart by the header the server reads", () => {
+    expect(everyEmail).toContain(
+      "OneUptime tells emails apart by their `Message-ID` header",
+    );
+    expect(
+      EmailThreadHeaders.getMessageId({ "Message-ID": "<a@example.com>" }),
+    ).toBe("a@example.com");
+    expect(server).toContain("EmailThreadHeaders.getMessageId(");
+  });
+
+  test("adds a reply to its incident as a private note, as the server does", () => {
+    expect(everyEmail).toContain(
+      "| A reply to an email that opened an incident | Is added to that incident as a private note and opens nothing, even after the incident is resolved. |",
+    );
+    expect(server).toContain("IncidentInternalNoteService.create(");
+    // The lookup reads open and resolved incidents alike.
+    expect(server).not.toContain("currentIncidentStateId");
+    expect(
+      EmailThreadHeaders.getReferencedMessageIds({
+        "In-Reply-To": "<a@example.com>",
+      }),
+    ).toEqual(["a@example.com"]);
+  });
+
+  test("leaves an out-of-office message alone, and not a monitoring system's report", () => {
+    expect(everyEmail).toContain(
+      "| An automatic reply, such as an out-of-office message | Opens nothing. |",
+    );
+    expect(
+      EmailThreadHeaders.isAutomaticReply({ "Auto-Submitted": "auto-replied" }),
+    ).toBe(true);
+    expect(
+      EmailThreadHeaders.isAutomaticReply({
+        "Auto-Submitted": "auto-generated",
+      }),
+    ).toBe(false);
+  });
+
+  test("quotes the hourly limit the server keeps, here and in Troubleshooting", () => {
+    expect(limit).toBeDefined();
+    expect(everyEmail).toContain(
+      `| An email after the monitor opened ${limit} incidents from emails in the past hour | Opens nothing,`,
+    );
+    expect(sectionOf("### Alerts Not Being Created")).toContain(
+      `the monitor may have opened ${limit} incidents from emails in the past hour. **View Summary** on the email's row says which.`,
+    );
+  });
+
+  test("says how the incidents resolve, as the evaluation does", () => {
+    expect(everyEmail).toContain(
+      "With **Auto Resolve Incident** on, they also resolve when a later email matches a different criteria",
+    );
+    expect(everyEmail).toContain(
+      "a later email that matches the same criteria never resolves the earlier ones",
+    );
+    // A scheduled check has no email: the server hands nothing over for it.
+    expect(server).toContain(
+      "if (email.onlyCheckForIncomingEmailReceivedAt) {",
+    );
+    expect(everyEmail).toContain(
+      "A check for missing email (**Email Received**) is not an email, so it still opens one incident at a time.",
+    );
+  });
+
+  test("warns that the address is the only key, and sends readers to reset it", () => {
+    expect(everyEmail).toContain(
+      "**Anyone who knows the address can open incidents.**",
+    );
+    expect(everyEmail).toContain(
+      "[reset the address](#resetting-or-customizing-the-email-address)",
+    );
+  });
+
+  test("points to the workflow trigger for more control, at a heading it has", () => {
+    const triggers: string = fs.readFileSync(
+      path.join(
+        PACKAGES_DIR,
+        "App/FeatureSet/Docs/Content/en/workflows/triggers.md",
+      ),
+      "utf8",
+    );
+
+    expect(everyEmail).toContain(
+      "[Incoming Email trigger](/docs/workflows/triggers#incoming-email)",
+    );
+    expect(headingSlugs(triggers)).toContain("incoming-email");
+  });
+
+  test("is reached from the page's cards, How It Works and Use Cases", () => {
+    expect(page).toContain(
+      "- [An incident for every email](#open-an-incident-for-every-email): Let people report incidents by emailing the address.",
+    );
+    expect(sectionOf("## How It Works")).toContain(
+      "unless it [opens an incident for every email](#open-an-incident-for-every-email)",
+    );
+    expect(sectionOf("## Use Cases")).toContain(
+      "| Reporting incidents by email |",
+    );
   });
 });

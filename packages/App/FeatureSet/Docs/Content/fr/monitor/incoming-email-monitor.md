@@ -6,6 +6,7 @@ Un moniteur d'e-mails entrants vous donne une adresse e-mail qui appartient à u
 - [Créer le moniteur](#créer-un-moniteur-de-mails-entrants): Obtenir une adresse et y diriger votre expéditeur.
 - [Vérifier l'adresse](#vérifier-ladresse-auprès-de-lexpéditeur): Lire l'e-mail de confirmation d'un expéditeur sur le moniteur.
 - [Écrire des critères](#types-de-filtre-disponibles): Vérifier l'objet, l'expéditeur ou le corps, ou alerter quand les e-mails s'arrêtent.
+- [Un incident pour chaque e-mail](#ouvrir-un-incident-pour-chaque-e-mail): Laisser les gens signaler des incidents en écrivant à l'adresse.
 - [Utiliser l'e-mail dans les alertes](#variables-de-modèle): Mettre l'objet et le corps dans les titres et descriptions.
 :::
 
@@ -27,7 +28,7 @@ sequenceDiagram
 
 1. Quand vous créez un moniteur d'e-mails entrants, OneUptime lui donne une adresse e-mail unique.
 2. Chaque e-mail envoyé à cette adresse est stocké sur le moniteur et évalué selon ses critères, depuis le haut ; le premier critère qui correspond décide.
-3. Un critère qui correspond peut changer le statut du moniteur, créer une alerte et déclarer un incident. Un incident avec **Résoudre automatiquement l'incident** activé, ou une alerte avec **Résoudre automatiquement l'alerte** activé, est résolu quand un autre critère correspond plus tard — celui qui marque le moniteur en ligne, par exemple.
+3. Un critère qui correspond peut changer le statut du moniteur, créer une alerte et déclarer un incident. Un incident avec **Résoudre automatiquement l'incident** activé, ou une alerte avec **Résoudre automatiquement l'alerte** activé, est résolu quand un autre critère correspond plus tard — celui qui marque le moniteur en ligne, par exemple. Tant que l'incident d'un critère est ouvert, les e-mails suivants qui correspondent au critère n'ouvrent rien de nouveau, sauf si le critère [ouvre un incident pour chaque e-mail](#ouvrir-un-incident-pour-chaque-e-mail).
 
 ## Créer un moniteur d'e-mails entrants
 
@@ -232,6 +233,43 @@ Placez le critère critique en premier : les critères sont vérifiés depuis le
 
 Le premier critère se déclenche quand aucun e-mail n'est arrivé depuis 60 minutes — utile pour les tâches planifiées ou les traitements par lots qui envoient un e-mail de fin. Le second résout l'alerte dès qu'un e-mail arrive. Les minutes pendant lesquelles OneUptime lui-même ne recevait pas d'e-mails ne comptent pas dans les 60, comme l'explique [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).
 
+## Ouvrir un incident pour chaque e-mail
+
+Un critère garde un seul incident ouvert à la fois : tant qu'il est ouvert, les e-mails suivants qui correspondent au critère n'ouvrent rien de nouveau. Cela convient à un système dont les e-mails rendent compte d'une seule chose, comme une sauvegarde nocturne. Quand chaque e-mail est un signalement à part entière, par exemple quand des personnes signalent des incidents en écrivant à l'adresse, activez **Ouvrir un nouvel incident pour chaque e-mail** dans le critère.
+
+:::steps
+### Choisir les e-mails
+
+Donnez au critère un filtre qui correspond aux e-mails pour lesquels ouvrir des incidents. Pour n'accepter que les signalements de vos propres équipes, utilisez **Email From Address** avec **Ends With** et votre domaine, par exemple `@example.com`.
+
+### Déclarer l'incident
+
+Sous **Actions**, activez **Lorsque les filtres correspondent, déclarer un incident.** Donnez à l'incident le titre `{{emailSubject}}` et la description `{{emailBody}}`, pour que chaque incident dise ce que disait son e-mail.
+
+### Activer l'option
+
+Activez **Ouvrir un nouvel incident pour chaque e-mail**, sous l'incident, puis enregistrez le moniteur.
+:::
+
+Dès lors, le critère traite chaque e-mail séparément :
+
+| E-mail | Ce qui se passe |
+| --- | --- |
+| Un nouvel e-mail | Ouvre son propre incident, même si des incidents précédents sont encore ouverts. |
+| Le même e-mail, livré de nouveau | N'ouvre rien de plus : OneUptime distingue les e-mails par leur en-tête `Message-ID`. |
+| Une réponse à un e-mail qui a ouvert un incident | Est ajoutée à cet incident sous forme de note privée et n'ouvre rien, même après la résolution de l'incident. |
+| Une réponse automatique, comme un message d'absence | N'ouvre rien. |
+| Un e-mail arrivé après que le moniteur a ouvert 20 incidents à partir d'e-mails dans la dernière heure | N'ouvre rien, pour qu'une boucle de messagerie ou un flot d'e-mails ne puisse pas alerter votre équipe sans fin. |
+
+Chaque e-mail obtient toujours une ligne dans **Journaux de surveillance**, et **Voir le résumé** sur cette ligne indique ce que l'e-mail a ouvert, ou pourquoi il n'a rien ouvert. Quand le critère crée aussi des alertes, l'option s'appelle **Ouvrir un nouvel incident et une nouvelle alerte pour chaque e-mail**, et chaque e-mail ouvre sa propre alerte de la même façon.
+
+Ces incidents restent ouverts jusqu'à ce que quelqu'un les résolve. Avec **Résoudre automatiquement l'incident** activé, ils sont aussi résolus quand un e-mail ultérieur correspond à un autre critère, comme tout incident ; un e-mail ultérieur qui correspond au même critère ne résout jamais les précédents. Une vérification d'e-mail manquant (**Email Received**) n'est pas un e-mail : elle ouvre donc toujours un seul incident à la fois.
+
+> [!WARNING]
+> **Quiconque connaît l'adresse peut ouvrir des incidents.** Gardez l'adresse privée, filtrez sur l'expéditeur comme ci-dessus et [réinitialisez l'adresse](#réinitialiser-ou-personnaliser-ladresse-e-mail) si elle fuit. L'adresse d'un expéditeur peut être falsifiée : le filtre écarte le courrier égaré, pas quelqu'un de déterminé à entrer.
+
+Pour plus de contrôle, comme une gravité lue dans l'objet ou une équipe choisie selon l'expéditeur, démarrez plutôt un workflow à partir de chaque e-mail : voir le [déclencheur Incoming Email](/docs/workflows/triggers#incoming-email).
+
 ## Cas d'usage
 
 | Cas d'usage | Ce que fait le moniteur |
@@ -240,6 +278,7 @@ Le premier critère se déclenche quand aucun e-mail n'est arrivé depuis 60 min
 | Services tiers | Reçoit les notifications des fournisseurs cloud (AWS, GCP, Azure), des scanners de sécurité, des outils de sauvegarde et les avertissements d'expiration de certificats. |
 | Tâches planifiées | Alerte quand un e-mail de fin est en retard, ou quand une tâche signale un échec par e-mail. |
 | Agrégation d'alertes | Rassemble les alertes par e-mail de Nagios, Zabbix ou d'autres outils, pour que OneUptime soit l'unique endroit où vous les gérez. |
+| Signaler des incidents par e-mail | Ouvre un incident pour chaque e-mail que des personnes envoient à l'adresse, et y garde les réponses sous forme de notes. |
 
 ## Variables de modèle
 
@@ -307,6 +346,7 @@ Tant qu'il n'est pas configuré, la carte d'adresse du moniteur indique que la r
 2. Vérifiez que la surveillance est activée : page **Paramètres** du moniteur, carte **Surveillance**.
 3. Ouvrez **Journaux de surveillance** et cliquez sur **Voir le résumé** sur la ligne de l'e-mail pour voir ce que les critères ont lu.
 4. Vérifiez l'ordre de vos critères : le premier qui correspond décide.
+5. Si le critère ouvre un incident pour chaque e-mail, l'e-mail est peut-être une réponse, une seconde livraison ou une réponse automatique, ou le moniteur a déjà ouvert 20 incidents à partir d'e-mails dans la dernière heure. **Voir le résumé** sur la ligne de l'e-mail indique lequel.
 
 ### Les alertes ne sont pas résolues
 
