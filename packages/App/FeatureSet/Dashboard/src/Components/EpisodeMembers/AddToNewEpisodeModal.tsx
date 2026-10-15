@@ -160,15 +160,15 @@ const AddToNewEpisodeModal: FunctionComponent<ComponentProps> = (
 
   const description: string = [
     translator.translateTemplate(
-      "Creates an episode for the selected {{itemsName}} and adds them to it. Add owners, on-call policies and notes on the episode's page.",
+      "Creates an episode with the selected {{itemsName}} in it. You can add owners, on-call policies and notes on its page.",
       { itemsName },
     ),
     inAnotherEpisode > 0
       ? translator.translatePlural(
           {
-            one: "{{count}} of them is in another episode, and stays there too.",
+            one: "{{count}} of them is already in another episode, and stays there too.",
             other:
-              "{{count}} of them are in another episode, and stay there too.",
+              "{{count}} of them are already in another episode, and stay there too.",
           },
           inAnotherEpisode,
         )
@@ -225,7 +225,10 @@ const AddToNewEpisodeModal: FunctionComponent<ComponentProps> = (
               severityId: true,
             },
             title: "Severity",
-            description: "Starts at the most severe of the selected ones.",
+            description: translator.translateTemplate(
+              "Starts as the most severe of the selected {{itemsName}}.",
+              { itemsName },
+            ),
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: severityOptions,
             required: false,

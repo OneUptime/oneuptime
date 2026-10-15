@@ -163,7 +163,7 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
             id={inputId}
             type={props.selectionMode === "single" ? "radio" : "checkbox"}
             name={props.selectionMode === "single" ? baseId : undefined}
-            className={`accent-indigo-600 mt-0.5 h-4 w-4 flex-shrink-0 border-gray-300 text-indigo-600 focus:ring-indigo-600 ${
+            className={`accent-indigo-600 mt-1 h-4 w-4 flex-shrink-0 border-gray-300 text-indigo-600 focus:ring-indigo-600 ${
               props.selectionMode === "single" ? "" : "rounded"
             }`}
             checked={isSelected}
@@ -174,11 +174,11 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
             }}
           />
           <div className="min-w-0 flex-1">
-            <div className="flex min-w-0 items-center gap-2">
+            <div className="flex min-w-0 items-start gap-2">
               {item.number && (
                 <span
                   data-testid={`${props.testId}-option-number`}
-                  className="inline-flex flex-shrink-0 items-center rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-gray-600"
+                  className="mt-px inline-flex flex-shrink-0 items-center rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-gray-600"
                 >
                   {item.number}
                 </span>
@@ -186,7 +186,7 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
               <span
                 data-testid={`${props.testId}-option-title`}
                 title={item.title}
-                className="min-w-0 truncate text-sm font-medium text-gray-900"
+                className="line-clamp-2 min-w-0 break-words text-sm font-medium leading-6 text-gray-900"
               >
                 {item.title || translator.translateText("Untitled")}
               </span>
@@ -196,7 +196,7 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
                   title={translator.translateText(
                     "Private: only its owners, project admins and project owners can see it.",
                   )}
-                  className="inline-flex flex-shrink-0 items-center gap-1 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600"
+                  className="mt-px inline-flex flex-shrink-0 items-center gap-1 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600"
                 >
                   <Icon icon={IconProp.Lock} className="h-3 w-3" />
                   {translator.translateText("Private")}
@@ -370,7 +370,7 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
       </div>
       <div
         data-testid={`${props.testId}-list`}
-        className="mt-3 max-h-80 overflow-y-auto rounded-lg border border-gray-200 bg-white"
+        className="mt-3 max-h-96 overflow-y-auto rounded-lg border border-gray-200 bg-white"
       >
         {getBody()}
       </div>

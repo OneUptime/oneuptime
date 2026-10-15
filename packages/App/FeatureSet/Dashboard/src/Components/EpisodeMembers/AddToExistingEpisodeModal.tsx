@@ -249,11 +249,12 @@ const AddToExistingEpisodeModal: FunctionComponent<ComponentProps> = (
         <p key="in-another" data-testid="add-to-existing-episode-in-another">
           {translator.translatePlural(
             {
-              one: "{{count}} of them is in another episode, and stays there too: one can be in several episodes.",
+              one: "{{count}} of them is already in another episode. It stays there too: an {{itemName}} can be in more than one episode.",
               other:
-                "{{count}} of them are in another episode, and stay there too: one can be in several episodes.",
+                "{{count}} of them are already in another episode. They stay there too: an {{itemName}} can be in more than one episode.",
             },
             inAnotherEpisode,
+            { itemName },
           )}
         </p>,
       );

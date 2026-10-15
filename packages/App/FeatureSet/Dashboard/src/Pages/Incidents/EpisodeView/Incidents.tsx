@@ -183,7 +183,7 @@ const EpisodeIncidents: FunctionComponent<
         cardProps={{
           title: "Member Incidents",
           description:
-            "The incidents in this episode. Add the ones that belong together, several at once.",
+            "The incidents in this episode, grouped by a rule or added by hand.",
           buttons: addIncidentsButton ? [addIncidentsButton] : [],
         }}
         noItemsMessage="No incidents in this episode."
@@ -289,7 +289,7 @@ const EpisodeIncidents: FunctionComponent<
               }
               // Added by hand: by whom, when the person is known.
               if (item.addedByUser) {
-                return <UserElement user={item.addedByUser} />;
+                return <UserElement user={item.addedByUser} hideEmail={true} />;
               }
               if (item.addedBy === IncidentEpisodeMemberAddedBy.Manual) {
                 return <Pill isMinimal={true} color={Black} text="Manual" />;

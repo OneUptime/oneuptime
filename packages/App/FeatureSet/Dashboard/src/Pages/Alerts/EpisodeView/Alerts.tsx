@@ -179,7 +179,7 @@ const EpisodeAlerts: FunctionComponent<
         cardProps={{
           title: "Member Alerts",
           description:
-            "The alerts in this episode. Add the ones that belong together, several at once.",
+            "The alerts in this episode, grouped by a rule or added by hand.",
           buttons: addAlertsButton ? [addAlertsButton] : [],
         }}
         noItemsMessage="No alerts in this episode."
@@ -283,7 +283,7 @@ const EpisodeAlerts: FunctionComponent<
               }
               // Added by hand: by whom, when the person is known.
               if (item.addedByUser) {
-                return <UserElement user={item.addedByUser} />;
+                return <UserElement user={item.addedByUser} hideEmail={true} />;
               }
               if (item.addedBy === AlertEpisodeMemberAddedBy.Manual) {
                 return <Pill isMinimal={true} color={Black} text="Manual" />;

@@ -21,6 +21,7 @@ import {
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import PermissionGate, {
   ModelAction,
@@ -264,11 +265,14 @@ function useBulkAddToEpisodeActions<T extends BaseModel>(
         to={getEpisodeRoute(episode.id)}
         className="inline-flex items-center gap-1 rounded-sm text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
       >
-        {episode.number
-          ? translator.translateTemplate("Open episode {{number}}", {
-              number: episode.number,
-            })
-          : translator.translateText("Open the episode")}
+        <span>
+          {episode.number
+            ? translator.translateTemplate("Open episode {{number}}", {
+                number: episode.number,
+              })
+            : translator.translateText("Open the episode")}
+        </span>
+        <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
       </Link>
     );
   };
