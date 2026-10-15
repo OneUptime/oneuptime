@@ -1272,6 +1272,31 @@ describe("getStatusTimelineFitWindow: a record's whole history on one band", () 
     ).toEqual(windowOf(-21 * DAY - 2 * HOUR, -21 * DAY + 30 * MINUTE));
   });
 
+  test("a record still open: up to now, however long ago it last changed", () => {
+    expect(
+      getStatusTimelineFitWindow({
+        entries: [
+          entry({ status: "offline", from: -3 * HOUR, to: -3 * HOUR + 12 * MINUTE }),
+          entry({ status: "degraded", from: -3 * HOUR + 12 * MINUTE, to: null }),
+        ],
+        now: NOW,
+        isOpen: true,
+      }),
+    ).toEqual(windowOf(-3 * HOUR, 0));
+
+    // The same history, done with: a quarter of its span after its last change.
+    expect(
+      getStatusTimelineFitWindow({
+        entries: [
+          entry({ status: "offline", from: -3 * HOUR, to: -3 * HOUR + 12 * MINUTE }),
+          entry({ status: "degraded", from: -3 * HOUR + 12 * MINUTE, to: null }),
+        ],
+        now: NOW,
+        isOpen: false,
+      }),
+    ).toEqual(windowOf(-3 * HOUR, -3 * HOUR + 15 * MINUTE));
+  });
+
   test("the line between the two is a few times the span", () => {
     const span: number = HOUR;
     const entries: (lastChangeAgo: number) => Array<StatusTimelineEntry> = (

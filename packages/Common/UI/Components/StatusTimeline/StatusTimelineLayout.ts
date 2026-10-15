@@ -893,6 +893,13 @@ export const followStatusTimelineWindow: (data: {
 export const MIN_ZOOM_WINDOW_MS: number = 60 * 1000;
 
 /*
+ * A cluster chosen on the band zooms to its changes with this much of their
+ * span on each side, so the first and last are not cut at the edges. A
+ * stretch dragged over is zoomed to as it was dragged, as a chart zooms.
+ */
+export const CLUSTER_ZOOM_PADDING_RATIO: number = 0.05;
+
+/*
  * The window to zoom to for a stretch of time: the stretch, with a little
  * room on each side so its first and last entries are not cut at the
  * edges, at least MIN_ZOOM_WINDOW_MS long, and never past now.
@@ -945,16 +952,20 @@ export const RECENT_CHANGE_SPAN_RATIO: number = 3;
  * there rather than squeezing every change into a sliver - an incident
  * resolved three weeks ago after two hours would otherwise be a band of
  * Resolved with its whole story in the first pixel. A record that changed
- * recently ends at now.
+ * recently ends at now, and so does one that is still open (`isOpen`: an
+ * incident not yet resolved), however long ago it last changed - how long
+ * it has been in its state is what its reader is watching.
  */
 export const getStatusTimelineFitWindow: (data: {
   entries: Array<StatusTimelineEntry>;
   now: Date;
   trailingRatio?: number | undefined;
+  isOpen?: boolean | undefined;
 }) => StatusTimelineWindow | null = (data: {
   entries: Array<StatusTimelineEntry>;
   now: Date;
   trailingRatio?: number | undefined;
+  isOpen?: boolean | undefined;
 }): StatusTimelineWindow | null => {
   const starts: Array<number> = data.entries
     .map((entry: StatusTimelineEntry): number => {
@@ -988,7 +999,7 @@ export const getStatusTimelineFitWindow: (data: {
    * band shows how long the current state has held. Long ago (an incident
    * resolved weeks ago): a little after the last change.
    */
-  if (latest - lastChange <= span * RECENT_CHANGE_SPAN_RATIO) {
+  if (data.isOpen || latest - lastChange <= span * RECENT_CHANGE_SPAN_RATIO) {
     return { start: new Date(first), end: new Date(latest) };
   }
 

@@ -88,6 +88,8 @@ interface RecordedProps {
   onFetchSuccess?: (...args: Array<unknown>) => void;
   // The timeline's own.
   stateColumn?: string;
+  stateSelect?: Record<string, unknown>;
+  isFinalState?: (state: Record<string, unknown>) => boolean;
   defaultRange?: unknown;
   headerElement?: ReactElement;
   renderEntryDetails?: (
@@ -314,6 +316,11 @@ interface PageCase {
    * oldest while it covers part of the last 90 days.
    */
   onlyRowRefusal: string | undefined;
+  /*
+   * The states a record is done with: its band ends with its last change.
+   * Undefined for a monitor and a site, which are never done.
+   */
+  finalStates: Array<Record<string, boolean>> | undefined;
 }
 
 const PAGES: Array<PageCase> = [
@@ -331,6 +338,7 @@ const PAGES: Array<PageCase> = [
     logColumn: "statusChangeLog",
     hasSubscriberNotification: false,
     onlyRowRefusal: ONLY_STATUS_EVENT_MESSAGE,
+    finalStates: undefined,
   },
   {
     name: "an incident's Status Timeline",
@@ -346,6 +354,7 @@ const PAGES: Array<PageCase> = [
     logColumn: "stateChangeLog",
     hasSubscriberNotification: true,
     onlyRowRefusal: ONLY_STATE_DELETE_MESSAGES[StateTimelineRecord.Incident],
+    finalStates: [{ isResolvedState: true }],
   },
   {
     name: "an alert's Status Timeline",
@@ -361,6 +370,7 @@ const PAGES: Array<PageCase> = [
     logColumn: "stateChangeLog",
     hasSubscriberNotification: false,
     onlyRowRefusal: ONLY_STATE_DELETE_MESSAGES[StateTimelineRecord.Alert],
+    finalStates: [{ isResolvedState: true }],
   },
   {
     name: "a scheduled maintenance event's Status Timeline",
@@ -377,6 +387,7 @@ const PAGES: Array<PageCase> = [
     hasSubscriberNotification: true,
     onlyRowRefusal:
       ONLY_STATE_DELETE_MESSAGES[StateTimelineRecord.ScheduledMaintenance],
+    finalStates: [{ isEndedState: true }, { isResolvedState: true }],
   },
   {
     name: "an incident episode's Status Timeline",
@@ -393,6 +404,7 @@ const PAGES: Array<PageCase> = [
     hasSubscriberNotification: false,
     onlyRowRefusal:
       ONLY_STATE_DELETE_MESSAGES[StateTimelineRecord.IncidentEpisode],
+    finalStates: [{ isResolvedState: true }],
   },
   {
     name: "an alert episode's Status Timeline",
@@ -408,6 +420,7 @@ const PAGES: Array<PageCase> = [
     logColumn: undefined,
     hasSubscriberNotification: false,
     onlyRowRefusal: ONLY_STATE_DELETE_MESSAGES[StateTimelineRecord.AlertEpisode],
+    finalStates: [{ isResolvedState: true }],
   },
   {
     name: "a network site's Status Timeline",
@@ -423,6 +436,7 @@ const PAGES: Array<PageCase> = [
     logColumn: undefined,
     hasSubscriberNotification: false,
     onlyRowRefusal: undefined,
+    finalStates: undefined,
   },
 ];
 
@@ -679,6 +693,32 @@ describe.each(PAGES)("$name", (pageCase: PageCase) => {
     // View Cause and View Logs, where the table had them.
     expect(timelineProps.causeColumn).toBe(pageCase.causeColumn);
     expect(timelineProps.logColumn).toBe(pageCase.logColumn);
+  });
+
+  test("a record still open runs to now: the page says which states it is done in", async () => {
+    await renderPage(pageCase);
+
+    const props: RecordedProps = recordedTimelineProps!;
+
+    if (!pageCase.finalStates) {
+      // A monitor and a site are never done: they show a period instead.
+      expect(props.isFinalState).toBeUndefined();
+      return;
+    }
+
+    for (const flags of pageCase.finalStates) {
+      // The flag is read with the state, and makes it final.
+      for (const flag of Object.keys(flags)) {
+        expect(props.stateSelect?.[flag]).toBe(true);
+      }
+
+      expect(props.isFinalState!({ name: "Done", ...flags })).toBe(true);
+    }
+
+    expect(props.isFinalState!({ name: "Acknowledged" })).toBe(false);
+    expect(
+      props.isFinalState!({ name: "Acknowledged", isResolvedState: false }),
+    ).toBe(false);
   });
 
   if (pageCase.isCreateable) {

@@ -1089,7 +1089,11 @@ describe("an incident's timeline: its whole history on one band", () => {
     return row;
   };
 
-  const renderIncident: () => Promise<void> = async (): Promise<void> => {
+  const renderIncident: (
+    overrides?: Partial<ComponentProps<IncidentStateTimeline>>,
+  ) => Promise<void> = async (
+    overrides?: Partial<ComponentProps<IncidentStateTimeline>>,
+  ): Promise<void> => {
     await act(async () => {
       render(
         <ModelStatusTimeline<IncidentStateTimeline>
@@ -1108,6 +1112,7 @@ describe("an incident's timeline: its whole history on one band", () => {
           isCreateable={true}
           isDeleteable={true}
           singularName="State Change"
+          {...(overrides || {})}
         />,
       );
     });
@@ -1164,6 +1169,52 @@ describe("an incident's timeline: its whole history on one band", () => {
         .getAllByTestId("status-timeline-legend-item")
         .map((item: HTMLElement) => item.textContent),
     ).toEqual(["Created1 hour", "Acknowledged1 hour", "Resolved21 days"]);
+  });
+
+  test("still open, it runs on to now, however long ago it last changed", async () => {
+    const created: IncidentState = incidentState("Created", "#ef4444");
+    const acknowledged: IncidentState = incidentState("Acknowledged", "#eab308");
+
+    rowsInStore = [
+      incidentRow(created, -3 * HOUR, -3 * HOUR + 12 * MINUTE),
+      incidentRow(acknowledged, -3 * HOUR + 12 * MINUTE, null),
+    ];
+
+    await renderIncident({
+      stateSelect: { isResolvedState: true },
+      isFinalState: (state: JSONObject): boolean => {
+        return state["isResolvedState"] === true;
+      },
+    });
+
+    // The flag is read with the state.
+    expect(timelineReads()[0]!.select["incidentState"]).toEqual({
+      _id: true,
+      name: true,
+      color: true,
+      isResolvedState: true,
+    });
+    expect(screen.getByTestId("status-timeline-now")).toBeInTheDocument();
+  });
+
+  test("resolved, it ends a little after its last change", async () => {
+    const resolvedState: IncidentState = incidentState("Resolved", "#10b981");
+    resolvedState.isResolvedState = true;
+    const created: IncidentState = incidentState("Created", "#ef4444");
+
+    rowsInStore = [
+      incidentRow(created, -3 * HOUR, -3 * HOUR + 12 * MINUTE),
+      incidentRow(resolvedState, -3 * HOUR + 12 * MINUTE, null),
+    ];
+
+    await renderIncident({
+      stateSelect: { isResolvedState: true },
+      isFinalState: (state: JSONObject): boolean => {
+        return state["isResolvedState"] === true;
+      },
+    });
+
+    expect(screen.queryByTestId("status-timeline-now")).toBeNull();
   });
 
   test("its rows are called state changes", async () => {

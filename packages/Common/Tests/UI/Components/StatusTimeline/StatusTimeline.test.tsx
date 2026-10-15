@@ -278,7 +278,7 @@ describe("the band: every status placed and sized by its time", () => {
     );
   });
 
-  test("short changes that run together are one cluster, which zooms in", () => {
+  test("short changes that run together are one cluster, which zooms in to them with a margin", () => {
     const onZoom: jest.Mock = jest.fn();
 
     renderTimeline({
@@ -306,9 +306,10 @@ describe("the band: every status placed and sized by its time", () => {
 
     fireEvent.click(cluster);
 
+    // A twentieth of their three minutes on each side: none cut at an edge.
     expect(onZoom).toHaveBeenCalledWith({
-      start: at(-10 * DAY),
-      end: at(-10 * DAY + 3 * MINUTE),
+      start: at(-10 * DAY - 9 * SECOND),
+      end: at(-10 * DAY + 3 * MINUTE + 9 * SECOND),
     });
   });
 

@@ -1,4 +1,8 @@
 import PageComponentProps from "../../PageComponentProps";
+import {
+  isResolvedState,
+  RESOLVED_STATE_SELECT,
+} from "../../../Components/StateTimeline/StateTimelineFinalState";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -186,6 +190,8 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         stateColumn="incidentState"
+        stateSelect={RESOLVED_STATE_SELECT}
+        isFinalState={isResolvedState}
         ariaLabel="Status timeline of this incident"
         emptyMessage="No status recorded for this incident yet."
         isCreateable={true}

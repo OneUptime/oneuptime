@@ -1,9 +1,11 @@
 import Tooltip from "../Tooltip/Tooltip";
 import {
+  CLUSTER_ZOOM_PADDING_RATIO,
   DEFAULT_BAND_WIDTH_PX,
   getNextStatusTimelineMarkIndex,
   getStatusTimelineContinuationMask,
   getStatusTimelineTicks,
+  getStatusTimelineZoomWindow,
   getVisibleStatusTimelineTickIndexes,
   ResolvedStatusTimelineEntry,
   StatusTimelineBandGap,
@@ -545,7 +547,14 @@ const StatusTimelineBand: FunctionComponent<ComponentProps> = (
 
     if (mark.isCluster) {
       if (props.onZoom) {
-        props.onZoom({ start: mark.start, end: mark.end });
+        props.onZoom(
+          getStatusTimelineZoomWindow({
+            start: mark.start,
+            end: mark.end,
+            now: props.now,
+            paddingRatio: CLUSTER_ZOOM_PADDING_RATIO,
+          }),
+        );
       }
       return;
     }
@@ -784,7 +793,21 @@ const StatusTimelineBand: FunctionComponent<ComponentProps> = (
                   // detail is 0 for a click made with Enter or Space.
                   chooseMark(mark, event.detail === 0);
                 }}
-              ></button>
+              >
+                {mark.isWidened && (
+                  /*
+                   * A blip is drawn only a few pixels wide, too narrow to
+                   * aim at: a little either side of it answers a click
+                   * too. It is drawn above its neighbours (z-10), so there
+                   * the blip, not the long status beside it, is chosen.
+                   */
+                  <span
+                    aria-hidden="true"
+                    data-testid="status-timeline-mark-hit-area"
+                    className="absolute inset-y-0 -left-1.5 -right-1.5"
+                  ></span>
+                )}
+              </button>
             </Tooltip>
           );
         })}

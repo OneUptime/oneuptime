@@ -1,4 +1,8 @@
 import PageComponentProps from "../../PageComponentProps";
+import {
+  isMaintenanceFinalState,
+  MAINTENANCE_FINAL_STATE_SELECT,
+} from "../../../Components/StateTimeline/StateTimelineFinalState";
 import { Black } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -169,6 +173,8 @@ const ScheduledMaintenanceViewStateTimeline: FunctionComponent<
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         stateColumn="scheduledMaintenanceState"
+        stateSelect={MAINTENANCE_FINAL_STATE_SELECT}
+        isFinalState={isMaintenanceFinalState}
         ariaLabel="Status timeline of this maintenance event"
         emptyMessage="No status recorded for this maintenance event yet."
         isCreateable={true}

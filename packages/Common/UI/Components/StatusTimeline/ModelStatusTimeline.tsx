@@ -123,6 +123,13 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   // How serious a status is, higher being worse (StatusTimelineEntry.rank).
   getStateRank?: ((state: JSONObject) => number | undefined) | undefined;
   /*
+   * Whether a record in this state is done with (an incident's Resolved).
+   * A whole-history band of a record that is not runs on to now
+   * (getStatusTimelineFitWindow's isOpen); the state's flags it reads go in
+   * stateSelect.
+   */
+  isFinalState?: ((state: JSONObject) => boolean) | undefined;
+  /*
    * The period the timeline opens on, for a record whose history grows for
    * ever. Absent: the whole history, fitted to the band.
    */
@@ -517,6 +524,27 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
 
   const now: Date = OneUptimeDate.getCurrentDate();
 
+  // The record is still open: its current state is not a final one.
+  const isRecordOpen: boolean = useMemo(() => {
+    if (!props.isFinalState) {
+      return false;
+    }
+
+    const current: TBaseModel | undefined = rows.find(
+      (row: TBaseModel): boolean => {
+        return !readValue(row, "endsAt");
+      },
+    );
+
+    if (!current) {
+      return false;
+    }
+
+    return !props.isFinalState(
+      (readValue(current, props.stateColumn) as JSONObject | undefined) || {},
+    );
+  }, [rows]);
+
   // The period the band shows.
   const timelineWindow: StatusTimelineWindow = useMemo(() => {
     if (loaded?.window) {
@@ -528,12 +556,16 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
     }
 
     return (
-      getStatusTimelineFitWindow({ entries: entries, now: now }) || {
+      getStatusTimelineFitWindow({
+        entries: entries,
+        now: now,
+        isOpen: isRecordOpen,
+      }) || {
         start: OneUptimeDate.addRemoveDays(now, -1),
         end: now,
       }
     );
-  }, [loaded, zoom, entries]);
+  }, [loaded, zoom, entries, isRecordOpen]);
 
   /*
    * Whether anything happened before the period: a row before it, or rows
@@ -572,6 +604,11 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
         : undefined;
 
   // ---- moving through time -------------------------------------------------
+  /*
+   * The stretch the band asked for - a drag's as it was dragged, a
+   * cluster's with the band's margin around it - at least a minute long and
+   * never past now.
+   */
   const onZoom: (target: StatusTimelineWindow) => void = (
     target: StatusTimelineWindow,
   ): void => {
@@ -580,7 +617,7 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
         start: target.start,
         end: target.end,
         now: OneUptimeDate.getCurrentDate(),
-        paddingRatio: 0.05,
+        paddingRatio: 0,
       }),
     );
   };
