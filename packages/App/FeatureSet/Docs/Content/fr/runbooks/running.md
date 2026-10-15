@@ -37,11 +37,13 @@ Une nouvelle exécution est **Planifié** jusqu'à ce qu'un Worker la prenne en 
 
 ## Lancer une exécution
 
-Une exécution de runbook peut être créée de trois façons :
+Une exécution de runbook peut être créée de cinq façons :
 
 1. **Automatiquement via une règle** : une [règle de runbook](/docs/runbooks/rules) la lance quand un incident, une alerte ou un événement de maintenance planifiée correspondant est créé. Une règle de remédiation automatique peut aussi en lancer une ; voir [AI SRE](/docs/ai/ai-sre).
 2. **Manuellement depuis un événement** : cliquez sur **Exécuter le Runbook** sur un incident, une alerte ou un événement de maintenance planifiée. L'exécution est attachée à cet événement.
 3. **Manuellement depuis la page du runbook** : cliquez sur **Run Now** sur la page **Vue d'ensemble** d'un runbook. L'exécution n'est attachée à aucun incident, aucune alerte ni aucun événement de maintenance planifiée.
+4. **Selon une planification** : la planification du runbook la démarre à heures fixes. Voir [Exécuter selon une planification](/docs/runbooks/triggers#exécuter-selon-une-planification).
+5. **Depuis un autre outil** : un `POST` vers l'URL de webhook du runbook la démarre, avec les valeurs envoyées par l'appel. Voir [Appeler le webhook](/docs/runbooks/triggers#appeler-le-webhook).
 
 Pour en lancer une à la main :
 

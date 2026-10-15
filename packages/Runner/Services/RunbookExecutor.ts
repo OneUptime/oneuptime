@@ -15,6 +15,10 @@ import RunnerJobOrigin, {
   AI_COMMAND_JOB_ORIGINS,
 } from "Common/Types/Runbook/RunnerJobOrigin";
 import { JSONObject } from "Common/Types/JSON";
+import {
+  getRunbookInputArgs,
+  getRunbookInputVariables,
+} from "Common/Types/Runbook/RunbookInputs";
 
 interface ExecResult {
   success: boolean;
@@ -33,9 +37,33 @@ function truncate(s: string): string {
   );
 }
 
+/*
+ * The environment a Bash step runs with: the Runner's own, plus the run's
+ * inputs as ONEUPTIME_INPUT_<NAME>, ONEUPTIME_INPUTS and ONEUPTIME_TRIGGER
+ * when the server sent them. Every name it adds starts with ONEUPTIME_, so
+ * a value a caller sent can neither run as a command nor replace PATH,
+ * LD_PRELOAD or anything else the shell or this Runner reads. Without
+ * inputs - an older server, or a step type that takes none - the step gets
+ * the Runner's environment as it always did.
+ */
+export function getBashEnvironment(
+  job: Pick<ClaimedJob, "inputs" | "trigger">,
+  base: NodeJS.ProcessEnv = process.env,
+): NodeJS.ProcessEnv | undefined {
+  if (job.inputs === undefined) {
+    return undefined;
+  }
+
+  return {
+    ...base,
+    ...getRunbookInputVariables({ inputs: job.inputs, trigger: job.trigger }),
+  };
+}
+
 function runBashLocally(data: {
   script: string;
   timeoutInMs: number;
+  environment?: NodeJS.ProcessEnv | undefined;
 }): Promise<ExecResult> {
   return new Promise<ExecResult>((resolve: (v: ExecResult) => void) => {
     let stdout: string = "";
@@ -47,6 +75,7 @@ function runBashLocally(data: {
     const child: ReturnType<typeof spawn> = spawn("bash", ["-c", data.script], {
       timeout: data.timeoutInMs,
       killSignal: "SIGKILL",
+      ...(data.environment ? { env: data.environment } : {}),
     });
 
     child.stdout?.on("data", (chunk: Buffer) => {
@@ -122,11 +151,13 @@ function runBashLocally(data: {
 async function runJavaScriptLocally(data: {
   script: string;
   timeoutInMs: number;
+  // The run's inputs and trigger, as `args` (a copy inside the isolate).
+  args?: JSONObject | undefined;
 }): Promise<ExecResult> {
   try {
     const result: ReturnResult = await VMUtil.runCodeInSandbox({
       code: data.script,
-      options: { args: {}, timeout: data.timeoutInMs },
+      options: { args: data.args || {}, timeout: data.timeoutInMs },
     });
 
     const lines: string[] = [...(result.logMessages || [])];
@@ -282,6 +313,14 @@ function prepareStep(job: ClaimedJob): PreparedStep {
         return runJavaScriptLocally({
           script: job.script,
           timeoutInMs: job.timeoutInMs,
+          ...(job.inputs !== undefined
+            ? {
+                args: getRunbookInputArgs({
+                  inputs: job.inputs,
+                  trigger: job.trigger,
+                }),
+              }
+            : {}),
         });
       },
     };
@@ -294,6 +333,7 @@ function prepareStep(job: ClaimedJob): PreparedStep {
         return runBashLocally({
           script: job.script,
           timeoutInMs: job.timeoutInMs,
+          environment: getBashEnvironment(job),
         });
       },
     };

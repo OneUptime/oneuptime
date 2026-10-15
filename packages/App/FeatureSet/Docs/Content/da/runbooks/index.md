@@ -6,6 +6,7 @@ Et runbook er en genbrugelig responsprocedure: en ordnet liste af manuelle og au
 - [Skriv et runbook](/docs/runbooks/authoring): Opret et runbook, og skriv dets trin.
 - [Runbook-regler](/docs/runbooks/rules): Start runbooks ved nye hændelser, advarsler og vedligeholdelsesbegivenheder.
 - [Kør et runbook](/docs/runbooks/running): Start en kørsel, fuldfør og godkend dens trin, annuller den.
+- [Runbook-udløsere](/docs/runbooks/triggers): Kør et runbook efter en tidsplan, eller fra et andet værktøj via dets webhook-URL.
 - [Runbook-agenter](/docs/runbooks/agents): Installer den Runner, der kører dine scripts i din egen infrastruktur.
 :::
 
@@ -73,6 +74,8 @@ Et runbook kan blande dem alle. Styrken ved runbooks er at flette menneskelige k
 | **Kør runbook** | Siden **Runbooks** for en hændelse, en advarsel eller en planlagt vedligeholdelsesbegivenhed | Den begivenhed |
 | **Run Now** | Runbookets side **Oversigt** | Intet: en ad hoc-kørsel |
 | En regel for automatisk afhjælpning | Se [AI SRE](/docs/ai/ai-sre) | Hændelsen eller advarslen |
+| Runbookets tidsplan | Runbookets side **Udløsere**, se [Runbook-udløsere](/docs/runbooks/triggers#kør-efter-en-tidsplan) | Intet: en kørsel uden opsyn |
+| Et kald til runbookets webhook-URL | Runbookets side **Udløsere**, se [Runbook-udløsere](/docs/runbooks/triggers#kald-webhooken) | Intet: kørslen gemmer de værdier, kaldet sendte |
 
 Et runbook, hvis kontakt **Kør dette runbook** er slået fra på siden **Indstillinger**, startes ikke af nogen af disse. Kørsler, der allerede er startet, fortsætter.
 
@@ -86,6 +89,7 @@ Runbooks ligger under **Produkter**, i gruppen **Dashboards og automatisering**.
 | Et runbooks **Trin** | Skriv og omarranger dets trin, og vælg så **Save Steps**. |
 | Et runbooks **Oversigt** | Se den seneste kørsel og resultaterne, og klik på **Run Now**. |
 | Et runbooks **Udførelser** | Alle kørsler af dette runbook, filtreret efter status eller startdato. |
+| Et runbooks **Udløsere** | Kør det efter en [tidsplan](/docs/runbooks/triggers#kør-efter-en-tidsplan), eller fra et andet værktøj via dets [webhook-URL](/docs/runbooks/triggers#kald-webhooken). |
 | Et runbooks **Ejere** | Tilføj de personer og teams, der er ansvarlige for det. |
 | Et runbooks **Indstillinger** | Slå **Kør dette runbook** fra uden at slette runbooket. |
 | **Runbooks → Udførelser** | Alle kørsler af alle runbooks i projektet. |

@@ -71,6 +71,14 @@ export const IngestRoutePrefixesToSkip: Array<string> = [
   "/heartbeat",
   "/incoming-email",
   "/worker",
+  /*
+   * A runbook's webhook URL, /runbook/webhook/<runbook>/<key>, which other
+   * tools call. Starting a run is POST only; a GET - a chat app previewing
+   * the pasted URL, a tool set to the wrong method - is answered 405 with
+   * how to call it, not with a web page at HTTP 200 that reads as success.
+   * The segment match leaves /runbooks, the marketing site's address, alone.
+   */
+  "/runbook",
 ];
 
 export const DashboardFallbackRoutePrefixesToSkip: Array<string> = [

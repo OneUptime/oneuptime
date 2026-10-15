@@ -82,6 +82,8 @@ Runbook の権限は `Runbook` 権限グループにあります。
 
 ロールが実行できるのは、その範囲が届く Runbook です。一部のラベルに限定した `RunbookMember`、`RunbookAdmin`、`ProjectMember` の付与は、それらのラベルを持つ Runbook の実行を開始して進めます。 **Owned** に限定した付与は、そのチームが所有する Runbook の実行を開始して進めます。チームがラベルをブロックすると、それらの Runbook はそのチームの対象から外れます。`CreateRunbookExecution` と `EditRunbookExecution` はラベルを持たない実行に関する権限なので、プロジェクト内のすべての Runbook に届きます。Runbook を開始する修復提案の承認も同じように確認されます。
 
+Runbook のスケジュールと Webhook は人がいなくても実行を開始するため、どちらを設定するにも Runbook を編集する権限と実行する権限が必要です。Webhook URL を表示する場合も同様です。オフにするには編集する権限だけが必要です。[Runbook のトリガー](/docs/runbooks/triggers#トリガーを設定できるユーザー) を参照してください。
+
 認証情報とシークレットは `RunbookAdmin` の対象外です。それらを管理するには、`ProjectOwner` または `ProjectAdmin`、あるいは `CreateRunbookCredential`、`EditRunbookCredential`、`DeleteRunbookCredential`、`ReadRunbookCredential` と `CreateRunbookSecret`、`EditRunbookSecret`、`DeleteRunbookSecret`、`ReadRunbookSecret` の権限が必要です。[Runbook の認証情報](/docs/runbooks/credentials) を参照してください。
 
 **Runbook → 設定** にある所有者ルールとラベルルールも `RunbookAdmin` の対象外です。それらを管理するには、`ProjectOwner` または `ProjectAdmin`、あるいは `CreateRunbookOwnerRule` と `CreateRunbookLabelRule` の権限と、それぞれの編集、削除、閲覧の権限が必要です。

@@ -1,4 +1,4 @@
-import CronTab, { CronPreset } from "../../Utils/CronTab";
+import CronTab, { CronExpressionFields, CronPreset } from "../../Utils/CronTab";
 import cronParser from "cron-parser";
 
 /**
@@ -193,6 +193,99 @@ describe("CronTab", () => {
         if (i > 0) {
           expect(times[i]!.getTime()).toBeGreaterThan(times[i - 1]!.getTime());
         }
+      }
+    });
+  });
+
+  /*
+   * parseFields hands a runbook schedule the fields it matches against its
+   * time zone's wall clock (Types/Runbook/RunbookSchedule).
+   */
+  describe("parseFields", () => {
+    const range: (from: number, to: number) => Array<number> = (
+      from: number,
+      to: number,
+    ): Array<number> => {
+      const values: Array<number> = [];
+      for (let value: number = from; value <= to; value++) {
+        values.push(value);
+      }
+      return values;
+    };
+
+    test("five fields: each field's values, a bare * marked, second 0", () => {
+      const fields: CronExpressionFields =
+        CronTab.parseFields("*/15 9 * * 1-5");
+
+      expect(fields).toEqual({
+        second: { values: [0], isWildcard: false },
+        minute: { values: [0, 15, 30, 45], isWildcard: false },
+        hour: { values: [9], isWildcard: false },
+        dayOfMonth: { values: range(1, 31), isWildcard: true },
+        month: { values: range(1, 12), isWildcard: true },
+        dayOfWeek: { values: [1, 2, 3, 4, 5], isWildcard: false },
+        hasSeconds: false,
+      });
+    });
+
+    test("six fields: the first is seconds", () => {
+      const fields: CronExpressionFields =
+        CronTab.parseFields("30 0 12 1 jan *");
+
+      expect(fields.hasSeconds).toBe(true);
+      expect(fields.second).toEqual({ values: [30], isWildcard: false });
+      expect(fields.minute).toEqual({ values: [0], isWildcard: false });
+      expect(fields.hour).toEqual({ values: [12], isWildcard: false });
+      expect(fields.dayOfMonth).toEqual({ values: [1], isWildcard: false });
+      expect(fields.month).toEqual({ values: [1], isWildcard: false });
+      expect(fields.dayOfWeek).toEqual({
+        values: range(0, 6),
+        isWildcard: true,
+      });
+    });
+
+    test("values come sorted, without repeats, with 7 folded into Sunday", () => {
+      expect(CronTab.parseFields("5,1,5,3 * * * *").minute.values).toEqual([
+        1, 3, 5,
+      ]);
+      expect(CronTab.parseFields("0 0 * * 0,7").dayOfWeek.values).toEqual([0]);
+      expect(CronTab.parseFields("0 0 * * 5-7").dayOfWeek.values).toEqual([
+        0, 5, 6,
+      ]);
+      expect(CronTab.parseFields("0 0 * * SUN,mon").dayOfWeek.values).toEqual([
+        0, 1,
+      ]);
+    });
+
+    test("a restricted day field is not a wildcard, even when it allows every day", () => {
+      // Day of month and day of week are OR-ed only when both are restricted.
+      const fields: CronExpressionFields =
+        CronTab.parseFields("0 0 1-31 * 0-6");
+
+      expect(fields.dayOfMonth).toEqual({
+        values: range(1, 31),
+        isWildcard: false,
+      });
+      expect(fields.dayOfWeek).toEqual({
+        values: range(0, 6),
+        isWildcard: false,
+      });
+    });
+
+    test("an expression that is not valid throws what getValidationError says", () => {
+      for (const expression of [
+        "61 * * * *",
+        "* * *",
+        "0 0 * * funday",
+        "0 25 * * *",
+        "0 0 0 * *",
+      ]) {
+        const message: string | null = CronTab.getValidationError(expression);
+
+        expect(message).not.toBeNull();
+        expect(() => {
+          CronTab.parseFields(expression);
+        }).toThrow(message!);
       }
     });
   });

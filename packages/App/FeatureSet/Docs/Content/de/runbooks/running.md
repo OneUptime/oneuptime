@@ -37,11 +37,13 @@ Ein neuer Lauf ist **Geplant**, bis ein Worker ihn übernimmt und als **Wird aus
 
 ## Einen Lauf starten
 
-Es gibt drei Wege, auf denen eine Runbook-Ausführung entsteht:
+Es gibt fünf Wege, auf denen eine Runbook-Ausführung entsteht:
 
 1. **Automatisch über eine Regel**: Eine [Runbook-Regel](/docs/runbooks/rules) startet sie, wenn ein passender Vorfall, eine passende Warnung oder ein passendes geplantes Wartungsereignis entsteht. Auch eine Regel zur automatischen Behebung kann eine starten; siehe [AI SRE](/docs/ai/ai-sre).
 2. **Manuell von einem Ereignis aus**: Klicken Sie an einem Vorfall, einer Warnung oder einem geplanten Wartungsereignis auf **Runbook ausführen**. Die Ausführung hängt an diesem Ereignis.
 3. **Manuell von der Runbook-Seite aus**: Klicken Sie auf der Seite **Übersicht** eines Runbooks auf **Jetzt ausführen**. Der Lauf hängt an keinem Vorfall, keiner Warnung und keinem geplanten Wartungsereignis.
+4. **Nach Zeitplan**: Der Zeitplan des Runbooks startet sie zu festen Zeiten. Siehe [Nach Zeitplan ausführen](/docs/runbooks/triggers#nach-zeitplan-ausführen).
+5. **Aus einem anderen Tool**: Ein `POST` an die Webhook-URL des Runbooks startet sie, mit den Werten, die der Aufruf sendet. Siehe [Den Webhook aufrufen](/docs/runbooks/triggers#den-webhook-aufrufen).
 
 So starten Sie einen von Hand:
 

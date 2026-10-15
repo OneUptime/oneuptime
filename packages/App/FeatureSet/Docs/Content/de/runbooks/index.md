@@ -6,6 +6,7 @@ Ein Runbook ist ein wiederverwendbares Reaktionsverfahren: eine geordnete Liste 
 - [Ein Runbook verfassen](/docs/runbooks/authoring): Ein Runbook erstellen und seine Schritte schreiben.
 - [Runbook-Regeln](/docs/runbooks/rules): Runbooks bei neuen Vorfällen, Warnungen und Wartungsereignissen starten.
 - [Ein Runbook ausführen](/docs/runbooks/running): Einen Lauf starten, seine Schritte abschließen und genehmigen, ihn abbrechen.
+- [Runbook-Auslöser](/docs/runbooks/triggers): Ein Runbook nach einem Zeitplan ausführen oder aus einem anderen Tool über seine Webhook-URL.
 - [Runbook-Agents](/docs/runbooks/agents): Den Runner installieren, der Ihre Skripte in Ihrer eigenen Infrastruktur ausführt.
 :::
 
@@ -73,6 +74,8 @@ Ein Runbook kann alle Typen mischen. Die Stärke von Runbooks liegt darin, mensc
 | **Runbook ausführen** | Die Seite **Runbooks** eines Vorfalls, einer Warnung oder eines geplanten Wartungsereignisses | Diesem Ereignis |
 | **Jetzt ausführen** | Die Seite **Übersicht** des Runbooks | Nichts: ein Ad-hoc-Lauf |
 | Eine Regel zur automatischen Behebung | Siehe [AI SRE](/docs/ai/ai-sre) | Dem Vorfall oder der Warnung |
+| Der Zeitplan des Runbooks | Die Seite **Auslöser** des Runbooks, siehe [Runbook-Auslöser](/docs/runbooks/triggers#nach-zeitplan-ausführen) | Nichts: ein unbeaufsichtigter Lauf |
+| Ein Aufruf der Webhook-URL des Runbooks | Die Seite **Auslöser** des Runbooks, siehe [Runbook-Auslöser](/docs/runbooks/triggers#den-webhook-aufrufen) | Nichts: Der Lauf behält die Werte, die der Aufruf gesendet hat |
 
 Ein Runbook, dessen Schalter **Dieses Runbook ausführen** auf seiner Seite **Einstellungen** aus ist, wird von keinem dieser Wege gestartet. Bereits gestartete Läufe laufen weiter.
 
@@ -86,6 +89,7 @@ Runbooks finden Sie unter **Produkte**, in der Gruppe **Dashboards & Automatisie
 | **Schritte** eines Runbooks | Seine Schritte schreiben und umsortieren, dann **Schritte speichern**. |
 | **Übersicht** eines Runbooks | Seinen letzten Lauf und die Ergebnisse sehen und auf **Jetzt ausführen** klicken. |
 | **Ausführungen** eines Runbooks | Jeder Lauf dieses Runbooks, gefiltert nach Status oder Startdatum. |
+| **Auslöser** eines Runbooks | Es nach einem [Zeitplan](/docs/runbooks/triggers#nach-zeitplan-ausführen) ausführen oder aus einem anderen Tool über seine [Webhook-URL](/docs/runbooks/triggers#den-webhook-aufrufen). |
 | **Eigentümer** eines Runbooks | Die Personen und Teams hinzufügen, die dafür verantwortlich sind. |
 | **Einstellungen** eines Runbooks | **Dieses Runbook ausführen** ausschalten, ohne das Runbook zu löschen. |
 | **Runbooks → Ausführungen** | Jeder Lauf jedes Runbooks im Projekt. |

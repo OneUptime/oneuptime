@@ -1,4 +1,5 @@
 import RunbookAPI from "./API/Runbook";
+import RunbookWebhookAPI from "./API/RunbookWebhook";
 import KubernetesAiAgentIngressAPI from "./API/KubernetesAiAgentIngress";
 import ResourceAiAgentIngressAPI from "./API/ResourceAiAgentIngress";
 import RunnerIngressAPI from "./API/RunnerIngress";
@@ -71,6 +72,8 @@ const RunbookFeatureSet: FeatureSet = {
       const app: ExpressApplication = Express.getExpressApp();
 
       app.use(`/${APP_NAME}`, new RunbookAPI().router);
+      // A runbook's webhook URL, and where its Triggers page reads the key.
+      app.use(`/${APP_NAME}`, new RunbookWebhookAPI().router);
       app.use(`/${AGENT_INGRESS_PATH}`, new RunnerIngressAPI().router);
       app.use(
         `/${KUBERNETES_AI_AGENT_INGRESS_PATH}`,

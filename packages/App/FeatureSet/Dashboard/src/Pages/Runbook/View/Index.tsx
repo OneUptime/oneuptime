@@ -60,6 +60,11 @@ import {
   getRunbookRunGate,
   getRunbookRunLockedReason,
 } from "../../../Components/Runbook/RunbookRunGate";
+import {
+  RUNBOOK_EXECUTION_TRIGGER_SELECT,
+  UnattendedTriggerText,
+  getUnattendedTriggerText,
+} from "../../../Components/Runbook/Triggers/RunbookExecutionTrigger";
 
 function statusPill(status: RunbookExecutionStatus | undefined): ReactElement {
   switch (status) {
@@ -80,7 +85,25 @@ function statusPill(status: RunbookExecutionStatus | undefined): ReactElement {
   }
 }
 
-function triggerSourceElement(execution: RunbookExecution): ReactElement {
+function triggerSourceElement(
+  execution: RunbookExecution,
+  translator: Translator,
+): ReactElement {
+  // Its schedule, when it was due, or its webhook, and who called it.
+  const unattended: UnattendedTriggerText | null = getUnattendedTriggerText(
+    translator,
+    execution,
+  );
+
+  if (unattended) {
+    return (
+      <span className="inline-flex flex-wrap items-center gap-x-1.5 text-sm text-gray-700">
+        <span className="text-gray-500">{unattended.label}</span>
+        {unattended.details[0] ? <span>{unattended.details[0]}</span> : <></>}
+      </span>
+    );
+  }
+
   if (execution.incident) {
     return (
       <span className="inline-flex items-center gap-1 text-sm text-gray-700">
@@ -199,6 +222,7 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
               email: true,
               profilePictureId: true,
             },
+            ...RUNBOOK_EXECUTION_TRIGGER_SELECT,
           },
           sort: {
             createdAt: SortOrder.Descending,
@@ -435,7 +459,9 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     ? OneUptimeDate.getDateAsLocalFormattedString(lastStartedAt)
                     : null}
                 </div>
-                <div className="mt-1">{triggerSourceElement(lastExec)}</div>
+                <div className="mt-1">
+                  {triggerSourceElement(lastExec, translator)}
+                </div>
               </div>
             ) : (
               <div className="text-sm text-gray-500">

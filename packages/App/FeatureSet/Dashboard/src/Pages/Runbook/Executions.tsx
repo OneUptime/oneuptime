@@ -9,6 +9,12 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RunbookExecutionStatus from "Common/Types/Runbook/RunbookExecutionStatus";
+import RunbookExecutionTriggerCell, {
+  RUNBOOK_EXECUTION_TRIGGER_CELL_SELECT,
+  TRIGGERED_BY_MAX_WIDTH_CLASS_NAME,
+  TRIGGERED_BY_MIN_WIDTH_CLASS_NAME,
+} from "../../Components/Runbook/Triggers/RunbookExecutionTriggerCell";
+import { getTriggerFilterOptions } from "../../Components/Runbook/Triggers/RunbookExecutionTrigger";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
@@ -112,6 +118,12 @@ const RunbooksExecutions: FunctionComponent<
             ),
           },
           {
+            field: { triggerType: true },
+            title: "Triggered by",
+            type: FieldType.Dropdown,
+            filterDropdownOptions: getTriggerFilterOptions(),
+          },
+          {
             field: { createdAt: true },
             title: "Started At",
             type: FieldType.Date,
@@ -132,6 +144,23 @@ const RunbooksExecutions: FunctionComponent<
             },
           },
           {
+            field: RUNBOOK_EXECUTION_TRIGGER_CELL_SELECT,
+            title: "Triggered by",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            /*
+             * An incident's title, a long due time: they wrap in the
+             * column rather than push the table past its card.
+             */
+            wrapContent: true,
+            // Wide enough that a person's name never breaks over two lines.
+            contentClassName: TRIGGERED_BY_MIN_WIDTH_CLASS_NAME,
+            wrapMaxWidthClassName: TRIGGERED_BY_MAX_WIDTH_CLASS_NAME,
+            getElement: (item: RunbookExecution): ReactElement => {
+              return <RunbookExecutionTriggerCell execution={item} />;
+            },
+          },
+          {
             field: { startedAt: true },
             title: "Started At",
             type: FieldType.DateTime,
@@ -141,6 +170,12 @@ const RunbooksExecutions: FunctionComponent<
             title: "Completed At",
             type: FieldType.DateTime,
             hideOnMobile: true,
+            /*
+             * Triggered by took its place: with both, the list ran past
+             * its card at 1280px and hid each row's View. Status says
+             * whether a run ended; Customize Columns brings this back.
+             */
+            isHiddenByDefault: true,
           },
         ]}
       />
