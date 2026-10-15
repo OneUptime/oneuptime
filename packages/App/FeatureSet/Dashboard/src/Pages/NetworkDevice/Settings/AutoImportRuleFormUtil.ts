@@ -5,14 +5,24 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
 
-export type MonitorIncompatibleBehaviorField =
-  | "isExclusion"
-  | "includePingOnlyHosts";
+/*
+ * The one behaviour a monitor template cannot go with: an exclusion rule
+ * imports nothing, so it has nothing to monitor.
+ *
+ * Ping-only hosts used to be the second. They imported as monitor-backed
+ * devices that nothing polled, so a Network Device monitor on one had no
+ * polls to read. They import as probe-polled devices now - the probe pings
+ * them - and a template's reachability check reads that ping, so a rule
+ * that includes them gets them monitored like any other device, exactly as
+ * an import from Review Results does. (The server has allowed it since
+ * ping-first polling; only this form still refused it.)
+ */
+export type MonitorIncompatibleBehaviorField = "isExclusion";
 
 export function canSelectAutoImportMonitorTemplate(
   values: FormValues<NetworkDeviceAutoImportRule>,
 ): boolean {
-  return !values.isExclusion && !values.includePingOnlyHosts;
+  return !values.isExclusion;
 }
 
 /*

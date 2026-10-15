@@ -27,6 +27,7 @@ import { BaseTableProps } from "../../../UI/Components/ModelTable/BaseModelTable
 import Column from "../../../UI/Components/ModelTable/Column";
 import ActionButtonSchema from "../../../UI/Components/ActionButton/ActionButtonSchema";
 import { ComponentProps as ModalProps } from "../../../UI/Components/Modal/Modal";
+import DiscoveryImportFakeServer from "./DiscoveryImportFakeServer";
 
 type TableProps = Pick<
   BaseTableProps<NetworkDeviceDiscoveryScan>,
@@ -101,13 +102,24 @@ jest.mock("../../../UI/Components/Modal/Modal", () => {
           <p>{props.description}</p>
           {props.error && <p role="alert">{props.error}</p>}
           {!props.isBodyLoading && props.children}
+          {props.leftFooterElement}
           <button onClick={props.onClose}>Close review</button>
-          <button
-            disabled={props.disableSubmitButton || props.isLoading}
-            onClick={props.onSubmit}
-          >
-            {props.submitButtonText}
-          </button>
+          {props.secondaryButton && (
+            <button
+              disabled={props.secondaryButton.disabled}
+              onClick={props.secondaryButton.onClick}
+            >
+              {props.secondaryButton.title}
+            </button>
+          )}
+          {props.submitButtonText && (
+            <button
+              disabled={props.disableSubmitButton || props.isLoading}
+              onClick={props.onSubmit}
+            >
+              {props.submitButtonText}
+            </button>
+          )}
         </div>
       );
     },
@@ -217,6 +229,13 @@ beforeEach(() => {
     .mockResolvedValue(
       scan({ discoveredDevices: [HOST], isSnmpEnabled: false }),
     );
+  /*
+   * The import API in memory. The page asks for the project's active
+   * imports, and Review Results for the scan's last import before it shows
+   * the hosts; left to the network, that read waits on a lookup of a host
+   * that does not exist, and a slow machine runs the assertions first.
+   */
+  new DiscoveryImportFakeServer().install();
 });
 
 afterEach(() => {
@@ -407,9 +426,9 @@ describe("Discovery page live progress wiring", () => {
     });
     expect(getItemSpy).toHaveBeenCalledTimes(1);
     expect(screen.getByText(/This scan is still running/)).toBeInTheDocument();
-    expect(screen.getByText(/This review is a snapshot/)).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Import Selected (1)" }),
-    ).toBeEnabled();
+    expect(screen.getByText(/This list is a snapshot/)).toBeInTheDocument();
+    // The host found so far is ticked, and the import can go on to its next step.
+    expect(screen.getByText("1 host will be imported")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Next" })).toBeEnabled();
   });
 });

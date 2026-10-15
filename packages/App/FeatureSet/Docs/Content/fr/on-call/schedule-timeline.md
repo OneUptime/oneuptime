@@ -47,7 +47,7 @@ Sous la grille, **On call this week** (**On call this month** dans la vue mensue
 - La chronologie couvre 180 jours en arrière et 365 jours en avant.
 
 > [!NOTE]
-> Les permanences passées sont recalculées à partir de la configuration actuelle de chaque planning : elles montrent donc la rotation telle qu'elle est configurée aujourd'hui, qui peut différer de qui a réellement été alerté à l'époque. Pour les heures réellement passées d'astreinte, utilisez **Astreinte** > **Rapports** > **Temps d'astreinte de l'utilisateur**.
+> Les permanences passées sont recalculées à partir de la configuration actuelle de chaque planning : elles montrent donc la rotation telle qu'elle est configurée aujourd'hui, qui peut différer de qui a réellement été alerté à l'époque. Pour les heures réellement passées d'astreinte, utilisez **Astreinte** > **Rapports** > **Temps d'astreinte de l'utilisateur**. Voir [Temps d'astreinte de l'utilisateur](/docs/on-call/readiness#temps-dastreinte-de-lutilisateur).
 
 ## Trouver un planning ou une personne
 

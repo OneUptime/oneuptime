@@ -84,7 +84,7 @@ Die Übersicht oben auf der Seite **Eskalationsregeln** zeigt die ganze Leiter: 
 
 ### Wie jede Person erreicht wird
 
-Wie jede Person erreicht wird, die eine Stufe alarmiert, bestimmen ihre eigenen Bereitschaftsregeln: **Benutzereinstellungen** > **Bereitschaftsregeln**, mit je einem Tab für Vorfälle, Vorfallsepisoden, Warnungen und Warnungsepisoden und einer Karte pro Schweregrad, die zeigt, welche Benachrichtigungsmethode nach welcher Wartezeit verwendet wird. Projektadministratoren sehen und ändern die Regeln eines Mitglieds unter **Benutzer** > das Mitglied > **Bereitschaftsregeln**.
+Wie jede Person erreicht wird, die eine Stufe alarmiert, bestimmen ihre eigenen Bereitschaftsregeln: **Benutzereinstellungen** > **Bereitschaftsregeln**, mit je einem Tab für Vorfälle, Vorfallsepisoden, Warnungen und Warnungsepisoden und einer Karte pro Schweregrad, die zeigt, welche Benachrichtigungsmethode nach welcher Wartezeit verwendet wird. Projektadministratoren sehen und ändern die Regeln eines Mitglieds unter **Benutzer** > das Mitglied > **Bereitschaftsregeln**. Siehe [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules).
 
 ```mermaid title="Wen eine Stufe alarmiert und wie jede Person erreicht wird"
 flowchart TB
@@ -101,7 +101,7 @@ flowchart TB
     rules --> methods["Ihre Benachrichtigungsmethoden"]
 ```
 
-Ist für eine Person eine Benutzervertretung wirksam, gehen ihre Alarmierungen stattdessen an die Person, die sie vertritt. Nennt sie niemanden als Vertretung, wird die Person übersprungen: Sie wird nicht alarmiert, der Lauf der Richtlinie vermerkt, dass sie abwesend ist und bis wann, und in einem Bereitschaftsplan geht jede ihrer Schichten an die nächste Person in der Rotation.
+Ist für eine Person eine Benutzervertretung wirksam, gehen ihre Alarmierungen stattdessen an die Person, die sie vertritt. Nennt sie niemanden als Vertretung, wird die Person übersprungen: Sie wird nicht alarmiert, der Lauf der Richtlinie vermerkt, dass sie abwesend ist und bis wann, und in einem Bereitschaftsplan geht jede ihrer Schichten an die nächste Person in der Rotation. Siehe [Benutzerüberschreibungen](/docs/on-call/user-overrides).
 
 Jede Nachricht ist eine, die ihr Anbieter annimmt, damit eine Alarmierung immer hinausgeht. So viel trägt jeder Kanal:
 

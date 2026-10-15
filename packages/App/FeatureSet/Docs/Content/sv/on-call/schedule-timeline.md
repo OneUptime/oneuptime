@@ -47,7 +47,7 @@ Under rutnätet visar **On call this week** (**On call this month** i månadsvyn
 - Tidslinjen täcker 180 dagar bakåt och 365 dagar framåt.
 
 > [!NOTE]
-> Tidigare pass räknas om utifrån varje schemas nuvarande inställningar, så de visar rotationen som den är inställd nu, vilket kan skilja sig från vem som faktiskt larmades då. För de timmar personer faktiskt hade jour använder du **Jourtjänst** > **Rapporter** > **Användarens jourtid**.
+> Tidigare pass räknas om utifrån varje schemas nuvarande inställningar, så de visar rotationen som den är inställd nu, vilket kan skilja sig från vem som faktiskt larmades då. För de timmar personer faktiskt hade jour använder du **Jourtjänst** > **Rapporter** > **Användarens jourtid**. Se [Användarens jourtid](/docs/on-call/readiness#användarens-jourtid).
 
 ## Hitta ett schema eller en person
 

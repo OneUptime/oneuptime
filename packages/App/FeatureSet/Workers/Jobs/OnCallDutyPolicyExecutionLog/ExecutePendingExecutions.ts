@@ -6,6 +6,7 @@ import {
   getOnCallPolicyRunRecordHandledMessage,
   ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
 } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
+import { getOnCallPolicyRepeatsAllowed } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRepeat";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import OnCallDutyPolicyEscalationRuleService from "Common/Server/Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyExecutionLogService from "Common/Server/Services/OnCallDutyPolicyExecutionLogService";
@@ -50,6 +51,7 @@ RunCron(
           triggeredByIncidentEpisodeId: true,
           createdAt: true,
           onCallDutyPolicy: {
+            repeatPolicyIfNoOneAcknowledges: true,
             repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
             isArchived: true,
           },
@@ -318,17 +320,20 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
       /*
        * check if we need to repeat this execution.
        * onCallPolicyExecutionRepeatCount is seeded to 1 on create (the initial
-       * pass), and repeatPolicyIfNoOneAcknowledgesNoOfTimes is the number of
-       * additional repeats requested. Use <= so the policy repeats exactly that
-       * many times: with a strict <, "repeat 1 time" never repeated at all and
-       * "repeat N" only repeated N-1 times, leaving unacknowledged incidents
-       * under-escalated.
+       * pass), and the policy's repeats (getOnCallPolicyRepeatsAllowed) are
+       * the number of additional passes requested. Use <= so the policy
+       * repeats exactly that many times: with a strict <, "repeat 1 time"
+       * never repeated at all and "repeat N" only repeated N-1 times, leaving
+       * unacknowledged incidents under-escalated.
+       *
+       * The repeats are 0 while "Repeat if no one acknowledges" is off, as
+       * the policy's Repeat Policy card says: a policy whose repeats were
+       * switched off, its number left as it was, runs once.
        */
       if (
         executionLog.onCallPolicyExecutionRepeatCount &&
         executionLog.onCallPolicyExecutionRepeatCount <=
-          executionLog.onCallDutyPolicy!
-            .repeatPolicyIfNoOneAcknowledgesNoOfTimes!
+          getOnCallPolicyRepeatsAllowed(executionLog.onCallDutyPolicy)
       ) {
         // repeating execution
 

@@ -98,7 +98,7 @@ Resten finns i menyn **⋯** på kortet. **Skapa länken på nytt** och **Ta bor
 
 ### Kommande pass och ersättare
 
-Sidan visar också dina **Upcoming shifts** (de kommande 30 dagarna) och kortet **Påminn mig före pass**, som beskrivs längre ned. Vart och ett av dina egna pass har en länk **Hitta ersättare**: den öppnar användaråsidosättningar i passets projekt med en ny åsidosättning som redan är ifylld för det passet, med dig som **Vem är borta?** och passets tider som **Börjar** och **Slutar** (från och med nu, om passet har börjat), så att bara **Vem täcker upp?** återstår. Åsidosättningen skickar alla dina larm under de tiderna till den som täcker upp, från alla jourpolicyer; ett pass som bara finns inuti en policy täcks i stället på den policyns sida för användaråsidosättningar. Lämnar du **Vem täcker upp?** som **Nästa person i rotationen** hoppas du i stället över: vart och ett av dina pass går till nästa person i rotationen som inte är borta. Ett pass där du täcker upp för någon annan har ingen **Hitta ersättare**: åsidosättningar kedjas inte, så en ersättare för en ersättare skulle inte ändra något.
+Sidan visar också dina **Upcoming shifts** (de kommande 30 dagarna) och kortet **Påminn mig före pass**, som beskrivs längre ned. Vart och ett av dina egna pass har en länk **Hitta ersättare**: den öppnar användaråsidosättningar i passets projekt med en ny åsidosättning som redan är ifylld för det passet, med dig som **Vem är borta?** och passets tider som **Börjar** och **Slutar** (från och med nu, om passet har börjat), så att bara **Vem täcker upp?** återstår. Åsidosättningen skickar alla dina larm under de tiderna till den som täcker upp, från alla jourpolicyer; ett pass som bara finns inuti en policy täcks i stället på den policyns sida för användaråsidosättningar. Lämnar du **Vem täcker upp?** som **Nästa person i rotationen** hoppas du i stället över: vart och ett av dina pass går till nästa person i rotationen som inte är borta. Ett pass där du täcker upp för någon annan har ingen **Hitta ersättare**: åsidosättningar kedjas inte, så en ersättare för en ersättare skulle inte ändra något. Se [Användaråsidosättningar](/docs/on-call/user-overrides).
 
 Samma personliga länk, filtrerad till ett schema med `?schedule=<id>`, erbjuds som **Bara mina pass i det här schemat** på varje schemas sida, och jourbannern och sidan **Mina jourpolicyer** har en länk **Lägg till dina pass i din kalender** till sidan ovan.
 
@@ -233,7 +233,7 @@ När en person lämnar sitt sista team i ett projekt tar OneUptime också bort p
 
 ## Planering, inte revision
 
-Flödet visar rotationen **som den är inställd nu**, även för tidigare dagar: en åsidosättning som läggs in i efterhand skriver om historiken i kalendern. För timmar som faktiskt har tillbringats med jour, rättvisegranskningar och ersättning använder du **Jourtjänst** > **Rapporter** > **Användarens jourtid**, som bygger på vad personsökaren faktiskt gjorde.
+Flödet visar rotationen **som den är inställd nu**, även för tidigare dagar: en åsidosättning som läggs in i efterhand skriver om historiken i kalendern. För timmar som faktiskt har tillbringats med jour, rättvisegranskningar och ersättning använder du **Jourtjänst** > **Rapporter** > **Användarens jourtid**, som bygger på vad personsökaren faktiskt gjorde. Se [Användarens jourtid](/docs/on-call/readiness#användarens-jourtid).
 
 ## Säkerhet
 

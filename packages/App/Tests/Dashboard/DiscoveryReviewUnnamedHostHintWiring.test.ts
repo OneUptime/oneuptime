@@ -43,6 +43,7 @@ import path from "path";
  * turning a `not.toContain` into a vacuous pass.
  */
 
+// The import dialog's host list, where every row is drawn.
 const DISCOVERY_PAGE: string = path.join(
   __dirname,
   "..",
@@ -50,9 +51,22 @@ const DISCOVERY_PAGE: string = path.join(
   "FeatureSet",
   "Dashboard",
   "src",
-  "Pages",
+  "Components",
   "NetworkDevice",
-  "Discovery.tsx",
+  "DiscoveryImport",
+  "DiscoveredHostTable.tsx",
+);
+
+// The dialog around it: the scan it reads, and the probe it matches.
+const DIALOG: string = path.join(
+  DISCOVERY_PAGE,
+  "..",
+  "DiscoveryImportDialog.tsx",
+);
+const REVIEW_MODULE: string = path.join(
+  DISCOVERY_PAGE,
+  "..",
+  "DiscoveryImportReview.ts",
 );
 
 /*
@@ -76,8 +90,35 @@ function stripComments(source: string): string {
 }
 
 /** The page with comments removed and whitespace squashed to single spaces. */
+const WHITESPACE_RUNS: RegExp = /\s+/g;
+
 function readCode(): string {
-  return stripComments(readSource()).replace(/\s+/g, " ");
+  return stripComments(readSource()).replace(WHITESPACE_RUNS, " ");
+}
+
+// A search of the probe list, which no row may make.
+const PROBE_SEARCH: RegExp = /\bprobes\.find\(/;
+
+// The dialog matches the scan's own probe among the loaded probes, once.
+const DIALOG_FINDS_THE_SCANS_PROBE: RegExp =
+  /const probeId: string = scan\?\.probeId\?\.toString\(\) \|\| ""; const probe: Probe \| undefined = probeId \? props\.probes\.find\(/;
+
+// The dialog reads the scan with the review module's select.
+const DIALOG_READS_WITH_REVIEW_SELECT: RegExp =
+  /ModelAPI\.getItem<NetworkDeviceDiscoveryScan>\(\{[^)]*?select:\s*DISCOVERY_REVIEW_SCAN_SELECT\b/;
+
+const NETBIOS_SETTING_SELECTED: RegExp =
+  /export const DISCOVERY_REVIEW_SCAN_SELECT[\s\S]*?=\s*\{[^}]*\bisNetbiosLookupEnabled:\s*true\b/;
+
+const REVIEW_SELECT_BODY: RegExp =
+  /export const DISCOVERY_REVIEW_SCAN_SELECT[\s\S]*?=\s*\{([^}]*)\}/;
+
+// The review module, where the dialog's select lives.
+function reviewSelect(): string {
+  return stripComments(fs.readFileSync(REVIEW_MODULE, "utf8")).replace(
+    WHITESPACE_RUNS,
+    " ",
+  );
 }
 
 /*
@@ -88,7 +129,7 @@ function readCode(): string {
 function readEnglishLocale(): Record<string, string> {
   return JSON.parse(
     fs.readFileSync(
-      path.join(DISCOVERY_PAGE, "..", "..", "..", "Locales", "en.json"),
+      path.join(DISCOVERY_PAGE, "..", "..", "..", "..", "Locales", "en.json"),
       "utf8",
     ),
   );
@@ -140,7 +181,7 @@ function rowNameBlock(): RowNameBlock {
 
   if (!match || match.index === undefined) {
     throw new Error(
-      "Discovery.tsx no longer computes `buildDeviceName(entry, <scan>)` into" +
+      "DiscoveredHostTable.tsx no longer computes `buildDeviceName(entry, <scan>)` into" +
         " a const before the discovered-host row's `return (`.",
     );
   }
@@ -166,14 +207,14 @@ interface ExplanationCall {
 }
 
 const EXPLANATION_CALL: RegExp =
-  /const\s+(\w+)\s*(?::[^=]*)?=\s*explainUnnamedDiscoveredHost\(\{\s*host:\s*(\w+)\s*,\s*scan:\s*(\w+)\s*,\s*isGlobalProbe:\s*(\w+)\s*,?\s*\}\)\s*;/;
+  /const\s+(\w+)\s*(?::[^=]*)?=\s*explainUnnamedDiscoveredHost\(\{\s*host:\s*(\w+)\s*,\s*scan:\s*(\w+)\s*,\s*isGlobalProbe:\s*([\w.]+)\s*,?\s*\}\)\s*;/;
 
 function explanationCall(): ExplanationCall {
   const match: RegExpMatchArray | null = readCode().match(EXPLANATION_CALL);
 
   if (!match || match.index === undefined) {
     throw new Error(
-      "Discovery.tsx no longer stores `explainUnnamedDiscoveredHost({ host," +
+      "DiscoveredHostTable.tsx no longer stores `explainUnnamedDiscoveredHost({ host," +
         " scan, isGlobalProbe })` in a const. The unnamed-host hint (issue" +
         " #3916) is computed once per row, from exactly those three inputs.",
     );
@@ -188,13 +229,21 @@ function explanationCall(): ExplanationCall {
   };
 }
 
-/** One rendered row of the discovered-host list. */
+/** One rendered row of the discovered-host list: the row component. */
 function rowSection(): string {
   const code: string = readCode();
-  const start: number = indexOf("{shownEntries.map(");
-  const end: number = indexOf("</div> ); }, )}", start);
+  const start: number = indexOf("export const DiscoveredHostRow");
+  const end: number = indexOf("export default DiscoveredHostTable", start);
 
   return code.slice(start, end);
+}
+
+// A file other than the host list, with comments removed and whitespace squashed.
+function readOtherCode(file: string): string {
+  return stripComments(fs.readFileSync(file, "utf8")).replace(
+    WHITESPACE_RUNS,
+    " ",
+  );
 }
 
 /*
@@ -255,8 +304,12 @@ describe("the unnamed-host hint comes from Common and nowhere else (issue #3916)
     );
     expect(readCode()).toMatch(
       new RegExp(
-        `const\\s*\\[\\s*${explanationCall().scanArgument}\\s*,\\s*set\\w+\\s*\\]\\s*=`,
+        `const\\s+${explanationCall().scanArgument}\\s*:\\s*NetworkDeviceDiscoveryScan\\s*=\\s*props\\.scan\\s*;`,
       ),
+    );
+    // And the dialog hands the rows the scan it read, fresh.
+    expect(readOtherCode(DIALOG)).toContain(
+      "<DiscoveredHostTable hosts={hosts} scan={scan}",
     );
   });
 
@@ -336,7 +389,7 @@ describe("the hint stays out of the naming block the App suite executes", () => 
   test("it is computed before the name line's buildDeviceName, not after", () => {
     expect(explanationCall().index).toBeLessThan(rowNameBlock().start);
     expect(explanationCall().index).toBeGreaterThan(
-      indexOf("{shownEntries.map("),
+      indexOf("export const DiscoveredHostRow"),
     );
   });
 
@@ -353,39 +406,21 @@ describe("the hint stays out of the naming block the App suite executes", () => 
     expect(statements).not.toMatch(/\bprobes\b/);
   });
 
-  test("the global-probe answer is worked out once per render, outside the row", () => {
+  test("the global-probe answer is worked out once, by the dialog, outside the rows", () => {
     /*
      * A fact about the scan, not the host — and a list of thousands of rows
-     * must not search the probe list once per row.
+     * must not search the probe list once per row. The dialog matches the
+     * scan's own probe among the loaded probes once, and hands the answer
+     * down: the list to every row, the row to the explanation.
      */
-    const code: string = readCode();
-    const identifier: string = explanationCall().isGlobalProbeArgument;
-    const declaration: RegExpMatchArray | null = code.match(
-      new RegExp(
-        `const\\s+${identifier}\\s*:\\s*boolean\\s*\\|\\s*undefined\\s*=`,
-      ),
-    );
+    expect(explanationCall().isGlobalProbeArgument).toBe("props.isGlobalProbe");
+    expect(readCode()).toContain("isGlobalProbe={props.isGlobalProbe}");
+    expect(readCode()).not.toMatch(PROBE_SEARCH);
 
-    expect(declaration).not.toBeNull();
+    const dialog: string = readOtherCode(DIALOG);
 
-    const start: number = declaration!.index!;
-
-    expect(start).toBeLessThan(indexOf("{shownEntries.map("));
-    expect(rowSection()).not.toMatch(/\bprobes\.find\(/);
-
-    /*
-     * Read off the loaded probes, matched to the scan's own probe. Sliced up
-     * to the page's render `return (`, which follows it: the arrow inside the
-     * expression has a `;` and a `return` of its own, so neither can end it.
-     */
-    const expression: string = code.slice(
-      start,
-      indexOf("return ( <Fragment>", start),
-    );
-
-    expect(expression).toContain("probes.find(");
-    expect(expression).toContain(".isGlobalProbe");
-    expect(code).toMatch(/scanToReview\?\.probeId\?\.toString\(\)/);
+    expect(dialog).toMatch(DIALOG_FINDS_THE_SCANS_PROBE);
+    expect(dialog).toContain("isGlobalProbe={probe?.isGlobalProbe}");
   });
 });
 
@@ -393,9 +428,10 @@ describe("the hint is beside the name, and the address line is untouched", () =>
   test("the name div is unchanged inside the new wrapper", () => {
     const identifier: string = rowNameBlock().displayNameIdentifier;
 
+    // Its class a string, or a template literal opening with `truncate`.
     expect(nameLineSection()).toMatch(
       new RegExp(
-        `^<div className="flex min-w-0 items-center[^"]*"\\s*>\\s*<div\\s+className="truncate[^"]*"\\s+title=\\{${identifier}\\}\\s*>\\s*\\{${identifier}\\}\\s*</div>`,
+        `^<div className="flex min-w-0 items-center[^"]*"\\s*>\\s*<div\\s+className=(?:"truncate[^"]*"|\\{\`truncate[^\`]*\`\\})\\s+title=\\{${identifier}\\}\\s*>\\s*\\{${identifier}\\}\\s*</div>`,
       ),
     );
   });
@@ -415,15 +451,13 @@ describe("the dialog reads what the explanation needs", () => {
      * explanation reads as "NetBIOS off" — and on a scan that had it on, a
      * row would be told to turn on a lookup that already ran.
      */
-    expect(readCode()).toMatch(
-      /ModelAPI\.getItem<NetworkDeviceDiscoveryScan>\(\{[^)]*?select:\s*\{[^}]*\bisNetbiosLookupEnabled:\s*true\b[^}]*\}/,
-    );
+    expect(readOtherCode(DIALOG)).toMatch(DIALOG_READS_WITH_REVIEW_SELECT);
+    expect(reviewSelect()).toMatch(NETBIOS_SETTING_SELECTED);
   });
 
   test("and still selects the other facts it reads", () => {
-    const select: RegExpMatchArray | null = readCode().match(
-      /ModelAPI\.getItem<NetworkDeviceDiscoveryScan>\(\{[^)]*?select:\s*\{([^}]*)\}/,
-    );
+    const select: RegExpMatchArray | null =
+      reviewSelect().match(REVIEW_SELECT_BODY);
 
     expect(select).not.toBeNull();
 

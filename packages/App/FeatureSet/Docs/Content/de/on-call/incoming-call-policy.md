@@ -159,7 +159,7 @@ Eine Regel lässt bei einer Person auf der Nummer klingeln, die sie in diesem Pr
 3. Geben Sie den 6-stelligen Code, den OneUptime per SMS an die Nummer sendet, unter **Verifizierungscode** ein und klicken Sie auf **Verifizieren**. **Send a new code** sendet einen weiteren.
 :::
 
-Jede Person kann pro Projekt eine verifizierte Nummer haben. Um sie zu ändern, löschen Sie zuerst die alte Nummer. Diese Nummern sind getrennt von den Telefonnummern unter **Benachrichtigungsmethoden**, die die Bereitschaftsalarmierung nutzt.
+Jede Person kann pro Projekt eine verifizierte Nummer haben. Um sie zu ändern, löschen Sie zuerst die alte Nummer. Diese Nummern sind getrennt von den Telefonnummern unter **Benachrichtigungsmethoden**, die die Bereitschaftsalarmierung nutzt. Siehe [Benachrichtigungsmethoden](/docs/notifications/notification-methods).
 
 Nummern für eingehende Anrufe werden per SMS verifiziert, deshalb muss **SMS** im Projekt zuerst eingeschaltet sein. Ein Projekteigentümer oder jemand mit der Rolle **Billing Admin** oder der Berechtigung **Manage Billing** schaltet es in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** ein.
 
@@ -200,7 +200,7 @@ Wird ein Anruf verpasst, benachrichtigt OneUptime die Eigentümer der Richtlinie
 
 Die Benachrichtigung sagt, wer angerufen hat, welche Nummer gewählt wurde, warum niemand abgenommen hat und bei wem es geklingelt hat und wie jeder Versuch endete. Sie verlinkt den Anruf im Anrufprotokoll.
 
-Eigentümer erhalten standardmäßig eine E-Mail. Jede Person kann andere Kanäle wählen (SMS, Anruf, Push und mehr) oder sie in **Benutzereinstellungen** > **Benachrichtigungseinstellungen** ausschalten, unter **Bereitschaft** > **Richtlinien für eingehende Anrufe** > **Verpasster Anruf**.
+Eigentümer erhalten standardmäßig eine E-Mail. Jede Person kann andere Kanäle wählen (SMS, Anruf, Push und mehr) oder sie in **Benutzereinstellungen** > **Benachrichtigungseinstellungen** ausschalten, unter **Bereitschaft** > **Richtlinien für eingehende Anrufe** > **Verpasster Anruf**. Siehe [Benachrichtigungseinstellungen](/docs/notifications/notification-settings).
 
 ### In einem Workflow auf verpasste Anrufe reagieren
 

@@ -77,6 +77,7 @@ Een **bereikbaarheidsbeleid** bepaalt wie wordt opgeroepen over een incident of 
 Hoe iemand bereikt wordt, bepaalt die persoon zelf. In de **Gebruikersinstellingen** legt ieder vast hoe OneUptime hem kan bereiken, zoals e-mail, sms, oproepen, pushmeldingen, Slack of Microsoft Teams, en welke daarvan bij een oproep worden gebruikt.
 
 :::cards
+- [Bereikbaarheid – Overzicht](/docs/on-call/index): Hoe een oproep iemand bereikt en waar elk onderdeel staat.
 - [Escalatieregels](/docs/on-call/escalation-rules): Mensen niveau voor niveau oproepen tot iemand reageert.
 - [Bereikbaarheidsschema's](/docs/on-call/schedules): Roosters, lagen en overdrachten.
 - [Hoe OneUptime je bereikt](/docs/notifications/index): De methoden, regels en instellingen die bepalen hoe iedereen wordt bereikt.

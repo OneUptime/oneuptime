@@ -47,7 +47,7 @@ Unter dem Raster listet **On call this week** (**On call this month** in der Mon
 - Die Zeitachse reicht 180 Tage zurück und 365 Tage voraus.
 
 > [!NOTE]
-> Vergangene Schichten werden aus der aktuellen Konfiguration jedes Plans neu berechnet. Sie zeigen also die Rotation, wie sie jetzt eingerichtet ist, und die kann davon abweichen, wer damals tatsächlich alarmiert wurde. Für die Stunden, die Personen tatsächlich in Bereitschaft verbracht haben, nutzen Sie **Bereitschaftsdienst** > **Berichte** > **Bereitschaftszeit des Benutzers**.
+> Vergangene Schichten werden aus der aktuellen Konfiguration jedes Plans neu berechnet. Sie zeigen also die Rotation, wie sie jetzt eingerichtet ist, und die kann davon abweichen, wer damals tatsächlich alarmiert wurde. Für die Stunden, die Personen tatsächlich in Bereitschaft verbracht haben, nutzen Sie **Bereitschaftsdienst** > **Berichte** > **Bereitschaftszeit des Benutzers**. Siehe [Bereitschaftszeit des Benutzers](/docs/on-call/readiness#bereitschaftszeit-des-benutzers).
 
 ## Einen Plan oder eine Person finden
 

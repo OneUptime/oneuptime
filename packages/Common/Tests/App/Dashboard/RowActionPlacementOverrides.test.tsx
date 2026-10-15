@@ -907,7 +907,7 @@ describe("Discovery scans: Review Results is the row's button whenever it is off
 
     await waitFor(() => {
       expect(screen.getByTestId("modal-title")).toHaveTextContent(
-        "Review Discovered Devices",
+        "Import Discovered Devices",
       );
     });
 

@@ -18,7 +18,7 @@ No OneUptime Cloud, os SMS e as chamadas de plantão vêm dos números abaixo. A
 :::
 
 > [!TIP]
-> Adicionar ou verificar seu número de telefone em **Configurações do usuário** > **Métodos de notificação** envia um código a partir desses números, então é um jeito rápido de conferir se eles chegam.
+> Adicionar ou verificar seu número de telefone em **Configurações do usuário** > **Métodos de notificação** envia um código a partir desses números, então é um jeito rápido de conferir se eles chegam. Veja [Métodos de notificação](/docs/notifications/notification-methods).
 
 ## Quando os acionamentos vêm de outros números
 

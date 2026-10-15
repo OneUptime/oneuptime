@@ -84,7 +84,7 @@ Oversigten øverst på siden **Eskaleringsregler** viser hele stigen: hvornår h
 
 ### Sådan nås hver person
 
-Hver person, et niveau tilkalder, nås sådan, som personens egne vagtregler siger: **Brugerindstillinger** > **Vagtregler**, med en fane for hændelser, hændelsesepisoder, advarsler og advarselsepisoder og et kort pr. alvorlighed, der viser, hvilken notifikationsmetode der prøves og efter hvor lang tid. En projektadministrator kan se og ændre et medlems regler under **Brugere** > medlemmet > **Vagtregler**.
+Hver person, et niveau tilkalder, nås sådan, som personens egne vagtregler siger: **Brugerindstillinger** > **Vagtregler**, med en fane for hændelser, hændelsesepisoder, advarsler og advarselsepisoder og et kort pr. alvorlighed, der viser, hvilken notifikationsmetode der prøves og efter hvor lang tid. En projektadministrator kan se og ændre et medlems regler under **Brugere** > medlemmet > **Vagtregler**. Se [Personlige vagtregler](/docs/notifications/on-call-rules).
 
 ```mermaid title="Hvem et niveau tilkalder, og hvordan hver person nås"
 flowchart TB
@@ -101,7 +101,7 @@ flowchart TB
     rules --> methods["Personens notifikationsmetoder"]
 ```
 
-En brugeroverride, der gælder for en person, sender personens tilkald til den, der dækker for vedkommende, i stedet. En override, der ikke nævner nogen til at dække, springer personen over: vedkommende får ingen tilkald, politikkens kørsel viser, at vedkommende er fraværende og til hvornår, og i en vagtplan går hver af vedkommendes vagter til den næste person i rotationen.
+En brugeroverride, der gælder for en person, sender personens tilkald til den, der dækker for vedkommende, i stedet. En override, der ikke nævner nogen til at dække, springer personen over: vedkommende får ingen tilkald, politikkens kørsel viser, at vedkommende er fraværende og til hvornår, og i en vagtplan går hver af vedkommendes vagter til den næste person i rotationen. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).
 
 Hver besked er en, som udbyderen tager imod, så et tilkald går altid ud. Så meget bærer hver kanal:
 

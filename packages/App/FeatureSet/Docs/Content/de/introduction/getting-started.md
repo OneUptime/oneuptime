@@ -49,7 +49,7 @@ Die Dokumentation ist wie die Seitenleiste in neun Bereiche gegliedert. Wählen 
 :::cards
 - [Vorfälle](/docs/incidents/index): Vorfälle melden, koordinieren und beheben, mit einer vollständigen Zeitleiste.
 - [Warnungen](/docs/alerts/index): Probleme untersuchen, bevor Ihre Nutzer sie bemerken, und das Rauschen in Episoden bündeln.
-- [Bereitschaft](/docs/on-call/schedules): Rotationen, Eskalationsregeln und wer wann alarmiert wird.
+- [Bereitschaft](/docs/on-call/index): Richtlinien, Eskalationsregeln, Rotationen und wer wann alarmiert wird.
 - [Benachrichtigungen](/docs/notifications/index): Wie OneUptime Sie erreicht: Ihre Methoden, Bereitschaftsregeln und Benachrichtigungseinstellungen.
 - [Statusseiten](/docs/status-pages/index): Kunden auf öffentlichen oder privaten Statusseiten auf dem Laufenden halten.
 - [Workspace-Verbindungen](/docs/workspace-connections/slack): Vorfälle aus Slack und Microsoft Teams heraus bearbeiten.

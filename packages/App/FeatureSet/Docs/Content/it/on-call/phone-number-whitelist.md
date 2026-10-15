@@ -18,7 +18,7 @@ Su OneUptime Cloud, gli SMS e le chiamate di reperibilità arrivano dai numeri q
 :::
 
 > [!TIP]
-> Aggiungere o verificare il tuo numero di telefono in **Impostazioni utente** > **Metodi di notifica** ti invia un codice da questi numeri: è un modo rapido per controllare che arrivino.
+> Aggiungere o verificare il tuo numero di telefono in **Impostazioni utente** > **Metodi di notifica** ti invia un codice da questi numeri: è un modo rapido per controllare che arrivino. Vedi [Metodi di notifica](/docs/notifications/notification-methods).
 
 ## Quando gli avvisi arrivano da altri numeri
 

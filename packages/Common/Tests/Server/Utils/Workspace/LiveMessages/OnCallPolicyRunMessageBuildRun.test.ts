@@ -158,6 +158,8 @@ function executionLog(options: {
   executeNextInMinutes?: number | undefined;
   repeatCount?: number | undefined;
   repeatsAllowed?: number | undefined;
+  // The policy's "Repeat if no one acknowledges": on unless a test says.
+  repeatSwitch?: boolean | undefined;
   acknowledgedBy?: User | undefined;
   policyName?: string | undefined;
 }): OnCallDutyPolicyExecutionLog {
@@ -193,6 +195,7 @@ function executionLog(options: {
 
   const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
   policy.name = options.policyName ?? "PolicyX";
+  policy.repeatPolicyIfNoOneAcknowledges = options.repeatSwitch ?? true;
   policy.repeatPolicyIfNoOneAcknowledgesNoOfTimes = options.repeatsAllowed ?? 2;
   model.onCallDutyPolicy = policy;
 
@@ -1295,6 +1298,36 @@ describe("OnCallPolicyRunMessage.buildRun - where the escalation is", () => {
 
     expect(first.repeatNumber).toBe(0);
     expect(first.repeatsAllowed).toBe(0);
+  });
+
+  /*
+   * The run counts the repeats the policy's Repeat Policy card shows: none
+   * while "Repeat if no one acknowledges" is off, whatever "Number of times
+   * to repeat" was left at - so the message never says "repeat 1 of 3" for a
+   * run that will not repeat.
+   */
+  test("a policy whose repeats are switched off allows none, whatever its number", () => {
+    const switchedOff: OnCallPolicyRun = build({
+      log: executionLog({
+        repeatCount: 1,
+        repeatsAllowed: 3,
+        repeatSwitch: false,
+      }),
+      timeline: [],
+    });
+
+    expect(switchedOff.repeatsAllowed).toBe(0);
+
+    const switchedOn: OnCallPolicyRun = build({
+      log: executionLog({
+        repeatCount: 1,
+        repeatsAllowed: 3,
+        repeatSwitch: true,
+      }),
+      timeline: [],
+    });
+
+    expect(switchedOn.repeatsAllowed).toBe(3);
   });
 
   test("a policy without a name still reads", () => {
