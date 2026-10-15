@@ -385,9 +385,9 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
            * caller's: "Notifications Sent" was drawn in English on every
            * page whatever the language.
            */
-          translateString(statusText || statusInfo.text) ||
-          statusText ||
-          statusInfo.text
+          statusText
+            ? translateString(statusText) || statusText
+            : translateString(statusInfo.text) || statusInfo.text
         }
         icon={statusInfo.icon}
         iconColor={iconColor}
