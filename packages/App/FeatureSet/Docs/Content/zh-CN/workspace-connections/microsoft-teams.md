@@ -152,7 +152,7 @@ flowchart TB
 | 消息 | 机器人的操作 |
 | --- | --- |
 | `help` | 列出它能做的事。 |
-| `incident [title]` | 打开已填好标题的事件表单。 |
+| `incident [title or number]` | 打开已填好标题的事件表单。如果写的是事件编号，例如 `42` 或 `INC-42`，则改为显示该事件：请参阅 [从 Microsoft Teams 操作一个事件](#从-microsoft-teams-操作一个事件)。 |
 | `maintenance [title]` | 打开已填好标题的计划维护表单。 |
 | `oncall` | 列出您能看到的每个值班计划中当前由谁值班、值班到何时，以及下一位是谁。 |
 | `page [who] [message]` | 就您的消息呼叫您 @提及的人，或发送一张卡片来选择要呼叫的人。请参阅 [从 Microsoft Teams 呼叫他人](#从-microsoft-teams-呼叫他人)。 |
@@ -213,6 +213,25 @@ flowchart TB
 - **Microsoft 365 的要求。** 更改标记需要应用的 `TeamworkTag.ReadWrite.All` 权限，由 Microsoft 365 管理员在 **项目设置** > **工作区** > **Microsoft Teams** 中通过 **授予管理员许可** 授予。如果您的组织在 OneUptime 能够维护标记之前就已授予许可，请再授予一次。
 - **谁可以连接。** 可以编辑值班计划的角色： **Project Owner**、 **Project Admin**、 **Project Member**、 **On-Call Admin** 和 **On-Call Member**，或自定义角色中的 **Edit On-Call Duty Policy Schedule**。在 OneUptime Cloud 上，连接需要 **Growth** 套餐。
 - **断开连接后。** OneUptime 不再更改该标记。该标记及其成员会按原样保留在 Microsoft Teams 中。
+
+## 从 Microsoft Teams 操作一个事件
+
+事件的卡片有四个按钮： **Acknowledge Incident**、 **Resolve Incident**、 **Add Note** 和 **View Incident**，其余操作在三点按钮菜单中：
+
+| 菜单项 | 作用 |
+| --- | --- |
+| **Change Severity** | 设置事件的严重程度。 |
+| **Change Incident State** | 将事件移到之后的状态。 |
+| **Assign Role** | 为某人分配事件中的角色，例如 **Incident Commander**。只能由一人担任的角色会转给此人。 |
+| **Page Someone** | 就该事件呼叫人员、团队、某个值班计划中当前值班的人或某个值班策略，直到有人确认。 |
+| **Edit Custom Fields** | 设置事件的自定义字段，每个字段都已填入事件的现有值。留空的字段会被清除。 |
+
+向机器人输入的 `incident 42` 会用事件 42、这些按钮和它的菜单来回答。按 OneUptime 显示的样子输入编号： `42`、 `#42` 或 `INC-42`。在事件自己的频道中，只输入 `incident` 就会显示该事件。
+
+- **谁可以使用。** 与 Slack 中相同，能在 OneUptime 中做同样更改的人：请参阅 [从 Slack 操作一个事件](/docs/workspace-connections/slack#从-slack-操作一个事件)。每个菜单项都会用一张卡片回答，卡片按按下它的人能看到的事件内容填写。对话中的任何人都可以以本人身份、用自己的权限提交该卡片。
+- **之后会发生什么。** 更改会像在 OneUptime 中一样以提交卡片的人的身份进行，事件的动态会说明更改了什么。机器人会在提及此人的回复中说明，并移除该卡片，以免有人提交两次。 **Page Someone** 会说明呼叫了谁，或为什么没有呼叫任何人；已经解决的事件不会呼叫任何人。
+- **Microsoft Teams 的不同之处。** 卡片无法在字段下方说明哪里有问题：不合适的值会在回复中说明，卡片会保留，以便修改后再次提交。日期和时间字段是您自己时区中的日期和时间。较旧的 Teams 客户端会把菜单显示为更多按钮。 `incident 42` 会在对话中回答，对话中的每个人都能看到该事件。
+- **菜单出现之前发布的卡片。** 它们保留 **Execute On-Call Policy** 按钮，并且仍然有效： **Page Someone** 也能呼叫值班策略。警报和片段保留它们自己的按钮。
 
 ## 从 Microsoft Teams 处理事件、警报和活动
 

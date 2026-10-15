@@ -139,7 +139,7 @@ OneUptime 在 Slack 中只有一個指令：`/oneuptime`。在它後面輸入的
 | 指令 | 作用 |
 | --- | --- |
 | `/oneuptime help` | 列出所有指令，並附範例。 |
-| `/oneuptime incident [title]` | 開啟已填好標題的事件表單。 |
+| `/oneuptime incident [title or number]` | 開啟已填好標題的事件表單。如果寫的是事件編號，例如 `42` 或 `INC-42`，則改為顯示該事件：請參閱 [從 Slack 操作一個事件](#從-slack-操作一個事件)。 |
 | `/oneuptime maintenance [title]` | 開啟已填好標題的排定維護表單。 |
 | `/oneuptime oncall` | 列出您看得到的每個待命排程中目前由誰待命、待命到何時，以及下一位是誰。 |
 | `/oneuptime page [who] [message]` | 就您的訊息呼叫您 @提及的人，或開啟一個表單來選擇要呼叫的人。請參閱 [從 Slack 呼叫他人](#從-slack-呼叫他人)。 |
@@ -211,6 +211,25 @@ OneUptime 只回答傳給它的內容。
 - **Slack 的要求。** 使用者群組屬於 Slack 付費方案的功能，而且工作區可能只允許擁有者和管理員變更使用者群組：卡片會說明屬於哪種情況以及該怎麼做。如果在 OneUptime 能夠維護使用者群組之前就已連線 Slack，請在 **專案設定** > **工作區** > **Slack** 中重新連線一次。
 - **誰可以連線。** 可以編輯待命排程的角色： **Project Owner**、 **Project Admin**、 **Project Member**、 **On-Call Admin** 和 **On-Call Member**，或自訂角色中的 **Edit On-Call Duty Policy Schedule**。在 OneUptime Cloud 上，連線需要 **Growth** 方案。
 - **中斷連線後。** OneUptime 不再變更該群組。該群組及其成員會照原樣留在 Slack 中。
+
+## 從 Slack 操作一個事件
+
+事件的訊息有四個按鈕： **Acknowledge Incident**、 **Resolve Incident**、 **Add Note** 和 **View Incident**，其餘操作在它們後面的三點按鈕選單中：
+
+| 選單項目 | 作用 |
+| --- | --- |
+| **Change Severity** | 設定事件的嚴重程度。 |
+| **Change Incident State** | 將事件移到之後的狀態。 |
+| **Assign Role** | 為某人指派事件中的角色，例如 **Incident Commander**。只能由一人擔任的角色會轉給此人。 |
+| **Page Someone** | 就該事件呼叫人員、團隊、某個待命排程中目前待命的人或某個待命策略，直到有人確認。 |
+| **Edit Custom Fields** | 設定事件的自訂欄位，每個欄位都已填入事件的現有值。留空的欄位會被清除。 |
+
+`/oneuptime incident 42` 會在只有您看得到的訊息中顯示事件 42，以及這些按鈕和它的選單。依 OneUptime 顯示的樣子輸入編號： `42`、 `#42` 或 `INC-42`。在事件自己的頻道中，只輸入 `/oneuptime incident` 就會顯示該事件。
+
+- **誰可以使用。** 能在 OneUptime 中做同樣變更的人。 **Change Severity** 和 **Edit Custom Fields** 需要編輯事件的權限： **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member**，或自訂角色中的 **Edit Incident**。 **Assign Role** 需要 **Create Incident Member**，轉移只能由一人擔任的角色還需要 **Delete Incident Member**。 **Page Someone** 需要的權限與 **Execute On-Call Policy** 相同。其他任何人都會被告知原因，並且不會開啟表單。
+- **表單提供的內容。** 您在專案中可以讀取的內容。從事件的監視器複製的自訂欄位不會出現在表單中，因為它會被再次複製；一個表單最多容納 40 個欄位，其餘欄位請在 OneUptime 中編輯。
+- **之後會發生什麼。** 表單會關閉，變更會像在 OneUptime 中一樣以您本人的身分進行：事件的動態，以及隨之而來的事件頻道，會說明變更了什麼，每個自訂欄位都會附上新值。不適合其欄位的值，例如數字欄位中的文字，會在該欄位下方說明，表單保持開啟。 **Page Someone** 會說明呼叫了誰，或為什麼沒有呼叫任何人；已經解決的事件不會呼叫任何人。
+- **選單出現之前張貼的訊息。** 它們保留 **Execute On-Call Policy** 按鈕，並且仍然有效： **Page Someone** 也能呼叫待命策略。警示和片段保留它們自己的按鈕。
 
 ## 從 Slack 處理事件、警示和活動
 

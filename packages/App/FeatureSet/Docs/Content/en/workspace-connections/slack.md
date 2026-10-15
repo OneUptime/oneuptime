@@ -139,7 +139,7 @@ OneUptime has one command in Slack, `/oneuptime`. The word you type after it say
 | Command | What it does |
 | --- | --- |
 | `/oneuptime help` | Lists the commands, with examples. |
-| `/oneuptime incident [title]` | Opens the incident form, with the title filled in. |
+| `/oneuptime incident [title or number]` | Opens the incident form, with the title filled in. An incident's number, such as `42` or `INC-42`, shows that incident instead: see [Acting on an incident from Slack](#acting-on-an-incident-from-slack). |
 | `/oneuptime maintenance [title]` | Opens the scheduled maintenance form, with the title filled in. |
 | `/oneuptime oncall` | Lists who is on call right now in each on-call schedule you can see, until when, and who is next. |
 | `/oneuptime page [who] [message]` | Pages the people you @mention about your message, or opens a form to pick who to page. See [Paging someone from Slack](#paging-someone-from-slack). |
@@ -211,6 +211,25 @@ For a group that holds the primary and the secondary on call, connect the same g
 - **What Slack needs.** User groups are on Slack's paid plans, and a workspace can let only its owners and admins change them: the card says which, and what to do. If Slack was connected before OneUptime could keep user groups, connect it again once under **Project Settings** > **Workspace** > **Slack**.
 - **Who may connect one.** The roles that may edit schedules: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Edit On-Call Duty Policy Schedule** in a custom role. On OneUptime Cloud, connecting one needs the **Growth** plan.
 - **Disconnecting.** OneUptime stops changing the group. The group, and the people in it, stay in Slack as they are.
+
+## Acting on an incident from Slack
+
+An incident's message has four buttons, **Acknowledge Incident**, **Resolve Incident**, **Add Note** and **View Incident**, and the rest in its menu, the button with three dots after them:
+
+| Menu item | What it does |
+| --- | --- |
+| **Change Severity** | Sets the incident's severity. |
+| **Change Incident State** | Moves the incident to a later state. |
+| **Assign Role** | Gives somebody a role on the incident, such as **Incident Commander**. A role that takes one person moves to them. |
+| **Page Someone** | Pages people, a team, whoever is on call in a schedule, or an on-call policy about the incident, until somebody acknowledges it. |
+| **Edit Custom Fields** | Sets the incident's custom fields, each filled in with what the incident holds. A field left empty is cleared. |
+
+`/oneuptime incident 42` shows incident 42, with these buttons and its menu, in a message only you see. Type the number as OneUptime shows it: `42`, `#42` or `INC-42`. In an incident's own channel, `/oneuptime incident` alone shows that incident.
+
+- **Who may use them.** The people who may make the same change in OneUptime. **Change Severity** and **Edit Custom Fields** need permission to edit the incident: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** and **Incident Member**, or **Edit Incident** in a custom role. **Assign Role** needs **Create Incident Member**, and **Delete Incident Member** to move a role that takes one person. **Page Someone** needs what **Execute On-Call Policy** needs. Anyone else is told why, and no form opens.
+- **What the forms offer.** What you may read in the project. A custom field copied from the incident's monitor is left off, as it would be copied again, and a form holds 40 fields: edit the rest in OneUptime.
+- **What happens.** The form closes, and the change is made as you, as in OneUptime: the incident's feed, and the incident's channels with it, say what changed, each custom field with its new value. A value that does not fit its field, such as text for a number, is said under the field, and the form stays open. **Page Someone** says who was paged, or why nobody was; an incident that is resolved already pages nobody.
+- **Messages posted before the menu.** They keep their **Execute On-Call Policy** button, and it keeps working: **Page Someone** pages an on-call policy too. Alerts and episodes keep theirs.
 
 ## Acting on incidents, alerts and events from Slack
 

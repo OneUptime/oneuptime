@@ -139,7 +139,7 @@ OneUptime har én kommando i Slack, `/oneuptime`. Ordet du skriver etter den, si
 | Kommando | Hva den gjør |
 | --- | --- |
 | `/oneuptime help` | Viser kommandoene, med eksempler. |
-| `/oneuptime incident [title]` | Åpner hendelsesskjemaet med tittelen fylt ut. |
+| `/oneuptime incident [title or number]` | Åpner hendelsesskjemaet med tittelen fylt ut. Nummeret til en hendelse, som `42` eller `INC-42`, viser i stedet den hendelsen: se [Handle på en hendelse fra Slack](#handle-på-en-hendelse-fra-slack). |
 | `/oneuptime maintenance [title]` | Åpner skjemaet for planlagt vedlikehold med tittelen fylt ut. |
 | `/oneuptime oncall` | Viser hvem som har vakt akkurat nå i hver vaktplan du kan se, til når, og hvem som er neste. |
 | `/oneuptime page [who] [message]` | Tilkaller personene du nevner med @, om meldingen din, eller åpner et skjema der du velger hvem som skal tilkalles. Se [Tilkall noen fra Slack](#tilkall-noen-fra-slack). |
@@ -211,6 +211,25 @@ For en gruppe med både primær og sekundær vakt kobler du den samme gruppen ti
 - **Hva Slack krever.** Brukergrupper hører til de betalte abonnementene til Slack, og et arbeidsområde kan la bare eierne og administratorene endre dem: kortet sier hvilket, og hva du gjør. Hvis Slack ble koblet til før OneUptime kunne holde brukergrupper oppdatert, kobler du det til igjen én gang under **Prosjektinnstillinger** > **Arbeidsområde** > **Slack**.
 - **Hvem som kan koble til en.** Rollene som kan redigere vaktplaner: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** og **On-Call Member**, eller **Edit On-Call Duty Policy Schedule** i en egendefinert rolle. På OneUptime Cloud krever det abonnementet **Growth** å koble til en.
 - **Koble fra.** OneUptime slutter å endre gruppen. Gruppen og medlemmene blir værende i Slack som de er.
+
+## Handle på en hendelse fra Slack
+
+Meldingen til en hendelse har fire knapper, **Acknowledge Incident**, **Resolve Incident**, **Add Note** og **View Incident**, og resten i menyen, knappen med tre prikker etter dem:
+
+| Menypunkt | Hva det gjør |
+| --- | --- |
+| **Change Severity** | Setter alvorlighetsgraden til hendelsen. |
+| **Change Incident State** | Flytter hendelsen til en senere tilstand. |
+| **Assign Role** | Gir noen en rolle i hendelsen, som **Incident Commander**. En rolle for én person går over til vedkommende. |
+| **Page Someone** | Tilkaller personer, et team, den som har vakt i en vaktplan nå, eller en vaktpolicy om hendelsen, til noen bekrefter den. |
+| **Edit Custom Fields** | Setter de egendefinerte feltene til hendelsen, hvert fylt ut med det hendelsen har. Et felt som står tomt, tømmes. |
+
+`/oneuptime incident 42` viser hendelse 42, med disse knappene og menyen, i en melding bare du ser. Skriv nummeret slik OneUptime viser det: `42`, `#42` eller `INC-42`. I den egne kanalen til en hendelse viser `/oneuptime incident` alene den hendelsen.
+
+- **Hvem som kan bruke dem.** De som kan gjøre den samme endringen i OneUptime. **Change Severity** og **Edit Custom Fields** krever tillatelse til å redigere hendelsen: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** og **Incident Member**, eller **Edit Incident** i en egendefinert rolle. **Assign Role** krever **Create Incident Member**, og **Delete Incident Member** for å flytte en rolle for én person. **Page Someone** krever det samme som **Execute On-Call Policy**. Alle andre får vite hvorfor, og ingen skjema åpnes.
+- **Hva skjemaene tilbyr.** Det du kan lese i prosjektet. Et egendefinert felt som kopieres fra monitoren til hendelsen, er utelatt, siden det ville blitt kopiert på nytt, og et skjema rommer 40 felt: rediger resten i OneUptime.
+- **Hva som skjer.** Skjemaet lukkes, og endringen gjøres som deg, som i OneUptime: feeden til hendelsen, og kanalene til hendelsen med den, sier hva som endret seg, hvert egendefinert felt med sin nye verdi. En verdi som ikke passer til feltet, som tekst for et tall, nevnes under feltet, og skjemaet blir stående åpent. **Page Someone** sier hvem som ble tilkalt, eller hvorfor ingen ble det; en hendelse som allerede er løst, tilkaller ingen.
+- **Meldinger fra før menyen.** De beholder knappen **Execute On-Call Policy**, og den virker fortsatt: **Page Someone** tilkaller også en vaktpolicy. Varsler og episoder beholder sine.
 
 ## Handle på hendelser, varsler og begivenheter fra Slack
 

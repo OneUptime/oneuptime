@@ -152,7 +152,7 @@ Envie uma mensagem ao bot em um chat pessoal, ou mencione o OneUptime com @ em u
 | Mensagem | O que o bot faz |
 | --- | --- |
 | `help` | Lista o que ele sabe fazer. |
-| `incident [title]` | Abre o formulário de incidente, com o título preenchido. |
+| `incident [title or number]` | Abre o formulário de incidente, com o título preenchido. O número de um incidente, como `42` ou `INC-42`, mostra esse incidente em vez disso: consulte [Agir sobre um incidente pelo Microsoft Teams](#agir-sobre-um-incidente-pelo-microsoft-teams). |
 | `maintenance [title]` | Abre o formulário de manutenção programada, com o título preenchido. |
 | `oncall` | Lista quem está de plantão agora em cada agendamento de plantão que você pode ver, até quando, e quem é o próximo. |
 | `page [who] [message]` | Aciona as pessoas que você menciona com @ sobre a sua mensagem, ou envia um cartão para escolher quem acionar. Consulte [Acionar alguém pelo Microsoft Teams](#acionar-alguém-pelo-microsoft-teams). |
@@ -213,6 +213,25 @@ Para uma marca com o plantão principal e o secundário, conecte a mesma marca n
 - **O que o Microsoft 365 exige.** Alterar marcas exige a permissão `TeamworkTag.ReadWrite.All` do app, que um administrador do Microsoft 365 concede com **Conceder Consentimento de Administrador** em **Configurações do projeto** > **Espaço de trabalho** > **Microsoft Teams**. Se a sua organização deu o consentimento antes de o OneUptime poder manter marcas, dê de novo uma vez.
 - **Quem pode conectar uma.** As funções que podem editar agendamentos: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** e **On-Call Member**, ou **Edit On-Call Duty Policy Schedule** em uma função personalizada. No OneUptime Cloud, conectar uma exige o plano **Growth**.
 - **Desconectar.** O OneUptime para de mudar a marca. A marca e os membros dela ficam no Microsoft Teams como estão.
+
+## Agir sobre um incidente pelo Microsoft Teams
+
+O cartão de um incidente tem quatro botões, **Acknowledge Incident**, **Resolve Incident**, **Add Note** e **View Incident**, e o resto no menu dele, o botão de três pontos:
+
+| Item do menu | O que faz |
+| --- | --- |
+| **Change Severity** | Define a severidade do incidente. |
+| **Change Incident State** | Leva o incidente a um estado posterior. |
+| **Assign Role** | Dá a alguém uma função no incidente, como **Incident Commander**. Uma função de uma só pessoa passa para ela. |
+| **Page Someone** | Aciona pessoas, uma equipe, quem estiver de plantão em um agendamento, ou uma política de plantão sobre o incidente, até que alguém o confirme. |
+| **Edit Custom Fields** | Define os campos personalizados do incidente, cada um preenchido com o que o incidente tem. Um campo deixado vazio é limpo. |
+
+`incident 42`, digitado para o bot, responde com o incidente 42, esses botões e o menu dele. Digite o número como o OneUptime o mostra: `42`, `#42` ou `INC-42`. No canal próprio de um incidente, `incident` sozinho mostra esse incidente.
+
+- **Quem pode usá-los.** As pessoas que podem fazer a mesma alteração no OneUptime, como no Slack: consulte [Agir sobre um incidente pelo Slack](/docs/workspace-connections/slack#agir-sobre-um-incidente-pelo-slack). Cada item responde com um cartão, preenchido como a pessoa que o pressionou pode ver o incidente. Qualquer pessoa na conversa pode enviar o cartão, como ela mesma, com as próprias permissões.
+- **O que acontece.** A alteração é feita como a pessoa que enviou o cartão, como no OneUptime, e o feed do incidente diz o que mudou. O bot diz isso em uma resposta que a menciona, e remove o cartão, para que ninguém o envie duas vezes. **Page Someone** diz quem foi acionado, ou por que ninguém foi; um incidente que já está resolvido não aciona ninguém.
+- **Onde o Microsoft Teams é diferente.** Um cartão não consegue dizer abaixo de um campo o que está errado: um valor que não cabe é indicado em uma resposta, e o cartão fica para ser corrigido e enviado de novo. Um campo de data e hora é um dia e uma hora, no seu próprio fuso horário. Um cliente antigo do Teams mostra o menu como mais botões. `incident 42` responde na conversa, onde todos que estão nela podem ver o incidente.
+- **Cartões publicados antes do menu.** Eles mantêm o botão **Execute On-Call Policy**, que continua funcionando: **Page Someone** também aciona uma política de plantão. Alertas e episódios mantêm o deles.
 
 ## Agir sobre incidentes, alertas e eventos pelo Microsoft Teams
 

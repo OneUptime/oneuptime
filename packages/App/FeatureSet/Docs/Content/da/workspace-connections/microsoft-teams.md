@@ -152,7 +152,7 @@ Skriv til botten i en personlig chat, eller nævn OneUptime med @ i en kanal ell
 | Besked | Hvad botten gør |
 | --- | --- |
 | `help` | Viser, hvad den kan. |
-| `incident [title]` | Åbner hændelsesformularen med titlen udfyldt. |
+| `incident [title or number]` | Åbner hændelsesformularen med titlen udfyldt. En hændelses nummer, som `42` eller `INC-42`, viser i stedet den hændelse: se [Handl på en hændelse fra Microsoft Teams](#handl-på-en-hændelse-fra-microsoft-teams). |
 | `maintenance [title]` | Åbner formularen til planlagt vedligeholdelse med titlen udfyldt. |
 | `oncall` | Viser, hvem der har vagt lige nu i hver vagtplan, du kan se, til hvornår, og hvem der er den næste. |
 | `page [who] [message]` | Tilkalder de personer, du nævner med @, om din besked, eller sender et kort, hvor du vælger, hvem der skal tilkaldes. Se [Tilkald nogen fra Microsoft Teams](#tilkald-nogen-fra-microsoft-teams). |
@@ -213,6 +213,25 @@ Til et mærke med både den primære og den sekundære vagt forbinder du det sam
 - **Hvad Microsoft 365 kræver.** At ændre mærker kræver appens tilladelse `TeamworkTag.ReadWrite.All`, som en Microsoft 365-administrator giver med **Giv administratorsamtykke** under **Projektindstillinger** > **Arbejdsområde** > **Microsoft Teams**. Hvis din organisation gav samtykke, før OneUptime kunne holde mærker opdateret, så giv det igen én gang.
 - **Hvem der må forbinde et.** De roller, der må redigere vagtplaner: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** og **On-Call Member**, eller **Edit On-Call Duty Policy Schedule** i en brugerdefineret rolle. På OneUptime Cloud kræver det abonnementet **Growth** at forbinde et.
 - **Afbryd forbindelsen.** OneUptime holder op med at ændre mærket. Mærket og dets medlemmer bliver i Microsoft Teams, som de er.
+
+## Handl på en hændelse fra Microsoft Teams
+
+En hændelses kort har fire knapper, **Acknowledge Incident**, **Resolve Incident**, **Add Note** og **View Incident**, og resten i dets menu, knappen med tre prikker:
+
+| Menupunkt | Hvad det gør |
+| --- | --- |
+| **Change Severity** | Sætter hændelsens alvorlighed. |
+| **Change Incident State** | Flytter hændelsen til en senere tilstand. |
+| **Assign Role** | Giver nogen en rolle i hændelsen, som **Incident Commander**. En rolle til én person går over til vedkommende. |
+| **Page Someone** | Tilkalder personer, et team, den der har vagt i en vagtplan, eller en vagtpolitik om hændelsen, indtil nogen kvitterer for den. |
+| **Edit Custom Fields** | Sætter hændelsens brugerdefinerede felter, hvert udfyldt med det, hændelsen har. Et felt, der efterlades tomt, ryddes. |
+
+`incident 42`, skrevet til botten, svarer med hændelse 42, disse knapper og dens menu. Skriv nummeret, som OneUptime viser det: `42`, `#42` eller `INC-42`. I en hændelses egen kanal viser `incident` alene den hændelse.
+
+- **Hvem der må bruge dem.** De personer, der må foretage den samme ændring i OneUptime, som i Slack: se [Handl på en hændelse fra Slack](/docs/workspace-connections/slack#handl-på-en-hændelse-fra-slack). Hvert punkt svarer med et kort, udfyldt som den person, der trykkede på det, må se hændelsen. Alle i samtalen må indsende kortet, som sig selv, med deres egne tilladelser.
+- **Hvad der sker.** Ændringen foretages som den person, der indsendte kortet, som i OneUptime, og hændelsens feed fortæller, hvad der ændrede sig. Botten siger det i et svar, der nævner personen, og fjerner kortet, så ingen indsender det to gange. **Page Someone** fortæller, hvem der blev tilkaldt, eller hvorfor ingen blev; en hændelse, der allerede er løst, tilkalder ingen.
+- **Hvor Microsoft Teams er anderledes.** Et kort kan ikke sige under et felt, hvad der er galt: en værdi, der ikke passer, nævnes i et svar, og kortet bliver stående, så det kan rettes og indsendes igen. Et felt med dato og klokkeslæt er en dag og et klokkeslæt, i din egen tidszone. En ældre Teams-klient viser menuen som flere knapper. `incident 42` svarer i samtalen, hvor alle i den kan se hændelsen.
+- **Kort fra før menuen.** De beholder deres knap **Execute On-Call Policy**, og den virker stadig: **Page Someone** tilkalder også en vagtpolitik. Advarsler og episoder beholder deres.
 
 ## Handl på hændelser, advarsler og begivenheder fra Microsoft Teams
 

@@ -152,7 +152,7 @@ Scrivi al bot in una chat personale, oppure menziona OneUptime con @ in un canal
 | Messaggio | Cosa fa il bot |
 | --- | --- |
 | `help` | Elenca cosa sa fare. |
-| `incident [title]` | Apre il modulo dell'incidente, con il titolo compilato. |
+| `incident [title or number]` | Apre il modulo dell'incidente, con il titolo compilato. Il numero di un incidente, come `42` o `INC-42`, mostra invece quell'incidente: vedi [Agire su un incidente da Microsoft Teams](#agire-su-un-incidente-da-microsoft-teams). |
 | `maintenance [title]` | Apre il modulo della manutenzione programmata, con il titolo compilato. |
 | `oncall` | Elenca chi è reperibile in questo momento in ogni pianificazione di reperibilità che puoi vedere, fino a quando, e chi è il prossimo. |
 | `page [who] [message]` | Chiama le persone che menzioni con @ per il tuo messaggio, oppure invia una scheda per scegliere chi chiamare. Vedi [Chiamare qualcuno da Microsoft Teams](#chiamare-qualcuno-da-microsoft-teams). |
@@ -213,6 +213,25 @@ Per un tag che contenga la reperibilità primaria e quella secondaria, collega l
 - **Cosa serve a Microsoft 365.** Modificare i tag richiede l'autorizzazione `TeamworkTag.ReadWrite.All` dell'app, che un amministratore di Microsoft 365 concede con **Concedi consenso amministratore** in **Impostazioni del progetto** > **Area di lavoro** > **Microsoft Teams**. Se la tua organizzazione ha dato il consenso prima che OneUptime potesse mantenere i tag, dallo di nuovo una volta.
 - **Chi può collegarne uno.** I ruoli che possono modificare le pianificazioni: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** e **On-Call Member**, oppure **Edit On-Call Duty Policy Schedule** in un ruolo personalizzato. Su OneUptime Cloud, collegarne uno richiede il piano **Growth**.
 - **Scollegare.** OneUptime smette di modificare il tag. Il tag e i suoi membri restano in Microsoft Teams come sono.
+
+## Agire su un incidente da Microsoft Teams
+
+La scheda di un incidente ha quattro pulsanti, **Acknowledge Incident**, **Resolve Incident**, **Add Note** e **View Incident**, e il resto nel suo menu, il pulsante con tre puntini:
+
+| Voce del menu | Cosa fa |
+| --- | --- |
+| **Change Severity** | Imposta la gravità dell'incidente. |
+| **Change Incident State** | Porta l'incidente a uno stato successivo. |
+| **Assign Role** | Dà a qualcuno un ruolo nell'incidente, come **Incident Commander**. Un ruolo per una sola persona passa a lei. |
+| **Page Someone** | Chiama persone, un team, chi è reperibile in una pianificazione, o una policy di reperibilità per l'incidente, finché qualcuno non lo conferma. |
+| **Edit Custom Fields** | Imposta i campi personalizzati dell'incidente, ognuno compilato con ciò che l'incidente contiene. Un campo lasciato vuoto viene svuotato. |
+
+`incident 42`, scritto al bot, risponde con l'incidente 42, questi pulsanti e il suo menu. Scrivi il numero come lo mostra OneUptime: `42`, `#42` o `INC-42`. Nel canale proprio di un incidente, `incident` da solo mostra quell'incidente.
+
+- **Chi può usarli.** Le persone che possono fare la stessa modifica in OneUptime, come in Slack: vedi [Agire su un incidente da Slack](/docs/workspace-connections/slack#agire-su-un-incidente-da-slack). Ogni voce risponde con una scheda, compilata come la persona che l'ha premuta può vedere l'incidente. Chiunque nella conversazione può inviare la scheda, a proprio nome, con i propri permessi.
+- **Cosa succede.** La modifica viene fatta a nome della persona che ha inviato la scheda, come in OneUptime, e il feed dell'incidente dice cosa è cambiato. Il bot lo dice in una risposta che la menziona, e rimuove la scheda, così nessuno la invia due volte. **Page Someone** dice chi è stato chiamato, o perché nessuno; un incidente già risolto non chiama nessuno.
+- **Dove Microsoft Teams è diverso.** Una scheda non può dire sotto un campo cosa c'è di sbagliato: un valore che non va bene viene indicato in una risposta, e la scheda resta per essere corretta e inviata di nuovo. Un campo di data e ora è un giorno e un'ora, nel tuo fuso orario. Un client Teams meno recente mostra il menu come altri pulsanti. `incident 42` risponde nella conversazione, dove tutti quelli che ne fanno parte possono vedere l'incidente.
+- **Schede pubblicate prima del menu.** Mantengono il loro pulsante **Execute On-Call Policy**, che continua a funzionare: **Page Someone** chiama anche una policy di reperibilità. Avvisi ed episodi mantengono il loro.
 
 ## Agire su incidenti, avvisi ed eventi da Microsoft Teams
 

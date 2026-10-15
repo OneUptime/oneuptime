@@ -152,7 +152,7 @@ OneUptime 이 인시던트, 경고, 에피소드, 예정된 유지 관리 이벤
 | 메시지 | 봇이 하는 일 |
 | --- | --- |
 | `help` | 할 수 있는 일을 나열합니다. |
-| `incident [title]` | 제목이 채워진 인시던트 양식을 엽니다. |
+| `incident [title or number]` | 제목이 채워진 인시던트 양식을 엽니다. `42` 나 `INC-42` 같은 인시던트 번호를 쓰면 대신 그 인시던트를 보여 줍니다. [Microsoft Teams 에서 인시던트 조치하기](#microsoft-teams-에서-인시던트-조치하기) 를 참조하세요. |
 | `maintenance [title]` | 제목이 채워진 예정된 유지 관리 양식을 엽니다. |
 | `oncall` | 볼 수 있는 각 온콜 스케줄에서 지금 온콜인 사람, 언제까지인지, 다음은 누구인지 나열합니다. |
 | `page [who] [message]` | @멘션한 사람들을 메시지 내용으로 호출하거나, 누구를 호출할지 고르는 카드를 보냅니다. [Microsoft Teams 에서 누군가 호출하기](#microsoft-teams-에서-누군가-호출하기) 를 참조하세요. |
@@ -213,6 +213,25 @@ OneUptime 봇에게 `incident` 또는 `maintenance` 를 입력하면, 개인 채
 - **Microsoft 365 에 필요한 것.** 태그를 바꾸려면 앱의 `TeamworkTag.ReadWrite.All` 권한이 필요하며, Microsoft 365 관리자가 **프로젝트 설정** > **워크스페이스** > **Microsoft Teams** 의 **관리자 동의 부여** 로 부여합니다. OneUptime 이 태그를 관리할 수 있게 되기 전에 조직이 동의했다면 한 번 더 동의하세요.
 - **연결할 수 있는 사람.** 스케줄을 편집할 수 있는 역할입니다. **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin**, **On-Call Member**, 또는 사용자 지정 역할의 **Edit On-Call Duty Policy Schedule** 입니다. OneUptime Cloud 에서는 연결하려면 **Growth** 플랜이 필요합니다.
 - **연결을 해제하면.** OneUptime 은 태그 변경을 멈춥니다. 태그와 멤버는 Microsoft Teams 에 그대로 남습니다.
+
+## Microsoft Teams 에서 인시던트 조치하기
+
+인시던트 카드에는 **Acknowledge Incident**, **Resolve Incident**, **Add Note**, **View Incident** 네 개의 버튼이 있고, 나머지는 점 세 개 버튼인 메뉴에 있습니다.
+
+| 메뉴 항목 | 하는 일 |
+| --- | --- |
+| **Change Severity** | 인시던트의 심각도를 설정합니다. |
+| **Change Incident State** | 인시던트를 이후 상태로 옮깁니다. |
+| **Assign Role** | 누군가에게 인시던트의 역할을 줍니다. 예를 들면 **Incident Commander** 입니다. 한 사람만 맡는 역할은 그 사람에게 넘어갑니다. |
+| **Page Someone** | 누군가 인시던트를 확인할 때까지, 인시던트에 대해 사람, 팀, 스케줄에서 지금 온콜인 사람, 또는 온콜 정책을 호출합니다. |
+| **Edit Custom Fields** | 인시던트의 사용자 지정 필드를 설정하며, 각 필드에는 인시던트의 값이 채워져 있습니다. 비워 둔 필드는 지워집니다. |
+
+봇에 입력한 `incident 42` 는 인시던트 42 와 이 버튼들, 메뉴로 답합니다. 번호는 OneUptime 에 표시되는 대로 입력합니다: `42`, `#42` 또는 `INC-42`. 인시던트 전용 채널에서는 `incident` 만으로 그 인시던트를 보여 줍니다.
+
+- **사용할 수 있는 사람.** Slack 에서처럼 OneUptime 에서 같은 변경을 할 수 있는 사람입니다. [Slack 에서 인시던트 조치하기](/docs/workspace-connections/slack#slack-에서-인시던트-조치하기) 를 참조하세요. 각 항목은 카드로 답하며, 카드는 누른 사람이 볼 수 있는 인시던트 내용으로 채워집니다. 대화에 있는 누구나 본인으로서, 자기 권한으로 카드를 제출할 수 있습니다.
+- **그다음에 일어나는 일.** OneUptime 에서처럼 카드를 제출한 사람으로서 변경이 이루어지고, 인시던트의 피드가 무엇이 바뀌었는지 알립니다. 봇은 그 사람을 멘션하는 답글로 이를 알리고, 아무도 두 번 제출하지 않도록 카드를 삭제합니다. **Page Someone** 은 누가 호출되었는지, 또는 아무도 호출되지 않은 이유를 알립니다. 이미 해결된 인시던트는 아무도 호출하지 않습니다.
+- **Microsoft Teams 에서 다른 점.** 카드는 필드 아래에 무엇이 잘못되었는지 표시할 수 없습니다. 맞지 않는 값은 답글로 알리고, 카드는 고쳐서 다시 제출할 수 있도록 남습니다. 날짜와 시간 필드는 내 시간대의 날짜와 시간입니다. 오래된 Teams 클라이언트는 메뉴를 추가 버튼으로 표시합니다. `incident 42` 는 대화에서 답하므로, 대화에 있는 모두가 인시던트를 볼 수 있습니다.
+- **메뉴 이전에 게시된 카드.** 그 카드에는 **Execute On-Call Policy** 버튼이 남아 계속 작동합니다. **Page Someone** 으로도 온콜 정책을 호출할 수 있습니다. 경고와 에피소드는 자기 버튼을 유지합니다.
 
 ## Microsoft Teams 에서 인시던트, 경고, 이벤트 조치하기
 

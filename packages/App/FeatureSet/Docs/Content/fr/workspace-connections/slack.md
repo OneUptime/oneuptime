@@ -139,7 +139,7 @@ OneUptime a une seule commande dans Slack, `/oneuptime`. Le mot que vous tapez a
 | Commande | Ce qu'elle fait |
 | --- | --- |
 | `/oneuptime help` | Liste les commandes, avec des exemples. |
-| `/oneuptime incident [title]` | Ouvre le formulaire d'incident, avec le titre rempli. |
+| `/oneuptime incident [title or number]` | Ouvre le formulaire d'incident, avec le titre rempli. Le numéro d'un incident, comme `42` ou `INC-42`, affiche plutôt cet incident : voir [Agir sur un incident depuis Slack](#agir-sur-un-incident-depuis-slack). |
 | `/oneuptime maintenance [title]` | Ouvre le formulaire de maintenance planifiée, avec le titre rempli. |
 | `/oneuptime oncall` | Liste qui est d'astreinte en ce moment dans chaque planning d'astreinte que vous pouvez voir, jusqu'à quand, et qui est le suivant. |
 | `/oneuptime page [who] [message]` | Alerte les personnes que vous mentionnez avec @ au sujet de votre message, ou ouvre un formulaire pour choisir qui alerter. Voir [Alerter quelqu'un depuis Slack](#alerter-quelquun-depuis-slack). |
@@ -211,6 +211,25 @@ Pour un groupe qui contient l'astreinte principale et l'astreinte secondaire, co
 - **Ce dont Slack a besoin.** Les groupes d'utilisateurs font partie des formules payantes de Slack, et un espace de travail peut ne permettre qu'à ses propriétaires et administrateurs de les modifier : la carte dit lequel des deux, et quoi faire. Si Slack a été connecté avant que OneUptime puisse tenir des groupes d'utilisateurs à jour, reconnectez-le une fois dans **Paramètres du projet** > **Espace de travail** > **Slack**.
 - **Qui peut en connecter un.** Les rôles qui peuvent modifier les plannings : **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** et **On-Call Member**, ou **Edit On-Call Duty Policy Schedule** dans un rôle personnalisé. Sur OneUptime Cloud, en connecter un nécessite la formule **Growth**.
 - **Déconnecter.** OneUptime cesse de modifier le groupe. Le groupe et ses membres restent dans Slack tels quels.
+
+## Agir sur un incident depuis Slack
+
+Le message d'un incident a quatre boutons, **Acknowledge Incident**, **Resolve Incident**, **Add Note** et **View Incident**, et le reste dans son menu, le bouton à trois points qui les suit :
+
+| Élément du menu | Ce qu'il fait |
+| --- | --- |
+| **Change Severity** | Définit la gravité de l'incident. |
+| **Change Incident State** | Fait passer l'incident à un état suivant. |
+| **Assign Role** | Donne à quelqu'un un rôle sur l'incident, comme **Incident Commander**. Un rôle réservé à une seule personne lui revient. |
+| **Page Someone** | Alerte des personnes, une équipe, la personne d'astreinte dans un planning, ou une politique d'astreinte au sujet de l'incident, jusqu'à ce que quelqu'un en accuse réception. |
+| **Edit Custom Fields** | Définit les champs personnalisés de l'incident, chacun rempli avec ce que contient l'incident. Un champ laissé vide est effacé. |
+
+`/oneuptime incident 42` affiche l'incident 42, avec ces boutons et son menu, dans un message que vous seul voyez. Tapez le numéro tel que OneUptime l'affiche : `42`, `#42` ou `INC-42`. Dans le canal propre à un incident, `/oneuptime incident` seul affiche cet incident.
+
+- **Qui peut les utiliser.** Les personnes qui peuvent faire le même changement dans OneUptime. **Change Severity** et **Edit Custom Fields** demandent l'autorisation de modifier l'incident : **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** et **Incident Member**, ou **Edit Incident** dans un rôle personnalisé. **Assign Role** demande **Create Incident Member**, et **Delete Incident Member** pour transmettre un rôle réservé à une seule personne. **Page Someone** demande ce que demande **Execute On-Call Policy**. Tous les autres apprennent pourquoi, et aucun formulaire ne s'ouvre.
+- **Ce que proposent les formulaires.** Ce que vous pouvez lire dans le projet. Un champ personnalisé copié depuis le moniteur de l'incident n'y figure pas, car il serait copié à nouveau, et un formulaire contient 40 champs : modifiez les autres dans OneUptime.
+- **Ce qui se passe.** Le formulaire se ferme, et le changement est fait en votre nom, comme dans OneUptime : le fil de l'incident, et avec lui les canaux de l'incident, disent ce qui a changé, chaque champ personnalisé avec sa nouvelle valeur. Une valeur qui ne convient pas à son champ, comme du texte pour un nombre, est signalée sous le champ, et le formulaire reste ouvert. **Page Someone** indique qui a été alerté, ou pourquoi personne ne l'a été ; un incident déjà résolu n'alerte personne.
+- **Messages publiés avant le menu.** Ils gardent leur bouton **Execute On-Call Policy**, qui fonctionne toujours : **Page Someone** alerte aussi une politique d'astreinte. Les alertes et les épisodes gardent le leur.
 
 ## Agir sur les incidents, alertes et événements depuis Slack
 

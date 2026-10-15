@@ -152,7 +152,7 @@ Skriv till boten i en personlig chatt, eller nämn OneUptime med @ i en kanal el
 | Meddelande | Vad boten gör |
 | --- | --- |
 | `help` | Visar vad den kan göra. |
-| `incident [title]` | Öppnar incidentformuläret med titeln ifylld. |
+| `incident [title or number]` | Öppnar incidentformuläret med titeln ifylld. En incidents nummer, som `42` eller `INC-42`, visar i stället den incidenten: se [Agera på en incident från Microsoft Teams](#agera-på-en-incident-från-microsoft-teams). |
 | `maintenance [title]` | Öppnar formuläret för schemalagt underhåll med titeln ifylld. |
 | `oncall` | Visar vem som har jour just nu i varje jourschema du kan se, till när, och vem som är nästa. |
 | `page [who] [message]` | Larmar personerna du nämner med @ om ditt meddelande, eller skickar ett kort där du väljer vem som ska larmas. Se [Larma någon från Microsoft Teams](#larma-någon-från-microsoft-teams). |
@@ -213,6 +213,25 @@ För en tagg med både den primära och den sekundära jouren ansluter du samma 
 - **Vad Microsoft 365 kräver.** Att ändra taggar kräver appens behörighet `TeamworkTag.ReadWrite.All`, som en Microsoft 365-administratör beviljar med **Bevilja administratörssamtycke** under **Projektinställningar** > **Arbetsyta** > **Microsoft Teams**. Om din organisation gav samtycke innan OneUptime kunde hålla taggar uppdaterade, ger du det igen en gång.
 - **Vem som får ansluta en.** De roller som får redigera scheman: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** och **On-Call Member**, eller **Edit On-Call Duty Policy Schedule** i en anpassad roll. På OneUptime Cloud kräver det abonnemanget **Growth** att ansluta en.
 - **Koppla från.** OneUptime slutar ändra taggen. Taggen och dess medlemmar stannar i Microsoft Teams som de är.
+
+## Agera på en incident från Microsoft Teams
+
+En incidents kort har fyra knappar, **Acknowledge Incident**, **Resolve Incident**, **Add Note** och **View Incident**, och resten i dess meny, knappen med tre punkter:
+
+| Menyval | Vad det gör |
+| --- | --- |
+| **Change Severity** | Anger incidentens allvarlighetsgrad. |
+| **Change Incident State** | Flyttar incidenten till ett senare tillstånd. |
+| **Assign Role** | Ger någon en roll i incidenten, som **Incident Commander**. En roll för en person går över till den personen. |
+| **Page Someone** | Larmar personer, ett team, den som har jour i ett schema just nu, eller en jourpolicy om incidenten, tills någon bekräftar den. |
+| **Edit Custom Fields** | Anger incidentens anpassade fält, vart och ett ifyllt med det incidenten har. Ett fält som lämnas tomt rensas. |
+
+`incident 42`, skrivet till boten, svarar med incident 42, de här knapparna och dess meny. Skriv numret som OneUptime visar det: `42`, `#42` eller `INC-42`. I en incidents egen kanal visar `incident` ensamt den incidenten.
+
+- **Vem som får använda dem.** De som får göra samma ändring i OneUptime, som i Slack: se [Agera på en incident från Slack](/docs/workspace-connections/slack#agera-på-en-incident-från-slack). Varje val svarar med ett kort, ifyllt så som personen som tryckte på det får se incidenten. Alla i konversationen får skicka kortet, som sig själva, med sina egna behörigheter.
+- **Vad som händer.** Ändringen görs som personen som skickade kortet, som i OneUptime, och incidentens feed säger vad som ändrades. Boten säger det i ett svar som nämner personen, och tar bort kortet, så att ingen skickar det två gånger. **Page Someone** säger vem som larmades, eller varför ingen gjorde det; en incident som redan är löst larmar ingen.
+- **Där Microsoft Teams skiljer sig.** Ett kort kan inte säga under ett fält vad som är fel: ett värde som inte passar nämns i ett svar, och kortet ligger kvar för att rättas och skickas igen. Ett fält för datum och tid är en dag och en tid, i din egen tidszon. En äldre Teams-klient visar menyn som fler knappar. `incident 42` svarar i konversationen, där alla i den kan se incidenten.
+- **Kort från före menyn.** De behåller sin knapp **Execute On-Call Policy**, och den fungerar fortfarande: **Page Someone** larmar också en jourpolicy. Larm och episoder behåller sina.
 
 ## Agera på incidenter, larm och händelser från Microsoft Teams
 

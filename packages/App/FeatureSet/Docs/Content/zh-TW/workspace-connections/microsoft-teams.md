@@ -152,7 +152,7 @@ flowchart TB
 | 訊息 | 機器人的動作 |
 | --- | --- |
 | `help` | 列出它能做的事。 |
-| `incident [title]` | 開啟已填好標題的事件表單。 |
+| `incident [title or number]` | 開啟已填好標題的事件表單。如果寫的是事件編號，例如 `42` 或 `INC-42`，則改為顯示該事件：請參閱 [從 Microsoft Teams 操作一個事件](#從-microsoft-teams-操作一個事件)。 |
 | `maintenance [title]` | 開啟已填好標題的排定維護表單。 |
 | `oncall` | 列出您看得到的每個待命排程中目前由誰待命、待命到何時，以及下一位是誰。 |
 | `page [who] [message]` | 就您的訊息呼叫您 @提及的人，或傳送一張卡片來選擇要呼叫的人。請參閱 [從 Microsoft Teams 呼叫他人](#從-microsoft-teams-呼叫他人)。 |
@@ -213,6 +213,25 @@ flowchart TB
 - **Microsoft 365 的要求。** 變更標籤需要應用程式的 `TeamworkTag.ReadWrite.All` 權限，由 Microsoft 365 管理員在 **專案設定** > **工作區** > **Microsoft Teams** 中透過 **授予管理員同意** 授予。如果您的組織在 OneUptime 能夠維護標籤之前就已同意，請再同意一次。
 - **誰可以連線。** 可以編輯待命排程的角色： **Project Owner**、 **Project Admin**、 **Project Member**、 **On-Call Admin** 和 **On-Call Member**，或自訂角色中的 **Edit On-Call Duty Policy Schedule**。在 OneUptime Cloud 上，連線需要 **Growth** 方案。
 - **中斷連線後。** OneUptime 不再變更該標籤。該標籤及其成員會照原樣留在 Microsoft Teams 中。
+
+## 從 Microsoft Teams 操作一個事件
+
+事件的卡片有四個按鈕： **Acknowledge Incident**、 **Resolve Incident**、 **Add Note** 和 **View Incident**，其餘操作在三點按鈕選單中：
+
+| 選單項目 | 作用 |
+| --- | --- |
+| **Change Severity** | 設定事件的嚴重程度。 |
+| **Change Incident State** | 將事件移到之後的狀態。 |
+| **Assign Role** | 為某人指派事件中的角色，例如 **Incident Commander**。只能由一人擔任的角色會轉給此人。 |
+| **Page Someone** | 就該事件呼叫人員、團隊、某個待命排程中目前待命的人或某個待命策略，直到有人確認。 |
+| **Edit Custom Fields** | 設定事件的自訂欄位，每個欄位都已填入事件的現有值。留空的欄位會被清除。 |
+
+向機器人輸入的 `incident 42` 會用事件 42、這些按鈕和它的選單來回答。依 OneUptime 顯示的樣子輸入編號： `42`、 `#42` 或 `INC-42`。在事件自己的頻道中，只輸入 `incident` 就會顯示該事件。
+
+- **誰可以使用。** 與 Slack 中相同，能在 OneUptime 中做同樣變更的人：請參閱 [從 Slack 操作一個事件](/docs/workspace-connections/slack#從-slack-操作一個事件)。每個選單項目都會用一張卡片回答，卡片依按下它的人能看到的事件內容填寫。對話中的任何人都可以以本人身分、用自己的權限提交該卡片。
+- **之後會發生什麼。** 變更會像在 OneUptime 中一樣以提交卡片的人的身分進行，事件的動態會說明變更了什麼。機器人會在提及此人的回覆中說明，並移除該卡片，以免有人提交兩次。 **Page Someone** 會說明呼叫了誰，或為什麼沒有呼叫任何人；已經解決的事件不會呼叫任何人。
+- **Microsoft Teams 的不同之處。** 卡片無法在欄位下方說明哪裡有問題：不合適的值會在回覆中說明，卡片會保留，以便修改後再次提交。日期和時間欄位是您自己時區中的日期和時間。較舊的 Teams 用戶端會把選單顯示為更多按鈕。 `incident 42` 會在對話中回答，對話中的每個人都能看到該事件。
+- **選單出現之前張貼的卡片。** 它們保留 **Execute On-Call Policy** 按鈕，並且仍然有效： **Page Someone** 也能呼叫待命策略。警示和片段保留它們自己的按鈕。
 
 ## 從 Microsoft Teams 處理事件、警示和活動
 
