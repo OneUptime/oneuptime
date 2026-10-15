@@ -3,6 +3,7 @@ import { SnmpTableDefinition } from "Common/Types/Monitor/SnmpMonitor/SnmpTable"
 import SnmpVendorTemplateUtil, {
   SnmpVendorTemplate,
 } from "Common/Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 import { NetworkDeviceMonitoringMethodUtil } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
@@ -295,6 +296,71 @@ export function summarizeVendorTemplatePlan(
     });
 
   return { applying: applying, skipped: skipped };
+}
+
+/*
+ * What a device's write is: only the lists that grew. An unchanged list sent
+ * back would be validated and stored again for nothing. Empty when the
+ * template adds nothing to the device.
+ */
+export function getVendorTemplateWriteData(
+  merge: VendorTemplateMerge,
+): JSONObject {
+  const data: JSONObject = {};
+
+  if (merge.addedOidCount > 0) {
+    data["snmpOids"] = merge.snmpOids as unknown as JSONArray;
+  }
+
+  if (merge.addedTableCount > 0) {
+    data["snmpTables"] = merge.snmpTables as unknown as JSONArray;
+  }
+
+  return data;
+}
+
+/*
+ * One device's own vendor template, when it would add something: what a
+ * device's Overview offers to apply in one click. Null for a device the bulk
+ * action would leave alone (not walked yet, no template for its vendor,
+ * linked to an OID Collection Template, monitor-backed), and for one that
+ * already collects everything the template has - the Overview used to
+ * recommend the template on every visit to such a device.
+ */
+export interface DeviceVendorTemplatePlan {
+  template: SnmpVendorTemplate;
+  merge: VendorTemplateMerge;
+  // Health OIDs and SNMP tables the template adds.
+  addedCount: number;
+}
+
+export function planDeviceVendorTemplate(
+  device: VendorTemplateDeviceFacts & {
+    snmpOids?: Array<SnmpOid> | null | undefined;
+    snmpTables?: Array<SnmpTableDefinition> | null | undefined;
+  },
+): DeviceVendorTemplatePlan | null {
+  const decision: VendorTemplateDecision = decideVendorTemplate(device, {
+    kind: VendorTemplateChoiceKind.MatchEachDevice,
+  });
+
+  if (decision.kind !== "apply") {
+    return null;
+  }
+
+  const merge: VendorTemplateMerge = mergeVendorTemplate({
+    snmpOids: device.snmpOids,
+    snmpTables: device.snmpTables,
+    template: decision.template,
+  });
+
+  const addedCount: number = merge.addedOidCount + merge.addedTableCount;
+
+  if (addedCount === 0) {
+    return null;
+  }
+
+  return { template: decision.template, merge: merge, addedCount: addedCount };
 }
 
 // The generic template, named in the advice for a device nothing matches.
