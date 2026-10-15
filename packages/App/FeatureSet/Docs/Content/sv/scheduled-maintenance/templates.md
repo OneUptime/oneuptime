@@ -16,7 +16,7 @@ En mall är en utgångspunkt. En händelse som har skapats från den är en kopi
 ```mermaid title="Två sätt som en mall blir en händelse på"
 flowchart TB
     template["En mall i<br/>Händelsemallar"] --> byhand["Skapa från mall<br/>fyller i formuläret"]
-    template --> schedule["Återkommande händelse på<br/>kontrolleras varje minut"]
+    template --> schedule["Återkommande<br/>händelse på<br/>kontrolleras varje minut"]
     byhand --> event["En ny händelse<br/>i Schemalagd"]
     schedule --> event
 ```

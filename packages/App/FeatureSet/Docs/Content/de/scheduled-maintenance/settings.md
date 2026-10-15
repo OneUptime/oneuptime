@@ -29,7 +29,7 @@ Der Abschnitt **Arbeitsbereich** enthält die Slack- und Microsoft-Teams-Regeln,
 ```mermaid title="Die Regeln, die ein neues Ereignis durchläuft, in Reihenfolge"
 flowchart TB
     created["Ein neues Ereignis"] --> owners["Eigentümerregeln<br/>fügen Eigentümer hinzu"]
-    owners --> labels["Beschriftungsregeln<br/>fügen Beschriftungen hinzu"]
+    owners --> labels["Beschriftungsregeln<br/>fügen Beschriftungen<br/>hinzu"]
     labels --> runbooks["Runbook-Regeln<br/>starten Runbooks"]
     runbooks --> reminders["Erinnerungsregeln<br/>planen Erinnerungen"]
 ```

@@ -31,7 +31,7 @@ flowchart TB
     created["En ny händelse"] --> owners["Ägarregler<br/>lägger till ägare"]
     owners --> labels["Etikettregler<br/>lägger till etiketter"]
     labels --> runbooks["Runbook-regler<br/>startar runbooks"]
-    runbooks --> reminders["Påminnelseregler<br/>schemalägger påminnelser"]
+    runbooks --> reminders["Påminnelseregler<br/>schemalägger<br/>påminnelser"]
 ```
 
 Reglerna skiljer sig åt i hur flera träffar avgörs:

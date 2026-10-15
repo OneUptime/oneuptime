@@ -16,7 +16,7 @@ El formulario hace dos preguntas, una por paso, y luego lo muestra todo en una r
 ```mermaid title="Dos pasos y una revisión"
 flowchart TB
     event["Evento<br/>qué y cuándo"] --> resources["Recursos afectados<br/>lo que toca"]
-    resources --> review["Revisión<br/>comprobar cada respuesta"]
+    resources --> review["Revisión<br/>comprobar cada<br/>respuesta"]
     review --> created["La página del evento<br/>en Programado"]
 ```
 

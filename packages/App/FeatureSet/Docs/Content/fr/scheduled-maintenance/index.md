@@ -15,7 +15,7 @@ Chaque événement a une fenêtre prévue, son **Commence le** et son **Se termi
 
 ```mermaid title="La vie d'un événement de maintenance"
 flowchart TB
-    created["Vous planifiez l'événement"] --> scheduled["Planifié<br/>affiché comme à venir"]
+    created["Vous planifiez<br/>l'événement"] --> scheduled["Planifié<br/>affiché comme à venir"]
     scheduled -->|"son Commence le"| ongoing["En cours<br/>moniteurs non vérifiés"]
     ongoing -->|"son Se termine le"| ended["Terminé<br/>les vérifications<br/>reprennent"]
     ended -->|"vous l'achevez"| completed["Achevé<br/>les rappels s'arrêtent"]

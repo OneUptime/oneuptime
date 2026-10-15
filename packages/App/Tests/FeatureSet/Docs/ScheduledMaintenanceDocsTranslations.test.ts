@@ -119,9 +119,9 @@ const PAGE_NAMES: Array<string> = SCHEDULED_MAINTENANCE_PAGES.map(
  * 590px docs column. Every diagram fits the column without scrolling.
  */
 const WIDEST_DIAGRAM_LINE: Record<string, ReadonlyArray<number>> = {
-  [MAINTENANCE_OVERVIEW]: [26],
-  [CREATING_EVENTS]: [26],
-  [MAINTENANCE_STATES]: [26],
+  [MAINTENANCE_OVERVIEW]: [25],
+  [CREATING_EVENTS]: [25],
+  [MAINTENANCE_STATES]: [22],
   [TEMPLATES_AND_RECURRING]: [26],
   [RULES_AND_SETTINGS]: [26],
 };

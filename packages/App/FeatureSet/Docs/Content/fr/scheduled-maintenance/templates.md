@@ -15,7 +15,7 @@ Un modèle est un point de départ. Un événement créé à partir de lui est u
 
 ```mermaid title="Deux façons dont un modèle devient un événement"
 flowchart TB
-    template["Un modèle<br/>dans Modèles d'événement"] --> byhand["Créer à partir d'un modèle<br/>remplit le formulaire"]
+    template["Un modèle dans<br/>Modèles d'événement"] --> byhand["Créer à partir d'un modèle<br/>remplit le formulaire"]
     template --> schedule["Récurrent activé<br/>vérifié chaque minute"]
     byhand --> event["Un nouvel événement<br/>dans Planifié"]
     schedule --> event

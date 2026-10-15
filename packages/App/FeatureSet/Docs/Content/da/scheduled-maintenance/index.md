@@ -15,7 +15,7 @@ Hver begivenhed har et planlagt tidsvindue, sit **Begynder den** og **Slutter de
 
 ```mermaid title="En vedligeholdelsesbegivenheds liv"
 flowchart TB
-    created["Du planlægger begivenheden"] --> scheduled["Planlagt<br/>vist som kommende"]
+    created["Du planlægger<br/>begivenheden"] --> scheduled["Planlagt<br/>vist som kommende"]
     scheduled -->|"dens Begynder den"| ongoing["Igangværende<br/>monitorer<br/>kontrolleres ikke"]
     ongoing -->|"dens Slutter den"| ended["Afsluttet<br/>kontroller genoptages"]
     ended -->|"du fuldfører den"| completed["Fuldført<br/>påmindelser stopper"]

@@ -15,7 +15,7 @@ Varje händelse har ett planerat tidsfönster, sitt **Börjar den** och **Slutar
 
 ```mermaid title="En underhållshändelses liv"
 flowchart TB
-    created["Du schemalägger händelsen"] --> scheduled["Schemalagd<br/>visas som kommande"]
+    created["Du schemalägger<br/>händelsen"] --> scheduled["Schemalagd<br/>visas som kommande"]
     scheduled -->|"vid Börjar den"| ongoing["Pågående<br/>monitorer<br/>kontrolleras inte"]
     ongoing -->|"vid Slutar den"| ended["Avslutad<br/>kontrollerna återupptas"]
     ended -->|"du slutför den"| completed["Slutförd<br/>påminnelser upphör"]

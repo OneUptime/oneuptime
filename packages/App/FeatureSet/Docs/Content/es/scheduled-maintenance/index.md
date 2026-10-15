@@ -17,7 +17,7 @@ Cada evento tiene una ventana planificada, su **Comienza en** y su **Termina en*
 flowchart TB
     created["Programas el evento"] --> scheduled["Programado<br/>listado como próximo"]
     scheduled -->|"su Comienza en"| ongoing["En curso<br/>monitores sin comprobar"]
-    ongoing -->|"su Termina en"| ended["Finalizado<br/>vuelven las comprobaciones"]
+    ongoing -->|"su Termina en"| ended["Finalizado<br/>vuelven las<br/>comprobaciones"]
     ended -->|"lo completas"| completed["Completado<br/>los recordatorios paran"]
 ```
 
