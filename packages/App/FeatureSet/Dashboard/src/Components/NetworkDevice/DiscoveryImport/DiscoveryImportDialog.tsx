@@ -21,6 +21,7 @@ import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { getSteppedModalFooter } from "Common/UI/Components/Forms/Utils/SteppedFormFooter";
 import Modal, {
   ModalSecondaryButton,
   ModalWidth,
@@ -668,7 +669,9 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
   /*
    * The footer, per step. Fixed words go to the Modal in English - it looks
    * its own button texts up in the reader's language - and the ones with a
-   * count are looked up here. The step's way forward is the primary button.
+   * count are looked up here. The primary colour is for what commits: the
+   * import, a retry, and Done once nothing is left to do. Next commits
+   * nothing, so it is plain, like every stepped form's (SteppedFormFooter).
    */
   let secondaryButton: ModalSecondaryButton | undefined = undefined;
   let submitButtonText: string | undefined = undefined;
@@ -679,12 +682,19 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
   let leftFooterElement: ReactElement | undefined = undefined;
 
   if (step === DiscoveryImportStep.Choose) {
-    submitButtonText = translationKey("Next");
-    onSubmit = goToMonitoring;
-    isSubmitDisabled =
+    const isNextDisabled: boolean =
       isLoading ||
       hostsToImport.length === 0 ||
       hostsToImport.length > MAX_HOSTS_PER_DISCOVERY_IMPORT;
+
+    secondaryButton = getSteppedModalFooter({
+      hasSteps: true,
+      isOnLastStep: false,
+      onAction: undefined,
+      onNext: goToMonitoring,
+      nextButtonDataTestId: "discovery-import-next",
+      isNextButtonDisabled: isNextDisabled,
+    }).secondaryButton;
     leftFooterElement = (
       <p
         className="text-sm text-gray-600"

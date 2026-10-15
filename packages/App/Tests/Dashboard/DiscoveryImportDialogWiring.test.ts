@@ -156,7 +156,10 @@ describe("Import brings in what is ticked and shown", () => {
 
     // Next is offered only with something to import, and not too much.
     expect(code).toContain(
-      "isSubmitDisabled = isLoading || hostsToImport.length === 0 || hostsToImport.length > MAX_HOSTS_PER_DISCOVERY_IMPORT;",
+      "const isNextDisabled: boolean = isLoading || hostsToImport.length === 0 || hostsToImport.length > MAX_HOSTS_PER_DISCOVERY_IMPORT;",
+    );
+    expect(code).toContain(
+      'secondaryButton = getSteppedModalFooter({ hasSteps: true, isOnLastStep: false, onAction: undefined, onNext: goToMonitoring, nextButtonDataTestId: "discovery-import-next", isNextButtonDisabled: isNextDisabled, }).secondaryButton;',
     );
     // "N hosts will be imported" under the list.
     expect(code).toContain(
