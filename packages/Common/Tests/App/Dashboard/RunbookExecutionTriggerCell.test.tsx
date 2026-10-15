@@ -138,7 +138,7 @@ describe("the Triggered by column", () => {
     );
 
     expect(
-      screen.getByText("Run once to make up for times OneUptime missed"),
+      screen.getByText("Catch-up for times OneUptime missed"),
     ).toBeInTheDocument();
   });
 
@@ -204,11 +204,18 @@ describe("the Inputs a webhook sent, on the run's page", () => {
 
     const box: HTMLElement = screen.getByTestId(RUNBOOK_RUN_INPUTS_TEST_ID);
     expect(within(box).getByText("Inputs")).toBeInTheDocument();
+    const description: HTMLElement = box.querySelector("p") as HTMLElement;
+    expect(description).toHaveTextContent(
+      "The values the webhook call sent. The steps read them as data: a Bash step as environment variables such as ONEUPTIME_INPUT_HOST, a JavaScript step as args.inputs.",
+    );
+    // The variable and the argument are drawn as code.
     expect(
-      within(box).getByText(
-        "The values the webhook call sent. The steps read them as data: a Bash step as environment variables such as ONEUPTIME_INPUT_HOST, a JavaScript step as args.inputs.",
+      Array.from(description.querySelectorAll("code")).map(
+        (element: Element): string => {
+          return element.textContent || "";
+        },
       ),
-    ).toBeInTheDocument();
+    ).toEqual(["ONEUPTIME_INPUT_HOST", "args.inputs"]);
 
     const code: HTMLElement = box.querySelector("pre code") as HTMLElement;
     expect(JSON.parse(code.textContent || "")).toEqual({

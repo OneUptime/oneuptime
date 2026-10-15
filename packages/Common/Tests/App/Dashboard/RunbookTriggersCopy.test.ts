@@ -11,10 +11,15 @@ import {
   OVERLAP_LABELS,
   OVERLAP_SUMMARIES,
   REPEAT_LABELS,
+  RunTimeText,
+  RunbookTriggersCopy,
   RunbookTriggersDocs,
   SCHEDULE_PROBLEM_TEMPLATES,
   SCHEDULE_SENTENCES,
   TRIGGER_NAMES,
+  TriggerDetailCopy,
+  formatRunRelativeTime,
+  formatRunTime,
   formatScheduleTime,
   getEveryOptions,
   getMinuteOptions,
@@ -48,6 +53,7 @@ import { JSONObject } from "../../../Types/JSON";
 import {
   Translator,
   createTranslator,
+  getTemplatePlaceholders,
 } from "../../../UI/Utils/TranslateTemplate";
 
 /*
@@ -426,7 +432,7 @@ describe("what started a run", () => {
           triggerDetails: { scheduledFor: due, isCatchUp: true },
         }),
       )!.details[1],
-    ).toBe("Run once to make up for times OneUptime missed");
+    ).toBe("Catch-up for times OneUptime missed");
 
     expect(
       getUnattendedTriggerText(
@@ -436,7 +442,7 @@ describe("what started a run", () => {
           triggerDetails: { scheduledFor: due, waitedForPreviousRun: true },
         }),
       )!.details[1],
-    ).toBe("Waited for the run before it to end");
+    ).toBe("Waited for the previous run to end");
   });
 
   test("a time that is not one is left out rather than shown as Invalid date", () => {
@@ -497,8 +503,94 @@ describe("what started a run", () => {
   });
 });
 
+describe("when a run is", () => {
+  // Thursday 15 October 2026, 07:00 in London (BST).
+  const NOW: Date = new Date("2026-10-15T06:00:00.000Z");
+
+  function at(iso: string, language: string = "en"): RunTimeText {
+    return formatRunTime({
+      date: new Date(iso),
+      timezone: "Europe/London",
+      language,
+      now: NOW,
+      use12HourClock: false,
+    });
+  }
+
+  test("on the schedule's clock, with the zone's name, and the year only when it is not this one", () => {
+    expect(at("2026-10-16T08:00:00.000Z").when).toBe("Fri, Oct 16, 09:00 BST");
+    // After the clocks go back, the zone says so.
+    expect(at("2026-11-02T09:00:00.000Z").when).toBe("Mon, Nov 2, 09:00 GMT");
+    expect(at("2027-01-04T09:00:00.000Z").when).toBe(
+      "Mon, Jan 4, 2027, 09:00 GMT",
+    );
+
+    expect(
+      formatRunTime({
+        date: new Date("2026-10-16T13:00:00.000Z"),
+        timezone: "America/New_York",
+        language: "en",
+        now: NOW,
+        use12HourClock: true,
+      }).when,
+    ).toBe("Fri, Oct 16, 9:00 AM EDT");
+  });
+
+  test("in the reader's language, with the Gregorian calendar and Latin digits", () => {
+    expect(at("2026-10-16T08:00:00.000Z", "de")).toEqual({
+      when: "Fr., 16. Okt., 09:00 BST",
+      relative: "in 1 Tag",
+    });
+    expect(at("2026-10-19T08:00:00.000Z", "fr").relative).toBe("dans 4 jours");
+    expect(at("2026-10-16T08:00:00.000Z", "ja").when).toContain("10月16日");
+    // Persian reads Gregorian dates in Latin digits, as the rest of the page.
+    expect(at("2026-10-16T08:00:00.000Z", "fa").when).toContain("16");
+  });
+
+  test("how far off it is: minutes, hours, then calendar days on the zone's clock", () => {
+    const relative: (iso: string) => string = (iso: string): string => {
+      return at(iso).relative;
+    };
+
+    expect(relative("2026-10-15T06:00:20.000Z")).toBe("now");
+    expect(relative("2026-10-15T06:25:00.000Z")).toBe("in 25 minutes");
+    // Never "in 60 minutes" or "in 24 hours".
+    expect(relative("2026-10-15T06:59:50.000Z")).toBe("in 59 minutes");
+    expect(relative("2026-10-15T08:00:00.000Z")).toBe("in 2 hours");
+    expect(relative("2026-10-16T05:50:00.000Z")).toBe("in 23 hours");
+    // Monday 09:00, seen on Thursday at 07:00: four calendar days, not three.
+    expect(relative("2026-10-19T08:00:00.000Z")).toBe("in 4 days");
+    // Counted, never "tomorrow".
+    expect(relative("2026-10-16T08:00:00.000Z")).toBe("in 1 day");
+    expect(relative("2026-10-15T04:00:00.000Z")).toBe("2 hours ago");
+    expect(relative("2026-10-13T08:00:00.000Z")).toBe("2 days ago");
+  });
+
+  test("calendar days are counted on the zone's clock, not the reader's", () => {
+    // 23:30 in Los Angeles is already the next day in London.
+    expect(
+      formatRunRelativeTime({
+        date: new Date("2026-10-17T06:30:00.000Z"),
+        now: new Date("2026-10-16T06:00:00.000Z"),
+        language: "en",
+        timezone: "America/Los_Angeles",
+      }),
+    ).toBe("in 1 day");
+    expect(
+      formatRunRelativeTime({
+        date: new Date("2026-10-17T07:30:00.000Z"),
+        now: new Date("2026-10-16T06:00:00.000Z"),
+        language: "en",
+        timezone: "America/Los_Angeles",
+      }),
+    ).toBe("in 2 days");
+  });
+});
+
 describe("in every language", () => {
   const SENTENCES: Array<string> = [
+    ...Object.values(RunbookTriggersCopy),
+    ...Object.values(TriggerDetailCopy),
     ...Object.values(REPEAT_LABELS),
     ...Object.values(OVERLAP_LABELS),
     ...Object.values(OVERLAP_SUMMARIES),
@@ -558,6 +650,44 @@ describe("in every language", () => {
         language,
         english: [],
       });
+    }
+  });
+
+  test("the notes that link to Settings and Steps, and the run's inputs, keep their links in every language", () => {
+    const linked: Array<string> = [
+      RunbookTriggersCopy.runbookOffSchedule,
+      RunbookTriggersCopy.noStepsSchedule,
+      RunbookTriggersCopy.runbookOffWebhook,
+      RunbookTriggersCopy.noStepsWebhook,
+      TriggerDetailCopy.inputsCardDescription,
+    ];
+
+    for (const language of LANGUAGES) {
+      const table: Record<string, unknown> = readLocale(language);
+
+      for (const template of linked) {
+        const translated: string = table[template] as string;
+
+        expect({
+          language,
+          template,
+          placeholders: getTemplatePlaceholders(translated).sort(),
+          isEnglish: language !== "en" && translated === template,
+        }).toEqual({
+          language,
+          template,
+          placeholders: getTemplatePlaceholders(template).sort(),
+          isEnglish: false,
+        });
+      }
+
+      // A link named as the runbook's menu names the page.
+      for (const page of [
+        RunbookTriggersCopy.settingsPage,
+        RunbookTriggersCopy.stepsPage,
+      ]) {
+        expect(typeof table[page]).toBe("string");
+      }
     }
   });
 

@@ -169,7 +169,7 @@ const DASHBOARD_MESSAGES: Record<string, Array<string>> = {
   ],
   "runbooks/agents": ["You do not have permission to view this Runner's key"],
   // How the Executions lists and a run's page mark a run that made up for missed times.
-  "runbooks/triggers": ["Run once to make up for times OneUptime missed"],
+  "runbooks/triggers": ["Catch-up for times OneUptime missed"],
 };
 
 const PATH_SEPARATOR: string = " → ";

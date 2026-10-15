@@ -458,9 +458,6 @@ describe("the Schedule card of a runbook with no schedule", () => {
     expect(
       within(preview()).getByText("Runs every weekday at 09:00"),
     ).toBeInTheDocument();
-    expect(
-      within(preview()).getByText("Times are in Europe/London."),
-    ).toBeInTheDocument();
 
     const runs: Array<string> = within(
       within(preview()).getByTestId(RunbookTriggersTestIds.nextRuns),
@@ -471,9 +468,10 @@ describe("the Schedule card of a runbook with no schedule", () => {
       });
 
     expect(runs).toHaveLength(3);
-    expect(runs[0]).toContain("Thu, Oct 15, 2026, 09:00 BST");
-    expect(runs[1]).toContain("Fri, Oct 16, 2026, 09:00 BST");
-    expect(runs[2]).toContain("Mon, Oct 19, 2026, 09:00 BST");
+    // On the zone's clock, with how far off each is; no year this year.
+    expect(runs[0]).toBe("Thu, Oct 15, 09:00 BSTin 2 hours");
+    expect(runs[1]).toBe("Fri, Oct 16, 09:00 BSTin 1 day");
+    expect(runs[2]).toBe("Mon, Oct 19, 09:00 BSTin 4 days");
 
     // The day buttons say which days are picked.
     expect(
@@ -515,6 +513,61 @@ describe("the Schedule card of a runbook with no schedule", () => {
         "Runs every weekday at 09:00 · Europe/London",
       ),
     ).toBeInTheDocument();
+  });
+
+  test("the day buttons read the whole day's name", async () => {
+    await openPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Set Up Schedule" }));
+    await flush();
+
+    expect(
+      within(dialog()).getByRole("button", { name: "Monday", pressed: true }),
+    ).toHaveTextContent("Mon");
+    expect(
+      within(dialog()).getByRole("button", { name: "Sunday", pressed: false }),
+    ).toHaveTextContent("Sun");
+  });
+
+  test("a problem is said under the schedule, and the next runs under the time zone they are read in", async () => {
+    await openPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Set Up Schedule" }));
+    await flush();
+
+    const timezone: HTMLElement = within(dialog()).getByRole("combobox", {
+      name: "Time zone",
+    });
+    const follows: (element: HTMLElement) => boolean = (
+      element: HTMLElement,
+    ): boolean => {
+      return Boolean(
+        timezone.compareDocumentPosition(element) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    };
+
+    expect(preview()).toHaveAttribute("data-state", "ok");
+    expect(follows(preview())).toBe(true);
+
+    for (const day of [1, 2, 3, 4, 5]) {
+      fireEvent.click(
+        screen.getByTestId(
+          `${RunbookTriggersTestIds.scheduleField}-day-${day}`,
+        ),
+      );
+    }
+    await flush();
+
+    // One answer at a time: the problem, under the days, before the zone.
+    expect(
+      screen.getAllByTestId(RunbookTriggersTestIds.schedulePreview),
+    ).toHaveLength(1);
+    expect(preview()).toHaveAttribute("data-state", "error");
+    expect(follows(preview())).toBe(false);
+    expect(
+      within(dialog()).queryByTestId(RunbookTriggersTestIds.nextRuns),
+    ).not.toBeInTheDocument();
   });
 
   test("days are picked by pressing them, with Weekdays and Every day as shortcuts", async () => {
@@ -692,17 +745,25 @@ describe("the Schedule card of a runbook with a schedule", () => {
       .map((item: HTMLElement): string => {
         return item.textContent || "";
       });
-    expect(runs[0]).toContain("Thu, Oct 15, 2026, 06:15 UTC");
+    expect(runs[0]).toContain("Thu, Oct 15, 06:15 UTC");
     expect(runs[1]).toContain("06:30 UTC");
 
     const details: HTMLElement = screen.getByTestId(
       RunbookTriggersTestIds.scheduleDetails,
     );
-    expect(within(details).getByText("Run once it ends")).toBeInTheDocument();
+    expect(within(details).getByText("Run after it ends")).toBeInTheDocument();
     expect(
       within(details).getByText("Skip the missed times"),
     ).toBeInTheDocument();
-    expect(within(details).getByText("Completed")).toBeInTheDocument();
+    const lastRunPart: HTMLElement = within(details).getByTestId(
+      `${RunbookTriggersTestIds.scheduleDetails}-last-run`,
+    );
+    expect(within(lastRunPart).getByText("Last scheduled run")).toBeVisible();
+    expect(within(lastRunPart).getByText("Completed")).toBeInTheDocument();
+    // 05:45 UTC, on the schedule's clock (UTC), as its next runs are.
+    expect(
+      within(lastRunPart).getByText("Thu, Oct 15, 05:45 UTC"),
+    ).toHaveAttribute("datetime", "2026-10-15T05:45:00.000Z");
     expect(
       within(details).getByRole("link", { name: "View run" }),
     ).toHaveAttribute(
@@ -726,13 +787,59 @@ describe("the Schedule card of a runbook with a schedule", () => {
     expect(updateCalls()).toHaveLength(1);
     expect(updateCalls()[0]!.data).toEqual({ isScheduleEnabled: false });
     expect(
-      within(scheduleCard()).getByText(
-        "Paused. Nothing runs on this schedule until you turn it on.",
+      within(scheduleCard()).getByTestId(
+        `${RunbookTriggersTestIds.scheduleDetails}-paused`,
+      ),
+    ).toHaveTextContent(
+      "Paused. Nothing runs on this schedule until you turn it on.",
+    );
+    expect(
+      within(scheduleCard()).queryByTestId(RunbookTriggersTestIds.nextRuns),
+    ).not.toBeInTheDocument();
+    // A paused schedule keeps its times, and the card still says them.
+    expect(
+      within(scheduleCard()).getByText("Runs every 15 minutes · UTC"),
+    ).toBeInTheDocument();
+  });
+
+  test("a schedule saved paused says what it is, and that it is paused", async () => {
+    stored.isScheduleEnabled = false;
+    await openPage();
+
+    expect(
+      screen.getByTestId(RunbookTriggersTestIds.scheduleSwitch),
+    ).toHaveAttribute("aria-checked", "false");
+    expect(
+      within(scheduleCard()).getByText("Runs every 15 minutes · UTC"),
+    ).toBeInTheDocument();
+    expect(
+      within(scheduleCard()).getByTestId(
+        `${RunbookTriggersTestIds.scheduleDetails}-paused`,
       ),
     ).toBeInTheDocument();
     expect(
       within(scheduleCard()).queryByTestId(RunbookTriggersTestIds.nextRuns),
     ).not.toBeInTheDocument();
+  });
+
+  test("what it does when busy or behind is a quieter list under the runs", async () => {
+    await openPage();
+
+    const policies: HTMLElement = within(scheduleCard()).getByTestId(
+      `${RunbookTriggersTestIds.scheduleDetails}-policies`,
+    );
+    expect(
+      Array.from(policies.querySelectorAll("dt, dd")).map(
+        (element: Element): string => {
+          return element.textContent || "";
+        },
+      ),
+    ).toEqual([
+      "If a run is still going",
+      "Run after it ends",
+      "If OneUptime missed a time",
+      "Skip the missed times",
+    ]);
   });
 
   test("Edit Schedule opens the dialog on the saved schedule, and a save keeps the switch as it is", async () => {
@@ -747,9 +854,6 @@ describe("the Schedule card of a runbook with a schedule", () => {
     expect(
       within(preview()).getByText("Runs every 15 minutes"),
     ).toBeInTheDocument();
-    expect(
-      within(preview()).getByText("Times are in UTC."),
-    ).toBeInTheDocument();
 
     await saveDialog();
 
@@ -761,26 +865,41 @@ describe("the Schedule card of a runbook with a schedule", () => {
     });
   });
 
-  test("a turned-off runbook, or one with no steps, is said to start nothing", async () => {
+  test("a turned-off runbook, or one with no steps, is said to start nothing, with a link to fix it", async () => {
     stored.isEnabled = false;
     await openPage();
 
+    let note: HTMLElement = within(scheduleCard()).getByTestId(
+      RunbookTriggersTestIds.note,
+    );
+    expect(note).toHaveTextContent(
+      "This runbook is turned off, so its schedule starts nothing. Turn it on under Settings.",
+    );
+    expect(within(note).getByRole("link", { name: "Settings" })).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID.toString()}/runbooks/${RUNBOOK_ID}/settings`,
+    );
+    // Its times start nothing, so none is listed as if it would run.
     expect(
-      within(scheduleCard()).getByText(
-        "This runbook is turned off, so its schedule starts nothing. Turn it on under Settings.",
-      ),
-    ).toBeInTheDocument();
+      within(scheduleCard()).queryByTestId(RunbookTriggersTestIds.nextRuns),
+    ).not.toBeInTheDocument();
 
     cleanup();
     stored.isEnabled = true;
     stored.steps = [];
     await openPage();
 
+    note = within(scheduleCard()).getByTestId(RunbookTriggersTestIds.note);
+    expect(note).toHaveTextContent(
+      "This runbook has no steps yet, so its schedule starts nothing. Add steps under Steps.",
+    );
+    expect(within(note).getByRole("link", { name: "Steps" })).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID.toString()}/runbooks/${RUNBOOK_ID}/steps`,
+    );
     expect(
-      within(scheduleCard()).getByText(
-        "This runbook has no steps yet, so its schedule starts nothing. Add steps under Steps.",
-      ),
-    ).toBeInTheDocument();
+      within(scheduleCard()).queryByTestId(RunbookTriggersTestIds.nextRuns),
+    ).not.toBeInTheDocument();
   });
 
   test("a run waiting for the one before it is said", async () => {
@@ -798,9 +917,12 @@ describe("the Schedule card of a runbook with a schedule", () => {
     grant(EDIT_ONLY);
     await openPage();
 
-    expect(
-      screen.getByRole("button", { name: "Edit Schedule" }),
-    ).toBeDisabled();
+    const edit: HTMLElement = screen.getByRole("button", {
+      name: "Edit Schedule",
+    });
+    expect(edit).toBeDisabled();
+    // An outline button keeps its colours when disabled: this one is dimmed.
+    expect(edit).toHaveClass("opacity-50");
     const theSwitch: HTMLElement = screen.getByTestId(
       RunbookTriggersTestIds.scheduleSwitch,
     );
@@ -935,11 +1057,6 @@ describe("the Webhook card", () => {
     expect(
       within(webhookCard()).getByRole("link", { name: "How to call it" }),
     ).toHaveAttribute("href", RunbookTriggersDocs.webhook);
-    expect(
-      within(webhookCard()).getByText(
-        "Only a POST request starts a run. A GET request starts nothing, so a link preview cannot run it by accident.",
-      ),
-    ).toBeInTheDocument();
   });
 
   test("Reset URL asks first, then shows the new URL and says the old one stopped working", async () => {
@@ -1042,6 +1159,12 @@ describe("the Webhook card", () => {
       RunbookTriggersTestIds.webhookTestResult,
     );
     expect(result).toHaveTextContent("The webhook started a run.");
+    // Right above the row with Send Test Request, where the eye is.
+    expect(
+      within(result.nextElementSibling as HTMLElement).getByTestId(
+        RunbookTriggersTestIds.webhookTest,
+      ),
+    ).toBeInTheDocument();
     expect(
       within(result).getByRole("link", { name: "View the run" }),
     ).toHaveAttribute(
@@ -1169,22 +1292,30 @@ describe("the Webhook card", () => {
     stored.isEnabled = false;
     await openPage();
 
-    expect(
-      within(webhookCard()).getByText(
-        "This runbook is turned off, so calls to this URL are refused. Turn it on under Settings.",
-      ),
-    ).toBeInTheDocument();
+    let note: HTMLElement = within(webhookCard()).getByTestId(
+      RunbookTriggersTestIds.note,
+    );
+    expect(note).toHaveTextContent(
+      "This runbook is turned off, so calls to this URL are refused. Turn it on under Settings.",
+    );
+    expect(within(note).getByRole("link", { name: "Settings" })).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID.toString()}/runbooks/${RUNBOOK_ID}/settings`,
+    );
 
     cleanup();
     stored.isEnabled = true;
     stored.steps = [];
     await openPage();
 
-    expect(
-      within(webhookCard()).getByText(
-        "This runbook has no steps yet, so calls to this URL are refused. Add steps under Steps.",
-      ),
-    ).toBeInTheDocument();
+    note = within(webhookCard()).getByTestId(RunbookTriggersTestIds.note);
+    expect(note).toHaveTextContent(
+      "This runbook has no steps yet, so calls to this URL are refused. Add steps under Steps.",
+    );
+    expect(within(note).getByRole("link", { name: "Steps" })).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID.toString()}/runbooks/${RUNBOOK_ID}/steps`,
+    );
   });
 
   test("someone who may not run the runbook cannot turn the webhook on", async () => {

@@ -66,7 +66,7 @@ A run is still going while it is queued, running, or waiting for someone to comp
 | Setting | What happens |
 | --- | --- |
 | **Skip that time** (default) | Nothing starts. The schedule waits for its next time. |
-| **Run once it ends** | One run waits, and starts when the run in progress ends. More times that come meanwhile start nothing. |
+| **Run after it ends** | One run waits, and starts when the run in progress ends. More times that come meanwhile start nothing. |
 
 ### If OneUptime missed a time
 
@@ -74,7 +74,7 @@ If OneUptime was down or being upgraded at a scheduled time, the time is missed 
 
 | Setting | What happens |
 | --- | --- |
-| **Run once when OneUptime is back** (default) | One run starts, however many times were missed, marked "Run once to make up for times OneUptime missed". |
+| **Run once when OneUptime is back** (default) | One run starts, however many times were missed, marked "Catch-up for times OneUptime missed". |
 | **Skip the missed times** | Nothing starts until the next time. |
 
 Times that pass while the schedule or the runbook is turned off are not missed: turning either back on starts from the next time.

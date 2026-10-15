@@ -32,6 +32,14 @@ export interface ComponentProps {
   execution: RunbookExecution;
 }
 
+/*
+ * Where the project's Executions list wraps the column: an incident's title
+ * or a catch-up run's second line wraps at about 18rem, and nothing is
+ * squeezed below 12rem, so a person's name or a due time stays on one line.
+ */
+export const TRIGGERED_BY_MAX_WIDTH_CLASS_NAME: string = "max-w-[18rem]";
+export const TRIGGERED_BY_MIN_WIDTH_CLASS_NAME: string = "min-w-[12rem]";
+
 // What the column reads of each run.
 export const RUNBOOK_EXECUTION_TRIGGER_CELL_SELECT: {
   incident: { _id: true; title: true };

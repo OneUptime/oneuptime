@@ -1791,7 +1791,7 @@ describe("runbook triggers", () => {
       "On days of the week",
       "Custom (cron expression)",
       "Skip that time",
-      "Run once it ends",
+      "Run after it ends",
       "Run once when OneUptime is back",
       "Skip the missed times",
       "If a run is still going",

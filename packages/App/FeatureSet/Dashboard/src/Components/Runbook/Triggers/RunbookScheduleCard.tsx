@@ -500,9 +500,12 @@ const RunbookScheduleCard: FunctionComponent<ComponentProps> = (
 
   /*
    * The last run the schedule started: its status, as the Executions list
-   * draws it, when it was, and a link to it.
+   * draws it, when it was - on the schedule's clock, as every time on this
+   * card is, so a 06:00 schedule's run reads 06:00 - and a link to it.
    */
-  const getLastRun: () => ReactElement = (): ReactElement => {
+  const getLastRun: (timezone: string) => ReactElement = (
+    timezone: string,
+  ): ReactElement => {
     if (!lastRun?._id) {
       return (
         <p className="text-sm text-gray-500">
@@ -517,7 +520,7 @@ const RunbookScheduleCard: FunctionComponent<ComponentProps> = (
     const time: RunTimeText | null = when
       ? formatRunTime({
           date: when,
-          timezone: OneUptimeDate.getCurrentTimezone().toString(),
+          timezone,
           language: translator.language,
           now: OneUptimeDate.getCurrentDate(),
         })
@@ -619,7 +622,7 @@ const RunbookScheduleCard: FunctionComponent<ComponentProps> = (
                 RunbookTriggersCopy.lastScheduledRunTitle,
               )}
             </p>
-            {getLastRun()}
+            {getLastRun(timezone)}
           </div>
         </div>
         <dl

@@ -88,6 +88,11 @@ function preview(page: Page): Locator {
   return page.getByTestId("runbook-schedule-preview");
 }
 
+// A weekday 09:00 run, as German writes it: "Fr., 16. Okt., 09:00 BST".
+const GERMAN_WEEKDAY: RegExp = /(Mo|Di|Mi|Do|Fr)\., \d+\. /;
+// "in 2 Stunden", "in 1 Tag", "in 4 Tagen", "in 25 Minuten".
+const GERMAN_HOW_FAR: RegExp = /in \d+ (Minuten?|Stunden?|Tagen?)/;
+
 async function pick(page: Page, menu: string, option: string): Promise<void> {
   await dialog(page).getByRole("combobox", { name: menu }).click();
   await page.getByRole("option", { name: option, exact: true }).click();
@@ -111,7 +116,19 @@ test.describe("setting up a schedule", () => {
     await expect(dialog(page)).toBeVisible();
     // It starts on something that works: every weekday at 09:00, here.
     await expect(preview(page)).toContainText("Runs every weekday at 09:00");
-    await expect(preview(page)).toContainText("Times are in Europe/London.");
+    await expect(
+      dialog(page).getByRole("combobox", { name: "Time zone" }),
+    ).toBeVisible();
+    await expect(dialog(page)).toContainText("Europe/London");
+
+    // The next runs are read on the zone's clock, so they come under it.
+    const zoneBox: { y: number; height: number } | null = await dialog(page)
+      .getByRole("combobox", { name: "Time zone" })
+      .boundingBox();
+    const previewBox: { y: number } | null = await preview(page).boundingBox();
+    expect(zoneBox).not.toBeNull();
+    expect(previewBox).not.toBeNull();
+    expect(previewBox!.y).toBeGreaterThan(zoneBox!.y + zoneBox!.height);
 
     await pick(page, "Repeat", "Every few hours");
     await pick(page, "Every", "2 hours");
@@ -232,6 +249,10 @@ test.describe("setting up a schedule", () => {
       "Paused. Nothing runs on this schedule until you turn it on.",
     );
     await expect(page.getByTestId("runbook-schedule-next-runs")).toHaveCount(0);
+    // Paused, it keeps its times, and the card still says them.
+    await expect(page.getByTestId("runbook-schedule-card")).toContainText(
+      "Runs every weekday at 09:00 · Europe/London",
+    );
 
     await theSwitch.click();
     await expect(page.getByTestId("runbook-schedule-card")).toContainText(
@@ -319,6 +340,16 @@ test.describe("the webhook", () => {
 
     const result: Locator = page.getByTestId("runbook-webhook-test-result");
     await expect(result).toContainText("The webhook started a run.");
+    // Said by the button that sent it, not at the top of the card.
+    const resultBox: { y: number; height: number } | null =
+      await result.boundingBox();
+    const buttonBox: { y: number } | null = await page
+      .getByTestId("runbook-webhook-test")
+      .boundingBox();
+    expect(resultBox).not.toBeNull();
+    expect(buttonBox).not.toBeNull();
+    expect(buttonBox!.y - (resultBox!.y + resultBox!.height)).toBeLessThan(80);
+    expect(buttonBox!.y).toBeGreaterThan(resultBox!.y);
     await result.getByRole("link", { name: "View the run" }).click();
 
     await expect(page).toHaveURL(
@@ -395,6 +426,15 @@ test.describe("the webhook", () => {
     await expect(page.getByTestId("runbook-schedule-card")).toContainText(
       "This runbook is turned off, so its schedule starts nothing. Turn it on under Settings.",
     );
+    // Its times start nothing, so none is listed as if it would run.
+    await expect(page.getByTestId("runbook-schedule-next-runs")).toHaveCount(0);
+
+    // Settings is a link to the runbook's own Settings page.
+    await page
+      .getByTestId("runbook-schedule-card")
+      .getByRole("link", { name: "Settings" })
+      .click();
+    await expect(page).toHaveURL(new RegExp(`${RUNBOOK_PATH}/settings`));
   });
 });
 
@@ -493,7 +533,13 @@ test.describe("on every screen", () => {
     await expect(preview(page)).toContainText(
       "Läuft an jedem Wochentag um 09:00",
     );
-    await expect(preview(page)).toContainText("Alle Zeiten in Europe/London.");
+    // The next runs too: German weekdays, and how far off each is in German.
+    const firstRun: Locator = preview(page)
+      .getByTestId("runbook-schedule-next-runs")
+      .locator("li")
+      .first();
+    await expect(firstRun).toContainText(GERMAN_WEEKDAY);
+    await expect(firstRun).toContainText(GERMAN_HOW_FAR);
     await screenshot(page, "german-dialog");
   });
 });
@@ -513,7 +559,7 @@ test.describe("what started a run", () => {
     await expect(rows.nth(1)).toContainText("Schedule");
     await expect(rows.nth(1)).toContainText("Due at");
     await expect(rows.nth(2)).toContainText(
-      "Run once to make up for times OneUptime missed",
+      "Catch-up for times OneUptime missed",
     );
     await expect(rows.nth(3)).toContainText("Manual run by");
     await screenshot(page, "executions");
