@@ -52,6 +52,7 @@ flowchart TB
 - [オンコール](/docs/on-call/index): ポリシー、エスカレーションルール、ローテーション、誰をいつ呼び出すか。
 - [通知](/docs/notifications/index): OneUptime からの連絡の仕組み。通知方法、オンコールルール、通知設定。
 - [ステータスページ](/docs/status-pages/index): 公開または非公開のステータスページで、顧客に状況を伝えます。
+- [定期メンテナンス](/docs/scheduled-maintenance/index): 計画作業を前もって告知し、影響するモニターを一時停止します。
 - [ワークスペース連携](/docs/workspace-connections/slack): Slack や Microsoft Teams からインシデントに対応します。
 :::
 

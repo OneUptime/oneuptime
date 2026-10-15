@@ -92,6 +92,7 @@ En **statusside** viser kundene dine om tjenestene virker. Du velger hvilke moni
 :::cards
 - [Statussider – Oversikt](/docs/status-pages/index): Opprett en statusside, og bestem hva den viser.
 - [Abonnenter og kunngjøringer](/docs/status-pages/subscribers): Hvem som får beskjed, og når.
+- [Planlagt vedlikehold – Oversikt](/docs/scheduled-maintenance/index): Hvordan en hendelse forløper, og hva den setter på pause.
 :::
 
 ## Telemetri

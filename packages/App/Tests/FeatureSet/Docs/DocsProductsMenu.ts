@@ -77,6 +77,8 @@ export const PRODUCTS_MENU_ITEM_KEYS: Readonly<Record<string, string>> = {
   Tasks: "navbar.items.aiAgentsTitle",
   // Fix Tasks opens an exception from the menu's Observability group.
   Exceptions: "navbar.items.exceptionsTitle",
+  // The Scheduled Maintenance pages open their product from the Essentials.
+  "Scheduled Maintenance": "navbar.items.scheduledMaintenanceTitle",
 };
 
 /*
