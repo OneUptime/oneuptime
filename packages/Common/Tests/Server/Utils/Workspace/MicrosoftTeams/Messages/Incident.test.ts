@@ -77,7 +77,7 @@ describe("MicrosoftTeamsIncidentMessages.getIncidentCreateMessageBlocks", () => 
       }),
     ).toEqual([
       "🔗 View Incident",
-      "📞 Execute On Call",
+      "📞 Execute On-Call Policy",
       "👀 Acknowledge Incident",
       "✅ Resolve Incident",
       "➡️ Change Incident State",

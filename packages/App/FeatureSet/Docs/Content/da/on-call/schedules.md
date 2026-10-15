@@ -86,7 +86,7 @@ Mens de er fraværende:
 
 Vælg i stedet nogen under **Hvem dækker?**, så får den person alle deres tilkald fra alle vagtplaner og alle politikker, i stedet for at rotationen tager deres vagter.
 
-Fravær, der tilføjes på denne måde, gælder for alle vagtpolitikker. Det står under **Vagtordning** > **Brugertilsidesættelser**, hvor du kan slette det for at få dem tilbage tidligere. For kun at springe nogen over i én politik skal du tilføje overriden på den politiks side **Brugertilsidesættelser** og lade **Hvem dækker?** være, som det er. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).
+Fravær, der tilføjes på denne måde, gælder for alle vagtpolitikker. Det står under **Vagtordning** > **Avanceret** > **Brugertilsidesættelser**, hvor du kan slette det for at få dem tilbage tidligere. For kun at springe nogen over i én politik skal du tilføje overriden på den politiks side **Brugertilsidesættelser** og lade **Hvem dækker?** være, som det er. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).
 
 Via API'et springer en brugeroverride (`/api/on-call-duty-policy-user-override`), der oprettes uden `routeAlertsToUserId`, personen i `overrideUserId` over fra `startsAt` til `endsAt`.
 

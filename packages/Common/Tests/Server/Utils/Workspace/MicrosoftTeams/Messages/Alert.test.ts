@@ -15,7 +15,7 @@ import {
 
 /*
  * NOTE: unlike the incident builder (and the Slack alert builder), the
- * "Execute On Call", "Change Alert State" and "Add Note" buttons here use
+ * "Execute On-Call Policy", "Change Alert State" and "Add Note" buttons here use
  * ExecuteAlertOnCallPolicy / AlertStateChanged / AddAlertNote rather than the
  * View* action ids that MicrosoftTeamsAlertActions actually dispatches on.
  * These tests pin the current output.
@@ -85,7 +85,7 @@ describe("MicrosoftTeamsAlertMessages.getAlertCreateMessageBlocks", () => {
       }),
     ).toEqual([
       "🔗 View Alert",
-      "📞 Execute On Call",
+      "📞 Execute On-Call Policy",
       "👀 Acknowledge Alert",
       "✅ Resolve Alert",
       "➡️ Change Alert State",

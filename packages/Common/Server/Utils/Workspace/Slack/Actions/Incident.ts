@@ -523,10 +523,10 @@ export default class SlackIncidentActions {
     if (onCallPolicies.length > 0) {
       const onCallPolicyDropdown: WorkspaceDropdownBlock = {
         _type: "WorkspaceDropdownBlock",
-        label: "Execute On Call Policy",
+        label: "Execute On-Call Policies",
         blockId: "onCallDutyPolicies",
         placeholder:
-          "Select on call policies to execute when this incident is created",
+          "Select on-call policies to execute when this incident is created",
         options: onCallPolicyDropdownOptions,
         multiSelect: true,
         optional: true,
@@ -906,15 +906,16 @@ export default class SlackIncidentActions {
 
     const onCallPolicyDropdown: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",
-      label: "On Call Policy",
+      label: "On-Call Policy",
       blockId: "onCallPolicy",
-      placeholder: "Select On Call Policy",
+      placeholder: "Select On-Call Policy",
       options: dropdownOption,
     };
 
     const modalBlock: WorkspaceModalBlock = {
       _type: "WorkspaceModalBlock",
-      title: "Execute On Call Policy",
+      // At most 24 characters: Slack refuses a longer modal title.
+      title: "Execute On-Call Policy",
       submitButtonTitle: "Submit",
       cancelButtonTitle: "Cancel",
       actionId: SlackActionType.SubmitExecuteIncidentOnCallPolicy,

@@ -32,8 +32,9 @@ import React, {
  *
  * The override applies to every on-call policy (none is named): somebody on
  * holiday is away from all of them. It is listed with the others under
- * On-Call Duty > User Overrides, where it can be deleted to bring them back
- * early.
+ * On-Call Duty > Advanced > User Overrides, where it can be deleted to bring
+ * them back early. Advanced is a folded section of that menu, so the way
+ * there names it.
  *
  * The dialog names the person "Who is away?" holds - "Skip Alex Kim" - and
  * follows it when it is changed, so the title and the button never name
@@ -126,7 +127,7 @@ const SkipLayerUserModal: FunctionComponent<ComponentProps> = (
     <ModelFormModal<OnCallDutyPolicyUserOverride>
       title={skipText || "Skip until…"}
       name="Skip in the rotation"
-      description="This applies to every on-call policy. When it ends, they are back in their usual place in the rotation. To end it early, delete it under On-Call Duty > User Overrides."
+      description="This applies to every on-call policy. When it ends, they are back in their usual place in the rotation. To end it early, delete it under On-Call Duty > Advanced > User Overrides."
       modelType={OnCallDutyPolicyUserOverride}
       submitButtonText={skipText || "Save"}
       onClose={props.onClose}
