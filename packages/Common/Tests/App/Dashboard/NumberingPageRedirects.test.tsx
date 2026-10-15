@@ -282,7 +282,12 @@ describe("the suite's own scaffolding", () => {
 
 describe.each(PRODUCTS_AND_OLD_ADDRESSES)(
   "%s: the old %s address",
-  (_productName: string, _addressName: string, product: Product, oldAddress: OldAddress) => {
+  (
+    _productName: string,
+    _addressName: string,
+    product: Product,
+    oldAddress: OldAddress,
+  ) => {
     const oldUrl: string = `${base(product)}/${oldAddress.path}`;
     const newUrl: string = `${base(product)}/settings/numbering`;
 

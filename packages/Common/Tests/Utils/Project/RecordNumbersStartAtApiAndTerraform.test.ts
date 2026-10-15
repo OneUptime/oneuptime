@@ -139,15 +139,19 @@ describe("the Terraform provider", () => {
       }).sort(),
     );
 
+    const schema: TerraformResource["schema"] = provider.schema;
+
     for (const info of KINDS) {
-      const attributes: Array<string> = Object.keys(provider.schema).filter(
+      const attributes: Array<string> = Object.keys(schema).filter(
         (name: string): boolean => {
-          return (provider.schema[name]?.apiFieldName || name) ===
-            info.counterColumn;
+          return (schema[name]?.apiFieldName || name) === info.counterColumn;
         },
       );
 
-      expect([info.counterColumn, attributes]).toEqual([info.counterColumn, []]);
+      expect([info.counterColumn, attributes]).toEqual([
+        info.counterColumn,
+        [],
+      ]);
     }
   });
 });

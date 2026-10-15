@@ -99,7 +99,10 @@ export const NextNumberPreview: FunctionComponent<NextNumberPreviewProps> = (
       className="mt-2 flex flex-wrap items-center gap-x-2 text-sm text-gray-500"
     >
       <span>{translateString("Preview:")}</span>
-      <span data-testid="next-number-preview" className="font-mono text-gray-900">
+      <span
+        data-testid="next-number-preview"
+        className="font-mono text-gray-900"
+      >
         {NumberPrefixUtil.formatNumber(
           props.prefix,
           NextNumberUtil.parse(props.value),

@@ -15,7 +15,9 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * table keeps taking writes. Empty means no start was chosen: every
  * existing project goes on numbering exactly as before.
  */
-export class AddRecordNumbersStartAt1802700000000 implements MigrationInterface {
+export class AddRecordNumbersStartAt1802700000000
+  implements MigrationInterface
+{
   public name: string = "AddRecordNumbersStartAt1802700000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {

@@ -87,10 +87,7 @@ describe("the kinds of numbered record", () => {
         info.startsAtColumn,
         info.prefixColumn,
       ]) {
-        expect([column, project.isTableColumn(column)]).toEqual([
-          column,
-          true,
-        ]);
+        expect([column, project.isTableColumn(column)]).toEqual([column, true]);
       }
     },
   );
@@ -110,9 +107,7 @@ describe("the kinds of numbered record", () => {
         project.getTableColumnMetadata(info.startsAtColumn).required,
       ).toBeFalsy();
 
-      const column: ColumnMetadataArgs = databaseColumnOf(
-        info.startsAtColumn,
-      );
+      const column: ColumnMetadataArgs = databaseColumnOf(info.startsAtColumn);
 
       expect(column.options.type).toBe(ColumnType.Number);
       expect(column.options.nullable).toBe(true);
@@ -273,9 +268,7 @@ describe("NextNumberUtil.getProblem - what a next number may be", () => {
   test.each([0, -1, -2346, "0", "-1", " -40 "])(
     "refuses %p: numbers start at 1",
     (value: unknown) => {
-      expect(NextNumberUtil.getProblem(value)).toBe(
-        NextNumberProblem.BelowOne,
-      );
+      expect(NextNumberUtil.getProblem(value)).toBe(NextNumberProblem.BelowOne);
     },
   );
 
@@ -283,9 +276,7 @@ describe("NextNumberUtil.getProblem - what a next number may be", () => {
     "refuses %p: higher than 1,000,000,000",
     (value: unknown) => {
       expect(NextNumberUtil.MAX).toBe(1_000_000_000);
-      expect(NextNumberUtil.getProblem(value)).toBe(
-        NextNumberProblem.TooLarge,
-      );
+      expect(NextNumberUtil.getProblem(value)).toBe(NextNumberProblem.TooLarge);
     },
   );
 
@@ -355,9 +346,7 @@ describe("NextNumberUtil.getProblemMessage", () => {
     );
     expect(
       NextNumberUtil.getProblemMessage(NextNumberProblem.NotAboveHighest),
-    ).toBe(
-      "Use a number higher than {{highestNumber}}.",
-    );
+    ).toBe("Use a number higher than {{highestNumber}}.");
   });
 
   test("every problem has its message", () => {

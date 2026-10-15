@@ -53,9 +53,7 @@ export const NEXT_NUMBER_PROBLEM_MESSAGES: ReadonlyArray<string> = [
   translationKey("Use a whole number, like 1000."),
   translationKey("Use a number of 1 or more."),
   translationKey("Use a number no higher than 1,000,000,000."),
-  translationKey(
-    "Use a number higher than {{highestNumber}}.",
-  ),
+  translationKey("Use a number higher than {{highestNumber}}."),
 ];
 
 export interface NextNumberRow {

@@ -693,9 +693,7 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={
-            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_NUMBERING] || ""
-          }
+          path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_NUMBERING] || ""}
           element={
             <IncidentSettingsNumbering
               {...props}

@@ -129,7 +129,9 @@ describePostgres("where a project's numbers start, on Postgres", () => {
   };
 
   // A project as the migrated table holds one, with its counters as given.
-  async function createProject(counters?: Dictionary<number>): Promise<ObjectID> {
+  async function createProject(
+    counters?: Dictionary<number>,
+  ): Promise<ObjectID> {
     const projectId: ObjectID = ObjectID.generate();
 
     await query(
@@ -298,14 +300,14 @@ describePostgres("where a project's numbers start, on Postgres", () => {
     const projectId: ObjectID = await createProject();
 
     for (const info of KINDS) {
-      expect([info.startsAtColumn, await storedValue(projectId, info.startsAtColumn)]).toEqual([
+      expect([
         info.startsAtColumn,
-        null,
-      ]);
-      expect([info.counterColumn, await storedValue(projectId, info.counterColumn)]).toEqual([
+        await storedValue(projectId, info.startsAtColumn),
+      ]).toEqual([info.startsAtColumn, null]);
+      expect([
         info.counterColumn,
-        0,
-      ]);
+        await storedValue(projectId, info.counterColumn),
+      ]).toEqual([info.counterColumn, 0]);
     }
   });
 
@@ -514,9 +516,11 @@ describePostgres("where a project's numbers start, on Postgres", () => {
       );
 
       expect(new Set(numbers).size).toBe(60);
-      expect([...numbers].sort((a: number, b: number) => {
-        return a - b;
-      })).toEqual(
+      expect(
+        [...numbers].sort((a: number, b: number) => {
+          return a - b;
+        }),
+      ).toEqual(
         Array.from({ length: 60 }, (_value: unknown, index: number) => {
           return 2346 + index;
         }),
@@ -607,7 +611,8 @@ describePostgres("where a project's numbers start, on Postgres", () => {
         }
       }
 
-      const taken: Array<[NumberedRecordKind, number]> = await Promise.all(work);
+      const taken: Array<[NumberedRecordKind, number]> =
+        await Promise.all(work);
 
       const numbersOf: (kind: NumberedRecordKind) => Array<number> = (
         kind: NumberedRecordKind,
@@ -711,7 +716,9 @@ describePostgres("where a project's numbers start, on Postgres", () => {
 
         expect(error).toBeInstanceOf(NotAuthorizedException);
         expect(String((error as Error).message)).not.toContain("2345");
-        expect(await storedValue(projectId, "incidentNumbersStartAt")).toBeNull();
+        expect(
+          await storedValue(projectId, "incidentNumbersStartAt"),
+        ).toBeNull();
       },
     );
 

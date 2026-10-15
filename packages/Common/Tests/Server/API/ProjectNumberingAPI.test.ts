@@ -437,9 +437,9 @@ describe("who may read the numbering", () => {
     const project: Project = new Project();
 
     for (const info of NUMBERED_RECORD_KINDS as ReadonlyArray<NumberedRecordKindInfo>) {
-      expect(project.getColumnAccessControlFor(info.startsAtColumn)?.read).toEqual(
-        getNumberingReadPermissions(),
-      );
+      expect(
+        project.getColumnAccessControlFor(info.startsAtColumn)?.read,
+      ).toEqual(getNumberingReadPermissions());
     }
 
     expect(getNumberingReadPermissions()).toEqual([

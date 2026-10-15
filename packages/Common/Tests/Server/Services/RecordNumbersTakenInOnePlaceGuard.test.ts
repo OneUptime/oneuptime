@@ -194,10 +194,16 @@ describe("every record number is taken in one place", () => {
   });
 
   test("the identifier match finds whole names only", () => {
-    expect(namesIdentifier("const incidentCounterResult = 1;", "incidentCounter")).toBe(false);
-    expect(namesIdentifier('select: { incidentCounter: true }', "incidentCounter")).toBe(true);
+    expect(
+      namesIdentifier("const incidentCounterResult = 1;", "incidentCounter"),
+    ).toBe(false);
+    expect(
+      namesIdentifier("select: { incidentCounter: true }", "incidentCounter"),
+    ).toBe(true);
     expect(namesIdentifier('"incidentCounter"', "incidentCounter")).toBe(true);
-    expect(namesIdentifier("project.alertEpisodeCounter", "alertCounter")).toBe(false);
+    expect(namesIdentifier("project.alertEpisodeCounter", "alertCounter")).toBe(
+      false,
+    );
   });
 
   test.each(NUMBERED_RECORD_KINDS as Array<NumberedRecordKindInfo>)(
@@ -220,8 +226,7 @@ describe("every record number is taken in one place", () => {
 
       const callers: Array<string> = files.filter((file: string): boolean => {
         return (
-          file !== PROJECT_SERVICE &&
-          read(file).includes(`${service.method}(`)
+          file !== PROJECT_SERVICE && read(file).includes(`${service.method}(`)
         );
       });
 

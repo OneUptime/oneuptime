@@ -118,100 +118,97 @@ const STARTS_AT_COLUMNS: Array<string> = [
   "scheduledMaintenanceNumbersStartAt",
 ];
 
-describe.each(PRODUCTS)(
-  "$name → Settings → Numbering",
-  (product: Product) => {
-    test("is the last Settings entry, named Numbering, with the # icon", () => {
-      const settings: string = sectionBetween(
-        dense(product.sideMenu),
-        'title:"Settings",',
-        "addDeveloperSideMenuSection(",
-      );
-
-      expect(settings).toMatch(
-        new RegExp(
-          `\\{link:\\{title:"Numbering",to:RouteUtil\\.populateRouteParams\\(RouteMap\\[PageMap\\.${product.pageKey}\\]asRoute,\\),\\},icon:IconProp\\.Hashtag,\\},\\],\\},\\];$`,
-        ),
-      );
-    });
-
-    test("the menu has no More Settings or Number Prefix entry", () => {
-      expect(read(product.sideMenu)).not.toContain('"More Settings"');
-      expect(read(product.sideMenu)).not.toContain("_SETTINGS_MORE");
-      expect(read(product.sideMenu)).not.toContain('"Number Prefix"');
-      expect(read(product.sideMenu)).not.toContain("_SETTINGS_NUMBER_PREFIX");
-    });
-
-    test("the page draws the Number Prefix card, then the Next Number card under it", () => {
-      const code: string = dense(`${product.page}.tsx`);
-
-      expect(code).toContain(
-        `<Fragment><NumberPrefixCardpage={${product.prefixes}}/><NextNumberCardpage={${product.nextNumbers}}/></Fragment>`,
-      );
-    });
-
-    test("the page is mounted with its own pageRoute", () => {
-      const code: string = dense(product.routes);
-
-      expect(code).toContain(
-        `import${product.pageImportName}from"../${product.page}";`,
-      );
-      expect(code).toContain(
-        `element={<${product.pageImportName}{...props}pageRoute={RouteMap[PageMap.${product.pageKey}]asRoute}/>}`,
-      );
-    });
-
-    /*
-     * Outside the layout: each old address forwards before the product's
-     * layout (and its side menu) renders, so nothing flashes on the way.
-     */
-    test.each(["MORE_SETTINGS_PATH", "NUMBER_PREFIX_PATH"])(
-      "the old address %s forwards to it, outside the product's layout",
-      (oldPath: string) => {
-        const code: string = dense(product.routes);
-        const redirect: string = `<PageRoutepath={${oldPath}}element={<MovedNumberPrefixPageRedirectpageMap={PageMap.${product.pageKey}}/>}/>`;
-
-        expect(code).toContain(
-          'importMovedNumberPrefixPageRedirectfrom"../Components/NumberPrefix/MovedNumberPrefixPageRedirect";',
-        );
-        expect(code).toContain(
-          'import{MORE_SETTINGS_PATH,NUMBER_PREFIX_PATH,}from"../Components/NumberPrefix/NumberPrefixSettings";',
-        );
-        expect(code.split(redirect)).toHaveLength(2);
-
-        const routesStart: number = code.indexOf("<Routes>");
-        const redirectAt: number = code.indexOf(redirect);
-        const layoutAt: number = code.indexOf('<PageRoutepath="/"');
-
-        /*
-         * Ahead of the layout route, as its sibling rather than one of its
-         * children. NumberingPageRedirects.test.tsx renders the route group
-         * and checks the layout never renders at an old address.
-         */
-        expect(routesStart).toBeGreaterThan(-1);
-        expect(redirectAt).toBeGreaterThan(routesStart);
-        expect(layoutAt).toBeGreaterThan(redirectAt);
-      },
+describe.each(PRODUCTS)("$name → Settings → Numbering", (product: Product) => {
+  test("is the last Settings entry, named Numbering, with the # icon", () => {
+    const settings: string = sectionBetween(
+      dense(product.sideMenu),
+      'title:"Settings",',
+      "addDeveloperSideMenuSection(",
     );
 
-    test("has a trail of Project, the product, Settings and Numbering", () => {
-      const crumbs: string = [
-        "Project",
-        product.productCrumb,
-        "Settings",
-        "Numbering",
-      ]
-        .map((title: string): string => {
-          return `"${title.replace(/\s+/g, "")}"`;
-        })
-        .join(",");
+    expect(settings).toMatch(
+      new RegExp(
+        `\\{link:\\{title:"Numbering",to:RouteUtil\\.populateRouteParams\\(RouteMap\\[PageMap\\.${product.pageKey}\\]asRoute,\\),\\},icon:IconProp\\.Hashtag,\\},\\],\\},\\];$`,
+      ),
+    );
+  });
 
-      expect(dense(product.breadcrumbs)).toContain(
-        `...BuildBreadcrumbLinksByTitles(PageMap.${product.pageKey},[${crumbs}`,
+  test("the menu has no More Settings or Number Prefix entry", () => {
+    expect(read(product.sideMenu)).not.toContain('"More Settings"');
+    expect(read(product.sideMenu)).not.toContain("_SETTINGS_MORE");
+    expect(read(product.sideMenu)).not.toContain('"Number Prefix"');
+    expect(read(product.sideMenu)).not.toContain("_SETTINGS_NUMBER_PREFIX");
+  });
+
+  test("the page draws the Number Prefix card, then the Next Number card under it", () => {
+    const code: string = dense(`${product.page}.tsx`);
+
+    expect(code).toContain(
+      `<Fragment><NumberPrefixCardpage={${product.prefixes}}/><NextNumberCardpage={${product.nextNumbers}}/></Fragment>`,
+    );
+  });
+
+  test("the page is mounted with its own pageRoute", () => {
+    const code: string = dense(product.routes);
+
+    expect(code).toContain(
+      `import${product.pageImportName}from"../${product.page}";`,
+    );
+    expect(code).toContain(
+      `element={<${product.pageImportName}{...props}pageRoute={RouteMap[PageMap.${product.pageKey}]asRoute}/>}`,
+    );
+  });
+
+  /*
+   * Outside the layout: each old address forwards before the product's
+   * layout (and its side menu) renders, so nothing flashes on the way.
+   */
+  test.each(["MORE_SETTINGS_PATH", "NUMBER_PREFIX_PATH"])(
+    "the old address %s forwards to it, outside the product's layout",
+    (oldPath: string) => {
+      const code: string = dense(product.routes);
+      const redirect: string = `<PageRoutepath={${oldPath}}element={<MovedNumberPrefixPageRedirectpageMap={PageMap.${product.pageKey}}/>}/>`;
+
+      expect(code).toContain(
+        'importMovedNumberPrefixPageRedirectfrom"../Components/NumberPrefix/MovedNumberPrefixPageRedirect";',
       );
-    });
-  },
-);
+      expect(code).toContain(
+        'import{MORE_SETTINGS_PATH,NUMBER_PREFIX_PATH,}from"../Components/NumberPrefix/NumberPrefixSettings";',
+      );
+      expect(code.split(redirect)).toHaveLength(2);
+
+      const routesStart: number = code.indexOf("<Routes>");
+      const redirectAt: number = code.indexOf(redirect);
+      const layoutAt: number = code.indexOf('<PageRoutepath="/"');
+
+      /*
+       * Ahead of the layout route, as its sibling rather than one of its
+       * children. NumberingPageRedirects.test.tsx renders the route group
+       * and checks the layout never renders at an old address.
+       */
+      expect(routesStart).toBeGreaterThan(-1);
+      expect(redirectAt).toBeGreaterThan(routesStart);
+      expect(layoutAt).toBeGreaterThan(redirectAt);
+    },
+  );
+
+  test("has a trail of Project, the product, Settings and Numbering", () => {
+    const crumbs: string = [
+      "Project",
+      product.productCrumb,
+      "Settings",
+      "Numbering",
+    ]
+      .map((title: string): string => {
+        return `"${title.replace(/\s+/g, "")}"`;
+      })
+      .join(",");
+
+    expect(dense(product.breadcrumbs)).toContain(
+      `...BuildBreadcrumbLinksByTitles(PageMap.${product.pageKey},[${crumbs}`,
+    );
+  });
+});
 
 describe("More Settings is gone", () => {
   test("its three pages are deleted, and so are the Number Prefix pages that followed", () => {
@@ -372,20 +369,26 @@ describe("the starts are edited in one place", () => {
     }
 
     walk(DASHBOARD_SRC);
-    walk(path.join(REPO_PACKAGES, "App", "FeatureSet", "AdminDashboard", "src"));
+    walk(
+      path.join(REPO_PACKAGES, "App", "FeatureSet", "AdminDashboard", "src"),
+    );
     walk(path.join(REPO_PACKAGES, "..", "ee", "Dashboard"));
 
     expect(found).toEqual([]);
   });
 
   test("the Next Number card writes them through the kinds' own columns", () => {
-    const settings: string = dense("Components/NextNumber/NextNumberSettings.ts");
+    const settings: string = dense(
+      "Components/NextNumber/NextNumberSettings.ts",
+    );
     const card: string = dense("Components/NextNumber/NextNumberCard.tsx");
 
     expect(settings).toContain(
       "returnNextNumberUtil.getKindInfo(kind).startsAtColumn;",
     );
-    expect(card).toContain("awaitModelAPI.updateById<Project>({modelType:Project,");
+    expect(card).toContain(
+      "awaitModelAPI.updateById<Project>({modelType:Project,",
+    );
     expect(card).toContain("data:changes,");
   });
 });

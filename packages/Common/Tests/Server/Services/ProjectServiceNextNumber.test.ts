@@ -78,7 +78,8 @@ interface ServiceInternals {
   checkNumbersStartAboveHighest: (updateBy: UpdateBy<Project>) => Promise<void>;
 }
 
-const internals: ServiceInternals = ProjectService as unknown as ServiceInternals;
+const internals: ServiceInternals =
+  ProjectService as unknown as ServiceInternals;
 
 function updateOf(data: Data): UpdateBy<Project> {
   return {

@@ -260,9 +260,9 @@ export default class NextNumberUtil {
   }
 
   // The values a problem's message is filled with.
-  public static getProblemValues(
-    highestNumber?: number | null | undefined,
-  ): { highestNumber: string } {
+  public static getProblemValues(highestNumber?: number | null | undefined): {
+    highestNumber: string;
+  } {
     return { highestNumber: String(highestNumber || 0) };
   }
 
@@ -290,9 +290,7 @@ export default class NextNumberUtil {
     const problem: NextNumberProblem | null = NextNumberUtil.getProblem(value);
 
     if (problem === NextNumberProblem.NotWholeNumber) {
-      throw new BadDataException(
-        `${title} must be a whole number, like 1000.`,
-      );
+      throw new BadDataException(`${title} must be a whole number, like 1000.`);
     }
 
     if (problem === NextNumberProblem.BelowOne) {

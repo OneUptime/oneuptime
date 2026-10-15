@@ -215,17 +215,15 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
           Response.setNoCacheHeaders(res);
 
           return Response.sendJsonObjectResponse(req, res, {
-            numbering: numbering.map(
-              (entry: RecordNumbering): JSONObject => {
-                return {
-                  kind: entry.kind as NumberedRecordKind,
-                  prefix: entry.prefix,
-                  highestNumber: entry.highestNumber,
-                  nextNumber: entry.nextNumber,
-                  numbersStartAt: entry.numbersStartAt,
-                };
-              },
-            ) as JSONArray,
+            numbering: numbering.map((entry: RecordNumbering): JSONObject => {
+              return {
+                kind: entry.kind as NumberedRecordKind,
+                prefix: entry.prefix,
+                highestNumber: entry.highestNumber,
+                nextNumber: entry.nextNumber,
+                numbersStartAt: entry.numbersStartAt,
+              };
+            }) as JSONArray,
           });
         } catch (err) {
           next(err);

@@ -101,9 +101,7 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
         path={MORE_SETTINGS_PATH}
         element={
           <MovedNumberPrefixPageRedirect
-            pageMap={
-              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING
-            }
+            pageMap={PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING}
           />
         }
       />
@@ -111,9 +109,7 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
         path={NUMBER_PREFIX_PATH}
         element={
           <MovedNumberPrefixPageRedirect
-            pageMap={
-              PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING
-            }
+            pageMap={PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING}
           />
         }
       />

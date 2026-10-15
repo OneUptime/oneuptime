@@ -502,9 +502,7 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           element={
             <AlertSettingsNumbering
               {...props}
-              pageRoute={
-                RouteMap[PageMap.ALERTS_SETTINGS_NUMBERING] as Route
-              }
+              pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_NUMBERING] as Route}
             />
           }
         />

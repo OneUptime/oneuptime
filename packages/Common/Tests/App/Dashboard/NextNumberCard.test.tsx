@@ -241,7 +241,11 @@ function openPage(under: PageUnderTest): void {
   const Component: React.FunctionComponent<any> = under.Component;
   render(
     <MemoryRouter initialEntries={[pagePath(under)]}>
-      <Component pageRoute={null} currentProject={null} hasPaymentMethod={true} />
+      <Component
+        pageRoute={null}
+        currentProject={null}
+        hasPaymentMethod={true}
+      />
     </MemoryRouter>,
   );
 }
@@ -348,9 +352,7 @@ function numberingUrl(): string {
 
 function numberingReads(): number {
   return getSpy.mock.calls.filter((call: Array<unknown>): boolean => {
-    return (
-      (call[0] as { url: URL }).url.toString() === numberingUrl()
-    );
+    return (call[0] as { url: URL }).url.toString() === numberingUrl();
   }).length;
 }
 
@@ -395,48 +397,50 @@ beforeEach(() => {
     );
   }) as never);
 
-  updateSpy = jest.spyOn(ModelAPI, "updateById").mockImplementation((async (
-    options: { data: JSONObject },
-  ): Promise<unknown> => {
-    if (updateAnswer === "refuse") {
-      // A record took the number meanwhile.
-      setEntry(entry(NumberedRecordKind.Incident, "INC-", 2400));
-      throw new HTTPErrorResponse(
-        400,
-        {
-          message:
-            "Incident Numbers Start At must be higher than 2400, the highest incident number used so far. A number is never used twice.",
-        },
-        {},
-      );
-    }
-
-    for (const info of NUMBERED_RECORD_KINDS) {
-      const value: unknown = options.data[info.startsAtColumn];
-
-      if (typeof value === "number") {
-        const current: RecordNumbering = numbering.find(
-          (candidate: RecordNumbering): boolean => {
-            return candidate.kind === info.kind;
+  updateSpy = jest
+    .spyOn(ModelAPI, "updateById")
+    .mockImplementation((async (options: {
+      data: JSONObject;
+    }): Promise<unknown> => {
+      if (updateAnswer === "refuse") {
+        // A record took the number meanwhile.
+        setEntry(entry(NumberedRecordKind.Incident, "INC-", 2400));
+        throw new HTTPErrorResponse(
+          400,
+          {
+            message:
+              "Incident Numbers Start At must be higher than 2400, the highest incident number used so far. A number is never used twice.",
           },
-        )!;
-        setEntry(
-          entry(info.kind, current.prefix, current.highestNumber, value),
+          {},
         );
       }
-    }
 
-    return new HTTPResponse(200, {}, {});
-  }) as never);
+      for (const info of NUMBERED_RECORD_KINDS) {
+        const value: unknown = options.data[info.startsAtColumn];
+
+        if (typeof value === "number") {
+          const current: RecordNumbering = numbering.find(
+            (candidate: RecordNumbering): boolean => {
+              return candidate.kind === info.kind;
+            },
+          )!;
+          setEntry(
+            entry(info.kind, current.prefix, current.highestNumber, value),
+          );
+        }
+      }
+
+      return new HTTPResponse(200, {}, {});
+    }) as never);
 
   // The Number Prefix card above it reads the project.
-  jest.spyOn(ModelAPI, "getItem").mockImplementation((async (): Promise<
-    Project
-  > => {
-    const project: Project = new Project();
-    project._id = PROJECT_ID;
-    return project;
-  }) as never);
+  jest
+    .spyOn(ModelAPI, "getItem")
+    .mockImplementation((async (): Promise<Project> => {
+      const project: Project = new Project();
+      project._id = PROJECT_ID;
+      return project;
+    }) as never);
   jest
     .spyOn(ModelAPI, "getList")
     .mockImplementation(async (): Promise<ListResult<Project>> => {
@@ -547,9 +551,8 @@ describe("what each page holds", () => {
 });
 
 describe("what the dialog saves", () => {
-  const byKind: ReturnType<typeof getNumberingByKind> = getNumberingByKind(
-    standardNumbering(),
-  );
+  const byKind: ReturnType<typeof getNumberingByKind> =
+    getNumberingByKind(standardNumbering());
 
   test("opens with each row's next number", () => {
     expect(
@@ -567,7 +570,10 @@ describe("what the dialog saves", () => {
     expect(
       getNextNumberChanges({
         page: INCIDENT_NEXT_NUMBERS,
-        values: { incidentNumbersStartAt: 2346, incidentEpisodeNumbersStartAt: "13" },
+        values: {
+          incidentNumbersStartAt: 2346,
+          incidentEpisodeNumbersStartAt: "13",
+        },
         numbering: byKind,
       }),
     ).toEqual({});
@@ -656,9 +662,13 @@ describe.each(PAGES)(
 
     test("a kind with no records yet starts at 1, and says none is used yet", async () => {
       setEntry(
-        entry(first, numbering.find((current: RecordNumbering) => {
-          return current.kind === first;
-        })!.prefix, 0),
+        entry(
+          first,
+          numbering.find((current: RecordNumbering) => {
+            return current.kind === first;
+          })!.prefix,
+          0,
+        ),
       );
       openPage(under);
 
@@ -756,7 +766,9 @@ describe.each(PAGES)(
       expect(
         within(dialog).getByText(under.page.editDescription),
       ).toBeInTheDocument();
-      expect(within(dialog).queryByText("Edit Project")).not.toBeInTheDocument();
+      expect(
+        within(dialog).queryByText("Edit Project"),
+      ).not.toBeInTheDocument();
     });
 
     test("the dialog holds one field per kind, each filled in with its next number and previewing it", async () => {
@@ -814,7 +826,11 @@ describe.each(PAGES)(
     });
 
     test.each([
-      ["at the highest used", "HIGHEST", "Use a number higher than {{highest}}."],
+      [
+        "at the highest used",
+        "HIGHEST",
+        "Use a number higher than {{highest}}.",
+      ],
       ["below the highest used", "1", "Use a number higher than {{highest}}."],
       ["not a whole number", "12.5", "Use a whole number, like 1000."],
       ["text", "abc", "Use a whole number, like 1000."],
@@ -1002,7 +1018,10 @@ describe("when the server refuses a number", () => {
     ).toBeInTheDocument();
 
     const open: HTMLElement = screen.getByRole("dialog");
-    const input: HTMLInputElement = await field(open, NumberedRecordKind.Incident);
+    const input: HTMLInputElement = await field(
+      open,
+      NumberedRecordKind.Incident,
+    );
 
     await waitFor(
       () => {
@@ -1052,18 +1071,21 @@ describe("who may change the next numbers", () => {
     [[Permission.ProjectOwner]],
     [[Permission.ProjectAdmin]],
     [[Permission.EditProject, Permission.ReadProject]],
-  ])("%j gets a working Update button", async (permissions: Array<Permission>) => {
-    grant([...BASE_PERMISSIONS, ...permissions]);
-    openPage(under);
+  ])(
+    "%j gets a working Update button",
+    async (permissions: Array<Permission>) => {
+      grant([...BASE_PERMISSIONS, ...permissions]);
+      openPage(under);
 
-    const buttons: Array<HTMLElement> = await updateButtons();
-    expect(buttons[0]).not.toBeDisabled();
+      const buttons: Array<HTMLElement> = await updateButtons();
+      expect(buttons[0]).not.toBeDisabled();
 
-    fireEvent.click(buttons[0]!);
-    expect(
-      await screen.findByRole("dialog", {}, { timeout: WAIT_TIMEOUT }),
-    ).toBeInTheDocument();
-  });
+      fireEvent.click(buttons[0]!);
+      expect(
+        await screen.findByRole("dialog", {}, { timeout: WAIT_TIMEOUT }),
+      ).toBeInTheDocument();
+    },
+  );
 
   test("a master admin gets a working Update button", async () => {
     grant([], true);
@@ -1162,22 +1184,19 @@ describe("translations", () => {
     expect(LOCALE_FILES).toHaveLength(17);
   });
 
-  test.each(SHOWN)(
-    "%j is translated in every language",
-    (text: string) => {
-      for (const file of LOCALE_FILES) {
-        const value: string | undefined = locale(file)[text];
+  test.each(SHOWN)("%j is translated in every language", (text: string) => {
+    for (const file of LOCALE_FILES) {
+      const value: string | undefined = locale(file)[text];
 
-        expect({
-          file,
-          translated:
-            typeof value === "string" &&
-            value.length > 0 &&
-            (file === "en.json" ? value === text : value !== text),
-        }).toEqual({ file, translated: true });
-      }
-    },
-  );
+      expect({
+        file,
+        translated:
+          typeof value === "string" &&
+          value.length > 0 &&
+          (file === "en.json" ? value === text : value !== text),
+      }).toEqual({ file, translated: true });
+    }
+  });
 
   test("every translation keeps the numbers' placeholder", () => {
     for (const file of LOCALE_FILES) {
