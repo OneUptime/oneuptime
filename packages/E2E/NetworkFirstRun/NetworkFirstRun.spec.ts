@@ -610,3 +610,159 @@ test("German readers get the path in German", async ({
   );
   await screenshot(page, "network-first-run-de");
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * OneUptime Cloud, below the plan a probe needs
+ * ---------------------------------------------------------------------------
+ *
+ * The server refuses to add a probe below Growth. A project on the free plan
+ * was offered "Add a probe", named it, and was refused - a dead end at step
+ * one. The step and the dialog now name the plan and lead to Billing.
+ */
+
+const PLAN_SENTENCE: string =
+  "Adding a probe needs the Growth plan. Until then, OneUptime's probes on the internet can check devices with a public address.";
+
+function planNote(page: Page): Locator {
+  return step(page, "probe").getByTestId("network-first-run-probe-plan");
+}
+
+test("on the free plan, the probe step names the plan and links to Billing instead of offering a probe", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openFirstRun(page, "plan=free");
+
+  await expect(planNote(page)).toContainText(PLAN_SENTENCE);
+  await expect(page.getByTestId("network-first-run-add-probe")).toHaveCount(0);
+  // The step still says what a probe is, and step 2 still works.
+  await expect(step(page, "probe")).toContainText(
+    "a probe on the internet cannot reach private addresses like 10.0.0.1",
+  );
+  await expect(page.getByTestId("network-get-started-discover")).toBeVisible();
+  await expect(page.getByTestId("network-get-started-add")).toBeVisible();
+
+  await expectReadable(planNote(page).getByText("Adding a probe needs"));
+  await expectReadable(planNote(page).getByRole("link"));
+  await screenshot(page, "network-first-run-free-plan");
+
+  await planNote(page)
+    .getByRole("link", { name: "Upgrade your plan in Billing settings" })
+    .click();
+  await expect(page.getByTestId("stub-page")).toHaveAttribute(
+    "data-page",
+    "SETTINGS_BILLING",
+  );
+  await expect(page.getByTestId("stub-page")).toHaveText(
+    `/dashboard/${PROJECT_ID}/settings/billing`,
+  );
+  expect((await fixture(page)).creates).toEqual([]);
+});
+
+test("on the free plan, a probe field's Add a probe link opens the dialog on the plan, not on a name", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await open(page, "plan=free&open=add-probe&devices=4");
+
+  const modal: Locator = dialog(page);
+  await expect(modal.getByTestId("modal-title")).toHaveText("Add a probe");
+  await expect(modal.getByTestId("add-probe-plan-needed")).toHaveText(
+    PLAN_SENTENCE,
+  );
+  await expect(modal.getByPlaceholder("London office probe")).toHaveCount(0);
+  await expect(page.getByTestId("modal-footer-close-button")).toHaveText(
+    "Cancel",
+  );
+  await expect(page.getByTestId("modal-footer-submit-button")).toHaveText(
+    "Upgrade plan",
+  );
+  await expectReadable(modal.getByTestId("add-probe-plan-needed"));
+  await settledDialog(page);
+  await screenshot(page, "network-add-probe-free-plan");
+
+  await page.getByTestId("modal-footer-submit-button").click();
+  await expect(page.getByTestId("stub-page")).toHaveAttribute(
+    "data-page",
+    "SETTINGS_BILLING",
+  );
+
+  // Nothing was added, and no probe names were read for a name not asked.
+  const state: FixtureState = await fixture(page);
+  expect(state.creates).toEqual([]);
+  expect(
+    state.listRequests.filter((request: Record<string, unknown>) => {
+      return request["modelName"] === "Probe";
+    }),
+  ).toEqual([]);
+});
+
+test("on the free plan, a probe added on a trial can still be run", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openFirstRun(page, "plan=free&probes=waiting&connectAfter=never");
+
+  await expect(planNote(page)).toHaveCount(0);
+  await page.getByTestId("network-first-run-run-probe").click();
+  await expect(dialog(page).getByTestId("modal-title")).toHaveText(
+    "Run the probe",
+  );
+  await expect(dialog(page).getByTestId("add-probe-command")).toBeVisible();
+});
+
+test("on the Growth plan, the probe is offered as on any server", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openFirstRun(page, "plan=growth");
+
+  await expect(planNote(page)).toHaveCount(0);
+  await page.getByTestId("network-first-run-add-probe").click();
+  await expect(
+    dialog(page).getByPlaceholder("London office probe"),
+  ).toHaveValue("Network probe");
+});
+
+test("the plan note fits a phone and reads in the dark theme", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openFirstRun(page, "plan=free&theme=dark");
+
+  await expect(planNote(page)).toBeVisible();
+  expect(await scrollsSideways(page)).toBe(false);
+  await expectReadable(planNote(page).getByText("Adding a probe needs"));
+  await expectReadable(planNote(page).getByRole("link"));
+  await screenshot(page, "network-first-run-free-plan-phone-dark");
+
+  await open(page, "plan=free&open=add-probe&theme=dark");
+  await expectReadable(dialog(page).getByTestId("add-probe-plan-needed"));
+  expect(await scrollsSideways(page)).toBe(false);
+  await settledDialog(page);
+  await page.screenshot({
+    path: path.join(SCREENSHOTS, "network-add-probe-free-plan-phone-dark.png"),
+  });
+});
+
+test("German readers on the free plan read the plan in German", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openFirstRun(page, "plan=free&lang=de");
+
+  await expect(planNote(page)).toContainText(
+    "Zum Hinzufügen einer Sonde brauchen Sie den Growth-Tarif.",
+  );
+  await expect(planNote(page).getByRole("link")).toHaveText(
+    "Tarif in den Abrechnungseinstellungen upgraden",
+  );
+});

@@ -10,11 +10,21 @@ import {
   RUN_PROBE_WAITING,
   getDefaultProbeName,
 } from "./AddProbeCopy";
-import { NetworkProbeFacts, isProbeConnected } from "./NetworkProbeSetup";
+import {
+  NetworkProbeFacts,
+  PROBE_PLAN_UPGRADE_BUTTON,
+  PROBE_STEP_PLAN_NEEDED,
+  isProbeConnected,
+} from "./NetworkProbeSetup";
+import { getPlanNeededToAddProbe } from "./ProbePlanGate";
 import { getProbeDockerRunCommand } from "../Probe/ProbeRunCommand";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
+import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
@@ -29,6 +39,7 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { DOCS_URL, HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -54,6 +65,11 @@ import React, {
  * The probe's key is read back only by roles that may read it (project owners
  * and admins); anyone else who may add a probe is told who can give it to
  * them, rather than shown a command that cannot work.
+ *
+ * On OneUptime Cloud below the plan a probe needs (ProbePlanGate), there is
+ * no name to ask: the server would refuse the probe. The dialog - opened by a
+ * probe field's "Add a probe" link as well as by the first-run path - says
+ * which plan it needs and offers the way to it instead.
  */
 
 export interface AddProbeModalProbe {
@@ -86,6 +102,13 @@ const AddProbeModal: FunctionComponent<ComponentProps> = (
   const [probe, setProbe] = useState<AddProbeModalProbe | null>(
     props.probe || null,
   );
+  /*
+   * Below the plan a probe needs, the name step says so instead (read once:
+   * the plan does not change while the dialog is open).
+   */
+  const [planNeeded] = useState<PlanType | null>(() => {
+    return props.probe ? null : getPlanNeededToAddProbe();
+  });
   const [probeKey, setProbeKey] = useState<string | null>(null);
   const [isKeyLoading, setIsKeyLoading] = useState<boolean>(false);
   const [isConnected, setIsConnected] = useState<boolean>(false);
@@ -97,7 +120,7 @@ const AddProbeModal: FunctionComponent<ComponentProps> = (
    * name that is taken in words of its own.
    */
   const [existingProbeNames, setExistingProbeNames] =
-    useState<Array<string> | null>(props.probe ? [] : null);
+    useState<Array<string> | null>(props.probe || planNeeded ? [] : null);
 
   const canReadProbeKey: boolean = PermissionGate.canReadColumn(
     new Probe(),
@@ -238,6 +261,38 @@ const AddProbeModal: FunctionComponent<ComponentProps> = (
       clearInterval(timer);
     };
   }, [probe?.id, isConnected]);
+
+  if (!probe && planNeeded) {
+    const billingRoute: Route = RouteUtil.populateRouteParams(
+      RouteMap[PageMap.SETTINGS_BILLING] as Route,
+    );
+
+    return (
+      <Modal
+        title="Add a probe"
+        onClose={props.onClose}
+        submitButtonText={PROBE_PLAN_UPGRADE_BUTTON}
+        onSubmit={() => {
+          Navigation.navigate(billingRoute);
+        }}
+      >
+        <div
+          className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+          data-testid="add-probe-plan-needed"
+        >
+          <Icon
+            icon={IconProp.Lock}
+            className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-700"
+          />
+          <span>
+            {translator.translateTemplate(PROBE_STEP_PLAN_NEEDED, {
+              planName: planNeeded,
+            })}
+          </span>
+        </div>
+      </Modal>
+    );
+  }
 
   if (!probe) {
     return (

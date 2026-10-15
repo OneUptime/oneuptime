@@ -29747,5 +29747,7 @@
   "{{name}} is added. Run it on a computer on your network and this step turns green.": "{{name}} è stata aggiunta. Eseguila su un computer della tua rete e questo passaggio diventerà verde.",
   "{{name}} is connected.": "{{name}} è connessa.",
   "{{name}} is connected. Next, bring your devices in.": "{{name}} è connessa. Ora aggiungi i tuoi dispositivi.",
-  "{{vendor}} health checks are available": "Sono disponibili controlli di salute per {{vendor}}"
+  "{{vendor}} health checks are available": "Sono disponibili controlli di salute per {{vendor}}",
+  "Adding a probe needs the {{planName}} plan. Until then, OneUptime's probes on the internet can check devices with a public address.": "Per aggiungere una sonda serve il piano {{planName}}. Nel frattempo, le sonde OneUptime su Internet possono controllare i dispositivi con un indirizzo pubblico.",
+  "Upgrade plan": "Aggiorna il piano"
 }

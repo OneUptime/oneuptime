@@ -29747,5 +29747,7 @@
   "{{name}} is added. Run it on a computer on your network and this step turns green.": "{{name}} er tilføjet. Kør den på en computer på dit netværk, så bliver dette trin grønt.",
   "{{name}} is connected.": "{{name}} er forbundet.",
   "{{name}} is connected. Next, bring your devices in.": "{{name}} er forbundet. Tilføj nu dine enheder.",
-  "{{vendor}} health checks are available": "Tilstandstjek for {{vendor}} er tilgængelige"
+  "{{vendor}} health checks are available": "Tilstandstjek for {{vendor}} er tilgængelige",
+  "Adding a probe needs the {{planName}} plan. Until then, OneUptime's probes on the internet can check devices with a public address.": "Det kræver {{planName}}-abonnementet at tilføje en sonde. Indtil da kan OneUptime-sonder på internettet tjekke enheder med en offentlig adresse.",
+  "Upgrade plan": "Opgrader abonnement"
 }

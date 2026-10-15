@@ -9,19 +9,24 @@ import {
   PROBE_STEP_CONNECTED_MANY,
   PROBE_STEP_CONNECTED_ONE,
   PROBE_STEP_DESCRIPTION,
+  PROBE_STEP_PLAN_LINK,
+  PROBE_STEP_PLAN_NEEDED,
   PROBE_STEP_SERVER_PROBE_NOTE,
   PROBE_STEP_TITLE,
   PROBE_STEP_WAITING,
+  shouldSayProbePlanNeeded,
 } from "./NetworkProbeSetup";
 import {
   NetworkQuickAction,
   getNetworkQuickActionRoute,
 } from "./NetworkQuickActions";
+import { getPlanNeededToAddProbe } from "./ProbePlanGate";
 import useNetworkProbes, { NetworkProbesState } from "./useNetworkProbes";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
@@ -42,6 +47,8 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  *      OneUptime's internet probes, which cannot reach a 10.x address. So
  *      this step comes first, adds the probe without leaving Network
  *      (AddProbeModal), and turns green on its own once the probe checks in.
+ *      On OneUptime Cloud below the plan a probe needs, it says so and links
+ *      to Billing instead of offering a probe the server would refuse.
  *   2. Bring your devices in: discover a whole network, or add one device,
  *      each one click from its form (the quick-action links).
  *   3. Get told when a device goes down: one alert policy covers every
@@ -163,6 +170,21 @@ const NetworkGetStarted: FunctionComponent<ComponentProps> = (
   const areAlertsOn: boolean =
     props.enabledAlertPolicyCount !== null && props.enabledAlertPolicyCount > 0;
 
+  /*
+   * On OneUptime Cloud below the plan a probe needs, the step says so and
+   * links to Billing, in place of an "Add a probe" the server would refuse
+   * (NetworkProbeSetup says why). Not while the probes load: a probe added
+   * already is still shown, and its "How to run it" still works.
+   */
+  const planNeeded: PlanType | null = getPlanNeededToAddProbe();
+  const isPlanNeededSaid: boolean =
+    !probes.isLoading &&
+    shouldSayProbePlanNeeded({ planNeeded: planNeeded, setup: probes.setup });
+
+  const billingRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.SETTINGS_BILLING] as Route,
+  );
+
   type GetProbeStatusFunction = () => ReactElement | null;
 
   const getProbeStatus: GetProbeStatusFunction = (): ReactElement | null => {
@@ -223,6 +245,34 @@ const NetworkGetStarted: FunctionComponent<ComponentProps> = (
     return null;
   };
 
+  type GetProbePlanFunction = () => ReactElement | null;
+
+  const getProbePlan: GetProbePlanFunction = (): ReactElement | null => {
+    if (!isPlanNeededSaid || !planNeeded) {
+      return null;
+    }
+
+    return (
+      <div
+        className="mt-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+        data-testid="network-first-run-probe-plan"
+      >
+        <Icon
+          icon={IconProp.Lock}
+          className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-700"
+        />
+        <p>
+          {translator.translateTemplate(PROBE_STEP_PLAN_NEEDED, {
+            planName: planNeeded,
+          })}{" "}
+          <AppLink to={billingRoute} className="font-medium underline">
+            <span>{translator.translateText(PROBE_STEP_PLAN_LINK)}</span>
+          </AppLink>
+        </p>
+      </div>
+    );
+  };
+
   type GetProbeActionFunction = () => ReactElement | null;
 
   const getProbeAction: GetProbeActionFunction = (): ReactElement | null => {
@@ -242,6 +292,11 @@ const NetworkGetStarted: FunctionComponent<ComponentProps> = (
           }}
         />
       );
+    }
+
+    // Below the plan a probe needs, the step says so instead (getProbePlan).
+    if (planNeeded) {
+      return null;
     }
 
     return (
@@ -281,6 +336,7 @@ const NetworkGetStarted: FunctionComponent<ComponentProps> = (
                   </p>
                 )}
                 {getProbeStatus()}
+                {getProbePlan()}
               </div>
               <div className="flex-shrink-0">{getProbeAction()}</div>
             </div>

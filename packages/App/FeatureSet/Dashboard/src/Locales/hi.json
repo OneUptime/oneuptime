@@ -29747,5 +29747,7 @@
   "{{name}} is added. Run it on a computer on your network and this step turns green.": "{{name}} जोड़ दिया गया। इसे अपने नेटवर्क के किसी कंप्यूटर पर चलाएँ और यह चरण हरा हो जाएगा।",
   "{{name}} is connected.": "{{name}} कनेक्ट है।",
   "{{name}} is connected. Next, bring your devices in.": "{{name}} कनेक्ट है। अब अपने डिवाइस जोड़ें।",
-  "{{vendor}} health checks are available": "{{vendor}} स्वास्थ्य जाँचें उपलब्ध हैं"
+  "{{vendor}} health checks are available": "{{vendor}} स्वास्थ्य जाँचें उपलब्ध हैं",
+  "Adding a probe needs the {{planName}} plan. Until then, OneUptime's probes on the internet can check devices with a public address.": "प्रोब जोड़ने के लिए {{planName}} प्लान चाहिए। तब तक, इंटरनेट पर मौजूद OneUptime के प्रोब सार्वजनिक पते वाले डिवाइस जाँच सकते हैं।",
+  "Upgrade plan": "प्लान अपग्रेड करें"
 }

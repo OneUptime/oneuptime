@@ -29747,5 +29747,7 @@
   "{{name}} is added. Run it on a computer on your network and this step turns green.": "{{name}} を追加しました。ネットワーク内のコンピューターで実行すると、このステップが緑色になります。",
   "{{name}} is connected.": "{{name}} は接続済みです。",
   "{{name}} is connected. Next, bring your devices in.": "{{name}} は接続済みです。次に、デバイスを取り込みましょう。",
-  "{{vendor}} health checks are available": "{{vendor}} のヘルスチェックを利用できます"
+  "{{vendor}} health checks are available": "{{vendor}} のヘルスチェックを利用できます",
+  "Adding a probe needs the {{planName}} plan. Until then, OneUptime's probes on the internet can check devices with a public address.": "プローブを追加するには、{{planName}} プランが必要です。それまでは、インターネット上の OneUptime のプローブで、パブリックアドレスを持つデバイスを確認できます。",
+  "Upgrade plan": "プランをアップグレード"
 }

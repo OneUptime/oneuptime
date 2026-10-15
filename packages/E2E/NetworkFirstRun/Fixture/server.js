@@ -48,8 +48,14 @@ const tailwindConfig = `tailwind.config={darkMode:"class",theme:{extend:{fontFam
  * HOST is a made-up domain. Nothing is ever fetched from it: the data
  * boundary is stubbed in the page and the spec aborts any request that
  * leaves this server. It is what the run command names as the server.
+ *
+ * ?plan= (free | growth) runs the page as OneUptime Cloud does: billing on,
+ * with the plans the Cloud configures (SUBSCRIPTION_PLAN_* in env.js, in its
+ * order: Free, Growth, Scale, Enterprise). Fixture.js puts the project on the
+ * plan named. Without it the page is a self-hosted server's: billing off.
  */
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Network first run preview</title><script>window.process={env:{HOST:"oneuptime.acme-networks.example",HTTP_PROTOCOL:"https",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;if(new URLSearchParams(location.search).get("theme")==="dark"){document.documentElement.classList.add("dark")}</script><script src="/tailwind.js"></script><script>${tailwindConfig}</script><style>body{margin:0;background:#f9fafb;font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}</style><link rel="stylesheet" href="/theme.css"></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
+const plans = `{SUBSCRIPTION_PLAN_BASIC:"Free,price_free_monthly,price_free_yearly,0,0,1,0",SUBSCRIPTION_PLAN_GROWTH:"Growth,price_growth_monthly,price_growth_yearly,0,0,2,14",SUBSCRIPTION_PLAN_SCALE:"Scale,price_scale_monthly,price_scale_yearly,0,0,3,0",SUBSCRIPTION_PLAN_ENTERPRISE:"Enterprise,price_enterprise_monthly,price_enterprise_yearly,-1,-1,4,14"}`;
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Network first run preview</title><script>(function(){var query=new URLSearchParams(location.search);var isCloud=Boolean(query.get("plan"));var env={HOST:"oneuptime.acme-networks.example",HTTP_PROTOCOL:"https",BILLING_ENABLED:isCloud?"true":"false",VERSION:"1.0.0",NODE_ENV:"development"};if(isCloud){Object.assign(env,${plans})}window.process={env:env};window.global=window;if(query.get("theme")==="dark"){document.documentElement.classList.add("dark")}})();</script><script src="/tailwind.js"></script><script>${tailwindConfig}</script><style>body{margin:0;background:#f9fafb;font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}</style><link rel="stylesheet" href="/theme.css"></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
 
 async function main() {
   fs.mkdirSync(output, { recursive: true });

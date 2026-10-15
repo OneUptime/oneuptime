@@ -29747,5 +29747,7 @@
   "{{name}} is added. Run it on a computer on your network and this step turns green.": "{{name}} 已新增。在你網路中的一台電腦上執行它，此步驟就會變綠。",
   "{{name}} is connected.": "{{name}} 已連線。",
   "{{name}} is connected. Next, bring your devices in.": "{{name}} 已連線。接下來，接入你的裝置。",
-  "{{vendor}} health checks are available": "{{vendor}} 健康檢查可用"
+  "{{vendor}} health checks are available": "{{vendor}} 健康檢查可用",
+  "Adding a probe needs the {{planName}} plan. Until then, OneUptime's probes on the internet can check devices with a public address.": "新增探測器需要 {{planName}} 方案。在此之前，網際網路上的 OneUptime 探測器可以檢查具有公開位址的裝置。",
+  "Upgrade plan": "升級方案"
 }

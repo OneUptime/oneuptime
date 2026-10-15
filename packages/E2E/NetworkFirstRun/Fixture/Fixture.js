@@ -19,6 +19,8 @@
  *   ?alerts=   how many alert policies are on (default 0)
  *   ?devices=  how many devices the network has (default 0: the first-run path)
  *   ?server=   1: this server runs a probe of its own (a self-hosted install)
+ *   ?plan=     free | growth: OneUptime Cloud (billing on, see server.js) with
+ *              the project on that plan; adding a probe needs Growth
  *   ?lang=     de reads the German locale file
  *   ?theme=    dark adds html.dark (handled by server.js)
  *
@@ -78,6 +80,9 @@ const roleMode = params.get("role") === "member" ? "member" : "owner";
 const alertPolicies = Number(params.get("alerts") || 0);
 const deviceCount = Number(params.get("devices") || 0);
 const hasServerProbe = params.get("server") === "1";
+const planMode = ["free", "growth"].includes(params.get("plan"))
+  ? params.get("plan")
+  : "";
 const language = params.get("lang") === "de" ? "de" : "en";
 
 const GLOBAL_PERMISSIONS = [
@@ -109,9 +114,15 @@ function nextProbeId() {
   return uuid("20000000", probeCounter);
 }
 
+/*
+ * On OneUptime Cloud the project's plan is read from its subscription's
+ * price id, as ProjectUtil.getCurrentPlan reads it: the monthly price of the
+ * plan server.js configures under that name.
+ */
 const project = Object.assign(new Project(), {
   _id: PROJECT_ID,
   name: "Acme Networks",
+  ...(planMode ? { paymentProviderPlanId: `price_${planMode}_monthly` } : {}),
 });
 
 /*
@@ -159,6 +170,7 @@ const fixture = {
     alerts: alertPolicies,
     devices: deviceCount,
     server: hasServerProbe,
+    plan: planMode || "self-hosted",
     language,
   },
   listRequests: [],
@@ -448,6 +460,7 @@ const LINKED_PAGES = [
   [PageMap.NETWORK_DEVICES, "Devices"],
   [PageMap.NETWORK_DEVICE_DISCOVERY, "Discovery"],
   [PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES, "Alert Policies"],
+  [PageMap.SETTINGS_BILLING, "Billing"],
 ];
 
 function FixtureApp() {

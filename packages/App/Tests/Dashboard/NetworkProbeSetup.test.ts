@@ -12,9 +12,12 @@ import {
   NetworkProbeSetupKind,
   PROBE_CHECK_IN_WINDOW_IN_MS,
   PROBE_CONNECTED_STATUS,
+  PROBE_PLAN_UPGRADE_BUTTON,
   PROBE_STEP_CONNECTED_MANY,
   PROBE_STEP_CONNECTED_ONE,
   PROBE_STEP_DESCRIPTION,
+  PROBE_STEP_PLAN_LINK,
+  PROBE_STEP_PLAN_NEEDED,
   PROBE_STEP_SERVER_PROBE_NOTE,
   PROBE_STEP_TITLE,
   PROBE_STEP_WAITING,
@@ -22,6 +25,7 @@ import {
   getNetworkProbeSetup,
   isProbeConnected,
   shouldPollProbeSetup,
+  shouldSayProbePlanNeeded,
 } from "../../FeatureSet/Dashboard/src/Components/Network/NetworkProbeSetup";
 
 /*
@@ -237,6 +241,67 @@ describe("shouldPollProbeSetup", () => {
   });
 });
 
+/*
+ * On OneUptime Cloud below the plan a probe needs, the step names the plan
+ * instead of offering a probe the server would refuse - but only while there
+ * is no probe to wait for or to show (Components/Network/ProbePlanGate says
+ * which plan, and when).
+ */
+describe("shouldSayProbePlanNeeded", () => {
+  const NO_PROBE: NetworkProbeSetup = getNetworkProbeSetup([], NOW);
+  const WAITING: NetworkProbeSetup = getNetworkProbeSetup([probe()], NOW);
+  const CONNECTED: NetworkProbeSetup = getNetworkProbeSetup(
+    [probe({ connectionStatus: PROBE_CONNECTED_STATUS })],
+    NOW,
+  );
+
+  test("with no plan standing in the way, it is never said", () => {
+    for (const setup of [NO_PROBE, WAITING, CONNECTED, null]) {
+      expect(shouldSayProbePlanNeeded({ planNeeded: null, setup: setup })).toBe(
+        false,
+      );
+    }
+  });
+
+  test("said while the project has no probe of its own", () => {
+    expect(
+      shouldSayProbePlanNeeded({ planNeeded: "Growth", setup: NO_PROBE }),
+    ).toBe(true);
+  });
+
+  test("not for a probe added before - on a trial, or a plan since left: it can still be run", () => {
+    expect(
+      shouldSayProbePlanNeeded({ planNeeded: "Growth", setup: WAITING }),
+    ).toBe(false);
+  });
+
+  test("not once a probe checks in: that is all the step asks for", () => {
+    expect(
+      shouldSayProbePlanNeeded({ planNeeded: "Growth", setup: CONNECTED }),
+    ).toBe(false);
+  });
+
+  test("said when the probes cannot be read: the plan is the project's, not the probes'", () => {
+    expect(
+      shouldSayProbePlanNeeded({ planNeeded: "Growth", setup: null }),
+    ).toBe(true);
+  });
+
+  test("a connected probe wins over one added and never run, here as in the step", () => {
+    const both: NetworkProbeSetup = getNetworkProbeSetup(
+      [
+        probe({ id: "6f1c0a1e-0000-4000-8000-000000000002" }),
+        probe({ connectionStatus: PROBE_CONNECTED_STATUS }),
+      ],
+      NOW,
+    );
+
+    expect(
+      shouldSayProbePlanNeeded({ planNeeded: "Growth", setup: both }),
+    ).toBe(false);
+  });
+});
+
 describe("the step's words", () => {
   const EN: Record<string, unknown> = JSON.parse(
     fs.readFileSync(
@@ -260,6 +325,9 @@ describe("the step's words", () => {
     PROBE_STEP_WAITING,
     PROBE_STEP_CONNECTED_ONE,
     PROBE_STEP_SERVER_PROBE_NOTE,
+    PROBE_STEP_PLAN_NEEDED,
+    PROBE_STEP_PLAN_LINK,
+    PROBE_PLAN_UPGRADE_BUTTON,
     DEVICES_STEP_TITLE,
     ALERTS_STEP_TITLE,
     ALERTS_STEP_DESCRIPTION,
@@ -268,6 +336,65 @@ describe("the step's words", () => {
 
   test.each(SENTENCES)("%s is a Dashboard translation key", (text: string) => {
     expect(EN[text]).toBe(text);
+  });
+
+  /*
+   * The plan's name is the model's (Growth), never a translation: every
+   * language keeps the placeholder, and translates the rest.
+   */
+  test.each([
+    "de",
+    "fr",
+    "es",
+    "it",
+    "pt",
+    "nl",
+    "da",
+    "no",
+    "sv",
+    "ru",
+    "ja",
+    "ko",
+    "zh-CN",
+    "zh-TW",
+    "hi",
+    "fa",
+  ])("the plan sentence names the plan in %s too", (language: string) => {
+    const locale: Record<string, unknown> = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "FeatureSet",
+          "Dashboard",
+          "src",
+          "Locales",
+          `${language}.json`,
+        ),
+        "utf8",
+      ),
+    ) as Record<string, unknown>;
+    const sentence: string = String(locale[PROBE_STEP_PLAN_NEEDED] || "");
+
+    expect(sentence.match(/\{\{planName\}\}/g)).toEqual(["{{planName}}"]);
+    expect(sentence).not.toBe(PROBE_STEP_PLAN_NEEDED);
+    expect(String(locale[PROBE_PLAN_UPGRADE_BUTTON] || "")).not.toBe("");
+    expect(locale[PROBE_PLAN_UPGRADE_BUTTON]).not.toBe(
+      PROBE_PLAN_UPGRADE_BUTTON,
+    );
+  });
+
+  test("the plan sentence names the plan, and says what works meanwhile", () => {
+    expect(PROBE_STEP_PLAN_NEEDED).toContain("needs the {{planName}} plan");
+    expect(PROBE_STEP_PLAN_NEEDED).toContain(
+      "OneUptime's probes on the internet can check devices with a public address",
+    );
+  });
+
+  // The words every plan gate in the Dashboard links to Billing with.
+  test("the link to Billing is worded as the other plan gates word it", () => {
+    expect(PROBE_STEP_PLAN_LINK).toBe("Upgrade your plan in Billing settings");
   });
 
   test("the connected count is a plural, keyed by its other form", () => {

@@ -24,6 +24,7 @@ import {
   drawnPath,
   localeValue,
 } from "./NetworkDocsLabels";
+import Probe from "Common/Models/DatabaseModels/Probe";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -422,6 +423,37 @@ describe("the device guide opens on the Overview's verdict", () => {
 
       expect(getStarted).toContain('title="Add a probe"');
       expect(guide).toContain(drawn(language, "Add a probe"));
+    },
+  );
+
+  /*
+   * On OneUptime Cloud the server refuses to add a probe below the plan
+   * Probe is sold on, and the first-run path says so below it
+   * (Components/Network/ProbePlanGate). The guide's first-run paragraph says
+   * it too, names that plan, and links the custom probe guide, whose
+   * "before you begin" list names the same plan.
+   */
+  test.each(LANGUAGES)(
+    "%s: the first-run path says adding a probe needs the plan Probe is sold on",
+    (language: string) => {
+      const plan: string = String(new Probe().getCreateBillingPlan() || "");
+      const firstRun: string =
+        readGuide(language, DEVICE_GUIDE)
+          .split("\n")
+          .find((line: string): boolean => {
+            return line.includes(
+              drawn(language, "Put a probe on your network"),
+            );
+          }) || "";
+
+      expect(plan).toBe("Growth");
+      expect(
+        readRepoFile(`${DASHBOARD}/Components/Network/ProbePlanGate.ts`),
+      ).toContain("new Probe().getCreateBillingPlan()");
+      expect(firstRun).toContain("OneUptime Cloud");
+      expect(firstRun).toContain(plan);
+      expect(firstRun).toContain("](/docs/probe/custom-probe)");
+      expect(readGuide(language, "probe/custom-probe.md")).toContain(plan);
     },
   );
 

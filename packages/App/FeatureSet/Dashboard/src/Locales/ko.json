@@ -29747,5 +29747,7 @@
   "{{name}} is added. Run it on a computer on your network and this step turns green.": "{{name}}이(가) 추가되었습니다. 네트워크의 컴퓨터에서 실행하면 이 단계가 녹색으로 바뀝니다.",
   "{{name}} is connected.": "{{name}}이(가) 연결되었습니다.",
   "{{name}} is connected. Next, bring your devices in.": "{{name}}이(가) 연결되었습니다. 이제 디바이스를 가져오세요.",
-  "{{vendor}} health checks are available": "{{vendor}} 상태 확인을 사용할 수 있습니다"
+  "{{vendor}} health checks are available": "{{vendor}} 상태 확인을 사용할 수 있습니다",
+  "Adding a probe needs the {{planName}} plan. Until then, OneUptime's probes on the internet can check devices with a public address.": "프로브를 추가하려면 {{planName}} 요금제가 필요합니다. 그때까지는 인터넷에 있는 OneUptime 프로브로 공인 주소가 있는 디바이스를 확인할 수 있습니다.",
+  "Upgrade plan": "요금제 업그레이드"
 }

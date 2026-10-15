@@ -179,6 +179,45 @@ export const PROBE_STEP_SERVER_PROBE_NOTE: string = translationKey(
   "This OneUptime server runs a probe of its own too. It can check your devices if this server can reach them.",
 );
 
+/*
+ * On OneUptime Cloud a probe of the project's own is sold on a plan: the
+ * server refuses to add one below it (Probe's create plan, Growth). A project
+ * below it - every new project on the free plan - was offered "Add a probe"
+ * as its very first step, named the probe, and was then refused with "Please
+ * upgrade your plan to Growth to access this feature": a dead end at step
+ * one, with no way to the plan. So the step says so before anything is
+ * asked, names the plan and links to Billing - and says what still works
+ * meanwhile: OneUptime's own probes can check a device with a public address.
+ *
+ * Said only while there is no probe to wait for or to show: a probe added
+ * before (on a trial, or on a plan the project has since left) can still be
+ * run, and one that checks in is all the step asks for. `planNeeded` is the
+ * plan the project is known to be below (ProbePlanGate), null when nothing
+ * stands in the way. With the project's probes unreadable (`setup` null), the
+ * plan is still worth saying: it is about the project, not about its probes.
+ */
+export function shouldSayProbePlanNeeded(data: {
+  planNeeded: string | null;
+  setup: NetworkProbeSetup | null;
+}): boolean {
+  if (!data.planNeeded) {
+    return false;
+  }
+
+  return !data.setup || data.setup.kind === NetworkProbeSetupKind.NoProbe;
+}
+
+export const PROBE_STEP_PLAN_NEEDED: string = translationKey(
+  "Adding a probe needs the {{planName}} plan. Until then, OneUptime's probes on the internet can check devices with a public address.",
+);
+
+export const PROBE_STEP_PLAN_LINK: string = translationKey(
+  "Upgrade your plan in Billing settings",
+);
+
+// The "Add a probe" dialog's way to the plan, below it.
+export const PROBE_PLAN_UPGRADE_BUTTON: string = translationKey("Upgrade plan");
+
 export const DEVICES_STEP_TITLE: string = translationKey(
   "Bring your devices in",
 );

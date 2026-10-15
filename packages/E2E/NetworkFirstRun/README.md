@@ -33,6 +33,9 @@ Picked with query parameters on the Overview's address:
 - `alerts=N`: how many alert policies are on.
 - `devices=N`: how many devices the network has (0 shows the first-run path).
 - `server=1`: this server runs a probe of its own (a self-hosted install).
+- `plan=free|growth`: OneUptime Cloud (billing on, with the plans the Cloud configures) and the
+  project on that plan. Adding a probe needs Growth, so on `free` the probe step and the dialog
+  name the plan and lead to Billing.
 - `open=add-probe`: the address a device's probe field links to.
 - `lang=de`, `theme=dark`.
 
@@ -41,6 +44,6 @@ Every read and write is recorded on `window.__networkFirstRunFixture` (`listRequ
 fixture does not model; the spec fails on an unhandled request, on an uncaught page error and on
 any request that leaves the fixture server.
 
-Pages the path links to (Devices, Discovery, Alert Policies) are stubs that show their path, so a
+Pages the path links to (Devices, Discovery, Alert Policies, Billing) are stubs that show their path, so a
 test can check where a choice leads. Screenshots are written to
 `output/playwright/network-first-run-ui/`.

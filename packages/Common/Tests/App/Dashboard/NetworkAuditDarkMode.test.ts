@@ -9,7 +9,8 @@ import { DarkModeScan, scanDarkMode } from "../../Helpers/DarkModeScan";
  * a near-white box on a slate panel - and nothing fails (Tests/Helpers/
  * DarkModeScan). So every colour class these draw with is held to what
  * Theme.css remaps: the first-run path and its step markers, the Add a probe
- * dialog's run step and connection line, the vendor template offer, the
+ * dialog's run step and connection line, the plan note both draw on OneUptime
+ * Cloud below the plan a probe needs, the vendor template offer, the
  * neighbour list, the device hero's Monitor Status tile, the Monitors card,
  * the scan's credentials step, the empty map card and the Overview.
  */
@@ -51,6 +52,11 @@ describe("the audited Network surfaces in the dark theme", () => {
         "bg-indigo-500",
         // The scan's credentials step, when a set is refused.
         "text-red-600",
+        // The probe step and dialog below the plan a probe needs.
+        "border-amber-200",
+        "bg-amber-50",
+        "text-amber-900",
+        "text-amber-700",
         // The dialog's connection line, waiting and connected.
         "border-gray-200",
         "bg-gray-50",
