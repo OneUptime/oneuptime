@@ -142,15 +142,6 @@ export default class WorkspaceBase {
   }
 
   @CaptureSpan()
-  public static async isUserInDirectMessageChannel(_data: {
-    authToken: string;
-    userId: string;
-    directMessageChannelId: string;
-  }): Promise<boolean> {
-    throw new NotImplementedException();
-  }
-
-  @CaptureSpan()
   public static async doesChannelExist(_data: {
     authToken: string;
     channelName: string;

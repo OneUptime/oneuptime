@@ -1,7 +1,16 @@
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import HTTPResponse from "../../../../../Types/API/HTTPResponse";
+import URL from "../../../../../Types/API/URL";
 import { JSONObject } from "../../../../../Types/JSON";
+import ObjectID from "../../../../../Types/ObjectID";
+import { WorkspacePayloadMarkdown } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
+import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
+import API from "../../../../../Utils/API";
+import logger from "../../../../../Server/Utils/Logger";
+import SlackUtil from "../../../../../Server/Utils/Workspace/Slack/Slack";
+import { WorkspaceSendMessageResponse } from "../../../../../Server/Utils/Workspace/WorkspaceBase";
 import SlackActionType from "../../../../../Server/Utils/Workspace/Slack/Actions/ActionTypes";
 import SlackIncidentActions from "../../../../../Server/Utils/Workspace/Slack/Actions/Incident";
 import SlackScheduledMaintenanceActions from "../../../../../Server/Utils/Workspace/Slack/Actions/ScheduledMaintenance";
@@ -326,9 +335,16 @@ describe("the Slack app manifest's Home tab and hello", () => {
  * (chat:write); it opens no conversation of its own (conversations.open:
  * im:write, mpim:write), sets no channel's topic or purpose
  * (channels:write.topic), and acts with the bot's token and a person's
- * Slack user id, never a token of theirs. im:read stays, with mpim:read:
- * conversations.info and conversations.members take any conversation's id,
- * a direct message's included.
+ * Slack user id, never a token of theirs.
+ *
+ * im:read and mpim:read stay. A New Incident or New Scheduled Maintenance
+ * form opened by /oneuptime in the app's direct messages, or in a group DM
+ * the app is in, posts its "created" message back there, and /oneuptime
+ * page posts its page message where it was run - each through
+ * SlackUtil.sendMessage, which reads the conversation (conversations.info)
+ * and whether the app is in it (conversations.members). Slack answers those
+ * for a direct message only with im:read, and for a group DM only with
+ * mpim:read; without them the message is not posted.
  *
  * Each Slack Web API method the server calls - read from the source, so a
  * new one cannot be called unlisted - and each event the app hears, with the
@@ -487,6 +503,10 @@ describe("the scopes the Slack app asks for", () => {
   )["bot_events"] as unknown as Array<string>;
   const methods: Array<string> = calledMethods();
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   test("no user scopes: Slack names who installed the app all the same, and OneUptime never acts with a token of theirs", () => {
     expect(scopes["user"]).toEqual([]);
   });
@@ -497,8 +517,130 @@ describe("the scopes the Slack app asks for", () => {
     }
 
     expect(bot).toContain("chat:write");
-    // conversations.info and conversations.members take a direct message's id too.
-    expect(bot).toContain("im:read");
+  });
+
+  /*
+   * Why im:read and mpim:read stay (see above): a message posted to the
+   * app's direct messages by their id - a form's "created" message, a page
+   * message - reads the conversation and who is in it first.
+   */
+  test("im:read and mpim:read stay: a message posted to a direct message by its id reads the conversation, and whether the app is in it, first", async () => {
+    const asked: Array<{ method: string; channel: unknown }> = [];
+
+    jest.spyOn(logger, "error").mockImplementation((() => {
+      return undefined;
+    }) as never);
+    jest.spyOn(logger, "debug").mockImplementation((() => {
+      return undefined;
+    }) as never);
+    jest.spyOn(API, "post").mockImplementation((async (options: {
+      url: URL;
+      data: JSONObject;
+    }) => {
+      const method: string = options.url.toString().split("/api/").pop() || "";
+      asked.push({ method: method, channel: options.data["channel"] });
+
+      // A direct message, as Slack answers for one: no name, two members.
+      if (method === "conversations.info") {
+        return new HTTPResponse<JSONObject>(
+          200,
+          {
+            ok: true,
+            channel: { id: "D0ALICE", is_im: true, user: "U0ALICE" },
+          },
+          {},
+        );
+      }
+
+      if (method === "conversations.members") {
+        return new HTTPResponse<JSONObject>(
+          200,
+          {
+            ok: true,
+            members: ["U0ALICE", "U0ONEUPTIME"],
+            response_metadata: { next_cursor: "" },
+          },
+          {},
+        );
+      }
+
+      return new HTTPResponse<JSONObject>(200, { ok: true, ts: "1" }, {});
+    }) as never);
+
+    const response: WorkspaceSendMessageResponse = await SlackUtil.sendMessage({
+      authToken: "xoxb-project-token",
+      userId: "U0ONEUPTIME",
+      projectId: ObjectID.generate(),
+      workspaceMessagePayload: {
+        _type: "WorkspaceMessagePayload",
+        workspaceType: WorkspaceType.Slack,
+        channelIds: ["D0ALICE"],
+        channelNames: [],
+        messageBlocks: [
+          {
+            _type: "WorkspacePayloadMarkdown",
+            text: "Incident INC-1 created successfully.",
+          } as WorkspacePayloadMarkdown,
+        ],
+      },
+    });
+
+    expect(asked).toEqual([
+      { method: "conversations.info", channel: "D0ALICE" },
+      { method: "conversations.members", channel: "D0ALICE" },
+      { method: "chat.postMessage", channel: "D0ALICE" },
+    ]);
+    expect(response.errors).toEqual([]);
+    expect(bot).toEqual(expect.arrayContaining(["im:read", "mpim:read"]));
+  });
+
+  test("…and without im:read Slack refuses those reads (missing_scope): the message is not posted", async () => {
+    const asked: Array<string> = [];
+
+    jest.spyOn(logger, "error").mockImplementation((() => {
+      return undefined;
+    }) as never);
+    jest.spyOn(logger, "debug").mockImplementation((() => {
+      return undefined;
+    }) as never);
+    jest.spyOn(API, "post").mockImplementation((async (options: {
+      url: URL;
+    }) => {
+      const method: string = options.url.toString().split("/api/").pop() || "";
+      asked.push(method);
+
+      if (method.startsWith("conversations.")) {
+        return new HTTPResponse<JSONObject>(
+          200,
+          { ok: false, error: "missing_scope", needed: "im:read" },
+          {},
+        );
+      }
+
+      return new HTTPResponse<JSONObject>(200, { ok: true, ts: "1" }, {});
+    }) as never);
+
+    const response: WorkspaceSendMessageResponse = await SlackUtil.sendMessage({
+      authToken: "xoxb-project-token",
+      userId: "U0ONEUPTIME",
+      projectId: ObjectID.generate(),
+      workspaceMessagePayload: {
+        _type: "WorkspaceMessagePayload",
+        workspaceType: WorkspaceType.Slack,
+        channelIds: ["D0ALICE"],
+        channelNames: [],
+        messageBlocks: [
+          {
+            _type: "WorkspacePayloadMarkdown",
+            text: "Incident INC-1 created successfully.",
+          } as WorkspacePayloadMarkdown,
+        ],
+      },
+    });
+
+    expect(asked).not.toContain("chat.postMessage");
+    expect(response.threads).toEqual([]);
+    expect(response.errors).toHaveLength(1);
   });
 
   test("the source scan finds the methods it is there for", () => {
