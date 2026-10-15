@@ -486,9 +486,6 @@ const RunbookWebhookCard: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
-          <p className="mt-2 text-xs text-gray-500">
-            {translate(RunbookTriggersCopy.postOnly)}
-          </p>
         </div>
 
         <div>
@@ -546,6 +543,9 @@ const RunbookWebhookCard: FunctionComponent<ComponentProps> = (
           </p>
         </div>
 
+        {/* What the last test request started, next to the button that sent it. */}
+        {getTestResult()}
+
         <div className="flex flex-col gap-3 border-t border-gray-200 pt-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-start gap-1.5 text-xs text-gray-500">
             <div className="mt-px shrink-0">
@@ -593,6 +593,7 @@ const RunbookWebhookCard: FunctionComponent<ComponentProps> = (
         <RunbookTriggerNote
           tone="warning"
           text={RunbookTriggersCopy.runbookOffWebhook}
+          runbookId={props.runbookId}
         />
       );
     }
@@ -602,6 +603,7 @@ const RunbookWebhookCard: FunctionComponent<ComponentProps> = (
         <RunbookTriggerNote
           tone="warning"
           text={RunbookTriggersCopy.noStepsWebhook}
+          runbookId={props.runbookId}
         />
       );
     }
@@ -698,7 +700,6 @@ const RunbookWebhookCard: FunctionComponent<ComponentProps> = (
         {isOn ? (
           <div className="space-y-4 border-t border-gray-200 px-5 py-4 md:px-6">
             {getNotes(runbook)}
-            {getTestResult()}
             {getUrlPanel()}
           </div>
         ) : (

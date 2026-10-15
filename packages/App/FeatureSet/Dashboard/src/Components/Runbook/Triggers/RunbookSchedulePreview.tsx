@@ -12,17 +12,19 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
   NEXT_RUNS_SHOWN,
+  RunTimeText,
   RunbookTriggersCopy,
   RunbookTriggersTestIds,
+  formatRunTime,
   getScheduleProblemText,
   getScheduleSentence,
 } from "./RunbookTriggersCopy";
 
 /*
  * The next runs of a schedule, worked out the way the Worker that starts
- * them works them out (Types/Runbook/RunbookSchedule), each in the
- * schedule's time zone with how long until it: "Mon, Oct 19, 2026, 09:00
- * BST - in 3 days".
+ * them works them out (Types/Runbook/RunbookSchedule), each on the
+ * schedule's clock, in the reader's language, with how long until it:
+ * "Mon, Oct 19, 09:00 BST  in 4 days".
  */
 export interface NextRunsProps {
   cron: string;
@@ -36,6 +38,7 @@ export const NextRuns: FunctionComponent<NextRunsProps> = (
   props: NextRunsProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const now: Date = props.after || OneUptimeDate.getCurrentDate();
 
   let runs: Array<Date> = [];
 
@@ -43,7 +46,7 @@ export const NextRuns: FunctionComponent<NextRunsProps> = (
     runs = getNextRunbookRuns({
       cron: props.cron,
       timezone: props.timezone,
-      after: props.after || OneUptimeDate.getCurrentDate(),
+      after: now,
       count: props.count || NEXT_RUNS_SHOWN,
     });
   } catch {
@@ -64,21 +67,25 @@ export const NextRuns: FunctionComponent<NextRunsProps> = (
       data-testid={RunbookTriggersTestIds.nextRuns}
     >
       {runs.map((run: Date) => {
+        const time: RunTimeText = formatRunTime({
+          date: run,
+          timezone: props.timezone,
+          language: translator.language,
+          now,
+        });
+
         return (
           <li
             key={run.toISOString()}
             className="flex flex-wrap items-baseline gap-x-2"
           >
-            <span className="font-medium text-gray-900">
-              {OneUptimeDate.getDateAsFormattedStringInTimezone({
-                date: run,
-                timezone: props.timezone,
-                showWeekday: true,
-              })}
-            </span>
-            <span className="text-xs text-gray-500">
-              {OneUptimeDate.fromNow(run)}
-            </span>
+            <time
+              className="font-medium tabular-nums text-gray-900"
+              dateTime={run.toISOString()}
+            >
+              {time.when}
+            </time>
+            <span className="text-xs text-gray-500">{time.relative}</span>
           </li>
         );
       })}
@@ -87,14 +94,16 @@ export const NextRuns: FunctionComponent<NextRunsProps> = (
 };
 
 /*
- * Under "When it runs" in the schedule dialog, as the form changes: the
- * schedule in a sentence, its next runs and the time zone they are in - or,
- * while the choice cannot run, why, in the words the server would refuse it
- * with.
+ * The schedule dialog's live answer, as the form changes. While the choice
+ * cannot run, why - in the words the server would refuse it with - right
+ * under the field that is wrong ("problem"). Otherwise the schedule in a
+ * sentence and its next runs, under the time zone they are read in
+ * ("runs"): the times depend on both.
  */
 export interface ComponentProps {
   choice: RunbookScheduleChoice;
   timezone: string | undefined;
+  part: "problem" | "runs";
 }
 
 const RunbookSchedulePreview: FunctionComponent<ComponentProps> = (
@@ -109,7 +118,11 @@ const RunbookSchedulePreview: FunctionComponent<ComponentProps> = (
     ? props.timezone
     : undefined;
 
-  if (problem) {
+  if (props.part === "problem") {
+    if (!problem) {
+      return <></>;
+    }
+
     return (
       <div
         className="mt-3 rounded-md border border-red-200 bg-red-50 px-4 py-3"
@@ -121,6 +134,10 @@ const RunbookSchedulePreview: FunctionComponent<ComponentProps> = (
         </p>
       </div>
     );
+  }
+
+  if (problem) {
+    return <></>;
   }
 
   return (
@@ -141,11 +158,6 @@ const RunbookSchedulePreview: FunctionComponent<ComponentProps> = (
             cron={getRunbookScheduleCron(props.choice)}
             timezone={timezone}
           />
-          <p className="mt-2 text-xs text-gray-500">
-            {translator.translateTemplate(RunbookTriggersCopy.timesAreIn, {
-              timezone,
-            })}
-          </p>
         </div>
       ) : (
         <></>

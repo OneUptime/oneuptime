@@ -1,5 +1,6 @@
 import { JSONObject } from "Common/Types/JSON";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -20,6 +21,10 @@ export interface ComponentProps {
 }
 
 export const RUNBOOK_RUN_INPUTS_TEST_ID: string = "runbook-run-inputs";
+
+// The variable and the argument the description names, drawn as code.
+const CODE_CLASS_NAME: string =
+  "rounded bg-gray-100 px-1 py-0.5 font-mono text-xs text-gray-800";
 
 const RunbookRunInputs: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -49,7 +54,13 @@ const RunbookRunInputs: FunctionComponent<ComponentProps> = (
         />
       </div>
       <p className="mb-2 text-sm text-gray-500">
-        {translate(TriggerDetailCopy.inputsCardDescription)}
+        <TranslatedSentence
+          template={TriggerDetailCopy.inputsCardDescription}
+          slots={{
+            bash: <code className={CODE_CLASS_NAME}>ONEUPTIME_INPUT_HOST</code>,
+            javascript: <code className={CODE_CLASS_NAME}>args.inputs</code>,
+          }}
+        />
       </p>
       <pre className="max-h-80 overflow-auto rounded-md border border-gray-200 bg-gray-50 px-3 py-2 font-mono text-xs leading-5 text-gray-800">
         <code className="font-mono">{json}</code>

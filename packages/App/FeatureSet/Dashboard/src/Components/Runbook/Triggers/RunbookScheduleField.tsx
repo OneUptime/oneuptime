@@ -248,6 +248,8 @@ const RunbookScheduleField: FunctionComponent<ComponentProps> = (
                 key={day}
                 type="button"
                 aria-pressed={isPicked}
+                // The whole name, so a screen reader says "Monday", not "Mon".
+                aria-label={translator.translateText(DAY_NAMES[day]!)}
                 title={translator.translateText(DAY_NAMES[day]!)}
                 data-testid={`${RunbookTriggersTestIds.scheduleField}-day-${day}`}
                 className={`rounded-md border px-0 py-1.5 text-xs font-medium transition-colors ${

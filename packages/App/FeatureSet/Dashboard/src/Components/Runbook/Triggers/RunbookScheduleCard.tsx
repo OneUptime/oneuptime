@@ -2,6 +2,14 @@ import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import {
+  Blue500,
+  Gray500,
+  Green500,
+  Red500,
+  Yellow500,
+} from "Common/Types/BrandColors";
+import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
@@ -40,6 +48,7 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ModelSwitchRow from "Common/UI/Components/ModelSwitch/ModelSwitchRow";
+import Pill from "Common/UI/Components/Pill/Pill";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
@@ -72,13 +81,19 @@ import {
   MISSED_RUN_SUMMARIES,
   OVERLAP_LABELS,
   OVERLAP_SUMMARIES,
+  RunTimeText,
   RunbookTriggersCopy,
   RunbookTriggersDocs,
   RunbookTriggersTestIds,
+  formatRunTime,
   getScheduleProblemText,
   getScheduleSentence,
   translateCopy,
 } from "./RunbookTriggersCopy";
+
+// The small label over each part of the card, as the webhook card's.
+const SECTION_LABEL_CLASS_NAME: string =
+  "mb-1.5 text-xs font-medium uppercase tracking-wide text-gray-500";
 
 /*
  * "Schedule", on a runbook's Triggers page.
@@ -331,6 +346,12 @@ const RunbookScheduleCard: FunctionComponent<ComponentProps> = (
             icon: IconProp.Edit,
             disabled: Boolean(setUpLockedReason),
             tooltip: setUpLockedReason,
+            /*
+             * Button keeps an outline button's colours when it is disabled,
+             * so a locked Edit Schedule would look like one that opens. The
+             * tooltip says why it is locked.
+             */
+            className: setUpLockedReason ? "opacity-50" : undefined,
             onClick: () => {
               if (setUpLockedReason) {
                 return;
@@ -426,6 +447,15 @@ const RunbookScheduleCard: FunctionComponent<ComponentProps> = (
     );
   };
 
+  // Whether the schedule's times start anything: the runbook is on, with steps.
+  const canStartRuns: (item: Runbook) => boolean = (item: Runbook): boolean => {
+    return (
+      item.isEnabled !== false &&
+      Array.isArray(item.steps) &&
+      item.steps.length > 0
+    );
+  };
+
   const getNotes: (item: Runbook) => ReactElement = (
     item: Runbook,
   ): ReactElement => {
@@ -437,6 +467,7 @@ const RunbookScheduleCard: FunctionComponent<ComponentProps> = (
           key="off"
           tone="warning"
           text={RunbookTriggersCopy.runbookOffSchedule}
+          runbookId={props.runbookId}
         />,
       );
     } else if (!Array.isArray(item.steps) || item.steps.length === 0) {
@@ -445,6 +476,7 @@ const RunbookScheduleCard: FunctionComponent<ComponentProps> = (
           key="steps"
           tone="warning"
           text={RunbookTriggersCopy.noStepsSchedule}
+          runbookId={props.runbookId}
         />,
       );
     }
@@ -466,27 +498,51 @@ const RunbookScheduleCard: FunctionComponent<ComponentProps> = (
     return <div className="space-y-2">{notes}</div>;
   };
 
+  /*
+   * The last run the schedule started: its status, as the Executions list
+   * draws it, when it was, and a link to it.
+   */
   const getLastRun: () => ReactElement = (): ReactElement => {
     if (!lastRun?._id) {
       return (
-        <span className="text-gray-500">
+        <p className="text-sm text-gray-500">
           {translator.translateText(RunbookTriggersCopy.noScheduledRunYet)}
-        </span>
+        </p>
       );
     }
 
-    const when: Date | undefined = lastRun.createdAt;
+    const when: Date | undefined = lastRun.createdAt
+      ? OneUptimeDate.fromString(lastRun.createdAt)
+      : undefined;
+    const time: RunTimeText | null = when
+      ? formatRunTime({
+          date: when,
+          timezone: OneUptimeDate.getCurrentTimezone().toString(),
+          language: translator.language,
+          now: OneUptimeDate.getCurrentDate(),
+        })
+      : null;
+    const status: RunbookExecutionStatus =
+      lastRun.status as RunbookExecutionStatus;
 
     return (
-      <span className="flex flex-wrap items-baseline gap-x-2">
-        <span className="text-gray-900">
-          {when ? OneUptimeDate.getDateAsLocalFormattedString(when) : "—"}
-        </span>
-        <span className="text-gray-500">
-          {translator.translateText(
-            getRunStatusLabel(lastRun.status as RunbookExecutionStatus),
-          )}
-        </span>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+        <Pill
+          text={getRunStatusLabel(status)}
+          color={getRunStatusColor(status)}
+          isMinimal={true}
+        />
+        {time ? (
+          <time
+            className="tabular-nums text-gray-900"
+            dateTime={when!.toISOString()}
+            title={time.relative}
+          >
+            {time.when}
+          </time>
+        ) : (
+          <></>
+        )}
         <AppLink
           className="font-medium text-indigo-600 hover:text-indigo-500"
           to={RouteUtil.populateRouteParams(
@@ -499,10 +555,15 @@ const RunbookScheduleCard: FunctionComponent<ComponentProps> = (
         >
           {translateCopy(translator, RunbookTriggersCopy.viewRun)}
         </AppLink>
-      </span>
+      </div>
     );
   };
 
+  /*
+   * Under the switch: why nothing starts, if that is so; the next runs (or
+   * that it is paused) beside the last run it started; and, quieter, what
+   * it does when a run is still going or a time was missed.
+   */
   const getDetails: (item: Runbook) => ReactElement = (
     item: Runbook,
   ): ReactElement => {
@@ -514,52 +575,69 @@ const RunbookScheduleCard: FunctionComponent<ComponentProps> = (
       item.scheduleMissedRunPolicy ||
       DEFAULT_RUNBOOK_SCHEDULE_MISSED_RUN_POLICY;
 
+    /*
+     * While the runbook is off or has no steps, its times start nothing:
+     * the note says why, and no time is listed as if it would run.
+     */
+    const getNextRuns: () => ReactElement = (): ReactElement => {
+      if (!isOn) {
+        return (
+          <p
+            className="text-sm text-gray-500"
+            data-testid={`${RunbookTriggersTestIds.scheduleDetails}-paused`}
+          >
+            {translator.translateText(RunbookTriggersCopy.scheduleSwitchOff)}
+          </p>
+        );
+      }
+
+      return <NextRuns cron={item.scheduleCron || ""} timezone={timezone} />;
+    };
+
+    const showsNextRuns: boolean = !isOn || canStartRuns(item);
+
     return (
       <div
         className="space-y-4 border-t border-gray-200 px-5 py-4 md:px-6"
         data-testid={RunbookTriggersTestIds.scheduleDetails}
       >
         {getNotes(item)}
-        {isOn ? (
-          <div>
-            <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">
-              {translator.translateText(RunbookTriggersCopy.nextRunsTitle)}
-            </p>
-            <NextRuns cron={item.scheduleCron || ""} timezone={timezone} />
-            <p className="mt-2 text-xs text-gray-500">
-              {translator.translateTemplate(RunbookTriggersCopy.timesAreIn, {
-                timezone,
-              })}
-            </p>
-          </div>
-        ) : (
-          <></>
-        )}
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
-          <div>
-            <dt className="text-xs font-medium text-gray-500">
-              {translator.translateText(RunbookTriggersCopy.overlapTitle)}
-            </dt>
-            <dd className="mt-0.5 text-gray-900">
-              {translator.translateText(OVERLAP_LABELS[overlap])}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium text-gray-500">
-              {translator.translateText(RunbookTriggersCopy.missedRunsTitle)}
-            </dt>
-            <dd className="mt-0.5 text-gray-900">
-              {translator.translateText(MISSED_RUN_LABELS[missed])}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium text-gray-500">
+        <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+          {showsNextRuns ? (
+            <div>
+              <p className={SECTION_LABEL_CLASS_NAME}>
+                {translator.translateText(RunbookTriggersCopy.nextRunsTitle)}
+              </p>
+              {getNextRuns()}
+            </div>
+          ) : (
+            <></>
+          )}
+          <div data-testid={`${RunbookTriggersTestIds.scheduleDetails}-last-run`}>
+            <p className={SECTION_LABEL_CLASS_NAME}>
               {translator.translateText(
                 RunbookTriggersCopy.lastScheduledRunTitle,
               )}
-            </dt>
-            <dd className="mt-0.5">{getLastRun()}</dd>
+            </p>
+            {getLastRun()}
           </div>
+        </div>
+        <dl
+          className="grid grid-cols-1 gap-x-4 border-t border-gray-100 pt-3 text-sm sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-y-1"
+          data-testid={`${RunbookTriggersTestIds.scheduleDetails}-policies`}
+        >
+          <dt className="text-gray-500">
+            {translator.translateText(RunbookTriggersCopy.overlapTitle)}
+          </dt>
+          <dd className="mb-2 text-gray-900 sm:mb-0">
+            {translator.translateText(OVERLAP_LABELS[overlap])}
+          </dd>
+          <dt className="text-gray-500">
+            {translator.translateText(RunbookTriggersCopy.missedRunsTitle)}
+          </dt>
+          <dd className="text-gray-900">
+            {translator.translateText(MISSED_RUN_LABELS[missed])}
+          </dd>
         </dl>
       </div>
     );
@@ -600,10 +678,13 @@ const RunbookScheduleCard: FunctionComponent<ComponentProps> = (
             column="isScheduleEnabled"
             initialValue={runbook.isScheduleEnabled === true}
             title={RunbookTriggersCopy.scheduleSwitchTitle}
-            getDescription={(switchIsOn: boolean): string => {
-              return switchIsOn
-                ? `${sentence} · ${runbook.scheduleTimezone || DEFAULT_RUNBOOK_SCHEDULE_TIMEZONE}`
-                : RunbookTriggersCopy.scheduleSwitchOff;
+            /*
+             * What the schedule is, on or off: a paused schedule keeps its
+             * times, and the card still says them. "Paused" is said where
+             * the next runs would be.
+             */
+            getDescription={(): string => {
+              return `${sentence} · ${runbook.scheduleTimezone || DEFAULT_RUNBOOK_SCHEDULE_TIMEZONE}`;
             }}
             // Turning a schedule on runs the runbook; turning it off does not.
             lockedReason={
@@ -663,7 +744,6 @@ const RunbookScheduleCard: FunctionComponent<ComponentProps> = (
               {
                 field: { schedule: true },
                 title: RunbookTriggersCopy.whenItRunsTitle,
-                description: RunbookTriggersCopy.whenItRunsDescription,
                 fieldType: FormFieldSchemaType.CustomComponent,
                 required: true,
                 customValidation: (
@@ -695,11 +775,13 @@ const RunbookScheduleCard: FunctionComponent<ComponentProps> = (
                     />
                   );
                 },
+                // What is wrong with it, right under it.
                 getFooterElement: (
                   values: FormValues<ScheduleFormValues>,
                 ): ReactElement => {
                   return (
                     <RunbookSchedulePreview
+                      part="problem"
                       choice={
                         (values.schedule as RunbookScheduleChoice) ||
                         DEFAULT_RUNBOOK_SCHEDULE_CHOICE
@@ -712,10 +794,27 @@ const RunbookScheduleCard: FunctionComponent<ComponentProps> = (
               {
                 field: { scheduleTimezone: true },
                 title: RunbookTriggersCopy.timezoneTitle,
-                description: RunbookTriggersCopy.timezoneDescription,
                 fieldType: FormFieldSchemaType.Dropdown,
                 dropdownOptions: TimezoneUtil.getTimezoneDropdownOptions(),
                 required: true,
+                /*
+                 * The schedule in a sentence and its next runs, once both
+                 * it and the zone its times are read in are picked.
+                 */
+                getFooterElement: (
+                  values: FormValues<ScheduleFormValues>,
+                ): ReactElement => {
+                  return (
+                    <RunbookSchedulePreview
+                      part="runs"
+                      choice={
+                        (values.schedule as RunbookScheduleChoice) ||
+                        DEFAULT_RUNBOOK_SCHEDULE_CHOICE
+                      }
+                      timezone={values.scheduleTimezone as string | undefined}
+                    />
+                  );
+                },
               },
               {
                 field: { scheduleOverlapPolicy: true },
@@ -769,6 +868,24 @@ export function getRunStatusLabel(status: RunbookExecutionStatus): string {
     case RunbookExecutionStatus.Scheduled:
     default:
       return translationKey("Scheduled");
+  }
+}
+
+// Its pill's colour, as the Executions lists colour it.
+export function getRunStatusColor(status: RunbookExecutionStatus): Color {
+  switch (status) {
+    case RunbookExecutionStatus.Completed:
+      return Green500;
+    case RunbookExecutionStatus.Failed:
+      return Red500;
+    case RunbookExecutionStatus.Running:
+      return Blue500;
+    case RunbookExecutionStatus.WaitingForManualStep:
+      return Yellow500;
+    case RunbookExecutionStatus.Cancelled:
+    case RunbookExecutionStatus.Scheduled:
+    default:
+      return Gray500;
   }
 }
 

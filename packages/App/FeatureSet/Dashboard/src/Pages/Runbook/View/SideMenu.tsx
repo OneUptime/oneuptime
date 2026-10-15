@@ -59,7 +59,7 @@ const RunbookViewSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.Clock}
+          icon={IconProp.Bolt}
         />
       </SideMenuSection>
 

@@ -5,6 +5,11 @@ import {
   composedValue,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getFeedDayKey,
+  getFeedLocale,
+  getFeedZoneName,
+} from "Common/UI/Components/Feed/FeedTime";
 import OneUptimeDate from "Common/Types/Date";
 import {
   RUNBOOK_SCHEDULE_DAY_ORDER,
@@ -43,7 +48,6 @@ export const RunbookTriggersCopy: {
   readonly scheduleSwitchOff: string;
   readonly nextRunsTitle: string;
   readonly noNextRun: string;
-  readonly timesAreIn: string;
   readonly overlapTitle: string;
   readonly missedRunsTitle: string;
   readonly lastScheduledRunTitle: string;
@@ -52,13 +56,14 @@ export const RunbookTriggersCopy: {
   readonly waitingRun: string;
   readonly runbookOffSchedule: string;
   readonly noStepsSchedule: string;
+  readonly settingsPage: string;
+  readonly stepsPage: string;
   readonly scheduleLocked: string;
   readonly dialogSetUpTitle: string;
   readonly dialogEditTitle: string;
   readonly dialogDescription: string;
   readonly dialogSubmit: string;
   readonly whenItRunsTitle: string;
-  readonly whenItRunsDescription: string;
   readonly repeatLabel: string;
   readonly everyLabel: string;
   readonly atLabel: string;
@@ -69,7 +74,6 @@ export const RunbookTriggersCopy: {
   readonly weekdaysShortcut: string;
   readonly everyDayShortcut: string;
   readonly timezoneTitle: string;
-  readonly timezoneDescription: string;
   readonly overlapFieldDescription: string;
   readonly missedFieldDescription: string;
   readonly previewNextRuns: string;
@@ -87,7 +91,6 @@ export const RunbookTriggersCopy: {
   readonly showTitle: string;
   readonly hideTitle: string;
   readonly maskedForScreenReaders: string;
-  readonly postOnly: string;
   readonly tryIt: string;
   readonly copyExample: string;
   readonly copyExampleTitle: string;
@@ -134,7 +137,6 @@ export const RunbookTriggersCopy: {
   ),
   nextRunsTitle: translationKey("Next runs"),
   noNextRun: translationKey("This schedule has no run in the coming years."),
-  timesAreIn: translationKey("Times are in {{timezone}}."),
   overlapTitle: translationKey("If a run is still going"),
   missedRunsTitle: translationKey("If OneUptime missed a time"),
   lastScheduledRunTitle: translationKey("Last scheduled run"),
@@ -143,26 +145,28 @@ export const RunbookTriggersCopy: {
   waitingRun: translationKey(
     "A scheduled run is waiting for the run in progress to end.",
   ),
+  /*
+   * {{settings}} and {{steps}} are links to the runbook's own Settings and
+   * Steps pages (Settings sits in a folded section of the runbook's menu).
+   */
   runbookOffSchedule: translationKey(
-    "This runbook is turned off, so its schedule starts nothing. Turn it on under Settings.",
+    "This runbook is turned off, so its schedule starts nothing. Turn it on under {{settings}}.",
   ),
   noStepsSchedule: translationKey(
-    "This runbook has no steps yet, so its schedule starts nothing. Add steps under Steps.",
+    "This runbook has no steps yet, so its schedule starts nothing. Add steps under {{steps}}.",
   ),
+  // The pages the notes link to, named as the runbook's menu names them.
+  settingsPage: translationKey("Settings"),
+  stepsPage: translationKey("Steps"),
   scheduleLocked: translationKey(
     "Setting up a schedule takes permission to edit this runbook and to run it.",
   ),
 
   dialogSetUpTitle: translationKey("Set Up Schedule"),
   dialogEditTitle: translationKey("Edit Schedule"),
-  dialogDescription: translationKey(
-    "Pick when this runbook runs on its own. It runs at these times on the clock of the time zone you pick, all year.",
-  ),
+  dialogDescription: translationKey("Pick when this runbook runs on its own."),
   dialogSubmit: translationKey("Save Schedule"),
   whenItRunsTitle: translationKey("When it runs"),
-  whenItRunsDescription: translationKey(
-    "Pick a simple schedule, or write a cron expression.",
-  ),
   repeatLabel: translationKey("Repeat"),
   everyLabel: translationKey("Every"),
   /*
@@ -179,9 +183,6 @@ export const RunbookTriggersCopy: {
   weekdaysShortcut: translationKey("Weekdays"),
   everyDayShortcut: translationKey("Every day"),
   timezoneTitle: translationKey("Time zone"),
-  timezoneDescription: translationKey(
-    "Times are read on this zone's clock, also after the clocks change for daylight saving time.",
-  ),
   overlapFieldDescription: translationKey(
     "A run is still going while it is queued, running, or waiting for someone to complete or approve a step - however it started.",
   ),
@@ -210,9 +211,6 @@ export const RunbookTriggersCopy: {
   showTitle: translationKey("Show the full URL"),
   hideTitle: translationKey("Hide the secret key"),
   maskedForScreenReaders: translationKey("secret key hidden"),
-  postOnly: translationKey(
-    "Only a POST request starts a run. A GET request starts nothing, so a link preview cannot run it by accident.",
-  ),
   tryIt: translationKey("Try it"),
   copyExample: translationKey("Copy"),
   copyExampleTitle: translationKey("Copy the example request"),
@@ -240,10 +238,10 @@ export const RunbookTriggersCopy: {
   urlLoading: translationKey("Loading the URL…"),
   urlLoadFailed: translationKey("The URL could not be loaded."),
   runbookOffWebhook: translationKey(
-    "This runbook is turned off, so calls to this URL are refused. Turn it on under Settings.",
+    "This runbook is turned off, so calls to this URL are refused. Turn it on under {{settings}}.",
   ),
   noStepsWebhook: translationKey(
-    "This runbook has no steps yet, so calls to this URL are refused. Add steps under Steps.",
+    "This runbook has no steps yet, so calls to this URL are refused. Add steps under {{steps}}.",
   ),
   learnMore: translationKey("How to call it"),
   testButton: translationKey("Send Test Request"),
@@ -276,7 +274,11 @@ export const OVERLAP_LABELS: Readonly<
   Record<RunbookScheduleOverlapPolicy, string>
 > = {
   [RunbookScheduleOverlapPolicy.Skip]: translationKey("Skip that time"),
-  [RunbookScheduleOverlapPolicy.RunAfter]: translationKey("Run once it ends"),
+  /*
+   * "after", not "once": beside "Run once when OneUptime is back", "Run once
+   * it ends" read as a run that happens one time.
+   */
+  [RunbookScheduleOverlapPolicy.RunAfter]: translationKey("Run after it ends"),
 };
 
 export const MISSED_RUN_LABELS: Readonly<
@@ -301,7 +303,7 @@ export const OVERLAP_SUMMARIES: Readonly<
     "A time that comes while a run is still going is skipped.",
   ),
   [RunbookScheduleOverlapPolicy.RunAfter]: translationKey(
-    "A time that comes while a run is still going runs once that run ends.",
+    "A time that comes while a run is still going runs after that run ends.",
   ),
 };
 
@@ -677,12 +679,191 @@ export const TriggerDetailCopy: {
   readonly copyInputsTitle: string;
 } = {
   scheduledFor: translationKey("Due at {{time}}"),
-  catchUp: translationKey("Run once to make up for times OneUptime missed"),
-  waited: translationKey("Waited for the run before it to end"),
+  catchUp: translationKey("Catch-up for times OneUptime missed"),
+  waited: translationKey("Waited for the previous run to end"),
   fromAddress: translationKey("From {{address}}"),
   inputsCardTitle: translationKey("Inputs"),
+  // {{bash}} and {{javascript}} are drawn as code.
   inputsCardDescription: translationKey(
-    "The values the webhook call sent. The steps read them as data: a Bash step as environment variables such as ONEUPTIME_INPUT_HOST, a JavaScript step as args.inputs.",
+    "The values the webhook call sent. The steps read them as data: a Bash step as environment variables such as {{bash}}, a JavaScript step as {{javascript}}.",
   ),
   copyInputsTitle: translationKey("Copy the inputs"),
 };
+
+/*
+ * When a run is, for the schedule's Next runs and its last run: on the
+ * given zone's clock, in the reader's language, with the zone's name -
+ * "Fri, Oct 16, 09:00 BST", "Fr., 16. Okt., 09:00 BST" - and the year only
+ * when it is not this one. Gregorian calendar and Latin digits in every
+ * language, as the feeds write times (FeedTime.getFeedLocale). With how far
+ * off it is, in the reader's language too: "in 23 hours", "vor 2 Tagen".
+ */
+export interface RunTimeText {
+  when: string;
+  relative: string;
+}
+
+/*
+ * The parts of Intl.RelativeTimeFormat used here, typed structurally:
+ * Common's test programs compile against the ES2017 library, which does not
+ * declare it (FeedTime does the same).
+ */
+type RelativeUnit = "second" | "minute" | "hour" | "day" | "month" | "year";
+
+type RelativeTimeFormatConstructor = new (
+  locale: string,
+  options: { numeric: "auto" | "always" },
+) => { format: (value: number, unit: RelativeUnit) => string };
+
+const MINUTE_IN_MS: number = 60 * 1000;
+const HOUR_IN_MS: number = 60 * MINUTE_IN_MS;
+const DAY_IN_MS: number = 24 * HOUR_IN_MS;
+
+// Calendar days from one instant's day to another's, on a zone's clock.
+const getCalendarDaysBetween: (data: {
+  from: Date;
+  to: Date;
+  timezone: string;
+}) => number = (data: { from: Date; to: Date; timezone: string }): number => {
+  const dayNumber: (date: Date) => number = (date: Date): number => {
+    const [year, month, day]: Array<number> = getFeedDayKey(
+      date,
+      data.timezone,
+    )
+      .split("-")
+      .map(Number) as Array<number>;
+
+    return Date.UTC(year!, month! - 1, day!) / DAY_IN_MS;
+  };
+
+  return Math.round(dayNumber(data.to) - dayNumber(data.from));
+};
+
+/*
+ * "in 25 minutes", "in 5 hours", "in 4 days", "2 hours ago", and "now"
+ * under a minute. A day away or more is counted in calendar days on the
+ * zone's clock, as people count them: on a Thursday, Monday's run is "in 4
+ * days" whatever the hour. Counted ("in 1 day"), never "tomorrow".
+ */
+export function formatRunRelativeTime(data: {
+  date: Date;
+  now: Date;
+  language: string;
+  timezone: string;
+}): string {
+  const difference: number = data.date.getTime() - data.now.getTime();
+  const magnitude: number = Math.abs(difference);
+  const sign: number = difference < 0 ? -1 : 1;
+
+  let value: number = 0;
+  let unit: RelativeUnit = "second";
+
+  if (magnitude >= DAY_IN_MS) {
+    let days: number = sign;
+
+    try {
+      days = getCalendarDaysBetween({
+        from: data.now,
+        to: data.date,
+        timezone: data.timezone,
+      });
+    } catch {
+      days = sign * Math.round(magnitude / DAY_IN_MS);
+    }
+
+    value = Math.max(1, Math.abs(days));
+    unit = "day";
+  } else if (magnitude >= HOUR_IN_MS) {
+    // Never "in 24 hours": from a day on, it says days.
+    value = Math.min(23, Math.round(magnitude / HOUR_IN_MS));
+    unit = "hour";
+  } else if (magnitude >= MINUTE_IN_MS) {
+    // Never "in 60 minutes": from an hour on, it says hours.
+    value = Math.min(59, Math.round(magnitude / MINUTE_IN_MS));
+    unit = "minute";
+  }
+
+  const RelativeTimeFormat: RelativeTimeFormatConstructor | undefined = (
+    Intl as unknown as {
+      RelativeTimeFormat?: RelativeTimeFormatConstructor | undefined;
+    }
+  ).RelativeTimeFormat;
+
+  try {
+    if (RelativeTimeFormat) {
+      return new RelativeTimeFormat(getFeedLocale(data.language), {
+        numeric: value === 0 ? "auto" : "always",
+      }).format(sign * value, unit);
+    }
+  } catch {
+    // An unknown language: English, below.
+  }
+
+  if (value === 0) {
+    return "now";
+  }
+
+  const units: string = value === 1 ? unit : `${unit}s`;
+
+  return sign < 0 ? `${value} ${units} ago` : `in ${value} ${units}`;
+}
+
+export function formatRunTime(data: {
+  date: Date;
+  timezone: string;
+  language: string;
+  now: Date;
+  use12HourClock?: boolean | undefined;
+}): RunTimeText {
+  const use12HourClock: boolean =
+    data.use12HourClock ?? OneUptimeDate.getUserPrefers12HourFormat();
+
+  const yearIn: (date: Date) => string = (date: Date): string => {
+    try {
+      return new Intl.DateTimeFormat("en", {
+        year: "numeric",
+        timeZone: data.timezone,
+      }).format(date);
+    } catch {
+      return String(date.getUTCFullYear());
+    }
+  };
+
+  let when: string;
+
+  try {
+    when = new Intl.DateTimeFormat(getFeedLocale(data.language), {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      ...(yearIn(data.date) !== yearIn(data.now) ? { year: "numeric" } : {}),
+      hour: use12HourClock ? "numeric" : "2-digit",
+      minute: "2-digit",
+      hour12: use12HourClock,
+      timeZone: data.timezone,
+    }).format(data.date);
+
+    const zone: string = getFeedZoneName(data.date, data.timezone);
+
+    if (zone) {
+      when = `${when} ${zone}`;
+    }
+  } catch {
+    // A zone Intl does not know: the product's own English format.
+    when = OneUptimeDate.getDateAsFormattedStringInTimezone({
+      date: data.date,
+      timezone: data.timezone,
+      showWeekday: true,
+    });
+  }
+
+  return {
+    when,
+    relative: formatRunRelativeTime({
+      date: data.date,
+      now: data.now,
+      language: data.language,
+      timezone: data.timezone,
+    }),
+  };
+}
