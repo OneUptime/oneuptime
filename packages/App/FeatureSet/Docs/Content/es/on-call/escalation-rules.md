@@ -19,6 +19,7 @@ flowchart TB
 - [A quién se avisa primero](#a-quién-se-avisa-primero): Crea una política con su primer nivel.
 - [Añadir una regla de escalado](#añadir-una-regla-de-escalado): Añade el siguiente nivel, paso a paso.
 - [Cómo avisan los niveles a las personas](#cómo-avisan-los-niveles-a-las-personas): Tiempos, repeticiones y cómo se localiza a cada persona.
+- [La siguiente persona de la rotación](#escalar-a-la-siguiente-persona-de-la-rotación): Avisa al suplente de quien está de guardia, de la misma rotación.
 - [API y Terraform](#crear-reglas-con-la-api-o-terraform): Crea políticas y reglas como código.
 :::
 
@@ -49,6 +50,7 @@ En **Notificar**, haz clic en **Añadir destinatario**, busca y elige tantas pro
 | Destinatario | A quién se avisa cuando se ejecuta el nivel |
 | --- | --- |
 | Una **programación de guardia** | A quien esté de guardia en ella cuando se ejecuta el nivel, no a una persona fija. |
+| El **Siguiente en la rotación** de una programación | La persona que va después de quien esté de guardia en ella, de la misma rotación. Consulta [Escalar a la siguiente persona de la rotación](#escalar-a-la-siguiente-persona-de-la-rotación). |
 | Un **equipo** | A cada miembro del equipo. |
 | Una **persona** | A esa persona, directamente. |
 
@@ -133,6 +135,34 @@ En OneUptime Cloud, cada SMS, llamada, mensaje de WhatsApp y de Telegram se paga
 > [!IMPORTANT]
 > SMS, llamadas telefónicas, WhatsApp y Telegram empiezan apagados en un proyecto nuevo: en OneUptime Cloud cada mensaje se paga con el saldo del proyecto, y una instalación autoalojada necesita antes una cuenta de Twilio o un bot de Telegram configurado. Mientras un canal esté apagado, nadie en el proyecto puede añadir un método en él. Solo un propietario del proyecto o alguien con el rol **Billing Admin** o el permiso **Manage Billing** puede encender uno, en la tarjeta **Canales de notificación** de **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones**; un administrador del proyecto no puede. A todos los demás se les dice exactamente quién puede, allí donde un canal esté apagado: encima de su propia lista de métodos en ese canal, en su lista de configuración y en el mensaje que reciben cuando algo lo necesita.
 
+## Escalar a la siguiente persona de la rotación
+
+Un nivel puede avisar a la siguiente persona de la rotación de una programación de guardia: la que va después de quien esté de guardia en ella. Así, una política puede avisar primero a quien está de guardia, después a su suplente de la misma rotación y después a un equipo o a un responsable, todo desde una sola programación.
+
+| Nivel | Notificar | A quién se avisa |
+| --- | --- | --- |
+| **Level 1** | La programación Payments primary | A quien esté de guardia en ella, por ejemplo Alex |
+| **Level 2** | El **Siguiente en la rotación** de la misma programación | A la persona que va después de Alex en la rotación, por ejemplo Sam |
+| **Level 3** | El equipo Platform | A cada miembro del equipo |
+
+:::steps
+1. Asegúrate de que el primer nivel de la política, **Level 1**, notifica a la programación de guardia.
+2. Haz clic en **Añadir regla de escalado**, luego en **Añadir destinatario**, y elige la misma programación en **Siguiente en la rotación**. Indica **Escalar después de (en minutos)** y haz clic en **Crear regla**.
+3. Añade un nivel más para el equipo o el responsable que deba enterarse a continuación.
+:::
+
+La siguiente persona se determina cuando se ejecuta el nivel, a partir de la programación tal como esté en ese momento:
+
+- Es la persona que va después de quien está de guardia, en el orden en que se turnan las personas de la rotación. Después de la última persona vuelve la primera.
+- Se pasa por alto a las personas ausentes, las cubra alguien o no, y también a quien esté de guardia en lugar de otra persona.
+- Siempre es alguien de la misma rotación: con varias capas, la capa de la que viene quien está de guardia. Una rotación sin nadie más, o con todos los demás ausentes, no tiene siguiente persona, y el nivel no avisa a nadie allí y lo indica.
+- Cuando no hay nadie de guardia en la programación, tampoco hay siguiente persona, y el nivel se vuelve a intentar durante unos minutos, como ocurre con la propia programación.
+
+El mensaje de la ejecución en Slack y Microsoft Teams, el feed del incidente y la **Cronología de ejecución** indican a quién se avisó como siguiente en la rotación, y de qué programación: «Sam Lee (next in the Payments primary rotation)».
+
+> [!TIP]
+> Basta con una programación: no hay una segunda programación de suplentes que mantener al día con la primera, y las ausencias que registran sus personas cuentan para ambos niveles.
+
 ## Editar, reordenar y eliminar reglas
 
 La tarjeta de cada regla tiene **Editar regla**, y un menú **⋯** con las demás acciones:
@@ -148,6 +178,7 @@ Las reglas de escalado son el recurso `/api/on-call-duty-policy-escalation-rule`
 - Una regla creada sin `name` se llama según su nivel, como en el panel: **Level 3** para una regla que pasa a ser el tercer nivel de su política. El recurso de reglas de escalado de Terraform sigue exigiendo un nombre.
 - `escalateAfterInMinutes` no tiene valor por defecto fuera del panel. Una regla creada sin él no espera: el siguiente nivel recibe el aviso en cuanto este se ha ejecutado. Defínelo explícitamente: 30 es lo que sugiere el panel.
 - Una regla creada con `onCallSchedules`, `teams` o `users` (listas de identificadores) en sus `miscDataProps` recibe esos destinatarios; así es como los envía el selector **Notificar** del panel. Una regla creada sin ellos no avisa a nadie hasta que añadas destinatarios mediante los recursos anteriores.
+- Una regla creada con `nextInRotationSchedules` (una lista de identificadores de programaciones) en sus `miscDataProps` avisa a la siguiente persona de la rotación de cada una de esas programaciones. En el recurso `-schedule`, una fila con `pageNextInRotation` a `true` hace lo mismo; se fija al crear la fila.
 - Las reglas que se llaman según su nivel se renombran cuando mueves o eliminas reglas en el panel. Cambiar `order` mediante la API o Terraform solo cambia el orden.
 - Crear una política de guardia en `/api/on-call-duty-policy` con `onCallSchedules`, `teams` o `users` (listas de identificadores) en sus `miscDataProps` le da su primera regla de escalado, como hace el panel: **Level 1**, que los avisa, con un `escalateAfterInMinutes` de 30. Cada identificador debe pertenecer al proyecto y quien llama debe poder crear reglas de escalado; si no, la política no se crea. Una política creada sin ellos no tiene reglas, como antes; el recurso de políticas de Terraform no los envía.
 

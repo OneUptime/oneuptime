@@ -19,6 +19,7 @@ flowchart TB
 - [Vem som larmas först](#vem-som-larmas-först): Skapa en policy med dess första nivå.
 - [Lägg till en eskaleringsregel](#lägg-till-en-eskaleringsregel): Lägg till nästa nivå, steg för steg.
 - [Så larmar nivåerna personer](#så-larmar-nivåerna-personer): Tider, upprepningar och hur varje person nås.
+- [Nästa person i rotationen](#eskalera-till-nästa-person-i-rotationen): Larma backupen för den som har jour, från samma rotation.
 - [API och Terraform](#skapa-regler-med-apiet-eller-terraform): Skapa policyer och regler som kod.
 :::
 
@@ -49,6 +50,7 @@ Klicka på **Lägg till mottagare** under **Avisera**, sök och välj så många
 | Mottagare | Vem som larmas när nivån körs |
 | --- | --- |
 | Ett **jourschema** | Den som har jour i det när nivån körs, inte en fast person. |
+| Ett jourschemas **Nästa i rotationen** | Personen efter den som har jour i det, från samma rotation. Se [Eskalera till nästa person i rotationen](#eskalera-till-nästa-person-i-rotationen). |
 | Ett **team** | Alla medlemmar i teamet. |
 | En **person** | Den personen, direkt. |
 
@@ -133,6 +135,34 @@ På OneUptime Cloud betalas varje SMS, samtal, WhatsApp- och Telegram-meddelande
 > [!IMPORTANT]
 > SMS, telefonsamtal, WhatsApp och Telegram är avstängda i ett nytt projekt: på OneUptime Cloud betalas varje meddelande från projektets saldo, och en egen installation behöver först ett Twilio-konto eller en Telegram-bot. Så länge en kanal är avstängd kan ingen i projektet lägga till en metod på den. Bara en projektägare, en **Billing Admin** eller någon med behörigheten **Manage Billing** kan slå på en, i kortet **Aviseringskanaler** på **Projektinställningar > Aviseringar > Aviseringsinställningar** — en projektadministratör kan inte. Alla andra får veta exakt vem som kan, överallt där en kanal är avstängd: ovanför sin egen lista med metoder på den, i sin checklista för att komma igång och i meddelandet de får när något behöver den.
 
+## Eskalera till nästa person i rotationen
+
+En nivå kan larma nästa person i ett jourschemas rotation: personen efter den som har jour i det. Så kan en policy först larma den som har jour, sedan dennes backup från samma rotation och sedan ett team eller en chef, allt från ett enda schema.
+
+| Nivå | Avisera | Vem som larmas |
+| --- | --- | --- |
+| **Level 1** | Jourschemat Payments primary | Den som har jour i det, till exempel Alex |
+| **Level 2** | Samma jourschemas **Nästa i rotationen** | Personen efter Alex i rotationen, till exempel Sam |
+| **Level 3** | Teamet Platform | Alla medlemmar i teamet |
+
+:::steps
+1. Se till att policyns första nivå, **Level 1**, aviserar jourschemat.
+2. Klicka på **Lägg till eskaleringsregel**, sedan på **Lägg till mottagare**, och välj samma schema under **Nästa i rotationen**. Ange **Eskalera efter (i minuter)** och klicka på **Create Rule**.
+3. Lägg till ytterligare en nivå för teamet eller chefen som ska få veta härnäst.
+:::
+
+Nästa person bestäms när nivån körs, utifrån schemat som det ser ut då:
+
+- Det är personen efter den som har jour, i den ordning som rotationens personer turas om. Efter den sista personen kommer den första igen.
+- Personer som är borta hoppas över, oavsett om någon täcker upp för dem eller inte, och detsamma gäller den som har jour i någon annans ställe.
+- Det är alltid någon från samma rotation: med flera lager det lager som den som har jour kommer från. En rotation utan någon annan i, eller där alla andra är borta, har ingen nästa person, och nivån larmar ingen där och säger det.
+- När ingen alls har jour i schemat finns det inte heller någon nästa person, och nivån försöks igen i några minuter, som för själva schemat.
+
+Körningens meddelande i Slack och Microsoft Teams, incidentens feed och **Tidslinje för körningen** visar vem som larmades som nästa i rotationen, och från vilket schema: "Sam Lee (next in the Payments primary rotation)".
+
+> [!TIP]
+> Ett schema räcker: det finns inget andra backupschema att hålla i takt med det första, och den frånvaro som dess personer bokar gäller för båda nivåerna.
+
 ## Redigera, ändra ordning på och ta bort regler
 
 Varje regels kort har **Edit rule** och en **⋯**-meny med de andra åtgärderna:
@@ -148,6 +178,7 @@ Eskaleringsregler är resursen `/api/on-call-duty-policy-escalation-rule`; de pe
 - En regel som skapas utan `name` får sitt nivås namn, som i instrumentpanelen: **Level 3** för en regel som blir den tredje nivån i sin policy. Terraforms resurs för eskaleringsregler kräver fortfarande ett namn.
 - `escalateAfterInMinutes` har inget standardvärde utanför instrumentpanelen. En regel som skapas utan det väntar inte: nästa nivå larmas så snart den här har körts. Ange det uttryckligen — 30 är det som instrumentpanelen föreslår.
 - En regel som skapas med `onCallSchedules`, `teams` eller `users` (listor med id:n) i sina `miscDataProps` får de mottagarna; det är så instrumentpanelens väljare **Avisera** skickar dem. En regel som skapas utan dem larmar ingen förrän du lägger till mottagare via resurserna ovan.
+- En regel som skapas med `nextInRotationSchedules` (en lista med schema-id:n) i sina `miscDataProps` larmar nästa person i rotationen för vart och ett av de schemana. På resursen `-schedule` gör en rad med `pageNextInRotation` satt till `true` samma sak; värdet sätts när raden skapas.
 - Regler som har sitt nivås namn byter namn när du flyttar eller tar bort regler i instrumentpanelen. Att ändra `order` via API:et eller Terraform ändrar bara ordningen.
 - Att skapa en jourpolicy på `/api/on-call-duty-policy` med `onCallSchedules`, `teams` eller `users` (listor med id:n) i dess `miscDataProps` ger den dess första eskaleringsregel, som instrumentpanelen gör: **Level 1**, som larmar dem, med en `escalateAfterInMinutes` på 30. Varje id måste höra till projektet och anroparen måste få skapa eskaleringsregler, annars skapas inte policyn. En policy som skapas utan dem har inga regler, som tidigare; Terraforms resurs för policyer skickar dem inte.
 

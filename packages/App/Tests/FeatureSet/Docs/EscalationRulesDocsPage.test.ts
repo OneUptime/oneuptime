@@ -7,10 +7,13 @@ import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallD
 import OnCallDutyPolicyEscalationRuleSchedule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
 import OnCallDutyPolicyEscalationRuleTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
 import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
+import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
+import OnCallPolicyRunMessageView from "Common/Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessageView";
 import {
   DEFAULT_ESCALATE_AFTER_IN_MINUTES,
   getDefaultEscalationRuleName,
 } from "Common/Types/OnCallDutyPolicy/EscalationRuleDefaults";
+import { NEXT_IN_ROTATION_SCHEDULES_KEY } from "Common/Types/OnCallDutyPolicy/NextInRotation";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { toLatinDigits } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
@@ -367,6 +370,222 @@ describe("the Escalation Rules docs page", () => {
     expect(awayMessage).toContain('"Skipped because this user is away until "');
     expect(PAGE).toContain(
       "One that names nobody to cover skips them: they are not paged, the policy's run says they are away and until when, and in an on-call schedule each of their turns goes to the next person in the rotation.",
+    );
+  });
+});
+
+/*
+ * A level can page the next person in an on-call schedule's rotation (task
+ * oncall-escalate-next-in-rotation): the backup after whoever is on call,
+ * from the same rotation. The page gives it a section of its own, right after
+ * how the levels page people, which its cards and the Notify table link to.
+ * The section names the picker's group and the run's timeline as the
+ * dashboard draws them and quotes the run's message as the server words it;
+ * the API section gives the misc data key the server reads and the schedule
+ * row's column.
+ */
+const NEXT_IN_ROTATION: string = "Next in rotation";
+const NEXT_IN_ROTATION_HEADING: string =
+  "Escalating to the next person in the rotation";
+const PEOPLE_PICKER_KINDS_FILE: string =
+  "Common/UI/Components/PeoplePicker/PeoplePickerKinds.ts";
+const TIMELINE_FILE: string =
+  "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTimelineTable.tsx";
+const EXECUTION_TIMELINE: string = "Execution Timeline";
+
+// Where the sections are, in every language: the English page's outline.
+const LEVELS_SECTION: number = 2;
+const NEXT_IN_ROTATION_SECTION: number = 3;
+const API_SECTION: number = 5;
+
+// A schedule the section's example names, and the run message it quotes.
+const EXAMPLE_SCHEDULE: string = "Payments primary";
+const EXAMPLE_PERSON: string = "Sam Lee";
+
+interface PageSection {
+  heading: string;
+  body: string;
+}
+
+// The page's "## " sections, by heading, with their text.
+function sectionsOf(markdown: string): Array<PageSection> {
+  return markdown
+    .split(/^## /m)
+    .slice(1)
+    .map((part: string): PageSection => {
+      const newline: number = part.indexOf("\n");
+
+      return {
+        heading: part.slice(0, newline).trim(),
+        body: part.slice(newline + 1),
+      };
+    });
+}
+
+// The lines of a page that link to a heading of the same page.
+function linesLinkingTo(markdown: string, heading: string): Array<string> {
+  const target: string = `](#${slugifyMarkdownHeading(heading)})`;
+
+  return markdown.split("\n").filter((line: string): boolean => {
+    return line.includes(target);
+  });
+}
+
+describe("the Escalation Rules docs page, on paging the next person in the rotation", () => {
+  const sections: Array<PageSection> = sectionsOf(PAGE);
+
+  it("has a section of its own, right after how the levels page people", () => {
+    expect(sections[LEVELS_SECTION]?.heading).toBe(
+      "How the levels page people",
+    );
+    expect(sections[NEXT_IN_ROTATION_SECTION]?.heading).toBe(
+      NEXT_IN_ROTATION_HEADING,
+    );
+    expect(sections[API_SECTION]?.heading).toBe(
+      "Creating rules with the API or Terraform",
+    );
+  });
+
+  it("is linked from the cards and from the Notify table's row for it", () => {
+    const linking: Array<string> = linesLinkingTo(
+      PAGE,
+      NEXT_IN_ROTATION_HEADING,
+    );
+
+    expect(linking).toHaveLength(2);
+    expect(linking[0]!.startsWith("- [")).toBe(true);
+    expect(
+      linking[1]!.startsWith("| A schedule's **Next in rotation** |"),
+    ).toBe(true);
+  });
+
+  it("names the picker's group, the dialog's controls and the run's timeline as the dashboard draws them", () => {
+    expect(readRepoFile(PEOPLE_PICKER_KINDS_FILE)).toContain(
+      `translationKey("${NEXT_IN_ROTATION}")`,
+    );
+    expect(readRepoFile(TIMELINE_FILE)).toContain(
+      `translationKey("${EXECUTION_TIMELINE}")`,
+    );
+
+    const section: string = sections[NEXT_IN_ROTATION_SECTION]!.body;
+
+    for (const label of [
+      NEXT_IN_ROTATION,
+      "Add Escalation Rule",
+      "Add responder",
+      "Escalate after (in minutes)",
+      "Create Rule",
+      EXECUTION_TIMELINE,
+    ]) {
+      expect({ label, found: section.includes(`**${label}**`) }).toEqual({
+        label,
+        found: true,
+      });
+    }
+
+    // The recommended ladder: the schedule, its next person, then a team.
+    for (const level of [1, 2, 3]) {
+      expect(section).toContain(
+        `| **${getDefaultEscalationRuleName(level)}** |`,
+      );
+    }
+
+    expect(section).toContain(
+      `| **${getDefaultEscalationRuleName(2)}** | The same schedule's **${NEXT_IN_ROTATION}** |`,
+    );
+  });
+
+  it("quotes the run's message as the server words it", () => {
+    const reason: string =
+      OnCallPolicyRunMessageView.getNextInRotationReason(
+        EXAMPLE_SCHEDULE,
+      ).toString();
+
+    expect(reason).toBe(`next in the ${EXAMPLE_SCHEDULE} rotation`);
+    expect(sections[NEXT_IN_ROTATION_SECTION]!.body).toContain(
+      `"${EXAMPLE_PERSON} (${reason})"`,
+    );
+  });
+
+  it("gives the API: the misc data key the server reads, and the schedule row's column, set only when the row is created", () => {
+    const api: string = sections[API_SECTION]!.body;
+    const row: OnCallDutyPolicyEscalationRuleSchedule =
+      new OnCallDutyPolicyEscalationRuleSchedule();
+
+    expect(api).toContain(
+      `\`${NEXT_IN_ROTATION_SCHEDULES_KEY}\` (a list of schedule ids) in its \`miscDataProps\``,
+    );
+    expect(row.hasColumn("pageNextInRotation")).toBe(true);
+    expect(row.getColumnAccessControlFor("pageNextInRotation")?.update).toEqual(
+      [],
+    );
+    expect(api).toContain(
+      "a row with `pageNextInRotation` set to `true` does the same; it is set when the row is created.",
+    );
+  });
+
+  describe("in every docs language", () => {
+    it.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
+      "%s has the section, links to it, and names the dashboard and the API alike",
+      (lang: string) => {
+        const page: string = readPage(lang);
+        const dashboard: Record<string, string> = readDashboardLocale(lang);
+        const pageSections: Array<PageSection> = sectionsOf(page);
+
+        expect(pageSections).toHaveLength(sections.length);
+
+        const section: PageSection = pageSections[NEXT_IN_ROTATION_SECTION]!;
+
+        // The card and the Notify table's row link to the translated heading.
+        expect({
+          lang,
+          links: linesLinkingTo(page, section.heading).length,
+        }).toEqual({
+          lang,
+          links: 2,
+        });
+
+        for (const label of [NEXT_IN_ROTATION, EXECUTION_TIMELINE]) {
+          expect({
+            lang,
+            label,
+            found: section.body.includes(`**${dashboard[label]}**`),
+          }).toEqual({ lang, label, found: true });
+        }
+
+        for (const level of [1, 2, 3]) {
+          expect({
+            lang,
+            level,
+            found: section.body.includes(
+              `**${getDefaultEscalationRuleName(level)}**`,
+            ),
+          }).toEqual({ lang, level, found: true });
+        }
+
+        // The run's message is the server's, in English.
+        expect({
+          lang,
+          quoted: section.body.includes(
+            `${EXAMPLE_PERSON} (next in the ${EXAMPLE_SCHEDULE} rotation)`,
+          ),
+        }).toEqual({ lang, quoted: true });
+
+        const api: string = pageSections[API_SECTION]!.body;
+
+        for (const fact of [
+          `\`${NEXT_IN_ROTATION_SCHEDULES_KEY}\``,
+          "`pageNextInRotation`",
+          "`-schedule`",
+          "`true`",
+        ]) {
+          expect({ lang, fact, found: api.includes(fact) }).toEqual({
+            lang,
+            fact,
+            found: true,
+          });
+        }
+      },
     );
   });
 });
