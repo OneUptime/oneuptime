@@ -245,6 +245,7 @@ Gruppierte Metrik-Monitore sind die eine Ausnahme. Ist die Abfrage eines Metrik-
 | `alerts` | list | Die zu öffnenden Warnungen. Lassen Sie es weg, außer bei `create_alerts = true`. |
 | `is_enabled` | bool | Auf dem Server `true`, wenn nicht gesetzt. Setzen Sie `false`, um ein Kriterium zu behalten, ohne damit zu beurteilen. |
 | `incident_grouping` | string (JSON) | Nur Monitore für eingehende Anfragen: ein Vorfall für jeden in der Anfrage gefundenen Wert, etwa `jsonencode({ groupByJSONPath = "..." })`. |
+| `open_for_every_email` | bool | Nur Monitore für eingehende E-Mails: `true` eröffnet für jede passende E-Mail einen Vorfall (und eine Warnung), statt jeweils nur einen. |
 
 ### Vorfälle und Warnungen
 

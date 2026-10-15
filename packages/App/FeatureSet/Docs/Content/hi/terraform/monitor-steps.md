@@ -245,6 +245,7 @@ resource "oneuptime_monitor" "checkout_errors" {
 | `alerts` | list | खोले जाने वाले अलर्ट। इसे छोड़ दें, जब तक `create_alerts = true` न हो। |
 | `is_enabled` | bool | सेट न होने पर सर्वर पर `true`। किसी मानदंड को रखते हुए उससे न परखने के लिए `false` सेट करें। |
 | `incident_grouping` | string (JSON) | केवल आने वाले अनुरोध मॉनिटर: अनुरोध में मिले हर मान के लिए एक घटना, जैसे `jsonencode({ groupByJSONPath = "..." })`। |
+| `open_for_every_email` | bool | केवल आने वाले ईमेल मॉनिटर: `true` होने पर, एक बार में एक नहीं, बल्कि मेल खाने वाले हर ईमेल के लिए एक घटना (और अलर्ट) खुलती है। |
 
 ### घटनाएँ और अलर्ट
 

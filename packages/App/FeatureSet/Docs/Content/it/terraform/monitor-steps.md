@@ -245,6 +245,7 @@ I monitor di metriche raggruppati sono l'unica eccezione. Quando la query di un 
 | `alerts` | list | Gli avvisi da aprire. Lascialo fuori, tranne con `create_alerts = true`. |
 | `is_enabled` | bool | `true` sul server se non impostato. Imposta `false` per tenere un criterio senza giudicare con esso. |
 | `incident_grouping` | string (JSON) | Solo monitor di richieste in arrivo: un incidente per ogni valore trovato nella richiesta, come `jsonencode({ groupByJSONPath = "..." })`. |
+| `open_for_every_email` | bool | Solo monitor email in arrivo: `true` apre un incidente (e un avviso) per ogni email che corrisponde, invece di uno alla volta. |
 
 ### Incidenti e avvisi
 

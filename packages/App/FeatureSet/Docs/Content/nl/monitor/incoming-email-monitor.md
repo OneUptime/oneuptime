@@ -6,6 +6,7 @@ Een monitor voor inkomende e-mail geeft u een e-mailadres dat bij één monitor 
 - [De monitor maken](#een-monitor-voor-inkomende-e-mail-maken): Krijg een adres en richt uw afzender erop.
 - [Het adres verifiëren](#het-adres-bij-de-afzender-verifiëren): Lees de bevestigingsmail van een afzender op de monitor.
 - [Criteria schrijven](#beschikbare-filtertypen): Toets onderwerp, afzender of tekst, of waarschuw als er geen e-mail meer komt.
+- [Een incident per e-mail](#voor-elke-e-mail-een-incident-openen): Laat mensen incidenten melden door naar het adres te mailen.
 - [De e-mail in waarschuwingen gebruiken](#sjabloonvariabelen): Zet het onderwerp en de tekst in titels en beschrijvingen.
 :::
 
@@ -27,7 +28,7 @@ sequenceDiagram
 
 1. Als u een monitor voor inkomende e-mail maakt, geeft OneUptime hem een uniek e-mailadres.
 2. Elke e-mail die naar dat adres wordt gestuurd, wordt op de monitor opgeslagen en aan zijn criteria getoetst, van boven af; het eerste criterium dat overeenkomt, beslist.
-3. Een criterium dat overeenkomt, kan de status van de monitor wijzigen, een waarschuwing maken en een incident verklaren. Een incident met **Incident automatisch oplossen** aan, of een waarschuwing met **Waarschuwing automatisch oplossen** aan, wordt opgelost als later een ander criterium overeenkomt — bijvoorbeeld het criterium dat de monitor als online markeert.
+3. Een criterium dat overeenkomt, kan de status van de monitor wijzigen, een waarschuwing maken en een incident verklaren. Een incident met **Incident automatisch oplossen** aan, of een waarschuwing met **Waarschuwing automatisch oplossen** aan, wordt opgelost als later een ander criterium overeenkomt — bijvoorbeeld het criterium dat de monitor als online markeert. Zolang het incident van een criterium openstaat, openen latere e-mails die aan het criterium voldoen niets nieuws, tenzij het criterium [voor elke e-mail een incident opent](#voor-elke-e-mail-een-incident-openen).
 
 ## Een monitor voor inkomende e-mail maken
 
@@ -232,6 +233,43 @@ Zet het kritieke criterium bovenaan: criteria worden van boven af getoetst, en h
 
 Het eerste criterium gaat af als er 60 minuten lang geen e-mail is binnengekomen — handig voor geplande jobs of batchprocessen die een e-mail sturen als ze klaar zijn. Het tweede lost de waarschuwing op zodra er een binnenkomt. Minuten waarin OneUptime zelf geen e-mail ontving, tellen niet mee voor de 60, zoals [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving) uitlegt.
 
+## Voor elke e-mail een incident openen
+
+Een criterium houdt telkens één incident open: zolang het openstaat, openen latere e-mails die aan het criterium voldoen niets nieuws. Dat past bij een systeem waarvan de e-mails over één ding berichten, zoals een nachtelijke back-up. Is elke e-mail een eigen melding, bijvoorbeeld wanneer mensen incidenten melden door naar het adres te mailen, zet dan in het criterium **Voor elke e-mail een nieuw incident openen** aan.
+
+:::steps
+### De e-mails kiezen
+
+Geef het criterium een filter dat overeenkomt met de e-mails waarvoor incidenten moeten worden geopend. Om alleen meldingen van uw eigen mensen aan te nemen, gebruikt u **Email From Address** met **Ends With** en uw domein, bijvoorbeeld `@example.com`.
+
+### Het incident verklaren
+
+Zet onder **Acties** de optie **Wanneer filters overeenkomen, verklaar een incident.** aan. Geef het incident de titel `{{emailSubject}}` en de beschrijving `{{emailBody}}`, zodat elk incident zegt wat er in zijn e-mail stond.
+
+### De schakelaar aanzetten
+
+Zet **Voor elke e-mail een nieuw incident openen** aan, onder het incident, en sla de monitor op.
+:::
+
+Vanaf dan behandelt het criterium elke e-mail afzonderlijk:
+
+| E-mail | Wat er gebeurt |
+| --- | --- |
+| Een nieuwe e-mail | Opent een eigen incident, ook als eerdere nog openstaan. |
+| Dezelfde e-mail, opnieuw bezorgd | Opent niets meer: OneUptime onderscheidt e-mails aan hun header `Message-ID`. |
+| Een antwoord op een e-mail die een incident heeft geopend | Wordt als privénotitie aan dat incident toegevoegd en opent niets zolang het incident open is. Zodra het incident is opgelost, opent een antwoord een nieuw incident. |
+| Een automatisch antwoord, zoals een afwezigheidsbericht | Opent niets. |
+| Een e-mail nadat de monitor het afgelopen uur 20 incidenten uit e-mails heeft geopend | Opent niets, zodat een e-maillus of een stortvloed aan e-mails uw team niet eindeloos kan oproepen. |
+
+Elke e-mail krijgt nog steeds een rij in **Monitoringlogboeken**, en **Samenvatting bekijken** op die rij zegt wat de e-mail heeft geopend, of waarom hij niets heeft geopend. Maakt het criterium ook waarschuwingen, dan heet de schakelaar **Voor elke e-mail een nieuw incident en een nieuwe waarschuwing openen**, en opent elke e-mail op dezelfde manier een eigen waarschuwing.
+
+Deze incidenten blijven open tot iemand ze oplost. Met **Incident automatisch oplossen** aan worden ze ook opgelost wanneer een latere e-mail aan een ander criterium voldoet, zoals elk incident; een latere e-mail die aan hetzelfde criterium voldoet, lost de eerdere nooit op. Een controle op ontbrekende e-mail (**Email Received**) is geen e-mail en opent dus nog steeds telkens één incident.
+
+> [!WARNING]
+> **Iedereen die het adres kent, kan incidenten openen.** Houd het adres privé, filter op de afzender zoals hierboven en [stel het adres opnieuw in](#het-e-mailadres-opnieuw-instellen-of-aanpassen) als het uitlekt. Het adres van een afzender kan worden vervalst, dus het filter houdt verdwaalde e-mail tegen, niet iemand die vastbesloten is binnen te komen.
+
+Voor meer controle, zoals een ernst die uit het onderwerp wordt gelezen of een team dat op afzender wordt gekozen, start u in plaats daarvan met elke e-mail een workflow: zie de [Incoming Email-trigger](/docs/workflows/triggers#incoming-email).
+
 ## Toepassingen
 
 | Toepassing | Wat de monitor doet |
@@ -240,6 +278,7 @@ Het eerste criterium gaat af als er 60 minuten lang geen e-mail is binnengekomen
 | Diensten van derden | Ontvangt meldingen van cloudproviders (AWS, GCP, Azure), beveiligingsscanners, back-uptools en waarschuwingen over verlopende certificaten. |
 | Geplande jobs | Waarschuwt als een e-mail dat een job klaar is te laat komt, of als een job een mislukking mailt. |
 | Waarschuwingen bundelen | Verzamelt e-mailwaarschuwingen van Nagios, Zabbix of andere tools, zodat OneUptime de enige plek is waar u ze beheert. |
+| Incidenten melden per e-mail | Opent een incident voor elke e-mail die mensen naar het adres sturen, en bewaart de antwoorden erop als notities. |
 
 ## Sjabloonvariabelen
 
@@ -307,6 +346,7 @@ Zolang dat niet is ingesteld, meldt de adreskaart van de monitor dat inkomende e
 2. Controleer of de bewaking aan staat: de pagina **Instellingen** van de monitor, kaart **Bewaking**.
 3. Open **Monitoringlogboeken** en klik op **Samenvatting bekijken** in de rij van de e-mail om te zien wat de criteria lazen.
 4. Controleer de volgorde van uw criteria: het eerste dat overeenkomt, beslist.
+5. Als het criterium voor elke e-mail een incident opent, is de e-mail misschien een antwoord, een tweede bezorging of een automatisch antwoord, of heeft de monitor het afgelopen uur al 20 incidenten uit e-mails geopend. **Samenvatting bekijken** op de rij van de e-mail zegt welke.
 
 ### Waarschuwingen worden niet opgelost
 

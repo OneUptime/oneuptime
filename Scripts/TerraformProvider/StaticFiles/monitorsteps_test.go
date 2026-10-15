@@ -237,6 +237,7 @@ func monitorStepsFullUserList(t *testing.T) types.List {
 		"create_incidents":      types.BoolValue(true),
 		"create_alerts":         types.BoolValue(true),
 		"is_enabled":            types.BoolValue(true),
+		"open_for_every_email":  types.BoolValue(true),
 		"incident_grouping":     types.StringValue(`{"groupByJSONPath":"requestBody.alerts[*].labels.alertname"}`),
 		"filters":               offlineFilters,
 		"incidents":             monitorStepsTestObjList(t, monitorStepsIncidentAttrTypes(), incident),
@@ -412,6 +413,7 @@ func TestMonitorStepsRoundTripFullyPopulated(t *testing.T) {
 	                    "createIncidents": true,
 	                    "createAlerts": true,
 	                    "isEnabled": true,
+	                    "openForEveryEmail": true,
 	                    "incidentGrouping": {"groupByJSONPath": "requestBody.alerts[*].labels.alertname"},
 	                    "filters": [
 	                      {"checkOn": "Is Online", "filterType": "False"},
@@ -586,7 +588,7 @@ func TestMonitorStepsRoundTripMinimal(t *testing.T) {
 		}
 	}
 	criteriaAttrs := stepAttrs["criteria"].(types.List).Elements()[0].(types.Object).Attributes()
-	for _, name := range []string{"description", "monitor_status_id", "change_monitor_status", "create_incidents", "create_alerts", "is_enabled", "incidents", "alerts", "incident_grouping"} {
+	for _, name := range []string{"description", "monitor_status_id", "change_monitor_status", "create_incidents", "create_alerts", "is_enabled", "open_for_every_email", "incidents", "alerts", "incident_grouping"} {
 		v := criteriaAttrs[name]
 		if !v.IsNull() {
 			t.Fatalf("criteria attribute %q should be null after round trip, got %s", name, v)
@@ -1885,6 +1887,141 @@ func TestMonitorStepsSemanticEquals_CustomCodeMonitorOptions(t *testing.T) {
 		equal, _ := echo(nil).ListSemanticEquals(ctx, planned)
 		if equal {
 			t.Fatal("steps without the planned custom_code_monitor_options must not compare equal")
+		}
+	})
+}
+
+// ---------------------------------------------------------------------------
+// open_for_every_email
+// ---------------------------------------------------------------------------
+
+// monitorStepsTestFirstCriteriaWire is the first criteria's value map on the
+// wire: monitorStepsInstanceArray[0] -> monitorCriteria ->
+// monitorCriteriaInstanceArray[0].
+func monitorStepsTestFirstCriteriaWire(t *testing.T, wire map[string]interface{}) map[string]interface{} {
+	t.Helper()
+	value := wire["value"].(map[string]interface{})
+	step := value["monitorStepsInstanceArray"].([]interface{})[0].(map[string]interface{})
+	stepValue := step["value"].(map[string]interface{})
+	criteria := stepValue["monitorCriteria"].(map[string]interface{})["value"].(map[string]interface{})
+	instance := criteria["monitorCriteriaInstanceArray"].([]interface{})[0].(map[string]interface{})
+	return instance["value"].(map[string]interface{})
+}
+
+// monitorStepsTestEmailSteps is one Incoming Email step whose criteria
+// declares an incident, with open_for_every_email set to the value given
+// (left unset for nil).
+func monitorStepsTestEmailSteps(t *testing.T, openForEveryEmail attr.Value) types.List {
+	t.Helper()
+	filterObj := monitorStepsTestObj(t, monitorStepsFilterAttrTypes(), map[string]attr.Value{
+		"check_on":    types.StringValue("Email From Address"),
+		"filter_type": types.StringValue("Ends With"),
+		"value":       types.StringValue("@acme.example"),
+	})
+	overrides := map[string]attr.Value{
+		"name":             types.StringValue("Reported by email"),
+		"filter_condition": types.StringValue("All"),
+		"create_incidents": types.BoolValue(true),
+		"filters":          monitorStepsTestObjList(t, monitorStepsFilterAttrTypes(), filterObj),
+	}
+	if openForEveryEmail != nil {
+		overrides["open_for_every_email"] = openForEveryEmail
+	}
+	criteriaObj := monitorStepsTestObj(t, monitorStepsCriteriaAttrTypes(), overrides)
+	stepObj := monitorStepsTestObj(t, monitorStepsStepAttrTypes(), map[string]attr.Value{
+		"criteria": monitorStepsTestObjList(t, monitorStepsCriteriaAttrTypes(), criteriaObj),
+	})
+	return monitorStepsTestList(t, stepObj)
+}
+
+// An Incoming Email monitor's criteria that opens an incident for every
+// email: open_for_every_email is sent as openForEveryEmail and read back the
+// same, true and false alike. The server keeps a false it is sent, so a
+// configuration that says false reads back false instead of drifting to
+// null; unset, nothing is sent and it stays null.
+func TestMonitorStepsOpenForEveryEmailRoundTrip(t *testing.T) {
+	ctx := context.Background()
+
+	for _, value := range []bool{true, false} {
+		original := monitorStepsTestEmailSteps(t, types.BoolValue(value))
+
+		wire, diags := MonitorStepsToAPI(ctx, original)
+		monitorStepsTestFatalOnDiagError(t, "ToAPI", diags)
+
+		criteria := monitorStepsTestFirstCriteriaWire(t, monitorStepsTestJSONCopy(t, wire))
+		if criteria["openForEveryEmail"] != value {
+			t.Fatalf("openForEveryEmail on the wire = %v, want %v", criteria["openForEveryEmail"], value)
+		}
+
+		back, diags := MonitorStepsFromAPI(ctx, monitorStepsTestJSONCopy(t, wire))
+		monitorStepsTestFatalOnDiagError(t, "FromAPI", diags)
+		if !back.Equal(original) {
+			t.Fatalf("open_for_every_email = %v did not round trip.\noriginal: %s\nback:     %s", value, original, back)
+		}
+	}
+
+	unset := monitorStepsTestEmailSteps(t, nil)
+
+	wire, diags := MonitorStepsToAPI(ctx, unset)
+	monitorStepsTestFatalOnDiagError(t, "ToAPI", diags)
+
+	criteria := monitorStepsTestFirstCriteriaWire(t, monitorStepsTestJSONCopy(t, wire))
+	if _, sent := criteria["openForEveryEmail"]; sent {
+		t.Fatal("an unset open_for_every_email must not be sent")
+	}
+
+	back, diags := MonitorStepsFromAPI(ctx, monitorStepsTestJSONCopy(t, wire))
+	monitorStepsTestFatalOnDiagError(t, "FromAPI", diags)
+	if !back.Equal(unset) {
+		t.Fatalf("unset open_for_every_email did not round trip.\noriginal: %s\nback:     %s", unset, back)
+	}
+}
+
+// The framework compares the newer value (an apply result or a refresh) with
+// the prior one (the plan or the state): newer.ListSemanticEquals(prior).
+func TestMonitorStepsSemanticEquals_OpenForEveryEmail(t *testing.T) {
+	ctx := context.Background()
+
+	planned := MonitorStepsValue{ListValue: monitorStepsTestEmailSteps(t, types.BoolValue(true))}
+
+	wire, diags := MonitorStepsToAPI(ctx, planned.ListValue)
+	monitorStepsTestFatalOnDiagError(t, "ToAPI", diags)
+
+	echo := func(mutate func(criteria map[string]interface{})) MonitorStepsValue {
+		response := monitorStepsTestJSONCopy(t, wire)
+		criteria := monitorStepsTestFirstCriteriaWire(t, response)
+		criteria["id"] = "server-generated"
+		criteria["isEnabled"] = true
+		criteria["createAlerts"] = false
+		mutate(criteria)
+		list, diags := MonitorStepsFromAPI(ctx, response)
+		monitorStepsTestFatalOnDiagError(t, "FromAPI", diags)
+		return MonitorStepsValue{ListValue: list}
+	}
+
+	t.Run("the server's echo of a planned true, beside its ids and defaults, is no change", func(t *testing.T) {
+		equal, diags := echo(func(map[string]interface{}) {}).ListSemanticEquals(ctx, planned)
+		monitorStepsTestFatalOnDiagError(t, "ListSemanticEquals", diags)
+		if !equal {
+			t.Fatal("the echo of the planned open_for_every_email must semantically equal the plan")
+		}
+	})
+
+	t.Run("a planned true the server did not keep is a change, not silently lost", func(t *testing.T) {
+		equal, _ := echo(func(criteria map[string]interface{}) {
+			delete(criteria, "openForEveryEmail")
+		}).ListSemanticEquals(ctx, planned)
+		if equal {
+			t.Fatal("steps without the planned open_for_every_email must not compare equal")
+		}
+	})
+
+	t.Run("a planned true that came back false is a change", func(t *testing.T) {
+		equal, _ := echo(func(criteria map[string]interface{}) {
+			criteria["openForEveryEmail"] = false
+		}).ListSemanticEquals(ctx, planned)
+		if equal {
+			t.Fatal("open_for_every_email true and false must not compare equal")
 		}
 	})
 }

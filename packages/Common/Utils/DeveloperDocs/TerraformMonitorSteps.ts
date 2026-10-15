@@ -448,6 +448,10 @@ function criteriaToHcl(
   attributes.addBool("create_incidents", apiBool(criteria["createIncidents"]));
   attributes.addBool("create_alerts", apiBool(criteria["createAlerts"]));
   attributes.addBool("is_enabled", apiBool(criteria["isEnabled"]));
+  attributes.addBool(
+    "open_for_every_email",
+    apiBool(criteria["openForEveryEmail"]),
+  );
   attributes.add(
     "incident_grouping",
     rawJsonOption(criteria["incidentGrouping"], "incident_grouping", context),

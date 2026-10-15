@@ -368,6 +368,7 @@ func monitorStepsCriteriaAttrTypes() map[string]attr.Type {
 		"create_incidents":      types.BoolType,
 		"create_alerts":         types.BoolType,
 		"is_enabled":            types.BoolType,
+		"open_for_every_email":  types.BoolType,
 		"incident_grouping":     types.StringType,
 		"filters":               types.ListType{ElemType: types.ObjectType{AttrTypes: monitorStepsFilterAttrTypes()}},
 		"incidents":             types.ListType{ElemType: types.ObjectType{AttrTypes: monitorStepsIncidentAttrTypes()}},
@@ -813,6 +814,10 @@ func monitorStepsCriteriaSchema() schema.NestedAttributeObject {
 			},
 			"is_enabled": schema.BoolAttribute{
 				MarkdownDescription: "Whether this criteria is evaluated. Defaults to true server-side.",
+				Optional:            true,
+			},
+			"open_for_every_email": schema.BoolAttribute{
+				MarkdownDescription: "Incoming Email monitors only: every email that matches opens an incident (and an alert) of its own, instead of one at a time. A reply is added as a note to what its email opened, and the same email delivered twice opens one. Defaults to false server-side.",
 				Optional:            true,
 			},
 			"incident_grouping": schema.StringAttribute{
@@ -1270,6 +1275,9 @@ func monitorStepsCriteriaToAPI(attrs map[string]attr.Value, attrPath string, dia
 	}
 	if v, ok := monitorStepsAttrBool(attrs, "is_enabled"); ok {
 		value["isEnabled"] = v
+	}
+	if v, ok := monitorStepsAttrBool(attrs, "open_for_every_email"); ok {
+		value["openForEveryEmail"] = v
 	}
 	if v, ok := monitorStepsAttrJSON(attrs, "incident_grouping", attrPath, diags); ok {
 		value["incidentGrouping"] = v
@@ -1762,6 +1770,9 @@ func monitorStepsCriteriaFromAPI(v interface{}, diags *diag.Diagnostics) (types.
 	}
 	if b, ok := monitorStepsAPIBool(m["isEnabled"]); ok {
 		attrs["is_enabled"] = types.BoolValue(b)
+	}
+	if b, ok := monitorStepsAPIBool(m["openForEveryEmail"]); ok {
+		attrs["open_for_every_email"] = types.BoolValue(b)
 	}
 	if s, ok := monitorStepsAPIJSONString(m["incidentGrouping"]); ok {
 		attrs["incident_grouping"] = types.StringValue(s)

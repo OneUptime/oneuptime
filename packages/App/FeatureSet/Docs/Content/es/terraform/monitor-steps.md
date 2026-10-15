@@ -245,6 +245,7 @@ Los monitores de métricas agrupados son la única excepción. Cuando la consult
 | `alerts` | list | Las alertas que abrir. Déjelo fuera salvo con `create_alerts = true`. |
 | `is_enabled` | bool | `true` en el servidor si no se indica. Ponga `false` para conservar un criterio sin juzgar con él. |
 | `incident_grouping` | string (JSON) | Solo monitores de solicitudes entrantes: un incidente por cada valor encontrado en la solicitud, como `jsonencode({ groupByJSONPath = "..." })`. |
+| `open_for_every_email` | bool | Solo monitores de correos entrantes: `true` abre un incidente (y una alerta) por cada correo que coincide, en lugar de uno cada vez. |
 
 ### Incidentes y alertas
 

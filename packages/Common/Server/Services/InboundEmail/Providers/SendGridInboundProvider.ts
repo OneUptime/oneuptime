@@ -184,6 +184,14 @@ export default class SendGridInboundProvider extends InboundEmailProvider {
   /**
    * Parse SendGrid headers string into a key-value object
    * SendGrid sends headers as a string with each header on a new line
+   *
+   * A long header is folded over several lines, each line after the first
+   * starting with a space or a tab (RFC 5322 section 2.2.3): a References
+   * header of a long thread, a Message-ID some mail programs start on the
+   * line after its name, a Received header. Those lines are joined back onto
+   * their header, one space between them. Read alone, they were lost - or,
+   * when one held a colon (a Received header's time), read as a header of
+   * their own.
    */
   private parseHeaders(
     headersString?: string,
@@ -194,8 +202,29 @@ export default class SendGridInboundProvider extends InboundEmailProvider {
 
     const headers: Record<string, string> = {};
     const lines: string[] = headersString.split("\n");
+    // The header a folded line continues, until a line that is not one.
+    let foldingInto: string | null = null;
 
     for (const line of lines) {
+      const firstCharacter: string = line.charAt(0);
+
+      if (
+        foldingInto !== null &&
+        (firstCharacter === " " || firstCharacter === "\t")
+      ) {
+        const continuation: string = line.trim();
+
+        if (continuation) {
+          const soFar: string = headers[foldingInto] || "";
+
+          headers[foldingInto] = soFar
+            ? `${soFar} ${continuation}`
+            : continuation;
+        }
+
+        continue;
+      }
+
       const colonIndex: number = line.indexOf(":");
 
       if (colonIndex > 0) {
@@ -203,6 +232,9 @@ export default class SendGridInboundProvider extends InboundEmailProvider {
         const value: string = line.substring(colonIndex + 1).trim();
 
         headers[key] = value;
+        foldingInto = key;
+      } else {
+        foldingInto = null;
       }
     }
 
