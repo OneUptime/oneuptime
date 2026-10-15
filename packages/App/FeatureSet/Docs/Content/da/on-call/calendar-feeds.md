@@ -98,7 +98,7 @@ Resten findes i menuen **⋯** på kortet. **Generér link igen** og **Slet link
 
 ### Kommende vagter og afløsning
 
-Siden viser også dine **Upcoming shifts** (de næste 30 dage) og kortet **Påmind mig før vagter**, som er beskrevet længere nede. Hver af dine egne vagter har et link **Find afløser**: det åbner brugeroverrides i vagtens projekt med en ny override, der allerede er udfyldt for den vagt, med dig som **Hvem er fraværende?** og vagtens tider som **Starter** og **Slutter** (fra nu, hvis vagten er begyndt), så der kun mangler **Hvem dækker?**. Overriden sender alle dine tilkald i det tidsrum til den, der dækker, fra alle vagtpolitikker; en vagt, der kun findes inde i én politik, dækkes i stedet på den politiks side med brugeroverrides. Lader du **Hvem dækker?** stå som **Næste person i rotationen**, springes du i stedet over: hver af dine vagter går til den næste person i rotationen, som ikke er fraværende. En vagt, hvor du dækker for en anden, har ingen **Find afløser**: overrides kædes ikke sammen, så afløsning for en afløsning ville ikke ændre noget.
+Siden viser også dine **Upcoming shifts** (de næste 30 dage) og kortet **Påmind mig før vagter**, som er beskrevet længere nede. Hver af dine egne vagter har et link **Find afløser**: det åbner brugeroverrides i vagtens projekt med en ny override, der allerede er udfyldt for den vagt, med dig som **Hvem er fraværende?** og vagtens tider som **Starter** og **Slutter** (fra nu, hvis vagten er begyndt), så der kun mangler **Hvem dækker?**. Overriden sender alle dine tilkald i det tidsrum til den, der dækker, fra alle vagtpolitikker; en vagt, der kun findes inde i én politik, dækkes i stedet på den politiks side med brugeroverrides. Lader du **Hvem dækker?** stå som **Næste person i rotationen**, springes du i stedet over: hver af dine vagter går til den næste person i rotationen, som ikke er fraværende. En vagt, hvor du dækker for en anden, har ingen **Find afløser**: overrides kædes ikke sammen, så afløsning for en afløsning ville ikke ændre noget. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).
 
 Det samme personlige link, filtreret til én vagtplan med `?schedule=<id>`, tilbydes som **Kun mine vagter i denne vagtplan** på hver vagtplans side, og vagtbanneret og siden **Mine vagtpolitikker** har et link **Føj dine vagter til din kalender** til siden ovenfor.
 
@@ -233,7 +233,7 @@ Når en person forlader sit sidste team i et projekt, fjerner OneUptime også pe
 
 ## Planlægning, ikke revision
 
-Feedet viser rotationen, **som den er sat op nu**, også for tidligere dage: en override, der indtastes bagefter, omskriver historikken i kalenderen. Til de timer, der faktisk er brugt på vagt, til vurderinger af fordelingen og til kompensation skal du bruge **Vagtordning** > **Rapporter** > **Brugerens vagttid**, som bygger på, hvad personsøgeren faktisk gjorde.
+Feedet viser rotationen, **som den er sat op nu**, også for tidligere dage: en override, der indtastes bagefter, omskriver historikken i kalenderen. Til de timer, der faktisk er brugt på vagt, til vurderinger af fordelingen og til kompensation skal du bruge **Vagtordning** > **Rapporter** > **Brugerens vagttid**, som bygger på, hvad personsøgeren faktisk gjorde. Se [Brugerens vagttid](/docs/on-call/readiness#brugerens-vagttid).
 
 ## Sikkerhed
 

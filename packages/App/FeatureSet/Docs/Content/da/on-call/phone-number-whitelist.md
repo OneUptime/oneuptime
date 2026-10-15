@@ -18,7 +18,7 @@ På OneUptime Cloud kommer SMS'er og telefonopkald til vagter fra numrene nedenf
 :::
 
 > [!TIP]
-> Når du tilføjer eller bekræfter dit telefonnummer under **Brugerindstillinger** > **Notifikationsmetoder**, får du en kode fra disse numre, så det er en hurtig måde at tjekke, at de kommer igennem.
+> Når du tilføjer eller bekræfter dit telefonnummer under **Brugerindstillinger** > **Notifikationsmetoder**, får du en kode fra disse numre, så det er en hurtig måde at tjekke, at de kommer igennem. Se [Notifikationsmetoder](/docs/notifications/notification-methods).
 
 ## Når tilkald kommer fra andre numre
 

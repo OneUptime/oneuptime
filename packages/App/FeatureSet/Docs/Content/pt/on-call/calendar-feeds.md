@@ -98,7 +98,7 @@ O resto fica no menu **⋯** do cartão. **Regenerar link** e **Excluir link** p
 
 ### Próximos turnos e cobertura
 
-A página também lista seus **Upcoming shifts** (os próximos 30 dias) e o cartão **Lembrar-me antes dos turnos**, descrito mais abaixo. Cada um dos seus turnos tem um link **Obter cobertura**: ele abre as substituições de usuário no projeto do turno com uma nova substituição já preenchida para esse turno, você como **Quem está ausente?** e os horários do turno como **Começa** e **Termina** (a partir de agora, se o turno já começou), então só falta **Quem cobre?**. A substituição envia todos os seus acionamentos desses horários para quem cobre você, a partir de todas as políticas de plantão; um turno que só existe dentro de uma política é coberto na página de substituições de usuário dessa política. Se você deixar **Quem cobre?** como **Próxima pessoa da rotação**, em vez disso você é pulado: cada um dos seus turnos vai para a próxima pessoa da rotação que não está ausente. Um turno em que você cobre outra pessoa não tem **Obter cobertura**: as substituições não se encadeiam, então cobrir uma cobertura não mudaria nada.
+A página também lista seus **Upcoming shifts** (os próximos 30 dias) e o cartão **Lembrar-me antes dos turnos**, descrito mais abaixo. Cada um dos seus turnos tem um link **Obter cobertura**: ele abre as substituições de usuário no projeto do turno com uma nova substituição já preenchida para esse turno, você como **Quem está ausente?** e os horários do turno como **Começa** e **Termina** (a partir de agora, se o turno já começou), então só falta **Quem cobre?**. A substituição envia todos os seus acionamentos desses horários para quem cobre você, a partir de todas as políticas de plantão; um turno que só existe dentro de uma política é coberto na página de substituições de usuário dessa política. Se você deixar **Quem cobre?** como **Próxima pessoa da rotação**, em vez disso você é pulado: cada um dos seus turnos vai para a próxima pessoa da rotação que não está ausente. Um turno em que você cobre outra pessoa não tem **Obter cobertura**: as substituições não se encadeiam, então cobrir uma cobertura não mudaria nada. Veja [Substituições de usuário](/docs/on-call/user-overrides).
 
 O mesmo link pessoal, filtrado para um agendamento com `?schedule=<id>`, é oferecido como **Apenas os meus turnos nesta escala** na página de cada agendamento, e o banner de plantão e a página **Minhas Políticas de Plantão** trazem um link **Adicionar os seus turnos ao seu calendário** para a página acima.
 
@@ -233,7 +233,7 @@ Quando uma pessoa sai da última equipe que tem em um projeto, o OneUptime tamb�
 
 ## Planejamento, não auditoria
 
-O feed mostra a rotação **como está configurada agora**, inclusive para os dias passados: uma substituição registrada depois reescreve a história no calendário. Para as horas realmente passadas de plantão, revisões de equidade e remuneração, use **Plantão** > **Relatórios** > **Tempo de plantão do usuário**, que é registrado a partir do que os acionamentos de fato fizeram.
+O feed mostra a rotação **como está configurada agora**, inclusive para os dias passados: uma substituição registrada depois reescreve a história no calendário. Para as horas realmente passadas de plantão, revisões de equidade e remuneração, use **Plantão** > **Relatórios** > **Tempo de plantão do usuário**, que é registrado a partir do que os acionamentos de fato fizeram. Veja [Tempo de plantão do usuário](/docs/on-call/readiness#tempo-de-plantão-do-usuário).
 
 ## Segurança
 

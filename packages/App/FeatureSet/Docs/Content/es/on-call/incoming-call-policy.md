@@ -159,7 +159,7 @@ Una regla hace sonar a una persona en el número que verificó para llamadas ent
 3. Escribe el código de 6 dígitos que OneUptime le envía por SMS en **Código de verificación** y haz clic en **Verificar**. **Send a new code** envía otro.
 :::
 
-Cada persona puede tener un número verificado por proyecto. Para cambiarlo, elimina primero el número antiguo. Estos números son distintos de los números de teléfono de **Métodos de notificación**, que usan los avisos de guardia.
+Cada persona puede tener un número verificado por proyecto. Para cambiarlo, elimina primero el número antiguo. Estos números son distintos de los números de teléfono de **Métodos de notificación**, que usan los avisos de guardia. Consulta [Métodos de notificación](/docs/notifications/notification-methods).
 
 Los números para llamadas entrantes se verifican por SMS, así que primero el proyecto debe tener **SMS** activado. Un propietario del proyecto o alguien con el rol **Billing Admin** o el permiso **Manage Billing** lo activa en la tarjeta **Canales de notificación** de **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones**.
 
@@ -200,7 +200,7 @@ Cuando se pierde una llamada, OneUptime avisa a los propietarios de la política
 
 El aviso dice quién llamó, qué número marcó, por qué nadie contestó, y a quién sonó y cómo terminó cada intento. Enlaza la llamada en el registro de llamadas.
 
-Los propietarios reciben un correo por defecto. Cada persona puede elegir otros canales (SMS, llamada, push y más) o desactivarlo en **Ajustes de usuario** > **Ajustes de notificaciones**, en **De guardia** > **Políticas de llamadas entrantes** > **Llamada perdida**.
+Los propietarios reciben un correo por defecto. Cada persona puede elegir otros canales (SMS, llamada, push y más) o desactivarlo en **Ajustes de usuario** > **Ajustes de notificaciones**, en **De guardia** > **Políticas de llamadas entrantes** > **Llamada perdida**. Consulta [Ajustes de notificaciones](/docs/notifications/notification-settings).
 
 ### Reacciona a las llamadas perdidas en un flujo de trabajo
 

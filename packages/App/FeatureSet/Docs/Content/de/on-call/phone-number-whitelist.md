@@ -18,7 +18,7 @@ In OneUptime Cloud kommen SMS und Anrufe der Bereitschaft von den Nummern unten.
 :::
 
 > [!TIP]
-> Wenn Sie Ihre Telefonnummer unter **Benutzereinstellungen** > **Benachrichtigungsmethoden** hinzufügen oder verifizieren, bekommen Sie einen Code von diesen Nummern. So prüfen Sie schnell, ob sie durchkommen.
+> Wenn Sie Ihre Telefonnummer unter **Benutzereinstellungen** > **Benachrichtigungsmethoden** hinzufügen oder verifizieren, bekommen Sie einen Code von diesen Nummern. So prüfen Sie schnell, ob sie durchkommen. Siehe [Benachrichtigungsmethoden](/docs/notifications/notification-methods).
 
 ## Wenn Alarmierungen von anderen Nummern kommen
 

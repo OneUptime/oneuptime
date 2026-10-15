@@ -18,7 +18,7 @@ Sur OneUptime Cloud, les SMS et les appels d'astreinte proviennent des numéros 
 :::
 
 > [!TIP]
-> Ajouter ou vérifier votre numéro de téléphone dans **Paramètres utilisateur** > **Méthodes de notification** vous envoie un code depuis ces numéros : c'est un moyen rapide de vérifier qu'ils passent.
+> Ajouter ou vérifier votre numéro de téléphone dans **Paramètres utilisateur** > **Méthodes de notification** vous envoie un code depuis ces numéros : c'est un moyen rapide de vérifier qu'ils passent. Voir [Méthodes de notification](/docs/notifications/notification-methods).
 
 ## Quand les alertes viennent d'autres numéros
 

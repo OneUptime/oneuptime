@@ -84,7 +84,7 @@ Il riepilogo in cima alla pagina **Regole di escalation** mostra l'intera scala:
 
 ### Come viene raggiunta ogni persona
 
-Ogni persona avvisata da un livello viene raggiunta come indicano le sue regole di reperibilità: **Impostazioni utente** > **Regole di reperibilità**, con una scheda per incidenti, episodi di incidente, avvisi ed episodi di avviso e una scheda per gravità che indica quale metodo di notifica viene provato e dopo quanto tempo. Un amministratore del progetto può vedere e modificare le regole di un membro in **Utenti** > il membro > **Regole di reperibilità**.
+Ogni persona avvisata da un livello viene raggiunta come indicano le sue regole di reperibilità: **Impostazioni utente** > **Regole di reperibilità**, con una scheda per incidenti, episodi di incidente, avvisi ed episodi di avviso e una scheda per gravità che indica quale metodo di notifica viene provato e dopo quanto tempo. Un amministratore del progetto può vedere e modificare le regole di un membro in **Utenti** > il membro > **Regole di reperibilità**. Vedi [Regole di reperibilità personali](/docs/notifications/on-call-rules).
 
 ```mermaid title="Chi avvisa un livello e come viene raggiunta ogni persona"
 flowchart TB
@@ -101,7 +101,7 @@ flowchart TB
     rules --> methods["I suoi metodi di notifica"]
 ```
 
-Una sostituzione utente in vigore per una persona invia i suoi avvisi a chi la sostituisce. Una che non nomina nessuno per sostituirla la salta: non riceve avvisi, l'esecuzione della policy indica che è assente e fino a quando, e in una pianificazione di reperibilità ognuno dei suoi turni passa alla persona successiva nella rotazione.
+Una sostituzione utente in vigore per una persona invia i suoi avvisi a chi la sostituisce. Una che non nomina nessuno per sostituirla la salta: non riceve avvisi, l'esecuzione della policy indica che è assente e fino a quando, e in una pianificazione di reperibilità ognuno dei suoi turni passa alla persona successiva nella rotazione. Vedi [Sostituzioni utente](/docs/on-call/user-overrides).
 
 Ogni messaggio è uno che il suo fornitore accetta, così un avviso parte sempre. Ecco quanto porta ogni canale:
 

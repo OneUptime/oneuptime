@@ -77,6 +77,7 @@ Una **política de guardia** decide a quién se avisa sobre un incidente o una a
 Cómo se localiza a cada persona lo decide ella. En los **Ajustes de usuario**, cada uno guarda las formas en que OneUptime puede localizarle, como correo, SMS, llamadas, notificaciones push, Slack o Microsoft Teams, y cuáles usar cuando le avisan.
 
 :::cards
+- [Visión general de las guardias](/docs/on-call/index): Cómo llega un aviso a alguien y dónde está cada pieza.
 - [Reglas de escalado](/docs/on-call/escalation-rules): Avisar a las personas nivel a nivel hasta que alguien responda.
 - [Programaciones de guardia](/docs/on-call/schedules): Rotaciones, capas y relevos.
 - [Cómo te contacta OneUptime](/docs/notifications/index): Los métodos, reglas y ajustes que deciden cómo se contacta a cada persona.

@@ -84,7 +84,7 @@ El resumen de la parte superior de la página **Reglas de escalado** muestra tod
 
 ### Cómo se localiza a cada persona
 
-A cada persona que avisa un nivel se la localiza como indiquen sus propias reglas de guardia: **Ajustes de usuario** > **Reglas de guardia**, con una pestaña para incidentes, episodios de incidentes, alertas y episodios de alertas, y una tarjeta por severidad que indica qué método de notificación se prueba y tras cuánto tiempo. Un administrador del proyecto puede ver y cambiar las reglas de un miembro en **Usuarios** > el miembro > **Reglas de guardia**.
+A cada persona que avisa un nivel se la localiza como indiquen sus propias reglas de guardia: **Ajustes de usuario** > **Reglas de guardia**, con una pestaña para incidentes, episodios de incidentes, alertas y episodios de alertas, y una tarjeta por severidad que indica qué método de notificación se prueba y tras cuánto tiempo. Un administrador del proyecto puede ver y cambiar las reglas de un miembro en **Usuarios** > el miembro > **Reglas de guardia**. Consulta [Reglas de guardia personales](/docs/notifications/on-call-rules).
 
 ```mermaid title="A quién avisa un nivel y cómo se localiza a cada persona"
 flowchart TB
@@ -101,7 +101,7 @@ flowchart TB
     rules --> methods["Sus métodos de notificación"]
 ```
 
-Una sustitución de usuario vigente para una persona envía sus avisos a quien la cubre. Una que no nombra a nadie para cubrirla la omite: no recibe avisos, la ejecución de la política indica que está ausente y hasta cuándo, y en una programación de guardia cada uno de sus turnos pasa a la siguiente persona de la rotación.
+Una sustitución de usuario vigente para una persona envía sus avisos a quien la cubre. Una que no nombra a nadie para cubrirla la omite: no recibe avisos, la ejecución de la política indica que está ausente y hasta cuándo, y en una programación de guardia cada uno de sus turnos pasa a la siguiente persona de la rotación. Consulta [Sustituciones de usuarios](/docs/on-call/user-overrides).
 
 Cada mensaje es uno que su proveedor acepta, así que un aviso siempre sale. Esto es lo que lleva cada canal:
 
