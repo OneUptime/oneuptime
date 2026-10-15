@@ -15,6 +15,7 @@ import WorkspaceNotificationRuleService, {
 } from "../../../Server/Services/WorkspaceNotificationRuleService";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUtil from "../../../Server/Utils/Workspace/Workspace";
+import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
 import {
   WorkspaceChannel,
   WorkspaceSendMessageResponse,
@@ -28,6 +29,9 @@ import { WorkspacePayloadMarkdown } from "../../../Types/Workspace/WorkspaceMess
 import WorkspaceNotificationActionType from "../../../Types/Workspace/WorkspaceNotificationActionType";
 import WorkspaceNotificationStatus from "../../../Types/Workspace/WorkspaceNotificationStatus";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import WorkspaceChannelName, {
+  WorkspaceChannelNameParts,
+} from "../../../Utils/Workspace/WorkspaceChannelName";
 import {
   afterEach,
   beforeEach,
@@ -70,6 +74,15 @@ const RULE_ID: ObjectID = new ObjectID("e1000000-0000-4000-8000-000000000002");
 const INVITED: ObjectID = new ObjectID("e1000000-0000-4000-8000-000000000011");
 // The person a message is sent for.
 const NOTIFIED: ObjectID = new ObjectID("e1000000-0000-4000-8000-000000000012");
+
+/*
+ * What follows the rule's prefix, record-: the channel is record-1 for every
+ * kind of record (the parts the record kinds' WorkspaceMessages hand in).
+ */
+const RECORD_CHANNEL_NAME_PARTS: WorkspaceChannelNameParts = {
+  afterPrefix: "1",
+  ownName: "record-1",
+};
 
 // The channel the workspace creates for the record.
 const RECORD_CHANNEL: WorkspaceChannel = {
@@ -269,6 +282,10 @@ beforeEach(() => {
   jest.spyOn(WorkspaceUtil, "getWorkspaceTypeUtil").mockReturnValue({
     createChannel: createChannel,
     inviteUsersToChannels: invite,
+    // Whether a refusal means the name is taken, as Slack's answer says.
+    isChannelNameTakenError: (error: unknown): boolean => {
+      return SlackUtil.isChannelNameTakenError(error);
+    },
   } as never);
 
   post = jest
@@ -339,7 +356,7 @@ describe("the channel a rule creates for a record is listed on the record's Noti
             projectId: PROJECT_ID,
             notificationRuleEventType: record.eventType,
             notificationFor: { [record.field]: recordId },
-            channelNameSiffix: "1",
+            channelNameParts: RECORD_CHANNEL_NAME_PARTS,
           },
         ),
       ).resolves.toMatchObject({
@@ -380,7 +397,7 @@ describe("the channel a rule creates for a record is listed on the record's Noti
       projectOrUserAuthTokenForWorkspace: "xoxb-project",
       workspaceType: WorkspaceType.Slack,
       notificationRules: [slackRule()],
-      channelNameSiffix: "1",
+      channelNameParts: RECORD_CHANNEL_NAME_PARTS,
       notificationEventType: NotificationRuleEventType.Monitor,
     });
 
@@ -395,7 +412,44 @@ describe("the channel a rule creates for a record is listed on the record's Noti
     }
   });
 
-  test("a channel the workspace does not create is not logged", async () => {
+  test.each(RECORDS)(
+    "a channel the workspace does not create for the $field is logged against the record as not created, with what the workspace answered",
+    async (record: RecordCase) => {
+      createChannel.mockRejectedValue(new Error("Error from Slack name_taken"));
+
+      const recordId: ObjectID = ObjectID.generate();
+
+      await expect(
+        WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannelsBasedOnRules(
+          {
+            projectId: PROJECT_ID,
+            notificationRuleEventType: record.eventType,
+            notificationFor: { [record.field]: recordId },
+            channelNameParts: RECORD_CHANNEL_NAME_PARTS,
+          },
+        ),
+      ).resolves.toEqual({ channelsCreated: [], membersNotAdded: [] });
+
+      const rows: Array<WorkspaceNotificationLog> = rowsOf(
+        WorkspaceNotificationActionType.CreateChannel,
+      );
+
+      expect(rows).toHaveLength(1);
+      expect(rows[0]!.workspaceType).toBe(WorkspaceType.Slack);
+      expect(rows[0]!.channelId).toBeUndefined();
+      expect(rows[0]!.channelName).toBe("record-1");
+      expect(rows[0]!.status).toBe(WorkspaceNotificationStatus.Error);
+      expect(rows[0]!.statusMessage).toBe("Error from Slack name_taken");
+      expect(rows[0]!.message).toBe('Channel "record-1" was not created');
+      expectOnlyRecord(rows[0]!, record.field, recordId);
+
+      // Nobody is invited to a channel that is not there.
+      expect(invite).not.toHaveBeenCalled();
+      expect(rowsOf(WorkspaceNotificationActionType.InviteUser)).toEqual([]);
+    },
+  );
+
+  test("told to throw - a rule's test - it throws what the workspace answered, and logs the channel as not created against no record", async () => {
     createChannel.mockRejectedValue(new Error("Error from Slack name_taken"));
 
     await expect(
@@ -404,13 +458,27 @@ describe("the channel a rule creates for a record is listed on the record's Noti
         projectOrUserAuthTokenForWorkspace: "xoxb-project",
         workspaceType: WorkspaceType.Slack,
         notificationRules: [slackRule()],
-        channelNameSiffix: "1",
+        channelNameParts: RECORD_CHANNEL_NAME_PARTS,
         notificationEventType: NotificationRuleEventType.Monitor,
-        notificationFor: { monitorId: ObjectID.generate() },
+        throwOnCreateChannelError: true,
       }),
     ).rejects.toThrow("name_taken");
 
-    expect(logRows).toEqual([]);
+    // Tried under each of its names (record-1, record-1-2 ...), and none made.
+    expect(createChannel).toHaveBeenCalledTimes(
+      WorkspaceChannelName.MAX_NAME_ATTEMPTS,
+    );
+
+    const rows: Array<WorkspaceNotificationLog> = rowsOf(
+      WorkspaceNotificationActionType.CreateChannel,
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.status).toBe(WorkspaceNotificationStatus.Error);
+    expect(rows[0]!.statusMessage).toBe("Error from Slack name_taken");
+    for (const field of RECORD_FIELDS) {
+      expect(recordOf(rows[0]!, field)).toBeUndefined();
+    }
   });
 });
 

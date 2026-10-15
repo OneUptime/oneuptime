@@ -6,6 +6,7 @@ Un runbook es un procedimiento de respuesta reutilizable: una lista ordenada de 
 - [Crear un runbook](/docs/runbooks/authoring): Crear un runbook y escribir sus pasos.
 - [Reglas de runbook](/docs/runbooks/rules): Iniciar runbooks en nuevos incidentes, alertas y eventos de mantenimiento.
 - [Ejecutar un runbook](/docs/runbooks/running): Iniciar una ejecución, completar y aprobar sus pasos, cancelarla.
+- [Desencadenantes de runbook](/docs/runbooks/triggers): Ejecutar un runbook según una programación, o desde otra herramienta a través de su URL de webhook.
 - [Agentes de runbook](/docs/runbooks/agents): Instalar el Runner que ejecuta tus scripts en tu propia infraestructura.
 :::
 
@@ -73,6 +74,8 @@ Un runbook puede mezclarlos todos. La fuerza de los runbooks está en intercalar
 | **Ejecutar runbook** | La página **Runbooks** de un incidente, una alerta o un evento de mantenimiento programado | Ese evento |
 | **Ejecutar ahora** | La página **Vista general** del runbook | Nada: una ejecución puntual |
 | Una regla de remediación automática | Consulta [AI SRE](/docs/ai/ai-sre) | El incidente o la alerta |
+| La programación del runbook | La página **Desencadenantes** del runbook, consulta [Desencadenantes de runbook](/docs/runbooks/triggers#ejecutar-según-una-programación) | Nada: una ejecución desatendida |
+| Una llamada a la URL de webhook del runbook | La página **Desencadenantes** del runbook, consulta [Desencadenantes de runbook](/docs/runbooks/triggers#llamar-al-webhook) | Nada: la ejecución guarda los valores que envió la llamada |
 
 Un runbook cuyo interruptor **Ejecutar este runbook** está desactivado, en su página **Ajustes**, no se inicia por ninguna de estas vías. Las ejecuciones ya iniciadas continúan.
 
@@ -86,6 +89,7 @@ Runbooks está en **Productos**, en el grupo **Paneles y automatización**.
 | Los **Pasos** de un runbook | Escribir y reordenar sus pasos, y después **Guardar pasos**. |
 | La **Vista general** de un runbook | Ver su última ejecución y sus resultados, y hacer clic en **Ejecutar ahora**. |
 | Las **Ejecuciones** de un runbook | Todas las ejecuciones de este runbook, filtradas por estado o fecha de inicio. |
+| Los **Desencadenantes** de un runbook | Ejecutarlo según una [programación](/docs/runbooks/triggers#ejecutar-según-una-programación), o desde otra herramienta a través de su [URL de webhook](/docs/runbooks/triggers#llamar-al-webhook). |
 | Los **Propietarios** de un runbook | Añadir las personas y los equipos responsables de él. |
 | Los **Ajustes** de un runbook | Desactivar **Ejecutar este runbook** sin eliminar el runbook. |
 | **Runbooks → Ejecuciones** | Todas las ejecuciones de todos los runbooks del proyecto. |

@@ -92,6 +92,11 @@ const BARE_CLIENT_ALLOWLIST: Array<AllowlistEntry> = [
     reason:
       "Logout is called from handleError; going through the status page client would recurse into handleError on a failed logout.",
   },
+  {
+    file: "App/FeatureSet/Dashboard/src/Components/Runbook/Triggers/RunbookWebhookCard.tsx",
+    reason:
+      "Send Test Request calls the runbook's public webhook URL, whose key is the credential: no session rides on it, so there is nothing to refresh. The UI client's handleError would answer the webhook's own 403 (the runbook is turned off) by navigating to the Forbidden page, where the card should say why.",
+  },
 ];
 
 /*

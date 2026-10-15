@@ -41,6 +41,9 @@ import WorkspaceMessagePayload from "../../../Types/Workspace/WorkspaceMessagePa
 import WorkspaceNotificationActionType from "../../../Types/Workspace/WorkspaceNotificationActionType";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import API from "../../../Utils/API";
+import WorkspaceChannelName, {
+  WorkspaceChannelNameParts,
+} from "../../../Utils/Workspace/WorkspaceChannelName";
 import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import {
   afterEach,
@@ -127,6 +130,14 @@ const BOT_SLACK_USER_ID: string = "B0BOT";
 // "INC-9" gives the channel "incidents-inc-9".
 const INCIDENT_NUMBER_WITH_PREFIX: string = "INC-9";
 const CHANNEL_NAME: string = "incidents-inc-9";
+
+// What INC-9's channels are named from, as IncidentWorkspaceMessages hands it.
+const INCIDENT_CHANNEL_NAME_PARTS: WorkspaceChannelNameParts =
+  WorkspaceChannelName.forNumberedRecord({
+    eventType: NotificationRuleEventType.Incident,
+    number: 9,
+    numberWithPrefix: INCIDENT_NUMBER_WITH_PREFIX,
+  });
 
 interface RuleSwitches {
   template?: string;
@@ -374,7 +385,7 @@ async function createIncidentChannels(): Promise<WorkspaceChannelsCreated> {
         projectId: PROJECT_ID,
         notificationRuleEventType: NotificationRuleEventType.Incident,
         notificationFor: { incidentId: INCIDENT_ID },
-        channelNameSiffix: INCIDENT_NUMBER_WITH_PREFIX,
+        channelNameParts: INCIDENT_CHANNEL_NAME_PARTS,
       },
     );
 
@@ -968,7 +979,8 @@ describe("getnotificationChannelssFromNotificationRules", () => {
       {
         notificationEventType: NotificationRuleEventType.Incident,
         notificationRules: rules,
-        channelNameSiffix: INCIDENT_NUMBER_WITH_PREFIX,
+        channelNameParts: INCIDENT_CHANNEL_NAME_PARTS,
+        workspaceType: WorkspaceType.Slack,
       },
     );
   }
@@ -988,16 +1000,19 @@ describe("getnotificationChannelssFromNotificationRules", () => {
           FIRST_RULE_ID.toString(),
           SECOND_RULE_ID.toString(),
         ],
+        prefix: "incidents-",
       },
       {
         channelName: "war-room-inc-9",
         notificationRuleId: OTHER_RULE_ID.toString(),
         notificationRuleIds: [OTHER_RULE_ID.toString()],
+        prefix: "war-room-",
       },
     ]);
   });
 
-  test("rules without a template share the default name", () => {
+  // No prefix names the channel after the incident itself (WorkspaceChannelName).
+  test("rules without a prefix share the incident's own name", () => {
     expect(
       channelsFor([
         incidentRule(FIRST_RULE_ID, { template: "" }),
@@ -1005,12 +1020,13 @@ describe("getnotificationChannelssFromNotificationRules", () => {
       ]),
     ).toEqual([
       {
-        channelName: "oneuptime-incident-inc-9",
+        channelName: "inc-9",
         notificationRuleId: FIRST_RULE_ID.toString(),
         notificationRuleIds: [
           FIRST_RULE_ID.toString(),
           SECOND_RULE_ID.toString(),
         ],
+        prefix: "",
       },
     ]);
   });
@@ -1026,6 +1042,7 @@ describe("getnotificationChannelssFromNotificationRules", () => {
         channelName: CHANNEL_NAME,
         notificationRuleId: FIRST_RULE_ID.toString(),
         notificationRuleIds: [FIRST_RULE_ID.toString()],
+        prefix: "incidents-",
       },
     ]);
   });

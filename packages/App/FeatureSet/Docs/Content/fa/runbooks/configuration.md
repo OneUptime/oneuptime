@@ -82,6 +82,8 @@ flowchart TB
 
 یک نقش رانبوک‌هایی را اجرا می‌کند که دامنه‌اش به آن‌ها می‌رسد. واگذاری `RunbookMember`، `RunbookAdmin` یا `ProjectMember` که به برخی برچسب‌ها محدود شده، اجراهای رانبوک‌هایی را که آن برچسب‌ها را دارند شروع می‌کند و پیش می‌برد، واگذاری محدود به **Owned** اجراهای رانبوک‌هایی را که تیمش مالک آن‌هاست، و مسدودسازی یک برچسب برای یک تیم آن رانبوک‌ها را از دسترسش خارج می‌کند. `CreateRunbookExecution` و `EditRunbookExecution` درباره اجراها هستند که برچسبی ندارند، پس به هر رانبوکی در پروژه می‌رسند. تأیید یک پیشنهاد رفع مشکل که یک رانبوک را شروع می‌کند هم به همین شکل بررسی می‌شود.
 
+زمان‌بندی و وب‌هوک یک رانبوک بدون حضور کسی اجرا را شروع می‌کنند، پس تنظیم هر کدام به اجازه ویرایش و اجرای رانبوک نیاز دارد و دیدن نشانی وب‌هوک آن هم همین‌طور. خاموش کردن آن‌ها فقط به اجازه ویرایش نیاز دارد. [تریگرهای رانبوک](/docs/runbooks/triggers#چه-کسانی-میتوانند-تریگر-تنظیم-کنند) را ببینید.
+
 اعتبارنامه‌ها و اسرار بیرون از `RunbookAdmin` هستند. مدیریت آن‌ها به `ProjectOwner` یا `ProjectAdmin`، یا مجوزهای `CreateRunbookCredential`، `EditRunbookCredential`، `DeleteRunbookCredential`، `ReadRunbookCredential` و `CreateRunbookSecret`، `EditRunbookSecret`، `DeleteRunbookSecret`، `ReadRunbookSecret` نیاز دارد. [اعتبارنامه‌های رانبوک](/docs/runbooks/credentials) را ببینید.
 
 قواعد مالکیت و قواعد برچسب زیر **رانبوک‌ها → تنظیمات** هم بیرون از `RunbookAdmin` هستند. مدیریت آن‌ها به `ProjectOwner` یا `ProjectAdmin`، یا مجوزهای `CreateRunbookOwnerRule` و `CreateRunbookLabelRule` و همتاهای ویرایش، حذف و خواندن آن‌ها نیاز دارد.

@@ -939,6 +939,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/runbooks/running",
       },
       {
+        title: "Runbook Triggers",
+        url: "/docs/runbooks/triggers",
+      },
+      {
         title: "Runbook Agents",
         url: "/docs/runbooks/agents",
       },

@@ -521,7 +521,7 @@ describe("WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannel
           projectId: projectId,
           notificationRuleEventType: NotificationRuleEventType.Incident,
           notificationFor: { incidentId: incidentId },
-          channelNameSiffix: "42",
+          channelNameParts: { afterPrefix: "42", ownName: "incident-42" },
         },
       );
 
@@ -618,7 +618,7 @@ describe("WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannel
           projectId: projectId,
           notificationRuleEventType: NotificationRuleEventType.Incident,
           notificationFor: { incidentId: incidentId },
-          channelNameSiffix: "42",
+          channelNameParts: { afterPrefix: "42", ownName: "incident-42" },
         },
       );
 
@@ -657,7 +657,7 @@ describe("WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannel
           projectId: projectId,
           notificationRuleEventType: NotificationRuleEventType.Incident,
           notificationFor: { incidentId: incidentId },
-          channelNameSiffix: "42",
+          channelNameParts: { afterPrefix: "42", ownName: "incident-42" },
         },
       );
 
@@ -676,7 +676,7 @@ describe("WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannel
           projectId: projectId,
           notificationRuleEventType: NotificationRuleEventType.Incident,
           notificationFor: { incidentId: incidentId },
-          channelNameSiffix: "42",
+          channelNameParts: { afterPrefix: "42", ownName: "incident-42" },
         },
       ),
     ).resolves.toBeNull();

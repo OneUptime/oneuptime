@@ -51,6 +51,13 @@ import React, {
 import { useNavigate, useParams } from "react-router-dom";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { translateText, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  RUNBOOK_EXECUTION_TRIGGER_SELECT,
+  UnattendedTriggerText,
+  getRunInputs,
+  getUnattendedTriggerText,
+} from "../../../Components/Runbook/Triggers/RunbookExecutionTrigger";
+import RunbookRunInputs from "../../../Components/Runbook/Triggers/RunbookRunInputs";
 
 /*
  * How often the page polls the server for the latest execution state while
@@ -192,7 +199,42 @@ function StatusBadge({ visual }: { visual: StatusVisual }): ReactElement {
   );
 }
 
-function renderTrigger(execution: RunbookExecution): ReactElement | null {
+function renderTrigger(
+  execution: RunbookExecution,
+  translator: Translator,
+): ReactElement | null {
+  // Its schedule, when it was due, or its webhook, and who called it.
+  const unattended: UnattendedTriggerText | null = getUnattendedTriggerText(
+    translator,
+    execution,
+  );
+
+  if (unattended) {
+    return (
+      <div
+        className="flex flex-wrap items-baseline gap-x-2 gap-y-1"
+        data-testid="runbook-run-trigger"
+        data-trigger={execution.triggerType}
+      >
+        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          {unattended.label}
+        </span>
+        {unattended.details.map((line: string, index: number) => {
+          return (
+            <span
+              key={index}
+              className={
+                index === 0 ? "text-sm text-gray-900" : "text-sm text-gray-500"
+              }
+            >
+              {line}
+            </span>
+          );
+        })}
+      </div>
+    );
+  }
+
   if (execution.incident) {
     return (
       <div className="flex items-center gap-2">
@@ -355,6 +397,8 @@ const ExecutionView: FunctionComponent<
                 email: true,
                 profilePictureId: true,
               },
+              ...RUNBOOK_EXECUTION_TRIGGER_SELECT,
+              inputs: true,
             },
             requestOptions: {},
           });
@@ -676,7 +720,10 @@ const ExecutionView: FunctionComponent<
           </div>
 
           {(() => {
-            const trigger: ReactElement | null = renderTrigger(execution);
+            const trigger: ReactElement | null = renderTrigger(
+              execution,
+              translator,
+            );
             if (!trigger) {
               return null;
             }
@@ -688,6 +735,12 @@ const ExecutionView: FunctionComponent<
                 {trigger}
               </div>
             );
+          })()}
+
+          {(() => {
+            const inputs: JSONObject | null = getRunInputs(execution);
+
+            return inputs ? <RunbookRunInputs inputs={inputs} /> : null;
           })()}
 
           {execution.failureReason ? (

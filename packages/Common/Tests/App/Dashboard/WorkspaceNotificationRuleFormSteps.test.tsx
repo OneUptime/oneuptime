@@ -27,6 +27,10 @@ import ModelFormModal from "../../../UI/Components/ModelFormModal/ModelFormModal
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
 import WorkspaceNotificationRule from "../../../Models/DatabaseModels/WorkspaceNotificationRule";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import API from "../../../UI/Utils/API/API";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import URL from "../../../Types/API/URL";
 
 /*
  * A workspace notification rule's create form, walked in a browser-like DOM.
@@ -183,6 +187,73 @@ import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 const NAME_PLACEHOLDER: string = "Notify DevOps Team";
 const SUBMIT_LABEL: string = "Create Notification Rule";
 
+/*
+ * The project's number prefixes, as GET
+ * /workspace-notification-rule/number-prefixes answers them: the rule
+ * form's channel name preview is built from them. Any other request the
+ * table makes is refused, as the old tests never answered one.
+ */
+let numberPrefixesAnswer: JSONObject | "refuse" = {
+  Incident: "INC-",
+  Alert: "ALT-",
+  "Incident Episode": "IE-",
+  "Alert Episode": "AE-",
+  "Scheduled Maintenance": "SM-",
+};
+
+const apiGets: Array<string> = [];
+
+beforeEach(() => {
+  apiGets.length = 0;
+
+  jest.spyOn(API, "get").mockImplementation((async (options: {
+    url: URL;
+  }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+    const route: string = new globalThis.URL(options.url.toString()).pathname;
+    apiGets.push(route);
+
+    if (
+      route.endsWith("/workspace-notification-rule/number-prefixes") &&
+      numberPrefixesAnswer !== "refuse"
+    ) {
+      return new HTTPResponse<JSONObject>(
+        200,
+        { numberPrefixes: numberPrefixesAnswer },
+        {},
+      );
+    }
+
+    // A Microsoft Teams rule's form lists the teams and chats it can use.
+    if (route.endsWith("/microsoft-teams/teams")) {
+      return new HTTPResponse<JSONObject>(
+        200,
+        { teams: [{ id: "team-ops", name: "Ops" }] },
+        {},
+      );
+    }
+
+    if (route.endsWith("/microsoft-teams/chats")) {
+      return new HTTPResponse<JSONObject>(200, { chats: [] }, {});
+    }
+
+    return new HTTPErrorResponse(500, { message: "Not answered" }, {});
+  }) as never);
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+/*
+ * The Channel Name Prefix field, found by its label: its placeholder is an
+ * example ("e.g. prod-"), not a value.
+ */
+async function prefixField(): Promise<HTMLElement> {
+  return within(dialog()).findByRole("textbox", {
+    name: /^Channel Name Prefix/,
+  });
+}
+
 function dialog(): HTMLElement {
   return screen.getByRole("dialog", { name: "Create Notification Rule" });
 }
@@ -227,11 +298,12 @@ async function submit(user: UserEvent): Promise<void> {
 
 async function renderForm(
   eventType: NotificationRuleEventType,
+  workspaceType: WorkspaceType = WorkspaceType.Slack,
 ): Promise<UserEvent> {
   await act(async (): Promise<void> => {
     render(
       <WorkspaceNotificationRuleTable
-        workspaceType={WorkspaceType.Slack}
+        workspaceType={workspaceType}
         eventType={eventType}
       />,
     );
@@ -526,10 +598,9 @@ describe("Create a Slack notification rule for incidents", () => {
     await waitForStep("Destination");
     await settle();
     await user.click(switchNamed(/^Create Slack Channel/));
-    fireEvent.change(
-      await within(dialog()).findByPlaceholderText("oneuptime-incident-"),
-      { target: { value: "oneuptime-incident-" } },
-    );
+    fireEvent.change(await prefixField(), {
+      target: { value: "oneuptime-incident-" },
+    });
     await settle();
     await toVideoCall(user);
     await submit(user);
@@ -573,10 +644,9 @@ describe("Create a Slack notification rule for incidents", () => {
     await waitForStep("Destination");
     await settle();
     await user.click(switchNamed(/^Create Slack Channel/));
-    fireEvent.change(
-      await within(dialog()).findByPlaceholderText("oneuptime-incident-"),
-      { target: { value: "oneuptime-incident-" } },
-    );
+    fireEvent.change(await prefixField(), {
+      target: { value: "oneuptime-incident-" },
+    });
     await settle();
     await toVideoCall(user);
     await submit(user);
@@ -601,10 +671,9 @@ describe("Create a Slack notification rule for incidents", () => {
 
     await toDestination(user);
     await user.click(switchNamed(/^Create Slack Channel/));
-    fireEvent.change(
-      await within(dialog()).findByPlaceholderText("oneuptime-incident-"),
-      { target: { value: "oneuptime-incident-" } },
-    );
+    fireEvent.change(await prefixField(), {
+      target: { value: "oneuptime-incident-" },
+    });
     await settle();
     await toVideoCall(user);
 
@@ -627,10 +696,9 @@ describe("Create a Slack notification rule for incidents", () => {
 
     await toDestination(user);
     await user.click(switchNamed(/^Create Slack Channel/));
-    fireEvent.change(
-      await within(dialog()).findByPlaceholderText("oneuptime-incident-"),
-      { target: { value: "oneuptime-incident-" } },
-    );
+    fireEvent.change(await prefixField(), {
+      target: { value: "oneuptime-incident-" },
+    });
     await settle();
     await toVideoCall(user);
 
@@ -690,9 +758,7 @@ describe("Create a Slack notification rule for incidents", () => {
       }),
     ).toHaveAttribute("aria-checked", "true");
     // And its own options with it.
-    expect(
-      await within(dialog()).findByPlaceholderText("oneuptime-incident-"),
-    ).toBeVisible();
+    expect(await prefixField()).toBeVisible();
   });
 });
 
@@ -710,5 +776,353 @@ describe("Create a Slack notification rule for monitors", () => {
     await renderForm(NotificationRuleEventType.Monitor);
 
     expect(stepTitles()).toEqual(["Basic", "Conditions", "Destination"]);
+  });
+});
+
+/*
+ * THE NAME OF THE CHANNEL A RULE CREATES.
+ *
+ * The customer's question: a prefix of foo- names incident INC-123's channel
+ * foo-inc-123 - can it be inc-123? The prefix is optional now: without one,
+ * the channel is named after its record. The field says what it is for, and
+ * the preview under it shows the name an example record's channel gets as
+ * the prefix is typed - with the project's own number prefixes, which the
+ * table reads from GET /workspace-notification-rule/number-prefixes.
+ */
+describe("Name the channel a rule creates", () => {
+  const PREFIXES: JSONObject = {
+    Incident: "INC-",
+    Alert: "ALT-",
+    "Incident Episode": "IE-",
+    "Alert Episode": "AE-",
+    "Scheduled Maintenance": "SM-",
+  };
+
+  beforeEach(() => {
+    createOrUpdateMock.mockReset().mockResolvedValue({ data: {} });
+    numberPrefixesAnswer = PREFIXES;
+  });
+
+  afterEach(() => {
+    cleanup();
+    numberPrefixesAnswer = PREFIXES;
+  });
+
+  async function toNewChannel(
+    user: UserEvent,
+    workspaceName: string = "Slack",
+  ): Promise<void> {
+    fireEvent.change(screen.getByPlaceholderText(NAME_PLACEHOLDER), {
+      target: { value: "Open a channel" },
+    });
+    await next(user);
+    await waitForStep("Conditions");
+    await within(dialog()).findByRole("button", { name: "Add Condition" });
+    await settle();
+    await next(user);
+    await waitForStep("Destination");
+    await settle();
+    await user.click(
+      await within(dialog()).findByRole("switch", {
+        name: new RegExp(`^Create ${workspaceName} Channel`),
+      }),
+    );
+    await prefixField();
+    await settle();
+  }
+
+  async function typePrefix(prefix: string): Promise<void> {
+    fireEvent.change(await prefixField(), { target: { value: prefix } });
+    await settle();
+  }
+
+  function preview(): string {
+    return (
+      within(dialog()).getByTestId("channel-name-preview").textContent || ""
+    );
+  }
+
+  function previewNotes(): string {
+    return (
+      within(dialog()).getByTestId("channel-name-preview-notes").textContent ||
+      ""
+    );
+  }
+
+  // What happens to a taken name: a line of its own under the notes.
+  function previewTakenNote(): string {
+    return (
+      within(dialog()).getByTestId("channel-name-preview-taken").textContent ||
+      ""
+    );
+  }
+
+  test("the prefix is optional, and the preview shows the channel named after the incident", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toNewChannel(user);
+
+    expect(await prefixField()).toHaveValue("");
+    expect(await prefixField()).toHaveAccessibleName(
+      "Channel Name Prefix (Optional)",
+    );
+    expect(
+      within(dialog()).getByText(
+        "Each new channel is named after its incident. Anything you write here goes in front of that name.",
+      ),
+    ).toBeVisible();
+
+    expect(preview()).toBe("#inc-42");
+    expect(previewNotes()).toBe("For incident INC-42.");
+    expect(previewTakenNote()).toBe(
+      "If Slack already has a channel with this name, OneUptime adds -2 to the end.",
+    );
+  });
+
+  test("the field shows the usual shape of a prefix, and a screen reader hears the channel name with it", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toNewChannel(user);
+
+    // An example, not a value: the field is empty and the name has no prefix.
+    expect(await prefixField()).toHaveAttribute("placeholder", "e.g. prod-");
+    expect(await prefixField()).toHaveValue("");
+
+    // The preview describes the field, and follows what is typed.
+    expect(await prefixField()).toHaveAccessibleDescription(
+      "Preview: #inc-42 For incident INC-42. If Slack already has a channel with this name, OneUptime adds -2 to the end.",
+    );
+
+    await typePrefix("prod-");
+
+    expect(await prefixField()).toHaveAccessibleDescription(
+      /^Preview: #prod-inc-42 /,
+    );
+  });
+
+  test("a scheduled maintenance rule says its prefix replaces the event's number prefix, as the preview shows", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.ScheduledMaintenance,
+    );
+
+    await toNewChannel(user);
+
+    expect(
+      within(dialog()).getByText(
+        "Each new channel is named after its scheduled maintenance event. Anything you write here replaces the event's number prefix.",
+      ),
+    ).toBeVisible();
+    expect(preview()).toBe("#sm-42");
+
+    await typePrefix("maint-");
+
+    // maint- takes the place of SM-: maint-42, as such rules always named it.
+    expect(preview()).toBe("#maint-42");
+    expect(previewNotes()).toBe("For scheduled maintenance event SM-42.");
+  });
+
+  test("creates the rule without a prefix: no channel name is required any more", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toNewChannel(user);
+    await toVideoCall(user);
+
+    expect(within(dialog()).queryByText(/channel name is required/)).toBe(null);
+
+    await submit(user);
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const rule: JSONObject = createCall().model
+      .notificationRule as unknown as JSONObject;
+
+    expect(rule["shouldCreateNewChannel"]).toBe(true);
+    expect(rule["newChannelTemplateName"] || "").toBe("");
+  });
+
+  test("the customer's foo- shows foo-inc-42, and is saved as typed", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toNewChannel(user);
+    await typePrefix("foo-");
+
+    expect(preview()).toBe("#foo-inc-42");
+
+    await toVideoCall(user);
+    await submit(user);
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(
+      (createCall().model.notificationRule as unknown as JSONObject)[
+        "newChannelTemplateName"
+      ],
+    ).toBe("foo-");
+  });
+
+  test("the preview follows the prefix as it is typed, and cleared again", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toNewChannel(user);
+
+    await typePrefix("prod-");
+    expect(preview()).toBe("#prod-inc-42");
+
+    await typePrefix("");
+    expect(preview()).toBe("#inc-42");
+
+    await typePrefix("   ");
+    expect(preview()).toBe("#inc-42");
+  });
+
+  test("says what Slack does to capitals, spaces and symbols", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toNewChannel(user);
+    await typePrefix("Prod Team #1-");
+
+    expect(preview()).toBe("#prodteam1-inc-42");
+    expect(previewNotes()).toContain(
+      "Slack channel names use only lowercase letters, numbers, - and _.",
+    );
+
+    await typePrefix("prod-");
+    expect(previewNotes()).not.toContain("lowercase letters");
+  });
+
+  test("says when a long prefix is shortened to Slack's 80 characters", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toNewChannel(user);
+    await typePrefix("a".repeat(100));
+
+    expect(preview()).toBe(`#${"a".repeat(74)}inc-42`);
+    expect(previewNotes()).toContain(
+      "Shortened to Slack's limit of 80 characters.",
+    );
+  });
+
+  test("a project that writes its incidents #42: the channel is incident-42", async () => {
+    numberPrefixesAnswer = {
+      Incident: null,
+      Alert: null,
+      "Incident Episode": null,
+      "Alert Episode": null,
+      "Scheduled Maintenance": null,
+    };
+
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toNewChannel(user);
+
+    expect(preview()).toBe("#incident-42");
+    expect(previewNotes()).toContain("For incident #42.");
+  });
+
+  test("reads the project's number prefixes once, from the rule route", async () => {
+    await renderForm(NotificationRuleEventType.Incident);
+
+    expect(
+      apiGets.filter((route: string): boolean => {
+        return route.endsWith("/workspace-notification-rule/number-prefixes");
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("without the project's number prefixes, the field works and nothing is guessed", async () => {
+    numberPrefixesAnswer = "refuse";
+
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toNewChannel(user);
+    await typePrefix("ops-");
+
+    expect(within(dialog()).queryByTestId("channel-name-preview")).toBe(null);
+    expect(await prefixField()).toHaveValue("ops-");
+  });
+
+  test.each([
+    [NotificationRuleEventType.Alert, "#alt-42", "For alert ALT-42."],
+    [
+      NotificationRuleEventType.IncidentEpisode,
+      "#ie-42",
+      "For incident episode IE-42.",
+    ],
+    [
+      NotificationRuleEventType.AlertEpisode,
+      "#ae-42",
+      "For alert episode AE-42.",
+    ],
+    [
+      NotificationRuleEventType.ScheduledMaintenance,
+      "#sm-42",
+      "For scheduled maintenance event SM-42.",
+    ],
+    [NotificationRuleEventType.Monitor, "#website", "For the monitor Website."],
+  ])(
+    "a %s rule previews %s",
+    async (
+      eventType: NotificationRuleEventType,
+      name: string,
+      note: string,
+    ) => {
+      const user: UserEvent = await renderForm(eventType);
+
+      await toNewChannel(user);
+
+      expect(preview()).toBe(name);
+      expect(previewNotes()).toContain(note);
+    },
+  );
+
+  test("Microsoft Teams: no # before the name, and its own words", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+      WorkspaceType.MicrosoftTeams,
+    );
+
+    await toNewChannel(user, "Microsoft Teams");
+
+    expect(preview()).toBe("inc-42");
+    expect(previewNotes()).toBe("For incident INC-42.");
+    expect(previewTakenNote()).toBe(
+      "If the team already has a channel with this name, OneUptime adds -2 to the end.",
+    );
+
+    await typePrefix("Prod Team #1-");
+
+    // Teams keeps capitals and spaces, and leaves the # out.
+    expect(preview()).toBe("Prod Team 1-inc-42");
+    expect(previewNotes()).toContain(
+      "OneUptime uses only letters, numbers, spaces, - and _ in Microsoft Teams channel names.",
+    );
+
+    await typePrefix("x".repeat(60));
+    expect(preview()).toBe(`${"x".repeat(44)}inc-42`);
+    expect(previewNotes()).toContain(
+      "Shortened to the Microsoft Teams limit of 50 characters.",
+    );
   });
 });

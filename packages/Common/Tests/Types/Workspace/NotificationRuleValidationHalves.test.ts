@@ -139,10 +139,9 @@ describe("the Destination step's check", () => {
     );
   });
 
-  test("asks for the new channel's name", () => {
-    expect(destinationError(rule({ shouldCreateNewChannel: true }))).toBe(
-      "New Slack channel name is required",
-    );
+  // Named after its record (inc-42), with the rule's prefix, if any, in front.
+  test("passes a rule that creates a channel without a prefix", () => {
+    expect(destinationError(rule({ shouldCreateNewChannel: true }))).toBeNull();
   });
 
   test("offers Microsoft Teams chats as a destination too", () => {

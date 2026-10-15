@@ -6,6 +6,7 @@ Um runbook é um procedimento de resposta reutilizável: uma lista ordenada de e
 - [Escrever um runbook](/docs/runbooks/authoring): Criar um runbook e escrever suas etapas.
 - [Regras de runbook](/docs/runbooks/rules): Iniciar runbooks em novos incidentes, alertas e eventos de manutenção.
 - [Executar um runbook](/docs/runbooks/running): Iniciar uma execução, concluir e aprovar suas etapas, cancelá-la.
+- [Gatilhos de runbook](/docs/runbooks/triggers): Executar um runbook por agendamento, ou a partir de outra ferramenta pela URL do webhook dele.
 - [Agentes de runbook](/docs/runbooks/agents): Instalar o Runner que executa seus scripts na sua própria infraestrutura.
 :::
 
@@ -73,6 +74,8 @@ Um runbook pode misturar todos eles. A força dos runbooks está em intercalar v
 | **Executar Runbook** | A página **Runbooks** de um incidente, alerta ou evento de manutenção programada | Esse evento |
 | **Run Now** | A página **Visão geral** do runbook | Nada: uma execução avulsa |
 | Uma regra de remediação automática | Consulte [AI SRE](/docs/ai/ai-sre) | O incidente ou alerta |
+| O agendamento do runbook | A página **Gatilhos** do runbook, veja [Gatilhos de runbook](/docs/runbooks/triggers#executar-por-agendamento) | Nada: uma execução sem supervisão |
+| Uma chamada à URL do webhook do runbook | A página **Gatilhos** do runbook, veja [Gatilhos de runbook](/docs/runbooks/triggers#chamar-o-webhook) | Nada: a execução guarda os valores que a chamada enviou |
 
 Um runbook cujo interruptor **Executar este runbook** está desligado, na sua página **Configurações**, não é iniciado por nenhuma dessas vias. As execuções já iniciadas continuam.
 
@@ -86,6 +89,7 @@ Runbooks fica em **Produtos**, no grupo **Painéis e automação**.
 | As **Etapas** de um runbook | Escrever e reordenar suas etapas, depois **Save Steps**. |
 | A **Visão geral** de um runbook | Ver sua última execução e os resultados, e clicar em **Run Now**. |
 | As **Execuções** de um runbook | Todas as execuções deste runbook, filtradas por status ou data de início. |
+| **Gatilhos** de um runbook | Executá-lo por [agendamento](/docs/runbooks/triggers#executar-por-agendamento), ou a partir de outra ferramenta pela [URL do webhook](/docs/runbooks/triggers#chamar-o-webhook) dele. |
 | Os **Proprietários** de um runbook | Adicionar as pessoas e equipes responsáveis por ele. |
 | As **Configurações** de um runbook | Desligar **Executar este runbook** sem excluir o runbook. |
 | **Runbooks → Execuções** | Todas as execuções de todos os runbooks do projeto. |

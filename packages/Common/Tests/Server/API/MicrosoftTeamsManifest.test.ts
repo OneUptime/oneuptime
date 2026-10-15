@@ -509,12 +509,28 @@ describe("MicrosoftTeamsAPI.getTeamsAppManifest", () => {
   });
 
   describe("manifest schema basics", () => {
-    test("uses manifest schema version 1.23", () => {
+    test("uses manifest schema version 1.25", () => {
       const manifest: JSONObject = getManifest();
-      expect(manifest["manifestVersion"]).toBe("1.23");
+      expect(manifest["manifestVersion"]).toBe("1.25");
       expect(manifest["$schema"]).toBe(
-        "https://developer.microsoft.com/json-schemas/teams/v1.23/MicrosoftTeams.schema.json",
+        "https://developer.microsoft.com/json-schemas/teams/v1.25/MicrosoftTeams.schema.json",
       );
+    });
+
+    /*
+     * Partner Center refuses a store package without it
+     * (SubmissionContextMissingSupportsChannelFeatures), and Teams offers the
+     * app in shared and private channels only with it.
+     */
+    test("declares support for shared and private channels (supportsChannelFeatures tier1)", () => {
+      const manifest: JSONObject = getManifest();
+      expect(manifest["supportsChannelFeatures"]).toBe("tier1");
+    });
+
+    // Manifest v1.25 replaced supportedChannelTypes; a package with both is refused.
+    test("does not declare the retired supportedChannelTypes", () => {
+      const manifest: JSONObject = getManifest();
+      expect(manifest).not.toHaveProperty("supportedChannelTypes");
     });
 
     test("declares color and outline icons", () => {
@@ -530,7 +546,8 @@ describe("MicrosoftTeamsAPI.getTeamsAppManifest", () => {
    * when its version is higher. Release images set APP_VERSION; a build
    * without it falls back to a fixed version, raised to 1.6.0 when
    * ChatSettings.Read.Chat was added, to 1.7.0 when the commands became
-   * the words Slack's /oneuptime takes, and to 1.8.0 when "page" joined them.
+   * the words Slack's /oneuptime takes, to 1.8.0 when "page" joined them,
+   * and to 1.9.0 when the app declared shared and private channels.
    * Left behind, an admin re-uploading the manifest to pick up a change
    * would have the upload refused.
    */
@@ -559,16 +576,16 @@ describe("MicrosoftTeamsAPI.getTeamsAppManifest", () => {
       expect(unsetAppVersion).toBe("unknown");
 
       mockEnvironmentState.appVersion = unsetAppVersion as string;
-      expect(getManifest()["version"]).toBe("1.8.0");
+      expect(getManifest()["version"]).toBe("1.9.0");
     });
 
     // The check lowercases AppVersion first, so its case does not matter.
     test.each(["unknown", "Unknown", "UNKNOWN"])(
-      "AppVersion %p gets the fallback version 1.8.0",
+      "AppVersion %p gets the fallback version 1.9.0",
       (appVersion: string) => {
         mockEnvironmentState.appVersion = appVersion;
 
-        expect(getManifest()["version"]).toBe("1.8.0");
+        expect(getManifest()["version"]).toBe("1.9.0");
       },
     );
 

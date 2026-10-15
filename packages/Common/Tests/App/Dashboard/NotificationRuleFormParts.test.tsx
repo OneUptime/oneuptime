@@ -245,9 +245,9 @@ describe("the Destination half", () => {
         screen.getByRole("switch", { name: /^Create Slack Channel/ }),
       ).toHaveAttribute("aria-checked", "true");
     });
-    expect(screen.getByPlaceholderText("oneuptime-incident-")).toHaveValue(
-      "oneuptime-incident-",
-    );
+    expect(
+      screen.getByRole("textbox", { name: /^Channel Name Prefix/ }),
+    ).toHaveValue("oneuptime-incident-");
   });
 
   test("keeps the conditions when a destination is picked", async () => {

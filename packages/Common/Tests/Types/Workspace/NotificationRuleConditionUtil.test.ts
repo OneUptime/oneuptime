@@ -146,18 +146,24 @@ describe("NotificationRuleConditionUtil.getValidationError", () => {
     expect(error).toBe("Existing Slack channel name is required");
   });
 
-  it("requires a template name when creating a new channel", () => {
-    const error: string | null =
-      NotificationRuleConditionUtil.getValidationError({
-        notificationRule: baseRule({
-          shouldCreateNewChannel: true,
-          newChannelTemplateName: "",
-        }),
-        eventType: NotificationRuleEventType.Incident,
-        workspaceType: WorkspaceType.Slack,
-      });
+  // The channel is named after its record (inc-42): a prefix is optional.
+  it("creates a channel without a prefix: nothing is missing", () => {
+    for (const workspaceType of [
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+    ]) {
+      const error: string | null =
+        NotificationRuleConditionUtil.getValidationError({
+          notificationRule: baseRule({
+            shouldCreateNewChannel: true,
+            newChannelTemplateName: "",
+          }),
+          eventType: NotificationRuleEventType.Incident,
+          workspaceType: workspaceType,
+        });
 
-    expect(error).toBe("New Slack channel name is required");
+      expect(error).toBeNull();
+    }
   });
 
   it("requires at least one chat when posting to an existing chat", () => {

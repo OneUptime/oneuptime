@@ -34,6 +34,34 @@ export interface CronPreset {
   value: string;
 }
 
+/*
+ * One field of a parsed expression, as parseFields hands it out: the values
+ * it allows, sorted, and whether it was written as a bare "*" (which matters
+ * for day of month and day of week, whose restrictions are OR-ed together
+ * only when both are restricted).
+ */
+export interface CronFieldValues {
+  readonly values: ReadonlyArray<number>;
+  readonly isWildcard: boolean;
+}
+
+/*
+ * A parsed expression, field by field, for code that matches it against a
+ * clock of its own - a runbook schedule is matched against the wall clock of
+ * its time zone (Types/Runbook/RunbookSchedule). Day of week is 0 (Sunday) -
+ * 6 (Saturday), 7 already folded into 0; months are 1 - 12.
+ */
+export interface CronExpressionFields {
+  readonly second: CronFieldValues;
+  readonly minute: CronFieldValues;
+  readonly hour: CronFieldValues;
+  readonly dayOfMonth: CronFieldValues;
+  readonly month: CronFieldValues;
+  readonly dayOfWeek: CronFieldValues;
+  // Six fields were given, the first being seconds.
+  readonly hasSeconds: boolean;
+}
+
 interface ParsedField {
   // Sorted, de-duplicated allowed values for this field.
   values: Array<number>;
@@ -217,6 +245,34 @@ export default class CronTab {
     }
 
     return results;
+  }
+
+  /**
+   * The expression's fields, parsed: what each allows. Throws, with the same
+   * message getValidationError returns, when the expression is not valid.
+   * A copy: changing it changes nothing here.
+   */
+  public static parseFields(expression: string): CronExpressionFields {
+    const parsed: ParsedCron = this.parse(expression);
+
+    const copy: (field: ParsedField) => CronFieldValues = (
+      field: ParsedField,
+    ): CronFieldValues => {
+      return {
+        values: [...field.values],
+        isWildcard: field.isWildcard,
+      };
+    };
+
+    return {
+      second: copy(parsed.second),
+      minute: copy(parsed.minute),
+      hour: copy(parsed.hour),
+      dayOfMonth: copy(parsed.dayOfMonth),
+      month: copy(parsed.month),
+      dayOfWeek: copy(parsed.dayOfWeek),
+      hasSeconds: parsed.hasSeconds,
+    };
   }
 
   // ----- Internal parsing -------------------------------------------------

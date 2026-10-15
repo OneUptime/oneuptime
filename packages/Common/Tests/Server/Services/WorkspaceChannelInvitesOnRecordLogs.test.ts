@@ -69,6 +69,7 @@ import NotificationRuleEventType from "../../../Types/Workspace/NotificationRule
 import NotificationRuleWorkspaceChannel from "../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceNotificationActionType from "../../../Types/Workspace/WorkspaceNotificationActionType";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import { WorkspaceChannelNameParts } from "../../../Utils/Workspace/WorkspaceChannelName";
 import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import {
   afterEach,
@@ -365,6 +366,15 @@ const OWNER_SERVICES: Array<OwnerServiceCase> = [
 ];
 
 // Every kind of record a rule creates channels for.
+/*
+ * What follows the rules' prefix, record-: the channel is record-1 for every
+ * kind of record (the parts the record kinds' WorkspaceMessages hand in).
+ */
+const RECORD_CHANNEL_NAME_PARTS: WorkspaceChannelNameParts = {
+  afterPrefix: "1",
+  ownName: "record-1",
+};
+
 const CHANNEL_RECORDS: Array<{
   field: RecordField;
   eventType: NotificationRuleEventType;
@@ -780,7 +790,7 @@ describe("the people a rule invites to the channel it creates for a record are l
           projectId: PROJECT_ID,
           notificationRuleEventType: record.eventType,
           notificationFor: { [record.field]: recordId },
-          channelNameSiffix: "1",
+          channelNameParts: RECORD_CHANNEL_NAME_PARTS,
         },
       );
 
@@ -820,7 +830,7 @@ describe("the people a rule invites to the channel it creates for a record are l
           projectId: PROJECT_ID,
           notificationRuleEventType: NotificationRuleEventType.Incident,
           notificationFor: { incidentId: ObjectID.generate() },
-          channelNameSiffix: "1",
+          channelNameParts: RECORD_CHANNEL_NAME_PARTS,
         },
       ),
     ).resolves.toMatchObject({ channelsCreated: [RECORD_CHANNEL] });

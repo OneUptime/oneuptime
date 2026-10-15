@@ -82,6 +82,8 @@ Le autorizzazioni dei runbook si trovano nel gruppo di autorizzazioni `Runbook`:
 
 Un ruolo esegue i runbook raggiunti dal suo ambito. Un'assegnazione di `RunbookMember`, `RunbookAdmin` o `ProjectMember` limitata ad alcune etichette avvia e fa avanzare le esecuzioni dei runbook che portano quelle etichette, una limitata a **Owned** quelle dei runbook di proprietà del suo team, e il blocco di un'etichetta da parte di un team gli toglie quei runbook. `CreateRunbookExecution` e `EditRunbookExecution` riguardano le esecuzioni, che non hanno etichette, quindi raggiungono ogni runbook del progetto. L'approvazione di un suggerimento di rimedio che avvia un runbook viene verificata allo stesso modo.
 
+La pianificazione e il webhook di un runbook avviano esecuzioni senza nessuno presente, quindi configurarli richiede il permesso di modificare il runbook e di eseguirlo, e lo stesso vale per vederne l'URL del webhook. Disattivarli richiede solo il permesso di modificarlo. Vedi [Trigger dei runbook](/docs/runbooks/triggers#chi-può-configurare-i-trigger).
+
 Credenziali e segreti sono fuori da `RunbookAdmin`. Gestirli richiede `ProjectOwner` o `ProjectAdmin`, oppure le autorizzazioni `CreateRunbookCredential`, `EditRunbookCredential`, `DeleteRunbookCredential`, `ReadRunbookCredential` e `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret`, `ReadRunbookSecret`. Vedi [Credenziali dei runbook](/docs/runbooks/credentials).
 
 Anche le regole del proprietario e delle etichette in **Runbook → Impostazioni** sono fuori da `RunbookAdmin`. Gestirle richiede `ProjectOwner` o `ProjectAdmin`, oppure le autorizzazioni `CreateRunbookOwnerRule` e `CreateRunbookLabelRule` con le loro corrispondenti di modifica, eliminazione e lettura.
