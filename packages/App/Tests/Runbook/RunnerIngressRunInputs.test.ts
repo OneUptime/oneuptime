@@ -32,7 +32,14 @@ const EXECUTION_ID: ObjectID = new ObjectID(
 
 const INPUTS: JSONObject = { host: "web-1", reason: "$(touch /tmp/pwned)" };
 
-function job(overrides: Partial<RunnerJob> = {}): RunnerJob {
+/*
+ * Fixture overrides may set a column to undefined on purpose (a job with no
+ * run, a run with no inputs are cases under test), which Partial<Model>
+ * forbids under exactOptionalPropertyTypes.
+ */
+type Loose<TModel> = { [K in keyof TModel]?: TModel[K] | undefined };
+
+function job(overrides: Loose<RunnerJob> = {}): RunnerJob {
   const item: RunnerJob = new RunnerJob();
 
   Object.assign(item, {
@@ -47,7 +54,7 @@ function job(overrides: Partial<RunnerJob> = {}): RunnerJob {
   return item;
 }
 
-function run(overrides: Partial<RunbookExecution> = {}): RunbookExecution {
+function run(overrides: Loose<RunbookExecution> = {}): RunbookExecution {
   const item: RunbookExecution = new RunbookExecution();
 
   Object.assign(item, {

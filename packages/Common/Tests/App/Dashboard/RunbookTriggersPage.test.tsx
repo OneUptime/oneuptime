@@ -187,7 +187,7 @@ function readRunbook(): Runbook {
   const runbook: Runbook = new Runbook();
   runbook._id = RUNBOOK_ID;
   runbook.isEnabled = stored.isEnabled;
-  runbook.steps = stored.steps as unknown as Runbook["steps"];
+  runbook.steps = stored.steps;
   runbook.isScheduleEnabled = stored.isScheduleEnabled;
   runbook.isWebhookEnabled = stored.isWebhookEnabled;
 

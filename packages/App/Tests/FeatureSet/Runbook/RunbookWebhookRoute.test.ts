@@ -218,7 +218,14 @@ async function call(data: {
   };
 }
 
-function runbook(overrides: Partial<Runbook> = {}): Runbook {
+/*
+ * Fixture overrides may set a column to undefined on purpose (a runbook
+ * with no key is a case under test), which Partial<Model> forbids under
+ * exactOptionalPropertyTypes.
+ */
+type Loose<TModel> = { [K in keyof TModel]?: TModel[K] | undefined };
+
+function runbook(overrides: Loose<Runbook> = {}): Runbook {
   const item: Runbook = new Runbook();
 
   Object.assign(item, {
