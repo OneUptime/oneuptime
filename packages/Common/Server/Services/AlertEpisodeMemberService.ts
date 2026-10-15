@@ -1238,10 +1238,10 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * The episode's side of alerts added together, once for all of them: its
-   * count (and a title kept from a template), its last-added time, its
-   * severity raised to the most severe alert added when asked - as a
-   * grouping rule raises it - and its one feed entry when asked. Nothing
-   * when none was added. Never throws: each step is logged if it fails.
+   * count (and a title kept from a template), its last-added time, its one
+   * feed entry when asked, then its severity raised to the most severe alert
+   * added when asked - as a grouping rule raises it. Nothing when none was
+   * added. Never throws: each step is logged if it fails.
    */
   private async updateEpisodeAfterAddingTogether(data: {
     projectId: ObjectID;
@@ -1268,6 +1268,19 @@ export class Service extends ProjectReferencesService<Model> {
         `Error updating the episode's count after alerts were added together: ${error}`,
         logAttributes,
       );
+    }
+
+    /*
+     * The entry naming what was added comes before the severity it may
+     * raise, so the feed reads what happened, then what that changed.
+     */
+    if (data.writeFeedItem) {
+      await this.createAlertsAddedFeedItem({
+        projectId: data.projectId,
+        alertEpisodeId: data.alertEpisodeId,
+        alertIds: data.addedAlertIds,
+        addedByUserId: data.addedByUserId,
+      });
     }
 
     if (data.raiseSeverity) {
@@ -1311,15 +1324,6 @@ export class Service extends ProjectReferencesService<Model> {
           logAttributes,
         );
       }
-    }
-
-    if (data.writeFeedItem) {
-      await this.createAlertsAddedFeedItem({
-        projectId: data.projectId,
-        alertEpisodeId: data.alertEpisodeId,
-        alertIds: data.addedAlertIds,
-        addedByUserId: data.addedByUserId,
-      });
     }
   }
 

@@ -716,6 +716,19 @@ describe.each(KINDS)(
       );
     });
 
+    test("the entry naming them comes before the severity they raised", async () => {
+      await add(kind, [recordId(1), recordId(2)]);
+
+      const entryWritten: number = (
+        kind.episodeFeedService[kind.episodeFeedMethod] as jest.Mock
+      ).mock.invocationCallOrder[0]!;
+      const severityRaised: number = (
+        kind.episodeService["updateEpisodeSeverity"] as jest.Mock
+      ).mock.invocationCallOrder[0]!;
+
+      expect(entryWritten).toBeLessThan(severityRaised);
+    });
+
     test("a more severe one that was not added does not raise it", async () => {
       // recordId(4) is critical, but hidden from the person.
       world.hidden = [recordId(4)];
