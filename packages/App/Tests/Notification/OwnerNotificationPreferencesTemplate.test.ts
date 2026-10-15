@@ -11,8 +11,7 @@ const TEMPLATES_DIR: string = Path.resolve(
 const handlebars: typeof Handlebars = Handlebars.create();
 const PREFERENCES_URL: string =
   "https://oneuptime.example.com/dashboard/11111111-1111-4111-8111-111111111111/user-settings/notification-settings";
-const FALLBACK: string =
-  "Dashboard > More > User Settings > Notification Settings";
+const FALLBACK: string = "Dashboard > User Settings > Notification Settings";
 
 function readTemplate(name: string): string {
   return fs.readFileSync(Path.join(TEMPLATES_DIR, name), "utf8");

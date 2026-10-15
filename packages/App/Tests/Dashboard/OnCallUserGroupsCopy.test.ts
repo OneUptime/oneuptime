@@ -382,7 +382,7 @@ describe("who is on call but not in a group", () => {
     };
 
     expect(why(WorkspaceUserGroupLeftOutReason.NotFound)).toBe(
-      "{{name}} is on call but isn't in the group: OneUptime can't find them in Slack. They can connect their Slack account in User Settings > Slack, or use the same email address in both.",
+      "{{name}} is on call but isn't in the group: OneUptime can't find them in Slack. They can connect their Slack account in User Settings > Workspace > Slack, or use the same email address in both.",
     );
     expect(why(WorkspaceUserGroupLeftOutReason.Guest)).toBe(
       "{{name}} is on call but isn't in the group: they are a guest in Slack, and Slack keeps guests out of user groups.",

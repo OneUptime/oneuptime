@@ -50,10 +50,10 @@ describe("user settings > notification settings", () => {
 
   beforeEach(() => {
     /*
-     * The Slack and Teams columns are there only for the workspaces the
-     * project has connected; both are, unless a test says otherwise. The
-     * store is answered here rather than through ModelAPI.getList, whose
-     * calls these tests read as the matrix's own.
+     * The Slack and Microsoft Teams columns are there only for the
+     * workspaces the project has connected; both are, unless a test says
+     * otherwise. The store is answered here rather than through
+     * ModelAPI.getList, whose calls these tests read as the matrix's own.
      */
     window.localStorage.clear();
     ConnectedWorkspaces.reset();
@@ -364,7 +364,7 @@ describe("user settings > notification settings", () => {
         "WhatsApp",
         "Telegram",
         "Slack",
-        "Teams",
+        "Microsoft Teams",
         "Webhook",
       ]) {
         expect(
@@ -376,8 +376,8 @@ describe("user settings > notification settings", () => {
     });
 
     test.each([
-      [[WorkspaceType.Slack], "Slack", "Teams"],
-      [[WorkspaceType.MicrosoftTeams], "Teams", "Slack"],
+      [[WorkspaceType.Slack], "Slack", "Microsoft Teams"],
+      [[WorkspaceType.MicrosoftTeams], "Microsoft Teams", "Slack"],
     ])(
       "with only %j connected, the %s column is there and the %s one is not",
       async (
@@ -425,7 +425,7 @@ describe("user settings > notification settings", () => {
         within(row).queryByRole("switch", { name: /^Slack:/ }),
       ).not.toBeInTheDocument();
       expect(
-        within(row).queryByRole("switch", { name: /^Teams:/ }),
+        within(row).queryByRole("switch", { name: /^Microsoft Teams:/ }),
       ).not.toBeInTheDocument();
     });
 

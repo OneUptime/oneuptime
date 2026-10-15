@@ -101,9 +101,16 @@ const CHANNELS: ReadonlyArray<ChannelDef> = [
     color: Purple500,
     workspaceType: WorkspaceType.Slack,
   },
+  /*
+   * The product's own name, as every other list of channels writes it. The
+   * bare "Teams" key means teams of people, and most languages translate it
+   * that way (French "Equipes", Spanish "Equipos"), so a column labelled
+   * with it named something other than the Microsoft Teams messages it
+   * switches.
+   */
   {
     key: "alertByMicrosoftTeams",
-    label: "Teams",
+    label: "Microsoft Teams",
     icon: IconProp.MicrosoftTeams,
     color: Blue500,
     workspaceType: WorkspaceType.MicrosoftTeams,

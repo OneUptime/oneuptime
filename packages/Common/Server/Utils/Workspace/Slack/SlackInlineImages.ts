@@ -24,7 +24,7 @@ import SSRFProtection from "../../SSRFProtection";
  *
  * Uploading needs the files:write scope, which the OneUptime Slack app asks
  * for. A workspace that connected the app before it did has to connect it
- * again (Project Settings > Slack Integration); until then, and whenever an
+ * again (Project Settings > Workspace > Slack); until then, and whenever an
  * upload fails, Slack answers missing_scope or the like, the warning says
  * so, and each image is shown as its alt text instead - as is an image of a
  * kind an image block does not show from a file (WebP), and one past what a
@@ -149,7 +149,7 @@ export default class SlackInlineImages {
 
       if (result.error === "missing_scope") {
         logger.warn(
-          "An image in a Slack message is shown as its alt text: the OneUptime Slack app cannot upload files (missing the files:write scope). Connect Slack again in Project Settings > Slack Integration to show images in Slack messages.",
+          "An image in a Slack message is shown as its alt text: the OneUptime Slack app cannot upload files (missing the files:write scope). Connect Slack again in Project Settings > Workspace > Slack to show images in Slack messages.",
         );
       } else {
         logger.warn(
