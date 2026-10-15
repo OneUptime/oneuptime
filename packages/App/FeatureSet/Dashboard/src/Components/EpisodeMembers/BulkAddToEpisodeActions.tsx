@@ -27,17 +27,9 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
-import {
-  translationKey,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, {
-  MutableRefObject,
-  ReactElement,
-  useRef,
-  useState,
-} from "react";
+import React, { MutableRefObject, ReactElement, useRef, useState } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AddToExistingEpisodeModal from "./AddToExistingEpisodeModal";
 import AddToNewEpisodeModal, { NewEpisodeValues } from "./AddToNewEpisodeModal";

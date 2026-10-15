@@ -75,9 +75,9 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
   const [searchText, setSearchText] = useState<string>("");
   const [debouncedSearch, setDebouncedSearch] = useState<string>("");
   const [rows, setRows] = useState<Array<EpisodeRecordRow>>([]);
-  const [episodeLabels, setEpisodeLabels] = useState<
-    Map<string, EpisodeLabel>
-  >(new Map());
+  const [episodeLabels, setEpisodeLabels] = useState<Map<string, EpisodeLabel>>(
+    new Map(),
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string>("");
   const [reloadToken, setReloadToken] = useState<number>(0);
@@ -243,7 +243,9 @@ const AddEpisodeMembersModal: FunctionComponent<ComponentProps> = (
   const isInAnotherEpisode: (row: EpisodeRecordRow) => boolean = (
     row: EpisodeRecordRow,
   ): boolean => {
-    return Boolean(row.otherEpisodeId) && row.otherEpisodeId !== episodeIdString;
+    return (
+      Boolean(row.otherEpisodeId) && row.otherEpisodeId !== episodeIdString
+    );
   };
 
   const toItem: (row: EpisodeRecordRow) => EpisodePickerItem = (

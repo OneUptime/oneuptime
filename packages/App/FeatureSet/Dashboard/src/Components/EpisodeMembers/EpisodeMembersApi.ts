@@ -544,8 +544,7 @@ export async function fetchRecordsForNewEpisode(data: {
   }
 
   // In the order they were selected.
-  const records: Array<RecordForNewEpisode & { otherEpisodeId?: string }> =
-    [];
+  const records: Array<RecordForNewEpisode & { otherEpisodeId?: string }> = [];
 
   for (const id of data.ids) {
     const record: BaseModel | undefined = byId.get(

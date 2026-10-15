@@ -10,7 +10,11 @@ import { SeverityForMapping } from "../../../Utils/Incident/IncidentFromAlerts";
  * selected record's severity, and its title unless it is private.
  */
 
-const CRITICAL: SeverityForMapping = { id: "s-critical", name: "Critical", order: 1 };
+const CRITICAL: SeverityForMapping = {
+  id: "s-critical",
+  name: "Critical",
+  order: 1,
+};
 const MAJOR: SeverityForMapping = { id: "s-major", name: "Major", order: 2 };
 const MINOR: SeverityForMapping = { id: "s-minor", name: "Minor", order: 3 };
 
@@ -154,17 +158,18 @@ describe("the title a new episode starts with", () => {
 
 describe("sortBySeverity", () => {
   test("puts the most severe first, those without a severity last, ties in order", () => {
-    const sorted: Array<RecordForNewEpisode> = EpisodeFromRecords.sortBySeverity({
-      records: [
-        record("none-1", "", undefined),
-        record("minor", "", MINOR),
-        record("critical-1", "", CRITICAL),
-        record("none-2", "", undefined),
-        record("critical-2", "", CRITICAL),
-        record("major", "", MAJOR),
-      ],
-      severities: SEVERITIES,
-    });
+    const sorted: Array<RecordForNewEpisode> =
+      EpisodeFromRecords.sortBySeverity({
+        records: [
+          record("none-1", "", undefined),
+          record("minor", "", MINOR),
+          record("critical-1", "", CRITICAL),
+          record("none-2", "", undefined),
+          record("critical-2", "", CRITICAL),
+          record("major", "", MAJOR),
+        ],
+        severities: SEVERITIES,
+      });
 
     expect(
       sorted.map((entry: RecordForNewEpisode): string => {

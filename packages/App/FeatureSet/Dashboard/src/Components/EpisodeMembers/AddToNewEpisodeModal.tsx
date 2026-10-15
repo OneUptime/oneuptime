@@ -73,9 +73,9 @@ const AddToNewEpisodeModal: FunctionComponent<ComponentProps> = (
   const itemsTitle: TranslatableTerm = translatableTerm(config.pluralTitle);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [severityOptions, setSeverityOptions] = useState<
-    Array<DropdownOption>
-  >([]);
+  const [severityOptions, setSeverityOptions] = useState<Array<DropdownOption>>(
+    [],
+  );
   const [initialValues, setInitialValues] = useState<NewEpisodeFormData>({});
   const [inAnotherEpisode, setInAnotherEpisode] = useState<number>(0);
 
@@ -103,7 +103,9 @@ const AddToNewEpisodeModal: FunctionComponent<ComponentProps> = (
             >;
           }),
         fetchSeverities({ config: config }).catch(() => {
-          return [] as Array<SeverityForMapping & { color?: Color | undefined }>;
+          return [] as Array<
+            SeverityForMapping & { color?: Color | undefined }
+          >;
         }),
       ]);
 
