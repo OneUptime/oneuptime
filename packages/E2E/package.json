@@ -49,7 +49,8 @@
     "test-llm-provider-test-ui": "playwright test --config playwright.llm-provider-test-ui.config.ts",
     "test-pagination-ui": "playwright test --config playwright.pagination-ui.config.ts",
     "test-calendar-feed-ui": "playwright test --config playwright.calendar-feed-ui.config.ts",
-    "test-list-delete-ui": "playwright test --config playwright.list-delete-ui.config.ts"
+    "test-list-delete-ui": "playwright test --config playwright.list-delete-ui.config.ts",
+    "test-episode-bulk-add-ui": "playwright test --config playwright.episode-bulk-add-ui.config.ts"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

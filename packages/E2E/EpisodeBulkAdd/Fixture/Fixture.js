@@ -311,7 +311,9 @@ function makeKind(kind) {
     episodeIdKey: isAlert ? "alertEpisodeId" : "incidentEpisodeId",
     idsKey: isAlert ? "alertIds" : "incidentIds",
     idsToAddKey: isAlert ? "alertIdsToAdd" : "incidentIdsToAdd",
-    notFoundReason: isAlert ? ALERT_NOT_FOUND_REASON : INCIDENT_NOT_FOUND_REASON,
+    notFoundReason: isAlert
+      ? ALERT_NOT_FOUND_REASON
+      : INCIDENT_NOT_FOUND_REASON,
     nextEpisodeNumber: 13,
   };
 }
@@ -405,7 +407,8 @@ function sortRows(rows, sort) {
   }
   const direction = order === SortOrder.Descending ? -1 : 1;
   return [...rows].sort((first, second) => {
-    const a = first[field] instanceof Date ? first[field].getTime() : first[field];
+    const a =
+      first[field] instanceof Date ? first[field].getTime() : first[field];
     const b =
       second[field] instanceof Date ? second[field].getTime() : second[field];
     if (a === b) {
