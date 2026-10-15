@@ -14,6 +14,7 @@ import OnCallDutyPolicyExecutionLog from "../../Models/DatabaseModels/OnCallDuty
 import OnCallDutyPolicyExecutionLogTimelineService from "./OnCallDutyPolicyExecutionLogTimelineService";
 import OnCallDutyPolicyScheduleService, {
   CurrentOnCallInSchedule,
+  NextInRotationInSchedule,
 } from "./OnCallDutyPolicyScheduleService";
 import TeamMemberService from "./TeamMemberService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
@@ -50,6 +51,10 @@ import {
   ON_CALL_DIRECT_PAGE_NOBODY_TO_PAGE_TIMELINE_MESSAGE,
   OnCallDirectPageTargets,
 } from "../../Types/OnCallDutyPolicy/OnCallDirectPage";
+import {
+  NOBODY_NEXT_IN_ROTATION_TIMELINE_MESSAGE,
+  readNextInRotationScheduleIds,
+} from "../../Types/OnCallDutyPolicy/NextInRotation";
 
 /*
  * The escalation timeline's line for a recipient the rule would have paged
@@ -69,6 +74,12 @@ enum RuleTargetKind {
   ScheduleGap = "ScheduleGap",
   // A team with no accepted member, which a direct page says a word about.
   EmptyTeam = "EmptyTeam",
+  /*
+   * A schedule whose next person in the rotation the rule pages, with
+   * somebody on call in it but nobody next: the rotation has nobody else in
+   * it, or everybody else in it is away.
+   */
+  NobodyNextInRotation = "NobodyNextInRotation",
 }
 
 interface RecipientRuleTarget {
@@ -86,6 +97,12 @@ interface RecipientRuleTarget {
    * already handed a skipped person's turn to the next one in its rotation.
    */
   awayUntil: Date | null;
+  /*
+   * The person is paged as the next in the schedule's rotation - the backup
+   * after whoever is on call in it - not as its on-call person. Nobody away
+   * is ever next, so no override applies to them.
+   */
+  isNextInRotation: boolean;
 }
 
 /*
@@ -107,10 +124,16 @@ interface EmptyTeamRuleTarget {
   teamId: ObjectID;
 }
 
+interface NobodyNextInRotationRuleTarget {
+  kind: RuleTargetKind.NobodyNextInRotation;
+  scheduleId: ObjectID;
+}
+
 type RuleTarget =
   | RecipientRuleTarget
   | ScheduleGapRuleTarget
-  | EmptyTeamRuleTarget;
+  | EmptyTeamRuleTarget
+  | NobodyNextInRotationRuleTarget;
 
 /*
  * The run a set of targets is paged for (pageTargets): an on-call policy's
@@ -138,6 +161,12 @@ export enum OnCallNotPagedReason {
   NobodyOnCall = "NobodyOnCall",
   // A team with no accepted member.
   EmptyTeam = "EmptyTeam",
+  /*
+   * A schedule whose next person in the rotation was to be paged, with
+   * nobody next: the rotation has nobody else in it, or everybody else in
+   * it is away.
+   */
+  NobodyNextInRotation = "NobodyNextInRotation",
 }
 
 // One person a set of targets paged.
@@ -150,6 +179,12 @@ export interface OnCallPagedTarget {
   teamId: ObjectID | null;
   // The schedule they are on call in, when that is why they were paged.
   scheduleId: ObjectID | null;
+  /*
+   * Present (true) when they were paged as the next person in that
+   * schedule's rotation - the backup after whoever is on call - rather than
+   * as its on-call person. Absent otherwise.
+   */
+  isNextInRotation?: true;
 }
 
 // One person, team or schedule a set of targets did not page, and why.
@@ -436,6 +471,8 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         limit: LIMIT_PER_PROJECT,
         select: {
           onCallDutyPolicyScheduleId: true,
+          // Whoever is on call in it, or the next person in its rotation.
+          pageNextInRotation: true,
         },
       });
 
@@ -447,10 +484,29 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       } as LogAttributes,
     );
 
+    // The schedule ids of the rule's rows that page one way or the other.
+    const getScheduleIdsOfRule: (
+      pagesNextInRotation: boolean,
+    ) => Array<ObjectID> = (pagesNextInRotation: boolean): Array<ObjectID> => {
+      return schedulesInRule
+        .filter((scheduleRule: OnCallDutyPolicyEscalationRuleSchedule) => {
+          return (
+            Boolean(scheduleRule.pageNextInRotation) === pagesNextInRotation
+          );
+        })
+        .map((scheduleRule: OnCallDutyPolicyEscalationRuleSchedule) => {
+          return scheduleRule.onCallDutyPolicyScheduleId;
+        })
+        .filter((scheduleId: ObjectID | undefined): scheduleId is ObjectID => {
+          return Boolean(scheduleId);
+        });
+    };
+
     /*
      * Who this rule pages, in paging order: the accepted members of each
      * team, then the users named directly, then whoever is on call in each
-     * schedule (pageTargets).
+     * schedule, then the next person in the rotation of each schedule it
+     * pages that way (pageTargets).
      */
     const outcome: OnCallPagingOutcome = await this.pageTargets({
       context: options,
@@ -469,13 +525,8 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         .filter((userId: ObjectID | undefined): userId is ObjectID => {
           return Boolean(userId);
         }),
-      scheduleIds: schedulesInRule
-        .map((scheduleRule: OnCallDutyPolicyEscalationRuleSchedule) => {
-          return scheduleRule.onCallDutyPolicyScheduleId;
-        })
-        .filter((scheduleId: ObjectID | undefined): scheduleId is ObjectID => {
-          return Boolean(scheduleId);
-        }),
+      scheduleIds: getScheduleIdsOfRule(false),
+      nextInRotationScheduleIds: getScheduleIdsOfRule(true),
       // A rule's team with nobody in it has always gone unsaid.
       notesEmptyTeams: false,
     });
@@ -635,6 +686,8 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       teamIds: options.targets.teamIds,
       userIds: options.targets.userIds,
       scheduleIds: options.targets.onCallScheduleIds,
+      // A direct page pages whoever is on call in a schedule it names.
+      nextInRotationScheduleIds: [],
       // "Team Platform has no members" is why nobody was paged through it.
       notesEmptyTeams: true,
     });
@@ -783,7 +836,13 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     ruleId: ObjectID | null;
     teamIds: Array<ObjectID>;
     userIds: Array<ObjectID>;
+    // Schedules whose on-call person is paged.
     scheduleIds: Array<ObjectID>;
+    /*
+     * Schedules whose next person in the rotation is paged: the backup after
+     * whoever is on call in them. None for a direct page.
+     */
+    nextInRotationScheduleIds: Array<ObjectID>;
     // Whether a team with no accepted member gets a line of its own.
     notesEmptyTeams: boolean;
   }): Promise<OnCallPagingOutcome> {
@@ -819,6 +878,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       alertSentToUserId: ObjectID,
       teamId: ObjectID | null,
       scheduleId: ObjectID | null,
+      isNextInRotation: boolean,
     ) => Promise<void>;
 
     /*
@@ -870,6 +930,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         alertSentToUserId: ObjectID,
         teamId: ObjectID | null,
         scheduleId: ObjectID | null,
+        isNextInRotation: boolean,
       ): Promise<void> => {
         /*
          * This is where user is notified. alertSentToUserId is already resolved
@@ -901,6 +962,15 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
 
         if (scheduleId) {
           log.onCallDutyScheduleId = scheduleId;
+        }
+
+        /*
+         * Why the schedule is on the step: they are the next person in its
+         * rotation, not its on-call person. The status message is rewritten
+         * as the page goes out, so the reason is a column of its own.
+         */
+        if (isNextInRotation) {
+          log.isNextInRotation = true;
         }
 
         log = await OnCallDutyPolicyExecutionLogTimelineService.create({
@@ -997,6 +1067,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           teamId: teamId,
           scheduleId: null,
           awayUntil: recipient.awayUntil,
+          isNextInRotation: false,
         });
       }
 
@@ -1019,6 +1090,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         teamId: null,
         scheduleId: null,
         awayUntil: recipient.awayUntil,
+        isNextInRotation: false,
       });
     }
 
@@ -1053,6 +1125,81 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         teamId: null,
         scheduleId: scheduleId,
         awayUntil: null,
+        isNextInRotation: false,
+      });
+    }
+
+    /*
+     * THE NEXT PERSON IN EACH ROTATION: the backup after whoever is on call
+     * in a schedule, from the same rotation, passing over anyone who is away
+     * and whoever is on call already (getNextInRotationInSchedule). The
+     * schedule has applied every override already, and nobody away is ever
+     * next, so - as for its on-call person - no second override hop.
+     *
+     * Nobody on call at all is a gap, as for a page to the schedule: the
+     * rule is tried again in a minute, while somebody may come on call.
+     * Somebody on call with nobody next - the rotation has nobody else, or
+     * everybody else is away - is not: trying again would find the same.
+     */
+    for (const scheduleId of data.nextInRotationScheduleIds) {
+      const next: NextInRotationInSchedule | null =
+        await OnCallDutyPolicyScheduleService.getNextInRotationInSchedule(
+          scheduleId,
+          { onCallDutyPolicyId: options.onCallPolicyId },
+        );
+
+      if (!next) {
+        logger.debug(
+          `Nobody is on call in schedule ${scheduleId.toString()}, so nobody is next in its rotation.`,
+          {
+            ...logAttributes,
+            onCallDutyPolicyScheduleId: scheduleId.toString(),
+          } as LogAttributes,
+        );
+
+        targets.push({
+          kind: RuleTargetKind.ScheduleGap,
+          scheduleId: scheduleId,
+        });
+
+        continue;
+      }
+
+      if (!next.nextUserId) {
+        logger.debug(
+          `Nobody is next after ${next.onCallUserId.toString()} in the rotation of schedule ${scheduleId.toString()}: it has nobody else in it, or everybody else in it is away.`,
+          {
+            ...logAttributes,
+            onCallDutyPolicyScheduleId: scheduleId.toString(),
+            userId: next.onCallUserId.toString(),
+          } as LogAttributes,
+        );
+
+        targets.push({
+          kind: RuleTargetKind.NobodyNextInRotation,
+          scheduleId: scheduleId,
+        });
+
+        continue;
+      }
+
+      logger.debug(
+        `Paging ${next.nextUserId.toString()} as the next person in the rotation of schedule ${scheduleId.toString()}${next.layerName ? ` (layer ${next.layerName})` : ""}, after ${next.onCallUserId.toString()}, who is on call.`,
+        {
+          ...logAttributes,
+          onCallDutyPolicyScheduleId: scheduleId.toString(),
+          userId: next.nextUserId.toString(),
+        } as LogAttributes,
+      );
+
+      targets.push({
+        kind: RuleTargetKind.Recipient,
+        originalUserId: next.nextUserId,
+        recipientUserId: next.nextUserId,
+        teamId: null,
+        scheduleId: scheduleId,
+        awayUntil: null,
+        isNextInRotation: true,
       });
     }
 
@@ -1159,6 +1306,37 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       }
 
       /*
+       * Somebody is on call in the schedule, but nobody is next in its
+       * rotation: the step names the schedule and says so, flagged as the
+       * next-in-rotation step it is - a page to the schedule's on-call
+       * person with nobody on call reads "nobody was on call" instead.
+       */
+      if (target.kind === RuleTargetKind.NobodyNextInRotation) {
+        const log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
+        log.statusMessage = NOBODY_NEXT_IN_ROTATION_TIMELINE_MESSAGE;
+        log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
+        log.onCallDutyScheduleId = target.scheduleId;
+        log.isNextInRotation = true;
+
+        await OnCallDutyPolicyExecutionLogTimelineService.create({
+          data: log,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        outcome.notPaged.push({
+          reason: OnCallNotPagedReason.NobodyNextInRotation,
+          userId: null,
+          teamId: null,
+          scheduleId: target.scheduleId,
+          awayUntil: null,
+        });
+
+        continue;
+      }
+
+      /*
        * Away with nobody named to cover: not paged, and the timeline says
        * until when - the run's Slack and Teams message reads it back
        * ("away until ...").
@@ -1217,6 +1395,10 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           log.onCallDutyScheduleId = target.scheduleId;
         }
 
+        if (target.isNextInRotation) {
+          log.isNextInRotation = true;
+        }
+
         await OnCallDutyPolicyExecutionLogTimelineService.create({
           data: log,
           props: {
@@ -1252,6 +1434,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           pagedUserId,
           target.teamId,
           target.scheduleId,
+          target.isNextInRotation,
         );
 
         outcome.paged.push({
@@ -1262,6 +1445,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
               : null,
           teamId: target.teamId,
           scheduleId: target.scheduleId,
+          ...(target.isNextInRotation ? { isNextInRotation: true as const } : {}),
         });
       } else {
         const log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
@@ -1275,6 +1459,10 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
 
         if (target.scheduleId) {
           log.onCallDutyScheduleId = target.scheduleId;
+        }
+
+        if (target.isNextInRotation) {
+          log.isNextInRotation = true;
         }
 
         await OnCallDutyPolicyExecutionLogTimelineService.create({
@@ -1327,11 +1515,24 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
 
     // add people in escalation rule.
 
+    /*
+     * The schedules whose next person in the rotation the rule pages - the
+     * backup after whoever is on call - checked before the rule was created
+     * (onBeforeCreate), so this read cannot refuse.
+     */
+    const nextInRotationScheduleIds: Array<ObjectID> =
+      readNextInRotationScheduleIds(onCreate.createBy.miscDataProps).map(
+        (id: string): ObjectID => {
+          return new ObjectID(id);
+        },
+      );
+
     if (
       onCreate.createBy.miscDataProps &&
       (onCreate.createBy.miscDataProps["teams"] ||
         onCreate.createBy.miscDataProps["users"] ||
-        onCreate.createBy.miscDataProps["onCallSchedules"])
+        onCreate.createBy.miscDataProps["onCallSchedules"] ||
+        nextInRotationScheduleIds.length > 0)
     ) {
       await this.addUsersTeamsAndSchedules(
         createdItem.projectId,
@@ -1343,12 +1544,18 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           "onCallSchedules"
         ] as Array<ObjectID>) || [],
         onCreate.createBy.props,
+        nextInRotationScheduleIds,
       );
     }
 
     return createdItem;
   }
 
+  /*
+   * The rule's responders, as join rows: the people, the teams, the
+   * schedules whose on-call person it pages, and the schedules whose next
+   * person in the rotation it pages (the backup after whoever is on call).
+   */
   @CaptureSpan()
   public async addUsersTeamsAndSchedules(
     projectId: ObjectID,
@@ -1358,6 +1565,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     teamIds: Array<ObjectID>,
     onCallScheduleIds: Array<ObjectID>,
     props: DatabaseCommonInteractionProps,
+    nextInRotationScheduleIds: Array<ObjectID> = [],
   ): Promise<void> {
     for (const userId of usersIds) {
       await this.addUser(
@@ -1386,6 +1594,17 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         onCallDutyPolicyId,
         scheduleId,
         props,
+      );
+    }
+
+    for (const scheduleId of nextInRotationScheduleIds) {
+      await this.addOnCallSchedules(
+        projectId,
+        escalationRuleId,
+        onCallDutyPolicyId,
+        scheduleId,
+        props,
+        { pageNextInRotation: true },
       );
     }
   }
@@ -1421,6 +1640,10 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     onCallDutyPolicyId: ObjectID,
     onCallScheduleId: ObjectID,
     props: DatabaseCommonInteractionProps,
+    options?: {
+      // Page the next person in the schedule's rotation, not its on-call person.
+      pageNextInRotation?: boolean | undefined;
+    },
   ): Promise<void> {
     const scheduleInRule: OnCallDutyPolicyEscalationRuleSchedule =
       new OnCallDutyPolicyEscalationRuleSchedule();
@@ -1428,6 +1651,10 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     scheduleInRule.onCallDutyPolicyId = onCallDutyPolicyId;
     scheduleInRule.onCallDutyPolicyEscalationRuleId = escalationRuleId;
     scheduleInRule.onCallDutyPolicyScheduleId = onCallScheduleId;
+
+    if (options?.pageNextInRotation) {
+      scheduleInRule.pageNextInRotation = true;
+    }
 
     if (props.userId) {
       scheduleInRule.createdByUserId = props.userId;
@@ -1493,6 +1720,13 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       ON_CALL_DUTY_POLICY_KEYS,
       onCallDutyPolicyId,
     );
+
+    /*
+     * The schedules whose next person in the rotation the rule is to page
+     * must be a list of ids: checked now, so a create that asks for them
+     * wrongly is refused before the rule exists (onCreateSuccess adds them).
+     */
+    readNextInRotationScheduleIds(createBy.miscDataProps);
 
     if (IsBillingEnabled && createBy.props.currentPlan === PlanType.Free) {
       // then check no of policies and if it is more than one, return error

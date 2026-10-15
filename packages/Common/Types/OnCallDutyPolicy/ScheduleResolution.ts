@@ -4,11 +4,15 @@ import LayerUtil, {
   ExpandedLayer,
   ExpandedLayers,
   LayerEventsResult,
+  LayerProps,
   MultiLayerProps,
   PriorityCalendarEvents,
   ROTATION_TURN_INDEX_KEY,
 } from "./Layer";
-import UserOverrideUtil, { UserOverrideRecord } from "./UserOverrideUtil";
+import UserOverrideUtil, {
+  OverrideEventMeta,
+  UserOverrideRecord,
+} from "./UserOverrideUtil";
 
 /*
  * WHO IS ON CALL IN A SCHEDULE, AND WHEN - THE ONE ANSWER.
@@ -36,6 +40,11 @@ import UserOverrideUtil, { UserOverrideRecord } from "./UserOverrideUtil";
  * merge would already have given its time away. Step 4 comes after it, as it
  * always has: a named cover takes the away person's time wherever the merged
  * schedule has them on call.
+ *
+ * "Who is next in the rotation" - the backup an escalation rule pages after
+ * the on-call person - is answered here too, from the same four steps
+ * (resolveNextInRotation): the layer that has whoever is on call, and the
+ * next person in its turn order who is not away.
  *
  * The expansion is the expensive step. A caller that resolves the same
  * window in several policy contexts (the calendar feeds' per-policy
@@ -66,6 +75,46 @@ export interface ResolveExpandedOptions {
   currentOnCallDutyPolicyId?: string | null | undefined;
   getNumberOfEvents?: number | undefined;
 }
+
+/*
+ * The schedule's layers at one moment, for "who is next in the rotation"
+ * (resolveNextInRotation): the layers, the people's overrides, the policy
+ * the schedule is paged through, and the moment.
+ */
+export interface NextInRotationInput {
+  layers: Array<LayerProps>;
+  at: Date;
+  overrides?: Array<UserOverrideRecord> | undefined;
+  currentOnCallDutyPolicyId?: string | null | undefined;
+}
+
+export interface ResolveNextInRotationOptions {
+  at: Date;
+  overrides?: Array<UserOverrideRecord> | undefined;
+  currentOnCallDutyPolicyId?: string | null | undefined;
+}
+
+/*
+ * Who is on call at a moment, and who is next in their rotation: the
+ * person an escalation rule's "Next in rotation" of the schedule pages.
+ */
+export interface NextInRotation {
+  // Who is on call: the person a page to the schedule goes to.
+  onCallUserId: string;
+  /*
+   * Whose turn it is in the rotation: the person on call, or - while a user
+   * override puts somebody in their place - the person away.
+   */
+  turnUserId: string;
+  // The next person in the same rotation who is not away; null for nobody.
+  nextUserId: string | null;
+  // The layer the turn is in, when the caller named its layers.
+  layerId?: string | undefined;
+  layerName?: string | undefined;
+}
+
+// The moment a resolution "at" a time looks at: one second from it.
+const ONE_MOMENT_IN_SECONDS: number = 1;
 
 export default class ScheduleResolution {
   /*
@@ -157,6 +206,192 @@ export default class ScheduleResolution {
     }
 
     return merged;
+  }
+
+  /*
+   * WHO IS NEXT IN THE ROTATION - THE BACKUP TO WHOEVER IS ON CALL.
+   *
+   * An escalation rule can page "the next person in the rotation" of an
+   * on-call schedule: page the schedule's on-call person at one level and,
+   * when they do not acknowledge, the person after them in the same
+   * rotation at the next - one schedule, with no second "backup" schedule to
+   * keep in step with it.
+   *
+   * The answer is read from the same resolution as "who is on call"
+   * (resolve), at one moment:
+   *
+   *   1. who is on call: the layers expanded, skipped, merged and covered,
+   *      as a page to the schedule finds them. Nobody on call - a gap, or
+   *      everybody away - and there is nobody next either: null;
+   *   2. the rotation: the layer that supplied whoever is on call - the
+   *      highest layer with somebody on call, as the merge decides - and the
+   *      turn in it at that moment (whose turn it is, and its place in the
+   *      layer's turn order);
+   *   3. the next person: the first after that turn in the layer's turn
+   *      order, wrapping round, who is not away (a user override, with a
+   *      cover or without one) and is not on call already - neither the
+   *      person whose turn it is nor whoever has it in their place
+   *      (UserOverrideUtil.getNextInRotation).
+   *
+   * Only the same rotation: a layer with nobody else in it, or everybody
+   * else in it away, has nobody next (nextUserId null) - the layers below it
+   * are other rotations, which the policy's later levels can page.
+   */
+  public static resolveNextInRotation(
+    input: NextInRotationInput,
+  ): NextInRotation | null {
+    const at: Date = OneUptimeDate.fromString(input.at);
+
+    const expanded: ExpandedLayers = ScheduleResolution.expand({
+      layers: input.layers,
+      calendarStartDate: at,
+      calendarEndDate: OneUptimeDate.addRemoveSeconds(at, ONE_MOMENT_IN_SECONDS),
+    });
+
+    return ScheduleResolution.resolveNextInRotationExpanded(expanded, {
+      at: at,
+      overrides: input.overrides,
+      currentOnCallDutyPolicyId: input.currentOnCallDutyPolicyId,
+    });
+  }
+
+  /*
+   * resolveNextInRotation from an expansion that holds the moment (expand,
+   * over a window that starts at it): a caller reads the overrides only once
+   * it knows somebody is on call, as the schedule service does.
+   */
+  public static resolveNextInRotationExpanded(
+    expanded: ExpandedLayers,
+    options: ResolveNextInRotationOptions,
+  ): NextInRotation | null {
+    const at: Date = OneUptimeDate.fromString(options.at);
+    const moment: number = at.getTime();
+
+    const onCallEvents: Array<CalendarEvent> =
+      ScheduleResolution.resolveExpanded(expanded, {
+        overrides: options.overrides,
+        currentOnCallDutyPolicyId: options.currentOnCallDutyPolicyId,
+      });
+
+    const onCall: CalendarEvent | undefined = onCallEvents.find(
+      (event: CalendarEvent): boolean => {
+        return ScheduleResolution.coversMoment(event, moment);
+      },
+    );
+
+    if (!onCall || !onCall.title) {
+      return null;
+    }
+
+    const onCallUserId: string = onCall.title;
+
+    // Whose turn it is: the person a user override puts somebody in place of.
+    const override: OverrideEventMeta | null =
+      UserOverrideUtil.getOverrideMeta(onCall);
+    const coveredUserId: string | null =
+      override?.originalUserId && override.originalUserId !== onCallUserId
+        ? override.originalUserId
+        : null;
+
+    const priority: unknown = (onCall as unknown as Record<string, unknown>)[
+      "priority"
+    ];
+
+    const layer: ExpandedLayer | undefined = expanded.layers.find(
+      (candidate: ExpandedLayer): boolean => {
+        return candidate.priority === priority;
+      },
+    );
+
+    if (!layer) {
+      return {
+        onCallUserId: onCallUserId,
+        turnUserId: coveredUserId || onCallUserId,
+        nextUserId: null,
+      };
+    }
+
+    // The turn in the rotation at the moment, before anybody was skipped.
+    const turn: PriorityCalendarEvents | undefined = layer.events.find(
+      (event: PriorityCalendarEvents): boolean => {
+        return ScheduleResolution.coversMoment(event, moment);
+      },
+    );
+
+    const turnUserId: string = turn?.title || coveredUserId || onCallUserId;
+    const turnIndex: number = ScheduleResolution.getTurnIndex({
+      turn: turn,
+      turnUserId: turnUserId,
+      userIds: layer.userIds,
+    });
+
+    const nextUserId: string | null =
+      turnIndex < 0
+        ? null
+        : UserOverrideUtil.getNextInRotation({
+            userIds: layer.userIds,
+            turnIndex: turnIndex,
+            start: at,
+            end: OneUptimeDate.addRemoveSeconds(at, ONE_MOMENT_IN_SECONDS),
+            overrides: UserOverrideUtil.getApplicableOverrides(
+              options.overrides || [],
+              options.currentOnCallDutyPolicyId,
+            ),
+            excludeUserIds: [onCallUserId, turnUserId],
+          });
+
+    const result: NextInRotation = {
+      onCallUserId: onCallUserId,
+      turnUserId: turnUserId,
+      nextUserId: nextUserId,
+    };
+
+    if (layer.layerId !== undefined) {
+      result.layerId = layer.layerId;
+    }
+
+    if (layer.layerName !== undefined) {
+      result.layerName = layer.layerName;
+    }
+
+    return result;
+  }
+
+  // Whether an event is in force at a moment: [start, end).
+  private static coversMoment(event: CalendarEvent, moment: number): boolean {
+    const start: number = OneUptimeDate.fromString(event.start).getTime();
+    const end: number = OneUptimeDate.fromString(event.end).getTime();
+
+    return start <= moment && end > moment;
+  }
+
+  /*
+   * A turn's place in its layer's turn order: stamped by the engine
+   * (ROTATION_TURN_INDEX_KEY) when it names the turn's person, or else that
+   * person's first place in the list; -1 when they are not in it.
+   */
+  private static getTurnIndex(data: {
+    turn: PriorityCalendarEvents | undefined;
+    turnUserId: string;
+    userIds: Array<string>;
+  }): number {
+    const stamped: unknown = data.turn
+      ? (data.turn as unknown as Record<string, unknown>)[
+          ROTATION_TURN_INDEX_KEY
+        ]
+      : undefined;
+
+    if (
+      typeof stamped === "number" &&
+      Number.isInteger(stamped) &&
+      stamped >= 0 &&
+      stamped < data.userIds.length &&
+      data.userIds[stamped] === data.turnUserId
+    ) {
+      return stamped;
+    }
+
+    return data.userIds.indexOf(data.turnUserId);
   }
 
   /*

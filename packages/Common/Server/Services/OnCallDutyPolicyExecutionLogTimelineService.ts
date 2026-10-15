@@ -100,6 +100,8 @@ export class Service extends DatabaseService<Model> {
             name: true,
             _id: true,
           },
+          // Paged as the next in the schedule's rotation, not as on call in it.
+          isNextInRotation: true,
           isAcknowledged: true,
           acknowledgedAt: true,
           userBelongsToTeam: {
@@ -239,6 +241,9 @@ export class Service extends DatabaseService<Model> {
                   .onCallDutyPolicyEscalationRule?.name,
               scheduleName:
                 onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name,
+              isNextInRotation: Boolean(
+                onCallDutyPolicyExecutionLogTimeline.isNextInRotation,
+              ),
               teamName:
                 onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name,
               recipient: recipient,

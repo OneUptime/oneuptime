@@ -13,7 +13,9 @@ import {
   ExpandedLayers,
   LayerProps,
 } from "../../Types/OnCallDutyPolicy/Layer";
-import ScheduleResolution from "../../Types/OnCallDutyPolicy/ScheduleResolution";
+import ScheduleResolution, {
+  NextInRotation,
+} from "../../Types/OnCallDutyPolicy/ScheduleResolution";
 import { RestrictionType } from "../../Types/OnCallDutyPolicy/RestrictionTimes";
 import Recurring from "../../Types/Events/Recurring";
 import UserOverrideUtil, {
@@ -97,6 +99,20 @@ export interface CurrentOnCallInSchedule {
   isSkip?: boolean;
   // While somebody is covered: when the time away of the person covered ends.
   coveredUntil?: Date | null;
+}
+
+/*
+ * Who is on call in a schedule, and who is next in their rotation
+ * (getNextInRotationInSchedule): what an escalation rule's "Next in
+ * rotation" of the schedule pages.
+ */
+export interface NextInRotationInSchedule {
+  // Who is on call now: the person the next one comes after.
+  onCallUserId: ObjectID;
+  // The next person in the same rotation who is not away; null for nobody.
+  nextUserId: ObjectID | null;
+  // The rotation (layer) they were found in, by its name, when it has one.
+  layerName: string | null;
 }
 
 /*
@@ -771,6 +787,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
         select: {
           projectId: true,
           _id: true,
+          pageNextInRotation: true,
           onCallDutyPolicy: {
             name: true,
             _id: true,
@@ -798,6 +815,16 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     }
 
     for (const escalationRule of escalationRulesAttachedToSchedule) {
+      /*
+       * A rule that pages the next person in this schedule's rotation does
+       * not page whoever is on call in it: a hand-off does not put them on
+       * call, or take them off call, for that rule - no message, no on-call
+       * time log, no feed entry.
+       */
+      if (escalationRule.pageNextInRotation) {
+        continue;
+      }
+
       const projectId: ObjectID = escalationRule.projectId!;
 
       const onCallSchedule: OnCallDutyPolicySchedule | undefined =
@@ -3477,6 +3504,85 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
         coveredUserId && override?.overrideEndsAt
           ? OneUptimeDate.fromString(override.overrideEndsAt)
           : null,
+    };
+  }
+
+  /*
+   * WHO IS NEXT IN THE SCHEDULE'S ROTATION - THE CALL TO MAKE.
+   *
+   * What an escalation rule's "Next in rotation" of a schedule pages: the
+   * person after whoever is on call right now (or at `at`), in the same
+   * rotation, passing over anyone who is away and whoever is on call
+   * already (ScheduleResolution.resolveNextInRotation). Null when nobody is
+   * on call at all - a gap, as for a page to the schedule itself; a result
+   * with no nextUserId when somebody is on call but nobody is next: the
+   * rotation has nobody else in it, or everybody else in it is away.
+   *
+   * Pass `onCallDutyPolicyId` to apply that policy's own overrides as well
+   * as the global ones, as paging through that policy does.
+   */
+  @CaptureSpan()
+  public async getNextInRotationInSchedule(
+    scheduleId: ObjectID,
+    options?:
+      | {
+          onCallDutyPolicyId?: ObjectID | undefined;
+          // The moment to answer for; now when left out.
+          at?: Date | undefined;
+        }
+      | undefined,
+  ): Promise<NextInRotationInSchedule | null> {
+    const { layerProps, projectId, scheduleUserIds } =
+      await this.getScheduleLayerProps({
+        scheduleId: scheduleId,
+      });
+
+    if (layerProps.length === 0) {
+      return null;
+    }
+
+    const at: Date = options?.at || OneUptimeDate.getCurrentDate();
+
+    const expansion: ExpandedLayers = ScheduleResolution.expand({
+      layers: layerProps,
+      calendarStartDate: at,
+      calendarEndDate: OneUptimeDate.addRemoveSeconds(at, 1),
+    });
+
+    const hasEvents: boolean = expansion.layers.some((layer: ExpandedLayer) => {
+      return layer.events.length > 0;
+    });
+
+    if (!hasEvents) {
+      return null;
+    }
+
+    // Everybody's time away: who is skipped, covered, or passed over as next.
+    const overrides: Array<UserOverrideRecord> = projectId
+      ? await this.fetchOverridesForSchedule({
+          projectId: projectId,
+          scheduleUserIds: scheduleUserIds,
+          windowStart: at,
+          windowEnd: OneUptimeDate.addRemoveSeconds(at, 1),
+          currentOnCallDutyPolicyId: options?.onCallDutyPolicyId,
+        })
+      : [];
+
+    const next: NextInRotation | null =
+      ScheduleResolution.resolveNextInRotationExpanded(expansion, {
+        at: at,
+        overrides: overrides,
+        currentOnCallDutyPolicyId: options?.onCallDutyPolicyId?.toString(),
+      });
+
+    if (!next) {
+      return null;
+    }
+
+    return {
+      onCallUserId: new ObjectID(next.onCallUserId),
+      nextUserId: next.nextUserId ? new ObjectID(next.nextUserId) : null,
+      layerName: next.layerName?.trim() || null,
     };
   }
 

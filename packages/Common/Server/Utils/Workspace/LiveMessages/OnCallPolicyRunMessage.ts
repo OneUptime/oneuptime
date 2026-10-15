@@ -94,8 +94,18 @@ const METHOD_LABELS: Array<{
   { field: "userWebhookId", label: "webhook" },
 ];
 
-// What one escalation rule's steps came to (buildRun).
-type RuleStepKind = "reached" | "not reached" | "nobody in it" | "schedule gap";
+/*
+ * What one escalation rule's steps came to (buildRun). "nobody next" is a
+ * schedule whose next person in the rotation the rule pages, with nobody
+ * next: it pages nobody, and - unlike a schedule with nobody on call - is not
+ * tried again.
+ */
+type RuleStepKind =
+  | "reached"
+  | "not reached"
+  | "nobody in it"
+  | "schedule gap"
+  | "nobody next";
 
 interface RuleSteps {
   firstStep: number;
@@ -811,6 +821,8 @@ export default class OnCallPolicyRunMessage {
           onCallDutySchedule: {
             name: true,
           },
+          // Paged as the next in the schedule's rotation, or nobody was next.
+          isNextInRotation: true,
           // The team a direct page named, for one with nobody in it.
           userBelongsToTeamId: true,
           userBelongsToTeam: {
@@ -1262,10 +1274,56 @@ export default class OnCallPolicyRunMessage {
           }
         }
 
+        /*
+         * Paged as the next in a schedule's rotation - the backup after
+         * whoever is on call: the line says so, once per schedule.
+         */
+        if (step.isNextInRotation && step.onCallDutyScheduleId) {
+          const scheduleName: string =
+            step.onCallDutySchedule?.name?.trim() || "(unnamed)";
+          const nextInRotationOf: Array<string> =
+            person.nextInRotationOf || [];
+
+          if (!nextInRotationOf.includes(scheduleName)) {
+            nextInRotationOf.push(scheduleName);
+          }
+
+          person.nextInRotationOf = nextInRotationOf;
+        }
+
         continue;
       }
 
       if (status !== OnCallDutyExecutionLogTimelineStatus.Skipped) {
+        continue;
+      }
+
+      /*
+       * A rule that pages the next person in a schedule's rotation found
+       * somebody on call there but nobody next: it pages nobody there, and
+       * is not tried again - nobody on call at all is the gap below.
+       */
+      if (step.onCallDutyScheduleId && step.isNextInRotation) {
+        countStep(
+          step.onCallDutyPolicyEscalationRuleId,
+          stepIndex,
+          "nobody next",
+        );
+
+        const scheduleName: string =
+          step.onCallDutySchedule?.name?.trim() || "(unnamed)";
+
+        addNotPaged(`schedule-next:${step.onCallDutyScheduleId.toString()}`, {
+          scheduleName: scheduleName,
+          nobodyNextInRotation: true,
+          reason: "nobody was next in the rotation",
+        });
+        addRuleReason(
+          step.onCallDutyPolicyEscalationRuleId,
+          OnCallPolicyRunMessageView.getNobodyNextInRotationReason(
+            scheduleName,
+          ),
+        );
         continue;
       }
 
