@@ -41,7 +41,7 @@ const NetworkDeviceLinks: FunctionComponent<
         cardProps={{
           title: "Device Links",
           description:
-            "Links you declare between two devices, for cables LLDP and CDP cannot see. A ping-only device is normally placed on its switch port automatically from the switch's forwarding table, so draw one here only for a cable no walked switch has learned. Links are drawn on the topology map alongside discovered links; bind a monitor to one and the edge takes that monitor's status color.",
+            "Cables the map cannot see on its own. Devices read over SNMP are linked to the neighbours they report, so draw a link here only for a cable no switch reports. Bind a monitor to a link to color it by that monitor's status.",
         }}
         noItemsMessage="No device links yet. Add one to connect two devices the discovery protocols cannot see between."
         filters={[

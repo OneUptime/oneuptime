@@ -603,7 +603,7 @@ describe("getDeviceAttachment", () => {
     expect(result.attachment).toBeUndefined();
   });
 
-  test("the device read selects only the columns the keys come from, and never a project id", async () => {
+  test("the device read selects only the columns the keys and neighbours come from, and never a project id", async () => {
     getItemMock.mockResolvedValue(deviceRow({ hostname: REGISTER_IP }));
 
     await getDeviceAttachment(DEVICE_ID);
@@ -615,9 +615,15 @@ describe("getDeviceAttachment", () => {
       };
 
     expect(request.id.toString()).toBe(DEVICE_ID.toString());
+    /*
+     * The neighbour tables ride on the same read: a switch or router is
+     * cabled to what it reports over LLDP or CDP, and the card lists them.
+     */
     expect(Object.keys(request.select).sort()).toEqual([
       "_id",
+      "cdpNeighbors",
       "hostname",
+      "lldpNeighbors",
       "macAddress",
       "siteId",
     ]);

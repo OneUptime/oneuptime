@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 29686,
-    "untranslated": 9931
+    "keys": 29757,
+    "untranslated": 9929
   },
   "sameAsEnglish": [
     " incidents",
@@ -359,6 +359,7 @@
     "agent {{version}}",
     "cluster",
     "kubectl set image deployment/web * -n web",
+    "port {{port}}",
     "services",
     "syslog",
     "{{count}} minutes",

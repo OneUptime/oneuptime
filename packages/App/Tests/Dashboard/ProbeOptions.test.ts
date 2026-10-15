@@ -1,9 +1,20 @@
 import { describe, expect, test } from "@jest/globals";
 import Probe from "Common/Models/DatabaseModels/Probe";
+import fs from "fs";
+import path from "path";
 import {
+  ADD_DEVICE_NO_PROBE_DESCRIPTION,
+  ADD_PROBE_LINK_TEXT,
+  CLOUD_PROBES_GROUP_LABEL,
+  OWN_PROBES_GROUP_LABEL,
   ProbeDropdownOption,
+  ProbeDropdownOptionGroup,
+  SCAN_NO_PROBE_DESCRIPTION,
+  SERVER_PROBES_GROUP_LABEL,
   getDefaultProbeId,
+  getGroupedProbeDropdownOptions,
   getProbeDropdownOptions,
+  hasProjectProbe,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/ProbeOptions";
 
 /*
@@ -160,5 +171,191 @@ describe("getDefaultProbeId", () => {
         probe({ id: HQ, name: "HQ Probe" }),
       ]),
     ).toBe(HQ);
+  });
+});
+
+/*
+ * The project's own probes first, OneUptime's after them, each under a
+ * heading: "which of these is on my network?" is answered by the list.
+ */
+describe("getGroupedProbeDropdownOptions", () => {
+  const BOTH: Array<Probe> = [
+    probe({ id: GLOBAL, name: "US East", isGlobalProbe: true }),
+    probe({ id: HQ, name: "HQ Probe" }),
+    probe({ id: BRANCH, name: "Branch Probe", isGlobalProbe: false }),
+  ];
+
+  test("the project's own probes first, under their own heading", () => {
+    const groups: Array<ProbeDropdownOption | ProbeDropdownOptionGroup> =
+      getGroupedProbeDropdownOptions(BOTH, { isOneUptimeCloud: true });
+
+    expect(groups).toEqual([
+      {
+        label: "Your probes",
+        options: [
+          { label: "HQ Probe", value: HQ },
+          { label: "Branch Probe", value: BRANCH },
+        ],
+      },
+      {
+        label: "OneUptime probes, on the internet",
+        options: [{ label: "US East", value: GLOBAL }],
+      },
+    ]);
+  });
+
+  test("on OneUptime Cloud, OneUptime's probes are said to be on the internet", () => {
+    const groups: Array<ProbeDropdownOption | ProbeDropdownOptionGroup> =
+      getGroupedProbeDropdownOptions(BOTH, { isOneUptimeCloud: true });
+
+    expect((groups[1] as ProbeDropdownOptionGroup).label).toBe(
+      CLOUD_PROBES_GROUP_LABEL,
+    );
+  });
+
+  test("on a self-hosted server, they are the server's own probes", () => {
+    const groups: Array<ProbeDropdownOption | ProbeDropdownOptionGroup> =
+      getGroupedProbeDropdownOptions(BOTH, { isOneUptimeCloud: false });
+
+    expect((groups[0] as ProbeDropdownOptionGroup).label).toBe(
+      OWN_PROBES_GROUP_LABEL,
+    );
+    expect((groups[1] as ProbeDropdownOptionGroup).label).toBe(
+      SERVER_PROBES_GROUP_LABEL,
+    );
+  });
+
+  test("a list of one kind has no headings: one heading over everything says nothing", () => {
+    expect(
+      getGroupedProbeDropdownOptions([probe({ id: HQ, name: "HQ Probe" })], {
+        isOneUptimeCloud: true,
+      }),
+    ).toEqual([{ label: "HQ Probe", value: HQ }]);
+    expect(
+      getGroupedProbeDropdownOptions(
+        [probe({ id: GLOBAL, name: "US East", isGlobalProbe: true })],
+        { isOneUptimeCloud: true },
+      ),
+    ).toEqual([{ label: "US East", value: GLOBAL }]);
+    expect(
+      getGroupedProbeDropdownOptions([], { isOneUptimeCloud: false }),
+    ).toEqual([]);
+  });
+
+  test("a probe with no id is left out of its group too", () => {
+    const groups: Array<ProbeDropdownOption | ProbeDropdownOptionGroup> =
+      getGroupedProbeDropdownOptions([...BOTH, probe({ name: "Ghost" })], {
+        isOneUptimeCloud: true,
+      });
+
+    expect((groups[0] as ProbeDropdownOptionGroup).options).toHaveLength(2);
+  });
+});
+
+describe("hasProjectProbe", () => {
+  test("a probe of the project's own counts", () => {
+    expect(hasProjectProbe([probe({ id: HQ, name: "HQ Probe" })])).toBe(true);
+  });
+
+  test("OneUptime's probes do not: they cannot reach a private address", () => {
+    expect(
+      hasProjectProbe([
+        probe({ id: GLOBAL, name: "US East", isGlobalProbe: true }),
+      ]),
+    ).toBe(false);
+  });
+
+  test("a row with no id is no probe", () => {
+    expect(hasProjectProbe([probe({ name: "Ghost" })])).toBe(false);
+    expect(hasProjectProbe([])).toBe(false);
+  });
+});
+
+/*
+ * With no probe of the project's own, the probe fields of Add Device and of
+ * a new scan say why, and link to the Overview's "Add a probe" dialog in a
+ * new tab - so the form being filled in is not lost - and read the probes
+ * again when the person comes back to the tab.
+ */
+describe("the probe fields, for a project with no probe of its own", () => {
+  const PAGES: string = path.join(
+    __dirname,
+    "..",
+    "..",
+    "FeatureSet",
+    "Dashboard",
+    "src",
+    "Pages",
+    "NetworkDevice",
+  );
+
+  function readPage(name: string): string {
+    return fs.readFileSync(path.join(PAGES, name), "utf8").replace(/\s+/g, " ");
+  }
+
+  test.each([
+    ["Devices.tsx", "ADD_DEVICE_NO_PROBE_DESCRIPTION"],
+    ["Discovery.tsx", "SCAN_NO_PROBE_DESCRIPTION"],
+  ])(
+    "%s says why the list cannot reach the network, and links to add a probe",
+    (page: string, description: string) => {
+      const code: string = readPage(page);
+
+      expect(code).toContain(`: ${description}`);
+      expect(code).toContain("hasProjectProbe(");
+      expect(code).toContain("text: ADD_PROBE_LINK_TEXT,");
+      expect(code).toContain(
+        "url: getNetworkQuickActionRoute(NetworkQuickAction.AddProbe)",
+      );
+      expect(code).toContain("openLinkInNewTab: true");
+      expect(code).toContain("useRefreshProbesOnFocus(");
+      expect(code).toContain("getGroupedProbeDropdownOptions(");
+    },
+  );
+
+  /*
+   * A device's own Settings (Edit Polling) picks its probe from the same
+   * list, with the same way to add one - and no longer throws on a probe row
+   * without a name, which blanked the whole page.
+   */
+  test("a device's Settings picks its probe from the same list, with the same link", () => {
+    const code: string = readPage("View/Settings.tsx");
+
+    expect(code).toContain("getGroupedProbeDropdownOptions(probes, {");
+    expect(code).toContain("text: ADD_PROBE_LINK_TEXT,");
+    expect(code).toContain(
+      "url: getNetworkQuickActionRoute(NetworkQuickAction.AddProbe)",
+    );
+    expect(code).toContain("useRefreshProbesOnFocus(setProbes);");
+    expect(code).not.toContain("Probe name or id is missing");
+  });
+
+  test("the words are translation keys", () => {
+    const en: Record<string, unknown> = JSON.parse(
+      fs.readFileSync(
+        path.join(PAGES, "..", "..", "Locales", "en.json"),
+        "utf8",
+      ),
+    ) as Record<string, unknown>;
+
+    for (const text of [
+      ADD_PROBE_LINK_TEXT,
+      ADD_DEVICE_NO_PROBE_DESCRIPTION,
+      SCAN_NO_PROBE_DESCRIPTION,
+      OWN_PROBES_GROUP_LABEL,
+      CLOUD_PROBES_GROUP_LABEL,
+      SERVER_PROBES_GROUP_LABEL,
+    ]) {
+      expect(en[text]).toBe(text);
+    }
+  });
+
+  test("each says a probe on the internet cannot reach the network", () => {
+    expect(ADD_DEVICE_NO_PROBE_DESCRIPTION).toContain(
+      "which a probe on the internet cannot reach",
+    );
+    expect(SCAN_NO_PROBE_DESCRIPTION).toContain(
+      "which a probe on the internet cannot reach",
+    );
   });
 });

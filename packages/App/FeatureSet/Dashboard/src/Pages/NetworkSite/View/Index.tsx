@@ -132,7 +132,7 @@ const NetworkSiteView: FunctionComponent<
                 if (!item.parentSite?.name) {
                   return (
                     <span className="text-gray-400">
-                      {translator.translateText("Root site")}
+                      {translator.translateText("Top level")}
                     </span>
                   );
                 }

@@ -21,6 +21,7 @@ import Select from "Common/Server/Types/Database/Select";
 import NetworkSiteService from "Common/Server/Services/NetworkSiteService";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
+import { getNetworkSiteTypeName } from "Common/Utils/NetworkSite/SiteTypeName";
 import NetworkSiteLinkService from "Common/Server/Services/NetworkSiteLinkService";
 import NetworkSiteLink from "Common/Models/DatabaseModels/NetworkSiteLink";
 import NetworkSiteStatusTimelineService from "Common/Server/Services/NetworkSiteStatusTimelineService";
@@ -115,8 +116,7 @@ interface SiteTypeInfo {
  */
 function getSiteTypeInfo(site: NetworkSite): SiteTypeInfo {
   return {
-    siteType:
-      site.networkSiteType?.name || site.siteType?.toString() || "Other",
+    siteType: getNetworkSiteTypeName(site),
     isUnitLevel: Boolean(site.networkSiteType?.isUnitLevel),
   };
 }

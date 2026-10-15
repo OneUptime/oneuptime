@@ -2,6 +2,8 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import ProbeUtil from "../../Utils/Probe";
+import { BILLING_ENABLED } from "Common/UI/Config";
+import useRefreshProbesOnFocus from "../../Components/NetworkDevice/useRefreshProbesOnFocus";
 import Route from "Common/Types/API/Route";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
@@ -31,8 +33,14 @@ import {
   getDeviceNameForCreate,
 } from "./AddDeviceForm";
 import {
+  ADD_DEVICE_NO_PROBE_DESCRIPTION,
+  ADD_PROBE_LINK_TEXT,
+  ProbeDropdownOption,
+  ProbeDropdownOptionGroup,
   getDefaultProbeId,
+  getGroupedProbeDropdownOptions,
   getProbeDropdownOptions,
+  hasProjectProbe,
 } from "../../Components/NetworkDevice/ProbeOptions";
 import {
   AddDevicePrefill,
@@ -85,6 +93,7 @@ import useBulkSiteActions from "../../Components/NetworkDevice/useBulkSiteAction
 import useBulkDeviceRoleActions from "../../Components/NetworkDevice/useBulkDeviceRoleActions";
 import useBulkApplyVendorTemplate from "../../Components/NetworkDevice/useBulkApplyVendorTemplate";
 import UnboundDevicesBanner from "../../Components/NetworkDevice/UnboundDevicesBanner";
+import { isDifferentText } from "../../Components/NetworkDevice/DeviceDetailText";
 import OidTemplateElement from "../../Components/NetworkDevice/OidTemplateElement";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -763,6 +772,15 @@ const NetworkDevices: FunctionComponent<
     return getProbeDropdownOptions(probes);
   }, [probes]);
 
+  // The same probes for the dropdown, the project's own under their heading.
+  const groupedProbeOptions: Array<
+    ProbeDropdownOption | ProbeDropdownOptionGroup
+  > = useMemo(() => {
+    return getGroupedProbeDropdownOptions(probes, {
+      isOneUptimeCloud: BILLING_ENABLED,
+    });
+  }, [probes]);
+
   /*
    * The prefilled address, and the probe it was received by when that is a
    * probe the form offers (else the form's own default probe stands).
@@ -937,6 +955,9 @@ const NetworkDevices: FunctionComponent<
       setError(API.getFriendlyMessage(err));
     });
   }, []);
+
+  // Back from the "Add a probe" tab: the new probe is in the list at once.
+  useRefreshProbesOnFocus(setProbes);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -1251,16 +1272,21 @@ const NetworkDevices: FunctionComponent<
              * nothing walks it, and it sits on Pending wearing "No probe"
              * until somebody notices.
              */
-            description: ADD_DEVICE_PROBE_DESCRIPTION,
+            description: hasProjectProbe(probes)
+              ? ADD_DEVICE_PROBE_DESCRIPTION
+              : ADD_DEVICE_NO_PROBE_DESCRIPTION,
+            /*
+             * The Network Overview's "Add a probe" dialog, in a new tab so
+             * this form is not lost; the probes are read again when the
+             * person comes back (onWindowFocus, below).
+             */
             sideLink: {
-              text: "Create a custom probe",
-              url: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.MONITORS_SETTINGS_PROBES] as Route,
-              ),
+              text: ADD_PROBE_LINK_TEXT,
+              url: getNetworkQuickActionRoute(NetworkQuickAction.AddProbe),
               openLinkInNewTab: true,
             },
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: probeOptions,
+            dropdownOptions: groupedProbeOptions,
             required: true,
             // "" when the project has no single obvious probe — see above.
             defaultValue: defaultProbeId,
@@ -1576,7 +1602,11 @@ const NetworkDevices: FunctionComponent<
                   >
                     {(item.name as string) || "—"}
                   </AppLink>
-                  {item.sysName && (
+                  {/*
+                   * The SNMP name under the name, when it is a different
+                   * one: a device named after it read "core-sw-01" twice.
+                   */}
+                  {isDifferentText(item.sysName, item.name) && (
                     <div className="text-xs text-gray-500">{item.sysName}</div>
                   )}
                 </div>
@@ -1915,6 +1945,14 @@ const NetworkDevices: FunctionComponent<
             title: "Labels",
             type: FieldType.EntityArray,
             hideOnMobile: true,
+            /*
+             * Hidden by default, like Template, Role and Probe: at a laptop's
+             * width the list ran past its card, cutting Last Seen in half and
+             * hiding the row's actions, and "No labels attached." on every
+             * row was the widest cell. The Labels filter above the list and
+             * Customize Columns still have it.
+             */
+            isHiddenByDefault: true,
             getElement: (item: NetworkDevice): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
             },

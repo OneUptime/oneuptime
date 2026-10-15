@@ -60,7 +60,7 @@ Enheten och monitorn gör olika jobb:
 
 Under den säger en rad om något skapar en incident när en enhet går ner: hur många [varningspolicyer](#varningspolicyer) som är påslagna, eller en länk **Set up alerts** när det inte finns någon. Knapparna **Add Device** och **Discover Devices** bredvid öppnar de formulären, och rutorna och listorna nedanför ger detaljerna: enheter och platser som behöver uppmärksamhet, flottan per tillverkare och de senaste skanningarna.
 
-Innan något har lagts till visar översikten i stället de två sätten att komma igång: **Upptäck enheter** skannar ett adressintervall så att du kan välja vad du vill lägga till, bäst för ett helt nätverk eller en ny plats, och **Lägg till en enda enhet** lägger till en via dess IP-adress eller värdnamn.
+Innan något har lagts till leder översikten dig i stället genom tre steg. **Placera en sond i ditt nätverk**: en sond pingar och går igenom dina enheter inifrån deras nätverk, så **Lägg till en sond** namnger en, visar kommandot som startar den och följer när den ansluter. **Lägg till dina enheter**: **Upptäck enheter** skannar ett adressintervall så att du kan välja vad du vill lägga till, bäst för ett helt nätverk eller en ny plats, och **Lägg till en enda enhet** lägger till en via dess IP-adress eller värdnamn. **Få veta när en enhet går ner**: **Set up alerts** öppnar [varningspolicyerna](#varningspolicyer), där den rekommenderade policyn är ett klick bort. På OneUptime Cloud kräver det Growth-abonnemanget att [lägga till en sond](/docs/probe/custom-probe): under det säger steget det och länkar i stället till dina faktureringsinställningar, och OneUptimes egna sonder på internet kan fortfarande kontrollera enheter med en offentlig adress.
 
 Nätverk-menyn håller det du öppnar varje dag synligt: **Översikt**, **Devices**, **Platser**, **Map**, **Traffic**, **Händelser** och **Discovery**. Resten är hopfällt i avsnitt, och ett avsnitt fäller ut sig självt på var och en av sina sidor:
 
@@ -100,7 +100,7 @@ En enhets uppgifter — namn, beskrivning, roll, plats, etiketter och adresser �
 | Site | Den [nätverksplats](/docs/monitor/network-sites) som enheten finns på. Platsens hälsa sammanfattas från dess enheter, och en plats med en standardsond fyller i sonden nedan. | Nej |
 | Sond | Sonden som pingar enheten, walkar den via SNMP när den har autentiseringsuppgifter och tar emot dess traps, syslog och [flödesposter](/docs/monitor/network-traffic). Den måste nå enheten direkt: en sond på det publika internet kan inte nå en privat adress. | Ja |
 
-**Sond** fyller i sig själv där den kan: ett projekt med exakt en anpassad sond börjar med den, och att välja en plats ersätter den med [platsens standardsond](/docs/monitor/network-sites#standardvärden-för-övervakning). Den skriver aldrig över en sond som du själv har valt. Sätt en standardsond på dina platser så kan en enhet läggas till med bara sin adress.
+**Sond** fyller i sig själv där den kan: ett projekt med exakt en anpassad sond börjar med den, och att välja en plats ersätter den med [platsens standardsond](/docs/monitor/network-sites#standardvärden-för-övervakning). Den skriver aldrig över en sond som du själv har valt. Sätt en standardsond på dina platser så kan en enhet läggas till med bara sin adress. Ett projekt utan egen sond får veta det under fältet: **Lägg till en sond** bredvid öppnar översiktens dialog i en ny flik, så att formuläret förblir som du lämnade det, och projektets egna sonder står först i listan under **Dina sonder**.
 
 ### Fler fält (hopfällda)
 
@@ -320,7 +320,7 @@ I redigeraren **Health OIDs** tillämpar **Vendor Health Template** en färdig u
 | Ubiquiti EdgeOS / EdgeSwitch / UniFi Switches | CPU-belastning, totalt och tillgängligt RAM | — |
 | Ubiquiti UniFi Access Points | Isolerat tillstånd, belastningsgenomsnitt, totalt och tillgängligt RAM | Wi-Fi-radior (band, airtime), SSID:er (band, kanal, klienter, sändeffekt, anslutningskvalitet), CPU-kärnor |
 
-Mallens OID:er kopieras till enhetens egen lista, där du kan beskära eller utöka dem. När den första walken har identifierat tillverkaren föreslår enhetssidan den matchande mallen. Matchningen läser enhetens `sysObjectID`, och dess `sysDescr` där ett enterprisenummer rymmer två operativsystem: Extreme Fabric Engine på universell hårdvara rapporterar samma enterprisenummer (1916) som EXOS, och bara dess beskrivning (`…-FabricEngine (9.0.4.0)`) skiljer dem åt. UniFi-accesspunkter skiljs från Ubiquitis routrar på samma sätt (`U6-Pro 6.6.50.15098`), även när äldre firmware svarar med Net-SNMP:s gren, och IQ Engine-accesspunkter från de Aerohive-switchar som delar deras gren (`AP230, HiveOS 8.2r1`).
+Mallens OID:er kopieras till enhetens egen lista, där du kan beskära eller utöka dem. När den första walken har identifierat tillverkaren erbjuder enhetens översikt den matchande mallen så länge den skulle lägga till något, och **Lägg till hälsokontroller** lägger till den med ett klick. Matchningen läser enhetens `sysObjectID`, och dess `sysDescr` där ett enterprisenummer rymmer två operativsystem: Extreme Fabric Engine på universell hårdvara rapporterar samma enterprisenummer (1916) som EXOS, och bara dess beskrivning (`…-FabricEngine (9.0.4.0)`) skiljer dem åt. UniFi-accesspunkter skiljs från Ubiquitis routrar på samma sätt (`U6-Pro 6.6.50.15098`), även när äldre firmware svarar med Net-SNMP:s gren, och IQ Engine-accesspunkter från de Aerohive-switchar som delar deras gren (`AP230, HiveOS 8.2r1`).
 
 Enheter med **Auto-Apply Vendor Health Template** påslaget får mallens OID:er och tabeller vid sin första avsökning: enheter som en regel för automatisk import tar in, och enheter som importeras från **Review Results** med reglaget för tillverkarmall påslaget, vilket det är om du inte stänger av det. För att ge många enheter deras mall på en gång, som en upptäckt flotta från tiden innan reglaget fanns, markerar du dem i listan **Devices** och använder **Tillämpa tillverkarmall** (se [Ändra många enheter på en gång](#ändra-många-enheter-på-en-gång)).
 
@@ -539,9 +539,9 @@ Klicka på **Review Results** på skanningen, välj de värdar som ska importera
 | Fält | Beskrivning | Obligatoriskt |
 | --- | --- | --- |
 | Skanningsmål | Adresserna som ska skannas, i [CIDR- eller oktettintervallnotation](#notation-för-skanningsmål). | Ja |
-| Sond | Sonden som kör skanningen. Den måste nå intervallet direkt. Ett projekt med exakt en anpassad sond börjar med den. | Ja |
+| Sond | Sonden som kör skanningen. Den måste nå intervallet direkt. Ett projekt med exakt en anpassad sond börjar med den. Ett projekt utan egen sond får veta det, med **Lägg till en sond** bredvid fältet. | Ja |
 | Check SNMP on hosts that answer | En skanning pingar först intervallet; detta avgör om värdarna som svarar sedan tillfrågas via SNMP om sitt namn och sin tillverkare. Stäng av det för en [skanning med bara ping](#skanningar-med-bara-ping). Väljs när skanningen skapas och ligger fast efter det. På som standard. | Nej |
-| SNMP Configs | Det andra steget: de uppsättningar autentiseringsuppgifter som ska provas, i ordning. Varje värd tillfrågas med varje uppsättning tills en svarar, så lägg till en uppsättning per grupp av enheter som delar version och community eller v3-användare. | När SNMP-kontrollen är påslagen |
+| Autentiseringsuppgifter att prova | Det andra steget: de uppsättningar autentiseringsuppgifter som ska provas, i ordning. Varje värd tillfrågas med varje uppsättning tills en svarar, så lägg till en uppsättning per grupp av enheter som delar version och community eller v3-användare. **Lägg till fler autentiseringsuppgifter** lägger till en. | När SNMP-kontrollen är påslagen |
 
 Hopfällda under **Fler fält** i första steget, för de skanningar som behöver dem:
 
@@ -959,7 +959,7 @@ För det måste kartan veta vilken inlärd MAC som är enhetens. Det finns två 
 
 Switchen som enheten hänger på behöver också **Collect Connected Endpoints** påslaget: det är därifrån porten kommer. Adresser matchas inom enhetens plats, eftersom varje filial har en `10.0.0.5`; en MAC matchar oavsett plats.
 
-Enhetens översikt har ett kort **Connected to** som namnger switchen, porten och VLAN:et. På kartan visar enhetens panel samma sak under **Connected to**, och länkens panel säger att den lärdes in från switchens vidarebefordringstabell. Parent-Child-vyn ritar enheten under dess switch. En länk som du har ritat för hand under **Device Links** för samma par slås ihop med den inlärda i stället för att dubbleras: den inlärda porten ersätter en felskriven, och en förälder som du har satt på den handritade länken behålls.
+Enhetens översikt har ett kort **Connected to** som namnger switchen, porten och VLAN:et. En switch, router eller brandvägg som rapporterar sina grannar via LLDP eller CDP visar dem där i stället: sin egen port, grannen (en länk när den är en enhet här) och porten i andra änden, med **Öppna kartan** bredvid. På kartan visar enhetens panel samma sak under **Connected to**, och länkens panel säger att den lärdes in från switchens vidarebefordringstabell. Parent-Child-vyn ritar enheten under dess switch. En länk som du har ritat för hand under **Device Links** för samma par slås ihop med den inlärda i stället för att dubbleras: den inlärda porten ersätter en felskriven, och en förälder som du har satt på den handritade länken behålls.
 
 ![Parent-Child-topologivy som ritar en kassa med bara ping under dess switch via en inlärd länk](/docs/static/images/NetworkTopologyLearnedLink.png)
 

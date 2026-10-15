@@ -37,10 +37,16 @@ const NetworkEndpoints: FunctionComponent<
         cardProps={{
           title: "Endpoints",
           description:
-            "Devices attached to your monitored switches and routers, discovered from ARP and FDB data. Endpoints age by Last Seen — nothing is pruned automatically, so a terminal that goes quiet simply drifts down this list.",
+            "What is plugged into your switches and routers - phones, printers, cameras, laptops - read from their address tables. Nothing is removed on its own: Last Seen says when each was last there.",
         }}
+        /*
+         * Collecting endpoints is a device setting, off by default (Collect
+         * Connected Endpoints, on the device's Settings page). This used to
+         * send people to "your switch and router monitors", where there is
+         * no such switch.
+         */
         noItemsMessage={
-          "No endpoints discovered yet. Enable endpoint collection on your switch and router monitors — attached devices appear here as ARP and FDB data comes in."
+          "No endpoints yet. Turn on Collect Connected Endpoints on a switch or router - its Settings page, Edit Polling - and what is plugged into it appears here after its next poll."
         }
         formFields={[
           {

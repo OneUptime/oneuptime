@@ -6,6 +6,8 @@ import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
 import CommonAPI from "Common/Server/API/CommonAPI";
 import Response from "Common/Server/Utils/Response";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import NetworkDeviceMonitoringMethod, {
   LEGACY_SNMP_MONITORING_METHOD,
@@ -636,5 +638,107 @@ describe("POST /network-device/overview — the fleet's SNMP-failing count", () 
 
     expect(next).toHaveBeenCalledTimes(1);
     expect(responseUtil.sendJsonObjectResponse).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * "Sites needing attention" names each site's type. It read the deprecated
+ * inline `siteType` column, which a site made since site types became rows of
+ * their own (the `networkSiteType` relation) has empty - so every new site's
+ * type showed as a dash here while its Settings said "Data Center".
+ */
+describe("POST /network-device/overview — the type of a site needing attention", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    commonAPI.getDatabaseCommonInteractionProps.mockResolvedValue({
+      tenantId: projectId,
+    } as never);
+    monitorStatusService.findBy.mockResolvedValue([OFFLINE_STATUS] as never);
+    siteService.getStatusCounts.mockResolvedValue([] as never);
+    deviceService.getHealthGroups.mockResolvedValue([] as never);
+    deviceService.getVendorBreakdown.mockResolvedValue([] as never);
+    deviceService.countBy.mockResolvedValue(new PositiveNumber(0) as never);
+    endpointService.countBy.mockResolvedValue(new PositiveNumber(0) as never);
+    respondTo({});
+  });
+
+  function site(data: {
+    name: string;
+    typeName?: string | undefined;
+    legacyType?: string | undefined;
+  }): NetworkSite {
+    const row: NetworkSite = new NetworkSite(ObjectID.generate());
+    row.name = data.name;
+    row.currentMonitorStatusId = OFFLINE_STATUS.id!;
+
+    if (data.typeName !== undefined) {
+      const type: NetworkSiteType = new NetworkSiteType(ObjectID.generate());
+      type.name = data.typeName;
+      row.networkSiteType = type;
+    }
+
+    if (data.legacyType !== undefined) {
+      row.siteType = data.legacyType as never;
+    }
+
+    return row;
+  }
+
+  function attentionSites(): JSONArray {
+    expect(responseUtil.sendJsonObjectResponse).toHaveBeenCalledTimes(1);
+    const body: JSONObject = responseUtil.sendJsonObjectResponse.mock
+      .calls[0]![2] as JSONObject;
+    return body["attentionSites"] as JSONArray;
+  }
+
+  test("a site's type is its site type's name", async () => {
+    siteService.findBy.mockResolvedValue([
+      site({ name: "London office", typeName: "Data Center" }),
+    ] as never);
+
+    await callOverview();
+
+    expect(attentionSites()[0]!["siteType"]).toBe("Data Center");
+  });
+
+  test("the type's name is read with the sites, beside the old column", async () => {
+    siteService.findBy.mockResolvedValue([] as never);
+
+    await callOverview();
+
+    const select: JSONObject = (
+      siteService.findBy.mock.calls[0]![0] as JSONObject
+    )["select"] as JSONObject;
+
+    expect(select["networkSiteType"]).toEqual({ name: true });
+    expect(select["siteType"]).toBe(true);
+  });
+
+  test("a site the backfill has not reached yet keeps its old type", async () => {
+    siteService.findBy.mockResolvedValue([
+      site({ name: "Springfield", legacyType: "Store" }),
+    ] as never);
+
+    await callOverview();
+
+    expect(attentionSites()[0]!["siteType"]).toBe("Store");
+  });
+
+  test("the type's name wins over the old column", async () => {
+    siteService.findBy.mockResolvedValue([
+      site({ name: "Springfield", typeName: "Branch", legacyType: "Store" }),
+    ] as never);
+
+    await callOverview();
+
+    expect(attentionSites()[0]!["siteType"]).toBe("Branch");
+  });
+
+  test("a site with neither reads Other, never a blank", async () => {
+    siteService.findBy.mockResolvedValue([site({ name: "Untyped" })] as never);
+
+    await callOverview();
+
+    expect(attentionSites()[0]!["siteType"]).toBe("Other");
   });
 });

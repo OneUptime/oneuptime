@@ -42,6 +42,8 @@ export interface DiscoveryScanLiveUpdates {
   onRowsLoaded: (rows: Array<NetworkDeviceDiscoveryScan>) => void;
   getScan: (scan: NetworkDeviceDiscoveryScan) => NetworkDeviceDiscoveryScan;
   activeCount: number;
+  // How many scans the table's page holds - none on a project with no scans.
+  loadedRowCount: number;
   isRefreshing: boolean;
   isPaused: boolean;
   error: string;
@@ -253,6 +255,7 @@ export default function useDiscoveryScanLiveUpdates(): DiscoveryScanLiveUpdates 
       );
     },
     activeCount,
+    loadedRowCount: rows.length,
     isRefreshing,
     isPaused,
     error,

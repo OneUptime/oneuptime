@@ -34,6 +34,7 @@ export type { AddDevicePrefill } from "./NetworkQuickActionQuery";
 const ACTION_PAGES: Record<NetworkQuickAction, PageMap> = {
   [NetworkQuickAction.AddDevice]: PageMap.NETWORK_DEVICES,
   [NetworkQuickAction.DiscoverDevices]: PageMap.NETWORK_DEVICE_DISCOVERY,
+  [NetworkQuickAction.AddProbe]: PageMap.NETWORK_OVERVIEW,
 };
 
 /**

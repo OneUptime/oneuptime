@@ -88,7 +88,12 @@ const DeviceSummaryCards: FunctionComponent<ComponentProps> = (
     });
   }, []);
 
-  if (hasError) {
+  /*
+   * A project with no devices at all: four zeros, each explaining a poll or a
+   * bound monitor, only pushed the list's own empty state - which says what
+   * to do - down the page. The strip appears with the first device.
+   */
+  if (hasError || (counts && counts.totalDevices === 0)) {
     return <></>;
   }
 

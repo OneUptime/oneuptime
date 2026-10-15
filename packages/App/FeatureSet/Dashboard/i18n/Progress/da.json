@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 29686,
-    "untranslated": 17238
+    "keys": 29757,
+    "untranslated": 17233
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -40,6 +40,7 @@
     "Tunnel",
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",
+    "port {{port}}",
     "syslog",
     "teams",
     "{{count}} B",

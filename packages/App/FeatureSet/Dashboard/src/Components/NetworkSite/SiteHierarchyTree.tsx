@@ -17,6 +17,7 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getNetworkSiteTypeName } from "Common/Utils/NetworkSite/SiteTypeName";
 import React, {
   Fragment,
   FunctionComponent,
@@ -82,6 +83,10 @@ const SiteHierarchyTree: FunctionComponent<ComponentProps> = (
           select: {
             _id: true,
             name: true,
+            // The type's name: the relation, and the old column as its fallback.
+            networkSiteType: {
+              name: true,
+            },
             siteType: true,
             parentSiteId: true,
             currentMonitorStatus: {
@@ -100,7 +105,7 @@ const SiteHierarchyTree: FunctionComponent<ComponentProps> = (
           return {
             _id: site._id?.toString(),
             name: site.name,
-            siteType: site.siteType?.toString(),
+            siteType: getNetworkSiteTypeName(site),
             parentSiteId: site.parentSiteId?.toString(),
             statusName: site.currentMonitorStatus?.name,
             statusColor: site.currentMonitorStatus?.color?.toString(),

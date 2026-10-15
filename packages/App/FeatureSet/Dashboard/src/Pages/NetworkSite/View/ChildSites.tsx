@@ -104,7 +104,7 @@ const NetworkSiteChildSites: FunctionComponent<
             title: "Name",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "Unit 1042 - Springfield",
+            placeholder: "Second floor",
           },
           {
             field: {
