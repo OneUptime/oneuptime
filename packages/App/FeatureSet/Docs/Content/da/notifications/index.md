@@ -15,7 +15,7 @@ OneUptime når dig på to måder. Den tilkalder dig, når en hændelse eller en 
 flowchart TB
     page["En hændelse eller en<br/>advarsel tilkalder dig<br/>på vagt"] --> rules["Dine vagtregler"]
     owned["Der sker noget med<br/>noget, du ejer"] --> settings["Dine notifikations-<br/>indstillinger"]
-    rules --> methods["Dine bekræftede metoder:<br/>e-mail, telefon,<br/>push, chat"]
+    rules --> methods["Dine bekræftede<br/>metoder: e-mail,<br/>telefon, push, chat"]
     settings --> methods
 ```
 

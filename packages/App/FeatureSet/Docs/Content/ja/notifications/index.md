@@ -13,7 +13,7 @@ OneUptime からの連絡には 2 つの経路があります。オンコール�
 
 ```mermaid title="1 組の通知方法を通じた、2 つの連絡経路"
 flowchart TB
-    page["インシデントやアラートが<br/>オンコール中に呼び出す"] --> rules["オンコールルール"]
+    page["オンコール中に<br/>インシデントや<br/>アラートが呼び出す"] --> rules["オンコールルール"]
     owned["所有するレコードに<br/>何かが起きる"] --> settings["通知設定"]
     rules --> methods["確認済みの通知方法:<br/>メール、電話、<br/>プッシュ、チャット"]
     settings --> methods

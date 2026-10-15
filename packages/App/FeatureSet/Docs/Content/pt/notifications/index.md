@@ -15,7 +15,7 @@ O OneUptime chega até você de duas formas. Ele aciona você quando um incident
 flowchart TB
     page["Um incidente ou alerta<br/>aciona você no plantão"] --> rules["Suas regras de plantão"]
     owned["Algo acontece com<br/>um registro seu"] --> settings["Suas configurações<br/>de notificação"]
-    rules --> methods["Seus métodos verificados:<br/>e-mail, telefone,<br/>push, chat"]
+    rules --> methods["Seus métodos<br/>verificados: e-mail,<br/>telefone, push, chat"]
     settings --> methods
 ```
 

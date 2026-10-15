@@ -13,7 +13,7 @@ As configurações de notificação decidem quais novidades chegam até você so
 
 ```mermaid title="Uma novidade sobre um registro seu, e para onde ela vai"
 flowchart TB
-    event["Uma novidade, como uma<br/>nota no seu incidente"] --> setting["A sua configuração<br/>para esse evento"]
+    event["Uma novidade, como<br/>uma nota no seu<br/>incidente"] --> setting["A sua configuração<br/>para esse evento"]
     setting -->|"e-mail ativado"| emails["Cada endereço de<br/>e-mail verificado"]
     setting -->|"SMS ativado"| phones["Cada número de<br/>SMS verificado"]
     setting -->|"tudo desativado"| nothing["Nada é enviado"]

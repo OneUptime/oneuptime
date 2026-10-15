@@ -116,10 +116,10 @@ const PAGE_NAMES: Array<string> = NOTIFICATION_PAGES.map(
  * 590px docs column. Every diagram fits the column without scrolling.
  */
 const WIDEST_DIAGRAM_LINE: Record<string, ReadonlyArray<number>> = {
-  [REACHING_YOU]: [26],
-  [NOTIFICATION_METHODS]: [26],
-  [PERSONAL_ON_CALL_RULES]: [26],
-  [NOTIFICATION_SETTINGS]: [26],
+  [REACHING_YOU]: [24],
+  [NOTIFICATION_METHODS]: [24],
+  [PERSONAL_ON_CALL_RULES]: [22],
+  [NOTIFICATION_SETTINGS]: [25],
 };
 
 /*

@@ -17,7 +17,7 @@ flowchart TB
     code --> verify["Você digita o código"]
     verify --> verified["O método é verificado"]
     verified --> rules["Uma regra para cada<br/>gravidade, na hora"]
-    rules --> used["Acionamentos e novidades<br/>podem chegar a ele"]
+    rules --> used["Acionamentos e<br/>novidades podem<br/>chegar a ele"]
 ```
 
 Um método que você não verificou nunca é usado. Dispositivos push, Slack, Microsoft Teams e webhooks dispensam o código: registrar um dispositivo ou vincular a sua conta prova que é seu, e um webhook não precisa de prova. Verificar um método adiciona na hora as suas [regras padrão](/docs/notifications/on-call-rules#as-regras-com-que-você-começa) para ele, então um número de telefone novo aciona você em todas as gravidades até você mudar as regras dele.

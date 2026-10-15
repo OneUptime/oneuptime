@@ -17,7 +17,7 @@ flowchart TB
     code --> verify["Inserite il codice"]
     verify --> verified["Il metodo è verificato"]
     verified --> rules["Una regola per ogni<br/>gravità, subito"]
-    rules --> used["Chiamate e aggiornamenti<br/>possono raggiungerlo"]
+    rules --> used["Chiamate e<br/>aggiornamenti<br/>possono raggiungerlo"]
 ```
 
 Un metodo che non avete verificato non viene mai usato. Dispositivi push, Slack, Microsoft Teams e webhook non richiedono un codice: registrare un dispositivo o collegare il vostro account dimostra che è vostro, e un webhook non ha bisogno di prove. Verificare un metodo aggiunge subito le vostre [regole predefinite](/docs/notifications/on-call-rules#le-regole-con-cui-partite) per esso, quindi un nuovo numero di telefono vi chiama per ogni gravità finché non cambiate le sue regole.

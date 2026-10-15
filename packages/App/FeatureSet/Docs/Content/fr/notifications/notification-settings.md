@@ -13,7 +13,7 @@ Les paramètres de notification décident quelles nouvelles vous parviennent sur
 
 ```mermaid title="Une nouvelle sur un élément qui vous appartient, et où elle va"
 flowchart TB
-    event["Une nouvelle, comme une<br/>note sur votre incident"] --> setting["Votre paramètre<br/>pour cet événement"]
+    event["Une nouvelle, comme<br/>une note sur votre<br/>incident"] --> setting["Votre paramètre<br/>pour cet événement"]
     setting -->|"e-mail activé"| emails["Chaque adresse<br/>e-mail vérifiée"]
     setting -->|"SMS activé"| phones["Chaque numéro<br/>SMS vérifié"]
     setting -->|"tout désactivé"| nothing["Rien n'est envoyé"]
