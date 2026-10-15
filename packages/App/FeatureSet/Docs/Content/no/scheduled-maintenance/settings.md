@@ -5,7 +5,7 @@ Konfigurasjonen av vedlikehold ligger i **Planlagt vedlikehold**, ikke i **Prosj
 :::cards
 - [Reglene en ny hendelse går gjennom](#reglene-en-ny-hendelse-går-gjennom): I rekkefølge, og hva hver av dem gjør.
 - [Påminnelsesregler](#påminnelsesregler): Påminn eierne til en hendelse er fullført.
-- [Innstillinger](#innstillinger): Notatmaler, egendefinerte felt, målinger og nummerprefikser.
+- [Innstillinger](#innstillinger): Notatmaler, egendefinerte felt, målinger og nummerering.
 - [Hvem som kan endre dette](#hvem-som-kan-endre-dette): Vedlikeholdsrollene og abonnementene.
 :::
 
@@ -20,7 +20,7 @@ Konfigurasjonen av vedlikehold ligger i **Planlagt vedlikehold**, ikke i **Prosj
 | **Etikettregler**  | Legger til etiketter på matchende hendelser.                        |
 | **Reminder Rules** | Påminner eierne med et intervall til en hendelse er fullført.       |
 
-Seksjonen **Innstillinger** rommer **Hendelsesstatus**, beskrevet på [Vedlikeholdstilstander](/docs/scheduled-maintenance/states), **Hendelsesmaler**, beskrevet på [Maler og gjentakende hendelser](/docs/scheduled-maintenance/templates), og deretter **Notatmaler**, **Egendefinerte felt**, **Målinger** og **Nummerprefiks**, beskrevet nedenfor.
+Seksjonen **Innstillinger** rommer **Hendelsesstatus**, beskrevet på [Vedlikeholdstilstander](/docs/scheduled-maintenance/states), **Hendelsesmaler**, beskrevet på [Maler og gjentakende hendelser](/docs/scheduled-maintenance/templates), og deretter **Notatmaler**, **Egendefinerte felt**, **Målinger** og **Nummerering**, beskrevet nedenfor.
 
 Seksjonen **Arbeidsområde** rommer Slack- og Microsoft Teams-reglene som poster hendelser i kanaler. Se [Slack](/docs/workspace-connections/slack#varslingsregler) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams#varslingsregler).
 
@@ -104,9 +104,11 @@ Disse påminnelsene er for teamet ditt. Påminnelsene statussideabonnentene dine
 
 **Planlagt vedlikehold → Innstillinger → Målinger** tar tiden på hvor lenge ting tar på hver hendelse. Velg **Startforsinkelse**, fra den planlagte starten til hendelsen starter, **Overskridelse**, fra den planlagte slutten til den slutter, eller **Varighet på vedlikeholdet**, fra den starter til den slutter; eller to egne øyeblikk med **Noe annet**. Hver måling vises på siden til hendelsen og tegnes som `oneuptime.scheduled-maintenance.measurement.<key>`. Se [Målinger](/docs/incidents/settings#målinger), som fungerer på samme måte for vedlikeholdshendelser.
 
-### Nummerprefiks
+### Nummerering
 
-**Planlagt vedlikehold → Innstillinger → Nummerprefiks** angir teksten foran hendelsesnumre: `SM-` i et nytt prosjekt, eller `#` uten prefiks. **Oppdater** ber om **Nummerprefiks for planlagt vedlikehold** og viser nummeret i en forhåndsvisning mens du skriver. Bare hendelser som opprettes etterpå, får det nye prefikset; eksisterende beholder numrene sine. Reglene for et prefiks står på [Nummerprefikser](/docs/incidents/settings#nummerprefikser).
+**Planlagt vedlikehold → Innstillinger → Nummerering** angir teksten foran hendelsesnumre: `SM-` i et nytt prosjekt, eller `#` uten prefiks. **Oppdater** ber om **Nummerprefiks for planlagt vedlikehold** og viser nummeret i en forhåndsvisning mens du skriver. Bare hendelser som opprettes etterpå, får det nye prefikset; eksisterende beholder numrene sine. Reglene for et prefiks står på [Nummerprefikser](/docs/incidents/settings#nummerprefikser).
+
+Kortet **Neste nummer** under setter nummeret den neste hendelsen får, for å fortsette numrene fra et annet verktøy: **Oppdater** åpner **Neste nummer for planlagt vedlikehold**, som må være høyere enn det høyeste så langt. Se [Neste numre](/docs/incidents/settings#neste-numre).
 
 > [!NOTE]
 > På OneUptime Cloud krever egendefinerte felt abonnementet **Growth** eller høyere, og det samme gjelder å legge til og endre vedlikeholdstilstander og maler.

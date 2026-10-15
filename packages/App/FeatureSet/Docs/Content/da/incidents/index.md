@@ -158,7 +158,7 @@ Rediger eller tilføj alvorsgrader under **Hændelser → Indstillinger → Hæn
 | **Arbejdsområde** | De chatarbejdsområder, projektet har forbundet: **Slack**, **Microsoft Teams** eller begge, hver med sine notifikationsregler for hændelser. Er ingen af dem forbundet, indeholder det **Forbind Slack eller Teams**, en side, der viser begge, og hvordan de forbindes. |
 | **Integrationer** | Værktøjer, der selv åbner hændelser: **Huntress**, hvis hændelsesrapporter bliver til hændelser, der tilkalder vagten. Se [Huntress](/docs/integrations/huntress). |
 | **Regler**    | Regelmotorerne: **Grupperingsregler**, **Vagtregler**, **Ejerregler**, **Runbook-regler**, **Privatlivsregler**, **Etiketregler**, **SLA-regler**, **Reminder Rules**. |
-| **Indstillinger** | **Hændelsesstatus**, **Hændelsesalvor**, **Hændelsesskabeloner**, **Noteskabeloner**, **Postmortem-skabeloner**, **Brugerdefinerede felter**, **Hændelsesroller**, **Målinger**, **Tilknyttede advarsler**, **Nummerpræfiks**. |
+| **Indstillinger** | **Hændelsesstatus**, **Hændelsesalvor**, **Hændelsesskabeloner**, **Noteskabeloner**, **Postmortem-skabeloner**, **Brugerdefinerede felter**, **Hændelsesroller**, **Målinger**, **Tilknyttede advarsler**, **Nummerering**. |
 
 **Oversigt** og **Episoder** er åbne; **AI**, **Arbejdsområde**, **Integrationer**, **Regler**, **Indstillinger** og **Udvikler** er foldet sammen som standard, så menuen åbner på de lister, du bruger hver dag. Klik på et afsnits titel for at folde det ud og finde de sider, resten af denne dokumentation henviser til; et afsnit åbner også af sig selv, når du er på en af dets sider. Konfigurationen af hændelser ligger ikke under projektindstillingerne; den ligger helt her.
 

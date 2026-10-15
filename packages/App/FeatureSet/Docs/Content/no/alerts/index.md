@@ -60,7 +60,7 @@ Utløs et varsel når teamet ditt bør se på noe før noen utenfor merker det, 
 | **KI**            | **Innsikt**, **Logger** og **Innstillinger**: hva OneUptime AI har lært av varslene dine, alt den har gjort, og hva den har lov til. |
 | **Arbeidsområde** | **Slack** og **Microsoft Teams**, avhengig av hva prosjektet har koblet til, eller **Koble til Slack eller Teams** når det ikke har noen av dem. |
 | **Regler**        | **Grupperingsregler**, **Vaktregler**, **Eierregler**, **Runbook-regler**, **Personvernregler**, **Etikettregler**, **Reminder Rules**. |
-| **Innstillinger** | **Varselsstatus**, **Varselsalvor**, **Notatmaler**, **Egendefinerte felt**, **Målinger**, **Nummerprefiks**.               |
+| **Innstillinger** | **Varselsstatus**, **Varselsalvor**, **Notatmaler**, **Egendefinerte felt**, **Målinger**, **Nummerering**.               |
 
 **Varsler** og **Episoder** er åpne; **KI**, **Arbeidsområde**, **Regler**, **Innstillinger** og **Utvikler** starter sammenfoldet, og en seksjon åpner seg selv når du er på en av sidene i den. Konfigurasjonen av varsler ligger her, ikke i **Prosjektinnstillinger**.
 

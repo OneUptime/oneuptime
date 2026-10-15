@@ -1103,6 +1103,191 @@ export default class Project extends TenantModel {
   })
   public alertEpisodeNumberPrefix?: string = undefined;
 
+  /*
+   * Where incident numbers start (Utils/Project/NextNumber): the next incident
+   * gets the higher of this and the one after the highest number given out
+   * (incidentCounter), so it moves the numbers on only while no incident has
+   * reached it. Set from the Numbering page's Next Number card, the API or
+   * Terraform.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Incident Numbers Start At",
+    description:
+      "Where incident numbers start: the next incident gets this number if no incident has reached it yet, and later ones count up from it. Use it to carry on from another tool's numbers. A new value must be higher than every incident number used so far, so a number is never used twice. Empty: numbers carry on from the highest one used. Existing incidents keep their numbers.",
+    example: 1000,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public incidentNumbersStartAt?: number = undefined;
+
+  /*
+   * Where incident episode numbers start (Utils/Project/NextNumber): the next incident episode
+   * gets the higher of this and the one after the highest number given out
+   * (incidentEpisodeCounter), so it moves the numbers on only while no incident episode has
+   * reached it. Set from the Numbering page's Next Number card, the API or
+   * Terraform.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Incident Episode Numbers Start At",
+    description:
+      "Where incident episode numbers start: the next incident episode gets this number if no incident episode has reached it yet, and later ones count up from it. Use it to carry on from another tool's numbers. A new value must be higher than every incident episode number used so far, so a number is never used twice. Empty: numbers carry on from the highest one used. Existing incident episodes keep their numbers.",
+    example: 1000,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public incidentEpisodeNumbersStartAt?: number = undefined;
+
+  /*
+   * Where alert numbers start (Utils/Project/NextNumber): the next alert
+   * gets the higher of this and the one after the highest number given out
+   * (alertCounter), so it moves the numbers on only while no alert has
+   * reached it. Set from the Numbering page's Next Number card, the API or
+   * Terraform.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Alert Numbers Start At",
+    description:
+      "Where alert numbers start: the next alert gets this number if no alert has reached it yet, and later ones count up from it. Use it to carry on from another tool's numbers. A new value must be higher than every alert number used so far, so a number is never used twice. Empty: numbers carry on from the highest one used. Existing alerts keep their numbers.",
+    example: 1000,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public alertNumbersStartAt?: number = undefined;
+
+  /*
+   * Where alert episode numbers start (Utils/Project/NextNumber): the next alert episode
+   * gets the higher of this and the one after the highest number given out
+   * (alertEpisodeCounter), so it moves the numbers on only while no alert episode has
+   * reached it. Set from the Numbering page's Next Number card, the API or
+   * Terraform.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Alert Episode Numbers Start At",
+    description:
+      "Where alert episode numbers start: the next alert episode gets this number if no alert episode has reached it yet, and later ones count up from it. Use it to carry on from another tool's numbers. A new value must be higher than every alert episode number used so far, so a number is never used twice. Empty: numbers carry on from the highest one used. Existing alert episodes keep their numbers.",
+    example: 1000,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public alertEpisodeNumbersStartAt?: number = undefined;
+
+  /*
+   * Where scheduled maintenance event numbers start (Utils/Project/NextNumber): the next scheduled maintenance event
+   * gets the higher of this and the one after the highest number given out
+   * (scheduledMaintenanceCounter), so it moves the numbers on only while no scheduled maintenance event has
+   * reached it. Set from the Numbering page's Next Number card, the API or
+   * Terraform.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Scheduled Maintenance Numbers Start At",
+    description:
+      "Where scheduled maintenance event numbers start: the next scheduled maintenance event gets this number if no scheduled maintenance event has reached it yet, and later ones count up from it. Use it to carry on from another tool's numbers. A new value must be higher than every scheduled maintenance event number used so far, so a number is never used twice. Empty: numbers carry on from the highest one used. Existing scheduled maintenance events keep their numbers.",
+    example: 1000,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public scheduledMaintenanceNumbersStartAt?: number = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],

@@ -5,7 +5,7 @@ Konfigurationen av underhåll finns i **Schemalagt underhåll**, inte i **Projek
 :::cards
 - [Reglerna som en ny händelse passerar](#reglerna-som-en-ny-händelse-passerar): I ordning, och vad var och en gör.
 - [Påminnelseregler](#påminnelseregler): Påminn ägarna tills en händelse är slutförd.
-- [Inställningar](#inställningar): Anteckningsmallar, anpassade fält, mätningar och nummerprefix.
+- [Inställningar](#inställningar): Anteckningsmallar, anpassade fält, mätningar och numrering.
 - [Vem som kan ändra dem](#vem-som-kan-ändra-dem): Underhållsrollerna och abonnemangen.
 :::
 
@@ -20,7 +20,7 @@ Konfigurationen av underhåll finns i **Schemalagt underhåll**, inte i **Projek
 | **Etikettregler**  | Lägger till etiketter på matchande händelser.                       |
 | **Reminder Rules** | Påminner ägarna med ett intervall tills en händelse är slutförd.    |
 
-Avsnittet **Inställningar** rymmer **Händelsestatus**, som beskrivs på [Underhållsstatusar](/docs/scheduled-maintenance/states), **Händelsemallar**, som beskrivs på [Mallar och återkommande händelser](/docs/scheduled-maintenance/templates), och sedan **Anteckningsmallar**, **Anpassade fält**, **Mätningar** och **Nummerprefix**, som beskrivs nedan.
+Avsnittet **Inställningar** rymmer **Händelsestatus**, som beskrivs på [Underhållsstatusar](/docs/scheduled-maintenance/states), **Händelsemallar**, som beskrivs på [Mallar och återkommande händelser](/docs/scheduled-maintenance/templates), och sedan **Anteckningsmallar**, **Anpassade fält**, **Mätningar** och **Numrering**, som beskrivs nedan.
 
 Avsnittet **Arbetsyta** rymmer Slack- och Microsoft Teams-reglerna som publicerar händelser i kanaler. Se [Slack](/docs/workspace-connections/slack#aviseringsregler) och [Microsoft Teams](/docs/workspace-connections/microsoft-teams#aviseringsregler).
 
@@ -104,9 +104,11 @@ De här påminnelserna är för ditt team. De påminnelser som dina statussidepr
 
 **Schemalagt underhåll → Inställningar → Mätningar** tar tid på hur länge saker tar på varje händelse. Välj **Startfördröjning**, från den planerade starten tills händelsen börjar, **Överdrag**, från det planerade slutet tills den slutar, eller **Underhållets varaktighet**, från att den börjar tills den slutar; eller två egna tidpunkter med **Något annat**. Varje mätning visas på händelsens sida och ritas som `oneuptime.scheduled-maintenance.measurement.<key>`. Se [Mätningar](/docs/incidents/settings#mätningar), som fungerar på samma sätt för händelser.
 
-### Nummerprefix
+### Numrering
 
-**Schemalagt underhåll → Inställningar → Nummerprefix** anger texten framför händelsenummer: `SM-` i ett nytt projekt, eller `#` utan prefix. **Uppdatera** frågar efter **Nummerprefix för schemalagt underhåll** och visar numret i en förhandsvisning medan du skriver. Bara händelser som skapas efteråt får det nya prefixet; befintliga behåller sina nummer. Reglerna för ett prefix finns på [Nummerprefix](/docs/incidents/settings#nummerprefix).
+**Schemalagt underhåll → Inställningar → Numrering** anger texten framför händelsenummer: `SM-` i ett nytt projekt, eller `#` utan prefix. **Uppdatera** frågar efter **Nummerprefix för schemalagt underhåll** och visar numret i en förhandsvisning medan du skriver. Bara händelser som skapas efteråt får det nya prefixet; befintliga behåller sina nummer. Reglerna för ett prefix finns på [Nummerprefix](/docs/incidents/settings#nummerprefix).
+
+Kortet **Nästa nummer** under det anger numret som nästa händelse får, för att fortsätta ett annat verktygs nummer: **Uppdatera** öppnar **Nästa nummer för schemalagt underhåll**, som måste vara högre än det högsta hittills. Se [Nästa nummer](/docs/incidents/settings#nästa-nummer).
 
 > [!NOTE]
 > På OneUptime Cloud kräver anpassade fält abonnemanget **Growth** eller högre, och detsamma gäller att lägga till och ändra underhållstillstånd och mallar.

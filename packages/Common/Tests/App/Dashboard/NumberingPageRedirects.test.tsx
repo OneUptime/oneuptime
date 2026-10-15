@@ -26,14 +26,16 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
 
 /*
  * Number prefixes lived on a page called More Settings in Incidents, Alerts
- * and Scheduled Maintenance (…/settings/more) until each product got a Number
- * Prefix page instead. People have the old address bookmarked, and older
- * docs link to it, so it must keep arriving somewhere: the Number Prefix
- * page of the same product, in the same project.
+ * and Scheduled Maintenance (…/settings/more), then on a Number Prefix page
+ * of their own (…/settings/number-prefix), which became Numbering
+ * (…/settings/numbering) once it held the next numbers too. People have the
+ * old addresses bookmarked, and older docs link to them, so each must keep
+ * arriving somewhere: the Numbering page of the same product, in the same
+ * project.
  *
  * This mounts each product's REAL route group - every page and layout it
  * imports replaced by a marker, read from the route file's source so a page
- * added later is mocked too - and visits the old address.
+ * added later is mocked too - and visits the old addresses.
  */
 
 const DASHBOARD: string = "../../../../App/FeatureSet/Dashboard/src";
@@ -57,37 +59,68 @@ interface Product {
   rootKey: PageMap;
   pageKey: PageMap;
   segment: string;
-  // The module (under Pages/) of the Number Prefix page.
+  // The module (under Pages/) of the Numbering page.
   pageModule: string;
 }
+
+// The page's old addresses, under each product: More Settings, then Number Prefix.
+interface OldAddress {
+  name: string;
+  path: string;
+  // The same address in other letters: every dashboard route matches in any case.
+  otherCase: string;
+}
+
+const OLD_ADDRESSES: Array<OldAddress> = [
+  { name: "More Settings", path: "settings/more", otherCase: "settings/More" },
+  {
+    name: "Number Prefix",
+    path: "settings/number-prefix",
+    otherCase: "settings/Number-Prefix",
+  },
+];
+
+const PRODUCTS_AND_OLD_ADDRESSES: Array<[string, string, Product, OldAddress]> =
+  [];
 
 const PRODUCTS: Array<Product> = [
   {
     name: "Incidents",
     routesFile: "IncidentsRoutes",
     rootKey: PageMap.INCIDENTS_ROOT,
-    pageKey: PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX,
+    pageKey: PageMap.INCIDENTS_SETTINGS_NUMBERING,
     segment: "incidents",
-    pageModule: "Incidents/Settings/IncidentNumberPrefix",
+    pageModule: "Incidents/Settings/IncidentNumbering",
   },
   {
     name: "Alerts",
     routesFile: "AlertRoutes",
     rootKey: PageMap.ALERTS_ROOT,
-    pageKey: PageMap.ALERTS_SETTINGS_NUMBER_PREFIX,
+    pageKey: PageMap.ALERTS_SETTINGS_NUMBERING,
     segment: "alerts",
-    pageModule: "Alerts/Settings/AlertNumberPrefix",
+    pageModule: "Alerts/Settings/AlertNumbering",
   },
   {
     name: "Scheduled Maintenance",
     routesFile: "ScheduleMaintenanceEventsRoutes",
     rootKey: PageMap.SCHEDULED_MAINTENANCE_EVENTS_ROOT,
-    pageKey: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX,
+    pageKey: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING,
     segment: "scheduled-maintenance-events",
     pageModule:
-      "ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceNumberPrefix",
+      "ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceNumbering",
   },
 ];
+
+for (const product of PRODUCTS) {
+  for (const oldAddress of OLD_ADDRESSES) {
+    PRODUCTS_AND_OLD_ADDRESSES.push([
+      product.name,
+      oldAddress.name,
+      product,
+      oldAddress,
+    ]);
+  }
+}
 
 function pageModulesOf(routesFile: string): Array<string> {
   const source: string = fs.readFileSync(
@@ -230,7 +263,7 @@ afterEach(() => {
 
 describe("the suite's own scaffolding", () => {
   test.each(PRODUCTS)(
-    "$name: found the route group's pages and its Number Prefix page among them",
+    "$name: found the route group's pages and its Numbering page among them",
     (product: Product) => {
       const modules: Array<string> = pageModulesOf(product.routesFile);
 
@@ -238,20 +271,27 @@ describe("the suite's own scaffolding", () => {
       expect(modules).toContain(product.pageModule);
       expect(
         modules.filter((module: string): boolean => {
-          return module.includes("MoreSettings");
+          return (
+            module.includes("MoreSettings") || module.includes("NumberPrefix")
+          );
         }),
       ).toEqual([]);
     },
   );
 });
 
-describe.each(PRODUCTS)(
-  "$name: the old More Settings address",
-  (product: Product) => {
-    const oldUrl: string = `${base(product)}/settings/more`;
-    const newUrl: string = `${base(product)}/settings/number-prefix`;
+describe.each(PRODUCTS_AND_OLD_ADDRESSES)(
+  "%s: the old %s address",
+  (
+    _productName: string,
+    _addressName: string,
+    product: Product,
+    oldAddress: OldAddress,
+  ) => {
+    const oldUrl: string = `${base(product)}/${oldAddress.path}`;
+    const newUrl: string = `${base(product)}/settings/numbering`;
 
-    test("arrives at the Number Prefix page", () => {
+    test("arrives at the Numbering page", () => {
       visit(product, oldUrl);
 
       expect(screen.getByTestId("page-module")).toHaveTextContent(
@@ -260,7 +300,7 @@ describe.each(PRODUCTS)(
       expect(landedOn()).toBe(newUrl);
     });
 
-    test("is the address the route table gives the Number Prefix page", () => {
+    test("is the address the route table gives the Numbering page", () => {
       visit(product, oldUrl);
 
       expect(landedOn()).toBe(
@@ -289,7 +329,7 @@ describe.each(PRODUCTS)(
       expect(pathsRendered.length).toBeGreaterThan(0);
       expect(
         pathsRendered.filter((pathname: string): boolean => {
-          return pathname.endsWith("/settings/more");
+          return pathname.endsWith(`/${oldAddress.path}`);
         }),
       ).toEqual([]);
     });
@@ -303,15 +343,15 @@ describe.each(PRODUCTS)(
     test("stays in the project in the URL", () => {
       const otherProjectId: string = "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f";
 
-      visit(product, `${base(product, otherProjectId)}/settings/more`);
+      visit(product, `${base(product, otherProjectId)}/${oldAddress.path}`);
 
       expect(landedOn()).toBe(
-        `${base(product, otherProjectId)}/settings/number-prefix`,
+        `${base(product, otherProjectId)}/settings/numbering`,
       );
     });
 
     test("matches in any case, as every dashboard route does", () => {
-      visit(product, `${base(product)}/settings/More`);
+      visit(product, `${base(product)}/${oldAddress.otherCase}`);
 
       expect(landedOn()).toBe(newUrl);
     });
@@ -328,10 +368,10 @@ describe.each(PRODUCTS)(
 );
 
 describe.each(PRODUCTS)(
-  "$name: the Number Prefix page itself",
+  "$name: the Numbering page itself",
   (product: Product) => {
-    test("renders at settings/number-prefix inside the product's layout, with its pageRoute", () => {
-      visit(product, `${base(product)}/settings/number-prefix`);
+    test("renders at settings/numbering inside the product's layout, with its pageRoute", () => {
+      visit(product, `${base(product)}/settings/numbering`);
 
       expect(screen.getAllByTestId("page")).toHaveLength(1);
       expect(screen.getByTestId("page-module")).toHaveTextContent(
@@ -351,7 +391,7 @@ describe.each(PRODUCTS)(
     });
 
     test("is not read as the id of a record", () => {
-      visit(product, `${base(product)}/settings/number-prefix`);
+      visit(product, `${base(product)}/settings/numbering`);
 
       const modules: Array<string> = renderedPagesMock.mock.calls.map(
         (call: Array<unknown>): string => {

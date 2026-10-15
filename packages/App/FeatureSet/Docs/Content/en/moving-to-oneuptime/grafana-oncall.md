@@ -88,6 +88,9 @@ Open each schedule under **On-Call Duty** > **On-Call Schedules** and check who 
 ### Make sure everyone can be paged
 People you invited accept their invitation, then add a phone number, an email address or the mobile app to be paged on. **On-Call Duty** > **Readiness** shows who cannot be reached yet.
 
+### Carry on your incident numbers
+If your team refers to incidents by number, start OneUptime's after your last one in Grafana OnCall: under **Incidents** > **Settings** > **Numbering**, set **Next Incident Number** on the **Next Number** card to one past it. A number then never means two different incidents.
+
 ### Send your alerts to OneUptime
 Point your monitors and the tools that raise alerts at OneUptime, and page yourself once to test it.
 

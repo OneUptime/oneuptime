@@ -88,6 +88,9 @@ Eine Vorschau wird einen Tag lang aufbewahrt. Nur die Person, die das Konto eing
 ### Sicherstellen, dass alle alarmiert werden können
 Eingeladene Personen nehmen ihre Einladung an und fügen dann eine Telefonnummer, eine E-Mail-Adresse oder die mobile App hinzu, über die sie alarmiert werden. **Bereitschaftsdienst** > **Einsatzbereitschaft** zeigt, wer noch nicht erreichbar ist.
 
+### Ihre Vorfallnummern fortsetzen
+Wenn Ihr Team Vorfälle bei ihrer Nummer nennt, lassen Sie die Nummern von OneUptime nach Ihrer letzten in PagerDuty beginnen: Setzen Sie unter **Vorfälle** > **Einstellungen** > **Nummerierung** auf der Karte **Nächste Nummer** die **Nächste Vorfallnummer** auf die Nummer danach. Eine Nummer bezeichnet dann nie zwei verschiedene Vorfälle.
+
 ### Alarme an OneUptime senden
 Richten Sie Ihre Monitore und die Tools, die Alarme auslösen, auf OneUptime aus, und alarmieren Sie sich zum Test einmal selbst.
 

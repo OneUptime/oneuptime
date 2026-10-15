@@ -57,7 +57,7 @@ Abre **Mantenimiento programado** desde el menú **Productos** de la barra super
 | **Vista general** | **Todos los eventos** y **Eventos en curso**, cuya insignia cuenta los eventos en curso en este momento.               |
 | **Espacio de trabajo** | **Slack** y **Microsoft Teams**, según lo que el proyecto haya conectado, o **Conectar Slack o Teams** si no tiene ninguno. |
 | **Reglas**    | **Reglas del propietario**, **Reglas de runbook**, **Reglas de etiquetas**, **Reglas de recordatorio**.                     |
-| **Ajustes**   | **Estado del evento**, **Plantillas de eventos**, **Plantillas de notas**, **Campos personalizados**, **Mediciones**, **Prefijo de número**. |
+| **Ajustes**   | **Estado del evento**, **Plantillas de eventos**, **Plantillas de notas**, **Campos personalizados**, **Mediciones**, **Numeración**. |
 
 **Vista general** está abierta; **Espacio de trabajo**, **Reglas**, **Ajustes** y **Desarrolladores** empiezan plegadas, y una sección se abre sola cuando estás en una de sus páginas. **Desarrolladores** contiene **Terraform**, **API** y **Asistentes de IA**, para gestionar el mantenimiento desde código. Todo lo relativo al mantenimiento está aquí, no en **Ajustes del proyecto**.
 

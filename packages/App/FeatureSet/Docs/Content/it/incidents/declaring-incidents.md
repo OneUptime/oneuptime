@@ -233,12 +233,12 @@ Gli incidenti segnalati così vengono dichiarati nascosti dalle pagine di stato,
 Ogni incidente riceve un numero progressivo da un contatore del progetto, assegnato dal server al momento della creazione. Lo conservano due colonne: `incidentNumber` (l'intero grezzo) e `incidentNumberWithPrefix` (ciò che vedete davvero). Senza prefisso configurato, il valore mostrato è `#42`.
 
 :::steps
-1. Andate in **Incidenti → Impostazioni → Prefisso del numero** e fate clic su **Aggiorna**.
+1. Andate in **Incidenti → Impostazioni → Numerazione** e fate clic su **Aggiorna** nella scheda **Prefisso del numero**.
 2. Digitate il prefisso in **Prefisso del numero dell'incidente**. Il campo mostra un'anteprima del numero mentre digitate: `INC-` lo trasforma in `INC-42`. Lasciatelo vuoto per mantenere il `#` predefinito.
 3. Fate clic su **Salva modifiche**. Gli incidenti dichiarati da ora in poi ricevono il nuovo prefisso; quelli esistenti mantengono il loro numero.
 :::
 
-La stessa finestra ha **Prefisso del numero dell'episodio dell'incidente** per la numerazione degli episodi. [Prefissi dei numeri](/docs/incidents/settings#prefissi-dei-numeri) elenca le regole che segue un prefisso.
+La stessa finestra ha **Prefisso del numero dell'episodio dell'incidente** per la numerazione degli episodi. [Prefissi dei numeri](/docs/incidents/settings#prefissi-dei-numeri) elenca le regole che segue un prefisso. Per proseguire i numeri di un altro strumento, impostate **Numero successivo dell'incidente** nella scheda **Numero successivo** della stessa pagina: vedete [Numeri successivi](/docs/incidents/settings#numeri-successivi).
 
 Il numero compare come prima colonna dell'elenco degli incidenti, porta all'incidente e appare come **Numero dell'incidente** nella **Panoramica** dell'incidente.
 

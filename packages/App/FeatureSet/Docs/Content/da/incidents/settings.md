@@ -1,6 +1,6 @@
 # Hændelsesindstillinger og automatisering
 
-Konfigurationen af hændelser ligger under **Hændelser**, ikke under **Projektindstillinger**: tilstande og alvorsgrader, skabeloner, brugerdefinerede felter, roller, målinger og nummerpræfikser og de regler, der virker på hver ny hændelse. Denne side er opslagsværket for hver af de sider og for det, der kører af sig selv i det øjeblik, en hændelse erklæres.
+Konfigurationen af hændelser ligger under **Hændelser**, ikke under **Projektindstillinger**: tilstande og alvorsgrader, skabeloner, brugerdefinerede felter, roller, målinger og nummerering og de regler, der virker på hver ny hændelse. Denne side er opslagsværket for hver af de sider og for det, der kører af sig selv i det øjeblik, en hændelse erklæres.
 
 :::cards
 - [Hændelsesskabeloner](#hændelsesskabeloner): Erklær den samme slags hændelse, udfyldt på forhånd, hver gang.
@@ -24,7 +24,7 @@ Konfigurationen af hændelser ligger under **Hændelser**, ikke under **Projekti
 | **Hændelsesroller**          | Definere de roller, du tildeler dem, der reagerer, som Hændelsesleder.                       |
 | **Målinger**                 | Måle, hvor lang tid tingene tager, som tiden til bekræftelse eller løsning, på hver hændelse. |
 | **Tilknyttede advarsler**    | Vælge, om de advarsler, der er knyttet til en hændelse, bekræftes og løses sammen med den. Begge er slået til i nye projekter. |
-| **Nummerpræfiks**            | Teksten foran hændelses- og episodenumre, som `INC-` i `INC-42`.                             |
+| **Nummerering**              | Teksten foran hændelses- og episodenumre, som `INC-` i `INC-42`, og det nummer, den næste får. |
 
 Det, OneUptime AI gør på egen hånd, sættes ikke her: det har sit eget afsnit, **Hændelser → AI**, på ruter, der begynder med `/dashboard/{projectId}/incidents/ai/`. Dets side **Indstillinger** slår undersøgelse af nye hændelser, automatisk rettelse af dem (slået fra, indtil du slår den til), med de pull requests til rettelser og manglende telemetri, der hører til rettelsen, samlet under den, og udkast til postmortems til eller fra, og hver gemmes, så snart du slår den om; undersøgelsesreglerne og reglerne for automatisk afhjælpning, der indsnævrer, hvilke hændelser der undersøges og rettes, og de valgfri grænser, AI arbejder under, er foldet sammen under **Yderligere indstillinger**, og ingen af dem gælder, før du sætter dem. **Indsigter** og **Protokoller** står ved siden af: hvad AI har lært af dine hændelser, og alt, hvad den har gjort. Se [AI SRE](/docs/ai/ai-sre).
 
@@ -469,7 +469,7 @@ Roller er kun definitioner. Du tildeler folk til dem pr. hændelse — erklærin
 
 Hver hændelse får et nummer fra en tæller pr. projekt. Uden præfiks vises det som `#42`; med et vises det som `INC-42`. Siger dit team "INC-42" højt, så få produktet til at sige det samme. Nye projekter starter med `INC-` til hændelser og `IE-` til hændelsesepisoder.
 
-Gå til **Hændelser → Indstillinger → Nummerpræfiks** (`/dashboard/{projectId}/incidents/settings/number-prefix`). Kortet **Nummerpræfiks** har en række for **Hændelser** og en for **Hændelse Episoder**. Hver viser sit præfiks og et eksempel på det nummer, det danner: `INC-`, og derefter **Eksempel:** `INC-42`. Et projekt uden præfiks viser **Intet præfiks** og `#42`.
+Gå til **Hændelser → Indstillinger → Nummerering** (`/dashboard/{projectId}/incidents/settings/numbering`). Kortet **Nummerpræfiks** har en række for **Hændelser** og en for **Hændelse Episoder**. Hver viser sit præfiks og et eksempel på det nummer, det danner: `INC-`, og derefter **Eksempel:** `INC-42`. Et projekt uden præfiks viser **Intet præfiks** og `#42`.
 
 :::steps
 1. Klik på **Opdater**. Dialogen **Rediger nummerpræfiks** åbner med to felter: **Nummerpræfiks for hændelse** (pladsholder `INC-`) og **Nummerpræfiks for hændelsesepisode** (pladsholder `IE-`).
@@ -489,7 +489,33 @@ Dialogen siger, hvad der er galt, før du gemmer, og API'et afviser de samme pr�
 
 Project Owners, Project Admins og alle med **Edit Project** kan ændre præfikserne. Alle andre ser dem med knappen **Opdater** låst.
 
-Advarsler og planlagte vedligeholdelseshændelser har den samme side: **Advarsler → Indstillinger → Nummerpræfiks** til numre på advarsler og advarselsepisoder (`ALT-` og `AE-` i nye projekter) og **Planlagt vedligeholdelse → Indstillinger → Nummerpræfiks** til numre på hændelser (`SM-`). I alle tre virker den gamle adresse for **Flere indstillinger** (`…/settings/more`) stadig og åbner **Nummerpræfiks**.
+Advarsler og planlagte vedligeholdelseshændelser har den samme side: **Advarsler → Indstillinger → Nummerering** til numre på advarsler og advarselsepisoder (`ALT-` og `AE-` i nye projekter) og **Planlagt vedligeholdelse → Indstillinger → Nummerering** til numre på hændelser (`SM-`). I alle tre virker sidens gamle adresser stadig og åbner **Nummerering**: **Flere indstillinger** (`…/settings/more`) og **Nummerpræfiks** (`…/settings/number-prefix`).
+
+## Næste numre
+
+Hver ny hændelse får nummeret efter det højeste, der er brugt indtil nu, og hver ny episode også: `INC-1`, `INC-2`, `INC-3` fra et projekts første. Skifter du fra et andet værktøj? Lad OneUptimes numre starte efter værktøjets sidste, så et nummer aldrig betyder to forskellige hændelser: Et team, hvis sidste hændelse i det gamle værktøj var `INC-2345`, sætter det næste nummer til `2346`, eller til `10000` for at kende sine hændelser i OneUptime fra hinanden med det samme.
+
+Kortet **Næste nummer**, under **Nummerpræfiks** på den samme side, har en række for **Hændelser** og en for **Hændelse Episoder**. Hver viser det nummer, den næste får, med præfiks, og derefter **Højeste indtil nu:** og det højeste brugte nummer, eller **Ingen brugt endnu**.
+
+:::steps
+1. Klik på **Opdater** på kortet **Næste nummer**. Dialogen **Rediger næste nummer** åbner med **Næste hændelsesnummer** og **Næste nummer for hændelsesepisode**, hver udfyldt med det nummer, der kommer næst, og med det, den skal være højere end.
+2. Skriv det nummer, den næste skal have. Under hvert felt viser **Forhåndsvisning:** det med præfiks, så du ser `INC-10000`, før du gemmer `10000`.
+3. Klik på **Gem ændringer**. Den næste hændelse får det nummer, og de følgende tæller videre derfra: `INC-10000`, `INC-10001`.
+:::
+
+Et næste nummer:
+
+- er et heltal fra 1 til 1.000.000.000;
+- skal være højere end det højeste nummer, der er brugt indtil nu — slettede hændelser tæller med — så et nummer aldrig bruges to gange;
+- kan sættes ned igen, så længe ingen hændelse har brugt det: En tastefejl som `100000` for `10000` rettes ved at gemme `10000`.
+
+Dialogen siger, hvad der er galt, før du gemmer, og kun de numre, du har ændret, gemmes. Serveren tjekker de samme regler, og hvis en hændelse tog nummeret, mens dialogen var åben, siger den det, og dialogen viser det nye højeste nummer.
+
+**Hvad et nyt næste nummer ændrer.** Eksisterende hændelser og episoder beholder deres numre. Serveren tildeler hvert nummer i ét trin, mens posten oprettes, så hændelser, der erklæres i samme øjeblik — af en monitor, et workflow og en person — får hver deres eget nummer, også mens nogen ændrer det næste nummer. I API'et og i Terraform er det næste nummer der, hvor numrene starter: projektets `incidentNumbersStartAt` og `incidentEpisodeNumbersStartAt` (`incident_numbers_start_at` og `incident_episode_numbers_start_at` i Terraform). En værdi på eller under det højeste brugte nummer afvises, og den værdi, der allerede er sat, sendt igen, accepteres, så en Terraform-apply stadig lykkes, når hændelser er nået forbi den.
+
+Project Owners, Project Admins og alle med **Edit Project** kan ændre de næste numre, ligesom præfikserne. Alle andre ser dem med knappen **Opdater** låst.
+
+Advarsler og planlagte vedligeholdelseshændelser har det samme kort på deres sider **Nummerering**: **Næste advarselsnummer** og **Næste nummer for advarselsepisode** samt **Næste nummer for planlagt vedligeholdelse**. [Importér fra et andet værktøj](/docs/moving-to-oneuptime/incident-io) henter din opsætning, ikke dine tidligere hændelser, og lader derfor numrene være: Sæt de næste numre, før den første hændelse erklæres i OneUptime.
 
 ## Kontakter for tilknyttede advarsler
 
