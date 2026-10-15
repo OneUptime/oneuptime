@@ -1034,6 +1034,26 @@ describe("the helpers, on these pages' shapes", () => {
     expect((names.match(LATIN_WORD) || []).length).toBeLessThan(3);
   });
 
+  it("take a label a language's Dashboard draws in English for drawn, not for a line left untranslated", () => {
+    const row: string =
+      "| **Number of times to repeat** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |";
+
+    expect(englishPage(ON_CALL_POLICIES).split("\n")).toContain(row);
+    // The Italian Dashboard draws the field in English; the Japanese one does not.
+    expect(englishBoldDrawings("it", ON_CALL_POLICIES)).toContainEqual([
+      "**Number of times to repeat**",
+      "**Number of times to repeat**",
+    ]);
+    expect(englishBoldDrawings("ja", ON_CALL_POLICIES)).toContainEqual([
+      "**Number of times to repeat**",
+      "**繰り返し回数**",
+    ]);
+    // So the Italian page keeps the row as written, and that is not a miss.
+    expect(readPage("it", ON_CALL_POLICIES).split("\n")).toContain(row);
+    expect(untranslatedLines("it", ON_CALL_POLICIES)).toEqual([]);
+    expect(readPage("ja", ON_CALL_POLICIES).split("\n")).not.toContain(row);
+  });
+
   it("name every link's anchor by the heading in the English heading's place, in the reader's language", () => {
     expect(
       expectedLink("en", ON_CALL_OVERVIEW, "#how-a-page-reaches-someone"),
