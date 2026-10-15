@@ -99,11 +99,12 @@ const SECTION_LABEL_CLASS_NAME: string =
  * "Schedule", on a runbook's Triggers page.
  *
  * Without a schedule yet: what one does, and Set Up Schedule. With one: a
- * switch, "Run on this schedule", that saves the moment it is flipped, the
- * schedule in a sentence under it, and - while it is on - the next runs on
- * the schedule's clock, what it does when a run is still going or a time
- * was missed, and the last run it started. Edit Schedule, at the card's top
- * right, opens the same dialog Set Up Schedule does.
+ * switch, "Run on this schedule", that saves the moment it is flipped, with
+ * the schedule in a sentence under it, on or off. Under that, its next runs
+ * on the schedule's clock (or that it is paused) beside the last run it
+ * started, and, quieter, what it does when a run is still going or a time
+ * was missed. Edit Schedule, at the card's top right, opens the same dialog
+ * Set Up Schedule does.
  *
  * Setting a schedule up starts runs with nobody there, so it takes
  * permission to run the runbook as well as to edit it (the server refuses
@@ -578,10 +579,7 @@ const RunbookScheduleCard: FunctionComponent<ComponentProps> = (
       item.scheduleMissedRunPolicy ||
       DEFAULT_RUNBOOK_SCHEDULE_MISSED_RUN_POLICY;
 
-    /*
-     * While the runbook is off or has no steps, its times start nothing:
-     * the note says why, and no time is listed as if it would run.
-     */
+    // Paused, it says so where its runs would be.
     const getNextRuns: () => ReactElement = (): ReactElement => {
       if (!isOn) {
         return (
@@ -597,6 +595,10 @@ const RunbookScheduleCard: FunctionComponent<ComponentProps> = (
       return <NextRuns cron={item.scheduleCron || ""} timezone={timezone} />;
     };
 
+    /*
+     * While the runbook is off or has no steps, its times start nothing:
+     * the note says why, and no time is listed as if it would run.
+     */
     const showsNextRuns: boolean = !isOn || canStartRuns(item);
 
     return (
