@@ -824,10 +824,14 @@ export default class MicrosoftTeamsIncidentMoreActions {
     const problem: string | null =
       WorkspaceIncidentActions.getPageProblem(picked);
 
+    // Said in the conversation, so with what to do next, as the others are.
     if (problem) {
       return await MicrosoftTeamsIncidentMoreActions.replyText(
         data.turnContext,
-        problem,
+        MicrosoftTeamsIncidentMoreActions.thenPressAgain(
+          problem,
+          WORKSPACE_INCIDENT_FORM_TEXT.page,
+        ),
       );
     }
 
@@ -1304,6 +1308,18 @@ export default class MicrosoftTeamsIncidentMoreActions {
       turnContext: turnContext,
       answer: answer,
     });
+  }
+
+  /*
+   * A field's problem, and what to do next: "Pick who to page, then press
+   * Page again." Slack says the problem under the field instead.
+   */
+  private static thenPressAgain(problem: string, button: string): string {
+    const sentence: string = problem.endsWith(".")
+      ? problem.substring(0, problem.length - 1)
+      : problem;
+
+    return `${sentence}, then press ${button} again.`;
   }
 
   // A card's field left wrong: said, mentioning them; the card stays.

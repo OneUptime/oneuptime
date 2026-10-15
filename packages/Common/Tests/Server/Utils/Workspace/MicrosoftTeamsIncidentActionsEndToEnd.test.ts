@@ -1402,7 +1402,10 @@ describe("a form card, submitted: the change as Simon, said in the conversation,
     );
 
     expect(pages).toEqual([]);
-    expect(answerOf(posted(delivery)[0])).toBe("Pick who to page.");
+    // In the conversation, so with what to do next, as the other cards say.
+    expect(answerOf(posted(delivery)[0])).toBe(
+      "Pick who to page, then press Page again.",
+    );
     expect(removals(delivery)).toEqual([]);
   });
 

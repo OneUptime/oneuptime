@@ -41,6 +41,8 @@ import OnCallPageService, {
 import TeamMemberService from "../../Services/TeamMemberService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import ModelPermission from "../../Types/Database/Permissions/Index";
+import TablePermission from "../../Types/Database/Permissions/TablePermission";
+import { PermissionHelper } from "../../../Types/Permission";
 import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
 import logger from "../Logger";
 import ProductBrandingText from "../ProductBrandingText";
@@ -1039,7 +1041,12 @@ export default class WorkspaceIncidentActions {
     const replaced: Array<WorkspaceIncidentRoleHolder> =
       role.canAssignMultipleUsers ? [] : holders;
 
-    // Taking somebody off a role is the member's to be allowed, first.
+    /*
+     * Taking somebody off a role is the member's to be allowed, first. Told
+     * in one go - the role, who would come off it, and the permissions that
+     * allow it - not as the table's own refusal, which names "Incident
+     * Member" rather than the role.
+     */
     if (replaced.length > 0) {
       try {
         ModelPermission.checkTableWritePermission(
@@ -1049,12 +1056,23 @@ export default class WorkspaceIncidentActions {
         );
       } catch (err) {
         if (err instanceof NotAuthorizedException) {
+          const needed: Array<string> = PermissionHelper.getPermissionTitles(
+            TablePermission.getTablePermission(
+              IncidentMember,
+              DatabaseRequestType.Delete,
+            ),
+          );
+
           throw new NotAuthorizedException(
-            `You do not have permission to take ${WorkspaceIncidentActions.joinNames(
+            `${roleName} takes one person, and you do not have permission to take ${WorkspaceIncidentActions.joinNames(
               replaced.map((holder: WorkspaceIncidentRoleHolder): string => {
                 return holder.name;
               }),
-            )} off ${roleName}, which takes one person. ${err.message}`,
+            )} off it.${
+              needed.length > 0
+                ? ` You need one of these permissions: ${needed.join(", ")}.`
+                : ""
+            }`,
           );
         }
 

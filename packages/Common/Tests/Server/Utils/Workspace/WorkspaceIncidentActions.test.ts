@@ -1462,9 +1462,10 @@ describe("WorkspaceIncidentActions.assignRole: an incident member, as the member
         ]),
       });
 
+    // The role, who would come off it, and what allows it - once each.
     await expect(refusal).rejects.toBeInstanceOf(NotAuthorizedException);
     await expect(refusal).rejects.toThrow(
-      /^You do not have permission to take Ana Ruiz off Incident Commander, which takes one person\. /,
+      "Incident Commander takes one person, and you do not have permission to take Ana Ruiz off it. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Delete Incident Member.",
     );
     expect(writes.create).not.toHaveBeenCalled();
     expect(writes.remove).not.toHaveBeenCalled();

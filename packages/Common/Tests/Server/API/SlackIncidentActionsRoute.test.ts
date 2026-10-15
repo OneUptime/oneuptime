@@ -1464,8 +1464,9 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
 
       expect(membersCreated).toEqual([]);
       expect(membersDeleted).toEqual([]);
-      expect(textOf(said.data["blocks"])).toMatch(
-        /^Could not assign the role: You do not have permission to take Ana Ruiz off Incident Commander, which takes one person\. /,
+      // The role, who would come off it, and what allows it - once each.
+      expect(textOf(said.data["blocks"])).toBe(
+        "Could not assign the role: Incident Commander takes one person, and you do not have permission to take Ana Ruiz off it. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Delete Incident Member.\n",
       );
     });
 
