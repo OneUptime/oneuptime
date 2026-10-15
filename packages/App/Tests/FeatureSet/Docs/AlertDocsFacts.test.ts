@@ -1650,6 +1650,23 @@ describe("alert states and severities", () => {
     );
     const text: string = section(page, "## The state timeline");
 
+    /*
+     * The page opens on the timeline (ModelStatusTimeline): a band to scale
+     * and every change under it, newest first - with Table, the switch in
+     * the card's header, one click away.
+     */
+    expect(timeline).toContain("<ModelStatusTimeline<AlertStateTimeline>");
+    expect(timeline).toContain('title="Status Timeline"');
+    expect(timeline).toContain("rightElement: viewSwitch,");
+    expect(
+      readCommonSource("UI/Components/StatusTimeline/StatusTimelineView.tsx"),
+    ).toContain('label: translationKey("Table"),');
+    expect(
+      readCommonSource("UI/Components/StatusTimeline/ModelStatusTimeline.tsx"),
+    ).toContain("startsAt: SortOrder.Descending,");
+    expect(text).toContain(
+      "Its card, **Status Timeline**, draws them as a timeline: a band with each state as long as it lasted, and under it every change, newest first.",
+    );
     expect(timeline).toContain('title: "Status Timeline",');
     expect(timeline).toContain('title: "Alert Status",');
     expect(timeline).toContain('title: "View Cause",');
@@ -1662,7 +1679,7 @@ describe("alert states and severities", () => {
     );
     expect(timeline).toContain("isEditable={false}");
     expect(text).toContain(
-      "Its card, **Status Timeline**, lists them newest first, with **Alert Status**, **Starts At**, **Ends At** and **Duration**.",
+      "**Table**, in the card's header, lists them as rows instead, with **Alert Status**, **Starts At**, **Ends At** and **Duration**.",
     );
     // The only row is never deleted.
     expect(
