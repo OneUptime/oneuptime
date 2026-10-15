@@ -1,5 +1,8 @@
 import { getUniqueName } from "Common/UI/Components/Forms/Utils/UniqueName";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translateText,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The words of the Network area's "Add a probe" dialog (AddProbeModal), and
@@ -21,14 +24,15 @@ export const ADD_PROBE_NAME_PLACEHOLDER: string = translationKey(
 
 /*
  * The name a first probe starts with: the name is required, and a person
- * adding their first probe rarely has one in mind. Taken names are numbered
- * past ("Network probe 2"), as the server compares them.
+ * adding their first probe rarely has one in mind. In the reader's language,
+ * since it is the name they keep; taken names are numbered past ("Network
+ * probe 2"), as the server compares them.
  */
-export const DEFAULT_PROBE_NAME: string = "Network probe";
+export const DEFAULT_PROBE_NAME: string = translationKey("Network probe");
 
 export function getDefaultProbeName(existingNames: Array<string>): string {
   return getUniqueName({
-    name: DEFAULT_PROBE_NAME,
+    name: translateText(DEFAULT_PROBE_NAME) || DEFAULT_PROBE_NAME,
     existingNames: existingNames,
   });
 }

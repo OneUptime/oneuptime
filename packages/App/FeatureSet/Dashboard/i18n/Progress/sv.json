@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 28484,
-    "untranslated": 16927
+    "keys": 29573,
+    "untranslated": 17216
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -34,6 +34,7 @@
     "VMware vCenter",
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",
+    "port {{port}}",
     "syslog",
     "{{count}} B",
     "{{count}} KB",

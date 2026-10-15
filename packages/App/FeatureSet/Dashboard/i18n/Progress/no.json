@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 28484,
-    "untranslated": 16928
+    "keys": 29573,
+    "untranslated": 17218
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -29,6 +29,7 @@
     "Tunnel",
     "VMware vCenter",
     "kubectl set image deployment/web * -n web",
+    "port {{port}}",
     "syslog",
     "{{count}} B",
     "{{count}} KB",
