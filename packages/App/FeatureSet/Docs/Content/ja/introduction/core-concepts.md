@@ -66,6 +66,7 @@ flowchart TB
 
 :::cards
 - [インシデント 概要](/docs/incidents/index): インシデントがどのように宣言、対応、解決されるか。
+- [アラートの概要](/docs/alerts/index): アラートの発生元と、エピソードによるまとめ方。
 - [リンクされたアラート](/docs/incidents/linked-alerts): 障害が発生させたアラートを、そのインシデントに結び付けます。
 :::
 
