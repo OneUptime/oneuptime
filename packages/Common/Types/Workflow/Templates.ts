@@ -8000,7 +8000,7 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
     id: "incident-created-or-updated-forward",
     name: "Keep another system up to date with your incidents",
     description:
-      "POSTs each new incident, and each change to its title, description, state or severity, to a URL of yours, saying which it was.",
+      "POSTs each new incident, and each change to its title, description, state or severity, to a URL of yours, marked created or updated.",
     teaches:
       "How one trigger covers a new record and a change to one, and how What Happened tells the two apart.",
     category: WorkflowTemplateCategory.Incidents,
