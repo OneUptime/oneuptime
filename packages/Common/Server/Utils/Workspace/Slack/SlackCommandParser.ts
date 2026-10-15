@@ -135,7 +135,11 @@ export default class SlackCommandParser {
           return {
             actionType: SlackActionType.ShowIncident,
             actionValue: request.input.text.trim(),
-            command: typed,
+            /*
+             * With the number: run again without it, the command would
+             * open the incident form instead of showing this incident.
+             */
+            command: `${typed} ${request.input.text.trim()}`,
           };
         }
 

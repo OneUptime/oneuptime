@@ -158,6 +158,47 @@ const FORMS: Array<[SlackActionType, string, string]> = [
     "execute an on-call policy for this incident",
     "Execute On-Call Policy",
   ],
+  // The incident message's menu (⋯): each item, and its form's submission.
+  [
+    SlackActionType.ViewChangeIncidentSeverity,
+    "change the severity of this incident",
+    "Change Severity",
+  ],
+  [
+    SlackActionType.SubmitChangeIncidentSeverity,
+    "change the severity of this incident",
+    "Change Severity",
+  ],
+  [
+    SlackActionType.ViewAssignIncidentRole,
+    "assign a role on this incident",
+    "Assign Role",
+  ],
+  [
+    SlackActionType.SubmitAssignIncidentRole,
+    "assign a role on this incident",
+    "Assign Role",
+  ],
+  [
+    SlackActionType.ViewPageAboutIncident,
+    "page someone about this incident",
+    "Page Someone",
+  ],
+  [
+    SlackActionType.SubmitPageAboutIncident,
+    "page someone about this incident",
+    "Page Someone",
+  ],
+  [
+    SlackActionType.ViewEditIncidentCustomFields,
+    "edit the custom fields of this incident",
+    "Edit Custom Fields",
+  ],
+  [
+    SlackActionType.SubmitEditIncidentCustomFields,
+    "edit the custom fields of this incident",
+    "Edit Custom Fields",
+  ],
   [SlackActionType.ViewAddAlertNote, "add a note to this alert", "Add Note"],
   [
     SlackActionType.SubmitChangeAlertState,
@@ -267,6 +308,28 @@ describe("SlackConnectPrompt.describe", () => {
         }),
       ).toEqual({
         purpose: purpose,
+        again: {
+          kind: WorkspaceConnectRequestAgainKind.Command,
+          label: command,
+        },
+      });
+    },
+  );
+
+  test.each([
+    ["/oneuptime incident 42"],
+    ["/oneuptime incident INC-42"],
+    ["/irm incident #42"],
+  ])(
+    "an incident shown by its number, typed as %s: asks to see it, then to run exactly that again",
+    (command: string) => {
+      expect(
+        SlackConnectPrompt.describe({
+          actionType: SlackActionType.ShowIncident,
+          command: command,
+        }),
+      ).toEqual({
+        purpose: "see this incident",
         again: {
           kind: WorkspaceConnectRequestAgainKind.Command,
           label: command,
