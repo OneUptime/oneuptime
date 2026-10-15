@@ -3243,6 +3243,21 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           });
           actions.push(actionObj);
         }
+
+        /*
+         * The actions fewer people need go in the card's overflow menu
+         * (…): Teams draws an action of mode "secondary" there, after the
+         * buttons. A client that knows no overflow menu draws it as one
+         * more button.
+         */
+        for (const button of buttonsBlock.menuButtons || []) {
+          actions.push({
+            ...this.getButtonBlock({
+              payloadButtonBlock: button,
+            }),
+            mode: "secondary",
+          });
+        }
       }
     }
 

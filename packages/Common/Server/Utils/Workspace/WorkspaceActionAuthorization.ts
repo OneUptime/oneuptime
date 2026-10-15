@@ -253,6 +253,52 @@ export default class WorkspaceActionAuthorization {
   }
 
   /*
+   * Throws NotAuthorizedException, worded for the chat, unless `props` may
+   * change the columns `data` names on `modelType` rows in props.tenantId -
+   * the table's update permission, each column's, and the plan where a plan
+   * decides it - as the update itself would check them: an incident's
+   * severity or custom fields, from chat. `action` completes "You do not
+   * have permission to ...", e.g. "change the severity of this incident".
+   * Which rows they may change - their labels and owners - the update
+   * itself holds them to.
+   */
+  @CaptureSpan()
+  public static async assertCanUpdate(data: {
+    props: DatabaseCommonInteractionProps;
+    modelType: DatabaseBaseModelType;
+    data: Record<string, unknown>;
+    action: string;
+  }): Promise<void> {
+    const { props, modelType, action } = data;
+    const projectId: ObjectID | undefined = props.tenantId;
+
+    if (!props.userId || !projectId) {
+      throw new NotAuthorizedException(
+        `You do not have permission to ${action}.`,
+      );
+    }
+
+    try {
+      await ModelPermission.checkUpdateQueryPermissions(
+        modelType,
+        {
+          projectId: projectId,
+        } as Query<DatabaseBaseModel>,
+        data.data as never,
+        props,
+      );
+    } catch (err) {
+      if (err instanceof NotAuthorizedException) {
+        throw new NotAuthorizedException(
+          `You do not have permission to ${action}. ${err.message}`,
+        );
+      }
+
+      throw err;
+    }
+  }
+
+  /*
    * getProjectMemberProps followed by assertCanCreate. Returns the user's
    * props so the caller can pass them on to anything else it writes.
    */

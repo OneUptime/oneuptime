@@ -24,6 +24,10 @@ import SlackActionAnswer, {
 import SlackConnectPrompt from "./ConnectPrompt";
 import { SLACK_ID_PATTERN } from "../../../../../Types/Workspace/ConnectCallback";
 import SlackCommandParser from "../SlackCommandParser";
+import SlackOverflowMenu, {
+  SLACK_OVERFLOW_MENU_ACTION_ID,
+  SlackOverflowChoice,
+} from "../SlackOverflowMenu";
 
 // The forms whose value is the channel they were opened in.
 const NEW_RECORD_FORMS: ReadonlyArray<SlackActionType> = [
@@ -97,6 +101,12 @@ export interface SlackRequest {
    * (SlackHome), "modal" for a form. None for a message's button.
    */
   slackViewType?: string | undefined;
+  /*
+   * The press was made on a message only its presser sees - the incident a
+   * command answered with - or on a form opened from one: nobody else sees
+   * what it does, so it is answered with what it did.
+   */
+  isFromPrivateMessage?: boolean | undefined;
 }
 
 /*
@@ -204,11 +214,35 @@ export default class SlackAuthAction {
     const actions: SlackAction[] = (
       (payload["actions"] || []) as JSONArray
     ).map((action: JSONObject) => {
+      /*
+       * A choice of a message's overflow menu (⋯) is the press of the
+       * button it stands for: its option's value names that button's
+       * action and value (SlackOverflowMenu).
+       */
+      if (action["action_id"] === SLACK_OVERFLOW_MENU_ACTION_ID) {
+        const choice: SlackOverflowChoice | null = SlackOverflowMenu.decode(
+          (action["selected_option"] as JSONObject | undefined)?.["value"],
+        );
+
+        if (choice) {
+          return {
+            actionValue: choice.actionValue,
+            actionType: choice.actionType as SlackActionType,
+          };
+        }
+      }
+
       return {
         actionValue: action["value"] as string,
         actionType: action["action_id"] as SlackActionType,
       };
     });
+
+    // A message only the person who pressed sees (chat.postEphemeral, a response_url).
+    let isFromPrivateMessage: boolean =
+      ((payload["container"] as JSONObject | undefined)?.["is_ephemeral"] as
+        | boolean
+        | undefined) === true;
 
     let slackChannelId: string | undefined = (
       (payload as JSONObject)?.["channel"] as JSONObject
@@ -368,6 +402,10 @@ export default class SlackAuthAction {
         slackThreadTs = metadata.origin.threadTs;
       }
 
+      if (metadata.origin.isFromPrivateMessage) {
+        isFromPrivateMessage = true;
+      }
+
       /*
        * The New Incident and New Scheduled Maintenance forms carry the
        * channel they were opened in as their value - bare, in a form opened
@@ -442,6 +480,7 @@ export default class SlackAuthAction {
       triggerId: triggerId,
       view: view,
       viewValues: viewValues,
+      ...(isFromPrivateMessage ? { isFromPrivateMessage: true } : {}),
     };
 
     // check if all the actions are authed.

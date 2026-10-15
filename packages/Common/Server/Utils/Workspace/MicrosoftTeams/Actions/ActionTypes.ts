@@ -18,6 +18,18 @@ export enum MicrosoftTeamsIncidentActionType {
   SubmitChangeIncidentState = "SubmitChangeIncidentState",
   NewIncident = "CreateIncident",
   SubmitNewIncident = "SubmitNewIncident",
+  /*
+   * The incident card's menu (…), pressed by Slack's ids: the card is drawn
+   * from the Slack message's blocks (WorkspaceIncidentActions).
+   */
+  ViewChangeIncidentSeverity = "ViewChangeIncidentSeverity",
+  SubmitChangeIncidentSeverity = "SubmitChangeIncidentSeverity",
+  ViewAssignIncidentRole = "ViewAssignIncidentRole",
+  SubmitAssignIncidentRole = "SubmitAssignIncidentRole",
+  ViewPageAboutIncident = "ViewPageAboutIncident",
+  SubmitPageAboutIncident = "SubmitPageAboutIncident",
+  ViewEditIncidentCustomFields = "ViewEditIncidentCustomFields",
+  SubmitEditIncidentCustomFields = "SubmitEditIncidentCustomFields",
 }
 
 // Alert Actions

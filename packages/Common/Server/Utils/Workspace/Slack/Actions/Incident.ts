@@ -53,6 +53,11 @@ import SlackActionAuthorization, {
   SlackAuthorizedEvent,
 } from "./Authorization";
 import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
+import SlackIncidentMoreActions from "./IncidentMoreActions";
+import WorkspaceActionAnswers from "../../WorkspaceActionAnswers";
+import { WorkspacePendingActionKind } from "../../WorkspaceConnectRequest";
+import WorkspaceIncidentActions from "../../WorkspaceIncidentActions";
+import WorkspaceCommands from "../../WorkspaceCommands";
 
 export default class SlackIncidentActions {
   @CaptureSpan()
@@ -75,7 +80,8 @@ export default class SlackIncidentActions {
       case SlackActionType.SubmitNewIncident:
         return true;
       default:
-        return false;
+        // The incident's menu (⋯), and `/oneuptime incident 42`.
+        return SlackIncidentMoreActions.isAction(actionType);
     }
   }
 
@@ -312,6 +318,24 @@ export default class SlackIncidentActions {
     res: ExpressResponse;
   }): Promise<void> {
     const blocks: Array<WorkspaceMessageBlock> = [];
+
+    /*
+     * `/oneuptime incident`, with nothing after it, typed in an incident's
+     * own channel: that incident, with its buttons - what a responder there
+     * wants - and how to declare another instead. Anywhere else, and from
+     * a button or a shortcut, the form, as always.
+     */
+    if (
+      data.action.command &&
+      !(data.action.actionValue || "").trim() &&
+      (await SlackIncidentMoreActions.showIncidentOfChannel({
+        slackRequest: data.slackRequest,
+        req: data.req,
+        res: data.res,
+      }))
+    ) {
+      return;
+    }
 
     // send response to clear the action.
     Response.sendTextResponse(data.req, data.res, "");
@@ -678,6 +702,17 @@ export default class SlackIncidentActions {
         return;
       }
 
+      // Pressed where only they see it: what it did.
+      await SlackIncidentMoreActions.answerDoneIfPrivate({
+        slackRequest: slackRequest,
+        answer: () => {
+          return WorkspaceActionAnswers.getDoneAnswer({
+            event: incident,
+            kind: WorkspacePendingActionKind.Acknowledge,
+          });
+        },
+      });
+
       // Log the button interaction
       if (slackRequest.projectId) {
         try {
@@ -804,16 +839,31 @@ export default class SlackIncidentActions {
       }
 
       // Resolved by the member, as the dashboard resolves it for them.
-      await SlackActionAuthorization.runForRequester({
-        requester: slackRequest,
-        action: "resolve the incident",
-        run: async (): Promise<void> => {
-          await WorkspaceMemberActions.resolve({
-            event: incident,
-            props: props,
-          });
-        },
-      });
+      const isResolved: boolean | null =
+        await SlackActionAuthorization.runForRequester({
+          requester: slackRequest,
+          action: "resolve the incident",
+          run: async (): Promise<boolean> => {
+            await WorkspaceMemberActions.resolve({
+              event: incident,
+              props: props,
+            });
+            return true;
+          },
+        });
+
+      if (isResolved) {
+        // Pressed where only they see it: what it did.
+        await SlackIncidentMoreActions.answerDoneIfPrivate({
+          slackRequest: slackRequest,
+          answer: () => {
+            return WorkspaceActionAnswers.getDoneAnswer({
+              event: incident,
+              kind: WorkspacePendingActionKind.Resolve,
+            });
+          },
+        });
+      }
 
       return;
     }
@@ -1108,6 +1158,17 @@ export default class SlackIncidentActions {
       return;
     }
 
+    // Opened from a message only they see: what it did.
+    await SlackIncidentMoreActions.answerDoneIfPrivate({
+      slackRequest: data.slackRequest,
+      answer: () => {
+        return WorkspaceIncidentActions.getStateChangedAnswer({
+          event: authorized.event,
+          stateId: stateId,
+        });
+      },
+    });
+
     // Log the button interaction
     if (data.slackRequest.projectId && data.slackRequest.userId) {
       try {
@@ -1344,28 +1405,44 @@ export default class SlackIncidentActions {
     }
 
     // Posted by the member, as the dashboard posts it for them.
-    await SlackActionAuthorization.runForRequester({
-      requester: data.slackRequest,
-      action: "add the note",
-      run: async (): Promise<void> => {
-        if (noteType === "public") {
-          await IncidentPublicNoteService.addNote({
+    const isAdded: boolean | null =
+      await SlackActionAuthorization.runForRequester({
+        requester: data.slackRequest,
+        action: "add the note",
+        run: async (): Promise<boolean> => {
+          if (noteType === "public") {
+            await IncidentPublicNoteService.addNote({
+              incidentId: incidentId,
+              note: note,
+              projectId: data.slackRequest.projectId!,
+              props: props,
+            });
+            return true;
+          }
+
+          await IncidentInternalNoteService.addNote({
             incidentId: incidentId,
             note: note,
             projectId: data.slackRequest.projectId!,
             props: props,
           });
-          return;
-        }
+          return true;
+        },
+      });
 
-        await IncidentInternalNoteService.addNote({
-          incidentId: incidentId,
-          note: note,
-          projectId: data.slackRequest.projectId!,
-          props: props,
-        });
-      },
-    });
+    if (isAdded) {
+      // Opened from a message only they see: what it did.
+      await SlackIncidentMoreActions.answerDoneIfPrivate({
+        slackRequest: data.slackRequest,
+        answer: () => {
+          return WorkspaceIncidentActions.getNoteAddedAnswer({
+            incidentId: incidentId,
+            isPublic: noteType === "public",
+            props: props,
+          });
+        },
+      });
+    }
   }
 
   @CaptureSpan()
@@ -1494,6 +1571,33 @@ export default class SlackIncidentActions {
       return Response.sendJsonObjectResponse(data.req, data.res, {
         response_action: "clear",
       });
+    }
+
+    /*
+     * `/oneuptime incident 42` - and a word that only looked like a number,
+     * "IPv6", which is the new incident's title after all.
+     */
+    if (actionType === SlackActionType.ShowIncident) {
+      return await SlackIncidentMoreActions.showIncidentByNumber({
+        ...data,
+        declare: async (): Promise<void> => {
+          return await this.viewNewIncidentModal({
+            ...data,
+            action: {
+              ...data.action,
+              actionType: SlackActionType.NewIncident,
+              actionValue: WorkspaceCommands.toTitle(
+                data.action.actionValue || "",
+              ),
+            },
+          });
+        },
+      });
+    }
+
+    // The incident's menu (⋯): Change Severity, Assign Role, ...
+    if (SlackIncidentMoreActions.isAction(actionType)) {
+      return await SlackIncidentMoreActions.handle(data);
     }
 
     // invalid action type.

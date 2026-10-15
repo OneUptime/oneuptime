@@ -82,6 +82,11 @@ export interface SlackAnswerPlaceSource {
   payloadType?: string | undefined;
   // "home" for a press in the app's Home tab, which has no channel.
   slackViewType?: string | undefined;
+  /*
+   * Pressed on a message only the person sees: a form it opens carries it,
+   * so the form's submission is answered with what it did.
+   */
+  isFromPrivateMessage?: boolean | undefined;
 }
 
 export default class SlackActionAnswer {
@@ -139,16 +144,33 @@ export default class SlackActionAnswer {
     answer: WorkspaceAnswer;
     connectUrl?: URL | undefined;
   }): Promise<SlackAnswerDelivery> {
-    const { place } = data;
-    const messageBlocks: Array<WorkspaceMessageBlock> =
-      SlackActionAnswer.getMessageBlocks(data);
+    return await SlackActionAnswer.answerWithBlocks({
+      place: data.place,
+      messageBlocks: SlackActionAnswer.getMessageBlocks(data),
+      text: data.answer.text,
+    });
+  }
+
+  /*
+   * An answer of any blocks - an incident with its buttons, which a command
+   * answers with - delivered as `answer` delivers one: where the press was,
+   * only to the person who made it. `text` is what its notification shows.
+   * Never throws.
+   */
+  @CaptureSpan()
+  public static async answerWithBlocks(data: {
+    place: SlackAnswerPlace;
+    messageBlocks: Array<WorkspaceMessageBlock>;
+    text: string;
+  }): Promise<SlackAnswerDelivery> {
+    const { place, messageBlocks } = data;
 
     if (place.responseUrl) {
       try {
         await SlackUtil.sendEphemeralResponse({
           responseUrl: place.responseUrl,
           messageBlocks: messageBlocks,
-          text: data.answer.text,
+          text: data.text,
         });
 
         return SlackAnswerDelivery.ResponseUrl;
@@ -168,7 +190,7 @@ export default class SlackActionAnswer {
           userId: place.slackUserId,
           threadTs: place.slackThreadTs,
           messageBlocks: messageBlocks,
-          text: data.answer.text,
+          text: data.text,
         });
 
         return SlackAnswerDelivery.Ephemeral;
@@ -205,7 +227,7 @@ export default class SlackActionAnswer {
         authToken: place.projectAuthToken,
         workspaceUserId: place.slackUserId,
         messageBlocks: messageBlocks,
-        text: data.answer.text,
+        text: data.text,
       });
 
       return SlackAnswerDelivery.DirectMessage;
@@ -278,6 +300,7 @@ export default class SlackActionAnswer {
         actionValue: SlackModalMetadata.write(data.modalBlock.actionValue, {
           channelId: data.source.slackChannelId,
           threadTs: data.source.slackThreadTs,
+          isFromPrivateMessage: data.source.isFromPrivateMessage,
         }),
       },
     });

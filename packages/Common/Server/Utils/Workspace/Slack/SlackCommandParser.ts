@@ -5,6 +5,7 @@ import WorkspaceCommands, {
   WorkspaceCommandName,
 } from "../WorkspaceCommands";
 import { WorkspacePageToken } from "../WorkspacePageText";
+import WorkspaceIncidentNumberWordReader from "../WorkspaceIncidentNumberWord";
 
 /*
  * A SLASH COMMAND, AS SLACK SENDS IT AND AS ONEUPTIME READS IT.
@@ -122,6 +123,22 @@ export default class SlackCommandParser {
 
     switch (request.input.command) {
       case WorkspaceCommandName.Incident:
+        /*
+         * An incident's number - 42, #42, INC-42 - shows that incident, with
+         * its buttons; anything else is the new incident's title. An older
+         * app's /incident only ever declared one.
+         */
+        if (
+          !request.isLegacy &&
+          WorkspaceIncidentNumberWordReader.read(request.input.text)
+        ) {
+          return {
+            actionType: SlackActionType.ShowIncident,
+            actionValue: request.input.text.trim(),
+            command: typed,
+          };
+        }
+
         return {
           actionType: SlackActionType.NewIncident,
           actionValue: WorkspaceCommands.toTitle(request.input.text),

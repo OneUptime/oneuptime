@@ -91,6 +91,8 @@ export enum WorkspaceLatePress {
   MarkAsComplete = "MarkAsComplete",
   // Execute On-Call Policy on a record that is resolved already.
   ExecuteOnCallPolicy = "ExecuteOnCallPolicy",
+  // Page Someone about an incident that is resolved already.
+  Page = "Page",
 }
 
 // A record a press is about, as an answer names it.
@@ -388,6 +390,13 @@ export default class WorkspaceActionAnswers {
       };
     }
 
+    if (data.press === WorkspaceLatePress.Page) {
+      return {
+        markdown: mdText`${markdown}, so nobody was paged.`.toString(),
+        text: `${text}, so nobody was paged`,
+      };
+    }
+
     return {
       markdown: mdText`✅ ${markdown}.`.toString(),
       text: text,
@@ -543,6 +552,7 @@ export default class WorkspaceActionAnswers {
         return LateStanding.Complete;
       case WorkspaceLatePress.Resolve:
       case WorkspaceLatePress.ExecuteOnCallPolicy:
+      case WorkspaceLatePress.Page:
         return LateStanding.Resolved;
     }
   }
