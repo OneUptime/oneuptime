@@ -588,6 +588,7 @@ describe("a policy's run is not read as a direct page", () => {
     const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
 
     policy.name = "PolicyX";
+    policy.repeatPolicyIfNoOneAcknowledges = true;
     policy.repeatPolicyIfNoOneAcknowledgesNoOfTimes = 2;
     log.onCallDutyPolicy = policy;
     log.onCallDutyPolicyId = ObjectID.generate();
