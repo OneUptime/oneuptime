@@ -1406,6 +1406,11 @@ const NetworkDeviceDiscovery: FunctionComponent<
 
       {scanToReview && (
         <DiscoveryImportDialog
+          /*
+           * One dialog per scan: another scan's review starts from nothing,
+           * never from this one's step, selection or import.
+           */
+          key={scanToReview._id?.toString() || ""}
           scan={scanToReview}
           probes={probes}
           importId={importIdToShow}

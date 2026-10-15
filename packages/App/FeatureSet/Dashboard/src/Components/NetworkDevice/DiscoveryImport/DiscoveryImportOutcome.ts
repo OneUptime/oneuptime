@@ -33,6 +33,16 @@ export interface DiscoveryImportTemplateChoice {
   isCreatedOnImport?: boolean | undefined;
 }
 
+// The value the recommended template Import would create is picked by.
+export const RECOMMENDED_TEMPLATE_CHOICE_VALUE: string = "recommended";
+
+// The value a template is picked by: its id, or the recommended one's value.
+export function getTemplateChoiceValue(
+  choice: DiscoveryImportTemplateChoice,
+): string {
+  return choice.id || RECOMMENDED_TEMPLATE_CHOICE_VALUE;
+}
+
 // An alert policy of the project, as far as the summary is concerned.
 export interface DiscoveryImportPolicyFact {
   name: string;

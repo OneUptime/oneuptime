@@ -15,16 +15,16 @@ import ProbeUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/Probe";
 import NetworkDeviceDiscoveryScan, {
   DiscoveredNetworkDevice,
 } from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
-import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import Project from "../../../Models/DatabaseModels/Project";
 import ObjectID from "../../../Types/ObjectID";
 import Route from "../../../Types/API/Route";
 import Permission from "../../../Types/Permission";
 import { VoidFunction } from "../../../Types/FunctionTypes";
+import { JSONObject } from "../../../Types/JSON";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import PermissionUtil from "../../../UI/Utils/Permission";
-import { ComponentProps as ModalProps } from "../../../UI/Components/Modal/Modal";
+import DiscoveryImportFakeServer from "./DiscoveryImportFakeServer";
 
 /*
  * The discovery import's "Apply each SNMP host's vendor template" toggle -
@@ -33,18 +33,21 @@ import { ComponentProps as ModalProps } from "../../../UI/Components/Modal/Modal
  * assign the correct vendor template": that was because an import made by
  * hand left the vendor-template auto-apply off, so every device sat with an
  * empty health list and a banner recommending the template. An auto import
- * rule always turned it on; the Review dialog now does too, unless the
- * operator turns it off for the batch.
+ * rule always turned it on; the import dialog does too, unless the operator
+ * turns it off for the batch.
  *
- * What has to hold:
+ * Since the import moved to the server (issue #4812) the toggle sits on the
+ * import's monitoring step, and what it decides travels with the import as
+ * `applyVendorTemplates` - which the server applies to every SNMP device and
+ * never to a ping-only one, which has nothing to match a template by
+ * (DiscoveryImportRunner.test.ts: "vendor templates go to the SNMP devices
+ * only, when asked for"). What has to hold here:
  *
- *   - the toggle is shown when the review has importable SNMP hosts, counts
- *     them, and starts on;
- *   - importing with it on turns the auto-apply on for every SNMP host - and
- *     never for a ping-only one, which has nothing to match a template by;
- *   - turning it off leaves the import exactly as it was before the toggle;
- *   - like the Ping-monitor option, it is per dialog: the next review starts
- *     on again, whatever the last one was left at.
+ *   - the toggle is shown when the hosts being imported include SNMP ones,
+ *     counts them, and starts on;
+ *   - the import is asked for with it on, or - turned off - without it;
+ *   - it is per dialog: the next review starts on again, whatever the last
+ *     one was left at.
  */
 
 interface TableProps {
@@ -69,29 +72,6 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   };
 });
 
-jest.mock("../../../UI/Components/Modal/Modal", () => {
-  return {
-    __esModule: true,
-    ModalWidth: { Medium: 1 },
-    default: (props: ModalProps) => {
-      return (
-        <div role="dialog" aria-label={props.title}>
-          <p>{props.description}</p>
-          {props.error && <p role="alert">{props.error}</p>}
-          {props.isBodyLoading ? <p>Refreshing inventory</p> : props.children}
-          <button onClick={props.onClose}>Close review</button>
-          <button
-            disabled={props.disableSubmitButton || props.isLoading}
-            onClick={props.onSubmit}
-          >
-            {props.submitButtonText}
-          </button>
-        </div>
-      );
-    },
-  };
-});
-
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
 );
@@ -99,9 +79,10 @@ const SCAN_ID: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
 const PROBE_ID: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
 
 const TOGGLE_TEST_ID: string = "discovered-device-apply-vendor-templates";
+const IMPORT_BUTTON: RegExp = /^Import \d+ devices?$/;
 
 let getItemSpy: jest.SpyInstance;
-let createSpy: jest.SpyInstance;
+let server: DiscoveryImportFakeServer;
 
 function snmpHost(
   ipAddress: string,
@@ -125,14 +106,13 @@ function scan(
 ): NetworkDeviceDiscoveryScan {
   const value: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan();
   value.id = SCAN_ID;
+  value._id = SCAN_ID.toString();
   value.projectId = PROJECT_ID;
   value.probeId = PROBE_ID;
   value.name = "Customer B - Building A";
   value.cidr = "10.20.0.0/24";
   value.status = "Completed";
   value.isSnmpEnabled = true;
-  value.snmpVersion = "2c";
-  value.snmpCommunityString = "public";
   value.discoveredDevices = hosts;
   return value;
 }
@@ -154,7 +134,10 @@ async function renderPage(): Promise<void> {
   });
 }
 
-async function openReview(value: NetworkDeviceDiscoveryScan): Promise<void> {
+// Review Results, then on to the monitoring step, where the toggle is.
+async function openMonitoringStep(
+  value: NetworkDeviceDiscoveryScan,
+): Promise<void> {
   getItemSpy.mockResolvedValue(value);
 
   const action: TableProps["actionButtons"][number] | undefined =
@@ -171,6 +154,18 @@ async function openReview(value: NetworkDeviceDiscoveryScan): Promise<void> {
   await act(async () => {
     await action.onClick(value, () => {});
   });
+
+  await waitFor(() => {
+    expect(screen.getByTestId("discovery-import-next")).toBeEnabled();
+  });
+
+  fireEvent.click(screen.getByTestId("discovery-import-next"));
+
+  await waitFor(() => {
+    expect(
+      screen.getByTestId("discovery-import-monitoring-step"),
+    ).toBeInTheDocument();
+  });
 }
 
 // The switch itself: its title is its accessible name, its description its description.
@@ -178,34 +173,23 @@ function toggle(): HTMLElement {
   return screen.getByTestId(TOGGLE_TEST_ID);
 }
 
-async function importSelected(): Promise<void> {
-  fireEvent.click(screen.getByRole("button", { name: /Import Selected/ }));
+// The import's own submit: pressable once the step has read the project.
+async function importDevices(): Promise<JSONObject> {
+  const submit: HTMLElement = screen.getByRole("button", {
+    name: IMPORT_BUTTON,
+  });
+
   await waitFor(() => {
-    expect(createSpy).toHaveBeenCalled();
+    expect(submit).toBeEnabled();
   });
+
+  fireEvent.click(submit);
+
   await waitFor(() => {
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(server.startBodies.length).toBeGreaterThan(0);
   });
-}
 
-function createdDevices(): Array<NetworkDevice> {
-  return createSpy.mock.calls.map((call: Array<any>): NetworkDevice => {
-    return call[0].model;
-  });
-}
-
-function createdByHostname(hostname: string): NetworkDevice {
-  const device: NetworkDevice | undefined = createdDevices().find(
-    (candidate: NetworkDevice): boolean => {
-      return candidate.hostname === hostname;
-    },
-  );
-
-  if (!device) {
-    throw new Error(`No device was created for ${hostname}.`);
-  }
-
-  return device;
+  return server.startBodies[server.startBodies.length - 1]!;
 }
 
 beforeEach(() => {
@@ -216,9 +200,14 @@ beforeEach(() => {
     .spyOn(PermissionUtil, "getAllPermissions")
     .mockReturnValue([Permission.ProjectAdmin]);
   getItemSpy = jest.spyOn(ModelAPI, "getItem");
-  createSpy = jest
-    .spyOn(ModelAPI, "create")
-    .mockResolvedValue(undefined as never);
+  // The monitoring step's lists: nothing in them is needed here.
+  jest.spyOn(ModelAPI, "getList").mockResolvedValue({
+    data: [],
+    count: 0,
+    skip: 0,
+    limit: 0,
+  } as never);
+  server = new DiscoveryImportFakeServer().install();
 });
 
 afterEach(() => {
@@ -227,19 +216,18 @@ afterEach(() => {
 });
 
 describe("Discovery import: each SNMP host's vendor template", () => {
-  test("is offered for the importable SNMP hosts, counted, and starts on", async () => {
+  test("is offered for the SNMP hosts being imported, counted, and starts on", async () => {
     await renderPage();
-    await openReview(
+    await openMonitoringStep(
       scan([
-        snmpHost("10.20.0.1"),
-        snmpHost("10.20.0.2"),
-        snmpHost("10.20.0.3", true),
-        pingHost("10.20.0.9"),
+        snmpHost("10.20.0.11"),
+        snmpHost("10.20.0.12"),
+        snmpHost("10.20.0.13", true),
+        pingHost("10.20.0.50"),
       ]),
     );
 
-    // Two importable SNMP hosts: the registered one and the ping-only one do not count.
-    expect(toggle()).toHaveAttribute("role", "switch");
+    // Two SNMP hosts to import: the one already added is not counted.
     expect(toggle()).toHaveAccessibleName(
       "Apply each SNMP host's vendor template on its first poll (recommended) — 2 hosts",
     );
@@ -248,78 +236,73 @@ describe("Discovery import: each SNMP host's vendor template", () => {
 
   test("says what it does, and that anything applied can be changed", async () => {
     await renderPage();
-    await openReview(scan([snmpHost("10.20.0.1")]));
+    await openMonitoringStep(scan([snmpHost("10.20.0.11")]));
 
-    expect(toggle()).toHaveAccessibleName(
-      "Apply each SNMP host's vendor template on its first poll (recommended) — 1 host",
+    expect(toggle()).toHaveAccessibleDescription(
+      "Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings.",
     );
-    expect(toggle()).toHaveAccessibleDescription(/as auto import rules do/);
-    expect(toggle()).toHaveAccessibleDescription(/device's Settings/);
   });
 
-  test("is not offered when the review has no SNMP host to import", async () => {
+  test("is not offered when no host being imported answered SNMP", async () => {
     await renderPage();
-    await openReview(
-      scan([pingHost("10.20.0.8"), snmpHost("10.20.0.3", true)]),
+    await openMonitoringStep(
+      scan([snmpHost("10.20.0.11", true), pingHost("10.20.0.50")]),
     );
 
-    expect(screen.queryByTestId(TOGGLE_TEST_ID)).toBeNull();
+    expect(screen.queryByTestId(TOGGLE_TEST_ID)).not.toBeInTheDocument();
   });
 
-  test("on: every SNMP host imports with the vendor template auto-apply on, a ping-only host never", async () => {
+  test("on: the import is asked for with every SNMP host's vendor template", async () => {
     await renderPage();
-    await openReview(
+    await openMonitoringStep(
       scan([
-        snmpHost("10.20.0.1"),
-        snmpHost("10.20.0.2"),
-        pingHost("10.20.0.9"),
+        snmpHost("10.20.0.11"),
+        snmpHost("10.20.0.12"),
+        pingHost("10.20.0.50"),
       ]),
     );
 
-    await importSelected();
+    const body: JSONObject = await importDevices();
 
-    expect(createdDevices()).toHaveLength(3);
-    expect(createdByHostname("10.20.0.1").autoApplyVendorHealthTemplate).toBe(
-      true,
-    );
-    expect(createdByHostname("10.20.0.2").autoApplyVendorHealthTemplate).toBe(
-      true,
-    );
-    expect(
-      createdByHostname("10.20.0.9").autoApplyVendorHealthTemplate,
-    ).toBeFalsy();
+    expect(body["ipAddresses"]).toEqual([
+      "10.20.0.11",
+      "10.20.0.12",
+      "10.20.0.50",
+    ]);
+    expect((body["settings"] as JSONObject)["applyVendorTemplates"]).toBe(true);
   });
 
-  test("off: the import is exactly what it was before the toggle", async () => {
+  test("off: the import is asked for without them", async () => {
     await renderPage();
-    await openReview(scan([snmpHost("10.20.0.1"), snmpHost("10.20.0.2")]));
+    await openMonitoringStep(scan([snmpHost("10.20.0.11")]));
 
     fireEvent.click(toggle());
 
-    await waitFor(() => {
-      expect(toggle()).toHaveAttribute("aria-checked", "false");
-    });
+    expect(toggle()).toHaveAttribute("aria-checked", "false");
 
-    await importSelected();
+    const body: JSONObject = await importDevices();
 
-    for (const device of createdDevices()) {
-      expect(device.autoApplyVendorHealthTemplate).toBeFalsy();
-    }
+    expect((body["settings"] as JSONObject)["applyVendorTemplates"]).toBe(
+      false,
+    );
   });
 
   test("is per dialog: the next review starts on again", async () => {
     await renderPage();
-    await openReview(scan([snmpHost("10.20.0.1")]));
+    await openMonitoringStep(scan([snmpHost("10.20.0.11")]));
 
     fireEvent.click(toggle());
+    expect(toggle()).toHaveAttribute("aria-checked", "false");
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
     await waitFor(() => {
-      expect(toggle()).toHaveAttribute("aria-checked", "false");
+      expect(
+        screen.queryByTestId("discovery-import-dialog"),
+      ).not.toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Close review" }));
-
-    await openReview(scan([snmpHost("10.20.0.1")]));
+    await openMonitoringStep(scan([snmpHost("10.20.0.11")]));
 
     expect(toggle()).toHaveAttribute("aria-checked", "true");
   });

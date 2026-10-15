@@ -9,10 +9,14 @@ import { listActiveDiscoveryImports } from "./DiscoveryImportApi";
  * The project's imports that have not finished, by scan, for the scans
  * table: read when the page opens, again every few seconds while one runs,
  * and on demand when the dialog starts or finishes one. A failed read keeps
- * the last answer: the rows are a convenience, the dialog is the record.
+ * the last answer and looks again more slowly while that answer had an
+ * import running - and not at all when it had none, so a server that cannot
+ * answer is not asked every few seconds for nothing: the rows are a
+ * convenience, the dialog is the record.
  */
 
 export const ACTIVE_DISCOVERY_IMPORTS_POLL_INTERVAL_MS: number = 4000;
+export const ACTIVE_DISCOVERY_IMPORTS_RETRY_MS: number = 15000;
 
 export interface ActiveDiscoveryImports {
   byScanId: Map<string, DiscoveryImportView>;
@@ -45,6 +49,8 @@ export default function useActiveDiscoveryImports(): ActiveDiscoveryImports {
     useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef: React.MutableRefObject<boolean> = useRef<boolean>(true);
   const sequenceRef: React.MutableRefObject<number> = useRef<number>(0);
+  // The last answer's size, for a failed read to decide whether to look again.
+  const lastActiveCountRef: React.MutableRefObject<number> = useRef<number>(0);
 
   const read: () => Promise<void> = useCallback(async (): Promise<void> => {
     if (timerRef.current) {
@@ -54,7 +60,7 @@ export default function useActiveDiscoveryImports(): ActiveDiscoveryImports {
 
     sequenceRef.current += 1;
     const sequence: number = sequenceRef.current;
-    let hasActive: boolean = false;
+    let nextDelay: number | null = null;
 
     try {
       const imports: Array<DiscoveryImportView> =
@@ -68,20 +74,26 @@ export default function useActiveDiscoveryImports(): ActiveDiscoveryImports {
         indexActiveImportsByScan(imports);
 
       setByScanId(next);
-      hasActive = next.size > 0;
+      lastActiveCountRef.current = next.size;
+
+      if (next.size > 0) {
+        nextDelay = ACTIVE_DISCOVERY_IMPORTS_POLL_INTERVAL_MS;
+      }
     } catch {
       if (!isMountedRef.current || sequence !== sequenceRef.current) {
         return;
       }
 
-      // Keep the rows as they were, and look again.
-      hasActive = true;
+      // Keep the rows as they were; look again, slowly, only if one ran.
+      if (lastActiveCountRef.current > 0) {
+        nextDelay = ACTIVE_DISCOVERY_IMPORTS_RETRY_MS;
+      }
     }
 
-    if (hasActive && isMountedRef.current) {
+    if (nextDelay !== null && isMountedRef.current) {
       timerRef.current = setTimeout(() => {
         void read();
-      }, ACTIVE_DISCOVERY_IMPORTS_POLL_INTERVAL_MS);
+      }, nextDelay);
     }
   }, []);
 

@@ -7,7 +7,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import {
   DEFAULT_DISCOVERY_IMPORT_SETTINGS,
   DiscoveryImportAlerting,
-  DiscoveryImportDeviceOutcome,
   DiscoveryImportHostResult,
   DiscoveryImportSettings,
   DiscoveryImportView,
@@ -41,17 +40,11 @@ import React, {
   useState,
 } from "react";
 import {
-  DiscoveredHostFilter,
-  DiscoveredHostNameFilter,
   DiscoveredHostQuery,
   getDiscoveredHostsToImport,
   getInitialSelection,
   isSelectableDiscoveredHost,
-  markDiscoveredHostsAsRegistered,
-  normalizeDiscoveredHosts,
 } from "../DiscoveredHostFilter";
-import { getDiscoveredHosts } from "../DiscoveryScanOutcome";
-import { isWaitingForDiscoveryProgress } from "../DiscoveryScanProgress";
 import DiscoveryScanStatusMessage from "../DiscoveryScanStatusMessage";
 import { findOrCreateRecommendedTemplate } from "../RecommendedMonitorTemplate";
 import DiscoveredHostTable from "./DiscoveredHostTable";
@@ -62,14 +55,20 @@ import {
   startDiscoveryImport,
   stopDiscoveryImport,
 } from "./DiscoveryImportApi";
-import DiscoveryImportMonitoringStep, {
-  RECOMMENDED_TEMPLATE_CHOICE_VALUE,
-  getTemplateChoiceValue,
-} from "./DiscoveryImportMonitoringStep";
+import DiscoveryImportMonitoringStep from "./DiscoveryImportMonitoringStep";
 import {
   DiscoveryImportTemplateChoice,
+  RECOMMENDED_TEMPLATE_CHOICE_VALUE,
   getDiscoveryImportBlocker,
+  getTemplateChoiceValue,
 } from "./DiscoveryImportOutcome";
+import {
+  DEFAULT_DISCOVERY_REVIEW_QUERY,
+  DISCOVERY_REVIEW_SCAN_SELECT,
+  getImportedAddresses,
+  getPickedTemplate,
+  getReviewHosts,
+} from "./DiscoveryImportReview";
 import DiscoveryImportProgressPanel from "./DiscoveryImportProgressPanel";
 import {
   DiscoveryImportProgressModel,
@@ -123,99 +122,9 @@ export interface DiscoveryImportDialogProps {
   importId?: string | undefined;
 }
 
-/*
- * The columns the dialog reads the scan with: its identity and state, the
- * hosts it found, and what the row names and explanations read. Fresh on
- * every open - the table row may be minutes old, and the scan can have been
- * edited in another tab.
- */
-export const DISCOVERY_IMPORT_SCAN_SELECT: {
-  [key: string]: boolean;
-} = {
-  _id: true,
-  projectId: true,
-  name: true,
-  cidr: true,
-  status: true,
-  statusMessage: true,
-  discoveredDevices: true,
-  probeId: true,
-  isSnmpEnabled: true,
-  useShortDeviceNames: true,
-  isNetbiosLookupEnabled: true,
-};
-
-const DEFAULT_QUERY: DiscoveredHostQuery = {
-  answered: DiscoveredHostFilter.All,
-  name: DiscoveredHostNameFilter.Any,
-  search: "",
-  hideAlreadyAdded: false,
-};
-
-/*
- * The hosts the dialog reasons about: what the probe found, normalised, with
- * the hosts a finished import of this sitting created marked as added - so
- * they read "Already added" at once, before the scan is read again.
- */
-export function getReviewHosts(data: {
-  scan: NetworkDeviceDiscoveryScan | null;
-  importedAddresses: Set<string>;
-}): Array<DiscoveredNetworkDevice> {
-  if (
-    !data.scan ||
-    data.scan.status === DiscoveryScanStatus.Pending ||
-    isWaitingForDiscoveryProgress(data.scan)
-  ) {
-    return [];
-  }
-
-  return markDiscoveredHostsAsRegistered({
-    hosts: normalizeDiscoveredHosts(getDiscoveredHosts(data.scan)),
-    importedIpAddresses: data.importedAddresses,
-  });
-}
-
-// The addresses an import put in the inventory, or found there.
-export function getImportedAddresses(
-  results: ReadonlyArray<DiscoveryImportHostResult> | undefined,
-): Array<string> {
-  return (results || [])
-    .filter((result: DiscoveryImportHostResult): boolean => {
-      return (
-        result.device === DiscoveryImportDeviceOutcome.Created ||
-        result.device === DiscoveryImportDeviceOutcome.AlreadyAdded
-      );
-    })
-    .map((result: DiscoveryImportHostResult): string => {
-      return result.ipAddress;
-    });
-}
-
-/*
- * The template the settings pick, among the choices: the one whose id they
- * name, or - for the recommended template Import would create - the choice
- * with no id.
- */
-export function getPickedTemplate(data: {
-  settings: DiscoveryImportSettings;
-  templates: ReadonlyArray<DiscoveryImportTemplateChoice>;
-}): DiscoveryImportTemplateChoice | null {
-  if (data.settings.alerting !== DiscoveryImportAlerting.MonitorTemplate) {
-    return null;
-  }
-
-  const picked: string = data.settings.monitorTemplateId || "";
-
-  return (
-    data.templates.find((choice: DiscoveryImportTemplateChoice): boolean => {
-      return getTemplateChoiceValue(choice) === picked;
-    }) || null
-  );
-}
-
-const StepIndicator: FunctionComponent<{ step: DiscoveryImportStep }> = (props: {
+const StepIndicator: FunctionComponent<{
   step: DiscoveryImportStep;
-}): ReactElement => {
+}> = (props: { step: DiscoveryImportStep }): ReactElement => {
   const translator: Translator = useTranslator();
   const steps: Array<{ step: DiscoveryImportStep; title: string }> = [
     { step: DiscoveryImportStep.Choose, title: "Choose devices" },
@@ -314,7 +223,9 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
     DiscoveryImportStep.Choose,
   );
   const [selection, setSelection] = useState<Record<string, boolean>>({});
-  const [query, setQuery] = useState<DiscoveredHostQuery>(DEFAULT_QUERY);
+  const [query, setQuery] = useState<DiscoveredHostQuery>(
+    DEFAULT_DISCOVERY_REVIEW_QUERY,
+  );
   const [settings, setSettings] = useState<DiscoveryImportSettings>({
     ...DEFAULT_DISCOVERY_IMPORT_SETTINGS,
   });
@@ -361,7 +272,7 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
         await ModelAPI.getItem<NetworkDeviceDiscoveryScan>({
           modelType: NetworkDeviceDiscoveryScan,
           id: props.scan.id,
-          select: DISCOVERY_IMPORT_SCAN_SELECT as never,
+          select: DISCOVERY_REVIEW_SCAN_SELECT as never,
         });
 
       if (!fresh) {
@@ -447,15 +358,41 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
     };
   }, []);
 
+  /*
+   * An import finished: the hosts it put in the inventory read "Already
+   * added" at once - from every host's result, since the view lists only
+   * the ones that need a look - and the scan is read again, which marks
+   * them from the inventory itself.
+   */
   const onFinished: (view: DiscoveryImportView) => void = useCallback(
     (view: DiscoveryImportView): void => {
-      setImportedAddresses((current: Set<string>) => {
-        return new Set<string>([
-          ...current,
-          ...getImportedAddresses(view.results),
-        ]);
-      });
+      const markImported: (
+        results: ReadonlyArray<DiscoveryImportHostResult> | undefined,
+      ) => void = (
+        results: ReadonlyArray<DiscoveryImportHostResult> | undefined,
+      ): void => {
+        const addresses: Array<string> = getImportedAddresses(results);
+
+        if (addresses.length === 0) {
+          return;
+        }
+
+        setImportedAddresses((current: Set<string>) => {
+          return new Set<string>([...current, ...addresses]);
+        });
+      };
+
+      markImported(view.results);
       props.onImportsChanged();
+
+      getDiscoveryImport(view.id, { allResults: true })
+        .then((full: DiscoveryImportView) => {
+          markImported(full.results);
+        })
+        .catch(() => {
+          // The scan read below marks them as well.
+        });
+
       readScan({ reseedSelection: false }).catch(() => {
         // The marked addresses above keep the list right until the next open.
       });
@@ -499,12 +436,11 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
       })
     : undefined;
 
-  const pickedTemplate: DiscoveryImportTemplateChoice | null = getPickedTemplate(
-    {
+  const pickedTemplate: DiscoveryImportTemplateChoice | null =
+    getPickedTemplate({
       settings: settings,
       templates: facts?.templates || [],
-    },
-  );
+    });
 
   const blocker: string | null = getDiscoveryImportBlocker({
     hostCount: hostsToImport.length,
@@ -687,7 +623,7 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
     setAllResults(null);
     setImportId(null);
     polling.setView(null);
-    setQuery(DEFAULT_QUERY);
+    setQuery(DEFAULT_DISCOVERY_REVIEW_QUERY);
     setSelection(getInitialSelection(hosts));
     setStep(DiscoveryImportStep.Choose);
   };
@@ -709,7 +645,7 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
 
   const description: string = isIcmpOnly
     ? translator.translateTemplate(
-        "Hosts that answered ping in {{range}}. This scan checked ICMP only, so every host imports as a device pinged by the scan's probe.",
+        "Hosts that answered ping in {{range}}. This scan checked ICMP only, so every host imports as a device pinged by the scan's probe; add SNMP credentials later to walk them for interfaces and inventory.",
         { range: scanLabel },
       )
     : translator.translateTemplate(
@@ -837,7 +773,9 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
   return (
     <Modal
       title="Import Discovered Devices"
-      description={step === DiscoveryImportStep.Progress ? scanLabel : description}
+      description={
+        step === DiscoveryImportStep.Progress ? scanLabel : description
+      }
       modalWidth={ModalWidth.Large}
       isBodyLoading={isLoading}
       isLoading={isActing && step !== DiscoveryImportStep.Progress}

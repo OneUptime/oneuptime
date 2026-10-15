@@ -727,7 +727,10 @@ describe("asking for an import", () => {
     [{ ipAddresses: "10.0.0.1" }, "Select the hosts"],
     [{ ipAddresses: [] }, "Select the hosts"],
     [{ ipAddresses: ["", "   "] }, "Select the hosts"],
-    [{ settings: { pollingIntervalInMinutes: 3 } }, "Check every"],
+    [
+      { settings: { pollingIntervalInMinutes: 3 } },
+      "Pick how often devices are checked",
+    ],
     [{ settings: { alerting: "Pager" } }, "Choose whether"],
     [
       { settings: { alerting: DiscoveryImportAlerting.MonitorTemplate } },
@@ -1719,5 +1722,211 @@ describe("an import as the Dashboard reads it", () => {
   test("the API reads imports without their hosts", () => {
     expect(DISCOVERY_IMPORT_VIEW_SELECT["hosts"]).toBeUndefined();
     expect(DISCOVERY_IMPORT_VIEW_SELECT["results"]).toBe(true);
+  });
+});
+
+// ---- Names: the device a row becomes is called what the row said.
+
+/*
+ * The import dialog names every row with the shared naming rules, from the
+ * scan as it is now (DiscoveredHostTable, DiscoveryReviewHostname.test.ts).
+ * The server builds each device from the same scan, read with the same
+ * naming choice, through the same builder - so the name on the row is the
+ * name the device gets, the DNS name and the name's source ride along, and
+ * a collision is retried the way the row's naming would have it (issues
+ * #3529, #3677, #3678, #4518).
+ */
+describe("names: the device a row becomes is called what the row said", () => {
+  const FQDN: string = "core-gw.corp.example.com";
+
+  function createdAt(address: string): NetworkDevice {
+    const created: { device: NetworkDevice } | undefined =
+      db.createdDevices.find((entry: { device: NetworkDevice }): boolean => {
+        return entry.device.hostname === address;
+      });
+
+    if (!created) {
+      throw new Error(`No device was created at ${address}.`);
+    }
+
+    return created.device;
+  }
+
+  test("a scan set to short names creates the short name, and keeps the full name as the DNS name", async () => {
+    db.scan = scanWith(
+      [{ ipAddress: "10.0.0.1", snmpReachable: false, dnsHostname: FQDN }],
+      { useShortDeviceNames: true },
+    );
+
+    const row: NetworkDeviceDiscoveryImport = await start({
+      ipAddresses: ["10.0.0.1"],
+    });
+    await runAll();
+
+    expect(createdAt("10.0.0.1").name).toBe("core-gw");
+    expect(createdAt("10.0.0.1").dnsName).toBe(FQDN);
+    expect(resultAt(row, "10.0.0.1").name).toBe("core-gw");
+  });
+
+  test("a scan that did not ask creates the full name", async () => {
+    db.scan = scanWith([
+      { ipAddress: "10.0.0.1", snmpReachable: false, dnsHostname: FQDN },
+    ]);
+
+    await start({ ipAddresses: ["10.0.0.1"] });
+    await runAll();
+
+    expect(createdAt("10.0.0.1").name).toBe(FQDN);
+    expect(createdAt("10.0.0.1").dnsName).toBe(FQDN);
+  });
+
+  test("a short name already taken is retried as the short name with the address, never the full name", async () => {
+    db.scan = scanWith(
+      [{ ipAddress: "10.0.0.1", snmpReachable: false, dnsHostname: FQDN }],
+      { useShortDeviceNames: true },
+    );
+    db.refuseDeviceNamed.set(
+      "core-gw",
+      new BadDataException("Network Device with the same name already exists."),
+    );
+
+    await start({ ipAddresses: ["10.0.0.1"] });
+    await runAll();
+
+    expect(createdAt("10.0.0.1").name).toBe("core-gw (10.0.0.1)");
+    expect(createdAt("10.0.0.1").dnsName).toBe(FQDN);
+  });
+
+  test("two hosts whose short names collide both import", async () => {
+    db.scan = scanWith(
+      [
+        {
+          ipAddress: "10.0.0.1",
+          snmpReachable: false,
+          dnsHostname: "web.corp.example.com",
+        },
+        {
+          ipAddress: "10.0.0.2",
+          snmpReachable: false,
+          dnsHostname: "web.lab.example.com",
+        },
+      ],
+      { useShortDeviceNames: true },
+    );
+
+    // The first create takes "web"; the second is refused for it.
+    (NetworkDeviceService.create as jest.Mock).mockImplementationOnce(
+      async (data: { data: NetworkDevice; props: unknown }) => {
+        const created: NetworkDevice = Object.assign(
+          new NetworkDevice(),
+          data.data,
+        );
+        created.id = ObjectID.generate();
+        db.devicesByHostname.set(created.hostname!, created);
+        db.createdDevices.push({ device: created, props: data.props });
+        db.refuseDeviceNamed.set(
+          "web",
+          new BadDataException(
+            "Network Device with the same name already exists.",
+          ),
+        );
+        return created;
+      },
+    );
+
+    await start({ ipAddresses: ["10.0.0.1", "10.0.0.2"] });
+    await runAll();
+
+    expect(createdAt("10.0.0.1").name).toBe("web");
+    expect(createdAt("10.0.0.2").name).toBe("web (10.0.0.2)");
+  });
+
+  test("a host named by its NetBIOS answer is created under it, with no DNS name", async () => {
+    db.scan = scanWith([
+      {
+        ipAddress: "10.0.0.1",
+        snmpReachable: false,
+        netbiosName: "accounts-pc01",
+      },
+    ]);
+
+    await start({ ipAddresses: ["10.0.0.1"] });
+    await runAll();
+
+    expect(createdAt("10.0.0.1").name).toBe("accounts-pc01");
+    expect(createdAt("10.0.0.1").dnsName).toBeUndefined();
+  });
+
+  test("the reported displays: each by its own hostname, its DNS name kept, its name's source recorded", async () => {
+    db.scan = scanWith(
+      [
+        { ipAddress: "10.16.42.52", snmpReachable: false },
+        {
+          ipAddress: "10.16.42.53",
+          snmpReachable: true,
+          sysName: "WB0024KDS03",
+          dnsHostname: "wb-0024-kds03.wbhq.com",
+        },
+        {
+          ipAddress: "10.16.42.54",
+          snmpReachable: false,
+          dnsHostname: "wb-0024-kds04.wbhq.com",
+          netbiosName: "WB0024KDS04",
+        },
+      ],
+      { useShortDeviceNames: true, isNetbiosLookupEnabled: true },
+    );
+
+    await start({
+      ipAddresses: ["10.16.42.52", "10.16.42.53", "10.16.42.54"],
+    });
+    await runAll();
+
+    expect(
+      ["10.16.42.52", "10.16.42.53", "10.16.42.54"].map((address: string) => {
+        const device: NetworkDevice = createdAt(address);
+
+        return {
+          name: device.name,
+          dnsName: device.dnsName,
+          discoveredName: device.discoveredName,
+          discoveredNameSource: device.discoveredNameSource,
+        };
+      }),
+    ).toEqual([
+      {
+        name: "10.16.42.52",
+        dnsName: undefined,
+        discoveredName: "10.16.42.52",
+        discoveredNameSource: "address",
+      },
+      {
+        name: "WB0024KDS03",
+        dnsName: "wb-0024-kds03.wbhq.com",
+        discoveredName: "WB0024KDS03",
+        discoveredNameSource: "system-name",
+      },
+      {
+        name: "WB0024KDS04",
+        dnsName: "wb-0024-kds04.wbhq.com",
+        discoveredName: "WB0024KDS04",
+        discoveredNameSource: "netbios-name",
+      },
+    ]);
+  });
+
+  test("a NetBIOS answer the naming rules reject leaves the device on its address", async () => {
+    db.scan = scanWith([
+      {
+        ipAddress: "10.0.0.1",
+        snmpReachable: false,
+        netbiosName: "<img src=x onerror=alert(1)>",
+      },
+    ]);
+
+    await start({ ipAddresses: ["10.0.0.1"] });
+    await runAll();
+
+    expect(createdAt("10.0.0.1").name).toBe("10.0.0.1");
   });
 });

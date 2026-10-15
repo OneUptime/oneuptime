@@ -6,7 +6,9 @@ import {
   summarizeScope,
   toScope,
 } from "../../../Components/NetworkDevice/AlertPolicyScopeFormFields";
-import PingMonitorSeedIds from "../../../Components/NetworkDevice/PingMonitorSeedIds";
+import PingMonitorSeedIds, {
+  SeedIdsPurpose,
+} from "../../../Components/NetworkDevice/PingMonitorSeedIds";
 import { findOrCreateRecommendedTemplate } from "../../../Components/NetworkDevice/RecommendedMonitorTemplate";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
@@ -330,7 +332,7 @@ const RecommendedPolicyEmptyState: FunctionComponent<
          * until all four ids resolve.
          */
         const seedIds: MonitorCriteriaSeedIds =
-          await PingMonitorSeedIds.resolve();
+          await PingMonitorSeedIds.resolve(SeedIdsPurpose.RecommendedTemplate);
 
         const monitorTemplateId: ObjectID =
           await findOrCreateRecommendedTemplate({

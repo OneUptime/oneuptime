@@ -5,18 +5,23 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { MonitorCriteriaSeedIds } from "Common/Utils/NetworkDiscovery/PingMonitorBuilder";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Resolves the four project-scoped ids a monitor's default criteria are seeded
- * with, for every surface that provisions a Ping monitor: the discovery
- * import's "create a Ping monitor" option, the device create form, the device
- * page's "Create Ping Monitor" button and the device list's bulk action. The
- * messages below say "try again" rather than naming any one of them.
+ * with, for every surface that provisions a Ping monitor - the device create
+ * form, the device page's "Create Ping Monitor" button and the device list's
+ * bulk action - and for the two that build the recommended Network Device
+ * monitor template from them: the alert policies page and the discovery
+ * import's monitoring step. The messages below say "try again" rather than
+ * naming any one surface, and name what is being built.
  *
- * These are properties of the PROJECT, not of any one host, so the import loop
- * resolves them ONCE and reuses the set for every device — a 14-host import
- * must not make 14 copies of these four queries.
+ * These are properties of the PROJECT, not of any one device, so a bulk
+ * action resolves them ONCE and reuses the set for every device - a 14-device
+ * action must not make 14 copies of these four queries.
  *
  * The operational-status lookup is sorted `priority ASC, createdAt ASC` on
  * purpose, matching MonitorService.onBeforeCreate exactly. A project can hold
@@ -34,6 +39,41 @@ import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
  */
 export class PingMonitorSeedIdsUnavailableError extends Error {}
 
+// What the ids are for, which the sentences above name.
+export enum SeedIdsPurpose {
+  PingMonitors = "PingMonitors",
+  RecommendedTemplate = "RecommendedTemplate",
+}
+
+// The sentences per purpose: whole sentences, each its own translation key.
+const MISSING_SENTENCES: Record<
+  SeedIdsPurpose,
+  { statuses: string; incidentSeverity: string; alertSeverity: string }
+> = {
+  [SeedIdsPurpose.PingMonitors]: {
+    statuses: translationKey(
+      "This project needs both an operational and an offline monitor status before Ping monitors can be created. Add them under Monitors → Settings → Monitor Status, then try again.",
+    ),
+    incidentSeverity: translationKey(
+      "This project needs at least one incident severity before Ping monitors can be created. Add one under Incidents → Settings → Incident Severity, then try again.",
+    ),
+    alertSeverity: translationKey(
+      "This project needs at least one alert severity before Ping monitors can be created. Add one under Alerts → Settings → Alert Severity, then try again.",
+    ),
+  },
+  [SeedIdsPurpose.RecommendedTemplate]: {
+    statuses: translationKey(
+      "This project needs both an operational and an offline monitor status before the recommended monitor template can be created. Add them under Monitors → Settings → Monitor Status, then try again.",
+    ),
+    incidentSeverity: translationKey(
+      "This project needs at least one incident severity before the recommended monitor template can be created. Add one under Incidents → Settings → Incident Severity, then try again.",
+    ),
+    alertSeverity: translationKey(
+      "This project needs at least one alert severity before the recommended monitor template can be created. Add one under Alerts → Settings → Alert Severity, then try again.",
+    ),
+  },
+};
+
 /*
  * The three lists the ids are picked from, as the server returned them:
  * monitor statuses sorted by priority, severities by order.
@@ -45,7 +85,9 @@ export interface PingMonitorSeedLists {
 }
 
 export default class PingMonitorSeedIds {
-  public static async resolve(): Promise<MonitorCriteriaSeedIds> {
+  public static async resolve(
+    purpose: SeedIdsPurpose = SeedIdsPurpose.PingMonitors,
+  ): Promise<MonitorCriteriaSeedIds> {
     const [monitorStatuses, incidentSeverities, alertSeverities]: [
       ListResult<MonitorStatus>,
       ListResult<IncidentSeverity>,
@@ -91,11 +133,14 @@ export default class PingMonitorSeedIds {
       }),
     ]);
 
-    return PingMonitorSeedIds.fromLists({
-      monitorStatuses: monitorStatuses.data,
-      incidentSeverities: incidentSeverities.data,
-      alertSeverities: alertSeverities.data,
-    });
+    return PingMonitorSeedIds.fromLists(
+      {
+        monitorStatuses: monitorStatuses.data,
+        incidentSeverities: incidentSeverities.data,
+        alertSeverities: alertSeverities.data,
+      },
+      purpose,
+    );
   }
 
   /*
@@ -104,7 +149,16 @@ export default class PingMonitorSeedIds {
    * their names for its template preview, and picks the ids from them
    * rather than asking for the same rows twice. Throws the same sentences.
    */
-  public static fromLists(lists: PingMonitorSeedLists): MonitorCriteriaSeedIds {
+  public static fromLists(
+    lists: PingMonitorSeedLists,
+    purpose: SeedIdsPurpose = SeedIdsPurpose.PingMonitors,
+  ): MonitorCriteriaSeedIds {
+    const sentences: {
+      statuses: string;
+      incidentSeverity: string;
+      alertSeverity: string;
+    } = MISSING_SENTENCES[purpose];
+
     const onlineMonitorStatus: MonitorStatus | undefined =
       lists.monitorStatuses.find((status: MonitorStatus) => {
         return status.isOperationalState;
@@ -122,25 +176,19 @@ export default class PingMonitorSeedIds {
 
     if (!onlineMonitorStatus?.id || !offlineMonitorStatus?.id) {
       throw new PingMonitorSeedIdsUnavailableError(
-        translateTemplate(
-          "This project needs both an operational and an offline monitor status before Ping monitors can be created. Add them under Monitors → Settings → Monitor Status, then try again.",
-        ),
+        translateTemplate(sentences.statuses),
       );
     }
 
     if (!incidentSeverity?.id) {
       throw new PingMonitorSeedIdsUnavailableError(
-        translateTemplate(
-          "This project needs at least one incident severity before Ping monitors can be created. Add one under Incidents → Settings → Incident Severity, then try again.",
-        ),
+        translateTemplate(sentences.incidentSeverity),
       );
     }
 
     if (!alertSeverity?.id) {
       throw new PingMonitorSeedIdsUnavailableError(
-        translateTemplate(
-          "This project needs at least one alert severity before Ping monitors can be created. Add one under Alerts → Settings → Alert Severity, then try again.",
-        ),
+        translateTemplate(sentences.alertSeverity),
       );
     }
 

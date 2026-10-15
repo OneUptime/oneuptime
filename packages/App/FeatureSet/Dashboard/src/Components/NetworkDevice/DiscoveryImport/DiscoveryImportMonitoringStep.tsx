@@ -30,6 +30,7 @@ import {
   DiscoveryImportOutcome,
   DiscoveryImportTemplateChoice,
   getDiscoveryImportOutcome,
+  getTemplateChoiceValue,
 } from "./DiscoveryImportOutcome";
 import {
   DiscoveryImportProjectFacts,
@@ -68,15 +69,6 @@ export interface DiscoveryImportMonitoringStepProps {
   // The template the settings pick, worked out by the dialog.
   template: DiscoveryImportTemplateChoice | null;
   isDisabled?: boolean | undefined;
-}
-
-// The value a recommended template Import would create is picked by.
-export const RECOMMENDED_TEMPLATE_CHOICE_VALUE: string = "recommended";
-
-export function getTemplateChoiceValue(
-  choice: DiscoveryImportTemplateChoice,
-): string {
-  return choice.id || RECOMMENDED_TEMPLATE_CHOICE_VALUE;
 }
 
 function names(

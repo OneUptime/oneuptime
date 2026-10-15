@@ -27,7 +27,7 @@ import PermissionGate, {
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { fetchActiveMonitorLimitStatus } from "../../Monitor/ActiveMonitorLimitNotice";
-import PingMonitorSeedIds from "../PingMonitorSeedIds";
+import PingMonitorSeedIds, { SeedIdsPurpose } from "../PingMonitorSeedIds";
 import { buildRecommendedMonitorTemplatePreview } from "../RecommendedMonitorTemplate";
 import {
   DiscoveryImportPolicyFact,
@@ -76,7 +76,10 @@ export interface DiscoveryImportProjectFacts {
 
 function toNamedColorMap<
   T extends { id: ObjectID | null; name?: string | undefined },
->(rows: Array<T>, colorOf: (row: T) => string | undefined): Map<string, NamedColor> {
+>(
+  rows: Array<T>,
+  colorOf: (row: T) => string | undefined,
+): Map<string, NamedColor> {
   const map: Map<string, NamedColor> = new Map<string, NamedColor>();
 
   for (const row of rows) {
@@ -301,19 +304,28 @@ export async function loadDiscoveryImportProjectFacts(): Promise<DiscoveryImport
   let seedIdsError: string | undefined = undefined;
 
   try {
-    seedIds = PingMonitorSeedIds.fromLists({
-      monitorStatuses: statuses,
-      incidentSeverities: incidentSeverities,
-      alertSeverities: alertSeverities,
-    });
+    seedIds = PingMonitorSeedIds.fromLists(
+      {
+        monitorStatuses: statuses,
+        incidentSeverities: incidentSeverities,
+        alertSeverities: alertSeverities,
+      },
+      SeedIdsPurpose.RecommendedTemplate,
+    );
   } catch (err) {
     seedIdsError = API.getFriendlyMessage(err);
   }
 
+  /*
+   * The recommended template is offered for Import to create only when the
+   * project's templates were read: with no list there is no telling whether
+   * the project has it already, and creating it again would make a second.
+   */
   const templateChoices: Array<DiscoveryImportTemplateChoice> =
     buildTemplateChoices({
       templates: templates,
-      canCreateTemplates: canCreateTemplates.isAllowed,
+      canCreateTemplates:
+        canCreateTemplates.isAllowed && templatesResult.status === "fulfilled",
       seedIds: seedIds,
       projectId: projectId,
     });

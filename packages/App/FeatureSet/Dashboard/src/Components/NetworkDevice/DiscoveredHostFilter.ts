@@ -154,9 +154,11 @@ export function matchesDiscoveredHostNameFilter(data: {
 }
 
 /*
- * The vendor a host's sysObjectID says it is, from the enterprise numbers
- * the vendor templates know - or undefined for a host that answered ping
- * only, or a vendor the catalog does not name.
+ * Who makes a host, as the vendor templates tell it from its sysObjectID and
+ * sysDescr (a UniFi access point that answers with Net-SNMP's arc is
+ * Ubiquiti's) - the same answer the device's own page gives once it is
+ * imported. Undefined for a host that answered ping only, or a vendor the
+ * catalog does not name.
  */
 export function getDiscoveredHostVendor(
   host: DiscoveredNetworkDevice | null | undefined,
@@ -168,7 +170,10 @@ export function getDiscoveredHostVendor(
     return undefined;
   }
 
-  return SnmpVendorTemplateUtil.getVendorNameBySysObjectId(sysObjectId);
+  return SnmpVendorTemplateUtil.getVendorName({
+    sysObjectId: sysObjectId,
+    sysDescr: typeof host?.sysDescr === "string" ? host.sysDescr : undefined,
+  });
 }
 
 /*
@@ -194,9 +199,7 @@ export function getDiscoveredHostSearchText(
   const isShort: boolean = naming?.useShortDeviceNames === true;
   const cached: { short?: string | undefined; full?: string | undefined } =
     (host && typeof host === "object" && SEARCH_TEXT_CACHE.get(host)) || {};
-  const cachedText: string | undefined = isShort
-    ? cached.short
-    : cached.full;
+  const cachedText: string | undefined = isShort ? cached.short : cached.full;
 
   if (cachedText !== undefined) {
     return cachedText;
