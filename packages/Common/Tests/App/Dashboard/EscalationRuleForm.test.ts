@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   countEscalationRuleResponders,
+  ESCALATION_RULE_NEXT_IN_ROTATION_SCHEDULES_KEY,
   ESCALATION_RULE_NOTIFY_FIELD_KEY,
   ESCALATION_RULE_NOTIFY_REQUIRED_MESSAGE,
   ESCALATION_RULE_SCHEDULES_KEY,
@@ -97,7 +98,7 @@ describe("the add form", () => {
     }
   });
 
-  test("asks who to notify with one picker of schedules, teams and people", () => {
+  test("asks who to notify with one picker of schedules, the next person in their rotations, teams and people", () => {
     const notify: RuleField = fieldByKey(
       fields,
       ESCALATION_RULE_NOTIFY_FIELD_KEY,
@@ -113,13 +114,32 @@ describe("the add form", () => {
         kind: PeoplePickerKind.OnCallSchedule,
         valueKey: ESCALATION_RULE_SCHEDULES_KEY,
       },
+      {
+        kind: PeoplePickerKind.OnCallScheduleNextInRotation,
+        valueKey: ESCALATION_RULE_NEXT_IN_ROTATION_SCHEDULES_KEY,
+      },
       { kind: PeoplePickerKind.Team, valueKey: ESCALATION_RULE_TEAMS_KEY },
       { kind: PeoplePickerKind.User, valueKey: ESCALATION_RULE_USERS_KEY },
     ]);
   });
 
-  test("writes the three lists the rule's join tables are made from", () => {
+  test("says under the picker what each kind of pick pages", () => {
+    const notify: RuleField = fieldByKey(
+      fields,
+      ESCALATION_RULE_NOTIFY_FIELD_KEY,
+    );
+
+    expect(notify.description).toBe(
+      "On-call schedules page whoever is on call; Next in rotation pages the person after them. Teams page every member.",
+    );
+  });
+
+  test("writes the four lists the rule's join tables are made from", () => {
     expect(ESCALATION_RULE_SCHEDULES_KEY).toBe("onCallSchedules");
+    // The server's misc data key for the backup's schedules.
+    expect(ESCALATION_RULE_NEXT_IN_ROTATION_SCHEDULES_KEY).toBe(
+      "nextInRotationSchedules",
+    );
     expect(ESCALATION_RULE_TEAMS_KEY).toBe("teams");
     expect(ESCALATION_RULE_USERS_KEY).toBe("users");
   });
@@ -361,11 +381,31 @@ describe("reading the responders a form holds", () => {
     expect(
       readEscalationRuleResponderIds({
         onCallSchedules: ["s1"],
+        nextInRotationSchedules: ["s2"],
         teams: ["t1", "t2"],
         users: ["u1"],
         name: "ignored",
       }),
-    ).toEqual({ onCallSchedules: ["s1"], teams: ["t1", "t2"], users: ["u1"] });
+    ).toEqual({
+      onCallSchedules: ["s1"],
+      nextInRotationSchedules: ["s2"],
+      teams: ["t1", "t2"],
+      users: ["u1"],
+    });
+  });
+
+  test("one schedule can be picked both ways: its on-call person and the next one", () => {
+    expect(
+      readEscalationRuleResponderIds({
+        onCallSchedules: ["s1"],
+        nextInRotationSchedules: ["s1"],
+      }),
+    ).toEqual({
+      onCallSchedules: ["s1"],
+      nextInRotationSchedules: ["s1"],
+      teams: [],
+      users: [],
+    });
   });
 
   test("reads ObjectIDs, related rows and dropdown options as ids", () => {
@@ -377,6 +417,7 @@ describe("reading the responders a form holds", () => {
       }),
     ).toEqual({
       onCallSchedules: ["aaaaaaaa-1111-4111-8111-111111111111"],
+      nextInRotationSchedules: [],
       teams: ["t1"],
       users: ["u1"],
     });
@@ -391,11 +432,13 @@ describe("reading the responders a form holds", () => {
   test("a kind nobody picked is an empty list", () => {
     expect(readEscalationRuleResponderIds({})).toEqual({
       onCallSchedules: [],
+      nextInRotationSchedules: [],
       teams: [],
       users: [],
     });
     expect(readEscalationRuleResponderIds(undefined)).toEqual({
       onCallSchedules: [],
+      nextInRotationSchedules: [],
       teams: [],
       users: [],
     });
@@ -405,10 +448,22 @@ describe("reading the responders a form holds", () => {
     expect(
       countEscalationRuleResponders({
         onCallSchedules: ["s1"],
+        nextInRotationSchedules: ["s1"],
         teams: ["t1", "t2"],
         users: [],
       }),
-    ).toBe(3);
+    ).toBe(4);
+  });
+
+  test("a rule that pages only the next person in a rotation is a rule with a responder", () => {
+    const notify: RuleField = fieldByKey(
+      fieldsFor(2),
+      ESCALATION_RULE_NOTIFY_FIELD_KEY,
+    );
+
+    expect(
+      notify.customValidation?.(values({ nextInRotationSchedules: ["s1"] })),
+    ).toBeNull();
   });
 });
 

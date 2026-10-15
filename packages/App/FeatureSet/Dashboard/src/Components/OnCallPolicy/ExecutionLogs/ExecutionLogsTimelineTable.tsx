@@ -43,6 +43,16 @@ export const TEAM_HAS_NO_MEMBERS_TEMPLATE: string = translationKey(
   "Team {{teamName}} has no members",
 );
 
+/*
+ * An escalation rule can page the next person in a schedule's rotation - the
+ * backup after whoever is on call. Its step's schedule says so, and a step
+ * that found nobody next says that, not that nobody was on call.
+ */
+export const NEXT_IN_ROTATION_LABEL: string = translationKey("Next in rotation");
+export const NOBODY_NEXT_IN_ROTATION_LABEL: string = translationKey(
+  "Nobody was next in the rotation",
+);
+
 export interface ComponentProps {
   onCallPolicyExecutionLogId: ObjectID;
 }
@@ -89,6 +99,12 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
             _id: true,
             name: true,
           },
+          /*
+           * Whether the step is about the next person in that schedule's
+           * rotation - the backup after whoever is on call - rather than its
+           * on-call person.
+           */
+          isNextInRotation: true,
           /*
            * The team a step is about: the one a direct page named that had
            * no members is the only thing such a step can say.
@@ -232,6 +248,24 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
               }
 
               /*
+               * A step that paged the next person in a schedule's rotation
+               * but has no recipient: somebody was on call, and nobody was
+               * next - the rotation has nobody else, or everybody else in it
+               * is away.
+               */
+              if (item["onCallDutyScheduleId"] && item["isNextInRotation"]) {
+                return (
+                  <span
+                    data-testid="on-call-timeline-nobody-next-in-rotation"
+                    className="inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200"
+                  >
+                    <Icon icon={IconProp.Alert} className="h-3.5 w-3.5" />
+                    {translator.translateText(NOBODY_NEXT_IN_ROTATION_LABEL)}
+                  </span>
+                );
+              }
+
+              /*
                * A step that targeted a schedule but has no recipient means the
                * schedule had nobody on call. Naming that explicitly is the
                * difference between "this row is uninteresting" and "this is why
@@ -291,6 +325,31 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
               item: OnCallDutyPolicyExecutionLogTimeline,
             ): ReactElement => {
               if (item["onCallDutySchedule"]?.name) {
+                /*
+                 * The backup after whoever is on call: the schedule, with
+                 * "Next in rotation" under it, so the row says why this
+                 * person was paged.
+                 */
+                if (item["isNextInRotation"]) {
+                  return (
+                    <span
+                      data-testid="on-call-timeline-next-in-rotation"
+                      className="flex min-w-0 flex-col"
+                    >
+                      <span className="text-sm text-gray-700">
+                        {item["onCallDutySchedule"].name.toString()}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+                        <Icon
+                          icon={IconProp.Forward}
+                          className="h-3 w-3 flex-shrink-0 text-gray-400"
+                        />
+                        {translator.translateText(NEXT_IN_ROTATION_LABEL)}
+                      </span>
+                    </span>
+                  );
+                }
+
                 return (
                   <span className="text-sm text-gray-700">
                     {item["onCallDutySchedule"].name.toString()}

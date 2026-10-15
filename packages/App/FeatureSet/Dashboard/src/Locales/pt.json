@@ -29680,5 +29680,13 @@
   "This runbook has no steps yet, so its schedule starts nothing. Add steps under {{steps}}.": "Este runbook ainda não tem etapas, então seu agendamento não inicia nada. Adicione etapas em {{steps}}.",
   "This runbook is turned off, so calls to this URL are refused. Turn it on under {{settings}}.": "Este runbook está desativado, então as chamadas para esta URL são recusadas. Ative-o em {{settings}}.",
   "This runbook is turned off, so its schedule starts nothing. Turn it on under {{settings}}.": "Este runbook está desativado, então seu agendamento não inicia nada. Ative-o em {{settings}}.",
-  "Waited for the previous run to end": "Aguardou o fim da execução anterior"
+  "Waited for the previous run to end": "Aguardou o fim da execução anterior",
+  "Add next in rotation": "Adicionar próximo da rotação",
+  "Next in rotation": "Próximo da rotação",
+  "Nobody was next in the rotation": "Ninguém era o próximo da rotação",
+  "On-call schedules page whoever is on call; Next in rotation pages the person after them. Teams page every member.": "Agendamentos de plantão acionam quem estiver de plantão; Próximo da rotação aciona a pessoa seguinte. Equipes acionam todos os membros.",
+  "Page Next in Rotation": "Acionar o próximo da rotação",
+  "Paged as Next in Rotation": "Acionado como próximo da rotação",
+  "Pages the next person in this schedule's rotation: the person after whoever is on call, passing over anyone who is away.": "Aciona a próxima pessoa da rotação deste agendamento: a que vem depois de quem está de plantão, pulando quem estiver ausente.",
+  "next in rotation": "próximo da rotação"
 }

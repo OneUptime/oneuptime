@@ -29680,5 +29680,13 @@
   "This runbook has no steps yet, so its schedule starts nothing. Add steps under {{steps}}.": "此操作手冊還沒有步驟，因此其排程不會啟動任何內容。請在{{steps}}中新增步驟。",
   "This runbook is turned off, so calls to this URL are refused. Turn it on under {{settings}}.": "此操作手冊已關閉，因此對此 URL 的呼叫會被拒絕。請在{{settings}}中開啟。",
   "This runbook is turned off, so its schedule starts nothing. Turn it on under {{settings}}.": "此操作手冊已關閉，因此其排程不會啟動任何內容。請在{{settings}}中開啟。",
-  "Waited for the previous run to end": "已等待上一次執行結束"
+  "Waited for the previous run to end": "已等待上一次執行結束",
+  "Add next in rotation": "新增輪換中的下一個人",
+  "Next in rotation": "輪換中的下一個人",
+  "Nobody was next in the rotation": "輪換中沒有下一個人",
+  "On-call schedules page whoever is on call; Next in rotation pages the person after them. Teams page every member.": "待命排程會通知目前待命的人；「輪換中的下一個人」會通知其後的人。團隊會通知每位成員。",
+  "Page Next in Rotation": "通知輪換中的下一個人",
+  "Paged as Next in Rotation": "以輪換中的下一個人身分被通知",
+  "Pages the next person in this schedule's rotation: the person after whoever is on call, passing over anyone who is away.": "通知此排程輪換中的下一個人：目前待命者之後的人，並略過任何不在的人。",
+  "next in rotation": "輪換中的下一個人"
 }

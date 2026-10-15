@@ -29680,5 +29680,13 @@
   "This runbook has no steps yet, so its schedule starts nothing. Add steps under {{steps}}.": "この Runbook にはまだステップがないため、スケジュールでは何も開始されません。{{steps}} でステップを追加してください。",
   "This runbook is turned off, so calls to this URL are refused. Turn it on under {{settings}}.": "この Runbook はオフになっているため、この URL への呼び出しは拒否されます。{{settings}} でオンにしてください。",
   "This runbook is turned off, so its schedule starts nothing. Turn it on under {{settings}}.": "この Runbook はオフになっているため、スケジュールでは何も開始されません。{{settings}} でオンにしてください。",
-  "Waited for the previous run to end": "前の実行の終了を待機しました"
+  "Waited for the previous run to end": "前の実行の終了を待機しました",
+  "Add next in rotation": "ローテーションの次の人を追加",
+  "Next in rotation": "ローテーションの次の人",
+  "Nobody was next in the rotation": "ローテーションに次の人はいませんでした",
+  "On-call schedules page whoever is on call; Next in rotation pages the person after them. Teams page every member.": "オンコールスケジュールは、その時点のオンコール担当者に通知します。「ローテーションの次の人」は、その次の人に通知します。チームはすべてのメンバーに通知します。",
+  "Page Next in Rotation": "ローテーションの次の人に通知",
+  "Paged as Next in Rotation": "ローテーションの次の人として通知",
+  "Pages the next person in this schedule's rotation: the person after whoever is on call, passing over anyone who is away.": "このスケジュールのローテーションで次の人に通知します。オンコール担当者の次の人で、不在の人は飛ばします。",
+  "next in rotation": "ローテーションの次の人"
 }

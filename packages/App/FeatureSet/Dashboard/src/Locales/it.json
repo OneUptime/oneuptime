@@ -29680,5 +29680,13 @@
   "This runbook has no steps yet, so its schedule starts nothing. Add steps under {{steps}}.": "Questo runbook non ha ancora passaggi, quindi la sua pianificazione non avvia nulla. Aggiungi passaggi in {{steps}}.",
   "This runbook is turned off, so calls to this URL are refused. Turn it on under {{settings}}.": "Questo runbook è disattivato, quindi le chiamate a questo URL vengono rifiutate. Attivalo in {{settings}}.",
   "This runbook is turned off, so its schedule starts nothing. Turn it on under {{settings}}.": "Questo runbook è disattivato, quindi la sua pianificazione non avvia nulla. Attivalo in {{settings}}.",
-  "Waited for the previous run to end": "Ha atteso la fine dell'esecuzione precedente"
+  "Waited for the previous run to end": "Ha atteso la fine dell'esecuzione precedente",
+  "Add next in rotation": "Aggiungi il successivo nella rotazione",
+  "Next in rotation": "Successivo nella rotazione",
+  "Nobody was next in the rotation": "Nessuno era il successivo nella rotazione",
+  "On-call schedules page whoever is on call; Next in rotation pages the person after them. Teams page every member.": "Le pianificazioni di reperibilità avvisano chi è reperibile; Successivo nella rotazione avvisa la persona dopo. I team avvisano ogni membro.",
+  "Page Next in Rotation": "Avvisa il successivo nella rotazione",
+  "Paged as Next in Rotation": "Avvisato come successivo nella rotazione",
+  "Pages the next person in this schedule's rotation: the person after whoever is on call, passing over anyone who is away.": "Avvisa la persona successiva nella rotazione di questa pianificazione: quella dopo chi è reperibile, saltando chi è assente.",
+  "next in rotation": "successivo nella rotazione"
 }

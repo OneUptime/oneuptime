@@ -29680,5 +29680,13 @@
   "This runbook has no steps yet, so its schedule starts nothing. Add steps under {{steps}}.": "این رانبوک هنوز گامی ندارد، پس زمان‌بندی آن چیزی را شروع نمی‌کند. در بخش {{steps}}، گام اضافه کنید.",
   "This runbook is turned off, so calls to this URL are refused. Turn it on under {{settings}}.": "این رانبوک خاموش است، پس فراخوانی‌های این نشانی رد می‌شوند. آن را در بخش {{settings}} روشن کنید.",
   "This runbook is turned off, so its schedule starts nothing. Turn it on under {{settings}}.": "این رانبوک خاموش است، پس زمان‌بندی آن چیزی را شروع نمی‌کند. آن را در بخش {{settings}} روشن کنید.",
-  "Waited for the previous run to end": "منتظر ماند تا اجرای قبلی تمام شود"
+  "Waited for the previous run to end": "منتظر ماند تا اجرای قبلی تمام شود",
+  "Add next in rotation": "افزودن نفر بعدی در چرخش",
+  "Next in rotation": "نفر بعدی در چرخش",
+  "Nobody was next in the rotation": "کسی نفر بعدی در چرخش نبود",
+  "On-call schedules page whoever is on call; Next in rotation pages the person after them. Teams page every member.": "زمان‌بندی‌های آنکال به کسی که آنکال است خبر می‌دهند؛ نفر بعدی در چرخش به نفر پس از او خبر می‌دهد. تیم‌ها به همه اعضا خبر می‌دهند.",
+  "Page Next in Rotation": "خبر دادن به نفر بعدی در چرخش",
+  "Paged as Next in Rotation": "به‌عنوان نفر بعدی در چرخش خبر داده شد",
+  "Pages the next person in this schedule's rotation: the person after whoever is on call, passing over anyone who is away.": "به نفر بعدی در چرخش این زمان‌بندی خبر می‌دهد: کسی که پس از فرد آنکال است، و هر کسی را که غایب است رد می‌کند.",
+  "next in rotation": "نفر بعدی در چرخش"
 }

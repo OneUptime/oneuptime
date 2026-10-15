@@ -4,6 +4,7 @@ import {
   getDefaultEscalationRuleName,
   isDefaultEscalationRuleName,
 } from "Common/Types/OnCallDutyPolicy/EscalationRuleDefaults";
+import { NEXT_IN_ROTATION_SCHEDULES_KEY } from "Common/Types/OnCallDutyPolicy/NextInRotation";
 import Field, {
   FormFieldCollapsibleSection,
 } from "Common/UI/Components/Forms/Types/Field";
@@ -32,6 +33,9 @@ import {
  *   - Notify: one picker for on-call schedules, teams and people together.
  *     It still writes the three lists the rule's join tables are made from
  *     (onCallSchedules, teams, users), so nothing about what is saved changed.
+ *     It also offers each schedule's "Next in rotation" - the person after
+ *     whoever is on call, the backup from the same rotation - written as a
+ *     fourth list (nextInRotationSchedules) to the same schedule join table.
  *   - Escalate after: how long to wait for an acknowledgement, 30 minutes
  *     unless changed.
  *
@@ -49,6 +53,12 @@ import {
 export const ESCALATION_RULE_SCHEDULES_KEY: string = "onCallSchedules";
 export const ESCALATION_RULE_TEAMS_KEY: string = "teams";
 export const ESCALATION_RULE_USERS_KEY: string = "users";
+/*
+ * The schedules whose next person in the rotation the rule pages - the misc
+ * data key the server reads them under (Types/OnCallDutyPolicy/NextInRotation).
+ */
+export const ESCALATION_RULE_NEXT_IN_ROTATION_SCHEDULES_KEY: string =
+  NEXT_IN_ROTATION_SCHEDULES_KEY;
 
 // The Notify field's own key: it names the field in the form, nothing is sent under it.
 export const ESCALATION_RULE_NOTIFY_FIELD_KEY: string = "notify";
@@ -65,29 +75,62 @@ export const ESCALATION_RULE_NOTIFY_REQUIRED_MESSAGE: string = translationKey(
 );
 
 /*
- * On-call schedules first, then teams, then people: the order a rule's card
- * and the escalation summary list them in.
+ * What the Notify picker offers. An escalation rule's own dialog offers each
+ * schedule's "Next in rotation" as well; "Who gets paged first?" of a new
+ * on-call policy does not - its first level pages whoever is on call, and a
+ * backup belongs on a level after it.
  */
-export const getEscalationRuleNotifyPickerConfig: () => PeoplePickerFieldConfig =
-  (): PeoplePickerFieldConfig => {
-    return {
-      kinds: [
-        {
-          kind: PeoplePickerKind.OnCallSchedule,
-          valueKey: ESCALATION_RULE_SCHEDULES_KEY,
-        },
-        { kind: PeoplePickerKind.Team, valueKey: ESCALATION_RULE_TEAMS_KEY },
-        { kind: PeoplePickerKind.User, valueKey: ESCALATION_RULE_USERS_KEY },
-      ],
-      addButtonText: ESCALATION_RULE_NOTIFY_ADD_BUTTON_TEXT,
-      searchPlaceholder: "Search schedules, teams or people...",
-      emptyText: ESCALATION_RULE_NOTIFY_EMPTY_TEXT,
-    };
+export interface EscalationRuleNotifyKindsOptions {
+  offerNextInRotation?: boolean | undefined;
+}
+
+// The Notify field's line under it, without and with "Next in rotation".
+export const ESCALATION_RULE_NOTIFY_DESCRIPTION: string = translationKey(
+  "On-call schedules page whoever is on call. Teams page every member.",
+);
+export const ESCALATION_RULE_NOTIFY_WITH_NEXT_IN_ROTATION_DESCRIPTION: string =
+  translationKey(
+    "On-call schedules page whoever is on call; Next in rotation pages the person after them. Teams page every member.",
+  );
+
+/*
+ * On-call schedules first, then the next person in their rotations, then
+ * teams, then people: the order a rule's card and the escalation summary
+ * list them in.
+ */
+export const getEscalationRuleNotifyPickerConfig: (
+  options?: EscalationRuleNotifyKindsOptions,
+) => PeoplePickerFieldConfig = (
+  options?: EscalationRuleNotifyKindsOptions,
+): PeoplePickerFieldConfig => {
+  return {
+    kinds: [
+      {
+        kind: PeoplePickerKind.OnCallSchedule,
+        valueKey: ESCALATION_RULE_SCHEDULES_KEY,
+      },
+      ...(options?.offerNextInRotation
+        ? [
+            {
+              kind: PeoplePickerKind.OnCallScheduleNextInRotation,
+              valueKey: ESCALATION_RULE_NEXT_IN_ROTATION_SCHEDULES_KEY,
+            },
+          ]
+        : []),
+      { kind: PeoplePickerKind.Team, valueKey: ESCALATION_RULE_TEAMS_KEY },
+      { kind: PeoplePickerKind.User, valueKey: ESCALATION_RULE_USERS_KEY },
+    ],
+    addButtonText: ESCALATION_RULE_NOTIFY_ADD_BUTTON_TEXT,
+    searchPlaceholder: "Search schedules, teams or people...",
+    emptyText: ESCALATION_RULE_NOTIFY_EMPTY_TEXT,
   };
+};
 
 // Who a rule notifies, as ids per kind of responder.
 export interface EscalationRuleResponderIds {
   onCallSchedules: Array<string>;
+  // Schedules whose next person in the rotation is paged: the backup.
+  nextInRotationSchedules: Array<string>;
   teams: Array<string>;
   users: Array<string>;
 }
@@ -105,6 +148,9 @@ export const readEscalationRuleResponderIds: (
 
   return {
     onCallSchedules: toPeoplePickerIds(record[ESCALATION_RULE_SCHEDULES_KEY]),
+    nextInRotationSchedules: toPeoplePickerIds(
+      record[ESCALATION_RULE_NEXT_IN_ROTATION_SCHEDULES_KEY],
+    ),
     teams: toPeoplePickerIds(record[ESCALATION_RULE_TEAMS_KEY]),
     users: toPeoplePickerIds(record[ESCALATION_RULE_USERS_KEY]),
   };
@@ -115,6 +161,7 @@ export const countEscalationRuleResponders: (
 ) => number = (responders: EscalationRuleResponderIds): number => {
   return (
     responders.onCallSchedules.length +
+    responders.nextInRotationSchedules.length +
     responders.teams.length +
     responders.users.length
   );
@@ -133,23 +180,26 @@ export const getEscalationRuleNotifyFormField: <TEntity>(
     Field<TEntity>,
     "field" | "fieldType" | "peoplePicker" | "formOnly"
   >,
+  kinds?: EscalationRuleNotifyKindsOptions,
 ) => Field<TEntity> = <TEntity>(
   options?: Omit<
     Field<TEntity>,
     "field" | "fieldType" | "peoplePicker" | "formOnly"
   >,
+  kinds?: EscalationRuleNotifyKindsOptions,
 ): Field<TEntity> => {
   const field: Field<TEntity> = {
     title: "Notify",
-    description:
-      "On-call schedules page whoever is on call. Teams page every member.",
+    description: kinds?.offerNextInRotation
+      ? ESCALATION_RULE_NOTIFY_WITH_NEXT_IN_ROTATION_DESCRIPTION
+      : ESCALATION_RULE_NOTIFY_DESCRIPTION,
     required: true,
     ...options,
     field: {
       [ESCALATION_RULE_NOTIFY_FIELD_KEY]: true,
     } as SelectFormFields<TEntity>,
     fieldType: FormFieldSchemaType.PeoplePicker,
-    peoplePicker: getEscalationRuleNotifyPickerConfig(),
+    peoplePicker: getEscalationRuleNotifyPickerConfig(kinds),
     formOnly: true,
   };
 
@@ -226,9 +276,10 @@ export interface EscalationRuleFormOptions {
 }
 
 /*
- * The add and edit forms' fields, in order: Notify, Escalate after, then the
- * folded Advanced section with the name and the description. No steps: two
- * questions and a folded section are one short page.
+ * The add and edit forms' fields, in order: Notify (with each schedule's
+ * "Next in rotation" on offer), Escalate after, then the folded Advanced
+ * section with the name and the description. No steps: two questions and a
+ * folded section are one short page.
  */
 export const getEscalationRuleFormFields: <TEntity>(
   options: EscalationRuleFormOptions,
@@ -245,7 +296,9 @@ export const getEscalationRuleFormFields: <TEntity>(
     });
 
   return [
-    getEscalationRuleNotifyFormField<TEntity>(),
+    getEscalationRuleNotifyFormField<TEntity>(undefined, {
+      offerNextInRotation: true,
+    }),
     {
       field: { escalateAfterInMinutes: true } as SelectFormFields<TEntity>,
       title: "Escalate after (in minutes)",

@@ -47,6 +47,13 @@ export interface EscalationResponder {
    * drawn in amber rather than identically to a healthy responder.
    */
   isUncovered?: boolean | undefined;
+  /*
+   * Schedule responders only: true when the level pages the next person in
+   * the schedule's rotation - the backup after whoever is on call - rather
+   * than whoever is on call. Drawn with a fast-forward mark and "next in
+   * rotation" beside the name.
+   */
+  isNextInRotation?: boolean | undefined;
 }
 
 export interface EscalationLevelSummary {
@@ -156,7 +163,10 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
     const seen: Set<string> = new Set<string>();
     for (const level of levels) {
       for (const responder of level.responders) {
-        seen.add(`${responder.type}:${responder.label}`);
+        // A schedule's on-call person and its next person are two people.
+        seen.add(
+          `${responder.type}:${responder.label}${responder.isNextInRotation ? ":next" : ""}`,
+        );
       }
     }
     return seen.size;
@@ -260,7 +270,9 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
                   icon={
                     responder.isUncovered
                       ? IconProp.Alert
-                      : responderIcon(responder.type)
+                      : responder.isNextInRotation
+                        ? IconProp.Forward
+                        : responderIcon(responder.type)
                   }
                   className={`h-3 w-3 ${
                     responder.isUncovered
@@ -269,6 +281,13 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
                   }`}
                 />
                 {responder.label}
+                {responder.isNextInRotation && !responder.isUncovered ? (
+                  <span className="font-normal text-gray-500">
+                    {translator.translateText("next in rotation")}
+                  </span>
+                ) : (
+                  <></>
+                )}
                 {responder.isUncovered ? (
                   <span className="text-[10px] font-semibold uppercase tracking-wide">
                     {translator.translateText("no one on call")}

@@ -29680,5 +29680,13 @@
   "This runbook has no steps yet, so its schedule starts nothing. Add steps under {{steps}}.": "此 Runbook 还没有步骤，因此其计划不会启动任何内容。请在{{steps}}中添加步骤。",
   "This runbook is turned off, so calls to this URL are refused. Turn it on under {{settings}}.": "此 Runbook 已关闭，因此对此 URL 的调用会被拒绝。请在{{settings}}中开启。",
   "This runbook is turned off, so its schedule starts nothing. Turn it on under {{settings}}.": "此 Runbook 已关闭，因此其计划不会启动任何内容。请在{{settings}}中开启。",
-  "Waited for the previous run to end": "已等待上一次运行结束"
+  "Waited for the previous run to end": "已等待上一次运行结束",
+  "Add next in rotation": "添加轮换中的下一个人",
+  "Next in rotation": "轮换中的下一个人",
+  "Nobody was next in the rotation": "轮换中没有下一个人",
+  "On-call schedules page whoever is on call; Next in rotation pages the person after them. Teams page every member.": "值班计划会通知当前值班的人；“轮换中的下一个人”会通知其后的人。团队会通知每位成员。",
+  "Page Next in Rotation": "通知轮换中的下一个人",
+  "Paged as Next in Rotation": "作为轮换中的下一个人被通知",
+  "Pages the next person in this schedule's rotation: the person after whoever is on call, passing over anyone who is away.": "通知此计划轮换中的下一个人：当前值班者之后的人，并跳过任何不在岗的人。",
+  "next in rotation": "轮换中的下一个人"
 }

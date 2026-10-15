@@ -23,7 +23,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     section with the name and the description;
  *   - Notify is one picker of on-call schedules, teams and people, and the
  *     create request still carries the three lists the server turns into the
- *     rule's join rows;
+ *     rule's join rows - and each schedule's "Next in rotation" (the backup
+ *     after whoever is on call), a fourth list to the schedule rows;
  *   - the wait is 30 minutes unless changed;
  *   - the name is optional: left out, the server calls the rule "Level 3",
  *     which is what the name field's placeholder says;
@@ -175,11 +176,18 @@ interface RuleRow {
   description?: string | undefined;
 }
 
+interface ScheduleJoinRow {
+  joinId: string;
+  scheduleId: string;
+  // The row pages the next person in the schedule's rotation.
+  next?: boolean | undefined;
+}
+
 interface PageFixture {
   rules: Array<RuleRow>;
   // Who each rule notifies, by rule id.
   users?: Record<string, Array<{ joinId: string; userId: string }>>;
-  schedules?: Record<string, Array<{ joinId: string; scheduleId: string }>>;
+  schedules?: Record<string, Array<ScheduleJoinRow>>;
 }
 
 const PEOPLE: Record<string, { name: string; email: string }> = {
@@ -285,14 +293,12 @@ function servePage(fixture: PageFixture): void {
     if (params.modelType === OnCallDutyPolicyEscalationRuleSchedule) {
       return list(
         Object.entries(fixture.schedules || {}).flatMap(
-          ([ruleId, joins]: [
-            string,
-            Array<{ joinId: string; scheduleId: string }>,
-          ]) => {
-            return joins.map((join: { joinId: string; scheduleId: string }) => {
+          ([ruleId, joins]: [string, Array<ScheduleJoinRow>]) => {
+            return joins.map((join: ScheduleJoinRow) => {
               return {
                 id: new ObjectID(join.joinId),
                 onCallDutyPolicyEscalationRuleId: new ObjectID(ruleId),
+                ...(join.next ? { pageNextInRotation: true } : {}),
                 onCallDutyPolicySchedule: {
                   id: new ObjectID(join.scheduleId),
                   name: "Primary rotation",
@@ -531,7 +537,7 @@ describe("adding an escalation rule", () => {
     });
   });
 
-  test("the picker offers on-call schedules, teams and people in one list", async () => {
+  test("the picker offers on-call schedules, the next person in their rotations, teams and people in one list", async () => {
     await renderPage(TWO_LEVELS);
     await openAddDialog();
 
@@ -542,7 +548,7 @@ describe("adding an escalation rule", () => {
     });
 
     await waitFor(() => {
-      expect(within(popup).getAllByRole("option").length).toBe(4);
+      expect(within(popup).getAllByRole("option").length).toBe(5);
     });
 
     const groups: Array<string> = within(popup)
@@ -554,14 +560,25 @@ describe("adding an escalation rule", () => {
           : "";
       });
 
-    expect(groups).toEqual(["On-call schedules", "Teams", "People"]);
+    expect(groups).toEqual([
+      "On-call schedules",
+      "Next in rotation",
+      "Teams",
+      "People",
+    ]);
     expect(
       within(popup)
         .getAllByRole("option")
         .map((option: HTMLElement): string | null => {
           return option.getAttribute("data-kind");
         }),
-    ).toEqual(["onCallSchedule", "team", "user", "user"]);
+    ).toEqual([
+      "onCallSchedule",
+      "onCallScheduleNextInRotation",
+      "team",
+      "user",
+      "user",
+    ]);
   });
 
   test("the picker writes all three responder types into the create request", async () => {
@@ -588,6 +605,7 @@ describe("adding an escalation rule", () => {
     expect(request.modelType).toBe(OnCallDutyEscalationRule);
     expect(request.miscDataProps).toEqual({
       onCallSchedules: [SCHEDULE_PRIMARY],
+      nextInRotationSchedules: [],
       teams: [TEAM_PAYMENTS],
       users: [USER_ALEX],
     });
@@ -997,5 +1015,332 @@ describe("levels named after their place", () => {
 
     expect(within(cards[1]!).getByRole("heading")).toHaveTextContent("Level 2");
     expect(within(cards[0]!).getByRole("heading")).toHaveTextContent("Primary");
+  });
+});
+
+/*
+ * THE NEXT PERSON IN A SCHEDULE'S ROTATION - THE BACKUP FROM THE SAME
+ * ROTATION - on the real page.
+ *
+ * The recommended ladder pages a schedule at one level and the next person
+ * in its rotation at the level after it. The Notify picker lists each
+ * schedule a second time under "Next in rotation"; the level's card and the
+ * escalation summary show such a pick with "Next in rotation" beside the
+ * schedule's name; the edit dialog opens with it picked as it is, and moving
+ * a schedule from one kind to the other replaces its row.
+ */
+
+const PRIMARY_NEXT_JOIN_ID: string = "aaaaaaaa-0004-4004-8004-000000000004";
+
+// The ladder of the customer's ask: the schedule, then its next person.
+const PRIMARY_THEN_BACKUP: PageFixture = {
+  rules: [
+    { id: RULE_ONE_ID, name: "Level 1", escalateAfterInMinutes: 15 },
+    { id: RULE_TWO_ID, name: "Level 2", escalateAfterInMinutes: 15 },
+  ],
+  schedules: {
+    [RULE_ONE_ID]: [{ joinId: PRIMARY_JOIN_ID, scheduleId: SCHEDULE_PRIMARY }],
+    [RULE_TWO_ID]: [
+      {
+        joinId: PRIMARY_NEXT_JOIN_ID,
+        scheduleId: SCHEDULE_PRIMARY,
+        next: true,
+      },
+    ],
+  },
+};
+
+// Picks a search-list row of one kind: a schedule is listed under two.
+async function pickKind(name: string, kind: string): Promise<void> {
+  const button: HTMLElement = await screen.findByRole("button", {
+    name: "Add responder",
+  });
+
+  if (button.getAttribute("aria-expanded") !== "true") {
+    fireEvent.click(button);
+  }
+
+  const popup: HTMLElement = await screen.findByRole("dialog", {
+    name: "Add responder",
+  });
+
+  const option: HTMLElement = await waitFor((): HTMLElement => {
+    const found: HTMLElement | undefined = within(popup)
+      .getAllByRole("option")
+      .find((candidate: HTMLElement): boolean => {
+        return (
+          candidate.getAttribute("data-kind") === kind &&
+          (candidate.textContent?.includes(name) || false)
+        );
+      });
+
+    if (!found) {
+      throw new Error(`No ${kind} option ${name} yet`);
+    }
+
+    return found;
+  });
+
+  fireEvent.click(option);
+}
+
+// The chips the picker holds, as "kind:id".
+function chipKinds(): Array<string> {
+  return screen
+    .getAllByTestId("people-chip")
+    .map((chip: HTMLElement): string => {
+      return `${chip.getAttribute("data-kind")}:${chip.getAttribute("data-id")}`;
+    });
+}
+
+describe("paging the next person in a schedule's rotation", () => {
+  test("the search list offers each schedule again under Next in rotation, tagged as such", async () => {
+    await renderPage(TWO_LEVELS);
+    await openAddDialog();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add responder" }));
+
+    const popup: HTMLElement = await screen.findByRole("dialog", {
+      name: "Add responder",
+    });
+
+    const next: HTMLElement = await waitFor((): HTMLElement => {
+      const found: HTMLElement | undefined = within(popup)
+        .getAllByRole("option")
+        .find((option: HTMLElement): boolean => {
+          return (
+            option.getAttribute("data-kind") === "onCallScheduleNextInRotation"
+          );
+        });
+
+      if (!found) {
+        throw new Error("No next-in-rotation option yet");
+      }
+
+      return found;
+    });
+
+    expect(next).toHaveTextContent("Primary rotation");
+    expect(next).toHaveTextContent("Next in rotation");
+    expect(next.getAttribute("data-id")).toBe(SCHEDULE_PRIMARY);
+  });
+
+  test("the field says what each kind of pick pages", async () => {
+    await renderPage(TWO_LEVELS);
+    await openAddDialog();
+
+    expect(
+      screen.getByText(
+        "On-call schedules page whoever is on call; Next in rotation pages the person after them. Teams page every member.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("picking a schedule's Next in rotation sends it as nextInRotationSchedules", async () => {
+    await renderPage(TWO_LEVELS);
+    await openAddDialog();
+
+    await pickKind("Primary rotation", "onCallScheduleNextInRotation");
+
+    await waitFor(() => {
+      expect(chipKinds()).toEqual([
+        `onCallScheduleNextInRotation:${SCHEDULE_PRIMARY}`,
+      ]);
+    });
+
+    await submit("Create Rule");
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(createOrUpdateMock.mock.calls[0]![0].miscDataProps).toEqual({
+      onCallSchedules: [],
+      nextInRotationSchedules: [SCHEDULE_PRIMARY],
+      teams: [],
+      users: [],
+    });
+  });
+
+  test("one schedule picked both ways is two picks: its on-call person and the next", async () => {
+    await renderPage(TWO_LEVELS);
+    await openAddDialog();
+
+    await pickKind("Primary rotation", "onCallSchedule");
+    await pickKind("Primary rotation", "onCallScheduleNextInRotation");
+
+    await waitFor(() => {
+      expect(chipKinds()).toEqual([
+        `onCallSchedule:${SCHEDULE_PRIMARY}`,
+        `onCallScheduleNextInRotation:${SCHEDULE_PRIMARY}`,
+      ]);
+    });
+
+    await submit("Create Rule");
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(createOrUpdateMock.mock.calls[0]![0].miscDataProps).toEqual({
+      onCallSchedules: [SCHEDULE_PRIMARY],
+      nextInRotationSchedules: [SCHEDULE_PRIMARY],
+      teams: [],
+      users: [],
+    });
+  });
+
+  test("a level that pages the next person shows the schedule with Next in rotation on its card", async () => {
+    const cards: Array<HTMLElement> = await renderPage(PRIMARY_THEN_BACKUP);
+
+    // Level 1: the schedule itself.
+    expect(
+      within(cards[0]!).getByTestId("escalation-rule-schedule-chip"),
+    ).toHaveTextContent("Primary rotation");
+    expect(
+      within(cards[0]!).queryByTestId("escalation-rule-next-in-rotation-chip"),
+    ).toBeNull();
+
+    // Level 2: the next person in its rotation.
+    const chip: HTMLElement = within(cards[1]!).getByTestId(
+      "escalation-rule-next-in-rotation-chip",
+    );
+
+    expect(chip).toHaveTextContent("Primary rotation");
+    expect(chip).toHaveTextContent("Next in rotation");
+    expect(chip.getAttribute("title")).toBe(
+      "Pages the next person in this schedule's rotation: the person after whoever is on call, passing over anyone who is away.",
+    );
+    expect(
+      within(cards[1]!).queryByTestId("escalation-rule-schedule-chip"),
+    ).toBeNull();
+  });
+
+  test("the escalation summary says which level pages the next person", async () => {
+    await renderPage(PRIMARY_THEN_BACKUP);
+
+    const summary: HTMLElement = screen
+      .getByText("Escalation summary")
+      .closest("div.rounded-xl") as HTMLElement;
+
+    expect(summary).toHaveTextContent("Primary rotation");
+    expect(summary).toHaveTextContent("next in rotation");
+  });
+
+  test("the edit dialog opens with the next person picked as such, and an untouched save changes nothing", async () => {
+    const cards: Array<HTMLElement> = await renderPage(PRIMARY_THEN_BACKUP);
+    await openEditDialog(cards[1]!);
+
+    await waitFor(() => {
+      expect(chipKinds()).toEqual([
+        `onCallScheduleNextInRotation:${SCHEDULE_PRIMARY}`,
+      ]);
+    });
+
+    await submit("Save Changes");
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    await act(async (): Promise<void> => {});
+
+    expect(createMock).not.toHaveBeenCalled();
+    expect(deleteItemMock).not.toHaveBeenCalled();
+    // The picker's lists are reconciled, not sent with the update.
+    expect(createOrUpdateMock.mock.calls[0]![0].miscDataProps).toEqual({});
+  });
+
+  test("moving a level from the schedule's on-call person to the next person replaces its row", async () => {
+    const cards: Array<HTMLElement> = await renderPage(PRIMARY_THEN_BACKUP);
+    await openEditDialog(cards[0]!);
+
+    await waitFor(() => {
+      expect(chipKinds()).toEqual([`onCallSchedule:${SCHEDULE_PRIMARY}`]);
+    });
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Remove Primary rotation" }),
+    );
+    await pickKind("Primary rotation", "onCallScheduleNextInRotation");
+
+    await waitFor(() => {
+      expect(chipKinds()).toEqual([
+        `onCallScheduleNextInRotation:${SCHEDULE_PRIMARY}`,
+      ]);
+    });
+
+    await submit("Save Changes");
+
+    await waitFor(() => {
+      expect(createMock).toHaveBeenCalledTimes(1);
+      expect(deleteItemMock).toHaveBeenCalledTimes(1);
+    });
+
+    // The on-call row goes...
+    expect(deleteItemMock).toHaveBeenCalledWith({
+      modelType: OnCallDutyPolicyEscalationRuleSchedule,
+      id: new ObjectID(PRIMARY_JOIN_ID),
+    });
+
+    // ...and a next-in-rotation row of the same schedule takes its place.
+    const created: any = createMock.mock.calls[0]![0];
+
+    expect(created.modelType).toBe(OnCallDutyPolicyEscalationRuleSchedule);
+    expect(idOf(created.model.onCallDutyPolicyScheduleId)).toBe(
+      SCHEDULE_PRIMARY,
+    );
+    expect(created.model.pageNextInRotation).toBe(true);
+    expect(idOf(created.model.onCallDutyPolicyEscalationRuleId)).toBe(
+      RULE_ONE_ID,
+    );
+  });
+
+  test("taking the next person away deletes only that row", async () => {
+    const cards: Array<HTMLElement> = await renderPage({
+      ...PRIMARY_THEN_BACKUP,
+      schedules: {
+        [RULE_ONE_ID]: [
+          { joinId: PRIMARY_JOIN_ID, scheduleId: SCHEDULE_PRIMARY },
+          {
+            joinId: PRIMARY_NEXT_JOIN_ID,
+            scheduleId: SCHEDULE_PRIMARY,
+            next: true,
+          },
+        ],
+      },
+    });
+    await openEditDialog(cards[0]!);
+
+    await waitFor(() => {
+      expect(chipKinds()).toEqual([
+        `onCallSchedule:${SCHEDULE_PRIMARY}`,
+        `onCallScheduleNextInRotation:${SCHEDULE_PRIMARY}`,
+      ]);
+    });
+
+    const removeButtons: Array<HTMLElement> = await screen.findAllByRole(
+      "button",
+      { name: "Remove Primary rotation" },
+    );
+
+    // The second chip is the next person's.
+    fireEvent.click(removeButtons[1]!);
+
+    await waitFor(() => {
+      expect(chipKinds()).toEqual([`onCallSchedule:${SCHEDULE_PRIMARY}`]);
+    });
+
+    await submit("Save Changes");
+
+    await waitFor(() => {
+      expect(deleteItemMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(deleteItemMock).toHaveBeenCalledWith({
+      modelType: OnCallDutyPolicyEscalationRuleSchedule,
+      id: new ObjectID(PRIMARY_NEXT_JOIN_ID),
+    });
+    expect(createMock).not.toHaveBeenCalled();
   });
 });

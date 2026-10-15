@@ -329,10 +329,27 @@ export const ON_CALL_SCHEDULE_TAG: string = translationKey("Schedule");
 export const UNKNOWN_ON_CALL_SCHEDULE_NAME: string =
   translationKey("Unknown schedule");
 
+/*
+ * The next person in an on-call schedule's rotation: a pick pages the person
+ * after whoever is on call, from the same rotation - the backup. The same
+ * schedules are listed again under a heading of their own, each named after
+ * its schedule and tagged "Next in rotation".
+ */
+export const NEXT_IN_ROTATION_GROUP_TITLE: string =
+  translationKey("Next in rotation");
+export const NEXT_IN_ROTATION_TAG: string = translationKey("Next in rotation");
+
+// The schedule kinds: the on-call person, or the next one in the rotation.
+type ScheduleKind =
+  | PeoplePickerKind.OnCallSchedule
+  | PeoplePickerKind.OnCallScheduleNextInRotation;
+
 const scheduleToOption: (
   schedule: BaseModel | undefined,
+  kind?: ScheduleKind,
 ) => PeoplePickerOption | null = (
   schedule: BaseModel | undefined,
+  kind: ScheduleKind = PeoplePickerKind.OnCallSchedule,
 ): PeoplePickerOption | null => {
   if (!schedule) {
     return null;
@@ -349,7 +366,7 @@ const scheduleToOption: (
   }
 
   return {
-    kind: PeoplePickerKind.OnCallSchedule,
+    kind: kind,
     id: id,
     name: readString(record["name"]) || UNKNOWN_ON_CALL_SCHEDULE_NAME,
   };
@@ -409,9 +426,12 @@ export const isPaymentRequiredError: (error: unknown) => boolean = (
 const listSchedules: (data: {
   query: Record<string, unknown>;
   limit: number;
+  // Which kind the schedules are listed as. Default: their on-call person.
+  kind?: ScheduleKind | undefined;
 }) => Promise<Array<PeoplePickerOption>> = async (data: {
   query: Record<string, unknown>;
   limit: number;
+  kind?: ScheduleKind | undefined;
 }): Promise<Array<PeoplePickerOption>> => {
   if (!canReadOnCallSchedulesOnCurrentPlan()) {
     return [];
@@ -438,45 +458,66 @@ const listSchedules: (data: {
 
   return result.data
     .map((schedule: OnCallDutyPolicySchedule): PeoplePickerOption | null => {
-      return scheduleToOption(schedule);
+      return scheduleToOption(schedule, data.kind);
     })
     .filter((option: PeoplePickerOption | null): boolean => {
       return Boolean(option);
     }) as Array<PeoplePickerOption>;
 };
 
+const searchSchedulesAs: (
+  kind: ScheduleKind,
+) => (data: PeoplePickerSearchData) => Promise<Array<PeoplePickerOption>> = (
+  kind: ScheduleKind,
+): ((data: PeoplePickerSearchData) => Promise<Array<PeoplePickerOption>>) => {
+  return async (
+    data: PeoplePickerSearchData,
+  ): Promise<Array<PeoplePickerOption>> => {
+    const searchText: string = data.searchText.trim();
+    const query: Record<string, unknown> = { projectId: data.projectId };
+
+    if (searchText) {
+      query["name"] = new Search(searchText);
+    }
+
+    return await listSchedules({ query: query, limit: data.limit, kind });
+  };
+};
+
+const getSchedulesByIdsAs: (
+  kind: ScheduleKind,
+) => (data: PeoplePickerLookupData) => Promise<Array<PeoplePickerOption>> = (
+  kind: ScheduleKind,
+): ((data: PeoplePickerLookupData) => Promise<Array<PeoplePickerOption>>) => {
+  return async (
+    data: PeoplePickerLookupData,
+  ): Promise<Array<PeoplePickerOption>> => {
+    if (data.ids.length === 0) {
+      return [];
+    }
+
+    return await listSchedules({
+      query: {
+        projectId: data.projectId,
+        _id: new Includes(data.ids),
+      },
+      limit: LIMIT_PER_PROJECT,
+      kind,
+    });
+  };
+};
+
 const searchSchedules: (
   data: PeoplePickerSearchData,
-) => Promise<Array<PeoplePickerOption>> = async (
-  data: PeoplePickerSearchData,
-): Promise<Array<PeoplePickerOption>> => {
-  const searchText: string = data.searchText.trim();
-  const query: Record<string, unknown> = { projectId: data.projectId };
-
-  if (searchText) {
-    query["name"] = new Search(searchText);
-  }
-
-  return await listSchedules({ query: query, limit: data.limit });
-};
+) => Promise<Array<PeoplePickerOption>> = searchSchedulesAs(
+  PeoplePickerKind.OnCallSchedule,
+);
 
 const getSchedulesByIds: (
   data: PeoplePickerLookupData,
-) => Promise<Array<PeoplePickerOption>> = async (
-  data: PeoplePickerLookupData,
-): Promise<Array<PeoplePickerOption>> => {
-  if (data.ids.length === 0) {
-    return [];
-  }
-
-  return await listSchedules({
-    query: {
-      projectId: data.projectId,
-      _id: new Includes(data.ids),
-    },
-    limit: LIMIT_PER_PROJECT,
-  });
-};
+) => Promise<Array<PeoplePickerOption>> = getSchedulesByIdsAs(
+  PeoplePickerKind.OnCallSchedule,
+);
 
 /*
  * On-call policies: a pick runs the policy's own escalation rules. An
@@ -665,6 +706,28 @@ export const PEOPLE_PICKER_KIND_DEFINITIONS: Record<
     },
     search: searchSchedules,
     getByIds: getSchedulesByIds,
+  },
+  [PeoplePickerKind.OnCallScheduleNextInRotation]: {
+    kind: PeoplePickerKind.OnCallScheduleNextInRotation,
+    groupTitle: NEXT_IN_ROTATION_GROUP_TITLE,
+    tag: NEXT_IN_ROTATION_TAG,
+    unknownName: UNKNOWN_ON_CALL_SCHEDULE_NAME,
+    // Fast-forward: the one after.
+    avatar: { type: "icon", icon: IconProp.Forward },
+    relationSelect: {
+      _id: true,
+      name: true,
+    },
+    fromModel: (model: BaseModel): PeoplePickerOption | null => {
+      return scheduleToOption(
+        model,
+        PeoplePickerKind.OnCallScheduleNextInRotation,
+      );
+    },
+    search: searchSchedulesAs(PeoplePickerKind.OnCallScheduleNextInRotation),
+    getByIds: getSchedulesByIdsAs(
+      PeoplePickerKind.OnCallScheduleNextInRotation,
+    ),
   },
   [PeoplePickerKind.OnCallPolicy]: {
     kind: PeoplePickerKind.OnCallPolicy,

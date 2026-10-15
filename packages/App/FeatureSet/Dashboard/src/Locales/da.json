@@ -29680,5 +29680,13 @@
   "This runbook has no steps yet, so its schedule starts nothing. Add steps under {{steps}}.": "Denne runbook har endnu ingen trin, så dens tidsplan starter intet. Tilføj trin under {{steps}}.",
   "This runbook is turned off, so calls to this URL are refused. Turn it on under {{settings}}.": "Denne runbook er slået fra, så kald til denne URL afvises. Slå den til under {{settings}}.",
   "This runbook is turned off, so its schedule starts nothing. Turn it on under {{settings}}.": "Denne runbook er slået fra, så dens tidsplan starter intet. Slå den til under {{settings}}.",
-  "Waited for the previous run to end": "Ventede på, at den forrige kørsel sluttede"
+  "Waited for the previous run to end": "Ventede på, at den forrige kørsel sluttede",
+  "Add next in rotation": "Tilføj næste i rotationen",
+  "Next in rotation": "Næste i rotationen",
+  "Nobody was next in the rotation": "Ingen var næste i rotationen",
+  "On-call schedules page whoever is on call; Next in rotation pages the person after them. Teams page every member.": "Vagtplaner tilkalder den, der har vagt; Næste i rotationen tilkalder personen efter dem. Teams tilkalder alle medlemmer.",
+  "Page Next in Rotation": "Tilkald næste i rotationen",
+  "Paged as Next in Rotation": "Tilkaldt som næste i rotationen",
+  "Pages the next person in this schedule's rotation: the person after whoever is on call, passing over anyone who is away.": "Tilkalder den næste person i denne vagtplans rotation: personen efter den, der har vagt, og springer alle fraværende over.",
+  "next in rotation": "næste i rotationen"
 }

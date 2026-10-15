@@ -29680,5 +29680,13 @@
   "This runbook has no steps yet, so its schedule starts nothing. Add steps under {{steps}}.": "This runbook has no steps yet, so its schedule starts nothing. Add steps under {{steps}}.",
   "This runbook is turned off, so calls to this URL are refused. Turn it on under {{settings}}.": "This runbook is turned off, so calls to this URL are refused. Turn it on under {{settings}}.",
   "This runbook is turned off, so its schedule starts nothing. Turn it on under {{settings}}.": "This runbook is turned off, so its schedule starts nothing. Turn it on under {{settings}}.",
-  "Waited for the previous run to end": "Waited for the previous run to end"
+  "Waited for the previous run to end": "Waited for the previous run to end",
+  "Add next in rotation": "Add next in rotation",
+  "Next in rotation": "Next in rotation",
+  "Nobody was next in the rotation": "Nobody was next in the rotation",
+  "On-call schedules page whoever is on call; Next in rotation pages the person after them. Teams page every member.": "On-call schedules page whoever is on call; Next in rotation pages the person after them. Teams page every member.",
+  "Page Next in Rotation": "Page Next in Rotation",
+  "Paged as Next in Rotation": "Paged as Next in Rotation",
+  "Pages the next person in this schedule's rotation: the person after whoever is on call, passing over anyone who is away.": "Pages the next person in this schedule's rotation: the person after whoever is on call, passing over anyone who is away.",
+  "next in rotation": "next in rotation"
 }

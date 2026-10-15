@@ -29680,5 +29680,13 @@
   "This runbook has no steps yet, so its schedule starts nothing. Add steps under {{steps}}.": "इस रनबुक में अभी कोई चरण नहीं है, इसलिए इसका शेड्यूल कुछ भी शुरू नहीं करता। {{steps}} में चरण जोड़ें।",
   "This runbook is turned off, so calls to this URL are refused. Turn it on under {{settings}}.": "यह रनबुक बंद है, इसलिए इस URL पर कॉल अस्वीकार किए जाते हैं। इसे {{settings}} में चालू करें।",
   "This runbook is turned off, so its schedule starts nothing. Turn it on under {{settings}}.": "यह रनबुक बंद है, इसलिए इसका शेड्यूल कुछ भी शुरू नहीं करता। इसे {{settings}} में चालू करें।",
-  "Waited for the previous run to end": "पिछले रन के खत्म होने की प्रतीक्षा की"
+  "Waited for the previous run to end": "पिछले रन के खत्म होने की प्रतीक्षा की",
+  "Add next in rotation": "रोटेशन में अगला जोड़ें",
+  "Next in rotation": "रोटेशन में अगला",
+  "Nobody was next in the rotation": "रोटेशन में कोई अगला नहीं था",
+  "On-call schedules page whoever is on call; Next in rotation pages the person after them. Teams page every member.": "ऑन-कॉल अनुसूचियाँ उसे सूचित करती हैं जो ड्यूटी पर है; रोटेशन में अगला उसके बाद वाले व्यक्ति को सूचित करता है। टीमें हर सदस्य को सूचित करती हैं।",
+  "Page Next in Rotation": "रोटेशन में अगले को सूचित करें",
+  "Paged as Next in Rotation": "रोटेशन में अगले के रूप में सूचित",
+  "Pages the next person in this schedule's rotation: the person after whoever is on call, passing over anyone who is away.": "इस अनुसूची के रोटेशन में अगले व्यक्ति को सूचित करता है: जो ड्यूटी पर है उसके बाद वाला व्यक्ति, अनुपस्थित किसी भी व्यक्ति को छोड़ते हुए।",
+  "next in rotation": "रोटेशन में अगला"
 }
