@@ -66,6 +66,7 @@ Een **episode** groepeert gerelateerde incidenten, of gerelateerde waarschuwinge
 
 :::cards
 - [Incidenten – Overzicht](/docs/incidents/index): Hoe incidenten worden gemeld, afgehandeld en opgelost.
+- [Waarschuwingen – Overzicht](/docs/alerts/index): Waar waarschuwingen vandaan komen, en hoe episodes ze groeperen.
 - [Gekoppelde waarschuwingen](/docs/incidents/linked-alerts): De waarschuwingen van een storing aan het incident koppelen.
 :::
 

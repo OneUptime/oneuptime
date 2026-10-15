@@ -66,6 +66,7 @@ Eine **Episode** fasst zusammengehörige Vorfälle oder zusammengehörige Warnun
 
 :::cards
 - [Vorfälle – Übersicht](/docs/incidents/index): Wie Vorfälle gemeldet, bearbeitet und behoben werden.
+- [Warnungen – Übersicht](/docs/alerts/index): Woher Warnungen kommen und wie Episoden sie gruppieren.
 - [Verknüpfte Warnungen](/docs/incidents/linked-alerts): Die Warnungen eines Ausfalls mit seinem Vorfall verknüpfen.
 :::
 

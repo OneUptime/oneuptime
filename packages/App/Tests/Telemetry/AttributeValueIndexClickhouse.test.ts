@@ -117,8 +117,22 @@ const integration: typeof describe.skip = endpoint ? describe : describe.skip;
 const database: string = `attribute_value_index_test_${process.pid}_${Date.now()}`;
 
 const MINUTE: number = 60 * 1000;
+const DAY: number = 24 * 60 * MINUTE;
+
+/*
+ * The hour the fixture's rows sit in: from the last whole minute less 90
+ * minutes or, when that hour would cross a midnight (UTC), the hour before
+ * that midnight. The Log table is partitioned by toYYYYMMDD(time), and
+ * rows of two days make two parts where the layout needs one (a run
+ * between 00:40 and 01:30 UTC saw 2).
+ */
+const RECENT_START: number =
+  Math.floor(Date.now() / MINUTE) * MINUTE - 90 * MINUTE;
+const NEXT_MIDNIGHT: number = (Math.floor(RECENT_START / DAY) + 1) * DAY;
 const WINDOW_START: Date = new Date(
-  Math.floor(Date.now() / MINUTE) * MINUTE - 90 * MINUTE,
+  RECENT_START + 60 * MINUTE > NEXT_MIDNIGHT
+    ? NEXT_MIDNIGHT - 60 * MINUTE
+    : RECENT_START,
 );
 const WINDOW_END: Date = new Date(WINDOW_START.getTime() + 60 * MINUTE);
 
