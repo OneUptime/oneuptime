@@ -65,7 +65,7 @@
  *              bucketSizeInMinutes and buckets (how many came back)
  *   realtime: modelName, eventType (a subscription; nothing is ever sent)
  *
- * Three gates hold answers back so a spec can choose the moment data lands
+ * Four gates hold answers back so a spec can choose the moment data lands
  * (all default to "immediate", which answers at once):
  *
  *   .histogramGate   the explorers' histogram, facets and analytics answers
@@ -73,6 +73,8 @@
  *   .listGate        ModelAPI.getList reads of the tables named in
  *                    listGate.tables (none by default), such as an
  *                    explorer's saved views or its Service list
+ *   .valuesGate      the search bars' `@key:` value lookups
+ *                    (get-attribute-values), whatever they answer
  *
  *   gate.mode = "manual"   later requests wait in gate.pending
  *                          ({ seq, url, metricName or modelName, window,
@@ -96,9 +98,16 @@
  *                          named in timedOutFacets, their values empty (a
  *                          resource facet keeps its list, every count 0),
  *                          the way the server sends them
+ *   .timeLimit.attributeValues
+ *                          the search bars' `@key:` value lookups
+ *                          (get-attribute-values, issue #4708)
  *
  * window.__chartTimeZoomTimeLimit, set before the page loads, is where
  * .timeLimit starts, for a spec whose first load is stopped.
+ *
+ * .noAttributeValues: the search bars' `@key:` value lookups answer with
+ * no values, as the server does for a key the rows of the range do not
+ * carry (issue #4708), until the spec sets it back.
  *
  * Anything the fixture does not model (a table, an analytics model, a
  * metric name, an API URL or an explorer filter) lands on .unhandled as
@@ -299,6 +308,7 @@ const fixture = {
   histogramGate: createGate("histogramGate"),
   aggregateGate: createGate("aggregateGate"),
   listGate: createGate("listGate"),
+  valuesGate: createGate("valuesGate"),
   /*
    * See the header. A spec that needs the first load stopped sets
    * window.__chartTimeZoomTimeLimit before the page loads (addInitScript).
@@ -307,8 +317,11 @@ const fixture = {
     lists: false,
     histograms: false,
     facets: [],
+    attributeValues: false,
     ...(window.__chartTimeZoomTimeLimit || {}),
   },
+  // See the header.
+  noAttributeValues: false,
 };
 window.__chartTimeZoomFixture = fixture;
 
@@ -2863,6 +2876,36 @@ async function handleApi(method, options) {
     // A stopped histogram answers as the API does: the error response.
     if (fixture.timeLimit.histograms && endpoint.path.endsWith("/histogram")) {
       return stoppedAtTimeLimit();
+    }
+    /*
+     * A `@key:` value lookup answers once valuesGate lets it: stopped at the
+     * time limit as a stopped read is, empty for a key no row of the range
+     * carries, or the values.
+     */
+    if (endpoint.path.endsWith("/get-attribute-values")) {
+      return throughGate(
+        fixture.valuesGate,
+        { seq: entry.seq, url, attributeKey: body.attributeKey || null },
+        () => {
+          if (fixture.timeLimit.attributeValues) {
+            return stoppedAtTimeLimit();
+          }
+          if (fixture.noAttributeValues) {
+            return ok({ values: [] });
+          }
+          try {
+            return ok(endpoint.answer(body, url, entry));
+          } catch (error) {
+            fixture.unhandled.push({
+              kind: "api",
+              method,
+              url,
+              error: String(error?.stack || error),
+            });
+            throw fail(500, "The fixture could not answer this request.");
+          }
+        },
+      );
     }
     let response;
     try {

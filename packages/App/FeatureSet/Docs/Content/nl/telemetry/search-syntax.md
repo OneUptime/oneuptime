@@ -197,6 +197,7 @@ Chips horen bij de opgeslagen weergave en bij de URL van de pagina, dus een filt
 - Numerieke vergelijkingen werken op attribuutwaarden die als tekst zijn opgeslagen; een waarde die geen getal is, voldoet nooit aan een vergelijking.
 - Bij logboeken en traces wordt een exacte waarde, zoals `@http.route:/orders`, `@k:(a OR b)` of een waarde waarop u klikt in de facettenzijbalk, opgezocht in een index, zodat zoeken naar een waarde die weinig rijen hebben ook over lange tijdsbereiken snel blijft. Jokertekens, "bevat", uitsluitingen en vergelijkingen lezen elke logregel of span in het bereik: is zo'n zoekopdracht traag, voeg dan een exacte waarde toe of kies een korter bereik.
 - Een zoekopdracht die langer dan 45 seconden duurt, wordt gestopt. De verkenner meldt dat waar de resultaten zouden staan, laat uw zoekopdracht en filters zoals ze waren en biedt **Opnieuw proberen** aan; de grafiek en de tellingen voor de filters melden het op hun eigen plek als hun tijd op is. Kies een korter bereik of voeg een exacte waarde toe om de zoekopdracht wel te laten slagen.
+- Zodra u `@key:` typt en even pauzeert, stelt het zoekvak waarden van dat attribuut voor uit het getoonde bereik. De suggesties komen uit een steekproef van dat bereik, dus een zelden gebruikte waarde kan ontbreken: typ die en druk op Enter.
 
 ## Volgende stappen
 

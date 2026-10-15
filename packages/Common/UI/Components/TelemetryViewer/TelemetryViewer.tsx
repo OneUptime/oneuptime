@@ -92,6 +92,14 @@ export interface TelemetryViewerProps<T> {
   searchBarRef?: React.Ref<TelemetrySearchBarRef> | undefined;
   searchAttributesLoading?: boolean | undefined;
   searchValuesLoading?: boolean | undefined;
+  /*
+   * The values of the `@key:` being typed could not be loaded (issue #4708):
+   * the search bar's dropdown says so, with Try again.
+   */
+  searchValuesError?: TelemetryLoadError | undefined;
+  onRetrySearchValues?: (() => void) | undefined;
+  // The `@key:` lookup came back with no values: the dropdown says so.
+  searchHasNoValues?: boolean | undefined;
 
   // -- Toolbar: time --
   timeRange: RangeStartAndEndDateTime;
@@ -306,6 +314,9 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             helpCombinedExample={props.searchHelpCombinedExample}
             isAttributesLoading={props.searchAttributesLoading}
             isValuesLoading={props.searchValuesLoading}
+            valuesError={props.searchValuesError}
+            onRetryValues={props.onRetrySearchValues}
+            hasNoValues={props.searchHasNoValues}
             isLoading={props.isLoading}
           />
         </div>
