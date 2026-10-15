@@ -36,6 +36,9 @@ import WorkspaceNoteReactionUtil, {
   WorkspaceNoteType,
 } from "Common/Types/Workspace/WorkspaceNoteReaction";
 import { EVERY_DAY, EVERY_MINUTE } from "Common/Utils/CronTime";
+import WorkspaceChannelName, {
+  WorkspaceChannelNameParts,
+} from "Common/Utils/Workspace/WorkspaceChannelName";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -558,38 +561,156 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     }
   });
 
+  /*
+   * The customer's question: a prefix of foo- names incident INC-123's
+   * channel foo-inc-123 - can it be inc-123? The prefix is optional: the
+   * channel is named after its record, and the prefix goes in front. The
+   * pages' examples are the names the server gives (WorkspaceChannelName).
+   */
   it("names a channel a rule creates as the form asks for it and the server builds it", () => {
     const form: string = readSource("ruleForm");
     const service: string = readSource("notificationRuleService");
 
-    expect(form).toContain(
-      "title: `New ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel Name`",
-    );
-    expect(englishPage(SLACK)).toContain("**New Slack Channel Name**");
-    expect(englishPage(TEAMS)).toContain(
-      "**New Microsoft Teams Channel Name**",
+    // The form's field: an optional prefix.
+    const fieldAt: number = form.indexOf('title: "Channel Name Prefix"');
+
+    expect(fieldAt).toBeGreaterThan(-1);
+    expect(form.slice(fieldAt, form.indexOf("fieldType:", fieldAt))).toContain(
+      "required: false,",
     );
 
+    // The server names every channel with it, rule by rule.
+    expect(service).toContain("WorkspaceChannelName.getPrefix(workspaceRules)");
+    expect(service).toContain("WorkspaceChannelName.getChannelName({");
+
+    const incident: WorkspaceChannelNameParts =
+      WorkspaceChannelName.forNumberedRecord({
+        eventType: NotificationRuleEventType.Incident,
+        number: 42,
+        numberWithPrefix: "INC-42",
+      });
+    const alert: WorkspaceChannelNameParts =
+      WorkspaceChannelName.forNumberedRecord({
+        eventType: NotificationRuleEventType.Alert,
+        number: 7,
+        numberWithPrefix: "ALT-7",
+      });
+    // A project without number prefixes writes its incidents #42.
+    const unprefixed: WorkspaceChannelNameParts =
+      WorkspaceChannelName.forNumberedRecord({
+        eventType: NotificationRuleEventType.Incident,
+        number: 42,
+        numberWithPrefix: "#42",
+      });
     /*
-     * The name, then the record's number with what a channel name may not
-     * hold taken out: "#42" is "42".
+     * A scheduled maintenance event's prefix takes the place of its number
+     * prefix: SM-5 is sm-5, and maint-5 with maint- (not maint-sm-5).
      */
-    expect(service).toContain(
-      "`oneuptime-${data.notificationEventType.toLowerCase()}-`",
-    );
-    expect(service).toContain('.replace(/[^a-z0-9\\-_]/g, "")');
-    expect(service).toContain(
-      "const channelName: string = notificationChannels + sanitizedSuffix;",
-    );
+    const maintenance: WorkspaceChannelNameParts =
+      WorkspaceChannelName.forNumberedRecord({
+        eventType: NotificationRuleEventType.ScheduledMaintenance,
+        number: 5,
+        numberWithPrefix: "SM-5",
+      });
 
-    const example: string = `oneuptime-${NotificationRuleEventType.Incident.toLowerCase()}-42`;
+    for (const [page, workspaceType] of [
+      [SLACK, WorkspaceType.Slack],
+      [TEAMS, WorkspaceType.MicrosoftTeams],
+    ] as Array<[string, WorkspaceType]>) {
+      const markdown: string = englishPage(page);
 
-    for (const page of CHAT_PAGES) {
-      expect(inlineCode(englishPage(page))).toContain(example);
-      expect(englishPage(page)).toContain(
-        `followed by the record's number, such as \`${example}\``,
+      const name: (
+        prefix: string,
+        parts: WorkspaceChannelNameParts,
+        attempt?: number,
+      ) => string = (
+        prefix: string,
+        parts: WorkspaceChannelNameParts,
+        attempt?: number,
+      ): string => {
+        return WorkspaceChannelName.getChannelName({
+          workspaceType,
+          prefix,
+          parts,
+          attempt,
+        });
+      };
+
+      const paragraph: string = lineStarting(
+        markdown,
+        "A channel the rule creates is named after its record: ",
       );
+
+      expect(paragraph).toContain("**Channel Name Prefix**");
+      // The record the maintenance examples are for, as its number reads.
+      expect(paragraph).toContain(
+        `SM-5 gets \`${name("", maintenance)}\`, and \`maint-\` makes \`${name("maint-", maintenance)}\``,
+      );
+
+      // Its examples (inlineCode sorts them), as the server names them.
+      expect(inlineCode(paragraph)).toEqual(
+        sorted([
+          name("", incident),
+          name("", alert),
+          name("", unprefixed),
+          "prod-",
+          name("prod-", incident),
+          name("", maintenance),
+          "maint-",
+          name("maint-", maintenance),
+          "-",
+          "_",
+          name("", incident, 2).slice(name("", incident).length),
+          name("", incident, 3).slice(name("", incident).length),
+        ]),
+      );
+      expect(inlineCode(paragraph)).toEqual(
+        sorted([
+          "inc-42",
+          "alt-7",
+          "incident-42",
+          "prod-",
+          "prod-inc-42",
+          "sm-5",
+          "maint-",
+          "maint-5",
+          "-",
+          "_",
+          "-2",
+          "-3",
+        ]),
+      );
+      expect(WorkspaceChannelName.MAX_NAME_ATTEMPTS).toBeGreaterThan(3);
+
+      // The longest name the workspace takes, as the page says it.
+      expect(paragraph).toContain(
+        workspaceType === WorkspaceType.Slack
+          ? `up to ${WorkspaceChannelName.SLACK_MAX_LENGTH} characters`
+          : `up to the ${WorkspaceChannelName.MICROSOFT_TEAMS_MAX_LENGTH} characters Microsoft Teams takes`,
+      );
+
+      // Who is invited follows in a paragraph of its own.
+      expect(
+        lineStarting(
+          markdown,
+          "Only a channel that was created gets the people the rule invites",
+        ),
+      ).not.toContain("**Channel Name Prefix**");
     }
+
+    // What each workspace keeps of a prefix, as the pages say.
+    expect(
+      WorkspaceChannelName.toWorkspaceText({
+        workspaceType: WorkspaceType.Slack,
+        text: "Ops Team_1-#",
+      }),
+    ).toBe("opsteam_1-");
+    expect(
+      WorkspaceChannelName.toWorkspaceText({
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        text: "Ops Team_1-#",
+      }),
+    ).toBe("Ops Team_1-");
   });
 
   it("walks a summary's steps as its form does", () => {

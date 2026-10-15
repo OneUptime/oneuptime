@@ -1045,6 +1045,24 @@ jobs:
           Tests/Server/Infrastructure/Postgres/StartIncomingCallRulesAtTwentySecondsPostgres.test.ts
           --forceExit
 
+      # Clones the migrated WorkspaceNotificationRule table into an isolated
+      # schema and runs the channel name prefix migration on seeded rules: a
+      # rule that creates channels without a prefix gets the default the
+      # server gave it (oneuptime-incident-), in every way JavaScript read
+      # "no prefix"; every other rule is left as it was, and a second run
+      # changes nothing.
+      - name: Test the channel name prefix migration on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CHANNEL_NAME_PREFIX_TESTS: "true"
+          CHANNEL_NAME_PREFIX_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CHANNEL_NAME_PREFIX_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CHANNEL_NAME_PREFIX_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/KeepChannelNamePrefixOfRulesWithoutOnePostgres.test.ts
+          --forceExit
+
       # Clones the migrated LlmLog and AIRun tables into an isolated schema,
       # seeds a long AI Log history and reads the plans Postgres executes for
       # the daily AI limit sums (the project's limits and every incident and

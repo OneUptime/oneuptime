@@ -2277,6 +2277,12 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
             projectId: createdItem.projectId,
             scheduledMaintenanceId: createdItem.id,
             scheduledMaintenanceNumber: createdItem.scheduledMaintenanceNumber!,
+            ...(createdItem.scheduledMaintenanceNumberWithPrefix
+              ? {
+                  scheduledMaintenanceNumberWithPrefix:
+                    createdItem.scheduledMaintenanceNumberWithPrefix,
+                }
+              : {}),
           },
         );
 

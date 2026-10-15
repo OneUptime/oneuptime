@@ -31,6 +31,9 @@ import WorkspaceNotificationActionType from "../../../Types/Workspace/WorkspaceN
 import WorkspaceNotificationStatus from "../../../Types/Workspace/WorkspaceNotificationStatus";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import API from "../../../Utils/API";
+import WorkspaceChannelName, {
+  WorkspaceChannelNameParts,
+} from "../../../Utils/Workspace/WorkspaceChannelName";
 import {
   afterEach,
   beforeEach,
@@ -46,10 +49,10 @@ jest.mock("../../../Server/Utils/Logger");
  * ONE CHANNEL THE WORKSPACE DOES NOT CREATE LOSES NONE OF THE OTHERS.
  *
  * The channels a record's rules ask for are created one after another.
- * When the workspace did not create one - Slack refuses a name over 80
- * characters (invalid_name_maxlength), Microsoft Teams one over 50 or one
- * that starts with "_", or neither can be reached - its error ended the
- * setup of the workspace's channels. The channels created before it were
+ * When the workspace did not create one - Slack refuses to (restricted_action:
+ * only admins may create channels), Microsoft Graph refuses its name, or
+ * neither can be reached - its error ended the setup of the workspace's
+ * channels. The channels created before it were
  * never returned and the ones after it never created, so the record kept
  * none of them (postUpdatesToWorkspaceChannels): nobody was invited to them,
  * and none of the record's updates were posted there.
@@ -62,6 +65,11 @@ jest.mock("../../../Server/Utils/Logger");
  * creation, SlackUtil and MicrosoftTeamsUtil, against fake Slack and
  * Microsoft Graph APIs that refuse the names the real ones refuse, or fail
  * as they are told to. Only the database is faked.
+ *
+ * A name the workspace refuses for its length or its first character is
+ * not one of those any more: a rule's channel is named so the workspace
+ * takes it (WorkspaceChannelName - Slack's 80 characters, Teams' 50, no
+ * leading "_"), and the last tests here hold that such a name is created.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -111,6 +119,13 @@ const BOT_SLACK_USER_ID: string = "B0BOT";
 
 // The channels INC-9's rules ask for, by their templates.
 const INCIDENT_NUMBER_WITH_PREFIX: string = "INC-9";
+// What INC-9's channels are named from, as IncidentWorkspaceMessages hands it.
+const INCIDENT_CHANNEL_NAME_PARTS: WorkspaceChannelNameParts =
+  WorkspaceChannelName.forNumberedRecord({
+    eventType: NotificationRuleEventType.Incident,
+    number: 9,
+    numberWithPrefix: INCIDENT_NUMBER_WITH_PREFIX,
+  });
 const FIRST_CHANNEL_NAME: string = "incidents-inc-9";
 const SECOND_CHANNEL_NAME: string = "war-room-inc-9";
 const THIRD_CHANNEL_NAME: string = "on-call-inc-9";
@@ -122,10 +137,19 @@ const TEAMS_CHANNEL_NAME_MAX_LENGTH: number = 50;
 
 /*
  * A template that gives a name over Slack's 80 characters, and over the 100
- * characters a Notification Logs row keeps of a channel's name.
+ * characters a Notification Logs row keeps of a channel's name. The rule's
+ * channel is named within Slack's 80 (WorkspaceChannelName).
  */
 const OVER_LONG_TEMPLATE: string = "checkout-and-payments-".repeat(5);
 const OVER_LONG_CHANNEL_NAME: string = `${OVER_LONG_TEMPLATE}inc-9`;
+
+/*
+ * The rule whose channel Slack refuses to create (restricted_action), or
+ * whose name Microsoft Graph refuses, when told to.
+ */
+const REFUSED_TEMPLATE: string = "exec-";
+const REFUSED_CHANNEL_NAME: string = "exec-inc-9";
+const SLACK_REFUSAL: string = "Error from Slack restricted_action";
 
 // What the fake Microsoft Graph answers for a channel name it refuses.
 const TEAMS_REFUSED_NAME_MESSAGE: string = "Channel name is not valid.";
@@ -189,8 +213,12 @@ function teamsIncidentRule(
   });
 }
 
-// How Slack fails to create a channel, other than by refusing its name.
-type SlackFailure = "http_error" | "unreachable";
+/*
+ * How Slack fails to create a channel, other than by refusing its name: it
+ * refuses to (restricted_action - the workspace lets only admins create
+ * channels), answers an HTTP error, or cannot be reached.
+ */
+type SlackFailure = "restricted_action" | "http_error" | "unreachable";
 
 interface SlackRequest {
   method: string;
@@ -245,7 +273,9 @@ class FakeSlack {
           );
         }
 
-        if (name.length > SLACK_CHANNEL_NAME_MAX_LENGTH) {
+        if (failure === "restricted_action") {
+          answer = { ok: false, error: "restricted_action" };
+        } else if (name.length > SLACK_CHANNEL_NAME_MAX_LENGTH) {
           answer = { ok: false, error: "invalid_name_maxlength" };
         } else {
           const created: JSONObject = {
@@ -343,12 +373,19 @@ interface TeamsChannelRequest {
 /*
  * Microsoft Graph, as far as creating a team's channels goes. It refuses
  * (400 Bad Request) a name over 50 characters, or one that starts with "_":
- * a Teams channel cannot have one.
+ * a Teams channel cannot have one. Told to, it refuses the names that start
+ * with a prefix the same way.
  */
 class FakeTeams {
   public requests: Array<TeamsChannelRequest> = [];
 
   private channels: Array<TeamsChannelRequest & { id: string }> = [];
+
+  private refusedPrefixes: Array<string> = [];
+
+  public refuse(namePrefix: string): void {
+    this.refusedPrefixes.push(namePrefix);
+  }
 
   public install(): void {
     jest
@@ -367,7 +404,10 @@ class FakeTeams {
 
       if (
         displayName.length > TEAMS_CHANNEL_NAME_MAX_LENGTH ||
-        displayName.startsWith("_")
+        displayName.startsWith("_") ||
+        this.refusedPrefixes.some((prefix: string): boolean => {
+          return displayName.startsWith(prefix);
+        })
       ) {
         return new HTTPErrorResponse(
           400,
@@ -429,7 +469,7 @@ async function createIncidentChannels(): Promise<WorkspaceChannelsCreated> {
         projectId: PROJECT_ID,
         notificationRuleEventType: NotificationRuleEventType.Incident,
         notificationFor: { incidentId: INCIDENT_ID },
-        channelNameSiffix: INCIDENT_NUMBER_WITH_PREFIX,
+        channelNameParts: INCIDENT_CHANNEL_NAME_PARTS,
       },
     );
 
@@ -731,7 +771,7 @@ describe("Slack: a channel Slack does not create, among an incident's channels",
   test.each([
     {
       which: "the first",
-      templates: [OVER_LONG_TEMPLATE, "war-room-", "on-call-"],
+      templates: [REFUSED_TEMPLATE, "war-room-", "on-call-"],
       kept: [
         ["C0NEW1", SECOND_CHANNEL_NAME, [SECOND_RULE_ID.toString()]],
         ["C0NEW2", THIRD_CHANNEL_NAME, [THIRD_RULE_ID.toString()]],
@@ -739,7 +779,7 @@ describe("Slack: a channel Slack does not create, among an incident's channels",
     },
     {
       which: "the second",
-      templates: ["incidents-", OVER_LONG_TEMPLATE, "on-call-"],
+      templates: ["incidents-", REFUSED_TEMPLATE, "on-call-"],
       kept: [
         ["C0NEW1", FIRST_CHANNEL_NAME, [FIRST_RULE_ID.toString()]],
         ["C0NEW2", THIRD_CHANNEL_NAME, [THIRD_RULE_ID.toString()]],
@@ -747,7 +787,7 @@ describe("Slack: a channel Slack does not create, among an incident's channels",
     },
     {
       which: "the last",
-      templates: ["incidents-", "war-room-", OVER_LONG_TEMPLATE],
+      templates: ["incidents-", "war-room-", REFUSED_TEMPLATE],
       kept: [
         ["C0NEW1", FIRST_CHANNEL_NAME, [FIRST_RULE_ID.toString()]],
         ["C0NEW2", SECOND_CHANNEL_NAME, [SECOND_RULE_ID.toString()]],
@@ -756,6 +796,8 @@ describe("Slack: a channel Slack does not create, among an incident's channels",
   ])(
     "REGRESSION: Slack refuses $which rule's channel - the incident keeps the other rules' channels, with their rules",
     async (data: { templates: Array<string>; kept: Array<unknown> }) => {
+      slack.failToCreate(REFUSED_TEMPLATE, "restricted_action");
+
       storedRules = [
         incidentRule(FIRST_RULE_ID, data.templates[0]!),
         incidentRule(SECOND_RULE_ID, data.templates[1]!),
@@ -776,10 +818,10 @@ describe("Slack: a channel Slack does not create, among an incident's channels",
 
   test.each([
     {
-      failure: "Slack refuses its name (invalid_name_maxlength)",
-      template: OVER_LONG_TEMPLATE,
-      slackFailure: undefined,
-      statusMessage: "Error from Slack invalid_name_maxlength",
+      failure: "Slack refuses to create it (restricted_action)",
+      template: REFUSED_TEMPLATE,
+      slackFailure: "restricted_action" as SlackFailure,
+      statusMessage: SLACK_REFUSAL,
     },
     {
       failure: "Slack answers an HTTP error",
@@ -838,13 +880,14 @@ describe("Slack: a channel Slack does not create, among an incident's channels",
       incidentRule(FIRST_RULE_ID, "incidents-", {
         inviteUsers: [FIRST_RULE_USER],
       }),
-      incidentRule(SECOND_RULE_ID, OVER_LONG_TEMPLATE, {
+      incidentRule(SECOND_RULE_ID, REFUSED_TEMPLATE, {
         inviteUsers: [SECOND_RULE_USER],
       }),
       incidentRule(THIRD_RULE_ID, "on-call-", {
         inviteUsers: [THIRD_RULE_USER],
       }),
     ];
+    slack.failToCreate(REFUSED_TEMPLATE, "restricted_action");
 
     const result: WorkspaceChannelsCreated = await createIncidentChannels();
 
@@ -897,10 +940,11 @@ describe("Slack: a channel Slack does not create, among an incident's channels",
 
   test("every channel refused: the incident keeps none, and each is listed on its Notification Logs", async () => {
     slack.failToCreate("incidents-", "http_error");
+    slack.failToCreate(REFUSED_TEMPLATE, "restricted_action");
 
     storedRules = [
       incidentRule(FIRST_RULE_ID, "incidents-"),
-      incidentRule(SECOND_RULE_ID, OVER_LONG_TEMPLATE),
+      incidentRule(SECOND_RULE_ID, REFUSED_TEMPLATE),
     ];
 
     const result: WorkspaceChannelsCreated = await createIncidentChannels();
@@ -908,17 +952,26 @@ describe("Slack: a channel Slack does not create, among an incident's channels",
     expect(result).toEqual({ channelsCreated: [], membersNotAdded: [] });
     expect(createChannelRows()).toEqual([
       notCreatedRow(FIRST_CHANNEL_NAME, "Request failed with HTTP status 503"),
-      notCreatedRow(
-        OVER_LONG_CHANNEL_NAME.substring(0, 100),
-        "Error from Slack invalid_name_maxlength",
-      ),
+      notCreatedRow(REFUSED_CHANNEL_NAME, SLACK_REFUSAL),
     ]);
   });
 
+  /*
+   * A rule's channel is named within the workspace's limit
+   * (WorkspaceChannelName), so a name this long reaches the row only from
+   * another caller: the row keeps what its column holds.
+   */
   test("the row of a name too long for its column keeps the column's 100 characters, and its message names the channel whole", async () => {
-    storedRules = [incidentRule(FIRST_RULE_ID, OVER_LONG_TEMPLATE)];
-
-    await createIncidentChannels();
+    await WorkspaceNotificationLogService.logCreateChannelError(
+      {
+        projectId: PROJECT_ID,
+        workspaceType: WorkspaceType.Slack,
+        channelName: OVER_LONG_CHANNEL_NAME,
+        error: "Error from Slack invalid_name_maxlength",
+        incidentId: INCIDENT_ID,
+      },
+      { isRoot: true },
+    );
 
     const row: WorkspaceNotificationLog | undefined = logRows.find(
       (logRow: WorkspaceNotificationLog): boolean => {
@@ -934,20 +987,22 @@ describe("Slack: a channel Slack does not create, among an incident's channels",
   });
 
   test("the server log says which channel was not created, and what Slack answered", async () => {
+    slack.failToCreate(REFUSED_TEMPLATE, "restricted_action");
+
     storedRules = [
       incidentRule(FIRST_RULE_ID, "incidents-"),
-      incidentRule(SECOND_RULE_ID, OVER_LONG_TEMPLATE),
+      incidentRule(SECOND_RULE_ID, REFUSED_TEMPLATE),
     ];
 
     await createIncidentChannels();
 
     expect(logger.error).toHaveBeenCalledWith(
-      `Error creating channel ${OVER_LONG_CHANNEL_NAME}:`,
+      `Error creating channel ${REFUSED_CHANNEL_NAME}:`,
       { projectId: PROJECT_ID.toString() },
     );
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({
-        message: "Error from Slack invalid_name_maxlength",
+        message: SLACK_REFUSAL,
       }),
       { projectId: PROJECT_ID.toString() },
     );
@@ -957,9 +1012,10 @@ describe("Slack: a channel Slack does not create, among an incident's channels",
     jest
       .spyOn(WorkspaceNotificationLogService, "logCreateChannelError")
       .mockRejectedValue(new Error("database is down"));
+    slack.failToCreate(REFUSED_TEMPLATE, "restricted_action");
 
     storedRules = [
-      incidentRule(FIRST_RULE_ID, OVER_LONG_TEMPLATE),
+      incidentRule(FIRST_RULE_ID, REFUSED_TEMPLATE),
       incidentRule(SECOND_RULE_ID, "war-room-"),
     ];
 
@@ -971,21 +1027,100 @@ describe("Slack: a channel Slack does not create, among an incident's channels",
   });
 });
 
+describe("A name the workspace used to refuse for its length or first character is created now", () => {
+  test("Slack: a template past 80 characters gets its channel, shortened to 80, with the other rules' channels", async () => {
+    slack.install();
+    projectAuths = [slackProjectAuth()];
+
+    storedRules = [
+      incidentRule(FIRST_RULE_ID, "incidents-"),
+      incidentRule(SECOND_RULE_ID, OVER_LONG_TEMPLATE),
+      incidentRule(THIRD_RULE_ID, "on-call-"),
+    ];
+
+    const result: WorkspaceChannelsCreated = await createIncidentChannels();
+
+    // The prefix gives way; the incident's part, inc-9, stays whole.
+    const shortened: string = WorkspaceChannelName.getChannelName({
+      workspaceType: WorkspaceType.Slack,
+      prefix: OVER_LONG_TEMPLATE,
+      parts: INCIDENT_CHANNEL_NAME_PARTS,
+    });
+
+    expect(shortened).toHaveLength(SLACK_CHANNEL_NAME_MAX_LENGTH);
+    expect(shortened.endsWith("inc-9")).toBe(true);
+    expect(slack.askedToCreate()).toEqual([
+      FIRST_CHANNEL_NAME,
+      shortened,
+      THIRD_CHANNEL_NAME,
+    ]);
+    expect(channelsOf(result.channelsCreated)).toEqual([
+      ["C0NEW1", FIRST_CHANNEL_NAME, [FIRST_RULE_ID.toString()]],
+      ["C0NEW2", shortened, [SECOND_RULE_ID.toString()]],
+      ["C0NEW3", THIRD_CHANNEL_NAME, [THIRD_RULE_ID.toString()]],
+    ]);
+    expect(
+      createChannelRows().every((row: CreateChannelRow): boolean => {
+        return row.status === WorkspaceNotificationStatus.Success;
+      }),
+    ).toBe(true);
+  });
+
+  test.each([
+    {
+      used: 'started with "_"',
+      template: "_war-room-",
+      asked: SECOND_CHANNEL_NAME,
+    },
+    {
+      used: "ran past 50 characters",
+      template: "war-room-".repeat(6),
+      asked: `${"war-room-".repeat(6).substring(0, TEAMS_CHANNEL_NAME_MAX_LENGTH - "inc-9".length)}inc-9`,
+    },
+  ])(
+    "Microsoft Teams: a template that $used gets its channel, named as Teams takes it",
+    async (data: { template: string; asked: string }) => {
+      teams.install();
+      projectAuths = [teamsProjectAuth(TEAM_X)];
+
+      storedRules = [
+        teamsIncidentRule(FIRST_RULE_ID, "incidents-", {
+          teamToCreateChannelIn: TEAM_X,
+        }),
+        teamsIncidentRule(SECOND_RULE_ID, data.template, {
+          teamToCreateChannelIn: TEAM_X,
+        }),
+      ];
+
+      const result: WorkspaceChannelsCreated = await createIncidentChannels();
+
+      expect(teams.askedToCreate()).toEqual([FIRST_CHANNEL_NAME, data.asked]);
+      expect(data.asked.length).toBeLessThanOrEqual(
+        TEAMS_CHANNEL_NAME_MAX_LENGTH,
+      );
+      expect(channelsOf(result.channelsCreated)).toEqual([
+        [
+          "19:new1@thread.tacv2",
+          FIRST_CHANNEL_NAME,
+          [FIRST_RULE_ID.toString()],
+        ],
+        ["19:new2@thread.tacv2", data.asked, [SECOND_RULE_ID.toString()]],
+      ]);
+    },
+  );
+});
+
 describe("Microsoft Teams: a channel Microsoft Graph does not create, among an incident's channels", () => {
   beforeEach(() => {
     teams.install();
     projectAuths = [teamsProjectAuth(TEAM_X)];
   });
 
-  test.each([
-    { refused: 'starts with "_"', template: "_war-room-" },
-    {
-      refused: "is over 50 characters",
-      template: "war-room-".repeat(6),
-    },
-  ])(
-    "REGRESSION: Graph refuses a name that $refused - the incident keeps the other rules' channels, and the refusal is logged with what Graph answered",
+  test.each([{ refused: "it is told to refuse", template: REFUSED_TEMPLATE }])(
+    "REGRESSION: Graph refuses a name $refused - the incident keeps the other rules' channels, and the refusal is logged with what Graph answered",
     async (data: { template: string }) => {
+      teams.refuse(data.template);
+
       storedRules = [
         teamsIncidentRule(FIRST_RULE_ID, "incidents-", {
           teamToCreateChannelIn: TEAM_X,
@@ -1082,10 +1217,10 @@ describe('"Test Rule" still says why its channel was not created', () => {
 
     test.each([
       {
-        failure: "Slack refuses its name",
-        template: OVER_LONG_TEMPLATE,
-        slackFailure: undefined,
-        reason: "Error from Slack invalid_name_maxlength",
+        failure: "Slack refuses to create it",
+        template: REFUSED_TEMPLATE,
+        slackFailure: "restricted_action" as SlackFailure,
+        reason: SLACK_REFUSAL,
       },
       {
         failure: "Slack answers an HTTP error",
@@ -1146,8 +1281,10 @@ describe('"Test Rule" still says why its channel was not created', () => {
     });
 
     test("REGRESSION: a name Graph refuses fails the test with what Graph answered", async () => {
+      teams.refuse(REFUSED_TEMPLATE);
+
       storedRules = [
-        teamsIncidentRule(FIRST_RULE_ID, "_incidents-", {
+        teamsIncidentRule(FIRST_RULE_ID, REFUSED_TEMPLATE, {
           teamToCreateChannelIn: TEAM_X,
         }),
       ];
@@ -1159,7 +1296,7 @@ describe('"Test Rule" still says why its channel was not created', () => {
         `Cannot create a new channel. ${TEAMS_REFUSED_NAME_MESSAGE}`,
       );
       expect(teams.requests).toEqual([
-        { teamId: TEAM_X, displayName: `_incidents-${TEST_SUFFIX}` },
+        { teamId: TEAM_X, displayName: `${REFUSED_TEMPLATE}${TEST_SUFFIX}` },
       ]);
     });
   });
