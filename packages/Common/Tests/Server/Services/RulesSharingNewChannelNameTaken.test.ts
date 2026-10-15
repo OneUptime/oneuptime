@@ -27,6 +27,9 @@ import IncidentNotificationRule from "../../../Types/Workspace/NotificationRules
 import WorkspaceMessagePayload from "../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import API from "../../../Utils/API";
+import WorkspaceChannelName, {
+  WorkspaceChannelNameParts,
+} from "../../../Utils/Workspace/WorkspaceChannelName";
 import {
   afterEach,
   beforeEach,
@@ -99,6 +102,14 @@ const BOT_SLACK_USER_ID: string = "B0BOT";
 // "INC-9" gives the channel "incidents-inc-9".
 const INCIDENT_NUMBER_WITH_PREFIX: string = "INC-9";
 const CHANNEL_NAME: string = "incidents-inc-9";
+
+// What INC-9's channels are named from, as IncidentWorkspaceMessages hands it.
+const INCIDENT_CHANNEL_NAME_PARTS: WorkspaceChannelNameParts =
+  WorkspaceChannelName.forNumberedRecord({
+    eventType: NotificationRuleEventType.Incident,
+    number: 9,
+    numberWithPrefix: INCIDENT_NUMBER_WITH_PREFIX,
+  });
 
 // Microsoft Teams teams; the project's Teams connection was made in TEAM_X.
 const TEAM_X: string = "aaaaaaaa-1111-2222-3333-444444444444";
@@ -361,7 +372,7 @@ async function createIncidentChannels(): Promise<WorkspaceChannelsCreated> {
         projectId: PROJECT_ID,
         notificationRuleEventType: NotificationRuleEventType.Incident,
         notificationFor: { incidentId: INCIDENT_ID },
-        channelNameSiffix: INCIDENT_NUMBER_WITH_PREFIX,
+        channelNameParts: INCIDENT_CHANNEL_NAME_PARTS,
       },
     );
 
@@ -680,11 +691,13 @@ describe("Slack: a rule whose template gives the name of a channel created alrea
         channelName: CHANNEL_NAME,
         notificationRuleId: FIRST_RULE_ID.toString(),
         notificationRuleIds: [FIRST_RULE_ID.toString()],
+        prefix: "incidents-",
       },
       {
         channelName: "Incidents-INC-9",
         notificationRuleId: SECOND_RULE_ID.toString(),
         notificationRuleIds: [SECOND_RULE_ID.toString()],
+        prefix: "Incidents-",
       },
     ];
 
@@ -701,7 +714,7 @@ describe("Slack: a rule whose template gives the name of a channel created alrea
         projectOrUserAuthTokenForWorkspace: "xoxb-project",
         workspaceType: WorkspaceType.Slack,
         notificationRules: [],
-        channelNameSiffix: INCIDENT_NUMBER_WITH_PREFIX,
+        channelNameParts: INCIDENT_CHANNEL_NAME_PARTS,
         notificationEventType: NotificationRuleEventType.Incident,
       });
 
@@ -840,7 +853,7 @@ describe("getnotificationChannelssFromNotificationRules, told the workspace", ()
       {
         notificationEventType: NotificationRuleEventType.Incident,
         notificationRules: rules,
-        channelNameSiffix: INCIDENT_NUMBER_WITH_PREFIX,
+        channelNameParts: INCIDENT_CHANNEL_NAME_PARTS,
         workspaceType: workspaceType,
       },
     );
@@ -863,11 +876,13 @@ describe("getnotificationChannelssFromNotificationRules, told the workspace", ()
           SECOND_RULE_ID.toString(),
           THIRD_RULE_ID.toString(),
         ],
+        prefix: "incidents-",
       },
       {
         channelName: "war-room-inc-9",
         notificationRuleId: OTHER_RULE_ID.toString(),
         notificationRuleIds: [OTHER_RULE_ID.toString()],
+        prefix: "war-room-",
       },
     ]);
   });
@@ -891,12 +906,14 @@ describe("getnotificationChannelssFromNotificationRules, told the workspace", ()
           SECOND_RULE_ID.toString(),
         ],
         teamId: TEAM_X,
+        prefix: "incidents-",
       },
       {
         channelName: CHANNEL_NAME,
         notificationRuleId: OTHER_RULE_ID.toString(),
         notificationRuleIds: [OTHER_RULE_ID.toString()],
         teamId: TEAM_Y,
+        prefix: "incidents-",
       },
     ]);
   });

@@ -1394,6 +1394,43 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   }
 
   /*
+   * Whether Microsoft Graph refused a new channel's name because a channel
+   * of the team has it already - one in use, or one deleted in the last 30
+   * days: Microsoft Teams keeps a deleted channel's name until it is gone
+   * for good. Graph answers 400 BadRequest, "Channel name already existed,
+   * please use other name.", inner code NameAlreadyExists. Read off the
+   * response's fields rather than its class: an error from another realm
+   * (the botbuilder test harness) is not an HTTPErrorResponse there.
+   */
+  public static override isChannelNameTakenError(error: unknown): boolean {
+    const statusCode: unknown = (error as { statusCode?: unknown } | null)
+      ?.statusCode;
+
+    if (statusCode !== 400 && statusCode !== 409) {
+      return false;
+    }
+
+    let body: string = "";
+
+    try {
+      body = JSON.stringify(
+        (error as { data?: unknown; jsonData?: unknown }).data ??
+          (error as { jsonData?: unknown }).jsonData ??
+          "",
+      );
+    } catch {
+      body = "";
+    }
+
+    const text: string =
+      `${body} ${WorkspaceBase.getSendErrorMessage(error)}`.toLowerCase();
+
+    return (
+      text.includes("namealreadyexists") || text.includes("name already exist")
+    );
+  }
+
+  /*
    * The name Microsoft Teams creates a channel by: characters not valid in
    * Teams channel names are stripped, and its case and spaces are kept.
    */
@@ -1432,6 +1469,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   }): Promise<WorkspaceChannel> {
     const teamId: string = data.teamId;
 
+    /*
+     * As Microsoft Teams creates it (getChannelNameToCreate). A rule's
+     * channel arrives named so already (WorkspaceChannelName), and no longer
+     * than Teams' 50 characters.
+     */
     data.channelName = this.getChannelNameToCreate(data.channelName);
 
     // Get valid access token
@@ -3408,15 +3450,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         teamId: data.teamId,
       });
     return channel !== null;
-  }
-
-  @CaptureSpan()
-  public static override async isUserInDirectMessageChannel(_data: {
-    authToken: string;
-    userId: string;
-    directMessageChannelId: string;
-  }): Promise<boolean> {
-    return false; // Placeholder
   }
 
   @CaptureSpan()

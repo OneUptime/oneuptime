@@ -75,7 +75,9 @@ Eine Regel wird in vier Schritten angelegt:
 | **Ziel** | Wohin sie postet: **Post to Existing Slack Channel** mit den Kanalnamen, **Create Slack Channel** mit dem Namen des neuen Kanals und wer eingeladen wird, oder beides. |
 | **Videoanruf** | Nur Vorfälle und Warnungen: für jeden einen Anruf starten. Siehe [Videoanrufe](/docs/workspace-connections/video-calls). |
 
-Ein Kanal, den die Regel anlegt, wird aus **New Slack Channel Name** und der Nummer des Datensatzes benannt, etwa `oneuptime-incident-42`, und nur ein angelegter Kanal bekommt die Personen, die die Regel einlädt: die Eigentümer des Datensatzes, gewählte Teams und Benutzer und, bei Vorfällen und Warnungen, die Bereitschaftspersonen, sobald sie alarmiert werden. Ein privater Vorfall, eine private Warnung oder Episode bekommt einen privaten Kanal. Jede spätere Änderung des Datensatzes — ein Statuswechsel, eine Notiz, ein neuer Eigentümer — wird in seinen Kanälen und in den bestehenden Kanälen gepostet, die seine Regeln nennen. Ein Vorfall, eine Warnung oder Episode, die bereits behoben erstellt wird, bekommt keinen eigenen Kanal; ihre Erstellungsnachricht geht trotzdem in die Kanäle, die Ihre Regeln nennen. Siehe [Bereits bestätigt oder behoben gemeldet](/docs/incidents/declaring-incidents#bereits-bestätigt-oder-behoben-gemeldet).
+Ein Kanal, den die Regel anlegt, wird nach seinem Datensatz benannt: Vorfall INC-42 bekommt `inc-42`, Warnung ALT-7 bekommt `alt-7`, und in einem Projekt ohne Nummernpräfixe bekommt Vorfall 42 `incident-42`. Text in **Präfix für Kanalnamen** steht davor, aus `prod-` wird also `prod-inc-42`, und das Formular zeigt den Namen schon beim Tippen. Bei einem geplanten Wartungsereignis tritt das Präfix an die Stelle seines Nummernpräfixes: SM-5 bekommt `sm-5`, und aus `maint-` wird `maint-5`. Slack nimmt Kleinbuchstaben, Ziffern, `-` und `_`, bis zu 80 Zeichen. Gibt es schon einen Kanal mit diesem Namen, etwa den eines anderen Projekts oder einen archivierten, hängt OneUptime `-2`, `-3` und so weiter an.
+
+Nur ein angelegter Kanal bekommt die Personen, die die Regel einlädt: die Eigentümer des Datensatzes, gewählte Teams und Benutzer und, bei Vorfällen und Warnungen, die Bereitschaftspersonen, sobald sie alarmiert werden. Ein privater Vorfall, eine private Warnung oder Episode bekommt einen privaten Kanal. Jede spätere Änderung des Datensatzes — ein Statuswechsel, eine Notiz, ein neuer Eigentümer — wird in seinen Kanälen und in den bestehenden Kanälen gepostet, die seine Regeln nennen. Ein Vorfall, eine Warnung oder Episode, die bereits behoben erstellt wird, bekommt keinen eigenen Kanal; ihre Erstellungsnachricht geht trotzdem in die Kanäle, die Ihre Regeln nennen. Siehe [Bereits bestätigt oder behoben gemeldet](/docs/incidents/declaring-incidents#bereits-bestätigt-oder-behoben-gemeldet).
 
 Ein Vorfall, eine Warnung, eine Episode oder ein geplantes Wartungsereignis mit einem eigenen Kanal hat im Kopf seiner Seite in OneUptime, neben den Statusschaltflächen, **In Slack öffnen**. Das öffnet diesen Kanal in einem neuen Tab, in der Slack-App oder im Browser. Ein Datensatz mit zwei eigenen Kanälen listet beide unter der Schaltfläche. Ein Datensatz mit Kanälen in Slack und in Microsoft Teams hat stattdessen eine Schaltfläche **Kanal öffnen**, die sie alle auflistet. Die bestehenden Kanäle, in die Ihre Regeln posten, werden nicht angeboten.
 
@@ -158,7 +160,7 @@ Die Antworten auf `help` und `oncall` sind Nachrichten, die nur Sie sehen, unter
 
 Die Startseite liest als Sie, deshalb braucht sie Ihr eigenes verbundenes Slack-Konto. Bis es verbunden ist, enthält sie die Schaltfläche **Connect Slack account** und zeigt Ihnen Ihre Startseite, sobald Sie es verbunden haben.
 
-Wenn jemand OneUptime zu einem Kanal hinzufügt, postet es dort eine Begrüßung: wie man ihm eine Frage stellt und wo man eine Benachrichtigungsregel hinzufügt, die in den Kanal postet.
+Wenn jemand OneUptime zu einem Kanal hinzufügt, postet es dort eine Begrüßung: wie man ihm eine Frage stellt und wo man eine Benachrichtigungsregel hinzufügt, die in den Kanal postet. Wenn Sie den Tab **Messages** zum ersten Mal öffnen, heißt es Sie dort willkommen: was es in Slack tut und wie Sie anfangen.
 
 ## OneUptime AI aus Slack fragen
 
@@ -227,6 +229,18 @@ Auch die Schaltflächen in den Slack-Nachrichten von OneUptime handeln als Sie: 
 
 > [!WARNING]
 > Das Deinstallieren trennt auch das eigene Slack-Konto jedes Mitglieds im Projekt und entfernt die Slack-Benachrichtigungsmethoden und die Bereitschaftsregeln, die sie nutzten. Wer in Slack alarmiert wurde, wird über seine anderen Benachrichtigungsmethoden alarmiert, bis er Slack wieder hinzufügt.
+
+## Ihre Slack-Daten
+
+OneUptime liest aus Slack nur, was diese Funktionen brauchen, mit den Berechtigungen, die Sie bei der Installation erteilen:
+
+- **Nachrichten an OneUptime.** Eine Nachricht, die es mit @ erwähnt, eine, die Sie ihm als Direktnachricht schicken, und Ihre Antworten in einem Gespräch mit ihm, samt den früheren Nachrichten dieses Threads oder dieser Direktnachrichten, damit OneUptime AI antworten kann. Slack schickt ihm auch die übrigen Nachrichten der Kanäle und Gruppen-Direktnachrichten, in denen es ist; OneUptime beantwortet sie nicht und behält sie nicht.
+- **Nachrichten, die Sie als Notiz speichern.** Eine Nachricht, auf die Sie mit 📌 oder 📢 reagieren oder die Sie anheften, im Kanal eines Vorfalls, einer Warnung, einer Episode oder eines geplanten Wartungsereignisses, als Notiz an diesem Datensatz gespeichert, mit dem Namen ihres Verfassers.
+- **Namen von Kanälen und Personen.** Die Kanäle, in die es posten kann, damit Sie sie auswählen können, und die Namen von Personen, um zu zeigen, wer etwas geschrieben oder getan hat.
+- **E-Mail-Adressen.** Die E-Mail-Adresse, die Slack für eine Person hat, um ihr Slack-Konto ihrem OneUptime-Konto zuzuordnen, wenn sie es nicht verbunden hat: um sie zu alarmieren oder in eine Bereitschafts-Benutzergruppe aufzunehmen.
+- **Benutzergruppen.** Die Benutzergruppen Ihres Arbeitsbereichs, um eine für einen Bereitschaftsplan auszuwählen, und die Personen in einer Gruppe, die Sie verbinden, um sie gleich denen zu halten, die gerade Bereitschaft haben.
+
+Was OneUptime davon behält — den Namen des Arbeitsbereichs, seine Kanäle, die Slack-Konten, die Personen verbinden, die Notizen und die Benutzergruppen —, wird mit Ihrem Projekt gespeichert. Die [Datenschutzerklärung](https://oneuptime.com/legal/privacy) beschreibt, wie OneUptime mit Ihren Daten umgeht.
 
 ## Fehlerbehebung
 

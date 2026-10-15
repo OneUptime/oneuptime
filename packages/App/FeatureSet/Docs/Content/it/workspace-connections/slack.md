@@ -75,7 +75,9 @@ Creare una regola passa per quattro passaggi:
 | **Destinazione** | Dove pubblica: **Post to Existing Slack Channel** con i nomi dei canali, **Create Slack Channel** con il nome del nuovo canale e chi viene invitato, o entrambi. |
 | **Video Call** | Solo incidenti e avvisi: avvia una chiamata per ciascuno. Vedi [Videochiamate](/docs/workspace-connections/video-calls). |
 
-Un canale creato dalla regola prende il nome da **New Slack Channel Name** seguito dal numero del record, come `oneuptime-incident-42`, e solo un canale creato riceve le persone che la regola invita: i proprietari del record, i team e gli utenti scelti e, per incidenti e avvisi, le persone di reperibilità man mano che vengono chiamate. Un incidente, un avviso o un episodio privato riceve un canale privato. Ogni aggiornamento successivo del record — un cambio di stato, una nota, un nuovo proprietario — viene pubblicato nei suoi canali e nei canali esistenti indicati dalle sue regole. Un incidente, un avviso o un episodio creato già risolto non riceve un canale tutto suo; il suo messaggio di creazione va comunque nei canali indicati dalle tue regole. Vedi [Dichiarato già riconosciuto o risolto](/docs/incidents/declaring-incidents#dichiarato-già-riconosciuto-o-risolto).
+Un canale creato dalla regola prende il nome dal suo record: l'incidente INC-42 riceve `inc-42`, l'avviso ALT-7 riceve `alt-7` e, in un progetto senza prefissi di numero, l'incidente 42 riceve `incident-42`. Il testo in **Prefisso del nome del canale** va davanti, quindi `prod-` dà `prod-inc-42`, e il modulo mostra il nome mentre scrivi. Per un evento di manutenzione pianificata, il prefisso prende il posto del suo prefisso di numero: SM-5 riceve `sm-5` e `maint-` dà `maint-5`. Slack accetta lettere minuscole, numeri, `-` e `_`, fino a 80 caratteri. Se esiste già un canale con quel nome, come quello di un altro progetto o uno archiviato, OneUptime aggiunge `-2`, `-3` e così via.
+
+Solo un canale creato riceve le persone che la regola invita: i proprietari del record, i team e gli utenti scelti e, per incidenti e avvisi, le persone di reperibilità man mano che vengono chiamate. Un incidente, un avviso o un episodio privato riceve un canale privato. Ogni aggiornamento successivo del record — un cambio di stato, una nota, un nuovo proprietario — viene pubblicato nei suoi canali e nei canali esistenti indicati dalle sue regole. Un incidente, un avviso o un episodio creato già risolto non riceve un canale tutto suo; il suo messaggio di creazione va comunque nei canali indicati dalle tue regole. Vedi [Dichiarato già riconosciuto o risolto](/docs/incidents/declaring-incidents#dichiarato-già-riconosciuto-o-risolto).
 
 Un incidente, un avviso, un episodio o un evento di manutenzione pianificata con un canale tutto suo ha **Apri in Slack** nell'intestazione della sua pagina in OneUptime, accanto ai pulsanti di stato. Apre quel canale in una nuova scheda, nell'app di Slack o nel browser. Un record con due canali suoi li elenca entrambi sotto il pulsante. Un record con canali sia in Slack sia in Microsoft Teams ha invece un solo pulsante **Apri canale**, che li elenca tutti. I canali esistenti in cui pubblicano le tue regole non vengono proposti.
 
@@ -158,7 +160,7 @@ Apri OneUptime da **Apps** nella barra laterale di Slack: la sua scheda **Home**
 
 La home legge come te, quindi richiede il tuo account Slack collegato. Finché non lo è, la home mostra un pulsante **Connect Slack account**, e ti mostra la tua home non appena lo hai collegato.
 
-Quando qualcuno aggiunge OneUptime a un canale, vi pubblica un saluto: come fargli una domanda e dove aggiungere una regola di notifica che pubblica nel canale.
+Quando qualcuno aggiunge OneUptime a un canale, vi pubblica un saluto: come fargli una domanda e dove aggiungere una regola di notifica che pubblica nel canale. La prima volta che apri la sua scheda **Messages**, ti dà il benvenuto lì: cosa fa in Slack e come iniziare.
 
 ## Chiedere a OneUptime AI da Slack
 
@@ -227,6 +229,18 @@ Anche i pulsanti dei messaggi Slack di OneUptime agiscono a tuo nome: come l'acc
 
 > [!WARNING]
 > Disinstallare scollega anche l'account Slack di ogni membro del progetto, e rimuove i metodi di notifica Slack e le regole di reperibilità che li usavano. Chi veniva chiamato in Slack viene chiamato sugli altri suoi metodi di notifica finché non aggiunge di nuovo Slack.
+
+## I tuoi dati di Slack
+
+OneUptime legge da Slack solo ciò che serve a queste funzioni, con le autorizzazioni che concedi quando lo installi:
+
+- **Messaggi rivolti a OneUptime.** Un messaggio che lo menziona con @, uno che gli mandi in un messaggio diretto e le tue risposte in una conversazione con lui, insieme ai messaggi precedenti di quel thread o messaggio diretto, perché OneUptime AI possa rispondere. Slack gli invia anche gli altri messaggi dei canali e dei messaggi diretti di gruppo in cui si trova; OneUptime non vi risponde e non li conserva.
+- **Messaggi che salvi come note.** Un messaggio a cui reagisci con 📌 o 📢, o che fissi, nel canale di un incidente, di un avviso, di un episodio o di un evento di manutenzione programmata, salvato come nota su quel record con il nome del suo autore.
+- **Nomi di canali e persone.** I canali in cui può pubblicare, così puoi sceglierli, e i nomi delle persone, per mostrare chi ha scritto o fatto qualcosa.
+- **Indirizzi email.** L'indirizzo email che Slack ha per una persona, per abbinare il suo account Slack al suo account OneUptime quando non lo ha collegato: per chiamarla, o per inserirla in un gruppo di utenti di reperibilità.
+- **Gruppi di utenti.** I gruppi di utenti della tua area di lavoro, per sceglierne uno per una pianificazione di reperibilità, e le persone di uno che colleghi, per mantenerlo uguale a chi è reperibile.
+
+Ciò che OneUptime ne conserva — il nome dell'area di lavoro, i suoi canali, gli account Slack che le persone collegano, le note e i gruppi di utenti — viene archiviato con il tuo progetto. L'[Informativa sulla privacy](https://oneuptime.com/legal/privacy) spiega come OneUptime tratta i tuoi dati.
 
 ## Risoluzione dei problemi
 

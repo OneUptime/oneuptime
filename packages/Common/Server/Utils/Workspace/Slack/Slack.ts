@@ -52,6 +52,9 @@ import {
 } from "../../../../Utils/Markdown/SlowMarkdown";
 import { replacePipeTables } from "../../../../Utils/Markdown/PipeTables";
 
+// What conversations.create answers for a name a channel has already.
+export const SLACK_CHANNEL_NAME_TAKEN_ERROR: string = "name_taken";
+
 /*
  * What slackify reads a "%" that starts no escape as (see
  * getSlackifySafeMarkdown), and what encodeURI makes of it in an address.
@@ -2483,6 +2486,18 @@ export default class SlackUtil extends WorkspaceBase {
   }
 
   /*
+   * Whether conversations.create refused a channel's name because a channel
+   * has it already: one in use, or an archived one - Slack keeps an archived
+   * channel's name. The channel can then be created under another name.
+   */
+  public static override isChannelNameTakenError(error: unknown): boolean {
+    return (
+      WorkspaceBase.getSendErrorMessage(error) ===
+      `Error from Slack ${SLACK_CHANNEL_NAME_TAKEN_ERROR}`
+    );
+  }
+
+  /*
    * The name Slack creates a channel by: Slack only allows lowercase
    * letters, numbers, hyphens, and underscores, so the name is lower-cased
    * and all other characters (including #) are removed. "#Incidents -INC-9"
@@ -2513,6 +2528,11 @@ export default class SlackUtil extends WorkspaceBase {
     projectId: ObjectID;
     isPrivate?: boolean;
   }): Promise<WorkspaceChannel> {
+    /*
+     * As Slack creates it (getChannelNameToCreate). A rule's channel arrives
+     * named so already (WorkspaceChannelName), and no longer than Slack's
+     * 80 characters.
+     */
     data.channelName = this.getChannelNameToCreate(data.channelName);
 
     const createChannelLogAttributes: LogAttributes = {
@@ -3549,66 +3569,6 @@ export default class SlackUtil extends WorkspaceBase {
     pieces.push(rest);
 
     return pieces;
-  }
-
-  @CaptureSpan()
-  public static override async isUserInDirectMessageChannel(data: {
-    authToken: string;
-    userId: string;
-    directMessageChannelId: string;
-  }): Promise<boolean> {
-    // check of the user id is in the direct message channel id
-    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post({
-        url: URL.fromString("https://slack.com/api/conversations.info"),
-        data: {
-          channel: data.directMessageChannelId,
-        },
-        headers: {
-          Authorization: `Bearer ${data.authToken}`,
-          ["Content-Type"]: "application/x-www-form-urlencoded",
-        },
-        options: {
-          retries: 3,
-          exponentialBackoff: true,
-        },
-      });
-
-    if (response instanceof HTTPErrorResponse) {
-      logger.error("Error response from Slack API:", {
-        channelId: data.directMessageChannelId,
-      } as LogAttributes);
-      logger.error(response, {
-        channelId: data.directMessageChannelId,
-      } as LogAttributes);
-      throw response;
-    }
-
-    // check for ok response
-
-    if ((response.jsonData as JSONObject)?.["ok"] !== true) {
-      logger.error("Invalid response from Slack API:", {
-        channelId: data.directMessageChannelId,
-      } as LogAttributes);
-      logger.error(response.jsonData, {
-        channelId: data.directMessageChannelId,
-      } as LogAttributes);
-      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
-        "error"
-      ] as string;
-      throw new BadRequestException("Error from Slack " + messageFromSlack);
-    }
-
-    // check if the user is in the channel
-    const user: JSONObject = (
-      (response.jsonData as JSONObject)["channel"] as JSONObject
-    )["user"] as JSONObject;
-
-    if (user?.["user_id"]?.toString() === data.userId.toString()) {
-      return true;
-    }
-
-    return false;
   }
 
   @CaptureSpan()

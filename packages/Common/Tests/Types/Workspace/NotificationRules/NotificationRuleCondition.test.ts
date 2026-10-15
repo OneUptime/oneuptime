@@ -111,13 +111,27 @@ describe("NotificationRuleConditionUtil", () => {
       expect(validate(rule)).toBe("Existing Slack channel name is required");
     });
 
-    test("requires a new channel name when creating a channel", () => {
-      const rule: IncidentNotificationRule = makeRule({
-        shouldCreateNewChannel: true,
-        newChannelTemplateName: "  ",
-      });
-      expect(validate(rule)).toBe("New Slack channel name is required");
-    });
+    /*
+     * A channel the rule creates is named after its record (inc-42); the
+     * prefix only goes in front, so a rule may have none.
+     */
+    test.each(["", "  ", undefined])(
+      "creates a channel without a prefix (%p): it is named after its record",
+      (newChannelTemplateName: string | undefined) => {
+        const rule: IncidentNotificationRule = makeRule({
+          shouldCreateNewChannel: true,
+          shouldPostToExistingChannel: false,
+        });
+
+        if (newChannelTemplateName === undefined) {
+          delete rule.newChannelTemplateName;
+        } else {
+          rule.newChannelTemplateName = newChannelTemplateName;
+        }
+
+        expect(validate(rule)).toBeNull();
+      },
+    );
 
     test("returns null for a fully valid rule", () => {
       expect(validate(makeRule())).toBeNull();
@@ -278,7 +292,7 @@ describe("NotificationRuleConditionUtil", () => {
       );
     });
 
-    test("create-channel toggle still requires a template name even when chat fields are valid", () => {
+    test("a channel created without a prefix is valid beside valid chats", () => {
       const rule: IncidentNotificationRule = makeRule({
         shouldCreateNewChannel: true,
         newChannelTemplateName: "  ",
@@ -286,9 +300,7 @@ describe("NotificationRuleConditionUtil", () => {
         shouldPostToExistingChat: true,
         existingChatIds: ["c1"],
       });
-      expect(validateTeams(rule)).toBe(
-        "New Microsoft Teams channel name is required",
-      );
+      expect(validateTeams(rule)).toBeNull();
     });
 
     test("channel-name errors take precedence over the chat-id error", () => {

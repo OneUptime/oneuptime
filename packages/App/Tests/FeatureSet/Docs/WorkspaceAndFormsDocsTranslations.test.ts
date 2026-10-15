@@ -176,9 +176,10 @@ const SLACK_CONTROLS: Array<string> = [
   "Pin to channel",
   "Create New Incident",
   "Create Scheduled Event",
-  // Where the app is in Slack's sidebar, and its Home tab.
+  // Where the app is in Slack's sidebar, and its Home and Messages tabs.
   "Apps",
   "Home",
+  "Messages",
 ];
 
 /*
@@ -324,9 +325,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Connect my account with Slack",
     "Post to Existing Slack Channel",
     "Create Slack Channel",
-    "New Slack Channel Name",
   ],
-  [TEAMS]: ["New Microsoft Teams Channel Name"],
   [VIDEO]: [
     "Who can join",
     "Who skips the lobby",
@@ -446,6 +445,12 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Your on-call.",
     "What is open.",
     "Its buttons.",
+    // What OneUptime reads from Slack, and why.
+    "Messages addressed to OneUptime.",
+    "Messages you save as notes.",
+    "Names of channels and people.",
+    "Email addresses.",
+    "User groups.",
   ],
   [TEAMS]: [
     "The project's connection",
@@ -592,9 +597,13 @@ const PUBLIC_PAGE_MESSAGES: Record<string, Array<PublicPageMessage>> = {
  * with Persian digits as Latin ones and thousands separators dropped.
  */
 const NUMBERS: Record<string, Array<string>> = {
-  // A connect button's days; how often a user group or tag is checked.
-  [SLACK]: ["7", "15"],
-  [TEAMS]: ["7", "15"],
+  /*
+   * A connect button's days; how often a user group or tag is checked; the
+   * longest channel name each workspace takes, and how long Microsoft Teams
+   * keeps a deleted channel's name.
+   */
+  [SLACK]: ["7", "15", "80"],
+  [TEAMS]: ["7", "15", "50", "30"],
   [VIDEO]: ["40", "30"],
   [BUILDING]: ["50", "100", "500", "20000", "10000", "512", "128"],
   [SHARING]: ["429", "503"],

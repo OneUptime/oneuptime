@@ -58,6 +58,10 @@ import {
  *     see who is on call - or, not connected yet, one button to connect.
  *   - member_joined_channel, for the app's bot added by a person, posts one
  *     short hello: what it does, and where notifications are set up.
+ *   - app_home_opened for the Messages tab, the first time each person
+ *     opens it, posts a short welcome in the app's direct messages with
+ *     them: what OneUptime does in Slack, and how to start (Slack's
+ *     Marketplace review asks for it).
  *   - The Home's buttons, pressed, open the forms and answer in a modal
  *     (the Home has no channel to answer in).
  *
@@ -525,9 +529,22 @@ describe("the Home tab, opened", () => {
 
   test("the Messages tab opened: nothing drawn", async () => {
     await deliverEvent(openHome(ALICE, "messages"));
+    await until((): boolean => {
+      return calls("chat.postMessage").length === 1;
+    }, "the welcome posted");
     await settle();
 
-    expect(slackCalls).toEqual([]);
+    expect(calls("views.publish")).toEqual([]);
+  });
+
+  test("the Home tab opened: drawn, and nobody welcomed", async () => {
+    await deliverEvent(openHome(ALICE));
+    await until((): boolean => {
+      return calls("views.publish").length === 1;
+    }, "the Home drawn");
+    await settle();
+
+    expect(calls("chat.postMessage")).toEqual([]);
   });
 
   test("somebody not connected: why the Home is empty, and one button that connects them - nothing about the project read", async () => {
@@ -699,6 +716,173 @@ describe("the Home's buttons: the forms open, and answers come in a modal", () =
       "Connect your Slack account to see who is on call",
     );
     expect(calls("chat.postMessage")).toEqual([]);
+  });
+});
+
+describe("a welcome in the Messages tab, the first time somebody opens it", () => {
+  function openMessages(user: string): JSONObject {
+    return openHome(user, "messages");
+  }
+
+  function welcomes(): Array<SlackCall> {
+    return calls("chat.postMessage");
+  }
+
+  test("the first open: one welcome, in the app's direct messages with them - what OneUptime does in Slack, and how to start", async () => {
+    const response: ProbeResponse = await deliverEvent(openMessages(ALICE));
+
+    expect(response.status).toBe(200);
+    await until((): boolean => {
+      return welcomes().length === 1;
+    }, "the welcome posted");
+
+    const post: SlackCall = welcomes()[0]!;
+    // Slack delivers a message to a person's id to the app's direct messages.
+    expect(post.data["channel"]).toBe(ALICE);
+    expect(post.data["thread_ts"]).toBeUndefined();
+    // What a notification of it says.
+    expect(post.data["text"]).toBe(
+      "Hi, I'm OneUptime. Type /oneuptime help to see what I can do, or send me a question here.",
+    );
+
+    const blocks: Array<JSONObject> = post.data["blocks"] as Array<JSONObject>;
+    expect(blockTexts(blocks)).toEqual([
+      `👋 ${ZWSP}*Hi, I'm OneUptime.*${ZWSP} I post your incidents, alerts and scheduled maintenance in Slack, page whoever is on call, and let you acknowledge, resolve and add notes without leaving Slack.\n`,
+      `Here's how to start:\n\n•   Type \`/oneuptime help\` to see the commands: declare an incident, page someone or see who is on call.\n•   Open the ${ZWSP}*Home*${ZWSP} tab for your on-call shifts and the open incidents and alerts.\n•   Send me a message here to ask OneUptime AI about your incidents, monitors, logs and traces.\n`,
+    ]);
+    // Alice's account is connected: nothing to connect.
+    expect(buttonsOf(blocks)).toEqual([]);
+
+    // Who was welcomed is kept, never read back from the conversation.
+    expect(
+      slackCalls.map((call: SlackCall): string => {
+        return call.method;
+      }),
+    ).toEqual(["chat.postMessage"]);
+  });
+
+  test("opened again - at once, or a month on: no second welcome", async () => {
+    await deliverEvent(openMessages(ALICE));
+    await deliverEvent(openMessages(ALICE));
+    await until((): boolean => {
+      return welcomes().length >= 1;
+    }, "the welcome posted");
+    await settle();
+
+    clockOffsetInMs += 31 * 24 * 60 * 60 * 1000;
+
+    await deliverEvent(openMessages(ALICE));
+    await settle();
+
+    expect(welcomes()).toHaveLength(1);
+  });
+
+  test("Slack's retry of the open: one welcome", async () => {
+    const open: JSONObject = openMessages(ALICE);
+
+    await deliverEvent(open);
+    await deliverEvent(open, { "x-slack-retry-num": "1" });
+    await deliverEvent(open, { "x-slack-retry-num": "2" });
+    await until((): boolean => {
+      return welcomes().length >= 1;
+    }, "the welcome posted");
+    await settle();
+
+    expect(welcomes()).toHaveLength(1);
+  });
+
+  test("each person is welcomed of their own", async () => {
+    await deliverEvent(openMessages(ALICE));
+    await deliverEvent(openMessages(CAROL));
+    await until((): boolean => {
+      return welcomes().length === 2;
+    }, "both welcomes posted");
+
+    expect(
+      welcomes()
+        .map((call: SlackCall): unknown => {
+          return call.data["channel"];
+        })
+        .sort(),
+    ).toEqual([ALICE, CAROL]);
+  });
+
+  test("somebody not connected: asked to connect, with the Home's Connect button", async () => {
+    await deliverEvent(openMessages(CAROL));
+    await until((): boolean => {
+      return welcomes().length === 1;
+    }, "the welcome posted");
+
+    const blocks: Array<JSONObject> = welcomes()[0]!.data[
+      "blocks"
+    ] as Array<JSONObject>;
+
+    expect(blockTexts(blocks)[2]).toBe(
+      `🔗 ${ZWSP}*Connect your Slack account*${ZWSP} first, so OneUptime can act as you, with your permissions in the project. It takes one click.\n`,
+    );
+
+    const buttons: Array<JSONObject> = buttonsOf(blocks);
+    expect(buttons).toHaveLength(1);
+    expect((buttons[0]!["text"] as JSONObject)["text"]).toBe(
+      "Connect Slack account",
+    );
+    expect(buttons[0]!["style"]).toBe("primary");
+
+    const link: globalThis.URL = new globalThis.URL(String(buttons[0]!["url"]));
+    expect(`${link.origin}${link.pathname}`).toBe(
+      `${DASHBOARD_URL}/${PROJECT_ID.toString()}/user-settings/slack-integration`,
+    );
+    expect(link.searchParams.get("connectAccount")).toBe("true");
+  });
+
+  test("the Home opened first does not count: the Messages tab's first open is still welcomed", async () => {
+    await deliverEvent(openHome(ALICE));
+    await until((): boolean => {
+      return calls("views.publish").length === 1;
+    }, "the Home drawn");
+
+    await deliverEvent(openMessages(ALICE));
+    await until((): boolean => {
+      return welcomes().length === 1;
+    }, "the welcome posted");
+  });
+
+  test("Slack refuses the welcome: logged, never thrown - Slack had its 200 - and the next open welcomes", async () => {
+    refusals.set("chat.postMessage", "channel_not_found");
+
+    const response: ProbeResponse = await deliverEvent(openMessages(ALICE));
+
+    expect(response.status).toBe(200);
+    await until((): boolean => {
+      return errorLines.includes(
+        "Could not welcome somebody to the Slack app's Messages tab.",
+      );
+    }, "the refusal logged");
+
+    // It reached nobody, so it does not count.
+    refusals.delete("chat.postMessage");
+
+    await deliverEvent(openMessages(ALICE));
+    await until((): boolean => {
+      return welcomes().length === 2;
+    }, "the welcome posted on the next open");
+
+    // The one Slack refused, the one it took - and none after.
+    await deliverEvent(openMessages(ALICE));
+    await settle();
+
+    expect(welcomes()).toHaveLength(2);
+  });
+
+  test("a workspace connected to no project: nobody welcomed, nothing asked of Slack", async () => {
+    workspaceConnected = false;
+
+    const response: ProbeResponse = await deliverEvent(openMessages(ALICE));
+
+    expect(response.status).toBe(200);
+    await settle();
+
+    expect(slackCalls).toEqual([]);
   });
 });
 

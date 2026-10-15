@@ -73,8 +73,8 @@ const DRAWN_NAMESPACE: string = "slack-home-drawn";
 export default class SlackHome {
   /*
    * app_home_opened, for the Home tab: draws the person's Home. Slack also
-   * sends it when the Messages tab is opened, which is left alone. Never
-   * throws: Slack has its 200 already.
+   * sends it when the Messages tab is opened, which is not drawn: that open
+   * is SlackMessagesWelcome's. Never throws: Slack has its 200 already.
    */
   @CaptureSpan()
   public static async handleHomeOpened(event: {

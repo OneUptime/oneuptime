@@ -75,7 +75,9 @@ Criar uma regra passa por quatro etapas:
 | **Destino** | Onde ela publica: **Post to Existing Slack Channel** com os nomes dos canais, **Create Slack Channel** com o nome do novo canal e quem é convidado, ou ambos. |
 | **Video Call** | Somente incidentes e alertas: inicia uma chamada para cada um. Consulte [Videochamadas](/docs/workspace-connections/video-calls). |
 
-Um canal que a regra cria recebe o nome de **New Slack Channel Name** seguido do número do registro, como `oneuptime-incident-42`, e só um canal criado recebe as pessoas que a regra convida: os proprietários do registro, as equipes e os usuários escolhidos e, para incidentes e alertas, as pessoas de plantão à medida que são acionadas. Um incidente, alerta ou episódio privado recebe um canal privado. Toda atualização posterior do registro — uma mudança de estado, uma nota, um novo proprietário — é publicada nos seus canais e nos canais existentes que as suas regras indicam. Um incidente, alerta ou episódio criado já resolvido não recebe um canal próprio; a mensagem de criação dele ainda vai para os canais que as suas regras indicam. Consulte [Declarado já confirmado ou resolvido](/docs/incidents/declaring-incidents#declarado-já-confirmado-ou-resolvido).
+Um canal que a regra cria recebe o nome do seu registro: o incidente INC-42 recebe `inc-42`, o alerta ALT-7 recebe `alt-7` e, em um projeto sem prefixos de número, o incidente 42 recebe `incident-42`. O texto em **Prefixo do nome do canal** vai na frente, então `prod-` vira `prod-inc-42`, e o formulário mostra o nome enquanto você digita. Em um evento de manutenção agendada, o prefixo substitui o prefixo de número: SM-5 recebe `sm-5`, e `maint-` vira `maint-5`. O Slack aceita letras minúsculas, números, `-` e `_`, até 80 caracteres. Se já existir um canal com esse nome, como o de outro projeto ou um arquivado, o OneUptime adiciona `-2`, `-3` e assim por diante.
+
+Só um canal criado recebe as pessoas que a regra convida: os proprietários do registro, as equipes e os usuários escolhidos e, para incidentes e alertas, as pessoas de plantão à medida que são acionadas. Um incidente, alerta ou episódio privado recebe um canal privado. Toda atualização posterior do registro — uma mudança de estado, uma nota, um novo proprietário — é publicada nos seus canais e nos canais existentes que as suas regras indicam. Um incidente, alerta ou episódio criado já resolvido não recebe um canal próprio; a mensagem de criação dele ainda vai para os canais que as suas regras indicam. Consulte [Declarado já confirmado ou resolvido](/docs/incidents/declaring-incidents#declarado-já-confirmado-ou-resolvido).
 
 Um incidente, alerta, episódio ou evento de manutenção agendada com um canal próprio tem **Abrir no Slack** no cabeçalho da sua página no OneUptime, ao lado dos botões de estado. Ele abre esse canal em uma nova aba, no aplicativo do Slack ou no navegador. Um registro com dois canais próprios lista os dois sob o botão. Um registro com canais tanto no Slack quanto no Microsoft Teams tem, em vez disso, um único botão **Abrir canal**, que lista todos eles. Os canais existentes em que as suas regras publicam não são oferecidos.
 
@@ -158,7 +160,7 @@ Abra o OneUptime em **Apps**, na barra lateral do Slack: a aba **Home** dele mos
 
 A página inicial lê como você, então precisa da sua própria conta do Slack conectada. Enquanto ela não estiver, a página inicial mostra um botão **Connect Slack account**, e mostra a sua página inicial assim que você a conectar.
 
-Quando alguém adiciona o OneUptime a um canal, ele publica uma saudação ali: como fazer uma pergunta a ele e onde adicionar uma regra de notificação que publique no canal.
+Quando alguém adiciona o OneUptime a um canal, ele publica uma saudação ali: como fazer uma pergunta a ele e onde adicionar uma regra de notificação que publique no canal. Na primeira vez que você abre a aba **Messages** dele, ele dá as boas-vindas a você ali: o que ele faz no Slack e como começar.
 
 ## Perguntar ao OneUptime AI pelo Slack
 
@@ -227,6 +229,18 @@ Os botões das mensagens do OneUptime no Slack também agem como você: como a c
 
 > [!WARNING]
 > Desinstalar também desvincula a conta do Slack de cada membro do projeto, e remove os métodos de notificação do Slack e as regras de plantão que os usavam. Quem era acionado no Slack passa a ser acionado nos seus outros métodos de notificação até adicionar o Slack de novo.
+
+## Seus dados do Slack
+
+O OneUptime lê do Slack apenas o que esses recursos precisam, com as permissões que você concede ao instalá-lo:
+
+- **Mensagens dirigidas ao OneUptime.** Uma mensagem que o menciona com @, uma que você envia a ele em mensagem direta e as suas respostas em uma conversa com ele, junto com as mensagens anteriores daquela thread ou mensagem direta, para que o OneUptime AI possa responder. O Slack também envia a ele as outras mensagens dos canais e das mensagens diretas em grupo em que ele está; o OneUptime não as responde nem as guarda.
+- **Mensagens que você salva como notas.** Uma mensagem à qual você reage com 📌 ou 📢, ou que você fixa, no canal de um incidente, alerta, episódio ou evento de manutenção programada, salva como nota nesse registro com o nome de quem a escreveu.
+- **Nomes de canais e de pessoas.** Os canais em que ele pode publicar, para você poder escolhê-los, e os nomes das pessoas, para mostrar quem escreveu ou fez algo.
+- **Endereços de e-mail.** O endereço de e-mail que o Slack tem de uma pessoa, para associar a conta do Slack dela à conta do OneUptime dela quando ela não a conectou: para acioná-la, ou para colocá-la em um grupo de usuários de plantão.
+- **Grupos de usuários.** Os grupos de usuários do seu espaço de trabalho, para você escolher um para um agendamento de plantão, e as pessoas de um grupo que você conecta, para mantê-lo igual a quem está de plantão.
+
+O que o OneUptime guarda disso — o nome do espaço de trabalho, os canais dele, as contas do Slack que as pessoas conectam, as notas e os grupos de usuários — é armazenado com o seu projeto. A [Política de Privacidade](https://oneuptime.com/legal/privacy) explica como o OneUptime trata os seus dados.
 
 ## Solução de problemas
 

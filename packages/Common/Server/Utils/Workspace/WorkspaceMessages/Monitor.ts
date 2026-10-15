@@ -9,6 +9,7 @@ import WorkspaceNotificationRuleService, {
 import logger from "../../Logger";
 import SlackMonitorMessages from "../Slack/Messages/Monitor";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import WorkspaceChannelName from "../../../../Utils/Workspace/WorkspaceChannelName";
 
 export default class MonitorWorkspaceMessages {
   @CaptureSpan()
@@ -26,7 +27,10 @@ export default class MonitorWorkspaceMessages {
             monitorId: data.monitorId,
           },
           notificationRuleEventType: NotificationRuleEventType.Monitor,
-          channelNameSiffix: data.monitorName.toString().toLowerCase(),
+          channelNameParts: WorkspaceChannelName.forNamedRecord({
+            eventType: NotificationRuleEventType.Monitor,
+            name: data.monitorName.toString(),
+          }),
         },
       );
     } catch (err) {

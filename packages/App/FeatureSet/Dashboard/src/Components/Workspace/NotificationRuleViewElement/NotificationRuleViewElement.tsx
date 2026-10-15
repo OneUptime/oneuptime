@@ -30,6 +30,8 @@ import {
 } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnection";
 import VideoCallRuleSummary from "./VideoCallRuleSummary";
+import { WorkspaceChannelNumberPrefixes } from "Common/Utils/Workspace/WorkspaceChannelName";
+import { ChannelNameSummary } from "../NotificationRuleForm/ChannelNamePreview";
 
 export interface ComponentProps {
   value:
@@ -52,6 +54,9 @@ export interface ComponentProps {
   microsoftTeamsChats?: Array<MicrosoftTeamsChat>;
   users: Array<User>;
   videoCallConnections?: Array<VideoCallConnection> | undefined;
+  // For the example of the name of the channel the rule creates.
+  numberPrefixes?: WorkspaceChannelNumberPrefixes | undefined;
+  exampleRecordName?: string | undefined;
 }
 
 const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
@@ -249,8 +254,8 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
   > = [
     {
       key: "shouldCreateNewChannel",
-      title: `Create ${props.workspaceType} Channel`,
-      description: `When above conditions are met, create a new ${props.workspaceType} channel.`,
+      title: `Create ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel`,
+      description: `When above conditions are met, create a new ${getWorkspaceTypeDisplayName(props.workspaceType)} channel.`,
       fieldType: FieldType.Boolean,
     },
     {
@@ -285,12 +290,14 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
         return <span>N/A</span>;
       },
     },
+    /*
+     * The rule's prefix, or "No prefix", and the name an example record's
+     * channel gets: "prod-   Example: #prod-inc-42".
+     */
     {
       key: "newChannelTemplateName",
-      title: `${props.workspaceType} Channel Template Name`,
-      description: `If your new channel name is "oneuptime-${props.eventType?.toLowerCase()}-", then we will append the ${props.eventType} in the end so, it'll look like "oneuptime-${props.eventType?.toLowerCase()}-X".`,
-      fieldType: FieldType.Text,
-      placeholder: `oneuptime-${props.eventType?.toLowerCase()}-`,
+      title: "Channel Name Prefix",
+      fieldType: FieldType.Element,
       showIf: (
         formValue:
           | IncidentNotificationRule
@@ -299,11 +306,30 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
       ) => {
         return formValue.shouldCreateNewChannel || false;
       },
+      getElement: (): ReactElement => {
+        return (
+          <ChannelNameSummary
+            workspaceType={props.workspaceType}
+            eventType={props.eventType}
+            prefix={
+              (
+                props.value as
+                  | IncidentNotificationRule
+                  | AlertNotificationRule
+                  | ScheduledMaintenanceNotificationRule
+              ).newChannelTemplateName
+            }
+            numberPrefixes={props.numberPrefixes}
+            exampleRecordName={props.exampleRecordName}
+            dataTestId="channel-name-summary"
+          />
+        );
+      },
     },
     {
       key: "shouldInviteOwnersToNewChannel",
-      title: `Invite ${props.eventType} owners to new ${props.workspaceType} Channel`,
-      description: `When new ${props.workspaceType} channel is created, invite ${props.eventType} owners.`,
+      title: `Invite ${props.eventType} owners to new ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel`,
+      description: `When new ${getWorkspaceTypeDisplayName(props.workspaceType)} channel is created, invite ${props.eventType} owners.`,
       fieldType: FieldType.Boolean,
       showIf: (
         formValue:
@@ -316,8 +342,8 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
     },
     {
       key: "inviteTeamsToNewChannel",
-      title: `Invite Teams to New ${props.workspaceType} Channel`,
-      description: `When new ${props.workspaceType} channel is created, invite these teams.`,
+      title: `Invite Teams to New ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel`,
+      description: `When new ${getWorkspaceTypeDisplayName(props.workspaceType)} channel is created, invite these teams.`,
       fieldType: FieldType.Element,
       showIf: (
         formValue:
@@ -344,8 +370,8 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
     },
     {
       key: "inviteUsersToNewChannel",
-      title: `Invite Users to New ${props.workspaceType} Channel`,
-      description: `When new ${props.workspaceType} channel is created, invite these users.`,
+      title: `Invite Users to New ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel`,
+      description: `When new ${getWorkspaceTypeDisplayName(props.workspaceType)} channel is created, invite these users.`,
       fieldType: FieldType.Element,
       showIf: (
         formValue:
@@ -406,8 +432,8 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
     > = [
       {
         key: "shouldAutomaticallyInviteOnCallUsersToNewChannel",
-        title: `Automatically Invite On Call Users to New ${props.workspaceType} Channel`,
-        description: `If this is enabled then all on call users will be invited to the new ${props.workspaceType} channel as they are alerted.`,
+        title: `Automatically Invite On Call Users to New ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel`,
+        description: `If this is enabled then all on call users will be invited to the new ${getWorkspaceTypeDisplayName(props.workspaceType)} channel as they are alerted.`,
         fieldType: FieldType.Boolean,
         showIf: (
           formValue: IncidentNotificationRule | AlertNotificationRule,
