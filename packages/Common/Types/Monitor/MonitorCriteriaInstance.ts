@@ -44,9 +44,10 @@ export interface MonitorCriteriaInstanceType {
   /**
    * Incoming Email monitors only: every email that matches this criteria
    * opens an incident (and an alert) of its own, even while earlier ones
-   * are open, instead of one at a time. A reply is added to the incident
-   * its thread opened as a note, the same email delivered twice opens one,
-   * and automatic replies open none (IncomingEmailOpenForEveryEmail).
+   * are open, instead of one at a time. A reply is added as a note to what
+   * its thread opened while that is open (once it is resolved, a reply opens
+   * its own), the same email delivered twice opens one, and automatic
+   * replies open none (IncomingEmailOpenForEveryEmail).
    */
   openForEveryEmail?: boolean | undefined;
   id: string;
