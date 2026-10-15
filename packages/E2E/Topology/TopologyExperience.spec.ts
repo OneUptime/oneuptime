@@ -777,6 +777,54 @@ test("network sites lead to a real device map with recoverable progressive contr
   await expect(
     page.getByRole("group", { name: "Topology layout" }),
   ).toBeVisible();
+
+  /*
+   * The layout switcher, on a map with devices on it (an empty map has no
+   * toolbar at all). The pressed state says which layout is drawn, to
+   * assistive technology too, and exactly one is pressed at a time.
+   */
+  const LAYOUT_MODES: Array<string> = [
+    "force",
+    "tiered",
+    "radial",
+    "star",
+    "parentChild",
+  ];
+
+  async function pressedLayouts(): Promise<Array<string>> {
+    const pressed: Array<string> = [];
+    for (const mode of LAYOUT_MODES) {
+      if (
+        (await page
+          .getByTestId(`network-topology-layout-mode-${mode}`)
+          .getAttribute("aria-pressed")) === "true"
+      ) {
+        pressed.push(mode);
+      }
+    }
+    return pressed;
+  }
+
+  const initial: Array<string> = await pressedLayouts();
+  expect(initial).toHaveLength(1);
+
+  for (const mode of [
+    ...LAYOUT_MODES.filter((mode: string): boolean => {
+      return mode !== initial[0];
+    }),
+    initial[0]!,
+  ]) {
+    await page.getByTestId(`network-topology-layout-mode-${mode}`).click();
+    await expect
+      .poll((): Promise<Array<string>> => {
+        return pressedLayouts();
+      })
+      .toEqual([mode]);
+    // Every device stays on the map whatever the layout.
+    await expect(
+      page.locator('[data-testid^="network-topology-node-"]'),
+    ).toHaveCount(7);
+  }
   await page
     .getByRole("button", { name: "Discovered neighbors", exact: true })
     .click();
