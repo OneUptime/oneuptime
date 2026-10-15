@@ -480,6 +480,18 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
                   </AppLink>
                 </div>
               </div>
+            ) : isMonitorBacked ? (
+              /*
+               * A monitor is bound and has not reported yet: it is the
+               * device's monitor, so there is nothing to set up - only its
+               * first check to wait for.
+               */
+              <div
+                className="text-sm text-gray-500"
+                data-testid="device-hero-monitor-waiting"
+              >
+                {translator.translateText("Waiting for its monitor to report")}
+              </div>
             ) : (
               /*
                * Polled, but nothing turns a failure into an incident. "Not

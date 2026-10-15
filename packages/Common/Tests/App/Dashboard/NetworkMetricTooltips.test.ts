@@ -267,9 +267,11 @@ describe("device status texts match DeviceReachabilityUtil", () => {
     ).toBe(NetworkDeviceReachability.Up);
 
     expect(DEVICE.monitorStatus).toContain("can differ from Reachability");
+    // A device nothing alerts on says so - "No alerts yet" - and why it matters.
     expect(DEVICE.monitorStatus).toContain(
-      "Not monitored means no monitor has reported yet",
+      "No alerts yet means nothing opens an incident when it goes down",
     );
+    expect(DEVICE.monitorStatus).not.toContain("Not monitored");
   });
 
   test("the strip counts the project, not the filtered list", () => {

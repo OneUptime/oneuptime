@@ -587,16 +587,26 @@ describe("network topology live view: Export PDF", () => {
     expect(exportMock).toHaveBeenCalledTimes(2);
   });
 
-  test("a map with no devices has nothing to export", async () => {
+  /*
+   * A network with no device on it has no map to read, filter or export: the
+   * card says what would put something on it instead of drawing an empty
+   * canvas under a toolbar.
+   */
+  test("a map with no devices has nothing to export, and says how to put devices on it", async () => {
     postMock.mockResolvedValue({ data: { nodes: [], edges: [] } });
     render(
       <MemoryRouter>
         <NetworkTopologyLiveView />
       </MemoryRouter>,
     );
-    await screen.findByTestId("live-network-graph");
-    expect(exportButton()).toBeDisabled();
-    fireEvent.click(exportButton());
+    const emptyState: HTMLElement = await screen.findByTestId(
+      "network-topology-empty-state",
+    );
+
+    expect(emptyState).toHaveTextContent("No network topology discovered yet.");
+    expect(screen.queryByTestId("live-network-graph")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Export PDF" })).toBeNull();
+    expect(screen.queryByText("Read the map:")).toBeNull();
     expect(exportMock).not.toHaveBeenCalled();
   });
 

@@ -29583,7 +29583,6 @@
   "The community string the device answers SNMP with, such as public. Leave it empty to ping the device only.": "裝置回應 SNMP 時使用的社群字串，例如 public。留空則只 ping 該裝置。",
   "The probe was added, but the server did not say which it is. Open it under Monitors → Settings → Probes to run it.": "探測器已新增，但伺服器沒有回傳是哪一個。請在 監測器 → 設定 → 探測器 中開啟它並執行。",
   "The scan tries these in order on every host that answers ping, and keeps the first that works. Add more for devices with a different community string or SNMPv3 user; each one adds a wait on hosts that answer none.": "掃描會在每台回應 ping 的主機上依序嘗試這些憑證，並保留第一組可用的憑證。如有裝置使用不同的社群字串或 SNMPv3 使用者，請再新增；每多一組，在不回應任何憑證的主機上就多一段等待。",
-  "The status last reported by a monitor that watches this device, such as Operational or Offline. It can differ from Reachability because a monitor may also check things like ports going down. No alerts yet means no monitor or alert policy watches this device, so nothing opens an incident when it goes down.": "監看此裝置的監測器最近一次回報的狀態，例如運作中或離線。它可能與 Reachability 不同，因為監測器還可能檢查連接埠停擺等情況。「尚無警示」表示沒有任何監測器或警示策略在監看此裝置，因此它停擺時不會建立事件。",
   "The {{template}} template is added. Its health values are read from the next poll and charted on Metrics.": "{{template}} 範本已新增。它的健康值會從下次輪詢開始讀取，並在指標中以圖表顯示。",
   "This OneUptime server runs a probe of its own too. It can check your devices if this server can reach them.": "這台 OneUptime 伺服器自己也執行一個探測器。如果這台伺服器能連到你的裝置，它就可以檢查這些裝置。",
   "This adds an Alert on every device policy, and the Network device alert pack (recommended) monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan. You can narrow the policy to some devices afterwards.": "這會新增一條 Alert on every device 策略；如果專案中還沒有，也會新增它使用的 Network device alert pack (recommended) 監測器範本。它也會涵蓋之後新增的裝置，並為每台涵蓋的裝置新增一個監測器，每個都計入你的方案。之後你可以將策略縮小到部分裝置。",
@@ -29607,5 +29606,7 @@
   "{{name}} is connected. Next, bring your devices in.": "{{name}} 已連線。接下來，接入你的裝置。",
   "{{vendor}} health checks are available": "{{vendor}} 健康檢查可用",
   "Network probe": "網路探測器",
-  "Nothing alerts on this device yet. Its probe already pings it on schedule, so it has a status; an alert policy is what turns a failure into an incident - for this device and every one like it. Or create a monitor for this device alone.": "此裝置尚無任何警示。它的探測器已依排程 ping 它，所以它有狀態；但把故障變成事件的是警示策略，作用於此裝置以及所有同類裝置。也可以只為此裝置建立一個監測器。"
+  "Nothing alerts on this device yet. Its probe already pings it on schedule, so it has a status; an alert policy is what turns a failure into an incident - for this device and every one like it. Or create a monitor for this device alone.": "此裝置尚無任何警示。它的探測器已依排程 ping 它，所以它有狀態；但把故障變成事件的是警示策略，作用於此裝置以及所有同類裝置。也可以只為此裝置建立一個監測器。",
+  "The status a monitor watching this device last reported, such as Operational or Offline. It can differ from Reachability, because a monitor can also check things like ports going down. No alerts yet means nothing opens an incident when it goes down.": "監看此裝置的監測器最近一次回報的狀態，例如運作中或離線。它可能與 Reachability 不同，因為監測器還可能檢查連接埠停擺等情況。「尚無警示」表示它停擺時不會建立事件。",
+  "Waiting for its monitor to report": "正在等待其監測器的首次回報"
 }

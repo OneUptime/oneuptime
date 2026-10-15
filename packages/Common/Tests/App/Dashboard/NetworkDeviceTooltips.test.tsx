@@ -94,6 +94,10 @@ jest.mock("../../../UI/Utils/Navigation", () => {
       isOnThisPage: (): boolean => {
         return false;
       },
+      // The Overview reads ?open=add-probe once, when it mounts.
+      getQueryString: (): string => {
+        return "";
+      },
     },
   };
 });

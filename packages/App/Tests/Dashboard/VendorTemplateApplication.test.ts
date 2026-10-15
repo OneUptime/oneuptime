@@ -6,6 +6,7 @@ import SnmpVendorTemplateUtil, {
 } from "Common/Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 import ObjectID from "Common/Types/ObjectID";
 import {
+  DeviceVendorTemplatePlan,
   MATCH_EACH_DEVICE_LABEL,
   MATCH_EACH_DEVICE_VALUE,
   VendorTemplateChoice,
@@ -19,7 +20,9 @@ import {
   decideVendorTemplate,
   getGenericVendorTemplateLabel,
   getVendorTemplateOptions,
+  getVendorTemplateWriteData,
   mergeVendorTemplate,
+  planDeviceVendorTemplate,
   readVendorTemplateChoice,
   summarizeVendorTemplatePlan,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/VendorTemplateApplication";
@@ -597,5 +600,173 @@ describe("Apply Vendor Template: the advice for a device nothing matches", () =>
     expect(getGenericVendorTemplateLabel()).toBe(
       template("host-resources-mib").label,
     );
+  });
+});
+
+/*
+ * What is written: only the lists that grew. The bulk action and a device's
+ * one-click "Add health checks" both write through this, so an unchanged list
+ * is never sent back to be validated and stored again for nothing.
+ */
+describe("Apply Vendor Template: what is written", () => {
+  test("both lists, when the template adds to both", () => {
+    const cnMatrix: SnmpVendorTemplate = template("cambium-cnmatrix");
+    const merge: VendorTemplateMerge = mergeVendorTemplate({
+      snmpOids: [],
+      snmpTables: [],
+      template: cnMatrix,
+    });
+
+    expect(getVendorTemplateWriteData(merge)).toEqual({
+      snmpOids: cnMatrix.oids,
+      snmpTables: cnMatrix.tables,
+    });
+  });
+
+  test("only the OIDs, when the device already has every table", () => {
+    const cnMatrix: SnmpVendorTemplate = template("cambium-cnmatrix");
+    const merge: VendorTemplateMerge = mergeVendorTemplate({
+      snmpOids: [],
+      snmpTables: cnMatrix.tables,
+      template: cnMatrix,
+    });
+
+    expect(Object.keys(getVendorTemplateWriteData(merge))).toEqual([
+      "snmpOids",
+    ]);
+  });
+
+  test("nothing, when the template adds nothing", () => {
+    const cisco: SnmpVendorTemplate = template("cisco-ios");
+    const merge: VendorTemplateMerge = mergeVendorTemplate({
+      snmpOids: cisco.oids,
+      snmpTables: cisco.tables || [],
+      template: cisco,
+    });
+
+    expect(getVendorTemplateWriteData(merge)).toEqual({});
+  });
+});
+
+/*
+ * A device's Overview offers its own vendor's template in one click, and only
+ * while the template adds something: it used to recommend the template on
+ * every visit, applied or not, with no way to apply it from there.
+ */
+describe("A device's own vendor template, offered on its Overview", () => {
+  test("a walked Cambium switch with nothing collected is offered the cnMatrix template", () => {
+    const cnMatrix: SnmpVendorTemplate = template("cambium-cnmatrix");
+    const plan: DeviceVendorTemplatePlan | null = planDeviceVendorTemplate({
+      ...device({ sysObjectId: CAMBIUM_CNMATRIX_OID }),
+      snmpOids: [],
+      snmpTables: [],
+    });
+
+    expect(plan).not.toBeNull();
+    expect(plan!.template.id).toBe("cambium-cnmatrix");
+    expect(plan!.addedCount).toBe(
+      cnMatrix.oids.length + (cnMatrix.tables || []).length,
+    );
+    expect(plan!.merge.snmpOids).toEqual(cnMatrix.oids);
+  });
+
+  test("a device that already collects the whole template is offered nothing", () => {
+    const cnMatrix: SnmpVendorTemplate = template("cambium-cnmatrix");
+
+    expect(
+      planDeviceVendorTemplate({
+        ...device({ sysObjectId: CAMBIUM_CNMATRIX_OID }),
+        snmpOids: cnMatrix.oids,
+        snmpTables: cnMatrix.tables,
+      }),
+    ).toBeNull();
+  });
+
+  test("a device that collects part of it is offered the rest, its own entries kept first", () => {
+    const cnMatrix: SnmpVendorTemplate = template("cambium-cnmatrix");
+    const own: SnmpOid = {
+      oid: "1.3.6.1.4.1.17713.24.99.1.0",
+      name: "Own reading",
+    } as SnmpOid;
+    const firstTemplateOid: SnmpOid = cnMatrix.oids[0]!;
+
+    const plan: DeviceVendorTemplatePlan | null = planDeviceVendorTemplate({
+      ...device({ sysObjectId: CAMBIUM_CNMATRIX_OID }),
+      snmpOids: [own, firstTemplateOid],
+      snmpTables: cnMatrix.tables,
+    });
+
+    expect(plan).not.toBeNull();
+    expect(plan!.merge.snmpOids[0]).toEqual(own);
+    expect(plan!.addedCount).toBe(cnMatrix.oids.length - 1);
+  });
+
+  test("a device not walked yet, or of a vendor with no template, is offered nothing", () => {
+    expect(
+      planDeviceVendorTemplate({
+        ...device({}),
+        snmpOids: [],
+        snmpTables: [],
+      }),
+    ).toBeNull();
+    expect(
+      planDeviceVendorTemplate({
+        ...device({ sysObjectId: UNKNOWN_ENTERPRISE_OID }),
+        snmpOids: [],
+        snmpTables: [],
+      }),
+    ).toBeNull();
+  });
+
+  test("a device the bulk action leaves alone is left alone here too", () => {
+    expect(
+      planDeviceVendorTemplate({
+        ...device({
+          sysObjectId: CISCO_OID,
+          monitoringMethod: "Monitor",
+        }),
+        snmpOids: [],
+      }),
+    ).toBeNull();
+    expect(
+      planDeviceVendorTemplate({
+        ...device({
+          sysObjectId: CISCO_OID,
+          oidTemplateId: new ObjectID("3f1b6b0e-0000-4000-8000-00000000f001"),
+        }),
+        snmpOids: [],
+      }),
+    ).toBeNull();
+  });
+
+  test("missing lists are read as empty ones", () => {
+    const plan: DeviceVendorTemplatePlan | null = planDeviceVendorTemplate(
+      device({ sysObjectId: CISCO_OID }),
+    );
+
+    expect(plan).not.toBeNull();
+    expect(plan!.template.id).toBe("cisco-ios");
+  });
+
+  test("the same decision as the bulk action's Match each device's vendor", () => {
+    for (const sysObjectId of [
+      CAMBIUM_CNMATRIX_OID,
+      CAMBIUM_WIFI_OID,
+      CISCO_OID,
+      EXTREME_OID,
+    ]) {
+      const facts: VendorTemplateDeviceFacts = device({ sysObjectId });
+      const decision: VendorTemplateDecision = decideVendorTemplate(
+        facts,
+        MATCH,
+      );
+      const plan: DeviceVendorTemplatePlan | null = planDeviceVendorTemplate({
+        ...facts,
+        snmpOids: [],
+        snmpTables: [],
+      });
+
+      expect(plan?.template.id).toBe(applied(decision));
+    }
   });
 });
