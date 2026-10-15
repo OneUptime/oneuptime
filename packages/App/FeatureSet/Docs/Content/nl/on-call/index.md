@@ -103,7 +103,7 @@ Open **Bereikbaarheidsdienst → Gereedheid** en klik op **Coverage** in de rij 
 :::
 
 :::details Iemand op vakantie wordt nog steeds opgeroepen
-Voeg een gebruikersoverschrijving toe met die persoon onder **Wie is afwezig?**. Een overschrijving onder **Bereikbaarheidsdienst → Gebruikersoverschrijvingen** geldt voor elk beleid; een op de pagina **Gebruikersoverschrijvingen** van een beleid geldt alleen voor dat beleid. Zie [Gebruikersoverschrijvingen](/docs/on-call/user-overrides).
+Voeg een gebruikersoverschrijving toe met die persoon onder **Wie is afwezig?**. Een overschrijving onder **Bereikbaarheidsdienst → Geavanceerd → Gebruikersoverschrijvingen** geldt voor elk beleid; een op de pagina **Gebruikersoverschrijvingen** van een beleid geldt alleen voor dat beleid. Zie [Gebruikersoverschrijvingen](/docs/on-call/user-overrides).
 :::
 
 ## Volgende stappen

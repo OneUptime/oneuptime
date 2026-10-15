@@ -33,7 +33,7 @@ Når overstyringen slutter, er tilkallingene deres igjen. **Tidslinje for vaktpl
 :::steps
 ### Åpne overstyringene
 
-Gå til **Vakttjeneste → Brukeroverstyringer** for å dekke for noen i alle vaktretningslinjer, eller til en retningslinjes egen side **Brukeroverstyringer**, under **Avansert**, for å dekke for dem bare i den retningslinjen. Klikk på **Legg til Brukeroverstyring**.
+Gå til **Vakttjeneste → Avansert → Brukeroverstyringer** for å dekke for noen i alle vaktretningslinjer, eller til en retningslinjes egen side **Brukeroverstyringer**, under **Avansert**, for å dekke for dem bare i den retningslinjen. Klikk på **Legg til Brukeroverstyring**.
 
 ### Si hvem som er borte
 
@@ -54,7 +54,7 @@ Hver overstyring er en rad: **Borte**, **Dekket av**, **Starter** og **Slutter**
 
 | Lagt til under | Kort | Gjelder for |
 | --- | --- | --- |
-| **Vakttjeneste → Brukeroverstyringer** | **Globale brukeroverstyringer** | Alle vaktretningslinjer i prosjektet |
+| **Vakttjeneste → Avansert → Brukeroverstyringer** | **Globale brukeroverstyringer** | Alle vaktretningslinjer i prosjektet |
 | **Brukeroverstyringer** for en retningslinje | **Brukeroverstyringer for vaktretningslinjen** | Bare den retningslinjen |
 
 Når to overstyringer for samme person overlapper, vinner retningslinjens egen over en global, og en som nevner hvem som dekker, vinner over en overhopping. En tilkalling uten retningslinje, fra en arbeidsflyt eller fra chat, følger bare de globale overstyringene.
@@ -103,7 +103,7 @@ En overstyring der personen som er borte og personen som dekker er den samme, av
 ## Feilsøking
 
 :::details Personen på ferie ble likevel tilkalt
-Sjekk hvor overstyringen ble lagt til. En på en retningslinjes side **Brukeroverstyringer** dekker bare den retningslinjen, og andre retningslinjer tilkaller dem fortsatt: legg den til under **Vakttjeneste → Brukeroverstyringer** for å dekke alle retningslinjer. Sjekk også **Starter** og **Slutter**: tidene vises i din tidssone.
+Sjekk hvor overstyringen ble lagt til. En på en retningslinjes side **Brukeroverstyringer** dekker bare den retningslinjen, og andre retningslinjer tilkaller dem fortsatt: legg den til under **Vakttjeneste → Avansert → Brukeroverstyringer** for å dekke alle retningslinjer. Sjekk også **Starter** og **Slutter**: tidene vises i din tidssone.
 :::
 
 :::details Personen som dekker, ble heller ikke tilkalt

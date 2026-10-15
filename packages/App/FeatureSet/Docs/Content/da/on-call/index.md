@@ -103,7 +103,7 @@ Når du har vagt for en politik, viser klokken øverst til højre det. Klik på 
 :::
 
 :::details En person på ferie bliver stadig tilkaldt
-Tilføj en brugertilsidesættelse med personen under **Hvem er fraværende?**. En under **Vagtordning → Brugertilsidesættelser** gælder for alle politikker; en på en politiks egen side **Brugertilsidesættelser** gælder kun for den politik. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).
+Tilføj en brugertilsidesættelse med personen under **Hvem er fraværende?**. En under **Vagtordning → Avanceret → Brugertilsidesættelser** gælder for alle politikker; en på en politiks egen side **Brugertilsidesættelser** gælder kun for den politik. Se [Brugertilsidesættelser](/docs/on-call/user-overrides).
 :::
 
 ## Næste trin

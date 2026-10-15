@@ -103,7 +103,7 @@ Aprite **Reperibilità → Prontezza** e fate clic su **Coverage** nella sua rig
 :::
 
 :::details Una persona in ferie viene ancora avvisata
-Aggiungete una sostituzione utente con lei in **Chi è assente?**. Una sostituzione in **Reperibilità → Sostituzioni utente** copre tutte le policy; una sulla pagina **Sostituzioni utente** di una policy copre solo quella policy. Vedi [Sostituzioni utente](/docs/on-call/user-overrides).
+Aggiungete una sostituzione utente con lei in **Chi è assente?**. Una sostituzione in **Reperibilità → Avanzato → Sostituzioni utente** copre tutte le policy; una sulla pagina **Sostituzioni utente** di una policy copre solo quella policy. Vedi [Sostituzioni utente](/docs/on-call/user-overrides).
 :::
 
 ## Passi successivi

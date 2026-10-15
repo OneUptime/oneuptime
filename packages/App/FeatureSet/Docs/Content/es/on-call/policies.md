@@ -93,7 +93,7 @@ flowchart TB
 Encontrarás registros de ejecución en tres lugares:
 
 - en los propios **Registros de ejecución** de la política, en **Registros**;
-- en **Guardia → Registros de ejecución**, para todas las políticas, donde los avisos directos desde workflows y chat aparecen como **Aviso directo**;
+- en **Guardia → Avanzado → Registros de ejecución**, para todas las políticas, donde los avisos directos desde workflows y chat aparecen como **Aviso directo**;
 - en la página **Ejecuciones de guardia** de un incidente, y en **Ejecuciones de guardia** de una alerta.
 
 Cada fila muestra qué desencadenó la ejecución, cuándo, su **Estado** y quién la reconoció. **View Timeline** abre su **Cronología de ejecución**: cada regla de escalado, a quién avisó, a través de qué programación y cómo terminó cada aviso. Una programación sin nadie de guardia muestra **No one was on call** en lugar de una persona. En OneUptime Cloud, los registros de ejecución necesitan el plan **Growth**.
@@ -103,7 +103,7 @@ Cada fila muestra qué desencadenó la ejecución, cuándo, su **Estado** y qui�
 Archivar retira una política del servicio y lo conserva todo: abre los **Ajustes** de la política y haz clic en **Archivar** en su tarjeta de archivo, o selecciona políticas en la lista y elige **Archivar**.
 
 - Una política archivada no avisa a nadie. Los incidentes y las alertas que la usan la omiten, y una ejecución que aún esté escalando se detiene en su siguiente paso.
-- Sale de la lista **Políticas de guardia** y pasa a **Guardia → Políticas archivadas**, donde **Desarchivar** la vuelve a poner en servicio.
+- Sale de la lista **Políticas de guardia** y pasa a **Guardia → Avanzado → Políticas archivadas**, donde **Desarchivar** la vuelve a poner en servicio.
 
 **Eliminar política**, en **Avanzado**, elimina la política junto con sus reglas de escalado y sus sustituciones de usuarios. Eliminar desde la lista pide confirmación y sugiere archivar en su lugar.
 
@@ -136,7 +136,7 @@ OneUptime hace avanzar las políticas en curso una vez por minuto, así que un n
 :::
 
 :::details Un incidente muestra una política que no avisó a nadie
-La política está archivada: una política archivada sigue en los incidentes y las alertas que la usan, no avisa a nadie, y su registro de ejecución dice que no se ejecutó. Desarchívala en **Guardia → Políticas archivadas**.
+La política está archivada: una política archivada sigue en los incidentes y las alertas que la usan, no avisa a nadie, y su registro de ejecución dice que no se ejecutó. Desarchívala en **Guardia → Avanzado → Políticas archivadas**.
 :::
 
 ## Próximos pasos

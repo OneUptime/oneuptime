@@ -33,7 +33,7 @@ Endet die Überschreibung, gehören die Alarme wieder der Person. Die **Zeitachs
 :::steps
 ### Die Überschreibungen öffnen
 
-Gehen Sie zu **Bereitschaftsdienst → Benutzerüberschreibungen**, um jemanden in jeder Bereitschaftsrichtlinie zu vertreten, oder zur Seite **Benutzerüberschreibungen** einer Richtlinie, unter **Erweitert**, um nur in dieser Richtlinie zu vertreten. Klicken Sie auf **Benutzervertretung hinzufügen**.
+Gehen Sie zu **Bereitschaftsdienst → Erweitert → Benutzerüberschreibungen**, um jemanden in jeder Bereitschaftsrichtlinie zu vertreten, oder zur Seite **Benutzerüberschreibungen** einer Richtlinie, unter **Erweitert**, um nur in dieser Richtlinie zu vertreten. Klicken Sie auf **Benutzervertretung hinzufügen**.
 
 ### Sagen, wer abwesend ist
 
@@ -54,7 +54,7 @@ Jede Überschreibung ist eine Zeile: **Abwesend**, **Vertreten durch**, **Beginn
 
 | Hinzugefügt unter | Karte | Gilt für |
 | --- | --- | --- |
-| **Bereitschaftsdienst → Benutzerüberschreibungen** | **Globale Benutzervertretungen** | Jede Bereitschaftsrichtlinie im Projekt |
+| **Bereitschaftsdienst → Erweitert → Benutzerüberschreibungen** | **Globale Benutzervertretungen** | Jede Bereitschaftsrichtlinie im Projekt |
 | **Benutzerüberschreibungen** einer Richtlinie | **Benutzervertretungen der Bereitschaftsrichtlinie** | Nur diese Richtlinie |
 
 Überschneiden sich zwei Überschreibungen für dieselbe Person, gewinnt die eigene der Richtlinie gegen eine globale, und eine, die eine Vertretung nennt, gewinnt gegen ein Überspringen. Ein Alarm ohne Richtlinie, aus einem Workflow oder aus dem Chat, folgt nur den globalen Überschreibungen.
@@ -103,7 +103,7 @@ Eine Überschreibung, deren abwesende Person und Vertretung dieselbe ist, wird a
 ## Fehlerbehebung
 
 :::details Die Person im Urlaub wurde trotzdem alarmiert
-Prüfen Sie, wo die Überschreibung hinzugefügt wurde. Eine auf der Seite **Benutzerüberschreibungen** einer Richtlinie gilt nur für diese Richtlinie, und andere Richtlinien alarmieren die Person weiter: Fügen Sie sie unter **Bereitschaftsdienst → Benutzerüberschreibungen** hinzu, um jede Richtlinie abzudecken. Prüfen Sie auch **Beginnt** und **Endet**: Zeiten werden in Ihrer Zeitzone angezeigt.
+Prüfen Sie, wo die Überschreibung hinzugefügt wurde. Eine auf der Seite **Benutzerüberschreibungen** einer Richtlinie gilt nur für diese Richtlinie, und andere Richtlinien alarmieren die Person weiter: Fügen Sie sie unter **Bereitschaftsdienst → Erweitert → Benutzerüberschreibungen** hinzu, um jede Richtlinie abzudecken. Prüfen Sie auch **Beginnt** und **Endet**: Zeiten werden in Ihrer Zeitzone angezeigt.
 :::
 
 :::details Die Vertretung wurde auch nicht alarmiert

@@ -103,7 +103,7 @@ Haben Sie Bereitschaft für eine Richtlinie, zeigt die Glocke oben rechts das an
 :::
 
 :::details Eine Person im Urlaub wird weiter alarmiert
-Fügen Sie eine Benutzerüberschreibung mit ihr unter **Wer ist abwesend?** hinzu. Eine unter **Bereitschaftsdienst → Benutzerüberschreibungen** gilt für jede Richtlinie, eine auf der Seite **Benutzerüberschreibungen** einer Richtlinie nur für diese Richtlinie. Siehe [Benutzerüberschreibungen](/docs/on-call/user-overrides).
+Fügen Sie eine Benutzerüberschreibung mit ihr unter **Wer ist abwesend?** hinzu. Eine unter **Bereitschaftsdienst → Erweitert → Benutzerüberschreibungen** gilt für jede Richtlinie, eine auf der Seite **Benutzerüberschreibungen** einer Richtlinie nur für diese Richtlinie. Siehe [Benutzerüberschreibungen](/docs/on-call/user-overrides).
 :::
 
 ## Nächste Schritte

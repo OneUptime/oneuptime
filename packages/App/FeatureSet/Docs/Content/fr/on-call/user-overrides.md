@@ -33,7 +33,7 @@ Une fois le remplacement terminé, les alertes reviennent à la personne. La **C
 :::steps
 ### Ouvrir les remplacements
 
-Allez dans **Astreinte → Remplacements d'utilisateur** pour remplacer quelqu'un dans toutes les politiques d'astreinte, ou sur la page **Remplacements d'utilisateur** d'une politique, sous **Avancé**, pour le remplacer dans cette seule politique. Cliquez sur **Ajouter : Remplacement d'utilisateur**.
+Allez dans **Astreinte → Avancé → Remplacements d'utilisateur** pour remplacer quelqu'un dans toutes les politiques d'astreinte, ou sur la page **Remplacements d'utilisateur** d'une politique, sous **Avancé**, pour le remplacer dans cette seule politique. Cliquez sur **Ajouter : Remplacement d'utilisateur**.
 
 ### Indiquer qui est absent
 
@@ -54,7 +54,7 @@ Chaque remplacement est une ligne : **Absent**, **Remplacé par**, **Commence** 
 
 | Ajouté sous | Carte | S'applique à |
 | --- | --- | --- |
-| **Astreinte → Remplacements d'utilisateur** | **Remplacements d'utilisateur globaux** | Toutes les politiques d'astreinte du projet |
+| **Astreinte → Avancé → Remplacements d'utilisateur** | **Remplacements d'utilisateur globaux** | Toutes les politiques d'astreinte du projet |
 | **Remplacements d'utilisateur** d'une politique | **Remplacements d'utilisateurs de la politique d'astreinte** | Cette politique seulement |
 
 Quand deux remplacements pour la même personne se chevauchent, celui de la politique l'emporte sur un remplacement global, et celui qui désigne un remplaçant l'emporte sur un saut. Une alerte envoyée sans politique, depuis un workflow ou depuis le chat, ne suit que les remplacements globaux.
@@ -103,7 +103,7 @@ Un remplacement dont la personne absente et le remplaçant sont la même personn
 ## Dépannage
 
 :::details La personne en congé a quand même été alertée
-Vérifiez où le remplacement a été ajouté. Un remplacement sur la page **Remplacements d'utilisateur** d'une politique ne couvre que cette politique, et les autres politiques l'alertent encore : ajoutez-le sous **Astreinte → Remplacements d'utilisateur** pour couvrir toutes les politiques. Vérifiez aussi **Commence** et **Se termine** : les horaires sont affichés dans votre fuseau horaire.
+Vérifiez où le remplacement a été ajouté. Un remplacement sur la page **Remplacements d'utilisateur** d'une politique ne couvre que cette politique, et les autres politiques l'alertent encore : ajoutez-le sous **Astreinte → Avancé → Remplacements d'utilisateur** pour couvrir toutes les politiques. Vérifiez aussi **Commence** et **Se termine** : les horaires sont affichés dans votre fuseau horaire.
 :::
 
 :::details Le remplaçant n'a pas été alerté non plus

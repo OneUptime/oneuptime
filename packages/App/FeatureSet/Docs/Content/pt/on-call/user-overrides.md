@@ -33,7 +33,7 @@ Quando a substituição termina, os acionamentos voltam a ser dela. A **Linha do
 :::steps
 ### Abrir as substituições
 
-Vá para **Plantão → Substituições de usuário** para cobrir alguém em todas as políticas de plantão, ou para a página **Substituições de usuário** de uma política, em **Avançado**, para cobrir a pessoa só nessa política. Clique em **Adicionar: Substituição de usuário**.
+Vá para **Plantão → Avançado → Substituições de usuário** para cobrir alguém em todas as políticas de plantão, ou para a página **Substituições de usuário** de uma política, em **Avançado**, para cobrir a pessoa só nessa política. Clique em **Adicionar: Substituição de usuário**.
 
 ### Dizer quem está ausente
 
@@ -54,7 +54,7 @@ Cada substituição é uma linha: **Ausente**, **Coberto por**, **Começa** e **
 
 | Adicionada em | Cartão | Vale para |
 | --- | --- | --- |
-| **Plantão → Substituições de usuário** | **Substituições de usuário globais** | Todas as políticas de plantão do projeto |
+| **Plantão → Avançado → Substituições de usuário** | **Substituições de usuário globais** | Todas as políticas de plantão do projeto |
 | **Substituições de usuário** de uma política | **Substituições de usuário da política de plantão** | Só essa política |
 
 Quando duas substituições da mesma pessoa se sobrepõem, a da própria política vale mais que uma global, e a que indica quem cobre vale mais que um pulo. Um acionamento enviado sem política, de um workflow ou do chat, segue só as substituições globais.
@@ -103,7 +103,7 @@ Uma substituição em que a pessoa ausente e quem cobre são a mesma pessoa é r
 ## Solução de problemas
 
 :::details A pessoa de férias foi acionada mesmo assim
-Confira onde a substituição foi adicionada. Uma na página **Substituições de usuário** de uma política cobre só essa política, e as outras políticas continuam acionando a pessoa: adicione-a em **Plantão → Substituições de usuário** para cobrir todas as políticas. Confira também **Começa** e **Termina**: os horários aparecem no seu fuso horário.
+Confira onde a substituição foi adicionada. Uma na página **Substituições de usuário** de uma política cobre só essa política, e as outras políticas continuam acionando a pessoa: adicione-a em **Plantão → Avançado → Substituições de usuário** para cobrir todas as políticas. Confira também **Começa** e **Termina**: os horários aparecem no seu fuso horário.
 :::
 
 :::details Quem cobria também não foi acionado

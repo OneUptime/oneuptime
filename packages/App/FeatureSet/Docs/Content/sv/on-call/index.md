@@ -103,7 +103,7 @@ När du har jour för en policy visar klockan uppe till höger det. Klicka på d
 :::
 
 :::details En person på semester larmas fortfarande
-Lägg till en användaråsidosättning med personen under **Vem är borta?**. En under **Jourtjänst → Användaråsidosättningar** gäller för varje policy; en på en policys egen sida **Användaråsidosättningar** gäller bara för den policyn. Se [Användaråsidosättningar](/docs/on-call/user-overrides).
+Lägg till en användaråsidosättning med personen under **Vem är borta?**. En under **Jourtjänst → Avancerad → Användaråsidosättningar** gäller för varje policy; en på en policys egen sida **Användaråsidosättningar** gäller bara för den policyn. Se [Användaråsidosättningar](/docs/on-call/user-overrides).
 :::
 
 ## Nästa steg

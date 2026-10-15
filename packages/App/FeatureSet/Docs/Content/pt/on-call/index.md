@@ -103,7 +103,7 @@ Abra **Plantão → Prontidão** e clique em **Coverage** na linha da pessoa. Al
 :::
 
 :::details Uma pessoa de férias continua sendo acionada
-Adicione uma substituição de usuário com ela em **Quem está ausente?**. Uma em **Plantão → Substituições de usuário** cobre todas as políticas; uma na página **Substituições de usuário** de uma política cobre só essa política. Veja [Substituições de usuário](/docs/on-call/user-overrides).
+Adicione uma substituição de usuário com ela em **Quem está ausente?**. Uma em **Plantão → Avançado → Substituições de usuário** cobre todas as políticas; uma na página **Substituições de usuário** de uma política cobre só essa política. Veja [Substituições de usuário](/docs/on-call/user-overrides).
 :::
 
 ## Próximos passos

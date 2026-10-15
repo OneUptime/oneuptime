@@ -93,7 +93,7 @@ flowchart TB
 Ausführungsprotokolle finden Sie an drei Stellen:
 
 - in den eigenen **Ausführungsprotokolle** der Richtlinie, unter **Protokolle**;
-- unter **Bereitschaftsdienst → Ausführungsprotokolle**, für jede Richtlinie, wobei direkte Alarmierungen aus Workflows und Chat als **Direkte Alarmierung** erscheinen;
+- unter **Bereitschaftsdienst → Erweitert → Ausführungsprotokolle**, für jede Richtlinie, wobei direkte Alarmierungen aus Workflows und Chat als **Direkte Alarmierung** erscheinen;
 - auf der Seite **Bereitschaftsausführungen** eines Vorfalls und unter **Bereitschaftsausführungen** einer Warnung.
 
 Jede Zeile zeigt, was den Lauf ausgelöst hat, wann, seinen **Status** und wer ihn bestätigt hat. **View Timeline** öffnet seine **Zeitachse der Ausführung**: jede Eskalationsregel, wen sie alarmiert hat, über welchen Plan und wie jeder Alarm geendet hat. Ein Plan, in dem niemand Bereitschaft hat, zeigt statt einer Person **No one was on call**. In OneUptime Cloud brauchen Ausführungsprotokolle den Plan **Growth**.
@@ -103,7 +103,7 @@ Jede Zeile zeigt, was den Lauf ausgelöst hat, wann, seinen **Status** und wer i
 Archivieren stellt eine Richtlinie außer Dienst und behält alles: Öffnen Sie die **Einstellungen** der Richtlinie und klicken Sie auf ihrer Archivkarte auf **Archivieren**, oder wählen Sie Richtlinien in der Liste aus und wählen Sie **Archivieren**.
 
 - Eine archivierte Richtlinie alarmiert niemanden. Vorfälle und Warnungen, die sie verwenden, überspringen sie, und ein Lauf, der noch eskaliert, endet bei seinem nächsten Schritt.
-- Sie verlässt die Liste **Bereitschaftsrichtlinien** und landet unter **Bereitschaftsdienst → Archivierte Richtlinien**, wo **Aus Archiv entfernen** sie wieder in Dienst stellt.
+- Sie verlässt die Liste **Bereitschaftsrichtlinien** und landet unter **Bereitschaftsdienst → Erweitert → Archivierte Richtlinien**, wo **Aus Archiv entfernen** sie wieder in Dienst stellt.
 
 **Richtlinie löschen**, unter **Erweitert**, löscht die Richtlinie mitsamt ihren Eskalationsregeln und Benutzerüberschreibungen. Das Löschen aus der Liste fragt vorher nach und schlägt vor, stattdessen zu archivieren.
 
@@ -136,7 +136,7 @@ OneUptime bringt laufende Richtlinien einmal pro Minute einen Schritt weiter, da
 :::
 
 :::details Ein Vorfall nennt eine Richtlinie, die niemanden alarmiert hat
-Die Richtlinie ist archiviert: Eine archivierte Richtlinie bleibt an den Vorfällen und Warnungen, die sie verwenden, alarmiert niemanden, und ihr Ausführungsprotokoll sagt, dass sie nicht ausgeführt wurde. Holen Sie sie unter **Bereitschaftsdienst → Archivierte Richtlinien** aus dem Archiv.
+Die Richtlinie ist archiviert: Eine archivierte Richtlinie bleibt an den Vorfällen und Warnungen, die sie verwenden, alarmiert niemanden, und ihr Ausführungsprotokoll sagt, dass sie nicht ausgeführt wurde. Holen Sie sie unter **Bereitschaftsdienst → Erweitert → Archivierte Richtlinien** aus dem Archiv.
 :::
 
 ## Nächste Schritte

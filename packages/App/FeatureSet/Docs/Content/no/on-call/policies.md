@@ -93,7 +93,7 @@ flowchart TB
 Du finner utførelseslogger tre steder:
 
 - i retningslinjens egne **Utførelseslogger**, under **Logger**;
-- under **Vakttjeneste → Utførelseslogger**, for alle retningslinjer, der direkte tilkallinger fra arbeidsflyter og chat står som **Direkte tilkalling**;
+- under **Vakttjeneste → Avansert → Utførelseslogger**, for alle retningslinjer, der direkte tilkallinger fra arbeidsflyter og chat står som **Direkte tilkalling**;
 - på siden **Vaktutførelser** for en hendelse, og under **Vaktutførelser** for et varsel.
 
 Hver rad viser hva som startet kjøringen, når, **Status** og hvem som bekreftet. **View Timeline** åpner **Tidslinje for utførelsen**: hver eskaleringsregel, hvem den tilkalte, gjennom hvilken vaktplan, og hvordan hver tilkalling endte. En vaktplan der ingen har vakt, viser **No one was on call** i stedet for en person. I OneUptime Cloud krever utførelseslogger abonnementet **Growth**.
@@ -103,7 +103,7 @@ Hver rad viser hva som startet kjøringen, når, **Status** og hvem som bekrefte
 Arkivering tar en retningslinje ut av drift og beholder alt: åpne **Innstillinger** for retningslinjen og klikk på **Arkiver** på arkivkortet, eller velg retningslinjer i listen og velg **Arkiver**.
 
 - En arkivert retningslinje tilkaller ingen. Hendelser og varsler som bruker den, hopper over den, og en kjøring som fortsatt eskalerer, stopper ved neste steg.
-- Den forlater listen **Vaktretningslinjer** og flyttes til **Vakttjeneste → Arkiverte retningslinjer**, der **Fjern fra arkiv** setter den i drift igjen.
+- Den forlater listen **Vaktretningslinjer** og flyttes til **Vakttjeneste → Avansert → Arkiverte retningslinjer**, der **Fjern fra arkiv** setter den i drift igjen.
 
 **Slett retningslinjer**, under **Avansert**, sletter retningslinjen sammen med eskaleringsreglene og brukeroverstyringene. Sletting fra listen spør først og foreslår å arkivere i stedet.
 
@@ -136,7 +136,7 @@ OneUptime fører kjørende retningslinjer et steg videre én gang i minuttet, s�
 :::
 
 :::details En hendelse viser en retningslinje som ikke tilkalte noen
-Retningslinjen er arkivert: en arkivert retningslinje blir stående på hendelsene og varslene som bruker den, tilkaller ingen, og utførelsesloggen sier at den ikke ble utført. Fjern den fra arkivet under **Vakttjeneste → Arkiverte retningslinjer**.
+Retningslinjen er arkivert: en arkivert retningslinje blir stående på hendelsene og varslene som bruker den, tilkaller ingen, og utførelsesloggen sier at den ikke ble utført. Fjern den fra arkivet under **Vakttjeneste → Avansert → Arkiverte retningslinjer**.
 :::
 
 ## Neste steg

@@ -93,7 +93,7 @@ flowchart TB
 Uitvoeringslogboeken vind je op drie plekken:
 
 - in de eigen **Uitvoeringslogboeken** van het beleid, onder **Logboeken**;
-- onder **Bereikbaarheidsdienst → Uitvoeringslogboeken**, voor elk beleid, waar directe oproepen vanuit workflows en chat staan als **Directe oproep**;
+- onder **Bereikbaarheidsdienst → Geavanceerd → Uitvoeringslogboeken**, voor elk beleid, waar directe oproepen vanuit workflows en chat staan als **Directe oproep**;
 - op de pagina **Bereikbaarheidsuitvoeringen** van een incident, en onder **Bereikbaarheidsuitvoeringen** van een waarschuwing.
 
 Elke rij toont wat de uitvoering startte, wanneer, de **Status** ervan en wie haar bevestigde. **View Timeline** opent de **Tijdlijn van de uitvoering**: elke escalatieregel, wie die opriep, via welk schema en hoe elke oproep afliep. Een schema waarin niemand dienst heeft, toont **No one was on call** in plaats van een persoon. In OneUptime Cloud hebben uitvoeringslogboeken het abonnement **Growth** nodig.
@@ -103,7 +103,7 @@ Elke rij toont wat de uitvoering startte, wanneer, de **Status** ervan en wie ha
 Archiveren neemt een beleid uit dienst en bewaart alles: open de **Instellingen** van het beleid en klik op **Archiveren** op de archiefkaart ervan, of selecteer beleid in de lijst en kies **Archiveren**.
 
 - Een gearchiveerd beleid roept niemand op. Incidenten en waarschuwingen die het gebruiken slaan het over, en een uitvoering die nog escaleert, stopt bij haar volgende stap.
-- Het verdwijnt uit de lijst **Bereikbaarheidsbeleid** naar **Bereikbaarheidsdienst → Gearchiveerde beleidsregels**, waar **Uit archief halen** het weer in dienst neemt.
+- Het verdwijnt uit de lijst **Bereikbaarheidsbeleid** naar **Bereikbaarheidsdienst → Geavanceerd → Gearchiveerde beleidsregels**, waar **Uit archief halen** het weer in dienst neemt.
 
 **Beleid verwijderen**, onder **Geavanceerd**, verwijdert het beleid samen met de escalatieregels en gebruikersoverschrijvingen ervan. Verwijderen vanuit de lijst vraagt eerst om bevestiging en stelt voor om in plaats daarvan te archiveren.
 
@@ -136,7 +136,7 @@ OneUptime brengt lopend beleid één keer per minuut een stap verder, dus een ni
 :::
 
 :::details Een incident noemt een beleid dat niemand opriep
-Het beleid is gearchiveerd: een gearchiveerd beleid blijft staan bij de incidenten en waarschuwingen die het gebruiken, roept niemand op, en het uitvoeringslogboek ervan zegt dat het niet is uitgevoerd. Haal het uit het archief onder **Bereikbaarheidsdienst → Gearchiveerde beleidsregels**.
+Het beleid is gearchiveerd: een gearchiveerd beleid blijft staan bij de incidenten en waarschuwingen die het gebruiken, roept niemand op, en het uitvoeringslogboek ervan zegt dat het niet is uitgevoerd. Haal het uit het archief onder **Bereikbaarheidsdienst → Geavanceerd → Gearchiveerde beleidsregels**.
 :::
 
 ## Volgende stappen

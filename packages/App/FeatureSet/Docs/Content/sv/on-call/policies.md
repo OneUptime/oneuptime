@@ -93,7 +93,7 @@ flowchart TB
 Du hittar exekveringsloggar på tre ställen:
 
 - i policyns egna **Exekveringsloggar**, under **Loggar**;
-- under **Jourtjänst → Exekveringsloggar**, för varje policy, där direkta utlarmningar från arbetsflöden och chatt visas som **Direkt utlarmning**;
+- under **Jourtjänst → Avancerad → Exekveringsloggar**, för varje policy, där direkta utlarmningar från arbetsflöden och chatt visas som **Direkt utlarmning**;
 - på en incidents sida **Jourexekveringar**, och under ett larms **Jourexekveringar**.
 
 Varje rad visar vad som startade körningen, när, dess **Status** och vem som bekräftade den. **View Timeline** öppnar dess **Tidslinje för körningen**: varje eskaleringsregel, vem den larmade, via vilket schema och hur varje utlarmning slutade. Ett schema där ingen har jour visar **No one was on call** i stället för en person. I OneUptime Cloud kräver exekveringsloggar abonnemanget **Growth**.
@@ -103,7 +103,7 @@ Varje rad visar vad som startade körningen, när, dess **Status** och vem som b
 Att arkivera tar en policy ur drift och behåller allt: öppna policyns **Inställningar** och klicka på **Arkivera** på dess arkiveringskort, eller markera policyer i listan och välj **Arkivera**.
 
 - En arkiverad policy larmar ingen. Incidenter och larm som använder den hoppar över den, och en körning som fortfarande eskalerar slutar vid sitt nästa steg.
-- Den lämnar listan **Jourpolicyer** för **Jourtjänst → Arkiverade policyer**, där **Avarkivera** sätter den i drift igen.
+- Den lämnar listan **Jourpolicyer** för **Jourtjänst → Avancerad → Arkiverade policyer**, där **Avarkivera** sätter den i drift igen.
 
 **Ta bort policy**, under **Avancerad**, tar bort policyn med dess eskaleringsregler och användaråsidosättningar. Borttagning från listan frågar först och föreslår att arkivera i stället.
 
@@ -136,7 +136,7 @@ OneUptime för körande policyer ett steg vidare en gång i minuten, så en niv�
 :::
 
 :::details En incident visar en policy som inte larmade någon
-Policyn är arkiverad: en arkiverad policy finns kvar på incidenterna och larmen som använder den, larmar ingen, och dess exekveringslogg säger att den inte kördes. Avarkivera den under **Jourtjänst → Arkiverade policyer**.
+Policyn är arkiverad: en arkiverad policy finns kvar på incidenterna och larmen som använder den, larmar ingen, och dess exekveringslogg säger att den inte kördes. Avarkivera den under **Jourtjänst → Avancerad → Arkiverade policyer**.
 :::
 
 ## Nästa steg

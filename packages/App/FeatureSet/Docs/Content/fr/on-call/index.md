@@ -103,7 +103,7 @@ Ouvrez **Astreinte → Disponibilité** et cliquez sur **Couverture** sur sa lig
 :::
 
 :::details Une personne en congé est toujours alertée
-Ajoutez un remplacement d'utilisateur avec elle sous **Qui est absent ?**. Un remplacement sous **Astreinte → Remplacements d'utilisateur** couvre toutes les politiques ; un remplacement sur la page **Remplacements d'utilisateur** d'une politique ne couvre que cette politique. Voir [Remplacements d'utilisateur](/docs/on-call/user-overrides).
+Ajoutez un remplacement d'utilisateur avec elle sous **Qui est absent ?**. Un remplacement sous **Astreinte → Avancé → Remplacements d'utilisateur** couvre toutes les politiques ; un remplacement sur la page **Remplacements d'utilisateur** d'une politique ne couvre que cette politique. Voir [Remplacements d'utilisateur](/docs/on-call/user-overrides).
 :::
 
 ## Étapes suivantes

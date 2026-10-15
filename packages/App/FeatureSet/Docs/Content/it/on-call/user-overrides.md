@@ -33,7 +33,7 @@ Quando la sostituzione finisce, gli avvisi tornano alla persona. La **Cronologia
 :::steps
 ### Aprire le sostituzioni
 
-Andate in **Reperibilità → Sostituzioni utente** per sostituire qualcuno in tutte le policy di reperibilità, oppure nella pagina **Sostituzioni utente** di una policy, in **Avanzato**, per sostituirlo solo in quella policy. Fate clic su **Aggiungi: Sostituzione utente**.
+Andate in **Reperibilità → Avanzato → Sostituzioni utente** per sostituire qualcuno in tutte le policy di reperibilità, oppure nella pagina **Sostituzioni utente** di una policy, in **Avanzato**, per sostituirlo solo in quella policy. Fate clic su **Aggiungi: Sostituzione utente**.
 
 ### Indicare chi è assente
 
@@ -54,7 +54,7 @@ Ogni sostituzione è una riga: **Assente**, **Sostituito da**, **Inizia** e **Te
 
 | Aggiunta in | Scheda | Si applica a |
 | --- | --- | --- |
-| **Reperibilità → Sostituzioni utente** | **Sostituzioni utente globali** | Tutte le policy di reperibilità del progetto |
+| **Reperibilità → Avanzato → Sostituzioni utente** | **Sostituzioni utente globali** | Tutte le policy di reperibilità del progetto |
 | **Sostituzioni utente** di una policy | **Sostituzioni utente della policy di reperibilità** | Solo quella policy |
 
 Quando due sostituzioni per la stessa persona si sovrappongono, quella della policy prevale su una globale, e quella che indica un sostituto prevale su un salto. Un avviso inviato senza policy, da un workflow o dalla chat, segue solo le sostituzioni globali.
@@ -103,7 +103,7 @@ Una sostituzione in cui la persona assente e il sostituto coincidono viene rifiu
 ## Risoluzione dei problemi
 
 :::details La persona in ferie è stata avvisata lo stesso
-Controllate dove è stata aggiunta la sostituzione. Una sulla pagina **Sostituzioni utente** di una policy copre solo quella policy, e le altre policy la avvisano ancora: aggiungetela in **Reperibilità → Sostituzioni utente** per coprire tutte le policy. Controllate anche **Inizia** e **Termina**: gli orari sono mostrati nel vostro fuso orario.
+Controllate dove è stata aggiunta la sostituzione. Una sulla pagina **Sostituzioni utente** di una policy copre solo quella policy, e le altre policy la avvisano ancora: aggiungetela in **Reperibilità → Avanzato → Sostituzioni utente** per coprire tutte le policy. Controllate anche **Inizia** e **Termina**: gli orari sono mostrati nel vostro fuso orario.
 :::
 
 :::details Neanche il sostituto è stato avvisato

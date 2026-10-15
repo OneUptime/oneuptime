@@ -33,7 +33,7 @@ Is de overschrijving voorbij, dan zijn de oproepen weer van de persoon zelf. De 
 :::steps
 ### De overschrijvingen openen
 
-Ga naar **Bereikbaarheidsdienst → Gebruikersoverschrijvingen** om iemand in elk bereikbaarheidsbeleid te vervangen, of naar de pagina **Gebruikersoverschrijvingen** van een beleid, onder **Geavanceerd**, om iemand alleen in dat beleid te vervangen. Klik op **Gebruikersoverschrijving toevoegen**.
+Ga naar **Bereikbaarheidsdienst → Geavanceerd → Gebruikersoverschrijvingen** om iemand in elk bereikbaarheidsbeleid te vervangen, of naar de pagina **Gebruikersoverschrijvingen** van een beleid, onder **Geavanceerd**, om iemand alleen in dat beleid te vervangen. Klik op **Gebruikersoverschrijving toevoegen**.
 
 ### Zeggen wie afwezig is
 
@@ -54,7 +54,7 @@ Elke overschrijving is een rij: **Afwezig**, **Vervangen door**, **Begint** en *
 
 | Toegevoegd onder | Kaart | Geldt voor |
 | --- | --- | --- |
-| **Bereikbaarheidsdienst → Gebruikersoverschrijvingen** | **Globale gebruikersoverschrijvingen** | Elk bereikbaarheidsbeleid in het project |
+| **Bereikbaarheidsdienst → Geavanceerd → Gebruikersoverschrijvingen** | **Globale gebruikersoverschrijvingen** | Elk bereikbaarheidsbeleid in het project |
 | **Gebruikersoverschrijvingen** van een beleid | **Gebruikersoverschrijvingen van het bereikbaarheidsbeleid** | Alleen dat beleid |
 
 Overlappen twee overschrijvingen voor dezelfde persoon, dan gaat die van het beleid zelf voor op een globale, en gaat een die een vervanger noemt voor op overslaan. Een oproep zonder beleid, vanuit een workflow of vanuit chat, volgt alleen de globale overschrijvingen.
@@ -103,7 +103,7 @@ Een overschrijving waarin de afwezige persoon en de vervanger dezelfde zijn, wor
 ## Probleemoplossing
 
 :::details De persoon op vakantie werd toch opgeroepen
-Controleer waar de overschrijving is toegevoegd. Een op de pagina **Gebruikersoverschrijvingen** van een beleid geldt alleen voor dat beleid, en ander beleid roept de persoon nog steeds op: voeg haar toe onder **Bereikbaarheidsdienst → Gebruikersoverschrijvingen** om elk beleid te dekken. Controleer ook **Begint** en **Eindigt**: tijden staan in jouw tijdzone.
+Controleer waar de overschrijving is toegevoegd. Een op de pagina **Gebruikersoverschrijvingen** van een beleid geldt alleen voor dat beleid, en ander beleid roept de persoon nog steeds op: voeg haar toe onder **Bereikbaarheidsdienst → Geavanceerd → Gebruikersoverschrijvingen** om elk beleid te dekken. Controleer ook **Begint** en **Eindigt**: tijden staan in jouw tijdzone.
 :::
 
 :::details De vervanger werd ook niet opgeroepen

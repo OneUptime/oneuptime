@@ -983,12 +983,12 @@ describe.each(LANGUAGES)("%s", (language: string) => {
 
 describe("the helpers, on these pages' shapes", () => {
   it("draw the Dashboard's paths from its own keys", () => {
-    expect(drawnPath("en", ["On-Call Duty", "User Overrides"])).toBe(
-      "**On-Call Duty → User Overrides**",
-    );
-    expect(drawnPath("de", ["On-Call Duty", "User Overrides"])).toBe(
-      "**Bereitschaftsdienst → Benutzerüberschreibungen**",
-    );
+    expect(
+      drawnPath("en", ["On-Call Duty", "Advanced", "User Overrides"]),
+    ).toBe("**On-Call Duty → Advanced → User Overrides**");
+    expect(
+      drawnPath("de", ["On-Call Duty", "Advanced", "User Overrides"]),
+    ).toBe("**Bereitschaftsdienst → Erweitert → Benutzerüberschreibungen**");
     // Persian bolds each segment, joined by " > ".
     expect(drawnPath("fa", ["On-Call Duty", "Readiness"])).toContain(" > ");
   });

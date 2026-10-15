@@ -103,7 +103,7 @@ Når du har vakt for en retningslinje, viser klokken øverst til høyre det. Kli
 :::
 
 :::details En person på ferie blir fortsatt tilkalt
-Legg til en brukeroverstyring med personen under **Hvem er borte?**. En under **Vakttjeneste → Brukeroverstyringer** gjelder for alle retningslinjer; en på en retningslinjes egen side **Brukeroverstyringer** gjelder bare for den retningslinjen. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
+Legg til en brukeroverstyring med personen under **Hvem er borte?**. En under **Vakttjeneste → Avansert → Brukeroverstyringer** gjelder for alle retningslinjer; en på en retningslinjes egen side **Brukeroverstyringer** gjelder bare for den retningslinjen. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
 :::
 
 ## Neste steg

@@ -93,7 +93,7 @@ flowchart TB
 Trovate i registri di esecuzione in tre posti:
 
 - nei **Registri di esecuzione** della policy stessa, in **Registri**;
-- in **Reperibilità → Registri di esecuzione**, per tutte le policy, dove le chiamate dirette da workflow e chat compaiono come **Chiamata diretta**;
+- in **Reperibilità → Avanzato → Registri di esecuzione**, per tutte le policy, dove le chiamate dirette da workflow e chat compaiono come **Chiamata diretta**;
 - nella pagina **Esecuzioni di reperibilità** di un incidente, e in **Esecuzioni di reperibilità** di un avviso.
 
 Ogni riga mostra che cosa ha avviato l'esecuzione, quando, il suo **Stato** e chi l'ha riconosciuta. **View Timeline** apre la sua **Cronologia di esecuzione**: ogni regola di escalation, chi ha avvisato, tramite quale pianificazione e come è finito ogni avviso. Una pianificazione in cui nessuno è reperibile mostra **No one was on call** al posto di una persona. Su OneUptime Cloud, i registri di esecuzione richiedono il piano **Growth**.
@@ -103,7 +103,7 @@ Ogni riga mostra che cosa ha avviato l'esecuzione, quando, il suo **Stato** e ch
 Archiviare toglie una policy dal servizio e conserva tutto: aprite le **Impostazioni** della policy e fate clic su **Archivia** nella sua scheda di archiviazione, oppure selezionate delle policy nell'elenco e scegliete **Archivia**.
 
 - Una policy archiviata non avvisa nessuno. Gli incidenti e gli avvisi che la usano la saltano, e un'esecuzione ancora in escalation si ferma al passo successivo.
-- Esce dall'elenco **Policy di reperibilità** e passa in **Reperibilità → Policy archiviate**, dove **Annulla archiviazione** la rimette in servizio.
+- Esce dall'elenco **Policy di reperibilità** e passa in **Reperibilità → Avanzato → Policy archiviate**, dove **Annulla archiviazione** la rimette in servizio.
 
 **Elimina policy**, in **Avanzato**, elimina la policy insieme alle sue regole di escalation e alle sue sostituzioni utente. L'eliminazione dall'elenco chiede prima conferma e propone di archiviare invece.
 
@@ -136,7 +136,7 @@ OneUptime fa avanzare le policy in corso una volta al minuto, quindi un livello 
 :::
 
 :::details Un incidente mostra una policy che non ha avvisato nessuno
-La policy è archiviata: una policy archiviata resta sugli incidenti e sugli avvisi che la usano, non avvisa nessuno, e il suo registro di esecuzione dice che non è stata eseguita. Ripristinatela in **Reperibilità → Policy archiviate**.
+La policy è archiviata: una policy archiviata resta sugli incidenti e sugli avvisi che la usano, non avvisa nessuno, e il suo registro di esecuzione dice che non è stata eseguita. Ripristinatela in **Reperibilità → Avanzato → Policy archiviate**.
 :::
 
 ## Passi successivi

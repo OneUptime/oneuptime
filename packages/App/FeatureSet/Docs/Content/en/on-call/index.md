@@ -103,7 +103,7 @@ Open **On-Call Duty → Readiness** and click **Coverage** on their row. It show
 :::
 
 :::details A person on holiday is still being paged
-Add a user override with them under **Who is away?**. One under **On-Call Duty → User Overrides** covers every policy; one on a policy's own **User Overrides** page covers that policy only. See [User Overrides](/docs/on-call/user-overrides).
+Add a user override with them under **Who is away?**. One under **On-Call Duty → Advanced → User Overrides** covers every policy; one on a policy's own **User Overrides** page covers that policy only. See [User Overrides](/docs/on-call/user-overrides).
 :::
 
 ## Next steps

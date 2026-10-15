@@ -33,7 +33,7 @@ När åsidosättningen tar slut är utlarmningarna personens egna igen. **Tidsli
 :::steps
 ### Öppna åsidosättningarna
 
-Gå till **Jourtjänst → Användaråsidosättningar** för att täcka upp för någon i varje jourpolicy, eller till en policys egen sida **Användaråsidosättningar**, under **Avancerad**, för att täcka upp för personen bara i den policyn. Klicka på **Lägg till Användaråsidosättning**.
+Gå till **Jourtjänst → Avancerad → Användaråsidosättningar** för att täcka upp för någon i varje jourpolicy, eller till en policys egen sida **Användaråsidosättningar**, under **Avancerad**, för att täcka upp för personen bara i den policyn. Klicka på **Lägg till Användaråsidosättning**.
 
 ### Ange vem som är borta
 
@@ -54,7 +54,7 @@ Varje åsidosättning är en rad: **Borta**, **Täcks av**, **Börjar** och **Sl
 
 | Tillagd under | Kort | Gäller för |
 | --- | --- | --- |
-| **Jourtjänst → Användaråsidosättningar** | **Globala användaråsidosättningar** | Varje jourpolicy i projektet |
+| **Jourtjänst → Avancerad → Användaråsidosättningar** | **Globala användaråsidosättningar** | Varje jourpolicy i projektet |
 | En policys **Användaråsidosättningar** | **Jourpolicyns användaråsidosättningar** | Bara den policyn |
 
 När två åsidosättningar för samma person överlappar vinner policyns egen över en global, och en som anger vem som täcker upp vinner över en som hoppar över. En utlarmning utan policy, från ett arbetsflöde eller från chatt, följer bara de globala åsidosättningarna.
@@ -103,7 +103,7 @@ En åsidosättning där personen som är borta och den som täcker upp är samma
 ## Felsökning
 
 :::details Personen på semester larmades ändå
-Kontrollera var åsidosättningen lades till. En på en policys sida **Användaråsidosättningar** gäller bara den policyn, och andra policyer larmar fortfarande personen: lägg till den under **Jourtjänst → Användaråsidosättningar** för att täcka varje policy. Kontrollera också **Börjar** och **Slutar**: tiderna visas i din tidszon.
+Kontrollera var åsidosättningen lades till. En på en policys sida **Användaråsidosättningar** gäller bara den policyn, och andra policyer larmar fortfarande personen: lägg till den under **Jourtjänst → Avancerad → Användaråsidosättningar** för att täcka varje policy. Kontrollera också **Börjar** och **Slutar**: tiderna visas i din tidszon.
 :::
 
 :::details Den som täcker upp larmades inte heller

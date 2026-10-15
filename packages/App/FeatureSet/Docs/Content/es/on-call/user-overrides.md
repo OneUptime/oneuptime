@@ -33,7 +33,7 @@ Cuando termina la sustitución, los avisos vuelven a ser suyos. La **Cronología
 :::steps
 ### Abrir las sustituciones
 
-Ve a **Guardia → Sustituciones de usuarios** para cubrir a alguien en todas las políticas de guardia, o a la página **Sustituciones de usuarios** de una política, en **Avanzado**, para cubrirlo solo en esa política. Haz clic en **Añadir Sustitución de usuario**.
+Ve a **Guardia → Avanzado → Sustituciones de usuarios** para cubrir a alguien en todas las políticas de guardia, o a la página **Sustituciones de usuarios** de una política, en **Avanzado**, para cubrirlo solo en esa política. Haz clic en **Añadir Sustitución de usuario**.
 
 ### Indicar quién está ausente
 
@@ -54,7 +54,7 @@ Cada sustitución es una fila: **Ausente**, **Cubierto por**, **Empieza** y **Fi
 
 | Añadida en | Tarjeta | Se aplica a |
 | --- | --- | --- |
-| **Guardia → Sustituciones de usuarios** | **Sustituciones globales de usuarios** | Todas las políticas de guardia del proyecto |
+| **Guardia → Avanzado → Sustituciones de usuarios** | **Sustituciones globales de usuarios** | Todas las políticas de guardia del proyecto |
 | **Sustituciones de usuarios** de una política | **Sustituciones de usuarios de la política de guardia** | Solo esa política |
 
 Cuando dos sustituciones de la misma persona se solapan, la de la propia política gana a una global, y la que nombra a quien cubre gana a una omisión. Un aviso enviado sin política, desde un workflow o desde el chat, solo sigue las sustituciones globales.
@@ -103,7 +103,7 @@ Se rechaza una sustitución cuya persona ausente y cuya cobertura son la misma p
 ## Solución de problemas
 
 :::details La persona de vacaciones recibió avisos igualmente
-Comprueba dónde se añadió la sustitución. Una en la página **Sustituciones de usuarios** de una política cubre solo esa política, y las demás políticas siguen avisándola: añádela en **Guardia → Sustituciones de usuarios** para cubrir todas las políticas. Comprueba también **Empieza** y **Finaliza**: las horas se muestran en tu zona horaria.
+Comprueba dónde se añadió la sustitución. Una en la página **Sustituciones de usuarios** de una política cubre solo esa política, y las demás políticas siguen avisándola: añádela en **Guardia → Avanzado → Sustituciones de usuarios** para cubrir todas las políticas. Comprueba también **Empieza** y **Finaliza**: las horas se muestran en tu zona horaria.
 :::
 
 :::details Tampoco se avisó a quien cubría

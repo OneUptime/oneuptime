@@ -33,7 +33,7 @@ Once the override ends, the pages are theirs again. The **Schedule Timeline**, a
 :::steps
 ### Open the overrides
 
-Go to **On-Call Duty → User Overrides** to cover someone on every on-call policy, or to a policy's own **User Overrides** page, under **Advanced**, to cover them on that policy only. Click **Add User Override**.
+Go to **On-Call Duty → Advanced → User Overrides** to cover someone on every on-call policy, or to a policy's own **User Overrides** page, under **Advanced**, to cover them on that policy only. Click **Add User Override**.
 
 ### Say who is away
 
@@ -54,7 +54,7 @@ Each override is a row: **Away**, **Covered by**, **Starts** and **Ends**, filte
 
 | Added under | Card | Applies to |
 | --- | --- | --- |
-| **On-Call Duty → User Overrides** | **Global User Overrides** | Every on-call policy in the project |
+| **On-Call Duty → Advanced → User Overrides** | **Global User Overrides** | Every on-call policy in the project |
 | A policy's **User Overrides** | **On-Call Policy User Overrides** | That policy only |
 
 When two overrides for the same person overlap, the policy's own one wins over a global one, and one that names who covers wins over a skip. A page sent without a policy, from a workflow or from chat, follows the global overrides only.
@@ -103,7 +103,7 @@ An override whose away person and cover are the same is refused, and so is one t
 ## Troubleshooting
 
 :::details The person on holiday was still paged
-Check where the override was added. One on a policy's **User Overrides** page covers that policy only, and other policies still page them: add it under **On-Call Duty → User Overrides** to cover every policy. Check its **Starts** and **Ends** too: times are shown in your time zone.
+Check where the override was added. One on a policy's **User Overrides** page covers that policy only, and other policies still page them: add it under **On-Call Duty → Advanced → User Overrides** to cover every policy. Check its **Starts** and **Ends** too: times are shown in your time zone.
 :::
 
 :::details The person covering was not paged either

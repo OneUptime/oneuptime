@@ -1035,7 +1035,7 @@ describe("execution logs", () => {
       readCommonSource("UI/Components/OnCallDirectPage/DirectPageLabel.tsx"),
     ).toContain('DIRECT_PAGE_LABEL: string = translationKey("Direct page")');
     expect(statusTable()).toContain(
-      "- **On-Call Duty → Execution Logs**, for every policy, with direct pages from workflows and chat listed as **Direct page**;",
+      "- **On-Call Duty → Advanced → Execution Logs**, for every policy, with direct pages from workflows and chat listed as **Direct page**;",
     );
     expect(statusTable()).toContain(
       "- the **On-Call Executions** page of an incident, and **On Call Executions** of an alert.",
@@ -1127,7 +1127,7 @@ describe("archiving and deleting a policy", () => {
       readCommonSource("UI/Components/BulkUpdate/BulkArchiveActions.tsx"),
     ).toContain('title: "Unarchive"');
     expect(english(ON_CALL_POLICIES)).toContain(
-      "- It leaves the **On-Call Policies** list for **On-Call Duty → Archived Policies**, where **Unarchive** puts it back in service.",
+      "- It leaves the **On-Call Policies** list for **On-Call Duty → Advanced → Archived Policies**, where **Unarchive** puts it back in service.",
     );
   });
 
@@ -1297,7 +1297,7 @@ describe("user overrides", () => {
       "**On-Call Policy User Overrides**",
     ]);
     expect(placement).toEqual([
-      "**On-Call Duty → User Overrides**",
+      "**On-Call Duty → Advanced → User Overrides**",
       "A policy's **User Overrides**",
     ]);
     expect(english(USER_OVERRIDES)).toContain(

@@ -33,7 +33,7 @@ Når tilsidesættelsen slutter, er tilkaldene deres igen. **Tidslinje for vagtpl
 :::steps
 ### Åbn tilsidesættelserne
 
-Gå til **Vagtordning → Brugertilsidesættelser** for at dække for nogen i alle vagtpolitikker, eller til en politiks egen side **Brugertilsidesættelser**, under **Avanceret**, for kun at dække for dem i den politik. Klik på **Tilføj Brugertilsidesættelse**.
+Gå til **Vagtordning → Avanceret → Brugertilsidesættelser** for at dække for nogen i alle vagtpolitikker, eller til en politiks egen side **Brugertilsidesættelser**, under **Avanceret**, for kun at dække for dem i den politik. Klik på **Tilføj Brugertilsidesættelse**.
 
 ### Angiv, hvem der er fraværende
 
@@ -54,7 +54,7 @@ Hver tilsidesættelse er en række: **Fraværende**, **Dækket af**, **Starter**
 
 | Tilføjet under | Kort | Gælder for |
 | --- | --- | --- |
-| **Vagtordning → Brugertilsidesættelser** | **Globale brugertilsidesættelser** | Alle vagtpolitikker i projektet |
+| **Vagtordning → Avanceret → Brugertilsidesættelser** | **Globale brugertilsidesættelser** | Alle vagtpolitikker i projektet |
 | En politiks **Brugertilsidesættelser** | **Vagtpolitikkens brugertilsidesættelser** | Kun den politik |
 
 Når to tilsidesættelser for den samme person overlapper, vinder politikkens egen over en global, og en, der nævner, hvem der dækker, vinder over et overspring. Et tilkald uden en politik, fra et workflow eller fra chat, følger kun de globale tilsidesættelser.
@@ -103,7 +103,7 @@ En tilsidesættelse, hvor den fraværende person og den, der dækker, er den sam
 ## Fejlfinding
 
 :::details Personen på ferie blev stadig tilkaldt
-Tjek, hvor tilsidesættelsen blev tilføjet. En på en politiks side **Brugertilsidesættelser** dækker kun den politik, og andre politikker tilkalder stadig personen: tilføj den under **Vagtordning → Brugertilsidesættelser** for at dække alle politikker. Tjek også **Starter** og **Slutter**: tidspunkter vises i din tidszone.
+Tjek, hvor tilsidesættelsen blev tilføjet. En på en politiks side **Brugertilsidesættelser** dækker kun den politik, og andre politikker tilkalder stadig personen: tilføj den under **Vagtordning → Avanceret → Brugertilsidesættelser** for at dække alle politikker. Tjek også **Starter** og **Slutter**: tidspunkter vises i din tidszone.
 :::
 
 :::details Den, der dækker, blev heller ikke tilkaldt

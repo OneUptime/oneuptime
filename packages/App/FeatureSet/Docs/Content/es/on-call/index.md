@@ -103,7 +103,7 @@ Abre **Guardia → Preparación** y haz clic en **Cobertura** en su fila. Verás
 :::
 
 :::details Una persona de vacaciones sigue recibiendo avisos
-Añade una sustitución de usuario con ella en **¿Quién está ausente?**. Una en **Guardia → Sustituciones de usuarios** cubre todas las políticas; una en la página **Sustituciones de usuarios** de una política cubre solo esa política. Consulta [Sustituciones de usuarios](/docs/on-call/user-overrides).
+Añade una sustitución de usuario con ella en **¿Quién está ausente?**. Una en **Guardia → Avanzado → Sustituciones de usuarios** cubre todas las políticas; una en la página **Sustituciones de usuarios** de una política cubre solo esa política. Consulta [Sustituciones de usuarios](/docs/on-call/user-overrides).
 :::
 
 ## Próximos pasos

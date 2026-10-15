@@ -93,7 +93,7 @@ flowchart TB
 You find execution logs in three places:
 
 - the policy's own **Execution Logs**, under **Logs**;
-- **On-Call Duty → Execution Logs**, for every policy, with direct pages from workflows and chat listed as **Direct page**;
+- **On-Call Duty → Advanced → Execution Logs**, for every policy, with direct pages from workflows and chat listed as **Direct page**;
 - the **On-Call Executions** page of an incident, and **On Call Executions** of an alert.
 
 Each row shows what triggered the run, when, its **Status** and who acknowledged it. **View Timeline** opens its **Execution Timeline**: each escalation rule, who it paged, through which schedule, and how each page ended. A schedule with nobody on call shows **No one was on call** instead of a person. On OneUptime Cloud, execution logs need the **Growth** plan.
@@ -103,7 +103,7 @@ Each row shows what triggered the run, when, its **Status** and who acknowledged
 Archiving takes a policy out of service and keeps everything: open the policy's **Settings** and click **Archive** on its archive card, or select policies in the list and choose **Archive**.
 
 - An archived policy pages no one. Incidents and alerts that use it skip it, and a run that is still escalating stops at its next step.
-- It leaves the **On-Call Policies** list for **On-Call Duty → Archived Policies**, where **Unarchive** puts it back in service.
+- It leaves the **On-Call Policies** list for **On-Call Duty → Advanced → Archived Policies**, where **Unarchive** puts it back in service.
 
 **Delete Policy**, under **Advanced**, deletes the policy with its escalation rules and user overrides. The list's delete asks first, and suggests archiving instead.
 
@@ -136,7 +136,7 @@ OneUptime moves running policies on once a minute, so a level is paged at the fi
 :::
 
 :::details An incident lists a policy that paged nobody
-The policy is archived: an archived policy stays on the incidents and alerts that use it, and pages nobody, and its execution log says it was not executed. Unarchive it under **On-Call Duty → Archived Policies**.
+The policy is archived: an archived policy stays on the incidents and alerts that use it, and pages nobody, and its execution log says it was not executed. Unarchive it under **On-Call Duty → Advanced → Archived Policies**.
 :::
 
 ## Next steps

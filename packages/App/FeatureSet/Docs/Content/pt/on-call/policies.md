@@ -93,7 +93,7 @@ flowchart TB
 Você encontra registros de execução em três lugares:
 
 - nos próprios **Registros de execução** da política, em **Registros**;
-- em **Plantão → Registros de execução**, para todas as políticas, onde os acionamentos diretos de workflows e do chat aparecem como **Acionamento direto**;
+- em **Plantão → Avançado → Registros de execução**, para todas as políticas, onde os acionamentos diretos de workflows e do chat aparecem como **Acionamento direto**;
 - na página **Execuções de plantão** de um incidente, e em **Execuções de plantão** de um alerta.
 
 Cada linha mostra o que disparou a execução, quando, seu **Status** e quem a confirmou. **View Timeline** abre a **Linha do tempo de execução** dela: cada regra de escalonamento, quem ela acionou, por qual agendamento e como cada acionamento terminou. Um agendamento sem ninguém de plantão mostra **No one was on call** no lugar de uma pessoa. No OneUptime Cloud, os registros de execução precisam do plano **Growth**.
@@ -103,7 +103,7 @@ Cada linha mostra o que disparou a execução, quando, seu **Status** e quem a c
 Arquivar tira uma política de serviço e mantém tudo: abra as **Configurações** da política e clique em **Arquivar** no cartão de arquivamento dela, ou selecione políticas na lista e escolha **Arquivar**.
 
 - Uma política arquivada não aciona ninguém. Os incidentes e alertas que a usam a pulam, e uma execução que ainda esteja escalonando para no próximo passo.
-- Ela sai da lista **Políticas de plantão** e vai para **Plantão → Políticas arquivadas**, onde **Desarquivar** a coloca de volta em serviço.
+- Ela sai da lista **Políticas de plantão** e vai para **Plantão → Avançado → Políticas arquivadas**, onde **Desarquivar** a coloca de volta em serviço.
 
 **Excluir política**, em **Avançado**, exclui a política junto com suas regras de escalonamento e substituições de usuário. A exclusão pela lista pede confirmação antes e sugere arquivar no lugar.
 
@@ -136,7 +136,7 @@ O OneUptime avança as políticas em andamento uma vez por minuto, então um ní
 :::
 
 :::details Um incidente mostra uma política que não acionou ninguém
-A política está arquivada: uma política arquivada continua nos incidentes e alertas que a usam, não aciona ninguém, e o registro de execução dela diz que não foi executada. Desarquive-a em **Plantão → Políticas arquivadas**.
+A política está arquivada: uma política arquivada continua nos incidentes e alertas que a usam, não aciona ninguém, e o registro de execução dela diz que não foi executada. Desarquive-a em **Plantão → Avançado → Políticas arquivadas**.
 :::
 
 ## Próximos passos

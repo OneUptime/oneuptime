@@ -93,7 +93,7 @@ flowchart TB
 Du finder udførelseslogs tre steder:
 
 - i politikkens egne **Udførelseslogs**, under **Protokoller**;
-- under **Vagtordning → Udførelseslogs**, for alle politikker, hvor direkte tilkald fra workflows og chat står som **Direkte tilkald**;
+- under **Vagtordning → Avanceret → Udførelseslogs**, for alle politikker, hvor direkte tilkald fra workflows og chat står som **Direkte tilkald**;
 - på en hændelses side **Vagtudførelser** og under en advarsels **Vagtudførelser**.
 
 Hver række viser, hvad der startede kørslen, hvornår, dens **Status** og hvem der kvitterede. **View Timeline** åbner dens **Tidslinje for udførelsen**: hver eskaleringsregel, hvem den tilkaldte, via hvilken vagtplan, og hvordan hvert tilkald endte. En vagtplan, hvor ingen har vagt, viser **No one was on call** i stedet for en person. I OneUptime Cloud kræver udførelseslogs abonnementet **Growth**.
@@ -103,7 +103,7 @@ Hver række viser, hvad der startede kørslen, hvornår, dens **Status** og hvem
 Arkivering tager en politik ud af drift og beholder alt: åbn politikkens **Indstillinger**, og klik på **Arkiver** på dens arkiveringskort, eller vælg politikker i listen, og vælg **Arkiver**.
 
 - En arkiveret politik tilkalder ingen. Hændelser og advarsler, der bruger den, springer den over, og en kørsel, der stadig eskalerer, stopper ved sit næste skridt.
-- Den forlader listen **Vagtpolitikker** og flytter til **Vagtordning → Arkiverede politikker**, hvor **Fjern fra arkiv** sætter den i drift igen.
+- Den forlader listen **Vagtpolitikker** og flytter til **Vagtordning → Avanceret → Arkiverede politikker**, hvor **Fjern fra arkiv** sætter den i drift igen.
 
 **Slet politik**, under **Avanceret**, sletter politikken med dens eskaleringsregler og brugertilsidesættelser. Sletning fra listen spørger først og foreslår at arkivere i stedet.
 
@@ -136,7 +136,7 @@ OneUptime fører kørende politikker et skridt videre én gang i minuttet, så e
 :::
 
 :::details En hændelse viser en politik, der ikke tilkaldte nogen
-Politikken er arkiveret: en arkiveret politik bliver stående på de hændelser og advarsler, der bruger den, tilkalder ingen, og dens udførelseslog siger, at den ikke blev udført. Fjern den fra arkivet under **Vagtordning → Arkiverede politikker**.
+Politikken er arkiveret: en arkiveret politik bliver stående på de hændelser og advarsler, der bruger den, tilkalder ingen, og dens udførelseslog siger, at den ikke blev udført. Fjern den fra arkivet under **Vagtordning → Avanceret → Arkiverede politikker**.
 :::
 
 ## Næste trin
