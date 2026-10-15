@@ -196,10 +196,10 @@ Varje ställe som visar en enhet — listan Devices, en plats Devices-sida, öve
 | --- | --- | --- |
 | **Stale** | Ingen avsökning har försökts på betydligt längre tid än enhetens intervall. | Kontrollera att enhetens sond är online och hinner med sin flotta. |
 | **No probe** | Enheten avsöks av en sond men har ingen, eller dess avsökning är avstängd. | Tilldela en sond som kan nå den; inget avsöker den förrän dess. |
-| **No monitor** | Enheten använder [åsidosättningen med bunden monitor](#åsidosättningen-med-bunden-monitor) och inget är bundet. | Bind en monitor, eller byt tillbaka den till avsökning via sond. |
+| **Ingen övervakning** | Enheten använder [åsidosättningen med bunden monitor](#åsidosättningen-med-bunden-monitor) och inget är bundet. | Bind en monitor, eller byt tillbaka den till avsökning via sond. |
 | **SNMP failing** | Uppe på ping, men den senaste SNMP-walken misslyckades. | Kontrollera autentiseringsuppgifterna, SNMP-agenten eller en ACL. |
 
-Listan **Devices** har ett filter **SNMP** med tre värden: **OK** (den senaste walken lyckades), **Failing** (den senaste walken misslyckades) och **Not configured** (bara ping, inga autentiseringsuppgifter eller aldrig avsökt). "Vilka enheter har autentiseringsuppgifter som har slutat fungera" är ett klick bort. Listans kolumn **Interfaces (Up / Down)** visar **No SNMP** i stället för `0 / 0` för en enhet som pingas och aldrig walkas: noll fungerande portar vore ett annat påstående, och ett felaktigt.
+Listan **Devices** har ett filter **SNMP** med tre värden: **OK** (den senaste walken lyckades), **Failing** (den senaste walken misslyckades) och **Not configured** (bara ping, inga autentiseringsuppgifter eller aldrig avsökt). "Vilka enheter har autentiseringsuppgifter som har slutat fungera" är ett klick bort. Listans kolumn **Interfaces (Up / Down)** visar **Ingen SNMP** i stället för `0 / 0` för en enhet som pingas och aldrig walkas: noll fungerande portar vore ett annat påstående, och ett felaktigt.
 
 ## SNMP-autentiseringsuppgifter och autentiseringsprofiler
 
@@ -261,7 +261,7 @@ Viss utrustning kan ingen sond nå eller pinga på ett meningsfullt sätt: en en
 | **Sond** | Standard. Pingas av den tilldelade sonden enligt dess schema, och walkas via SNMP när den har autentiseringsuppgifter. |
 | **Bound monitor** | En befintlig monitors status är den här enhetens status. |
 
-Att byta en enhet till **Bound monitor** stoppar avsökningen av den. Sonden, intervallet och avsökningsreglaget försvinner från kortet **Polling & Data Collection**, enhetens gamla avsökningsresultat rensas och dess status kommer från den monitor du binder. Att binda en är valfritt: tills du gör det visar enheten **Väntar**, markerad med **No monitor**.
+Att byta en enhet till **Bound monitor** stoppar avsökningen av den. Sonden, intervallet och avsökningsreglaget försvinner från kortet **Polling & Data Collection**, enhetens gamla avsökningsresultat rensas och dess status kommer från den monitor du binder. Att binda en är valfritt: tills du gör det visar enheten **Väntar**, markerad med **Ingen övervakning**.
 
 Att byta tillbaka till **Sond** återställer avsökningen och ber om en sond. En monitor som var bunden förblir bunden och fortsätter att varna; den bestämmer bara inte längre enhetens status.
 
@@ -533,7 +533,7 @@ Med SNMP påslaget ber steget **SNMP-autentiseringsuppgifter** om de uppsättnin
 Klicka på **Starta skanning**. Sonden skannar intervallet och rapporterar hur många värdar den skannade och hur många som svarade: hur många som svarade på SNMP, eller, vid en skanning med bara ping, hur många som svarade på ping.
 
 ### Importera det den hittade
-Klicka på **Review Results** på den färdiga skanningen, markera de enheter du vill ha och klicka på **Import Selected**.
+Klicka på **Review Results** på skanningen, välj de värdar som ska importeras och klicka på **Nästa**. Välj hur ofta de kontrolleras och om var och en får en monitor, och importera dem sedan; se [Import av det en skanning hittade](#import-av-det-en-skanning-hittade).
 :::
 
 | Fält | Beskrivning | Obligatoriskt |
@@ -589,9 +589,19 @@ Varje värd som en skanning hittar importeras som en sondavsökt enhet, med skan
 - Värdar som svarade på SNMP importeras med adressen som svarade som värdnamn, namnet valt enligt nedan och de autentiseringsuppgifter som svarade, så en v3-skanning importerar enheter som är redo att walkas via v3 och som genast börjar samla in gränssnitt och inventarium.
 - Värdar som svarade på ping men inte på SNMP — varje värd som en [skanning med bara ping](#skanningar-med-bara-ping) hittar, och de värdar som en SNMP-skanning inte kunde identifiera — importeras utan autentiseringsuppgifter. Sonden pingar dem enligt deras schema; lägg till autentiseringsuppgifter senare, på enheten eller som en profil på den eller dess plats, så börjar samma sond också walka dem.
 
-Enheter som redan är registrerade flaggas och hoppas över. Bind bara en [Ping](/docs/monitor/ping-monitor)- eller [IP](/docs/monitor/ip-monitor)-monitor till en importerad enhet om du vill ha den monitorns incidenter; för en flotta är en [varningspolicy](#varningspolicyer) oftast det bättre svaret.
+En värd som redan är registrerad som enhet är markerad **Redan tillagd** och importeras aldrig två gånger. Avsökningen ger varje importerad enhet en status; för att få veta när en går ner ger du den en monitor: välj **En övervakning för varje enhet** när du importerar, eller låt en [varningspolicy](#varningspolicyer) ge en till varje enhet den täcker.
 
-När en skanning hittade SNMP-värdar erbjuder **Review Results** **Tillämpa varje SNMP-värds tillverkarmall vid första avsökningen (rekommenderas)**, påslaget som standard: varje importerad SNMP-enhet får den [tillverkarmall](#tillverkarnas-hälsomallar) som passar det dess första walk rapporterar, dess hälso-OID:er och SNMP-tabeller, precis som enheter som en regel för automatisk import tar in. En enhet vars tillverkare saknar mall lämnas som den är. Stäng av reglaget för en batch som ska börja utan.
+När värdarna du importerar omfattar SNMP-värdar erbjuder importens steg **Övervakning** reglaget **Tillämpa varje SNMP-värds tillverkarmall vid första avsökningen (rekommenderas)**, påslaget som standard: varje importerad SNMP-enhet får den [tillverkarmall](#tillverkarnas-hälsomallar) som passar det dess första walk rapporterar, dess hälso-OID:er och SNMP-tabeller, precis som enheter som en regel för automatisk import tar in. En enhet vars tillverkare saknar mall lämnas som den är. Stäng av reglaget för en batch som ska börja utan.
+
+### Import av det en skanning hittade
+
+**Review Results** öppnar skanningens värdar, de som hittats hittills om den fortfarande pågår, i en dialogruta som importerar dem i tre steg:
+
+1. Steget **Välj enheter** visar varje värd under det namn dess enhet får, med adress och tillverkare; alla värdar som inte lagts till ännu är markerade från början. Sök på namn, DNS-namn, adress eller tillverkare, eller skriv ett subnät (`10.48.11.0/24`) eller ett oktettintervall (`10.48.11-12.0-255`) för att visa värdarna i det. **Svar** (**SNMP** eller **Ingen SNMP**) och **Namn** (**Namngivna** eller **Endast adress**) smalnar av listan ytterligare. Kryssrutan ovanför listan markerar eller avmarkerar alla värdar som visas, på alla sidor, och bara de markerade värdar som listan visar importeras.
+2. Steget **Övervakning** frågar med **Kontrollera var** hur ofta skanningens sond kontrollerar enheterna, vilket blir varje enhets **Polling Interval (Minutes)**, och vem som får veta när en går ner. **Endast status** importerar dem med en status och utan monitor. **En övervakning för varje enhet** ger var och en en nätverksenhetsmonitor från den mall du väljer under **Övervakningsmall**, och visar före importen vad var och en av mallens kontroller utlöser: en incident, en varning eller bara monitorns status. När några värdar bara svarade på ping är en kontroll som läser en SNMP-walk markerad **Endast SNMP-enheter**: de värdarna pingas, men walkas inte, förrän de har SNMP-autentiseringsuppgifter. Mallen **Network device alert pack (recommended)** erbjuds först, och ett projekt som inte har den ännu får den när du importerar. Sammanfattningen bredvid valen säger vad importen kommer att skapa, även hur många enheter din plan inte har plats att övervaka.
+3. Steget **Importera** räknar enheter och monitorer var för sig, allteftersom var och en skapas, redan finns eller misslyckas. I slutet länkar det till det som skapades och visar under orsaken varje värd det inte importerade och varje enhet det importerade utan dess monitor. Ett nytt försök provar bara de misslyckade värdarna igen och skapar aldrig något två gånger. **Stoppa importen** stannar efter värden som importeras nu och behåller det som skapades.
+
+Importen körs på servern och agerar för din räkning: varje enhet och varje monitor skapas med dina behörigheter, och det du inte får skapa listas med orsaken. Du kan stänga dialogrutan när som helst: skanningens rad visar hur långt importen har kommit, och **Visa förlopp** öppnar den igen. **Importera fler enheter** börjar om med de värdar som är kvar. En import tar upp till 5 000 värdar; importera en större skanning i delar, per subnät eller efter vad värdarna svarade på. Ett projekts importer körs en i taget: en som begärs medan en annan körs väntar på den.
 
 ### Så namnges upptäckta enheter
 
@@ -646,6 +656,8 @@ Ett namn blir bara bättre: en enhet behåller sitt namn när dess DNS-post änd
 ### Importera automatiskt med regler för automatisk import
 
 Att granska varje skanning för hand skalar inte förbi de första subnäten. **Nätverk → Regler → Auto Import Rules** är där du skriver ner importen en gång: en regel anger vilka upptäckta värdar den gör anspråk på (ett IP-intervall och valfria mönster för systemnamn, beskrivning och `sysObjectID`) och, valfritt, vilken monitormall och vilken [OID Collection Template](#oid-collection-templates) de enheter den importerar får. En regel som är markerad som undantag gör inte anspråk på något och lägger in veto mot de andra: så skärs skrivare och telefoner ut ur en bred subnätsregel.
+
+I en regel bestämmer **Kontrollera var** hur ofta skanningens sond avsöker varje enhet som regeln importerar, precis som **Kontrollera var** när du importerar från **Review Results**; tomt är det var 5:e minut. En regel som också importerar värdar som bara svarade på ping ger även dem sin monitormall: sonden pingar dem, så mallens kontroller av om en enhet är uppe och av de traps den skickar fungerar för dem direkt, och dess kontroller som läser en SNMP-walk så snart enheten har autentiseringsuppgifter.
 
 Regler har inget eget schema och behöver inget. Aktiverade regler körs själva mot varje skannings resultat när de kommer in, inklusive de delresultat som en lång skanning laddar upp medan den fortfarande pågår, så värdar importeras inom en minut efter att de hittats i stället för i slutet av intervallet. Slå på **Repeat this scan** på en discovery-skanning så blir paret ett stående arrangemang: skanningen skannar sitt intervall igen med ditt intervall, och varje ny värd den hittar importeras utan att någon trycker på något.
 
@@ -972,7 +984,7 @@ Enhetens översikt har ett kort **Connected to** som namnger switchen, porten oc
 En enhet visar **Väntar** så länge inget har rapporterat om den ännu. Läs tillägget bredvid statusen:
 
 - **No probe**: tilldela en sond, eller slå på **Polling Enabled** igen. Inget avsöker enheten förrän du gör det.
-- **No monitor**: enheten har [åsidosättningen med bunden monitor](#åsidosättningen-med-bunden-monitor) utan något bundet. Bind en monitor, eller använd **Switch to Probe Polling** så att dess sond pingar den.
+- **Ingen övervakning**: enheten har [åsidosättningen med bunden monitor](#åsidosättningen-med-bunden-monitor) utan något bundet. Bind en monitor, eller använd **Switch to Probe Polling** så att dess sond pingar den.
 - Inget tillägg alls: enheten har en sond och väntar på sin första avsökning. I en stor flotta delar en sond ut ett begränsat antal enheter per cykel, så den första avsökningen kan ta längre tid än enhetens intervall.
 
 Om en enhet med bara ping står kvar som Väntar i timmar medan enheter med autentiseringsuppgifter på samma sond fungerar, kontrollera den sondens version. En sond från tiden före avsökning med ping först kan inte pinga en enhet, och att ge den en enhet utan autentiseringsuppgifter skulle få den att walka med en standard-community och rapportera en frisk enhet som Down. Därför håller servern tillbaka enheter med bara ping från en gammal sond och loggar en varning per batch som namnger sonden och hur många enheter den höll tillbaka. De enheterna står kvar som Väntar, synligt väntande och aldrig felaktigt Down, tills sonden uppgraderas; då rapporterar de vid nästa cykel utan att något annat behöver göras.
@@ -1009,7 +1021,9 @@ Om enheten sitter bakom en ohanterad switch eller en hubb lär sig den hanterade
 :::
 
 :::details Bara några av de upptäckta enheterna importerades
-Körningsrapporten svarar på det, i dialogrutan som öppnas när en körning är klar, inte i en logg. En körning som stannade vid sin batchgräns säger det och namnger vad som återstår: tryck på **Run Rule** igen så fortsätter den där den stannade. En körning som blev klar men gjorde anspråk på färre värdar än du väntade dig säger vart resten tog vägen: stoppad av en undantagsregel, redan registrerad på den adressen, eller inte matchad av regelns kriterier.
+En import från **Review Results** svarar på det i sitt sista steg: varje värd den inte importerade och varje enhet den importerade utan dess monitor står under orsaken, och ett nytt försök provar bara de misslyckade värdarna igen. För att se den senare klickar du på **Review Results** på skanningen och sedan på **Visa resultat**.
+
+För en regel för automatisk import svarar körningsrapporten på det, i dialogrutan som öppnas när en körning är klar, inte i en logg. En körning som stannade vid sin batchgräns säger det och namnger vad som återstår: tryck på **Run Rule** igen så fortsätter den där den stannade. En körning som blev klar men gjorde anspråk på färre värdar än du väntade dig säger vart resten tog vägen: stoppad av en undantagsregel, redan registrerad på den adressen, eller inte matchad av regelns kriterier.
 
 När enheterna finns där men inte monitorerna: enheter och monitorer är separat arbete, så en regel som fick sin monitormall efter att dess enheter hade importerats rapporterar inga importerade enheter och bara skapade monitorer. Det är regeln som gör precis det arbete som återstod, inte en misslyckad import; se [Importera automatiskt med regler för automatisk import](#importera-automatiskt-med-regler-för-automatisk-import).
 :::
