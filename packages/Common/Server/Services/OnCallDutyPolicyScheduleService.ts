@@ -1801,29 +1801,43 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
    * to exactly one; otherwise undefined (audit F10). A lazy require avoids a
    * circular import — OnCallDutyPolicyEscalationRuleScheduleService imports this
    * service.
+   *
+   * Only the rules that page whoever is on call count: the roster is who is
+   * on call, and a rule that pages the next person in the rotation does not
+   * page them - adding one in another policy must not change whose overrides
+   * the roster, its hand-off messages and its time logs follow.
    */
   private async getSingleAttachedPolicyId(
     scheduleId: ObjectID,
   ): Promise<ObjectID | undefined> {
     try {
       const escalationRuleScheduleService: {
-        findBy: (
-          args: unknown,
-        ) => Promise<Array<{ onCallDutyPolicyId?: ObjectID | undefined }>>;
+        findBy: (args: unknown) => Promise<
+          Array<{
+            onCallDutyPolicyId?: ObjectID | undefined;
+            pageNextInRotation?: boolean | undefined;
+          }>
+        >;
         // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
       } = require("./OnCallDutyPolicyEscalationRuleScheduleService").default;
 
-      const links: Array<{ onCallDutyPolicyId?: ObjectID | undefined }> =
-        await escalationRuleScheduleService.findBy({
-          query: { onCallDutyPolicyScheduleId: scheduleId },
-          select: { onCallDutyPolicyId: true },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: { isRoot: true },
-        });
+      const links: Array<{
+        onCallDutyPolicyId?: ObjectID | undefined;
+        pageNextInRotation?: boolean | undefined;
+      }> = await escalationRuleScheduleService.findBy({
+        query: { onCallDutyPolicyScheduleId: scheduleId },
+        select: { onCallDutyPolicyId: true, pageNextInRotation: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      });
 
       const distinctPolicyIds: Set<string> = new Set<string>();
       for (const link of links) {
+        if (link.pageNextInRotation) {
+          continue;
+        }
+
         const policyId: string | undefined =
           link.onCallDutyPolicyId?.toString();
         if (policyId) {
@@ -2351,6 +2365,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
           onCallDutyPolicyScheduleId: true,
           onCallDutyPolicyId: true,
           onCallDutyPolicyEscalationRuleId: true,
+          pageNextInRotation: true,
           updatedAt: true,
           onCallDutyPolicy: {
             name: true,
@@ -2389,6 +2404,15 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     }
 
     for (const attachment of attachments) {
+      /*
+       * A rule that pages the next person in the schedule's rotation does
+       * not page whoever is on call in it: their shifts are not on call for
+       * that rule, and it gives the schedule no policy context of its own.
+       */
+      if (attachment.pageNextInRotation) {
+        continue;
+      }
+
       const entry: ScheduleResolutionInputs | undefined = byId.get(
         attachment.onCallDutyPolicyScheduleId?.toString() || "",
       );
