@@ -1,4 +1,12 @@
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
+import Incident from "../../../../Models/DatabaseModels/Incident";
+import IncidentCustomField from "../../../../Models/DatabaseModels/IncidentCustomField";
+import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import IncidentCustomFieldService from "../../../../Server/Services/IncidentCustomFieldService";
+import IncidentService from "../../../../Server/Services/IncidentService";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import WorkspaceIncidentCustomFields, {
   WORKSPACE_CUSTOM_FIELDS_MAX_INPUTS,
   WorkspaceCustomFieldDefinition,
@@ -8,6 +16,7 @@ import WorkspaceIncidentCustomFields, {
   WorkspaceCustomFieldsSubmission,
   WorkspaceCustomFieldSubmittedValue,
 } from "../../../../Server/Utils/Workspace/WorkspaceIncidentCustomFields";
+import CustomFieldMappingSourceResource from "../../../../Types/CustomField/CustomFieldMappingSourceResource";
 import CustomFieldType from "../../../../Types/CustomField/CustomFieldType";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -758,4 +767,233 @@ describe("WorkspaceIncidentCustomFields.canShowValue", () => {
       ).toBe(can);
     },
   );
+});
+
+/*
+ * What the form reads and writes, as the member: the project's fields, the
+ * values the incident holds, and the incident's update. Only the database
+ * is stubbed.
+ */
+describe("WorkspaceIncidentCustomFields: the reads and the write, as the member", () => {
+  const PROJECT_ID: ObjectID = new ObjectID(
+    "4cf3a4b5-c6d7-4e8f-9a01-a2b3c4d5e6f7",
+  );
+  const INCIDENT_ID: ObjectID = new ObjectID(
+    "5d04b5c6-d7e8-4f90-8b12-b3c4d5e6f708",
+  );
+  const PROPS: DatabaseCommonInteractionProps = {
+    userId: new ObjectID("6e15c6d7-e8f9-4a01-9c23-c4d5e6f70819"),
+    tenantId: PROJECT_ID,
+  };
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function field(
+    more: (row: IncidentCustomField) => void,
+  ): IncidentCustomField {
+    const row: IncidentCustomField = new IncidentCustomField();
+    more(row);
+    return row;
+  }
+
+  test("readDefinitions: the project's fields the member may read, in the card's order, as the form reads them", async () => {
+    const read: SpyInstance<typeof IncidentCustomFieldService.findBy> = jest
+      .spyOn(IncidentCustomFieldService, "findBy")
+      .mockResolvedValue([
+        field((row: IncidentCustomField): void => {
+          row.id = IMPACT.id;
+          row.name = "Customer Impact";
+          row.description = "How many customers notice.";
+          row.customFieldType = CustomFieldType.Dropdown;
+          row.dropdownOptions = "High\nLow";
+          row.sortOrder = 2;
+        }),
+        field((row: IncidentCustomField): void => {
+          row.id = TICKET.id;
+          row.name = "Ticket";
+          row.customFieldType = CustomFieldType.Text;
+          row.mapFromResourceType = CustomFieldMappingSourceResource.Monitor;
+          row.mapFromCustomFieldName = "Ticket";
+        }),
+        // A row with no name is no field.
+        field((row: IncidentCustomField): void => {
+          row.id = AFFECTED.id;
+        }),
+      ]);
+
+    expect(
+      await WorkspaceIncidentCustomFields.readDefinitions({
+        projectId: PROJECT_ID,
+        props: PROPS,
+      }),
+    ).toEqual([
+      {
+        id: IMPACT.id,
+        name: "Customer Impact",
+        description: "How many customers notice.",
+        customFieldType: CustomFieldType.Dropdown,
+        dropdownOptions: "High\nLow",
+        sortOrder: 2,
+        mapFromResourceType: undefined,
+        mapFromCustomFieldName: undefined,
+      },
+      {
+        id: TICKET.id,
+        name: "Ticket",
+        description: undefined,
+        customFieldType: CustomFieldType.Text,
+        dropdownOptions: undefined,
+        sortOrder: null,
+        mapFromResourceType: "Monitor",
+        mapFromCustomFieldName: "Ticket",
+      },
+    ]);
+
+    expect(read.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({
+        query: { projectId: PROJECT_ID },
+        props: PROPS,
+      }),
+    );
+  });
+
+  test("readDefinitions: fields the member may not read are refused in the chat's words", async () => {
+    jest
+      .spyOn(IncidentCustomFieldService, "findBy")
+      .mockRejectedValue(
+        new NotAuthorizedException("You need Read Incident Custom Field."),
+      );
+
+    await expect(
+      WorkspaceIncidentCustomFields.readDefinitions({
+        projectId: PROJECT_ID,
+        props: PROPS,
+      }),
+    ).rejects.toThrow(
+      new NotAuthorizedException(
+        "You do not have permission to see this project's incident custom fields. You need Read Incident Custom Field.",
+      ),
+    );
+  });
+
+  test("readIncidentValues: the bag the incident holds and how many monitors it has, read as the member", async () => {
+    const incident: Incident = new Incident();
+    incident.id = INCIDENT_ID;
+    incident.customFields = { Ticket: "OPS-118" };
+    incident.monitors = [new Monitor(), new Monitor()];
+    const read: SpyInstance<typeof IncidentService.findOneBy> = jest
+      .spyOn(IncidentService, "findOneBy")
+      .mockResolvedValue(incident);
+
+    expect(
+      await WorkspaceIncidentCustomFields.readIncidentValues({
+        incidentId: INCIDENT_ID,
+        projectId: PROJECT_ID,
+        props: PROPS,
+      }),
+    ).toEqual({ stored: { Ticket: "OPS-118" }, monitorCount: 2 });
+
+    expect(read.mock.calls[0]![0].query).toEqual({
+      _id: INCIDENT_ID.toString(),
+      projectId: PROJECT_ID,
+    });
+    expect(read.mock.calls[0]![0].props).toBe(PROPS);
+  });
+
+  test("readIncidentValues: no bag is an empty one; an incident they may not read is none", async () => {
+    const incident: Incident = new Incident();
+    incident.id = INCIDENT_ID;
+    const read: SpyInstance<typeof IncidentService.findOneBy> = jest
+      .spyOn(IncidentService, "findOneBy")
+      .mockResolvedValue(incident);
+
+    expect(
+      await WorkspaceIncidentCustomFields.readIncidentValues({
+        incidentId: INCIDENT_ID,
+        projectId: PROJECT_ID,
+        props: PROPS,
+      }),
+    ).toEqual({ stored: {}, monitorCount: 0 });
+
+    read.mockRejectedValue(new NotAuthorizedException("no read"));
+
+    expect(
+      await WorkspaceIncidentCustomFields.readIncidentValues({
+        incidentId: INCIDENT_ID,
+        projectId: PROJECT_ID,
+        props: PROPS,
+      }),
+    ).toBeNull();
+  });
+
+  test("save: reads the bag again and writes it with the changes, as the member - a value set by somebody else meanwhile stays", async () => {
+    const incident: Incident = new Incident();
+    incident.id = INCIDENT_ID;
+    // Somebody set Public since the form was opened.
+    incident.customFields = { Ticket: "OPS-118", Public: true };
+    jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(incident);
+    const update: SpyInstance<typeof IncidentService.updateOneById> = jest
+      .spyOn(IncidentService, "updateOneById")
+      .mockResolvedValue(1);
+
+    await WorkspaceIncidentCustomFields.save({
+      incidentId: INCIDENT_ID,
+      projectId: PROJECT_ID,
+      changes: [
+        { name: "Ticket", value: null },
+        { name: "Customer Impact", value: "High" },
+      ],
+      props: PROPS,
+    });
+
+    expect(update).toHaveBeenCalledWith({
+      id: INCIDENT_ID,
+      data: { customFields: { Public: true, "Customer Impact": "High" } },
+      props: PROPS,
+    });
+  });
+
+  test("save: an incident they may read but not change is refused with the update's reason, never said saved", async () => {
+    const incident: Incident = new Incident();
+    incident.id = INCIDENT_ID;
+    jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(incident);
+    jest.spyOn(IncidentService, "updateOneById").mockResolvedValue(0);
+    const reason: NotAuthorizedException = new NotAuthorizedException(
+      "You do not have permission to update this Incident.",
+    );
+    jest
+      .spyOn(IncidentService, "getUnwrittenByIdError")
+      .mockResolvedValue(reason);
+
+    await expect(
+      WorkspaceIncidentCustomFields.save({
+        incidentId: INCIDENT_ID,
+        projectId: PROJECT_ID,
+        changes: [{ name: "Ticket", value: "OPS-2" }],
+        props: PROPS,
+      }),
+    ).rejects.toBe(reason);
+  });
+
+  test("save: an incident gone since the form opened is refused, and nothing is written", async () => {
+    jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(null);
+    const update: SpyInstance<typeof IncidentService.updateOneById> =
+      jest.spyOn(IncidentService, "updateOneById");
+
+    await expect(
+      WorkspaceIncidentCustomFields.save({
+        incidentId: INCIDENT_ID,
+        projectId: PROJECT_ID,
+        changes: [{ name: "Ticket", value: "OPS-2" }],
+        props: PROPS,
+      }),
+    ).rejects.toThrow(
+      new NotAuthorizedException(
+        "The incident was not found in this project, or you do not have access to it.",
+      ),
+    );
+    expect(update).not.toHaveBeenCalled();
+  });
 });
