@@ -29688,5 +29688,6 @@
   "Page Next in Rotation": "Avisar al siguiente en la rotación",
   "Paged as Next in Rotation": "Avisado como siguiente en la rotación",
   "Pages the next person in this schedule's rotation: the person after whoever is on call, passing over anyone who is away.": "Avisa a la siguiente persona de la rotación de esta programación: la que va después de quien está de guardia, saltando a quien esté ausente.",
-  "next in rotation": "siguiente en la rotación"
+  "next in rotation": "siguiente en la rotación",
+  "After whoever is on call": "Después de quien está de guardia"
 }

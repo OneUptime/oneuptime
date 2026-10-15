@@ -29688,5 +29688,6 @@
   "Page Next in Rotation": "Volgende in de rotatie oproepen",
   "Paged as Next in Rotation": "Opgeroepen als volgende in de rotatie",
   "Pages the next person in this schedule's rotation: the person after whoever is on call, passing over anyone who is away.": "Roept de volgende persoon in de rotatie van dit schema op: de persoon na wie er dienst heeft, waarbij iedereen die afwezig is wordt overgeslagen.",
-  "next in rotation": "volgende in de rotatie"
+  "next in rotation": "volgende in de rotatie",
+  "After whoever is on call": "Na wie er dienst heeft"
 }

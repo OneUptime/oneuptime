@@ -29688,5 +29688,6 @@
   "Page Next in Rotation": "로테이션의 다음 사람에게 알림",
   "Paged as Next in Rotation": "로테이션의 다음 사람으로 알림",
   "Pages the next person in this schedule's rotation: the person after whoever is on call, passing over anyone who is away.": "이 스케줄 로테이션의 다음 사람에게 알립니다. 현재 온콜 담당자 다음 사람이며, 부재 중인 사람은 건너뜁니다.",
-  "next in rotation": "로테이션의 다음 사람"
+  "next in rotation": "로테이션의 다음 사람",
+  "After whoever is on call": "현재 온콜 담당자 다음"
 }

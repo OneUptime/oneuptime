@@ -1199,12 +1199,12 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             : "escalation-rule-schedule-chip"
         }
         title={title}
-        className={`inline-flex items-center gap-2 rounded-full bg-white py-1 pl-1 pr-3 shadow-sm ring-1 ring-inset ${
+        className={`inline-flex max-w-full items-center gap-2 rounded-full bg-white py-1 pl-1 pr-3 shadow-sm ring-1 ring-inset ${
           isUncovered ? "ring-amber-300" : "ring-gray-200"
         }`}
       >
         <span
-          className={`flex h-6 w-6 items-center justify-center rounded-full ${
+          className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full ${
             isUncovered ? "bg-amber-100" : "bg-indigo-100"
           }`}
         >
@@ -1221,19 +1221,26 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             }`}
           />
         </span>
-        <span className="text-sm font-medium text-gray-700">
-          {schedule.name?.toString()}
+        {/*
+         * The name, then what it pages and whether anybody is on call: each
+         * phrase kept whole, and moved under the name where the card is too
+         * narrow for one line.
+         */}
+        <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+          <span className="text-sm font-medium text-gray-700">
+            {schedule.name?.toString()}
+          </span>
+          {isNextInRotation && (
+            <span className="whitespace-nowrap text-xs text-gray-500">
+              {translator.translateText("Next in rotation")}
+            </span>
+          )}
+          {isUncovered && (
+            <span className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+              {translator.translateText("No one on call")}
+            </span>
+          )}
         </span>
-        {isNextInRotation && !isUncovered && (
-          <span className="text-xs text-gray-500">
-            {translator.translateText("Next in rotation")}
-          </span>
-        )}
-        {isUncovered && (
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">
-            {translator.translateText("No one on call")}
-          </span>
-        )}
       </span>
     );
   };

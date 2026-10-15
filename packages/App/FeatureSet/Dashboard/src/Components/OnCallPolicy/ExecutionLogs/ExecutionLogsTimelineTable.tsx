@@ -255,13 +255,18 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                */
               if (item["onCallDutyScheduleId"] && item["isNextInRotation"]) {
                 return (
-                  <span
+                  <div
                     data-testid="on-call-timeline-nobody-next-in-rotation"
-                    className="inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200"
+                    className="inline-flex max-w-full items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200"
                   >
-                    <Icon icon={IconProp.Alert} className="h-3.5 w-3.5" />
-                    {translator.translateText(NOBODY_NEXT_IN_ROTATION_LABEL)}
-                  </span>
+                    <Icon
+                      icon={IconProp.Alert}
+                      className="h-3.5 w-3.5 flex-shrink-0"
+                    />
+                    <span className="min-w-0 whitespace-normal break-words">
+                      {translator.translateText(NOBODY_NEXT_IN_ROTATION_LABEL)}
+                    </span>
+                  </div>
                 );
               }
 

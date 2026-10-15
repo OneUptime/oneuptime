@@ -1121,8 +1121,48 @@ describe("paging the next person in a schedule's rotation", () => {
     });
 
     expect(next).toHaveTextContent("Primary rotation");
-    expect(next).toHaveTextContent("Next in rotation");
+    // What picking it pages, under the name.
+    expect(next).toHaveTextContent("After whoever is on call");
     expect(next.getAttribute("data-id")).toBe(SCHEDULE_PRIMARY);
+
+    // Under a heading of its own.
+    const groups: Array<string> = within(popup)
+      .getAllByRole("group")
+      .map((group: HTMLElement): string => {
+        return (
+          document.getElementById(group.getAttribute("aria-labelledby") || "")
+            ?.textContent || ""
+        );
+      });
+
+    expect(groups).toContain("Next in rotation");
+  });
+
+  test("a picked Next in rotation chip is tagged as such", async () => {
+    await renderPage(TWO_LEVELS);
+    await openAddDialog();
+
+    await pickKind("Primary rotation", "onCallScheduleNextInRotation");
+
+    const chip: HTMLElement = await waitFor((): HTMLElement => {
+      const found: HTMLElement | undefined = screen
+        .getAllByTestId("people-chip")
+        .find((candidate: HTMLElement): boolean => {
+          return (
+            candidate.getAttribute("data-kind") ===
+            "onCallScheduleNextInRotation"
+          );
+        });
+
+      if (!found) {
+        throw new Error("No next-in-rotation chip yet");
+      }
+
+      return found;
+    });
+
+    expect(chip).toHaveTextContent("Primary rotation");
+    expect(chip).toHaveTextContent("Next in rotation");
   });
 
   test("the field says what each kind of pick pages", async () => {

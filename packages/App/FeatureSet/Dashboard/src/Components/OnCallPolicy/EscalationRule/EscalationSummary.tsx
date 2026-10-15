@@ -281,8 +281,12 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
                   }`}
                 />
                 {responder.label}
-                {responder.isNextInRotation && !responder.isUncovered ? (
-                  <span className="font-normal text-gray-500">
+                {responder.isNextInRotation ? (
+                  <span
+                    className={`font-normal ${
+                      responder.isUncovered ? "text-amber-700" : "text-gray-500"
+                    }`}
+                  >
                     {translator.translateText("next in rotation")}
                   </span>
                 ) : (

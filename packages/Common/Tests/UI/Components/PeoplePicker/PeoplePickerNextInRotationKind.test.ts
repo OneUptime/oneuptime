@@ -49,6 +49,7 @@ import {
   getPeoplePickerKindDefinition,
   getPeoplePickerOptionsFromModels,
   NEXT_IN_ROTATION_GROUP_TITLE,
+  NEXT_IN_ROTATION_SEARCH_SUBTITLE,
   NEXT_IN_ROTATION_TAG,
   PEOPLE_PICKER_KIND_DEFINITIONS,
   PEOPLE_PICKER_SEARCH_LIMIT,
@@ -154,6 +155,22 @@ describe("the next-in-rotation kind", () => {
     expect(NEXT_IN_ROTATION_TAG).toBe("Next in rotation");
     // A schedule no longer found is named as one.
     expect(NEXT.unknownName).toBe("Unknown schedule");
+  });
+
+  test("its search rows say what picking one pages: the person after whoever is on call", () => {
+    expect(NEXT.searchSubtitle).toBe("After whoever is on call");
+    expect(NEXT_IN_ROTATION_SEARCH_SUBTITLE).toBe("After whoever is on call");
+
+    // Every other kind's rows say what they are with their tag, as before.
+    for (const kind of Object.values(PeoplePickerKind)) {
+      if (kind === PeoplePickerKind.OnCallScheduleNextInRotation) {
+        continue;
+      }
+
+      expect(PEOPLE_PICKER_KIND_DEFINITIONS[kind].searchSubtitle).toBe(
+        undefined,
+      );
+    }
   });
 
   test("is drawn with a fast-forward mark - never as the schedule's calendar, a person or a group", () => {

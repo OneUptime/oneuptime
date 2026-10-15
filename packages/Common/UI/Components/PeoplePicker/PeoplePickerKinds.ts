@@ -64,6 +64,12 @@ export interface PeoplePickerKindDefinition {
    * ("Platform" is a team). None for people.
    */
   tag?: string | undefined;
+  /*
+   * The line under a row's name in the search list, where the tag alone
+   * does not say what picking it does: a schedule's "Next in rotation" says
+   * "After whoever is on call". The tag is shown when this is left out.
+   */
+  searchSubtitle?: string | undefined;
   // The name shown for a pick that can no longer be found.
   unknownName: string;
   avatar: PeoplePickerAvatarStyle;
@@ -338,6 +344,9 @@ export const UNKNOWN_ON_CALL_SCHEDULE_NAME: string =
 export const NEXT_IN_ROTATION_GROUP_TITLE: string =
   translationKey("Next in rotation");
 export const NEXT_IN_ROTATION_TAG: string = translationKey("Next in rotation");
+export const NEXT_IN_ROTATION_SEARCH_SUBTITLE: string = translationKey(
+  "After whoever is on call",
+);
 
 // The schedule kinds: the on-call person, or the next one in the rotation.
 type ScheduleKind =
@@ -711,6 +720,7 @@ export const PEOPLE_PICKER_KIND_DEFINITIONS: Record<
     kind: PeoplePickerKind.OnCallScheduleNextInRotation,
     groupTitle: NEXT_IN_ROTATION_GROUP_TITLE,
     tag: NEXT_IN_ROTATION_TAG,
+    searchSubtitle: NEXT_IN_ROTATION_SEARCH_SUBTITLE,
     unknownName: UNKNOWN_ON_CALL_SCHEDULE_NAME,
     // Fast-forward: the one after.
     avatar: { type: "icon", icon: IconProp.Forward },
