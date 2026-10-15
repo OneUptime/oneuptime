@@ -191,20 +191,18 @@ Van **Opgelost** verder gaan naar een latere status — **Closed** bijvoorbeeld 
 
 ## De statustijdlijn
 
-De pagina **Statustijdlijn** in het zijmenu van het incident is het auditspoor van elke status waarin het incident heeft gestaan. De kaart op die pagina heet **Statustijdlijn**, en is gesorteerd met de nieuwste eerst.
+De pagina **Statustijdlijn** in het zijmenu van het incident is het auditspoor van elke status waarin het incident heeft gestaan. De kaart op die pagina heet **Statustijdlijn**, en tekent het hele leven van het incident als tijdlijn:
 
-| Kolom                              | Wat hij toont                                                                                                                                                                                                                                                  |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Incidentstatus**                 | Een gekleurd label met de naam en de kleur van de status.                                                                                                                                                                                                      |
-| **Begint op**                      | Wanneer het incident in deze status kwam.                                                                                                                                                                                                                      |
-| **Eindigt op**                     | Wanneer het eruit ging. De huidige status toont `Currently Active`.                                                                                                                                                                                            |
-| **Duur**                           | De tijd in de status, voor de huidige status geteld tot nu.                                                                                                                                                                                                    |
-| **Meldingsstatus abonnee**         | Of de melding aan de statuspagina voor deze wijziging is verstuurd, overgeslagen of nog in behandeling is, met een link **meer details**, en — als het versturen mislukte — een actie **Opnieuw proberen**. **Opnieuw proberen** verstuurt de statuswijziging opnieuw naar elke statuspagina die het incident nu bereikt, ook naar de abonnees die haar al kregen. |
+- **De band** toont elke status als een stuk in zijn kleur, zo lang als het incident erin stond, zodat je in één oogopslag ziet hoe het incident verliep. Zolang het incident open is, loopt de band door tot **Nu**; is het opgelost, dan stopt de band kort na de laatste wijziging. Wijs een stuk aan om te zien wanneer het begon en hoe lang het duurde, en klik erop om de wijziging in de lijst te vinden. Wijzigingen die te dicht op elkaar liggen om uit elkaar te houden, worden als één gestreept stuk getekend: klik erop, of sleep over de band, om in te zoomen, en **Reset zoom** gaat terug.
+- **Boven de band** staat elke status met de tijd die het incident erin doorbracht.
+- **Onder de band** staat elke wijziging, de nieuwste eerst, per dag gegroepeerd en in je eigen tijdzone: wanneer ze begon en eindigde, hoe lang ze duurde, wie haar maakte en daaronder **Abonnees van de statuspagina:** of de melding aan de statuspagina voor de wijziging is verstuurd, overgeslagen of nog in behandeling is, met een link **meer details**, en — als het versturen mislukte — een actie **Opnieuw proberen**. **Opnieuw proberen** verstuurt de statuswijziging opnieuw naar elke statuspagina die het incident nu bereikt, ook naar de abonnees die haar al kregen.
 
-Elke rij heeft twee acties:
+Elke wijziging heeft twee acties:
 
 - **Oorzaak bekijken** — opent een dialoogvenster **Hoofdoorzaak** dat de Markdown toont die met die statuswijziging is vastgelegd.
 - **Logboeken bekijken** — opent een dialoogvenster dat uitlegt waarom de status veranderde, met een weergave **Incidentstatuslogboek**.
+
+**Tijdlijn** en **Tabel**, in de kop van de kaart, wisselen tussen de tijdlijn en de tabel die de pagina vroeger was: een rij per wijziging met **Begint op**, **Eindigt op** en **Duur**, filters, opgeslagen weergaven en bulkacties. Je keuze wordt in je browser bewaard, voor elke statustijdlijn. Waarschuwingen, episodes en geplande onderhoudsgebeurtenissen tekenen hun statustijdlijn op dezelfde manier. De **Statustijdlijn** van een monitor en van een netwerklocatie opent in plaats daarvan op de afgelopen maand, gekozen zoals elk ander tijdsbereik, met de periode ervoor en erna één klik verder.
 
 In het dashboard kunnen tijdlijnrijen worden toegevoegd en verwijderd, maar niet bewerkt; een incident houdt altijd minstens één rij. Via de API kan de `startsAt` van een rij worden verbeterd, en elke meting die uit de tijdlijn wordt berekend, volgt mee.
 

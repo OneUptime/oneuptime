@@ -72,6 +72,25 @@ describe("SubscriberNotificationStatus label", () => {
     expect(screen.getByText("Skipped: some other reason")).toBeInTheDocument();
   });
 
+  test("its own label is in the reader's language too", () => {
+    translated["Notifications Sent"] = "Gesendete Benachrichtigungen";
+
+    try {
+      render(
+        <SubscriberNotificationStatus
+          status={StatusPageSubscriberNotificationStatus.Success}
+        />,
+      );
+
+      expect(
+        screen.getByText("Gesendete Benachrichtigungen"),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Notifications Sent")).toBeNull();
+    } finally {
+      delete translated["Notifications Sent"];
+    }
+  });
+
   test.each([
     [StatusPageSubscriberNotificationStatus.Skipped, "Notifications skipped."],
     [StatusPageSubscriberNotificationStatus.Pending, "Sending Soon"],

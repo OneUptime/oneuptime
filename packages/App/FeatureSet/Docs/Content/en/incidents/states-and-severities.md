@@ -197,20 +197,18 @@ Moving on from **Resolved** to a state after it — **Closed**, say — is not a
 
 ## The state timeline
 
-The incident's **State Timeline** page in the incident side menu is the audit trail of every state the incident has been in. The card on that page is titled **Status Timeline**, and it is sorted newest first.
+The incident's **State Timeline** page in the incident side menu is the audit trail of every state the incident has been in. The card on that page is titled **Status Timeline**, and it draws the incident's whole life as a timeline:
 
-| Column                             | What it shows                                                                                                                                                                                                                                                  |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Incident Status**                | A colored pill with the state's name and color.                                                                                                                                                                                                                |
-| **Starts At**                      | When the incident entered this state.                                                                                                                                                                                                                          |
-| **Ends At**                        | When it left. The current state shows `Currently Active`.                                                                                                                                                                                                      |
-| **Duration**                       | Time spent in the state, counted to now for the current one.                                                                                                                                                                                                   |
-| **Subscriber Notification Status** | Whether the status page notification for this change was sent, skipped or is still pending, with a **more details** link, and — when the send failed — a **Retry** action. **Retry** sends the state change again to every status page the incident reaches now, including the subscribers who already got it. |
+- **The band** shows each state as a stretch of its color, as long as the incident was in it, so how the incident went reads at a glance. While the incident is open, the band runs on to **Now**; once it is resolved, the band ends a little after its last change. Point at a stretch to see when it began and how long it lasted, and click it to find its change in the list. Changes too close together to tell apart are drawn as one striped stretch: click it, or drag across the band, to zoom in, and **Reset zoom** goes back.
+- **Above the band**, each state is listed with the time the incident spent in it.
+- **Under the band**, every change is listed newest first, grouped by day and in your time zone: when it began and ended, how long it lasted, who made it and, under it, **Status page subscribers:** whether the status page notification for the change was sent, skipped or is still pending, with a **more details** link and — when the send failed — a **Retry** action. **Retry** sends the state change again to every status page the incident reaches now, including the subscribers who already got it.
 
-Each row has two actions:
+Each change has two actions:
 
 - **View Cause** — opens a **Root Cause** modal rendering the markdown recorded with that state change.
 - **View Logs** — opens a modal explaining why the status changed, with an **Incident State Log** viewer.
+
+**Timeline** and **Table**, in the card's header, switch between the timeline and the table the page used to be: a row per change with **Starts At**, **Ends At** and **Duration**, filters, saved views and bulk actions. Your choice is kept in your browser, for every status timeline. Alerts, episodes and scheduled maintenance events draw their state timelines the same way. A monitor's and a network site's **Status Timeline** open on the past month instead, picked as any other time range is, with the period before and after it a click away.
 
 In the dashboard, timeline rows can be added and deleted, but not edited; an incident always keeps at least one row. Through the API, a row's `startsAt` can be corrected, and every measurement worked out from the timeline follows it.
 
