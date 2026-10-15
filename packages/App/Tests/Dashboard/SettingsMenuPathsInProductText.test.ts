@@ -47,7 +47,9 @@ import ts from "typescript";
  *
  * Strings are read with the TypeScript scanner, so a comment does not count
  * and a sentence written as a template literal does; a ModelTable's `name`
- * (never drawn) is left out. The email templates are read as text.
+ * (never drawn) is left out. The email templates are read as text. ee/ is
+ * read where it is checked out: the App Test job deletes it, and the
+ * Enterprise Edition Test workflow (test.ee.yaml) runs this suite with it.
  */
 
 const PACKAGES_ROOT: string = path.resolve(__dirname, "../../..");

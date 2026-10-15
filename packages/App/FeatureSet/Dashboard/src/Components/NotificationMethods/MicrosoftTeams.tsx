@@ -30,10 +30,10 @@ import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
  * pointing at the Teams account the user has already connected via OAuth
  * (User Settings > Workspace > Microsoft Teams, which the empty table names
  * as the side menu draws it). The server resolves the Microsoft Entra user id
- * from that link and refuses the add when the link does not exist. The test button matters more here than anywhere else - a
- * Teams direct message additionally needs the OneUptime app installed for
- * the user, and the test surfaces that error before a real page depends on
- * it.
+ * from that link and refuses the add when the link does not exist. The test
+ * button matters more here than anywhere else - a Teams direct message
+ * additionally needs the OneUptime app installed for the user, and the test
+ * surfaces that error before a real page depends on it.
  */
 const MicrosoftTeams: () => JSX.Element = (): ReactElement => {
   const [refreshToggle, setRefreshToggle] = useState<string>(

@@ -20,6 +20,7 @@ import ConnectedWorkspaces from "../../../../App/FeatureSet/Dashboard/src/Utils/
 import UserNotificationSetting from "../../../Models/DatabaseModels/UserNotificationSetting";
 import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import Query from "../../../Types/BaseDatabase/Query";
 import NotificationSettingEventType from "../../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../../Types/ObjectID";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
@@ -109,7 +110,8 @@ beforeEach(() => {
     .spyOn(ModelAPI, "getList")
     .mockImplementation(
       async (data: Parameters<typeof ModelAPI.getList>[0]): Promise<any> => {
-        const eventTypes: Array<string> = (data.query.eventType as Includes)
+        const query: Query<UserNotificationSetting> = data.query;
+        const eventTypes: Array<string> = (query.eventType as Includes)
           .values as Array<string>;
 
         // Microsoft Teams on for every event, so each switch says "on".
