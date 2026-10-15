@@ -34,6 +34,16 @@ import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
  */
 export class PingMonitorSeedIdsUnavailableError extends Error {}
 
+/*
+ * The three lists the ids are picked from, as the server returned them:
+ * monitor statuses sorted by priority, severities by order.
+ */
+export interface PingMonitorSeedLists {
+  monitorStatuses: Array<MonitorStatus>;
+  incidentSeverities: Array<IncidentSeverity>;
+  alertSeverities: Array<AlertSeverity>;
+}
+
 export default class PingMonitorSeedIds {
   public static async resolve(): Promise<MonitorCriteriaSeedIds> {
     const [monitorStatuses, incidentSeverities, alertSeverities]: [
@@ -81,20 +91,34 @@ export default class PingMonitorSeedIds {
       }),
     ]);
 
+    return PingMonitorSeedIds.fromLists({
+      monitorStatuses: monitorStatuses.data,
+      incidentSeverities: incidentSeverities.data,
+      alertSeverities: alertSeverities.data,
+    });
+  }
+
+  /*
+   * The ids picked from lists a caller already holds, in the order resolve()
+   * reads them - the Review dialog's monitoring step reads these lists with
+   * their names for its template preview, and picks the ids from them
+   * rather than asking for the same rows twice. Throws the same sentences.
+   */
+  public static fromLists(lists: PingMonitorSeedLists): MonitorCriteriaSeedIds {
     const onlineMonitorStatus: MonitorStatus | undefined =
-      monitorStatuses.data.find((status: MonitorStatus) => {
+      lists.monitorStatuses.find((status: MonitorStatus) => {
         return status.isOperationalState;
       });
 
     const offlineMonitorStatus: MonitorStatus | undefined =
-      monitorStatuses.data.find((status: MonitorStatus) => {
+      lists.monitorStatuses.find((status: MonitorStatus) => {
         return status.isOfflineState;
       });
 
     const incidentSeverity: IncidentSeverity | undefined =
-      incidentSeverities.data[0];
+      lists.incidentSeverities[0];
 
-    const alertSeverity: AlertSeverity | undefined = alertSeverities.data[0];
+    const alertSeverity: AlertSeverity | undefined = lists.alertSeverities[0];
 
     if (!onlineMonitorStatus?.id || !offlineMonitorStatus?.id) {
       throw new PingMonitorSeedIdsUnavailableError(

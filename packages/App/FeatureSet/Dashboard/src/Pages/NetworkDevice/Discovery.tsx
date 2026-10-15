@@ -3,6 +3,12 @@ import DiscoveryScanProgress, {
   isWaitingForDiscoveryProgress,
 } from "../../Components/NetworkDevice/DiscoveryScanProgress";
 import DiscoveryScanStatusMessage from "../../Components/NetworkDevice/DiscoveryScanStatusMessage";
+import DiscoveryImportDialog from "../../Components/NetworkDevice/DiscoveryImport/DiscoveryImportDialog";
+import DiscoveryImportRowStatus from "../../Components/NetworkDevice/DiscoveryImport/DiscoveryImportRowStatus";
+import useActiveDiscoveryImports, {
+  ActiveDiscoveryImports,
+} from "../../Components/NetworkDevice/DiscoveryImport/useActiveDiscoveryImports";
+import { DiscoveryImportView } from "Common/Types/NetworkDevice/DiscoveryImport";
 import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/NetworkDeviceMetricDescriptions";
 import useDiscoveryScanLiveUpdates, {
   DiscoveryScanLiveUpdates,
@@ -12,11 +18,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import ProbeUtil from "../../Utils/Probe";
 import Route from "Common/Types/API/Route";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
-import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
-import NetworkDeviceDiscoveryScan, {
-  DiscoveredNetworkDevice,
-} from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -26,16 +28,12 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import FilterButtons, {
-  FilterButtonOption,
-} from "Common/UI/Components/FilterButtons/FilterButtons";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import OneUptimeDate from "Common/Types/Date";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import ModelField, {
@@ -46,8 +44,6 @@ import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ProjectUtil from "Common/UI/Utils/Project";
 import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
 import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
@@ -77,62 +73,15 @@ import {
   isNetworkQuickActionRequested,
 } from "../../Components/Network/NetworkQuickActions";
 import {
-  buildDeviceName,
-  buildFallbackDeviceName,
-  buildNetworkDeviceFromDiscoveredHost,
-  getDiscoveredHostFullName,
-  getDiscoveredHostNameSource,
-} from "Common/Utils/NetworkDiscovery/DiscoveredDeviceBuilder";
-import { normalizeReverseDnsName } from "Common/Utils/NetworkDiscovery/ReverseDnsNameUtil";
-import { DeviceNameSource } from "Common/Types/NetworkDevice/DeviceNameSource";
-import {
-  DiscoveredHostNamingExplanation,
-  explainUnnamedDiscoveredHost,
-} from "Common/Utils/NetworkDiscovery/DiscoveredHostNamingDiagnosis";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
-import {
-  buildPingMonitorForDiscoveredHost,
-  MonitorCriteriaSeedIds,
-} from "Common/Utils/NetworkDiscovery/PingMonitorBuilder";
-import PingMonitorSeedIds from "../../Components/NetworkDevice/PingMonitorSeedIds";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ObjectID from "Common/Types/ObjectID";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import { JSONArray, JSONObject } from "Common/Types/JSON";
-import Toggle from "Common/UI/Components/Toggle/Toggle";
-import { IMPORT_VENDOR_TEMPLATES_TOGGLE_TITLE } from "../../Components/NetworkDevice/BulkDeviceActionTitles";
-import {
   DiscoveryScanOutcome,
   getDiscoveredHosts,
   summarizeDiscoveryScan,
 } from "../../Components/NetworkDevice/DiscoveryScanOutcome";
-import {
-  DiscoveredHostFilter,
-  DiscoveredHostFilterOption,
-  ImportedIpAddressesByScanId,
-  ShownDiscoveredHost,
-  areAllShownHostsSelected,
-  countSelectableShownHosts,
-  getDiscoveredHostFilterEmptyMessage,
-  getDiscoveredHostFilterLabel,
-  getDiscoveredHostFilterOptions,
-  getDiscoveredHostsToImport,
-  getImportedIpAddressesForScan,
-  getInitialSelection,
-  getShownDiscoveredHosts,
-  isPingOnlyDiscoveredHost,
-  isSelectableDiscoveredHost,
-  markDiscoveredHostsAsRegistered,
-  normalizeDiscoveredHosts,
-  toggleSelectionForShownHosts,
-  withImportedIpAddresses,
-} from "../../Components/NetworkDevice/DiscoveredHostFilter";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
-  useRef,
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -142,13 +91,6 @@ import {
   translateTemplate,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
-
-type DiscoveredDeviceEntry = DiscoveredNetworkDevice;
-
-interface ReviewRequest {
-  scanId: string;
-  importedIpAddresses: Set<string>;
-}
 
 /*
  * More fields on the new-scan form: the name, how hosts are named, and the
@@ -664,79 +606,6 @@ const getDiscoveryScanFormFields: GetDiscoveryScanFormFieldsFunction = (
   ];
 };
 
-/**
- * Create the optional Ping monitor for a ping-only host — the one-click path
- * to incidents, alerts and status pages for a device the probe already pings
- * — and return its id so the device can be created already bound to it.
- *
- * The scan's own probe is attached explicitly rather than letting the monitor
- * fall back to the project's defaults. That matters more than it looks: the
- * defaults include GLOBAL probes, which sit on the public internet and cannot
- * reach an RFC1918 address — so a monitor left on defaults for 10.246.174.13
- * would fail every check and drive the device to "Offline". That is a worse
- * answer than the probe's own ping, because it looks like a real outage. The
- * scan's probe is the one that just proved the host answers ping, so it is
- * exactly the right one to keep asking.
- */
-async function createPingMonitorForHost(data: {
-  host: DiscoveredDeviceEntry;
-  deviceName: string;
-  scan: NetworkDeviceDiscoveryScan;
-  seedIds: MonitorCriteriaSeedIds;
-}): Promise<ObjectID> {
-  const monitor: Monitor = buildPingMonitorForDiscoveredHost({
-    projectId: ProjectUtil.getCurrentProjectId()!,
-    host: data.host,
-    deviceName: data.deviceName,
-    seedIds: data.seedIds,
-  });
-
-  const response: HTTPResponse<
-    JSONObject | JSONArray | Monitor | Array<Monitor>
-  > = await ModelAPI.create<Monitor>({
-    model: monitor,
-    modelType: Monitor,
-    miscDataProps: data.scan.probeId
-      ? { probes: [data.scan.probeId.toString()] }
-      : {},
-  });
-
-  /*
-   * `?? undefined` rather than a bare `?.id`: BaseModel.id is `ObjectID |
-   * null`, so the optional chain yields `ObjectID | null | undefined` and the
-   * annotation below refuses it under strictNullChecks. The Dashboard's own
-   * build never noticed, but the Common suite type-checks this file when it
-   * renders the page, and it failed to compile there.
-   */
-  const createdMonitorId: ObjectID | undefined =
-    (response.data as Monitor | undefined)?.id ?? undefined;
-
-  if (!createdMonitorId) {
-    throw new BadDataException(
-      "The Ping monitor was created but the server did not return its id, so it could not be bound to this device.",
-    );
-  }
-
-  return createdMonitorId;
-}
-
-/**
- * Remove a monitor created moments ago for a device whose own create then
- * failed. Swallows its own errors: the operator needs the import failure, not
- * a second message about the cleanup of it. A monitor that survives this is
- * visible and deletable in the monitor list.
- */
-async function deleteMonitorQuietly(monitorId: ObjectID): Promise<void> {
-  try {
-    await ModelAPI.deleteItem<Monitor>({
-      modelType: Monitor,
-      id: monitorId,
-    });
-  } catch {
-    // Intentionally ignored - see above.
-  }
-}
-
 const NetworkDeviceDiscovery: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -764,10 +633,6 @@ const NetworkDeviceDiscovery: FunctionComponent<
   const [refreshToggle, setRefreshToggle] = useState<string>("");
   const liveUpdates: DiscoveryScanLiveUpdates = useDiscoveryScanLiveUpdates();
 
-  // Review Results modal state.
-  const [showReviewModal, setShowReviewModal] = useState<boolean>(false);
-  const [isLoadingReview, setIsLoadingReview] = useState<boolean>(false);
-  const [isReviewReady, setIsReviewReady] = useState<boolean>(false);
   /*
    * The scan the Edit dialog is open for, or null.
    *
@@ -778,59 +643,22 @@ const NetworkDeviceDiscovery: FunctionComponent<
    */
   const [scanToEdit, setScanToEdit] =
     useState<NetworkDeviceDiscoveryScan | null>(null);
+  /*
+   * The scan the import dialog is open for (Review Results), and the import
+   * it opens on when a row's "View progress" opened it - or null. The import
+   * itself runs on the server: the dialog only asks for it and shows it.
+   */
   const [scanToReview, setScanToReview] =
     useState<NetworkDeviceDiscoveryScan | null>(null);
-  const [selectedIps, setSelectedIps] = useState<Record<string, boolean>>({});
-  /*
-   * Which group of hosts the dialog is showing — and, because Import is scoped
-   * to the view, which group Import brings in. See DiscoveredHostFilter.
-   */
-  const [hostFilter, setHostFilter] = useState<DiscoveredHostFilter>(
-    DiscoveredHostFilter.All,
+  const [importIdToShow, setImportIdToShow] = useState<string | undefined>(
+    undefined,
   );
-  const [isImporting, setIsImporting] = useState<boolean>(false);
-  const [importError, setImportError] = useState<string>("");
   /*
-   * Whether the operator asked for a Ping monitor to be created and bound to
-   * each ping-only host in this import.
-   *
-   * OFF by default, and deliberately so: a monitor is a billable, plan-limited
-   * resource, and creating fourteen of them must be something the operator
-   * chose rather than a side effect of recording inventory. Without it the
-   * import behaves exactly as it always has.
+   * The project's imports that are still running, by scan, so each scan's
+   * row shows its import moving - with the dialog closed, or opened by
+   * someone else.
    */
-  const [createPingMonitors, setCreatePingMonitors] = useState<boolean>(false);
-  /*
-   * Whether each SNMP host this import creates gets its vendor's health
-   * template on its first poll - the health OIDs and SNMP tables the device's
-   * Settings offers as "Vendor Health Template", picked from what the walk
-   * reports, exactly as an auto import rule's devices get them.
-   *
-   * ON by default: it is what the vendor banner on every such device would
-   * recommend, one device at a time, and an MSP importing thirty Cambium
-   * switches should not have to open thirty Settings pages - or remember a
-   * bulk action - to get their health. It only ever fills an EMPTY list, and
-   * the toggle is in the dialog, so leaving a batch without is one click.
-   */
-  const [applyVendorTemplates, setApplyVendorTemplates] =
-    useState<boolean>(true);
-  /*
-   * Imports made since this review's inventory lookup. Each successful fresh
-   * read replaces that scan's record, so a deleted device becomes selectable
-   * again. Between reads the record still prevents repeated batch imports.
-   */
-  const [importedIpAddressesByScanId, setImportedIpAddressesByScanId] =
-    useState<ImportedIpAddressesByScanId>({});
-  /*
-   * The scan the dialog is showing right now, readable from inside an import
-   * that started minutes ago. State would be the value captured when the run
-   * began, which is exactly the value that cannot answer "is this still the
-   * dialog I was importing for".
-   */
-  const reviewedScanIdRef: React.MutableRefObject<string> = useRef<string>("");
-  // Object identity distinguishes even two consecutive reviews of one scan.
-  const reviewRequestRef: React.MutableRefObject<ReviewRequest | null> =
-    useRef<ReviewRequest | null>(null);
+  const activeImports: ActiveDiscoveryImports = useActiveDiscoveryImports();
 
   const fetchProbes: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -849,513 +677,6 @@ const NetworkDeviceDiscovery: FunctionComponent<
     });
   }, []);
 
-  type OpenReviewModalFunction = (
-    scan: NetworkDeviceDiscoveryScan,
-  ) => Promise<void>;
-
-  type GetReviewHostsFunction = (
-    scan: NetworkDeviceDiscoveryScan | null,
-    importedByScanId?: ImportedIpAddressesByScanId,
-  ) => Array<DiscoveredDeviceEntry>;
-
-  /*
-   * The list the dialog reasons about: what the probe found, with anything
-   * already imported from this scan flipped to already-registered. Every
-   * count, filter and import path goes through this so they cannot disagree
-   * about what is still importable.
-   */
-  const getReviewHosts: GetReviewHostsFunction = (
-    scan: NetworkDeviceDiscoveryScan | null,
-    importedByScanId?: ImportedIpAddressesByScanId,
-  ): Array<DiscoveredDeviceEntry> => {
-    if (
-      scan?.status === DiscoveryScanStatus.Pending ||
-      isWaitingForDiscoveryProgress(scan)
-    ) {
-      return [];
-    }
-    return markDiscoveredHostsAsRegistered({
-      /*
-       * Normalised first: the jsonb comes verbatim off the probe, and a null
-       * row or a numeric address used to break a different rule at each call
-       * site. See normalizeDiscoveredHosts.
-       */
-      hosts: normalizeDiscoveredHosts(getDiscoveredHosts(scan)),
-      importedIpAddresses: getImportedIpAddressesForScan({
-        importedByScanId: importedByScanId || importedIpAddressesByScanId,
-        scanId: scan?._id,
-      }),
-    });
-  };
-
-  const openReviewModal: OpenReviewModalFunction = async (
-    scan: NetworkDeviceDiscoveryScan,
-  ): Promise<void> => {
-    setScanToReview(scan);
-    // Answers "is this still the dialog I am importing for" from a stale run.
-    reviewedScanIdRef.current = scan._id || "";
-    const request: ReviewRequest = {
-      scanId: reviewedScanIdRef.current,
-      importedIpAddresses: new Set<string>(),
-    };
-    reviewRequestRef.current = request;
-    setSelectedIps({});
-    setIsReviewReady(false);
-    setIsLoadingReview(true);
-    // Every scan opens on the whole list; narrowing is the operator's move.
-    setHostFilter(DiscoveredHostFilter.All);
-    setImportError("");
-    /*
-     * Per-dialog, not per-page: opting a batch of phones into monitors says
-     * nothing about the next scan, which may be a rack of switches.
-     */
-    setCreatePingMonitors(false);
-    setApplyVendorTemplates(true);
-    setShowReviewModal(true);
-
-    try {
-      if (!scan.id) {
-        throw new BadDataException("This discovery scan could not be found.");
-      }
-
-      /*
-       * The service reconciles registration against the current inventory on
-       * read. Fetch on every open: the table row and our prior import record
-       * may both predate a device's deletion or an import in another session.
-       */
-      const freshScan: NetworkDeviceDiscoveryScan | null =
-        await ModelAPI.getItem<NetworkDeviceDiscoveryScan>({
-          modelType: NetworkDeviceDiscoveryScan,
-          id: scan.id,
-          select: {
-            _id: true,
-            projectId: true,
-            name: true,
-            cidr: true,
-            status: true,
-            statusMessage: true,
-            discoveredDevices: true,
-            probeId: true,
-            isSnmpEnabled: true,
-            /*
-             * The scan's naming choice (issue #3678). Read on THIS fetch, not
-             * trusted from the table row, because it is what both the rows
-             * below and the import name every host by: a column missing here
-             * reads as undefined, which the builder treats as "full names",
-             * and the operator would tick "core-sw-01" and create
-             * "core-sw-01.corp.example.com". Fetched fresh for the same
-             * reason the credentials are — the scan can have been edited in
-             * another tab since the table loaded.
-             */
-            useShortDeviceNames: true,
-            /*
-             * Whether the probe was asked to look up NetBIOS names (issue
-             * #3677), read so an unnamed row can say which naming sources were
-             * even tried (issue #3916). A host listed by its bare address on a
-             * scan with NetBIOS off is explained by that setting, not by the
-             * host — and a column missing here would read as "off" on every
-             * scan, so a row on a scan the lookup DID run for would be told
-             * it was off. Same read access as isSnmpEnabled above.
-             */
-            isNetbiosLookupEnabled: true,
-            snmpConfigs: true,
-            snmpVersion: true,
-            snmpCommunityString: true,
-            snmpPort: true,
-            snmpV3SecurityLevel: true,
-            snmpV3Username: true,
-            snmpV3AuthProtocol: true,
-            snmpV3AuthKey: true,
-            snmpV3PrivProtocol: true,
-            snmpV3PrivKey: true,
-          },
-        });
-
-      if (reviewRequestRef.current !== request) {
-        return;
-      }
-
-      if (!freshScan) {
-        throw new BadDataException("This discovery scan could not be found.");
-      }
-
-      /*
-       * An earlier import can finish while this read is in flight. Preserve
-       * those newly created addresses even if the response predates them.
-       */
-      const refreshedImports: ImportedIpAddressesByScanId = {
-        [request.scanId]: Array.from(request.importedIpAddresses),
-      };
-      setImportedIpAddressesByScanId((current: ImportedIpAddressesByScanId) => {
-        return { ...current, ...refreshedImports };
-      });
-      setScanToReview(freshScan);
-      setSelectedIps(
-        getInitialSelection(getReviewHosts(freshScan, refreshedImports)),
-      );
-      setIsReviewReady(true);
-    } catch (err) {
-      if (reviewRequestRef.current === request) {
-        setImportError(API.getFriendlyMessage(err));
-      }
-    } finally {
-      if (reviewRequestRef.current === request) {
-        setIsLoadingReview(false);
-      }
-    }
-  };
-
-  const closeReviewModal: VoidFunction = (): void => {
-    setShowReviewModal(false);
-    setScanToReview(null);
-    reviewedScanIdRef.current = "";
-    reviewRequestRef.current = null;
-    setIsReviewReady(false);
-    setIsLoadingReview(false);
-    setSelectedIps({});
-    setHostFilter(DiscoveredHostFilter.All);
-    setImportError("");
-    setCreatePingMonitors(false);
-    setApplyVendorTemplates(true);
-    /*
-     * Keep the import record until a successful fresh inventory read replaces
-     * it. A failed request must never make remembered imports selectable.
-     */
-  };
-
-  const importSelectedDevices: PromiseVoidFunction =
-    async (): Promise<void> => {
-      if (!scanToReview || !isReviewReady || isLoadingReview || isImporting) {
-        return;
-      }
-
-      /*
-       * The scan this run belongs to. Importing a large group is thousands of
-       * sequential creates and takes minutes, during which the dialog can be
-       * closed and another scan opened — so everything this run does when it
-       * finally lands has to be attributed to the scan it started on, not to
-       * whatever is on screen by then.
-       */
-      const runScanId: string = scanToReview._id || "";
-      const runReviewRequest: ReviewRequest | null = reviewRequestRef.current;
-
-      /*
-       * Selected AND currently shown. Scoping to the active filter is what
-       * makes "show only SNMP, press Import" import only the SNMP devices
-       * instead of every ticked host in the scan (issue #3322).
-       */
-      const entriesToImport: Array<DiscoveredDeviceEntry> =
-        getDiscoveredHostsToImport({
-          hosts: getReviewHosts(scanToReview),
-          filter: hostFilter,
-          selectedIpAddresses: selectedIps,
-        });
-
-      if (entriesToImport.length === 0) {
-        return;
-      }
-
-      setIsImporting(true);
-      setImportError("");
-
-      const importedNow: Array<string> = [];
-      const failures: Array<string> = [];
-      /*
-       * Hosts that imported fine but whose Ping monitor could not be created
-       * — a free-plan quota running out mid-batch is the usual cause. Kept
-       * apart from `failures` because the two need different words: those
-       * hosts ARE in the inventory, they just have nothing reporting on them
-       * yet, so the message tells the operator what is still missing rather
-       * than implying the import did not happen.
-       */
-      const monitorFailures: Array<string> = [];
-
-      /*
-       * Whether this run will provision monitors, and the four project-scoped
-       * ids they are seeded from.
-       *
-       * Resolved ONCE, before the loop: they describe the project, not any one
-       * host, and a fourteen-host import must not repeat these queries
-       * fourteen times. A project missing a status or a severity fails here,
-       * as one clear message, rather than fourteen times over as a per-host
-       * import failure.
-       */
-      const wantsPingMonitors: boolean =
-        createPingMonitors &&
-        entriesToImport.some((entry: DiscoveredDeviceEntry) => {
-          return isPingOnlyDiscoveredHost(entry);
-        });
-
-      let pingMonitorSeedIds: MonitorCriteriaSeedIds | null = null;
-
-      if (wantsPingMonitors) {
-        try {
-          pingMonitorSeedIds = await PingMonitorSeedIds.resolve();
-        } catch (err) {
-          setIsImporting(false);
-          setImportError(API.getFriendlyMessage(err));
-          return;
-        }
-      }
-
-      for (const entry of entriesToImport) {
-        /*
-         * A monitor created for this host that must be cleaned up if the
-         * device create then fails — otherwise a failed import leaves a
-         * billable monitor behind pointing at a device that does not exist.
-         */
-        let provisionedMonitorId: ObjectID | null = null;
-
-        try {
-          /*
-           * The shared recipe (Common/Utils/NetworkDiscovery/
-           * DiscoveredDeviceBuilder): name, hostname, description, the scan's
-           * probe with polling on, and — for SNMP hosts — the scan's
-           * credentials. A ping-only host gets the probe and none of the
-           * SNMP setup: it is pinged until credentials are added. The
-           * server-side auto-import rule engine builds through the same
-           * function, so a hand-imported host and a rule-imported host are
-           * the same device.
-           *
-           * The name follows the scan's `useShortDeviceNames`, read by the
-           * builder off `scan` — which is why the fresh read in
-           * openReviewModal selects that column — and the full reverse-DNS
-           * name is kept on the device as `dnsName` either way.
-           */
-          const device: NetworkDevice = buildNetworkDeviceFromDiscoveredHost({
-            projectId: ProjectUtil.getCurrentProjectId()!,
-            /*
-             * The dialog's "Apply each SNMP host's vendor template" toggle.
-             * The builder sets it on SNMP hosts only: a ping-only host has
-             * no sysObjectID to match a template by. (Ahead of host and scan,
-             * which DiscoveryReviewHostname reads as the call's last two.)
-             */
-            autoApplyVendorHealthTemplate: applyVendorTemplates,
-            host: entry,
-            scan: scanToReview,
-          });
-
-          /*
-           * The optional Ping monitor for a ping-only host. The device is
-           * pinged by the scan's probe and has a status from its first poll
-           * without one (the #3447 dead end — no probe, nothing polling it,
-           * "Pending" forever — is gone); what a monitor adds is incidents,
-           * alerts and status-page visibility, and it is the only one-click
-           * path to those until alert policies land. So when the operator
-           * asked for it, create the Ping monitor FIRST and carry its id
-           * onto the device — binding at create time is what makes
-           * NetworkDeviceService stamp the monitor's status onto the device
-           * immediately, rather than waiting for the monitor's next status
-           * CHANGE (#3392).
-           *
-           * The monitor is an ENHANCEMENT to the import, not a precondition
-           * for it, so its failure must not cost the operator the device.
-           * A project on the free plan runs out of monitor quota partway
-           * through a fourteen-host batch; failing those hosts entirely
-           * would mean the operator gets neither the monitor nor the
-           * inventory they actually asked to import. So a monitor failure is
-           * recorded as its own warning and the device is created unbound —
-           * which is exactly the behaviour of an import with the option off.
-           */
-          if (pingMonitorSeedIds && isPingOnlyDiscoveredHost(entry)) {
-            /*
-             * The monitor is named after the HOST, which means the address has
-             * to be in it whenever the device name is not the address itself.
-             *
-             * Before issue #3529 that was automatic: a ping-only host WAS
-             * named by its address, so "Ping 10.18.166.51" identified exactly
-             * one thing. Now the device carries a PTR name, and PTR names are
-             * not unique — a DHCP range published under one wildcard record
-             * gives every host in it the same one. Importing that range with
-             * "Create a Ping monitor" ticked produced N monitors all called
-             * "Ping dhcp-pool.corp.example.com", bound to N correctly
-             * distinguished devices. Nothing failed; Monitor.name has no
-             * unique constraint and its slug carries random digits. The
-             * monitor list simply stopped being navigable.
-             *
-             * Qualifying with the address restores the property the address
-             * used to provide for free, and buildFallbackDeviceName is reused
-             * rather than re-composed so the monitor and the collision-retry
-             * device end up spelling the same host the same way.
-             *
-             * Named with the SCAN as the naming argument, exactly like the
-             * device above (which the builder names from `scan`) and the
-             * retry below. With short names on, a device called "cam-lobby"
-             * gets "Ping cam-lobby (10.18.166.54)", not a monitor spelled
-             * after the FQDN the operator asked not to see (issue #3678).
-             */
-            const monitorSubjectName: string =
-              device.name && device.name !== entry.ipAddress
-                ? buildFallbackDeviceName(entry, scanToReview)
-                : device.name || entry.ipAddress;
-
-            try {
-              provisionedMonitorId = await createPingMonitorForHost({
-                host: entry,
-                deviceName: monitorSubjectName,
-                scan: scanToReview,
-                seedIds: pingMonitorSeedIds,
-              });
-
-              device.monitorId = provisionedMonitorId;
-            } catch (monitorErr) {
-              monitorFailures.push(
-                `${entry.ipAddress}: ${API.getFriendlyMessage(monitorErr)}`,
-              );
-            }
-          }
-
-          try {
-            await ModelAPI.create<NetworkDevice>({
-              model: device,
-              modelType: NetworkDevice,
-            });
-          } catch (createErr) {
-            /*
-             * One retry under the address-qualified name, exactly as the
-             * server-side auto-import rule engine does it
-             * (NetworkDeviceAutoImportRuleEngineService). Device names are
-             * unique per project, and this batch can now contain hosts that
-             * genuinely share one.
-             *
-             * Reverse DNS (issue #3529) is what made that ordinary. Ping-only
-             * hosts used to be named by their addresses, so two of them could
-             * never collide with each other; now a single wildcard PTR record
-             * — `*.166.18.10.in-addr.arpa IN PTR dhcp-pool.corp.example.com`,
-             * which is how a DHCP range is routinely published — gives every
-             * host in the range the same name. Without this retry the first
-             * host imported and the other 199 failed with "Network Device
-             * with the same name already exists", turning the feature into a
-             * regression for exactly the estates it was built for.
-             *
-             * The fallback appends ` (<address>)`, which is unique per host
-             * by construction. If THAT also fails the error is real and is
-             * reported against this host; the first error is the one worth
-             * showing, since the second is usually a consequence of it.
-             *
-             * Under the scan's naming choice, like the first attempt. Short
-             * names make collisions MORE likely, not less — "web" in two
-             * domains is one name — so the retry is where "web (10.0.0.5)"
-             * comes from, and it must not fall back to the full FQDN the
-             * scan was told not to use (issue #3678).
-             */
-            device.name = buildFallbackDeviceName(entry, scanToReview);
-
-            try {
-              await ModelAPI.create<NetworkDevice>({
-                model: device,
-                modelType: NetworkDevice,
-              });
-            } catch {
-              throw createErr;
-            }
-          }
-
-          importedNow.push(entry.ipAddress);
-        } catch (err) {
-          /*
-           * Best effort, and deliberately silent on its own failure: the
-           * import error the operator needs to see is the one below, not a
-           * second error about tidying up after it.
-           */
-          if (provisionedMonitorId) {
-            await deleteMonitorQuietly(provisionedMonitorId);
-          }
-
-          failures.push(`${entry.ipAddress}: ${API.getFriendlyMessage(err)}`);
-        }
-      }
-
-      setIsImporting(false);
-
-      if (reviewRequestRef.current?.scanId === runScanId) {
-        for (const ipAddress of importedNow) {
-          reviewRequestRef.current.importedIpAddresses.add(ipAddress);
-        }
-      }
-
-      /*
-       * Retire what was imported so it cannot be imported a second time, and
-       * so the row shows "Already added" like any other registered host.
-       *
-       * Recorded against this run's own scan, and merged functionally, so it
-       * is correct whether or not the operator has moved on and whether or
-       * not another import already wrote to the store.
-       */
-      const importedAfterThisRun: ImportedIpAddressesByScanId =
-        withImportedIpAddresses({
-          importedByScanId: importedIpAddressesByScanId,
-          scanId: runScanId,
-          ipAddresses: importedNow,
-        });
-
-      setImportedIpAddressesByScanId((current: ImportedIpAddressesByScanId) => {
-        return withImportedIpAddresses({
-          importedByScanId: current,
-          scanId: runScanId,
-          ipAddresses: importedNow,
-        });
-      });
-
-      /*
-       * Whether the dialog still belongs to this run. A run that outlived its
-       * dialog must not push its errors onto whatever is open now, and must
-       * not close it.
-       */
-      const isStillTheSameReview: boolean =
-        reviewedScanIdRef.current === runScanId &&
-        reviewRequestRef.current === runReviewRequest;
-
-      /*
-       * A monitor that could not be created is reported alongside the import
-       * failures, but worded apart from them on purpose. A host in `failures`
-       * is NOT in the inventory. A host in `monitorFailures` IS — it just
-       * imported without the monitor that was going to report on it, so it is
-       * sitting on "Pending" and the operator needs to know which ones and
-       * why (a free-plan quota running out mid-batch is the usual reason).
-       *
-       * Folded in here rather than reported through a second channel so that
-       * either kind keeps the dialog open: closing on a monitor-only problem
-       * would show the message for exactly as long as it took to disappear.
-       */
-      if (monitorFailures.length > 0) {
-        failures.push(
-          `Imported, but no Ping monitor could be created for ${monitorFailures.length === 1 ? "this host" : "these hosts"} — ${monitorFailures.length === 1 ? "it is" : "they are"} in your inventory and pinged by the probe, but will not raise incidents until a monitor exists: ${monitorFailures.join(" ")}`,
-        );
-      }
-
-      if (failures.length > 0) {
-        if (isStillTheSameReview) {
-          setImportError(failures.join(" "));
-        }
-      } else if (
-        isStillTheSameReview &&
-        /*
-         * Closing on success is right only when there is nothing left to do.
-         * Importing group by group means the usual case is now "the SNMP
-         * devices are in, the ping-only ones are still waiting" — closing
-         * there would throw away the review and make the operator reopen the
-         * scan to finish the job.
-         *
-         * The test is on what is still SELECTED, not on what is still
-         * selectable. Gating on selectable would keep the dialog open after a
-         * complete import whenever the operator had deliberately unticked a
-         * host — showing them a dialog whose only button reads "Import
-         * Selected (0)" and is disabled, with nothing left to do in it.
-         */
-        getDiscoveredHostsToImport({
-          hosts: getReviewHosts(scanToReview, importedAfterThisRun),
-          filter: DiscoveredHostFilter.All,
-          selectedIpAddresses: selectedIps,
-        }).length === 0
-      ) {
-        closeReviewModal();
-      }
-
-      // Refresh the scans table.
-      setRefreshToggle(Date.now().toString());
-    };
-
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -1363,120 +684,6 @@ const NetworkDeviceDiscovery: FunctionComponent<
   if (error) {
     return <ErrorMessage message={error} />;
   }
-
-  const reviewEntries: Array<DiscoveredDeviceEntry> = isReviewReady
-    ? getReviewHosts(scanToReview)
-    : [];
-
-  /*
-   * Group sizes come off the whole scan, so every button keeps its own count.
-   * Named with this page's translator, the one the row's No SNMP pill is
-   * looked up with, so a button and the pill it filters to read alike.
-   */
-  const hostFilterOptions: Array<FilterButtonOption> =
-    getDiscoveredHostFilterOptions(reviewEntries, translator).map(
-      (option: DiscoveredHostFilterOption) => {
-        return {
-          label: option.label,
-          value: option.value,
-        };
-      },
-    );
-
-  /*
-   * Each row carries its position in the UNFILTERED scan, so its React key
-   * does not change when the filter does — see ShownDiscoveredHost.
-   */
-  const shownEntries: Array<ShownDiscoveredHost> = getShownDiscoveredHosts({
-    hosts: reviewEntries,
-    filter: hostFilter,
-  });
-
-  /*
-   * What Import will actually create — selected AND shown — so the number on
-   * the button can never promise something other than what the press does.
-   */
-  const selectedCount: number = getDiscoveredHostsToImport({
-    hosts: reviewEntries,
-    filter: hostFilter,
-    selectedIpAddresses: selectedIps,
-  }).length;
-
-  const selectableShownCount: number = countSelectableShownHosts({
-    hosts: reviewEntries,
-    filter: hostFilter,
-  });
-
-  const areAllShownSelected: boolean = areAllShownHostsSelected({
-    hosts: reviewEntries,
-    filter: hostFilter,
-    selectedIpAddresses: selectedIps,
-  });
-
-  /*
-   * Counted across the WHOLE scan rather than the group on screen, so the
-   * ping-monitor option does not appear and vanish as the operator switches
-   * filters. The import itself still only touches what is selected and shown.
-   */
-  const noSnmpHostCount: number = reviewEntries.filter(
-    (entry: DiscoveredDeviceEntry) => {
-      return isPingOnlyDiscoveredHost(entry);
-    },
-  ).length;
-
-  /*
-   * The hosts the vendor-template toggle is about: the importable ones that
-   * answered SNMP. Across the whole scan, like noSnmpHostCount, so the toggle
-   * does not come and go as the operator switches filters.
-   */
-  const importableSnmpHostCount: number = reviewEntries.filter(
-    (entry: DiscoveredDeviceEntry) => {
-      return (
-        isSelectableDiscoveredHost(entry) && !isPingOnlyDiscoveredHost(entry)
-      );
-    },
-  ).length;
-
-  /*
-   * Whether the scan under review asked anything about SNMP. Null-safe on
-   * purpose: this is computed on every render, including the ones where no
-   * scan is being reviewed at all, and a scan with no method column — every
-   * scan created before issue #3445 — reads as an SNMP scan, which it was.
-   *
-   * Note it is NOT the same question as noSnmpHostCount above: that counts
-   * hosts this sweep found without SNMP, which an ordinary SNMP scan of a
-   * subnet full of unmanaged gear produces too. This one is about what the
-   * scan was allowed to ask.
-   */
-  const isIcmpOnlyReview: boolean = ScanModeUtil.isIcmpOnly(scanToReview);
-
-  /*
-   * Whether the scan under review ran on a GLOBAL probe: true or false for a
-   * probe in the list ProbeUtil loaded (it stamps the flag on every probe it
-   * returns), undefined for one the page does not know — deleted since the
-   * scan ran, say. The explanation reads undefined as "not global": the page
-   * cannot claim that a probe it knows nothing about refused to ask.
-   *
-   * It exists for the unnamed-host explanation (issue #3916). A global probe
-   * never sends NetBIOS queries whatever the scan asks for, and the bundled
-   * self-hosted probes register as global ones — yet the probe used to record
-   * that refusal in a debug log and nowhere else. A row from such a probe
-   * carries no NetBIOS code, so without this the dialog could say only "no
-   * name was recorded" on a scan whose operator had turned the lookup on,
-   * when the truth is that it was never going to be asked — and could advise
-   * turning on a lookup that probe will never run.
-   *
-   * Once per render, like isIcmpOnlyReview: it is a fact about the scan, and
-   * a list of thousands of rows has no business searching the probes for
-   * each of them.
-   */
-  const reviewedScanProbeId: string | undefined =
-    scanToReview?.probeId?.toString() || undefined;
-  const isReviewedScanOnGlobalProbe: boolean | undefined = reviewedScanProbeId
-    ? probes.find((probe: Probe) => {
-        return probe.id?.toString() === reviewedScanProbeId;
-      })?.isGlobalProbe
-    : undefined;
 
   return (
     <Fragment>
@@ -1800,7 +1007,23 @@ const NetworkDeviceDiscovery: FunctionComponent<
             wrapContent: true,
             wrapMaxWidthClassName: "max-w-xs",
             getElement: (item: NetworkDeviceDiscoveryScan): ReactElement => {
-              return <DiscoveryScanProgress scan={liveUpdates.getScan(item)} />;
+              const activeImport: DiscoveryImportView | undefined =
+                activeImports.byScanId.get(item._id?.toString() || "");
+
+              return (
+                <div className="space-y-3">
+                  <DiscoveryScanProgress scan={liveUpdates.getScan(item)} />
+                  {activeImport && (
+                    <DiscoveryImportRowStatus
+                      view={activeImport}
+                      onView={() => {
+                        setImportIdToShow(activeImport.id);
+                        setScanToReview(liveUpdates.getScan(item));
+                      }}
+                    />
+                  )}
+                </div>
+              );
             },
           },
           {
@@ -2100,11 +1323,9 @@ const NetworkDeviceDiscovery: FunctionComponent<
               item: NetworkDeviceDiscoveryScan,
               onCompleteAction: VoidFunction,
             ) => {
-              try {
-                await openReviewModal(liveUpdates.getScan(item));
-              } finally {
-                onCompleteAction();
-              }
+              setImportIdToShow(undefined);
+              setScanToReview(liveUpdates.getScan(item));
+              onCompleteAction();
             },
           },
         ]}
@@ -2183,588 +1404,21 @@ const NetworkDeviceDiscovery: FunctionComponent<
         />
       )}
 
-      {showReviewModal && scanToReview && (
-        <Modal
-          title="Review Discovered Devices"
-          /*
-           * This used to end "hosts without SNMP cannot be imported", which
-           * stopped being true when ping-only hosts started importing at all
-           * — and reads as a flat contradiction next to a No SNMP filter that
-           * exists precisely to import them as a batch.
-           */
-          description={[
-            /*
-             * An ICMP-only sweep has exactly one group, so the sentence about
-             * choosing between two would be describing a filter row that is
-             * not on screen — and "hosts without SNMP" reads as a caveat about
-             * a shortfall rather than the thing the operator asked for.
-             */
-            isIcmpOnlyReview
-              ? translator.translateTemplate(
-                  "Hosts that responded in {{range}}. This scan checked ICMP only, so pick the hosts you want and import — they all arrive as devices pinged by the scan's probe; add SNMP credentials later for inventory. Turn on 'Create a Ping monitor' below if you also want incidents.",
-                  {
-                    range:
-                      ScanNameUtil.getScanLabel(scanToReview) ||
-                      translatableTerm("the scanned address range"),
-                  },
-                )
-              : translator.translateTemplate(
-                  "Hosts that responded in {{range}}. Filter to a group, pick the hosts you want, and import — SNMP hosts arrive with the scan's credentials and are walked for inventory, hosts without SNMP are pinged by the scan's probe until you add some.",
-                  {
-                    range:
-                      ScanNameUtil.getScanLabel(scanToReview) ||
-                      translatableTerm("the scanned address range"),
-                  },
-                ),
-            /*
-             * The probe's summary of the sweep. Most valuable precisely when
-             * this list is empty, which is the one case where the operator
-             * otherwise has nothing at all to go on.
-             */
-            scanToReview.statusMessage || "",
-          ]
-            .filter((sentence: string): boolean => {
-              return sentence.length > 0;
-            })
-            .join(" ")}
-          modalWidth={ModalWidth.Medium}
-          isLoading={isImporting}
-          isBodyLoading={isLoadingReview}
-          error={importError || undefined}
-          onClose={closeReviewModal}
-          submitButtonText={translator.translateTemplate(
-            "Import Selected ({{count}})",
-            { count: selectedCount },
-          )}
-          disableSubmitButton={!isReviewReady || selectedCount === 0}
-          onSubmit={() => {
-            importSelectedDevices().catch((err: Error) => {
-              setIsImporting(false);
-              setImportError(API.getFriendlyMessage(err));
-            });
+      {scanToReview && (
+        <DiscoveryImportDialog
+          scan={scanToReview}
+          probes={probes}
+          importId={importIdToShow}
+          onClose={() => {
+            setScanToReview(null);
+            setImportIdToShow(undefined);
           }}
-        >
-          {scanToReview.status === DiscoveryScanStatus.InProgress ||
-          scanToReview.status === DiscoveryScanStatus.Failed ? (
-            <Alert
-              type={AlertType.INFO}
-              strongTitle={
-                scanToReview.status === DiscoveryScanStatus.InProgress
-                  ? "This scan is still running"
-                  : "These are partial results"
-              }
-              title={
-                scanToReview.status === DiscoveryScanStatus.InProgress
-                  ? "You can import the hosts found so far. This review is a snapshot; close it and reopen Review Results to see newly discovered hosts."
-                  : "The scan stopped before it finished, but the hosts it already found are available to import."
-              }
-            />
-          ) : (
-            <></>
-          )}
-
-          <div>
-            {reviewEntries.length > 0 && (
-              <div className="mb-3 border-b border-gray-200 pb-3">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  {/*
-                   * Not offered on a scan that asked nothing about SNMP. The
-                   * row would read "All (2,890) · SNMP (0) · No SNMP (2,890)"
-                   * — two identical groups and one permanently empty button
-                   * whose empty message, "No host in this scan answered SNMP.",
-                   * reads as a credential failure on a sweep that carried no
-                   * credentials. hostFilter is reset to All when the dialog
-                   * opens and closes, so hiding the row cannot strand anyone
-                   * on a group they can no longer leave.
-                   */}
-                  {!isIcmpOnlyReview && (
-                    <FilterButtons
-                      options={hostFilterOptions}
-                      selectedValue={hostFilter}
-                      onSelect={(value: string) => {
-                        setHostFilter(value as DiscoveredHostFilter);
-                      }}
-                    />
-                  )}
-                  {/*
-                   * The answer to "2,890 hosts are pre-checked and I only want
-                   * the switches": clear this group, or take all of it, in one
-                   * press. Scoped to the group on screen, so using it on one
-                   * filter never disturbs the other.
-                   */}
-                  <Button
-                    title={
-                      areAllShownSelected
-                        ? translator.translateTemplate(
-                            "Clear all ({{count}})",
-                            {
-                              count:
-                                selectableShownCount.toLocaleString("en-US"),
-                            },
-                          )
-                        : translator.translateTemplate(
-                            "Select all ({{count}})",
-                            {
-                              count:
-                                selectableShownCount.toLocaleString("en-US"),
-                            },
-                          )
-                    }
-                    dataTestId="discovered-device-select-all"
-                    buttonStyle={ButtonStyleType.SECONDARY_LINK}
-                    buttonSize={ButtonSize.Small}
-                    disabled={selectableShownCount === 0 || isImporting}
-                    onClick={() => {
-                      setSelectedIps((current: Record<string, boolean>) => {
-                        return toggleSelectionForShownHosts({
-                          hosts: reviewEntries,
-                          filter: hostFilter,
-                          selectedIpAddresses: current,
-                        });
-                      });
-                    }}
-                  />
-                </div>
-                {/*
-                 * Import is scoped to the group on screen, and that has to be
-                 * said out loud: an operator who filters to SNMP and presses
-                 * Import needs to know both that the ping-only hosts are not
-                 * coming along, and that their ticks are still there when they
-                 * switch back.
-                 */}
-                <p className="mt-2 text-xs text-gray-500">
-                  {hostFilter === DiscoveredHostFilter.All
-                    ? translator.translatePlural(
-                        {
-                          one: "{{selected}} of {{count}} importable host selected.",
-                          other:
-                            "{{selected}} of {{count}} importable hosts selected.",
-                        },
-                        selectableShownCount,
-                        {
-                          selected: selectedCount.toLocaleString("en-US"),
-                          count: selectableShownCount.toLocaleString("en-US"),
-                        },
-                      )
-                    : translator.translatePlural(
-                        {
-                          one: "{{selected}} of {{count}} importable {{group}} host selected. Import brings in this group only — selections in the other group are kept, so you can switch and import it too.",
-                          other:
-                            "{{selected}} of {{count}} importable {{group}} hosts selected. Import brings in this group only — selections in the other group are kept, so you can switch and import it too.",
-                        },
-                        selectableShownCount,
-                        {
-                          selected: selectedCount.toLocaleString("en-US"),
-                          count: selectableShownCount.toLocaleString("en-US"),
-                          group: translatableTerm(
-                            getDiscoveredHostFilterLabel(hostFilter),
-                          ),
-                        },
-                      )}
-                </p>
-              </div>
-            )}
-            {/*
-             * The optional one-click path to incidents for the ping-only
-             * hosts.
-             *
-             * A host that answered ping but not SNMP imports as a device the
-             * scan's probe pings, so it has a status from its first poll —
-             * the "Pending forever" of OneUptime/oneuptime#3447 (no probe,
-             * nothing polling it, fourteen hand-made monitors and fourteen
-             * device edits to escape) is gone. What a Ping monitor still adds
-             * is incidents, alerts and status-page visibility, and until
-             * alert policies land this opt-in is the only way to get those
-             * without creating each monitor by hand.
-             *
-             * OFF by default on purpose: monitors are billable and
-             * plan-limited, so creating a batch of them is the operator's
-             * decision, not a side effect of recording inventory. Shown only
-             * when this scan actually found hosts it applies to.
-             */}
-            {/*
-             * Before the Ping monitor option: it is about the devices most
-             * scans are run for, and it is on by default.
-             */}
-            {/*
-             * No rule of its own above it: the filter row over it already
-             * ends in one. The Ping monitor option below keeps its rule, which
-             * then sits between the two switches.
-             */}
-            {importableSnmpHostCount > 0 && (
-              <div className="pt-1">
-                <Toggle
-                  title={translator.translatePlural(
-                    IMPORT_VENDOR_TEMPLATES_TOGGLE_TITLE,
-                    importableSnmpHostCount,
-                    {
-                      count: importableSnmpHostCount.toLocaleString("en-US"),
-                    },
-                  )}
-                  description="Each device gets the health OIDs and SNMP tables for its vendor — CPU, memory, temperature, fans — as auto import rules do. A device whose vendor has no template is left as it is, and anything applied can be changed on the device's Settings."
-                  initialValue={applyVendorTemplates}
-                  value={applyVendorTemplates}
-                  dataTestId="discovered-device-apply-vendor-templates"
-                  onChange={(value: boolean) => {
-                    setApplyVendorTemplates(value);
-                  }}
-                />
-              </div>
-            )}
-            {noSnmpHostCount > 0 && (
-              <div className="mt-4 border-t border-gray-100 pt-4">
-                <Toggle
-                  title={translator.translatePlural(
-                    {
-                      one: "Also create a Ping monitor for each host without SNMP to get incidents (optional) — {{count}} host",
-                      other:
-                        "Also create a Ping monitor for each host without SNMP to get incidents (optional) — {{count}} hosts",
-                    },
-                    noSnmpHostCount,
-                    { count: noSnmpHostCount.toLocaleString("en-US") },
-                  )}
-                  description="These hosts are already pinged by the probe that ran this scan and read Up or Down on their own. A Ping monitor is what raises incidents and alerts and puts them on a status page: this creates one per host — on the same probe, so it can reach them — and binds it. Monitors count towards your plan. Incidents stay off until you turn them on per monitor."
-                  initialValue={createPingMonitors}
-                  value={createPingMonitors}
-                  dataTestId="discovered-device-create-ping-monitors"
-                  onChange={(value: boolean) => {
-                    setCreatePingMonitors(value);
-                  }}
-                />
-              </div>
-            )}
-            {isReviewReady && reviewEntries.length === 0 && (
-              <p className="text-sm text-gray-500">
-                {getDiscoveredHostFilterEmptyMessage(DiscoveredHostFilter.All)}
-              </p>
-            )}
-            {reviewEntries.length > 0 && shownEntries.length === 0 && (
-              <p className="text-sm text-gray-500">
-                {getDiscoveredHostFilterEmptyMessage(hostFilter)}
-              </p>
-            )}
-            {shownEntries.map(
-              (shownEntry: ShownDiscoveredHost): ReactElement => {
-                const entry: DiscoveredDeviceEntry = shownEntry.host;
-                /*
-                 * Ping-only hosts (snmpReachable === false) import too, with
-                 * no credentials and pinged by the scan's probe, rather than
-                 * carrying credentials they never answered to. They are
-                 * badged so the operator knows what they are agreeing to.
-                 * Legacy rows (snmpReachable undefined) import with the
-                 * scan's credentials, as before.
-                 */
-                const isPingOnly: boolean = isPingOnlyDiscoveredHost(entry);
-                /*
-                 * The SAME predicate every count, the bulk toggle and the
-                 * import path use. The row used to spell out its own version
-                 * of it, which left a host with a blank address rendering an
-                 * enabled checkbox that no count would ever agree existed.
-                 */
-                const isSelectable: boolean = isSelectableDiscoveredHost(entry);
-                const isChecked: boolean =
-                  isSelectable && Boolean(selectedIps[entry.ipAddress]);
-                /*
-                 * Why this host is listed by its address, when it is — or
-                 * undefined when it has a name (OneUptime issue #3916).
-                 *
-                 * The issue was a scan of twelve kitchen displays that named
-                 * four, listed the other eight as bare addresses, and said
-                 * nothing about why: no way to tell "the probe's DNS server
-                 * has no PTR record for it" from "the DNS server timed out"
-                 * from "SNMP and NetBIOS were never asked". The probe now
-                 * records, per unnamed host, what each lookup came back with,
-                 * and explainUnnamedDiscoveredHost turns that — or, for a row
-                 * from an older probe, what the scan was set to ask — into
-                 * fixed sentences. ALL of the wording lives there, in Common,
-                 * where every sentence is unit-tested; the row adds nothing
-                 * to it. In particular nothing the scanned host chose (a
-                 * name, a sysDescr) is ever put into the text, so a hostile
-                 * subnet cannot write into the tooltip.
-                 *
-                 * Handed the fresh scan the dialog read — the status,
-                 * isSnmpEnabled and isNetbiosLookupEnabled it reads are all
-                 * selected there — and the per-scan global-probe answer
-                 * worked out once above.
-                 *
-                 * Computed HERE, before the name line, and not among the
-                 * naming statements that follow: those are lifted out of this
-                 * file and executed on their own by the App suite's
-                 * DiscoveryReviewHostname tests, with only the builders they
-                 * use injected, so a new call in that block would be a
-                 * ReferenceError there. It also cannot change what the row is
-                 * named — it only reads the host and says why the name line
-                 * is its address.
-                 */
-                const unnamedHostExplanation:
-                  | DiscoveredHostNamingExplanation
-                  | undefined = explainUnnamedDiscoveredHost({
-                  host: entry,
-                  scan: scanToReview,
-                  isGlobalProbe: isReviewedScanOnGlobalProbe,
-                });
-                /*
-                 * `buildDeviceName`, not the unclamped display name: this row
-                 * shows the name the device will ACTUALLY be created with,
-                 * character for character.
-                 *
-                 * Since issue #3529 a name can be a 253-character FQDN where
-                 * it used to be a 15-character address, and the builder clamps
-                 * at 80 for the slug's sake. Rendering the unclamped value
-                 * meant the operator ticked a box next to one name and got a
-                 * device with a shorter, different one — a WYSIWYG break that
-                 * only ever showed up on the longest, least memorable names.
-                 * The full PTR name is not lost: when it differs from what is
-                 * shown here it appears on the line below.
-                 *
-                 * Named with the SCAN as the naming argument, the same one the
-                 * import hands the builder, so a scan set to short names shows
-                 * "core-sw-01" here and creates "core-sw-01" (issue #3678).
-                 * `scanToReview` is the fresh read openReviewModal made, which
-                 * selects `useShortDeviceNames` for exactly this line — and it
-                 * is why flipping the setting needs no rescan: the stored
-                 * results are the same, only what they are called changes.
-                 */
-                const displayName: string = buildDeviceName(
-                  entry,
-                  scanToReview,
-                );
-                /*
-                 * What the name line would read with nothing cut off it: the
-                 * winning name before the short-name option and before the
-                 * 80-character clamp. When the two differ the line above has
-                 * lost something the operator may need to tell hosts apart —
-                 * the domain ("web" in corp and in lab), or the tail of an
-                 * over-long name — so it goes on the second line in full.
-                 */
-                const fullName: string = getDiscoveredHostFullName(entry);
-                /*
-                 * Shown BESIDE the address when it is not already the line
-                 * above: an SNMP device whose sysName and PTR record disagree
-                 * is worth surfacing rather than hiding — it is either two
-                 * teams naming one box, or a stale reverse zone, and both are
-                 * things an operator wants to see while deciding to import.
-                 * It is also where a PTR name too long to be a device name
-                 * remains readable.
-                 *
-                 * Re-normalised rather than read raw. Every path that feeds
-                 * this modal goes through normalizeDiscoveredHosts today, so
-                 * the value is already clean — but this is the one place the
-                 * attacker-chosen bytes would be rendered verbatim if that
-                 * ever stopped being true, and the guarantee is cheap enough
-                 * not to rest on a caller.
-                 */
-                const normalizedDnsHostname: string | undefined =
-                  normalizeReverseDnsName(entry.dnsHostname);
-                /*
-                 * The two extra names, each printed at most once and never
-                 * when it IS the name line.
-                 *
-                 * The full name first, because it is the name the line above
-                 * was cut from. The PTR name second, and skipped when it is
-                 * that same full name — the reporter's own rows with short
-                 * names on are "wb-0660-kds01 / 10.18.167.31 ·
-                 * wb-0660-kds01.wbhq.com", not the FQDN twice. A sysName and
-                 * PTR record that disagree still both appear, whatever the
-                 * scan's naming choice: shortening the name line must not be
-                 * what hides a stale reverse zone.
-                 */
-                const secondaryFullName: string | undefined =
-                  fullName !== displayName ? fullName : undefined;
-                const secondaryDnsHostname: string | undefined =
-                  normalizedDnsHostname &&
-                  normalizedDnsHostname !== displayName &&
-                  normalizedDnsHostname !== secondaryFullName
-                    ? normalizedDnsHostname
-                    : undefined;
-                /*
-                 * Whether the name line is a NetBIOS name (issues #3677,
-                 * #4518), so the row can say so beside the address.
-                 *
-                 * Said because a NetBIOS name is the Windows computer name the
-                 * host reported for itself, and since #4518 it names the row
-                 * AHEAD of the host's reverse-DNS name: an operator who knows
-                 * the estate by its DNS names sees "WB0024KDS04" where the
-                 * zone says "wb-0024-kds04.wbhq.com", and the hint (with the
-                 * PTR name after it on the same line) says why.
-                 *
-                 * Asked of the naming rule itself — the source the builder
-                 * names the row from — rather than worked out here, so the
-                 * hint can never disagree with the name line: a row named by
-                 * SNMP never carries it even if its jsonb also holds a NetBIOS
-                 * answer, a fifteen-character NetBIOS stump of the PTR name
-                 * loses to the PTR name and carries no hint, and a NetBIOS
-                 * answer the rules reject leaves the row on its address with no
-                 * hint beside it. The rule re-normalises every value rather
-                 * than trusting the column.
-                 *
-                 * Rendered as plain secondary text beside the address, not as a
-                 * badge: it says where the name line came from, and a badge on
-                 * the right would read as a state of the host alongside "No
-                 * SNMP" and "Already added".
-                 */
-                const isNamedByNetbios: boolean =
-                  getDiscoveredHostNameSource(entry) ===
-                  DeviceNameSource.NetbiosName;
-                return (
-                  <div
-                    /*
-                     * Scan position, not position in the filtered list — see
-                     * ShownDiscoveredHost. A key that moved with the filter
-                     * would remount every row on every filter click, and a
-                     * remounted CheckboxElement paints unticked for a frame.
-                     */
-                    key={`${entry.ipAddress}-${shownEntry.scanIndex}`}
-                    className="flex items-start justify-between gap-3 border-b border-gray-100 py-3"
-                  >
-                    <div className="flex min-w-0 items-start gap-3">
-                      <CheckboxElement
-                        dataTestId={`discovered-device-checkbox-${entry.ipAddress}`}
-                        /*
-                         * initialValue as well as value: CheckboxElement seeds
-                         * its own state from initialValue and only reconciles
-                         * value in a passive effect, so without this a row
-                         * mounts unticked and corrects itself a frame later.
-                         */
-                        initialValue={isChecked}
-                        value={isChecked}
-                        disabled={!isSelectable || isImporting}
-                        /*
-                         * A bare checkbox in a list is announced as
-                         * "checkbox" and nothing else; a disabled one that
-                         * does not say why reads as broken rather than as
-                         * deliberate.
-                         */
-                        ariaLabel={translator.translateTemplate(
-                          "Import {{name}} ({{address}})",
-                          {
-                            name: displayName,
-                            address:
-                              entry.ipAddress || translatableTerm("no address"),
-                          },
-                        )}
-                        hoverText={
-                          entry.isAlreadyRegistered
-                            ? "Already added as a Network Device."
-                            : entry.ipAddress
-                              ? undefined
-                              : "This host reported no address, so it cannot be imported."
-                        }
-                        onChange={(value: boolean) => {
-                          setSelectedIps((current: Record<string, boolean>) => {
-                            return {
-                              ...current,
-                              [entry.ipAddress]: value,
-                            };
-                          });
-                        }}
-                      />
-                      <div className="min-w-0">
-                        {/*
-                         * The name line, and — only when that name is the
-                         * host's address — a muted "No name found" and an (i)
-                         * that says why (issue #3916). A named row renders
-                         * exactly what it always did.
-                         *
-                         * Beside the NAME, because that is the line that
-                         * reads as a bare address and so the one an operator
-                         * asks about. Not on the address line below: that
-                         * line carries only the names the name line does not
-                         * show, plus the NetBIOS hint, and is pinned to
-                         * exactly that by the App suite.
-                         *
-                         * The name div is unchanged inside the wrapper: it
-                         * still truncates, and as a flex item with overflow
-                         * hidden it shrinks before the label and the (i),
-                         * which do not. The (i) is the shared lazy
-                         * InfoTooltip — a real button, so the explanation is
-                         * reachable by keyboard and touch rather than hover
-                         * only, and no Tippy instance exists until someone
-                         * reaches for it, which matters on a list of
-                         * thousands. Its text is the Common function's output
-                         * verbatim.
-                         */}
-                        <div className="flex min-w-0 items-center gap-1.5">
-                          <div
-                            className="truncate text-sm font-medium text-gray-900"
-                            title={displayName}
-                          >
-                            {displayName}
-                          </div>
-                          {unnamedHostExplanation && (
-                            <Fragment>
-                              <span className="flex-shrink-0 text-xs text-gray-400">
-                                {translator.translateText(
-                                  unnamedHostExplanation.label,
-                                )}
-                              </span>
-                              <InfoTooltip
-                                label={translator.translateTemplate(
-                                  "why {{address}} has no name",
-                                  { address: entry.ipAddress },
-                                )}
-                                text={unnamedHostExplanation.text}
-                                dataTestId={`discovered-device-unnamed-${entry.ipAddress}`}
-                              />
-                            </Fragment>
-                          )}
-                        </div>
-                        <div className="truncate text-sm text-gray-500">
-                          {entry.ipAddress}
-                          {isNamedByNetbios && (
-                            <span
-                              className="text-gray-400"
-                              title={translator.translateText(
-                                "The Windows computer name this host reported for itself over NetBIOS. A host's own name is used ahead of its reverse-DNS name.",
-                              )}
-                            >
-                              {" · "}
-                              {translator.translateText("NetBIOS name")}
-                            </span>
-                          )}
-                          {secondaryFullName && (
-                            <span className="text-gray-400">
-                              {" · "}
-                              {secondaryFullName}
-                            </span>
-                          )}
-                          {secondaryDnsHostname && (
-                            <span className="text-gray-400">
-                              {" · "}
-                              {secondaryDnsHostname}
-                            </span>
-                          )}
-                        </div>
-                        {entry.sysDescr && (
-                          <div className="mt-0.5 truncate text-xs text-gray-400">
-                            {entry.sysDescr}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex flex-shrink-0 items-center gap-2">
-                      {isPingOnly && (
-                        <span
-                          className="inline-flex flex-shrink-0 items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600"
-                          title={translator.translateText(
-                            "Responds to ping only. Imports as a device pinged by the scan's probe, with no SNMP credentials — add them later for interfaces and inventory. Turn on 'Create a Ping monitor' above if you also want incidents.",
-                          )}
-                        >
-                          {translator.translateText("No SNMP")}
-                        </span>
-                      )}
-                      {entry.isAlreadyRegistered && (
-                        <span className="inline-flex flex-shrink-0 items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
-                          {translator.translateText("Already added")}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              },
-            )}
-          </div>
-        </Modal>
+          onImportsChanged={() => {
+            activeImports.refresh();
+            // Hosts it imported read "Already added" on the next review.
+            setRefreshToggle(Date.now().toString());
+          }}
+        />
       )}
     </Fragment>
   );

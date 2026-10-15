@@ -19,6 +19,7 @@ import NetworkDeviceRole from "./NetworkDeviceRole";
 import NetworkAlertPolicy from "./NetworkAlertPolicy";
 import NetworkSnmpCredentialProfile from "./NetworkSnmpCredentialProfile";
 import NetworkDeviceDiscoveryScan from "./NetworkDeviceDiscoveryScan";
+import NetworkDeviceDiscoveryImport from "./NetworkDeviceDiscoveryImport";
 import NetworkDeviceDiagnostic from "./NetworkDeviceDiagnostic";
 import PacketCapture from "./PacketCapture";
 import NetworkInterface from "./NetworkInterface";
@@ -992,6 +993,7 @@ const AllModelTypes: Array<{
   NetworkAlertPolicy,
   NetworkSnmpCredentialProfile,
   NetworkDeviceDiscoveryScan,
+  NetworkDeviceDiscoveryImport,
   NetworkDeviceDiagnostic,
   PacketCapture,
   NetworkInterface,
