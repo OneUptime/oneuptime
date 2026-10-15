@@ -519,14 +519,12 @@ async function answer(method, { url, data }) {
 API.post = async (args) => answer("POST", args);
 API.get = async (args) => answer("GET", args);
 
-await i18next
-  .use(initReactI18next)
-  .init({
-    lng: "en",
-    fallbackLng: "en",
-    resources: { en: { translation: {} } },
-    interpolation: { escapeValue: false },
-  });
+await i18next.use(initReactI18next).init({
+  lng: "en",
+  fallbackLng: "en",
+  resources: { en: { translation: {} } },
+  interpolation: { escapeValue: false },
+});
 function Fixture() {
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(useLocation());

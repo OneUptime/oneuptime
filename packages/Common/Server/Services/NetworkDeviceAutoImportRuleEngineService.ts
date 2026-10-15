@@ -1995,7 +1995,9 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
        * that says nothing leaves the device's own default (5 minutes) - and
        * so does a value the rule form could never have written.
        */
-      const pollingIntervalForHost: number | undefined = ((): number | undefined => {
+      const pollingIntervalForHost: number | undefined = (():
+        | number
+        | undefined => {
         for (const matchedRule of evaluation.matchedRules) {
           const minutes: unknown = matchedRule.pollingIntervalInMinutes;
 

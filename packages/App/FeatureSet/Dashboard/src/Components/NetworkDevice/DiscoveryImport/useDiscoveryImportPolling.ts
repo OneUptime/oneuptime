@@ -89,7 +89,10 @@ export default function useDiscoveryImportPolling(data: {
     try {
       const next: DiscoveryImportView = await getDiscoveryImport(importId);
 
-      if (sequence !== sequenceRef.current || importIdRef.current !== importId) {
+      if (
+        sequence !== sequenceRef.current ||
+        importIdRef.current !== importId
+      ) {
         return;
       }
 
@@ -101,7 +104,10 @@ export default function useDiscoveryImportPolling(data: {
         nextDelay = DISCOVERY_IMPORT_POLL_INTERVAL_MS;
       }
     } catch (err) {
-      if (sequence !== sequenceRef.current || importIdRef.current !== importId) {
+      if (
+        sequence !== sequenceRef.current ||
+        importIdRef.current !== importId
+      ) {
         return;
       }
 

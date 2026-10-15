@@ -227,10 +227,7 @@ export function getDiscoveryImportProgressModel(
     monitorsSettled: countSettledMonitors(progress),
     overallPercent:
       progress.hosts > 0
-        ? Math.min(
-            100,
-            Math.floor((progress.hostsDone * 100) / progress.hosts),
-          )
+        ? Math.min(100, Math.floor((progress.hostsDone * 100) / progress.hosts))
         : 0,
     progress: progress,
     retryableCount: isActive ? 0 : countRetryableHosts(view),

@@ -115,9 +115,9 @@ export function getIssueGroupTitle(
 // How many host names an issue group shows before "and N more".
 export const ISSUE_GROUP_NAMES_SHOWN: number = 12;
 
-const IssueGroup: FunctionComponent<{ group: DiscoveryImportIssueGroup }> = (
-  props: { group: DiscoveryImportIssueGroup },
-): ReactElement => {
+const IssueGroup: FunctionComponent<{
+  group: DiscoveryImportIssueGroup;
+}> = (props: { group: DiscoveryImportIssueGroup }): ReactElement => {
   const translator: Translator = useTranslator();
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const group: DiscoveryImportIssueGroup = props.group;
@@ -332,9 +332,7 @@ export function getPhaseTitle(
     case DiscoveryImportPhase.Stopped:
       return translator.translateText("Import stopped") as string;
     default:
-      return translator.translateText(
-        "The import could not finish",
-      ) as string;
+      return translator.translateText("The import could not finish") as string;
   }
 }
 
@@ -453,9 +451,7 @@ const DiscoveryImportProgressPanel: FunctionComponent<
                     : IconProp.CheckCircle
                   : IconProp.Spinner
             }
-            className={`h-4 w-4 ${
-              isDone ? "" : "motion-safe:animate-spin"
-            }`}
+            className={`h-4 w-4 ${isDone ? "" : "motion-safe:animate-spin"}`}
           />
         </span>
         <div className="min-w-0">

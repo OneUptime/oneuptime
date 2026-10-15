@@ -141,11 +141,9 @@ export async function listActiveDiscoveryImports(): Promise<
     .map((value: JSONValue): DiscoveryImportView | null => {
       return readDiscoveryImportView(value);
     })
-    .filter(
-      (view: DiscoveryImportView | null): view is DiscoveryImportView => {
-        return Boolean(view);
-      },
-    );
+    .filter((view: DiscoveryImportView | null): view is DiscoveryImportView => {
+      return Boolean(view);
+    });
 }
 
 export async function stopDiscoveryImport(

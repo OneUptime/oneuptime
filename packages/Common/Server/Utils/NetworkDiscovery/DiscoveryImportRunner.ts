@@ -178,27 +178,26 @@ export const DISCOVERY_IMPORT_SCAN_SELECT: { [key: string]: boolean } = {
   ...AUTO_IMPORT_SCAN_BUILDER_SELECT,
 };
 
-const IMPORT_SELECT: { [key: string]: boolean | { [key: string]: boolean } } =
-  {
-    _id: true,
-    projectId: true,
-    networkDeviceDiscoveryScanId: true,
-    status: true,
-    settings: true,
-    hosts: true,
-    results: true,
-    progress: true,
-    monitorTemplateName: true,
-    error: true,
-    stopRequestedAt: true,
-    resumeCount: true,
-    retryOfImportId: true,
-    createdByUserId: true,
-    createdAt: true,
-    updatedAt: true,
-    startedAt: true,
-    completedAt: true,
-  };
+const IMPORT_SELECT: { [key: string]: boolean | { [key: string]: boolean } } = {
+  _id: true,
+  projectId: true,
+  networkDeviceDiscoveryScanId: true,
+  status: true,
+  settings: true,
+  hosts: true,
+  results: true,
+  progress: true,
+  monitorTemplateName: true,
+  error: true,
+  stopRequestedAt: true,
+  resumeCount: true,
+  retryOfImportId: true,
+  createdByUserId: true,
+  createdAt: true,
+  updatedAt: true,
+  startedAt: true,
+  completedAt: true,
+};
 
 // What the API reads to describe an import: everything but the hosts.
 export const DISCOVERY_IMPORT_VIEW_SELECT: {
@@ -445,9 +444,8 @@ export default class DiscoveryImportRunner {
       this.assertCanCreateMonitors(data.props);
     }
 
-    const earlierHosts: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts(
-      earlier.hosts || [],
-    );
+    const earlierHosts: Array<DiscoveredNetworkDevice> =
+      normalizeDiscoveredHosts(earlier.hosts || []);
     const retryable: Set<string> = new Set<string>(
       getRetryableHostResults(
         readDiscoveryImportHostResults(earlier.results),
@@ -962,7 +960,10 @@ export default class DiscoveryImportRunner {
       ? results
       : results.filter(DiscoveryImportRunner.isWorthListing);
 
-    view.results = listed.slice(0, data.allResults ? results.length : DISCOVERY_IMPORT_VIEW_RESULT_LIMIT);
+    view.results = listed.slice(
+      0,
+      data.allResults ? results.length : DISCOVERY_IMPORT_VIEW_RESULT_LIMIT,
+    );
 
     if (view.results.length < listed.length) {
       view.hasMoreResults = true;
@@ -1682,9 +1683,7 @@ export default class DiscoveryImportRunner {
     }
 
     if (
-      NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
-        device.monitoringMethod,
-      )
+      NetworkDeviceMonitoringMethodUtil.isMonitorBacked(device.monitoringMethod)
     ) {
       result.monitor = DiscoveryImportMonitorOutcome.Skipped;
       result.monitorError = MONITOR_SKIPPED_MONITOR_BACKED;
@@ -1728,12 +1727,11 @@ export default class DiscoveryImportRunner {
      * carry.
      */
     try {
-      const asThePerson: Monitor = NetworkDeviceMonitorTemplateUtil.buildMonitor(
-        {
+      const asThePerson: Monitor =
+        NetworkDeviceMonitorTemplateUtil.buildMonitor({
           template: template,
           networkDevice: device,
-        },
-      );
+        });
       // A column left undefined is not checked: see checkDataColumnPermissions.
       (asThePerson as unknown as Record<string, unknown>)[
         "autoProvisionedNetworkDeviceId"
@@ -1826,7 +1824,9 @@ export default class DiscoveryImportRunner {
     });
   }
 
-  private static async isStopRequested(state: ImportRunState): Promise<boolean> {
+  private static async isStopRequested(
+    state: ImportRunState,
+  ): Promise<boolean> {
     const row: NetworkDeviceDiscoveryImport | null =
       await NetworkDeviceDiscoveryImportService.findOneById({
         id: state.row.id!,
@@ -1954,7 +1954,8 @@ export default class DiscoveryImportRunner {
   private static describeStartFailure(error: unknown): string {
     if (
       error instanceof NotAuthorizedException &&
-      error.message === WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE
+      error.message ===
+        WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE
     ) {
       return "The person who asked for this import is no longer a member of the project, so it was stopped. What it created is kept.";
     }
