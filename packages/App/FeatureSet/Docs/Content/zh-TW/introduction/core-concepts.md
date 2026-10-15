@@ -79,6 +79,7 @@ flowchart TB
 :::cards
 - [上報規則](/docs/on-call/escalation-rules): 逐層呼叫人員，直到有人回應。
 - [待命排程](/docs/on-call/schedules): 輪值、圖層和交接。
+- [OneUptime 如何聯絡你](/docs/notifications/index): 決定如何聯絡每個人的通知方式、規則和設定。
 :::
 
 ## 狀態頁面和維護

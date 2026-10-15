@@ -79,6 +79,7 @@ Wie jede Person erreicht wird, legt sie selbst fest. In den **Benutzereinstellun
 :::cards
 - [Eskalationsregeln](/docs/on-call/escalation-rules): Personen Stufe für Stufe alarmieren, bis jemand reagiert.
 - [Bereitschaftspläne](/docs/on-call/schedules): Rotationen, Ebenen und Übergaben.
+- [Wie OneUptime Sie erreicht](/docs/notifications/index): Die Methoden, Regeln und Einstellungen, die bestimmen, wie jede Person erreicht wird.
 :::
 
 ## Statusseiten und Wartung

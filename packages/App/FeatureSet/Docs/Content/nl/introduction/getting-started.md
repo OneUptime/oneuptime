@@ -50,6 +50,7 @@ De documentatie is net als de zijbalk ingedeeld in negen secties. Kies het deel 
 - [Incidenten](/docs/incidents/index): Incidenten melden, coördineren en oplossen, met een volledige tijdlijn.
 - [Waarschuwingen](/docs/alerts/index): Problemen bekijken voordat je gebruikers ze merken, en de ruis bundelen in episodes.
 - [Bereikbaarheid](/docs/on-call/schedules): Roosters, escalatieregels en wie wanneer wordt opgeroepen.
+- [Meldingen](/docs/notifications/index): Hoe OneUptime je bereikt: je methoden, bereikbaarheidsregels en meldingsinstellingen.
 - [Statuspagina's](/docs/status-pages/index): Klanten op de hoogte houden op openbare of privé-statuspagina's.
 - [Workspace-koppelingen](/docs/workspace-connections/slack): Incidenten afhandelen vanuit Slack en Microsoft Teams.
 :::

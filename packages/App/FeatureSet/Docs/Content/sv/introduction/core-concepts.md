@@ -79,6 +79,7 @@ Hur varje person nås bestämmer de själva. I **Användarinställningar** spara
 :::cards
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Larma personer nivå för nivå tills någon svarar.
 - [Jourscheman](/docs/on-call/schedules): Rotationer, lager och överlämningar.
+- [Så når OneUptime dig](/docs/notifications/index): Metoderna, reglerna och inställningarna som avgör hur varje person nås.
 :::
 
 ## Statussidor och underhåll

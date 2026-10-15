@@ -79,6 +79,7 @@ flowchart TB
 :::cards
 - [에스컬레이션 규칙](/docs/on-call/escalation-rules): 누군가 응답할 때까지 단계별로 사람을 호출합니다.
 - [온콜 스케줄](/docs/on-call/schedules): 로테이션, 레이어, 인수인계.
+- [OneUptime이 연락하는 방법](/docs/notifications/index): 각 사람에게 어떻게 연락할지 정하는 방법, 규칙, 설정.
 :::
 
 ## 상태 페이지와 유지 관리
