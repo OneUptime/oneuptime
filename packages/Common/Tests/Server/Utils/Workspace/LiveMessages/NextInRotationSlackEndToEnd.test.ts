@@ -240,8 +240,9 @@ describe("Level 2 pages the next person in the Primary cover rotation", () => {
     expect(
       feed.some((markdown: string): boolean => {
         return (
-          markdown.includes("at escalation rule **Level 2** (next in the **Primary cover** rotation).") &&
-          markdown.includes("NB User 3")
+          markdown.includes(
+            "at escalation rule **Level 2** (next in the **Primary cover** rotation).",
+          ) && markdown.includes("NB User 3")
         );
       }),
     ).toBe(true);

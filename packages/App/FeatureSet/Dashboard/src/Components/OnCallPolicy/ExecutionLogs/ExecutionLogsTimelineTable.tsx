@@ -48,7 +48,8 @@ export const TEAM_HAS_NO_MEMBERS_TEMPLATE: string = translationKey(
  * backup after whoever is on call. Its step's schedule says so, and a step
  * that found nobody next says that, not that nobody was on call.
  */
-export const NEXT_IN_ROTATION_LABEL: string = translationKey("Next in rotation");
+export const NEXT_IN_ROTATION_LABEL: string =
+  translationKey("Next in rotation");
 export const NOBODY_NEXT_IN_ROTATION_LABEL: string = translationKey(
   "Nobody was next in the rotation",
 );

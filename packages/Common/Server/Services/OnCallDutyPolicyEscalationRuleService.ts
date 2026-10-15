@@ -1445,7 +1445,9 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
               : null,
           teamId: target.teamId,
           scheduleId: target.scheduleId,
-          ...(target.isNextInRotation ? { isNextInRotation: true as const } : {}),
+          ...(target.isNextInRotation
+            ? { isNextInRotation: true as const }
+            : {}),
         });
       } else {
         const log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();

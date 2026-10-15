@@ -245,7 +245,10 @@ export default class ScheduleResolution {
     const expanded: ExpandedLayers = ScheduleResolution.expand({
       layers: input.layers,
       calendarStartDate: at,
-      calendarEndDate: OneUptimeDate.addRemoveSeconds(at, ONE_MOMENT_IN_SECONDS),
+      calendarEndDate: OneUptimeDate.addRemoveSeconds(
+        at,
+        ONE_MOMENT_IN_SECONDS,
+      ),
     });
 
     return ScheduleResolution.resolveNextInRotationExpanded(expanded, {

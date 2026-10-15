@@ -61,9 +61,9 @@ function describeNext(result: NextInRotation | null): string {
 
 describe("the next person in a rotation of several", () => {
   test("on A's turn the next person is B", () => {
-    expect(describeNext(nextAt({ layers: [ABCD], at: "2026-03-02 12:00" }))).toBe(
-      "A -> B",
-    );
+    expect(
+      describeNext(nextAt({ layers: [ABCD], at: "2026-03-02 12:00" })),
+    ).toBe("A -> B");
   });
 
   test("each day it is the person after whoever is on call", () => {
@@ -138,12 +138,12 @@ describe("one or two people", () => {
   test("two people: each is the other's next", () => {
     const pair: LayerProps = layer({ people: ["A", "B"] });
 
-    expect(describeNext(nextAt({ layers: [pair], at: "2026-03-02 12:00" }))).toBe(
-      "A -> B",
-    );
-    expect(describeNext(nextAt({ layers: [pair], at: "2026-03-03 12:00" }))).toBe(
-      "B -> A",
-    );
+    expect(
+      describeNext(nextAt({ layers: [pair], at: "2026-03-02 12:00" })),
+    ).toBe("A -> B");
+    expect(
+      describeNext(nextAt({ layers: [pair], at: "2026-03-03 12:00" })),
+    ).toBe("B -> A");
   });
 
   test("the same person listed twice is never their own next", () => {
@@ -163,7 +163,11 @@ describe("people who are away are passed over", () => {
           layers: [ABCD],
           at: "2026-03-02 12:00",
           overrides: [
-            away({ who: "B", from: "2026-03-01 00:00", until: "2026-03-09 00:00" }),
+            away({
+              who: "B",
+              from: "2026-03-01 00:00",
+              until: "2026-03-09 00:00",
+            }),
           ],
         }),
       ),
@@ -196,8 +200,16 @@ describe("people who are away are passed over", () => {
           layers: [ABCD],
           at: "2026-03-02 12:00",
           overrides: [
-            away({ who: "B", from: "2026-03-01 00:00", until: "2026-03-09 00:00" }),
-            away({ who: "C", from: "2026-03-01 00:00", until: "2026-03-09 00:00" }),
+            away({
+              who: "B",
+              from: "2026-03-01 00:00",
+              until: "2026-03-09 00:00",
+            }),
+            away({
+              who: "C",
+              from: "2026-03-01 00:00",
+              until: "2026-03-09 00:00",
+            }),
           ],
         }),
       ),
@@ -229,7 +241,11 @@ describe("people who are away are passed over", () => {
           layers: [ABCD],
           at: "2026-03-05 12:00",
           overrides: [
-            away({ who: "A", from: "2026-03-05 00:00", until: "2026-03-05 23:00" }),
+            away({
+              who: "A",
+              from: "2026-03-05 00:00",
+              until: "2026-03-05 23:00",
+            }),
           ],
         }),
       ),
@@ -243,7 +259,11 @@ describe("people who are away are passed over", () => {
           layers: [ABCD],
           at: "2026-03-02 12:00",
           overrides: [
-            away({ who: "B", from: "2026-03-02 13:00", until: "2026-03-02 18:00" }),
+            away({
+              who: "B",
+              from: "2026-03-02 13:00",
+              until: "2026-03-02 18:00",
+            }),
           ],
         }),
       ),
@@ -255,7 +275,11 @@ describe("people who are away are passed over", () => {
           layers: [ABCD],
           at: "2026-03-02 19:00",
           overrides: [
-            away({ who: "B", from: "2026-03-02 13:00", until: "2026-03-02 18:00" }),
+            away({
+              who: "B",
+              from: "2026-03-02 13:00",
+              until: "2026-03-02 18:00",
+            }),
           ],
         }),
       ),
@@ -363,8 +387,16 @@ describe("the person on call is away themselves", () => {
           layers: [ABCD],
           at: "2026-03-02 12:00",
           overrides: [
-            away({ who: "A", from: "2026-03-01 00:00", until: "2026-03-03 00:00" }),
-            away({ who: "B", from: "2026-03-01 00:00", until: "2026-03-03 00:00" }),
+            away({
+              who: "A",
+              from: "2026-03-01 00:00",
+              until: "2026-03-03 00:00",
+            }),
+            away({
+              who: "B",
+              from: "2026-03-01 00:00",
+              until: "2026-03-03 00:00",
+            }),
           ],
         }),
       ),
@@ -391,7 +423,11 @@ describe("the same person twice in one rotation", () => {
           layers: [twice],
           at: "2026-03-02 12:00",
           overrides: [
-            away({ who: "B", from: "2026-03-01 00:00", until: "2026-03-09 00:00" }),
+            away({
+              who: "B",
+              from: "2026-03-01 00:00",
+              until: "2026-03-09 00:00",
+            }),
           ],
         }),
       ),
@@ -519,7 +555,9 @@ describe("whose overrides apply", () => {
     ).toBe("A -> B");
 
     expect(
-      describeNext(nextAt({ layers: [ABCD], at: "2026-03-02 12:00", overrides })),
+      describeNext(
+        nextAt({ layers: [ABCD], at: "2026-03-02 12:00", overrides }),
+      ),
     ).toBe("A -> B");
   });
 
@@ -531,7 +569,11 @@ describe("whose overrides apply", () => {
           at: "2026-03-02 12:00",
           policy: "policy-1",
           overrides: [
-            away({ who: "B", from: "2026-03-01 00:00", until: "2026-03-09 00:00" }),
+            away({
+              who: "B",
+              from: "2026-03-01 00:00",
+              until: "2026-03-09 00:00",
+            }),
           ],
         }),
       ),
@@ -661,7 +703,11 @@ describe("UserOverrideUtil.getNextInRotation on its own", () => {
         start,
         end,
         overrides: [
-          away({ who: "C", from: "2026-03-01 00:00", until: "2026-03-09 00:00" }),
+          away({
+            who: "C",
+            from: "2026-03-01 00:00",
+            until: "2026-03-09 00:00",
+          }),
         ],
         excludeUserIds: ["B"],
       }),

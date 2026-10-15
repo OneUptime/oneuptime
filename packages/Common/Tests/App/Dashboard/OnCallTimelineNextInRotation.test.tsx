@@ -170,7 +170,9 @@ describe("a step that paged the next person in a schedule's rotation", () => {
     expect(cellText("Schedule", step({ hasUser: true }))).toBe(
       "Payments primary",
     );
-    expect(screen.queryByTestId("on-call-timeline-next-in-rotation")).toBeNull();
+    expect(
+      screen.queryByTestId("on-call-timeline-next-in-rotation"),
+    ).toBeNull();
   });
 
   test("a schedule's name is shown as written, never read as markup", () => {

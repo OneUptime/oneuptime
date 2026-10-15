@@ -1281,8 +1281,7 @@ export default class OnCallPolicyRunMessage {
         if (step.isNextInRotation && step.onCallDutyScheduleId) {
           const scheduleName: string =
             step.onCallDutySchedule?.name?.trim() || "(unnamed)";
-          const nextInRotationOf: Array<string> =
-            person.nextInRotationOf || [];
+          const nextInRotationOf: Array<string> = person.nextInRotationOf || [];
 
           if (!nextInRotationOf.includes(scheduleName)) {
             nextInRotationOf.push(scheduleName);

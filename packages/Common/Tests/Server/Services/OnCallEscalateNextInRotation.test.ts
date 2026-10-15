@@ -3,7 +3,9 @@ import OnCallDutyPolicyEscalationRuleSchedule from "../../../Models/DatabaseMode
 import OnCallDutyPolicyExecutionLogTimeline from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import Semaphore from "../../../Server/Infrastructure/Semaphore";
 import OnCallDutyPolicyEscalationRuleScheduleService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleScheduleService";
-import OnCallDutyPolicyEscalationRuleService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
+import OnCallDutyPolicyEscalationRuleService, {
+  NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE,
+} from "../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyEscalationRuleTeamService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleTeamService";
 import OnCallDutyPolicyEscalationRuleUserService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleUserService";
 import OnCallDutyPolicyExecutionLogService from "../../../Server/Services/OnCallDutyPolicyExecutionLogService";
@@ -42,7 +44,6 @@ import {
 import PositiveNumber from "../../../Types/PositiveNumber";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
-import { NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE } from "../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
 import { at } from "../../Types/OnCallDutyPolicy/CalendarFeedTestFixtures";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import {
@@ -363,9 +364,7 @@ describe("who is next in the schedule's rotation", () => {
   });
 
   test("before the rotation starts: nobody", async () => {
-    expect(
-      await nextInSchedule({ at: at("2026-03-02T12:00:00Z") }),
-    ).toBeNull();
+    expect(await nextInSchedule({ at: at("2026-03-02T12:00:00Z") })).toBeNull();
   });
 
   test("a schedule with no layers: nobody, and nobody's time away is read", async () => {
@@ -383,9 +382,11 @@ describe("who is next in the schedule's rotation", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// The escalation run
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * The escalation run
+ * ---------------------------------------------------------------------------
+ */
 
 interface Page {
   userId: string;
@@ -504,18 +505,21 @@ function installRun(): void {
       });
     }) as never);
 
-  jest
-    .spyOn(TeamMemberService, "getUsersInTeams")
-    .mockImplementation((async (teamIds: Array<ObjectID>) => {
-      return (teamMembers[teamIds[0]?.toString() || ""] || []).map(
-        (userId: string) => {
-          return { id: oid(userId) };
-        },
-      );
-    }) as never);
+  jest.spyOn(TeamMemberService, "getUsersInTeams").mockImplementation((async (
+    teamIds: Array<ObjectID>,
+  ) => {
+    return (teamMembers[teamIds[0]?.toString() || ""] || []).map(
+      (userId: string) => {
+        return { id: oid(userId) };
+      },
+    );
+  }) as never);
 }
 
-async function runLevel(ruleId: string, policy: string = POLICY): Promise<void> {
+async function runLevel(
+  ruleId: string,
+  policy: string = POLICY,
+): Promise<void> {
   await OnCallDutyPolicyEscalationRuleService.startRuleExecution(oid(ruleId), {
     projectId: oid(PROJECT),
     triggeredByIncidentId: oid(INCIDENT),
@@ -568,7 +572,11 @@ describe("an escalation rule that pages the next person in the rotation", () => 
   });
 
   test("pages Sam, and its step names the schedule and says he is next in its rotation", async () => {
-    attach({ id: "0e400000-0000-4000-8000-000000000301", ruleId: LEVEL_2, pageNextInRotation: true });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000301",
+      ruleId: LEVEL_2,
+      pageNextInRotation: true,
+    });
 
     await runLevel(LEVEL_2);
 
@@ -594,16 +602,26 @@ describe("an escalation rule that pages the next person in the rotation", () => 
   });
 
   test("the same schedule paged both ways on one rule: Alex as on call, then Sam as next", async () => {
-    attach({ id: "0e400000-0000-4000-8000-000000000302", ruleId: LEVEL_1, pageNextInRotation: false });
-    attach({ id: "0e400000-0000-4000-8000-000000000303", ruleId: LEVEL_1, pageNextInRotation: true });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000302",
+      ruleId: LEVEL_1,
+      pageNextInRotation: false,
+    });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000303",
+      ruleId: LEVEL_1,
+      pageNextInRotation: true,
+    });
 
     await runLevel(LEVEL_1);
 
     expect(pagedUserIds()).toEqual([ALEX, SAM]);
     expect(
-      steps().map((step: { userId: string | null; isNextInRotation: boolean }) => {
-        return [step.userId, step.isNextInRotation];
-      }),
+      steps().map(
+        (step: { userId: string | null; isNextInRotation: boolean }) => {
+          return [step.userId, step.isNextInRotation];
+        },
+      ),
     ).toEqual([
       [ALEX, false],
       [SAM, true],
@@ -612,8 +630,16 @@ describe("an escalation rule that pages the next person in the rotation", () => 
 
   test("Alex away: Sam is on call in Alex's place, and Kim is the next person", async () => {
     awayUntilFriday({ who: ALEX });
-    attach({ id: "0e400000-0000-4000-8000-000000000304", ruleId: LEVEL_1, pageNextInRotation: false });
-    attach({ id: "0e400000-0000-4000-8000-000000000305", ruleId: LEVEL_1, pageNextInRotation: true });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000304",
+      ruleId: LEVEL_1,
+      pageNextInRotation: false,
+    });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000305",
+      ruleId: LEVEL_1,
+      pageNextInRotation: true,
+    });
 
     await runLevel(LEVEL_1);
 
@@ -636,7 +662,11 @@ describe("an escalation rule that pages the next person in the rotation", () => 
   test("nobody next (everybody else away): nobody is paged there, the line says why, and the rule is not tried again", async () => {
     awayUntilFriday({ who: SAM });
     awayUntilFriday({ who: KIM });
-    attach({ id: "0e400000-0000-4000-8000-000000000306", ruleId: LEVEL_2, pageNextInRotation: true });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000306",
+      ruleId: LEVEL_2,
+      pageNextInRotation: true,
+    });
 
     await runLevel(LEVEL_2);
 
@@ -675,7 +705,11 @@ describe("an escalation rule that pages the next person in the rotation", () => 
     for (const who of [ALEX, SAM, KIM]) {
       awayUntilFriday({ who });
     }
-    attach({ id: "0e400000-0000-4000-8000-000000000307", ruleId: LEVEL_2, pageNextInRotation: true });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000307",
+      ruleId: LEVEL_2,
+      pageNextInRotation: true,
+    });
 
     await runLevel(LEVEL_2);
 
@@ -697,7 +731,11 @@ describe("an escalation rule that pages the next person in the rotation", () => 
 
   test("Sam named on the rule too: paged once, and the next-in-rotation line says he was paged already", async () => {
     ruleUsers[LEVEL_2] = [SAM];
-    attach({ id: "0e400000-0000-4000-8000-000000000308", ruleId: LEVEL_2, pageNextInRotation: true });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000308",
+      ruleId: LEVEL_2,
+      pageNextInRotation: true,
+    });
 
     await runLevel(LEVEL_2);
 
@@ -724,7 +762,11 @@ describe("an escalation rule that pages the next person in the rotation", () => 
 
   test("Sam has left the project: he is not paged, the line says why, and nobody else stands in", async () => {
     members.delete(SAM);
-    attach({ id: "0e400000-0000-4000-8000-000000000309", ruleId: LEVEL_2, pageNextInRotation: true });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000309",
+      ruleId: LEVEL_2,
+      pageNextInRotation: true,
+    });
 
     await runLevel(LEVEL_2);
 
@@ -741,7 +783,11 @@ describe("an escalation rule that pages the next person in the rotation", () => 
 
   test("another policy's own time away does not count: paged through this policy, Sam is next", async () => {
     awayUntilFriday({ who: SAM, policy: OTHER_POLICY });
-    attach({ id: "0e400000-0000-4000-8000-000000000310", ruleId: LEVEL_2, pageNextInRotation: true });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000310",
+      ruleId: LEVEL_2,
+      pageNextInRotation: true,
+    });
 
     await runLevel(LEVEL_2);
 
@@ -750,7 +796,11 @@ describe("an escalation rule that pages the next person in the rotation", () => 
 
   test("this policy's own time away counts: Kim is next", async () => {
     awayUntilFriday({ who: SAM, policy: POLICY });
-    attach({ id: "0e400000-0000-4000-8000-000000000311", ruleId: LEVEL_2, pageNextInRotation: true });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000311",
+      ruleId: LEVEL_2,
+      pageNextInRotation: true,
+    });
 
     await runLevel(LEVEL_2);
 
@@ -758,7 +808,11 @@ describe("an escalation rule that pages the next person in the rotation", () => 
   });
 
   test("the server's log says who was paged and why: the next person, after whoever is on call", async () => {
-    attach({ id: "0e400000-0000-4000-8000-000000000312", ruleId: LEVEL_2, pageNextInRotation: true });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000312",
+      ruleId: LEVEL_2,
+      pageNextInRotation: true,
+    });
 
     await runLevel(LEVEL_2);
 
@@ -770,7 +824,11 @@ describe("an escalation rule that pages the next person in the rotation", () => 
   test("the server's log says why nobody was paged as next", async () => {
     awayUntilFriday({ who: SAM });
     awayUntilFriday({ who: KIM });
-    attach({ id: "0e400000-0000-4000-8000-000000000313", ruleId: LEVEL_2, pageNextInRotation: true });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000313",
+      ruleId: LEVEL_2,
+      pageNextInRotation: true,
+    });
 
     await runLevel(LEVEL_2);
 
@@ -784,8 +842,18 @@ describe("a run that climbs the ladder: the on-call person, then the next person
   beforeEach(() => {
     installRun();
 
-    attach({ id: "0e400000-0000-4000-8000-000000000401", ruleId: LEVEL_1, ruleOrder: 1, pageNextInRotation: false });
-    attach({ id: "0e400000-0000-4000-8000-000000000402", ruleId: LEVEL_2, ruleOrder: 2, pageNextInRotation: true });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000401",
+      ruleId: LEVEL_1,
+      ruleOrder: 1,
+      pageNextInRotation: false,
+    });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000402",
+      ruleId: LEVEL_2,
+      ruleOrder: 2,
+      pageNextInRotation: true,
+    });
     ruleTeams[LEVEL_3] = [TEAM];
   });
 
@@ -869,9 +937,11 @@ describe("a run that climbs the ladder: the on-call person, then the next person
   });
 });
 
-// ---------------------------------------------------------------------------
-// Creating a rule that pages the next person in a rotation
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * Creating a rule that pages the next person in a rotation
+ * ---------------------------------------------------------------------------
+ */
 
 type RuleHooks = {
   onBeforeCreate: (
@@ -886,7 +956,9 @@ type RuleHooks = {
 const ruleHooks: RuleHooks =
   OnCallDutyPolicyEscalationRuleService as unknown as RuleHooks;
 
-function newRuleCreate(miscDataProps?: JSONObject): CreateBy<OnCallDutyPolicyEscalationRule> {
+function newRuleCreate(
+  miscDataProps?: JSONObject,
+): CreateBy<OnCallDutyPolicyEscalationRule> {
   const rule: OnCallDutyPolicyEscalationRule =
     new OnCallDutyPolicyEscalationRule();
   rule.projectId = oid(PROJECT);
@@ -1077,14 +1149,27 @@ describe("reading the schedules a create asks to page the next person of", () =>
   });
 });
 
-// ---------------------------------------------------------------------------
-// The on-call person is not on call for a rule that pages the next person
-// ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
+ * The on-call person is not on call for a rule that pages the next person
+ * ---------------------------------------------------------------------------
+ */
 
 describe("a rule that pages the next person in the rotation does not put the on-call person on call for it", () => {
   test("a hand-off tells the people on call for the schedule's own rule - and nothing for the next-in-rotation rule", async () => {
-    attach({ id: "0e400000-0000-4000-8000-000000000501", ruleId: LEVEL_1, ruleName: "Level 1", pageNextInRotation: false });
-    attach({ id: "0e400000-0000-4000-8000-000000000502", ruleId: LEVEL_2, ruleName: "Level 2", ruleOrder: 2, pageNextInRotation: true });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000501",
+      ruleId: LEVEL_1,
+      ruleName: "Level 1",
+      pageNextInRotation: false,
+    });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000502",
+      ruleId: LEVEL_2,
+      ruleName: "Level 2",
+      ruleOrder: 2,
+      pageNextInRotation: true,
+    });
 
     // The roster as it was yesterday: Kim on call.
     db.schedules[0]!["currentUserIdOnRoster"] = oid(KIM);
@@ -1180,8 +1265,16 @@ describe("a rule that pages the next person in the rotation does not put the on-
   });
 
   test("'my on-call policies' lists the schedule's own rule, not the next-in-rotation one", async () => {
-    attach({ id: "0e400000-0000-4000-8000-000000000511", ruleId: LEVEL_1, pageNextInRotation: false });
-    attach({ id: "0e400000-0000-4000-8000-000000000512", ruleId: LEVEL_2, pageNextInRotation: true });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000511",
+      ruleId: LEVEL_1,
+      pageNextInRotation: false,
+    });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000512",
+      ruleId: LEVEL_2,
+      pageNextInRotation: true,
+    });
 
     jest
       .spyOn(
@@ -1214,7 +1307,12 @@ describe("a rule that pages the next person in the rotation does not put the on-
   });
 
   test("the roster follows the policy whose rule pages the on-call person - a next-in-rotation rule of another policy does not change that", async () => {
-    attach({ id: "0e400000-0000-4000-8000-000000000521", ruleId: LEVEL_1, policyId: POLICY, pageNextInRotation: false });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000521",
+      ruleId: LEVEL_1,
+      policyId: POLICY,
+      pageNextInRotation: false,
+    });
 
     const getSingleAttachedPolicyId: (
       scheduleId: ObjectID,
@@ -1230,21 +1328,42 @@ describe("a rule that pages the next person in the rotation does not put the on-
       POLICY,
     );
 
-    attach({ id: "0e400000-0000-4000-8000-000000000522", ruleId: LEVEL_2, policyId: OTHER_POLICY, pageNextInRotation: true });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000522",
+      ruleId: LEVEL_2,
+      policyId: OTHER_POLICY,
+      pageNextInRotation: true,
+    });
 
     expect((await getSingleAttachedPolicyId(oid(SCHEDULE)))?.toString()).toBe(
       POLICY,
     );
 
     // A second policy's rule that does page the on-call person: no single policy.
-    attach({ id: "0e400000-0000-4000-8000-000000000523", ruleId: LEVEL_3, policyId: OTHER_POLICY, pageNextInRotation: false });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000523",
+      ruleId: LEVEL_3,
+      policyId: OTHER_POLICY,
+      pageNextInRotation: false,
+    });
 
     expect(await getSingleAttachedPolicyId(oid(SCHEDULE))).toBeUndefined();
   });
 
   test("calendar feeds, my shifts and reminders: the shifts are on call for the schedule's own rule only", async () => {
-    attach({ id: "0e400000-0000-4000-8000-000000000531", ruleId: LEVEL_1, ruleName: "Level 1", pageNextInRotation: false });
-    attach({ id: "0e400000-0000-4000-8000-000000000532", ruleId: LEVEL_2, ruleName: "Level 2", ruleOrder: 2, pageNextInRotation: true });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000531",
+      ruleId: LEVEL_1,
+      ruleName: "Level 1",
+      pageNextInRotation: false,
+    });
+    attach({
+      id: "0e400000-0000-4000-8000-000000000532",
+      ruleId: LEVEL_2,
+      ruleName: "Level 2",
+      ruleOrder: 2,
+      pageNextInRotation: true,
+    });
 
     const resolved: ResolvedShiftSegments | null =
       await OnCallDutyPolicyScheduleService.getResolvedShiftSegments({

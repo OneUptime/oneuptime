@@ -259,7 +259,10 @@ describe("the next-in-rotation kind", () => {
       options.map((option: PeoplePickerOption): string => {
         return `${option.kind}:${option.name}`;
       }),
-    ).toEqual(["onCallSchedule:Primary", "onCallScheduleNextInRotation:Primary"]);
+    ).toEqual([
+      "onCallSchedule:Primary",
+      "onCallScheduleNextInRotation:Primary",
+    ]);
   });
 
   test("as a workflow's list of records it has words of its own", () => {

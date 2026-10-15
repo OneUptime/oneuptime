@@ -849,17 +849,18 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             index: number,
             all: Array<ResponderGroupRef>,
           ): boolean => {
-          /*
-           * Each group once: a level that pages a schedule's on-call person
-           * and the next person in its rotation reaches the same roster.
-           */
-          return (
-            Boolean(group.id) &&
-            all.findIndex((other: ResponderGroupRef): boolean => {
-              return other.kind === group.kind && other.id === group.id;
-            }) === index
-          );
-        });
+            /*
+             * Each group once: a level that pages a schedule's on-call person
+             * and the next person in its rotation reaches the same roster.
+             */
+            return (
+              Boolean(group.id) &&
+              all.findIndex((other: ResponderGroupRef): boolean => {
+                return other.kind === group.kind && other.id === group.id;
+              }) === index
+            );
+          },
+        );
 
         reports[ruleId] = buildRuleReadinessReport({
           directUsers: directUsers,
