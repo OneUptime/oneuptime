@@ -48,14 +48,14 @@ export default class EpisodeMembersBatch {
   /*
    * Whether a member's create is one of several added together, and so
    * leaves the episode's side to the batch. Root writes only: see
-   * EPISODE_MEMBER_ADDED_TOGETHER_KEY.
+   * EPISODE_MEMBER_ADDED_TOGETHER_KEY. A create without props is not root.
    */
   public static isAddedTogether(data: {
-    props: DatabaseCommonInteractionProps;
+    props?: DatabaseCommonInteractionProps | undefined;
     miscDataProps?: JSONObject | undefined;
   }): boolean {
     return (
-      data.props.isRoot === true &&
+      data.props?.isRoot === true &&
       data.miscDataProps?.[EPISODE_MEMBER_ADDED_TOGETHER_KEY] === true
     );
   }
