@@ -1994,7 +1994,7 @@ describe("Incident Linked Alerts docs", () => {
 
     /*
      * They used to sit on More Settings, which is gone: the number prefixes
-     * it kept have a Number Prefix page of their own (NumberPrefixDocs.test.ts
+     * it kept have a Numbering page of their own (NumberingDocs.test.ts
      * holds the docs to that). Only what the docs say about the switches is
      * checked here.
      */

@@ -435,6 +435,23 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/IncidentAlertPostgres.test.ts --forceExit
 
+      # Where a project's incident, episode, alert and scheduled maintenance
+      # numbers start: the first record after a change gets the chosen
+      # number, a start at or below the highest number used is refused, and
+      # records created at the same moment - while the start changes - each
+      # get a number of their own. Clones the migrated Project table into an
+      # isolated schema, so it must run after the registered migrations.
+      - name: Test where record numbers start on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_RECORD_NUMBERS_TESTS: "true"
+          RECORD_NUMBERS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          RECORD_NUMBERS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          RECORD_NUMBERS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/RecordNumbersStartAtPostgres.test.ts --forceExit
+
       # Clones the migrated IncidentForm and IncidentFormSubmission tables
       # (their foreign keys and the link key's unique constraint) into an
       # isolated schema, so it must run after the registered migrations.

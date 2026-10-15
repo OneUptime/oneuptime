@@ -6,7 +6,7 @@ A configuração dos alertas fica dentro de **Alertas**, não em **Configuraçõ
 - [As regras pelas quais um novo alerta passa](#as-regras-pelas-quais-um-novo-alerta-passa): Em ordem, e o que cada uma faz.
 - [Regras de plantão](#regras-de-plantão): Acione as pessoas certas sem escolher uma política a cada vez.
 - [Regras de lembrete](#regras-de-lembrete): Lembre os proprietários enquanto um alerta continua aberto.
-- [Configurações](#configurações): Modelos de notas, campos personalizados, medições e prefixos de número.
+- [Configurações](#configurações): Modelos de notas, campos personalizados, medições e numeração.
 :::
 
 ## Onde ficam as configurações de alertas
@@ -23,7 +23,7 @@ Abra **Alertas** no menu **Produtos** da barra superior. As seções **Regras** 
 | **Regras de Rótulos**        | Adiciona rótulos aos alertas e episódios correspondentes.                                      |
 | **Reminder Rules**           | Lembra os proprietários em intervalos enquanto um alerta está aberto.                          |
 
-A seção **Configurações** contém **Estado do alerta** e **Severidade do alerta**, tratados em [Estados e severidades de alertas](/docs/alerts/states-and-severities), e depois **Modelos de notas**, **Campos personalizados**, **Medições** e **Prefixo do número**, tratados abaixo.
+A seção **Configurações** contém **Estado do alerta** e **Severidade do alerta**, tratados em [Estados e severidades de alertas](/docs/alerts/states-and-severities), e depois **Modelos de notas**, **Campos personalizados**, **Medições** e **Numeração**, tratados abaixo.
 
 Outras duas seções atuam sobre os alertas. **Alertas → IA → Configurações** decide o que o OneUptime AI faz por conta própria: **Investigar novos alertas**, ativado em projetos novos, e **Corrigir novos alertas automaticamente**, desativado até você ativá-lo. Veja [AI SRE](/docs/ai/ai-sre). **Alertas → Espaço de trabalho** contém as regras do Slack e do Microsoft Teams que publicam alertas e episódios em canais, e sua aba **Summary**. Veja [Slack](/docs/workspace-connections/slack).
 
@@ -142,9 +142,11 @@ Os proprietários recebem cada lembrete como **Alert reminder**, que fica ativad
 
 **Alertas → Configurações → Medições** mede quanto tempo as coisas levam em cada alerta. Escolha **Tempo até a confirmação** ou **Tempo até a resolução**, ou dois momentos seus, como quando **O alerta é criado** e quando ele entra em um estado que você escolher. Cada medição aparece na página do alerta e nos gráficos como `oneuptime.alert.measurement.<key>`. Veja [Medições](/docs/incidents/settings#medições), que funciona da mesma forma para alertas.
 
-### Prefixo do número
+### Numeração
 
-**Alertas → Configurações → Prefixo do número** define o texto antes dos números de alerta e de episódio: `ALT-` e `AE-` em um projeto novo, ou `#` sem nenhum. **Atualizar** abre **Prefixo do número do alerta** e **Prefixo do número do episódio de alerta**, com uma prévia enquanto você digita. Apenas os alertas e episódios criados depois recebem o novo prefixo. As regras de um prefixo estão em [Prefixos de número](/docs/incidents/settings#prefixos-de-número).
+**Alertas → Configurações → Numeração** define o texto antes dos números de alerta e de episódio: `ALT-` e `AE-` em um projeto novo, ou `#` sem nenhum. **Atualizar** abre **Prefixo do número do alerta** e **Prefixo do número do episódio de alerta**, com uma prévia enquanto você digita. Apenas os alertas e episódios criados depois recebem o novo prefixo. As regras de um prefixo estão em [Prefixos de número](/docs/incidents/settings#prefixos-de-número).
+
+O cartão **Próximo número** abaixo define o número que o próximo alerta e o próximo episódio recebem, para continuar os números de outra ferramenta: **Atualizar** abre **Próximo número de alerta** e **Próximo número de episódio de alerta**, cada um maior que o mais alto usado até agora. Veja [Próximos números](/docs/incidents/settings#próximos-números).
 
 > [!NOTE]
 > No OneUptime Cloud, os modelos de notas e os campos personalizados exigem o plano **Growth** ou superior.

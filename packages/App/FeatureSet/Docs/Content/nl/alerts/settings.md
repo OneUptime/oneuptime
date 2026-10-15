@@ -6,7 +6,7 @@ De configuratie van waarschuwingen staat binnen **Waarschuwingen**, niet in **Pr
 - [De regels die een nieuwe waarschuwing doorloopt](#de-regels-die-een-nieuwe-waarschuwing-doorloopt): Op volgorde, en wat elk doet.
 - [Bereikbaarheidsregels](#bereikbaarheidsregels): De juiste mensen oproepen zonder elke keer een beleid te kiezen.
 - [Herinneringsregels](#herinneringsregels): Eigenaren herinneren zolang een waarschuwing open blijft.
-- [Instellingen](#instellingen): Notitie-sjablonen, aangepaste velden, metingen en nummervoorvoegsels.
+- [Instellingen](#instellingen): Notitie-sjablonen, aangepaste velden, metingen en nummering.
 :::
 
 ## Waar de instellingen voor waarschuwingen staan
@@ -23,7 +23,7 @@ Open **Waarschuwingen** via het menu **Producten** in de bovenste balk. De secti
 | **Labelregels**             | Voegt labels toe aan overeenkomende waarschuwingen en episodes.                                |
 | **Reminder Rules**          | Herinnert eigenaren met een interval zolang een waarschuwing open is.                          |
 
-De sectie **Instellingen** bevat **Status waarschuwing** en **Ernst van waarschuwing**, beschreven op [Waarschuwingsstatussen en ernstniveaus](/docs/alerts/states-and-severities), en daarna **Notitie-sjablonen**, **Aangepaste velden**, **Metingen** en **Nummervoorvoegsel**, hieronder beschreven.
+De sectie **Instellingen** bevat **Status waarschuwing** en **Ernst van waarschuwing**, beschreven op [Waarschuwingsstatussen en ernstniveaus](/docs/alerts/states-and-severities), en daarna **Notitie-sjablonen**, **Aangepaste velden**, **Metingen** en **Nummering**, hieronder beschreven.
 
 Nog twee secties werken op waarschuwingen. **Waarschuwingen → AI → Instellingen** bepaalt wat OneUptime AI zelf doet: **Nieuwe waarschuwingen onderzoeken**, aan voor nieuwe projecten, en **Nieuwe waarschuwingen automatisch herstellen**, uit tot je het aanzet. Zie [AI SRE](/docs/ai/ai-sre). **Waarschuwingen → Werkruimte** bevat de Slack- en Microsoft Teams-regels die waarschuwingen en episodes in kanalen plaatsen, en het tabblad **Summary**. Zie [Slack](/docs/workspace-connections/slack).
 
@@ -142,9 +142,11 @@ Eigenaren krijgen elke herinnering als **Alert reminder**, dat standaard per e-m
 
 **Waarschuwingen → Instellingen → Metingen** meet hoe lang dingen duren bij elke waarschuwing. Kies **Tijd tot bevestiging** of **Tijd tot oplossing**, of twee eigen momenten, zoals wanneer **De waarschuwing wordt aangemaakt** en wanneer ze een status binnengaat die je kiest. Elke meting wordt op de pagina van de waarschuwing getoond en in grafieken weergegeven als `oneuptime.alert.measurement.<key>`. Zie [Metingen](/docs/incidents/settings#metingen), wat voor waarschuwingen op dezelfde manier werkt.
 
-### Nummervoorvoegsel
+### Nummering
 
-**Waarschuwingen → Instellingen → Nummervoorvoegsel** stelt de tekst voor waarschuwings- en episodenummers in: `ALT-` en `AE-` in een nieuw project, of `#` zonder voorvoegsel. **Bijwerken** opent **Nummervoorvoegsel voor waarschuwing** en **Nummervoorvoegsel voor waarschuwingsepisode**, met een voorbeeld terwijl je typt. Alleen waarschuwingen en episodes die daarna worden aangemaakt, krijgen het nieuwe voorvoegsel. De regels voor een voorvoegsel staan op [Nummervoorvoegsels](/docs/incidents/settings#nummervoorvoegsels).
+**Waarschuwingen → Instellingen → Nummering** stelt de tekst voor waarschuwings- en episodenummers in: `ALT-` en `AE-` in een nieuw project, of `#` zonder voorvoegsel. **Bijwerken** opent **Nummervoorvoegsel voor waarschuwing** en **Nummervoorvoegsel voor waarschuwingsepisode**, met een voorbeeld terwijl je typt. Alleen waarschuwingen en episodes die daarna worden aangemaakt, krijgen het nieuwe voorvoegsel. De regels voor een voorvoegsel staan op [Nummervoorvoegsels](/docs/incidents/settings#nummervoorvoegsels).
+
+De kaart **Volgend nummer** eronder stelt het nummer in dat de volgende waarschuwing en de volgende episode krijgen, om de nummers van een andere tool voort te zetten: **Bijwerken** opent **Volgend waarschuwingsnummer** en **Volgend waarschuwingsepisodenummer**, elk hoger dan het hoogste tot nu toe. Zie [Volgende nummers](/docs/incidents/settings#volgende-nummers).
 
 > [!NOTE]
 > In OneUptime Cloud vragen notitie-sjablonen en aangepaste velden het abonnement **Growth** of hoger.

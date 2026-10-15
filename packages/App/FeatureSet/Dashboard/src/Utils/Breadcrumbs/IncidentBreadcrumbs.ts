@@ -276,11 +276,11 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Incident Roles",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX, [
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_NUMBERING, [
       "Project",
       "Incidents",
       "Settings",
-      "Number Prefix",
+      "Numbering",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS, [
       "Project",

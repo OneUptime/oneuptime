@@ -88,6 +88,9 @@ Apri ogni pianificazione in **Reperibilità** > **Pianificazioni di reperibilit�
 ### Assicurati che tutti possano essere avvisati
 Le persone invitate accettano l'invito, poi aggiungono un numero di telefono, un indirizzo email o l'app mobile su cui essere avvisate. **Reperibilità** > **Prontezza** mostra chi non è ancora raggiungibile.
 
+### Prosegui la numerazione dei tuoi incidenti
+Se il tuo team indica gli incidenti per numero, fai partire quelli di OneUptime dopo il tuo ultimo in Grafana OnCall: in **Incidenti** > **Impostazioni** > **Numerazione**, imposta **Numero successivo dell'incidente** nella scheda **Numero successivo** al numero successivo. Così un numero non indica mai due incidenti diversi.
+
 ### Invia i tuoi avvisi a OneUptime
 Indirizza i tuoi monitor e gli strumenti che generano avvisi verso OneUptime, e avvisa te stesso una volta per provarlo.
 

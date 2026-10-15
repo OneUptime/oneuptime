@@ -255,16 +255,20 @@ describe("where the page lives", () => {
 
   /*
    * The switches used to sit on More Settings, next to the number prefixes.
-   * More Settings is gone: the prefixes have a Number Prefix page of their own.
+   * More Settings is gone: the prefixes have a page of their own, Numbering
+   * (first called Number Prefix).
    */
-  test("is neither the old More Settings page nor the Number Prefix page", () => {
+  test("is neither the old More Settings page nor the Numbering page", () => {
     const route: string = (
       RouteMap[PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS] as Route
     ).toString();
 
     expect(route).not.toBe("/dashboard/:projectId/incidents/settings/more");
     expect(route).not.toBe(
-      (RouteMap[PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX] as Route).toString(),
+      "/dashboard/:projectId/incidents/settings/number-prefix",
+    );
+    expect(route).not.toBe(
+      (RouteMap[PageMap.INCIDENTS_SETTINGS_NUMBERING] as Route).toString(),
     );
   });
 
@@ -348,6 +352,7 @@ describe("Incidents → Settings → Linked Alerts", () => {
       ),
     ).toHaveLength(2);
     expect(linkedAlertsCard.textContent || "").not.toMatch(/Number Prefix/);
+    expect(linkedAlertsCard.textContent || "").not.toMatch(/Next Number/);
   });
 
   test("the switches are the setting: no Update button, no dialog", async () => {

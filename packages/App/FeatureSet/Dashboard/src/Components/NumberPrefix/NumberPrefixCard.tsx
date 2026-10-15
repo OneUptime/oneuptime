@@ -30,13 +30,15 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {
   page: NumberPrefixPage;
+  // After the prefixes are saved: the Next Number card shows them too.
+  onSaveSuccess?: (() => void) | undefined;
 }
 
 /*
- * The card on each product's Number Prefix page: one row per kind of number
- * showing its prefix and the number it makes, and an Update button that
- * edits them all in one dialog, each field previewing its number as it is
- * typed and saying what is wrong with a prefix before it is saved.
+ * The first card on each product's Numbering page: one row per kind of
+ * number showing its prefix and the number it makes, and an Update button
+ * that edits them all in one dialog, each field previewing its number as it
+ * is typed and saying what is wrong with a prefix before it is saved.
  */
 const NumberPrefixCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -122,6 +124,9 @@ const NumberPrefixCard: FunctionComponent<ComponentProps> = (
         buttons: editGate.lockedButtons,
       }}
       isEditable={editGate.isEditable}
+      onSaveSuccess={() => {
+        props.onSaveSuccess?.();
+      }}
       editButtonText={NUMBER_PREFIX_EDIT_BUTTON_TITLE}
       editModalTitle={NUMBER_PREFIX_EDIT_MODAL_TITLE}
       editModalDescription={props.page.editDescription}

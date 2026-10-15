@@ -2837,7 +2837,7 @@ describe("where maintenance settings live", () => {
       "Note Templates",
       "Custom Fields",
       "Measurements",
-      "Number Prefix",
+      "Numbering",
     ]);
     expect(
       inOrder(
@@ -3301,6 +3301,42 @@ describe("the Settings section's pages", () => {
     expect(prefixCard).toContain("<NumberPrefixPreview");
     expect(settingsSection).toContain(
       "sets the text in front of event numbers: `SM-` in a new project, or `#` with none. **Update** asks for the **Scheduled Maintenance Number Prefix**, and previews the number as you type. Only events created afterwards get the new prefix; existing ones keep their numbers.",
+    );
+  });
+
+  /*
+   * Numbering holds the Next Number card under the prefixes: the number the
+   * next event gets, for a team carrying on from another tool's numbers.
+   * The rules are the incidents' rules, on the page the paragraph links to.
+   */
+  it("set the next event number on the Next Number card, above the highest used", () => {
+    const nextNumbers: string = readDashboardSource(
+      "Components/NextNumber/NextNumberSettings.ts",
+    );
+    const maintenancePage: string = nextNumbers.slice(
+      nextNumbers.indexOf("export const SCHEDULED_MAINTENANCE_NEXT_NUMBERS"),
+      nextNumbers.indexOf("export const NEXT_NUMBER_PAGES"),
+    );
+
+    expect(nextNumbers).toContain(
+      'export const NEXT_NUMBER_CARD_TITLE: string = translationKey("Next Number");',
+    );
+    expect(nextNumbers).toContain(
+      'export const NEXT_NUMBER_EDIT_BUTTON_TITLE: string = translationKey("Update");',
+    );
+    expect(maintenancePage).toContain(
+      'formTitle: translationKey("Next Scheduled Maintenance Number"),',
+    );
+    expect(
+      readDashboardSource(
+        "Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceNumbering.tsx",
+      ),
+    ).toContain("nextNumbers={SCHEDULED_MAINTENANCE_NEXT_NUMBERS}");
+    expect(settingsSection).toContain(
+      "**Scheduled Maintenance → Settings → Numbering** sets the text in front of event numbers",
+    );
+    expect(settingsSection).toContain(
+      "The **Next Number** card under it sets the number the next event gets, to carry on from another tool's numbers: **Update** opens **Next Scheduled Maintenance Number**, which must be higher than the highest used so far. See [Next numbers](/docs/incidents/settings#next-numbers).",
     );
   });
 

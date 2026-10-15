@@ -233,12 +233,12 @@ Les incidents signalés ainsi sont déclarés masqués sur les pages de statut, 
 Chaque incident reçoit un numéro séquentiel tiré d'un compteur propre au projet, attribué par le serveur à la création. Deux colonnes le portent : `incidentNumber` (l'entier brut) et `incidentNumberWithPrefix` (ce que vous voyez réellement). Sans préfixe configuré, la valeur affichée est `#42`.
 
 :::steps
-1. Allez dans **Incidents → Paramètres → Préfixe de numéro** et cliquez sur **Mettre à jour**.
+1. Allez dans **Incidents → Paramètres → Numérotation** et cliquez sur **Mettre à jour** sur la carte **Préfixe de numéro**.
 2. Saisissez le préfixe dans **Préfixe de numéro d'incident**. Le champ prévisualise le numéro pendant la saisie : `INC-` donne `INC-42`. Laissez-le vide pour garder le `#` par défaut.
 3. Cliquez sur **Enregistrer les modifications**. Les incidents déclarés à partir de maintenant reçoivent le nouveau préfixe ; les incidents existants gardent leur numéro.
 :::
 
-La même boîte de dialogue contient **Préfixe de numéro d'épisode d'incident** pour la numérotation des épisodes. [Préfixes de numéro](/docs/incidents/settings#préfixes-de-numéro) liste les règles que suit un préfixe.
+La même boîte de dialogue contient **Préfixe de numéro d'épisode d'incident** pour la numérotation des épisodes. [Préfixes de numéro](/docs/incidents/settings#préfixes-de-numéro) liste les règles que suit un préfixe. Pour poursuivre les numéros d'un autre outil, réglez **Prochain numéro d'incident** sur la carte **Prochain numéro** de la même page : voir [Prochains numéros](/docs/incidents/settings#prochains-numéros).
 
 Le numéro apparaît dans la première colonne de la liste des incidents, renvoie vers l'incident, et s'affiche comme **Numéro d'incident** sur la **Vue d'ensemble** de l'incident.
 

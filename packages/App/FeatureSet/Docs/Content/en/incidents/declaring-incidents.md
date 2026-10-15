@@ -233,12 +233,12 @@ Incidents reported this way are declared hidden from status pages, with **Notify
 Every incident gets a sequential number from a per-project counter, assigned by the server at creation time. Two columns hold it: `incidentNumber` (the raw integer) and `incidentNumberWithPrefix` (what you actually see). With no prefix configured, the display value is `#42`.
 
 :::steps
-1. Go to **Incidents → Settings → Number Prefix** and click **Update**.
+1. Go to **Incidents → Settings → Numbering** and click **Update** on the **Number Prefix** card.
 2. Type the prefix in **Incident Number Prefix**. The field previews the number as you type: `INC-` makes it `INC-42`. Leave it empty to keep the default `#`.
 3. Click **Save Changes**. Incidents declared from now on get the new prefix; existing incidents keep their numbers.
 :::
 
-The same dialog has **Incident Episode Number Prefix** for episode numbering. [Number prefixes](/docs/incidents/settings#number-prefixes) lists the rules a prefix follows.
+The same dialog has **Incident Episode Number Prefix** for episode numbering. [Number prefixes](/docs/incidents/settings#number-prefixes) lists the rules a prefix follows. To carry on from another tool's numbers, set **Next Incident Number** on the **Next Number** card of the same page: see [Next numbers](/docs/incidents/settings#next-numbers).
 
 The number appears as the first column of the incidents list, links to the incident, and shows up as **Incident Number** on the incident's **Overview**.
 

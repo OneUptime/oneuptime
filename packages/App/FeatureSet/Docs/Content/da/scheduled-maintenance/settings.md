@@ -5,7 +5,7 @@ Konfigurationen af vedligeholdelse findes i **Planlagt vedligeholdelse**, ikke i
 :::cards
 - [Reglerne, en ny begivenhed går igennem](#reglerne-en-ny-begivenhed-går-igennem): I rækkefølge, og hvad hver af dem gør.
 - [Påmindelsesregler](#påmindelsesregler): Mind ejerne om begivenheden, indtil den er fuldført.
-- [Indstillinger](#indstillinger): Noteskabeloner, brugerdefinerede felter, målinger og nummerpræfikser.
+- [Indstillinger](#indstillinger): Noteskabeloner, brugerdefinerede felter, målinger og nummerering.
 - [Hvem der kan ændre dem](#hvem-der-kan-ændre-dem): Vedligeholdelsesrollerne og abonnementerne.
 :::
 
@@ -20,7 +20,7 @@ Konfigurationen af vedligeholdelse findes i **Planlagt vedligeholdelse**, ikke i
 | **Etiketregler**   | Tilføjer etiketter til matchende begivenheder.                         |
 | **Reminder Rules** | Minder ejerne om begivenheden med et interval, indtil den er fuldført. |
 
-Sektionen **Indstillinger** rummer **Begivenhedsstatus**, som er beskrevet på [Vedligeholdelsestilstande](/docs/scheduled-maintenance/states), **Begivenhedsskabeloner**, som er beskrevet på [Skabeloner og tilbagevendende begivenheder](/docs/scheduled-maintenance/templates), og derefter **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger** og **Nummerpræfiks**, som er beskrevet nedenfor.
+Sektionen **Indstillinger** rummer **Begivenhedsstatus**, som er beskrevet på [Vedligeholdelsestilstande](/docs/scheduled-maintenance/states), **Begivenhedsskabeloner**, som er beskrevet på [Skabeloner og tilbagevendende begivenheder](/docs/scheduled-maintenance/templates), og derefter **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger** og **Nummerering**, som er beskrevet nedenfor.
 
 Sektionen **Arbejdsområde** rummer de Slack- og Microsoft Teams-regler, der poster begivenheder i kanaler. Se [Slack](/docs/workspace-connections/slack#notifikationsregler) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams#notifikationsregler).
 
@@ -104,9 +104,11 @@ Disse påmindelser er til dit team. De påmindelser, dine statussideabonnenter f
 
 **Planlagt vedligeholdelse → Indstillinger → Målinger** tager tid på, hvor længe ting varer på hver begivenhed. Vælg **Startforsinkelse**, fra den planlagte start, til begivenheden starter, **Overskridelse**, fra den planlagte slutning, til den slutter, eller **Vedligeholdelsens varighed**, fra den starter, til den slutter; eller to tidspunkter efter eget valg med **Noget andet**. Hver måling vises på begivenhedens side og tegnes som `oneuptime.scheduled-maintenance.measurement.<key>`. Se [Målinger](/docs/incidents/settings#målinger), som fungerer på samme måde for begivenheder.
 
-### Nummerpræfiks
+### Nummerering
 
-**Planlagt vedligeholdelse → Indstillinger → Nummerpræfiks** angiver teksten foran begivenhedsnumre: `SM-` i et nyt projekt, eller `#` uden præfiks. **Opdater** beder om **Nummerpræfiks for planlagt vedligeholdelse** og viser nummeret i en forhåndsvisning, mens du skriver. Kun begivenheder, der oprettes bagefter, får det nye præfiks; eksisterende beholder deres numre. Reglerne for et præfiks står på [Nummerpræfikser](/docs/incidents/settings#nummerpræfikser).
+**Planlagt vedligeholdelse → Indstillinger → Nummerering** angiver teksten foran begivenhedsnumre: `SM-` i et nyt projekt, eller `#` uden præfiks. **Opdater** beder om **Nummerpræfiks for planlagt vedligeholdelse** og viser nummeret i en forhåndsvisning, mens du skriver. Kun begivenheder, der oprettes bagefter, får det nye præfiks; eksisterende beholder deres numre. Reglerne for et præfiks står på [Nummerpræfikser](/docs/incidents/settings#nummerpræfikser).
+
+Kortet **Næste nummer** nedenunder sætter det nummer, den næste begivenhed får, for at fortsætte et andet værktøjs numre: **Opdater** åbner **Næste nummer for planlagt vedligeholdelse**, som skal være højere end det højeste indtil nu. Se [Næste numre](/docs/incidents/settings#næste-numre).
 
 > [!NOTE]
 > På OneUptime Cloud kræver brugerdefinerede felter abonnementet **Growth** eller højere, og det samme gør tilføjelse og ændring af vedligeholdelsestilstande og skabeloner.

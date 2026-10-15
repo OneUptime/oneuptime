@@ -1,6 +1,6 @@
 # Incident Settings & Automation
 
-Incident configuration lives inside **Incidents**, not in **Project Settings**: the states and severities, templates, custom fields, roles, measurements and number prefixes, and the rules that act on every new incident. This page is the reference for each of those pages, and for what runs on its own the moment an incident is declared.
+Incident configuration lives inside **Incidents**, not in **Project Settings**: the states and severities, templates, custom fields, roles, measurements and numbering, and the rules that act on every new incident. This page is the reference for each of those pages, and for what runs on its own the moment an incident is declared.
 
 :::cards
 - [Incident templates](#incident-templates): Declare the same kind of incident, prefilled, every time.
@@ -24,7 +24,7 @@ Open **Incidents** from the **Products** menu in the top bar, then expand **Sett
 | **Incident Roles**       | Define the roles you assign responders to, such as Incident Commander.                       |
 | **Measurements**         | Time how long things take, like time to acknowledge or time to resolve, on every incident.    |
 | **Linked Alerts**        | Choose whether the alerts linked to an incident are acknowledged and resolved along with it. Both are on for new projects. |
-| **Number Prefix**        | The text in front of incident and episode numbers, such as `INC-` in `INC-42`.               |
+| **Numbering**            | The text in front of incident and episode numbers, such as `INC-` in `INC-42`, and the number the next one gets. |
 
 What OneUptime AI does on its own is not set here: it has a section of its own, **Incidents → AI**, at routes beginning `/dashboard/{projectId}/incidents/ai/`. Its **Settings** page switches investigating new incidents, fixing them automatically (off until you turn it on), with the fix and missing-telemetry pull requests that are part of fixing drawn under it, and drafting postmortems on or off, each saving as soon as you flip it; the investigation rules and auto remediation rules that narrow which incidents are investigated and fixed, and the optional limits AI works under, are folded under **More settings**, and none apply until you set them. **Insights** and **Logs** are next to it: what AI learned from your incidents, and everything it did. See [AI SRE](/docs/ai/ai-sre).
 
@@ -469,7 +469,7 @@ Roles are definitions only. You assign people to them per incident — the decla
 
 Every incident gets a number from a per-project counter. Without a prefix it shows as `#42`; with one it shows as `INC-42`. If your team says "INC-42" out loud, make the product say it too. New projects start with `INC-` for incidents and `IE-` for incident episodes.
 
-Go to **Incidents → Settings → Number Prefix** (`/dashboard/{projectId}/incidents/settings/number-prefix`). The **Number Prefix** card has a row for **Incidents** and one for **Incident Episodes**. Each shows its prefix and an example of the number it makes: `INC-`, then **Example:** `INC-42`. A project without a prefix shows **No prefix** and `#42`.
+Go to **Incidents → Settings → Numbering** (`/dashboard/{projectId}/incidents/settings/numbering`). The **Number Prefix** card has a row for **Incidents** and one for **Incident Episodes**. Each shows its prefix and an example of the number it makes: `INC-`, then **Example:** `INC-42`. A project without a prefix shows **No prefix** and `#42`.
 
 :::steps
 1. Click **Update**. The **Edit Number Prefix** dialog opens, with two fields: **Incident Number Prefix** (placeholder `INC-`) and **Incident Episode Number Prefix** (placeholder `IE-`).
@@ -489,7 +489,33 @@ The dialog says what is wrong before you save, and the API refuses the same pref
 
 Project Owners, Project Admins and anyone with **Edit Project** can change the prefixes. Everyone else sees them with the **Update** button locked.
 
-Alerts and scheduled maintenance events have the same page: **Alerts → Settings → Number Prefix** for alert and alert episode numbers (`ALT-` and `AE-` for new projects), and **Scheduled Maintenance → Settings → Number Prefix** for event numbers (`SM-`). In all three, the old **More Settings** address (`…/settings/more`) still works and opens **Number Prefix**.
+Alerts and scheduled maintenance events have the same page: **Alerts → Settings → Numbering** for alert and alert episode numbers (`ALT-` and `AE-` for new projects), and **Scheduled Maintenance → Settings → Numbering** for event numbers (`SM-`). In all three, the page's old addresses still work and open **Numbering**: **More Settings** (`…/settings/more`) and **Number Prefix** (`…/settings/number-prefix`).
+
+## Next numbers
+
+Each new incident gets the number after the highest one used so far, and each new episode too: `INC-1`, `INC-2`, `INC-3` from a project's first. Moving from another tool? Start OneUptime's numbers after that tool's last one, so a number never means two different incidents: a team whose last incident in its old tool was `INC-2345` sets the next number to `2346`, or to `10000` to tell its OneUptime incidents apart at a glance.
+
+The **Next Number** card, under **Number Prefix** on the same page, has a row for **Incidents** and one for **Incident Episodes**. Each shows the number the next one gets, with its prefix, then **Highest so far:** and the highest number used, or **None used yet**.
+
+:::steps
+1. Click **Update** on the **Next Number** card. The **Edit Next Number** dialog opens, with **Next Incident Number** and **Next Incident Episode Number**, each filled in with the number that comes next and saying what it must be higher than.
+2. Type the number the next one should get. Under each field, **Preview:** shows it with its prefix, so you see `INC-10000` before you save `10000`.
+3. Click **Save Changes**. The next incident gets that number, and the ones after it count up from there: `INC-10000`, `INC-10001`.
+:::
+
+A next number:
+
+- is a whole number from 1 to 1,000,000,000;
+- must be higher than the highest number used so far — deleted incidents count too — so a number is never used twice;
+- can be moved back down while no incident has used it: a typo such as `100000` for `10000` is undone by saving `10000`.
+
+The dialog says what is wrong before you save, and only the numbers you changed are saved. The server checks the same rules, and if an incident took the number while the dialog was open, it says so and the dialog shows the new highest number.
+
+**What a new next number changes.** Existing incidents and episodes keep their numbers. The server takes each number in one step as the record is created, so incidents declared at the same moment — by a monitor, a workflow and a person — each get a number of their own, even while someone changes the next number. Over the API and in Terraform, the next number is where numbers start: the project's `incidentNumbersStartAt` and `incidentEpisodeNumbersStartAt` (`incident_numbers_start_at` and `incident_episode_numbers_start_at` in Terraform). A value at or below the highest number used is refused, and the value already set, sent again, is accepted, so a Terraform apply still succeeds once incidents have passed it.
+
+Project Owners, Project Admins and anyone with **Edit Project** can change the next numbers, as they can the prefixes. Everyone else sees them with the **Update** button locked.
+
+Alerts and scheduled maintenance events have the same card on their **Numbering** pages: **Next Alert Number** and **Next Alert Episode Number**, and **Next Scheduled Maintenance Number**. [Import from another tool](/docs/moving-to-oneuptime/incident-io) brings your setup over, not your past incidents, so it leaves the numbers as they are: set the next numbers before the first incident is declared in OneUptime.
 
 ## Linked alert switches
 

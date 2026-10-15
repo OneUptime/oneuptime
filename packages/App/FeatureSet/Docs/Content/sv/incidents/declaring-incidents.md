@@ -233,12 +233,12 @@ Incidenter som rapporteras på det här sättet deklareras dolda för statussido
 Varje incident får ett löpnummer från en räknare per projekt, som servern tilldelar vid skapandet. Två kolumner innehåller det: `incidentNumber` (det råa heltalet) och `incidentNumberWithPrefix` (det du faktiskt ser). Utan konfigurerat prefix är det visade värdet `#42`.
 
 :::steps
-1. Gå till **Incidenter → Inställningar → Nummerprefix** och klicka på **Uppdatera**.
+1. Gå till **Incidenter → Inställningar → Numrering** och klicka på **Uppdatera** på kortet **Nummerprefix**.
 2. Skriv prefixet i **Prefix för incidentnummer**. Fältet förhandsgranskar numret medan du skriver: `INC-` gör det till `INC-42`. Lämna det tomt för att behålla standarden `#`.
 3. Klicka på **Spara ändringar**. Incidenter som deklareras från och med nu får det nya prefixet; befintliga incidenter behåller sina nummer.
 :::
 
-Samma dialog har **Nummerprefix för incidentepisoder** för numreringen av episoder. [Nummerprefix](/docs/incidents/settings#nummerprefix) nämner reglerna som ett prefix följer.
+Samma dialog har **Nummerprefix för incidentepisoder** för numreringen av episoder. [Nummerprefix](/docs/incidents/settings#nummerprefix) nämner reglerna som ett prefix följer. För att fortsätta ett annat verktygs nummer anger du **Nästa incidentnummer** på kortet **Nästa nummer** på samma sida: se [Nästa nummer](/docs/incidents/settings#nästa-nummer).
 
 Numret visas som den första kolumnen i listan över incidenter, länkar till incidenten och visas som **Incidentnummer** på incidentens **Översikt**.
 

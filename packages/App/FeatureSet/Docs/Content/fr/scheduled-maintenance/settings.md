@@ -5,7 +5,7 @@ La configuration de la maintenance se trouve dans **Maintenance planifiée**, pa
 :::cards
 - [Les règles que traverse un nouvel événement](#les-règles-que-traverse-un-nouvel-événement): Dans l'ordre, et ce que fait chacune.
 - [Règles de rappel](#règles-de-rappel): Rappeler l'événement aux propriétaires jusqu'à ce qu'il soit achevé.
-- [Paramètres](#paramètres): Modèles de notes, champs personnalisés, mesures et préfixes de numéro.
+- [Paramètres](#paramètres): Modèles de notes, champs personnalisés, mesures et numérotation.
 - [Qui peut les modifier](#qui-peut-les-modifier): Les rôles de maintenance, et les forfaits.
 :::
 
@@ -20,7 +20,7 @@ Ouvrez **Maintenance planifiée** depuis le menu **Produits** de la barre supér
 | **Règles d'étiquettes** | Ajoute des étiquettes aux événements qui correspondent.        |
 | **Reminder Rules** | Rappelle l'événement aux propriétaires à intervalle régulier jusqu'à ce qu'il soit achevé. |
 
-La section **Paramètres** contient **État de l'événement**, traité dans [États de la maintenance](/docs/scheduled-maintenance/states), **Modèles d'événement**, traité dans [Modèles et événements récurrents](/docs/scheduled-maintenance/templates), puis **Modèles de notes**, **Champs personnalisés**, **Mesures** et **Préfixe de numéro**, traités ci-dessous.
+La section **Paramètres** contient **État de l'événement**, traité dans [États de la maintenance](/docs/scheduled-maintenance/states), **Modèles d'événement**, traité dans [Modèles et événements récurrents](/docs/scheduled-maintenance/templates), puis **Modèles de notes**, **Champs personnalisés**, **Mesures** et **Numérotation**, traités ci-dessous.
 
 La section **Espace de travail** contient les règles Slack et Microsoft Teams qui publient les événements dans des canaux. Voir [Slack](/docs/workspace-connections/slack#règles-de-notification) et [Microsoft Teams](/docs/workspace-connections/microsoft-teams#règles-de-notification).
 
@@ -104,9 +104,11 @@ Ces rappels sont pour votre équipe. Les rappels que reçoivent les abonnés de 
 
 **Maintenance planifiée → Paramètres → Mesures** mesure combien de temps les choses prennent sur chaque événement. Choisissez **Retard au démarrage**, du début prévu jusqu'au début réel, **Dépassement**, de la fin prévue jusqu'à la fin réelle, ou **Durée de la maintenance**, du début jusqu'à la fin ; ou deux moments de votre choix avec **Autre chose**. Chaque mesure est affichée sur la page de l'événement et tracée dans un graphique sous `oneuptime.scheduled-maintenance.measurement.<key>`. Voir [Mesures](/docs/incidents/settings#mesures), qui fonctionne de la même façon pour les événements.
 
-### Préfixe de numéro
+### Numérotation
 
-**Maintenance planifiée → Paramètres → Préfixe de numéro** définit le texte devant les numéros d'événement : `SM-` dans un nouveau projet, ou `#` sans préfixe. **Mettre à jour** demande le **Préfixe du numéro de maintenance planifiée** et affiche un aperçu du numéro pendant la saisie. Seuls les événements créés ensuite reçoivent le nouveau préfixe ; les existants gardent leurs numéros. Les règles d'un préfixe sont décrites dans [Préfixes de numéro](/docs/incidents/settings#préfixes-de-numéro).
+**Maintenance planifiée → Paramètres → Numérotation** définit le texte devant les numéros d'événement : `SM-` dans un nouveau projet, ou `#` sans préfixe. **Mettre à jour** demande le **Préfixe du numéro de maintenance planifiée** et affiche un aperçu du numéro pendant la saisie. Seuls les événements créés ensuite reçoivent le nouveau préfixe ; les existants gardent leurs numéros. Les règles d'un préfixe sont décrites dans [Préfixes de numéro](/docs/incidents/settings#préfixes-de-numéro).
+
+La carte **Prochain numéro** en dessous fixe le numéro que recevra le prochain événement, pour poursuivre les numéros d'un autre outil : **Mettre à jour** ouvre **Prochain numéro de maintenance planifiée**, qui doit être supérieur au plus élevé utilisé à ce jour. Voir [Prochains numéros](/docs/incidents/settings#prochains-numéros).
 
 > [!NOTE]
 > Sur OneUptime Cloud, les champs personnalisés requièrent le forfait **Growth** ou supérieur, tout comme l'ajout et la modification d'états de maintenance et de modèles.

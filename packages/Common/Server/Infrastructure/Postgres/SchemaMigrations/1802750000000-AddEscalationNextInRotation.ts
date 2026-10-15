@@ -18,10 +18,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Both are booleans with a constant default, which Postgres adds without
  * rewriting or scanning the table.
  */
-export class AddEscalationNextInRotation1802560000000
+export class AddEscalationNextInRotation1802750000000
   implements MigrationInterface
 {
-  public name: string = "AddEscalationNextInRotation1802560000000";
+  public name: string = "AddEscalationNextInRotation1802750000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

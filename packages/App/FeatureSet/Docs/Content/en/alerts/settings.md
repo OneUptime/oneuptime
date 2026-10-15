@@ -6,7 +6,7 @@ Alert configuration lives inside **Alerts**, not in **Project Settings**: the ru
 - [The rules a new alert passes through](#the-rules-a-new-alert-passes-through): In order, and what each one does.
 - [On-call rules](#on-call-rules): Page the right people without picking a policy each time.
 - [Reminder rules](#reminder-rules): Remind owners while an alert stays open.
-- [Settings](#settings): Note templates, custom fields, measurements and number prefixes.
+- [Settings](#settings): Note templates, custom fields, measurements and numbering.
 :::
 
 ## Where alert settings live
@@ -23,7 +23,7 @@ Open **Alerts** from the **Products** menu in the top bar. The **Rules** and **S
 | **Label Rules**     | Adds labels to matching alerts and episodes.                                                   |
 | **Reminder Rules**  | Reminds owners at an interval while an alert is open.                                          |
 
-The **Settings** section holds **Alert State** and **Alert Severity**, covered on [Alert States & Severities](/docs/alerts/states-and-severities), then **Note Templates**, **Custom Fields**, **Measurements** and **Number Prefix**, covered below.
+The **Settings** section holds **Alert State** and **Alert Severity**, covered on [Alert States & Severities](/docs/alerts/states-and-severities), then **Note Templates**, **Custom Fields**, **Measurements** and **Numbering**, covered below.
 
 Two more sections act on alerts. **Alerts → AI → Settings** decides what OneUptime AI does on its own: **Investigate new alerts**, on for new projects, and **Fix new alerts automatically**, off until you turn it on. See [AI SRE](/docs/ai/ai-sre). **Alerts → Workspace** holds the Slack and Microsoft Teams rules that post alerts and episodes to channels, and its **Summary** tab. See [Slack](/docs/workspace-connections/slack).
 
@@ -142,9 +142,11 @@ Owners get each reminder as **Alert reminder**, which is on by email by default.
 
 **Alerts → Settings → Measurements** times how long things take on every alert. Pick **Time to acknowledge** or **Time to resolve**, or two moments of your own, such as when **The alert is created** and when it enters a state you pick. Each measurement is shown on the alert's page and charted as `oneuptime.alert.measurement.<key>`. See [Measurements](/docs/incidents/settings#measurements), which works the same way for alerts.
 
-### Number prefix
+### Numbering
 
-**Alerts → Settings → Number Prefix** sets the text in front of alert and episode numbers: `ALT-` and `AE-` in a new project, or `#` with none. **Update** opens **Alert Number Prefix** and **Alert Episode Number Prefix**, with a preview as you type. Only alerts and episodes created afterwards get the new prefix. The rules for a prefix are on [Number prefixes](/docs/incidents/settings#number-prefixes).
+**Alerts → Settings → Numbering** sets the text in front of alert and episode numbers: `ALT-` and `AE-` in a new project, or `#` with none. **Update** opens **Alert Number Prefix** and **Alert Episode Number Prefix**, with a preview as you type. Only alerts and episodes created afterwards get the new prefix. The rules for a prefix are on [Number prefixes](/docs/incidents/settings#number-prefixes).
+
+The **Next Number** card under it sets the number the next alert and the next episode get, to carry on from another tool's numbers: **Update** opens **Next Alert Number** and **Next Alert Episode Number**, each higher than the highest used so far. See [Next numbers](/docs/incidents/settings#next-numbers).
 
 > [!NOTE]
 > On OneUptime Cloud, note templates and custom fields take the **Growth** plan or above.

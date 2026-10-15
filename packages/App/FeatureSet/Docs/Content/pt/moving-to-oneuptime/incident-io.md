@@ -90,6 +90,9 @@ Abra cada agendamento em **Plantão** > **Agendamentos de plantão** e confira q
 ### Garanta que todos possam ser acionados
 As pessoas convidadas aceitam o convite e depois adicionam um número de telefone, um endereço de e-mail ou o aplicativo móvel para serem acionadas. **Plantão** > **Prontidão** mostra quem ainda não pode ser alcançado.
 
+### Continue seus números de incidente
+Se a sua equipe se refere aos incidentes pelo número, faça os do OneUptime começarem depois do seu último no incident.io: em **Incidentes** > **Configurações** > **Numeração**, defina **Próximo número de incidente** no cartão **Próximo número** como o número seguinte. Assim um número nunca indica dois incidentes diferentes.
+
 ### Envie seus alertas para o OneUptime
 Aponte seus monitores e as ferramentas que geram alertas para o OneUptime, e acione a si mesmo uma vez para testar.
 

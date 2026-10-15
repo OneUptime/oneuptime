@@ -1,6 +1,6 @@
 # Incidentinställningar och automatisering
 
-Konfigurationen av incidenter finns under **Incidenter**, inte under **Projektinställningar**: tillstånd och allvarlighetsgrader, mallar, anpassade fält, roller, mätningar och nummerprefix, och reglerna som verkar på varje ny incident. Den här sidan är referensen för var och en av de sidorna, och för det som körs av sig självt i samma ögonblick som en incident deklareras.
+Konfigurationen av incidenter finns under **Incidenter**, inte under **Projektinställningar**: tillstånd och allvarlighetsgrader, mallar, anpassade fält, roller, mätningar och numrering, och reglerna som verkar på varje ny incident. Den här sidan är referensen för var och en av de sidorna, och för det som körs av sig självt i samma ögonblick som en incident deklareras.
 
 :::cards
 - [Incidentmallar](#incidentmallar): Deklarera samma sorts incident, förifylld, varje gång.
@@ -24,7 +24,7 @@ Konfigurationen av incidenter finns under **Incidenter**, inte under **Projektin
 | **Incidentroller**           | Definiera rollerna som du tilldelar de som ingriper, som Incidentansvarig.                   |
 | **Mätningar**                | Mäta hur lång tid saker tar, som tiden till bekräftelse eller till lösning, på varje incident. |
 | **Länkade larm**             | Välja om larmen som är länkade till en incident bekräftas och löses tillsammans med den. Båda är påslagna i nya projekt. |
-| **Nummerprefix**             | Texten före incident- och episodnummer, som `INC-` i `INC-42`.                               |
+| **Numrering**                | Texten före incident- och episodnummer, som `INC-` i `INC-42`, och numret som nästa får. |
 
 Det som OneUptime AI gör på egen hand ställs inte in här: det har ett eget avsnitt, **Incidenter → AI**, på vägar som börjar med `/dashboard/{projectId}/incidents/ai/`. Dess sida **Inställningar** slår av eller på utredning av nya incidenter, automatisk åtgärd av dem (avstängd tills du slår på den), med pull requests för åtgärder och för saknad telemetri, som hör till åtgärden, grupperade under den, och utkast till efteranalyser, och var och en sparas så snart du slår om den; utredningsreglerna och reglerna för automatisk åtgärd som snävar in vilka incidenter som utreds och åtgärdas, och de valfria gränserna som AI arbetar under, är hopfällda under **Fler inställningar**, och ingen av dem gäller förrän du sätter den. **Insikter** och **Loggar** finns bredvid: vad AI har lärt sig av dina incidenter, och allt den har gjort. Se [AI SRE](/docs/ai/ai-sre).
 
@@ -469,7 +469,7 @@ Roller är bara definitioner. Du tilldelar personer till dem per incident — de
 
 Varje incident får ett nummer från en räknare per projekt. Utan prefix visas det som `#42`; med ett visas det som `INC-42`. Säger ditt team "INC-42" högt, låt produkten säga samma sak. Nya projekt börjar med `INC-` för incidenter och `IE-` för incidentepisoder.
 
-Gå till **Incidenter → Inställningar → Nummerprefix** (`/dashboard/{projectId}/incidents/settings/number-prefix`). Kortet **Nummerprefix** har en rad för **Incidenter** och en för **Incident Episoder**. Var och en visar sitt prefix och ett exempel på numret som det bildar: `INC-`, och sedan **Exempel:** `INC-42`. Ett projekt utan prefix visar **Inget prefix** och `#42`.
+Gå till **Incidenter → Inställningar → Numrering** (`/dashboard/{projectId}/incidents/settings/numbering`). Kortet **Nummerprefix** har en rad för **Incidenter** och en för **Incident Episoder**. Var och en visar sitt prefix och ett exempel på numret som det bildar: `INC-`, och sedan **Exempel:** `INC-42`. Ett projekt utan prefix visar **Inget prefix** och `#42`.
 
 :::steps
 1. Klicka på **Uppdatera**. Dialogen **Redigera nummerprefix** öppnas, med två fält: **Prefix för incidentnummer** (platshållare `INC-`) och **Nummerprefix för incidentepisoder** (platshållare `IE-`).
@@ -489,7 +489,33 @@ Dialogen säger vad som är fel innan du sparar, och API:t avvisar samma prefix.
 
 Project Owners, Project Admins och alla med **Edit Project** kan ändra prefixen. Alla andra ser dem med knappen **Uppdatera** låst.
 
-Larm och schemalagda underhållshändelser har samma sida: **Varningar → Inställningar → Nummerprefix** för numren på larm och larmepisoder (`ALT-` och `AE-` i nya projekt), och **Schemalagt underhåll → Inställningar → Nummerprefix** för numren på händelser (`SM-`). I alla tre fungerar den gamla adressen för **Fler inställningar** (`…/settings/more`) fortfarande och öppnar **Nummerprefix**.
+Larm och schemalagda underhållshändelser har samma sida: **Varningar → Inställningar → Numrering** för numren på larm och larmepisoder (`ALT-` och `AE-` i nya projekt), och **Schemalagt underhåll → Inställningar → Numrering** för numren på händelser (`SM-`). I alla tre fungerar sidans gamla adresser fortfarande och öppnar **Numrering**: **Fler inställningar** (`…/settings/more`) och **Nummerprefix** (`…/settings/number-prefix`).
+
+## Nästa nummer
+
+Varje ny incident får numret efter det högsta som använts hittills, och varje ny episod också: `INC-1`, `INC-2`, `INC-3` från ett projekts första. Byter du från ett annat verktyg? Låt numren i OneUptime börja efter verktygets sista, så att ett nummer aldrig betyder två olika incidenter: ett team vars sista incident i det gamla verktyget var `INC-2345` sätter nästa nummer till `2346`, eller till `10000` för att direkt skilja sina incidenter i OneUptime från de gamla.
+
+Kortet **Nästa nummer**, under **Nummerprefix** på samma sida, har en rad för **Incidenter** och en för **Incident Episoder**. Varje rad visar numret som nästa får, med prefix, och sedan **Högsta hittills:** och det högsta använda numret, eller **Inget använt ännu**.
+
+:::steps
+1. Klicka på **Uppdatera** på kortet **Nästa nummer**. Dialogen **Redigera nästa nummer** öppnas med **Nästa incidentnummer** och **Nästa nummer för incidentepisod**, vart och ett ifyllt med numret som kommer härnäst och med vad det måste vara högre än.
+2. Skriv numret som nästa ska få. Under varje fält visar **Förhandsvisning:** det med prefix, så att du ser `INC-10000` innan du sparar `10000`.
+3. Klicka på **Spara ändringar**. Nästa incident får det numret, och de som följer räknar vidare därifrån: `INC-10000`, `INC-10001`.
+:::
+
+Nästa nummer:
+
+- är ett heltal från 1 till 1 000 000 000;
+- måste vara högre än det högsta nummer som använts hittills – raderade incidenter räknas också – så att ett nummer aldrig används två gånger;
+- kan sänkas igen så länge ingen incident har använt det: ett skrivfel som `100000` i stället för `10000` rättas genom att spara `10000`.
+
+Dialogen säger vad som är fel innan du sparar, och bara de nummer du har ändrat sparas. Servern kontrollerar samma regler, och om en incident tog numret medan dialogen var öppen säger den det, och dialogen visar det nya högsta numret.
+
+**Vad ett nytt nästa nummer ändrar.** Befintliga incidenter och episoder behåller sina nummer. Servern delar ut varje nummer i ett enda steg när posten skapas, så incidenter som deklareras i samma ögonblick – av en monitor, ett arbetsflöde och en person – får var sitt nummer, även medan någon ändrar nästa nummer. I API:t och i Terraform är nästa nummer där numren börjar: projektets `incidentNumbersStartAt` och `incidentEpisodeNumbersStartAt` (`incident_numbers_start_at` och `incident_episode_numbers_start_at` i Terraform). Ett värde på eller under det högsta använda numret avvisas, och värdet som redan är satt, skickat igen, godtas, så att en Terraform-apply fortfarande lyckas när incidenter har passerat det.
+
+Project Owners, Project Admins och alla med **Edit Project** kan ändra nästa nummer, precis som prefixen. Alla andra ser dem med knappen **Uppdatera** låst.
+
+Larm och schemalagda underhållshändelser har samma kort på sina sidor **Numrering**: **Nästa varningsnummer** och **Nästa nummer för varningsepisod**, samt **Nästa nummer för schemalagt underhåll**. [Importera från ett annat verktyg](/docs/moving-to-oneuptime/incident-io) tar med din konfiguration, inte dina tidigare incidenter, och lämnar därför numren som de är: ställ in nästa nummer innan den första incidenten deklareras i OneUptime.
 
 ## Reglage för länkade larm
 
