@@ -735,6 +735,41 @@ describe("a press that comes too late says who got there first, and when", () =>
     });
   });
 
+  test("Page Someone, from the incident's menu, on a resolved incident says nobody was paged", async () => {
+    jest
+      .spyOn(IncidentStateTimelineService, "findBy")
+      .mockResolvedValue([
+        incidentRow(RESOLVED, "2026-10-08T18:20:00.000Z", SIMON),
+      ]);
+
+    expect(
+      await WorkspaceActionAnswers.getAlreadyAnswer({
+        event: incident(RESOLVED),
+        press: WorkspaceLatePress.Page,
+      }),
+    ).toEqual({
+      markdown: `**[Incident INC-2](${INCIDENT_LINK})** was already resolved by **Simon Lee** at {{TIME(2026-10-08T18:20:00Z)}}, so nobody was paged.`,
+      text: "Incident INC-2 was already resolved by Simon Lee, so nobody was paged",
+    });
+  });
+
+  test("Page Someone whose timeline cannot be read says it is resolved, and that nobody was paged", async () => {
+    jest
+      .spyOn(IncidentStateTimelineService, "findBy")
+      .mockRejectedValue(new Error("database is gone"));
+
+    expect(
+      (
+        await WorkspaceActionAnswers.getAlreadyAnswer({
+          event: incident(RESOLVED),
+          press: WorkspaceLatePress.Page,
+        })
+      ).markdown,
+    ).toBe(
+      `**[Incident INC-2](${INCIDENT_LINK})** is already resolved, so nobody was paged.`,
+    );
+  });
+
   test("a record whose link cannot be built is named in bold, without one", async () => {
     jest
       .spyOn(IncidentService, "getIncidentLinkInDashboard")
