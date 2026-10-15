@@ -26,7 +26,7 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { fetchActiveMonitorLimitStatus } from "../../Monitor/ActiveMonitorLimitNotice";
+import { fetchActiveMonitorLimitStatus } from "../../Monitor/ActiveMonitorLimitStatusApi";
 import PingMonitorSeedIds, { SeedIdsPurpose } from "../PingMonitorSeedIds";
 import { buildRecommendedMonitorTemplatePreview } from "../RecommendedMonitorTemplate";
 import {

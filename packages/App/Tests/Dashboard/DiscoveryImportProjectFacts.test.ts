@@ -77,7 +77,7 @@ jest.mock("Common/UI/Utils/PermissionGate", () => {
 });
 
 jest.mock(
-  "../../FeatureSet/Dashboard/src/Components/Monitor/ActiveMonitorLimitNotice",
+  "../../FeatureSet/Dashboard/src/Components/Monitor/ActiveMonitorLimitStatusApi",
   () => {
     return {
       __esModule: true,
@@ -89,7 +89,7 @@ jest.mock(
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { fetchActiveMonitorLimitStatus } from "../../FeatureSet/Dashboard/src/Components/Monitor/ActiveMonitorLimitNotice";
+import { fetchActiveMonitorLimitStatus } from "../../FeatureSet/Dashboard/src/Components/Monitor/ActiveMonitorLimitStatusApi";
 import {
   DiscoveryImportProjectFacts,
   buildTemplateChoices,
