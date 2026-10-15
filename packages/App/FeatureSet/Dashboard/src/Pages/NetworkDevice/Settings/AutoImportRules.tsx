@@ -34,13 +34,16 @@ import {
   getReadableMonitorTemplateColumn,
   updateMonitorIncompatibleBehavior,
 } from "./AutoImportRuleFormUtil";
+import { getPollingIntervalOptions } from "../../../Components/NetworkDevice/DiscoveryImport/PollingIntervalLabels";
 
 const networkDeviceAutoImportDocumentation: string = `
 ### How Auto Import Rules Work
 
 Auto Import Rules turn discovery scan results into Network Devices automatically — matching hosts are imported as a scan reports them, with no manual "Review Results → Import" step. Site assignment, owner, and label rules then apply to the imported devices automatically.
 
-An import rule can also select a **Network Device Monitor Template**. That opt-in completes the alerting pipeline: OneUptime creates an active monitor for each matching SNMP device, copies the template's criteria, interval, minimum probe agreement, custom fields and monitor labels, and then applies the normal Monitor Label and Owner Rules. Existing rules with no template remain inventory-only.
+An import rule can also select a **Network Device Monitor Template**. That opt-in completes the alerting pipeline: OneUptime creates an active monitor for each matching device, copies the template's criteria, minimum probe agreement, custom fields and monitor labels, and then applies the normal Monitor Label and Owner Rules. Existing rules with no template remain inventory-only. It is the same choice **Review Results** offers when you import by hand, and makes the same monitors.
+
+**Check every** sets how often the scan's probe polls each device the rule imports: it pings every device, and walks the ones that answered SNMP. Leave it empty for the default, every 5 minutes.
 
 ### When Rules Run
 
@@ -68,7 +71,7 @@ By default only hosts that answered SNMP are imported. Enable **Include Ping-Onl
 
 ### Monitor Provisioning
 
-Selecting a monitor template creates active monitors and may affect plan usage or billing. The template must belong to this project and have the **Network Device** monitor type. Ping-only hosts cannot use this operation because they do not produce the SNMP walks a Network Device monitor evaluates.
+Selecting a monitor template creates active monitors and may affect plan usage or billing. The template must belong to this project and have the **Network Device** monitor type. Hosts that answer ping only get a monitor too: their probe pings them, so the template's reachability check fires for them, while its SNMP checks wait until the device has credentials.
 
 The monitor template is the alerting layer: it supplies evaluation criteria and monitor settings. SNMP Health OIDs, interface walking, and endpoint collection remain polling settings on the Network Device itself; auto-imported devices continue to use the existing vendor-health-template seeding behavior for those fields.
 
@@ -424,20 +427,21 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
             required: false,
             description:
               "Also import hosts that answered ping but not SNMP. Off by default: a wrong SNMP credential makes every host on a subnet report as ping-only, and this rule would then import all of them as half-identified devices.",
-            onChange: (
-              value: unknown,
-              currentValues: FormValues<NetworkDeviceAutoImportRule>,
-              setNewFormValues: (
-                values: FormValues<NetworkDeviceAutoImportRule>,
-              ) => void,
-            ): void => {
-              setNewFormValues(
-                updateMonitorIncompatibleBehavior(
-                  currentValues,
-                  "includePingOnlyHosts",
-                  value === true,
-                ),
-              );
+          },
+          {
+            field: { pollingIntervalInMinutes: true },
+            title: "Check every",
+            stepId: "behavior",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: getPollingIntervalOptions(),
+            required: false,
+            placeholder: "Every 5 minutes (the default)",
+            description:
+              "How often the scan's probe polls each device this rule imports: it pings every device, and walks the ones that answered SNMP. The same choice as Check every when you import from Review Results.",
+            showIf: (
+              values: FormValues<NetworkDeviceAutoImportRule>,
+            ): boolean => {
+              return !values.isExclusion;
             },
           },
           {

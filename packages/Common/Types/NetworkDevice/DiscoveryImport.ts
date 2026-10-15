@@ -160,6 +160,30 @@ export function isDiscoveryImportPollingInterval(value: unknown): boolean {
   );
 }
 
+export const DISCOVERY_IMPORT_POLLING_INTERVAL_REFUSAL: string = `Check every ${DISCOVERY_IMPORT_POLLING_INTERVALS_IN_MINUTES.join(", ")} minutes: pick one of these intervals.`;
+
+/*
+ * A polling interval as a request or a row carries it: one of the choices,
+ * or null for "the device's default". Anything else is refused - a number
+ * that is not a choice is a mistake, not a default.
+ */
+export function readDiscoveryImportPollingInterval(
+  value: unknown,
+): number | null {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const minutes: number =
+    typeof value === "string" ? Number(value.trim()) : (value as number);
+
+  if (!isDiscoveryImportPollingInterval(minutes)) {
+    throw new BadDataException(DISCOVERY_IMPORT_POLLING_INTERVAL_REFUSAL);
+  }
+
+  return minutes;
+}
+
 /*
  * The settings an import was asked for, checked: a request body, or a
  * stored row, read into the shape the worker trusts. Missing values take
@@ -179,16 +203,12 @@ export function readDiscoveryImportSettings(
     ...DEFAULT_DISCOVERY_IMPORT_SETTINGS,
   };
 
-  const interval: unknown = record["pollingIntervalInMinutes"];
+  const interval: number | null = readDiscoveryImportPollingInterval(
+    record["pollingIntervalInMinutes"],
+  );
 
-  if (interval !== undefined && interval !== null) {
-    if (!isDiscoveryImportPollingInterval(interval)) {
-      throw new BadDataException(
-        `Check every ${DISCOVERY_IMPORT_POLLING_INTERVALS_IN_MINUTES.join(", ")} minutes: pick one of these intervals.`,
-      );
-    }
-
-    settings.pollingIntervalInMinutes = interval as number;
+  if (interval !== null) {
+    settings.pollingIntervalInMinutes = interval;
   }
 
   const applyVendorTemplates: unknown = record["applyVendorTemplates"];

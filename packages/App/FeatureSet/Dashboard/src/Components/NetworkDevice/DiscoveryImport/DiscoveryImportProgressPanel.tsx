@@ -11,10 +11,6 @@ import {
 } from "Common/Types/NetworkDevice/DiscoveryImport";
 import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ProgressBar, {
   ProgressBarSize,
@@ -480,15 +476,19 @@ const DiscoveryImportProgressPanel: FunctionComponent<
                 ? translator.translateText(
                     "You can close this window: the import carries on, and Review Results shows where it stands.",
                   )
-                : props.view.monitorTemplateName &&
-                    progress.monitorsRequested > 0
-                  ? translator.translateTemplate(
-                      "Monitors from “{{template}}”.",
-                      { template: props.view.monitorTemplateName },
+                : model.retryableCount > 0
+                  ? translator.translateText(
+                      "Fix what is listed below, then retry: only those hosts are tried again, and nothing is created twice.",
                     )
-                  : translator.translateText(
-                      "This import created no monitors.",
-                    )}
+                  : props.view.monitorTemplateName &&
+                      progress.monitorsRequested > 0
+                    ? translator.translateTemplate(
+                        "Every host is in the inventory, monitored from “{{template}}”.",
+                        { template: props.view.monitorTemplateName },
+                      )
+                    : translator.translateText(
+                        "Every host is in the inventory.",
+                      )}
           </p>
         </div>
       </div>
@@ -584,8 +584,14 @@ const DiscoveryImportProgressPanel: FunctionComponent<
               </AppLink>
             )}
             {!props.allResults && (
-              <Button
-                title={translator.translatePlural(
+              <button
+                type="button"
+                data-testid="discovery-import-show-all"
+                disabled={props.isLoadingAllResults}
+                className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:underline disabled:cursor-wait disabled:text-indigo-300"
+                onClick={props.onShowAllResults}
+              >
+                {translator.translatePlural(
                   {
                     one: "Show the host",
                     other: "Show every host ({{count}})",
@@ -593,12 +599,7 @@ const DiscoveryImportProgressPanel: FunctionComponent<
                   model.hostCount,
                   { count: translator.formatNumber(model.hostCount) },
                 )}
-                dataTestId="discovery-import-show-all"
-                buttonStyle={ButtonStyleType.SECONDARY_LINK}
-                buttonSize={ButtonSize.Small}
-                isLoading={props.isLoadingAllResults}
-                onClick={props.onShowAllResults}
-              />
+              </button>
             )}
           </div>
           {props.allResultsError && (

@@ -16,11 +16,15 @@ import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import { VeryLightGray } from "Common/Types/BrandColors";
-import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { ActiveMonitorLimitAlert } from "../../Monitor/ActiveMonitorLimitNotice";
 import { IMPORT_VENDOR_TEMPLATES_TOGGLE_TITLE } from "../BulkDeviceActionTitles";
+import {
+  getPollingIntervalLabel,
+  getPollingIntervalOptions,
+} from "./PollingIntervalLabels";
 import {
   DiscoveryImportAlertReach,
   DiscoveryImportOutcome,
@@ -73,22 +77,6 @@ export function getTemplateChoiceValue(
   choice: DiscoveryImportTemplateChoice,
 ): string {
   return choice.id || RECOMMENDED_TEMPLATE_CHOICE_VALUE;
-}
-
-const MINUTES: PluralTemplate = {
-  one: "Every minute",
-  other: "Every {{count}} minutes",
-};
-
-export function getPollingIntervalLabel(
-  translator: Translator,
-  minutes: number,
-): string {
-  if (minutes === 60) {
-    return translator.translateText("Every hour") as string;
-  }
-
-  return translator.translatePlural(MINUTES, minutes);
 }
 
 function names(
@@ -290,10 +278,7 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
   const turnedOffChecks: number =
     (props.template?.summary.criteria.length || 0) - enabledChecks.length;
 
-  const intervalLabel: string = getPollingIntervalLabel(
-    translator,
-    settings.pollingIntervalInMinutes,
-  ).toLowerCase();
+  const minutes: number = settings.pollingIntervalInMinutes;
 
   const templatePicker: ReactElement = (
     <div className="space-y-3" data-testid="discovery-import-template-picker">
@@ -363,16 +348,16 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
             {turnedOffChecks > 0
               ? translator.translatePlural(
                   {
-                    one: "Checked every time a device is polled, {{interval}}. {{count}} more check is turned off in this template.",
+                    one: "Checked each time a device is polled: every {{minutes}} min. {{count}} more check is turned off in this template.",
                     other:
-                      "Checked every time a device is polled, {{interval}}. {{count}} more checks are turned off in this template.",
+                      "Checked each time a device is polled: every {{minutes}} min. {{count}} more checks are turned off in this template.",
                   },
                   turnedOffChecks,
-                  { interval: intervalLabel },
+                  { minutes: minutes },
                 )
               : translator.translateTemplate(
-                  "Checked every time a device is polled, {{interval}}.",
-                  { interval: intervalLabel },
+                  "Checked each time a device is polled: every {{minutes}} min.",
+                  { minutes: minutes },
                 )}
           </p>
         </div>
@@ -414,32 +399,22 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
               ariaLabel={translator.translateText("Check every")}
               isClearable={false}
               disabled={props.isDisabled}
-              options={DISCOVERY_IMPORT_POLLING_INTERVALS_IN_MINUTES.map(
-                (minutes: number): DropdownOption => {
-                  return {
-                    value: minutes,
-                    label: getPollingIntervalLabel(translator, minutes),
-                  };
-                },
-              )}
+              options={getPollingIntervalOptions()}
               value={{
                 value: settings.pollingIntervalInMinutes,
-                label: getPollingIntervalLabel(
-                  translator,
-                  settings.pollingIntervalInMinutes,
-                ),
+                label: getPollingIntervalLabel(settings.pollingIntervalInMinutes),
               }}
               onChange={(
                 value: DropdownValue | Array<DropdownValue> | null,
               ) => {
-                const minutes: number = Number(
+                const picked: number = Number(
                   Array.isArray(value) ? value[0] : value,
                 );
 
-                if (DISCOVERY_IMPORT_POLLING_INTERVALS_IN_MINUTES.includes(minutes)) {
+                if (DISCOVERY_IMPORT_POLLING_INTERVALS_IN_MINUTES.includes(picked)) {
                   props.onSettingsChange({
                     ...settings,
-                    pollingIntervalInMinutes: minutes,
+                    pollingIntervalInMinutes: picked,
                   });
                 }
               }}
@@ -494,7 +469,7 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
               {isAtMonitorLimit && facts?.monitorLimitStatus && (
                 <ActiveMonitorLimitAlert status={facts.monitorLimitStatus} />
               )}
-              <div className="-mx-1 overflow-hidden rounded-lg border border-gray-200 [&>div>div]:px-4 md:[&>div>div]:px-4">
+              <div className="overflow-hidden rounded-lg border border-gray-200">
                 <ChoiceRows<DiscoveryImportAlerting>
                   ariaLabel="Who hears about a problem with an imported device"
                   dataTestId="discovery-import-alerting"
@@ -548,7 +523,6 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
 
       <OutcomeSummary
         outcome={outcome}
-        intervalLabel={intervalLabel}
         monitorRoom={facts?.monitorRoom ?? null}
       />
     </div>
@@ -602,11 +576,9 @@ const PolicyNote: FunctionComponent<{
  */
 export const OutcomeSummary: FunctionComponent<{
   outcome: DiscoveryImportOutcome;
-  intervalLabel: string;
   monitorRoom: number | null;
 }> = (props: {
   outcome: DiscoveryImportOutcome;
-  intervalLabel: string;
   monitorRoom: number | null;
 }): ReactElement => {
   const translator: Translator = useTranslator();
@@ -619,14 +591,14 @@ export const OutcomeSummary: FunctionComponent<{
       key: "snmp",
       text: translator.translatePlural(
         {
-          one: "{{count}} device answered SNMP: it is walked {{interval}} for interfaces, inventory and health, with the credentials that answered it.",
+          one: "{{count}} device answered SNMP: it is walked every {{minutes}} min for interfaces, inventory and health, with the credentials that answered it.",
           other:
-            "{{count}} devices answered SNMP: they are walked {{interval}} for interfaces, inventory and health, with the credentials that answered them.",
+            "{{count}} devices answered SNMP: they are walked every {{minutes}} min for interfaces, inventory and health, with the credentials that answered them.",
         },
         outcome.snmpHostCount,
         {
           count: translator.formatNumber(outcome.snmpHostCount),
-          interval: props.intervalLabel,
+          minutes: outcome.pollingIntervalInMinutes,
         },
       ),
     });
@@ -637,14 +609,14 @@ export const OutcomeSummary: FunctionComponent<{
       key: "ping",
       text: translator.translatePlural(
         {
-          one: "{{count}} device answered ping only: it is pinged {{interval}}. Add SNMP credentials later to walk it too.",
+          one: "{{count}} device answered ping only: it is pinged every {{minutes}} min. Add SNMP credentials later to walk it too.",
           other:
-            "{{count}} devices answered ping only: they are pinged {{interval}}. Add SNMP credentials later to walk them too.",
+            "{{count}} devices answered ping only: they are pinged every {{minutes}} min. Add SNMP credentials later to walk them too.",
         },
         outcome.pingOnlyHostCount,
         {
           count: translator.formatNumber(outcome.pingOnlyHostCount),
-          interval: props.intervalLabel,
+          minutes: outcome.pollingIntervalInMinutes,
         },
       ),
     });

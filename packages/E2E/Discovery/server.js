@@ -6,7 +6,11 @@ const { createConfig } = require("../../Common/UI/esbuild-config.js");
 const esbuild = require("../../Common/node_modules/esbuild");
 const repository = path.resolve(__dirname, "../../..");
 const output = path.join(repository, "output/playwright/discovery/fixture");
-const port = 4198;
+/*
+ * 4198 unless DISCOVERY_FIXTURE_PORT says otherwise, so two checkouts on one
+ * machine can each run the suite against their own build.
+ */
+const port = Number(process.env.DISCOVERY_FIXTURE_PORT || 4198);
 const config = createConfig({
   serviceName: "discovery-fixture",
   publicPath: "/dist/",

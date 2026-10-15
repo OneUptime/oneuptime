@@ -86,6 +86,12 @@ import {
 
 export const DISCOVERED_HOSTS_PER_PAGE: number = 50;
 
+// The row's columns from md up: the box, the host, the vendor, the badges.
+const HOST_GRID_WITH_VENDOR: string =
+  "md:grid-cols-[1.25rem_minmax(0,2.4fr)_minmax(0,1.6fr)_minmax(0,8rem)]";
+const HOST_GRID_WITHOUT_VENDOR: string =
+  "md:grid-cols-[1.25rem_minmax(0,1fr)_minmax(0,8rem)]";
+
 export interface DiscoveredHostTableProps {
   // The scan's hosts, normalised, with anything imported already marked.
   hosts: Array<DiscoveredNetworkDevice>;
@@ -165,6 +171,17 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
   const shownSelectedCount: number =
     selection.selected - selection.hiddenSelected;
 
+  /*
+   * The vendor column, only when a host has something to put in it: a scan
+   * that pinged and asked nothing else has no vendor or description for
+   * any host, and a column of dashes is only width taken from the names.
+   */
+  const hasVendorColumn: boolean = useMemo(() => {
+    return hosts.some((host: DiscoveredNetworkDevice): boolean => {
+      return Boolean(getDiscoveredHostVendor(host) || host.sysDescr);
+    });
+  }, [hosts]);
+
   const alreadyAddedCount: number = hosts.filter(
     (host: DiscoveredNetworkDevice): boolean => {
       return Boolean(host.isAlreadyRegistered);
@@ -218,7 +235,7 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
             )}
             data-testid="discovered-host-search"
             placeholder={translator.translateText(
-              "Search name, DNS name, address, vendor or a subnet",
+              "Search by name, address or subnet",
             )}
             disabled={props.isDisabled}
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
@@ -258,6 +275,7 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
                 {translator.translateText("Answered")}
               </span>
               <FilterButtons
+                className="flex-wrap [&>button]:whitespace-nowrap"
                 options={answeredOptions}
                 selectedValue={query.answered}
                 onSelect={(value: string) => {
@@ -277,6 +295,7 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
               {translator.translateText("Name")}
             </span>
             <FilterButtons
+              className="flex-wrap [&>button]:whitespace-nowrap"
               options={nameOptions}
               selectedValue={query.name || DiscoveredHostNameFilter.Any}
               onSelect={(value: string) => {
@@ -397,12 +416,16 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
 
       <div className="overflow-hidden rounded-lg border border-gray-200">
         <div
-          className="grid-cols-[1.25rem_minmax(0,2.4fr)_minmax(0,1.6fr)_minmax(0,8rem)] gap-4 border-b border-gray-200 bg-gray-50 px-3 py-2 text-xs font-medium uppercase tracking-wide text-gray-500 max-md:hidden md:grid"
+          className={`gap-4 border-b border-gray-200 bg-gray-50 px-3 py-2 text-xs font-medium uppercase tracking-wide text-gray-500 max-md:hidden md:grid ${
+            hasVendorColumn ? HOST_GRID_WITH_VENDOR : HOST_GRID_WITHOUT_VENDOR
+          }`}
           aria-hidden="true"
         >
           <span />
           <span>{translator.translateText("Host")}</span>
-          <span>{translator.translateText("Vendor")}</span>
+          {hasVendorColumn && (
+            <span>{translator.translateText("Vendor")}</span>
+          )}
           <span className="text-right">{translator.translateText("Status")}</span>
         </div>
         {shownHosts.length === 0 ? (
@@ -449,6 +472,7 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
                   entry={shown.host}
                   scan={props.scan}
                   isGlobalProbe={props.isGlobalProbe}
+                  hasVendorColumn={hasVendorColumn}
                   isChecked={
                     isSelectableDiscoveredHost(shown.host) &&
                     isSelectedIpAddress({
@@ -498,6 +522,8 @@ export interface DiscoveredHostRowProps {
   entry: DiscoveredNetworkDevice;
   scan: NetworkDeviceDiscoveryScan;
   isGlobalProbe: boolean | undefined;
+  // The table shows a vendor column (some host of the scan has a vendor).
+  hasVendorColumn: boolean;
   isChecked: boolean;
   isDisabled: boolean;
   onCheckedChange: (value: boolean) => void;
@@ -590,9 +616,9 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
     getDiscoveredHostNameSource(entry) === DeviceNameSource.NetbiosName;
   return (
     <li
-      className={`flex flex-col gap-2 px-3 py-3 md:grid md:grid-cols-[1.25rem_minmax(0,2.4fr)_minmax(0,1.6fr)_minmax(0,8rem)] md:items-start md:gap-4 ${
-        entry.isAlreadyRegistered ? "bg-gray-50/60" : ""
-      }`}
+      className={`flex flex-col gap-2 px-3 py-3 md:grid md:items-start md:gap-4 ${
+        props.hasVendorColumn ? HOST_GRID_WITH_VENDOR : HOST_GRID_WITHOUT_VENDOR
+      } ${entry.isAlreadyRegistered ? "bg-gray-50/60" : ""}`}
       data-testid={`discovered-host-row-${entry.ipAddress}`}
     >
       <div className="flex min-w-0 items-start gap-3 md:contents">
@@ -681,6 +707,7 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
           </div>
         </div>
       </div>
+      {props.hasVendorColumn && (
       <div className="min-w-0 pl-8 md:pl-0">
         {vendor ? (
           <div
@@ -707,6 +734,7 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
           <></>
         )}
       </div>
+      )}
       <div className="flex flex-wrap items-center gap-2 pl-8 md:justify-end md:pl-0">
         {isPingOnly ? (
           <span
@@ -718,9 +746,7 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
             {translator.translateText("No SNMP")}
           </span>
         ) : (
-          <span className="inline-flex flex-shrink-0 items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
-            {translator.translateText("SNMP")}
-          </span>
+          <></>
         )}
         {entry.isAlreadyRegistered && (
           <span className="inline-flex flex-shrink-0 items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">

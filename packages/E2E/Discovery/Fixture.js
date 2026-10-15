@@ -22,6 +22,21 @@ import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import User from "Common/UI/Utils/User";
+import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import NetworkAlertPolicy from "Common/Models/DatabaseModels/NetworkAlertPolicy";
+import {
+  buildAlertSeverities,
+  buildCampusHosts,
+  buildIncidentSeverities,
+  buildMonitorStatuses,
+  buildPolicy,
+  buildPosRegisters,
+  buildTemplates,
+  createImportApi,
+} from "./ImportFixture";
 
 // Exercise the actual page, table, review dialog and polling hook with synthetic
 // data. Only the API boundary/session is replaced; no network is scanned.
@@ -30,7 +45,7 @@ project._id = "10000000-0000-4000-8000-000000000001";
 project.name = "Network operations";
 ProjectUtil.getCurrentProjectId = () => project.id;
 ProjectUtil.getCurrentProject = () => project;
-User.isMasterAdmin = () => true;
+User.isMasterAdmin = () => window.__discoveryFixture?.isMasterAdmin !== false;
 User.getUserId = () => new ObjectID("10000000-0000-4000-8000-000000000002");
 
 const probe = new Probe();
@@ -48,6 +63,8 @@ const hosts = [
  * differently from the names their owners use. One answers SNMP, two answer
  * NetBIOS, one answers nothing.
  */
+const posRegisters = buildPosRegisters();
+const campusHosts = buildCampusHosts();
 const kitchenDisplays = [
   { ipAddress: "10.16.42.52", snmpReachable: false, dnsHostnameStatus: "no-record", netbiosNameStatus: "no-reply" },
   { ipAddress: "10.16.42.53", snmpReachable: true, sysName: "WB0024KDS03", dnsHostname: "wb-0024-kds03.wbhq.com", sysDescr: "Kitchen display, store 24" },
@@ -88,6 +105,10 @@ const scans = [
   scan(7, { name: "Access Discovery — WBHQ Unit/Access Switches", cidr: "10.250.0.0/24", status: "Completed", scannedHostCount: 254, completedAt: new Date(), statusMessage: "Swept 254 hosts: 41 answered ICMP ping, 3 answered SNMP. 12 host(s) replied with an SNMP error rather than silence; most common: Authentication failure (incorrect password, community or key). Answered by credentials: Core v3 on 3. No host answered: Legacy v2c community." }),
   // Issue #4518: each display named by its own hostname.
   scan(8, { name: "Kitchen displays — Store 24", cidr: "10.16.42.51-65", status: "Completed", scannedHostCount: 15, respondedHostCount: kitchenDisplays.length, completedAt: new Date(), isNetbiosLookupEnabled: true, useShortDeviceNames: true, discoveredDevices: kitchenDisplays, statusMessage: "Swept 15 hosts: 4 answered ICMP ping, 1 answered SNMP." }),
+  // Issues #4811-#4815: one enterprise's 514 point-of-sale registers, ping only.
+  scan(9, { name: "WB Unit Franchise POS REG01-02 Discovery", cidr: "10.48-79.0-255.31-32", status: "Completed", isSnmpEnabled: false, isNetbiosLookupEnabled: true, scannedHostCount: 16384, respondedHostCount: 514, completedAt: new Date(), discoveredDevices: posRegisters, statusMessage: "Swept 16384 hosts with ICMP ping only (Check SNMP is off for this scan): 514 answered ping. NetBIOS names were looked up for 514 hosts." }),
+  // A campus of 300 hosts: four vendors over SNMP, printers and phones by ping.
+  scan(10, { name: "Campus core and access", cidr: "10.60.0.0/22", status: "Completed", scannedHostCount: 1022, respondedHostCount: 180, completedAt: new Date(), discoveredDevices: campusHosts, statusMessage: "Swept 1022 hosts: 300 answered ICMP ping, 180 answered SNMP." }),
 ];
 /*
  * The Devices list, for what happens after an import: setting a site, a role
@@ -168,6 +189,34 @@ window.__discoveryFixture = {
   advance() {
     Object.assign(scans[0], { scannedHostCount: 12288, statusMessage: "Scan in progress: 12,288 of 15,360 addresses swept so far. Checking SNMP credentials (200 of 256)." });
   },
+  /*
+   * The import (ImportFixture.createImportApi): hosts settled per ask, the
+   * failures a test wants by address, the plan's room for monitors, and
+   * the record of what the dialog sent.
+   */
+  isMasterAdmin: true,
+  importBatch: 60,
+  holdImports: false,
+  failDevices: {},
+  failMonitors: {},
+  alreadyAdded: {},
+  monitorRoom: null,
+  refuseStart: "",
+  importStarts: [],
+  importReads: [],
+  importRetries: [],
+  templateCreates: [],
+  templates: buildTemplates(),
+  policies: [],
+  usePolicy() {
+    this.policies = [buildPolicy({})];
+  },
+  dropRecommendedTemplate() {
+    this.templates = this.templates.filter((item) => item.templateName !== "Network device alert pack (recommended)");
+  },
+  scanById(id) {
+    return scans.find((item) => item._id === id);
+  },
   complete() {
     for (const item of scans) {
       if (item.status === "In Progress" || item.status === "Pending") {
@@ -203,6 +252,21 @@ ModelAPI.getList = async ({ modelType, query, requestOptions }) => {
   if (isDevicesRoute() && modelType === NetworkDeviceRole) {
     return { data: roles, count: roles.length, skip: 0, limit: 10 };
   }
+  if (modelType === MonitorTemplate) {
+    return { data: window.__discoveryFixture.templates, count: window.__discoveryFixture.templates.length, skip: 0, limit: 10 };
+  }
+  if (modelType === MonitorStatus) {
+    return { data: buildMonitorStatuses(), count: 2, skip: 0, limit: 10 };
+  }
+  if (modelType === IncidentSeverity) {
+    return { data: buildIncidentSeverities(), count: 1, skip: 0, limit: 10 };
+  }
+  if (modelType === AlertSeverity) {
+    return { data: buildAlertSeverities(), count: 1, skip: 0, limit: 10 };
+  }
+  if (modelType === NetworkAlertPolicy) {
+    return { data: window.__discoveryFixture.policies, count: window.__discoveryFixture.policies.length, skip: 0, limit: 10 };
+  }
   const data = modelType === NetworkDeviceDiscoveryScan
     ? scans.map((item) => Object.assign(new NetworkDeviceDiscoveryScan(), item))
     : modelType === Probe && !requestOptions?.overrideRequestUrl ? [probe] : [];
@@ -221,7 +285,14 @@ ModelAPI.updateById = async ({ id, data }) => {
   }
   return { data: {} };
 };
-ModelAPI.create = async ({ model }) => {
+ModelAPI.create = async ({ model, modelType }) => {
+  if (modelType === MonitorTemplate) {
+    // The recommended template, made by the import when the project has none.
+    model._id = "60000000-0000-4000-8000-000000000099";
+    window.__discoveryFixture.templateCreates.push(model.templateName);
+    window.__discoveryFixture.templates.push(model);
+    return { data: model };
+  }
   window.__discoveryFixture.creates.push({
     hostname: model.hostname,
     name: model.name,
@@ -235,8 +306,17 @@ ModelAPI.create = async ({ model }) => {
 };
 ProbeUtil.getAllProbes = async () => [probe];
 ModelAPI.getCommonHeaders = () => ({});
-API.post = async () => ({ data: { data: [], count: 0 } });
-API.get = async () => ({ data: { data: [], count: 0 } });
+const importApi = createImportApi(window.__discoveryFixture);
+window.__discoveryFixture.importApi = importApi;
+const API_PREFIX = /^\/api/;
+async function answer(method, { url, data }) {
+  const parsed = new window.URL(url.toString());
+  const path = parsed.pathname.replace(API_PREFIX, "");
+  const body = await importApi.handle({ method, path, body: data || {}, query: parsed.searchParams });
+  return { data: body || { data: [], count: 0 } };
+}
+API.post = async (args) => answer("POST", args);
+API.get = async (args) => answer("GET", args);
 
 await i18next.use(initReactI18next).init({ lng: "en", fallbackLng: "en", resources: { en: { translation: {} } }, interpolation: { escapeValue: false } });
 function Fixture() {

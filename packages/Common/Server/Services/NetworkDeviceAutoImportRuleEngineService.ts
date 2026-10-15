@@ -52,6 +52,7 @@ import {
 } from "../../Utils/NetworkDiscovery/DiscoveredNameUpgrade";
 import { DeviceNameSource } from "../../Types/NetworkDevice/DeviceNameSource";
 import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import { isDiscoveryImportPollingInterval } from "../../Types/NetworkDevice/DiscoveryImport";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -723,6 +724,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
           includePingOnlyHosts: true,
           monitorTemplateId: true,
           oidTemplateId: true,
+          pollingIntervalInMinutes: true,
         },
         props: { isRoot: true },
       });
@@ -1100,6 +1102,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
             includePingOnlyHosts: true,
             monitorTemplateId: true,
             oidTemplateId: true,
+            pollingIntervalInMinutes: true,
           },
           sort: {
             createdAt: SortOrder.Ascending,
@@ -1986,6 +1989,24 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         return undefined;
       })();
 
+      /*
+       * How often the device is polled: the first matching rule that says,
+       * in the same deterministic order as the OID template above. A rule
+       * that says nothing leaves the device's own default (5 minutes) - and
+       * so does a value the rule form could never have written.
+       */
+      const pollingIntervalForHost: number | undefined = ((): number | undefined => {
+        for (const matchedRule of evaluation.matchedRules) {
+          const minutes: unknown = matchedRule.pollingIntervalInMinutes;
+
+          if (isDiscoveryImportPollingInterval(minutes)) {
+            return minutes as number;
+          }
+        }
+
+        return undefined;
+      })();
+
       let networkDevice: NetworkDevice | undefined = data.existingDevices.get(
         host.ipAddress,
       );
@@ -2046,6 +2067,9 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
             ...(oidTemplateIdForHost
               ? { oidTemplateId: oidTemplateIdForHost }
               : {}),
+            ...(pollingIntervalForHost
+              ? { pollingIntervalInMinutes: pollingIntervalForHost }
+              : {}),
           });
           networkDevice.id = ObjectID.generate();
           data.existingDevices.set(host.ipAddress, networkDevice);
@@ -2062,6 +2086,9 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
             attempts: data.attempts,
             ...(oidTemplateIdForHost
               ? { oidTemplateId: oidTemplateIdForHost }
+              : {}),
+            ...(pollingIntervalForHost
+              ? { pollingIntervalInMinutes: pollingIntervalForHost }
               : {}),
           });
 
@@ -2509,6 +2536,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
    */
   private async createDeviceForHost(data: {
     oidTemplateId?: ObjectID | undefined;
+    pollingIntervalInMinutes?: number | undefined;
     projectId: ObjectID;
     scan: NetworkDeviceDiscoveryScan;
     host: DiscoveredNetworkDevice;
@@ -2534,6 +2562,9 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
          */
         autoApplyVendorHealthTemplate: true,
         ...(data.oidTemplateId ? { oidTemplateId: data.oidTemplateId } : {}),
+        ...(data.pollingIntervalInMinutes
+          ? { pollingIntervalInMinutes: data.pollingIntervalInMinutes }
+          : {}),
       });
 
       const created: NetworkDevice = await NetworkDeviceService.create({

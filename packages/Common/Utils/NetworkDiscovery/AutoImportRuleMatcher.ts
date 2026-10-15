@@ -45,6 +45,12 @@ export interface AutoImportRuleCandidate {
    * only what the resulting device collects.
    */
   oidTemplateId?: ObjectID | string | null | undefined;
+  /*
+   * How often the devices the rule imports are polled, in minutes; empty
+   * for the device default. Carried through like the OID template: it never
+   * affects whether a host matches.
+   */
+  pollingIntervalInMinutes?: number | null | undefined;
   ipMatchTarget?: string | null | undefined;
   sysNamePattern?: string | null | undefined;
   sysDescrPattern?: string | null | undefined;

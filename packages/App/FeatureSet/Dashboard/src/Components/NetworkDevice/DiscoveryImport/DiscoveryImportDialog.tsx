@@ -233,7 +233,23 @@ const StepIndicator: FunctionComponent<{ step: DiscoveryImportStep }> = (props: 
       aria-label={translator.translateText("Import steps")}
       data-testid="discovery-import-steps"
     >
-      <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+      {/*
+       * A phone has no room for three steps on a line: it says which step
+       * this is, and the line of steps starts at sm.
+       */}
+      <p className="text-sm sm:hidden" aria-hidden="true">
+        <span className="font-semibold text-indigo-700">
+          {translator.translateText(steps[currentIndex]?.title || "")}
+        </span>
+        <span className="text-gray-500">
+          {" · "}
+          {translator.translateTemplate("Step {{step}} of {{count}}", {
+            step: currentIndex + 1,
+            count: steps.length,
+          })}
+        </span>
+      </p>
+      <ol className="items-center gap-x-2 gap-y-1 text-sm max-sm:hidden sm:flex sm:flex-wrap">
         {steps.map(
           (
             item: { step: DiscoveryImportStep; title: string },
