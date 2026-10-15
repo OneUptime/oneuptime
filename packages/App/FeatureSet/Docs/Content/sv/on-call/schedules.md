@@ -86,7 +86,7 @@ Medan personen är borta:
 
 Väljer du i stället någon under **Vem täcker upp?** får den personen alla hens larm, från varje schema och varje policy, i stället för att rotationen tar hens pass.
 
-Frånvaro som läggs till på det här sättet gäller för alla jourpolicyer. Den listas under **Jourtjänst** > **Användaråsidosättningar**, där du kan ta bort den för att få tillbaka personen tidigare. För att hoppa över någon i bara en policy lägger du till åsidosättningen på den policyns sida **Användaråsidosättningar** och låter **Vem täcker upp?** vara som det är.
+Frånvaro som läggs till på det här sättet gäller för alla jourpolicyer. Den listas under **Jourtjänst** > **Användaråsidosättningar**, där du kan ta bort den för att få tillbaka personen tidigare. För att hoppa över någon i bara en policy lägger du till åsidosättningen på den policyns sida **Användaråsidosättningar** och låter **Vem täcker upp?** vara som det är. Se [Användaråsidosättningar](/docs/on-call/user-overrides).
 
 Via API:et hoppar en användaråsidosättning (`/api/on-call-duty-policy-user-override`) som skapas utan `routeAlertsToUserId` över personen i `overrideUserId` från `startsAt` till `endsAt`.
 
@@ -121,4 +121,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Låt en nivå i en jourpolicy larma det här schemat.
 - [Tidslinje för jourscheman](/docs/on-call/schedule-timeline): Se alla scheman sida vid sida, med täckningsluckorna.
 - [Kalenderflöden](/docs/on-call/calendar-feeds): Lägg in pass i Google Kalender, Outlook eller Apple Kalender.
+- [Personliga jourregler](/docs/notifications/on-call-rules): Bestäm hur ett larm når dig medan du har jour.
 :::

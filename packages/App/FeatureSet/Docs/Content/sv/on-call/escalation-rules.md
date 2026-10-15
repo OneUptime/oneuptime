@@ -84,7 +84,7 @@ För att upprepa en policy klickar du på **Redigera** på kortet **Upprepningsp
 
 ### Så nås varje person
 
-Varje person som en nivå larmar nås på det sätt som personens egna jourregler säger: **Användarinställningar** > **Jourregler**, med en flik för incidenter, incidentepisoder, larm och larmepisoder, och ett kort per allvarlighetsgrad som visar vilken aviseringsmetod som prövas och efter hur lång tid. En projektadministratör kan se och ändra en medlems regler under **Användare** > medlemmen > **Jourregler**.
+Varje person som en nivå larmar nås på det sätt som personens egna jourregler säger: **Användarinställningar** > **Jourregler**, med en flik för incidenter, incidentepisoder, larm och larmepisoder, och ett kort per allvarlighetsgrad som visar vilken aviseringsmetod som prövas och efter hur lång tid. En projektadministratör kan se och ändra en medlems regler under **Användare** > medlemmen > **Jourregler**. Se [Personliga jourregler](/docs/notifications/on-call-rules).
 
 ```mermaid title="Vem en nivå larmar och hur varje person nås"
 flowchart TB
@@ -101,7 +101,7 @@ flowchart TB
     rules --> methods["Personens aviseringsmetoder"]
 ```
 
-En användaråsidosättning som gäller för en person skickar personens larm till den som täcker upp för personen i stället. En åsidosättning som inte anger någon som täcker upp hoppar över personen: personen larmas inte, policyns körning visar att personen är borta och till när, och i ett jourschema går vart och ett av personens pass till nästa person i rotationen.
+En användaråsidosättning som gäller för en person skickar personens larm till den som täcker upp för personen i stället. En åsidosättning som inte anger någon som täcker upp hoppar över personen: personen larmas inte, policyns körning visar att personen är borta och till när, och i ett jourschema går vart och ett av personens pass till nästa person i rotationen. Se [Användaråsidosättningar](/docs/on-call/user-overrides).
 
 Varje meddelande är ett som leverantören tar emot, så ett larm går alltid ut. Så här mycket bär varje kanal:
 
