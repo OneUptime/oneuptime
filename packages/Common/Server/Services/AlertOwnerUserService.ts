@@ -213,6 +213,9 @@ export class Service extends ProjectReferencesService<Model> {
           alertId: alertId!,
         }),
         userIds: [userId!],
+        notificationFor: {
+          alertId: alertId,
+        },
       },
     ).catch((error: Error) => {
       logger.error(error);

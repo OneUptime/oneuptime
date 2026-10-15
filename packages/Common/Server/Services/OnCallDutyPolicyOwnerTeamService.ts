@@ -167,6 +167,9 @@ export class Service extends ProjectReferencesService<Model> {
             onCallDutyPolicyId: onCallDutyPolicyId!,
           }),
         teamIds: [teamId!],
+        notificationFor: {
+          onCallDutyPolicyId: onCallDutyPolicyId,
+        },
       },
     ).catch((error: Error) => {
       logger.error(error);
