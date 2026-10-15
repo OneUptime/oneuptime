@@ -1,4 +1,4 @@
-import { DOCS_LANGUAGES, readPage } from "./DocsContentSupport";
+import { DOCS_LANGUAGES, listPages, readPage } from "./DocsContentSupport";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { inlineCode } from "./DocsTranslationChecks";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -75,6 +75,32 @@ function linesWith(text: string, needles: Array<string>): Array<string> {
       return line.includes(needle);
     });
   });
+}
+
+/*
+ * "**On Create Alert**" and the like: a model's On Create trigger, named in
+ * bold. Its model is what follows "On Create " - so On Create or Update's own
+ * name reads as the model "or Update Alert", and is left out by the caller.
+ */
+const ON_CREATE_TRIGGER: RegExp = /\*\*On Create ([^*]+)\*\*/g;
+
+// The models a line lists On Create, On Update and On Delete triggers for.
+function modelsWithTriggersListed(line: string): Array<string> {
+  const models: Set<string> = new Set();
+
+  for (const match of line.matchAll(ON_CREATE_TRIGGER)) {
+    const model: string = match[1]!;
+
+    if (
+      !model.startsWith("or Update ") &&
+      line.includes(`**On Update ${model}**`) &&
+      line.includes(`**On Delete ${model}**`)
+    ) {
+      models.add(model);
+    }
+  }
+
+  return Array.from(models);
 }
 
 function countOf(text: string, needle: string): number {
@@ -247,6 +273,64 @@ describe.each(DOCS_LANGUAGES)("the other pages in %s", (language: string) => {
     expect(
       linesWith(page, ["**On Create or Update X**", "**Fields to pass on**"]),
     ).toHaveLength(1);
+  });
+});
+
+describe.each(DOCS_LANGUAGES)("every page in %s", (language: string) => {
+  it("lists a model's four record triggers wherever it lists its others, in the panel's order", () => {
+    const lists: Array<string> = [];
+    const wrong: Array<string> = [];
+
+    for (const page of listPages(language)) {
+      readPage(language, page)
+        .split("\n")
+        .forEach((line: string, index: number) => {
+          for (const model of modelsWithTriggersListed(line)) {
+            const where: string = `${page}:${index + 1} (${model})`;
+            const positions: Array<number> = [
+              `**On Create ${model}**`,
+              `**On Update ${model}**`,
+              `**On Create or Update ${model}**`,
+              `**On Delete ${model}**`,
+            ].map((title: string): number => {
+              return line.indexOf(title);
+            });
+            const inOrder: boolean = positions.every(
+              (position: number, at: number): boolean => {
+                return (
+                  position >= 0 && (at === 0 || position > positions[at - 1]!)
+                );
+              },
+            );
+
+            lists.push(where);
+
+            if (!inOrder) {
+              wrong.push(where);
+            }
+          }
+        });
+    }
+
+    expect(wrong).toEqual([]);
+    // The overview and settings pages of incidents and alerts, and the components page, at least.
+    expect(lists.length).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe("the reader of a model's listed triggers", () => {
+  it("finds the model a line lists all three others for, and not On Create or Update's own name", () => {
+    expect(
+      modelsWithTriggersListed(
+        "The **On Create Incident**, **On Update Incident**, **On Create or Update Incident** and **On Delete Incident** triggers",
+      ),
+    ).toEqual(["Incident"]);
+    expect(
+      modelsWithTriggersListed(
+        "**On Create Alert** and **On Update Alert** only, and **On Delete Monitor**",
+      ),
+    ).toEqual([]);
+    expect(modelsWithTriggersListed("No triggers here.")).toEqual([]);
   });
 });
 

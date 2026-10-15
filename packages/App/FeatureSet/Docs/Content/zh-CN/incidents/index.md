@@ -199,7 +199,7 @@ stateDiagram-v2
 - **呼叫由值班策略完成。** 在声明向导的 **值班和角色** 步骤、模板上，或通过 **事件 → 规则 → 值班规则** 附加策略。每条匹配的规则都会触发——执行的集合是所有匹配项与直接附加项的并集，并去除重复。
 - **Runbook 告诉人们该做什么。** Runbook 规则会在匹配的事件创建时自动附加一套流程，响应者也可以从事件中手动启动。参见 [Runbook 概览](/docs/runbooks/index)。
 - **状态页告诉客户。** 当状态页列出事件的某个监视器、页面启用了事件、事件被标记为在状态页上可见，并且其当前状态位于解决状态之上时，事件就会出现在状态页的活动列表中。限定到部分状态页的事件只会显示在那些页面上。私密事件始终在所有状态页上隐藏。参见 [状态页概览](/docs/status-pages/index) 和 [每个受众一个状态页](/docs/status-pages/one-status-page-per-audience)。
-- **工作流围绕它实现自动化。** **On Create Incident**、**On Update Incident** 和 **On Delete Incident** 触发器让你在事件生命周期之上构建无代码自动化。参见 [工作流概览](/docs/workflows/index)。
+- **工作流围绕它实现自动化。** **On Create Incident**、**On Update Incident**、**On Create or Update Incident** 和 **On Delete Incident** 触发器让你在事件生命周期之上构建无代码自动化。参见 [工作流概览](/docs/workflows/index)。
 
 ## 后续步骤
 

@@ -199,7 +199,7 @@ Vad varje sida innehåller:
 - **Jourpolicyer står för larmningen.** Koppla policyer i steget **Jour och roller** i guiden för att deklarera, på en mall eller via **Incidenter → Regler → Jourregler**. Varje regel som matchar utlöses — det som körs är unionen av alla träffar plus allt som är kopplat direkt, utan dubbletter.
 - **Runbooks talar om för folk vad de ska göra.** Runbook-regler kopplar automatiskt en procedur när en matchande incident skapas, och de som ingriper kan starta en för hand från incidenten. Se [Runbooks – Översikt](/docs/runbooks/index).
 - **Statussidor informerar kunderna.** En incident visas i en statussidas aktiva lista när sidan visar någon av dess monitorer, sidan har incidenter påslagna, incidenten är markerad som synlig på statussidan och dess aktuella tillstånd står ovanför det lösta tillståndet. En incident som är begränsad till vissa statussidor visas bara på dem. Privata incidenter är alltid dolda för alla statussidor. Se [Statussidor – Översikt](/docs/status-pages/index) och [En statussida per målgrupp](/docs/status-pages/one-status-page-per-audience).
-- **Arbetsflöden automatiserar runt den.** Med utlösarna **On Create Incident**, **On Update Incident** och **On Delete Incident** bygger du automatisering utan kod ovanpå incidentens livscykel. Se [Översikt över arbetsflöden](/docs/workflows/index).
+- **Arbetsflöden automatiserar runt den.** Med utlösarna **On Create Incident**, **On Update Incident**, **On Create or Update Incident** och **On Delete Incident** bygger du automatisering utan kod ovanpå incidentens livscykel. Se [Översikt över arbetsflöden](/docs/workflows/index).
 
 ## Nästa steg
 

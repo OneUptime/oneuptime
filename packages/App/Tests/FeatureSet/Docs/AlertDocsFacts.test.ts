@@ -2574,7 +2574,12 @@ describe("alert rules and settings", () => {
       "Types/Workflow/Components/BaseModel.ts",
     );
 
-    for (const verb of ["On Create", "On Update", "On Delete"]) {
+    for (const verb of [
+      "On Create",
+      "On Update",
+      "On Create or Update",
+      "On Delete",
+    ]) {
       expect(components).toContain(`${verb} \${model.singularName}`);
     }
 

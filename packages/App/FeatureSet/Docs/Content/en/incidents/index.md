@@ -199,7 +199,7 @@ What each one holds:
 - **On-call policies do the paging.** Attach policies on the **On-Call & Roles** step of the declare wizard, on a template, or through **Incidents → Rules → On-Call Rules**. Every matching rule fires — the executed set is the union of all matches plus anything attached directly, deduplicated.
 - **Runbooks tell people what to do.** Runbook rules attach a procedure automatically when a matching incident is created, and responders can start one by hand from the incident. See [Runbooks Overview](/docs/runbooks/index).
 - **Status pages tell customers.** An incident shows in a status page's active list when the page lists one of its monitors, the page has incidents enabled, the incident is marked visible on the status page, and its current state sits above the resolved state. An incident limited to some status pages shows only on those. Private incidents are hidden from every status page, always. See [Status Pages Overview](/docs/status-pages/index) and [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
-- **Workflows automate around it.** The **On Create Incident**, **On Update Incident** and **On Delete Incident** triggers let you build no-code automation on top of the incident lifecycle. See [Workflows Overview](/docs/workflows/index).
+- **Workflows automate around it.** The **On Create Incident**, **On Update Incident**, **On Create or Update Incident** and **On Delete Incident** triggers let you build no-code automation on top of the incident lifecycle. See [Workflows Overview](/docs/workflows/index).
 
 ## Next steps
 

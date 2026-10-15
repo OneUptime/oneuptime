@@ -151,7 +151,7 @@ flowchart TB
 
 ## 工作流
 
-每个警报模型都有以它命名的工作流触发器和操作：**On Create Alert**、**On Update Alert** 和 **On Delete Alert**，**警报 片段**、**警报 状态 时间线** 等也同样如此，还有 **Create One Alert** 和 **Update One Alert** 等操作。唯一的例外是警报自定义字段的定义：它们没有工作流触发器。参见 [工作流概览](/docs/workflows/index)。
+每个警报模型都有以它命名的工作流触发器和操作：**On Create Alert**、**On Update Alert**、**On Create or Update Alert** 和 **On Delete Alert**，**警报 片段**、**警报 状态 时间线** 等也同样如此，还有 **Create One Alert** 和 **Update One Alert** 等操作。唯一的例外是警报自定义字段的定义：它们没有工作流触发器。参见 [工作流概览](/docs/workflows/index)。
 
 ## 谁可以更改这些内容
 
