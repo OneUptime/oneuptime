@@ -1,5 +1,6 @@
 import { HomeOverviewData } from "./HomeOverviewData";
 import { formatRelativeTime, toDate } from "./HomeRelativeTime";
+import { HOME_ROW_CARD_BODY_CLASS_NAME } from "./HomeRowCard";
 import AppLink from "../AppLink/AppLink";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -489,8 +490,15 @@ const NeedsAttention: FunctionComponent<ComponentProps> = (
 
   const renderBody: () => ReactElement = (): ReactElement => {
     if (props.isLoading) {
+      /*
+       * Under the same divider as every state that follows it, so the
+       * header does not gain a line when the list arrives.
+       */
       return (
-        <div data-testid="home-attention-loading" className="space-y-1 py-2">
+        <div
+          data-testid="home-attention-loading"
+          className="space-y-1 border-t border-gray-100 py-2"
+        >
           {[0, 1, 2].map((index: number): ReactElement => {
             return (
               <div
@@ -640,7 +648,7 @@ const NeedsAttention: FunctionComponent<ComponentProps> = (
             </span>
           ) : undefined
         }
-        bodyClassName="mt-4 -mx-5 -mb-6 md:-mx-6"
+        bodyClassName={HOME_ROW_CARD_BODY_CLASS_NAME}
       >
         {renderBody()}
       </Card>

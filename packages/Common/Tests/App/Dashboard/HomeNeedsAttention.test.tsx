@@ -79,6 +79,7 @@ import {
   HomeList,
   HomeOverviewData,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HomeOverviewData";
+import { HOME_ROW_CARD_BODY_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HomeRowCard";
 import NeedsAttention, {
   ALL_CLEAR_DESCRIPTION,
   ALL_CLEAR_TITLE,
@@ -725,6 +726,43 @@ describe("the card in its row", () => {
     expect(body().firstElementChild).toBe(loading);
     expect(resolveFlexGrow(loading, LAPTOP_WIDTH_IN_PX)).toBe(0);
   });
+
+  /*
+   * The header has its divider in every state - the placeholders included,
+   * which used to draw none - so nothing is added under the header when the
+   * batch lands. And the body starts as far under the header as the bodies
+   * of the cards beside it in Home's row, so the dividers under their
+   * headers run on one line across the row (it started 4px further down).
+   */
+  test.each([
+    ["the placeholders", null, true, "home-attention-loading"],
+    ["the list", busy(), false, "home-attention-groups"],
+    ["all clear", overview(), false, "home-attention-empty"],
+    [
+      "nothing monitored",
+      overview({ totalMonitors: 0 }),
+      false,
+      "home-attention-empty",
+    ],
+    ["the list failed", null, false, "home-attention-unavailable"],
+  ] as Array<[string, HomeOverviewData | null, boolean, string]>)(
+    "%s: right under the header's divider, which starts where the row's other cards start theirs",
+    (
+      _label: string,
+      data: HomeOverviewData | null,
+      isLoading: boolean,
+      testId: string,
+    ) => {
+      renderCard(data, isLoading);
+
+      const first: Element | null = body().firstElementChild;
+
+      expect(first).toBe(screen.getByTestId(testId));
+      expect(first).toHaveClass("border-t", "border-gray-100");
+      expect(body()).toHaveClass(...HOME_ROW_CARD_BODY_CLASS_NAME.split(" "));
+      expect(body()).not.toHaveClass("mt-4");
+    },
+  );
 });
 
 describe("getAttentionGroups", () => {

@@ -199,6 +199,7 @@ import Home, {
   HOME_ROW_MAIN_COLUMN_CLASS_NAME,
   HOME_ROW_SIDE_COLUMN_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Home/Home";
+import { HOME_ROW_CARD_BODY_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HomeRowCard";
 import {
   describeHeightFill,
   describeHeightFillChain,
@@ -855,6 +856,47 @@ describe("the row under the health card", () => {
           .getAttribute("data-fill-height"),
       }).toEqual({ testId, fill: "true" });
     }
+  });
+
+  /*
+   * Side by side with their tops level, the cards' headers end on one line
+   * when they are as tall as each other - and so must the dividers under
+   * them, which run across the row as one line. Needs attention started its
+   * list 4px further down than the cards beside it (mt-4 against mt-3).
+   */
+  test("every card in the row starts its list the same distance under its header, under a divider", async () => {
+    await renderWithUpcoming();
+
+    const MARGIN_TOP_TOKEN: RegExp = /^-?mt-/;
+    const marginTops: Array<string> = [];
+
+    for (const testId of [
+      "home-needs-attention",
+      "home-project-resources",
+      "home-upcoming-maintenance",
+    ]) {
+      const body: HTMLElement = frameOf(testId).firstElementChild!
+        .lastElementChild as HTMLElement;
+
+      expect({ testId, body: body.getAttribute("class") }).toEqual({
+        testId,
+        body: expect.stringContaining(HOME_ROW_CARD_BODY_CLASS_NAME),
+      });
+      expect({
+        testId,
+        divider: body.firstElementChild?.classList.contains("border-t"),
+      }).toEqual({ testId, divider: true });
+      marginTops.push(
+        (body.getAttribute("class") || "")
+          .split(" ")
+          .filter((token: string): boolean => {
+            return MARGIN_TOP_TOKEN.test(token);
+          })[0] || "",
+      );
+    }
+
+    expect(new Set(marginTops).size).toBe(1);
+    expect(marginTops[0]).not.toBe("");
   });
 
   test("the cards outside the row keep their own height", async () => {

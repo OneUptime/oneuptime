@@ -1,4 +1,5 @@
 import { formatRelativeTime, toDate } from "./HomeRelativeTime";
+import { HOME_ROW_CARD_BODY_CLASS_NAME } from "./HomeRowCard";
 import AppLink from "../AppLink/AppLink";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -168,10 +169,15 @@ const UpcomingMaintenance: FunctionComponent<ComponentProps> = (
 
   const renderBody: () => ReactElement = (): ReactElement => {
     if (state.status === "loading") {
+      /*
+       * Under the divider the list is drawn under, as the cards beside it
+       * do while they load, so the header does not gain a line when the
+       * windows arrive.
+       */
       return (
         <div
           data-testid="home-upcoming-loading"
-          className="space-y-3 px-5 pb-5 md:px-6"
+          className="space-y-3 border-t border-gray-100 px-5 py-3 md:px-6"
         >
           {[0, 1].map((index: number): ReactElement => {
             return (
@@ -303,7 +309,7 @@ const UpcomingMaintenance: FunctionComponent<ComponentProps> = (
             </span>
           </AppLink>
         }
-        bodyClassName="mt-3 -mx-5 -mb-6 md:-mx-6"
+        bodyClassName={HOME_ROW_CARD_BODY_CLASS_NAME}
       >
         {renderBody()}
       </Card>

@@ -1292,6 +1292,71 @@ test.describe("the row under the health card", () => {
     ).toHaveCount(1);
   });
 
+  /*
+   * Side by side with their tops level, Needs attention's and Your
+   * project's headers are equally tall wherever Your project's description
+   * fits on one line, and the dividers under them read as one line across
+   * the row. Needs attention used to start its list 4px further down.
+   */
+  test("the dividers under the headers of Needs attention and Your project run on one line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [1440, 1920]) {
+      for (const query of [
+        "scenario=quiet",
+        "scenario=busy",
+        "scenario=new",
+        "fail=overview",
+      ]) {
+        await page.setViewportSize({ width, height: 1000 });
+        await openSettled(page, query);
+
+        const lines: Record<string, { header: number; divider: number }> =
+          await page.evaluate(
+            (): Record<string, { header: number; divider: number }> => {
+              const result: Record<
+                string,
+                { header: number; divider: number }
+              > = {};
+
+              for (const testId of [
+                "home-needs-attention",
+                "home-project-resources",
+              ]) {
+                const padding: Element = document.querySelector(
+                  `[data-testid="${testId}"] > [data-testid="card"] > div > div`,
+                )!;
+                const header: Element = padding.querySelector(
+                  '[data-testid="card-header"]',
+                )!;
+                // The first box in the body draws the divider (border-top).
+                const divider: Element =
+                  padding.lastElementChild!.firstElementChild!;
+
+                result[testId] = {
+                  header: Math.round(header.getBoundingClientRect().bottom),
+                  divider: Math.round(divider.getBoundingClientRect().top),
+                };
+              }
+
+              return result;
+            },
+          );
+
+        expect({ width, query, lines }).toEqual({
+          width,
+          query,
+          lines: {
+            "home-needs-attention": lines["home-project-resources"],
+            "home-project-resources": lines["home-project-resources"],
+          },
+        });
+      }
+    }
+  });
+
   test("the taller open work: the side column's last card runs down to its end, Your project keeps its rows' height", async ({
     page,
   }: {
