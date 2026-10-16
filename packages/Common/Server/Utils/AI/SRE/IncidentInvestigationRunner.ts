@@ -62,6 +62,7 @@ import {
   AIRunEventResultSummary,
 } from "../../../../Types/AI/AIChatTypes";
 import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
+import WorkspaceNotificationText from "../../Workspace/WorkspaceNotificationText";
 import LinkedInfrastructureContext, {
   LinkedInfrastructure,
 } from "./LinkedInfrastructureContext";
@@ -710,6 +711,20 @@ export default class AIIncidentInvestigationRunner {
                 AIConfidenceSignal.shouldSendWorkspaceNotification(
                   postData.confidence,
                 ),
+              /*
+               * The incident's second analysis: its notification says why
+               * it was written - "🧠 AI — Automated Root Cause Analysis:
+               * Checked again after alert #12 opened on Host web-1, ..." -
+               * where the heading alone would read like the first one again.
+               */
+              ...(reportLead
+                ? {
+                    notificationText: WorkspaceNotificationText.fromMarkdown(
+                      postData.analysisMarkdown,
+                      { isFirstParagraphAHeadline: true },
+                    ),
+                  }
+                : {}),
             },
           });
 

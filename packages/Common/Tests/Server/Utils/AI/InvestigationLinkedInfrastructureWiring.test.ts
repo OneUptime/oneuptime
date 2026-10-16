@@ -24,12 +24,16 @@ import ProjectService from "../../../../Server/Services/ProjectService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import IncidentFeedService from "../../../../Server/Services/IncidentFeedService";
 import IncidentInternalNoteService from "../../../../Server/Services/IncidentInternalNoteService";
+import WorkspaceNotificationRuleService from "../../../../Server/Services/WorkspaceNotificationRuleService";
+import WorkspaceNotificationText from "../../../../Server/Utils/Workspace/WorkspaceNotificationText";
+import { ObservabilityAssistantResult } from "../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
 import logger from "../../../../Server/Utils/Logger";
 import { LinkedAffectedResourceType } from "../../../../Server/Utils/AffectedResources/LinkedAffectedResources";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import Project from "../../../../Models/DatabaseModels/Project";
 import { AIRunEventResultSummary } from "../../../../Types/AI/AIChatTypes";
+import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
@@ -336,6 +340,143 @@ describe("the runners wire the linked infrastructure and the follow-up check", (
     await investigateIncident();
     await post(sentRequest(executeRun));
     expect(recordMetric).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * A second "🧠 AI — Automated Root Cause Analysis" buzzing a phone reads
+   * like the first one again. The follow-up's post says why it was
+   * written, in the line the phone shows; a first analysis's post says
+   * what it always said.
+   */
+  test("a follow-up's chat post tells phones why it was written; a first analysis's is unchanged", async () => {
+    const createFeedItem: jest.SpyInstance = jest
+      .spyOn(IncidentFeedService, "createIncidentFeedItem")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(IncidentService, "recordTimeToRootCausePostedMetric")
+      .mockResolvedValue(undefined);
+    jest
+      .spyOn(IncidentInternalNoteService, "create")
+      .mockResolvedValue(undefined as never);
+
+    const post: (
+      request: InvestigationRequest,
+      analysisMarkdown: string,
+    ) => Promise<void> = async (
+      request: InvestigationRequest,
+      analysisMarkdown: string,
+    ): Promise<void> => {
+      await request.postAnalysis({
+        analysisMarkdown,
+        confidence: {
+          confident: true,
+          codeFixRecommended: false,
+          source: "classification",
+        },
+        result: {
+          contentInMarkdown: "",
+          citations: [],
+          totalTokens: 0,
+          llmCallCount: 0,
+          toolCallCount: 0,
+        },
+      });
+    };
+    const analysis: string =
+      "**Summary** — The host's CPU alert confirms the earlier analysis.";
+
+    await investigateIncident(followUpAlertId);
+
+    const followUp: InvestigationRequest = sentRequest(executeRun);
+    const followUpMarkdown: string = AIInvestigationEngine.buildBrandedMarkdown(
+      {
+        contentInMarkdown: analysis,
+        citations: [],
+        toolCallCount: 1,
+        llmCallCount: 1,
+        totalTokens: 10,
+      } as unknown as ObservabilityAssistantResult,
+      analysis,
+      0,
+      0,
+      followUp.reportLead,
+    );
+
+    await post(followUp, followUpMarkdown);
+
+    const followUpNotification: { notificationText?: string } = (
+      createFeedItem.mock.calls[0]![0] as {
+        workspaceNotification: { notificationText?: string };
+      }
+    ).workspaceNotification;
+
+    expect(followUpNotification.notificationText).toBe(
+      "🧠 AI — Automated Root Cause Analysis: Checked again after alert #12 opened on Host web-1, 2 minutes after this incident was declared: [Host] High CPU Utilization (>80%) - web-1.",
+    );
+    expect(followUpNotification.notificationText).toBe(
+      WorkspaceNotificationText.fromMarkdown(followUpMarkdown, {
+        isFirstParagraphAHeadline: true,
+      }),
+    );
+
+    executeRun.mockClear();
+    createFeedItem.mockClear();
+    await investigateIncident();
+    await post(
+      sentRequest(executeRun),
+      `## 🧠 AI — Automated Root Cause Analysis\n\n${analysis}`,
+    );
+
+    expect(
+      Object.keys(
+        (
+          createFeedItem.mock.calls[0]![0] as {
+            workspaceNotification: JSONObject;
+          }
+        ).workspaceNotification,
+      ),
+    ).not.toContain("notificationText");
+  });
+
+  test("the incident feed hands a post's notification line to the chats", async () => {
+    const send: jest.SpyInstance = jest
+      .spyOn(
+        WorkspaceNotificationRuleService,
+        "sendWorkspaceMarkdownNotification",
+      )
+      .mockResolvedValue(undefined);
+
+    await IncidentFeedService.sendWorkspaceNotification({
+      projectId,
+      incidentId,
+      feedInfoInMarkdown: "## 🧠 AI — Automated Root Cause Analysis",
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+        notificationText:
+          "🧠 AI — Automated Root Cause Analysis: Checked again",
+      },
+    });
+
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        notificationText:
+          "🧠 AI — Automated Root Cause Analysis: Checked again",
+      }),
+    );
+
+    send.mockClear();
+
+    await IncidentFeedService.sendWorkspaceNotification({
+      projectId,
+      incidentId,
+      feedInfoInMarkdown: "A note",
+      workspaceNotification: { sendWorkspaceNotification: true },
+    });
+
+    expect(
+      (send.mock.calls[0]![0] as { notificationText?: string })
+        .notificationText,
+    ).toBeUndefined();
   });
 
   test("a follow-up whose context cannot be built fails without releasing remediation; a first investigation releases it", async () => {
