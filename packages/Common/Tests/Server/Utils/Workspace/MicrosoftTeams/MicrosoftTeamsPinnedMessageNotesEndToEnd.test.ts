@@ -73,6 +73,7 @@ import {
   CloudAdapter,
   ConfigurationBotFrameworkAuthentication,
 } from "botbuilder";
+import Incident from "../../../../../Models/DatabaseModels/Incident";
 import User from "../../../../../Models/DatabaseModels/User";
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
@@ -847,5 +848,276 @@ describe("somebody not connected who pins a Microsoft Teams message", () => {
     );
     expect(privateNotes.inserts).toHaveLength(0);
     expect(connector.posts).toHaveLength(0);
+  });
+});
+
+/*
+ * A 📣 IN A PRIVATE INCIDENT'S MICROSOFT TEAMS CHANNEL.
+ *
+ * A private incident takes no public notes (Types/StatusPage/
+ * PrivateRecordPublicNotes): a public note on it reaches no status page and
+ * no subscriber, and the server refuses one. A 📣 there - read from Graph by
+ * the real sync, saved by the real note services, answered through the real
+ * botbuilder stack - is saved as a private note, its files kept as a private
+ * note keeps them, and the one confirmation in its thread says why.
+ * Somebody not connected is asked to save it as a private note, and once
+ * they connect it is saved so.
+ */
+describe("a 📣 in a private incident's Microsoft Teams channel", () => {
+  const PRIVATELY_SAVED: string = `✅ Saved as a **private note** on [Incident INC-8](${INCIDENT_LINK}). The incident is private, so public notes cannot be added to it.`;
+
+  // Incident INC-8 is private.
+  function makeIncidentPrivate(): void {
+    getJestSpyOn(IncidentService, "findOneBy").mockImplementation(
+      (async (options: {
+        query: { _id?: unknown };
+      }): Promise<Incident | null> => {
+        if (String(options.query._id) !== INCIDENT_ID.toString()) {
+          return null;
+        }
+
+        const incident: Incident = new Incident();
+        incident._id = INCIDENT_ID.toString();
+        incident.projectId = PROJECT_ID;
+        incident.isPrivate = true;
+        return incident;
+      }) as never,
+    );
+  }
+
+  beforeEach(() => {
+    makeIncidentPrivate();
+  });
+
+  test("Nitin's 📣 saves Aidil's words as a private note, confirmed once in the thread, with the reason", async () => {
+    channelMessages = [
+      graphMessage({
+        id: "1700000000100",
+        from: AIDIL,
+        minutesAgo: 30,
+        html: "<p>Database failover complete; error rates are back to normal.</p>",
+        reactions: [reaction(NITIN, "📣", 1)],
+      }),
+    ];
+
+    expect(await syncRun()).toEqual([MicrosoftTeamsReactionOutcome.Saved]);
+
+    // No public note at all: a private one, Aidil's words, saved by Nitin.
+    expect(publicNotes.inserts).toHaveLength(0);
+    expect(privateNotes.inserts).toHaveLength(1);
+    expect(privateNotes.inserts[0]!["note"]).toBe(
+      "Database failover complete; error rates are back to normal.",
+    );
+    expect(String(privateNotes.inserts[0]!["createdByUserId"])).toBe(
+      NITIN_ID.toString(),
+    );
+    expect(String(feed[0]!["feedInfoInMarkdown"])).toContain(
+      `posted **private note** for this [Incident INC-8](${INCIDENT_LINK})`,
+    );
+
+    // One reply, in the message's thread: what it became, and why.
+    expect(connector.posts).toHaveLength(1);
+    expect(connector.posts[0]!.conversationId).toBe(
+      `${CHANNEL_ID};messageid=1700000000100`,
+    );
+    expect(connector.posts[0]!.activity["textFormat"]).toBe("markdown");
+    expect(connector.posts[0]!.activity["text"]).toBe(PRIVATELY_SAVED);
+    expect(String(connector.posts[0]!.activity["text"])).not.toContain(
+      "status page",
+    );
+
+    // The next runs leave it: saved once, answered once.
+    await syncRun();
+    await syncRun();
+
+    expect(privateNotes.inserts).toHaveLength(1);
+    expect(connector.posts).toHaveLength(1);
+  });
+
+  test("a 📣 on a message of only a file keeps the file, as a private note does", async () => {
+    const message: JSONObject = graphMessage({
+      id: "1700000000100",
+      from: AIDIL,
+      minutesAgo: 10,
+      html: '<p><attachment id="f1"></attachment></p>',
+      reactions: [reaction(NITIN, "📣", 1)],
+    });
+    message["attachments"] = [
+      {
+        id: "f1",
+        contentType: "reference",
+        contentUrl:
+          "https://acme.sharepoint.com/sites/ops/Shared%20Documents/p99.png",
+        name: "p99.png",
+      },
+    ];
+    channelMessages = [message];
+
+    // Not refused for having only a file: no status page shows it.
+    expect(await syncRun()).toEqual([MicrosoftTeamsReactionOutcome.Saved]);
+
+    expect(publicNotes.inserts).toHaveLength(0);
+    expect(privateNotes.inserts).toHaveLength(1);
+    expect(String(privateNotes.inserts[0]!["note"])).toContain(
+      "[p99.png](https://acme.sharepoint.com/sites/ops/Shared%20Documents/p99.png)",
+    );
+    expect(connector.posts).toHaveLength(1);
+    expect(connector.posts[0]!.activity["text"]).toBe(PRIVATELY_SAVED);
+  });
+
+  test("a 📌 and a 📣 on the same message save it once, confirmed once", async () => {
+    channelMessages = [
+      graphMessage({
+        id: "1700000000100",
+        from: AIDIL,
+        minutesAgo: 30,
+        html: "<p>Restarted the primary DB</p>",
+        reactions: [reaction(NITIN, "📌", 2), reaction(NITIN, "📣", 1)],
+      }),
+    ];
+
+    expect(await syncRun()).toEqual([
+      MicrosoftTeamsReactionOutcome.Saved,
+      MicrosoftTeamsReactionOutcome.AlreadySaved,
+    ]);
+
+    expect(privateNotes.inserts).toHaveLength(1);
+    expect(publicNotes.inserts).toHaveLength(0);
+    expect(connector.posts).toHaveLength(1);
+    // The pin saved it, and its confirmation is as it always was.
+    expect(connector.posts[0]!.activity["text"]).toBe(
+      `✅ Saved as a **private note** on [Incident INC-8](${INCIDENT_LINK}).`,
+    );
+  });
+
+  test("Carol, not connected, is asked to save it as a private note; connecting saves it so, confirmed once", async () => {
+    channelMessages = [
+      graphMessage({
+        id: "1700000000100",
+        from: AIDIL,
+        minutesAgo: 40,
+        html: "<p>Is this the payroll export?</p>",
+        reactions: [reaction(CAROL, "📣", 1)],
+      }),
+    ];
+
+    expect(await syncRun()).toEqual([MicrosoftTeamsReactionOutcome.NotLinked]);
+    expect(connector.posts).toHaveLength(1);
+
+    const card: {
+      text: string;
+      buttons: Array<JSONObject>;
+      mentions: Array<JSONObject>;
+    } = cardOf(connector.posts[0]!);
+
+    expect(card.text).toBe(
+      "<at>Carol Diaz</at> 🔗 **Connect your Microsoft Teams account to save the message you reacted to as a private note on this incident.** It takes one click, and OneUptime saves it for you as soon as you're connected.",
+    );
+
+    const token: string = CONNECT_TOKEN.exec(
+      String(card.buttons[0]!["url"]),
+    )![1]!;
+
+    linked.set(CAROL, CAROL_ID);
+    connector.posts = [];
+
+    const result: WorkspaceConnectCompletionResult =
+      await WorkspaceConnectCompletion.complete({
+        request: (await WorkspaceConnectRequest.take(token))!,
+        userId: CAROL_ID,
+      });
+
+    expect(result).toEqual({
+      outcome: ConnectRequestOutcome.Done,
+      answer: {
+        markdown: `✅ **Your Microsoft Teams account is connected to OneUptime.** You saved the message as a private note on **[Incident INC-8](${INCIDENT_LINK})**.`,
+        text: "Your Microsoft Teams account is connected to OneUptime. You saved the message as a private note on Incident INC-8",
+      },
+    });
+    expect(publicNotes.inserts).toHaveLength(0);
+    expect(privateNotes.inserts).toHaveLength(1);
+    expect(String(privateNotes.inserts[0]!["createdByUserId"])).toBe(
+      CAROL_ID.toString(),
+    );
+    expect(connector.posts).toHaveLength(1);
+    expect(connector.posts[0]!.activity["text"]).toBe(PRIVATELY_SAVED);
+
+    // And the next run leaves it: saved once.
+    connector.posts = [];
+    await syncRun();
+
+    expect(privateNotes.inserts).toHaveLength(1);
+    expect(connector.posts).toHaveLength(0);
+  });
+
+  test("an incident made private after Carol was asked is saved private when she connects", async () => {
+    // Not private when Carol reacts...
+    getJestSpyOn(IncidentService, "findOneBy").mockResolvedValue(null);
+
+    channelMessages = [
+      graphMessage({
+        id: "1700000000100",
+        from: AIDIL,
+        minutesAgo: 40,
+        html: "<p>Is this the payroll export?</p>",
+        reactions: [reaction(CAROL, "📣", 1)],
+      }),
+    ];
+
+    await syncRun();
+
+    const card: {
+      text: string;
+      buttons: Array<JSONObject>;
+      mentions: Array<JSONObject>;
+    } = cardOf(connector.posts[0]!);
+
+    expect(card.text).toContain(
+      "to save the message you reacted to as a public note on this incident.",
+    );
+
+    const token: string = CONNECT_TOKEN.exec(
+      String(card.buttons[0]!["url"]),
+    )![1]!;
+
+    // ...and private by the time she connects.
+    makeIncidentPrivate();
+    linked.set(CAROL, CAROL_ID);
+    connector.posts = [];
+
+    const result: WorkspaceConnectCompletionResult =
+      await WorkspaceConnectCompletion.complete({
+        request: (await WorkspaceConnectRequest.take(token))!,
+        userId: CAROL_ID,
+      });
+
+    expect(result.answer.text).toBe(
+      "Your Microsoft Teams account is connected to OneUptime. You saved the message as a private note on Incident INC-8",
+    );
+    expect(publicNotes.inserts).toHaveLength(0);
+    expect(privateNotes.inserts).toHaveLength(1);
+    expect(connector.posts[0]!.activity["text"]).toBe(PRIVATELY_SAVED);
+  });
+
+  test("made public again, a 📣 is a public note once more", async () => {
+    getJestSpyOn(IncidentService, "findOneBy").mockResolvedValue(null);
+
+    channelMessages = [
+      graphMessage({
+        id: "1700000000100",
+        from: AIDIL,
+        minutesAgo: 30,
+        html: "<p>Database failover complete; error rates are back to normal.</p>",
+        reactions: [reaction(NITIN, "📣", 1)],
+      }),
+    ];
+
+    expect(await syncRun()).toEqual([MicrosoftTeamsReactionOutcome.Saved]);
+
+    expect(privateNotes.inserts).toHaveLength(0);
+    expect(publicNotes.inserts).toHaveLength(1);
+    expect(connector.posts[0]!.activity["text"]).toBe(
+      `✅ Saved as a **public note** on [Incident INC-8](${INCIDENT_LINK}). It is shown on the status page.`,
+    );
   });
 });

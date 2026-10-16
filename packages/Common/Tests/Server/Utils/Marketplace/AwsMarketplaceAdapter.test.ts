@@ -158,7 +158,7 @@ describe("AwsMarketplaceAdapter", () => {
   });
 
   describe("reportUsage", () => {
-    it("meters the record against the license, stamped with the period's end", async () => {
+    it("meters the record against the license, stamped in the hour it covers", async () => {
       api.batchMeterUsage.mockResolvedValue([
         { status: "Success", meteringRecordId: "mr-1" },
       ]);
@@ -176,9 +176,67 @@ describe("AwsMarketplaceAdapter", () => {
           licenseArn: LICENSE_ARN,
           dimension: "usage_units",
           quantity: 2200,
-          timestamp: USAGE_RECORD.periodEnd,
+          // The 09:00 - 10:00 report, in the 09:00 hour - not at 10:00.
+          timestamp: new Date("2026-10-16T09:59:00.000Z"),
         },
       ]);
+    });
+
+    /*
+     * AWS bills the first record of a license's dimension in each hour, and
+     * refuses any other as a DuplicateRecord. Stamped with its period's end,
+     * the 09:00 - 10:00 report sat in the 10:00 hour - the hour every final
+     * report sent before 11:00 is in - so a project's last partial hour was
+     * refused, unbilled.
+     */
+    it("stamps a final report in an hour of its own, after the hourly report before it", async () => {
+      api.batchMeterUsage.mockResolvedValue([
+        { status: "Success", meteringRecordId: "mr-1" },
+      ]);
+
+      await adapter.reportUsage(purchase(), USAGE_RECORD);
+      await adapter.reportUsage(purchase(), {
+        ...USAGE_RECORD,
+        reportId: "report-2",
+        quantity: 640,
+        periodStart: new Date("2026-10-16T10:00:00.000Z"),
+        periodEnd: new Date("2026-10-16T10:25:13.000Z"),
+      });
+
+      const hours: Array<number> = api.batchMeterUsage.mock.calls.map(
+        (call: Array<unknown>): number => {
+          const timestamp: Date = (call[0] as Array<AwsUsageRecord>)[0]!
+            .timestamp;
+          return new Date(timestamp).setUTCMinutes(0, 0, 0);
+        },
+      );
+
+      expect(hours).toEqual([
+        Date.UTC(2026, 9, 16, 9),
+        Date.UTC(2026, 9, 16, 10),
+      ]);
+      // Stamped inside its own period, before the license could end.
+      expect(
+        (api.batchMeterUsage.mock.calls[1]![0] as Array<AwsUsageRecord>)[0]!
+          .timestamp,
+      ).toEqual(new Date("2026-10-16T10:24:13.000Z"));
+    });
+
+    it("stamps a report sent again exactly where it was the first time", async () => {
+      api.batchMeterUsage.mockResolvedValue([
+        { status: "Success", meteringRecordId: "mr-1" },
+      ]);
+
+      await adapter.reportUsage(purchase(), USAGE_RECORD);
+      await adapter.reportUsage(purchase(), USAGE_RECORD);
+
+      expect(api.batchMeterUsage.mock.calls[1]![0]).toEqual(
+        api.batchMeterUsage.mock.calls[0]![0],
+      );
+    });
+
+    it("says AWS keeps one record per license and hour", () => {
+      expect(adapter.keepsOneReportPerHour).toBe(true);
     });
 
     it("counts a record AWS already has as sent", async () => {

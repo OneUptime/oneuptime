@@ -30067,5 +30067,15 @@
   "Reading the incident timeline": "インシデントのタイムラインを読み取り中",
   "Searching past incidents": "過去のインシデントを検索中",
   "Ranked by": "並べ替え",
-  "Any type": "任意の型"
+  "Any type": "任意の型",
+  "If checked, only the incident's owner users and the members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "チェックすると、インシデントの所有者ユーザーとその所有者チームのメンバー(およびプロジェクト管理者と所有者)のみがこのインシデントを表示できます。プライベートインシデントはすべてのステータスページから自動的に非表示になり、公開メモを追加することもできません。",
+  "If enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "有効にすると、インシデントの所有者ユーザーとその所有者チームのメンバー(およびプロジェクト管理者と所有者)のみがこのインシデントを表示できます。プライベートインシデントはすべてのステータスページから自動的に非表示になり、公開メモを追加することもできません。",
+  "When enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "有効にすると、インシデントの所有者ユーザーとその所有者チームのメンバー（およびプロジェクト管理者とプロジェクトのオーナー）のみがこのインシデントを表示できます。プライベートインシデントは、すべてのステータスページから自動的に非表示になり、公開メモを追加することもできません。",
+  "This episode is private, so public notes cannot be added to it. Use a private note.": "このエピソードは非公開のため、公開メモを追加できません。非公開メモを使用してください。",
+  "This incident is private, so public notes cannot be added to it. Use a private note.": "このインシデントは非公開のため、公開メモを追加できません。非公開メモを使用してください。",
+  "Customer-facing updates about this episode. While it is private, no status page shows them.": "このエピソードに関する顧客向けの更新情報です。非公開の間は、どのステータスページにも表示されません。",
+  "Customer-facing updates about this incident. While it is private, no status page shows them.": "このインシデントに関する顧客向けの更新情報です。非公開の間は、どのステータスページにも表示されません。",
+  "Not shown while this episode is private": "このエピソードが非公開の間は表示されません",
+  "Not shown while this incident is private": "このインシデントが非公開の間は表示されません",
+  "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "このプロジェクトを削除すると、これまでの利用分を最後に請求したうえで、請求が停止します。{{marketplace}} での OneUptime の購入は、そこでキャンセルするまで有効なままです。"
 }

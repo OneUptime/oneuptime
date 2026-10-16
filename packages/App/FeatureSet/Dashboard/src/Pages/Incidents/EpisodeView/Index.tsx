@@ -3,6 +3,7 @@ import { StateListType } from "Common/Utils/StateOrder";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import IncidentEpisodeFeedElement from "../../../Components/IncidentEpisode/IncidentEpisodeFeed";
 import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
+import PrivateRecordPublicNotes from "Common/Types/StatusPage/PrivateRecordPublicNotes";
 import IncidentEpisodeMemberRoleAssignment from "../../../Components/IncidentEpisode/IncidentEpisodeMemberRoleAssignment";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -208,6 +209,8 @@ const IncidentEpisodeView: FunctionComponent<
             resolvedAt: true,
             incidentCount: true,
             shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated: true,
+            // A private episode takes no public notes: see its feed.
+            isPrivate: true,
           },
         }),
       ]);
@@ -472,6 +475,7 @@ const IncidentEpisodeView: FunctionComponent<
             notifyStatusPageSubscribersByDefault={
               notifyStatusPageSubscribersByDefault
             }
+            isPrivate={!PrivateRecordPublicNotes.takesPublicNotes(episode)}
           />
         </div>
 

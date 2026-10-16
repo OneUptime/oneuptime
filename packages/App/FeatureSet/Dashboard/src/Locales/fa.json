@@ -30067,5 +30067,15 @@
   "Reading the incident timeline": "خواندن خط زمانی حادثه",
   "Searching past incidents": "جست‌وجوی حادثه‌های گذشته",
   "Ranked by": "مرتب‌سازی بر اساس",
-  "Any type": "هر نوعی"
+  "Any type": "هر نوعی",
+  "If checked, only the incident's owner users and the members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "اگر علامت بزنید، فقط کاربران مالک حادثه و اعضای تیم‌های مالک آن (به‌علاوه مدیران و مالکان پروژه) می‌توانند این حادثه را ببینند. حوادث خصوصی به‌صورت خودکار از همه صفحات وضعیت پنهان می‌شوند و نمی‌توان یادداشت عمومی به آن‌ها افزود.",
+  "If enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "اگر فعال باشد، فقط کاربران مالک حادثه و اعضای تیم‌های مالک آن (به‌علاوه مدیران و مالکان پروژه) می‌توانند این حادثه را ببینند. حوادث خصوصی به‌صورت خودکار از همه صفحات وضعیت پنهان می‌شوند و نمی‌توان یادداشت عمومی به آن‌ها افزود.",
+  "When enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "وقتی فعال باشد، فقط کاربران مالک حادثه و اعضای تیم‌های مالک آن (به‌علاوه مدیران و مالکان پروژه) می‌توانند این حادثه را ببینند. حوادث خصوصی به‌صورت خودکار از همه صفحات وضعیت پنهان می‌شوند و نمی‌توان یادداشت عمومی به آن‌ها افزود.",
+  "This episode is private, so public notes cannot be added to it. Use a private note.": "این اپیزود خصوصی است، بنابراین نمی‌توان یادداشت عمومی به آن افزود. از یادداشت خصوصی استفاده کنید.",
+  "This incident is private, so public notes cannot be added to it. Use a private note.": "این حادثه خصوصی است، بنابراین نمی‌توان یادداشت عمومی به آن افزود. از یادداشت خصوصی استفاده کنید.",
+  "Customer-facing updates about this episode. While it is private, no status page shows them.": "به‌روزرسانی‌های مخصوص مشتریان درباره این اپیزود. تا زمانی که خصوصی است، هیچ صفحه وضعیتی آن‌ها را نشان نمی‌دهد.",
+  "Customer-facing updates about this incident. While it is private, no status page shows them.": "به‌روزرسانی‌های مخصوص مشتریان درباره این حادثه. تا زمانی که خصوصی است، هیچ صفحه وضعیتی آن‌ها را نشان نمی‌دهد.",
+  "Not shown while this episode is private": "تا زمانی که این اپیزود خصوصی است نمایش داده نمی‌شود",
+  "Not shown while this incident is private": "تا زمانی که این حادثه خصوصی است نمایش داده نمی‌شود",
+  "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "با حذف این پروژه، پس از آخرین صورت‌حساب برای مصرف تا این لحظه، صدور صورت‌حساب آن متوقف می‌شود. خرید OneUptime شما در {{marketplace}} تا زمانی که آن را در همان‌جا لغو نکنید فعال می‌ماند."
 }

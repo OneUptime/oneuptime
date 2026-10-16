@@ -11,6 +11,7 @@ import MarketplaceAdapter, {
   MarketplaceActivationError,
   MarketplacePurchaseFacts,
   MarketplaceStatus,
+  MarketplaceUsageHour,
   MarketplaceUsageRecord,
   MarketplaceUsageResult,
 } from "../MarketplaceAdapter";
@@ -90,6 +91,8 @@ export class AzureSubscriptionStatus {
 
 export default class AzureMarketplaceAdapter implements MarketplaceAdapter {
   public readonly marketplace: CloudMarketplace = CloudMarketplace.Azure;
+  // Microsoft takes one usage event per subscription, dimension and hour.
+  public readonly keepsOneReportPerHour: boolean = true;
   private api: AzureMarketplaceAPI | null;
 
   public constructor(api?: AzureMarketplaceAPI | undefined) {
@@ -191,11 +194,10 @@ export default class AzureMarketplaceAdapter implements MarketplaceAdapter {
   }
 
   /*
-   * One event per report, in the hour the report ends in. Microsoft takes one
-   * event per hour per dimension and answers a second with "Duplicate", so a
-   * retry is counted once; and an hour that ends a report is never the hour
-   * of an earlier one, because reports end on the hour (only a purchase's
-   * last report ends mid-hour, and nothing follows it).
+   * One event per report, in the hour the report is filed in
+   * (MarketplaceUsageHour). Microsoft takes one event per hour per dimension
+   * and answers a second with "Duplicate", so a retry is counted once; and
+   * the reporter never files two reports of a purchase in the same hour.
    */
   public async reportUsage(
     subscription: MarketplaceSubscription,
@@ -208,10 +210,9 @@ export default class AzureMarketplaceAdapter implements MarketplaceAdapter {
       };
     }
 
-    const effectiveStartTime: Date = new Date(
-      record.periodEnd.getTime() - 60 * 1000,
+    const effectiveStartTime: Date = MarketplaceUsageHour.getHour(
+      record.periodEnd,
     );
-    effectiveStartTime.setUTCMinutes(0, 0, 0);
 
     let results: Array<AzureUsageEventResult>;
 

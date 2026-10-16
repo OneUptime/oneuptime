@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubPrivateRecords } from "../../../TestingUtils/PrivateRecords";
 import type { SpyInstance } from "jest-mock";
 import Alert from "../../../../../Models/DatabaseModels/Alert";
 import AlertEpisode from "../../../../../Models/DatabaseModels/AlertEpisode";
@@ -84,6 +85,7 @@ import {
   WorkspaceModalBlock,
   WorkspacePayloadMarkdown,
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
+import { DropdownOption } from "../../../../../UI/Components/Dropdown/Dropdown";
 
 /*
  * EVERY SLACK BUTTON AND FORM THAT CHANGES A RECORD, PRESSED BY THE MEMBER
@@ -1295,6 +1297,16 @@ function stubLateAnswerReads(data: {
  * what the event is - ongoing, or over - who took it there, and when, as
  * news rather than as an error. Nothing is written either way.
  */
+/*
+ * A public note asked for in a chat - a 📣, an Add Note form - first asks
+ * whether its incident or episode is private, which takes no public notes
+ * (WorkspaceReactionNote.getNoteTypeSavedAs, WorkspaceNoteForm): none of
+ * these is.
+ */
+beforeEach((): void => {
+  stubPrivateRecords();
+});
+
 describe("Slack Mark as Ongoing on an event that has started already", (): void => {
   test.each([
     ["ongoing", false, "was already marked as ongoing"],
@@ -1508,3 +1520,220 @@ describe("Slack buttons answered from the one read", (): void => {
     expect(text).not.toContain("<!channel>");
   });
 });
+
+/*
+ * A PRIVATE INCIDENT OR EPISODE: ADD NOTE ADDS PRIVATE NOTES ONLY.
+ *
+ * A private incident or episode takes no public notes (Types/StatusPage/
+ * PrivateRecordPublicNotes): it is on no status page and told to no
+ * subscriber. Its Add Note form asks for no kind - "Add Private Note", one
+ * line that says why, and the note - and what it sends is a private note,
+ * checked and written as the member. A form opened before the record was
+ * made private can still send Public Note: a private note is written, and
+ * the member is told what it became and why, where they pressed.
+ */
+interface PrivateRecordNoteKind {
+  name: string;
+  noun: string;
+  view: SlackActionType;
+  submit: SlackActionType;
+  handle: (args: HandlerArgs) => Promise<void>;
+  recordService: unknown;
+  makeRecord: () => unknown;
+  recordColumn: string;
+  numberColumns: Record<string, unknown>;
+  label: string;
+  privateService: unknown;
+  publicService: unknown;
+  privateModel: { new (): unknown };
+}
+
+const PRIVATE_RECORD_NOTE_KINDS: Array<PrivateRecordNoteKind> = [
+  {
+    name: "incident",
+    noun: "incident",
+    view: SlackActionType.ViewAddIncidentNote,
+    submit: SlackActionType.SubmitIncidentNote,
+    handle: (args: HandlerArgs): Promise<void> => {
+      return SlackIncidentActions.handleIncidentAction(args);
+    },
+    recordService: IncidentService,
+    makeRecord: (): unknown => {
+      return new Incident();
+    },
+    recordColumn: "incidentId",
+    numberColumns: { incidentNumber: 7, incidentNumberWithPrefix: "INC-7" },
+    label: "Incident INC-7",
+    privateService: IncidentInternalNoteService,
+    publicService: IncidentPublicNoteService,
+    privateModel: IncidentInternalNote,
+  },
+  {
+    name: "incident episode",
+    noun: "incident episode",
+    view: SlackActionType.ViewAddIncidentEpisodeNote,
+    submit: SlackActionType.SubmitIncidentEpisodeNote,
+    handle: (args: HandlerArgs): Promise<void> => {
+      return SlackIncidentEpisodeActions.handleIncidentEpisodeAction(args);
+    },
+    recordService: IncidentEpisodeService,
+    makeRecord: (): unknown => {
+      return new IncidentEpisode();
+    },
+    recordColumn: "incidentEpisodeId",
+    numberColumns: { episodeNumber: 3, episodeNumberWithPrefix: "EP-3" },
+    label: "Incident Episode EP-3",
+    privateService: IncidentEpisodeInternalNoteService,
+    publicService: IncidentEpisodePublicNoteService,
+    privateModel: IncidentEpisodeInternalNote,
+  },
+];
+
+describe.each(PRIVATE_RECORD_NOTE_KINDS)(
+  "Add Note on a private $name",
+  (kind: PrivateRecordNoteKind): void => {
+    const NOTE: string = "Paused the payroll export.";
+
+    function stubTheRecord(): void {
+      stubRecord({
+        service: kind.recordService,
+        makeRecord: kind.makeRecord,
+        stateColumn: "currentIncidentStateId",
+        currentStateId: ObjectID.generate(),
+        columns: kind.numberColumns,
+      });
+    }
+
+    test("the form is 'Add Private Note': one line that says why, then the note - no Note Type", async (): Promise<void> => {
+      mockMember([Permission.IncidentMember]);
+      const recordId: ObjectID = ObjectID.generate();
+      stubPrivateRecords([recordId]);
+
+      await kind.handle(handlerArgs(kind.view, recordId.toString()));
+
+      expect(showModalSpy).toHaveBeenCalledTimes(1);
+      const modal: WorkspaceModalBlock =
+        showModalSpy.mock.calls[0]![0].modalBlock;
+
+      expect(modal.title).toBe("Add Private Note");
+      expect(modal.actionId).toBe(kind.submit);
+      // The form carries the record, as every form does.
+      expect(JSON.parse(String(modal.actionValue))).toMatchObject({
+        value: recordId.toString(),
+      });
+      expect(modal.blocks).toEqual([
+        {
+          _type: "WorkspacePayloadMarkdown",
+          text: `🔒 This ${kind.noun} is private, so this note is private too: only the people who can see the ${kind.noun} can read it.`,
+        },
+        {
+          _type: "WorkspaceTextAreaBlock",
+          label: "Note",
+          blockId: "note",
+          placeholder: "Note",
+          description: "Please type in plain text or markdown.",
+        },
+      ]);
+    });
+
+    test("one that is not private gets the form as always: Public Note or Private Note", async (): Promise<void> => {
+      mockMember([Permission.IncidentMember]);
+      stubPrivateRecords();
+
+      await kind.handle(handlerArgs(kind.view, ObjectID.generate().toString()));
+
+      const modal: WorkspaceModalBlock =
+        showModalSpy.mock.calls[0]![0].modalBlock;
+
+      expect(
+        modal.blocks.map((block: WorkspaceMessageBlock) => {
+          return block._type;
+        }),
+      ).toEqual(["WorkspaceDropdownBlock", "WorkspaceTextAreaBlock"]);
+      expect(
+        (modal.blocks[0] as WorkspaceDropdownBlock).options.map(
+          (option: DropdownOption): string => {
+            return String(option.value);
+          },
+        ),
+      ).toEqual(["public", "private"]);
+    });
+
+    test("its form, sent without a Note Type, adds a private note, as the member, and says nothing more", async (): Promise<void> => {
+      mockMember([Permission.IncidentMember]);
+      const recordId: ObjectID = ObjectID.generate();
+      stubPrivateRecords([recordId]);
+      stubTheRecord();
+      const privateCreate: AnySpy = stubCreate(kind.privateService);
+      const publicCreate: AnySpy = stubCreate(kind.publicService);
+
+      await kind.handle(
+        handlerArgs(kind.submit, recordId.toString(), { note: NOTE }),
+      );
+
+      const data: Record<string, unknown> = expectMemberWrite(privateCreate);
+      expect(privateCreate.mock.calls[0]![0].data).toBeInstanceOf(
+        kind.privateModel,
+      );
+      expect(data["note"]).toBe(NOTE);
+      expect(String(data[kind.recordColumn])).toBe(recordId.toString());
+      expect(publicCreate).not.toHaveBeenCalled();
+      expectNoAnswer();
+    });
+
+    test("a form opened before it was made private, sent with Public Note: a private note, and the member is told what it became and why", async (): Promise<void> => {
+      mockMember([Permission.IncidentMember]);
+      const recordId: ObjectID = ObjectID.generate();
+      stubPrivateRecords([recordId]);
+      stubTheRecord();
+      const privateCreate: AnySpy = stubCreate(kind.privateService);
+      const publicCreate: AnySpy = stubCreate(kind.publicService);
+
+      await kind.handle(
+        handlerArgs(kind.submit, recordId.toString(), {
+          noteType: "public",
+          note: NOTE,
+        }),
+      );
+
+      expect(expectMemberWrite(privateCreate)["note"]).toBe(NOTE);
+      expect(publicCreate).not.toHaveBeenCalled();
+
+      const answers: Array<string> = answerTexts();
+
+      expect(answers).toHaveLength(1);
+      expect(
+        answers[0]!.startsWith(
+          `📄 You added a private note to **[${kind.label}](`,
+        ),
+      ).toBe(true);
+      expect(
+        answers[0]!.endsWith(
+          ` The ${kind.noun} is private, so public notes cannot be added to it.`,
+        ),
+      ).toBe(true);
+    });
+
+    test("a member who may only read is told why, and nothing is written", async (): Promise<void> => {
+      mockMember([Permission.Viewer]);
+      const recordId: ObjectID = ObjectID.generate();
+      stubPrivateRecords([recordId]);
+      const privateCreate: AnySpy = stubCreate(kind.privateService);
+      const publicCreate: AnySpy = stubCreate(kind.publicService);
+
+      await kind.handle(
+        handlerArgs(kind.submit, recordId.toString(), {
+          noteType: "public",
+          note: NOTE,
+        }),
+      );
+
+      expect(privateCreate).not.toHaveBeenCalled();
+      expect(publicCreate).not.toHaveBeenCalled();
+      // Refused as the private note it would have been.
+      expect(answerTexts()).toEqual([
+        expect.stringContaining(`add a private note to this ${kind.noun}`),
+      ]);
+    });
+  },
+);

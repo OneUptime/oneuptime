@@ -45,6 +45,11 @@ the live state before acting: the portals change their wording and steps.
 Coming back later from the marketplace's "manage" / "set up account" link takes
 them straight to the project's Billing page.
 
+Deleting the project ends OneUptime's billing of it, after one last report for
+what it used since the last hourly one. The purchase itself stays active on the
+marketplace until they cancel it there; the project's Danger Zone page tells
+them so before they delete it.
+
 ## Pricing: the same prices as oneuptime.com, in usage units
 
 Every marketplace listing has **one public pay-as-you-go plan** and **one
@@ -490,9 +495,30 @@ Marketplace".
   Active -> active, Suspended -> unpaid (service stops, data kept), Cancelled
   -> cancelled. Nothing deletes a customer's project or data on its own, even
   when Google says the account was deleted.
-- **A buyer who deletes their project**: the purchase is unlinked and stops
-  being billed; it stays active on the marketplace until they cancel it there,
-  and they can link it to another project from the marketplace's link.
+- **A buyer who deletes their project**: before the project goes
+  (`ProjectService.onBeforeDelete`), OneUptime bills what it used since the
+  last hourly report - its users and active monitors for the part of the hour,
+  its staged telemetry, and every top-up bought since - in one final report
+  (`isFinal` in its breakdown;
+  `MarketplaceUsageReporter.reportFinalUsageOfProject`). The delete waits for
+  the report to be written, never for the marketplace: a report the
+  marketplace does not take now stays `Pending`, and the hourly job sends it
+  again, which needs only the report and its purchase, not the project. Then
+  the purchase is unlinked: its `MarketplaceSubscription` row stays, still
+  `Active`, with `projectId` empty, and no hourly report bills it again. It
+  stays active on the marketplace until the buyer cancels it there - the
+  Danger Zone page tells a marketplace customer so before they delete, as the
+  Billing page's Cancel Plan card does - or links it to another project from
+  the marketplace's link, whose billing starts at the new link.
+- **One report per purchase and hour on AWS and Microsoft**: both bill the
+  first usage record of a purchase in an hour and refuse any other as a
+  duplicate, unbilled. Every report is filed a minute before its period ends
+  (`MarketplaceUsageHour` in [MarketplaceAdapter.ts](MarketplaceAdapter.ts)):
+  an hourly report in the hour it covers, a final one in the hour it ends in.
+  An hourly report that would land in a final report's hour - after a project
+  delete that failed, or a purchase linked again within the hour - waits for
+  the next hour, and bills the whole time since. Google Cloud counts each
+  report by its own ID, and is never held back.
 - **Moving a marketplace customer back to card billing** is not built: today
   it is a master-admin job (clear `billingMarketplace`, give the project card
   subscriptions through Change Plan once a card is added).
@@ -502,8 +528,11 @@ Marketplace".
 - The Admin Dashboard has no page for marketplace purchases yet; use the
   master-admin API (`/api/marketplace-subscription`,
   `/api/marketplace-usage-report`, `/api/marketplace-charge`).
-- A project deleted within the hour after its last report: that hour's usage,
-  and any top-up made in it, is not billed (the reporter needs the project).
+- A project delete that fails after its final report, and is tried again in
+  the same clock hour, on AWS or Microsoft: the minutes between the two tries
+  cannot be billed in that hour, and are logged as "was NOT billed". A top-up
+  bought in those minutes stays on the purchase, and is billed if the purchase
+  is linked to another project.
 - No product documentation page for buyers yet (docs pages must be translated
   into 16 languages to pass the docs tests).
 

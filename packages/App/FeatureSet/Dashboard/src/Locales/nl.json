@@ -30067,5 +30067,15 @@
   "Reading the incident timeline": "De tijdlijn van het incident lezen",
   "Searching past incidents": "Eerdere incidenten doorzoeken",
   "Ranked by": "Gesorteerd op",
-  "Any type": "Elk type"
+  "Any type": "Elk type",
+  "If checked, only the incident's owner users and the members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "Indien aangevinkt, kunnen alleen de eigenaargebruikers van het incident en de leden van de eigenaarteams (plus projectbeheerders en eigenaren) dit incident bekijken. Privé-incidenten worden automatisch verborgen op alle statuspagina's, en er kunnen geen openbare notities aan worden toegevoegd.",
+  "If enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "Indien ingeschakeld, kunnen alleen de eigenaargebruikers van het incident en de leden van de eigenaarteams (plus projectbeheerders en eigenaren) dit incident bekijken. Privé-incidenten worden automatisch verborgen op alle statuspagina's, en er kunnen geen openbare notities aan worden toegevoegd.",
+  "When enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "Wanneer ingeschakeld, kunnen alleen de eigenaargebruikers van het incident en leden van de eigenaarteams (plus projectbeheerders en -eigenaren) dit incident bekijken. Privé-incidenten worden automatisch verborgen voor alle statuspagina's, en er kunnen geen openbare notities aan worden toegevoegd.",
+  "This episode is private, so public notes cannot be added to it. Use a private note.": "Deze episode is privé, dus er kunnen geen openbare notities aan worden toegevoegd. Gebruik een privénotitie.",
+  "This incident is private, so public notes cannot be added to it. Use a private note.": "Dit incident is privé, dus er kunnen geen openbare notities aan worden toegevoegd. Gebruik een privénotitie.",
+  "Customer-facing updates about this episode. While it is private, no status page shows them.": "Updates voor klanten over deze episode. Zolang die privé is, toont geen enkele statuspagina ze.",
+  "Customer-facing updates about this incident. While it is private, no status page shows them.": "Updates voor klanten over dit incident. Zolang het privé is, toont geen enkele statuspagina ze.",
+  "Not shown while this episode is private": "Niet getoond zolang deze episode privé is",
+  "Not shown while this incident is private": "Niet getoond zolang dit incident privé is",
+  "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "Als u dit project verwijdert, stopt de facturering ervan, na een laatste afrekening van het gebruik tot nu toe. Uw OneUptime-aankoop op {{marketplace}} blijft actief totdat u die daar annuleert."
 }

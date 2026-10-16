@@ -30067,5 +30067,15 @@
   "Reading the incident timeline": "Zeitachse des Vorfalls wird gelesen",
   "Searching past incidents": "Frühere Vorfälle werden durchsucht",
   "Ranked by": "Sortiert nach",
-  "Any type": "Beliebiger Typ"
+  "Any type": "Beliebiger Typ",
+  "If checked, only the incident's owner users and the members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "Wenn aktiviert, können nur die Eigentümer-Benutzer des Vorfalls und die Mitglieder seiner Eigentümer-Teams (sowie Projektadministratoren und -eigentümer) diesen Vorfall einsehen. Private Vorfälle werden automatisch auf allen Statusseiten ausgeblendet, und es können ihnen keine öffentlichen Notizen hinzugefügt werden.",
+  "If enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "Wenn aktiviert, können nur die Eigentümer-Benutzer des Vorfalls und Mitglieder seiner Eigentümer-Teams (sowie Projektadministratoren und -eigentümer) diesen Vorfall einsehen. Private Vorfälle werden automatisch auf allen Statusseiten ausgeblendet, und es können ihnen keine öffentlichen Notizen hinzugefügt werden.",
+  "When enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "Wenn aktiviert, können nur die Eigentümer-Benutzer des Vorfalls und Mitglieder ihrer Eigentümer-Teams (sowie Projekt-Admins und -Eigentümer) diesen Vorfall ansehen. Private Vorfälle werden automatisch auf allen Status-Seiten ausgeblendet, und es können ihnen keine öffentlichen Notizen hinzugefügt werden.",
+  "This episode is private, so public notes cannot be added to it. Use a private note.": "Diese Episode ist privat, daher können ihr keine öffentlichen Notizen hinzugefügt werden. Verwenden Sie eine private Notiz.",
+  "This incident is private, so public notes cannot be added to it. Use a private note.": "Dieser Vorfall ist privat, daher können ihm keine öffentlichen Notizen hinzugefügt werden. Verwenden Sie eine private Notiz.",
+  "Customer-facing updates about this episode. While it is private, no status page shows them.": "Updates für Kunden zu dieser Episode. Solange sie privat ist, zeigt keine Statusseite sie an.",
+  "Customer-facing updates about this incident. While it is private, no status page shows them.": "Updates für Kunden zu diesem Vorfall. Solange er privat ist, zeigt keine Statusseite sie an.",
+  "Not shown while this episode is private": "Nicht angezeigt, solange diese Episode privat ist",
+  "Not shown while this incident is private": "Nicht angezeigt, solange dieser Vorfall privat ist",
+  "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "Wenn Sie dieses Projekt löschen, wird seine bisherige Nutzung ein letztes Mal abgerechnet, danach endet die Abrechnung. Ihr OneUptime-Kauf im {{marketplace}} bleibt aktiv, bis Sie ihn dort kündigen."
 }
