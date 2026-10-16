@@ -86,7 +86,9 @@ export const ProjectNotificationChannelsCopy: {
   whoCanChange: translationKey(
     "A project owner, a Billing Admin or someone with Manage Billing can change these.",
   ),
-  settingsLinkText: translationKey("Project Settings → Notifications → Notification Settings"),
+  settingsLinkText: translationKey(
+    "Project Settings → Notifications → Notification Settings",
+  ),
 };
 
 /*

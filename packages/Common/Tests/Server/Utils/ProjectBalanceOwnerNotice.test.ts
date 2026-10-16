@@ -149,7 +149,9 @@ describe("the notice", () => {
       projectId: PROJECT_ID,
     });
 
-    expect(html).not.toContain("Project Settings > Notifications > Notification Settings");
+    expect(html).not.toContain(
+      "Project Settings > Notifications > Notification Settings",
+    );
     expect(html.match(/<a href=/g)).toHaveLength(1);
   });
 
@@ -176,7 +178,8 @@ describe("the notice", () => {
     const html: string = ProjectBalanceOwnerNotice.getHtml({
       balance: ProjectBalanceType.AI,
       projectId: PROJECT_ID,
-      sentence: "Check the payment method in Project Settings > Billing and Invoices > Billing.",
+      sentence:
+        "Check the payment method in Project Settings > Billing and Invoices > Billing.",
     });
 
     expect(html).toBe(

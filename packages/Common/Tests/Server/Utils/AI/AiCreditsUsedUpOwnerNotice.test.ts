@@ -242,8 +242,12 @@ describe("AiCreditsUsedUpOwnerNotice.getHtml", () => {
     });
 
     expect(html.match(/<a href=/g)).toHaveLength(1);
-    expect(html).not.toContain("Project Settings > Billing and Invoices > Billing");
-    expect(html).toContain("Project Settings &gt; Billing and Invoices &gt; Billing");
+    expect(html).not.toContain(
+      "Project Settings > Billing and Invoices > Billing",
+    );
+    expect(html).toContain(
+      "Project Settings &gt; Billing and Invoices &gt; Billing",
+    );
   });
 
   test("without the dashboard's address, no link - the sentences still say where", () => {

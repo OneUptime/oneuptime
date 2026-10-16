@@ -1037,7 +1037,9 @@ describe("the live preview", () => {
         expect(note).toContain(
           "A project owner, a Billing Admin or someone with Manage Billing can turn",
         );
-        expect(note).toContain("in Project Settings > Notifications > Notification Settings.");
+        expect(note).toContain(
+          "in Project Settings > Notifications > Notification Settings.",
+        );
         expect(note.toLowerCase()).not.toContain("project admin");
         expect(note).not.toMatch(/\bPlease enable\b/);
         // The location is said once, at the end - not again in brackets.

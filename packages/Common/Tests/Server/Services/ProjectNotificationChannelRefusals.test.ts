@@ -118,7 +118,9 @@ function expectSaysWhoCan(message: string): void {
   expect(message).toContain(
     "A project owner, a Billing Admin or someone with Manage Billing",
   );
-  expect(message).toContain("Project Settings > Notifications > Notification Settings");
+  expect(message).toContain(
+    "Project Settings > Notifications > Notification Settings",
+  );
   expect(message.toLowerCase()).not.toContain("project admin");
   expect(message).not.toMatch(/please enable/i);
 }

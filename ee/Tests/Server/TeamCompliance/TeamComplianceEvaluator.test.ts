@@ -4065,7 +4065,9 @@ describe("a switched-off channel's warning says who can turn it on", () => {
       expect(warning).toContain(
         "A project owner, a Billing Admin or someone with Manage Billing can turn",
       );
-      expect(warning).toContain("in Project Settings > Notifications > Notification Settings.");
+      expect(warning).toContain(
+        "in Project Settings > Notifications > Notification Settings.",
+      );
     }
 
     expect(WHATSAPP_SWITCHED_OFF_WARNING).toBe(

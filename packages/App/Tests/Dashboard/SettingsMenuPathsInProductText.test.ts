@@ -317,9 +317,9 @@ describe("a written path, as a reader follows it", () => {
   });
 
   test("a mention that is not a path is not one, and every Project Settings path is walked", () => {
-    expect(
-      writtenPaths("Your User Settings are per project.", MENUS),
-    ).toEqual([]);
+    expect(writtenPaths("Your User Settings are per project.", MENUS)).toEqual(
+      [],
+    );
     expect(
       writtenPaths(
         "Your User Settings are per project. Set SMTP in Project Settings > Notifications > Notification Settings.",

@@ -385,7 +385,9 @@ describe("the refusal", () => {
     expect(message).not.toContain("activeMonitorsLimit");
     expect(message).not.toContain("currentActiveMonitorsCount");
     expect(message).not.toContain("$");
-    expect(message).toContain("Project Settings > Billing and Invoices > Billing");
+    expect(message).toContain(
+      "Project Settings > Billing and Invoices > Billing",
+    );
   });
 });
 

@@ -135,7 +135,9 @@ describe("the notice", () => {
         `${SafeHtml.escape(getProjectNotificationChannelOffOwnerSentence(channel))} <br/> <br/> <a href="${LINK}">${LINK}</a>`,
       );
       expect(html).toContain("If ");
-      expect(html).toContain("Project Settings &gt; Notifications &gt; Notification Settings");
+      expect(html).toContain(
+        "Project Settings &gt; Notifications &gt; Notification Settings",
+      );
     },
   );
 
@@ -146,7 +148,9 @@ describe("the notice", () => {
     });
 
     // "Project Settings > Notifications > Notification Settings" goes into the email as text.
-    expect(html).not.toContain("Project Settings > Notifications > Notification Settings");
+    expect(html).not.toContain(
+      "Project Settings > Notifications > Notification Settings",
+    );
     expect(html.match(/<a href=/g)).toHaveLength(1);
   });
 

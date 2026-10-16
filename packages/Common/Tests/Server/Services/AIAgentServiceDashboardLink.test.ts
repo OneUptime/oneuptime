@@ -190,9 +190,7 @@ describe("AIAgentService.getLinkInDashboard", () => {
       expect(notification.emailEnvelope.vars["viewAIAgentsLink"]).toBe(
         TASKS_LINK,
       );
-      expect(notification.pushNotificationMessage.clickAction).toBe(
-        TASKS_LINK,
-      );
+      expect(notification.pushNotificationMessage.clickAction).toBe(TASKS_LINK);
       expect(notification.whatsAppMessage?.templateVariables).toMatchObject({
         ai_agent_link: TASKS_LINK,
       });

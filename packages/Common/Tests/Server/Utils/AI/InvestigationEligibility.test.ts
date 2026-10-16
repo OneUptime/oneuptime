@@ -430,7 +430,9 @@ describe("the AI switches page is named where AI is off", () => {
     async (subject: InvestigationSubject) => {
       const recorded: InvestigationNotStartedReason =
         InvestigationEligibility.reason("ai_disabled", subject);
-      expect(recorded.nextStep).toContain("Project Settings → AI → AI Features");
+      expect(recorded.nextStep).toContain(
+        "Project Settings → AI → AI Features",
+      );
       expect(recorded.nextStep).not.toContain("AI Credits");
 
       mockMissingDecision();

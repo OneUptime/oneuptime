@@ -189,7 +189,10 @@ describe("the checks themselves", () => {
   });
 
   it.each([
-    ["en", "Add one under **Project Settings** > **Billing** before you import."],
+    [
+      "en",
+      "Add one under **Project Settings** > **Billing** before you import.",
+    ],
     ["en", "The limits are on **Project Settings → AI Features**, folded."],
     ["de", "Siehe **Projekteinstellungen → KI-Funktionen**."],
     ["da", "Tilføj en under **Projektindstillinger** > **Fakturering**."],

@@ -617,7 +617,10 @@ describe("every Project Settings path OneUptime writes is one a reader can follo
     ],
     [
       "Common/Server/Services/AIService.ts",
-      ["Project Settings > AI > AI Features", "Project Settings > AI > LLM Providers"],
+      [
+        "Project Settings > AI > AI Features",
+        "Project Settings > AI > LLM Providers",
+      ],
     ],
     [
       "Common/Server/Services/VideoCallConnectionService.ts",
@@ -660,7 +663,10 @@ describe("every Project Settings path OneUptime writes is one a reader can follo
     ],
     [
       "App/FeatureSet/Dashboard/src/Pages/Users/Index.tsx",
-      ["Project Settings > Security > SCIM", "Project Settings > Security > SCIM"],
+      [
+        "Project Settings > Security > SCIM",
+        "Project Settings > Security > SCIM",
+      ],
     ],
     [
       "App/FeatureSet/Dashboard/src/Pages/Teams/View/Members.tsx",
@@ -713,7 +719,9 @@ describe("every Project Settings path OneUptime writes is one a reader can follo
   test("the AI toolbox sends a project with no severity to the Incidents menu, where severities are", () => {
     const toolbox: Array<FoundText> = FOUND_TEXTS.filter(
       (found: FoundText): boolean => {
-        return found.file === "Common/Server/Utils/AI/Toolbox/IncidentWriteTools.ts";
+        return (
+          found.file === "Common/Server/Utils/AI/Toolbox/IncidentWriteTools.ts"
+        );
       },
     );
     const incidents: string = readDashboardSource(
@@ -728,9 +736,9 @@ describe("every Project Settings path OneUptime writes is one a reader can follo
       }),
     ).toBe(true);
     expect(incidents).toContain('title: "Incident Severity"');
-    expect(pathsIn("Common/Server/Utils/AI/Toolbox/IncidentWriteTools.ts")).toEqual(
-      [],
-    );
+    expect(
+      pathsIn("Common/Server/Utils/AI/Toolbox/IncidentWriteTools.ts"),
+    ).toEqual([]);
   });
 });
 
@@ -1074,7 +1082,9 @@ describe("the Slack and Microsoft Teams pages go by their side menus' names", ()
       "Pages/Settings/SideMenu.tsx",
     );
 
-    expect(userMenu).toContain("slack: PageMap.USER_SETTINGS_SLACK_INTEGRATION");
+    expect(userMenu).toContain(
+      "slack: PageMap.USER_SETTINGS_SLACK_INTEGRATION",
+    );
     expect(userMenu).toContain(
       "microsoftTeams: PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION",
     );
@@ -1145,7 +1155,9 @@ describe("the Slack and Microsoft Teams pages go by their side menus' names", ()
 
     // The old labels named a page by its breadcrumb, which no menu has.
     expect(english["Open Slack Integration Settings"]).toBeUndefined();
-    expect(english["Open Microsoft Teams Integration Settings"]).toBeUndefined();
+    expect(
+      english["Open Microsoft Teams Integration Settings"],
+    ).toBeUndefined();
   });
 });
 
@@ -1170,9 +1182,11 @@ describe("the status page side menu names Microsoft Teams in full", () => {
         "Microsoft Teams Subscribers",
       );
 
-      expect({ language, value, full: value.includes("Microsoft Teams") }).toEqual(
-        { language, value, full: true },
-      );
+      expect({
+        language,
+        value,
+        full: value.includes("Microsoft Teams"),
+      }).toEqual({ language, value, full: true });
     }
   });
 });

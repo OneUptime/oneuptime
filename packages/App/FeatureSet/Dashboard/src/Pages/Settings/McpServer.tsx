@@ -104,7 +104,9 @@ const McpServerPage: FunctionComponent<PageComponentProps> = (
                   bearerHeader: <code>Authorization: Bearer</code>,
                   apiKeysLink: (
                     <Link to={apiKeysRoute} className="underline">
-                      {translator.translateText("Project Settings → Advanced → API Keys")}
+                      {translator.translateText(
+                        "Project Settings → Advanced → API Keys",
+                      )}
                     </Link>
                   ),
                 }}
