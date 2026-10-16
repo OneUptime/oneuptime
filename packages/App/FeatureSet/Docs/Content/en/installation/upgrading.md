@@ -659,7 +659,7 @@ API, SSO, or the Slack and Microsoft Teams apps.
   an email when a plan change stops them, and the
   owners of projects that were already below these plans get one email
   after this upgrade saying what stopped and how to turn it back on.
-  **Project Settings** > **Billing** names how many a lower plan stops or
+  **Project Settings** > **Billing and Invoices** > **Billing** names how many a lower plan stops or
   limits. People signing in, MCP clients connected by signing in, telemetry
   ingestion keys, probe keys and agent keys are not affected, and
   self-hosted installs (no plans) see no change. See
@@ -1469,7 +1469,7 @@ have the commands.
 
 ### Enable AI is the only AI switch
 
-**Project Settings → AI Features** had three switches. **Enable
+**Project Settings → AI → AI Features** had three switches. **Enable
 Auto-Remediation** and **Enable AI Command Execution (for Runners)** are gone:
 auto-remediation and AI commands on Runners run whenever **Enable AI** is on.
 Turning **Enable AI** off stops them along with every other AI feature,
@@ -1566,7 +1566,7 @@ new pages, so bookmarks keep working.
 
 ### The AI Logs get an index for the daily AI limits
 
-A project's daily AI limits (**Project Settings → AI Features → More
+A project's daily AI limits (**Project Settings → AI → AI Features → More
 settings**) and the incident and alert daily token limits add up the day's AI
 Logs before every AI call. Until now that read every AI Log the project had
 ever written, and a self-hosted install keeps them all. The upgrade adds an

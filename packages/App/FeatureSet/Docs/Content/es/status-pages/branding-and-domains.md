@@ -153,7 +153,7 @@ flowchart TB
 
 ### Antes de empezar
 
-- **El dominio padre debe estar verificado.** La lista **Dominio** solo ofrece los dominios verificados en **Ajustes del proyecto → Dominios**, donde demuestras que un dominio es tuyo con un registro TXT. El enlace **Añadir un dominio** junto al campo abre esa página en una pestaña nueva.
+- **El dominio padre debe estar verificado.** La lista **Dominio** solo ofrece los dominios verificados en **Ajustes del proyecto → Avanzado → Dominios**, donde demuestras que un dominio es tuyo con un registro TXT. El enlace **Añadir un dominio** junto al campo abre esa página en una pestaña nueva.
 - **Tu instalación necesita un registro CNAME de páginas de estado.** OneUptime Cloud tiene uno. En una instalación autoalojada, apúntalo a un nombre de host que apunte a tu servidor de OneUptime (un registro A), y asegúrate de que el servidor responde en el puerto 80, donde Let's Encrypt lo comprueba. Sin él, la tarjeta y el cuadro de diálogo **Configuración de DNS** dicen «Custom Domains not enabled for this OneUptime installation» en lugar de mostrar un registro.
 
 :::tabs

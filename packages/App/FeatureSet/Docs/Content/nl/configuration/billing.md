@@ -176,7 +176,7 @@ Om niet meer voor een project te betalen, verwijdert u het: de facturering stopt
 
 ## Problemen oplossen
 
-:::details "Add a payment method in Project Settings > Billing before using paid monitoring or telemetry"
+:::details "Add a payment method in Project Settings > Billing and Invoices > Billing before using paid monitoring or telemetry"
 Een project met het Free-abonnement heeft een betaalmethode nodig voordat het actieve monitors aanmaakt of telemetrie verstuurt, omdat die naar gebruik worden betaald. Voeg er een toe onder [Betaalmethoden](#betaalmethoden). Handmatige monitors blijven gratis.
 :::
 

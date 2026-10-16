@@ -866,7 +866,7 @@ Tighten further as you need: raise `minSeverity` to `ERROR`, add `metrics` to a 
 
 ### Measure the effect
 
-Telemetry usage is counted per day, so check the trend under **Project Settings → Usage History** over a day or two: it does not move the moment you apply a change. Change one setting at a time (logs off, then the interval up, then eBPF trimmed) so you can tell what each one did, rather than turning everything down at once and losing a monitor you relied on.
+Telemetry usage is counted per day, so check the trend under **Project Settings → Billing and Invoices → Usage History** over a day or two: it does not move the moment you apply a change. Change one setting at a time (logs off, then the interval up, then eBPF trimmed) so you can tell what each one did, rather than turning everything down at once and losing a monitor you relied on.
 
 ## Troubleshooting
 

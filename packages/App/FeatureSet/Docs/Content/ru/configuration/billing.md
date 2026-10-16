@@ -176,7 +176,7 @@ SMS, звонки, сообщения WhatsApp и Telegram оплачивают�
 
 ## Устранение неполадок
 
-:::details "Add a payment method in Project Settings > Billing before using paid monitoring or telemetry"
+:::details "Add a payment method in Project Settings > Billing and Invoices > Billing before using paid monitoring or telemetry"
 Проекту на плане Free нужен способ оплаты, прежде чем он создаст активные мониторы или начнёт отправлять телеметрию, потому что они оплачиваются по факту использования. Добавьте его в разделе [Способы оплаты](#способы-оплаты). Ручные мониторы остаются бесплатными.
 :::
 

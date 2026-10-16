@@ -1133,7 +1133,7 @@ service:
 Adicione de volta um pipeline `logs`, com um receiver `filelog` ou `journald` restrito, quando precisar.
 
 > [!CAUTION]
-> Cuidado com o que você corta. Um monitor de logs precisa que os logs dele cheguem, então filtrar uma severidade ou um canal silencia os monitores que o observam, e os modelos de alerta Host precisam das métricas `*.utilization`. Corte os dados sobre os quais você não age, não os dados que um monitor observa, e confira a queda em **Configurações do projeto → Histórico de uso** um ou dois dias depois (o uso é contado por dia) antes de mexer na próxima alavanca.
+> Cuidado com o que você corta. Um monitor de logs precisa que os logs dele cheguem, então filtrar uma severidade ou um canal silencia os monitores que o observam, e os modelos de alerta Host precisam das métricas `*.utilization`. Corte os dados sobre os quais você não age, não os dados que um monitor observa, e confira a queda em **Configurações do projeto → Cobrança e faturas → Histórico de uso** um ou dois dias depois (o uso é contado por dia) antes de mexer na próxima alavanca.
 
 ## OneUptime auto-hospedado e proxies
 

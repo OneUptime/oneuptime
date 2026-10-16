@@ -1133,7 +1133,7 @@ service:
 Rajoutez un pipeline `logs`, avec un receiver `filelog` ou `journald` restreint, quand vous en avez besoin.
 
 > [!CAUTION]
-> Faites attention à ce que vous supprimez. Un moniteur de journaux a besoin que ses journaux arrivent : filtrer une gravité ou un canal rend donc muets les moniteurs qui le surveillent, et les modèles d'alerte Host ont besoin des métriques `*.utilization`. Supprimez les données sur lesquelles vous n'agissez pas, pas celles qu'un moniteur surveille, et vérifiez la baisse sous **Paramètres du projet → Historique d'utilisation** un jour ou deux plus tard (l'utilisation est comptée par jour) avant d'actionner le levier suivant.
+> Faites attention à ce que vous supprimez. Un moniteur de journaux a besoin que ses journaux arrivent : filtrer une gravité ou un canal rend donc muets les moniteurs qui le surveillent, et les modèles d'alerte Host ont besoin des métriques `*.utilization`. Supprimez les données sur lesquelles vous n'agissez pas, pas celles qu'un moniteur surveille, et vérifiez la baisse sous **Paramètres du projet → Facturation et factures → Historique d'utilisation** un jour ou deux plus tard (l'utilisation est comptée par jour) avant d'actionner le levier suivant.
 
 ## OneUptime auto-hébergé et proxys
 

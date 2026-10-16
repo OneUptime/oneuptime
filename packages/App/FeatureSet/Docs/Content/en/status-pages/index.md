@@ -87,7 +87,7 @@ Once a status page is open, its own left side menu is grouped into nine sections
 | --- | --- |
 | **Basic** | **Overview**, **Announcements**, **Owners**. |
 | **Resources** | A single **Resources** screen — groups on the left, the selected group's monitors on the right — and **Monitor Rules**. |
-| **Subscribers** | **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **MS Teams Subscribers**, **Webhook Subscribers**, **Subscriber Settings**. |
+| **Subscribers** | **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **Microsoft Teams Subscribers**, **Webhook Subscribers**, **Subscriber Settings**. |
 | **Notification Logs** | **Notification Logs** — what was sent to subscribers. |
 | **Branding** | **Branding** (logo, title, favicon, links, footer, colors and languages, on one page), **Custom Domains**, **HTML, CSS & JavaScript**. |
 | **Security** | **Access** (who can see the page), **Private Users**, **SSO**, **OIDC**, **SCIM**. |

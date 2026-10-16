@@ -99,7 +99,7 @@ Hver handling Spør AI utfører, gjøres som deg: den gjør den samme endringen 
 - **Growth-abonnementet, i OneUptime Cloud.** Et prosjekt på et lavere abonnement ser at AI ikke er med i abonnementet, med en lenke til **Prosjektinnstillinger → Fakturering og fakturaer → Fakturering**.
 - **AI slått på for prosjektet.** **Aktiver AI**, på **Prosjektinnstillinger → KI → AI Features**, slår av alle prosjektets AI-funksjoner, Spør AI inkludert. Den er på med mindre noen har slått den av.
 
-Spør AI teller med i prosjektets egne daglige AI-grenser når prosjektet setter dem (Prosjektinnstillinger → AI Features → Flere innstillinger): når en er nådd, viser Spør AI en setning som sier hvilken grense som ble nådd, at OneUptime AI starter igjen ved midnatt UTC, og hvem som kan heve eller fjerne grensen. Prosjektets eiere får en e-post første gang en grense nås hver dag. De daglige grensene for hendelser og varsler stopper aldri Spør AI. Se [prosjektets egne daglige grenser](/docs/ai/ai-sre#prosjektets-egne-daglige-grenser).
+Spør AI teller med i prosjektets egne daglige AI-grenser når prosjektet setter dem (Prosjektinnstillinger → KI → AI Features → Flere innstillinger): når en er nådd, viser Spør AI en setning som sier hvilken grense som ble nådd, at OneUptime AI starter igjen ved midnatt UTC, og hvem som kan heve eller fjerne grensen. Prosjektets eiere får en e-post første gang en grense nås hver dag. De daglige grensene for hendelser og varsler stopper aldri Spør AI. Se [prosjektets egne daglige grenser](/docs/ai/ai-sre#prosjektets-egne-daglige-grenser).
 
 ## Feilsøking
 

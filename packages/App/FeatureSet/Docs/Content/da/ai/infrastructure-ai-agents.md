@@ -234,7 +234,7 @@ Forespørgselstekst i outputtet normaliseres (hver streng- og tal-literal bliver
 
 ## Sådan fungerer rettelser
 
-Rettelser er slået fra, indtil du slår dem til, og det kræver to indstillinger på agenten: `ONEUPTIME_AI_FIXES` sat til en anden tilstand end `off` (se [Hvad AI må gøre, sat af agenten](#hvad-ai-må-gøre-sat-af-agenten)) og `ONEUPTIME_AI_ALLOW_WRITES=true` (se [Skriveadgang på agenten](#skriveadgang-på-agenten)). Den ene alene ændrer intet. En agent, der er ældre end `ONEUPTIME_AI_FIXES`, tager i stedet **Rettelser** fra ressourcens AI-agent-side. Rettelser kræver også, at AI er slået til for projektet (**Aktivér AI** under Projektindstillinger → AI Features), hvilket den er, medmindre nogen har slået den fra.
+Rettelser er slået fra, indtil du slår dem til, og det kræver to indstillinger på agenten: `ONEUPTIME_AI_FIXES` sat til en anden tilstand end `off` (se [Hvad AI må gøre, sat af agenten](#hvad-ai-må-gøre-sat-af-agenten)) og `ONEUPTIME_AI_ALLOW_WRITES=true` (se [Skriveadgang på agenten](#skriveadgang-på-agenten)). Den ene alene ændrer intet. En agent, der er ældre end `ONEUPTIME_AI_FIXES`, tager i stedet **Rettelser** fra ressourcens AI-agent-side. Rettelser kræver også, at AI er slået til for projektet (**Aktivér AI** under Projektindstillinger → AI → AI Features), hvilket den er, medmindre nogen har slået den fra.
 
 ### Rettelsestilstande
 

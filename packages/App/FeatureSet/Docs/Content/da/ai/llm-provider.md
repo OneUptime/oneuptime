@@ -38,7 +38,7 @@ På **OneUptime Cloud** kan hvert projekt bruge den globale udbyder uden opsætn
 
 Vil du i stedet bruge dine egne API-nøgler eller en bestemt model, så tilføj en udbyder af din egen som beskrevet nedenfor: du betaler ikke for AI, der kører på din egen udbyder.
 
-Den globale LLM-udbyder betales af projektets AI-kreditter. For at begrænse, hvad AI må bruge hver dag, sæt en **Daglig AI-forbrugsgrænse (USD)** under **Projektindstillinger → AI Features → Yderligere indstillinger**; en **Daglig AI-tokengrænse** dér begrænser tokens hos enhver udbyder, også din egen. Se [projektets egne daglige grænser](/docs/ai/ai-sre#projektets-egne-daglige-grænser).
+Den globale LLM-udbyder betales af projektets AI-kreditter. For at begrænse, hvad AI må bruge hver dag, sæt en **Daglig AI-forbrugsgrænse (USD)** under **Projektindstillinger → AI → AI Features → Yderligere indstillinger**; en **Daglig AI-tokengrænse** dér begrænser tokens hos enhver udbyder, også din egen. Se [projektets egne daglige grænser](/docs/ai/ai-sre#projektets-egne-daglige-grænser).
 
 OneUptime Cloud kan kun nå LLM-endpoints på det offentlige internet. Den kan ikke forbinde til en model på dit private netværk, såsom en selvhostet Ollama- eller vLLM-server. For at bruge en model, du selv kører, så selvhost OneUptime på et netværk, der kan nå den, eller gør modellen tilgængelig på et offentligt endpoint: se [Valg af en basis-URL til en selvhostet model](#valg-af-en-basis-url-til-en-selvhostet-model).
 

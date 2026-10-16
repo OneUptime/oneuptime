@@ -87,7 +87,7 @@ Depois de abrir uma página de status, o menu lateral esquerdo dela é agrupado 
 | --- | --- |
 | **Básico** | **Visão geral**, **Anúncios**, **Proprietários**. |
 | **Recursos** | Uma única tela **Recursos** (os grupos à esquerda, os monitores do grupo selecionado à direita) e **Monitor Rules**. |
-| **Assinantes** | **Assinantes de e-mail**, **Assinantes de SMS**, **Assinantes do Slack**, **Assinantes do MS Teams**, **Assinantes de webhook**, **Configurações de assinantes**. |
+| **Assinantes** | **Assinantes de e-mail**, **Assinantes de SMS**, **Assinantes do Slack**, **Assinantes do Microsoft Teams**, **Assinantes de webhook**, **Configurações de assinantes**. |
 | **Logs de notificação** | **Logs de notificação**: o que foi enviado aos assinantes. |
 | **Marca** | **Marca** (logotipo, título, favicon, links, rodapé, cores e idiomas, em uma única página), **Domínios personalizados**, **HTML, CSS e JavaScript**. |
 | **Segurança** | **Acesso** (quem pode ver a página), **Usuários privados**, **SSO**, **OIDC**, **SCIM**. |
