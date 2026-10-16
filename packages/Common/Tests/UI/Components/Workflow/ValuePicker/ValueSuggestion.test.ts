@@ -72,9 +72,7 @@ describe("typeLabelForInputType", () => {
    * Match Condition ("one or more" in Korean), which is not a type.
    */
   test("calls a value of any type Any type", () => {
-    expect(typeLabelForInputType(ComponentInputType.AnyValue)).toBe(
-      "Any type",
-    );
+    expect(typeLabelForInputType(ComponentInputType.AnyValue)).toBe("Any type");
     expect(
       Object.values(ComponentInputType)
         .map((type: ComponentInputType): string | undefined => {

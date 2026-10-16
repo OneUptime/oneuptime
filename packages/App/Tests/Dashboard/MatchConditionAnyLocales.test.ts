@@ -121,9 +121,12 @@ describe("the Match Condition's two options", () => {
     );
   });
 
-  test.each(EVERY_LOCALE)("%s draws All and Any as two different words", (code: string) => {
-    expect(drawn(code, ANY)).not.toBe(drawn(code, ALL));
-  });
+  test.each(EVERY_LOCALE)(
+    "%s draws All and Any as two different words",
+    (code: string) => {
+      expect(drawn(code, ANY)).not.toBe(drawn(code, ALL));
+    },
+  );
 
   test.each(EVERY_LOCALE)(
     "%s never draws Any with its word for all, every or everything",
@@ -237,13 +240,16 @@ describe("the incident switch's help", () => {
     expect(locale(ENGLISH)[MISSPELLED_INCIDENT_SWITCH_HELP]).toBeUndefined();
   });
 
-  test.each(EVERY_LOCALE)("%s has no 'delcare' in any key or value", (code: string) => {
-    expect(
-      textsOf(code).filter((text: string): boolean => {
-        return text.toLowerCase().includes(MISSPELLING);
-      }),
-    ).toEqual([]);
-  });
+  test.each(EVERY_LOCALE)(
+    "%s has no 'delcare' in any key or value",
+    (code: string) => {
+      expect(
+        textsOf(code).filter((text: string): boolean => {
+          return text.toLowerCase().includes(MISSPELLING);
+        }),
+      ).toEqual([]);
+    },
+  );
 
   test.each(TRANSLATED_LOCALES)(
     "%s kept its translation under the corrected key, at the same place",

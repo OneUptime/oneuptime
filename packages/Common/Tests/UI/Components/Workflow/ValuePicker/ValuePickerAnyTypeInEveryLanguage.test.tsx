@@ -113,8 +113,7 @@ function valueBadge(): HTMLElement {
 }
 
 beforeAll(async () => {
-  const resources: Record<string, { translation: Record<string, string> }> =
-    {};
+  const resources: Record<string, { translation: Record<string, string> }> = {};
 
   for (const code of SUPPORTED_DASHBOARD_LANGUAGE_CODES) {
     resources[code] = { translation: LOCALES[code]! };

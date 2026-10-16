@@ -166,14 +166,19 @@ export function findAnyWords(file: string, text: string): Array<AnyWord> {
     const isAnyString: boolean =
       (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) &&
       node.text === ANY;
-    const isAnyJsxText: boolean = ts.isJsxText(node) && node.text.trim() === ANY;
+    const isAnyJsxText: boolean =
+      ts.isJsxText(node) && node.text.trim() === ANY;
 
     if (isAnyString || isAnyJsxText) {
       const parent: ts.Node = node.parent;
       let kind: AnyWordKind = "other";
       let enumName: string | undefined = undefined;
 
-      if (isAnyString && ts.isEnumMember(parent) && parent.initializer === node) {
+      if (
+        isAnyString &&
+        ts.isEnumMember(parent) &&
+        parent.initializer === node
+      ) {
         kind = "enum-value";
         enumName = (parent.parent as ts.EnumDeclaration).name.text;
       } else if (isAnyString && isMatchConditionOption(node, sourceFile)) {
