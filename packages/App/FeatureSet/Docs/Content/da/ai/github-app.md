@@ -33,13 +33,13 @@ Det er den samme agent og den samme Runner som ved [Rettelsesopgaver](/docs/ai/a
 
 ## Før du starter
 
-- Repositoriet skal være **forbundet til et OneUptime-projekt** via GitHub App: forbind det under **Opgaver → Koderepositorier** (åbn **Produkter → Kode → Opgaver**). En selvhostet instans skal først have sin egen GitHub App: se [GitHub-integration](/docs/self-hosted/github-integration).
+- Repositoriet skal være **forbundet til et OneUptime-projekt** via GitHub App: forbind det under **Opgaver → Koderepositorier** (åbn **Produkter → Kode → Opgaver**). En selvhostet instans skal først have sin egen GitHub App: se [GitHub-integration](/docs/self-hosted/github-integration). Hvis appen allerede er installeret på GitHub-kontoen, så klik på **Forbind en eksisterende installation** dér i stedet for at installere den igen.
 - En Runner med **Kører AI-koderettelser** skal være online: den samme Runner, som udfører [Rettelsesopgaver](/docs/ai/ai-agent). Uden en bliver kommandoer accepteret og mislykkes så efter 30 minutter med en besked om, at ingen agent tog dem.
 - GitHub App skal have tilladelsen **Issues** med **Read & write** og skal abonnere på webhook-hændelserne under [Hvad der skal abonneres på](#hvad-der-skal-abonneres-på).
 
 ## Kommandoerne
 
-Hver kommando starter med en omtale af appen. Omtalen kan stå hvor som helst i kommentaren, og alt, hvad du skriver efter den, sendes videre som din anmodning.
+Hver kommando starter med en omtale af appen. Omtalen kan stå hvor som helst i kommentaren, og alt, hvad du skriver efter den, sendes videre som din anmodning. At redigere en kommentar, der allerede omtaler appen, kører den ikke igen: skriv en ny kommentar for at ændre din anmodning. En redigering, der tilføjer omtalen, er en ny anmodning.
 
 ### På en pull request
 

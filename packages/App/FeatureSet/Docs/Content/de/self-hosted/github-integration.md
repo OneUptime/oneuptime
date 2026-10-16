@@ -7,7 +7,7 @@ Diese Seite richtet sich an alle, die den OneUptime-Server betreiben: Sie erstel
 :::cards
 - [Die GitHub App erstellen](#die-github-app-erstellen): Die App mit den richtigen URLs, Berechtigungen und Ereignissen registrieren.
 - [OneUptime konfigurieren](#oneuptime-konfigurieren): Dem Server die sechs Werte der App geben.
-- [Repositories verbinden](#repositories-verbinden): Die App aus OneUptime heraus installieren.
+- [Repositories verbinden](#repositories-verbinden): Die App aus OneUptime heraus installieren oder eine vorhandene Installation verbinden.
 - [Fehlerbehebung](#fehlerbehebung): Was die Meldungen unter Code-Repositories bedeuten.
 :::
 
@@ -30,7 +30,7 @@ sequenceDiagram
     G->>O: Webhooks an /api/github/webhook
 ```
 
-- Die Weiterleitung im Browser trägt die Installation und einen einmaligen OAuth-Code. OneUptime tauscht den Code ein, um zu bestätigen, dass das GitHub-Konto, das die App installiert hat, diese Installation verwaltet, und importiert dann ihre Repositories.
+- Die Weiterleitung im Browser trägt die Installation und einen einmaligen OAuth-Code. OneUptime tauscht den Code ein, um zu bestätigen, dass das GitHub-Konto, das die App installiert hat, diese Installation verwaltet, und importiert dann ihre Repositories. Eine bereits vorhandene Installation wird stattdessen über eine Anmeldung bei GitHub verbunden: Der Code sagt OneUptime dann, welche Installationen dieses Konto verwaltet.
 - Webhooks halten die Liste der Repositories synchron und übergeben der App Arbeit: Erwähnungen, Zuweisungen, Trigger-Labels und Review-Anfragen. GitHub signiert jeden mit dem Webhook-Secret, und OneUptime lehnt jeden ab, den es nicht verifizieren kann.
 
 ## Bevor Sie beginnen
@@ -166,7 +166,7 @@ Sobald OneUptime wieder läuft, zeigt **Code-Repositories** statt **Die GitHub-A
 | Docker Compose (`config.env`) | Helm (`values.yaml`) | Wert |
 | --- | --- | --- |
 | `GITHUB_APP_ID` | `gitHubApp.id` | Die **App ID**. Dient der Authentifizierung als App. |
-| `GITHUB_APP_NAME` | `gitHubApp.name` | Der genaue Name der App. Der Installationslink und das `@mention`-Handle der App (kleingeschrieben, Leerzeichen als Bindestriche) werden daraus gebildet. Ohne ihn kann **Code-Repositories** nicht verbinden. |
+| `GITHUB_APP_NAME` | `gitHubApp.name` | Der Name der App. Der Anzeigename ist in Ordnung, mit Leerzeichen und Großbuchstaben: Der Installationslink und das `@mention`-Handle der App verwenden den Slug, den GitHub für die App meldet, und werden nur dann aus diesem Namen gebildet (kleingeschrieben, Leerzeichen als Bindestriche), wenn OneUptime GitHub nicht fragen kann. Ohne ihn kann **Code-Repositories** nicht verbinden. |
 | `GITHUB_APP_CLIENT_ID` | `gitHubApp.clientId` | Die **Client ID**. Nötig, um zu prüfen, wer die App installiert hat. |
 | `GITHUB_APP_CLIENT_SECRET` | `gitHubApp.clientSecret` | Das erzeugte Client Secret. Nötig zusammen mit der Client ID. |
 | `GITHUB_APP_PRIVATE_KEY` | `gitHubApp.privateKey` | Der private Schlüssel: das PEM oder das PEM base64-kodiert. |
@@ -183,11 +183,13 @@ Starten Sie die Verbindung in OneUptime, nicht auf der Seite der App auf GitHub:
 2. Gehen Sie zu **Produkte** > **Aufgaben** > **Code-Repositories**
 3. Klicken Sie auf **Mit GitHub-App verbinden**. OneUptime bringt Sie zu GitHub
 4. Wählen Sie die Organisation oder das Konto, in dem die App installiert werden soll, und legen Sie fest, auf welche Repositories sie zugreifen darf: **All repositories** (alle aktuellen und künftigen Repositories) oder **Only select repositories**
-5. Klicken Sie auf **Install** (oder **Save**, wenn die App dort bereits installiert ist)
+5. Klicken Sie auf **Install**
 6. GitHub schickt Sie zu **Code-Repositories** zurück, und jedes Repository der Installation wird importiert. Repositories, die später zur Installation hinzugefügt oder aus ihr entfernt werden, werden automatisch synchron gehalten.
 :::
 
-**Wer verbinden kann.** Das Verbinden importiert die Repositories der Installation in das Projekt und braucht deshalb die Berechtigung, Code-Repositories hinzuzufügen: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** oder ein Team mit **Create Code Repository**. Ein Team, das die Berechtigung sperrt, entzieht sie. Auf OneUptime Cloud brauchen Code-Repositories den Growth-Tarif oder höher. Für alle anderen ist die Karte gesperrt und sagt, was nötig ist.
+**Wenn die App auf dem Konto bereits installiert ist**, für ein anderes Projekt oder direkt über GitHub, verbindet eine erneute Installation sie nicht: GitHub öffnet die Einstellungen der Installation und schickt Sie nie zurück. Klicken Sie stattdessen unter der Karte **Mit GitHub-App verbinden** auf **Vorhandene Installation verbinden**. Sie melden sich bei GitHub an, und OneUptime verbindet die Installation, die Ihr GitHub-Konto verwaltet. Verwaltet es mehr als eine, zeigt **Code-Repositories** sie zur Auswahl: Wählen Sie das Konto, dessen Repositories das Projekt verwenden soll.
+
+**Wer verbinden kann.** Das Verbinden importiert die Repositories der Installation in das Projekt und braucht deshalb die Berechtigung, Code-Repositories hinzuzufügen: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** oder ein Team mit **Create Code Repository**. Ein Team, das die Berechtigung sperrt, entzieht sie. Auf OneUptime Cloud brauchen Code-Repositories den Growth-Tarif oder höher. Für alle anderen ist die Karte gesperrt und sagt, was nötig ist. Auf GitHub muss das Konto, das die App installiert oder verbindet, die Installation verwalten: der Inhaber eines persönlichen Kontos oder jemand mit Admin-Rechten für jedes Repository, auf das die Installation zugreifen kann, wie sie ein Inhaber der Organisation hat. Lesezugriff auf eines ihrer Repositories genügt nicht.
 
 **Schließen Sie innerhalb von 15 Minuten im selben Browser ab.** Der Link funktioniert einmal, 15 Minuten lang, in dem Browser, in dem er gestartet wurde. Wenn GitHub Sie zurückschickt, prüft OneUptime die Berechtigung erneut, bevor es etwas importiert.
 
@@ -236,12 +238,13 @@ Wenn GitHub Sie zurückschickt und die Installation nicht verbunden wurde, zeigt
 
 | Die Seite sagt | Was zu tun ist |
 | --- | --- |
-| **"Dieser Verbindungslink ist ungültig, abgelaufen oder wurde bereits verwendet. Bitte beginnen Sie erneut."** | Der Link funktioniert einmal, 15 Minuten lang, in dem Browser, in dem er gestartet wurde. Beginnen Sie unter **Code-Repositories** erneut und schließen Sie auf GitHub innerhalb von 15 Minuten im selben Browser ab. Die App von ihrer Seite auf GitHub aus zu installieren, verbindet sie mit keinem Projekt. |
+| **"Dieser Verbindungslink ist ungültig, abgelaufen oder wurde bereits verwendet. Bitte beginnen Sie erneut."** | Der Link funktioniert einmal, 15 Minuten lang, in dem Browser, in dem er gestartet wurde. Beginnen Sie unter **Code-Repositories** erneut und schließen Sie auf GitHub innerhalb von 15 Minuten im selben Browser ab. Die App von ihrer Seite auf GitHub aus zu installieren, verbindet sie mit keinem Projekt: Eine dort angelegte Installation verbinden Sie mit **Vorhandene Installation verbinden**. |
 | **"Sie haben keine Berechtigung, diesem Projekt Code-Repositorys hinzuzufügen."** | Das Verbinden braucht die Berechtigung, Code-Repositories hinzuzufügen (siehe [Repositories verbinden](#repositories-verbinden)). Bitten Sie einen Projektadministrator, sie zu erteilen. Sie wird erneut geprüft, wenn GitHub Sie zurückschickt; eine Berechtigung, die Ihnen inzwischen entzogen wurde, beendet die Verbindung also auch hier. |
 | **"Zum Verbinden mit GitHub brauchen Sie den ...-Tarif."** | Auf OneUptime Cloud brauchen Code-Repositories den Tarif, den der Satz nennt. Stufen Sie den Tarif des Projekts hoch und verbinden Sie dann erneut. |
 | **"GitHub hat nicht bestätigt, wer die App installiert hat, daher konnte die Installation nicht geprüft werden."** | Schalten Sie in den Einstellungen der GitHub App **Request user authorization (OAuth) during installation** ein (siehe [Die GitHub App erstellen](#die-github-app-erstellen)) und verbinden Sie dann erneut. |
-| **"OneUptime konnte nicht bestätigen, dass Ihr GitHub-Konto diese Installation verwalten kann."** | Das GitHub-Konto, das die Installation abgeschlossen hat, verwaltet sie nicht. Installieren Sie die App mit einem Konto, dem die Organisation oder der Benutzer gehört, bei dem sie installiert wird, oder bitten Sie einen Inhaber darum. |
-| **"GitHub hat keine Installation zurückgesendet."** | Wenn ein Mitglied der Organisation die App anfragt, statt sie zu installieren, muss ein Inhaber der Organisation die Anfrage zuerst genehmigen. Verbinden Sie erneut, sobald das geschehen ist. |
+| **"OneUptime konnte nicht bestätigen, dass Ihr GitHub-Konto diese Installation verwalten kann."** | Das GitHub-Konto, das die Installation abgeschlossen hat, verwaltet sie nicht (wer sie verwaltet, steht unter [Repositories verbinden](#repositories-verbinden)). Die App bleibt auf GitHub installiert: Lassen Sie sie von jemandem, der sie verwaltet, mit **Vorhandene Installation verbinden** verbinden. |
+| **"GitHub hat keine Installation zurückgesendet."** | Wenn ein Mitglied der Organisation die App anfragt, statt sie zu installieren, muss ein Inhaber der Organisation die Anfrage zuerst genehmigen. Danach verbindet jemand, der die Installation verwaltet, sie mit **Vorhandene Installation verbinden**. |
+| **"Ihr GitHub-Konto verwaltet noch keine Installation der App."** | Das GitHub-Konto, mit dem Sie sich angemeldet haben, verwaltet keine Installation der App (wer sie verwaltet, steht unter [Repositories verbinden](#repositories-verbinden)). Ist die App auf dem Konto noch nicht installiert, installieren Sie sie mit **Mit GitHub-App verbinden**. Ist sie es, verbinden Sie erneut, bei GitHub mit einem Konto angemeldet, das sie verwaltet, oder bitten Sie jemanden darum, der sie verwaltet. |
 | **"Die GitHub App ist auf diesem OneUptime-Server nicht eingerichtet."** | Setzen Sie sowohl `GITHUB_APP_CLIENT_ID` als auch `GITHUB_APP_CLIENT_SECRET` (siehe [OneUptime konfigurieren](#oneuptime-konfigurieren)) und starten Sie OneUptime neu. |
 | **"OneUptime konnte die Verbindung nicht abschließen. Bitte versuchen Sie es erneut."** | GitHub hat mit einem Fehler geantwortet, oder eine Anfrage oder ein Schreibvorgang ist beim Abschließen fehlgeschlagen. Das Log des OneUptime-Servers sagt, was davon. Versuchen Sie es erneut; passiert es weiterhin, prüfen Sie das Log und die Einstellungen der GitHub App. |
 
@@ -252,7 +255,7 @@ Wenn GitHub Sie zurückschickt und die Installation nicht verbunden wurde, zeigt
 :::
 
 :::details Nach der Installation der App werde ich nicht zu OneUptime zurückgeschickt
-Prüfen Sie, dass die **Callback URL** der App `https://your-oneuptime-domain.com/api/github/auth/callback` ist, und ebenso die **Setup URL**, falls eine gesetzt ist. Beide müssen auf denselben Endpunkt `/api/github/auth/callback` zeigen, auf dem Hostnamen aus `HOST`.
+Ist die App auf dem Konto bereits installiert, öffnet GitHub stattdessen die Einstellungen der Installation und schickt von dort niemanden zurück: Verbinden Sie sie mit **Vorhandene Installation verbinden**. Andernfalls prüfen Sie, dass die **Callback URL** der App `https://your-oneuptime-domain.com/api/github/auth/callback` ist, und ebenso die **Setup URL**, falls eine gesetzt ist. Beide müssen auf denselben Endpunkt `/api/github/auth/callback` zeigen, auf dem Hostnamen aus `HOST`.
 :::
 
 :::details Die Recent Deliveries von GitHub zeigen "Invalid webhook signature"
@@ -272,7 +275,7 @@ Prüfen Sie in den Einstellungen der Installation auf GitHub, auf welche Reposit
 :::
 
 :::details Die App ignoriert Erwähnungen in GitHub
-Geben Sie der App **Issues: Read and write** und abonnieren Sie die interaktiven Ereignisse aus [Webhook-Ereignisse abonnieren](#webhook-ereignisse-abonnieren). Erwähnungen passen außerdem nur auf das aus `GITHUB_APP_NAME` gebildete Handle, setzen Sie es also auf den echten Namen der App.
+Geben Sie der App **Issues: Read and write** und abonnieren Sie die interaktiven Ereignisse aus [Webhook-Ereignisse abonnieren](#webhook-ereignisse-abonnieren). Erwähnungen passen außerdem nur auf das Handle der App, ihren Slug auf GitHub: den Namen der App, kleingeschrieben, mit Bindestrichen statt Leerzeichen. OneUptime liest ihn von GitHub und bildet ihn nur dann aus `GITHUB_APP_NAME`, wenn das nicht geht.
 :::
 
 ## Bewährte Sicherheitspraktiken
