@@ -643,17 +643,29 @@ describe("what the follow-up run is told, and says", () => {
       IncidentFollowUpCheck.buildReportLead(followUp),
     );
 
+    /*
+     * What opened, where and when, then the alert's title: a template's
+     * own brackets and parentheses close the sentence instead of nesting
+     * inside it.
+     */
     expect(markdown).toContain(
-      "**Checked again** after alert #12 (\\[Host\\] High CPU Utilization (>80%) - web-1) opened on Host web-1, 2 minutes after this incident was declared.",
+      "**Checked again** after alert #12 opened on Host web-1, 2 minutes after this incident was declared: \\[Host\\] High CPU Utilization (>80%) - web-1.",
     );
     expect(markdown.indexOf("Checked again")).toBeLessThan(
       markdown.indexOf("**Summary**"),
     );
 
-    const parsed: { preamble: string; summary?: string | undefined } =
-      parseInvestigationReport(markdown);
+    const parsed: {
+      preamble: string;
+      followUpLead?: string | undefined;
+      summary?: string | undefined;
+    } = parseInvestigationReport(markdown);
 
-    expect(parsed.preamble).toContain("Checked again");
+    // Read as the report's lead, apart from the model's analysis.
+    expect(parsed.followUpLead).toBe(
+      IncidentFollowUpCheck.buildReportLead(followUp).toString(),
+    );
+    expect(parsed.preamble).toBe("");
     expect(parsed.summary).toBe(
       "The host's CPU alert confirms the earlier analysis.",
     );

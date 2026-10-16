@@ -79,6 +79,9 @@ export const FOLLOW_UP_WINDOW_MINUTES: number = 30;
 // The most incidents one alert checks again.
 export const MAX_INCIDENTS_PER_ALERT: number = 5;
 
+// The most of an alert's title the report's first line repeats.
+export const MAX_LEAD_TITLE_LENGTH: number = 200;
+
 // What the follow-up run is told, and says, about why it runs.
 export interface FollowUpCheckContext {
   incidentCreatedAt: Date;
@@ -511,7 +514,14 @@ export default class IncidentFollowUpCheck {
   /*
    * The report's first line, under its heading: why it was written. People
    * read it in the feed, the internal note, Slack and Teams, so every value
-   * goes in through mdText.
+   * goes in through mdText. It starts with FOLLOW_UP_REPORT_LEAD_PREFIX, by
+   * which the report's readers (Utils/AI/InvestigationReport) find it.
+   *
+   * What opened, where and when comes first; the alert's title closes the
+   * sentence, the way the product names a record's title (": title"). The
+   * alert templates' titles carry brackets and parentheses of their own
+   * ("[Docker] High CPU Usage (>80% of one core) - web-1"), which read as
+   * noise inside the sentence.
    */
   public static buildReportLead(context: FollowUpCheckContext): MarkdownText {
     const alert: string = describeAlertNumber(context, { midSentence: true });
@@ -521,17 +531,35 @@ export default class IncidentFollowUpCheck {
       openedAt: context.alertOpenedAt,
       incidentCreatedAt: context.incidentCreatedAt,
     });
-    const title: string = context.alertTitle.trim();
-
-    if (resource) {
-      return title
-        ? mdText`**Checked again** after ${alert} (${title}) opened on ${describeLinkedResourceKind(resource.type)} ${resource.name}, ${when}.`
-        : mdText`**Checked again** after ${alert} opened on ${describeLinkedResourceKind(resource.type)} ${resource.name}, ${when}.`;
-    }
+    const title: string = IncidentFollowUpCheck.describeLeadTitle(
+      context.alertTitle,
+    );
+    const where: MarkdownText = resource
+      ? mdText`${describeLinkedResourceKind(resource.type)} ${resource.name}`
+      : mdText`infrastructure linked to this incident`;
 
     return title
-      ? mdText`**Checked again** after ${alert} (${title}) opened on infrastructure linked to this incident, ${when}.`
-      : mdText`**Checked again** after ${alert} opened on infrastructure linked to this incident, ${when}.`;
+      ? mdText`**Checked again** after ${alert} opened on ${where}, ${when}: ${title}.`
+      : mdText`**Checked again** after ${alert} opened on ${where}, ${when}.`;
+  }
+
+  /*
+   * An alert's title as the end of the report's first line: trimmed, at most
+   * MAX_LEAD_TITLE_LENGTH characters, and without full stops of its own (the
+   * sentence adds one).
+   */
+  public static describeLeadTitle(title: string | undefined): string {
+    let text: string = (title || "").trim();
+
+    if (text.length > MAX_LEAD_TITLE_LENGTH) {
+      text = `${text.slice(0, MAX_LEAD_TITLE_LENGTH - 1).trimEnd()}…`;
+    }
+
+    while (text.endsWith(".")) {
+      text = text.slice(0, -1).trimEnd();
+    }
+
+    return text;
   }
 
   // The run's first activity line: why it checks again.
