@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import Route from "../../../Types/API/Route";
 import IconProp from "../../../Types/Icon/IconProp";
 import { MoreMenuItem } from "../../../UI/Components/Navbar/NavBar";
@@ -282,10 +289,7 @@ describe("remembering a product opened from the menu", () => {
     rememberRecentProductRoute(routeOf("Metrics"));
     rememberRecentProductRoute(routeOf("Kubernetes"));
 
-    expect(stored()).toEqual([
-      ...routesOf(["Kubernetes", "Metrics"]),
-      ...old,
-    ]);
+    expect(stored()).toEqual([...routesOf(["Kubernetes", "Metrics"]), ...old]);
   });
 
   test("the browser keeps the newest twenty, and forgets the oldest", () => {
@@ -373,11 +377,9 @@ describe("remembering a product opened from the menu", () => {
 
   test("storage that refuses to be read still takes the newest product", () => {
     store(routesOf(["Users"]));
-    jest.spyOn(STORAGE_METHODS, "getItem").mockImplementationOnce(
-      (): never => {
-        throw new Error("SecurityError: storage is disabled");
-      },
-    );
+    jest.spyOn(STORAGE_METHODS, "getItem").mockImplementationOnce((): never => {
+      throw new Error("SecurityError: storage is disabled");
+    });
 
     expect(() => {
       rememberRecentProductRoute(routeOf("Logs"));
@@ -399,9 +401,9 @@ describe("which remembered products the row shows", () => {
       "Incidents",
     ];
 
-    expect(titlesOf(pickRecentProducts(routesOf(titles), CATALOG, onHome))).toEqual(
-      titles.slice(0, 6),
-    );
+    expect(
+      titlesOf(pickRecentProducts(routesOf(titles), CATALOG, onHome)),
+    ).toEqual(titles.slice(0, 6));
   });
 
   test("never more than six, however many are remembered", () => {
@@ -424,8 +426,17 @@ describe("which remembered products the row shows", () => {
     ];
 
     expect(
-      titlesOf(pickRecentProducts(routesOf(titles), CATALOG, onPageOf("Users"))),
-    ).toEqual(["Logs", "Monitors", "Alerts", "Traces", "Metrics", "Kubernetes"]);
+      titlesOf(
+        pickRecentProducts(routesOf(titles), CATALOG, onPageOf("Users")),
+      ),
+    ).toEqual([
+      "Logs",
+      "Monitors",
+      "Alerts",
+      "Traces",
+      "Metrics",
+      "Kubernetes",
+    ]);
   });
 
   test("on the page of the newest product, the next six are shown", () => {
@@ -453,7 +464,13 @@ describe("which remembered products the row shows", () => {
   });
 
   test("a list of five stored before the row grew shows five, or four on the page of one", () => {
-    const old: Array<string> = ["Logs", "Monitors", "Users", "Alerts", "Traces"];
+    const old: Array<string> = [
+      "Logs",
+      "Monitors",
+      "Users",
+      "Alerts",
+      "Traces",
+    ];
 
     expect(
       titlesOf(pickRecentProducts(routesOf(old), CATALOG, onHome)),
@@ -468,9 +485,9 @@ describe("which remembered products the row shows", () => {
   });
 
   test("an empty menu shows nothing, whatever is remembered", () => {
-    expect(
-      pickRecentProducts(routesOf(["Logs", "Users"]), [], onHome),
-    ).toEqual([]);
+    expect(pickRecentProducts(routesOf(["Logs", "Users"]), [], onHome)).toEqual(
+      [],
+    );
   });
 
   test("addresses this menu does not list are skipped, and later products fill the row", () => {
@@ -552,7 +569,9 @@ describe("which remembered products the row shows", () => {
       (item: MoreMenuItem): MoreMenuItem => {
         return {
           ...item,
-          route: new Route(item.route.toString().replace(PROJECT, OTHER_PROJECT)),
+          route: new Route(
+            item.route.toString().replace(PROJECT, OTHER_PROJECT),
+          ),
         };
       },
     );
@@ -643,14 +662,16 @@ describe("remembering and showing together", () => {
       rememberRecentProductRoute(routeOf(title));
     }
     // A day in another project, and a visit to the Admin Dashboard.
-    for (const route of [...otherRoutes(8), "/admin/users", "/admin/projects"]) {
+    for (const route of [
+      ...otherRoutes(8),
+      "/admin/users",
+      "/admin/projects",
+    ]) {
       rememberRecentProductRoute(route);
     }
 
     expect(
-      titlesOf(
-        pickRecentProducts(readRecentProductRoutes(), CATALOG, onHome),
-      ),
+      titlesOf(pickRecentProducts(readRecentProductRoutes(), CATALOG, onHome)),
     ).toEqual(["Metrics", "Traces", "Logs", "Alerts", "Incidents", "Monitors"]);
   });
 });

@@ -82,16 +82,21 @@ const recentCards: (page: Page, name?: string) => Locator = (
   return recentRow(page, name).getByRole("option");
 };
 
-const recentTitles: (page: Page, name?: string) => Promise<Array<string>> =
-  async (page: Page, name?: string): Promise<Array<string>> => {
-    return recentCards(page, name).evaluateAll(
-      (options: Array<Element>): Array<string> => {
-        return options.map((option: Element): string => {
-          return option.querySelector("span.truncate")?.textContent ?? "";
-        });
-      },
-    );
-  };
+const recentTitles: (
+  page: Page,
+  name?: string,
+) => Promise<Array<string>> = async (
+  page: Page,
+  name?: string,
+): Promise<Array<string>> => {
+  return recentCards(page, name).evaluateAll(
+    (options: Array<Element>): Array<string> => {
+      return options.map((option: Element): string => {
+        return option.querySelector("span.truncate")?.textContent ?? "";
+      });
+    },
+  );
+};
 
 interface Box {
   x: number;
@@ -371,9 +376,7 @@ test.describe("the Recently visited row of the products menu", () => {
     // Back on Home, all six are in the row.
     await page.goto(`${projectPath}/home`);
     await menuAtRest(page);
-    expect(await recentTitles(page)).toEqual(
-      titlesOf([STATUS_PAGES, ...old]),
-    );
+    expect(await recentTitles(page)).toEqual(titlesOf([STATUS_PAGES, ...old]));
   });
 
   test("another project's products remembered in between are skipped, and the row still fills", async ({

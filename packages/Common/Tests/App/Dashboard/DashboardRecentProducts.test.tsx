@@ -273,9 +273,7 @@ describe("the Dashboard's Recently visited products", () => {
     expect(recentTitles()).toEqual(titles(OPENED.slice(0, 6)));
 
     // Opening one of them puts it first, and the rest stay remembered.
-    fireEvent.click(
-      within(recentRow()).getByRole("link", { name: /^Alerts/ }),
-    );
+    fireEvent.click(within(recentRow()).getByRole("link", { name: /^Alerts/ }));
 
     expect(Navigation.navigate).toHaveBeenCalledWith(
       new Route(routeFor(PageMap.ALERTS)),

@@ -340,9 +340,8 @@ describe.each(MENU_KINDS)(
     });
 
     test("an address stored twice is one card, and every card has a key of its own", () => {
-      const consoleError: Mock<(...args: Array<unknown>) => void> = jest.fn<
-        (...args: Array<unknown>) => void
-      >();
+      const consoleError: Mock<(...args: Array<unknown>) => void> =
+        jest.fn<(...args: Array<unknown>) => void>();
       jest.spyOn(console, "error").mockImplementation(consoleError);
       rememberRoutes([
         routeOf("Logs"),
@@ -391,7 +390,11 @@ describe.each(MENU_KINDS)(
       );
 
       // One column on a phone, two from sm and three from lg.
-      expect(grid).toHaveClass("grid-cols-1", "sm:grid-cols-2", "lg:grid-cols-3");
+      expect(grid).toHaveClass(
+        "grid-cols-1",
+        "sm:grid-cols-2",
+        "lg:grid-cols-3",
+      );
       expect(columns).toEqual([1, 2, 3]);
       const cards: number = within(grid).getAllByRole("option").length;
       expect(cards).toBe(6);
@@ -466,7 +469,9 @@ describe.each(MENU_KINDS)(
       remember(SEVEN);
       renderMenu();
 
-      fireEvent.click(within(recentRow()).getByRole("link", { name: /^Alerts/ }));
+      fireEvent.click(
+        within(recentRow()).getByRole("link", { name: /^Alerts/ }),
+      );
 
       expect(Navigation.navigate).toHaveBeenCalledWith(new Route("/p/alerts"));
       expect(stored()![0]).toBe(routeOf("Alerts"));
