@@ -75,7 +75,7 @@ A criteria that declares incidents opens one when it matches. Once the monitor r
 
 ```mermaid title="The life of an incident a criteria declares"
 flowchart TB
-    M["A check matches the criteria"] --> Q{"Is the incident it<br/>declared still open?"}
+    M["A check matches<br/>the criteria"] --> Q{"Is the incident it<br/>declared still open?"}
     Q -->|"Yes"| N["Nothing new opens"]
     Q -->|"No"| O["A new incident opens"]
     O --> K["A later check matches<br/>another criteria, or none"]
