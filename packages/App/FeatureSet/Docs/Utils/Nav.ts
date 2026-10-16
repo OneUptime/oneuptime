@@ -1210,6 +1210,10 @@ const DocsNav: NavGroup[] = [
         title: "IRC",
         url: "/docs/integrations/irc",
       },
+      {
+        title: "SMSEagle",
+        url: "/docs/integrations/smseagle",
+      },
     ],
   },
   {

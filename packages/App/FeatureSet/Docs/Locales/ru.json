@@ -250,6 +250,7 @@
     "Discord": "Discord",
     "Telegram": "Telegram",
     "IRC": "IRC",
+    "SMSEagle": "SMSEagle",
     "Custom Probes": "Пользовательские probes",
     "Incoming Request Ingress": "Ingress для входящих запросов",
     "Packet Capture": "Захват пакетов",

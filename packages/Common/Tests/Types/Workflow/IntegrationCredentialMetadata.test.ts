@@ -11,6 +11,7 @@ import SlackComponents from "../../../Types/Workflow/Components/Slack";
 import TelegramComponents from "../../../Types/Workflow/Components/Telegram";
 import IRCComponents from "../../../Types/Workflow/Components/IRC";
 import MattermostComponents from "../../../Types/Workflow/Components/Mattermost";
+import SMSEagleComponents from "../../../Types/Workflow/Components/SMSEagle";
 import { describe, expect, test } from "@jest/globals";
 
 function findById<T extends { id: string }>(items: Array<T>, id: string): T {
@@ -96,6 +97,17 @@ describe("workflow integration credential metadata", () => {
         ComponentID.MattermostSendMessageToChannel,
       ),
       argumentId: "webhook-url",
+    },
+    {
+      component: componentById(SMSEagleComponents, ComponentID.SMSEagleSendSms),
+      argumentId: "access-token",
+    },
+    {
+      component: componentById(
+        SMSEagleComponents,
+        ComponentID.SMSEagleMakeCall,
+      ),
+      argumentId: "access-token",
     },
   ];
 

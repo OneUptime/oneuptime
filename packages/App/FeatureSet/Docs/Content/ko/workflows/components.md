@@ -18,6 +18,7 @@
 | 채팅 도구에 게시하기                                          | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc), [Mattermost](#mattermost) |
 | 자체 메일 서버로 이메일 보내기                                | [Email](#email)                                                   |
 | 사람, 팀 또는 온콜 중인 사람 호출하기 | [Paging](#paging) |
+| 전화로 SMS를 보내거나 전화 걸기                                           | [SMSEagle](#smseagle)                                             |
 | 다른 API나 자체 서비스 호출하기                               | [API](#api)                                                       |
 | 텍스트 요약, 분류, 초안 작성하기                              | [Generate Text with AI](#generate-text-with-ai)                   |
 | 값에 따라 다른 경로로 가기                                    | [Conditions](#conditions)                                         |
@@ -87,6 +88,23 @@ System Instructions, Prompt, 직렬화된 Context는 합쳐서 50,000자로 제�
 
 > [!WARNING]
 > 모델의 출력은 신뢰할 수 없는 텍스트입니다. 고객에게 닿기 전에 검토하고, 자유 형식의 AI 텍스트만으로 파괴적인 작업을 결정하게 하지 마세요. 공급자에게 보내는 것, 로그에 남는 것, 비용은 [AI 구성 요소](/docs/workflows/configuration#ai-구성-요소)를 참조하세요.
+
+## SMSEagle
+
+자체 네트워크에 있는 하드웨어 SMS 게이트웨이인 SMSEagle 장치를 통해 SMS를 보내거나 텍스트 음성 변환 전화를 겁니다. **Send SMS via SMSEagle**은 SMS를 보내고, **Make a Call via SMSEagle**은 번호로 전화를 걸어 텍스트를 읽어 줍니다.
+
+| 설정                        | 하는 일                                                                                                                    |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **SMSEagle URL**          | 장치의 주소입니다. 예: `https://192.168.0.100`. API v2 경로는 블록이 직접 덧붙입니다.                                                         |
+| **SMSEagle Access Token** | SMSEagle 웹 GUI의 Settings, API, API v2에서 만든 API v2 키입니다. SMS에는 "Send SMS" 권한이, 전화에는 "Make a TTS Advanced Call" 권한이 필요합니다. |
+| **전화번호**                  | SMS를 보내거나 전화를 걸 번호로, 국제 형식입니다. 예: `+15551234567`.                                                                       |
+| **Message Text**          | SMS의 본문입니다. **Send SMS via SMSEagle**에만 있습니다.                                                                           |
+| **Voice ID**              | 장치에 있는 텍스트 음성 변환 음성의 ID입니다. **Make a Call via SMSEagle**에만 있습니다.                                                        |
+| **Text to Read Out**      | 통화 중에 장치가 읽어 주는 텍스트입니다. **Make a Call via SMSEagle**에만 있습니다.                                                            |
+
+**Success**는 장치가 SMS나 전화를 대기열에 넣었을 때 발생하며, 장치가 붙인 **Message ID**를 반환합니다. **Error**는 장치에 연결할 수 없거나 장치가 이를 거부할 때 발생하며, 이유를 전달합니다. 예: SMSEagle의 `voice_id: Resource with specified ID not found.` 반면 설정의 누락이나 숫자가 아닌 **Voice ID**는 실행을 멈춥니다.
+
+액세스 토큰은 [비밀 전역 변수](/docs/workflows/variables#전역-변수)에 보관하세요. 어느 쪽이든 실행의 로그에서는 가려집니다. 요청은 OneUptime에서 나가며, 리디렉션은 따라가지 않습니다. 루프백(`localhost`, `127.0.0.1`), 링크 로컬, 클라우드 메타데이터 주소의 장치는 거부되며, 사설 네트워크 주소의 장치도 셀프 호스팅 관리자가 `ALLOW_PRIVATE_NETWORK_WEBHOOKS` 또는 `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` 로 허용하지 않는 한 거부됩니다. [프라이빗 네트워크 접근](/docs/self-hosted/private-network-access)을 참조하세요.
 
 ## Slack
 

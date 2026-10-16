@@ -596,6 +596,12 @@ describe("Workflow step card: the colour of a chat step", () => {
     );
   });
 
+  test("an SMSEagle step has the green of the other chat steps", () => {
+    expect(selectedCardBorder("SMSEagle", "Send SMS via SMSEagle")).toBe(
+      "#10b981",
+    );
+  });
+
   test("a category with 'irc' inside a word is not taken for IRC", () => {
     expect(selectedCardBorder("Circuit", "Create One Circuit")).not.toBe(
       "#10b981",

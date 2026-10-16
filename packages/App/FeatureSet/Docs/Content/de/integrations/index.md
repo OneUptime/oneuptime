@@ -75,6 +75,7 @@ Beginnen Sie oben in der Tabelle: Je weiter oben ein Weg steht, desto weniger gi
 | --- | --- | --- |
 | [PagerDuty](/docs/integrations/pagerduty) | Ausgehend | Löst für jeden OneUptime-Vorfall einen PagerDuty-Vorfall aus und behebt ihn mit dem Vorfall. |
 | [Opsgenie](/docs/integrations/opsgenie) | Ausgehend | Legt für jeden OneUptime-Vorfall einen Opsgenie-Alarm an und schließt ihn mit dem Vorfall. |
+| [SMSEagle](/docs/integrations/smseagle) | Ausgehend | SMS und Anrufe über Ihr eigenes SMSEagle-SMS-Gateway senden. |
 
 ### Chatwerkzeuge
 

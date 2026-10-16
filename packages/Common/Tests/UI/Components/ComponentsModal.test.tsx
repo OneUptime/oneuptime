@@ -149,6 +149,8 @@ describe("the start view leads with what people use", () => {
       "Send Message to Telegram",
       "Send Message to IRC",
       "Send Message to Mattermost",
+      "Send SMS via SMSEagle",
+      "Make a Call via SMSEagle",
       "JSON to Text",
       "Text to JSON",
       "Merge JSON",

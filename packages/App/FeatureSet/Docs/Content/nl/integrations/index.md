@@ -75,6 +75,7 @@ Begin bovenaan de tabel: hoe hoger een manier staat, hoe minder er te onderhoude
 | --- | --- | --- |
 | [PagerDuty](/docs/integrations/pagerduty) | Uitgaand | Start een PagerDuty-incident voor elk OneUptime-incident en lost het samen met het incident op. |
 | [Opsgenie](/docs/integrations/opsgenie) | Uitgaand | Maakt een Opsgenie-alert aan voor elk OneUptime-incident en sluit het samen met het incident. |
+| [SMSEagle](/docs/integrations/smseagle) | Uitgaand | Sms'jes en oproepen versturen via je eigen SMSEagle-sms-gateway. |
 
 ### Chattools
 

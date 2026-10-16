@@ -1,6 +1,6 @@
 /*
  * Help for the steps that send a message somewhere: Slack, Microsoft Teams,
- * Discord, Telegram, IRC, Mattermost and email.
+ * Discord, Telegram, IRC, Mattermost, SMSEagle and email.
  *
  * Their example is a message with a real value in it, taken from another step
  * of the same workflow - the trigger's, where there is one - so it shows the
@@ -412,6 +412,78 @@ export const getMattermostDocumentation: MessagingDocumentationFunction = (
     ],
   };
 };
+
+export const getSMSEagleSendSmsDocumentation: MessagingDocumentationFunction = (
+  context: ComponentDocumentationContext,
+): ComponentDocumentation => {
+  return {
+    summary: "Sends an SMS through an SMSEagle device.",
+    steps: [
+      "Create an access token in the SMSEagle web GUI under Settings > API > API v2 ([SMSEagle's guide](https://www.smseagle.eu/docs/apiv2/)) and paste it into **SMSEagle Access Token**.",
+      "Put the device's address in **SMSEagle URL**, and the number in international format in **Phone Number**.",
+      "Write the message in **Message Text**, then connect **Success** and **Error**.",
+    ],
+    examples: [
+      messageExample({
+        context,
+        prefix: "Heads up: ",
+        plainMessage: "Heads up: the nightly export has finished.",
+      }),
+    ],
+    notes: [
+      {
+        type: ComponentDocumentationNoteType.Tip,
+        text: "The access token needs the Send SMS permission.",
+      },
+      {
+        type: ComponentDocumentationNoteType.Tip,
+        text: "An SMSEagle device usually has a private address. A self-hosted instance has to allow that address before the step can reach it.",
+      },
+    ],
+    learnMore: [whenRefusedTopic(context, "SMSEagle")],
+    links: [
+      externalLink("SMSEagle APIv2", "https://www.smseagle.eu/docs/apiv2/"),
+      docsLink("SMSEagle step guide", WorkflowDocsPaths.smsEagle),
+      docsLink("Outbound network access", WorkflowDocsPaths.networkAccess),
+    ],
+  };
+};
+
+export const getSMSEagleMakeCallDocumentation: MessagingDocumentationFunction =
+  (context: ComponentDocumentationContext): ComponentDocumentation => {
+    return {
+      summary:
+        "Calls a phone through an SMSEagle device and reads the text out.",
+      steps: [
+        "Create an access token in the SMSEagle web GUI under Settings > API > API v2 ([SMSEagle's guide](https://www.smseagle.eu/docs/apiv2/)) and paste it into **SMSEagle Access Token**.",
+        "Put the device's address in **SMSEagle URL**, the number in international format in **Phone Number**, and the ID of a text-to-speech voice on the device in **Voice ID**.",
+        "Write the text in **Text to Read Out**, then connect **Success** and **Error**.",
+      ],
+      examples: [
+        messageExample({
+          context,
+          prefix: "This is OneUptime. ",
+          plainMessage: "This is OneUptime. The nightly export has failed.",
+        }),
+      ],
+      notes: [
+        {
+          type: ComponentDocumentationNoteType.Tip,
+          text: "The access token needs the Make a TTS Advanced Call permission.",
+        },
+        {
+          type: ComponentDocumentationNoteType.Tip,
+          text: "An SMSEagle device usually has a private address. A self-hosted instance has to allow that address before the step can reach it.",
+        },
+      ],
+      learnMore: [whenRefusedTopic(context, "SMSEagle")],
+      links: [
+        externalLink("SMSEagle APIv2", "https://www.smseagle.eu/docs/apiv2/"),
+        docsLink("SMSEagle step guide", WorkflowDocsPaths.smsEagle),
+        docsLink("Outbound network access", WorkflowDocsPaths.networkAccess),
+      ],
+    };
+  };
 
 export const getSendEmailDocumentation: MessagingDocumentationFunction = (
   context: ComponentDocumentationContext,

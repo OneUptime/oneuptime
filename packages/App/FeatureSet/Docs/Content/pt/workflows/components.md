@@ -18,6 +18,7 @@ Raramente você vai precisar dela aberta enquanto monta. As configurações de c
 | Publicar em uma ferramenta de chat                            | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) ou [Mattermost](#mattermost) |
 | Enviar um e-mail pelo seu próprio servidor de e-mail          | [Email](#email)                                                   |
 | Acionar uma pessoa, uma equipe ou quem estiver de plantão | [Paging](#paging) |
+| Enviar um SMS ou ligar para um telefone                       | [SMSEagle](#smseagle)                                             |
 | Chamar qualquer outra API ou um serviço seu                   | [API](#api)                                                       |
 | Resumir, classificar ou redigir texto                         | [Generate Text with AI](#generate-text-with-ai)                   |
 | Seguir um caminho ou outro conforme um valor                  | [Conditions](#conditions)                                         |
@@ -87,6 +88,23 @@ Ligue **Success** aos blocos que usam a resposta, e **Error** a uma alternativa:
 
 > [!WARNING]
 > A saída do modelo é texto não confiável. Revise-a antes que chegue aos clientes e nunca deixe que um texto livre da IA decida sozinho uma ação destrutiva. Veja [Componentes de AI](/docs/workflows/configuration#componentes-de-ai) para saber o que é enviado ao provedor, o que é registrado e quanto custa.
+
+## SMSEagle
+
+Envie um SMS ou faça uma chamada de texto para fala por meio de um dispositivo SMSEagle, um gateway de SMS de hardware na sua própria rede. **Send SMS via SMSEagle** envia um SMS, e **Make a Call via SMSEagle** liga para o número e lê o texto em voz alta.
+
+| Configuração              | O que faz                                                                                                                                                         |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SMSEagle URL**          | O endereço do dispositivo, como `https://192.168.0.100`. O bloco acrescenta sozinho o caminho da API v2.                                                          |
+| **SMSEagle Access Token** | Uma chave de API v2 da GUI web do SMSEagle, em Settings, API, API v2. Ela precisa da permissão "Send SMS" para SMS e "Make a TTS Advanced Call" para chamadas.    |
+| **Número de telefone**    | O número que recebe o SMS ou a chamada, em formato internacional, como `+15551234567`.                                                                            |
+| **Message Text**          | O texto do SMS. Só em **Send SMS via SMSEagle**.                                                                                                                  |
+| **Voice ID**              | O ID de uma voz de texto para fala do dispositivo. Só em **Make a Call via SMSEagle**.                                                                            |
+| **Text to Read Out**      | O texto que o dispositivo lê durante a chamada. Só em **Make a Call via SMSEagle**.                                                                               |
+
+**Success** dispara quando o dispositivo colocou o SMS ou a chamada na fila, e devolve o **Message ID** que o dispositivo lhe deu. **Error** dispara quando o dispositivo não pode ser alcançado ou o recusa, e repassa o motivo, como `voice_id: Resource with specified ID not found.` do SMSEagle. Já uma configuração faltando, ou um **Voice ID** que não é um número, para a execução.
+
+Guarde o token de acesso em uma [variável global secreta](/docs/workflows/variables#variáveis-globais). Ele fica oculto nos logs de execução de qualquer forma. A requisição sai do OneUptime e redirecionamentos não são seguidos. Um dispositivo em um endereço de loopback (`localhost`, `127.0.0.1`), link-local ou de metadados de nuvem é recusado, assim como um em um endereço de rede privada, a menos que um administrador self-hosted o permita com `ALLOW_PRIVATE_NETWORK_WEBHOOKS` ou `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Veja [Acesso à rede privada](/docs/self-hosted/private-network-access).
 
 ## Slack
 

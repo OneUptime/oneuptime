@@ -75,6 +75,7 @@ Start from the top of the table: the higher a way is, the less there is to maint
 | --- | --- | --- |
 | [PagerDuty](/docs/integrations/pagerduty) | Outbound | Trigger a PagerDuty incident for every OneUptime incident, and resolve it with the incident. |
 | [Opsgenie](/docs/integrations/opsgenie) | Outbound | Create an Opsgenie alert for every OneUptime incident, and close it with the incident. |
+| [SMSEagle](/docs/integrations/smseagle) | Outbound | Send SMS messages and calls through your own SMSEagle SMS gateway. |
 
 ### Chat tools
 

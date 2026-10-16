@@ -250,6 +250,7 @@
     "Discord": "Discord",
     "Telegram": "Telegram",
     "IRC": "IRC",
+    "SMSEagle": "SMSEagle",
     "Custom Probes": "Brugerdefinerede probes",
     "Incoming Request Ingress": "Indgående anmodning ingress",
     "Packet Capture": "Pakkeopsamling",

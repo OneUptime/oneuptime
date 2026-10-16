@@ -18,6 +18,7 @@
 | 在聊天工具中发帖                                              | [Slack](#slack)、[Microsoft Teams](#microsoft-teams)、[Discord](#discord)、[Telegram](#telegram)、[IRC](#irc) 或 [Mattermost](#mattermost) |
 | 通过你自己的邮件服务器发送邮件                                | [Email](#email)                                                   |
 | 呼叫某个人、某个团队或当前值班的人 | [Paging](#paging) |
+| 向手机发送短信或拨打电话                                                  | [SMSEagle](#smseagle)                                             |
 | 调用其他任何 API 或你自己的服务                               | [API](#api)                                                       |
 | 总结、分类或起草文本                                          | [Generate Text with AI](#generate-text-with-ai)                   |
 | 根据某个值走这条或那条路径                                    | [Conditions](#conditions)                                         |
@@ -87,6 +88,23 @@ System Instructions、Prompt 和序列化后的 Context 合计不超过 50,000 �
 
 > [!WARNING]
 > 模型输出是不可信的文本。在它到达客户之前进行审核，并且永远不要让自由形式的 AI 文本单独决定一个破坏性操作。关于发送给提供商的内容、日志记录的内容以及费用，参见 [AI 组件](/docs/workflows/configuration#ai-组件)。
+
+## SMSEagle
+
+通过 SMSEagle 设备（一种位于你自己网络中的硬件短信网关）发送短信或拨打文字转语音电话。**Send SMS via SMSEagle** 发送短信，**Make a Call via SMSEagle** 拨打该号码并朗读文本。
+
+| 设置                        | 作用                                                                                                         |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **SMSEagle URL**          | 设备的地址，例如 `https://192.168.0.100`。API v2 的路径由组件自行添加。                                                        |
+| **SMSEagle Access Token** | 在 SMSEagle 网页 GUI 的 Settings、API、API v2 中创建的 API v2 密钥。短信需要 "Send SMS" 权限，电话需要 "Make a TTS Advanced Call" 权限。 |
+| **电话号码**                  | 接收短信或电话的号码，采用国际格式，例如 `+15551234567`。                                                                       |
+| **Message Text**          | 短信的正文。仅在 **Send SMS via SMSEagle** 中。                                                                      |
+| **Voice ID**              | 设备上某个文字转语音声音的 ID。仅在 **Make a Call via SMSEagle** 中。                                                        |
+| **Text to Read Out**      | 设备在通话中朗读的文本。仅在 **Make a Call via SMSEagle** 中。                                                             |
+
+设备将短信或电话放入队列时触发 **Success**，并返回设备为其分配的 **Message ID**。无法连接到设备或设备拒绝时触发 **Error**，并传下原因，例如 SMSEagle 给出的 `voice_id: Resource with specified ID not found.`。而缺少某个设置，或 **Voice ID** 不是数字，会停止运行。
+
+把访问令牌保存在 [秘密全局变量](/docs/workflows/variables#全局变量) 中。无论如何它在运行日志中都会被隐藏。请求从 OneUptime 发出，不会跟随重定向。位于回环地址（`localhost`、`127.0.0.1`）、链路本地地址或云元数据地址上的设备会被拒绝；位于私有网络地址上的也会被拒绝，除非自托管管理员通过 `ALLOW_PRIVATE_NETWORK_WEBHOOKS` 或 `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` 允许它。参见 [私有网络访问](/docs/self-hosted/private-network-access)。
 
 ## Slack
 

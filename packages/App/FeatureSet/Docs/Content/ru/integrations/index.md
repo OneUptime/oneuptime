@@ -75,6 +75,7 @@ flowchart TB
 | --- | --- | --- |
 | [PagerDuty](/docs/integrations/pagerduty) | Исходящее | Запускает инцидент PagerDuty для каждого инцидента OneUptime и устраняет его вместе с инцидентом. |
 | [Opsgenie](/docs/integrations/opsgenie) | Исходящее | Создаёт оповещение Opsgenie для каждого инцидента OneUptime и закрывает его вместе с инцидентом. |
+| [SMSEagle](/docs/integrations/smseagle) | Исходящее | Отправляет SMS и звонки через ваш собственный SMS-шлюз SMSEagle. |
 
 ### Чат-инструменты
 

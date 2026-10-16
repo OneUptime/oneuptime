@@ -75,6 +75,7 @@ Börja från toppen av tabellen: ju högre upp ett sätt står, desto mindre fin
 | --- | --- | --- |
 | [PagerDuty](/docs/integrations/pagerduty) | Utgående | Utlöser en PagerDuty-incident för varje OneUptime-incident och löser den tillsammans med incidenten. |
 | [Opsgenie](/docs/integrations/opsgenie) | Utgående | Skapar ett Opsgenie-larm för varje OneUptime-incident och stänger det tillsammans med incidenten. |
+| [SMSEagle](/docs/integrations/smseagle) | Utgående | Skicka sms och samtal via din egen SMSEagle-sms-gateway. |
 
 ### Chattverktyg
 

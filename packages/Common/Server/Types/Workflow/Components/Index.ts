@@ -36,6 +36,8 @@ import Page from "./OnCall/Page";
 import Schedule from "./Schedule";
 import SlackSendMessageToChannel from "./Slack/SendMessageToChannel";
 import Sleep from "./Sleep";
+import SMSEagleMakeCall from "./SMSEagle/MakeCall";
+import SMSEagleSendSms from "./SMSEagle/SendSms";
 import TelegramSendMessageToChat from "./Telegram/SendMessageToChat";
 import WebhookTrigger from "./Webhook";
 import ExecuteWorkflow from "./Workflow";
@@ -61,6 +63,8 @@ const Components: Dictionary<ComponentCode> = {
   [ComponentID.IRCSendMessageToChannel]: new IRCSendMessageToChannel(),
   [ComponentID.MattermostSendMessageToChannel]:
     new MattermostSendMessageToChannel(),
+  [ComponentID.SMSEagleSendSms]: new SMSEagleSendSms(),
+  [ComponentID.SMSEagleMakeCall]: new SMSEagleMakeCall(),
   [ComponentID.Log]: new Log(),
   [ComponentID.Schedule]: new Schedule(),
   [ComponentID.JavaScriptCode]: new JavaScriptCode(),

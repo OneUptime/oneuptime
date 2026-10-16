@@ -18,6 +18,7 @@ Je hebt haar zelden open nodig tijdens het bouwen. De instellingen van elk blok 
 | In een chattool te posten                                     | [Slack](#slack), [Microsoft Teams](#microsoft-teams), [Discord](#discord), [Telegram](#telegram), [IRC](#irc) of [Mattermost](#mattermost) |
 | Een e-mail via je eigen mailserver te sturen                  | [Email](#email)                                                   |
 | Een persoon, een team of wie bereikbaarheidsdienst heeft op te roepen | [Paging](#paging) |
+| Een sms te sturen of een telefoon te bellen                   | [SMSEagle](#smseagle)                                             |
 | Een andere API of je eigen dienst aan te roepen               | [API](#api)                                                       |
 | Tekst samen te vatten, te classificeren of op te stellen      | [Generate Text with AI](#generate-text-with-ai)                   |
 | Afhankelijk van een waarde het ene of het andere pad te nemen | [Conditions](#conditions)                                         |
@@ -87,6 +88,23 @@ Sluit **Success** aan op de blokken die het antwoord gebruiken, en **Error** op 
 
 > [!WARNING]
 > Uitvoer van het model is onbetrouwbare tekst. Controleer die voordat ze klanten bereikt, en laat vrije AI-tekst nooit in zijn eentje over een destructieve actie beslissen. Zie [AI-componenten](/docs/workflows/configuration#ai-componenten) voor wat er naar de provider gaat, wat er wordt gelogd en wat het kost.
+
+## SMSEagle
+
+Stuur een sms of voer een tekst-naar-spraakgesprek via een SMSEagle-apparaat, een hardware-sms-gateway op je eigen netwerk. **Send SMS via SMSEagle** stuurt een sms, en **Make a Call via SMSEagle** belt het nummer en leest de tekst voor.
+
+| Instelling                | Wat het doet                                                                                                                                                                     |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SMSEagle URL**          | Het adres van het apparaat, zoals `https://192.168.0.100`. Het pad van de API v2 voegt het blok zelf toe.                                                                        |
+| **SMSEagle Access Token** | Een API v2-sleutel uit de web-GUI van SMSEagle, onder Settings, API, API v2. Hij heeft de machtiging "Send SMS" nodig voor sms en "Make a TTS Advanced Call" voor gesprekken.    |
+| **Telefoonnummer**        | Het nummer dat de sms of het gesprek krijgt, in internationaal formaat, zoals `+15551234567`.                                                                                    |
+| **Message Text**          | De tekst van de sms. Alleen in **Send SMS via SMSEagle**.                                                                                                                        |
+| **Voice ID**              | Het ID van een tekst-naar-spraakstem op het apparaat. Alleen in **Make a Call via SMSEagle**.                                                                                    |
+| **Text to Read Out**      | De tekst die het apparaat tijdens het gesprek voorleest. Alleen in **Make a Call via SMSEagle**.                                                                                 |
+
+**Success** gaat af als het apparaat de sms of het gesprek in de wachtrij heeft gezet, en geeft het **Message ID** terug dat het apparaat eraan gaf. **Error** gaat af als het apparaat niet bereikbaar is of hem weigert, en geeft de reden door, zoals `voice_id: Resource with specified ID not found.` van SMSEagle. Een ontbrekende instelling, of een **Voice ID** dat geen getal is, stopt de uitvoering daarentegen.
+
+Bewaar het toegangstoken in een [geheime globale variabele](/docs/workflows/variables#globale-variabelen). Het is hoe dan ook verborgen in de logboeken van uitvoeringen. Het verzoek gaat vanuit OneUptime de deur uit, en een omleiding wordt niet gevolgd. Een apparaat op een loopback- (`localhost`, `127.0.0.1`), link-local- of cloudmetadata-adres wordt geweigerd, en een apparaat op een privénetwerkadres ook, tenzij een beheerder van een zelf gehoste installatie dat toestaat met `ALLOW_PRIVATE_NETWORK_WEBHOOKS` of `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Zie [Toegang tot privénetwerk](/docs/self-hosted/private-network-access).
 
 ## Slack
 

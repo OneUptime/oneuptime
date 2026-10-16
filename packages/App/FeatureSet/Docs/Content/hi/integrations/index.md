@@ -75,6 +75,7 @@ Jira या Dynamics 365 जैसा दो-तरफ़ा इंटिग्�
 | --- | --- | --- |
 | [PagerDuty](/docs/integrations/pagerduty) | आउटबाउंड | हर OneUptime घटना के लिए PagerDuty incident ट्रिगर करता है, और घटना के साथ उसे सुलझाता है। |
 | [Opsgenie](/docs/integrations/opsgenie) | आउटबाउंड | हर OneUptime घटना के लिए Opsgenie अलर्ट बनाता है, और घटना के साथ उसे बंद करता है। |
+| [SMSEagle](/docs/integrations/smseagle) | आउटबाउंड | अपने SMSEagle SMS गेटवे के ज़रिए SMS और कॉल भेजें। |
 
 ### चैट टूल
 
