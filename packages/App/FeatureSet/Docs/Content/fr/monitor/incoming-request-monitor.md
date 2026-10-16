@@ -198,7 +198,7 @@ Un nouveau moniteur de requêtes entrantes est créé avec deux critères qui li
 | Critère | Type de filtre | Condition de filtre | Valeur | Effet |
 | -------- | ------------ | ---------------- | ------- | -------------------------------------------- |
 | Hors ligne | Corps de la requête | Contient | `error` | Marque le moniteur hors ligne, ouvre un incident |
-| En ligne | Corps de la requête | Not Contains | `error` | Marque le moniteur en ligne |
+| En ligne | Corps de la requête | Ne contient pas | `error` | Marque le moniteur en ligne |
 
 Cela convient au cas courant où l'expéditeur rapporte sa propre santé dans la charge utile : une requête dont le corps mentionne `error` met le moniteur hors ligne, et la requête suivante sans ce mot le remet en ligne et résout l'incident. Une requête sans corps du tout compte comme « ne contient pas `error` » : un simple appel de heartbeat garde donc le moniteur en ligne.
 
@@ -224,7 +224,7 @@ Chaque type de filtre propose ses propres conditions :
 | Type de filtre | Conditions |
 | --- | --- |
 | **Requête entrante** | **Recieved In Minutes** — une requête a été reçue dans le nombre de minutes indiqué. **Not Recieved In Minutes** — aucune requête n'a été reçue dans le nombre de minutes indiqué. (Le tableau de bord les écrit ainsi.) |
-| **Corps de la requête**, **Request Header**, **Request Header Value** | **Contient** et **Not Contains** |
+| **Corps de la requête**, **Request Header**, **Request Header Value** | **Contient** et **Ne contient pas** |
 | **JavaScript Expression** | **Evaluates To True** |
 
 > [!NOTE]
@@ -251,7 +251,7 @@ Les corps objets sont comparés en JSON compact, sans espaces : un filtre **Corp
 | **Valeur** | `"status":"degraded"` |
 
 > [!IMPORTANT]
-> Placez l'interrupteur de l'homme mort **au-dessus** des critères par défaut. Les critères sont vérifiés depuis le haut, et le premier qui correspond décide. La vérification en arrière-plan relit la dernière requête : le critère en ligne par défaut — "Request Body Not Contains `error`" — continue donc d'y correspondre, et un critère placé en dessous n'a jamais son tour. **Ajouter un critère** ajoute un critère en bas : faites-le remonter.
+> Placez l'interrupteur de l'homme mort **au-dessus** des critères par défaut. Les critères sont vérifiés depuis le haut, et le premier qui correspond décide. La vérification en arrière-plan relit la dernière requête : le critère en ligne par défaut — "Corps de la requête Ne contient pas `error`" — continue donc d'y correspondre, et un critère placé en dessous n'a jamais son tour. **Ajouter un critère** ajoute un critère en bas : faites-le remonter.
 
 > [!WARNING]
 > Un moniteur n'est réévalué en arrière-plan que si au moins un de ses critères vérifie **Requête entrante**. Un moniteur dont les critères ne vérifient que le corps de la requête, Request Header ou une expression JavaScript est évalué à l'arrivée d'une requête et jamais à un autre moment — il ne peut donc jamais passer hors ligne de lui-même. Si vous voulez une alarme sur heartbeat manquant, il vous faut un critère **Requête entrante**.

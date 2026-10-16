@@ -112,7 +112,7 @@ Estos monitores siempre evalúan el **Metric Value**: el valor de la consulta de
 
 ### Condiciones
 
-Los umbrales estáticos se comparan con el **Umbral** que introduce: **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** y **Equal To**.
+Los umbrales estáticos se comparan con el **Umbral** que introduce: **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** e **Igual a**.
 
 La detección de anomalías frente a una referencia no necesita umbral. Elija una de estas condiciones, y el formulario muestra **Sensibilidad** y **Ventana de referencia** en su lugar:
 

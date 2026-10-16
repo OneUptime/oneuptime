@@ -101,7 +101,7 @@ OneUptime 探索到的關係如果 30 天內沒有再次出現，就會被移除
 可以手動新增的類型有三種：
 
 - `external.service`（**External Service**）：第三方 API 或軟體即服務的相依項目。
-- `external.database`（**External Database**）：不屬於 OneUptime 可建模之伺服器的資料庫。資料庫伺服器，無論是自行託管還是代管服務，從 PostgreSQL 到 Snowflake，都應改在 **Databases → 建立Database** 中新增（[資料庫](/docs/telemetry/databases)）：那筆記錄會與指向同一位址的追蹤、容器和引擎指標連結，而資產清單項目永遠做不到這一點；用兩種方式新增同一台伺服器，會留下兩筆互不連結的記錄。
+- `external.database`（**External Database**）：不屬於 OneUptime 可建模之伺服器的資料庫。資料庫伺服器，無論是自行託管還是代管服務，從 PostgreSQL 到 Snowflake，都應改在 **Databases → 建立資料庫** 中新增（[資料庫](/docs/telemetry/databases)）：那筆記錄會與指向同一位址的追蹤、容器和引擎指標連結，而資產清單項目永遠做不到這一點；用兩種方式新增同一台伺服器，會留下兩筆互不連結的記錄。
 - `appliance`（**Appliance**）：沒有代理程式的硬體或軟體。
 
 這項限制是為了防止重複。手動建立的、OneUptime 能觀察到之類型的項目（例如主機）會以你輸入的名稱作為鍵，而同一台機器的探索項目則以它回報的屬性作為鍵。兩者永遠不會合併，於是同一台主機會永久地在你的清單中出現兩次。

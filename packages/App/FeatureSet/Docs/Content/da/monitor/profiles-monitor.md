@@ -90,12 +90,12 @@ En profil-monitors kriterier har ét filter, **Profile Count**: antallet af prof
 
 | Filterbetingelse | Matcher, når antallet af profiler er… |
 | --- | --- |
-| **Greater Than** | over værdien |
-| **Greater Than Or Equal To** | lig med værdien eller derover |
-| **Less Than** | under værdien |
-| **Less Than Or Equal To** | lig med værdien eller derunder |
-| **Equal To** | præcis værdien |
-| **Not Equal To** | alt andet end værdien |
+| **Større end** | over værdien |
+| **Større end eller lig med** | lig med værdien eller derover |
+| **Mindre end** | under værdien |
+| **Mindre end eller lig med** | lig med værdien eller derunder |
+| **Lig med** | præcis værdien |
+| **Ikke lig med** | alt andet end værdien |
 
 Antal profiler har ingen anomalibetingelser: der er ingen baseline at sammenligne dem med.
 
@@ -104,8 +104,8 @@ Antal profiler har ingen anomalibetingelser: der er ingen baseline at sammenlign
 Checkout-tjenesten kører et Pyroscope-SDK, der uploader CPU-profiler. Du vil have en hændelse, når de udebliver i fem minutter:
 
 - `profileTypes`: `["cpu"]`, `telemetryServiceIds`: checkout-tjenesten, `lastXSecondsOfProfiles`: `300`
-- Kriterium 1: **Profile Count** **Equal To** `0`: sæt monitoren offline, og erklær en hændelse
-- Kriterium 2: **Profile Count** **Greater Than** `0`: sæt monitoren online
+- Kriterium 1: **Profile Count** **Lig med** `0`: sæt monitoren offline, og erklær en hændelse
+- Kriterium 2: **Profile Count** **Større end** `0`: sæt monitoren online
 
 Mens SDK'et uploader, tæller hver evaluering nogle profiler, og kriterium 2 holder monitoren online. Når tjenesten udrulles uden SDK'et, falder antallet til 0 fem minutter efter den sidste upload, kriterium 1 matcher, og hændelsen erklæres. Den første upload efter rettelsen bringer antallet over 0 igen, og hændelsen løser sig selv, hvis **Løs hændelse automatisk** er slået til for den.
 

@@ -177,15 +177,15 @@ return {
 
 | 过滤器类型 | 检查内容 | 过滤条件 |
 | --- | --- | --- |
-| **错误** | 脚本抛出的错误（如果有）。 | 包含、Not Contains、Equal To、Not Equal To、Is Empty、Is Not Empty |
-| **Result Value** | 脚本返回的 `data`。如果它是数字，就按数字比较。 | 同上，另加 Greater Than、Less Than、Greater Than Or Equal To、Less Than Or Equal To、是、否 |
+| **错误** | 脚本抛出的错误（如果有）。 | 包含、不包含、等于、不等于、为空、不为空 |
+| **Result Value** | 脚本返回的 `data`。如果它是数字，就按数字比较。 | 同上，另加：大于、小于、大于或等于、小于或等于、是、否 |
 | **执行时间（毫秒）** | 脚本运行了多长时间。 | 数值比较 |
 
 默认条件在 **错误** 为空时将监视器标记为在线，不为空时标记为离线，并附带一个事件，脚本再次成功时该事件会自动解决。在事件和告警模板中，这次运行可以用 `{{result}}`、`{{scriptError}}`、`{{logMessages}}` 和 `{{executionTimeInMs}}` 引用：请参阅 [事件与告警模板](/docs/monitor/incident-alert-templating)。
 
 ### 根据返回的数据告警
 
-脚本作为 `data` 返回的内容就是监视器的 **Result Value**，条件可以对它进行比较，例如 _Result Value is Equal To `UP`_。
+脚本作为 `data` 返回的内容就是监视器的 **Result Value**，条件可以对它进行比较，例如 _Result Value 等于 `UP`_。
 
 当 `data` 是对象或数组时，在 Result Value 过滤器上填写 **字段路径（可选）**，即可只比较其中一个字段而不是整个值。嵌套字段用点号，数组元素用 `[n]`：
 
@@ -204,16 +204,16 @@ return {
 
 | 字段路径 | 比较的值 | 条件示例 |
 | --- | --- | --- |
-| `status` | `"UP"` | Not Equal To `UP` |
-| `cpu_busy_percent` | `42` | Greater Than `90` |
+| `status` | `"UP"` | 不等于 `UP` |
+| `cpu_busy_percent` | `42` | 大于 `90` |
 | `healthy` | `true` | 否 |
-| `checks[0].latency` | `12` | Greater Than `500` |
+| `checks[0].latency` | `12` | 大于 `500` |
 
 要检查的每个字段各添加一个过滤器；每个过滤器都可以有自己的条件和值。
 
 - 要比较整个值（例如脚本只返回一个数字或字符串），请把字段路径留空。
-- Greater Than、Less Than 和其他数值条件只匹配数字，因此请把字段返回为 `42`，而不是 `"42"`。是和否只匹配布尔值。
-- 返回数据中不存在的字段（缺失的键，或超出数组末尾的索引）按空值比较：**Is Empty** 会匹配它，其他条件都不会。
+- 大于、小于和其他数值条件只匹配数字，因此请把字段返回为 `42`，而不是 `"42"`。是和否只匹配布尔值。
+- 返回数据中不存在的字段（缺失的键，或超出数组末尾的索引）按空值比较：**为空** 会匹配它，其他条件都不会。
 - 名称中包含点号的字段无法通过路径访问。
 - 在 Terraform 中，过滤器的 `custom_code_monitor_options` 用于设置字段路径：请参阅 [监控步骤](/docs/terraform/monitor-steps#比较脚本结果中的某个字段)。
 

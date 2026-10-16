@@ -40,14 +40,17 @@ import path from "path";
  *     language's Dashboard locale, Persian included, as on the other monitor
  *     pages (drawnActionLabel). Menu paths ("A → B → C") are drawn segment by
  *     segment.
- *   - The criteria filters and most of their conditions (Result Value, SQL
- *     Is Online, Not Recieved In Minutes, Equal To), the type picker's
- *     categories (Synthetic Monitoring, Inbound Monitoring), the Custom
- *     JavaScript Code type and the status page providers have no Dashboard
- *     locale key: every language's Dashboard shows them in English, so every
- *     translation names them in English (SHOWN_IN_ENGLISH). When the
- *     Dashboard gains a key for one, a test below fails until the pages name
- *     it as drawn.
+ *   - The criteria filters and a few of their conditions (Result Value, SQL
+ *     Is Online, Not Recieved In Minutes, Evaluates To True), the type
+ *     picker's categories (Synthetic Monitoring, Inbound Monitoring), the
+ *     Custom JavaScript Code type and the status page providers have no
+ *     Dashboard locale key: every language's Dashboard shows them in
+ *     English, so every translation names them in English
+ *     (SHOWN_IN_ENGLISH). When the Dashboard gains a key for one, a test
+ *     below fails until the pages name it as drawn. The text and number
+ *     conditions (Equal To, Not Contains, Is Empty) gained theirs in
+ *     adc8421a1b: they are labels now, drawn like any other
+ *     (DocsCriteriaConditions holds every page to them).
  *   - The Admin Dashboard's own locale draws the one Admin Dashboard setting
  *     the Incoming Email page names (ADMIN_DASHBOARD_LABELS).
  *
@@ -100,13 +103,6 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
   return entry.page;
 });
 
-// The text conditions the criteria form offers without a locale key.
-const TEXT_CONDITIONS_IN_ENGLISH: Array<string> = [
-  "Not Contains",
-  "Equal To",
-  "Not Equal To",
-];
-
 // The two time conditions of Incoming Request and Email Received, spelled as the form spells them.
 const RECEIVED_CONDITIONS_IN_ENGLISH: Array<string> = [
   "Recieved In Minutes",
@@ -123,9 +119,8 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     // The type picker's card and the category it sits in.
     "Custom JavaScript Code",
     "Synthetic Monitoring",
-    // The criteria filter (CheckOn) and a condition (FilterType).
+    // The criteria filter (CheckOn).
     "Result Value",
-    "Is Empty",
   ],
   [SQL_MONITOR]: [
     "Database Monitoring",
@@ -142,16 +137,9 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "SQL Query Error",
     "JavaScript Expression",
   ],
-  [SYNTHETIC_MONITOR]: [
-    "Synthetic Monitoring",
-    "Result Value",
-    "Screen Size",
-    "Equal To",
-    "Not Equal To",
-  ],
+  [SYNTHETIC_MONITOR]: ["Synthetic Monitoring", "Result Value", "Screen Size"],
   [INCOMING_REQUEST_MONITOR]: [
     ...RECEIVED_CONDITIONS_IN_ENGLISH,
-    "Not Contains",
     "Request Header",
     "Request Header Value",
     "JavaScript Expression",
@@ -168,11 +156,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Email Body",
     "Email To Address",
     "JavaScript Expression",
-    ...TEXT_CONDITIONS_IN_ENGLISH,
-    "Starts With",
-    "Ends With",
-    "Is Empty",
-    "Is Not Empty",
     "Evaluates To True",
     // The inbound email provider, by its product name.
     "SendGrid Inbound Parse",

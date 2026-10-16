@@ -90,12 +90,12 @@ Les critères d'un moniteur de profils ont un seul filtre, **Profile Count** : l
 
 | Condition de filtre | Correspond quand le nombre de profils est… |
 | --- | --- |
-| **Greater Than** | au-dessus de la valeur |
-| **Greater Than Or Equal To** | égal ou supérieur à la valeur |
-| **Less Than** | en dessous de la valeur |
-| **Less Than Or Equal To** | égal ou inférieur à la valeur |
-| **Equal To** | exactement la valeur |
-| **Not Equal To** | tout sauf la valeur |
+| **Supérieur à** | au-dessus de la valeur |
+| **Supérieur ou égal à** | égal ou supérieur à la valeur |
+| **Inférieur à** | en dessous de la valeur |
+| **Inférieur ou égal à** | égal ou inférieur à la valeur |
+| **Égal à** | exactement la valeur |
+| **Différent de** | tout sauf la valeur |
 
 Les décomptes de profils n'ont pas de conditions d'anomalie : il n'existe pas de référence à laquelle les comparer.
 
@@ -104,8 +104,8 @@ Les décomptes de profils n'ont pas de conditions d'anomalie : il n'existe pas d
 Le service checkout exécute un SDK Pyroscope qui envoie des profils CPU. Vous voulez un incident quand ils s'arrêtent pendant cinq minutes :
 
 - `profileTypes` : `["cpu"]`, `telemetryServiceIds` : le service checkout, `lastXSecondsOfProfiles` : `300`
-- Critère 1 : **Profile Count** **Equal To** `0` – passer le moniteur hors ligne et déclarer un incident
-- Critère 2 : **Profile Count** **Greater Than** `0` – passer le moniteur en ligne
+- Critère 1 : **Profile Count** **Égal à** `0` – passer le moniteur hors ligne et déclarer un incident
+- Critère 2 : **Profile Count** **Supérieur à** `0` – passer le moniteur en ligne
 
 Tant que le SDK envoie, chaque évaluation compte quelques profils et le critère 2 garde le moniteur en ligne. Quand le service est déployé sans le SDK, le décompte tombe à 0 cinq minutes après le dernier envoi, le critère 1 correspond et l'incident est déclaré. Le premier envoi après la correction ramène le décompte au-dessus de 0, et l'incident se résout de lui-même si **Résoudre automatiquement l'incident** est activé pour lui.
 

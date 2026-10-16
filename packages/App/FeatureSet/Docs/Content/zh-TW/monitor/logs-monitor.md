@@ -100,11 +100,11 @@ OneUptime 每分鐘計算一次符合監測器篩選器、且在其時間視窗�
 
 | 篩選條件 | 當日誌數量…時符合 |
 | --- | --- |
-| **Greater Than** | 高於該值 |
-| **Greater Than Or Equal To** | 等於或高於該值 |
-| **Less Than** | 低於該值 |
-| **Less Than Or Equal To** | 等於或低於該值 |
-| **Equal To** | 正好等於該值 |
+| **大於** | 高於該值 |
+| **大於或等於** | 等於或高於該值 |
+| **小於** | 低於該值 |
+| **小於或等於** | 等於或低於該值 |
+| **等於** | 正好等於該值 |
 | **Anomalously High** | 高於每週這個時段的預期範圍 |
 | **Anomalously Low** | 低於該範圍 |
 | **Anomalous** | 往任一方向超出該範圍 |
@@ -115,11 +115,11 @@ OneUptime 每分鐘計算一次符合監測器篩選器、且在其時間視窗�
 
 | 條件 | 篩選器 | 效果 |
 | --- | --- | --- |
-| Check if … is offline | **Log Count** **Equal To** `0` | 將監測器標記為離線並宣告事件，事件會自動解決 |
-| Check if … is online | **Log Count** **Greater Than** `0` | 將監測器標記為上線 |
+| Check if … is offline | **Log Count** **等於** `0` | 將監測器標記為離線並宣告事件，事件會自動解決 |
+| Check if … is online | **Log Count** **大於** `0` | 將監測器標記為上線 |
 
 > [!TIP]
-> 若要針對錯誤而不是沉默發出警示，請把 **日誌嚴重性** 設為 **錯誤**，並把離線條件改為 **Log Count** **Greater Than** 視窗內您可以容忍的錯誤數量。
+> 若要針對錯誤而不是沉默發出警示，請把 **日誌嚴重性** 設為 **錯誤**，並把離線條件改為 **Log Count** **大於** 視窗內您可以容忍的錯誤數量。
 
 ## 實例：錯誤激增
 
@@ -128,8 +128,8 @@ OneUptime 每分鐘計算一次符合監測器篩選器、且在其時間視窗�
 - **日誌嚴重性**：**錯誤**
 - **監測 (time) 內的日誌**：**過去 5 分鐘**
 - **依遙測服務篩選**：`checkout`
-- 條件 1：**Log Count** **Greater Than** `50`：將監測器標記為離線並宣告事件
-- 條件 2：**Log Count** **Less Than Or Equal To** `50`：將監測器標記為上線
+- 條件 1：**Log Count** **大於** `50`：將監測器標記為離線並宣告事件
+- 條件 2：**Log Count** **小於或等於** `50`：將監測器標記為上線
 
 連續四次評估：
 
@@ -200,7 +200,7 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 2. 將 **監測包含此文字的日誌** 設為 `terminated`，將 **監測 (time) 內的日誌** 設為 **過去 5 分鐘**。
 3. 在 **更多欄位** 下加入屬性篩選器 `log_component` = `IPSec`。
 4. 在 **Group by Attributes** 下加入 `con_name`。
-5. 加入一個使用篩選器 **Log Count** **Greater Than** `0` 的條件，用來建立標題為 `IPsec tunnel {{con_name}} terminated` 的警示或事件。
+5. 加入一個使用篩選器 **Log Count** **大於** `0` 的條件，用來建立標題為 `IPsec tunnel {{con_name}} terminated` 的警示或事件。
 :::
 
 現在，每條記錄了終止的通道都會收到自己的警示（`IPsec tunnel HQ-Branch1 terminated`、`IPsec tunnel Branch2 terminated`），每個警示各自獨立解決。
@@ -219,7 +219,7 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 ### 條件的評估方式不同
 
 - **所有條件都會被評估**，與分組的指標監測器一樣，因此不同群組可以同時符合不同的條件。符合兩個條件的群組仍然只會收到一個警示，來自第一個條件；所以請依照從最嚴重到最不嚴重的順序排列條件。
-- **只有在時間視窗內記錄過內容的群組才存在。** 因此 **Equal To 0** 與 **Less Than** 條件只會對至少記錄過一次的群組觸發；若要在日誌完全不再抵達時發出警示，請使用不帶 Group By 的監測器。
+- **只有在時間視窗內記錄過內容的群組才存在。** 因此 **等於 0** 與 **小於** 條件只會對至少記錄過一次的群組觸發；若要在日誌完全不再抵達時發出警示，請使用不帶 Group By 的監測器。
 - **異常偵測**（**Anomalously High**、**Anomalously Low**、**Anomalous**）不會依群組評估（其基準涵蓋整個監測器），因此這些篩選器在分組的監測器上永遠不會符合。
 - 監測器的狀態會跟隨任一群組符合的第一個條件。當沒有任何群組符合任何條件時，監測器會回到預設狀態。
 
@@ -230,7 +230,7 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 :::
 
 :::details 出現了激增，但沒有任何警示
-條件由上而下檢查，第一個符合的條件決定結果。如果在您預期的條件之上有一個寬鬆的條件，例如 **Log Count** **Greater Than** `0`，它會先符合並擋住其餘條件。請把最嚴重的條件放在最上面。
+條件由上而下檢查，第一個符合的條件決定結果。如果在您預期的條件之上有一個寬鬆的條件，例如 **Log Count** **大於** `0`，它會先符合並擋住其餘條件。請把最嚴重的條件放在最上面。
 :::
 
 :::details 異常條件從不觸發

@@ -109,9 +109,9 @@ sequenceDiagram
 | 筛选器 | 条件 | 检查内容 |
 | --- | --- | --- |
 | **Is Online** | **是**、**否** | 端口是否接受了连接。 |
-| **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 整个连接时间，对于主机名还包括 DNS 查找。 |
-| **Port DNS Lookup Time (in ms)** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 第一次 TCP 尝试之前的 DNS 查找。当目标是 IP 地址时没有值。 |
-| **Port TCP Connect Time (in ms)** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 从第一次 TCP 尝试到连接被接受，包括 IPv6 和 IPv4 之间的回退。 |
+| **Total Connection Time (DNS + TCP) (in ms)** | **大于**、**小于**、**大于或等于**、**小于或等于** | 整个连接时间，对于主机名还包括 DNS 查找。 |
+| **Port DNS Lookup Time (in ms)** | **大于**、**小于**、**大于或等于**、**小于或等于** | 第一次 TCP 尝试之前的 DNS 查找。当目标是 IP 地址时没有值。 |
+| **Port TCP Connect Time (in ms)** | **大于**、**小于**、**大于或等于**、**小于或等于** | 从第一次 TCP 尝试到连接被接受，包括 IPv6 和 IPv4 之间的回退。 |
 | **Is Request Timeout** | **是**、**否** | DNS 查找或 TCP 连接是否在每次尝试中都超过了超时时间。 |
 
 当目标是 IP 地址时，DNS 查找条件没有可评估的内容。对于必须同时适用于主机名和 IP 地址的条件，请使用总时间或 TCP 连接时间。
@@ -156,10 +156,10 @@ sequenceDiagram
 | 目标 | 筛选器 | 条件 | 值 |
 | --- | --- | --- | --- |
 | 端口关闭时为离线 | **Is Online** | **否** | — |
-| 连接缓慢时告警 | **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than** | `500` |
-| 连接缓慢时将服务标记为性能下降 | **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than** | `200` |
-| DNS 缓慢时告警 | **Port DNS Lookup Time (in ms)** | **Greater Than** | `100` |
-| TCP 握手缓慢时告警 | **Port TCP Connect Time (in ms)** | **Greater Than** | `250` |
+| 连接缓慢时告警 | **Total Connection Time (DNS + TCP) (in ms)** | **大于** | `500` |
+| 连接缓慢时将服务标记为性能下降 | **Total Connection Time (DNS + TCP) (in ms)** | **大于** | `200` |
+| DNS 缓慢时告警 | **Port DNS Lookup Time (in ms)** | **大于** | `100` |
+| TCP 握手缓慢时告警 | **Port TCP Connect Time (in ms)** | **大于** | `250` |
 
 ## 故障排查
 

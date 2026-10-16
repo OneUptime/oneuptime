@@ -112,12 +112,12 @@ En undantagsmonitors kriterier har en enda **Filtertyp**: **Exception Count**, a
 
 | Filtervillkor | Matchar när antalet undantag är… |
 | --- | --- |
-| **Greater Than** | över värdet |
-| **Greater Than Or Equal To** | lika med värdet eller högre |
-| **Less Than** | under värdet |
-| **Less Than Or Equal To** | lika med värdet eller lägre |
-| **Equal To** | exakt värdet |
-| **Not Equal To** | allt utom värdet |
+| **Större än** | över värdet |
+| **Större än eller lika med** | lika med värdet eller högre |
+| **Mindre än** | under värdet |
+| **Mindre än eller lika med** | lika med värdet eller lägre |
+| **Lika med** | exakt värdet |
+| **Inte lika med** | allt utom värdet |
 
 Antal undantag har inga avvikelsevillkor: det finns ingen baslinje att jämföra dem med.
 
@@ -125,8 +125,8 @@ En ny undantagsmonitor börjar med dessa kriterier:
 
 | Kriterium | Filter | Effekt |
 | --- | --- | --- |
-| Check if … has exceptions | **Exception Count** **Greater Than** `0` | Markerar monitorn som offline och deklarerar en incident, som löses automatiskt |
-| Check if … has no exceptions | **Exception Count** **Equal To** `0` | Markerar monitorn som online |
+| Check if … has exceptions | **Exception Count** **Större än** `0` | Markerar monitorn som offline och deklarerar en incident, som löses automatiskt |
+| Check if … has no exceptions | **Exception Count** **Lika med** `0` | Markerar monitorn som online |
 
 ## Genomgånget exempel: bara produktionsundantag
 
@@ -139,7 +139,7 @@ Du vill ha en incident varje gång API:et kastar ett undantag i produktion, och 
 | `TimeoutError` × 2 | ingen | Aktivt | Nej: ingen miljö |
 | `NullReferenceException` × 4 | `production` | Löst efter att de inträffade | Nej: löst |
 
-**Exception Count** är 3, så **Greater Than** `0` matchar: monitorn går offline och en incident deklareras. När fem minuter har gått utan något aktivt produktionsundantag matchar online-kriteriet och incidenten löser sig själv.
+**Exception Count** är 3, så **Större än** `0` matchar: monitorn går offline och en incident deklareras. När fem minuter har gått utan något aktivt produktionsundantag matchar online-kriteriet och incidenten löser sig själv.
 
 ## Felsökning
 

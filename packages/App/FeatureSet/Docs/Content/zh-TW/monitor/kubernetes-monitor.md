@@ -112,7 +112,7 @@ flowchart LR
 
 ### 條件類型
 
-靜態閾值會與你輸入的 **Threshold** 比較：**Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** 和 **Equal To**。
+靜態閾值會與你輸入的 **Threshold** 比較：**大於**、**小於**、**大於或等於**、**小於或等於** 和 **等於**。
 
 以基準為依據的異常偵測不需要閾值。選擇以下其中一個條件後，表單會改為顯示 **敏感度** 和 **基準視窗**：
 

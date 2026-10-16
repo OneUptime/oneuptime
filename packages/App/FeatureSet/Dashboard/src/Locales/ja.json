@@ -29809,7 +29809,7 @@
   "A number and a unit: hours, days, weeks, months or years.": "数値と単位。単位は時間、日、週、月、年です。",
   "Active Monitors": "アクティブなモニター",
   "Add people or teams": "ユーザーまたはチームを追加",
-  "Already installed the app on GitHub? {{connectExisting}}": "GitHub にアプリをインストール済みですか? {{connectExisting}}",
+  "Already installed the app on GitHub? {{connectExisting}}": "GitHub にアプリをインストール済みですか？ {{connectExisting}}",
   "Also invite": "ほかに招待する人",
   "Amount (USD)": "金額（USD）",
   "Archive the channel when the alert episode is resolved": "アラートエピソードが解決したらチャネルをアーカイブする",

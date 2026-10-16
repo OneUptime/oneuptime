@@ -93,7 +93,7 @@ Criteria bepalen wanneer de zone telt als online, verminderd of offline, en of d
 | **DNSSEC Chain Is Valid** | **Waar**, **Onwaar** | Alle vier de controles hierboven kloppen: sleutels gepubliceerd, DS bij de bovenliggende zone, handtekeningen aanwezig met nog een dag of meer te gaan, en de AD-vlag van elke resolver. |
 | **DNSSEC DNSKEY Record Exists** | **Waar**, **Onwaar** | De zone publiceert minstens één DNSKEY-record. |
 | **DNSSEC DS Record Exists At Parent** | **Waar**, **Onwaar** | De bovenliggende zone publiceert een DS-record voor de zone. |
-| **DNSSEC Signature Expires In Days** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Hele dagen totdat de eerst verlopende handtekening (RRSIG) verloopt. |
+| **DNSSEC Signature Expires In Days** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Hele dagen totdat de eerst verlopende handtekening (RRSIG) verloopt. |
 | **DNSSEC Resolver Consensus (AD Flag)** | **Waar**, **Onwaar** | Elke resolver bij **Resolvers** geeft de AD-vlag terug. |
 | **DNSSEC Nameservers Are Consistent** | **Waar**, **Onwaar** | Elke gezaghebbende naamserver antwoordt met hetzelfde SOA-serienummer. Altijd **Waar** zolang **Consistentie van naamservers controleren** uit staat. |
 
@@ -115,7 +115,7 @@ De standaardcriteria houden het verlopen van handtekeningen en de consistentie v
 | Doel | Filter | Voorwaarde | Waarde |
 | --- | --- | --- | --- |
 | Offline wanneer de keten gebroken is (een standaardcriterium) | **DNSSEC Chain Is Valid** | **Onwaar** | — |
-| Waarschuwen voordat handtekeningen verlopen | **DNSSEC Signature Expires In Days** | **Less Than** | `7` |
+| Waarschuwen voordat handtekeningen verlopen | **DNSSEC Signature Expires In Days** | **Kleiner dan** | `7` |
 | Een delegatie opmerken die haar DS-record kwijt is | **DNSSEC DS Record Exists At Parent** | **Onwaar** | — |
 | Resolvers opmerken die het oneens zijn | **DNSSEC Resolver Consensus (AD Flag)** | **Onwaar** | — |
 | Naamservers opmerken die niet in de pas lopen | **DNSSEC Nameservers Are Consistent** | **Onwaar** | — |
@@ -123,7 +123,7 @@ De standaardcriteria houden het verlopen van handtekeningen en de consistentie v
 ## Aanbevolen werkwijzen
 
 1. **Kies resolvers die altijd bereikbaar zijn.** Elke resolver moet de AD-vlag teruggeven om de keten als geldig te laten tellen, dus een resolver die de sonde niet kan bereiken laat de controle mislukken zodra de nieuwe pogingen op zijn. De standaardwaarden, `1.1.1.1`, `8.8.8.8` en `9.9.9.9`, worden door drie verschillende beheerders geleverd, wat ook een zone opmerkt die op de ene resolver valideert maar op de andere niet.
-2. **Laat u waarschuwen voordat handtekeningen verlopen.** Ondertekenaars ondertekenen een zone opnieuw voordat haar handtekeningen verlopen, dus een handtekening die bijna verloopt, betekent dat het opnieuw ondertekenen is gestopt. Voeg een criterium toe met **DNSSEC Signature Expires In Days** / **Less Than** / `7` dat een waarschuwing aanmaakt, en een tweede op `2` dat een incident meldt. Sleep beide boven het criterium dat de keten als geldig markeert, dat van `2` dagen eerst, want het eerste criterium dat overeenkomt wint. Kies drempels die lager zijn dan de tijd die uw ondertekenaar normaal op een handtekening laat staan voordat hij opnieuw ondertekent, zodat ze stil blijven zolang het opnieuw ondertekenen werkt.
+2. **Laat u waarschuwen voordat handtekeningen verlopen.** Ondertekenaars ondertekenen een zone opnieuw voordat haar handtekeningen verlopen, dus een handtekening die bijna verloopt, betekent dat het opnieuw ondertekenen is gestopt. Voeg een criterium toe met **DNSSEC Signature Expires In Days** / **Kleiner dan** / `7` dat een waarschuwing aanmaakt, en een tweede op `2` dat een incident meldt. Sleep beide boven het criterium dat de keten als geldig markeert, dat van `2` dagen eerst, want het eerste criterium dat overeenkomt wint. Kies drempels die lager zijn dan de tijd die uw ondertekenaar normaal op een handtekening laat staan voordat hij opnieuw ondertekent, zodat ze stil blijven zolang het opnieuw ondertekenen werkt.
 3. **Bewaak elke ondertekende zone.** Neem het apex-domein mee, ondertekende subdomeinen, en elke zone die aan een andere beheerder is gedelegeerd.
 4. **Laat de consistentiecontrole van de naamservers aan staan,** en voeg er een criterium voor toe. Ze merkt een secundaire server op die geen overdrachten van de primaire meer ontvangt, wat DNSSEC-validatie alleen kan missen.
 

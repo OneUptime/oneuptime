@@ -90,12 +90,12 @@ Kriteriene til en profilmonitor har ett filter, **Profile Count**: antallet prof
 
 | Filtervilkår | Samsvarer når antallet profiler er… |
 | --- | --- |
-| **Greater Than** | over verdien |
-| **Greater Than Or Equal To** | lik verdien eller høyere |
-| **Less Than** | under verdien |
-| **Less Than Or Equal To** | lik verdien eller lavere |
-| **Equal To** | nøyaktig verdien |
-| **Not Equal To** | alt annet enn verdien |
+| **Større enn** | over verdien |
+| **Større enn eller lik** | lik verdien eller høyere |
+| **Mindre enn** | under verdien |
+| **Mindre enn eller lik** | lik verdien eller lavere |
+| **Lik** | nøyaktig verdien |
+| **Ikke lik** | alt annet enn verdien |
 
 Antall profiler har ingen avviksvilkår: det finnes ingen grunnlinje å sammenligne dem med.
 
@@ -104,8 +104,8 @@ Antall profiler har ingen avviksvilkår: det finnes ingen grunnlinje å sammenli
 Checkout-tjenesten kjører et Pyroscope-SDK som laster opp CPU-profiler. Du vil ha en hendelse når de uteblir i fem minutter:
 
 - `profileTypes`: `["cpu"]`, `telemetryServiceIds`: checkout-tjenesten, `lastXSecondsOfProfiles`: `300`
-- Kriterium 1: **Profile Count** **Equal To** `0`: sett monitoren som frakoblet og erklær en hendelse
-- Kriterium 2: **Profile Count** **Greater Than** `0`: sett monitoren som tilkoblet
+- Kriterium 1: **Profile Count** **Lik** `0`: sett monitoren som frakoblet og erklær en hendelse
+- Kriterium 2: **Profile Count** **Større enn** `0`: sett monitoren som tilkoblet
 
 Mens SDK-et laster opp, teller hver evaluering noen profiler, og kriterium 2 holder monitoren tilkoblet. Når tjenesten rulles ut uten SDK-et, faller antallet til 0 fem minutter etter den siste opplastingen, kriterium 1 samsvarer, og hendelsen erklæres. Den første opplastingen etter rettingen bringer antallet over 0 igjen, og hendelsen løser seg selv hvis **Løs hendelse automatisk** er slått på for den.
 

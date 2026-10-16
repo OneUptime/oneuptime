@@ -88,7 +88,7 @@ Sophos जिस टनल को active बताता है, उसके �
 
 ### ट्रैप
 
-हर Sophos नोटिफ़िकेशन एक ही ट्रैप है, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), इवेंट `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`) में टेक्स्ट के रूप में। किसी एक तरह के इवेंट पर अलर्ट के लिए, **SNMP Trap Received (Trap OID)** Equal To `1.3.6.1.4.1.2604.5.1.8.1.1` को उस varbind पर **SNMP Trap Varbind Value** के साथ जोड़ें, उदाहरण के लिए Contains `IPSec`। फ़ायरवॉल का ट्रैप गंतव्य SNMP v2c पर सेट करें: प्रोब का ट्रैप रिसीवर v1 और v2c ट्रैप लेता है।
+हर Sophos नोटिफ़िकेशन एक ही ट्रैप है, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), इवेंट `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`) में टेक्स्ट के रूप में। किसी एक तरह के इवेंट पर अलर्ट के लिए, **SNMP Trap Received (Trap OID)** बराबर है `1.3.6.1.4.1.2604.5.1.8.1.1` को उस varbind पर **SNMP Trap Varbind Value** के साथ जोड़ें, उदाहरण के लिए शामिल है `IPSec`। फ़ायरवॉल का ट्रैप गंतव्य SNMP v2c पर सेट करें: प्रोब का ट्रैप रिसीवर v1 और v2c ट्रैप लेता है।
 
 ## Extreme Networks (EXOS / Switch Engine और Fabric Engine / VOSS)
 
@@ -130,9 +130,9 @@ IQ Engine (HiveOS) एक्सेस पॉइंट और ExtremeCloud IQ Con
 | अलर्ट | शर्त |
 | --- | --- |
 | कोई रेडियो बंद हुआ | **SNMP Table Row Is Unhealthy**, अनुशंसित अलर्ट का हिस्सा |
-| ट्रांसमिट पावर बदली | **SNMP Table Value**, कॉलम TX Power, आपकी योजना की पावर से Not Equal To |
-| भीड़ वाला रेडियो | **SNMP Table Value**, कॉलम Clients, आपकी सीमा से Greater Than |
-| शोर वाला चैनल | **SNMP Table Value**, कॉलम Noise Floor, Greater Than `-80` |
+| ट्रांसमिट पावर बदली | **SNMP Table Value**, कॉलम TX Power, आपकी योजना की पावर के बराबर नहीं है |
+| भीड़ वाला रेडियो | **SNMP Table Value**, कॉलम Clients, आपकी सीमा से बड़ा |
+| शोर वाला चैनल | **SNMP Table Value**, कॉलम Noise Floor, `-80` से बड़ा |
 
 हर संख्यात्मक रेडियो मान एक मेट्रिक भी है (`oneuptime.monitor.snmp.table.value`, हर रेडियो और कॉलम की एक सीरीज़), इसलिए चैनल, पावर और क्लाइंट का समय के साथ किसी डैशबोर्ड पर चार्ट बन सकता है; बार-बार बदलता चैनल DFS के काम करने का संकेत है।
 

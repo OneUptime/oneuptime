@@ -198,7 +198,7 @@ Un nuovo monitor di richieste in arrivo viene creato con due criteri che leggono
 | Criterio | Tipo di filtro | Condizione del filtro | Valore | Effetto |
 | -------- | ------------ | ---------------- | ------- | -------------------------------------------- |
 | Offline  | Corpo della Richiesta | Contiene | `error` | Segna il monitor offline, apre un incidente |
-| Online   | Corpo della Richiesta | Not Contains | `error` | Segna il monitor online |
+| Online   | Corpo della Richiesta | Non contiene | `error` | Segna il monitor online |
 
 È adatto al caso comune in cui il mittente riporta il proprio stato nel payload: una richiesta il cui corpo menziona `error` porta il monitor offline, e la richiesta successiva senza quella parola lo riporta online e risolve l'incidente. Una richiesta senza alcun corpo conta come «non contiene `error`», quindi una semplice chiamata di heartbeat mantiene il monitor online.
 
@@ -224,7 +224,7 @@ Ogni tipo di filtro offre le proprie condizioni:
 | Tipo di filtro | Condizioni |
 | --- | --- |
 | **Incoming Request** | **Recieved In Minutes**: è stata ricevuta una richiesta entro il numero di minuti indicato. **Not Recieved In Minutes**: non è stata ricevuta alcuna richiesta entro il numero di minuti indicato. (La dashboard le scrive così.) |
-| **Corpo della Richiesta**, **Request Header**, **Request Header Value** | **Contiene** e **Not Contains** |
+| **Corpo della Richiesta**, **Request Header**, **Request Header Value** | **Contiene** e **Non contiene** |
 | **JavaScript Expression** | **Evaluates To True** |
 
 > [!NOTE]
@@ -251,7 +251,7 @@ I corpi oggetto vengono confrontati come JSON compatto senza spazi, quindi un fi
 | **Valore** | `"status":"degraded"` |
 
 > [!IMPORTANT]
-> Mettete l'interruttore a uomo morto **sopra** i criteri predefiniti. I criteri vengono controllati dall'alto, e decide il primo che corrisponde. Il controllo in background rilegge l'ultima richiesta, quindi il criterio online predefinito ("Request Body Not Contains `error`") continua a corrispondervi, e un criterio sotto di esso non arriva mai al suo turno. **Aggiungi criteri** aggiunge un criterio in fondo: trascinatelo in alto.
+> Mettete l'interruttore a uomo morto **sopra** i criteri predefiniti. I criteri vengono controllati dall'alto, e decide il primo che corrisponde. Il controllo in background rilegge l'ultima richiesta, quindi il criterio online predefinito ("Corpo della Richiesta Non contiene `error`") continua a corrispondervi, e un criterio sotto di esso non arriva mai al suo turno. **Aggiungi criteri** aggiunge un criterio in fondo: trascinatelo in alto.
 
 > [!WARNING]
 > Un monitor viene rivalutato in background solo se almeno uno dei suoi criteri controlla **Incoming Request**. Un monitor i cui criteri controllano solo il corpo della richiesta, Request Header o un'espressione JavaScript viene valutato quando arriva una richiesta e in nessun altro momento, quindi non può mai andare offline da solo. Se volete un allarme per heartbeat mancante, vi serve un criterio **Incoming Request**.

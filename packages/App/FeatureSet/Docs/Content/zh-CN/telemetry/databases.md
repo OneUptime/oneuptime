@@ -30,7 +30,7 @@ flowchart LR
 
 引擎指标只来自与数据库本身通信的 Collector（对于托管云数据库，则是与其提供商的监控 API 通信的 Collector）。追踪和容器清单告诉 OneUptime 数据库存在以及它的使用方式，但不会告诉它数据库内部的运行状况；每个数据库上的 **Engine metrics** 状态会显示这部分是否已连接。
 
-你也可以手动添加数据库：在 **Databases → 创建Database** 中填写引擎、地址和端口。如需完全不需要代理、基于探测器的健康检查，请参阅 [数据库健康监控](/docs/monitor/database-health-monitor)。
+你也可以手动添加数据库：在 **Databases → 创建数据库** 中填写引擎、地址和端口。如需完全不需要代理、基于探测器的健康检查，请参阅 [数据库健康监控](/docs/monitor/database-health-monitor)。
 
 ## 支持的数据库
 
@@ -191,7 +191,7 @@ OneUptime 读取 Pod 元数据、标签、镜像、声明的端口，以及容�
 
 - 按 id 关联的数据会进入该数据库并显示在其页面上（且只显示在那里），无论它报告的是什么地址：私有 IP、集群本地名称、另一个数据库拥有的地址，或者根本没有地址。如果它报告的地址在整个项目中指向唯一的一台服务器且尚不属于任何数据库，该地址会作为端点添加到这个数据库，这样发往该地址的应用追踪也会进入这里；
 - 否则，数据库已拥有的端点会把数据关联到该数据库，无论该数据库是由什么创建的；
-- 否则会 **创建** 一个数据库，但只从在整个项目中代表唯一一台服务器的名称创建（DNS 名称、公网 IP，或数据用其 Kubernetes 集群 `k8s.cluster.name` 限定过的集群本地名称、`.internal` 或 `.local` 名称；Database Agent 从不设置该集群属性），并且只针对可以自行创建的引擎（[支持的数据库](#支持的数据库) 中的 **从追踪创建** 列：绝不是共享云 API、进程内引擎或未知引擎）。私有 IP 和链路本地 IP、单标签名称（`db`）以及未限定的集群本地名称（`postgres.prod.svc.cluster.local`）、`.internal` 或 `.local` 名称，在每个网络中都可能指向不同的服务器；Pod 的 IP 每次重启都会变化；而由 Collector 自己的命名空间补全的单标签名称，可能是一个 Service，也可能是 Collector 自己的 Pod。指明这些名称之一的数据只会进入已经把它作为端点的数据库：对于 Service 名称，就是在 Kubernetes 中发现的工作负载。请手动创建该数据库（**Databases → 创建Database**，相同的地址和端口），或用 `DATABASE_SERVER_ID` 把代理关联到它。在有 Kubernetes 集群的项目中，不带集群的集群本地 Service 名称会被拒绝：请将数据库创建为 `postgres.prod.svc.cluster.local:5432@my-cluster`，然后在它的 **端点** 选项卡上添加未限定的 `postgres.prod.svc.cluster.local:5432`（也就是代理报告的名称）；
+- 否则会 **创建** 一个数据库，但只从在整个项目中代表唯一一台服务器的名称创建（DNS 名称、公网 IP，或数据用其 Kubernetes 集群 `k8s.cluster.name` 限定过的集群本地名称、`.internal` 或 `.local` 名称；Database Agent 从不设置该集群属性），并且只针对可以自行创建的引擎（[支持的数据库](#支持的数据库) 中的 **从追踪创建** 列：绝不是共享云 API、进程内引擎或未知引擎）。私有 IP 和链路本地 IP、单标签名称（`db`）以及未限定的集群本地名称（`postgres.prod.svc.cluster.local`）、`.internal` 或 `.local` 名称，在每个网络中都可能指向不同的服务器；Pod 的 IP 每次重启都会变化；而由 Collector 自己的命名空间补全的单标签名称，可能是一个 Service，也可能是 Collector 自己的 Pod。指明这些名称之一的数据只会进入已经把它作为端点的数据库：对于 Service 名称，就是在 Kubernetes 中发现的工作负载。请手动创建该数据库（**Databases → 创建数据库**，相同的地址和端口），或用 `DATABASE_SERVER_ID` 把代理关联到它。在有 Kubernetes 集群的项目中，不带集群的集群本地 Service 名称会被拒绝：请将数据库创建为 `postgres.prod.svc.cluster.local:5432@my-cluster`，然后在它的 **端点** 选项卡上添加未限定的 `postgres.prod.svc.cluster.local:5432`（也就是代理报告的名称）；
 - 完全没有指明服务器的接收器批次会被忽略（见 [使用你自己的 OpenTelemetry Collector](#使用你自己的-opentelemetry-collector)）。
 
 Collector 创建的数据库与其他所有发现的数据库一样计入 [自动创建额度](#自动创建额度)；你手动创建并用 `DATABASE_SERVER_ID` 关联的数据库永远不需要创建。见 [Database Agent](#database-agent)。

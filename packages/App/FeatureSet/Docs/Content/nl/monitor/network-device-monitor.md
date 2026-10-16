@@ -396,7 +396,7 @@ Een deel van wat een apparaat weet, is een lijst: één rij per IPsec-tunnel, wi
 
 Getallen worden als getallen gelezen, en tekst die met een getal begint, wordt als dat getal gelezen (`"36"`, `"-95 dBm"`, `"80MHz"`), omdat veel leveranciers getallen in strings zetten. Zet het waardetype van een kolom op **Text only** voor waarden die alleen numeriek lijken. **Value labels** maken van codes woorden (`0=inactive, 1=active`): de ruwe waarde blijft wat in grafieken komt en wordt vergeleken, het label is wat wordt getoond. **Healthy values** (`1`) zeggen welke waarden betekenen dat alles goed is: ze kleuren de rij op de pagina **SNMP Tables** van het apparaat en sturen het criterium **SNMP Table Row Is Unhealthy** aan.
 
-Sommige kolommen van leverancierssjablonen **passen** ook het getal aan dat ze lezen, voor MIB's die een waarde in een eigen eenheid bewaren: ArubaOS meldt het zendvermogen verdubbeld (gelezen × 0.5), Aruba Instant de ruisvloer zonder teken (× −1), Aerohive de ruisvloer plus 256 (− 256), en de controller van Extreme de kanaalbreedte in stappen van 20 MHz (× 20). Het aangepaste getal is wat wordt getoond, in grafieken gezet en vergeleken, dus **Noise Floor Greater Than -80** betekent bij elke leverancier hetzelfde, en de tabeleditor toont de berekening onder de kolom.
+Sommige kolommen van leverancierssjablonen **passen** ook het getal aan dat ze lezen, voor MIB's die een waarde in een eigen eenheid bewaren: ArubaOS meldt het zendvermogen verdubbeld (gelezen × 0.5), Aruba Instant de ruisvloer zonder teken (× −1), Aerohive de ruisvloer plus 256 (− 256), en de controller van Extreme de kanaalbreedte in stappen van 20 MHz (× 20). Het aangepaste getal is wat wordt getoond, in grafieken gezet en vergeleken, dus **Noise Floor Groter dan -80** betekent bij elke leverancier hetzelfde, en de tabeleditor toont de berekening onder de kolom.
 
 Tabellen komen van een [OID Collection Template](#oid-collection-templates), gedeeld door elk gekoppeld apparaat (tot 10 tabellen), of van het apparaat zelf onder **Device-Specific SNMP Tables** (tot 10 extra). Ze worden bij elke poll op sleutel samengevoegd, sjabloon eerst, en een apparaattabel met dezelfde sleutel vervangt die van het sjabloon. Beide editors bieden **Add a Vendor's Tables**.
 
@@ -779,7 +779,7 @@ Bij een poll waarin geen walk draaide, geven de criteria met "Niet beoordeeld" g
 
 De interfacecontroles hebben **Walk Interfaces** aan nodig in de pollinstellingen van het apparaat, zoals standaard het geval is. De OID-controles lezen de ingestelde gezondheids-OID's van het apparaat. Administratief uitgeschakelde interfaces zijn bewust uitgevallen en tellen nooit als storingen.
 
-Criteria voor SNMP-tabellen kiezen een tabel, een kolom (voor SNMP Table Value) en een rijbereik. Leeg beoordeelt elke rij als één gecombineerde waarschuwing; `*` geeft een aparte waarschuwing voor elke rij, die elk zelfstandig worden opgelost en naar hun rij zijn genoemd; al het andere noemt één rij op naam of index. Getallen worden als getallen vergeleken, en tekst zowel met de ruwe waarde als met haar label, dus Not Equal To `active` en Not Equal To `1` vangen allebei een uitgevallen Sophos-tunnel. Een tabel waarvan de walk bij deze poll mislukte, wordt niet beoordeeld in plaats van als leeg gelezen, en tabelcriteria beoordelen alleen de huidige walk, geen tijdsperiode.
+Criteria voor SNMP-tabellen kiezen een tabel, een kolom (voor SNMP Table Value) en een rijbereik. Leeg beoordeelt elke rij als één gecombineerde waarschuwing; `*` geeft een aparte waarschuwing voor elke rij, die elk zelfstandig worden opgelost en naar hun rij zijn genoemd; al het andere noemt één rij op naam of index. Getallen worden als getallen vergeleken, en tekst zowel met de ruwe waarde als met haar label, dus Niet gelijk aan `active` en Niet gelijk aan `1` vangen allebei een uitgevallen Sophos-tunnel. Een tabel waarvan de walk bij deze poll mislukte, wordt niet beoordeeld in plaats van als leeg gelezen, en tabelcriteria beoordelen alleen de huidige walk, geen tijdsperiode.
 
 Transceivercriteria hebben een bereik zoals de interfacecontroles: leeg beoordeelt elke optic als één gecombineerde waarschuwing, `*` geeft een aparte waarschuwing voor elke poort met een optic (elk zelfstandig opgelost en naar haar poort genoemd), en al het andere noemt één poort op naam of alias. Ze beoordelen de [transceivers](#transceivers) van het apparaat zoals ze bij deze poll zijn, die hun geschiedenis al meedragen — hoeveel polls een optic al ontbreekt, een maand ontvangstvermogen —, dus ook zij worden niet over een tijdsperiode beoordeeld. Een poll waarvan het lezen van de transceivers mislukte, laat ze de laatste goede meting beoordelen, dus een open waarschuwing wordt niet opgelost bij een poll die niet kon kijken.
 
@@ -860,19 +860,19 @@ Het koppelen gebeurt op adres, niet op inloggegevens, dus ook een apparaat met a
 #### Voorbeeld: een incident openen bij linkDown
 
 - **Filtertype**: SNMP Trap Received (Trap OID)
-- **Filtervoorwaarde**: Equal To
+- **Filtervoorwaarde**: Gelijk aan
 - **Waarde**: `1.3.6.1.6.3.1.1.5.3`
 
-Het filter biedt ook Contains, Starts With en Ends With, dus één criterium kan een familie enterprise-traps op OID-prefix vangen.
+Het filter biedt ook Bevat, Begint met en Eindigt op, dus één criterium kan een familie enterprise-traps op OID-prefix vangen.
 
 #### Voorbeeld: gebeurtenissen onderscheiden die één trap-OID delen
 
 Sommige leveranciers sturen elke gebeurtenis als dezelfde trap en zetten de gebeurtenis in een tekst-varbind: elke melding van een Sophos Firewall is `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`) met het bericht in `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Combineer de twee in één criterium:
 
-- **SNMP Trap Received (Trap OID)**: Equal To `1.3.6.1.4.1.2604.5.1.8.1.1`
-- **SNMP Trap Varbind Value**: varbind-OID `1.3.6.1.4.1.2604.5.1.8.1.2`, Contains `IPSec`
+- **SNMP Trap Received (Trap OID)**: Gelijk aan `1.3.6.1.4.1.2604.5.1.8.1.1`
+- **SNMP Trap Varbind Value**: varbind-OID `1.3.6.1.4.1.2604.5.1.8.1.2`, Bevat `IPSec`
 
-Een negatief filter (Not Contains, Not Equal To, Is Empty) is alleen vervuld als geen enkele varbind binnen het bereik op zijn positieve vorm past. Laat de varbind-OID leeg om in elke varbind te zoeken die de trap meedraagt.
+Een negatief filter (Bevat niet, Niet gelijk aan, Is leeg) is alleen vervuld als geen enkele varbind binnen het bereik op zijn positieve vorm past. Laat de varbind-OID leeg om in elke varbind te zoeken die de trap meedraagt.
 
 ## Sjabloonvariabelen voor waarschuwingen
 

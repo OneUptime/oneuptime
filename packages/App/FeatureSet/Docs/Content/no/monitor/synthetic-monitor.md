@@ -234,10 +234,10 @@ En kjøring kan samle inn høyst 100 metrikker, bare med numeriske verdier, og O
 | **Feil** | Feilen en kjøring kastet, hvis noen. |
 | **Result Value** | `data` som en kjøring returnerte. |
 | **Kjøretid (i ms)** | Hvor lang tid en kjøring tok. |
-| **Nettlesertype** | Nettleseren en kjøring brukte: **Equal To** eller **Not Equal To**. |
-| **Screen Size** | Skjermstørrelsen en kjøring brukte: **Equal To** eller **Not Equal To**. |
+| **Nettlesertype** | Nettleseren en kjøring brukte: **Lik** eller **Ikke lik**. |
+| **Screen Size** | Skjermstørrelsen en kjøring brukte: **Lik** eller **Ikke lik**. |
 
-Hvert filter sjekkes mot hver kjøring og samsvarer når én kjøring samsvarer med det. Filtrene sjekkes hver for seg, ikke kjøring for kjøring: **Feil** Is Not Empty sammen med **Nettlesertype** Equal To `Firefox` samsvarer når en kjøring mislyktes og en av kjøringene brukte Firefox — ikke bare når Firefox-kjøringen mislyktes. For å følge med på én nettleser for seg gir du den en egen monitor.
+Hvert filter sjekkes mot hver kjøring og samsvarer når én kjøring samsvarer med det. Filtrene sjekkes hver for seg, ikke kjøring for kjøring: **Feil** Er ikke tom sammen med **Nettlesertype** Lik `Firefox` samsvarer når en kjøring mislyktes og en av kjøringene brukte Firefox — ikke bare når Firefox-kjøringen mislyktes. For å følge med på én nettleser for seg gir du den en egen monitor.
 
 I hendelses- og varslingsmaler ligger hver kjøring i `{{syntheticResponses}}`: se [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating#syntetiske-monitorer).
 

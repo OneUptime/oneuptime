@@ -97,11 +97,11 @@ Os critérios de um monitor de traces têm um único **Tipo de filtro**: **Span 
 
 | Condição do filtro | Corresponde quando a contagem de spans está… |
 | --- | --- |
-| **Greater Than** | acima do valor |
-| **Greater Than Or Equal To** | no valor ou acima |
-| **Less Than** | abaixo do valor |
-| **Less Than Or Equal To** | no valor ou abaixo |
-| **Equal To** | exatamente no valor |
+| **Maior que** | acima do valor |
+| **Maior ou igual a** | no valor ou acima |
+| **Menor que** | abaixo do valor |
+| **Menor ou igual a** | no valor ou abaixo |
+| **Igual a** | exatamente no valor |
 | **Anomalously High** | acima da faixa esperada para esta hora da semana |
 | **Anomalously Low** | abaixo dessa faixa |
 | **Anomalous** | fora dessa faixa, em qualquer direção |
@@ -112,8 +112,8 @@ Um novo monitor de traces começa com estes critérios:
 
 | Critério | Filtro | Efeito |
 | --- | --- | --- |
-| Check if … is offline | **Span Count** **Equal To** `0` | Coloca o monitor offline e declara um incidente, resolvido automaticamente |
-| Check if … is online | **Span Count** **Greater Than** `0` | Coloca o monitor online |
+| Check if … is offline | **Span Count** **Igual a** `0` | Coloca o monitor offline e declara um incidente, resolvido automaticamente |
+| Check if … is online | **Span Count** **Maior que** `0` | Coloca o monitor online |
 
 ## Exemplo prático: requisições de checkout com falha
 
@@ -131,8 +131,8 @@ Para ser acionado quando mais de 10 requisições de checkout falharem em cinco 
 - **Nome do span**: `POST /api/checkout`
 - **Monitorar Traços por (tempo)**: **Últimos 5 minutos**
 - **Filtrar por status do span**: **Erro**
-- Critério 1: **Span Count** **Greater Than** `10`: colocar o monitor offline e declarar um incidente
-- Critério 2: **Span Count** **Less Than Or Equal To** `10`: colocar o monitor online
+- Critério 1: **Span Count** **Maior que** `10`: colocar o monitor offline e declarar um incidente
+- Critério 2: **Span Count** **Menor ou igual a** `10`: colocar o monitor online
 
 Com 30 requisições com falha, o critério 1 corresponde e o incidente é declarado. Depois que passam cinco minutos com 10 falhas ou menos, o critério 2 corresponde, o monitor volta a ficar online e o incidente se resolve sozinho.
 

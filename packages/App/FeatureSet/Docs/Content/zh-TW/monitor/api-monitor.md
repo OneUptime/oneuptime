@@ -155,11 +155,11 @@ curl --cert client.crt --key client.key https://api.example.com/health
 | 篩選器 | 條件 | 檢查內容 |
 | --- | --- | --- |
 | **Is Online** | **是**、**否** | API 是否有回應，無論狀態碼為何。 |
-| **回應狀態碼** | **Equal To**、**Not Equal To**、**Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | HTTP 狀態碼。 |
-| **回應時間（毫秒）** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 請求所花的時間，包括重新導向。 |
-| **回應內文** | **包含**、**Not Contains** | 回應內文中的文字。比對時區分大小寫。 |
-| **Response Header** | **包含**、**Not Contains** | 回應中是否有此名稱的標頭。以小寫輸入名稱，例如 `x-request-id`。 |
-| **Response Header Value** | **包含**、**Not Contains** | 某個標頭的值是否剛好是此值，以小寫比較，例如 `application/json`。 |
+| **回應狀態碼** | **等於**、**不等於**、**大於**、**小於**、**大於或等於**、**小於或等於** | HTTP 狀態碼。 |
+| **回應時間（毫秒）** | **大於**、**小於**、**大於或等於**、**小於或等於** | 請求所花的時間，包括重新導向。 |
+| **回應內文** | **包含**、**不包含** | 回應內文中的文字。比對時區分大小寫。 |
+| **Response Header** | **包含**、**不包含** | 回應中是否有此名稱的標頭。以小寫輸入名稱，例如 `x-request-id`。 |
+| **Response Header Value** | **包含**、**不包含** | 某個標頭的值是否剛好是此值，以小寫比較，例如 `application/json`。 |
 | **JavaScript Expression** | **Evaluates To True** | 針對回應的運算式。請參閱 [JavaScript 運算式](/docs/monitor/javascript-expression)。 |
 | **Is Request Timeout** | **是**、**否** | 請求是否在每次嘗試中都逾時。 |
 
@@ -178,7 +178,7 @@ JSON 回應會以精簡形式檢查，鍵和值之間沒有空格。若要以 **
 
 在條件清單中，它們以監測器命名：_Check if (name) is offline_ 和 _Check if (name) is online_。
 
-因此，回傳 `201 Created` 或 `204 No Content` 的端點都算是正常。如果對您來說只有一個狀態碼代表健康，請在監測器的 **設定 → 條件** 頁面上修改這兩個條件：例如上線條件中使用 **回應狀態碼** / **Equal To** / `200`，離線條件中使用 **Not Equal To** / `200`，取代各自原有的兩個狀態碼篩選器。若也要檢查 API 回傳的內容，請在離線條件中加入 **回應內文** 或 **JavaScript Expression** 篩選器。
+因此，回傳 `201 Created` 或 `204 No Content` 的端點都算是正常。如果對您來說只有一個狀態碼代表健康，請在監測器的 **設定 → 條件** 頁面上修改這兩個條件：例如上線條件中使用 **回應狀態碼** / **等於** / `200`，離線條件中使用 **不等於** / `200`，取代各自原有的兩個狀態碼篩選器。若也要檢查 API 回傳的內容，請在離線條件中加入 **回應內文** 或 **JavaScript Expression** 篩選器。
 
 條件由上而下檢查，第一個符合的條件決定接下來會發生什麼。
 
@@ -214,10 +214,10 @@ JSON 回應會以精簡形式檢查，鍵和值之間沒有空格。若要以 **
 
 | 目標 | 篩選器 | 條件 | 值 |
 | --- | --- | --- | --- |
-| API 變慢時標記為效能下降 | **回應時間（毫秒）** | **Greater Than** | `1000` |
-| 健康檢查回報問題時為離線 | **回應內文** | **Not Contains** | `"status":"ok"` |
+| API 變慢時標記為效能下降 | **回應時間（毫秒）** | **大於** | `1000` |
+| 健康檢查回報問題時為離線 | **回應內文** | **不包含** | `"status":"ok"` |
 | 同樣的檢查，從解析後的 JSON 讀取 | **JavaScript Expression** | **Evaluates To True** | `"{{responseBody.status}}" !== "ok"` |
-| `POST` 只接受 `201` | **回應狀態碼** | **Equal To** | `201` |
+| `POST` 只接受 `201` | **回應狀態碼** | **等於** | `201` |
 
 要撐過重新啟動，請為回應內文篩選器開啟 **在一段時間內評估此條件**，並選擇 15 分鐘內的 **All Values**。
 

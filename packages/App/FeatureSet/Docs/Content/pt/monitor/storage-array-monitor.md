@@ -263,7 +263,7 @@ Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os
 | --- | --- |
 | **Métrica** | A consulta ou fórmula a verificar, pelo nome da sua variável. |
 | **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Maximum Value**, **Minimum Value**, **All Values** (todo valor precisa corresponder) ou **Any Value** (basta um). |
-| **Condição** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** ou **Equal To** — ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
+| **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** — ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
 | **Threshold** | O valor com que comparar. Uma lista de unidades fica ao lado quando a métrica tem unidade. Não aparece nas condições de anomalia. |
 | **Sensibilidade** | Só condições de anomalia. **Baixo** (4σ), **Médio** (3σ, o padrão) ou **Alto** (2σ). |
 | **Janela de linha de base** | Só condições de anomalia. 14 dias (o padrão), 28, 60 ou 90 dias de histórico. |
@@ -273,10 +273,10 @@ As condições de anomalia comparam cada valor com a mesma hora da semana na lin
 
 Alguns critérios para começar:
 
-- **Um volume está lento:** `purefa_volume_performance_latency_usec` filtrada para `dimension=usec_per_read_op`, Média, agrupada por `name`, **Greater Than** `2000`, nos últimos 10 minutos.
-- **O array está enchendo:** `purefa_array_space_utilization`, Máximo, **Greater Than** `85`, nos últimos 15 minutos.
-- **Um host roda com um único controlador:** `purefa_host_connectivity_info` filtrada para `status=critical`, Máximo, agrupada por `host`, **Greater Than** `0`.
-- **Um sistema de arquivos do FlashBlade está quase cheio:** `purefb_file_systems_space_bytes` filtrada para `space=available_ratio`, Mínimo, agrupada por `name`, **Less Than** `0.05`.
+- **Um volume está lento:** `purefa_volume_performance_latency_usec` filtrada para `dimension=usec_per_read_op`, Média, agrupada por `name`, **Maior que** `2000`, nos últimos 10 minutos.
+- **O array está enchendo:** `purefa_array_space_utilization`, Máximo, **Maior que** `85`, nos últimos 15 minutos.
+- **Um host roda com um único controlador:** `purefa_host_connectivity_info` filtrada para `status=critical`, Máximo, agrupada por `host`, **Maior que** `0`.
+- **Um sistema de arquivos do FlashBlade está quase cheio:** `purefb_file_systems_space_bytes` filtrada para `space=available_ratio`, Mínimo, agrupada por `name`, **Menor que** `0.05`.
 
 ### Critérios padrão
 

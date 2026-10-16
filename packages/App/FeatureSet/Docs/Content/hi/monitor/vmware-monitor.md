@@ -270,7 +270,7 @@ OneUptime आम VMware समस्याओं के लिए 23 टेम�
 | --- | --- |
 | **मीट्रिक** | जाँचने वाली क्वेरी या सूत्र, उसके वेरिएबल नाम से। |
 | **एकत्रीकरण** | विंडो के मान एक उत्तर कैसे बनते हैं: **औसत**, **योग**, **Maximum Value**, **Minimum Value**, **All Values** (हर मान को मेल खाना चाहिए) या **Any Value** (एक काफ़ी है)। |
-| **शर्त** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** या **Equal To** — या कोई विसंगति शर्त: **Anomalously High**, **Anomalously Low** या **Anomalous**। |
+| **शर्त** | **से बड़ा**, **से छोटा**, **से बड़ा या बराबर**, **से छोटा या बराबर** या **बराबर है** — या कोई विसंगति शर्त: **Anomalously High**, **Anomalously Low** या **Anomalous**। |
 | **Threshold** | तुलना के लिए मान। मेट्रिक की इकाई होने पर उसके बगल में इकाई सूची होती है। विसंगति शर्तों के लिए नहीं दिखता। |
 | **संवेदनशीलता** | केवल विसंगति शर्तें। **निम्न** (4σ), **मध्यम** (3σ, डिफ़ॉल्ट) या **उच्च** (2σ)। |
 | **बेसलाइन विंडो** | केवल विसंगति शर्तें। 14 दिन (डिफ़ॉल्ट), 28, 60 या 90 दिन का इतिहास। |
@@ -280,11 +280,11 @@ OneUptime आम VMware समस्याओं के लिए 23 टेम�
 
 शुरुआत के लिए कुछ मानदंड:
 
-- **कोई होस्ट संतृप्त है:** `vcenter.host.cpu.utilization`, औसत, `resource.vcenter.host.name` से समूहित, **Greater Than** `90`, पिछले 5 मिनट में।
-- **कोई डेटास्टोर भर रहा है:** `vcenter.datastore.disk.utilization`, औसत, `resource.vcenter.datastore.name` से समूहित, **Greater Than** `80`।
-- **किसी क्लस्टर ने एक होस्ट खोया:** `vcenter.cluster.host.count` को `effective = false` पर फ़िल्टर, अधिकतम, `resource.vcenter.cluster.name` से समूहित, **Greater Than** `0`।
-- **अपेक्षा से कम VM चल रहे हैं:** `vcenter.cluster.vm.count` को `power_state = on` और `resource.vcenter.cluster.name = Production` पर फ़िल्टर, योग, **Less Than** वह संख्या जिसकी आप अपेक्षा करते हैं।
-- **किसी VM की मेमोरी होस्ट-स्वैप हो रही है:** `vcenter.vm.memory.swapped`, अधिकतम, `resource.vcenter.vm.name` से समूहित, **Greater Than** `0`।
+- **कोई होस्ट संतृप्त है:** `vcenter.host.cpu.utilization`, औसत, `resource.vcenter.host.name` से समूहित, **से बड़ा** `90`, पिछले 5 मिनट में।
+- **कोई डेटास्टोर भर रहा है:** `vcenter.datastore.disk.utilization`, औसत, `resource.vcenter.datastore.name` से समूहित, **से बड़ा** `80`।
+- **किसी क्लस्टर ने एक होस्ट खोया:** `vcenter.cluster.host.count` को `effective = false` पर फ़िल्टर, अधिकतम, `resource.vcenter.cluster.name` से समूहित, **से बड़ा** `0`।
+- **अपेक्षा से कम VM चल रहे हैं:** `vcenter.cluster.vm.count` को `power_state = on` और `resource.vcenter.cluster.name = Production` पर फ़िल्टर, योग, **से छोटा** वह संख्या जिसकी आप अपेक्षा करते हैं।
+- **किसी VM की मेमोरी होस्ट-स्वैप हो रही है:** `vcenter.vm.memory.swapped`, अधिकतम, `resource.vcenter.vm.name` से समूहित, **से बड़ा** `0`।
 
 ### डिफ़ॉल्ट मानदंड
 

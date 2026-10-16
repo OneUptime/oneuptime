@@ -77,8 +77,8 @@ Kriterier afgør, hvornår certifikatet tæller som i orden, forringet eller fej
 | **Is Not A Valid Certificate** | **Sand**, **Falsk** | Det modsatte af **Is Valid Certificate**: **Sand**, når certifikatet ikke består de kontroller eller ikke kunne kontrolleres. |
 | **Is Expired Certificate** | **Sand**, **Falsk** | Certifikatets udløbsdato er passeret. |
 | **Is Self Signed Certificate** | **Sand**, **Falsk** | Certifikatet, eller et i dets kæde, er selvsigneret. |
-| **Expires In Days** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Dage, indtil certifikatet udløber. |
-| **Expires In Hours** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Timer, indtil certifikatet udløber. |
+| **Expires In Days** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Dage, indtil certifikatet udløber. |
+| **Expires In Hours** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Timer, indtil certifikatet udløber. |
 
 **Expires In Days** tæller hele dage: et certifikat, der udløber om 14 dage og 20 timer, har 14 dage tilbage. **Expires In Hours** tæller hele timer på samme måde.
 
@@ -102,7 +102,7 @@ For at blive advaret tidligere skal du ændre værdien af filteret **Expires In 
 Monitorer, der blev oprettet, før OneUptime indførte denne advarsel, har intet kriterium "udløber snart". Sådan tilføjer du det:
 
 1. Åbn **Konfiguration → Kriterier** på monitoren, og klik på **Rediger Overvågningskriterier**.
-2. Klik på **Tilføj kriterier**. Sæt dets filter til **Is Valid Certificate** / **Sand**, klik på **Tilføj filter**, og sæt det andet til **Expires In Days** / **Less Than Or Equal To** / `14`. Lad **Matchbetingelse** stå på **Alle** (den vises under filtrene, så snart der er to).
+2. Klik på **Tilføj kriterier**. Sæt dets filter til **Is Valid Certificate** / **Sand**, klik på **Tilføj filter**, og sæt det andet til **Expires In Days** / **Mindre end eller lig med** / `14`. Lad **Matchbetingelse** stå på **Alle** (den vises under filtrene, så snart der er to).
 3. Slå **Når filtre matcher, oprettes en advarsel.** til under **Handlinger**, og lad **Når filtre matcher, ændres overvågningsstatus.** være slået fra, så det opretter en advarsel og ikke ændrer monitorens status.
 4. Træk det nye kriterium op over det kriterium, der markerer monitoren som online, og gem derefter.
 :::
@@ -111,8 +111,8 @@ Monitorer, der blev oprettet, før OneUptime indførte denne advarsel, har intet
 
 | Mål | Filter | Betingelse | Værdi |
 | --- | --- | --- | --- |
-| Advar en måned i forvejen | **Expires In Days** | **Less Than Or Equal To** | `30` |
-| Tilkald nogen på den sidste dag | **Expires In Hours** | **Less Than** | `24` |
+| Advar en måned i forvejen | **Expires In Days** | **Mindre end eller lig med** | `30` |
+| Tilkald nogen på den sidste dag | **Expires In Hours** | **Mindre end** | `24` |
 | Først offline, når certifikatet er udløbet | **Is Expired Certificate** | **Sand** | — |
 | Markér et selvsigneret certifikat | **Is Self Signed Certificate** | **Sand** | — |
 

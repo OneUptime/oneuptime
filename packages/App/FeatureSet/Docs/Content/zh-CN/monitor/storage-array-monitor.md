@@ -263,7 +263,7 @@ OneUptime 提供 18 个模板——11 个用于 FlashArray，7 个用于 FlashBl
 | --- | --- |
 | **指标** | 要检查的查询或公式，按其变量名。 |
 | **聚合** | 窗口中的值如何变成一个答案：**平均值**、**总和**、**Maximum Value**、**Minimum Value**、**All Values**(每个值都必须匹配)或 **Any Value**(一个就够)。 |
-| **条件** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** 或 **Equal To**——或者一个异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
+| **条件** | **大于**、**小于**、**大于或等于**、**小于或等于** 或 **等于**——或者一个异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
 | **Threshold** | 用于比较的值。指标有单位时，旁边会有一个单位列表。异常条件不显示此字段。 |
 | **灵敏度** | 仅限异常条件。**低**(4σ)、**中**(3σ，默认)或 **高**(2σ)。 |
 | **基线窗口** | 仅限异常条件。14 天(默认)、28、60 或 90 天的历史。 |
@@ -273,10 +273,10 @@ OneUptime 提供 18 个模板——11 个用于 FlashArray，7 个用于 FlashBl
 
 一些可以作为起点的条件：
 
-- **某个卷变慢：** `purefa_volume_performance_latency_usec` 过滤到 `dimension=usec_per_read_op`，平均值，按 `name` 分组，**Greater Than** `2000`，过去 10 分钟。
-- **阵列即将写满：** `purefa_array_space_utilization`，最大值，**Greater Than** `85`，过去 15 分钟。
-- **某台主机只通过一个控制器运行：** `purefa_host_connectivity_info` 过滤到 `status=critical`，最大值，按 `host` 分组，**Greater Than** `0`。
-- **某个 FlashBlade 文件系统几乎已满：** `purefb_file_systems_space_bytes` 过滤到 `space=available_ratio`，最小值，按 `name` 分组，**Less Than** `0.05`。
+- **某个卷变慢：** `purefa_volume_performance_latency_usec` 过滤到 `dimension=usec_per_read_op`，平均值，按 `name` 分组，**大于** `2000`，过去 10 分钟。
+- **阵列即将写满：** `purefa_array_space_utilization`，最大值，**大于** `85`，过去 15 分钟。
+- **某台主机只通过一个控制器运行：** `purefa_host_connectivity_info` 过滤到 `status=critical`，最大值，按 `host` 分组，**大于** `0`。
+- **某个 FlashBlade 文件系统几乎已满：** `purefb_file_systems_space_bytes` 过滤到 `space=available_ratio`，最小值，按 `name` 分组，**小于** `0.05`。
 
 ### 默认条件
 

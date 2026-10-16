@@ -97,11 +97,11 @@ En spårningsmonitors kriterier har en enda **Filtertyp**: **Span Count**, antal
 
 | Filtervillkor | Matchar när antalet spans är… |
 | --- | --- |
-| **Greater Than** | över värdet |
-| **Greater Than Or Equal To** | lika med värdet eller högre |
-| **Less Than** | under värdet |
-| **Less Than Or Equal To** | lika med värdet eller lägre |
-| **Equal To** | exakt värdet |
+| **Större än** | över värdet |
+| **Större än eller lika med** | lika med värdet eller högre |
+| **Mindre än** | under värdet |
+| **Mindre än eller lika med** | lika med värdet eller lägre |
+| **Lika med** | exakt värdet |
 | **Anomalously High** | över det förväntade intervallet för den här timmen i veckan |
 | **Anomalously Low** | under det intervallet |
 | **Anomalous** | utanför det intervallet, åt vilket håll som helst |
@@ -112,8 +112,8 @@ En ny spårningsmonitor börjar med dessa kriterier:
 
 | Kriterium | Filter | Effekt |
 | --- | --- | --- |
-| Check if … is offline | **Span Count** **Equal To** `0` | Markerar monitorn som offline och deklarerar en incident, som löses automatiskt |
-| Check if … is online | **Span Count** **Greater Than** `0` | Markerar monitorn som online |
+| Check if … is offline | **Span Count** **Lika med** `0` | Markerar monitorn som offline och deklarerar en incident, som löses automatiskt |
+| Check if … is online | **Span Count** **Större än** `0` | Markerar monitorn som online |
 
 ## Genomgånget exempel: misslyckade checkout-förfrågningar
 
@@ -131,8 +131,8 @@ För att bli larmad när fler än 10 checkout-förfrågningar misslyckas på fem
 - **Span-namn**: `POST /api/checkout`
 - **Övervakningsspår för (tid)**: **Senaste 5 minuterna**
 - **Filtrera efter spannstatus**: **Fel**
-- Kriterium 1: **Span Count** **Greater Than** `10`: markera monitorn som offline och deklarera en incident
-- Kriterium 2: **Span Count** **Less Than Or Equal To** `10`: markera monitorn som online
+- Kriterium 1: **Span Count** **Större än** `10`: markera monitorn som offline och deklarera en incident
+- Kriterium 2: **Span Count** **Mindre än eller lika med** `10`: markera monitorn som online
 
 Med 30 misslyckade förfrågningar matchar kriterium 1 och incidenten deklareras. När fem minuter har gått med 10 eller färre fel matchar kriterium 2, monitorn är online igen och incidenten löser sig själv.
 

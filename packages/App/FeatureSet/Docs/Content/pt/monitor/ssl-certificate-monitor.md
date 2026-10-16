@@ -77,8 +77,8 @@ Os critérios decidem quando o certificado conta como bom, degradado ou quebrado
 | **Is Not A Valid Certificate** | **Verdadeiro**, **Falso** | O oposto de **Is Valid Certificate**: **Verdadeiro** quando o certificado não passa nessas verificações ou não pôde ser verificado. |
 | **Is Expired Certificate** | **Verdadeiro**, **Falso** | A data de vencimento do certificado já passou. |
 | **Is Self Signed Certificate** | **Verdadeiro**, **Falso** | O certificado, ou um da cadeia dele, é autoassinado. |
-| **Expires In Days** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Os dias até o certificado vencer. |
-| **Expires In Hours** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | As horas até o certificado vencer. |
+| **Expires In Days** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | Os dias até o certificado vencer. |
+| **Expires In Hours** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | As horas até o certificado vencer. |
 
 **Expires In Days** conta dias inteiros: um certificado que vence em 14 dias e 20 horas tem 14 dias restantes. **Expires In Hours** conta horas inteiras do mesmo jeito.
 
@@ -102,7 +102,7 @@ Para ser avisado antes, altere o valor do filtro **Expires In Days** no critéri
 Monitores criados antes de o OneUptime adicionar este aviso não têm um critério de "vence em breve". Para adicioná-lo:
 
 1. No monitor, abra **Configuração → Critérios** e clique em **Editar: Critérios de Monitoramento**.
-2. Clique em **Adicionar critérios**. Defina o filtro dele como **Is Valid Certificate** / **Verdadeiro**, clique em **Adicionar filtro** e defina o segundo como **Expires In Days** / **Less Than Or Equal To** / `14`. Deixe **Condição de correspondência** em **Todos** (ela aparece abaixo dos filtros quando há dois).
+2. Clique em **Adicionar critérios**. Defina o filtro dele como **Is Valid Certificate** / **Verdadeiro**, clique em **Adicionar filtro** e defina o segundo como **Expires In Days** / **Menor ou igual a** / `14`. Deixe **Condição de correspondência** em **Todos** (ela aparece abaixo dos filtros quando há dois).
 3. Em **Ações**, ative **Quando os filtros corresponderem, criar um alerta.** e deixe **Quando os filtros corresponderem, alterar o status do monitor.** desativado, para que ele crie um alerta e não mude o status do monitor.
 4. Arraste o novo critério para cima do critério que marca o monitor como no ar, e salve.
 :::
@@ -111,8 +111,8 @@ Monitores criados antes de o OneUptime adicionar este aviso não têm um critér
 
 | Objetivo | Filtro | Condição | Valor |
 | --- | --- | --- | --- |
-| Avisar com um mês de antecedência | **Expires In Days** | **Less Than Or Equal To** | `30` |
-| Acionar alguém no último dia | **Expires In Hours** | **Less Than** | `24` |
+| Avisar com um mês de antecedência | **Expires In Days** | **Menor ou igual a** | `30` |
+| Acionar alguém no último dia | **Expires In Hours** | **Menor que** | `24` |
 | Offline só quando o certificado já venceu | **Is Expired Certificate** | **Verdadeiro** | — |
 | Sinalizar um certificado autoassinado | **Is Self Signed Certificate** | **Verdadeiro** | — |
 

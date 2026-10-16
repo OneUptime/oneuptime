@@ -88,7 +88,7 @@ Les deux premières sont dans la liste **Créer une alerte** ; pour la troisièm
 
 ### Traps
 
-Chaque notification Sophos est le même trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), avec l'événement en texte dans `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Pour alerter sur un type d'événement, combinez **SNMP Trap Received (Trap OID)** Equal To `1.3.6.1.4.1.2604.5.1.8.1.1` avec **SNMP Trap Varbind Value** sur cette varbind, Contains `IPSec` par exemple. Réglez la destination des traps du pare-feu sur SNMP v2c : le récepteur de traps de la sonde accepte les traps v1 et v2c.
+Chaque notification Sophos est le même trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), avec l'événement en texte dans `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Pour alerter sur un type d'événement, combinez **SNMP Trap Received (Trap OID)** Égal à `1.3.6.1.4.1.2604.5.1.8.1.1` avec **SNMP Trap Varbind Value** sur cette varbind, Contient `IPSec` par exemple. Réglez la destination des traps du pare-feu sur SNMP v2c : le récepteur de traps de la sonde accepte les traps v1 et v2c.
 
 ## Extreme Networks (EXOS / Switch Engine et Fabric Engine / VOSS)
 
@@ -130,9 +130,9 @@ Des alertes utiles, toutes sur la table `wifi_radios` avec Row `*`, pour que cha
 | Alerte | Critère |
 | --- | --- |
 | Une radio éteinte | **SNMP Table Row Is Unhealthy**, inclus dans les alertes recommandées |
-| La puissance d'émission a changé | **SNMP Table Value**, colonne TX Power, Not Equal To votre puissance prévue |
-| Une radio surchargée | **SNMP Table Value**, colonne Clients, Greater Than votre limite |
-| Un canal bruyant | **SNMP Table Value**, colonne Noise Floor, Greater Than `-80` |
+| La puissance d'émission a changé | **SNMP Table Value**, colonne TX Power, Différent de votre puissance prévue |
+| Une radio surchargée | **SNMP Table Value**, colonne Clients, Supérieur à votre limite |
+| Un canal bruyant | **SNMP Table Value**, colonne Noise Floor, Supérieur à `-80` |
 
 Chaque valeur numérique d'une radio est aussi une métrique (`oneuptime.monitor.snmp.table.value`, une série par radio et par colonne), si bien que le canal, la puissance et les clients peuvent être tracés dans le temps sur un tableau de bord ; un canal qui change sans cesse, c'est le DFS à l'œuvre.
 

@@ -77,8 +77,8 @@ Los criterios deciden cuándo el certificado cuenta como correcto, degradado o r
 | **Is Not A Valid Certificate** | **Verdadero**, **Falso** | Lo contrario de **Is Valid Certificate**: **Verdadero** cuando el certificado no supera esas comprobaciones o no se pudo comprobar. |
 | **Is Expired Certificate** | **Verdadero**, **Falso** | La fecha de caducidad del certificado ya pasó. |
 | **Is Self Signed Certificate** | **Verdadero**, **Falso** | El certificado, o uno de su cadena, es autofirmado. |
-| **Expires In Days** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Los días que faltan para que caduque el certificado. |
-| **Expires In Hours** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Las horas que faltan para que caduque el certificado. |
+| **Expires In Days** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | Los días que faltan para que caduque el certificado. |
+| **Expires In Hours** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | Las horas que faltan para que caduque el certificado. |
 
 **Expires In Days** cuenta días completos: a un certificado que caduca dentro de 14 días y 20 horas le quedan 14 días. **Expires In Hours** cuenta horas completas del mismo modo.
 
@@ -102,7 +102,7 @@ Para recibir el aviso antes, cambie el valor del filtro **Expires In Days** del 
 Los monitores creados antes de que OneUptime añadiera este aviso no tienen un criterio de «caduca pronto». Para añadirlo:
 
 1. En el monitor, abra **Configuración → Criterios** y haga clic en **Editar criterios de monitoreo**.
-2. Haga clic en **Añadir criterios**. Ponga su filtro en **Is Valid Certificate** / **Verdadero**, haga clic en **Añadir filtro** y ponga el segundo en **Expires In Days** / **Less Than Or Equal To** / `14`. Deje **Condición de coincidencia** en **Todos** (aparece bajo los filtros en cuanto hay dos).
+2. Haga clic en **Añadir criterios**. Ponga su filtro en **Is Valid Certificate** / **Verdadero**, haga clic en **Añadir filtro** y ponga el segundo en **Expires In Days** / **Menor o igual que** / `14`. Deje **Condición de coincidencia** en **Todos** (aparece bajo los filtros en cuanto hay dos).
 3. En **Acciones**, active **Cuando los filtros coinciden, crear una alerta.** y deje desactivado **Cuando los filtros coinciden, cambiar el estado del monitor.**, para que cree una alerta y no cambie el estado del monitor.
 4. Arrastre el nuevo criterio por encima del criterio que marca el monitor como en línea, y guarde.
 :::
@@ -111,8 +111,8 @@ Los monitores creados antes de que OneUptime añadiera este aviso no tienen un c
 
 | Objetivo | Filtro | Condición | Valor |
 | --- | --- | --- | --- |
-| Avisar con un mes de antelación | **Expires In Days** | **Less Than Or Equal To** | `30` |
-| Avisar a alguien el último día | **Expires In Hours** | **Less Than** | `24` |
+| Avisar con un mes de antelación | **Expires In Days** | **Menor o igual que** | `30` |
+| Avisar a alguien el último día | **Expires In Hours** | **Menor que** | `24` |
 | Sin conexión solo cuando el certificado ya caducó | **Is Expired Certificate** | **Verdadero** | — |
 | Señalar un certificado autofirmado | **Is Self Signed Certificate** | **Verdadero** | — |
 

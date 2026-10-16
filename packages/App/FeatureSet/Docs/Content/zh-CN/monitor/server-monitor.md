@@ -159,7 +159,7 @@ oneuptime-infrastructure-agent start
 | 过滤器类型 | 检查内容 | 过滤条件 |
 | --- | --- | --- |
 | Is Online | 代理最近是否报告过（默认是最近 3 分钟内） | 是, 否 |
-| CPU Usage (in %) | 总体 CPU 使用率 | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| CPU Usage (in %) | 总体 CPU 使用率 | 大于, 小于, 大于或等于, 小于或等于 |
 | Memory Usage (in %) | 已用内存 | 与 CPU 相同 |
 | Disk Usage (in %) | **磁盘路径** 中指定磁盘的使用率 | 与 CPU 相同 |
 | Swap Usage (in %) | 已用交换空间 | 与 CPU 相同 |
@@ -195,10 +195,10 @@ oneuptime-infrastructure-agent start
 | 目标 | 过滤器类型 | 过滤条件 | 值 |
 | --- | --- | --- | --- |
 | 代理停止报告时将服务器标记为离线 | Is Online | 否 | — |
-| CPU 使用率超过 90% 时发出警报 | CPU Usage (in %) | Greater Than | `90` |
-| 根磁盘使用率超过 85% 时发出警报 | Disk Usage (in %)，**磁盘路径** `/` | Greater Than | `85` |
-| 任何磁盘使用率超过 85% 时发出警报，每个磁盘一个警报 | Disk Usage (in %)，**磁盘路径** `*` | Greater Than | `85` |
-| 内存使用率超过 80% 时发出警报 | Memory Usage (in %) | Greater Than | `80` |
+| CPU 使用率超过 90% 时发出警报 | CPU Usage (in %) | 大于 | `90` |
+| 根磁盘使用率超过 85% 时发出警报 | Disk Usage (in %)，**磁盘路径** `/` | 大于 | `85` |
+| 任何磁盘使用率超过 85% 时发出警报，每个磁盘一个警报 | Disk Usage (in %)，**磁盘路径** `*` | 大于 | `85` |
+| 内存使用率超过 80% 时发出警报 | Memory Usage (in %) | 大于 | `80` |
 | nginx 停止运行时发出警报 | Server Process Name | Is Not Executing | `nginx` |
 
 ## 故障排除
