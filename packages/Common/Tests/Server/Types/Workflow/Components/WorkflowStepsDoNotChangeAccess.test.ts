@@ -111,7 +111,7 @@ jest.mock("../../../../../Server/EnvironmentConfig", () => {
  * in plain words. Its triggers and Find steps still read these records; a
  * person, an API key and OneUptime itself are held as before.
  *
- * The attack runs first, over the real TeamPermissionService and
+ * The two ways in run first, over the real TeamPermissionService and
  * TeamMemberService with the project's three teams held in memory: on code
  * without the rule, the Members team is given Project Admin and the member
  * sits on the Admin team, accepted - both writes reach the tables. Then
