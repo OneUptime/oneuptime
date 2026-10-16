@@ -14,6 +14,10 @@ import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
+import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
+import IncidentEpisodeService from "./IncidentEpisodeService";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -116,9 +120,60 @@ export class Service extends ProjectReferencesService<Model> {
         incidentRoleId,
         projectId,
       });
+
+      // And into the episode's own channels, when their rules add roles.
+      this.inviteToEpisodeChannels({
+        incidentEpisodeId,
+        userId,
+        projectId,
+      }).catch((error: Error) => {
+        logger.error(error);
+      });
     }
 
     return createdItem;
+  }
+
+  /*
+   * Somebody given a role on an episode joins the channels its rules
+   * created that add the people given a role (NotificationRuleInvites), as
+   * the incident's commander joins an incident's.
+   */
+  @CaptureSpan()
+  private async inviteToEpisodeChannels(data: {
+    incidentEpisodeId: ObjectID;
+    userId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const notificationRules: Array<WorkspaceNotificationRule> =
+      await WorkspaceNotificationRuleService.getNotificationRulesWhereInviteRolesIsTrue(
+        {
+          projectId: data.projectId,
+          notificationFor: {
+            incidentEpisodeId: data.incidentEpisodeId,
+          },
+          notificationRuleEventType: NotificationRuleEventType.IncidentEpisode,
+        },
+      );
+
+    if (notificationRules.length === 0) {
+      return;
+    }
+
+    await WorkspaceNotificationRuleService.inviteUsersBasedOnRulesAndWorkspaceChannels(
+      {
+        notificationRules: notificationRules,
+        projectId: data.projectId,
+        workspaceChannels:
+          await IncidentEpisodeService.getWorkspaceChannelForEpisode({
+            episodeId: data.incidentEpisodeId,
+          }),
+        userIds: [data.userId],
+        notificationFor: {
+          incidentEpisodeId: data.incidentEpisodeId,
+        },
+      },
+    );
   }
 
   @CaptureSpan()

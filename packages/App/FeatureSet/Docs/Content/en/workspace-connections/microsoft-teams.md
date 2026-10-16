@@ -15,7 +15,7 @@ Connect OneUptime to Microsoft Teams to post incidents, alerts, episodes, schedu
 ```mermaid title="From an event in OneUptime to a card in Microsoft Teams"
 flowchart TB
     event["An incident, alert or event<br/>is created or changes"] --> rules{"Notification rules<br/>whose conditions match"}
-    rules -->|"Create Microsoft Teams Channel"| own["A channel of its own<br/>in the team you pick"]
+    rules -->|"Create a channel<br/>for each one"| own["A channel of its own<br/>in the team you pick"]
     rules -->|"Post to an existing<br/>channel or chat"| existing["Your channels and chats"]
     own --> card["A card with buttons"]
     existing --> card
@@ -84,13 +84,15 @@ Creating a rule walks four steps:
 | Step | What you set |
 | --- | --- |
 | **Basic** | **Rule Name** and **Rule Description**. |
-| **Conditions** | Which events the rule fires for, by severity, state, label, monitor or words in the title, for example. With no conditions it fires for every event. With two or more, **Match Condition** says whether all of them must match, or any one. |
-| **Destination** | Where it posts: an existing channel of a team you pick, the chats you pick, a new channel created in a team you pick, or any of these together. |
+| **Conditions** | Which events the rule is for, by severity, state, label, monitor or words in the title, for example. They are checked when an event is created and again with each update OneUptime posts about it, so a rule for acknowledged incidents acts when an incident is acknowledged. With no conditions the rule is for every event. With two or more, **Match Condition** says whether all of them must match, or any one. |
+| **Destination** | Where it posts: an existing channel of a team you pick, the chats you pick, a channel for each incident (or alert, episode, event, monitor or on-call policy) created in a team you pick, or any of these together. Under the step, **What this rule does** says it in sentences, as the rule's card does. |
 | **Video Call** | Incidents and alerts only: start a call for each one. See [Video Calls](/docs/workspace-connections/video-calls). |
 
 A channel the rule creates is named after its record: incident INC-42 gets `inc-42`, alert ALT-7 gets `alt-7`, and in a project without number prefixes, incident 42 gets `incident-42`. Text in **Channel Name Prefix** goes in front, so `prod-` makes `prod-inc-42`, and the form shows the name as you type. For a scheduled maintenance event, the prefix takes the place of its number prefix: SM-5 gets `sm-5`, and `maint-` makes `maint-5`. OneUptime keeps letters, numbers, spaces, `-` and `_`, up to the 50 characters Microsoft Teams takes. If the team already has a channel by that name, such as another project's or one deleted in the last 30 days, OneUptime adds `-2`, `-3` and so on.
 
-Only a channel that was created gets the people the rule invites. A private incident, alert or episode gets a private channel. Every later update of the record — a state change, a note, a new owner — is posted to its channels and chats.
+A rule creates its channel the first time an event matches it: when the event is created, or later, when an update makes it match while it is still open. A rule for acknowledged incidents creates the channel when the incident is acknowledged. Microsoft Teams shows a team's channels to everyone in the team, so OneUptime adds nobody to a channel one by one: everyone in the team you pick can open it, as the rule form says under **Who joins the channel**. A private incident, alert or episode gets a private channel, which only its members see; add people to it in Microsoft Teams.
+
+Every later update of the record — a state change, a note, a new owner — is posted to its channels, and to the existing channels and chats its rules name while their conditions match. OneUptime cannot archive a Microsoft Teams channel, so a rule's channel stays when its record is over; archive or delete it in Microsoft Teams.
 
 An incident, alert, episode or scheduled maintenance event with a channel of its own has **Open in Microsoft Teams** in the header of its page in OneUptime, beside its state buttons. It opens that channel in a new tab, in the Microsoft Teams app or in the browser. A record with two channels of its own lists both under the button. A record with channels in both Slack and Microsoft Teams has one **Open channel** button instead, which lists them all. The existing channels and chats your rules post to are not offered.
 

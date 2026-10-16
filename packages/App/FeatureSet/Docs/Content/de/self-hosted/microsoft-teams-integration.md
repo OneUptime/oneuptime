@@ -347,7 +347,7 @@ Die Installation gilt pro Team. OneUptime zu einem Team hinzuzufügen, bewirkt f
 
 ### "Regel testen" klappt, aber echte Benachrichtigungen kommen nie an
 
-Prüfen Sie, welche Ziele die Regel tatsächlich aktiviert hat. Eine Regel prüft nur das, wofür sie konfiguriert ist: Mit eingeschaltetem **Create Microsoft Teams Channel** erstellt der Test einen Kanal und veröffentlicht darin, was beweist, dass der Bot *in dem Team veröffentlichen kann, in dem dieser Kanal erstellt wurde* — und nichts über irgendein anderes Team. **Projekteinstellungen > Benachrichtigungen > Benachrichtigungsprotokolle** zeichnet jeden Testversand auf, einschließlich des unveränderten Fehlers von Microsoft, wenn einer fehlschlägt.
+Prüfen Sie, welche Ziele die Regel tatsächlich aktiviert hat. Eine Regel prüft nur das, wofür sie konfiguriert ist: Mit eingeschaltetem **Einen Kanal für jeden Vorfall erstellen** erstellt der Test einen Kanal und veröffentlicht darin, was beweist, dass der Bot *in dem Team veröffentlichen kann, in dem dieser Kanal erstellt wurde* — und nichts über irgendein anderes Team. **Projekteinstellungen > Benachrichtigungen > Benachrichtigungsprotokolle** zeichnet jeden Testversand auf, einschließlich des unveränderten Fehlers von Microsoft, wenn einer fehlschlägt.
 
 ### "Sorry, I couldn't find your project configuration"
 
