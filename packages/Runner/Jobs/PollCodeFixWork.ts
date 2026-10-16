@@ -51,6 +51,16 @@ interface GetPendingTaskResponse {
 const SLEEP_WHEN_NO_TASKS_MS: number = 60 * 1000; // 1 minute
 
 /*
+ * The report that closes a task is retried when the request never got an
+ * answer, or got one that says the server broke rather than the request — a
+ * deploy, a dropped connection. Lost, it leaves the run Running until the
+ * stale-run sweeper fails it, and takes the pull requests a Completed report
+ * carries with it. The server closes a run once and records a pull request
+ * once, so a retry of a report that did land changes nothing.
+ */
+const FINAL_STATUS_REPORT_RETRIES: number = 3;
+
+/*
  * How a task finished, for the caller to report. Only the two non-failure
  * outcomes are represented — a task that could not finish throws instead, and
  * the catch block reports Error.
@@ -254,6 +264,40 @@ export const buildTaskOutcomeReport: BuildTaskOutcomeReportFunction = (data: {
   };
 };
 
+type SendFinalStatusReportFunction = (data: {
+  url: URL;
+  report: JSONObject;
+  logAttributes: LogAttributes;
+}) => Promise<HTTPResponse<JSONObject> | null>;
+
+/*
+ * Send the report that closes a task — Completed, NoFixFound or Error — with
+ * retries. Null when no answer came back, retries included. API.post throws
+ * then, and a Completed or NoFixFound report's throw must not reach the catch
+ * that reports Error: the task finished, and an Error report that got
+ * through once the server was back would say it failed.
+ */
+const sendFinalStatusReport: SendFinalStatusReportFunction = async (data: {
+  url: URL;
+  report: JSONObject;
+  logAttributes: LogAttributes;
+}): Promise<HTTPResponse<JSONObject> | null> => {
+  try {
+    return await API.post({
+      url: data.url,
+      data: data.report,
+      options: {
+        retries: FINAL_STATUS_REPORT_RETRIES,
+        exponentialBackoff: true,
+        retryOnlyOnRetryableErrors: true,
+      },
+    });
+  } catch (error) {
+    logger.error(error, data.logAttributes);
+    return null;
+  }
+};
+
 const startTaskProcessingLoop: () => Promise<void> =
   async (): Promise<void> => {
     logger.info(
@@ -373,37 +417,46 @@ const startTaskProcessingLoop: () => Promise<void> =
           const outcome: TaskOutcome = await executeTask(task);
 
           /* Mark task as Completed / NoFixFound */
-          let finalResult: HTTPResponse<JSONObject> = await API.post({
-            url: updateTaskStatusUrl,
-            data: buildTaskOutcomeReport({ taskId: taskId, outcome: outcome }),
-          });
+          let finalResult: HTTPResponse<JSONObject> | null =
+            await sendFinalStatusReport({
+              url: updateTaskStatusUrl,
+              report: buildTaskOutcomeReport({
+                taskId: taskId,
+                outcome: outcome,
+              }),
+              logAttributes: taskLogAttrs,
+            });
 
           /*
-           * Servers that predate NoFixFound reject it as an invalid status,
-           * which would leave the run Running until the sweeper marked it
-           * Stale. Fall back to Completed: the run did finish, and a stale
-           * red run would be a worse lie than a green one.
+           * Servers that predate NoFixFound refuse it as an invalid status (a
+           * 400), which would leave the run Running until the sweeper marked
+           * it Stale. Fall back to Completed: the run did finish, and a stale
+           * red run would be a worse lie than a green one. Only on that
+           * refusal: no answer, or a server error that outlasted the retries,
+           * says nothing about what the server supports, and a Completed that
+           * got through once it was back would hide why no fix was found.
            */
           if (
-            !finalResult.isSuccess() &&
-            outcome.status === AIAgentTaskStatus.NoFixFound
+            outcome.status === AIAgentTaskStatus.NoFixFound &&
+            finalResult?.statusCode === 400
           ) {
             logger.warn(
               `Server rejected NoFixFound for task ${taskId}; reporting Completed instead`,
               taskLogAttrs,
             );
 
-            finalResult = await API.post({
+            finalResult = await sendFinalStatusReport({
               url: updateTaskStatusUrl,
-              data: {
+              report: {
                 ...RunnerAPIRequest.getDefaultRequestBody(),
                 taskId: taskId,
                 status: AIAgentTaskStatus.Completed,
               },
+              logAttributes: taskLogAttrs,
             });
           }
 
-          if (!finalResult.isSuccess()) {
+          if (!finalResult || !finalResult.isSuccess()) {
             logger.error(
               `Failed to mark task ${taskId} as ${outcome.status}`,
               taskLogAttrs,
@@ -427,17 +480,19 @@ const startTaskProcessingLoop: () => Promise<void> =
           const errorMessage: string =
             error instanceof Error ? error.message : "Unknown error occurred";
 
-          const errorResult: HTTPResponse<JSONObject> = await API.post({
-            url: updateTaskStatusUrl,
-            data: {
-              ...RunnerAPIRequest.getDefaultRequestBody(),
-              taskId: taskId,
-              status: AIAgentTaskStatus.Error,
-              statusMessage: errorMessage,
-            },
-          });
+          const errorResult: HTTPResponse<JSONObject> | null =
+            await sendFinalStatusReport({
+              url: updateTaskStatusUrl,
+              report: {
+                ...RunnerAPIRequest.getDefaultRequestBody(),
+                taskId: taskId,
+                status: AIAgentTaskStatus.Error,
+                statusMessage: errorMessage,
+              },
+              logAttributes: taskLogAttrs,
+            });
 
-          if (!errorResult.isSuccess()) {
+          if (!errorResult || !errorResult.isSuccess()) {
             logger.error(
               `Failed to mark task ${taskId} as Error: ${errorMessage}`,
               taskLogAttrs,
