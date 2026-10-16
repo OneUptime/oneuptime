@@ -74,11 +74,14 @@ describe("SignInOptionLink", () => {
 
     expect(icon).not.toBeNull();
     expect(icon).toHaveAttribute("aria-hidden", "true");
-    expect(icon).toHaveClass("h-5", "w-5", "shrink-0");
-    expect(
-      icon!.compareDocumentPosition(words) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    expect(icon).toHaveClass("h-5", "w-5");
     expect(option.textContent).toBe("Sign in with SSO");
+    /*
+     * At the start of the words, inside them (SignInOptionLabel): a label
+     * that wraps keeps its icon beside its first words.
+     */
+    expect(Array.from(option.children)).toEqual([words]);
+    expect(words.firstElementChild).toContainElement(icon as Element);
   });
 
   /*

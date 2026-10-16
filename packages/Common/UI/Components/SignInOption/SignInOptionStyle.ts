@@ -5,7 +5,8 @@
  * outlined, as tall as the filled button above it (the same padding and type
  * size as Button's PRIMARY), with an icon before its words. They used to be
  * centred text links, one per line beside a bordered Microsoft button, and
- * read as small print rather than as choices.
+ * read as small print rather than as choices. SignInOptionLabel draws the
+ * words and their icon.
  *
  * One look per state, and a state's classes never set a property another
  * class in the list also sets: Tailwind decides such a tie by the order of
@@ -34,10 +35,11 @@ export const SIGN_IN_OPTION_STATES: ReadonlyArray<SignInOptionState> = [
 /*
  * The box, the type and the keyboard focus ring, the same in every state.
  * Shared with Button's PRIMARY: px-3 py-2, text-base under md and text-sm
- * from md, font-medium, rounded-md and a one-pixel border.
+ * from md, font-medium, rounded-md and a one-pixel border. Its one child is
+ * the label (SIGN_IN_OPTION_LABEL_CLASS), centred.
  */
 export const SIGN_IN_OPTION_LAYOUT_CLASS: string =
-  "flex w-full items-center justify-center gap-2 rounded-md border px-3 py-2 text-center text-base font-medium md:text-sm transition-colors duration-150 ease-out motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+  "flex w-full items-center justify-center rounded-md border px-3 py-2 text-center text-base font-medium md:text-sm transition-colors duration-150 ease-out motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
 export const SIGN_IN_OPTION_LOOK_CLASS: Readonly<
   Record<SignInOptionState, string>
@@ -50,8 +52,28 @@ export const SIGN_IN_OPTION_LOOK_CLASS: Readonly<
   unavailable: "cursor-default border-gray-200 bg-gray-50 text-gray-500",
 };
 
-// The icon before the words: the size of the label's line, never squeezed.
-export const SIGN_IN_OPTION_ICON_CLASS: string = "h-5 w-5 shrink-0";
+/*
+ * The words, with their icon at the start of the first line, laid out by
+ * their own direction (dir="auto"). A label too long for one line - Spanish
+ * "Iniciar sesión con una clave de acceso" on a phone - wraps into balanced
+ * lines, and its icon stays beside the words it belongs to. With the icon
+ * and the words as two flex items, the words took the whole width once they
+ * wrapped and left the icon at the button's edge.
+ */
+export const SIGN_IN_OPTION_LABEL_CLASS: string =
+  "min-w-0 break-words text-balance";
+
+/*
+ * The icon's place at the start of the words: in the line, with a gap before
+ * the first word (on its left in a right-to-left label). It sits on the
+ * baseline, which centres a 20px icon on the words, and its negative margins
+ * keep the line - and so the button - exactly as tall as one without an icon.
+ */
+export const SIGN_IN_OPTION_ICON_SLOT_CLASS: string =
+  "-my-1 me-2 inline-block align-baseline";
+
+// The icon itself: the height of the label's line.
+export const SIGN_IN_OPTION_ICON_CLASS: string = "h-5 w-5";
 
 type GetSignInOptionClassNameFunction = (state?: SignInOptionState) => string;
 

@@ -8,6 +8,8 @@ import Button, {
 import {
   getSignInOptionClassName,
   SIGN_IN_OPTION_ICON_CLASS,
+  SIGN_IN_OPTION_ICON_SLOT_CLASS,
+  SIGN_IN_OPTION_LABEL_CLASS,
   SIGN_IN_OPTION_LAYOUT_CLASS,
   SIGN_IN_OPTION_LOOK_CLASS,
   SIGN_IN_OPTION_STATES,
@@ -35,6 +37,10 @@ const SHADOW: RegExp = /^shadow(-(sm|md|lg|xl|none))?$/;
 const OPACITY: RegExp = /^opacity-\d+$/;
 const CURSOR: RegExp = /^cursor-/;
 const FILLED: RegExp = /^bg-(indigo|red|green|yellow)-600$/;
+// A margin or padding on a physical side (left or right), not a logical one.
+const PHYSICAL_SIDE_SPACING: RegExp = /^-?[mp][lr]-/;
+// A flex gap: the box centres one child, the label.
+const FLEX_GAP: RegExp = /^gap-/;
 
 type PropertyRule = { property: string; pattern: RegExp };
 
@@ -125,7 +131,6 @@ describe("SignInOptionStyle", () => {
           "w-full",
           "items-center",
           "justify-center",
-          "gap-2",
           "rounded-md",
           "border",
           "font-medium",
@@ -305,9 +310,44 @@ describe("SignInOptionStyle", () => {
     }
   });
 
-  test("the icon is the size of the label's line and never squeezed", () => {
+  test("the icon is the height of the label's line", () => {
     expect(classesOf(SIGN_IN_OPTION_ICON_CLASS).sort()).toEqual(
-      ["h-5", "shrink-0", "w-5"].sort(),
+      ["h-5", "w-5"].sort(),
     );
+  });
+
+  /*
+   * The words and their icon are one run of text (SignInOptionLabel), the
+   * box's only child. A label too long for one line - Spanish "Iniciar
+   * sesión con una clave de acceso" on a phone - wraps into balanced lines,
+   * with its icon beside its first words. As two flex items, the words took
+   * the whole width once they wrapped and left the icon at the edge.
+   */
+  test("the box centres one child, the label, with no gap for a second", () => {
+    expect(
+      classesOf(SIGN_IN_OPTION_LAYOUT_CLASS).filter((name: string) => {
+        return FLEX_GAP.test(name);
+      }),
+    ).toEqual([]);
+  });
+
+  test("the words balance their lines when they wrap, and may narrow to the box", () => {
+    expect(classesOf(SIGN_IN_OPTION_LABEL_CLASS).sort()).toEqual(
+      ["break-words", "min-w-0", "text-balance"].sort(),
+    );
+  });
+
+  test("the icon's place is in the first line, on the baseline, before the words whichever way they run", () => {
+    const slot: Array<string> = classesOf(SIGN_IN_OPTION_ICON_SLOT_CLASS);
+
+    expect(slot.sort()).toEqual(
+      ["-my-1", "align-baseline", "inline-block", "me-2"].sort(),
+    );
+    // A logical gap: on the right of a left-to-right label's icon, on the left of a right-to-left one's.
+    expect(
+      slot.filter((name: string) => {
+        return PHYSICAL_SIDE_SPACING.test(name);
+      }),
+    ).toEqual([]);
   });
 });

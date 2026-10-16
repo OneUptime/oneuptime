@@ -1,4 +1,8 @@
-import { getSignInOptionClassName } from "Common/UI/Components/SignInOption/SignInOptionStyle";
+import SignInOptionLabel from "Common/UI/Components/SignInOption/SignInOptionLabel";
+import {
+  getSignInOptionClassName,
+  SIGN_IN_OPTION_ICON_CLASS,
+} from "Common/UI/Components/SignInOption/SignInOptionStyle";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -26,21 +30,28 @@ const MicrosoftSignInButton: FunctionComponent<ComponentProps> = (
       data-testid="microsoft-sign-in"
       className={getSignInOptionClassName("ready")}
     >
-      <svg
-        aria-hidden="true"
-        width="18"
-        height="18"
-        viewBox="0 0 21 21"
-        xmlns="http://www.w3.org/2000/svg"
-        className="shrink-0"
-      >
-        <rect x="1" y="1" width="9" height="9" fill="#f25022" />
-        <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
-        <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
-        <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
-      </svg>
-      {/* Laid out by its own first letter, like every option's label. */}
-      <span dir="auto">{props.title}</span>
+      {/*
+       * The logo in the box every option's icon has (20px), so it sits on
+       * the words exactly as the shield and the fingerprint do.
+       */}
+      <SignInOptionLabel
+        icon={
+          <svg
+            aria-hidden="true"
+            width="20"
+            height="20"
+            viewBox="0 0 21 21"
+            xmlns="http://www.w3.org/2000/svg"
+            className={SIGN_IN_OPTION_ICON_CLASS}
+          >
+            <rect x="1" y="1" width="9" height="9" fill="#f25022" />
+            <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
+            <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
+            <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
+          </svg>
+        }
+        title={props.title}
+      />
     </a>
   );
 };

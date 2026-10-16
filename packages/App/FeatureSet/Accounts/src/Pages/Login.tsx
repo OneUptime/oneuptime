@@ -53,6 +53,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import LabelledDivider from "Common/UI/Components/Divider/LabelledDivider";
 import SignInOptionLink from "Common/UI/Components/SignInOption/SignInOptionLink";
+import SignInOptionLabel from "Common/UI/Components/SignInOption/SignInOptionLabel";
 import {
   getSignInOptionClassName,
   SIGN_IN_OPTION_ICON_CLASS,
@@ -1305,29 +1306,32 @@ const LoginPage: () => JSX.Element = () => {
                   }}
                   className={getSignInOptionClassName(passkeyOptionState)}
                 >
-                  <Icon
+                  <SignInOptionLabel
                     icon={
-                      isPasskeyLoading ? IconProp.Spinner : IconProp.Fingerprint
+                      <Icon
+                        icon={
+                          isPasskeyLoading
+                            ? IconProp.Spinner
+                            : IconProp.Fingerprint
+                        }
+                        className={`${SIGN_IN_OPTION_ICON_CLASS}${
+                          isPasskeyLoading ? " animate-spin" : ""
+                        }`}
+                        data-testid={
+                          isPasskeyLoading
+                            ? "passkey-login-spinner"
+                            : "passkey-login-fingerprint"
+                        }
+                      />
                     }
-                    className={`${SIGN_IN_OPTION_ICON_CLASS}${
-                      isPasskeyLoading ? " animate-spin" : ""
-                    }`}
-                    data-testid={
-                      isPasskeyLoading
-                        ? "passkey-login-spinner"
-                        : "passkey-login-fingerprint"
-                    }
-                  />
-                  {/* Laid out by its own first letter, like every option's label. */}
-                  <span dir="auto">
-                    {t(
+                    title={t(
                       passkeyStageText
                         ? passkeyStageText.option
                         : isPasskeySupported && (passkeyError || passkeyNotice)
                           ? "login.passkey.tryAgain"
                           : "login.passkey.signIn",
                     )}
-                  </span>
+                  />
                 </button>
                 <div role="status" aria-live="polite" aria-atomic="true">
                   {passkeyStageText && (

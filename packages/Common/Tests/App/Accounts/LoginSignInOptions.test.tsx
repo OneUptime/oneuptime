@@ -322,12 +322,20 @@ describe("The other ways to sign in", () => {
 
       for (const option of otherWaysIn()) {
         const icon: SVGElement | null = option.querySelector("svg");
-        const words: HTMLElement | null = option.querySelector("span");
+        /*
+         * The words are the option's only child, with the icon at their
+         * start (SignInOptionLabel): a label that wraps keeps its icon
+         * beside its first words.
+         */
+        const words: Element = option.firstElementChild as Element;
 
+        expect(option.children).toHaveLength(1);
+        expect(words).toHaveAttribute("dir", "auto");
         expect(icon).not.toBeNull();
         expect(icon).toHaveAttribute("aria-hidden", "true");
-        expect(words).not.toBeNull();
-        expect(comesAfter(words!, icon!)).toBe(true);
+        expect(words.firstElementChild).toContainElement(icon);
+        expect(comesAfter(words.lastChild as Element, icon!)).toBe(true);
+        expect(words.textContent).toBe(option.textContent);
       }
       expect(
         within(passkeyOption()).getByTestId("passkey-login-fingerprint"),
@@ -431,6 +439,29 @@ describe("The other ways to sign in", () => {
         expect(microsoftOption().querySelector("svg")).toHaveAttribute(
           "aria-hidden",
           "true",
+        );
+      });
+
+      test("its logo has the box every option's icon has, at the start of its words", async () => {
+        await renderLogin();
+
+        const logo: SVGElement = microsoftOption().querySelector(
+          "svg",
+        ) as SVGElement;
+        const shield: SVGElement = ssoOption().querySelector(
+          "svg",
+        ) as SVGElement;
+        const words: Element = microsoftOption().firstElementChild as Element;
+
+        expect(logo).toHaveClass("h-5", "w-5");
+        expect(logo).toHaveAttribute("width", "20");
+        expect(logo).toHaveAttribute("height", "20");
+        expect(classSet(logo)).toEqual(classSet(shield));
+        expect(microsoftOption().children).toHaveLength(1);
+        expect(words).toHaveAttribute("dir", "auto");
+        expect(words.firstElementChild).toContainElement(logo);
+        expect(classSet(words)).toEqual(
+          classSet(ssoOption().firstElementChild as Element),
         );
       });
 

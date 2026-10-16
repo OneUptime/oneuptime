@@ -3,6 +3,7 @@ import URL from "../../../Types/API/URL";
 import IconProp from "../../../Types/Icon/IconProp";
 import Icon from "../Icon/Icon";
 import Link from "../Link/Link";
+import SignInOptionLabel from "./SignInOptionLabel";
 import {
   getSignInOptionClassName,
   SIGN_IN_OPTION_ICON_CLASS,
@@ -34,13 +35,10 @@ const SignInOptionLink: FunctionComponent<ComponentProps> = (
       dataTestId={props.dataTestId}
       className={getSignInOptionClassName("ready")}
     >
-      <Icon icon={props.icon} className={SIGN_IN_OPTION_ICON_CLASS} />
-      {/*
-       * dir="auto": a label is laid out by its own first letter. A Persian
-       * "Sign in with SSO" ends in a Latin word, and in a left-to-right page
-       * its reader met "SSO" first.
-       */}
-      <span dir="auto">{props.title}</span>
+      <SignInOptionLabel
+        icon={<Icon icon={props.icon} className={SIGN_IN_OPTION_ICON_CLASS} />}
+        title={props.title}
+      />
     </Link>
   );
 };
