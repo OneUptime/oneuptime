@@ -9,7 +9,7 @@ npm install -g @oneuptime/cli
 oneuptime --version
 ```
 
-The CLI needs Node.js 22 or later. It installs as a single file, with no other packages and no build tools.
+The CLI needs Node.js 22 or later. It has no dependencies, so npm installs it without fetching other packages or building anything.
 
 Or run directly within the monorepo:
 

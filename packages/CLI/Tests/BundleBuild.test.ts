@@ -81,6 +81,12 @@ const DEFINE_FIELDS_TARGET: RegExp = /^es20(?:2[2-9]|[3-9]\d)$|^esnext$/;
 // A `return require("name");` line of typeorm's PlatformTools.load().
 const RETURN_REQUIRE: RegExp = /return require\("([^"\n]+)"\);/g;
 
+// The Node.js lines of CLI Test's packaged-cli matrix: "node: [22, 24]".
+const MATRIX_NODE_LINES: RegExp = /^ {8}node: \[([\d, ]+)\]$/m;
+
+// The first job's setup-node version: "node-version: 26".
+const SETUP_NODE_VERSION: RegExp = /^ {10}node-version: (\d+)$/m;
+
 const MANIFEST: CliManifest = JSON.parse(
   fs.readFileSync(path.join(CLI_ROOT, "package.json"), "utf-8"),
 ) as CliManifest;
@@ -557,5 +563,59 @@ describe("the package npm publishes", () => {
 
     expect(MANIFEST.devDependencies["Common"]).toBe("file:../Common");
     expect(MANIFEST.devDependencies["esbuild"]).toBeDefined();
+  });
+});
+
+/*
+ * CLI Test (.github/workflows/test.cli.yaml) is where the package npm
+ * publishes gets run before a release: the job that runs these tests packs
+ * it first, and a job per older Node.js line installs and runs that tarball.
+ */
+describe("CLI Test", () => {
+  const workflow: string = fs.readFileSync(
+    path.join(CLI_ROOT, "..", "..", ".github", "workflows", "test.cli.yaml"),
+    "utf-8",
+  );
+
+  it("packs the CLI as npm publishes it, and hands the tarball on before the tests run", () => {
+    const pack: number = workflow.indexOf(
+      'cd packages/CLI && npm pack --pack-destination "$RUNNER_TEMP/cli-package"',
+    );
+    const upload: number = workflow.indexOf("name: cli-package\n");
+    const tests: number = workflow.indexOf("cd packages/CLI && npm run test");
+
+    expect(pack).toBeGreaterThan(-1);
+    expect(upload).toBeGreaterThan(pack);
+    expect(tests).toBeGreaterThan(upload);
+  });
+
+  it("runs the packed CLI on every Node.js line from the oldest engines allows up to the tests' own", () => {
+    const testsNode: number = Number(
+      (SETUP_NODE_VERSION.exec(workflow) as RegExpExecArray)[1],
+    );
+    const matrix: Array<number> = (
+      (MATRIX_NODE_LINES.exec(workflow) as RegExpExecArray)[1] as string
+    )
+      .split(",")
+      .map((line: string): number => {
+        return Number(line.trim());
+      });
+    const oldest: number = Number(
+      (MANIFEST.engines as Record<string, string>)["node"]?.replace(">=", ""),
+    );
+
+    // Node.js's long-term lines are the even ones.
+    const expected: Array<number> = [];
+
+    for (let line: number = oldest; line < testsNode; line += 2) {
+      expected.push(line);
+    }
+
+    expect(testsNode).toBe(26);
+    expect(expected.length).toBeGreaterThan(0);
+    expect(matrix).toEqual(expected);
+    expect(workflow).toContain(
+      'node packages/CLI/Scripts/SmokeTestPackage.js --tarball "$tarball"',
+    );
   });
 });
