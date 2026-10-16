@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { FacetValue } from "../types";
 import { getFacetValueDisplayLabel } from "../LogsEntityNames";
-import FacetValueRow from "./FacetValueRow";
+import TelemetryFacetValueRow from "../../TelemetryViewer/components/TelemetryFacetValueRow";
 import IconProp from "../../../../Types/Icon/IconProp";
 import FacetSectionHeader from "../../TelemetryViewer/components/FacetSectionHeader";
 import FacetSearchInput from "../../TelemetryViewer/components/FacetSearchInput";
@@ -16,6 +16,11 @@ import useFacetSectionSearch, {
   FacetSectionSearch,
 } from "../../TelemetryViewer/useFacetSectionSearch";
 import { getFacetEmptyStateText } from "../../TelemetryViewer/FacetVisibility";
+import {
+  DisplayedFacetValues,
+  FacetValueState,
+  getDisplayedFacetValues,
+} from "../../TelemetryViewer/FacetSelection";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 
@@ -23,12 +28,27 @@ export interface FacetSectionProps {
   title: string;
   values: Array<FacetValue>;
   initialVisibleCount?: number;
+  // A value that is not filtering was clicked: keep only its rows.
   onIncludeValue: (key: string, value: string) => void;
-  onExcludeValue: (key: string, value: string) => void;
+  /*
+   * A checked or excluded value was clicked: take its filter off. The
+   * sidebar knows which chips put it there.
+   */
+  onClearValue: (key: string, value: string) => void;
+  /*
+   * Leave a value's rows out. Absent where the explorer cannot exclude: the
+   * rows then carry no exclude button at all.
+   */
+  onExcludeValue?: ((key: string, value: string) => void) | undefined;
   facetKey: string;
   valueDisplayMap?: Record<string, string> | undefined;
   valueColorMap?: Record<string, string> | undefined;
+  // Values that keep only their rows: drawn checked.
   activeValues?: Set<string> | undefined;
+  // Values whose rows are left out: drawn as excluded.
+  excludedValues?: Set<string> | undefined;
+  // Values the page itself filters on: drawn set, not changeable here.
+  lockedValues?: Set<string> | undefined;
   /*
    * When set, the search box also emits typed text to the parent (debounced)
    * so it can refetch values from the backend. Client-side filtering still
@@ -97,13 +117,28 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
   const visibleCount: number =
     props.initialVisibleCount ?? DEFAULT_VISIBLE_COUNT;
 
-  const displayedValues: Array<FacetValue> = isSearching
-    ? filteredValues
-    : showAll
-      ? filteredValues
-      : filteredValues.slice(0, visibleCount);
+  /*
+   * Every value that is filtering stays on screen, so a checked or excluded
+   * value is never folded behind "Show N more" where it cannot be cleared.
+   */
+  const pinnedValues: Set<string> = useMemo(() => {
+    return new Set<string>([
+      ...Array.from(props.activeValues || []),
+      ...Array.from(props.excludedValues || []),
+    ]);
+  }, [props.activeValues, props.excludedValues]);
 
-  const hasMore: boolean = !isSearching && filteredValues.length > visibleCount;
+  const collapsed: DisplayedFacetValues = getDisplayedFacetValues({
+    values: filteredValues,
+    visibleCount: visibleCount,
+    showAll: false,
+    pinnedValues: pinnedValues,
+  });
+
+  const displayedValues: Array<FacetValue> =
+    isSearching || showAll ? filteredValues : collapsed.displayed;
+
+  const hasMore: boolean = !isSearching && collapsed.hiddenCount > 0;
 
   const maxCount: number =
     props.values.length > 0
@@ -114,7 +149,8 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
         )
       : 0;
 
-  const activeCount: number = props.activeValues ? props.activeValues.size : 0;
+  // Checked and excluded values alike: every value this facet filters on.
+  const activeCount: number = pinnedValues.size;
 
   return (
     <div className="border-b border-gray-100 py-2">
@@ -157,7 +193,7 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
 
           {displayedValues.map((facet: FacetValue) => {
             return (
-              <FacetValueRow
+              <TelemetryFacetValueRow
                 key={facet.value}
                 value={facet.value}
                 displayValue={getFacetValueDisplayLabel(
@@ -168,13 +204,27 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
                 maxCount={maxCount}
                 isCountUnknown={props.isCountStopped}
                 color={props.valueColorMap?.[facet.value]}
-                isActive={props.activeValues?.has(facet.value) || false}
+                state={
+                  props.activeValues?.has(facet.value)
+                    ? FacetValueState.Included
+                    : props.excludedValues?.has(facet.value)
+                      ? FacetValueState.Excluded
+                      : FacetValueState.None
+                }
+                isLocked={props.lockedValues?.has(facet.value) || false}
                 onInclude={(value: string) => {
                   props.onIncludeValue(props.facetKey, value);
                 }}
-                onExclude={(value: string) => {
-                  props.onExcludeValue(props.facetKey, value);
+                onClear={(value: string) => {
+                  props.onClearValue(props.facetKey, value);
                 }}
+                onExclude={
+                  props.onExcludeValue
+                    ? (value: string) => {
+                        props.onExcludeValue?.(props.facetKey, value);
+                      }
+                    : undefined
+                }
               />
             );
           })}
@@ -191,7 +241,7 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
           <FacetShowMoreButton
             hasMore={hasMore}
             isShowingAll={showAll}
-            hiddenCount={Math.max(0, filteredValues.length - visibleCount)}
+            hiddenCount={collapsed.hiddenCount}
             onToggle={() => {
               setShowAll(!showAll);
             }}

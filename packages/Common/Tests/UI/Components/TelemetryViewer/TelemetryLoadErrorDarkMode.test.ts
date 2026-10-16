@@ -20,7 +20,6 @@ const FILES: Array<string> = [
   "Components/TelemetryViewer/components/TelemetryFacetSection.tsx",
   "Components/TelemetryViewer/components/TelemetryFacetValueRow.tsx",
   "Components/LogsViewer/components/FacetSection.tsx",
-  "Components/LogsViewer/components/FacetValueRow.tsx",
 ];
 
 describe("the explorers' load errors in the dark theme", () => {

@@ -87,7 +87,7 @@ const OLD_NAVBAR_CLASS: string =
 const NEW_NAVBAR_CLASS: string =
   "bg-white flex text-center items-center lg:py-2 max-md:hidden md:flex";
 
-// FacetValueRow's exclude button before and after it was converted by hand.
+// The facet row's exclude button before and after it was converted by hand.
 const OLD_FACET_EXCLUDE_CLASS: string =
   "hidden h-5 w-5 items-center justify-center rounded text-[10px] text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 group-hover:flex";
 const NEW_FACET_EXCLUDE_CLASS: string =
@@ -377,7 +377,7 @@ describe("ForeignHiddenRuleGuard detector", () => {
     );
 
     expect(facet.unhidingTokens).toEqual(["group-hover:flex"]);
-    // The mechanical inversion is exactly what FacetValueRow.tsx now ships.
+    // The mechanical inversion is exactly what TelemetryFacetValueRow.tsx ships.
     expect(facet.replacement).toBe(NEW_FACET_EXCLUDE_CLASS);
     expect(facet.advice).toBe(GROUP_HOVER_REWRITE_ADVICE);
     expect(readRepositoryFile(GROUP_HOVER_EXAMPLE_FILE)).toContain(

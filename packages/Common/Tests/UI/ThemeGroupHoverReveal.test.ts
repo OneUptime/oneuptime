@@ -23,7 +23,7 @@ import { StyleRule, THEME_RULES } from "./Styles/ThemeStylesheet";
 
 /*
  * The dark theme brightens the gray text of a hover reveal while its group is
- * hovered: the facet rows' exclude button and the Profiles hint are
+ * hovered: the facet row's exclude button and the Profiles hint are
  * text-gray-400 at rest, and Theme.css lifts them to the primary text colour
  * on hover, keyed on attribute substrings -
  *
@@ -40,8 +40,10 @@ import { StyleRule, THEME_RULES } from "./Styles/ThemeStylesheet";
  * gray text class has to match one of the rule's substring pairs - so a later
  * rewrite of either the markup or the rule cannot quietly change the colour
  * again. The reveals are found by walking the same trees the foreign-rule
- * guard reads (ForeignHiddenRuleGuard.ts), not by listing them, and the three
- * known ones are checked to be among what the walk found. The class strings
+ * guard reads (ForeignHiddenRuleGuard.ts), not by listing them, and the
+ * known ones are checked to be among what the walk found (the Logs sidebar's
+ * copy of the facet row was the third: both sidebars now draw the one
+ * TelemetryFacetValueRow). The class strings
  * come out of each module through ClassStrings.ts, which fills every
  * template's branches in, so a reveal assembled in a template is read whole.
  *
@@ -72,20 +74,17 @@ const GROUP_HOVER_GATE: string = "html.dark .group:hover ";
 const NEGATED_HOVER_SUBSTRING: string = "group-[:not(:hover)";
 
 // The converted reveals, relative to the repository root.
-const FACET_VALUE_ROW_FILE: string =
-  "packages/Common/UI/Components/LogsViewer/components/FacetValueRow.tsx";
 const TELEMETRY_FACET_VALUE_ROW_FILE: string =
   "packages/Common/UI/Components/TelemetryViewer/components/TelemetryFacetValueRow.tsx";
 const PROFILES_DASHBOARD_FILE: string =
   "packages/App/FeatureSet/Dashboard/src/Components/Profiles/ProfilesDashboard.tsx";
 
 const KNOWN_REVEAL_FILES: Array<string> = [
-  FACET_VALUE_ROW_FILE,
   TELEMETRY_FACET_VALUE_ROW_FILE,
   PROFILES_DASHBOARD_FILE,
 ];
 
-// The facet rows' exclude button after the fix, and before it (git 17084e6b23).
+// The facet row's exclude button after the fix, and before it (git 17084e6b23).
 const CONVERTED_FACET_EXCLUDE_CLASS: string =
   "flex h-5 w-5 items-center justify-center rounded text-[10px] text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 group-[:not(:hover)]:hidden";
 const PRE_FIX_FACET_EXCLUDE_CLASS: string =
@@ -678,7 +677,7 @@ describe("helpers", () => {
 });
 
 describe("every group-hover reveal with gray text is brightened in dark mode", () => {
-  test("the walk read the tree and found the three converted reveals", () => {
+  test("the walk read the tree and found the converted reveals", () => {
     // A broken walk must not let the main assertion pass over nothing.
     expect(revealScan.filesRead).toBeGreaterThan(1000);
 
