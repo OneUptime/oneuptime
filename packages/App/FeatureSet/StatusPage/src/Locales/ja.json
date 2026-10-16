@@ -264,7 +264,8 @@
       "loginPrompt": "{{statusPageName}}を表示するにはログインしてください",
       "forgotPassword": "パスワードをお忘れですか？",
       "submit": "ログイン",
-      "useSSO": "代わりにシングルサインオン（SSO）を使用する"
+      "or": "または",
+      "logInWithSso": "SSOでログイン"
     },
     "sso": {
       "title": "SSOでログイン",

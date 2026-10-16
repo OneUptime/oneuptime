@@ -13,7 +13,8 @@
     "confirmPassword": "確認密碼",
     "newPassword": "新密碼",
     "code": "代碼",
-    "yourCompany": "您的公司"
+    "yourCompany": "您的公司",
+    "or": "或"
   },
   "language": {
     "label": "語言",
@@ -50,7 +51,7 @@
     "subtitle": "使用密碼、組織的單一登入（SSO）或通行密鑰。",
     "submitButton": "登入",
     "forgotPassword": "忘記密碼？",
-    "useSso": "改用單一登入（SSO）",
+    "signInWithSso": "使用 SSO 登入",
     "signInWithMicrosoft": "使用 Microsoft 登入",
     "noAccountPrompt": "沒有帳號？",
     "registerLink": "註冊。",
@@ -146,7 +147,7 @@
     "title": "使用 SSO 登入",
     "subtitle": "使用您的 SSO 提供者登入以存取您的帳號。",
     "submitButton": "使用 SSO 登入",
-    "useUsernameInstead": "改用使用者名稱與密碼。",
+    "signInWithPassword": "使用密碼登入",
     "noAccountPrompt": "沒有帳號？",
     "registerLink": "註冊。",
     "selectProjectTitle": "選擇專案",

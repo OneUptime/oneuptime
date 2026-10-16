@@ -264,7 +264,8 @@
       "loginPrompt": "Please login to view {{statusPageName}}",
       "forgotPassword": "Forgot password?",
       "submit": "Login",
-      "useSSO": "Use single sign-on (SSO) instead"
+      "or": "or",
+      "logInWithSso": "Log in with SSO"
     },
     "sso": {
       "title": "Log in with SSO",

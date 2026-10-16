@@ -51,6 +51,13 @@ import WebAuthn from "Common/UI/Utils/WebAuthn";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import LabelledDivider from "Common/UI/Components/Divider/LabelledDivider";
+import SignInOptionLink from "Common/UI/Components/SignInOption/SignInOptionLink";
+import {
+  getSignInOptionClassName,
+  SIGN_IN_OPTION_ICON_CLASS,
+  SignInOptionState,
+} from "Common/UI/Components/SignInOption/SignInOptionStyle";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import QRCodeElement from "Common/UI/Components/QR/QR";
@@ -114,7 +121,7 @@ type PasskeyNotice =
   | "login.passkey.unsupported"
   | "login.passkey.insecure";
 
-// The focus ring of the page's link-weight controls.
+// The focus ring of the page's link-weight controls: Cancel and "New to passkeys?".
 const QUIET_CONTROL_FOCUS: string =
   "rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
@@ -600,6 +607,20 @@ const LoginPage: () => JSX.Element = () => {
   const isPasskeyUnavailable: boolean =
     !isPasskeySupported && Boolean(passkeyNotice);
 
+  /*
+   * How the passkey option looks (SignInOptionStyle): unavailable once a
+   * browser without passkeys has said so; busy, at full strength, while its
+   * own attempt runs; paused, faded, while the password form is signing in,
+   * which it waits for; and otherwise ready.
+   */
+  const passkeyOptionState: SignInOptionState = isPasskeyUnavailable
+    ? "unavailable"
+    : isPasskeyLoading
+      ? "busy"
+      : isPasswordLoading
+        ? "paused"
+        : "ready";
+
   type ReadBackupCodesFunction = (miscData: JSONObject) => Array<string>;
 
   /*
@@ -1071,21 +1092,25 @@ const LoginPage: () => JSX.Element = () => {
             <>
               {/*
                * The password form comes first, and its "Login" is the page's
-               * one filled button: it is how most people sign in. Passkeys
-               * used to open the card in a tinted panel of their own, with a
-               * heading, a description and a divider over the form; that
-               * pushed the form people came for below the fold on a phone.
-               * They are now a quiet option under it, at the weight of the
-               * single sign-on link (see the passkey option below).
+               * one filled button: it is how most people sign in. Under it,
+               * an "or" divider and the other ways in, as normal buttons as
+               * wide and as tall as Login, outlined where Login is filled:
+               * single sign-on, Microsoft where this server offers it, and a
+               * passkey, last (SignInOptionStyle). Passkeys used to open the
+               * card in a tinted panel of their own, which pushed the form
+               * people came for below the fold on a phone; after that, the
+               * other ways in were centred text links, which read as small
+               * print rather than as choices.
                *
                * While a passkey attempt runs, the form is paused, and looks
                * it: disabled, faded, and out of the pointer's reach, its
-               * links and any captcha included. A bright Login that does
-               * nothing when clicked reads as broken, and a link that leaves
-               * the page while the server is finishing the sign-in would
-               * throw that sign-in away. Cancel, outside the form, brings it
-               * back. (The keyboard can still reach the form's two links, as
-               * it always could: a fieldset does not disable links.)
+               * links, the divider, the single sign-on and Microsoft buttons
+               * and any captcha included. A bright Login that does nothing
+               * when clicked reads as broken, and a link that leaves the page
+               * while the server is finishing the sign-in would throw that
+               * sign-in away. Cancel, outside the form, brings it back. (The
+               * keyboard can still reach the form's links, as it always
+               * could: a fieldset does not disable links.)
                */}
               <fieldset
                 disabled={isPasskeyLoading}
@@ -1204,31 +1229,46 @@ const LoginPage: () => JSX.Element = () => {
                   }}
                   maxPrimaryButtonWidth={true}
                   footer={
-                    <div className="actions text-center mt-4">
-                      <div className="hover:underline fw-semibold">
-                        <Link to={new Route("/accounts/sso")}>
-                          <div className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm">
-                            {t("login.useSso")}
-                          </div>
-                        </Link>
-                      </div>
-                      {MicrosoftSignInClientId ? (
-                        <MicrosoftSignInButton
-                          title={t("login.signInWithMicrosoft")}
+                    /*
+                     * The other ways in that leave this page: single sign-on,
+                     * and Microsoft where this server offers it. Inside the
+                     * fieldset, so a passkey attempt pauses them with the
+                     * form; the passkey option, last, follows the fieldset.
+                     */
+                    <div data-testid="sign-in-options">
+                      <LabelledDivider
+                        label={t("common.or")}
+                        className="my-5"
+                        dataTestId="sign-in-options-divider"
+                      />
+                      <div className="space-y-3">
+                        <SignInOptionLink
+                          to={new Route("/accounts/sso")}
+                          id="sso-login"
+                          dataTestId="sso-login"
+                          icon={IconProp.ShieldCheck}
+                          title={t("login.signInWithSso")}
                         />
-                      ) : (
-                        <></>
-                      )}
+                        {MicrosoftSignInClientId ? (
+                          <MicrosoftSignInButton
+                            title={t("login.signInWithMicrosoft")}
+                          />
+                        ) : (
+                          <></>
+                        )}
+                      </div>
                     </div>
                   }
                 />
               </fieldset>
 
               {/*
-               * THE PASSKEY OPTION: a link-weight button under the single
-               * sign-on link, not a panel over the form. Outside the fieldset
-               * above on purpose: the fieldset is disabled while a passkey
-               * attempt runs, and its Cancel has to stay usable.
+               * THE PASSKEY OPTION: the last of the other ways in, a button
+               * like the single sign-on one above it, not a panel over the
+               * form. Outside the fieldset above on purpose: the fieldset is
+               * disabled while a passkey attempt runs, and this button, its
+               * words saying what the attempt waits for, and its Cancel have
+               * to stay at full strength.
                *
                * Everything an attempt says - the device prompt, a cancel, a
                * timeout, an error - appears right here, under the control
@@ -1263,17 +1303,13 @@ const LoginPage: () => JSX.Element = () => {
                       void signInWithPasskey();
                     }
                   }}
-                  className={`inline-flex items-center justify-center gap-1.5 ${QUIET_CONTROL_FOCUS} ${
-                    isPasskeyUnavailable
-                      ? "cursor-default text-gray-500"
-                      : "text-indigo-500 enabled:hover:text-indigo-900 enabled:hover:underline disabled:cursor-default disabled:text-gray-500"
-                  }`}
+                  className={getSignInOptionClassName(passkeyOptionState)}
                 >
                   <Icon
                     icon={
                       isPasskeyLoading ? IconProp.Spinner : IconProp.Fingerprint
                     }
-                    className={`h-4 w-4 shrink-0${
+                    className={`${SIGN_IN_OPTION_ICON_CLASS}${
                       isPasskeyLoading ? " animate-spin" : ""
                     }`}
                     data-testid={
@@ -1282,7 +1318,8 @@ const LoginPage: () => JSX.Element = () => {
                         : "passkey-login-fingerprint"
                     }
                   />
-                  <span>
+                  {/* Laid out by its own first letter, like every option's label. */}
+                  <span dir="auto">
                     {t(
                       passkeyStageText
                         ? passkeyStageText.option
