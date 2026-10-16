@@ -28,10 +28,15 @@ jest.mock("../../../Server/Services/MarketplaceSubscriptionService", () => {
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
 
+// Partial<T> under exactOptionalPropertyTypes forbids an explicit undefined.
+type SubscriptionOverrides = {
+  [K in keyof MarketplaceSubscription]?: MarketplaceSubscription[K] | undefined;
+};
+
 const purchase: (
-  overrides?: Partial<MarketplaceSubscription>,
+  overrides?: SubscriptionOverrides,
 ) => MarketplaceSubscription = (
-  overrides?: Partial<MarketplaceSubscription>,
+  overrides?: SubscriptionOverrides,
 ): MarketplaceSubscription => {
   return Object.assign(new MarketplaceSubscription(), {
     _id: ObjectID.generate().toString(),
