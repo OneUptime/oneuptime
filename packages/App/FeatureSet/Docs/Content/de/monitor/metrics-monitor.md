@@ -106,11 +106,12 @@ Je länger der Bereich, desto breiter jedes Zeitintervall, sodass ein Datenpunkt
 | Summe | die Summe der Datenpunkte |
 | Maximum Value | den höchsten Datenpunkt |
 | Minimum Value | den niedrigsten Datenpunkt |
-| All Values | jeden Datenpunkt: Alle müssen die Bedingung erfüllen |
+| All Values | jeden Datenpunkt: Alle müssen die Bedingung erfüllen und den ganzen Zeitbereich abdecken |
 | Any Value | jeden Datenpunkt: Es genügt, wenn einer die Bedingung erfüllt |
 
 - **Kriterien von oben nach unten.** Bei einem Monitor ohne Group By entscheidet das erste passende Kriterium; stellen Sie also das schwerwiegendste nach oben. Ein gruppierter Monitor prüft jedes Kriterium für jede Reihe – siehe [Die Auswertung der Kriterien unterscheidet sich](#die-auswertung-der-kriterien-unterscheidet-sich).
 - **Keine Daten sind nicht null.** Liefert die Abfrage im Zeitbereich keine Datenpunkte, tut ein Kriterium, was seine Einstellung **Bei keinen Daten** unter **Weitere Felder** sagt: **Ignore** (der Standard – das Kriterium passt nicht), **Treat As Zero** oder **Auslöser**.
+- **All Values braucht den ganzen Zeitbereich.** Eine Reihe erfüllt ein Kriterium mit **All Values** erst, wenn ihre Datenpunkte den Zeitbereich abdecken – von seinem Anfang bis jetzt, ohne eine Lücke von mehr als einem fehlenden Datenpunkt. Ein Host, ein Container oder ein Deployment, das gerade erst Daten sendet oder eine Weile still war, wartet, bis es Daten für einen ganzen Zeitbereich hat, und das Auswertungsprotokoll zeigt, wie weit es ist: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. Eine Reihe, deren Warnung oder Vorfall schon offen ist, wird allein nach ihren Datenpunkten beurteilt, sodass eine kurze Lücke in ihren Daten die Warnung oder den Vorfall nicht behebt.
 - **Die eigene Ausfallzeit von OneUptime ist keine Stille.** Solange der Zeitbereich Zeit enthält, in der OneUptime selbst keine Daten empfangen hat – weil es neu startete, aktualisiert wurde oder einen Rückstand aufholte –, wartet die Prüfung: Der Status ändert sich nicht, und kein Vorfall und keine Warnung wird eröffnet oder behoben, was auch immer **Bei keinen Daten** sagt. Siehe [Wenn OneUptime keine Daten empfängt](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Kriterien
@@ -197,7 +198,7 @@ Die Werte des Gruppierungsattributs stehen auch als [Vorlagenvariablen](/docs/mo
 ## Fehlerbehebung
 
 :::details Das Diagramm zeigt eine Überschreitung, aber der Monitor hat nicht gewarnt
-Prüfen Sie zuerst die **Aggregation** des Kriteriums: **All Values** passt nur, wenn jeder Datenpunkt im Zeitbereich überschreitet, und **Durchschnitt** glättet eine kurze Spitze. Prüfen Sie dann, ob die **Metrik** des Kriteriums die gemeinte Abfrage oder Formel ist (`a` ist nicht die Formel `c`) und ob der Schwellenwert in der erwarteten Einheit angegeben ist.
+Prüfen Sie zuerst die **Aggregation** des Kriteriums: **All Values** passt nur, wenn jeder Datenpunkt im Zeitbereich überschreitet, und **Durchschnitt** glättet eine kurze Spitze. **All Values** wartet außerdem, bis eine Reihe Daten für den ganzen Zeitbereich hat; ein Host oder Deployment, das gerade erst Daten sendet, wird also noch nicht beurteilt. Prüfen Sie dann, ob die **Metrik** des Kriteriums die gemeinte Abfrage oder Formel ist (`a` ist nicht die Formel `c`) und ob der Schwellenwert in der erwarteten Einheit angegeben ist.
 :::
 
 :::details Die Metrik kam nicht mehr an, und nichts geschah

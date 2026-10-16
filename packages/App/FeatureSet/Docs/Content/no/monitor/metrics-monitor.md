@@ -106,11 +106,12 @@ Jo lengre intervallet er, desto bredere er hvert tidsintervall, så ett datapunk
 | Sum | summen av datapunktene |
 | Maximum Value | det høyeste datapunktet |
 | Minimum Value | det laveste datapunktet |
-| All Values | hvert datapunkt: alle må oppfylle betingelsen |
+| All Values | hvert datapunkt: alle må oppfylle betingelsen og dekke hele tidsintervallet |
 | Any Value | hvert datapunkt: det holder at ett av dem oppfyller betingelsen |
 
 - **Kriterier fra topp til bunn.** På en monitor uten Group By avgjør det første kriteriet som samsvarer, så legg det mest alvorlige øverst. En gruppert monitor sjekker alle kriterier for hver serie (se [Evalueringen av kriterier er annerledes](#evalueringen-av-kriterier-er-annerledes)).
 - **Ingen data er ikke null.** Når spørringen ikke returnerer noen datapunkter i tidsintervallet, gjør et kriterium det innstillingen **Hvis ingen data** sier, under **Flere felt**: **Ignore** (standard: kriteriet samsvarer ikke), **Treat As Zero** eller **Trigger**.
+- **All Values trenger hele tidsintervallet.** En serie oppfyller først et kriterium med **All Values** når datapunktene dens dekker tidsintervallet, fra starten til nå, uten et hull på mer enn ett manglende datapunkt. En vert, container eller deployment som nettopp har begynt å sende data, eller som har vært stille en stund, venter til den har data for et helt tidsintervall, og evalueringsloggen viser hvor langt den har kommet: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. En serie med et varsel eller en hendelse som allerede er åpen, bedømmes ut fra datapunktene alene, så et kort hull i dataene løser det ikke.
 - **OneUptimes eget nedetid er ikke stillhet.** Så lenge tidsintervallet inneholder tid da OneUptime selv ikke mottok data (det startet på nytt, ble oppgradert eller tok igjen et etterslep), venter sjekken: statusen endres ikke, og ingen hendelse eller varsel åpnes eller løses, uansett hva **Hvis ingen data** sier. Se [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Kriterier
@@ -197,7 +198,7 @@ Grupperingsattributtets verdier er også tilgjengelige som [malvariabler](/docs/
 ## Feilsøking
 
 :::details Diagrammet viser en overskridelse, men monitoren varslet ikke
-Sjekk først kriteriets **Aggregering**: **All Values** samsvarer bare når hvert datapunkt i tidsintervallet overskrider terskelen, og **Gjennomsnitt** jevner ut en kort topp. Sjekk deretter at kriteriets **Metrikk** er spørringen eller formelen du mener (`a` er ikke formelen `c`), og at terskelen er i enheten du tror.
+Sjekk først kriteriets **Aggregering**: **All Values** samsvarer bare når hvert datapunkt i tidsintervallet overskrider terskelen, og **Gjennomsnitt** jevner ut en kort topp. **All Values** venter også til en serie har data for hele tidsintervallet, så en vert eller deployment som nettopp har begynt å sende data, blir ikke bedømt ennå. Sjekk deretter at kriteriets **Metrikk** er spørringen eller formelen du mener (`a` er ikke formelen `c`), og at terskelen er i enheten du tror.
 :::
 
 :::details Metrikken sluttet å komme, og ingenting skjedde

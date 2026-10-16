@@ -106,11 +106,12 @@ Quanto maior o intervalo, mais largo é cada intervalo de agrupamento, então um
 | Soma | a soma dos pontos de dados |
 | Maximum Value | o ponto de dados mais alto |
 | Minimum Value | o ponto de dados mais baixo |
-| All Values | cada ponto de dados: todos precisam atender à condição |
+| All Values | cada ponto de dados: todos precisam atender à condição e cobrir todo o intervalo de tempo |
 | Any Value | cada ponto de dados: basta que um atenda à condição |
 
 - **Critérios de cima para baixo.** Em um monitor sem Group By, o primeiro critério que corresponde decide, então coloque o mais grave primeiro. Um monitor agrupado verifica todos os critérios para cada série (veja [A avaliação dos critérios é diferente](#a-avaliação-dos-critérios-é-diferente)).
 - **Nenhum dado não é zero.** Quando a consulta não retorna pontos de dados no intervalo de tempo, um critério faz o que diz sua configuração **Se não houver dados**, em **Mais campos**: **Ignore** (o padrão: o critério não corresponde), **Treat As Zero** ou **Trigger**.
+- **All Values precisa de todo o intervalo de tempo.** Uma série atende a um critério **All Values** só quando seus pontos de dados cobrem o intervalo de tempo, do início até agora, sem uma lacuna de mais de um ponto de dados ausente. Um host, um contêiner ou um deployment que acabou de começar a enviar dados, ou que ficou em silêncio por um tempo, espera até ter dados de um intervalo de tempo inteiro, e o log de avaliação mostra até onde chegou: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. Uma série cujo alerta ou incidente já está aberto é julgada apenas pelos seus pontos de dados, então uma lacuna curta nos dados não o resolve.
 - **A indisponibilidade do próprio OneUptime não é silêncio.** Enquanto o intervalo de tempo contiver um período em que o próprio OneUptime não estava recebendo dados (estava reiniciando, sendo atualizado ou recuperando um atraso), a verificação espera: o status não muda, e nenhum incidente ou alerta é aberto ou resolvido, diga o que disser **Se não houver dados**. Veja [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Critérios
@@ -197,7 +198,7 @@ Os valores do atributo de agrupamento também estão disponíveis como [variáve
 ## Solução de problemas
 
 :::details O gráfico mostra uma violação, mas o monitor não alertou
-Verifique primeiro a **Agregação** do critério: **All Values** só corresponde quando cada ponto de dados do intervalo ultrapassa o limite, e **Média** suaviza um pico curto. Depois verifique se a **Métrica** do critério é a consulta ou a fórmula que você quer (`a` não é a fórmula `c`) e se o limite está na unidade que você imagina.
+Verifique primeiro a **Agregação** do critério: **All Values** só corresponde quando cada ponto de dados do intervalo ultrapassa o limite, e **Média** suaviza um pico curto. **All Values** também espera até que uma série tenha dados de todo o intervalo de tempo, então um host ou um deployment que acabou de começar a enviar dados ainda não é julgado. Depois verifique se a **Métrica** do critério é a consulta ou a fórmula que você quer (`a` não é a fórmula `c`) e se o limite está na unidade que você imagina.
 :::
 
 :::details A métrica parou de chegar e nada aconteceu
