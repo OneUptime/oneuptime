@@ -77,8 +77,8 @@ Les critères décident quand le certificat compte comme bon, dégradé ou défa
 | **Is Not A Valid Certificate** | **Vrai**, **Faux** | Le contraire de **Is Valid Certificate** : **Vrai** quand le certificat échoue à ces vérifications ou n'a pas pu être vérifié. |
 | **Is Expired Certificate** | **Vrai**, **Faux** | La date d'expiration du certificat est passée. |
 | **Is Self Signed Certificate** | **Vrai**, **Faux** | Le certificat, ou l'un de ceux de sa chaîne, est auto-signé. |
-| **Expires In Days** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Les jours avant l'expiration du certificat. |
-| **Expires In Hours** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Les heures avant l'expiration du certificat. |
+| **Expires In Days** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Les jours avant l'expiration du certificat. |
+| **Expires In Hours** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Les heures avant l'expiration du certificat. |
 
 **Expires In Days** compte des jours entiers : un certificat qui expire dans 14 jours et 20 heures a encore 14 jours. **Expires In Hours** compte des heures entières de la même manière.
 
@@ -102,7 +102,7 @@ Pour être averti plus tôt, changez la valeur du filtre **Expires In Days** dan
 Les moniteurs créés avant que OneUptime n'ajoute cet avertissement n'ont pas de critère « bientôt expiré ». Pour l'ajouter :
 
 1. Sur le moniteur, ouvrez **Configuration → Critères** et cliquez sur **Modifier les critères de surveillance**.
-2. Cliquez sur **Ajouter un critère**. Réglez son filtre sur **Is Valid Certificate** / **Vrai**, cliquez sur **Ajouter un filtre** et réglez le second sur **Expires In Days** / **Less Than Or Equal To** / `14`. Laissez **Condition de correspondance** sur **Tous** (il apparaît sous les filtres dès qu'il y en a deux).
+2. Cliquez sur **Ajouter un critère**. Réglez son filtre sur **Is Valid Certificate** / **Vrai**, cliquez sur **Ajouter un filtre** et réglez le second sur **Expires In Days** / **Inférieur ou égal à** / `14`. Laissez **Condition de correspondance** sur **Tous** (il apparaît sous les filtres dès qu'il y en a deux).
 3. Sous **Actions**, activez **Lorsque les filtres correspondent, créer une alerte.** et laissez **Lorsque les filtres correspondent, modifier le statut du moniteur.** désactivé, pour qu'il crée une alerte sans changer l'état du moniteur.
 4. Faites glisser le nouveau critère au-dessus du critère qui marque le moniteur en ligne, puis enregistrez.
 :::
@@ -111,8 +111,8 @@ Les moniteurs créés avant que OneUptime n'ajoute cet avertissement n'ont pas d
 
 | Objectif | Filtre | Condition | Valeur |
 | --- | --- | --- | --- |
-| Avertir un mois à l'avance | **Expires In Days** | **Less Than Or Equal To** | `30` |
-| Prévenir quelqu'un le dernier jour | **Expires In Hours** | **Less Than** | `24` |
+| Avertir un mois à l'avance | **Expires In Days** | **Inférieur ou égal à** | `30` |
+| Prévenir quelqu'un le dernier jour | **Expires In Hours** | **Inférieur à** | `24` |
 | Hors ligne seulement une fois le certificat expiré | **Is Expired Certificate** | **Vrai** | — |
 | Signaler un certificat auto-signé | **Is Self Signed Certificate** | **Vrai** | — |
 

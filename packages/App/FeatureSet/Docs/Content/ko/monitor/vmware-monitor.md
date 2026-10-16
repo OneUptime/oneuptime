@@ -270,7 +270,7 @@ vSAN이 있는 클러스터, 그 안의 호스트, vSAN 데이터스토어의 VM
 | --- | --- |
 | **메트릭** | 확인할 쿼리나 수식(변수 이름으로). |
 | **집계** | 기간 안의 값을 답 하나로 만드는 방법: **평균**, **합계**, **Maximum Value**, **Minimum Value**, **All Values**(모든 값이 일치해야 함), **Any Value**(하나면 충분). |
-| **조건** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To**, **Equal To**, 또는 이상 조건: **Anomalously High**, **Anomalously Low**, **Anomalous**. |
+| **조건** | **보다 큼**, **보다 작음**, **이상**, **이하**, **같음**, 또는 이상 조건: **Anomalously High**, **Anomalously Low**, **Anomalous**. |
 | **Threshold** | 비교할 값. 메트릭에 단위가 있으면 옆에 단위 목록이 있습니다. 이상 조건에서는 표시되지 않습니다. |
 | **민감도** | 이상 조건만. **낮음**(4σ), **중간**(3σ, 기본값), **높음**(2σ). |
 | **기준선 기간** | 이상 조건만. 14일(기본값), 28일, 60일, 90일의 기록. |
@@ -280,11 +280,11 @@ vSAN이 있는 클러스터, 그 안의 호스트, vSAN 데이터스토어의 VM
 
 시작하기 좋은 기준:
 
-- **호스트가 포화됨:** `vcenter.host.cpu.utilization`, 평균, `resource.vcenter.host.name` 으로 그룹화, **Greater Than** `90`, 최근 5분.
-- **데이터스토어가 가득 차고 있음:** `vcenter.datastore.disk.utilization`, 평균, `resource.vcenter.datastore.name` 으로 그룹화, **Greater Than** `80`.
-- **클러스터가 호스트를 잃음:** `vcenter.cluster.host.count` 를 `effective = false` 로 필터링, 최대, `resource.vcenter.cluster.name` 으로 그룹화, **Greater Than** `0`.
-- **예상보다 적은 VM이 실행됨:** `vcenter.cluster.vm.count` 를 `power_state = on` 및 `resource.vcenter.cluster.name = Production` 으로 필터링, 합계, **Less Than** 예상하는 수.
-- **VM이 호스트에 의해 스왑됨:** `vcenter.vm.memory.swapped`, 최대, `resource.vcenter.vm.name` 으로 그룹화, **Greater Than** `0`.
+- **호스트가 포화됨:** `vcenter.host.cpu.utilization`, 평균, `resource.vcenter.host.name` 으로 그룹화, **보다 큼** `90`, 최근 5분.
+- **데이터스토어가 가득 차고 있음:** `vcenter.datastore.disk.utilization`, 평균, `resource.vcenter.datastore.name` 으로 그룹화, **보다 큼** `80`.
+- **클러스터가 호스트를 잃음:** `vcenter.cluster.host.count` 를 `effective = false` 로 필터링, 최대, `resource.vcenter.cluster.name` 으로 그룹화, **보다 큼** `0`.
+- **예상보다 적은 VM이 실행됨:** `vcenter.cluster.vm.count` 를 `power_state = on` 및 `resource.vcenter.cluster.name = Production` 으로 필터링, 합계, **보다 작음** 예상하는 수.
+- **VM이 호스트에 의해 스왑됨:** `vcenter.vm.memory.swapped`, 최대, `resource.vcenter.vm.name` 으로 그룹화, **보다 큼** `0`.
 
 ### 기본 기준
 

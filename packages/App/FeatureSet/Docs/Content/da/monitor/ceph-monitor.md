@@ -219,7 +219,7 @@ Et kriterium sammenligner en af monitorens forespørgsler eller formler med en t
 | --- | --- |
 | **Metrik** | Forespørgslen eller formlen, der tjekkes, efter dens variabelnavn. |
 | **Aggregering** | Hvordan værdierne i vinduet bliver til ét svar: **Gennemsnit**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver værdi skal matche) eller **Any Value** (én er nok). |
-| **Betingelse** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** eller **Equal To** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
+| **Betingelse** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** eller **Lig med** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
 | **Threshold** | Værdien, der sammenlignes med. Ved siden af står en enhedsliste, når metrikken har en enhed. Vises ikke ved anomalibetingelser. |
 | **Følsomhed** | Kun anomalibetingelser. **Low** (4σ), **Medium** (3σ, standard) eller **High** (2σ). |
 | **Baseline-vindue** | Kun anomalibetingelser. 14 dage (standard), 28, 60 eller 90 dages historik. |
@@ -254,7 +254,7 @@ Agenten skal hente fra **hver** mgr-dæmon, ikke kun den aktive: Standby'er retu
 :::
 
 :::details ceph_health_status er 1, men intet udløses
-Tjek, at kriteriet bruger **Greater Than Or Equal To** `1` og ikke **Greater Than**, og at monitorens **Tidsinterval** dækker mindst én hentning på 30 sekunder.
+Tjek, at kriteriet bruger **Større end eller lig med** `1` og ikke **Større end**, og at monitorens **Tidsinterval** dækker mindst én hentning på 30 sekunder.
 :::
 
 :::details Health check-skabeloner udløses aldrig

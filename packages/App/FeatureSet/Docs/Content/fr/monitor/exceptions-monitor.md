@@ -112,12 +112,12 @@ Les critères d'un moniteur d'exceptions ont un seul **Type de filtre** : **Exce
 
 | Condition de filtre | Correspond quand le nombre d'exceptions est… |
 | --- | --- |
-| **Greater Than** | au-dessus de la valeur |
-| **Greater Than Or Equal To** | égal ou supérieur à la valeur |
-| **Less Than** | en dessous de la valeur |
-| **Less Than Or Equal To** | égal ou inférieur à la valeur |
-| **Equal To** | exactement la valeur |
-| **Not Equal To** | tout sauf la valeur |
+| **Supérieur à** | au-dessus de la valeur |
+| **Supérieur ou égal à** | égal ou supérieur à la valeur |
+| **Inférieur à** | en dessous de la valeur |
+| **Inférieur ou égal à** | égal ou inférieur à la valeur |
+| **Égal à** | exactement la valeur |
+| **Différent de** | tout sauf la valeur |
 
 Les décomptes d'exceptions n'ont pas de conditions d'anomalie : il n'existe pas de référence à laquelle les comparer.
 
@@ -125,8 +125,8 @@ Un nouveau moniteur d'exceptions commence avec ces critères :
 
 | Critère | Filtre | Effet |
 | --- | --- | --- |
-| Check if … has exceptions | **Exception Count** **Greater Than** `0` | Passe le moniteur hors ligne et déclare un incident, résolu automatiquement |
-| Check if … has no exceptions | **Exception Count** **Equal To** `0` | Passe le moniteur en ligne |
+| Check if … has exceptions | **Exception Count** **Supérieur à** `0` | Passe le moniteur hors ligne et déclare un incident, résolu automatiquement |
+| Check if … has no exceptions | **Exception Count** **Égal à** `0` | Passe le moniteur en ligne |
 
 ## Exemple : seulement les exceptions de production
 
@@ -139,7 +139,7 @@ Vous voulez un incident chaque fois que l'API lève une exception en production,
 | `TimeoutError` × 2 | aucun | Active | Non : pas d'environnement |
 | `NullReferenceException` × 4 | `production` | Résolue après les occurrences | Non : résolue |
 
-L'**Exception Count** vaut 3, donc **Greater Than** `0` correspond : le moniteur passe hors ligne et un incident est déclaré. Une fois cinq minutes passées sans exception de production active, le critère en ligne correspond et l'incident se résout de lui-même.
+L'**Exception Count** vaut 3, donc **Supérieur à** `0` correspond : le moniteur passe hors ligne et un incident est déclaré. Une fois cinq minutes passées sans exception de production active, le critère en ligne correspond et l'incident se résout de lui-même.
 
 ## Dépannage
 

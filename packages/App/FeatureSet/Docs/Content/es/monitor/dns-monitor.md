@@ -96,12 +96,12 @@ Los criterios deciden cuándo el nombre cuenta como en línea, degradado o sin c
 | Filtro | Condiciones | Qué comprueba |
 | --- | --- | --- |
 | **DNS Is Online** | **Verdadero**, **Falso** | Si la consulta devolvió al menos un registro del tipo. |
-| **DNS Response Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Cuánto tardó la consulta. |
+| **DNS Response Time (in ms)** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | Cuánto tardó la consulta. |
 | **DNS Record Exists** | **Verdadero**, **Falso** | Si volvió algún registro del tipo. |
-| **DNS Record Value** | **Contiene**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | Los valores de los registros. El filtro coincide cuando coincide un solo registro. |
+| **DNS Record Value** | **Contiene**, **No contiene**, **Empieza por**, **Termina en**, **Igual a**, **Distinto de** | Los valores de los registros. El filtro coincide cuando coincide un solo registro. |
 | **DNSSEC Is Valid** | **Verdadero**, **Falso** | Si un resolutor validador pone el indicador AD en la respuesta. |
 
-**DNS Record Value** coincide cuando coincide _cualquiera_ de los registros. Con varios registros `A`, **Equal To** `93.184.216.34` coincide cuando uno de ellos es esa dirección, y **Not Equal To** coincide cuando uno de ellos no lo es.
+**DNS Record Value** coincide cuando coincide _cualquiera_ de los registros. Con varios registros `A`, **Igual a** `93.184.216.34` coincide cuando uno de ellos es esa dirección, y **Distinto de** coincide cuando uno de ellos no lo es.
 
 **DNSSEC Is Valid** pregunta al servidor de **Servidor DNS (opcional)**, en su **Puerto**, o a Google Public DNS (`8.8.8.8`) cuando está vacío, así que el servidor que indique debe validar DNSSEC. El filtro no tiene valor, y no coincide en ningún sentido, cuando la sonda no puede hacer esa comprobación. Para una comprobación completa de una zona firmada, use un [monitor de DNSSEC](/docs/monitor/dnssec-monitor).
 
@@ -141,9 +141,9 @@ Los criterios se comprueban de arriba abajo, y el primero que coincide decide qu
 | Objetivo | Filtro | Condición | Valor |
 | --- | --- | --- | --- |
 | Sin conexión cuando el nombre deja de resolverse | **DNS Is Online** | **Falso** | — |
-| Alertar cuando cambia el único registro `A` de un nombre | **DNS Record Value** | **Not Equal To** | `93.184.216.34` |
-| Alertar cuando un registro `MX` apunta fuera de su dominio | **DNS Record Value** | **Not Contains** | `example.com` |
-| Marcar el DNS como degradado cuando es lento | **DNS Response Time (in ms)** | **Greater Than** | `500` |
+| Alertar cuando cambia el único registro `A` de un nombre | **DNS Record Value** | **Distinto de** | `93.184.216.34` |
+| Alertar cuando un registro `MX` apunta fuera de su dominio | **DNS Record Value** | **No contiene** | `example.com` |
+| Marcar el DNS como degradado cuando es lento | **DNS Response Time (in ms)** | **Mayor que** | `500` |
 | Alertar cuando falla la validación de DNSSEC | **DNSSEC Is Valid** | **Falso** | — |
 
 ## Solución de problemas
@@ -156,11 +156,11 @@ dig @8.8.8.8 example.com A
 ```
 :::
 
-:::details Un criterio Not Equal To se dispara aunque la dirección correcta está ahí
-**DNS Record Value** coincide cuando coincide un solo registro. Con varios registros, **Not Equal To** se dispara en cuanto uno de ellos es distinto. Para comprobar que un valor concreto está entre los registros, apóyese en el orden de los criterios, ya que gana el primero que coincide:
+:::details Un criterio Distinto de se dispara aunque la dirección correcta está ahí
+**DNS Record Value** coincide cuando coincide un solo registro. Con varios registros, **Distinto de** se dispara en cuanto uno de ellos es distinto. Para comprobar que un valor concreto está entre los registros, apóyese en el orden de los criterios, ya que gana el primero que coincide:
 
 1. Mantenga arriba el criterio sin conexión predeterminado: **DNS Is Online** / **Falso**.
-2. Debajo, añada un criterio con **DNS Record Value** / **Equal To** / el valor que espera, que marque el monitor como **Operativo**.
+2. Debajo, añada un criterio con **DNS Record Value** / **Igual a** / el valor que espera, que marque el monitor como **Operativo**.
 3. Debajo de ese, añada un criterio con **DNS Is Online** / **Verdadero**, que marque el monitor como **Sin conexión** y declare un incidente. Solo coincide con respuestas que no tienen el valor.
 :::
 

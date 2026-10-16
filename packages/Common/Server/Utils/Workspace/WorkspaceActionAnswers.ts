@@ -91,6 +91,8 @@ export enum WorkspaceLatePress {
   MarkAsComplete = "MarkAsComplete",
   // Execute On-Call Policy on a record that is resolved already.
   ExecuteOnCallPolicy = "ExecuteOnCallPolicy",
+  // Page Someone about an incident that is resolved already.
+  Page = "Page",
 }
 
 // A record a press is about, as an answer names it.
@@ -388,6 +390,13 @@ export default class WorkspaceActionAnswers {
       };
     }
 
+    if (data.press === WorkspaceLatePress.Page) {
+      return {
+        markdown: mdText`${markdown}, so nobody was paged.`.toString(),
+        text: `${text}, so nobody was paged`,
+      };
+    }
+
     return {
       markdown: mdText`✅ ${markdown}.`.toString(),
       text: text,
@@ -429,10 +438,12 @@ export default class WorkspaceActionAnswers {
   }
 
   /*
-   * "press Add Note again", "run /oneuptime incident again", "ask your
-   * question again", with the button or command in bold. A command is run
-   * in Slack (a slash command) and typed to the bot in Microsoft Teams:
-   * "type incident again".
+   * "press Add Note again", "choose Change Severity from the menu again",
+   * "run /oneuptime incident again", "ask your question again", with the
+   * button, the menu item or the command in bold. A command is run in Slack
+   * (a slash command) and typed to the bot in Microsoft Teams: "type
+   * incident again". A menu item is chosen, not pressed: it is not a button
+   * to find on the message.
    */
   public static getAgainPhrase(
     again: WorkspaceConnectRequestAgain,
@@ -448,6 +459,10 @@ export default class WorkspaceActionAnswers {
       }
       case WorkspaceConnectRequestAgainKind.Question:
         return mdText`ask your question again`;
+      case WorkspaceConnectRequestAgainKind.MenuItem:
+        return again.label
+          ? mdText`choose **${again.label}** from the menu again`
+          : mdText`choose it from the menu again`;
       case WorkspaceConnectRequestAgainKind.Button:
         return again.label
           ? mdText`press **${again.label}** again`
@@ -470,6 +485,10 @@ export default class WorkspaceActionAnswers {
       }
       case WorkspaceConnectRequestAgainKind.Question:
         return "ask your question again";
+      case WorkspaceConnectRequestAgainKind.MenuItem:
+        return again.label
+          ? `choose ${again.label} from the menu again`
+          : "choose it from the menu again";
       case WorkspaceConnectRequestAgainKind.Button:
         return again.label
           ? `press ${again.label} again`
@@ -543,6 +562,7 @@ export default class WorkspaceActionAnswers {
         return LateStanding.Complete;
       case WorkspaceLatePress.Resolve:
       case WorkspaceLatePress.ExecuteOnCallPolicy:
+      case WorkspaceLatePress.Page:
         return LateStanding.Resolved;
     }
   }

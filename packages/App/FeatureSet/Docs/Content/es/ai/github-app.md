@@ -33,13 +33,13 @@ Es el mismo agente y el mismo Runner que en las [Tareas de corrección](/docs/ai
 
 ## Antes de empezar
 
-- El repositorio tiene que estar **conectado a un proyecto de OneUptime** mediante la GitHub App: conéctalo en **Tareas → Repositorios de código** (abre **Productos → Código → Tareas**). Una instancia autoalojada necesita primero su propia GitHub App: consulta [Integración con GitHub](/docs/self-hosted/github-integration).
+- El repositorio tiene que estar **conectado a un proyecto de OneUptime** mediante la GitHub App: conéctalo en **Tareas → Repositorios de código** (abre **Productos → Código → Tareas**). Una instancia autoalojada necesita primero su propia GitHub App: consulta [Integración con GitHub](/docs/self-hosted/github-integration). Si la app ya está instalada en la cuenta de GitHub, haz clic allí en **Conectar una instalación existente** en lugar de volver a instalarla.
 - Tiene que haber en línea un Runner con **Ejecuta correcciones de código con IA**: el mismo Runner que lleva a cabo las [Tareas de corrección](/docs/ai/ai-agent). Sin él, los comandos se aceptan y fallan a los 30 minutos, con un mensaje de que ningún agente los tomó.
 - La GitHub App necesita el permiso **Issues** con **Read & write** y tiene que estar suscrita a los eventos de webhook de [A qué suscribirse](#a-qué-suscribirse).
 
 ## Los comandos
 
-Cada comando empieza con una mención de la app. La mención puede estar en cualquier parte del comentario, y lo que escribas después se pasa como tu petición.
+Cada comando empieza con una mención de la app. La mención puede estar en cualquier parte del comentario, y lo que escribas después se pasa como tu petición. Editar un comentario que ya menciona la app no la vuelve a ejecutar: para cambiar tu petición, escribe un comentario nuevo. Una edición que añade la mención es una petición nueva.
 
 ### En un pull request
 

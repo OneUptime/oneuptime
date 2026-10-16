@@ -15,7 +15,7 @@ Anslut OneUptime till Microsoft Teams för att publicera incidenter, larm, episo
 ```mermaid title="Från en händelse i OneUptime till ett kort i Microsoft Teams"
 flowchart TB
     event["En incident, ett larm eller en händelse<br/>skapas eller ändras"] --> rules{"Aviseringsregler<br/>vars villkor matchar"}
-    rules -->|"Create Microsoft Teams Channel"| own["En egen kanal<br/>i det team du väljer"]
+    rules -->|"En kanal<br/>för varje"| own["En egen kanal<br/>i det team du väljer"]
     rules -->|"Publicera i en befintlig<br/>kanal eller chatt"| existing["Dina kanaler och chattar"]
     own --> card["Ett kort med knappar"]
     existing --> card
@@ -84,13 +84,15 @@ Att skapa en regel går igenom fyra steg:
 | Steg | Vad du anger |
 | --- | --- |
 | **Grundläggande** | **Regelnamn** och **Regelbeskrivning**. |
-| **Villkor** | Vilka händelser regeln utlöses för, till exempel efter allvarlighetsgrad, tillstånd, etikett, monitor eller ord i titeln. Utan villkor utlöses den för varje händelse. Med två eller fler anger **Matchningsvillkor** om alla måste matcha, eller om det räcker med ett. |
-| **Mål** | Var den publicerar: en befintlig kanal i ett team som du väljer, de chattar som du väljer, en ny kanal som skapas i ett team som du väljer, eller flera av dessa tillsammans. |
+| **Villkor** | Vilka händelser regeln gäller, till exempel efter allvarlighetsgrad, tillstånd, etikett, monitor eller ord i titeln. De kontrolleras när en händelse skapas och igen vid varje uppdatering som OneUptime publicerar om den, så en regel för bekräftade incidenter verkar när en incident bekräftas. Utan villkor gäller regeln varje händelse. Med två eller fler anger **Matchningsvillkor** om alla måste matcha, eller om det räcker med ett. |
+| **Mål** | Var den publicerar: en befintlig kanal i ett team som du väljer, de chattar som du väljer, en kanal för varje incident (eller larm, episod, händelse, monitor eller jourpolicy) som skapas i ett team som du väljer, eller flera av dessa tillsammans. Under steget säger **Vad regeln gör** det i meningar, som regelns kort. |
 | **Video Call** | Endast incidenter och larm: starta ett samtal för var och en. Se [Videosamtal](/docs/workspace-connections/video-calls). |
 
 En kanal som regeln skapar får namn efter sin post: incident INC-42 får `inc-42`, larm ALT-7 får `alt-7`, och i ett projekt utan nummerprefix får incident 42 `incident-42`. Text i **Prefix för kanalnamn** hamnar framför, så `prod-` ger `prod-inc-42`, och formuläret visar namnet medan du skriver. För en schemalagd underhållshändelse ersätter prefixet dess nummerprefix: SM-5 får `sm-5`, och `maint-` ger `maint-5`. OneUptime behåller bokstäver, siffror, mellanslag, `-` och `_`, upp till de 50 tecken som Microsoft Teams tar emot. Har teamet redan en kanal med det namnet, till exempel ett annat projekts eller en som raderats de senaste 30 dagarna, lägger OneUptime till `-2`, `-3` och så vidare.
 
-Bara en skapad kanal får de personer som regeln bjuder in. En privat incident, ett privat larm eller en privat episod får en privat kanal. Varje senare uppdatering av posten — en tillståndsändring, en anteckning, en ny ägare — publiceras i dess kanaler och chattar.
+En regel skapar sin kanal första gången en händelse matchar den: när händelsen skapas, eller senare, när en uppdatering får den att matcha medan den fortfarande är öppen. En regel för bekräftade incidenter skapar kanalen när incidenten bekräftas. Microsoft Teams visar ett teams kanaler för alla i teamet, så OneUptime lägger inte till någon i en kanal en och en: alla i det team du väljer kan öppna den, som regelformuläret säger under **Vem som går med i kanalen**. En privat incident, ett privat larm eller en privat episod får en privat kanal, som bara dess medlemmar ser; lägg till personer i Microsoft Teams.
+
+Varje senare uppdatering av posten — en tillståndsändring, en anteckning, en ny ägare — publiceras i dess kanaler, och i de befintliga kanaler och chattar som dess regler anger så länge deras villkor stämmer. OneUptime kan inte arkivera en Microsoft Teams-kanal, så en regels kanal finns kvar när dess post är avslutad; arkivera eller ta bort den i Microsoft Teams.
 
 En incident, ett larm, en episod eller en schemalagd underhållshändelse med en egen kanal har **Öppna i Microsoft Teams** i sidhuvudet på sin sida i OneUptime, bredvid tillståndsknapparna. Den öppnar kanalen i en ny flik, i Microsoft Teams-appen eller i webbläsaren. En post med två egna kanaler listar båda under knappen. En post med kanaler i både Slack och Microsoft Teams har i stället en knapp, **Öppna kanal**, som listar alla. De befintliga kanaler och chattar som dina regler publicerar i erbjuds inte.
 
@@ -152,7 +154,7 @@ Skriv till boten i en personlig chatt, eller nämn OneUptime med @ i en kanal el
 | Meddelande | Vad boten gör |
 | --- | --- |
 | `help` | Visar vad den kan göra. |
-| `incident [title]` | Öppnar incidentformuläret med titeln ifylld. |
+| `incident [title or number]` | Öppnar incidentformuläret med titeln ifylld. En incidents nummer, som `42` eller `INC-42`, visar i stället den incidenten: se [Hantera en incident från Microsoft Teams](#hantera-en-incident-från-microsoft-teams). |
 | `maintenance [title]` | Öppnar formuläret för schemalagt underhåll med titeln ifylld. |
 | `oncall` | Visar vem som har jour just nu i varje jourschema du kan se, till när, och vem som är nästa. |
 | `page [who] [message]` | Larmar personerna du nämner med @ om ditt meddelande, eller skickar ett kort där du väljer vem som ska larmas. Se [Larma någon från Microsoft Teams](#larma-någon-från-microsoft-teams). |
@@ -213,6 +215,25 @@ För en tagg med både den primära och den sekundära jouren ansluter du samma 
 - **Vad Microsoft 365 kräver.** Att ändra taggar kräver appens behörighet `TeamworkTag.ReadWrite.All`, som en Microsoft 365-administratör beviljar med **Bevilja administratörssamtycke** under **Projektinställningar** > **Arbetsyta** > **Microsoft Teams**. Om din organisation gav samtycke innan OneUptime kunde hålla taggar uppdaterade, ger du det igen en gång.
 - **Vem som får ansluta en.** De roller som får redigera scheman: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** och **On-Call Member**, eller **Edit On-Call Duty Policy Schedule** i en anpassad roll. På OneUptime Cloud kräver det abonnemanget **Growth** att ansluta en.
 - **Koppla från.** OneUptime slutar ändra taggen. Taggen och dess medlemmar stannar i Microsoft Teams som de är.
+
+## Hantera en incident från Microsoft Teams
+
+En incidents kort har fyra knappar, **Acknowledge Incident**, **Resolve Incident**, **Add Note** och **View Incident**, och resten i dess meny, knappen med tre punkter:
+
+| Menyval | Vad det gör |
+| --- | --- |
+| **Change Severity** | Anger incidentens allvarlighetsgrad. |
+| **Change Incident State** | Flyttar incidenten till ett senare tillstånd. |
+| **Assign Role** | Ger någon en roll i incidenten, som **Incident Commander**. En roll för en person går över till den personen. |
+| **Page Someone** | Larmar personer, ett team, den som har jour i ett schema just nu, eller en jourpolicy om incidenten, tills någon bekräftar den. |
+| **Edit Custom Fields** | Anger incidentens anpassade fält, vart och ett ifyllt med det incidenten har. Ett fält som lämnas tomt rensas. |
+
+`incident 42`, skrivet till boten, svarar med incident 42, de här knapparna och dess meny. Skriv numret som OneUptime visar det: `42`, `#42` eller `INC-42`. I en incidents egen kanal visar `incident` ensamt den incidenten.
+
+- **Vem som får använda dem.** De som får göra samma ändring i OneUptime, som i Slack: se [Hantera en incident från Slack](/docs/workspace-connections/slack#hantera-en-incident-från-slack). Varje val svarar med ett kort, ifyllt så som personen som tryckte på det får se incidenten. Alla i konversationen får skicka kortet, som sig själva, med sina egna behörigheter.
+- **Vad som händer.** Ändringen görs som personen som skickade kortet, som i OneUptime, och incidentens feed säger vad som ändrades. Boten säger det i ett svar som nämner personen, och tar bort kortet, så att ingen skickar det två gånger. **Page Someone** säger vem som larmades, eller varför ingen gjorde det; en incident som redan är löst larmar ingen.
+- **Där Microsoft Teams skiljer sig.** Ett kort kan inte säga under ett fält vad som är fel: ett värde som inte passar nämns i ett svar, och kortet ligger kvar för att rättas och skickas igen. Ett fält för datum och tid är en dag och en tid, i din egen tidszon. En äldre Teams-klient visar menyn som fler knappar. `incident 42` svarar i konversationen, där alla i den kan se incidenten.
+- **Kort från före menyn.** De behåller sin knapp **Execute On-Call Policy**, och den fungerar fortfarande: **Page Someone** larmar också en jourpolicy. Larm och episoder behåller sina.
 
 ## Agera på incidenter, larm och händelser från Microsoft Teams
 

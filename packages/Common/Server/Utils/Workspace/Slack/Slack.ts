@@ -5,12 +5,14 @@ import { JSONObject } from "../../../../Types/JSON";
 import API from "../../../../Utils/API";
 import WorkspaceMessagePayload, {
   WorkspaceCheckboxBlock,
+  WorkspaceDatePickerBlock,
   WorkspaceDateTimePickerBlock,
   WorkspaceDropdownBlock,
   WorkspaceDropdownOptionGroup,
   WorkspaceMessageBlock,
   WorkspaceMessagePayloadButton,
   WorkspaceModalBlock,
+  WorkspaceNumberInputBlock,
   WorkspacePayloadButtons,
   WorkspacePayloadContext,
   WorkspacePayloadHeader,
@@ -20,6 +22,7 @@ import WorkspaceMessagePayload, {
   WorkspaceTextAreaBlock,
   WorkspaceTextBoxBlock,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
+import SlackOverflowMenu from "./SlackOverflowMenu";
 import logger, { LogAttributes } from "../../Logger";
 import Dictionary from "../../../../Types/Dictionary";
 import BadRequestException from "../../../../Types/Exception/BadRequestException";
@@ -1578,6 +1581,11 @@ export default class SlackUtil extends WorkspaceBase {
             value["selected_date_time"] as number,
           );
         }
+
+        // A date picker's day, as Slack gives it: "2026-10-15".
+        if (typeof value["selected_date"] === "string") {
+          values[blockId] = value["selected_date"] as string;
+        }
       }
     }
 
@@ -2471,13 +2479,25 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Getting buttons block with data:", {} as LogAttributes);
     logger.debug(data, {} as LogAttributes);
 
+    const elements: Array<JSONObject> = data.payloadButtonsBlock.buttons.map(
+      (button: WorkspaceMessagePayloadButton) => {
+        return this.getButtonBlock({ payloadButtonBlock: button });
+      },
+    );
+
+    // The actions fewer people need: an overflow menu (⋯) after the buttons.
+    if (
+      data.payloadButtonsBlock.menuButtons &&
+      data.payloadButtonsBlock.menuButtons.length > 0
+    ) {
+      elements.push(
+        SlackOverflowMenu.getElement(data.payloadButtonsBlock.menuButtons),
+      );
+    }
+
     const buttonsBlock: JSONObject = {
       type: "actions",
-      elements: data.payloadButtonsBlock.buttons.map(
-        (button: WorkspaceMessagePayloadButton) => {
-          return this.getButtonBlock({ payloadButtonBlock: button });
-        },
-      ),
+      elements: elements,
     };
 
     logger.debug("Buttons block generated:", {} as LogAttributes);
@@ -2737,12 +2757,29 @@ export default class SlackUtil extends WorkspaceBase {
     );
     logger.debug(data, {} as LogAttributes);
 
+    /*
+     * The moment it opens on: a Date, or the ISO time initialValue gives.
+     * Slack's date and time picker takes it as the seconds since 1970 - it
+     * has no initial_date, which only its date picker takes.
+     */
+    const initialDateTime: Date | undefined =
+      data.payloadDateTimePickerBlock.initialDateTime ||
+      (data.payloadDateTimePickerBlock.initialValue
+        ? new Date(data.payloadDateTimePickerBlock.initialValue)
+        : undefined);
+
     const dateTimePickerBlock: JSONObject = {
       type: "input",
+      // Named, so a form's submission can be answered at this field.
+      block_id: data.payloadDateTimePickerBlock.blockId,
+      optional: data.payloadDateTimePickerBlock.optional || false,
       element: {
         type: "datetimepicker",
         action_id: data.payloadDateTimePickerBlock.blockId,
-        initial_date: data.payloadDateTimePickerBlock.initialValue,
+        initial_date_time:
+          initialDateTime && !isNaN(initialDateTime.getTime())
+            ? Math.floor(initialDateTime.getTime() / 1000)
+            : undefined,
       },
       label: {
         type: "plain_text",
@@ -2750,9 +2787,112 @@ export default class SlackUtil extends WorkspaceBase {
       },
     };
 
+    if (data.payloadDateTimePickerBlock.description) {
+      dateTimePickerBlock["hint"] = {
+        type: "plain_text",
+        text: data.payloadDateTimePickerBlock.description,
+      };
+    }
+
     logger.debug("Date time picker block generated:", {} as LogAttributes);
     logger.debug(dateTimePickerBlock, {} as LogAttributes);
     return dateTimePickerBlock;
+  }
+
+  /*
+   * A calendar day (WorkspaceDatePickerBlock): Slack's date picker, which
+   * gives the day back as "2026-10-15" (getValuesFromView).
+   */
+  @CaptureSpan()
+  public static override getDatePickerBlock(data: {
+    payloadDatePickerBlock: WorkspaceDatePickerBlock;
+  }): JSONObject {
+    const block: WorkspaceDatePickerBlock = data.payloadDatePickerBlock;
+
+    const element: JSONObject = {
+      type: "datepicker",
+      action_id: block.blockId,
+    };
+
+    if (block.initialDate) {
+      element["initial_date"] = block.initialDate;
+    }
+
+    if (block.placeholder) {
+      element["placeholder"] = {
+        type: "plain_text",
+        text: block.placeholder,
+      };
+    }
+
+    const datePickerBlock: JSONObject = {
+      type: "input",
+      block_id: block.blockId,
+      optional: block.optional || false,
+      element: element,
+      label: {
+        type: "plain_text",
+        text: block.label,
+      },
+    };
+
+    if (block.description) {
+      datePickerBlock["hint"] = {
+        type: "plain_text",
+        text: block.description,
+      };
+    }
+
+    return datePickerBlock;
+  }
+
+  /*
+   * A number (WorkspaceNumberInputBlock): Slack's number input, which takes
+   * nothing but a number - a decimal point included - and gives back what
+   * was typed, as text.
+   */
+  @CaptureSpan()
+  public static override getNumberInputBlock(data: {
+    payloadNumberInputBlock: WorkspaceNumberInputBlock;
+  }): JSONObject {
+    const block: WorkspaceNumberInputBlock = data.payloadNumberInputBlock;
+
+    const element: JSONObject = {
+      type: "number_input",
+      is_decimal_allowed: true,
+      action_id: block.blockId,
+    };
+
+    if (block.initialValue) {
+      element["initial_value"] = block.initialValue;
+    }
+
+    if (block.placeholder) {
+      element["placeholder"] = {
+        type: "plain_text",
+        text: block.placeholder,
+      };
+    }
+
+    const numberInputBlock: JSONObject = {
+      type: "input",
+      block_id: block.blockId,
+      optional: block.optional || false,
+      element: element,
+      label: {
+        type: "plain_text",
+        text: block.label,
+      },
+    };
+
+    if (block.description) {
+      numberInputBlock["hint"] = {
+        type: "plain_text",
+        text: block.description,
+      };
+    }
+
+    return numberInputBlock;
   }
 
   @CaptureSpan()
@@ -2884,6 +3024,34 @@ export default class SlackUtil extends WorkspaceBase {
       };
     };
 
+    const optionGroups: Array<WorkspaceDropdownOptionGroup> = (
+      data.payloadDropdownBlock.optionGroups || []
+    ).filter((group: WorkspaceDropdownOptionGroup): boolean => {
+      return group.options.length > 0;
+    });
+
+    /*
+     * A single select's pick as it opens. Slack takes it only as one of the
+     * options, text and all - an option with another text than its value
+     * (a severity's name and its id) is found by its value. A value no
+     * option has is left out: the select opens with nothing picked.
+     */
+    const initialOption: DropdownOption | undefined = data.payloadDropdownBlock
+      .initialValue
+      ? [
+          ...data.payloadDropdownBlock.options,
+          ...optionGroups.flatMap(
+            (group: WorkspaceDropdownOptionGroup): Array<DropdownOption> => {
+              return group.options;
+            },
+          ),
+        ].find((option: DropdownOption): boolean => {
+          return (
+            option.value.toString() === data.payloadDropdownBlock.initialValue
+          );
+        })
+      : undefined;
+
     const element: JSONObject = {
       type: isMiltiSelect ? "multi_static_select" : "static_select",
       action_id: data.payloadDropdownBlock.blockId,
@@ -2891,22 +3059,9 @@ export default class SlackUtil extends WorkspaceBase {
         type: "plain_text",
         text: data.payloadDropdownBlock.placeholder,
       },
-      initial_option: data.payloadDropdownBlock.initialValue
-        ? {
-            text: {
-              type: "plain_text",
-              text: data.payloadDropdownBlock.initialValue,
-            },
-            value: data.payloadDropdownBlock.initialValue,
-          }
-        : undefined,
+      initial_option:
+        !isMiltiSelect && initialOption ? toOption(initialOption) : undefined,
     };
-
-    const optionGroups: Array<WorkspaceDropdownOptionGroup> = (
-      data.payloadDropdownBlock.optionGroups || []
-    ).filter((group: WorkspaceDropdownOptionGroup): boolean => {
-      return group.options.length > 0;
-    });
 
     // Slack takes options, or groups of them: never both.
     if (optionGroups.length > 0) {
@@ -3777,12 +3932,15 @@ export default class SlackUtil extends WorkspaceBase {
    * was ("%25" where slackify encoded the address), half an emoji goes
    * through as U+FFFD, and should slackify still fail, the message is sent
    * as its text (getSlackifySafeMarkdown).
+   *
+   * A hard break is a line break (withoutHardBreakSpaces).
    */
-  public static slackify(markdown: string): string {
-    if (!markdown) {
+  public static slackify(givenMarkdown: string): string {
+    if (!givenMarkdown) {
       return "";
     }
 
+    const markdown: string = SlackUtil.withoutHardBreakSpaces(givenMarkdown);
     const held: Array<string> = [];
 
     // Read with indexOf: the text can be long.
@@ -3876,6 +4034,31 @@ export default class SlackUtil extends WorkspaceBase {
     text = safe.restore(text);
 
     return held.length > 0 ? putBack(text, true) : text;
+  }
+
+  /*
+   * Markdown whose hard breaks - two spaces at the end of a line, how a
+   * note keeps the lines of an email reply, a form answer or a chat message
+   * (FormSubmissionNote, ChatMessageMarkdown) - are plain line breaks.
+   * slackify writes a hard break the way Markdown does, a backslash before
+   * the line break, and Slack showed that backslash at the end of each
+   * line. Slack breaks the line at every line break, so the spaces come off
+   * and the line break left does the same. One pass over the lines.
+   */
+  public static withoutHardBreakSpaces(markdown: string): string {
+    if (markdown.indexOf("  \n") === -1) {
+      return markdown;
+    }
+
+    const lines: Array<string> = markdown.split("\n");
+
+    return lines
+      .map((line: string, index: number): string => {
+        return index < lines.length - 1 && line.endsWith("  ")
+          ? line.trimEnd()
+          : line;
+      })
+      .join("\n");
   }
 
   // Text as Slack shows it: "&", "<" and ">" escaped, nothing else changed.

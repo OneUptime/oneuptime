@@ -55,6 +55,9 @@ import MonitorAlert from "./MonitorAlert";
 import MonitorSummaryCapture from "./MonitorSummaryCapture";
 import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapshot";
 import IncomingRequestIncidentGrouping from "./IncomingRequestIncidentGrouping";
+import IncomingEmailOpenForEveryEmail, {
+  EveryEmailMatches,
+} from "./IncomingEmailOpenForEveryEmail";
 import LogGroupCriteriaFanOut, {
   LOG_GROUP_ALERT_RESOLVED_MESSAGE,
   LOG_GROUP_INCIDENT_RESOLVED_MESSAGE,
@@ -1350,6 +1353,23 @@ export default class MonitorResourceUtil {
             continue;
           }
 
+          /*
+           * An Incoming Email criteria that opens an incident for every
+           * email hands the creators this email's own match - or none, for
+           * a reply, a second delivery, an automatic reply or a monitor at
+           * its hourly limit (IncomingEmailOpenForEveryEmail). Anything
+           * else gets nothing here and opens one at a time, as always.
+           */
+          const everyEmail: EveryEmailMatches = isPerSeriesEvaluation
+            ? {}
+            : await IncomingEmailOpenForEveryEmail.getMatches({
+                monitor: monitor,
+                criteriaInstance: criteriaInstance,
+                dataToProcess: dataToProcess,
+                rootCause: matched.rootCause,
+                evaluationSummary: evaluationSummary,
+              });
+
           await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus(
             {
               monitor: monitor,
@@ -1368,7 +1388,7 @@ export default class MonitorResourceUtil {
                     claimed: seriesClaimedByIncidentCriteria,
                     isClaiming: criteriaInstance.data?.createIncidents === true,
                   })
-                : undefined,
+                : everyEmail.incidents,
               openIncidents,
               suppressedSeriesFingerprints,
               dependencySuppression,
@@ -1393,7 +1413,7 @@ export default class MonitorResourceUtil {
                   claimed: seriesClaimedByAlertCriteria,
                   isClaiming: criteriaInstance.data?.createAlerts === true,
                 })
-              : undefined,
+              : everyEmail.alerts,
             openAlerts,
             suppressedSeriesFingerprints,
             dependencySuppression,

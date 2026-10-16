@@ -90,12 +90,12 @@ De criteria van een profielen-monitor hebben één filter, **Profile Count**: he
 
 | Filtervoorwaarde | Komt overeen wanneer het aantal profielen… |
 | --- | --- |
-| **Greater Than** | boven de waarde ligt |
-| **Greater Than Or Equal To** | gelijk is aan de waarde of hoger |
-| **Less Than** | onder de waarde ligt |
-| **Less Than Or Equal To** | gelijk is aan de waarde of lager |
-| **Equal To** | precies de waarde is |
-| **Not Equal To** | alles behalve de waarde is |
+| **Groter dan** | boven de waarde ligt |
+| **Groter dan of gelijk aan** | gelijk is aan de waarde of hoger |
+| **Kleiner dan** | onder de waarde ligt |
+| **Kleiner dan of gelijk aan** | gelijk is aan de waarde of lager |
+| **Gelijk aan** | precies de waarde is |
+| **Niet gelijk aan** | alles behalve de waarde is |
 
 Aantallen profielen hebben geen anomaliecondities: er is geen baseline om ze mee te vergelijken.
 
@@ -104,8 +104,8 @@ Aantallen profielen hebben geen anomaliecondities: er is geen baseline om ze mee
 De checkout-service draait een Pyroscope-SDK die CPU-profielen uploadt. U wilt een incident wanneer die vijf minuten lang uitblijven:
 
 - `profileTypes`: `["cpu"]`, `telemetryServiceIds`: de checkout-service, `lastXSecondsOfProfiles`: `300`
-- Criterium 1: **Profile Count** **Equal To** `0`: de monitor offline zetten en een incident melden
-- Criterium 2: **Profile Count** **Greater Than** `0`: de monitor online zetten
+- Criterium 1: **Profile Count** **Gelijk aan** `0`: de monitor offline zetten en een incident melden
+- Criterium 2: **Profile Count** **Groter dan** `0`: de monitor online zetten
 
 Zolang de SDK uploadt, telt elke evaluatie enkele profielen en houdt criterium 2 de monitor online. Wanneer de service zonder de SDK wordt uitgerold, zakt het aantal vijf minuten na de laatste upload naar 0, komt criterium 1 overeen en wordt het incident gemeld. De eerste upload na de oplossing brengt het aantal weer boven 0, en het incident lost zichzelf op als **Incident automatisch oplossen** ervoor aan staat.
 

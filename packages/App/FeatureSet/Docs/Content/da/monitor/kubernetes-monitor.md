@@ -112,7 +112,7 @@ Disse monitorer evaluerer altid **Metric Value** – værdien af den konfigurere
 
 ### Betingelser
 
-Statiske tærskler sammenlignes med den **Threshold**, du angiver: **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** og **Equal To**.
+Statiske tærskler sammenlignes med den **Threshold**, du angiver: **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** og **Lig med**.
 
 Anomalidetektion mod en baseline kræver ingen tærskel. Vælg en af disse betingelser, så viser formularen i stedet **Følsomhed** og **Baseline-vindue**:
 

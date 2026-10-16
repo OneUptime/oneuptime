@@ -198,7 +198,7 @@ Un monitor de solicitudes entrantes nuevo se crea con dos criterios que leen el 
 | Criterio | Tipo de filtro | Condición de filtro | Valor | Efecto |
 | -------- | ------------ | ---------------- | ------- | -------------------------------------------- |
 | Sin conexión | Cuerpo de la solicitud | Contiene | `error` | Marca el monitor sin conexión, abre un incidente |
-| En línea | Cuerpo de la solicitud | Not Contains | `error` | Marca el monitor en línea |
+| En línea | Cuerpo de la solicitud | No contiene | `error` | Marca el monitor en línea |
 
 Esto sirve para el caso habitual en que el emisor informa de su propio estado en la carga útil: una solicitud cuyo cuerpo menciona `error` deja el monitor sin conexión, y la siguiente solicitud sin esa palabra lo devuelve a en línea y resuelve el incidente. Una solicitud sin ningún cuerpo cuenta como «no contiene `error`», así que una simple llamada de latido mantiene el monitor en línea.
 
@@ -224,7 +224,7 @@ Cada tipo de filtro ofrece sus propias condiciones:
 | Tipo de filtro | Condiciones |
 | --- | --- |
 | **Solicitud entrante** | **Recieved In Minutes**: se recibió una solicitud dentro del número de minutos indicado. **Not Recieved In Minutes**: no se recibió ninguna solicitud dentro del número de minutos indicado. (El panel las escribe así.) |
-| **Cuerpo de la solicitud**, **Request Header**, **Request Header Value** | **Contiene** y **Not Contains** |
+| **Cuerpo de la solicitud**, **Request Header**, **Request Header Value** | **Contiene** y **No contiene** |
 | **JavaScript Expression** | **Evaluates To True** |
 
 > [!NOTE]
@@ -251,7 +251,7 @@ Los cuerpos de objeto se comparan como JSON compacto sin espacios, así que un f
 | **Valor** | `"status":"degraded"` |
 
 > [!IMPORTANT]
-> Coloque el interruptor de hombre muerto **por encima** de los criterios predeterminados. Los criterios se comprueban desde arriba, y el primero que coincide decide. La comprobación en segundo plano vuelve a leer la última solicitud, así que el criterio en línea predeterminado —"Request Body Not Contains `error`"— sigue coincidiendo con ella, y un criterio que esté debajo nunca llega a evaluarse. **Añadir criterios** añade un criterio al final: arrástrelo hacia arriba.
+> Coloque el interruptor de hombre muerto **por encima** de los criterios predeterminados. Los criterios se comprueban desde arriba, y el primero que coincide decide. La comprobación en segundo plano vuelve a leer la última solicitud, así que el criterio en línea predeterminado —"Cuerpo de la solicitud No contiene `error`"— sigue coincidiendo con ella, y un criterio que esté debajo nunca llega a evaluarse. **Añadir criterios** añade un criterio al final: arrástrelo hacia arriba.
 
 > [!WARNING]
 > Un monitor solo se vuelve a evaluar en segundo plano si al menos uno de sus criterios comprueba **Solicitud entrante**. Un monitor cuyos criterios solo comprueban el cuerpo de la solicitud, Request Header o una expresión JavaScript se evalúa cuando llega una solicitud y en ningún otro momento, así que nunca puede quedar sin conexión por sí solo. Si quiere una alarma por latido ausente, necesita un criterio **Solicitud entrante**.

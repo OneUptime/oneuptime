@@ -396,7 +396,7 @@ flowchart TB
 
 数字按数字读取，以数字开头的文本也按该数字读取（`"36"`、`"-95 dBm"`、`"80MHz"`），因为很多厂商会把数字放在字符串里。对于只是看起来像数字的值，把列的值类型设为 **Text only**。**Value labels** 把代码变成文字（`0=inactive, 1=active`）：用于绘图和比较的仍是原始值，显示的是标签。**Healthy values**（`1`）说明哪些值表示一切正常：它们为设备 **SNMP Tables** 页面上的行着色，并驱动 **SNMP Table Row Is Unhealthy** 条件。
 
-一些厂商模板的列还会对读取的数字进行**调整**，用于以自身单位保存数值的 MIB：ArubaOS 报告的发射功率是两倍（读取值 × 0.5），Aruba Instant 报告的底噪不带符号（× −1），Aerohive 报告的底噪加了 256（− 256），Extreme 的控制器以 20 MHz 为步长报告信道带宽（× 20）。显示、绘图和比较使用的是调整后的数字，所以 **Noise Floor Greater Than -80** 在每个厂商上含义都相同，表编辑器会在列下方显示这一换算。
+一些厂商模板的列还会对读取的数字进行**调整**，用于以自身单位保存数值的 MIB：ArubaOS 报告的发射功率是两倍（读取值 × 0.5），Aruba Instant 报告的底噪不带符号（× −1），Aerohive 报告的底噪加了 256（− 256），Extreme 的控制器以 20 MHz 为步长报告信道带宽（× 20）。显示、绘图和比较使用的是调整后的数字，所以 **Noise Floor 大于 -80** 在每个厂商上含义都相同，表编辑器会在列下方显示这一换算。
 
 表来自 [OID Collection Template](#oid-收集模板)，由每台链接的设备共享（最多 10 个表），或来自设备自身的 **Device-Specific SNMP Tables**（再多 10 个）。它们在每次轮询时按键合并，模板优先，键相同的设备表会替换模板的表。两个编辑器都提供 **Add a Vendor's Tables**。
 
@@ -757,7 +757,7 @@ Network Device 监视器没有自己的间隔：每当设备的轮询结果到�
 | 过滤器类型 | 检查什么 | 在仅 Ping 轮询上 |
 | --- | --- | --- |
 | SNMP Device Is Online | 设备是否可以通过 Ping 或 SNMP 到达：与其状态相同的判定。 | 会评估 |
-| SNMP Walk Is Succeeding | 上一次 SNMP 遍历是否成功。False 即“SNMP failing”状态：可达，但接口和清单已停止刷新。 | 不评估 |
+| SNMP Walk Is Succeeding | 上一次 SNMP 遍历是否成功。“否”即“SNMP failing”状态：可达，但接口和清单已停止刷新。 | 不评估 |
 | SNMP Response Time (in ms) | 遍历的响应时间（毫秒），绝不是 Ping 的时间。 | 不评估 |
 | SNMP OID Value | 一个 OID 返回的值。 | 不评估 |
 | SNMP OID Exists | OID 是否返回值。 | 不评估 |
@@ -779,7 +779,7 @@ Network Device 监视器没有自己的间隔：每当设备的轮询结果到�
 
 接口检查需要在设备的轮询设置中开启 **Walk Interfaces**，默认即为开启。OID 检查读取设备配置的健康 OID。管理上禁用的接口是有意宕机的，永远不会算作故障。
 
-SNMP 表条件选择一个表、一列（用于 SNMP Table Value）和一个行范围。留空会把所有行作为一个合并的警报判断；`*` 为每一行发出单独的警报，每个警报各自解决并以其行命名；其他值则按名称或索引指定一行。数字按数字比较，文本同时与原始值和其标签比较，所以 Not Equal To `active` 和 Not Equal To `1` 都能捕获宕机的 Sophos 隧道。本次轮询遍历失败的表不会被评估，而不是被当作空表，表条件只判断当前这次遍历，而不是一段时间。
+SNMP 表条件选择一个表、一列（用于 SNMP Table Value）和一个行范围。留空会把所有行作为一个合并的警报判断；`*` 为每一行发出单独的警报，每个警报各自解决并以其行命名；其他值则按名称或索引指定一行。数字按数字比较，文本同时与原始值和其标签比较，所以不等于 `active` 和不等于 `1` 都能捕获宕机的 Sophos 隧道。本次轮询遍历失败的表不会被评估，而不是被当作空表，表条件只判断当前这次遍历，而不是一段时间。
 
 收发器条件的范围与接口检查相同：留空会把所有光模块作为一个合并的警报判断，`*` 为每个装有光模块的端口发出单独的警报（每个警报各自解决并以其端口命名），其他值则按名称或别名指定一个端口。它们判断的是本次轮询时设备的[收发器](#收发器)，而收发器已经带有历史（光模块缺失了多少次轮询、一个月的接收光功率），所以它们也不是在一段时间上评估的。收发器读取失败的轮询会让它们继续按上一次正常的读取判断，所以未解决的警报不会在一次无法查看的轮询上被解决。
 
@@ -860,19 +860,19 @@ Trap 通过设备清单进行匹配：
 #### 示例：在 linkDown 时创建事件
 
 - **过滤器类型**：SNMP Trap Received (Trap OID)
-- **过滤条件**：Equal To
+- **过滤条件**：等于
 - **值**：`1.3.6.1.6.3.1.1.5.3`
 
-该过滤器还提供 Contains、Starts With 和 Ends With，所以一个条件就能按 OID 前缀匹配一整类企业 Trap。
+该过滤器还提供“包含”“开头是”和“结尾是”，所以一个条件就能按 OID 前缀匹配一整类企业 Trap。
 
 #### 示例：区分共用同一个 Trap OID 的事件
 
 有些厂商把每个事件都作为同一个 Trap 发送，并把事件放在一个文本 varbind 中：每条 Sophos Firewall 通知都是 `sfosNotification`（`1.3.6.1.4.1.2604.5.1.8.1.1`），消息在 `sfosTrapMessage`（`1.3.6.1.4.1.2604.5.1.8.1.2`）中。在一个条件中组合两者：
 
-- **SNMP Trap Received (Trap OID)**：Equal To `1.3.6.1.4.1.2604.5.1.8.1.1`
-- **SNMP Trap Varbind Value**：varbind OID `1.3.6.1.4.1.2604.5.1.8.1.2`，Contains `IPSec`
+- **SNMP Trap Received (Trap OID)**：等于 `1.3.6.1.4.1.2604.5.1.8.1.1`
+- **SNMP Trap Varbind Value**：varbind OID `1.3.6.1.4.1.2604.5.1.8.1.2`，包含 `IPSec`
 
-否定过滤器（Not Contains、Not Equal To、Is Empty）只有在范围内没有任何 varbind 匹配其肯定形式时才满足。将 varbind OID 留空可搜索 Trap 携带的所有 varbind。
+否定过滤器（不包含、不等于、为空）只有在范围内没有任何 varbind 匹配其肯定形式时才满足。将 varbind OID 留空可搜索 Trap 携带的所有 varbind。
 
 ## 警报的模板变量
 

@@ -169,7 +169,7 @@ flowchart TB
 1. **指标查询：** `sdwan.gateway.latency.ms`，聚合为 **平均值**，**分组依据** 为 `gw_name` 和 `profile_name`。
 2. **滚动时间窗口：** Past 15 Minutes。防火墙每隔几分钟报告一次，因此窗口中每个网关都有多个点。
 3. **聚合策略：** **All Values**。窗口中的每个点都必须越过阈值，因此一份缓慢的摘要不会呼叫任何人。若要在平均值偏高时告警，请改用 **平均值**。
-4. **标准：** Metric value **Greater Than** `150` 时打开告警。
+4. **标准：** Metric value **大于** `150` 时打开告警。
 5. 可以在告警标题中使用分组值，例如 `SD-WAN latency high on {{gw_name}} ({{profile_name}})`。
 
 设置分组依据后，每个网关都是独立的序列：WAN2 变慢只会为 WAN2 打开告警，并在 WAN2 恢复时自行解决。参见 [按序列告警](/docs/monitor/metrics-monitor#按序列告警group-by)。

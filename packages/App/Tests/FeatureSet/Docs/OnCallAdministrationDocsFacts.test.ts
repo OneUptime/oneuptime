@@ -734,9 +734,19 @@ describe("what runs a policy", () => {
         "Server/Utils/Workspace/MicrosoftTeams/Actions/Incident.ts",
       ),
     ).toContain('text: "Execute On-Call Policy"');
-    expect(
-      readCommonSource("Server/Utils/Workspace/Slack/Messages/Incident.ts"),
-    ).toContain('title: "📞 Execute On-Call Policy"');
+    /*
+     * An alert's and an episode's message carry it; an incident's pages a
+     * policy from its menu's Page Someone (WorkspaceIncidentActions).
+     */
+    for (const message of [
+      "Server/Utils/Workspace/Slack/Messages/Alert.ts",
+      "Server/Utils/Workspace/Slack/Messages/AlertEpisode.ts",
+      "Server/Utils/Workspace/Slack/Messages/IncidentEpisode.ts",
+    ]) {
+      expect(readCommonSource(message)).toContain(
+        'title: "📞 Execute On-Call Policy"',
+      );
+    }
     expect(english(ON_CALL_POLICIES)).toContain(
       "| By hand | **Execute On-Call Policy**, in the **Actions** menu of a feed, or on a Slack or Microsoft Teams message |",
     );

@@ -15,7 +15,7 @@ Verbinden Sie OneUptime mit Microsoft Teams, um Vorfälle, Warnungen, Episoden, 
 ```mermaid title="Von einem Ereignis in OneUptime zu einer Karte in Microsoft Teams"
 flowchart TB
     event["Ein Vorfall, eine Warnung oder ein Ereignis<br/>entsteht oder ändert sich"] --> rules{"Benachrichtigungsregeln,<br/>deren Bedingungen passen"}
-    rules -->|"Create Microsoft Teams Channel"| own["Ein eigener Kanal<br/>im gewählten Team"]
+    rules -->|"Ein Kanal<br/>für jeden"| own["Ein eigener Kanal<br/>im gewählten Team"]
     rules -->|"In einen bestehenden<br/>Kanal oder Chat posten"| existing["Ihre Kanäle und Chats"]
     own --> card["Eine Karte mit Schaltflächen"]
     existing --> card
@@ -84,13 +84,15 @@ Eine Regel wird in vier Schritten angelegt:
 | Schritt | Was Sie festlegen |
 | --- | --- |
 | **Grundlegend** | **Regelname** und **Regelbeschreibung**. |
-| **Bedingungen** | Für welche Ereignisse die Regel auslöst, zum Beispiel nach Schweregrad, Status, Beschriftung, Monitor oder Wörtern im Titel. Ohne Bedingungen löst sie bei jedem Ereignis aus. Bei zwei oder mehr legt **Abgleichsbedingung** fest, ob alle zutreffen müssen oder eine genügt. |
-| **Ziel** | Wohin sie postet: in einen bestehenden Kanal eines gewählten Teams, in die gewählten Chats, in einen neuen Kanal in einem gewählten Team, oder in mehrere davon zugleich. |
+| **Bedingungen** | Für welche Ereignisse die Regel gilt, zum Beispiel nach Schweregrad, Status, Beschriftung, Monitor oder Wörtern im Titel. Sie werden geprüft, wenn ein Ereignis erstellt wird, und erneut bei jedem Update, das OneUptime dazu postet, sodass eine Regel für bestätigte Vorfälle greift, sobald ein Vorfall bestätigt wird. Ohne Bedingungen gilt die Regel für jedes Ereignis. Bei zwei oder mehr legt **Abgleichsbedingung** fest, ob alle zutreffen müssen oder eine genügt. |
+| **Ziel** | Wohin sie postet: in einen bestehenden Kanal eines gewählten Teams, in die gewählten Chats, in einen Kanal für jeden Vorfall (oder jede Warnung, Episode, jedes Ereignis, jeden Monitor oder jede Bereitschaftsrichtlinie), der in einem gewählten Team erstellt wird, oder in mehrere davon zugleich. Unter dem Schritt sagt **Was diese Regel tut** in Sätzen, was sie tut, wie die Karte der Regel. |
 | **Videoanruf** | Nur Vorfälle und Warnungen: für jeden einen Anruf starten. Siehe [Videoanrufe](/docs/workspace-connections/video-calls). |
 
 Ein Kanal, den die Regel anlegt, wird nach seinem Datensatz benannt: Vorfall INC-42 bekommt `inc-42`, Warnung ALT-7 bekommt `alt-7`, und in einem Projekt ohne Nummernpräfixe bekommt Vorfall 42 `incident-42`. Text in **Präfix für Kanalnamen** steht davor, aus `prod-` wird also `prod-inc-42`, und das Formular zeigt den Namen schon beim Tippen. Bei einem geplanten Wartungsereignis tritt das Präfix an die Stelle seines Nummernpräfixes: SM-5 bekommt `sm-5`, und aus `maint-` wird `maint-5`. OneUptime behält Buchstaben, Ziffern, Leerzeichen, `-` und `_`, bis zu den 50 Zeichen, die Microsoft Teams annimmt. Hat das Team schon einen Kanal mit diesem Namen, etwa den eines anderen Projekts oder einen in den letzten 30 Tagen gelöschten, hängt OneUptime `-2`, `-3` und so weiter an.
 
-Nur ein angelegter Kanal bekommt die Personen, die die Regel einlädt. Ein privater Vorfall, eine private Warnung oder Episode bekommt einen privaten Kanal. Jede spätere Änderung des Datensatzes — ein Statuswechsel, eine Notiz, ein neuer Eigentümer — wird in seinen Kanälen und Chats gepostet.
+Eine Regel erstellt ihren Kanal, wenn ein Ereignis zum ersten Mal auf sie zutrifft: beim Erstellen des Ereignisses oder später, wenn es durch ein Update zutrifft, solange es noch offen ist. Eine Regel für bestätigte Vorfälle erstellt den Kanal, sobald der Vorfall bestätigt wird. Microsoft Teams zeigt die Kanäle eines Teams allen im Team, daher fügt OneUptime niemanden einzeln zu einem Kanal hinzu: Alle im gewählten Team können ihn öffnen, wie das Regelformular unter **Wer dem Kanal beitritt** sagt. Ein privater Vorfall, eine private Warnung oder Episode bekommt einen privaten Kanal, den nur seine Mitglieder sehen; fügen Sie Personen in Microsoft Teams hinzu.
+
+Jede spätere Änderung des Datensatzes — ein Statuswechsel, eine Notiz, ein neuer Eigentümer — wird in seinen Kanälen gepostet und in den bestehenden Kanälen und Chats, die seine Regeln nennen, solange deren Bedingungen zutreffen. OneUptime kann keinen Microsoft Teams-Kanal archivieren, daher bleibt der Kanal einer Regel bestehen, wenn sein Datensatz abgeschlossen ist; archivieren oder löschen Sie ihn in Microsoft Teams.
 
 Ein Vorfall, eine Warnung, eine Episode oder ein geplantes Wartungsereignis mit einem eigenen Kanal hat im Kopf seiner Seite in OneUptime, neben den Statusschaltflächen, **In Microsoft Teams öffnen**. Das öffnet diesen Kanal in einem neuen Tab, in der Microsoft-Teams-App oder im Browser. Ein Datensatz mit zwei eigenen Kanälen listet beide unter der Schaltfläche. Ein Datensatz mit Kanälen in Slack und in Microsoft Teams hat stattdessen eine Schaltfläche **Kanal öffnen**, die sie alle auflistet. Die bestehenden Kanäle und Chats, in die Ihre Regeln posten, werden nicht angeboten.
 
@@ -152,7 +154,7 @@ Schreiben Sie dem Bot in einem persönlichen Chat, oder erwähnen Sie OneUptime 
 | Nachricht | Was der Bot tut |
 | --- | --- |
 | `help` | Listet, was er kann. |
-| `incident [title]` | Öffnet das Vorfallsformular, mit ausgefülltem Titel. |
+| `incident [title or number]` | Öffnet das Vorfallsformular, mit ausgefülltem Titel. Die Nummer eines Vorfalls, etwa `42` oder `INC-42`, zeigt stattdessen diesen Vorfall: siehe [Einen Vorfall aus Microsoft Teams verwalten](#einen-vorfall-aus-microsoft-teams-verwalten). |
 | `maintenance [title]` | Öffnet das Formular für geplante Wartung, mit ausgefülltem Titel. |
 | `oncall` | Listet, wer gerade in jedem Bereitschaftsplan, den Sie sehen können, Bereitschaft hat, bis wann und wer als Nächstes dran ist. |
 | `page [who] [message]` | Alarmiert die Personen, die Sie mit @ erwähnen, wegen Ihrer Nachricht, oder sendet eine Karte, auf der Sie wählen, wer alarmiert wird. Siehe [Jemanden aus Microsoft Teams alarmieren](#jemanden-aus-microsoft-teams-alarmieren). |
@@ -213,6 +215,25 @@ Für ein Tag, das die primäre und die sekundäre Bereitschaft enthält, verbind
 - **Was Microsoft 365 braucht.** Tags zu ändern braucht die Berechtigung `TeamworkTag.ReadWrite.All` der App, die eine Administratorin oder ein Administrator von Microsoft 365 mit **Administratorzustimmung erteilen** unter **Projekteinstellungen** > **Arbeitsbereich** > **Microsoft Teams** erteilt. Hat Ihre Organisation zugestimmt, bevor OneUptime Tags pflegen konnte, stimmen Sie einmal erneut zu.
 - **Wer eines verbinden darf.** Die Rollen, die Bereitschaftspläne bearbeiten dürfen: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** und **On-Call Member**, oder **Edit On-Call Duty Policy Schedule** in einer benutzerdefinierten Rolle. In OneUptime Cloud braucht das Verbinden den Tarif **Growth**.
 - **Trennen.** OneUptime ändert das Tag nicht mehr. Das Tag und seine Mitglieder bleiben in Microsoft Teams, wie sie sind.
+
+## Einen Vorfall aus Microsoft Teams verwalten
+
+Die Karte eines Vorfalls hat vier Schaltflächen, **Acknowledge Incident**, **Resolve Incident**, **Add Note** und **View Incident**, und den Rest in ihrem Menü, der Schaltfläche mit drei Punkten:
+
+| Menüpunkt | Was er tut |
+| --- | --- |
+| **Change Severity** | Legt den Schweregrad des Vorfalls fest. |
+| **Change Incident State** | Versetzt den Vorfall in einen späteren Status. |
+| **Assign Role** | Gibt jemandem eine Rolle im Vorfall, etwa **Incident Commander**. Eine Rolle für nur eine Person geht an diese Person über. |
+| **Page Someone** | Alarmiert Personen, ein Team, wer in einem Bereitschaftsplan gerade Bereitschaft hat, oder eine Bereitschaftsrichtlinie zu dem Vorfall, bis jemand ihn bestätigt. |
+| **Edit Custom Fields** | Setzt die benutzerdefinierten Felder des Vorfalls, jedes ausgefüllt mit dem, was der Vorfall enthält. Ein leer gelassenes Feld wird geleert. |
+
+`incident 42`, an den Bot geschrieben, antwortet mit Vorfall 42, diesen Schaltflächen und seinem Menü. Schreiben Sie die Nummer so, wie OneUptime sie zeigt: `42`, `#42` oder `INC-42`. Im eigenen Kanal eines Vorfalls zeigt `incident` allein diesen Vorfall.
+
+- **Wer sie nutzen darf.** Die Personen, die dieselbe Änderung in OneUptime vornehmen dürfen, wie in Slack: siehe [Einen Vorfall aus Slack verwalten](/docs/workspace-connections/slack#einen-vorfall-aus-slack-verwalten). Jeder Menüpunkt antwortet mit einer Karte, ausgefüllt so, wie die Person, die ihn gedrückt hat, den Vorfall sehen darf. Jede Person im Gespräch darf die Karte absenden, als sie selbst, mit ihren eigenen Berechtigungen.
+- **Was dann passiert.** Die Änderung wird als die Person vorgenommen, die die Karte abgesendet hat, wie in OneUptime, und der Feed des Vorfalls sagt, was sich geändert hat. Der Bot sagt es in einer Antwort, die sie erwähnt, und entfernt die Karte, damit niemand sie zweimal absendet. **Page Someone** sagt, wer alarmiert wurde oder warum niemand; ein bereits behobener Vorfall alarmiert niemanden.
+- **Wo Microsoft Teams anders ist.** Eine Karte kann nicht unter einem Feld sagen, was falsch ist: Ein Wert, der nicht passt, wird in einer Antwort genannt, und die Karte bleibt, um korrigiert und erneut abgesendet zu werden. Ein Feld für Datum und Uhrzeit ist ein Tag und eine Uhrzeit, in Ihrer eigenen Zeitzone. Ein älterer Teams-Client zeigt das Menü als weitere Schaltflächen. `incident 42` antwortet im Gespräch, wo alle darin den Vorfall sehen können.
+- **Karten von vor dem Menü.** Sie behalten ihre Schaltfläche **Execute On-Call Policy**, und sie funktioniert weiter: **Page Someone** alarmiert auch eine Bereitschaftsrichtlinie. Warnungen und Episoden behalten ihre.
 
 ## Aus Microsoft Teams auf Vorfälle, Warnungen und Ereignisse reagieren
 

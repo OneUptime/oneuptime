@@ -219,7 +219,7 @@ flowchart TB
 | --- | --- |
 | **메트릭** | 확인할 쿼리나 수식으로, 변수 이름으로 지정합니다. |
 | **집계** | 창 안의 값을 하나의 답으로 만드는 방법: **평균**, **합계**, **Maximum Value**, **Minimum Value**, **All Values**(모든 값이 일치해야 함) 또는 **Any Value**(하나면 충분). |
-| **조건** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** 또는 **Equal To**, 아니면 이상 조건인 **Anomalously High**, **Anomalously Low** 또는 **Anomalous**. |
+| **조건** | **보다 큼**, **보다 작음**, **이상**, **이하** 또는 **같음**, 아니면 이상 조건인 **Anomalously High**, **Anomalously Low** 또는 **Anomalous**. |
 | **Threshold** | 비교할 값. 메트릭에 단위가 있으면 옆에 단위 목록이 있습니다. 이상 조건에서는 표시되지 않습니다. |
 | **민감도** | 이상 조건 전용. **Low**(4σ), **Medium**(3σ, 기본값) 또는 **High**(2σ). |
 | **기준선 기간** | 이상 조건 전용. 14일(기본값), 28일, 60일 또는 90일의 기록. |
@@ -254,7 +254,7 @@ flowchart TB
 :::
 
 :::details ceph_health_status가 1인데 아무것도 발생하지 않음
-기준이 **Greater Than**이 아니라 **Greater Than Or Equal To** `1`을 쓰는지, 그리고 모니터의 **시간 범위**가 30초 간격의 스크레이프를 적어도 한 번 포함하는지 확인합니다.
+기준이 **보다 큼**이 아니라 **이상** `1`을 쓰는지, 그리고 모니터의 **시간 범위**가 30초 간격의 스크레이프를 적어도 한 번 포함하는지 확인합니다.
 :::
 
 :::details 헬스 체크 템플릿이 발생하지 않음

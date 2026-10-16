@@ -429,7 +429,7 @@ describe("GitHub App installation binding", () => {
       expect(record.userId.toString()).toBe(userId.toString());
     });
 
-    test("spends the state for the GitHub App installation only", async () => {
+    test("spends the state for the GitHub App's own flows only", async () => {
       await callRoute({
         method: "GET",
         uri: CALLBACK_ROUTE,
@@ -439,7 +439,11 @@ describe("GitHub App installation binding", () => {
       expect(consumeSpy).toHaveBeenCalledTimes(1);
       expect(
         (consumeSpy.mock.calls[0]![0] as { flows: Array<string> }).flows,
-      ).toEqual([WorkspaceOAuthFlow.GitHubAppInstall]);
+      ).toEqual([
+        WorkspaceOAuthFlow.GitHubAppInstall,
+        WorkspaceOAuthFlow.GitHubAppConnectExisting,
+        WorkspaceOAuthFlow.GitHubAppChooseInstallation,
+      ]);
       expect((consumeSpy.mock.calls[0]![0] as { state: string }).state).toBe(
         "signed-state",
       );

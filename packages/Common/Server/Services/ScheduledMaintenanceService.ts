@@ -2286,20 +2286,12 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
           },
         );
 
-      if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
-        // update scheduledMaintenance with these channels.
-        await this.updateOneById({
-          id: createdItem.id,
-          data: {
-            postUpdatesToWorkspaceChannels:
-              workspaceResult.channelsCreated || [],
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-      }
-
+      /*
+       * The new channels are on the record already: the rule service stores
+       * them before it invites anybody, so whoever joins the event while
+       * they are set up is invited too (WorkspaceNotificationRuleService
+       * .createChannelsAndInviteUsersToChannelsBasedOnRules).
+       */
       return workspaceResult?.membersNotAdded || [];
     } catch (error) {
       logger.error(

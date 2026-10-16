@@ -270,7 +270,7 @@ Ein Kriterium vergleicht eine der Abfragen oder Formeln des Monitors mit einem S
 | --- | --- |
 | **Metrik** | Die zu prüfende Abfrage oder Formel, über ihren Variablennamen. |
 | **Aggregation** | Wie die Werte im Fenster zu einer Antwort werden: **Durchschnitt**, **Summe**, **Maximum Value**, **Minimum Value**, **All Values** (jeder Wert muss zutreffen) oder **Any Value** (einer genügt). |
-| **Bedingung** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** oder **Equal To** — oder eine Anomaliebedingung: **Anomalously High**, **Anomalously Low** oder **Anomalous**. |
+| **Bedingung** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** oder **Gleich** — oder eine Anomaliebedingung: **Anomalously High**, **Anomalously Low** oder **Anomalous**. |
 | **Schwellenwert** | Der Wert, mit dem verglichen wird. Daneben steht eine Einheitenliste, wenn die Metrik eine Einheit hat. Bei Anomaliebedingungen nicht angezeigt. |
 | **Empfindlichkeit** | Nur bei Anomaliebedingungen. **Niedrig** (4σ), **Mittel** (3σ, der Standard) oder **Hoch** (2σ). |
 | **Baseline-Fenster** | Nur bei Anomaliebedingungen. 14 Tage (der Standard), 28, 60 oder 90 Tage Verlauf. |
@@ -280,11 +280,11 @@ Anomaliebedingungen vergleichen jeden Wert mit derselben Stunde der Woche in der
 
 Einige Kriterien als Ausgangspunkt:
 
-- **Ein Host ist ausgelastet:** `vcenter.host.cpu.utilization`, Durchschnitt, gruppiert nach `resource.vcenter.host.name`, **Greater Than** `90`, über die letzten 5 Minuten.
-- **Ein Datenspeicher läuft voll:** `vcenter.datastore.disk.utilization`, Durchschnitt, gruppiert nach `resource.vcenter.datastore.name`, **Greater Than** `80`.
-- **Ein Cluster hat einen Host verloren:** `vcenter.cluster.host.count` gefiltert auf `effective = false`, Maximum, gruppiert nach `resource.vcenter.cluster.name`, **Greater Than** `0`.
-- **Weniger VMs laufen als erwartet:** `vcenter.cluster.vm.count` gefiltert auf `power_state = on` und `resource.vcenter.cluster.name = Production`, Summe, **Less Than** die Anzahl, die Sie erwarten.
-- **Eine VM wird vom Host ausgelagert:** `vcenter.vm.memory.swapped`, Maximum, gruppiert nach `resource.vcenter.vm.name`, **Greater Than** `0`.
+- **Ein Host ist ausgelastet:** `vcenter.host.cpu.utilization`, Durchschnitt, gruppiert nach `resource.vcenter.host.name`, **Größer als** `90`, über die letzten 5 Minuten.
+- **Ein Datenspeicher läuft voll:** `vcenter.datastore.disk.utilization`, Durchschnitt, gruppiert nach `resource.vcenter.datastore.name`, **Größer als** `80`.
+- **Ein Cluster hat einen Host verloren:** `vcenter.cluster.host.count` gefiltert auf `effective = false`, Maximum, gruppiert nach `resource.vcenter.cluster.name`, **Größer als** `0`.
+- **Weniger VMs laufen als erwartet:** `vcenter.cluster.vm.count` gefiltert auf `power_state = on` und `resource.vcenter.cluster.name = Production`, Summe, **Kleiner als** die Anzahl, die Sie erwarten.
+- **Eine VM wird vom Host ausgelagert:** `vcenter.vm.memory.swapped`, Maximum, gruppiert nach `resource.vcenter.vm.name`, **Größer als** `0`.
 
 ### Standardkriterien
 

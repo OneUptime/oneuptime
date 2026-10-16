@@ -206,10 +206,10 @@ export default class MicrosoftTeamsAPI {
        * build without it uses this fallback, so bump it whenever the manifest
        * changes (1.6.0: ChatSettings.Read.Chat added; 1.7.0: the commands
        * are the words Slack's /oneuptime takes; 1.8.0: page; 1.9.0: shared
-       * and private channels).
+       * and private channels; 1.10.0: incident takes an incident's number).
        */
       version: AppVersion.toLowerCase().includes("unknown")
-        ? "1.9.0"
+        ? "1.10.0"
         : AppVersion,
       /*
        * The app works in shared and private channels as in standard ones: it

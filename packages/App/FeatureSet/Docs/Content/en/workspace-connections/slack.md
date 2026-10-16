@@ -15,8 +15,8 @@ Connect OneUptime to Slack to post incidents, alerts, episodes, scheduled mainte
 ```mermaid title="From an event in OneUptime to a message in Slack"
 flowchart TB
     event["An incident, alert or event<br/>is created or changes"] --> rules{"Notification rules<br/>whose conditions match"}
-    rules -->|"Create Slack Channel"| own["A channel of its own,<br/>its people invited"]
-    rules -->|"Post to Existing Slack Channel"| existing["Your existing channels"]
+    rules -->|"Create a channel<br/>for each one"| own["A channel of its own,<br/>its people invited as they join"]
+    rules -->|"Post to existing channels"| existing["Your existing channels"]
     own --> message["A message with buttons"]
     existing --> message
     message -->|"A responder presses one"| change["The change is made in OneUptime,<br/>as that responder"]
@@ -47,7 +47,7 @@ Installing the app links the account of whoever installed it. Everyone else link
 
 ### Add a notification rule
 
-Go to **Incidents** > **Workspace** > **Slack**. The **Workspace** section lists only the chat workspaces your project has connected, so **Slack** appears there once it is connected. Create a rule, for example one that creates a Slack channel for every new incident and invites the incident's owners. See [Notification rules](#notification-rules).
+Go to **Incidents** > **Workspace** > **Slack**. The **Workspace** section lists only the chat workspaces your project has connected, so **Slack** appears there once it is connected. Create a rule, for example one that creates a Slack channel for every new incident with everyone working on it: the people paged, the Incident Commander and the owners. See [Notification rules](#notification-rules).
 
 ### Test the rule
 
@@ -71,13 +71,17 @@ Creating a rule walks four steps:
 | Step | What you set |
 | --- | --- |
 | **Basic** | **Rule Name** and **Rule Description**. |
-| **Conditions** | Which events the rule fires for, by severity, state, label, monitor or words in the title, for example. With no conditions it fires for every event. With two or more, **Match Condition** says whether all of them must match, or any one. |
-| **Destination** | Where it posts: **Post to Existing Slack Channel** with the channel names, **Create Slack Channel** with the new channel's name and who is invited, or both. |
+| **Conditions** | Which events the rule is for, by severity, state, label, monitor or words in the title, for example. They are checked when an event is created and again with each update OneUptime posts about it, so a rule for acknowledged incidents acts when an incident is acknowledged. With no conditions the rule is for every event. With two or more, **Match Condition** says whether all of them must match, or any one. |
+| **Destination** | Where it posts: **Post to existing channels** with the channel names, **Create a channel for each incident** (or alert, episode, event, monitor or on-call policy) with who joins it, or both. Under the step, **What this rule does** says it in sentences, as the rule's card does. |
 | **Video Call** | Incidents and alerts only: start a call for each one. See [Video Calls](/docs/workspace-connections/video-calls). |
 
 A channel the rule creates is named after its record: incident INC-42 gets `inc-42`, alert ALT-7 gets `alt-7`, and in a project without number prefixes, incident 42 gets `incident-42`. Text in **Channel Name Prefix** goes in front, so `prod-` makes `prod-inc-42`, and the form shows the name as you type. For a scheduled maintenance event, the prefix takes the place of its number prefix: SM-5 gets `sm-5`, and `maint-` makes `maint-5`. Slack takes lowercase letters, numbers, `-` and `_`, up to 80 characters. If a channel by that name already exists, such as another project's or an archived one, OneUptime adds `-2`, `-3` and so on.
 
-Only a channel that was created gets the people the rule invites: the record's owners, chosen teams and users, and, for incidents and alerts, the people on call as they are paged. A private incident, alert or episode gets a private channel. Every later update of the record — a state change, a note, a new owner — is posted to its channels and to the existing channels its rules name. An incident, alert or episode created already resolved gets no channel of its own; its created message still goes to the channels your rules name. See [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
+A rule creates its channel the first time an event matches it: when the event is created, or later, when an update makes it match while it is still open. A rule for acknowledged incidents creates the channel when the incident is acknowledged. A private incident, alert or episode gets a private channel.
+
+**Who joins the channel** lists who the rule adds to its channel, each as they join the record, not only when the channel is created: **On-call responders, as they are paged**, **Incident Commander and other incident roles, as they are assigned** (incidents and incident episodes) and **Owners, as they are added**, all ticked for a new rule, and the people and teams in **Also invite** when the channel is created. The Incident Commander is usually assigned when someone first acknowledges the incident, and joins its channel then. A rule saved before incident roles had a box of their own adds them when it adds the owners or the on-call responders, and its box shows ticked. An existing channel a rule posts to gets nobody.
+
+Every later update of the record — a state change, a note, a new owner — is posted to its channels, and to the existing channels its rules name while their conditions match. With **Archive the channel when the incident is resolved** on, or its twin for alerts, episodes, events, monitors and on-call policies, the rule that created a channel archives it when the record is resolved, completed or deleted, whatever its conditions say by then. An incident, alert or episode created already resolved gets no channel of its own; its created message still goes to the channels your rules name. See [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
 
 An incident, alert, episode or scheduled maintenance event with a channel of its own has **Open in Slack** in the header of its page in OneUptime, beside its state buttons. It opens that channel in a new tab, in the Slack app or in the browser. A record with two channels of its own lists both under the button. A record with channels in both Slack and Microsoft Teams has one **Open channel** button instead, which lists them all. The existing channels your rules post to are not offered.
 
@@ -139,7 +143,7 @@ OneUptime has one command in Slack, `/oneuptime`. The word you type after it say
 | Command | What it does |
 | --- | --- |
 | `/oneuptime help` | Lists the commands, with examples. |
-| `/oneuptime incident [title]` | Opens the incident form, with the title filled in. |
+| `/oneuptime incident [title or number]` | Opens the incident form, with the title filled in. An incident's number, such as `42` or `INC-42`, shows that incident instead: see [Managing an incident from Slack](#managing-an-incident-from-slack). |
 | `/oneuptime maintenance [title]` | Opens the scheduled maintenance form, with the title filled in. |
 | `/oneuptime oncall` | Lists who is on call right now in each on-call schedule you can see, until when, and who is next. |
 | `/oneuptime page [who] [message]` | Pages the people you @mention about your message, or opens a form to pick who to page. See [Paging someone from Slack](#paging-someone-from-slack). |
@@ -212,6 +216,25 @@ For a group that holds the primary and the secondary on call, connect the same g
 - **Who may connect one.** The roles that may edit schedules: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Edit On-Call Duty Policy Schedule** in a custom role. On OneUptime Cloud, connecting one needs the **Growth** plan.
 - **Disconnecting.** OneUptime stops changing the group. The group, and the people in it, stay in Slack as they are.
 
+## Managing an incident from Slack
+
+An incident's message has four buttons, **Acknowledge Incident**, **Resolve Incident**, **Add Note** and **View Incident**, and the rest in its menu, the button with three dots after them:
+
+| Menu item | What it does |
+| --- | --- |
+| **Change Severity** | Sets the incident's severity. |
+| **Change Incident State** | Moves the incident to a later state. |
+| **Assign Role** | Gives somebody a role on the incident, such as **Incident Commander**. A role that takes one person moves to them. |
+| **Page Someone** | Pages people, a team, whoever is on call in a schedule, or an on-call policy about the incident, until somebody acknowledges it. |
+| **Edit Custom Fields** | Sets the incident's custom fields, each filled in with what the incident holds. A field left empty is cleared. |
+
+`/oneuptime incident 42` shows incident 42, with these buttons and its menu, in a message only you see. Type the number as OneUptime shows it: `42`, `#42` or `INC-42`. In an incident's own channel, `/oneuptime incident` alone shows that incident.
+
+- **Who may use them.** The people who may make the same change in OneUptime. **Change Severity** and **Edit Custom Fields** need permission to edit the incident: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** and **Incident Member**, or **Edit Incident** in a custom role. **Assign Role** needs **Create Incident Member**, and **Delete Incident Member** to move a role that takes one person. **Page Someone** needs what **Execute On-Call Policy** needs. Anyone else is told why, and no form opens.
+- **What the forms offer.** What you may read in the project. A custom field copied from the incident's monitor is left off, as it would be copied again, and a form holds 40 fields: edit the rest in OneUptime.
+- **What happens.** The form closes, and the change is made as you, as in OneUptime: the incident's feed, and the incident's channels with it, say what changed, each custom field with its new value. A value that does not fit its field, such as text for a number, is said under the field, and the form stays open. **Page Someone** says who was paged, or why nobody was; an incident that is resolved already pages nobody.
+- **Messages posted before the menu.** They keep their **Execute On-Call Policy** button, and it keeps working: **Page Someone** pages an on-call policy too. Alerts and episodes keep theirs.
+
 ## Acting on incidents, alerts and events from Slack
 
 The buttons on OneUptime's Slack messages act as you too: as the OneUptime account your Slack account is connected to, with that account's permissions in the project. **Acknowledge**, **Resolve**, **Change State**, **Add Note** and **Execute On-Call Policy** on an incident, an alert or an episode, and **Mark as Ongoing**, **Mark as Complete**, **Change State** and **Add Note** on a scheduled maintenance event, each make the change the same action makes in OneUptime, and it is credited to you there: the record's state timeline and feed show that you changed its state, and the note is yours. A note saved from a message with an emoji reaction is posted the same way.
@@ -246,6 +269,10 @@ What OneUptime keeps of it — the workspace's name, its channels, the Slack acc
 
 :::details A rule posts nothing
 Check the rule's conditions with **Test Rule**: if the test arrives, the rule's conditions did not match the event. If it does not, the Slack page shows why. For a private channel, invite the OneUptime app to it in Slack first. Every message OneUptime posts, and every one Slack refused, is listed in **Project Settings** > **Notifications** > **Notification Logs**, on the **Workspace** tab.
+:::
+
+:::details Someone is missing from a rule's channel
+The rule's card says under **Then** who the rule invites. Each kind of person joins as they join the record: the people paged as they are paged, the Incident Commander when assigned, an owner when added, and whoever was on the record already when the channel was created. Someone whose Slack account is not connected to OneUptime cannot be added; OneUptime names them in the channel, with a link to connect their account.
 :::
 
 :::details Slack was not connected

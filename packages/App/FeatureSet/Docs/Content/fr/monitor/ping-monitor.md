@@ -82,9 +82,9 @@ Les critères décident quand l'hôte compte comme en ligne, dégradé ou hors l
 | Filtre | Conditions | Ce qu'il vérifie |
 | --- | --- | --- |
 | **Is Online** | **Vrai**, **Faux** | Si au moins une requête d'écho a reçu une réponse. |
-| **Temps de réponse (en ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Le temps aller-retour moyen des réponses. |
-| **Packet Loss (in %)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | La part des cinq requêtes d'écho restées sans réponse. |
-| **Jitter (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | L'écart type des temps aller-retour sur les paquets envoyés lors d'une vérification. |
+| **Temps de réponse (en ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Le temps aller-retour moyen des réponses. |
+| **Packet Loss (in %)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | La part des cinq requêtes d'écho restées sans réponse. |
+| **Jitter (in ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | L'écart type des temps aller-retour sur les paquets envoyés lors d'une vérification. |
 | **Is Request Timeout** | **Vrai**, **Faux** | Si le ping a expiré à chaque tentative. |
 
 Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** doivent correspondre ou si **Tout** filtre suffit. Les **Actions** d'un critère décident de ce qu'il fait : changer l'état du moniteur, créer une alerte, déclarer un incident, ou plusieurs de ces actions.
@@ -127,9 +127,9 @@ Choisissez une fenêtre plus longue que l'intervalle de surveillance, pour qu'el
 | Objectif | Filtre | Condition | Valeur |
 | --- | --- | --- | --- |
 | Hors ligne quand l'hôte est injoignable | **Is Online** | **Faux** | — |
-| Alerter quand la latence est élevée | **Temps de réponse (en ms)** | **Greater Than** | `200` |
-| Marquer l'hôte dégradé sur un lien qui perd des paquets | **Packet Loss (in %)** | **Greater Than** | `20` |
-| Alerter sur une connexion instable | **Jitter (in ms)** | **Greater Than** | `30` |
+| Alerter quand la latence est élevée | **Temps de réponse (en ms)** | **Supérieur à** | `200` |
+| Marquer l'hôte dégradé sur un lien qui perd des paquets | **Packet Loss (in %)** | **Supérieur à** | `20` |
+| Alerter sur une connexion instable | **Jitter (in ms)** | **Supérieur à** | `30` |
 
 Pour n'alerter que lorsque la latence reste élevée, activez **Évaluer ce critère sur une période donnée** pour le filtre de temps de réponse et choisissez **All Values** sur **5** minutes.
 

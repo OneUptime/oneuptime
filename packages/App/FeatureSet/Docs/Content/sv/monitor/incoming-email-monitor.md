@@ -6,6 +6,7 @@ En monitor för inkommande e-post ger dig en e-postadress som hör till en enda 
 - [Skapa monitorn](#skapa-en-monitor-för-inkommande-e-post): Få en adress och peka din avsändare mot den.
 - [Verifiera adressen](#verifiera-adressen-hos-avsändaren): Läs en avsändares bekräftelsemejl på monitorn.
 - [Skriv kriterier](#tillgängliga-filtertyper): Matcha ämnet, avsändaren eller innehållet, eller larma när e-posten slutar komma.
+- [En incident för varje e-postmeddelande](#öppna-en-incident-för-varje-e-postmeddelande): Låt folk rapportera incidenter genom att mejla adressen.
 - [Använd e-posten i larm](#mallvariabler): Lägg in ämnet och innehållet i titlar och beskrivningar.
 :::
 
@@ -27,7 +28,7 @@ sequenceDiagram
 
 1. När du skapar en monitor för inkommande e-post ger OneUptime den en unik e-postadress.
 2. Varje e-postmeddelande som skickas till den adressen lagras på monitorn och utvärderas mot dess kriterier, uppifrån; det första kriteriet som matchar avgör.
-3. Ett matchande kriterium kan ändra monitorns status, skapa ett larm och deklarera en incident. En incident med **Lös incident automatiskt** påslaget, eller ett larm med **Lös larm automatiskt** påslaget, löses när ett annat kriterium matchar senare — till exempel det som markerar monitorn som online.
+3. Ett matchande kriterium kan ändra monitorns status, skapa ett larm och deklarera en incident. En incident med **Lös incident automatiskt** påslaget, eller ett larm med **Lös larm automatiskt** påslaget, löses när ett annat kriterium matchar senare — till exempel det som markerar monitorn som online. Så länge ett kriteriums incident är öppen öppnar senare e-postmeddelanden som matchar kriteriet inget nytt, om inte kriteriet [öppnar en incident för varje e-postmeddelande](#öppna-en-incident-för-varje-e-postmeddelande).
 
 ## Skapa en monitor för inkommande e-post
 
@@ -143,7 +144,7 @@ En ny monitor för inkommande e-post skapas med två kriterier som läser e-post
 | Kriterium | Filtertyp | Filtervillkor | Värde | Effekt |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
 | Offline  | Email Body  | Innehåller | `error` | Markerar monitorn som offline, öppnar en incident |
-| Online   | Email Body  | Not Contains | `error` | Markerar monitorn som online |
+| Online   | Email Body  | Innehåller inte | `error` | Markerar monitorn som online |
 
 Det passar det vanliga fallet där ett jobb eller ett verktyg från tredje part mejlar sitt eget resultat: ett meddelande vars innehåll nämner `error` tar ned monitorn, och nästa meddelande utan ordet tar upp monitorn igen och löser incidenten. Jämförelsen av innehållet skiljer inte på versaler och gemener, så `Error` och `ERROR` matchar också.
 
@@ -174,13 +175,13 @@ Monitorns egen adress maskeras innan något kriterium läser e-postmeddelandet, 
 | Filtervillkor | Beskrivning | Exempel |
 | ---------------- | ----------------------------------------- | ---------------------------------- |
 | **Innehåller** | Fältet innehåller den angivna texten | Ämnet innehåller "CRITICAL" |
-| **Not Contains** | Fältet innehåller inte den angivna texten | Ämnet innehåller inte "TEST" |
-| **Equal To** | Fältet stämmer exakt med den angivna texten | Avsändaren är lika med "alerts@service.com" |
-| **Not Equal To** | Fältet stämmer inte med den angivna texten | Ämnet är inte lika med "OK" |
-| **Starts With** | Fältet börjar med den angivna texten | Ämnet börjar med "[ALERT]" |
-| **Ends With** | Fältet slutar med den angivna texten | Ämnet slutar med "- Production" |
-| **Is Empty** | Fältet är tomt | Innehållet är tomt |
-| **Is Not Empty** | Fältet har innehåll | Ämnet är inte tomt |
+| **Innehåller inte** | Fältet innehåller inte den angivna texten | Ämnet innehåller inte "TEST" |
+| **Lika med** | Fältet stämmer exakt med den angivna texten | Avsändaren är lika med "alerts@service.com" |
+| **Inte lika med** | Fältet stämmer inte med den angivna texten | Ämnet är inte lika med "OK" |
+| **Börjar med** | Fältet börjar med den angivna texten | Ämnet börjar med "[ALERT]" |
+| **Slutar med** | Fältet slutar med den angivna texten | Ämnet slutar med "- Production" |
+| **Är tom** | Fältet är tomt | Innehållet är tomt |
+| **Är inte tom** | Fältet har innehåll | Ämnet är inte tomt |
 
 Ingen av de här jämförelserna skiljer på versaler och gemener. Ett filter med ett tomt värde matchar aldrig.
 
@@ -220,8 +221,8 @@ Lägg det kritiska kriteriet först: kriterierna kontrolleras uppifrån, och det
 
 | Kriterium | Filter | Matchningsvillkor | Åtgärder |
 | --- | --- | --- | --- |
-| Misslyckat jobb | **Email From Address** Equal To `monitoring@legacy-system.com`; **E-postämne** Innehåller `Failed` | **Alla** | Ändra statusen till offline; deklarera en incident |
-| Lyckat jobb | **Email From Address** Equal To `monitoring@legacy-system.com`; **E-postämne** Innehåller `Success` | **Alla** | Ändra statusen till online |
+| Misslyckat jobb | **Email From Address** Lika med `monitoring@legacy-system.com`; **E-postämne** Innehåller `Failed` | **Alla** | Ändra statusen till offline; deklarera en incident |
+| Lyckat jobb | **Email From Address** Lika med `monitoring@legacy-system.com`; **E-postämne** Innehåller `Success` | **Alla** | Ändra statusen till online |
 
 ### Exempel 3: Heartbeat-monitor (ingen e-post = larm)
 
@@ -232,6 +233,43 @@ Lägg det kritiska kriteriet först: kriterierna kontrolleras uppifrån, och det
 
 Det första kriteriet utlöses när inget e-postmeddelande har kommit på 60 minuter — användbart för schemalagda jobb eller batchprocesser som skickar ett mejl när de är klara. Det andra löser larmet så snart ett meddelande kommer. Minuter då OneUptime självt inte tog emot e-post räknas inte in i de 60, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
+## Öppna en incident för varje e-postmeddelande
+
+Ett kriterium håller en incident öppen i taget: så länge den är öppen öppnar senare e-postmeddelanden som matchar kriteriet inget nytt. Det passar ett system vars e-post rapporterar om en enda sak, som en nattlig säkerhetskopia. När varje e-postmeddelande är en egen rapport, till exempel när folk rapporterar incidenter genom att mejla adressen, slår du på **Öppna en ny incident för varje e-postmeddelande** i kriteriet.
+
+:::steps
+### Välj e-postmeddelandena
+
+Ge kriteriet ett filter som matchar de e-postmeddelanden som ska öppna incidenter. För att bara ta emot rapporter från era egna medarbetare använder du **Email From Address** med **Slutar med** och er domän, till exempel `@example.com`.
+
+### Deklarera incidenten
+
+Under **Åtgärder** slår du på **När filter matchar, deklarera en incident.** Ge incidenten titeln `{{emailSubject}}` och beskrivningen `{{emailBody}}`, så att varje incident säger vad dess e-postmeddelande sa.
+
+### Slå på reglaget
+
+Slå på **Öppna en ny incident för varje e-postmeddelande**, under incidenten, och spara monitorn.
+:::
+
+Från och med då hanterar kriteriet varje e-postmeddelande för sig:
+
+| E-post | Vad som händer |
+| --- | --- |
+| Ett nytt e-postmeddelande | Öppnar en egen incident, även medan tidigare är öppna. |
+| Samma e-postmeddelande, levererat igen | Öppnar inget mer: OneUptime skiljer e-postmeddelanden åt på deras rubrik `Message-ID`. |
+| Ett svar på ett e-postmeddelande som öppnade en incident | Läggs till i den incidenten som en privat anteckning och öppnar inget medan incidenten är öppen. När incidenten har lösts öppnar ett svar en ny incident. |
+| Ett automatiskt svar, som ett frånvaromeddelande | Öppnar inget. |
+| Ett e-postmeddelande efter att monitorn har öppnat 20 incidenter från e-post under den senaste timmen | Öppnar inget, så att en e-postslinga eller en flod av e-post inte kan larma ert team i all oändlighet. |
+
+Varje e-postmeddelande får fortfarande en rad i **Övervakningsloggar**, och **Visa sammanfattning** på den raden säger vad e-postmeddelandet öppnade, eller varför det inte öppnade något. När kriteriet även skapar larm heter reglaget **Öppna en ny incident och en ny varning för varje e-postmeddelande**, och varje e-postmeddelande öppnar ett eget larm på samma sätt.
+
+Dessa incidenter förblir öppna tills någon löser dem. Med **Lös incident automatiskt** påslaget löses de också när ett senare e-postmeddelande matchar ett annat kriterium, som alla incidenter; ett senare e-postmeddelande som matchar samma kriterium löser aldrig de tidigare. En kontroll av saknad e-post (**Email Received**) är inget e-postmeddelande, så den öppnar fortfarande en incident i taget.
+
+> [!WARNING]
+> **Alla som känner till adressen kan öppna incidenter.** Håll adressen privat, filtrera på avsändaren som ovan och [återställ adressen](#återställa-eller-anpassa-e-postadressen) om den läcker. En avsändares adress kan förfalskas, så filtret håller borta vilsen e-post, inte någon som är fast besluten att ta sig in.
+
+För mer kontroll, som en allvarlighetsgrad läst från ämnet eller ett team valt efter avsändare, startar du i stället ett arbetsflöde från varje e-postmeddelande: se [Incoming Email-utlösaren](/docs/workflows/triggers#incoming-email).
+
 ## Användningsfall
 
 | Användningsfall | Vad monitorn gör |
@@ -240,6 +278,7 @@ Det första kriteriet utlöses när inget e-postmeddelande har kommit på 60 min
 | Tjänster från tredje part | Tar emot aviseringar från molnleverantörer (AWS, GCP, Azure), säkerhetsskannrar, verktyg för säkerhetskopiering och varningar om certifikat som går ut. |
 | Schemalagda jobb | Larmar när ett mejl om att ett jobb är klart är sent, eller när ett jobb mejlar om ett fel. |
 | Samla larm | Samlar e-postlarm från Nagios, Zabbix eller andra verktyg, så att OneUptime är det enda stället där du hanterar dem. |
+| Rapportera incidenter via e-post | Öppnar en incident för varje e-postmeddelande som folk skickar till adressen, och sparar svaren på den som anteckningar. |
 
 ## Mallvariabler
 
@@ -288,7 +327,7 @@ Tills det är konfigurerat säger monitorns adresskort att inkommande e-post int
 - **E-postadressens säkerhet**: Monitorns e-postadress fungerar som ett lösenord: alla som känner till den kan skicka e-post till monitorn. Dela den inte offentligt, och återställ den från monitorns flik **Inställningar** om den läcker.
 - **E-postens storlek**: OneUptime tar emot ett inkommande e-postmeddelande på upp till 50 MB, bilagor inräknade. Bilagor lagras inte — bara deras namn, typer och storlekar.
 - **Behandlingstid**: E-post behandlas asynkront. Det kan dröja några sekunder från att ett e-postmeddelande skickas tills larmet skapas.
-- **Skiftlägesokänslighet**: Ingen av strängjämförelserna (Innehåller, Equal To osv.) skiljer på versaler och gemener.
+- **Skiftlägesokänslighet**: Ingen av strängjämförelserna (Innehåller, Lika med osv.) skiljer på versaler och gemener.
 - **Oformaterad text**: Kriterier på innehållet läser e-postmeddelandets oformaterade textdel. Ett e-postmeddelande som bara skickats som HTML har ett tomt innehåll för kriterierna — så det innehåller inte `error`, och standardkriterierna markerar monitorn som online.
 
 ## Felsökning
@@ -307,6 +346,7 @@ Tills det är konfigurerat säger monitorns adresskort att inkommande e-post int
 2. Kontrollera att övervakningen är påslagen: monitorns sida **Inställningar**, kortet **Övervakning**.
 3. Öppna **Övervakningsloggar** och klicka på **Visa sammanfattning** på e-postmeddelandets rad för att se vad kriterierna läste.
 4. Kontrollera ordningen på dina kriterier: det första som matchar avgör.
+5. Om kriteriet öppnar en incident för varje e-postmeddelande kan e-postmeddelandet vara ett svar, en andra leverans eller ett automatiskt svar, eller så har monitorn redan öppnat 20 incidenter från e-post under den senaste timmen. **Visa sammanfattning** på e-postmeddelandets rad säger vilket.
 
 ### Larm löses inte
 

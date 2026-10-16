@@ -6,6 +6,7 @@ An Incoming Email monitor gives you an email address that belongs to one monitor
 - [Create the monitor](#creating-an-incoming-email-monitor): Get an address and point your sender at it.
 - [Verify the address](#verifying-the-address-with-the-sender): Read a sender's confirmation email on the monitor.
 - [Write criteria](#available-filter-types): Match the subject, sender or body, or alert when email stops.
+- [An incident for every email](#open-an-incident-for-every-email): Let people report incidents by emailing the address.
 - [Use the email in alerts](#template-variables): Put the subject and body into titles and descriptions.
 :::
 
@@ -27,7 +28,7 @@ sequenceDiagram
 
 1. When you create an Incoming Email monitor, OneUptime gives it a unique email address.
 2. Every email sent to that address is stored on the monitor and evaluated against its criteria, from the top; the first criteria that matches decides.
-3. A matching criteria can change the monitor's status, create an alert and declare an incident. An incident with **Auto Resolve Incident** on, or an alert with **Auto Resolve Alert** on, is resolved when a different criteria matches later — the one that marks the monitor online, for example.
+3. A matching criteria can change the monitor's status, create an alert and declare an incident. An incident with **Auto Resolve Incident** on, or an alert with **Auto Resolve Alert** on, is resolved when a different criteria matches later — the one that marks the monitor online, for example. While a criteria's incident is open, later emails that match the criteria open nothing new, unless it [opens an incident for every email](#open-an-incident-for-every-email).
 
 ## Creating an Incoming Email Monitor
 
@@ -232,6 +233,43 @@ Put the critical criteria first: criteria are checked from the top, and the firs
 
 The first criteria fires when no email has arrived for 60 minutes — useful for scheduled jobs or batch processes that send a completion email. The second resolves the alert as soon as one arrives. Minutes OneUptime itself was not receiving email do not count toward the 60, as [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving) explains.
 
+## Open an incident for every email
+
+A criteria keeps one incident open at a time: while it's open, later emails that match the criteria open nothing new. That suits a system whose emails report on one thing, such as a nightly backup. When every email is a report of its own, such as people raising incidents by emailing the address, turn on **Open a new incident for every email** in the criteria.
+
+:::steps
+### Choose the emails
+
+Give the criteria a filter that matches the emails to open incidents for. To take reports from your own people only, use **Email From Address** with **Ends With** and your domain, such as `@example.com`.
+
+### Declare the incident
+
+Under **Actions**, turn on **When filters match, declare an incident.** Give the incident the title `{{emailSubject}}` and the description `{{emailBody}}`, so each incident says what its email said.
+
+### Turn on the switch
+
+Turn on **Open a new incident for every email**, below the incident, and save the monitor.
+:::
+
+From then on, the criteria handles each email on its own:
+
+| Email | What happens |
+| --- | --- |
+| A new email | Opens an incident of its own, even while earlier ones are open. |
+| The same email, delivered again | Opens nothing more: OneUptime tells emails apart by their `Message-ID` header. |
+| A reply to an email that opened an incident | Is added to that incident as a private note and opens nothing while the incident is open. Once the incident is resolved, a reply opens a new incident. |
+| An automatic reply, such as an out-of-office message | Opens nothing. |
+| An email after the monitor opened 20 incidents from emails in the past hour | Opens nothing, so a mail loop or a flood of email cannot page your team without end. |
+
+Every email still gets a row in **Monitoring Logs**, and **View Summary** on that row says what the email opened, or why it opened nothing. When the criteria also creates alerts, the switch reads **Open a new incident and alert for every email**, and each email opens an alert of its own in the same way.
+
+These incidents stay open until someone resolves them. With **Auto Resolve Incident** on, they also resolve when a later email matches a different criteria, as any incident does; a later email that matches the same criteria never resolves the earlier ones. A check for missing email (**Email Received**) is not an email, so it still opens one incident at a time.
+
+> [!WARNING]
+> **Anyone who knows the address can open incidents.** Keep the address private, filter on the sender as above, and [reset the address](#resetting-or-customizing-the-email-address) if it leaks. A sender's address can be forged, so the filter keeps out stray mail, not someone set on getting in.
+
+For more control, such as a severity read from the subject or a team chosen by the sender, start a workflow from each email instead: see the [Incoming Email trigger](/docs/workflows/triggers#incoming-email).
+
 ## Use Cases
 
 | Use case | What the monitor does |
@@ -240,6 +278,7 @@ The first criteria fires when no email has arrived for 60 minutes — useful for
 | Third-party services | Receives notifications from cloud providers (AWS, GCP, Azure), security scanners, backup tools and certificate expiry warnings. |
 | Scheduled jobs | Alerts when a completion email is late, or when a job emails a failure. |
 | Alert aggregation | Collects email alerts from Nagios, Zabbix or other tools, so OneUptime is the single place you manage them. |
+| Reporting incidents by email | Opens an incident for every email people send to the address, and keeps the replies on it as notes. |
 
 ## Template Variables
 
@@ -307,6 +346,7 @@ Until it is set up, the monitor's address card says that inbound email is not co
 2. Check that monitoring is on: the monitor's **Settings** page, **Monitoring** card.
 3. Open **Monitoring Logs** and click **View Summary** on the email's row to see what the criteria read.
 4. Check the order of your criteria: the first one that matches decides.
+5. If the criteria opens an incident for every email, the email may be a reply, a second delivery or an automatic reply, or the monitor may have opened 20 incidents from emails in the past hour. **View Summary** on the email's row says which.
 
 ### Alerts Not Being Resolved
 

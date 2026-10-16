@@ -1800,7 +1800,7 @@ describe("help in a direct message: the commands, with or without AI", () => {
       `👋 ${ZWSP}*Here's what \`/oneuptime\` can do*${ZWSP}`,
     );
     expect(helpText()).toContain(
-      "•   `/oneuptime incident [title]`: declare an incident",
+      "•   `/oneuptime incident [title or number]`: declare an incident, or act on one by its number",
     );
     expect(helpText()).toContain("•   `/oneuptime help`: list every command");
   });

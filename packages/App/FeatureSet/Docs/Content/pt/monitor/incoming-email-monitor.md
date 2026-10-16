@@ -6,6 +6,7 @@ Um monitor de e-mails recebidos dá a você um endereço de e-mail que pertence 
 - [Criar o monitor](#criar-um-monitor-de-e-mails-recebidos): Obtenha um endereço e aponte seu remetente para ele.
 - [Verificar o endereço](#verificar-o-endereço-com-o-remetente): Leia no monitor o e-mail de confirmação de um remetente.
 - [Escrever critérios](#tipos-de-filtro-disponíveis): Compare assunto, remetente ou corpo, ou alerte quando os e-mails param.
+- [Um incidente para cada e-mail](#abrir-um-incidente-para-cada-e-mail): Deixe as pessoas relatarem incidentes escrevendo para o endereço.
 - [Usar o e-mail nos alertas](#variáveis-de-modelo): Coloque o assunto e o corpo em títulos e descrições.
 :::
 
@@ -27,7 +28,7 @@ sequenceDiagram
 
 1. Quando você cria um monitor de e-mails recebidos, o OneUptime dá a ele um endereço de e-mail único.
 2. Cada e-mail enviado a esse endereço é armazenado no monitor e avaliado com base nos critérios dele, de cima para baixo; o primeiro critério que corresponde decide.
-3. Um critério que corresponde pode mudar o status do monitor, criar um alerta e declarar um incidente. Um incidente com **Resolver incidente automaticamente** ligado, ou um alerta com **Resolver alerta automaticamente** ligado, é resolvido quando outro critério corresponde mais tarde: por exemplo, o que marca o monitor como online.
+3. Um critério que corresponde pode mudar o status do monitor, criar um alerta e declarar um incidente. Um incidente com **Resolver incidente automaticamente** ligado, ou um alerta com **Resolver alerta automaticamente** ligado, é resolvido quando outro critério corresponde mais tarde: por exemplo, o que marca o monitor como online. Enquanto o incidente de um critério está aberto, os e-mails seguintes que correspondem ao critério não abrem nada novo, a menos que o critério [abra um incidente para cada e-mail](#abrir-um-incidente-para-cada-e-mail).
 
 ## Criar um monitor de e-mails recebidos
 
@@ -143,7 +144,7 @@ Um novo monitor de e-mails recebidos é criado com dois critérios que leem o co
 | Critério | Tipo de filtro | Condição do filtro | Valor | Efeito |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
 | Offline  | Email Body  | Contém | `error` | Marca o monitor como offline, abre um incidente |
-| Online   | Email Body  | Not Contains | `error` | Marca o monitor como online |
+| Online   | Email Body  | Não contém | `error` | Marca o monitor como online |
 
 Isso atende ao caso comum em que um job ou uma ferramenta de terceiros envia o próprio resultado por e-mail: uma mensagem cujo corpo menciona `error` deixa o monitor offline, e a próxima mensagem sem essa palavra o traz de volta e resolve o incidente. A comparação no corpo não diferencia maiúsculas de minúsculas, então `Error` e `ERROR` também correspondem.
 
@@ -174,13 +175,13 @@ O endereço do próprio monitor é mascarado antes de qualquer critério ler o e
 | Condição do filtro | Descrição | Exemplo |
 | ---------------- | ----------------------------------------- | ---------------------------------- |
 | **Contém** | O campo contém o texto informado | O assunto contém "CRITICAL" |
-| **Not Contains** | O campo não contém o texto informado | O assunto não contém "TEST" |
-| **Equal To** | O campo corresponde exatamente ao texto informado | O remetente é igual a "alerts@service.com" |
-| **Not Equal To** | O campo não corresponde ao texto informado | O assunto é diferente de "OK" |
-| **Starts With** | O campo começa com o texto informado | O assunto começa com "[ALERT]" |
-| **Ends With** | O campo termina com o texto informado | O assunto termina com "- Production" |
-| **Is Empty** | O campo está vazio ou em branco | O corpo está vazio |
-| **Is Not Empty** | O campo tem conteúdo | O assunto não está vazio |
+| **Não contém** | O campo não contém o texto informado | O assunto não contém "TEST" |
+| **Igual a** | O campo corresponde exatamente ao texto informado | O remetente é igual a "alerts@service.com" |
+| **Diferente de** | O campo não corresponde ao texto informado | O assunto é diferente de "OK" |
+| **Começa com** | O campo começa com o texto informado | O assunto começa com "[ALERT]" |
+| **Termina com** | O campo termina com o texto informado | O assunto termina com "- Production" |
+| **Está vazio** | O campo está vazio ou em branco | O corpo está vazio |
+| **Não está vazio** | O campo tem conteúdo | O assunto não está vazio |
 
 Todas essas comparações não diferenciam maiúsculas de minúsculas. Um filtro com valor vazio nunca corresponde.
 
@@ -220,8 +221,8 @@ Coloque o critério crítico primeiro: os critérios são verificados de cima pa
 
 | Critério | Filtros | Condição de correspondência | Ações |
 | --- | --- | --- | --- |
-| Job com falha | **Email From Address** Equal To `monitoring@legacy-system.com`; **Assunto do e-mail** Contém `Failed` | **Todos** | Mudar o status para offline; declarar um incidente |
-| Job bem-sucedido | **Email From Address** Equal To `monitoring@legacy-system.com`; **Assunto do e-mail** Contém `Success` | **Todos** | Mudar o status para online |
+| Job com falha | **Email From Address** Igual a `monitoring@legacy-system.com`; **Assunto do e-mail** Contém `Failed` | **Todos** | Mudar o status para offline; declarar um incidente |
+| Job bem-sucedido | **Email From Address** Igual a `monitoring@legacy-system.com`; **Assunto do e-mail** Contém `Success` | **Todos** | Mudar o status para online |
 
 ### Exemplo 3: monitor de heartbeat (sem e-mail = alerta)
 
@@ -232,6 +233,43 @@ Coloque o critério crítico primeiro: os critérios são verificados de cima pa
 
 O primeiro critério dispara quando nenhum e-mail chegou por 60 minutos: útil para jobs agendados ou processos em lote que enviam um e-mail ao terminar. O segundo resolve o alerta assim que um chega. Os minutos em que o próprio OneUptime não estava recebendo e-mail não contam para os 60, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
 
+## Abrir um incidente para cada e-mail
+
+Um critério mantém um único incidente aberto por vez: enquanto ele está aberto, os e-mails seguintes que correspondem ao critério não abrem nada novo. Isso combina com um sistema cujos e-mails relatam uma única coisa, como um backup noturno. Quando cada e-mail é um relato próprio, por exemplo quando pessoas relatam incidentes escrevendo para o endereço, ative **Abrir um novo incidente para cada e-mail** no critério.
+
+:::steps
+### Escolher os e-mails
+
+Dê ao critério um filtro que corresponda aos e-mails para os quais abrir incidentes. Para aceitar só relatos da sua própria equipe, use **Email From Address** com **Termina com** e o seu domínio, por exemplo `@example.com`.
+
+### Declarar o incidente
+
+Em **Ações**, ative **Quando os filtros corresponderem, declarar um incidente.** Dê ao incidente o título `{{emailSubject}}` e a descrição `{{emailBody}}`, para que cada incidente diga o que dizia o seu e-mail.
+
+### Ativar a opção
+
+Ative **Abrir um novo incidente para cada e-mail**, abaixo do incidente, e salve o monitor.
+:::
+
+A partir daí, o critério trata cada e-mail separadamente:
+
+| E-mail | O que acontece |
+| --- | --- |
+| Um e-mail novo | Abre um incidente próprio, mesmo enquanto os anteriores estão abertos. |
+| O mesmo e-mail, entregue de novo | Não abre mais nada: o OneUptime diferencia os e-mails pelo cabeçalho `Message-ID`. |
+| Uma resposta a um e-mail que abriu um incidente | É adicionada a esse incidente como nota privada e não abre nada enquanto o incidente está aberto. Depois que o incidente é resolvido, uma resposta abre um novo incidente. |
+| Uma resposta automática, como uma mensagem de ausência | Não abre nada. |
+| Um e-mail que chega depois que o monitor abriu 20 incidentes a partir de e-mails na última hora | Não abre nada, para que um loop de e-mail ou uma enxurrada de e-mails não possa acionar a sua equipe sem fim. |
+
+Cada e-mail continua ganhando uma linha em **Registros de monitoramento**, e **Ver resumo** nessa linha diz o que o e-mail abriu ou por que não abriu nada. Quando o critério também cria alertas, a opção se chama **Abrir um novo incidente e um novo alerta para cada e-mail**, e cada e-mail abre um alerta próprio da mesma forma.
+
+Esses incidentes ficam abertos até alguém resolvê-los. Com **Resolver incidente automaticamente** ligado, eles também são resolvidos quando um e-mail posterior corresponde a outro critério, como qualquer incidente; um e-mail posterior que corresponde ao mesmo critério nunca resolve os anteriores. Uma verificação de e-mail que não chegou (**Email Received**) não é um e-mail, então continua abrindo um único incidente por vez.
+
+> [!WARNING]
+> **Qualquer pessoa que conheça o endereço pode abrir incidentes.** Mantenha o endereço privado, filtre pelo remetente como acima e [redefina o endereço](#redefinir-ou-personalizar-o-endereço-de-e-mail) se ele vazar. O endereço de um remetente pode ser falsificado, então o filtro barra e-mails perdidos, não alguém determinado a entrar.
+
+Para ter mais controle, como uma gravidade lida do assunto ou uma equipe escolhida pelo remetente, inicie em vez disso um workflow a partir de cada e-mail: veja o [gatilho Incoming Email](/docs/workflows/triggers#incoming-email).
+
 ## Casos de uso
 
 | Caso de uso | O que o monitor faz |
@@ -240,6 +278,7 @@ O primeiro critério dispara quando nenhum e-mail chegou por 60 minutos: útil p
 | Serviços de terceiros | Recebe notificações de provedores de nuvem (AWS, GCP, Azure), scanners de segurança, ferramentas de backup e avisos de expiração de certificados. |
 | Jobs agendados | Alerta quando um e-mail de conclusão está atrasado, ou quando um job informa uma falha por e-mail. |
 | Agregação de alertas | Reúne os alertas por e-mail do Nagios, do Zabbix ou de outras ferramentas, para que o OneUptime seja o único lugar onde você os gerencia. |
+| Relatar incidentes por e-mail | Abre um incidente para cada e-mail que as pessoas enviam para o endereço, e guarda nele as respostas como notas. |
 
 ## Variáveis de modelo
 
@@ -288,7 +327,7 @@ Enquanto ele não estiver configurado, o cartão de endereço do monitor diz que
 - **Segurança do endereço de e-mail**: o endereço de e-mail do monitor funciona como uma senha: qualquer pessoa que o conheça pode enviar e-mails ao monitor. Não o compartilhe publicamente, e redefina-o na aba **Configurações** do monitor se ele vazar.
 - **Tamanho do e-mail**: o OneUptime aceita um e-mail recebido de até 50 MB, anexos incluídos. Os anexos não são armazenados, só os nomes, tipos e tamanhos deles.
 - **Tempo de processamento**: os e-mails são processados de forma assíncrona. Pode haver alguns segundos entre o envio de um e-mail e a criação do alerta.
-- **Sem diferenciar maiúsculas de minúsculas**: todas as comparações de strings (Contém, Equal To etc.) não diferenciam maiúsculas de minúsculas.
+- **Sem diferenciar maiúsculas de minúsculas**: todas as comparações de strings (Contém, Igual a etc.) não diferenciam maiúsculas de minúsculas.
 - **Texto simples**: os critérios sobre o corpo leem a parte de texto simples do e-mail. Um e-mail enviado só em HTML tem o corpo vazio para os critérios, então não contém `error`, e os critérios padrão marcam o monitor como online.
 
 ## Solução de problemas
@@ -307,6 +346,7 @@ Enquanto ele não estiver configurado, o cartão de endereço do monitor diz que
 2. Confira se o monitoramento está ligado: página **Configurações** do monitor, cartão **Monitoramento**.
 3. Abra **Registros de monitoramento** e clique em **Ver resumo** na linha do e-mail para ver o que os critérios leram.
 4. Confira a ordem dos seus critérios: o primeiro que corresponde decide.
+5. Se o critério abre um incidente para cada e-mail, o e-mail pode ser uma resposta, uma segunda entrega ou uma resposta automática, ou o monitor já abriu 20 incidentes a partir de e-mails na última hora. **Ver resumo** na linha do e-mail diz qual.
 
 ### Os alertas não estão sendo resolvidos
 

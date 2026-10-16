@@ -109,9 +109,9 @@ Kriterier afgør, hvornår porten tæller som online, forringet eller offline, o
 | Filter | Betingelser | Hvad det tjekker |
 | --- | --- | --- |
 | **Is Online** | **Sand**, **Falsk** | Om porten accepterede en forbindelse. |
-| **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Hele forbindelsestiden, inklusive DNS-opslaget for et værtsnavn. |
-| **Port DNS Lookup Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | DNS-opslaget før det første TCP-forsøg. Det har ingen værdi, når målet er en IP-adresse. |
-| **Port TCP Connect Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Fra det første TCP-forsøg, til forbindelsen accepteres, inklusive skift mellem IPv6 og IPv4. |
+| **Total Connection Time (DNS + TCP) (in ms)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Hele forbindelsestiden, inklusive DNS-opslaget for et værtsnavn. |
+| **Port DNS Lookup Time (in ms)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | DNS-opslaget før det første TCP-forsøg. Det har ingen værdi, når målet er en IP-adresse. |
+| **Port TCP Connect Time (in ms)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Fra det første TCP-forsøg, til forbindelsen accepteres, inklusive skift mellem IPv6 og IPv4. |
 | **Is Request Timeout** | **Sand**, **Falsk** | Om DNS-opslaget eller TCP-forbindelsen overskred timeout ved hvert forsøg. |
 
 Et kriterium for DNS-opslagstid har intet at evaluere, når målet er en IP-adresse. Til kriterier, der skal virke med både værtsnavne og IP-adresser, bruger du totaltiden eller TCP-forbindelsestiden.
@@ -156,10 +156,10 @@ Gør vinduet længere end overvågningsintervallet, så det rummer flere tjek: e
 | Mål | Filter | Betingelse | Værdi |
 | --- | --- | --- | --- |
 | Offline, når porten er lukket | **Is Online** | **Falsk** | — |
-| Advar, når det går langsomt at forbinde | **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than** | `500` |
-| Markér tjenesten som forringet, når den er langsom til at forbinde | **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than** | `200` |
-| Advar, når DNS er langsom | **Port DNS Lookup Time (in ms)** | **Greater Than** | `100` |
-| Advar, når TCP-handshaket er langsomt | **Port TCP Connect Time (in ms)** | **Greater Than** | `250` |
+| Advar, når det går langsomt at forbinde | **Total Connection Time (DNS + TCP) (in ms)** | **Større end** | `500` |
+| Markér tjenesten som forringet, når den er langsom til at forbinde | **Total Connection Time (DNS + TCP) (in ms)** | **Større end** | `200` |
+| Advar, når DNS er langsom | **Port DNS Lookup Time (in ms)** | **Større end** | `100` |
+| Advar, når TCP-handshaket er langsomt | **Port TCP Connect Time (in ms)** | **Større end** | `250` |
 
 ## Fejlfinding
 

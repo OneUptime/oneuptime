@@ -20,6 +20,7 @@ import IncidentService from "../../../../Server/Services/IncidentService";
 import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolicyService";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import ModelPermission from "../../../../Server/Types/Database/Permissions/Index";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
@@ -453,6 +454,170 @@ describe("WorkspaceActionAuthorization.assertCanCreate", (): void => {
         resources: [{ service: IncidentService, id: ObjectID.generate() }],
       }),
     ).rejects.toBe(failure);
+  });
+});
+
+/*
+ * The incident card's menu in Slack and Microsoft Teams changes an incident's
+ * severity and its custom fields: an update of the incident, which a member
+ * may make only where the dashboard's same save would be allowed. Asked
+ * before the form opens - so nobody fills one in for nothing - and again
+ * when it is submitted; the update itself holds them to their labels and
+ * owners.
+ */
+describe("WorkspaceActionAuthorization.assertCanUpdate", (): void => {
+  test("refuses a viewer who tries to change an incident's severity, in the chat's words", async (): Promise<void> => {
+    const refusal: Promise<void> = WorkspaceActionAuthorization.assertCanUpdate(
+      {
+        props: createProps([
+          { permission: Permission.Viewer },
+          { permission: Permission.IncidentViewer },
+        ]),
+        modelType: Incident,
+        data: { incidentSeverityId: ObjectID.generate() },
+        action: "change the severity of this incident",
+      },
+    );
+
+    await expect(refusal).rejects.toBeInstanceOf(NotAuthorizedException);
+    await expect(refusal).rejects.toThrow(
+      /^You do not have permission to change the severity of this incident\. /,
+    );
+  });
+
+  test("refuses a viewer who tries to edit an incident's custom fields", async (): Promise<void> => {
+    await expect(
+      WorkspaceActionAuthorization.assertCanUpdate({
+        props: createProps([{ permission: Permission.IncidentViewer }]),
+        modelType: Incident,
+        data: { customFields: {} },
+        action: "edit the custom fields of this incident",
+      }),
+    ).rejects.toThrow(
+      "You do not have permission to edit the custom fields of this incident.",
+    );
+  });
+
+  test.each([
+    ["a project member", [Permission.ProjectMember]],
+    ["an incident member", [Permission.IncidentMember]],
+    ["an incident admin", [Permission.IncidentAdmin]],
+    [
+      "the fine-grained Read and Edit Incident permissions",
+      [Permission.ReadProjectIncident, Permission.EditProjectIncident],
+    ],
+  ])(
+    "allows %s to change the severity and the custom fields, as the dashboard does",
+    async (_name: string, permissions: Array<Permission>): Promise<void> => {
+      for (const data of [
+        { incidentSeverityId: ObjectID.generate() },
+        { customFields: { Ticket: "OPS-1" } },
+      ]) {
+        await expect(
+          WorkspaceActionAuthorization.assertCanUpdate({
+            props: createProps(
+              permissions.map((permission: Permission): PermissionInput => {
+                return { permission: permission };
+              }),
+            ),
+            modelType: Incident,
+            data: data,
+            action: "change this incident",
+          }),
+        ).resolves.toBeUndefined();
+      }
+    },
+  );
+
+  test("Edit Incident without reading incidents is refused: nobody changes an incident they cannot see", async (): Promise<void> => {
+    await expect(
+      WorkspaceActionAuthorization.assertCanUpdate({
+        props: createProps([{ permission: Permission.EditProjectIncident }]),
+        modelType: Incident,
+        data: { customFields: {} },
+        action: "edit the custom fields of this incident",
+      }),
+    ).rejects.toThrow(
+      "You do not have permission to edit the custom fields of this incident.",
+    );
+  });
+
+  test("checks the columns it is given: one nobody may change is refused as a permission they lack, not as bad data", async (): Promise<void> => {
+    const refusal: Promise<void> = WorkspaceActionAuthorization.assertCanUpdate(
+      {
+        props: createProps([{ permission: Permission.ProjectMember }]),
+        modelType: Incident,
+        data: { aiInvestigationDecision: {} },
+        action: "change this incident",
+      },
+    );
+
+    await expect(refusal).rejects.toBeInstanceOf(NotAuthorizedException);
+    await expect(refusal).rejects.toThrow(
+      /^You do not have permission to change this incident\. /,
+    );
+  });
+
+  test("refuses props without a user or a project", async (): Promise<void> => {
+    for (const props of [
+      { isRoot: true },
+      { userId: userId },
+      { tenantId: projectId },
+    ] as Array<DatabaseCommonInteractionProps>) {
+      await expect(
+        WorkspaceActionAuthorization.assertCanUpdate({
+          props: props,
+          modelType: Incident,
+          data: { incidentSeverityId: ObjectID.generate() },
+          action: "change the severity of this incident",
+        }),
+      ).rejects.toThrow(
+        new NotAuthorizedException(
+          "You do not have permission to change the severity of this incident.",
+        ),
+      );
+    }
+  });
+
+  test("does not swallow errors that are not refusals", async (): Promise<void> => {
+    const failure: Error = new Error("connect ECONNREFUSED 10.0.0.5:5432");
+    jest
+      .spyOn(ModelPermission, "checkUpdateQueryPermissions")
+      .mockRejectedValue(failure as never);
+
+    await expect(
+      WorkspaceActionAuthorization.assertCanUpdate({
+        props: createProps([{ permission: Permission.ProjectMember }]),
+        modelType: Incident,
+        data: { customFields: {} },
+        action: "edit the custom fields of this incident",
+      }),
+    ).rejects.toBe(failure);
+  });
+
+  test("asks the update's own check, for the project, with exactly the columns given and the member's props", async (): Promise<void> => {
+    const check: SpyInstance<
+      typeof ModelPermission.checkUpdateQueryPermissions
+    > = jest.spyOn(ModelPermission, "checkUpdateQueryPermissions");
+    const props: DatabaseCommonInteractionProps = createProps([
+      { permission: Permission.ProjectMember },
+    ]);
+    const severityId: ObjectID = ObjectID.generate();
+
+    await WorkspaceActionAuthorization.assertCanUpdate({
+      props: props,
+      modelType: Incident,
+      data: { incidentSeverityId: severityId },
+      action: "change the severity of this incident",
+    });
+
+    expect(check).toHaveBeenCalledTimes(1);
+    expect(check).toHaveBeenCalledWith(
+      Incident,
+      { projectId: projectId },
+      { incidentSeverityId: severityId },
+      props,
+    );
   });
 });
 

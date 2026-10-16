@@ -38,6 +38,12 @@ import SlackScheduledMaintenanceActions from "./ScheduledMaintenance";
  *                                          Maintenance form, with the title
  *                                          filled in, as /incident and
  *                                          /maintenance opened it
+ *   incident [number]                      that incident - 42, #42, INC-42 -
+ *                                          with its buttons and menu, only
+ *                                          to the person who ran it; plain
+ *                                          `incident` in an incident's own
+ *                                          channel shows that incident
+ *                                          (SlackIncidentMoreActions)
  *   oncall                                 who is on call right now
  *   page [who] [message]                   pages the people @mentioned, or
  *                                          opens the Page someone form
@@ -198,7 +204,9 @@ export default class SlackCommandActions {
     );
 
     switch (action?.actionType) {
+      // And `/oneuptime incident 42`: that incident, with its buttons.
       case SlackActionType.NewIncident:
+      case SlackActionType.ShowIncident:
         return await SlackIncidentActions.handleIncidentAction({
           slackRequest: slackRequest,
           action: action,

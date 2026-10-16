@@ -90,18 +90,23 @@ export const isSaveNoteKind: (kind: WorkspacePendingActionKind) => boolean = (
 
 /*
  * What to press again, for a press OneUptime cannot finish for them later: a
- * button that opens a form (the form opens only on a fresh press), a command,
- * or a question to OneUptime AI.
+ * button that opens a form (the form opens only on a fresh press), an item
+ * of a message's menu (⋯) that does, a command, or a question to OneUptime
+ * AI.
  */
 export enum WorkspaceConnectRequestAgainKind {
   Button = "Button",
+  MenuItem = "MenuItem",
   Command = "Command",
   Question = "Question",
 }
 
 export interface WorkspaceConnectRequestAgain {
   kind: WorkspaceConnectRequestAgainKind;
-  // The button's title, or the command: "Add Note", "/oneuptime incident".
+  /*
+   * The button's title, the menu item's, or the command: "Add Note",
+   * "Change Severity", "/oneuptime incident".
+   */
   label?: string | undefined;
 }
 

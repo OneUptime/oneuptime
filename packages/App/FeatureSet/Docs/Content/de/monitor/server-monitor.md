@@ -159,7 +159,7 @@ Kriterien entscheiden, wann der Monitor online, beeinträchtigt oder offline ist
 | Filtertyp | Was geprüft wird | Filterbedingungen |
 | --- | --- | --- |
 | Is Online | Ob der Agent kürzlich gemeldet hat (standardmäßig in den letzten 3 Minuten) | Wahr, Falsch |
-| CPU Usage (in %) | Gesamte CPU-Auslastung | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| CPU Usage (in %) | Gesamte CPU-Auslastung | Größer als, Kleiner als, Größer als oder gleich, Kleiner als oder gleich |
 | Memory Usage (in %) | Belegter Arbeitsspeicher | Wie bei CPU |
 | Disk Usage (in %) | Auslastung der unter **Festplattenpfad** genannten Festplatte | Wie bei CPU |
 | Swap Usage (in %) | Belegter Swap | Wie bei CPU |
@@ -195,10 +195,10 @@ Kriterien entscheiden, wann der Monitor online, beeinträchtigt oder offline ist
 | Ziel | Filtertyp | Filterbedingung | Wert |
 | --- | --- | --- | --- |
 | Den Server als offline markieren, wenn der Agent nicht mehr meldet | Is Online | Falsch | — |
-| Warnen, wenn die CPU-Auslastung über 90 % liegt | CPU Usage (in %) | Greater Than | `90` |
-| Warnen, wenn die Root-Festplatte zu mehr als 85 % voll ist | Disk Usage (in %), **Festplattenpfad** `/` | Greater Than | `85` |
-| Bei jeder Festplatte warnen, die zu mehr als 85 % voll ist, eine Warnung pro Festplatte | Disk Usage (in %), **Festplattenpfad** `*` | Greater Than | `85` |
-| Warnen, wenn die Speicherauslastung über 80 % liegt | Memory Usage (in %) | Greater Than | `80` |
+| Warnen, wenn die CPU-Auslastung über 90 % liegt | CPU Usage (in %) | Größer als | `90` |
+| Warnen, wenn die Root-Festplatte zu mehr als 85 % voll ist | Disk Usage (in %), **Festplattenpfad** `/` | Größer als | `85` |
+| Bei jeder Festplatte warnen, die zu mehr als 85 % voll ist, eine Warnung pro Festplatte | Disk Usage (in %), **Festplattenpfad** `*` | Größer als | `85` |
+| Warnen, wenn die Speicherauslastung über 80 % liegt | Memory Usage (in %) | Größer als | `80` |
 | Warnen, wenn nginx nicht mehr läuft | Server Process Name | Is Not Executing | `nginx` |
 
 ## Fehlerbehebung

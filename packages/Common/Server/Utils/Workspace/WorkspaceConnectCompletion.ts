@@ -182,7 +182,9 @@ export default class WorkspaceConnectCompletion {
        */
       case WorkspaceConnectRequestAgainKind.Command:
         return ConnectRequestOutcome.RunAgain;
+      // A menu item, as a button: the page asks to go back and press it.
       case WorkspaceConnectRequestAgainKind.Button:
+      case WorkspaceConnectRequestAgainKind.MenuItem:
         return ConnectRequestOutcome.PressAgain;
     }
   }

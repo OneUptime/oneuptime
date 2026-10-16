@@ -96,12 +96,12 @@ Kriterien entscheiden, wann der Name als online, beeinträchtigt oder offline gi
 | Filter | Bedingungen | Was er prüft |
 | --- | --- | --- |
 | **DNS Is Online** | **Wahr**, **Falsch** | Ob die Abfrage mindestens einen Eintrag des Typs geliefert hat. |
-| **DNS Response Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Wie lange die Abfrage gedauert hat. |
+| **DNS Response Time (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Wie lange die Abfrage gedauert hat. |
 | **DNS Record Exists** | **Wahr**, **Falsch** | Ob ein Eintrag des Typs zurückgekommen ist. |
-| **DNS Record Value** | **Enthält**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | Die Werte der Einträge. Der Filter trifft zu, wenn ein einzelner Eintrag zutrifft. |
+| **DNS Record Value** | **Enthält**, **Enthält nicht**, **Beginnt mit**, **Endet mit**, **Gleich**, **Ungleich** | Die Werte der Einträge. Der Filter trifft zu, wenn ein einzelner Eintrag zutrifft. |
 | **DNSSEC Is Valid** | **Wahr**, **Falsch** | Ob ein validierender Resolver das AD-Flag in der Antwort setzt. |
 
-**DNS Record Value** trifft zu, wenn _irgendeiner_ der Einträge zutrifft. Bei mehreren `A`-Einträgen trifft **Equal To** `93.184.216.34` zu, wenn einer davon diese Adresse ist, und **Not Equal To** trifft zu, wenn einer davon es nicht ist.
+**DNS Record Value** trifft zu, wenn _irgendeiner_ der Einträge zutrifft. Bei mehreren `A`-Einträgen trifft **Gleich** `93.184.216.34` zu, wenn einer davon diese Adresse ist, und **Ungleich** trifft zu, wenn einer davon es nicht ist.
 
 **DNSSEC Is Valid** fragt den Server unter **DNS-Server (Optional)** auf seinem **Port** oder, wenn das Feld leer ist, Google Public DNS (`8.8.8.8`). Der Server, den Sie eintragen, sollte DNSSEC also validieren. Der Filter hat keinen Wert und trifft in keine Richtung zu, wenn die Sonde diese Prüfung nicht ausführen kann. Für eine vollständige Prüfung einer signierten Zone verwenden Sie einen [DNSSEC-Monitor](/docs/monitor/dnssec-monitor).
 
@@ -141,9 +141,9 @@ Kriterien werden von oben nach unten geprüft, und das erste zutreffende entsche
 | Ziel | Filter | Bedingung | Wert |
 | --- | --- | --- | --- |
 | Offline, wenn der Name nicht mehr aufgelöst wird | **DNS Is Online** | **Falsch** | — |
-| Warnen, wenn sich der einzige `A`-Eintrag eines Namens ändert | **DNS Record Value** | **Not Equal To** | `93.184.216.34` |
-| Warnen, wenn ein `MX`-Eintrag aus Ihrer Domain hinauszeigt | **DNS Record Value** | **Not Contains** | `example.com` |
-| DNS als beeinträchtigt markieren, wenn es langsam ist | **DNS Response Time (in ms)** | **Greater Than** | `500` |
+| Warnen, wenn sich der einzige `A`-Eintrag eines Namens ändert | **DNS Record Value** | **Ungleich** | `93.184.216.34` |
+| Warnen, wenn ein `MX`-Eintrag aus Ihrer Domain hinauszeigt | **DNS Record Value** | **Enthält nicht** | `example.com` |
+| DNS als beeinträchtigt markieren, wenn es langsam ist | **DNS Response Time (in ms)** | **Größer als** | `500` |
 | Warnen, wenn die DNSSEC-Validierung fehlschlägt | **DNSSEC Is Valid** | **Falsch** | — |
 
 ## Fehlerbehebung
@@ -156,11 +156,11 @@ dig @8.8.8.8 example.com A
 ```
 :::
 
-:::details Ein Kriterium mit Not Equal To schlägt an, obwohl die richtige Adresse da ist
-**DNS Record Value** trifft zu, wenn ein einzelner Eintrag zutrifft. Bei mehreren Einträgen schlägt **Not Equal To** an, sobald einer davon abweicht. Um zu prüfen, dass ein bestimmter Wert unter den Einträgen ist, nutzen Sie die Reihenfolge der Kriterien, denn das erste zutreffende gewinnt:
+:::details Ein Kriterium mit Ungleich schlägt an, obwohl die richtige Adresse da ist
+**DNS Record Value** trifft zu, wenn ein einzelner Eintrag zutrifft. Bei mehreren Einträgen schlägt **Ungleich** an, sobald einer davon abweicht. Um zu prüfen, dass ein bestimmter Wert unter den Einträgen ist, nutzen Sie die Reihenfolge der Kriterien, denn das erste zutreffende gewinnt:
 
 1. Lassen Sie das Standard-Offline-Kriterium oben: **DNS Is Online** / **Falsch**.
-2. Fügen Sie darunter ein Kriterium mit **DNS Record Value** / **Equal To** / dem erwarteten Wert hinzu, das den Monitor als **Betriebsbereit** markiert.
+2. Fügen Sie darunter ein Kriterium mit **DNS Record Value** / **Gleich** / dem erwarteten Wert hinzu, das den Monitor als **Betriebsbereit** markiert.
 3. Fügen Sie darunter ein Kriterium mit **DNS Is Online** / **Wahr** hinzu, das den Monitor als **Offline** markiert und einen Vorfall meldet. Es trifft nur auf Antworten zu, die den Wert nicht enthalten.
 :::
 

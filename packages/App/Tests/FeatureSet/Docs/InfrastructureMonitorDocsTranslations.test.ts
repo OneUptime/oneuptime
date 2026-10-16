@@ -65,12 +65,14 @@ import { describe, expect, it } from "@jest/globals";
  *     start of that option as drawn, not the unrelated "Low" key.
  *   - The type picker's Docker Container and Podman Container, the tabs
  *     Quick Setup and Custom Metric, the Past 1 Minute and Past 365 Days
- *     windows, the criteria's conditions and window aggregates, the
+ *     windows, the criteria's anomaly conditions and window aggregates, the
  *     template names and the Kubernetes metric names have no Dashboard
  *     locale key: every language's Dashboard shows them in English, so
  *     every translation names them in English (SHOWN_IN_ENGLISH). When the
  *     Dashboard gains a key for one, a test below fails until the pages
- *     name it as drawn.
+ *     name it as drawn. The static conditions (Greater Than, Equal To)
+ *     gained theirs in adc8421a1b: they are labels now, drawn like any
+ *     other (DocsCriteriaConditions holds every page to them).
  *
  * The criteria names and the incident title a new monitor's default
  * criteria create are English in every project, so every translation quotes
@@ -160,14 +162,6 @@ const TEMPLATE_NAMES: Record<string, () => Array<string>> = {
   },
 };
 
-const STATIC_CONDITIONS: Array<string> = [
-  "Greater Than",
-  "Less Than",
-  "Greater Than Or Equal To",
-  "Less Than Or Equal To",
-  "Equal To",
-];
-
 const ANOMALY_CONDITIONS: Array<string> = [
   "Anomalously High",
   "Anomalously Low",
@@ -195,7 +189,6 @@ const FORM_NAMES: Array<string> = [
 
 const CRITERIA_NAMES: Array<string> = [
   ...UNKEYED_AGGREGATES,
-  ...STATIC_CONDITIONS,
   ...ANOMALY_CONDITIONS,
   ...UNKEYED_NO_DATA,
 ];
@@ -231,7 +224,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Pod Phase (Code)",
     // What every rule checks.
     "Metric Value",
-    ...STATIC_CONDITIONS,
     ...ANOMALY_CONDITIONS,
     ...UNKEYED_NO_DATA,
   ],

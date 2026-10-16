@@ -88,7 +88,7 @@ Die ersten beiden stehen in der Liste **Warnung erstellen**; für die dritte öf
 
 ### Traps
 
-Jede Sophos-Benachrichtigung ist derselbe Trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), mit dem Ereignis als Text in `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Um für eine Art von Ereignis zu warnen, kombinieren Sie **SNMP Trap Received (Trap OID)** Equal To `1.3.6.1.4.1.2604.5.1.8.1.1` mit **SNMP Trap Varbind Value** auf diesem Varbind, zum Beispiel Contains `IPSec`. Stellen Sie das Trap-Ziel der Firewall auf SNMP v2c: Der Trap-Empfänger der Sonde nimmt v1- und v2c-Traps an.
+Jede Sophos-Benachrichtigung ist derselbe Trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), mit dem Ereignis als Text in `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Um für eine Art von Ereignis zu warnen, kombinieren Sie **SNMP Trap Received (Trap OID)** Gleich `1.3.6.1.4.1.2604.5.1.8.1.1` mit **SNMP Trap Varbind Value** auf diesem Varbind, zum Beispiel Enthält `IPSec`. Stellen Sie das Trap-Ziel der Firewall auf SNMP v2c: Der Trap-Empfänger der Sonde nimmt v1- und v2c-Traps an.
 
 ## Extreme Networks (EXOS / Switch Engine und Fabric Engine / VOSS)
 
@@ -130,9 +130,9 @@ Nützliche Warnungen, alle auf der Tabelle `wifi_radios` mit Row `*`, sodass jed
 | Warnung | Kriterium |
 | --- | --- |
 | Ein Funkmodul wurde abgeschaltet | **SNMP Table Row Is Unhealthy**, Teil der empfohlenen Warnungen |
-| Die Sendeleistung hat sich geändert | **SNMP Table Value**, Spalte TX Power, Not Equal To Ihre geplante Leistung |
-| Ein überlastetes Funkmodul | **SNMP Table Value**, Spalte Clients, Greater Than Ihre Grenze |
-| Ein verrauschter Kanal | **SNMP Table Value**, Spalte Noise Floor, Greater Than `-80` |
+| Die Sendeleistung hat sich geändert | **SNMP Table Value**, Spalte TX Power, Ungleich Ihre geplante Leistung |
+| Ein überlastetes Funkmodul | **SNMP Table Value**, Spalte Clients, Größer als Ihre Grenze |
+| Ein verrauschter Kanal | **SNMP Table Value**, Spalte Noise Floor, Größer als `-80` |
 
 Jeder numerische Wert eines Funkmoduls ist auch eine Metrik (`oneuptime.monitor.snmp.table.value`, eine Reihe pro Funkmodul und Spalte), Kanal, Leistung und Clients lassen sich also auf einem Dashboard über die Zeit zeigen; ein Kanal, der sich ständig ändert, ist DFS bei der Arbeit.
 

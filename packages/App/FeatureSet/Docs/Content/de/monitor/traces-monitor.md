@@ -97,11 +97,11 @@ Die Kriterien eines Traces-Monitors haben einen **Filtertyp**: **Span Count**, d
 
 | Filterbedingung | Passt, wenn die Anzahl der Spans … |
 | --- | --- |
-| **Greater Than** | über dem Wert liegt |
-| **Greater Than Or Equal To** | den Wert erreicht oder darüber liegt |
-| **Less Than** | unter dem Wert liegt |
-| **Less Than Or Equal To** | den Wert erreicht oder darunter liegt |
-| **Equal To** | genau dem Wert entspricht |
+| **Größer als** | über dem Wert liegt |
+| **Größer als oder gleich** | den Wert erreicht oder darüber liegt |
+| **Kleiner als** | unter dem Wert liegt |
+| **Kleiner als oder gleich** | den Wert erreicht oder darunter liegt |
+| **Gleich** | genau dem Wert entspricht |
 | **Anomalously High** | über dem Bereich liegt, der für diese Stunde der Woche erwartet wird |
 | **Anomalously Low** | unter diesem Bereich liegt |
 | **Anomalous** | außerhalb dieses Bereichs liegt, in die eine oder andere Richtung |
@@ -112,8 +112,8 @@ Ein neuer Traces-Monitor beginnt mit diesen Kriterien:
 
 | Kriterium | Filter | Wirkung |
 | --- | --- | --- |
-| Check if … is offline | **Span Count** **Equal To** `0` | Setzt den Monitor auf offline und eröffnet einen Vorfall, der automatisch behoben wird |
-| Check if … is online | **Span Count** **Greater Than** `0` | Setzt den Monitor auf online |
+| Check if … is offline | **Span Count** **Gleich** `0` | Setzt den Monitor auf offline und eröffnet einen Vorfall, der automatisch behoben wird |
+| Check if … is online | **Span Count** **Größer als** `0` | Setzt den Monitor auf online |
 
 ## Ein Beispiel: fehlgeschlagene Checkout-Anfragen
 
@@ -131,8 +131,8 @@ Um alarmiert zu werden, wenn in fünf Minuten mehr als 10 Checkout-Anfragen fehl
 - **Span-Name**: `POST /api/checkout`
 - **Überwachungs-Traces für (time)**: **Letzte 5 Minuten**
 - **Nach Span-Status filtern**: **Fehler**
-- Kriterium 1: **Span Count** **Greater Than** `10` – den Monitor auf offline setzen und einen Vorfall eröffnen
-- Kriterium 2: **Span Count** **Less Than Or Equal To** `10` – den Monitor auf online setzen
+- Kriterium 1: **Span Count** **Größer als** `10` – den Monitor auf offline setzen und einen Vorfall eröffnen
+- Kriterium 2: **Span Count** **Kleiner als oder gleich** `10` – den Monitor auf online setzen
 
 Bei 30 fehlgeschlagenen Anfragen passt Kriterium 1, und der Vorfall wird eröffnet. Sobald fünf Minuten mit 10 oder weniger Fehlschlägen vergangen sind, passt Kriterium 2, der Monitor ist wieder online und der Vorfall behebt sich selbst.
 

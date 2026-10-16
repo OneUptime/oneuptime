@@ -198,7 +198,7 @@ En ny monitor for indgående anmodninger oprettes med to kriterier, der læser a
 | Kriterium | Filtertype | Filterbetingelse | Værdi | Virkning |
 | -------- | ------------ | ---------------- | ------- | -------------------------------------------- |
 | Offline  | Anmodningsbrødtekst | Indeholder | `error` | Markerer monitoren som offline, åbner en hændelse |
-| Online   | Anmodningsbrødtekst | Not Contains | `error` | Markerer monitoren som online |
+| Online   | Anmodningsbrødtekst | Indeholder ikke | `error` | Markerer monitoren som online |
 
 Det passer til det almindelige tilfælde, hvor afsenderen rapporterer sit eget helbred i payloaden: en anmodning, hvis brødtekst nævner `error`, tager monitoren ned, og den næste anmodning uden ordet bringer monitoren op igen og løser hændelsen. En anmodning helt uden brødtekst tæller som "indeholder ikke `error`", så et rent heartbeat-kald holder monitoren online.
 
@@ -224,7 +224,7 @@ Hver filtertype har sine egne betingelser:
 | Filtertype | Betingelser |
 | --- | --- |
 | **Incoming Request** | **Recieved In Minutes** — der er modtaget en anmodning inden for det angivne antal minutter. **Not Recieved In Minutes** — der er ikke modtaget nogen anmodning inden for det angivne antal minutter. (Dashboardet staver dem sådan.) |
-| **Anmodningsbrødtekst**, **Request Header**, **Request Header Value** | **Indeholder** og **Not Contains** |
+| **Anmodningsbrødtekst**, **Request Header**, **Request Header Value** | **Indeholder** og **Indeholder ikke** |
 | **JavaScript Expression** | **Evaluates To True** |
 
 > [!NOTE]
@@ -251,7 +251,7 @@ Objekter som brødtekst sammenlignes som kompakt JSON uden mellemrum, så et fil
 | **Værdi** | `"status":"degraded"` |
 
 > [!IMPORTANT]
-> Placér dødmandsknappen **over** standardkriterierne. Kriterier tjekkes oppefra, og det første, der matcher, afgør det. Baggrundstjekket læser den seneste anmodning igen, så standardkriteriet for online — "Request Body Not Contains `error`" — bliver ved med at matche den, og et kriterium under det kommer aldrig til. **Tilføj kriterier** tilføjer et kriterium nederst: træk det op.
+> Placér dødmandsknappen **over** standardkriterierne. Kriterier tjekkes oppefra, og det første, der matcher, afgør det. Baggrundstjekket læser den seneste anmodning igen, så standardkriteriet for online — "Anmodningsbrødtekst Indeholder ikke `error`" — bliver ved med at matche den, og et kriterium under det kommer aldrig til. **Tilføj kriterier** tilføjer et kriterium nederst: træk det op.
 
 > [!WARNING]
 > En monitor evalueres kun igen i baggrunden, hvis mindst ét af dens kriterier tjekker **Incoming Request**. En monitor, hvis kriterier kun tjekker brødteksten, Request Header eller et JavaScript-udtryk, evalueres, når en anmodning kommer, og på intet andet tidspunkt — så den kan aldrig gå offline af sig selv. Vil du have en alarm for manglende heartbeats, har du brug for et kriterium med **Incoming Request**.

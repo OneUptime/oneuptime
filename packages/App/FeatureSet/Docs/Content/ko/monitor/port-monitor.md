@@ -109,9 +109,9 @@ sequenceDiagram
 | 필터 | 조건 | 확인하는 것 |
 | --- | --- | --- |
 | **Is Online** | **참**, **거짓** | 포트가 연결을 수락했는지 여부. |
-| **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | 호스트 이름의 DNS 조회를 포함한 전체 연결 시간. |
-| **Port DNS Lookup Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | 첫 TCP 시도 전의 DNS 조회. 대상이 IP 주소이면 값이 없습니다. |
-| **Port TCP Connect Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | 첫 TCP 시도부터 연결이 수락될 때까지. IPv6와 IPv4 사이의 전환을 포함합니다. |
+| **Total Connection Time (DNS + TCP) (in ms)** | **보다 큼**, **보다 작음**, **이상**, **이하** | 호스트 이름의 DNS 조회를 포함한 전체 연결 시간. |
+| **Port DNS Lookup Time (in ms)** | **보다 큼**, **보다 작음**, **이상**, **이하** | 첫 TCP 시도 전의 DNS 조회. 대상이 IP 주소이면 값이 없습니다. |
+| **Port TCP Connect Time (in ms)** | **보다 큼**, **보다 작음**, **이상**, **이하** | 첫 TCP 시도부터 연결이 수락될 때까지. IPv6와 IPv4 사이의 전환을 포함합니다. |
 | **Is Request Timeout** | **참**, **거짓** | 모든 시도에서 DNS 조회나 TCP 연결이 시간 초과를 넘겼는지 여부. |
 
 대상이 IP 주소이면 DNS 조회 기준에는 평가할 것이 없습니다. 호스트 이름과 IP 주소 모두에서 작동해야 하는 기준에는 전체 시간이나 TCP 연결 시간을 사용합니다.
@@ -156,10 +156,10 @@ sequenceDiagram
 | 목표 | 필터 | 조건 | 값 |
 | --- | --- | --- | --- |
 | 포트가 닫혀 있으면 오프라인 | **Is Online** | **거짓** | — |
-| 연결이 느리면 알림 | **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than** | `500` |
-| 연결이 느리면 서비스를 저하됨으로 표시 | **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than** | `200` |
-| DNS가 느리면 알림 | **Port DNS Lookup Time (in ms)** | **Greater Than** | `100` |
-| TCP 핸드셰이크가 느리면 알림 | **Port TCP Connect Time (in ms)** | **Greater Than** | `250` |
+| 연결이 느리면 알림 | **Total Connection Time (DNS + TCP) (in ms)** | **보다 큼** | `500` |
+| 연결이 느리면 서비스를 저하됨으로 표시 | **Total Connection Time (DNS + TCP) (in ms)** | **보다 큼** | `200` |
+| DNS가 느리면 알림 | **Port DNS Lookup Time (in ms)** | **보다 큼** | `100` |
+| TCP 핸드셰이크가 느리면 알림 | **Port TCP Connect Time (in ms)** | **보다 큼** | `250` |
 
 ## 문제 해결
 

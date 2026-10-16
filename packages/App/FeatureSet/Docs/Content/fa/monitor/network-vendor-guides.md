@@ -88,7 +88,7 @@ Sophos سلامت دروازه یا SD-WAN را از راه SNMP، در هیچ �
 
 ### تله‌ها
 
-هر اعلان Sophos همان یک تله است، `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`)، با رویداد به‌صورت متن در `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). برای هشدار روی یک گونه رویداد، **SNMP Trap Received (Trap OID)** را با Equal To `1.3.6.1.4.1.2604.5.1.8.1.1` با **SNMP Trap Varbind Value** روی همان varbind ترکیب کنید، برای نمونه Contains `IPSec`. مقصد تلهٔ فایروال را روی SNMP v2c بگذارید: گیرندهٔ تلهٔ پراب تله‌های v1 و v2c را می‌پذیرد.
+هر اعلان Sophos همان یک تله است، `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`)، با رویداد به‌صورت متن در `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). برای هشدار روی یک گونه رویداد، **SNMP Trap Received (Trap OID)** را با «برابر با» `1.3.6.1.4.1.2604.5.1.8.1.1` با **SNMP Trap Varbind Value** روی همان varbind ترکیب کنید، برای نمونه شامل است `IPSec`. مقصد تلهٔ فایروال را روی SNMP v2c بگذارید: گیرندهٔ تلهٔ پراب تله‌های v1 و v2c را می‌پذیرد.
 
 ## Extreme Networks (EXOS / Switch Engine و Fabric Engine / VOSS)
 
@@ -130,9 +130,9 @@ Sophos سلامت دروازه یا SD-WAN را از راه SNMP، در هیچ �
 | هشدار | معیار |
 | --- | --- |
 | رادیویی خاموش شد | **SNMP Table Row Is Unhealthy**، بخشی از هشدارهای پیشنهادی |
-| توان ارسال تغییر کرد | **SNMP Table Value**، ستون TX Power، ‏Not Equal To توان برنامه‌ریزی‌شدهٔ شما |
-| رادیویی شلوغ | **SNMP Table Value**، ستون Clients، ‏Greater Than حد شما |
-| کانالی پرنویز | **SNMP Table Value**، ستون Noise Floor، ‏Greater Than ‏`-80` |
+| توان ارسال تغییر کرد | **SNMP Table Value**، ستون TX Power، نابرابر با توان برنامه‌ریزی‌شدهٔ شما |
+| رادیویی شلوغ | **SNMP Table Value**، ستون Clients، بزرگ‌تر از حد شما |
+| کانالی پرنویز | **SNMP Table Value**، ستون Noise Floor، بزرگ‌تر از ‏`-80` |
 
 هر مقدار عددی رادیو یک متریک هم هست (`oneuptime.monitor.snmp.table.value`، یک سری برای هر رادیو و ستون)، پس کانال، توان و کلاینت‌ها را می‌توان در طول زمان روی یک داشبورد نمودار کرد؛ کانالی که مدام عوض می‌شود همان DFS در حال کار است.
 

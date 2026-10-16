@@ -149,16 +149,11 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     // The Time Range picker's ends.
     "Past 1 Minute",
     "Past 365 Days",
-    // The criteria's aggregations, conditions and no-data policies.
+    // The criteria's aggregations, anomaly conditions and no-data policies.
     "Maximum Value",
     "Minimum Value",
     "All Values",
     "Any Value",
-    "Greater Than",
-    "Less Than",
-    "Greater Than Or Equal To",
-    "Less Than Or Equal To",
-    "Equal To",
     "Anomalously High",
     "Anomalously Low",
     "Anomalous",

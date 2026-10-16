@@ -75,6 +75,13 @@ export default interface Columns<
   noValueMessage?: string | undefined;
   hideOnMobile?: boolean | undefined; // Hide column on mobile devices
   /*
+   * List view (ShowAs.List) only: draw this column's row on an item's card
+   * only when this says so - an empty description, or a setting the item
+   * does not use, is left off its card instead of a label over nothing. A
+   * table keeps every column for every row, so it does not read this.
+   */
+  showInListIf?: ((item: TEntity) => boolean) | undefined;
+  /*
    * Exact text for this column's CSV cell (the text twin of getElement, and
    * it receives the same item). Set it when the cell renders from something
    * the row does not carry under this column's own `field` - data fetched

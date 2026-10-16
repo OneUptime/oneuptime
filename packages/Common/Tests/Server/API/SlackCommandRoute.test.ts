@@ -127,7 +127,7 @@ const PROPS: DatabaseCommonInteractionProps = {
 const SLACK_HELP_TEXT: string = [
   "👋 ​*Here's what `/oneuptime` can do*​",
   "",
-  "•   `/oneuptime incident [title]`: declare an incident",
+  "•   `/oneuptime incident [title or number]`: declare an incident, or act on one by its number",
   "•   `/oneuptime maintenance [title]`: schedule maintenance",
   "•   `/oneuptime oncall`: see who is on call right now",
   "•   `/oneuptime page [who] [message]`: page a person, a team or whoever is on call",

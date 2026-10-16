@@ -15,8 +15,8 @@ Verbinden Sie OneUptime mit Slack, um Vorfälle, Warnungen, Episoden, geplante W
 ```mermaid title="Von einem Ereignis in OneUptime zu einer Nachricht in Slack"
 flowchart TB
     event["Ein Vorfall, eine Warnung oder ein Ereignis<br/>entsteht oder ändert sich"] --> rules{"Benachrichtigungsregeln,<br/>deren Bedingungen passen"}
-    rules -->|"Create Slack Channel"| own["Ein eigener Kanal,<br/>seine Personen eingeladen"]
-    rules -->|"Post to Existing Slack Channel"| existing["Ihre bestehenden Kanäle"]
+    rules -->|"Ein Kanal<br/>für jeden"| own["Ein eigener Kanal,<br/>seine Personen eingeladen, sobald sie dazukommen"]
+    rules -->|"In vorhandenen Kanälen posten"| existing["Ihre bestehenden Kanäle"]
     own --> message["Eine Nachricht mit Schaltflächen"]
     existing --> message
     message -->|"Ein Responder drückt eine"| change["Die Änderung erfolgt in OneUptime,<br/>als diese Person"]
@@ -47,7 +47,7 @@ Beim Installieren der App wird das Konto der Person verknüpft, die sie installi
 
 ### Eine Benachrichtigungsregel hinzufügen
 
-Gehen Sie zu **Vorfälle** > **Arbeitsbereich** > **Slack**. Der Abschnitt **Arbeitsbereich** listet nur die Chat-Workspaces, die Ihr Projekt verbunden hat, daher erscheint **Slack** dort, sobald es verbunden ist. Legen Sie eine Regel an, zum Beispiel eine, die für jeden neuen Vorfall einen Slack-Kanal erstellt und die Eigentümer des Vorfalls einlädt. Siehe [Benachrichtigungsregeln](#benachrichtigungsregeln).
+Gehen Sie zu **Vorfälle** > **Arbeitsbereich** > **Slack**. Der Abschnitt **Arbeitsbereich** listet nur die Chat-Workspaces, die Ihr Projekt verbunden hat, daher erscheint **Slack** dort, sobald es verbunden ist. Legen Sie eine Regel an, zum Beispiel eine, die für jeden neuen Vorfall einen Slack-Kanal mit allen erstellt, die daran arbeiten: den alarmierten Personen, dem Vorfall-Kommandanten und den Eigentümern. Siehe [Benachrichtigungsregeln](#benachrichtigungsregeln).
 
 ### Die Regel testen
 
@@ -71,13 +71,17 @@ Eine Regel wird in vier Schritten angelegt:
 | Schritt | Was Sie festlegen |
 | --- | --- |
 | **Grundlegend** | **Regelname** und **Regelbeschreibung**. |
-| **Bedingungen** | Für welche Ereignisse die Regel auslöst, zum Beispiel nach Schweregrad, Status, Beschriftung, Monitor oder Wörtern im Titel. Ohne Bedingungen löst sie bei jedem Ereignis aus. Bei zwei oder mehr legt **Abgleichsbedingung** fest, ob alle zutreffen müssen oder eine genügt. |
-| **Ziel** | Wohin sie postet: **Post to Existing Slack Channel** mit den Kanalnamen, **Create Slack Channel** mit dem Namen des neuen Kanals und wer eingeladen wird, oder beides. |
+| **Bedingungen** | Für welche Ereignisse die Regel gilt, zum Beispiel nach Schweregrad, Status, Beschriftung, Monitor oder Wörtern im Titel. Sie werden geprüft, wenn ein Ereignis erstellt wird, und erneut bei jedem Update, das OneUptime dazu postet, sodass eine Regel für bestätigte Vorfälle greift, sobald ein Vorfall bestätigt wird. Ohne Bedingungen gilt die Regel für jedes Ereignis. Bei zwei oder mehr legt **Abgleichsbedingung** fest, ob alle zutreffen müssen oder eine genügt. |
+| **Ziel** | Wohin sie postet: **In vorhandenen Kanälen posten** mit den Kanalnamen, **Einen Kanal für jeden Vorfall erstellen** (oder jede Warnung, Episode, jedes Ereignis, jeden Monitor oder jede Bereitschaftsrichtlinie) mit den Personen, die ihm beitreten, oder beides. Unter dem Schritt sagt **Was diese Regel tut** in Sätzen, was sie tut, wie die Karte der Regel. |
 | **Videoanruf** | Nur Vorfälle und Warnungen: für jeden einen Anruf starten. Siehe [Videoanrufe](/docs/workspace-connections/video-calls). |
 
 Ein Kanal, den die Regel anlegt, wird nach seinem Datensatz benannt: Vorfall INC-42 bekommt `inc-42`, Warnung ALT-7 bekommt `alt-7`, und in einem Projekt ohne Nummernpräfixe bekommt Vorfall 42 `incident-42`. Text in **Präfix für Kanalnamen** steht davor, aus `prod-` wird also `prod-inc-42`, und das Formular zeigt den Namen schon beim Tippen. Bei einem geplanten Wartungsereignis tritt das Präfix an die Stelle seines Nummernpräfixes: SM-5 bekommt `sm-5`, und aus `maint-` wird `maint-5`. Slack nimmt Kleinbuchstaben, Ziffern, `-` und `_`, bis zu 80 Zeichen. Gibt es schon einen Kanal mit diesem Namen, etwa den eines anderen Projekts oder einen archivierten, hängt OneUptime `-2`, `-3` und so weiter an.
 
-Nur ein angelegter Kanal bekommt die Personen, die die Regel einlädt: die Eigentümer des Datensatzes, gewählte Teams und Benutzer und, bei Vorfällen und Warnungen, die Bereitschaftspersonen, sobald sie alarmiert werden. Ein privater Vorfall, eine private Warnung oder Episode bekommt einen privaten Kanal. Jede spätere Änderung des Datensatzes — ein Statuswechsel, eine Notiz, ein neuer Eigentümer — wird in seinen Kanälen und in den bestehenden Kanälen gepostet, die seine Regeln nennen. Ein Vorfall, eine Warnung oder Episode, die bereits behoben erstellt wird, bekommt keinen eigenen Kanal; ihre Erstellungsnachricht geht trotzdem in die Kanäle, die Ihre Regeln nennen. Siehe [Bereits bestätigt oder behoben gemeldet](/docs/incidents/declaring-incidents#bereits-bestätigt-oder-behoben-gemeldet).
+Eine Regel erstellt ihren Kanal, wenn ein Ereignis zum ersten Mal auf sie zutrifft: beim Erstellen des Ereignisses oder später, wenn es durch ein Update zutrifft, solange es noch offen ist. Eine Regel für bestätigte Vorfälle erstellt den Kanal, sobald der Vorfall bestätigt wird. Ein privater Vorfall, eine private Warnung oder Episode bekommt einen privaten Kanal.
+
+**Wer dem Kanal beitritt** listet, wen die Regel in ihren Kanal holt, jeweils sobald die Person zum Datensatz dazukommt, nicht nur beim Erstellen des Kanals: **Personen in Bereitschaft, sobald sie alarmiert werden**, **Vorfall-Kommandant und weitere Vorfallsrollen, sobald sie zugewiesen werden** (Vorfälle und Vorfallsepisoden) und **Eigentümer, sobald sie hinzugefügt werden**, bei einer neuen Regel alle angehakt, und die Personen und Teams unter **Außerdem einladen** beim Erstellen des Kanals. Der Vorfall-Kommandant wird meist zugewiesen, wenn jemand den Vorfall zum ersten Mal bestätigt, und tritt dem Kanal dann bei. Eine Regel, die gespeichert wurde, bevor Vorfallsrollen ein eigenes Kästchen hatten, holt sie dazu, wenn sie die Eigentümer oder die Personen in Bereitschaft einlädt, und ihr Kästchen ist angehakt. Ein bestehender Kanal, in den eine Regel postet, bekommt niemanden.
+
+Jede spätere Änderung des Datensatzes — ein Statuswechsel, eine Notiz, ein neuer Eigentümer — wird in seinen Kanälen gepostet und in den bestehenden Kanälen, die seine Regeln nennen, solange deren Bedingungen zutreffen. Ist **Kanal archivieren, wenn der Vorfall behoben ist** an, oder sein Gegenstück für Warnungen, Episoden, Ereignisse, Monitore und Bereitschaftsrichtlinien, archiviert die Regel, die einen Kanal erstellt hat, ihn, wenn der Datensatz behoben, abgeschlossen oder gelöscht ist, egal was ihre Bedingungen dann sagen. Ein Vorfall, eine Warnung oder Episode, die bereits behoben erstellt wird, bekommt keinen eigenen Kanal; ihre Erstellungsnachricht geht trotzdem in die Kanäle, die Ihre Regeln nennen. Siehe [Bereits bestätigt oder behoben gemeldet](/docs/incidents/declaring-incidents#bereits-bestätigt-oder-behoben-gemeldet).
 
 Ein Vorfall, eine Warnung, eine Episode oder ein geplantes Wartungsereignis mit einem eigenen Kanal hat im Kopf seiner Seite in OneUptime, neben den Statusschaltflächen, **In Slack öffnen**. Das öffnet diesen Kanal in einem neuen Tab, in der Slack-App oder im Browser. Ein Datensatz mit zwei eigenen Kanälen listet beide unter der Schaltfläche. Ein Datensatz mit Kanälen in Slack und in Microsoft Teams hat stattdessen eine Schaltfläche **Kanal öffnen**, die sie alle auflistet. Die bestehenden Kanäle, in die Ihre Regeln posten, werden nicht angeboten.
 
@@ -139,7 +143,7 @@ OneUptime hat in Slack einen einzigen Befehl, `/oneuptime`. Das Wort, das Sie da
 | Befehl | Was er tut |
 | --- | --- |
 | `/oneuptime help` | Listet die Befehle auf, mit Beispielen. |
-| `/oneuptime incident [title]` | Öffnet das Vorfallsformular, mit ausgefülltem Titel. |
+| `/oneuptime incident [title or number]` | Öffnet das Vorfallsformular, mit ausgefülltem Titel. Die Nummer eines Vorfalls, etwa `42` oder `INC-42`, zeigt stattdessen diesen Vorfall: siehe [Einen Vorfall aus Slack verwalten](#einen-vorfall-aus-slack-verwalten). |
 | `/oneuptime maintenance [title]` | Öffnet das Formular für geplante Wartung, mit ausgefülltem Titel. |
 | `/oneuptime oncall` | Listet, wer gerade in jedem Bereitschaftsplan, den Sie sehen können, Bereitschaft hat, bis wann und wer als Nächstes dran ist. |
 | `/oneuptime page [who] [message]` | Alarmiert die Personen, die Sie mit @ erwähnen, wegen Ihrer Nachricht, oder öffnet ein Formular, in dem Sie wählen, wer alarmiert wird. Siehe [Jemanden aus Slack alarmieren](#jemanden-aus-slack-alarmieren). |
@@ -212,6 +216,25 @@ Für eine Gruppe, die die primäre und die sekundäre Bereitschaft enthält, ver
 - **Wer eine verbinden darf.** Die Rollen, die Bereitschaftspläne bearbeiten dürfen: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** und **On-Call Member**, oder **Edit On-Call Duty Policy Schedule** in einer benutzerdefinierten Rolle. In OneUptime Cloud braucht das Verbinden den Tarif **Growth**.
 - **Trennen.** OneUptime ändert die Gruppe nicht mehr. Die Gruppe und ihre Mitglieder bleiben in Slack, wie sie sind.
 
+## Einen Vorfall aus Slack verwalten
+
+Die Nachricht eines Vorfalls hat vier Schaltflächen, **Acknowledge Incident**, **Resolve Incident**, **Add Note** und **View Incident**, und den Rest in ihrem Menü, der Schaltfläche mit drei Punkten dahinter:
+
+| Menüpunkt | Was er tut |
+| --- | --- |
+| **Change Severity** | Legt den Schweregrad des Vorfalls fest. |
+| **Change Incident State** | Versetzt den Vorfall in einen späteren Status. |
+| **Assign Role** | Gibt jemandem eine Rolle im Vorfall, etwa **Incident Commander**. Eine Rolle für nur eine Person geht an diese Person über. |
+| **Page Someone** | Alarmiert Personen, ein Team, wer in einem Bereitschaftsplan gerade Bereitschaft hat, oder eine Bereitschaftsrichtlinie zu dem Vorfall, bis jemand ihn bestätigt. |
+| **Edit Custom Fields** | Setzt die benutzerdefinierten Felder des Vorfalls, jedes ausgefüllt mit dem, was der Vorfall enthält. Ein leer gelassenes Feld wird geleert. |
+
+`/oneuptime incident 42` zeigt Vorfall 42, mit diesen Schaltflächen und seinem Menü, in einer Nachricht, die nur Sie sehen. Schreiben Sie die Nummer so, wie OneUptime sie zeigt: `42`, `#42` oder `INC-42`. Im eigenen Kanal eines Vorfalls zeigt `/oneuptime incident` allein diesen Vorfall.
+
+- **Wer sie nutzen darf.** Die Personen, die dieselbe Änderung in OneUptime vornehmen dürfen. **Change Severity** und **Edit Custom Fields** brauchen die Berechtigung, den Vorfall zu bearbeiten: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** und **Incident Member**, oder **Edit Incident** in einer benutzerdefinierten Rolle. **Assign Role** braucht **Create Incident Member**, und **Delete Incident Member**, um eine Rolle für nur eine Person zu übertragen. **Page Someone** braucht, was **Execute On-Call Policy** braucht. Alle anderen erfahren, warum, und es öffnet sich kein Formular.
+- **Was die Formulare anbieten.** Was Sie im Projekt lesen dürfen. Ein benutzerdefiniertes Feld, das vom Monitor des Vorfalls übernommen wird, fehlt, da es erneut übernommen würde, und ein Formular fasst 40 Felder: Bearbeiten Sie den Rest in OneUptime.
+- **Was dann passiert.** Das Formular schließt sich, und die Änderung wird als Sie vorgenommen, wie in OneUptime: Der Feed des Vorfalls und mit ihm die Kanäle des Vorfalls sagen, was sich geändert hat, jedes benutzerdefinierte Feld mit seinem neuen Wert. Ein Wert, der nicht zu seinem Feld passt, etwa Text für eine Zahl, wird unter dem Feld genannt, und das Formular bleibt offen. **Page Someone** sagt, wer alarmiert wurde oder warum niemand; ein bereits behobener Vorfall alarmiert niemanden.
+- **Nachrichten von vor dem Menü.** Sie behalten ihre Schaltfläche **Execute On-Call Policy**, und sie funktioniert weiter: **Page Someone** alarmiert auch eine Bereitschaftsrichtlinie. Warnungen und Episoden behalten ihre.
+
 ## Aus Slack auf Vorfälle, Warnungen und Ereignisse reagieren
 
 Auch die Schaltflächen in den Slack-Nachrichten von OneUptime handeln als Sie: als das OneUptime-Konto, mit dem Ihr Slack-Konto verbunden ist, mit dessen Berechtigungen im Projekt. **Acknowledge**, **Resolve**, **Change State**, **Add Note** und **Execute On-Call Policy** an einem Vorfall, einer Warnung oder Episode, und **Mark as Ongoing**, **Mark as Complete**, **Change State** und **Add Note** an einem geplanten Wartungsereignis nehmen jeweils die Änderung vor, die dieselbe Aktion in OneUptime vornimmt, und sie wird Ihnen dort zugeschrieben: Status-Zeitleiste und Feed des Datensatzes zeigen, dass Sie seinen Status geändert haben, und die Notiz ist Ihre. Eine Notiz, die aus einer Nachricht mit einer Emoji-Reaktion gespeichert wird, wird genauso gepostet.
@@ -246,6 +269,10 @@ Was OneUptime davon behält — den Namen des Arbeitsbereichs, seine Kanäle, di
 
 :::details Eine Regel postet nichts
 Prüfen Sie die Bedingungen der Regel mit **Regel testen**: Kommt der Test an, haben die Bedingungen der Regel nicht auf das Ereignis gepasst. Kommt er nicht an, zeigt die Slack-Seite, warum. Laden Sie die OneUptime-App bei einem privaten Kanal zuerst in Slack in den Kanal ein. Jede Nachricht, die OneUptime postet, und jede, die Slack abgelehnt hat, steht unter **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungsprotokolle** auf der Registerkarte **Arbeitsbereich**.
+:::
+
+:::details Jemand fehlt im Kanal einer Regel
+Die Karte der Regel sagt unter **Dann**, wen die Regel einlädt. Jede Art von Person tritt bei, sobald sie zum Datensatz dazukommt: die alarmierten Personen bei ihrer Alarmierung, der Vorfall-Kommandant bei seiner Zuweisung, ein Eigentümer beim Hinzufügen, und wer beim Erstellen des Kanals schon am Datensatz war. Wer kein mit OneUptime verbundenes Slack-Konto hat, kann nicht hinzugefügt werden; OneUptime nennt die Person im Kanal, mit einem Link, um ihr Konto zu verbinden.
 :::
 
 :::details Slack wurde nicht verbunden

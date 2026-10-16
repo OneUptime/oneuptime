@@ -102,7 +102,7 @@ Por exemplo, uma janela semanal cujo primeiro evento é criado numa segunda-feir
 
 Defina **Primeiro evento agendado para** com toda a antecedência com que você quer que seus clientes fiquem sabendo do trabalho. Os três horários precisam estar no futuro quando você cria o modelo, o evento precisa ser criado antes de começar e de terminar, e precisa começar antes de terminar; o formulário diz qual regra um horário viola.
 
-Uma tarefa verifica os modelos recorrentes a cada minuto. Quando chega o próximo horário de um modelo, ela adianta esse horário em um intervalo e cria o evento. A lista de modelos mostra esse horário na coluna **Evento Recorrente**. Um evento criado pelo agendamento é como qualquer outro: suas regras rodam, seus proprietários são adicionados e seus assinantes ficam sabendo que ele foi agendado.
+Uma tarefa verifica os modelos recorrentes a cada minuto. Quando chega o próximo horário de um modelo, ela adianta esse horário em um intervalo e cria o evento. A lista de modelos mostra esse horário na coluna **Evento Recorrente**, e **Não** para um modelo que não se repete. Um evento criado pelo agendamento é como qualquer outro: suas regras rodam, seus proprietários são adicionados e seus assinantes ficam sabendo que ele foi agendado.
 
 ## Alterar ou parar um modelo
 
@@ -112,7 +112,7 @@ Abra um modelo na lista para ver a página dele:
 - **Recursos afetados** reúne os **Monitores** dele, o **Alterar status do monitor para** desses monitores e os **Outros recursos afetados**, com um **Editar** próprio.
 - **Proprietários** lista as pessoas e equipes donas de cada evento agendado a partir dele.
 
-As alterações valem para os eventos criados depois de você salvá-las; os eventos já criados mantêm seus próprios valores. Para parar um agendamento, desative **Evento Recorrente** em **Editar**, ou exclua o modelo. Excluir um modelo mantém os eventos que ele criou.
+As alterações valem para os eventos criados depois de você salvá-las; os eventos já criados mantêm seus próprios valores. Para parar um agendamento, desative **Evento Recorrente** em **Editar**, ou exclua o modelo. Um modelo desativado mantém seu agendamento: ative-o de novo, e ele retoma no próximo horário do agendamento, pulando os horários em que ficou desativado. Excluir um modelo mantém os eventos que ele criou.
 
 ## Solução de problemas
 

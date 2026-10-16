@@ -143,11 +143,11 @@ Kriterier avgjør når nettstedet regnes som tilkoblet, redusert eller frakoblet
 | Filter | Betingelser | Hva det sjekker |
 | --- | --- | --- |
 | **Is Online** | **Sann**, **Usann** | Om nettstedet svarte i det hele tatt, uansett statuskode. |
-| **Statuskode for svar** | **Equal To**, **Not Equal To**, **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | HTTP-statuskoden. |
-| **Svartid (i ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Hvor lang tid forespørselen tok, omdirigeringer medregnet. |
-| **Svartekst** | **Inneholder**, **Not Contains** | Tekst i svarets brødtekst. Det skilles mellom store og små bokstaver. |
-| **Response Header** | **Inneholder**, **Not Contains** | Om svaret har et hode med dette navnet. Angi navnet med små bokstaver, som `x-cache`. |
-| **Response Header Value** | **Inneholder**, **Not Contains** | Om et hode har nøyaktig denne verdien, sammenlignet med små bokstaver, som `no-store`. |
+| **Statuskode for svar** | **Lik**, **Ikke lik**, **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | HTTP-statuskoden. |
+| **Svartid (i ms)** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Hvor lang tid forespørselen tok, omdirigeringer medregnet. |
+| **Svartekst** | **Inneholder**, **Inneholder ikke** | Tekst i svarets brødtekst. Det skilles mellom store og små bokstaver. |
+| **Response Header** | **Inneholder**, **Inneholder ikke** | Om svaret har et hode med dette navnet. Angi navnet med små bokstaver, som `x-cache`. |
+| **Response Header Value** | **Inneholder**, **Inneholder ikke** | Om et hode har nøyaktig denne verdien, sammenlignet med små bokstaver, som `no-store`. |
 | **JavaScript Expression** | **Evaluates To True** | Et uttrykk over svaret. Se [JavaScript-uttrykk](/docs/monitor/javascript-expression). |
 | **Is Request Timeout** | **Sann**, **Usann** | Om forespørselen fikk tidsavbrudd ved hvert forsøk. |
 
@@ -164,7 +164,7 @@ En ny nettstedsmonitor starter med to kriterier, så den fungerer uten at du end
 
 I listen over kriterier har de navn etter monitoren: _Check if (name) is offline_ og _Check if (name) is online_.
 
-En side som svarer `204 No Content`, eller en omdirigering du følger med **Ikke følg omdirigeringer** slått på, regnes altså som oppe. Hvis bare én statuskode betyr frisk for deg, endrer du begge kriteriene på monitorens side **Konfigurasjon → Kriterier**: for eksempel **Statuskode for svar** / **Equal To** / `200` i det tilkoblede kriteriet og **Not Equal To** / `200` i det frakoblede, i stedet for de to statuskodefiltrene hvert av dem har.
+En side som svarer `204 No Content`, eller en omdirigering du følger med **Ikke følg omdirigeringer** slått på, regnes altså som oppe. Hvis bare én statuskode betyr frisk for deg, endrer du begge kriteriene på monitorens side **Konfigurasjon → Kriterier**: for eksempel **Statuskode for svar** / **Lik** / `200` i det tilkoblede kriteriet og **Ikke lik** / `200` i det frakoblede, i stedet for de to statuskodefiltrene hvert av dem har.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer.
 
@@ -200,10 +200,10 @@ Gjør vinduet lengre enn overvåkingsintervallet, slik at det rommer flere sjekk
 
 | Mål | Filter | Betingelse | Verdi |
 | --- | --- | --- | --- |
-| Merk nettstedet som redusert når det er tregt | **Svartid (i ms)** | **Greater Than** | `3000` |
-| Fang en feilside som leveres med `200` | **Svartekst** | **Not Contains** | `Welcome` |
+| Merk nettstedet som redusert når det er tregt | **Svartid (i ms)** | **Større enn** | `3000` |
+| Fang en feilside som leveres med `200` | **Svartekst** | **Inneholder ikke** | `Welcome` |
 | Sjekk at et CDN-hode finnes | **Response Header** | **Inneholder** | `x-cache` |
-| Godta bare `200` som frisk | **Statuskode for svar** | **Equal To** | `200` |
+| Godta bare `200` som frisk | **Statuskode for svar** | **Lik** | `200` |
 
 For å komme gjennom en omstart slår du på **Evaluer disse kriteriene over en tidsperiode** for filteret på svarteksten og velger **All Values** over 15 minutter.
 

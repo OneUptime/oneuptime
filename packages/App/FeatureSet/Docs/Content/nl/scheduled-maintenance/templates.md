@@ -102,7 +102,7 @@ Bijvoorbeeld een wekelijks venster waarvan de eerste gebeurtenis op een maandag 
 
 Zet **Eerste gebeurtenis gepland op** zo ver vóór het begin als je wilt dat je klanten van het werk horen. Alle drie de tijden moeten in de toekomst liggen wanneer je het sjabloon maakt, de gebeurtenis moet worden gemaakt voordat ze begint en eindigt, en ze moet beginnen voordat ze eindigt; het formulier zegt welke regel een tijd overtreedt.
 
-Een taak controleert de terugkerende sjablonen elke minuut. Wanneer de volgende tijd van een sjabloon aanbreekt, schuift ze die tijd één interval op en maakt ze de gebeurtenis. De sjabloonlijst toont die tijd in haar kolom **Terugkerende gebeurtenis**. Een gebeurtenis die door de planning is gemaakt, is als elke andere: haar regels draaien, haar eigenaren worden toegevoegd en haar abonnees horen dat ze gepland is.
+Een taak controleert de terugkerende sjablonen elke minuut. Wanneer de volgende tijd van een sjabloon aanbreekt, schuift ze die tijd één interval op en maakt ze de gebeurtenis. De sjabloonlijst toont die tijd in haar kolom **Terugkerende gebeurtenis**, en **Nee** voor een sjabloon dat niet terugkeert. Een gebeurtenis die door de planning is gemaakt, is als elke andere: haar regels draaien, haar eigenaren worden toegevoegd en haar abonnees horen dat ze gepland is.
 
 ## Een sjabloon wijzigen of stoppen
 
@@ -112,7 +112,7 @@ Open een sjabloon uit de lijst om de pagina ervan te zien:
 - **Getroffen resources** bevat de **Monitoren**, hun **Monitorstatus wijzigen naar** en de **Andere getroffen resources**, met een eigen **Bewerken**.
 - **Eigenaren** toont de personen en teams van wie elke gebeurtenis is die ermee wordt gepland.
 
-Wijzigingen gelden voor de gebeurtenissen die worden gemaakt nadat je ze opslaat; gebeurtenissen die al bestaan, houden hun eigen waarden. Om een planning te stoppen, zet je **Terugkerende gebeurtenis** uit in **Bewerken**, of verwijder je het sjabloon. Als je een sjabloon verwijdert, blijven de gebeurtenissen die het heeft gemaakt bestaan.
+Wijzigingen gelden voor de gebeurtenissen die worden gemaakt nadat je ze opslaat; gebeurtenissen die al bestaan, houden hun eigen waarden. Om een planning te stoppen, zet je **Terugkerende gebeurtenis** uit in **Bewerken**, of verwijder je het sjabloon. Een uitgezet sjabloon houdt zijn planning: zet je het weer aan, dan gaat het verder op de volgende tijd van de planning en slaat het de tijden over waarin het uit stond. Als je een sjabloon verwijdert, blijven de gebeurtenissen die het heeft gemaakt bestaan.
 
 ## Probleemoplossing
 

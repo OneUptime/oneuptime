@@ -159,7 +159,7 @@ Los criterios deciden cuándo el monitor está en línea, degradado o sin conexi
 | Tipo de filtro | Qué comprueba | Condiciones de filtro |
 | --- | --- | --- |
 | Is Online | Si el agente ha informado recientemente (en los últimos 3 minutos, de forma predeterminada) | Verdadero, Falso |
-| CPU Usage (in %) | Uso global de la CPU | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| CPU Usage (in %) | Uso global de la CPU | Mayor que, Menor que, Mayor o igual que, Menor o igual que |
 | Memory Usage (in %) | Memoria en uso | Igual que la CPU |
 | Disk Usage (in %) | Uso del disco indicado en **Ruta del disco** | Igual que la CPU |
 | Swap Usage (in %) | Swap en uso | Igual que la CPU |
@@ -195,10 +195,10 @@ Los criterios deciden cuándo el monitor está en línea, degradado o sin conexi
 | Objetivo | Tipo de filtro | Condición de filtro | Valor |
 | --- | --- | --- | --- |
 | Marcar el servidor como sin conexión cuando el agente deja de informar | Is Online | Falso | — |
-| Alertar cuando el uso de CPU supera el 90 % | CPU Usage (in %) | Greater Than | `90` |
-| Alertar cuando el disco raíz está lleno en más del 85 % | Disk Usage (in %), **Ruta del disco** `/` | Greater Than | `85` |
-| Alertar por cualquier disco lleno en más del 85 %, una alerta por disco | Disk Usage (in %), **Ruta del disco** `*` | Greater Than | `85` |
-| Alertar cuando el uso de memoria supera el 80 % | Memory Usage (in %) | Greater Than | `80` |
+| Alertar cuando el uso de CPU supera el 90 % | CPU Usage (in %) | Mayor que | `90` |
+| Alertar cuando el disco raíz está lleno en más del 85 % | Disk Usage (in %), **Ruta del disco** `/` | Mayor que | `85` |
+| Alertar por cualquier disco lleno en más del 85 %, una alerta por disco | Disk Usage (in %), **Ruta del disco** `*` | Mayor que | `85` |
+| Alertar cuando el uso de memoria supera el 80 % | Memory Usage (in %) | Mayor que | `80` |
 | Alertar cuando nginx deja de ejecutarse | Server Process Name | Is Not Executing | `nginx` |
 
 ## Solución de problemas

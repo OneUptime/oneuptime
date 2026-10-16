@@ -245,6 +245,7 @@ resource "oneuptime_monitor" "checkout_errors" {
 | `alerts` | list | 要创建的警报。除非 `create_alerts = true`，否则省略。 |
 | `is_enabled` | bool | 未设置时服务器上为 `true`。设为 `false` 可以保留条件但不用它判定。 |
 | `incident_grouping` | string (JSON) | 仅限入站请求监视器：为请求中找到的每个值创建一个事件，例如 `jsonencode({ groupByJSONPath = "..." })`。 |
+| `open_for_every_email` | bool | 仅限入站邮件监视器：设为 `true` 时，每封匹配的邮件都会新建一个事件（和警报），而不是一次只有一个。 |
 
 ### 事件和警报
 

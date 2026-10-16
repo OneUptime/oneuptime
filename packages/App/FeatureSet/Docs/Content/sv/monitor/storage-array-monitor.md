@@ -263,7 +263,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med ett tröskelvä
 | --- | --- |
 | **Mätvärde** | Frågan eller formeln som ska kontrolleras, efter variabelnamnet. |
 | **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste matcha) eller **Any Value** (ett räcker). |
-| **Villkor** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** eller **Equal To** — eller ett anomalivillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
+| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett anomalivillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
 | **Threshold** | Värdet som det jämförs med. En enhetslista står bredvid när mätvärdet har en enhet. Visas inte för anomalivillkor. |
 | **Känslighet** | Bara anomalivillkor. **Låg** (4σ), **Medel** (3σ, standard) eller **Hög** (2σ). |
 | **Baslinjefönster** | Bara anomalivillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |
@@ -273,10 +273,10 @@ Anomalivillkor jämför varje värde med samma timme i veckan i baslinjen. De st
 
 Några kriterier att börja med:
 
-- **En volym är långsam:** `purefa_volume_performance_latency_usec` filtrerat till `dimension=usec_per_read_op`, Genomsnitt, grupperat efter `name`, **Greater Than** `2000`, över de senaste 10 minuterna.
-- **Arrayen håller på att bli full:** `purefa_array_space_utilization`, Maximum, **Greater Than** `85`, över de senaste 15 minuterna.
-- **En värd körs på en enda kontroller:** `purefa_host_connectivity_info` filtrerat till `status=critical`, Maximum, grupperat efter `host`, **Greater Than** `0`.
-- **Ett FlashBlade-filsystem är nästan fullt:** `purefb_file_systems_space_bytes` filtrerat till `space=available_ratio`, Minimum, grupperat efter `name`, **Less Than** `0.05`.
+- **En volym är långsam:** `purefa_volume_performance_latency_usec` filtrerat till `dimension=usec_per_read_op`, Genomsnitt, grupperat efter `name`, **Större än** `2000`, över de senaste 10 minuterna.
+- **Arrayen håller på att bli full:** `purefa_array_space_utilization`, Maximum, **Större än** `85`, över de senaste 15 minuterna.
+- **En värd körs på en enda kontroller:** `purefa_host_connectivity_info` filtrerat till `status=critical`, Maximum, grupperat efter `host`, **Större än** `0`.
+- **Ett FlashBlade-filsystem är nästan fullt:** `purefb_file_systems_space_bytes` filtrerat till `space=available_ratio`, Minimum, grupperat efter `name`, **Mindre än** `0.05`.
 
 ### Standardkriterier
 

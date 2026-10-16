@@ -198,7 +198,7 @@ En ny monitor for innkommende forespørsler opprettes med to kriterier som leser
 | Kriterium | Filtertype | Filtervilkår | Verdi | Virkning |
 | -------- | ------------ | ---------------- | ------- | -------------------------------------------- |
 | Offline  | Forespørselstekst | Inneholder | `error` | Markerer monitoren som frakoblet, åpner en hendelse |
-| Online   | Forespørselstekst | Not Contains | `error` | Markerer monitoren som online |
+| Online   | Forespørselstekst | Inneholder ikke | `error` | Markerer monitoren som online |
 
 Dette passer for det vanlige tilfellet der avsenderen rapporterer sin egen helse i nyttelasten: en forespørsel der teksten nevner `error`, tar monitoren ned, og den neste forespørselen uten ordet får monitoren opp igjen og løser hendelsen. En forespørsel helt uten tekst regnes som "inneholder ikke `error`", så et rent heartbeat-kall holder monitoren online.
 
@@ -224,7 +224,7 @@ Hver filtertype har sine egne vilkår:
 | Filtertype | Vilkår |
 | --- | --- |
 | **Incoming Request** | **Recieved In Minutes** — en forespørsel er mottatt innenfor det angitte antallet minutter. **Not Recieved In Minutes** — ingen forespørsel er mottatt innenfor det angitte antallet minutter. (Dashbordet staver dem slik.) |
-| **Forespørselstekst**, **Request Header**, **Request Header Value** | **Inneholder** og **Not Contains** |
+| **Forespørselstekst**, **Request Header**, **Request Header Value** | **Inneholder** og **Inneholder ikke** |
 | **JavaScript Expression** | **Evaluates To True** |
 
 > [!NOTE]
@@ -251,7 +251,7 @@ Objekter som tekst sammenlignes som kompakt JSON uten mellomrom, så et filter *
 | **Verdi** | `"status":"degraded"` |
 
 > [!IMPORTANT]
-> Legg dødmannsbryteren **over** standardkriteriene. Kriteriene sjekkes ovenfra, og det første som samsvarer, avgjør. Bakgrunnskontrollen leser den siste forespørselen på nytt, så standardkriteriet for online — "Request Body Not Contains `error`" — fortsetter å samsvare med den, og et kriterium under det kommer aldri til. **Legg til kriterier** legger til et kriterium nederst: dra det opp.
+> Legg dødmannsbryteren **over** standardkriteriene. Kriteriene sjekkes ovenfra, og det første som samsvarer, avgjør. Bakgrunnskontrollen leser den siste forespørselen på nytt, så standardkriteriet for online — "Forespørselstekst Inneholder ikke `error`" — fortsetter å samsvare med den, og et kriterium under det kommer aldri til. **Legg til kriterier** legger til et kriterium nederst: dra det opp.
 
 > [!WARNING]
 > En monitor evalueres bare på nytt i bakgrunnen hvis minst ett av kriteriene sjekker **Incoming Request**. En monitor der kriteriene bare sjekker forespørselsteksten, Request Header eller et JavaScript-uttrykk, evalueres når en forespørsel kommer, og ikke på noe annet tidspunkt — så den kan aldri bli frakoblet av seg selv. Vil du ha en alarm for manglende heartbeat, trenger du et kriterium med **Incoming Request**.

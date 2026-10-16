@@ -245,6 +245,7 @@ resource "oneuptime_monitor" "checkout_errors" {
 | `alerts` | list | هشدارهایی که باید باز شوند. آن را ننویسید مگر با `create_alerts = true`. |
 | `is_enabled` | bool | وقتی تعیین نشده باشد روی سرور `true`. برای نگه داشتن یک معیار بدون سنجیدن با آن، `false` را تعیین کنید. |
 | `incident_grouping` | string (JSON) | فقط مانیتورهای درخواست ورودی: یک حادثه برای هر مقداری که در درخواست پیدا شود، مانند `jsonencode({ groupByJSONPath = "..." })`. |
+| `open_for_every_email` | bool | فقط مانیتورهای ایمیل ورودی: با `true` برای هر ایمیلی که مطابقت داشته باشد یک حادثه (و یک هشدار) باز می‌شود، نه هر بار فقط یکی. |
 
 ### حادثه‌ها و هشدارها
 

@@ -6,6 +6,7 @@ En monitor for indgående e-mail giver dig en e-mailadresse, der hører til én 
 - [Opret monitoren](#opret-en-monitor-for-indgående-e-mail): Få en adresse, og peg din afsender på den.
 - [Bekræft adressen](#bekræft-adressen-hos-afsenderen): Læs en afsenders bekræftelsesmail på monitoren.
 - [Skriv kriterier](#tilgængelige-filtertyper): Match emnet, afsenderen eller teksten, eller advar, når e-mails holder op med at komme.
+- [En hændelse for hver e-mail](#åbn-en-hændelse-for-hver-e-mail): Lad folk rapportere hændelser ved at skrive til adressen.
 - [Brug e-mailen i advarsler](#skabelonvariabler): Sæt emnet og teksten ind i titler og beskrivelser.
 :::
 
@@ -27,7 +28,7 @@ sequenceDiagram
 
 1. Når du opretter en monitor for indgående e-mail, giver OneUptime den en unik e-mailadresse.
 2. Hver e-mail, der sendes til den adresse, gemmes på monitoren og evalueres ud fra dens kriterier oppefra; det første kriterium, der matcher, afgør det.
-3. Et matchende kriterium kan ændre monitorens status, oprette en advarsel og erklære en hændelse. En hændelse med **Løs hændelse automatisk** slået til eller en advarsel med **Løs advarsel automatisk** slået til løses, når et andet kriterium matcher senere — for eksempel det, der markerer monitoren som online.
+3. Et matchende kriterium kan ændre monitorens status, oprette en advarsel og erklære en hændelse. En hændelse med **Løs hændelse automatisk** slået til eller en advarsel med **Løs advarsel automatisk** slået til løses, når et andet kriterium matcher senere — for eksempel det, der markerer monitoren som online. Så længe et kriteriums hændelse er åben, åbner senere e-mails, der matcher kriteriet, intet nyt, medmindre kriteriet [åbner en hændelse for hver e-mail](#åbn-en-hændelse-for-hver-e-mail).
 
 ## Opret en monitor for indgående e-mail
 
@@ -143,7 +144,7 @@ En ny monitor for indgående e-mail oprettes med to kriterier, der læser e-mail
 | Kriterium | Filtertype | Filterbetingelse | Værdi | Virkning |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
 | Offline  | Email Body  | Indeholder | `error` | Markerer monitoren som offline, åbner en hændelse |
-| Online   | Email Body  | Not Contains | `error` | Markerer monitoren som online |
+| Online   | Email Body  | Indeholder ikke | `error` | Markerer monitoren som online |
 
 Det passer til det almindelige tilfælde, hvor et job eller et værktøj fra en tredjepart sender sit eget resultat med e-mail: en besked, hvis tekst nævner `error`, tager monitoren ned, og den næste besked uden ordet bringer monitoren op igen og løser hændelsen. Sammenligningen af teksten skelner ikke mellem store og små bogstaver, så `Error` og `ERROR` matcher også.
 
@@ -174,13 +175,13 @@ Monitorens egen adresse maskeres, før et kriterium læser e-mailen, så i **Ema
 | Filterbetingelse | Beskrivelse | Eksempel |
 | ---------------- | ----------------------------------------- | ---------------------------------- |
 | **Indeholder** | Feltet indeholder den angivne tekst | Emnet indeholder "CRITICAL" |
-| **Not Contains** | Feltet indeholder ikke den angivne tekst | Emnet indeholder ikke "TEST" |
-| **Equal To** | Feltet svarer nøjagtigt til den angivne tekst | Afsenderen er lig med "alerts@service.com" |
-| **Not Equal To** | Feltet svarer ikke til den angivne tekst | Emnet er ikke lig med "OK" |
-| **Starts With** | Feltet starter med den angivne tekst | Emnet starter med "[ALERT]" |
-| **Ends With** | Feltet slutter med den angivne tekst | Emnet slutter med "- Production" |
-| **Is Empty** | Feltet er tomt | Teksten er tom |
-| **Is Not Empty** | Feltet har indhold | Emnet er ikke tomt |
+| **Indeholder ikke** | Feltet indeholder ikke den angivne tekst | Emnet indeholder ikke "TEST" |
+| **Lig med** | Feltet svarer nøjagtigt til den angivne tekst | Afsenderen er lig med "alerts@service.com" |
+| **Ikke lig med** | Feltet svarer ikke til den angivne tekst | Emnet er ikke lig med "OK" |
+| **Starter med** | Feltet starter med den angivne tekst | Emnet starter med "[ALERT]" |
+| **Slutter med** | Feltet slutter med den angivne tekst | Emnet slutter med "- Production" |
+| **Er tom** | Feltet er tomt | Teksten er tom |
+| **Er ikke tom** | Feltet har indhold | Emnet er ikke tomt |
 
 Ingen af disse sammenligninger skelner mellem store og små bogstaver. Et filter med en tom værdi matcher aldrig.
 
@@ -220,8 +221,8 @@ Placér det kritiske kriterium først: kriterier tjekkes oppefra, og det første
 
 | Kriterium | Filtre | Matchbetingelse | Handlinger |
 | --- | --- | --- | --- |
-| Mislykket job | **Email From Address** Equal To `monitoring@legacy-system.com`; **E-mailemne** Indeholder `Failed` | **Alle** | Ændr status til offline; erklær en hændelse |
-| Vellykket job | **Email From Address** Equal To `monitoring@legacy-system.com`; **E-mailemne** Indeholder `Success` | **Alle** | Ændr status til online |
+| Mislykket job | **Email From Address** Lig med `monitoring@legacy-system.com`; **E-mailemne** Indeholder `Failed` | **Alle** | Ændr status til offline; erklær en hændelse |
+| Vellykket job | **Email From Address** Lig med `monitoring@legacy-system.com`; **E-mailemne** Indeholder `Success` | **Alle** | Ændr status til online |
 
 ### Eksempel 3: Heartbeat-monitor (ingen e-mail = advarsel)
 
@@ -232,6 +233,43 @@ Placér det kritiske kriterium først: kriterier tjekkes oppefra, og det første
 
 Det første kriterium udløses, når der ikke er kommet nogen e-mail i 60 minutter — nyttigt til planlagte jobs eller batchprocesser, der sender en e-mail, når de er færdige. Det andet løser advarslen, så snart en e-mail kommer. Minutter, hvor OneUptime ikke selv modtog e-mail, tæller ikke med i de 60, som [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
+## Åbn en hændelse for hver e-mail
+
+Et kriterium holder én hændelse åben ad gangen: så længe den er åben, åbner senere e-mails, der matcher kriteriet, intet nyt. Det passer til et system, hvis e-mails melder om én ting, som en natlig backup. Når hver e-mail er en melding for sig, for eksempel når folk rapporterer hændelser ved at skrive til adressen, så slå **Åbn en ny hændelse for hver e-mail** til i kriteriet.
+
+:::steps
+### Vælg e-mails
+
+Giv kriteriet et filter, der matcher de e-mails, der skal åbne hændelser. For kun at tage imod meldinger fra jeres egne folk skal du bruge **Email From Address** med **Slutter med** og jeres domæne, for eksempel `@example.com`.
+
+### Erklær hændelsen
+
+Under **Handlinger** skal du slå **Når filtre matcher, erklæres en hændelse.** til. Giv hændelsen titlen `{{emailSubject}}` og beskrivelsen `{{emailBody}}`, så hver hændelse siger, hvad dens e-mail sagde.
+
+### Slå kontakten til
+
+Slå **Åbn en ny hændelse for hver e-mail** til, under hændelsen, og gem monitoren.
+:::
+
+Fra da af behandler kriteriet hver e-mail for sig:
+
+| E-mail | Hvad der sker |
+| --- | --- |
+| En ny e-mail | Åbner sin egen hændelse, også mens tidligere er åbne. |
+| Den samme e-mail, leveret igen | Åbner ikke mere: OneUptime skelner e-mails fra hinanden på deres header `Message-ID`. |
+| Et svar på en e-mail, der åbnede en hændelse | Føjes til den hændelse som en privat note og åbner intet, mens hændelsen er åben. Når hændelsen er løst, åbner et svar en ny hændelse. |
+| Et automatisk svar, såsom en fraværsbesked | Åbner intet. |
+| En e-mail, efter at monitoren har åbnet 20 hændelser fra e-mails i den seneste time | Åbner intet, så en mail-løkke eller en strøm af e-mails ikke kan kalde jeres team ud i det uendelige. |
+
+Hver e-mail får stadig en række i **Overvågningslogs**, og **Vis oversigt** på den række siger, hvad e-mailen åbnede, eller hvorfor den intet åbnede. Når kriteriet også opretter advarsler, hedder kontakten **Åbn en ny hændelse og en ny advarsel for hver e-mail**, og hver e-mail åbner sin egen advarsel på samme måde.
+
+Disse hændelser forbliver åbne, indtil nogen løser dem. Med **Løs hændelse automatisk** slået til løses de også, når en senere e-mail matcher et andet kriterium, som enhver hændelse; en senere e-mail, der matcher det samme kriterium, løser aldrig de tidligere. En kontrol for manglende e-mail (**Email Received**) er ikke en e-mail, så den åbner stadig én hændelse ad gangen.
+
+> [!WARNING]
+> **Alle, der kender adressen, kan åbne hændelser.** Hold adressen privat, filtrér på afsenderen som ovenfor, og [nulstil adressen](#nulstil-eller-tilpas-e-mailadressen), hvis den slipper ud. En afsenders adresse kan forfalskes, så filteret holder vildfaren post ude, ikke nogen, der er fast besluttet på at komme ind.
+
+For mere kontrol, såsom en alvorlighed læst fra emnet eller et team valgt ud fra afsenderen, så start i stedet et workflow fra hver e-mail: se [Incoming Email-triggeren](/docs/workflows/triggers#incoming-email).
+
 ## Brugsscenarier
 
 | Brugsscenarie | Hvad monitoren gør |
@@ -240,6 +278,7 @@ Det første kriterium udløses, når der ikke er kommet nogen e-mail i 60 minutt
 | Tjenester fra tredjeparter | Modtager notifikationer fra cloududbydere (AWS, GCP, Azure), sikkerhedsscannere, backupværktøjer og advarsler om certifikater, der udløber. |
 | Planlagte jobs | Advarer, når en e-mail om et færdigt job er forsinket, eller når et job sender en e-mail om en fejl. |
 | Samling af advarsler | Samler e-mailadvarsler fra Nagios, Zabbix eller andre værktøjer, så OneUptime er det ene sted, du håndterer dem. |
+| Rapportering af hændelser via e-mail | Åbner en hændelse for hver e-mail, folk sender til adressen, og gemmer svarene på den som noter. |
 
 ## Skabelonvariabler
 
@@ -288,7 +327,7 @@ Indtil det er sat op, siger monitorens adressekort, at indgående e-mail ikke er
 - **E-mailadressens sikkerhed**: Monitorens e-mailadresse virker som en adgangskode: alle, der kender den, kan sende e-mail til monitoren. Del den ikke offentligt, og nulstil den fra monitorens fane **Indstillinger**, hvis den slipper ud.
 - **E-mailstørrelse**: OneUptime accepterer en indgående e-mail på op til 50 MB inklusive vedhæftede filer. Vedhæftede filer gemmes ikke — kun deres navne, typer og størrelser.
 - **Behandlingstid**: E-mails behandles asynkront. Der kan gå et par sekunder, fra en e-mail sendes, til advarslen oprettes.
-- **Store og små bogstaver**: Ingen af strengsammenligningerne (Indeholder, Equal To osv.) skelner mellem store og små bogstaver.
+- **Store og små bogstaver**: Ingen af strengsammenligningerne (Indeholder, Lig med osv.) skelner mellem store og små bogstaver.
 - **Ren tekst**: Kriterier for e-mailens tekst læser e-mailens del i ren tekst. En e-mail, der kun er sendt som HTML, har en tom tekst for kriterierne — så den indeholder ikke `error`, og standardkriterierne markerer monitoren som online.
 
 ## Fejlfinding
@@ -307,6 +346,7 @@ Indtil det er sat op, siger monitorens adressekort, at indgående e-mail ikke er
 2. Tjek, at overvågningen er slået til: monitorens side **Indstillinger**, kortet **Overvågning**.
 3. Åbn **Overvågningslogs**, og klik på **Vis oversigt** i e-mailens række for at se, hvad kriterierne læste.
 4. Tjek rækkefølgen af dine kriterier: det første, der matcher, afgør det.
+5. Hvis kriteriet åbner en hændelse for hver e-mail, er e-mailen måske et svar, en anden levering eller et automatisk svar, eller monitoren har allerede åbnet 20 hændelser fra e-mails i den seneste time. **Vis oversigt** på e-mailens række siger hvilket.
 
 ### Advarsler bliver ikke løst
 

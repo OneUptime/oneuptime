@@ -15,7 +15,7 @@ Koppel OneUptime aan Microsoft Teams om incidenten, waarschuwingen, episodes, ge
 ```mermaid title="Van een gebeurtenis in OneUptime naar een kaart in Microsoft Teams"
 flowchart TB
     event["Een incident, waarschuwing of gebeurtenis<br/>wordt aangemaakt of verandert"] --> rules{"Meldingsregels<br/>waarvan de voorwaarden kloppen"}
-    rules -->|"Create Microsoft Teams Channel"| own["Een eigen kanaal<br/>in het team dat je kiest"]
+    rules -->|"Een kanaal<br/>voor elk"| own["Een eigen kanaal<br/>in het team dat je kiest"]
     rules -->|"Plaatsen in een bestaand<br/>kanaal of een bestaande chat"| existing["Je kanalen en chats"]
     own --> card["Een kaart met knoppen"]
     existing --> card
@@ -84,13 +84,15 @@ Een regel aanmaken gaat in vier stappen:
 | Stap | Wat je instelt |
 | --- | --- |
 | **Basis** | **Regelnaam** en **Regelbeschrijving**. |
-| **Voorwaarden** | Voor welke gebeurtenissen de regel afgaat, bijvoorbeeld op ernst, status, label, monitor of woorden in de titel. Zonder voorwaarden gaat hij af voor elke gebeurtenis. Met twee of meer bepaalt **Overeenkomstvoorwaarde** of ze allemaal moeten kloppen, of één ervan. |
-| **Bestemming** | Waar hij plaatst: een bestaand kanaal van een team dat je kiest, de chats die je kiest, een nieuw kanaal dat wordt aangemaakt in een team dat je kiest, of meerdere daarvan samen. |
+| **Voorwaarden** | Voor welke gebeurtenissen de regel geldt, bijvoorbeeld op ernst, status, label, monitor of woorden in de titel. Ze worden gecontroleerd wanneer een gebeurtenis wordt aangemaakt en opnieuw bij elke update die OneUptime erover plaatst, dus een regel voor bevestigde incidenten werkt zodra een incident wordt bevestigd. Zonder voorwaarden geldt de regel voor elke gebeurtenis. Met twee of meer bepaalt **Overeenkomstvoorwaarde** of ze allemaal moeten kloppen, of één ervan. |
+| **Bestemming** | Waar hij plaatst: een bestaand kanaal van een team dat je kiest, de chats die je kiest, een kanaal voor elk incident (of waarschuwing, episode, evenement, monitor of bereikbaarheidsbeleid) dat wordt aangemaakt in een team dat je kiest, of meerdere daarvan samen. Onder de stap zegt **Wat deze regel doet** het in zinnen, zoals de kaart van de regel. |
 | **Video Call** | Alleen incidenten en waarschuwingen: start voor elk een gesprek. Zie [Videogesprekken](/docs/workspace-connections/video-calls). |
 
 Een kanaal dat de regel aanmaakt, krijgt de naam van zijn record: incident INC-42 krijgt `inc-42`, waarschuwing ALT-7 krijgt `alt-7` en in een project zonder nummervoorvoegsels krijgt incident 42 `incident-42`. Tekst in **Voorvoegsel van de kanaalnaam** komt ervoor, dus `prod-` wordt `prod-inc-42`, en het formulier toont de naam terwijl je typt. Bij een geplande onderhoudsgebeurtenis neemt het voorvoegsel de plaats in van het nummervoorvoegsel: SM-5 krijgt `sm-5` en `maint-` wordt `maint-5`. OneUptime houdt letters, cijfers, spaties, `-` en `_` over, tot de 50 tekens die Microsoft Teams aanneemt. Heeft het team al een kanaal met die naam, zoals dat van een ander project of een kanaal dat de afgelopen 30 dagen is verwijderd, dan voegt OneUptime `-2`, `-3` enzovoort toe.
 
-Alleen een aangemaakt kanaal krijgt de mensen die de regel uitnodigt. Een privé-incident, -waarschuwing of -episode krijgt een privékanaal. Elke latere update van het record — een statuswijziging, een notitie, een nieuwe eigenaar — wordt in zijn kanalen en chats geplaatst.
+Een regel maakt zijn kanaal aan de eerste keer dat een gebeurtenis eraan voldoet: wanneer de gebeurtenis wordt aangemaakt, of later, wanneer een update haar laat voldoen terwijl ze nog open is. Een regel voor bevestigde incidenten maakt het kanaal aan zodra het incident wordt bevestigd. Microsoft Teams toont de kanalen van een team aan iedereen in het team, dus OneUptime voegt niemand een voor een aan een kanaal toe: iedereen in het team dat je kiest kan het openen, zoals het regelformulier zegt onder **Wie lid wordt van het kanaal**. Een privé-incident, -waarschuwing of -episode krijgt een privékanaal, dat alleen de leden ervan zien; voeg mensen toe in Microsoft Teams.
+
+Elke latere update van het record — een statuswijziging, een notitie, een nieuwe eigenaar — wordt in zijn kanalen geplaatst, en in de bestaande kanalen en chats die zijn regels noemen zolang hun voorwaarden kloppen. OneUptime kan een Microsoft Teams-kanaal niet archiveren, dus het kanaal van een regel blijft bestaan wanneer het record voorbij is; archiveer of verwijder het in Microsoft Teams.
 
 Een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis met een eigen kanaal heeft **Openen in Microsoft Teams** in de kop van zijn pagina in OneUptime, naast de statusknoppen. Die opent dat kanaal in een nieuw tabblad, in de Microsoft Teams-app of in de browser. Een record met twee eigen kanalen toont ze allebei onder de knop. Een record met kanalen in zowel Slack als Microsoft Teams heeft in plaats daarvan één knop **Kanaal openen**, die ze allemaal toont. De bestaande kanalen en chats waarin uw regels posten, worden niet aangeboden.
 
@@ -152,7 +154,7 @@ Stuur de bot een bericht in een persoonlijke chat, of noem OneUptime met @ in ee
 | Bericht | Wat de bot doet |
 | --- | --- |
 | `help` | Toont wat hij kan. |
-| `incident [title]` | Opent het incidentformulier, met de titel ingevuld. |
+| `incident [title or number]` | Opent het incidentformulier, met de titel ingevuld. Het nummer van een incident, zoals `42` of `INC-42`, toont in plaats daarvan dat incident: zie [Een incident beheren vanuit Microsoft Teams](#een-incident-beheren-vanuit-microsoft-teams). |
 | `maintenance [title]` | Opent het formulier voor gepland onderhoud, met de titel ingevuld. |
 | `oncall` | Toont wie er nu dienst heeft in elk bereikbaarheidsschema dat je kunt zien, tot wanneer, en wie de volgende is. |
 | `page [who] [message]` | Roept de mensen op die je met @ noemt, over je bericht, of stuurt een kaart om te kiezen wie je oproept. Zie [Iemand oproepen vanuit Microsoft Teams](#iemand-oproepen-vanuit-microsoft-teams). |
@@ -213,6 +215,25 @@ Voor een tag met zowel de primaire als de secundaire dienst koppel je dezelfde t
 - **Wat Microsoft 365 nodig heeft.** Tags wijzigen vraagt de machtiging `TeamworkTag.ReadWrite.All` van de app, die een Microsoft 365-beheerder verleent met **Beheerderstoestemming verlenen** onder **Projectinstellingen** > **Werkruimte** > **Microsoft Teams**. Gaf je organisatie toestemming voordat OneUptime tags kon bijhouden, geef die dan één keer opnieuw.
 - **Wie er een mag koppelen.** De rollen die schema's mogen bewerken: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** en **On-Call Member**, of **Edit On-Call Duty Policy Schedule** in een aangepaste rol. In OneUptime Cloud vraagt koppelen het abonnement **Growth**.
 - **Ontkoppelen.** OneUptime past de tag niet meer aan. De tag en de leden blijven in Microsoft Teams zoals ze zijn.
+
+## Een incident beheren vanuit Microsoft Teams
+
+De kaart van een incident heeft vier knoppen, **Acknowledge Incident**, **Resolve Incident**, **Add Note** en **View Incident**, en de rest in haar menu, de knop met drie puntjes:
+
+| Menu-item | Wat het doet |
+| --- | --- |
+| **Change Severity** | Stelt de ernst van het incident in. |
+| **Change Incident State** | Zet het incident in een latere status. |
+| **Assign Role** | Geeft iemand een rol in het incident, zoals **Incident Commander**. Een rol voor één persoon gaat naar die persoon over. |
+| **Page Someone** | Roept mensen, een team, wie in een schema nu dienst heeft, of een bereikbaarheidsbeleid op over het incident, tot iemand het bevestigt. |
+| **Edit Custom Fields** | Stelt de aangepaste velden van het incident in, elk ingevuld met wat het incident bevat. Een leeg gelaten veld wordt gewist. |
+
+`incident 42`, getypt naar de bot, antwoordt met incident 42, deze knoppen en zijn menu. Typ het nummer zoals OneUptime het toont: `42`, `#42` of `INC-42`. In het eigen kanaal van een incident toont `incident` zonder meer dat incident.
+
+- **Wie ze mag gebruiken.** De mensen die dezelfde wijziging in OneUptime mogen maken, zoals in Slack: zie [Een incident beheren vanuit Slack](/docs/workspace-connections/slack#een-incident-beheren-vanuit-slack). Elk item antwoordt met een kaart, ingevuld zoals de persoon die het indrukte het incident mag zien. Iedereen in het gesprek mag de kaart versturen, als zichzelf, met de eigen rechten.
+- **Wat er gebeurt.** De wijziging wordt gemaakt als de persoon die de kaart verstuurde, zoals in OneUptime, en de feed van het incident zegt wat er veranderde. De bot zegt het in een antwoord dat diegene noemt, en verwijdert de kaart, zodat niemand haar twee keer verstuurt. **Page Someone** zegt wie werd opgeroepen, of waarom niemand; een incident dat al is opgelost, roept niemand op.
+- **Waar Microsoft Teams anders is.** Een kaart kan niet onder een veld zeggen wat er mis is: een waarde die niet past, wordt in een antwoord genoemd, en de kaart blijft staan om te verbeteren en opnieuw te versturen. Een veld voor datum en tijd is een dag en een tijd, in je eigen tijdzone. Een oudere Teams-client toont het menu als extra knoppen. `incident 42` antwoordt in het gesprek, waar iedereen erin het incident kan zien.
+- **Kaarten van vóór het menu.** Ze houden hun knop **Execute On-Call Policy**, en die blijft werken: **Page Someone** roept ook een bereikbaarheidsbeleid op. Waarschuwingen en episodes houden die van hen.
 
 ## Handelen op incidenten, waarschuwingen en gebeurtenissen vanuit Microsoft Teams
 

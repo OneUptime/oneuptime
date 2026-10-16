@@ -7,11 +7,13 @@ import ObjectID from "../../../Types/ObjectID";
 import WorkspaceChannelInvitationPayload from "../../../Types/Workspace/WorkspaceChannelInvitationPayload";
 import WorkspaceMessagePayload, {
   WorkspaceCheckboxBlock,
+  WorkspaceDatePickerBlock,
   WorkspaceDateTimePickerBlock,
   WorkspaceDropdownBlock,
   WorkspaceMessageBlock,
   WorkspaceMessagePayloadButton,
   WorkspaceModalBlock,
+  WorkspaceNumberInputBlock,
   WorkspacePayloadButtons,
   WorkspacePayloadContext,
   WorkspacePayloadHeader,
@@ -279,6 +281,20 @@ export default class WorkspaceBase {
   }
 
   @CaptureSpan()
+  public static getDatePickerBlock(_data: {
+    payloadDatePickerBlock: WorkspaceDatePickerBlock;
+  }): JSONObject {
+    throw new NotImplementedException();
+  }
+
+  @CaptureSpan()
+  public static getNumberInputBlock(_data: {
+    payloadNumberInputBlock: WorkspaceNumberInputBlock;
+  }): JSONObject {
+    throw new NotImplementedException();
+  }
+
+  @CaptureSpan()
   public static async inviteUserToChannelByChannelId(_data: {
     authToken: string;
     channelId: string;
@@ -475,6 +491,20 @@ export default class WorkspaceBase {
           blocks.push(
             this.getDateTimePickerBlock({
               payloadDateTimePickerBlock: block as WorkspaceDateTimePickerBlock,
+            }),
+          );
+          break;
+        case "WorkspaceDatePickerBlock":
+          blocks.push(
+            this.getDatePickerBlock({
+              payloadDatePickerBlock: block as WorkspaceDatePickerBlock,
+            }),
+          );
+          break;
+        case "WorkspaceNumberInputBlock":
+          blocks.push(
+            this.getNumberInputBlock({
+              payloadNumberInputBlock: block as WorkspaceNumberInputBlock,
             }),
           );
           break;

@@ -177,15 +177,15 @@ Les critères d'un moniteur Custom Code peuvent vérifier :
 
 | Type de filtre | Ce qu'il vérifie | Conditions de filtre |
 | --- | --- | --- |
-| **Erreur** | L'erreur levée par le script, le cas échéant. | Contient, Not Contains, Equal To, Not Equal To, Is Empty, Is Not Empty |
-| **Result Value** | Les `data` renvoyées par le script. Comparées comme un nombre quand c'en est un. | Les mêmes, plus Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To, Vrai et Faux |
+| **Erreur** | L'erreur levée par le script, le cas échéant. | Contient, Ne contient pas, Égal à, Différent de, Est vide, N'est pas vide |
+| **Result Value** | Les `data` renvoyées par le script. Comparées comme un nombre quand c'en est un. | Les mêmes, plus Supérieur à, Inférieur à, Supérieur ou égal à, Inférieur ou égal à, Vrai et Faux |
 | **Temps d'exécution (en ms)** | La durée d'exécution du script. | Comparaisons numériques |
 
 Les critères par défaut marquent le moniteur en ligne quand **Erreur** est vide, et hors ligne — avec un incident qui se résout de lui-même quand le script réussit à nouveau — dans le cas contraire. Dans les modèles d'incident et d'alerte, l'exécution est disponible sous `{{result}}`, `{{scriptError}}`, `{{logMessages}}` et `{{executionTimeInMs}}` : voir [Modèles d'incident et d'alerte](/docs/monitor/incident-alert-templating).
 
 ### Alerter sur les données renvoyées
 
-Ce que le script renvoie comme `data` est la **Result Value** du moniteur, et un critère peut la comparer — par exemple _Result Value est Equal To `UP`_.
+Ce que le script renvoie comme `data` est la **Result Value** du moniteur, et un critère peut la comparer — par exemple _Result Value est Égal à `UP`_.
 
 Quand `data` est un objet ou un tableau, renseignez **Chemin du champ (facultatif)** dans le filtre Result Value pour comparer un de ses champs plutôt que la valeur entière. Utilisez des points pour les champs imbriqués et `[n]` pour les éléments de tableau :
 
@@ -204,16 +204,16 @@ return {
 
 | Chemin du champ | Compare | Exemple de condition |
 | --- | --- | --- |
-| `status` | `"UP"` | Not Equal To `UP` |
-| `cpu_busy_percent` | `42` | Greater Than `90` |
+| `status` | `"UP"` | Différent de `UP` |
+| `cpu_busy_percent` | `42` | Supérieur à `90` |
 | `healthy` | `true` | Faux |
-| `checks[0].latency` | `12` | Greater Than `500` |
+| `checks[0].latency` | `12` | Supérieur à `500` |
 
 Ajoutez un filtre par champ à vérifier ; chacun peut avoir sa propre condition et sa propre valeur.
 
 - Laissez le chemin du champ vide pour comparer la valeur entière, comme pour un script qui renvoie un seul nombre ou une seule chaîne.
-- Greater Than, Less Than et les autres conditions numériques ne correspondent qu'à un nombre : renvoyez donc un champ sous la forme `42`, pas `"42"`. Vrai et Faux ne correspondent qu'à un booléen.
-- Un champ absent des données renvoyées — une clé manquante, ou un index de tableau au-delà de la fin — est comparé comme vide : **Is Empty** y correspond, et aucune autre condition.
+- Supérieur à, Inférieur à et les autres conditions numériques ne correspondent qu'à un nombre : renvoyez donc un champ sous la forme `42`, pas `"42"`. Vrai et Faux ne correspondent qu'à un booléen.
+- Un champ absent des données renvoyées — une clé manquante, ou un index de tableau au-delà de la fin — est comparé comme vide : **Est vide** y correspond, et aucune autre condition.
 - Un champ dont le nom contient un point ne peut pas être atteint par un chemin.
 - Dans Terraform, le `custom_code_monitor_options` du filtre définit le chemin du champ : voir [Étapes de moniteur](/docs/terraform/monitor-steps#comparer-un-champ-du-résultat-dun-script).
 

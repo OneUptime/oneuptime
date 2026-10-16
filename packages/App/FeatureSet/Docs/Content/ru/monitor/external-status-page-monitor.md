@@ -119,10 +119,10 @@ flowchart TB
 | Тип фильтра | Что он проверяет | Условия фильтра |
 | --- | --- | --- |
 | **External Status Page Is Online** | Доступна ли страница статуса и возвращает ли она данные о статусе | Истина или Ложь |
-| **External Status Page Overall Status** | Общий статус, о котором сообщает страница | Equal To, Not Equal To, Содержит, Not Contains, Starts With, Ends With |
-| **External Status Page Component Status** | Статус компонентов в пределах области (с учётом фильтров группы компонентов / имени компонента): Работает, Under Maintenance, Degraded Performance, Partial Outage, Major Outage или Full Outage | Equal To, Not Equal To, Содержит, Not Contains, Starts With, Ends With |
-| **External Status Page Active Incidents** | Число активных сейчас инцидентов на странице статуса (в пределах группы компонентов / компонента, если задан фильтр) | Equal To, Not Equal To и числовые сравнения |
-| **External Status Page Response Time (in ms)** | Сколько времени занимает загрузка данных страницы статуса | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| **External Status Page Overall Status** | Общий статус, о котором сообщает страница | Равно, Не равно, Содержит, Не содержит, Начинается с, Заканчивается на |
+| **External Status Page Component Status** | Статус компонентов в пределах области (с учётом фильтров группы компонентов / имени компонента): Работает, Under Maintenance, Degraded Performance, Partial Outage, Major Outage или Full Outage | Равно, Не равно, Содержит, Не содержит, Начинается с, Заканчивается на |
+| **External Status Page Active Incidents** | Число активных сейчас инцидентов на странице статуса (в пределах группы компонентов / компонента, если задан фильтр) | Равно, Не равно и числовые сравнения |
+| **External Status Page Response Time (in ms)** | Сколько времени занимает загрузка данных страницы статуса | Больше, Меньше, Больше или равно, Меньше или равно |
 
 Общий статус — это то, что пишет сама страница, поэтому его значения зависят от провайдера: Atlassian Statuspage сообщает собственное описание, например `All Systems Operational`; лента сообщает `operational` или `degraded_performance`; проверка доступности сообщает `reachable` или `unreachable`. Эти сравнения учитывают регистр. Для оповещений о сбоях обычно надёжнее **External Status Page Active Incidents** и **External Status Page Component Status**.
 

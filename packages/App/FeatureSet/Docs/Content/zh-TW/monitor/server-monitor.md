@@ -159,7 +159,7 @@ oneuptime-infrastructure-agent start
 | 篩選器類型 | 檢查內容 | 篩選條件 |
 | --- | --- | --- |
 | Is Online | 代理程式最近是否回報過（預設為最近 3 分鐘內） | 是, 否 |
-| CPU Usage (in %) | 整體 CPU 使用率 | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| CPU Usage (in %) | 整體 CPU 使用率 | 大於, 小於, 大於或等於, 小於或等於 |
 | Memory Usage (in %) | 已用記憶體 | 與 CPU 相同 |
 | Disk Usage (in %) | **磁碟路徑** 中指定磁碟的使用率 | 與 CPU 相同 |
 | Swap Usage (in %) | 已用置換空間 | 與 CPU 相同 |
@@ -195,10 +195,10 @@ oneuptime-infrastructure-agent start
 | 目標 | 篩選器類型 | 篩選條件 | 值 |
 | --- | --- | --- | --- |
 | 代理程式停止回報時將伺服器標記為離線 | Is Online | 否 | — |
-| CPU 使用率超過 90% 時發出警示 | CPU Usage (in %) | Greater Than | `90` |
-| 根磁碟使用率超過 85% 時發出警示 | Disk Usage (in %)，**磁碟路徑** `/` | Greater Than | `85` |
-| 任何磁碟使用率超過 85% 時發出警示，每個磁碟一個警示 | Disk Usage (in %)，**磁碟路徑** `*` | Greater Than | `85` |
-| 記憶體使用率超過 80% 時發出警示 | Memory Usage (in %) | Greater Than | `80` |
+| CPU 使用率超過 90% 時發出警示 | CPU Usage (in %) | 大於 | `90` |
+| 根磁碟使用率超過 85% 時發出警示 | Disk Usage (in %)，**磁碟路徑** `/` | 大於 | `85` |
+| 任何磁碟使用率超過 85% 時發出警示，每個磁碟一個警示 | Disk Usage (in %)，**磁碟路徑** `*` | 大於 | `85` |
+| 記憶體使用率超過 80% 時發出警示 | Memory Usage (in %) | 大於 | `80` |
 | nginx 停止執行時發出警示 | Server Process Name | Is Not Executing | `nginx` |
 
 ## 疑難排解

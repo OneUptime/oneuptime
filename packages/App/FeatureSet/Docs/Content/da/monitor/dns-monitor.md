@@ -96,12 +96,12 @@ Kriterier afgør, hvornår navnet tæller som online, forringet eller offline, o
 | Filter | Betingelser | Hvad det kontrollerer |
 | --- | --- | --- |
 | **DNS Is Online** | **Sand**, **Falsk** | Om forespørgslen returnerede mindst én post af typen. |
-| **DNS Response Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Hvor lang tid forespørgslen tog. |
+| **DNS Response Time (in ms)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Hvor lang tid forespørgslen tog. |
 | **DNS Record Exists** | **Sand**, **Falsk** | Om der kom en post af typen tilbage. |
-| **DNS Record Value** | **Indeholder**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | Posternes værdier. Filteret matcher, når én enkelt post matcher. |
+| **DNS Record Value** | **Indeholder**, **Indeholder ikke**, **Starter med**, **Slutter med**, **Lig med**, **Ikke lig med** | Posternes værdier. Filteret matcher, når én enkelt post matcher. |
 | **DNSSEC Is Valid** | **Sand**, **Falsk** | Om en validerende resolver sætter AD-flaget på svaret. |
 
-**DNS Record Value** matcher, når _en hvilken som helst_ af posterne matcher. Med flere `A`-poster matcher **Equal To** `93.184.216.34`, når en af dem er den adresse, og **Not Equal To** matcher, når en af dem ikke er det.
+**DNS Record Value** matcher, når _en hvilken som helst_ af posterne matcher. Med flere `A`-poster matcher **Lig med** `93.184.216.34`, når en af dem er den adresse, og **Ikke lig med** matcher, når en af dem ikke er det.
 
 **DNSSEC Is Valid** spørger serveren i **DNS-server (valgfri)**, på dens **Port**, eller Google Public DNS (`8.8.8.8`), når feltet er tomt, så den server, du angiver, bør validere DNSSEC. Filteret har ingen værdi og matcher ingen af vejene, når sonden ikke kan udføre den kontrol. Til en fuld kontrol af en signeret zone skal du bruge en [DNSSEC-monitor](/docs/monitor/dnssec-monitor).
 
@@ -141,9 +141,9 @@ Kriterier kontrolleres fra top til bund, og det første, der matcher, afgør, hv
 | Mål | Filter | Betingelse | Værdi |
 | --- | --- | --- | --- |
 | Offline, når navnet ikke længere kan slås op | **DNS Is Online** | **Falsk** | — |
-| Advar, når et navns eneste `A`-post ændres | **DNS Record Value** | **Not Equal To** | `93.184.216.34` |
-| Advar, når en `MX`-post peger uden for dit domæne | **DNS Record Value** | **Not Contains** | `example.com` |
-| Markér DNS som forringet, når det er langsomt | **DNS Response Time (in ms)** | **Greater Than** | `500` |
+| Advar, når et navns eneste `A`-post ændres | **DNS Record Value** | **Ikke lig med** | `93.184.216.34` |
+| Advar, når en `MX`-post peger uden for dit domæne | **DNS Record Value** | **Indeholder ikke** | `example.com` |
+| Markér DNS som forringet, når det er langsomt | **DNS Response Time (in ms)** | **Større end** | `500` |
 | Advar, når DNSSEC-valideringen fejler | **DNSSEC Is Valid** | **Falsk** | — |
 
 ## Fejlfinding
@@ -156,11 +156,11 @@ dig @8.8.8.8 example.com A
 ```
 :::
 
-:::details Et kriterium med Not Equal To udløses, selvom den rigtige adresse er der
-**DNS Record Value** matcher, når én enkelt post matcher. Med flere poster udløses **Not Equal To**, så snart en af dem afviger. For at kontrollere, at en bestemt værdi er blandt posterne, skal du bruge rækkefølgen af kriterierne, da det første, der matcher, vinder:
+:::details Et kriterium med Ikke lig med udløses, selvom den rigtige adresse er der
+**DNS Record Value** matcher, når én enkelt post matcher. Med flere poster udløses **Ikke lig med**, så snart en af dem afviger. For at kontrollere, at en bestemt værdi er blandt posterne, skal du bruge rækkefølgen af kriterierne, da det første, der matcher, vinder:
 
 1. Behold standardkriteriet for offline øverst: **DNS Is Online** / **Falsk**.
-2. Tilføj under det et kriterium med **DNS Record Value** / **Equal To** / den forventede værdi, der markerer monitoren som **I drift**.
+2. Tilføj under det et kriterium med **DNS Record Value** / **Lig med** / den forventede værdi, der markerer monitoren som **I drift**.
 3. Tilføj under det igen et kriterium med **DNS Is Online** / **Sand**, der markerer monitoren som **Offline** og erklærer en hændelse. Det matcher kun svar, der ikke har værdien.
 :::
 

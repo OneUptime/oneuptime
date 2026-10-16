@@ -159,7 +159,7 @@ I criteri decidono quando il monitor è online, degradato od offline, e quando a
 | Tipo di filtro | Cosa controlla | Condizioni del filtro |
 | --- | --- | --- |
 | Is Online | Se l'agente ha comunicato di recente (negli ultimi 3 minuti, per impostazione predefinita) | Vero, Falso |
-| CPU Usage (in %) | Utilizzo complessivo della CPU | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| CPU Usage (in %) | Utilizzo complessivo della CPU | Maggiore di, Minore di, Maggiore o uguale a, Minore o uguale a |
 | Memory Usage (in %) | Memoria in uso | Come per la CPU |
 | Disk Usage (in %) | Utilizzo del disco indicato in **Percorso del disco** | Come per la CPU |
 | Swap Usage (in %) | Swap in uso | Come per la CPU |
@@ -195,10 +195,10 @@ I criteri decidono quando il monitor è online, degradato od offline, e quando a
 | Obiettivo | Tipo di filtro | Condizione del filtro | Valore |
 | --- | --- | --- | --- |
 | Segnare il server offline quando l'agente smette di comunicare | Is Online | Falso | — |
-| Avvisare quando l'utilizzo della CPU supera il 90% | CPU Usage (in %) | Greater Than | `90` |
-| Avvisare quando il disco root è pieno oltre l'85% | Disk Usage (in %), **Percorso del disco** `/` | Greater Than | `85` |
-| Avvisare per ogni disco pieno oltre l'85%, un avviso per disco | Disk Usage (in %), **Percorso del disco** `*` | Greater Than | `85` |
-| Avvisare quando l'utilizzo della memoria supera l'80% | Memory Usage (in %) | Greater Than | `80` |
+| Avvisare quando l'utilizzo della CPU supera il 90% | CPU Usage (in %) | Maggiore di | `90` |
+| Avvisare quando il disco root è pieno oltre l'85% | Disk Usage (in %), **Percorso del disco** `/` | Maggiore di | `85` |
+| Avvisare per ogni disco pieno oltre l'85%, un avviso per disco | Disk Usage (in %), **Percorso del disco** `*` | Maggiore di | `85` |
+| Avvisare quando l'utilizzo della memoria supera l'80% | Memory Usage (in %) | Maggiore di | `80` |
 | Avvisare quando nginx smette di essere in esecuzione | Server Process Name | Is Not Executing | `nginx` |
 
 ## Risoluzione dei problemi

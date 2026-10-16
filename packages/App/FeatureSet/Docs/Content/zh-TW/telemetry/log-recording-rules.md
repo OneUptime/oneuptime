@@ -169,7 +169,7 @@ flowchart TB
 1. **指標查詢：** `sdwan.gateway.latency.ms`，彙總為 **平均**，**分組依據** 為 `gw_name` 與 `profile_name`。
 2. **滾動時間區間：** Past 15 Minutes。防火牆每隔幾分鐘回報一次，因此區間內每個閘道都有多個點。
 3. **彙總策略：** **All Values**。區間內的每個點都必須超過門檻，因此一份緩慢的摘要不會呼叫任何人。若要在平均偏高時警示，請改用 **平均**。
-4. **條件：** Metric value **Greater Than** `150` 時開啟警示。
+4. **條件：** Metric value **大於** `150` 時開啟警示。
 5. 可以在警示標題中使用分組值，例如 `SD-WAN latency high on {{gw_name}} ({{profile_name}})`。
 
 設定分組依據後，每個閘道都是獨立的序列：WAN2 變慢只會為 WAN2 開啟警示，並在 WAN2 恢復時自行解決。請參閱 [依序列警示](/docs/monitor/metrics-monitor#依序列警示group-by)。

@@ -15,8 +15,8 @@ Conecta OneUptime con Slack para publicar en tus canales los incidentes, alertas
 ```mermaid title="De un evento en OneUptime a un mensaje en Slack"
 flowchart TB
     event["Un incidente, una alerta o un evento<br/>se crea o cambia"] --> rules{"Reglas de notificación<br/>cuyas condiciones coinciden"}
-    rules -->|"Create Slack Channel"| own["Un canal propio,<br/>con su gente invitada"]
-    rules -->|"Post to Existing Slack Channel"| existing["Tus canales existentes"]
+    rules -->|"Un canal<br/>para cada uno"| own["Un canal propio,<br/>con su gente invitada a medida que se suma"]
+    rules -->|"Publicar en canales existentes"| existing["Tus canales existentes"]
     own --> message["Un mensaje con botones"]
     existing --> message
     message -->|"Un respondedor pulsa uno"| change["El cambio se hace en OneUptime,<br/>como esa persona"]
@@ -47,7 +47,7 @@ Instalar la app vincula la cuenta de quien la instaló. Todos los demás vincula
 
 ### Añadir una regla de notificación
 
-Ve a **Incidentes** > **Espacio de trabajo** > **Slack**. La sección **Espacio de trabajo** solo lista los espacios de chat que tu proyecto ha conectado, así que **Slack** aparece ahí en cuanto está conectado. Crea una regla, por ejemplo una que cree un canal de Slack para cada incidente nuevo e invite a los propietarios del incidente. Consulta [Reglas de notificación](#reglas-de-notificación).
+Ve a **Incidentes** > **Espacio de trabajo** > **Slack**. La sección **Espacio de trabajo** solo lista los espacios de chat que tu proyecto ha conectado, así que **Slack** aparece ahí en cuanto está conectado. Crea una regla, por ejemplo una que cree un canal de Slack para cada incidente nuevo con todos los que trabajan en él: las personas avisadas, el comandante de incidente y los propietarios. Consulta [Reglas de notificación](#reglas-de-notificación).
 
 ### Probar la regla
 
@@ -71,13 +71,17 @@ Crear una regla recorre cuatro pasos:
 | Paso | Lo que defines |
 | --- | --- |
 | **Básico** | **Nombre de la regla** y **Descripción de la regla**. |
-| **Condiciones** | Para qué eventos se dispara la regla, por ejemplo por gravedad, estado, etiqueta, monitor o palabras del título. Sin condiciones, se dispara para cada evento. Con dos o más, **Condición de coincidencia** indica si deben coincidir todas o basta con una. |
-| **Destino** | Dónde publica: **Post to Existing Slack Channel** con los nombres de los canales, **Create Slack Channel** con el nombre del canal nuevo y a quién se invita, o ambos. |
+| **Condiciones** | A qué eventos se aplica la regla, por ejemplo por gravedad, estado, etiqueta, monitor o palabras del título. Se comprueban al crear un evento y de nuevo con cada actualización que OneUptime publica sobre él, así que una regla para incidentes reconocidos actúa cuando se reconoce un incidente. Sin condiciones, la regla se aplica a todos los eventos. Con dos o más, **Condición de coincidencia** indica si deben coincidir todas o basta con una. |
+| **Destino** | Dónde publica: **Publicar en canales existentes** con los nombres de los canales, **Crear un canal para cada incidente** (o alerta, episodio, evento, monitor o política de guardia) con quién se une a él, o ambos. Bajo el paso, **Qué hace esta regla** lo dice en frases, como la tarjeta de la regla. |
 | **Videollamada** | Solo incidentes y alertas: iniciar una llamada para cada uno. Consulta [Videollamadas](/docs/workspace-connections/video-calls). |
 
 Un canal que crea la regla lleva el nombre de su registro: el incidente INC-42 recibe `inc-42`, la alerta ALT-7 recibe `alt-7` y, en un proyecto sin prefijos de número, el incidente 42 recibe `incident-42`. El texto de **Prefijo del nombre del canal** va delante, así que `prod-` da `prod-inc-42`, y el formulario muestra el nombre mientras escribes. En un evento de mantenimiento programado, el prefijo sustituye a su prefijo de número: SM-5 recibe `sm-5`, y `maint-` da `maint-5`. Slack admite letras minúsculas, números, `-` y `_`, hasta 80 caracteres. Si ya existe un canal con ese nombre, como el de otro proyecto o uno archivado, OneUptime añade `-2`, `-3` y así sucesivamente.
 
-Solo un canal creado recibe a las personas que invita la regla: los propietarios del registro, los equipos y usuarios elegidos y, para incidentes y alertas, las personas de guardia a medida que se les avisa. Un incidente, una alerta o un episodio privado recibe un canal privado. Cada actualización posterior del registro — un cambio de estado, una nota, un nuevo propietario — se publica en sus canales y en los canales existentes que nombran sus reglas. Un incidente, una alerta o un episodio creado ya resuelto no recibe canal propio; su mensaje de creación igualmente va a los canales que nombran tus reglas. Consulta [Declarado ya reconocido o resuelto](/docs/incidents/declaring-incidents#declarado-ya-reconocido-o-resuelto).
+Una regla crea su canal la primera vez que un evento la cumple: al crear el evento, o más tarde, cuando una actualización hace que la cumpla mientras sigue abierto. Una regla para incidentes reconocidos crea el canal cuando se reconoce el incidente. Un incidente, una alerta o un episodio privado recibe un canal privado.
+
+**Quién se une al canal** lista a quién añade la regla a su canal, a cada uno a medida que se suma al registro, no solo al crear el canal: **Personas de guardia, a medida que se les avisa**, **Comandante de incidente y otros roles de incidente, a medida que se asignan** (incidentes y episodios de incidente) y **Propietarios, a medida que se añaden**, todos marcados en una regla nueva, y las personas y equipos de **Invitar también** al crear el canal. El comandante de incidente suele asignarse cuando alguien reconoce el incidente por primera vez, y se une a su canal entonces. Una regla guardada antes de que los roles de incidente tuvieran su propia casilla los añade cuando añade a los propietarios o a las personas de guardia, y su casilla aparece marcada. Un canal existente en el que publica una regla no recibe a nadie.
+
+Cada actualización posterior del registro — un cambio de estado, una nota, un nuevo propietario — se publica en sus canales, y en los canales existentes que nombran sus reglas mientras se cumplan sus condiciones. Con **Archivar el canal cuando se resuelva el incidente** activado, o su equivalente para alertas, episodios, eventos, monitores y políticas de guardia, la regla que creó un canal lo archiva cuando el registro se resuelve, se completa o se elimina, digan lo que digan entonces sus condiciones. Un incidente, una alerta o un episodio creado ya resuelto no recibe canal propio; su mensaje de creación igualmente va a los canales que nombran tus reglas. Consulta [Declarado ya reconocido o resuelto](/docs/incidents/declaring-incidents#declarado-ya-reconocido-o-resuelto).
 
 Un incidente, una alerta, un episodio o un evento de mantenimiento programado con un canal propio tiene **Abrir en Slack** en la cabecera de su página en OneUptime, junto a sus botones de estado. Abre ese canal en una pestaña nueva, en la aplicación de Slack o en el navegador. Un registro con dos canales propios los lista a ambos bajo el botón. Un registro con canales tanto en Slack como en Microsoft Teams tiene en su lugar un único botón **Abrir canal**, que los lista todos. Los canales existentes en los que publican tus reglas no se ofrecen.
 
@@ -139,7 +143,7 @@ OneUptime tiene un solo comando en Slack, `/oneuptime`. La palabra que escribes 
 | Comando | Qué hace |
 | --- | --- |
 | `/oneuptime help` | Lista los comandos, con ejemplos. |
-| `/oneuptime incident [title]` | Abre el formulario de incidente, con el título rellenado. |
+| `/oneuptime incident [title or number]` | Abre el formulario de incidente, con el título rellenado. El número de un incidente, como `42` o `INC-42`, muestra en cambio ese incidente: consulta [Gestionar un incidente desde Slack](#gestionar-un-incidente-desde-slack). |
 | `/oneuptime maintenance [title]` | Abre el formulario de mantenimiento programado, con el título rellenado. |
 | `/oneuptime oncall` | Lista quién está de guardia ahora mismo en cada programación de guardia que puedes ver, hasta cuándo y quién va después. |
 | `/oneuptime page [who] [message]` | Avisa a las personas que mencionas con @ sobre tu mensaje, o abre un formulario para elegir a quién avisar. Consulta [Avisar a alguien desde Slack](#avisar-a-alguien-desde-slack). |
@@ -212,6 +216,25 @@ Para un grupo que tenga a la guardia principal y a la secundaria, conecta el mis
 - **Quién puede conectar uno.** Los roles que pueden editar programaciones: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** y **On-Call Member**, o **Edit On-Call Duty Policy Schedule** en un rol personalizado. En OneUptime Cloud, conectar uno requiere el plan **Growth**.
 - **Desconectar.** OneUptime deja de cambiar el grupo. El grupo y sus miembros se quedan en Slack tal como están.
 
+## Gestionar un incidente desde Slack
+
+El mensaje de un incidente tiene cuatro botones, **Acknowledge Incident**, **Resolve Incident**, **Add Note** y **View Incident**, y el resto en su menú, el botón de tres puntos que va después:
+
+| Elemento del menú | Qué hace |
+| --- | --- |
+| **Change Severity** | Establece la gravedad del incidente. |
+| **Change Incident State** | Pasa el incidente a un estado posterior. |
+| **Assign Role** | Da a alguien un rol en el incidente, como **Incident Commander**. Un rol para una sola persona pasa a esa persona. |
+| **Page Someone** | Avisa a personas, a un equipo, a quien esté de guardia en una programación o a una política de guardia sobre el incidente, hasta que alguien lo reconozca. |
+| **Edit Custom Fields** | Establece los campos personalizados del incidente, cada uno rellenado con lo que tiene el incidente. Un campo que se deja vacío se borra. |
+
+`/oneuptime incident 42` muestra el incidente 42, con estos botones y su menú, en un mensaje que solo ves tú. Escribe el número como lo muestra OneUptime: `42`, `#42` o `INC-42`. En el canal propio de un incidente, `/oneuptime incident` sin nada más muestra ese incidente.
+
+- **Quién puede usarlos.** Las personas que pueden hacer el mismo cambio en OneUptime. **Change Severity** y **Edit Custom Fields** necesitan permiso para editar el incidente: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** e **Incident Member**, o **Edit Incident** en un rol personalizado. **Assign Role** necesita **Create Incident Member**, y **Delete Incident Member** para pasar un rol de una sola persona. **Page Someone** necesita lo mismo que **Execute On-Call Policy**. A cualquier otra persona se le dice por qué, y no se abre ningún formulario.
+- **Qué ofrecen los formularios.** Lo que puedes leer en el proyecto. Un campo personalizado copiado del monitor del incidente queda fuera, porque se volvería a copiar, y un formulario admite 40 campos: edita el resto en OneUptime.
+- **Qué pasa.** El formulario se cierra y el cambio se hace como tú, como en OneUptime: el feed del incidente, y con él los canales del incidente, dicen qué cambió, cada campo personalizado con su nuevo valor. Un valor que no encaja en su campo, como texto para un número, se indica debajo del campo, y el formulario sigue abierto. **Page Someone** dice a quién se avisó, o por qué no se avisó a nadie; un incidente que ya está resuelto no avisa a nadie.
+- **Mensajes publicados antes del menú.** Conservan su botón **Execute On-Call Policy**, y sigue funcionando: **Page Someone** también avisa a una política de guardia. Las alertas y los episodios conservan el suyo.
+
 ## Actuar sobre incidentes, alertas y eventos desde Slack
 
 Los botones de los mensajes de OneUptime en Slack también actúan como tú: como la cuenta de OneUptime a la que está conectada tu cuenta de Slack, con los permisos de esa cuenta en el proyecto. **Acknowledge**, **Resolve**, **Change State**, **Add Note** y **Execute On-Call Policy** en un incidente, una alerta o un episodio, y **Mark as Ongoing**, **Mark as Complete**, **Change State** y **Add Note** en un evento de mantenimiento programado, hacen cada uno el cambio que hace la misma acción en OneUptime, y se te atribuye allí: la línea de tiempo de estados y el feed del registro muestran que cambiaste su estado, y la nota es tuya. Una nota guardada desde un mensaje con una reacción con emoji se publica del mismo modo.
@@ -246,6 +269,10 @@ Lo que OneUptime guarda de todo ello — el nombre del espacio de trabajo, sus c
 
 :::details Una regla no publica nada
 Comprueba las condiciones de la regla con **Probar regla**: si la prueba llega, las condiciones de la regla no coincidieron con el evento. Si no llega, la página de Slack muestra por qué. Para un canal privado, invita primero a la app de OneUptime al canal en Slack. Cada mensaje que publica OneUptime, y cada uno que Slack rechazó, aparece en **Ajustes del proyecto** > **Notificaciones** > **Registros de notificación**, en la pestaña **Espacio de trabajo**.
+:::
+
+:::details Falta alguien en el canal de una regla
+La tarjeta de la regla dice bajo **Luego** a quién invita la regla. Cada tipo de persona se une a medida que se suma al registro: las personas avisadas cuando se les avisa, el comandante de incidente cuando se le asigna, un propietario cuando se le añade, y quien ya estaba en el registro cuando se creó el canal. A quien no tenga su cuenta de Slack conectada a OneUptime no se le puede añadir; OneUptime lo nombra en el canal, con un enlace para conectar su cuenta.
 :::
 
 :::details Slack no se conectó

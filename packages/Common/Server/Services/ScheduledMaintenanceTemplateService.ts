@@ -175,6 +175,13 @@ export class Service extends ProjectReferencesService<Model> {
         dateAndTime: createBy.data.firstEventScheduledAt!,
         recurringInterval: createBy.data.recurringInterval!,
       });
+    } else {
+      /*
+       * A template that does not recur has no next event (see
+       * onBeforeUpdate): a time sent with one, through the API or a
+       * workflow, is not kept.
+       */
+      delete createBy.data.scheduleNextEventAt;
     }
 
     return {
@@ -199,9 +206,20 @@ export class Service extends ProjectReferencesService<Model> {
         recurringInterval: true,
         firstEventEndsAt: true,
         firstEventStartsAt: true,
+        scheduleNextEventAt: true,
       });
 
+    // Whether any template the update writes still recurs once it is written.
+    let anyTemplateRecurs: boolean = false;
+
+    // Whether any of them holds a next time now.
+    let anyTemplateHoldsANextTime: boolean = false;
+
     for (const template of existingTemplates) {
+      if (template.scheduleNextEventAt) {
+        anyTemplateHoldsANextTime = true;
+      }
+
       let isRecurring: boolean = Boolean(template.isRecurringEvent);
 
       if (Object.keys(newTemplate).includes("isRecurringEvent")) {
@@ -234,6 +252,8 @@ export class Service extends ProjectReferencesService<Model> {
       }
 
       if (isRecurring) {
+        anyTemplateRecurs = true;
+
         // make sure all are not null.
 
         if (!firstEventScheduledAt) {
@@ -300,6 +320,30 @@ export class Service extends ProjectReferencesService<Model> {
           });
         }
       }
+    }
+
+    /*
+     * A template that does not recur has no next event. Turned off, a
+     * template used to keep the time its next event was due, and the
+     * templates list went on saying "Next event will be scheduled at ..."
+     * although the job (ScheduleRecurringEvents) creates events from
+     * recurring templates only. So an update that leaves none of the
+     * templates it writes recurring clears that time - from the Dashboard,
+     * the API, Terraform or a workflow alike - when there is one to clear:
+     * one a template holds, or one the update itself writes. An edit of a
+     * template that holds none writes nothing more than it was sent. The
+     * schedule itself stays (the first event's times and the interval):
+     * turned back on, the template is given its next time again above, the
+     * schedule's next time after now. Rows already stored with the switch
+     * off and a time were cleared by the
+     * ClearNextEventOfTemplatesThatDoNotRecur migration.
+     */
+    const writesANextTime: boolean = Object.keys(newTemplate).includes(
+      "scheduleNextEventAt",
+    );
+
+    if (!anyTemplateRecurs && (anyTemplateHoldsANextTime || writesANextTime)) {
+      newTemplate.scheduleNextEventAt = null;
     }
 
     updateBy.data = newTemplate;

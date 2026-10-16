@@ -106,13 +106,13 @@ Kriterier avgör när domänen räknas som i ordning eller trasig, och om det de
 | --- | --- | --- |
 | **Is Online** | **Sant**, **Falskt** | Om själva registreringsuppslaget lyckades. |
 | **Is Request Timeout** | **Sant**, **Falskt** | Om uppslaget nådde tidsgränsen vid varje försök. |
-| **Domain Expires In Days** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Dagar tills registreringen går ut, avrundat uppåt till en hel dag. |
+| **Domain Expires In Days** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Dagar tills registreringen går ut, avrundat uppåt till en hel dag. |
 | **Domain Is Expired** | **Sant**, **Falskt** | Om utgångsdatumet har passerat. |
-| **Domain Registrar** | **Innehåller**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | Registrarens namn. |
-| **Domain Name Server** | **Innehåller**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | Domänens namnservrar. Matchar när någon av dem matchar. |
-| **Domain Status Code** | **Innehåller**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | Domänens EPP-statuskoder. Matchar när någon av dem matchar. |
+| **Domain Registrar** | **Innehåller**, **Innehåller inte**, **Börjar med**, **Slutar med**, **Lika med**, **Inte lika med** | Registrarens namn. |
+| **Domain Name Server** | **Innehåller**, **Innehåller inte**, **Börjar med**, **Slutar med**, **Lika med**, **Inte lika med** | Domänens namnservrar. Matchar när någon av dem matchar. |
+| **Domain Status Code** | **Innehåller**, **Innehåller inte**, **Börjar med**, **Slutar med**, **Lika med**, **Inte lika med** | Domänens EPP-statuskoder. Matchar när någon av dem matchar. |
 
-Statuskoder normaliseras till sina EPP-namn (`clientTransferProhibited`) oavsett vilket protokoll som svarade, så ett kriterium fortsätter att matcha när **Auto** växlar mellan RDAP och WHOIS. Registrarers _namn_ är det som den svarande tjänsten publicerar och kan skilja sig något mellan de två protokollen, så välj hellre **Innehåller** än **Equal To** för ett kriterium med **Domain Registrar**.
+Statuskoder normaliseras till sina EPP-namn (`clientTransferProhibited`) oavsett vilket protokoll som svarade, så ett kriterium fortsätter att matcha när **Auto** växlar mellan RDAP och WHOIS. Registrarers _namn_ är det som den svarande tjänsten publicerar och kan skilja sig något mellan de två protokollen, så välj hellre **Innehåller** än **Lika med** för ett kriterium med **Domain Registrar**.
 
 Datum normaliseras till ISO 8601. Ett datum som ett register publicerar i en form som inte kan tolkas utelämnas i stället för att sparas, så att ett utgångskriterium inte kan avgöra och inte matchar, i stället för att i tysthet svara "inte utgången" för alltid.
 
@@ -136,7 +136,7 @@ För att bli varnad tidigare ändrar du värdet för filtret **Domain Expires In
 Monitorer som skapades innan OneUptime lade till den här varningen har inget kriterium "går snart ut". Så här lägger du till det:
 
 1. Öppna **Konfiguration → Kriterier** på monitorn och klicka på **Redigera Övervakningskriterier**.
-2. Klicka på **Lägg till kriterier**. Sätt dess filter till **Domain Is Expired** / **Falskt**, klicka på **Lägg till filter** och sätt det andra till **Domain Expires In Days** / **Less Than Or Equal To** / `30`. Låt **Matchningsvillkor** stå på **Alla** (det visas under filtren så snart det finns två).
+2. Klicka på **Lägg till kriterier**. Sätt dess filter till **Domain Is Expired** / **Falskt**, klicka på **Lägg till filter** och sätt det andra till **Domain Expires In Days** / **Mindre än eller lika med** / `30`. Låt **Matchningsvillkor** stå på **Alla** (det visas under filtren så snart det finns två).
 3. Slå på **När filter matchar, skapa en varning.** under **Åtgärder** och låt **När filter matchar, ändra övervakarstatus.** vara avstängt, så att det skapar ett larm och inte ändrar monitorns status.
 4. Dra det nya kriteriet ovanför kriteriet som markerar monitorn som online och spara sedan.
 :::
@@ -145,20 +145,20 @@ Monitorer som skapades innan OneUptime lade till den här varningen har inget kr
 
 | Mål | Filter | Villkor | Värde |
 | --- | --- | --- | --- |
-| Larma när domänen går ut inom 30 dagar (ett standardkriterium) | **Domain Expires In Days** | **Less Than Or Equal To** | `30` |
+| Larma när domänen går ut inom 30 dagar (ett standardkriterium) | **Domain Expires In Days** | **Mindre än eller lika med** | `30` |
 | Offline när domänen har gått ut | **Domain Is Expired** | **Sant** | — |
 | Offline när registreringen inte kan läsas | **Is Online** | **Falskt** | — |
-| Larma när namnservrarna ändras | **Domain Name Server** | **Not Contains** | `ns1.example.com` |
-| Larma när domänen är upplåst för överföring | **Domain Status Code** | **Not Contains** | `clientTransferProhibited` |
+| Larma när namnservrarna ändras | **Domain Name Server** | **Innehåller inte** | `ns1.example.com` |
+| Larma när domänen är upplåst för överföring | **Domain Status Code** | **Innehåller inte** | `clientTransferProhibited` |
 
-**Domain Name Server** och **Domain Status Code** matchar när _något_ enskilt värde matchar, så **Not Contains** matchar så snart en namnserver, eller en statuskod, inte innehåller texten.
+**Domain Name Server** och **Domain Status Code** matchar när _något_ enskilt värde matchar, så **Innehåller inte** matchar så snart en namnserver, eller en statuskod, inte innehåller texten.
 
 ## Bästa praxis
 
 1. **Ge dig själv tid att förnya** — Standardvarningen kommer 30 dagar före utgång. Om förnyelsen kräver godkännanden eller en betalning som tar längre tid, höj den till 60 dagar.
 2. **Täck misslyckade uppslag** — Ta med ett filter **Is Online** / **Falskt** i ditt offline-kriterium, så att en registrering som inte kan läsas inte misstas för en frisk. Nya monitorer har det i sina standardkriterier; en monitor som skapades innan det lades till behöver få det tillagt för hand. För att klara en WHOIS-server som då och då begränsar sonden kryssar du i **Utvärdera dessa kriterier över en tidsperiod** under det filtret och väljer **All Values**: domänen går då offline först när varje uppslag i fönstret har misslyckats.
 3. **Övervaka alla viktiga domäner** — Ta med primära domäner, separat registrerade underdomäner och alla domäner som används för e-post eller API:er.
-4. **Håll koll på registrarbyten** — Lägg till ett kriterium med **Domain Registrar** / **Not Contains** / namnet på din registrar, för att fånga en obehörig överföring.
+4. **Håll koll på registrarbyten** — Lägg till ett kriterium med **Domain Registrar** / **Innehåller inte** / namnet på din registrar, för att fånga en obehörig överföring.
 
 ## Felsökning
 

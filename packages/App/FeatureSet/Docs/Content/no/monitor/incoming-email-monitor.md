@@ -6,6 +6,7 @@ En monitor for innkommende e-post gir deg en e-postadresse som hører til én mo
 - [Opprett monitoren](#opprett-en-monitor-for-innkommende-e-post): Få en adresse, og pek avsenderen din mot den.
 - [Bekreft adressen](#bekreft-adressen-hos-avsenderen): Les en avsenders bekreftelses-e-post på monitoren.
 - [Skriv kriterier](#tilgjengelige-filtertyper): Sjekk emnet, avsenderen eller innholdet, eller varsle når e-postene slutter å komme.
+- [En hendelse for hver e-post](#åpne-en-hendelse-for-hver-e-post): La folk melde hendelser ved å sende e-post til adressen.
 - [Bruk e-posten i varsler](#malvariabler): Sett emnet og innholdet inn i titler og beskrivelser.
 :::
 
@@ -27,7 +28,7 @@ sequenceDiagram
 
 1. Når du oppretter en monitor for innkommende e-post, gir OneUptime den en unik e-postadresse.
 2. Hver e-post som sendes til den adressen, lagres på monitoren og evalueres mot kriteriene, ovenfra; det første kriteriet som samsvarer, avgjør.
-3. Et samsvarende kriterium kan endre monitorens status, opprette et varsel og erklære en hendelse. En hendelse med **Løs hendelse automatisk** slått på, eller et varsel med **Løs varsel automatisk** slått på, løses når et annet kriterium samsvarer senere — for eksempel det som markerer monitoren som online.
+3. Et samsvarende kriterium kan endre monitorens status, opprette et varsel og erklære en hendelse. En hendelse med **Løs hendelse automatisk** slått på, eller et varsel med **Løs varsel automatisk** slått på, løses når et annet kriterium samsvarer senere — for eksempel det som markerer monitoren som online. Så lenge et kriteriums hendelse er åpen, åpner senere e-poster som samsvarer med kriteriet, ingenting nytt, med mindre kriteriet [åpner en hendelse for hver e-post](#åpne-en-hendelse-for-hver-e-post).
 
 ## Opprett en monitor for innkommende e-post
 
@@ -143,7 +144,7 @@ En ny monitor for innkommende e-post opprettes med to kriterier som leser innhol
 | Kriterium | Filtertype | Filtervilkår | Verdi | Virkning |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
 | Offline  | Email Body  | Inneholder | `error` | Markerer monitoren som frakoblet, åpner en hendelse |
-| Online   | Email Body  | Not Contains | `error` | Markerer monitoren som online |
+| Online   | Email Body  | Inneholder ikke | `error` | Markerer monitoren som online |
 
 Dette passer for det vanlige tilfellet der en jobb eller et verktøy fra en tredjepart sender sitt eget resultat på e-post: en melding der innholdet nevner `error`, tar monitoren ned, og den neste meldingen uten ordet får monitoren opp igjen og løser hendelsen. Sammenligningen av innholdet skiller ikke mellom store og små bokstaver, så `Error` og `ERROR` samsvarer også.
 
@@ -174,13 +175,13 @@ Monitorens egen adresse maskeres før noe kriterium leser e-posten, så i **Emai
 | Filtervilkår | Beskrivelse | Eksempel |
 | ---------------- | ----------------------------------------- | ---------------------------------- |
 | **Inneholder** | Feltet inneholder den angitte teksten | Emnet inneholder "CRITICAL" |
-| **Not Contains** | Feltet inneholder ikke den angitte teksten | Emnet inneholder ikke "TEST" |
-| **Equal To** | Feltet samsvarer nøyaktig med den angitte teksten | Avsenderen er lik "alerts@service.com" |
-| **Not Equal To** | Feltet samsvarer ikke med den angitte teksten | Emnet er ikke lik "OK" |
-| **Starts With** | Feltet starter med den angitte teksten | Emnet starter med "[ALERT]" |
-| **Ends With** | Feltet slutter med den angitte teksten | Emnet slutter med "- Production" |
-| **Is Empty** | Feltet er tomt | Innholdet er tomt |
-| **Is Not Empty** | Feltet har innhold | Emnet er ikke tomt |
+| **Inneholder ikke** | Feltet inneholder ikke den angitte teksten | Emnet inneholder ikke "TEST" |
+| **Lik** | Feltet samsvarer nøyaktig med den angitte teksten | Avsenderen er lik "alerts@service.com" |
+| **Ikke lik** | Feltet samsvarer ikke med den angitte teksten | Emnet er ikke lik "OK" |
+| **Starter med** | Feltet starter med den angitte teksten | Emnet starter med "[ALERT]" |
+| **Slutter med** | Feltet slutter med den angitte teksten | Emnet slutter med "- Production" |
+| **Er tom** | Feltet er tomt | Innholdet er tomt |
+| **Er ikke tom** | Feltet har innhold | Emnet er ikke tomt |
 
 Ingen av disse sammenligningene skiller mellom store og små bokstaver. Et filter med tom verdi samsvarer aldri.
 
@@ -220,8 +221,8 @@ Legg det kritiske kriteriet først: kriteriene sjekkes ovenfra, og det første s
 
 | Kriterium | Filtre | Samsvarsbetingelse | Handlinger |
 | --- | --- | --- | --- |
-| Mislykket jobb | **Email From Address** Equal To `monitoring@legacy-system.com`; **E-postemne** Inneholder `Failed` | **Alle** | Endre statusen til frakoblet; erklær en hendelse |
-| Vellykket jobb | **Email From Address** Equal To `monitoring@legacy-system.com`; **E-postemne** Inneholder `Success` | **Alle** | Endre statusen til online |
+| Mislykket jobb | **Email From Address** Lik `monitoring@legacy-system.com`; **E-postemne** Inneholder `Failed` | **Alle** | Endre statusen til frakoblet; erklær en hendelse |
+| Vellykket jobb | **Email From Address** Lik `monitoring@legacy-system.com`; **E-postemne** Inneholder `Success` | **Alle** | Endre statusen til online |
 
 ### Eksempel 3: Heartbeat-monitor (ingen e-post = varsel)
 
@@ -232,6 +233,43 @@ Legg det kritiske kriteriet først: kriteriene sjekkes ovenfra, og det første s
 
 Det første kriteriet utløses når det ikke har kommet noen e-post på 60 minutter — nyttig for planlagte jobber eller batchprosesser som sender en e-post når de er ferdige. Det andre løser varselet så snart en e-post kommer. Minutter da OneUptime selv ikke tok imot e-post, teller ikke med i de 60, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
+## Åpne en hendelse for hver e-post
+
+Et kriterium holder én hendelse åpen om gangen: så lenge den er åpen, åpner senere e-poster som samsvarer med kriteriet, ingenting nytt. Det passer for et system der e-postene melder om én ting, som en nattlig sikkerhetskopi. Når hver e-post er en melding for seg, for eksempel når folk melder hendelser ved å sende e-post til adressen, slår du på **Åpne en ny hendelse for hver e-post** i kriteriet.
+
+:::steps
+### Velg e-postene
+
+Gi kriteriet et filter som samsvarer med e-postene det skal åpnes hendelser for. For å ta imot meldinger bare fra deres egne folk bruker du **Email From Address** med **Slutter med** og domenet deres, for eksempel `@example.com`.
+
+### Erklær hendelsen
+
+Under **Handlinger** slår du på **Når filtre samsvarer, erklær en hendelse.** Gi hendelsen tittelen `{{emailSubject}}` og beskrivelsen `{{emailBody}}`, slik at hver hendelse sier hva e-posten dens sa.
+
+### Slå på bryteren
+
+Slå på **Åpne en ny hendelse for hver e-post**, under hendelsen, og lagre monitoren.
+:::
+
+Fra da av behandler kriteriet hver e-post for seg:
+
+| E-post | Hva som skjer |
+| --- | --- |
+| En ny e-post | Åpner sin egen hendelse, selv mens tidligere er åpne. |
+| Den samme e-posten, levert på nytt | Åpner ikke noe mer: OneUptime skiller e-poster fra hverandre på headeren `Message-ID`. |
+| Et svar på en e-post som åpnet en hendelse | Legges til den hendelsen som et privat notat og åpner ingenting mens hendelsen er åpen. Når hendelsen er løst, åpner et svar en ny hendelse. |
+| Et automatisk svar, som en fraværsmelding | Åpner ingenting. |
+| En e-post etter at monitoren har åpnet 20 hendelser fra e-poster den siste timen | Åpner ingenting, slik at en e-postløkke eller en flom av e-poster ikke kan varsle teamet ditt i det uendelige. |
+
+Hver e-post får fortsatt en rad i **Overvåkingslogger**, og **Vis sammendrag** på den raden sier hva e-posten åpnet, eller hvorfor den ikke åpnet noe. Når kriteriet også oppretter varsler, heter bryteren **Åpne en ny hendelse og et nytt varsel for hver e-post**, og hver e-post åpner sitt eget varsel på samme måte.
+
+Disse hendelsene forblir åpne til noen løser dem. Med **Løs hendelse automatisk** slått på løses de også når en senere e-post samsvarer med et annet kriterium, som enhver hendelse; en senere e-post som samsvarer med det samme kriteriet, løser aldri de tidligere. En kontroll for manglende e-post (**Email Received**) er ikke en e-post, så den åpner fortsatt én hendelse om gangen.
+
+> [!WARNING]
+> **Alle som kjenner adressen, kan åpne hendelser.** Hold adressen privat, filtrer på avsenderen som over, og [tilbakestill adressen](#tilbakestill-eller-tilpass-e-postadressen) hvis den lekker. En avsenders adresse kan forfalskes, så filteret holder borte bortkommen e-post, ikke noen som er fast bestemt på å komme inn.
+
+For mer kontroll, som en alvorlighetsgrad lest fra emnet eller et team valgt etter avsender, starter du heller en arbeidsflyt fra hver e-post: se [Incoming Email-utløseren](/docs/workflows/triggers#incoming-email).
+
 ## Bruksområder
 
 | Bruksområde | Hva monitoren gjør |
@@ -240,6 +278,7 @@ Det første kriteriet utløses når det ikke har kommet noen e-post på 60 minut
 | Tjenester fra tredjeparter | Mottar varsler fra skyleverandører (AWS, GCP, Azure), sikkerhetsskannere, verktøy for sikkerhetskopiering og advarsler om sertifikater som utløper. |
 | Planlagte jobber | Varsler når en e-post om at en jobb er ferdig, er forsinket, eller når en jobb sender en e-post om en feil. |
 | Samling av varsler | Samler e-postvarsler fra Nagios, Zabbix eller andre verktøy, slik at OneUptime er det ene stedet du håndterer dem. |
+| Melde hendelser på e-post | Åpner en hendelse for hver e-post folk sender til adressen, og tar vare på svarene som notater på den. |
 
 ## Malvariabler
 
@@ -288,7 +327,7 @@ Inntil det er satt opp, sier monitorens adressekort at innkommende e-post ikke e
 - **Sikkerheten til e-postadressen**: Monitorens e-postadresse fungerer som et passord: alle som kjenner den, kan sende e-post til monitoren. Ikke del den offentlig, og tilbakestill den fra monitorens fane **Innstillinger** hvis den lekker.
 - **Størrelse på e-post**: OneUptime godtar en innkommende e-post på opptil 50 MB, vedlegg inkludert. Vedlegg lagres ikke — bare navnene, typene og størrelsene deres.
 - **Behandlingstid**: E-poster behandles asynkront. Det kan gå noen sekunder fra en e-post sendes til varselet opprettes.
-- **Store og små bokstaver**: Ingen av strengsammenligningene (Inneholder, Equal To osv.) skiller mellom store og små bokstaver.
+- **Store og små bokstaver**: Ingen av strengsammenligningene (Inneholder, Lik osv.) skiller mellom store og små bokstaver.
 - **Ren tekst**: Kriterier for innholdet leser ren tekst-delen av e-posten. En e-post som bare er sendt som HTML, har et tomt innhold for kriteriene — så den inneholder ikke `error`, og standardkriteriene markerer monitoren som online.
 
 ## Feilsøking
@@ -307,6 +346,7 @@ Inntil det er satt opp, sier monitorens adressekort at innkommende e-post ikke e
 2. Sjekk at overvåkingen er slått på: monitorens side **Innstillinger**, kortet **Overvåking**.
 3. Åpne **Overvåkingslogger**, og klikk på **Vis sammendrag** på raden til e-posten for å se hva kriteriene leste.
 4. Sjekk rekkefølgen på kriteriene: det første som samsvarer, avgjør.
+5. Hvis kriteriet åpner en hendelse for hver e-post, kan e-posten være et svar, en ny levering eller et automatisk svar, eller monitoren har allerede åpnet 20 hendelser fra e-poster den siste timen. **Vis sammendrag** på raden til e-posten sier hvilket.
 
 ### Varsler løses ikke
 

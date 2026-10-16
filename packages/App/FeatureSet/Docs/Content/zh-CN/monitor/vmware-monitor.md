@@ -270,7 +270,7 @@ OneUptime 为常见的 VMware 问题提供 23 个模板，**Quick Setup** 会提
 | --- | --- |
 | **指标** | 要检查的查询或公式，按其变量名。 |
 | **聚合** | 窗口中的值如何变成一个答案：**平均值**、**总和**、**Maximum Value**、**Minimum Value**、**All Values**(每个值都必须匹配)或 **Any Value**(一个就够)。 |
-| **条件** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** 或 **Equal To**——或者一个异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
+| **条件** | **大于**、**小于**、**大于或等于**、**小于或等于** 或 **等于**——或者一个异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
 | **Threshold** | 用于比较的值。指标有单位时，旁边会有一个单位列表。异常条件不显示此字段。 |
 | **灵敏度** | 仅限异常条件。**低**(4σ)、**中**(3σ，默认)或 **高**(2σ)。 |
 | **基线窗口** | 仅限异常条件。14 天(默认)、28、60 或 90 天的历史。 |
@@ -280,11 +280,11 @@ OneUptime 为常见的 VMware 问题提供 23 个模板，**Quick Setup** 会提
 
 一些可以作为起点的条件：
 
-- **某台主机已饱和：** `vcenter.host.cpu.utilization`，平均值，按 `resource.vcenter.host.name` 分组，**Greater Than** `90`，过去 5 分钟。
-- **某个数据存储即将写满：** `vcenter.datastore.disk.utilization`，平均值，按 `resource.vcenter.datastore.name` 分组，**Greater Than** `80`。
-- **某个集群失去了一台主机：** `vcenter.cluster.host.count` 过滤到 `effective = false`，最大值，按 `resource.vcenter.cluster.name` 分组，**Greater Than** `0`。
-- **运行的 VM 少于预期：** `vcenter.cluster.vm.count` 过滤到 `power_state = on` 和 `resource.vcenter.cluster.name = Production`，总和，**Less Than** 你预期的数量。
-- **某个 VM 正在被主机交换：** `vcenter.vm.memory.swapped`，最大值，按 `resource.vcenter.vm.name` 分组，**Greater Than** `0`。
+- **某台主机已饱和：** `vcenter.host.cpu.utilization`，平均值，按 `resource.vcenter.host.name` 分组，**大于** `90`，过去 5 分钟。
+- **某个数据存储即将写满：** `vcenter.datastore.disk.utilization`，平均值，按 `resource.vcenter.datastore.name` 分组，**大于** `80`。
+- **某个集群失去了一台主机：** `vcenter.cluster.host.count` 过滤到 `effective = false`，最大值，按 `resource.vcenter.cluster.name` 分组，**大于** `0`。
+- **运行的 VM 少于预期：** `vcenter.cluster.vm.count` 过滤到 `power_state = on` 和 `resource.vcenter.cluster.name = Production`，总和，**小于** 你预期的数量。
+- **某个 VM 正在被主机交换：** `vcenter.vm.memory.swapped`，最大值，按 `resource.vcenter.vm.name` 分组，**大于** `0`。
 
 ### 默认条件
 

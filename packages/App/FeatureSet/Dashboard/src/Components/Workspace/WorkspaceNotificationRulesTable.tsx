@@ -40,7 +40,7 @@ import Field, {
   CustomElementProps,
 } from "Common/UI/Components/Forms/Types/Field";
 import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
-import NotificawtionRuleViewElement from "./NotificationRuleViewElement/NotificationRuleViewElement";
+import { getNotificationRuleCardColumns } from "./NotificationRuleViewElement/NotificationRuleViewElement";
 import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -71,6 +71,34 @@ import { getVideoCallValidationError } from "Common/Types/Workspace/Notification
 import NotificationRuleVideoCallForm from "./NotificationRuleForm/NotificationRuleVideoCallForm";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import { WorkspaceChannelNumberPrefixes } from "Common/Utils/Workspace/WorkspaceChannelName";
+import NotificationRuleInvites from "Common/Types/Workspace/NotificationRules/NotificationRuleInvites";
+import {
+  NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS,
+  NOTIFICATION_RULE_CONDITIONS_TITLES,
+  NOTIFICATION_RULE_DESTINATION_DESCRIPTION,
+  NOTIFICATION_RULE_DESTINATION_TITLES,
+  NOTIFICATION_RULES_CARD_DESCRIPTIONS,
+  NOTIFICATION_RULES_CARD_TITLE,
+  RULE_PLURAL_NAMES,
+  RULE_SINGULAR_NAMES,
+  VIDEO_CALL_STEP_DESCRIPTIONS,
+  VIDEO_CALL_STEP_TITLE,
+} from "./NotificationRuleForm/NotificationRuleCopy";
+
+/*
+ * How each step of the rule wizard opens: with its question as a heading
+ * and a sentence under it ("Which incidents", "Then, in Slack"), drawn by
+ * the field's sectionTitle and sectionDescription - not as a field label,
+ * which drew it smaller than the Destination step's own "Who joins the
+ * channel" heading. Nothing on these steps is optional, so no "(Optional)".
+ */
+const STEP_HEADING: {
+  customElementDrawsOwnLabel: true;
+  hideOptionalLabel: true;
+} = {
+  customElementDrawsOwnLabel: true,
+  hideOptionalLabel: true,
+};
 
 /*
  * The form key the Video Call step is registered under. Like the
@@ -678,8 +706,8 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             },
           },
         ]}
-        singularName={`${props.eventType} Notification Rule`}
-        pluralName={`${props.eventType} Notification Rules`}
+        singularName={RULE_SINGULAR_NAMES[props.eventType]}
+        pluralName={RULE_PLURAL_NAMES[props.eventType]}
         id="servie-provider-table"
         name="Settings > Workspace Notification Rules"
         isDeleteable={true}
@@ -692,20 +720,36 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
          * OneUptime does by default; the step asks All or Any only once
          * there are two conditions (NotificationRuleForm), and a rule with
          * fewer is saved with this.
+         *
+         * A channel it creates gets everybody the record has, as they join
+         * it: the people paged, the Incident Commander and other roles, the
+         * owners (NotificationRuleInvites.getNewRuleSwitches). The boxes are
+         * ticked from the start; they count only once the rule creates a
+         * channel.
          */
         createInitialValues={{
           notificationRule: {
             filterCondition: FilterCondition.All,
             filters: [],
+            ...NotificationRuleInvites.getNewRuleSwitches(props.eventType),
           },
         }}
         isCreateable={true}
+        /*
+         * What a rule is, said where the rules are: which records it is
+         * for, then what it does with them.
+         */
         cardProps={{
-          title: `${props.eventType} - ${getWorkspaceTypeDisplayName(props.workspaceType)} Notification Rules`,
-          description: `Manage ${props.eventType} notification rules for ${getWorkspaceTypeDisplayName(props.workspaceType)}.`,
+          title: NOTIFICATION_RULES_CARD_TITLE,
+          description: NOTIFICATION_RULES_CARD_DESCRIPTIONS[props.eventType],
         }}
+        /*
+         * No rules yet is the list's own empty state: "No incident
+         * notification rules yet.", what a rule does (the card's
+         * description) and the Create button. It said "No notification
+         * rules found.", as if a search had missed.
+         */
         showAs={ShowAs.List}
-        noItemsMessage={"No notification rules found."}
         onBeforeCreate={(values: WorkspaceNotificationRule) => {
           values.eventType = props.eventType;
           values.projectId = ProjectUtil.getCurrentProjectId()!;
@@ -749,8 +793,17 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             field: {
               notificationRule: true,
             },
-            title: `Notify ${getWorkspaceTypeDisplayName(props.workspaceType)} on ${props.eventType} when...`,
-            description: `Set the conditions to notify ${getWorkspaceTypeDisplayName(props.workspaceType)} on ${props.eventType}. If you do not set any conditions, then this rule will trigger for every ${props.eventType}.`,
+            /*
+             * Which records the rule is for, and when that is checked: when
+             * a record is created and each time it changes. Each step opens
+             * with its question as a heading, as the Destination step's
+             * sections are headed (STEP_HEADING).
+             */
+            title: NOTIFICATION_RULE_CONDITIONS_TITLES[props.eventType],
+            sectionTitle: NOTIFICATION_RULE_CONDITIONS_TITLES[props.eventType],
+            sectionDescription:
+              NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS[props.eventType],
+            ...STEP_HEADING,
             fieldType: FormFieldSchemaType.CustomComponent,
             /*
              * No conditions is a rule that fires for every event, so the
@@ -794,11 +847,13 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             },
             overrideFieldKey: NOTIFICATION_RULE_DESTINATION_FIELD_KEY,
             formOnly: true,
-            title: `Then, in ${getWorkspaceTypeDisplayName(props.workspaceType)}...`,
-            description: `Where the notification goes when the conditions are met.`,
+            title: NOTIFICATION_RULE_DESTINATION_TITLES[props.workspaceType],
+            sectionTitle:
+              NOTIFICATION_RULE_DESTINATION_TITLES[props.workspaceType],
+            sectionDescription: NOTIFICATION_RULE_DESTINATION_DESCRIPTION,
+            ...STEP_HEADING,
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
-            hideOptionalLabel: true,
             stepId: "destination",
             getDefaultValue: (): boolean => {
               return true;
@@ -851,11 +906,13 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
                   },
                   overrideFieldKey: NOTIFICATION_RULE_VIDEO_CALL_FIELD_KEY,
                   formOnly: true,
-                  title: "Video call",
-                  description: `Start a dedicated call for the ${props.eventType.toLowerCase()} when this rule fires.`,
+                  title: VIDEO_CALL_STEP_TITLE,
+                  sectionTitle: VIDEO_CALL_STEP_TITLE,
+                  sectionDescription:
+                    VIDEO_CALL_STEP_DESCRIPTIONS[props.eventType],
+                  ...STEP_HEADING,
                   fieldType: FormFieldSchemaType.CustomComponent,
                   required: false,
-                  hideOptionalLabel: true,
                   stepId: "videoCall",
                   getDefaultValue: (): boolean => {
                     return true;
@@ -946,56 +1003,31 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             title: "Rule Description",
           },
         ]}
-        columns={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Rule Name",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              description: true,
-            },
-            noValueMessage: "-",
-            title: "Rule Description",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              notificationRule: true,
-            },
-            title: "Notification Rules",
-            type: FieldType.Element,
-            getElement: (value: WorkspaceNotificationRule): ReactElement => {
-              return (
-                <Fragment>
-                  <NotificawtionRuleViewElement
-                    value={value.notificationRule as IncidentNotificationRule}
-                    eventType={props.eventType}
-                    monitors={monitors}
-                    labels={labels}
-                    alertStates={alertStates}
-                    alertSeverities={alertSeverities}
-                    incidentSeverities={incidentSeverities}
-                    incidentStates={incidentStates}
-                    scheduledMaintenanceStates={scheduledMaintenanceStates}
-                    monitorStatus={monitorStatus}
-                    workspaceType={props.workspaceType}
-                    teams={teams}
-                    microsoftTeamsTeams={microsoftTeamsTeams}
-                    microsoftTeamsChats={microsoftTeamsChats}
-                    users={users}
-                    videoCallConnections={videoCallConnections}
-                    numberPrefixes={numberPrefixes}
-                    exampleRecordName={exampleRecordName}
-                  />
-                </Fragment>
-              );
-            },
-          },
-        ]}
+        /*
+         * Each rule as a card: its name, its description when it has one,
+         * When (which records), Then (what it does with them) and, when it
+         * starts one, its video call.
+         */
+        columns={getNotificationRuleCardColumns({
+          eventType: props.eventType,
+          canStartVideoCall: canRuleStartVideoCall(props.eventType),
+          workspaceType: props.workspaceType,
+          monitors: monitors,
+          labels: labels,
+          alertStates: alertStates,
+          alertSeverities: alertSeverities,
+          incidentSeverities: incidentSeverities,
+          incidentStates: incidentStates,
+          scheduledMaintenanceStates: scheduledMaintenanceStates,
+          monitorStatus: monitorStatus,
+          teams: teams,
+          users: users,
+          microsoftTeamsTeams: microsoftTeamsTeams,
+          microsoftTeamsChats: microsoftTeamsChats,
+          videoCallConnections: videoCallConnections,
+          numberPrefixes: numberPrefixes,
+          exampleRecordName: exampleRecordName,
+        })}
       />
 
       {showTestModal && testNotificationRule ? (

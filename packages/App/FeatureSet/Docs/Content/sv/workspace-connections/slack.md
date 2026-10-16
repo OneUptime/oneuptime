@@ -15,8 +15,8 @@ Anslut OneUptime till Slack för att publicera incidenter, larm, episoder, schem
 ```mermaid title="Från en händelse i OneUptime till ett meddelande i Slack"
 flowchart TB
     event["En incident, ett larm eller en händelse<br/>skapas eller ändras"] --> rules{"Aviseringsregler<br/>vars villkor matchar"}
-    rules -->|"Create Slack Channel"| own["En egen kanal,<br/>med dess personer inbjudna"]
-    rules -->|"Post to Existing Slack Channel"| existing["Dina befintliga kanaler"]
+    rules -->|"En kanal<br/>för varje"| own["En egen kanal,<br/>med dess personer inbjudna allteftersom de tillkommer"]
+    rules -->|"Publicera i befintliga kanaler"| existing["Dina befintliga kanaler"]
     own --> message["Ett meddelande med knappar"]
     existing --> message
     message -->|"En responder trycker på en"| change["Ändringen görs i OneUptime,<br/>som den respondern"]
@@ -47,7 +47,7 @@ Att installera appen länkar kontot för den som installerade den. Alla andra l�
 
 ### Lägg till en aviseringsregel
 
-Gå till **Incidenter** > **Arbetsyta** > **Slack**. Avsnittet **Arbetsyta** visar bara de chattarbetsytor som ditt projekt har anslutit, så **Slack** visas där så snart det är anslutet. Skapa en regel, till exempel en som skapar en Slack-kanal för varje ny incident och bjuder in incidentens ägare. Se [Aviseringsregler](#aviseringsregler).
+Gå till **Incidenter** > **Arbetsyta** > **Slack**. Avsnittet **Arbetsyta** visar bara de chattarbetsytor som ditt projekt har anslutit, så **Slack** visas där så snart det är anslutet. Skapa en regel, till exempel en som skapar en Slack-kanal för varje ny incident med alla som arbetar med den: de larmade, den incidentansvarige och ägarna. Se [Aviseringsregler](#aviseringsregler).
 
 ### Testa regeln
 
@@ -71,13 +71,17 @@ Att skapa en regel går igenom fyra steg:
 | Steg | Vad du anger |
 | --- | --- |
 | **Grundläggande** | **Regelnamn** och **Regelbeskrivning**. |
-| **Villkor** | Vilka händelser regeln utlöses för, till exempel efter allvarlighetsgrad, tillstånd, etikett, monitor eller ord i titeln. Utan villkor utlöses den för varje händelse. Med två eller fler anger **Matchningsvillkor** om alla måste matcha, eller om det räcker med ett. |
-| **Mål** | Var den publicerar: **Post to Existing Slack Channel** med kanalnamnen, **Create Slack Channel** med den nya kanalens namn och vilka som bjuds in, eller båda. |
+| **Villkor** | Vilka händelser regeln gäller, till exempel efter allvarlighetsgrad, tillstånd, etikett, monitor eller ord i titeln. De kontrolleras när en händelse skapas och igen vid varje uppdatering som OneUptime publicerar om den, så en regel för bekräftade incidenter verkar när en incident bekräftas. Utan villkor gäller regeln varje händelse. Med två eller fler anger **Matchningsvillkor** om alla måste matcha, eller om det räcker med ett. |
+| **Mål** | Var den publicerar: **Publicera i befintliga kanaler** med kanalnamnen, **Skapa en kanal för varje incident** (eller larm, episod, händelse, monitor eller jourpolicy) med vilka som går med i den, eller båda. Under steget säger **Vad regeln gör** det i meningar, som regelns kort. |
 | **Video Call** | Endast incidenter och larm: starta ett samtal för var och en. Se [Videosamtal](/docs/workspace-connections/video-calls). |
 
 En kanal som regeln skapar får namn efter sin post: incident INC-42 får `inc-42`, larm ALT-7 får `alt-7`, och i ett projekt utan nummerprefix får incident 42 `incident-42`. Text i **Prefix för kanalnamn** hamnar framför, så `prod-` ger `prod-inc-42`, och formuläret visar namnet medan du skriver. För en schemalagd underhållshändelse ersätter prefixet dess nummerprefix: SM-5 får `sm-5`, och `maint-` ger `maint-5`. Slack tar små bokstäver, siffror, `-` och `_`, upp till 80 tecken. Finns det redan en kanal med det namnet, till exempel ett annat projekts eller en arkiverad kanal, lägger OneUptime till `-2`, `-3` och så vidare.
 
-Bara en skapad kanal får de personer som regeln bjuder in: postens ägare, valda team och användare och, för incidenter och larm, de jourhavande allteftersom de larmas. En privat incident, ett privat larm eller en privat episod får en privat kanal. Varje senare uppdatering av posten — en tillståndsändring, en anteckning, en ny ägare — publiceras i dess kanaler och i de befintliga kanaler som dess regler anger. En incident, ett larm eller en episod som skapades redan löst får ingen egen kanal; skapandemeddelandet går ändå till de kanaler som dina regler anger. Se [Deklarerad redan bekräftad eller löst](/docs/incidents/declaring-incidents#deklarerad-redan-bekräftad-eller-löst).
+En regel skapar sin kanal första gången en händelse matchar den: när händelsen skapas, eller senare, när en uppdatering får den att matcha medan den fortfarande är öppen. En regel för bekräftade incidenter skapar kanalen när incidenten bekräftas. En privat incident, ett privat larm eller en privat episod får en privat kanal.
+
+**Vem som går med i kanalen** visar vilka regeln lägger till i sin kanal, var och en allteftersom de tillkommer posten, inte bara när kanalen skapas: **Jourhavande, allteftersom de larmas**, **Incidentansvarig och andra incidentroller, allteftersom de tilldelas** (incidenter och incidentepisoder) och **Ägare, allteftersom de läggs till**, alla ikryssade för en ny regel, och personerna och teamen i **Bjud också in** när kanalen skapas. Den incidentansvarige tilldelas oftast när någon först bekräftar incidenten, och går då med i dess kanal. En regel som sparades innan incidentroller fick en egen ruta lägger till dem när den lägger till ägarna eller de jourhavande, och dess ruta visas ikryssad. En befintlig kanal som en regel publicerar i får ingen.
+
+Varje senare uppdatering av posten — en tillståndsändring, en anteckning, en ny ägare — publiceras i dess kanaler, och i de befintliga kanaler som dess regler anger så länge deras villkor stämmer. Med **Arkivera kanalen när incidenten är löst** påslagen, eller dess motsvarighet för larm, episoder, händelser, monitorer och jourpolicyer, arkiverar regeln som skapade en kanal den när posten är löst, slutförd eller borttagen, vad dess villkor än säger då. En incident, ett larm eller en episod som skapades redan löst får ingen egen kanal; skapandemeddelandet går ändå till de kanaler som dina regler anger. Se [Deklarerad redan bekräftad eller löst](/docs/incidents/declaring-incidents#deklarerad-redan-bekräftad-eller-löst).
 
 En incident, ett larm, en episod eller en schemalagd underhållshändelse med en egen kanal har **Öppna i Slack** i sidhuvudet på sin sida i OneUptime, bredvid tillståndsknapparna. Den öppnar kanalen i en ny flik, i Slack-appen eller i webbläsaren. En post med två egna kanaler listar båda under knappen. En post med kanaler i både Slack och Microsoft Teams har i stället en knapp, **Öppna kanal**, som listar alla. De befintliga kanaler som dina regler publicerar i erbjuds inte.
 
@@ -139,7 +143,7 @@ OneUptime har ett enda kommando i Slack, `/oneuptime`. Ordet du skriver efter de
 | Kommando | Vad det gör |
 | --- | --- |
 | `/oneuptime help` | Visar kommandona, med exempel. |
-| `/oneuptime incident [title]` | Öppnar incidentformuläret med titeln ifylld. |
+| `/oneuptime incident [title or number]` | Öppnar incidentformuläret med titeln ifylld. En incidents nummer, som `42` eller `INC-42`, visar i stället den incidenten: se [Hantera en incident från Slack](#hantera-en-incident-från-slack). |
 | `/oneuptime maintenance [title]` | Öppnar formuläret för schemalagt underhåll med titeln ifylld. |
 | `/oneuptime oncall` | Visar vem som har jour just nu i varje jourschema du kan se, till när, och vem som är nästa. |
 | `/oneuptime page [who] [message]` | Larmar personerna du nämner med @ om ditt meddelande, eller öppnar ett formulär där du väljer vem som ska larmas. Se [Larma någon från Slack](#larma-någon-från-slack). |
@@ -212,6 +216,25 @@ För en grupp med både den primära och den sekundära jouren ansluter du samma
 - **Vem som får ansluta en.** De roller som får redigera scheman: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** och **On-Call Member**, eller **Edit On-Call Duty Policy Schedule** i en anpassad roll. På OneUptime Cloud kräver det abonnemanget **Growth** att ansluta en.
 - **Koppla från.** OneUptime slutar ändra gruppen. Gruppen och dess medlemmar stannar i Slack som de är.
 
+## Hantera en incident från Slack
+
+En incidents meddelande har fyra knappar, **Acknowledge Incident**, **Resolve Incident**, **Add Note** och **View Incident**, och resten i dess meny, knappen med tre punkter efter dem:
+
+| Menyval | Vad det gör |
+| --- | --- |
+| **Change Severity** | Anger incidentens allvarlighetsgrad. |
+| **Change Incident State** | Flyttar incidenten till ett senare tillstånd. |
+| **Assign Role** | Ger någon en roll i incidenten, som **Incident Commander**. En roll för en person går över till den personen. |
+| **Page Someone** | Larmar personer, ett team, den som har jour i ett schema just nu, eller en jourpolicy om incidenten, tills någon bekräftar den. |
+| **Edit Custom Fields** | Anger incidentens anpassade fält, vart och ett ifyllt med det incidenten har. Ett fält som lämnas tomt rensas. |
+
+`/oneuptime incident 42` visar incident 42, med de här knapparna och dess meny, i ett meddelande som bara du ser. Skriv numret som OneUptime visar det: `42`, `#42` eller `INC-42`. I en incidents egen kanal visar `/oneuptime incident` ensamt den incidenten.
+
+- **Vem som får använda dem.** De som får göra samma ändring i OneUptime. **Change Severity** och **Edit Custom Fields** kräver behörighet att redigera incidenten: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** och **Incident Member**, eller **Edit Incident** i en anpassad roll. **Assign Role** kräver **Create Incident Member**, och **Delete Incident Member** för att flytta en roll för en person. **Page Someone** kräver samma som **Execute On-Call Policy**. Alla andra får veta varför, och inget formulär öppnas.
+- **Vad formulären erbjuder.** Det du får läsa i projektet. Ett anpassat fält som kopieras från incidentens monitor utelämnas, eftersom det skulle kopieras igen, och ett formulär rymmer 40 fält: redigera resten i OneUptime.
+- **Vad som händer.** Formuläret stängs, och ändringen görs som du, som i OneUptime: incidentens feed, och incidentens kanaler med den, säger vad som ändrades, varje anpassat fält med sitt nya värde. Ett värde som inte passar sitt fält, som text för ett tal, nämns under fältet, och formuläret förblir öppet. **Page Someone** säger vem som larmades, eller varför ingen gjorde det; en incident som redan är löst larmar ingen.
+- **Meddelanden från före menyn.** De behåller sin knapp **Execute On-Call Policy**, och den fungerar fortfarande: **Page Someone** larmar också en jourpolicy. Larm och episoder behåller sina.
+
 ## Agera på incidenter, larm och händelser från Slack
 
 Knapparna i OneUptimes Slack-meddelanden agerar också som dig: som det OneUptime-konto som ditt Slack-konto är anslutet till, med det kontots behörigheter i projektet. **Acknowledge**, **Resolve**, **Change State**, **Add Note** och **Execute On-Call Policy** på en incident, ett larm eller en episod, och **Mark as Ongoing**, **Mark as Complete**, **Change State** och **Add Note** på en schemalagd underhållshändelse, gör var och en den ändring som samma åtgärd gör i OneUptime, och den tillskrivs dig där: postens tillståndstidslinje och feed visar att du ändrade dess tillstånd, och anteckningen är din. En anteckning som sparas från ett meddelande med en emoji-reaktion publiceras på samma sätt.
@@ -246,6 +269,10 @@ Det OneUptime sparar av detta — arbetsytans namn, dess kanaler, de Slack-konto
 
 :::details En regel publicerar ingenting
 Kontrollera regelns villkor med **Testregel**: om testet kommer fram matchade inte regelns villkor händelsen. Om det inte gör det visar Slack-sidan varför. För en privat kanal måste du först bjuda in OneUptime-appen till den i Slack. Varje meddelande som OneUptime publicerar, och varje meddelande som Slack avvisade, visas i **Projektinställningar** > **Aviseringar** > **Aviseringsloggar**, på fliken **Arbetsyta**.
+:::
+
+:::details Någon saknas i en regels kanal
+Regelns kort säger under **Sedan** vilka regeln bjuder in. Varje slags person går med allteftersom de tillkommer posten: de larmade när de larmas, den incidentansvarige när den tilldelas, en ägare när den läggs till, och de som redan fanns på posten när kanalen skapades. Den vars Slack-konto inte är anslutet till OneUptime kan inte läggas till; OneUptime nämner personen i kanalen, med en länk för att ansluta sitt konto.
 :::
 
 :::details Slack anslöts inte

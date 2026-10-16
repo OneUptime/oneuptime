@@ -219,7 +219,7 @@ Un critère compare l'une des requêtes ou formules du moniteur à un seuil. Les
 | --- | --- |
 | **Métrique** | La requête ou formule à vérifier, par son nom de variable. |
 | **Agrégation** | Comment les valeurs de la fenêtre deviennent une seule réponse : **Moyenne**, **Somme**, **Maximum Value**, **Minimum Value**, **All Values** (chaque valeur doit correspondre) ou **Any Value** (une seule suffit). |
-| **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** ou **Equal To** — ou une condition d'anomalie : **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
+| **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** ou **Égal à** — ou une condition d'anomalie : **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
 | **Threshold** | La valeur de comparaison. Une liste d'unités s'affiche à côté quand la métrique a une unité. Non affiché pour les conditions d'anomalie. |
 | **Sensibilité** | Conditions d'anomalie uniquement. **Low** (4σ), **Medium** (3σ, par défaut) ou **Élevé** (2σ). |
 | **Fenêtre de référence** | Conditions d'anomalie uniquement. 14 jours (par défaut), 28, 60 ou 90 jours d'historique. |
@@ -254,7 +254,7 @@ L'agent doit interroger **chaque** démon mgr, pas seulement l'actif : les stand
 :::
 
 :::details ceph_health_status vaut 1 mais rien ne se déclenche
-Vérifiez que le critère utilise **Greater Than Or Equal To** `1` et non **Greater Than**, et que la **Plage temporelle** du moniteur couvre au moins une collecte de 30 secondes.
+Vérifiez que le critère utilise **Supérieur ou égal à** `1` et non **Supérieur à**, et que la **Plage temporelle** du moniteur couvre au moins une collecte de 30 secondes.
 :::
 
 :::details Les modèles de health checks ne se déclenchent jamais

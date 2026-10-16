@@ -6,6 +6,7 @@ Un monitor de correos entrantes le da una dirección de correo que pertenece a u
 - [Crear el monitor](#crear-un-monitor-de-correos-entrantes): Obtenga una dirección y dirija a ella a su emisor.
 - [Verificar la dirección](#verificar-la-dirección-con-el-emisor): Lea en el monitor el correo de confirmación de un emisor.
 - [Escribir criterios](#tipos-de-filtro-disponibles): Compare el asunto, el remitente o el cuerpo, o alerte cuando dejen de llegar correos.
+- [Un incidente por cada correo](#abrir-un-incidente-por-cada-correo): Deje que las personas informen de incidentes escribiendo a la dirección.
 - [Usar el correo en las alertas](#variables-de-plantilla): Ponga el asunto y el cuerpo en títulos y descripciones.
 :::
 
@@ -27,7 +28,7 @@ sequenceDiagram
 
 1. Cuando crea un monitor de correos entrantes, OneUptime le da una dirección de correo única.
 2. Cada correo enviado a esa dirección se guarda en el monitor y se evalúa con sus criterios, desde arriba; el primer criterio que coincide decide.
-3. Un criterio que coincide puede cambiar el estado del monitor, crear una alerta y declarar un incidente. Un incidente con **Resolver incidente automáticamente** activado, o una alerta con **Resolver alerta automáticamente** activado, se resuelve cuando más tarde coincide otro criterio; por ejemplo, el que marca el monitor en línea.
+3. Un criterio que coincide puede cambiar el estado del monitor, crear una alerta y declarar un incidente. Un incidente con **Resolver incidente automáticamente** activado, o una alerta con **Resolver alerta automáticamente** activado, se resuelve cuando más tarde coincide otro criterio; por ejemplo, el que marca el monitor en línea. Mientras el incidente de un criterio está abierto, los correos posteriores que coinciden con el criterio no abren nada nuevo, salvo que el criterio [abra un incidente por cada correo](#abrir-un-incidente-por-cada-correo).
 
 ## Crear un monitor de correos entrantes
 
@@ -143,7 +144,7 @@ Un monitor de correos entrantes nuevo se crea con dos criterios que leen el cuer
 | Criterio | Tipo de filtro | Condición de filtro | Valor | Efecto |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
 | Sin conexión | Email Body | Contiene | `error` | Marca el monitor sin conexión, abre un incidente |
-| En línea | Email Body | Not Contains | `error` | Marca el monitor en línea |
+| En línea | Email Body | No contiene | `error` | Marca el monitor en línea |
 
 Esto sirve para el caso habitual en que un trabajo o una herramienta de terceros envía por correo su propio resultado: un mensaje cuyo cuerpo menciona `error` deja el monitor sin conexión, y el siguiente mensaje sin esa palabra lo devuelve a en línea y resuelve el incidente. La coincidencia en el cuerpo no distingue mayúsculas y minúsculas, así que `Error` y `ERROR` también coinciden.
 
@@ -174,13 +175,13 @@ La dirección propia del monitor se enmascara antes de que ningún criterio lea 
 | Condición de filtro | Descripción | Ejemplo |
 | ---------------- | ----------------------------------------- | ---------------------------------- |
 | **Contiene** | El campo contiene el texto indicado | El asunto contiene "CRITICAL" |
-| **Not Contains** | El campo no contiene el texto indicado | El asunto no contiene "TEST" |
-| **Equal To** | El campo coincide exactamente con el texto indicado | El remitente es igual a "alerts@service.com" |
-| **Not Equal To** | El campo no coincide con el texto indicado | El asunto no es igual a "OK" |
-| **Starts With** | El campo empieza por el texto indicado | El asunto empieza por "[ALERT]" |
-| **Ends With** | El campo termina con el texto indicado | El asunto termina con "- Production" |
-| **Is Empty** | El campo está vacío o en blanco | El cuerpo está vacío |
-| **Is Not Empty** | El campo tiene contenido | El asunto no está vacío |
+| **No contiene** | El campo no contiene el texto indicado | El asunto no contiene "TEST" |
+| **Igual a** | El campo coincide exactamente con el texto indicado | El remitente es igual a "alerts@service.com" |
+| **Distinto de** | El campo no coincide con el texto indicado | El asunto no es igual a "OK" |
+| **Empieza por** | El campo empieza por el texto indicado | El asunto empieza por "[ALERT]" |
+| **Termina en** | El campo termina con el texto indicado | El asunto termina con "- Production" |
+| **Está vacío** | El campo está vacío o en blanco | El cuerpo está vacío |
+| **No está vacío** | El campo tiene contenido | El asunto no está vacío |
 
 Todas estas comparaciones no distinguen mayúsculas y minúsculas. Un filtro con un valor vacío nunca coincide.
 
@@ -220,8 +221,8 @@ Ponga el criterio crítico el primero: los criterios se comprueban desde arriba,
 
 | Criterio | Filtros | Condición de coincidencia | Acciones |
 | --- | --- | --- | --- |
-| Trabajo fallido | **Email From Address** Equal To `monitoring@legacy-system.com`; **Asunto del correo electrónico** Contiene `Failed` | **Todos** | Cambiar el estado a sin conexión; declarar un incidente |
-| Trabajo correcto | **Email From Address** Equal To `monitoring@legacy-system.com`; **Asunto del correo electrónico** Contiene `Success` | **Todos** | Cambiar el estado a en línea |
+| Trabajo fallido | **Email From Address** Igual a `monitoring@legacy-system.com`; **Asunto del correo electrónico** Contiene `Failed` | **Todos** | Cambiar el estado a sin conexión; declarar un incidente |
+| Trabajo correcto | **Email From Address** Igual a `monitoring@legacy-system.com`; **Asunto del correo electrónico** Contiene `Success` | **Todos** | Cambiar el estado a en línea |
 
 ### Ejemplo 3: monitor de latido (sin correo = alerta)
 
@@ -232,6 +233,43 @@ Ponga el criterio crítico el primero: los criterios se comprueban desde arriba,
 
 El primer criterio se activa cuando no ha llegado ningún correo en 60 minutos: útil para trabajos programados o procesos por lotes que envían un correo al terminar. El segundo resuelve la alerta en cuanto llega uno. Los minutos en los que el propio OneUptime no estaba recibiendo correo no cuentan para los 60, como explica [Cuando OneUptime no recibe datos](/docs/monitor/when-oneuptime-is-not-receiving).
 
+## Abrir un incidente por cada correo
+
+Un criterio mantiene abierto un solo incidente a la vez: mientras está abierto, los correos posteriores que coinciden con el criterio no abren nada nuevo. Eso conviene a un sistema cuyos correos informan sobre una sola cosa, como una copia de seguridad nocturna. Cuando cada correo es un aviso propio, por ejemplo cuando las personas informan de incidentes escribiendo a la dirección, active **Abrir un incidente nuevo por cada correo** en el criterio.
+
+:::steps
+### Elegir los correos
+
+Dé al criterio un filtro que coincida con los correos para los que abrir incidentes. Para aceptar solo avisos de su propia gente, use **Email From Address** con **Termina en** y su dominio, por ejemplo `@example.com`.
+
+### Declarar el incidente
+
+En **Acciones**, active **Cuando los filtros coinciden, declarar un incidente.** Dé al incidente el título `{{emailSubject}}` y la descripción `{{emailBody}}`, para que cada incidente diga lo que decía su correo.
+
+### Activar el interruptor
+
+Active **Abrir un incidente nuevo por cada correo**, debajo del incidente, y guarde el monitor.
+:::
+
+A partir de entonces, el criterio trata cada correo por separado:
+
+| Correo | Qué ocurre |
+| --- | --- |
+| Un correo nuevo | Abre un incidente propio, aunque haya otros anteriores abiertos. |
+| El mismo correo, entregado de nuevo | No abre nada más: OneUptime distingue los correos por su encabezado `Message-ID`. |
+| Una respuesta a un correo que abrió un incidente | Se añade a ese incidente como nota privada y no abre nada mientras el incidente está abierto. Una vez resuelto el incidente, una respuesta abre un incidente nuevo. |
+| Una respuesta automática, como un mensaje de fuera de la oficina | No abre nada. |
+| Un correo que llega cuando el monitor ya abrió 20 incidentes a partir de correos en la última hora | No abre nada, para que un bucle de correo o una avalancha de correos no pueda avisar a su equipo sin fin. |
+
+Cada correo sigue teniendo una fila en **Registros de monitoreo**, y **Ver resumen** en esa fila dice qué abrió el correo o por qué no abrió nada. Cuando el criterio también crea alertas, el interruptor se llama **Abrir un incidente y una alerta nuevos por cada correo**, y cada correo abre su propia alerta de la misma manera.
+
+Estos incidentes siguen abiertos hasta que alguien los resuelve. Con **Resolver incidente automáticamente** activado, también se resuelven cuando un correo posterior coincide con otro criterio, como cualquier incidente; un correo posterior que coincide con el mismo criterio nunca resuelve los anteriores. Una comprobación de correo que falta (**Email Received**) no es un correo, así que sigue abriendo un solo incidente a la vez.
+
+> [!WARNING]
+> **Cualquiera que conozca la dirección puede abrir incidentes.** Mantenga la dirección en privado, filtre por el remitente como arriba y [restablezca la dirección](#restablecer-o-personalizar-la-dirección-de-correo) si se filtra. La dirección de un remitente se puede falsificar, así que el filtro deja fuera el correo perdido, no a alguien decidido a entrar.
+
+Para tener más control, como una gravedad leída del asunto o un equipo elegido según el remitente, inicie en su lugar un workflow con cada correo: consulte el [disparador Incoming Email](/docs/workflows/triggers#incoming-email).
+
 ## Casos de uso
 
 | Caso de uso | Qué hace el monitor |
@@ -240,6 +278,7 @@ El primer criterio se activa cuando no ha llegado ningún correo en 60 minutos: 
 | Servicios de terceros | Recibe notificaciones de proveedores de nube (AWS, GCP, Azure), escáneres de seguridad, herramientas de copias de seguridad y avisos de caducidad de certificados. |
 | Trabajos programados | Alerta cuando se retrasa un correo de finalización, o cuando un trabajo informa de un fallo por correo. |
 | Agregación de alertas | Reúne las alertas por correo de Nagios, Zabbix u otras herramientas, para que OneUptime sea el único lugar donde gestionarlas. |
+| Informar de incidentes por correo | Abre un incidente por cada correo que las personas envían a la dirección, y guarda en él las respuestas como notas. |
 
 ## Variables de plantilla
 
@@ -288,7 +327,7 @@ Hasta que esté configurado, la tarjeta de dirección del monitor indica que el 
 - **Seguridad de la dirección de correo**: la dirección de correo del monitor funciona como una contraseña: cualquiera que la conozca puede enviar correo al monitor. No la comparta públicamente, y restablézcala desde la pestaña **Ajustes** del monitor si se filtra.
 - **Tamaño del correo**: OneUptime acepta un correo entrante de hasta 50 MB, archivos adjuntos incluidos. Los adjuntos no se guardan, solo sus nombres, tipos y tamaños.
 - **Tiempo de procesamiento**: los correos se procesan de forma asíncrona. Puede haber unos segundos de retraso entre el envío de un correo y la creación de la alerta.
-- **Sin distinción de mayúsculas y minúsculas**: todas las comparaciones de cadenas (Contiene, Equal To, etc.) no distinguen mayúsculas y minúsculas.
+- **Sin distinción de mayúsculas y minúsculas**: todas las comparaciones de cadenas (Contiene, Igual a, etc.) no distinguen mayúsculas y minúsculas.
 - **Texto sin formato**: los criterios sobre el cuerpo leen la parte de texto sin formato del correo. Un correo enviado solo en HTML tiene el cuerpo vacío para los criterios, así que no contiene `error`, y los criterios predeterminados marcan el monitor en línea.
 
 ## Solución de problemas
@@ -307,6 +346,7 @@ Hasta que esté configurado, la tarjeta de dirección del monitor indica que el 
 2. Compruebe que el monitoreo está activado: página **Ajustes** del monitor, tarjeta **Monitoreo**.
 3. Abra **Registros de monitoreo** y haga clic en **Ver resumen** en la fila del correo para ver qué leyeron los criterios.
 4. Compruebe el orden de sus criterios: el primero que coincide decide.
+5. Si el criterio abre un incidente por cada correo, puede que el correo sea una respuesta, una segunda entrega o una respuesta automática, o que el monitor ya haya abierto 20 incidentes a partir de correos en la última hora. **Ver resumen** en la fila del correo indica cuál.
 
 ### No se resuelven las alertas
 

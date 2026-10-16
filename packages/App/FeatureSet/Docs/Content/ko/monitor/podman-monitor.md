@@ -164,7 +164,7 @@ CPU 스로틀링 템플릿은 없습니다. 에이전트가 수집하는 스로�
 | --- | --- |
 | **메트릭** | 확인할 쿼리나 수식(변수 이름으로 지정). |
 | **집계** | 기간 안의 값을 하나의 답으로 만드는 방식: **평균**, **합계**, **Maximum Value**, **Minimum Value**, **All Values**(모든 값이 일치해야 함), **Any Value**(하나면 충분). |
-| **조건** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To**, **Equal To**, 또는 이상 조건 **Anomalously High**, **Anomalously Low**, **Anomalous**. |
+| **조건** | **보다 큼**, **보다 작음**, **이상**, **이하**, **같음**, 또는 이상 조건 **Anomalously High**, **Anomalously Low**, **Anomalous**. |
 | **Threshold** | 비교할 값. 메트릭에 단위가 있으면 옆에 단위 목록이 있습니다. 이상 조건에서는 표시되지 않습니다. |
 | **민감도** | 이상 조건 전용. **낮음**(4σ), **중간**(3σ, 기본값), **높음**(2σ). |
 | **기준선 기간** | 이상 조건 전용. 기록 14일(기본값), 28일, 60일, 90일. |

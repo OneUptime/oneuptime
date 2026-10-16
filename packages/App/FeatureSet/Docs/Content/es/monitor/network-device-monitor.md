@@ -396,7 +396,7 @@ Parte de lo que sabe un dispositivo es una lista: una fila por túnel IPsec, rad
 
 Los números se leen como números, y el texto que empieza por un número se lee como ese número (`"36"`, `"-95 dBm"`, `"80MHz"`), porque muchos fabricantes ponen números en cadenas. Pon el tipo de valor de una columna en **Text only** para los valores que solo parecen numéricos. Las **Value labels** convierten códigos en palabras (`0=inactive, 1=active`): el valor bruto sigue siendo lo que se grafica y se compara, la etiqueta lo que se muestra. Los **Healthy values** (`1`) dicen qué valores significan que todo va bien: colorean la fila en la página **SNMP Tables** del dispositivo y alimentan el criterio **SNMP Table Row Is Unhealthy**.
 
-Algunas columnas de las plantillas de fabricantes también **ajustan** el número que leen, para MIB que guardan un valor en una unidad propia: ArubaOS informa la potencia de transmisión duplicada (se lee × 0.5), Aruba Instant el ruido de fondo sin su signo (× −1), Aerohive el ruido de fondo más 256 (− 256), y el controlador de Extreme el ancho de canal en pasos de 20 MHz (× 20). El número ajustado es lo que se muestra, se grafica y se compara, así que **Noise Floor Greater Than -80** significa lo mismo en todos los fabricantes, y el editor de tablas muestra la cuenta bajo la columna.
+Algunas columnas de las plantillas de fabricantes también **ajustan** el número que leen, para MIB que guardan un valor en una unidad propia: ArubaOS informa la potencia de transmisión duplicada (se lee × 0.5), Aruba Instant el ruido de fondo sin su signo (× −1), Aerohive el ruido de fondo más 256 (− 256), y el controlador de Extreme el ancho de canal en pasos de 20 MHz (× 20). El número ajustado es lo que se muestra, se grafica y se compara, así que **Noise Floor Mayor que -80** significa lo mismo en todos los fabricantes, y el editor de tablas muestra la cuenta bajo la columna.
 
 Las tablas vienen de una [plantilla de recopilación de OID](#plantillas-de-recopilación-de-oid), compartida por cada dispositivo vinculado (hasta 10 tablas), o del propio dispositivo en **Device-Specific SNMP Tables** (hasta 10 más). Se combinan por clave en cada sondeo, primero la plantilla, y una tabla del dispositivo con la misma clave sustituye a la de la plantilla. Los dos editores ofrecen **Add a Vendor's Tables**.
 
@@ -779,7 +779,7 @@ En un sondeo sin recorrido, los criterios marcados «No se evalúa» no devuelve
 
 Las comprobaciones de interfaces necesitan **Recorrer interfaces** activado en los ajustes de sondeo del dispositivo, como lo está por defecto. Las comprobaciones de OID leen los OID de salud configurados del dispositivo. Las interfaces deshabilitadas administrativamente están caídas a propósito y nunca cuentan como fallos.
 
-Los criterios de tablas SNMP eligen una tabla, una columna (para SNMP Table Value) y un alcance de filas. Vacío juzga todas las filas como una sola alerta combinada; `*` genera una alerta aparte por cada fila, que se resuelve sola y lleva el nombre de su fila; cualquier otra cosa nombra una fila por su nombre o su índice. Los números se comparan como números, y el texto tanto con el valor bruto como con su etiqueta, así que Not Equal To `active` y Not Equal To `1` detectan los dos un túnel de Sophos caído. Una tabla cuyo recorrido falló en este sondeo no se evalúa en lugar de leerse como vacía, y los criterios de tablas solo juzgan el recorrido actual, no un periodo de tiempo.
+Los criterios de tablas SNMP eligen una tabla, una columna (para SNMP Table Value) y un alcance de filas. Vacío juzga todas las filas como una sola alerta combinada; `*` genera una alerta aparte por cada fila, que se resuelve sola y lleva el nombre de su fila; cualquier otra cosa nombra una fila por su nombre o su índice. Los números se comparan como números, y el texto tanto con el valor bruto como con su etiqueta, así que Distinto de `active` y Distinto de `1` detectan los dos un túnel de Sophos caído. Una tabla cuyo recorrido falló en este sondeo no se evalúa en lugar de leerse como vacía, y los criterios de tablas solo juzgan el recorrido actual, no un periodo de tiempo.
 
 Los criterios de transceptores tienen alcance como las comprobaciones de interfaces: vacío juzga todos los ópticos como una sola alerta combinada, `*` genera una alerta aparte por cada puerto con un óptico (que se resuelve sola y lleva el nombre de su puerto), y cualquier otra cosa nombra un puerto por su nombre o su alias. Juzgan los [transceptores](#transceptores) del dispositivo tal como están en este sondeo, que ya llevan su historial — cuántos sondeos lleva un óptico ausente, un mes de potencia recibida —, así que tampoco se evalúan sobre un periodo. Un sondeo cuya lectura de transceptores falló los deja juzgando la última lectura buena, así que una alerta abierta no se resuelve en un sondeo que no pudo mirar.
 
@@ -860,19 +860,19 @@ La asociación se hace por dirección, no por credenciales, así que un disposit
 #### Ejemplo: generar un incidente con linkDown
 
 - **Tipo de filtro**: SNMP Trap Received (Trap OID)
-- **Condición de filtro**: Equal To
+- **Condición de filtro**: Igual a
 - **Valor**: `1.3.6.1.6.3.1.1.5.3`
 
-El filtro también ofrece Contains, Starts With y Ends With, así que un solo criterio puede detectar una familia de traps de empresa por prefijo de OID.
+El filtro también ofrece Contiene, Empieza por y Termina en, así que un solo criterio puede detectar una familia de traps de empresa por prefijo de OID.
 
 #### Ejemplo: distinguir eventos que comparten un mismo OID de trap
 
 Algunos fabricantes envían cada evento como el mismo trap y ponen el evento en una varbind de texto: cada notificación de un Sophos Firewall es `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`) con el mensaje en `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Combina los dos en un criterio:
 
-- **SNMP Trap Received (Trap OID)**: Equal To `1.3.6.1.4.1.2604.5.1.8.1.1`
-- **SNMP Trap Varbind Value**: OID de varbind `1.3.6.1.4.1.2604.5.1.8.1.2`, Contains `IPSec`
+- **SNMP Trap Received (Trap OID)**: Igual a `1.3.6.1.4.1.2604.5.1.8.1.1`
+- **SNMP Trap Varbind Value**: OID de varbind `1.3.6.1.4.1.2604.5.1.8.1.2`, Contiene `IPSec`
 
-Un filtro negativo (Not Contains, Not Equal To, Is Empty) solo se cumple cuando ninguna varbind del alcance coincide con su forma positiva. Deja vacío el OID de varbind para buscar en todas las varbinds que lleva el trap.
+Un filtro negativo (No contiene, Distinto de, Está vacío) solo se cumple cuando ninguna varbind del alcance coincide con su forma positiva. Deja vacío el OID de varbind para buscar en todas las varbinds que lleva el trap.
 
 ## Variables de plantilla para alertas
 

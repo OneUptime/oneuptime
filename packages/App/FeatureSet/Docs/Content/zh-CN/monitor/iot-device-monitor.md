@@ -145,7 +145,7 @@ flowchart TB
 | **过滤器类型** | 始终为 **Metric Value**，这是该监视器提供的唯一检查。 |
 | **Select Metric Variable** | 要检查的查询或公式，按其变量名。 |
 | **聚合** | 窗口中的值如何变成一个答案：**平均值**、**总和**、**Maximum Value**、**Minimum Value**、**All Values**(每个值都必须匹配)或 **Any Value**(一个就够)。 |
-| **条件** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** 或 **Equal To**——或者一个异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
+| **条件** | **大于**、**小于**、**大于或等于**、**小于或等于** 或 **等于**——或者一个异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
 | **Threshold** | 用于比较的值。指标有单位时，旁边会有一个单位列表。异常条件不显示此字段。 |
 | **灵敏度** | 仅限异常条件。**低**(4σ)、**中**(3σ，默认)或 **高**(2σ)。 |
 | **基线窗口** | 仅限异常条件。14 天(默认)、28、60 或 90 天的历史。 |
