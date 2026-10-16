@@ -121,7 +121,7 @@ flowchart TB
 
 Om de stille modus te doorbreken, moeten vier dingen allemaal waar zijn. Ontbreekt er één, dan wordt de melding toch afgeleverd – alleen stil.
 
-1. **De persoon heeft het voor dat apparaat aangezet.** Per apparaat opgeslagen, standaard uit, in `UserPush.isCriticalAlertEnabled`. De telefoon en de tablet van iemand zijn afzonderlijke keuzes.
+1. **De persoon heeft het voor dat apparaat aangezet.** Per apparaat opgeslagen, standaard uit, in `UserPush.isCriticalAlertEnabled`. De telefoon en de tablet van iemand zijn afzonderlijke keuzes. Versies van de app nieuwer dan 1.6.0 melden het opnieuw telkens wanneer ze worden geopend, als uit zolang de instellingen van de telefoon zelf geen kritieke meldingen toestaan, zodat de apparatenlijst toont wat de telefoon echt zal doen.
 2. **De bereikbaarheidsregel die de melding stuurde, vraagt erom.** Onder **Gebruikersinstellingen > Bereikbaarheidsregels** staat elke regel die een telefoon waarschuwt op ‘Kritieke waarschuwing’, de standaard, of op ‘Normaal’, dat de geluidsinstellingen van de telefoon volgt – zo kan iemand gewekt worden voor een kritiek incident en stil gewaarschuwd voor een klein incident. Per regel opgeslagen in `UserNotificationRule.pushNotificationLevel`.
 3. **De server markeert de melding als kritiek.** Hij stuurt de kritieke geluidspayload van APNs plus `interruptionLevel: critical` voor iOS, en richt zich voor Android op een kritiek meldingskanaal: `oncall_critical`, of het eigen kanaal van het gekozen alarm (zie [Het alarmgeluid kiezen](#het-alarmgeluid-kiezen)).
 4. **Het besturingssysteem staat het toe**, en daar verschillen de twee platforms.
@@ -192,7 +192,7 @@ Een pushregel kan zijn melding opnieuw sturen tot iemand die bevestigt. Stel **H
 - **iOS**: controleer of de build de entitlement voor kritieke meldingen van Apple draagt (zie hierboven), en of Critical Alerts is toegestaan onder iOS Settings > Notifications > OneUptime On-Call
 - **Android**: controleer of de app toegang tot Niet storen heeft onder Settings > Notifications > Do Not Disturb access
 - **Android**: als u een alarmgeluid hebt gekozen, moet ook het eigen meldingskanaal van dat geluid Niet storen mogen doorbreken; het scherm Alarm sound van de app zegt wanneer dat niet zo is
-- Het instellingenscherm zegt welke hiervan ontbreekt; het leest de huidige status terug van het besturingssysteem in plaats van te vertrouwen op wat de app het laatst heeft gevraagd
+- Het instellingenscherm zegt welke hiervan ontbreekt; het leest de huidige status terug van het besturingssysteem in plaats van te vertrouwen op wat de app het laatst heeft gevraagd, en vertelt de server wat het aantreft
 
 ### Pushes gemarkeerd als "niet afgeleverd"
 

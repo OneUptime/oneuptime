@@ -1,11 +1,14 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
+  clearCriticalAlertsReport,
   getAppearancePreference,
   getBiometricEnabled,
   getCriticalAlertsEnabled,
+  getCriticalAlertsReport,
   setAppearancePreference,
   setBiometricEnabled,
   setCriticalAlertsEnabled,
+  setCriticalAlertsReport,
   type AppearancePreference,
 } from "./preferences";
 import { describe, expect, test, beforeEach } from "@jest/globals";
@@ -77,6 +80,91 @@ describe("getCriticalAlertsEnabled", () => {
  * value this build does not recognise, so a newer build's value (or a
  * half-written one) can never strand someone on a palette they did not pick.
  */
+/*
+ * What the server was last told about this phone's critical alerts
+ * (notifications/criticalAlertsReport.ts), so the app tells it again only
+ * when what the phone does changes. Anything this build cannot read is as
+ * good as nothing told: the server is told at the next chance.
+ */
+describe("the record of what the server was told", () => {
+  const KEY: string = "oneuptime_critical_alerts_reported";
+
+  beforeEach(async () => {
+    await AsyncStorage.clear();
+  });
+
+  test("nothing told yet", async () => {
+    expect(await getCriticalAlertsReport()).toBeNull();
+  });
+
+  test.each([[true], [false]])("round-trips %s", async (isEnabled: boolean) => {
+    await setCriticalAlertsReport({
+      deviceToken: "ExponentPushToken[handset]",
+      isEnabled: isEnabled,
+    });
+
+    expect(await getCriticalAlertsReport()).toEqual({
+      deviceToken: "ExponentPushToken[handset]",
+      isEnabled: isEnabled,
+    });
+  });
+
+  test("stores under its own key, apart from the responder's switch", async () => {
+    await setCriticalAlertsEnabled(true);
+    await setCriticalAlertsReport({
+      deviceToken: "ExponentPushToken[handset]",
+      isEnabled: false,
+    });
+
+    expect(await getCriticalAlertsEnabled()).toBe(true);
+    expect(JSON.parse((await AsyncStorage.getItem(KEY))!)).toEqual({
+      deviceToken: "ExponentPushToken[handset]",
+      isEnabled: false,
+    });
+  });
+
+  test.each([
+    ["not JSON", "true"],
+    ["no token", JSON.stringify({ isEnabled: true })],
+    ["an empty token", JSON.stringify({ deviceToken: "", isEnabled: true })],
+    [
+      "a state that is not a boolean",
+      JSON.stringify({
+        deviceToken: "ExponentPushToken[x]",
+        isEnabled: "true",
+      }),
+    ],
+    ["a list", JSON.stringify([{ deviceToken: "x", isEnabled: true }])],
+    ["null", "null"],
+  ])("%s is as good as nothing told", async (_name: string, stored: string) => {
+    await AsyncStorage.setItem(KEY, stored);
+
+    expect(await getCriticalAlertsReport()).toBeNull();
+  });
+
+  test("forgetting it removes it", async () => {
+    await setCriticalAlertsReport({
+      deviceToken: "ExponentPushToken[handset]",
+      isEnabled: true,
+    });
+
+    await clearCriticalAlertsReport();
+
+    expect(await getCriticalAlertsReport()).toBeNull();
+    expect(await AsyncStorage.getItem(KEY)).toBeNull();
+  });
+
+  test("forgetting nothing does not touch storage", async () => {
+    const removeItem: jest.Mock =
+      AsyncStorage.removeItem as unknown as jest.Mock;
+    removeItem.mockClear();
+
+    await clearCriticalAlertsReport();
+
+    expect(removeItem).not.toHaveBeenCalled();
+  });
+});
+
 describe("appearance preference", () => {
   const KEY: string = "oneuptime_appearance";
 

@@ -75,6 +75,7 @@ interface SidebarOptions {
 function sidebarElement(options: SidebarOptions): ReactElement {
   return (
     <TelemetryFacetSidebar
+      onRemoveFilter={() => {}}
       facetData={options.facetData}
       facetConfigs={options.facetConfigs || makeConfigs()}
       isLoading={options.isLoading || false}

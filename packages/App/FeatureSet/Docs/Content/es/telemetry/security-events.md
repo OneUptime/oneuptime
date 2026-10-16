@@ -211,7 +211,7 @@ Un campo es un nombre corto (`severity`, `class`, `category`, `activity`, `statu
 
 ### Facetas
 
-La barra lateral cuenta los eventos de la ventana por **Origen**, **Gravedad**, **Clase de evento**, **Categoría**, **Actividad**, **Estado**, **Proveedor**, **Producto**, **Regla de detección**, **Usuario de origen** y **Host de origen**. Haz clic en un valor para quedarte solo con sus eventos, o en el signo menos de al lado para excluirlos. El gráfico y cada recuento describen exactamente los eventos de la lista.
+La barra lateral cuenta los eventos de la ventana por **Origen**, **Gravedad**, **Clase de evento**, **Categoría**, **Actividad**, **Estado**, **Proveedor**, **Producto**, **Regla de detección**, **Usuario de origen** y **Host de origen**. Haz clic en un valor para quedarte solo con sus eventos, o en el signo menos de al lado para excluirlos. Haz clic de nuevo para deshacerlo. El gráfico y cada recuento describen exactamente los eventos de la lista.
 
 ### Correlacionar
 

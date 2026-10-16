@@ -56,6 +56,7 @@ interface SidebarOptions {
 function sidebarElement(options: SidebarOptions): ReactElement {
   return (
     <LogsFacetSidebar
+      onRemoveFilter={() => {}}
       facetData={options.facetData}
       isLoading={options.isLoading || false}
       serviceMap={{}}

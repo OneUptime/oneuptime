@@ -182,6 +182,8 @@ const SOURCES: Record<string, string> = {
     "packages/App/FeatureSet/Workers/Jobs/ThreatIntel/PollThreatIntelFeeds.ts",
   foldTitles:
     "packages/Common/UI/Components/FoldedSection/FoldedSectionTitles.ts",
+  facetValueRow:
+    "packages/Common/UI/Components/TelemetryViewer/components/TelemetryFacetValueRow.tsx",
 };
 
 const INLINE_CODE: RegExp = /`([^`]+)`/g;
@@ -1136,6 +1138,24 @@ describe("the Security Events page", () => {
     );
     expect(page).toContain(
       "Click a value to keep only its events, or the minus beside it to leave them out.",
+    );
+    /*
+     * A second click takes the filter off: the shared facet row clears a
+     * checked or excluded value, and its pressed minus clears an exclusion
+     * (TelemetryFacetValueRow, pinned in Common's TelemetryFacetValueRow
+     * and SecurityEventsViewer tests).
+     */
+    expect(page).toContain(
+      "Click a value to keep only its events, or the minus beside it to leave them out. Click it again to undo.",
+    );
+    const row: string = flat(source("facetValueRow"));
+    // The row: a click on a checked or excluded value clears it ...
+    expect(row).toContain(
+      "if (isFiltering) { props.onClear(props.value); return; }",
+    );
+    // ... and so does a click on the minus of an excluded one.
+    expect(row).toContain(
+      "if (isExcluded) { props.onClear(props.value); return; }",
     );
   });
 
