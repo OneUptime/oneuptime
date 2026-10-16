@@ -259,7 +259,7 @@ flowchart TB
 
 - **事件本身** —— `IncidentCreated`、`IncidentUpdated`、`IncidentStateChanged`。`IncidentUpdated` 項目記錄一次編輯變更了什麼：標題、描述、根本原因、補救備註、標籤、嚴重性、監測器及為其設定的狀態，以及加入或移出事件範圍的狀態頁面。每個變更了的值都有一行，依原樣儲存的值則沒有，所以儲存一張什麼都沒改的卡片，或者 API 用戶端或工作流程把事件依原樣寫回，完全不會新增項目。讀起來相同的文字就視為相同（行尾和前後空白除外），標籤只要是同一組就視為相同，與順序無關；被清除的值顯示為已移除，移除所有標籤顯示為「All labels removed.」。警示的 **Alert updated** 項目也是同樣的運作方式。
 - **備註和文件** —— `PublicNote`、`PrivateNote`、`RootCause`、`RemediationNotes`、`PostmortemNote`。`PostmortemNote` 項目在事後分析的備註變更時寫入，而不是每次儲存事後分析時都寫入。
-- **人員** —— `OwnerUserAdded`、`OwnerTeamAdded`、`OwnerUserRemoved`、`OwnerTeamRemoved`、`IncidentMemberAdded`、`IncidentMemberRemoved`。
+- **人員** —— `OwnerUserAdded`、`OwnerTeamAdded`、`OwnerUserRemoved`、`OwnerTeamRemoved`、`IncidentMemberAdded`、`IncidentMemberRemoved`，以及 `ChannelMemberAdded`，顯示為 **已新增頻道成員**，表示有人從事件頁面被新增到事件的 Slack 頻道。請參閱 [紀錄頻道中的成員](/docs/workspace-connections/slack#紀錄頻道中的成員)。
 - **已連結的警示** —— `AlertLinked` 和 `AlertUnlinked`，顯示為 **警示已連結** 和 **警示已取消連結**。
 - **通知** —— `OwnerNotificationSent`、`SubscriberNotificationSent`、`OnCallPolicy`、`OnCallNotification`。
 - **自動化** —— `LabelRuleExecuted`、`OwnerRuleExecuted`、`PrivacyRuleExecuted`、`OnCallRuleExecuted`、`AutoRemediation`。

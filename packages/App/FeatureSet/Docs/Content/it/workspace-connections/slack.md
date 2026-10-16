@@ -5,6 +5,7 @@ Collega OneUptime a Slack per pubblicare nei tuoi canali incidenti, avvisi, epis
 :::cards
 - [Collegare Slack](#collegare-slack): Installa OneUptime nel tuo workspace, poi collega il tuo account.
 - [Regole di notifica](#regole-di-notifica): Decidi quali eventi vengono pubblicati dove, e quali hanno un canale tutto loro.
+- [Chi è nel canale di un record](#chi-è-nel-canale-di-un-record): Vedi chi c'è, entra e aggiungi persone, dalla pagina del record.
 - [Il comando /oneuptime](#il-comando-oneuptime): Dichiara incidenti, programma manutenzioni, vedi chi è reperibile e chiedi all'IA.
 - [Gruppi di utenti di reperibilità](#gruppi-di-utenti-di-reperibilità): Mantieni un gruppo di utenti uguale a chi è reperibile, e chiamalo.
 - [Agire su incidenti, avvisi ed eventi da Slack](#agire-su-incidenti-avvisi-ed-eventi-da-slack): I pulsanti dei messaggi di OneUptime.
@@ -88,6 +89,20 @@ Un incidente, un avviso, un episodio o un evento di manutenzione pianificata con
 Un canale resta leggibile: ogni evento viene pubblicato una volta sola, e il primo stato di un record è nel messaggio che annuncia il record, non in un messaggio a sé. Un'esecuzione di una policy di reperibilità è un solo messaggio, modificato man mano che l'esecuzione scala: chi è stato chiamato, quante volte e come, chi no e perché, e chi ha confermato. Un nuovo messaggio viene pubblicato solo quando qualcuno deve agire: una regola di escalation non ha raggiunto nessuno, o l'esecuzione è finita senza che nessuno confermasse. Chi non ha collegato il proprio account Slack a OneUptime non può essere aggiunto a un canale; OneUptime lo dice una volta per canale, in un solo messaggio che li nomina tutti e viene modificato quando l'elenco cresce. Invia loro il link **Connect Slack account** di quel messaggio, così collegano il proprio account in un solo passaggio. Che i proprietari del record o gli iscritti alla pagina di stato siano stati informati resta nel suo feed in OneUptime.
 
 **Impostazioni del progetto** > **Area di lavoro** > **Slack** elenca i canali che OneUptime può vedere, con **Invia prova** accanto a ciascuno. OneUptime entra da solo in un canale pubblico la prima volta che vi pubblica. Un canale privato viene elencato, e può ricevere messaggi, solo dopo che l'app di OneUptime vi è stata invitata in Slack.
+
+## Chi è nel canale di un record
+
+Un incidente, un avviso, un episodio o un evento di manutenzione pianificata con un canale Slack tutto suo ha una scheda **Canale Slack** nella sua pagina in OneUptime. La scheda mostra il canale, come link che lo apre in Slack, se è privato e chi c'è, tu per primo. Dalla scheda, senza un amministratore di Slack:
+
+- **Entra nel canale** ti aggiunge, quando non sei nel canale.
+- **Aggiungi persone** apre un elenco delle persone e dei team del progetto: scegli una persona per aggiungerla, o un team per aggiungere tutti i suoi membri.
+
+L'app di OneUptime li aggiunge, come aggiunge le persone del canale di una regola. L'app resta nei canali che crea, quindi funziona anche per un canale privato che tutti hanno lasciato.
+
+- **Chi può aggiungere persone.** Chi può modificare il record: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** e **Incident Member** per un incidente, oppure **Edit Incident** in un ruolo personalizzato, e lo stesso permesso per un avviso, un episodio o un evento (per esempio **Edit Alert**). Gli altri vedono chi è nel canale e come entrarci.
+- **Chi può essere aggiunto.** Qualcuno che OneUptime trova in Slack: dall'account Slack che ha collegato, oppure dall'indirizzo email che Slack ha per lui. La scheda nomina chi non ha potuto aggiungere, e perché, come un ospite che Slack tiene fuori dal canale.
+- **Cosa viene registrato.** Chi è stato aggiunto, e da chi, nel feed del record (**Membro aggiunto al canale**) e in **Impostazioni del progetto** > **Notifiche** > **Registri di notifica**, nella scheda **Area di lavoro**.
+- **Togliere qualcuno.** OneUptime aggiunge soltanto: togli qualcuno dal canale in Slack.
 
 ## Provare una regola
 
@@ -259,8 +274,8 @@ OneUptime legge da Slack solo ciò che serve a queste funzioni, con le autorizza
 
 - **Messaggi rivolti a OneUptime.** Un messaggio che lo menziona con @, uno che gli mandi in un messaggio diretto e le tue risposte in una conversazione con lui, insieme ai messaggi precedenti di quel thread o messaggio diretto, perché OneUptime AI possa rispondere. Slack gli invia anche gli altri messaggi dei canali e dei messaggi diretti di gruppo in cui si trova; OneUptime non vi risponde e non li conserva.
 - **Messaggi che salvi come note.** Un messaggio a cui reagisci con 📌 o 📢, o che fissi, nel canale di un incidente, di un avviso, di un episodio o di un evento di manutenzione programmata, salvato come nota su quel record con il nome del suo autore.
-- **Nomi di canali e persone.** I canali in cui può pubblicare, così puoi sceglierli, e i nomi delle persone, per mostrare chi ha scritto o fatto qualcosa.
-- **Indirizzi email.** L'indirizzo email che Slack ha per una persona, per abbinare il suo account Slack al suo account OneUptime quando non lo ha collegato: per chiamarla, o per inserirla in un gruppo di utenti di reperibilità.
+- **Nomi di canali e persone.** I canali in cui può pubblicare, così puoi sceglierli, i nomi delle persone, per mostrare chi ha scritto o fatto qualcosa, e chi è nel canale di un record, letto quando la pagina del record lo mostra.
+- **Indirizzi email.** L'indirizzo email che Slack ha per una persona, per abbinare il suo account Slack al suo account OneUptime quando non lo ha collegato: per chiamarla, per inserirla in un gruppo di utenti di reperibilità o per aggiungerla al canale di un record.
 - **Gruppi di utenti.** I gruppi di utenti della tua area di lavoro, per sceglierne uno per una pianificazione di reperibilità, e le persone di uno che colleghi, per mantenerlo uguale a chi è reperibile.
 
 Ciò che OneUptime ne conserva — il nome dell'area di lavoro, i suoi canali, gli account Slack che le persone collegano, le note e i gruppi di utenti — viene archiviato con il tuo progetto. L'[Informativa sulla privacy](https://oneuptime.com/legal/privacy) spiega come OneUptime tratta i tuoi dati.
@@ -272,7 +287,11 @@ Controlla le condizioni della regola con **Regola di test**: se la prova arriva,
 :::
 
 :::details Manca qualcuno nel canale di una regola
-La scheda della regola dice sotto **Poi** chi invita la regola. Ogni tipo di persona entra man mano che entra nel record: le persone allertate quando vengono allertate, il comandante dell'incidente quando viene assegnato, un proprietario quando viene aggiunto, e chi era già nel record quando il canale è stato creato. Chi non ha l'account Slack collegato a OneUptime non può essere aggiunto; OneUptime lo nomina nel canale, con un link per collegare il suo account.
+La scheda della regola dice sotto **Poi** chi invita la regola. Ogni tipo di persona entra man mano che entra nel record: le persone allertate quando vengono allertate, il comandante dell'incidente quando viene assegnato, un proprietario quando viene aggiunto, e chi era già nel record quando il canale è stato creato. Chi non ha l'account Slack collegato a OneUptime non può essere aggiunto; OneUptime lo nomina nel canale, con un link per collegare il suo account. Per aggiungere qualcuno subito, premi **Aggiungi persone** nella scheda **Canale Slack** del record: trova le persone anche dall'indirizzo email che Slack ha per loro.
+:::
+
+:::details Tutti hanno lasciato un canale privato
+Apri l'incidente, l'avviso, l'episodio o l'evento in OneUptime e premi **Entra nel canale** nella sua scheda **Canale Slack**, poi **Aggiungi persone** per riportare dentro gli altri. Serve il permesso di modificare il record, non un amministratore di Slack: l'app di OneUptime è ancora nel canale ed è lei ad aggiungerli. Se la scheda dice che OneUptime non vede il canale, il canale è stato eliminato o l'app ne è stata rimossa: qualcuno nel canale può aggiungere di nuovo l'app digitando `/invite @OneUptime`.
 :::
 
 :::details Slack non è stato collegato

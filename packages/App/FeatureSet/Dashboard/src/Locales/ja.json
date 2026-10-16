@@ -30010,5 +30010,5 @@
   "{{name}} is a guest in Slack, and Slack doesn't let OneUptime add them to this channel.": "{{name}} は Slack のゲストのため、Slack は OneUptime がこのチャネルに追加することを許可していません。",
   "{{name}} is already in this channel.": "{{name}} はすでにこのチャネルに参加しています。",
   "{{name}} isn't a member of this project, so OneUptime can't add them.": "{{name}} はこのプロジェクトのメンバーではないため、OneUptime は追加できません。",
-  "Channel Member Added": "チャネル メンバーを追加"
+  "Channel Member Added": "チャネル メンバー追加済み"
 }

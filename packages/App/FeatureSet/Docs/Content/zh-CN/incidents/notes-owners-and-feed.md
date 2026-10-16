@@ -259,7 +259,7 @@ flowchart TB
 
 - **事件本身** —— `IncidentCreated`、`IncidentUpdated`、`IncidentStateChanged`。`IncidentUpdated` 条目记录一次编辑改变了什么：标题、描述、根本原因、补救备注、标签、严重性、监视器及为其设置的状态，以及加入或移出事件范围的状态页。每个改变了的值都有一行，按原样保存的值则没有，所以保存一张什么都没改的卡片，或者 API 客户端或工作流把事件按原样写回，根本不会添加条目。读起来相同的文本就视为相同（行尾和前后空格除外），标签只要是同一组就视为相同，与顺序无关；被清空的值显示为已移除，移除所有标签显示为“All labels removed.”。告警的 **Alert updated** 条目也是同样的工作方式。
 - **备注和文档** —— `PublicNote`、`PrivateNote`、`RootCause`、`RemediationNotes`、`PostmortemNote`。`PostmortemNote` 条目在事后分析的备注发生变化时写入，而不是每次保存事后分析时都写入。
-- **人员** —— `OwnerUserAdded`、`OwnerTeamAdded`、`OwnerUserRemoved`、`OwnerTeamRemoved`、`IncidentMemberAdded`、`IncidentMemberRemoved`。
+- **人员** —— `OwnerUserAdded`、`OwnerTeamAdded`、`OwnerUserRemoved`、`OwnerTeamRemoved`、`IncidentMemberAdded`、`IncidentMemberRemoved`，以及 `ChannelMemberAdded`，显示为 **已添加频道成员**，表示有人从事件页面被添加到事件的 Slack 频道。参见 [记录频道中的成员](/docs/workspace-connections/slack#记录频道中的成员)。
 - **关联的告警** —— `AlertLinked` 和 `AlertUnlinked`，显示为 **警报已关联** 和 **警报已取消关联**。
 - **通知** —— `OwnerNotificationSent`、`SubscriberNotificationSent`、`OnCallPolicy`、`OnCallNotification`。
 - **自动化** —— `LabelRuleExecuted`、`OwnerRuleExecuted`、`PrivacyRuleExecuted`、`OnCallRuleExecuted`、`AutoRemediation`。
