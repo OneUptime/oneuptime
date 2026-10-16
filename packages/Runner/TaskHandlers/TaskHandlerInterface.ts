@@ -1,6 +1,6 @@
 import ObjectID from "Common/Types/ObjectID";
 import TaskLogger from "../Utils/TaskLogger";
-import BackendAPI from "../Utils/BackendAPI";
+import BackendAPI, { RecordPullRequestOptions } from "../Utils/BackendAPI";
 
 // Base interface for task result data
 export interface TaskResultData {
@@ -146,6 +146,32 @@ export abstract class BaseTaskHandler implements TaskHandler {
         noFixFound: true,
       },
     };
+  }
+
+  /*
+   * Record a pull request the task has ALREADY opened.
+   *
+   * A failure is logged, never thrown. The pull request exists on GitHub by
+   * now, and failing the task over the bookkeeping told the person who asked
+   * that the run had failed while its pull request sat open. Losing the
+   * record costs the run's link to the pull request, which the log keeps.
+   */
+  protected async recordOpenedPullRequest(
+    context: TaskContext,
+    options: RecordPullRequestOptions,
+  ): Promise<void> {
+    try {
+      await context.backendAPI.recordPullRequest(options);
+    } catch (error) {
+      const errorMessage: string =
+        error instanceof Error ? error.message : String(error);
+
+      await this.log(
+        context,
+        `Opened ${options.pullRequestUrl} but could not record it: ${errorMessage}`,
+        "error",
+      );
+    }
   }
 
   // Log to the task logger

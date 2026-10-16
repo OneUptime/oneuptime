@@ -417,7 +417,7 @@ export default abstract class SubjectPullRequestTaskHandler extends BaseTaskHand
     await this.log(context, `Pull request created: ${prResult.htmlUrl}`);
 
     // Record the PR in the backend
-    await context.backendAPI.recordPullRequest({
+    await this.recordOpenedPullRequest(context, {
       taskId: context.taskId.toString(),
       codeRepositoryId: repo.id,
       pullRequestUrl: prResult.htmlUrl,

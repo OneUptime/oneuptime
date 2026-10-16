@@ -150,7 +150,7 @@ export default class GitHubIssueFixTaskHandler extends GitHubTaskHandlerBase {
 
     await this.log(context, `Pull request created: ${prResult.htmlUrl}`);
 
-    await context.backendAPI.recordPullRequest({
+    await this.recordOpenedPullRequest(context, {
       taskId: context.taskId.toString(),
       codeRepositoryId: details.repository.id,
       pullRequestUrl: prResult.htmlUrl,
