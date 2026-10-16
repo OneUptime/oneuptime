@@ -155,6 +155,12 @@ enum IconProp {
   ChartPie = "ChartPie",
   Heartbeat = "Heartbeat",
   Waterfall = "Waterfall",
+  /*
+   * Things laid out over time, one after another: a status timeline's
+   * Timeline view, and every page that draws one (status and state
+   * timelines, the on-call Schedule Timeline).
+   */
+  Timeline = "Timeline",
   ArrowDown = "ArrowDown",
   ArrowUp = "ArrowUp",
   ArrowLeft = "ArrowLeft",

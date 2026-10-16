@@ -93,7 +93,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
               RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE] as Route,
             ),
           },
-          icon: IconProp.ViewColumns,
+          icon: IconProp.Timeline,
         },
         /*
          * Next to the schedules it exports: the project-wide feed and the

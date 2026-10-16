@@ -120,7 +120,7 @@ const NetworkSiteViewSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.List}
+          icon={IconProp.Timeline}
         />
         {/*
          * Counts only the windows attached to THIS site, matching what the
