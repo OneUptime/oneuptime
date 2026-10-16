@@ -24,7 +24,7 @@ flowchart TB
 ## Before you begin
 
 - **A role that changes the project.** Project Owners and Project Admins change most of these settings. Billing, notification channels and deleting the project take more, as each section says.
-- **On OneUptime Cloud, the plan that includes a setting.** Some settings need a plan: see [What needs a plan](/docs/configuration/billing#what-needs-a-plan).
+- **On OneUptime Cloud, the plan that includes a setting.** Some settings need a plan: see [Settings that need a plan](/docs/configuration/billing#settings-that-need-a-plan).
 
 ## Find a setting
 

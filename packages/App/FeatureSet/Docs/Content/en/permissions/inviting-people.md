@@ -47,7 +47,7 @@ Type their address in **Email**. If no OneUptime account uses it yet, the dialog
 
 ### Pick their team
 
-**Team** starts on the project's members team, the one that holds Project Member for the whole project. Pick another team to give them more access, or less. **Team** starts empty when the project has no such team, or when you could not invite anyone to it yourself.
+**Team** starts on the project's members team: the team that holds Project Member for the whole project, or else the one named Members. Pick another team to give them more access, or less. **Team** starts empty when the project has no such team, or when you could not invite anyone to it yourself.
 
 ### Send the invitation
 
