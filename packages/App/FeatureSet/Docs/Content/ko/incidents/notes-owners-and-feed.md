@@ -270,7 +270,7 @@ flowchart TB
 
 - **인시던트 자체** — `IncidentCreated`, `IncidentUpdated`, `IncidentStateChanged`. `IncidentUpdated` 항목은 편집이 무엇을 바꿨는지 기록합니다. 제목, 설명, 근본 원인, 해결 노트, 레이블, 심각도, 모니터와 그 모니터에 설정한 상태, 그리고 인시던트의 범위에 추가되거나 빠진 상태 페이지입니다. 바뀐 값마다 한 줄이 있고 그대로 저장된 값은 줄이 없으므로, 아무것도 바꾸지 않고 카드를 저장하거나 API 클라이언트나 워크플로우가 인시던트를 그대로 다시 써도 항목이 전혀 추가되지 않습니다. 같게 읽히는 텍스트는 같은 것으로 보며(줄 끝과 앞뒤 공백은 제외), 레이블은 순서와 관계없이 같은 집합이면 같습니다. 지운 값은 제거된 것으로 읽히고, 모든 레이블을 떼면 "All labels removed."로 표시됩니다. 알림의 **Alert updated** 항목도 같은 방식으로 동작합니다.
 - **노트와 문서** — `PublicNote`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`. `PostmortemNote` 항목은 포스트모템을 저장할 때마다가 아니라 포스트모템의 노트가 바뀔 때 기록됩니다.
-- **사람** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
+- **사람** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`, 그리고 `ChannelMemberAdded`입니다. 마지막은 **채널 멤버 추가됨**으로 표시되며, 인시던트 페이지에서 인시던트의 Slack 채널에 추가된 사람을 나타냅니다. [레코드 채널에 있는 사람](/docs/workspace-connections/slack#레코드-채널에-있는-사람)을 참고하세요.
 - **연결된 알림** — `AlertLinked`와 `AlertUnlinked`로, **경고 연결됨**과 **경고 연결 해제됨**으로 표시됩니다.
 - **알림** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
 - **자동화** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.

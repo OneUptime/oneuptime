@@ -140,6 +140,7 @@ export const SHARED_FEED_ENTRY_KINDS: {
   AutoRemediation: FeedEntryKind;
   VideoCallStarted: FeedEntryKind;
   VideoCallFailed: FeedEntryKind;
+  ChannelMemberAdded: FeedEntryKind;
   StateChanged: FeedEntryKind;
   SeverityChanged: FeedEntryKind;
   Updated: FeedEntryKind;
@@ -217,6 +218,11 @@ export const SHARED_FEED_ENTRY_KINDS: {
   AutoRemediation: { icon: IconProp.Bolt, tone: FeedTone.Warning },
   VideoCallStarted: { icon: IconProp.VideoCamera, tone: FeedTone.Info },
   VideoCallFailed: { icon: IconProp.VideoCameraSlash, tone: FeedTone.Danger },
+  // Somebody added to the record's own Slack channel from its page.
+  ChannelMemberAdded: {
+    icon: IconProp.ChatBubbleLeftRight,
+    tone: FeedTone.People,
+  },
   StateChanged: { icon: IconProp.ArrowCircleRight, tone: FeedTone.Record },
   SeverityChanged: {
     icon: IconProp.ExclaimationCircle,

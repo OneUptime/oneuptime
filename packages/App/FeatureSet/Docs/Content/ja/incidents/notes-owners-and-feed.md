@@ -270,7 +270,7 @@ flowchart TB
 
 - **インシデント自体** — `IncidentCreated`、`IncidentUpdated`、`IncidentStateChanged`。`IncidentUpdated` エントリーは、編集で何が変わったかを記録します。タイトル、説明、根本原因、修復メモ、ラベル、重大度、モニターとそれに設定したステータス、そしてインシデントの範囲に追加または削除されたステータスページです。変わった値ごとに 1 行があり、同じ値のまま保存された値の行はないので、何も変えずにカードを保存した場合や、API クライアントやワークフローがインシデントをそのまま書き戻した場合は、エントリーはまったく追加されません。同じに読めるテキストは同じとみなされ（改行と前後の空白は除く）、ラベルは順序に関係なく同じ集合なら同じです。消した値は削除として読まれ、すべてのラベルを外すと「All labels removed.」と表示されます。アラートの **Alert updated** エントリーも同じように動作します。
 - **メモと文書** — `PublicNote`、`PrivateNote`、`RootCause`、`RemediationNotes`、`PostmortemNote`。`PostmortemNote` の項目は、ポストモーテムを保存するたびではなく、ポストモーテムのメモが変わったときに書き込まれます。
-- **人** — `OwnerUserAdded`、`OwnerTeamAdded`、`OwnerUserRemoved`、`OwnerTeamRemoved`、`IncidentMemberAdded`、`IncidentMemberRemoved`。
+- **人** — `OwnerUserAdded`、`OwnerTeamAdded`、`OwnerUserRemoved`、`OwnerTeamRemoved`、`IncidentMemberAdded`、`IncidentMemberRemoved`、そして `ChannelMemberAdded` です。最後のものは **チャネル メンバー追加済み** として表示され、インシデントのページからその Slack チャネルに人が追加されたことを示します。[レコードのチャネルにいる人](/docs/workspace-connections/slack#レコードのチャネルにいる人) を参照してください。
 - **リンクされたアラート** — `AlertLinked` と `AlertUnlinked`。**アラートリンク済み** と **アラートリンク解除済み** として表示されます。
 - **通知** — `OwnerNotificationSent`、`SubscriberNotificationSent`、`OnCallPolicy`、`OnCallNotification`。
 - **自動化** — `LabelRuleExecuted`、`OwnerRuleExecuted`、`PrivacyRuleExecuted`、`OnCallRuleExecuted`、`AutoRemediation`。
