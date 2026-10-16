@@ -6,6 +6,9 @@ import MetricPipelineRuleFilterCondition, {
 } from "Common/Types/Metrics/MetricPipelineRuleFilterCondition";
 import Button, { ButtonSize } from "Common/UI/Components/Button/Button";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
+import RuleAppliesToChoice from "Common/UI/Components/RuleCriteria/RuleAppliesToChoice";
+import { RuleCriteriaCopy } from "Common/UI/Components/RuleCriteria/RuleCriteriaFields";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -14,8 +17,6 @@ import React, {
   useRef,
 } from "react";
 import MetricPipelineRuleFilterFormElement from "./MetricPipelineRuleFilter";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   value: Array<MetricPipelineRuleFilterCondition> | undefined;
@@ -23,6 +24,20 @@ export interface ComponentProps {
     | ((value: Array<MetricPipelineRuleFilterCondition>) => void)
     | undefined;
 }
+
+/*
+ * What a pipeline rule fires on, asked as every rule's conditions are
+ * (RuleAppliesToChoice): every data point - where a new rule starts - or
+ * only those its filters match. It said "If no filters are added, then this
+ * rule will apply to every metric data point." over an Add Filter button.
+ */
+export const METRIC_PIPELINE_RULE_APPLIES_TO: {
+  readonly all: string;
+  readonly matching: string;
+} = {
+  all: translationKey("All data points"),
+  matching: translationKey("Only data points that match filters"),
+};
 
 /*
  * One filter on screen. Each row keeps the filter it was drawn with
@@ -50,8 +65,6 @@ const serialize: SerializeFunction = (
 const MetricPipelineRuleFilters: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
-
   const lastRowId: MutableRefObject<number> = useRef<number>(0);
 
   const toRow: (filter: MetricPipelineRuleFilterCondition) => FilterRow = (
@@ -66,6 +79,12 @@ const MetricPipelineRuleFilters: FunctionComponent<ComponentProps> = (
       return (props.value || []).map(toRow);
     },
   );
+
+  /*
+   * The filters "All data points" took out of the rule, until "Only ..."
+   * is picked again: a slip of the mouse loses nothing.
+   */
+  const [rowsSetAside, setRowsSetAside] = React.useState<Array<FilterRow>>([]);
 
   /*
    * The filters the form holds already. Only a change is reported, never
@@ -98,67 +117,89 @@ const MetricPipelineRuleFilters: FunctionComponent<ComponentProps> = (
     }
   }, [rows]);
 
+  const addFilter: () => void = (): void => {
+    const defaultCheckOn: MetricPipelineRuleFilterCheckOn =
+      MetricPipelineRuleFilterCheckOn.MetricName;
+    const defaultConditionType: MetricPipelineRuleFilterConditionType =
+      MetricPipelineRuleFilterConditionUtil.getConditionTypesByCheckOn(
+        defaultCheckOn,
+      )[0]!;
+
+    const added: FilterRow = toRow({
+      checkOn: defaultCheckOn,
+      conditionType: defaultConditionType,
+      attributeKey: undefined,
+      value: "",
+    });
+
+    setRows((current: Array<FilterRow>): Array<FilterRow> => {
+      return [...current, added];
+    });
+  };
+
+  /*
+   * "Only ..." is picked exactly while there are filters: a saved rule opens
+   * on whichever it is, and deleting the last filter is going back to "All".
+   */
   return (
     <div>
-      {rows.length === 0 && (
-        <p className="text-sm text-gray-700 text-semibold">
-          {translator.translateText(
-            "If no filters are added, then this rule will apply to every metric data point.",
-          )}
-        </p>
-      )}
+      <RuleAppliesToChoice
+        allLabel={METRIC_PIPELINE_RULE_APPLIES_TO.all}
+        matchingLabel={METRIC_PIPELINE_RULE_APPLIES_TO.matching}
+        isMatching={rows.length > 0}
+        onChooseAll={(): void => {
+          setRowsSetAside(rows);
+          setRows([]);
+        }}
+        onChooseMatching={(): void => {
+          if (rowsSetAside.length > 0) {
+            setRows(rowsSetAside);
+            setRowsSetAside([]);
+            return;
+          }
 
-      {rows.map((row: FilterRow) => {
-        return (
-          <MetricPipelineRuleFilterFormElement
-            key={row.id}
-            initialValue={row.filter}
-            onDelete={() => {
-              setRows((current: Array<FilterRow>): Array<FilterRow> => {
-                return current.filter((candidate: FilterRow): boolean => {
-                  return candidate.id !== row.id;
-                });
-              });
-            }}
-            onChange={(value: MetricPipelineRuleFilterCondition) => {
-              setRows((current: Array<FilterRow>): Array<FilterRow> => {
-                return current.map((candidate: FilterRow): FilterRow => {
-                  return candidate.id === row.id
-                    ? { id: candidate.id, filter: value }
-                    : candidate;
-                });
-              });
-            }}
-          />
-        );
-      })}
+          // One filter to fill in: what was asked for.
+          addFilter();
+        }}
+        label={RuleCriteriaCopy.appliesToTitle}
+        dataTestId="metric-pipeline-rule-applies-to"
+      >
+        <div data-testid="metric-pipeline-rule-filters">
+          {rows.map((row: FilterRow) => {
+            return (
+              <MetricPipelineRuleFilterFormElement
+                key={row.id}
+                initialValue={row.filter}
+                onDelete={() => {
+                  setRows((current: Array<FilterRow>): Array<FilterRow> => {
+                    return current.filter((candidate: FilterRow): boolean => {
+                      return candidate.id !== row.id;
+                    });
+                  });
+                }}
+                onChange={(value: MetricPipelineRuleFilterCondition) => {
+                  setRows((current: Array<FilterRow>): Array<FilterRow> => {
+                    return current.map((candidate: FilterRow): FilterRow => {
+                      return candidate.id === row.id
+                        ? { id: candidate.id, filter: value }
+                        : candidate;
+                    });
+                  });
+                }}
+              />
+            );
+          })}
 
-      <div className="mt-3 -ml-3">
-        <Button
-          title="Add Filter"
-          buttonSize={ButtonSize.Small}
-          icon={IconProp.Add}
-          onClick={() => {
-            const defaultCheckOn: MetricPipelineRuleFilterCheckOn =
-              MetricPipelineRuleFilterCheckOn.MetricName;
-            const defaultConditionType: MetricPipelineRuleFilterConditionType =
-              MetricPipelineRuleFilterConditionUtil.getConditionTypesByCheckOn(
-                defaultCheckOn,
-              )[0]!;
-
-            const added: FilterRow = toRow({
-              checkOn: defaultCheckOn,
-              conditionType: defaultConditionType,
-              attributeKey: undefined,
-              value: "",
-            });
-
-            setRows((current: Array<FilterRow>): Array<FilterRow> => {
-              return [...current, added];
-            });
-          }}
-        />
-      </div>
+          <div className="mt-3 -ml-3">
+            <Button
+              title="Add Filter"
+              buttonSize={ButtonSize.Small}
+              icon={IconProp.Add}
+              onClick={addFilter}
+            />
+          </div>
+        </div>
+      </RuleAppliesToChoice>
       <HorizontalRule />
     </div>
   );
