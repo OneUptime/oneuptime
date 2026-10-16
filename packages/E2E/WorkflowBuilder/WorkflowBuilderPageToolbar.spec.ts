@@ -207,9 +207,17 @@ test.describe("Workflow builder page: what the toolbar and the off notice put fi
       // Under the switch, starting where it does - not indented.
       expect(add.y).toBeGreaterThanOrEqual(toggle.y + toggle.height);
       expectSameX(add, toggle);
-      // Run Workflow beside it, a gap away.
-      expect(Math.abs(run.y - add.y)).toBeLessThanOrEqual(1);
-      expect(run.x).toBeGreaterThan(add.x + add.width);
+
+      /*
+       * Run Workflow beside it, a gap away - or, when a font's widths leave
+       * no room for both, under it, starting where it does too.
+       */
+      if (Math.abs(run.y - add.y) <= 1) {
+        expect(run.x).toBeGreaterThan(add.x + add.width);
+      } else {
+        expect(run.y).toBeGreaterThanOrEqual(add.y + add.height);
+        expectSameX(run, add);
+      }
     }
   });
 
