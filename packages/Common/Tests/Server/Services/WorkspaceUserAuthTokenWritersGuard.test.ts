@@ -26,7 +26,11 @@ import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
  *     Teams sign-in callback - each writing for the member and project of the
  *     state it spent (record.userId, record.projectId), never for ids the
  *     request carries;
- *   - no SQL anywhere else inserts or updates the table.
+ *   - no SQL anywhere else inserts or updates the table;
+ *   - a chat account is looked for among its own chat's links only;
+ *   - the scans see every use: the service and the model are imported
+ *     under their own names, and no workflow step or MCP tool is offered
+ *     for the table.
  *
  * A new way to connect an account has to be added below, so whoever adds it
  * decides how it proves the account.
@@ -75,6 +79,23 @@ const SQL_WRITE: RegExp =
 
 // Whitespace, taken out of a call's arguments before they are read.
 const WHITESPACE: RegExp = /\s+/g;
+
+// Every read a DatabaseService offers, called on the link table's service.
+const LINK_READ_CALL: RegExp =
+  /\bWorkspaceUserAuthTokenService\s*\.\s*(findOneBy|findBy|countBy|findOneById|findAllBy)\s*\(/g;
+
+// The service's own reads of its table.
+const OWN_READ_CALL: RegExp = /\bthis\s*\.\s*(findOneBy|findBy|countBy)\s*\(/g;
+
+// An import of the service or the model: the name it binds, and its path.
+const LINK_IMPORT: RegExp =
+  /\bimport\s+(\w+)(?:\s*,\s*\{[^}]*\})?\s+from\s+"([^"]*\/WorkspaceUserAuthToken(?:Service)?)"/g;
+
+// The service or the model loaded by require() instead.
+const LINK_REQUIRE: RegExp =
+  /\brequire\(\s*"[^"]*\/WorkspaceUserAuthToken(?:Service)?"\s*\)/;
+
+const QUERY_IN_PLACE: string = "query:{";
 
 /*
  * Where the chat's account is turned into the member a press, a command, a
@@ -153,6 +174,40 @@ function argumentsOf(source: string, openParen: number): string {
 
 function lineOf(source: string, index: number): number {
   return source.slice(0, index).split("\n").length;
+}
+
+/*
+ * The object a read's `query:` names, from a call's arguments with the
+ * whitespace taken out - or null, when it names none in place.
+ */
+function queryOf(argumentsText: string): string | null {
+  const start: number = argumentsText.indexOf(QUERY_IN_PLACE);
+
+  if (start === -1) {
+    return null;
+  }
+
+  let depth: number = 0;
+
+  for (
+    let index: number = start + QUERY_IN_PLACE.length - 1;
+    index < argumentsText.length;
+    index++
+  ) {
+    const character: string = argumentsText[index]!;
+
+    if (character === "{") {
+      depth++;
+    } else if (character === "}") {
+      depth--;
+
+      if (depth === 0) {
+        return argumentsText.slice(start, index + 1);
+      }
+    }
+  }
+
+  return null;
 }
 
 let sourceFiles: Array<string> | null = null;
@@ -303,6 +358,101 @@ describe("only a sign-in connects a chat account to a member", () => {
         `${file}: `,
       );
     }
+  });
+
+  test("a chat account is looked for among its own chat's links only, everywhere", () => {
+    /*
+     * Each read that finds a member by their chat account id names the chat
+     * too: a Slack account id is looked for among Slack links, a Microsoft
+     * Teams object id among Microsoft Teams links - never a link of the
+     * other chat that happens to carry the same id.
+     */
+    const reads: Array<Occurrence> = [
+      ...findAll(LINK_READ_CALL),
+      ...findAll(OWN_READ_CALL).filter((read: Occurrence): boolean => {
+        return read.file === SERVICE_FILE;
+      }),
+    ];
+
+    const byChatAccount: Array<string> = [];
+    const withoutChat: Array<string> = [];
+
+    for (const read of reads) {
+      const query: string | null = queryOf(read.argumentsText);
+
+      if (query === null || !query.includes("workspaceUserId")) {
+        continue;
+      }
+
+      byChatAccount.push(`${read.file}:${read.line}`);
+
+      if (!query.includes("workspaceType")) {
+        withoutChat.push(`${read.file}:${read.line}`);
+      }
+    }
+
+    // The scan finds the reads: who a press acts as, in both chats.
+    expect(byChatAccount.length).toBeGreaterThanOrEqual(8);
+    expect(withoutChat).toEqual([]);
+  });
+
+  test("every read of the links names its query in place, so the scans above see it", () => {
+    const reads: Array<Occurrence> = findAll(LINK_READ_CALL);
+
+    expect(reads.length).toBeGreaterThan(0);
+
+    const hidden: Array<string> = reads
+      .filter((read: Occurrence): boolean => {
+        return (
+          read.argumentsText.includes("query:") &&
+          queryOf(read.argumentsText) === null
+        );
+      })
+      .map((read: Occurrence): string => {
+        return `${read.file}:${read.line}`;
+      });
+
+    expect(hidden).toEqual([]);
+  });
+
+  test("the service and the model are imported under their own names everywhere, so the scans above see every use", () => {
+    const renamed: Array<string> = [];
+
+    for (const file of getSourceFiles()) {
+      const relativePath: string = path
+        .relative(REPOSITORY_DIR, file)
+        .split(path.sep)
+        .join("/");
+      const source: string = fs.readFileSync(file, "utf8");
+
+      for (const match of source.matchAll(LINK_IMPORT)) {
+        const binding: string = match[1]!;
+        const from: string = match[2]!;
+        const expected: string = from.endsWith("WorkspaceUserAuthTokenService")
+          ? "WorkspaceUserAuthTokenService"
+          : // The service itself names its model Model, as every service does.
+            relativePath === SERVICE_FILE
+            ? "Model"
+            : "WorkspaceUserAuthToken";
+
+        if (binding !== expected) {
+          renamed.push(`${relativePath}: ${binding} from ${from}`);
+        }
+      }
+
+      if (LINK_REQUIRE.test(source)) {
+        renamed.push(`${relativePath}: require()`);
+      }
+    }
+
+    expect(renamed).toEqual([]);
+  });
+
+  test("the links are offered to no workflow step and no MCP tool, which would write as somebody else", () => {
+    const model: WorkspaceUserAuthToken = new WorkspaceUserAuthToken();
+
+    expect(model.enableWorkflowOn).toBeUndefined();
+    expect(Boolean(model.enableMCP)).toBe(false);
   });
 
   test("each sign-in callback spends a single-use state before it writes", () => {

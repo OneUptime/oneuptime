@@ -64,6 +64,9 @@ import { DataSource, Logger } from "typeorm";
  *     every link that names a creator and only the notification methods - and
  *     their on-call rules - that point at such a link's account, through real
  *     IS NULL / IS NOT NULL / NOT IN reads of uuid columns;
+ *   - while a link a person typed in is still there - the cleanup has not
+ *     run, or could not remove it - no read finds it: a press from its
+ *     account is not its writer's, nor does it take over a member's own;
  *   - a Slack press finds the member among Slack links only.
  *
  * Opt in with RUN_POSTGRES_WORKSPACE_USER_LINK_TESTS=true against a database
@@ -188,6 +191,8 @@ describePostgres("chat account links, on Postgres", () => {
     // Who wrote it through the API; none for a sign-in's.
     createdByUserId?: ObjectID | undefined;
     projectId?: ObjectID | undefined;
+    // When it was written; now, when not given.
+    createdAt?: Date | undefined;
   }): Promise<ObjectID> {
     const id: ObjectID = ObjectID.generate();
 
@@ -200,6 +205,7 @@ describePostgres("chat account links, on Postgres", () => {
       authToken: "",
       miscData: JSON.stringify({ userId: data.workspaceUserId }),
       createdByUserId: data.createdByUserId || null,
+      ...(data.createdAt ? { createdAt: data.createdAt } : {}),
       version: 1,
     });
 
@@ -655,6 +661,91 @@ describePostgres("chat account links, on Postgres", () => {
     expect(result.failedLinkCount).toBe(1);
     expect(result.removedLinkCount).toBe(3);
     expect(await idsIn("WorkspaceUserAuthToken")).toEqual(sorted([stuck]));
+  });
+
+  test("a link a person typed in acts for nobody while it is still there, and the cleanup still finds it", async () => {
+    // The victim signed in long ago; the writer typed links in since.
+    await seedLink({
+      userId: victimId,
+      workspaceType: WorkspaceType.Slack,
+      workspaceUserId: VICTIM_SLACK,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    });
+    await seedLink({
+      userId: writerId,
+      workspaceType: WorkspaceType.Slack,
+      workspaceUserId: VICTIM_SLACK,
+      createdByUserId: writerId,
+      createdAt: new Date("2026-10-16T12:00:00.000Z"),
+    });
+    await seedLink({
+      userId: writerId,
+      workspaceType: WorkspaceType.Slack,
+      workspaceUserId: "U0PGNOBODYS",
+      createdByUserId: writerId,
+      createdAt: new Date("2026-10-16T12:00:00.000Z"),
+    });
+
+    // The newer typed-in link does not take the victim's account over.
+    const victimPress: SlackRequest = await pressInSlack(VICTIM_SLACK);
+
+    expect(victimPress.userId?.toString()).toBe(victimId.toString());
+
+    // An account only a typed-in link names is nobody's: asked to connect.
+    const nobodysPress: SlackRequest = await pressInSlack("U0PGNOBODYS");
+
+    expect(nobodysPress.userId).toBeUndefined();
+    expect(nobodysPress.refusal?.reason).toBe(
+      SlackAuthRefusalReason.NotConnected,
+    );
+
+    // Nothing goes to an account for the writer: they are not connected.
+    expect(
+      await WorkspaceUserAuthTokenService.getUserAuth({
+        projectId: projectId,
+        userId: writerId,
+        workspaceType: WorkspaceType.Slack,
+      }),
+    ).toBeNull();
+
+    // Signing in connects the writer's own account, beside the typed-in ones.
+    await WorkspaceUserAuthTokenService.refreshAuthToken({
+      projectId: projectId,
+      userId: writerId,
+      workspaceType: WorkspaceType.Slack,
+      authToken: "",
+      workspaceUserId: WRITER_SLACK,
+      miscData: { userId: WRITER_SLACK },
+    });
+
+    const writerPress: SlackRequest = await pressInSlack(WRITER_SLACK);
+
+    expect(writerPress.userId?.toString()).toBe(writerId.toString());
+
+    // The cleanup asks about the creator, so it still finds both.
+    const result: LinksNotMadeBySignInCleanupResult =
+      await WorkspaceUserAuthTokenService.removeLinksNotMadeBySignIn();
+
+    expect(result.removedLinkCount).toBe(2);
+    expect(result.failedLinkCount).toBe(0);
+
+    const rows: Array<StoredRow> = await database.query(
+      `SELECT "userId", "workspaceUserId", "createdByUserId"
+         FROM "${schema}"."WorkspaceUserAuthToken" ORDER BY "workspaceUserId"`,
+    );
+
+    expect(rows).toEqual([
+      {
+        userId: victimId.toString(),
+        workspaceUserId: VICTIM_SLACK,
+        createdByUserId: null,
+      },
+      {
+        userId: writerId.toString(),
+        workspaceUserId: WRITER_SLACK,
+        createdByUserId: null,
+      },
+    ]);
   });
 
   test("a Slack press finds the member among Slack links only", async () => {

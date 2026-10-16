@@ -4,10 +4,13 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import DatabaseService from "./DatabaseService";
 import UserSlackService from "./UserSlackService";
 import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
+import CountBy from "../Types/Database/CountBy";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
+import FindBy from "../Types/Database/FindBy";
+import Query from "../Types/Database/Query";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import Model, {
   SlackMiscData,
 } from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
@@ -16,6 +19,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import logger from "../Utils/Logger";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import PositiveNumber from "../../Types/PositiveNumber";
 
 // What removeLinksNotMadeBySignIn removed.
 export interface LinksNotMadeBySignInCleanupResult {
@@ -68,6 +72,58 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * A link counts only if a sign-in wrote it, so a read finds no other.
+   *
+   * One that names a creator was typed in through the API, when the API
+   * still wrote links. The one-time cleanup removes those
+   * (removeLinksNotMadeBySignIn), but one can outlive it: written by a
+   * server still running the old version while an upgrade rolls out, after
+   * the cleanup ran, or one the cleanup could not remove. Every read leaves
+   * them out - who a press, a command or a reaction acts as, whom a direct
+   * message or a channel invitation goes to, what a notification method is
+   * made from, what a member sees as connected - so such an account is
+   * nobody's, and is asked to connect. A read that asks about the creator
+   * itself, as the cleanup's do, is left as it asks.
+   */
+  public static onlyLinksMadeBySignIn(
+    query: Query<Model> | undefined,
+  ): Query<Model> {
+    const asked: Query<Model> = query || ({} as Query<Model>);
+
+    if (
+      Object.prototype.hasOwnProperty.call(asked, "createdByUserId") ||
+      Object.prototype.hasOwnProperty.call(asked, "createdByUser")
+    ) {
+      return asked;
+    }
+
+    return {
+      ...asked,
+      createdByUserId: QueryHelper.isNull(),
+    } as Query<Model>;
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = Service.onlyLinksMadeBySignIn(findBy.query);
+
+    return { findBy, carryForward: null };
+  }
+
+  // Counted as they are read.
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    return await super.countBy({
+      ...countBy,
+      query: Service.onlyLinksMadeBySignIn(countBy.query),
+    });
   }
 
   /*
@@ -363,7 +419,8 @@ export class Service extends DatabaseService<Model> {
     /*
      * A delete that removed nothing either lost a race to another run of
      * this walk, which removed the link first, or failed - and a link it
-     * left would be read again.
+     * left would be read again. Asked as what it is, a link that names a
+     * creator: a read leaves those out unless it asks about the creator.
      */
     if (
       deletedLinkCount === 0 &&
@@ -371,6 +428,7 @@ export class Service extends DatabaseService<Model> {
         await this.countBy({
           query: {
             _id: link.id!,
+            createdByUserId: QueryHelper.notNull(),
           },
           skip: 0,
           limit: 1,

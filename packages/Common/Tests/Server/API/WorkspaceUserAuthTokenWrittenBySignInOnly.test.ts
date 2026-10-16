@@ -94,8 +94,10 @@ import UserSlackService, {
 } from "../../../Server/Services/UserSlackService";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService, {
+  LinksNotMadeBySignInCleanupResult,
   Service as WorkspaceUserAuthTokenServiceType,
 } from "../../../Server/Services/WorkspaceUserAuthTokenService";
+import Query from "../../../Server/Types/Database/Query";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -117,6 +119,7 @@ import UserSlack from "../../../Models/DatabaseModels/UserSlack";
 import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Exception from "../../../Types/Exception/Exception";
+import NotFoundException from "../../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
@@ -138,6 +141,10 @@ const LINKS_LIST_ROUTE: string = "/workspace-user-auth-token/get-list";
 const LINK_ROUTE: string = "/workspace-user-auth-token/:id";
 const LINK_UPDATE_ITEM_ROUTE: string =
   "/workspace-user-auth-token/:id/update-item";
+const LINK_GET_ITEM_ROUTE: string = "/workspace-user-auth-token/:id/get-item";
+const LINK_DELETE_ITEM_ROUTE: string =
+  "/workspace-user-auth-token/:id/delete-item";
+const LINKS_COUNT_ROUTE: string = "/workspace-user-auth-token/count";
 const SLACK_METHOD_ROUTE: string = "/user-slack";
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -175,6 +182,10 @@ let memberUserIds: Set<string>;
 
 const sendEntityArrayResponseMock: MockedFn =
   Response.sendEntityArrayResponse as unknown as MockedFn;
+const sendEntityResponseMock: MockedFn =
+  Response.sendEntityResponse as unknown as MockedFn;
+const sendJsonObjectResponseMock: MockedFn =
+  Response.sendJsonObjectResponse as unknown as MockedFn;
 
 // A signed-in person holding exactly `permissions` in the project.
 function caller(
@@ -957,5 +968,372 @@ describe("a member's own link: read it and disconnect it, never anybody else's",
     });
 
     expect(links.get(SIGNED_IN_SLACK_LINK_ID)).toBeDefined();
+  });
+});
+
+describe("somebody else's link, by every other route", () => {
+  /*
+   * Which chat account a member connected is theirs to read, and theirs to
+   * disconnect: a link answers as missing to anybody else, by id or in a
+   * count, and stays where it is whoever else asks to remove it.
+   */
+  test.each([["GET"], ["POST"]])(
+    "%s get-item of another member's link answers as missing, without its account",
+    async (method: string) => {
+      props = caller([Permission.ProjectOwner]);
+
+      const { error } = await callRoute(method, LINK_GET_ITEM_ROUTE, {
+        params: { id: SIGNED_IN_SLACK_LINK_ID },
+        body: { select: { _id: true, workspaceUserId: true } },
+      });
+
+      expect(error).toBeInstanceOf(NotFoundException);
+      expect(sendEntityResponseMock).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a count shows each member their own links only", async () => {
+    props = caller([Permission.ProjectOwner]);
+
+    const { error } = await callRoute("POST", LINKS_COUNT_ROUTE, {
+      body: { query: {} },
+    });
+
+    expect(error).toBeUndefined();
+    expect(sendJsonObjectResponseMock.mock.calls[0]?.[2]).toEqual({
+      count: 0,
+    });
+
+    props = {
+      ...caller([Permission.ProjectMember]),
+      userId: SIGNED_IN_USER_ID,
+    };
+
+    await callRoute("POST", LINKS_COUNT_ROUTE, { body: { query: {} } });
+
+    expect(sendJsonObjectResponseMock.mock.calls[1]?.[2]).toEqual({
+      count: 2,
+    });
+  });
+
+  test("POST delete-item of another member's link removes nothing, and no method of theirs", async () => {
+    slackMethods.rows.push({
+      _id: "77777777-0000-4000-8000-000000000001",
+      projectId: PROJECT_ID.toString(),
+      userId: SIGNED_IN_USER_ID.toString(),
+      slackUserId: SIGNED_IN_SLACK_ID,
+      isVerified: true,
+      version: 1,
+    });
+
+    props = caller([Permission.ProjectOwner]);
+
+    await callRoute("POST", LINK_DELETE_ITEM_ROUTE, {
+      params: { id: SIGNED_IN_SLACK_LINK_ID },
+    });
+
+    expect(links.get(SIGNED_IN_SLACK_LINK_ID)).toBeDefined();
+    expect(links.deletes).toEqual([]);
+    expect(rowsOf(slackMethods)).toHaveLength(1);
+  });
+
+  test("somebody from another project neither lists nor removes the project's links", async () => {
+    props = memberOfAnotherProject();
+
+    await callRoute("POST", LINKS_LIST_ROUTE, {
+      body: { query: {}, select: { _id: true, workspaceUserId: true } },
+      query: { skip: "0", limit: "10" },
+    });
+
+    const listed: Array<WorkspaceUserAuthToken> =
+      (sendEntityArrayResponseMock.mock.calls[0]?.[2] as
+        | Array<WorkspaceUserAuthToken>
+        | undefined) || [];
+
+    expect(listed).toHaveLength(0);
+
+    await callRoute("DELETE", LINK_ROUTE, {
+      params: { id: SIGNED_IN_SLACK_LINK_ID },
+    });
+    await callRoute("POST", LINK_DELETE_ITEM_ROUTE, {
+      params: { id: SIGNED_IN_SLACK_LINK_ID },
+    });
+
+    expect(links.get(SIGNED_IN_SLACK_LINK_ID)).toBeDefined();
+    expect(links.deletes).toEqual([]);
+  });
+
+  test.each([
+    ["to another member", { userId: "aaaaaaaa-0000-4000-8000-000000000001" }],
+    ["to another project", { projectId: OTHER_PROJECT_ID.toString() }],
+    ["to another chat", { workspaceType: WorkspaceType.MicrosoftTeams }],
+  ])(
+    "a member cannot move their own link %s",
+    async (_where: string, data: JSONObject) => {
+      props = {
+        ...caller([Permission.ProjectMember]),
+        userId: SIGNED_IN_USER_ID,
+      };
+
+      const { error } = await callRoute("PUT", LINK_ROUTE, {
+        params: { id: SIGNED_IN_SLACK_LINK_ID },
+        body: { data: data },
+      });
+
+      expect(error).toBeInstanceOf(Exception);
+      expect(links.updates).toHaveLength(0);
+      expect(links.get(SIGNED_IN_SLACK_LINK_ID)).toMatchObject({
+        userId: SIGNED_IN_USER_ID.toString(),
+        projectId: PROJECT_ID.toString(),
+        workspaceType: WorkspaceType.Slack,
+      });
+    },
+  );
+});
+
+describe("a link a person typed in, while it is still there, is nobody's account", () => {
+  /*
+   * The one-time cleanup removes the links people typed in through the API
+   * (removeLinksNotMadeBySignIn), but one can outlive it: written by a
+   * server still running the old version while an upgrade rolls out, after
+   * the cleanup ran, or one the cleanup could not remove. It names its
+   * writer as creator, which no sign-in does - and no read finds it.
+   */
+  const WRITER_ID: ObjectID = new ObjectID(
+    "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  );
+  const TYPED_IN_LINK_ID: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  // Newer than the sign-ins' links, which a read takes first without the rule.
+  const TYPED_IN_AT: Date = new Date("2026-10-16T12:00:00.000Z");
+  const SIGNED_IN_AT: Date = new Date("2026-01-01T00:00:00.000Z");
+
+  function typedInLink(data: {
+    workspaceType: WorkspaceType;
+    workspaceUserId: string;
+  }): StoredRow {
+    return {
+      _id: TYPED_IN_LINK_ID,
+      projectId: PROJECT_ID.toString(),
+      userId: WRITER_ID.toString(),
+      workspaceType: data.workspaceType,
+      workspaceUserId: data.workspaceUserId,
+      authToken: "",
+      miscData: { userId: data.workspaceUserId },
+      createdByUserId: WRITER_ID.toString(),
+      createdAt: TYPED_IN_AT,
+      version: 1,
+    };
+  }
+
+  function asWriter(): DatabaseCommonInteractionProps {
+    return {
+      ...caller([Permission.ProjectMember]),
+      userId: WRITER_ID,
+    };
+  }
+
+  beforeEach(() => {
+    // The writer is a member: whatever a link made them, they could use.
+    memberUserIds.add(WRITER_ID.toString());
+
+    links.get(SIGNED_IN_SLACK_LINK_ID)!["createdAt"] = SIGNED_IN_AT;
+    links.get(SIGNED_IN_TEAMS_LINK_ID)!["createdAt"] = SIGNED_IN_AT;
+  });
+
+  test("a Slack press from an account only it names is asked to connect, never taken for its writer", async () => {
+    links.rows.push(
+      typedInLink({
+        workspaceType: WorkspaceType.Slack,
+        workspaceUserId: COLLEAGUE_SLACK_ID,
+      }),
+    );
+
+    const press: SlackRequest = await pressInSlack(COLLEAGUE_SLACK_ID);
+
+    expect(press.isAuthorized).toBe(false);
+    expect(press.userId).toBeUndefined();
+    expect(press.refusal?.reason).toBe(SlackAuthRefusalReason.NotConnected);
+  });
+
+  test("a newer one does not take over the Slack account a member signed in as: not a press, not a question", async () => {
+    links.rows.push(
+      typedInLink({
+        workspaceType: WorkspaceType.Slack,
+        workspaceUserId: SIGNED_IN_SLACK_ID,
+      }),
+    );
+
+    const press: SlackRequest = await pressInSlack(SIGNED_IN_SLACK_ID);
+
+    expect(press.userId?.toString()).toBe(SIGNED_IN_USER_ID.toString());
+
+    const context: { userId?: ObjectID | undefined } | undefined = await (
+      SlackAPI as unknown as {
+        resolveSlackAiOpsContext: (data: {
+          slackTeamId: string;
+          slackUserId: string;
+        }) => Promise<{ userId?: ObjectID | undefined } | undefined>;
+      }
+    ).resolveSlackAiOpsContext({
+      slackTeamId: SLACK_TEAM_ID,
+      slackUserId: SIGNED_IN_SLACK_ID,
+    });
+
+    expect(context?.userId?.toString()).toBe(SIGNED_IN_USER_ID.toString());
+  });
+
+  test("nor the Microsoft Teams account a member signed in as, and one only it names is nobody's", async () => {
+    links.rows.push(
+      typedInLink({
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        workspaceUserId: SIGNED_IN_TEAMS_ID,
+      }),
+    );
+
+    const userId: ObjectID =
+      await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
+        teamsUserId: SIGNED_IN_TEAMS_ID,
+        projectId: PROJECT_ID,
+      });
+
+    expect(userId.toString()).toBe(SIGNED_IN_USER_ID.toString());
+
+    links.get(TYPED_IN_LINK_ID)!["workspaceUserId"] = COLLEAGUE_TEAMS_ID;
+
+    await expect(
+      MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
+        teamsUserId: COLLEAGUE_TEAMS_ID,
+        projectId: PROJECT_ID,
+      }),
+    ).rejects.toBeInstanceOf(MicrosoftTeamsAccountNotLinkedException);
+  });
+
+  test("its writer is not connected: no direct message or invitation goes to the account, and no Slack method is made from it", async () => {
+    links.rows.push(
+      typedInLink({
+        workspaceType: WorkspaceType.Slack,
+        workspaceUserId: COLLEAGUE_SLACK_ID,
+      }),
+    );
+
+    expect(
+      await WorkspaceUserAuthTokenService.getUserAuth({
+        projectId: PROJECT_ID,
+        userId: WRITER_ID,
+        workspaceType: WorkspaceType.Slack,
+      }),
+    ).toBeNull();
+
+    props = asWriter();
+
+    const { error } = await callRoute("POST", SLACK_METHOD_ROUTE, {
+      body: {
+        data: {
+          projectId: PROJECT_ID.toString(),
+          userId: WRITER_ID.toString(),
+        },
+      },
+    });
+
+    expect(error?.message).toContain(
+      "Your Slack account is not connected to OneUptime in this project yet.",
+    );
+    expect(rowsOf(slackMethods)).toHaveLength(0);
+  });
+
+  test("its writer does not see it as connected: listed and counted for nobody", async () => {
+    links.rows.push(
+      typedInLink({
+        workspaceType: WorkspaceType.Slack,
+        workspaceUserId: COLLEAGUE_SLACK_ID,
+      }),
+    );
+
+    props = asWriter();
+
+    await callRoute("POST", LINKS_LIST_ROUTE, {
+      body: { query: {}, select: { _id: true, workspaceUserId: true } },
+      query: { skip: "0", limit: "10" },
+    });
+
+    expect(sendEntityArrayResponseMock.mock.calls[0]?.[2]).toEqual([]);
+
+    await callRoute("POST", LINKS_COUNT_ROUTE, { body: { query: {} } });
+
+    expect(sendJsonObjectResponseMock.mock.calls[0]?.[2]).toEqual({
+      count: 0,
+    });
+  });
+
+  test("its writer still connects their own account by signing in, beside it - and the cleanup then removes it", async () => {
+    links.rows.push(
+      typedInLink({
+        workspaceType: WorkspaceType.Slack,
+        workspaceUserId: COLLEAGUE_SLACK_ID,
+      }),
+    );
+
+    await WorkspaceUserAuthTokenService.refreshAuthToken({
+      projectId: PROJECT_ID,
+      userId: WRITER_ID,
+      workspaceType: WorkspaceType.Slack,
+      authToken: "",
+      workspaceUserId: "U0WRITEROWN",
+      miscData: { userId: "U0WRITEROWN" },
+    });
+
+    // A link of its own, not the typed-in one pointed elsewhere.
+    expect(links.inserts).toHaveLength(1);
+    expect(links.get(TYPED_IN_LINK_ID)?.["workspaceUserId"]).toBe(
+      COLLEAGUE_SLACK_ID,
+    );
+
+    const press: SlackRequest = await pressInSlack("U0WRITEROWN");
+
+    expect(press.userId?.toString()).toBe(WRITER_ID.toString());
+
+    const result: LinksNotMadeBySignInCleanupResult =
+      await WorkspaceUserAuthTokenService.removeLinksNotMadeBySignIn();
+
+    expect(result.removedLinkCount).toBe(1);
+    expect(result.failedLinkCount).toBe(0);
+    expect(links.get(TYPED_IN_LINK_ID)).toBeUndefined();
+    expect(
+      rowsOf(links)
+        .map((row: StoredRow): string => {
+          return String(row["workspaceUserId"]);
+        })
+        .sort(),
+    ).toEqual([SIGNED_IN_SLACK_ID, SIGNED_IN_TEAMS_ID, "U0WRITEROWN"].sort());
+  });
+
+  test("a read that asks about the creator is left as it asks, and the caller's query is not changed", () => {
+    const asked: Query<WorkspaceUserAuthToken> = {
+      projectId: PROJECT_ID,
+    };
+
+    const read: Query<WorkspaceUserAuthToken> =
+      WorkspaceUserAuthTokenServiceType.onlyLinksMadeBySignIn(asked);
+
+    expect(Object.keys(read).sort()).toEqual(
+      ["createdByUserId", "projectId"].sort(),
+    );
+    expect(Object.keys(asked)).toEqual(["projectId"]);
+
+    const askingAboutTheCreator: Query<WorkspaceUserAuthToken> = {
+      createdByUserId: WRITER_ID,
+    };
+
+    expect(
+      WorkspaceUserAuthTokenServiceType.onlyLinksMadeBySignIn(
+        askingAboutTheCreator,
+      ),
+    ).toBe(askingAboutTheCreator);
+
+    expect(
+      Object.keys(
+        WorkspaceUserAuthTokenServiceType.onlyLinksMadeBySignIn(undefined),
+      ),
+    ).toEqual(["createdByUserId"]);
   });
 });
