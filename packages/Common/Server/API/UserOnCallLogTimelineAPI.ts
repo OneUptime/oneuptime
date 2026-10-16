@@ -90,6 +90,8 @@ interface NotificationRecord {
   title: string;
   // "Incident INC-42", or "This incident" when it has no number.
   label: string;
+  // The same inside a sentence: "Incident INC-42", or "this incident".
+  labelInSentence: string;
   // The record in the Dashboard.
   viewDetailsUrl: string;
   viewDetailsText: string;
@@ -578,7 +580,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
             res,
             "/usr/src/Common/Server/Views/PassOnUserOnCallNotification.ejs",
             {
-              title: `Pass on ${record.label}?`,
+              title: `Pass on ${record.labelInSentence}?`,
               message: `${CANT_TAKE_IT} ${ON_CALL_PAGE_NOT_PAGED_AGAIN} ${getOnCallPassOnSentence(
                 preview.result,
                 { timezone: record.timezone },
@@ -737,6 +739,9 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
       label: resourceNumber
         ? `${notificationType} ${resourceNumber}`
         : `This ${notificationType.toLowerCase()}`,
+      labelInSentence: resourceNumber
+        ? `${notificationType} ${resourceNumber}`
+        : `this ${notificationType.toLowerCase()}`,
       viewDetailsUrl: new URL(
         httpProtocol,
         host,

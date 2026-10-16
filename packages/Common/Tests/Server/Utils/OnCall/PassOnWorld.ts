@@ -214,9 +214,7 @@ export default class PassOnWorld {
   }
 
   private spy(target: object, method: string, implementation: AnyFunction): void {
-    jest
-      .spyOn(target as Record<string, AnyFunction>, method as never)
-      .mockImplementation(implementation as never);
+    jest.spyOn(target as any, method as any).mockImplementation(implementation);
   }
 
   private installRuns(): void {
