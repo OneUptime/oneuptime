@@ -67,6 +67,7 @@ export class Service extends DatabaseService<Model> {
           paymentProviderCustomerId: true,
           paymentProviderSubscriptionId: true,
           paymentProviderMeteredSubscriptionId: true,
+          billingMarketplace: true,
         },
       });
 
@@ -77,6 +78,16 @@ export class Service extends DatabaseService<Model> {
 
       if (!project) {
         throw new BadDataException("Project not found");
+      }
+
+      /*
+       * A cloud marketplace bills this project, and its status follows the
+       * marketplace purchase (ProjectService.setMarketplaceBillingStatus).
+       * The card invoices left from before the move must not decide it - and
+       * paying one must never bring the card subscriptions back.
+       */
+      if (project.billingMarketplace) {
+        return;
       }
 
       if (!project.paymentProviderCustomerId) {
