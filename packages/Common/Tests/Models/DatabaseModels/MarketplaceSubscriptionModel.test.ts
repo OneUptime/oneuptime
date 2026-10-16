@@ -245,8 +245,8 @@ describe("Marketplace migration", () => {
     });
 
     expect(registeredNames).toContain(
-      "AddMarketplaceSubscriptions1802800000000",
+      "AddMarketplaceSubscriptions1803000000000",
     );
-    expect(registeredNames).toContain("AddMarketplaceCharges1802850000000");
+    expect(registeredNames).toContain("AddMarketplaceCharges1803050000000");
   });
 });

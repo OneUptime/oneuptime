@@ -10,13 +10,16 @@ import path from "path";
  * subscribe options and the status sit at laptop, wide and phone widths,
  * that nothing scrolls sideways, the footer on the card's edges, the menu,
  * the confirmations and the link field with a real clipboard, the dark
- * theme's colours, and German.
+ * theme's colours, and German. UpcomingShifts.spec.ts does the same for
+ * the Upcoming shifts card on the same page, with the browser's clock fixed:
+ * back-to-back turns as one row, times in the reader's zone across a change
+ * of the clocks, the fold, every state, phones and other languages.
  */
 const port: string = process.env["CALENDAR_FEED_FIXTURE_PORT"] || "4294";
 
 export default defineConfig({
   testDir: "./CalendarFeed",
-  testMatch: "CalendarFeed.spec.ts",
+  testMatch: ["CalendarFeed.spec.ts", "UpcomingShifts.spec.ts"],
   timeout: 90000,
   expect: { timeout: 15000 },
   workers: 1,

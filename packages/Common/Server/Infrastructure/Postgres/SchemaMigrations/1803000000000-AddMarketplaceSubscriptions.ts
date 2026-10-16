@@ -20,10 +20,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * The indexes are on the two new tables, created in this migration, so they
  * block nobody.
  */
-export class AddMarketplaceSubscriptions1802800000000
+export class AddMarketplaceSubscriptions1803000000000
   implements MigrationInterface
 {
-  public name: string = "AddMarketplaceSubscriptions1802800000000";
+  public name: string = "AddMarketplaceSubscriptions1803000000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

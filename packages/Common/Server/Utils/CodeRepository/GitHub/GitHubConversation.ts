@@ -8,6 +8,7 @@ import API from "../../../../Utils/API";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import GlobalCache from "../../../Infrastructure/GlobalCache";
 import { GitHubAppName } from "../../../EnvironmentConfig";
+import { GitHubCommentKind } from "../../../../Types/CodeRepository/GitHubCommand";
 import GitHubUtil, { GitHubInstallationToken } from "./GitHub";
 
 /*
@@ -385,15 +386,40 @@ export default class GitHubConversation {
    * instantly, cost the reader nothing, and cannot themselves be mistaken for
    * a mention. A failure to react is never worth failing a command over, so
    * this swallows its errors and reports whether it landed.
+   *
+   * Where the reaction goes depends on the kind of comment. A conversation
+   * comment and an inline review comment keep their reactions on different
+   * routes, and asking the wrong one is a 404 — which left an inline mention
+   * with no acknowledgement, and a refused commenter, whose only answer is a
+   * reaction, with no answer at all. A submitted review has no reaction API,
+   * so its reaction goes on the pull request it reviewed instead.
    */
   @CaptureSpan()
   public static async addReactionToComment(data: {
     installationId: string;
     organizationName: string;
     repositoryName: string;
+    // The issue or pull request the comment was written on.
+    issueNumber: number;
     commentId: number;
+    commentKind: GitHubCommentKind;
     reaction: GitHubReaction;
   }): Promise<boolean> {
+    if (data.commentKind === GitHubCommentKind.Review) {
+      return GitHubConversation.addReactionToIssue({
+        installationId: data.installationId,
+        organizationName: data.organizationName,
+        repositoryName: data.repositoryName,
+        issueNumber: data.issueNumber,
+        reaction: data.reaction,
+      });
+    }
+
+    const commentsRoute: string =
+      data.commentKind === GitHubCommentKind.ReviewComment
+        ? "pulls/comments"
+        : "issues/comments";
+
     try {
       const token: string = await GitHubConversation.getConversationToken(
         data.installationId,
@@ -402,7 +428,7 @@ export default class GitHubConversation {
       const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.post({
           url: URL.fromString(
-            `${GitHubConversation.repoApiUrl(data)}/issues/comments/${data.commentId}/reactions`,
+            `${GitHubConversation.repoApiUrl(data)}/${commentsRoute}/${data.commentId}/reactions`,
           ),
           data: { content: data.reaction },
           headers: GitHubConversation.buildHeaders(token),

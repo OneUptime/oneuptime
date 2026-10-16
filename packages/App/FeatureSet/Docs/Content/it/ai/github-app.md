@@ -33,13 +33,13 @@ flowchart TB
 
 ## Prima di iniziare
 
-- Il repository deve essere **collegato a un progetto OneUptime** tramite la GitHub App: collegalo in **Attività → Repository di codice** (apri **Prodotti → Codice → Attività**). Un'istanza self-hosted ha prima bisogno di una propria GitHub App: vedi [Integrazione GitHub](/docs/self-hosted/github-integration).
+- Il repository deve essere **collegato a un progetto OneUptime** tramite la GitHub App: collegalo in **Attività → Repository di codice** (apri **Prodotti → Codice → Attività**). Un'istanza self-hosted ha prima bisogno di una propria GitHub App: vedi [Integrazione GitHub](/docs/self-hosted/github-integration). Se l'app è già installata sull'account GitHub, fai clic lì su **Collega un'installazione esistente** invece di installarla di nuovo.
 - Un Runner con **Esegue le correzioni di codice AI** deve essere online: lo stesso Runner che svolge le [Attività di correzione](/docs/ai/ai-agent). Senza, i comandi vengono accettati e poi falliscono dopo 30 minuti, con un messaggio che dice che nessun agente li ha presi.
 - La GitHub App ha bisogno del permesso **Issues** con **Read & write** e deve essere iscritta agli eventi webhook elencati in [A cosa iscriversi](#a-cosa-iscriversi).
 
 ## I comandi
 
-Ogni comando inizia con una menzione dell'app. La menzione può stare in qualsiasi punto del commento, e quello che scrivi dopo viene passato come tua richiesta.
+Ogni comando inizia con una menzione dell'app. La menzione può stare in qualsiasi punto del commento, e quello che scrivi dopo viene passato come tua richiesta. Modificare un commento che menziona già l'app non la riesegue: per cambiare la tua richiesta, scrivi un nuovo commento. Una modifica che aggiunge la menzione è una nuova richiesta.
 
 ### In una pull request
 

@@ -344,11 +344,7 @@ const ALSO_DRAWN: Record<string, Array<string>> = {
  * locales have no key for them.
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
-  [SLACK]: [
-    "Connect my account with Slack",
-    "Post to Existing Slack Channel",
-    "Create Slack Channel",
-  ],
+  [SLACK]: ["Connect my account with Slack"],
   [VIDEO]: [
     "Who can join",
     "Who skips the lobby",

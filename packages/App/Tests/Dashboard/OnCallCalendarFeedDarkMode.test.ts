@@ -195,6 +195,8 @@ describe("the calendar feed cards in the dark theme", () => {
         "Components/OnCallPolicy/CalendarFeed/FeedManageMenu.tsx",
         "Components/OnCallPolicy/CalendarFeed/FeedEmptyState.tsx",
         "Components/OnCallPolicy/CalendarFeed/CalendarFeedLayout.ts",
+        "Components/OnCallPolicy/CalendarFeed/UpcomingShiftsCard.tsx",
+        "Components/OnCallPolicy/CalendarFeed/UpcomingShiftRow.tsx",
         "Components/OnCallPolicy/CalendarFeedLinks.tsx",
       ]),
     );

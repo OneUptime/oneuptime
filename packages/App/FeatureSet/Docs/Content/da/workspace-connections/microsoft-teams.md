@@ -15,7 +15,7 @@ Forbind OneUptime med Microsoft Teams for at slå hændelser, advarsler, episode
 ```mermaid title="Fra en begivenhed i OneUptime til et kort i Microsoft Teams"
 flowchart TB
     event["En hændelse, advarsel eller begivenhed<br/>oprettes eller ændres"] --> rules{"Notifikationsregler<br/>hvis betingelser passer"}
-    rules -->|"Create Microsoft Teams Channel"| own["En kanal for sig selv<br/>i det team, du vælger"]
+    rules -->|"En kanal<br/>for hver"| own["En kanal for sig selv<br/>i det team, du vælger"]
     rules -->|"Slå op i en eksisterende<br/>kanal eller chat"| existing["Dine kanaler og chats"]
     own --> card["Et kort med knapper"]
     existing --> card
@@ -84,13 +84,15 @@ At oprette en regel går gennem fire trin:
 | Trin | Hvad du angiver |
 | --- | --- |
 | **Grundlæggende** | **Regelnavn** og **Regelbeskrivelse**. |
-| **Betingelser** | Hvilke begivenheder reglen udløses for, for eksempel efter alvorlighed, tilstand, etiket, monitor eller ord i titlen. Uden betingelser udløses den for hver begivenhed. Med to eller flere siger **Matchbetingelse**, om alle skal passe, eller om én er nok. |
-| **Destination** | Hvor den slår op: en eksisterende kanal i et team, du vælger, de chats, du vælger, en ny kanal, der oprettes i et team, du vælger, eller flere af dem sammen. |
+| **Betingelser** | Hvilke begivenheder reglen gælder for, for eksempel efter alvorlighed, tilstand, etiket, monitor eller ord i titlen. De kontrolleres, når en begivenhed oprettes, og igen ved hver opdatering, OneUptime slår op om den, så en regel for bekræftede hændelser virker, når en hændelse bekræftes. Uden betingelser gælder reglen for hver begivenhed. Med to eller flere siger **Matchbetingelse**, om alle skal passe, eller om én er nok. |
+| **Destination** | Hvor den slår op: en eksisterende kanal i et team, du vælger, de chats, du vælger, en kanal for hver hændelse (eller advarsel, episode, begivenhed, monitor eller vagtpolitik), der oprettes i et team, du vælger, eller flere af dem sammen. Under trinnet siger **Hvad reglen gør** det i sætninger, ligesom reglens kort. |
 | **Video Call** | Kun hændelser og advarsler: start et opkald for hver. Se [Videoopkald](/docs/workspace-connections/video-calls). |
 
 En kanal, som reglen opretter, får navn efter sin post: hændelse INC-42 får `inc-42`, advarsel ALT-7 får `alt-7`, og i et projekt uden nummerpræfikser får hændelse 42 `incident-42`. Tekst i **Præfiks for kanalnavn** sættes foran, så `prod-` giver `prod-inc-42`, og formularen viser navnet, mens du skriver. For en planlagt vedligeholdelse træder præfikset i stedet for dens nummerpræfiks: SM-5 får `sm-5`, og `maint-` giver `maint-5`. OneUptime beholder bogstaver, tal, mellemrum, `-` og `_`, op til de 50 tegn, Microsoft Teams tager imod. Har teamet allerede en kanal med det navn, fx et andet projekts eller en, der er slettet inden for de sidste 30 dage, tilføjer OneUptime `-2`, `-3` og så videre.
 
-Kun en oprettet kanal får de folk, reglen inviterer. En privat hændelse, advarsel eller episode får en privat kanal. Hver senere opdatering af posten — en tilstandsændring, en note, en ny ejer — slås op i dens kanaler og chats.
+En regel opretter sin kanal første gang, en begivenhed matcher den: når begivenheden oprettes, eller senere, når en opdatering får den til at matche, mens den stadig er åben. En regel for bekræftede hændelser opretter kanalen, når hændelsen bekræftes. Microsoft Teams viser et teams kanaler for alle i teamet, så OneUptime tilføjer ingen til en kanal én ad gangen: alle i det team, du vælger, kan åbne den, som regelformularen siger under **Hvem der kommer med i kanalen**. En privat hændelse, advarsel eller episode får en privat kanal, som kun dens medlemmer ser; tilføj folk i Microsoft Teams.
+
+Hver senere opdatering af posten — en tilstandsændring, en note, en ny ejer — slås op i dens kanaler og i de eksisterende kanaler og chats, dens regler nævner, så længe deres betingelser passer. OneUptime kan ikke arkivere en Microsoft Teams-kanal, så en regels kanal bliver, når dens post er afsluttet; arkiver eller slet den i Microsoft Teams.
 
 En hændelse, advarsel, episode eller planlagt vedligeholdelse med sin egen kanal har **Åbn i Microsoft Teams** i toppen af sin side i OneUptime, ved siden af tilstandsknapperne. Den åbner kanalen i en ny fane, i Microsoft Teams-appen eller i browseren. En post med to egne kanaler viser dem begge under knappen. En post med kanaler i både Slack og Microsoft Teams har i stedet én knap, **Åbn kanal**, der viser dem alle. De eksisterende kanaler og chats, dine regler slår op i, tilbydes ikke.
 

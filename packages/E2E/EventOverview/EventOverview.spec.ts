@@ -3266,6 +3266,17 @@ const CARD_STATES: ReadonlyArray<CardState> = [
     badge: "Preparing report…",
   },
   { name: "no investigation", query: "ai=none", badge: "Not investigated" },
+  // An incident checked again after an alert opened (?linked=followup).
+  {
+    name: "a follow-up check's report",
+    query: "linked=followup",
+    badge: "Completed",
+  },
+  {
+    name: "a follow-up check running",
+    query: "ai=running&linked=followup",
+    badge: "Investigating…",
+  },
 ];
 
 async function openCardState(page: Page, state: CardState): Promise<Locator> {
@@ -4477,7 +4488,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
       );
 
       await expect(answer).toContainText("to Sam Rivera");
-      await expect(steps).toContainText("Running recent_changes");
+      await expect(steps).toContainText("Checking recent changes");
       await expect(steps).toContainText("Searching logs");
       expect(await frameLook(steps)).toEqual({
         background: "rgba(0, 0, 0, 0)",
@@ -10032,5 +10043,411 @@ test.describe("screenshots", () => {
       await page.mouse.move(0, 0);
       await screenshotElement(investigationDetails(page), "ai-report-activity");
     });
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The linked infrastructure an investigation read, and its follow-up check
+ * (?linked=, issues #4786 and #4787)
+ * ---------------------------------------------------------------------------
+ *
+ * An investigation's activity says what it read about the infrastructure its
+ * incident or alert is linked to. When an alert opens on that
+ * infrastructure after the first analysis, OneUptime AI checks the incident
+ * again: the live run says so in its heading, its report leads with the
+ * server's "Checked again" line above the Summary, and the feed's entry
+ * says "OneUptime AI checked again" with the reason, apart from the first
+ * analysis below it. The evidence of the infrastructure tools reads in
+ * words.
+ */
+
+const LINKED_LINE: string =
+  "Read 2 open or recent alerts on Host checkout-api-7f9c, Docker host checkout-api-7f9c, Kubernetes cluster prod-eks-eu-west-1 and 2 more";
+const FOLLOW_UP_ACTIVITY_LINE: string =
+  "Checking again: alert #318 opened on Host checkout-api-7f9c after the first analysis";
+const FOLLOW_UP_LEAD_TEXT: string =
+  "Checked again after alert #318 opened on Host checkout-api-7f9c, 3 minutes after this incident was declared: High CPU on checkout-api-7f9c.";
+const FOLLOW_UP_FEED_LEAD: string =
+  "OneUptime AI checked again after alert #318 opened on Host checkout-api-7f9c, 3 minutes after this incident was declared: High CPU on checkout-api-7f9c.";
+const FIRST_ANALYSIS_FEED_LEAD: string =
+  "OneUptime AI posted a root cause analysis";
+const FOLLOW_UP_TLDR_START: string = "Alert #318 does not change the analysis";
+
+function liveInvestigation(page: Page): Locator {
+  return page.getByRole("region", { name: "Live investigation" });
+}
+
+function followUpLead(page: Page): Locator {
+  return investigationCard(page).getByTestId("investigation-report-lead");
+}
+
+// The words of each step the live run draws, in order.
+async function stepTexts(page: Page): Promise<Array<string>> {
+  return liveInvestigation(page)
+    .getByTestId("activity-step-text")
+    .evaluateAll((elements: Array<Element>): Array<string> => {
+      return elements.map((element: Element): string => {
+        return (element.textContent || "").trim();
+      });
+    });
+}
+
+/*
+ * Where the first line of an element's text sits, in document coordinates:
+ * the box of its first character.
+ */
+async function firstLineBox(locator: Locator): Promise<Box> {
+  return locator.evaluate((element: Element): Box => {
+    const walker: TreeWalker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+    );
+    let node: Node | null = walker.nextNode();
+
+    while (
+      node &&
+      ((node.parentElement && node.parentElement.closest(".sr-only")) ||
+        !(node.textContent || "").trim())
+    ) {
+      node = walker.nextNode();
+    }
+
+    const text: string = node!.textContent || "";
+    let offset: number = 0;
+
+    while (offset < text.length && text.charAt(offset).trim() === "") {
+      offset++;
+    }
+
+    const range: Range = document.createRange();
+    range.setStart(node!, offset);
+    range.setEnd(node!, offset + 1);
+    const rect: DOMRect = range.getBoundingClientRect();
+
+    return {
+      x: rect.left + window.scrollX,
+      y: rect.top + window.scrollY,
+      width: rect.width,
+      height: rect.height,
+    };
+  });
+}
+
+function centreOf(box: Box): number {
+  return box.y + box.height / 2;
+}
+
+test.describe("the linked infrastructure, and the follow-up check (?linked=)", () => {
+  test("a running investigation says what it read about its linked infrastructure, a line that wraps keeping its mark beside its first line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await open(page, INCIDENT_PATH, "ai=running&linked=alerts");
+    await expect(liveInvestigation(page)).toBeVisible({ timeout: 30000 });
+
+    expect((await stepTexts(page)).slice(0, 2)).toEqual([
+      "Starting investigation",
+      LINKED_LINE,
+    ]);
+
+    const step: Locator = liveInvestigation(page)
+      .getByTestId("activity-step-text")
+      .filter({ hasText: LINKED_LINE });
+    const mark: Locator = step.locator(
+      "xpath=preceding-sibling::*[@data-testid='activity-step-mark']",
+    );
+    const stepBox: Box = await documentBox(step);
+    const markBox: Box = await documentBox(mark);
+    const line: Box = await firstLineBox(step);
+
+    // It wraps on a phone, and its mark stays level with its first line.
+    expect(stepBox.height, "the line wraps").toBeGreaterThan(
+      markBox.height * 2,
+    );
+    expect(
+      Math.abs(centreOf(markBox) - centreOf(line)),
+      "the mark beside the first line",
+    ).toBeLessThanOrEqual(2);
+
+    // The steps every investigation takes read as words, not tool ids.
+    expect(await stepTexts(page)).toContain(
+      "Searching past incidents · 3 rows · 0.4s",
+    );
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("the steps' detail follows their words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=running&linked=alerts");
+    await expect(liveInvestigation(page)).toBeVisible({ timeout: 30000 });
+
+    const step: Locator = liveInvestigation(page)
+      .getByTestId("activity-step-text")
+      .filter({ hasText: "Aggregating metrics" });
+    const detail: Locator = step.getByText("· 80 rows · 1.2s");
+
+    // On the words' own line, right after them.
+    expect(
+      Math.abs(
+        centreOf(await documentBox(detail)) -
+          centreOf(await firstLineBox(step)),
+      ),
+    ).toBeLessThanOrEqual(2);
+  });
+
+  test("more alerts than it lists: the newest were read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=running&linked=more");
+    await expect(liveInvestigation(page)).toContainText(
+      "Read the 10 newest open or recent alerts on Host checkout-api-7f9c, Docker host checkout-api-7f9c, Kubernetes cluster prod-eks-eu-west-1 and 2 more",
+      { timeout: 30000 },
+    );
+  });
+
+  test("an alert's investigation says when there was nothing on its host", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERT_PATH, "ai=running&linked=alerts");
+    await expect(liveInvestigation(page)).toContainText(
+      "No open or recent alerts on Host payments-web-2",
+      { timeout: 30000 },
+    );
+    // An alert is never checked again.
+    await expect(liveInvestigation(page)).toContainText(
+      "OneUptime AI is investigating",
+    );
+  });
+
+  test("a follow-up check, running, is headed 'checking again', its first line naming the alert that made it check", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=running&linked=followup");
+    const live: Locator = liveInvestigation(page);
+    await expect(live).toBeVisible({ timeout: 30000 });
+
+    await expect(live.getByRole("heading", { level: 3 })).toHaveText(
+      "OneUptime AI is checking again",
+    );
+    expect((await stepTexts(page)).slice(0, 3)).toEqual([
+      "Starting investigation",
+      FOLLOW_UP_ACTIVITY_LINE,
+      "Read 3 open or recent alerts on Host checkout-api-7f9c, Docker host checkout-api-7f9c, Kubernetes cluster prod-eks-eu-west-1 and 2 more",
+    ]);
+    expect(await stepTexts(page)).toContain(
+      "Checking the host's containers · 4 rows · 0.6s",
+    );
+    expect(await stepTexts(page)).toContain(
+      "Reading a resource's telemetry · 4 rows · 0.9s",
+    );
+    // A first investigation, running, keeps its heading.
+    await open(page, INCIDENT_PATH, "ai=running&linked=alerts");
+    await expect(
+      liveInvestigation(page).getByRole("heading", { level: 3 }),
+    ).toHaveText("OneUptime AI is investigating", { timeout: 30000 });
+  });
+
+  test("a follow-up check's report leads with why it was written, above the Summary, the alert a link", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "linked=followup");
+    const lead: Locator = followUpLead(page);
+    // The report's markdown is drawn once its renderer has loaded.
+    await expect(lead).toContainText(FOLLOW_UP_LEAD_TEXT, { timeout: 30000 });
+
+    expect(await plainText(lead)).toBe(FOLLOW_UP_LEAD_TEXT);
+    await expect(lead.locator("strong")).toHaveText("Checked again");
+    await expectAbove(lead, summarySection(page), "the lead, then the Summary");
+    await expect(summarySection(page)).toContainText(FOLLOW_UP_TLDR_START);
+    // Said once, not again inside the report.
+    await expect(reportSection(page)).not.toContainText("Checked again");
+
+    // The alert it names opens that alert.
+    const alertLink: Locator = referenceLink(lead, "#318");
+    await expect(alertLink).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/alerts/${uuid("30000000", 318)}`,
+    );
+
+    // The mark sits level with the line's first words.
+    const mark: Box = await documentBox(lead.locator("svg"));
+    expect(
+      Math.abs(centreOf(mark) - centreOf(await firstLineBox(lead))),
+    ).toBeLessThanOrEqual(2);
+    expect(await panelsInsideTheCard(page)).toEqual([]);
+  });
+
+  test("a first analysis has no lead", async ({ page }: { page: Page }) => {
+    await openReady(page, INCIDENT_PAGE, "linked=alerts");
+    await expect(followUpLead(page)).toHaveCount(0);
+  });
+
+  test("the feed says OneUptime AI checked again, and why, apart from the first analysis", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "linked=followup");
+    const feed: Locator = card(page, "Incident Feed");
+    const followUp: Locator = feedEntry(feed, FOLLOW_UP_FEED_LEAD);
+    await expect(followUp).toHaveCount(1, { timeout: 30000 });
+
+    expect(await plainText(followUp.getByTestId("feed-entry-intro"))).toBe(
+      FOLLOW_UP_FEED_LEAD,
+    );
+    await expect(followUp.getByTestId("feed-entry-body")).toContainText(
+      "Alert #318 does not change the earlier analysis",
+    );
+    await expect(followUp.getByTestId("feed-entry-body")).not.toContainText(
+      "Checked again",
+    );
+
+    // The first analysis, below it, is posted as it always was.
+    const first: Locator = feedEntry(feed, FIRST_ANALYSIS_FEED_LEAD);
+    await expect(first).toHaveCount(1);
+    await expectAbove(followUp, first, "the newest first");
+
+    // The whole report, its lead included, unfolds under the entry.
+    await followUp
+      .getByRole("button", { name: "Show the full report" })
+      .click();
+    await expect(followUp.getByTestId("feed-entry-details")).toContainText(
+      "Checked again after alert #318",
+    );
+  });
+
+  test("the infrastructure tools' evidence reads in words: the containers table and the CPU by state", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "linked=followup");
+    await expect(followUpLead(page)).toBeVisible({ timeout: 30000 });
+
+    const containers: Locator = await expandEvidence(page, "C2");
+    await expect(evidenceToggle(evidenceRow(page, "C2"))).toContainText(
+      "Checked a host's containers",
+    );
+    expect(await definitionPairs(containers)).toEqual(
+      expect.arrayContaining([
+        { label: "Resource type", value: "Docker Host" },
+        { label: "Resource", value: "84000000…" },
+        { label: "Ranked by", value: "CPU" },
+      ]),
+    );
+    await expectRowsLoaded(containers);
+    await expect(containers.locator("thead th")).toHaveText([
+      "Container",
+      "Status",
+      "CPU avg %",
+      "CPU peak %",
+      "Memory peak %",
+      "Restarts",
+      "Last seen",
+      "Image",
+    ]);
+    await expect(containers.locator("tbody tr").first()).toContainText(
+      "Stopped reporting",
+    );
+    // Dated in the reader's time, not by ISO instants.
+    await expect(containers).toContainText("Sep 14, 5:49 PM – 6:04 PM");
+    await expect(containers).not.toContainText("2026-09-14T17:49");
+
+    const cpu: Locator = await expandEvidence(page, "C3");
+    await expect(evidenceToggle(evidenceRow(page, "C3"))).toContainText(
+      "Read a resource's telemetry",
+    );
+    expect(await definitionPairs(cpu)).toEqual(
+      expect.arrayContaining([
+        { label: "Telemetry", value: "Metrics" },
+        { label: "Mode", value: "Trend" },
+      ]),
+    );
+    await expectRowsLoaded(cpu);
+    await expect(cpu).toContainText("Avg of system.cpu.utilization by state");
+  });
+
+  test("on a phone nothing scrolls sideways, in the light and the dark theme", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+
+    for (const query of [
+      "linked=followup",
+      "linked=followup&theme=dark",
+      "ai=running&linked=followup",
+    ]) {
+      await open(page, INCIDENT_PATH, query);
+      await expect(investigationCard(page)).toContainText("checking again", {
+        ignoreCase: true,
+        timeout: 30000,
+      });
+      await expectNoHorizontalOverflow(page);
+    }
+  });
+
+  test("screenshots", async ({ page }: { page: Page }) => {
+    const shots: ReadonlyArray<{ file: string; query: string; width: number }> =
+      [
+        { file: "ai-card-followup", query: "linked=followup", width: 1440 },
+        {
+          file: "ai-card-followup-running",
+          query: "ai=running&linked=followup",
+          width: 1440,
+        },
+        {
+          file: "ai-card-followup-dark",
+          query: "linked=followup&theme=dark",
+          width: 1440,
+        },
+        {
+          file: "ai-card-followup-mobile",
+          query: "linked=followup",
+          width: 390,
+        },
+        {
+          file: "ai-card-linked-running-mobile",
+          query: "ai=running&linked=alerts",
+          width: 390,
+        },
+      ];
+
+    for (const shot of shots) {
+      await page.setViewportSize({ width: shot.width, height: 1000 });
+      await open(page, INCIDENT_PATH, shot.query);
+      await expect(investigationCard(page)).toContainText(
+        shot.query.includes("ai=running")
+          ? "Starting investigation"
+          : REPORT_CAVEAT,
+        { timeout: 30000 },
+      );
+      await page.mouse.move(0, 0);
+      await screenshotElement(investigationCard(page), shot.file);
+    }
+
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await open(page, INCIDENT_PATH, "linked=followup");
+    const feed: Locator = card(page, "Incident Feed");
+    await expect(feedEntry(feed, FOLLOW_UP_FEED_LEAD)).toHaveCount(1, {
+      timeout: 30000,
+    });
+    await page.mouse.move(0, 0);
+    await screenshotElement(feed, "incident-feed-followup");
   });
 });

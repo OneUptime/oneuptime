@@ -1,4 +1,4 @@
-import { AddMarketplaceCharges1802850000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1802850000000-AddMarketplaceCharges";
+import { AddMarketplaceCharges1803050000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1803050000000-AddMarketplaceCharges";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { QueryRunner } from "typeorm";
 import { describe, expect, test } from "@jest/globals";
@@ -27,7 +27,7 @@ const runMigration: (
     },
   } as unknown as QueryRunner;
 
-  await new AddMarketplaceCharges1802850000000()[direction](runner);
+  await new AddMarketplaceCharges1803050000000()[direction](runner);
 
   return statements;
 };
@@ -38,7 +38,7 @@ const DROP_INDEX_PATTERN: RegExp = /^DROP INDEX "public"\."(IDX_[0-9a-f]+)"$/;
 const ROW_WRITING_STATEMENT_PATTERN: RegExp =
   /^\s*(UPDATE|INSERT|DELETE|TRUNCATE|ALTER)\b/i;
 
-describe("AddMarketplaceCharges1802850000000", () => {
+describe("AddMarketplaceCharges1803050000000", () => {
   test("creates the MarketplaceCharge table and indexes on it, and nothing else", async () => {
     const statements: Array<string> = await runMigration("up");
 
@@ -119,8 +119,8 @@ describe("AddMarketplaceCharges1802850000000", () => {
       return migration.name;
     });
 
-    expect(names.indexOf("AddMarketplaceCharges1802850000000")).toBe(
-      names.indexOf("AddMarketplaceSubscriptions1802800000000") + 1,
+    expect(names.indexOf("AddMarketplaceCharges1803050000000")).toBe(
+      names.indexOf("AddMarketplaceSubscriptions1803000000000") + 1,
     );
   });
 });

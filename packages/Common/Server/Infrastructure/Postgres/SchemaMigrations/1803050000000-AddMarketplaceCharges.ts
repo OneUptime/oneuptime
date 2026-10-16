@@ -9,8 +9,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * marketplace with the next hourly usage report instead of on a card. A new
  * table and indexes on it only, so the migration blocks nobody.
  */
-export class AddMarketplaceCharges1802850000000 implements MigrationInterface {
-  public name: string = "AddMarketplaceCharges1802850000000";
+export class AddMarketplaceCharges1803050000000 implements MigrationInterface {
+  public name: string = "AddMarketplaceCharges1803050000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

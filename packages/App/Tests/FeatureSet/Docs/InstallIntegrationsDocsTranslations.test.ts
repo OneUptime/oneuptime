@@ -146,7 +146,6 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [SLACK]: ["Connect my account with Slack"],
-  [TEAMS]: ["Create Microsoft Teams Channel"],
 };
 
 /*
@@ -253,7 +252,6 @@ const EXTERNAL_CONSOLE_LABELS: Record<string, Array<string>> = {
     "All repositories",
     "Only select repositories",
     "Install",
-    "Save",
     "Advanced",
     "Recent Deliveries",
     "Advanced > Recent Deliveries",
@@ -361,6 +359,7 @@ const CONNECT_CODES: Record<string, ConnectQuotes> = {
       ConnectCallbackError.GitHubNoAuthorization,
       ConnectCallbackError.GitHubNotVerified,
       ConnectCallbackError.GitHubNoInstallation,
+      ConnectCallbackError.GitHubNoInstallationToConnect,
       ConnectCallbackError.NotConfigured,
       ConnectCallbackError.CouldNotFinish,
     ],
@@ -504,6 +503,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Repository synchronisation",
     "The interactive app",
     "and",
+    "When the app is already installed on the account",
     "Who can connect.",
     "Finish within 15 minutes, in the same browser.",
     "Rotate secrets regularly.",

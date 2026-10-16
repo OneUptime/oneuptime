@@ -5,10 +5,6 @@ import CalendarSubscriptionLinks, {
 import OneUptimeDate from "Common/Types/Date";
 import { MaterializedShiftJson } from "Common/Types/OnCallDutyPolicy/MaterializedShift";
 import {
-  UserOverrideCoverWindow,
-  getUserOverrideCoverWindow,
-} from "Common/Types/OnCallDutyPolicy/UserOverrideCoverRequest";
-import {
   MAX_MINUTES_BEFORE_SHIFT,
   MIN_MINUTES_BEFORE_SHIFT,
 } from "Common/Models/DatabaseModels/UserOnCallShiftReminder";
@@ -66,11 +62,36 @@ export const CALENDAR_FEED_DOCS_PATH: string = "/on-call/calendar-feeds";
 export const UPCOMING_SHIFTS_DAYS: number = 30;
 
 /*
- * Static rather than composed from UPCOMING_SHIFTS_DAYS so that the whole
- * sentence is one translation key; a test pins the number to the constant.
+ * The Upcoming shifts card's words. The title names the card the way the
+ * docs and the schedule page's layer summary do; how far ahead it looks
+ * and which zone its times are in are the description's, said once for
+ * the whole card rather than on every row. Sentences that say "30 days"
+ * are static rather than composed from UPCOMING_SHIFTS_DAYS so that each
+ * is one translation key; a test pins the number to the constant.
  */
 export const UPCOMING_SHIFTS_CARD_TITLE: string =
-  "Upcoming shifts (next 30 days)";
+  translationKey("Upcoming shifts");
+
+export const UPCOMING_SHIFTS_DESCRIPTION: string = translationKey(
+  "Your shifts over the next 30 days. Times are in {{timezone}}.",
+);
+
+export const UPCOMING_SHIFTS_EMPTY_TITLE: string = translationKey(
+  "No shifts in the next 30 days",
+);
+
+export const UPCOMING_SHIFTS_EMPTY_DESCRIPTION: string = translationKey(
+  "When a schedule puts you on call, your shifts show up here.",
+);
+
+export const UPCOMING_SHIFTS_TRUNCATED_COPY: string = translationKey(
+  "One of your schedules is too complex to compute fully; some shifts may be missing.",
+);
+
+// Said instead of the empty panel when that incomplete answer has no shifts.
+export const UPCOMING_SHIFTS_TRUNCATED_EMPTY_COPY: string = translationKey(
+  "No shifts could be listed for the next 30 days.",
+);
 
 /**
  * A link nobody has fetched for this long after it was minted is probably
@@ -102,8 +123,15 @@ export const PRIVATE_HOST_COPY: string = translationKey(
   "Google Calendar and Outlook on the web can't reach this link: {{host}} is a private address, and they read calendars from their own servers. Apple Calendar or Outlook on a computer in your network can still subscribe.",
 );
 
-export const STANDING_ASSIGNMENTS_COPY: string =
-  "Direct and team assignments on escalation policies are standing and are not shown.";
+/*
+ * Under the Upcoming shifts list. An escalation rule that names a person or a
+ * team pages them whenever it runs: there is no start or end to list, so a
+ * reader who is on a policy that way sees no row - and is told why, and what
+ * it means for them, in words that need no on-call vocabulary.
+ */
+export const STANDING_ASSIGNMENTS_COPY: string = translationKey(
+  "Only schedule shifts are listed. If an escalation policy names you or your team directly, it can page you at any time.",
+);
 
 export const SHARED_LINK_OWNERSHIP_COPY: string =
   "The shared link belongs to the project, not to whoever copied it - treat it like a password and regenerate it when someone leaves.";
@@ -624,66 +652,6 @@ export const validateCustomLeadMinutes: ValidateCustomLeadMinutesFunction = (
   return { minutes: minutes, error: null };
 };
 
-export interface ShiftDayGroup {
-  /** Stable key for React and for tests: the local calendar date. */
-  dayKey: string;
-  /** The first shift's start, for rendering the heading. */
-  day: Date;
-  shifts: Array<MaterializedShiftJson>;
-}
-
-type GroupShiftsByDayFunction = (
-  shifts: Array<MaterializedShiftJson>,
-) => Array<ShiftDayGroup>;
-
-type LocalDayKeyFunction = (date: Date) => string;
-
-const localDayKey: LocalDayKeyFunction = (date: Date): string => {
-  const month: string = String(date.getMonth() + 1).padStart(2, "0");
-  const day: string = String(date.getDate()).padStart(2, "0");
-  return `${date.getFullYear()}-${month}-${day}`;
-};
-
-/*
- * Groups shifts by the LOCAL day they start on, in start order. A shift that
- * runs across midnight is listed once, under the day it begins - the row shows
- * its end time, so nothing is lost, and listing it twice would double-count it
- * in the eye of somebody scanning for how many nights they have.
- */
-export const groupShiftsByDay: GroupShiftsByDayFunction = (
-  shifts: Array<MaterializedShiftJson>,
-): Array<ShiftDayGroup> => {
-  const sorted: Array<MaterializedShiftJson> = [...shifts].sort(
-    (a: MaterializedShiftJson, b: MaterializedShiftJson): number => {
-      const byStart: number =
-        OneUptimeDate.fromString(a.start).getTime() -
-        OneUptimeDate.fromString(b.start).getTime();
-
-      if (byStart !== 0) {
-        return byStart;
-      }
-
-      return a.shiftKey.localeCompare(b.shiftKey);
-    },
-  );
-
-  const groups: Array<ShiftDayGroup> = [];
-
-  for (const shift of sorted) {
-    const start: Date = OneUptimeDate.fromString(shift.start);
-    const dayKey: string = localDayKey(start);
-    const last: ShiftDayGroup | undefined = groups[groups.length - 1];
-
-    if (last && last.dayKey === dayKey) {
-      last.shifts.push(shift);
-    } else {
-      groups.push({ dayKey: dayKey, day: start, shifts: [shift] });
-    }
-  }
-
-  return groups;
-};
-
 type IsCoveringShiftFunction = (shift: MaterializedShiftJson) => boolean;
 
 /** A shift the reader holds because of an override that names them. */
@@ -693,34 +661,6 @@ export const isCoveringShift: IsCoveringShiftFunction = (
   return Boolean(
     shift.override && shift.override.originalUserId !== shift.userId,
   );
-};
-
-type GetCoverWindowForShiftFunction = (
-  shift: MaterializedShiftJson,
-  now: Date,
-) => UserOverrideCoverWindow | null;
-
-/*
- * The window "Get cover" asks to cover for an upcoming shift - the shift,
- * from now once it has started - or null when it is not offered: for a
- * shift that has ended, and for one the reader is covering for someone
- * else. Overrides do not chain (UserOverrideUtil), so cover booked for a
- * shift that is itself cover would change nothing; the mobile app leaves
- * those out too (canRequestCover).
- */
-export const getCoverWindowForShift: GetCoverWindowForShiftFunction = (
-  shift: MaterializedShiftJson,
-  now: Date,
-): UserOverrideCoverWindow | null => {
-  if (!shift.projectId || isCoveringShift(shift)) {
-    return null;
-  }
-
-  return getUserOverrideCoverWindow({
-    start: shift.start,
-    end: shift.end,
-    now: now,
-  });
 };
 
 export interface UpcomingShiftsWindow {

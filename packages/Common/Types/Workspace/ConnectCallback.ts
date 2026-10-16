@@ -91,6 +91,11 @@ export enum ConnectCallbackError {
   GitHubNoAuthorization = "github-no-authorization",
   // GitHub: the GitHub account could not be confirmed to manage the installation.
   GitHubNotVerified = "github-not-verified",
+  /*
+   * GitHub, connecting an installation that already exists: the GitHub
+   * account signed in administers no installation of the app.
+   */
+  GitHubNoInstallationToConnect = "github-no-installation-to-connect",
   // A video call sign-in came back without the permission to create meetings.
   VideoCallPermissionNotGranted = "video-call-permission-not-granted",
   // Microsoft Teams meetings: a personal Microsoft account signed in.

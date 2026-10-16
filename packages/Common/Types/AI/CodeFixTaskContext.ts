@@ -1,4 +1,6 @@
-import GitHubCommandType from "../CodeRepository/GitHubCommand";
+import GitHubCommandType, {
+  GitHubCommentKind,
+} from "../CodeRepository/GitHubCommand";
 
 /*
  * The JSON persisted on AIRun.taskContext for tasks whose exact working
@@ -135,6 +137,12 @@ export interface GitHubTaskContext {
   isPullRequestFromFork?: boolean | undefined;
   // The comment that triggered the run, so the app can react on it.
   triggerCommentId?: number | undefined;
+  /*
+   * What kind of comment triggerCommentId names, which decides where its
+   * reactions go. Absent on runs queued before it was recorded; those are
+   * read as conversation comments, the only kind they were reacted on as.
+   */
+  triggerCommentKind?: GitHubCommentKind | undefined;
   // The GitHub login that issued the command. Attribution, never authority.
   triggeredByLogin?: string | undefined;
   /*
@@ -144,6 +152,14 @@ export interface GitHubTaskContext {
   acknowledgementCommentId?: number | undefined;
   // The X-GitHub-Delivery of the webhook that started this run.
   webhookDeliveryId?: string | undefined;
+  /*
+   * The pull requests the worker said this run opened, sent with its
+   * Completed report and stored with that status. Read only when the run
+   * recorded no pull request of its own — recording one can fail after GitHub
+   * has opened it — and only those that are plainly pull requests of this
+   * repository (see GitHubRunReply.readOpenedPullRequests).
+   */
+  openedPullRequestUrls?: Array<string> | undefined;
   /*
    * When the run's OUTCOME was reported back into the thread. Set by the
    * sweeper that posts it, and the only thing stopping the next sweep from

@@ -39,6 +39,7 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getSubscriberNotificationSummary } from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceForm";
+import { getTemplateNextEventAt } from "../../../Utils/ScheduledMaintenanceTemplateSchedule";
 
 const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -167,6 +168,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 return Boolean(item.isRecurringEvent);
               },
             },
+            // As the templates list says it: only while the template recurs.
             {
               field: {
                 scheduleNextEventAt: true,
@@ -174,7 +176,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "Next event will be automatically scheduled at",
               fieldType: FieldType.DateTime,
               showIf: (item: ScheduledMaintenanceTemplate): boolean => {
-                return Boolean(item.isRecurringEvent);
+                return getTemplateNextEventAt(item) !== null;
               },
             },
             /*

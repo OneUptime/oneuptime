@@ -340,6 +340,37 @@ describe("resolveInvestigationReferences", () => {
     expect(alertFindBy).not.toHaveBeenCalled();
   });
 
+  test("a follow-up check's lead names the alert that made it check again, and that alert is linked", async () => {
+    alertFindBy.mockResolvedValue([
+      alertRow({ number: 318, title: "High CPU on web-1" }),
+    ]);
+
+    // The analysis never names the alert; the server's lead above it does.
+    const references: Array<InvestigationEventReference> =
+      await resolveInvestigationReferences({
+        markdown: [
+          "## 🧠 AI — Automated Root Cause Analysis",
+          "",
+          "**Checked again** after alert #318 opened on Host web-1, 3 minutes after this incident was declared: High CPU on web-1.",
+          "",
+          "**Summary** — The host's CPU confirms the earlier analysis.",
+        ].join("\n"),
+        subjectType: "incident",
+        projectId: PROJECT_ID,
+        props: viewerProps,
+      });
+
+    expect(incidentFindBy).not.toHaveBeenCalled();
+    expect(anySpy).toHaveBeenCalledWith([318]);
+    expect(references).toEqual([
+      expect.objectContaining({
+        kind: "alert",
+        number: 318,
+        title: "High CPU on web-1",
+      }),
+    ]);
+  });
+
   test("a number matching more than one record is ambiguous and stays plain text", async () => {
     incidentFindBy.mockResolvedValue([
       incidentRow({ number: 42, title: "First 42" }),

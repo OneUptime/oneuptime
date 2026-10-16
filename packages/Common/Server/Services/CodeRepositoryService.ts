@@ -22,6 +22,8 @@ import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 
 export interface ImportReposFromInstallationResult {
   imported: number;
+  // Rows already in the project, moved onto this installation.
+  reconnected: number;
   skipped: number;
 }
 
@@ -118,8 +120,10 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * Imports all repositories accessible to a GitHub App installation into a
-   * project. Repositories that already exist for the project (matched on
-   * organizationName + repositoryName) are skipped. Never deletes anything.
+   * project. A repository the project already has (matched on
+   * organizationName + repositoryName) is not imported again; its row is
+   * moved onto this installation when it is on no installation or another
+   * one. Never deletes anything.
    */
   @CaptureSpan()
   public async importReposFromInstallation(data: {
@@ -139,6 +143,8 @@ export class Service extends ProjectReferencesService<Model> {
         name: true,
         organizationName: true,
         repositoryName: true,
+        repositoryHostedAt: true,
+        gitHubAppInstallationId: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -147,11 +153,19 @@ export class Service extends ProjectReferencesService<Model> {
       },
     });
 
-    const existingRepositoryKeys: Set<string> = new Set<string>(
-      existingRepositories.map((repository: Model) => {
-        return `${repository.organizationName?.toLowerCase()}/${repository.repositoryName?.toLowerCase()}`;
-      }),
-    );
+    const existingRepositoriesByKey: Map<string, Array<Model>> = new Map<
+      string,
+      Array<Model>
+    >();
+
+    for (const repository of existingRepositories) {
+      const repositoryKey: string = `${repository.organizationName?.toLowerCase()}/${repository.repositoryName?.toLowerCase()}`;
+
+      existingRepositoriesByKey.set(repositoryKey, [
+        ...(existingRepositoriesByKey.get(repositoryKey) || []),
+        repository,
+      ]);
+    }
 
     const existingDisplayNames: Set<string> = new Set<string>(
       existingRepositories
@@ -164,13 +178,56 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     let imported: number = 0;
+    let reconnected: number = 0;
     let skipped: number = 0;
 
     for (const repository of installationRepositories) {
       const repositoryKey: string = `${repository.ownerLogin.toLowerCase()}/${repository.name.toLowerCase()}`;
 
-      if (existingRepositoryKeys.has(repositoryKey)) {
-        skipped++;
+      const sameRepositoryRows: Array<Model> | undefined =
+        existingRepositoriesByKey.get(repositoryKey);
+
+      if (sameRepositoryRows) {
+        /*
+         * The project already has this repository. A row on no installation
+         * (the app was uninstalled, or QuarantineUnboundGitHubInstallations
+         * cleared it) or on another one (the project was connected to a
+         * different installation before) can mint no token, so fix tasks,
+         * exception fixes and mentions all pass it by. Connecting again is
+         * what puts it back on the installation.
+         */
+        for (const row of sameRepositoryRows) {
+          if (
+            !row.id ||
+            row.repositoryHostedAt !== CodeRepositoryType.GitHub ||
+            row.gitHubAppInstallationId === data.installationId
+          ) {
+            skipped++;
+            continue;
+          }
+
+          try {
+            await this.updateOneById({
+              id: row.id,
+              data: {
+                gitHubAppInstallationId: data.installationId,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+            row.gitHubAppInstallationId = data.installationId;
+            reconnected++;
+          } catch (error) {
+            logger.error(
+              `Failed to move repository ${repository.fullName} onto GitHub App installation ${data.installationId} in project ${data.projectId.toString()}:`,
+            );
+            logger.error(error);
+            skipped++;
+          }
+        }
+
         continue;
       }
 
@@ -217,7 +274,7 @@ export class Service extends ProjectReferencesService<Model> {
           },
         });
 
-        existingRepositoryKeys.add(repositoryKey);
+        existingRepositoriesByKey.set(repositoryKey, [codeRepository]);
         existingDisplayNames.add(displayName.toLowerCase());
         imported++;
       } catch (error) {
@@ -230,7 +287,7 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    return { imported, skipped };
+    return { imported, reconnected, skipped };
   }
 
   /*

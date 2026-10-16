@@ -21,7 +21,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  *
  * The schedule page's Slack user groups and Microsoft Teams tags cards
  * (OnCallPolicy/UserGroups) draw the same panel when they have none, so the
- * empty cards on that page read as one.
+ * empty cards on that page read as one - and so does the Upcoming shifts
+ * card on the calendar feed page, with no action: nothing a reader presses
+ * there gives them a shift.
  */
 export interface FeedEmptyStatePoint {
   icon: IconProp;
@@ -37,8 +39,8 @@ export interface ComponentProps {
   description: string;
   /** Bullets under the description. Omit for a plain panel. */
   points?: Array<FeedEmptyStatePoint> | undefined;
-  /** The primary action, or whatever stands in for it. */
-  control: ReactElement;
+  /** The primary action, or whatever stands in for it. Omit for none. */
+  control?: ReactElement | undefined;
   /** The badge next to the title. */
   icon?: IconProp | undefined;
   /** Prefix for the data-testids, so two panels on one page stay distinct. */
@@ -119,9 +121,14 @@ const FeedEmptyState: FunctionComponent<ComponentProps> = (
             </ul>
           )}
 
-          <div className="mt-5" data-testid={`${props.idPrefix}-empty-control`}>
-            {props.control}
-          </div>
+          {props.control && (
+            <div
+              className="mt-5"
+              data-testid={`${props.idPrefix}-empty-control`}
+            >
+              {props.control}
+            </div>
+          )}
         </div>
       </div>
     </div>

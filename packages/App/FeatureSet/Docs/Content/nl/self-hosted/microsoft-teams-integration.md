@@ -347,7 +347,7 @@ Installatie gebeurt per team. OneUptime aan één team toevoegen doet niets voor
 
 ### "Testregel" werkt, maar echte meldingen komen nooit aan
 
-Controleer welke bestemmingen de regel werkelijk heeft ingeschakeld. Een regel test alleen waarvoor hij is ingesteld: met **Create Microsoft Teams Channel** aan maakt de test een kanaal en post daarin, wat bewijst dat de bot kan posten *in het team waarin dat kanaal is gemaakt*, en niets over enig ander team. **Projectinstellingen > Meldingen > Meldingslogboeken** legt elke testverzending vast, inclusief de exacte fout van Microsoft als er een mislukt.
+Controleer welke bestemmingen de regel werkelijk heeft ingeschakeld. Een regel test alleen waarvoor hij is ingesteld: met **Een kanaal aanmaken voor elk incident** aan maakt de test een kanaal en post daarin, wat bewijst dat de bot kan posten *in het team waarin dat kanaal is gemaakt*, en niets over enig ander team. **Projectinstellingen > Meldingen > Meldingslogboeken** legt elke testverzending vast, inclusief de exacte fout van Microsoft als er een mislukt.
 
 ### "Sorry, I couldn't find your project configuration"
 
