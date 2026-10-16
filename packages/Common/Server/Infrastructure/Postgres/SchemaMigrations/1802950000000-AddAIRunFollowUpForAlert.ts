@@ -2,7 +2,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration, then renumbered after
- * the last registered migration.
+ * the last migration master registered meanwhile (1802900000000).
  *
  * "AIRun"."followUpForAlertId": an incident's follow-up check - the one
  * investigation OneUptime AI runs again when an alert opens on the
@@ -13,10 +13,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * A nullable column with no default, which Postgres adds without rewriting
  * or scanning the table.
  */
-export class AddAIRunFollowUpForAlert1802850000000
+export class AddAIRunFollowUpForAlert1802950000000
   implements MigrationInterface
 {
-  public name: string = "AddAIRunFollowUpForAlert1802850000000";
+  public name: string = "AddAIRunFollowUpForAlert1802950000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -505,6 +505,163 @@ describe("Setup checklist", () => {
 });
 
 /*
+ * THE UPCOMING SHIFTS CARD.
+ *
+ * Its redesign ("Please improve the UI of this card") replaced a heading per
+ * day and a row per rotation turn with one row per stretch on call, written
+ * in the reader's zone and language. What a unit test cannot see: that the
+ * card's words are keys in every locale, translated - the card is read once
+ * a week by somebody planning their life around it, in whatever language
+ * they read; that the three sentences it no longer says are gone from every
+ * file; and that neither component formats a date itself - every time on
+ * the card goes through UpcomingShiftTime, with one clock, so the start and
+ * the end of a row can never again be in two different zones.
+ */
+const UPCOMING_SHIFTS_KEYS: Array<string> = [
+  "Upcoming shifts",
+  "Your shifts over the next 30 days. Times are in {{timezone}}.",
+  "On call now",
+  "until {{time}}",
+  "until at least {{time}}",
+  "at least {{time}}",
+  "{{duration}} left",
+  "At least {{duration}}",
+  "At least {{duration}} left",
+  "Show {{count}} more shifts",
+  "Show fewer shifts",
+  "No shifts in the next 30 days",
+  "When a schedule puts you on call, your shifts show up here.",
+  "Could not load your shifts.",
+  "Only schedule shifts are listed. If an escalation policy names you or your team directly, it can page you at any time.",
+];
+
+const RETIRED_UPCOMING_SHIFTS_KEYS: Array<string> = [
+  "Upcoming shifts (next 30 days)",
+  "You have no shifts on any schedule in the next 30 days.",
+  "Direct and team assignments on escalation policies are standing and are not shown.",
+];
+
+// A date written by one of OneUptimeDate's own formatters, moment's English.
+const DATE_FORMATTING_CALL: RegExp =
+  /OneUptimeDate\.(?:toTimeString|getDateAs\w*|fromNow|getZoneAbbr\w*)/;
+
+describe("Upcoming shifts card", () => {
+  const card: string = readCode(
+    "Components",
+    "OnCallPolicy",
+    "CalendarFeed",
+    "UpcomingShiftsCard.tsx",
+  );
+  const row: string = readCode(
+    "Components",
+    "OnCallPolicy",
+    "CalendarFeed",
+    "UpcomingShiftRow.tsx",
+  );
+
+  test("every word the card says is a key in en.json, translated in every locale", () => {
+    const en: Record<string, unknown> = readLocale("en");
+
+    for (const key of UPCOMING_SHIFTS_KEYS) {
+      expect(en[key]).toBe(key);
+    }
+
+    // The fold's one form, for the counts a language calls "one".
+    expect(en["Show {{count}} more shifts_one"]).toBe(
+      "Show {{count}} more shift",
+    );
+
+    for (const locale of LOCALES) {
+      if (locale === "en") {
+        continue;
+      }
+
+      const json: Record<string, unknown> = readLocale(locale);
+
+      for (const key of [
+        ...UPCOMING_SHIFTS_KEYS,
+        "Show {{count}} more shifts_one",
+      ]) {
+        const value: unknown = json[key];
+
+        expect({ locale, key, isString: typeof value === "string" }).toEqual({
+          locale,
+          key,
+          isString: true,
+        });
+        expect({ locale, key, translated: value !== en[key] }).toEqual({
+          locale,
+          key,
+          translated: true,
+        });
+      }
+    }
+  });
+
+  test("the sentences it no longer says are gone from every locale", () => {
+    for (const locale of LOCALES) {
+      const json: Record<string, unknown> = readLocale(locale);
+
+      for (const key of RETIRED_UPCOMING_SHIFTS_KEYS) {
+        expect({ locale, key, present: key in json }).toEqual({
+          locale,
+          key,
+          present: false,
+        });
+      }
+    }
+  });
+
+  test("the card's words live where the extractor finds them", () => {
+    // A call prettier wrapped over three lines reads as one: translationKey("…").
+    const util: string = readSource(
+      "Components",
+      "OnCallPolicy",
+      "CalendarFeed",
+      "CalendarFeedUtil.ts",
+    )
+      .split("translationKey( ")
+      .join("translationKey(")
+      .split('", )')
+      .join('")');
+
+    for (const key of [
+      "Upcoming shifts",
+      "Your shifts over the next 30 days. Times are in {{timezone}}.",
+      "No shifts in the next 30 days",
+      "When a schedule puts you on call, your shifts show up here.",
+      "Only schedule shifts are listed. If an escalation policy names you or your team directly, it can page you at any time.",
+    ]) {
+      expect(util).toContain(`translationKey("${key}")`);
+    }
+
+    // The phrases that hold a time the row keeps whole are TranslatedSentences.
+    expect(row).toContain('"until at least {{time}}" : "until {{time}}"');
+    expect(row).toContain('template="at least {{time}}"');
+  });
+
+  test("neither component formats a date itself: one clock for every time on the card", () => {
+    for (const source of [card, row]) {
+      expect(source).not.toMatch(DATE_FORMATTING_CALL);
+      expect(source).not.toContain("moment");
+    }
+
+    expect(card).toContain(
+      "getFeedClock({ language: translator.language, now: now, })",
+    );
+  });
+
+  test("the card asks for the window it says, and lists spans rather than shifts", () => {
+    expect(card).toContain("getUpcomingShiftsWindow(");
+    expect(card).toContain(
+      "buildUpcomingShiftSpans(response.shifts, now, askedWindow?.to)",
+    );
+    expect(card).toContain("<UpcomingShiftRow");
+    expect(card).not.toContain("groupShiftsByDay");
+  });
+});
+
+/*
  * The words the card's redesign added: the ⋯ and its items, the status pill,
  * the subscribe options' lines, the link field and the status sentences.
  */
@@ -541,7 +698,7 @@ describe("Locales", () => {
     "Regenerate link",
     "Publish shared link",
     "Remind me before shifts",
-    "Upcoming shifts (next 30 days)",
+    "Upcoming shifts",
     "Get cover",
     "Add to your calendar",
     "Google Calendar",
@@ -677,6 +834,12 @@ describe("Locales", () => {
         "Components",
         "OnCallPolicy",
         "CalendarFeed",
+        "UpcomingShiftRow.tsx",
+      ),
+      readSource(
+        "Components",
+        "OnCallPolicy",
+        "CalendarFeed",
         "CalendarFeedPlanGate.tsx",
       ),
       readSource("Pages", "OnCallDuty", "CalendarFeeds.tsx"),
@@ -731,13 +894,19 @@ describe("Locales", () => {
         "CalendarFeed",
         "UpcomingShiftsCard.tsx",
       ),
+      readSource(
+        "Components",
+        "OnCallPolicy",
+        "CalendarFeed",
+        "UpcomingShiftRow.tsx",
+      ),
     ];
 
     /*
      * The key argument is sometimes a singular/plural ternary, so the call is
      * matched up to its values object and every literal inside is collected:
-     * translator.translateTemplate in the status panel, translateInterpolated
-     * in the upcoming shifts card.
+     * translator.translateTemplate in the status panel and the upcoming
+     * shifts rows.
      */
     const callPattern: RegExp =
       /(?:translateInterpolated\(\s*translateString,|translateTemplate\()\s*(.*?),\s*\{/g;
@@ -754,9 +923,9 @@ describe("Locales", () => {
 
     /*
      * Both status-line variants, both fetch counts, the hint, both rotation
-     * ages and the two shift pills.
+     * ages, the two shift pills and the upcoming rows' lengths.
      */
-    expect(keys.length).toBeGreaterThanOrEqual(9);
+    expect(keys.length).toBeGreaterThanOrEqual(12);
 
     for (const key of keys) {
       expect(en[key]).toBe(key);

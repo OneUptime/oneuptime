@@ -11,6 +11,7 @@ import TableAccessControl from "../../Types/Database/AccessControl/TableAccessCo
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
+import { getBigIntDatabaseTransformer } from "../../Types/Database/BigIntColumnTransformer";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -445,14 +446,21 @@ export default class AIAgentTaskPullRequest extends BaseModel {
   @Index()
   @TableColumn({
     required: false,
-    type: TableColumnType.Number,
+    type: TableColumnType.BigPositiveNumber,
     canReadOnRelationQuery: true,
     title: "Pull Request ID",
     description: "The unique ID of the pull request from the hosting platform.",
   })
   @Column({
     nullable: true,
-    type: ColumnType.Number,
+    /*
+     * bigint: GitHub's pull request IDs passed 2^31 long ago (4885508095 is
+     * a real one), so an integer column refused every pull request the agent
+     * opened and the run reported "Failed to record pull request" for work
+     * it had done.
+     */
+    type: ColumnType.BigPositiveNumber,
+    transformer: getBigIntDatabaseTransformer(),
   })
   public pullRequestId?: number = undefined;
 
