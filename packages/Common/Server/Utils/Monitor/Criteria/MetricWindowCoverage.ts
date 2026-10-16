@@ -194,7 +194,7 @@ export default class MetricWindowCoverage {
     let message: string = `Waiting for ${window} of data: ${progress}.`;
 
     if (coverage.isCutByRowLimit) {
-      message += ` Only the newest ${window} of the ${MetricWindowCoverage.describeDuration(
+      message += ` Only the newest ${window} of the ${MetricWindowCoverage.describeGap(
         coverage.configuredWindowMs,
       )} time range could be read: it holds more data points than one check reads.`;
     }

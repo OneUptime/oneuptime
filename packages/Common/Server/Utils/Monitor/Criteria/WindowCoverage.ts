@@ -115,12 +115,18 @@ export default class WindowCoverage {
 
     /*
      * Follow the run back from the newest reading. Only holes count here,
-     * so the run always ends at the newest reading.
+     * so the run always ends at the newest reading - and it stops at the
+     * start of the window: a hole before the window (or before where a read
+     * cut at its row limit becomes complete) says nothing about it.
      */
     let runStartMs: number = newestMs;
     let holeBeforeRunMs: number | null = null;
 
     for (let index: number = times.length - 2; index >= 0; index--) {
+      if (runStartMs <= input.windowStartMs) {
+        break;
+      }
+
       const holeMs: number = times[index + 1]! - (times[index]! + spanMs);
 
       if (input.holesBreakCoverage && holeMs > allowedGapMs) {

@@ -1348,7 +1348,11 @@ function coversWindow(data: {
     return false;
   }
   for (let index: number = 1; index < minutes.length; index++) {
-    if (minutes[index]! - (minutes[index - 1]! + MINUTE_MS) > allowedMs) {
+    // A hole that ends before the window's start says nothing about it.
+    if (
+      minutes[index]! > data.fromMs &&
+      minutes[index]! - (minutes[index - 1]! + MINUTE_MS) > allowedMs
+    ) {
       return false;
     }
   }
