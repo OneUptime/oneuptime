@@ -767,10 +767,9 @@ describe("Card fillHeight", () => {
     const card: HTMLElement = screen.getByTestId("card");
 
     expect(card.getAttribute("class")).toBe(CARD_FILL_HEIGHT_CLASS_NAME);
-    expect(resolveSpacing(card.getAttribute("class"), LAPTOP_WIDTH_IN_PX, "margin"))
-      .toEqual(
-        resolveSpacing("", LAPTOP_WIDTH_IN_PX, "margin"),
-      );
+    expect(
+      resolveSpacing(card.getAttribute("class"), LAPTOP_WIDTH_IN_PX, "margin"),
+    ).toEqual(resolveSpacing("", LAPTOP_WIDTH_IN_PX, "margin"));
   });
 
   test.each([

@@ -313,10 +313,7 @@ describe("describeHeightFillChain", () => {
     const body: HTMLElement = named("body", box("mt-4 flex flex-1 flex-col"));
     const content: HTMLElement = box("py-6 px-5 flex flex-1 flex-col", body);
     const frame: HTMLElement = box("border flex h-full flex-col", content);
-    const card: HTMLElement = named(
-      "card",
-      box(options.cardClassName, frame),
-    );
+    const card: HTMLElement = named("card", box(options.cardClassName, frame));
     const wrapper: HTMLElement = named("wrapper", box("", card));
     const cell: HTMLElement = box(
       "flex min-w-0 flex-col gap-5 [&>*:last-child]:flex-1 xl:col-span-2",

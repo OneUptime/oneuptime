@@ -631,8 +631,7 @@ for (const modelType of [
 const isNew = scenario === "new";
 const hasIncidents = scenario === "busy" || scenario === "many";
 const hasAlerts = hasIncidents || scenario === "attention";
-const hasMaintenanceNow =
-  hasIncidents || scenario === "maintenance";
+const hasMaintenanceNow = hasIncidents || scenario === "maintenance";
 
 const MONITORS = [
   ["Checkout API", MonitorType.API, hasIncidents ? "offline" : "operational"],
@@ -1174,7 +1173,10 @@ function FixtureApp() {
       </header>
       <Routes>
         <Route element={<FixtureHomeLayout />}>
-          <Route path={RouteMap[PageMap.HOME].toString()} element={<HomePage />} />
+          <Route
+            path={RouteMap[PageMap.HOME].toString()}
+            element={<HomePage />}
+          />
           {HOME_TABS.map(([pageKey]) => {
             return (
               <Route

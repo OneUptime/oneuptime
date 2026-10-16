@@ -662,7 +662,11 @@ describe("the card in its row", () => {
 
   test.each([
     ["all clear", overview(), "home-attention-empty"],
-    ["nothing monitored", overview({ totalMonitors: 0 }), "home-attention-empty"],
+    [
+      "nothing monitored",
+      overview({ totalMonitors: 0 }),
+      "home-attention-empty",
+    ],
     ["the list failed", null, "home-attention-unavailable"],
   ] as Array<[string, HomeOverviewData | null, string]>)(
     "%s: the state takes the room the card has and sits in its middle, at every width",
@@ -680,12 +684,8 @@ describe("the card in its row", () => {
         expect(describeHeightFill(wrapper, width)).toBeNull();
         expect(resolveFlexGrow(wrapper, width)).toBe(1);
         // ...and is itself a column that centres what it holds.
-        expect(resolveFlex(className, width, "flex-direction")).toBe(
-          "column",
-        );
-        expect(resolveFlex(className, width, "justify-content")).toBe(
-          "center",
-        );
+        expect(resolveFlex(className, width, "flex-direction")).toBe("column");
+        expect(resolveFlex(className, width, "justify-content")).toBe("center");
       }
 
       // Across the card too: the empty state centres its own lines.

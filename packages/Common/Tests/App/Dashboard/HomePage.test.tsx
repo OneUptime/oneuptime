@@ -684,11 +684,9 @@ describe("the row under the health card", () => {
   }
 
   function childTestIds(element: HTMLElement): Array<string | null> {
-    return Array.from(element.children).map(
-      (child: Element): string | null => {
-        return child.getAttribute("data-testid");
-      },
-    );
+    return Array.from(element.children).map((child: Element): string | null => {
+      return child.getAttribute("data-testid");
+    });
   }
 
   async function renderWithUpcoming(): Promise<void> {
@@ -736,12 +734,13 @@ describe("the row under the health card", () => {
   test("each column holds only its cards, so the column's last-child rule always lands on a card", async () => {
     await renderWithUpcoming();
 
-    expect(childTestIds(screen.getByTestId("home-overview-row-main"))).toEqual(
-      ["home-needs-attention"],
-    );
-    expect(childTestIds(screen.getByTestId("home-overview-row-side"))).toEqual(
-      ["home-project-resources", "home-upcoming-maintenance"],
-    );
+    expect(childTestIds(screen.getByTestId("home-overview-row-main"))).toEqual([
+      "home-needs-attention",
+    ]);
+    expect(childTestIds(screen.getByTestId("home-overview-row-side"))).toEqual([
+      "home-project-resources",
+      "home-upcoming-maintenance",
+    ]);
   });
 
   test.each(ROW_WIDTHS)(
@@ -764,11 +763,7 @@ describe("the row under the health card", () => {
       await renderWithUpcoming();
 
       expect(
-        describeHeightFillChain(
-          frameOf("home-needs-attention"),
-          row(),
-          width,
-        ),
+        describeHeightFillChain(frameOf("home-needs-attention"), row(), width),
       ).toEqual([]);
       expect(
         describeHeightFillChain(
@@ -807,11 +802,7 @@ describe("the row under the health card", () => {
         ),
       ).toEqual([]);
       expect(
-        describeHeightFillChain(
-          frameOf("home-needs-attention"),
-          row(),
-          width,
-        ),
+        describeHeightFillChain(frameOf("home-needs-attention"), row(), width),
       ).toEqual([]);
     },
   );

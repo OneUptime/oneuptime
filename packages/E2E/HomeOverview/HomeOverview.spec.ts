@@ -1076,7 +1076,9 @@ async function rowBoxes(page: Page): Promise<RowBoxes> {
 
     return {
       attention: boxOf(
-        frameOf(document.querySelector('[data-testid="home-needs-attention"]')!),
+        frameOf(
+          document.querySelector('[data-testid="home-needs-attention"]')!,
+        ),
       ),
       side: Array.from(side.children).map(
         (wrapper: Element): { testId: string; frame: PageBox } => {
@@ -1180,8 +1182,11 @@ test.describe("the row under the health card", () => {
           0,
         );
         // ...and their bottoms: no bare page under either side.
-        expect({ width, query, gap: lastSide.bottom - boxes.attention.bottom })
-          .toEqual({ width, query, gap: 0 });
+        expect({
+          width,
+          query,
+          gap: lastSide.bottom - boxes.attention.bottom,
+        }).toEqual({ width, query, gap: 0 });
         // The cards of the side column stack with the row's gap between them.
         for (let index: number = 1; index < boxes.side.length; index++) {
           expect(
@@ -1252,8 +1257,9 @@ test.describe("the row under the health card", () => {
       expect({
         query,
         offCentre:
-          Math.abs(room.y + room.height / 2 - (content.y + content.height / 2)) <
-          2,
+          Math.abs(
+            room.y + room.height / 2 - (content.y + content.height / 2),
+          ) < 2,
       }).toEqual({ query, offCentre: true });
       expect(room.height).toBeGreaterThan(content.height + 100);
     }
@@ -1281,9 +1287,9 @@ test.describe("the row under the health card", () => {
     expect(boxes.attention.bottom - (groups.y + groups.height)).toBeGreaterThan(
       200,
     );
-    await expect(page.getByTestId("home-attention-row-maintenance")).toHaveCount(
-      1,
-    );
+    await expect(
+      page.getByTestId("home-attention-row-maintenance"),
+    ).toHaveCount(1);
   });
 
   test("the taller open work: the side column's last card runs down to its end, Your project keeps its rows' height", async ({

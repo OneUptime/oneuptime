@@ -72,7 +72,8 @@ export const HOME_ROW_CLASS_NAME: string =
 
 export const HOME_ROW_MAIN_COLUMN_CLASS_NAME: string = `${HOME_ROW_COLUMN_CLASS_NAME} xl:col-span-2`;
 
-export const HOME_ROW_SIDE_COLUMN_CLASS_NAME: string = HOME_ROW_COLUMN_CLASS_NAME;
+export const HOME_ROW_SIDE_COLUMN_CLASS_NAME: string =
+  HOME_ROW_COLUMN_CLASS_NAME;
 
 export interface ComponentProps extends PageComponentProps {
   isLoadingProjects: boolean;

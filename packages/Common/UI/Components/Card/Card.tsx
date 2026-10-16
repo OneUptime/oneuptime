@@ -156,7 +156,8 @@ export const CARD_FILL_HEIGHT_CLASS_NAME: string = "h-full";
 
 export const CARD_FILL_HEIGHT_FRAME_CLASS_NAME: string = "flex h-full flex-col";
 
-export const CARD_FILL_HEIGHT_CONTENT_CLASS_NAME: string = "flex flex-1 flex-col";
+export const CARD_FILL_HEIGHT_CONTENT_CLASS_NAME: string =
+  "flex flex-1 flex-col";
 
 export const CARD_FILL_HEIGHT_BODY_CLASS_NAME: string = "flex flex-1 flex-col";
 

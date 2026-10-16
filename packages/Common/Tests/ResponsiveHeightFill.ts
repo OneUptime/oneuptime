@@ -194,8 +194,7 @@ function ownTokens(element: Element): Array<Array<string>> {
     let applies: boolean = true;
 
     for (const part of parts.slice(0, -1)) {
-      const selector: ChildSelector | undefined =
-        OWN_STRUCTURAL_VARIANTS[part];
+      const selector: ChildSelector | undefined = OWN_STRUCTURAL_VARIANTS[part];
 
       if (selector) {
         applies = applies && selector(element);
@@ -261,11 +260,7 @@ export function resolveAlignSelf(
   element: Element,
   viewportWidthInPx: number,
 ): string {
-  return resolveFamily(
-    effectiveTokens(element),
-    viewportWidthInPx,
-    ALIGN_SELF,
-  );
+  return resolveFamily(effectiveTokens(element), viewportWidthInPx, ALIGN_SELF);
 }
 
 export function resolveFlexGrow(
