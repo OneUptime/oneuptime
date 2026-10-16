@@ -107,7 +107,7 @@ flowchart LR
 | 合計 | すべての値の合計 |
 | Maximum Value | 期間内の最大値 |
 | Minimum Value | 期間内の最小値 |
-| All Values | すべての値が条件に一致する必要がある |
+| All Values | すべての値が条件に一致し、期間全体をカバーする必要がある |
 | Any Value | 少なくとも 1 つの値が一致すればよい |
 
 ### 条件の種類

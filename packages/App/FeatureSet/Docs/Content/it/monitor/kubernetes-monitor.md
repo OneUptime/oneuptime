@@ -107,7 +107,7 @@ Questi monitor valutano sempre il **Metric Value**: il valore della query di met
 | Somma | Somma di tutti i valori |
 | Maximum Value | Valore più alto nella finestra di tempo |
 | Minimum Value | Valore più basso nella finestra di tempo |
-| All Values | Tutti i valori devono soddisfare il criterio |
+| All Values | Tutti i valori devono soddisfare il criterio e coprire tutta la finestra di tempo |
 | Any Value | Almeno un valore deve corrispondere |
 
 ### Condizioni

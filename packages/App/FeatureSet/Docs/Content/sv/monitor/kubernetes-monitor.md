@@ -107,7 +107,7 @@ De här monitorerna utvärderar alltid **Metric Value** – värdet av den konfi
 | Summa | Summan av alla värden |
 | Maximum Value | Högsta värdet i tidsfönstret |
 | Minimum Value | Lägsta värdet i tidsfönstret |
-| All Values | Alla värden måste matcha kriteriet |
+| All Values | Alla värden måste matcha kriteriet och täcka hela tidsfönstret |
 | Any Value | Minst ett värde måste matcha |
 
 ### Villkor

@@ -107,7 +107,7 @@ flowchart LR
 | 總和 | 所有值的總和 |
 | Maximum Value | 時間視窗內的最高值 |
 | Minimum Value | 時間視窗內的最低值 |
-| All Values | 所有值都必須符合條件 |
+| All Values | 所有值都必須符合條件，並且要涵蓋整個時間視窗 |
 | Any Value | 至少有一個值符合即可 |
 
 ### 條件類型

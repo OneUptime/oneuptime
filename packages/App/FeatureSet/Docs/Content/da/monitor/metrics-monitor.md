@@ -106,11 +106,12 @@ Jo længere intervallet er, jo bredere er hvert tidsinterval, så ét datapunkt 
 | Sum | summen af datapunkterne |
 | Maximum Value | det højeste datapunkt |
 | Minimum Value | det laveste datapunkt |
-| All Values | hvert datapunkt: de skal alle opfylde betingelsen |
+| All Values | hvert datapunkt: de skal alle opfylde betingelsen og dække hele tidsintervallet |
 | Any Value | hvert datapunkt: det er nok, at ét af dem opfylder betingelsen |
 
 - **Kriterier fra top til bund.** På en monitor uden Group By afgør det første kriterium, der matcher, så sæt det alvorligste øverst. En grupperet monitor tjekker alle kriterier for hver serie (se [Evalueringen af kriterier er anderledes](#evalueringen-af-kriterier-er-anderledes)).
 - **Ingen data er ikke nul.** Når forespørgslen ikke returnerer nogen datapunkter i tidsintervallet, gør et kriterium det, som dets indstilling **Hvis ingen data** siger, under **Flere felter**: **Ignore** (standard: kriteriet matcher ikke), **Treat As Zero** eller **Trigger**.
+- **All Values kræver hele tidsintervallet.** En serie opfylder først et kriterium med **All Values**, når dens datapunkter dækker tidsintervallet, fra starten til nu, uden et hul på mere end ét manglende datapunkt. Når alle monitorens data ankommer forsinket, som CloudWatchs gør, træder det nyeste datapunkt i stedet for nu. En vært, container eller deployment, der lige er begyndt at sende data, eller som har været stille et stykke tid, venter, til den har data for et helt tidsinterval, og evalueringsloggen viser, hvor langt den er nået: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. En serie, hvis advarsel eller hændelse allerede er åben, bedømmes alene ud fra sine datapunkter, så et kort hul i dens data løser den ikke. Når metrikken sender sjældnere, end tidsintervallet er langt, tæller et enkelt datapunkt for hele intervallet, når det er et par minutter gammelt; for at bedømme, hvor længe en værdi varer, skal tidsintervallet være mindst to rapporteringsintervaller langt.
 - **OneUptimes egen nedetid er ikke stilhed.** Så længe tidsintervallet rummer tid, hvor OneUptime selv ikke modtog data (det genstartede, blev opgraderet eller indhentede et efterslæb), venter tjekket: statussen ændres ikke, og ingen hændelse eller advarsel åbnes eller løses, uanset hvad **Hvis ingen data** siger. Se [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Kriterier
@@ -197,7 +198,7 @@ Grupperingsattributtens værdier er også tilgængelige som [skabelonvariabler](
 ## Fejlfinding
 
 :::details Diagrammet viser en overskridelse, men monitoren advarede ikke
-Tjek først kriteriets **Aggregering**: **All Values** matcher kun, når hvert datapunkt i tidsintervallet overskrider tærsklen, og **Gennemsnit** udglatter en kort spids. Tjek derefter, at kriteriets **Metrik** er den forespørgsel eller formel, du mener (`a` er ikke formlen `c`), og at tærsklen er i den enhed, du tror.
+Tjek først kriteriets **Aggregering**: **All Values** matcher kun, når hvert datapunkt i tidsintervallet overskrider tærsklen, og **Gennemsnit** udglatter en kort spids. **All Values** venter også, til en serie har data for hele tidsintervallet, så en vært eller deployment, der lige er begyndt at sende data, bliver ikke bedømt endnu. Tjek derefter, at kriteriets **Metrik** er den forespørgsel eller formel, du mener (`a` er ikke formlen `c`), og at tærsklen er i den enhed, du tror.
 :::
 
 :::details Metrikken holdt op med at komme, og intet skete

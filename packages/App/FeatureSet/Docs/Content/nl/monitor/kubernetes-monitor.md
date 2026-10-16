@@ -107,7 +107,7 @@ Deze monitors evalueren altijd de **Metric Value** – de waarde van de geconfig
 | Som | Som van alle waarden |
 | Maximum Value | Hoogste waarde in het tijdvenster |
 | Minimum Value | Laagste waarde in het tijdvenster |
-| All Values | Alle waarden moeten aan het criterium voldoen |
+| All Values | Alle waarden moeten aan het criterium voldoen en het hele tijdvenster dekken |
 | Any Value | Ten minste één waarde moet overeenkomen |
 
 ### Voorwaarden

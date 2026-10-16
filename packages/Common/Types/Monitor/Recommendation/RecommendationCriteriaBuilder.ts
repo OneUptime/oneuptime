@@ -50,7 +50,10 @@ export interface AdditionalCriteriaFilterSpec {
  * same reason. It is what makes `rollingTime` mean a duration: with
  * `AnyValue`, a five-minute window and a one-minute window behave
  * identically for anything that spikes, because both reduce to "did any
- * sample cross".
+ * sample cross". And the samples must cover the window
+ * (MetricWindowCoverage): a node, pod or deployment that only just appeared
+ * waits the whole window out too, instead of matching off its first sample
+ * (issue #4793).
  */
 export const SustainedEvaluation: EvaluateOverTimeType =
   EvaluateOverTimeType.AllValues;
