@@ -30239,5 +30239,10 @@
   "Already acknowledged": "Уже подтверждено",
   "Already passed on": "Уже передано дальше",
   "Nothing to pass on": "Передавать нечего",
-  "Use Try again above to load it.": "Нажмите «Повторить попытку» выше, чтобы загрузить его."
+  "Use Try again above to load it.": "Нажмите «Повторить попытку» выше, чтобы загрузить его.",
+  "Caution": "Осторожно",
+  "Danger": "Опасно",
+  "Important": "Важно",
+  "Opens in a new tab": "Откроется в новой вкладке",
+  "Tip": "Совет"
 }

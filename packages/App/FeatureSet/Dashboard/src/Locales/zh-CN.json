@@ -30239,5 +30239,10 @@
   "Already acknowledged": "已有人确认",
   "Already passed on": "已转交",
   "Nothing to pass on": "无需转交",
-  "Use Try again above to load it.": "请使用上方的“重试”加载此列表。"
+  "Use Try again above to load it.": "请使用上方的“重试”加载此列表。",
+  "Caution": "小心",
+  "Danger": "危险",
+  "Important": "重要",
+  "Opens in a new tab": "在新标签页中打开",
+  "Tip": "提示"
 }

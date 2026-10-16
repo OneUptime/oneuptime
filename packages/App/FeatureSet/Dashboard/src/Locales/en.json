@@ -30239,5 +30239,10 @@
   "Already acknowledged": "Already acknowledged",
   "Already passed on": "Already passed on",
   "Nothing to pass on": "Nothing to pass on",
-  "Use Try again above to load it.": "Use Try again above to load it."
+  "Use Try again above to load it.": "Use Try again above to load it.",
+  "Caution": "Caution",
+  "Danger": "Danger",
+  "Important": "Important",
+  "Opens in a new tab": "Opens in a new tab",
+  "Tip": "Tip"
 }

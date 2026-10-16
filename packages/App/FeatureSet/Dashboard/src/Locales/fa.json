@@ -30239,5 +30239,10 @@
   "Already acknowledged": "پیش‌تر تأیید شده است",
   "Already passed on": "پیش‌تر واگذار شده است",
   "Nothing to pass on": "چیزی برای واگذاری نیست",
-  "Use Try again above to load it.": "برای بارگذاری آن، از «تلاش دوباره» در بالا استفاده کنید."
+  "Use Try again above to load it.": "برای بارگذاری آن، از «تلاش دوباره» در بالا استفاده کنید.",
+  "Caution": "احتیاط",
+  "Danger": "خطر",
+  "Important": "مهم",
+  "Opens in a new tab": "در زبانه‌ای جدید باز می‌شود",
+  "Tip": "نکته کاربردی"
 }

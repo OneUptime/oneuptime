@@ -30239,5 +30239,10 @@
   "Already acknowledged": "Allerede bekreftet",
   "Already passed on": "Allerede sendt videre",
   "Nothing to pass on": "Ingenting å sende videre",
-  "Use Try again above to load it.": "Bruk Prøv igjen ovenfor for å laste den inn."
+  "Use Try again above to load it.": "Bruk Prøv igjen ovenfor for å laste den inn.",
+  "Caution": "Forsiktig",
+  "Danger": "Fare",
+  "Important": "Viktig",
+  "Opens in a new tab": "Åpnes i en ny fane",
+  "Tip": "Tips"
 }
