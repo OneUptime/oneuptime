@@ -47,7 +47,7 @@ Open een criterium: het heeft een naam en drie secties, die elk inklappen tot ee
 
 Een filter leest één gegeven uit de controle en vergelijkt het: een **Filtertype** (wat er wordt gelezen, zoals **Reactiestatuscode**), een **Filtervoorwaarde** (hoe er wordt vergeleken, zoals **Groter dan**) en een **Waarde**. Monitoren die metrieken vergelijken, zoals Kubernetes- en metriekmonitoren, vragen in plaats daarvan om een **Voorwaarde** en een **Threshold**. Elk monitortype biedt zijn eigen filtertypen, vermeld op zijn pagina, bijvoorbeeld [Website-monitor](/docs/monitor/website-monitor#bewakingscriteria).
 
-Vanaf twee filters verschijnt eronder de **Overeenkomstvoorwaarde**: **Alle** betekent dat elk filter moet overeenkomen, **Elke** dat er één genoeg is. Een nieuw criterium begint op **Alle**.
+Vanaf twee filters verschijnt eronder de **Overeenkomstvoorwaarde**: **Alle** betekent dat elk filter moet overeenkomen, **Minstens één** dat er één genoeg is. Een nieuw criterium begint op **Alle**.
 
 Filters die elke controle meten, zoals **Is Online**, **Reactiestatuscode** en **Reactietijd (in ms)**, bieden **Evalueer deze criteria over een bepaalde periode**. Dat beoordeelt een venster van recente controles in plaats van alleen de laatste, en begint op de laatste 5 minuten met **All Values**, dat pas overeenkomt als elke controle in het venster overeenkwam. Zie [Evalueren over een periode](/docs/monitor/website-monitor#over-een-periode-evalueren).
 

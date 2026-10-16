@@ -1031,7 +1031,7 @@ describe("a criteria's actions", () => {
       'tooltip="When you create an alert, it is used to notify the team but is not shown on the status page."',
     );
     expect(CRITERIA_INSTANCE_FORM).toContain(
-      "is used to notify the team and is shown on the status page as well.",
+      'tooltip="When you declare an incident, it is used to notify the team and is shown on the status page as well."',
     );
     expect(actions).toContain(
       "| **When filters match, create an alert.** | Creates the alerts set up under **Create Alert**. An alert tells your team and never shows on a status page. |",
