@@ -20,8 +20,9 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * time after now. A template whose switch is on is not touched. Written out
  * rather than generated (nothing in the schema changes), and run with the
  * schema migrations so the rows are right before any server reads them.
- * Running it twice changes nothing. down() restores nothing: no code reads
- * the time of a template that does not recur, the old code included.
+ * Running it twice changes nothing. down() restores nothing: the job never
+ * created an event from the time it clears, and without it the old
+ * templates list says No for these templates, which is what they do.
  */
 export const CLEAR_NEXT_EVENT_OF_TEMPLATES_THAT_DO_NOT_RECUR: string = `UPDATE "ScheduledMaintenanceTemplate" SET "scheduleNextEventAt" = NULL WHERE "isRecurringEvent" = false AND "scheduleNextEventAt" IS NOT NULL`;
 

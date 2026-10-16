@@ -419,6 +419,29 @@ describe("any other edit", () => {
     expect(storedSchedule()).toEqual(SCHEDULE);
   });
 
+  test("of a template that holds no time writes nothing more than it was sent", async () => {
+    useTable([templateRow(TURNED_OFF)]);
+
+    await update(
+      { templateName: "Monthly database patching" },
+      member([Permission.ProjectMember]),
+    );
+
+    expect(stored("templateName")).toBe("Monthly database patching");
+    expect(table.updates).toHaveLength(1);
+    expect(table.updates[0]!.set).not.toHaveProperty("scheduleNextEventAt");
+  });
+
+  test("turning off a template that is already off and holds no time writes only the switch", async () => {
+    useTable([templateRow(TURNED_OFF)]);
+
+    await update({ isRecurringEvent: false }, member([Permission.ProjectOwner]));
+
+    expect(table.updates).toHaveLength(1);
+    expect(table.updates[0]!.set).not.toHaveProperty("scheduleNextEventAt");
+    expect(stored("scheduleNextEventAt")).toBeNull();
+  });
+
   test("of a template that does not recur keeps no time it is sent", async () => {
     useTable([templateRow(TURNED_OFF)]);
 
@@ -622,6 +645,30 @@ describe("an update of several templates", () => {
     );
 
     expect(data["scheduleNextEventAt"]).toBeInstanceOf(Date);
+  });
+
+  test("none of which recurs or holds a time: the update writes nothing more", async () => {
+    const data: Record<string, unknown> = await hookedData(
+      [
+        templateRow(TURNED_OFF),
+        templateRow({ ...TURNED_OFF, _id: OTHER_TEMPLATE_ID }),
+      ],
+      { templateDescription: "Patching windows." },
+    );
+
+    expect(Object.keys(data)).toEqual(["templateDescription"]);
+  });
+
+  test("none of which recurs, one holding a time: their times are cleared", async () => {
+    const data: Record<string, unknown> = await hookedData(
+      [
+        templateRow(TURNED_OFF),
+        templateRow({ ...TURNED_OFF_BEFORE, _id: OTHER_TEMPLATE_ID }),
+      ],
+      { templateDescription: "Patching windows." },
+    );
+
+    expect(data["scheduleNextEventAt"]).toBeNull();
   });
 
   test("none at all: the update writes nothing more", async () => {

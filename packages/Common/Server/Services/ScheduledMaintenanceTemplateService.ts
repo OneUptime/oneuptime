@@ -206,12 +206,20 @@ export class Service extends ProjectReferencesService<Model> {
         recurringInterval: true,
         firstEventEndsAt: true,
         firstEventStartsAt: true,
+        scheduleNextEventAt: true,
       });
 
     // Whether any template the update writes still recurs once it is written.
     let anyTemplateRecurs: boolean = false;
 
+    // Whether any of them holds a next time now.
+    let anyTemplateHoldsANextTime: boolean = false;
+
     for (const template of existingTemplates) {
+      if (template.scheduleNextEventAt) {
+        anyTemplateHoldsANextTime = true;
+      }
+
       let isRecurring: boolean = Boolean(template.isRecurringEvent);
 
       if (Object.keys(newTemplate).includes("isRecurringEvent")) {
@@ -321,13 +329,20 @@ export class Service extends ProjectReferencesService<Model> {
      * although the job (ScheduleRecurringEvents) creates events from
      * recurring templates only. So an update that leaves none of the
      * templates it writes recurring clears that time - from the Dashboard,
-     * the API, Terraform or a workflow alike. The schedule itself stays (the
-     * first event's times and the interval): turned back on, the template
-     * is given its next time again above, the schedule's next time after
-     * now. Rows already stored with the switch off and a time were cleared
-     * by the ClearNextEventOfTemplatesThatDoNotRecur migration.
+     * the API, Terraform or a workflow alike - when there is one to clear:
+     * one a template holds, or one the update itself writes. An edit of a
+     * template that holds none writes nothing more than it was sent. The
+     * schedule itself stays (the first event's times and the interval):
+     * turned back on, the template is given its next time again above, the
+     * schedule's next time after now. Rows already stored with the switch
+     * off and a time were cleared by the
+     * ClearNextEventOfTemplatesThatDoNotRecur migration.
      */
-    if (existingTemplates.length > 0 && !anyTemplateRecurs) {
+    const writesANextTime: boolean = Object.keys(newTemplate).includes(
+      "scheduleNextEventAt",
+    );
+
+    if (!anyTemplateRecurs && (anyTemplateHoldsANextTime || writesANextTime)) {
       newTemplate.scheduleNextEventAt = null;
     }
 

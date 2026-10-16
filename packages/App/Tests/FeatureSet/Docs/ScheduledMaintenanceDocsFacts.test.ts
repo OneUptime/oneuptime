@@ -2859,15 +2859,15 @@ describe("recurring events", () => {
   it("keeps the schedule of a template turned off, and picks it up at its next time when it is turned back on", () => {
     const update: string = TEMPLATE_SERVICE.slice(
       TEMPLATE_SERVICE.indexOf("protected override async onBeforeUpdate("),
-      TEMPLATE_SERVICE.indexOf("private async validateProjectScopedReferences("),
-    );
-    const cleared: string = update.slice(
-      update.indexOf("if (existingTemplates.length > 0 && !anyTemplateRecurs) {"),
+      TEMPLATE_SERVICE.indexOf(
+        "private async validateProjectScopedReferences(",
+      ),
     );
 
-    expect(cleared).toContain(
-      "if (existingTemplates.length > 0 && !anyTemplateRecurs) {\n      newTemplate.scheduleNextEventAt = null;\n    }",
+    expect(update).toContain(
+      "if (!anyTemplateRecurs && (anyTemplateHoldsANextTime || writesANextTime)) {\n      newTemplate.scheduleNextEventAt = null;\n    }",
     );
+
     for (const kept of [
       "firstEventScheduledAt",
       "firstEventStartsAt",
