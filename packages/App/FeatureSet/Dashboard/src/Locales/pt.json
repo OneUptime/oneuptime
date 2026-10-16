@@ -12934,7 +12934,7 @@
   "More Info": "More Info",
   "More Information": "More Information",
   "More Information (in Markdown)": "More Information (in Markdown)",
-  "More actions": "More actions",
+  "More actions": "Mais ações",
   "More actions for": "More actions for",
   "More dashboard options": "More dashboard options",
   "More player options": "More player options",
@@ -30239,5 +30239,13 @@
   "Already acknowledged": "Já confirmado",
   "Already passed on": "Já repassado",
   "Nothing to pass on": "Nada para repassar",
-  "Use Try again above to load it.": "Use Tentar novamente acima para carregá-la."
+  "Use Try again above to load it.": "Use Tentar novamente acima para carregá-la.",
+  "Change status": "Alterar status",
+  "Change status to": "Alterar status para",
+  "Change status to {{status}}?": "Alterar o status para {{status}}?",
+  "Monitor actions": "Ações do monitor",
+  "Monitor refreshed.": "Monitor atualizado.",
+  "Refresh now. This page also refreshes every minute.": "Atualizar agora. Esta página também é atualizada a cada minuto.",
+  "Refreshed at {{time}}": "Atualizado às {{time}}",
+  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "A partir de agora, o monitor mostra {{status}}, aqui e em cada página de status que o lista."
 }

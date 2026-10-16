@@ -12934,7 +12934,7 @@
   "More Info": "More Info",
   "More Information": "More Information",
   "More Information (in Markdown)": "More Information (in Markdown)",
-  "More actions": "More actions",
+  "More actions": "更多動作",
   "More actions for": "More actions for",
   "More dashboard options": "More dashboard options",
   "More player options": "More player options",
@@ -30239,5 +30239,13 @@
   "Already acknowledged": "已有人確認",
   "Already passed on": "已轉交",
   "Nothing to pass on": "無需轉交",
-  "Use Try again above to load it.": "請使用上方的「再試一次」載入此清單。"
+  "Use Try again above to load it.": "請使用上方的「再試一次」載入此清單。",
+  "Change status": "變更狀態",
+  "Change status to": "將狀態變更為",
+  "Change status to {{status}}?": "將狀態變更為 {{status}}？",
+  "Monitor actions": "監測器動作",
+  "Monitor refreshed.": "監測器已重新整理。",
+  "Refresh now. This page also refreshes every minute.": "立即重新整理。此頁面也會每分鐘自動重新整理。",
+  "Refreshed at {{time}}": "重新整理於 {{time}}",
+  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "從現在起，此監測器在這裡以及列出它的每個狀態頁面上都會顯示為 {{status}}。"
 }

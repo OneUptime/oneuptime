@@ -30239,5 +30239,13 @@
   "Already acknowledged": "Already acknowledged",
   "Already passed on": "Already passed on",
   "Nothing to pass on": "Nothing to pass on",
-  "Use Try again above to load it.": "Use Try again above to load it."
+  "Use Try again above to load it.": "Use Try again above to load it.",
+  "Change status": "Change status",
+  "Change status to": "Change status to",
+  "Change status to {{status}}?": "Change status to {{status}}?",
+  "Monitor actions": "Monitor actions",
+  "Monitor refreshed.": "Monitor refreshed.",
+  "Refresh now. This page also refreshes every minute.": "Refresh now. This page also refreshes every minute.",
+  "Refreshed at {{time}}": "Refreshed at {{time}}",
+  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "The monitor shows {{status}} from now on, here and on every status page that lists it."
 }

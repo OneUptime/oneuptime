@@ -834,6 +834,13 @@ beforeEach(() => {
       return Promise.resolve(listOf(server.statusRows));
     }
 
+    // The project's statuses: a manual monitor's ⋯ menu offers them.
+    if (request.modelType === MonitorStatus) {
+      return Promise.resolve(
+        listOf([buildStatus(OPERATIONAL_ID), buildStatus(OFFLINE_ID)]),
+      );
+    }
+
     if (
       request.modelType === Incident &&
       request.query["currentIncidentStateId"]
@@ -2033,6 +2040,137 @@ describe("Monitor overview page: the Summary card's last check", () => {
 
     expect(props.telemetryMonitorSummary.lastCheckedAt).toEqual(secondsAgo(40));
     expect(props.telemetryMonitorSummary.lastCheckedLabel).toBe("Scheduled At");
+  });
+});
+
+/*
+ * A manual monitor's status is changed from the ⋯ beside Refresh in its
+ * hero. The change is an edit of the monitor, so the page shows it the way
+ * a details save is shown: the row read again, the header and the feed.
+ */
+describe("Monitor overview page: Change status in the hero", () => {
+  const MANUAL_MONITOR: MonitorSpec = {
+    id: MONITOR_A,
+    type: MonitorType.Manual,
+    statusId: OPERATIONAL_ID,
+    stepData: null,
+  };
+
+  test("a status picked from the ⋯ is recorded, and the hero, header and feed show it", async () => {
+    setUpServer(MANUAL_MONITOR);
+    server.probes = [];
+
+    // The server records the event and moves the monitor's status.
+    const createSpy: jest.SpyInstance = jest
+      .spyOn(ModelAPI, "create")
+      .mockImplementation(async (): Promise<never> => {
+        server.monitors[MONITOR_A] = {
+          ...MANUAL_MONITOR,
+          statusId: OFFLINE_ID,
+        };
+        server.statusRows = [buildOpenStatusRow(OFFLINE_ID)];
+        return {} as never;
+      });
+
+    await renderPage();
+
+    expect(screen.getByTestId("monitor-overview-badge")).toHaveTextContent(
+      "Operational",
+    );
+
+    const feedTokenBefore: number = latestProps<{ refreshToken: number }>(
+      "MonitorFeed",
+    ).refreshToken;
+    const readsBefore: number = itemRequests().length;
+
+    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    fireEvent.click(
+      within(screen.getByRole("menu")).getByRole("menuitem", {
+        name: "Offline",
+      }),
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+    await flush();
+
+    expect(createSpy).toHaveBeenCalledTimes(1);
+
+    const created: MonitorStatusTimeline = (
+      createSpy.mock.calls[0]![0] as { model: MonitorStatusTimeline }
+    ).model;
+
+    expect(created.monitorId?.toString()).toBe(MONITOR_A);
+    expect(created.monitorStatusId?.toString()).toBe(OFFLINE_ID);
+    expect(created.projectId?.toString()).toBe(PROJECT_ID.toString());
+
+    /*
+     * Shown as a details save is: the row again, the header, the feed. The
+     * feed is read once for the save and once more when the re-read row
+     * brings the new status (a status change), which catches the feed item
+     * the server writes after it records the change.
+     */
+    expect(itemRequests()).toHaveLength(readsBefore + 1);
+    expect(refreshHeaderMock).toHaveBeenCalledTimes(1);
+    expect(
+      latestProps<{ refreshToken: number }>("MonitorFeed").refreshToken,
+    ).toBe(feedTokenBefore + 2);
+
+    expect(screen.getByTestId("monitor-overview-badge")).toHaveTextContent(
+      "Offline",
+    );
+    expect(screen.queryByTestId("modal")).toBeNull();
+
+    // The menu now offers the status the monitor left.
+    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    expect(
+      within(screen.getByRole("menu"))
+        .getAllByRole("menuitem")
+        .map((item: HTMLElement): string => {
+          return (item.textContent || "").trim();
+        }),
+    ).toEqual(["Operational"]);
+  });
+
+  test("the statuses are read once, not on every poll or Refresh", async () => {
+    setUpServer(MANUAL_MONITOR);
+    server.probes = [];
+
+    await renderPage();
+
+    expect(listRequests(MonitorStatus)).toHaveLength(1);
+
+    for (let tick: number = 0; tick < 3; tick++) {
+      await act(async () => {
+        jest.advanceTimersByTime(MONITOR_OVERVIEW_REFRESH_INTERVAL_MS);
+      });
+      await flush();
+    }
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("monitor-overview-refresh"));
+    });
+    await flush();
+
+    expect(itemRequests().length).toBeGreaterThanOrEqual(5);
+    expect(listRequests(MonitorStatus)).toHaveLength(1);
+  });
+
+  test("a monitor that checks itself has no ⋯, and never reads the statuses", async () => {
+    await renderPage();
+
+    const actions: HTMLElement = screen.getByRole("group", {
+      name: "Monitor actions",
+    });
+
+    expect(
+      within(actions).getByRole("button", { name: "Refresh" }),
+    ).toBeInTheDocument();
+    expect(
+      within(actions).queryByRole("button", { name: "More actions" }),
+    ).toBeNull();
+    expect(listRequests(MonitorStatus)).toHaveLength(0);
   });
 });
 

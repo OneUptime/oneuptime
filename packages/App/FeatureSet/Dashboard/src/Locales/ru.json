@@ -12934,7 +12934,7 @@
   "More Info": "More Info",
   "More Information": "More Information",
   "More Information (in Markdown)": "More Information (in Markdown)",
-  "More actions": "More actions",
+  "More actions": "Другие действия",
   "More actions for": "More actions for",
   "More dashboard options": "More dashboard options",
   "More player options": "More player options",
@@ -30239,5 +30239,13 @@
   "Already acknowledged": "Уже подтверждено",
   "Already passed on": "Уже передано дальше",
   "Nothing to pass on": "Передавать нечего",
-  "Use Try again above to load it.": "Нажмите «Повторить попытку» выше, чтобы загрузить его."
+  "Use Try again above to load it.": "Нажмите «Повторить попытку» выше, чтобы загрузить его.",
+  "Change status": "Изменить статус",
+  "Change status to": "Изменить статус на",
+  "Change status to {{status}}?": "Изменить статус на «{{status}}»?",
+  "Monitor actions": "Действия с монитором",
+  "Monitor refreshed.": "Монитор обновлён.",
+  "Refresh now. This page also refreshes every minute.": "Обновить сейчас. Эта страница также обновляется каждую минуту.",
+  "Refreshed at {{time}}": "Обновлено в {{time}}",
+  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "Теперь монитор показывает статус «{{status}}» — здесь и на каждой странице состояния, где он указан."
 }

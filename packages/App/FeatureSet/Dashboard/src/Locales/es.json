@@ -30239,5 +30239,13 @@
   "Already acknowledged": "Ya reconocido",
   "Already passed on": "Ya pasaste el aviso",
   "Nothing to pass on": "No hay nada que pasar",
-  "Use Try again above to load it.": "Usa «Volver a intentar» arriba para cargarla."
+  "Use Try again above to load it.": "Usa «Volver a intentar» arriba para cargarla.",
+  "Change status": "Cambiar estado",
+  "Change status to": "Cambiar el estado a",
+  "Change status to {{status}}?": "¿Cambiar el estado a {{status}}?",
+  "Monitor actions": "Acciones del monitor",
+  "Monitor refreshed.": "Monitor actualizado.",
+  "Refresh now. This page also refreshes every minute.": "Actualizar ahora. Esta página también se actualiza cada minuto.",
+  "Refreshed at {{time}}": "Actualizado a las {{time}}",
+  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "A partir de ahora, el monitor muestra {{status}}, aquí y en cada página de estado que lo incluye."
 }

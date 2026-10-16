@@ -12934,7 +12934,7 @@
   "More Info": "More Info",
   "More Information": "More Information",
   "More Information (in Markdown)": "More Information (in Markdown)",
-  "More actions": "More actions",
+  "More actions": "추가 작업",
   "More actions for": "More actions for",
   "More dashboard options": "More dashboard options",
   "More player options": "More player options",
@@ -30239,5 +30239,13 @@
   "Already acknowledged": "이미 확인됨",
   "Already passed on": "이미 넘겼습니다",
   "Nothing to pass on": "넘길 것이 없습니다",
-  "Use Try again above to load it.": "위의 다시 시도를 사용해 불러오세요."
+  "Use Try again above to load it.": "위의 다시 시도를 사용해 불러오세요.",
+  "Change status": "상태 변경",
+  "Change status to": "다음 상태로 변경",
+  "Change status to {{status}}?": "상태를 {{status}}(으)로 변경할까요?",
+  "Monitor actions": "모니터 작업",
+  "Monitor refreshed.": "모니터를 새로고침했습니다.",
+  "Refresh now. This page also refreshes every minute.": "지금 새로고침합니다. 이 페이지는 1분마다 자동으로도 새로고침됩니다.",
+  "Refreshed at {{time}}": "{{time}}에 새로고침됨",
+  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "이제부터 이 모니터는 여기와 이 모니터가 표시되는 모든 상태 페이지에서 {{status}}(으)로 표시됩니다."
 }

@@ -30239,5 +30239,13 @@
   "Already acknowledged": "Déjà pris en compte",
   "Already passed on": "Déjà transmise",
   "Nothing to pass on": "Rien à transmettre",
-  "Use Try again above to load it.": "Cliquez sur « Réessayer » ci-dessus pour la charger."
+  "Use Try again above to load it.": "Cliquez sur « Réessayer » ci-dessus pour la charger.",
+  "Change status": "Changer le statut",
+  "Change status to": "Changer le statut en",
+  "Change status to {{status}}?": "Changer le statut en {{status}} ?",
+  "Monitor actions": "Actions du moniteur",
+  "Monitor refreshed.": "Moniteur actualisé.",
+  "Refresh now. This page also refreshes every minute.": "Actualiser maintenant. Cette page s'actualise aussi toutes les minutes.",
+  "Refreshed at {{time}}": "Actualisé à {{time}}",
+  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "Le moniteur affiche désormais {{status}}, ici et sur chaque page de statut qui le présente."
 }

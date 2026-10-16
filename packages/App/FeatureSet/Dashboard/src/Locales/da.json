@@ -12934,7 +12934,7 @@
   "More Info": "More Info",
   "More Information": "More Information",
   "More Information (in Markdown)": "More Information (in Markdown)",
-  "More actions": "More actions",
+  "More actions": "Flere handlinger",
   "More actions for": "More actions for",
   "More dashboard options": "More dashboard options",
   "More player options": "More player options",
@@ -30239,5 +30239,13 @@
   "Already acknowledged": "Allerede kvitteret",
   "Already passed on": "Allerede sendt videre",
   "Nothing to pass on": "Intet at sende videre",
-  "Use Try again above to load it.": "Brug Prøv igen ovenfor for at indlæse den."
+  "Use Try again above to load it.": "Brug Prøv igen ovenfor for at indlæse den.",
+  "Change status": "Skift status",
+  "Change status to": "Skift status til",
+  "Change status to {{status}}?": "Skift status til {{status}}?",
+  "Monitor actions": "Handlinger for overvågning",
+  "Monitor refreshed.": "Overvågningen er opdateret.",
+  "Refresh now. This page also refreshes every minute.": "Opdater nu. Siden opdateres også hvert minut.",
+  "Refreshed at {{time}}": "Opdateret kl. {{time}}",
+  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "Overvågningen viser {{status}} fra nu af, her og på alle statussider, der viser den."
 }

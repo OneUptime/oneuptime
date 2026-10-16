@@ -12934,7 +12934,7 @@
   "More Info": "More Info",
   "More Information": "More Information",
   "More Information (in Markdown)": "More Information (in Markdown)",
-  "More actions": "More actions",
+  "More actions": "اقدامات بیشتر",
   "More actions for": "More actions for",
   "More dashboard options": "More dashboard options",
   "More player options": "More player options",
@@ -30239,5 +30239,13 @@
   "Already acknowledged": "پیش‌تر تأیید شده است",
   "Already passed on": "پیش‌تر واگذار شده است",
   "Nothing to pass on": "چیزی برای واگذاری نیست",
-  "Use Try again above to load it.": "برای بارگذاری آن، از «تلاش دوباره» در بالا استفاده کنید."
+  "Use Try again above to load it.": "برای بارگذاری آن، از «تلاش دوباره» در بالا استفاده کنید.",
+  "Change status": "تغییر وضعیت",
+  "Change status to": "تغییر وضعیت به",
+  "Change status to {{status}}?": "وضعیت به {{status}} تغییر کند؟",
+  "Monitor actions": "اقدامات مانیتور",
+  "Monitor refreshed.": "مانیتور تازه‌سازی شد.",
+  "Refresh now. This page also refreshes every minute.": "اکنون تازه‌سازی کنید. این صفحه هر دقیقه هم خودکار تازه‌سازی می‌شود.",
+  "Refreshed at {{time}}": "تازه‌سازی‌شده در {{time}}",
+  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "از این پس، مانیتور اینجا و در هر صفحه وضعیتی که آن را فهرست می‌کند {{status}} را نشان می‌دهد."
 }

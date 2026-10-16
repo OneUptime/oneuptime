@@ -93,6 +93,14 @@ export type MonitorOverviewCallToAction =
   | MonitorOverviewLinkCallToAction
   | MonitorOverviewActionCallToAction;
 
+/*
+ * What the hero's More actions (⋯) menu, beside Refresh, offers: things done
+ * now and then, kept out of the way of the one call to action. Changing the
+ * status is offered where a person sets it - a manual monitor; a monitor that
+ * checks itself would set its status again on its next check.
+ */
+export type MonitorOverviewMoreActionKey = "changeStatus";
+
 // Whether the hero's call to action is done in place (a button).
 export const isMonitorOverviewActionCallToAction: (
   callToAction: MonitorOverviewCallToAction,
@@ -270,6 +278,8 @@ export interface MonitorOverviewPresentation {
   explanation?: string | undefined;
   lastKnownStatus?: string | undefined;
   callToAction?: MonitorOverviewCallToAction | undefined;
+  // What the hero's More actions (⋯) menu offers; empty draws no menu.
+  moreActions: Array<MonitorOverviewMoreActionKey>;
   pulse: MonitorOverviewPulse;
   freshness: MonitorCheckFreshness;
   /*
@@ -479,6 +489,7 @@ export default class MonitorOverviewPresentationUtil {
       family: context.family,
       runState: context.runState,
       ...hero,
+      moreActions: MonitorOverviewPresentationUtil.getMoreActions(context),
       pulse: MonitorOverviewPresentationUtil.getPulse(input, context),
       freshness: context.freshness.freshness,
       isNeverReported: MonitorOverviewPresentationUtil.isNeverReported(context),
@@ -490,6 +501,22 @@ export default class MonitorOverviewPresentationUtil {
       }),
       sections: MonitorOverviewPresentationUtil.getSections(context),
     };
+  }
+
+  /*
+   * What the hero's More actions (⋯) menu offers. A manual monitor's status
+   * is whatever a person sets, so changing it is there - kept behind the
+   * menu rather than drawn as the hero's call to action. Every other monitor
+   * sets its own status from its checks, and its next check would undo a
+   * change made by hand, so it gets no menu (its history is still edited on
+   * the Status Timeline page).
+   */
+  public static getMoreActions(data: {
+    runState: MonitorOverviewRunState;
+  }): Array<MonitorOverviewMoreActionKey> {
+    return data.runState === MonitorOverviewRunState.Manual
+      ? ["changeStatus"]
+      : [];
   }
 
   /*
@@ -1119,6 +1146,10 @@ export default class MonitorOverviewPresentationUtil {
       : { text: "No status recorded yet" };
 
     switch (context.runState) {
+      /*
+       * No call to action: changing the status is in the hero's More actions
+       * (⋯) menu, beside Refresh (getMoreActions).
+       */
       case MonitorOverviewRunState.Manual:
         return {
           tone: statusTone,
@@ -1126,7 +1157,6 @@ export default class MonitorOverviewPresentationUtil {
           secondaryBadges: [{ text: "Manual", tone: "neutral" }],
           headline: statusHeadline,
           explanation: MANUAL_EXPLANATION,
-          callToAction: { text: "Change status", linkKey: "statusTimeline" },
         };
 
       case MonitorOverviewRunState.Paused: {

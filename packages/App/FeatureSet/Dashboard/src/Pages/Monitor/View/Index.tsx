@@ -295,6 +295,12 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
            * hero and the feed show it as the details card's saves do.
            */
           onMonitoringTurnedOn={onDetailsSaved}
+          /*
+           * So is a status picked from its More actions menu: the hero, the
+           * status changes, uptime and the feed all show the new status.
+           */
+          currentStatusId={presentationInput.currentStatus?.id}
+          onStatusChanged={onDetailsSaved}
         />
       </div>
 

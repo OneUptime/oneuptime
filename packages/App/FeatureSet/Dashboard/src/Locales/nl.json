@@ -12934,7 +12934,7 @@
   "More Info": "More Info",
   "More Information": "More Information",
   "More Information (in Markdown)": "More Information (in Markdown)",
-  "More actions": "More actions",
+  "More actions": "Meer acties",
   "More actions for": "More actions for",
   "More dashboard options": "More dashboard options",
   "More player options": "More player options",
@@ -30239,5 +30239,13 @@
   "Already acknowledged": "Al bevestigd",
   "Already passed on": "Al doorgegeven",
   "Nothing to pass on": "Niets door te geven",
-  "Use Try again above to load it.": "Gebruik Opnieuw proberen hierboven om de lijst te laden."
+  "Use Try again above to load it.": "Gebruik Opnieuw proberen hierboven om de lijst te laden.",
+  "Change status": "Status wijzigen",
+  "Change status to": "Status wijzigen naar",
+  "Change status to {{status}}?": "Status wijzigen naar {{status}}?",
+  "Monitor actions": "Monitoracties",
+  "Monitor refreshed.": "Monitor vernieuwd.",
+  "Refresh now. This page also refreshes every minute.": "Nu vernieuwen. Deze pagina wordt ook elke minuut vernieuwd.",
+  "Refreshed at {{time}}": "Vernieuwd om {{time}}",
+  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "De monitor toont vanaf nu {{status}}, hier en op elke statuspagina waarop hij staat."
 }

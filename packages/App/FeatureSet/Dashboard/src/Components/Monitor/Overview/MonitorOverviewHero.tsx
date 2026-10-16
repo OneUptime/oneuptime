@@ -4,6 +4,7 @@ import RelativeTime from "../../EpisodeView/RelativeTime";
 import { ResourceOwnerEntry } from "../../ResourceOwners/OwnerEntry";
 import OwnersCell from "../../ResourceOwners/OwnersCell";
 import SloOverviewActionLink from "../../Slo/SloOverviewActionLink";
+import MonitorOverviewActions, { LoadedAtTime } from "./MonitorOverviewActions";
 import { getMonitorOverviewRoute } from "./MonitorOverviewLinks";
 import {
   TONE_BADGE,
@@ -19,10 +20,7 @@ import MonitorType, {
   MonitorTypeProps,
 } from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import StatusBadge from "Common/UI/Components/StatusBadge/StatusBadge";
@@ -64,6 +62,13 @@ export interface ComponentProps {
    * so the page reads it again.
    */
   onMonitoringTurnedOn?: (() => void) | undefined;
+  /*
+   * The status the monitor is in now: the More actions (⋯) menu's Change
+   * status leaves it out.
+   */
+  currentStatusId?: string | undefined;
+  // Told after that menu recorded a new status, so the page reads it again.
+  onStatusChanged?: (() => void) | undefined;
 }
 
 /*
@@ -103,31 +108,15 @@ export const getMonitorOverviewIcon: (
 };
 
 /*
- * When what is on screen loaded, as a clock time in the reader's zone. The
- * date is added once it is no longer today, so a page left open overnight
- * cannot point at the wrong 14:05.
- */
-export const getLoadedAtText: (loadedAt: Date) => string = (
-  loadedAt: Date,
-): string => {
-  const isToday: boolean =
-    OneUptimeDate.getDateAsLocalDayMonthString(loadedAt) ===
-    OneUptimeDate.getDateAsLocalDayMonthString(OneUptimeDate.getCurrentDate());
-
-  if (!isToday) {
-    return OneUptimeDate.getDateAsLocalShortDateTimeString(loadedAt);
-  }
-
-  return OneUptimeDate.getLocalTimeString(loadedAt, {
-    use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
-  });
-};
-
-/*
  * The top of the monitor overview: what state the monitor is in, in words,
  * how fresh that is, and the handful of facts behind it. Everything it says
  * comes from MonitorOverviewPresentationUtil, so the per-type and per-state
  * rules are tested once in Common and this only lays them out.
+ *
+ * Its actions keep to the top right at every width (MonitorOverviewActions:
+ * when the page last loaded, Refresh, and the More actions menu), on the
+ * badges' line: a grid, so on a phone they stay in that corner instead of
+ * falling under the text, and from lg the pulse sits under them.
  */
 const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -336,8 +325,12 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
       );
     }
 
+    // Under the text until lg, then under the actions at the right.
     return (
-      <div data-testid="monitor-overview-pulse" className="min-w-0 text-right">
+      <div
+        data-testid="monitor-overview-pulse"
+        className="min-w-0 text-left lg:text-right"
+      >
         {lastLine}
         {pulse.cadenceText ? (
           <p
@@ -514,21 +507,40 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
       className="rounded-xl border border-gray-200 bg-white shadow-sm"
     >
       <div className="p-5 sm:p-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex min-w-0 flex-1 items-start gap-4">
+        <div className="flex items-start gap-4">
+          <div
+            data-testid="monitor-overview-icon"
+            className={`max-sm:hidden h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl sm:flex ${
+              TONE_TILE_CLASS[presentation.tone]
+            }`}
+          >
+            <Icon
+              icon={getMonitorOverviewIcon(presentation)}
+              className="h-6 w-6"
+            />
+          </div>
+          {/*
+           * Two columns: the badges, then the state in words, on the left;
+           * the actions on the badges' line at the right, and from lg the
+           * pulse under them. Below lg the pulse follows the text. Every
+           * cell is placed by the grid, so the markup can keep the order a
+           * screen reader and the Tab key should take: the state, its call
+           * to action, then the actions and the pulse.
+           */}
+          <div
+            data-testid="monitor-overview-layout"
+            className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] gap-x-4 lg:gap-x-8"
+          >
             <div
-              data-testid="monitor-overview-icon"
-              className={`max-sm:hidden h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl sm:flex ${
-                TONE_TILE_CLASS[presentation.tone]
-              }`}
+              data-testid="monitor-overview-badges-cell"
+              className="col-start-1 row-start-1 min-w-0 self-center"
             >
-              <Icon
-                icon={getMonitorOverviewIcon(presentation)}
-                className="h-6 w-6"
-              />
-            </div>
-            <div className="min-w-0">
               {getBadgeRow()}
+            </div>
+            <div
+              data-testid="monitor-overview-state-cell"
+              className="col-span-2 col-start-1 row-start-2 min-w-0 lg:col-span-1"
+            >
               <h2
                 data-testid="monitor-overview-headline"
                 className="mt-2 text-xl font-semibold tracking-tight text-gray-900"
@@ -582,19 +594,28 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
                 <></>
               )}
             </div>
-          </div>
-
-          <div className="flex flex-shrink-0 items-center justify-between gap-4 lg:flex-col lg:items-end lg:gap-3">
-            <Button
-              title="Refresh"
-              icon={IconProp.Refresh}
-              buttonStyle={ButtonStyleType.NORMAL}
-              buttonSize={ButtonSize.Small}
-              isLoading={props.isRefreshing}
-              onClick={props.onRefresh}
-              dataTestId="monitor-overview-refresh"
-            />
-            {getPulse()}
+            <div
+              data-testid="monitor-overview-actions-cell"
+              className="col-start-2 row-start-1 self-start"
+            >
+              <MonitorOverviewActions
+                key={props.monitorId.toString()}
+                monitorId={props.monitorId}
+                isRefreshing={props.isRefreshing}
+                refreshError={props.refreshError}
+                lastLoadedAt={props.lastLoadedAt}
+                onRefresh={props.onRefresh}
+                moreActions={presentation.moreActions}
+                currentStatusId={props.currentStatusId}
+                onStatusChanged={props.onStatusChanged}
+              />
+            </div>
+            <div
+              data-testid="monitor-overview-pulse-cell"
+              className="col-span-2 col-start-1 row-start-3 mt-3 min-w-0 lg:col-span-1 lg:col-start-2 lg:row-start-2 lg:mt-4"
+            >
+              {getPulse()}
+            </div>
           </div>
         </div>
 
@@ -615,18 +636,7 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
                 template="Couldn't refresh. Showing what loaded at {{time}}. {{error}}"
                 values={{ error: props.refreshError }}
                 slots={{
-                  time: (
-                    <time
-                      dateTime={OneUptimeDate.fromString(
-                        props.lastLoadedAt,
-                      ).toISOString()}
-                      title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                        props.lastLoadedAt,
-                      )}
-                    >
-                      {getLoadedAtText(props.lastLoadedAt)}
-                    </time>
-                  ),
+                  time: <LoadedAtTime loadedAt={props.lastLoadedAt} />,
                 }}
               />
             ) : (
