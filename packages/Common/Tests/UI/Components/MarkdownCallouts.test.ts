@@ -37,10 +37,13 @@ const text: (value: string) => CalloutMarkdownNode = (
   return { type: "text", value: value };
 };
 
-const strong: (...children: Array<CalloutMarkdownNode>) => CalloutMarkdownNode =
-  (...children: Array<CalloutMarkdownNode>): CalloutMarkdownNode => {
-    return { type: "strong", children: children };
-  };
+const strong: (
+  ...children: Array<CalloutMarkdownNode>
+) => CalloutMarkdownNode = (
+  ...children: Array<CalloutMarkdownNode>
+): CalloutMarkdownNode => {
+  return { type: "strong", children: children };
+};
 
 const emphasis: (
   ...children: Array<CalloutMarkdownNode>
@@ -184,28 +187,37 @@ describe("a blockquote is a quote", () => {
 });
 
 describe("> [!KIND] makes it a callout", () => {
-  test.each(MARKDOWN_CALLOUT_KINDS.map((kind: string) => [kind]))(
-    "%s, alone on the first line, is taken out of the text",
-    (kind: string) => {
-      const quote: CalloutMarkdownNode = blockquote(
-        paragraph(
-          text(`[!${kind.toUpperCase()}]\n`),
-          strong(text("This token is a secret.")),
-          text(" Keep it safe."),
-        ),
-      );
+  test.each(
+    MARKDOWN_CALLOUT_KINDS.map((kind: string) => {
+      return [kind];
+    }),
+  )("%s, alone on the first line, is taken out of the text", (kind: string) => {
+    const quote: CalloutMarkdownNode = blockquote(
+      paragraph(
+        text(`[!${kind.toUpperCase()}]\n`),
+        strong(text("This token is a secret.")),
+        text(" Keep it safe."),
+      ),
+    );
 
-      transformed(quote);
+    transformed(quote);
 
-      expect(calloutOf(quote)).toBe(kind);
-      expect(quote.children).toEqual([
-        paragraph(strong(text("This token is a secret.")), text(" Keep it safe.")),
-      ]);
-    },
-  );
+    expect(calloutOf(quote)).toBe(kind);
+    expect(quote.children).toEqual([
+      paragraph(
+        strong(text("This token is a secret.")),
+        text(" Keep it safe."),
+      ),
+    ]);
+  });
 
   test("in any case", () => {
-    for (const marker of ["[!warning]", "[!Warning]", "[!WARNING]", "[!wArNiNg]"]) {
+    for (const marker of [
+      "[!warning]",
+      "[!Warning]",
+      "[!WARNING]",
+      "[!wArNiNg]",
+    ]) {
       const quote: CalloutMarkdownNode = blockquote(
         paragraph(text(`${marker}\nCareful`)),
       );
@@ -261,7 +273,14 @@ describe("> [!KIND] makes it a callout", () => {
   });
 
   test("a marker that names no kind stays as written", () => {
-    for (const marker of ["[!ALERT]", "[!NOTES]", "[!]", "[!NOTE ]", "[ !NOTE]", "[NOTE]"]) {
+    for (const marker of [
+      "[!ALERT]",
+      "[!NOTES]",
+      "[!]",
+      "[!NOTE ]",
+      "[ !NOTE]",
+      "[NOTE]",
+    ]) {
       const quote: CalloutMarkdownNode = blockquote(
         paragraph(text(`${marker}\nCareful`)),
       );
@@ -316,7 +335,9 @@ describe("> [!KIND] makes it a callout", () => {
     );
 
     expect(calloutOf(transformed(quote))).toBe("danger");
-    expect(quote.children).toEqual([paragraph(strong(text("Note:")), text(" x"))]);
+    expect(quote.children).toEqual([
+      paragraph(strong(text("Note:")), text(" x")),
+    ]);
   });
 });
 
@@ -384,12 +405,11 @@ describe("where blockquotes are", () => {
     );
 
     applyMarkdownCallouts(
-      root(
-        top,
-        list(listItem(paragraph(text("item")), inList)),
-        plain,
-        { type: "footnoteDefinition", identifier: "1", children: [inFootnote] },
-      ),
+      root(top, list(listItem(paragraph(text("item")), inList)), plain, {
+        type: "footnoteDefinition",
+        identifier: "1",
+        children: [inFootnote],
+      }),
     );
 
     expect([top, inList, plain, inFootnote].map(calloutOf)).toEqual([

@@ -127,9 +127,9 @@ describe("feed attachment links", () => {
         const modelName: string = pascalCase(crudPath.slice(1));
 
         // The path is the note model's own...
-        expect(
-          read(path.join(MODELS_DIR, `${modelName}.ts`)),
-        ).toContain(`@CrudApiEndpoint(new Route("${crudPath}"))`);
+        expect(read(path.join(MODELS_DIR, `${modelName}.ts`))).toContain(
+          `@CrudApiEndpoint(new Route("${crudPath}"))`,
+        );
         expect(service.source).toContain(
           `import Model from "../../Models/DatabaseModels/${modelName}";`,
         );
@@ -148,9 +148,9 @@ describe("feed attachment links", () => {
 
   test("each service reads the note's project id and hands it over", () => {
     for (const service of NOTE_SERVICES) {
-      expect(`${service.file}: ${service.source.includes("projectId: noteWithAttachments.projectId,")}`).toBe(
-        `${service.file}: true`,
-      );
+      expect(
+        `${service.file}: ${service.source.includes("projectId: noteWithAttachments.projectId,")}`,
+      ).toBe(`${service.file}: true`);
       expect(service.source).toMatch(
         /findOneById\(\{\s*id: modelId,\s*select: \{\s*projectId: true,\s*attachments: \{/,
       );

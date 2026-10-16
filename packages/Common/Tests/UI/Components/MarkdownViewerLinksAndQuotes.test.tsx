@@ -344,9 +344,7 @@ afterEach(async () => {
 
 describe("a link that leaves the app opens in a new tab", () => {
   test("the Slack file a saved note carries (the maintainer's screenshot)", () => {
-    showMarkdown(
-      root(paragraph(text("📎 "), link(SLACK_FILE, "image.png"))),
-    );
+    showMarkdown(root(paragraph(text("📎 "), link(SLACK_FILE, "image.png"))));
 
     const fileLink: HTMLElement = linkNamed("image.png");
 
@@ -711,7 +709,7 @@ describe("quoted text is a quote, not a warning", () => {
       ),
     );
 
-    const quote: HTMLElement = quoteContaining("the pool ran dry", );
+    const quote: HTMLElement = quoteContaining("the pool ran dry");
 
     expect(quote.className).toBe(MARKDOWN_QUOTE_CLASS_NAME);
     expect(quote.querySelector("svg")).toBeNull();
@@ -753,11 +751,7 @@ describe("quoted text is a quote, not a warning", () => {
 
   test("a link in a quote still opens where it should", () => {
     showMarkdown(
-      root(
-        blockquote(
-          paragraph(text("see "), link(SLACK_FILE, "the file")),
-        ),
-      ),
+      root(blockquote(paragraph(text("see "), link(SLACK_FILE, "the file")))),
     );
 
     expectOpensInNewTab(linkNamed("the file"));
@@ -801,38 +795,34 @@ describe("a callout is only what asks to be one", () => {
     );
 
     // A callout's own words are read at the usual shade.
-    expect(
-      within(callout).getByText(/Keep it in your deployment/),
-    ).toHaveClass(MARKDOWN_TEXT_CLASS_NAME);
+    expect(within(callout).getByText(/Keep it in your deployment/)).toHaveClass(
+      MARKDOWN_TEXT_CLASS_NAME,
+    );
   });
 
-  test.each(MARKDOWN_CALLOUT_KINDS.map((kind: MarkdownCalloutKind) => [kind]))(
-    "> [!%s]",
-    (kind: string) => {
-      const style: (typeof MARKDOWN_CALLOUT_STYLES)[MarkdownCalloutKind] =
-        MARKDOWN_CALLOUT_STYLES[kind as MarkdownCalloutKind];
+  test.each(
+    MARKDOWN_CALLOUT_KINDS.map((kind: MarkdownCalloutKind) => {
+      return [kind];
+    }),
+  )("> [!%s]", (kind: string) => {
+    const style: (typeof MARKDOWN_CALLOUT_STYLES)[MarkdownCalloutKind] =
+      MARKDOWN_CALLOUT_STYLES[kind as MarkdownCalloutKind];
 
-      showMarkdown(
-        root(
-          blockquote(paragraph(text(`[!${kind.toUpperCase()}]\nRead this.`))),
-        ),
-      );
+    showMarkdown(
+      root(blockquote(paragraph(text(`[!${kind.toUpperCase()}]\nRead this.`)))),
+    );
 
-      const callout: HTMLElement = screen.getByRole("note", {
-        name: style.label,
-      });
+    const callout: HTMLElement = screen.getByRole("note", {
+      name: style.label,
+    });
 
-      expect(callout).toHaveAttribute("data-callout", kind);
-      expect(callout.className).toBe(
-        `${MARKDOWN_CALLOUT_CLASS_NAME} ${style.panel}`,
-      );
-      expect(callout.querySelector("path")).toHaveAttribute(
-        "d",
-        style.iconPath,
-      );
-      expect(callout).toHaveTextContent(/^Read this\.$/);
-    },
-  );
+    expect(callout).toHaveAttribute("data-callout", kind);
+    expect(callout.className).toBe(
+      `${MARKDOWN_CALLOUT_CLASS_NAME} ${style.panel}`,
+    );
+    expect(callout.querySelector("path")).toHaveAttribute("d", style.iconPath);
+    expect(callout).toHaveTextContent(/^Read this\.$/);
+  });
 
   test("> **Note:** keeps its label and is a note", () => {
     showMarkdown(
@@ -880,7 +870,9 @@ describe("a callout is only what asks to be one", () => {
     const calloutInQuote: HTMLElement = screen.getByRole("note", {
       name: "Tip",
     });
-    expect(screen.getByText("quoted tip")).toHaveClass(MARKDOWN_TEXT_CLASS_NAME);
+    expect(screen.getByText("quoted tip")).toHaveClass(
+      MARKDOWN_TEXT_CLASS_NAME,
+    );
     expect(calloutInQuote.parentElement?.closest("blockquote")).toBe(
       quoteContaining("Earlier:"),
     );
@@ -926,9 +918,7 @@ describe("the viewer runs the callout transform", () => {
       remarkMarkdownCallouts,
     ]);
 
-    render(
-      <MarkdownViewer text="x" safeMode={true} inlineReferences={{}} />,
-    );
+    render(<MarkdownViewer text="x" safeMode={true} inlineReferences={{}} />);
 
     expect(lastMarkdownProps().remarkPlugins).toEqual([
       remarkGfm,

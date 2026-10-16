@@ -12,7 +12,14 @@
  * build; the real parser draws the same entries in a browser in
  * packages/E2E/EventOverview (?feed=links-and-quotes).
  */
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
   return {
@@ -168,9 +175,11 @@ function renderMockNode(
   }
 
   for (const [name, value] of Object.entries(node.data?.hProperties || {})) {
-    props[name.replace(/[A-Z]/g, (letter: string): string => {
-      return `-${letter.toLowerCase()}`;
-    })] = value;
+    props[
+      name.replace(/[A-Z]/g, (letter: string): string => {
+        return `-${letter.toLowerCase()}`;
+      })
+    ] = value;
   }
 
   if (node.type === "link") {
@@ -236,10 +245,7 @@ const entry: (item: FeedItemProps) => FeedTimelineEntry<FeedItemProps> = (
 const renderNote: (
   textInMarkdown: string,
   extra?: Partial<FeedItemProps>,
-) => void = (
-  textInMarkdown: string,
-  extra?: Partial<FeedItemProps>,
-): void => {
+) => void = (textInMarkdown: string, extra?: Partial<FeedItemProps>): void => {
   render(
     <ul>
       <FeedItem

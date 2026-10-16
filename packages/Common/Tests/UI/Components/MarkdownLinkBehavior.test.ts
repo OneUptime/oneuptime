@@ -37,12 +37,24 @@ const opensIn: (href: string | null | undefined, page: string) => string = (
 
 describe("a link to another site opens in a new tab", () => {
   test.each([
-    ["a Slack file saved with a note", "https://acme.slack.com/files/U1/F1/image.png"],
+    [
+      "a Slack file saved with a note",
+      "https://acme.slack.com/files/U1/F1/image.png",
+    ],
     ["a web page", "https://www.example.com/runbook"],
     ["a plain http page", "http://intranet.example/wiki"],
-    ["an address that only differs by port", "https://oneuptime.example:8443/dashboard/x"],
-    ["an address that only differs by scheme", "http://oneuptime.example/dashboard/x"],
-    ["a subdomain of the same site", "https://docs.oneuptime.example/dashboard/x"],
+    [
+      "an address that only differs by port",
+      "https://oneuptime.example:8443/dashboard/x",
+    ],
+    [
+      "an address that only differs by scheme",
+      "http://oneuptime.example/dashboard/x",
+    ],
+    [
+      "a subdomain of the same site",
+      "https://docs.oneuptime.example/dashboard/x",
+    ],
     ["a protocol-relative address", "//evil.example/path"],
     ["an upper-case scheme", "HTTPS://www.example.com/"],
   ])("%s", (_name: string, href: string) => {
@@ -111,7 +123,10 @@ describe("a link into the app the reader is in stays in the tab", () => {
       "same tab",
     );
     expect(
-      opensIn("https://status.acme.example/announcements/1", CUSTOM_DOMAIN_STATUS_PAGE),
+      opensIn(
+        "https://status.acme.example/announcements/1",
+        CUSTOM_DOMAIN_STATUS_PAGE,
+      ),
     ).toBe("same tab");
   });
 
@@ -132,13 +147,25 @@ describe("a link into the app the reader is in stays in the tab", () => {
 
 describe("another part of OneUptime on the same host opens in a new tab", () => {
   test.each([
-    ["the docs, from a setup guide", "/docs/telemetry/host-otel-collector", DASHBOARD_PAGE],
+    [
+      "the docs, from a setup guide",
+      "/docs/telemetry/host-otel-collector",
+      DASHBOARD_PAGE,
+    ],
     ["the API reference", "/reference/incident", DASHBOARD_PAGE],
     ["a public status page", "/status-page/2a1b3c4d/incidents", DASHBOARD_PAGE],
     ["the Accounts pages", "/accounts/login", DASHBOARD_PAGE],
     ["the Admin Dashboard", "/admin/settings", DASHBOARD_PAGE],
-    ["the Dashboard, from a status page", "/dashboard/x/incidents/1", STATUS_PAGE],
-    ["the docs, from the Admin Dashboard", "/docs/self-hosted/whatsapp", ADMIN_PAGE],
+    [
+      "the Dashboard, from a status page",
+      "/dashboard/x/incidents/1",
+      STATUS_PAGE,
+    ],
+    [
+      "the docs, from the Admin Dashboard",
+      "/docs/self-hosted/whatsapp",
+      ADMIN_PAGE,
+    ],
     ["a short link", "/l/abc123", DASHBOARD_PAGE],
     ["the site's home page", "/", DASHBOARD_PAGE],
   ])("%s", (_name: string, href: string, page: string) => {
@@ -164,7 +191,10 @@ describe("an attachment or another file opens in a new tab", () => {
       "https://oneuptime.example/api/alert-internal-note/attachment/p/n/f",
     ],
     ["a file", "/file/2a1b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"],
-    ["a status page's attachment", "/status-page-api/incident-public-note/attachment/s/i/n/f"],
+    [
+      "a status page's attachment",
+      "/status-page-api/incident-public-note/attachment/s/i/n/f",
+    ],
     ["a public dashboard's data", "/public-dashboard-api/x"],
   ])("%s", (_name: string, href: string) => {
     for (const page of [
@@ -214,9 +244,9 @@ describe("an attachment or another file opens in a new tab", () => {
       "/status-page-api/x",
       "https://elsewhere.example/api/x",
     ]) {
-      expect(getMarkdownLinkBehavior(href, DASHBOARD_PAGE).needsSignedInSession).toBe(
-        false,
-      );
+      expect(
+        getMarkdownLinkBehavior(href, DASHBOARD_PAGE).needsSignedInSession,
+      ).toBe(false);
     }
   });
 });
@@ -244,19 +274,20 @@ describe("nothing to open", () => {
     // What the viewer's URL check leaves of an address it refuses (javascript:).
     ["an empty address", ""],
     ["blank", "   "],
-  ])("%s stays in the tab, with no target", (_name: string, href: string | null | undefined) => {
-    expect(getMarkdownLinkBehavior(href, DASHBOARD_PAGE)).toEqual({
-      opensInNewTab: false,
-      needsSignedInSession: false,
-      absoluteUrl: null,
-    });
-  });
+  ])(
+    "%s stays in the tab, with no target",
+    (_name: string, href: string | null | undefined) => {
+      expect(getMarkdownLinkBehavior(href, DASHBOARD_PAGE)).toEqual({
+        opensInNewTab: false,
+        needsSignedInSession: false,
+        absoluteUrl: null,
+      });
+    },
+  );
 
   test("an address that runs script is never sent to a new tab", () => {
     expect(opensIn("javascript:alert(1)", DASHBOARD_PAGE)).toBe("same tab");
-    expect(opensIn("data:text/html,<b>x</b>", DASHBOARD_PAGE)).toBe(
-      "same tab",
-    );
+    expect(opensIn("data:text/html,<b>x</b>", DASHBOARD_PAGE)).toBe("same tab");
     expect(opensIn("vbscript:x", DASHBOARD_PAGE)).toBe("same tab");
   });
 

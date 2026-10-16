@@ -610,7 +610,9 @@ const isMermaidCodeClass: (className: unknown) => boolean = (
  * (`node`): spread onto an element, React wrote it out as
  * node="[object Object]".
  */
-const withoutTreeNode: (props: Record<string, unknown>) => Record<string, unknown> = (
+const withoutTreeNode: (
+  props: Record<string, unknown>,
+) => Record<string, unknown> = (
   props: Record<string, unknown>,
 ): Record<string, unknown> => {
   const attributes: Record<string, unknown> = { ...props };
@@ -655,10 +657,7 @@ const MarkdownNumberedList: FunctionComponent<any> = (
   const depth: number = useContext(ListDepthContext);
   return (
     <ListDepthContext.Provider value={depth + 1}>
-      <ol
-        className="list-decimal pl-6 mt-0 mb-1"
-        {...withoutTreeNode(props)}
-      />
+      <ol className="list-decimal pl-6 mt-0 mb-1" {...withoutTreeNode(props)} />
     </ListDepthContext.Provider>
   );
 };
@@ -989,7 +988,9 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         );
       },
       hr: ({ ...props }: any) => {
-        return <hr className="border-gray-300 my-6" {...withoutTreeNode(props)} />;
+        return (
+          <hr className="border-gray-300 my-6" {...withoutTreeNode(props)} />
+        );
       },
       code: (props: any) => {
         const { children, className, ...attributes } = props;

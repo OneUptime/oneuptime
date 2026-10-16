@@ -9637,16 +9637,15 @@ test.describe("links and quotes in a note", () => {
   }: {
     page: Page;
   }) => {
-    await page.context().route(
-      "https://acme.slack.com/**",
-      async (route: PlaywrightRoute) => {
+    await page
+      .context()
+      .route("https://acme.slack.com/**", async (route: PlaywrightRoute) => {
         await route.fulfill({
           status: 200,
           contentType: "text/plain",
           body: "image.png",
         });
-      },
-    );
+      });
     await openReady(page, INCIDENT_PAGE, "feed=links-and-quotes");
 
     const fileLink: Locator = savedNote(page).getByRole("link", {
@@ -9688,16 +9687,15 @@ test.describe("links and quotes in a note", () => {
   }: {
     page: Page;
   }) => {
-    await page.context().route(
-      `**${NOTE_ATTACHMENT_PATH}`,
-      async (route: PlaywrightRoute) => {
+    await page
+      .context()
+      .route(`**${NOTE_ATTACHMENT_PATH}`, async (route: PlaywrightRoute) => {
         await route.fulfill({
           status: 200,
           contentType: "text/plain",
           body: "runbook",
         });
-      },
-    );
+      });
     await openReady(page, INCIDENT_PAGE, "feed=links-and-quotes");
 
     const attachment: Locator = savedNote(page).getByRole("link", {
@@ -9716,9 +9714,9 @@ test.describe("links and quotes in a note", () => {
 
     expect(new URL(tab.url()).pathname).toBe(NOTE_ATTACHMENT_PATH);
     expect(new URL(page.url()).pathname).toBe(INCIDENT_PATH);
-    expect(
-      (await apiRequestsTo(page, "/identity/refresh-token")).length,
-    ).toBe(1);
+    expect((await apiRequestsTo(page, "/identity/refresh-token")).length).toBe(
+      1,
+    );
     await tab.close();
   });
 
@@ -9855,9 +9853,9 @@ test.describe("links and quotes in a note", () => {
       "background-color": "rgba(120, 53, 15, 0.32)",
       "border-top-color": "rgba(251, 191, 36, 0.42)",
     });
-    expect(
-      await computedStyleOf(callout.locator("svg"), ["color"]),
-    ).toEqual({ color: "rgb(251, 191, 36)" });
+    expect(await computedStyleOf(callout.locator("svg"), ["color"])).toEqual({
+      color: "rgb(251, 191, 36)",
+    });
 
     await screenshotElement(savedNote(page), "feed-note-links-and-quotes-dark");
   });

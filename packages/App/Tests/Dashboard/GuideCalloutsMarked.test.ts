@@ -23,7 +23,12 @@ import {
  * would draw a product warning as somebody's words.
  */
 
-const FEATURE_SET_DIR: string = path.resolve(__dirname, "..", "..", "FeatureSet");
+const FEATURE_SET_DIR: string = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "FeatureSet",
+);
 
 const APPS: Array<string> = [
   "Dashboard",
@@ -63,7 +68,8 @@ const quoteMarkdownIn: (piece: string) => string = (piece: string): string => {
 const QUOTED_BOLD_LEAD: RegExp = /^>\s?\*\*([^*]{1,200})\*\*/;
 
 // "> [!WARNING]" alone, as a callout's first line.
-const CALLOUT_MARKER_LINE: RegExp = /^>\s?\[!([A-Za-z]{1,16})\]\s*["'`,;)]*\s*$/;
+const CALLOUT_MARKER_LINE: RegExp =
+  /^>\s?\[!([A-Za-z]{1,16})\]\s*["'`,;)]*\s*$/;
 
 interface MarkdownLine {
   file: string;
@@ -224,9 +230,9 @@ describe("setup guides mark their callouts", () => {
     for (const marker of markers) {
       const kind: string = marker.split(" ").pop() || "";
 
-      expect(`${marker} ${MARKDOWN_CALLOUT_KINDS.includes(kind.toLowerCase() as never)}`).toBe(
-        `${marker} true`,
-      );
+      expect(
+        `${marker} ${MARKDOWN_CALLOUT_KINDS.includes(kind.toLowerCase() as never)}`,
+      ).toBe(`${marker} true`);
     }
   });
 });

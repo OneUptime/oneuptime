@@ -65,8 +65,7 @@ const IMPORTANT_ICON: string =
   "M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z";
 const WARNING_ICON: string =
   "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z";
-const DANGER_ICON: string =
-  "M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z";
+const DANGER_ICON: string = "M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z";
 
 export const MARKDOWN_CALLOUT_STYLES: Readonly<
   Record<MarkdownCalloutKind, MarkdownCalloutStyle>

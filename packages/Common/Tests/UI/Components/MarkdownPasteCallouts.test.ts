@@ -72,14 +72,15 @@ describe("a copied callout pastes back as a callout", () => {
     );
   });
 
-  test.each(MARKDOWN_CALLOUT_KINDS.map((kind: string) => [kind]))(
-    "%s",
-    (kind: string) => {
-      expect(
-        pastedHtmlToMarkdown(copiedCallout(kind, paragraph("Read this."))),
-      ).toBe(`> [!${kind.toUpperCase()}]\n> Read this.`);
-    },
-  );
+  test.each(
+    MARKDOWN_CALLOUT_KINDS.map((kind: string) => {
+      return [kind];
+    }),
+  )("%s", (kind: string) => {
+    expect(
+      pastedHtmlToMarkdown(copiedCallout(kind, paragraph("Read this."))),
+    ).toBe(`> [!${kind.toUpperCase()}]\n> Read this.`);
+  });
 
   test("each of its paragraphs stays in the quote", () => {
     const markdown: string = pastedHtmlToMarkdown(
@@ -98,7 +99,7 @@ describe("a copied callout pastes back as a callout", () => {
     const markdown: string = pastedHtmlToMarkdown(
       copiedCallout(
         "tip",
-        "<ul class=\"list-disc pl-6 mt-0 mb-1\"><li>restart the pod</li><li>watch the logs</li></ul>",
+        '<ul class="list-disc pl-6 mt-0 mb-1"><li>restart the pod</li><li>watch the logs</li></ul>',
       ),
     );
 
@@ -145,9 +146,9 @@ describe("a copied callout pastes back as a callout", () => {
   });
 
   test("is rich content, so the paste converts it", () => {
-    expect(
-      isRichClipboardHtml(copiedCallout("warning", paragraph("x"))),
-    ).toBe(true);
+    expect(isRichClipboardHtml(copiedCallout("warning", paragraph("x")))).toBe(
+      true,
+    );
   });
 });
 
