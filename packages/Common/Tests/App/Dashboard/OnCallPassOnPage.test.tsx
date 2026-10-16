@@ -15,6 +15,7 @@ import {
   screen,
   within,
 } from "@testing-library/react";
+import type { Mock } from "jest-mock";
 import React, { ReactElement } from "react";
 
 jest.mock("react-i18next", () => {
@@ -864,7 +865,7 @@ describe("in a record's header", () => {
   });
 
   test("passing on says what it did, tells the page, and the button goes", async () => {
-    const onPassedOn: jest.Mock<() => void> = jest.fn<() => void>();
+    const onPassedOn: Mock<() => void> = jest.fn<() => void>();
 
     getAnswers.push(pagedAbout());
     postAnswers.push(passed());
@@ -929,7 +930,7 @@ describe("in a record's header", () => {
   });
 
   test("somebody acknowledged it meanwhile: it says so, and nothing was passed on", async () => {
-    const onPassedOn: jest.Mock<() => void> = jest.fn<() => void>();
+    const onPassedOn: Mock<() => void> = jest.fn<() => void>();
 
     getAnswers.push(pagedAbout());
     postAnswers.push({
@@ -960,7 +961,7 @@ describe("in a record's header", () => {
   });
 
   test("a failed request keeps the question open, with an error, so it can be tried again", async () => {
-    const onPassedOn: jest.Mock<() => void> = jest.fn<() => void>();
+    const onPassedOn: Mock<() => void> = jest.fn<() => void>();
 
     getAnswers.push(pagedAbout());
     postAnswers.push("fail");
