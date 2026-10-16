@@ -289,6 +289,32 @@ export const getPlanTermsText: (data: {
   };
 };
 
+// The stops after which Chinese and Japanese start the next sentence with no space.
+const FULL_WIDTH_STOPS: Array<string> = ["\u3002", "\uFF01", "\uFF1F"];
+
+/*
+ * What goes between a sentence and the next thing on its line: a space, or
+ * nothing after a full-width stop ("…されます。アクティブ…").
+ */
+export const getSentenceSeparator: (sentence: string) => string = (
+  sentence: string,
+): string => {
+  return FULL_WIDTH_STOPS.some((stop: string): boolean => {
+    return sentence.endsWith(stop);
+  })
+    ? ""
+    : " ";
+};
+
+// Whole sentences, one after the other, as the reader's language spaces them.
+export const joinSentences: (sentences: Array<string>) => string = (
+  sentences: Array<string>,
+): string => {
+  return sentences.reduce((joined: string, sentence: string): string => {
+    return joined ? joined + getSentenceSeparator(joined) + sentence : sentence;
+  }, "");
+};
+
 // "Save 15%" or "Save up to 15%" beside Yearly; null when nothing is saved.
 export const getYearlySavingText: (data: {
   saving: YearlySaving | null;

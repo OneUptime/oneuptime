@@ -18,7 +18,9 @@ import {
   PlanTermsText,
   getPlanPickerOptionText,
   getPlanTermsText,
+  getSentenceSeparator,
   getYearlySavingText,
+  joinSentences,
 } from "./PlanPickerCopy";
 import React, {
   FunctionComponent,
@@ -335,8 +337,10 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
               {terms.headline}
             </p>
             <p data-testid="plan-picker-terms-details" className="mt-0.5">
-              {terms.details.join(" ")}
-              {terms.details.length > 0 ? " " : ""}
+              {joinSentences(terms.details)}
+              {terms.details.length > 0
+                ? getSentenceSeparator(joinSentences(terms.details))
+                : ""}
               <a
                 href={PRICING_PAGE_URL}
                 target="_blank"

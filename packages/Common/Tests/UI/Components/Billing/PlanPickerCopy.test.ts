@@ -13,7 +13,9 @@ import {
   getPlanAudience,
   getPlanPickerOptionText,
   getPlanTermsText,
+  getSentenceSeparator,
   getYearlySavingText,
+  joinSentences,
 } from "../../../../UI/Components/Billing/PlanPicker/PlanPickerCopy";
 import {
   PluralTemplate,
@@ -332,6 +334,60 @@ describe("PlanPickerCopy: what picking a plan means for money", () => {
         );
       }
     }
+  });
+});
+
+describe("PlanPickerCopy: the note's sentences, side by side", () => {
+  it("puts a space between sentences that end in a full stop", () => {
+    expect(
+      joinSentences([
+        "Then $240 per user, billed yearly.",
+        "Active monitors and telemetry are pay as you go.",
+      ]),
+    ).toBe(
+      "Then $240 per user, billed yearly. Active monitors and telemetry are pay as you go.",
+    );
+    expect(getSentenceSeparator("Free forever.")).toBe(" ");
+  });
+
+  it("puts none after a Chinese or Japanese full-width stop", () => {
+    const japanese: PlanTermsText = terms(
+      SCALE,
+      BillingPeriod.Yearly,
+      translatorFor("ja"),
+    );
+
+    expect(joinSentences(japanese.details)).toBe(
+      "その後は 1 ユーザーあたり $1,008、毎年請求されます。アクティブなモニターとテレメトリは従量課金です。",
+    );
+    expect(getSentenceSeparator(joinSentences(japanese.details))).toBe("");
+
+    const chinese: PlanTermsText = terms(
+      GROWTH,
+      BillingPeriod.Monthly,
+      translatorFor("zh-CN"),
+    );
+
+    expect(joinSentences(chinese.details)).toBe(
+      "之后每位用户 $22，按月计费。活跃监视器和遥测按用量付费。",
+    );
+  });
+
+  it("keeps the space Korean puts between sentences", () => {
+    const korean: PlanTermsText = terms(
+      GROWTH,
+      BillingPeriod.Yearly,
+      translatorFor("ko"),
+    );
+
+    expect(joinSentences(korean.details)).toBe(
+      "이후 사용자당 $240, 매년 청구됩니다. 활성 모니터와 텔레메트리는 사용한 만큼 결제됩니다.",
+    );
+  });
+
+  it("is empty for no sentences and the sentence itself for one", () => {
+    expect(joinSentences([])).toBe("");
+    expect(joinSentences(["Free forever."])).toBe("Free forever.");
   });
 });
 
