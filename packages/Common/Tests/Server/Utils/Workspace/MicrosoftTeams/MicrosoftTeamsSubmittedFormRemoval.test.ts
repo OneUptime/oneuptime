@@ -1,4 +1,3 @@
-import { stubPrivateRecords } from "../../../TestingUtils/PrivateRecords";
 import {
   afterEach,
   beforeEach,
@@ -7,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubPrivateRecords } from "../../../TestingUtils/PrivateRecords";
 
 /*
  * Issue #4111: in Microsoft Teams, "create incident" and "create maintenance"

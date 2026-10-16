@@ -881,7 +881,7 @@ export default class MicrosoftTeamsIncidentActions {
         body: [
           {
             type: "TextBlock",
-            text: "Add Private Note",
+            text: WORKSPACE_NOTE_FORM_TEXT.privateTitle,
             size: "Large",
             weight: "Bolder",
           },

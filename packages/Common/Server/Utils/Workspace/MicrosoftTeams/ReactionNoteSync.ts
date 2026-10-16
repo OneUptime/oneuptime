@@ -972,18 +972,29 @@ export default class MicrosoftTeamsReactionNoteSync {
           outcome: WorkspaceMessageNoteOutcome.NothingToSave,
           reason: report.reason,
         };
-      case MicrosoftTeamsReactionOutcome.AlreadyHandled:
-        // A run is handling it right now: saved, or about to be.
+      case MicrosoftTeamsReactionOutcome.AlreadyHandled: {
+        /*
+         * A run is handling it right now: saved, or about to be - as the
+         * note the record takes, a private one for a 📣 on a private
+         * incident (WorkspaceReactionNote.getNoteTypeSavedAs).
+         */
+        const noteSavedAs: WorkspaceNoteType =
+          await WorkspaceReactionNote.getNoteTypeSavedAs({
+            resource: data.resource,
+            noteType: data.noteType,
+          });
+
         return (await WorkspaceReactionNote.hasNote({
           resource: data.resource,
-          noteType: data.noteType,
+          noteType: noteSavedAs,
           sourceMessageKey: WorkspaceReactionNote.getSourceMessageKey({
             channelId: channel.channelId,
             messageId: reaction.messageId,
           }),
         }))
-          ? { outcome: WorkspaceMessageNoteOutcome.Saved }
+          ? { outcome: WorkspaceMessageNoteOutcome.Saved, noteType: noteSavedAs }
           : { outcome: WorkspaceMessageNoteOutcome.Failed };
+      }
       case MicrosoftTeamsReactionOutcome.NotLinked:
       case MicrosoftTeamsReactionOutcome.NotSupported:
         return { outcome: WorkspaceMessageNoteOutcome.Failed };

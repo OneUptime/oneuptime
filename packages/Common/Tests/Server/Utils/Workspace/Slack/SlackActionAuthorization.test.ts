@@ -1,4 +1,3 @@
-import { stubPrivateRecords } from "../../../TestingUtils/PrivateRecords";
 import {
   afterEach,
   beforeEach,
@@ -7,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubPrivateRecords } from "../../../TestingUtils/PrivateRecords";
 import type { SpyInstance } from "jest-mock";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import IncidentState from "../../../../../Models/DatabaseModels/IncidentState";
