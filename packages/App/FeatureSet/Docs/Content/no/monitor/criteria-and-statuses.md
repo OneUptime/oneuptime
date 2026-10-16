@@ -34,7 +34,7 @@ Et kriterium som samsvarer, men ikke endrer noen status, avgjør likevel kontrol
 
 ## Hva et kriterium inneholder
 
-Åpne et kriterium: det har et navn og tre sammenslåtte seksjoner, hver med et sammendrag på én linje.
+Åpne et kriterium: det har et navn og tre seksjoner, som hver kan slås sammen til et sammendrag på én linje.
 
 | Del | Hva den inneholder |
 | --- | --- |

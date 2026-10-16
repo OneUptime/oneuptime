@@ -34,7 +34,7 @@ Ein Kriterium, das zutrifft, aber keinen Status ändert, entscheidet die Prüfun
 
 ## Was ein Kriterium enthält
 
-Öffnen Sie ein Kriterium: Es hat einen Namen und drei eingeklappte Abschnitte, jeder mit einer einzeiligen Zusammenfassung.
+Öffnen Sie ein Kriterium: Es hat einen Namen und drei Abschnitte, die sich jeweils zu einer einzeiligen Zusammenfassung einklappen lassen.
 
 | Teil | Was er enthält |
 | --- | --- |

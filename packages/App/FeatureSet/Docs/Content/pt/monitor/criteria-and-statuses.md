@@ -34,7 +34,7 @@ Um critério que corresponde mas não altera nenhum status ainda decide a verifi
 
 ## O que um critério contém
 
-Abra um critério: ele tem um nome e três seções recolhidas, cada uma com um resumo de uma linha.
+Abra um critério: ele tem um nome e três seções, cada uma das quais se recolhe em um resumo de uma linha.
 
 | Parte | O que contém |
 | --- | --- |

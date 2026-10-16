@@ -34,7 +34,7 @@ Een criterium dat overeenkomt maar geen status wijzigt, beslist de controle toch
 
 ## Wat een criterium bevat
 
-Open een criterium: het heeft een naam en drie ingeklapte secties, elk met een samenvatting van één regel.
+Open een criterium: het heeft een naam en drie secties, die elk inklappen tot een samenvatting van één regel.
 
 | Onderdeel | Wat het bevat |
 | --- | --- |

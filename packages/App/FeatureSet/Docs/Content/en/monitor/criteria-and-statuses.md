@@ -34,7 +34,7 @@ A criteria that matches but changes no status still decides the check: the monit
 
 ## What a criteria holds
 
-Open a criteria and it has a name and three folded sections, each with a one-line summary.
+Open a criteria and it has a name and three sections, each of which folds to a one-line summary.
 
 | Part | What it holds |
 | --- | --- |

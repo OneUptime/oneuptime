@@ -34,7 +34,7 @@ Un criterio que coincide pero no cambia ningún estado sigue decidiendo la compr
 
 ## Qué contiene un criterio
 
-Abra un criterio: tiene un nombre y tres secciones plegadas, cada una con un resumen de una línea.
+Abra un criterio: tiene un nombre y tres secciones, cada una de las cuales se pliega en un resumen de una línea.
 
 | Parte | Qué contiene |
 | --- | --- |

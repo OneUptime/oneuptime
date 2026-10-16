@@ -34,7 +34,7 @@ Un critère qui correspond sans changer de statut décide quand même de la vér
 
 ## Ce que contient un critère
 
-Ouvrez un critère : il a un nom et trois sections repliées, chacune avec un résumé d'une ligne.
+Ouvrez un critère : il a un nom et trois sections, chacune se repliant en un résumé d'une ligne.
 
 | Partie | Ce qu'elle contient |
 | --- | --- |

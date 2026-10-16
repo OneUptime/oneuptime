@@ -34,7 +34,7 @@ Ett kriterium som matchar men inte ändrar någon status avgör ändå kontrolle
 
 ## Vad ett kriterium innehåller
 
-Öppna ett kriterium: det har ett namn och tre hopfällda avsnitt, var och ett med en sammanfattning på en rad.
+Öppna ett kriterium: det har ett namn och tre avsnitt, som vart och ett kan fällas ihop till en sammanfattning på en rad.
 
 | Del | Vad den innehåller |
 | --- | --- |

@@ -34,7 +34,7 @@ Et kriterium, der matcher, men ikke ændrer nogen status, afgør stadig kontroll
 
 ## Hvad et kriterium indeholder
 
-Åbn et kriterium: det har et navn og tre sammenklappede sektioner, hver med et resumé på én linje.
+Åbn et kriterium: det har et navn og tre sektioner, der hver kan klappes sammen til et resumé på én linje.
 
 | Del | Hvad den indeholder |
 | --- | --- |

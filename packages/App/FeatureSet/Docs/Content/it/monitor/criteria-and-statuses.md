@@ -34,7 +34,7 @@ Un criterio che corrisponde ma non cambia alcuno stato decide comunque il contro
 
 ## Cosa contiene un criterio
 
-Aprite un criterio: ha un nome e tre sezioni chiuse, ognuna con un riepilogo di una riga.
+Aprite un criterio: ha un nome e tre sezioni, ognuna delle quali si chiude in un riepilogo di una riga.
 
 | Parte | Cosa contiene |
 | --- | --- |
