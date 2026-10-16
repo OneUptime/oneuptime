@@ -1526,9 +1526,7 @@ describe("User Settings > Calendar Feed page", () => {
     expect(
       screen.getByText("Subscribe to your on-call shifts"),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText("Upcoming shifts (next 30 days)"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Upcoming shifts")).toBeInTheDocument();
     expect(screen.getByText("Remind me before shifts")).toBeInTheDocument();
 
     // The reminders card asked for the signed-in user's rows in this project.

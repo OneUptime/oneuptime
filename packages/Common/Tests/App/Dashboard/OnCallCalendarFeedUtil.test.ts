@@ -32,10 +32,14 @@ import {
   PROJECT_FEED_ROTATE_PATH,
   REMINDER_PRESETS,
   ReminderPreset,
-  ShiftDayGroup,
+  STANDING_ASSIGNMENTS_COPY,
   UNKNOWN_CALENDAR_CLIENT,
   UPCOMING_SHIFTS_CARD_TITLE,
   UPCOMING_SHIFTS_DAYS,
+  UPCOMING_SHIFTS_DESCRIPTION,
+  UPCOMING_SHIFTS_EMPTY_DESCRIPTION,
+  UPCOMING_SHIFTS_EMPTY_TITLE,
+  UPCOMING_SHIFTS_TRUNCATED_EMPTY_COPY,
   UpcomingShiftsWindow,
   addScheduleFilter,
   applyScheduleFilter,
@@ -48,7 +52,6 @@ import {
   getScheduleFeedPublishPath,
   getScheduleFeedRotatePath,
   getUpcomingShiftsWindow,
-  groupShiftsByDay,
   interpolate,
   isCoveringShift,
   isFetchedByGoogleCalendar,
@@ -498,7 +501,7 @@ describe("reminder presets and lead times", () => {
   });
 });
 
-describe("upcoming shifts window and grouping", () => {
+describe("upcoming shifts window and words", () => {
   test("the window is now to now + 30 days", () => {
     const now: Date = new Date("2026-08-31T12:00:00.000Z");
     const window: UpcomingShiftsWindow = getUpcomingShiftsWindow(now);
@@ -510,78 +513,44 @@ describe("upcoming shifts window and grouping", () => {
     );
   });
 
-  test("the card title states the same number of days the window uses", () => {
-    expect(UPCOMING_SHIFTS_CARD_TITLE).toContain(String(UPCOMING_SHIFTS_DAYS));
-    expect(UPCOMING_SHIFTS_CARD_TITLE).toBe("Upcoming shifts (next 30 days)");
+  /*
+   * The title names the card; the window and the zone are its
+   * description's, said once. Every sentence that states the window states
+   * the number the window uses.
+   */
+  test("the title names the card, and every sentence about the window states its days", () => {
+    expect(UPCOMING_SHIFTS_CARD_TITLE).toBe("Upcoming shifts");
+
+    for (const sentence of [
+      UPCOMING_SHIFTS_DESCRIPTION,
+      UPCOMING_SHIFTS_EMPTY_TITLE,
+      UPCOMING_SHIFTS_TRUNCATED_EMPTY_COPY,
+    ]) {
+      expect(sentence).toContain(`next ${UPCOMING_SHIFTS_DAYS} days`);
+    }
+
+    expect(UPCOMING_SHIFTS_DESCRIPTION).toBe(
+      "Your shifts over the next 30 days. Times are in {{timezone}}.",
+    );
   });
 
-  test("groups by the local start day, in start order, one entry per shift", () => {
-    const groups: Array<ShiftDayGroup> = groupShiftsByDay([
-      makeShift({
-        shiftKey: "c",
-        start: "2026-09-02T07:00:00.000Z",
-        end: "2026-09-02T15:00:00.000Z",
-      }),
-      makeShift({
-        shiftKey: "a",
-        start: "2026-09-01T07:00:00.000Z",
-        end: "2026-09-01T15:00:00.000Z",
-      }),
-      makeShift({
-        shiftKey: "b",
-        start: "2026-09-01T15:00:00.000Z",
-        end: "2026-09-01T23:00:00.000Z",
-      }),
-    ]);
+  test("the words say what a reader needs, without on-call jargon", () => {
+    expect(UPCOMING_SHIFTS_EMPTY_TITLE).toBe("No shifts in the next 30 days");
+    expect(UPCOMING_SHIFTS_EMPTY_DESCRIPTION).toBe(
+      "When a schedule puts you on call, your shifts show up here.",
+    );
+    expect(STANDING_ASSIGNMENTS_COPY).toBe(
+      "Only schedule shifts are listed. If an escalation policy names you or your team directly, it can page you at any time.",
+    );
 
-    expect(groups.length).toBe(2);
-    expect(groups[0]!.dayKey).toBe("2026-09-01");
-    expect(
-      groups[0]!.shifts.map((shift: MaterializedShiftJson): string => {
-        return shift.shiftKey;
-      }),
-    ).toEqual(["a", "b"]);
-    expect(groups[1]!.dayKey).toBe("2026-09-02");
-    expect(groups[1]!.shifts.length).toBe(1);
-    // The heading date is the first shift's start.
-    expect(groups[0]!.day.toISOString()).toBe("2026-09-01T07:00:00.000Z");
-  });
-
-  test("equal starts are ordered by shiftKey so the list is stable across renders", () => {
-    const groups: Array<ShiftDayGroup> = groupShiftsByDay([
-      makeShift({ shiftKey: "schedule-b:1" }),
-      makeShift({ shiftKey: "schedule-a:1" }),
-    ]);
-
-    expect(
-      groups[0]!.shifts.map((shift: MaterializedShiftJson): string => {
-        return shift.shiftKey;
-      }),
-    ).toEqual(["schedule-a:1", "schedule-b:1"]);
-  });
-
-  test("a shift across midnight is listed once, under the day it begins", () => {
-    const groups: Array<ShiftDayGroup> = groupShiftsByDay([
-      makeShift({
-        shiftKey: "night",
-        start: "2026-09-01T20:00:00.000Z",
-        end: "2026-09-02T08:00:00.000Z",
-      }),
-    ]);
-
-    expect(groups.length).toBe(1);
-    expect(groups[0]!.shifts.length).toBe(1);
-  });
-
-  test("an empty list groups to nothing and does not mutate its input", () => {
-    const input: Array<MaterializedShiftJson> = [
-      makeShift({ shiftKey: "z", start: "2026-09-03T07:00:00.000Z" }),
-      makeShift({ shiftKey: "y", start: "2026-09-01T07:00:00.000Z" }),
-    ];
-
-    expect(groupShiftsByDay([])).toEqual([]);
-    groupShiftsByDay(input);
-    expect(input[0]!.shiftKey).toBe("z");
+    // The old footnote's jargon is gone.
+    for (const sentence of [
+      STANDING_ASSIGNMENTS_COPY,
+      UPCOMING_SHIFTS_EMPTY_DESCRIPTION,
+    ]) {
+      expect(sentence).not.toContain("standing");
+      expect(sentence).not.toContain("assignments");
+    }
   });
 
   test("isCoveringShift is true only for an override that names somebody else as the original", () => {
