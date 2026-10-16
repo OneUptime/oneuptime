@@ -246,6 +246,7 @@ describe("LogsFacetSidebar toggles the applied view off", () => {
   ): void {
     render(
       <LogsFacetSidebar
+        onRemoveFilter={() => {}}
         facetData={{}}
         isLoading={false}
         serviceMap={{}}
