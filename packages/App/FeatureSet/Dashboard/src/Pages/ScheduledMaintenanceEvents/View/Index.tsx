@@ -84,6 +84,7 @@ import {
 import useRecordChannelLinks, {
   getOpenInChatActions,
 } from "../../../Components/Workspace/useRecordChannelLinks";
+import RecordChannelMembersCard from "../../../Components/Workspace/RecordChannelMembersCard";
 import {
   WorkspaceChannelLink,
   WorkspaceChannelRecordType,
@@ -570,6 +571,19 @@ const ScheduledMaintenanceView: FunctionComponent<
         </div>
 
         <div className="min-w-0 xl:col-span-1">
+          {/* Who is in the event's own channel, above its details. */}
+          <RecordChannelMembersCard
+            recordType={WorkspaceChannelRecordType.ScheduledMaintenance}
+            recordId={modelId}
+            links={channelLinks}
+            // Somebody added is a new feed entry.
+            onChanged={() => {
+              setFeedRefreshToken((token: number) => {
+                return token + 1;
+              });
+            }}
+          />
+
           {/* ScheduledMaintenance View  */}
           <CardModelDetail<ScheduledMaintenance>
             name="Scheduled Maintenance Details"

@@ -102,6 +102,7 @@ import { getJoinVideoCallAction } from "../../../Components/VideoCall/JoinVideoC
 import useRecordChannelLinks, {
   getOpenInChatActions,
 } from "../../../Components/Workspace/useRecordChannelLinks";
+import RecordChannelMembersCard from "../../../Components/Workspace/RecordChannelMembersCard";
 import {
   WorkspaceChannelLink,
   WorkspaceChannelRecordType,
@@ -1121,6 +1122,15 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               // A started call is a new feed entry.
               refreshFeed();
             }}
+          />
+
+          {/* Who is in the alert's own channel, beside its call. */}
+          <RecordChannelMembersCard
+            recordType={WorkspaceChannelRecordType.Alert}
+            recordId={modelId}
+            links={channelLinks}
+            // Somebody added is a new feed entry.
+            onChanged={refreshFeed}
           />
 
           {/* Alert View  */}

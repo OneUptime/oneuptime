@@ -5,6 +5,7 @@ Koble OneUptime til Slack for å publisere hendelser, varsler, episoder, planlag
 :::cards
 - [Koble til Slack](#koble-til-slack): Installer OneUptime i workspacet ditt, og koble deretter til din egen konto.
 - [Varslingsregler](#varslingsregler): Bestem hvilke hendelser som publiseres hvor, og hvilke som får sin egen kanal.
+- [Hvem som er i kanalen til en post](#hvem-som-er-i-kanalen-til-en-post): Se hvem som er i den, bli med og legg til personer, fra siden til posten.
 - [Kommandoen /oneuptime](#kommandoen-oneuptime): Erklær hendelser, planlegg vedlikehold, se hvem som har vakt, og spør AI.
 - [Vakt-brukergrupper](#vakt-brukergrupper): Hold en brukergruppe lik dem som har vakt, og tilkall den.
 - [Handle på hendelser, varsler og begivenheter fra Slack](#handle-på-hendelser-varsler-og-begivenheter-fra-slack): Knappene i meldingene fra OneUptime.
@@ -88,6 +89,20 @@ En hendelse, et varsel, en episode eller en planlagt vedlikeholdshendelse med si
 En kanal holder seg lesbar: hver begivenhet publiseres én gang, og postens første tilstand står i meldingen som kunngjør posten, ikke i en egen melding. En kjøring av en vaktretningslinje er én melding som redigeres etter hvert som kjøringen eskalerer: hvem som ble tilkalt, hvor ofte og hvordan, hvem som ikke ble det og hvorfor, og hvem som bekreftet. En ny melding publiseres bare når noen må handle: en eskaleringsregel nådde ingen, eller kjøringen endte uten at noen bekreftet. En person som ikke har koblet Slack-kontoen sin til OneUptime, kan ikke legges til i en kanal; OneUptime sier det én gang per kanal, i én melding som nevner alle og redigeres når listen vokser. Send dem lenken **Connect Slack account** fra meldingen, så kobler de til kontoen sin i ett trinn. At postens eiere eller statussidens abonnenter fikk beskjed, står i feeden dens i OneUptime.
 
 **Prosjektinnstillinger** > **Arbeidsområde** > **Slack** viser kanalene OneUptime kan se, med **Send test** ved siden av hver. OneUptime blir selv med i en offentlig kanal første gang den publiserer der. En privat kanal vises, og kan motta publiseringer, først etter at OneUptime-appen er invitert inn i den i Slack.
+
+## Hvem som er i kanalen til en post
+
+En hendelse, et varsel, en episode eller en planlagt vedlikeholdshendelse med sin egen Slack-kanal har kortet **Slack-kanal** på siden sin i OneUptime. Kortet viser kanalen, som en lenke som åpner den i Slack, om den er privat, og hvem som er i den, deg først. Fra kortet, uten en Slack-administrator:
+
+- **Bli med i kanalen** legger deg til når du ikke er i kanalen.
+- **Legg til personer** åpner en liste over prosjektets personer og team: velg en person for å legge vedkommende til, eller et team for å legge til alle i det.
+
+OneUptime-appen legger dem til, slik den legger til personene i kanalen til en regel. Appen blir værende i kanalene den oppretter, så dette virker også for en privat kanal som alle har forlatt.
+
+- **Hvem som kan legge til personer.** Den som kan redigere posten: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** og **Incident Member** for en hendelse, eller **Edit Incident** i en egendefinert rolle, og den samme tillatelsen for et varsel, en episode eller en vedlikeholdshendelse (for eksempel **Edit Alert**). Alle andre ser hvem som er i kanalen, og hvordan de kommer inn.
+- **Hvem som kan legges til.** Noen OneUptime finner i Slack: gjennom Slack-kontoen vedkommende har koblet til, eller ellers gjennom e-postadressen Slack har for vedkommende. Kortet nevner hvem det ikke kunne legge til, og hvorfor, for eksempel en gjest som Slack holder utenfor kanalen.
+- **Hva som registreres.** Hvem som ble lagt til, og av hvem, i feeden til posten (**Kanalmedlem lagt til**) og under **Prosjektinnstillinger** > **Varsler** > **Varsellogger**, på fanen **Arbeidsområde**.
+- **Å ta noen ut.** OneUptime legger bare til: fjern noen fra kanalen i Slack.
 
 ## Teste en regel
 
@@ -260,8 +275,8 @@ OneUptime leser bare det fra Slack som disse funksjonene trenger, med tillatelse
 
 - **Meldinger til OneUptime.** En melding som nevner den med @, en du sender den i en direktemelding, og svarene dine i en samtale med den, sammen med de tidligere meldingene i den tråden eller direktemeldingen, slik at OneUptime AI kan svare. Slack sender den også de andre meldingene i kanalene og gruppemeldingene den er med i; OneUptime verken svarer på dem eller tar vare på dem.
 - **Meldinger du lagrer som notater.** En melding du reagerer på med 📌 eller 📢, eller fester, i kanalen til en hendelse, et varsel, en episode eller en planlagt vedlikeholdsbegivenhet, lagret som et notat på den posten med navnet til den som skrev den.
-- **Navn på kanaler og personer.** Kanalene den kan publisere i, så du kan velge dem, og navnene til personer, for å vise hvem som skrev eller gjorde noe.
-- **E-postadresser.** E-postadressen Slack har for en person, for å koble personens Slack-konto til OneUptime-kontoen når vedkommende ikke har koblet den til selv: for å tilkalle vedkommende, eller sette vedkommende i en vakt-brukergruppe.
+- **Navn på kanaler og personer.** Kanalene den kan publisere i, så du kan velge dem, navnene til personer, for å vise hvem som skrev eller gjorde noe, og hvem som er i den egne kanalen til en post, lest når siden til posten viser det.
+- **E-postadresser.** E-postadressen Slack har for en person, for å koble personens Slack-konto til OneUptime-kontoen når vedkommende ikke har koblet den til selv: for å tilkalle vedkommende, sette vedkommende i en vakt-brukergruppe eller legge vedkommende til i kanalen til en post.
 - **Brukergrupper.** Brukergruppene i arbeidsområdet ditt, så du kan velge én for en vaktplan, og personene i en du kobler til, for å holde den lik dem som har vakt.
 
 Det OneUptime tar vare på av dette — navnet på arbeidsområdet, kanalene, Slack-kontoene folk kobler til, notatene og brukergruppene — lagres sammen med prosjektet ditt. [Personvernerklæringen](https://oneuptime.com/legal/privacy) forklarer hvordan OneUptime behandler dataene dine.
@@ -273,7 +288,11 @@ Sjekk regelens betingelser med **Testregel**: hvis testen kommer frem, passet ik
 :::
 
 :::details Noen mangler i en regels kanal
-Regelens kort sier under **Deretter** hvem regelen inviterer. Hver type person blir med etter hvert som de kommer til posten: de varslede når de varsles, hendelseslederen når den tildeles, en eier når den legges til, og de som allerede var på posten da kanalen ble opprettet. Den som ikke har Slack-kontoen sin koblet til OneUptime, kan ikke legges til; OneUptime nevner personen i kanalen, med en lenke for å koble til kontoen.
+Regelens kort sier under **Deretter** hvem regelen inviterer. Hver type person blir med etter hvert som de kommer til posten: de varslede når de varsles, hendelseslederen når den tildeles, en eier når den legges til, og de som allerede var på posten da kanalen ble opprettet. Den som ikke har Slack-kontoen sin koblet til OneUptime, kan ikke legges til; OneUptime nevner personen i kanalen, med en lenke for å koble til kontoen. Vil du legge til noen nå, trykker du **Legg til personer** på kortet **Slack-kanal** til posten: Det finner også personer gjennom e-postadressen Slack har for dem.
+:::
+
+:::details Alle har forlatt en privat kanal
+Åpne hendelsen, varselet, episoden eller vedlikeholdshendelsen i OneUptime, og trykk **Bli med i kanalen** på kortet **Slack-kanal**, deretter **Legg til personer** for å hente de andre tilbake. Det krever tillatelse til å redigere posten, ikke en Slack-administrator: OneUptime-appen er fortsatt i kanalen og legger dem til. Sier kortet at OneUptime ikke kan se kanalen, er kanalen slettet, eller appen er fjernet fra den: Noen i kanalen kan legge appen til igjen ved å skrive `/invite @OneUptime`.
 :::
 
 :::details Slack ble ikke koblet til
