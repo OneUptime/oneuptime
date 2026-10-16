@@ -46,6 +46,22 @@ Mens undersøkelsen pågår, viser siden til hendelsen eller varselet et live-pa
 
 En undersøkelse kjører til den er ferdig: den har **ingen tidsgrense** og ikke noe lite spørringsbudsjett, så den kan kjøre alle spørringer og alle kubectl- eller infrastrukturkommandoer den trenger. Lange kommandoutdata (en `kubectl describe node` for en travel node, loggene til en pod) blir aldri kuttet: OneUptime AI leser dem én side om gangen. Vil du ha en hard stopp, angir du en **tidsgrense for undersøkelser** for hver signaltype (se **Kostnadskontroll** nedenfor).
 
+## Hva en undersøkelse leser
+
+En undersøkelse starter ved hendelsen eller varselet og ved infrastrukturen den er koblet til: vertene, Docker- og Podman-vertene, Kubernetes-klyngene, databasene og tjenestene som overvåkingene dens følger med på. En nettsted-, API- eller syntetisk overvåking følger med på det du kobler den til under **Overvåking → Oversikt → Tilkoblede ressurser**, så koble den til vertene som leverer det den sjekker, og hver undersøkelse av hendelsene dens starter der.
+
+- Varslene på den infrastrukturen som ble åpnet i de 30 minuttene før hendelsen, eller som fortsatt er åpne, de nyeste først, som varselet om høy CPU på verten bak et tregt nettsted. Private varsler utelates.
+- Infrastrukturens egne metrikker, lest slik folk leser dem. Vertsmetrikker som `system.cpu.utilization` og `system.memory.utilization` rapporteres én gang per tilstand, og tilstandene summerer til 100 %, så ett gjennomsnitt over alle sier ingenting. OneUptime AI leser dem én tilstand om gangen (opptatt CPU er user pluss system), og enhver metrikk per container, per monteringspunkt eller etter et hvilket som helst annet attributt.
+- Containerne på en Docker- eller Podman-vert: de travleste etter CPU, minne eller omstarter, og de som sluttet å rapportere. En stoppet container sender ingenting i stedet for null, så tallene for hele verten skjuler den.
+
+Undersøkelsens aktivitet på kortet **AI Investigation** sier hvor mange åpne eller nye varsler den leste, og på hvilke ressurser.
+
+### Sjekket igjen når et nytt varsel åpnes
+
+En undersøkelse starter i det øyeblikket en hendelse erklæres, og et vertsvarsel som trenger noen minutter med metrikker, kan åpnes etterpå. Når et varsel åpnes på hendelsens tilkoblede infrastruktur innen 30 minutter etter hendelsen, etter at undersøkelsen leste den, og hendelsen fortsatt er åpen, sjekker OneUptime AI hendelsen én gang til med det varselet i hånden. Den nye analysen begynner med **Checked again** og varselet som utløste sjekken, og aktiviteten dens sier det også.
+
+Det skjer høyst én gang per hendelse, med de samme bryterne og grensene som en ny undersøkelse: **Aktiver AI**, _Undersøk nye hendelser_, AI-kredittene og grensene per dag og for samtidighet. Det er ingenting å slå på. En oppfølgingssjekk kjører aldri automatisk utbedring på nytt og blir aldri selv fulgt opp, og undersøkelsen av et varsel sjekkes ikke igjen.
+
 ## Snakk med OneUptime AI om hendelsen
 
 Kortet **AI Investigation** slutter med en samtale, **Ask OneUptime AI**, som deles av alle som kan se hendelsen eller varselet. Det er ett kort uansett hva som skjedde over det: under en rapport stiller du oppfølgingsspørsmål, og når ingen automatisk undersøkelse kjørte (eller den stoppet før rapporten), er det første forslaget **What is the root cause?**, som får OneUptime AI til å undersøke ved behov.

@@ -1,4 +1,6 @@
-import GitHubCommandType from "../CodeRepository/GitHubCommand";
+import GitHubCommandType, {
+  GitHubCommentKind,
+} from "../CodeRepository/GitHubCommand";
 
 /*
  * The JSON persisted on AIRun.taskContext for tasks whose exact working
@@ -135,6 +137,12 @@ export interface GitHubTaskContext {
   isPullRequestFromFork?: boolean | undefined;
   // The comment that triggered the run, so the app can react on it.
   triggerCommentId?: number | undefined;
+  /*
+   * What kind of comment triggerCommentId names, which decides where its
+   * reactions go. Absent on runs queued before it was recorded; those are
+   * read as conversation comments, the only kind they were reacted on as.
+   */
+  triggerCommentKind?: GitHubCommentKind | undefined;
   // The GitHub login that issued the command. Attribution, never authority.
   triggeredByLogin?: string | undefined;
   /*

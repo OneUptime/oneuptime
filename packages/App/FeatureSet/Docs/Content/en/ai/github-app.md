@@ -33,13 +33,13 @@ It is the same agent and the same Runner as [Fix Tasks](/docs/ai/ai-agent), with
 
 ## Before you start
 
-- The repository must be **connected to a OneUptime project** through the GitHub App: connect it under **Tasks → Code Repositories** (open **Products → Code → Tasks**). A self-hosted instance needs its own GitHub App first: see [GitHub Integration](/docs/self-hosted/github-integration).
+- The repository must be **connected to a OneUptime project** through the GitHub App: connect it under **Tasks → Code Repositories** (open **Products → Code → Tasks**). A self-hosted instance needs its own GitHub App first: see [GitHub Integration](/docs/self-hosted/github-integration). If the app is already installed on the GitHub account, click **Connect an existing installation** there instead of installing it again.
 - A Runner with **Runs AI Code Fixes** must be online: the same Runner that carries out [Fix Tasks](/docs/ai/ai-agent). Without one, commands are accepted and then fail after 30 minutes, with a message that no agent picked them up.
 - The GitHub App needs the **Issues** permission with **Read & write**, and must be subscribed to the webhook events under [What to subscribe to](#what-to-subscribe-to).
 
 ## The commands
 
-Every command starts with a mention of the app. The mention can be anywhere in the comment, and whatever you write after it is passed on as your request.
+Every command starts with a mention of the app. The mention can be anywhere in the comment, and whatever you write after it is passed on as your request. Editing a comment that already mentions the app does not run it again: to change your request, write a new comment. An edit that adds the mention is a new request.
 
 ### On a pull request
 

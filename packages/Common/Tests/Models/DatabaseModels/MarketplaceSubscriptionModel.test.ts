@@ -195,7 +195,7 @@ describe("Marketplace migration", () => {
     });
 
     expect(registeredNames).toContain(
-      "AddMarketplaceSubscriptions1802800000000",
+      "AddMarketplaceSubscriptions1803000000000",
     );
   });
 });

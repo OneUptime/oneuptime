@@ -101,6 +101,8 @@ export interface QueuedRunRef {
   triggeredByAlertId?: ObjectID | undefined;
   triggeredByAiInsightId?: ObjectID | undefined;
   triggeredByAutoRemediationSuggestionId?: ObjectID | undefined;
+  // Set on an incident's follow-up check (IncidentFollowUpCheck).
+  followUpForAlertId?: ObjectID | undefined;
 }
 
 export default class AIInvestigationQueue {
@@ -143,6 +145,17 @@ export default class AIInvestigationQueue {
       | AIRunType.RemediationPlan
       | AIRunType.RemediationExecution
       | undefined;
+    /*
+     * An incident's follow-up check (IncidentFollowUpCheck): the alert that
+     * opened on its linked infrastructure after the first investigation.
+     */
+    followUpForAlertId?: ObjectID | undefined;
+    /*
+     * Asked inside the subject lock, right before the run is created: false
+     * leaves the subject as it is and creates nothing. The follow-up check
+     * uses it so two triggers at once can only ever add one run.
+     */
+    admitInsideSubjectLock?: (() => Promise<boolean>) | undefined;
   }): Promise<ObjectID | null> {
     const { projectId } = data;
 
@@ -242,15 +255,26 @@ export default class AIInvestigationQueue {
       run.triggeredByAutoRemediationSuggestionId =
         data.subjectAutoRemediationSuggestionId;
     }
+    if (data.followUpForAlertId) {
+      run.followUpForAlertId = data.followUpForAlertId;
+    }
 
-    let createdRun: AIRun;
+    let createdRun: AIRun | null;
     try {
-      const createRun: () => Promise<AIRun> = async (): Promise<AIRun> => {
-        return AIRunService.create({
-          data: run,
-          props: { isRoot: true },
-        });
-      };
+      const createRun: () => Promise<AIRun | null> =
+        async (): Promise<AIRun | null> => {
+          if (
+            data.admitInsideSubjectLock &&
+            !(await data.admitInsideSubjectLock())
+          ) {
+            return null;
+          }
+
+          return AIRunService.create({
+            data: run,
+            props: { isRoot: true },
+          });
+        };
 
       /*
        * Linearize subject Investigation creation with FixFromIncident's
@@ -277,9 +301,19 @@ export default class AIInvestigationQueue {
       return null;
     }
 
+    // Not admitted inside the subject lock: nothing was created.
+    if (!createdRun) {
+      logger.debug(
+        `AI: not enqueueing investigation for project ${projectId.toString()} — it was not admitted under the subject lock.`,
+      );
+      return null;
+    }
+
+    const createdRunId: ObjectID | null = createdRun.id;
+
     // Inline kick — preserves the 1-3 minute RCA latency on the happy path.
     this.processRun({
-      id: createdRun.id!,
+      id: createdRunId!,
       projectId,
       attemptCount: 0,
       runType,
@@ -288,13 +322,14 @@ export default class AIInvestigationQueue {
       triggeredByAiInsightId: data.subjectAIInsightId,
       triggeredByAutoRemediationSuggestionId:
         data.subjectAutoRemediationSuggestionId,
+      followUpForAlertId: data.followUpForAlertId,
     }).catch((error: Error) => {
       logger.error(
-        `AI: inline processing of queued run ${createdRun.id?.toString()} failed: ${error}`,
+        `AI: inline processing of queued run ${createdRunId?.toString()} failed: ${error}`,
       );
     });
 
-    return createdRun.id || null;
+    return createdRunId || null;
   }
 
   /*
@@ -355,6 +390,7 @@ export default class AIInvestigationQueue {
         runType: true,
         triggeredByIncidentId: true,
         triggeredByAlertId: true,
+        followUpForAlertId: true,
       },
       limit: 100,
       skip: 0,
@@ -386,6 +422,7 @@ export default class AIInvestigationQueue {
           projectId: expired.projectId,
           triggeredByIncidentId: expired.triggeredByIncidentId,
           triggeredByAlertId: expired.triggeredByAlertId,
+          followUpForAlertId: expired.followUpForAlertId,
         });
       }
     }
@@ -408,6 +445,7 @@ export default class AIInvestigationQueue {
         triggeredByAlertId: true,
         triggeredByAiInsightId: true,
         triggeredByAutoRemediationSuggestionId: true,
+        followUpForAlertId: true,
       },
       sort: { createdAt: SortOrder.Ascending },
       limit: POLLER_BATCH_SIZE,
@@ -426,6 +464,7 @@ export default class AIInvestigationQueue {
         triggeredByAiInsightId: queued.triggeredByAiInsightId,
         triggeredByAutoRemediationSuggestionId:
           queued.triggeredByAutoRemediationSuggestionId,
+        followUpForAlertId: queued.followUpForAlertId,
       };
 
       try {
@@ -534,6 +573,7 @@ export default class AIInvestigationQueue {
     projectId?: ObjectID | undefined;
     triggeredByIncidentId?: ObjectID | undefined;
     triggeredByAlertId?: ObjectID | undefined;
+    followUpForAlertId?: ObjectID | undefined;
   }): Promise<"requeued" | "stale" | "noop"> {
     if ((run.attemptCount || 0) < MAX_INVESTIGATION_ATTEMPTS) {
       const requeued: number = await AIRunService.attemptStatusTransition({
@@ -586,14 +626,23 @@ export default class AIInvestigationQueue {
    * off from the engine via InvestigationRequest.onSettled). Only fires
    * for Investigation runs with an incident/alert subject; remediation
    * runs and insight triage never hand off. Never throws.
+   *
+   * An incident's follow-up check never hands off either: its first
+   * investigation already released the incident's remediation when it
+   * settled, and a second release would run the rules again.
    */
   private static async handOffSettledInvestigationToRemediation(run: {
     runType?: AIRunType | undefined;
     projectId?: ObjectID | undefined;
     triggeredByIncidentId?: ObjectID | undefined;
     triggeredByAlertId?: ObjectID | undefined;
+    followUpForAlertId?: ObjectID | undefined;
   }): Promise<void> {
     if (run.runType !== AIRunType.Investigation) {
+      return;
+    }
+
+    if (run.followUpForAlertId) {
       return;
     }
 
@@ -947,6 +996,9 @@ export default class AIInvestigationQueue {
         projectId: run.projectId,
         incidentId: run.triggeredByIncidentId,
         attemptCount: attempt,
+        ...(run.followUpForAlertId
+          ? { followUpForAlertId: run.followUpForAlertId }
+          : {}),
       });
       return;
     }

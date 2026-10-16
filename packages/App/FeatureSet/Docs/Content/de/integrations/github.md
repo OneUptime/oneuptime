@@ -32,6 +32,8 @@ Die beiden sind getrennt, und Sie können eines oder beide verwenden. Die GitHub
 
 Öffnen Sie **Produkte → Code → Aufgaben**, dann **Code-Repositories**, und klicken Sie auf **Mit GitHub-App verbinden**. GitHub fragt, wo die App installiert werden soll und welche Repositories sie verwenden darf. Jedes Repository der Installation wird importiert und bleibt auf dem neuesten Stand, wenn Sie der Installation Repositories hinzufügen oder sie herausnehmen.
 
+Ist die App auf dem Konto bereits installiert, für ein anderes Projekt oder direkt über GitHub, klicken Sie unter der Karte **Mit GitHub-App verbinden** auf **Vorhandene Installation verbinden**, statt sie erneut zu installieren. Dafür muss Ihr GitHub-Konto die Installation verwalten: der Inhaber eines persönlichen Kontos oder jemand mit Admin-Rechten für jedes Repository, auf das die Installation zugreifen kann, wie sie ein Inhaber der Organisation hat.
+
 Eine selbst gehostete Instanz braucht zuerst eine eigene GitHub-App: [GitHub-Integration](/docs/self-hosted/github-integration) zeigt, wie Sie sie erstellen. Danach öffnen [Korrekturaufgaben](/docs/ai/ai-agent) Pull Requests in Ihren Repositories, und die Seite [GitHub App](/docs/ai/github-app) zeigt, was die App tut, wenn Sie sie in einem Issue oder einem Pull Request erwähnen.
 
 ## Bevor Sie beginnen

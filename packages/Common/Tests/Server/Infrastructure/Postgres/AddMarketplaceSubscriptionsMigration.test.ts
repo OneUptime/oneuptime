@@ -1,4 +1,4 @@
-import { AddMarketplaceSubscriptions1802800000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1802800000000-AddMarketplaceSubscriptions";
+import { AddMarketplaceSubscriptions1803000000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1803000000000-AddMarketplaceSubscriptions";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { QueryRunner } from "typeorm";
 import { describe, expect, test } from "@jest/globals";
@@ -36,7 +36,7 @@ const runMigration: (
     },
   } as unknown as QueryRunner;
 
-  await new AddMarketplaceSubscriptions1802800000000()[direction](runner);
+  await new AddMarketplaceSubscriptions1803000000000()[direction](runner);
 
   return statements;
 };
@@ -55,7 +55,7 @@ const ROW_WRITING_STATEMENT_PATTERN: RegExp =
   /^\s*(UPDATE|INSERT|DELETE|TRUNCATE)\b/i;
 const MIGRATION_TIMESTAMP_PATTERN: RegExp = /(\d{13})$/;
 
-describe("AddMarketplaceSubscriptions1802800000000", () => {
+describe("AddMarketplaceSubscriptions1803000000000", () => {
   describe("up()", () => {
     test("creates the two tables, and touches only Project among existing ones", async () => {
       const statements: Array<string> = await runMigration("up");
@@ -215,13 +215,13 @@ describe("AddMarketplaceSubscriptions1802800000000", () => {
     });
 
     const index: number = names.indexOf(
-      "AddMarketplaceSubscriptions1802800000000",
+      "AddMarketplaceSubscriptions1803000000000",
     );
 
     expect(index).toBeGreaterThanOrEqual(0);
 
     const timestamp: number = Number(
-      "AddMarketplaceSubscriptions1802800000000".match(
+      "AddMarketplaceSubscriptions1803000000000".match(
         MIGRATION_TIMESTAMP_PATTERN,
       )![1],
     );

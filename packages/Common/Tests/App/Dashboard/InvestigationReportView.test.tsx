@@ -1253,6 +1253,109 @@ describe("InvestigationReportView evidence", () => {
   });
 });
 
+// A frame of its own: a border, a fill, a shadow or a ring.
+const BOX_CLASS_PATTERN: RegExp =
+  /(^|\s)(border|bg-|shadow|ring|rounded-(lg|xl|md))/;
+
+/*
+ * A follow-up check's report (issue #4787) starts with the server's line
+ * saying why it was written: "Checked again after alert #318 opened on Host
+ * web-1, ...". It frames everything under it, so it leads the report, above
+ * the Summary, as a quiet line with a mark - it used to sit between the
+ * Summary and the root cause, as the report's preamble.
+ */
+describe("InvestigationReportView follow-up lead", () => {
+  const LEAD: string =
+    "**Checked again** after alert #318 opened on Host web-1, 3 minutes after this incident was declared: High CPU on web-1.";
+  const FOLLOW_UP_REPORT: string = SERVER_REPORT.replace(
+    "## \u{1F9E0} AI — Automated Root Cause Analysis\n\n",
+    `## \u{1F9E0} AI — Automated Root Cause Analysis\n\n${LEAD}\n\n`,
+  );
+
+  test("leads the report, above the Summary, and nowhere else", () => {
+    const { container } = renderView({
+      analysisMarkdown: FOLLOW_UP_REPORT,
+      analysisTldr: TLDR,
+    });
+
+    const lead: HTMLElement = screen.getByTestId("investigation-report-lead");
+    const summary: HTMLElement = screen.getByRole("region", {
+      name: "Investigation summary",
+    });
+    const report: HTMLElement = screen.getByLabelText("Investigation report");
+
+    expect(lead).toHaveTextContent(
+      "**Checked again** after alert #318 opened on Host web-1, 3 minutes after this incident was declared: High CPU on web-1.",
+    );
+    // The first thing in the report, before the Summary and the sections.
+    expect(container.firstElementChild).toBe(lead);
+    expect(
+      lead.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // Said once: not again as the report's preamble.
+    expect(report).not.toHaveTextContent("Checked again");
+    expect(summary).not.toHaveTextContent("Checked again");
+    expect(
+      viewerTexts().filter((text: string): boolean => {
+        return text.includes("Checked again");
+      }),
+    ).toEqual([LEAD]);
+  });
+
+  test("goes through the safe renderer like the rest of the report, its alert a reference", () => {
+    renderView({ analysisMarkdown: FOLLOW_UP_REPORT });
+
+    const call: MarkdownViewerProps | undefined = viewerCalls().find(
+      (props: MarkdownViewerProps): boolean => {
+        return props.text === LEAD;
+      },
+    );
+
+    expect(call?.safeMode).toBe(true);
+    expect(typeof call?.inlineReferences?.renderEventReference).toBe(
+      "function",
+    );
+  });
+
+  test("is a line with a mark, never a box, its first line level with the mark", () => {
+    renderView({ analysisMarkdown: FOLLOW_UP_REPORT });
+
+    const lead: HTMLElement = screen.getByTestId("investigation-report-lead");
+    const [mark, text] = Array.from(lead.children) as Array<HTMLElement>;
+
+    expect(lead).toHaveClass("flex", "items-start", "gap-3");
+    expect(lead.className).not.toMatch(BOX_CLASS_PATTERN);
+    // The mark is as tall as the text's first line, and centred in it.
+    expect(mark).toHaveClass("h-6", "items-center");
+    expect(mark!.querySelector("svg")).not.toBeNull();
+    expect(text).toHaveClass("text-sm", "leading-6", "text-gray-700");
+    // The paragraph's own top margin would push the text under the mark.
+    expect(text!.className).toContain("[&_.max-w-none>*:first-child]:mt-0");
+  });
+
+  test("a first analysis has no lead", () => {
+    renderView();
+
+    expect(screen.queryByTestId("investigation-report-lead")).toBeNull();
+  });
+
+  test("an unstructured follow-up leads with it too, its body under it", () => {
+    const unstructured: string = `## \u{1F9E0} AI — Automated Root Cause Analysis\n\n${LEAD}\n\nI read web-1's CPU and found nothing new.`;
+
+    renderView({ analysisMarkdown: unstructured });
+
+    expect(screen.getByTestId("investigation-report-lead")).toHaveTextContent(
+      "Checked again",
+    );
+    expect(screen.getByLabelText("Investigation report")).toHaveTextContent(
+      "I read web-1's CPU and found nothing new.",
+    );
+    expect(screen.getByLabelText("Investigation report")).not.toHaveTextContent(
+      "Checked again",
+    );
+  });
+});
+
 describe("InvestigationReportData payload parsing", () => {
   test("reads well-formed evidence and sorts it by citation number", () => {
     const parsed: Array<InvestigationEvidenceItem> = parseInvestigationEvidence(

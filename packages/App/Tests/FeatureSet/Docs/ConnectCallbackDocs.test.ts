@@ -69,6 +69,7 @@ const GUIDES: Array<Guide> = [
       ConnectCallbackError.GitHubNoAuthorization,
       ConnectCallbackError.GitHubNotVerified,
       ConnectCallbackError.GitHubNoInstallation,
+      ConnectCallbackError.GitHubNoInstallationToConnect,
     ],
   },
 ];

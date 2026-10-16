@@ -1,5 +1,6 @@
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
+  FOLLOW_UP_REPORT_LEAD_PREFIX,
   InvestigationReportSection,
   InvestigationReportSectionKind,
   ParsedInvestigationReport,
@@ -24,6 +25,14 @@ import {
 
 export const AI_ROOT_CAUSE_FEED_LEAD: string =
   "OneUptime AI posted a root cause analysis";
+
+/*
+ * A follow-up check's entry starts with this in place of the lead above,
+ * followed by the reason its report gives: "OneUptime AI checked again after
+ * alert #12 opened on Host web-1, 2 minutes after this incident was
+ * declared: High CPU on web-1."
+ */
+export const AI_FOLLOW_UP_FEED_LEAD: string = "OneUptime AI checked again";
 
 export const DEFAULT_AI_ROOT_CAUSE_LABEL: string = "Most likely root cause";
 
@@ -373,6 +382,24 @@ function getRootCauseLabel(report: ParsedInvestigationReport): string {
   return label.endsWith(":") ? label.slice(0, -1).trimEnd() : label;
 }
 
+/*
+ * The entry's first sentence: what OneUptime AI did. A follow-up check's
+ * report leads with why it was written ("**Checked again** after alert #12
+ * ..."), and its entry says so, so it is told apart from the first analysis
+ * a few entries below it. Every other report gets the plain lead.
+ */
+function getFeedLead(report: ParsedInvestigationReport): string {
+  const followUpLead: string = (report.followUpLead || "").trim();
+
+  if (followUpLead.startsWith(FOLLOW_UP_REPORT_LEAD_PREFIX)) {
+    return `**${AI_FOLLOW_UP_FEED_LEAD}**${followUpLead.slice(
+      FOLLOW_UP_REPORT_LEAD_PREFIX.length,
+    )}`;
+  }
+
+  return `**${AI_ROOT_CAUSE_FEED_LEAD}**`;
+}
+
 function labelParagraph(label: string, body: string): string {
   const firstLine: string = body.split("\n")[0] || "";
 
@@ -413,7 +440,7 @@ export function buildAIRootCauseFeedContent(
     return { text: markdown };
   }
 
-  const paragraphs: Array<string> = [`**${AI_ROOT_CAUSE_FEED_LEAD}**`];
+  const paragraphs: Array<string> = [getFeedLead(report)];
 
   if (summary) {
     paragraphs.push(summary);

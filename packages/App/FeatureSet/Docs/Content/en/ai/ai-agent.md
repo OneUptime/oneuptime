@@ -81,7 +81,7 @@ A fix task needs three things. The exception's **AI Assistance** page checks all
 | What | OneUptime Cloud | Self-hosted |
 | --- | --- | --- |
 | An LLM provider | Nothing to set up: a project with no provider of its own uses the global provider, paid from the project's AI credits. A provider of your own, under **Project Settings → AI → LLM Providers**, comes first. | Set the `GLOBAL_LLM_PROVIDER_*` environment variables once on the server, or add a provider to the project. |
-| A repository connected through the GitHub App | **Products → Code → Tasks**, then **Code Repositories** and **Connect with GitHub App**. Needs the Growth plan. | The same, once your instance has a GitHub App (see [GitHub Integration](/docs/self-hosted/github-integration)). |
+| A repository connected through the GitHub App | **Products → Code → Tasks**, then **Code Repositories** and **Connect with GitHub App**. If the app is already installed on the GitHub account, click **Connect an existing installation** instead: installing it again does not connect it. Needs the Growth plan. | The same, once your instance has a GitHub App (see [GitHub Integration](/docs/self-hosted/github-integration)). |
 | A Runner that runs AI code fixes | Nothing to run: OneUptime's shared Runners do it. | The `runner` service of Docker Compose, or the Helm chart's Runner (`runner.enabled`, on by default), registers itself and runs AI code fixes. |
 
 On a self-hosted instance, the global provider is one block of `config.env` (Docker Compose) or of your Helm values. For a self-hosted Ollama:

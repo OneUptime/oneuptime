@@ -46,6 +46,22 @@ Pendant que l'investigation tourne, la page de l'incident ou de l'alerte affiche
 
 Une investigation tourne jusqu'à ce qu'elle ait terminé : elle n'a **aucune limite de temps** ni petit budget de requêtes, elle peut donc exécuter chaque requête et chaque commande kubectl ou d'infrastructure dont elle a besoin. Une longue sortie de commande (un `kubectl describe node` d'un nœud chargé, les journaux d'un pod) n'est jamais tronquée — OneUptime AI la lit une page à la fois. Si vous voulez un arrêt net, définissez une **limite de temps d'investigation** par type de signal (voir **Maîtrise des coûts** ci-dessous).
 
+## Ce qu'une investigation lit
+
+Une investigation part de l'incident ou de l'alerte et de l'infrastructure à laquelle il est lié : les hôtes, les hôtes Docker et Podman, les clusters Kubernetes, les bases de données et les services que surveillent ses moniteurs. Un moniteur de site web, d'API ou synthétique surveille ce à quoi vous le liez sous **Moniteur → Vue d'ensemble → Ressources liées** : liez-le donc aux hôtes qui servent ce qu'il vérifie, et chaque investigation de ses incidents commence là.
+
+- Les alertes sur cette infrastructure ouvertes dans les 30 minutes avant l'incident, ou encore ouvertes, les plus récentes d'abord, comme l'alerte de CPU élevé de l'hôte derrière un site lent. Les alertes privées sont laissées de côté.
+- Les métriques de l'infrastructure elle-même, lues comme on les lit. Les métriques d'hôte comme `system.cpu.utilization` et `system.memory.utilization` sont rapportées une fois par état, et les états totalisent 100 %, donc une moyenne sur l'ensemble ne dit rien. OneUptime AI les lit état par état (le CPU occupé, c'est user plus system), et toute métrique par conteneur, par point de montage ou par n'importe quel autre attribut.
+- Les conteneurs d'un hôte Docker ou Podman : les plus chargés en CPU, en mémoire ou en redémarrages, et ceux qui ont cessé de remonter des données. Un conteneur arrêté n'envoie rien plutôt que zéro, donc les chiffres de l'hôte entier le cachent.
+
+L'activité de l'investigation sur la carte **Investigation IA** indique combien d'alertes ouvertes ou récentes elle a lues, et sur quelles ressources.
+
+### Vérifié de nouveau quand une nouvelle alerte s'ouvre
+
+Une investigation démarre dès qu'un incident est déclaré, et une alerte d'hôte qui a besoin de quelques minutes de métriques peut s'ouvrir après. Quand une alerte s'ouvre sur l'infrastructure liée à l'incident dans les 30 minutes qui suivent l'incident, après que l'investigation l'a lue, et que l'incident est toujours ouvert, OneUptime AI vérifie l'incident une fois de plus avec cette alerte en main. La nouvelle analyse commence par **Checked again** et l'alerte qui a provoqué la vérification, et son activité le dit aussi.
+
+Cela arrive au plus une fois par incident, avec les mêmes interrupteurs et limites qu'une nouvelle investigation : **Activer l'IA**, _Investiguer les nouveaux incidents_, les crédits IA, et les limites quotidiennes et de simultanéité. Il n'y a rien à activer. Une vérification de suivi ne relance jamais la remédiation automatique et n'est jamais suivie elle-même, et l'investigation d'une alerte n'est pas vérifiée de nouveau.
+
 ## Parler de l'incident avec OneUptime AI
 
 La carte **Investigation IA** se termine par une conversation — **Ask OneUptime AI** — partagée par toutes les personnes qui peuvent voir l'incident ou l'alerte. C'est une seule carte, quoi qu'il se soit passé au-dessus : sous un rapport, vous posez des questions de suivi, et quand aucune investigation automatique n'a tourné (ou qu'elle s'est arrêtée avant son rapport), la première suggestion est **What is the root cause?**, qui fait investiguer OneUptime AI à la demande.

@@ -251,9 +251,14 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    // get notification rule where inviteOwners is true.
+    /*
+     * The rules whose channels somebody given a role joins: the Incident
+     * Commander - often assigned as they acknowledge - and the others. This
+     * read the owners' switch, so a rule that added the people paged but
+     * not the owners never added the commander to its channel.
+     */
     const notificationRules: Array<WorkspaceNotificationRule> =
-      await WorkspaceNotificationRuleService.getNotificationRulesWhereInviteOwnersIsTrue(
+      await WorkspaceNotificationRuleService.getNotificationRulesWhereInviteRolesIsTrue(
         {
           projectId: projectId!,
           notificationFor: {

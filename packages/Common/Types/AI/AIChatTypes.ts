@@ -229,6 +229,47 @@ export interface AIRunEventResultSummary {
    * language; `message` says the same in English.
    */
   promptOmissions?: AIPromptOmissions | undefined;
+  /*
+   * The infrastructure an investigation's subject is linked to, and how
+   * many open or recent alerts were on it (ProgressLog events; see
+   * Server/Utils/AI/SRE/LinkedInfrastructureContext). Worded in the
+   * reader's language by the run's activity; `message` is the English.
+   */
+  linkedInfrastructure?: LinkedInfrastructureActivity | undefined;
+  /*
+   * Why an investigation checked its incident again: the alert that opened
+   * on the incident's linked infrastructure after the first analysis
+   * (ProgressLog events; see Server/Utils/AI/SRE/IncidentFollowUpCheck).
+   */
+  followUpCheck?: FollowUpCheckActivity | undefined;
+}
+
+// What an investigation read about its subject's linked infrastructure.
+export interface LinkedInfrastructureActivity {
+  /*
+   * The linked resources, in display order: `kind` is the kind of resource
+   * (LinkedAffectedResourceType: Host, DockerHost, KubernetesCluster, ...).
+   */
+  resources: Array<{ kind: string; name: string }>;
+  // The alerts listed: opened in the lookback before the subject, or still open.
+  alertCount: number;
+  // How many of them were still open.
+  openAlertCount: number;
+  // True when more alerts matched than were listed.
+  hasMoreAlerts: boolean;
+  // How far before the subject an alert counted.
+  lookbackMinutes: number;
+}
+
+// The alert that made OneUptime AI check an incident again.
+export interface FollowUpCheckActivity {
+  alertNumber?: number | undefined;
+  alertNumberWithPrefix?: string | undefined;
+  // The linked resource it opened on.
+  resourceKind: string;
+  resourceName: string;
+  // Whole minutes between the incident and the alert opening.
+  minutesAfterIncident: number;
 }
 
 /*

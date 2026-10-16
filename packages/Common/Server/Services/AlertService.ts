@@ -112,6 +112,7 @@ import AlertOwnerRuleEngineService from "./AlertOwnerRuleEngineService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
 import AutoRemediationRuleEngineService from "./AutoRemediationRuleEngineService";
 import AIAlertInvestigationRunner from "../Utils/AI/SRE/AlertInvestigationRunner";
+import IncidentFollowUpCheck from "../Utils/AI/SRE/IncidentFollowUpCheck";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import AlertPrivacyRuleEngineService from "./AlertPrivacyRuleEngineService";
 import ProjectService from "./ProjectService";
@@ -1458,6 +1459,23 @@ export class Service extends ProjectReferencesService<Model> {
           );
         }
       })
+      .then(async () => {
+        /*
+         * An open incident on the same infrastructure that OneUptime AI
+         * already investigated without this alert is checked again, once,
+         * with it in hand (IncidentFollowUpCheck). Last, so it delays
+         * nothing above; never throws. An alert created resolved is over
+         * and checks nothing again.
+         */
+        if (!isOngoing) {
+          return;
+        }
+
+        await IncidentFollowUpCheck.onAlertOpened({
+          projectId: createdItem.projectId!,
+          alertId: createdItem.id!,
+        });
+      })
       .catch((error: Error) => {
         logger.error(
           `Critical error in AlertService sequential operations: ${error}`,
@@ -1508,20 +1526,12 @@ export class Service extends ProjectReferencesService<Model> {
         alertId: createdItem.id?.toString(),
       } as LogAttributes);
 
-      if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
-        // update alert with these channels.
-        await this.updateOneById({
-          id: createdItem.id,
-          data: {
-            postUpdatesToWorkspaceChannels:
-              workspaceResult.channelsCreated || [],
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-      }
-
+      /*
+       * The new channels are on the record already: the rule service stores
+       * them before it invites anybody, so whoever joins the alert while
+       * they are set up is invited too (WorkspaceNotificationRuleService
+       * .createChannelsAndInviteUsersToChannelsBasedOnRules).
+       */
       return workspaceResult?.membersNotAdded || [];
     } catch (error) {
       logger.error(`Error in handleAlertWorkspaceOperationsAsync: ${error}`, {

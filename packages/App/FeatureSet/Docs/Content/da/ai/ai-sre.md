@@ -46,6 +46,22 @@ Mens undersøgelsen kører, viser hændelsens eller advarslens side et live-pane
 
 En undersøgelse kører, til den er færdig: den har **ingen tidsgrænse** og intet lille forespørgselsbudget, så den kan køre alle de forespørgsler og kubectl- eller infrastrukturkommandoer, den har brug for. Et langt kommando-output (en `kubectl describe node` for en travl node, en pods logs) bliver aldrig skåret af: OneUptime AI læser det én side ad gangen. Vil du have et hårdt stop, så angiv en **tidsgrænse for undersøgelser** for hver signaltype (se **Omkostningsstyring** nedenfor).
 
+## Hvad en undersøgelse læser
+
+En undersøgelse starter ved hændelsen eller advarslen og ved den infrastruktur, den er knyttet til: de værter, Docker- og Podman-værter, Kubernetes-clustre, databaser og tjenester, dens overvågninger holder øje med. En website-, API- eller syntetisk overvågning holder øje med det, du knytter den til under **Overvågning → Oversigt → Tilknyttede ressourcer**, så knyt den til de værter, der leverer det, den tjekker, og hver undersøgelse af dens hændelser starter der.
+
+- Advarslerne på den infrastruktur, der blev åbnet i de 30 minutter før hændelsen eller stadig er åbne, de nyeste først, som advarslen om høj CPU på værten bag et langsomt site. Private advarsler udelades.
+- Infrastrukturens egne metrikker, læst sådan som mennesker læser dem. Værtsmetrikker som `system.cpu.utilization` og `system.memory.utilization` rapporteres én gang pr. tilstand, og tilstandene giver tilsammen 100 %, så ét gennemsnit over dem alle siger intet. OneUptime AI læser dem én tilstand ad gangen (optaget CPU er user plus system), og enhver metrik pr. container, pr. monteringspunkt eller efter enhver anden attribut.
+- Containerne på en Docker- eller Podman-vært: de travleste efter CPU, hukommelse eller genstarter, og dem, der holdt op med at rapportere. En stoppet container sender intet i stedet for nul, så tallene for hele værten skjuler den.
+
+Undersøgelsens aktivitet på kortet **AI Investigation** fortæller, hvor mange åbne eller nye advarsler den læste, og på hvilke ressourcer.
+
+### Tjekket igen, når en ny advarsel åbnes
+
+En undersøgelse starter i det øjeblik, en hændelse erklæres, og en værtsadvarsel, der kræver et par minutters metrikker, kan åbnes bagefter. Når en advarsel åbnes på hændelsens tilknyttede infrastruktur inden for 30 minutter efter hændelsen, efter at undersøgelsen læste den, og hændelsen stadig er åben, tjekker OneUptime AI hændelsen én gang til med den advarsel i hånden. Den nye analyse begynder med **Checked again** og den advarsel, der udløste tjekket, og dens aktivitet siger det også.
+
+Det sker højst én gang pr. hændelse, med de samme kontakter og grænser som en ny undersøgelse: **Aktivér AI**, _Undersøg nye hændelser_, AI-kreditterne samt de daglige grænser og grænserne for samtidighed. Der er intet at slå til. Et opfølgende tjek kører aldrig automatisk afhjælpning igen og bliver aldrig selv fulgt op, og en advarsels undersøgelse tjekkes ikke igen.
+
 ## Tal med OneUptime AI om hændelsen
 
 Kortet **AI Investigation** slutter med en samtale, **Ask OneUptime AI**, som deles af alle, der kan se hændelsen eller advarslen. Det er ét kort, uanset hvad der skete ovenover: under en rapport stiller du opfølgende spørgsmål, og når ingen automatisk undersøgelse kørte (eller den stoppede før rapporten), er det første forslag **What is the root cause?**, som får OneUptime AI til at undersøge efter behov.

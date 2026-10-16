@@ -554,11 +554,21 @@ beforeEach(() => {
       return data.data;
     }) as never);
 
-  // The rule invites owners, and its channel is the record's.
+  /*
+   * The rule invites owners and the people given an incident role (an
+   * incident member's invite reads the roles' switch), and its channel is
+   * the record's.
+   */
   jest
     .spyOn(
       WorkspaceNotificationRuleService,
       "getNotificationRulesWhereInviteOwnersIsTrue",
+    )
+    .mockResolvedValue([slackRule()]);
+  jest
+    .spyOn(
+      WorkspaceNotificationRuleService,
+      "getNotificationRulesWhereInviteRolesIsTrue",
     )
     .mockResolvedValue([slackRule()]);
   jest

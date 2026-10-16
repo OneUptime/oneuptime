@@ -80,6 +80,10 @@ const SOURCES: Record<string, string> = {
   ruleTable: `${DASHBOARD}/Components/Workspace/WorkspaceNotificationRulesTable.tsx`,
   ruleForm: `${DASHBOARD}/Components/Workspace/NotificationRuleForm/NotificationRuleForm.tsx`,
   ruleVideoCallForm: `${DASHBOARD}/Components/Workspace/NotificationRuleForm/NotificationRuleVideoCallForm.tsx`,
+  ruleCopy: `${DASHBOARD}/Components/Workspace/NotificationRuleForm/NotificationRuleCopy.ts`,
+  ruleInvites:
+    "Common/Types/Workspace/NotificationRules/NotificationRuleInvites.ts",
+  teamsUtil: `${WORKSPACE_UTILS}/MicrosoftTeams/MicrosoftTeams.ts`,
   summaryTable: `${DASHBOARD}/Components/Workspace/WorkspaceSummaryTable.tsx`,
   planLeftoverCopy: `${DASHBOARD}/Components/Billing/PlanLeftoverCopy.ts`,
   planLeftoverGate: `${DASHBOARD}/Components/Workspace/WorkspacePlanLeftoverGate.tsx`,
@@ -689,11 +693,11 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
           : `up to the ${WorkspaceChannelName.MICROSOFT_TEAMS_MAX_LENGTH} characters Microsoft Teams takes`,
       );
 
-      // Who is invited follows in a paragraph of its own.
+      // When the channel is created follows in a paragraph of its own.
       expect(
         lineStarting(
           markdown,
-          "Only a channel that was created gets the people the rule invites",
+          "A rule creates its channel the first time an event matches it: ",
         ),
       ).not.toContain("**Channel Name Prefix**");
     }
@@ -711,6 +715,95 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
         text: "Ops Team_1-#",
       }),
     ).toBe("Ops Team_1-");
+  });
+
+  /*
+   * The customer's report: a rule that invites the people on call created
+   * the incident's channel, but the Incident Commander, assigned when the
+   * incident was acknowledged, never joined it - and a condition on the
+   * Acknowledged state stopped the rule. The pages say who joins a rule's
+   * channel and when the channel is created, as the form asks it and the
+   * server does it.
+   */
+  it("says who joins a rule's channel, and when the channel is created", () => {
+    const copy: string = readSource("ruleCopy");
+    const slack: string = englishPage(SLACK);
+    const teams: string = englishPage(TEAMS);
+
+    // The form's words, named on the Slack page as the form draws them.
+    for (const label of [
+      "Who joins the channel",
+      "On-call responders, as they are paged",
+      "Incident Commander and other incident roles, as they are assigned",
+      "Owners, as they are added",
+      "Also invite",
+      "Post to existing channels",
+      "Create a channel for each incident",
+      "What this rule does",
+      "Archive the channel when the incident is resolved",
+      "Then",
+    ]) {
+      expect({ label, inForm: sourceSays(copy, label) }).toEqual({
+        label,
+        inForm: true,
+      });
+      expect({ label, onPage: slack.includes(`**${label}**`) }).toEqual({
+        label,
+        onPage: true,
+      });
+    }
+
+    // A new rule starts with every box ticked.
+    expect(readSource("ruleTable")).toContain(
+      "...NotificationRuleInvites.getNewRuleSwitches(props.eventType),",
+    );
+    expect(slack).toContain(", all ticked for a new rule,");
+
+    /*
+     * A rule saved before incident roles had a box adds them when it adds
+     * the owners or the people on call.
+     */
+    expect(readSource("ruleInvites")).toContain(
+      "Boolean(rule.shouldInviteOwnersToNewChannel) ||",
+    );
+    expect(slack).toContain(
+      "A rule saved before incident roles had a box of their own adds them when it adds the owners or the on-call responders",
+    );
+
+    /*
+     * Conditions are checked again with each update posted, and a rule's
+     * channel opens the first time they match.
+     */
+    expect(readSource("notificationRuleService")).toContain(
+      "await this.createChannelsForRulesThatNowMatch(",
+    );
+
+    for (const markdown of [slack, teams]) {
+      expect(markdown).toContain(
+        "They are checked when an event is created and again with each update OneUptime posts about it, so a rule for acknowledged incidents acts when an incident is acknowledged.",
+      );
+      expect(markdown).toContain(
+        "A rule for acknowledged incidents creates the channel when the incident is acknowledged.",
+      );
+    }
+
+    // Microsoft Teams adds nobody one by one, and archives nothing.
+    expect(
+      sourceSays(
+        copy,
+        "Everyone in the team can open the channel: Microsoft Teams shows a team's channels to all of its members.",
+      ),
+    ).toBe(true);
+    expect(readSource("teamsUtil")).toContain(
+      "Channel archiving is not supported in Microsoft Teams integration",
+    );
+    expect(teams).toContain("OneUptime adds nobody to a channel one by one");
+    expect(teams).toContain(
+      "OneUptime cannot archive a Microsoft Teams channel",
+    );
+    expect(teams).not.toContain(
+      "**Archive the channel when the incident is resolved**",
+    );
   });
 
   it("walks a summary's steps as its form does", () => {
