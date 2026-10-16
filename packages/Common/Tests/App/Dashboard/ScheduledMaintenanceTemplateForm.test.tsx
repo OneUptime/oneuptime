@@ -473,6 +473,79 @@ describe("Create Scheduled Maintenance Template", () => {
     ).toBeInTheDocument();
     expect(createOrUpdateMock).not.toHaveBeenCalled();
   });
+
+  /*
+   * "How often should this event recur?" named daily, weekly, monthly or
+   * yearly while its picker also offered hours. Its description now names
+   * every unit the picker offers, in the picker's order - read here from
+   * the picker as it is drawn, so a unit added to EventInterval fails this
+   * until the sentence names it too.
+   */
+  test("says what the interval picker takes, naming every unit it offers", async () => {
+    renderTemplateForm();
+    await screen.findByRole("navigation", { name: "Progress" });
+    await fillTemplateInfo();
+    await goToNextStep("Event");
+    fireEvent.change(labelledControl("Title"), {
+      target: { value: "Database maintenance" },
+    });
+    await act(async () => {});
+    await goToNextStep("Resources Affected");
+    await goToNextStep("Recurring");
+
+    fireEvent.click(screen.getByRole("switch", { name: "Recurring Event" }));
+    await act(async () => {});
+
+    const picker: HTMLElement = within(form()).getByRole("combobox");
+
+    fireEvent.keyDown(picker, { key: "ArrowDown", code: "ArrowDown" });
+
+    const offered: Array<string> = (await screen.findAllByRole("option")).map(
+      (option: HTMLElement): string => {
+        return (option.textContent || "").trim();
+      },
+    );
+
+    // The picker offers EventInterval whole, in its order.
+    expect(offered).toEqual(Object.values(EventInterval));
+
+    const units: Array<string> = offered.map((unit: string): string => {
+      return `${unit.toLowerCase()}s`;
+    });
+    const sentence: string = `A number and a unit: ${units.slice(0, -1).join(", ")} or ${units[units.length - 1]}.`;
+
+    expect(within(form()).getByText(sentence)).toBeInTheDocument();
+
+    // Under the field's own label.
+    const label: HTMLLabelElement | undefined = Array.from(
+      form().querySelectorAll("label"),
+    ).find((candidate: HTMLLabelElement): boolean => {
+      return (candidate.textContent || "")
+        .trim()
+        .startsWith("How often should this event recur?");
+    });
+
+    expect(label?.nextElementSibling?.textContent).toBe(sentence);
+    expect(form().textContent).not.toContain(
+      "You can choose from daily, weekly, monthly, or yearly.",
+    );
+  });
+
+  test("the field's description is that one sentence on the view page's Edit too", () => {
+    for (const isViewPage of [false, true]) {
+      const field: { description?: unknown } | undefined =
+        getTemplateFormFields({
+          isViewPage: isViewPage,
+          excludeAffectedResources: isViewPage,
+        }).find((candidate: { title?: string | undefined }): boolean => {
+          return candidate.title === "How often should this event recur?";
+        });
+
+      expect(field?.description).toBe(
+        "A number and a unit: hours, days, weeks, months or years.",
+      );
+    }
+  });
 });
 
 /*
@@ -485,6 +558,7 @@ describe("the template's page", () => {
     title?: string;
     field: Record<string, unknown>;
     getElement?: (item: ScheduledMaintenanceTemplate) => React.ReactElement;
+    showIf?: (item: ScheduledMaintenanceTemplate) => boolean;
   }
 
   interface CardProps {
@@ -620,5 +694,55 @@ describe("the template's page", () => {
       screen.getByText("2 Days before the event begins", { exact: false }),
     ).toBeInTheDocument();
     expect(screen.queryByText("is begins", { exact: false })).toBeNull();
+  });
+
+  /*
+   * As the templates list says it: a template turned off creates no more
+   * events, so its page names no next one, whatever time it still holds.
+   */
+  test("shows when the next event is scheduled only while the template recurs", async () => {
+    const fields: Array<DetailField> = await detailFields();
+    const nextEvent: DetailField = fieldTitled(
+      fields,
+      "Next event will be automatically scheduled at",
+    );
+    const at: Date = new Date("2030-06-10T09:00:00.000Z");
+
+    expect(nextEvent.field).toEqual({ scheduleNextEventAt: true });
+    expect(
+      nextEvent.showIf!(
+        templateWith({ isRecurringEvent: true, scheduleNextEventAt: at }),
+      ),
+    ).toBe(true);
+    expect(
+      nextEvent.showIf!(
+        templateWith({ isRecurringEvent: false, scheduleNextEventAt: at }),
+      ),
+    ).toBe(false);
+    expect(
+      nextEvent.showIf!(templateWith({ isRecurringEvent: true })),
+    ).toBe(false);
+    expect(
+      nextEvent.showIf!(templateWith({ isRecurringEvent: false })),
+    ).toBe(false);
+  });
+
+  test("still shows the schedule's first event while the template recurs, and only then", async () => {
+    const fields: Array<DetailField> = await detailFields();
+
+    for (const title of [
+      "First Event Scheduled At",
+      "First Event Starts At",
+      "First Event Ends At",
+    ]) {
+      const field: DetailField = fieldTitled(fields, title);
+
+      expect(field.showIf!(templateWith({ isRecurringEvent: true }))).toBe(
+        true,
+      );
+      expect(field.showIf!(templateWith({ isRecurringEvent: false }))).toBe(
+        false,
+      );
+    }
   });
 });

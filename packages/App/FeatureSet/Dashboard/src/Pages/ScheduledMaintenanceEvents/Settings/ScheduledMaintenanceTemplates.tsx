@@ -646,9 +646,11 @@ const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (
               const nextEventAt: Date | null = getTemplateNextEventAt(item);
 
               return !nextEventAt ? (
-                <span>{translator.translateText("No")}</span>
+                <span data-testid="template-recurring-event">
+                  {translator.translateText("No")}
+                </span>
               ) : (
-                <span>
+                <span data-testid="template-recurring-event">
                   {translator.translateTemplate(
                     "Next event will be scheduled at {{date}}",
                     {
