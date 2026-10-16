@@ -25,6 +25,7 @@ import OnCallPolicyRunMessage from "../Utils/Workspace/LiveMessages/OnCallPolicy
 import OnCallFeedText from "../Utils/OnCall/OnCallFeedText";
 import { ALREADY_PAGED_TIMELINE_MESSAGE } from "../../Types/OnCallDutyPolicy/AlreadyPagedTimelineMessage";
 import { isOnCallDirectPage } from "../../Types/OnCallDutyPolicy/OnCallDirectPage";
+import { ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -47,6 +48,9 @@ export class Service extends DatabaseService<Model> {
         return Red500;
       case OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged:
         return Green500;
+      // Neither a failure nor an answer: the page moved on to somebody else.
+      case OnCallDutyExecutionLogTimelineStatus.PassedOn:
+        return Yellow500;
       default:
         return Blue500;
     }
@@ -165,6 +169,19 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
+    /*
+     * Somebody who passed the page on, passed over by a later rule or a
+     * repeat: the feed said once that they passed it on, and "did not page
+     * Ana" for every rule after it would only bury what the run did next.
+     * The line stays on the run's own page.
+     */
+    if (
+      onCallDutyPolicyExecutionLogTimeline.statusMessage ===
+      ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE
+    ) {
+      return;
+    }
+
     if (
       isDirectPage ||
       (onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy &&
@@ -183,6 +200,7 @@ export class Service extends DatabaseService<Model> {
           status === OnCallDutyExecutionLogTimelineStatus.Error ||
           status ===
             OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged ||
+          status === OnCallDutyExecutionLogTimelineStatus.PassedOn ||
           status === OnCallDutyExecutionLogTimelineStatus.NotificationSent)
       ) {
         const displayColor: Color = status
