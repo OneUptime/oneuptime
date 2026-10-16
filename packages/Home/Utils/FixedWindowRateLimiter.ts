@@ -7,9 +7,9 @@
  * own, which is enough for what this is for: keeping one sender, and all
  * senders together, from turning the form into a stream of email.
  *
- * Every request that reaches a counter counts, the ones it refuses too: a
- * sender that keeps knocking stays refused until its window ends, rather
- * than being let through again whenever it pauses.
+ * A window starts with a key's first request and lasts windowInMs, however
+ * the requests in it are answered: a sender refused once stays refused until
+ * its window ends, however often it knocks, and is told when that is.
  *
  * Memory is bounded: with `maxKeys` keys counted, a new key takes the place
  * of the oldest. Dropping a key only ever forgets a count - it can let one

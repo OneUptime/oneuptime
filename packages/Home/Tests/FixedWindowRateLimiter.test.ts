@@ -8,8 +8,8 @@ import { describe, expect, test } from "@jest/globals";
  *
  * Home has no Redis, so the form's per-sender and overall limits are
  * counted in the process. These pin the counting - a fixed window per key,
- * refused requests counted too, when a refused sender may come back - and
- * that the memory it holds stays bounded however many senders there are.
+ * a refused sender refused until it ends, and told when that is - and that
+ * the memory it holds stays bounded however many senders there are.
  */
 
 const MINUTE: number = 60 * 1000;
@@ -93,7 +93,7 @@ describe("a key's window", () => {
     });
   });
 
-  test("counts the refused requests too: knocking again does not get a sender in", () => {
+  test("keeps a refused sender refused until its window ends, however often it knocks", () => {
     const time: Clock = clock();
     const counter: FixedWindowRateLimiter = limiter(time, 2);
 
