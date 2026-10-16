@@ -161,7 +161,8 @@ export default class AzureMarketplaceAPI {
       termStartDate: readTerm("startDate"),
       termEndDate: readTerm("endDate"),
       termUnit: readTerm("termUnit"),
-      autoRenew: typeof raw["autoRenew"] === "boolean" ? raw["autoRenew"] : null,
+      autoRenew:
+        typeof raw["autoRenew"] === "boolean" ? raw["autoRenew"] : null,
     };
   }
 
@@ -170,7 +171,9 @@ export default class AzureMarketplaceAPI {
    * for the SaaS subscription it identifies. The token arrives URL-encoded in
    * the landing page's query string; Express has decoded it already.
    */
-  public async resolve(marketplaceToken: string): Promise<AzureSaasSubscription> {
+  public async resolve(
+    marketplaceToken: string,
+  ): Promise<AzureSaasSubscription> {
     const body: Record<string, unknown> = await this.call(
       "POST",
       `${API_BASE_URL}/saas/subscriptions/resolve`,

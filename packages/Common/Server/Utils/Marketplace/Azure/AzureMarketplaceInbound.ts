@@ -7,6 +7,7 @@ import {
 } from "../../../EnvironmentConfig";
 import MarketplaceSubscriptionService from "../../../Services/MarketplaceSubscriptionService";
 import logger from "../../Logger";
+import MarketplaceUsageReporter from "../MarketplaceUsageReporter";
 import RemoteJwtVerifier from "../RemoteJwtVerifier";
 import AzureMarketplaceAdapter, {
   AzureSubscriptionStatus,
@@ -86,7 +87,8 @@ export default class AzureMarketplaceInbound {
     return await MarketplaceSubscriptionService.recordPurchase({
       marketplace: CloudMarketplace.Azure,
       externalSubscriptionId: subscription.id,
-      status: AzureSubscriptionStatus.toStatus(subscription.status) || undefined,
+      status:
+        AzureSubscriptionStatus.toStatus(subscription.status) || undefined,
       ...AzureSubscriptionStatus.toFacts(subscription),
     });
   }
@@ -227,6 +229,22 @@ export default class AzureMarketplaceInbound {
       status = MarketplaceSubscriptionStatus.Active;
     }
 
+    if (status === MarketplaceSubscriptionStatus.Cancelled) {
+      const purchase: MarketplaceSubscription | null =
+        await MarketplaceSubscriptionService.findPurchase({
+          marketplace: CloudMarketplace.Azure,
+          externalSubscriptionId: subscription.id,
+        });
+
+      if (
+        purchase &&
+        purchase.status !== MarketplaceSubscriptionStatus.Cancelled
+      ) {
+        // Bill what was used up to the cancellation, before it stops being billable.
+        await MarketplaceUsageReporter.reportFinalUsage(purchase);
+      }
+    }
+
     /*
      * A subscription Microsoft activated at purchase (auto activation) stays
      * Pending in OneUptime until the buyer has linked a project on the
@@ -240,7 +258,9 @@ export default class AzureMarketplaceInbound {
       ...(operation?.planId && call.action === "ChangePlan" && acknowledged
         ? { externalPlanId: operation.planId }
         : {}),
-      ...(operation?.quantity && call.action === "ChangeQuantity" && acknowledged
+      ...(operation?.quantity &&
+      call.action === "ChangeQuantity" &&
+      acknowledged
         ? { quantity: operation.quantity }
         : {}),
     });

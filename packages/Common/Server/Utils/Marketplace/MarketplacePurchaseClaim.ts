@@ -193,7 +193,10 @@ export default class MarketplacePurchaseClaim {
     }
 
     return listed.sort(
-      (a: MarketplacePurchaseProject, b: MarketplacePurchaseProject): number => {
+      (
+        a: MarketplacePurchaseProject,
+        b: MarketplacePurchaseProject,
+      ): number => {
         return a.name.localeCompare(b.name);
       },
     );
@@ -438,7 +441,8 @@ export default class MarketplacePurchaseClaim {
     project.paymentProviderPlanId = data.plan.getMonthlyPlanId();
     project.billingMarketplace = data.purchase.marketplace!;
     project.paymentProviderSubscriptionStatus = SubscriptionStatus.Active;
-    project.paymentProviderMeteredSubscriptionStatus = SubscriptionStatus.Active;
+    project.paymentProviderMeteredSubscriptionStatus =
+      SubscriptionStatus.Active;
 
     if (data.plan.getTrialPeriod() > 0) {
       project.trialEndsAt = OneUptimeDate.addRemoveDays(

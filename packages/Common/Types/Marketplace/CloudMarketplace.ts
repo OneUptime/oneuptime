@@ -46,7 +46,9 @@ export class CloudMarketplaceUtil {
    * Where the customer manages (and cancels) what they bought. These are the
    * marketplaces' own subscription pages, the same for every customer.
    */
-  public static getManageSubscriptionUrl(marketplace: CloudMarketplace): string {
+  public static getManageSubscriptionUrl(
+    marketplace: CloudMarketplace,
+  ): string {
     switch (marketplace) {
       case CloudMarketplace.AWS:
         return "https://console.aws.amazon.com/marketplace/home#/subscriptions";

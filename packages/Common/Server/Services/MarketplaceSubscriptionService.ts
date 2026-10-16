@@ -274,8 +274,9 @@ export class Service extends DatabaseService<MarketplaceSubscription> {
       });
     }
 
-    const updated: MarketplaceSubscription | null =
-      await this.findPurchaseById(purchase.id!);
+    const updated: MarketplaceSubscription | null = await this.findPurchaseById(
+      purchase.id!,
+    );
 
     if (!updated) {
       throw new BadDataException("Marketplace purchase not found.");
@@ -395,7 +396,9 @@ export class Service extends DatabaseService<MarketplaceSubscription> {
   public async unlinkProject(projectId: ObjectID): Promise<void> {
     await this.updateBy({
       query: { projectId: projectId },
-      data: { projectId: null } as QueryDeepPartialEntity<MarketplaceSubscription>,
+      data: {
+        projectId: null,
+      } as QueryDeepPartialEntity<MarketplaceSubscription>,
       skip: 0,
       limit: 100,
       props: { isRoot: true },

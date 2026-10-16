@@ -116,9 +116,7 @@ export default class RemoteJwtVerifier {
         clockTimestamp: Math.floor(this.now() / 1000),
         ...(options.audience !== undefined
           ? {
-              audience: options.audience as
-                | string
-                | [string, ...Array<string>],
+              audience: options.audience as string | [string, ...Array<string>],
             }
           : {}),
         ...(options.issuer !== undefined
@@ -152,9 +150,7 @@ export default class RemoteJwtVerifier {
 
     try {
       const decoded: unknown = JSON.parse(
-        Buffer.from(token.substring(0, firstDot), "base64url").toString(
-          "utf8",
-        ),
+        Buffer.from(token.substring(0, firstDot), "base64url").toString("utf8"),
       );
 
       if (decoded && typeof decoded === "object" && !Array.isArray(decoded)) {
@@ -194,7 +190,9 @@ export default class RemoteJwtVerifier {
     const key: crypto.KeyObject | undefined = keys.get(keyId);
 
     if (!key) {
-      throw new JwtVerificationError("The token is signed with an unknown key.");
+      throw new JwtVerificationError(
+        "The token is signed with an unknown key.",
+      );
     }
 
     return key;

@@ -750,8 +750,8 @@ const Settings: FunctionComponent<ComponentProps> = (
                   "Your subscription plan controls included features. Pay as you go usage is billed separately.",
               }}
               isEditable={
-                  paymentMethodsCount !== null || Boolean(billingMarketplace)
-                }
+                paymentMethodsCount !== null || Boolean(billingMarketplace)
+              }
               editButtonText={"Change Plan"}
               onBeforeEdit={() => {
                 if (!billingMarketplace && paymentMethodsCount === 0) {
@@ -1079,166 +1079,166 @@ const Settings: FunctionComponent<ComponentProps> = (
           )}
 
           {!billingMarketplace && (
-          <ModelTable<BillingPaymentMethod>
-            modelType={BillingPaymentMethod}
-            id="payment-methods-table"
-            userPreferencesKey="billing-payment-methods-table"
-            saveFilterProps={{
-              tableId: "settings-payment-methods-table",
-            }}
-            isDeleteable={true}
-            isEditable={false}
-            isCreateable={false}
-            isViewable={false}
-            refreshToggle={paymentMethodsRefresh.toString()}
-            onItemDeleted={countSyncedPaymentMethods}
-            // Table filters can hide saved methods; plan controls need the unfiltered count.
-            onFetchSuccess={countSyncedPaymentMethods}
-            name="Settings > Billing > Add Payment Method"
-            selectMoreFields={{
-              isDefault: true,
-              paymentProviderPaymentMethodId: true,
-            }}
-            actionButtons={[
-              {
-                title: "Set as Default",
-                buttonStyleType: ButtonStyleType.NORMAL,
-                icon: IconProp.Check,
-                disabled: Boolean(setDefaultLockedReason),
-                tooltip: setDefaultLockedReason,
-                isVisible: (item: BillingPaymentMethod): boolean => {
-                  return (
-                    !item.isDefault &&
-                    Boolean(item.paymentProviderPaymentMethodId)
-                  );
+            <ModelTable<BillingPaymentMethod>
+              modelType={BillingPaymentMethod}
+              id="payment-methods-table"
+              userPreferencesKey="billing-payment-methods-table"
+              saveFilterProps={{
+                tableId: "settings-payment-methods-table",
+              }}
+              isDeleteable={true}
+              isEditable={false}
+              isCreateable={false}
+              isViewable={false}
+              refreshToggle={paymentMethodsRefresh.toString()}
+              onItemDeleted={countSyncedPaymentMethods}
+              // Table filters can hide saved methods; plan controls need the unfiltered count.
+              onFetchSuccess={countSyncedPaymentMethods}
+              name="Settings > Billing > Add Payment Method"
+              selectMoreFields={{
+                isDefault: true,
+                paymentProviderPaymentMethodId: true,
+              }}
+              actionButtons={[
+                {
+                  title: "Set as Default",
+                  buttonStyleType: ButtonStyleType.NORMAL,
+                  icon: IconProp.Check,
+                  disabled: Boolean(setDefaultLockedReason),
+                  tooltip: setDefaultLockedReason,
+                  isVisible: (item: BillingPaymentMethod): boolean => {
+                    return (
+                      !item.isDefault &&
+                      Boolean(item.paymentProviderPaymentMethodId)
+                    );
+                  },
+                  onClick: makeRowTheDefaultPaymentMethod,
                 },
-                onClick: makeRowTheDefaultPaymentMethod,
-              },
-              {
-                /*
-                 * The card that already is the default needs this too, and it
-                 * is the row where it is easiest to leave out.
-                 *
-                 * isDefault says only that the card is the customer's default
-                 * at Stripe. A subscription carrying its own pinned card is
-                 * charged ahead of that default, and that is the incident
-                 * state: the right card is the customer default, every
-                 * renewal still goes to the card it replaced. This route
-                 * clears those pins, and it is idempotent - writing the same
-                 * default again changes nothing. Without a button here the
-                 * only way to reach the repair would be to make some other
-                 * card the default, or to delete one.
-                 */
-                title: "Re-sync Autopay",
-                buttonStyleType: ButtonStyleType.NORMAL,
-                icon: IconProp.Refresh,
-                disabled: Boolean(setDefaultLockedReason),
-                tooltip: setDefaultLockedReason,
-                isVisible: (item: BillingPaymentMethod): boolean => {
-                  return (
-                    Boolean(item.isDefault) &&
-                    Boolean(item.paymentProviderPaymentMethodId)
-                  );
+                {
+                  /*
+                   * The card that already is the default needs this too, and it
+                   * is the row where it is easiest to leave out.
+                   *
+                   * isDefault says only that the card is the customer's default
+                   * at Stripe. A subscription carrying its own pinned card is
+                   * charged ahead of that default, and that is the incident
+                   * state: the right card is the customer default, every
+                   * renewal still goes to the card it replaced. This route
+                   * clears those pins, and it is idempotent - writing the same
+                   * default again changes nothing. Without a button here the
+                   * only way to reach the repair would be to make some other
+                   * card the default, or to delete one.
+                   */
+                  title: "Re-sync Autopay",
+                  buttonStyleType: ButtonStyleType.NORMAL,
+                  icon: IconProp.Refresh,
+                  disabled: Boolean(setDefaultLockedReason),
+                  tooltip: setDefaultLockedReason,
+                  isVisible: (item: BillingPaymentMethod): boolean => {
+                    return (
+                      Boolean(item.isDefault) &&
+                      Boolean(item.paymentProviderPaymentMethodId)
+                    );
+                  },
+                  onClick: makeRowTheDefaultPaymentMethod,
                 },
-                onClick: makeRowTheDefaultPaymentMethod,
-              },
-            ]}
-            cardProps={{
-              buttons: [
-                addPaymentMethodLockedReason
-                  ? {
-                      title: "Add Payment Method",
-                      icon: IconProp.Add,
-                      buttonStyle: ButtonStyleType.NORMAL,
-                      disabled: true,
-                      tooltip: addPaymentMethodLockedReason,
-                      onClick: () => {
-                        // Locked. The tooltip says who may add one.
+              ]}
+              cardProps={{
+                buttons: [
+                  addPaymentMethodLockedReason
+                    ? {
+                        title: "Add Payment Method",
+                        icon: IconProp.Add,
+                        buttonStyle: ButtonStyleType.NORMAL,
+                        disabled: true,
+                        tooltip: addPaymentMethodLockedReason,
+                        onClick: () => {
+                          // Locked. The tooltip says who may add one.
+                        },
+                      }
+                    : {
+                        title: "Add Payment Method",
+                        icon: IconProp.Add,
+                        onClick: async () => {
+                          setShowPaymentMethodModal(true);
+                          await fetchSetupIntent();
+                        },
+                        buttonStyle: ButtonStyleType.NORMAL,
                       },
-                    }
-                  : {
-                      title: "Add Payment Method",
-                      icon: IconProp.Add,
-                      onClick: async () => {
-                        setShowPaymentMethodModal(true);
-                        await fetchSetupIntent();
-                      },
-                      buttonStyle: ButtonStyleType.NORMAL,
-                    },
-              ],
-              title: "Payment Methods",
-              description:
-                "Invoices are charged automatically to the default payment method. A payment method you add becomes the default. Adding a payment method enables paid usage. It does not upgrade your subscription plan.",
-            }}
-            noItemsMessage={"No payment methods found."}
-            query={{
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            }}
-            showRefreshButton={true}
-            filters={[
-              {
-                field: {
-                  paymentMethodType: true,
+                ],
+                title: "Payment Methods",
+                description:
+                  "Invoices are charged automatically to the default payment method. A payment method you add becomes the default. Adding a payment method enables paid usage. It does not upgrade your subscription plan.",
+              }}
+              noItemsMessage={"No payment methods found."}
+              query={{
+                projectId: ProjectUtil.getCurrentProjectId()!,
+              }}
+              showRefreshButton={true}
+              filters={[
+                {
+                  field: {
+                    paymentMethodType: true,
+                  },
+                  title: "Payment Method Type",
+                  type: FieldType.Text,
                 },
-                title: "Payment Method Type",
-                type: FieldType.Text,
-              },
-              {
-                field: {
-                  last4Digits: true,
+                {
+                  field: {
+                    last4Digits: true,
+                  },
+                  title: "Number",
+                  type: FieldType.Text,
                 },
-                title: "Number",
-                type: FieldType.Text,
-              },
-            ]}
-            columns={[
-              {
-                field: {
-                  paymentMethodType: true,
-                },
-                title: "Payment Method Type",
-                type: FieldType.Text,
+              ]}
+              columns={[
+                {
+                  field: {
+                    paymentMethodType: true,
+                  },
+                  title: "Payment Method Type",
+                  type: FieldType.Text,
 
-                getElement: (item: BillingPaymentMethod) => {
-                  return (
-                    <span>{`${Text.uppercaseFirstLetter(
-                      item.paymentMethodType as string,
-                    )}`}</span>
-                  );
+                  getElement: (item: BillingPaymentMethod) => {
+                    return (
+                      <span>{`${Text.uppercaseFirstLetter(
+                        item.paymentMethodType as string,
+                      )}`}</span>
+                    );
+                  },
                 },
-              },
-              {
-                field: {
-                  last4Digits: true,
-                },
-                title: "Number",
-                type: FieldType.Text,
+                {
+                  field: {
+                    last4Digits: true,
+                  },
+                  title: "Number",
+                  type: FieldType.Text,
 
-                getElement: (item: BillingPaymentMethod) => {
-                  return (
-                    <span className="inline-flex items-center gap-2">
-                      <span>{`*****${item["last4Digits"]}`}</span>
-                      {item.isDefault ? (
-                        <Pill
-                          text="Default"
-                          color={Green}
-                          /*
-                           * Deliberately not a promise that autopay charges
-                           * this card: a subscription can still carry a card
-                           * of its own, which the payment provider charges
-                           * first. "Re-sync Autopay" on this row clears that.
-                           */
-                          tooltip="New invoices are charged to this payment method. If a renewal still charges an older card, use Re-sync Autopay."
-                        />
-                      ) : (
-                        <></>
-                      )}
-                    </span>
-                  );
+                  getElement: (item: BillingPaymentMethod) => {
+                    return (
+                      <span className="inline-flex items-center gap-2">
+                        <span>{`*****${item["last4Digits"]}`}</span>
+                        {item.isDefault ? (
+                          <Pill
+                            text="Default"
+                            color={Green}
+                            /*
+                             * Deliberately not a promise that autopay charges
+                             * this card: a subscription can still carry a card
+                             * of its own, which the payment provider charges
+                             * first. "Re-sync Autopay" on this row clears that.
+                             */
+                            tooltip="New invoices are charged to this payment method. If a renewal still charges an older card, use Re-sync Autopay."
+                          />
+                        ) : (
+                          <></>
+                        )}
+                      </span>
+                    );
+                  },
                 },
-              },
-            ]}
-          />
+              ]}
+            />
           )}
 
           {showNoPaymentMethodModal ? (

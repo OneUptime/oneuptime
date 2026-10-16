@@ -274,7 +274,8 @@ export default class MarketplaceAPI {
 
       const isExpired: boolean =
         err instanceof MarketplaceApiError &&
-        /ExpiredToken|InvalidToken/.test(err.message);
+        (err.message.includes("ExpiredToken") ||
+          err.message.includes("InvalidToken"));
 
       return MarketplaceAPI.renderMessage(req, res, {
         title: "We could not set up your AWS Marketplace subscription",
@@ -328,7 +329,11 @@ export default class MarketplaceAPI {
     res: ExpressResponse,
   ): Promise<void> {
     if (!MarketplaceConfig.isAzureConfigured()) {
-      return MarketplaceAPI.renderNotAvailable(req, res, CloudMarketplace.Azure);
+      return MarketplaceAPI.renderNotAvailable(
+        req,
+        res,
+        CloudMarketplace.Azure,
+      );
     }
 
     const token: unknown = req.query["token"];
@@ -536,7 +541,10 @@ export default class MarketplaceAPI {
     options?: { signInWithMicrosoft?: boolean | undefined },
   ): Promise<void> {
     if (purchase.projectId) {
-      res.redirect(303, MarketplaceAPI.getProjectBillingRoute(purchase.projectId));
+      res.redirect(
+        303,
+        MarketplaceAPI.getProjectBillingRoute(purchase.projectId),
+      );
       return;
     }
 
@@ -550,7 +558,11 @@ export default class MarketplaceAPI {
       (req as OneUptimeRequest).userAuthorization?.userId,
     );
 
-    if (options?.signInWithMicrosoft && !isSignedIn && MicrosoftSignInClientId) {
+    if (
+      options?.signInWithMicrosoft &&
+      !isSignedIn &&
+      MicrosoftSignInClientId
+    ) {
       res.redirect(303, "/identity/microsoft/sign-in");
       return;
     }

@@ -105,11 +105,11 @@ const MarketplacePurchase: () => JSX.Element = () => {
     const eligibleProjects: Array<MarketplacePurchaseProject> =
       MarketplacePurchaseUtil.getEligibleProjects(details);
 
-    setChoice(
-      details.canCreateProject || eligibleProjects.length === 0
-        ? "new"
-        : "existing",
-    );
+    // The new-project option is offered only with a plan to put it on.
+    const canCreate: boolean =
+      details.canCreateProject && details.plans.length > 0;
+
+    setChoice(canCreate || eligibleProjects.length === 0 ? "new" : "existing");
     setProjectId(eligibleProjects.length === 1 ? eligibleProjects[0]!.id : "");
     setPlanId(MarketplacePurchaseUtil.getDefaultPlanId(details.plans));
     setState({ kind: "ready", details });
@@ -314,7 +314,8 @@ const MarketplacePurchase: () => JSX.Element = () => {
   }
 
   const canChooseExisting: boolean = eligibleProjects.length > 0;
-  const canCreate: boolean = details.canCreateProject && details.plans.length > 0;
+  const canCreate: boolean =
+    details.canCreateProject && details.plans.length > 0;
   const canSubmit: boolean =
     !isSubmitting &&
     (choice === "existing"
@@ -415,75 +416,72 @@ const MarketplacePurchase: () => JSX.Element = () => {
                     </label>
                     {choice === "new" ? (
                       <div className="mt-3 ms-7 space-y-3 text-sm">
-                          <span className="block">
-                            <label
-                              htmlFor="marketplace-purchase-project-name"
-                              className="block text-sm text-gray-700"
-                            >
-                              {t("marketplacePurchase.projectNameLabel")}
-                            </label>
-                            <input
-                              id="marketplace-purchase-project-name"
-                              data-testid="marketplace-purchase-project-name"
-                              type="text"
-                              maxLength={100}
-                              className="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                              placeholder={t(
-                                "marketplacePurchase.projectNamePlaceholder",
-                              )}
-                              value={projectName}
-                              disabled={isSubmitting}
-                              onChange={(
-                                event: React.ChangeEvent<HTMLInputElement>,
-                              ) => {
-                                setProjectName(event.target.value);
-                              }}
-                            />
-                          </span>
-                          <span className="block">
-                            <label
-                              htmlFor="marketplace-purchase-plan"
-                              className="block text-sm text-gray-700"
-                            >
-                              {t("marketplacePurchase.planLabel")}
-                            </label>
-                            <select
-                              id="marketplace-purchase-plan"
-                              data-testid="marketplace-purchase-plan"
-                              className="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                              value={planId}
-                              disabled={isSubmitting}
-                              onChange={(
-                                event: React.ChangeEvent<HTMLSelectElement>,
-                              ) => {
-                                setPlanId(event.target.value);
-                              }}
-                            >
-                              {details.plans.map(
-                                (plan: MarketplacePurchasePlan) => {
-                                  return (
-                                    <option
-                                      key={plan.planId}
-                                      value={plan.planId}
-                                    >
-                                      {plan.monthlyPricePerUserInUSD > 0
-                                        ? t("marketplacePurchase.planOption", {
-                                            name: plan.name,
-                                            price:
-                                              MarketplacePurchaseUtil.formatPrice(
-                                                plan.monthlyPricePerUserInUSD,
-                                              ),
-                                          })
-                                        : t(
-                                            "marketplacePurchase.planOptionFree",
-                                            { name: plan.name },
-                                          )}
-                                    </option>
-                                  );
-                                },
-                              )}
-                            </select>
-                          </span>
+                        <span className="block">
+                          <label
+                            htmlFor="marketplace-purchase-project-name"
+                            className="block text-sm text-gray-700"
+                          >
+                            {t("marketplacePurchase.projectNameLabel")}
+                          </label>
+                          <input
+                            id="marketplace-purchase-project-name"
+                            data-testid="marketplace-purchase-project-name"
+                            type="text"
+                            maxLength={100}
+                            className="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            placeholder={t(
+                              "marketplacePurchase.projectNamePlaceholder",
+                            )}
+                            value={projectName}
+                            disabled={isSubmitting}
+                            onChange={(
+                              event: React.ChangeEvent<HTMLInputElement>,
+                            ) => {
+                              setProjectName(event.target.value);
+                            }}
+                          />
+                        </span>
+                        <span className="block">
+                          <label
+                            htmlFor="marketplace-purchase-plan"
+                            className="block text-sm text-gray-700"
+                          >
+                            {t("marketplacePurchase.planLabel")}
+                          </label>
+                          <select
+                            id="marketplace-purchase-plan"
+                            data-testid="marketplace-purchase-plan"
+                            className="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            value={planId}
+                            disabled={isSubmitting}
+                            onChange={(
+                              event: React.ChangeEvent<HTMLSelectElement>,
+                            ) => {
+                              setPlanId(event.target.value);
+                            }}
+                          >
+                            {details.plans.map(
+                              (plan: MarketplacePurchasePlan) => {
+                                return (
+                                  <option key={plan.planId} value={plan.planId}>
+                                    {plan.monthlyPricePerUserInUSD > 0
+                                      ? t("marketplacePurchase.planOption", {
+                                          name: plan.name,
+                                          price:
+                                            MarketplacePurchaseUtil.formatPrice(
+                                              plan.monthlyPricePerUserInUSD,
+                                            ),
+                                        })
+                                      : t(
+                                          "marketplacePurchase.planOptionFree",
+                                          { name: plan.name },
+                                        )}
+                                  </option>
+                                );
+                              },
+                            )}
+                          </select>
+                        </span>
                       </div>
                     ) : (
                       <></>
@@ -513,46 +511,46 @@ const MarketplacePurchase: () => JSX.Element = () => {
                     </label>
                     {choice === "existing" ? (
                       <div className="mt-3 ms-7 text-sm">
-                          <select
-                            id="marketplace-purchase-project"
-                            data-testid="marketplace-purchase-project"
-                            aria-label={t("marketplacePurchase.projectLabel")}
-                            className="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                            value={projectId}
-                            disabled={isSubmitting}
-                            onChange={(
-                              event: React.ChangeEvent<HTMLSelectElement>,
-                            ) => {
-                              setProjectId(event.target.value);
-                            }}
-                          >
-                            <option value="">
-                              {t("marketplacePurchase.projectPlaceholder")}
-                            </option>
-                            {details.projects.map(
-                              (project: MarketplacePurchaseProject) => {
-                                return (
-                                  <option
-                                    key={project.id}
-                                    value={project.id}
-                                    disabled={!project.isEligible}
-                                  >
-                                    {project.isEligible
-                                      ? project.name
-                                      : t(
-                                          `marketplacePurchase.projectRefusal.${project.refusal || "not_billing_manager"}`,
-                                          { name: project.name },
-                                        )}
-                                  </option>
-                                );
-                              },
-                            )}
-                          </select>
-                          <span className="mt-1 block text-xs text-gray-500">
-                            {t("marketplacePurchase.existingProjectHelp", {
-                              marketplace,
-                            })}
-                          </span>
+                        <select
+                          id="marketplace-purchase-project"
+                          data-testid="marketplace-purchase-project"
+                          aria-label={t("marketplacePurchase.projectLabel")}
+                          className="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          value={projectId}
+                          disabled={isSubmitting}
+                          onChange={(
+                            event: React.ChangeEvent<HTMLSelectElement>,
+                          ) => {
+                            setProjectId(event.target.value);
+                          }}
+                        >
+                          <option value="">
+                            {t("marketplacePurchase.projectPlaceholder")}
+                          </option>
+                          {details.projects.map(
+                            (project: MarketplacePurchaseProject) => {
+                              return (
+                                <option
+                                  key={project.id}
+                                  value={project.id}
+                                  disabled={!project.isEligible}
+                                >
+                                  {project.isEligible
+                                    ? project.name
+                                    : t(
+                                        `marketplacePurchase.projectRefusal.${project.refusal || "not_billing_manager"}`,
+                                        { name: project.name },
+                                      )}
+                                </option>
+                              );
+                            },
+                          )}
+                        </select>
+                        <span className="mt-1 block text-xs text-gray-500">
+                          {t("marketplacePurchase.existingProjectHelp", {
+                            marketplace,
+                          })}
+                        </span>
                       </div>
                     ) : (
                       <></>

@@ -8,11 +8,15 @@ import { MARKETPLACE_USAGE_UNIT_IN_USD } from "../../../Types/Marketplace/Market
  *
  *   - its plan's per-user monthly price, for each user (seat), accrued by the
  *     hour - an hour costs the monthly price divided by the hours in that
- *     month, so a month of hours is exactly the monthly price; no charge
- *     while the project is in its trial;
+ *     month, so a month of hours is exactly the monthly price;
  *   - each active monitor's monthly price, accrued the same way;
  *   - the telemetry it ingested, as already priced per GB and retention by
  *     the daily telemetry staging (TelemetryUsageBilling).
+ *
+ * Nothing is charged for the time the project is in its plan's trial: on
+ * card billing the plan and its usage trial together (BillingService), and a
+ * marketplace buyer pays the same. Telemetry from the trial's days is left
+ * out by the reporter, which knows which day each amount is for.
  *
  * A marketplace bills whole units, so the fraction of a cent left over is
  * carried into the next report rather than rounded away or up. Amounts are
@@ -24,7 +28,7 @@ export interface MarketplaceUsageInput {
   periodEnd: Date;
   seats: number;
   seatPricePerMonthInUSD: number;
-  // Seats are free until then (the plan's trial).
+  // Seats and monitors are free until then (the plan's trial).
   trialEndsAt?: Date | null | undefined;
   activeMonitors: number;
   activeMonitorPricePerMonthInUSD: number;
@@ -48,24 +52,22 @@ const MS_PER_HOUR: number = 60 * 60 * 1000;
 const MAX_PERIOD_IN_HOURS: number = 31 * 24 * 3;
 
 export default class MarketplaceUsageCalculator {
-  public static calculate(input: MarketplaceUsageInput): MarketplaceUsageCharge {
-    const monthsOfSeats: number = MarketplaceUsageCalculator.getMonthsInPeriod({
-      periodStart: input.periodStart,
-      periodEnd: input.periodEnd,
-      notBefore: input.trialEndsAt || null,
-    });
-
-    const monthsOfMonitors: number =
-      MarketplaceUsageCalculator.getMonthsInPeriod({
+  public static calculate(
+    input: MarketplaceUsageInput,
+  ): MarketplaceUsageCharge {
+    // The billable part of the period: none of it before the trial ends.
+    const billableMonths: number = MarketplaceUsageCalculator.getMonthsInPeriod(
+      {
         periodStart: input.periodStart,
         periodEnd: input.periodEnd,
-        notBefore: null,
-      });
+        notBefore: input.trialEndsAt || null,
+      },
+    );
 
     const seatsMicros: number = MarketplaceUsageCalculator.toMicros(
       MarketplaceUsageCalculator.nonNegative(input.seats) *
         MarketplaceUsageCalculator.nonNegative(input.seatPricePerMonthInUSD) *
-        monthsOfSeats,
+        billableMonths,
     );
 
     const monitorsMicros: number = MarketplaceUsageCalculator.toMicros(
@@ -73,7 +75,7 @@ export default class MarketplaceUsageCalculator {
         MarketplaceUsageCalculator.nonNegative(
           input.activeMonitorPricePerMonthInUSD,
         ) *
-        monthsOfMonitors,
+        billableMonths,
     );
 
     const telemetryMicros: number = MarketplaceUsageCalculator.toMicros(

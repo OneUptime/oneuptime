@@ -41,7 +41,8 @@ import RemoteJwtVerifier from "../Marketplace/RemoteJwtVerifier";
 
 export const MICROSOFT_CONSUMER_TENANT_ID: string =
   "9188040d-6c67-4c5b-b112-36a304b66dad";
-const AUTHORITY: string = "https://login.microsoftonline.com/common/oauth2/v2.0";
+const AUTHORITY: string =
+  "https://login.microsoftonline.com/common/oauth2/v2.0";
 const JWKS_URL: string =
   "https://login.microsoftonline.com/common/discovery/v2.0/keys";
 const SCOPES: string = "openid profile email";
@@ -174,7 +175,10 @@ export default class MicrosoftSignInClient {
       MarketplaceHttp.parseJsonObject(response.body);
     const idToken: unknown = body?.["id_token"];
 
-    if (!MarketplaceHttp.isSuccess(response.status) || typeof idToken !== "string") {
+    if (
+      !MarketplaceHttp.isSuccess(response.status) ||
+      typeof idToken !== "string"
+    ) {
       throw new MicrosoftSignInError(
         `Microsoft refused the authorization code (HTTP ${response.status}): ${String(body?.["error"] || "")}`,
       );
@@ -219,7 +223,9 @@ export default class MicrosoftSignInClient {
       throw new MicrosoftSignInError("The Microsoft ID token has no tenant.");
     }
 
-    if (claims["iss"] !== `https://login.microsoftonline.com/${tenantId}/v2.0`) {
+    if (
+      claims["iss"] !== `https://login.microsoftonline.com/${tenantId}/v2.0`
+    ) {
       throw new MicrosoftSignInError(
         "The Microsoft ID token was not issued by the tenant it names.",
       );
@@ -238,9 +244,13 @@ export default class MicrosoftSignInClient {
       throw new MicrosoftSignInError("The Microsoft ID token names no user.");
     }
 
-    const isPersonalAccount: boolean = tenantId === MICROSOFT_CONSUMER_TENANT_ID;
+    const isPersonalAccount: boolean =
+      tenantId === MICROSOFT_CONSUMER_TENANT_ID;
     const isDomainVerified: boolean =
-      claims["xms_edov"] === true || claims["xms_edov"] === "1";
+      claims["xms_edov"] === true ||
+      claims["xms_edov"] === 1 ||
+      claims["xms_edov"] === "1" ||
+      claims["xms_edov"] === "true";
 
     const emailClaim: unknown = claims["email"];
 
@@ -270,7 +280,10 @@ export default class MicrosoftSignInClient {
 
   private static safeEqual(a: string, b: string): boolean {
     const left: Buffer = crypto.createHash("sha256").update(a, "utf8").digest();
-    const right: Buffer = crypto.createHash("sha256").update(b, "utf8").digest();
+    const right: Buffer = crypto
+      .createHash("sha256")
+      .update(b, "utf8")
+      .digest();
     return crypto.timingSafeEqual(left, right);
   }
 }

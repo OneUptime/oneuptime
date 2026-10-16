@@ -34,6 +34,7 @@ import MicrosoftSignInClient, {
 } from "Common/Server/Utils/MicrosoftSignIn/MicrosoftSignInClient";
 import Response from "Common/Server/Utils/Response";
 import User from "Common/Models/DatabaseModels/User";
+import AuthenticationEmail from "../Utils/AuthenticationEmail";
 
 /*
  * Sign in with Microsoft (see MicrosoftSignInClient for what it is, and who
@@ -52,7 +53,8 @@ import User from "Common/Models/DatabaseModels/User";
  * sign-in, like a password: a project that requires its own SSO still
  * requires it. Two kinds of account never sign in this way and are asked for
  * their password instead: one with two-factor authentication turned on,
- * whose second factor this would skip, and a master admin's.
+ * whose second factor this would skip, and a master admin's. An account
+ * whose address was never verified is sent a verification link first.
  *
  * Like every sign-in, it ends on the dashboard, which sends a buyer with a
  * marketplace purchase waiting back to the purchase page.
@@ -60,7 +62,8 @@ import User from "Common/Models/DatabaseModels/User";
 
 const router: ExpressRouter = Express.getRouter();
 
-const MESSAGE_VIEW: string = "/usr/src/app/FeatureSet/Identity/Views/Message.ejs";
+const MESSAGE_VIEW: string =
+  "/usr/src/app/FeatureSet/Identity/Views/Message.ejs";
 const STATE_COOKIE_NAME: string = "oneuptime-microsoft-sign-in";
 const STATE_COOKIE_PATH: string = "/identity/microsoft";
 const STATE_TTL_IN_SECONDS: number = 10 * 60;
@@ -279,7 +282,12 @@ const findOrCreateUser: (
 
   if (existing) {
     if (existing.isBlocked) {
-      renderMessage(req, res, "Account blocked.", ExceptionMessages.UserBlocked);
+      renderMessage(
+        req,
+        res,
+        "Account blocked.",
+        ExceptionMessages.UserBlocked,
+      );
       return null;
     }
 
@@ -293,14 +301,23 @@ const findOrCreateUser: (
       return null;
     }
 
-    // Microsoft has just verified this address.
+    /*
+     * An account nobody has verified may have been registered by someone
+     * other than the address's owner, who would still hold its password.
+     * Signing the owner into it would share it with them - so, as with every
+     * other sign-in, the owner proves the mailbox first (GlobalOIDC does the
+     * same).
+     */
     if (!existing.isEmailVerified) {
-      await UserService.updateOneById({
-        id: existing.id!,
-        data: { isEmailVerified: true },
-        props: { isRoot: true },
-      });
-      existing.isEmailVerified = true;
+      await AuthenticationEmail.sendVerificationEmail(existing);
+
+      renderMessage(
+        req,
+        res,
+        "Email not verified.",
+        "Email is not verified. We have sent you an email with the verification link. Please do not forget to check spam.",
+      );
+      return null;
     }
 
     return existing;

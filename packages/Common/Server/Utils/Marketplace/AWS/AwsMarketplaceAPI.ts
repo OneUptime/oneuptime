@@ -131,8 +131,7 @@ export default class AwsMarketplaceAPI {
       agreementId:
         metadata &&
         typeof metadata === "object" &&
-        typeof (metadata as Record<string, unknown>)["AgreementId"] ===
-          "string"
+        typeof (metadata as Record<string, unknown>)["AgreementId"] === "string"
           ? ((metadata as Record<string, unknown>)["AgreementId"] as string)
           : null,
     };
@@ -221,7 +220,8 @@ export default class AwsMarketplaceAPI {
             unknown
           >;
           results.push({
-            status: typeof result["Status"] === "string" ? result["Status"] : "",
+            status:
+              typeof result["Status"] === "string" ? result["Status"] : "",
             meteringRecordId:
               typeof result["MeteringRecordId"] === "string"
                 ? result["MeteringRecordId"]

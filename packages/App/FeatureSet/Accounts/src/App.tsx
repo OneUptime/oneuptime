@@ -54,11 +54,10 @@ const McpAuthorizePage: React.LazyExoticComponent<() => JSX.Element> = lazy(
     return import("./Pages/McpAuthorize");
   },
 );
-const MarketplacePurchasePage: React.LazyExoticComponent<
-  () => JSX.Element
-> = lazy(() => {
-  return import("./Pages/MarketplacePurchase");
-});
+const MarketplacePurchasePage: React.LazyExoticComponent<() => JSX.Element> =
+  lazy(() => {
+    return import("./Pages/MarketplacePurchase");
+  });
 
 /*
  * Incident forms became forms (the Forms product), and kept their link keys,

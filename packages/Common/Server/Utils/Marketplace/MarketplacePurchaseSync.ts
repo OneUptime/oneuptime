@@ -63,7 +63,8 @@ export default class MarketplacePurchaseSync {
       return;
     }
 
-    const status: MarketplaceStatus | null = await adapter.fetchStatus(purchase);
+    const status: MarketplaceStatus | null =
+      await adapter.fetchStatus(purchase);
 
     if (!status) {
       return;

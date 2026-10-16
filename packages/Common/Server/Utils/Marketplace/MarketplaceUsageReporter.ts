@@ -58,6 +58,27 @@ import MarketplaceUsageCalculator, {
 const REPORT_LOCK_NAMESPACE: string = "marketplace-usage-report";
 // Every marketplace stops accepting a usage record about a day after its time.
 const MAX_REPORT_AGE_IN_HOURS: number = 23;
+/*
+ * TelemetryUsageBilling.day, as the staging writes it in UTC ("Oct 15, 2026",
+ * TelemetryUsageBillingService.getUsageDayString), and as the model's comment
+ * describes it ("15-10-2026").
+ */
+const STAGED_DAY_PATTERN: RegExp = /^([A-Za-z]{3}) (\d{1,2}), (\d{4})$/;
+const NUMERIC_DAY_PATTERN: RegExp = /^(\d{2})-(\d{2})-(\d{4})$/;
+const MONTH_ABBREVIATIONS: Array<string> = [
+  "jan",
+  "feb",
+  "mar",
+  "apr",
+  "may",
+  "jun",
+  "jul",
+  "aug",
+  "sep",
+  "oct",
+  "nov",
+  "dec",
+];
 
 export default class MarketplaceUsageReporter {
   /*
@@ -167,7 +188,7 @@ export default class MarketplaceUsageReporter {
         lockTimeout: 120_000,
         acquireTimeout: 30_000,
       });
-    } catch (err) {
+    } catch {
       // Another report for this purchase is running; it will cover this one.
       logger.debug(
         `Marketplace usage report for ${purchase.id?.toString()} is already running.`,
@@ -265,20 +286,30 @@ export default class MarketplaceUsageReporter {
           isReportedToBillingProvider: false,
           totalCostInUSD: QueryHelper.greaterThan(0),
         },
-        select: { _id: true, totalCostInUSD: true },
+        select: { _id: true, totalCostInUSD: true, day: true },
         skip: 0,
         limit: LIMIT_MAX,
         props: { isRoot: true },
       });
 
+    const trialEndsAt: Date | null = project.trialEndsAt || null;
     let telemetryInUSD: number = 0;
+    let trialTelemetryInUSD: number = 0;
 
     for (const row of telemetryRows) {
       const cost: number = Number(row.totalCostInUSD?.value || 0);
 
-      if (Number.isFinite(cost) && cost > 0) {
-        telemetryInUSD += cost;
+      if (!Number.isFinite(cost) || cost <= 0) {
+        continue;
       }
+
+      // Usage in the plan's trial is free, as it is on card billing.
+      if (MarketplaceUsageReporter.isTrialDay(row.day, trialEndsAt)) {
+        trialTelemetryInUSD += cost;
+        continue;
+      }
+
+      telemetryInUSD += cost;
     }
 
     const charge: MarketplaceUsageCharge = MarketplaceUsageCalculator.calculate(
@@ -289,7 +320,7 @@ export default class MarketplaceUsageReporter {
         seatPricePerMonthInUSD: MarketplaceUsageReporter.getSeatPricePerMonth(
           project.paymentProviderPlanId,
         ),
-        trialEndsAt: project.trialEndsAt || null,
+        trialEndsAt: trialEndsAt,
         activeMonitors: activeMonitors,
         activeMonitorPricePerMonthInUSD: ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH,
         telemetryInUSD: telemetryInUSD,
@@ -312,6 +343,8 @@ export default class MarketplaceUsageReporter {
       newReport.breakdown = {
         ...charge.breakdown,
         planId: project.paymentProviderPlanId || null,
+        trialEndsAt: trialEndsAt ? OneUptimeDate.toString(trialEndsAt) : null,
+        trialTelemetryWaivedInUSD: trialTelemetryInUSD,
         telemetryRows: telemetryRows.length,
         isFinal: options.isFinal,
       };
@@ -524,6 +557,57 @@ export default class MarketplaceUsageReporter {
     const price: number = plan.getMonthlySubscriptionAmountInUSD();
 
     return Number.isFinite(price) && price > 0 ? price : 0;
+  }
+
+  /*
+   * Whether a day of staged telemetry falls in the plan's trial. The day the
+   * trial ends counts as a trial day: its usage is not split by the hour,
+   * and the buyer gets the benefit of the doubt. A day that cannot be read
+   * is billed.
+   */
+  public static isTrialDay(
+    day: string | undefined,
+    trialEndsAt: Date | null,
+  ): boolean {
+    if (!trialEndsAt || !day) {
+      return false;
+    }
+
+    const dayStart: number | null = MarketplaceUsageReporter.readStagedDay(
+      day.trim(),
+    );
+
+    return dayStart !== null && dayStart < trialEndsAt.getTime();
+  }
+
+  // The start (UTC, in ms) of a staged telemetry day, or null.
+  public static readStagedDay(day: string): number | null {
+    let year: number;
+    let month: number;
+    let dayOfMonth: number;
+
+    const staged: RegExpMatchArray | null = day.match(STAGED_DAY_PATTERN);
+    const numeric: RegExpMatchArray | null = staged
+      ? null
+      : day.match(NUMERIC_DAY_PATTERN);
+
+    if (staged) {
+      month = MONTH_ABBREVIATIONS.indexOf(staged[1]!.toLowerCase()) + 1;
+      dayOfMonth = Number(staged[2]);
+      year = Number(staged[3]);
+    } else if (numeric) {
+      dayOfMonth = Number(numeric[1]);
+      month = Number(numeric[2]);
+      year = Number(numeric[3]);
+    } else {
+      return null;
+    }
+
+    if (month < 1 || month > 12 || dayOfMonth < 1 || dayOfMonth > 31) {
+      return null;
+    }
+
+    return Date.UTC(year, month - 1, dayOfMonth);
   }
 
   public static getStartOfHour(date: Date): Date {

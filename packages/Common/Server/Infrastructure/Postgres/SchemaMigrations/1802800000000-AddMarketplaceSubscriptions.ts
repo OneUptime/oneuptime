@@ -77,9 +77,7 @@ export class AddMarketplaceSubscriptions1802800000000
     await queryRunner.query(
       `DROP INDEX "public"."IDX_5d99a9315087364250f02ea698"`,
     );
-    await queryRunner.query(
-      `DROP TABLE "MarketplaceUsageReport"`,
-    );
+    await queryRunner.query(`DROP TABLE "MarketplaceUsageReport"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_d5b37b4b42a2bd54d98e2e80af"`,
     );
@@ -98,8 +96,6 @@ export class AddMarketplaceSubscriptions1802800000000
     await queryRunner.query(
       `DROP INDEX "public"."IDX_940a1799e93c24589b35c16693"`,
     );
-    await queryRunner.query(
-      `DROP TABLE "MarketplaceSubscription"`,
-    );
+    await queryRunner.query(`DROP TABLE "MarketplaceSubscription"`);
   }
 }

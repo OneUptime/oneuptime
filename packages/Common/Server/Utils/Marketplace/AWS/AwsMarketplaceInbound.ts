@@ -10,7 +10,9 @@ import {
 import MarketplaceSubscriptionService from "../../../Services/MarketplaceSubscriptionService";
 import logger from "../../Logger";
 import MarketplaceUsageReporter from "../MarketplaceUsageReporter";
-import AwsMarketplaceAdapter, { AwsAgreementStatus } from "./AwsMarketplaceAdapter";
+import AwsMarketplaceAdapter, {
+  AwsAgreementStatus,
+} from "./AwsMarketplaceAdapter";
 import { AwsAgreement, AwsResolvedCustomer } from "./AwsMarketplaceAPI";
 
 /*
@@ -97,8 +99,9 @@ export default class AwsMarketplaceInbound {
   public async registerBuyer(
     registrationToken: string,
   ): Promise<MarketplaceSubscription> {
-    const customer: AwsResolvedCustomer =
-      await this.adapter.getApi().resolveCustomer(registrationToken);
+    const customer: AwsResolvedCustomer = await this.adapter
+      .getApi()
+      .resolveCustomer(registrationToken);
 
     if (
       AwsMarketplaceProductCode &&
@@ -218,7 +221,9 @@ export default class AwsMarketplaceInbound {
    * buyer who has not reached the fulfillment page yet will find it there -
    * and, once linked to a project, follows the agreement's status.
    */
-  private async handleLicenseUpdated(event: AwsMarketplaceEvent): Promise<void> {
+  private async handleLicenseUpdated(
+    event: AwsMarketplaceEvent,
+  ): Promise<void> {
     if (!event.licenseArn || !event.agreementId) {
       return;
     }

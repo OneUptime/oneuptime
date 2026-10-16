@@ -35,7 +35,8 @@ import GoogleCloudMarketplaceAPI, {
 
 export const GOOGLE_CLOUD_SIGNUP_TOKEN_ISSUER: string =
   "https://www.googleapis.com/robot/v1/metadata/x509/cloud-commerce-partner@system.gserviceaccount.com";
-const GOOGLE_OIDC_JWKS_URL: string = "https://www.googleapis.com/oauth2/v3/certs";
+const GOOGLE_OIDC_JWKS_URL: string =
+  "https://www.googleapis.com/oauth2/v3/certs";
 const GOOGLE_OIDC_ISSUERS: Array<string> = [
   "https://accounts.google.com",
   "accounts.google.com",
@@ -137,7 +138,9 @@ export default class GoogleCloudMarketplaceInbound {
    * The Pub/Sub push envelope ({ message: { data: base64(JSON) } }) to the
    * marketplace event inside it. Null for anything that is not one.
    */
-  public static parsePushBody(body: unknown): GoogleCloudMarketplaceEvent | null {
+  public static parsePushBody(
+    body: unknown,
+  ): GoogleCloudMarketplaceEvent | null {
     if (!body || typeof body !== "object") {
       return null;
     }
@@ -185,7 +188,8 @@ export default class GoogleCloudMarketplaceInbound {
 
     return {
       eventId: typeof event["eventId"] === "string" ? event["eventId"] : "",
-      eventType: typeof event["eventType"] === "string" ? event["eventType"] : "",
+      eventType:
+        typeof event["eventType"] === "string" ? event["eventType"] : "",
       providerId:
         typeof event["providerId"] === "string" ? event["providerId"] : "",
       entitlementId: readId("entitlement"),

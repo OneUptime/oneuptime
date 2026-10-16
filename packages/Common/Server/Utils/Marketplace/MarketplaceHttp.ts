@@ -54,9 +54,7 @@ export const defaultMarketplaceHttpClient: MarketplaceHttpClient = async (
 
 export class MarketplaceHttp {
   // The body as a JSON object, or null when it is empty or not an object.
-  public static parseJsonObject(
-    body: string,
-  ): Record<string, unknown> | null {
+  public static parseJsonObject(body: string): Record<string, unknown> | null {
     if (!body || !body.trim()) {
       return null;
     }
