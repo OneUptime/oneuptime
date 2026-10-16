@@ -622,6 +622,11 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
         id={entryElementId(entry)}
         role="option"
         aria-selected={isActive}
+        /*
+         * The page the user is on, for screen readers too (its dot is
+         * hidden from them). Theme.css keys its dark wash on this.
+         */
+        aria-current={isCurrent ? "page" : undefined}
         ref={(element: HTMLDivElement | null) => {
           cellRefs.current[flatIndex] = element;
         }}

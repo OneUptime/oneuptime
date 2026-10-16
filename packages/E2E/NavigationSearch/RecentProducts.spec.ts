@@ -1,4 +1,5 @@
 import { ConsoleMessage, expect, Locator, Page, test } from "@playwright/test";
+import path from "path";
 
 /*
  * The products menu's "Recently visited" row shows six products.
@@ -16,7 +17,9 @@ import { ConsoleMessage, expect, Locator, Page, test } from "@playwright/test";
  * The menu opens at the top, with the cursor on the row's first card (the
  * product used before this one, which Enter opens). It used to open on
  * the current page's product and scroll the list to it, which hid the row
- * on every page low in the list (Teams, Logs, Kubernetes).
+ * on every page low in the list (Teams, Logs, Kubernetes). The card of the
+ * page the user is on now shows beside the cursor's whenever it is on
+ * screen, so it stays fainter than the cursor's in the dark theme too.
  *
  * These run the production menu and Dashboard catalog in a real browser,
  * where the rows are laid out for real. A phone gets the menu toggle's list
@@ -30,6 +33,54 @@ const otherProjectPath: string =
 
 // Where the menu remembers the products someone opened from it.
 const RECENT_STORAGE_KEY: string = "oneuptime-navbar-recent-products";
+
+// The stylesheet that re-colours the light classes under html.dark.
+const THEME_CSS_PATH: string = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "Common",
+  "UI",
+  "Styles",
+  "Theme.css",
+);
+
+interface Rgba {
+  rgb: string;
+  alpha: number;
+}
+
+interface CardColors {
+  background: Rgba;
+  border: Rgba;
+}
+
+// A computed colour, "rgb(1, 2, 3)" or "rgba(1, 2, 3, 0.4)", as its parts.
+const rgbaOf: (color: string) => Rgba = (color: string): Rgba => {
+  const parts: Array<string> = color
+    .slice(color.indexOf("(") + 1, color.lastIndexOf(")"))
+    .split(",")
+    .map((part: string): string => {
+      return part.trim();
+    });
+  expect(parts.length === 3 || parts.length === 4).toBe(true);
+  return {
+    rgb: parts.slice(0, 3).join(", "),
+    alpha: parts.length === 4 ? Number(parts[3]) : 1,
+  };
+};
+
+const colorsOf: (card: Locator) => Promise<CardColors> = async (
+  card: Locator,
+): Promise<CardColors> => {
+  const [background, border]: Array<string> = await card.evaluate(
+    (element: Element): Array<string> => {
+      const style: CSSStyleDeclaration = getComputedStyle(element);
+      return [style.backgroundColor, style.borderTopColor];
+    },
+  );
+  return { background: rgbaOf(background!), border: rgbaOf(border!) };
+};
 
 interface Product {
   title: string;
@@ -344,6 +395,56 @@ test.describe("the Recently visited row of the products menu", () => {
     await expect(productsMenu(page)).toHaveCount(0);
     await expect(page.getByTestId("current-route")).toHaveText(routeOf(USERS));
     expect((await storedRoutes(page))[0]).toBe(routeOf(USERS));
+  });
+
+  test("on an Essentials product's page, its card is fainter than the cursor's, in the dark theme as in the light", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // Monitors is in the Essentials, on screen beside the Recently visited row.
+    await rememberAndOpen(page, SEVEN.map(routeOf), "/monitors");
+    // The Dashboard's stylesheet, which re-colours the classes for dark.
+    await page.addStyleTag({ path: THEME_CSS_PATH });
+    await page.addStyleTag({
+      content: "*, *::before, *::after { transition: none !important; }",
+    });
+
+    const cursorLink: Locator = recentRow(page)
+      .getByRole("option", { selected: true })
+      .getByRole("link");
+    const currentLink: Locator = productsMenu(page).locator(
+      '[role="option"][aria-current="page"] > a',
+    );
+    await expect(cursorLink).toHaveAttribute("href", routeOf(TEAMS));
+    await expect(currentLink).toHaveCount(1);
+    await expect(currentLink).toHaveAttribute("href", routeOf(MONITORS));
+
+    for (const theme of ["light", "dark"]) {
+      await page.evaluate((isDark: boolean): void => {
+        document.documentElement.classList.toggle("dark", isDark);
+      }, theme === "dark");
+
+      const cursor: CardColors = await colorsOf(cursorLink);
+      const current: CardColors = await colorsOf(currentLink);
+
+      // The same hue, at well under half the wash of the card Enter opens.
+      expect(current.background.rgb, `${theme} hue`).toBe(
+        cursor.background.rgb,
+      );
+      expect(current.background.alpha, `${theme} wash`).toBeGreaterThan(0);
+      expect(current.background.alpha, `${theme} wash`).toBeLessThanOrEqual(
+        cursor.background.alpha / 2,
+      );
+    }
+
+    // Dark: its edge is fainter than the cursor's too.
+    const cursorEdge: CardColors = await colorsOf(cursorLink);
+    const currentEdge: CardColors = await colorsOf(currentLink);
+    expect(currentEdge.border.alpha).toBeGreaterThan(0);
+    expect(currentEdge.border.alpha).toBeLessThanOrEqual(
+      cursorEdge.border.alpha / 2,
+    );
   });
 
   test("from 768 to 1023 pixels wide, the six cards are three rows of two", async ({
