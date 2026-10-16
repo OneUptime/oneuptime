@@ -767,6 +767,32 @@ describe("GitHub App", () => {
     );
   });
 
+  /*
+   * An edit to a comment that already addressed the app was answered when
+   * the comment was written: only an edit that adds the mention asks again.
+   */
+  it("says editing a comment that already mentions the app does not run it again", () => {
+    const handler: string = readRepoFile(
+      "Common/Server/Utils/CodeRepository/GitHub/GitHubWebhookHandler.ts",
+    );
+
+    expect(handler).toContain(
+      'return NOT_HANDLED("mention-already-there-before-edit");',
+    );
+    expect(englishPage(GITHUB_APP)).toContain(
+      "Editing a comment that already mentions the app does not run it again: to change your request, write a new comment. An edit that adds the mention is a new request.",
+    );
+  });
+
+  it("sends an account that already has the app to Connect an existing installation", () => {
+    expect(
+      dashboardSource("Pages/CodeRepository/CodeRepository.tsx"),
+    ).toContain('"Connect an existing installation"');
+    expect(englishPage(GITHUB_APP)).toContain(
+      `click ${bold("Connect an existing installation")} there instead of installing it again.`,
+    );
+  });
+
   it("names the repository's settings as its Settings page draws them, with the trigger label's default", () => {
     const settings: string = flat(
       dashboardSource("Pages/CodeRepository/View/Settings.tsx"),

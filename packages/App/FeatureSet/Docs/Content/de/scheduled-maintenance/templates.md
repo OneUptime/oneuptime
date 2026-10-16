@@ -102,7 +102,7 @@ Zum Beispiel ein wöchentliches Zeitfenster, dessen erstes Ereignis an einem Mon
 
 Setzen Sie **Erstes Ereignis geplant für** so weit vor den Beginn, wie Ihre Kunden im Voraus von der Arbeit erfahren sollen. Alle drei Zeiten müssen beim Erstellen der Vorlage in der Zukunft liegen, das Ereignis muss vor seinem Beginn und Ende erstellt werden, und es muss beginnen, bevor es endet; das Formular sagt, gegen welche Regel eine Zeit verstößt.
 
-Ein Job prüft die wiederkehrenden Vorlagen jede Minute. Wenn die nächste Zeit einer Vorlage kommt, schiebt er diese Zeit um ein Intervall weiter und erstellt das Ereignis. Die Vorlagenliste zeigt diese Zeit in ihrer Spalte **Wiederkehrendes Ereignis**. Ein nach Zeitplan erstelltes Ereignis ist wie jedes andere: Seine Regeln laufen, seine Eigentümer werden hinzugefügt, und seine Abonnenten erfahren, dass es geplant ist.
+Ein Job prüft die wiederkehrenden Vorlagen jede Minute. Wenn die nächste Zeit einer Vorlage kommt, schiebt er diese Zeit um ein Intervall weiter und erstellt das Ereignis. Die Vorlagenliste zeigt diese Zeit in ihrer Spalte **Wiederkehrendes Ereignis**, und **Nein** bei einer Vorlage, die nicht wiederkehrt. Ein nach Zeitplan erstelltes Ereignis ist wie jedes andere: Seine Regeln laufen, seine Eigentümer werden hinzugefügt, und seine Abonnenten erfahren, dass es geplant ist.
 
 ## Eine Vorlage ändern oder stoppen
 
@@ -112,7 +112,7 @@ Ein Job prüft die wiederkehrenden Vorlagen jede Minute. Wenn die nächste Zeit 
 - **Betroffene Ressourcen** enthält ihre **Monitore**, deren **Monitor-Status ändern in** und ihre **Andere betroffene Ressourcen**, mit einem eigenen **Bearbeiten**.
 - **Eigentümer** listet die Personen und Teams auf, denen jedes aus ihr geplante Ereignis gehört.
 
-Änderungen gelten für die Ereignisse, die nach dem Speichern erstellt werden; bereits erstellte Ereignisse behalten ihre eigenen Werte. Um einen Zeitplan zu stoppen, schalten Sie **Wiederkehrendes Ereignis** in **Bearbeiten** aus oder löschen Sie die Vorlage. Wenn Sie eine Vorlage löschen, bleiben die von ihr erstellten Ereignisse erhalten.
+Änderungen gelten für die Ereignisse, die nach dem Speichern erstellt werden; bereits erstellte Ereignisse behalten ihre eigenen Werte. Um einen Zeitplan zu stoppen, schalten Sie **Wiederkehrendes Ereignis** in **Bearbeiten** aus oder löschen Sie die Vorlage. Eine ausgeschaltete Vorlage behält ihren Zeitplan: Schalten Sie sie wieder ein, macht sie bei der nächsten Zeit des Zeitplans weiter und überspringt die Zeiten, in denen sie aus war. Wenn Sie eine Vorlage löschen, bleiben die von ihr erstellten Ereignisse erhalten.
 
 ## Fehlerbehebung
 

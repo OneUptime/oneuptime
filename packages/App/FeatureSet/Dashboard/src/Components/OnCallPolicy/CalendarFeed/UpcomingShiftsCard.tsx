@@ -2,198 +2,192 @@ import CalendarFeedAPI from "./CalendarFeedAPI";
 import { MyShiftsResponse } from "./CalendarFeedTypes";
 import {
   STANDING_ASSIGNMENTS_COPY,
-  ShiftDayGroup,
   UPCOMING_SHIFTS_CARD_TITLE,
-  getCoverWindowForShift,
+  UPCOMING_SHIFTS_DESCRIPTION,
+  UPCOMING_SHIFTS_EMPTY_DESCRIPTION,
+  UPCOMING_SHIFTS_EMPTY_TITLE,
+  UPCOMING_SHIFTS_TRUNCATED_COPY,
+  UPCOMING_SHIFTS_TRUNCATED_EMPTY_COPY,
+  UpcomingShiftsWindow,
   getUpcomingShiftsWindow,
-  groupShiftsByDay,
-  isCoveringShift,
-  translateInterpolated,
 } from "./CalendarFeedUtil";
-import PageMap from "../../../Utils/PageMap";
-import RouteMap from "../../../Utils/RouteMap";
-import RouteParams from "../../../Utils/RouteParams";
-import Route from "Common/Types/API/Route";
-import { Blue500, Purple500 } from "Common/Types/BrandColors";
+import FeedCardFooter from "./FeedCardFooter";
+import FeedEmptyState from "./FeedEmptyState";
+import UpcomingShiftRow from "./UpcomingShiftRow";
+import {
+  UpcomingShiftSpan,
+  buildUpcomingShiftSpans,
+  getUpcomingShiftsFold,
+  isUpcomingShiftsFoldable,
+  shouldShowLayerName,
+  shouldShowProjectNames,
+} from "./UpcomingShiftSpans";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
-import { MaterializedShiftJson } from "Common/Types/OnCallDutyPolicy/MaterializedShift";
-import {
-  UserOverrideCoverWindow,
-  getUserOverrideCoverQueryParams,
-} from "Common/Types/OnCallDutyPolicy/UserOverrideCoverRequest";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import Link from "Common/UI/Components/Link/Link";
-import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import { FeedClock, getFeedClock } from "Common/UI/Components/Feed/FeedTime";
+import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
-import useTranslateValue from "Common/UI/Utils/Translation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
   useState,
 } from "react";
 
 /*
- * "Upcoming shifts" from the same materializer the feed is rendered from, so
+ * "Upcoming shifts", from the same materializer the feed is rendered from, so
  * that what this card shows and what lands in somebody's calendar cannot
  * disagree. It is the in-app answer to the feed's one weakness: a calendar
  * client polls on its own schedule, this card is live.
  *
+ * It answers what a person comes to it with, at a glance: am I on call now,
+ * and until when; when is my next shift, and how long is it. Back-to-back
+ * turns read as one stretch (UpcomingShiftSpans), each row says its times in
+ * the reader's zone and words (UpcomingShiftTime), the zone is named once,
+ * and a long month folds after the first rows.
+ *
  * Standing assignments (a user or a team named directly on an escalation
- * rule) are deliberately absent, and the card says so, because a reader who
- * knows they are on a policy and sees no row would otherwise assume the list
- * is broken.
+ * rule) are deliberately absent, and the card's footer says so, because a
+ * reader who knows they are on a policy and sees no row would otherwise
+ * assume the list is broken.
  */
 export interface ComponentProps {
   /** Injected by tests; the page passes nothing and gets the real clock. */
   now?: Date | undefined;
 }
 
+/*
+ * The card's body - its notices, the list, the empty panel - is no wider
+ * than a comfortable reading measure, as the link card's subscribe block
+ * on its own is (SUBSCRIBE_BLOCK_ALONE_CLASS_NAME): on a wide screen a row's
+ * length and Get cover stay beside it rather than at the far edge of a
+ * 1,900px card, where the maintainer found Get cover.
+ */
+export const UPCOMING_SHIFTS_BODY_CLASS_NAME: string = "max-w-4xl space-y-4";
+
 const UpcomingShiftsCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
+  const listId: string = useId();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [response, setResponse] = useState<MyShiftsResponse | null>(null);
+  // The window the shown shifts were asked for.
+  const [askedWindow, setAskedWindow] = useState<UpcomingShiftsWindow | null>(
+    null,
+  );
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
+
+  /*
+   * "Show fewer shifts" sits under the last of some twenty rows, so folding
+   * them away pulled the page up by all of them and left the reader looking
+   * at the next card, the button they pressed gone off the top. The fold
+   * keeps the button where it was on the screen instead: the rows above it
+   * fold up, and the pointer stays on it.
+   */
+  const foldRef: MutableRefObject<HTMLButtonElement | null> =
+    useRef<HTMLButtonElement | null>(null);
+  const foldTopBeforeFolding: MutableRefObject<number | null> = useRef<
+    number | null
+  >(null);
+
+  useLayoutEffect(() => {
+    const before: number | null = foldTopBeforeFolding.current;
+
+    foldTopBeforeFolding.current = null;
+
+    if (before === null || !foldRef.current) {
+      return;
+    }
+
+    const moved: number = foldRef.current.getBoundingClientRect().top - before;
+
+    if (moved !== 0 && typeof window.scrollBy === "function") {
+      window.scrollBy(0, moved);
+    }
+  }, [isExpanded]);
 
   const now: Date = props.now || OneUptimeDate.getCurrentDate();
 
+  /*
+   * The first read, and Try again after one failed, show the loader. A
+   * Refresh with shifts on screen keeps them there until the answer comes,
+   * so the card does not collapse to a spinner under the reader's pointer
+   * (as the link card above behaves since its redesign).
+   */
   const load: () => Promise<void> = async (): Promise<void> => {
-    setIsLoading(true);
+    const hasShifts: boolean = response !== null;
+
+    if (hasShifts) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
+    }
+
     setError("");
 
     try {
-      const result: MyShiftsResponse = await CalendarFeedAPI.getMyShifts(
-        getUpcomingShiftsWindow(now),
+      const asked: UpcomingShiftsWindow = getUpcomingShiftsWindow(
+        props.now || OneUptimeDate.getCurrentDate(),
       );
+      const result: MyShiftsResponse = await CalendarFeedAPI.getMyShifts(asked);
       setResponse(result);
+      setAskedWindow(asked);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
-      setResponse(null);
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
-  useEffect(() => {
+  const reload: () => void = (): void => {
     load().catch(() => {
       // load routes every failure into the error state.
     });
+  };
+
+  useEffect(() => {
+    reload();
   }, []);
 
+  const clock: FeedClock = getFeedClock({
+    language: translator.language,
+    now: now,
+  });
+
+  const spans: Array<UpcomingShiftSpan> = response
+    ? buildUpcomingShiftSpans(response.shifts, now, askedWindow?.to)
+    : [];
+
+  const showProjectNames: boolean = shouldShowProjectNames(spans);
+
   /*
-   * "Get cover" opens Add User Override in the shift's own project, with
-   * you away for the shift's window (UserOverrideCoverRequest), so the one
-   * question left is who covers. A shift that exists only inside one policy
-   * - a policy-scoped override made it - is covered on that policy's page,
-   * or the cover would not apply to it. Not offered for a shift that has
-   * ended, or one you are covering for someone else (getCoverWindowForShift).
+   * The read failed: the server's reason, and a way to try again without
+   * reloading the page. Shifts already on screen stay under it.
    */
-  const getCoverRoute: (shift: MaterializedShiftJson) => Route | null = (
-    shift: MaterializedShiftJson,
-  ): Route | null => {
-    const window: UserOverrideCoverWindow | null = getCoverWindowForShift(
-      shift,
-      now,
-    );
-
-    if (!window) {
-      return null;
-    }
-
-    const policyId: string | undefined = shift.policyVariantOf?.policyId;
-
-    const route: Route = new Route(
-      (
-        RouteMap[
-          policyId
-            ? PageMap.ON_CALL_DUTY_POLICY_VIEW_USER_OVERRIDES
-            : PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES
-        ] as Route
-      ).toString(),
-    ).addRouteParam(RouteParams.ProjectID, shift.projectId);
-
-    if (policyId) {
-      route.addRouteParam(RouteParams.ModelID, policyId);
-    }
-
-    return route.addQueryParams(getUserOverrideCoverQueryParams(window));
-  };
-
-  const renderShift: (shift: MaterializedShiftJson) => ReactElement = (
-    shift: MaterializedShiftJson,
-  ): ReactElement => {
-    const start: Date = OneUptimeDate.fromString(shift.start);
-    const end: Date = OneUptimeDate.fromString(shift.end);
-    const coverRoute: Route | null = getCoverRoute(shift);
-
-    return (
-      <div
-        key={shift.shiftKey}
-        className="flex flex-wrap items-center justify-between gap-2 py-2"
-        data-testid="upcoming-shift-row"
-      >
-        <div className="min-w-0">
-          <div className="text-sm text-gray-900">
-            <span className="font-medium">
-              {OneUptimeDate.toTimeString(start)}
-            </span>
-            {" – "}
-            <span className="font-medium">
-              {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(end)}
-            </span>
-            {" · "}
-            <span>{shift.scheduleName}</span>
-            {shift.projectName && (
-              <span className="text-gray-500"> · {shift.projectName}</span>
-            )}
-          </div>
-          <div className="mt-1 flex flex-wrap items-center gap-1">
-            {isCoveringShift(shift) && shift.override && (
-              <Pill
-                text={translateInterpolated(
-                  translateString,
-                  "Covering for {{name}}",
-                  { name: shift.override.originalUserName },
-                )}
-                color={Blue500}
-                size={PillSize.Small}
-                isMinimal={true}
-              />
-            )}
-            {shift.policyVariantOf && (
-              <Pill
-                text={translateInterpolated(
-                  translateString,
-                  "Only on policy {{name}}",
-                  { name: shift.policyVariantOf.policyName },
-                )}
-                color={Purple500}
-                size={PillSize.Small}
-                isMinimal={true}
-              />
-            )}
-            {shift.layerName && (
-              <span className="text-xs text-gray-500">{shift.layerName}</span>
-            )}
-          </div>
-        </div>
-        {coverRoute && (
-          <Link
-            to={coverRoute}
-            className="text-sm text-indigo-600 hover:underline"
-          >
-            {translateString("Get cover")}
-          </Link>
-        )}
-      </div>
-    );
-  };
+  const loadError: ReactElement | null = error ? (
+    <Alert
+      type={AlertType.DANGER}
+      strongTitle="Could not load your shifts."
+      title={error}
+      textOnRight="Try again"
+      dataTestId="upcoming-shifts-load-error"
+      onClick={reload}
+    />
+  ) : null;
 
   /*
    * The resolver reports `truncated` independently of how many shifts came
@@ -204,68 +198,114 @@ const UpcomingShiftsCard: FunctionComponent<ComponentProps> = (
    */
   const truncatedNotice: ReactElement | null =
     response && response.truncated ? (
-      <div
-        className="text-sm text-amber-700"
-        data-testid="upcoming-shifts-truncated"
+      <Alert
+        type={AlertType.WARNING}
+        title={translator.translateText(UPCOMING_SHIFTS_TRUNCATED_COPY) || ""}
+        dataTestId="upcoming-shifts-truncated"
+      />
+    ) : null;
+
+  let list: ReactElement | null = null;
+
+  if (response && spans.length === 0) {
+    list = response.truncated ? (
+      <p
+        className="text-sm leading-6 text-gray-500"
+        data-testid="upcoming-shifts-empty"
       >
-        {translateString(
-          "One of your schedules is too complex to compute fully; some shifts may be missing.",
+        {translator.translateText(UPCOMING_SHIFTS_TRUNCATED_EMPTY_COPY)}
+      </p>
+    ) : (
+      <div data-testid="upcoming-shifts-empty">
+        <FeedEmptyState
+          title={UPCOMING_SHIFTS_EMPTY_TITLE}
+          description={UPCOMING_SHIFTS_EMPTY_DESCRIPTION}
+          icon={IconProp.Calendar}
+          idPrefix="upcoming-shifts"
+        />
+      </div>
+    );
+  } else if (spans.length > 0) {
+    const fold: { shown: number; hidden: number } = getUpcomingShiftsFold({
+      total: spans.length,
+      isExpanded: isExpanded,
+    });
+
+    list = (
+      <div>
+        <ul
+          id={listId}
+          className="divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white"
+          data-testid="upcoming-shifts-list"
+          aria-label={translator.translateText(UPCOMING_SHIFTS_CARD_TITLE)}
+        >
+          {spans
+            .slice(0, fold.shown)
+            .map((span: UpcomingShiftSpan): ReactElement => {
+              return (
+                <UpcomingShiftRow
+                  key={span.key}
+                  span={span}
+                  clock={clock}
+                  showLayerName={shouldShowLayerName(span, spans)}
+                  showProjectName={showProjectNames}
+                />
+              );
+            })}
+        </ul>
+
+        {isUpcomingShiftsFoldable(spans.length) && (
+          <button
+            ref={foldRef}
+            type="button"
+            className="mt-3 inline-flex items-center gap-1 rounded-md text-sm font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+            aria-expanded={isExpanded}
+            aria-controls={listId}
+            data-testid="upcoming-shifts-fold"
+            onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+              if (isExpanded) {
+                foldTopBeforeFolding.current =
+                  event.currentTarget.getBoundingClientRect().top;
+              }
+
+              setIsExpanded(!isExpanded);
+            }}
+          >
+            <span>
+              {isExpanded
+                ? translator.translateText("Show fewer shifts")
+                : translator.translatePlural(
+                    {
+                      one: "Show {{count}} more shift",
+                      other: "Show {{count}} more shifts",
+                    },
+                    fold.hidden,
+                  )}
+            </span>
+            <Icon
+              icon={isExpanded ? IconProp.ChevronUp : IconProp.ChevronDown}
+              className="h-4 w-4 flex-none"
+            />
+          </button>
         )}
       </div>
-    ) : null;
+    );
+  }
 
   let body: ReactElement;
 
   if (isLoading) {
-    body = <ComponentLoader />;
-  } else if (error) {
     body = (
-      <ErrorMessage
-        message={error}
-        onRefreshClick={() => {
-          load().catch(() => {
-            // handled by load
-          });
-        }}
-      />
-    );
-  } else if (!response || response.shifts.length === 0) {
-    body = (
-      <div className="space-y-2">
-        {truncatedNotice}
-        <div
-          className="text-sm text-gray-500"
-          data-testid="upcoming-shifts-empty"
-        >
-          {translateString(
-            response && response.truncated
-              ? "No shifts could be listed for the next 30 days."
-              : "You have no shifts on any schedule in the next 30 days.",
-          )}
-        </div>
+      <div data-testid="upcoming-shifts-loading">
+        <ComponentLoader />
       </div>
     );
   } else {
-    const groups: Array<ShiftDayGroup> = groupShiftsByDay(response.shifts);
-
     body = (
-      <div className="space-y-4">
+      <div className={UPCOMING_SHIFTS_BODY_CLASS_NAME}>
+        {loadError}
         {truncatedNotice}
-        {groups.map((group: ShiftDayGroup): ReactElement => {
-          return (
-            <div key={group.dayKey} data-testid="upcoming-shift-day">
-              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                  group.day,
-                  true,
-                )}
-              </div>
-              <div className="divide-y divide-gray-100">
-                {group.shifts.map(renderShift)}
-              </div>
-            </div>
-          );
-        })}
+        {list}
       </div>
     );
   }
@@ -273,20 +313,28 @@ const UpcomingShiftsCard: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title={UPCOMING_SHIFTS_CARD_TITLE}
-      description={STANDING_ASSIGNMENTS_COPY}
+      description={translator.translateTemplate(UPCOMING_SHIFTS_DESCRIPTION, {
+        timezone: clock.timezone,
+      })}
       buttons={[
         {
           title: "Refresh",
           icon: IconProp.Refresh,
-          onClick: () => {
-            load().catch(() => {
-              // handled by load
-            });
-          },
+          isLoading: isRefreshing,
+          disabled: isLoading || isRefreshing,
+          onClick: reload,
         },
       ]}
     >
-      {body}
+      <div data-testid="upcoming-shifts">
+        {body}
+        <FeedCardFooter
+          icon={IconProp.Info}
+          dataTestId="upcoming-shifts-footer"
+        >
+          {translator.translateText(STANDING_ASSIGNMENTS_COPY)}
+        </FeedCardFooter>
+      </div>
     </Card>
   );
 };

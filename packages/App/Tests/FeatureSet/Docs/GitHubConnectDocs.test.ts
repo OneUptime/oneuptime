@@ -48,6 +48,11 @@ function readGuide(language: string): string {
   return fs.readFileSync(path.join(CONTENT_DIR, language, GUIDE), "utf8");
 }
 
+// A source file of the server or the Dashboard, by its path under packages/.
+function readSource(relativePath: string): string {
+  return fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf8");
+}
+
 // A string constant of the server's GitHub connection rule, read from source.
 function serverMessage(name: string): string {
   const source: string = fs.readFileSync(
@@ -144,6 +149,45 @@ describe("the self-hosted GitHub guide, in every language", () => {
       "Select the repositories you want to connect from the list",
     );
   });
+
+  /*
+   * Installing again on an account that has the app opens the installation's
+   * settings on GitHub, whose Save sends nobody back: Code Repositories has a
+   * link of its own for it, which signs in to GitHub instead.
+   */
+  test("sends an account that already has the app to Connect an existing installation, not to GitHub's Save", () => {
+    const english: string = readGuide("en");
+
+    expect(
+      readSource(
+        "App/FeatureSet/Dashboard/src/Pages/CodeRepository/CodeRepository.tsx",
+      ),
+    ).toContain('"Connect an existing installation"');
+    expect(readSource("Common/Server/API/GitHubAPI.ts")).toContain(
+      '"/github/connect-existing-url"',
+    );
+    expect(english).toContain("Click **Connect an existing installation**");
+    expect(english).not.toContain("**Save**");
+  });
+
+  test("says the GitHub account must administer the installation, as the server checks it", () => {
+    const github: string = readSource(
+      "Common/Server/Utils/CodeRepository/GitHub/GitHub.ts",
+    );
+    const english: string = readGuide("en");
+
+    // A personal account's owner, or admin on every repository it can access.
+    expect(github).toContain(
+      "return data.installation.accountId === data.userId;",
+    );
+    expect(github).toContain('if (permissions?.["admin"] !== true) {');
+    expect(english).toContain(
+      "the owner of a personal account, or someone with admin on every repository the installation can access",
+    );
+    expect(english).toContain(
+      "Read access to one of its repositories is not enough.",
+    );
+  });
 });
 
 describe("the English guide's troubleshooting", () => {
@@ -157,6 +201,7 @@ describe("the English guide's troubleshooting", () => {
     ConnectCallbackError.GitHubNoAuthorization,
     ConnectCallbackError.GitHubNotVerified,
     ConnectCallbackError.GitHubNoInstallation,
+    ConnectCallbackError.GitHubNoInstallationToConnect,
     ConnectCallbackError.NotConfigured,
     ConnectCallbackError.CouldNotFinish,
   ])(

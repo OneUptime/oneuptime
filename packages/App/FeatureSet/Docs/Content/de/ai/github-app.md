@@ -33,13 +33,13 @@ Es ist derselbe Agent und derselbe Runner wie bei den [Korrekturaufgaben](/docs/
 
 ## Bevor Sie beginnen
 
-- Das Repository muss über die GitHub App **mit einem OneUptime-Projekt verbunden** sein: Verbinden Sie es unter **Aufgaben → Code-Repositories** (öffnen Sie **Produkte → Code → Aufgaben**). Eine selbst gehostete Instanz braucht zuerst eine eigene GitHub App: siehe [GitHub-Integration](/docs/self-hosted/github-integration).
+- Das Repository muss über die GitHub App **mit einem OneUptime-Projekt verbunden** sein: Verbinden Sie es unter **Aufgaben → Code-Repositories** (öffnen Sie **Produkte → Code → Aufgaben**). Eine selbst gehostete Instanz braucht zuerst eine eigene GitHub App: siehe [GitHub-Integration](/docs/self-hosted/github-integration). Ist die App auf dem GitHub-Konto bereits installiert, klicken Sie dort auf **Vorhandene Installation verbinden**, statt sie erneut zu installieren.
 - Ein Runner mit **Führt KI-Codekorrekturen aus** muss online sein: derselbe Runner, der die [Korrekturaufgaben](/docs/ai/ai-agent) ausführt. Ohne ihn werden Befehle angenommen und schlagen nach 30 Minuten fehl, mit dem Hinweis, dass kein Agent sie übernommen hat.
 - Die GitHub App braucht die Berechtigung **Issues** mit **Read & write** und muss die Webhook-Ereignisse unter [Was abonniert werden muss](#was-abonniert-werden-muss) abonniert haben.
 
 ## Die Befehle
 
-Jeder Befehl beginnt mit einer Erwähnung der App. Die Erwähnung kann irgendwo im Kommentar stehen, und alles, was Sie danach schreiben, wird als Ihre Anfrage weitergegeben.
+Jeder Befehl beginnt mit einer Erwähnung der App. Die Erwähnung kann irgendwo im Kommentar stehen, und alles, was Sie danach schreiben, wird als Ihre Anfrage weitergegeben. Wenn Sie einen Kommentar bearbeiten, der die App bereits erwähnt, wird sie nicht erneut ausgeführt: Um Ihre Anfrage zu ändern, schreiben Sie einen neuen Kommentar. Eine Bearbeitung, die die Erwähnung hinzufügt, ist eine neue Anfrage.
 
 ### In einem Pull Request
 

@@ -1242,6 +1242,61 @@ describe("GitHubIssueFixTaskHandler", () => {
     expect(recorded.description).toContain("Closes #101");
   });
 
+  /*
+   * REGRESSION. The pull request is open on GitHub before it is recorded, and
+   * a record that failed used to fail the whole task — so the thread was told
+   * "I could not finish this one" while the pull request sat open. The run
+   * did what was asked; only the bookkeeping did not land.
+   */
+  test("a pull request that opened but could not be recorded is still a success, with its link", async () => {
+    const pipeline: StubbedPipeline = stubPipeline({
+      agentResult: agentSucceeded({
+        filesModified: ["src/checkout.ts"],
+        summary: "Guarded the empty cart.",
+      }),
+    });
+
+    const harness: Harness = buildHarness(issueDetails());
+    harness.recordPullRequest.mockRejectedValue(
+      new Error("Failed to record pull request"),
+    );
+
+    const result: TaskResult = await run(harness);
+
+    expect(pipeline.createPullRequest).toHaveBeenCalledTimes(1);
+    expect(harness.recordPullRequest).toHaveBeenCalledTimes(1);
+    expect(result.success).toBe(true);
+    expect(result.data?.["isError"]).toBeUndefined();
+    expect(result.pullRequestsCreated).toBe(1);
+    expect(result.pullRequestUrls).toEqual([PULL_REQUEST_URL]);
+  });
+
+  // Not swallowed silently: the run's log names the pull request and why.
+  test("logs the pull request it could not record, and the reason", async () => {
+    stubPipeline({
+      agentResult: agentSucceeded({
+        filesModified: ["src/checkout.ts"],
+        summary: "Guarded the empty cart.",
+      }),
+    });
+
+    const harness: Harness = buildHarness(issueDetails());
+    harness.recordPullRequest.mockRejectedValue(
+      new Error("Failed to record pull request"),
+    );
+
+    await run(harness);
+
+    const recordFailure: string | undefined = harness.logLines.find(
+      (line: string) => {
+        return line.includes("could not record");
+      },
+    );
+
+    expect(recordFailure).toContain(PULL_REQUEST_URL);
+    expect(recordFailure).toContain("Failed to record pull request");
+  });
+
   test("the pull request body warns that it is AI-authored and unmerged", async () => {
     const pipeline: StubbedPipeline = stubPipeline({
       agentResult: agentSucceeded({

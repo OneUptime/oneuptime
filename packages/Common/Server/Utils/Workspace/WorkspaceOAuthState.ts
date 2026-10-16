@@ -28,6 +28,19 @@ export enum WorkspaceOAuthFlow {
   MicrosoftTeamsAdminConsentSignIn = "MicrosoftTeamsAdminConsentSignIn",
   // Installing the GitHub App, which connects its repositories to a project.
   GitHubAppInstall = "GitHubAppInstall",
+  /*
+   * Connecting an installation of the GitHub App that already exists. GitHub
+   * sends nobody back from an installation that is only reconfigured, so
+   * the person signs in to GitHub instead, and OneUptime asks which
+   * installations their GitHub account administers.
+   */
+  GitHubAppConnectExisting = "GitHubAppConnectExisting",
+  /*
+   * Picking one of those installations, when there is more than one. The
+   * state carries the installations OneUptime confirmed, so the pick can
+   * only be one of them.
+   */
+  GitHubAppChooseInstallation = "GitHubAppChooseInstallation",
   // The one-click Connect of a video call provider (VideoCallOAuthAPI).
   VideoCallZoomConnect = "VideoCallZoomConnect",
   VideoCallGoogleMeetConnect = "VideoCallGoogleMeetConnect",
@@ -223,6 +236,54 @@ export default class WorkspaceOAuthState {
       STATE_NAMESPACE,
       WorkspaceOAuthState.hash(data.state),
     );
+
+    return WorkspaceOAuthState.readRecord({
+      req: data.req,
+      rawRecord: rawRecord,
+      flows: data.flows,
+    });
+  }
+
+  /*
+   * Reads a state without spending it, refused for every reason consume
+   * refuses one. For a page that shows what a state offers before the person
+   * picks - the GitHub installations their account administers - while the
+   * pick itself goes through the callback that spends it.
+   */
+  @CaptureSpan()
+  public static async peek(data: {
+    req: ExpressRequest;
+    state: string | undefined;
+    flows: Array<WorkspaceOAuthFlow>;
+  }): Promise<WorkspaceOAuthStateRecord | null> {
+    if (!WorkspaceOAuthState.isWellFormedToken(data.state)) {
+      logger.debug("Workspace OAuth state refused: malformed state.");
+      return null;
+    }
+
+    const rawRecord: string | null = await GlobalCache.getString(
+      STATE_NAMESPACE,
+      WorkspaceOAuthState.hash(data.state),
+    );
+
+    return WorkspaceOAuthState.readRecord({
+      req: data.req,
+      rawRecord: rawRecord,
+      flows: data.flows,
+    });
+  }
+
+  /*
+   * What a stored record stands for, or null when it must be refused:
+   * missing, unreadable, minted for another flow, expired, or presented by a
+   * browser other than the one that started the flow.
+   */
+  private static readRecord(data: {
+    req: ExpressRequest;
+    rawRecord: string | null;
+    flows: Array<WorkspaceOAuthFlow>;
+  }): WorkspaceOAuthStateRecord | null {
+    const rawRecord: string | null = data.rawRecord;
 
     if (!rawRecord) {
       logger.debug(
