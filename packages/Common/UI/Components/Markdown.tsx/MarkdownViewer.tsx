@@ -605,6 +605,19 @@ const isMermaidCodeClass: (className: unknown) => boolean = (
  * own defaults, and how Word and Outlook draw the same list -- and, as in
  * the browser's defaults, a numbered list counts as a level too.
  */
+/*
+ * What react-markdown hands a renderer, without the tree node it adds
+ * (`node`): spread onto an element, React wrote it out as
+ * node="[object Object]".
+ */
+const withoutTreeNode: (props: Record<string, unknown>) => Record<string, unknown> = (
+  props: Record<string, unknown>,
+): Record<string, unknown> => {
+  const attributes: Record<string, unknown> = { ...props };
+  delete attributes["node"];
+  return attributes;
+};
+
 const ListDepthContext: React.Context<number> = React.createContext<number>(0);
 
 const BULLET_STYLES: Array<string> = [
@@ -630,7 +643,7 @@ const MarkdownBulletList: FunctionComponent<any> = (
     <ListDepthContext.Provider value={depth + 1}>
       <ul
         className={`${getBulletStyleForDepth(depth)} pl-6 mt-0 mb-1`}
-        {...props}
+        {...withoutTreeNode(props)}
       />
     </ListDepthContext.Provider>
   );
@@ -642,22 +655,12 @@ const MarkdownNumberedList: FunctionComponent<any> = (
   const depth: number = useContext(ListDepthContext);
   return (
     <ListDepthContext.Provider value={depth + 1}>
-      <ol className="list-decimal pl-6 mt-0 mb-1" {...props} />
+      <ol
+        className="list-decimal pl-6 mt-0 mb-1"
+        {...withoutTreeNode(props)}
+      />
     </ListDepthContext.Provider>
   );
-};
-
-/*
- * What react-markdown hands a renderer, without the tree node it adds
- * (`node`): spread onto an element, React wrote it out as
- * node="[object Object]".
- */
-const withoutTreeNode: (props: Record<string, unknown>) => Record<string, unknown> = (
-  props: Record<string, unknown>,
-): Record<string, unknown> => {
-  const attributes: Record<string, unknown> = { ...props };
-  delete attributes["node"];
-  return attributes;
 };
 
 /*
@@ -796,7 +799,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         return (
           <h1
             className="text-lg mt-6 mb-3 text-gray-900 font-bold"
-            {...props}
+            {...withoutTreeNode(props)}
           />
         );
       },
@@ -804,7 +807,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         return (
           <h2
             className="text-base mt-6 mb-2 text-gray-900 font-semibold"
-            {...props}
+            {...withoutTreeNode(props)}
           />
         );
       },
@@ -812,7 +815,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         return (
           <h3
             className="text-base mt-4 mb-2 text-gray-900 font-semibold"
-            {...props}
+            {...withoutTreeNode(props)}
           />
         );
       },
@@ -820,7 +823,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         return (
           <h4
             className="text-sm mt-3 mb-2 text-gray-900 font-semibold"
-            {...props}
+            {...withoutTreeNode(props)}
           />
         );
       },
@@ -828,7 +831,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         return (
           <h5
             className="text-sm mt-3 mb-1 text-gray-900 font-medium"
-            {...props}
+            {...withoutTreeNode(props)}
           />
         );
       },
@@ -836,7 +839,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         return (
           <h6
             className="text-sm mt-2 mb-1 text-gray-700 font-medium"
-            {...props}
+            {...withoutTreeNode(props)}
           />
         );
       },
@@ -909,7 +912,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         return (
           <pre
             className="bg-gray-900 text-gray-100 mt-3 mb-3 p-3 rounded-md text-sm overflow-x-auto border border-gray-700"
-            {...rest}
+            {...withoutTreeNode(rest)}
           >
             {children}
           </pre>
@@ -917,7 +920,10 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
       },
       strong: ({ ...props }: any) => {
         return (
-          <strong className="text-sm font-semibold text-gray-900" {...props} />
+          <strong
+            className="text-sm font-semibold text-gray-900"
+            {...withoutTreeNode(props)}
+          />
         );
       },
       li: ({ ...props }: any) => {
@@ -942,36 +948,52 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           <div className="overflow-hidden rounded-lg border border-gray-200 mt-4 mb-4 shadow-sm">
             <table
               className="min-w-full table-auto border-collapse text-sm"
-              {...props}
+              {...withoutTreeNode(props)}
             />
           </div>
         );
       },
       thead: ({ ...props }: any) => {
-        return <thead className="bg-gray-50" {...props} />;
+        return <thead className="bg-gray-50" {...withoutTreeNode(props)} />;
       },
       tbody: ({ ...props }: any) => {
-        return <tbody className="divide-y divide-gray-100" {...props} />;
+        return (
+          <tbody
+            className="divide-y divide-gray-100"
+            {...withoutTreeNode(props)}
+          />
+        );
       },
       tr: ({ ...props }: any) => {
-        return <tr className="hover:bg-gray-50 transition-colors" {...props} />;
+        return (
+          <tr
+            className="hover:bg-gray-50 transition-colors"
+            {...withoutTreeNode(props)}
+          />
+        );
       },
       th: ({ ...props }: any) => {
         return (
           <th
             className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 border-b border-gray-200"
-            {...props}
+            {...withoutTreeNode(props)}
           />
         );
       },
       td: ({ ...props }: any) => {
-        return <td className="px-4 py-2.5 text-sm text-gray-700" {...props} />;
+        return (
+          <td
+            className="px-4 py-2.5 text-sm text-gray-700"
+            {...withoutTreeNode(props)}
+          />
+        );
       },
       hr: ({ ...props }: any) => {
-        return <hr className="border-gray-300 my-6" {...props} />;
+        return <hr className="border-gray-300 my-6" {...withoutTreeNode(props)} />;
       },
       code: (props: any) => {
-        const { children, className, ...rest } = props;
+        const { children, className, ...attributes } = props;
+        const rest: Record<string, unknown> = withoutTreeNode(attributes);
 
         const match: RegExpExecArray | null = RE_CODE_LANGUAGE.exec(
           className || "",
