@@ -11,6 +11,7 @@ import DatabaseCommonInteractionPropsUtil, {
 } from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+import WorkflowPrincipal from "../../../Utils/Workflow/WorkflowPrincipal";
 import Permission, {
   PermissionHelper,
   UserPermission,
@@ -62,6 +63,19 @@ export default class TablePermission {
   ): void {
     // 1 CHECK: PUBLIC check -- Check if this is a public request and if public is allowed.
     PublicPermission.checkIfUserIsLoggedIn(modelType, props, type);
+
+    /*
+     * A workflow's step changes nobody's access: it creates, changes and
+     * deletes no team, team member, team permission, role or API key
+     * permission, though it acts as a Project Admin who may
+     * (WorkflowPrincipal.assertDoesNotChangeAccess). Asked before anything
+     * else, so the step is told this whatever its plan.
+     */
+    WorkflowPrincipal.assertDoesNotChangeAccess({
+      modelType: modelType,
+      props: props,
+      type: type,
+    });
 
     // 2nd CHECK: Is user project in active state, and on the plan this needs?
     BillingPermissions.checkBillingPermissions(

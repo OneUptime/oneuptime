@@ -21,6 +21,11 @@ import {
   UNCATEGORIZED_TITLE,
   useCategoryFolds,
 } from "./NavBarMenuCatalog";
+import {
+  pickRecentProducts,
+  readRecentProductRoutes,
+  rememberRecentProductRoute,
+} from "./NavBarRecentProducts";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -86,49 +91,6 @@ export const ICON_COLOR_CLASSES: Record<string, IconColorClasses> = {
   },
   red: { bg: "bg-red-50", ring: "ring-red-200", text: "text-red-600" },
   teal: { bg: "bg-teal-50", ring: "ring-teal-200", text: "text-teal-600" },
-};
-
-// Persist the handful of most-recently opened products across sessions.
-const RECENT_STORAGE_KEY: string = "oneuptime-navbar-recent-products";
-const RECENT_LIMIT: number = 5;
-
-const readRecentRoutes: () => string[] = (): string[] => {
-  try {
-    if (typeof window === "undefined" || !window.localStorage) {
-      return [];
-    }
-    const raw: string | null = window.localStorage.getItem(RECENT_STORAGE_KEY);
-    if (!raw) {
-      return [];
-    }
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-    return parsed.filter((value: unknown): value is string => {
-      return typeof value === "string";
-    });
-  } catch {
-    // Ignore storage access / parse errors (e.g. private mode, bad JSON).
-    return [];
-  }
-};
-
-const writeRecentRoute: (routeString: string) => void = (
-  routeString: string,
-): void => {
-  try {
-    if (typeof window === "undefined" || !window.localStorage) {
-      return;
-    }
-    const existing: string[] = readRecentRoutes().filter((route: string) => {
-      return route !== routeString;
-    });
-    const next: string[] = [routeString, ...existing].slice(0, RECENT_LIMIT);
-    window.localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify(next));
-  } catch {
-    // Ignore storage write errors (e.g. private mode, quota exceeded).
-  }
 };
 
 export interface ComponentProps {
@@ -236,9 +198,12 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   const [activeKey, setActiveKey] = useState<string | undefined>(undefined);
   // Drives the open transition (fade + scale-in) on the first paint.
   const [isShown, setIsShown] = useState<boolean>(false);
-  // Recently opened product routes, read once when the modal opens.
-  const [recentRoutes] = useState<string[]>(() => {
-    return readRecentRoutes();
+  /*
+   * The products opened from this menu before, the most recent first, read
+   * once when the menu opens (NavBarRecentProducts.ts).
+   */
+  const [recentRoutes] = useState<Array<string>>(() => {
+    return readRecentProductRoutes();
   });
   const inputRef: React.RefObject<HTMLInputElement> =
     useRef<HTMLInputElement>(null);
@@ -291,26 +256,14 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   }, [props.items, query]);
 
   /*
-   * The "Recent" row: resolve stored routes to current items, skip the page
-   * we're already on, and cap the count. Only shown while idle (no query).
+   * The "Recent" row: the remembered products of this menu, without the
+   * page we're already on, six at most (two full rows of three cards).
+   * Only shown while idle (no query).
    */
-  const recentItems: MoreMenuItem[] = useMemo(() => {
-    if (recentRoutes.length === 0) {
-      return [];
-    }
-    const itemByRoute: Map<string, MoreMenuItem> = new Map();
-    props.items.forEach((item: MoreMenuItem) => {
-      itemByRoute.set(item.route.toString(), item);
-    });
-    const resolved: MoreMenuItem[] = [];
-    recentRoutes.forEach((route: string) => {
-      const item: MoreMenuItem | undefined = itemByRoute.get(route);
-      if (item && !isMoreMenuItemActive(item)) {
-        resolved.push(item);
-      }
-    });
-    return resolved.slice(0, RECENT_LIMIT);
+  const recentItems: Array<MoreMenuItem> = useMemo(() => {
+    return pickRecentProducts(recentRoutes, props.items, isMoreMenuItemActive);
   }, [recentRoutes, props.items]);
+  const showsRecentRow: boolean = !isSearching && recentItems.length > 0;
 
   // Group filtered items by category, preserving first-seen order.
   const categoryGroups: Array<MenuCategory> = useMemo(() => {
@@ -329,7 +282,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
    * a plain heading, and the cursor moves over products alone.
    */
   const rawGroups: Array<RawGroup> = [];
-  if (!isSearching && recentItems.length > 0) {
+  if (showsRecentRow) {
     rawGroups.push({ title: recentLabel, items: recentItems, isRecent: true });
   }
   categoryGroups.forEach((category: MenuCategory) => {
@@ -419,9 +372,14 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   );
 
   /*
-   * Where the cursor is. When idle the menu opens "where you are", on the
-   * current page's product; while searching, on the first result. Either
-   * way it starts on a product, never on a category's heading row.
+   * Where the cursor is. When idle with a Recent row, the menu opens on its
+   * first card, the product used before this one, as switching apps does:
+   * the row is the first thing on screen and Enter goes back. The list
+   * scrolls to the cursor, so opening on a current product further down
+   * (Teams, Logs, Kubernetes) would push the Recent row out of sight.
+   * Without a Recent row the menu opens "where you are", on the current
+   * page's product (it keeps its dot either way); while searching, on the
+   * first result. It always starts on a product, never on a heading row.
    */
   const activeIndex: number = ((): number => {
     if (activeKey !== undefined) {
@@ -432,7 +390,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
         return index;
       }
     }
-    if (!isSearching && currentFlatIndex >= 0) {
+    if (!isSearching && !showsRecentRow && currentFlatIndex >= 0) {
       return currentFlatIndex;
     }
     const firstProductIndex: number = entries.findIndex(
@@ -482,7 +440,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   const selectItem: (item: MoreMenuItem) => void = (
     item: MoreMenuItem,
   ): void => {
-    writeRecentRoute(item.route.toString());
+    rememberRecentProductRoute(item.route.toString());
     props.onClose();
   };
 
@@ -664,6 +622,11 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
         id={entryElementId(entry)}
         role="option"
         aria-selected={isActive}
+        /*
+         * The page the user is on, for screen readers too (its dot is
+         * hidden from them). Theme.css keys its dark wash on this.
+         */
+        aria-current={isCurrent ? "page" : undefined}
         ref={(element: HTMLDivElement | null) => {
           cellRefs.current[flatIndex] = element;
         }}
@@ -947,13 +910,14 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                     />
                   </div>
                   <div className="min-w-0 text-left">
-                    <p className="flex items-center gap-1 text-sm font-medium text-gray-900">
+                    {/* A div, not a p: Icon draws a div, which a p cannot hold. */}
+                    <div className="flex items-center gap-1 text-sm font-medium text-gray-900">
                       <span className="truncate">{tx(props.footer.title)}</span>
                       <Icon
                         icon={IconProp.ExternalLink}
                         className="h-3 w-3 flex-shrink-0 text-gray-400 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
                       />
-                    </p>
+                    </div>
                     <p className="truncate text-xs text-gray-500">
                       {tx(props.footer.description)}
                     </p>

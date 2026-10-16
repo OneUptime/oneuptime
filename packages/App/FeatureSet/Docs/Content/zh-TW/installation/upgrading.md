@@ -275,7 +275,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 
 現有工作流程會發生的變化：
 
-- 向團隊或 API 金鑰授予 Project Admin 不具備的權限的步驟——**Project Owner**、帳單或刪除專案，或 Project Admin 權限之外的任何權限——會被拒絕；把某人新增到權限多於 Project Admin 的團隊（例如擁有者團隊）的步驟也會被拒絕。
+- 建立、變更或刪除團隊、團隊成員、團隊權限、自訂角色或 API 金鑰權限的步驟會被拒絕，無論它要授予什麼，包括 **Project Owner** 和 **Project Admin**：工作流程步驟不會改變誰能存取專案。這些變更由管理專案團隊和 API 金鑰的人來做。
 - 編輯或刪除動態項目、寫入通知日誌、設定 OneUptime 自行維護的值（已驗證的 CNAME、團隊的保護開關、主要事件角色、通知和提醒欄位、目前誰在待命、SLO 的結果、私人使用者的密碼重設權杖……）或把記錄移到另一個上層之下的步驟會被拒絕。完整清單請參閱該頁面。
 - 透過傳送 `createdIncidentTemplateId` 從範本宣告事件的 **Create One Incident** 步驟會被拒絕。請改為在該步驟的 **Incident Template** 設定中選擇範本，並從其 **JSON Object** 中去掉 `createdIncidentTemplateId`。這樣該步驟就會像儀表板那樣從範本宣告事件——步驟設定的所有內容優先，包括狀態——新增範本的擁有者，並記錄該範本。仍在傳送該欄位的步驟，其執行日誌會指向該設定。請參閱 [從範本宣告事件](/docs/workflows/components#依據範本宣告事件)。
 - 選擇探測器或 AI 代理程式由誰建立的步驟會被拒絕。

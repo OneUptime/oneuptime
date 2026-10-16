@@ -1136,6 +1136,19 @@ html.dark [data-ou-toggle-track][class~="hover:bg-indigo-700"]:hover {
   background-color: #818cf8;
 }
 
+/*
+ * The products menu (Common/UI/Components/Navbar/NavBarMenuModal): the card
+ * of the page the user is on, while the keyboard cursor is elsewhere. The
+ * general rules give its faint bg-indigo-50/40 and border-indigo-100 the
+ * same wash and edge as the cursor's bg-indigo-50 and border-indigo-300, so
+ * in the dark theme two cards looked chosen and Enter's was not clear. It
+ * keeps, as in the light theme, about two fifths of the cursor's wash.
+ */
+html.dark [role="option"][aria-current="page"] > a[class~="bg-indigo-50/40"] {
+  background-color: rgb(49 46 129 / 14%);
+  border-color: rgb(129 140 248 / 18%);
+}
+
 html.dark option,
 html.dark optgroup {
   background-color: var(--ou-surface-primary);
