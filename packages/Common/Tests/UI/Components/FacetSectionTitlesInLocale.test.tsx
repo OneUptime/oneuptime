@@ -87,9 +87,7 @@ const inJapanese: (element: ReactElement) => void = (
 };
 
 // What a header draws for an English title in the test locale.
-const japaneseName: (english: string) => string = (
-  english: string,
-): string => {
+const japaneseName: (english: string) => string = (english: string): string => {
   return JAPANESE[english] ?? english;
 };
 
@@ -301,9 +299,7 @@ describe("the traces sidebar, in Japanese", () => {
     inJapanese(tracesSidebar());
 
     expect(sectionTitles()).toEqual(
-      ["Service", "Host", "Status", "Span Type", "Span Kind"].map(
-        japaneseName,
-      ),
+      ["Service", "Host", "Status", "Span Type", "Span Kind"].map(japaneseName),
     );
     expect(screen.getByText("フィルター")).toBeInTheDocument();
   });

@@ -476,10 +476,7 @@ function labelsMissingFromTheirLines(
 
       const drawn: string = drawnActionLabel(language, span);
 
-      expected.set(
-        drawn,
-        (expected.get(drawn) || 0) + boldCount(line, span),
-      );
+      expected.set(drawn, (expected.get(drawn) || 0) + boldCount(line, span));
     }
 
     for (const [drawn, count] of Array.from(expected.entries())) {

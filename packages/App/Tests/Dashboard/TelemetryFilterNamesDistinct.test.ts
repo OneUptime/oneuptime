@@ -246,7 +246,10 @@ function explorerSidebar(file: string): Array<string> {
  */
 function logsSidebar(): Array<string> {
   const body: ts.Node = functionBody(
-    path.join(COMMON_UI, "Components/LogsViewer/components/LogsFacetSidebar.tsx"),
+    path.join(
+      COMMON_UI,
+      "Components/LogsViewer/components/LogsFacetSidebar.tsx",
+    ),
     "getFacetTitle",
   );
 
@@ -349,7 +352,10 @@ const GROUP_BY: Array<LabelSet> = [
   {
     screen: "the Logs explorer's analytics: group by",
     labels: optionLabels(
-      path.join(COMMON_UI, "Components/LogsViewer/components/LogsAnalyticsView.tsx"),
+      path.join(
+        COMMON_UI,
+        "Components/LogsViewer/components/LogsAnalyticsView.tsx",
+      ),
       "DIMENSION_OPTIONS",
     ),
   },
@@ -365,7 +371,11 @@ const GROUP_BY: Array<LabelSet> = [
   },
 ];
 
-const LABEL_SETS: Array<LabelSet> = [...SIDEBARS, ...FILTER_BUILDERS, ...GROUP_BY];
+const LABEL_SETS: Array<LabelSet> = [
+  ...SIDEBARS,
+  ...FILTER_BUILDERS,
+  ...GROUP_BY,
+];
 
 /*
  * The pairs of one screen that read as one name in this language:
@@ -490,9 +500,11 @@ describe("one name per filter, in every language", () => {
 });
 
 describe("Span Type and Span Kind", () => {
-  test.each(LANGUAGES.filter((language: string): boolean => {
-    return language !== "en";
-  }))(
+  test.each(
+    LANGUAGES.filter((language: string): boolean => {
+      return language !== "en";
+    }),
+  )(
     "%s names Span Type in its own words, apart from its Span Kind",
     (language: string) => {
       const spanType: string = drawn(language, SPAN_TYPE);

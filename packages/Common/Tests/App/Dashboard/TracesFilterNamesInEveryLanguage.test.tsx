@@ -8,13 +8,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import {
-  act,
-  cleanup,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import fs from "fs";
 import { createInstance, i18n } from "i18next";
 import path from "path";
@@ -172,9 +166,7 @@ const LANGUAGES: Array<string> = fs
   })
   .sort();
 
-const readLocale: (language: string) => Locale = (
-  language: string,
-): Locale => {
+const readLocale: (language: string) => Locale = (language: string): Locale => {
   return JSON.parse(
     fs.readFileSync(path.join(LOCALES_DIR, `${language}.json`), "utf8"),
   ) as Locale;
