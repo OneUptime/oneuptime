@@ -429,6 +429,68 @@ function ruleTypeCells(language: string): Array<string> {
   });
 }
 
+// How many times a line writes this bold span.
+function boldCount(line: string, span: string): number {
+  return line.split(`**${span}**`).length - 1;
+}
+
+/*
+ * The Dashboard labels each line of an English page names, drawn as this
+ * language's Dashboard draws them, that the line in the English one's place
+ * names fewer times than the English line does: "57: **Tipo de span** 2, found
+ * 1". A filter list that wrote two filters as one - the Spanish traces page
+ * once listed **Tipo de span** once for Span Type and Span Kind, both drawn
+ * so - shows up here, though the page as a whole names every label.
+ */
+function labelsMissingFromTheirLines(
+  language: string,
+  page: string,
+  englishText: string = englishPage(page),
+  translatedText: string = readPage(language, page),
+): Array<string> {
+  const english: Array<string> = englishText.split("\n");
+  const translated: Array<string> = translatedText.split("\n");
+  const missing: Array<string> = [];
+  let inFence: boolean = false;
+
+  english.forEach((line: string, index: number): void => {
+    if (FENCE_LINE.test(line)) {
+      inFence = !inFence;
+      return;
+    }
+
+    if (inFence) {
+      return;
+    }
+
+    const expected: Map<string, number> = new Map<string, number>();
+
+    for (const span of boldSpans(line)) {
+      if (
+        span.includes(PATH_SEPARATOR) ||
+        !isActionLabel(span) ||
+        accountedFor(page, span)
+      ) {
+        continue;
+      }
+
+      const drawn: string = drawnActionLabel(language, span);
+
+      expected.set(drawn, (expected.get(drawn) || 0) + boldCount(line, span));
+    }
+
+    for (const [drawn, count] of Array.from(expected.entries())) {
+      const found: number = boldCount(translated[index] || "", drawn);
+
+      if (found < count) {
+        missing.push(`${index + 1}: **${drawn}** ${count}, found ${found}`);
+      }
+    }
+  });
+
+  return missing;
+}
+
 function navGroup(title: string): NavGroup {
   return DocsNav.find((group: NavGroup): boolean => {
     return group.title === title;
@@ -877,6 +939,10 @@ describe.each(LANGUAGES)("%s", (language: string) => {
         expect(missing).toEqual([]);
       });
 
+      it("names each Dashboard label on the English one's line, as often as that line does, so no two filters are written as one", () => {
+        expect(labelsMissingFromTheirLines(language, entry.page)).toEqual([]);
+      });
+
       it("leaves no Dashboard label or path in English where this language's Dashboard draws it otherwise", () => {
         const translated: string = readPage(language, entry.page);
         const drawnHere: Array<[string, string]> = englishBoldDrawings(
@@ -965,6 +1031,81 @@ describe.each(LANGUAGES)("%s", (language: string) => {
   );
 });
 
+/*
+ * The traces sidebar has two span filters: Span Type, whose one choice is
+ * Root spans, and Span Kind, OpenTelemetry's SpanKind. Japanese drew both as
+ * スパンの種類 and Spanish both as "Tipo de span", so the Japanese page told
+ * them apart with a parenthesis after each and the Spanish page named them
+ * once. Each language's Dashboard names them apart now, and its page names
+ * each by its own label alone, as the English page does.
+ */
+describe("Span Type and Span Kind on the Traces Explorer page", () => {
+  const SPAN_TYPE: string = "Span Type";
+  const SPAN_KIND: string = "Span Kind";
+  // A bracket right after a label: "**スパンの種類**（サーバー、クライアントなど）".
+  const BRACKET_AFTER: RegExp = /^\s*[(（]/;
+
+  // The line of the English page that names both filters: the sidebar's list.
+  const SIDEBAR_LINE: number = englishPage(TRACES_EXPLORER)
+    .split("\n")
+    .findIndex((line: string): boolean => {
+      return (
+        line.includes(`**${SPAN_TYPE}**`) && line.includes(`**${SPAN_KIND}**`)
+      );
+    });
+
+  it("the English page names both filters on one line: the sidebar's list", () => {
+    expect(SIDEBAR_LINE).toBeGreaterThan(0);
+    expect(englishPage(TRACES_EXPLORER).split("\n")[SIDEBAR_LINE]).toContain(
+      "The sidebar filters by",
+    );
+  });
+
+  it.each(LANGUAGES)(
+    "%s: its Dashboard draws them as two labels, and its page names each once in the sidebar's list, nothing in brackets after either",
+    (language: string) => {
+      const spanType: string = drawnActionLabel(language, SPAN_TYPE);
+      const spanKind: string = drawnActionLabel(language, SPAN_KIND);
+      const line: string =
+        readPage(language, TRACES_EXPLORER).split("\n")[SIDEBAR_LINE] || "";
+
+      expect(spanType).not.toBe(spanKind);
+      expect({
+        spanType: boldCount(line, spanType),
+        spanKind: boldCount(line, spanKind),
+      }).toEqual({ spanType: 1, spanKind: 1 });
+
+      for (const label of [spanType, spanKind]) {
+        const after: Array<string> = line.split(`**${label}**`).slice(1);
+
+        expect({
+          label,
+          bracketed: after.some((rest: string): boolean => {
+            return BRACKET_AFTER.test(rest);
+          }),
+        }).toEqual({ label, bracketed: false });
+      }
+    },
+  );
+
+  it("pick Root spans under Span Type, as each language's Dashboard names it", () => {
+    for (const language of LANGUAGES) {
+      const spanType: string = drawnActionLabel(language, SPAN_TYPE);
+      const page: string = readPage(language, TRACES_EXPLORER);
+
+      // The overview and the troubleshooting tip both say where Root spans is.
+      expect({ language, times: boldCount(page, spanType) }).toEqual({
+        language,
+        times: 3,
+      });
+      expect({ language, rootSpans: boldCount(page, "Root spans") }).toEqual({
+        language,
+        rootSpans: 2,
+      });
+    }
+  });
+});
+
 describe("the helpers, on these pages' shapes", () => {
   it("draw a product from the Products menu's own words, under its group", () => {
     expect(drawnPath("en", ["Products", "Observability", "Logs"])).toBe(
@@ -1011,6 +1152,49 @@ describe("the helpers, on these pages' shapes", () => {
     }
 
     expect((names.match(LATIN_WORD) || []).length).toBeLessThan(3);
+  });
+
+  it("find a line that names two of the English line's labels as one, or leaves one out", () => {
+    const english: string = [
+      "# Traces Explorer",
+      "The sidebar filters by **Status**, **Span Name** and **Status**.",
+      "```",
+      "**Status** in a code block is not a label.",
+      "```",
+    ].join("\n");
+    const merged: string = [
+      "# Explorador de trazas",
+      "La barra lateral filtra por **Estado** y **Nombre del span**.",
+      "```",
+      "**Status** in a code block is not a label.",
+      "```",
+    ].join("\n");
+    const dropped: string = [
+      "# Explorador de trazas",
+      "La barra lateral filtra por **Estado** y **Estado**.",
+      "```",
+      "**Status** in a code block is not a label.",
+      "```",
+    ].join("\n");
+    const whole: string = [
+      "# Explorador de trazas",
+      "La barra lateral filtra por **Estado**, **Nombre del span** y **Estado**.",
+      "```",
+      "**Status** in a code block is not a label.",
+      "```",
+    ].join("\n");
+
+    expect(drawnActionLabel("es", "Status")).toBe("Estado");
+    expect(drawnActionLabel("es", "Span Name")).toBe("Nombre del span");
+    expect(
+      labelsMissingFromTheirLines("es", TRACES_EXPLORER, english, merged),
+    ).toEqual(["2: **Estado** 2, found 1"]);
+    expect(
+      labelsMissingFromTheirLines("es", TRACES_EXPLORER, english, dropped),
+    ).toEqual(["2: **Nombre del span** 1, found 0"]);
+    expect(
+      labelsMissingFromTheirLines("es", TRACES_EXPLORER, english, whole),
+    ).toEqual([]);
   });
 
   it("name every link's anchor by the heading in the English heading's place, in the reader's language", () => {
