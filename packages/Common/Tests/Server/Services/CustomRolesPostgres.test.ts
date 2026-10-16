@@ -1026,8 +1026,10 @@ describePostgres("custom roles against a migrated Postgres", () => {
 
       expect(
         copies.map((row: StoredRow): Omit<StoredRow, "id"> => {
-          const { id: _id, ...rest } = row;
-          return rest;
+          // Every field but the row's own id, which the database picks.
+          const rest: Partial<StoredRow> = { ...row };
+          delete rest.id;
+          return rest as Omit<StoredRow, "id">;
         }),
       ).toEqual([
         {

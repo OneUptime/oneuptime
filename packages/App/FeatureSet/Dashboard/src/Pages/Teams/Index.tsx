@@ -5,7 +5,7 @@ import PageComponentProps from "../PageComponentProps";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -31,7 +31,6 @@ import {
 import GrantablePermission, {
   TeamPermissionGrant,
 } from "Common/UI/Utils/GrantablePermission";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import RoleAccessNotice from "../../Components/Permission/RoleAccessNotice";
 import {
