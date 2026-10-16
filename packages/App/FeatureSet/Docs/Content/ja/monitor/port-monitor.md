@@ -109,9 +109,9 @@ sequenceDiagram
 | フィルター | 条件 | チェック内容 |
 | --- | --- | --- |
 | **Is Online** | **真**、**偽** | ポートが接続を受け付けたかどうか。 |
-| **合計接続時間（DNS + TCP）（ms）** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | ホスト名の場合の DNS の名前解決を含む、接続時間全体。 |
-| **Port DNS Lookup Time (in ms)** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 最初の TCP 試行の前の DNS の名前解決。対象が IP アドレスのときは値がありません。 |
-| **Port TCP Connect Time (in ms)** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 最初の TCP 試行から接続が受け付けられるまで。IPv6 と IPv4 の切り替えを含みます。 |
+| **合計接続時間（DNS + TCP）（ms）** | **より大きい**、**より小さい**、**以上**、**以下** | ホスト名の場合の DNS の名前解決を含む、接続時間全体。 |
+| **Port DNS Lookup Time (in ms)** | **より大きい**、**より小さい**、**以上**、**以下** | 最初の TCP 試行の前の DNS の名前解決。対象が IP アドレスのときは値がありません。 |
+| **Port TCP Connect Time (in ms)** | **より大きい**、**より小さい**、**以上**、**以下** | 最初の TCP 試行から接続が受け付けられるまで。IPv6 と IPv4 の切り替えを含みます。 |
 | **Is Request Timeout** | **真**、**偽** | すべての試行で、DNS の名前解決または TCP 接続がタイムアウトを超えたかどうか。 |
 
 対象が IP アドレスのとき、DNS の名前解決時間の条件には評価するものがありません。ホスト名と IP アドレスのどちらでも動く必要がある条件には、合計時間か TCP 接続時間を使います。
@@ -156,10 +156,10 @@ sequenceDiagram
 | 目的 | フィルター | 条件 | 値 |
 | --- | --- | --- | --- |
 | ポートが閉じているときにオフラインにする | **Is Online** | **偽** | — |
-| 接続が遅いときにアラートを出す | **合計接続時間（DNS + TCP）（ms）** | **Greater Than** | `500` |
-| 接続が遅いときにサービスを機能低下にする | **合計接続時間（DNS + TCP）（ms）** | **Greater Than** | `200` |
-| DNS が遅いときにアラートを出す | **Port DNS Lookup Time (in ms)** | **Greater Than** | `100` |
-| TCP ハンドシェイクが遅いときにアラートを出す | **Port TCP Connect Time (in ms)** | **Greater Than** | `250` |
+| 接続が遅いときにアラートを出す | **合計接続時間（DNS + TCP）（ms）** | **より大きい** | `500` |
+| 接続が遅いときにサービスを機能低下にする | **合計接続時間（DNS + TCP）（ms）** | **より大きい** | `200` |
+| DNS が遅いときにアラートを出す | **Port DNS Lookup Time (in ms)** | **より大きい** | `100` |
+| TCP ハンドシェイクが遅いときにアラートを出す | **Port TCP Connect Time (in ms)** | **より大きい** | `250` |
 
 ## トラブルシューティング
 

@@ -263,7 +263,7 @@ OneUptime には 18 個のテンプレートがあり (FlashArray 用が 11 個�
 | --- | --- |
 | **メトリクス** | 確認するクエリまたは数式 (変数名で指定)。 |
 | **集計** | ウィンドウ内の値を一つの答えにする方法: **平均**、**合計**、**Maximum Value**、**Minimum Value**、**All Values** (すべての値が一致する必要があります)、**Any Value** (一つで十分です)。 |
-| **条件** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To**、**Equal To**、または異常の条件: **Anomalously High**、**Anomalously Low**、**Anomalous**。 |
+| **条件** | **より大きい**、**より小さい**、**以上**、**以下**、**等しい**、または異常の条件: **Anomalously High**、**Anomalously Low**、**Anomalous**。 |
 | **しきい値** | 比較する値。メトリクスに単位があるときは、横に単位の一覧が表示されます。異常の条件では表示されません。 |
 | **感度** | 異常の条件のみ。**低** (4σ)、**中** (3σ、デフォルト)、**高** (2σ)。 |
 | **ベースラインウィンドウ** | 異常の条件のみ。14 日 (デフォルト)、28 日、60 日、90 日の履歴。 |
@@ -273,10 +273,10 @@ OneUptime には 18 個のテンプレートがあり (FlashArray 用が 11 個�
 
 最初に使える条件の例:
 
-- **ボリュームが遅い:** `purefa_volume_performance_latency_usec` を `dimension=usec_per_read_op` に絞り込み、平均、`name` でグループ化、**Greater Than** `2000`、過去 10 分。
-- **アレイがいっぱいになりつつある:** `purefa_array_space_utilization`、最大、**Greater Than** `85`、過去 15 分。
-- **ホストが一つのコントローラーで動いている:** `purefa_host_connectivity_info` を `status=critical` に絞り込み、最大、`host` でグループ化、**Greater Than** `0`。
-- **FlashBlade のファイルシステムがほぼいっぱい:** `purefb_file_systems_space_bytes` を `space=available_ratio` に絞り込み、最小、`name` でグループ化、**Less Than** `0.05`。
+- **ボリュームが遅い:** `purefa_volume_performance_latency_usec` を `dimension=usec_per_read_op` に絞り込み、平均、`name` でグループ化、**より大きい** `2000`、過去 10 分。
+- **アレイがいっぱいになりつつある:** `purefa_array_space_utilization`、最大、**より大きい** `85`、過去 15 分。
+- **ホストが一つのコントローラーで動いている:** `purefa_host_connectivity_info` を `status=critical` に絞り込み、最大、`host` でグループ化、**より大きい** `0`。
+- **FlashBlade のファイルシステムがほぼいっぱい:** `purefb_file_systems_space_bytes` を `space=available_ratio` に絞り込み、最小、`name` でグループ化、**より小さい** `0.05`。
 
 ### デフォルトの条件
 

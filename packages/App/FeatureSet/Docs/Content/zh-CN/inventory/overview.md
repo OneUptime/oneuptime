@@ -101,7 +101,7 @@ OneUptime 发现的关系如果 30 天内没有再次出现，就会被移除。
 可以手动添加的类型有三种：
 
 - `external.service`（**External Service**）：第三方 API 或软件即服务依赖。
-- `external.database`（**External Database**）：不属于 OneUptime 可建模的服务器的数据库。数据库服务器，无论是自托管还是托管服务，从 PostgreSQL 到 Snowflake，都应改为在 **Databases → 创建Database** 中添加（[数据库](/docs/telemetry/databases)）：那条记录会与指向同一地址的链路、容器和引擎指标关联，而资产清单条目永远做不到这一点；用两种方式添加同一台服务器，会留下两条互不关联的记录。
+- `external.database`（**External Database**）：不属于 OneUptime 可建模的服务器的数据库。数据库服务器，无论是自托管还是托管服务，从 PostgreSQL 到 Snowflake，都应改为在 **Databases → 创建数据库** 中添加（[数据库](/docs/telemetry/databases)）：那条记录会与指向同一地址的链路、容器和引擎指标关联，而资产清单条目永远做不到这一点；用两种方式添加同一台服务器，会留下两条互不关联的记录。
 - `appliance`（**Appliance**）：没有代理的硬件或软件。
 
 这个限制是为了防止重复。手动创建的、OneUptime 能观察到的类型的条目（例如主机）会以你输入的名称作为键，而同一台机器的发现条目则以它报告的属性作为键。两者永远不会合并，于是同一台主机会永久地在你的列表中出现两次。

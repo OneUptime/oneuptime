@@ -90,12 +90,12 @@ I criteri di un monitor profili hanno un solo filtro, **Profile Count**: il nume
 
 | Condizione del filtro | Corrisponde quando il conteggio dei profili è… |
 | --- | --- |
-| **Greater Than** | sopra il valore |
-| **Greater Than Or Equal To** | pari al valore o superiore |
-| **Less Than** | sotto il valore |
-| **Less Than Or Equal To** | pari al valore o inferiore |
-| **Equal To** | esattamente il valore |
-| **Not Equal To** | qualsiasi cosa tranne il valore |
+| **Maggiore di** | sopra il valore |
+| **Maggiore o uguale a** | pari al valore o superiore |
+| **Minore di** | sotto il valore |
+| **Minore o uguale a** | pari al valore o inferiore |
+| **Uguale a** | esattamente il valore |
+| **Diverso da** | qualsiasi cosa tranne il valore |
 
 I conteggi dei profili non hanno condizioni di anomalia: non c'è un riferimento con cui confrontarli.
 
@@ -104,8 +104,8 @@ I conteggi dei profili non hanno condizioni di anomalia: non c'è un riferimento
 Il servizio di checkout esegue un SDK Pyroscope che carica profili della CPU. Volete un incidente quando smettono di arrivare per cinque minuti:
 
 - `profileTypes`: `["cpu"]`, `telemetryServiceIds`: il servizio di checkout, `lastXSecondsOfProfiles`: `300`
-- Criterio 1: **Profile Count** **Equal To** `0`: mettere il monitor offline e dichiarare un incidente
-- Criterio 2: **Profile Count** **Greater Than** `0`: mettere il monitor online
+- Criterio 1: **Profile Count** **Uguale a** `0`: mettere il monitor offline e dichiarare un incidente
+- Criterio 2: **Profile Count** **Maggiore di** `0`: mettere il monitor online
 
 Finché l'SDK carica dati, ogni valutazione conta alcuni profili e il criterio 2 mantiene il monitor online. Quando il servizio viene rilasciato senza l'SDK, il conteggio scende a 0 cinque minuti dopo l'ultimo caricamento, corrisponde il criterio 1 e viene dichiarato l'incidente. Il primo caricamento dopo la correzione riporta il conteggio sopra 0, e l'incidente si risolve da solo se **Risoluzione automatica dell'incidente** è attiva per esso.
 

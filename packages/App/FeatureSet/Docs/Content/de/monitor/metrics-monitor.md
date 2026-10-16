@@ -119,11 +119,11 @@ Diese Monitore werten immer den **Metric Value** aus – den aggregierten Wert d
 
 | Bedingung | Passt, wenn der Wert … |
 | --- | --- |
-| **Greater Than** | über dem Schwellenwert liegt |
-| **Greater Than Or Equal To** | den Schwellenwert erreicht oder darüber liegt |
-| **Less Than** | unter dem Schwellenwert liegt |
-| **Less Than Or Equal To** | den Schwellenwert erreicht oder darunter liegt |
-| **Equal To** | genau dem Schwellenwert entspricht |
+| **Größer als** | über dem Schwellenwert liegt |
+| **Größer als oder gleich** | den Schwellenwert erreicht oder darüber liegt |
+| **Kleiner als** | unter dem Schwellenwert liegt |
+| **Kleiner als oder gleich** | den Schwellenwert erreicht oder darunter liegt |
+| **Gleich** | genau dem Schwellenwert entspricht |
 | **Anomalously High** | über dem Bereich liegt, der für diese Stunde der Woche erwartet wird |
 | **Anomalously Low** | unter diesem Bereich liegt |
 | **Anomalous** | außerhalb dieses Bereichs liegt, in die eine oder andere Richtung |
@@ -134,8 +134,8 @@ Ein neuer Metriken-Monitor beginnt mit zwei Kriterien auf seiner ersten Abfrage,
 
 | Kriterium | Bedingung | Wirkung |
 | --- | --- | --- |
-| Check if … is offline | **Equal To** `0` | Setzt den Monitor auf offline und eröffnet einen Vorfall, der automatisch behoben wird |
-| Check if … is online | **Greater Than** `0` | Setzt den Monitor auf online |
+| Check if … is offline | **Gleich** `0` | Setzt den Monitor auf offline und eröffnet einen Vorfall, der automatisch behoben wird |
+| Check if … is online | **Größer als** `0` | Setzt den Monitor auf online |
 
 > [!NOTE]
 > Das Offline-Kriterium löst bei einem gemeldeten Wert von 0 aus, nicht bei Stille. Um zu warnen, wenn eine Metrik nicht mehr eintrifft, setzen Sie ihr **Bei keinen Daten** auf **Auslöser**.
@@ -148,7 +148,7 @@ Sie wollen einen Vorfall, wenn die Checkout-Warteschlange tief bleibt. Abfrage `
 | --- | --- | --- | --- | --- | --- |
 | `a` | 640 | 980 | 1.500 | 1.620 | 1.100 |
 
-Ein Kriterium mit **Metrik** `a`, **Bedingung** **Greater Than** und **Schwellenwert** `1000` ergibt für jede **Aggregation** eine andere Antwort:
+Ein Kriterium mit **Metrik** `a`, **Bedingung** **Größer als** und **Schwellenwert** `1000` ergibt für jede **Aggregation** eine andere Antwort:
 
 | Aggregation | Verglichen mit 1.000 | Passt? |
 | --- | --- | --- |

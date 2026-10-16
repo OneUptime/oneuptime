@@ -88,7 +88,7 @@ Sophos 报告为 active 的隧道只说明其安全关联已建立。要证明�
 
 ### Trap
 
-每条 Sophos 通知都是同一个 Trap `sfosNotification`（`1.3.6.1.4.1.2604.5.1.8.1.1`），事件以文本形式放在 `sfosTrapMessage`（`1.3.6.1.4.1.2604.5.1.8.1.2`）中。要对某一类事件发出警报，请把 **SNMP Trap Received (Trap OID)** Equal To `1.3.6.1.4.1.2604.5.1.8.1.1` 与针对该 varbind 的 **SNMP Trap Varbind Value** 组合起来，例如 Contains `IPSec`。把防火墙的 Trap 目标设为 SNMP v2c：探测器的 Trap 接收器接收 v1 和 v2c Trap。
+每条 Sophos 通知都是同一个 Trap `sfosNotification`（`1.3.6.1.4.1.2604.5.1.8.1.1`），事件以文本形式放在 `sfosTrapMessage`（`1.3.6.1.4.1.2604.5.1.8.1.2`）中。要对某一类事件发出警报，请把 **SNMP Trap Received (Trap OID)** 等于 `1.3.6.1.4.1.2604.5.1.8.1.1` 与针对该 varbind 的 **SNMP Trap Varbind Value** 组合起来，例如包含 `IPSec`。把防火墙的 Trap 目标设为 SNMP v2c：探测器的 Trap 接收器接收 v1 和 v2c Trap。
 
 ## Extreme Networks (EXOS / Switch Engine 和 Fabric Engine / VOSS)
 
@@ -130,9 +130,9 @@ IQ Engine（HiveOS）接入点和 ExtremeCloud IQ Controller 有各自的厂商�
 | 警报 | 条件 |
 | --- | --- |
 | 射频被关闭 | **SNMP Table Row Is Unhealthy**，属于推荐警报 |
-| 发射功率发生变化 | **SNMP Table Value**，列 TX Power，Not Equal To 你规划的功率 |
-| 拥挤的射频 | **SNMP Table Value**，列 Clients，Greater Than 你的上限 |
-| 嘈杂的信道 | **SNMP Table Value**，列 Noise Floor，Greater Than `-80` |
+| 发射功率发生变化 | **SNMP Table Value**，列 TX Power，不等于你规划的功率 |
+| 拥挤的射频 | **SNMP Table Value**，列 Clients，大于你的上限 |
+| 嘈杂的信道 | **SNMP Table Value**，列 Noise Floor，大于 `-80` |
 
 每个数值型射频值也是一个指标（`oneuptime.monitor.snmp.table.value`，每个射频和每列一个序列），所以信道、功率和客户端可以在仪表板上随时间绘制图表；不断变化的信道说明 DFS 在起作用。
 

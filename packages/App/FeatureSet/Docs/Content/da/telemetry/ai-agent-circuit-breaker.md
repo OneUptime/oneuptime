@@ -47,7 +47,7 @@ Forbrug er det sikreste tegn på en løbsk agent. Et budget lægger dagens AI-fo
 1. Åbn **Produkter → AI / LLM → Budgetter**, og klik på **Opret LLM Cost Budget**. Angiv et **Dagligt budget (USD)**, og vælg agentens tjeneste i **Tjeneste (valgfrit)**, så budgettet kun overvåger den agent.
 2. Vælg **Vis ID** i rækkemenuen for det nye budget, og kopiér ID'et.
 3. Opret en [Metrik-monitor](/docs/monitor/metrics-monitor) på `oneuptime.llm.budget.percent.used`, filtreret på attributten `oneuptime.llm.budget.id` med det ID, du kopierede, og sæt dens **Tidsinterval** til **Past 30 Minutes**.
-4. Tilføj et kriterium **Greater Than Or Equal To** `100`, der opretter en advarsel, og giv det en **Advarselstitel**, der nævner agenten, f.eks. `LLM budget exceeded: support-bot`. Både workflowet og dit endpoint læser den titel.
+4. Tilføj et kriterium **Større end eller lig med** `100`, der opretter en advarsel, og giv det en **Advarselstitel**, der nævner agenten, f.eks. `LLM budget exceeded: support-bot`. Både workflowet og dit endpoint læser den titel.
 :::
 
 Filtrér på ID'et, ikke på navnet: omdøber du et budget, omdøbes dets serie, og en monitor, der filtrerer på det gamle navn, ville i al stilhed holde op med at matche. Hold tidsintervallet på 30 minutter: et budget udgiver ét punkt hvert 15. minut, så et kortere interval finder intet mellem to punkter, og advarslen åbner og lukker igen og igen.
@@ -62,7 +62,7 @@ En agent, der sidder fast, efterlader et spor, du kan genkende: det samme værkt
 1. Åbn **Overvågninger**, klik på **Opret monitor**, og vælg **Spor** under **Flere monitortyper**.
 2. Under **Flere felter** sætter du **Filtrér efter telemetritjeneste** til agentens tjeneste og **Filtrér efter attributter** til `gen_ai.tool.name` lig med det værktøj, du forventer, at den går i løkke på, f.eks. `search_web`. Hvis din instrumentering navngiver hvert værktøjs span, så angiv det navn i **Span-navn** i stedet.
 3. Sæt **Overvågningsspor i (time)** til **Seneste 5 minutter**.
-4. Tilføj et kriterium **Span Count** **Greater Than** et tal, som ingen sund kørsel når på fem minutter, f.eks. `50`, der opretter en advarsel med en titel som `Agent loop: support-bot`.
+4. Tilføj et kriterium **Span Count** **Større end** et tal, som ingen sund kørsel når på fem minutter, f.eks. `50`, der opretter en advarsel med en titel som `Agent loop: support-bot`.
 :::
 
 En ekstra trace-monitor med **Filtrér efter span-status** sat til **Fejl** og en lavere optælling fanger storme af genforsøg: et værktøj, der bliver ved med at fejle, og en agent, der bliver ved med at prøve det igen.

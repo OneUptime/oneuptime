@@ -681,7 +681,9 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
       ) &&
       props.paymentMethodsCount !== undefined &&
       props.paymentMethodsCount === 0 &&
-      !props.selectedProject.resellerId,
+      !props.selectedProject.resellerId &&
+      // Billed by a cloud marketplace: there is no card to add.
+      !props.selectedProject.billingMarketplace,
   );
 
   const showTrialButton: boolean = Boolean(

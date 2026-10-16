@@ -155,11 +155,11 @@ Les critères décident quand l'API compte comme en ligne, dégradée ou hors li
 | Filtre | Conditions | Ce qu'il vérifie |
 | --- | --- | --- |
 | **Is Online** | **Vrai**, **Faux** | Si l'API a répondu, quel que soit le code de statut. |
-| **Code de statut de la réponse** | **Equal To**, **Not Equal To**, **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Le code de statut HTTP. |
-| **Temps de réponse (en ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Le temps qu'a pris la requête, redirections comprises. |
-| **Corps de la réponse** | **Contient**, **Not Contains** | Du texte dans le corps de la réponse. La correspondance respecte la casse. |
-| **Response Header** | **Contient**, **Not Contains** | Si la réponse a un en-tête avec ce nom. Saisissez le nom en minuscules, comme `x-request-id`. |
-| **Response Header Value** | **Contient**, **Not Contains** | Si un en-tête a exactement cette valeur, comparée en minuscules, comme `application/json`. |
+| **Code de statut de la réponse** | **Égal à**, **Différent de**, **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Le code de statut HTTP. |
+| **Temps de réponse (en ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Le temps qu'a pris la requête, redirections comprises. |
+| **Corps de la réponse** | **Contient**, **Ne contient pas** | Du texte dans le corps de la réponse. La correspondance respecte la casse. |
+| **Response Header** | **Contient**, **Ne contient pas** | Si la réponse a un en-tête avec ce nom. Saisissez le nom en minuscules, comme `x-request-id`. |
+| **Response Header Value** | **Contient**, **Ne contient pas** | Si un en-tête a exactement cette valeur, comparée en minuscules, comme `application/json`. |
 | **JavaScript Expression** | **Evaluates To True** | Une expression sur la réponse. Voir [Expressions JavaScript](/docs/monitor/javascript-expression). |
 | **Is Request Timeout** | **Vrai**, **Faux** | Si la requête a expiré à chaque tentative. |
 
@@ -178,7 +178,7 @@ Un nouveau moniteur d'API commence avec deux critères, il fonctionne donc sans 
 
 Dans la liste des critères, ils sont nommés d'après le moniteur : _Check if (name) is offline_ et _Check if (name) is online_.
 
-Ainsi, un point de terminaison qui répond `201 Created` ou `204 No Content` compte comme disponible. Si un seul code de statut signifie « en bonne santé » pour vous, modifiez les deux critères sur la page **Configuration → Critères** du moniteur : par exemple **Code de statut de la réponse** / **Equal To** / `200` dans le critère en ligne et **Not Equal To** / `200` dans le critère hors ligne, à la place des deux filtres de code de statut de chacun. Pour vérifier aussi ce que l'API renvoie, ajoutez un filtre **Corps de la réponse** ou **JavaScript Expression** au critère hors ligne.
+Ainsi, un point de terminaison qui répond `201 Created` ou `204 No Content` compte comme disponible. Si un seul code de statut signifie « en bonne santé » pour vous, modifiez les deux critères sur la page **Configuration → Critères** du moniteur : par exemple **Code de statut de la réponse** / **Égal à** / `200` dans le critère en ligne et **Différent de** / `200` dans le critère hors ligne, à la place des deux filtres de code de statut de chacun. Pour vérifier aussi ce que l'API renvoie, ajoutez un filtre **Corps de la réponse** ou **JavaScript Expression** au critère hors ligne.
 
 Les critères sont vérifiés de haut en bas, et le premier qui correspond décide de ce qui se passe.
 
@@ -214,10 +214,10 @@ Choisissez une fenêtre plus longue que l'intervalle de surveillance, pour qu'el
 
 | Objectif | Filtre | Condition | Valeur |
 | --- | --- | --- | --- |
-| Marquer l'API dégradée quand elle est lente | **Temps de réponse (en ms)** | **Greater Than** | `1000` |
-| Hors ligne quand la vérification de santé signale un problème | **Corps de la réponse** | **Not Contains** | `"status":"ok"` |
+| Marquer l'API dégradée quand elle est lente | **Temps de réponse (en ms)** | **Supérieur à** | `1000` |
+| Hors ligne quand la vérification de santé signale un problème | **Corps de la réponse** | **Ne contient pas** | `"status":"ok"` |
 | La même chose, lue dans le JSON analysé | **JavaScript Expression** | **Evaluates To True** | `"{{responseBody.status}}" !== "ok"` |
-| N'accepter que `201` d'un `POST` | **Code de statut de la réponse** | **Equal To** | `201` |
+| N'accepter que `201` d'un `POST` | **Code de statut de la réponse** | **Égal à** | `201` |
 
 Pour traverser un redémarrage, activez **Évaluer ce critère sur une période donnée** pour le filtre du corps de la réponse et choisissez **All Values** sur 15 minutes.
 

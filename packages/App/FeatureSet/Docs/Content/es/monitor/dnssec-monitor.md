@@ -93,7 +93,7 @@ Los criterios deciden cuándo la zona cuenta como en línea, degradada o sin con
 | **DNSSEC Chain Is Valid** | **Verdadero**, **Falso** | Se cumplen las cuatro comprobaciones de arriba: claves publicadas, DS en la zona padre, firmas presentes con un día o más por delante, y el indicador AD de cada resolutor. |
 | **DNSSEC DNSKEY Record Exists** | **Verdadero**, **Falso** | La zona publica al menos un registro DNSKEY. |
 | **DNSSEC DS Record Exists At Parent** | **Verdadero**, **Falso** | La zona padre publica un registro DS para la zona. |
-| **DNSSEC Signature Expires In Days** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Los días completos hasta que caduca la firma (RRSIG) más próxima a vencer. |
+| **DNSSEC Signature Expires In Days** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | Los días completos hasta que caduca la firma (RRSIG) más próxima a vencer. |
 | **DNSSEC Resolver Consensus (AD Flag)** | **Verdadero**, **Falso** | Cada resolutor de **Resolutores** devuelve el indicador AD. |
 | **DNSSEC Nameservers Are Consistent** | **Verdadero**, **Falso** | Cada servidor de nombres autoritativo responde con el mismo número de serie SOA. Siempre **Verdadero** mientras **Comprobar coherencia de los servidores de nombres** está desactivado. |
 
@@ -115,7 +115,7 @@ Los criterios predeterminados no vigilan por sí solos la caducidad de las firma
 | Objetivo | Filtro | Condición | Valor |
 | --- | --- | --- | --- |
 | Sin conexión cuando la cadena está rota (uno predeterminado) | **DNSSEC Chain Is Valid** | **Falso** | — |
-| Avisar antes de que caduquen las firmas | **DNSSEC Signature Expires In Days** | **Less Than** | `7` |
+| Avisar antes de que caduquen las firmas | **DNSSEC Signature Expires In Days** | **Menor que** | `7` |
 | Detectar una delegación que perdió su registro DS | **DNSSEC DS Record Exists At Parent** | **Falso** | — |
 | Detectar resolutores que no coinciden | **DNSSEC Resolver Consensus (AD Flag)** | **Falso** | — |
 | Detectar servidores de nombres desacompasados | **DNSSEC Nameservers Are Consistent** | **Falso** | — |
@@ -123,7 +123,7 @@ Los criterios predeterminados no vigilan por sí solos la caducidad de las firma
 ## Buenas prácticas
 
 1. **Elija resolutores que estén siempre accesibles.** Cada resolutor debe devolver el indicador AD para que la cadena cuente como válida, así que un resolutor al que la sonda no llega hace fallar la comprobación cuando se agotan los reintentos. Los predeterminados, `1.1.1.1`, `8.8.8.8` y `9.9.9.9`, los gestionan tres operadores distintos, lo que también detecta una zona que valida en un resolutor pero no en otro.
-2. **Reciba un aviso antes de que caduquen las firmas.** Los firmantes vuelven a firmar una zona antes de que caduquen sus firmas, así que una firma a punto de caducar significa que la refirma se ha detenido. Añada un criterio con **DNSSEC Signature Expires In Days** / **Less Than** / `7` que cree una alerta, y un segundo en `2` que declare un incidente. Arrastre ambos por encima del criterio que marca la cadena como válida, primero el de `2` días, porque gana el primer criterio que coincide. Elija umbrales inferiores al tiempo que su firmante suele dejar en una firma antes de volver a firmar, para que no se disparen mientras la refirma funciona.
+2. **Reciba un aviso antes de que caduquen las firmas.** Los firmantes vuelven a firmar una zona antes de que caduquen sus firmas, así que una firma a punto de caducar significa que la refirma se ha detenido. Añada un criterio con **DNSSEC Signature Expires In Days** / **Menor que** / `7` que cree una alerta, y un segundo en `2` que declare un incidente. Arrastre ambos por encima del criterio que marca la cadena como válida, primero el de `2` días, porque gana el primer criterio que coincide. Elija umbrales inferiores al tiempo que su firmante suele dejar en una firma antes de volver a firmar, para que no se disparen mientras la refirma funciona.
 3. **Monitorice cada zona firmada.** Incluya el dominio raíz, los subdominios firmados y cualquier zona delegada a otro operador.
 4. **Mantenga activada la comprobación de coherencia de los servidores de nombres,** y añada un criterio para ella. Detecta un servidor secundario que dejó de recibir transferencias del primario, algo que la validación de DNSSEC por sí sola puede pasar por alto.
 

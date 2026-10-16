@@ -82,9 +82,9 @@ Kriterien entscheiden, wann der Host als online, beeinträchtigt oder offline gi
 | Filter | Bedingungen | Was er prüft |
 | --- | --- | --- |
 | **Is Online** | **Wahr**, **Falsch** | Ob mindestens eine Echo-Anfrage eine Antwort bekommen hat. |
-| **Antwortzeit (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Die durchschnittliche Umlaufzeit der Antworten. |
-| **Packet Loss (in %)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Der Anteil der fünf Echo-Anfragen, die keine Antwort bekommen haben. |
-| **Jitter (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Die Standardabweichung der Umlaufzeiten über die Pakete einer Prüfung. |
+| **Antwortzeit (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Die durchschnittliche Umlaufzeit der Antworten. |
+| **Packet Loss (in %)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Der Anteil der fünf Echo-Anfragen, die keine Antwort bekommen haben. |
+| **Jitter (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Die Standardabweichung der Umlaufzeiten über die Pakete einer Prüfung. |
 | **Is Request Timeout** | **Wahr**, **Falsch** | Ob der Ping bei jedem Versuch in ein Zeitlimit gelaufen ist. |
 
 Bei zwei oder mehr Filtern entscheidet **Abgleichsbedingung**, ob **Alle** zutreffen müssen oder **Beliebig** einer genügt. Die **Aktionen** eines Kriteriums legen fest, was es tut: den Monitorstatus ändern, eine Warnung erstellen, einen Vorfall melden oder mehreres davon.
@@ -127,9 +127,9 @@ Wählen Sie das Fenster länger als das Überwachungsintervall, damit es mehrere
 | Ziel | Filter | Bedingung | Wert |
 | --- | --- | --- | --- |
 | Offline, wenn der Host nicht erreichbar ist | **Is Online** | **Falsch** | — |
-| Warnen, wenn die Latenz hoch ist | **Antwortzeit (in ms)** | **Greater Than** | `200` |
-| Den Host bei einer verlustbehafteten Verbindung als beeinträchtigt markieren | **Packet Loss (in %)** | **Greater Than** | `20` |
-| Bei einer instabilen Verbindung warnen | **Jitter (in ms)** | **Greater Than** | `30` |
+| Warnen, wenn die Latenz hoch ist | **Antwortzeit (in ms)** | **Größer als** | `200` |
+| Den Host bei einer verlustbehafteten Verbindung als beeinträchtigt markieren | **Packet Loss (in %)** | **Größer als** | `20` |
+| Bei einer instabilen Verbindung warnen | **Jitter (in ms)** | **Größer als** | `30` |
 
 Um nur zu warnen, wenn die Latenz hoch bleibt, schalten Sie für den Antwortzeit-Filter **Diese Kriterien über einen Zeitraum hinweg auswerten** ein und wählen Sie **All Values** über **5** Minuten.
 

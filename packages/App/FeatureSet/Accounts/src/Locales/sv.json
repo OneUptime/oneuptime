@@ -51,6 +51,7 @@
     "submitButton": "Logga in",
     "forgotPassword": "Glömt lösenord?",
     "useSso": "Använd istället enkel inloggning (SSO)",
+    "signInWithMicrosoft": "Logga in med Microsoft",
     "noAccountPrompt": "Har du inget konto?",
     "registerLink": "Registrera dig.",
     "twoFactor": {
@@ -121,7 +122,8 @@
     "verifyEmailOpensInNewTab": "(öppnas i en ny flik)",
     "verifyEmailAlreadyVerifiedPrompt": "Har du redan verifierat din e-postadress?",
     "verifyEmailWrongAddressPrompt": "Fel e-postadress?",
-    "verifyEmailUseDifferentEmail": "Registrera dig med en annan e-postadress"
+    "verifyEmailUseDifferentEmail": "Registrera dig med en annan e-postadress",
+    "signUpWithMicrosoft": "Registrera dig med Microsoft"
   },
   "forgotPassword": {
     "title": "Glömt lösenord",
@@ -257,6 +259,42 @@
       "server_error": "Något gick fel hos oss. Försök igen om några minuter.",
       "framed": "För din säkerhets skull kan den här sidan inte användas inuti en annan sida. Öppna den i en egen flik eller ett eget fönster i webbläsaren."
     }
+  },
+  "marketplacePurchase": {
+    "title": "Konfigurera ditt köp",
+    "subtitle": "Du köpte OneUptime på {{marketplace}}. Välj det projekt som köpet ska betala för.",
+    "boughtOnLabel": "Köpt på",
+    "buyerLabel": "Köpare",
+    "marketplacePlanLabel": "Plan på marknadsplatsen",
+    "signedInAs": "Inloggad som {{email}}",
+    "freeTrial": "Det här köpet har en gratis provperiod på {{marketplace}}.",
+    "choiceLabel": "Vilket projekt ska det här köpet betala för?",
+    "createProjectOption": "Skapa ett nytt projekt",
+    "projectNameLabel": "Projektnamn",
+    "projectNamePlaceholder": "Mitt projekt",
+    "planLabel": "OneUptime-plan",
+    "planOption": "{{name}} – {{price}} per användare / månad",
+    "planOptionFree": "{{name}} – gratis",
+    "existingProjectOption": "Använd ett av mina projekt",
+    "projectLabel": "Projekt",
+    "projectPlaceholder": "Välj ett projekt",
+    "existingProjectHelp": "Från och med nu faktureras projektets plan och användning via {{marketplace}} i stället för med kort.",
+    "projectRefusal": {
+      "not_billing_manager": "{{name}} – endast ägarna kan ändra hur det faktureras",
+      "already_billed_by_marketplace": "{{name}} – faktureras redan via en marknadsplats",
+      "bought_from_reseller": "{{name}} – faktureras av en återförsäljare"
+    },
+    "nothingToChoose": "Inget av dina projekt kan ta emot det här köpet, och du kan inte skapa projekt på den här servern. Be ägaren till det projekt som köpet ska betala för att konfigurera köpet.",
+    "billingNote": "Din plan och användning faktureras via {{marketplace}} till priserna på oneuptime.com/pricing. Du kan när som helst byta plan under Projektinställningar → Fakturering.",
+    "submitButton": "Konfigurera köp",
+    "notNowButton": "Inte nu",
+    "redirecting": "Ditt köp är konfigurerat. Du skickas till ditt projekt…",
+    "alreadySetUp": "Det här köpet på {{marketplace}} är redan konfigurerat för ett av dina projekt.",
+    "openProject": "Öppna projekt",
+    "cancelled": "Det här köpet har sagts upp på {{marketplace}}. Köp OneUptime igen på {{marketplace}} för att fortsätta.",
+    "errorTitle": "Vi kunde inte konfigurera det här köpet",
+    "errorHelp": "Öppna OneUptime igen från marknadsplatsen där du köpte det.",
+    "goToDashboard": "Gå till instrumentpanelen"
   },
   "Use at least {{minimum}} characters.": "Använd minst {{minimum}} tecken.",
   "Try a few unrelated words.": "Prova några ord utan koppling till varandra.",

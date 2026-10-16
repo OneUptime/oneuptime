@@ -159,7 +159,7 @@ Criteria bepalen wanneer de monitor online, verminderd of offline is, en wanneer
 | Filtertype | Wat het controleert | Filtervoorwaarden |
 | --- | --- | --- |
 | Is Online | Of de agent onlangs heeft gerapporteerd (standaard in de laatste 3 minuten) | Waar, Onwaar |
-| CPU Usage (in %) | Totaal CPU-gebruik | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| CPU Usage (in %) | Totaal CPU-gebruik | Groter dan, Kleiner dan, Groter dan of gelijk aan, Kleiner dan of gelijk aan |
 | Memory Usage (in %) | Geheugen in gebruik | Zelfde als CPU |
 | Disk Usage (in %) | Gebruik van de schijf die in **Schijfpad** staat | Zelfde als CPU |
 | Swap Usage (in %) | Swap in gebruik | Zelfde als CPU |
@@ -195,10 +195,10 @@ Criteria bepalen wanneer de monitor online, verminderd of offline is, en wanneer
 | Doel | Filtertype | Filtervoorwaarde | Waarde |
 | --- | --- | --- | --- |
 | De server offline markeren als de agent stopt met rapporteren | Is Online | Onwaar | — |
-| Waarschuwen als het CPU-gebruik boven 90% komt | CPU Usage (in %) | Greater Than | `90` |
-| Waarschuwen als de rootschijf meer dan 85% vol is | Disk Usage (in %), **Schijfpad** `/` | Greater Than | `85` |
-| Waarschuwen voor elke schijf die meer dan 85% vol is, één waarschuwing per schijf | Disk Usage (in %), **Schijfpad** `*` | Greater Than | `85` |
-| Waarschuwen als het geheugengebruik boven 80% komt | Memory Usage (in %) | Greater Than | `80` |
+| Waarschuwen als het CPU-gebruik boven 90% komt | CPU Usage (in %) | Groter dan | `90` |
+| Waarschuwen als de rootschijf meer dan 85% vol is | Disk Usage (in %), **Schijfpad** `/` | Groter dan | `85` |
+| Waarschuwen voor elke schijf die meer dan 85% vol is, één waarschuwing per schijf | Disk Usage (in %), **Schijfpad** `*` | Groter dan | `85` |
+| Waarschuwen als het geheugengebruik boven 80% komt | Memory Usage (in %) | Groter dan | `80` |
 | Waarschuwen als nginx niet meer draait | Server Process Name | Is Not Executing | `nginx` |
 
 ## Problemen oplossen

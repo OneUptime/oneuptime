@@ -112,12 +112,12 @@ De criteria van een uitzonderingen-monitor hebben één **Filtertype**: **Except
 
 | Filtervoorwaarde | Komt overeen wanneer het aantal uitzonderingen… |
 | --- | --- |
-| **Greater Than** | boven de waarde ligt |
-| **Greater Than Or Equal To** | gelijk is aan de waarde of hoger |
-| **Less Than** | onder de waarde ligt |
-| **Less Than Or Equal To** | gelijk is aan de waarde of lager |
-| **Equal To** | precies de waarde is |
-| **Not Equal To** | alles behalve de waarde is |
+| **Groter dan** | boven de waarde ligt |
+| **Groter dan of gelijk aan** | gelijk is aan de waarde of hoger |
+| **Kleiner dan** | onder de waarde ligt |
+| **Kleiner dan of gelijk aan** | gelijk is aan de waarde of lager |
+| **Gelijk aan** | precies de waarde is |
+| **Niet gelijk aan** | alles behalve de waarde is |
 
 Aantallen uitzonderingen hebben geen anomaliecondities: er is geen baseline om ze mee te vergelijken.
 
@@ -125,8 +125,8 @@ Een nieuwe uitzonderingen-monitor begint met deze criteria:
 
 | Criterium | Filter | Effect |
 | --- | --- | --- |
-| Check if … has exceptions | **Exception Count** **Greater Than** `0` | Zet de monitor offline en meldt een incident, dat automatisch wordt opgelost |
-| Check if … has no exceptions | **Exception Count** **Equal To** `0` | Zet de monitor online |
+| Check if … has exceptions | **Exception Count** **Groter dan** `0` | Zet de monitor offline en meldt een incident, dat automatisch wordt opgelost |
+| Check if … has no exceptions | **Exception Count** **Gelijk aan** `0` | Zet de monitor online |
 
 ## Uitgewerkt voorbeeld: alleen uitzonderingen uit productie
 
@@ -139,7 +139,7 @@ U wilt een incident telkens wanneer de API in productie een uitzondering gooit, 
 | `TimeoutError` × 2 | geen | Actief | Nee: geen omgeving |
 | `NullReferenceException` × 4 | `production` | Opgelost nadat ze optraden | Nee: opgelost |
 
-De **Exception Count** is 3, dus **Greater Than** `0` komt overeen: de monitor gaat offline en er wordt een incident gemeld. Zodra er vijf minuten voorbij zijn zonder actieve productie-uitzondering, komt het online-criterium overeen en lost het incident zichzelf op.
+De **Exception Count** is 3, dus **Groter dan** `0` komt overeen: de monitor gaat offline en er wordt een incident gemeld. Zodra er vijf minuten voorbij zijn zonder actieve productie-uitzondering, komt het online-criterium overeen en lost het incident zichzelf op.
 
 ## Problemen oplossen
 

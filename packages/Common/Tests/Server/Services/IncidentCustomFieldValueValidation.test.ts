@@ -274,6 +274,8 @@ describe("IncidentService.onBeforeUpdate: custom field values", () => {
       name: true,
       customFieldType: true,
       dropdownOptions: true,
+      // The order the Custom Fields card shows them in, for the feed.
+      sortOrder: true,
     });
   });
 

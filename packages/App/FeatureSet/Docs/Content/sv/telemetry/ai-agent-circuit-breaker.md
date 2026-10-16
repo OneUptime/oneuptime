@@ -47,7 +47,7 @@ Kostnaden är det säkraste tecknet på en skenande agent. En budget summerar da
 1. Öppna **Produkter → AI / LLM → Budgetar** och klicka på **Skapa LLM Cost Budget**. Ange en **Daglig budget (USD)**, och välj agentens tjänst i **Tjänst (valfritt)** så att budgeten bara bevakar den agenten.
 2. Välj **Visa ID** i radmenyn för den nya budgeten och kopiera ID:t.
 3. Skapa en [Metrikövervakning](/docs/monitor/metrics-monitor) på `oneuptime.llm.budget.percent.used`, filtrerad på attributet `oneuptime.llm.budget.id` med ID:t du kopierade, och sätt dess **Tidsintervall** till **Past 30 Minutes**.
-4. Lägg till ett kriterium **Greater Than Or Equal To** `100` som skapar ett larm, och ge det en **Larmtitel** som namnger agenten, till exempel `LLM budget exceeded: support-bot`. Både arbetsflödet och din slutpunkt läser den titeln.
+4. Lägg till ett kriterium **Större än eller lika med** `100` som skapar ett larm, och ge det en **Larmtitel** som namnger agenten, till exempel `LLM budget exceeded: support-bot`. Både arbetsflödet och din slutpunkt läser den titeln.
 :::
 
 Filtrera på ID:t, inte på namnet: byter du namn på en budget byter dess serie namn, och en monitor som filtrerar på det gamla namnet skulle i tysthet sluta träffa. Behåll tidsintervallet på 30 minuter: en budget publicerar en punkt var 15:e minut, så ett kortare intervall hittar ingenting mellan två punkter, och larmet öppnas och löses om och om igen.
@@ -62,7 +62,7 @@ En agent som har fastnat lämnar ett spår du kan känna igen: samma verktygsspa
 1. Öppna **Övervakare**, klicka på **Skapa monitor** och välj **Spår** under **Fler monitortyper**.
 2. Under **Fler fält** sätter du **Filtrera efter telemetritjänst** till agentens tjänst och **Filtrera efter attribut** till `gen_ai.tool.name` lika med verktyget du väntar dig att den fastnar i en slinga på, till exempel `search_web`. Om din instrumentering namnger varje verktygs span anger du i stället det namnet i **Span-namn**.
 3. Sätt **Övervakningsspår för (tid)** till **Senaste 5 minuterna**.
-4. Lägg till ett kriterium **Span Count** **Greater Than** ett tal som ingen frisk körning når på fem minuter, till exempel `50`, som skapar ett larm med en titel som `Agent loop: support-bot`.
+4. Lägg till ett kriterium **Span Count** **Större än** ett tal som ingen frisk körning når på fem minuter, till exempel `50`, som skapar ett larm med en titel som `Agent loop: support-bot`.
 :::
 
 En extra spårningsövervakning med **Filtrera efter spannstatus** satt till **Fel** och en lägre räkning fångar stormar av nya försök: ett verktyg som fortsätter att misslyckas och en agent som fortsätter att försöka igen.

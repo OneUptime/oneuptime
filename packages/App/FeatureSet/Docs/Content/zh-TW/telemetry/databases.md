@@ -30,7 +30,7 @@ flowchart LR
 
 引擎指標只來自與資料庫本身通訊的 Collector（對於受控雲端資料庫，則是與其供應商的監控 API 通訊的 Collector）。追蹤和容器清單會告訴 OneUptime 資料庫存在以及它的使用方式，但不會告訴它資料庫內部的運作狀況；每個資料庫上的 **Engine metrics** 狀態會顯示這部分是否已連線。
 
-你也可以手動新增資料庫：在 **Databases → 建立Database** 中填入引擎、位址和連接埠。如需完全不需要代理程式、以探測器為基礎的健康檢查，請參閱 [資料庫健康狀態監控](/docs/monitor/database-health-monitor)。
+你也可以手動新增資料庫：在 **Databases → 建立資料庫** 中填入引擎、位址和連接埠。如需完全不需要代理程式、以探測器為基礎的健康檢查，請參閱 [資料庫健康狀態監控](/docs/monitor/database-health-monitor)。
 
 ## 支援的資料庫
 
@@ -191,7 +191,7 @@ OneUptime 讀取 Pod 中繼資料、標籤、映像檔、宣告的連接埠，�
 
 - 依 id 關聯的資料會進入該資料庫並顯示在其頁面上（且只顯示在那裡），無論它回報的是什麼位址：私人 IP、叢集本機名稱、另一個資料庫擁有的位址，或根本沒有位址。如果它回報的位址在整個專案中指向唯一的一台伺服器且尚不屬於任何資料庫，該位址會作為端點新增到這個資料庫，這樣傳往該位址的應用程式追蹤也會進入這裡；
 - 否則，資料庫已擁有的端點會把資料關聯到該資料庫，無論該資料庫是由什麼建立的；
-- 否則會 **建立** 一個資料庫，但只從在整個專案中代表唯一一台伺服器的名稱建立（DNS 名稱、公用 IP，或資料以其 Kubernetes 叢集 `k8s.cluster.name` 限定過的叢集本機名稱、`.internal` 或 `.local` 名稱；Database Agent 從不設定該叢集屬性），而且只針對可以自行建立的引擎（[支援的資料庫](#支援的資料庫) 中的 **從追蹤建立** 欄：絕不是共用雲端 API、處理序內引擎或未知引擎）。私人 IP 和連結本機 IP、單一標籤名稱（`db`）以及未限定的叢集本機名稱（`postgres.prod.svc.cluster.local`）、`.internal` 或 `.local` 名稱，在每個網路中都可能指向不同的伺服器；Pod 的 IP 每次重新啟動都會改變；而由 Collector 自己的命名空間補全的單一標籤名稱，可能是一個 Service，也可能是 Collector 自己的 Pod。指明這些名稱之一的資料只會進入已經把它當作端點的資料庫：對於 Service 名稱，就是在 Kubernetes 中偵測到的工作負載。請手動建立該資料庫（**Databases → 建立Database**，相同的位址和連接埠），或以 `DATABASE_SERVER_ID` 把代理程式關聯到它。在有 Kubernetes 叢集的專案中，不帶叢集的叢集本機 Service 名稱會被拒絕：請將資料庫建立為 `postgres.prod.svc.cluster.local:5432@my-cluster`，然後在它的 **端點** 分頁上新增未限定的 `postgres.prod.svc.cluster.local:5432`（也就是代理程式回報的名稱）；
+- 否則會 **建立** 一個資料庫，但只從在整個專案中代表唯一一台伺服器的名稱建立（DNS 名稱、公用 IP，或資料以其 Kubernetes 叢集 `k8s.cluster.name` 限定過的叢集本機名稱、`.internal` 或 `.local` 名稱；Database Agent 從不設定該叢集屬性），而且只針對可以自行建立的引擎（[支援的資料庫](#支援的資料庫) 中的 **從追蹤建立** 欄：絕不是共用雲端 API、處理序內引擎或未知引擎）。私人 IP 和連結本機 IP、單一標籤名稱（`db`）以及未限定的叢集本機名稱（`postgres.prod.svc.cluster.local`）、`.internal` 或 `.local` 名稱，在每個網路中都可能指向不同的伺服器；Pod 的 IP 每次重新啟動都會改變；而由 Collector 自己的命名空間補全的單一標籤名稱，可能是一個 Service，也可能是 Collector 自己的 Pod。指明這些名稱之一的資料只會進入已經把它當作端點的資料庫：對於 Service 名稱，就是在 Kubernetes 中偵測到的工作負載。請手動建立該資料庫（**Databases → 建立資料庫**，相同的位址和連接埠），或以 `DATABASE_SERVER_ID` 把代理程式關聯到它。在有 Kubernetes 叢集的專案中，不帶叢集的叢集本機 Service 名稱會被拒絕：請將資料庫建立為 `postgres.prod.svc.cluster.local:5432@my-cluster`，然後在它的 **端點** 分頁上新增未限定的 `postgres.prod.svc.cluster.local:5432`（也就是代理程式回報的名稱）；
 - 完全沒有指明伺服器的接收器批次會被忽略（請參閱 [使用你自己的 OpenTelemetry Collector](#使用你自己的-opentelemetry-collector)）。
 
 Collector 建立的資料庫與其他所有偵測到的資料庫一樣計入 [自動建立額度](#自動建立額度)；你手動建立並以 `DATABASE_SERVER_ID` 關聯的資料庫永遠不需要建立。請參閱 [Database Agent](#database-agent)。

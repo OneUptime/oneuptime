@@ -270,7 +270,7 @@ Un criterio compara una de las consultas o fórmulas del monitor con un umbral. 
 | --- | --- |
 | **Métrica** | La consulta o fórmula que se comprueba, por su nombre de variable. |
 | **Agregación** | Cómo se convierten los valores de la ventana en una sola respuesta: **Promedio**, **Suma**, **Maximum Value**, **Minimum Value**, **All Values** (todos los valores deben coincidir) o **Any Value** (basta con uno). |
-| **Condición** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** o **Equal To** — o una condición de anomalía: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
+| **Condición** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** o **Igual a** — o una condición de anomalía: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
 | **Umbral** | El valor con el que se compara. Junto a él hay una lista de unidades cuando la métrica tiene unidad. No se muestra para las condiciones de anomalía. |
 | **Sensibilidad** | Solo condiciones de anomalía. **Bajo** (4σ), **Medio** (3σ, el predeterminado) o **Alto** (2σ). |
 | **Ventana de referencia** | Solo condiciones de anomalía. 14 días (el predeterminado), 28, 60 o 90 días de historial. |
@@ -280,11 +280,11 @@ Las condiciones de anomalía comparan cada valor con la misma hora de la semana 
 
 Algunos criterios para empezar:
 
-- **Un host está saturado:** `vcenter.host.cpu.utilization`, Promedio, agrupada por `resource.vcenter.host.name`, **Greater Than** `90`, en los últimos 5 minutos.
-- **Un almacén de datos se está llenando:** `vcenter.datastore.disk.utilization`, Promedio, agrupada por `resource.vcenter.datastore.name`, **Greater Than** `80`.
-- **Un clúster perdió un host:** `vcenter.cluster.host.count` filtrada a `effective = false`, Máximo, agrupada por `resource.vcenter.cluster.name`, **Greater Than** `0`.
-- **Se ejecutan menos VM de las esperadas:** `vcenter.cluster.vm.count` filtrada a `power_state = on` y `resource.vcenter.cluster.name = Production`, Suma, **Less Than** el número que espera.
-- **El host está haciendo swap de una VM:** `vcenter.vm.memory.swapped`, Máximo, agrupada por `resource.vcenter.vm.name`, **Greater Than** `0`.
+- **Un host está saturado:** `vcenter.host.cpu.utilization`, Promedio, agrupada por `resource.vcenter.host.name`, **Mayor que** `90`, en los últimos 5 minutos.
+- **Un almacén de datos se está llenando:** `vcenter.datastore.disk.utilization`, Promedio, agrupada por `resource.vcenter.datastore.name`, **Mayor que** `80`.
+- **Un clúster perdió un host:** `vcenter.cluster.host.count` filtrada a `effective = false`, Máximo, agrupada por `resource.vcenter.cluster.name`, **Mayor que** `0`.
+- **Se ejecutan menos VM de las esperadas:** `vcenter.cluster.vm.count` filtrada a `power_state = on` y `resource.vcenter.cluster.name = Production`, Suma, **Menor que** el número que espera.
+- **El host está haciendo swap de una VM:** `vcenter.vm.memory.swapped`, Máximo, agrupada por `resource.vcenter.vm.name`, **Mayor que** `0`.
 
 ### Criterios predeterminados
 

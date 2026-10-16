@@ -155,11 +155,11 @@ Los criterios deciden cuándo la API cuenta como en línea, degradada o sin cone
 | Filtro | Condiciones | Qué comprueba |
 | --- | --- | --- |
 | **Is Online** | **Verdadero**, **Falso** | Si la API respondió, sea cual sea el código de estado. |
-| **Código de estado de respuesta** | **Equal To**, **Not Equal To**, **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | El código de estado HTTP. |
-| **Tiempo de respuesta (en ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Cuánto tardó la solicitud, redirecciones incluidas. |
-| **Cuerpo de la respuesta** | **Contiene**, **Not Contains** | Texto en el cuerpo de la respuesta. La coincidencia distingue mayúsculas y minúsculas. |
-| **Response Header** | **Contiene**, **Not Contains** | Si la respuesta tiene un encabezado con este nombre. Escriba el nombre en minúsculas, como `x-request-id`. |
-| **Response Header Value** | **Contiene**, **Not Contains** | Si un encabezado tiene exactamente este valor, comparado en minúsculas, como `application/json`. |
+| **Código de estado de respuesta** | **Igual a**, **Distinto de**, **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | El código de estado HTTP. |
+| **Tiempo de respuesta (en ms)** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | Cuánto tardó la solicitud, redirecciones incluidas. |
+| **Cuerpo de la respuesta** | **Contiene**, **No contiene** | Texto en el cuerpo de la respuesta. La coincidencia distingue mayúsculas y minúsculas. |
+| **Response Header** | **Contiene**, **No contiene** | Si la respuesta tiene un encabezado con este nombre. Escriba el nombre en minúsculas, como `x-request-id`. |
+| **Response Header Value** | **Contiene**, **No contiene** | Si un encabezado tiene exactamente este valor, comparado en minúsculas, como `application/json`. |
 | **JavaScript Expression** | **Evaluates To True** | Una expresión sobre la respuesta. Consulte [Expresiones JavaScript](/docs/monitor/javascript-expression). |
 | **Is Request Timeout** | **Verdadero**, **Falso** | Si la solicitud agotó el tiempo de espera en todos los intentos. |
 
@@ -178,7 +178,7 @@ Un monitor de API nuevo empieza con dos criterios, así que funciona sin cambiar
 
 En la lista de criterios llevan el nombre del monitor: _Check if (name) is offline_ y _Check if (name) is online_.
 
-Así que un endpoint que responde `201 Created` o `204 No Content` cuenta como disponible. Si para usted solo un código de estado significa que está sano, cambie ambos criterios en la página **Configuración → Criterios** del monitor: por ejemplo **Código de estado de respuesta** / **Equal To** / `200` en el criterio en línea y **Not Equal To** / `200` en el de sin conexión, en lugar de los dos filtros de código de estado que tiene cada uno. Para comprobar también lo que devuelve la API, añada un filtro **Cuerpo de la respuesta** o **JavaScript Expression** al criterio de sin conexión.
+Así que un endpoint que responde `201 Created` o `204 No Content` cuenta como disponible. Si para usted solo un código de estado significa que está sano, cambie ambos criterios en la página **Configuración → Criterios** del monitor: por ejemplo **Código de estado de respuesta** / **Igual a** / `200` en el criterio en línea y **Distinto de** / `200` en el de sin conexión, en lugar de los dos filtros de código de estado que tiene cada uno. Para comprobar también lo que devuelve la API, añada un filtro **Cuerpo de la respuesta** o **JavaScript Expression** al criterio de sin conexión.
 
 Los criterios se comprueban de arriba abajo, y el primero que coincide decide qué ocurre.
 
@@ -214,10 +214,10 @@ Elija una ventana más larga que el intervalo de supervisión, para que contenga
 
 | Objetivo | Filtro | Condición | Valor |
 | --- | --- | --- | --- |
-| Marcar la API como degradada cuando es lenta | **Tiempo de respuesta (en ms)** | **Greater Than** | `1000` |
-| Sin conexión cuando la comprobación de salud informa de un problema | **Cuerpo de la respuesta** | **Not Contains** | `"status":"ok"` |
+| Marcar la API como degradada cuando es lenta | **Tiempo de respuesta (en ms)** | **Mayor que** | `1000` |
+| Sin conexión cuando la comprobación de salud informa de un problema | **Cuerpo de la respuesta** | **No contiene** | `"status":"ok"` |
 | Lo mismo, leído del JSON analizado | **JavaScript Expression** | **Evaluates To True** | `"{{responseBody.status}}" !== "ok"` |
-| Aceptar solo `201` de un `POST` | **Código de estado de respuesta** | **Equal To** | `201` |
+| Aceptar solo `201` de un `POST` | **Código de estado de respuesta** | **Igual a** | `201` |
 
 Para superar un reinicio, active **Evaluar estos criterios durante un periodo de tiempo** en el filtro del cuerpo de la respuesta y elija **All Values** durante 15 minutos.
 

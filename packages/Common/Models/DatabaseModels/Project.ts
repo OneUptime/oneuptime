@@ -26,6 +26,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import Email from "../../Types/Email";
 import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
+import CloudMarketplace from "../../Types/Marketplace/CloudMarketplace";
 import Name from "../../Types/Name";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -3627,6 +3628,49 @@ export default class Project extends TenantModel {
     length: ColumnLength.ShortText,
   })
   public resellerLicenseId?: string = undefined;
+
+  /*
+   * The cloud marketplace that bills this project - AWS Marketplace,
+   * Microsoft Marketplace (Azure) or Google Cloud Marketplace - or empty for a
+   * project billed by a card on file. Written only by OneUptime, when the
+   * buyer links a marketplace purchase to the project (MarketplaceSubscription
+   * Service): from then on the project has no card subscriptions, its
+   * subscription status follows the purchase, and its plan and usage are
+   * reported to the marketplace. Read with the plan, by whoever reads the
+   * plan, so the Billing page can say where the bill comes from.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Billing Marketplace",
+    description:
+      "The cloud marketplace that bills this project (AWS, Azure or GoogleCloud). Empty when the project is billed by a card on file.",
+    canReadOnRelationQuery: true,
+    hideColumnInDocumentation: true,
+    example: "AWS",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public billingMarketplace?: CloudMarketplace = undefined;
 
   @ColumnAccessControl({
     create: [],

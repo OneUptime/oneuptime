@@ -119,11 +119,11 @@ Deze monitoren evalueren altijd de **Metric Value**: de geaggregeerde waarde van
 
 | Voorwaarde | Komt overeen wanneer de waarde… |
 | --- | --- |
-| **Greater Than** | boven de drempel ligt |
-| **Greater Than Or Equal To** | gelijk is aan de drempel of hoger |
-| **Less Than** | onder de drempel ligt |
-| **Less Than Or Equal To** | gelijk is aan de drempel of lager |
-| **Equal To** | precies de drempel is |
+| **Groter dan** | boven de drempel ligt |
+| **Groter dan of gelijk aan** | gelijk is aan de drempel of hoger |
+| **Kleiner dan** | onder de drempel ligt |
+| **Kleiner dan of gelijk aan** | gelijk is aan de drempel of lager |
+| **Gelijk aan** | precies de drempel is |
 | **Anomalously High** | boven het verwachte bereik voor dit uur van de week ligt |
 | **Anomalously Low** | onder dat bereik ligt |
 | **Anomalous** | buiten dat bereik ligt, in welke richting ook |
@@ -134,8 +134,8 @@ Een nieuwe metrics-monitor begint met twee criteria op zijn eerste query, allebe
 
 | Criterium | Voorwaarde | Effect |
 | --- | --- | --- |
-| Check if … is offline | **Equal To** `0` | Zet de monitor offline en meldt een incident, dat automatisch wordt opgelost |
-| Check if … is online | **Greater Than** `0` | Zet de monitor online |
+| Check if … is offline | **Gelijk aan** `0` | Zet de monitor offline en meldt een incident, dat automatisch wordt opgelost |
+| Check if … is online | **Groter dan** `0` | Zet de monitor online |
 
 > [!NOTE]
 > Het offline-criterium gaat af op een gerapporteerde waarde van 0, niet op stilte. Om gewaarschuwd te worden wanneer een metriek niet meer binnenkomt, zet u de **Als geen gegevens** ervan op **Trigger**.
@@ -148,7 +148,7 @@ U wilt een incident wanneer de checkout-wachtrij diep blijft. Query `a` is de ga
 | --- | --- | --- | --- | --- | --- |
 | `a` | 640 | 980 | 1.500 | 1.620 | 1.100 |
 
-Een criterium met **Metriek** `a`, **Voorwaarde** **Greater Than** en **Threshold** `1000` geeft voor elke **Aggregatie** een ander antwoord:
+Een criterium met **Metriek** `a`, **Voorwaarde** **Groter dan** en **Threshold** `1000` geeft voor elke **Aggregatie** een ander antwoord:
 
 | Aggregatie | Vergeleken met 1.000 | Overeenkomst? |
 | --- | --- | --- |

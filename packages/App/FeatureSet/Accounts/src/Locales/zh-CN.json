@@ -51,6 +51,7 @@
     "submitButton": "登录",
     "forgotPassword": "忘记密码？",
     "useSso": "改用单点登录（SSO）",
+    "signInWithMicrosoft": "使用 Microsoft 登录",
     "noAccountPrompt": "没有账户？",
     "registerLink": "注册。",
     "twoFactor": {
@@ -121,7 +122,8 @@
     "verifyEmailOpensInNewTab": "（在新标签页中打开）",
     "verifyEmailAlreadyVerifiedPrompt": "已经验证过电子邮件？",
     "verifyEmailWrongAddressPrompt": "电子邮件地址有误？",
-    "verifyEmailUseDifferentEmail": "使用其他电子邮件注册"
+    "verifyEmailUseDifferentEmail": "使用其他电子邮件注册",
+    "signUpWithMicrosoft": "使用 Microsoft 注册"
   },
   "forgotPassword": {
     "title": "忘记密码",
@@ -257,6 +259,42 @@
       "server_error": "我们这边出了问题。请几分钟后重试。",
       "framed": "为了您的安全，此页面不能在其他页面内使用。请在单独的浏览器标签页或窗口中打开它。"
     }
+  },
+  "marketplacePurchase": {
+    "title": "设置您的购买",
+    "subtitle": "您已在 {{marketplace}} 上购买 OneUptime。请选择此购买要支付的项目。",
+    "boughtOnLabel": "购买渠道",
+    "buyerLabel": "买家",
+    "marketplacePlanLabel": "云市场套餐",
+    "signedInAs": "已以 {{email}} 的身份登录",
+    "freeTrial": "此购买目前在 {{marketplace}} 上处于免费试用期。",
+    "choiceLabel": "此购买应为哪个项目付费？",
+    "createProjectOption": "创建新项目",
+    "projectNameLabel": "项目名称",
+    "projectNamePlaceholder": "我的项目",
+    "planLabel": "OneUptime 套餐",
+    "planOption": "{{name}} – 每用户每月 {{price}}",
+    "planOptionFree": "{{name}} – 免费",
+    "existingProjectOption": "使用我的现有项目",
+    "projectLabel": "项目",
+    "projectPlaceholder": "选择项目",
+    "existingProjectHelp": "从现在起，该项目的套餐和用量将通过 {{marketplace}} 计费，不再通过银行卡支付。",
+    "projectRefusal": {
+      "not_billing_manager": "{{name}} – 只有其所有者才能更改计费方式",
+      "already_billed_by_marketplace": "{{name}} – 已通过云市场计费",
+      "bought_from_reseller": "{{name}} – 由经销商计费"
+    },
+    "nothingToChoose": "您的项目均无法使用此购买，并且您无法在此服务器上创建项目。请联系此购买所要支付项目的所有者，由其完成设置。",
+    "billingNote": "您的套餐和用量将按 oneuptime.com/pricing 上的价格通过 {{marketplace}} 计费。您可以随时在“项目设置 → 账单”中更改套餐。",
+    "submitButton": "设置购买",
+    "notNowButton": "暂不设置",
+    "redirecting": "购买已设置完成。正在前往您的项目…",
+    "alreadySetUp": "此 {{marketplace}} 购买已为您的某个项目设置好。",
+    "openProject": "打开项目",
+    "cancelled": "此购买已在 {{marketplace}} 上取消。如需继续，请在 {{marketplace}} 上重新购买 OneUptime。",
+    "errorTitle": "无法设置此购买",
+    "errorHelp": "请从您购买 OneUptime 的云市场重新打开它。",
+    "goToDashboard": "前往仪表板"
   },
   "Use at least {{minimum}} characters.": "请至少使用 {{minimum}} 个字符。",
   "Try a few unrelated words.": "试试组合几个互不相关的词。",

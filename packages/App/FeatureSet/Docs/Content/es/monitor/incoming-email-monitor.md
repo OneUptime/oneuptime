@@ -144,7 +144,7 @@ Un monitor de correos entrantes nuevo se crea con dos criterios que leen el cuer
 | Criterio | Tipo de filtro | Condición de filtro | Valor | Efecto |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
 | Sin conexión | Email Body | Contiene | `error` | Marca el monitor sin conexión, abre un incidente |
-| En línea | Email Body | Not Contains | `error` | Marca el monitor en línea |
+| En línea | Email Body | No contiene | `error` | Marca el monitor en línea |
 
 Esto sirve para el caso habitual en que un trabajo o una herramienta de terceros envía por correo su propio resultado: un mensaje cuyo cuerpo menciona `error` deja el monitor sin conexión, y el siguiente mensaje sin esa palabra lo devuelve a en línea y resuelve el incidente. La coincidencia en el cuerpo no distingue mayúsculas y minúsculas, así que `Error` y `ERROR` también coinciden.
 
@@ -175,13 +175,13 @@ La dirección propia del monitor se enmascara antes de que ningún criterio lea 
 | Condición de filtro | Descripción | Ejemplo |
 | ---------------- | ----------------------------------------- | ---------------------------------- |
 | **Contiene** | El campo contiene el texto indicado | El asunto contiene "CRITICAL" |
-| **Not Contains** | El campo no contiene el texto indicado | El asunto no contiene "TEST" |
-| **Equal To** | El campo coincide exactamente con el texto indicado | El remitente es igual a "alerts@service.com" |
-| **Not Equal To** | El campo no coincide con el texto indicado | El asunto no es igual a "OK" |
-| **Starts With** | El campo empieza por el texto indicado | El asunto empieza por "[ALERT]" |
-| **Ends With** | El campo termina con el texto indicado | El asunto termina con "- Production" |
-| **Is Empty** | El campo está vacío o en blanco | El cuerpo está vacío |
-| **Is Not Empty** | El campo tiene contenido | El asunto no está vacío |
+| **No contiene** | El campo no contiene el texto indicado | El asunto no contiene "TEST" |
+| **Igual a** | El campo coincide exactamente con el texto indicado | El remitente es igual a "alerts@service.com" |
+| **Distinto de** | El campo no coincide con el texto indicado | El asunto no es igual a "OK" |
+| **Empieza por** | El campo empieza por el texto indicado | El asunto empieza por "[ALERT]" |
+| **Termina en** | El campo termina con el texto indicado | El asunto termina con "- Production" |
+| **Está vacío** | El campo está vacío o en blanco | El cuerpo está vacío |
+| **No está vacío** | El campo tiene contenido | El asunto no está vacío |
 
 Todas estas comparaciones no distinguen mayúsculas y minúsculas. Un filtro con un valor vacío nunca coincide.
 
@@ -221,8 +221,8 @@ Ponga el criterio crítico el primero: los criterios se comprueban desde arriba,
 
 | Criterio | Filtros | Condición de coincidencia | Acciones |
 | --- | --- | --- | --- |
-| Trabajo fallido | **Email From Address** Equal To `monitoring@legacy-system.com`; **Asunto del correo electrónico** Contiene `Failed` | **Todos** | Cambiar el estado a sin conexión; declarar un incidente |
-| Trabajo correcto | **Email From Address** Equal To `monitoring@legacy-system.com`; **Asunto del correo electrónico** Contiene `Success` | **Todos** | Cambiar el estado a en línea |
+| Trabajo fallido | **Email From Address** Igual a `monitoring@legacy-system.com`; **Asunto del correo electrónico** Contiene `Failed` | **Todos** | Cambiar el estado a sin conexión; declarar un incidente |
+| Trabajo correcto | **Email From Address** Igual a `monitoring@legacy-system.com`; **Asunto del correo electrónico** Contiene `Success` | **Todos** | Cambiar el estado a en línea |
 
 ### Ejemplo 3: monitor de latido (sin correo = alerta)
 
@@ -240,7 +240,7 @@ Un criterio mantiene abierto un solo incidente a la vez: mientras está abierto,
 :::steps
 ### Elegir los correos
 
-Dé al criterio un filtro que coincida con los correos para los que abrir incidentes. Para aceptar solo avisos de su propia gente, use **Email From Address** con **Ends With** y su dominio, por ejemplo `@example.com`.
+Dé al criterio un filtro que coincida con los correos para los que abrir incidentes. Para aceptar solo avisos de su propia gente, use **Email From Address** con **Termina en** y su dominio, por ejemplo `@example.com`.
 
 ### Declarar el incidente
 
@@ -327,7 +327,7 @@ Hasta que esté configurado, la tarjeta de dirección del monitor indica que el 
 - **Seguridad de la dirección de correo**: la dirección de correo del monitor funciona como una contraseña: cualquiera que la conozca puede enviar correo al monitor. No la comparta públicamente, y restablézcala desde la pestaña **Ajustes** del monitor si se filtra.
 - **Tamaño del correo**: OneUptime acepta un correo entrante de hasta 50 MB, archivos adjuntos incluidos. Los adjuntos no se guardan, solo sus nombres, tipos y tamaños.
 - **Tiempo de procesamiento**: los correos se procesan de forma asíncrona. Puede haber unos segundos de retraso entre el envío de un correo y la creación de la alerta.
-- **Sin distinción de mayúsculas y minúsculas**: todas las comparaciones de cadenas (Contiene, Equal To, etc.) no distinguen mayúsculas y minúsculas.
+- **Sin distinción de mayúsculas y minúsculas**: todas las comparaciones de cadenas (Contiene, Igual a, etc.) no distinguen mayúsculas y minúsculas.
 - **Texto sin formato**: los criterios sobre el cuerpo leen la parte de texto sin formato del correo. Un correo enviado solo en HTML tiene el cuerpo vacío para los criterios, así que no contiene `error`, y los criterios predeterminados marcan el monitor en línea.
 
 ## Solución de problemas

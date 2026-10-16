@@ -90,12 +90,12 @@ Os critérios de um monitor de perfis têm um único filtro, **Profile Count**: 
 
 | Condição do filtro | Corresponde quando a contagem de perfis está… |
 | --- | --- |
-| **Greater Than** | acima do valor |
-| **Greater Than Or Equal To** | no valor ou acima |
-| **Less Than** | abaixo do valor |
-| **Less Than Or Equal To** | no valor ou abaixo |
-| **Equal To** | exatamente no valor |
-| **Not Equal To** | em qualquer valor, menos esse |
+| **Maior que** | acima do valor |
+| **Maior ou igual a** | no valor ou acima |
+| **Menor que** | abaixo do valor |
+| **Menor ou igual a** | no valor ou abaixo |
+| **Igual a** | exatamente no valor |
+| **Diferente de** | em qualquer valor, menos esse |
 
 As contagens de perfis não têm condições de anomalia: não há uma linha de base com que compará-las.
 
@@ -104,8 +104,8 @@ As contagens de perfis não têm condições de anomalia: não há uma linha de 
 O serviço de checkout executa um SDK do Pyroscope que envia perfis de CPU. Você quer um incidente quando eles param de chegar por cinco minutos:
 
 - `profileTypes`: `["cpu"]`, `telemetryServiceIds`: o serviço de checkout, `lastXSecondsOfProfiles`: `300`
-- Critério 1: **Profile Count** **Equal To** `0`: colocar o monitor offline e declarar um incidente
-- Critério 2: **Profile Count** **Greater Than** `0`: colocar o monitor online
+- Critério 1: **Profile Count** **Igual a** `0`: colocar o monitor offline e declarar um incidente
+- Critério 2: **Profile Count** **Maior que** `0`: colocar o monitor online
 
 Enquanto o SDK envia dados, cada avaliação conta alguns perfis e o critério 2 mantém o monitor online. Quando o serviço é implantado sem o SDK, a contagem cai para 0 cinco minutos depois do último envio, o critério 1 corresponde e o incidente é declarado. O primeiro envio depois da correção leva a contagem de volta para acima de 0, e o incidente se resolve sozinho se **Resolver incidente automaticamente** estiver ativado para ele.
 

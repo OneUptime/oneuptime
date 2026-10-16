@@ -109,9 +109,9 @@ sequenceDiagram
 | 篩選器 | 條件 | 檢查內容 |
 | --- | --- | --- |
 | **Is Online** | **是**、**否** | 連接埠是否接受了連線。 |
-| **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 整個連線時間，對於主機名稱還包括 DNS 查詢。 |
-| **Port DNS Lookup Time (in ms)** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 第一次 TCP 嘗試之前的 DNS 查詢。當目標是 IP 位址時沒有值。 |
-| **Port TCP Connect Time (in ms)** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 從第一次 TCP 嘗試到連線被接受，包括 IPv6 和 IPv4 之間的切換。 |
+| **Total Connection Time (DNS + TCP) (in ms)** | **大於**、**小於**、**大於或等於**、**小於或等於** | 整個連線時間，對於主機名稱還包括 DNS 查詢。 |
+| **Port DNS Lookup Time (in ms)** | **大於**、**小於**、**大於或等於**、**小於或等於** | 第一次 TCP 嘗試之前的 DNS 查詢。當目標是 IP 位址時沒有值。 |
+| **Port TCP Connect Time (in ms)** | **大於**、**小於**、**大於或等於**、**小於或等於** | 從第一次 TCP 嘗試到連線被接受，包括 IPv6 和 IPv4 之間的切換。 |
 | **Is Request Timeout** | **是**、**否** | DNS 查詢或 TCP 連線是否在每次嘗試中都超過了逾時時間。 |
 
 當目標是 IP 位址時，DNS 查詢條件沒有可評估的內容。對於必須同時適用於主機名稱和 IP 位址的條件，請使用總時間或 TCP 連線時間。
@@ -156,10 +156,10 @@ sequenceDiagram
 | 目標 | 篩選器 | 條件 | 值 |
 | --- | --- | --- | --- |
 | 連接埠關閉時為離線 | **Is Online** | **否** | — |
-| 連線緩慢時發出警示 | **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than** | `500` |
-| 連線緩慢時將服務標記為效能下降 | **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than** | `200` |
-| DNS 緩慢時發出警示 | **Port DNS Lookup Time (in ms)** | **Greater Than** | `100` |
-| TCP 交握緩慢時發出警示 | **Port TCP Connect Time (in ms)** | **Greater Than** | `250` |
+| 連線緩慢時發出警示 | **Total Connection Time (DNS + TCP) (in ms)** | **大於** | `500` |
+| 連線緩慢時將服務標記為效能下降 | **Total Connection Time (DNS + TCP) (in ms)** | **大於** | `200` |
+| DNS 緩慢時發出警示 | **Port DNS Lookup Time (in ms)** | **大於** | `100` |
+| TCP 交握緩慢時發出警示 | **Port TCP Connect Time (in ms)** | **大於** | `250` |
 
 ## 疑難排解
 

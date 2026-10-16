@@ -106,13 +106,13 @@ RDAP 请求遵循探测器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROXY` 
 | --- | --- | --- |
 | **Is Online** | **是**、**否** | 注册查询本身是否成功。 |
 | **Is Request Timeout** | **是**、**否** | 查询是否在每次尝试中都超时。 |
-| **Domain Expires In Days** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 距注册过期的天数，向上取整到整天。 |
+| **Domain Expires In Days** | **大于**、**小于**、**大于或等于**、**小于或等于** | 距注册过期的天数，向上取整到整天。 |
 | **Domain Is Expired** | **是**、**否** | 到期日期是否已过。 |
-| **Domain Registrar** | **包含**、**Not Contains**、**Starts With**、**Ends With**、**Equal To**、**Not Equal To** | 注册商的名称。 |
-| **Domain Name Server** | **包含**、**Not Contains**、**Starts With**、**Ends With**、**Equal To**、**Not Equal To** | 域名的域名服务器。只要其中任意一个匹配即匹配。 |
-| **Domain Status Code** | **包含**、**Not Contains**、**Starts With**、**Ends With**、**Equal To**、**Not Equal To** | 域名的 EPP 状态码。只要其中任意一个匹配即匹配。 |
+| **Domain Registrar** | **包含**、**不包含**、**开头是**、**结尾是**、**等于**、**不等于** | 注册商的名称。 |
+| **Domain Name Server** | **包含**、**不包含**、**开头是**、**结尾是**、**等于**、**不等于** | 域名的域名服务器。只要其中任意一个匹配即匹配。 |
+| **Domain Status Code** | **包含**、**不包含**、**开头是**、**结尾是**、**等于**、**不等于** | 域名的 EPP 状态码。只要其中任意一个匹配即匹配。 |
 
-无论是哪种协议应答，状态码都会规范化为它们的 EPP 名称（`clientTransferProhibited`），因此当 **Auto** 在 RDAP 和 WHOIS 之间切换时，条件仍能继续匹配。注册商的 _名称_ 取决于应答服务发布的内容，在两种协议之间可能略有不同，因此对于 **Domain Registrar** 条件，请优先使用 **包含** 而不是 **Equal To**。
+无论是哪种协议应答，状态码都会规范化为它们的 EPP 名称（`clientTransferProhibited`），因此当 **Auto** 在 RDAP 和 WHOIS 之间切换时，条件仍能继续匹配。注册商的 _名称_ 取决于应答服务发布的内容，在两种协议之间可能略有不同，因此对于 **Domain Registrar** 条件，请优先使用 **包含** 而不是 **等于**。
 
 日期会规范化为 ISO 8601。注册局以无法解析的格式发布的日期会被省略而不是存储，这样到期条件就无法判断、也不会匹配，而不是一直悄悄地回答“未过期”。
 
@@ -136,7 +136,7 @@ RDAP 请求遵循探测器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROXY` 
 在 OneUptime 添加此提醒之前创建的监视器没有“即将过期”条件。要添加它：
 
 1. 在监视器上打开 **配置 → 标准**，然后点击 **编辑监控条件**。
-2. 点击 **添加条件**。将其筛选器设为 **Domain Is Expired** / **否**，点击 **添加过滤器**，并将第二个设为 **Domain Expires In Days** / **Less Than Or Equal To** / `30`。将 **匹配条件** 保持为 **全部**（有两个筛选器后，它会出现在筛选器下方）。
+2. 点击 **添加条件**。将其筛选器设为 **Domain Is Expired** / **否**，点击 **添加过滤器**，并将第二个设为 **Domain Expires In Days** / **小于或等于** / `30`。将 **匹配条件** 保持为 **全部**（有两个筛选器后，它会出现在筛选器下方）。
 3. 在 **操作** 下打开 **当过滤器匹配时，创建警报。** 并保持 **当过滤器匹配时，更改监视器状态。** 关闭，使它创建警报而不改变监视器状态。
 4. 将新条件拖到把监视器标记为在线的条件上方，然后保存。
 :::
@@ -145,20 +145,20 @@ RDAP 请求遵循探测器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROXY` 
 
 | 目标 | 筛选器 | 条件 | 值 |
 | --- | --- | --- | --- |
-| 域名在 30 天内过期时发出警报（默认条件之一） | **Domain Expires In Days** | **Less Than Or Equal To** | `30` |
+| 域名在 30 天内过期时发出警报（默认条件之一） | **Domain Expires In Days** | **小于或等于** | `30` |
 | 域名过期时为离线 | **Domain Is Expired** | **是** | — |
 | 无法读取注册时为离线 | **Is Online** | **否** | — |
-| 域名服务器变化时发出警报 | **Domain Name Server** | **Not Contains** | `ns1.example.com` |
-| 域名的转移锁定被解除时发出警报 | **Domain Status Code** | **Not Contains** | `clientTransferProhibited` |
+| 域名服务器变化时发出警报 | **Domain Name Server** | **不包含** | `ns1.example.com` |
+| 域名的转移锁定被解除时发出警报 | **Domain Status Code** | **不包含** | `clientTransferProhibited` |
 
-只要 _任意一个_ 值匹配，**Domain Name Server** 和 **Domain Status Code** 就会匹配，因此只要有一个域名服务器或一个状态码不包含该文本，**Not Contains** 就会匹配。
+只要 _任意一个_ 值匹配，**Domain Name Server** 和 **Domain Status Code** 就会匹配，因此只要有一个域名服务器或一个状态码不包含该文本，**不包含** 就会匹配。
 
 ## 最佳实践
 
 1. **给自己留出续期时间** — 默认提醒在过期前 30 天发出。如果续期需要审批或耗时较长的付款，请提高到 60 天。
 2. **覆盖查询失败的情况** — 在离线条件中加入 **Is Online** / **否** 筛选器，避免把无法读取的注册误认为正常。新监视器的默认条件中已包含它；在它加入之前创建的监视器需要手动添加。要扛过偶尔对探测器限速的 WHOIS 服务器，请在该筛选器下勾选 **在一段时间内评估此条件**，并选择 **All Values**：这样只有当窗口内的每次查询都失败时，域名才会离线。
 3. **监控所有关键域名** — 包括主域名、单独注册的子域名，以及用于电子邮件或 API 的任何域名。
-4. **跟踪注册商变更** — 添加一个 **Domain Registrar** / **Not Contains** / 您的注册商名称 的条件，以发现未经授权的转移。
+4. **跟踪注册商变更** — 添加一个 **Domain Registrar** / **不包含** / 您的注册商名称 的条件，以发现未经授权的转移。
 
 ## 故障排查
 

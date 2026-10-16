@@ -32,7 +32,9 @@ import {
   DASHBOARD_URL,
   CAPTCHA_ENABLED,
   CAPTCHA_SITE_KEY,
+  MicrosoftSignInClientId,
 } from "Common/UI/Config";
+import MicrosoftSignInButton from "../Components/MicrosoftSignInButton/MicrosoftSignInButton";
 import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
 import BaseAPI from "Common/UI/Utils/API/API";
 import UiAnalytics from "Common/UI/Utils/Analytics";
@@ -732,6 +734,11 @@ const RegisterPage: () => JSX.Element = () => {
               });
             }}
           />
+          {MicrosoftSignInClientId ? (
+            <MicrosoftSignInButton title={t("register.signUpWithMicrosoft")} />
+          ) : (
+            <></>
+          )}
           <p className="mt-4 text-center text-xs leading-5 text-gray-500">
             {t("register.noCreditCard")}
           </p>

@@ -3,6 +3,7 @@ import PromoCode from "../../Models/DatabaseModels/PromoCode";
 import SubscriptionPlan, {
   PlanType,
 } from "../../Types/Billing/SubscriptionPlan";
+import { SubscriptionStatusUtil } from "../../Types/Billing/SubscriptionStatus";
 import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../Types/ObjectID";
 import { getAllEnvVars } from "../EnvironmentConfig";
@@ -15,7 +16,15 @@ import Stripe from "stripe";
 export const PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE: string =
   "Add a payment method in Project Settings > Billing before using paid monitoring or telemetry. These features have usage charges even on the Free plan. Manual monitors remain free.";
 
-type PaymentAuthorization = "payment-method" | "paid-plan" | "reseller";
+/*
+ * Why a project may incur usage charges: a card on file (Free plan), a paid
+ * plan, a reseller agreement, or a cloud marketplace that bills it.
+ */
+type PaymentAuthorization =
+  | "payment-method"
+  | "paid-plan"
+  | "reseller"
+  | "marketplace";
 
 type NotAuthorized = "none";
 const NOT_AUTHORIZED: NotAuthorized = "none";
@@ -205,7 +214,7 @@ export class Service {
 
     const authorization: PaymentAuthorization | NotAuthorized | undefined =
       this.authorizedProjects.get(projectId.toString());
-    if (authorization === "reseller") {
+    if (authorization === "reseller" || authorization === "marketplace") {
       return undefined;
     }
 
@@ -296,6 +305,20 @@ export class Service {
       return "reseller";
     }
 
+    /*
+     * A cloud marketplace bills the project's usage on the buyer's cloud bill
+     * (MarketplaceUsageReporter), for as long as the purchase is in force.
+     * Once it is suspended or cancelled the project's status says so, and
+     * the project may no longer incur usage - whatever its plan.
+     */
+    if (project.billingMarketplace) {
+      return SubscriptionStatusUtil.isSubscriptionActive(
+        project.paymentProviderSubscriptionStatus,
+      )
+        ? "marketplace"
+        : null;
+    }
+
     if (!project.paymentProviderPlanId) {
       return null;
     }
@@ -345,7 +368,8 @@ export class Service {
     const project: Project | null = await this.findBillingSetup(projectId);
 
     const hasAgreement: boolean = project
-      ? (await this.hasResellerAgreement(projectId, project)) ||
+      ? Boolean(project.billingMarketplace) ||
+        (await this.hasResellerAgreement(projectId, project)) ||
         (await this.hasInvoiceAgreement(project))
       : false;
 
@@ -365,6 +389,8 @@ export class Service {
         paymentProviderPlanId: true,
         paymentProviderCustomerId: true,
         paymentProviderSubscriptionId: true,
+        paymentProviderSubscriptionStatus: true,
+        billingMarketplace: true,
         resellerId: true,
         resellerPlanId: true,
       },

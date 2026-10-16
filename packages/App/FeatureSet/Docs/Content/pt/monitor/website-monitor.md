@@ -143,11 +143,11 @@ Os critérios decidem quando o site conta como online, degradado ou offline, e s
 | Filtro | Condições | O que verifica |
 | --- | --- | --- |
 | **Is Online** | **Verdadeiro**, **Falso** | Se o site respondeu, seja qual for o código de status. |
-| **Código de status da resposta** | **Equal To**, **Not Equal To**, **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | O código de status HTTP. |
-| **Tempo de resposta (em ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Quanto a requisição demorou, redirecionamentos incluídos. |
-| **Corpo da Resposta** | **Contém**, **Not Contains** | Texto no corpo da resposta. A comparação diferencia maiúsculas de minúsculas. |
-| **Response Header** | **Contém**, **Not Contains** | Se a resposta tem um cabeçalho com este nome. Informe o nome em minúsculas, como `x-cache`. |
-| **Response Header Value** | **Contém**, **Not Contains** | Se um cabeçalho tem exatamente este valor, comparado em minúsculas, como `no-store`. |
+| **Código de status da resposta** | **Igual a**, **Diferente de**, **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | O código de status HTTP. |
+| **Tempo de resposta (em ms)** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | Quanto a requisição demorou, redirecionamentos incluídos. |
+| **Corpo da Resposta** | **Contém**, **Não contém** | Texto no corpo da resposta. A comparação diferencia maiúsculas de minúsculas. |
+| **Response Header** | **Contém**, **Não contém** | Se a resposta tem um cabeçalho com este nome. Informe o nome em minúsculas, como `x-cache`. |
+| **Response Header Value** | **Contém**, **Não contém** | Se um cabeçalho tem exatamente este valor, comparado em minúsculas, como `no-store`. |
 | **JavaScript Expression** | **Evaluates To True** | Uma expressão sobre a resposta. Veja [Expressões JavaScript](/docs/monitor/javascript-expression). |
 | **Is Request Timeout** | **Verdadeiro**, **Falso** | Se a requisição excedeu o tempo limite em todas as tentativas. |
 
@@ -164,7 +164,7 @@ Um monitor de site novo começa com dois critérios, então funciona sem que voc
 
 Na lista de critérios, eles levam o nome do monitor: _Check if (name) is offline_ e _Check if (name) is online_.
 
-Então uma página que responde `204 No Content`, ou um redirecionamento que você vigia com **Não seguir redirecionamentos** ativado, conta como no ar. Se para você só um código de status significa que está saudável, altere os dois critérios na página **Configuração → Critérios** do monitor: por exemplo **Código de status da resposta** / **Equal To** / `200` no critério online e **Not Equal To** / `200` no critério offline, no lugar dos dois filtros de código de status que cada um tem.
+Então uma página que responde `204 No Content`, ou um redirecionamento que você vigia com **Não seguir redirecionamentos** ativado, conta como no ar. Se para você só um código de status significa que está saudável, altere os dois critérios na página **Configuração → Critérios** do monitor: por exemplo **Código de status da resposta** / **Igual a** / `200` no critério online e **Diferente de** / `200` no critério offline, no lugar dos dois filtros de código de status que cada um tem.
 
 Os critérios são verificados de cima para baixo, e o primeiro que corresponde decide o que acontece.
 
@@ -200,10 +200,10 @@ Escolha uma janela mais longa que o intervalo de monitoramento, para que ela con
 
 | Objetivo | Filtro | Condição | Valor |
 | --- | --- | --- | --- |
-| Marcar o site como degradado quando estiver lento | **Tempo de resposta (em ms)** | **Greater Than** | `3000` |
-| Detectar uma página de erro servida com `200` | **Corpo da Resposta** | **Not Contains** | `Welcome` |
+| Marcar o site como degradado quando estiver lento | **Tempo de resposta (em ms)** | **Maior que** | `3000` |
+| Detectar uma página de erro servida com `200` | **Corpo da Resposta** | **Não contém** | `Welcome` |
 | Verificar se um cabeçalho do CDN está presente | **Response Header** | **Contém** | `x-cache` |
-| Aceitar apenas `200` como saudável | **Código de status da resposta** | **Equal To** | `200` |
+| Aceitar apenas `200` como saudável | **Código de status da resposta** | **Igual a** | `200` |
 
 Para atravessar uma reinicialização, ative **Avaliar este critério durante um período de tempo** no filtro do corpo da resposta e escolha **All Values** em 15 minutos.
 

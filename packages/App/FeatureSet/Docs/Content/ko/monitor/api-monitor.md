@@ -155,11 +155,11 @@ curl --cert client.crt --key client.key https://api.example.com/health
 | 필터 | 조건 | 확인하는 것 |
 | --- | --- | --- |
 | **Is Online** | **참**, **거짓** | 상태 코드와 관계없이 API가 응답했는지 여부. |
-| **응답 상태 코드** | **Equal To**, **Not Equal To**, **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | HTTP 상태 코드. |
-| **응답 시간(ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | 리디렉션을 포함해 요청에 걸린 시간. |
-| **응답 본문** | **포함**, **Not Contains** | 응답 본문의 텍스트. 대소문자를 구분합니다. |
-| **Response Header** | **포함**, **Not Contains** | 응답에 이 이름의 헤더가 있는지 여부. `x-request-id`처럼 이름을 소문자로 입력합니다. |
-| **Response Header Value** | **포함**, **Not Contains** | 헤더가 정확히 이 값을 가지는지 여부. `application/json`처럼 소문자로 비교합니다. |
+| **응답 상태 코드** | **같음**, **같지 않음**, **보다 큼**, **보다 작음**, **이상**, **이하** | HTTP 상태 코드. |
+| **응답 시간(ms)** | **보다 큼**, **보다 작음**, **이상**, **이하** | 리디렉션을 포함해 요청에 걸린 시간. |
+| **응답 본문** | **포함**, **포함하지 않음** | 응답 본문의 텍스트. 대소문자를 구분합니다. |
+| **Response Header** | **포함**, **포함하지 않음** | 응답에 이 이름의 헤더가 있는지 여부. `x-request-id`처럼 이름을 소문자로 입력합니다. |
+| **Response Header Value** | **포함**, **포함하지 않음** | 헤더가 정확히 이 값을 가지는지 여부. `application/json`처럼 소문자로 비교합니다. |
 | **JavaScript Expression** | **Evaluates To True** | 응답에 대한 식. [JavaScript 표현식](/docs/monitor/javascript-expression)을 참고하세요. |
 | **Is Request Timeout** | **참**, **거짓** | 모든 시도에서 요청이 시간 초과되었는지 여부. |
 
@@ -178,7 +178,7 @@ JSON 응답은 키와 값 사이에 공백이 없는 압축된 형태로 확인�
 
 기준 목록에서 두 기준은 모니터 이름을 따서 이름이 붙습니다: _Check if (name) is offline_, _Check if (name) is online_.
 
-따라서 `201 Created` 또는 `204 No Content`로 응답하는 엔드포인트도 정상으로 봅니다. 정상을 뜻하는 상태 코드가 하나뿐이라면 모니터의 **구성 → 기준** 페이지에서 두 기준을 모두 바꿉니다. 예를 들어 각 기준에 있는 두 상태 코드 필터 대신, 온라인 기준에는 **응답 상태 코드** / **Equal To** / `200`을, 오프라인 기준에는 **Not Equal To** / `200`을 둡니다. API가 반환하는 내용도 확인하려면 오프라인 기준에 **응답 본문** 또는 **JavaScript Expression** 필터를 추가합니다.
+따라서 `201 Created` 또는 `204 No Content`로 응답하는 엔드포인트도 정상으로 봅니다. 정상을 뜻하는 상태 코드가 하나뿐이라면 모니터의 **구성 → 기준** 페이지에서 두 기준을 모두 바꿉니다. 예를 들어 각 기준에 있는 두 상태 코드 필터 대신, 온라인 기준에는 **응답 상태 코드** / **같음** / `200`을, 오프라인 기준에는 **같지 않음** / `200`을 둡니다. API가 반환하는 내용도 확인하려면 오프라인 기준에 **응답 본문** 또는 **JavaScript Expression** 필터를 추가합니다.
 
 기준은 위에서 아래로 확인되며, 처음 일치한 기준이 무엇을 할지 정합니다.
 
@@ -214,10 +214,10 @@ OneUptime이 이 기본값을 바꾸기 전에 만든 모니터는 만들 때의
 
 | 목표 | 필터 | 조건 | 값 |
 | --- | --- | --- | --- |
-| 느릴 때 API를 저하됨으로 표시 | **응답 시간(ms)** | **Greater Than** | `1000` |
-| 상태 확인이 문제를 보고하면 오프라인 | **응답 본문** | **Not Contains** | `"status":"ok"` |
+| 느릴 때 API를 저하됨으로 표시 | **응답 시간(ms)** | **보다 큼** | `1000` |
+| 상태 확인이 문제를 보고하면 오프라인 | **응답 본문** | **포함하지 않음** | `"status":"ok"` |
 | 같은 확인을 파싱된 JSON에서 읽기 | **JavaScript Expression** | **Evaluates To True** | `"{{responseBody.status}}" !== "ok"` |
-| `POST`에서 `201`만 인정 | **응답 상태 코드** | **Equal To** | `201` |
+| `POST`에서 `201`만 인정 | **응답 상태 코드** | **같음** | `201` |
 
 재시작을 견디려면 응답 본문 필터에서 **일정 기간에 걸쳐 이 기준을 평가**를 켜고 **All Values**를 15분으로 고르세요.
 

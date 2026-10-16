@@ -88,7 +88,7 @@ Os dois primeiros estão na lista de **Criar alerta**; para o terceiro, abra um 
 
 ### Traps
 
-Toda notificação da Sophos é o mesmo trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), com o evento como texto em `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Para alertar sobre um tipo de evento, combine **SNMP Trap Received (Trap OID)** Equal To `1.3.6.1.4.1.2604.5.1.8.1.1` com **SNMP Trap Varbind Value** sobre esse varbind, Contains `IPSec` por exemplo. Defina o destino de traps do firewall como SNMP v2c: o receptor de traps da sonda aceita traps v1 e v2c.
+Toda notificação da Sophos é o mesmo trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), com o evento como texto em `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Para alertar sobre um tipo de evento, combine **SNMP Trap Received (Trap OID)** Igual a `1.3.6.1.4.1.2604.5.1.8.1.1` com **SNMP Trap Varbind Value** sobre esse varbind, Contém `IPSec` por exemplo. Defina o destino de traps do firewall como SNMP v2c: o receptor de traps da sonda aceita traps v1 e v2c.
 
 ## Extreme Networks (EXOS / Switch Engine e Fabric Engine / VOSS)
 
@@ -130,9 +130,9 @@ Alertas úteis, todos sobre a tabela `wifi_radios` com Row `*`, para que cada r�
 | Alerta | Critério |
 | --- | --- |
 | Um rádio desligado | **SNMP Table Row Is Unhealthy**, parte dos alertas recomendados |
-| Potência de transmissão alterada | **SNMP Table Value**, coluna TX Power, Not Equal To a potência que você planejou |
-| Um rádio lotado | **SNMP Table Value**, coluna Clients, Greater Than o seu limite |
-| Um canal ruidoso | **SNMP Table Value**, coluna Noise Floor, Greater Than `-80` |
+| Potência de transmissão alterada | **SNMP Table Value**, coluna TX Power, Diferente de a potência que você planejou |
+| Um rádio lotado | **SNMP Table Value**, coluna Clients, Maior que o seu limite |
+| Um canal ruidoso | **SNMP Table Value**, coluna Noise Floor, Maior que `-80` |
 
 Cada valor numérico dos rádios também é uma métrica (`oneuptime.monitor.snmp.table.value`, uma série por rádio e coluna), então canal, potência e clientes podem ser colocados em gráficos ao longo do tempo em um painel; um canal que não para de mudar é o DFS trabalhando.
 

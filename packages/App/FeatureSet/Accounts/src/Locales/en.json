@@ -51,6 +51,7 @@
     },
     "forgotPassword": "Forgot password?",
     "useSso": "Use single sign-on (SSO) instead",
+    "signInWithMicrosoft": "Sign in with Microsoft",
     "noAccountPrompt": "Don't have an account?",
     "registerLink": "Register.",
     "twoFactor": {
@@ -121,7 +122,8 @@
     "verifyEmailOpensInNewTab": "(opens in a new tab)",
     "verifyEmailAlreadyVerifiedPrompt": "Already verified your email?",
     "verifyEmailWrongAddressPrompt": "Wrong email address?",
-    "verifyEmailUseDifferentEmail": "Sign up with a different email"
+    "verifyEmailUseDifferentEmail": "Sign up with a different email",
+    "signUpWithMicrosoft": "Sign up with Microsoft"
   },
   "forgotPassword": {
     "title": "Forgot your password",
@@ -257,6 +259,42 @@
       "server_error": "Something went wrong on our side. Please try again in a few minutes.",
       "framed": "For your security, this page cannot be used inside another page. Open it in its own browser tab or window."
     }
+  },
+  "marketplacePurchase": {
+    "title": "Set up your purchase",
+    "subtitle": "You bought OneUptime on {{marketplace}}. Choose the project it pays for.",
+    "boughtOnLabel": "Bought on",
+    "buyerLabel": "Buyer",
+    "marketplacePlanLabel": "Marketplace plan",
+    "signedInAs": "Signed in as {{email}}",
+    "freeTrial": "This purchase is in a free trial on {{marketplace}}.",
+    "choiceLabel": "Which project should this purchase pay for?",
+    "createProjectOption": "Create a new project",
+    "projectNameLabel": "Project name",
+    "projectNamePlaceholder": "My project",
+    "planLabel": "OneUptime plan",
+    "planOption": "{{name}} – {{price}} per user / month",
+    "planOptionFree": "{{name}} – free",
+    "existingProjectOption": "Use one of my projects",
+    "projectLabel": "Project",
+    "projectPlaceholder": "Choose a project",
+    "existingProjectHelp": "From now on, its plan and usage are billed through {{marketplace}} instead of by card.",
+    "projectRefusal": {
+      "not_billing_manager": "{{name}} – only its owners can change how it is billed",
+      "already_billed_by_marketplace": "{{name}} – already billed through a marketplace",
+      "bought_from_reseller": "{{name}} – billed by a reseller"
+    },
+    "nothingToChoose": "None of your projects can take this purchase, and you cannot create projects on this server. Ask the owner of the project it should pay for to set it up.",
+    "billingNote": "Your plan and usage are billed through {{marketplace}}, at the prices on oneuptime.com/pricing. You can change your plan anytime in Project Settings → Billing.",
+    "submitButton": "Set up purchase",
+    "notNowButton": "Not now",
+    "redirecting": "Your purchase is set up. Taking you to your project…",
+    "alreadySetUp": "This {{marketplace}} purchase is already set up for one of your projects.",
+    "openProject": "Open project",
+    "cancelled": "This purchase has been cancelled on {{marketplace}}. Buy OneUptime again on {{marketplace}} to continue.",
+    "errorTitle": "We couldn't set up this purchase",
+    "errorHelp": "Open OneUptime again from the marketplace you bought it on.",
+    "goToDashboard": "Go to dashboard"
   },
   "Use at least {{minimum}} characters.": "Use at least {{minimum}} characters.",
   "Try a few unrelated words.": "Try a few unrelated words.",

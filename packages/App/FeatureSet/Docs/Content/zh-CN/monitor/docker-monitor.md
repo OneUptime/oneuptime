@@ -164,7 +164,7 @@ flowchart TB
 | --- | --- |
 | **指标** | 要检查的查询或公式，按其变量名指定。 |
 | **聚合** | 窗口中的值如何变成一个结果：**平均值**、**总和**、**Maximum Value**、**Minimum Value**、**All Values**（每个值都必须匹配）或 **Any Value**（一个就够）。 |
-| **条件** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** 或 **Equal To**，或者异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
+| **条件** | **大于**、**小于**、**大于或等于**、**小于或等于** 或 **等于**，或者异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
 | **Threshold** | 用于比较的值。如果指标有单位，旁边会有单位列表。异常条件下不显示。 |
 | **灵敏度** | 仅限异常条件。**低**（4σ）、**中**（3σ，默认）或 **高**（2σ）。 |
 | **基线窗口** | 仅限异常条件。14 天（默认）、28、60 或 90 天的历史。 |

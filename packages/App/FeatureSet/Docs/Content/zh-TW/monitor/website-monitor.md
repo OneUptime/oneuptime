@@ -143,11 +143,11 @@ curl --cert client.crt --key client.key https://example.com/health
 | 篩選器 | 條件 | 檢查內容 |
 | --- | --- | --- |
 | **Is Online** | **是**、**否** | 網站是否有回應，無論狀態碼為何。 |
-| **回應狀態碼** | **Equal To**、**Not Equal To**、**Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | HTTP 狀態碼。 |
-| **回應時間（毫秒）** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 請求所花的時間，包括重新導向。 |
-| **回應內文** | **包含**、**Not Contains** | 回應內文中的文字。比對時區分大小寫。 |
-| **Response Header** | **包含**、**Not Contains** | 回應中是否有此名稱的標頭。以小寫輸入名稱，例如 `x-cache`。 |
-| **Response Header Value** | **包含**、**Not Contains** | 某個標頭的值是否剛好是此值，以小寫比較，例如 `no-store`。 |
+| **回應狀態碼** | **等於**、**不等於**、**大於**、**小於**、**大於或等於**、**小於或等於** | HTTP 狀態碼。 |
+| **回應時間（毫秒）** | **大於**、**小於**、**大於或等於**、**小於或等於** | 請求所花的時間，包括重新導向。 |
+| **回應內文** | **包含**、**不包含** | 回應內文中的文字。比對時區分大小寫。 |
+| **Response Header** | **包含**、**不包含** | 回應中是否有此名稱的標頭。以小寫輸入名稱，例如 `x-cache`。 |
+| **Response Header Value** | **包含**、**不包含** | 某個標頭的值是否剛好是此值，以小寫比較，例如 `no-store`。 |
 | **JavaScript Expression** | **Evaluates To True** | 針對回應的運算式。請參閱 [JavaScript 運算式](/docs/monitor/javascript-expression)。 |
 | **Is Request Timeout** | **是**、**否** | 請求是否在每次嘗試中都逾時。 |
 
@@ -164,7 +164,7 @@ curl --cert client.crt --key client.key https://example.com/health
 
 在條件清單中，它們以監測器命名：_Check if (name) is offline_ 和 _Check if (name) is online_。
 
-因此，回傳 `204 No Content` 的頁面，或者在開啟 **不要跟隨重新導向** 時監測的重新導向，都算是正常。如果對您來說只有一個狀態碼代表健康，請在監測器的 **設定 → 條件** 頁面上修改這兩個條件：例如上線條件中使用 **回應狀態碼** / **Equal To** / `200`，離線條件中使用 **Not Equal To** / `200`，取代各自原有的兩個狀態碼篩選器。
+因此，回傳 `204 No Content` 的頁面，或者在開啟 **不要跟隨重新導向** 時監測的重新導向，都算是正常。如果對您來說只有一個狀態碼代表健康，請在監測器的 **設定 → 條件** 頁面上修改這兩個條件：例如上線條件中使用 **回應狀態碼** / **等於** / `200`，離線條件中使用 **不等於** / `200`，取代各自原有的兩個狀態碼篩選器。
 
 條件由上而下檢查，第一個符合的條件決定接下來會發生什麼。
 
@@ -200,10 +200,10 @@ curl --cert client.crt --key client.key https://example.com/health
 
 | 目標 | 篩選器 | 條件 | 值 |
 | --- | --- | --- | --- |
-| 網站變慢時標記為效能下降 | **回應時間（毫秒）** | **Greater Than** | `3000` |
-| 抓出以 `200` 回傳的錯誤頁面 | **回應內文** | **Not Contains** | `Welcome` |
+| 網站變慢時標記為效能下降 | **回應時間（毫秒）** | **大於** | `3000` |
+| 抓出以 `200` 回傳的錯誤頁面 | **回應內文** | **不包含** | `Welcome` |
 | 檢查 CDN 標頭是否存在 | **Response Header** | **包含** | `x-cache` |
-| 只接受 `200` 為健康 | **回應狀態碼** | **Equal To** | `200` |
+| 只接受 `200` 為健康 | **回應狀態碼** | **等於** | `200` |
 
 要撐過重新啟動，請為回應內文篩選器開啟 **在一段時間內評估此條件**，並選擇 15 分鐘內的 **All Values**。
 

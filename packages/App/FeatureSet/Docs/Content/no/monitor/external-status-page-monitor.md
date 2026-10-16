@@ -119,10 +119,10 @@ Du kan konfigurere kriterier som avgjør når den eksterne tjenesten regnes som 
 | Filtertype | Hva den sjekker | Filtervilkår |
 | --- | --- | --- |
 | **External Status Page Is Online** | Om statussiden kan nås og returnerer statusdata | Sann eller Usann |
-| **External Status Page Overall Status** | Den samlede statusen siden melder | Equal To, Not Equal To, Inneholder, Not Contains, Starts With, Ends With |
-| **External Status Page Component Status** | Statusen til komponentene innenfor avgrensningen (med hensyn til filtrene for komponentgruppe / komponentnavn): I drift, Under Maintenance, Degraded Performance, Partial Outage, Major Outage eller Full Outage | Equal To, Not Equal To, Inneholder, Not Contains, Starts With, Ends With |
-| **External Status Page Active Incidents** | Antallet aktive hendelser statussiden melder om nå (avgrenset til komponentgruppen / komponenten når et filter er angitt) | Equal To, Not Equal To og de numeriske sammenligningene |
-| **External Status Page Response Time (in ms)** | Hvor lang tid det tar å hente dataene fra statussiden | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| **External Status Page Overall Status** | Den samlede statusen siden melder | Lik, Ikke lik, Inneholder, Inneholder ikke, Starter med, Slutter med |
+| **External Status Page Component Status** | Statusen til komponentene innenfor avgrensningen (med hensyn til filtrene for komponentgruppe / komponentnavn): I drift, Under Maintenance, Degraded Performance, Partial Outage, Major Outage eller Full Outage | Lik, Ikke lik, Inneholder, Inneholder ikke, Starter med, Slutter med |
+| **External Status Page Active Incidents** | Antallet aktive hendelser statussiden melder om nå (avgrenset til komponentgruppen / komponenten når et filter er angitt) | Lik, Ikke lik og de numeriske sammenligningene |
+| **External Status Page Response Time (in ms)** | Hvor lang tid det tar å hente dataene fra statussiden | Større enn, Mindre enn, Større enn eller lik, Mindre enn eller lik |
 
 Den samlede statusen er det siden sier, så verdiene varierer med leverandøren: en Atlassian Statuspage melder sin egen beskrivelse, som `All Systems Operational`; en feed melder `operational` eller `degraded_performance`; kontrollen av om siden kan nås, melder `reachable` eller `unreachable`. Disse sammenligningene skiller mellom store og små bokstaver. For å varsle om driftsavbrudd er **External Status Page Active Incidents** og **External Status Page Component Status** som regel mer pålitelige.
 

@@ -62,10 +62,14 @@ import path from "path";
  *     screen shows the English, never the Edit template. FLAT_LOOKUP lists
  *     them with the source line that draws each, and the translations name
  *     them as the flat lookup draws them.
- *   - Criteria filters and conditions (Log Count, Greater Than), several
- *     dropdown options (Past 1 Minute, Treat As Zero, Any Value) and two
- *     dialog titles built from template literals have no locale key at all:
- *     every language shows them in English (SHOWN_IN_ENGLISH).
+ *   - Criteria filters and the anomaly conditions (Log Count, Anomalously
+ *     High), several dropdown options (Past 1 Minute, Treat As Zero, Any
+ *     Value) and two dialog titles built from template literals have no
+ *     locale key at all: every language shows them in English
+ *     (SHOWN_IN_ENGLISH). The threshold conditions (Greater Than, Equal To)
+ *     gained theirs in adc8421a1b: they are labels now, drawn like any
+ *     other, and a condition written out with its value ("**Equal To 0**")
+ *     is drawn with it (CONDITIONS_WITH_VALUES).
  *   - Plan names and permission titles stay in English, as on the workflow
  *     and runbook pages (KEPT_IN_ENGLISH): the plans are product names, and
  *     the permissions are what the API, Terraform and the team pages call
@@ -131,15 +135,6 @@ const TELEMETRY_MONITOR_PAGES: Array<string> = [
   PROFILES_MONITOR,
 ];
 
-// The threshold conditions of a count, which no locale has a key for.
-const COUNT_CONDITIONS: Array<string> = [
-  "Greater Than",
-  "Greater Than Or Equal To",
-  "Less Than",
-  "Less Than Or Equal To",
-  "Equal To",
-];
-
 // The anomaly conditions of a log count, a span count and a metric value.
 const ANOMALY_CONDITIONS: Array<string> = [
   "Anomalously High",
@@ -154,12 +149,9 @@ const ANOMALY_CONDITIONS: Array<string> = [
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [LOGS_MONITOR]: [
-    // The criteria filter (CheckOn) and its conditions (FilterType).
+    // The criteria filter (CheckOn) and its anomaly conditions (FilterType).
     "Log Count",
-    ...COUNT_CONDITIONS,
     ...ANOMALY_CONDITIONS,
-    // "Equal To 0 and Less Than criteria": the condition, with its value.
-    "Equal To 0",
   ],
   [METRICS_MONITOR]: [
     // The Time Range options without a locale key (the others have one).
@@ -179,7 +171,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Ignore",
     "Treat As Zero",
     "Metric Value",
-    ...COUNT_CONDITIONS,
     ...ANOMALY_CONDITIONS,
     // The criteria's aggregations without a key (Average has one).
     "Any Value",
@@ -190,15 +181,10 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "ERROR",
     "UNSET",
     "Span Count",
-    ...COUNT_CONDITIONS,
     ...ANOMALY_CONDITIONS,
   ],
-  [EXCEPTIONS_MONITOR]: [
-    "Exception Count",
-    ...COUNT_CONDITIONS,
-    "Not Equal To",
-  ],
-  [PROFILES_MONITOR]: ["Profile Count", ...COUNT_CONDITIONS, "Not Equal To"],
+  [EXCEPTIONS_MONITOR]: ["Exception Count"],
+  [PROFILES_MONITOR]: ["Profile Count"],
   [RESOURCES_AND_GROUPS]: [
     // Titles built from a template literal, which no lookup can find.
     "Add a monitor to {group}",
@@ -206,6 +192,22 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     // The bulk add summary's heading, drawn as written (no translator).
     "Already Added",
   ],
+};
+
+/*
+ * A criteria's condition written out with its value, the way the criteria
+ * form sets one up: "**Equal To 0** and **Less Than** criteria only fire for
+ * groups that logged". The condition is a Dashboard label, drawn as this
+ * language's criteria form draws it; the value is the number a reader types
+ * into the form, as the English page writes it ("**Gleich 0**" in German).
+ */
+interface ConditionWithValue {
+  condition: string;
+  value: string;
+}
+
+const CONDITIONS_WITH_VALUES: Record<string, Array<ConditionWithValue>> = {
+  [LOGS_MONITOR]: [{ condition: "Equal To", value: "0" }],
 };
 
 const PLANS: Array<string> = ["Growth", "Scale"];
@@ -621,6 +623,11 @@ function fillPlaceholders(
   return filled;
 }
 
+// A condition with its value, as a page in this language writes it.
+function writtenOut(language: string, entry: ConditionWithValue): string {
+  return `${drawnActionLabel(language, entry.condition)} ${entry.value}`;
+}
+
 // A template label as this language's locale draws it, with the page's placeholders.
 function drawnTemplate(language: string, entry: TemplateLabel): string {
   return fillPlaceholders(flatLabel(language, entry.key), entry.values);
@@ -801,6 +808,7 @@ describe("the lists this test keeps", () => {
       MESSAGES,
       PROSE,
       PROSE_LEADS,
+      CONDITIONS_WITH_VALUES,
     ]) {
       for (const page of Object.keys(lists)) {
         expect(PAGE_NAMES).toContain(page);
@@ -838,6 +846,30 @@ describe("the lists this test keeps", () => {
           bold: labels.includes(name),
           label: isActionLabel(name),
         });
+      }
+    }
+  });
+
+  /*
+   * A condition written out with its value is drawn only because its
+   * condition is a label: one that loses its key, or a span the English page
+   * no longer bolds, fails here.
+   */
+  it("write out with its value only a condition the Dashboard draws, as the English page bolds it", () => {
+    for (const page of Object.keys(CONDITIONS_WITH_VALUES)) {
+      const labels: Array<string> = boldLabels(englishPage(page));
+
+      for (const entry of CONDITIONS_WITH_VALUES[
+        page
+      ] as Array<ConditionWithValue>) {
+        expect({ page, entry, bold: true, label: true }).toEqual({
+          page,
+          entry,
+          bold: labels.includes(writtenOut("en", entry)),
+          label: isActionLabel(entry.condition),
+        });
+        // The whole span is no label of its own: it is drawn in two parts.
+        expect(isActionLabel(writtenOut("en", entry))).toBe(false);
       }
     }
   });
@@ -952,6 +984,11 @@ describe("the lists this test keeps", () => {
         ...(SHOWN_IN_ENGLISH[page] || []),
         ...(KEPT_IN_ENGLISH[page] || []),
         ...(PROSE_LEADS[page] || []),
+        ...(CONDITIONS_WITH_VALUES[page] || []).map(
+          (entry: ConditionWithValue): string => {
+            return writtenOut("en", entry);
+          },
+        ),
         ...(TEMPLATES[page] || []).map((entry: TemplateLabel): string => {
           return entry.english;
         }),
@@ -1334,6 +1371,22 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       expect(missing).toEqual([]);
     });
 
+    it("writes a condition with its value as this language's Dashboard draws the condition, never in English", () => {
+      const translated: string = readPage(language, entry.page);
+
+      for (const written of CONDITIONS_WITH_VALUES[entry.page] || []) {
+        const drawn: string = writtenOut(language, written);
+        const english: string = writtenOut("en", written);
+
+        expect({ drawn, found: true, english: false }).toEqual({
+          drawn,
+          found: translated.includes(`**${drawn}**`),
+          // Where the language draws the condition otherwise, the English is gone.
+          english: drawn !== english && translated.includes(`**${english}**`),
+        });
+      }
+    });
+
     it("words the templates and the table messages as this language's locale does", () => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = [
@@ -1448,6 +1501,21 @@ describe("the helpers, on these pages' shapes", () => {
     );
     // No locale has the whole of Add Row.
     expect(flatLabel("fr", "Add Row")).toBe("Add Row");
+  });
+
+  it("write a condition out with its value: the condition drawn, the value as typed", () => {
+    const equalToZero: ConditionWithValue = {
+      condition: "Equal To",
+      value: "0",
+    };
+
+    expect(writtenOut("en", equalToZero)).toBe("Equal To 0");
+    expect(writtenOut("de", equalToZero)).toBe(
+      `${dashboardLocale("de")["Equal To"]} 0`,
+    );
+    expect(writtenOut("de", equalToZero)).not.toBe("Equal To 0");
+    // The value stays as typed, in every script.
+    expect(writtenOut("fa", equalToZero).endsWith(" 0")).toBe(true);
   });
 
   it("fill a template with the page's placeholders and drop a message's full stop", () => {

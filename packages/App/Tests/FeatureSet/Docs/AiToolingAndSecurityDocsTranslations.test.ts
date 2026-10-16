@@ -174,12 +174,13 @@ export const WORKFLOW_STEP_NAMES: Record<string, Array<string>> = {
 };
 
 /*
- * The monitor criteria's filter types and conditions (CheckOn, FilterType),
- * which no Dashboard locale translates. AiToolingDocsFacts and
- * SecurityDocsFacts hold each to its enum.
+ * The monitor criteria's filter types (CheckOn), which no Dashboard locale
+ * translates. AiToolingDocsFacts and SecurityDocsFacts hold each to its enum.
+ * Their conditions (FilterType: Greater Than, Greater Than Or Equal To) are
+ * labels since adc8421a1b, drawn like any other.
  */
 export const CRITERIA_NAMES: Record<string, Array<string>> = {
-  [CIRCUIT_BREAKER]: ["Greater Than Or Equal To", "Span Count", "Greater Than"],
+  [CIRCUIT_BREAKER]: ["Span Count"],
   [SECURITY_EVENTS]: ["Security Event Count"],
 };
 

@@ -77,8 +77,8 @@ flowchart TB
 | **Is Not A Valid Certificate** | **참**, **거짓** | **Is Valid Certificate**의 반대: 인증서가 그 확인을 통과하지 못했거나 확인할 수 없었으면 **참**. |
 | **Is Expired Certificate** | **참**, **거짓** | 인증서의 만료일이 지났음. |
 | **Is Self Signed Certificate** | **참**, **거짓** | 인증서 또는 그 체인의 인증서가 자체 서명됨. |
-| **Expires In Days** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | 인증서가 만료될 때까지 남은 일수. |
-| **Expires In Hours** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | 인증서가 만료될 때까지 남은 시간. |
+| **Expires In Days** | **보다 큼**, **보다 작음**, **이상**, **이하** | 인증서가 만료될 때까지 남은 일수. |
+| **Expires In Hours** | **보다 큼**, **보다 작음**, **이상**, **이하** | 인증서가 만료될 때까지 남은 시간. |
 
 **Expires In Days**는 온전한 일수를 셉니다. 14일 20시간 뒤에 만료되는 인증서는 14일이 남은 것입니다. **Expires In Hours**도 같은 방식으로 온전한 시간을 셉니다.
 
@@ -102,7 +102,7 @@ flowchart TB
 OneUptime이 이 경고를 추가하기 전에 만든 모니터에는 "곧 만료됨" 기준이 없습니다. 추가하려면:
 
 1. 모니터에서 **구성 → 기준**을 열고 **모니터링 기준 편집**을 클릭합니다.
-2. **기준 추가**를 클릭합니다. 필터를 **Is Valid Certificate** / **참**으로 설정하고, **필터 추가**를 클릭한 다음 두 번째 필터를 **Expires In Days** / **Less Than Or Equal To** / `14`로 설정합니다. **일치 조건**은 **전체**로 둡니다(필터가 두 개가 되면 필터 아래에 나타납니다).
+2. **기준 추가**를 클릭합니다. 필터를 **Is Valid Certificate** / **참**으로 설정하고, **필터 추가**를 클릭한 다음 두 번째 필터를 **Expires In Days** / **이하** / `14`로 설정합니다. **일치 조건**은 **전체**로 둡니다(필터가 두 개가 되면 필터 아래에 나타납니다).
 3. **작업**에서 **필터가 일치하면 경고를 생성합니다.** 항목을 켜고 **필터가 일치하면 모니터 상태를 변경합니다.** 항목은 꺼 두어, 알림은 생성하되 모니터 상태는 바꾸지 않게 합니다.
 4. 새 기준을 모니터를 온라인으로 표시하는 기준보다 위로 끌어 놓고 저장합니다.
 :::
@@ -111,8 +111,8 @@ OneUptime이 이 경고를 추가하기 전에 만든 모니터에는 "곧 만�
 
 | 목표 | 필터 | 조건 | 값 |
 | --- | --- | --- | --- |
-| 한 달 전에 경고 | **Expires In Days** | **Less Than Or Equal To** | `30` |
-| 마지막 날에 누군가를 호출 | **Expires In Hours** | **Less Than** | `24` |
+| 한 달 전에 경고 | **Expires In Days** | **이하** | `30` |
+| 마지막 날에 누군가를 호출 | **Expires In Hours** | **보다 작음** | `24` |
 | 인증서가 만료된 뒤에만 오프라인 | **Is Expired Certificate** | **참** | — |
 | 자체 서명 인증서 표시 | **Is Self Signed Certificate** | **참** | — |
 
