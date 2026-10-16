@@ -20,6 +20,7 @@ flowchart TB
 - [Adicionar uma regra de escalonamento](#adicionar-uma-regra-de-escalonamento): Adicione o próximo nível, passo a passo.
 - [Como os níveis acionam as pessoas](#como-os-níveis-acionam-as-pessoas): Tempos, repetições e como cada pessoa é contatada.
 - [A próxima pessoa da rotação](#escalonar-para-a-próxima-pessoa-da-rotação): Acione o backup de quem está de plantão, da mesma rotação.
+- [Repassar um acionamento](#repassar-um-acionamento): Não pode atender um acionamento? Envie-o ao próximo nível na hora.
 - [API e Terraform](#criar-regras-com-a-api-ou-o-terraform): Crie políticas e regras como código.
 :::
 
@@ -74,7 +75,7 @@ Clique em **Create Rule**. A regra é adicionada abaixo das outras, como o próx
 
 ## Como os níveis acionam as pessoas
 
-Quando um incidente ou alerta chega à política, **Level 1** aciona os destinatários dele na hora. Se ninguém confirmar dentro da espera, **Level 2** é acionado, e assim por diante na lista. Quando a espera do último nível passa sem confirmação, a política recomeça do **Level 1** se a **Política de Repetição** dela (abaixo das regras) mandar repetir, quantas vezes ela permitir, e caso contrário para. Confirmar ou resolver o incidente ou alerta interrompe os acionamentos em qualquer nível.
+Quando um incidente ou alerta chega à política, **Level 1** aciona os destinatários dele na hora. Se ninguém confirmar dentro da espera, **Level 2** é acionado, e assim por diante na lista. Quando a espera do último nível passa sem confirmação, a política recomeça do **Level 1** se a **Política de Repetição** dela (abaixo das regras) mandar repetir, quantas vezes ela permitir, e caso contrário para. Confirmar ou resolver o incidente ou alerta interrompe os acionamentos em qualquer nível. Quem é acionado e não pode atender pode repassar o acionamento, e o próximo nível é acionado sem esperar: veja [Repassar um acionamento](#repassar-um-acionamento).
 
 Um incidente, alerta ou episódio criado já confirmado ou resolvido — registrado depois do fato — não executa nenhuma de suas políticas: ninguém é acionado, e o feed dele informa isso, citando-as. Veja [Declarado já confirmado ou resolvido](/docs/incidents/declaring-incidents#declarado-já-confirmado-ou-resolvido).
 
@@ -162,6 +163,45 @@ A mensagem da execução no Slack e no Microsoft Teams, o feed do incidente e a 
 
 > [!TIP]
 > Um agendamento basta: não há um segundo agendamento de backup para manter em sintonia com o primeiro, e as ausências que as pessoas dele registram valem para os dois níveis.
+
+## Repassar um acionamento
+
+Quem é acionado e não pode atender, porque está dormindo, em um avião ou já trabalhando em outro incidente, pode repassar o acionamento em vez de deixá-lo tocar até o fim. A política então aciona o próximo nível na hora, sem esperar o **Escalonar após (em minutos)** do nível, e essa pessoa não é mais acionada sobre isso.
+
+```mermaid title="Repassar um acionamento leva a política ao próximo nível na hora"
+flowchart TB
+    page["Level 1 aciona Alex"] --> take{"Alex pode<br/>atender?"}
+    take -->|"Sim"| ack["Alex confirma:<br/>os acionamentos param"]
+    take -->|"Não"| pass["Alex repassa"]
+    pass --> others{"Mais alguém no<br/>Level 1 ainda acionado?"}
+    others -->|"Sim"| wait["A política espera<br/>por eles, como antes"]
+    others -->|"Não"| next["Level 2 é<br/>acionado agora"]
+```
+
+Todo acionamento pode ser repassado de onde ele chegou até você:
+
+| Onde | Como repassar |
+| --- | --- |
+| E-mail | O botão **Pass it on**, e depois **Pass it on** na página que ele abre |
+| SMS e WhatsApp | O link da mensagem abre a página de confirmação, que também tem **Pass it on** |
+| Telegram, Slack e Microsoft Teams | O link "Can't take it? Pass it on", e depois **Pass it on** na página que ele abre |
+| Chamada | Pressione 2. A chamada então diz o que aconteceu |
+| Notificação push | Toque nela: o incidente, alerta ou episódio abre no app OneUptime On-Call, com **Pass it on** abaixo |
+| OneUptime | **Repassar** no topo do incidente, alerta ou episódio, depois dos botões de estado |
+
+Todos os meios, menos a chamada, perguntam antes de fazer qualquer coisa e dizem o que vai acontecer, por exemplo "Escalation rule 2 of 3 (Level 2) is paged right away, without waiting."; em uma chamada, pressionar 2 é a resposta. Só a pessoa acionada pode repassar o acionamento dela: o botão no OneUptime aparece só para ela, e o link de uma mensagem repassa só o acionamento de que trata, para a pessoa a quem foi enviado, durante 7 dias.
+
+O que acontece depois depende de quem mais está sendo acionado:
+
+- Outras pessoas do mesmo nível ainda estão sendo acionadas: a política espera por elas, como antes. Ela segue quando a espera do nível acaba, ou assim que a última delas também repassa.
+- Não resta mais ninguém no nível: o próximo nível é acionado na hora.
+- Era o último nível: se a **Política de Repetição** mandar repetir, a política recomeça do **Level 1** na hora. Caso contrário, os acionamentos param, e alguém precisa assumir.
+
+Repassar um acionamento não o confirma: o incidente ou alerta continua esperando que alguém o confirme, e quem repassou ainda pode confirmá-lo. Esta execução não aciona mais essa pessoa sobre isso: um nível posterior, ou uma repetição, que a inclua passa por cima dela. Quando todos que ela acionou já repassaram e não resta ninguém para acionar, os acionamentos param, e o feed do incidente informa isso.
+
+Um acionamento que um workflow envia diretamente a pessoas não tem níveis: repassá-lo faz você deixar de ser acionado, e quando todos que ele acionou já repassaram, os acionamentos param.
+
+Cada repasse fica registrado. A **Linha do tempo de execução** da execução marca a linha da pessoa como **Repassado**, o feed do incidente diz "Alex Kim passed on the page from on-call policy Payments at escalation rule Level 1.", a mensagem da execução no Slack e no Microsoft Teams diz que ela repassou, e os **Registros de plantão** dela mostram o acionamento como **Repassado**.
 
 ## Editar, reordenar e excluir regras
 

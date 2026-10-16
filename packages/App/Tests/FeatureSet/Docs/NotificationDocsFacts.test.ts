@@ -61,6 +61,10 @@ import {
 } from "Common/Types/NotificationRule/NotificationRepeat";
 import PushNotificationLevel from "Common/Types/NotificationRule/PushNotificationLevel";
 import {
+  ON_CALL_PAGE_CALL_PASS_ON_DIGIT,
+  getOnCallPageCallPassOnPrompt,
+} from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
+import {
   PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS,
   WHO_MAY_TURN_THEM_ON,
 } from "Common/Utils/Project/NotificationChannels";
@@ -1670,10 +1674,10 @@ describe("personal on-call rules", () => {
     );
 
     expect(ruleService).toContain(
-      'introMessage: "To acknowledge this alert press 1",',
+      "introMessage: `To acknowledge this alert, press 1. ${getOnCallPageCallPassOnPrompt()}`,",
     );
     expect(ruleService).toContain(
-      "To acknowledge this alert, please click on the following link",
+      "To acknowledge this alert, or pass it on if you can't take it, please click on the following link",
     );
     expect(ruleService).toContain(">Tap to acknowledge</a>");
     expect(ruleService).toContain("[Acknowledge](${data.ackUrl.toString()})");
@@ -1681,6 +1685,32 @@ describe("personal on-call rules", () => {
       "acknowledge_url: acknowledgeUrl.toString(),",
     );
     expect(rules).toContain("and a call asks you to press 1.");
+  });
+
+  /*
+   * "Can't take it? Pass it on" (task oncall-page-pass-on): the same
+   * messages pass the page on to the policy's next level, and a call asks
+   * for 2. The page says so beside acknowledging, and links to where the
+   * Escalation Rules page says what passing on does.
+   */
+  it("lets the messages pass a page on: the same messages, and a key to press in a call", () => {
+    const ruleService: string = readCommonSource(
+      "Server/Services/UserNotificationRuleService.ts",
+    );
+
+    expect(ON_CALL_PAGE_CALL_PASS_ON_DIGIT).toBe("2");
+    expect(getOnCallPageCallPassOnPrompt()).toBe(
+      `If you can't take it, press ${ON_CALL_PAGE_CALL_PASS_ON_DIGIT} to pass it on.`,
+    );
+    expect(ruleService).toContain(
+      '`⏭️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${CANT_TAKE_IT_PASS_IT_ON}</a>`',
+    );
+    expect(ruleService).toContain(
+      "mdText`⏭️ [${CANT_TAKE_IT_PASS_IT_ON}](${data.passOnUrl.toString()})`",
+    );
+    expect(rules).toContain(
+      `When you cannot take a page, the same messages let you pass it on, and a call asks you to press ${ON_CALL_PAGE_CALL_PASS_ON_DIGIT}: the policy pages its next level straight away, and you are not paged about it again. See [Passing a page on](/docs/on-call/escalation-rules#passing-a-page-on).`,
+    );
   });
 
   it("covers a new severity within minutes, with the choices already made on its tab, or the verified email", () => {
