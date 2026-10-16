@@ -94,6 +94,52 @@ describe("NotificationMiddleware", () => {
         responseInstance.toString(),
       );
     });
+
+    /*
+     * Passing a page on with the second key: what the call answers depends on
+     * what came of it ("You passed this incident on. Escalation rule 2 is
+     * paging Sam Lee now."), so the route hands the sentence in, and it is
+     * said instead of anything the call's token carries.
+     */
+    test("Should say the message it is handed, whatever key was pressed", async () => {
+      onCallInputRequest["1234"] = { sayMessage: "message 1" };
+      const responseInstance: VoiceResponse = new VoiceResponse();
+
+      (
+        VoiceResponse as jest.MockedClass<typeof VoiceResponse>
+      ).mockImplementation(() => {
+        return responseInstance;
+      });
+      await NotificationMiddleware.sendResponse(
+        mockRequest,
+        mockResponse,
+        onCallInputRequest,
+        "You passed this incident on. Good bye.",
+      );
+
+      expect(responseInstance.say).toHaveBeenCalledTimes(1);
+      expect(responseInstance.say).toHaveBeenCalledWith(
+        "You passed this incident on. Good bye.",
+      );
+    });
+
+    test("Should say what the call carries when the message handed in is empty", async () => {
+      const responseInstance: VoiceResponse = new VoiceResponse();
+
+      (
+        VoiceResponse as jest.MockedClass<typeof VoiceResponse>
+      ).mockImplementation(() => {
+        return responseInstance;
+      });
+      await NotificationMiddleware.sendResponse(
+        mockRequest,
+        mockResponse,
+        onCallInputRequest,
+        "",
+      );
+
+      expect(responseInstance.say).toHaveBeenCalledWith("default message");
+    });
   });
 
   describe("isValidCallNotificationRequest", () => {

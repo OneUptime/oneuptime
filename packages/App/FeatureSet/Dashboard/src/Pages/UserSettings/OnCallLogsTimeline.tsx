@@ -161,6 +161,11 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 return (
                   <Pill color={Yellow} text={UserNotificationStatus.Skipped} />
                 );
+              } else if (item["status"] === UserNotificationStatus.PassedOn) {
+                // The notification you passed the page on from.
+                return (
+                  <Pill color={Yellow} text={UserNotificationStatus.PassedOn} />
+                );
               }
 
               return <Pill color={Red} text={UserNotificationStatus.Error} />;

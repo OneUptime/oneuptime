@@ -70,6 +70,10 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useRecordChannelLinks, {
   getOpenInChatActions,
 } from "../../../Components/Workspace/useRecordChannelLinks";
+import usePassOnPage, {
+  PassOnPageControls,
+} from "../../../Components/OnCallPolicy/PassOn/usePassOnPage";
+import { OnCallPageRecordType } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
 import RecordChannelMembersCard from "../../../Components/Workspace/RecordChannelMembersCard";
 import {
   WorkspaceChannelLink,
@@ -291,6 +295,18 @@ const IncidentEpisodeView: FunctionComponent<
         : undefined,
   });
 
+  // "Pass it on", for somebody an on-call policy is paging about it.
+  const passOn: PassOnPageControls = usePassOnPage({
+    recordType: OnCallPageRecordType.IncidentEpisode,
+    recordId: modelId,
+    // Passing it on is a new feed entry.
+    onPassedOn: () => {
+      setContentRefreshToken((token: number): number => {
+        return token + 1;
+      });
+    },
+  });
+
   if (loadedModelId !== modelIdString) {
     return (
       <EventOverviewSkeleton statCount={4} loadingText="Loading episode" />
@@ -359,7 +375,10 @@ const IncidentEpisodeView: FunctionComponent<
     <div className="space-y-5">
       <ChangeEpisodeState
         episodeId={modelId}
-        secondaryActions={getOpenInChatActions(channelLinks)}
+        secondaryActions={[
+          ...passOn.actions,
+          ...getOpenInChatActions(channelLinks),
+        ]}
         refreshToken={headerRefreshToken}
         onActionComplete={async () => {
           // The change also moved the member incidents; reload what shows them.
@@ -369,9 +388,12 @@ const IncidentEpisodeView: FunctionComponent<
           setDetailsRefresher((refresher: boolean): boolean => {
             return !refresher;
           });
+          // Acknowledging it ends the reader's own page, if they had one.
+          passOn.refresh();
           await fetchData();
         }}
       />
+      {passOn.dialog}
 
       {refreshError && (
         <div
