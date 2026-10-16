@@ -339,7 +339,7 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
    * INSERT's own count under the lock stands between them and the table.
    */
   function holdCreatesUntilAllPassedTheirChecks(
-    service: object,
+    service: unknown,
     count: number,
   ): void {
     let arrived: number = 0;
@@ -376,7 +376,7 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
    */
   async function createAtOnce(data: {
     count: number;
-    holdAt?: object | undefined;
+    holdAt?: unknown;
     create: (index: number) => Promise<unknown>;
   }): Promise<Outcome> {
     if (data.holdAt) {
@@ -592,9 +592,7 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
           const subscriber: StatusPageSubscriber = new StatusPageSubscriber();
           subscriber.statusPageId = statusPageId;
           subscriber.projectId = projectId;
-          subscriber.subscriberEmail = new Email(
-            `added-${index}@example.com`,
-          );
+          subscriber.subscriberEmail = new Email(`added-${index}@example.com`);
           subscriber.sendYouHaveSubscribedMessage = false;
 
           return StatusPageSubscriberService.create({
@@ -774,11 +772,7 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
         count: RACING_CREATES,
         holdAt: OnCallDutyPolicyEscalationRuleService,
         create: (index: number) => {
-          return createRule(
-            policyId,
-            `Racing rule ${index}`,
-            PlanType.Growth,
-          );
+          return createRule(policyId, `Racing rule ${index}`, PlanType.Growth);
         },
       });
 

@@ -253,11 +253,7 @@ describe("status pages: the Free plan's limit", () => {
   });
 
   test("holds nothing on a paid plan", async () => {
-    for (const plan of [
-      PlanType.Growth,
-      PlanType.Scale,
-      PlanType.Enterprise,
-    ]) {
+    for (const plan of [PlanType.Growth, PlanType.Scale, PlanType.Enterprise]) {
       readsPlan(plan);
       await expect(
         createLimitOf(StatusPageService, createBy()),
@@ -304,7 +300,10 @@ describe("status page subscribers: the Free plan's limit", () => {
       memberProps(PlanType.Free),
     ]) {
       await expectCountLimit({
-        limit: await createLimitOf(StatusPageSubscriberService, createBy(props)),
+        limit: await createLimitOf(
+          StatusPageSubscriberService,
+          createBy(props),
+        ),
         limitName: FREE_PLAN_SUBSCRIBER_LIMIT_NAME,
         statement: SUBSCRIBER_COUNT_STATEMENT,
         parameters: [PROJECT_ID.toString()],
@@ -545,8 +544,9 @@ describe("people: the plan's seats and the Free plan's one person", () => {
       for (const people of [5, 9]) {
         await expect(
           limit!.check(
-            transactionCounting(counts({ people: people, membershipsOfPerson: 0 }))
-              .manager,
+            transactionCounting(
+              counts({ people: people, membershipsOfPerson: 0 }),
+            ).manager,
           ),
         ).rejects.toThrow(
           new BadDataException(Errors.TeamMemberService.LIMIT_REACHED),
@@ -568,15 +568,11 @@ describe("people: the plan's seats and the Free plan's one person", () => {
         counts({ people: 9, membershipsOfPerson: membershipsOfPerson }),
       );
 
-      await expect(
-        limit!.check(transaction.manager),
-      ).resolves.toBeUndefined();
+      await expect(limit!.check(transaction.manager)).resolves.toBeUndefined();
       expect(
-        transaction.statements.map(
-          (statement: { sql: string }): string => {
-            return statement.sql;
-          },
-        ),
+        transaction.statements.map((statement: { sql: string }): string => {
+          return statement.sql;
+        }),
       ).toEqual([MEMBERSHIPS_OF_PERSON_STATEMENT]);
     }
   });
@@ -640,7 +636,9 @@ describe("people: the plan's seats and the Free plan's one person", () => {
           .manager,
       ),
     ).rejects.toThrow(
-      new BadDataException(Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN),
+      new BadDataException(
+        Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN,
+      ),
     );
 
     // Their owner, already in it, joins another team.
@@ -698,9 +696,7 @@ describe("people: the plan's seats and the Free plan's one person", () => {
   });
 
   test("holds nothing in a project that cannot be read", async () => {
-    jest
-      .spyOn(ProjectService, "findOneById")
-      .mockResolvedValue(null as never);
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(null as never);
 
     await expect(
       createLimitOf(TeamMemberService, createBy(memberProps(PlanType.Free))),

@@ -645,10 +645,7 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       return Errors.TeamMemberService.LIMIT_REACHED;
     }
 
-    if (
-      data.limits.isFreePlan &&
-      data.people >= ALLOWED_PEOPLE_IN_FREE_PLAN
-    ) {
+    if (data.limits.isFreePlan && data.people >= ALLOWED_PEOPLE_IN_FREE_PLAN) {
       return Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN;
     }
 

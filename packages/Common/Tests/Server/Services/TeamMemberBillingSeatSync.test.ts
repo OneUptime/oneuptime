@@ -710,18 +710,14 @@ describe("completed membership writes during a billing outage", () => {
      * The project has a seat limit, so the INSERT is made in the limit's own
      * transaction, which counts the four people the seat sync counts.
      */
-    const limitTransactions: LimitTransactions = useInMemoryLimitTransactions(
-      {
-        count: (statement: string): number => {
-          return statement === PEOPLE_IN_PROJECT_STATEMENT
-            ? 4
-            : persisted.length;
-        },
-        save: async (_tableName: string, row: unknown): Promise<unknown> => {
-          return await save(row as TeamMember);
-        },
+    const limitTransactions: LimitTransactions = useInMemoryLimitTransactions({
+      count: (statement: string): number => {
+        return statement === PEOPLE_IN_PROJECT_STATEMENT ? 4 : persisted.length;
       },
-    );
+      save: async (_tableName: string, row: unknown): Promise<unknown> => {
+        return await save(row as TeamMember);
+      },
+    });
     jest
       .spyOn(TeamMemberService, "onTriggerRealtime")
       .mockResolvedValue(undefined);
