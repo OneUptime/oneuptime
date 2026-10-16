@@ -30075,5 +30075,6 @@
   "Customer-facing updates about this episode. While it is private, no status page shows them.": "Mises à jour destinées aux clients sur cet épisode. Tant qu'il est privé, aucune page de statut ne les affiche.",
   "Customer-facing updates about this incident. While it is private, no status page shows them.": "Mises à jour destinées aux clients sur cet incident. Tant qu'il est privé, aucune page de statut ne les affiche.",
   "Not shown while this episode is private": "Non affichée tant que cet épisode est privé",
-  "Not shown while this incident is private": "Non affichée tant que cet incident est privé"
+  "Not shown while this incident is private": "Non affichée tant que cet incident est privé",
+  "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "Supprimer ce projet arrête sa facturation, après une dernière facturation de son utilisation à ce jour. Votre achat OneUptime sur {{marketplace}} reste actif jusqu'à ce que vous l'y annuliez."
 }

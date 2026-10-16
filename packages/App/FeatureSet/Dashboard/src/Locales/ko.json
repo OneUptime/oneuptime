@@ -30075,5 +30075,6 @@
   "Customer-facing updates about this episode. While it is private, no status page shows them.": "이 에피소드에 대한 고객용 업데이트입니다. 비공개인 동안에는 어떤 상태 페이지에도 표시되지 않습니다.",
   "Customer-facing updates about this incident. While it is private, no status page shows them.": "이 인시던트에 대한 고객용 업데이트입니다. 비공개인 동안에는 어떤 상태 페이지에도 표시되지 않습니다.",
   "Not shown while this episode is private": "이 에피소드가 비공개인 동안 표시되지 않음",
-  "Not shown while this incident is private": "이 인시던트가 비공개인 동안 표시되지 않음"
+  "Not shown while this incident is private": "이 인시던트가 비공개인 동안 표시되지 않음",
+  "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "이 프로젝트를 삭제하면 지금까지의 사용량에 대한 마지막 청구 후 청구가 중지됩니다. {{marketplace}}의 OneUptime 구매는 그곳에서 취소할 때까지 활성 상태로 유지됩니다."
 }

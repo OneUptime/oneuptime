@@ -452,6 +452,101 @@ describe("Settings > Danger Zone", () => {
   });
 
   /*
+   * Deleting a project a cloud marketplace bills ends OneUptime's billing of
+   * it, after a last charge for what it used - but not the purchase on the
+   * marketplace, which only the buyer can cancel, there. Nothing else tells
+   * them so before the project is gone.
+   */
+  describe("a project a cloud marketplace bills", () => {
+    type CurrentProjectFunction = (billingMarketplace: unknown) => void;
+
+    const currentProjectBilledBy: CurrentProjectFunction = (
+      billingMarketplace: unknown,
+    ): void => {
+      const project: Project = new Project();
+      project._id = PROJECT_ID.toString();
+      project.name = "Acme Production";
+      (
+        project as unknown as { billingMarketplace: unknown }
+      ).billingMarketplace = billingMarketplace;
+
+      getJestSpyOn(ProjectUtil, "getCurrentProject").mockReturnValue(project);
+    };
+
+    it("tells the customer their purchase stays active on the marketplace until they cancel it there", () => {
+      currentProjectBilledBy("Azure");
+
+      renderPage();
+
+      const notice: HTMLElement = screen.getByTestId(
+        "project-delete-marketplace-notice",
+      );
+      expect(notice).toHaveTextContent("Billed through Microsoft Marketplace");
+      expect(notice).toHaveTextContent(
+        "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on Microsoft Marketplace stays active until you cancel it there.",
+      );
+    });
+
+    it("names the marketplace that bills the project", () => {
+      currentProjectBilledBy("AWS");
+
+      renderPage();
+
+      expect(
+        screen.getByTestId("project-delete-marketplace-notice"),
+      ).toHaveTextContent("Your OneUptime purchase on AWS Marketplace");
+    });
+
+    it("tells it before the customer is asked to confirm, and still deletes the project", async () => {
+      currentProjectBilledBy("GoogleCloud");
+      const calls: PageCalls = renderPage();
+
+      expect(
+        screen.getByTestId("project-delete-marketplace-notice"),
+      ).toHaveTextContent("Google Cloud Marketplace");
+
+      openConfirmation();
+      await confirm();
+
+      await waitFor(() => {
+        expect(calls.projectDeleted).toBe(1);
+      });
+    });
+
+    it("says nothing about a marketplace for a project billed by card", () => {
+      currentProjectBilledBy(undefined);
+
+      renderPage();
+
+      expect(
+        screen.queryByTestId("project-delete-marketplace-notice"),
+      ).toBeNull();
+      expect(screen.getByText(/no way to recover/i)).toBeInTheDocument();
+    });
+
+    it("says nothing for a marketplace it does not know", () => {
+      currentProjectBilledBy("SomeOtherMarketplace");
+
+      renderPage();
+
+      expect(
+        screen.queryByTestId("project-delete-marketplace-notice"),
+      ).toBeNull();
+    });
+
+    it("says nothing on a self-hosted install, which no marketplace sells", () => {
+      config.billingEnabled = false;
+      currentProjectBilledBy("Azure");
+
+      renderPage();
+
+      expect(
+        screen.queryByTestId("project-delete-marketplace-notice"),
+      ).toBeNull();
+    });
+  });
+
+  /*
    * Self-hosted installs have nobody to follow up with and nowhere to record
    * an answer, so the question is not asked at all there.
    */

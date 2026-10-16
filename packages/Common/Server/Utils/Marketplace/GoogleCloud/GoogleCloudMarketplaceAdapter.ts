@@ -130,6 +130,8 @@ export default class GoogleCloudMarketplaceAdapter
   implements MarketplaceAdapter
 {
   public readonly marketplace: CloudMarketplace = CloudMarketplace.GoogleCloud;
+  // Service Control counts each report by its operation ID, whatever its hour.
+  public readonly keepsOneReportPerHour: boolean = false;
   private api: GoogleCloudMarketplaceAPI | null;
 
   public constructor(api?: GoogleCloudMarketplaceAPI | undefined) {

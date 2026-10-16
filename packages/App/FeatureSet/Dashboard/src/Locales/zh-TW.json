@@ -30075,5 +30075,6 @@
   "Customer-facing updates about this episode. While it is private, no status page shows them.": "關於此片段的面向客戶的更新。在此片段為私人期間，任何狀態頁面都不會顯示這些更新。",
   "Customer-facing updates about this incident. While it is private, no status page shows them.": "關於此事件的面向客戶的更新。在此事件為私人期間，任何狀態頁面都不會顯示這些更新。",
   "Not shown while this episode is private": "此片段為私人期間不顯示",
-  "Not shown while this incident is private": "此事件為私人期間不顯示"
+  "Not shown while this incident is private": "此事件為私人期間不顯示",
+  "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "刪除此專案後，將對目前為止的使用量進行最後一次計費，然後停止計費。您在 {{marketplace}} 上的 OneUptime 購買將維持有效，直到您在那裡取消。"
 }

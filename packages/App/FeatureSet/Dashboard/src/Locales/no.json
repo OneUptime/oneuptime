@@ -30075,5 +30075,6 @@
   "Customer-facing updates about this episode. While it is private, no status page shows them.": "Oppdateringer til kunder om denne episoden. Så lenge den er privat, viser ingen statusside dem.",
   "Customer-facing updates about this incident. While it is private, no status page shows them.": "Oppdateringer til kunder om denne hendelsen. Så lenge den er privat, viser ingen statusside dem.",
   "Not shown while this episode is private": "Vises ikke så lenge denne episoden er privat",
-  "Not shown while this incident is private": "Vises ikke så lenge denne hendelsen er privat"
+  "Not shown while this incident is private": "Vises ikke så lenge denne hendelsen er privat",
+  "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "Når du sletter dette prosjektet, stopper faktureringen av det etter en siste belastning for bruken så langt. OneUptime-kjøpet ditt på {{marketplace}} forblir aktivt til du sier det opp der."
 }
