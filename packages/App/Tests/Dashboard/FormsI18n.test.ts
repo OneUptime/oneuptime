@@ -457,11 +457,16 @@ describe("the composed strings", () => {
     expect(modelTable).toContain(
       'Create: translationKey("Create New {{itemName}}"),',
     );
+    /*
+     * A table may name its create dialog and button itself (createFormTitle,
+     * createFormSubmitButtonText, since #4909); the Forms tables do not, so
+     * theirs are composed from the model's name.
+     */
     expect(modelTable).toContain(
-      'itemName: props.singularName || model.singularName || "", values: { action: translatableTerm(props.createVerb || "") },',
+      'itemName: props.singularName || model.singularName || "", values: { action: translatableTerm(props.createVerb || ""), },',
     );
     expect(modelTable).toContain(
-      '? translateCreateAction(translator, { verb: props.createVerb, itemName: props.singularName || model.singularName || "", })',
+      '? props.createFormSubmitButtonText || translateCreateAction(translator, { verb: props.createVerb, itemName: props.singularName || model.singularName || "", })',
     );
 
     /*
