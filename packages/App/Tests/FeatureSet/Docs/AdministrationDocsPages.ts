@@ -144,6 +144,24 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
   ],
 };
 
+/*
+ * The server's own words a page quotes in a Troubleshooting answer's
+ * summary, so a reader who searches for the message finds the answer. The
+ * server sends them in English whatever the reader's language, so every
+ * language quotes them as they are. AdministrationDocsFacts holds each one
+ * to the message the server sends.
+ */
+export const SERVER_MESSAGES: Readonly<Record<string, ReadonlyArray<string>>> =
+  {
+    [INVITING_PEOPLE]: [
+      "This user has already been invited to this team",
+      "You have reached the user limit for the free plan",
+    ],
+    [BILLING]: [
+      "Add a payment method in Project Settings > Billing before using paid monitoring or telemetry",
+    ],
+  };
+
 // The kind of diagram each page draws: each reads top to bottom, to fit the column.
 export const DIAGRAM_KINDS: Readonly<Record<string, string>> = {
   [INVITING_PEOPLE]: "flowchart TB",

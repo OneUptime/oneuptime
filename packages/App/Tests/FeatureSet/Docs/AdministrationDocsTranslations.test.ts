@@ -15,6 +15,7 @@ import {
   PRODUCT_NAMES,
   PROJECT_SETTINGS,
   PROSE,
+  SERVER_MESSAGES,
 } from "./AdministrationDocsPages";
 import {
   DocsHeading,
@@ -422,7 +423,11 @@ function untranslatedLines(language: string, page: string): Array<string> {
       .replace(INLINE_CODE_SPAN, " ")
       .replace(LINK_TARGET, "]");
 
-    for (const kept of [...keptWords(page), ...drawnInEnglish]) {
+    for (const kept of [
+      ...keptWords(page),
+      ...drawnInEnglish,
+      ...listed(SERVER_MESSAGES, page),
+    ]) {
       text = text.split(kept).join(" ");
     }
 
@@ -450,6 +455,7 @@ describe("the lists this test keeps", () => {
       KEPT_AS_WRITTEN,
       PERMISSION_TITLES,
       PROSE,
+      SERVER_MESSAGES,
       DIAGRAM_KINDS,
       WIDEST_DIAGRAM_LINE,
     ]) {
@@ -963,6 +969,19 @@ describe.each(LANGUAGES)("%s", (language: string) => {
           });
 
         expect(leftover).toEqual([]);
+      });
+
+      it("quotes the server's messages as the server sends them, in English", () => {
+        const translated: string = readPage(language, entry.page);
+        const missing: Array<string> = listed(SERVER_MESSAGES, entry.page)
+          .map((message: string): string => {
+            return `:::details "${message}"`;
+          })
+          .filter((summary: string): boolean => {
+            return !translated.includes(summary);
+          });
+
+        expect(missing).toEqual([]);
       });
 
       it("keeps the permissions' titles and the words no Dashboard locale has in English, as the product draws them", () => {

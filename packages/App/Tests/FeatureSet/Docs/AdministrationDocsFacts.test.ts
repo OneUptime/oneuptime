@@ -8,6 +8,7 @@ import {
   KEPT_AS_WRITTEN,
   PERMISSION_TITLES,
   PROJECT_SETTINGS,
+  SERVER_MESSAGES,
 } from "./AdministrationDocsPages";
 import { readPage } from "./DocsContentSupport";
 import {
@@ -1157,8 +1158,11 @@ describe("Billing & Usage", () => {
       "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.",
     );
     expect(plan).toContain(
-      "A paid plan is billed from the moment you change to it, and every person you invite on it is billed when you invite them.",
+      "Click **Save Changes**. A paid plan is billed from the moment you change to it, and every person you invite on it is billed when you invite them.",
     );
+    expect(
+      readCommonSource("UI/Components/ModelDetail/CardModelDetail.tsx"),
+    ).toContain("submitButtonText={`Save Changes`}");
     expect(
       readDashboardSource("Components/Billing/PlanCutoff.ts"),
     ).toContain('stoppedNoteTitle: translationKey("Not included in this plan")');
@@ -1916,6 +1920,29 @@ describe("every page", () => {
     (entry: AdministrationDocsPageEntry) => {
       for (const title of PERMISSION_TITLES[entry.page] || []) {
         expect(PermissionHelper.getTitle(permissionNamed(title))).toBe(title);
+      }
+    },
+  );
+
+  it.each(ADMINISTRATION_PAGES)(
+    "$page quotes each server message it lists in a Troubleshooting answer's summary, as the server sends it",
+    (entry: AdministrationDocsPageEntry) => {
+      const sent: Array<string> = [
+        Errors.TeamMemberService.ALREADY_INVITED,
+        Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN,
+        PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE,
+      ];
+
+      for (const message of SERVER_MESSAGES[entry.page] || []) {
+        expect(section(english(entry.page), "## Troubleshooting")).toContain(
+          `:::details "${message}"`,
+        );
+        expect({
+          message,
+          sent: sent.some((sentMessage: string): boolean => {
+            return sentMessage.startsWith(message);
+          }),
+        }).toEqual({ message, sent: true });
       }
     },
   );

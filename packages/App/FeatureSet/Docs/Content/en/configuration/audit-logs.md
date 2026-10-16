@@ -1,6 +1,6 @@
 # Audit Logs
 
-The audit log records who changed what in your project: each create, update and delete of the resources it covers, with the values before and after. Use it to find out who turned a monitor off, to review who was given access, and to keep a record for compliance reviews. It is part of the Enterprise plan on OneUptime Cloud, and of the Enterprise Edition when you self-host.
+The audit log records who changed what in your project: each create, update and delete of the resources it covers, with the values before and after. Use it to find out who turned a monitor off or changed an API key, and to keep a record for compliance reviews. It is part of the Enterprise plan on OneUptime Cloud, and of the Enterprise Edition when you self-host.
 
 :::cards
 - [Turn on audit logging](#turn-on-audit-logging): It starts off in every project.

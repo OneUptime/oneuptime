@@ -60,7 +60,7 @@ Each plan shows its price per user. The note under the plans says what happens t
 
 ### Save the change
 
-A paid plan is billed from the moment you change to it, and every person you invite on it is billed when you invite them.
+Click **Save Changes**. A paid plan is billed from the moment you change to it, and every person you invite on it is billed when you invite them.
 :::
 
 API keys work only on the Growth plan, and below the Scale plan SCIM connections only remove people. A plan that stops them says how many before you pick it, and the **Billing** page shows **Not included in this plan** while they are stopped. Nothing is deleted: they work again on a plan that includes them.

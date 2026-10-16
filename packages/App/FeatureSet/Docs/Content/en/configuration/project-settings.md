@@ -51,7 +51,7 @@ flowchart TB
 
 - **Project Name**: click **Edit Project** to rename the project. A name has at least 2 characters. Renaming takes a Project Owner, or permission to edit the project or to manage billing.
 - **Project ID**: copy it for the API, the CLI and Terraform, or when you write to support.
-- **Data Residency**: on OneUptime Cloud, where your data is kept, when OneUptime has recorded it for your project. Only OneUptime sets it.
+- **Data Residency**: on OneUptime Cloud, where your project's data is meant to be kept, when OneUptime has recorded it. Only OneUptime sets it.
 
 **Customer Support Access**, on OneUptime Cloud, decides whether OneUptime's support team may open the project. Turn on **Let OneUptime support access this project** when you want their help: OneUptime asks first, because support can then see and change everything in the project, and you click **Let support in**. Turn it off once they have finished: it saves at once. Project Owners and Project Admins change it.
 
@@ -121,7 +121,7 @@ Renaming the project takes a Project Owner, or permission to edit the project or
 :::
 
 :::details Delete Project stays locked in the dialog
-Type the project's name exactly as it is shown in the dialog. Spaces and letter case count.
+Type the project's name exactly as the dialog shows it: letter case counts.
 :::
 
 ## Next steps
