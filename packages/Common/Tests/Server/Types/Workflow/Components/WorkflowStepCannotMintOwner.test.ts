@@ -54,23 +54,29 @@ jest.mock("../../../../../Server/EnvironmentConfig", () => {
 });
 
 /*
- * A PROJECT MEMBER CANNOT MINT OWNER THROUGH A WORKFLOW STEP.
+ * A PROJECT MEMBER CANNOT MAKE ANYONE A PROJECT OWNER THROUGH A WORKFLOW STEP.
  *
  * A project member who cannot grant Project Owner, and cannot join the
  * owners' team as an accepted member, can still build a workflow: Project
- * Member is on the Workflow create list. The worry was a workflow whose graph
- * creates an identity row - a "Create One Team Permission" step granting
- * Project Owner, or a "Create One Team Member" step adding the builder to the
- * owners' team already accepted - that, when the workflow ran, wrote that row
- * with no permission ceiling because the step ran as root.
+ * Member is on the Workflow create list. A workflow whose graph writes an
+ * identity row - a "Create One Team Permission" step granting Project Owner,
+ * or a "Create One Team Member" step adding the builder to the owners' team
+ * already accepted - must not do, when it runs, what its builder may not.
  *
- * Workflow steps no longer run as root: every step acts as a Project Admin of
- * the workflow's project (WorkflowPrincipal), so the same grant ceiling a
- * person meets applies to the step. A Project Admin is not a Project Owner and
- * holds no Project Owner row, so it cannot grant Project Owner, and it cannot
- * add anyone to a team whose rows a Project Admin could not hand on (the
- * owners' team). These two steps - the exact graph the report built - are
- * refused, take their Error output, and write nothing.
+ * Two things refuse it, and each is held here on its own:
+ *
+ *  - a step changes nobody's access at all: it creates, changes and deletes
+ *    no team, team member, team permission, role or API key permission
+ *    (WorkflowPrincipal.assertDoesNotChangeAccess - WorkflowStepsDoNotChange
+ *    Access holds that rule for every such step, Project Admin grants
+ *    included);
+ *  - and were that rule ever lifted, a step still acts as a Project Admin of
+ *    the workflow's project, never as root (WorkflowPrincipal), so the grant
+ *    ceiling a person meets applies to it: a Project Admin holds no Project
+ *    Owner row, so it cannot grant Project Owner, and it cannot add anyone to
+ *    a team whose rows a Project Admin could not hand on (the owners' team).
+ *
+ * Either way the step is refused, takes its Error output, and writes nothing.
  *
  * The steps run here over the real TeamPermissionService / TeamMemberService
  * create pipeline - their onBeforeCreate grant ceiling and the real workflow
@@ -79,8 +85,8 @@ jest.mock("../../../../../Server/EnvironmentConfig", () => {
  * ceiling makes are stubbed, and the would-be insert is caught just before it
  * is written, so a refused step is one that never reaches it. Billing is on,
  * on a plan that sells team management, so the plan is not what refuses these
- * steps - the ceiling is. The last block holds the workflow principal to the
- * ceiling directly, with no pipeline at all.
+ * steps. The last block holds the workflow principal to the ceiling directly,
+ * with no pipeline at all.
  */
 
 const PLAN_ENVIRONMENT: Record<string, string> = {
@@ -111,6 +117,25 @@ const OWNERS_TEAM_ID: ObjectID = new ObjectID(
 
 const GRANT_CEILING_SENTENCE: string =
   "You cannot grant Project Owner because your own access does not include that permission at an equal or broader scope.";
+
+const ACCESS_RULE_SENTENCE: string =
+  "Workflow steps don't change who has access to this project";
+
+const ADMIN_CEILING_SENTENCE: string =
+  "Workflow steps can do only what a Project Admin of this project can do";
+
+/*
+ * The first refusal lifted, to show the second still holds: the step acts
+ * as a Project Admin and meets the grant ceiling.
+ */
+function liftAccessRule(): void {
+  getJestSpyOn(
+    WorkflowPrincipal,
+    "assertDoesNotChangeAccess",
+  ).mockImplementation((() => {
+    return undefined;
+  }) as never);
+}
 
 class PastTheChecks extends Error {
   public constructor() {
@@ -245,7 +270,7 @@ describe('"Create One Team Permission" step', () => {
     }) as never);
   }
 
-  test("is the component id the report built onto the canvas", () => {
+  test("is the component a member drops on the canvas", () => {
     const component: CreateOneBaseModel<TeamPermission> =
       new CreateOneBaseModel<TeamPermission>(TeamPermissionService);
 
@@ -271,18 +296,44 @@ describe('"Create One Team Permission" step', () => {
     // Error output, not success.
     expect(step.result.executePort?.id).toBe("error");
 
-    // The run log names the step and the ceiling, in plain words.
+    // The run log names the step and why, in plain words.
     const line: string = refusedLine(component, step.lines);
-    expect(line).toContain(
-      "Workflow steps can do only what a Project Admin of this project can do",
-    );
-    expect(line).toContain(GRANT_CEILING_SENTENCE);
+    expect(line).toContain(ACCESS_RULE_SENTENCE);
+    expect(line).toContain("so they can't create Team Permissions");
 
-    // The ceiling threw before the would-be insert: nothing was written.
+    // Refused before the would-be insert: nothing was written.
     expect(inserted()).toBeUndefined();
 
     // The step asked for the project's plan - it acts on the project, not as root.
     expect(currentPlanSpy).toHaveBeenCalledWith(PROJECT_ID);
+  });
+
+  test("with that refusal lifted, the Project Admin ceiling still refuses Project Owner", async () => {
+    liftAccessRule();
+    stubEditableTeam();
+    const inserted: () => Record<string, unknown> | undefined =
+      stopBeforeInsert(TeamPermissionService);
+
+    const component: CreateOneBaseModel<TeamPermission> =
+      new CreateOneBaseModel<TeamPermission>(TeamPermissionService);
+
+    const step: StepRun = await run(component, {
+      json: {
+        teamId: EDITABLE_TEAM_ID.toString(),
+        permission: Permission.ProjectOwner,
+        scope: PermissionScope.All,
+      },
+    });
+
+    expect(step.result.executePort?.id).toBe("error");
+
+    // The run log names the step and the ceiling, in plain words.
+    const line: string = refusedLine(component, step.lines);
+    expect(line).toContain(ADMIN_CEILING_SENTENCE);
+    expect(line).toContain(GRANT_CEILING_SENTENCE);
+
+    // The ceiling threw before the would-be insert: nothing was written.
+    expect(inserted()).toBeUndefined();
   });
 });
 
@@ -311,7 +362,7 @@ describe('"Create One Team Member" step', () => {
     );
   }
 
-  test("is the component id the report built onto the canvas", () => {
+  test("is the component a member drops on the canvas", () => {
     const component: CreateOneBaseModel<TeamMember> =
       new CreateOneBaseModel<TeamMember>(TeamMemberService);
 
@@ -338,9 +389,35 @@ describe('"Create One Team Member" step', () => {
     expect(step.result.executePort?.id).toBe("error");
 
     const line: string = refusedLine(component, step.lines);
-    expect(line).toContain(
-      "Workflow steps can do only what a Project Admin of this project can do",
-    );
+    expect(line).toContain(ACCESS_RULE_SENTENCE);
+    expect(line).toContain("so they can't create Team Members");
+
+    // Refused before the membership could be written.
+    expect(inserted()).toBeUndefined();
+  });
+
+  test("with that refusal lifted, the Project Admin ceiling still keeps the member off the owners' team", async () => {
+    liftAccessRule();
+    stubOwnersTeam();
+    stubOwnersTeamHoldsOwner();
+    const inserted: () => Record<string, unknown> | undefined =
+      stopBeforeInsert(TeamMemberService);
+
+    const component: CreateOneBaseModel<TeamMember> =
+      new CreateOneBaseModel<TeamMember>(TeamMemberService);
+
+    const step: StepRun = await run(component, {
+      json: {
+        teamId: OWNERS_TEAM_ID.toString(),
+        userId: MEMBER_USER_ID.toString(),
+        hasAcceptedInvitation: true,
+      },
+    });
+
+    expect(step.result.executePort?.id).toBe("error");
+
+    const line: string = refusedLine(component, step.lines);
+    expect(line).toContain(ADMIN_CEILING_SENTENCE);
     expect(line).toContain(GRANT_CEILING_SENTENCE);
 
     // The ceiling threw before the membership could be written.
