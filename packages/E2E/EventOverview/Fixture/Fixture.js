@@ -41,7 +41,9 @@
  *            minutes after its start; "overrun" is still Ongoing 30 minutes
  *            after its end.
  *   ?fail=   comma separated: evidence, verdict, create-fix-task,
- *            investigation, conversation, conversation-send, resend. The
+ *            investigation, conversation, conversation-send, resend,
+ *            channel-links, channel-members (the channel card's read),
+ *            channel-add (its Join channel and Add people). The
  *            matching API call throws HTTPErrorResponse. "conversation" is
  *            the read of the AI card's thread and "conversation-send" a
  *            question sent to it. "resend" also marks the subscriber
@@ -63,12 +65,43 @@
  *            stopped answer, or twelve messages from six people (long enough
  *            to open folded). Sending, approving and stopping are modelled:
  *            see "The investigation card's conversation" below.
+ *   ?linked= none (default) | alerts | more | followup
+ *            What the AI investigations read about the infrastructure their
+ *            incident or alert is linked to, as the run's activity records
+ *            it (LinkedInfrastructureContext). "alerts": Incident #1042's
+ *            investigation read 2 open or recent alerts on its five linked
+ *            resources, and Alert #311's found none on its host. "more":
+ *            more alerts matched than the 10 it lists. "followup": alert
+ *            #318 opened on #1042's host after its first analysis, so the
+ *            run on the card is the follow-up check (IncidentFollowUpCheck)
+ *            - its activity starts with why, its report leads with
+ *            "Checked again", and the feed holds both reports.
+ *   ?private= 1 makes Incident #1042 and Incident Episode #12 private. A
+ *            private incident or episode takes no public notes: the
+ *            incident's state change dialogs fold a private note and ask
+ *            nothing about subscribers, and both feeds' Add Public Note is
+ *            locked with why.
  *   ?theme=  dark adds html.dark (handled by server.js).
  *   ?channels= the record's own Slack / Microsoft Teams channels, as
  *            GET /workspace-channel-link answers them (the header's Open in
  *            Slack / Open in Microsoft Teams): a comma list of slack (one
  *            Slack channel), slack2 (a second one), teams (one Teams
- *            channel). None by default: no button.
+ *            channel). None by default: no button, and no channel card.
+ *   ?members= who is in those Slack channels, as
+ *            GET /workspace-channel-members answers it for the channel card:
+ *            some (default: Sam, Jordan and Priya, who is in Slack only;
+ *            the viewer is not in it), in (the viewer is), empty (everybody
+ *            left: only the OneUptime app), many (fourteen people), archived,
+ *            unreachable (the app was removed from the private channel),
+ *            not-connected, unavailable, not-found (OneUptime cannot find the
+ *            viewer's Slack account), readonly (the viewer may not edit the
+ *            record) and readonly-public (nor is the channel private).
+ *            POST .../add adds people: Alex Kim is nobody Slack knows (not
+ *            found), and a team adds its people.
+ *   ?teamsPrivate=1 the Teams channel is private.
+ *   ?unknown= the people Slack does not know, as POST .../add answers them
+ *            (not found): a comma list of maya, sam, jordan, alex. Alex by
+ *            default.
  *   ?role=   owner (default) | alert-member | loading
  *            Who is signed in. "owner" is a master admin who is also the
  *            Project Owner, so every permission gate is open. "alert-member"
@@ -275,12 +308,47 @@ const threadMode = THREAD_MODES.includes(params.get("thread"))
 const channelModes = new Set(
   (params.get("channels") || "").split(",").filter((value) => value.length > 0),
 );
+const MEMBERS_MODES = [
+  "some",
+  "in",
+  "empty",
+  "many",
+  "archived",
+  "unreachable",
+  "not-connected",
+  "unavailable",
+  "not-found",
+  "readonly",
+  "readonly-public",
+];
+const membersMode = MEMBERS_MODES.includes(params.get("members"))
+  ? params.get("members")
+  : "some";
+const isTeamsChannelPrivate = params.get("teamsPrivate") === "1";
+const unknownToSlack = new Set(
+  (params.get("unknown") ?? "alex")
+    .split(",")
+    .filter((value) => value.length > 0),
+);
 /*
  * ?feed=oncall-run: incident #1042's on-call run in full, as the run writes
  * its feed entries now (OnCallFeedText) - four on-call entries within a
  * minute, which the feed folds into the newest of them.
  */
 const feedMode = params.get("feed") === "oncall-run" ? "oncall-run" : "default";
+/*
+ * ?linked=: what the investigations read about the infrastructure their
+ * incident or alert is linked to (see "Linked infrastructure" below).
+ */
+const LINKED_MODES = ["alerts", "more", "followup"];
+const linkedMode = LINKED_MODES.includes(params.get("linked"))
+  ? params.get("linked")
+  : "none";
+/*
+ * ?private=1: incident #1042 and incident episode #12 are private - hidden
+ * from every status page, and taking no public notes.
+ */
+const isPrivateMode = params.get("private") === "1";
 const isResolved = stateMode === "resolved";
 const isAcknowledged = stateMode !== "created";
 // Both a current report and a legacy one post the AI root-cause feed item.
@@ -373,7 +441,12 @@ const fixture = {
     resources: resourcesMode,
     clusters: clustersMode,
     thread: threadMode,
+    members: membersMode,
+    linked: linkedMode,
+    private: isPrivateMode,
   },
+  // What the channel card asked to add: { channelId, userIds, teamIds }.
+  channelAdds: [],
   getItemRequests: [],
   listRequests: [],
   countRequests: [],
@@ -943,8 +1016,9 @@ function defineIncident(spec) {
     subscriberNotificationStatusMessage: spec.notificationFailed
       ? RESEND_FAILURE_STATUS_MESSAGE
       : "Notified 1,284 status page subscribers.",
-    isPrivate: false,
-    isVisibleOnStatusPage: true,
+    // ?private=1 makes #1042 private, which also hides it from status pages.
+    isPrivate: isPrivateMode && spec.number === 1042,
+    isVisibleOnStatusPage: !(isPrivateMode && spec.number === 1042),
     rootCause: spec.rootCause,
     remediationNotes: spec.remediationNotes,
     incidentEpisode: spec.episode,
@@ -1634,8 +1708,8 @@ table(IncidentEpisode).push({
   labels: [labels.checkout, labels.production],
   assignedToUser: people.maya,
   assignedToUserId: people.maya.id,
-  isVisibleOnStatusPage: true,
-  isPrivate: false,
+  isVisibleOnStatusPage: !isPrivateMode,
+  isPrivate: isPrivateMode,
 });
 for (const [number, addedAt] of [
   [1038, "17:56"],
@@ -3087,8 +3161,14 @@ const ALERT_ANALYSIS = [
 const ALERT_TLDR =
   "A 17:35 config reload cut the ledger client timeout from 5s to 1s, so slow ledger writes fail and payment webhooks return 502 — the same cause as alert #298.";
 
-function brandedMarkdown(analysis, citations, toolCallCount) {
-  let markdown = `## \u{1F9E0} AI — Automated Root Cause Analysis\n\n${analysis}`;
+/*
+ * The report as AIInvestigationEngine.buildBrandedMarkdown writes it. `lead`
+ * is the runner's own line under the heading (a follow-up check's why).
+ */
+function brandedMarkdown(analysis, citations, toolCallCount, lead) {
+  let markdown = `## \u{1F9E0} AI — Automated Root Cause Analysis\n\n${
+    lead ? `${lead}\n\n` : ""
+  }${analysis}`;
   if (citations.length > 0) {
     markdown += "\n\n**Evidence checked**";
     for (const citation of citations.slice(0, 15)) {
@@ -3108,7 +3188,12 @@ function defineInvestigation(spec) {
   return {
     ...spec,
     citations,
-    markdown: brandedMarkdown(spec.analysis, citations, citations.length),
+    markdown: brandedMarkdown(
+      spec.analysis,
+      citations,
+      citations.length,
+      spec.lead,
+    ),
     verdict: presetVerdict,
     verdictAt: presetVerdict ? at("18:10") : null,
   };
@@ -3166,8 +3251,12 @@ const investigations = {
   }),
 };
 
-// The AI root-cause feed item only exists once a report was posted.
-if (hasReport) {
+/*
+ * The AI root-cause feed item only exists once a report was posted. With
+ * ?linked=followup, #1042's first analysis was posted before its follow-up
+ * check started, whatever that check is doing now.
+ */
+if (hasReport || linkedMode === "followup") {
   insert(IncidentFeed, {
     incidentId: mainIncident.id,
     incidentFeedEventType: IncidentFeedEventType.RootCause,
@@ -3177,6 +3266,8 @@ if (hasReport) {
     postedAt: investigations.incident.completedAt,
     createdAt: investigations.incident.completedAt,
   });
+}
+if (hasReport) {
   insert(AlertFeed, {
     alertId: mainAlert.id,
     alertFeedEventType: AlertFeedEventType.RootCause,
@@ -3186,6 +3277,335 @@ if (hasReport) {
     postedAt: investigations.alert.completedAt,
     createdAt: investigations.alert.completedAt,
   });
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Linked infrastructure (?linked=)
+ * ---------------------------------------------------------------------------
+ *
+ * What an investigation's starting context read about the infrastructure its
+ * incident or alert is linked to, recorded in its activity as the server
+ * does (LinkedInfrastructureContext.buildActivityNote): the resources, by
+ * kind (LinkedAffectedResourceType) and name, and how many open or recent
+ * alerts were on them. `message` is the server's English; the card words it
+ * from the data, in the reader's language.
+ */
+const LINKED_KIND_NOUNS = {
+  Host: "Host",
+  DockerHost: "Docker host",
+  KubernetesCluster: "Kubernetes cluster",
+  DatabaseServer: "Database",
+  Service: "Service",
+};
+
+const INCIDENT_LINKED_RESOURCES = [
+  { kind: "Host", name: "checkout-api-7f9c" },
+  { kind: "DockerHost", name: "checkout-api-7f9c" },
+  { kind: "KubernetesCluster", name: "prod-eks-eu-west-1" },
+  { kind: "DatabaseServer", name: "orders-db-primary" },
+  { kind: "Service", name: "checkout-api" },
+];
+
+const ALERT_LINKED_RESOURCES = [{ kind: "Host", name: "payments-web-2" }];
+
+function linkedInfrastructureNote(data) {
+  const names = data.resources.slice(0, 3).map((resource) => {
+    return `${LINKED_KIND_NOUNS[resource.kind]} ${resource.name}`;
+  });
+  const more = data.resources.length - names.length;
+  const resources =
+    more > 0
+      ? `${names.join(", ")} and ${more} more`
+      : names.length > 1
+        ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`
+        : names.join("");
+
+  return {
+    message:
+      data.alertCount === 0
+        ? `No open or recent alerts on ${resources}`
+        : data.hasMoreAlerts
+          ? `Read the ${data.alertCount} newest open or recent alerts on ${resources}`
+          : `Read ${data.alertCount} open or recent alert${
+              data.alertCount === 1 ? "" : "s"
+            } on ${resources}`,
+    severity: "Info",
+    linkedInfrastructure: {
+      resources: data.resources,
+      alertCount: data.alertCount,
+      openAlertCount: data.openAlertCount,
+      hasMoreAlerts: data.hasMoreAlerts,
+      lookbackMinutes: 30,
+    },
+  };
+}
+
+if (linkedMode === "alerts" || linkedMode === "more") {
+  const isMore = linkedMode === "more";
+  investigations.incident.contextNotes = [
+    linkedInfrastructureNote({
+      resources: INCIDENT_LINKED_RESOURCES,
+      alertCount: isMore ? 10 : 2,
+      openAlertCount: isMore ? 7 : 1,
+      hasMoreAlerts: isMore,
+    }),
+  ];
+  investigations.alert.contextNotes = [
+    linkedInfrastructureNote({
+      resources: ALERT_LINKED_RESOURCES,
+      alertCount: 0,
+      openAlertCount: 0,
+      hasMoreAlerts: false,
+    }),
+  ];
+}
+
+/*
+ * ?linked=followup: alert #318 "High CPU on checkout-api-7f9c" opened on
+ * #1042's host at 18:04, 3 minutes after the incident was declared and after
+ * its first investigation finished, so OneUptime AI checked the incident
+ * again with that alert in hand (IncidentFollowUpCheck). That run is the
+ * latest, so it is the one the card shows: its activity starts with why it
+ * runs, and its report leads with the line the server writes
+ * (IncidentFollowUpCheck.buildReportLead).
+ */
+const FOLLOW_UP_ALERT_NUMBER = 318;
+const FOLLOW_UP_ALERT_TITLE = "High CPU on checkout-api-7f9c";
+const followUpWindow = { start: at("17:49", 5), end: at("18:04", 5) };
+
+const FOLLOW_UP_LEAD = `**Checked again** after alert #${FOLLOW_UP_ALERT_NUMBER} opened on Host checkout-api-7f9c, 3 minutes after this incident was declared: ${FOLLOW_UP_ALERT_TITLE}.`;
+
+const FOLLOW_UP_CITATIONS = [
+  {
+    toolName: "query_alerts",
+    queryArguments: { state: "active", createdWithinHours: 1, limit: 20 },
+    label: "Active alerts, last 1h (1 found)",
+    rowCount: 1,
+    durationInMs: 284,
+    target: { type: AIChatCitationTargetType.Alerts },
+    isPinnedToInvestigationTime: false,
+    widget: {
+      type: AIChatWidgetType.AlertList,
+      title: "Active alerts, last 1h",
+      data: {
+        items: [
+          {
+            id: ID.alert(FOLLOW_UP_ALERT_NUMBER),
+            alertNumber: FOLLOW_UP_ALERT_NUMBER,
+            title: FOLLOW_UP_ALERT_TITLE,
+            state: "Created",
+            severity: "Warning",
+            monitor: "checkout-api-7f9c CPU",
+            createdAt: iso(at("18:04")),
+          },
+        ],
+      },
+    },
+  },
+  {
+    toolName: "query_containers",
+    queryArguments: {
+      resourceType: "DockerHost",
+      resourceId: ID.host(3),
+      startTime: iso(followUpWindow.start),
+      endTime: iso(followUpWindow.end),
+      sortBy: "cpu",
+    },
+    label: `Containers of Docker host checkout-api-7f9c, ${iso(followUpWindow.start)} – ${iso(followUpWindow.end)}`,
+    rowCount: 4,
+    durationInMs: 640,
+    target: {
+      type: AIChatCitationTargetType.TelemetryResourceView,
+      params: { resourceType: "DockerHost", resourceId: ID.host(3) },
+    },
+    isPinnedToInvestigationTime: true,
+    widget: {
+      type: AIChatWidgetType.Table,
+      title: "Containers of Docker host checkout-api-7f9c",
+      description: `${iso(followUpWindow.start)} – ${iso(followUpWindow.end)}`,
+      data: {
+        // As ContainerTools draws it (CONTAINER_STATUS_LABELS, one decimal).
+        columns: [
+          { key: "container", title: "Container" },
+          { key: "status", title: "Status" },
+          { key: "cpuAvg", title: "CPU avg %", type: "number" },
+          { key: "cpuPeak", title: "CPU peak %", type: "number" },
+          { key: "memoryPeak", title: "Memory peak %", type: "number" },
+          { key: "restarts", title: "Restarts", type: "number" },
+          { key: "lastSeen", title: "Last seen", type: "date" },
+          { key: "image", title: "Image" },
+        ],
+        rows: [
+          {
+            container: "cart-worker",
+            status: "Stopped reporting",
+            cpuAvg: 0.4,
+            cpuPeak: 0.9,
+            memoryPeak: 8.7,
+            restarts: 2,
+            lastSeen: iso(at("17:57")),
+            image: "acme/cart-worker:2026.09.10-1",
+          },
+          {
+            container: "checkout-api",
+            status: "Reporting",
+            cpuAvg: 187.4,
+            cpuPeak: 196.2,
+            memoryPeak: 61.3,
+            restarts: 0,
+            lastSeen: iso(at("18:04")),
+            image: "acme/checkout-api:2026.09.14-2",
+          },
+          {
+            container: "otel-collector",
+            status: "Reporting",
+            cpuAvg: 3.1,
+            cpuPeak: 4.8,
+            memoryPeak: 12.4,
+            restarts: 0,
+            lastSeen: iso(at("18:04")),
+            image: "otel/opentelemetry-collector-contrib:0.111.0",
+          },
+          {
+            container: "nginx-sidecar",
+            status: "Started in this window",
+            cpuAvg: 1.2,
+            cpuPeak: 2,
+            memoryPeak: 3.1,
+            restarts: 0,
+            lastSeen: iso(at("18:04")),
+            image: "nginx:1.27-alpine",
+          },
+        ],
+      },
+    },
+  },
+  {
+    toolName: "query_resource_telemetry",
+    queryArguments: {
+      resourceType: "Host",
+      resourceId: ID.host(1),
+      signal: "metrics",
+      metricName: "system.cpu.utilization",
+      mode: "trend",
+      startTime: iso(followUpWindow.start),
+      endTime: iso(followUpWindow.end),
+    },
+    label: `Host metrics by state, ${iso(followUpWindow.start)} – ${iso(followUpWindow.end)}`,
+    rowCount: 4,
+    durationInMs: 910,
+    target: {
+      type: AIChatCitationTargetType.TelemetryResourceView,
+      params: { resourceType: "Host", resourceId: ID.host(1) },
+    },
+    isPinnedToInvestigationTime: true,
+    widget: {
+      type: AIChatWidgetType.TimeSeriesChart,
+      // As query_resource_telemetry draws a split metric, one line per state.
+      title: "Avg of system.cpu.utilization by state",
+      description: `${iso(followUpWindow.start)} – ${iso(followUpWindow.end)}`,
+      data: {
+        xIsTime: true,
+        series: [
+          ["user", 0.21, 0.79],
+          ["system", 0.06, 0.16],
+          ["idle", 0.71, 0.03],
+          ["wait", 0.02, 0.02],
+        ].map(([name, before, after]) => {
+          return series(
+            name,
+            followUpWindow.start,
+            followUpWindow.end,
+            (date) => {
+              return date >= at("18:02") ? after : before;
+            },
+          );
+        }),
+      },
+    },
+  },
+  INCIDENT_CITATIONS[2],
+  INCIDENT_CITATIONS[5],
+];
+
+const FOLLOW_UP_ANALYSIS = [
+  `**Summary** — Alert #${FOLLOW_UP_ALERT_NUMBER} does not change the earlier analysis: checkout-api-7f9c ran out of CPU from 18:02 because checkout requests stuck behind the 10-connection database pool kept retrying [C2][C3]. The cause is still the 17:52 release that cut the pool from 40 to 10 connections [C4].`,
+  `**Most likely root cause** — Release 2026.09.14-2 of checkout-api started with its orders-db pool capped at 10 connections [C4]. Requests queued for a connection and p95 latency passed 2s at 18:01; their retries then pushed the checkout-api container to 1.9 of its 2 CPU cores from 18:02 [C2], and busy CPU (user + system) on checkout-api-7f9c reached 95% at 18:03 [C3], which opened alert #${FOLLOW_UP_ALERT_NUMBER} at 18:04 [C1]. The cart-worker container stopped reporting at 17:57, before the release's effects, and is not involved [C2].`,
+  [
+    "**Evidence**",
+    `- Alert #${FOLLOW_UP_ALERT_NUMBER} "${FOLLOW_UP_ALERT_TITLE}" opened at 18:04, 3 minutes after this incident [C1]`,
+    "- The checkout-api container used 1.9 of its 2 CPU cores from 18:02; no other container on the host was above 5% [C2]",
+    "- `system.cpu.utilization` on checkout-api-7f9c: user 0.79, system 0.16, idle 0.03 from 18:02 [C3]",
+    '- checkout-api logged "timeout acquiring connection from pool after 2000ms" from 17:59 [C4]',
+  ].join("\n"),
+  [
+    "**Suggested next steps**",
+    "1. Roll checkout-api back to 2026.09.14-1, or redeploy with `DB_POOL_MAX=40`; the CPU alert should resolve with the latency.",
+    "2. Check why cart-worker stopped at 17:57 separately: it is not part of this incident.",
+  ].join("\n"),
+].join("\n\n");
+
+const FOLLOW_UP_TLDR = `Alert #${FOLLOW_UP_ALERT_NUMBER} does not change the analysis: the host's CPU rose because requests stuck behind the 10-connection database pool kept retrying. The cause is still the 17:52 release.`;
+
+if (linkedMode === "followup") {
+  const followUp = defineInvestigation({
+    subjectType: "incident",
+    subjectId: ID.incident(INCIDENT_NUMBER),
+    runId: ID.aiRun(3),
+    createdAt: at("18:04", 2),
+    startedAt: at("18:04", 5),
+    completedAt: at("18:05", 50),
+    totalTokens: 31544,
+    citations: FOLLOW_UP_CITATIONS,
+    analysis: FOLLOW_UP_ANALYSIS,
+    tldr: FOLLOW_UP_TLDR,
+    lead: FOLLOW_UP_LEAD,
+    references: [
+      {
+        kind: "alert",
+        number: FOLLOW_UP_ALERT_NUMBER,
+        id: ID.alert(FOLLOW_UP_ALERT_NUMBER),
+        displayNumber: `#${FOLLOW_UP_ALERT_NUMBER}`,
+        title: FOLLOW_UP_ALERT_TITLE,
+        stateName: "Created",
+        stateColor: "#ef4444",
+      },
+    ],
+    contextNotes: [
+      {
+        message: `Checking again: alert #${FOLLOW_UP_ALERT_NUMBER} opened on Host "checkout-api-7f9c" after the first analysis`,
+        severity: "Info",
+        followUpCheck: {
+          alertNumber: FOLLOW_UP_ALERT_NUMBER,
+          resourceKind: "Host",
+          resourceName: "checkout-api-7f9c",
+          minutesAfterIncident: 3,
+        },
+      },
+      linkedInfrastructureNote({
+        resources: INCIDENT_LINKED_RESOURCES,
+        alertCount: 3,
+        openAlertCount: 2,
+        hasMoreAlerts: false,
+      }),
+    ],
+  });
+
+  // The follow-up's own report, once it posted one.
+  if (hasReport) {
+    insert(IncidentFeed, {
+      incidentId: mainIncident.id,
+      incidentFeedEventType: IncidentFeedEventType.RootCause,
+      aiRunId: new ObjectID(followUp.runId),
+      feedInfoInMarkdown: followUp.markdown,
+      displayColor: new Color("#3b82f6"),
+      postedAt: followUp.completedAt,
+      createdAt: followUp.completedAt,
+    });
+  }
+
+  investigations.incident = followUp;
 }
 
 /*
@@ -3216,6 +3636,13 @@ function buildEvents(investigation, options) {
   };
 
   push(AIRunEventType.RunStarted, {}, 300);
+  /*
+   * What the runner's starting context read (contextNotes), recorded as
+   * ProgressLog events before the model starts, as the engine does.
+   */
+  for (const note of investigation.contextNotes || []) {
+    push(AIRunEventType.ProgressLog, { resultSummary: note }, 120);
+  }
   thinking(3400);
   const tools = investigation.citations.slice(0, options.toolCount);
   tools.forEach((citation, index) => {
@@ -4442,6 +4869,206 @@ function channelLinks(url) {
   return links;
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Who is in the record's channels (the channel card, ?members=)
+ * ---------------------------------------------------------------------------
+ */
+function channelPerson(key, name, member) {
+  return member
+    ? { key, name, userId: member.id.toString(), hasProfilePicture: true }
+    : { key, name };
+}
+
+const SLACK_ONLY_NAMES = [
+  "Priya from Support",
+  "Diego Alvarez",
+  "Hannah Okafor",
+  "Lena Fischer",
+  "Marco Rossi",
+  "Noor Haddad",
+  "Oliver Grant",
+  "Ravi Menon",
+  "Tomás Silva",
+  "Yuki Tanaka",
+];
+
+function initialChannelPeople() {
+  const sam = channelPerson("U0SAM", "Sam Rivera", people.sam);
+  const jordan = channelPerson("U0JORDAN", "Jordan Patel", people.jordan);
+  const maya = channelPerson("U0MAYA", "Maya Chen", people.maya);
+  const priya = channelPerson("U0PRIYA", SLACK_ONLY_NAMES[0]);
+
+  switch (membersMode) {
+    case "in":
+      return [maya, sam, priya];
+    case "empty":
+    case "unreachable":
+    case "not-connected":
+    case "unavailable":
+      return [];
+    case "many":
+      return [
+        sam,
+        jordan,
+        ...SLACK_ONLY_NAMES.map((name, index) => {
+          return channelPerson(`U0SLACK${index}`, name);
+        }),
+        channelPerson("U0ALEXK", "Alex Kim", people.alex),
+      ];
+    case "archived":
+      return [sam, jordan];
+    default:
+      return [sam, jordan, priya];
+  }
+}
+
+// The people in each Slack channel, as the card's adds change them.
+const channelPeopleById = {
+  C0ACME0001: initialChannelPeople(),
+  C0ACME0002: initialChannelPeople(),
+};
+
+const SLACK_CHANNEL_IDS_BY_NAME = {
+  "sre-war-room": "C0ACME0002",
+};
+
+function channelStateOf() {
+  return (
+    {
+      archived: "archived",
+      unreachable: "unreachable",
+      "not-connected": "not-connected",
+      unavailable: "unavailable",
+    }[membersMode] || "members"
+  );
+}
+
+function channelMembers(url) {
+  const route = url.split("/workspace-channel-members/")[1];
+  const links = channelLinks(`/workspace-channel-link/${route}`);
+  const state = channelStateOf();
+
+  const channels = links.map((link) => {
+    if (link.workspaceType === WorkspaceType.MicrosoftTeams) {
+      return {
+        channelId: "19:acme0001acme0001acme0001acme0001@thread.tacv2",
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        name: link.channelName,
+        url: link.url,
+        isPrivate: isTeamsChannelPrivate,
+        state: "managed-in-teams",
+        people: [],
+        peopleCount: 0,
+        viewer: "not-found",
+        teamName: "Checkout SRE",
+      };
+    }
+
+    const channelId =
+      SLACK_CHANNEL_IDS_BY_NAME[link.channelName] || "C0ACME0001";
+    const listed = state === "members" || state === "archived";
+    const inChannel = listed ? channelPeopleById[channelId] : [];
+    const viewerId = people.maya.id.toString();
+    const isViewerIn = inChannel.some((person) => {
+      return person.userId === viewerId;
+    });
+
+    return {
+      channelId,
+      workspaceType: WorkspaceType.Slack,
+      name: link.channelName,
+      url: link.url,
+      isPrivate: listed ? membersMode !== "readonly-public" : null,
+      state,
+      // The viewer first, then everybody by name, as the server sorts them.
+      people: inChannel
+        .map((person) => {
+          return person.userId === viewerId
+            ? { ...person, isViewer: true }
+            : person;
+        })
+        .sort((a, b) => {
+          if (Boolean(a.isViewer) !== Boolean(b.isViewer)) {
+            return a.isViewer ? -1 : 1;
+          }
+          return a.name.localeCompare(b.name);
+        }),
+      peopleCount: inChannel.length,
+      viewer:
+        !listed || membersMode === "not-found"
+          ? "not-found"
+          : isViewerIn
+            ? "in"
+            : "not-in",
+    };
+  });
+
+  return {
+    canAddPeople:
+      roleMode === "owner" &&
+      membersMode !== "readonly" &&
+      membersMode !== "readonly-public",
+    channels,
+  };
+}
+
+function addToChannel(body) {
+  fixture.channelAdds.push(body);
+
+  const inChannel = channelPeopleById[body.channelId];
+
+  if (!inChannel) {
+    throw fail(404, "This channel is not one of this incident's channels.");
+  }
+
+  if (membersMode === "archived") {
+    return { channelState: "archived", results: [] };
+  }
+
+  const everybody = Object.values(people);
+  const userIds = [...(body.userIds || [])];
+
+  if ((body.teamIds || []).length > 0) {
+    for (const member of everybody) {
+      if (!userIds.includes(member.id.toString())) {
+        userIds.push(member.id.toString());
+      }
+    }
+  }
+
+  const results = userIds.map((userId) => {
+    const member = everybody.find((candidate) => {
+      return candidate.id.toString() === userId;
+    });
+    const name = member ? member.name.toString() : "Someone";
+
+    // Nobody in Slack has their email address (?unknown=, Alex by default).
+    const memberKey = Object.keys(people).find((key) => {
+      return people[key] === member;
+    });
+
+    if (memberKey && unknownToSlack.has(memberKey)) {
+      return { userId, name, outcome: "not-found" };
+    }
+
+    if (
+      inChannel.some((person) => {
+        return person.userId === userId;
+      })
+    ) {
+      return { userId, name, outcome: "already-in" };
+    }
+
+    inChannel.push(
+      channelPerson(`U0${name.split(" ")[0].toUpperCase()}`, name, member),
+    );
+    return { userId, name, outcome: "added" };
+  });
+
+  return { results };
+}
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   const body = serialize(options.data) || {};
@@ -4538,6 +5165,24 @@ async function handleApi(method, options) {
       throw fail(500, "The channel links could not be read.");
     }
     return ok({ links: channelLinks(url) });
+  }
+
+  /*
+   * GET /workspace-channel-members/<record type>/<record id>: who is in the
+   * record's channels (?members=); POST .../add adds people to one.
+   */
+  if (method === "POST" && url.includes("/workspace-channel-members/")) {
+    if (failures.has("channel-add")) {
+      throw fail(500, "Could not add people to the channel.");
+    }
+    return ok(addToChannel(body));
+  }
+
+  if (method === "GET" && url.includes("/workspace-channel-members/")) {
+    if (failures.has("channel-members")) {
+      throw fail(500, "Slack could not be reached.");
+    }
+    return ok(channelMembers(url));
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

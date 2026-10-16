@@ -1,8 +1,18 @@
 import {
   getAutoRechargeFailedDescription,
+  getCurrentProjectBillingMarketplace,
+  getMarketplaceAutoRechargeFailedDescription,
   ProjectBalanceAccess,
 } from "./ProjectBalanceAccess";
-import { AUTO_RECHARGE_FAILED_TITLE } from "./ProjectBalanceCopy";
+import {
+  AUTO_RECHARGE_FAILED_TITLE,
+  MARKETPLACE_AUTO_RECHARGE_FAILED_TITLE_TEMPLATE,
+} from "./ProjectBalanceCopy";
+import CloudMarketplace, {
+  CloudMarketplaceUtil,
+} from "Common/Types/Marketplace/CloudMarketplace";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
@@ -35,6 +45,9 @@ import React, {
  * What to do is for someone who may add balance; everyone else is told who
  * can (getAutoRechargeFailedDescription). Nothing is shown while the answer
  * is on its way, when it cannot be read, or where OneUptime does not bill.
+ *
+ * A project a cloud marketplace bills has no card: there it is the
+ * marketplace that refused, and the subscription there to check.
  */
 export interface ComponentProps {
   balance: ProjectBalanceType;
@@ -49,8 +62,11 @@ export interface ComponentProps {
 const AutoRechargeFailedNotice: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const projectId: string | undefined =
     ProjectUtil.getCurrentProjectId()?.toString();
+  const billingMarketplace: CloudMarketplace | null =
+    getCurrentProjectBillingMarketplace();
 
   // The project the last answer was Failed for: a project switch hides it.
   const [failedForProjectId, setFailedForProjectId] = useState<string | null>(
@@ -101,6 +117,29 @@ const AutoRechargeFailedNotice: FunctionComponent<ComponentProps> = (
 
   if (!projectId || failedForProjectId !== projectId) {
     return <></>;
+  }
+
+  if (billingMarketplace) {
+    return (
+      <Alert
+        type={AlertType.DANGER}
+        strongTitle={translator.translateTemplate(
+          MARKETPLACE_AUTO_RECHARGE_FAILED_TITLE_TEMPLATE,
+          {
+            marketplace:
+              CloudMarketplaceUtil.getDisplayName(billingMarketplace),
+          },
+        )}
+        title={getMarketplaceAutoRechargeFailedDescription({
+          balance: props.balance,
+          access: props.access,
+          marketplace: billingMarketplace,
+          translator: translator,
+        })}
+        dataTestId="auto-recharge-failed-notice"
+        className="mb-5"
+      />
+    );
   }
 
   return (

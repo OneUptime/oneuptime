@@ -8,6 +8,13 @@ import {
   getAllEnvVars,
 } from "../EnvironmentConfig";
 import AllMeteredPlans from "../Types/Billing/MeteredPlan/AllMeteredPlans";
+import PayAsYouGoBillingService from "./PayAsYouGoBillingService";
+import MarketplaceSubscriptionService from "./MarketplaceSubscriptionService";
+import MarketplaceUsageReporter from "../Utils/Marketplace/MarketplaceUsageReporter";
+import CloudMarketplace from "../../Types/Marketplace/CloudMarketplace";
+import MarketplaceSubscriptionStatus, {
+  MarketplaceSubscriptionStatusUtil,
+} from "../../Types/Marketplace/MarketplaceSubscriptionStatus";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
@@ -1592,6 +1599,180 @@ export class ProjectService extends ProjectReferencesService<Model> {
       });
   }
 
+  /*
+   * A marketplace-billed project's plan change: the plan columns, and
+   * everything a plan change tells people. No card is charged - the
+   * marketplace bills the new plan's per-user price from the next hourly
+   * usage report on.
+   */
+  private async changeMarketplaceBilledPlan(data: {
+    project: Model;
+    paymentProviderPlanId: string;
+  }): Promise<void> {
+    const project: Model = data.project;
+
+    const plan: SubscriptionPlan | undefined =
+      SubscriptionPlan.getSubscriptionPlanById(
+        data.paymentProviderPlanId,
+        getAllEnvVars(),
+      );
+
+    if (!plan) {
+      throw new BadDataException("Invalid plan");
+    }
+
+    await this.updateOneById({
+      id: project.id!,
+      data: {
+        paymentProviderPlanId: data.paymentProviderPlanId,
+        planName: plan.getName() as PlanType,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    this.forgetCurrentPlan(project.id!);
+    PayAsYouGoBillingService.invalidate(project.id!);
+
+    await PlanDowngradeOwnerNotice.notifyIfStopped({
+      projectId: project.id!,
+      fromPlanId: project.paymentProviderPlanId,
+      toPlanId: data.paymentProviderPlanId,
+    });
+
+    this.capturePlanChangeAnalytics({
+      project: project,
+      newPlan: plan,
+      newPlanId: data.paymentProviderPlanId,
+      seats: await TeamMemberService.getUniqueTeamMemberCountInProject(
+        project.id!,
+      ),
+    });
+
+    await this.sendSubscriptionChangeWebhookSlackNotification(project.id!);
+  }
+
+  /*
+   * A cloud marketplace now bills this project (a buyer linked their
+   * marketplace purchase to it - MarketplaceSubscriptionService.linkToProject).
+   *
+   * Its card subscriptions are cancelled with a final invoice, so what they
+   * already owe - metered usage not yet invoiced, less the unused part of the
+   * seats paid in advance - is settled once, and nothing is billed twice from
+   * here on. The card customer stays, with its invoice history. The project's
+   * subscription columns then follow the marketplace purchase.
+   */
+  @CaptureSpan()
+  public async moveBillingToMarketplace(data: {
+    projectId: ObjectID;
+    marketplace: CloudMarketplace;
+    status: MarketplaceSubscriptionStatus;
+  }): Promise<void> {
+    const project: Model | null = await this.findOneById({
+      id: data.projectId,
+      select: {
+        _id: true,
+        paymentProviderSubscriptionId: true,
+        paymentProviderMeteredSubscriptionId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!project) {
+      throw new BadDataException("Project not found");
+    }
+
+    for (const subscriptionId of [
+      project.paymentProviderSubscriptionId,
+      project.paymentProviderMeteredSubscriptionId,
+    ]) {
+      if (subscriptionId) {
+        await BillingService.cancelSubscriptionWithFinalInvoice(subscriptionId);
+      }
+    }
+
+    const subscriptionStatus: SubscriptionStatus =
+      MarketplaceSubscriptionStatusUtil.toProjectSubscriptionStatus(
+        data.status,
+      );
+
+    await this.updateOneById({
+      id: data.projectId,
+      data: {
+        billingMarketplace: data.marketplace,
+        paymentProviderSubscriptionId: null,
+        paymentProviderMeteredSubscriptionId: null,
+        paymentProviderSubscriptionStatus: subscriptionStatus,
+        paymentProviderMeteredSubscriptionStatus: subscriptionStatus,
+      } as QueryDeepPartialEntity<Model>,
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    this.forgetCurrentPlan(data.projectId);
+    PayAsYouGoBillingService.invalidate(data.projectId);
+
+    await this.sendSubscriptionChangeWebhookSlackNotification(data.projectId);
+  }
+
+  /*
+   * A marketplace-billed project follows its purchase: active while the
+   * marketplace bills it, unpaid while the marketplace has suspended it,
+   * cancelled once it has ended. Every check that decides whether a project
+   * is served reads these two columns (SubscriptionStatusUtil), so a
+   * marketplace project is held to exactly the same rules as a card-billed
+   * one.
+   */
+  @CaptureSpan()
+  public async setMarketplaceBillingStatus(data: {
+    projectId: ObjectID;
+    status: MarketplaceSubscriptionStatus;
+  }): Promise<void> {
+    const project: Model | null = await this.findOneById({
+      id: data.projectId,
+      select: {
+        _id: true,
+        billingMarketplace: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // Only a project the marketplace bills: a card-billed one keeps its card's status.
+    if (!project || !project.billingMarketplace) {
+      return;
+    }
+
+    const subscriptionStatus: SubscriptionStatus =
+      MarketplaceSubscriptionStatusUtil.toProjectSubscriptionStatus(
+        data.status,
+      );
+
+    await this.updateOneById({
+      id: data.projectId,
+      data: {
+        paymentProviderSubscriptionStatus: subscriptionStatus,
+        paymentProviderMeteredSubscriptionStatus: subscriptionStatus,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    this.forgetCurrentPlan(data.projectId);
+    PayAsYouGoBillingService.invalidate(data.projectId);
+
+    await this.sendSubscriptionChangeWebhookSlackNotification(data.projectId);
+  }
+
   @CaptureSpan()
   public async changePlan(params: {
     projectId: ObjectID;
@@ -1612,6 +1793,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
         paymentProviderPlanId: true,
         trialEndsAt: true,
         paymentProviderCustomerId: true,
+        billingMarketplace: true,
         createdOwnerEmail: true,
         /*
          * The full attribution set, not just the three UTMs the analytics
@@ -1640,6 +1822,19 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
     if (!project) {
       throw new BadDataException("Project not found");
+    }
+
+    /*
+     * A marketplace bills this project: there is no card subscription to
+     * move, and the new plan's price reaches the bill through the hourly
+     * usage report (MarketplaceUsageReporter).
+     */
+    if (project.billingMarketplace) {
+      await this.changeMarketplaceBilledPlan({
+        project: project,
+        paymentProviderPlanId: params.paymentProviderPlanId,
+      });
+      return;
     }
 
     if (!project.paymentProviderSubscriptionId) {
@@ -2422,9 +2617,13 @@ export class ProjectService extends ProjectReferencesService<Model> {
     // Written: the lock its sign-in check held is given back before anything else.
     await SsoRequirementChanges.afterProjectCreate(onCreate);
 
-    // Create billing.
+    /*
+     * Create billing. A project created for a marketplace purchase is billed
+     * by the marketplace (MarketplaceSubscriptionService), so it gets no card
+     * customer and no card subscriptions.
+     */
 
-    if (IsBillingEnabled) {
+    if (IsBillingEnabled && !createdItem.billingMarketplace) {
       const customerId: string = await BillingService.createCustomer({
         name: createdItem.name!,
         email: createdItem.createdOwnerEmail!,
@@ -3719,6 +3918,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
         paymentProviderSubscriptionSeats: true,
         trialEndsAt: true,
         currentActiveMonitorsCount: true,
+        billingMarketplace: true,
         isBlocked: true,
         createdByUserId: true,
         createdByUser: {
@@ -3731,6 +3931,22 @@ export class ProjectService extends ProjectReferencesService<Model> {
         },
       },
     );
+
+    /*
+     * A marketplace bills a project's usage by the hour, after the hour:
+     * what it used since the last hourly report, and the balance top-ups
+     * bought since, are billed now, while the project is still here to be
+     * priced. Once it is gone its purchase is unlinked (onDeleteSuccess), and
+     * nothing would bill that time. The delete never waits on, or fails
+     * because of, a marketplace (reportFinalUsageOfProject).
+     */
+    if (IsBillingEnabled) {
+      for (const project of projects) {
+        if (project.id && project.billingMarketplace) {
+          await MarketplaceUsageReporter.reportFinalUsageOfProject(project.id);
+        }
+      }
+    }
 
     return { deleteBy, carryForward: projects };
   }
@@ -3804,6 +4020,21 @@ export class ProjectService extends ProjectReferencesService<Model> {
           await BillingService.cancelSubscription(
             project.paymentProviderMeteredSubscriptionId,
           );
+        }
+      }
+
+      /*
+       * A marketplace purchase that paid for a deleted project stops being
+       * reported against it: its last usage was billed before the delete
+       * (onBeforeDelete). The purchase itself is the buyer's, on the
+       * marketplace: it is cancelled there, or linked to another project
+       * from the marketplace's "manage" link.
+       */
+      for (const deletedProjectId of itemIdsBeforeDelete) {
+        try {
+          await MarketplaceSubscriptionService.unlinkProject(deletedProjectId);
+        } catch (err) {
+          logger.error(err);
         }
       }
     }

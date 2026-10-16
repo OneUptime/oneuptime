@@ -3266,6 +3266,17 @@ const CARD_STATES: ReadonlyArray<CardState> = [
     badge: "Preparing report…",
   },
   { name: "no investigation", query: "ai=none", badge: "Not investigated" },
+  // An incident checked again after an alert opened (?linked=followup).
+  {
+    name: "a follow-up check's report",
+    query: "linked=followup",
+    badge: "Completed",
+  },
+  {
+    name: "a follow-up check running",
+    query: "ai=running&linked=followup",
+    badge: "Investigating…",
+  },
 ];
 
 async function openCardState(page: Page, state: CardState): Promise<Locator> {
@@ -4477,7 +4488,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
       );
 
       await expect(answer).toContainText("to Sam Rivera");
-      await expect(steps).toContainText("Running recent_changes");
+      await expect(steps).toContainText("Checking recent changes");
       await expect(steps).toContainText("Searching logs");
       expect(await frameLook(steps)).toEqual({
         background: "rgba(0, 0, 0, 0)",
@@ -9628,10 +9639,12 @@ test.describe("Open in Slack / Microsoft Teams", () => {
     await expect(slack).toHaveAttribute("target", "_blank");
     await expect(slack).toHaveAttribute("rel", "noopener noreferrer");
 
-    // Pointing at the button names the channel.
+    // Pointing at the button names the channel (the card names it too).
     await slack.hover();
     await expect(
-      page.getByText("#incident-1042-checkout-latency"),
+      page
+        .locator("[data-tippy-root]")
+        .getByText("#incident-1042-checkout-latency"),
     ).toBeVisible();
     await page.mouse.move(0, 0);
     await screenshotElement(hero(page), "incident-hero-open-in-chat");
@@ -9786,6 +9799,471 @@ test.describe("Open in Slack / Microsoft Teams", () => {
     await expectNoHorizontalOverflow(page);
     await page.mouse.move(0, 0);
     await screenshotElement(hero(page), "incident-hero-open-in-chat-mobile");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The record's channel card: who is in its channel, Join channel, Add people
+ * ---------------------------------------------------------------------------
+ *
+ * The customer: "if all users leave a private channel, can someone re-enter
+ * or invite others without requiring assistance from a Slack workspace
+ * admin?" A record with a channel of its own shows a card beside its call:
+ * the channel, the people in it, and - for somebody who may edit the record -
+ * Join channel and Add people, which have the OneUptime app invite them.
+ * The fixture answers GET /workspace-channel-members (?members=) and POST
+ * .../add; Maya Chen is the viewer.
+ */
+
+const MAYA_ID: string = uuid("80000000", 1);
+const SAM_ID: string = uuid("80000000", 2);
+const ALEX_ID: string = uuid("80000000", 4);
+
+function channelCard(page: Page): Locator {
+  return page.getByTestId("record-channel-members-card");
+}
+
+async function channelAdds(
+  page: Page,
+): Promise<Array<Record<string, unknown>>> {
+  return page.evaluate((): Array<Record<string, unknown>> => {
+    return JSON.parse(
+      JSON.stringify(
+        (
+          window as unknown as {
+            __eventOverviewFixture: {
+              channelAdds: Array<Record<string, unknown>>;
+            };
+          }
+        ).__eventOverviewFixture.channelAdds,
+      ),
+    ) as Array<Record<string, unknown>>;
+  });
+}
+
+test.describe("the record's channel card", () => {
+  test("no channel of its own: no card, and nothing asked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    await expect(channelCard(page)).toHaveCount(0);
+    expect(
+      await apiRequestsTo(
+        page,
+        `/workspace-channel-members/incident/${INCIDENT_ID}`,
+      ),
+    ).toHaveLength(0);
+  });
+
+  test("an incident's Slack channel: who is in it, and Join channel for a viewer who is not", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack");
+
+    const card: Locator = channelCard(page);
+    await expect(card.getByTestId("record-channel-person-name")).toHaveText([
+      "Jordan Patel",
+      "Priya from Support",
+      "Sam Rivera",
+    ]);
+    await expect(card.getByTestId("record-channel-meta")).toHaveText(
+      "Private channel · 3 people",
+    );
+    await expect(card.getByTestId("record-channel-name")).toHaveAttribute(
+      "href",
+      SLACK_CHANNEL_URL,
+    );
+    await expect(card.getByTestId("record-channel-not-in")).toHaveText(
+      "You're not in this channel.",
+    );
+    await expect(card.getByTestId("record-channel-join")).toBeVisible();
+    await expect(card.getByTestId("record-channel-add-people")).toBeVisible();
+    expect(
+      await apiRequestsTo(
+        page,
+        `/workspace-channel-members/incident/${INCIDENT_ID}`,
+      ),
+    ).toHaveLength(1);
+
+    await screenshotElement(card, "incident-channel-card");
+  });
+
+  test("everybody left the private channel: Join channel lets the viewer back in", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&members=empty");
+
+    const card: Locator = channelCard(page);
+    await expect(card.getByTestId("record-channel-nobody")).toHaveText(
+      "Nobody is in this channel.",
+    );
+    await screenshotElement(card, "incident-channel-card-empty");
+
+    await card.getByTestId("record-channel-join").click();
+
+    await expect(card.getByTestId("record-channel-join-result")).toContainText(
+      "You're in the channel now.",
+    );
+    await expect(card.getByTestId("record-channel-person-you")).toBeVisible();
+    await expect(card.getByTestId("record-channel-join")).toHaveCount(0);
+    expect(await channelAdds(page)).toEqual([
+      { channelId: "C0ACME0001", userIds: [MAYA_ID], teamIds: [] },
+    ]);
+
+    await screenshotElement(card, "incident-channel-card-joined");
+  });
+
+  test("Add people adds a person at once, and says who Slack does not know", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 1400 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack&members=empty");
+
+    const card: Locator = channelCard(page);
+    await card.getByTestId("record-channel-add-people").click();
+
+    const dialog: Locator = page.getByRole("dialog", { name: "Add people" });
+    await expect(dialog.getByRole("option").first()).toBeVisible();
+
+    await dialog.getByRole("option", { name: /Sam Rivera/ }).click();
+    await expect(card.getByTestId("record-channel-person-name")).toHaveText([
+      "Sam Rivera",
+    ]);
+    await expect(
+      dialog.getByRole("option", { name: /Sam Rivera/ }),
+    ).toHaveCount(0);
+    // Said where the pick was made, too.
+    await expect(dialog.getByTestId("people-search-notice-done")).toHaveText(
+      "Added Sam Rivera.",
+    );
+
+    await dialog.getByRole("option", { name: /Alex Kim/ }).click();
+    await expect(dialog.getByRole("alert")).toContainText(
+      "OneUptime can't find Alex Kim in Slack",
+    );
+
+    expect(await channelAdds(page)).toEqual([
+      { channelId: "C0ACME0001", userIds: [SAM_ID], teamIds: [] },
+      { channelId: "C0ACME0001", userIds: [ALEX_ID], teamIds: [] },
+    ]);
+
+    await screenshotElement(
+      page.locator("body"),
+      "incident-channel-card-add-people",
+    );
+  });
+
+  test("without permission to edit the incident: who to ask, and no buttons", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&members=readonly");
+
+    const card: Locator = channelCard(page);
+    await expect(card.getByTestId("record-channel-ask")).toHaveText(
+      "You're not in this channel. Ask someone who can edit this incident to add you.",
+    );
+    await expect(card.getByTestId("record-channel-join")).toHaveCount(0);
+    await expect(card.getByTestId("record-channel-add-people")).toHaveCount(0);
+  });
+
+  test("a channel the OneUptime app was removed from says so, and how to let it back in", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&members=unreachable");
+
+    await expect(
+      channelCard(page).getByTestId("record-channel-state"),
+    ).toContainText("/invite @OneUptime");
+    await expectNoErrorStates(page);
+  });
+
+  test("a Microsoft Teams channel says who can open it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=teams");
+
+    const card: Locator = channelCard(page);
+    await expect(card.getByTestId("record-channel-teams-note")).toHaveText(
+      "Everyone in Checkout SRE can open the channel.",
+    );
+    await expect(card.getByTestId("record-channel-add-people")).toHaveCount(0);
+    await expect(page.getByText("Microsoft Teams Channel")).toBeVisible();
+  });
+
+  test("a private Microsoft Teams channel says it is private once, then who adds people", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=teams&teamsPrivate=1");
+
+    const card: Locator = channelCard(page);
+    await expect(card.getByTestId("record-channel-meta")).toHaveText(
+      "Private channel",
+    );
+    await expect(card.getByTestId("record-channel-teams-note")).toHaveText(
+      "Only its members can open it. Its owners add people in Microsoft Teams.",
+    );
+  });
+
+  for (const channelPage of [
+    { eventPage: ALERT_PAGE, recordType: "alert" },
+    {
+      eventPage: SCHEDULED_MAINTENANCE_PAGE,
+      recordType: "scheduled-maintenance",
+    },
+    { eventPage: INCIDENT_EPISODE_PAGE, recordType: "incident-episode" },
+    { eventPage: ALERT_EPISODE_PAGE, recordType: "alert-episode" },
+  ]) {
+    test(`the ${channelPage.recordType} page has it too`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, channelPage.eventPage, "channels=slack");
+
+      await expect(
+        channelCard(page).getByTestId("record-channel-person-name"),
+      ).toHaveText(["Jordan Patel", "Priya from Support", "Sam Rivera"]);
+      expect(
+        await apiRequestsTo(
+          page,
+          `/workspace-channel-members/${channelPage.recordType}/${
+            new URL(page.url()).pathname.split("/").pop() || ""
+          }`,
+        ),
+      ).not.toHaveLength(0);
+    });
+  }
+
+  test("a phone shows the card without sideways scrolling", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack,slack2,teams");
+
+    await expect(channelCard(page).getByTestId("record-channel")).toHaveCount(
+      3,
+    );
+    await expectNoHorizontalOverflow(page);
+    await screenshotElement(channelCard(page), "incident-channel-card-mobile");
+  });
+
+  /*
+   * The UI review's polish: the buttons in the narrow column, what each pick
+   * in Add people came to, the card's own words when a read fails, the next
+   * step when Slack was taken off the project, and the keyboard after a join.
+   */
+  test("in the narrow column of a 1280px screen, Join channel and Add people each fill a row; on a phone they share one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack");
+
+    const actions: Locator = channelCard(page).getByTestId(
+      "record-channel-actions",
+    );
+    const join: Locator = actions.getByTestId("record-channel-join");
+    const addPeople: Locator = actions.getByTestId("record-channel-add-people");
+
+    await expect(addPeople).toBeVisible();
+
+    const row: { x: number; width: number } | null =
+      await actions.boundingBox();
+    const joinBox: { x: number; y: number; width: number } | null =
+      await join.boundingBox();
+    const addBox: { x: number; y: number; width: number } | null =
+      await addPeople.boundingBox();
+
+    // Stacked, each as wide as the column - not two ragged ends.
+    expect(addBox!.y).toBeGreaterThan(joinBox!.y);
+    expect(Math.abs(joinBox!.x - row!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(addBox!.x - row!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(joinBox!.width - row!.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(addBox!.width - row!.width)).toBeLessThanOrEqual(1);
+    await screenshotElement(channelCard(page), "incident-channel-card-1280");
+
+    // A phone's full-width card has room for both, side by side.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(async () => {
+      const phoneJoin: { y: number } | null = await join.boundingBox();
+      const phoneAdd: { y: number } | null = await addPeople.boundingBox();
+
+      expect(Math.abs(phoneJoin!.y - phoneAdd!.y)).toBeLessThanOrEqual(1);
+    }).toPass();
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("the video call card above it reads in lines in that column, its button under the words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack");
+
+    const empty: Locator = page.getByTestId("event-video-calls-empty");
+    const title: Locator = empty.getByText("No call yet");
+    const start: Locator = empty.getByTestId("event-video-call-start");
+
+    await expect(start).toBeVisible();
+
+    // Before, a row with the button beside it left the words a word a line.
+    const titleBox: { height: number; y: number } | null =
+      await title.boundingBox();
+    const startBox: { y: number } | null = await start.boundingBox();
+    const lineHeight: number = await title.evaluate(
+      (element: Element): number => {
+        return parseFloat(window.getComputedStyle(element).lineHeight);
+      },
+    );
+
+    expect(titleBox!.height).toBeLessThan(lineHeight * 1.5);
+    expect(startBox!.y).toBeGreaterThan(titleBox!.y + titleBox!.height);
+  });
+
+  test("a team picked in Add people: how many were added, and everyone Slack does not know, in one sentence", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 1400 });
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "channels=slack&members=empty&unknown=alex,jordan",
+    );
+
+    await channelCard(page).getByTestId("record-channel-add-people").click();
+
+    const dialog: Locator = page.getByRole("dialog", { name: "Add people" });
+    await dialog.getByRole("option", { name: /Checkout SRE/ }).click();
+
+    await expect(dialog.getByTestId("people-search-notice-done")).toHaveText(
+      "Added 2 people from Checkout SRE.",
+    );
+    await expect(dialog.getByRole("alert")).toHaveText(
+      "OneUptime can't find Jordan Patel and Alex Kim in Slack: their accounts aren't connected, and no Slack account has their email address. Ask them to connect Slack in User Settings.",
+    );
+    expect(await channelAdds(page)).toEqual([
+      { channelId: "C0ACME0001", userIds: [], teamIds: [uuid("81000000", 1)] },
+    ]);
+    await screenshotElement(dialog, "incident-channel-card-add-team");
+  });
+
+  test("a read that fails is said in the card's own words, with Try again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&fail=channel-members");
+
+    const box: Locator = channelCard(page).getByTestId(
+      "record-channel-read-error",
+    );
+
+    await expect(box.getByRole("alert")).toHaveText(
+      "Could not read who is in this channel. Slack could not be reached.",
+    );
+    await expect(channelCard(page).getByText("Refresh?")).toHaveCount(0);
+
+    const reads: number = (
+      await apiRequestsTo(
+        page,
+        `/workspace-channel-members/incident/${INCIDENT_ID}`,
+      )
+    ).length;
+
+    await box.getByRole("button", { name: "Try again" }).click();
+
+    await expect(async () => {
+      expect(
+        await apiRequestsTo(
+          page,
+          `/workspace-channel-members/incident/${INCIDENT_ID}`,
+        ),
+      ).toHaveLength(reads + 1);
+    }).toPass();
+  });
+
+  test("Slack taken off the project: Connect Slack goes to the project's Slack settings", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "channels=slack&members=not-connected",
+    );
+
+    const state: Locator = channelCard(page).getByTestId(
+      "record-channel-state",
+    );
+
+    await expect(state).toContainText("Slack isn't connected to this project.");
+    await expect(
+      state.getByRole("link", { name: "Connect Slack" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/settings/slack-integration`,
+    );
+  });
+
+  test("the command that lets the app back in reads as a command", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&members=unreachable");
+
+    const command: Locator = channelCard(page).locator("code");
+
+    await expect(command).toHaveText("/invite @OneUptime");
+    await expect(command).toHaveAttribute("dir", "ltr");
+  });
+
+  test("Join channel from the keyboard leaves focus on Open in Slack, the next step", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack");
+
+    const card: Locator = channelCard(page);
+
+    await card.getByTestId("record-channel-join").focus();
+    await page.keyboard.press("Enter");
+
+    const open: Locator = card.getByTestId("record-channel-open-after-join");
+
+    await expect(open).toBeFocused();
+    await expect(open).toHaveAttribute("href", SLACK_CHANNEL_URL);
+    await expect(card.getByTestId("record-channel-join")).toHaveCount(0);
+
+    await page.keyboard.press("Tab");
+    await expect(card.getByTestId("record-channel-add-people")).toBeFocused();
   });
 });
 
@@ -10031,6 +10509,665 @@ test.describe("screenshots", () => {
       await expect(detailsPanel(page, "Activity")).toBeVisible();
       await page.mouse.move(0, 0);
       await screenshotElement(investigationDetails(page), "ai-report-activity");
+    });
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The linked infrastructure an investigation read, and its follow-up check
+ * (?linked=, issues #4786 and #4787)
+ * ---------------------------------------------------------------------------
+ *
+ * An investigation's activity says what it read about the infrastructure its
+ * incident or alert is linked to. When an alert opens on that
+ * infrastructure after the first analysis, OneUptime AI checks the incident
+ * again: the live run says so in its heading, its report leads with the
+ * server's "Checked again" line above the Summary, and the feed's entry
+ * says "OneUptime AI checked again" with the reason, apart from the first
+ * analysis below it. The evidence of the infrastructure tools reads in
+ * words.
+ */
+
+const LINKED_LINE: string =
+  "Read 2 open or recent alerts on Host checkout-api-7f9c, Docker host checkout-api-7f9c, Kubernetes cluster prod-eks-eu-west-1 and 2 more";
+const FOLLOW_UP_ACTIVITY_LINE: string =
+  "Checking again: alert #318 opened on Host checkout-api-7f9c after the first analysis";
+const FOLLOW_UP_LEAD_TEXT: string =
+  "Checked again after alert #318 opened on Host checkout-api-7f9c, 3 minutes after this incident was declared: High CPU on checkout-api-7f9c.";
+const FOLLOW_UP_FEED_LEAD: string =
+  "OneUptime AI checked again after alert #318 opened on Host checkout-api-7f9c, 3 minutes after this incident was declared: High CPU on checkout-api-7f9c.";
+const FIRST_ANALYSIS_FEED_LEAD: string =
+  "OneUptime AI posted a root cause analysis";
+const FOLLOW_UP_TLDR_START: string = "Alert #318 does not change the analysis";
+
+function liveInvestigation(page: Page): Locator {
+  return page.getByRole("region", { name: "Live investigation" });
+}
+
+function followUpLead(page: Page): Locator {
+  return investigationCard(page).getByTestId("investigation-report-lead");
+}
+
+// The words of each step the live run draws, in order.
+async function stepTexts(page: Page): Promise<Array<string>> {
+  return liveInvestigation(page)
+    .getByTestId("activity-step-text")
+    .evaluateAll((elements: Array<Element>): Array<string> => {
+      return elements.map((element: Element): string => {
+        return (element.textContent || "").trim();
+      });
+    });
+}
+
+/*
+ * Where the first line of an element's text sits, in document coordinates:
+ * the box of its first character.
+ */
+async function firstLineBox(locator: Locator): Promise<Box> {
+  return locator.evaluate((element: Element): Box => {
+    const walker: TreeWalker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+    );
+    let node: Node | null = walker.nextNode();
+
+    while (
+      node &&
+      ((node.parentElement && node.parentElement.closest(".sr-only")) ||
+        !(node.textContent || "").trim())
+    ) {
+      node = walker.nextNode();
+    }
+
+    const text: string = node!.textContent || "";
+    let offset: number = 0;
+
+    while (offset < text.length && text.charAt(offset).trim() === "") {
+      offset++;
+    }
+
+    const range: Range = document.createRange();
+    range.setStart(node!, offset);
+    range.setEnd(node!, offset + 1);
+    const rect: DOMRect = range.getBoundingClientRect();
+
+    return {
+      x: rect.left + window.scrollX,
+      y: rect.top + window.scrollY,
+      width: rect.width,
+      height: rect.height,
+    };
+  });
+}
+
+function centreOf(box: Box): number {
+  return box.y + box.height / 2;
+}
+
+test.describe("the linked infrastructure, and the follow-up check (?linked=)", () => {
+  test("a running investigation says what it read about its linked infrastructure, a line that wraps keeping its mark beside its first line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await open(page, INCIDENT_PATH, "ai=running&linked=alerts");
+    await expect(liveInvestigation(page)).toBeVisible({ timeout: 30000 });
+
+    expect((await stepTexts(page)).slice(0, 2)).toEqual([
+      "Starting investigation",
+      LINKED_LINE,
+    ]);
+
+    const step: Locator = liveInvestigation(page)
+      .getByTestId("activity-step-text")
+      .filter({ hasText: LINKED_LINE });
+    const mark: Locator = step.locator(
+      "xpath=preceding-sibling::*[@data-testid='activity-step-mark']",
+    );
+    const stepBox: Box = await documentBox(step);
+    const markBox: Box = await documentBox(mark);
+    const line: Box = await firstLineBox(step);
+
+    // It wraps on a phone, and its mark stays level with its first line.
+    expect(stepBox.height, "the line wraps").toBeGreaterThan(
+      markBox.height * 2,
+    );
+    expect(
+      Math.abs(centreOf(markBox) - centreOf(line)),
+      "the mark beside the first line",
+    ).toBeLessThanOrEqual(2);
+
+    // The steps every investigation takes read as words, not tool ids.
+    expect(await stepTexts(page)).toContain(
+      "Searching past incidents · 3 rows · 0.4s",
+    );
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("the steps' detail follows their words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=running&linked=alerts");
+    await expect(liveInvestigation(page)).toBeVisible({ timeout: 30000 });
+
+    const step: Locator = liveInvestigation(page)
+      .getByTestId("activity-step-text")
+      .filter({ hasText: "Aggregating metrics" });
+    const detail: Locator = step.getByText("· 80 rows · 1.2s");
+
+    // On the words' own line, right after them.
+    expect(
+      Math.abs(
+        centreOf(await documentBox(detail)) -
+          centreOf(await firstLineBox(step)),
+      ),
+    ).toBeLessThanOrEqual(2);
+  });
+
+  test("more alerts than it lists: the newest were read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=running&linked=more");
+    await expect(liveInvestigation(page)).toContainText(
+      "Read the 10 newest open or recent alerts on Host checkout-api-7f9c, Docker host checkout-api-7f9c, Kubernetes cluster prod-eks-eu-west-1 and 2 more",
+      { timeout: 30000 },
+    );
+  });
+
+  test("an alert's investigation says when there was nothing on its host", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERT_PATH, "ai=running&linked=alerts");
+    await expect(liveInvestigation(page)).toContainText(
+      "No open or recent alerts on Host payments-web-2",
+      { timeout: 30000 },
+    );
+    // An alert is never checked again.
+    await expect(liveInvestigation(page)).toContainText(
+      "OneUptime AI is investigating",
+    );
+  });
+
+  test("a follow-up check, running, is headed 'checking again', its first line naming the alert that made it check", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=running&linked=followup");
+    const live: Locator = liveInvestigation(page);
+    await expect(live).toBeVisible({ timeout: 30000 });
+
+    await expect(live.getByRole("heading", { level: 3 })).toHaveText(
+      "OneUptime AI is checking again",
+    );
+    expect((await stepTexts(page)).slice(0, 3)).toEqual([
+      "Starting investigation",
+      FOLLOW_UP_ACTIVITY_LINE,
+      "Read 3 open or recent alerts on Host checkout-api-7f9c, Docker host checkout-api-7f9c, Kubernetes cluster prod-eks-eu-west-1 and 2 more",
+    ]);
+    expect(await stepTexts(page)).toContain(
+      "Checking the host's containers · 4 rows · 0.6s",
+    );
+    expect(await stepTexts(page)).toContain(
+      "Reading a resource's telemetry · 4 rows · 0.9s",
+    );
+    // A first investigation, running, keeps its heading.
+    await open(page, INCIDENT_PATH, "ai=running&linked=alerts");
+    await expect(
+      liveInvestigation(page).getByRole("heading", { level: 3 }),
+    ).toHaveText("OneUptime AI is investigating", { timeout: 30000 });
+  });
+
+  test("a follow-up check's report leads with why it was written, above the Summary, the alert a link", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "linked=followup");
+    const lead: Locator = followUpLead(page);
+    // The report's markdown is drawn once its renderer has loaded.
+    await expect(lead).toContainText(FOLLOW_UP_LEAD_TEXT, { timeout: 30000 });
+
+    expect(await plainText(lead)).toBe(FOLLOW_UP_LEAD_TEXT);
+    await expect(lead.locator("strong")).toHaveText("Checked again");
+    await expectAbove(lead, summarySection(page), "the lead, then the Summary");
+    await expect(summarySection(page)).toContainText(FOLLOW_UP_TLDR_START);
+    // Said once, not again inside the report.
+    await expect(reportSection(page)).not.toContainText("Checked again");
+
+    // The alert it names opens that alert.
+    const alertLink: Locator = referenceLink(lead, "#318");
+    await expect(alertLink).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/alerts/${uuid("30000000", 318)}`,
+    );
+
+    // The mark sits level with the line's first words.
+    const mark: Box = await documentBox(lead.locator("svg"));
+    expect(
+      Math.abs(centreOf(mark) - centreOf(await firstLineBox(lead))),
+    ).toBeLessThanOrEqual(2);
+    expect(await panelsInsideTheCard(page)).toEqual([]);
+  });
+
+  test("a first analysis has no lead", async ({ page }: { page: Page }) => {
+    await openReady(page, INCIDENT_PAGE, "linked=alerts");
+    await expect(followUpLead(page)).toHaveCount(0);
+  });
+
+  test("the feed says OneUptime AI checked again, and why, apart from the first analysis", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "linked=followup");
+    const feed: Locator = card(page, "Incident Feed");
+    const followUp: Locator = feedEntry(feed, FOLLOW_UP_FEED_LEAD);
+    await expect(followUp).toHaveCount(1, { timeout: 30000 });
+
+    expect(await plainText(followUp.getByTestId("feed-entry-intro"))).toBe(
+      FOLLOW_UP_FEED_LEAD,
+    );
+    await expect(followUp.getByTestId("feed-entry-body")).toContainText(
+      "Alert #318 does not change the earlier analysis",
+    );
+    await expect(followUp.getByTestId("feed-entry-body")).not.toContainText(
+      "Checked again",
+    );
+
+    // The first analysis, below it, is posted as it always was.
+    const first: Locator = feedEntry(feed, FIRST_ANALYSIS_FEED_LEAD);
+    await expect(first).toHaveCount(1);
+    await expectAbove(followUp, first, "the newest first");
+
+    // The whole report, its lead included, unfolds under the entry.
+    await followUp
+      .getByRole("button", { name: "Show the full report" })
+      .click();
+    await expect(followUp.getByTestId("feed-entry-details")).toContainText(
+      "Checked again after alert #318",
+    );
+  });
+
+  test("the infrastructure tools' evidence reads in words: the containers table and the CPU by state", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "linked=followup");
+    await expect(followUpLead(page)).toBeVisible({ timeout: 30000 });
+
+    const containers: Locator = await expandEvidence(page, "C2");
+    await expect(evidenceToggle(evidenceRow(page, "C2"))).toContainText(
+      "Checked a host's containers",
+    );
+    expect(await definitionPairs(containers)).toEqual(
+      expect.arrayContaining([
+        { label: "Resource type", value: "Docker Host" },
+        { label: "Resource", value: "84000000…" },
+        { label: "Ranked by", value: "CPU" },
+      ]),
+    );
+    await expectRowsLoaded(containers);
+    await expect(containers.locator("thead th")).toHaveText([
+      "Container",
+      "Status",
+      "CPU avg %",
+      "CPU peak %",
+      "Memory peak %",
+      "Restarts",
+      "Last seen",
+      "Image",
+    ]);
+    await expect(containers.locator("tbody tr").first()).toContainText(
+      "Stopped reporting",
+    );
+    // Dated in the reader's time, not by ISO instants.
+    await expect(containers).toContainText("Sep 14, 5:49 PM – 6:04 PM");
+    await expect(containers).not.toContainText("2026-09-14T17:49");
+
+    const cpu: Locator = await expandEvidence(page, "C3");
+    await expect(evidenceToggle(evidenceRow(page, "C3"))).toContainText(
+      "Read a resource's telemetry",
+    );
+    expect(await definitionPairs(cpu)).toEqual(
+      expect.arrayContaining([
+        { label: "Telemetry", value: "Metrics" },
+        { label: "Mode", value: "Trend" },
+      ]),
+    );
+    await expectRowsLoaded(cpu);
+    await expect(cpu).toContainText("Avg of system.cpu.utilization by state");
+  });
+
+  test("on a phone nothing scrolls sideways, in the light and the dark theme", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+
+    for (const query of [
+      "linked=followup",
+      "linked=followup&theme=dark",
+      "ai=running&linked=followup",
+    ]) {
+      await open(page, INCIDENT_PATH, query);
+      await expect(investigationCard(page)).toContainText("checking again", {
+        ignoreCase: true,
+        timeout: 30000,
+      });
+      await expectNoHorizontalOverflow(page);
+    }
+  });
+
+  test("screenshots", async ({ page }: { page: Page }) => {
+    const shots: ReadonlyArray<{ file: string; query: string; width: number }> =
+      [
+        { file: "ai-card-followup", query: "linked=followup", width: 1440 },
+        {
+          file: "ai-card-followup-running",
+          query: "ai=running&linked=followup",
+          width: 1440,
+        },
+        {
+          file: "ai-card-followup-dark",
+          query: "linked=followup&theme=dark",
+          width: 1440,
+        },
+        {
+          file: "ai-card-followup-mobile",
+          query: "linked=followup",
+          width: 390,
+        },
+        {
+          file: "ai-card-linked-running-mobile",
+          query: "ai=running&linked=alerts",
+          width: 390,
+        },
+      ];
+
+    for (const shot of shots) {
+      await page.setViewportSize({ width: shot.width, height: 1000 });
+      await open(page, INCIDENT_PATH, shot.query);
+      await expect(investigationCard(page)).toContainText(
+        shot.query.includes("ai=running")
+          ? "Starting investigation"
+          : REPORT_CAVEAT,
+        { timeout: 30000 },
+      );
+      await page.mouse.move(0, 0);
+      await screenshotElement(investigationCard(page), shot.file);
+    }
+
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await open(page, INCIDENT_PATH, "linked=followup");
+    const feed: Locator = card(page, "Incident Feed");
+    await expect(feedEntry(feed, FOLLOW_UP_FEED_LEAD)).toHaveCount(1, {
+      timeout: 30000,
+    });
+    await page.mouse.move(0, 0);
+    await screenshotElement(feed, "incident-feed-followup");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A private incident or episode takes no public notes
+ * ---------------------------------------------------------------------------
+ *
+ * ?private=1 makes incident #1042 and incident episode #12 private: on no
+ * status page and told to no subscriber, so a public note on them would reach
+ * nobody it was written for (Common/Types/StatusPage/PrivateRecordPublicNotes).
+ * The incident's state change dialogs fold a private note and ask nothing
+ * about subscribers, and both feeds' "Add Public Note" is locked with the
+ * reason - the sentence the server refuses one with.
+ */
+const PRIVATE_INCIDENT_REFUSAL: string =
+  "This incident is private, so public notes cannot be added to it. Use a private note.";
+const PRIVATE_EPISODE_REFUSAL: string =
+  "This episode is private, so public notes cannot be added to it. Use a private note.";
+
+async function openFeedActions(page: Page, feed: string): Promise<Locator> {
+  await card(page, feed).getByTestId("feed-actions-button").click();
+  const menu: Locator = page.getByRole("menu");
+  await expect(menu).toBeVisible();
+  return menu;
+}
+
+// The tooltip a locked menu item shows on hover, saying why it is locked.
+function tooltipSaying(page: Page, text: string): Locator {
+  return page.locator("[data-tippy-root]").filter({ hasText: text });
+}
+
+test.describe("a private incident or episode (?private=1)", () => {
+  test("Acknowledge on a private incident folds a private note, asks nothing about subscribers, and sends the note as a private one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "state=created&private=1");
+    await expect(hero(page)).toContainText("Private");
+
+    await heroActions(page)
+      .getByRole("button", { name: "Acknowledge" })
+      .click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Acknowledge Incident",
+    });
+    await expect(dialog).toBeVisible();
+    // A confirm: no subscribers to ask about, and the private note folded.
+    await expect(dialog.getByRole("checkbox")).toHaveCount(0);
+    await expect(
+      dialog.getByRole("button", { name: "Add a public note" }),
+    ).toHaveCount(0);
+    const noteFold: Locator = dialog.getByRole("button", {
+      name: "Add a private note",
+    });
+    await expect(noteFold).toHaveAttribute("aria-expanded", "false");
+    expect((await dialog.boundingBox())!.width).toBeLessThanOrEqual(512);
+    await page.mouse.move(0, 0);
+    await screenshotElement(dialog, "incident-private-acknowledge-dialog");
+
+    await noteFold.click();
+    await expect(dialog).toContainText(
+      "Post a private note about this state change.",
+    );
+    await dialog.locator('[contenteditable="true"]').first().click();
+    await page.keyboard.type("Paged the database team.");
+    await dialog
+      .getByTestId("modal-footer")
+      .getByRole("button", { name: "Acknowledge", exact: true })
+      .click();
+    await expect(dialog).toHaveCount(0);
+
+    const creates: Array<RecordedWrite> = (await fixture(page)).creates.filter(
+      (write: RecordedWrite): boolean => {
+        return write.modelName === "IncidentStateTimeline";
+      },
+    );
+    expect(creates).toHaveLength(1);
+    // A private note, never a public one, and nobody notified.
+    expect(String(creates[0]?.miscDataProps?.["privateNote"])).toContain(
+      "Paged the database team.",
+    );
+    expect(creates[0]?.miscDataProps?.["publicNote"]).toBeUndefined();
+    expect(creates[0]?.data?.["shouldStatusPageSubscribersBeNotified"]).toBe(
+      false,
+    );
+    await expectNoErrorStates(page);
+  });
+
+  test("Resolve on an incident that is not private still asks about subscribers and folds a public note", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "state=ongoing");
+
+    await page.locator("#incident-resolve-btn").click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Resolve Incident",
+    });
+    await expect(
+      dialog.getByRole("checkbox", { name: "Notify Status Page Subscribers" }),
+    ).toBeChecked();
+    await expect(
+      dialog.getByRole("button", { name: "Add a public note" }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Add a private note" }),
+    ).toHaveCount(0);
+  });
+
+  test("the private incident's feed locks Add Public Note with why, and Add Private Note opens the private composer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "private=1");
+
+    const menu: Locator = await openFeedActions(page, INCIDENT_PAGE.feed);
+    const addPublic: Locator = menu.getByRole("menuitem", {
+      name: "Add Public Note",
+      exact: true,
+    });
+    await expect(addPublic).toHaveAttribute("aria-disabled", "true");
+    await expect(addPublic).toHaveAccessibleDescription(
+      PRIVATE_INCIDENT_REFUSAL,
+    );
+
+    // Hovered, it says why; pressed, it opens nothing.
+    await addPublic.hover();
+    await expect(tooltipSaying(page, PRIVATE_INCIDENT_REFUSAL)).toBeVisible();
+    await addPublic.click({ force: true });
+    await expect(
+      page.getByRole("dialog", { name: "Add Public Note" }),
+    ).toHaveCount(0);
+
+    if (!(await menu.isVisible())) {
+      await openFeedActions(page, INCIDENT_PAGE.feed);
+    }
+    const addPrivate: Locator = page.getByRole("menuitem", {
+      name: "Add Private Note",
+      exact: true,
+    });
+    await expect(addPrivate).not.toHaveAttribute("aria-disabled", "true");
+    await addPrivate.click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Add Private Note",
+    });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByTestId("note-audience")).toContainText(
+      "Only your team can see this",
+    );
+    expect(
+      (await fixture(page)).creates.filter((write: RecordedWrite): boolean => {
+        return write.modelName === "IncidentPublicNote";
+      }),
+    ).toEqual([]);
+  });
+
+  test("the private episode's feed locks Add Public Note in the episode's words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_EPISODE_PAGE, "private=1");
+
+    const menu: Locator = await openFeedActions(
+      page,
+      INCIDENT_EPISODE_PAGE.feed,
+    );
+    const addPublic: Locator = menu.getByRole("menuitem", {
+      name: "Add Public Note",
+      exact: true,
+    });
+    await expect(addPublic).toHaveAttribute("aria-disabled", "true");
+    await expect(addPublic).toHaveAccessibleDescription(
+      PRIVATE_EPISODE_REFUSAL,
+    );
+    await expect(
+      menu.getByRole("menuitem", { name: "Add Private Note", exact: true }),
+    ).not.toHaveAttribute("aria-disabled", "true");
+  });
+
+  test("an incident that is not private offers Add Public Note as always", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const menu: Locator = await openFeedActions(page, INCIDENT_PAGE.feed);
+    await expect(
+      menu.getByRole("menuitem", { name: "Add Public Note", exact: true }),
+    ).not.toHaveAttribute("aria-disabled", "true");
+  });
+
+  test("screenshots of the private incident's locked Add Public Note", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "private=1");
+
+    const menu: Locator = await openFeedActions(page, INCIDENT_PAGE.feed);
+    await menu
+      .getByRole("menuitem", { name: "Add Public Note", exact: true })
+      .hover();
+    const tooltip: Locator = tooltipSaying(page, PRIVATE_INCIDENT_REFUSAL);
+    await expect(tooltip).toBeVisible();
+
+    // The Actions button, its menu and the tooltip beside it, in one shot.
+    const boxes: Array<Box> = [
+      await documentBox(
+        card(page, INCIDENT_PAGE.feed).getByTestId("feed-actions-button"),
+      ),
+      await documentBox(menu),
+      await documentBox(tooltip),
+    ];
+    const left: number = Math.min(
+      ...boxes.map((box: Box): number => {
+        return box.x;
+      }),
+    );
+    const top: number = Math.min(
+      ...boxes.map((box: Box): number => {
+        return box.y;
+      }),
+    );
+    const right: number = Math.max(
+      ...boxes.map((box: Box): number => {
+        return box.x + box.width;
+      }),
+    );
+    const bottom: number = Math.max(
+      ...boxes.map((box: Box): number => {
+        return box.y + box.height;
+      }),
+    );
+    await fs.mkdir(SCREENSHOTS, { recursive: true });
+    await page.screenshot({
+      path: path.join(
+        SCREENSHOTS,
+        "incident-private-feed-add-public-note-locked-synthetic.png",
+      ),
+      fullPage: true,
+      clip: {
+        x: Math.max(0, left - 16),
+        y: Math.max(0, top - 16),
+        width: right - left + 32,
+        height: bottom - top + 32,
+      },
     });
   });
 });

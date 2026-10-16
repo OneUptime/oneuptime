@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 29757,
-    "untranslated": 17228
+    "keys": 30069,
+    "untranslated": 17211
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -13,6 +13,7 @@
     "Gateway",
     "Hardware",
     "In Huntress",
+    "Marketplace",
     "Offline",
     "Pattern {{number}}: {{problem}}",
     "Peer",

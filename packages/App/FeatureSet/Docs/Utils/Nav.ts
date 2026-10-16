@@ -153,6 +153,14 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/monitor-templates",
       },
       {
+        title: "Monitor Criteria & Statuses",
+        url: "/docs/monitor/criteria-and-statuses",
+      },
+      {
+        title: "Monitor Groups",
+        url: "/docs/monitor/monitor-groups",
+      },
+      {
         title: "Website Monitor",
         url: "/docs/monitor/website-monitor",
       },
@@ -427,6 +435,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Episodes",
         url: "/docs/incidents/episodes",
+      },
+      {
+        title: "Postmortems",
+        url: "/docs/incidents/postmortems",
       },
       {
         title: "Incident Settings & Automation",

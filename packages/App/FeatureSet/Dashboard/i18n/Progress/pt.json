@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 29757,
-    "untranslated": 17199
+    "keys": 30069,
+    "untranslated": 17181
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -15,6 +15,7 @@
     "Interface",
     "Interface {{index}}",
     "Interfaces",
+    "Marketplace",
     "Offline",
     "Runbook: {{name}}",
     "Runner",

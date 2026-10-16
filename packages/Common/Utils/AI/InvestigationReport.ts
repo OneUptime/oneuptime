@@ -17,6 +17,19 @@
 export const AI_ROOT_CAUSE_HEADING_TEXT: string =
   "AI — Automated Root Cause Analysis";
 
+/*
+ * How the runner's own first line of a follow-up check's report starts: the
+ * report OneUptime AI writes when it checks an incident again after an alert
+ * opened on its linked infrastructure ("**Checked again** after alert #12
+ * (High CPU on web-1) opened on Host web-1, 2 minutes after this incident was
+ * declared." - IncidentFollowUpCheck.buildReportLead). The server puts it
+ * right under the brand heading, before the model's analysis.
+ */
+export const FOLLOW_UP_REPORT_LEAD_PREFIX: string = "**Checked again**";
+
+// A lead is one short paragraph; anything longer is the model's own text.
+const MAX_FOLLOW_UP_LEAD_LENGTH: number = 1000;
+
 export enum InvestigationReportSectionKind {
   Summary = "Summary",
   RootCause = "RootCause",
@@ -87,6 +100,14 @@ export interface ParsedInvestigationReport {
    */
   preamble: string;
   /*
+   * The runner's first line on a follow-up check's report, as written
+   * ("**Checked again** after alert #12 ..."): the paragraph straight under
+   * the brand heading when it starts with FOLLOW_UP_REPORT_LEAD_PREFIX. It
+   * says why the report was written, so it is never part of the preamble,
+   * the sections or bodyMarkdown. Undefined on every other report.
+   */
+  followUpLead?: string | undefined;
+  /*
    * Recognised sections with a non-empty body, in document order. The
    * Evidence checked block and the footer are NOT included.
    */
@@ -103,8 +124,8 @@ export interface ParsedInvestigationReport {
   evidenceChecked: Array<InvestigationEvidenceCheckedEntry>;
   footer?: InvestigationReportFooter | undefined;
   /*
-   * The whole report with the brand heading, the Evidence checked block and
-   * the footer removed.
+   * The whole report with the brand heading, a follow-up check's lead, the
+   * Evidence checked block and the footer removed.
    */
   bodyMarkdown: string;
 }
@@ -1279,10 +1300,62 @@ function isServerEvidenceCheckedBlock(
   );
 }
 
+/*
+ * The follow-up lead in lines [from, to), when the first non-blank line
+ * there starts one: that paragraph, which is marked as no longer kept, as
+ * written. Undefined (and nothing marked) otherwise.
+ */
+function takeFollowUpLead(data: {
+  lines: Array<string>;
+  fenced: Array<boolean>;
+  kept: Array<boolean>;
+  from: number;
+  to: number;
+}): string | undefined {
+  let start: number = data.from;
+
+  while (start < data.to && (data.lines[start] || "").trim() === "") {
+    start++;
+  }
+
+  if (
+    start >= data.to ||
+    data.fenced[start] ||
+    !(data.lines[start] || "")
+      .trimStart()
+      .startsWith(FOLLOW_UP_REPORT_LEAD_PREFIX)
+  ) {
+    return undefined;
+  }
+
+  let end: number = start;
+
+  while (
+    end < data.to &&
+    !data.fenced[end] &&
+    (data.lines[end] || "").trim() !== ""
+  ) {
+    end++;
+  }
+
+  const lead: string = data.lines.slice(start, end).join("\n").trim();
+
+  if (lead.length > MAX_FOLLOW_UP_LEAD_LENGTH) {
+    return undefined;
+  }
+
+  for (let index: number = start; index < end; index++) {
+    data.kept[index] = false;
+  }
+
+  return lead;
+}
+
 function createEmptyReport(): ParsedInvestigationReport {
   return {
     isStructured: false,
     preamble: "",
+    followUpLead: undefined,
     sections: [],
     summary: undefined,
     rootCause: undefined,
@@ -1576,11 +1649,12 @@ export function parseInvestigationReport(
     return line.trim() !== "";
   });
 
-  if (
+  const hasBrandHeading: boolean =
     firstContentIndex >= 0 &&
     !fenced[firstContentIndex] &&
-    isBrandHeading(lines[firstContentIndex] || "")
-  ) {
+    isBrandHeading(lines[firstContentIndex] || "");
+
+  if (hasBrandHeading) {
     kept[firstContentIndex] = false;
   }
 
@@ -1589,6 +1663,21 @@ export function parseInvestigationReport(
   const contentEnd: number = footerMatch
     ? footerMatch.breakIndex
     : lines.length;
+
+  /*
+   * 2b. A follow-up check's lead: the paragraph straight under the brand
+   * heading, where the server writes it, when it starts with the lead's
+   * prefix. Anywhere else the words are the model's and stay content.
+   */
+  const followUpLead: string | undefined = hasBrandHeading
+    ? takeFollowUpLead({
+        lines,
+        fenced,
+        kept,
+        from: firstContentIndex + 1,
+        to: contentEnd,
+      })
+    : undefined;
 
   for (let index: number = contentEnd; index < lines.length; index++) {
     kept[index] = false;
@@ -1714,6 +1803,7 @@ export function parseInvestigationReport(
   return {
     isStructured: summary !== undefined || rootCause !== undefined,
     preamble,
+    followUpLead,
     sections,
     summary,
     rootCause,

@@ -116,7 +116,7 @@ Les codes de statut sont normalisés vers leur nom EPP (`clientTransferProhibite
 
 Les dates sont normalisées en ISO 8601. Une date qu'un registre publie sous une forme impossible à analyser est omise plutôt qu'enregistrée, donc un critère d'expiration ne peut pas trancher, et ne correspond pas, au lieu de répondre en silence « non expiré » pour toujours.
 
-Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** doivent correspondre ou si **Tout** filtre suffit. Les **Actions** d'un critère décident de ce qu'il fait : changer l'état du moniteur, créer une alerte, déclarer un incident, ou plusieurs de ces actions.
+Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** doivent correspondre ou si **Au moins un** suffit. Les **Actions** d'un critère décident de ce qu'il fait : changer l'état du moniteur, créer une alerte, déclarer un incident, ou plusieurs de ces actions.
 
 ### Critères par défaut
 

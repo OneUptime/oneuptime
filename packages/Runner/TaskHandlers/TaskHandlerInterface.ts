@@ -49,6 +49,13 @@ export interface TaskContext {
 
   // Task timestamps
   startedAt: Date;
+
+  /*
+   * The records of pull requests the task opened but could not record
+   * (recordOpenedPullRequest). They go with the task's Completed status, and
+   * the server records them then.
+   */
+  unrecordedPullRequests?: Array<RecordPullRequestOptions> | undefined;
 }
 
 // Result returned by task handlers
@@ -153,8 +160,12 @@ export abstract class BaseTaskHandler implements TaskHandler {
    *
    * A failure is logged, never thrown. The pull request exists on GitHub by
    * now, and failing the task over the bookkeeping told the person who asked
-   * that the run had failed while its pull request sat open. Losing the
-   * record costs the run's link to the pull request, which the log keeps.
+   * that the run had failed while its pull request sat open.
+   *
+   * The record is kept on the context instead, and goes with the task's
+   * Completed status for the server to record then. Without a record the
+   * open-PR cap never counts the pull request, the PR state sync never
+   * tracks it, and the run's pages never list it.
    */
   protected async recordOpenedPullRequest(
     context: TaskContext,
@@ -166,9 +177,15 @@ export abstract class BaseTaskHandler implements TaskHandler {
       const errorMessage: string =
         error instanceof Error ? error.message : String(error);
 
+      if (!context.unrecordedPullRequests) {
+        context.unrecordedPullRequests = [];
+      }
+
+      context.unrecordedPullRequests.push(options);
+
       await this.log(
         context,
-        `Opened ${options.pullRequestUrl} but could not record it: ${errorMessage}`,
+        `Opened ${options.pullRequestUrl} but could not record it: ${errorMessage} — keeping it for the run's Completed report`,
         "error",
       );
     }

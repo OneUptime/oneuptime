@@ -358,6 +358,7 @@ describe("the facet sidebar while there is nothing to list", () => {
   }): ReactElement {
     return (
       <TelemetryFacetSidebar
+        onRemoveFilter={() => {}}
         facetData={props.facetData}
         facetConfigs={CONFIGS}
         isLoading={props.isLoading}

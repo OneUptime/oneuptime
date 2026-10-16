@@ -174,6 +174,7 @@ describe("the shared sidebar, scoped", () => {
   ): ReactElement {
     return (
       <TelemetryFacetSidebar
+        onRemoveFilter={() => {}}
         facetData={facetData}
         facetConfigs={configs()}
         isLoading={false}
@@ -278,6 +279,7 @@ describe("the logs sidebar, scoped", () => {
   ): ReactElement {
     return (
       <LogsFacetSidebar
+        onRemoveFilter={() => {}}
         facetData={DATABASE_TAB_FACETS}
         isLoading={false}
         serviceMap={{}}

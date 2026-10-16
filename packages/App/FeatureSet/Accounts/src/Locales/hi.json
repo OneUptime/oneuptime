@@ -51,6 +51,7 @@
     "submitButton": "लॉगिन",
     "forgotPassword": "पासवर्ड भूल गए?",
     "useSso": "इसके बजाय एकल साइन-ऑन (SSO) का उपयोग करें",
+    "signInWithMicrosoft": "Microsoft से साइन इन करें",
     "noAccountPrompt": "खाता नहीं है?",
     "registerLink": "पंजीकरण करें।",
     "twoFactor": {
@@ -121,7 +122,8 @@
     "verifyEmailOpensInNewTab": "(नए टैब में खुलता है)",
     "verifyEmailAlreadyVerifiedPrompt": "क्या आपने अपना ईमेल पहले ही सत्यापित कर लिया है?",
     "verifyEmailWrongAddressPrompt": "ईमेल पता गलत है?",
-    "verifyEmailUseDifferentEmail": "किसी दूसरे ईमेल से साइन अप करें"
+    "verifyEmailUseDifferentEmail": "किसी दूसरे ईमेल से साइन अप करें",
+    "signUpWithMicrosoft": "Microsoft से साइन अप करें"
   },
   "forgotPassword": {
     "title": "पासवर्ड भूल गए",
@@ -257,6 +259,42 @@
       "server_error": "हमारी ओर से कुछ गड़बड़ी हुई। कृपया कुछ मिनट बाद फिर से कोशिश करें।",
       "framed": "आपकी सुरक्षा के लिए, इस पृष्ठ का उपयोग किसी दूसरे पृष्ठ के अंदर नहीं किया जा सकता। इसे ब्राउज़र के अलग टैब या विंडो में खोलें।"
     }
+  },
+  "marketplacePurchase": {
+    "title": "अपनी खरीद सेट अप करें",
+    "subtitle": "आपने {{marketplace}} पर OneUptime खरीदा है। वह प्रोजेक्ट चुनें जिसका भुगतान इस खरीद से होगा।",
+    "boughtOnLabel": "खरीद का माध्यम",
+    "buyerLabel": "खरीदार",
+    "marketplacePlanLabel": "मार्केटप्लेस प्लान",
+    "signedInAs": "{{email}} के रूप में साइन इन हैं",
+    "freeTrial": "यह खरीद {{marketplace}} पर मुफ्त परीक्षण अवधि में है।",
+    "choiceLabel": "इस खरीद से किस प्रोजेक्ट का भुगतान होना चाहिए?",
+    "createProjectOption": "नया प्रोजेक्ट बनाएं",
+    "projectNameLabel": "प्रोजेक्ट का नाम",
+    "projectNamePlaceholder": "मेरा प्रोजेक्ट",
+    "planLabel": "OneUptime प्लान",
+    "planOption": "{{name}} – {{price}} प्रति उपयोगकर्ता / माह",
+    "planOptionFree": "{{name}} – मुफ्त",
+    "existingProjectOption": "मेरे किसी प्रोजेक्ट का उपयोग करें",
+    "projectLabel": "प्रोजेक्ट",
+    "projectPlaceholder": "कोई प्रोजेक्ट चुनें",
+    "existingProjectHelp": "अब से, इसके प्लान और उपयोग का बिल कार्ड के बजाय {{marketplace}} के ज़रिए बनेगा।",
+    "projectRefusal": {
+      "not_billing_manager": "{{name}} – केवल इसके स्वामी ही बिलिंग का तरीका बदल सकते हैं",
+      "already_billed_by_marketplace": "{{name}} – पहले से किसी मार्केटप्लेस के ज़रिए बिल किया जा रहा है",
+      "bought_from_reseller": "{{name}} – रीसेलर द्वारा बिल किया जाता है"
+    },
+    "nothingToChoose": "आपका कोई भी प्रोजेक्ट यह खरीद नहीं ले सकता, और आप इस सर्वर पर प्रोजेक्ट नहीं बना सकते। जिस प्रोजेक्ट का भुगतान इस खरीद से होना चाहिए, उसके स्वामी से इसे सेट अप करने के लिए कहें।",
+    "billingNote": "आपके प्लान और उपयोग का बिल oneuptime.com/pricing पर दी गई कीमतों पर {{marketplace}} के ज़रिए बनता है। आप प्रोजेक्ट सेटिंग्स → बिलिंग में कभी भी अपना प्लान बदल सकते हैं।",
+    "submitButton": "खरीद सेट अप करें",
+    "notNowButton": "अभी नहीं",
+    "redirecting": "आपकी खरीद सेट अप हो गई है। आपको आपके प्रोजेक्ट पर ले जाया जा रहा है…",
+    "alreadySetUp": "यह {{marketplace}} खरीद पहले से आपके किसी प्रोजेक्ट के लिए सेट अप है।",
+    "openProject": "प्रोजेक्ट खोलें",
+    "cancelled": "यह खरीद {{marketplace}} पर रद्द कर दी गई है। जारी रखने के लिए {{marketplace}} पर OneUptime फिर से खरीदें।",
+    "errorTitle": "हम यह खरीद सेट अप नहीं कर सके",
+    "errorHelp": "जिस मार्केटप्लेस से आपने OneUptime खरीदा था, वहीं से इसे फिर से खोलें।",
+    "goToDashboard": "डैशबोर्ड पर जाएं"
   },
   "Use at least {{minimum}} characters.": "कम से कम {{minimum}} अक्षरों का उपयोग करें।",
   "Try a few unrelated words.": "कुछ ऐसे शब्द आज़माएँ जिनका आपस में संबंध न हो।",

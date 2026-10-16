@@ -25,30 +25,44 @@ import chalk from "chalk";
 import * as fs from "fs";
 import * as path from "path";
 
+export const CLI_PACKAGE_NAME: string = "@oneuptime/cli";
+
 /*
- * Resolve the CLI's package.json at runtime. The relative depth from
- * this file to package.json differs between dev (ts-node) and the
- * compiled build/dist output, so try both locations.
+ * The CLI's version, from its own package.json. This file runs from its
+ * TypeScript source (npm start, the tests) and, once installed, from the
+ * bundle at build/dist/Index.js (esbuild.config.js), which sit at different
+ * depths below package.json. So walk up from here to the first package.json
+ * that is the CLI's: one of another name (a project the CLI is installed
+ * into, a scope folder) is not the CLI's version.
  */
-export function readCliVersion(): string {
-  const candidates: Array<string> = [
-    path.join(__dirname, "..", "package.json"),
-    path.join(__dirname, "..", "..", "..", "package.json"),
-  ];
-  for (const candidate of candidates) {
+export function readCliVersion(startDirectory: string = __dirname): string {
+  let directory: string = path.resolve(startDirectory);
+
+  for (;;) {
     try {
-      const contents: string = fs.readFileSync(candidate, "utf-8");
-      const parsed: { version: string } = JSON.parse(contents) as {
-        version: string;
-      };
-      if (parsed.version) {
+      const parsed: { name?: unknown; version?: unknown } = JSON.parse(
+        fs.readFileSync(path.join(directory, "package.json"), "utf-8"),
+      ) as { name?: unknown; version?: unknown };
+
+      if (
+        parsed.name === CLI_PACKAGE_NAME &&
+        typeof parsed.version === "string" &&
+        parsed.version
+      ) {
         return parsed.version;
       }
     } catch {
-      // Try next candidate.
+      // No readable package.json here: keep walking up.
     }
+
+    const parent: string = path.dirname(directory);
+
+    if (parent === directory) {
+      return "1.0.0";
+    }
+
+    directory = parent;
   }
-  return "1.0.0";
 }
 
 export function registerUtilityCommands(program: Command): void {

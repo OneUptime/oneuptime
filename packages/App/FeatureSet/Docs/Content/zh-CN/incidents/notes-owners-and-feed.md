@@ -44,7 +44,7 @@ flowchart TB
 | 附件可被谁获取           | 状态页访问者，通过状态页路由                                        | 仅限经过身份验证的仪表板 API                                    |
 | 通知所有者               | 是                                                                  | 是                                                              |
 
-**“私密”的真正含义。** 它的意思是“不发布到状态页”——而不是“只限一小部分人”。能读取事件的内置角色可以读取两种备注，所以能读取事件的人通常也能读取它的私密备注；在自定义角色中，它们是两个独立的权限：**Read Incident Status Page Note** 和 **Read Incident Internal Note**。如果你需要限制谁能看到事件本身，请使用事件上的 **私密事件** 标志（`isPrivate`），它会让事件在所有状态页上隐藏，并将其限制为事件的所有者用户、所有者团队的成员，以及项目管理员和所有者。
+**“私密”的真正含义。** 它的意思是“不发布到状态页”——而不是“只限一小部分人”。能读取事件的内置角色可以读取两种备注，所以能读取事件的人通常也能读取它的私密备注；在自定义角色中，它们是两个独立的权限：**Read Incident Status Page Note** 和 **Read Incident Internal Note**。如果你需要限制谁能看到事件本身，请使用事件上的 **私密事件** 标志（`isPrivate`），它会让事件在所有状态页上隐藏，并将其限制为事件的所有者用户、所有者团队的成员，以及项目管理员和所有者。私密事件完全不能添加公开备注：参见[私密事件只能添加私密备注](#私密事件只能添加私密备注)。
 
 **所有者两种都能看到。** 通知所有者的任务会同时查询公开备注和私密备注。私密备注是对订阅者保密，而不是对响应人员保密。
 
@@ -86,7 +86,7 @@ flowchart TB
 | **Posted now**                     | 备注显示的发布时间：除非你在这里选择更早的时间，否则就是你发布的那一刻，按你当前的时区显示。                                                  |
 | **Notify status page subscribers** | 复选框。默认开启，除非事件在声明时没有通知订阅者——这时它以关闭状态开始。关闭它即可静默发布。                                                |
 
-**安静的事件保持安静。** 如果事件在声明时关闭了 **通知状态页订阅者**（或者是作为私密事件声明的），它的订阅者从未得知此事，所以公开备注不应该成为他们听到的第一条消息。在这样的事件上，复选框以关闭状态开始，下方有一行说明原因。你仍然可以勾选它，就这条备注通知订阅者。没有明确选择而发布的备注也遵循同样的规则：Slack 和 Microsoft Teams 中的备注、工作流，以及省略了 `shouldStatusPageSubscribersBeNotifiedOnNoteCreated` 的 API 请求。明确的 `true` 或 `false` 总会被保留。[计划维护事件](/docs/status-pages/subscribers#计划维护事件) 和 [事件片段](/docs/status-pages/subscribers#事件片段) 上的公开备注遵循类似的规则，依据的是该维护事件或片段在创建时是否通知了订阅者；把片段设为私密不会影响这一点。
+**安静的事件保持安静。** 如果事件在声明时关闭了 **通知状态页订阅者**（或者是作为私密事件声明的），它的订阅者从未得知此事，所以公开备注不应该成为他们听到的第一条消息。在这样的事件上，复选框以关闭状态开始，下方有一行说明原因。你仍然可以勾选它，就这条备注通知订阅者。没有明确选择而发布的备注也遵循同样的规则：Slack 和 Microsoft Teams 中的备注、工作流，以及省略了 `shouldStatusPageSubscribersBeNotifiedOnNoteCreated` 的 API 请求。明确的 `true` 或 `false` 总会被保留。[计划维护事件](/docs/status-pages/subscribers#计划维护事件) 和 [事件片段](/docs/status-pages/subscribers#事件片段) 上的公开备注遵循类似的规则，依据的是该维护事件或片段在创建时是否通知了订阅者。私密事件或片段完全不能添加公开备注。
 
 **查看备注将触达谁。** 当 **Notify status page subscribers** 处于勾选状态时，它下方的 **Will notify** 行会列出备注将发往的状态页，每个渠道附上“最多”订阅者数量，以及那些列出了事件监视器但不会得到通知的页面和原因。没有人会得到通知时它什么都不显示，除非事件在状态页上隐藏，或者原因是事件的状态页范围。它遵循事件的状态页范围，因此限定到两个站点页面的事件上的备注，会显示它将触达这两个页面。参见 [每个受众一个状态页](/docs/status-pages/one-status-page-per-audience)。
 
@@ -104,6 +104,17 @@ flowchart TB
 没有发布时间，没有订阅者复选框——备注在创建时打上时间戳。
 
 两种备注都在 Markdown 编辑器中撰写，它可以用 **增加缩进** 和 **减少缩进**——或 Tab 和 Shift+Tab——嵌套列表项，并保留你从 Word、Google Docs 或其他 OneUptime 页面粘贴内容中的列表、链接和格式。Ctrl+Z 会撤回缩进或减少缩进，在可视模式下还会按与你的输入一致的顺序撤回编辑器插入的块和粘贴。从备注中复制的代码块会粘贴回代码块，从中复制的一个词会粘贴为行内代码。参见 [声明事件](/docs/incidents/declaring-incidents#第-1-步事件详情)。
+
+## 私密事件只能添加私密备注
+
+私密事件不会出现在任何状态页上，也不会通知任何订阅者（参见[让事件不出现在状态页上](/docs/incidents/states-and-severities#让事件不出现在状态页上)），因此在它上面发布公开备注不会送达任何预期的读者。OneUptime 不提供公开备注：
+
+- **它的公开备注页面**在原先编辑器的位置显示“此事件为私密事件，因此无法添加公开备注。请使用私密备注。”，并提供一个打开其私密备注的 **添加私密注释** 按钮。信息流 **操作** 菜单中的 **Add Public Note** 被锁定，并给出相同的原因。
+- **更改它的状态时**，对话框在 **添加私密备注** 下折叠一条私密备注来代替公开备注，并且不询问订阅者。批量操作 **更改状态** 会把它的备注作为私密备注添加到它移动的每个私密事件上，并且不就这些事件通知任何人。
+- **在 Slack 和 Microsoft Teams 中**，对其频道中某条消息添加 📣 或 📢 会把该消息保存为私密备注，确认消息会说明原因。
+- **通过 API、工作流和 OneUptime AI**，为它添加公开备注会以同一句话被拒绝，随公开备注发送的状态更改会被整体拒绝，因此状态不会改变。SLA 规则的公开备注提醒会等到它再次公开；它的私密提醒照常发布。
+
+事件设为私密之前发布的公开备注会保留。你仍然可以阅读、编辑和删除它们，但不会提供通知订阅者的选项。把事件重新设为公开后，这些备注会再次出现在它的状态页上，也可以添加新的公开备注。事件片段的工作方式相同。
 
 ## 备注上的附件
 
@@ -153,7 +164,7 @@ flowchart TB
 
 ## 从 Slack 或 Microsoft Teams 发布备注
 
-如果你连接了工作区，响应人员永远不必离开频道。Slack 和 Microsoft Teams 都提供添加备注的操作，它会打开一个带有 **Note Type** 下拉列表——**Public Note**（发布到状态页）或 **Private Note**（仅团队成员可见）——和 **Note** 文本框的对话框，并把结果直接写到事件上。
+如果你连接了工作区，响应人员永远不必离开频道。Slack 和 Microsoft Teams 都提供添加备注的操作，它会打开一个带有 **Note Type** 下拉列表——**Public Note**（发布到状态页）或 **Private Note**（仅团队成员可见）——和 **Note** 文本框的对话框，并把结果直接写到事件上。在私密事件上，它不会询问 **Note Type**，而是添加一条私密备注：参见[私密事件只能添加私密备注](#私密事件只能添加私密备注)。
 
 值得了解的三个细节：
 
@@ -259,7 +270,7 @@ flowchart TB
 
 - **事件本身** —— `IncidentCreated`、`IncidentUpdated`、`IncidentStateChanged`。`IncidentUpdated` 条目记录一次编辑改变了什么：标题、描述、根本原因、补救备注、标签、严重性、监视器及为其设置的状态，以及加入或移出事件范围的状态页。每个改变了的值都有一行，按原样保存的值则没有，所以保存一张什么都没改的卡片，或者 API 客户端或工作流把事件按原样写回，根本不会添加条目。读起来相同的文本就视为相同（行尾和前后空格除外），标签只要是同一组就视为相同，与顺序无关；被清空的值显示为已移除，移除所有标签显示为“All labels removed.”。告警的 **Alert updated** 条目也是同样的工作方式。
 - **备注和文档** —— `PublicNote`、`PrivateNote`、`RootCause`、`RemediationNotes`、`PostmortemNote`。`PostmortemNote` 条目在事后分析的备注发生变化时写入，而不是每次保存事后分析时都写入。
-- **人员** —— `OwnerUserAdded`、`OwnerTeamAdded`、`OwnerUserRemoved`、`OwnerTeamRemoved`、`IncidentMemberAdded`、`IncidentMemberRemoved`。
+- **人员** —— `OwnerUserAdded`、`OwnerTeamAdded`、`OwnerUserRemoved`、`OwnerTeamRemoved`、`IncidentMemberAdded`、`IncidentMemberRemoved`，以及 `ChannelMemberAdded`，显示为 **已添加频道成员**，表示有人从事件页面被添加到事件的 Slack 频道。参见 [记录频道中的成员](/docs/workspace-connections/slack#记录频道中的成员)。
 - **关联的告警** —— `AlertLinked` 和 `AlertUnlinked`，显示为 **警报已关联** 和 **警报已取消关联**。
 - **通知** —— `OwnerNotificationSent`、`SubscriberNotificationSent`、`OnCallPolicy`、`OnCallNotification`。
 - **自动化** —— `LabelRuleExecuted`、`OwnerRuleExecuted`、`PrivacyRuleExecuted`、`OnCallRuleExecuted`、`AutoRemediation`。

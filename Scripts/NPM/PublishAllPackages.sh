@@ -56,10 +56,14 @@ publish_to_npm() {
         # exits 1 with "Version not changed" and aborts the publish step.
         npm version --allow-same-version "$package_version"
 
-        # Replace any Common dependency with the pinned version being published
-        sed -i "s/\"Common\": \"file:..\/Common\"/\"Common\": \"npm:@oneuptime\/common@$package_version\"/g" package.json
-        sed -i "s/\"Common\": \"npm:@oneuptime\/common@latest\"/\"Common\": \"npm:@oneuptime\/common@$package_version\"/g" package.json
-
+        # No package published here needs Common when it runs (#4872). The
+        # CLI bundles the Common code it uses when npm packs it (its prepack
+        # script, packages/CLI/esbuild.config.js), so its lockfile's link to
+        # ../Common stays as it is: the bundle is built from this checkout's
+        # Common and its locked dependencies, the code CI tested. This used
+        # to rewrite that link to npm:@oneuptime/common@<version>, which
+        # swapped in a registry copy with freshly resolved dependencies and
+        # published a CLI that needed @oneuptime/common to run.
         npm install
         npm run compile
         npm publish --access public
@@ -67,11 +71,13 @@ publish_to_npm() {
 }
 
 
-# Publish Common first - other packages depend on it
+# Publish Common first, in the order the release has always published.
 publish_to_npm "packages/Common"
 
-# Wait for @oneuptime/common to be readable from the registry, because the
-# packages below install against it by version.
+# Wait for @oneuptime/common to be readable from the registry before the
+# packages below are published. They no longer install it (since #4872 the
+# CLI bundles ../Common, and the React Native recorder never used it), so
+# this wait now only keeps the order the release has always published in.
 #
 # `--prefer-online` is load-bearing, not belt and braces. registry.npmjs.org
 # serves packuments with max-age=300, and npm answers from its own cache
@@ -132,7 +138,8 @@ echo "@oneuptime/common@$package_version is now available on npm"
 # lockfiles pin node_modules/Common as a link to ../Common, and npm keeps that
 # link, so tsc follows the symlink and type-checks packages/Common's real
 # sources — which import typeorm, react, axios and zod. Those resolve only if
-# packages/Common/node_modules is populated.
+# packages/Common/node_modules is populated. The CLI's bundle is built from
+# the same sources and the same node_modules.
 #
 # publish_to_npm populates it as a side effect of publishing, but it returns
 # early when the version is already on npm, which is exactly the case when a

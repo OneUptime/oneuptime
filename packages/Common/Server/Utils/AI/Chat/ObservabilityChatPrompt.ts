@@ -131,10 +131,21 @@ function buildResourceContextGuidance(context: AIChatPageContext): string {
         ? ` For this device's transceivers (SFP, SFP+, QSFP optics) - still detected or not, readings against the device's thresholds, received power over the last weeks - call query_network_transceivers with networkDeviceId="${context.entityId}".`
         : " For a device's transceivers (SFP, SFP+, QSFP optics) call query_network_transceivers with its networkDeviceId."
       : "";
+  /*
+   * A container host's containers have a tool of their own: the busiest,
+   * and the ones that stopped reporting, which host-wide numbers hide.
+   */
+  const containerGuidance: string =
+    context.resourceType === AIResourceType.DockerHost ||
+    context.resourceType === AIResourceType.PodmanHost
+      ? context.entityId
+        ? ` For this host's containers - the busiest by CPU, memory or restarts, and the ones that stopped reporting - call query_containers with ${resourceArgs}.`
+        : " For a host's containers - the busiest, and the ones that stopped reporting - call query_containers with its resourceType and resourceId."
+      : "";
   const childGuidance: string = context.subresource
     ? ` The selected child or collection is ${JSON.stringify(context.subresource)}. Child names are UI hints, not verified unique identities: Kubernetes names may exist in multiple namespaces, container names may be reused and process IDs may be recycled. Do not invent a namespace or child ID. The resource telemetry tool returns the parent resource's data; explicitly state that scope and never describe it as child-only measurements. If the question needs child-specific evidence that the tools cannot retrieve, explain that limitation.`
     : "";
-  return `${subject}. Discover accessible resources and their reported connection state with query_telemetry_resources using ${resourceArgs}. For each selected resource, query_resource_telemetry takes resourceType and resourceId plus signal="metrics", "logs" or "traces". For metrics, omit metricName first to discover metric names within that resource, then pass an observed name and mode="trend" for a chart or mode="summary" for a range aggregate. Logs return a severity histogram; traces return operation summaries. Use explicit time windows and cite measured results. These tools resolve resource membership and attribute filters from accessible records; passing a cluster or host UUID to legacy entityId/serviceId filters alone can miss telemetry whose primary entity is a service. Connection state is not workload health, and missing telemetry does not mean the resource is healthy. State coverage and missing data, and distinguish observed changes from established anomalies or root causes.${transceiverGuidance}${childGuidance}`;
+  return `${subject}. Discover accessible resources and their reported connection state with query_telemetry_resources using ${resourceArgs}. For each selected resource, query_resource_telemetry takes resourceType and resourceId plus signal="metrics", "logs" or "traces". For metrics, omit metricName first to discover metric names within that resource, then pass an observed name and mode="trend" for a chart or mode="summary" for a range aggregate; attributes filters a metric by attribute and groupBy reads one series per value (host metrics split by state, such as system.cpu.utilization, are read per state on their own). Logs return a severity histogram; traces return operation summaries. Use explicit time windows and cite measured results. These tools resolve resource membership and attribute filters from accessible records; passing a cluster or host UUID to legacy entityId/serviceId filters alone can miss telemetry whose primary entity is a service. Connection state is not workload health, and missing telemetry does not mean the resource is healthy. State coverage and missing data, and distinguish observed changes from established anomalies or root causes.${transceiverGuidance}${containerGuidance}${childGuidance}`;
 }
 
 export function buildPageContextSection(
@@ -192,6 +203,7 @@ ${buildActionGuidance(data.permissionMode)}
 
 - Resolve names first: use lookup_context to turn a service name into its ID before filtering other tools by service, and to discover metric names.
 - For infrastructure (hosts, Docker, Podman, Kubernetes, Docker Swarm, Proxmox, VMware, Ceph, storage arrays, serverless, cloud, IoT and network devices), discover resources with query_telemetry_resources and use query_resource_telemetry for their scoped metric trends, log severity and trace operations. Follow the tool's stated scope rather than assuming an infrastructure UUID is always the primary entity of its telemetry.
+- Host metrics such as system.cpu.utilization and system.memory.utilization are reported once per state, and the states add up to 1, so one average across them means nothing: read them per state (the metric tools do it on their own, or pass groupBy or attributes). For a Docker or Podman host's containers - the busiest, and the ones that stopped reporting, which host-wide numbers hide - use query_containers.
 - For a network device's transceivers (SFP, SFP+, QSFP optics) - whether each is still detected, its readings against the device's own thresholds and its received power over the last weeks - use query_network_transceivers. Check it whenever a network device's interface is down or logging errors: a missing optic, a receiver gone dark or received power falling for weeks each point at a different fix.
 - For Real User Monitoring, resolve applications with query_rum_applications and compare measured web vitals with query_rum_web_vitals. Use returned metric names with query_metrics to chart trends. Explain observed changes, missing data and the time windows used; do not call a change an anomaly without supporting evidence.
 - Prefer aggregations (query_traces, log_histogram, query_metrics, top_exceptions, security_event_summary) to establish the shape of a problem, then drill into raw data (search_logs, get_trace, search_security_events) for evidence.

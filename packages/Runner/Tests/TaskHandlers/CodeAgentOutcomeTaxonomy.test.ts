@@ -458,4 +458,57 @@ describe.each(HANDLERS)("$label", (handlerCase: HandlerCase) => {
       }),
     ).toBe(true);
   });
+
+  /*
+   * REGRESSION. Logging the URL was all an exception or incident run kept of
+   * a pull request it could not record: the open-PR cap never counted it and
+   * the PR state sync never tracked it. The record now stays on the task's
+   * context and goes with its Completed status, for the server to make.
+   */
+  test("keeps the record it could not make for the run's status report", async () => {
+    stubPipeline({
+      agentResult: {
+        success: true,
+        filesModified: ["src/checkout.ts"],
+        summary: "Fixed.",
+        logs: [],
+        exitCode: 0,
+      },
+    });
+
+    const backendAPI: BackendAPI = buildBackendAPI();
+    const recordPullRequest: jest.Mock =
+      backendAPI.recordPullRequest as unknown as jest.Mock;
+    recordPullRequest.mockRejectedValue(
+      new Error("Failed to record pull request"),
+    );
+
+    const context: TaskContext = buildContext(backendAPI);
+    await build().handler.execute(context);
+
+    expect(recordPullRequest).toHaveBeenCalledTimes(1);
+    expect(context.unrecordedPullRequests).toEqual([
+      recordPullRequest.mock.calls[0]?.[0],
+    ]);
+    expect(context.unrecordedPullRequests?.[0]?.pullRequestUrl).toBe(
+      "https://github.com/acme/checkout/pull/7",
+    );
+  });
+
+  test("keeps nothing when the pull request was recorded", async () => {
+    stubPipeline({
+      agentResult: {
+        success: true,
+        filesModified: ["src/checkout.ts"],
+        summary: "Fixed.",
+        logs: [],
+        exitCode: 0,
+      },
+    });
+
+    const context: TaskContext = buildContext(buildBackendAPI());
+    await build().handler.execute(context);
+
+    expect(context.unrecordedPullRequests || []).toEqual([]);
+  });
 });

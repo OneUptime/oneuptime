@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubPrivateRecords } from "../../TestingUtils/PrivateRecords";
 import type { TurnContext } from "botbuilder";
 import type { SpyInstance } from "jest-mock";
 import Alert from "../../../../Models/DatabaseModels/Alert";
@@ -1345,6 +1346,16 @@ function noteActionType(kind: TeamsKind): string {
       return MicrosoftTeamsIncidentEpisodeActionType.SubmitIncidentEpisodeNote;
   }
 }
+
+/*
+ * A public note asked for in a chat - a 📣, an Add Note form - first asks
+ * whether its incident or episode is private, which takes no public notes
+ * (WorkspaceReactionNote.getNoteTypeSavedAs, WorkspaceNoteForm): none of
+ * these is.
+ */
+beforeEach((): void => {
+  stubPrivateRecords();
+});
 
 describe("Microsoft Teams scheduled maintenance card actions", (): void => {
   const request: MicrosoftTeamsRequest = {

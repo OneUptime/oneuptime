@@ -81,7 +81,7 @@ En åtgärdsuppgift behöver tre saker. Undantagets sida **AI Assistance** kontr
 | Vad | OneUptime Cloud | Självhostad |
 | --- | --- | --- |
 | En LLM-leverantör | Inget att ställa in: ett projekt utan egen leverantör använder den globala leverantören, betald med projektets AI-krediter. En egen leverantör, under **Projektinställningar → AI → LLM-leverantörer**, går först. | Sätt miljövariablerna `GLOBAL_LLM_PROVIDER_*` en gång på servern, eller lägg till en leverantör i projektet. |
-| Ett repository anslutet via GitHub App | **Produkter → Kod → Uppgifter**, sedan **Kodrepositorier** och **Connect with GitHub App**. Kräver Growth-planen. | Samma sak, när din instans har en GitHub App (se [GitHub-integration](/docs/self-hosted/github-integration)). |
+| Ett repository anslutet via GitHub App | **Produkter → Kod → Uppgifter**, sedan **Kodrepositorier** och **Connect with GitHub App**. Om appen redan är installerad på GitHub-kontot klickar du i stället på **Anslut en befintlig installation**: den ansluts inte av att installera den igen. Kräver Growth-planen. | Samma sak, när din instans har en GitHub App (se [GitHub-integration](/docs/self-hosted/github-integration)). |
 | En Runner som kör AI-kodfixar | Inget att drifta: OneUptimes delade Runners gör det. | Docker Compose-tjänsten `runner`, eller Helm-chartets Runner (`runner.enabled`, påslagen som standard), registrerar sig själv och kör AI-kodfixar. |
 
 På en självhostad instans är den globala leverantören ett block i `config.env` (Docker Compose) eller i dina Helm-värden. För en självhostad Ollama:

@@ -6,7 +6,10 @@ Command-line interface for managing OneUptime resources. Supports every MCP-enab
 
 ```bash
 npm install -g @oneuptime/cli
+oneuptime --version
 ```
+
+The CLI needs Node.js 22 or later. It has no dependencies, so npm installs it without fetching other packages or building anything.
 
 Or run directly within the monorepo:
 
@@ -224,6 +227,8 @@ npm install
 npm start -- --help     # Run via ts-node
 npm test                # Run tests
 npm run compile         # Type-check
+npm run build           # Bundle into build/dist/Index.js, the file npm publishes
+npm run smoke-test      # Pack, install as a customer does, and run it
 ```
 
 ## License

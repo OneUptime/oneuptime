@@ -15,6 +15,12 @@ import IncidentEpisodeInternalNoteService from "../../../Server/Services/Inciden
 import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeService";
 import IncidentEpisodeStateTimelineService from "../../../Server/Services/IncidentEpisodeStateTimelineService";
 import IncidentStateService from "../../../Server/Services/IncidentStateService";
+import IncidentAlertService from "../../../Server/Services/IncidentAlertService";
+import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
+import IncidentInternalNoteService from "../../../Server/Services/IncidentInternalNoteService";
+import IncidentMeasurementValueService from "../../../Server/Services/IncidentMeasurementValueService";
+import IncidentService from "../../../Server/Services/IncidentService";
+import IncidentStateTimelineService from "../../../Server/Services/IncidentStateTimelineService";
 import UserService from "../../../Server/Services/UserService";
 import StateChangeNote, {
   StateChangeNoteType,
@@ -29,6 +35,8 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import IncidentEpisodeInternalNote from "../../../Models/DatabaseModels/IncidentEpisodeInternalNote";
 import IncidentEpisodeStateTimeline from "../../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
+import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInternalNote";
+import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import URL from "../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
@@ -395,10 +403,127 @@ const INCIDENT_EPISODE_CASE: TimelineCase = {
   },
 };
 
+/*
+ * An incident's state change can carry a private note too: a private
+ * incident takes no public notes (Types/StatusPage/PrivateRecordPublicNotes),
+ * so its state change dialog - and the Change State bulk action, for the
+ * private incidents it moves - sends `privateNote` in place of the public
+ * one. Held to the same rule as every other private note.
+ */
+const INCIDENT_CASE: TimelineCase = {
+  event: "an incident",
+  timelineService:
+    IncidentStateTimelineService as unknown as DatabaseService<BaseModel>,
+  noteService:
+    IncidentInternalNoteService as unknown as DatabaseService<BaseModel>,
+  noteModelType: IncidentInternalNote,
+  eventColumn: "incidentId",
+  noteRefusal:
+    "You do not have permissions to create Incident Internal Note. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident Internal Note.",
+  buildStateChange: (): BaseModel => {
+    const timeline: IncidentStateTimeline = new IncidentStateTimeline();
+    timeline.projectId = PROJECT_ID;
+    timeline.incidentId = EVENT_ID;
+    timeline.incidentStateId = STATE_ID;
+    timeline.startsAt = STARTS_AT;
+    return timeline;
+  },
+  previousState: {
+    _id: PREVIOUS_TIMELINE_ID.toString(),
+    projectId: PROJECT_ID.toString(),
+    incidentId: EVENT_ID.toString(),
+    incidentStateId: CREATED_STATE_ID.toString(),
+    startsAt: CREATED_AT,
+  },
+  rolesThatMayPost: [
+    { role: "Project Owner", allow: [Permission.ProjectOwner] },
+    { role: "Project Admin", allow: [Permission.ProjectAdmin] },
+    { role: "Project Member", allow: [Permission.ProjectMember] },
+    { role: "Incident Admin", allow: [Permission.IncidentAdmin] },
+    { role: "Incident Member", allow: [Permission.IncidentMember] },
+    {
+      role: "Read Incident, Create Incident State Timeline and Create Incident Internal Note",
+      allow: [
+        Permission.ReadProjectIncident,
+        Permission.CreateIncidentStateTimeline,
+        Permission.CreateIncidentInternalNote,
+      ],
+    },
+  ],
+  rolesThatMayNot: [
+    {
+      role: "Read Incident and Create Incident State Timeline only",
+      allow: [
+        Permission.ReadProjectIncident,
+        Permission.CreateIncidentStateTimeline,
+      ],
+    },
+    {
+      role: "Incident Member, with Create Incident Internal Note blocked",
+      allow: [Permission.IncidentMember],
+      block: [Permission.CreateIncidentInternalNote],
+    },
+  ],
+  stubSideEffects: (): void => {
+    const acknowledged: IncidentState = new IncidentState();
+    acknowledged._id = STATE_ID.toString();
+    acknowledged.name = "Acknowledged";
+    acknowledged.isAcknowledgedState = true;
+    acknowledged.isResolvedState = false;
+    acknowledged.isCreatedState = false;
+
+    getJestSpyOn(IncidentStateService, "findOneById").mockResolvedValue(
+      acknowledged,
+    );
+    getJestSpyOn(IncidentStateService, "findOneBy").mockResolvedValue(
+      acknowledged,
+    );
+    getJestSpyOn(IncidentService, "updateOneBy").mockResolvedValue(1);
+    getJestSpyOn(IncidentService, "getIncidentNumber").mockResolvedValue({
+      number: 42,
+      numberWithPrefix: "INC-42",
+    });
+    getJestSpyOn(
+      IncidentService,
+      "getIncidentLinkInDashboard",
+    ).mockResolvedValue(
+      URL.fromString("https://oneuptime.example/dashboard/incidents/42"),
+    );
+    getJestSpyOn(IncidentService, "refreshIncidentMetrics").mockResolvedValue(
+      undefined,
+    );
+    getJestSpyOn(
+      IncidentMeasurementValueService,
+      "recomputeForIncident",
+    ).mockResolvedValue(undefined);
+    getJestSpyOn(
+      IncidentFeedService,
+      "createIncidentFeedItem",
+    ).mockResolvedValue(undefined);
+    getJestSpyOn(
+      IncidentAlertService,
+      "cascadeIncidentStateToLinkedAlerts",
+    ).mockResolvedValue(undefined);
+    getJestSpyOn(
+      IncidentStateTimelineService,
+      "autoAssignIncidentCommander",
+    ).mockResolvedValue(undefined);
+    getJestSpyOn(
+      IncidentStateTimelineService,
+      "trackSlaStateChange",
+    ).mockResolvedValue(undefined);
+    getJestSpyOn(
+      IncidentStateTimelineService,
+      "isLastIncidentState",
+    ).mockResolvedValue(false);
+  },
+};
+
 const TIMELINE_CASES: Array<[string, TimelineCase]> = [
   ALERT_CASE,
   ALERT_EPISODE_CASE,
   INCIDENT_EPISODE_CASE,
+  INCIDENT_CASE,
 ].map((timelineCase: TimelineCase): [string, TimelineCase] => {
   return [timelineCase.event, timelineCase];
 });

@@ -106,7 +106,7 @@ Criteria bepalen wanneer de server als online, verminderd of offline telt, en of
 | **NTP Response Time (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Van het verzoek tot het antwoord. |
 | **NTP Root Dispersion (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | De eigen schatting van de server van zijn maximale fout. |
 
-Bij twee of meer filters bepaalt **Overeenkomstvoorwaarde** of ze **Alle** moeten overeenkomen of dat **Elke** afzonderlijke volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing maken, een incident verklaren, of een combinatie daarvan.
+Bij twee of meer filters bepaalt **Overeenkomstvoorwaarde** of ze **Alle** moeten overeenkomen of dat **Minstens één** volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing maken, een incident verklaren, of een combinatie daarvan.
 
 ### Standaardcriteria
 

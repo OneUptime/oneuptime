@@ -22,13 +22,17 @@ import {
   getRelativeTimeLabel,
   getNotesCopy,
   getPostedNotificationSummary,
+  getRouteWithComposerOpen,
   getUpdateNotificationSummary,
   getUserId,
   groupNotesByDay,
   hasNotificationInFlight,
+  isComposerOpenRequested,
   isNoteBlank,
+  NOTE_COMPOSER_OPEN_QUERY_PARAM,
   toDateTimeInputValue,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/EventNotes/EventNotesUtil";
+import Route from "../../../Types/API/Route";
 import { getTemplatePreview } from "../../../../App/FeatureSet/Dashboard/src/Components/EventNotes/NoteTemplateMenu";
 import { getInitialsColor } from "../../../../App/FeatureSet/Dashboard/src/Components/EventNotes/NoteAvatar";
 import { getAttachmentDownloadUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/EventNotes/NoteAttachments";
@@ -1021,6 +1025,34 @@ describe("getTemplatePreview", () => {
     ["", ""],
   ])("%p -> %p", (note: string, preview: string) => {
     expect(getTemplatePreview(note)).toBe(preview);
+  });
+});
+
+/*
+ * A notes page opened to write a note: "Add Private Note" on a private
+ * incident's public notes leads to its private notes with ?compose=1, and
+ * the page starts with its composer open.
+ */
+describe("a notes page opened with its composer open", () => {
+  const PRIVATE_NOTES: string = "/dashboard/p/incidents/i/internal-notes";
+
+  test("the link asks for the composer, and leaves the page's own route as it was", () => {
+    const route: Route = new Route(PRIVATE_NOTES);
+
+    expect(getRouteWithComposerOpen(route).toString()).toBe(
+      `${PRIVATE_NOTES}?${NOTE_COMPOSER_OPEN_QUERY_PARAM}=1`,
+    );
+    // The kind's sibling route is shared: never changed in place.
+    expect(route.toString()).toBe(PRIVATE_NOTES);
+  });
+
+  test("only ?compose=1 opens it", () => {
+    expect(isComposerOpenRequested("?compose=1")).toBe(true);
+    expect(isComposerOpenRequested("?tab=notes&compose=1")).toBe(true);
+    expect(isComposerOpenRequested("")).toBe(false);
+    expect(isComposerOpenRequested("?compose=0")).toBe(false);
+    expect(isComposerOpenRequested("?compose=")).toBe(false);
+    expect(isComposerOpenRequested("?composer=1")).toBe(false);
   });
 });
 

@@ -75,6 +75,7 @@ import TelegramLogAPI from "./TelegramLogAPI";
 
 // Import API
 import ResellerPlanAPI from "Common/Server/API/ResellerPlanAPI";
+import MarketplaceAPI from "Common/Server/API/MarketplaceAPI";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import OpenSourceDeploymentAPI from "Common/Server/API/OpenSourceDeploymentAPI";
 import MonitorAPI from "Common/Server/API/MonitorAPI";
@@ -1030,6 +1031,15 @@ import PromoCodeService, {
 import DeletedProjectService, {
   Service as DeletedProjectServiceType,
 } from "Common/Server/Services/DeletedProjectService";
+import MarketplaceSubscriptionService, {
+  Service as MarketplaceSubscriptionServiceType,
+} from "Common/Server/Services/MarketplaceSubscriptionService";
+import MarketplaceUsageReportService, {
+  Service as MarketplaceUsageReportServiceType,
+} from "Common/Server/Services/MarketplaceUsageReportService";
+import MarketplaceChargeService, {
+  Service as MarketplaceChargeServiceType,
+} from "Common/Server/Services/MarketplaceChargeService";
 import CodeRepositoryService, {
   Service as CodeRepositoryServiceType,
 } from "Common/Server/Services/CodeRepositoryService";
@@ -1483,6 +1493,9 @@ import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 import ProjectUserProfile from "Common/Models/DatabaseModels/ProjectUserProfile";
 import PromoCode from "Common/Models/DatabaseModels/PromoCode";
 import DeletedProject from "Common/Models/DatabaseModels/DeletedProject";
+import MarketplaceSubscription from "Common/Models/DatabaseModels/MarketplaceSubscription";
+import MarketplaceUsageReport from "Common/Models/DatabaseModels/MarketplaceUsageReport";
+import MarketplaceCharge from "Common/Models/DatabaseModels/MarketplaceCharge";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import Reseller from "Common/Models/DatabaseModels/Reseller";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
@@ -1686,6 +1699,7 @@ import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDisc
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
 import OnCallScheduleTimelineAPI from "Common/Server/API/OnCallScheduleTimelineAPI";
 import WorkspaceChannelLinkAPI from "Common/Server/API/WorkspaceChannelLinkAPI";
+import WorkspaceChannelMembersAPI from "Common/Server/API/WorkspaceChannelMembersAPI";
 import UserNotificationMethodAdminAPI from "Common/Server/API/UserNotificationMethodAdminAPI";
 
 import OnCallDutyPolicyFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyFeed";
@@ -5248,6 +5262,14 @@ const BaseAPIFeatureSet: FeatureSet = {
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WorkspaceChannelLinkAPI);
 
+    /*
+     * Who is in a record's own channel, and adding people to it from its
+     * page (/workspace-channel-members/<record type>/<id>, .../add). The
+     * record is read with the caller's own permissions first; adding
+     * needs permission to edit it.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, WorkspaceChannelMembersAPI);
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<UserOnCallCalendarFeed, UserOnCallCalendarFeedServiceType>(
@@ -5458,6 +5480,15 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ResellerPlanAPI().getRouter(),
+    );
+    /*
+     * AWS Marketplace, Microsoft Marketplace and Google Cloud Marketplace:
+     * their landing pages, webhooks and event deliveries, and the purchase
+     * page's routes (OneUptime Cloud only - see MarketplaceAPI).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new MarketplaceAPI().getRouter(),
     );
     /*
      * Enterprise API routers from the Enterprise Edition module (ee/): the
@@ -5718,6 +5749,29 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DeletedProject, DeletedProjectServiceType>(
         DeletedProject,
         DeletedProjectService,
+      ).getRouter(),
+    );
+
+    // Marketplace purchases, the usage reported for them and their balance top-ups: master admin only (empty table ACLs).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MarketplaceSubscription, MarketplaceSubscriptionServiceType>(
+        MarketplaceSubscription,
+        MarketplaceSubscriptionService,
+      ).getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MarketplaceUsageReport, MarketplaceUsageReportServiceType>(
+        MarketplaceUsageReport,
+        MarketplaceUsageReportService,
+      ).getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MarketplaceCharge, MarketplaceChargeServiceType>(
+        MarketplaceCharge,
+        MarketplaceChargeService,
       ).getRouter(),
     );
 

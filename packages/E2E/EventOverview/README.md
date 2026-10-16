@@ -106,14 +106,16 @@ Query parameters, parsed once per page load:
 | `?resources=`    | what Incident #1042 is attached to: `default`, `many` (five categories, one behind Show more, and a name too long for the sidebar) or `none` (#1042 and Scheduled Maintenance #58 have nothing attached, for the empty state)                                                                                                                                                                                       |
 | `?feed=`         | `oncall-run`: incident #1042's on-call run in full, as the run writes its feed entries now (who it paged, a rule that reached nobody, who acknowledged): four on-call entries within a minute, which the feed folds into the newest of them                                                                                                                                                                         |
 | `?theme=`        | `dark` adds `html.dark`                                                                                                                                                                                                                                                                                                                                                                                             |
+| `?private=`      | `1`: incident #1042 and incident episode #12 are private. A private incident or episode takes no public notes: the incident's state change dialogs fold a private note and ask nothing about subscribers, and both feeds' Add Public Note is locked with why                                                                                                                                                        |
 | `?role=`         | who is signed in: `owner` (default; a master admin and Project Owner, so every permission gate is open), `alert-member` (not a master admin, only Alert Member: may acknowledge and resolve alerts but not create incidents, so Declare Incident shows disabled with the missing permissions in its tooltip) or `loading` (no permissions yet, the moment before the snapshot arrives, so gated actions are hidden) |
 | `?clusters=`     | which Kubernetes clusters the investigation payload's `clusterAccess` lists: none (default), `reachable` (prod-eu-west-1, which OneUptime AI can reach with kubectl), `unreachable` (staging-us-east-1, whose AI agent is not connected) or `mixed` (both); the cluster access notice's link opens a stub for `KUBERNETES_CLUSTER_VIEW_AI_AGENT`                                                                    |
 | `?measurements=` | `default`, `none` (no measurements: the card is not drawn and only the definitions are read) or `states` (adds Time to impact, whose end is before its start, and Time to close, created a moment ago, which no event has a value for yet)                                                                                                                                                                          |
 | `?thread=`       | what the card's conversation holds: nobody has asked (default), `answered` (Sam's question and its cited answer, then the viewer's with a table, an executed action and a source), `working` (an answer being written, with live steps), `approval` (an action waiting for approval), `error` (a failed and a stopped answer) or `crowded` (twelve messages from six people, so the thread opens folded)            |
+| `?linked=`       | what the investigations read about the infrastructure they are linked to: none (default), `alerts` (#1042's read 2 open or recent alerts on its five resources, #311's none on its host), `more` (more alerts than the 10 listed) or `followup` (alert #318 opened on #1042's host after its first analysis: the card shows the follow-up check, its report led by "Checked again", and the feed both reports)      |
 
 ## What the spec covers
 
-`EventOverview.spec.ts` (249 tests):
+`EventOverview.spec.ts` (301 tests):
 
 - **AI investigation report**: the Summary (TL;DR as its lead line, no chip) as the card's
   first section, then the report's sections in order under the same plain h3 (the root cause
@@ -233,6 +235,15 @@ Query parameters, parsed once per page load:
   created Scheduled Maintenance #58"; and with `?feed=oncall-run` the run folded into its
   newest entry, unfolding in place by keyboard with Show fewer under its last entry, focus
   moving to the first entry it unfolded and back to Show 3 more when it folds again.
+- **The linked infrastructure and the follow-up check** (`?linked=`): a running
+  investigation's line saying what it read about its linked infrastructure, its mark beside
+  its first line when it wraps on a phone, and its steps' detail after their words; the
+  newest alerts it read when more matched; an alert's "No open or recent alerts"; a
+  follow-up check running headed "OneUptime AI is checking again", its first line naming the
+  alert; its report led by the "Checked again" line above the Summary, the alert a link, the
+  mark level with the line; the feed's "OneUptime AI checked again ..." entry above the
+  first analysis; the containers table and the CPU-by-state chart of its evidence in words;
+  no sideways scroll on a phone in either theme.
 - **Open in Slack / Microsoft Teams**: no button without a channel (the page still asks, for
   its record); with `?channels=slack` a link in the hero opening in a new tab without an opener,
   the channel named when pointed at; with `teams` a link on teams.microsoft.com with its team;
@@ -275,7 +286,9 @@ every record in them is fabricated. The AI card's states are
 `ai-card-{running,running-clusters,queued,failed,pending,none,clusters,dark}`, and with a
 conversation in it
 `ai-card-conversation-{answered,none-answered,working,approval,error,crowded,dark,mobile}` and
-`ai-card-none-mobile`. The hero
+`ai-card-none-mobile`, and with the linked infrastructure
+`ai-card-followup{,-running,-dark,-mobile}`, `ai-card-linked-running-mobile` and
+`incident-feed-followup`. The hero
 title-row tests add `{alert-hero-created,alert-hero-resolved,incident-hero-created}-{390,768,1024,1280}`,
 and the Affected Resources tests add
 `{incident,alert,scheduled-maintenance}-overview-affected-resources` and

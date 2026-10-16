@@ -6,6 +6,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentPublicNoteService from "./IncidentPublicNoteService";
+import IncidentInternalNoteService from "./IncidentInternalNoteService";
 import IncidentService from "./IncidentService";
 import IncidentSlaService from "./IncidentSlaService";
 import IncidentStateService from "./IncidentStateService";
@@ -27,6 +28,7 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import StateChangeSubscriberNotification from "../../Types/StatusPage/StateChangeSubscriberNotification";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentPublicNote from "../../Models/DatabaseModels/IncidentPublicNote";
+import IncidentInternalNote from "../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTimeline";
 import IncidentMember from "../../Models/DatabaseModels/IncidentMember";
@@ -44,6 +46,9 @@ import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed"
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
 import StateChangePublicNote from "../Utils/StatusPage/StateChangePublicNote";
+import StateChangeNote from "../Utils/StateChangeNote";
+import PrivateRecordPublicNoteRule from "../Utils/Notes/PrivateRecordPublicNoteRule";
+import { PrivateRecordKind } from "../../Types/StatusPage/PrivateRecordPublicNotes";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import { SemaphoreMutex } from "../Infrastructure/Semaphore";
@@ -111,6 +116,24 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
     createBy: CreateBy<IncidentStateTimeline>,
   ): Promise<OnCreate<IncidentStateTimeline>> {
     await super.onBeforeCreate(createBy);
+
+    /*
+     * The private note that can come with the change (`privateNote`): what a
+     * private incident's state change dialog offers in place of the public
+     * one - a private incident takes no public notes - and what the Change
+     * State bulk action sends for the private incidents it moves. Built and
+     * checked now, as its sender, before the incident is even locked, and
+     * posted once the change is saved: the rule every state timeline holds
+     * its private note to (StateChangeNote).
+     */
+    const privateNotesToPost: Array<IncidentInternalNote> =
+      StateChangeNote.preparePrivateNotes({
+        noteModelType: IncidentInternalNote,
+        stateChange: createBy.data,
+        eventColumn: "incidentId",
+        miscDataProps: createBy.miscDataProps as JSONObject | undefined,
+        props: createBy.props,
+      });
 
     let mutex: SemaphoreMutex | null = null;
 
@@ -190,6 +213,18 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
           noteModelType: IncidentPublicNote,
           note: publicNoteToPost,
           props: createBy.props,
+        });
+
+        /*
+         * A private incident takes no public notes
+         * (PrivateRecordPublicNoteRule): the change that comes with one is
+         * refused whole, with what to send instead, before anything of it
+         * is written - never saved with a note that is then refused.
+         */
+        await PrivateRecordPublicNoteRule.assertStateChangeMayPostPublicNote({
+          kind: PrivateRecordKind.Incident,
+          recordId: createBy.data.incidentId,
+          projectId: noteProjectId,
         });
       }
 
@@ -352,6 +387,7 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
           statusTimelineAfterThisStatus: stateAfterThis || null,
           publicNote: publicNote,
           publicNoteToPost: publicNoteToPost,
+          privateNotesToPost: privateNotesToPost,
           mutex: mutex,
         },
       };
@@ -753,6 +789,14 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
         props: onCreate.createBy.props,
       });
     }
+
+    // And the private note, the same way (StateChangeNote).
+    await StateChangeNote.postPrivateNotes({
+      notes: onCreate.carryForward.privateNotesToPost,
+      noteService: IncidentInternalNoteService,
+      savedStateChange: createdItem,
+      props: onCreate.createBy.props,
+    });
 
     IncidentService.refreshIncidentMetrics({
       incidentId: createdItem.incidentId,

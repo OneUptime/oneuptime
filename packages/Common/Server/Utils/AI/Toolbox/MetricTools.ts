@@ -33,6 +33,20 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import AggregationInterval from "../../../../Types/BaseDatabase/AggregationInterval";
+import {
+  METRIC_ATTRIBUTE_SCHEMA_PROPERTIES,
+  MetricReadPlan,
+  chooseTrendInterval,
+  describeMetricReadPlan,
+  planMetricRead,
+  readAttributeFilter,
+  readGroupBy,
+} from "./MetricAttributeQuery";
+import GroupedMetricSeries, {
+  GroupedMetricRead,
+  MetricSeries,
+} from "./GroupedMetricSeries";
 
 /*
  * Metric read access is the Metric model's own read list
@@ -40,14 +54,95 @@ import {
  * routes grant too.
  */
 
+/*
+ * query_metrics read one series per value of `groupBy` - the caller's
+ * grouping, or the metric's split (AttributeSplitMetrics) - in at most
+ * MAX_TREND_BUCKETS buckets, one row per series.
+ */
+async function readGroupedQueryMetrics(data: {
+  query: JSONObject;
+  metricName: string;
+  aggregationType: AggregationType;
+  groupBy: Array<string>;
+  planNote: string;
+  startTime: Date;
+  endTime: Date;
+  ctx: ToolContext;
+}): Promise<ToolExecutionResult> {
+  const interval: AggregationInterval = chooseTrendInterval(
+    data.startTime,
+    data.endTime,
+  );
+
+  const read: GroupedMetricRead = await GroupedMetricSeries.read({
+    query: data.query,
+    aggregationType: data.aggregationType,
+    groupBy: data.groupBy,
+    interval,
+    startTime: data.startTime,
+    endTime: data.endTime,
+    props: data.ctx.props,
+  });
+
+  const serialized: SerializedResult = ToolResultSerializer.serializeRows(
+    read.series.map((series: MetricSeries): JSONObject => {
+      return GroupedMetricSeries.toLlmRow(series);
+    }),
+  );
+
+  const notes: Array<string> = [
+    ...(data.planNote ? [data.planNote] : []),
+    GroupedMetricSeries.describeRead({
+      read,
+      groupBy: data.groupBy,
+      interval,
+      startTime: data.startTime,
+    }),
+  ];
+
+  const window: string = `${data.startTime.toISOString()} – ${data.endTime.toISOString()}`;
+  // The keys the series differ in: "state", not "state, cpu.mode".
+  const by: string = GroupedMetricSeries.getShownGroupBy(
+    read.series,
+    data.groupBy,
+  ).join(", ");
+  const label: string = `${data.aggregationType}(${data.metricName}) by ${by}`;
+
+  return {
+    dataForLlm: `${serialized.text}\n${notes.join("\n")}`,
+    rowCount: read.series.length,
+    citationLabel: `${label}, ${window}`,
+    citationTarget: {
+      type: AIChatCitationTargetType.Metrics,
+    },
+    redactionCount: serialized.redactionCount,
+    isTruncated: serialized.isTruncated || read.isTruncated,
+    widget:
+      read.series.length > 0
+        ? WidgetBuilder.timeSeries({
+            // As the ungrouped chart is titled: "Avg of <metric>".
+            title: `${data.aggregationType} of ${data.metricName} by ${by}`,
+            description: window,
+            series: GroupedMetricSeries.toWidgetSeries(
+              read.series,
+              data.groupBy,
+            ),
+            valueLabel: data.aggregationType,
+            link: { type: AIChatCitationTargetType.Metrics },
+          })
+        : undefined,
+  };
+}
+
 export const QueryMetricsTool: ObservabilityTool = {
   name: "query_metrics",
   description:
-    "Aggregate a metric over time: Avg, Max, Min, Sum, Count or P50/P75/P90/P95/P99 percentiles (histogram-aware). Requires the exact metric name — discover names via lookup_context. Monitor metrics use reserved names like oneuptime.monitor.response.time with the monitor's ID as entityId.",
+    'Aggregate a metric over time: Avg, Max, Min, Sum, Count or P50/P75/P90/P95/P99 percentiles (histogram-aware). Requires the exact metric name — discover names via lookup_context. Monitor metrics use reserved names like oneuptime.monitor.response.time with the monitor\'s ID as entityId. Filter by attribute with attributes, and read one series per attribute value with groupBy (for example per container with groupBy ["resource.container.name"]). Host metrics split by an attribute — system.cpu.utilization and system.memory.* by state, system.filesystem.* by mountpoint — are read one series per value automatically, because one average across them is meaningless (CPU states always add up to 1). For one infrastructure resource, query_resource_telemetry scopes the read to it.',
   inputSchema: {
     type: "object",
     properties: {
       ...TimeRangeSchemaProperties,
+      ...METRIC_ATTRIBUTE_SCHEMA_PROPERTIES,
       metricName: {
         type: "string",
         description: "Exact metric name (required).",
@@ -112,15 +207,31 @@ export const QueryMetricsTool: ObservabilityTool = {
       );
     }
 
+    const attributeFilter: Record<string, string> | undefined =
+      readAttributeFilter(args);
+    const plan: MetricReadPlan = planMetricRead({
+      metricName,
+      attributeFilter,
+      groupBy: readGroupBy(args),
+    });
+
     /*
      * The time filter must be part of the query's WHERE clause. aggregateBy's
      * startTimestamp/endTimestamp only define the bucket grid — without an
      * explicit `time` filter the percentile/aggregate scans the metric's whole
      * retention and mixes in data outside the requested window.
+     *
+     * The project is named in the query too, as every other raw telemetry
+     * tool names it: a root read is held to a project only by a tenant in its
+     * caller's props (the model layer adds nothing else), so a caller that
+     * passes none - autonomous investigations did, before they named theirs
+     * - would read every project.
      */
     const query: JSONObject = {
+      projectId: ctx.projectId,
       name: metricName,
       time: new InBetween(startTime, endTime),
+      ...(attributeFilter ? { attributes: attributeFilter } : {}),
     };
 
     const entityId: ObjectID | undefined = ToolArgs.getObjectID(
@@ -129,6 +240,21 @@ export const QueryMetricsTool: ObservabilityTool = {
     );
     if (entityId) {
       query["primaryEntityId"] = entityId;
+    }
+
+    const planNote: string = describeMetricReadPlan(plan);
+
+    if (plan.groupBy.length > 0) {
+      return await readGroupedQueryMetrics({
+        query,
+        metricName,
+        aggregationType: aggregationTypeString as AggregationType,
+        groupBy: plan.groupBy,
+        planNote,
+        startTime,
+        endTime,
+        ctx,
+      });
     }
 
     const aggregateBy: AggregateBy<Metric> = {
@@ -170,7 +296,9 @@ export const QueryMetricsTool: ObservabilityTool = {
       : `${aggregationTypeString}(${metricName})`;
 
     return {
-      dataForLlm: serialized.text,
+      dataForLlm: planNote
+        ? `${serialized.text}\n${planNote}`
+        : serialized.text,
       rowCount: serialized.rowCount,
       citationLabel: `${aggregationTypeString}(${metricName}), ${startTime.toISOString()} – ${endTime.toISOString()}`,
       citationTarget: {
@@ -384,7 +512,9 @@ export const BaselineAnomalyTool: ObservabilityTool = {
       -1 * BASELINE_CURRENT_WINDOW_MINUTES,
     );
 
+    // Held to the project, like query_metrics (a root run names no tenant).
     const currentQuery: JSONObject = {
+      projectId: ctx.projectId,
       name: metricName,
       time: new InBetween(currentWindowStart, atTime),
     };
@@ -494,6 +624,7 @@ export const BaselineAnomalyTool: ObservabilityTool = {
       });
 
       const chartQuery: JSONObject = {
+        projectId: ctx.projectId,
         name: metricName,
         time: new InBetween(chartStart, atTime),
       };

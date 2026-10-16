@@ -81,7 +81,7 @@ Een hersteltaak heeft drie dingen nodig. De pagina **AI Assistance** van de uitz
 | Wat | OneUptime Cloud | Zelf gehost |
 | --- | --- | --- |
 | Een LLM-provider | Niets in te stellen: een project zonder eigen provider gebruikt de globale provider, betaald uit de AI-tegoeden van het project. Een eigen provider, onder **Projectinstellingen → AI → LLM-providers**, gaat voor. | Stel de omgevingsvariabelen `GLOBAL_LLM_PROVIDER_*` eenmalig in op de server, of voeg een provider toe aan het project. |
-| Een repository gekoppeld via de GitHub App | **Producten → Code → Taken**, dan **Code-repositories** en **Connect with GitHub App**. Vereist het Growth-abonnement. | Hetzelfde, zodra je instantie een GitHub App heeft (zie [GitHub-integratie](/docs/self-hosted/github-integration)). |
+| Een repository gekoppeld via de GitHub App | **Producten → Code → Taken**, dan **Code-repositories** en **Connect with GitHub App**. Is de app al op het GitHub-account geïnstalleerd, klik dan in plaats daarvan op **Een bestaande installatie koppelen**: opnieuw installeren koppelt hem niet. Vereist het Growth-abonnement. | Hetzelfde, zodra je instantie een GitHub App heeft (zie [GitHub-integratie](/docs/self-hosted/github-integration)). |
 | Een Runner die AI-codecorrecties uitvoert | Niets te draaien: de gedeelde Runners van OneUptime doen het. | De service `runner` van Docker Compose, of de Runner van de Helm-chart (`runner.enabled`, standaard aan), registreert zichzelf en voert AI-codecorrecties uit. |
 
 Op een zelf gehoste instantie is de globale provider één blok in `config.env` (Docker Compose) of in je Helm-waarden. Voor een zelf gehoste Ollama:

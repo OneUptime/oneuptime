@@ -8,17 +8,24 @@ import {
 } from "../AI/ClusterToolFormat";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import AIRunEventType from "Common/Types/AI/AIRunEventType";
-import { AIPromptOmissions } from "Common/Types/AI/AIChatTypes";
+import {
+  AIPromptOmissions,
+  FollowUpCheckActivity,
+  LinkedInfrastructureActivity,
+} from "Common/Types/AI/AIChatTypes";
 import { formatSize } from "Common/Utils/AI/PromptText";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RUN_KUBECTL_TOOL_NAME } from "Common/Types/Kubernetes/KubernetesClusterAiAccessToolNames";
 import { RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME } from "Common/Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
 import Icon from "Common/UI/Components/Icon/Icon";
 import {
+  composedValue,
   getGlobalTranslator,
+  TemplateValue,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { formatNameList, getListSeparator } from "../AiAccess/AiAccessModes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -241,6 +248,18 @@ const friendlyToolNames: { [key: string]: string } = {
   search_logs: translationKey("Searching logs"),
   log_histogram: translationKey("Charting log volume"),
   query_metrics: translationKey("Aggregating metrics"),
+  baseline_anomaly: translationKey("Comparing a metric with its baseline"),
+  query_telemetry_resources: translationKey("Listing infrastructure resources"),
+  query_resource_telemetry: translationKey("Reading a resource's telemetry"),
+  query_containers: translationKey("Checking the host's containers"),
+  /*
+   * What every investigation reads besides telemetry: past incidents like
+   * this one, what changed just before it, and its own timeline.
+   */
+  search_incidents: translationKey("Searching past incidents"),
+  recent_changes: translationKey("Checking recent changes"),
+  get_incident_timeline: translationKey("Reading the incident timeline"),
+  get_alert_timeline: translationKey("Reading the alert timeline"),
   query_traces: translationKey("Analyzing traces"),
   get_trace: translationKey("Reading trace"),
   lookup_context: translationKey("Resolving names"),
@@ -363,6 +382,164 @@ export function describePromptOmissions(
 }
 
 /*
+ * What a kind of linked resource is called (LinkedAffectedResourceType, as
+ * the server records it in an investigation's activity).
+ */
+const LINKED_RESOURCE_KIND_NOUNS: { [kind: string]: string } = {
+  Host: translationKey("Host"),
+  DockerHost: translationKey("Docker host"),
+  PodmanHost: translationKey("Podman host"),
+  KubernetesCluster: translationKey("Kubernetes cluster"),
+  DockerSwarmCluster: translationKey("Docker Swarm cluster"),
+  ProxmoxCluster: translationKey("Proxmox cluster"),
+  VMwareVCenter: translationKey("VMware vCenter"),
+  CephCluster: translationKey("Ceph cluster"),
+  StorageArray: translationKey("Storage array"),
+  IoTFleet: translationKey("IoT fleet"),
+  DatabaseServer: translationKey("Database"),
+  Service: translationKey("Service"),
+};
+
+// How many linked resources a line names before "and N more".
+const NAMED_LINKED_RESOURCES: number = 3;
+
+// "Host web-1", in the reader's language.
+function describeLinkedResource(
+  resource: { kind: string; name: string },
+  translator: Translator,
+): string {
+  const noun: string = translator.translateText(
+    LINKED_RESOURCE_KIND_NOUNS[resource.kind] || translationKey("Resource"),
+  ) as string;
+
+  return resource.name
+    ? translator.translateTemplate("{{kind}} {{name}}", {
+        kind: noun,
+        name: resource.name,
+      })
+    : noun;
+}
+
+/*
+ * The linked resources a line names, in the language of the sentence they go
+ * into: "Host web-1 and Docker host web-1", "Host a, Docker host b and
+ * Kubernetes cluster c", or the first NAMED_LINKED_RESOURCES and "and 2
+ * more". A composed value, so a sentence that is still English names them in
+ * English too.
+ */
+function linkedResourceList(
+  resources: Array<{ kind: string; name: string }>,
+): TemplateValue {
+  return composedValue((sentence: Translator): string => {
+    const named: Array<string> = resources
+      .slice(0, NAMED_LINKED_RESOURCES)
+      .map((resource: { kind: string; name: string }): string => {
+        return describeLinkedResource(resource, sentence);
+      });
+    const moreCount: number = resources.length - named.length;
+
+    if (moreCount <= 0) {
+      return formatNameList(named, "and", sentence);
+    }
+
+    return sentence.translatePlural(
+      {
+        one: "{{names}} and {{count}} more",
+        other: "{{names}} and {{count}} more",
+      },
+      moreCount,
+      // Listed the way their script lists: "a, b", "a、b", "a، b".
+      { names: named.join(getListSeparator(named)) },
+    );
+  });
+}
+
+/*
+ * What an investigation read about the infrastructure its incident or alert
+ * is linked to - the hosts, container hosts, clusters, databases and
+ * services its monitors watch - and the alerts on it (issue #4786): one
+ * line, in the reader's language.
+ */
+export function describeLinkedInfrastructure(
+  activity: LinkedInfrastructureActivity,
+  translator: Translator = getGlobalTranslator(),
+): string {
+  const resources: TemplateValue = linkedResourceList(activity.resources || []);
+
+  if (!activity.alertCount) {
+    return translator.translateTemplate(
+      "No open or recent alerts on {{resources}}",
+      { resources },
+    );
+  }
+
+  if (activity.hasMoreAlerts) {
+    return translator.translateTemplate(
+      "Read the {{count}} newest open or recent alerts on {{resources}}",
+      {
+        count: translator.formatNumber(activity.alertCount),
+        resources,
+      },
+    );
+  }
+
+  return translator.translatePlural(
+    {
+      one: "Read {{count}} open or recent alert on {{resources}}",
+      other: "Read {{count}} open or recent alerts on {{resources}}",
+    },
+    activity.alertCount,
+    { resources },
+  );
+}
+
+/*
+ * Why an investigation checked its incident again (issue #4787): the alert
+ * that opened on the incident's infrastructure after the first analysis.
+ */
+export function describeFollowUpCheck(
+  activity: FollowUpCheckActivity,
+  translator: Translator = getGlobalTranslator(),
+): string {
+  const alert: string = activity.alertNumberWithPrefix
+    ? activity.alertNumberWithPrefix
+    : activity.alertNumber !== undefined
+      ? `#${activity.alertNumber}`
+      : "";
+
+  if (!activity.resourceKind) {
+    return alert
+      ? translator.translateTemplate(
+          "Checking again: alert {{alert}} opened on this incident's infrastructure after the first analysis",
+          { alert },
+        )
+      : (translator.translateText(
+          "Checking again: an alert opened on this incident's infrastructure after the first analysis",
+        ) as string);
+  }
+
+  // Built in the sentence's language, like the linked resources above.
+  const resource: TemplateValue = composedValue(
+    (sentence: Translator): string => {
+      return describeLinkedResource(
+        { kind: activity.resourceKind, name: activity.resourceName },
+        sentence,
+      );
+    },
+  );
+
+  return alert
+    ? translator.translateTemplate(
+        "Checking again: alert {{alert}} opened on {{resource}} after the first analysis",
+        { alert, resource },
+      )
+    : translator.translateTemplate(
+        "Checking again: an alert opened on {{resource}} after the first analysis",
+        { resource },
+      );
+}
+
+/*
  * The steps the events draw, in the reader's language. A step is completed
  * by matching its text, which is always produced by the same translator.
  */
@@ -478,6 +655,40 @@ function buildSteps(
               });
             },
           );
+          break;
+        }
+
+        /*
+         * What the starting context read about the linked infrastructure,
+         * and why a follow-up check runs: drawn from the data, in the
+         * reader's language, not from the English line.
+         */
+        const followUpCheck: FollowUpCheckActivity | undefined =
+          event.resultSummary?.followUpCheck;
+
+        if (followUpCheck) {
+          steps.push({
+            key,
+            text: describeFollowUpCheck(followUpCheck, translator),
+            status: "done",
+            kind: "log",
+          });
+          break;
+        }
+
+        const linkedInfrastructure: LinkedInfrastructureActivity | undefined =
+          event.resultSummary?.linkedInfrastructure;
+
+        if (linkedInfrastructure) {
+          steps.push({
+            key,
+            text: describeLinkedInfrastructure(
+              linkedInfrastructure,
+              translator,
+            ),
+            status: "done",
+            kind: "log",
+          });
           break;
         }
 
@@ -619,6 +830,24 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * A step's mark, centred on the step's first line: a long step (the
+   * linked infrastructure an investigation read, say) wraps, and its mark
+   * stays beside the line it starts, as a list's bullet does.
+   */
+  const renderStepMark: RenderStepIconFunction = (
+    step: ActivityStep,
+  ): ReactElement => {
+    return (
+      <div
+        className="flex h-4 flex-shrink-0 items-center"
+        data-testid="activity-step-mark"
+      >
+        {renderStepIcon(step)}
+      </div>
+    );
+  };
+
   type RenderStepTextFunction = (step: ActivityStep) => ReactElement;
 
   const renderStepText: RenderStepTextFunction = (
@@ -691,12 +920,28 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
         )}
         {visibleSteps.map((step: ActivityStep) => {
           return (
-            <div key={step.key} className="flex items-center gap-2 text-xs">
-              {renderStepIcon(step)}
-              {renderStepText(step)}
-              {step.detail && (
-                <span className="text-gray-400">· {step.detail}</span>
-              )}
+            <div
+              key={step.key}
+              className="flex items-start gap-2 text-xs leading-4"
+            >
+              {renderStepMark(step)}
+              {/*
+                The words and their detail ("· 3 rows · 0.4s") flow as one
+                line of text: a long step wraps, and its detail follows its
+                last word - whole, or on the next line when it does not fit
+                - instead of standing in a narrow column of its own.
+              */}
+              <div className="min-w-0" data-testid="activity-step-text">
+                {renderStepText(step)}
+                {step.detail && (
+                  <>
+                    {" "}
+                    <span className="inline-block max-w-full text-gray-400">
+                      · {step.detail}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
           );
         })}

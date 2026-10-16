@@ -155,6 +155,13 @@ export default class WorkspaceActionAnswers {
     eventType: WorkspaceEventType;
     // The chat the press is in: how a pinned message is named.
     workspaceType?: WorkspaceType | undefined;
+    /*
+     * The note a message will be saved as, when it is not the one its kind
+     * asks for: a 📣 on a private incident saves it as a private note
+     * (WorkspaceReactionNote.getNoteTypeSavedAs) - "save the message you
+     * reacted to as a private note on this incident".
+     */
+    noteSavedAs?: WorkspaceNoteType | undefined;
   }): string {
     const noun: string = WorkspaceMemberActions.getNoun(data.eventType);
 
@@ -176,7 +183,9 @@ export default class WorkspaceActionAnswers {
         return `save ${WorkspaceNoteReactionUtil.getSavedMessageWords({
           noteType: WorkspaceNoteType.Public,
           workspaceType: data.workspaceType,
-        })} as a public note on this ${noun}`;
+        })} as a ${
+          data.noteSavedAs === WorkspaceNoteType.Private ? "private" : "public"
+        } note on this ${noun}`;
     }
   }
 

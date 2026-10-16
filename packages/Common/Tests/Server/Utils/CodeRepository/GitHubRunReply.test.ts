@@ -3,12 +3,14 @@ import GitHubConversation, {
   GitHubIssueComment,
   GitHubReaction,
 } from "../../../../Server/Utils/CodeRepository/GitHub/GitHubConversation";
+import GitHubCommandParser from "../../../../Server/Utils/CodeRepository/GitHub/GitHubCommandParser";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import AIAgentTaskPullRequestService from "../../../../Server/Services/AIAgentTaskPullRequestService";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import GitHubCommandType, {
+  GitHubCommandSurface,
   GitHubCommentKind,
 } from "../../../../Types/CodeRepository/GitHubCommand";
 import CodeFixTaskContext, {
@@ -1261,6 +1263,236 @@ describe("GitHubRunReply", () => {
         expect(body).not.toContain("Opened #");
       });
 
+      /*
+       * Recording a pull request can fail after GitHub has opened it — on
+       * test.oneuptime.com the column could not hold GitHub's id. The run
+       * still finishes Completed, and the worker reports the pull requests it
+       * opened with that status. Denying a pull request that GitHub's own
+       * "Closes #N" already shows in the thread is the worst answer left.
+       */
+      describe("when the run opened a pull request it could not record", () => {
+        const OPENED_URL: string = "https://github.com/acme/checkout/pull/77";
+
+        test("edits the acknowledgement to Done with the reported pull request", async () => {
+          const body: string = await postedOutcomeBody({
+            status: AIRunStatus.Completed,
+            github: issueContext({
+              acknowledgementCommentId: ACKNOWLEDGEMENT_COMMENT_ID,
+              openedPullRequestUrls: [OPENED_URL],
+            }),
+          });
+
+          expect(updatedComment().commentId).toBe(ACKNOWLEDGEMENT_COMMENT_ID);
+          expect(createIssueCommentSpy).not.toHaveBeenCalled();
+          expect(body).toContain("✅ **Done**");
+          expect(body).toContain(`Opened #77 — ${OPENED_URL}`);
+          expect(body).not.toContain("did not record a pull request");
+        });
+
+        test("a recorded pull request is listed instead of what the worker reported", async () => {
+          findPullRequestsSpy.mockResolvedValue([
+            pullRequestRow({
+              pullRequestNumber: 12,
+              url: "https://github.com/acme/checkout/pull/12",
+            }),
+          ]);
+
+          const body: string = await postedOutcomeBody({
+            status: AIRunStatus.Completed,
+            github: issueContext({ openedPullRequestUrls: [OPENED_URL] }),
+          });
+
+          expect(body).toContain("Opened #12");
+          expect(body).not.toContain(OPENED_URL);
+        });
+
+        test("names the repository without regard to case, as GitHub does", async () => {
+          const body: string = await postedOutcomeBody({
+            status: AIRunStatus.Completed,
+            github: issueContext({
+              openedPullRequestUrls: [
+                "https://github.com/Acme/Checkout/pull/78",
+              ],
+            }),
+          });
+
+          expect(body).toContain(
+            "Opened #78 — https://github.com/Acme/Checkout/pull/78",
+          );
+        });
+
+        // A managed user's login carries an underscore; repositories, dots.
+        test("links a repository whose names hold underscores and dots", async () => {
+          const body: string = await postedOutcomeBody({
+            status: AIRunStatus.Completed,
+            github: issueContext({
+              organizationName: "octocat_acme",
+              repositoryName: "checkout.web",
+              openedPullRequestUrls: [
+                "https://github.com/octocat_acme/checkout.web/pull/81",
+              ],
+            }),
+          });
+
+          expect(body).toContain(
+            "Opened #81 — https://github.com/octocat_acme/checkout.web/pull/81",
+          );
+        });
+
+        test("lists each pull request once, in the order reported", async () => {
+          const body: string = await postedOutcomeBody({
+            status: AIRunStatus.Completed,
+            github: issueContext({
+              openedPullRequestUrls: [
+                "https://github.com/acme/checkout/pull/79",
+                OPENED_URL,
+                OPENED_URL,
+                "https://github.com/ACME/checkout/pull/77",
+              ],
+            }),
+          });
+
+          expect(body.split("Opened #77").length - 1).toBe(1);
+          expect(body.indexOf("Opened #79")).toBeLessThan(
+            body.indexOf("Opened #77"),
+          );
+        });
+
+        /*
+         * Result lines go into the comment unescaped, and nothing on the way
+         * from the worker checked these. So anything that is not plainly a
+         * pull request of THIS repository is dropped — not escaped, not
+         * quoted, and never linked.
+         */
+        test.each([
+          [
+            "another repository's pull request",
+            "https://github.com/acme/billing/pull/77",
+          ],
+          [
+            "another organization's pull request",
+            "https://github.com/someone-else/checkout/pull/77",
+          ],
+          ["an issue", "https://github.com/acme/checkout/issues/77"],
+          ["a page under the pull request", `${OPENED_URL}/files`],
+          ["a query string", `${OPENED_URL}?tab=files`],
+          ["a fragment", `${OPENED_URL}#issuecomment-1`],
+          ["plain http", "http://github.com/acme/checkout/pull/77"],
+          [
+            "a host that only starts like GitHub's",
+            "https://github.com.evil.example/acme/checkout/pull/77",
+          ],
+          [
+            "GitHub's URL inside another host's",
+            `https://evil.example/${OPENED_URL}`,
+          ],
+          [
+            "markdown after the URL",
+            `${OPENED_URL}) [Approve the release](https://evil.example`,
+          ],
+          [
+            "a mention on the next line",
+            `${OPENED_URL}\n@oneuptime implement this`,
+          ],
+          ["surrounding whitespace", ` ${OPENED_URL} `],
+          [
+            "pull request number zero",
+            "https://github.com/acme/checkout/pull/0",
+          ],
+          ["an empty string", ""],
+        ])("does not link %s", async (_description: string, url: string) => {
+          const body: string = await postedOutcomeBody({
+            status: AIRunStatus.Completed,
+            github: issueContext({ openedPullRequestUrls: [url] }),
+          });
+
+          expect(body).toContain(
+            "The run finished, but it did not record a pull request.",
+          );
+          expect(body).not.toContain("Opened");
+          expect(body).not.toContain("evil.example");
+          expect(body).not.toContain("@");
+          expect(
+            GitHubCommandParser.parse({
+              body: body,
+              appSlug: "oneuptime",
+              surface: GitHubCommandSurface.Issue,
+            }),
+          ).toBeNull();
+        });
+
+        test("does not link values that are not strings", async () => {
+          const body: string = await postedOutcomeBody({
+            status: AIRunStatus.Completed,
+            github: issueContext({
+              openedPullRequestUrls: [
+                77,
+                null,
+                { url: OPENED_URL },
+                [OPENED_URL],
+              ] as unknown as Array<string>,
+            }),
+          });
+
+          expect(body).toContain(
+            "The run finished, but it did not record a pull request.",
+          );
+        });
+
+        test("does not read a single URL stored in place of a list", async () => {
+          const body: string = await postedOutcomeBody({
+            status: AIRunStatus.Completed,
+            github: issueContext({
+              openedPullRequestUrls: OPENED_URL as unknown as Array<string>,
+            }),
+          });
+
+          expect(body).toContain(
+            "The run finished, but it did not record a pull request.",
+          );
+        });
+
+        test("links what passes and drops the rest", async () => {
+          const body: string = await postedOutcomeBody({
+            status: AIRunStatus.Completed,
+            github: issueContext({
+              openedPullRequestUrls: [
+                "https://github.com/acme/billing/pull/5",
+                OPENED_URL,
+                "javascript:alert(1)",
+              ],
+            }),
+          });
+
+          expect(body).toContain(`Opened #77 — ${OPENED_URL}`);
+          expect(body).not.toContain("billing");
+          expect(body).not.toContain("javascript");
+        });
+
+        test("a Revise run still links nothing", async () => {
+          const body: string = await postedOutcomeBody({
+            status: AIRunStatus.Completed,
+            github: pullRequestContext({
+              commandType: GitHubCommandType.Revise,
+              openedPullRequestUrls: [OPENED_URL],
+            }),
+          });
+
+          expect(body).not.toContain("Opened");
+        });
+
+        test("a failed run does not claim the pull request either", async () => {
+          const body: string = await postedOutcomeBody({
+            status: AIRunStatus.Error,
+            errorMessage: "boom",
+            github: issueContext({ openedPullRequestUrls: [OPENED_URL] }),
+          });
+
+          expect(body).toContain("❌ **I could not finish this one.**");
+          expect(body).not.toContain("Opened");
+        });
+      });
+
       test("a recorded pull request with no number is still announced", async () => {
         findPullRequestsSpy.mockResolvedValue([
           pullRequestRow({ url: "https://github.com/acme/checkout/pull/14" }),
@@ -1590,6 +1822,7 @@ describe("GitHubRunReply", () => {
         triggeredByLogin: "octocat",
         acknowledgementCommentId: ACKNOWLEDGEMENT_COMMENT_ID,
         webhookDeliveryId: "1a2b3c4d-0000-0000-0000-000000000000",
+        openedPullRequestUrls: ["https://github.com/acme/checkout/pull/77"],
       };
     }
 
@@ -1703,6 +1936,167 @@ describe("GitHubRunReply", () => {
       });
 
       expect(GitHubRunReply.needsOutcomeReport(run)).toBeNull();
+    });
+  });
+
+  // =========================================================================
+
+  /*
+   * What update-task-status stores with a Completed report: the run's context
+   * with the pull requests its worker said it opened, or null when there is
+   * nothing worth writing.
+   */
+  describe("withOpenedPullRequestUrls", () => {
+    const OPENED_URL: string = "https://github.com/acme/checkout/pull/77";
+
+    test("adds the reported pull requests to the run's GitHub context", () => {
+      const github: GitHubTaskContext = issueContext({
+        acknowledgementCommentId: ACKNOWLEDGEMENT_COMMENT_ID,
+      });
+
+      const stored: CodeFixTaskContext | null =
+        GitHubRunReply.withOpenedPullRequestUrls({
+          taskContext: { github: github },
+          pullRequestUrls: [OPENED_URL],
+        });
+
+      expect(stored).toEqual({
+        github: { ...github, openedPullRequestUrls: [OPENED_URL] },
+      });
+    });
+
+    // TypeORM replaces a jsonb column, so a key left out here is a key lost.
+    test("keeps every other key of the run's context", () => {
+      const stored: CodeFixTaskContext | null =
+        GitHubRunReply.withOpenedPullRequestUrls({
+          taskContext: {
+            traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+            serviceName: "checkout",
+            github: issueContext(),
+          },
+          pullRequestUrls: [OPENED_URL],
+        });
+
+      expect(stored?.traceId).toBe("4bf92f3577b34da6a3ce929d0e0e4736");
+      expect(stored?.serviceName).toBe("checkout");
+    });
+
+    test("does not change the context it was given", () => {
+      const taskContext: CodeFixTaskContext = { github: issueContext() };
+
+      GitHubRunReply.withOpenedPullRequestUrls({
+        taskContext: taskContext,
+        pullRequestUrls: [OPENED_URL],
+      });
+
+      expect(taskContext.github?.openedPullRequestUrls).toBeUndefined();
+    });
+
+    test("stores only the repository's own pull requests, once each", () => {
+      const stored: CodeFixTaskContext | null =
+        GitHubRunReply.withOpenedPullRequestUrls({
+          taskContext: { github: issueContext() },
+          pullRequestUrls: [
+            "https://github.com/acme/billing/pull/5",
+            OPENED_URL,
+            "not a url",
+            OPENED_URL,
+            12,
+          ],
+        });
+
+      expect(stored?.github?.openedPullRequestUrls).toEqual([OPENED_URL]);
+    });
+
+    test("reads no more than ten of the URLs reported", () => {
+      const reported: Array<string> = [];
+
+      for (let number: number = 1; number <= 25; number++) {
+        reported.push(`https://github.com/acme/checkout/pull/${number}`);
+      }
+
+      const stored: CodeFixTaskContext | null =
+        GitHubRunReply.withOpenedPullRequestUrls({
+          taskContext: { github: issueContext() },
+          pullRequestUrls: reported,
+        });
+
+      expect(stored?.github?.openedPullRequestUrls).toEqual(
+        reported.slice(0, 10),
+      );
+    });
+
+    // No thread to link them in, so the run's context is left alone.
+    test("writes nothing for a run that did not come from GitHub", () => {
+      expect(
+        GitHubRunReply.withOpenedPullRequestUrls({
+          taskContext: { traceId: "4bf92f3577b34da6a3ce929d0e0e4736" },
+          pullRequestUrls: [OPENED_URL],
+        }),
+      ).toBeNull();
+
+      expect(
+        GitHubRunReply.withOpenedPullRequestUrls({
+          taskContext: undefined,
+          pullRequestUrls: [OPENED_URL],
+        }),
+      ).toBeNull();
+    });
+
+    test("writes nothing for a half-built GitHub context", () => {
+      expect(
+        GitHubRunReply.withOpenedPullRequestUrls({
+          taskContext: { github: issueContext({ organizationName: "" }) },
+          pullRequestUrls: [OPENED_URL],
+        }),
+      ).toBeNull();
+    });
+
+    test("writes nothing when no reported URL is the repository's pull request", () => {
+      for (const pullRequestUrls of [
+        ["https://github.com/acme/billing/pull/5"],
+        [],
+        OPENED_URL,
+        undefined,
+        null,
+      ]) {
+        expect(
+          GitHubRunReply.withOpenedPullRequestUrls({
+            taskContext: { github: issueContext() },
+            pullRequestUrls: pullRequestUrls,
+          }),
+        ).toBeNull();
+      }
+    });
+
+    /*
+     * The whole path on the server: what the status report stores is what
+     * the outcome sweep finds on the run and links in the thread.
+     */
+    test("what is stored is what the thread is told", async () => {
+      const stored: CodeFixTaskContext | null =
+        GitHubRunReply.withOpenedPullRequestUrls({
+          taskContext: {
+            github: issueContext({
+              acknowledgementCommentId: ACKNOWLEDGEMENT_COMMENT_ID,
+            }),
+          },
+          pullRequestUrls: [OPENED_URL],
+        });
+
+      const run: AIRun = aiRun({ status: AIRunStatus.Completed });
+      run.taskContext = stored!;
+
+      const github: GitHubTaskContext | null =
+        GitHubRunReply.needsOutcomeReport(run);
+
+      expect(github).not.toBeNull();
+
+      expect(await sweepOnce({ run: run, github: github! })).toBe(true);
+
+      expect(updatedComment().commentId).toBe(ACKNOWLEDGEMENT_COMMENT_ID);
+      expect(updatedComment().body).toContain("✅ **Done**");
+      expect(updatedComment().body).toContain(`Opened #77 — ${OPENED_URL}`);
     });
   });
 

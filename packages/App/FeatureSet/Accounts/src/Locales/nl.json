@@ -51,6 +51,7 @@
     "submitButton": "Inloggen",
     "forgotPassword": "Wachtwoord vergeten?",
     "useSso": "Gebruik in plaats daarvan single sign-on (SSO)",
+    "signInWithMicrosoft": "Inloggen met Microsoft",
     "noAccountPrompt": "Hebt u geen account?",
     "registerLink": "Registreren.",
     "twoFactor": {
@@ -121,7 +122,8 @@
     "verifyEmailOpensInNewTab": "(opent in een nieuw tabblad)",
     "verifyEmailAlreadyVerifiedPrompt": "Heb je je e-mailadres al bevestigd?",
     "verifyEmailWrongAddressPrompt": "Verkeerd e-mailadres?",
-    "verifyEmailUseDifferentEmail": "Aanmelden met een ander e-mailadres"
+    "verifyEmailUseDifferentEmail": "Aanmelden met een ander e-mailadres",
+    "signUpWithMicrosoft": "Aanmelden met Microsoft"
   },
   "forgotPassword": {
     "title": "Wachtwoord vergeten",
@@ -257,6 +259,42 @@
       "server_error": "Er is aan onze kant iets misgegaan. Probeer het over een paar minuten opnieuw.",
       "framed": "Voor uw veiligheid kan deze pagina niet binnen een andere pagina worden gebruikt. Open de pagina in een eigen tabblad of venster van uw browser."
     }
+  },
+  "marketplacePurchase": {
+    "title": "Uw aankoop instellen",
+    "subtitle": "U hebt OneUptime gekocht op {{marketplace}}. Kies het project dat met deze aankoop wordt betaald.",
+    "boughtOnLabel": "Gekocht op",
+    "buyerLabel": "Koper",
+    "marketplacePlanLabel": "Marketplace-abonnement",
+    "signedInAs": "Aangemeld als {{email}}",
+    "freeTrial": "Deze aankoop zit in een gratis proefperiode op {{marketplace}}.",
+    "choiceLabel": "Welk project moet met deze aankoop worden betaald?",
+    "createProjectOption": "Een nieuw project maken",
+    "projectNameLabel": "Projectnaam",
+    "projectNamePlaceholder": "Mijn project",
+    "planLabel": "OneUptime-abonnement",
+    "planOption": "{{name}} – {{price}} per gebruiker / maand",
+    "planOptionFree": "{{name}} – gratis",
+    "existingProjectOption": "Een van mijn projecten gebruiken",
+    "projectLabel": "Project",
+    "projectPlaceholder": "Kies een project",
+    "existingProjectHelp": "Vanaf nu worden het abonnement en het gebruik van dit project via {{marketplace}} gefactureerd in plaats van via een kaart.",
+    "projectRefusal": {
+      "not_billing_manager": "{{name}} – alleen de eigenaren kunnen wijzigen hoe het wordt gefactureerd",
+      "already_billed_by_marketplace": "{{name}} – wordt al via een marketplace gefactureerd",
+      "bought_from_reseller": "{{name}} – wordt gefactureerd door een reseller"
+    },
+    "nothingToChoose": "Geen van uw projecten kan deze aankoop overnemen, en u kunt op deze server geen projecten maken. Vraag de eigenaar van het project dat met deze aankoop moet worden betaald om de aankoop in te stellen.",
+    "billingNote": "Uw abonnement en gebruik worden via {{marketplace}} gefactureerd tegen de prijzen op oneuptime.com/pricing. U kunt uw abonnement op elk moment wijzigen via Projectinstellingen → Facturering.",
+    "submitButton": "Aankoop instellen",
+    "notNowButton": "Niet nu",
+    "redirecting": "Uw aankoop is ingesteld. U wordt naar uw project gebracht…",
+    "alreadySetUp": "Deze aankoop op {{marketplace}} is al ingesteld voor een van uw projecten.",
+    "openProject": "Project openen",
+    "cancelled": "Deze aankoop is op {{marketplace}} geannuleerd. Koop OneUptime opnieuw op {{marketplace}} om door te gaan.",
+    "errorTitle": "We konden deze aankoop niet instellen",
+    "errorHelp": "Open OneUptime opnieuw vanuit de marketplace waar u het hebt gekocht.",
+    "goToDashboard": "Naar het dashboard"
   },
   "Use at least {{minimum}} characters.": "Gebruik minimaal {{minimum}} tekens.",
   "Try a few unrelated words.": "Probeer een paar woorden die niets met elkaar te maken hebben.",
