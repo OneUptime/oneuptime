@@ -25,8 +25,10 @@ Endringer lagres automatisk. En pille i verktøylinjen følger med på det: **La
 
 | For å legge til        | Klikk på                                                       | Panel som åpnes               |
 | ---------------------- | -------------------------------------------------------------- | ----------------------------- |
-| Triggeren              | Den stiplede plassholderblokken                                | **Add Trigger**               |
+| Triggeren              | Den stiplede plassholderblokken, eller **Legg til trigger** i verktøylinjen | **Legg til trigger**          |
 | Enhver annen blokk     | **Legg til komponent**, i verktøylinjen over lerretet          | **Legg til komponent**        |
+
+Knappen i verktøylinjen heter **Legg til trigger** så lenge arbeidsflyten ikke har en trigger, og **Legg til komponent** så snart den har en.
 
 Begge panelene åpnes på blokkene de fleste arbeidsflyter bruker, under **Popular**, etterfulgt av de øvrige innebygde blokkene. Under **OneUptime resources** klikker du på en ressurs som **Hendelse** for å se hva du kan gjøre med den; **Browse all resources** viser alle. Eller søk: skriv noen ord, som `create incident`, så kommer det beste treffet først. Trykk på `/` for å hoppe til søkefeltet, på piltastene for å gå gjennom resultatene og på **Enter** for å legge til den uthevede blokken. Et klikk på en blokk legger den til.
 
@@ -127,7 +129,7 @@ Den fanger opp feilene som ellers er usynlige til en kjøring går galt:
 Den raskeste måten å bli kjent med lerretet på er en arbeidsflyt med to blokker som du starter manuelt:
 
 :::steps
-1. Klikk på den stiplede plassholderblokken, og klikk deretter på **Manual** i panelet **Add Trigger**.
+1. Klikk på den stiplede plassholderblokken, og klikk deretter på **Manual** i panelet **Legg til trigger**.
 2. Klikk på **Legg til komponent**, og klikk deretter på **Logg** under **Popular**. Den nye blokken havner under triggeren. Koble triggerens punkt **Execute** ned til inngangspunktet på Log-blokken.
 3. Klikk på Log-blokken, der det står **Click to set up**, og skriv `Hello from ` i **Value**. Klikk på **{ }**, og klikk deretter på **JSON** under **Manual**. Innstillingen viser **Manual › JSON** og lagrer `{{local.components.manual-1.returnValues.value}}`. `manual-1` er triggerens **Identifier**, som vises på triggerblokken. Klikk på **Lagre**.
 4. Tilbake i **Bygger** klikker du på **Kjør arbeidsflyt**, skriver `{ "name": "Ada" }` i feltet **JSON**, klikker på **Kjør arbeidsflyten manuelt** og bekrefter med **Kjør**. Arbeidsflyten er fortsatt slått av, og den trenger ikke være på: en kjøring du starter selv, er en **Testkjøring**.
