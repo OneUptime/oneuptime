@@ -4,7 +4,7 @@ import Label from "../../../../../Models/DatabaseModels/Label";
 import IncidentTemplate from "../../../../../Models/DatabaseModels/IncidentTemplate";
 import Probe from "../../../../../Models/DatabaseModels/Probe";
 import SmsLog from "../../../../../Models/DatabaseModels/SmsLog";
-import Team from "../../../../../Models/DatabaseModels/Team";
+import IncidentRole from "../../../../../Models/DatabaseModels/IncidentRole";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseService from "../../../../../Server/Services/DatabaseService";
 import ProjectService from "../../../../../Server/Services/ProjectService";
@@ -442,18 +442,22 @@ describe("Create One and Create Many", () => {
     expect(inserted()).toBeUndefined();
   });
 
+  /*
+   * A team is no longer the example: a step writes no team at all
+   * (WorkflowStepsDoNotChangeAccess). An incident role is a record a step
+   * may create, with values only OneUptime sets.
+   */
   test("a value only OneUptime sets is refused, even on a record a step may create", async () => {
-    const { service, inserted } = stopBeforeInsert(Team);
-    const component: CreateOneBaseModel<Team> = new CreateOneBaseModel<Team>(
-      service,
-    );
+    const { service, inserted } = stopBeforeInsert(IncidentRole);
+    const component: CreateOneBaseModel<IncidentRole> =
+      new CreateOneBaseModel<IncidentRole>(service);
 
     const step: StepRun = await run(component, {
-      json: { name: "Responders", isTeamDeleteable: false },
+      json: { name: "Scribe", color: "#4f46e5", isPrimaryRole: true },
     });
 
     expect(step.result.executePort?.id).toBe("error");
-    expect(refusedLine(component, step.lines)).toContain("isTeamDeleteable");
+    expect(refusedLine(component, step.lines)).toContain("isPrimaryRole");
     expect(inserted()).toBeUndefined();
   });
 
@@ -518,18 +522,17 @@ describe("Update One and Update Many", () => {
   });
 
   test("a value only OneUptime sets cannot be changed by a step", async () => {
-    const { service, permitted } = stopBeforeUpdate(Team);
-    const component: UpdateOneBaseModel<Team> = new UpdateOneBaseModel<Team>(
-      service,
-    );
+    const { service, permitted } = stopBeforeUpdate(IncidentRole);
+    const component: UpdateOneBaseModel<IncidentRole> =
+      new UpdateOneBaseModel<IncidentRole>(service);
 
     const step: StepRun = await run(component, {
       query: { _id: RECORD_ID },
-      data: { isTeamEditable: true },
+      data: { isDeleteable: true },
     });
 
     expect(step.result.executePort?.id).toBe("error");
-    expect(refusedLine(component, step.lines)).toContain("isTeamEditable");
+    expect(refusedLine(component, step.lines)).toContain("isDeleteable");
     expect(permitted()).toBeUndefined();
   });
 
