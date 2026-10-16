@@ -126,7 +126,9 @@ describe("the reseller inquiry email", () => {
   test("is the template the site names", () => {
     expect(EmailTemplateType.ResellerInquiry).toBe("ResellerInquiry.hbs");
     expect(
-      fs.existsSync(Path.join(TEMPLATES_DIR, EmailTemplateType.ResellerInquiry)),
+      fs.existsSync(
+        Path.join(TEMPLATES_DIR, EmailTemplateType.ResellerInquiry),
+      ),
     ).toBe(true);
   });
 
@@ -182,7 +184,10 @@ describe("the reseller inquiry email", () => {
     const message: EmailElement | undefined = findElements(
       markupOf(render()).root,
       (element: EmailElement): boolean => {
-        return hasClass(element, "st-DetailCard-value") && hasClass(element, "st-Rich");
+        return (
+          hasClass(element, "st-DetailCard-value") &&
+          hasClass(element, "st-Rich")
+        );
       },
     )[0];
 
@@ -206,7 +211,12 @@ describe("the reseller inquiry email", () => {
       card.rows.map((row: DetailCardRow): string => {
         return row.label;
       }),
-    ).toEqual(["Company", "Countries or regions they sell in", "Name", "Email"]);
+    ).toEqual([
+      "Company",
+      "Countries or regions they sell in",
+      "Name",
+      "Email",
+    ]);
     expect(
       card.rows.every((row: DetailCardRow): boolean => {
         return row.showsValue;

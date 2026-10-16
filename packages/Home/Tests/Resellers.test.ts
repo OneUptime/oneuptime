@@ -51,61 +51,86 @@ describe("the list of resellers", () => {
     expect(Resellers.length).toBeGreaterThan(0);
   });
 
-  test.each(Resellers.map((entry: Reseller): [string, Reseller] => {
-    return [entry.name, entry];
-  }))("%s says who it is, where it is and what it does", (_name: string, entry: Reseller) => {
-    for (const text of [entry.name, entry.country, entry.summary]) {
-      expect(text.trim().length).toBeGreaterThan(0);
-      expect(text).toBe(text.trim());
-    }
+  test.each(
+    Resellers.map((entry: Reseller): [string, Reseller] => {
+      return [entry.name, entry];
+    }),
+  )(
+    "%s says who it is, where it is and what it does",
+    (_name: string, entry: Reseller) => {
+      for (const text of [entry.name, entry.country, entry.summary]) {
+        expect(text.trim().length).toBeGreaterThan(0);
+        expect(text).toBe(text.trim());
+      }
 
-    if (entry.city !== undefined) {
-      expect(entry.city.trim().length).toBeGreaterThan(0);
-    }
+      if (entry.city !== undefined) {
+        expect(entry.city.trim().length).toBeGreaterThan(0);
+      }
 
-    // A summary is one line of the page: a sentence, not a paragraph.
-    expect(entry.summary.length).toBeLessThanOrEqual(120);
-    expect(entry.summary.endsWith(".")).toBe(true);
-  });
+      // A summary is one line of the page: a sentence, not a paragraph.
+      expect(entry.summary.length).toBeLessThanOrEqual(120);
+      expect(entry.summary.endsWith(".")).toBe(true);
+    },
+  );
 
-  test.each(Resellers.map((entry: Reseller): [string, Reseller] => {
-    return [entry.name, entry];
-  }))("%s sits in one of the page's regions", (_name: string, entry: Reseller) => {
-    expect(ResellerRegions).toContain(entry.region);
-  });
+  test.each(
+    Resellers.map((entry: Reseller): [string, Reseller] => {
+      return [entry.name, entry];
+    }),
+  )(
+    "%s sits in one of the page's regions",
+    (_name: string, entry: Reseller) => {
+      expect(ResellerRegions).toContain(entry.region);
+    },
+  );
 
-  test.each(Resellers.map((entry: Reseller): [string, Reseller] => {
-    return [entry.name, entry];
-  }))("%s links to its own website over https", (_name: string, entry: Reseller) => {
-    const url: URL = new URL(entry.websiteUrl);
+  test.each(
+    Resellers.map((entry: Reseller): [string, Reseller] => {
+      return [entry.name, entry];
+    }),
+  )(
+    "%s links to its own website over https",
+    (_name: string, entry: Reseller) => {
+      const url: URL = new URL(entry.websiteUrl);
 
-    expect(url.protocol).toBe("https:");
-    expect(url.username).toBe("");
-    expect(url.password).toBe("");
-    expect(url.hostname.split(".").length).toBeGreaterThanOrEqual(2);
-  });
+      expect(url.protocol).toBe("https:");
+      expect(url.username).toBe("");
+      expect(url.password).toBe("");
+      expect(url.hostname.split(".").length).toBeGreaterThanOrEqual(2);
+    },
+  );
 
-  test.each(Resellers.map((entry: Reseller): [string, Reseller] => {
-    return [entry.name, entry];
-  }))("%s has a local name only with the language it is written in", (_name: string, entry: Reseller) => {
-    if (entry.localName) {
-      expect(entry.localNameLanguage).toBeDefined();
-      expect(entry.localNameLanguage).not.toBe("en");
-    } else {
-      expect(entry.localNameLanguage).toBeUndefined();
-    }
-  });
+  test.each(
+    Resellers.map((entry: Reseller): [string, Reseller] => {
+      return [entry.name, entry];
+    }),
+  )(
+    "%s has a local name only with the language it is written in",
+    (_name: string, entry: Reseller) => {
+      if (entry.localName) {
+        expect(entry.localNameLanguage).toBeDefined();
+        expect(entry.localNameLanguage).not.toBe("en");
+      } else {
+        expect(entry.localNameLanguage).toBeUndefined();
+      }
+    },
+  );
 
-  test.each(Resellers.map((entry: Reseller): [string, Reseller] => {
-    return [entry.name, entry];
-  }))("%s shows a logo only once its file is in Static/img/resellers", (_name: string, entry: Reseller) => {
-    if (!entry.logoPath) {
-      return;
-    }
+  test.each(
+    Resellers.map((entry: Reseller): [string, Reseller] => {
+      return [entry.name, entry];
+    }),
+  )(
+    "%s shows a logo only once its file is in Static/img/resellers",
+    (_name: string, entry: Reseller) => {
+      if (!entry.logoPath) {
+        return;
+      }
 
-    expect(entry.logoPath.startsWith("/img/resellers/")).toBe(true);
-    expect(fs.existsSync(path.join(STATIC_ROOT, entry.logoPath))).toBe(true);
-  });
+      expect(entry.logoPath.startsWith("/img/resellers/")).toBe(true);
+      expect(fs.existsSync(path.join(STATIC_ROOT, entry.logoPath))).toBe(true);
+    },
+  );
 
   test("names each reseller once", () => {
     const names: Array<string> = Resellers.map((entry: Reseller): string => {

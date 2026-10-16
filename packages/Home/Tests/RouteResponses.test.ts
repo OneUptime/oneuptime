@@ -179,7 +179,11 @@ interface Outgoing {
 
 interface BootedHome {
   renders: Array<RenderedView>;
-  request: (method: string, url: string, outgoing?: Outgoing) => Promise<Answer>;
+  request: (
+    method: string,
+    url: string,
+    outgoing?: Outgoing,
+  ) => Promise<Answer>;
   close: () => Promise<void>;
 }
 

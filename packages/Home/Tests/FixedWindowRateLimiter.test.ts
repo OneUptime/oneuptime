@@ -241,16 +241,25 @@ describe("a limiter", () => {
     ["a limit of 0", { limit: 0, windowInMs: HOUR, maxKeys: 1 }],
     ["a window of 0", { limit: 1, windowInMs: 0, maxKeys: 1 }],
     ["no room for keys", { limit: 1, windowInMs: HOUR, maxKeys: 0 }],
-    ["a limit that is no number", { limit: Number.NaN, windowInMs: HOUR, maxKeys: 1 }],
-  ])("with %s is refused", (_case: string, options: {
-    limit: number;
-    windowInMs: number;
-    maxKeys: number;
-  }) => {
-    expect(() => {
-      return new FixedWindowRateLimiter(options);
-    }).toThrow();
-  });
+    [
+      "a limit that is no number",
+      { limit: Number.NaN, windowInMs: HOUR, maxKeys: 1 },
+    ],
+  ])(
+    "with %s is refused",
+    (
+      _case: string,
+      options: {
+        limit: number;
+        windowInMs: number;
+        maxKeys: number;
+      },
+    ) => {
+      expect(() => {
+        return new FixedWindowRateLimiter(options);
+      }).toThrow();
+    },
+  );
 
   test("reads the real clock unless it is given one", () => {
     const counter: FixedWindowRateLimiter = new FixedWindowRateLimiter({

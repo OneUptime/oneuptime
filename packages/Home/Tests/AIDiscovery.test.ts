@@ -484,7 +484,10 @@ describe("the resellers, for machines", () => {
   test("/resellers.md says so when no reseller is listed", () => {
     const md: string = generateResellersMarkdown(
       homeUrl,
-      getResellersPageContent({ resellers: [], inquiryInbox: "partners@example.com" }),
+      getResellersPageContent({
+        resellers: [],
+        inquiryInbox: "partners@example.com",
+      }),
     );
 
     expect(md).toContain("No resellers are listed yet.");

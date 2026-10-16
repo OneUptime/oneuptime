@@ -228,7 +228,8 @@ export const createResellerInquiryHandler: (
  */
 export const createDefaultResellerInquiryOptions: () => ResellerInquiryHandlerOptions =
   (): ResellerInquiryHandlerOptions => {
-    const configured: ResellerInquiryInbox = getConfiguredResellerInquiryInbox();
+    const configured: ResellerInquiryInbox =
+      getConfiguredResellerInquiryInbox();
 
     if (configured.ignoredValue) {
       logger.warn(

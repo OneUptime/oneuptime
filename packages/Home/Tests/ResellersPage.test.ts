@@ -120,17 +120,17 @@ describe("the Resellers page", () => {
     const regions: Array<Element> = Array.from(
       page.querySelectorAll('[data-testid="reseller-region"]'),
     );
-    const asiaPacific: Element | undefined = regions.find(
-      (region: Element) => {
-        return textOf(region.querySelector("h3")) === "Asia Pacific";
-      },
-    );
+    const asiaPacific: Element | undefined = regions.find((region: Element) => {
+      return textOf(region.querySelector("h3")) === "Asia Pacific";
+    });
 
     expect(asiaPacific).toBeDefined();
     expect(asiaPacific!.id).toBe("region-asia-pacific");
 
     const names: Array<string> = Array.from(
-      asiaPacific!.querySelectorAll('[data-testid="reseller-card"] h4 > span:first-child'),
+      asiaPacific!.querySelectorAll(
+        '[data-testid="reseller-card"] h4 > span:first-child',
+      ),
     ).map(textOf);
 
     expect(names).toContain("SLEXN");
@@ -194,9 +194,9 @@ describe("the Resellers page", () => {
 
     expect(textOf(section?.querySelector("h2"))).toBe("Become a reseller");
     expect(
-      Array.from(section!.querySelectorAll('[data-testid="reseller-points"] dt')).map(
-        textOf,
-      ),
+      Array.from(
+        section!.querySelectorAll('[data-testid="reseller-points"] dt'),
+      ).map(textOf),
     ).toEqual([
       "One platform to sell",
       "Cloud or self-hosted",
@@ -231,31 +231,37 @@ describe("the form", () => {
     expect(form.getAttribute("action")).toBe(RESELLER_INQUIRY_PATH);
     expect(form.getAttribute("data-endpoint")).toBe(RESELLER_INQUIRY_PATH);
     expect(
-      page.getElementById(form.getAttribute("aria-labelledby") || "")?.textContent,
+      page.getElementById(form.getAttribute("aria-labelledby") || "")
+        ?.textContent,
     ).toBe("Tell us about your company");
   });
 
-  test.each(ResellerInquiryFieldOrder.map((field: ResellerInquiryField) => {
-    return [field];
-  }))("asks for the %s with a label, as the server's rules have it", (field: ResellerInquiryField) => {
-    const rule: ResellerInquiryFieldRule = ResellerInquiryFieldRules[field];
-    const control: HTMLInputElement | HTMLTextAreaElement | null =
-      form.querySelector(`[name="${field}"]`);
+  test.each(
+    ResellerInquiryFieldOrder.map((field: ResellerInquiryField) => {
+      return [field];
+    }),
+  )(
+    "asks for the %s with a label, as the server's rules have it",
+    (field: ResellerInquiryField) => {
+      const rule: ResellerInquiryFieldRule = ResellerInquiryFieldRules[field];
+      const control: HTMLInputElement | HTMLTextAreaElement | null =
+        form.querySelector(`[name="${field}"]`);
 
-    expect(control).not.toBeNull();
+      expect(control).not.toBeNull();
 
-    const label: HTMLLabelElement | null = form.querySelector(
-      `label[for="${control!.id}"]`,
-    );
+      const label: HTMLLabelElement | null = form.querySelector(
+        `label[for="${control!.id}"]`,
+      );
 
-    expect(label).not.toBeNull();
-    expect(textOf(label)).toBe(
-      rule.required ? rule.label : `${rule.label} Optional`,
-    );
-    expect(control!.hasAttribute("required")).toBe(rule.required);
-    expect(control!.getAttribute("maxlength")).toBe(String(rule.maxLength));
-    expect(control!.tagName).toBe(rule.multiline ? "TEXTAREA" : "INPUT");
-  });
+      expect(label).not.toBeNull();
+      expect(textOf(label)).toBe(
+        rule.required ? rule.label : `${rule.label} Optional`,
+      );
+      expect(control!.hasAttribute("required")).toBe(rule.required);
+      expect(control!.getAttribute("maxlength")).toBe(String(rule.maxLength));
+      expect(control!.tagName).toBe(rule.multiline ? "TEXTAREA" : "INPUT");
+    },
+  );
 
   test("lets the browser help: the right input types and autofill", () => {
     const typeOf: (field: string) => string | null = (field: string) => {
@@ -326,11 +332,11 @@ describe("the form", () => {
   });
 
   test("says what the details are used for, and links the privacy policy", () => {
-    const note: Element | undefined = Array.from(form.querySelectorAll("p")).find(
-      (paragraph: Element) => {
-        return textOf(paragraph).startsWith("We use these details");
-      },
-    );
+    const note: Element | undefined = Array.from(
+      form.querySelectorAll("p"),
+    ).find((paragraph: Element) => {
+      return textOf(paragraph).startsWith("We use these details");
+    });
 
     expect(textOf(note)).toBe(
       "We use these details only to reply to you. See our privacy policy.",
@@ -350,9 +356,9 @@ describe("the form", () => {
 
     expect(error?.hidden).toBe(true);
     expect(error?.querySelector('[role="alert"]')).not.toBeNull();
-    expect(
-      error?.querySelector(`a[href="mailto:${INBOX}"]`)?.textContent,
-    ).toBe(INBOX);
+    expect(error?.querySelector(`a[href="mailto:${INBOX}"]`)?.textContent).toBe(
+      INBOX,
+    );
     expect(success?.hidden).toBe(true);
     expect(textOf(success?.querySelector("h3"))).toBe(
       "Thanks, your message is on its way",
@@ -375,13 +381,15 @@ describe("the resellers by region, drawn from other lists", () => {
       ),
     );
 
-    expect(
-      textOf(page.querySelector('[data-testid="resellers-empty"]')),
-    ).toBe(
+    expect(textOf(page.querySelector('[data-testid="resellers-empty"]'))).toBe(
       "We are adding our first resellers Until then, you can buy OneUptime directly from us.",
     );
-    expect(page.querySelectorAll('[data-testid="reseller-region"]')).toHaveLength(0);
-    expect(page.querySelectorAll('[data-testid="reseller-card"]')).toHaveLength(0);
+    expect(
+      page.querySelectorAll('[data-testid="reseller-region"]'),
+    ).toHaveLength(0);
+    expect(page.querySelectorAll('[data-testid="reseller-card"]')).toHaveLength(
+      0,
+    );
     expect(page.getElementById("reseller-inquiry-form")).not.toBeNull();
     expect(
       page.querySelector('[data-testid="resellers-buy-direct"]'),
@@ -394,8 +402,16 @@ describe("the resellers by region, drawn from other lists", () => {
         getResellersPageContent({
           inquiryInbox: INBOX,
           resellers: [
-            reseller({ name: "Nordic Partner", region: "Europe, Middle East and Africa", country: "Sweden" }),
-            reseller({ name: "Andes Partner", region: "Americas", country: "Chile" }),
+            reseller({
+              name: "Nordic Partner",
+              region: "Europe, Middle East and Africa",
+              country: "Sweden",
+            }),
+            reseller({
+              name: "Andes Partner",
+              region: "Americas",
+              country: "Chile",
+            }),
           ],
         }),
       ),
@@ -409,7 +425,10 @@ describe("the resellers by region, drawn from other lists", () => {
       ),
     ).toEqual([
       ["region-americas", "Americas"],
-      ["region-europe-middle-east-and-africa", "Europe, Middle East and Africa"],
+      [
+        "region-europe-middle-east-and-africa",
+        "Europe, Middle East and Africa",
+      ],
     ]);
   });
 
@@ -433,10 +452,15 @@ describe("the resellers by region, drawn from other lists", () => {
   test("shows a reseller without a city or a local name by its country alone", async () => {
     const page: Document = documentOf(
       await renderPage(
-        getResellersPageContent({ inquiryInbox: INBOX, resellers: [reseller()] }),
+        getResellersPageContent({
+          inquiryInbox: INBOX,
+          resellers: [reseller()],
+        }),
       ),
     );
-    const card: Element | null = page.querySelector('[data-testid="reseller-card"]');
+    const card: Element | null = page.querySelector(
+      '[data-testid="reseller-card"]',
+    );
 
     expect(textOf(card?.querySelector("h4"))).toBe("Example Partner");
     expect(card?.querySelector("[lang]")).toBeNull();
@@ -444,7 +468,8 @@ describe("the resellers by region, drawn from other lists", () => {
   });
 
   test("writes every reseller's details as text", async () => {
-    const hostile: string = '<script>window.hacked = 1</script><img src=x onerror="alert(1)">';
+    const hostile: string =
+      '<script>window.hacked = 1</script><img src=x onerror="alert(1)">';
     const page: Document = documentOf(
       await renderPage(
         getResellersPageContent({
@@ -461,7 +486,9 @@ describe("the resellers by region, drawn from other lists", () => {
         }),
       ),
     );
-    const card: Element | null = page.querySelector('[data-testid="reseller-card"]');
+    const card: Element | null = page.querySelector(
+      '[data-testid="reseller-card"]',
+    );
 
     expect(card?.querySelector("script")).toBeNull();
     expect(card?.querySelector("img")).toBeNull();
@@ -533,7 +560,9 @@ async function settle(): Promise<void> {
 let renderedPage: string = "";
 let formScript: string = "";
 
-async function scriptedPage(options: { withFetch?: boolean } = {}): Promise<ScriptedPage> {
+async function scriptedPage(
+  options: { withFetch?: boolean } = {},
+): Promise<ScriptedPage> {
   if (!renderedPage) {
     renderedPage = await renderPage();
   }
@@ -572,7 +601,10 @@ async function scriptedPage(options: { withFetch?: boolean } = {}): Promise<Scri
       calls.push({ url: url, init: init });
 
       return new Promise<FakeResponse>(
-        (resolve: (response: FakeResponse) => void, reject: (error: Error) => void) => {
+        (
+          resolve: (response: FakeResponse) => void,
+          reject: (error: Error) => void,
+        ) => {
           pending.push((response: FakeResponse | Error) => {
             if (response instanceof Error) {
               reject(response);
@@ -710,9 +742,9 @@ describe("the form's script", () => {
 
     expect(page.form.hidden).toBe(true);
     expect(success.hidden).toBe(false);
-    expect(
-      success.querySelector("[data-reseller-reply-to]")?.textContent,
-    ).toBe("jane@acme.co.kr");
+    expect(success.querySelector("[data-reseller-reply-to]")?.textContent).toBe(
+      "jane@acme.co.kr",
+    );
     expect(page.document.activeElement?.id).toBe(
       "reseller-inquiry-success-title",
     );
@@ -786,9 +818,9 @@ describe("the form's script", () => {
     const email: HTMLInputElement = page.field("email") as HTMLInputElement;
 
     // Typing somewhere else leaves the mark alone.
-    page.field("name").dispatchEvent(
-      new page.window.Event("input", { bubbles: true }),
-    );
+    page
+      .field("name")
+      .dispatchEvent(new page.window.Event("input", { bubbles: true }));
     expect(email.getAttribute("aria-invalid")).toBe("true");
 
     email.dispatchEvent(new page.window.Event("input", { bubbles: true }));
@@ -807,7 +839,11 @@ describe("the form's script", () => {
     await settle();
     page.submit();
     page.answer(
-      jsonResponse(400, { sent: false, message: "And this.", field: "company" }),
+      jsonResponse(400, {
+        sent: false,
+        message: "And this.",
+        field: "company",
+      }),
     );
     await settle();
 
@@ -833,67 +869,97 @@ describe("the form's script", () => {
   });
 
   test.each([
-    ["a refusal with no field", jsonResponse(429, { sent: false, message: "You have sent several messages in a short time. Please try again later." })],
-    ["a failure to send", jsonResponse(502, { sent: false, message: "We could not send your message just now. Please try again in a few minutes." })],
-  ])("shows %s and moves the focus to it", async (_case: string, response: FakeResponse) => {
-    const page: ScriptedPage = await scriptedPage();
+    [
+      "a refusal with no field",
+      jsonResponse(429, {
+        sent: false,
+        message:
+          "You have sent several messages in a short time. Please try again later.",
+      }),
+    ],
+    [
+      "a failure to send",
+      jsonResponse(502, {
+        sent: false,
+        message:
+          "We could not send your message just now. Please try again in a few minutes.",
+      }),
+    ],
+  ])(
+    "shows %s and moves the focus to it",
+    async (_case: string, response: FakeResponse) => {
+      const page: ScriptedPage = await scriptedPage();
 
-    page.fill();
-    page.submit();
-    page.answer(response);
-    await settle();
+      page.fill();
+      page.submit();
+      page.answer(response);
+      await settle();
 
-    const error: HTMLElement = page.document.getElementById(
-      "reseller-inquiry-error",
-    ) as HTMLElement;
+      const error: HTMLElement = page.document.getElementById(
+        "reseller-inquiry-error",
+      ) as HTMLElement;
 
-    expect(error.hidden).toBe(false);
-    expect(
-      error.querySelector("[data-reseller-error-message]")?.textContent,
-    ).toBe(((await response.json()) as { message: string }).message);
-    expect(page.document.activeElement).toBe(error);
-    expect(page.form.querySelector("[aria-invalid]")).toBeNull();
-  });
+      expect(error.hidden).toBe(false);
+      expect(
+        error.querySelector("[data-reseller-error-message]")?.textContent,
+      ).toBe(((await response.json()) as { message: string }).message);
+      expect(page.document.activeElement).toBe(error);
+      expect(page.form.querySelector("[aria-invalid]")).toBeNull();
+    },
+  );
 
   test.each([
-    ["an answer that is not JSON", {
-      ok: false,
-      status: 502,
-      json: (): Promise<unknown> => {
-        return Promise.reject(new SyntaxError("Unexpected token <"));
-      },
-    } as FakeResponse],
+    [
+      "an answer that is not JSON",
+      {
+        ok: false,
+        status: 502,
+        json: (): Promise<unknown> => {
+          return Promise.reject(new SyntaxError("Unexpected token <"));
+        },
+      } as FakeResponse,
+    ],
     ["a 200 that does not say it was sent", jsonResponse(200, {})],
-    ["an answer naming a field the form does not have", jsonResponse(400, { sent: false, field: "phone" })],
-    ["an answer whose message is not text", jsonResponse(400, { sent: false, message: { text: "x" } })],
+    [
+      "an answer naming a field the form does not have",
+      jsonResponse(400, { sent: false, field: "phone" }),
+    ],
+    [
+      "an answer whose message is not text",
+      jsonResponse(400, { sent: false, message: { text: "x" } }),
+    ],
     ["the network failing", new Error("Failed to fetch")],
-  ])("shows the default error for %s", async (_case: string, response: FakeResponse | Error) => {
-    const page: ScriptedPage = await scriptedPage();
-    const defaultMessage: string =
-      page.document.querySelector("[data-reseller-error-message]")?.textContent || "";
+  ])(
+    "shows the default error for %s",
+    async (_case: string, response: FakeResponse | Error) => {
+      const page: ScriptedPage = await scriptedPage();
+      const defaultMessage: string =
+        page.document.querySelector("[data-reseller-error-message]")
+          ?.textContent || "";
 
-    page.fill();
-    page.submit();
-    page.answer(response);
-    await settle();
+      page.fill();
+      page.submit();
+      page.answer(response);
+      await settle();
 
-    const error: HTMLElement = page.document.getElementById(
-      "reseller-inquiry-error",
-    ) as HTMLElement;
+      const error: HTMLElement = page.document.getElementById(
+        "reseller-inquiry-error",
+      ) as HTMLElement;
 
-    expect(defaultMessage).toBe(
-      "We could not send your message just now. Please try again in a few minutes.",
-    );
-    expect(error.hidden).toBe(false);
-    expect(
-      error.querySelector("[data-reseller-error-message]")?.textContent,
-    ).toBe(defaultMessage);
-    expect(page.document.activeElement).toBe(error);
-    expect(page.form.hidden).toBe(false);
-    expect(
-      (page.form.querySelector("button") as HTMLButtonElement).disabled,
-    ).toBe(false);
-  });
+      expect(defaultMessage).toBe(
+        "We could not send your message just now. Please try again in a few minutes.",
+      );
+      expect(error.hidden).toBe(false);
+      expect(
+        error.querySelector("[data-reseller-error-message]")?.textContent,
+      ).toBe(defaultMessage);
+      expect(page.document.activeElement).toBe(error);
+      expect(page.form.hidden).toBe(false);
+      expect(
+        (page.form.querySelector("button") as HTMLButtonElement).disabled,
+      ).toBe(false);
+    },
+  );
 
   test("writes the server's message as text, whatever it holds", async () => {
     const page: ScriptedPage = await scriptedPage();
@@ -910,7 +976,9 @@ describe("the form's script", () => {
 
     expect(shown?.textContent).toBe(message);
     expect(shown?.querySelector("img")).toBeNull();
-    expect((page.window as unknown as { hacked?: number }).hacked).toBeUndefined();
+    expect(
+      (page.window as unknown as { hacked?: number }).hacked,
+    ).toBeUndefined();
   });
 
   test("leaves the form to the browser where there is no fetch", async () => {
@@ -967,10 +1035,11 @@ describe("the way to the Resellers page", () => {
     });
     const links: Array<string> = linksIn(company?.nextElementSibling);
 
-    expect(links.slice(0, 2)).toEqual(["About Us /about", "Resellers /resellers"]);
-    expect(
-      footer.querySelectorAll('a[href="/resellers"]'),
-    ).toHaveLength(1);
+    expect(links.slice(0, 2)).toEqual([
+      "About Us /about",
+      "Resellers /resellers",
+    ]);
+    expect(footer.querySelectorAll('a[href="/resellers"]')).toHaveLength(1);
   });
 
   test("is in the Resources menu's Company group, after About Us", () => {

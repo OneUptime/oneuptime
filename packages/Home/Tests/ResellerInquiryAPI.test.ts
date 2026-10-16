@@ -94,7 +94,9 @@ interface Site {
   close: () => Promise<void>;
 }
 
-function answers(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+function answers(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
   return {
     name: "Jane Kim",
     email: "jane@acme.co.kr",
@@ -287,7 +289,7 @@ beforeEach(async () => {
     (level: "info" | "warn" | "error" | "debug") => {
       return jest
         .spyOn(logger, level)
-        .mockImplementation((message: unknown): void => {
+        .mockImplementation((message: unknown, _attributes?: unknown): void => {
           logs.push(
             message instanceof Error ? message.message : String(message),
           );
@@ -352,7 +354,8 @@ describe("an inquiry from the Resellers page", () => {
       regions: "South Korea, Japan",
       contactName: "Jane Kim",
       contactEmail: "jane@acme.co.kr",
-      messageHtml: "We resell DevOps tools.<br/>We would like to add OneUptime.",
+      messageHtml:
+        "We resell DevOps tools.<br/>We would like to add OneUptime.",
       replyUrl: "mailto:jane@acme.co.kr?subject=Your%20reseller%20inquiry",
     });
   });
@@ -455,9 +458,9 @@ describe("a request another site's page had a browser send", () => {
 
   test("does not use up the sender's own hourly share", async () => {
     for (let attempt: number = 0; attempt < PER_SENDER_LIMIT * 3; attempt++) {
-      expect(
-        (await site.post({ origin: "https://evil.example" })).status,
-      ).toBe(403);
+      expect((await site.post({ origin: "https://evil.example" })).status).toBe(
+        403,
+      );
     }
 
     expect((await site.post({ origin: INSTANCE_ORIGIN })).status).toBe(200);
@@ -466,21 +469,26 @@ describe("a request another site's page had a browser send", () => {
 
 describe("a body that is not JSON", () => {
   test.each([
-    ["urlencoded, as a plain HTML form posts", "application/x-www-form-urlencoded"],
+    [
+      "urlencoded, as a plain HTML form posts",
+      "application/x-www-form-urlencoded",
+    ],
     ["plain text", "text/plain"],
     ["multipart", "multipart/form-data; boundary=x"],
     ["JSON's look-alike", "application/jsonp"],
-  ])("%s is refused, and sends nothing", async (_case: string, contentType: string) => {
-    const answer: Answer = await site.post({
-      contentType: contentType,
-      rawBody:
-        "name=Jane&email=jane%40acme.co.kr&company=Acme&regions=Korea",
-    });
+  ])(
+    "%s is refused, and sends nothing",
+    async (_case: string, contentType: string) => {
+      const answer: Answer = await site.post({
+        contentType: contentType,
+        rawBody: "name=Jane&email=jane%40acme.co.kr&company=Acme&regions=Korea",
+      });
 
-    expect(answer.status).toBe(415);
-    expect(answer.body).toEqual({ sent: false, message: NOT_JSON_MESSAGE });
-    expect(site.sent).toHaveLength(0);
-  });
+      expect(answer.status).toBe(415);
+      expect(answer.body).toEqual({ sent: false, message: NOT_JSON_MESSAGE });
+      expect(site.sent).toHaveLength(0);
+    },
+  );
 
   test("without a content type is refused", async () => {
     const answer: Answer = await site.post({ contentType: null });
@@ -566,9 +574,9 @@ describe("a form a program filled in", () => {
     }
 
     for (let index: number = 0; index < OVERALL_LIMIT; index++) {
-      expect(
-        (await site.post({ sender: `192.0.2.${index}` })).status,
-      ).toBe(200);
+      expect((await site.post({ sender: `192.0.2.${index}` })).status).toBe(
+        200,
+      );
     }
 
     expect(site.sent).toHaveLength(OVERALL_LIMIT);
@@ -632,9 +640,9 @@ describe("a sender who keeps sending", () => {
       await site.post({ sender: `10.0.0.${index}, 203.0.113.7` });
     }
 
-    expect(
-      (await site.post({ sender: "10.0.0.99, 203.0.113.7" })).status,
-    ).toBe(429);
+    expect((await site.post({ sender: "10.0.0.99, 203.0.113.7" })).status).toBe(
+      429,
+    );
   });
 
   test("whose address cannot be told shares one count with every such sender", async () => {
@@ -646,9 +654,9 @@ describe("a sender who keeps sending", () => {
     });
 
     for (let index: number = 0; index < PER_SENDER_LIMIT; index++) {
-      expect(
-        (await site.post({ sender: `198.51.100.${index}` })).status,
-      ).toBe(200);
+      expect((await site.post({ sender: `198.51.100.${index}` })).status).toBe(
+        200,
+      );
     }
 
     expect((await site.post({ sender: "192.0.2.1" })).status).toBe(429);
@@ -659,9 +667,9 @@ describe("a sender who keeps sending", () => {
 describe("a flood from many senders", () => {
   test(`sends at most ${OVERALL_LIMIT} emails an hour, then says to come back later`, async () => {
     for (let index: number = 0; index < OVERALL_LIMIT; index++) {
-      expect(
-        (await site.post({ sender: `198.51.100.${index}` })).status,
-      ).toBe(200);
+      expect((await site.post({ sender: `198.51.100.${index}` })).status).toBe(
+        200,
+      );
     }
 
     const refused: Answer = await site.post({ sender: "192.0.2.200" });
@@ -691,11 +699,9 @@ describe("a flood from many senders", () => {
 
 describe("a mail service that does not send", () => {
   test("that refuses the email is answered with a try-again, and logged without the inquiry", async () => {
-    site.sendMail.mockImplementation(
-      async (): Promise<HTTPErrorResponse> => {
-        return new HTTPErrorResponse(500, { message: "SMTP is down" }, {});
-      },
-    );
+    site.sendMail.mockImplementation(async (): Promise<HTTPErrorResponse> => {
+      return new HTTPErrorResponse(500, { message: "SMTP is down" }, {});
+    });
 
     const answer: Answer = await site.post();
 
@@ -818,9 +824,9 @@ describe("the production settings", () => {
           createDefaultResellerInquiryOptions: () => ResellerInquiryHandlerOptions;
         } = jest.requireActual("../API/ResellerInquiryAPI");
 
-        expect(isolated.createDefaultResellerInquiryOptions().instanceOrigin).toBe(
-          "https://oneuptime.com",
-        );
+        expect(
+          isolated.createDefaultResellerInquiryOptions().instanceOrigin,
+        ).toBe("https://oneuptime.com");
       });
     } finally {
       if (savedHost === undefined) {
@@ -838,8 +844,9 @@ describe("the production settings", () => {
   });
 
   test("tell senders apart by ClientIp's reading of the address the proxy saw", () => {
-    const clientIpOf: ((req: ExpressRequest) => string | undefined) | undefined =
-      createDefaultResellerInquiryOptions().clientIpOf;
+    const clientIpOf:
+      | ((req: ExpressRequest) => string | undefined)
+      | undefined = createDefaultResellerInquiryOptions().clientIpOf;
 
     // No override: the handler reads Common/Server/Utils/ClientIp.
     expect(clientIpOf).toBeUndefined();

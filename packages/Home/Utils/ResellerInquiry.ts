@@ -185,7 +185,9 @@ const isControlCharacter: (code: number) => boolean = (
  * shows one thing in the subject and is another).
  */
 const isBidiControl: (code: number) => boolean = (code: number): boolean => {
-  return (code >= 0x202a && code <= 0x202e) || (code >= 0x2066 && code <= 0x2069);
+  return (
+    (code >= 0x202a && code <= 0x202e) || (code >= 0x2066 && code <= 0x2069)
+  );
 };
 
 // Spaces and line breaks, as String.prototype.trim reads them.
@@ -468,10 +470,17 @@ export const parseResellerInquiry: (
   body: unknown,
 ): ResellerInquiryParseResult => {
   if (!isPlainObject(body)) {
-    return { kind: "invalid", field: null, message: UNREADABLE_INQUIRY_MESSAGE };
+    return {
+      kind: "invalid",
+      field: null,
+      message: UNREADABLE_INQUIRY_MESSAGE,
+    };
   }
 
-  const honeypot: string | null = readText(body, RESELLER_INQUIRY_HONEYPOT_FIELD);
+  const honeypot: string | null = readText(
+    body,
+    RESELLER_INQUIRY_HONEYPOT_FIELD,
+  );
 
   if (honeypot === null || honeypot.trim() !== "") {
     return { kind: "trap" };
@@ -496,7 +505,11 @@ export const parseResellerInquiry: (
      * read: the page's maxlength never lets a person type one.
      */
     if (raw.length > rule.maxLength * 2) {
-      return { kind: "invalid", field: field, message: getTooLongMessage(rule) };
+      return {
+        kind: "invalid",
+        field: field,
+        message: getTooLongMessage(rule),
+      };
     }
 
     const value: string = rule.multiline
@@ -508,7 +521,11 @@ export const parseResellerInquiry: (
     }
 
     if (value.length > rule.maxLength) {
-      return { kind: "invalid", field: field, message: getTooLongMessage(rule) };
+      return {
+        kind: "invalid",
+        field: field,
+        message: getTooLongMessage(rule),
+      };
     }
 
     values[field] = value;
@@ -565,7 +582,10 @@ export const truncateText: (text: string, limit: number) => string = (
     return text;
   }
 
-  return `${characters.slice(0, limit - 1).join("").trimEnd()}${ELLIPSIS}`;
+  return `${characters
+    .slice(0, limit - 1)
+    .join("")
+    .trimEnd()}${ELLIPSIS}`;
 };
 
 /*

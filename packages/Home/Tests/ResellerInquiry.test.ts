@@ -73,7 +73,9 @@ const isControlCode: (code: number) => boolean = (code: number): boolean => {
 const isBidiControlCode: (code: number) => boolean = (
   code: number,
 ): boolean => {
-  return (code >= 0x202a && code <= 0x202e) || (code >= 0x2066 && code <= 0x2069);
+  return (
+    (code >= 0x202a && code <= 0x202e) || (code >= 0x2066 && code <= 0x2069)
+  );
 };
 
 const codesOf: (text: string) => Array<number> = (
@@ -292,7 +294,9 @@ describe("a message", () => {
 
   test("cleans each line as a one-line value", () => {
     expect(
-      cleanMultiline(`  Hello${NUL}   there \t\n${RIGHT_TO_LEFT_OVERRIDE}World  `),
+      cleanMultiline(
+        `  Hello${NUL}   there \t\n${RIGHT_TO_LEFT_OVERRIDE}World  `,
+      ),
     ).toBe("Hello there\nWorld");
   });
 
@@ -444,7 +448,8 @@ describe("reading the form", () => {
           company: "Acme\r\nKorea",
           website: " acme.co.kr ",
           regions: "South Korea,\tJapan",
-          message: "\n\nWe resell DevOps tools.\r\n\r\n\r\nWe would like to add OneUptime.\n\n",
+          message:
+            "\n\nWe resell DevOps tools.\r\n\r\n\r\nWe would like to add OneUptime.\n\n",
         }),
       ),
     ).toEqual({
@@ -487,7 +492,12 @@ describe("reading the form", () => {
     ).toMatchObject({ kind: "valid", inquiry: { website: "", message: "" } });
   });
 
-  test.each(["name", "email", "company", "regions"] as Array<ResellerInquiryField>)(
+  test.each([
+    "name",
+    "email",
+    "company",
+    "regions",
+  ] as Array<ResellerInquiryField>)(
     "asks for the %s when it is missing, empty or only space",
     (field: ResellerInquiryField) => {
       for (const value of [undefined, "", "   ", "\r\n\t", NUL]) {
@@ -507,9 +517,10 @@ describe("reading the form", () => {
   );
 
   test("asks for the first field to fix, in the form's order", () => {
-    expect(
-      parseResellerInquiry({ email: "nope", regions: "" }),
-    ).toMatchObject({ kind: "invalid", field: "name" });
+    expect(parseResellerInquiry({ email: "nope", regions: "" })).toMatchObject({
+      kind: "invalid",
+      field: "name",
+    });
     expect(
       parseResellerInquiry({ name: "Jane", email: "", company: "" }),
     ).toMatchObject({ kind: "invalid", field: "email" });
@@ -533,21 +544,30 @@ describe("reading the form", () => {
     });
   });
 
-  test.each(ResellerInquiryFieldOrder.map((field: ResellerInquiryField) => {
-    return [field];
-  }))("refuses a %s longer than the field takes", (field: ResellerInquiryField) => {
-    const rule: ResellerInquiryFieldRule = ResellerInquiryFieldRules[field];
+  test.each(
+    ResellerInquiryFieldOrder.map((field: ResellerInquiryField) => {
+      return [field];
+    }),
+  )(
+    "refuses a %s longer than the field takes",
+    (field: ResellerInquiryField) => {
+      const rule: ResellerInquiryFieldRule = ResellerInquiryFieldRules[field];
 
-    for (const length of [rule.maxLength + 1, rule.maxLength * 2 + 1, 400000]) {
-      expect(
-        parseResellerInquiry(answers({ [field]: "x".repeat(length) })),
-      ).toEqual({
-        kind: "invalid",
-        field: field,
-        message: getTooLongMessage(rule),
-      });
-    }
-  });
+      for (const length of [
+        rule.maxLength + 1,
+        rule.maxLength * 2 + 1,
+        400000,
+      ]) {
+        expect(
+          parseResellerInquiry(answers({ [field]: "x".repeat(length) })),
+        ).toEqual({
+          kind: "invalid",
+          field: field,
+          message: getTooLongMessage(rule),
+        });
+      }
+    },
+  );
 
   test("measures a value after cleaning it: spaces that go do not count", () => {
     const rule: ResellerInquiryFieldRule = ResellerInquiryFieldRules.company;
@@ -564,13 +584,16 @@ describe("reading the form", () => {
     ["a list", ["Jane", "Kim"]],
     ["an object", { first: "Jane" }],
     ["true", true],
-  ])("refuses a field that is %s, not text", (_kind: string, value: unknown) => {
-    expect(parseResellerInquiry(answers({ company: value }))).toEqual({
-      kind: "invalid",
-      field: "company",
-      message: UNREADABLE_INQUIRY_MESSAGE,
-    });
-  });
+  ])(
+    "refuses a field that is %s, not text",
+    (_kind: string, value: unknown) => {
+      expect(parseResellerInquiry(answers({ company: value }))).toEqual({
+        kind: "invalid",
+        field: "company",
+        message: UNREADABLE_INQUIRY_MESSAGE,
+      });
+    },
+  );
 
   test.each([
     ["nothing", undefined],
@@ -673,15 +696,14 @@ describe("the email an inquiry sends", () => {
   });
 
   test("hands the template the inquiry, and only it", () => {
-    expect(
-      getResellerInquiryEmailVariables(validInquiry(answers())),
-    ).toEqual({
+    expect(getResellerInquiryEmailVariables(validInquiry(answers()))).toEqual({
       companyName: "Acme Korea",
       companyWebsite: "acme.co.kr",
       regions: "South Korea, Japan",
       contactName: "Jane Kim",
       contactEmail: "jane@acme.co.kr",
-      messageHtml: "We resell DevOps tools.<br/>We would like to add OneUptime.",
+      messageHtml:
+        "We resell DevOps tools.<br/>We would like to add OneUptime.",
       replyUrl: "mailto:jane@acme.co.kr?subject=Your%20reseller%20inquiry",
     });
   });
@@ -709,7 +731,9 @@ describe("the email an inquiry sends", () => {
 
   test("shortens a long company name in the subject, and keeps it whole in the email", () => {
     const company: string = `${"Acme Global Partners ".repeat(7)}Ltd`;
-    const inquiry: ResellerInquiry = validInquiry(answers({ company: company }));
+    const inquiry: ResellerInquiry = validInquiry(
+      answers({ company: company }),
+    );
     const subject: string = getResellerInquirySubject(inquiry);
 
     expect(
@@ -734,9 +758,7 @@ describe("the email an inquiry sends", () => {
 describe("the message, as the email shows it", () => {
   test("escapes everything in it", () => {
     expect(
-      getMessageHtml(
-        `<script>alert("x")</script> & <img src=x onerror='y'>`,
-      ),
+      getMessageHtml(`<script>alert("x")</script> & <img src=x onerror='y'>`),
     ).toBe(
       "&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; &amp; &lt;img src=x onerror=&#39;y&#39;&gt;",
     );
@@ -779,7 +801,8 @@ describe("the reply link", () => {
   });
 
   test("can never add a header or a recipient, whatever the address holds", () => {
-    const address: string = "jane?cc=someone%40example.com&body=hi#x=y@acme.com";
+    const address: string =
+      "jane?cc=someone%40example.com&body=hi#x=y@acme.com";
 
     expect(isAcceptableEmailAddress(address)).toBe(true);
 
@@ -836,12 +859,15 @@ describe("the inbox inquiries go to", () => {
     "partners@oneuptime.com\nBcc: someone@example.com",
     "partners@oneuptime.com, someone@example.com",
     "Partners <partners@oneuptime.com>",
-  ])("is the default when the configured value %j is no address", (value: string) => {
-    const inbox: ResellerInquiryInbox = readResellerInquiryInbox(value);
+  ])(
+    "is the default when the configured value %j is no address",
+    (value: string) => {
+      const inbox: ResellerInquiryInbox = readResellerInquiryInbox(value);
 
-    expect(inbox.inbox.toString()).toBe("sales@oneuptime.com");
-    expect(inbox.ignoredValue).toBe(value.trim());
-  });
+      expect(inbox.inbox.toString()).toBe("sales@oneuptime.com");
+      expect(inbox.ignoredValue).toBe(value.trim());
+    },
+  );
 
   test("is read from RESELLER_INQUIRY_EMAIL", () => {
     process.env[RESELLER_INQUIRY_INBOX_VARIABLE] = "resellers@example.com";
@@ -858,8 +884,9 @@ describe("the inbox inquiries go to", () => {
 
 describe("what the page needs to draw the form", () => {
   test("is where to send it, who reads it, the hidden field and the rules", () => {
-    const content: ResellerInquiryFormContent =
-      getResellerInquiryFormContent("partners@example.com");
+    const content: ResellerInquiryFormContent = getResellerInquiryFormContent(
+      "partners@example.com",
+    );
 
     expect(content).toEqual({
       endpoint: "/resellers/contact",
@@ -910,15 +937,21 @@ describe("reading takes time in line with the text, whatever its shape", () => {
     ["bidirectional controls", `${RIGHT_TO_LEFT_OVERRIDE}a`.repeat(LENGTH / 2)],
     ["characters of two halves", CAT_FACE.repeat(LENGTH / 2)],
   ])("%s, one line or many", (_shape: string, text: string) => {
-    expect(timeOf(() => {
-      return cleanSingleLine(text);
-    })).toBeLessThan(TWO_SECONDS);
-    expect(timeOf(() => {
-      return cleanMultiline(text);
-    })).toBeLessThan(TWO_SECONDS);
-    expect(timeOf(() => {
-      return getMessageHtml(text);
-    })).toBeLessThan(TWO_SECONDS);
+    expect(
+      timeOf(() => {
+        return cleanSingleLine(text);
+      }),
+    ).toBeLessThan(TWO_SECONDS);
+    expect(
+      timeOf(() => {
+        return cleanMultiline(text);
+      }),
+    ).toBeLessThan(TWO_SECONDS);
+    expect(
+      timeOf(() => {
+        return getMessageHtml(text);
+      }),
+    ).toBeLessThan(TWO_SECONDS);
   });
 
   test.each([
@@ -926,29 +959,35 @@ describe("reading takes time in line with the text, whatever its shape", () => {
     ["dots", `a@${".".repeat(LENGTH)}`],
     ["labels", `a@${"a.".repeat(LENGTH / 2)}com`],
   ])("an address of %s", (_shape: string, address: string) => {
-    expect(timeOf(() => {
-      return isAcceptableEmailAddress(address);
-    })).toBeLessThan(TWO_SECONDS);
+    expect(
+      timeOf(() => {
+        return isAcceptableEmailAddress(address);
+      }),
+    ).toBeLessThan(TWO_SECONDS);
   });
 
   test("a website of many dots", () => {
-    expect(timeOf(() => {
-      return isAcceptableWebsite(`${"a.".repeat(LENGTH / 2)}com`);
-    })).toBeLessThan(TWO_SECONDS);
+    expect(
+      timeOf(() => {
+        return isAcceptableWebsite(`${"a.".repeat(LENGTH / 2)}com`);
+      }),
+    ).toBeLessThan(TWO_SECONDS);
   });
 
   test("a whole form of it", () => {
     const huge: string = `${"a \r\n".repeat(LENGTH / 4)}`;
 
-    expect(timeOf(() => {
-      return parseResellerInquiry({
-        name: huge,
-        email: huge,
-        company: huge,
-        website: huge,
-        regions: huge,
-        message: huge,
-      });
-    })).toBeLessThan(TWO_SECONDS);
+    expect(
+      timeOf(() => {
+        return parseResellerInquiry({
+          name: huge,
+          email: huge,
+          company: huge,
+          website: huge,
+          regions: huge,
+          message: huge,
+        });
+      }),
+    ).toBeLessThan(TWO_SECONDS);
   });
 });
