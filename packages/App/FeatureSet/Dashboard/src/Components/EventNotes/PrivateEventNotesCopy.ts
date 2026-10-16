@@ -3,6 +3,7 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { getNotesCopy, NotesCopy } from "./EventNotesUtil";
 
 /*
  * What the Dashboard says where a public note would be written on a private
@@ -16,13 +17,24 @@ import {
  * the AI all say the same sentence. Each event's sentences are whole keys,
  * not one sentence with the event's name put in: a language words "this
  * incident" and "this episode" each its own way.
+ *
+ * Everything else the Public Notes page says about its notes stays true on
+ * a private event too (getPrivateEventPublicNotesCopy): its description, the
+ * audience of a note being edited, and what deleting one does say no status
+ * page shows them while it is private - never "Visible on your status page".
  */
 
 export interface PrivateEventNotesCopy {
   // "Add Public Note" locked, and the Public Notes page where its composer was.
   refusal: string;
-  // The Public Notes page's description, in place of the status page one.
+  /*
+   * The Public Notes page's description, in place of the status page one:
+   * what its notes are, and that no status page shows them while it is
+   * private.
+   */
   description: string;
+  // Who reads a public note being edited, in place of "Visible on your status page".
+  audienceHint: string;
 }
 
 // The events that can be private: incidents and incident episodes.
@@ -32,16 +44,18 @@ export const PRIVATE_EVENT_NOTES_COPY: Record<string, PrivateEventNotesCopy> = {
       "This incident is private, so public notes cannot be added to it. Use a private note.",
     ),
     description: translationKey(
-      "This incident is private, so no status page shows it or its public notes.",
+      "Customer-facing updates about this incident. While it is private, no status page shows them.",
     ),
+    audienceHint: translationKey("Not shown while this incident is private"),
   },
   episode: {
     refusal: translationKey(
       "This episode is private, so public notes cannot be added to it. Use a private note.",
     ),
     description: translationKey(
-      "This episode is private, so no status page shows it or its public notes.",
+      "Customer-facing updates about this episode. While it is private, no status page shows them.",
     ),
+    audienceHint: translationKey("Not shown while this episode is private"),
   },
 };
 
@@ -68,12 +82,34 @@ export function getPrivateEventPublicNoteRefusal(
   return translator.translateText(refusal) || refusal;
 }
 
-// "This incident is private, so no status page shows it or its public notes."
-export function getPrivateEventPublicNotesDescription(
+/*
+ * The Public Notes page's words on a private incident or episode: the page
+ * it always is, with every sentence that promised the status page made
+ * true.
+ *
+ *  - description: "Customer-facing updates about this incident. While it is
+ *    private, no status page shows them." (translated, as getNotesCopy fills
+ *    its sentences);
+ *  - audienceHint, beside "Public" while a note is edited: "Not shown while
+ *    this incident is private";
+ *  - deleteDescription: what deleting a note does, as a private note's says
+ *    it - a note on a private event is on no status page to be removed from.
+ */
+export function getPrivateEventPublicNotesCopy(
+  copy: NotesCopy,
   eventNoun: string,
   translator: Translator = getGlobalTranslator(),
-): string {
-  const description: string = getPrivateEventNotesCopy(eventNoun).description;
+): NotesCopy {
+  const privateCopy: PrivateEventNotesCopy =
+    getPrivateEventNotesCopy(eventNoun);
 
-  return translator.translateText(description) || description;
+  return {
+    ...copy,
+    description:
+      translator.translateText(privateCopy.description) ||
+      privateCopy.description,
+    audienceHint: privateCopy.audienceHint,
+    deleteDescription: getNotesCopy("private", eventNoun, translator)
+      .deleteDescription,
+  };
 }

@@ -1357,6 +1357,59 @@ describe("event notes: paging, sorting and searching", () => {
 });
 
 describe("event notes: the composer", () => {
+  /*
+   * "Add Private Note" on a private incident's public notes leads to its
+   * private notes with ?compose=1: the page opens with the composer open,
+   * so the button does what it says in one click.
+   */
+  describe("a page opened to write a note (?compose=1)", () => {
+    beforeEach(() => {
+      window.history.pushState({}, "", "/notes?compose=1");
+    });
+
+    afterEach(() => {
+      window.history.pushState({}, "", "/");
+    });
+
+    test("starts with its composer open, the cursor in the note", async () => {
+      await renderPrivate();
+
+      expect(screen.queryByTestId("note-composer-prompt")).toBeNull();
+      expect(screen.getByTestId("note-composer")).toBeVisible();
+      await waitFor(() => {
+        expect(editor()).toHaveFocus();
+      });
+    });
+
+    test("a public notes page opens its composer the same way", async () => {
+      await renderPublic();
+
+      expect(screen.getByTestId("note-composer")).toBeVisible();
+    });
+
+    test("a private incident's public notes still take none", async () => {
+      await renderPublic({ isPrivateEvent: true });
+
+      expect(screen.queryByTestId("note-composer")).toBeNull();
+      expect(
+        screen.getByTestId("note-composer-private-event"),
+      ).toBeInTheDocument();
+    });
+  });
+
+  test("starts folded to its prompt when nobody asked to write", async () => {
+    window.history.pushState({}, "", "/notes?compose=0");
+
+    try {
+      await renderPrivate();
+
+      expect(screen.getByTestId("note-composer-prompt")).toBeInTheDocument();
+      expect(screen.queryByTestId("note-composer")).toBeNull();
+    } finally {
+      window.history.pushState({}, "", "/");
+    }
+  });
+
   test("opens from the prompt and says who will read the note", async () => {
     await renderPublic();
 
@@ -2632,11 +2685,11 @@ describe("event notes: a private incident or episode", () => {
   const INCIDENT_REFUSAL: string =
     "This incident is private, so public notes cannot be added to it. Use a private note.";
   const INCIDENT_DESCRIPTION: string =
-    "This incident is private, so no status page shows it or its public notes.";
+    "Customer-facing updates about this incident. While it is private, no status page shows them.";
   const EPISODE_REFUSAL: string =
     "This episode is private, so public notes cannot be added to it. Use a private note.";
   const EPISODE_DESCRIPTION: string =
-    "This episode is private, so no status page shows it or its public notes.";
+    "Customer-facing updates about this episode. While it is private, no status page shows them.";
 
   test("says why, where the composer was, in the server's own words", async () => {
     seedPublicNotes();
@@ -2657,17 +2710,18 @@ describe("event notes: a private incident or episode", () => {
     expect(screen.queryByTestId("note-ai-button")).toBeNull();
   });
 
-  test("offers the private notes instead, one click away", async () => {
+  test("offers the private notes instead, one click away, their composer open", async () => {
     await renderPublic({ isPrivateEvent: true });
 
     const link: HTMLElement = within(
       screen.getByTestId("note-composer-private-event"),
     ).getByRole("link", { name: "Add Private Note" });
 
-    expect(link).toHaveAttribute("href", SIBLING_ROUTE);
+    // The private notes page, opened to write one (?compose=1).
+    expect(link).toHaveAttribute("href", `${SIBLING_ROUTE}?compose=1`);
   });
 
-  test("the header says the incident is private, not that its notes appear on a status page", async () => {
+  test("the header says what its notes are, and that no status page shows them while it is private", async () => {
     seedPublicNotes();
     await renderPublic({ isPrivateEvent: true });
 
@@ -2675,6 +2729,8 @@ describe("event notes: a private incident or episode", () => {
 
     expect(description).toHaveTextContent(INCIDENT_DESCRIPTION);
     expect(description.textContent).not.toContain("appear on your status page");
+    // Said once on the page, by the lock, not again by the header.
+    expect(description.textContent).not.toContain("This incident is private");
     // Still the Public notes page, with the switch to the private ones.
     expect(screen.getByRole("heading", { name: /Public notes/ })).toBeVisible();
     expect(screen.getByTestId("notes-visibility-switch")).toBeInTheDocument();
@@ -2769,16 +2825,72 @@ describe("event notes: a private incident or episode", () => {
     expect(request.miscDataProps).toEqual({});
   });
 
-  test("its notes can still be deleted", async () => {
+  test("a note being edited says no status page shows it, not 'Visible on your status page'", async () => {
     seedPublicNotes();
     await renderPublic({ isPrivateEvent: true });
 
     const noteCard: HTMLElement = card("Monitoring.");
     await openActions(noteCard);
+    fireEvent.click(
+      within(noteCard).getByRole("menuitem", { name: "Edit note" }),
+    );
+    const composer: HTMLElement =
+      await within(noteCard).findByTestId("note-edit-composer");
+    const audience: HTMLElement = within(composer).getByTestId("note-audience");
 
-    expect(
+    // Still a public note - it shows again once the incident is public.
+    expect(audience).toHaveTextContent(
+      "Public·Not shown while this incident is private",
+    );
+    expect(audience.textContent).not.toContain("status page");
+  });
+
+  test("an episode's note being edited names the episode", async () => {
+    seedPublicNotes();
+    await renderPublic({ isPrivateEvent: true, eventNoun: "episode" });
+
+    const noteCard: HTMLElement = card("Monitoring.");
+    await openActions(noteCard);
+    fireEvent.click(
+      within(noteCard).getByRole("menuitem", { name: "Edit note" }),
+    );
+    const composer: HTMLElement =
+      await within(noteCard).findByTestId("note-edit-composer");
+
+    expect(within(composer).getByTestId("note-audience")).toHaveTextContent(
+      "Public·Not shown while this episode is private",
+    );
+  });
+
+  test("its notes can still be deleted, and deleting one does not claim to take it off a status page", async () => {
+    seedPublicNotes();
+    await renderPublic({ isPrivateEvent: true });
+
+    const noteCard: HTMLElement = card("Monitoring.");
+    await openActions(noteCard);
+    fireEvent.click(
       within(noteCard).getByRole("menuitem", { name: "Delete note" }),
+    );
+
+    const dialog: HTMLElement = screen.getByRole("dialog", {
+      name: "Delete this public note?",
+    });
+    expect(
+      within(dialog).getByText(
+        "The note will be permanently deleted. This cannot be undone.",
+      ),
     ).toBeVisible();
+    expect(dialog.textContent).not.toContain("status page");
+
+    await act(async () => {
+      fireEvent.click(within(dialog).getByText("Delete note"));
+    });
+
+    expect(deleteMock).toHaveBeenCalledTimes(1);
+    const request: { modelType: unknown; id: ObjectID } = deleteMock.mock
+      .calls[0]![0] as { modelType: unknown; id: ObjectID };
+    expect(request.modelType).toBe(IncidentPublicNote);
+    expect(request.id.toString()).toBe(noteId(1));
   });
 
   test("a failed notification is not offered again: nothing it sends would reach anyone", async () => {
@@ -2822,6 +2934,37 @@ describe("event notes: a private incident or episode", () => {
     expect(screen.getByTestId("notes-empty-cta")).toHaveTextContent(
       "Post the first update",
     );
+  });
+
+  test("an incident that is not private keeps 'Visible on your status page' while a note is edited, and 'removed from your status page' on delete", async () => {
+    seedPublicNotes();
+    await renderPublic({ isPrivateEvent: false });
+
+    const noteCard: HTMLElement = card("Monitoring.");
+    await openActions(noteCard);
+    fireEvent.click(
+      within(noteCard).getByRole("menuitem", { name: "Edit note" }),
+    );
+    const composer: HTMLElement =
+      await within(noteCard).findByTestId("note-edit-composer");
+
+    expect(within(composer).getByTestId("note-audience")).toHaveTextContent(
+      "Public·Visible on your status page",
+    );
+
+    fireEvent.click(within(composer).getByText("Cancel"));
+    await openActions(card("Identified."));
+    fireEvent.click(
+      within(card("Identified.")).getByRole("menuitem", {
+        name: "Delete note",
+      }),
+    );
+
+    expect(
+      within(
+        screen.getByRole("dialog", { name: "Delete this public note?" }),
+      ).getByText(/removed from your status page/),
+    ).toBeVisible();
   });
 
   test("a private event's private notes are written as always", async () => {

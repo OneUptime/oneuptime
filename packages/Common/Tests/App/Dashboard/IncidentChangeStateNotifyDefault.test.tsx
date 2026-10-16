@@ -859,6 +859,34 @@ describe("ChangeIncidentState on a private incident", () => {
       expect(model.incidentId?.toString()).toBe(INCIDENT_ID);
       expect(model.incidentStateId?.toString()).toBe(openCase.expectedStateId);
     });
+
+    test("sends 'notify nobody' itself: the form sends no value for the box it does not show", async () => {
+      const props: StateChangeModalProps = await openPrivateModal(openCase);
+      const model: IncidentStateTimeline = new IncidentStateTimeline();
+
+      // What the form hands over: no notify value at all.
+      expect(model.shouldStatusPageSubscribersBeNotified).toBeUndefined();
+
+      await props.onBeforeCreate(model);
+
+      // Not left to the column's default, which notifies.
+      expect(model.shouldStatusPageSubscribersBeNotified).toBe(false);
+    });
+  });
+
+  test("an incident that is not private leaves the notify value to its box", async () => {
+    respondWith();
+    renderPrivateHeader(false, true);
+    await waitForHeader();
+
+    clickAcknowledge();
+
+    const model: IncidentStateTimeline = new IncidentStateTimeline();
+    model.shouldStatusPageSubscribersBeNotified = true;
+
+    await lastModalProps().onBeforeCreate(model);
+
+    expect(model.shouldStatusPageSubscribersBeNotified).toBe(true);
   });
 
   test("a picked template goes into the private note, its placeholders filled", async () => {

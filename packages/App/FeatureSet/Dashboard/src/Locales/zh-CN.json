@@ -30070,8 +30070,10 @@
   "If checked, only the incident's owner users and the members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "如果选中，则只有该事件的所有者用户及其所有者团队的成员（以及项目管理员和所有者）才能查看此事件。私有事件会自动从所有状态页中隐藏，并且无法添加公开备注。",
   "If enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "如果启用，则只有该事件的所有者用户及其所有者团队的成员（以及项目管理员和所有者）才能查看此事件。私有事件会自动从所有状态页中隐藏，并且无法添加公开备注。",
   "When enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "启用后，只有该事件的所有者用户及其所有者团队的成员（以及项目管理员和所有者）才能查看此事件。私有事件会自动从所有状态页面中隐藏，并且无法添加公开备注。",
-  "This episode is private, so no status page shows it or its public notes.": "此片段为私密片段，因此任何状态页都不会显示此片段及其公开备注。",
   "This episode is private, so public notes cannot be added to it. Use a private note.": "此片段为私密片段，因此无法添加公开备注。请使用私密备注。",
-  "This incident is private, so no status page shows it or its public notes.": "此事件为私密事件，因此任何状态页都不会显示此事件及其公开备注。",
-  "This incident is private, so public notes cannot be added to it. Use a private note.": "此事件为私密事件，因此无法添加公开备注。请使用私密备注。"
+  "This incident is private, so public notes cannot be added to it. Use a private note.": "此事件为私密事件，因此无法添加公开备注。请使用私密备注。",
+  "Customer-facing updates about this episode. While it is private, no status page shows them.": "关于此片段的面向客户的更新。在此片段为私密期间，任何状态页都不会显示这些更新。",
+  "Customer-facing updates about this incident. While it is private, no status page shows them.": "关于此事件的面向客户的更新。在此事件为私密期间，任何状态页都不会显示这些更新。",
+  "Not shown while this episode is private": "此片段为私密期间不显示",
+  "Not shown while this incident is private": "此事件为私密期间不显示"
 }

@@ -34,6 +34,7 @@ import {
   applyTemplateToDraft,
   canWriteNoteColumn,
   getNotesCopy,
+  getRouteWithComposerOpen,
   isNoteBlank,
 } from "./EventNotesUtil";
 import NoteAvatar from "./NoteAvatar";
@@ -494,7 +495,7 @@ function EventNoteComposer<TNote extends BaseModel>(
         </div>
         {kind.siblingRoute && (
           <Link
-            to={kind.siblingRoute}
+            to={getRouteWithComposerOpen(kind.siblingRoute)}
             className="inline-flex h-8 shrink-0 items-center gap-1.5 self-start rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 sm:self-auto"
           >
             <Icon icon={IconProp.Lock} className="h-4 w-4 text-amber-600" />

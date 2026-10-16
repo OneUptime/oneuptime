@@ -282,8 +282,12 @@ export function describeSharedPublicNoteWiring(): void {
     });
 
     test("opens the composer only when asked, not because of the default", () => {
+      /*
+       * Folded, unless the page was opened to write a note (?compose=1, where
+       * "Add Private Note" on a private incident's public notes leads).
+       */
       expect(notes).toContain(
-        "const [isComposerOpen, setIsComposerOpen] = useState<boolean>(false);",
+        "const [isComposerOpen, setIsComposerOpen] = useState<boolean>(() => { return isComposerOpenRequested(window.location.search); });",
       );
       expect(notes).not.toMatch(/setIsComposerOpen\([^)]*isNotifyingByDefault/);
       expect(source).not.toMatch(/onOpenChange\([^)]*isNotifyingByDefault/);

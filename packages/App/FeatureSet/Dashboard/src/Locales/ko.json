@@ -30070,8 +30070,10 @@
   "If checked, only the incident's owner users and the members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "선택하면 인시던트의 소유자 사용자와 소유자 팀의 구성원(및 프로젝트 관리자 및 소유자)만 이 인시던트를 볼 수 있습니다. 비공개 인시던트는 모든 상태 페이지에서 자동으로 숨겨지며, 공개 메모를 추가할 수 없습니다.",
   "If enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "활성화하면 인시던트의 소유자 사용자와 소유자 팀의 구성원(및 프로젝트 관리자 및 소유자)만 이 인시던트를 볼 수 있습니다. 비공개 인시던트는 모든 상태 페이지에서 자동으로 숨겨지며, 공개 메모를 추가할 수 없습니다.",
   "When enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "활성화하면 인시던트의 소유자 사용자와 소유자 팀의 멤버(및 프로젝트 관리자와 소유자)만 이 인시던트를 볼 수 있습니다. 비공개 인시던트는 모든 상태 페이지에서 자동으로 숨겨지며, 공개 메모를 추가할 수 없습니다.",
-  "This episode is private, so no status page shows it or its public notes.": "이 에피소드는 비공개이므로 어떤 상태 페이지에도 에피소드와 공개 메모가 표시되지 않습니다.",
   "This episode is private, so public notes cannot be added to it. Use a private note.": "이 에피소드는 비공개이므로 공개 메모를 추가할 수 없습니다. 비공개 메모를 사용하세요.",
-  "This incident is private, so no status page shows it or its public notes.": "이 인시던트는 비공개이므로 어떤 상태 페이지에도 인시던트와 공개 메모가 표시되지 않습니다.",
-  "This incident is private, so public notes cannot be added to it. Use a private note.": "이 인시던트는 비공개이므로 공개 메모를 추가할 수 없습니다. 비공개 메모를 사용하세요."
+  "This incident is private, so public notes cannot be added to it. Use a private note.": "이 인시던트는 비공개이므로 공개 메모를 추가할 수 없습니다. 비공개 메모를 사용하세요.",
+  "Customer-facing updates about this episode. While it is private, no status page shows them.": "이 에피소드에 대한 고객용 업데이트입니다. 비공개인 동안에는 어떤 상태 페이지에도 표시되지 않습니다.",
+  "Customer-facing updates about this incident. While it is private, no status page shows them.": "이 인시던트에 대한 고객용 업데이트입니다. 비공개인 동안에는 어떤 상태 페이지에도 표시되지 않습니다.",
+  "Not shown while this episode is private": "이 에피소드가 비공개인 동안 표시되지 않음",
+  "Not shown while this incident is private": "이 인시던트가 비공개인 동안 표시되지 않음"
 }

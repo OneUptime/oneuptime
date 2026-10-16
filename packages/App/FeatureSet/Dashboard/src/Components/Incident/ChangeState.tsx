@@ -624,6 +624,17 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
             model.incidentId = props.incidentId;
             model.incidentStateId = selectedIncidentState!.id!;
 
+            /*
+             * A private incident's dialog has no notify box, and the form
+             * sends no value for a field it does not show - the seeded false
+             * above included - so the column's default (notify) would be
+             * recorded. Said here, as the Change State bulk action says it:
+             * a private incident notifies nobody.
+             */
+            if (props.isPrivate) {
+              model.shouldStatusPageSubscribersBeNotified = false;
+            }
+
             return model;
           }}
           onSuccess={async (): Promise<void> => {

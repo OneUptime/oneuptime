@@ -46,6 +46,7 @@ import {
   getNoteTimestamp,
   groupNotesByDay,
   hasNotificationInFlight,
+  isComposerOpenRequested,
 } from "./EventNotesUtil";
 import NoteCard, { NoteActionGate } from "./NoteCard";
 import { NoteResendConfirmation } from "./NoteNotificationBadge";
@@ -60,7 +61,7 @@ import { EventNoteKind } from "./EventNoteKind";
 import NotesVisibilitySwitch from "./NotesVisibilitySwitch";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import { getPrivateEventPublicNotesDescription } from "./PrivateEventNotesCopy";
+import { getPrivateEventPublicNotesCopy } from "./PrivateEventNotesCopy";
 
 /*
  * What the page hands the notes feed: the kind of note it shows, from the
@@ -109,11 +110,6 @@ function EventNotes<TNote extends BaseModel>(
     return translateString(value) || value;
   };
 
-  const copy: NotesCopy = getNotesCopy(
-    props.visibility,
-    props.eventNoun,
-    translator,
-  );
   const model: TNote = useMemo(() => {
     return new props.modelType();
   }, [props.modelType]);
@@ -126,6 +122,23 @@ function EventNotes<TNote extends BaseModel>(
    * tells subscribers, whom a private event never reaches.
    */
   const isPrivateEvent: boolean = isPublic && Boolean(props.isPrivateEvent);
+  /*
+   * And nothing on the page says they are on a status page: the
+   * description, the audience of a note being edited and what deleting one
+   * does are a private event's own (getPrivateEventPublicNotesCopy).
+   */
+  const visibilityCopy: NotesCopy = getNotesCopy(
+    props.visibility,
+    props.eventNoun,
+    translator,
+  );
+  const copy: NotesCopy = isPrivateEvent
+    ? getPrivateEventPublicNotesCopy(
+        visibilityCopy,
+        props.eventNoun,
+        translator,
+      )
+    : visibilityCopy;
   // What the viewer holds, blocks included.
   const heldPermissions: HeldPermissions = PermissionGate.getHeldPermissions();
   const isMasterAdmin: boolean = User.isMasterAdmin();
@@ -225,9 +238,13 @@ function EventNotes<TNote extends BaseModel>(
 
   /*
    * Whether the composer is open or folded to its prompt. Kept here, not in
-   * the composer, so the empty feed's "Post the first update" can open it.
+   * the composer, so the empty feed's "Post the first update" can open it -
+   * and a page opened to write a note (?compose=1, where "Add Private Note"
+   * on a private incident's public notes leads) starts with it open.
    */
-  const [isComposerOpen, setIsComposerOpen] = useState<boolean>(false);
+  const [isComposerOpen, setIsComposerOpen] = useState<boolean>(() => {
+    return isComposerOpenRequested(window.location.search);
+  });
 
   /*
    * Every fetch takes a number and drops its answer if a newer one started,
@@ -801,12 +818,7 @@ function EventNotes<TNote extends BaseModel>(
                 className="mt-1 max-w-2xl text-sm text-gray-500"
                 data-testid="notes-description"
               >
-                {isPrivateEvent
-                  ? getPrivateEventPublicNotesDescription(
-                      props.eventNoun,
-                      translator,
-                    )
-                  : tx(copy.description)}
+                {tx(copy.description)}
               </p>
             </div>
           </div>
