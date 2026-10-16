@@ -213,9 +213,10 @@ export const QueryMetricsTool: ObservabilityTool = {
      * retention and mixes in data outside the requested window.
      *
      * The project is named in the query too, as every other raw telemetry
-     * tool names it: an autonomous investigation reads as OneUptime itself
-     * (root props, no tenant), and the model layer only adds the tenant from
-     * a caller's props, so without it the read would cover every project.
+     * tool names it: a root read is held to a project only by a tenant in its
+     * caller's props (the model layer adds nothing else), so a caller that
+     * passes none - autonomous investigations did, before they named theirs
+     * - would read every project.
      */
     const query: JSONObject = {
       projectId: ctx.projectId,
