@@ -148,7 +148,7 @@ describe("the reseller inquiry email", () => {
 
   test("says where it came from, and how to answer", () => {
     expect(decodeHtmlEntities(render())).toContain(
-      "A company asked to become a reseller, through the form on the Resellers page of the website. Reply to them at the email address below.",
+      "A company asked to become a reseller using the form on the Resellers page of your website. Reply to them at the email address below.",
     );
   });
 
