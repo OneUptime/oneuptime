@@ -42,7 +42,7 @@ import WorkspaceMemberActions, {
   WorkspaceEventStateOptions,
   WorkspaceEventType,
 } from "../../WorkspaceMemberActions";
-import SlackActionAnswer from "./Answer";
+import SlackActionAnswer, { SlackAnswerPlace } from "./Answer";
 import WorkspaceActionAnswers, {
   WorkspaceLatePress,
 } from "../../WorkspaceActionAnswers";
@@ -58,6 +58,12 @@ import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
 import SlackIncidentMoreActions from "./IncidentMoreActions";
 import { WorkspacePendingActionKind } from "../../WorkspaceConnectRequest";
 import WorkspaceIncidentActions from "../../WorkspaceIncidentActions";
+import WorkspaceNoteForm, {
+  WorkspaceNoteFormType,
+  WorkspaceSubmittedNote,
+} from "../../WorkspaceNoteForm";
+import { PrivateRecordKind } from "../../../../../Types/StatusPage/PrivateRecordPublicNotes";
+import { WorkspaceNoteType } from "../../../../../Types/Workspace/WorkspaceNoteReaction";
 import WorkspaceCommands from "../../WorkspaceCommands";
 
 export default class SlackIncidentActions {
@@ -1354,14 +1360,6 @@ export default class SlackIncidentActions {
       );
     }
 
-    if (!data.slackRequest.viewValues["noteType"]) {
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadDataException("Invalid Note Type"),
-      );
-    }
-
     if (!data.slackRequest.viewValues["note"]) {
       // return error.
       return Response.sendErrorResponse(
@@ -1373,10 +1371,19 @@ export default class SlackIncidentActions {
 
     const incidentId: ObjectID = new ObjectID(actionValue);
     const note: string = data.slackRequest.viewValues["note"].toString();
-    const noteType: string =
-      data.slackRequest.viewValues["noteType"].toString();
 
-    if (noteType !== "public" && noteType !== "private") {
+    /*
+     * The form's Note Type: "public" or "private" - or none, from a private
+     * incident's form, which asks for none (WorkspaceNoteForm).
+     */
+    const submittedNoteType: string | undefined =
+      data.slackRequest.viewValues["noteType"]?.toString() || undefined;
+
+    if (
+      submittedNoteType !== undefined &&
+      submittedNoteType !== WorkspaceNoteFormType.Public &&
+      submittedNoteType !== WorkspaceNoteFormType.Private
+    ) {
       return Response.sendErrorResponse(
         req,
         res,
@@ -1389,15 +1396,32 @@ export default class SlackIncidentActions {
       response_action: "clear",
     });
 
+    /*
+     * What it writes: a private incident takes no public notes, so a public
+     * one asked for on an incident made private since the form opened is
+     * written as a private note - and the answer says so.
+     */
+    const submitted: WorkspaceSubmittedNote | null =
+      await WorkspaceNoteForm.getSubmittedNote({
+        submittedNoteType: submittedNoteType,
+        kind: PrivateRecordKind.Incident,
+        recordId: incidentId,
+        projectId: data.slackRequest.projectId,
+      });
+
+    if (!submitted) {
+      return;
+    }
+
+    const isPublic: boolean = submitted.noteType === WorkspaceNoteType.Public;
+
     const props: DatabaseCommonInteractionProps | null =
       await SlackActionAuthorization.authorize({
         requester: data.slackRequest,
-        modelType:
-          noteType === "public" ? IncidentPublicNote : IncidentInternalNote,
-        action:
-          noteType === "public"
-            ? "add a public note to this incident"
-            : "add a private note to this incident",
+        modelType: isPublic ? IncidentPublicNote : IncidentInternalNote,
+        action: isPublic
+          ? "add a public note to this incident"
+          : "add a private note to this incident",
         resources: [{ service: IncidentService, id: incidentId }],
       });
 
@@ -1411,7 +1435,7 @@ export default class SlackIncidentActions {
         requester: data.slackRequest,
         action: "add the note",
         run: async (): Promise<boolean> => {
-          if (noteType === "public") {
+          if (isPublic) {
             await IncidentPublicNoteService.addNote({
               incidentId: incidentId,
               note: note,
@@ -1431,19 +1455,44 @@ export default class SlackIncidentActions {
         },
       });
 
-    if (isAdded) {
-      // Opened from a message only they see: what it did.
-      await SlackIncidentMoreActions.answerDoneIfPrivate({
-        slackRequest: data.slackRequest,
-        answer: () => {
-          return WorkspaceIncidentActions.getNoteAddedAnswer({
-            incidentId: incidentId,
-            isPublic: noteType === "public",
-            props: props,
-          });
-        },
-      });
+    if (!isAdded) {
+      return;
     }
+
+    if (submitted.isPublicAskedOnPrivateRecord) {
+      /*
+       * Not the note they chose: told wherever they opened the form, with
+       * what it became and why.
+       */
+      const place: SlackAnswerPlace | null = SlackActionAnswer.getPlace(
+        data.slackRequest,
+      );
+
+      if (place) {
+        await SlackActionAnswer.answer({
+          place: place,
+          answer: await WorkspaceNoteForm.getSavedPrivatelyAnswer({
+            kind: PrivateRecordKind.Incident,
+            recordId: incidentId,
+            props: props,
+          }),
+        });
+      }
+
+      return;
+    }
+
+    // Opened from a message only they see: what it did.
+    await SlackIncidentMoreActions.answerDoneIfPrivate({
+      slackRequest: data.slackRequest,
+      answer: () => {
+        return WorkspaceIncidentActions.getNoteAddedAnswer({
+          incidentId: incidentId,
+          isPublic: isPublic,
+          props: props,
+        });
+      },
+    });
   }
 
   @CaptureSpan()
@@ -1469,43 +1518,31 @@ export default class SlackIncidentActions {
       response_action: "clear",
     });
 
-    // const incidentId: ObjectID = new ObjectID(actionValue);
-
-    // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
-
-    const notePickerDropdown: WorkspaceDropdownBlock = {
-      _type: "WorkspaceDropdownBlock",
-      label: "Note Type",
-      blockId: "noteType",
-      placeholder: "Select Note Type",
-      options: [
-        {
-          label: "Public Note (Will be posted on Status Page)",
-          value: "public",
-        },
-        {
-          label: "Private Note (Only visible to team members)",
-          value: "private",
-        },
-      ],
-    };
-
-    const noteTextArea: WorkspaceTextAreaBlock = {
-      _type: "WorkspaceTextAreaBlock",
-      label: "Note",
-      blockId: "note",
-      placeholder: "Note",
-      description: "Please type in plain text or markdown.",
-    };
+    /*
+     * The note's kind - public, on the status page, or private - and the
+     * note. A private incident takes no public notes, so its form asks for
+     * no kind and says why (WorkspaceNoteForm).
+     */
+    const form: { title: string; blocks: Array<WorkspaceMessageBlock> } =
+      WorkspaceNoteForm.getSlackForm({
+        kind: PrivateRecordKind.Incident,
+        isPrivateRecord: ObjectID.isValidUUID(actionValue)
+          ? await WorkspaceNoteForm.isPrivateRecord({
+              kind: PrivateRecordKind.Incident,
+              recordId: new ObjectID(actionValue),
+              projectId: data.slackRequest.projectId,
+            })
+          : false,
+      });
 
     const modalBlock: WorkspaceModalBlock = {
       _type: "WorkspaceModalBlock",
-      title: "Add Note",
+      title: form.title,
       submitButtonTitle: "Submit",
       cancelButtonTitle: "Cancel",
       actionId: SlackActionType.SubmitIncidentNote,
       actionValue: actionValue,
-      blocks: [notePickerDropdown, noteTextArea],
+      blocks: form.blocks,
     };
 
     await SlackActionAnswer.showModal({

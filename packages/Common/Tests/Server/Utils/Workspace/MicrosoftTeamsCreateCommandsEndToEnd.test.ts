@@ -1,4 +1,5 @@
 /** @timezone Asia/Tokyo */
+import { stubPrivateRecords } from "../../TestingUtils/PrivateRecords";
 import {
   afterAll,
   afterEach,
@@ -1613,6 +1614,16 @@ afterEach(() => {
 });
 
 // ---- Tests ----
+
+/*
+ * A public note asked for in a chat - a 📣, an Add Note form - first asks
+ * whether its incident or episode is private, which takes no public notes
+ * (WorkspaceReactionNote.getNoteTypeSavedAs, WorkspaceNoteForm): none of
+ * these is.
+ */
+beforeEach((): void => {
+  stubPrivateRecords();
+});
 
 describe("harness: MicrosoftTeamsUtil runs on the real botbuilder stack", () => {
   test("botbuilder is the real package, not the moduleNameMapper stub, and processBotActivity uses the injected adapter", () => {

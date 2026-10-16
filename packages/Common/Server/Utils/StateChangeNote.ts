@@ -19,7 +19,9 @@ import ModelPermission from "../Types/Database/Permissions/Index";
  *    which reaches the status page (StatusPage/StateChangePublicNote).
  *  - Alerts, alert episodes and incident episodes post a private note
  *    (`privateNote`; an alert also takes the older `internalNote`), which
- *    stays with the team.
+ *    stays with the team. So does an incident: a private incident takes no
+ *    public notes (Types/StatusPage/PrivateRecordPublicNotes), and its
+ *    state change dialog offers a private note in their place.
  *
  * The note is posted as the person changing the state, and posting a note is
  * a permission of its own (Create Alert Internal Note, Create Incident Status

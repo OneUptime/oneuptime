@@ -239,7 +239,7 @@ describe("post_incident_status_update - explicit notifySubscribers wins", () => 
 });
 
 describe("post_incident_status_update - incident lookup", () => {
-  test("selects the incident's notify-on-create flag and reads it under ctx.props", async () => {
+  test("selects the incident's notify-on-create flag and whether it is private, and reads them under ctx.props", async () => {
     const run: ToolRun = await runTool(buildIncident(false));
 
     expect(run.findSpy).toHaveBeenCalledTimes(1);
@@ -250,6 +250,7 @@ describe("post_incident_status_update - incident lookup", () => {
       incidentNumber: true,
       title: true,
       shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+      isPrivate: true,
     });
     expect(findArgs["props"]).toBe(ctx.props);
   });

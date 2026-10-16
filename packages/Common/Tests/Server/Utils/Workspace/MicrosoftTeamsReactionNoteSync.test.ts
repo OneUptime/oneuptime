@@ -1,3 +1,4 @@
+import { stubPrivateRecords } from "../../TestingUtils/PrivateRecords";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -221,6 +222,16 @@ function noteReaction(
 
 afterEach((): void => {
   jest.restoreAllMocks();
+});
+
+/*
+ * A public note asked for in a chat - a 📣, an Add Note form - first asks
+ * whether its incident or episode is private, which takes no public notes
+ * (WorkspaceReactionNote.getNoteTypeSavedAs, WorkspaceNoteForm): none of
+ * these is.
+ */
+beforeEach((): void => {
+  stubPrivateRecords();
 });
 
 describe("MicrosoftTeamsReactionNoteSync.getNoteReactions", () => {
@@ -1523,6 +1534,8 @@ describe("MicrosoftTeamsReactionNoteSync.saveAfterConnect", () => {
   test("saves the message she pinned, and confirms it once in its thread", async () => {
     await expect(saveAfterConnect()).resolves.toEqual({
       outcome: WorkspaceMessageNoteOutcome.Saved,
+      // Saved as the note the pin asked for: the incident is not private.
+      noteType: WorkspaceNoteType.Private,
     });
 
     expect(readSpy).toHaveBeenCalledWith({

@@ -1,3 +1,4 @@
+import { stubPrivateRecords } from "../../../TestingUtils/PrivateRecords";
 import {
   afterEach,
   beforeEach,
@@ -1295,6 +1296,16 @@ function stubLateAnswerReads(data: {
  * what the event is - ongoing, or over - who took it there, and when, as
  * news rather than as an error. Nothing is written either way.
  */
+/*
+ * A public note asked for in a chat - a 📣, an Add Note form - first asks
+ * whether its incident or episode is private, which takes no public notes
+ * (WorkspaceReactionNote.getNoteTypeSavedAs, WorkspaceNoteForm): none of
+ * these is.
+ */
+beforeEach((): void => {
+  stubPrivateRecords();
+});
+
 describe("Slack Mark as Ongoing on an event that has started already", (): void => {
   test.each([
     ["ongoing", false, "was already marked as ongoing"],

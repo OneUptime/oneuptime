@@ -35,6 +35,13 @@ import MicrosoftTeamsCardChoices, {
 import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
 import MicrosoftTeamsActionAnswer from "../MicrosoftTeamsActionAnswer";
 import { WorkspaceLatePress } from "../../WorkspaceActionAnswers";
+import WorkspaceNoteForm, {
+  WORKSPACE_NOTE_FORM_TEXT,
+  WorkspaceNoteFormType,
+  WorkspaceSubmittedNote,
+} from "../../WorkspaceNoteForm";
+import { PrivateRecordKind } from "../../../../../Types/StatusPage/PrivateRecordPublicNotes";
+import { WorkspaceNoteType } from "../../../../../Types/Workspace/WorkspaceNoteReaction";
 import FeedMarkdown, {
   mdText,
 } from "../../../../../Utils/Markdown/FeedMarkdown";
@@ -249,8 +256,20 @@ export default class MicrosoftTeamsIncidentActions {
         return;
       }
 
-      // Send the input card
-      const card: JSONObject = this.buildAddIncidentNoteCard(actionValue);
+      /*
+       * A private incident takes no public notes, so its card asks for no
+       * kind and says why (WorkspaceNoteForm).
+       */
+      const card: JSONObject = this.buildAddIncidentNoteCard({
+        incidentId: actionValue,
+        isPrivateRecord: ObjectID.isValidUUID(actionValue)
+          ? await WorkspaceNoteForm.isPrivateRecord({
+              kind: PrivateRecordKind.Incident,
+              recordId: new ObjectID(actionValue),
+              projectId: projectId,
+            })
+          : false,
+      });
       await turnContext.sendActivity({
         attachments: [
           {
@@ -278,26 +297,50 @@ export default class MicrosoftTeamsIncidentActions {
         // Submit the note
         const incidentId: ObjectID = new ObjectID(actionValue);
 
-        if (noteType !== "public" && noteType !== "private") {
+        if (
+          noteType !== WorkspaceNoteFormType.Public &&
+          noteType !== WorkspaceNoteFormType.Private
+        ) {
           await turnContext.sendActivity(
             "Unable to add note: invalid note type.",
           );
           return;
         }
 
+        /*
+         * What it writes: a private incident takes no public notes, so a
+         * public one asked for on an incident made private since the card
+         * was sent is written as a private note - and the answer says so.
+         */
+        const submitted: WorkspaceSubmittedNote | null =
+          await WorkspaceNoteForm.getSubmittedNote({
+            submittedNoteType: noteType,
+            kind: PrivateRecordKind.Incident,
+            recordId: incidentId,
+            projectId: projectId,
+          });
+
+        if (!submitted) {
+          await turnContext.sendActivity(
+            "Unable to add note: invalid note type.",
+          );
+          return;
+        }
+
+        const isPublic: boolean =
+          submitted.noteType === WorkspaceNoteType.Public;
+
         await WorkspaceActionAuthorization.assertCanCreate({
           props: databaseProps,
-          modelType:
-            noteType === "public" ? IncidentPublicNote : IncidentInternalNote,
-          action:
-            noteType === "public"
-              ? "add a public note to this incident"
-              : "add a private note to this incident",
+          modelType: isPublic ? IncidentPublicNote : IncidentInternalNote,
+          action: isPublic
+            ? "add a public note to this incident"
+            : "add a private note to this incident",
           resources: [{ service: IncidentService, id: incidentId }],
         });
 
         // Posted by the member, as the dashboard posts it for them.
-        if (noteType === "public") {
+        if (isPublic) {
           await IncidentPublicNoteService.addNote({
             incidentId: incidentId,
             note: note.toString(),
@@ -313,10 +356,22 @@ export default class MicrosoftTeamsIncidentActions {
           });
         }
 
-        await MicrosoftTeamsReplies.sendBestEffort(
-          turnContext,
-          "✅ Note added successfully.",
-        );
+        if (submitted.isPublicAskedOnPrivateRecord) {
+          // Not the note they chose: what it became, and why.
+          await MicrosoftTeamsActionAnswer.reply({
+            turnContext: turnContext,
+            answer: await WorkspaceNoteForm.getSavedPrivatelyAnswer({
+              kind: PrivateRecordKind.Incident,
+              recordId: incidentId,
+              props: databaseProps,
+            }),
+          });
+        } else {
+          await MicrosoftTeamsReplies.sendBestEffort(
+            turnContext,
+            "✅ Note added successfully.",
+          );
+        }
 
         /*
          * The action is done: a refused reply or a failed delete of the
@@ -801,7 +856,58 @@ export default class MicrosoftTeamsIncidentActions {
     return createdIncident;
   }
 
-  private static buildAddIncidentNoteCard(incidentId: string): JSONObject {
+  /*
+   * The Add Note card: the note's kind and the note. A private incident
+   * takes no public notes (WorkspaceNoteForm): its card is "Add Private
+   * Note", says why in one line, asks for no kind, and sends a private note.
+   */
+  public static buildAddIncidentNoteCard(data: {
+    incidentId: string;
+    isPrivateRecord: boolean;
+  }): JSONObject {
+    const noteInput: JSONObject = {
+      type: "Input.Text",
+      id: "note",
+      label: WORKSPACE_NOTE_FORM_TEXT.noteLabel,
+      isMultiline: true,
+      placeholder: WORKSPACE_NOTE_FORM_TEXT.noteDescription,
+    };
+
+    if (data.isPrivateRecord) {
+      return {
+        type: "AdaptiveCard",
+        $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+        version: "1.5",
+        body: [
+          {
+            type: "TextBlock",
+            text: "Add Private Note",
+            size: "Large",
+            weight: "Bolder",
+          },
+          {
+            type: "TextBlock",
+            text: WorkspaceNoteForm.getPrivateRecordLine(
+              PrivateRecordKind.Incident,
+            ),
+            wrap: true,
+          },
+          noteInput,
+        ],
+        actions: [
+          {
+            type: "Action.Submit",
+            title: WORKSPACE_NOTE_FORM_TEXT.submit,
+            data: {
+              action: MicrosoftTeamsIncidentActionType.SubmitIncidentNote,
+              actionValue: data.incidentId,
+              noteType: WorkspaceNoteFormType.Private,
+            },
+          },
+        ],
+      };
+    }
+
     return {
       type: "AdaptiveCard",
       $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -816,35 +922,29 @@ export default class MicrosoftTeamsIncidentActions {
         {
           type: "Input.ChoiceSet",
           id: "noteType",
-          label: "Note Type",
+          label: WORKSPACE_NOTE_FORM_TEXT.noteTypeLabel,
           style: "compact",
-          value: "public",
+          value: WorkspaceNoteFormType.Public,
           choices: [
             {
-              title: "Public Note (Will be posted on Status Page)",
-              value: "public",
+              title: WORKSPACE_NOTE_FORM_TEXT.publicOption,
+              value: WorkspaceNoteFormType.Public,
             },
             {
-              title: "Private Note (Only visible to team members)",
-              value: "private",
+              title: WORKSPACE_NOTE_FORM_TEXT.privateOption,
+              value: WorkspaceNoteFormType.Private,
             },
           ],
         },
-        {
-          type: "Input.Text",
-          id: "note",
-          label: "Note",
-          isMultiline: true,
-          placeholder: "Please type in plain text or markdown.",
-        },
+        noteInput,
       ],
       actions: [
         {
           type: "Action.Submit",
-          title: "Submit",
+          title: WORKSPACE_NOTE_FORM_TEXT.submit,
           data: {
             action: MicrosoftTeamsIncidentActionType.SubmitIncidentNote,
-            actionValue: incidentId,
+            actionValue: data.incidentId,
           },
         },
       ],

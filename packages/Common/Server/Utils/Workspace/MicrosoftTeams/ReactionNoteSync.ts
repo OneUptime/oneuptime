@@ -80,6 +80,19 @@ export interface MicrosoftTeamsNoteReaction {
   reactedAt: Date;
 }
 
+/*
+ * What a handled reaction tells a caller that answers elsewhere (the
+ * Connect button's answer): why it was refused, and what it was saved as.
+ */
+export interface MicrosoftTeamsReactionReport {
+  reason?: string | undefined;
+  /*
+   * The note it was saved as: a 📣 on a private incident is saved as a
+   * private note (WorkspaceReactionNote.getNoteTypeSavedAs).
+   */
+  noteType?: WorkspaceNoteType | undefined;
+}
+
 export enum MicrosoftTeamsReactionOutcome {
   Saved = "Saved",
   AlreadySaved = "AlreadySaved",
@@ -96,7 +109,9 @@ export enum MicrosoftTeamsReactionOutcome {
 /*
  * Pin (📌) or megaphone (📣 / 📢) a message in an incident, alert, scheduled
  * maintenance or episode channel in Microsoft Teams, and it becomes a private
- * or public note in OneUptime — the same as in Slack.
+ * or public note in OneUptime — the same as in Slack. A private incident
+ * takes no public notes: a megaphone there makes a private note, and the
+ * confirmation says why (WorkspaceReactionNote.getNoteTypeSavedAs).
  *
  * Slack tells OneUptime about reactions (reaction_added). Teams does not: the
  * Bot Framework only sends messageReaction activities for reactions to the
@@ -520,7 +535,7 @@ export default class MicrosoftTeamsReactionNoteSync {
     reaction: MicrosoftTeamsNoteReaction;
     now: Date;
     quiet?: boolean | undefined;
-    report?: { reason?: string | undefined } | undefined;
+    report?: MicrosoftTeamsReactionReport | undefined;
   }): Promise<MicrosoftTeamsReactionOutcome> {
     const { channel, reaction } = data;
     const resource: WorkspaceNoteResource = channel.resource;
@@ -628,11 +643,23 @@ export default class MicrosoftTeamsReactionNoteSync {
     reaction: MicrosoftTeamsNoteReaction;
     now: Date;
     quiet?: boolean | undefined;
-    report?: { reason?: string | undefined } | undefined;
+    report?: MicrosoftTeamsReactionReport | undefined;
   }): Promise<MicrosoftTeamsReactionOutcome> {
     const { channel, reaction } = data;
     const resource: WorkspaceNoteResource = channel.resource;
     const projectId: ObjectID = resource.projectId;
+
+    /*
+     * The note the message becomes: the one its emoji asks for, but a
+     * private one for a 📣 on a private incident, which takes no public
+     * notes - checked, saved and confirmed as that, with the reason in the
+     * confirmation (WorkspaceReactionNote.getNoteTypeSavedAs).
+     */
+    const noteType: WorkspaceNoteType =
+      await WorkspaceReactionNote.getNoteTypeSavedAs({
+        resource: resource,
+        noteType: reaction.noteType,
+      });
 
     const sourceMessageKey: string = WorkspaceReactionNote.getSourceMessageKey({
       channelId: channel.channelId,
@@ -643,7 +670,7 @@ export default class MicrosoftTeamsReactionNoteSync {
     if (
       await WorkspaceReactionNote.hasNote({
         resource: resource,
-        noteType: reaction.noteType,
+        noteType: noteType,
         sourceMessageKey: sourceMessageKey,
       })
     ) {
@@ -704,6 +731,7 @@ export default class MicrosoftTeamsReactionNoteSync {
         await this.promptToConnect({
           channel: channel,
           reaction: reaction,
+          noteSavedAs: noteType,
         });
       }
 
@@ -720,11 +748,11 @@ export default class MicrosoftTeamsReactionNoteSync {
         projectId: projectId,
         modelType: WorkspaceReactionNote.getNoteModelType(
           resource.resourceType,
-          reaction.noteType,
+          noteType,
         ),
         action: WorkspaceReactionNote.getAuthorizationAction(
           resource.resourceType,
-          reaction.noteType,
+          noteType,
         ),
         resources: [
           {
@@ -755,13 +783,13 @@ export default class MicrosoftTeamsReactionNoteSync {
       reaction.message,
     );
     const note: MarkdownText = ChatMessageMarkdown.toMarkdown(content, {
-      withoutAttachments: reaction.noteType === WorkspaceNoteType.Public,
+      withoutAttachments: noteType === WorkspaceNoteType.Public,
     });
 
     if (note.isEmpty()) {
       await answer(
         WorkspaceReactionNote.getNothingToSaveMessage({
-          noteType: reaction.noteType,
+          noteType: noteType,
           hasAttachments: !ChatMessageMarkdown.isEmpty(content),
           workspaceType: WorkspaceType.MicrosoftTeams,
         }),
@@ -787,7 +815,7 @@ export default class MicrosoftTeamsReactionNoteSync {
     try {
       saveResult = await WorkspaceReactionNote.saveNote({
         resource: resource,
-        noteType: reaction.noteType,
+        noteType: noteType,
         props: props,
         note: note.toString(),
         sourceMessageKey: sourceMessageKey,
@@ -816,6 +844,10 @@ export default class MicrosoftTeamsReactionNoteSync {
       return MicrosoftTeamsReactionOutcome.AlreadySaved;
     }
 
+    if (data.report) {
+      data.report.noteType = noteType;
+    }
+
     // The note is saved; its one confirmation is best effort.
     try {
       const display: { label: string; link: URL } =
@@ -825,9 +857,11 @@ export default class MicrosoftTeamsReactionNoteSync {
         channel: channel,
         threadId: reaction.threadId,
         text: WorkspaceReactionNote.getConfirmationMessage({
-          noteType: reaction.noteType,
+          noteType: noteType,
           resourceLabel: display.label,
           resourceLink: display.link.toString(),
+          askedNoteType: reaction.noteType,
+          resourceType: resource.resourceType,
         }).toString(),
       });
     } catch (err) {
@@ -909,7 +943,7 @@ export default class MicrosoftTeamsReactionNoteSync {
       return { outcome: WorkspaceMessageNoteOutcome.NotFound };
     }
 
-    const report: { reason?: string | undefined } = {};
+    const report: MicrosoftTeamsReactionReport = {};
 
     const outcome: MicrosoftTeamsReactionOutcome = await this.processReaction({
       channel: channel,
@@ -921,7 +955,10 @@ export default class MicrosoftTeamsReactionNoteSync {
 
     switch (outcome) {
       case MicrosoftTeamsReactionOutcome.Saved:
-        return { outcome: WorkspaceMessageNoteOutcome.Saved };
+        return {
+          outcome: WorkspaceMessageNoteOutcome.Saved,
+          noteType: report.noteType,
+        };
       case MicrosoftTeamsReactionOutcome.AlreadySaved:
         return { outcome: WorkspaceMessageNoteOutcome.AlreadySaved };
       case MicrosoftTeamsReactionOutcome.NotAuthorized:
@@ -1051,6 +1088,8 @@ export default class MicrosoftTeamsReactionNoteSync {
   private static async promptToConnect(data: {
     channel: MicrosoftTeamsWatchedChannel;
     reaction: MicrosoftTeamsNoteReaction;
+    // What it will be saved as: a 📣 on a private incident, a private note.
+    noteSavedAs?: WorkspaceNoteType | undefined;
   }): Promise<void> {
     const { channel, reaction } = data;
     const resource: WorkspaceNoteResource = channel.resource;
@@ -1087,6 +1126,7 @@ export default class MicrosoftTeamsReactionNoteSync {
         kind: kind,
         eventType: eventType,
         workspaceType: WorkspaceType.MicrosoftTeams,
+        noteSavedAs: data.noteSavedAs,
       });
 
       const place: WorkspaceConnectRequestTeamsPlace | null =

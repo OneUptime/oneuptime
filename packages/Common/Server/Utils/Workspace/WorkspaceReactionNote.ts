@@ -45,6 +45,8 @@ import OneUptimeDate from "../../../Types/Date";
 import SavedChatMessage, {
   SavedChatMessageUtil,
 } from "../../../Types/Workspace/SavedChatMessage";
+import { PrivateRecordKind } from "../../../Types/StatusPage/PrivateRecordPublicNotes";
+import PrivateRecordPublicNoteRule from "../Notes/PrivateRecordPublicNoteRule";
 
 // A save of a message as a note, claimed while it runs (saveNote).
 const SAVE_CLAIM_NAMESPACE: string = "workspace-reaction-note-save";
@@ -90,6 +92,11 @@ export interface WorkspaceMessageNoteResult {
   outcome: WorkspaceMessageNoteOutcome;
   // Why it was refused, or why there is nothing to save: for the person.
   reason?: string | undefined;
+  /*
+   * The note it was saved as, when it was saved: a public note asked for on
+   * a private incident is saved as a private one (getNoteTypeSavedAs).
+   */
+  noteType?: WorkspaceNoteType | undefined;
 }
 
 type ResourceService = DatabaseService<
@@ -183,6 +190,59 @@ export default class WorkspaceReactionNote {
       resourceType === WorkspaceNoteResourceType.Incident ||
       resourceType === WorkspaceNoteResourceType.ScheduledMaintenance
     );
+  }
+
+  /*
+   * The note a message is saved as on its record: the one asked for, but a
+   * private one where a public one was asked for on a private incident or
+   * episode. A private record takes no public notes
+   * (Types/StatusPage/PrivateRecordPublicNotes): a public note on it would
+   * reach no status page and no subscriber, and the server refuses one. The
+   * message is still saved for the people who can see the record, and the
+   * answer says how (getConfirmationMessage). Read as OneUptime, as the
+   * channel's record is (resolveResourceForChannel).
+   */
+  @CaptureSpan()
+  public static async getNoteTypeSavedAs(data: {
+    resource: WorkspaceNoteResource;
+    noteType: WorkspaceNoteType;
+  }): Promise<WorkspaceNoteType> {
+    if (data.noteType !== WorkspaceNoteType.Public) {
+      return data.noteType;
+    }
+
+    const kind: PrivateRecordKind | null =
+      WorkspaceReactionNote.getPrivateRecordKind(data.resource.resourceType);
+
+    if (!kind) {
+      return data.noteType;
+    }
+
+    const isPrivate: boolean = await PrivateRecordPublicNoteRule.isPrivate({
+      kind: kind,
+      recordId: data.resource.resourceId,
+      projectId: data.resource.projectId,
+    });
+
+    return isPrivate ? WorkspaceNoteType.Private : data.noteType;
+  }
+
+  /*
+   * The records with public notes that can be made private: incidents and
+   * incident episodes. Null for every other kind - a scheduled maintenance
+   * event has no Private switch, and alerts have no public notes.
+   */
+  public static getPrivateRecordKind(
+    resourceType: WorkspaceNoteResourceType,
+  ): PrivateRecordKind | null {
+    switch (resourceType) {
+      case WorkspaceNoteResourceType.Incident:
+        return PrivateRecordKind.Incident;
+      case WorkspaceNoteResourceType.IncidentEpisode:
+        return PrivateRecordKind.IncidentEpisode;
+      default:
+        return null;
+    }
   }
 
   // The row the note writes, which is what the user must be allowed to create.
@@ -781,14 +841,29 @@ export default class WorkspaceReactionNote {
    * link, so it is never a link, a mention or styling of its own. Microsoft
    * Teams posts it as it is; Slack posts it as mrkdwn (SlackUtil.slackify),
    * with no preview of the link.
+   *
+   * A public note asked for on a private record (`askedNoteType` public,
+   * `noteType` private) says why it is a private note: "✅ Saved as a
+   * private note on Incident INC-42. The incident is private, so public
+   * notes cannot be added to it."
    */
   public static getConfirmationMessage(data: {
     noteType: WorkspaceNoteType;
     resourceLabel: string;
     resourceLink: string;
+    askedNoteType?: WorkspaceNoteType | undefined;
+    resourceType?: WorkspaceNoteResourceType | undefined;
   }): MarkdownText {
     if (data.noteType === WorkspaceNoteType.Public) {
       return mdText`✅ Saved as a **public note** on [${data.resourceLabel}](${data.resourceLink}). It is shown on the status page.`;
+    }
+
+    if (data.askedNoteType === WorkspaceNoteType.Public) {
+      const noun: string =
+        RESOURCE_TYPES[data.resourceType || WorkspaceNoteResourceType.Incident]
+          .noun;
+
+      return mdText`✅ Saved as a **private note** on [${data.resourceLabel}](${data.resourceLink}). The ${noun} is private, so public notes cannot be added to it.`;
     }
 
     return mdText`✅ Saved as a **private note** on [${data.resourceLabel}](${data.resourceLink}).`;
