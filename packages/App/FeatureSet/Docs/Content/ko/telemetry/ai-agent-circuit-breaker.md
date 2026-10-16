@@ -125,7 +125,7 @@ app.post("/circuit-breaker", (req, res) => {
 
 ### 트리거 추가하기
 
-점선 블록 **Choose what starts this workflow** 를 클릭하고 **Add Trigger** 패널에서 **On Create Alert** 를 고릅니다. 트리거를 클릭합니다. **Fields to pass on** 에는 처음부터 제목이 들어 있으므로, **필드 추가** 를 클릭해 설명을 체크한 뒤 **저장** 을 클릭합니다. 블록에 표시된 ID `alert-on-create-1` 은 이후 블록이 이 블록을 참조할 때 쓰입니다.
+점선 블록 **Choose what starts this workflow** 를 클릭하고 **트리거 추가** 패널에서 **On Create Alert** 를 고릅니다. 트리거를 클릭합니다. **Fields to pass on** 에는 처음부터 제목이 들어 있으므로, **필드 추가** 를 클릭해 설명을 체크한 뒤 **저장** 을 클릭합니다. 블록에 표시된 ID `alert-on-create-1` 은 이후 블록이 이 블록을 참조할 때 쓰입니다.
 
 ### 제목 확인하기
 

@@ -125,7 +125,7 @@ Open **Producten → Workflows** en klik op **Workflow maken**. Klik op **Vanaf 
 
 ### Voeg de trigger toe
 
-Klik op het gestippelde blok **Choose what starts this workflow** en kies **On Create Alert** in het paneel **Add Trigger**. Klik op de trigger: **Fields to pass on** begint met de titel, dus klik op **Veld toevoegen**, vink de beschrijving aan en klik op **Opslaan**. De ID op het blok, `alert-on-create-1`, is hoe latere blokken ernaar verwijzen.
+Klik op het gestippelde blok **Choose what starts this workflow** en kies **On Create Alert** in het paneel **Trigger toevoegen**. Klik op de trigger: **Fields to pass on** begint met de titel, dus klik op **Veld toevoegen**, vink de beschrijving aan en klik op **Opslaan**. De ID op het blok, `alert-on-create-1`, is hoe latere blokken ernaar verwijzen.
 
 ### Controleer de titel
 

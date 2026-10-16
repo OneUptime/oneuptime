@@ -48,6 +48,11 @@ import WorkflowStatusBar, {
   WorkflowSaveState,
 } from "Common/UI/Components/Workflow/WorkflowStatusBar";
 import { loadComponentsAndCategories } from "Common/UI/Components/Workflow/Utils";
+import {
+  WorkflowAddButton,
+  getWorkflowAddButton,
+  workflowHasTrigger,
+} from "Common/UI/Components/Workflow/WorkflowAddButton";
 import Workflow, {
   getEdgeDefaultProps,
   getPlaceholderTriggerNode,
@@ -80,6 +85,13 @@ import { Edge, Node } from "reactflow";
 import { useAsyncEffect } from "use-async-effect";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
+
+/*
+ * The toolbar's two buttons: spaced by their row's gap, not by the left
+ * margin a button keeps from md up (md:ml-3), which would indent whichever
+ * one starts a row once the toolbar wraps.
+ */
+const TOOLBAR_BUTTON_STYLE: React.CSSProperties = { marginLeft: 0 };
 
 const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -541,6 +553,26 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
    */
   const stepTitlesByNodeId: Dictionary<string> = buildStepTitlesByNodeId(nodes);
 
+  /*
+   * The toolbar's add button says what the workflow needs next: Add Trigger
+   * while it has no trigger, since nothing can start it yet, then Add
+   * Component. It opens the panel it names (WorkflowAddButton). `nodes` is
+   * the graph as the canvas last reported it, so the label changes as soon
+   * as the first trigger is added or the last one is deleted.
+   */
+  const addButton: WorkflowAddButton = getWorkflowAddButton(nodes);
+
+  /*
+   * A workflow without a trigger has one thing to do first: choose what
+   * starts it. So until it has one, Add Trigger is the page's primary button,
+   * and the off notice waits. The notice says the trigger is paused and that
+   * Run Workflow tests it - neither is true of a workflow with nothing to
+   * start it - and its Turn on workflow would be a second primary button
+   * beside Add Trigger. With the first trigger the notice appears, and Add
+   * Component is a plain button beside Run Workflow.
+   */
+  const hasTrigger: boolean = workflowHasTrigger(nodes);
+
   type SendRunFunction = (component: NodeDataProp) => Promise<void>;
 
   // Run just this step. Rejects with the API's error when it is refused.
@@ -662,7 +694,8 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               display: "flex",
               flexWrap: "wrap",
               alignItems: "center",
-              gap: "0.75rem",
+              // A little more room beside the switch than between the buttons.
+              gap: "0.75rem 1rem",
             }}
           >
             {/*
@@ -686,32 +719,51 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               <></>
             )}
             {/*
-             * On a phone the two buttons get a row of their own, and Run
-             * Workflow drops below Add Component rather than either label
-             * breaking over two lines inside its button.
+             * On a phone each button takes a row of its own, as wide as the
+             * toolbar, rather than either label breaking over two lines
+             * inside its button. Neither keeps the left margin a button has
+             * of its own (md:ml-3): the row's gap spaces them, and a button
+             * that starts a row (a tablet, a phone) lines up with the switch
+             * above it instead of starting indented.
              */}
             <div
               style={{
                 display: "flex",
                 flexWrap: "wrap",
                 alignItems: "center",
-                gap: "0.5rem",
+                gap: "0.5rem 0.75rem",
               }}
             >
-              <Button
-                title="Add Component"
-                icon={IconProp.Add}
-                buttonStyle={ButtonStyleType.OUTLINE}
-                className="whitespace-nowrap"
-                onClick={() => {
-                  setShowComponentPickerModal(true);
-                }}
-              />
+              {/*
+               * Only once the graph has loaded, like the Enabled switch:
+               * drawn before then, it would say Add Trigger for a workflow
+               * that has a trigger.
+               */}
+              {!isLoading ? (
+                <Button
+                  title={addButton.title}
+                  icon={IconProp.Add}
+                  buttonStyle={
+                    hasTrigger
+                      ? ButtonStyleType.NORMAL
+                      : ButtonStyleType.PRIMARY
+                  }
+                  className="whitespace-nowrap"
+                  style={TOOLBAR_BUTTON_STYLE}
+                  dataTestId="workflow-add-button"
+                  onClick={() => {
+                    setShowComponentPickerModal(true);
+                  }}
+                />
+              ) : (
+                <></>
+              )}
               <Button
                 title="Run Workflow"
                 icon={IconProp.Play}
                 buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
                 className="whitespace-nowrap"
+                style={TOOLBAR_BUTTON_STYLE}
                 disabled={Boolean(runLockedReason)}
                 tooltip={runLockedReason}
                 dataTestId="run-workflow-button"
@@ -729,9 +781,11 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
         {/*
          * Said up front: off pauses the trigger, the workflow can still be
-         * tested with Run Workflow, and the one thing to do about it.
+         * tested with Run Workflow, and the one thing to do about it. Only
+         * once there is a trigger to pause: until then the workflow's first
+         * step is Add Trigger (hasTrigger).
          */}
-        {workflowEnabled.isEnabled === false && !isArchived ? (
+        {workflowEnabled.isEnabled === false && !isArchived && hasTrigger ? (
           <div style={{ marginBottom: "0.75rem" }}>
             <WorkflowTurnedOffNotice
               onTurnOn={

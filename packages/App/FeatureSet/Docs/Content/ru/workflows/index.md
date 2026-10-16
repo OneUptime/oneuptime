@@ -122,7 +122,7 @@ flowchart TB
 
 ### Добавьте триггер
 
-Нажмите на пунктирный блок **Choose what starts this workflow**, затем нажмите **On Create Incident** в разделе **Popular** на панели **Add Trigger**.
+Нажмите на пунктирный блок **Choose what starts this workflow**, затем нажмите **On Create Incident** в разделе **Popular** на панели **Добавить триггер**.
 
 Триггер займёт место пунктирного блока. Его ID, `incident-on-create-1`, — это то, по чему на него ссылаются последующие блоки.
 

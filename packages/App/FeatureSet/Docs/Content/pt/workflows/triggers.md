@@ -196,7 +196,7 @@ Para testar um gatilho de evento sem esperar o evento, clique em **Executar flux
 | **Página de status Assinante**            | Dar as boas-vindas a quem assina uma página de status.                                    |
 | **Política de plantão**                   | Sincronizar as mudanças da política com outro sistema de escalas.                         |
 
-No painel **Add Trigger**, eles ficam em **OneUptime resources**: clique no recurso e depois no gatilho. **Browse all resources** tem todos, e a caixa de busca encontra um gatilho a partir de algumas palavras, como `incident created`.
+No painel **Adicionar gatilho**, eles ficam em **OneUptime resources**: clique no recurso e depois no gatilho. **Browse all resources** tem todos, e a caixa de busca encontra um gatilho a partir de algumas palavras, como `incident created`.
 
 ## Próximos passos
 

@@ -122,7 +122,7 @@ De nieuwe workflow opent in de **Bouwer**, uitgeschakeld.
 
 ### De trigger toevoegen
 
-Klik op het gestippelde blok **Choose what starts this workflow** en klik daarna op **On Create Incident** onder **Popular** in het paneel **Add Trigger**.
+Klik op het gestippelde blok **Choose what starts this workflow** en klik daarna op **On Create Incident** onder **Popular** in het paneel **Trigger toevoegen**.
 
 De trigger neemt de plaats van het gestippelde blok in. De ID erop, `incident-on-create-1`, is hoe latere blokken ernaar verwijzen.
 

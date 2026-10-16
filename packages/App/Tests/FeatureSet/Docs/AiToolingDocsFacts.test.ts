@@ -29,6 +29,7 @@ import {
 import { LlmTokenUsageMetricNames } from "Common/Types/Telemetry/LlmMetricConventions";
 import ComponentMetadata, {
   Argument,
+  NodeType,
   Port,
 } from "Common/Types/Workflow/Component";
 import ApiComponents from "Common/Types/Workflow/Components/API";
@@ -43,6 +44,7 @@ import {
   globalVariableReference,
 } from "Common/Types/Workflow/TemplateSyntax";
 import { WORKFLOW_ENABLED_SWITCH_LABEL } from "Common/Types/Workflow/WorkflowEnabled";
+import { getWorkflowAddButton } from "Common/UI/Components/Workflow/WorkflowAddButton";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -751,7 +753,28 @@ describe("the AI Agent Circuit Breakers page", () => {
     expect(source("componentsModal")).toContain(
       'title={isTrigger ? "Add Trigger" : "Add Component"}',
     );
-    expect(source("workflowBuilder")).toContain('title="Add Component"');
+    /*
+     * The toolbar's add button names what the workflow needs next
+     * (WorkflowAddButton): Add Trigger on a workflow from scratch, Add
+     * Component once On Create Alert is on the canvas - which is when the
+     * page clicks it.
+     */
+    expect(source("workflowBuilder")).toContain("getWorkflowAddButton(nodes)");
+    expect(source("workflowBuilder")).toContain("title={addButton.title}");
+    expect(getWorkflowAddButton([]).title).toBe("Add Trigger");
+    expect(
+      getWorkflowAddButton([
+        {
+          data: {
+            nodeType: NodeType.Node,
+            componentType: componentTitled(
+              BaseModelComponent.getComponents(new Alert()),
+              "On Create Alert",
+            ).componentType,
+          },
+        },
+      ]).title,
+    ).toBe("Add Component");
     expect(page).toContain(
       "Open **Products → Workflows** and click **Create Workflow**. Click **Start from scratch**",
     );

@@ -196,7 +196,7 @@ flowchart TB
 | **狀態頁面 訂閱者**                       | 歡迎訂閱狀態頁面的人。                                                                    |
 | **待命策略**                              | 把策略的變更同步到另一個待命系統。                                                        |
 
-在 **Add Trigger** 面板中，它們位於 **OneUptime resources** 底下：先點選資源，再點選觸發器。**Browse all resources** 列出所有資源，搜尋方塊可以用幾個字詞找到觸發器，例如 `incident created`。
+在 **新增觸發器** 面板中，它們位於 **OneUptime resources** 底下：先點選資源，再點選觸發器。**Browse all resources** 列出所有資源，搜尋方塊可以用幾個字詞找到觸發器，例如 `incident created`。
 
 ## 後續步驟
 

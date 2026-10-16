@@ -196,7 +196,7 @@ Per provare un trigger di evento senza aspettare l'evento, fai clic su **Esegui 
 | **Pagina di stato Iscritto**              | Dare il benvenuto a chi si iscrive a una pagina di stato.                                 |
 | **Policy di reperibilità**                | Sincronizzare le modifiche della policy con un altro sistema di turni.                    |
 
-Nel pannello **Add Trigger** si trovano sotto **OneUptime resources**: fai clic sulla risorsa, poi sul trigger. **Browse all resources** le contiene tutte, e la casella di ricerca trova un trigger da poche parole, come `incident created`.
+Nel pannello **Aggiungi trigger** si trovano sotto **OneUptime resources**: fai clic sulla risorsa, poi sul trigger. **Browse all resources** le contiene tutte, e la casella di ricerca trova un trigger da poche parole, come `incident created`.
 
 ## Prossimi passi
 

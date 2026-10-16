@@ -81,6 +81,11 @@ export const PRODUCTS_MENU_ITEM_KEYS: Readonly<Record<string, string>> = {
   "Scheduled Maintenance": "navbar.items.scheduledMaintenanceTitle",
   // The Topology page opens its product from the Observability group.
   Topology: "navbar.items.topologyTitle",
+  /*
+   * The Administration pages open Users, and Project Settings, from the
+   * menu's Settings group.
+   */
+  Users: "navbar.items.usersTitle",
 };
 
 /*
@@ -93,6 +98,8 @@ export const PRODUCTS_MENU_GROUP_KEYS: Readonly<Record<string, string>> = {
   AI: "navbar.categories.ai",
   Code: "navbar.categories.code",
   Observability: "navbar.categories.observability",
+  // The group Users, Teams and Project Settings are filed under.
+  Settings: "navbar.categories.settings",
 };
 
 // A value of a locale file by its dotted key, or null.
