@@ -483,6 +483,30 @@ Screenshots: `value-suggestions-logs`, `value-suggestions-loading`,
 `value-suggestions-stopped`, `value-suggestions-retry-selected`,
 `value-suggestions-empty` and `value-suggestions-stopped-phone-dark`.
 
+## Explorers: a facet value clicks on and off
+
+`ExplorerFacetToggle.spec.ts` (8 tests, same fixture and command) pins the report
+"I'm not able to uncheck when I click on this": a checked value in the filter sidebar
+of the Traces, Metrics and Exceptions explorers stayed checked when clicked, and the
+Traces "Root spans" value could not be cleared from its row at all. Each value row is a
+checkbox (`aria-checked`); a click checks it, a second click unchecks it, and the chip
+and the explorer's reads follow:
+
+- Traces: Status "Error" on and off (`statusCodes` in `/telemetry/traces/facets`, the
+  "Status: Error" chip); "Root spans" on and off (`rootOnly`); two services checked and
+  one unchecked, the other staying checked (`serviceIds`). The Service facet is used
+  for that one because it lists every service, counted or not: Status is counted with
+  its own selection applied, so the other statuses drop out of it once Error is
+  checked;
+- Logs: Severity "Error" on and off, in the log list's query and in the link's
+  `filters`;
+- Exceptions: Exception Type "DeadlineExceededError" on and off (`exceptionTypes`);
+- Metrics: Service "checkout-api" on and off (`services` on the `MetricType` list);
+- none of the four offers an exclude button, on hover or otherwise: their charts and
+  counts cannot leave a value out (the button did nothing before). Security Events,
+  which can, keeps it; that explorer is pinned in
+  `Common/Tests/App/Dashboard/SecurityEventsViewer.test.tsx`.
+
 ## Run it
 
 ```
