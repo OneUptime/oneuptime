@@ -1,8 +1,14 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 
 export interface FacetSectionHeaderProps {
+  /*
+   * The facet's name in English, as its config writes it ("Span Kind").
+   * The header draws it in the reader's language.
+   */
   title: string;
   // Optional icon before the title (e.g. a resource brand icon).
   icon?: IconProp | undefined;
@@ -18,10 +24,18 @@ export interface FacetSectionHeaderProps {
  * The collapsible header every facet section shares, in both the Logs and the
  * Telemetry sidebars: icon, title, active-count badge and one chevron that
  * turns as the section opens.
+ *
+ * The title is drawn in the reader's language, the name the filter chips and
+ * the section's search box already give the facet: "スパンタイプ" and
+ * "スパンの種類" in Japanese, never the English "Span Type" above a
+ * Japanese chip.
  */
 const FacetSectionHeader: FunctionComponent<FacetSectionHeaderProps> = (
   props: FacetSectionHeaderProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+  const title: string = translator.translateText(props.title) || props.title;
+
   return (
     <div className="px-1">
       <button
@@ -42,7 +56,7 @@ const FacetSectionHeader: FunctionComponent<FacetSectionHeaderProps> = (
             </span>
           )}
           <span className="truncate text-[11px] font-semibold uppercase tracking-wider text-gray-500">
-            {props.title}
+            {title}
           </span>
           {props.activeCount > 0 && (
             <span className="inline-flex h-4 min-w-[1rem] flex-none items-center justify-center rounded-full bg-indigo-100 px-1 text-[10px] font-semibold text-indigo-600">

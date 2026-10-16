@@ -21,7 +21,7 @@ flowchart TB
     pay --> call["Span: llamar al<br/>proveedor de pagos"]
 ```
 
-Cada fila del explorador es un span, así que un servicio con mucho trabajo llena la lista con sus consultas a la base de datos y sus llamadas internas. Para listar una fila por solicitud, elija **Root spans** en **Tipo de span** en la barra lateral.
+Cada fila del explorador es un span, así que un servicio con mucho trabajo llena la lista con sus consultas a la base de datos y sus llamadas internas. Para listar una fila por solicitud, elija **Root spans** en **Categoría de span** en la barra lateral.
 
 El explorador tiene cuatro pestañas:
 
@@ -54,7 +54,7 @@ Escriba una consulta y pulse Intro, por ejemplo `service:checkout status:error d
 
 ### Acotar con filtros
 
-Haga clic en un valor de la barra lateral **Filtros** para añadirlo como chip. La barra lateral filtra por **Servicio**, por el host, el clúster u otro recurso que envió el span, por **Estado**, **Tipo de span**, **Tiene excepción**, **Nombre del span**, **Instancia del servicio** y **Nombre del host**.
+Haga clic en un valor de la barra lateral **Filtros** para añadirlo como chip. La barra lateral filtra por **Servicio**, por el host, el clúster u otro recurso que envió el span, por **Estado**, **Categoría de span**, **Tiene excepción**, **Tipo de span**, **Nombre del span**, **Instancia del servicio** y **Nombre del host**.
 
 ### Abrir un span
 
@@ -135,7 +135,7 @@ Nombran un span padre que OneUptime no ha recibido, a menudo porque el servicio 
 :::
 
 :::details La lista muestra muchas más filas que solicitudes
-Cada fila es un span, no una solicitud. Elija **Root spans** en **Tipo de span** en la barra lateral para listar una fila por solicitud.
+Cada fila es un span, no una solicitud. Elija **Root spans** en **Categoría de span** en la barra lateral para listar una fila por solicitud.
 :::
 
 ## Próximos pasos

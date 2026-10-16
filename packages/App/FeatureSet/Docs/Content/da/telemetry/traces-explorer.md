@@ -21,7 +21,7 @@ flowchart TB
     pay --> call["Span: kald<br/>betalingsudbyderen"]
 ```
 
-Hver række i udforskeren er et span, så en travl tjeneste fylder listen med sine databaseforespørgsler og interne kald. For at vise én række pr. forespørgsel skal du vælge **Root spans** under **Span Type** i sidepanelet.
+Hver række i udforskeren er et span, så en travl tjeneste fylder listen med sine databaseforespørgsler og interne kald. For at vise én række pr. forespørgsel skal du vælge **Root spans** under **Span-kategori** i sidepanelet.
 
 Udforskeren har fire faner:
 
@@ -54,7 +54,7 @@ Skriv en forespørgsel, og tryk på Enter, for eksempel `service:checkout status
 
 ### Indsnævr med filtre
 
-Klik på en værdi i sidepanelet **Filtre** for at tilføje den som en chip. Sidepanelet filtrerer efter **Tjeneste**, efter den vært, klynge eller anden ressource, der sendte spannet, efter **Status**, **Span Type**, **Har undtagelse**, **Span-type**, **Span-navn**, **Service Instance** og **Værtens navn**.
+Klik på en værdi i sidepanelet **Filtre** for at tilføje den som en chip. Sidepanelet filtrerer efter **Tjeneste**, efter den vært, klynge eller anden ressource, der sendte spannet, efter **Status**, **Span-kategori**, **Har undtagelse**, **Span-type**, **Span-navn**, **Service Instance** og **Værtens navn**.
 
 ### Åbn et span
 
@@ -135,7 +135,7 @@ De peger på et forælder-span, som OneUptime ikke har modtaget, ofte fordi den 
 :::
 
 :::details Listen viser langt flere rækker end forespørgsler
-Hver række er et span, ikke en forespørgsel. Vælg **Root spans** under **Span Type** i sidepanelet for at vise én række pr. forespørgsel.
+Hver række er et span, ikke en forespørgsel. Vælg **Root spans** under **Span-kategori** i sidepanelet for at vise én række pr. forespørgsel.
 :::
 
 ## Næste skridt
