@@ -30066,5 +30066,6 @@
   "Reading the alert timeline": "Leyendo la cronología de la alerta",
   "Reading the incident timeline": "Leyendo la cronología del incidente",
   "Searching past incidents": "Buscando incidentes anteriores",
-  "Ranked by": "Ordenado por"
+  "Ranked by": "Ordenado por",
+  "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "Eliminar este proyecto detiene su facturación, tras un último cargo por su uso hasta ahora. Tu compra de OneUptime en {{marketplace}} sigue activa hasta que la canceles allí."
 }

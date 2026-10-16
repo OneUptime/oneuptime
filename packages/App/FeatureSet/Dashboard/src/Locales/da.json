@@ -30066,5 +30066,6 @@
   "Reading the alert timeline": "Læser advarslens tidslinje",
   "Reading the incident timeline": "Læser hændelsens tidslinje",
   "Searching past incidents": "Søger i tidligere hændelser",
-  "Ranked by": "Sorteret efter"
+  "Ranked by": "Sorteret efter",
+  "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "Når du sletter dette projekt, stopper faktureringen af det efter en sidste opkrævning for forbruget indtil nu. Dit OneUptime-køb på {{marketplace}} forbliver aktivt, indtil du opsiger det dér."
 }

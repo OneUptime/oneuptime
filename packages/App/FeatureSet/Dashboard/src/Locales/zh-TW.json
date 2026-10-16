@@ -30066,5 +30066,6 @@
   "Reading the alert timeline": "正在讀取警示時間軸",
   "Reading the incident timeline": "正在讀取事件時間軸",
   "Searching past incidents": "正在搜尋過去的事件",
-  "Ranked by": "排序依據"
+  "Ranked by": "排序依據",
+  "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "刪除此專案後，將對目前為止的使用量進行最後一次計費，然後停止計費。您在 {{marketplace}} 上的 OneUptime 購買將維持有效，直到您在那裡取消。"
 }
