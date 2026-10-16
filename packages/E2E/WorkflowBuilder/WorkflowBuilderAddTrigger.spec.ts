@@ -18,7 +18,7 @@ import { expect, Locator, Page, test } from "@playwright/test";
 
 type SavedNode = {
   position: { x: number; y: number };
-  data: { id: string; nodeType: string; componentType?: string };
+  data: { id: string; nodeType: string; componentType?: string | undefined };
 };
 
 async function openBuilder(page: Page, scenario: string): Promise<void> {
