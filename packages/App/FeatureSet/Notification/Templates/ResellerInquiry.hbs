@@ -1,0 +1,33 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{> EmailTitle title="New reseller inquiry" }}
+
+{{!--
+  Sent by the marketing site's Resellers page (Home/API/ResellerInquiryAPI.ts)
+  to the one inbox reseller inquiries go to - never to the person who wrote.
+
+  Every value below is what a visitor typed. Each row is plainText, which
+  Handlebars escapes. messageHtml is the message with its line breaks kept:
+  Home/Utils/ResellerInquiry.ts (getMessageHtml) escapes every line and adds
+  nothing but the <br/> between them. replyUrl is a mailto: link whose two
+  address parts that file percent-encodes (getReplyMailtoUrl).
+--}}
+
+{{> InfoBlock plainInfo="A company asked to become a reseller, through the form on the Resellers page of the website. Reply to them at the email address below."}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Company" plainText=companyName }}
+{{> DetailBoxField title="Website" plainText=companyWebsite }}
+{{> DetailBoxField title="Countries or regions they sell in" plainText=regions }}
+{{> DetailBoxField title="Name" plainText=contactName }}
+{{> DetailBoxField title="Email" plainText=contactEmail }}
+{{> DetailBoxField title="Message" blockText=messageHtml }}
+{{> DetailBoxEnd this }}
+
+{{> ButtonBlock buttonUrl=replyUrl buttonText="Reply by email"}}
+
+{{> Footer this}}
+
+{{> End this}}
