@@ -969,12 +969,11 @@ describe("the helpers, on these pages' shapes", () => {
       "**Products → Observability → Logs**",
     );
     // A product after its group is drawn from the menu, not as a flat label.
-    expect(drawnPathSegment("da", ["Products", "Observability", "Metrics"], 2))
-      .toBe(drawnPathSegment("da", ["Metrics"], 0));
+    expect(
+      drawnPathSegment("da", ["Products", "Observability", "Metrics"], 2),
+    ).toBe(drawnPathSegment("da", ["Metrics"], 0));
     // Persian bolds each segment, joined by " > ".
-    expect(drawnPath("fa", ["Logs", "Settings", "Pipelines"])).toContain(
-      " > ",
-    );
+    expect(drawnPath("fa", ["Logs", "Settings", "Pipelines"])).toContain(" > ");
   });
 
   it("tell the Dashboard's labels from the words a page keeps", () => {
@@ -986,9 +985,7 @@ describe("the helpers, on these pages' shapes", () => {
     expect(dashboardLabels(LOGS_EXPLORER)).toContain("Viewer");
     // A create button is drawn from "Create {{itemName}}" with its thing.
     expect(dashboardLabels(SERVICES)).toContain("Create Service");
-    expect(drawnActionLabel("de", "Create Service")).not.toBe(
-      "Create Service",
-    );
+    expect(drawnActionLabel("de", "Create Service")).not.toBe("Create Service");
     expect(
       dashboardPaths(SERVICES).map((segments: Array<string>): string => {
         return segments.join(PATH_SEPARATOR);
