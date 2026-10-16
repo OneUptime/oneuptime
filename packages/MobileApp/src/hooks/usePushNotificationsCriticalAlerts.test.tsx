@@ -53,6 +53,23 @@ function registerSpy(): jest.SpyInstance {
   return pushDeviceApi.registerPushDevice as unknown as jest.SpyInstance;
 }
 
+/*
+ * The phone's system allows critical alerts: iOS reports the permission,
+ * and on Android the critical channels are stored with the Do Not Disturb
+ * bypass. Both are set, so the test reads the same on either platform.
+ */
+function allowCriticalAlertsOnThePhone(): void {
+  jest
+    .spyOn(Notifications, "getPermissionsAsync")
+    .mockResolvedValue({
+      status: "granted",
+      ios: { allowsCriticalAlerts: true },
+    } as never);
+  jest
+    .spyOn(Notifications, "setNotificationChannelAsync")
+    .mockResolvedValue({ bypassDnd: true } as never);
+}
+
 describe("Push registration restates the critical alert preference", () => {
   beforeEach(async () => {
     await AsyncStorage.clear();
@@ -76,6 +93,7 @@ describe("Push registration restates the critical alert preference", () => {
 
   test("sends the stored opt-in for every project", async () => {
     await setCriticalAlertsEnabled(true);
+    allowCriticalAlertsOnThePhone();
 
     await renderHook(() => {
       return usePushNotifications(null);

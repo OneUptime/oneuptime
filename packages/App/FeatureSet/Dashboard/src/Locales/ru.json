@@ -28147,7 +28147,7 @@
   "Nothing has happened to this on-call policy yet.": "С этой политикой дежурства пока ничего не происходило.",
   "Nothing has happened to this scheduled maintenance event yet.": "С этим событием запланированного обслуживания пока ничего не происходило.",
   "On-Call Policy Feed": "Лента политики дежурства",
-  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.": "Вызовы дежурства на это устройство звучат в обход беззвучного режима и режима «Не беспокоить», кроме вызовов от правил дежурства в режиме «Обычное». Включается в мобильном приложении OneUptime On-Call; браузеры не могут обойти настройки звонка устройства.",
+  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Set in the OneUptime On-Call mobile app, which updates it here each time it's opened. Browsers can't override a device's ringer.": "Вызовы дежурства на это устройство звучат в обход беззвучного режима и режима «Не беспокоить», кроме вызовов от правил дежурства в режиме «Обычное». Настраивается в мобильном приложении OneUptime On-Call, которое обновляет это здесь при каждом открытии. Браузеры не могут обойти настройки звонка устройства.",
   "Open in Microsoft Teams": "Открыть в Microsoft Teams",
   "Open in Slack": "Открыть в Slack",
   "Push Notification Level": "Уровень push-уведомлений",

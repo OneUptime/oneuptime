@@ -28147,7 +28147,7 @@
   "Nothing has happened to this on-call policy yet.": "इस ऑन-कॉल नीति के साथ अभी तक कुछ नहीं हुआ है।",
   "Nothing has happened to this scheduled maintenance event yet.": "इस अनुसूचित रखरखाव इवेंट के साथ अभी तक कुछ नहीं हुआ है।",
   "On-Call Policy Feed": "ऑन-कॉल नीति फ़ीड",
-  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.": "इस डिवाइस पर आने वाले ऑन-कॉल पेज साइलेंट मोड और परेशान न करें को ओवरराइड करते हैं, सिवाय उन ऑन-कॉल नियमों के पेजों के जो 'सामान्य' पर सेट हैं। इसे OneUptime On-Call मोबाइल ऐप से चालू किया जाता है; ब्राउज़र किसी डिवाइस की रिंगर सेटिंग को ओवरराइड नहीं कर सकते।",
+  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Set in the OneUptime On-Call mobile app, which updates it here each time it's opened. Browsers can't override a device's ringer.": "इस डिवाइस पर आने वाले ऑन-कॉल पेज साइलेंट मोड और परेशान न करें को ओवरराइड करते हैं, सिवाय उन ऑन-कॉल नियमों के पेजों के जो 'सामान्य' पर सेट हैं। इसे OneUptime On-Call मोबाइल ऐप में सेट किया जाता है, जो हर बार खुलने पर इसे यहाँ अपडेट करता है। ब्राउज़र किसी डिवाइस की रिंगर सेटिंग को ओवरराइड नहीं कर सकते।",
   "Open in Microsoft Teams": "Microsoft Teams में खोलें",
   "Open in Slack": "Slack में खोलें",
   "Push Notification Level": "पुश सूचना स्तर",

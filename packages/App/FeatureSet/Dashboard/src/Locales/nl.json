@@ -28147,7 +28147,7 @@
   "Nothing has happened to this on-call policy yet.": "Er is nog niets gebeurd met dit bereikbaarheidsbeleid.",
   "Nothing has happened to this scheduled maintenance event yet.": "Er is nog niets gebeurd met deze geplande onderhoudsgebeurtenis.",
   "On-Call Policy Feed": "Feed van het bereikbaarheidsbeleid",
-  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.": "Bereikbaarheidsoproepen naar dit apparaat negeren de stille modus en Niet storen, behalve die van bereikbaarheidsregels die op ‘Normaal’ staan. In te schakelen in de mobiele OneUptime On-Call-app; browsers kunnen de belinstellingen van een apparaat niet omzeilen.",
+  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Set in the OneUptime On-Call mobile app, which updates it here each time it's opened. Browsers can't override a device's ringer.": "Bereikbaarheidsoproepen naar dit apparaat negeren de stille modus en Niet storen, behalve die van bereikbaarheidsregels die op ‘Normaal’ staan. In te stellen in de mobiele OneUptime On-Call-app, die het hier bijwerkt telkens als de app wordt geopend. Browsers kunnen de belinstellingen van een apparaat niet omzeilen.",
   "Open in Microsoft Teams": "Openen in Microsoft Teams",
   "Open in Slack": "Openen in Slack",
   "Push Notification Level": "Pushmeldingsniveau",

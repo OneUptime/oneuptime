@@ -28147,7 +28147,7 @@
   "Nothing has happened to this on-call policy yet.": "이 온콜 정책에는 아직 아무 일도 없었습니다.",
   "Nothing has happened to this scheduled maintenance event yet.": "이 예정된 유지보수 이벤트에는 아직 아무 일도 없었습니다.",
   "On-Call Policy Feed": "온콜 정책 피드",
-  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.": "이 기기로 보내는 온콜 호출은 무음 모드와 방해 금지 모드를 무시하고 울립니다. 단, '일반'으로 설정된 온콜 규칙의 호출은 예외입니다. OneUptime On-Call 모바일 앱에서 켭니다. 브라우저는 기기의 벨소리 설정을 무시할 수 없습니다.",
+  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Set in the OneUptime On-Call mobile app, which updates it here each time it's opened. Browsers can't override a device's ringer.": "이 기기로 보내는 온콜 호출은 무음 모드와 방해 금지 모드를 무시하고 울립니다. 단, '일반'으로 설정된 온콜 규칙의 호출은 예외입니다. OneUptime On-Call 모바일 앱에서 설정하며, 앱을 열 때마다 여기에 반영됩니다. 브라우저는 기기의 벨소리 설정을 무시할 수 없습니다.",
   "Open in Microsoft Teams": "Microsoft Teams에서 열기",
   "Open in Slack": "Slack에서 열기",
   "Push Notification Level": "푸시 알림 수준",

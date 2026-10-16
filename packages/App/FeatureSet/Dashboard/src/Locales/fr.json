@@ -28147,7 +28147,7 @@
   "Nothing has happened to this on-call policy yet.": "Rien ne s'est encore passé pour cette politique d'astreinte.",
   "Nothing has happened to this scheduled maintenance event yet.": "Rien ne s'est encore passé pour cet événement de maintenance planifiée.",
   "On-Call Policy Feed": "Fil d'activité de la politique d'astreinte",
-  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.": "Les alertes d'astreinte envoyées à cet appareil passent outre le mode silencieux et Ne pas déranger, sauf celles des règles d'astreinte réglées sur « Standard ». Activé depuis l'application mobile OneUptime On-Call ; les navigateurs ne peuvent pas passer outre la sonnerie d'un appareil.",
+  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Set in the OneUptime On-Call mobile app, which updates it here each time it's opened. Browsers can't override a device's ringer.": "Les alertes d'astreinte envoyées à cet appareil passent outre le mode silencieux et Ne pas déranger, sauf celles des règles d'astreinte réglées sur « Standard ». Se règle dans l'application mobile OneUptime On-Call, qui le met à jour ici à chaque ouverture. Les navigateurs ne peuvent pas passer outre la sonnerie d'un appareil.",
   "Open in Microsoft Teams": "Ouvrir dans Microsoft Teams",
   "Open in Slack": "Ouvrir dans Slack",
   "Push Notification Level": "Niveau de notification push",

@@ -28147,7 +28147,7 @@
   "Nothing has happened to this on-call policy yet.": "Todavía no ha pasado nada con esta política de guardia.",
   "Nothing has happened to this scheduled maintenance event yet.": "Todavía no ha pasado nada con este evento de mantenimiento programado.",
   "On-Call Policy Feed": "Feed de la política de guardia",
-  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.": "Los avisos de guardia a este dispositivo anulan el modo silencio y No molestar, salvo los de reglas de guardia en «Estándar». Se activa desde la aplicación móvil OneUptime On-Call; los navegadores no pueden anular el timbre de un dispositivo.",
+  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Set in the OneUptime On-Call mobile app, which updates it here each time it's opened. Browsers can't override a device's ringer.": "Los avisos de guardia a este dispositivo anulan el modo silencio y No molestar, salvo los de reglas de guardia en «Estándar». Se configura en la aplicación móvil OneUptime On-Call, que lo actualiza aquí cada vez que se abre. Los navegadores no pueden anular el timbre de un dispositivo.",
   "Open in Microsoft Teams": "Abrir en Microsoft Teams",
   "Open in Slack": "Abrir en Slack",
   "Push Notification Level": "Nivel de notificación push",

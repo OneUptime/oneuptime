@@ -104,6 +104,47 @@ export function getCriticalAlertDeviceState(
 }
 
 /*
+ * Whether a test notification went out as a critical alert, as the server
+ * answered it (UserPushAPI's test-notification route): the device as it is
+ * when the test is sent. null when the answer does not say, as a server from
+ * before it did.
+ */
+export function readTestNotificationIsCritical(answer: unknown): boolean | null {
+  if (!answer || typeof answer !== "object" || Array.isArray(answer)) {
+    return null;
+  }
+
+  const isCriticalAlert: unknown = (answer as Record<string, unknown>)[
+    "isCriticalAlert"
+  ];
+
+  return typeof isCriticalAlert === "boolean" ? isCriticalAlert : null;
+}
+
+/*
+ * What the dialog after a test says the test did. The server's answer when
+ * it gave one: the phone's app reports its critical alerts whenever they
+ * change - turned off in the app or in the phone's own settings - so the list
+ * may have been read before the phone last did, and the dialog said what the
+ * list showed: "as a critical alert" to a phone that had them off. Only a
+ * server that does not answer leaves it to the list. A browser never gets
+ * one, whatever is stored for it.
+ */
+export function wasTestSentAsCriticalAlert(data: {
+  platform: PushDevicePlatform;
+  // The device's critical alerts as the list showed them.
+  isListedAsOn: boolean;
+  // readTestNotificationIsCritical of the server's answer.
+  answer: boolean | null;
+}): boolean {
+  if (data.platform === PushDevicePlatform.Browser) {
+    return false;
+  }
+
+  return data.answer ?? data.isListedAsOn;
+}
+
+/*
  * The app's own labels, exactly as its screens draw them
  * (packages/MobileApp: app.json's name, the Settings tab, and the
  * Notifications group of the Settings screen). Drawn as they are in every

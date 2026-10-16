@@ -28147,7 +28147,7 @@
   "Nothing has happened to this on-call policy yet.": "Det har ikke skjedd noe med denne vaktpolicyen ennå.",
   "Nothing has happened to this scheduled maintenance event yet.": "Det har ikke skjedd noe med denne planlagte vedlikeholdshendelsen ennå.",
   "On-Call Policy Feed": "Vaktpolicyens feed",
-  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.": "Vaktvarsler til denne enheten overstyrer lydløs modus og Ikke forstyrr, unntatt fra vaktregler som står på «Normal». Slås på i mobilappen OneUptime On-Call; nettlesere kan ikke overstyre ringelyden på en enhet.",
+  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Set in the OneUptime On-Call mobile app, which updates it here each time it's opened. Browsers can't override a device's ringer.": "Vaktvarsler til denne enheten overstyrer lydløs modus og Ikke forstyrr, unntatt fra vaktregler som står på «Normal». Stilles inn i mobilappen OneUptime On-Call, som oppdaterer det her hver gang den åpnes. Nettlesere kan ikke overstyre ringelyden på en enhet.",
   "Open in Microsoft Teams": "Åpne i Microsoft Teams",
   "Open in Slack": "Åpne i Slack",
   "Push Notification Level": "Push-varselnivå",

@@ -135,6 +135,16 @@ function serverSpy(): jest.SpyInstance {
   return pushDeviceApi.setCriticalAlertsEnabledOnServer as unknown as jest.SpyInstance;
 }
 
+/*
+ * What the server was told this phone does with a critical page, in order:
+ * "off" while iOS does not allow critical alerts, never "on".
+ */
+function toldServer(): Array<boolean> {
+  return serverSpy().mock.calls.map((call: Array<unknown>): boolean => {
+    return (call[0] as { isEnabled: boolean }).isEnabled;
+  });
+}
+
 type SwitchElement = { props: { value?: boolean } };
 
 async function turnCriticalAlertsOn(): Promise<void> {
@@ -199,7 +209,9 @@ describe("On an iOS build without Apple's critical alerts entitlement", () => {
     });
 
     expect(criticalAlertsSwitch().props.value).toBe(false);
-    expect(serverSpy()).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(toldServer()).toEqual([false]);
+    });
   });
 });
 
@@ -260,6 +272,6 @@ describe("With notifications turned off for the app", () => {
     });
 
     expect(screen.queryByText(/Update OneUptime On-Call/)).toBeNull();
-    expect(serverSpy()).not.toHaveBeenCalled();
+    expect(toldServer()).not.toContain(true);
   });
 });

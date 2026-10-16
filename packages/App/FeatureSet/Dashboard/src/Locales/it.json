@@ -28147,7 +28147,7 @@
   "Nothing has happened to this on-call policy yet.": "Non è ancora successo nulla a questa policy di reperibilità.",
   "Nothing has happened to this scheduled maintenance event yet.": "Non è ancora successo nulla a questo evento di manutenzione pianificata.",
   "On-Call Policy Feed": "Feed della policy di reperibilità",
-  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.": "Gli avvisi di reperibilità verso questo dispositivo ignorano la modalità silenziosa e Non disturbare, tranne quelli delle regole di reperibilità impostate su «Standard». Si attiva dall'app mobile OneUptime On-Call; i browser non possono ignorare la suoneria di un dispositivo.",
+  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Set in the OneUptime On-Call mobile app, which updates it here each time it's opened. Browsers can't override a device's ringer.": "Gli avvisi di reperibilità verso questo dispositivo ignorano la modalità silenziosa e Non disturbare, tranne quelli delle regole di reperibilità impostate su «Standard». Si imposta nell'app mobile OneUptime On-Call, che lo aggiorna qui ogni volta che viene aperta. I browser non possono ignorare la suoneria di un dispositivo.",
   "Open in Microsoft Teams": "Apri in Microsoft Teams",
   "Open in Slack": "Apri in Slack",
   "Push Notification Level": "Livello di notifica push",

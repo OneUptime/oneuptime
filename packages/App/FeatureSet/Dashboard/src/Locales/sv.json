@@ -28147,7 +28147,7 @@
   "Nothing has happened to this on-call policy yet.": "Inget har hänt med den här jourpolicyn ännu.",
   "Nothing has happened to this scheduled maintenance event yet.": "Inget har hänt med den här schemalagda underhållshändelsen ännu.",
   "On-Call Policy Feed": "Jourpolicyns flöde",
-  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.": "Jourlarm till den här enheten åsidosätter ljudlöst läge och Stör ej, utom från jourregler som står på ”Normal”. Slås på i mobilappen OneUptime On-Call; webbläsare kan inte åsidosätta en enhets ringsignal.",
+  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Set in the OneUptime On-Call mobile app, which updates it here each time it's opened. Browsers can't override a device's ringer.": "Jourlarm till den här enheten åsidosätter ljudlöst läge och Stör ej, utom från jourregler som står på ”Normal”. Ställs in i mobilappen OneUptime On-Call, som uppdaterar det här varje gång den öppnas. Webbläsare kan inte åsidosätta en enhets ringsignal.",
   "Open in Microsoft Teams": "Öppna i Microsoft Teams",
   "Open in Slack": "Öppna i Slack",
   "Push Notification Level": "Push-aviseringsnivå",

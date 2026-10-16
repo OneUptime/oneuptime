@@ -109,6 +109,18 @@ function serverSpy(): jest.SpyInstance {
 }
 
 /*
+ * What the server was told this phone does with a critical page, in order.
+ * The hook tells it on its own whenever that changes - "off" while the OS
+ * does not allow critical alerts - so a test of a phone that cannot ring
+ * through expects the server to hear "off", and never "on".
+ */
+function toldServer(): Array<boolean> {
+  return serverSpy().mock.calls.map((call: Array<unknown>): boolean => {
+    return (call[0] as { isEnabled: boolean }).isEnabled;
+  });
+}
+
+/*
  * renderHook is asynchronous in @testing-library/react-native v14, and the
  * hook's first useEffect kicks off an async status read - so every test waits
  * for that first pass to land before asserting, rather than racing it.
@@ -297,7 +309,10 @@ describe("useCriticalAlerts when the OS has not granted the capability", () => {
       await result.current.setEnabled(true);
     });
 
-    expect(serverSpy()).not.toHaveBeenCalled();
+    // Told what the phone does: off, never on.
+    await waitFor(() => {
+      expect(toldServer()).toEqual([false]);
+    });
   });
 
   test("the responder is told exactly which OS setting to change", async () => {
@@ -382,7 +397,9 @@ describe("useCriticalAlerts on an iOS build without Apple's entitlement", () => 
     });
 
     expect(result.current.isEnabled).toBe(false);
-    expect(serverSpy()).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(toldServer()).toEqual([false]);
+    });
     expect(await getCriticalAlertsEnabled()).toBe(false);
   });
 
@@ -455,7 +472,7 @@ describe("useCriticalAlerts after updating to a build with Apple's entitlement",
     });
 
     expect(result.current.isEnabled).toBe(false);
-    expect(serverSpy()).not.toHaveBeenCalled();
+    expect(toldServer()).not.toContain(true);
     expect(result.current.error).toContain(
       "Allow Critical Alerts for OneUptime On-Call in iOS Settings",
     );
@@ -530,7 +547,7 @@ describe("useCriticalAlerts on iOS with notifications turned off", () => {
     });
 
     expect(result.current.isEnabled).toBe(false);
-    expect(serverSpy()).not.toHaveBeenCalled();
+    expect(toldServer()).not.toContain(true);
     expect(result.current.error).toContain("Allow Notifications");
   });
 });
@@ -796,7 +813,8 @@ describe("useCriticalAlerts on Android, against Android's own channel rules", ()
     );
     expect(result.current.isEnabled).toBe(false);
     expect(result.current.error).toContain("Do Not Disturb access");
-    expect(serverSpy()).not.toHaveBeenCalled();
+    // Never "on" before Android let it through.
+    expect(toldServer()).not.toContain(true);
 
     // ...where they allow it, and come back.
     android.grantDoNotDisturbAccess();
@@ -822,17 +840,23 @@ describe("useCriticalAlerts on Android, against Android's own channel rules", ()
     );
   });
 
-  test("a responder who had already turned it on sees it come back on by itself", async () => {
+  test("a responder who had already turned it on sees it come back on by itself, and so does the server", async () => {
     /*
      * Opted in on this phone before (stored), but the channel was never given
      * the bypass. Once access is granted the setting shows as on again
-     * without being toggled - it is on the server already.
+     * without being toggled. The server was told "off" while Android did not
+     * let pages through, so it is told "on" again now - it used to be left
+     * as it was, which is how the Dashboard came to say the opposite of the
+     * phone.
      */
     await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
 
     const { result } = await renderCriticalAlerts();
 
     expect(result.current.isEnabled).toBe(false);
+    await waitFor(() => {
+      expect(toldServer()).toEqual([false]);
+    });
 
     android.grantDoNotDisturbAccess();
     await cameBackToTheApp();
@@ -840,7 +864,9 @@ describe("useCriticalAlerts on Android, against Android's own channel rules", ()
     await waitFor(() => {
       expect(result.current.isEnabled).toBe(true);
     });
-    expect(serverSpy()).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(toldServer()).toEqual([false, true]);
+    });
   });
 
   test("coming back without granting it leaves the setting off and the instruction up", async () => {
@@ -1056,7 +1082,7 @@ describe("useCriticalAlerts on Android answers for the alarm the responder chose
       await result.current.setEnabled(true);
     });
 
-    expect(serverSpy()).not.toHaveBeenCalled();
+    expect(toldServer()).not.toContain(true);
     expect(result.current.isEnabled).toBe(false);
     expect(result.current.error).not.toBe("");
   });

@@ -25,7 +25,28 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Includes from "../../Types/BaseDatabase/Includes";
-import { EXPO_PUSH_DEVICE_TYPES } from "../../Types/PushNotification/ExpoPushDeviceType";
+import {
+  EXPO_PUSH_DEVICE_TYPES,
+  isExpoPushDeviceType,
+} from "../../Types/PushNotification/ExpoPushDeviceType";
+
+/*
+ * What a phone says about its critical alerts when it registers: whether a
+ * critical page rings through on it, and the alarm and volume it plays.
+ * Each is left out when the registration does not say it.
+ */
+export interface StatedCriticalAlertChoices {
+  isCriticalAlertEnabled?: boolean | undefined;
+  criticalAlertSound?: CriticalAlertSound | undefined;
+  criticalAlertVolume?: number | undefined;
+}
+
+// A device's critical alert choices as they stand once restated.
+export interface CriticalAlertChoices {
+  isCriticalAlertEnabled: boolean;
+  criticalAlertSound?: CriticalAlertSound | undefined;
+  criticalAlertVolume?: number | undefined;
+}
 
 export class Service extends DatabaseService<UserPush> {
   public constructor() {
@@ -214,6 +235,99 @@ export class Service extends DatabaseService<UserPush> {
         isCriticalAlertEnabled: data.isEnabled,
       },
     });
+  }
+
+  /**
+   * A phone registered a device it already has - the app does on every
+   * start, every sign-in and every return to it at most five minutes apart -
+   * and restated its critical alert choices: whether a critical page rings
+   * through on it, and the alarm and volume it plays (MobileApp
+   * pushDevice.ts). The device takes them.
+   *
+   * The app says what the phone will really do with a critical page: on
+   * only while the responder has Critical On-Call Alerts on AND the phone's
+   * system allows it. A device that was already registered used to keep
+   * whatever it was created with, so a phone whose app was reinstalled, or
+   * whose critical alerts were turned off in the phone's own settings, went
+   * on reading "On" in the Dashboard - and a test from there claimed to ring
+   * through silent mode while the phone showed an ordinary notification.
+   *
+   * Only an iOS or Android device: no browser can ring through silent mode,
+   * and a browser's device is left as it is. Only what the phone states is
+   * written (an older app that does not know the alarm leaves it), and only
+   * what differs from what the device holds, so the registrations the app
+   * makes every few minutes write nothing while nothing changes.
+   *
+   * Returns the device's choices as they now stand.
+   */
+  @CaptureSpan()
+  public async restateCriticalAlertChoices(data: {
+    // The device as read: _id, deviceType and the three columns.
+    device: UserPush;
+    stated: StatedCriticalAlertChoices;
+  }): Promise<CriticalAlertChoices> {
+    const device: UserPush = data.device;
+
+    const stored: CriticalAlertChoices = {
+      isCriticalAlertEnabled: Boolean(device.isCriticalAlertEnabled),
+      criticalAlertSound: device.criticalAlertSound,
+      criticalAlertVolume: device.criticalAlertVolume,
+    };
+
+    if (!device._id || !isExpoPushDeviceType(device.deviceType)) {
+      return stored;
+    }
+
+    // Only what differs, each column present only when it is written.
+    const changes: {
+      isCriticalAlertEnabled?: boolean;
+      criticalAlertSound?: CriticalAlertSound;
+      criticalAlertVolume?: number;
+    } = {};
+
+    if (
+      data.stated.isCriticalAlertEnabled !== undefined &&
+      data.stated.isCriticalAlertEnabled !== stored.isCriticalAlertEnabled
+    ) {
+      changes.isCriticalAlertEnabled = data.stated.isCriticalAlertEnabled;
+    }
+
+    if (
+      data.stated.criticalAlertSound !== undefined &&
+      data.stated.criticalAlertSound !== stored.criticalAlertSound
+    ) {
+      changes.criticalAlertSound = data.stated.criticalAlertSound;
+    }
+
+    if (
+      data.stated.criticalAlertVolume !== undefined &&
+      data.stated.criticalAlertVolume !== stored.criticalAlertVolume
+    ) {
+      changes.criticalAlertVolume = data.stated.criticalAlertVolume;
+    }
+
+    if (Object.keys(changes).length === 0) {
+      return stored;
+    }
+
+    await this.updateOneBy({
+      query: {
+        _id: device._id.toString(),
+      },
+      data: changes,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return {
+      isCriticalAlertEnabled:
+        changes.isCriticalAlertEnabled ?? stored.isCriticalAlertEnabled,
+      criticalAlertSound:
+        changes.criticalAlertSound ?? stored.criticalAlertSound,
+      criticalAlertVolume:
+        changes.criticalAlertVolume ?? stored.criticalAlertVolume,
+    };
   }
 
   /**

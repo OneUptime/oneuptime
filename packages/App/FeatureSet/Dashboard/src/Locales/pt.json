@@ -28147,7 +28147,7 @@
   "Nothing has happened to this on-call policy yet.": "Nada aconteceu com esta política de plantão ainda.",
   "Nothing has happened to this scheduled maintenance event yet.": "Nada aconteceu com este evento de manutenção agendada ainda.",
   "On-Call Policy Feed": "Feed da política de plantão",
-  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.": "Os alertas de plantão para este dispositivo ignoram o modo silencioso e o Não Perturbe, exceto os de regras de plantão definidas como “Normal”. Ativado no aplicativo móvel OneUptime On-Call; navegadores não podem ignorar o toque de um dispositivo.",
+  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Set in the OneUptime On-Call mobile app, which updates it here each time it's opened. Browsers can't override a device's ringer.": "Os alertas de plantão para este dispositivo ignoram o modo silencioso e o Não Perturbe, exceto os de regras de plantão definidas como “Normal”. Definido no aplicativo móvel OneUptime On-Call, que o atualiza aqui sempre que é aberto. Navegadores não podem ignorar o toque de um dispositivo.",
   "Open in Microsoft Teams": "Abrir no Microsoft Teams",
   "Open in Slack": "Abrir no Slack",
   "Push Notification Level": "Nível de notificação push",

@@ -28147,7 +28147,7 @@
   "Nothing has happened to this on-call policy yet.": "此值班策略尚未发生任何事情。",
   "Nothing has happened to this scheduled maintenance event yet.": "此计划维护事件尚未发生任何事情。",
   "On-Call Policy Feed": "值班策略信息流",
-  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.": "发送到此设备的值班呼叫会穿透静音模式和勿扰模式，但设为“普通”的值班规则发出的呼叫除外。在 OneUptime On-Call 移动应用中开启；浏览器无法绕过设备的铃声设置。",
+  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Set in the OneUptime On-Call mobile app, which updates it here each time it's opened. Browsers can't override a device's ringer.": "发送到此设备的值班呼叫会穿透静音模式和勿扰模式，但设为“普通”的值班规则发出的呼叫除外。在 OneUptime On-Call 移动应用中设置，每次打开应用时都会在此更新。浏览器无法绕过设备的铃声设置。",
   "Open in Microsoft Teams": "在 Microsoft Teams 中打开",
   "Open in Slack": "在 Slack 中打开",
   "Push Notification Level": "推送通知级别",

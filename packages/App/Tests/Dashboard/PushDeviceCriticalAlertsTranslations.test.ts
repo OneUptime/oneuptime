@@ -68,7 +68,7 @@ const ENGLISH: Record<string, unknown> = readLocale("en");
 const CARD_STRINGS: Array<string> = [
   // The Critical Alerts column.
   "Critical Alerts",
-  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.",
+  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Set in the OneUptime On-Call mobile app, which updates it here each time it's opened. Browsers can't override a device's ringer.",
   "Rings through silent mode and Do Not Disturb",
   "How to turn on",
   "How to turn on critical alerts on {{deviceName}}",
@@ -164,13 +164,15 @@ describe("the push devices card's critical alerts, in every language", () => {
 
   /*
    * Sentences the card stopped drawing: a browser's sign-in step, which
-   * did not say which OneUptime to connect the app to, and a note that
-   * said again what the steps' description had just said.
+   * did not say which OneUptime to connect the app to, a note that said
+   * again what the steps' description had just said, and the column's (i)
+   * from before it said that the app keeps the column up to date.
    */
   test("the sentences the steps no longer draw are gone from every locale", () => {
     const retired: Array<string> = [
       "Sign in with your OneUptime account and allow notifications. Your phone then shows up in this list.",
       "Once it's on, on-call pages ring through silent mode and Do Not Disturb. Choose the alarm they play in the app, under {{alarmSoundPath}}.",
+      "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.",
     ];
 
     for (const language of ["en", ...LANGUAGES]) {

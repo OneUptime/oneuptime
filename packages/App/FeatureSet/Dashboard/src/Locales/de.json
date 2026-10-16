@@ -28147,7 +28147,7 @@
   "Nothing has happened to this on-call policy yet.": "Bei dieser Bereitschaftsrichtlinie ist noch nichts passiert.",
   "Nothing has happened to this scheduled maintenance event yet.": "Bei diesem geplanten Wartungsereignis ist noch nichts passiert.",
   "On-Call Policy Feed": "Bereitschaftsrichtlinien-Feed",
-  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.": "Bereitschaftsalarmierungen an dieses Gerät setzen den Lautlos-Modus und „Nicht stören“ außer Kraft, außer von Bereitschaftsregeln, die auf „Normal“ stehen. Wird in der mobilen OneUptime-On-Call-App aktiviert; Browser können den Klingelton eines Geräts nicht übersteuern.",
+  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Set in the OneUptime On-Call mobile app, which updates it here each time it's opened. Browsers can't override a device's ringer.": "Bereitschaftsalarmierungen an dieses Gerät setzen den Lautlos-Modus und „Nicht stören“ außer Kraft, außer von Bereitschaftsregeln, die auf „Normal“ stehen. Wird in der mobilen OneUptime-On-Call-App eingestellt, die es hier bei jedem Öffnen aktualisiert. Browser können den Klingelton eines Geräts nicht übersteuern.",
   "Open in Microsoft Teams": "In Microsoft Teams öffnen",
   "Open in Slack": "In Slack öffnen",
   "Push Notification Level": "Push-Benachrichtigungsstufe",

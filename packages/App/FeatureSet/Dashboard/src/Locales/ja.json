@@ -28147,7 +28147,7 @@
   "Nothing has happened to this on-call policy yet.": "このオンコールポリシーにはまだ何も起きていません。",
   "Nothing has happened to this scheduled maintenance event yet.": "この定期メンテナンスイベントにはまだ何も起きていません。",
   "On-Call Policy Feed": "オンコールポリシーのフィード",
-  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.": "このデバイスへのオンコールの呼び出しは、サイレントモードとおやすみモードより優先されます (「通常」に設定したオンコールルールからの呼び出しを除く)。OneUptime On-Call モバイルアプリからオンにします。ブラウザーではデバイスの着信音の設定を上書きできません。",
+  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Set in the OneUptime On-Call mobile app, which updates it here each time it's opened. Browsers can't override a device's ringer.": "このデバイスへのオンコールの呼び出しは、サイレントモードとおやすみモードより優先されます (「通常」に設定したオンコールルールからの呼び出しを除く)。OneUptime On-Call モバイルアプリで設定し、アプリを開くたびにここに反映されます。ブラウザーではデバイスの着信音の設定を上書きできません。",
   "Open in Microsoft Teams": "Microsoft Teams で開く",
   "Open in Slack": "Slack で開く",
   "Push Notification Level": "プッシュ通知レベル",
