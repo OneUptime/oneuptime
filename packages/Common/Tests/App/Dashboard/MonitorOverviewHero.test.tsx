@@ -1444,6 +1444,52 @@ describe("MonitorOverviewHero turns monitoring back on", () => {
     expect(updateByIdMock).not.toHaveBeenCalled();
   });
 
+  test("it starts where the text above it does: Button's dialog margin is cleared", () => {
+    /*
+     * Button carries md:ml-3 for a dialog's footer, which set this one 12px
+     * in from the headline from md up. The wrapper clears it on the button,
+     * or on the span a locked button's tooltip wraps it in.
+     */
+    const MARGIN_CLEARING: Array<string> = [
+      "[&>button]:ml-0",
+      "[&>button]:md:ml-0",
+      "[&>*>button]:ml-0",
+      "[&>*>button]:md:ml-0",
+    ];
+
+    renderDisabled();
+
+    const wrapper: HTMLElement = screen.getByTestId(
+      "monitor-overview-call-to-action",
+    );
+    const button: HTMLElement = screen.getByTestId(
+      TURN_MONITORING_ON_BUTTON_TEST_ID,
+    );
+
+    expect(wrapper).toHaveClass("mt-4", ...MARGIN_CLEARING);
+    expect(button.parentElement).toBe(wrapper);
+    cleanup();
+
+    columnGate = {
+      isAllowed: false,
+      disabledReason:
+        "You do not have permission to update this Monitor. You need one of these permissions: Project Owner.",
+    };
+
+    renderDisabled();
+
+    const lockedWrapper: HTMLElement = screen.getByTestId(
+      "monitor-overview-call-to-action",
+    );
+    const lockedButton: HTMLElement = screen.getByTestId(
+      TURN_MONITORING_ON_BUTTON_TEST_ID,
+    );
+
+    expect(lockedWrapper).toHaveClass(...MARGIN_CLEARING);
+    // One element between them: the span the [&>*>button] rule reaches.
+    expect(lockedButton.parentElement?.parentElement).toBe(lockedWrapper);
+  });
+
   test("while the permissions are still loading it offers nothing, rather than a lock it cannot explain", () => {
     columnGate = { isAllowed: false };
 
@@ -1470,6 +1516,10 @@ describe("MonitorOverviewHero turns monitoring back on", () => {
       routeFor(PageMap.MONITOR_VIEW_SETTINGS),
     );
     expect(screen.queryByTestId(TURN_MONITORING_ON_BUTTON_TEST_ID)).toBeNull();
+    // A link call to action sits in the same wrapper as the button does.
+    expect(
+      screen.getByTestId("monitor-overview-call-to-action"),
+    ).toContainElement(screen.getByRole("link", { name: "Open settings" }));
     cleanup();
 
     renderHero({

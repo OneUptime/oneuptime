@@ -45,6 +45,7 @@ import { HERO_ICON_BUTTON_CLASS_NAME } from "../../../../App/FeatureSet/Dashboar
 import MonitorChangeStatusMenu, {
   ComponentProps,
   getMonitorStatusChoices,
+  MONITOR_CHANGE_STATUS_ANNOUNCEMENT_TEST_ID,
   MONITOR_CHANGE_STATUS_FALLBACK_TEST_ID,
   MONITOR_CHANGE_STATUS_LOADING_TEST_ID,
   MONITOR_CHANGE_STATUS_MENU_TEST_ID,
@@ -656,6 +657,156 @@ describe("changing the status", () => {
     );
   });
 
+  test("right after a change the menu leaves the new status out, before the page's new read lands", async () => {
+    const view: RenderResult = await renderLoaded({
+      currentStatusId: OPERATIONAL_ID,
+    });
+
+    openMenu();
+    pick("Offline");
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+    await flush();
+
+    // The page has not read the monitor again yet: it still says Operational.
+    expect(itemTexts(openMenu())).toEqual(["Operational", "Degraded"]);
+    fireEvent.click(trigger());
+
+    // Its read lands with the new status...
+    view.rerender(
+      <MonitorChangeStatusMenu
+        monitorId={MONITOR_ID}
+        currentStatusId={OFFLINE_ID}
+      />,
+    );
+    expect(itemTexts(openMenu())).toEqual(["Operational", "Degraded"]);
+    fireEvent.click(trigger());
+
+    // ...and a later change made elsewhere is followed as before.
+    view.rerender(
+      <MonitorChangeStatusMenu
+        monitorId={MONITOR_ID}
+        currentStatusId={DEGRADED_ID}
+      />,
+    );
+    expect(itemTexts(openMenu())).toEqual(["Operational", "Offline"]);
+  });
+
+  test("a refused change leaves the menu as it was", async () => {
+    createMock.mockImplementationOnce(async (): Promise<unknown> => {
+      throw new Error("The server is restarting.");
+    });
+
+    await renderLoaded({ currentStatusId: OPERATIONAL_ID });
+
+    openMenu();
+    pick("Offline");
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+    await flush();
+    fireEvent.click(screen.getByTestId("modal-footer-close-button"));
+
+    expect(itemTexts(openMenu())).toEqual(["Degraded", "Offline"]);
+  });
+
+  test("a recorded change is told to a screen reader, through a polite status region", async () => {
+    await renderLoaded();
+
+    const region: HTMLElement = screen.getByTestId(
+      MONITOR_CHANGE_STATUS_ANNOUNCEMENT_TEST_ID,
+    );
+
+    expect(region).toHaveAttribute("role", "status");
+    expect(region).toHaveClass("sr-only");
+    expect(region).toBeEmptyDOMElement();
+
+    openMenu();
+    pick("Offline");
+    // Asking says nothing yet.
+    expect(region).toBeEmptyDOMElement();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+    await flush();
+
+    expect(region).toHaveTextContent("Status changed to Offline.");
+  });
+
+  test("a refused change is said in the dialog only, not in the status region", async () => {
+    createMock.mockImplementationOnce(async (): Promise<unknown> => {
+      throw new Error("The server is restarting.");
+    });
+
+    await renderLoaded();
+
+    openMenu();
+    pick("Degraded");
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+    await flush();
+
+    expect(screen.getByTestId("modal-error")).toHaveTextContent(
+      "The server is restarting.",
+    );
+    expect(
+      screen.getByTestId(MONITOR_CHANGE_STATUS_ANNOUNCEMENT_TEST_ID),
+    ).toBeEmptyDOMElement();
+  });
+
+  test("each change is spoken: the region is emptied as the next save starts", async () => {
+    let finish: () => void = (): void => {};
+    const view: RenderResult = await renderLoaded({
+      currentStatusId: OPERATIONAL_ID,
+    });
+
+    openMenu();
+    pick("Offline");
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+    await flush();
+
+    const region: HTMLElement = screen.getByTestId(
+      MONITOR_CHANGE_STATUS_ANNOUNCEMENT_TEST_ID,
+    );
+    expect(region).toHaveTextContent("Status changed to Offline.");
+
+    view.rerender(
+      <MonitorChangeStatusMenu
+        monitorId={MONITOR_ID}
+        currentStatusId={OFFLINE_ID}
+      />,
+    );
+
+    createMock.mockImplementationOnce((): Promise<unknown> => {
+      return new Promise<unknown>((resolve: (value: unknown) => void) => {
+        finish = (): void => {
+          resolve({});
+        };
+      });
+    });
+
+    openMenu();
+    pick("Operational");
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+
+    // Out while the save is: the next words are new to the region.
+    expect(region).toBeEmptyDOMElement();
+
+    await act(async () => {
+      finish();
+    });
+    await flush();
+
+    expect(region).toHaveTextContent("Status changed to Operational.");
+  });
+
   test("works without a page to tell", async () => {
     await renderLoaded({ onStatusChanged: undefined });
 
@@ -859,6 +1010,33 @@ describe("in German", () => {
     );
     expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
       inGerman("Change status"),
+    );
+  });
+
+  test("tells a screen reader of the change in German", async () => {
+    render(renderGerman());
+    await flush();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: inGerman("More actions") }),
+    );
+    fireEvent.click(
+      within(screen.getByRole("menu")).getByRole("menuitem", {
+        name: inGerman("Degraded"),
+      }),
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+    await flush();
+
+    expect(
+      screen.getByTestId(MONITOR_CHANGE_STATUS_ANNOUNCEMENT_TEST_ID),
+    ).toHaveTextContent(
+      inGerman("Status changed to {{status}}.").replace(
+        "{{status}}",
+        inGerman("Degraded"),
+      ),
     );
   });
 });

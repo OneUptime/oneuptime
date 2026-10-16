@@ -30248,5 +30248,6 @@
   "Refresh now. This page also refreshes every minute.": "Atualizar agora. Esta página também é atualizada a cada minuto.",
   "Refreshed at {{time}}": "Atualizado às {{time}}",
   "The monitor shows {{status}} from now on, here and on every status page that lists it.": "A partir de agora, o monitor mostra {{status}}, aqui e em cada página de status que o lista.",
-  "Change the status from ⋯ at the top of this page; the status timeline keeps every change.": "Altere o status em ⋯ no topo desta página; a linha do tempo de status guarda cada mudança."
+  "Change the status from the menu (⋯) at the top of this page. The status timeline keeps every change.": "Altere o status no menu (⋯) no topo desta página. A linha do tempo de status guarda cada mudança.",
+  "Status changed to {{status}}.": "Status alterado para {{status}}."
 }

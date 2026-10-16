@@ -30248,5 +30248,6 @@
   "Refresh now. This page also refreshes every minute.": "Uppdatera nu. Sidan uppdateras också varje minut.",
   "Refreshed at {{time}}": "Uppdaterad kl. {{time}}",
   "The monitor shows {{status}} from now on, here and on every status page that lists it.": "Övervakningen visar {{status}} från och med nu, här och på varje statussida som listar den.",
-  "Change the status from ⋯ at the top of this page; the status timeline keeps every change.": "Ändra statusen via ⋯ högst upp på den här sidan; statustidslinjen sparar varje ändring."
+  "Change the status from the menu (⋯) at the top of this page. The status timeline keeps every change.": "Ändra statusen via menyn (⋯) högst upp på den här sidan. Statustidslinjen sparar varje ändring.",
+  "Status changed to {{status}}.": "Status ändrad till {{status}}."
 }

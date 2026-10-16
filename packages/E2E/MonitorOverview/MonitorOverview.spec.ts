@@ -1617,7 +1617,7 @@ test.describe("other monitor families", () => {
     await expect(guide).toBeVisible();
     // The guide sends people to the ⋯ at the top, and the timeline keeps it.
     await expect(guide).toContainText(
-      "Change the status from ⋯ at the top of this page; the status timeline keeps every change.",
+      "Change the status from the menu (⋯) at the top of this page. The status timeline keeps every change.",
     );
     await expect(
       guide.getByRole("link", { name: "Open status timeline" }),
@@ -2229,10 +2229,11 @@ test.describe("the hero's actions", () => {
       ).toBeLessThanOrEqual(title.y + 4);
 
       /*
-       * When the data was read: beside them from lg up, left out below,
-       * where the hero shares its row with the side menu or is a phone's.
+       * When the data was read: beside them from xl up, left out below,
+       * where the hero's text needs the room (beside the side menu at
+       * 1024px) or the hero is a tablet's or a phone's.
        */
-      if (width >= 1024) {
+      if (width >= 1280) {
         await expect(
           heroActions(page).getByTestId("monitor-overview-refreshed-at"),
         ).toBeVisible();
@@ -2240,6 +2241,25 @@ test.describe("the hero's actions", () => {
         await expect(
           heroActions(page).getByTestId("monitor-overview-refreshed-at"),
         ).toBeHidden();
+      }
+
+      /*
+       * So at 1024px the actions' column holds the buttons and the pulse
+       * only, and the text keeps most of the row: with the time in that
+       * column, it had less than half, and the explanation ran to five
+       * lines beside an empty column.
+       */
+      if (width === 1024) {
+        const layout: Box = await documentBox(
+          page.getByTestId("monitor-overview-layout"),
+        );
+        const state: Box = await documentBox(
+          page.getByTestId("monitor-overview-state-cell"),
+        );
+        expect(
+          state.width / layout.width,
+          "1024px: the text's share of the hero",
+        ).toBeGreaterThanOrEqual(0.6);
       }
 
       await expectNoHorizontalOverflow(page);
@@ -2283,6 +2303,52 @@ test.describe("the hero's actions", () => {
     const narrowPulse: Box = await documentBox(pulse);
     expect(narrowPulse.y).toBeGreaterThanOrEqual(target.y + target.height);
     expect(Math.abs(narrowPulse.x - target.x)).toBeLessThanOrEqual(2);
+  });
+
+  test("the hero's call to action starts where its text does, a button or a link", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * Button carries a left margin meant for a dialog's footer (md:ml-3),
+     * which set "Turn monitoring on" 12px in from the headline above it
+     * from md up, while a link such as "Check probes" lined up.
+     */
+    const scenarios: Array<{
+      query: string;
+      role: "button" | "link";
+      name: string;
+    }> = [
+      { query: "state=disabled", role: "button", name: "Turn monitoring on" },
+      // Locked, the button sits in the span its tooltip needs.
+      {
+        query: "state=disabled&role=viewer",
+        role: "button",
+        name: "Turn monitoring on",
+      },
+      { query: "state=stale", role: "link", name: "Check probes" },
+    ];
+
+    for (const scenario of scenarios) {
+      await openReady(page, { query: scenario.query });
+
+      for (const width of [1440, 1024, 768, 390]) {
+        await page.setViewportSize({ width, height: 900 });
+
+        const action: Box = await documentBox(
+          page
+            .getByTestId("monitor-overview-call-to-action")
+            .getByRole(scenario.role, { name: scenario.name }),
+        );
+        const title: Box = await documentBox(headline(page));
+
+        expect(
+          Math.abs(action.x - title.x),
+          `${scenario.query}, ${width}px: ${scenario.name} starts where the headline does`,
+        ).toBeLessThanOrEqual(1);
+      }
+    }
   });
 
   test("manual: a status picked from the ⋯ is recorded, and the hero shows it", async ({
@@ -2332,6 +2398,14 @@ test.describe("the hero's actions", () => {
 
     await dialog.getByRole("button", { name: "Change status" }).click();
     await expect(dialog).toHaveCount(0);
+
+    // The dialog is gone, so a screen reader is told in words.
+    const announcement: Locator = heroActions(page)
+      .getByRole("status")
+      .and(page.getByTestId("monitor-overview-change-status-announcement"));
+    await expect(announcement).toHaveText("Status changed to Offline.");
+    // The focus is back on the ⋯ the change started from.
+    await expect(moreActionsButton(page)).toBeFocused();
 
     const creates: Array<RecordedCreate> = await statusEventCreates(page);
     expect(creates).toHaveLength(1);

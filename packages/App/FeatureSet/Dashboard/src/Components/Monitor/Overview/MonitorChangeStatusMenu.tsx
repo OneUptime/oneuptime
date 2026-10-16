@@ -42,7 +42,9 @@ import React, {
  * with its colour, as an incident's ⋯ lists its states ("Change state to").
  * Picking one asks once - a status change shows on status pages and tells
  * the monitor's owners and chat channels - and then records it the way the
- * Status Timeline's form does: a new status event that starts now.
+ * Status Timeline's form does: a new status event that starts now. The page
+ * is told, so it reads the monitor again; meanwhile the menu already leaves
+ * the new status out, and a screen reader hears "Status changed to X.".
  *
  * It used to be a "Change status" link under the hero's text that went to
  * the Status Timeline page, where the reader had to find "Create Monitor
@@ -59,6 +61,8 @@ export const MONITOR_CHANGE_STATUS_FALLBACK_TEST_ID: string =
   "monitor-overview-change-status-fallback";
 export const MONITOR_CHANGE_STATUS_LOADING_TEST_ID: string =
   "monitor-overview-change-status-loading";
+export const MONITOR_CHANGE_STATUS_ANNOUNCEMENT_TEST_ID: string =
+  "monitor-overview-change-status-announcement";
 
 // A status the menu can offer.
 export interface MonitorStatusChoice {
@@ -145,6 +149,26 @@ const MonitorChangeStatusMenu: FunctionComponent<ComponentProps> = (
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string>("");
 
+  /*
+   * The status just recorded, until the page's new read of the monitor
+   * brings it in as the current one: in the moment between the two, the
+   * menu would otherwise offer the status the monitor is already in, and
+   * picking it would only be refused.
+   */
+  const [changedToId, setChangedToId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setChangedToId(null);
+  }, [props.currentStatusId]);
+
+  /*
+   * Said to a screen reader once a change is recorded. The dialog closes
+   * and the focus goes back to the ⋯, so nothing else would tell them;
+   * the region is emptied as a save starts, so the same words are spoken
+   * again for the next change.
+   */
+  const [announcement, setAnnouncement] = useState<string>("");
+
   // Set at once: two presses before the dialog locks must not save twice.
   const isSavingRef: MutableRefObject<boolean> = useRef<boolean>(false);
 
@@ -221,7 +245,7 @@ const MonitorChangeStatusMenu: FunctionComponent<ComponentProps> = (
     statusList.state === "loaded"
       ? getMonitorStatusChoices({
           statuses: statusList.statuses,
-          currentStatusId: props.currentStatusId,
+          currentStatusId: changedToId || props.currentStatusId,
         })
       : [];
 
@@ -242,6 +266,7 @@ const MonitorChangeStatusMenu: FunctionComponent<ComponentProps> = (
     isSavingRef.current = true;
     setIsSaving(true);
     setSaveError("");
+    setAnnouncement("");
 
     const save: () => Promise<void> = async (): Promise<void> => {
       try {
@@ -262,6 +287,12 @@ const MonitorChangeStatusMenu: FunctionComponent<ComponentProps> = (
         isSavingRef.current = false;
         setIsSaving(false);
         setPicked(null);
+        setChangedToId(picked.id);
+        setAnnouncement(
+          translator.translateTemplate("Status changed to {{status}}.", {
+            status: translatableTerm(picked.name),
+          }),
+        );
         props.onStatusChanged?.();
       } catch (err) {
         isSavingRef.current = false;
@@ -372,6 +403,14 @@ const MonitorChangeStatusMenu: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
+
+      <span
+        role="status"
+        className="sr-only"
+        data-testid={MONITOR_CHANGE_STATUS_ANNOUNCEMENT_TEST_ID}
+      >
+        {announcement}
+      </span>
     </>
   );
 };

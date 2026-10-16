@@ -25,6 +25,7 @@ import path from "path";
 import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { isVisibleAtWidth } from "../../ResponsiveVisibility";
 import { getJestSpyOn } from "../../Spy";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
@@ -298,20 +299,46 @@ describe("when the data on screen is from", () => {
     expect(refreshButton()).toBeInTheDocument();
   });
 
-  test("gives the badges the row below lg, where the hero is narrow, and is back from lg up", () => {
+  test("shows from xl up only, leaving the hero's text its room below it", () => {
     renderActions();
 
     const caption: HTMLElement = screen.getByTestId(
       MONITOR_OVERVIEW_REFRESHED_AT_TEST_ID,
     );
 
+    /*
+     * The actions' column is as wide as its widest line: with the time in
+     * it at lg (1024px beside the side menu), a manual monitor's text was
+     * squeezed into a third of the hero.
+     */
     expect(caption).toHaveClass(
-      "max-lg:hidden",
-      "lg:inline",
+      "max-xl:hidden",
+      "xl:inline",
       "whitespace-nowrap",
     );
+    expect(caption).not.toHaveClass("max-lg:hidden");
+    expect(caption).not.toHaveClass("lg:inline");
     // Hidden with a max- variant, so a foreign .hidden rule cannot pin it shut.
     expect(caption).not.toHaveClass("hidden");
+
+    for (const width of [375, 640, 768, 1024, 1279]) {
+      expect({ width, isVisible: isVisibleAtWidth(caption, width) }).toEqual({
+        width,
+        isVisible: false,
+      });
+    }
+
+    for (const width of [1280, 1440, 1917]) {
+      for (const withForeignHiddenRule of [false, true]) {
+        expect({
+          width,
+          withForeignHiddenRule,
+          isVisible: isVisibleAtWidth(caption, width, {
+            withForeignHiddenRule,
+          }),
+        }).toEqual({ width, withForeignHiddenRule, isVisible: true });
+      }
+    }
   });
 
   test("the loaded-at text is today's clock time, or the day and time of an earlier day", () => {

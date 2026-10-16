@@ -30248,5 +30248,6 @@
   "Refresh now. This page also refreshes every minute.": "Refresh now. This page also refreshes every minute.",
   "Refreshed at {{time}}": "Refreshed at {{time}}",
   "The monitor shows {{status}} from now on, here and on every status page that lists it.": "The monitor shows {{status}} from now on, here and on every status page that lists it.",
-  "Change the status from ⋯ at the top of this page; the status timeline keeps every change.": "Change the status from ⋯ at the top of this page; the status timeline keeps every change."
+  "Change the status from the menu (⋯) at the top of this page. The status timeline keeps every change.": "Change the status from the menu (⋯) at the top of this page. The status timeline keeps every change.",
+  "Status changed to {{status}}.": "Status changed to {{status}}."
 }

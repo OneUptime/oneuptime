@@ -157,7 +157,7 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     if (!isMonitorOverviewActionCallToAction(callToAction)) {
       return (
-        <div className="mt-4">
+        <div data-testid="monitor-overview-call-to-action" className="mt-4">
           <SloOverviewActionLink
             variant="secondary"
             title={callToAction.text}
@@ -177,8 +177,17 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
       return <></>;
     }
 
+    /*
+     * Button carries a left margin meant for a dialog's footer (md:ml-3),
+     * which set "Turn monitoring on" 12px in from the text above it. It is
+     * cleared on the button, or on the span a locked button's tooltip
+     * wraps it in, as the card headers clear it on their actions.
+     */
     return (
-      <div className="mt-4">
+      <div
+        data-testid="monitor-overview-call-to-action"
+        className="mt-4 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0"
+      >
         <Button
           title={callToAction.text}
           icon={IconProp.Play}
