@@ -7,6 +7,7 @@ import {
   DIAGRAM_KINDS,
   EXCEPTIONS,
   FIRST_PAGE_AFTER_THE_EXPLORERS,
+  FIRST_REFERENCE_PAGE,
   KEPT_AS_WRITTEN,
   LOGS_EXPLORER,
   METRICS_EXPLORER,
@@ -462,7 +463,7 @@ describe("the lists this test keeps", () => {
     },
   );
 
-  it("put the reference pages the explorers share right after the last of them", () => {
+  it("put Topology right after the last of them, then the reference pages they share", () => {
     const links: Array<NavLink> = navGroup("Telemetry").links;
     const last: TelemetryExplorersDocsPageEntry = TELEMETRY_EXPLORERS_PAGES[
       TELEMETRY_EXPLORERS_PAGES.length - 1
@@ -472,6 +473,7 @@ describe("the lists this test keeps", () => {
     });
 
     expect(links[index + 1]?.title).toBe(FIRST_PAGE_AFTER_THE_EXPLORERS);
+    expect(links[index + 2]?.title).toBe(FIRST_REFERENCE_PAGE);
     // The Telemetry category still opens on OpenTelemetry.
     expect(links[0]?.title).toBe("OpenTelemetry");
   });

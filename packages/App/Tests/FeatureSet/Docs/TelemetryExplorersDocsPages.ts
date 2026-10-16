@@ -26,10 +26,12 @@ export const METRICS_EXPLORER: string = "telemetry/metrics-explorer";
 export const EXCEPTIONS: string = "telemetry/exceptions";
 
 /*
- * The pages in the order a reader meets them, right after OpenTelemetry:
- * the services telemetry is filed under, then the four explorers, and only
- * then the reference pages they share (Search Syntax, then Zooming Into a
- * Time Range, which ChartTimeRangeZoomDocs keeps right after it).
+ * The pages in the order a reader meets them, right after OpenTelemetry and
+ * the Ingestion Keys page its quickstart sends readers to: the services
+ * telemetry is filed under, then the four explorers, then Topology (docs
+ * task 38: TelemetryAdminDocsPages), and only then the reference pages they
+ * share (Search Syntax, then Zooming Into a Time Range, which
+ * ChartTimeRangeZoomDocs keeps right after it).
  */
 export const TELEMETRY_EXPLORERS_PAGES: ReadonlyArray<TelemetryExplorersDocsPageEntry> =
   [
@@ -37,7 +39,7 @@ export const TELEMETRY_EXPLORERS_PAGES: ReadonlyArray<TelemetryExplorersDocsPage
       page: SERVICES,
       navTitle: "Service Catalog",
       navGroup: "Telemetry",
-      after: "OpenTelemetry",
+      after: "Ingestion Keys",
     },
     {
       page: LOGS_EXPLORER,
@@ -65,8 +67,14 @@ export const TELEMETRY_EXPLORERS_PAGES: ReadonlyArray<TelemetryExplorersDocsPage
     },
   ];
 
-// The page the explorers' reference pages follow, in the Telemetry group.
-export const FIRST_PAGE_AFTER_THE_EXPLORERS: string = "Search Syntax";
+/*
+ * The page right after the last explorer in the Telemetry group: Topology,
+ * one more way of looking at the same telemetry (docs task 38).
+ */
+export const FIRST_PAGE_AFTER_THE_EXPLORERS: string = "Topology";
+
+// The reference pages the explorers share start right after it.
+export const FIRST_REFERENCE_PAGE: string = "Search Syntax";
 
 /*
  * Bold words every language writes as the English does, by page: buttons
