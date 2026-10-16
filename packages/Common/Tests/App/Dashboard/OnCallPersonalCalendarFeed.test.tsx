@@ -1527,7 +1527,7 @@ describe("User Settings > Calendar Feed page", () => {
       screen.getByText("Subscribe to your on-call shifts"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Upcoming shifts (next 30 days)"),
+      screen.getByText("Upcoming shifts"),
     ).toBeInTheDocument();
     expect(screen.getByText("Remind me before shifts")).toBeInTheDocument();
 
