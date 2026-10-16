@@ -1082,11 +1082,17 @@ export default class AIInvestigationEngine {
     // The runner's own line under the heading (a follow-up check's why).
     reportLead?: MarkdownText | undefined,
   ): string {
-    let markdown: string = (
-      reportLead && reportLead.toString().trim()
-        ? mdText`## 🧠 AI — Automated Root Cause Analysis\n\n${reportLead}\n\n${FeedMarkdown.aiWritten(analysisMarkdown)}`
-        : mdText`## 🧠 AI — Automated Root Cause Analysis\n\n${FeedMarkdown.aiWritten(analysisMarkdown)}`
-    ).toString();
+    let markdown: string =
+      mdText`## 🧠 AI — Automated Root Cause Analysis\n\n${FeedMarkdown.aiWritten(analysisMarkdown)}`.toString();
+
+    /*
+     * The runner's own lead goes between the heading and the analysis, so
+     * the report parser reads it as the report's preamble.
+     */
+    if (reportLead && reportLead.toString().trim()) {
+      markdown =
+        mdText`## 🧠 AI — Automated Root Cause Analysis\n\n${reportLead}\n\n${FeedMarkdown.aiWritten(analysisMarkdown)}`.toString();
+    }
 
     const citations: Array<AIChatCitation> = result.citations || [];
 
