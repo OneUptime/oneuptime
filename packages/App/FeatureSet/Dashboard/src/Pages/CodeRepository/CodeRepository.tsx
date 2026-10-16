@@ -36,6 +36,11 @@ import ConnectCallbackNotice, {
   useConnectCallbackNotice,
 } from "../../Components/Workspace/ConnectCallbackNotice";
 import { ConnectProvider } from "Common/Types/Workspace/ConnectCallback";
+import {
+  GITHUB_INSTALLATION_CHOICE_QUERY_PARAM,
+  GitHubInstallationChoice,
+} from "Common/Types/CodeRepository/GitHubInstallationChoice";
+import Modal from "Common/UI/Components/Modal/Modal";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -43,7 +48,7 @@ import ObjectID from "Common/Types/ObjectID";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 import Exception from "Common/Types/Exception/Exception";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -58,6 +63,17 @@ const CodeRepositoryPage: FunctionComponent<
     useState<boolean>(false);
   const [refreshToggle, setRefreshToggle] = useState<string>("");
   const [connectError, setConnectError] = useState<string | null>(null);
+
+  /*
+   * The GitHub installations a sign-in found, when the person's GitHub
+   * account manages more than one (?github_installations=): they pick the
+   * one to connect. `installations` is null while it loads.
+   */
+  const [installationChoice, setInstallationChoice] = useState<{
+    token: string;
+    installations: Array<GitHubInstallationChoice> | null;
+    error: string | null;
+  } | null>(null);
 
   /*
    * What an installation that came back unmade says (?error=): GitHub sends
@@ -81,22 +97,139 @@ const CodeRepositoryPage: FunctionComponent<
   const isConnectingToGitHubRef: MutableRefObject<boolean> =
     useRef<boolean>(false);
 
+  // Reads the installations a sign-in found, to offer them.
+  const loadInstallationChoice: (token: string) => Promise<void> = async (
+    token: string,
+  ): Promise<void> => {
+    setInstallationChoice({ token: token, installations: null, error: null });
+
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.get<JSONObject>({
+          url: URL.fromURL(APP_API_URL)
+            .addRoute("/github/installation-choices")
+            .addQueryParam("choice", token, true),
+          headers: ModelAPI.getCommonHeaders(),
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+
+      setInstallationChoice({
+        token: token,
+        installations: ((response.data as JSONObject)["installations"] ||
+          []) as JSONArray as unknown as Array<GitHubInstallationChoice>,
+        error: null,
+      });
+    } catch (error) {
+      setInstallationChoice({
+        token: token,
+        installations: [],
+        error: API.getFriendlyErrorMessage(error as Exception),
+      });
+    }
+  };
+
+  /*
+   * Connects the installation picked. The browser goes back through the
+   * callback with the choice's one-use state, which connects it only if it
+   * was offered, and returns here.
+   */
+  const connectPickedInstallation: (installationId: string) => void = (
+    installationId: string,
+  ): void => {
+    if (!installationChoice) {
+      return;
+    }
+
+    Navigation.navigate(
+      URL.fromURL(APP_API_URL)
+        .addRoute("/github/auth/callback")
+        .addQueryParam("state", installationChoice.token, true)
+        .addQueryParam("installation_id", installationId, true),
+    );
+  };
+
+  /*
+   * Connect an installation the app already has on GitHub. Installing again
+   * cannot: GitHub shows that installation's settings and sends nobody back.
+   * The server answers GitHub's sign-in URL instead, and signing in tells it
+   * which installations the person's GitHub account manages.
+   */
+  const handleConnectExistingInstallation: () => Promise<void> =
+    async (): Promise<void> => {
+      if (!projectId || isConnectingToGitHubRef.current) {
+        return;
+      }
+
+      isConnectingToGitHubRef.current = true;
+      setConnectError(null);
+
+      let authorizeUrl: string | undefined = undefined;
+
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.get<JSONObject>({
+            url: URL.fromURL(APP_API_URL).addRoute(
+              "/github/connect-existing-url",
+            ),
+            headers: ModelAPI.getCommonHeaders(),
+          });
+
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+
+        authorizeUrl = (response.data as JSONObject)["authorizeUrl"] as
+          | string
+          | undefined;
+
+        if (!authorizeUrl) {
+          throw new Error(
+            translator.translateText(
+              "OneUptime could not start the GitHub connection. Please try again.",
+            ),
+          );
+        }
+      } catch (error) {
+        setConnectError(API.getFriendlyErrorMessage(error as Exception));
+      }
+
+      isConnectingToGitHubRef.current = false;
+
+      if (authorizeUrl) {
+        Navigation.navigate(URL.fromString(authorizeUrl));
+      }
+    };
+
   useEffect(() => {
     /*
      * Check for installation_id in URL query params (returned from GitHub
      * after installing the app). The repositories in the installation were
      * already imported server-side by the install callback, so all that is
-     * left to do here is show a success banner and refresh the table.
+     * left to do here is show a success banner and refresh the table. A
+     * sign-in that found several installations comes back with a choice to
+     * offer instead.
      */
     const urlParams: URLSearchParams = new URLSearchParams(
       window.location.search,
     );
     const installationId: string | null = urlParams.get("installation_id");
+    const choiceToken: string | null = urlParams.get(
+      GITHUB_INSTALLATION_CHOICE_QUERY_PARAM,
+    );
 
     if (installationId) {
       setShowGitHubConnectedBanner(true);
       setRefreshToggle(Date.now().toString());
+    }
 
+    if (choiceToken) {
+      void loadInstallationChoice(choiceToken);
+    }
+
+    if (installationId || choiceToken) {
       // Clean up the URL
       const newUrl: string = window.location.pathname;
       window.history.replaceState({}, document.title, newUrl);
@@ -305,6 +438,36 @@ const CodeRepositoryPage: FunctionComponent<
                 </div>
               </div>
             </div>
+            {/*
+             * For an account that has the app already - installed for
+             * another project, or straight from GitHub - where installing
+             * again only opens the installation's settings on GitHub.
+             */}
+            {!connectLock.isLocked && (
+              <p
+                data-testid="connect-existing-github-installation"
+                className="text-sm text-gray-500 md:col-span-2"
+              >
+                <TranslatedSentence
+                  template="Already installed the app on GitHub? {{connectExisting}}"
+                  slots={{
+                    connectExisting: (
+                      <button
+                        type="button"
+                        className="font-medium text-indigo-600 underline hover:text-indigo-500"
+                        onClick={() => {
+                          void handleConnectExistingInstallation();
+                        }}
+                      >
+                        {translator.translateText(
+                          "Connect an existing installation",
+                        )}
+                      </button>
+                    ),
+                  }}
+                />
+              </p>
+            )}
           </div>
         ) : (
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-6">
@@ -486,6 +649,55 @@ const CodeRepositoryPage: FunctionComponent<
       />
 
       {labelBulkActionModals}
+
+      {installationChoice && (
+        <Modal
+          title="Choose the GitHub account to connect"
+          description="Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use."
+          isBodyLoading={installationChoice.installations === null}
+          error={installationChoice.error || undefined}
+          onClose={() => {
+            setInstallationChoice(null);
+          }}
+          secondaryButton={{
+            title: "Install on another account",
+            onClick: () => {
+              setInstallationChoice(null);
+              void handleConnectWithGitHub();
+            },
+          }}
+        >
+          <ul
+            data-testid="github-installation-choices"
+            className="divide-y divide-gray-200 rounded-md border border-gray-200"
+          >
+            {(installationChoice.installations || []).map(
+              (choice: GitHubInstallationChoice) => {
+                return (
+                  <li key={choice.installationId}>
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-gray-50"
+                      onClick={() => {
+                        connectPickedInstallation(choice.installationId);
+                      }}
+                    >
+                      <span className="font-medium text-gray-900">
+                        {choice.accountLogin}
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        {choice.accountType === "Organization"
+                          ? translator.translateText("Organization")
+                          : translator.translateText("Personal account")}
+                      </span>
+                    </button>
+                  </li>
+                );
+              },
+            )}
+          </ul>
+        </Modal>
+      )}
     </>
   );
 };

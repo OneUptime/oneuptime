@@ -571,6 +571,62 @@ describe("GitHubWebhookHandler", () => {
       expect(result.handled).toBe(true);
       expect(result.outcome).toBe("queued");
     });
+
+    test("acts on an edit that adds the mention to a comment that had none", async () => {
+      const result: GitHubWebhookHandlingResult = await handle({
+        event: "issue_comment",
+        payload: {
+          ...issueCommentPayload({
+            body: `The cart is empty. @${APP_SLUG} implement this`,
+            action: "edited",
+          }),
+          changes: { body: { from: "The cart is empty." } },
+        },
+      });
+
+      expect(result.handled).toBe(true);
+      expect(result.outcome).toBe("queued");
+    });
+
+    /*
+     * The comment was answered when it was written. Fixing a typo in it, or
+     * adding a sentence, is not a second request: it used to start another
+     * paid run, or post "already working" under it.
+     */
+    test("does not act again on an edit to a comment that already mentioned the app", async () => {
+      const result: GitHubWebhookHandlingResult = await handle({
+        event: "issue_comment",
+        payload: {
+          ...issueCommentPayload({
+            body: `@${APP_SLUG} implement this, and keep the API unchanged`,
+            action: "edited",
+          }),
+          changes: { body: { from: `@${APP_SLUG} implemnt this` } },
+        },
+      });
+
+      expect(result.handled).toBe(false);
+      expect(result.outcome).toBe("mention-already-there-before-edit");
+      expect(authorizeSpy).not.toHaveBeenCalled();
+      expectNoRunAndNoWrites();
+    });
+
+    test("does not act again on an edited pull request comment that already mentioned the app", async () => {
+      const result: GitHubWebhookHandlingResult = await handle({
+        event: "issue_comment",
+        payload: {
+          ...pullRequestCommentPayload({
+            body: `@${APP_SLUG} review`,
+            action: "edited",
+          }),
+          changes: { body: { from: `@${APP_SLUG} reveiw` } },
+        },
+      });
+
+      expect(result.handled).toBe(false);
+      expect(result.outcome).toBe("mention-already-there-before-edit");
+      expectNoRunAndNoWrites();
+    });
   });
 
   describe("delivery de-duplication", () => {
