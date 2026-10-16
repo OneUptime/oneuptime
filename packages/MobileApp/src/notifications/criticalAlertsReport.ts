@@ -50,9 +50,10 @@ export interface CriticalAlertsReading {
   // Whether a critical page rings through: chosen AND allowed.
   isEffective: boolean;
   /*
-   * Whether the OS answered. A read that failed shows the switch off (the
-   * cautious answer) but is never told to the server: one failed read must
-   * not turn real pages ordinary until the app is next opened.
+   * Whether this is an answer anything may act on: the switch is off, or the
+   * OS answered. A read that failed with the switch on shows the switch off
+   * (the cautious answer) but is never told to the server: one failed read
+   * must not turn real pages ordinary until the app is next opened.
    */
   isCertain: boolean;
 }
@@ -86,7 +87,8 @@ export async function readCriticalAlerts(): Promise<CriticalAlertsReading> {
       isChosen: isChosen,
       availability: status.availability,
     }),
-    isCertain: !status.isUncertain,
+    // Off is off: the switch alone answers that, whatever the OS read did.
+    isCertain: !isChosen || !status.isUncertain,
   };
 }
 
@@ -193,6 +195,15 @@ export async function reportCriticalAlerts(
         const reading: CriticalAlertsReading = await readCriticalAlerts();
 
         if (!reading.isCertain) {
+          /*
+           * After a registration, which may have made devices that start
+           * off while the note says the server holds on: the note is
+           * forgotten, so the next read that works tells the server.
+           */
+          if (options.force || options.serverHolds !== undefined) {
+            await clearCriticalAlertsReport();
+          }
+
           return CriticalAlertsReportOutcome.Uncertain;
         }
 

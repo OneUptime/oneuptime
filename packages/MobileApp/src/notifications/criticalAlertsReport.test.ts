@@ -474,10 +474,72 @@ describe("reportCriticalAlerts - telling the server when what the phone does cha
     expect(toldServer()).toEqual([
       { deviceToken: DEVICE_TOKEN, isEnabled: true },
     ]);
+  });
+
+  test("an ordinary report that cannot read keeps the note of what the server holds", async () => {
+    await choose(true);
+    iosAllows(true);
+    await reportCriticalAlerts();
+
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockRejectedValue(new Error("native module unavailable") as never);
+
+    await reportCriticalAlerts();
+
     expect(await getCriticalAlertsReport()).toEqual({
       deviceToken: DEVICE_TOKEN,
       isEnabled: true,
     });
+  });
+
+  /*
+   * After a registration that could not read the OS, devices it made start
+   * off while the note may still say the server holds on. The note is
+   * forgotten, so the next read that works tells the server - even when
+   * that read says the same as the old note.
+   */
+  test("a report after a registration that cannot read forgets the note, so the next read that works tells the server", async () => {
+    await setCriticalAlertsReport({
+      deviceToken: DEVICE_TOKEN,
+      isEnabled: true,
+    });
+    await choose(true);
+    const permissions: jest.SpyInstance = jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockRejectedValue(new Error("native module unavailable") as never);
+
+    expect(await reportCriticalAlerts({ force: true })).toBe(
+      CriticalAlertsReportOutcome.Uncertain,
+    );
+    expect(await getCriticalAlertsReport()).toBeNull();
+
+    permissions.mockResolvedValue({
+      status: "granted",
+      ios: { allowsCriticalAlerts: true },
+    } as never);
+
+    expect(await reportCriticalAlerts()).toBe(
+      CriticalAlertsReportOutcome.Reported,
+    );
+    expect(toldServer()).toEqual([
+      { deviceToken: DEVICE_TOKEN, isEnabled: true },
+    ]);
+  });
+
+  test("the switch off is a certain off: told even when the OS cannot be asked", async () => {
+    await choose(false);
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockRejectedValue(new Error("native module unavailable") as never);
+
+    expect((await readCriticalAlerts()).isCertain).toBe(true);
+    expect(await reportCriticalAlerts()).toBe(
+      CriticalAlertsReportOutcome.Reported,
+    );
+    expect(toldServer()).toEqual([
+      { deviceToken: DEVICE_TOKEN, isEnabled: false },
+    ]);
   });
 
   test("on Android, channels that could be neither written nor read are never told as off", async () => {

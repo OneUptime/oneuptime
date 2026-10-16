@@ -856,7 +856,7 @@ describe("POST /user-push/register", () => {
           deviceToken: string;
           deviceType: PushDeviceType;
           deviceName: string;
-          isCriticalAlertEnabled: boolean;
+          isCriticalAlertEnabled?: boolean | undefined;
         } = renew.mock.calls[0]![0];
 
         expect(renewal.userId.toString()).toBe(USER_ID.toString());
@@ -957,11 +957,36 @@ describe("POST /user-push/register", () => {
     });
 
     test("critical alerts the phone has off are off on the device it carries on with", async () => {
-      await register(
-        phone(PushDeviceType.iOS, { isCriticalAlertEnabled: undefined }),
+      const answer: Answer = await register(
+        phone(PushDeviceType.iOS, { isCriticalAlertEnabled: false }),
       );
 
       expect(renew.mock.calls[0]![0].isCriticalAlertEnabled).toBe(false);
+      expect(
+        (answer as { json: JSONObject }).json["isCriticalAlertEnabled"],
+      ).toBe(false);
+    });
+
+    /*
+     * The app leaves the flag out only when it could not ask the OS. The
+     * device it carries on with keeps its own then, as a device the phone
+     * already has does, and the answer says what that is.
+     */
+    test("a phone that does not say leaves the device it carries on with its own setting", async () => {
+      renew.mockResolvedValue({
+        _id: EXISTING_DEVICE_ID.toString(),
+        id: EXISTING_DEVICE_ID,
+        isCriticalAlertEnabled: true,
+      } as never);
+
+      const answer: Answer = await register(
+        phone(PushDeviceType.iOS, { isCriticalAlertEnabled: undefined }),
+      );
+
+      expect(renew.mock.calls[0]![0].isCriticalAlertEnabled).toBeUndefined();
+      expect(
+        (answer as { json: JSONObject }).json["isCriticalAlertEnabled"],
+      ).toBe(true);
     });
 
     test.each([

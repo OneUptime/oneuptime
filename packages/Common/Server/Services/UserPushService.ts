@@ -571,7 +571,12 @@ export class Service extends DatabaseService<UserPush> {
     deviceToken: string;
     deviceType: PushDeviceType;
     deviceName: string;
-    isCriticalAlertEnabled: boolean;
+    /*
+     * Whether critical pages ring through on the phone, as it registers now.
+     * Left out - the phone could not ask its OS - the device keeps its own,
+     * as a device the phone already has does (restateCriticalAlertEnabled).
+     */
+    isCriticalAlertEnabled?: boolean | undefined;
     // The phone's alarm and volume as it registers now; left out, kept.
     criticalAlertSound?: CriticalAlertSound | undefined;
     criticalAlertVolume?: number | undefined;
@@ -593,6 +598,7 @@ export class Service extends DatabaseService<UserPush> {
       },
       select: {
         _id: true,
+        isCriticalAlertEnabled: true,
       },
       props: {
         isRoot: true,
@@ -620,7 +626,9 @@ export class Service extends DatabaseService<UserPush> {
         deviceType: data.deviceType,
         deviceName: data.deviceName,
         isVerified: true,
-        isCriticalAlertEnabled: data.isCriticalAlertEnabled,
+        ...(data.isCriticalAlertEnabled !== undefined
+          ? { isCriticalAlertEnabled: data.isCriticalAlertEnabled }
+          : {}),
         ...(data.criticalAlertSound !== undefined
           ? { criticalAlertSound: data.criticalAlertSound }
           : {}),
@@ -633,7 +641,16 @@ export class Service extends DatabaseService<UserPush> {
       },
     });
 
-    return renewedCount > 0 ? previous : null;
+    if (renewedCount === 0) {
+      return null;
+    }
+
+    // What critical pages do on the device now.
+    previous.isCriticalAlertEnabled = Boolean(
+      data.isCriticalAlertEnabled ?? previous.isCriticalAlertEnabled,
+    );
+
+    return previous;
   }
 
   /**

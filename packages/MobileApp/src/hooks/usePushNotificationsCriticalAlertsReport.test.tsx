@@ -351,12 +351,28 @@ describe("the server holds what the phone does, from the root of the app", () =>
 
     await startTheApp();
 
+    expect(registerSpy()).toHaveBeenCalledTimes(mockProjects.length);
     for (const call of registerSpy().mock.calls) {
       expect(
         "isCriticalAlertEnabled" in (call[0] as Record<string, unknown>),
       ).toBe(false);
     }
     expect(serverSpy()).not.toHaveBeenCalled();
+  });
+
+  test("but a switch that is off is said, the OS asked or not: off is off", async () => {
+    await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "false");
+    permissions.mockRejectedValue(new Error("native module unavailable"));
+
+    await startTheApp();
+
+    for (const call of registerSpy().mock.calls) {
+      expect(
+        (call[0] as { isCriticalAlertEnabled?: boolean })
+          .isCriticalAlertEnabled,
+      ).toBe(false);
+    }
+    expect(reported()).toEqual([false]);
   });
 
   test("and once it answers, back in the app, the server is told", async () => {

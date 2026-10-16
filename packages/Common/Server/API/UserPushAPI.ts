@@ -483,6 +483,9 @@ export default class UserPushAPI extends BaseAPI<
           });
 
           if (previousDeviceToken) {
+            const statedCriticalAlertEnabled: boolean | undefined =
+              readStatedCriticalAlertFlag(req.body.isCriticalAlertEnabled);
+
             const renewedDevice: UserPush | null =
               await this.service.renewExpoPushDevice({
                 userId: userId,
@@ -491,9 +494,7 @@ export default class UserPushAPI extends BaseAPI<
                 deviceToken: req.body.deviceToken,
                 deviceType: req.body.deviceType as PushDeviceType,
                 deviceName: req.body.deviceName || "Unknown Device",
-                isCriticalAlertEnabled: parseCriticalAlertFlag(
-                  req.body.isCriticalAlertEnabled,
-                ),
+                isCriticalAlertEnabled: statedCriticalAlertEnabled,
                 criticalAlertSound: parseCriticalAlertSoundFromRegistration(
                   req.body.criticalAlertSound,
                 ),
@@ -508,10 +509,10 @@ export default class UserPushAPI extends BaseAPI<
                 deviceId: renewedDevice._id!.toString(),
                 alreadyRegistered: true,
                 isVerified: true,
-                // What the renewal wrote: the phone's flag as it registered.
-                isCriticalAlertEnabled: parseCriticalAlertFlag(
-                  req.body.isCriticalAlertEnabled,
-                ),
+                // What the device holds now: the phone's flag, or its own.
+                isCriticalAlertEnabled:
+                  statedCriticalAlertEnabled ??
+                  Boolean(renewedDevice.isCriticalAlertEnabled),
               });
             }
 
