@@ -112,12 +112,12 @@ OneUptime 每分钟统计一次与监视器过滤器匹配、且在其时间窗�
 
 | 过滤条件 | 当异常数量…时匹配 |
 | --- | --- |
-| **Greater Than** | 高于该值 |
-| **Greater Than Or Equal To** | 等于或高于该值 |
-| **Less Than** | 低于该值 |
-| **Less Than Or Equal To** | 等于或低于该值 |
-| **Equal To** | 正好等于该值 |
-| **Not Equal To** | 不等于该值 |
+| **大于** | 高于该值 |
+| **大于或等于** | 等于或高于该值 |
+| **小于** | 低于该值 |
+| **小于或等于** | 等于或低于该值 |
+| **等于** | 正好等于该值 |
+| **不等于** | 不等于该值 |
 
 异常数量没有异常条件：没有可以与之比较的基线。
 
@@ -125,8 +125,8 @@ OneUptime 每分钟统计一次与监视器过滤器匹配、且在其时间窗�
 
 | 条件 | 过滤器 | 效果 |
 | --- | --- | --- |
-| Check if … has exceptions | **Exception Count** **Greater Than** `0` | 将监视器标记为离线并声明事件，事件会自动解决 |
-| Check if … has no exceptions | **Exception Count** **Equal To** `0` | 将监视器标记为在线 |
+| Check if … has exceptions | **Exception Count** **大于** `0` | 将监视器标记为离线并声明事件，事件会自动解决 |
+| Check if … has no exceptions | **Exception Count** **等于** `0` | 将监视器标记为在线 |
 
 ## 实例：只看生产环境的异常
 
@@ -139,7 +139,7 @@ OneUptime 每分钟统计一次与监视器过滤器匹配、且在其时间窗�
 | `TimeoutError` × 2 | 无 | 活跃 | 否：没有环境 |
 | `NullReferenceException` × 4 | `production` | 发生后已解决 | 否：已解决 |
 
-**Exception Count** 为 3，因此 **Greater Than** `0` 匹配：监视器变为离线并声明事件。当五分钟内没有任何活跃的生产环境异常时，在线条件匹配，事件会自行解决。
+**Exception Count** 为 3，因此 **大于** `0` 匹配：监视器变为离线并声明事件。当五分钟内没有任何活跃的生产环境异常时，在线条件匹配，事件会自行解决。
 
 ## 故障排查
 

@@ -263,7 +263,7 @@ Ein Kriterium vergleicht eine der Abfragen oder Formeln des Monitors mit einem S
 | --- | --- |
 | **Metrik** | Die zu prüfende Abfrage oder Formel, über ihren Variablennamen. |
 | **Aggregation** | Wie die Werte im Fenster zu einer Antwort werden: **Durchschnitt**, **Summe**, **Maximum Value**, **Minimum Value**, **All Values** (jeder Wert muss zutreffen) oder **Any Value** (einer genügt). |
-| **Bedingung** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** oder **Equal To** — oder eine Anomaliebedingung: **Anomalously High**, **Anomalously Low** oder **Anomalous**. |
+| **Bedingung** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** oder **Gleich** — oder eine Anomaliebedingung: **Anomalously High**, **Anomalously Low** oder **Anomalous**. |
 | **Schwellenwert** | Der Wert, mit dem verglichen wird. Daneben steht eine Einheitenliste, wenn die Metrik eine Einheit hat. Bei Anomaliebedingungen nicht angezeigt. |
 | **Empfindlichkeit** | Nur bei Anomaliebedingungen. **Niedrig** (4σ), **Mittel** (3σ, der Standard) oder **Hoch** (2σ). |
 | **Baseline-Fenster** | Nur bei Anomaliebedingungen. 14 Tage (der Standard), 28, 60 oder 90 Tage Verlauf. |
@@ -273,10 +273,10 @@ Anomaliebedingungen vergleichen jeden Wert mit derselben Stunde der Woche in der
 
 Einige Kriterien als Ausgangspunkt:
 
-- **Ein Volume ist langsam:** `purefa_volume_performance_latency_usec` gefiltert auf `dimension=usec_per_read_op`, Durchschnitt, gruppiert nach `name`, **Greater Than** `2000`, über die letzten 10 Minuten.
-- **Das Array läuft voll:** `purefa_array_space_utilization`, Maximum, **Greater Than** `85`, über die letzten 15 Minuten.
-- **Ein Host läuft über einen Controller:** `purefa_host_connectivity_info` gefiltert auf `status=critical`, Maximum, gruppiert nach `host`, **Greater Than** `0`.
-- **Ein FlashBlade-Dateisystem ist fast voll:** `purefb_file_systems_space_bytes` gefiltert auf `space=available_ratio`, Minimum, gruppiert nach `name`, **Less Than** `0.05`.
+- **Ein Volume ist langsam:** `purefa_volume_performance_latency_usec` gefiltert auf `dimension=usec_per_read_op`, Durchschnitt, gruppiert nach `name`, **Größer als** `2000`, über die letzten 10 Minuten.
+- **Das Array läuft voll:** `purefa_array_space_utilization`, Maximum, **Größer als** `85`, über die letzten 15 Minuten.
+- **Ein Host läuft über einen Controller:** `purefa_host_connectivity_info` gefiltert auf `status=critical`, Maximum, gruppiert nach `host`, **Größer als** `0`.
+- **Ein FlashBlade-Dateisystem ist fast voll:** `purefb_file_systems_space_bytes` gefiltert auf `space=available_ratio`, Minimum, gruppiert nach `name`, **Kleiner als** `0.05`.
 
 ### Standardkriterien
 

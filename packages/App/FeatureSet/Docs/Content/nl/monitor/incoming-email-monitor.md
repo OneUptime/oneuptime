@@ -144,7 +144,7 @@ Een nieuwe monitor voor inkomende e-mail wordt gemaakt met twee criteria die de 
 | Criterium | Filtertype | Filtervoorwaarde | Waarde | Effect |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
 | Offline  | Email Body  | Bevat | `error` | Markeert de monitor als offline, opent een incident |
-| Online   | Email Body  | Not Contains | `error` | Markeert de monitor als online |
+| Online   | Email Body  | Bevat niet | `error` | Markeert de monitor als online |
 
 Dit past bij het gangbare geval waarin een job of een tool van derden zijn eigen resultaat per e-mail meldt: een bericht waarvan de tekst `error` noemt, haalt de monitor neer, en het volgende bericht zonder dat woord brengt de monitor weer online en lost het incident op. Bij het vergelijken van de tekst tellen hoofdletters niet, dus `Error` en `ERROR` komen ook overeen.
 
@@ -175,13 +175,13 @@ Het eigen adres van de monitor wordt gemaskeerd voordat een criterium de e-mail 
 | Filtervoorwaarde | Beschrijving | Voorbeeld |
 | ---------------- | ----------------------------------------- | ---------------------------------- |
 | **Bevat** | Het veld bevat de opgegeven tekst | Onderwerp bevat "CRITICAL" |
-| **Not Contains** | Het veld bevat de opgegeven tekst niet | Onderwerp bevat geen "TEST" |
-| **Equal To** | Het veld komt exact overeen met de opgegeven tekst | Afzender is gelijk aan "alerts@service.com" |
-| **Not Equal To** | Het veld komt niet overeen met de opgegeven tekst | Onderwerp is niet gelijk aan "OK" |
-| **Starts With** | Het veld begint met de opgegeven tekst | Onderwerp begint met "[ALERT]" |
-| **Ends With** | Het veld eindigt op de opgegeven tekst | Onderwerp eindigt op "- Production" |
-| **Is Empty** | Het veld is leeg | Tekst is leeg |
-| **Is Not Empty** | Het veld heeft inhoud | Onderwerp is niet leeg |
+| **Bevat niet** | Het veld bevat de opgegeven tekst niet | Onderwerp bevat geen "TEST" |
+| **Gelijk aan** | Het veld komt exact overeen met de opgegeven tekst | Afzender is gelijk aan "alerts@service.com" |
+| **Niet gelijk aan** | Het veld komt niet overeen met de opgegeven tekst | Onderwerp is niet gelijk aan "OK" |
+| **Begint met** | Het veld begint met de opgegeven tekst | Onderwerp begint met "[ALERT]" |
+| **Eindigt op** | Het veld eindigt op de opgegeven tekst | Onderwerp eindigt op "- Production" |
+| **Is leeg** | Het veld is leeg | Tekst is leeg |
+| **Is niet leeg** | Het veld heeft inhoud | Onderwerp is niet leeg |
 
 Bij al deze vergelijkingen tellen hoofdletters niet. Een filter met een lege waarde komt nooit overeen.
 
@@ -221,8 +221,8 @@ Zet het kritieke criterium bovenaan: criteria worden van boven af getoetst, en h
 
 | Criterium | Filters | Overeenkomstvoorwaarde | Acties |
 | --- | --- | --- | --- |
-| Mislukte job | **Email From Address** Equal To `monitoring@legacy-system.com`; **E-mailonderwerp** Bevat `Failed` | **Alle** | De status op offline zetten; een incident verklaren |
-| Geslaagde job | **Email From Address** Equal To `monitoring@legacy-system.com`; **E-mailonderwerp** Bevat `Success` | **Alle** | De status op online zetten |
+| Mislukte job | **Email From Address** Gelijk aan `monitoring@legacy-system.com`; **E-mailonderwerp** Bevat `Failed` | **Alle** | De status op offline zetten; een incident verklaren |
+| Geslaagde job | **Email From Address** Gelijk aan `monitoring@legacy-system.com`; **E-mailonderwerp** Bevat `Success` | **Alle** | De status op online zetten |
 
 ### Voorbeeld 3: Heartbeat-monitor (geen e-mail = waarschuwing)
 
@@ -240,7 +240,7 @@ Een criterium houdt telkens één incident open: zolang het openstaat, openen la
 :::steps
 ### De e-mails kiezen
 
-Geef het criterium een filter dat overeenkomt met de e-mails waarvoor incidenten moeten worden geopend. Om alleen meldingen van uw eigen mensen aan te nemen, gebruikt u **Email From Address** met **Ends With** en uw domein, bijvoorbeeld `@example.com`.
+Geef het criterium een filter dat overeenkomt met de e-mails waarvoor incidenten moeten worden geopend. Om alleen meldingen van uw eigen mensen aan te nemen, gebruikt u **Email From Address** met **Eindigt op** en uw domein, bijvoorbeeld `@example.com`.
 
 ### Het incident verklaren
 
@@ -327,7 +327,7 @@ Zolang dat niet is ingesteld, meldt de adreskaart van de monitor dat inkomende e
 - **Beveiliging van het e-mailadres**: Het e-mailadres van de monitor werkt als een wachtwoord: wie het kent, kan e-mail naar de monitor sturen. Deel het niet openbaar, en stel het opnieuw in vanuit het tabblad **Instellingen** van de monitor als het uitlekt.
 - **Grootte van e-mail**: OneUptime accepteert een inkomende e-mail tot 50 MB, bijlagen inbegrepen. Bijlagen worden niet opgeslagen — alleen hun namen, typen en groottes.
 - **Verwerkingstijd**: E-mails worden asynchroon verwerkt. Tussen het versturen van een e-mail en het maken van de waarschuwing kunnen een paar seconden zitten.
-- **Hoofdletterongevoelig**: Bij alle vergelijkingen van tekenreeksen (Bevat, Equal To enzovoort) tellen hoofdletters niet.
+- **Hoofdletterongevoelig**: Bij alle vergelijkingen van tekenreeksen (Bevat, Gelijk aan enzovoort) tellen hoofdletters niet.
 - **Platte tekst**: Criteria op de tekst van de e-mail lezen het platte-tekstdeel van de e-mail. Een e-mail die alleen als HTML is verstuurd, heeft voor criteria een lege tekst — die bevat dus geen `error`, en de standaardcriteria markeren de monitor als online.
 
 ## Probleemoplossing

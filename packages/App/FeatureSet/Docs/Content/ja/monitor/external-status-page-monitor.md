@@ -119,10 +119,10 @@ flowchart TB
 | フィルタータイプ | チェック内容 | フィルター条件 |
 | --- | --- | --- |
 | **External Status Page Is Online** | ステータスページに到達でき、ステータスのデータを返しているかどうか | 真 または 偽 |
-| **External Status Page Overall Status** | ページが報告する全体のステータス | Equal To、Not Equal To、含む、Not Contains、Starts With、Ends With |
-| **External Status Page Component Status** | 範囲内のコンポーネントのステータス (コンポーネントグループ / コンポーネント名のフィルターを反映): 稼働中、メンテナンス中、パフォーマンス低下、部分的な障害、大規模な障害、全面的な障害 | Equal To、Not Equal To、含む、Not Contains、Starts With、Ends With |
-| **External Status Page Active Incidents** | ステータスページで現在アクティブなインシデントの数 (フィルターを設定している場合はコンポーネントグループ / コンポーネントに絞られます) | Equal To、Not Equal To、および数値の比較 |
-| **External Status Page Response Time (in ms)** | ステータスページのデータの取得にかかる時間 | Greater Than、Less Than、Greater Than Or Equal To、Less Than Or Equal To |
+| **External Status Page Overall Status** | ページが報告する全体のステータス | 等しい、等しくない、含む、含まない、で始まる、で終わる |
+| **External Status Page Component Status** | 範囲内のコンポーネントのステータス (コンポーネントグループ / コンポーネント名のフィルターを反映): 稼働中、メンテナンス中、パフォーマンス低下、部分的な障害、大規模な障害、全面的な障害 | 等しい、等しくない、含む、含まない、で始まる、で終わる |
+| **External Status Page Active Incidents** | ステータスページで現在アクティブなインシデントの数 (フィルターを設定している場合はコンポーネントグループ / コンポーネントに絞られます) | 等しい、等しくない、および数値の比較 |
+| **External Status Page Response Time (in ms)** | ステータスページのデータの取得にかかる時間 | より大きい、より小さい、以上、以下 |
 
 全体のステータスはページに書かれているそのままなので、値はプロバイダーによって異なります。Atlassian Statuspage は `All Systems Operational` のような独自の説明を、フィードは `operational` や `degraded_performance` を、到達可能性のチェックは `reachable` や `unreachable` を報告します。これらの比較は大文字と小文字を区別します。障害でアラートを出すには、通常は **External Status Page Active Incidents** と **External Status Page Component Status** のほうが信頼できます。
 

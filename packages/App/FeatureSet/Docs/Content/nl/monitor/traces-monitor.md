@@ -97,11 +97,11 @@ De criteria van een traces-monitor hebben één **Filtertype**: **Span Count**, 
 
 | Filtervoorwaarde | Komt overeen wanneer het aantal spans… |
 | --- | --- |
-| **Greater Than** | boven de waarde ligt |
-| **Greater Than Or Equal To** | gelijk is aan de waarde of hoger |
-| **Less Than** | onder de waarde ligt |
-| **Less Than Or Equal To** | gelijk is aan de waarde of lager |
-| **Equal To** | precies de waarde is |
+| **Groter dan** | boven de waarde ligt |
+| **Groter dan of gelijk aan** | gelijk is aan de waarde of hoger |
+| **Kleiner dan** | onder de waarde ligt |
+| **Kleiner dan of gelijk aan** | gelijk is aan de waarde of lager |
+| **Gelijk aan** | precies de waarde is |
 | **Anomalously High** | boven het verwachte bereik voor dit uur van de week ligt |
 | **Anomalously Low** | onder dat bereik ligt |
 | **Anomalous** | buiten dat bereik ligt, in welke richting ook |
@@ -112,8 +112,8 @@ Een nieuwe traces-monitor begint met deze criteria:
 
 | Criterium | Filter | Effect |
 | --- | --- | --- |
-| Check if … is offline | **Span Count** **Equal To** `0` | Zet de monitor offline en meldt een incident, dat automatisch wordt opgelost |
-| Check if … is online | **Span Count** **Greater Than** `0` | Zet de monitor online |
+| Check if … is offline | **Span Count** **Gelijk aan** `0` | Zet de monitor offline en meldt een incident, dat automatisch wordt opgelost |
+| Check if … is online | **Span Count** **Groter dan** `0` | Zet de monitor online |
 
 ## Uitgewerkt voorbeeld: mislukte checkout-verzoeken
 
@@ -131,8 +131,8 @@ Om opgeroepen te worden wanneer in vijf minuten meer dan 10 checkout-verzoeken m
 - **Span-naam**: `POST /api/checkout`
 - **Bewaak traces gedurende (time)**: **Laatste 5 minuten**
 - **Filteren op span-status**: **Fout**
-- Criterium 1: **Span Count** **Greater Than** `10`: de monitor offline zetten en een incident melden
-- Criterium 2: **Span Count** **Less Than Or Equal To** `10`: de monitor online zetten
+- Criterium 1: **Span Count** **Groter dan** `10`: de monitor offline zetten en een incident melden
+- Criterium 2: **Span Count** **Kleiner dan of gelijk aan** `10`: de monitor online zetten
 
 Met 30 mislukte verzoeken komt criterium 1 overeen en wordt het incident gemeld. Zodra er vijf minuten voorbij zijn met 10 of minder mislukkingen, komt criterium 2 overeen, is de monitor weer online en lost het incident zichzelf op.
 

@@ -219,7 +219,7 @@ Ein Kriterium vergleicht eine der Abfragen oder Formeln des Monitors mit einem S
 | --- | --- |
 | **Metrik** | Die zu prüfende Abfrage oder Formel, über ihren Variablennamen. |
 | **Aggregation** | Wie die Werte im Fenster zu einer Antwort werden: **Durchschnitt**, **Summe**, **Maximum Value**, **Minimum Value**, **All Values** (jeder Wert muss zutreffen) oder **Any Value** (einer genügt). |
-| **Bedingung** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** oder **Equal To** — oder eine Anomaliebedingung: **Anomalously High**, **Anomalously Low** oder **Anomalous**. |
+| **Bedingung** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** oder **Gleich** — oder eine Anomaliebedingung: **Anomalously High**, **Anomalously Low** oder **Anomalous**. |
 | **Schwellenwert** | Der Vergleichswert. Daneben steht eine Einheitenauswahl, wenn die Metrik eine Einheit hat. Bei Anomaliebedingungen nicht sichtbar. |
 | **Empfindlichkeit** | Nur bei Anomaliebedingungen. **Low** (4σ), **Medium** (3σ, Standard) oder **Hoch** (2σ). |
 | **Baseline-Fenster** | Nur bei Anomaliebedingungen. 14 Tage (Standard), 28, 60 oder 90 Tage Verlauf. |
@@ -254,7 +254,7 @@ Der Agent muss **jeden** mgr-Daemon abfragen, nicht nur den aktiven: Standbys li
 :::
 
 :::details ceph_health_status ist 1, aber nichts löst aus
-Prüfen Sie, ob das Kriterium **Greater Than Or Equal To** `1` verwendet und nicht **Greater Than**, und ob der **Zeitbereich** des Monitors mindestens eine 30-Sekunden-Abfrage abdeckt.
+Prüfen Sie, ob das Kriterium **Größer als oder gleich** `1` verwendet und nicht **Größer als**, und ob der **Zeitbereich** des Monitors mindestens eine 30-Sekunden-Abfrage abdeckt.
 :::
 
 :::details Health-Check-Vorlagen lösen nie aus

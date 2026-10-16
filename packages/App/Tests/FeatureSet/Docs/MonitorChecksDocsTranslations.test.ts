@@ -45,13 +45,16 @@ import path from "path";
  *     pages (drawnActionLabel). "Create Monitor Status Event" and "Create
  *     Monitor Secret" are filled into that language's "Create {{itemName}}".
  *     Menu paths ("A → B → C") are drawn segment by segment.
- *   - The criteria filters and most of their conditions (DNS Record Value,
- *     Is Valid Certificate, Domain Expires In Days, Greater Than), the type
- *     picker's DNS Monitoring and Basic Monitoring categories and the RDAP
- *     and WHOIS lookup methods have no Dashboard locale key: every
- *     language's Dashboard shows them in English, so every translation
- *     names them in English (SHOWN_IN_ENGLISH). When the Dashboard gains a
- *     key for one, a test below fails until the pages name it as drawn.
+ *   - The criteria filters (DNS Record Value, Is Valid Certificate, Domain
+ *     Expires In Days), the type picker's DNS Monitoring and Basic
+ *     Monitoring categories and the RDAP and WHOIS lookup methods have no
+ *     Dashboard locale key: every language's Dashboard shows them in
+ *     English, so every translation names them in English
+ *     (SHOWN_IN_ENGLISH). When the Dashboard gains a key for one, a test
+ *     below fails until the pages name it as drawn. The filters' conditions
+ *     (Greater Than, Not Contains, Starts With) gained theirs in adc8421a1b:
+ *     they are labels now, drawn like any other (DocsCriteriaConditions
+ *     holds every page to them).
  *
  * The incident and alert titles a new monitor's default criteria create are
  * English in every project, so every translation quotes them as created.
@@ -103,23 +106,6 @@ const DEFAULT_CRITERIA_TYPES: Record<string, MonitorType> = {
   [DOMAIN_MONITOR]: MonitorType.Domain,
 };
 
-// The numeric conditions every number filter offers, none of them keyed.
-const NUMBER_CONDITIONS_IN_ENGLISH: Array<string> = [
-  "Greater Than",
-  "Less Than",
-  "Greater Than Or Equal To",
-  "Less Than Or Equal To",
-];
-
-// The text conditions besides Contains, which is keyed.
-const TEXT_CONDITIONS_IN_ENGLISH: Array<string> = [
-  "Not Contains",
-  "Starts With",
-  "Ends With",
-  "Equal To",
-  "Not Equal To",
-];
-
 /*
  * Bold names every language's Dashboard shows in English, because its
  * locale has no key for them, by page. A translation keeps each one bold and
@@ -129,14 +115,12 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [DNS_MONITOR]: [
     // The type picker's category.
     "DNS Monitoring",
-    // The criteria filters (CheckOn) and their conditions (FilterType).
+    // The criteria filters (CheckOn).
     "DNS Is Online",
     "DNS Response Time (in ms)",
     "DNS Record Exists",
     "DNS Record Value",
     "DNSSEC Is Valid",
-    ...NUMBER_CONDITIONS_IN_ENGLISH,
-    ...TEXT_CONDITIONS_IN_ENGLISH,
     // The over-time aggregates and No Data options without a key.
     "Maximum Value",
     "Minimum Value",
@@ -153,7 +137,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "DNSSEC Signature Expires In Days",
     "DNSSEC Resolver Consensus (AD Flag)",
     "DNSSEC Nameservers Are Consistent",
-    ...NUMBER_CONDITIONS_IN_ENGLISH,
   ],
   [SSL_MONITOR]: [
     "Is Valid Certificate",
@@ -162,7 +145,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Is Self Signed Certificate",
     "Expires In Days",
     "Expires In Hours",
-    ...NUMBER_CONDITIONS_IN_ENGLISH,
   ],
   [DOMAIN_MONITOR]: [
     "Basic Monitoring",
@@ -176,8 +158,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Domain Registrar",
     "Domain Name Server",
     "Domain Status Code",
-    ...NUMBER_CONDITIONS_IN_ENGLISH,
-    ...TEXT_CONDITIONS_IN_ENGLISH,
     "All Values",
   ],
   [JAVASCRIPT_EXPRESSION]: ["JavaScript Expression", "Evaluates To True"],

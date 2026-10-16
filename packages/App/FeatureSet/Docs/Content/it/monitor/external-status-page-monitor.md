@@ -119,10 +119,10 @@ Potete configurare criteri per decidere quando il servizio esterno è considerat
 | Tipo di filtro | Cosa controlla | Condizioni del filtro |
 | --- | --- | --- |
 | **External Status Page Is Online** | Se la pagina di stato è raggiungibile e restituisce dati di stato | Vero o Falso |
-| **External Status Page Overall Status** | Lo stato generale indicato dalla pagina | Equal To, Not Equal To, Contiene, Not Contains, Starts With, Ends With |
-| **External Status Page Component Status** | Lo stato dei componenti dell'ambito (rispettando i filtri per gruppo / nome del componente): Operativo, Under Maintenance, Degraded Performance, Partial Outage, Major Outage o Full Outage | Equal To, Not Equal To, Contiene, Not Contains, Starts With, Ends With |
-| **External Status Page Active Incidents** | Il numero di incidenti attualmente attivi riportati sulla pagina di stato (limitato al gruppo / componente quando è impostato un filtro) | Equal To, Not Equal To e i confronti numerici |
-| **External Status Page Response Time (in ms)** | Quanto tempo serve a scaricare i dati della pagina di stato | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| **External Status Page Overall Status** | Lo stato generale indicato dalla pagina | Uguale a, Diverso da, Contiene, Non contiene, Inizia con, Finisce con |
+| **External Status Page Component Status** | Lo stato dei componenti dell'ambito (rispettando i filtri per gruppo / nome del componente): Operativo, Under Maintenance, Degraded Performance, Partial Outage, Major Outage o Full Outage | Uguale a, Diverso da, Contiene, Non contiene, Inizia con, Finisce con |
+| **External Status Page Active Incidents** | Il numero di incidenti attualmente attivi riportati sulla pagina di stato (limitato al gruppo / componente quando è impostato un filtro) | Uguale a, Diverso da e i confronti numerici |
+| **External Status Page Response Time (in ms)** | Quanto tempo serve a scaricare i dati della pagina di stato | Maggiore di, Minore di, Maggiore o uguale a, Minore o uguale a |
 
 Lo stato generale è ciò che dice la pagina, quindi i suoi valori variano a seconda del provider: una Atlassian Statuspage riporta la propria descrizione, come `All Systems Operational`; un feed riporta `operational` o `degraded_performance`; il controllo di raggiungibilità riporta `reachable` o `unreachable`. Questi confronti distinguono maiuscole e minuscole. Per avvisare delle interruzioni, **External Status Page Active Incidents** ed **External Status Page Component Status** sono di solito più affidabili.
 

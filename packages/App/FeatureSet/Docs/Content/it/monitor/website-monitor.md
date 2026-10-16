@@ -143,11 +143,11 @@ I criteri decidono quando il sito web conta come online, degradato o offline, e 
 | Filtro | Condizioni | Cosa controlla |
 | --- | --- | --- |
 | **Is Online** | **Vero**, **Falso** | Se il sito ha risposto, qualunque sia il codice di stato. |
-| **Codice di stato della risposta** | **Equal To**, **Not Equal To**, **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Il codice di stato HTTP. |
-| **Tempo di risposta (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Quanto è durata la richiesta, reindirizzamenti compresi. |
-| **Corpo della Risposta** | **Contiene**, **Not Contains** | Testo nel corpo della risposta. La corrispondenza distingue maiuscole e minuscole. |
-| **Response Header** | **Contiene**, **Not Contains** | Se la risposta ha un'intestazione con questo nome. Inserite il nome in minuscolo, come `x-cache`. |
-| **Response Header Value** | **Contiene**, **Not Contains** | Se un'intestazione ha esattamente questo valore, confrontato in minuscolo, come `no-store`. |
+| **Codice di stato della risposta** | **Uguale a**, **Diverso da**, **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | Il codice di stato HTTP. |
+| **Tempo di risposta (in ms)** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | Quanto è durata la richiesta, reindirizzamenti compresi. |
+| **Corpo della Risposta** | **Contiene**, **Non contiene** | Testo nel corpo della risposta. La corrispondenza distingue maiuscole e minuscole. |
+| **Response Header** | **Contiene**, **Non contiene** | Se la risposta ha un'intestazione con questo nome. Inserite il nome in minuscolo, come `x-cache`. |
+| **Response Header Value** | **Contiene**, **Non contiene** | Se un'intestazione ha esattamente questo valore, confrontato in minuscolo, come `no-store`. |
 | **JavaScript Expression** | **Evaluates To True** | Un'espressione sulla risposta. Vedete [Espressioni JavaScript](/docs/monitor/javascript-expression). |
 | **Is Request Timeout** | **Vero**, **Falso** | Se la richiesta è andata in timeout a ogni tentativo. |
 
@@ -164,7 +164,7 @@ Un nuovo monitor di sito web parte con due criteri, quindi funziona senza cambia
 
 Nell'elenco dei criteri prendono il nome dal monitor: _Check if (name) is offline_ e _Check if (name) is online_.
 
-Quindi una pagina che risponde `204 No Content`, o un reindirizzamento che sorvegliate con **Non seguire i reindirizzamenti** attivato, conta come attivo. Se per voi solo un codice di stato significa che tutto è a posto, modificate entrambi i criteri nella pagina **Configurazione → Criteri** del monitor: per esempio **Codice di stato della risposta** / **Equal To** / `200` nel criterio online e **Not Equal To** / `200` in quello offline, al posto dei due filtri sul codice di stato che ha ciascuno.
+Quindi una pagina che risponde `204 No Content`, o un reindirizzamento che sorvegliate con **Non seguire i reindirizzamenti** attivato, conta come attivo. Se per voi solo un codice di stato significa che tutto è a posto, modificate entrambi i criteri nella pagina **Configurazione → Criteri** del monitor: per esempio **Codice di stato della risposta** / **Uguale a** / `200` nel criterio online e **Diverso da** / `200` in quello offline, al posto dei due filtri sul codice di stato che ha ciascuno.
 
 I criteri vengono controllati dall'alto verso il basso, e il primo che corrisponde decide cosa succede.
 
@@ -200,10 +200,10 @@ Scegliete una finestra più lunga dell'intervallo di monitoraggio, così che con
 
 | Obiettivo | Filtro | Condizione | Valore |
 | --- | --- | --- | --- |
-| Segnare il sito degradato quando è lento | **Tempo di risposta (in ms)** | **Greater Than** | `3000` |
-| Individuare una pagina di errore servita con `200` | **Corpo della Risposta** | **Not Contains** | `Welcome` |
+| Segnare il sito degradato quando è lento | **Tempo di risposta (in ms)** | **Maggiore di** | `3000` |
+| Individuare una pagina di errore servita con `200` | **Corpo della Risposta** | **Non contiene** | `Welcome` |
 | Controllare che sia presente un'intestazione del CDN | **Response Header** | **Contiene** | `x-cache` |
-| Accettare solo `200` come sano | **Codice di stato della risposta** | **Equal To** | `200` |
+| Accettare solo `200` come sano | **Codice di stato della risposta** | **Uguale a** | `200` |
 
 Per superare un riavvio, attivate **Valuta questo criterio su un periodo di tempo** per il filtro del corpo della risposta e scegliete **All Values** su 15 minuti.
 

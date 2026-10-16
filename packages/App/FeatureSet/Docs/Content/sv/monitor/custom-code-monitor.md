@@ -177,15 +177,15 @@ Kriterierna för en monitor med anpassad kod kan kontrollera:
 
 | Filtertyp | Vad den kontrollerar | Filtervillkor |
 | --- | --- | --- |
-| **Fel** | Felet som skriptet kastade, om något. | Innehåller, Not Contains, Equal To, Not Equal To, Is Empty, Is Not Empty |
-| **Result Value** | `data` som skriptet returnerade. Jämförs som ett tal när det är ett tal. | Samma, plus Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To, Sant och Falskt |
+| **Fel** | Felet som skriptet kastade, om något. | Innehåller, Innehåller inte, Lika med, Inte lika med, Är tom, Är inte tom |
+| **Result Value** | `data` som skriptet returnerade. Jämförs som ett tal när det är ett tal. | Samma, plus Större än, Mindre än, Större än eller lika med, Mindre än eller lika med, Sant och Falskt |
 | **Körningstid (i ms)** | Hur länge skriptet körde. | Numeriska jämförelser |
 
 Standardkriterierna markerar monitorn som online när **Fel** är tomt, och som offline — med en incident som löser sig själv när skriptet lyckas igen — när det inte är det. I incident- och larmmallar finns körningen tillgänglig som `{{result}}`, `{{scriptError}}`, `{{logMessages}}` och `{{executionTimeInMs}}`: se [Incident- och varningsmallar](/docs/monitor/incident-alert-templating).
 
 ### Larma på returnerade data
 
-Det som skriptet returnerar som `data` är monitorns **Result Value**, och ett kriterium kan jämföra det — till exempel _Result Value is Equal To `UP`_.
+Det som skriptet returnerar som `data` är monitorns **Result Value**, och ett kriterium kan jämföra det — till exempel _Result Value är Lika med `UP`_.
 
 När `data` är ett objekt eller en matris fyller du i **Fältsökväg (valfritt)** på Result Value-filtret för att jämföra ett fält i stället för hela värdet. Använd punkter för nästlade fält och `[n]` för element i en matris:
 
@@ -204,16 +204,16 @@ return {
 
 | Fältsökväg | Jämför | Exempel på villkor |
 | --- | --- | --- |
-| `status` | `"UP"` | Not Equal To `UP` |
-| `cpu_busy_percent` | `42` | Greater Than `90` |
+| `status` | `"UP"` | Inte lika med `UP` |
+| `cpu_busy_percent` | `42` | Större än `90` |
 | `healthy` | `true` | Falskt |
-| `checks[0].latency` | `12` | Greater Than `500` |
+| `checks[0].latency` | `12` | Större än `500` |
 
 Lägg till ett filter per fält som du vill kontrollera; varje filter kan ha sitt eget villkor och sitt eget värde.
 
 - Lämna fältsökvägen tom för att jämföra hela värdet, som för ett skript som returnerar ett enda tal eller en enda sträng.
-- Greater Than, Less Than och de andra talvillkoren matchar bara ett tal, så returnera ett fält som `42`, inte `"42"`. Sant och Falskt matchar bara ett booleskt värde.
-- Ett fält som inte finns i returnerade data — en saknad nyckel eller ett matrisindex efter slutet — jämförs som tomt: **Is Empty** matchar det, och inget annat villkor gör det.
+- Större än, Mindre än och de andra talvillkoren matchar bara ett tal, så returnera ett fält som `42`, inte `"42"`. Sant och Falskt matchar bara ett booleskt värde.
+- Ett fält som inte finns i returnerade data — en saknad nyckel eller ett matrisindex efter slutet — jämförs som tomt: **Är tom** matchar det, och inget annat villkor gör det.
 - Ett fält vars namn innehåller en punkt kan inte nås med en sökväg.
 - I Terraform anger filtrets `custom_code_monitor_options` fältsökvägen: se [Monitorsteg](/docs/terraform/monitor-steps#jämföra-ett-fält-i-ett-skripts-resultat).
 

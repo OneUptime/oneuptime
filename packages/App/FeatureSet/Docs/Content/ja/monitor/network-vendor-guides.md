@@ -88,7 +88,7 @@ Sophos がアクティブと報告するトンネルは、セキュリティア�
 
 ### トラップ
 
-Sophos の通知はすべて同じトラップ `sfosNotification`(`1.3.6.1.4.1.2604.5.1.8.1.1`)で、イベントは `sfosTrapMessage`(`1.3.6.1.4.1.2604.5.1.8.1.2`)にテキストとして入っています。1 種類のイベントにアラートを出すには、**SNMP Trap Received (Trap OID)** の Equal To `1.3.6.1.4.1.2604.5.1.8.1.1` と、その varbind に対する **SNMP Trap Varbind Value**(たとえば Contains `IPSec`)を組み合わせます。ファイアウォールのトラップの送信先は SNMP v2c に設定してください。プローブのトラップレシーバーは v1 と v2c のトラップを受け取ります。
+Sophos の通知はすべて同じトラップ `sfosNotification`(`1.3.6.1.4.1.2604.5.1.8.1.1`)で、イベントは `sfosTrapMessage`(`1.3.6.1.4.1.2604.5.1.8.1.2`)にテキストとして入っています。1 種類のイベントにアラートを出すには、**SNMP Trap Received (Trap OID)** の 等しい `1.3.6.1.4.1.2604.5.1.8.1.1` と、その varbind に対する **SNMP Trap Varbind Value**(たとえば 含む `IPSec`)を組み合わせます。ファイアウォールのトラップの送信先は SNMP v2c に設定してください。プローブのトラップレシーバーは v1 と v2c のトラップを受け取ります。
 
 ## Extreme Networks (EXOS / Switch Engine と Fabric Engine / VOSS)
 
@@ -130,9 +130,9 @@ IQ Engine(HiveOS)のアクセスポイントと ExtremeCloud IQ Controller に�
 | アラート | 条件 |
 | --- | --- |
 | 無線がオフになった | **SNMP Table Row Is Unhealthy**、推奨アラートの一部 |
-| 送信出力が変わった | **SNMP Table Value**、列 TX Power、Not Equal To 計画した出力 |
-| 混雑した無線 | **SNMP Table Value**、列 Clients、Greater Than 上限 |
-| ノイズの多いチャネル | **SNMP Table Value**、列 Noise Floor、Greater Than `-80` |
+| 送信出力が変わった | **SNMP Table Value**、列 TX Power、計画した出力と等しくない |
+| 混雑した無線 | **SNMP Table Value**、列 Clients、上限より大きい |
+| ノイズの多いチャネル | **SNMP Table Value**、列 Noise Floor、`-80` より大きい |
 
 無線の数値はすべてメトリクス(`oneuptime.monitor.snmp.table.value`、無線と列ごとに 1 系列)でもあるため、チャネル、出力、クライアントを時系列でダッシュボードにグラフ化できます。チャネルが変わり続けるのは DFS が働いているためです。
 

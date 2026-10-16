@@ -88,7 +88,7 @@ De två första finns på listan under **Skapa varning**; för den tredje öppna
 
 ### Traps
 
-Varje avisering från Sophos är samma trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), med händelsen som text i `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). För att varna för en sorts händelse kombinerar du **SNMP Trap Received (Trap OID)** Equal To `1.3.6.1.4.1.2604.5.1.8.1.1` med **SNMP Trap Varbind Value** på den varbinden, Contains `IPSec` till exempel. Sätt brandväggens trapdestination till SNMP v2c: sondens trapmottagare tar emot v1- och v2c-traps.
+Varje avisering från Sophos är samma trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), med händelsen som text i `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). För att varna för en sorts händelse kombinerar du **SNMP Trap Received (Trap OID)** Lika med `1.3.6.1.4.1.2604.5.1.8.1.1` med **SNMP Trap Varbind Value** på den varbinden, Innehåller `IPSec` till exempel. Sätt brandväggens trapdestination till SNMP v2c: sondens trapmottagare tar emot v1- och v2c-traps.
 
 ## Extreme Networks (EXOS / Switch Engine och Fabric Engine / VOSS)
 
@@ -130,9 +130,9 @@ Användbara varningar, alla på tabellen `wifi_radios` med Row `*`, så att varj
 | Varning | Kriterium |
 | --- | --- |
 | En radio avstängd | **SNMP Table Row Is Unhealthy**, en del av de rekommenderade varningarna |
-| Sändeffekten ändrad | **SNMP Table Value**, kolumnen TX Power, Not Equal To din planerade effekt |
-| En överbelastad radio | **SNMP Table Value**, kolumnen Clients, Greater Than din gräns |
-| En brusig kanal | **SNMP Table Value**, kolumnen Noise Floor, Greater Than `-80` |
+| Sändeffekten ändrad | **SNMP Table Value**, kolumnen TX Power, Inte lika med din planerade effekt |
+| En överbelastad radio | **SNMP Table Value**, kolumnen Clients, Större än din gräns |
+| En brusig kanal | **SNMP Table Value**, kolumnen Noise Floor, Större än `-80` |
 
 Varje numeriskt radiovärde är också ett mätvärde (`oneuptime.monitor.snmp.table.value`, en serie per radio och kolumn), så kanal, effekt och klienter kan visas i diagram över tid på en instrumentpanel; en kanal som hela tiden byts är DFS i arbete.
 

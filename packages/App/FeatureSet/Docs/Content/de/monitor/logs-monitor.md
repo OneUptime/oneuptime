@@ -100,11 +100,11 @@ Die Kriterien eines Logs-Monitors haben einen **Filtertyp**: **Log Count**, die 
 
 | Filterbedingung | Passt, wenn die Anzahl der Logs … |
 | --- | --- |
-| **Greater Than** | über dem Wert liegt |
-| **Greater Than Or Equal To** | den Wert erreicht oder darüber liegt |
-| **Less Than** | unter dem Wert liegt |
-| **Less Than Or Equal To** | den Wert erreicht oder darunter liegt |
-| **Equal To** | genau dem Wert entspricht |
+| **Größer als** | über dem Wert liegt |
+| **Größer als oder gleich** | den Wert erreicht oder darüber liegt |
+| **Kleiner als** | unter dem Wert liegt |
+| **Kleiner als oder gleich** | den Wert erreicht oder darunter liegt |
+| **Gleich** | genau dem Wert entspricht |
 | **Anomalously High** | über dem Bereich liegt, der für diese Stunde der Woche erwartet wird |
 | **Anomalously Low** | unter diesem Bereich liegt |
 | **Anomalous** | außerhalb dieses Bereichs liegt, in die eine oder andere Richtung |
@@ -115,11 +115,11 @@ Ein neuer Logs-Monitor beginnt mit diesen Kriterien:
 
 | Kriterium | Filter | Wirkung |
 | --- | --- | --- |
-| Check if … is offline | **Log Count** **Equal To** `0` | Setzt den Monitor auf offline und eröffnet einen Vorfall, der automatisch behoben wird |
-| Check if … is online | **Log Count** **Greater Than** `0` | Setzt den Monitor auf online |
+| Check if … is offline | **Log Count** **Gleich** `0` | Setzt den Monitor auf offline und eröffnet einen Vorfall, der automatisch behoben wird |
+| Check if … is online | **Log Count** **Größer als** `0` | Setzt den Monitor auf online |
 
 > [!TIP]
-> Um bei Fehlern statt bei Stille zu warnen, setzen Sie **Protokollschweregrad** auf **Fehler** und ändern das Offline-Kriterium auf **Log Count** **Greater Than** die Zahl der Fehler, die Sie im Fenster tolerieren.
+> Um bei Fehlern statt bei Stille zu warnen, setzen Sie **Protokollschweregrad** auf **Fehler** und ändern das Offline-Kriterium auf **Log Count** **Größer als** die Zahl der Fehler, die Sie im Fenster tolerieren.
 
 ## Ein Beispiel: eine Fehlerspitze
 
@@ -128,8 +128,8 @@ Sie wollen einen Vorfall, wenn der Checkout-Dienst in fünf Minuten mehr als 50 
 - **Protokollschweregrad**: **Fehler**
 - **Überwachungsprotokolle für (time)**: **Letzte 5 Minuten**
 - **Nach Telemetrie-Dienst filtern**: `checkout`
-- Kriterium 1: **Log Count** **Greater Than** `50` – den Monitor auf offline setzen und einen Vorfall eröffnen
-- Kriterium 2: **Log Count** **Less Than Or Equal To** `50` – den Monitor auf online setzen
+- Kriterium 1: **Log Count** **Größer als** `50` – den Monitor auf offline setzen und einen Vorfall eröffnen
+- Kriterium 2: **Log Count** **Kleiner als oder gleich** `50` – den Monitor auf online setzen
 
 Vier aufeinanderfolgende Auswertungen:
 
@@ -200,7 +200,7 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 2. Setzen Sie **Überwachungsprotokolle, die diesen Text enthalten** auf `terminated` und **Überwachungsprotokolle für (time)** auf **Letzte 5 Minuten**.
 3. Fügen Sie unter **Weitere Felder** den Attributfilter `log_component` = `IPSec` hinzu.
 4. Fügen Sie unter **Group by Attributes** das Attribut `con_name` hinzu.
-5. Fügen Sie ein Kriterium mit dem Filter **Log Count** **Greater Than** `0` hinzu, das eine Warnung oder einen Vorfall mit dem Titel `IPsec tunnel {{con_name}} terminated` erstellt.
+5. Fügen Sie ein Kriterium mit dem Filter **Log Count** **Größer als** `0` hinzu, das eine Warnung oder einen Vorfall mit dem Titel `IPsec tunnel {{con_name}} terminated` erstellt.
 :::
 
 Jeder Tunnel, der eine Beendigung protokolliert, erhält nun seine eigene Warnung – `IPsec tunnel HQ-Branch1 terminated`, `IPsec tunnel Branch2 terminated` –, und jede wird für sich behoben.
@@ -219,7 +219,7 @@ Der Wert jedes Group-By-Attributs ist eine [Vorlagenvariable](/docs/monitor/inci
 ### Die Auswertung der Kriterien unterscheidet sich
 
 - **Jedes Kriterium wird ausgewertet**, wie bei einem gruppierten Metriken-Monitor, sodass verschiedene Gruppen zugleich verschiedene Kriterien erfüllen können. Eine Gruppe, die zwei Kriterien erfüllt, erhält trotzdem nur eine Warnung, vom ersten; ordnen Sie die Kriterien also mit dem schwerwiegendsten zuerst.
-- **Eine Gruppe existiert nur, wenn sie im Zeitfenster etwas protokolliert hat.** Kriterien mit **Equal To 0** und **Less Than** lösen daher nur für Gruppen aus, die mindestens einmal protokolliert haben; um zu warnen, wenn gar keine Logs mehr eintreffen, verwenden Sie einen Monitor ohne Group By.
+- **Eine Gruppe existiert nur, wenn sie im Zeitfenster etwas protokolliert hat.** Kriterien mit **Gleich 0** und **Kleiner als** lösen daher nur für Gruppen aus, die mindestens einmal protokolliert haben; um zu warnen, wenn gar keine Logs mehr eintreffen, verwenden Sie einen Monitor ohne Group By.
 - **Anomalieerkennung** (**Anomalously High**, **Anomalously Low**, **Anomalous**) wird nicht pro Gruppe ausgewertet – ihre Baseline umfasst den ganzen Monitor –, daher passen diese Filter bei einem gruppierten Monitor nie.
 - Der Status des Monitors folgt dem ersten Kriterium, das irgendeine Gruppe erfüllt. Erfüllt keine Gruppe ein Kriterium, kehrt der Monitor zu seinem Standardstatus zurück.
 
@@ -230,7 +230,7 @@ Die Anzahl war 0, die Filter passen also auf keines der Logs, die der Dienst sen
 :::
 
 :::details Es gab eine Spitze, aber nichts hat gewarnt
-Die Kriterien werden von oben nach unten geprüft, und der erste Treffer entscheidet. Ein breites Kriterium über dem erwarteten, etwa **Log Count** **Greater Than** `0`, passt zuerst und stoppt den Rest. Stellen Sie das schwerwiegendste Kriterium nach oben.
+Die Kriterien werden von oben nach unten geprüft, und der erste Treffer entscheidet. Ein breites Kriterium über dem erwarteten, etwa **Log Count** **Größer als** `0`, passt zuerst und stoppt den Rest. Stellen Sie das schwerwiegendste Kriterium nach oben.
 :::
 
 :::details Ein Anomaliekriterium löst nie aus

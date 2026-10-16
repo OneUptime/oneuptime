@@ -119,11 +119,11 @@ Dessa monitorer utvärderar alltid **Metric Value**: det aggregerade värdet av 
 
 | Villkor | Matchar när värdet är… |
 | --- | --- |
-| **Greater Than** | över tröskelvärdet |
-| **Greater Than Or Equal To** | lika med tröskelvärdet eller högre |
-| **Less Than** | under tröskelvärdet |
-| **Less Than Or Equal To** | lika med tröskelvärdet eller lägre |
-| **Equal To** | exakt tröskelvärdet |
+| **Större än** | över tröskelvärdet |
+| **Större än eller lika med** | lika med tröskelvärdet eller högre |
+| **Mindre än** | under tröskelvärdet |
+| **Mindre än eller lika med** | lika med tröskelvärdet eller lägre |
+| **Lika med** | exakt tröskelvärdet |
 | **Anomalously High** | över det förväntade intervallet för den här timmen i veckan |
 | **Anomalously Low** | under det intervallet |
 | **Anomalous** | utanför det intervallet, åt vilket håll som helst |
@@ -134,8 +134,8 @@ En ny metrikmonitor börjar med två kriterier på sin första fråga, båda med
 
 | Kriterium | Villkor | Effekt |
 | --- | --- | --- |
-| Check if … is offline | **Equal To** `0` | Markerar monitorn som offline och deklarerar en incident, som löses automatiskt |
-| Check if … is online | **Greater Than** `0` | Markerar monitorn som online |
+| Check if … is offline | **Lika med** `0` | Markerar monitorn som offline och deklarerar en incident, som löses automatiskt |
+| Check if … is online | **Större än** `0` | Markerar monitorn som online |
 
 > [!NOTE]
 > Offline-kriteriet utlöses av ett rapporterat värde på 0, inte av tystnad. För att varnas när ett mätvärde slutar komma ställer du in dess **Om ingen data** på **Utlösare**.
@@ -148,7 +148,7 @@ Du vill ha en incident när checkout-kön förblir djup. Fråga `a` är mätaren
 | --- | --- | --- | --- | --- | --- |
 | `a` | 640 | 980 | 1 500 | 1 620 | 1 100 |
 
-Ett kriterium med **Mätvärde** `a`, **Villkor** **Greater Than** och **Threshold** `1000` ger ett olika svar för varje **Aggregering**:
+Ett kriterium med **Mätvärde** `a`, **Villkor** **Större än** och **Threshold** `1000` ger ett olika svar för varje **Aggregering**:
 
 | Aggregering | Jämfört med 1 000 | Matchar? |
 | --- | --- | --- |

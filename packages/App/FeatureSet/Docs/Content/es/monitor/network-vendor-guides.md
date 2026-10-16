@@ -88,7 +88,7 @@ Las dos primeras están en la lista de **Crear alerta**; para la tercera, abre u
 
 ### Traps
 
-Cada notificación de Sophos es el mismo trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), con el evento como texto en `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Para alertar sobre un tipo de evento, combina **SNMP Trap Received (Trap OID)** Equal To `1.3.6.1.4.1.2604.5.1.8.1.1` con **SNMP Trap Varbind Value** sobre esa varbind, Contains `IPSec` por ejemplo. Pon el destino de traps del firewall en SNMP v2c: el receptor de traps de la sonda acepta traps v1 y v2c.
+Cada notificación de Sophos es el mismo trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), con el evento como texto en `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Para alertar sobre un tipo de evento, combina **SNMP Trap Received (Trap OID)** Igual a `1.3.6.1.4.1.2604.5.1.8.1.1` con **SNMP Trap Varbind Value** sobre esa varbind, Contiene `IPSec` por ejemplo. Pon el destino de traps del firewall en SNMP v2c: el receptor de traps de la sonda acepta traps v1 y v2c.
 
 ## Extreme Networks (EXOS / Switch Engine y Fabric Engine / VOSS)
 
@@ -130,9 +130,9 @@ Alertas útiles, todas sobre la tabla `wifi_radios` con Row `*`, para que cada r
 | Alerta | Criterio |
 | --- | --- |
 | Una radio apagada | **SNMP Table Row Is Unhealthy**, parte de las alertas recomendadas |
-| Cambió la potencia de transmisión | **SNMP Table Value**, columna TX Power, Not Equal To tu potencia planificada |
-| Una radio saturada | **SNMP Table Value**, columna Clients, Greater Than tu límite |
-| Un canal ruidoso | **SNMP Table Value**, columna Noise Floor, Greater Than `-80` |
+| Cambió la potencia de transmisión | **SNMP Table Value**, columna TX Power, Distinto de tu potencia planificada |
+| Una radio saturada | **SNMP Table Value**, columna Clients, Mayor que tu límite |
+| Un canal ruidoso | **SNMP Table Value**, columna Noise Floor, Mayor que `-80` |
 
 Cada valor numérico de radio es también una métrica (`oneuptime.monitor.snmp.table.value`, una serie por radio y columna), así que el canal, la potencia y los clientes se pueden graficar a lo largo del tiempo en un panel; un canal que no deja de cambiar es DFS en acción.
 

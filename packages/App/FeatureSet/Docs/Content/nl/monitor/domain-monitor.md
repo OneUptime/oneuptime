@@ -106,13 +106,13 @@ Criteria bepalen wanneer het domein telt als in orde of kapot, en of dat een inc
 | --- | --- | --- |
 | **Is Online** | **Waar**, **Onwaar** | Of de registratie-opzoeking zelf is gelukt. |
 | **Is Request Timeout** | **Waar**, **Onwaar** | Of de opzoeking bij elke poging een time-out kreeg. |
-| **Domain Expires In Days** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Dagen totdat de registratie verloopt, naar boven afgerond op een hele dag. |
+| **Domain Expires In Days** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Dagen totdat de registratie verloopt, naar boven afgerond op een hele dag. |
 | **Domain Is Expired** | **Waar**, **Onwaar** | Of de vervaldatum is verstreken. |
-| **Domain Registrar** | **Bevat**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | De naam van de registrar. |
-| **Domain Name Server** | **Bevat**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | De naamservers van het domein. Komt overeen wanneer een ervan overeenkomt. |
-| **Domain Status Code** | **Bevat**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | De EPP-statuscodes van het domein. Komt overeen wanneer een ervan overeenkomt. |
+| **Domain Registrar** | **Bevat**, **Bevat niet**, **Begint met**, **Eindigt op**, **Gelijk aan**, **Niet gelijk aan** | De naam van de registrar. |
+| **Domain Name Server** | **Bevat**, **Bevat niet**, **Begint met**, **Eindigt op**, **Gelijk aan**, **Niet gelijk aan** | De naamservers van het domein. Komt overeen wanneer een ervan overeenkomt. |
+| **Domain Status Code** | **Bevat**, **Bevat niet**, **Begint met**, **Eindigt op**, **Gelijk aan**, **Niet gelijk aan** | De EPP-statuscodes van het domein. Komt overeen wanneer een ervan overeenkomt. |
 
-Statuscodes worden genormaliseerd naar hun EPP-namen (`clientTransferProhibited`), welk protocol ook antwoordde, zodat een criterium blijft overeenkomen wanneer **Auto** tussen RDAP en WHOIS wisselt. De _namen_ van registrars zijn wat de antwoordende dienst publiceert en kunnen tussen de twee protocollen iets verschillen, dus gebruik voor een criterium met **Domain Registrar** liever **Bevat** dan **Equal To**.
+Statuscodes worden genormaliseerd naar hun EPP-namen (`clientTransferProhibited`), welk protocol ook antwoordde, zodat een criterium blijft overeenkomen wanneer **Auto** tussen RDAP en WHOIS wisselt. De _namen_ van registrars zijn wat de antwoordende dienst publiceert en kunnen tussen de twee protocollen iets verschillen, dus gebruik voor een criterium met **Domain Registrar** liever **Bevat** dan **Gelijk aan**.
 
 Data worden genormaliseerd naar ISO 8601. Een datum die een registry publiceert in een vorm die niet kan worden ingelezen, wordt weggelaten in plaats van opgeslagen, zodat een vervalcriterium niet kan beslissen en niet overeenkomt, in plaats van stilzwijgend voor altijd "niet verlopen" te antwoorden.
 
@@ -136,7 +136,7 @@ Om eerder gewaarschuwd te worden, wijzigt u de waarde van het filter **Domain Ex
 Monitoren die zijn gemaakt voordat OneUptime deze waarschuwing toevoegde, hebben geen criterium "verloopt binnenkort". Zo voegt u het toe:
 
 1. Open bij de monitor **Configuratie → Criteria** en klik op **Bewakingscriteria bewerken**.
-2. Klik op **Criteria toevoegen**. Zet het filter op **Domain Is Expired** / **Onwaar**, klik op **Filter toevoegen** en zet het tweede op **Domain Expires In Days** / **Less Than Or Equal To** / `30`. Laat **Overeenkomstvoorwaarde** op **Alle** staan (het verschijnt onder de filters zodra er twee zijn).
+2. Klik op **Criteria toevoegen**. Zet het filter op **Domain Is Expired** / **Onwaar**, klik op **Filter toevoegen** en zet het tweede op **Domain Expires In Days** / **Kleiner dan of gelijk aan** / `30`. Laat **Overeenkomstvoorwaarde** op **Alle** staan (het verschijnt onder de filters zodra er twee zijn).
 3. Zet onder **Acties** **Wanneer filters overeenkomen, maak een waarschuwing aan.** aan en laat **Wanneer filters overeenkomen, wijzig de monitorstatus.** uit, zodat het een waarschuwing aanmaakt en de monitorstatus niet wijzigt.
 4. Sleep het nieuwe criterium boven het criterium dat de monitor als online markeert, en sla op.
 :::
@@ -145,20 +145,20 @@ Monitoren die zijn gemaakt voordat OneUptime deze waarschuwing toevoegde, hebben
 
 | Doel | Filter | Voorwaarde | Waarde |
 | --- | --- | --- | --- |
-| Waarschuwen wanneer het domein binnen 30 dagen verloopt (een standaardcriterium) | **Domain Expires In Days** | **Less Than Or Equal To** | `30` |
+| Waarschuwen wanneer het domein binnen 30 dagen verloopt (een standaardcriterium) | **Domain Expires In Days** | **Kleiner dan of gelijk aan** | `30` |
 | Offline wanneer het domein verlopen is | **Domain Is Expired** | **Waar** | — |
 | Offline wanneer de registratie niet kan worden gelezen | **Is Online** | **Onwaar** | — |
-| Waarschuwen wanneer de naamservers veranderen | **Domain Name Server** | **Not Contains** | `ns1.example.com` |
-| Waarschuwen wanneer het domein is ontgrendeld voor een overdracht | **Domain Status Code** | **Not Contains** | `clientTransferProhibited` |
+| Waarschuwen wanneer de naamservers veranderen | **Domain Name Server** | **Bevat niet** | `ns1.example.com` |
+| Waarschuwen wanneer het domein is ontgrendeld voor een overdracht | **Domain Status Code** | **Bevat niet** | `clientTransferProhibited` |
 
-**Domain Name Server** en **Domain Status Code** komen overeen wanneer _een willekeurige_ waarde overeenkomt, dus **Not Contains** komt overeen zodra één naamserver, of één statuscode, de tekst niet bevat.
+**Domain Name Server** en **Domain Status Code** komen overeen wanneer _een willekeurige_ waarde overeenkomt, dus **Bevat niet** komt overeen zodra één naamserver, of één statuscode, de tekst niet bevat.
 
 ## Aanbevolen werkwijzen
 
 1. **Geef uzelf tijd om te verlengen** — De standaardwaarschuwing komt 30 dagen voor het verlopen. Vraagt verlengen om goedkeuringen of een betaling die langer duurt, verhoog het dan naar 60 dagen.
 2. **Vang mislukte opzoekingen op** — Neem een filter **Is Online** / **Onwaar** op in uw offline-criterium, zodat een onleesbare registratie niet voor een gezonde wordt aangezien. Nieuwe monitoren hebben het in hun standaardcriteria; een monitor die eerder is gemaakt, heeft het met de hand nodig. Om een WHOIS-server te doorstaan die de sonde af en toe afremt, vinkt u onder dat filter **Evalueer deze criteria over een bepaalde periode** aan en kiest u **All Values**: het domein gaat dan pas offline wanneer elke opzoeking in het venster is mislukt.
 3. **Bewaak alle kritieke domeinen** — Neem de hoofddomeinen mee, apart geregistreerde subdomeinen, en alle domeinen die voor e-mail of API's worden gebruikt.
-4. **Volg registrarwijzigingen** — Voeg een criterium toe met **Domain Registrar** / **Not Contains** / de naam van uw registrar, om een ongeautoriseerde overdracht op te merken.
+4. **Volg registrarwijzigingen** — Voeg een criterium toe met **Domain Registrar** / **Bevat niet** / de naam van uw registrar, om een ongeautoriseerde overdracht op te merken.
 
 ## Problemen oplossen
 

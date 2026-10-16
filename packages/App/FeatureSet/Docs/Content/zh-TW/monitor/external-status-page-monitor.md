@@ -119,10 +119,10 @@ flowchart TB
 | 篩選器類型 | 檢查內容 | 篩選條件 |
 | --- | --- | --- |
 | **External Status Page Is Online** | 狀態頁面是否可以連線並傳回狀態資料 | 是 或 否 |
-| **External Status Page Overall Status** | 頁面回報的整體狀態 | Equal To、Not Equal To、包含、Not Contains、Starts With、Ends With |
-| **External Status Page Component Status** | 範圍內元件的狀態（遵循元件群組 / 元件名稱篩選器）：運作中、Under Maintenance、Degraded Performance、Partial Outage、Major Outage 或 Full Outage | Equal To、Not Equal To、包含、Not Contains、Starts With、Ends With |
-| **External Status Page Active Incidents** | 狀態頁面上目前進行中的事件數（設定篩選器時限定到該元件群組 / 元件） | Equal To、Not Equal To 以及數值比較 |
-| **External Status Page Response Time (in ms)** | 取得狀態頁面資料所花的時間 | Greater Than、Less Than、Greater Than Or Equal To、Less Than Or Equal To |
+| **External Status Page Overall Status** | 頁面回報的整體狀態 | 等於、不等於、包含、不包含、開頭是、結尾是 |
+| **External Status Page Component Status** | 範圍內元件的狀態（遵循元件群組 / 元件名稱篩選器）：運作中、Under Maintenance、Degraded Performance、Partial Outage、Major Outage 或 Full Outage | 等於、不等於、包含、不包含、開頭是、結尾是 |
+| **External Status Page Active Incidents** | 狀態頁面上目前進行中的事件數（設定篩選器時限定到該元件群組 / 元件） | 等於、不等於以及數值比較 |
+| **External Status Page Response Time (in ms)** | 取得狀態頁面資料所花的時間 | 大於、小於、大於或等於、小於或等於 |
 
 整體狀態就是頁面上寫的內容，因此其值會因供應商而異：Atlassian Statuspage 回報它自己的描述，例如 `All Systems Operational`；摘要回報 `operational` 或 `degraded_performance`；連線能力檢查回報 `reachable` 或 `unreachable`。這些比較會區分大小寫。若要針對服務中斷發出警示，**External Status Page Active Incidents** 和 **External Status Page Component Status** 通常比較可靠。
 

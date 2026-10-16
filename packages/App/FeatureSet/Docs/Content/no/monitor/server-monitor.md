@@ -159,7 +159,7 @@ Kriterier avgjør når monitoren er tilkoblet, redusert eller frakoblet, og når
 | Filtertype | Hva den kontrollerer | Filtervilkår |
 | --- | --- | --- |
 | Is Online | Om agenten har rapportert nylig (som standard de siste 3 minuttene) | Sann, Usann |
-| CPU Usage (in %) | Samlet CPU-bruk | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| CPU Usage (in %) | Samlet CPU-bruk | Større enn, Mindre enn, Større enn eller lik, Mindre enn eller lik |
 | Memory Usage (in %) | Minne i bruk | Som for CPU |
 | Disk Usage (in %) | Bruk av disken angitt i **Diskbane** | Som for CPU |
 | Swap Usage (in %) | Swap i bruk | Som for CPU |
@@ -195,10 +195,10 @@ Kriterier avgjør når monitoren er tilkoblet, redusert eller frakoblet, og når
 | Mål | Filtertype | Filtervilkår | Verdi |
 | --- | --- | --- | --- |
 | Marker serveren som frakoblet når agenten slutter å rapportere | Is Online | Usann | — |
-| Varsle når CPU-bruken er over 90 % | CPU Usage (in %) | Greater Than | `90` |
-| Varsle når rotdisken er mer enn 85 % full | Disk Usage (in %), **Diskbane** `/` | Greater Than | `85` |
-| Varsle om enhver disk som er mer enn 85 % full, ett varsel per disk | Disk Usage (in %), **Diskbane** `*` | Greater Than | `85` |
-| Varsle når minnebruken er over 80 % | Memory Usage (in %) | Greater Than | `80` |
+| Varsle når CPU-bruken er over 90 % | CPU Usage (in %) | Større enn | `90` |
+| Varsle når rotdisken er mer enn 85 % full | Disk Usage (in %), **Diskbane** `/` | Større enn | `85` |
+| Varsle om enhver disk som er mer enn 85 % full, ett varsel per disk | Disk Usage (in %), **Diskbane** `*` | Større enn | `85` |
+| Varsle når minnebruken er over 80 % | Memory Usage (in %) | Større enn | `80` |
 | Varsle når nginx slutter å kjøre | Server Process Name | Is Not Executing | `nginx` |
 
 ## Feilsøking

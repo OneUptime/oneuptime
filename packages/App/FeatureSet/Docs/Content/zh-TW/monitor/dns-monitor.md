@@ -96,12 +96,12 @@ flowchart TB
 | 篩選器 | 條件 | 檢查內容 |
 | --- | --- | --- |
 | **DNS Is Online** | **是**、**否** | 查詢是否回傳了至少一筆該類型的記錄。 |
-| **DNS Response Time (in ms)** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 查詢所花的時間。 |
+| **DNS Response Time (in ms)** | **大於**、**小於**、**大於或等於**、**小於或等於** | 查詢所花的時間。 |
 | **DNS Record Exists** | **是**、**否** | 是否回傳了任何該類型的記錄。 |
-| **DNS Record Value** | **包含**、**Not Contains**、**Starts With**、**Ends With**、**Equal To**、**Not Equal To** | 記錄的值。只要有一筆記錄符合，篩選器即符合。 |
+| **DNS Record Value** | **包含**、**不包含**、**開頭是**、**結尾是**、**等於**、**不等於** | 記錄的值。只要有一筆記錄符合，篩選器即符合。 |
 | **DNSSEC Is Valid** | **是**、**否** | 驗證解析器是否在回應上設定了 AD 旗標。 |
 
-只要 _任何一筆_ 記錄符合，**DNS Record Value** 就會符合。有多筆 `A` 記錄時，只要其中一筆是該位址，**Equal To** `93.184.216.34` 就會符合；只要其中一筆不是該位址，**Not Equal To** 就會符合。
+只要 _任何一筆_ 記錄符合，**DNS Record Value** 就會符合。有多筆 `A` 記錄時，只要其中一筆是該位址，**等於** `93.184.216.34` 就會符合；只要其中一筆不是該位址，**不等於** 就會符合。
 
 **DNSSEC Is Valid** 會在 **DNS 伺服器（選用）** 中伺服器的 **連接埠** 上查詢它；該欄位為空時，則查詢 Google Public DNS（`8.8.8.8`）。因此您設定的伺服器應能驗證 DNSSEC。當探測器無法執行此檢查時，該篩選器沒有值，兩種情況都不符合。若要完整檢查已簽署的區域，請使用 [DNSSEC 監控](/docs/monitor/dnssec-monitor)。
 
@@ -141,9 +141,9 @@ flowchart TB
 | 目標 | 篩選器 | 條件 | 值 |
 | --- | --- | --- | --- |
 | 名稱不再能解析時為離線 | **DNS Is Online** | **否** | — |
-| 名稱唯一的 `A` 記錄變更時發出警示 | **DNS Record Value** | **Not Equal To** | `93.184.216.34` |
-| `MX` 記錄指向您的網域之外時發出警示 | **DNS Record Value** | **Not Contains** | `example.com` |
-| DNS 變慢時標記為效能下降 | **DNS Response Time (in ms)** | **Greater Than** | `500` |
+| 名稱唯一的 `A` 記錄變更時發出警示 | **DNS Record Value** | **不等於** | `93.184.216.34` |
+| `MX` 記錄指向您的網域之外時發出警示 | **DNS Record Value** | **不包含** | `example.com` |
+| DNS 變慢時標記為效能下降 | **DNS Response Time (in ms)** | **大於** | `500` |
 | DNSSEC 驗證失敗時發出警示 | **DNSSEC Is Valid** | **否** | — |
 
 ## 疑難排解
@@ -156,11 +156,11 @@ dig @8.8.8.8 example.com A
 ```
 :::
 
-:::details 正確的位址明明存在，Not Equal To 條件卻觸發了
-只要有一筆記錄符合，**DNS Record Value** 就會符合。有多筆記錄時，只要其中一筆不同，**Not Equal To** 就會觸發。若要檢查某個特定值是否在記錄之中，請利用條件的順序，因為第一個符合的條件會生效：
+:::details 正確的位址明明存在，「不等於」條件卻觸發了
+只要有一筆記錄符合，**DNS Record Value** 就會符合。有多筆記錄時，只要其中一筆不同，**不等於** 就會觸發。若要檢查某個特定值是否在記錄之中，請利用條件的順序，因為第一個符合的條件會生效：
 
 1. 將預設的離線條件保留在最上方：**DNS Is Online** / **否**。
-2. 在其下方新增一個 **DNS Record Value** / **Equal To** / 預期值 的條件，將監測器標記為 **運作中**。
+2. 在其下方新增一個 **DNS Record Value** / **等於** / 預期值 的條件，將監測器標記為 **運作中**。
 3. 再在其下方新增一個 **DNS Is Online** / **是** 的條件，將監測器標記為 **離線** 並宣告事件。它只會符合不含該值的回應。
 :::
 

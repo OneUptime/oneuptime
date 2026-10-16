@@ -77,8 +77,8 @@ flowchart TB
 | **Is Not A Valid Certificate** | **是**、**否** | 與 **Is Valid Certificate** 相反：憑證未通過這些檢查或無法檢查時為 **是**。 |
 | **Is Expired Certificate** | **是**、**否** | 憑證的到期日已過。 |
 | **Is Self Signed Certificate** | **是**、**否** | 憑證或其鏈中的某個憑證是自我簽署的。 |
-| **Expires In Days** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 距憑證到期的天數。 |
-| **Expires In Hours** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 距憑證到期的小時數。 |
+| **Expires In Days** | **大於**、**小於**、**大於或等於**、**小於或等於** | 距憑證到期的天數。 |
+| **Expires In Hours** | **大於**、**小於**、**大於或等於**、**小於或等於** | 距憑證到期的小時數。 |
 
 **Expires In Days** 以整天計算：14 天 20 小時後到期的憑證還剩 14 天。**Expires In Hours** 以同樣的方式按整小時計算。
 
@@ -102,7 +102,7 @@ flowchart TB
 在 OneUptime 新增此提醒之前建立的監測器沒有「即將到期」條件。若要新增它：
 
 1. 在監測器上開啟 **設定 → 條件**，然後點選 **編輯監測條件**。
-2. 點選 **新增條件準則**。將其篩選器設為 **Is Valid Certificate** / **是**，點選 **新增篩選器**，並將第二個設為 **Expires In Days** / **Less Than Or Equal To** / `14`。讓 **符合條件** 保持為 **全部**（有兩個篩選器後，它會出現在篩選器下方）。
+2. 點選 **新增條件準則**。將其篩選器設為 **Is Valid Certificate** / **是**，點選 **新增篩選器**，並將第二個設為 **Expires In Days** / **小於或等於** / `14`。讓 **符合條件** 保持為 **全部**（有兩個篩選器後，它會出現在篩選器下方）。
 3. 在 **操作** 下開啟 **當篩選器相符時，建立警示。** 並讓 **當篩選器相符時，變更監測器狀態。** 保持關閉，使它建立警示而不變更監測器狀態。
 4. 將新條件拖到把監測器標記為上線的條件上方，然後儲存。
 :::
@@ -111,8 +111,8 @@ flowchart TB
 
 | 目標 | 篩選器 | 條件 | 值 |
 | --- | --- | --- | --- |
-| 提前一個月提醒 | **Expires In Days** | **Less Than Or Equal To** | `30` |
-| 在最後一天呼叫某人 | **Expires In Hours** | **Less Than** | `24` |
+| 提前一個月提醒 | **Expires In Days** | **小於或等於** | `30` |
+| 在最後一天呼叫某人 | **Expires In Hours** | **小於** | `24` |
 | 只在憑證到期後才離線 | **Is Expired Certificate** | **是** | — |
 | 標記自我簽署憑證 | **Is Self Signed Certificate** | **是** | — |
 

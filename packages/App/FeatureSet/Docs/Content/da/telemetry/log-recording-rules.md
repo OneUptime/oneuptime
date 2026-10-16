@@ -169,7 +169,7 @@ Opret en monitor af typen **Metrikker** (se [Metrik-monitor](/docs/monitor/metri
 1. **Metrikforespørgsel:** `sdwan.gateway.latency.ms`, aggregering **Gennemsnit**, **Gruppér efter** `gw_name` og `profile_name`.
 2. **Rullende tidsvindue:** Past 15 Minutes. Firewallen rapporterer med få minutters mellemrum, så vinduet rummer flere punkter pr. gateway.
 3. **Aggregeringsstrategi:** **All Values**: hvert punkt i vinduet skal overskride grænsen, så én langsom opsummering ikke vækker nogen. Brug i stedet **Gennemsnit** for at få en alarm ved et højt gennemsnit.
-4. **Kriterier:** Metric value **Greater Than** `150` åbner en alarm.
+4. **Kriterier:** Metric value **Større end** `150` åbner en alarm.
 5. Brug eventuelt grupperingsværdierne i alarmens titel, f.eks. `SD-WAN latency high on {{gw_name}} ({{profile_name}})`.
 
 Med gruppering sat er hver gateway sin egen serie: bliver WAN2 langsom, åbnes en alarm alene for WAN2, og den løses af sig selv, når WAN2 kommer sig. Se [Alarmer pr. serie](/docs/monitor/metrics-monitor#advarsler-pr-serie-group-by).

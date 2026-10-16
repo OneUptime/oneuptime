@@ -100,11 +100,11 @@ Les critères d'un moniteur de journaux ont un seul **Type de filtre** : **Log C
 
 | Condition de filtre | Correspond quand le nombre de journaux est… |
 | --- | --- |
-| **Greater Than** | au-dessus de la valeur |
-| **Greater Than Or Equal To** | égal ou supérieur à la valeur |
-| **Less Than** | en dessous de la valeur |
-| **Less Than Or Equal To** | égal ou inférieur à la valeur |
-| **Equal To** | exactement la valeur |
+| **Supérieur à** | au-dessus de la valeur |
+| **Supérieur ou égal à** | égal ou supérieur à la valeur |
+| **Inférieur à** | en dessous de la valeur |
+| **Inférieur ou égal à** | égal ou inférieur à la valeur |
+| **Égal à** | exactement la valeur |
 | **Anomalously High** | au-dessus de la plage attendue pour cette heure de la semaine |
 | **Anomalously Low** | en dessous de cette plage |
 | **Anomalous** | hors de cette plage, dans un sens ou dans l'autre |
@@ -115,11 +115,11 @@ Un nouveau moniteur de journaux commence avec ces critères :
 
 | Critère | Filtre | Effet |
 | --- | --- | --- |
-| Check if … is offline | **Log Count** **Equal To** `0` | Passe le moniteur hors ligne et déclare un incident, résolu automatiquement |
-| Check if … is online | **Log Count** **Greater Than** `0` | Passe le moniteur en ligne |
+| Check if … is offline | **Log Count** **Égal à** `0` | Passe le moniteur hors ligne et déclare un incident, résolu automatiquement |
+| Check if … is online | **Log Count** **Supérieur à** `0` | Passe le moniteur en ligne |
 
 > [!TIP]
-> Pour alerter sur les erreurs plutôt que sur le silence, réglez **Gravité du journal** sur **Erreur** et changez le critère hors ligne en **Log Count** **Greater Than** le nombre d'erreurs que vous tolérez dans la fenêtre.
+> Pour alerter sur les erreurs plutôt que sur le silence, réglez **Gravité du journal** sur **Erreur** et changez le critère hors ligne en **Log Count** **Supérieur à** le nombre d'erreurs que vous tolérez dans la fenêtre.
 
 ## Exemple : un pic d'erreurs
 
@@ -128,8 +128,8 @@ Vous voulez un incident quand le service checkout journalise plus de 50 erreurs 
 - **Gravité du journal** : **Erreur**
 - **Surveiller les journaux pendant (durée)** : **Dernières 5 minutes**
 - **Filtrer par service de télémétrie** : `checkout`
-- Critère 1 : **Log Count** **Greater Than** `50` – passer le moniteur hors ligne et déclarer un incident
-- Critère 2 : **Log Count** **Less Than Or Equal To** `50` – passer le moniteur en ligne
+- Critère 1 : **Log Count** **Supérieur à** `50` – passer le moniteur hors ligne et déclarer un incident
+- Critère 2 : **Log Count** **Inférieur ou égal à** `50` – passer le moniteur en ligne
 
 Quatre évaluations successives :
 
@@ -200,7 +200,7 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 2. Réglez **Surveiller les journaux qui incluent ce texte** sur `terminated` et **Surveiller les journaux pendant (durée)** sur **Dernières 5 minutes**.
 3. Sous **Plus de champs**, ajoutez le filtre d'attribut `log_component` = `IPSec`.
 4. Dans **Group by Attributes**, ajoutez `con_name`.
-5. Ajoutez un critère avec le filtre **Log Count** **Greater Than** `0` qui crée une alerte ou un incident intitulé `IPsec tunnel {{con_name}} terminated`.
+5. Ajoutez un critère avec le filtre **Log Count** **Supérieur à** `0` qui crée une alerte ou un incident intitulé `IPsec tunnel {{con_name}} terminated`.
 :::
 
 Chaque tunnel qui journalise une interruption reçoit désormais sa propre alerte – `IPsec tunnel HQ-Branch1 terminated`, `IPsec tunnel Branch2 terminated` – et chacune se résout de son côté.
@@ -219,7 +219,7 @@ La valeur de chaque attribut de Group By est une [variable de modèle](/docs/mon
 ### L'évaluation des critères diffère
 
 - **Chaque critère est évalué**, comme sur un moniteur de métriques regroupé, si bien que différents groupes peuvent remplir différents critères en même temps. Un groupe qui remplit deux critères ne reçoit toujours qu'une alerte, celle du premier ; ordonnez donc les critères du plus grave au moins grave.
-- **Un groupe n'existe que s'il a journalisé quelque chose dans la fenêtre de temps.** Les critères **Equal To 0** et **Less Than** ne se déclenchent donc que pour les groupes qui ont journalisé au moins une fois ; pour alerter quand les journaux cessent complètement d'arriver, utilisez un moniteur sans Group By.
+- **Un groupe n'existe que s'il a journalisé quelque chose dans la fenêtre de temps.** Les critères **Égal à 0** et **Inférieur à** ne se déclenchent donc que pour les groupes qui ont journalisé au moins une fois ; pour alerter quand les journaux cessent complètement d'arriver, utilisez un moniteur sans Group By.
 - **La détection d'anomalies** (**Anomalously High**, **Anomalously Low**, **Anomalous**) n'est pas évaluée par groupe – sa référence couvre tout le moniteur –, si bien que ces filtres ne correspondent jamais sur un moniteur regroupé.
 - Le statut du moniteur suit le premier critère que remplit un groupe. Quand aucun groupe ne remplit de critère, le moniteur revient à son statut par défaut.
 
@@ -230,7 +230,7 @@ Le décompte valait 0 : les filtres ne correspondent donc à aucun des journaux 
 :::
 
 :::details Un pic s'est produit, mais rien n'a alerté
-Les critères sont vérifiés de haut en bas et la première correspondance décide. Un critère large placé au-dessus de celui que vous attendiez, comme **Log Count** **Greater Than** `0`, correspond en premier et arrête les autres. Placez le critère le plus grave en haut.
+Les critères sont vérifiés de haut en bas et la première correspondance décide. Un critère large placé au-dessus de celui que vous attendiez, comme **Log Count** **Supérieur à** `0`, correspond en premier et arrête les autres. Placez le critère le plus grave en haut.
 :::
 
 :::details Un critère d'anomalie ne se déclenche jamais

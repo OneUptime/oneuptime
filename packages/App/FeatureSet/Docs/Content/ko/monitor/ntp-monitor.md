@@ -101,10 +101,10 @@ sequenceDiagram
 | --- | --- | --- |
 | **NTP Is Online** | **참**, **거짓** | 서버가 프로브의 요청에 NTP 응답을 보냈는지 여부. kiss-o'-death도 응답입니다. |
 | **NTP Is Synchronized** | **참**, **거짓** | 응답한 서버가 동기화된 시간을 제공하는지 여부. 서버가 응답하지 않으면 이 필터는 확인하지 않으니, 그 경우에는 **NTP Is Online**을 사용하세요. |
-| **NTP Stratum** | **Greater Than**, **Greater Than Or Equal To**, **Less Than**, **Less Than Or Equal To**, **Equal To**, **Not Equal To** | 서버의 스트라텀. kiss-o'-death의 0은 동기화되지 않음을 뜻하는 16으로 계산됩니다. |
-| **NTP Clock Offset (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | 서버의 시계가 프로브의 시계와 얼마나 떨어져 있는지(방향 무관). |
-| **NTP Response Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | 요청부터 응답까지의 시간. |
-| **NTP Root Dispersion (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | 서버 자신이 추정한 최대 오차. |
+| **NTP Stratum** | **보다 큼**, **이상**, **보다 작음**, **이하**, **같음**, **같지 않음** | 서버의 스트라텀. kiss-o'-death의 0은 동기화되지 않음을 뜻하는 16으로 계산됩니다. |
+| **NTP Clock Offset (in ms)** | **보다 큼**, **보다 작음**, **이상**, **이하** | 서버의 시계가 프로브의 시계와 얼마나 떨어져 있는지(방향 무관). |
+| **NTP Response Time (in ms)** | **보다 큼**, **보다 작음**, **이상**, **이하** | 요청부터 응답까지의 시간. |
+| **NTP Root Dispersion (in ms)** | **보다 큼**, **보다 작음**, **이상**, **이하** | 서버 자신이 추정한 최대 오차. |
 
 필터가 두 개 이상이면 **일치 조건**에서 **전체**를 고르면 모든 필터가, **모두**를 고르면 그중 하나만 일치하면 됩니다. 기준의 **작업**은 그 기준이 하는 일을 정합니다. 모니터 상태 변경, 알림 생성, 인시던트 선언, 또는 이들의 조합입니다.
 
@@ -125,10 +125,10 @@ sequenceDiagram
 
 | 목표 | 필터 | 조건 | 값 |
 | --- | --- | --- | --- |
-| GPS 서버가 네트워크 소스로 전환되면 알림 | **NTP Stratum** | **Greater Than** | `1` |
-| 시계가 어긋나기 시작하면 알림 | **NTP Clock Offset (in ms)** | **Greater Than** | `100` |
-| 서버의 오차 한계가 커지면 알림 | **NTP Root Dispersion (in ms)** | **Greater Than** | `500` |
-| 응답이 느려지면 알림 | **NTP Response Time (in ms)** | **Greater Than** | `1000` |
+| GPS 서버가 네트워크 소스로 전환되면 알림 | **NTP Stratum** | **보다 큼** | `1` |
+| 시계가 어긋나기 시작하면 알림 | **NTP Clock Offset (in ms)** | **보다 큼** | `100` |
+| 서버의 오차 한계가 커지면 알림 | **NTP Root Dispersion (in ms)** | **보다 큼** | `500` |
+| 응답이 느려지면 알림 | **NTP Response Time (in ms)** | **보다 큼** | `1000` |
 
 ## 문제 해결
 

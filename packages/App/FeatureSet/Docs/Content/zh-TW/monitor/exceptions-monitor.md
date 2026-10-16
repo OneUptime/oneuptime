@@ -112,12 +112,12 @@ OneUptime 每分鐘計算一次符合監測器篩選器、且在其時間視窗�
 
 | 篩選條件 | 當例外數量…時符合 |
 | --- | --- |
-| **Greater Than** | 高於該值 |
-| **Greater Than Or Equal To** | 等於或高於該值 |
-| **Less Than** | 低於該值 |
-| **Less Than Or Equal To** | 等於或低於該值 |
-| **Equal To** | 正好等於該值 |
-| **Not Equal To** | 不等於該值 |
+| **大於** | 高於該值 |
+| **大於或等於** | 等於或高於該值 |
+| **小於** | 低於該值 |
+| **小於或等於** | 等於或低於該值 |
+| **等於** | 正好等於該值 |
+| **不等於** | 不等於該值 |
 
 例外數量沒有異常條件：沒有可以與之比較的基準。
 
@@ -125,8 +125,8 @@ OneUptime 每分鐘計算一次符合監測器篩選器、且在其時間視窗�
 
 | 條件 | 篩選器 | 效果 |
 | --- | --- | --- |
-| Check if … has exceptions | **Exception Count** **Greater Than** `0` | 將監測器標記為離線並宣告事件，事件會自動解決 |
-| Check if … has no exceptions | **Exception Count** **Equal To** `0` | 將監測器標記為上線 |
+| Check if … has exceptions | **Exception Count** **大於** `0` | 將監測器標記為離線並宣告事件，事件會自動解決 |
+| Check if … has no exceptions | **Exception Count** **等於** `0` | 將監測器標記為上線 |
 
 ## 實例：只看正式環境的例外
 
@@ -139,7 +139,7 @@ OneUptime 每分鐘計算一次符合監測器篩選器、且在其時間視窗�
 | `TimeoutError` × 2 | 無 | 作用中 | 否：沒有環境 |
 | `NullReferenceException` × 4 | `production` | 發生後已解決 | 否：已解決 |
 
-**Exception Count** 為 3，因此 **Greater Than** `0` 符合：監測器變為離線並宣告事件。當五分鐘內沒有任何作用中的正式環境例外時，上線條件符合，事件會自行解決。
+**Exception Count** 為 3，因此 **大於** `0` 符合：監測器變為離線並宣告事件。當五分鐘內沒有任何作用中的正式環境例外時，上線條件符合，事件會自行解決。
 
 ## 疑難排解
 

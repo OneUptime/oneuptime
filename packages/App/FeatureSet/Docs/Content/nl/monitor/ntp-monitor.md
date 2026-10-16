@@ -101,10 +101,10 @@ Criteria bepalen wanneer de server als online, verminderd of offline telt, en of
 | --- | --- | --- |
 | **NTP Is Online** | **Waar**, **Onwaar** | Of de server het verzoek van de sonde met een NTP-antwoord beantwoordde. Een kiss-o'-death is een antwoord. |
 | **NTP Is Synchronized** | **Waar**, **Onwaar** | Of de server die antwoordde gesynchroniseerde tijd levert. Als de server niet antwoordt, wordt dit filter niet gecontroleerd; gebruik daarvoor **NTP Is Online**. |
-| **NTP Stratum** | **Greater Than**, **Greater Than Or Equal To**, **Less Than**, **Less Than Or Equal To**, **Equal To**, **Not Equal To** | Het stratum van de server. De 0 van een kiss-o'-death telt als 16, niet gesynchroniseerd. |
-| **NTP Clock Offset (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Hoe ver de klok van de server van die van de sonde af ligt, in beide richtingen. |
-| **NTP Response Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Van het verzoek tot het antwoord. |
-| **NTP Root Dispersion (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | De eigen schatting van de server van zijn maximale fout. |
+| **NTP Stratum** | **Groter dan**, **Groter dan of gelijk aan**, **Kleiner dan**, **Kleiner dan of gelijk aan**, **Gelijk aan**, **Niet gelijk aan** | Het stratum van de server. De 0 van een kiss-o'-death telt als 16, niet gesynchroniseerd. |
+| **NTP Clock Offset (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Hoe ver de klok van de server van die van de sonde af ligt, in beide richtingen. |
+| **NTP Response Time (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Van het verzoek tot het antwoord. |
+| **NTP Root Dispersion (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | De eigen schatting van de server van zijn maximale fout. |
 
 Bij twee of meer filters bepaalt **Overeenkomstvoorwaarde** of ze **Alle** moeten overeenkomen of dat **Elke** afzonderlijke volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing maken, een incident verklaren, of een combinatie daarvan.
 
@@ -125,10 +125,10 @@ Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenk
 
 | Doel | Filter | Voorwaarde | Waarde |
 | --- | --- | --- | --- |
-| Waarschuwen als een GPS-server terugvalt op een netwerkbron | **NTP Stratum** | **Greater Than** | `1` |
-| Waarschuwen als de klok wegloopt | **NTP Clock Offset (in ms)** | **Greater Than** | `100` |
-| Waarschuwen als de foutmarge van de server groeit | **NTP Root Dispersion (in ms)** | **Greater Than** | `500` |
-| Waarschuwen als antwoorden traag worden | **NTP Response Time (in ms)** | **Greater Than** | `1000` |
+| Waarschuwen als een GPS-server terugvalt op een netwerkbron | **NTP Stratum** | **Groter dan** | `1` |
+| Waarschuwen als de klok wegloopt | **NTP Clock Offset (in ms)** | **Groter dan** | `100` |
+| Waarschuwen als de foutmarge van de server groeit | **NTP Root Dispersion (in ms)** | **Groter dan** | `500` |
+| Waarschuwen als antwoorden traag worden | **NTP Response Time (in ms)** | **Groter dan** | `1000` |
 
 ## Probleemoplossing
 

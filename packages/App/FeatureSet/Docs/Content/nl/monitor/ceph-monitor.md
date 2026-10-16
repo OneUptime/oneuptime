@@ -219,7 +219,7 @@ Een criterium vergelijkt een van de query's of formules van de monitor met een d
 | --- | --- |
 | **Metriek** | De query of formule die wordt gecontroleerd, via de variabelenaam. |
 | **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value**, **All Values** (elke waarde moet voldoen) of **Any Value** (één is genoeg). |
-| **Voorwaarde** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** of **Equal To** — of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. |
+| **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** — of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. |
 | **Threshold** | De waarde om mee te vergelijken. Ernaast staat een eenhedenlijst als de metric een eenheid heeft. Niet zichtbaar bij anomalievoorwaarden. |
 | **Gevoeligheid** | Alleen bij anomalievoorwaarden. **Low** (4σ), **Medium** (3σ, standaard) of **High** (2σ). |
 | **Baseline-venster** | Alleen bij anomalievoorwaarden. 14 dagen (standaard), 28, 60 of 90 dagen geschiedenis. |
@@ -254,7 +254,7 @@ De agent moet **elke** mgr-daemon bevragen, niet alleen de actieve: standby's ge
 :::
 
 :::details ceph_health_status is 1, maar er gaat niets af
-Controleer of het criterium **Greater Than Or Equal To** `1` gebruikt en niet **Greater Than**, en of het **Tijdsbereik** van de monitor minstens één bevraging van 30 seconden beslaat.
+Controleer of het criterium **Groter dan of gelijk aan** `1` gebruikt en niet **Groter dan**, en of het **Tijdsbereik** van de monitor minstens één bevraging van 30 seconden beslaat.
 :::
 
 :::details Health-check-sjablonen gaan nooit af

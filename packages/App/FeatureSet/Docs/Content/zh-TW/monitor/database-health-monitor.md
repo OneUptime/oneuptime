@@ -368,8 +368,8 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 | 篩選器類型 | 檢查的內容 |
 |---|---|
 | **Database Is Online** | 資料庫是否可連線，以及探測查詢是否成功。這是監測器建立時附帶的離線條件，也是唯一反映可連線性的檢查。 |
-| **Database Metric** | 選擇一個指標並進行比較：Greater Than、Less Than、Greater Than Or Equal To、Less Than Or Equal To、Equal To 或 Not Equal To。指標選擇器只會提供所選引擎能產生的指標，所以你無法建立一個永遠不會滿足的條件（有一個例外：為 Microsoft SQL Server 提供的 Replication 指標在 Azure SQL Database 上從不收集）。如果某次檢查沒有收集到該指標——群組失敗了，或引擎不回報它——篩選器不會符合，也不會以「false」符合：它會被略過。權限問題不會呼叫任何人。 |
-| **Database Collection Error** | 這次檢查的收集問題摘要，每個無法使用的群組一則「群組: 訊息」。在它不為空時發出警示，可以察覺可見度的喪失；也可以用 Contains 盯住某個特定群組。 |
+| **Database Metric** | 選擇一個指標並進行比較：大於、小於、大於或等於、小於或等於、等於或不等於。指標選擇器只會提供所選引擎能產生的指標，所以你無法建立一個永遠不會滿足的條件（有一個例外：為 Microsoft SQL Server 提供的 Replication 指標在 Azure SQL Database 上從不收集）。如果某次檢查沒有收集到該指標——群組失敗了，或引擎不回報它——篩選器不會符合，也不會以「false」符合：它會被略過。權限問題不會呼叫任何人。 |
+| **Database Collection Error** | 這次檢查的收集問題摘要，每個無法使用的群組一則「群組: 訊息」。在它不為空時發出警示，可以察覺可見度的喪失；也可以用「包含」盯住某個特定群組。 |
 | **JavaScript Expression** | 完全掌控。請參閱 [JavaScript 運算式](/docs/monitor/javascript-expression)。 |
 
 臨界值是整數。請寫 `90`，而不是 `90.5`——百分比和秒數都以整數比較。

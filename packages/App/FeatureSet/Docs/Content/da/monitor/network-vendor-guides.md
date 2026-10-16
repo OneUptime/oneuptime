@@ -88,7 +88,7 @@ De to første står på listen under **Opret advarsel**; til den tredje åbner d
 
 ### Traps
 
-Hver Sophos-meddelelse er den samme trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), med begivenheden som tekst i `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). For at advare om én slags begivenhed kombinerer du **SNMP Trap Received (Trap OID)** Equal To `1.3.6.1.4.1.2604.5.1.8.1.1` med **SNMP Trap Varbind Value** på den varbind, Contains `IPSec` for eksempel. Sæt firewallens trapdestination til SNMP v2c: sondens trapmodtager tager imod v1- og v2c-traps.
+Hver Sophos-meddelelse er den samme trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), med begivenheden som tekst i `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). For at advare om én slags begivenhed kombinerer du **SNMP Trap Received (Trap OID)** Lig med `1.3.6.1.4.1.2604.5.1.8.1.1` med **SNMP Trap Varbind Value** på den varbind, Indeholder `IPSec` for eksempel. Sæt firewallens trapdestination til SNMP v2c: sondens trapmodtager tager imod v1- og v2c-traps.
 
 ## Extreme Networks (EXOS / Switch Engine og Fabric Engine / VOSS)
 
@@ -130,9 +130,9 @@ Nyttige advarsler, alle på tabellen `wifi_radios` med Row `*`, så hver radio a
 | Advarsel | Kriterie |
 | --- | --- |
 | En radio slukket | **SNMP Table Row Is Unhealthy**, en del af de anbefalede advarsler |
-| Sendestyrken ændret | **SNMP Table Value**, kolonnen TX Power, Not Equal To din planlagte styrke |
-| En overfyldt radio | **SNMP Table Value**, kolonnen Clients, Greater Than din grænse |
-| En støjende kanal | **SNMP Table Value**, kolonnen Noise Floor, Greater Than `-80` |
+| Sendestyrken ændret | **SNMP Table Value**, kolonnen TX Power, Ikke lig med din planlagte styrke |
+| En overfyldt radio | **SNMP Table Value**, kolonnen Clients, Større end din grænse |
+| En støjende kanal | **SNMP Table Value**, kolonnen Noise Floor, Større end `-80` |
 
 Hver numerisk radioværdi er også en metrik (`oneuptime.monitor.snmp.table.value`, én serie pr. radio og kolonne), så kanal, styrke og klienter kan vises i grafer over tid på et dashboard; en kanal, der bliver ved med at skifte, er DFS på arbejde.
 

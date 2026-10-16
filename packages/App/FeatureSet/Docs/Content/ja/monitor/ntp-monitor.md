@@ -101,10 +101,10 @@ sequenceDiagram
 | --- | --- | --- |
 | **NTP Is Online** | **真**、**偽** | サーバーがプローブのリクエストに NTP 応答を返したかどうか。kiss-o'-death も応答に含まれます。 |
 | **NTP Is Synchronized** | **真**、**偽** | 応答したサーバーが同期した時刻を提供しているかどうか。サーバーが応答しない場合、このフィルターは確認されません。その場合は **NTP Is Online** を使います。 |
-| **NTP Stratum** | **Greater Than**、**Greater Than Or Equal To**、**Less Than**、**Less Than Or Equal To**、**Equal To**、**Not Equal To** | サーバーのストラタム。kiss-o'-death の 0 は、非同期を意味する 16 として扱われます。 |
-| **NTP Clock Offset (in ms)** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | サーバーの時計がプローブの時計からどれだけ離れているか（方向は問いません）。 |
-| **NTP Response Time (in ms)** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | リクエストから応答までの時間。 |
-| **NTP Root Dispersion (in ms)** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | サーバー自身が見積もった最大誤差。 |
+| **NTP Stratum** | **より大きい**、**以上**、**より小さい**、**以下**、**等しい**、**等しくない** | サーバーのストラタム。kiss-o'-death の 0 は、非同期を意味する 16 として扱われます。 |
+| **NTP Clock Offset (in ms)** | **より大きい**、**より小さい**、**以上**、**以下** | サーバーの時計がプローブの時計からどれだけ離れているか（方向は問いません）。 |
+| **NTP Response Time (in ms)** | **より大きい**、**より小さい**、**以上**、**以下** | リクエストから応答までの時間。 |
+| **NTP Root Dispersion (in ms)** | **より大きい**、**より小さい**、**以上**、**以下** | サーバー自身が見積もった最大誤差。 |
 
 フィルターが 2 つ以上ある場合、**一致条件** で **すべて** が一致する必要があるか、**いずれか** 1 つでよいかを決めます。条件の **アクション** で、その条件が何をするかを決めます。モニターのステータスの変更、アラートの作成、インシデントの宣言、またはそれらの組み合わせです。
 
@@ -125,10 +125,10 @@ sequenceDiagram
 
 | 目的 | フィルター | 条件 | 値 |
 | --- | --- | --- | --- |
-| GPS サーバーがネットワークのソースに切り替わったときにアラートを出す | **NTP Stratum** | **Greater Than** | `1` |
-| 時計がずれてきたときにアラートを出す | **NTP Clock Offset (in ms)** | **Greater Than** | `100` |
-| サーバーの誤差の上限が大きくなったときにアラートを出す | **NTP Root Dispersion (in ms)** | **Greater Than** | `500` |
-| 応答が遅くなったときにアラートを出す | **NTP Response Time (in ms)** | **Greater Than** | `1000` |
+| GPS サーバーがネットワークのソースに切り替わったときにアラートを出す | **NTP Stratum** | **より大きい** | `1` |
+| 時計がずれてきたときにアラートを出す | **NTP Clock Offset (in ms)** | **より大きい** | `100` |
+| サーバーの誤差の上限が大きくなったときにアラートを出す | **NTP Root Dispersion (in ms)** | **より大きい** | `500` |
+| 応答が遅くなったときにアラートを出す | **NTP Response Time (in ms)** | **より大きい** | `1000` |
 
 ## トラブルシューティング
 

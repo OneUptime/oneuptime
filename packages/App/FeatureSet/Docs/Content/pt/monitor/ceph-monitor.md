@@ -219,7 +219,7 @@ Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os
 | --- | --- |
 | **Métrica** | A consulta ou fórmula a verificar, pelo nome da variável. |
 | **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Maximum Value**, **Minimum Value**, **All Values** (todos os valores precisam atender) ou **Any Value** (um basta). |
-| **Condição** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** ou **Equal To** — ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
+| **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** — ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
 | **Threshold** | O valor de comparação. Uma lista de unidades aparece ao lado quando a métrica tem unidade. Não aparece para condições de anomalia. |
 | **Sensibilidade** | Somente condições de anomalia. **Low** (4σ), **Medium** (3σ, o padrão) ou **High** (2σ). |
 | **Janela de linha de base** | Somente condições de anomalia. 14 dias (o padrão), 28, 60 ou 90 dias de histórico. |
@@ -254,7 +254,7 @@ O agente precisa consultar **todos** os daemons mgr, não só o ativo: os standb
 :::
 
 :::details ceph_health_status está em 1, mas nada dispara
-Verifique se o critério usa **Greater Than Or Equal To** `1`, e não **Greater Than**, e se o **Intervalo de tempo** do monitor cobre pelo menos uma coleta de 30 segundos.
+Verifique se o critério usa **Maior ou igual a** `1`, e não **Maior que**, e se o **Intervalo de tempo** do monitor cobre pelo menos uma coleta de 30 segundos.
 :::
 
 :::details Os modelos de health checks nunca disparam

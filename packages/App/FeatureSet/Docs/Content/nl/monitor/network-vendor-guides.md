@@ -88,7 +88,7 @@ De eerste twee staan in de lijst van **Waarschuwing maken**; voor de derde open 
 
 ### Traps
 
-Elke Sophos-melding is dezelfde trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), met de gebeurtenis als tekst in `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Om op één soort gebeurtenis te waarschuwen, combineer je **SNMP Trap Received (Trap OID)** Equal To `1.3.6.1.4.1.2604.5.1.8.1.1` met **SNMP Trap Varbind Value** op die varbind, Contains `IPSec` bijvoorbeeld. Zet de trapbestemming van de firewall op SNMP v2c: de trapontvanger van de sonde neemt v1- en v2c-traps aan.
+Elke Sophos-melding is dezelfde trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), met de gebeurtenis als tekst in `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Om op één soort gebeurtenis te waarschuwen, combineer je **SNMP Trap Received (Trap OID)** Gelijk aan `1.3.6.1.4.1.2604.5.1.8.1.1` met **SNMP Trap Varbind Value** op die varbind, Bevat `IPSec` bijvoorbeeld. Zet de trapbestemming van de firewall op SNMP v2c: de trapontvanger van de sonde neemt v1- en v2c-traps aan.
 
 ## Extreme Networks (EXOS / Switch Engine en Fabric Engine / VOSS)
 
@@ -130,9 +130,9 @@ Nuttige waarschuwingen, allemaal op de tabel `wifi_radios` met Row `*`, zodat el
 | Waarschuwing | Criterium |
 | --- | --- |
 | Een radio uitgezet | **SNMP Table Row Is Unhealthy**, onderdeel van de aanbevolen waarschuwingen |
-| Zendvermogen gewijzigd | **SNMP Table Value**, kolom TX Power, Not Equal To je geplande vermogen |
-| Een drukke radio | **SNMP Table Value**, kolom Clients, Greater Than je limiet |
-| Een kanaal met veel ruis | **SNMP Table Value**, kolom Noise Floor, Greater Than `-80` |
+| Zendvermogen gewijzigd | **SNMP Table Value**, kolom TX Power, Niet gelijk aan je geplande vermogen |
+| Een drukke radio | **SNMP Table Value**, kolom Clients, Groter dan je limiet |
+| Een kanaal met veel ruis | **SNMP Table Value**, kolom Noise Floor, Groter dan `-80` |
 
 Elke numerieke radiowaarde is ook een metriek (`oneuptime.monitor.snmp.table.value`, één reeks per radio en kolom), dus kanaal, vermogen en clients kunnen in de loop van de tijd op een dashboard in grafieken worden gezet; een kanaal dat steeds verandert, is DFS aan het werk.
 

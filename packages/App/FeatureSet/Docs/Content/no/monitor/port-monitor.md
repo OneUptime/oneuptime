@@ -109,9 +109,9 @@ Kriterier avgjør når porten regnes som tilkoblet, redusert eller frakoblet, og
 | Filter | Betingelser | Hva det sjekker |
 | --- | --- | --- |
 | **Is Online** | **Sann**, **Usann** | Om porten godtok en tilkobling. |
-| **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Hele tilkoblingstiden, inkludert DNS-oppslaget for et vertsnavn. |
-| **Port DNS Lookup Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | DNS-oppslaget før det første TCP-forsøket. Det har ingen verdi når målet er en IP-adresse. |
-| **Port TCP Connect Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Fra det første TCP-forsøket til tilkoblingen godtas, inkludert bytte mellom IPv6 og IPv4. |
+| **Total Connection Time (DNS + TCP) (in ms)** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Hele tilkoblingstiden, inkludert DNS-oppslaget for et vertsnavn. |
+| **Port DNS Lookup Time (in ms)** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | DNS-oppslaget før det første TCP-forsøket. Det har ingen verdi når målet er en IP-adresse. |
+| **Port TCP Connect Time (in ms)** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Fra det første TCP-forsøket til tilkoblingen godtas, inkludert bytte mellom IPv6 og IPv4. |
 | **Is Request Timeout** | **Sann**, **Usann** | Om DNS-oppslaget eller TCP-tilkoblingen gikk over tidsavbruddet ved hvert forsøk. |
 
 Et kriterium for DNS-oppslagstid har ingenting å evaluere når målet er en IP-adresse. For kriterier som må virke med både vertsnavn og IP-adresser, bruker du totaltiden eller TCP-tilkoblingstiden.
@@ -156,10 +156,10 @@ Gjør vinduet lengre enn overvåkingsintervallet, slik at det rommer flere sjekk
 | Mål | Filter | Betingelse | Verdi |
 | --- | --- | --- | --- |
 | Frakoblet når porten er lukket | **Is Online** | **Usann** | — |
-| Varsle når tilkoblingen går tregt | **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than** | `500` |
-| Merk tjenesten som redusert når den kobler til tregt | **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than** | `200` |
-| Varsle når DNS er treg | **Port DNS Lookup Time (in ms)** | **Greater Than** | `100` |
-| Varsle når TCP-håndtrykket er tregt | **Port TCP Connect Time (in ms)** | **Greater Than** | `250` |
+| Varsle når tilkoblingen går tregt | **Total Connection Time (DNS + TCP) (in ms)** | **Større enn** | `500` |
+| Merk tjenesten som redusert når den kobler til tregt | **Total Connection Time (DNS + TCP) (in ms)** | **Større enn** | `200` |
+| Varsle når DNS er treg | **Port DNS Lookup Time (in ms)** | **Større enn** | `100` |
+| Varsle når TCP-håndtrykket er tregt | **Port TCP Connect Time (in ms)** | **Større enn** | `250` |
 
 ## Feilsøking
 
