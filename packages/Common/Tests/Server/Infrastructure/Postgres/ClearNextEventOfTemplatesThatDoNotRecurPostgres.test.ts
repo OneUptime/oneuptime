@@ -119,7 +119,10 @@ describePostgres(
     }
 
     // A value for a NOT NULL column the seed does not name, by its type.
-    function filler(column: { column_name: string; udt_name: string }): unknown {
+    function filler(column: {
+      column_name: string;
+      udt_name: string;
+    }): unknown {
       switch (column.udt_name) {
         case "uuid":
           return ObjectID.generate().toString();

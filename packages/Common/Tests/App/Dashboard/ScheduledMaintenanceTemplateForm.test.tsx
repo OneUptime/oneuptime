@@ -719,12 +719,12 @@ describe("the template's page", () => {
         templateWith({ isRecurringEvent: false, scheduleNextEventAt: at }),
       ),
     ).toBe(false);
-    expect(
-      nextEvent.showIf!(templateWith({ isRecurringEvent: true })),
-    ).toBe(false);
-    expect(
-      nextEvent.showIf!(templateWith({ isRecurringEvent: false })),
-    ).toBe(false);
+    expect(nextEvent.showIf!(templateWith({ isRecurringEvent: true }))).toBe(
+      false,
+    );
+    expect(nextEvent.showIf!(templateWith({ isRecurringEvent: false }))).toBe(
+      false,
+    );
   });
 
   test("still shows the schedule's first event while the template recurs, and only then", async () => {

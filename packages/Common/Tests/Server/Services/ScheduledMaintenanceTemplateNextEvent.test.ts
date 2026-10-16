@@ -376,9 +376,7 @@ describe("turning Recurring Event back on", () => {
       member([Permission.ScheduledMaintenanceMember]),
     );
 
-    expect(storedTime("scheduleNextEventAt")).toBe(
-      NEXT_EVENT_AT.toISOString(),
-    );
+    expect(storedTime("scheduleNextEventAt")).toBe(NEXT_EVENT_AT.toISOString());
   });
 
   test("a template that never had a schedule is refused, and stays off", async () => {
@@ -435,7 +433,10 @@ describe("any other edit", () => {
   test("turning off a template that is already off and holds no time writes only the switch", async () => {
     useTable([templateRow(TURNED_OFF)]);
 
-    await update({ isRecurringEvent: false }, member([Permission.ProjectOwner]));
+    await update(
+      { isRecurringEvent: false },
+      member([Permission.ProjectOwner]),
+    );
 
     expect(table.updates).toHaveLength(1);
     expect(table.updates[0]!.set).not.toHaveProperty("scheduleNextEventAt");
@@ -463,9 +464,7 @@ describe("any other edit", () => {
 
     expect(stored("title")).toBe("Database and cache patching");
     expect(stored("isRecurringEvent")).toBe(true);
-    expect(storedTime("scheduleNextEventAt")).toBe(
-      NEXT_EVENT_AT.toISOString(),
-    );
+    expect(storedTime("scheduleNextEventAt")).toBe(NEXT_EVENT_AT.toISOString());
   });
 });
 

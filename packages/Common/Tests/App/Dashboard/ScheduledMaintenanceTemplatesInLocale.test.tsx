@@ -156,8 +156,7 @@ function cellText(column: Column, item: ScheduledMaintenanceTemplate): string {
 }
 
 beforeAll(async () => {
-  const resources: Record<string, { translation: Record<string, string> }> =
-    {};
+  const resources: Record<string, { translation: Record<string, string> }> = {};
 
   for (const language of LANGUAGES) {
     resources[language] = { translation: LOCALES[language]! };
@@ -196,7 +195,9 @@ describe.each(LANGUAGES)("in %s", (language: string) => {
     });
     expect(sentence).toContain("{{date}}");
 
-    expect(cellText(recurringEventColumn(), template(true, NEXT_EVENT_AT))).toBe(
+    expect(
+      cellText(recurringEventColumn(), template(true, NEXT_EVENT_AT)),
+    ).toBe(
       sentence.replace(
         "{{date}}",
         OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(NEXT_EVENT_AT),
@@ -226,9 +227,9 @@ describe.each(LANGUAGES)("in %s", (language: string) => {
   test("the recurrence field says what its picker takes, as one translated sentence", async () => {
     await inLanguage(language);
 
-    const field: { description?: unknown } | undefined = getTemplateFormFields(
-      { isViewPage: false },
-    ).find((candidate: { title?: string | undefined }): boolean => {
+    const field: { description?: unknown } | undefined = getTemplateFormFields({
+      isViewPage: false,
+    }).find((candidate: { title?: string | undefined }): boolean => {
       return candidate.title === INTERVAL_TITLE;
     });
 
@@ -236,9 +237,10 @@ describe.each(LANGUAGES)("in %s", (language: string) => {
 
     const translated: string = LOCALES[language]![INTERVAL_DESCRIPTION]!;
 
-    expect({ language, translated: translated !== INTERVAL_DESCRIPTION }).toEqual(
-      { language, translated: true },
-    );
+    expect({
+      language,
+      translated: translated !== INTERVAL_DESCRIPTION,
+    }).toEqual({ language, translated: true });
 
     render(
       <FieldLabelElement

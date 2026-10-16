@@ -94,7 +94,10 @@ function sourceFiles(directory: string, relative: string = ""): Array<string> {
 describe("getTemplateNextEventAt", () => {
   test("is the template's next time while it recurs", () => {
     expect(
-      getTemplateNextEventAt({ isRecurringEvent: true, scheduleNextEventAt: AT }),
+      getTemplateNextEventAt({
+        isRecurringEvent: true,
+        scheduleNextEventAt: AT,
+      }),
     ).toBe(AT);
   });
 
@@ -218,9 +221,10 @@ describe("the words, in every language", () => {
 
   test("the recurrence field's old description is gone from every locale", () => {
     for (const locale of ["en", ...OTHER_LOCALES]) {
-      expect([locale, RETIRED_INTERVAL_DESCRIPTION in readLocale(locale)]).toEqual(
-        [locale, false],
-      );
+      expect([
+        locale,
+        RETIRED_INTERVAL_DESCRIPTION in readLocale(locale),
+      ]).toEqual([locale, false]);
     }
   });
 

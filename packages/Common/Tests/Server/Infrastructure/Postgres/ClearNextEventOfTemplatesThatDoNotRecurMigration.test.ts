@@ -79,9 +79,9 @@ const WHERE: string = ` WHERE "isRecurringEvent" = false AND "scheduleNextEventA
 
 describe("ClearNextEventOfTemplatesThatDoNotRecur1802800000000", () => {
   test("is registered once, under the name its class carries", () => {
-    expect(new ClearNextEventOfTemplatesThatDoNotRecur1802800000000().name).toBe(
-      MIGRATION_NAME,
-    );
+    expect(
+      new ClearNextEventOfTemplatesThatDoNotRecur1802800000000().name,
+    ).toBe(MIGRATION_NAME);
     expect(SchemaMigrations).toContain(
       ClearNextEventOfTemplatesThatDoNotRecur1802800000000,
     );
@@ -144,10 +144,11 @@ describe("ClearNextEventOfTemplatesThatDoNotRecur1802800000000", () => {
       `UPDATE "${new ScheduledMaintenanceTemplate().tableName}"${SET.trimEnd()}${WHERE}`,
     );
 
-    const assignments: string = CLEAR_NEXT_EVENT_OF_TEMPLATES_THAT_DO_NOT_RECUR.slice(
-      CLEAR_NEXT_EVENT_OF_TEMPLATES_THAT_DO_NOT_RECUR.indexOf(" SET "),
-      CLEAR_NEXT_EVENT_OF_TEMPLATES_THAT_DO_NOT_RECUR.indexOf(" WHERE "),
-    );
+    const assignments: string =
+      CLEAR_NEXT_EVENT_OF_TEMPLATES_THAT_DO_NOT_RECUR.slice(
+        CLEAR_NEXT_EVENT_OF_TEMPLATES_THAT_DO_NOT_RECUR.indexOf(" SET "),
+        CLEAR_NEXT_EVENT_OF_TEMPLATES_THAT_DO_NOT_RECUR.indexOf(" WHERE "),
+      );
 
     expect(assignments.split("=")).toHaveLength(2);
 

@@ -158,9 +158,7 @@ let rows: Array<TemplateRow> = [];
 // The template reads of the list - not the saved views' own.
 let listCalls: Array<{ select: Record<string, unknown> }> = [];
 
-async function renderList(
-  shown: Array<TemplateRow>,
-): Promise<Array<string>> {
+async function renderList(shown: Array<TemplateRow>): Promise<Array<string>> {
   rows = shown;
 
   render(
