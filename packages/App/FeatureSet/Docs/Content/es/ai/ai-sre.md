@@ -46,6 +46,22 @@ Mientras se ejecuta la investigación, la página del incidente o de la alerta m
 
 Una investigación se ejecuta hasta terminar: **no tiene límite de tiempo** ni un presupuesto de consultas pequeño, así que puede ejecutar todas las consultas y todos los comandos kubectl o de infraestructura que necesite. Una salida de comando larga (un `kubectl describe node` de un nodo con mucha carga, los registros de un pod) nunca se corta: OneUptime AI la lee página a página. Si quieres un corte firme, define un **límite de tiempo de investigación** por tipo de señal (consulta **Control de costes** más abajo).
 
+## Qué lee una investigación
+
+Una investigación parte del incidente o de la alerta y de la infraestructura a la que está vinculado: los hosts, los hosts de Docker y Podman, los clústeres de Kubernetes, las bases de datos y los servicios que vigilan sus monitores. Un monitor de sitio web, de API o sintético vigila aquello a lo que lo vinculas en **Monitor → Vista general → Recursos vinculados**, así que vincúlalo a los hosts que sirven lo que comprueba, y cada investigación de sus incidentes empezará ahí.
+
+- Las alertas de esa infraestructura que se abrieron en los 30 minutos anteriores al incidente, o que siguen abiertas, las más nuevas primero, como la alerta de CPU alta del host que hay detrás de un sitio lento. Las alertas privadas se omiten.
+- Las métricas propias de la infraestructura, leídas como las lee una persona. Las métricas de host como `system.cpu.utilization` y `system.memory.utilization` se informan una vez por estado, y los estados suman el 100 %, así que un promedio de todos no dice nada. OneUptime AI las lee estado por estado (la CPU ocupada es user más system), y cualquier métrica por contenedor, por punto de montaje o por cualquier otro atributo.
+- Los contenedores de un host de Docker o Podman: los más ocupados por CPU, memoria o reinicios, y los que dejaron de enviar datos. Un contenedor detenido no envía nada en lugar de cero, así que las cifras del host completo lo ocultan.
+
+La actividad de la investigación en la tarjeta **Investigación de IA** indica cuántas alertas abiertas o recientes leyó y en qué recursos.
+
+### Se vuelve a comprobar cuando se abre una alerta nueva
+
+Una investigación empieza en el momento en que se declara un incidente, y una alerta de host que necesita unos minutos de métricas puede abrirse después. Cuando se abre una alerta en la infraestructura vinculada al incidente en los 30 minutos siguientes al incidente, después de que la investigación la leyera, y el incidente sigue abierto, OneUptime AI vuelve a comprobar el incidente una vez más con esa alerta en la mano. El nuevo análisis empieza con **Checked again** y la alerta que motivó la comprobación, y su actividad también lo indica.
+
+Esto ocurre como mucho una vez por incidente, con los mismos interruptores y límites que una investigación nueva: **Habilitar IA**, _Investigar los incidentes nuevos_, los créditos de IA y los límites diarios y de simultaneidad. No hay nada que activar. Una comprobación de seguimiento nunca vuelve a ejecutar la remediación automática ni tiene a su vez un seguimiento, y la investigación de una alerta no se vuelve a comprobar.
+
 ## Habla con OneUptime AI sobre el incidente
 
 La tarjeta **Investigación de IA** termina con una conversación, **Ask OneUptime AI**, compartida por todas las personas que pueden ver el incidente o la alerta. Es una sola tarjeta pase lo que pase encima: bajo un informe haces preguntas de seguimiento, y cuando no se ejecutó ninguna investigación automática (o se detuvo antes de informar) la primera sugerencia es **¿Cuál es la causa raíz?**, que hace que OneUptime AI investigue a petición.

@@ -10,6 +10,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { navigateToCitationTarget } from "../CitationTargetNav";
+import { formatEvidenceLabel } from "../../../Utils/InvestigationEvidenceFormat";
 import ChartWidget from "./ChartWidget";
 import DataTableWidget from "./DataTableWidget";
 import EntityListWidget from "./EntityListWidget";
@@ -81,9 +82,18 @@ const WidgetCard: FunctionComponent<{ widget: AIChatWidget }> = ({
             <div className="truncate text-xs font-semibold text-gray-900">
               {widget.title}
             </div>
+            {/*
+              A tool dates its widget with the window it read, as ISO
+              instants ("2026-09-14T17:49:05.000Z – ..."): they are drawn
+              as the evidence list draws them, in the reader's own time
+              ("Sep 14, 5:49 PM – 6:04 PM"). The whole text is the title.
+            */}
             {widget.description && (
-              <div className="truncate text-[10px] text-gray-400">
-                {widget.description}
+              <div
+                className="truncate text-[10px] text-gray-400"
+                title={widget.description}
+              >
+                {formatEvidenceLabel(widget.description)}
               </div>
             )}
           </div>

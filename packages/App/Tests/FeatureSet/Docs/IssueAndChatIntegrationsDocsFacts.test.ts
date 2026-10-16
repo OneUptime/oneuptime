@@ -440,6 +440,47 @@ describe("GitHub and GitLab: an issue for every incident", () => {
     expect(text).toContain(`On OneUptime Cloud, the ${bold("Growth")} plan.`);
   });
 
+  /*
+   * Installing again on an account that has the app only opens the
+   * installation's settings on GitHub, which send nobody back: the link
+   * under the card signs in to GitHub instead, and the server connects an
+   * installation only for an account that administers it.
+   */
+  it("GitHub: sends an account that already has the app to Connect an existing installation, for an account that administers it", () => {
+    const repositories: string = readRepoFile(
+      "App/FeatureSet/Dashboard/src/Pages/CodeRepository/CodeRepository.tsx",
+    );
+    const github: string = readRepoFile(
+      "Common/Server/Utils/CodeRepository/GitHub/GitHub.ts",
+    );
+    const text: string = englishPage(GITHUB);
+
+    // The link follows the card, inside the same grid.
+    expect(
+      repositories.indexOf(
+        'data-testid="connect-existing-github-installation"',
+      ),
+    ).toBeGreaterThan(
+      repositories.indexOf('data-testid="connect-github-app-card"'),
+    );
+    expect(repositories).toContain('data-testid="connect-github-app-card"');
+    expect(repositories).toContain('"Connect an existing installation"');
+    expect(readRepoFile("Common/Server/API/GitHubAPI.ts")).toContain(
+      '"/github/connect-existing-url"',
+    );
+    // A personal account's owner, or admin on every repository it can access.
+    expect(github).toContain(
+      "return data.installation.accountId === data.userId;",
+    );
+    expect(github).toContain('if (permissions?.["admin"] !== true) {');
+    expect(text).toContain(
+      `click ${bold("Connect an existing installation")}, under the ${bold("Connect with GitHub App")} card, instead of installing it again.`,
+    );
+    expect(text).toContain(
+      "This needs a GitHub account that administers the installation: the owner of a personal account, or someone with admin on every repository the installation can access",
+    );
+  });
+
   it("GitLab: says plainly that OneUptime AI cannot work in a GitLab repository yet", () => {
     const providers: Array<string> = Object.values(
       ConnectProvider,
