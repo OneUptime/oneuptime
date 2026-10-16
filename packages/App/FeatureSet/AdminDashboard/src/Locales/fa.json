@@ -279,12 +279,7 @@
       "title": "پروژه‌ها",
       "cardTitle": "پروژه‌ها",
       "cardDescription": "در ادامه فهرست پروژه‌های OneUptime آمده است.",
-      "noItems": "هیچ پروژه‌ای یافت نشد.",
-      "stepBasic": "پایه",
-      "stepSelectPlan": "انتخاب طرح",
-      "yearlyPlanTitle": "طرح سالانه",
-      "yearlyPlanDescription": "(۲۰٪ صرفه‌جویی)",
-      "freeForeverDescription": "این طرح برای همیشه رایگان است. "
+      "noItems": "هیچ پروژه‌ای یافت نشد."
     },
     "projectView": {
       "title": "پروژه",

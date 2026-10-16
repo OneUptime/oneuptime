@@ -279,12 +279,7 @@
       "title": "Proyectos",
       "cardTitle": "Proyectos",
       "cardDescription": "Aquí hay una lista de proyectos en OneUptime.",
-      "noItems": "No se encontraron proyectos.",
-      "stepBasic": "Básico",
-      "stepSelectPlan": "Seleccionar plan",
-      "yearlyPlanTitle": "Plan anual",
-      "yearlyPlanDescription": "(Ahorre 20%)",
-      "freeForeverDescription": "Este plan es gratis, para siempre. "
+      "noItems": "No se encontraron proyectos."
     },
     "projectView": {
       "title": "Proyecto",

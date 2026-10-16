@@ -279,12 +279,7 @@
       "title": "프로젝트",
       "cardTitle": "프로젝트",
       "cardDescription": "다음은 OneUptime의 프로젝트 목록입니다.",
-      "noItems": "프로젝트를 찾을 수 없습니다.",
-      "stepBasic": "기본",
-      "stepSelectPlan": "플랜 선택",
-      "yearlyPlanTitle": "연간 플랜",
-      "yearlyPlanDescription": "(20% 할인)",
-      "freeForeverDescription": "이 플랜은 영원히 무료입니다. "
+      "noItems": "프로젝트를 찾을 수 없습니다."
     },
     "projectView": {
       "title": "프로젝트",

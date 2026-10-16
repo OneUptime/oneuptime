@@ -279,12 +279,7 @@
       "title": "專案",
       "cardTitle": "專案",
       "cardDescription": "這是 OneUptime 中的專案清單。",
-      "noItems": "找不到專案。",
-      "stepBasic": "基本",
-      "stepSelectPlan": "選擇方案",
-      "yearlyPlanTitle": "年度方案",
-      "yearlyPlanDescription": "(節省 20%)",
-      "freeForeverDescription": "此方案永久免費。 "
+      "noItems": "找不到專案。"
     },
     "projectView": {
       "title": "專案",

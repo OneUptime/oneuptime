@@ -279,12 +279,7 @@
       "title": "プロジェクト",
       "cardTitle": "プロジェクト",
       "cardDescription": "OneUptime内のプロジェクト一覧です。",
-      "noItems": "プロジェクトが見つかりません。",
-      "stepBasic": "基本",
-      "stepSelectPlan": "プランを選択",
-      "yearlyPlanTitle": "年間プラン",
-      "yearlyPlanDescription": "(20%節約)",
-      "freeForeverDescription": "このプランは永久に無料です。 "
+      "noItems": "プロジェクトが見つかりません。"
     },
     "projectView": {
       "title": "プロジェクト",

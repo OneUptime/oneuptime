@@ -279,12 +279,7 @@
       "title": "Проекты",
       "cardTitle": "Проекты",
       "cardDescription": "Вот список проектов в OneUptime.",
-      "noItems": "Проекты не найдены.",
-      "stepBasic": "Основное",
-      "stepSelectPlan": "Выбрать план",
-      "yearlyPlanTitle": "Годовой план",
-      "yearlyPlanDescription": "(Экономия 20%)",
-      "freeForeverDescription": "Этот план бесплатный, навсегда. "
+      "noItems": "Проекты не найдены."
     },
     "projectView": {
       "title": "Проект",

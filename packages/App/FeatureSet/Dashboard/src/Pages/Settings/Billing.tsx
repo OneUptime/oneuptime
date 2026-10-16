@@ -23,6 +23,8 @@ import URL from "Common/Types/API/URL";
 import SubscriptionPlan, {
   PlanType,
 } from "Common/Types/Billing/SubscriptionPlan";
+import { getYearlySaving } from "Common/Types/Billing/SubscriptionPlanPricing";
+import { getYearlySavingText } from "Common/UI/Components/Billing/PlanPicker/PlanPickerCopy";
 import {
   getStopSentences,
   getStoppedByMove,
@@ -671,6 +673,19 @@ const Settings: FunctionComponent<ComponentProps> = (
       return <></>;
     }
 
+    /*
+     * What yearly billing saves, worked out from the plans' prices - the
+     * switch used to promise "(Save 20%)" whatever they were (Growth saves
+     * 9% on OneUptime Cloud, Scale 15%). Nothing is said when no plan is
+     * cheaper yearly.
+     */
+    const yearlySavingText: string | null = getYearlySavingText({
+      saving: getYearlySaving(
+        SubscriptionPlan.getSubscriptionPlans(getAllEnvVars()),
+      ),
+      translator,
+    });
+
     return (
       <>
         {billingMarketplace ? (
@@ -679,7 +694,7 @@ const Settings: FunctionComponent<ComponentProps> = (
           <Toggle
             title="Yearly Plan"
             value={isSubscriptionPlanYearly}
-            description="(Save 20%)"
+            description={yearlySavingText || undefined}
             onChange={(value: boolean) => {
               setIsSubscriptionPlanYearly(value);
             }}

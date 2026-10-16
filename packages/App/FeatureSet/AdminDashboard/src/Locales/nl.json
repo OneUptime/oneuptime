@@ -279,12 +279,7 @@
       "title": "Projecten",
       "cardTitle": "Projecten",
       "cardDescription": "Hier is een lijst met projecten in OneUptime.",
-      "noItems": "Geen projecten gevonden.",
-      "stepBasic": "Basis",
-      "stepSelectPlan": "Abonnement selecteren",
-      "yearlyPlanTitle": "Jaarabonnement",
-      "yearlyPlanDescription": "(Bespaar 20%)",
-      "freeForeverDescription": "Dit abonnement is gratis, voor altijd. "
+      "noItems": "Geen projecten gevonden."
     },
     "projectView": {
       "title": "Project",

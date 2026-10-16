@@ -50,7 +50,7 @@ export const PlanPickerCopy: {
   perUserPerMonth: string;
   billedYearly: string;
   billedMonthly: string;
-  custom: string;
+  customPrice: string;
   comparePlans: string;
   freeForever: string;
   freeUsage: string;
@@ -70,7 +70,11 @@ export const PlanPickerCopy: {
   perUserPerMonth: translationKey("per user / month"),
   billedYearly: translationKey("billed yearly"),
   billedMonthly: translationKey("billed monthly"),
-  custom: translationKey("Custom"),
+  /*
+   * The Billing page's word for it too. Not "Custom" alone: that key is
+   * "user-defined" in most languages ("Benutzerdefiniert").
+   */
+  customPrice: translationKey("Custom Price"),
   comparePlans: translationKey("Compare plans"),
   freeForever: translationKey("Free forever."),
   freeUsage: translationKey(
@@ -137,7 +141,7 @@ export const getPlanAudience: (plan: SubscriptionPlan) => string | null = (
 export interface PlanPickerOptionText {
   name: string;
   audience: string | null;
-  // "$20", "$0" or "Custom".
+  // "$20", "$0" or "Custom Price".
   price: string;
   // "per user / month" for a priced plan; null for a free or custom one.
   priceUnit: string | null;
@@ -179,7 +183,9 @@ export const getPlanPickerOptionText: (data: {
   if (perMonth === null) {
     return {
       ...base,
-      price: translator.translateText(PlanPickerCopy.custom) || "Custom",
+      price:
+        translator.translateText(PlanPickerCopy.customPrice) ||
+        PlanPickerCopy.customPrice,
       priceUnit: null,
       priceCaption: null,
     };
@@ -300,6 +306,7 @@ export const getYearlySavingText: (data: {
     data.saving.isSameForEveryPlan
       ? PlanPickerCopy.savePercent
       : PlanPickerCopy.saveUpToPercent,
-    { percent: data.saving.percent },
+    // Written the reader's way, as a plural's count is.
+    { percent: data.translator.formatNumber(data.saving.percent) },
   );
 };

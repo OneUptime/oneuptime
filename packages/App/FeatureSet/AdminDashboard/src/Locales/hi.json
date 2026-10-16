@@ -279,12 +279,7 @@
       "title": "परियोजनाएँ",
       "cardTitle": "परियोजनाएँ",
       "cardDescription": "OneUptime में परियोजनाओं की सूची यहाँ दी गई है।",
-      "noItems": "कोई परियोजना नहीं मिली।",
-      "stepBasic": "मूल",
-      "stepSelectPlan": "योजना चुनें",
-      "yearlyPlanTitle": "वार्षिक योजना",
-      "yearlyPlanDescription": "(20% बचाएँ)",
-      "freeForeverDescription": "यह योजना हमेशा के लिए मुफ्त है। "
+      "noItems": "कोई परियोजना नहीं मिली।"
     },
     "projectView": {
       "title": "परियोजना",

@@ -279,12 +279,7 @@
       "title": "项目",
       "cardTitle": "项目",
       "cardDescription": "这是 OneUptime 中的项目列表。",
-      "noItems": "未找到项目。",
-      "stepBasic": "基本",
-      "stepSelectPlan": "选择计划",
-      "yearlyPlanTitle": "年度计划",
-      "yearlyPlanDescription": "(节省 20%)",
-      "freeForeverDescription": "此计划永久免费。 "
+      "noItems": "未找到项目。"
     },
     "projectView": {
       "title": "项目",

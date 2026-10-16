@@ -279,12 +279,7 @@
       "title": "Prosjekter",
       "cardTitle": "Prosjekter",
       "cardDescription": "Her er en liste over prosjekter i OneUptime.",
-      "noItems": "Ingen prosjekter funnet.",
-      "stepBasic": "Grunnleggende",
-      "stepSelectPlan": "Velg abonnement",
-      "yearlyPlanTitle": "Årlig abonnement",
-      "yearlyPlanDescription": "(Spar 20%)",
-      "freeForeverDescription": "Dette abonnementet er gratis, for alltid. "
+      "noItems": "Ingen prosjekter funnet."
     },
     "projectView": {
       "title": "Prosjekt",
