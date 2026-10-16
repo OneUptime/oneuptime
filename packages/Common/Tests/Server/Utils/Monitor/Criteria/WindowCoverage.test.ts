@@ -250,6 +250,83 @@ describe("WindowCoverage.judge", () => {
     });
   });
 
+  /*
+   * Readings that all arrive late by design (a Metrics monitor reading
+   * CloudWatch) are judged fresh against the newest data there is, not
+   * against the end of the window: none of them can be any fresher.
+   */
+  describe("fresh as of an earlier time", () => {
+    function judgeFreshAsOf(
+      readingTimesMs: Array<number>,
+      freshAsOfMs: number | undefined,
+    ): WindowCoverageResult {
+      return WindowCoverage.judge({
+        windowStartMs: WINDOW_START,
+        windowEndMs: WINDOW_END,
+        readingTimesMs: readingTimesMs,
+        intervalMs: MINUTE,
+        readingSpanMs: MINUTE,
+        holesBreakCoverage: true,
+        freshAsOfMs: freshAsOfMs,
+      });
+    }
+
+    test("data that stops where all of the data stops is fresh", () => {
+      // Every bucket to the 10th; all of the data reaches the 11th minute.
+      const result: WindowCoverageResult = judgeFreshAsOf(
+        minutes(0, 10),
+        WINDOW_START + 11 * MINUTE,
+      );
+
+      expect(result.isCovered).toBe(true);
+      expect(result.shortfall).toBeNull();
+      // How long ago, by the end of the window, is still said as it is.
+      expect(result.sinceNewestReadingMs).toBe(4 * MINUTE);
+    });
+
+    test("the trailing allowance is one and a half intervals before it", () => {
+      const freshAsOfMs: number = WINDOW_START + 11 * MINUTE;
+
+      expect(
+        judgeFreshAsOf(
+          [...minutes(0, 8), freshAsOfMs - 150 * SECOND],
+          freshAsOfMs,
+        ).isCovered,
+      ).toBe(true);
+      expect(
+        judgeFreshAsOf(
+          [...minutes(0, 8), freshAsOfMs - 151 * SECOND],
+          freshAsOfMs,
+        ).shortfall,
+      ).toBe(WindowCoverageShortfall.Stale);
+    });
+
+    test("a late start and a hole are judged as before", () => {
+      const freshAsOfMs: number = WINDOW_START + 11 * MINUTE;
+
+      expect(judgeFreshAsOf(minutes(5, 10), freshAsOfMs).shortfall).toBe(
+        WindowCoverageShortfall.StartsLate,
+      );
+      expect(
+        judgeFreshAsOf([...minutes(0, 4), ...minutes(7, 10)], freshAsOfMs)
+          .shortfall,
+      ).toBe(WindowCoverageShortfall.Hole);
+    });
+
+    test("never later than the end of the window, and left out or unreadable it is the end", () => {
+      expect(
+        judgeFreshAsOf(minutes(0, 10), WINDOW_END + 30 * MINUTE).shortfall,
+      ).toBe(WindowCoverageShortfall.Stale);
+      expect(judgeFreshAsOf(minutes(0, 10), undefined).shortfall).toBe(
+        WindowCoverageShortfall.Stale,
+      );
+      expect(judgeFreshAsOf(minutes(0, 10), Number.NaN).shortfall).toBe(
+        WindowCoverageShortfall.Stale,
+      );
+      expect(judgeFreshAsOf(minutes(0, 14), WINDOW_END).isCovered).toBe(true);
+    });
+  });
+
   describe("no readings", () => {
     test("is never covered", () => {
       expect(judgeBuckets([])).toEqual({

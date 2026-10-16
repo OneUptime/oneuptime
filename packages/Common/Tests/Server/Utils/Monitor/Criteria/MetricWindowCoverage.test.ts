@@ -705,3 +705,130 @@ describe("MetricWindowCoverage.describeWait", () => {
     expect(MetricWindowCoverage.describeDuration(ms)).toBe(text);
   });
 });
+
+/*
+ * A Metrics monitor reads any metric, and some sources deliver theirs late
+ * by design: CloudWatch's polling receiver stamps each point with its
+ * period's start and reads periods ten minutes old, so its newest point is
+ * 11 to 17 minutes old (MessageQueueAlertTemplates, WINDOWS AND LATE
+ * SOURCES). Such a monitor's series are judged fresh against the monitor's
+ * own newest data point (monitorNewestDataPointMs), not against now.
+ */
+describe("a monitor whose data may all arrive late", () => {
+  // Past 30 Minutes evaluated at 12:30:30: from 12:00:30.
+  const lateWindow: MetricEvaluationWindow = MetricWindowCoverage.getWindow(
+    response({
+      startAndEndDate: RollingTimeUtil.convertToStartAndEndDate(
+        RollingTime.Past30Minutes,
+        new Date(Date.UTC(2026, 9, 16, 12, 30, 30)),
+      ),
+    }),
+  )!;
+
+  function judgeLate(
+    samples: Array<AggregateModel>,
+    monitorNewestMinute: number | null | undefined,
+  ): MetricWindowCoverageResult {
+    return MetricWindowCoverage.judge({
+      window: lateWindow,
+      samples: samples,
+      monitorIntervalMs: MINUTE,
+      monitorNewestDataPointMs:
+        typeof monitorNewestMinute === "number"
+          ? (point(monitorNewestMinute).timestamp as Date).getTime()
+          : monitorNewestMinute,
+    });
+  }
+
+  test("points whose newest is 14 minutes old cover the window as far as the monitor's data reaches", () => {
+    // A point a minute from 12:00 to 12:16 - the monitor's newest.
+    const result: MetricWindowCoverageResult = judgeLate(points(0, 16), 16);
+
+    expect(result.isCovered).toBe(true);
+    expect(result.shortfall).toBeNull();
+
+    // Measured against now, the very same points never cover it.
+    expect(judgeLate(points(0, 16), undefined).shortfall).toBe(
+      WindowCoverageShortfall.Stale,
+    );
+  });
+
+  test("one point behind the monitor's newest is fresh; two are not", () => {
+    expect(judgeLate(points(0, 15), 16).isCovered).toBe(true);
+    expect(judgeLate(points(0, 14), 16).shortfall).toBe(
+      WindowCoverageShortfall.Stale,
+    );
+  });
+
+  test("a series whose data stopped well before the monitor's newest waits, and says how long ago by the clock", () => {
+    const result: MetricWindowCoverageResult = judgeLate(points(0, 12), 16);
+
+    expect(result.shortfall).toBe(WindowCoverageShortfall.Stale);
+    // 12:12's bucket ended at 12:13, seventeen and a half minutes ago.
+    expect(result.sinceNewestReadingMs).toBe(17.5 * MINUTE);
+    expect(MetricWindowCoverage.describeWait(result)).toBe(
+      "Waiting for 30 minutes of data: no new data point for the last 17 minutes.",
+    );
+  });
+
+  test("a new series still waits: the window's start does not move", () => {
+    expect(judgeLate(points(10, 16), 16).shortfall).toBe(
+      WindowCoverageShortfall.StartsLate,
+    );
+  });
+
+  test("a hole still waits", () => {
+    expect(judgeLate([...points(0, 6), ...points(9, 16)], 16).shortfall).toBe(
+      WindowCoverageShortfall.Hole,
+    );
+  });
+
+  test("never fresher than the end of the window", () => {
+    // A newest data point past the window's end moves nothing past it.
+    expect(judgeLate(points(0, 26), 40).shortfall).toBe(
+      WindowCoverageShortfall.Stale,
+    );
+    expect(judgeLate(points(0, 30), 40).isCovered).toBe(true);
+  });
+
+  test("without a newest data point, freshness is measured against the end of the window", () => {
+    expect(judgeLate(points(0, 16), null).shortfall).toBe(
+      WindowCoverageShortfall.Stale,
+    );
+    expect(judgeLate(points(0, 30), null).isCovered).toBe(true);
+  });
+});
+
+describe("MetricWindowCoverage.getNewestDataPointMs", () => {
+  test("the newest data point of any of the monitor's series", () => {
+    expect(
+      MetricWindowCoverage.getNewestDataPointMs([
+        points(0, 12),
+        [point(14), point(3)],
+        [],
+      ]),
+    ).toBe((point(14).timestamp as Date).getTime());
+  });
+
+  test("reads times that arrive as strings and skips unreadable ones", () => {
+    expect(
+      MetricWindowCoverage.getNewestDataPointMs([
+        [
+          { timestamp: "garbage" as unknown as Date, value: 1 },
+          {
+            timestamp: (
+              point(9).timestamp as Date
+            ).toISOString() as unknown as Date,
+            value: 1,
+          },
+          point(4),
+        ],
+      ]),
+    ).toBe((point(9).timestamp as Date).getTime());
+  });
+
+  test("is null without a data point", () => {
+    expect(MetricWindowCoverage.getNewestDataPointMs([])).toBeNull();
+    expect(MetricWindowCoverage.getNewestDataPointMs([[], []])).toBeNull();
+  });
+});

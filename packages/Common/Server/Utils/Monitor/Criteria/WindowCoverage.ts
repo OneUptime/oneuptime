@@ -31,6 +31,14 @@ export interface WindowCoverageInput {
    * first reading or a stale newest one.
    */
   holesBreakCoverage?: boolean | undefined;
+  /*
+   * What the newest reading must be close enough to: the end of the window
+   * when left out. Readings that all arrive late by design (a Metrics
+   * monitor reading CloudWatch) are measured against the newest data there
+   * is instead, since none of them can be any fresher. Never later than the
+   * end of the window.
+   */
+  freshAsOfMs?: number | undefined;
 }
 
 export interface WindowCoverageResult {
@@ -48,7 +56,10 @@ export interface WindowCoverageResult {
   runEndMs: number | null;
   // The hole the run starts after, when one cut it.
   holeBeforeRunMs: number | null;
-  // How long before the end of the window the newest reading's span ended.
+  /*
+   * How long before the end of the window the newest reading's span ended -
+   * by the window's end, whatever the reading was judged fresh against.
+   */
   sinceNewestReadingMs: number | null;
 }
 
@@ -142,11 +153,19 @@ export default class WindowCoverage {
       input.windowEndMs - (newestMs + spanMs),
     );
 
+    const freshAsOfMs: number =
+      typeof input.freshAsOfMs === "number" &&
+      Number.isFinite(input.freshAsOfMs)
+        ? Math.min(input.freshAsOfMs, input.windowEndMs)
+        : input.windowEndMs;
+
+    const staleForMs: number = Math.max(0, freshAsOfMs - (newestMs + spanMs));
+
     const leadingGapMs: number = oldestMs - input.windowStartMs;
 
     let shortfall: WindowCoverageShortfall | null = null;
 
-    if (sinceNewestReadingMs > allowedGapMs) {
+    if (staleForMs > allowedGapMs) {
       shortfall = WindowCoverageShortfall.Stale;
     } else if (holeBeforeRunMs !== null) {
       shortfall = WindowCoverageShortfall.Hole;

@@ -326,14 +326,52 @@ function seriesRows(input: {
  *     start. "slow-new" sits at the end, not a few seconds before it, so
  *     it shares the end's minute whatever second the check runs at: a
  *     row from the previous minute would make it "1 of 15 minutes so far"
- *     in a check run in a minute's first seconds.
+ *     in a check run in a minute's first seconds;
+ *   - "late": series whose data all arrives late, one row a minute from
+ *     the window's start - "late-steady" to five minutes before its end,
+ *     "late-stopped" to nine minutes before it.
  */
-type StoreShape = "steady-and-fresh" | "cut" | "slow-fleet";
+type StoreShape = "steady-and-fresh" | "cut" | "slow-fleet" | "late";
+
+/*
+ * One row a minute, the newest first, from `lagMinutes` before the end of
+ * the window back to its start.
+ */
+function lateRows(input: {
+  name: string;
+  window: { startMs: number; endMs: number };
+  lagMinutes: number;
+}): Array<{ timeMs: number; name: string }> {
+  const rows: Array<{ timeMs: number; name: string }> = [];
+
+  for (
+    let timeMs: number = input.window.endMs - input.lagMinutes * MINUTE;
+    timeMs >= input.window.startMs;
+    timeMs -= MINUTE
+  ) {
+    rows.push({ timeMs, name: input.name });
+  }
+
+  return rows;
+}
 
 function storedRows(input: {
   window: { startMs: number; endMs: number };
   shape: StoreShape;
 }): Array<{ timeMs: number; name: string }> {
+  if (input.shape === "late") {
+    return [
+      ...lateRows({ name: "late-steady", window: input.window, lagMinutes: 5 }),
+      ...lateRows({
+        name: "late-stopped",
+        window: input.window,
+        lagMinutes: 9,
+      }),
+    ].sort((a: { timeMs: number }, b: { timeMs: number }) => {
+      return b.timeMs - a.timeMs;
+    });
+  }
+
   if (input.shape === "slow-fleet") {
     return [
       { timeMs: input.window.endMs, name: "slow-new" },
@@ -670,6 +708,41 @@ describe("every metric-backed monitor type: All Values waits for a series to cov
           "Waiting for 15 minutes of data: no new data point for the last",
         ),
       });
+    },
+  );
+
+  /*
+   * A source whose data all arrives late - CloudWatch's newest point is 11
+   * to 16 minutes old - reaches only part of the way to the end of the
+   * window. A Metrics monitor reads any source, so it judges its series
+   * fresh against its own newest data point: "late-steady" fires, and only
+   * "late-stopped", whose data stopped four minutes before the other's,
+   * waits. The infrastructure monitors read OneUptime's own collectors,
+   * which send what they read as they read it, so there both wait.
+   */
+  test.each(types)(
+    "%s: data that all arrives late - a Metrics monitor judges it as far as it reaches, an infrastructure monitor waits",
+    async (monitorType: MonitorType) => {
+      givenStore("late");
+
+      const response: MetricMonitorResponse = await checkOnce(monitorType);
+      const byName: Record<string, string> = await verdicts(
+        monitorType,
+        response,
+        ["late-steady", "late-stopped"],
+      );
+
+      expect(byName["late-stopped"]).toContain(
+        "Waiting for 15 minutes of data: no new data point for the last 8 minutes.",
+      );
+
+      if (monitorType === MonitorType.Metrics) {
+        expect(byName["late-steady"]).toBe("fires");
+      } else {
+        expect(byName["late-steady"]).toContain(
+          "Waiting for 15 minutes of data: no new data point for the last 4 minutes.",
+        );
+      }
     },
   );
 });

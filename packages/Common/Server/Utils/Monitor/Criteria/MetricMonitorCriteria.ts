@@ -217,24 +217,45 @@ export default class MetricMonitorCriteria {
     );
 
     /*
-     * How often the monitor's series report, read from the query or formula
-     * this criteria compares across all of them: what a series with too few
-     * data points to show its own cadence is judged by (MetricWindowCoverage).
-     * Only "All Values" judges a window's coverage.
+     * The data points this criteria compares - its query's or formula's -
+     * in every series. Only "All Values" judges a window's coverage.
+     */
+    const comparedSamplesOfEverySeries: Array<Array<AggregateModel>> | null =
+      window && MetricMonitorCriteria.isAllValues(input.criteriaFilter)
+        ? MetricMonitorCriteria.getComparedSamplesOfEverySeries({
+            criteriaFilter: input.criteriaFilter,
+            queryConfigs,
+            formulaConfigs,
+            resultsOfEverySeries: hasSeries
+              ? seriesBreakdown!.map((series: MetricSeriesResult) => {
+                  return series.aggregatedResults;
+                })
+              : [metricResponse.metricResult || []],
+          })
+        : null;
+
+    /*
+     * How often the monitor's series report, across all of them: what a
+     * series with too few data points to show its own cadence is judged by
+     * (MetricWindowCoverage).
      */
     const monitorIntervalMs: number | null | undefined =
-      window && MetricMonitorCriteria.isAllValues(input.criteriaFilter)
+      comparedSamplesOfEverySeries
         ? MetricWindowCoverage.getMonitorIntervalMs(
-            MetricMonitorCriteria.getComparedSamplesOfEverySeries({
-              criteriaFilter: input.criteriaFilter,
-              queryConfigs,
-              formulaConfigs,
-              resultsOfEverySeries: hasSeries
-                ? seriesBreakdown!.map((series: MetricSeriesResult) => {
-                    return series.aggregatedResults;
-                  })
-                : [metricResponse.metricResult || []],
-            }),
+            comparedSamplesOfEverySeries,
+          )
+        : undefined;
+
+    /*
+     * As far as the monitor's data reaches, for a monitor whose data may
+     * all arrive late (judgesFreshnessByNewestData): a series is then stale
+     * only when its data stopped well before the others' did.
+     */
+    const monitorNewestDataPointMs: number | null | undefined =
+      comparedSamplesOfEverySeries &&
+      MetricMonitorCriteria.judgesFreshnessByNewestData(input.monitorStep)
+        ? MetricWindowCoverage.getNewestDataPointMs(
+            comparedSamplesOfEverySeries,
           )
         : undefined;
 
@@ -255,6 +276,7 @@ export default class MetricMonitorCriteria {
           nativeUnitsByMetricName,
           window,
           monitorIntervalMs,
+          monitorNewestDataPointMs,
           isInEffect: input.isInEffect,
         });
       return [result];
@@ -273,6 +295,7 @@ export default class MetricMonitorCriteria {
           nativeUnitsByMetricName,
           window,
           monitorIntervalMs,
+          monitorNewestDataPointMs,
           isInEffect: input.isInEffect,
         });
       }),
@@ -359,6 +382,32 @@ export default class MetricMonitorCriteria {
     );
   }
 
+  /*
+   * Whether a series' newest data point must be close to the monitor's
+   * newest data point, rather than to now, to count as fresh.
+   *
+   * A Metrics monitor reads any metric, and some sources deliver theirs
+   * minutes late by design: CloudWatch's polling receiver stamps each point
+   * with its period's start and reads periods 10 minutes old, so its newest
+   * point is 11 to 17 minutes old; Cloud Monitoring's arrives up to 9
+   * minutes late (MessageQueueAlertTemplates, WINDOWS AND LATE SOURCES).
+   * Measured against now, every series of such a monitor would look as if
+   * it had stopped, and "All Values" would never match again. Measured
+   * against the monitor's own newest data, a series that stopped while the
+   * others kept reporting still waits.
+   *
+   * The infrastructure monitors (Kubernetes, Docker, Host and the rest)
+   * read OneUptime's own collectors, which send what they read as they read
+   * it. There a series whose data stopped coming has stopped - even every
+   * series at once, when the agent went away - so they are measured
+   * against now.
+   */
+  private static judgesFreshnessByNewestData(
+    monitorStep: MonitorStep,
+  ): boolean {
+    return Boolean(monitorStep.data?.metricMonitor);
+  }
+
   private static async isCriteriaInEffectFor(data: {
     isInEffect: IsCriteriaInEffect | undefined;
     seriesFingerprint: string | undefined;
@@ -425,6 +474,11 @@ export default class MetricMonitorCriteria {
      * .getMonitorIntervalMs); null when none shows one.
      */
     monitorIntervalMs?: number | null | undefined;
+    /*
+     * The newest data point of any of the monitor's series, when a series'
+     * freshness is measured against it (judgesFreshnessByNewestData).
+     */
+    monitorNewestDataPointMs?: number | null | undefined;
     isInEffect?: IsCriteriaInEffect | undefined;
   }): Promise<MetricSeriesEvaluationResult> {
     const rawThreshold: number | null =
@@ -644,10 +698,11 @@ export default class MetricMonitorCriteria {
      * every data point meeting the condition is not enough - they must
      * cover the window too. Until they do, the series waits: a brand-new
      * series, one that was gone and came back, one with a hole of more than
-     * one missing data point, and one whose data went stale. (A time range
-     * too short to hold two data points of any series shows none of that:
-     * a lone data point inside it is then taken for the window, as
-     * MetricWindowCoverage explains.)
+     * one missing data point, and one whose data went stale (on a Metrics
+     * monitor: stopped while the monitor's other data kept coming - see
+     * judgesFreshnessByNewestData). (A time range too short to hold two data
+     * points of any series shows none of that: a lone data point inside it
+     * is then taken for the window, as MetricWindowCoverage explains.)
      *
      * Only the first match waits. A series the criteria is already in
      * effect for (its alert or incident is open, or the monitor already has
@@ -668,6 +723,7 @@ export default class MetricMonitorCriteria {
         window: input.window,
         samples: samples,
         monitorIntervalMs: input.monitorIntervalMs,
+        monitorNewestDataPointMs: input.monitorNewestDataPointMs,
       });
 
       const shortfall: MetricWindowShortfall | null =

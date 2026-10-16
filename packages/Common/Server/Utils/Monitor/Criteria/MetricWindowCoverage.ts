@@ -61,7 +61,9 @@ const DAY_IN_MS: number = 24 * HOUR_IN_MS;
  * So a brand-new series - a new deployment, host or container - waits until
  * it has data for the whole window, and so does one that was gone and came
  * back, one with a hole of more than one missing point, and one whose
- * newest point is stale.
+ * newest point is stale: too far before the end of the window or - for a
+ * monitor whose data may all arrive late - before the monitor's newest
+ * data point.
  */
 export default class MetricWindowCoverage {
   /*
@@ -132,6 +134,26 @@ export default class MetricWindowCoverage {
     return WindowCoverage.getTypicalGapMs(gapsMs);
   }
 
+  /*
+   * The newest data point of any of a monitor's series: as far as its data
+   * reaches. Null when no series has one.
+   */
+  public static getNewestDataPointMs(
+    seriesSamples: Array<Array<AggregateModel>>,
+  ): number | null {
+    let newestMs: number | null = null;
+
+    for (const samples of seriesSamples) {
+      for (const timeMs of MetricWindowCoverage.getTimesMs(samples)) {
+        if (newestMs === null || timeMs > newestMs) {
+          newestMs = timeMs;
+        }
+      }
+    }
+
+    return newestMs;
+  }
+
   public static judge(input: {
     window: MetricEvaluationWindow;
     samples: Array<AggregateModel>;
@@ -142,6 +164,14 @@ export default class MetricWindowCoverage {
      * alone.
      */
     monitorIntervalMs?: number | null | undefined;
+    /*
+     * The newest data point of any of the monitor's series
+     * (getNewestDataPointMs), for a monitor whose data may all arrive late:
+     * the series' newest data point must then be close enough to it, not
+     * to the end of the window. Left out, it must be close enough to the
+     * end of the window.
+     */
+    monitorNewestDataPointMs?: number | null | undefined;
   }): MetricWindowCoverageResult {
     const dataPointMs: number = MetricWindowCoverage.getDataPointMs(
       input.window,
@@ -190,6 +220,16 @@ export default class MetricWindowCoverage {
       intervalMs: intervalMs,
       readingSpanMs: dataPointMs,
       holesBreakCoverage: true,
+      /*
+       * Where the monitor's data reaches - its newest data point's bucket
+       * end - when its data may all arrive late. Against that, a series
+       * whose data stopped while the others' kept coming is still stale;
+       * one that is merely as late as all of them is not.
+       */
+      freshAsOfMs:
+        typeof input.monitorNewestDataPointMs === "number"
+          ? input.monitorNewestDataPointMs + dataPointMs
+          : undefined,
     });
 
     const result: MetricWindowCoverageResult = {
