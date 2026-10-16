@@ -9,6 +9,7 @@ import {
 import MarketplaceAdapter, {
   MarketplaceActivationError,
   MarketplaceStatus,
+  MarketplaceUsageHour,
   MarketplaceUsageRecord,
   MarketplaceUsageResult,
 } from "../MarketplaceAdapter";
@@ -56,6 +57,8 @@ export class AwsAgreementStatus {
 
 export default class AwsMarketplaceAdapter implements MarketplaceAdapter {
   public readonly marketplace: CloudMarketplace = CloudMarketplace.AWS;
+  // AWS deduplicates metering records per license, dimension and hour.
+  public readonly keepsOneReportPerHour: boolean = true;
   private api: AwsMarketplaceAPI | null;
 
   public constructor(api?: AwsMarketplaceAPI | undefined) {
@@ -168,8 +171,13 @@ export default class AwsMarketplaceAdapter implements MarketplaceAdapter {
   }
 
   /*
-   * One record per report, stamped with the report's period end - which never
-   * changes, so a retry is the identical record and AWS keeps only one.
+   * One record per report, stamped where the report is filed
+   * (MarketplaceUsageHour). AWS bills the first record of a license and
+   * dimension in each hour and refuses any other as a DuplicateRecord, so
+   * each report needs an hour of its own: stamped with its period's end, a
+   * final report would land in the hour of the hourly report before it,
+   * stamped at the top of that hour. The stamp never changes, so a retry is
+   * the identical record, and AWS keeps only one.
    */
   public async reportUsage(
     subscription: MarketplaceSubscription,
@@ -191,7 +199,7 @@ export default class AwsMarketplaceAdapter implements MarketplaceAdapter {
           licenseArn: subscription.externalSubscriptionId!,
           dimension: MARKETPLACE_USAGE_DIMENSION,
           quantity: record.quantity,
-          timestamp: record.periodEnd,
+          timestamp: MarketplaceUsageHour.getFilingTime(record.periodEnd),
         },
       ]);
     } catch (err) {

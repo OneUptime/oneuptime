@@ -26,6 +26,7 @@ import ActiveMonitorLimit from "../Billing/ActiveMonitorLimit";
 import logger from "../Logger";
 import MarketplaceAdapter, {
   MarketplaceStatus,
+  MarketplaceUsageHour,
   MarketplaceUsageResult,
 } from "./MarketplaceAdapter";
 import MarketplaceAdapters from "./MarketplaceAdapters";
@@ -36,7 +37,7 @@ import MarketplaceUsageCalculator, {
 /*
  * Reports what each marketplace-billed project owes to the marketplace that
  * bills it, every hour (Workers: Marketplace:ReportUsage), and once more when
- * a purchase ends.
+ * a purchase ends or its project is deleted.
  *
  * For each purchase in force, the period since the last report - normally
  * the last whole hour - is priced by MarketplaceUsageCalculator, written down
@@ -59,6 +60,11 @@ import MarketplaceUsageCalculator, {
  * claimed for it before the report is written, so no later report bills it
  * again, even after a crash part way through: that loses a report (logged
  * loudly) rather than billing anything twice.
+ *
+ * AWS and Microsoft keep one record per purchase and hour, and refuse any
+ * other in that hour as a duplicate: each report is filed in the hour its
+ * usage ends in (MarketplaceUsageHour), and never in an hour another report
+ * of the purchase is filed in (isHourTaken).
  *
  * A report the marketplace will not take any more (it is a day old - their
  * deadline - or refused for good) is marked Failed and logged loudly: that is
@@ -177,16 +183,174 @@ export default class MarketplaceUsageReporter {
     }
   }
 
+  /*
+   * The project is about to be deleted (ProjectService.onBeforeDelete): bill
+   * what it used since its last hourly report, and the balance top-ups bought
+   * since, while it is still there to be priced - the report reads its plan,
+   * its seats and its monitors. Once it is gone, its purchase is unlinked
+   * (MarketplaceSubscriptionService.unlinkProject), and no report would ever
+   * bill that time.
+   *
+   * The report is written before this returns, and sent after, so the delete
+   * never waits on a marketplace: a report the marketplace does not take now
+   * stays Pending, and the hourly job sends it again - reportAll reads every
+   * purchase with a report waiting, linked to a project or not, and a report
+   * is sent from itself and its purchase alone. Best effort, as
+   * reportFinalUsage is: a delete never fails because of a report.
+   */
+  public static async reportFinalUsageOfProject(
+    projectId: ObjectID,
+  ): Promise<void> {
+    try {
+      const purchase: MarketplaceSubscription | null =
+        await MarketplaceSubscriptionService.findPurchaseForProject(projectId);
+
+      // A purchase that bills the project now, as the hourly job reads it.
+      const isBilling: (purchase: MarketplaceSubscription) => boolean = (
+        purchase: MarketplaceSubscription,
+      ): boolean => {
+        return (
+          purchase.projectId?.toString() === projectId.toString() &&
+          purchase.status === MarketplaceSubscriptionStatus.Active
+        );
+      };
+
+      if (
+        !purchase ||
+        !isBilling(purchase) ||
+        !MarketplaceAdapters.get(purchase.marketplace!).isConfigured()
+      ) {
+        return;
+      }
+
+      const written: { report: MarketplaceUsageReport | null } = {
+        report: null,
+      };
+
+      const isLocked: boolean = await MarketplaceUsageReporter.underLock(
+        purchase,
+        async (
+          current: MarketplaceSubscription,
+          adapter: MarketplaceAdapter,
+        ): Promise<void> => {
+          // Read again under the lock: a webhook may have just ended it.
+          if (!isBilling(current)) {
+            return;
+          }
+
+          written.report = await MarketplaceUsageReporter.writeNextReport(
+            current,
+            adapter,
+            {
+              isFinal: true,
+              chargesOnly: current.isUsageMetered === false,
+            },
+          );
+        },
+      );
+
+      if (!isLocked) {
+        logger.error(
+          `Marketplace usage of project ${projectId.toString()} since its last report was NOT billed: another report of purchase ${purchase.id?.toString()} (${purchase.marketplace}) was running when the project was deleted.`,
+        );
+        return;
+      }
+
+      if (written.report) {
+        // Not awaited: the delete goes on while the marketplace answers.
+        void MarketplaceUsageReporter.sendWaitingReports(purchase);
+      }
+    } catch (err) {
+      logger.error(
+        `Final marketplace usage report failed for project ${projectId.toString()}, which is being deleted.`,
+      );
+      logger.error(err);
+    }
+  }
+
   public static async reportForPurchase(
     purchase: MarketplaceSubscription,
     options?: { isFinal?: boolean | undefined },
   ): Promise<void> {
+    await MarketplaceUsageReporter.underLock(
+      purchase,
+      async (
+        current: MarketplaceSubscription,
+        adapter: MarketplaceAdapter,
+      ): Promise<void> => {
+        await MarketplaceUsageReporter.resendPendingReports(current, adapter);
+
+        if (
+          !current.projectId ||
+          current.status !== MarketplaceSubscriptionStatus.Active
+        ) {
+          return;
+        }
+
+        const report: MarketplaceUsageReport | null =
+          await MarketplaceUsageReporter.writeNextReport(current, adapter, {
+            isFinal: Boolean(options?.isFinal),
+            /*
+             * A deal whose fee the marketplace already charges in full (a
+             * flat private offer) meters no usage - but a balance top-up is
+             * bought on top of it, and is still billed.
+             */
+            chargesOnly: current.isUsageMetered === false,
+          });
+
+        if (report) {
+          await MarketplaceUsageReporter.send(current, report, adapter);
+        }
+      },
+    );
+  }
+
+  /*
+   * Sends the purchase's reports still waiting, as the hourly job would -
+   * the final report of a project being deleted, after the delete has moved
+   * on. What the marketplace does not take now, the hourly job sends again.
+   */
+  private static async sendWaitingReports(
+    purchase: MarketplaceSubscription,
+  ): Promise<void> {
+    try {
+      await MarketplaceUsageReporter.underLock(
+        purchase,
+        async (
+          current: MarketplaceSubscription,
+          adapter: MarketplaceAdapter,
+        ): Promise<void> => {
+          await MarketplaceUsageReporter.resendPendingReports(current, adapter);
+        },
+      );
+    } catch (err) {
+      logger.error(
+        `Marketplace usage reports of purchase ${purchase.id?.toString()} (${purchase.marketplace}) could not be sent now; the hourly job sends them again.`,
+      );
+      logger.error(err);
+    }
+  }
+
+  /*
+   * Runs `work` on the purchase as it stands now - read again under the
+   * purchase's report lock, as the period moves with every report - and its
+   * marketplace's adapter. Returns false without running it when this server
+   * is not set up for the marketplace, or another report of the purchase
+   * holds the lock.
+   */
+  private static async underLock(
+    purchase: MarketplaceSubscription,
+    work: (
+      current: MarketplaceSubscription,
+      adapter: MarketplaceAdapter,
+    ) => Promise<void>,
+  ): Promise<boolean> {
     const adapter: MarketplaceAdapter = MarketplaceAdapters.get(
       purchase.marketplace!,
     );
 
     if (!adapter.isConfigured()) {
-      return;
+      return false;
     }
 
     let mutex: SemaphoreMutex | null = null;
@@ -199,45 +363,22 @@ export default class MarketplaceUsageReporter {
         acquireTimeout: 30_000,
       });
     } catch {
-      // Another report for this purchase is running; it will cover this one.
+      // Another report for this purchase is running.
       logger.debug(
         `Marketplace usage report for ${purchase.id?.toString()} is already running.`,
       );
-      return;
+      return false;
     }
 
     try {
-      // Read again under the lock: the period moves with every report.
       const current: MarketplaceSubscription | null =
         await MarketplaceSubscriptionService.findPurchaseById(purchase.id!);
 
-      if (!current) {
-        return;
+      if (current) {
+        await work(current, adapter);
       }
 
-      await MarketplaceUsageReporter.resendPendingReports(current, adapter);
-
-      if (
-        !current.projectId ||
-        current.status !== MarketplaceSubscriptionStatus.Active
-      ) {
-        return;
-      }
-
-      const report: MarketplaceUsageReport | null =
-        await MarketplaceUsageReporter.writeNextReport(current, {
-          isFinal: Boolean(options?.isFinal),
-          /*
-           * A deal whose fee the marketplace already charges in full (a flat
-           * private offer) meters no usage - but a balance top-up is bought on
-           * top of it, and is still billed.
-           */
-          chargesOnly: current.isUsageMetered === false,
-        });
-
-      if (report) {
-        await MarketplaceUsageReporter.send(current, report, adapter);
-      }
+      return true;
     } finally {
       if (mutex) {
         try {
@@ -264,6 +405,7 @@ export default class MarketplaceUsageReporter {
    */
   private static async writeNextReport(
     purchase: MarketplaceSubscription,
+    adapter: MarketplaceAdapter,
     options: { isFinal: boolean; chargesOnly: boolean },
   ): Promise<MarketplaceUsageReport | null> {
     const now: Date = OneUptimeDate.getCurrentDate();
@@ -274,6 +416,38 @@ export default class MarketplaceUsageReporter {
       : MarketplaceUsageReporter.getStartOfHour(now);
 
     if (periodEnd.getTime() <= periodStart.getTime()) {
+      return null;
+    }
+
+    /*
+     * The hour this report would be filed in already holds one of the
+     * purchase's reports - a final one, which ended part way through it, and
+     * after which the purchase went on being billed: a project delete that
+     * failed, or the purchase linked to another project within the hour. AWS
+     * and Microsoft would refuse a second as a duplicate, unbilled, so nothing
+     * is claimed: an hourly report waits for the hour after, and bills the
+     * whole time since then. A final report cannot wait, and says so loudly;
+     * its time and top-ups stay for a later report, if the purchase is billed
+     * again.
+     */
+    if (
+      adapter.keepsOneReportPerHour &&
+      (await MarketplaceUsageReporter.isHourTaken(
+        purchase,
+        periodStart,
+        periodEnd,
+      ))
+    ) {
+      if (options.isFinal) {
+        logger.error(
+          `Marketplace usage of purchase ${purchase.id?.toString()} (${purchase.marketplace}, project ${purchase.projectId?.toString()}) for ${OneUptimeDate.toString(periodStart)} - ${OneUptimeDate.toString(periodEnd)} was NOT billed: another report of the purchase is filed in the same hour, and ${purchase.marketplace} keeps one report per hour.`,
+        );
+      } else {
+        logger.debug(
+          `Marketplace usage of purchase ${purchase.id?.toString()} waits for the next hour: another report of the purchase is filed in this one.`,
+        );
+      }
+
       return null;
     }
 
@@ -458,6 +632,39 @@ export default class MarketplaceUsageReporter {
       );
       throw err;
     }
+  }
+
+  /*
+   * Whether one of the purchase's reports is already filed in the hour a
+   * report for this period would be (MarketplaceUsageHour). Only a report
+   * that ended part way through that hour can be, so the reports are read
+   * only when the period starts part way through it: the first report after
+   * the purchase was linked, or after a final one.
+   */
+  private static async isHourTaken(
+    purchase: MarketplaceSubscription,
+    periodStart: Date,
+    periodEnd: Date,
+  ): Promise<boolean> {
+    const hour: Date = MarketplaceUsageHour.getHour(periodEnd);
+
+    if (periodStart.getTime() <= hour.getTime()) {
+      return false;
+    }
+
+    const last: MarketplaceUsageReport | null =
+      await MarketplaceUsageReportService.findOneBy({
+        query: { marketplaceSubscriptionId: purchase.id! },
+        select: { _id: true, periodEnd: true },
+        sort: { periodEnd: SortOrder.Descending },
+        props: { isRoot: true },
+      });
+
+    return Boolean(
+      last?.periodEnd &&
+        MarketplaceUsageHour.getHour(last.periodEnd).getTime() ===
+          hour.getTime(),
+    );
   }
 
   /*

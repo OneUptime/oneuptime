@@ -44,6 +44,26 @@ export class MarketplaceActivationError extends Error {
   }
 }
 
+/*
+ * Where a report is filed in time: a minute before its period ends, so in the
+ * hour its usage ends in - an hourly report, which ends on the hour, in the
+ * hour it covers; a final one, which ends part way through an hour, in that
+ * hour. It is read off the report's own period, so a report sent again is
+ * filed exactly where it was the first time.
+ */
+export class MarketplaceUsageHour {
+  public static getFilingTime(periodEnd: Date): Date {
+    return new Date(periodEnd.getTime() - 60 * 1000);
+  }
+
+  // The start (UTC) of the hour a report ending at periodEnd is filed in.
+  public static getHour(periodEnd: Date): Date {
+    const hour: Date = MarketplaceUsageHour.getFilingTime(periodEnd);
+    hour.setUTCMinutes(0, 0, 0);
+    return hour;
+  }
+}
+
 // One report of usage, as written down before it is sent.
 export interface MarketplaceUsageRecord {
   // The MarketplaceUsageReport's own ID. Google Cloud uses it as the operation ID.
@@ -75,6 +95,16 @@ export interface MarketplaceUsageResult {
 
 export default interface MarketplaceAdapter {
   readonly marketplace: CloudMarketplace;
+
+  /*
+   * Whether the marketplace keeps one usage record per purchase and hour -
+   * the first it is sent - and refuses any other in that hour as a
+   * duplicate, unbilled (AWS, Microsoft). Reports are filed by
+   * MarketplaceUsageHour, and the reporter never files two of a purchase's
+   * reports in one hour of such a marketplace. Google Cloud counts each
+   * report by its own ID, whatever its hour.
+   */
+  readonly keepsOneReportPerHour: boolean;
 
   // Whether this server has every setting the marketplace needs.
   isConfigured(): boolean;
