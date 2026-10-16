@@ -118,14 +118,20 @@ const CALLBACKS: Array<Callback> = [
     file: "GitHubAPI.ts",
     path: "/github/auth/callback",
     provider: "ConnectProvider.GitHub",
-    flows: ["WorkspaceOAuthFlow.GitHubAppInstall"],
+    flows: [
+      "WorkspaceOAuthFlow.GitHubAppInstall",
+      "WorkspaceOAuthFlow.GitHubAppConnectExisting",
+      "WorkspaceOAuthFlow.GitHubAppChooseInstallation",
+    ],
     asksAgain: "GitHubConnectAccess.assertMayFinish(",
     refusedAs: "ConnectCallbackError.NoPermission",
     writes: [
       "GitHubUtil.assertUserControlsInstallation(",
-      "ProjectService.updateOneById(",
-      "CodeRepositoryService.importReposFromInstallation(",
+      "GitHubUtil.listInstallationsUserAdministers(",
+      "GitHubAPI.connectInstallation(",
+      "GitHubAPI.offerInstallationChoice(",
     ],
+    helpers: ["connectInstallation", "offerInstallationChoice"],
   },
   {
     file: "SlackAPI.ts",
@@ -225,6 +231,12 @@ const STARTS: Array<Start> = [
     file: "GitHubAPI.ts",
     path: "/github/install-url",
     flow: "WorkspaceOAuthFlow.GitHubAppInstall",
+    asks: "GitHubConnectAccess.assertMayStart(",
+  },
+  {
+    file: "GitHubAPI.ts",
+    path: "/github/connect-existing-url",
+    flow: "WorkspaceOAuthFlow.GitHubAppConnectExisting",
     asks: "GitHubConnectAccess.assertMayStart(",
   },
   {
