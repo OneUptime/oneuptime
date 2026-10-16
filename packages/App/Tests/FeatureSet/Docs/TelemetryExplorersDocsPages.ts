@@ -161,6 +161,23 @@ export const TELEMETRY_READ_ROLES: ReadonlyArray<string> = [
   "Telemetry Viewer",
 ];
 
+/*
+ * The rule types of Metrics → Settings → Pipeline Rules, in the order the
+ * Metrics Explorer page's table lists them: the titles of the create form's
+ * rule type cards. TelemetryExplorersDocsFacts holds them to the page's
+ * source; every translation names them as its Dashboard draws them.
+ */
+export const METRIC_PIPELINE_RULE_TYPES: ReadonlyArray<string> = [
+  "Filter (allowlist)",
+  "Drop",
+  "Rename Metric",
+  "Rename Attribute",
+  "Add Attribute",
+  "Remove Attribute",
+  "Redact Attribute",
+  "Sample",
+];
+
 // The read permission each explorer page names, by page.
 export const SIGNAL_READ_PERMISSION_TITLES: Readonly<Record<string, string>> =
   {

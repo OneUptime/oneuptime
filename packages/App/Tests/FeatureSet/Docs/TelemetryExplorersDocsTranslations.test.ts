@@ -10,6 +10,7 @@ import {
   KEPT_AS_WRITTEN,
   LOGS_EXPLORER,
   METRICS_EXPLORER,
+  METRIC_PIPELINE_RULE_TYPES,
   PRODUCT_NAMES,
   PROSE,
   SERVICES,
@@ -408,6 +409,25 @@ function untranslatedLines(language: string, page: string): Array<string> {
   return found;
 }
 
+/*
+ * The first cell of every body row of the Metrics Explorer page's table of
+ * pipeline rule types: the table the English page lists the types in, and
+ * the table in the same place in a translation.
+ */
+function ruleTypeCells(language: string): Array<string> {
+  const index: number = tables(englishPage(METRICS_EXPLORER)).findIndex(
+    (table: Array<Array<string>>): boolean => {
+      return table[1]?.[0] === METRIC_PIPELINE_RULE_TYPES[0];
+    },
+  );
+  const table: Array<Array<string>> =
+    tables(readPage(language, METRICS_EXPLORER))[index] || [];
+
+  return table.slice(1).map((row: Array<string>): string => {
+    return row[0] || "";
+  });
+}
+
 function navGroup(title: string): NavGroup {
   return DocsNav.find((group: NavGroup): boolean => {
     return group.title === title;
@@ -648,6 +668,10 @@ describe("the English pages", () => {
       expect(tabLabels(englishPage(entry.page))).toEqual([]);
     },
   );
+
+  it("the Metrics Explorer lists the pipeline rule types in one table, in order", () => {
+    expect(ruleTypeCells("en")).toEqual([...METRIC_PIPELINE_RULE_TYPES]);
+  });
 });
 
 describe.each(LANGUAGES)("%s", (language: string) => {
@@ -905,6 +929,16 @@ describe.each(LANGUAGES)("%s", (language: string) => {
 
         expect(missing).toEqual([]);
       });
+
+      if (entry.page === METRICS_EXPLORER) {
+        it("names each pipeline rule type as this language's Dashboard draws it", () => {
+          expect(ruleTypeCells(language)).toEqual(
+            METRIC_PIPELINE_RULE_TYPES.map((type: string): string => {
+              return drawnActionLabel(language, type);
+            }),
+          );
+        });
+      }
 
       if (language === "fa") {
         it("joins its menu paths with ' > ', leaving no '→' in its prose", () => {
