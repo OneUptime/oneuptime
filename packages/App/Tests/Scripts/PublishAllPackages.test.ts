@@ -8,6 +8,24 @@ const SOURCE: string = fs.readFileSync(
   "utf8",
 );
 
+// sed run as a command, as in `sed -i ...` or `... && sed -i ...`.
+const SED_COMMAND: RegExp = /(?:^|[\s;&|(])sed\s/;
+
+// npm's ignore-scripts, as a flag, a config key or an environment variable.
+const IGNORE_SCRIPTS: RegExp = /ignore[-_]scripts/i;
+
+/*
+ * A command that rewrites a package's Common dependency, as the two `sed -i`
+ * lines #4872 removed did: they swapped the CLI's link to ../Common for
+ * npm:@oneuptime/common@<version>. Other sed edits stay allowed.
+ */
+function rewritesCommonLink(line: string): boolean {
+  return (
+    line.includes("npm:@oneuptime/common") ||
+    (SED_COMMAND.test(line) && line.includes("Common"))
+  );
+}
+
 describe("PublishAllPackages", () => {
   it("publishes the React Native recorder after Common is available", () => {
     const waitEnd: number = SOURCE.indexOf(
@@ -105,6 +123,130 @@ describe("PublishAllPackages", () => {
     expect(commonInstall).toBeGreaterThan(-1);
     expect(mobilePublish).toBeGreaterThan(commonInstall);
     expect(cliPublish).toBeGreaterThan(commonInstall);
+  });
+
+  /*
+   * #4872: the CLI was published depending on @oneuptime/common, which
+   * cannot answer its require("Common/...") calls (TypeScript at those
+   * paths, ES modules under build/dist), so every published CLI died at
+   * start. A package published here carries what it runs: the CLI bundles
+   * Common when npm packs it.
+   */
+  it("publishes no package that needs Common when it runs", () => {
+    const publishCall: RegExp = /^publish_to_npm "([^"\n]+)"$/gm;
+    const published: Array<string> = [...SOURCE.matchAll(publishCall)].map(
+      (match: RegExpMatchArray): string => {
+        return match[1] as string;
+      },
+    );
+
+    expect(published).toEqual([
+      "packages/Common",
+      "packages/App/FeatureSet/MobileRecorder",
+      "packages/CLI",
+    ]);
+
+    for (const directory of published.slice(1)) {
+      const manifest: Record<string, Record<string, string> | undefined> =
+        JSON.parse(
+          fs.readFileSync(
+            path.join(REPO_ROOT, directory, "package.json"),
+            "utf8",
+          ),
+        ) as Record<string, Record<string, string> | undefined>;
+
+      for (const field of [
+        "dependencies",
+        "peerDependencies",
+        "optionalDependencies",
+      ]) {
+        const declared: Record<string, string> = manifest[field] || {};
+
+        expect({ directory, field, Common: declared["Common"] }).toEqual({
+          directory,
+          field,
+          Common: undefined,
+        });
+        expect(Object.keys(declared)).not.toContain("@oneuptime/common");
+      }
+    }
+  });
+
+  /*
+   * The CLI's lockfile links ../Common, and its bundle is built from that
+   * link: this checkout's Common with its locked dependencies, the code CI
+   * tested. Rewriting the link to npm:@oneuptime/common made npm swap in a
+   * registry copy with freshly resolved dependencies.
+   */
+  it("leaves each package's Common link as its lockfile pins it", () => {
+    const commands: Array<string> = SOURCE.split("\n").filter(
+      (line: string): boolean => {
+        return !line.trim().startsWith("#");
+      },
+    );
+
+    expect(commands.filter(rewritesCommonLink)).toEqual([]);
+  });
+
+  it("knows the rewrite this script used to make, and lets other edits be", () => {
+    // The two lines #4872 removed, as they were.
+    expect(
+      rewritesCommonLink(
+        'sed -i "s/\\"Common\\": \\"file:..\\/Common\\"/\\"Common\\": \\"npm:@oneuptime\\/common@$package_version\\"/g" package.json',
+      ),
+    ).toBe(true);
+    expect(
+      rewritesCommonLink(
+        'sed -i "s/\\"Common\\": \\"npm:@oneuptime\\/common@latest\\"/\\"Common\\": \\"npm:@oneuptime\\/common@$package_version\\"/g" package.json',
+      ),
+    ).toBe(true);
+    // Either half alone is enough.
+    expect(
+      rewritesCommonLink(
+        "npm pkg set dependencies.Common=npm:@oneuptime/common@1.0.0",
+      ),
+    ).toBe(true);
+    expect(rewritesCommonLink("sed -i 's/Common/x/' package.json")).toBe(true);
+    // The release may still use sed for anything else.
+    expect(rewritesCommonLink('sed -i "s/beta/stable/" CHANGELOG.md')).toBe(
+      false,
+    );
+    expect(rewritesCommonLink('publish_to_npm "packages/Common"')).toBe(false);
+  });
+
+  /*
+   * The CLI's prepack script builds the bundle npm publishes, and
+   * --ignore-scripts would skip it: the package would ship without the file
+   * its bin points at.
+   */
+  it("lets npm run the pack scripts that build what each package publishes", () => {
+    const publishLines: Array<string> = SOURCE.split("\n").filter(
+      (line: string): boolean => {
+        return line.trim().startsWith("npm publish");
+      },
+    );
+
+    expect(publishLines).toEqual(["        npm publish --access public"]);
+    // Neither the flag nor npm config (ignore-scripts, npm_config_ignore_scripts), on any command line.
+    expect(
+      SOURCE.split("\n").filter((line: string): boolean => {
+        return !line.trim().startsWith("#") && IGNORE_SCRIPTS.test(line);
+      }),
+    ).toEqual([]);
+
+    const cli: {
+      scripts: Record<string, string>;
+      bin: Record<string, string>;
+    } = JSON.parse(
+      fs.readFileSync(
+        path.join(REPO_ROOT, "packages/CLI/package.json"),
+        "utf8",
+      ),
+    ) as { scripts: Record<string, string>; bin: Record<string, string> };
+
+    expect(cli.scripts["prepack"]).toBe("npm run build");
+    expect(cli.scripts["build"]).toBe("node esbuild.config.js");
+    expect(cli.bin["oneuptime"]).toBe("build/dist/Index.js");
   });
 
   it("isolates each nested package publish so the next path starts at the repo root", () => {
