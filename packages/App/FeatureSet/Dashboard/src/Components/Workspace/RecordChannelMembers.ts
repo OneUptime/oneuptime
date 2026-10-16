@@ -102,9 +102,7 @@ export const RECORD_CHANNEL_TEXT: {
     "If it's still there, someone in it can add the app back by typing /invite @OneUptime.",
   ),
   notConnected: translationKey("Slack isn't connected to this project."),
-  unavailable: translationKey(
-    "Slack didn't answer. Try again in a minute.",
-  ),
+  unavailable: translationKey("Slack didn't answer. Try again in a minute."),
   teamsTeam: translationKey("Everyone in {{team}} can open the channel."),
   teamsTeamUnknown: translationKey(
     "Everyone in the team can open the channel.",

@@ -436,7 +436,10 @@ export default class ChannelMembersWorld {
   public invites(): Array<{ channel: string; users: string }> {
     return this.slackRequestsOf("conversations.invite").map(
       (body: JSONObject) => {
-        return { channel: String(body["channel"]), users: String(body["users"]) };
+        return {
+          channel: String(body["channel"]),
+          users: String(body["users"]),
+        };
       },
     );
   }
@@ -664,8 +667,8 @@ export default class ChannelMembersWorld {
     const record: T = data.make();
 
     if (data.select["postUpdatesToWorkspaceChannels"]) {
-      (record as unknown as JSONObject)["postUpdatesToWorkspaceChannels"] =
-        this.recordChannels[data.recordType] as never;
+      (record as unknown as JSONObject)["postUpdatesToWorkspaceChannels"] = this
+        .recordChannels[data.recordType] as never;
     }
 
     return record;
@@ -739,45 +742,39 @@ export default class ChannelMembersWorld {
       }) as never);
 
     // Valkey.
-    jest
-      .spyOn(GlobalCache, "getString")
-      .mockImplementation((async (
-        namespace: string,
-        key: string,
-      ): Promise<string | null> => {
-        if (this.cacheDown) {
-          throw new Error("Cache is not connected");
-        }
+    jest.spyOn(GlobalCache, "getString").mockImplementation((async (
+      namespace: string,
+      key: string,
+    ): Promise<string | null> => {
+      if (this.cacheDown) {
+        throw new Error("Cache is not connected");
+      }
 
+      return this.cache.get(`${namespace}-${key}`) || null;
+    }) as never);
+    jest.spyOn(GlobalCache, "getStrings").mockImplementation((async (
+      namespace: string,
+      keys: Array<string>,
+    ): Promise<Array<string | null>> => {
+      if (this.cacheDown) {
+        throw new Error("Cache is not connected");
+      }
+
+      return keys.map((key: string) => {
         return this.cache.get(`${namespace}-${key}`) || null;
-      }) as never);
-    jest
-      .spyOn(GlobalCache, "getStrings")
-      .mockImplementation((async (
-        namespace: string,
-        keys: Array<string>,
-      ): Promise<Array<string | null>> => {
-        if (this.cacheDown) {
-          throw new Error("Cache is not connected");
-        }
+      });
+    }) as never);
+    jest.spyOn(GlobalCache, "setString").mockImplementation((async (
+      namespace: string,
+      key: string,
+      value: string,
+    ): Promise<void> => {
+      if (this.cacheDown) {
+        throw new Error("Cache is not connected");
+      }
 
-        return keys.map((key: string) => {
-          return this.cache.get(`${namespace}-${key}`) || null;
-        });
-      }) as never);
-    jest
-      .spyOn(GlobalCache, "setString")
-      .mockImplementation((async (
-        namespace: string,
-        key: string,
-        value: string,
-      ): Promise<void> => {
-        if (this.cacheDown) {
-          throw new Error("Cache is not connected");
-        }
-
-        this.cache.set(`${namespace}-${key}`, value);
-      }) as never);
+      this.cache.set(`${namespace}-${key}`, value);
+    }) as never);
 
     // The records: read with the caller's props, or as OneUptime.
     const kinds: Array<{
@@ -951,43 +948,39 @@ export default class ChannelMembersWorld {
       }) as never);
 
     // The users: by id, or by email.
-    jest
-      .spyOn(UserService, "findBy")
-      .mockImplementation((async (data: {
-        query: { _id?: unknown; email?: unknown };
-      }): Promise<Array<User>> => {
-        if (data.query._id !== undefined) {
-          return valuesOf(data.query._id)
-            .map((userId: string) => {
-              return this.userOf(userId);
-            })
-            .filter((user: User | null): user is User => {
-              return Boolean(user);
-            });
-        }
-
-        const emails: Array<string> = valuesOf(data.query.email).map(
-          (email: string) => {
-            return email.toLowerCase();
-          },
-        );
-
-        return Object.entries(PEOPLE)
-          .filter(([, person]: [string, Person]) => {
-            return emails.includes(person.email.toLowerCase());
+    jest.spyOn(UserService, "findBy").mockImplementation((async (data: {
+      query: { _id?: unknown; email?: unknown };
+    }): Promise<Array<User>> => {
+      if (data.query._id !== undefined) {
+        return valuesOf(data.query._id)
+          .map((userId: string) => {
+            return this.userOf(userId);
           })
-          .map(([userId]: [string, Person]) => {
-            return this.userOf(userId)!;
+          .filter((user: User | null): user is User => {
+            return Boolean(user);
           });
-      }) as never);
+      }
 
-    jest
-      .spyOn(UserService, "findOneById")
-      .mockImplementation((async (data: {
-        id: ObjectID;
-      }): Promise<User | null> => {
-        return this.userOf(data.id.toString());
-      }) as never);
+      const emails: Array<string> = valuesOf(data.query.email).map(
+        (email: string) => {
+          return email.toLowerCase();
+        },
+      );
+
+      return Object.entries(PEOPLE)
+        .filter(([, person]: [string, Person]) => {
+          return emails.includes(person.email.toLowerCase());
+        })
+        .map(([userId]: [string, Person]) => {
+          return this.userOf(userId)!;
+        });
+    }) as never);
+
+    jest.spyOn(UserService, "findOneById").mockImplementation((async (data: {
+      id: ObjectID;
+    }): Promise<User | null> => {
+      return this.userOf(data.id.toString());
+    }) as never);
 
     jest
       .spyOn(UserService, "getUserMarkdownString")
@@ -1018,48 +1011,44 @@ export default class ChannelMembersWorld {
       );
 
     // The project's teams, and who is in them.
-    jest
-      .spyOn(TeamService, "findBy")
-      .mockImplementation((async (data: {
-        query: { _id: unknown; projectId: ObjectID };
-      }): Promise<Array<Team>> => {
-        return valuesOf(data.query._id)
-          .filter((teamId: string) => {
-            return (
-              teamId === PLATFORM_TEAM_ID.toString() &&
-              data.query.projectId.toString() === PROJECT_ID.toString()
-            );
-          })
-          .map((teamId: string) => {
-            const team: Team = new Team();
-            team.id = new ObjectID(teamId);
-            team._id = teamId;
-            return team;
-          });
-      }) as never);
-
-    jest
-      .spyOn(TeamMemberService, "getUsersInTeams")
-      .mockImplementation((async (
-        teamIds: Array<ObjectID>,
-        options?: { acceptedOnly?: boolean },
-      ): Promise<Array<User>> => {
-        const isPlatform: boolean = teamIds.some((teamId: ObjectID) => {
-          return teamId.toString() === PLATFORM_TEAM_ID.toString();
+    jest.spyOn(TeamService, "findBy").mockImplementation((async (data: {
+      query: { _id: unknown; projectId: ObjectID };
+    }): Promise<Array<Team>> => {
+      return valuesOf(data.query._id)
+        .filter((teamId: string) => {
+          return (
+            teamId === PLATFORM_TEAM_ID.toString() &&
+            data.query.projectId.toString() === PROJECT_ID.toString()
+          );
+        })
+        .map((teamId: string) => {
+          const team: Team = new Team();
+          team.id = new ObjectID(teamId);
+          team._id = teamId;
+          return team;
         });
+    }) as never);
 
-        if (!isPlatform) {
-          return [];
-        }
+    jest.spyOn(TeamMemberService, "getUsersInTeams").mockImplementation((async (
+      teamIds: Array<ObjectID>,
+      options?: { acceptedOnly?: boolean },
+    ): Promise<Array<User>> => {
+      const isPlatform: boolean = teamIds.some((teamId: ObjectID) => {
+        return teamId.toString() === PLATFORM_TEAM_ID.toString();
+      });
 
-        return this.platformTeam
-          .filter((member: { userId: ObjectID; accepted: boolean }) => {
-            return member.accepted || !options?.acceptedOnly;
-          })
-          .map((member: { userId: ObjectID; accepted: boolean }) => {
-            return this.userOf(member.userId.toString())!;
-          });
-      }) as never);
+      if (!isPlatform) {
+        return [];
+      }
+
+      return this.platformTeam
+        .filter((member: { userId: ObjectID; accepted: boolean }) => {
+          return member.accepted || !options?.acceptedOnly;
+        })
+        .map((member: { userId: ObjectID; accepted: boolean }) => {
+          return this.userOf(member.userId.toString())!;
+        });
+    }) as never);
 
     // The Notification Logs rows the real logInviteUser writes.
     jest

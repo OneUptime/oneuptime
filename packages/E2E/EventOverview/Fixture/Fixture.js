@@ -4661,7 +4661,9 @@ function addToChannel(body) {
       return { userId, name, outcome: "already-in" };
     }
 
-    inChannel.push(channelPerson(`U0${name.split(" ")[0].toUpperCase()}`, name, member));
+    inChannel.push(
+      channelPerson(`U0${name.split(" ")[0].toUpperCase()}`, name, member),
+    );
     return { userId, name, outcome: "added" };
   });
 

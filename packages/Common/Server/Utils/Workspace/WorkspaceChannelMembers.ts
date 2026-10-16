@@ -652,9 +652,8 @@ export default class WorkspaceChannelMembers {
       };
     }
 
-    const users: Map<string, User> = await WorkspaceChannelMembers.getUsers(
-      people,
-    );
+    const users: Map<string, User> =
+      await WorkspaceChannelMembers.getUsers(people);
     const projectMemberIds: Set<string> =
       await ProjectMembership.getMemberUserIds({
         projectId: projectId,
@@ -1125,7 +1124,11 @@ export default class WorkspaceChannelMembers {
         return { outcome: WorkspaceChannelAddOutcome.AlreadyIn, joined: false };
       }
 
-      if (code === "not_in_channel" && !data.channel.isPrivate && data.mayJoin) {
+      if (
+        code === "not_in_channel" &&
+        !data.channel.isPrivate &&
+        data.mayJoin
+      ) {
         try {
           await SlackChannelMembers.join({
             authToken: data.authToken,
@@ -1485,7 +1488,8 @@ export default class WorkspaceChannelMembers {
     const memberIds: Array<string> = data.memberIds.filter(
       (memberId: string) => {
         return (
-          memberId !== data.connection.botUserId && memberId !== SLACKBOT_USER_ID
+          memberId !== data.connection.botUserId &&
+          memberId !== SLACKBOT_USER_ID
         );
       },
     );
@@ -1561,10 +1565,7 @@ export default class WorkspaceChannelMembers {
       count++;
 
       const name: string =
-        user?.name?.toString() ||
-        person?.name ||
-        user?.email?.toString() ||
-        "";
+        user?.name?.toString() || person?.name || user?.email?.toString() || "";
 
       if (!name) {
         // Past the budget of names: counted, not listed.

@@ -128,18 +128,16 @@ beforeEach(() => {
   const originalFocus: (options?: FocusOptions) => void =
     HTMLElement.prototype.focus;
 
-  jest
-    .spyOn(HTMLElement.prototype, "focus")
-    .mockImplementation(function (
-      this: HTMLElement,
-      options?: FocusOptions,
-    ): void {
-      focusCalls.push({
-        testId: this.getAttribute("data-testid"),
-        options: options,
-      });
-      originalFocus.call(this, options);
+  jest.spyOn(HTMLElement.prototype, "focus").mockImplementation(function (
+    this: HTMLElement,
+    options?: FocusOptions,
+  ): void {
+    focusCalls.push({
+      testId: this.getAttribute("data-testid"),
+      options: options,
     });
+    originalFocus.call(this, options);
+  });
 
   // jsdom has no scrollIntoView: record when the list asks for one.
   (

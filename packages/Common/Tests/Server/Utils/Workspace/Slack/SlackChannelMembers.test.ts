@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import HTTPErrorResponse from "../../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../../../Types/JSON";
@@ -74,16 +81,19 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-const errorCodeOf: (promise: Promise<unknown>) => Promise<string | null> =
-  async (promise: Promise<unknown>): Promise<string | null> => {
-    try {
-      await promise;
-    } catch (err) {
-      return SlackChannelMembersError.getCode(err);
-    }
+const errorCodeOf: (
+  promise: Promise<unknown>,
+) => Promise<string | null> = async (
+  promise: Promise<unknown>,
+): Promise<string | null> => {
+  try {
+    await promise;
+  } catch (err) {
+    return SlackChannelMembersError.getCode(err);
+  }
 
-    return null;
-  };
+  return null;
+};
 
 describe("every call", () => {
   test("is a form POST to slack.com/api/<method> with the bot's token, tried once", async () => {

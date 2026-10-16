@@ -104,9 +104,9 @@ export interface ComponentProps {
 }
 
 // The people of one channel, as a list.
-const PersonRow: FunctionComponent<{ person: WorkspaceChannelPerson }> = (props: {
+const PersonRow: FunctionComponent<{
   person: WorkspaceChannelPerson;
-}): ReactElement => {
+}> = (props: { person: WorkspaceChannelPerson }): ReactElement => {
   const translator: Translator = useTranslator();
 
   return (
@@ -159,9 +159,9 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
 
   const [isUnfolded, setIsUnfolded] = useState<boolean>(false);
   const [isJoining, setIsJoining] = useState<boolean>(false);
-  const [joinSentences, setJoinSentences] = useState<
-    Array<AddOutcomeSentence>
-  >([]);
+  const [joinSentences, setJoinSentences] = useState<Array<AddOutcomeSentence>>(
+    [],
+  );
   const [joinError, setJoinError] = useState<string>("");
 
   const popup: AnchoredFieldPopup = useAnchoredFieldPopup({
@@ -297,7 +297,9 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
       translator.translateText(RECORD_CHANNEL_TEXT.privateChannel) || "",
     );
   } else if (channel.isPrivate === false && isSlack) {
-    meta.push(translator.translateText(RECORD_CHANNEL_TEXT.publicChannel) || "");
+    meta.push(
+      translator.translateText(RECORD_CHANNEL_TEXT.publicChannel) || "",
+    );
   }
 
   // Nobody in it is said below, once.
@@ -316,8 +318,7 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
           ? translator.translateTemplate(RECORD_CHANNEL_TEXT.teamsTeam, {
               team: channel.teamName,
             })
-          : translator.translateText(RECORD_CHANNEL_TEXT.teamsTeamUnknown) ||
-            ""
+          : translator.translateText(RECORD_CHANNEL_TEXT.teamsTeamUnknown) || ""
         : translator.translateText(RECORD_CHANNEL_TEXT.teamsUnknown) || "";
 
   const connectRoute: Route = RouteUtil.populateRouteParams(
@@ -608,7 +609,6 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
           ariaLabel={RECORD_CHANNEL_TEXT.addPeople}
         />
       )}
-
     </li>
   );
 };
@@ -686,10 +686,7 @@ const RecordChannelMembersCard: FunctionComponent<ComponentProps> = (
     channels.length > 0 ? channels : props.links;
 
   return (
-    <Card
-      title={getCardTitle(shownChannels)}
-      headerLayout="stacked"
-    >
+    <Card title={getCardTitle(shownChannels)} headerLayout="stacked">
       <div data-testid="record-channel-members-card">{body}</div>
     </Card>
   );

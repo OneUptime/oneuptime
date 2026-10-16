@@ -360,9 +360,11 @@ describe("whether there is a card at all", () => {
     await card();
 
     expect(requestsOf("GET").length).toBe(1);
-    expect(pathOf(requestsOf("GET")[0]!.url).endsWith(
-      `/workspace-channel-members/incident-episode/${RECORD_ID.toString()}`,
-    )).toBe(true);
+    expect(
+      pathOf(requestsOf("GET")[0]!.url).endsWith(
+        `/workspace-channel-members/incident-episode/${RECORD_ID.toString()}`,
+      ),
+    ).toBe(true);
     expect(requestsOf("GET")[0]!.headers).toEqual({ tenantid: PROJECT_ID });
   });
 
@@ -378,7 +380,11 @@ describe("whether there is a card at all", () => {
 
   test("a read that fails says so, and Try again reads again", async () => {
     readAnswers = [
-      new HTTPErrorResponse(500, { message: "Slack could not be reached." }, {}),
+      new HTTPErrorResponse(
+        500,
+        { message: "Slack could not be reached." },
+        {},
+      ),
     ];
     lastRead = { channels: [slackChannel()], canAddPeople: true };
     renderCard({});
@@ -411,9 +417,9 @@ describe("the channel and the people in it", () => {
     expect(name).toHaveAttribute("target", "_blank");
     expect(name).toHaveAttribute("rel", "noopener noreferrer");
 
-    expect(within(element).getByTestId("record-channel-meta")).toHaveTextContent(
-      "Private channel · 2 people",
-    );
+    expect(
+      within(element).getByTestId("record-channel-meta"),
+    ).toHaveTextContent("Private channel · 2 people");
     expect(
       within(element)
         .getAllByTestId("record-channel-person-name")
@@ -440,13 +446,16 @@ describe("the channel and the people in it", () => {
     renderCard({});
 
     const element: HTMLElement = await card();
-    const rows: Array<HTMLElement> =
-      within(element).getAllByTestId("record-channel-person");
-
-    expect(within(rows[0]!).getByTestId("record-channel-person-you")).toHaveTextContent(
-      "You",
+    const rows: Array<HTMLElement> = within(element).getAllByTestId(
+      "record-channel-person",
     );
-    expect(within(rows[1]!).queryByTestId("record-channel-person-you")).toBeNull();
+
+    expect(
+      within(rows[0]!).getByTestId("record-channel-person-you"),
+    ).toHaveTextContent("You");
+    expect(
+      within(rows[1]!).queryByTestId("record-channel-person-you"),
+    ).toBeNull();
     // In it already: no Join, only Add people.
     expect(within(element).queryByTestId("record-channel-join")).toBeNull();
     expect(within(element).queryByTestId("record-channel-not-in")).toBeNull();
@@ -464,17 +473,17 @@ describe("the channel and the people in it", () => {
 
     const element: HTMLElement = await card();
 
-    expect(within(element).getByTestId("record-channel-nobody")).toHaveTextContent(
-      "Nobody is in this channel.",
-    );
+    expect(
+      within(element).getByTestId("record-channel-nobody"),
+    ).toHaveTextContent("Nobody is in this channel.");
     // Neither "0 people" nor "You're not in this channel." repeats it.
-    expect(within(element).getByTestId("record-channel-meta")).toHaveTextContent(
-      /^Private channel$/,
-    );
+    expect(
+      within(element).getByTestId("record-channel-meta"),
+    ).toHaveTextContent(/^Private channel$/);
     expect(within(element).queryByTestId("record-channel-not-in")).toBeNull();
-    expect(within(element).getByTestId("record-channel-join")).toHaveTextContent(
-      "Join channel",
-    );
+    expect(
+      within(element).getByTestId("record-channel-join"),
+    ).toHaveTextContent("Join channel");
   });
 
   test("a long list shows five, then Show N more, then Show fewer", async () => {
@@ -520,12 +529,12 @@ describe("the channel and the people in it", () => {
 
     const element: HTMLElement = await card();
 
-    expect(within(element).getByTestId("record-channel-unnamed")).toHaveTextContent(
-      "and 3 more people",
-    );
-    expect(within(element).getByTestId("record-channel-meta")).toHaveTextContent(
-      "5 people",
-    );
+    expect(
+      within(element).getByTestId("record-channel-unnamed"),
+    ).toHaveTextContent("and 3 more people");
+    expect(
+      within(element).getByTestId("record-channel-meta"),
+    ).toHaveTextContent("5 people");
   });
 
   test("a public channel says so", async () => {
@@ -559,9 +568,9 @@ describe("joining the channel", () => {
 
     const element: HTMLElement = await card();
 
-    expect(within(element).getByTestId("record-channel-not-in")).toHaveTextContent(
-      "You're not in this channel.",
-    );
+    expect(
+      within(element).getByTestId("record-channel-not-in"),
+    ).toHaveTextContent("You're not in this channel.");
 
     lastRead = {
       channels: [
@@ -601,7 +610,9 @@ describe("joining the channel", () => {
     expect(onChanged).toHaveBeenCalledTimes(1);
     await waitFor(() => {
       expect(requestsOf("GET").length).toBe(2);
-      expect(within(element).getByTestId("record-channel-person-you")).toBeInTheDocument();
+      expect(
+        within(element).getByTestId("record-channel-person-you"),
+      ).toBeInTheDocument();
     });
 
     // With a link to the channel, beside the news.
@@ -642,7 +653,9 @@ describe("joining the channel", () => {
 
   test("a channel that turned out archived says so", async () => {
     readAnswer({ channels: [slackChannel()], canAddPeople: true });
-    addAnswers = [{ channelState: WorkspaceChannelState.Archived, results: [] }];
+    addAnswers = [
+      { channelState: WorkspaceChannelState.Archived, results: [] },
+    ];
     renderCard({});
 
     const element: HTMLElement = await card();
@@ -708,7 +721,9 @@ describe("what somebody without Join channel is told", () => {
       "OneUptime can't find your Slack account, so it can't add you.",
     );
 
-    const link: HTMLElement = within(connect).getByText("Connect Slack account");
+    const link: HTMLElement = within(connect).getByText(
+      "Connect Slack account",
+    );
     expect(link.closest("a")).toHaveAttribute(
       "href",
       `/dashboard/${PROJECT_ID}/user-settings/slack-integration?connectAccount=true`,
@@ -749,9 +764,9 @@ describe("what somebody without Join channel is told", () => {
 
       const element: HTMLElement = await card();
 
-      expect(within(element).getByTestId("record-channel-ask")).toHaveTextContent(
-        sentence,
-      );
+      expect(
+        within(element).getByTestId("record-channel-ask"),
+      ).toHaveTextContent(sentence);
       expect(within(element).queryByTestId("record-channel-join")).toBeNull();
       expect(
         within(element).queryByTestId("record-channel-add-people"),
@@ -784,10 +799,12 @@ describe("a channel that can take nobody", () => {
 
     const element: HTMLElement = await card();
 
-    expect(within(element).getByTestId("record-channel-meta")).toHaveTextContent(
-      "Archived · 2 people",
-    );
-    expect(within(element).getByTestId("record-channel-state")).toHaveTextContent(
+    expect(
+      within(element).getByTestId("record-channel-meta"),
+    ).toHaveTextContent("Archived · 2 people");
+    expect(
+      within(element).getByTestId("record-channel-state"),
+    ).toHaveTextContent(
       "This channel is archived. Unarchive it in Slack to add people.",
     );
     expect(within(element).getAllByTestId("record-channel-person").length).toBe(
@@ -842,9 +859,9 @@ describe("a channel that can take nobody", () => {
 
     const element: HTMLElement = await card();
 
-    expect(within(element).getByTestId("record-channel-state")).toHaveTextContent(
-      "Slack didn't answer. Try again in a minute.",
-    );
+    expect(
+      within(element).getByTestId("record-channel-state"),
+    ).toHaveTextContent("Slack didn't answer. Try again in a minute.");
 
     fireEvent.click(within(element).getByTestId("record-channel-try-again"));
 
@@ -880,9 +897,9 @@ describe("Microsoft Teams channels", () => {
     const element: HTMLElement = await card();
 
     expect(screen.getByText("Microsoft Teams Channel")).toBeInTheDocument();
-    expect(within(element).getByTestId("record-channel-name")).toHaveTextContent(
-      /^inc-42$/,
-    );
+    expect(
+      within(element).getByTestId("record-channel-name"),
+    ).toHaveTextContent(/^inc-42$/);
     expect(
       within(element).getByTestId("record-channel-teams-note"),
     ).toHaveTextContent("Everyone in Ops can open the channel.");
@@ -902,9 +919,9 @@ describe("Microsoft Teams channels", () => {
 
     const element: HTMLElement = await card();
 
-    expect(within(element).getByTestId("record-channel-meta")).toHaveTextContent(
-      "Private channel",
-    );
+    expect(
+      within(element).getByTestId("record-channel-meta"),
+    ).toHaveTextContent("Private channel");
     expect(
       within(element).getByTestId("record-channel-teams-note"),
     ).toHaveTextContent(
@@ -1024,9 +1041,7 @@ describe("Add people", () => {
       canAddPeople: true,
     };
 
-    fireEvent.click(
-      within(dialog).getByRole("option", { name: /Carol Lee/ }),
-    );
+    fireEvent.click(within(dialog).getByRole("option", { name: /Carol Lee/ }));
 
     await waitFor(() => {
       expect(requestsOf("POST").length).toBe(1);
@@ -1126,9 +1141,8 @@ describe("Add people", () => {
 
     expect(screen.getByText("Slack Channels")).toBeInTheDocument();
 
-    const second: HTMLElement = within(element).getAllByTestId(
-      "record-channel",
-    )[1]!;
+    const second: HTMLElement =
+      within(element).getAllByTestId("record-channel")[1]!;
     fireEvent.click(within(second).getByTestId("record-channel-join"));
 
     await waitFor(() => {

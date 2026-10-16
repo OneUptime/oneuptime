@@ -123,13 +123,12 @@ router.get(
         recordId: ObjectID;
       } = readRecord(req);
 
-      const answer: WorkspaceRecordChannels = await WorkspaceChannelMembers.read(
-        {
+      const answer: WorkspaceRecordChannels =
+        await WorkspaceChannelMembers.read({
           recordType: record.recordType,
           recordId: record.recordId,
           props: props,
-        },
-      );
+        });
 
       Response.setNoCacheHeaders(res);
 
@@ -191,16 +190,15 @@ router.post(
         throw new BadDataException("Name at least one person or team to add.");
       }
 
-      const answer: WorkspaceChannelAddAnswer = await WorkspaceChannelMembers.add(
-        {
+      const answer: WorkspaceChannelAddAnswer =
+        await WorkspaceChannelMembers.add({
           recordType: record.recordType,
           recordId: record.recordId,
           props: props,
           channelId: channelId.trim(),
           userIds: userIds,
           teamIds: teamIds,
-        },
-      );
+        });
 
       Response.setNoCacheHeaders(res);
 

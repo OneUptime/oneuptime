@@ -11,6 +11,7 @@ import WorkspaceChannelMembersUtil, {
   WorkspaceChannelAddOutcome,
   WorkspaceChannelState,
   WorkspaceChannelViewerStatus,
+  WorkspaceRecordChannel,
   WorkspaceRecordChannels,
 } from "../../../Types/Workspace/WorkspaceChannelMembers";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
@@ -181,7 +182,7 @@ describe("the channels, as written and read back", () => {
       });
 
     expect(
-      read.channels.map((channel: { channelId: string; url?: string }) => {
+      read.channels.map((channel: WorkspaceRecordChannel) => {
         return [channel.channelId, channel.url];
       }),
     ).toEqual([

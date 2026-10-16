@@ -182,9 +182,9 @@ describe("what the viewer is offered", () => {
   });
 
   test("somebody OneUptime cannot find in Slack: connect their account first", () => {
-    expect(prompt({ viewer: WorkspaceChannelViewerStatus.NotFound }, true)).toBe(
-      ChannelViewerPrompt.ConnectToJoin,
-    );
+    expect(
+      prompt({ viewer: WorkspaceChannelViewerStatus.NotFound }, true),
+    ).toBe(ChannelViewerPrompt.ConnectToJoin);
   });
 
   test("somebody in it already: nothing", () => {
@@ -223,9 +223,9 @@ describe("what the viewer is offered", () => {
       WorkspaceChannelState.Unavailable,
     ]) {
       expect(prompt({ state: state }, true)).toBe(ChannelViewerPrompt.None);
-      expect(canAddPeopleTo({ channel: channel({ state }), canAddPeople: true })).toBe(
-        false,
-      );
+      expect(
+        canAddPeopleTo({ channel: channel({ state }), canAddPeople: true }),
+      ).toBe(false);
     }
 
     expect(
@@ -292,13 +292,21 @@ describe("what adding people says", () => {
             name: "Alice",
             outcome: WorkspaceChannelAddOutcome.Added,
           },
-          { userId: BOB, name: "Bob", outcome: WorkspaceChannelAddOutcome.Added },
+          {
+            userId: BOB,
+            name: "Bob",
+            outcome: WorkspaceChannelAddOutcome.Added,
+          },
         ],
       },
     });
 
     expect(sentences).toEqual([
-      { template: "You're in the channel now.", name: "Alice", isProblem: false },
+      {
+        template: "You're in the channel now.",
+        name: "Alice",
+        isProblem: false,
+      },
     ]);
   });
 
@@ -328,7 +336,8 @@ describe("what adding people says", () => {
 
     expect(sentences).toEqual([
       {
-        template: "OneUptime can't find your Slack account, so it can't add you.",
+        template:
+          "OneUptime can't find your Slack account, so it can't add you.",
         name: "Alice",
         isProblem: true,
       },
@@ -359,9 +368,7 @@ describe("what adding people says", () => {
 
   test("added and in it already are not problems; everything else is", () => {
     for (const outcome of Object.values(WorkspaceChannelAddOutcome)) {
-      expect(
-        isAddProblem({ userId: BOB, name: "Bob", outcome: outcome }),
-      ).toBe(
+      expect(isAddProblem({ userId: BOB, name: "Bob", outcome: outcome })).toBe(
         outcome !== WorkspaceChannelAddOutcome.Added &&
           outcome !== WorkspaceChannelAddOutcome.AlreadyIn,
       );
@@ -469,39 +476,45 @@ describe("the card's words in every Dashboard language", () => {
     }
   });
 
-  test.each(LANGUAGES)("%s words each, keeping its placeholders", (language: string) => {
-    const locale: Record<string, string> = read(language);
+  test.each(LANGUAGES)(
+    "%s words each, keeping its placeholders",
+    (language: string) => {
+      const locale: Record<string, string> = read(language);
 
-    for (const sentence of sentences) {
-      const value: string | undefined = locale[sentence];
+      for (const sentence of sentences) {
+        const value: string | undefined = locale[sentence];
 
-      expect({ sentence, hasValue: Boolean(value) }).toEqual({
-        sentence,
-        hasValue: true,
-      });
-
-      if (!SAME_IN_EVERY_LANGUAGE.includes(sentence)) {
-        expect({ sentence, isTranslated: value !== sentence }).toEqual({
+        expect({ sentence, hasValue: Boolean(value) }).toEqual({
           sentence,
-          isTranslated: true,
+          hasValue: true,
+        });
+
+        if (!SAME_IN_EVERY_LANGUAGE.includes(sentence)) {
+          expect({ sentence, isTranslated: value !== sentence }).toEqual({
+            sentence,
+            isTranslated: true,
+          });
+        }
+
+        expect({ sentence, placeholders: placeholders(value!) }).toEqual({
+          sentence,
+          placeholders: placeholders(sentence),
         });
       }
+    },
+  );
 
-      expect({ sentence, placeholders: placeholders(value!) }).toEqual({
-        sentence,
-        placeholders: placeholders(sentence),
-      });
-    }
-  });
+  test.each(LANGUAGES)(
+    "%s words the count-dependent ones in both forms",
+    (language: string) => {
+      const locale: Record<string, string> = read(language);
 
-  test.each(LANGUAGES)("%s words the count-dependent ones in both forms", (language: string) => {
-    const locale: Record<string, string> = read(language);
-
-    for (const plural of [UNNAMED_PEOPLE, PEOPLE_COUNT, SHOW_MORE_PEOPLE]) {
-      expect(locale[`${plural.other}_one`]).toBeTruthy();
-      expect(placeholders(locale[`${plural.other}_one`]!)).toEqual([
-        "{{count}}",
-      ]);
-    }
-  });
+      for (const plural of [UNNAMED_PEOPLE, PEOPLE_COUNT, SHOW_MORE_PEOPLE]) {
+        expect(locale[`${plural.other}_one`]).toBeTruthy();
+        expect(placeholders(locale[`${plural.other}_one`]!)).toEqual([
+          "{{count}}",
+        ]);
+      }
+    },
+  );
 });

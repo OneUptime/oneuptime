@@ -25,8 +25,10 @@ import WorkspaceType from "./WorkspaceType";
  * React-free and server-free, so both sides and plain tests can import it.
  */
 
-// GET <api>/workspace-channel-members/<record type>/<record id>
-// POST <api>/workspace-channel-members/<record type>/<record id>/add
+/*
+ * GET <api>/workspace-channel-members/<record type>/<record id>
+ * POST <api>/workspace-channel-members/<record type>/<record id>/add
+ */
 export const WORKSPACE_CHANNEL_MEMBERS_ROUTE: string =
   "/workspace-channel-members";
 

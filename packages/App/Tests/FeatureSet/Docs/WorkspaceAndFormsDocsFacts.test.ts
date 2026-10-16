@@ -1621,9 +1621,9 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     expect(slackCalls).toContain('method: "conversations.invite"');
     expect(slackCalls).not.toContain("conversations.kick");
     expect(readSource("channelMembersApi")).not.toMatch(/\.delete\(/);
-    expect(
-      lineStarting(channelSection, "- **Taking someone out.**"),
-    ).toContain("remove someone from the channel in Slack");
+    expect(lineStarting(channelSection, "- **Taking someone out.**")).toContain(
+      "remove someone from the channel in Slack",
+    );
 
     // A channel the app was taken out of: the card's hint, as Troubleshooting quotes it.
     expect(RECORD_CHANNEL_TEXT.unreachableHint).toContain(

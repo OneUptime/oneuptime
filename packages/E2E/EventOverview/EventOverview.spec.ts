@@ -9841,7 +9841,10 @@ test.describe("the record's channel card", () => {
 
     await expect(channelCard(page)).toHaveCount(0);
     expect(
-      await apiRequestsTo(page, `/workspace-channel-members/incident/${INCIDENT_ID}`),
+      await apiRequestsTo(
+        page,
+        `/workspace-channel-members/incident/${INCIDENT_ID}`,
+      ),
     ).toHaveLength(0);
   });
 
@@ -9872,7 +9875,10 @@ test.describe("the record's channel card", () => {
     await expect(card.getByTestId("record-channel-join")).toBeVisible();
     await expect(card.getByTestId("record-channel-add-people")).toBeVisible();
     expect(
-      await apiRequestsTo(page, `/workspace-channel-members/incident/${INCIDENT_ID}`),
+      await apiRequestsTo(
+        page,
+        `/workspace-channel-members/incident/${INCIDENT_ID}`,
+      ),
     ).toHaveLength(1);
 
     await screenshotElement(card, "incident-channel-card");
@@ -9920,12 +9926,12 @@ test.describe("the record's channel card", () => {
     await expect(dialog.getByRole("option").first()).toBeVisible();
 
     await dialog.getByRole("option", { name: /Sam Rivera/ }).click();
+    await expect(card.getByTestId("record-channel-person-name")).toHaveText([
+      "Sam Rivera",
+    ]);
     await expect(
-      card.getByTestId("record-channel-person-name"),
-    ).toHaveText(["Sam Rivera"]);
-    await expect(dialog.getByRole("option", { name: /Sam Rivera/ })).toHaveCount(
-      0,
-    );
+      dialog.getByRole("option", { name: /Sam Rivera/ }),
+    ).toHaveCount(0);
 
     await dialog.getByRole("option", { name: /Alex Kim/ }).click();
     await expect(dialog.getByRole("alert")).toContainText(
@@ -9937,7 +9943,10 @@ test.describe("the record's channel card", () => {
       { channelId: "C0ACME0001", userIds: [ALEX_ID], teamIds: [] },
     ]);
 
-    await screenshotElement(page.locator("body"), "incident-channel-card-add-people");
+    await screenshotElement(
+      page.locator("body"),
+      "incident-channel-card-add-people",
+    );
   });
 
   test("without permission to edit the incident: who to ask, and no buttons", async ({
@@ -10021,7 +10030,9 @@ test.describe("the record's channel card", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openReady(page, INCIDENT_PAGE, "channels=slack,slack2,teams");
 
-    await expect(channelCard(page).getByTestId("record-channel")).toHaveCount(3);
+    await expect(channelCard(page).getByTestId("record-channel")).toHaveCount(
+      3,
+    );
     await expectNoHorizontalOverflow(page);
     await screenshotElement(channelCard(page), "incident-channel-card-mobile");
   });

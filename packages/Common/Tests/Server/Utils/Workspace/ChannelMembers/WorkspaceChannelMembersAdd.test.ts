@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import WorkspaceNotificationLog from "../../../../../Models/DatabaseModels/WorkspaceNotificationLog";
 import WorkspaceChannelMembers from "../../../../../Server/Utils/Workspace/WorkspaceChannelMembers";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
@@ -164,9 +171,7 @@ describe("joining the channel yourself", () => {
     expect(world.slackRequestsOf("users.lookupByEmail")).toEqual([
       { email: "carol@acme.test" },
     ]);
-    expect(world.invites()).toEqual([
-      { channel: "C0INC42", users: "U0CAROL" },
-    ]);
+    expect(world.invites()).toEqual([{ channel: "C0INC42", users: "U0CAROL" }]);
   });
 
   test("a viewer nobody in Slack has the email address of is not found, and nobody is invited or written down", async () => {
