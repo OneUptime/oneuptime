@@ -15,6 +15,7 @@ import ScheduleSubscribeCard from "../../App/FeatureSet/Dashboard/src/Components
 import DE from "../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import JA from "../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import FA from "../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import RU from "../../App/FeatureSet/Dashboard/src/Locales/ru.json";
 import UserOnCallCalendarFeed from "Common/Models/DatabaseModels/UserOnCallCalendarFeed";
 import OnCallDutyPolicyScheduleCalendarFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
 import ProjectOnCallCalendarFeed from "Common/Models/DatabaseModels/ProjectOnCallCalendarFeed";
@@ -32,6 +33,7 @@ import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
+import { buildUpcomingShifts } from "./UpcomingShiftsFixture";
 
 /*
  * The fixture page: the real calendar-feed pages, with the API answered from
@@ -54,8 +56,12 @@ import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
  *              | empty | disabled | regenerate
  *   ?role=     owner (default) | viewer (may read a shared link, not
  *              publish or change it)
+ *   ?shifts=   what /my-shifts answers the Upcoming shifts card with: mixed
+ *              (default) | daily | weekdays | dst | long | empty |
+ *              truncated | truncated-empty | error (UpcomingShiftsFixture.js
+ *              says what each one holds)
  *   ?billing=on&plan=free   OneUptime Cloud below the Growth plan
- *   ?theme=dark   ?lang=de|ja|fa
+ *   ?theme=dark   ?lang=de|ja|fa|ru
  */
 
 const params = new URLSearchParams(window.location.search);
@@ -63,7 +69,8 @@ const page = params.get("page") || "personal";
 const scenario = params.get("state") || "google";
 const sharedScenario = params.get("shared") || "active";
 const role = params.get("role") || "owner";
-const language = ["de", "ja", "fa"].includes(params.get("lang"))
+const shiftsScenario = params.get("shifts") || "mixed";
+const language = ["de", "ja", "fa", "ru"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
 
@@ -85,6 +92,7 @@ await i18next.use(initReactI18next).init({
     de: { translation: DE },
     ja: { translation: JA },
     fa: { translation: FA },
+    ru: { translation: RU },
   },
   interpolation: { escapeValue: false },
   keySeparator: false,
@@ -382,6 +390,10 @@ const state = {
   failuresLeft: scenario === "error" ? 1 : 0,
   // How long a status read takes to answer, as a slow network would.
   readDelayMilliseconds: 0,
+  // The Upcoming shifts card's answer: which scenario, and how it answers.
+  shiftsScenario: shiftsScenario,
+  shiftsFailuresLeft: shiftsScenario === "error" ? 1 : 0,
+  shiftsDelayMilliseconds: 0,
 };
 
 window.__calendarFeedFixture = {
@@ -394,6 +406,13 @@ window.__calendarFeedFixture = {
   // Every status read from now on answers after this long.
   setReadDelay: (milliseconds) => {
     state.readDelayMilliseconds = milliseconds;
+  },
+  // What /my-shifts answers next, and after how long.
+  setShifts: (name) => {
+    state.shiftsScenario = name;
+  },
+  setShiftsDelay: (milliseconds) => {
+    state.shiftsDelayMilliseconds = milliseconds;
   },
 };
 
@@ -443,33 +462,39 @@ function rotate(status, kind, feedId, seed) {
   };
 }
 
-function shift(index, fields) {
-  const start = new Date(NOW + (index + 1) * DAY);
-  start.setUTCHours(9, 0, 0, 0);
-  const end = new Date(start.getTime() + 8 * HOUR);
-  return {
-    shiftKey: `shift-${index}`,
-    contentHash: `hash-${index}`,
-    projectId: PROJECT_ID,
-    projectName: "SYSNETIX DEMO",
-    scheduleId: SCHEDULE_ID,
-    scheduleName: "Primary on-call",
-    scheduleTimezone: "UTC",
-    userId: USER_ID,
-    userName: "Valeria",
-    start: start.toISOString(),
-    end: end.toISOString(),
-    coverageSeconds: 8 * 3600,
-    layerName: "Layer 1",
-    policies: [],
-    isPast: false,
-    lastModifiedAt: ago(DAY),
-    shiftConfigVersion: 1,
-    ...fields,
-  };
-}
+/*
+ * The Upcoming shifts card's answer, built from the clock the page reads
+ * at the moment it asks: a spec that fixes the browser's clock gets the
+ * same rows every time.
+ */
+function myShiftsAnswer() {
+  if (state.shiftsFailuresLeft > 0) {
+    state.shiftsFailuresLeft--;
+    return new HTTPErrorResponse(
+      500,
+      { message: "The shift service is not responding." },
+      {},
+    );
+  }
 
-const SHIFTS = [shift(0), shift(3), shift(7, { scheduleName: "Database" })];
+  const name = state.shiftsScenario;
+
+  return new HTTPResponse(
+    200,
+    {
+      shifts: buildUpcomingShifts(name, {
+        now: new Date(),
+        projectId: PROJECT_ID,
+        projectName: "SYSNETIX DEMO",
+        scheduleId: SCHEDULE_ID,
+        userId: USER_ID,
+      }),
+      truncated: name === "truncated" || name === "truncated-empty",
+      generatedAt: new Date().toISOString(),
+    },
+    {},
+  );
+}
 
 function answer(path) {
   if (path.endsWith("/on-call-calendar/feed/current")) {
@@ -497,26 +522,28 @@ function answer(path) {
   }
 
   if (path.endsWith("/on-call-calendar/my-shifts")) {
-    return new HTTPResponse(
-      200,
-      {
-        shifts: SHIFTS,
-        truncated: false,
-        generatedAt: new Date().toISOString(),
-      },
-      {},
-    );
+    return myShiftsAnswer();
   }
 
   return new HTTPErrorResponse(404, { message: `No route for ${path}` }, {});
 }
 
 API.get = async (options) => {
-  const path = new URL(options.url.toString()).pathname;
-  state.requests.push({ method: "GET", path: path });
+  const url = new URL(options.url.toString());
+  const path = url.pathname;
+  state.requests.push({
+    method: "GET",
+    path: path,
+    query: Object.fromEntries(url.searchParams.entries()),
+  });
   if (state.readDelayMilliseconds > 0 && path.endsWith("/current")) {
     await new Promise((resolve) => {
       setTimeout(resolve, state.readDelayMilliseconds);
+    });
+  }
+  if (state.shiftsDelayMilliseconds > 0 && path.endsWith("/my-shifts")) {
+    await new Promise((resolve) => {
+      setTimeout(resolve, state.shiftsDelayMilliseconds);
     });
   }
   return answer(path);
