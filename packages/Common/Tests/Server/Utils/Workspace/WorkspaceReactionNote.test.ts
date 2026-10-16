@@ -44,6 +44,11 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../../Types/ObjectID";
 import { WorkspaceNoteType } from "../../../../Types/Workspace/WorkspaceNoteReaction";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
+import { PrivateRecordKind } from "../../../../Types/StatusPage/PrivateRecordPublicNotes";
+import {
+  PrivateRecordLookup,
+  stubPrivateRecords,
+} from "../../TestingUtils/PrivateRecords";
 
 const projectId: ObjectID = ObjectID.generate();
 const otherProjectId: ObjectID = ObjectID.generate();
@@ -1163,5 +1168,183 @@ describe("WorkspaceReactionNote: what a pin is told", () => {
         WorkspaceNoteResourceType.AlertEpisode,
       ),
     ).toBe(WorkspaceEventType.AlertEpisode);
+  });
+});
+
+/*
+ * A PRIVATE INCIDENT OR EPISODE TAKES NO PUBLIC NOTES.
+ *
+ * A 📣 on a message in a private incident's channel asks for a public note
+ * the incident cannot take (Types/StatusPage/PrivateRecordPublicNotes): it
+ * would reach no status page and no subscriber, and the server refuses one.
+ * The message is saved as a private note instead - nothing the person wrote
+ * is lost, and only the people who can see the incident read it - and the
+ * one confirmation in its thread says so.
+ */
+describe("WorkspaceReactionNote.getNoteTypeSavedAs", () => {
+  function resource(
+    resourceType: WorkspaceNoteResourceType,
+  ): WorkspaceNoteResource {
+    return {
+      resourceType: resourceType,
+      resourceId: ObjectID.generate(),
+      projectId: projectId,
+    };
+  }
+
+  test("a 📣 on a private incident saves a private note", async () => {
+    const incident: WorkspaceNoteResource = resource(
+      WorkspaceNoteResourceType.Incident,
+    );
+    const lookups: Array<PrivateRecordLookup> = stubPrivateRecords([
+      incident.resourceId,
+    ]);
+
+    await expect(
+      WorkspaceReactionNote.getNoteTypeSavedAs({
+        resource: incident,
+        noteType: WorkspaceNoteType.Public,
+      }),
+    ).resolves.toBe(WorkspaceNoteType.Private);
+
+    // Asked about this incident, in its project.
+    expect(lookups).toEqual([
+      {
+        kind: PrivateRecordKind.Incident,
+        recordId: incident.resourceId.toString(),
+        projectId: projectId.toString(),
+      },
+    ]);
+  });
+
+  test("a 📣 on an incident that is not private saves a public note", async () => {
+    stubPrivateRecords();
+
+    await expect(
+      WorkspaceReactionNote.getNoteTypeSavedAs({
+        resource: resource(WorkspaceNoteResourceType.Incident),
+        noteType: WorkspaceNoteType.Public,
+      }),
+    ).resolves.toBe(WorkspaceNoteType.Public);
+  });
+
+  test("a private episode's public note is saved private too", async () => {
+    const episode: WorkspaceNoteResource = resource(
+      WorkspaceNoteResourceType.IncidentEpisode,
+    );
+    const lookups: Array<PrivateRecordLookup> = stubPrivateRecords([
+      episode.resourceId,
+    ]);
+
+    await expect(
+      WorkspaceReactionNote.getNoteTypeSavedAs({
+        resource: episode,
+        noteType: WorkspaceNoteType.Public,
+      }),
+    ).resolves.toBe(WorkspaceNoteType.Private);
+    expect(lookups[0]!.kind).toBe(PrivateRecordKind.IncidentEpisode);
+  });
+
+  test("a pin is a private note, and nothing is asked", async () => {
+    const lookups: Array<PrivateRecordLookup> = stubPrivateRecords();
+
+    for (const resourceType of WorkspaceReactionNote.getAllResourceTypes()) {
+      await expect(
+        WorkspaceReactionNote.getNoteTypeSavedAs({
+          resource: resource(resourceType),
+          noteType: WorkspaceNoteType.Private,
+        }),
+      ).resolves.toBe(WorkspaceNoteType.Private);
+    }
+
+    expect(lookups).toEqual([]);
+  });
+
+  test("a scheduled maintenance event has no Private switch: a 📣 there is a public note, and nothing is asked", async () => {
+    const lookups: Array<PrivateRecordLookup> = stubPrivateRecords();
+
+    await expect(
+      WorkspaceReactionNote.getNoteTypeSavedAs({
+        resource: resource(WorkspaceNoteResourceType.ScheduledMaintenance),
+        noteType: WorkspaceNoteType.Public,
+      }),
+    ).resolves.toBe(WorkspaceNoteType.Public);
+    expect(lookups).toEqual([]);
+  });
+
+  test("the records that can be private are incidents and incident episodes", () => {
+    expect(
+      WorkspaceReactionNote.getAllResourceTypes().filter(
+        (resourceType: WorkspaceNoteResourceType): boolean => {
+          return (
+            WorkspaceReactionNote.getPrivateRecordKind(resourceType) !== null
+          );
+        },
+      ),
+    ).toEqual([
+      WorkspaceNoteResourceType.Incident,
+      WorkspaceNoteResourceType.IncidentEpisode,
+    ]);
+  });
+});
+
+describe("WorkspaceReactionNote.getConfirmationMessage, on a private incident", () => {
+  test("a 📣 saved as a private note says why, after the link", () => {
+    expect(
+      WorkspaceReactionNote.getConfirmationMessage({
+        noteType: WorkspaceNoteType.Private,
+        askedNoteType: WorkspaceNoteType.Public,
+        resourceType: WorkspaceNoteResourceType.Incident,
+        resourceLabel: "Incident INC-42",
+        resourceLink: "https://x/42",
+      }).toString(),
+    ).toBe(
+      "✅ Saved as a **private note** on [Incident INC-42](https://x/42). The incident is private, so public notes cannot be added to it.",
+    );
+  });
+
+  test("names an episode as an incident episode", () => {
+    expect(
+      WorkspaceReactionNote.getConfirmationMessage({
+        noteType: WorkspaceNoteType.Private,
+        askedNoteType: WorkspaceNoteType.Public,
+        resourceType: WorkspaceNoteResourceType.IncidentEpisode,
+        resourceLabel: "Incident Episode #3",
+        resourceLink: "https://x/3",
+      }).toString(),
+    ).toContain(
+      "The incident episode is private, so public notes cannot be added to it.",
+    );
+  });
+
+  test("a pin's confirmation is as it always was", () => {
+    expect(
+      WorkspaceReactionNote.getConfirmationMessage({
+        noteType: WorkspaceNoteType.Private,
+        askedNoteType: WorkspaceNoteType.Private,
+        resourceType: WorkspaceNoteResourceType.Incident,
+        resourceLabel: "Incident INC-42",
+        resourceLink: "https://x/42",
+      }).toString(),
+    ).toBe("✅ Saved as a **private note** on [Incident INC-42](https://x/42).");
+  });
+
+  test("Slack posts it as mrkdwn: the reason is plain text after the link", () => {
+    const text: string = SlackUtil.slackify(
+      WorkspaceReactionNote.getConfirmationMessage({
+        noteType: WorkspaceNoteType.Private,
+        askedNoteType: WorkspaceNoteType.Public,
+        resourceType: WorkspaceNoteResourceType.Incident,
+        resourceLabel: "Incident INC-42",
+        resourceLink: "https://x/42",
+      }).toString(),
+    ).trim();
+
+    expect(text).toContain("*private note*");
+    expect(text).toContain("<https://x/42|Incident INC-42>");
+    expect(text).toContain(
+      "The incident is private, so public notes cannot be added to it.",
+    );
+    expect(text).not.toContain("status page");
   });
 });

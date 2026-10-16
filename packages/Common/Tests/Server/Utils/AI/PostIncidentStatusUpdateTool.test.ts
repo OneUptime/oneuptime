@@ -495,3 +495,95 @@ describe("post_incident_status_update - tool metadata", () => {
     ).toBe(`Post public status update on incident ${INCIDENT_ID.toString()}`);
   });
 });
+
+/*
+ * A private incident takes no public notes (Types/StatusPage/
+ * PrivateRecordPublicNotes): its status update would reach no status page
+ * and no subscriber. The tool refuses before anything is written, in the
+ * words the API refuses with, and names the tool that writes the note the
+ * incident can take.
+ */
+describe("post_incident_status_update - a private incident", () => {
+  function privateIncident(isPrivate: unknown): Incident {
+    const incident: Incident = buildIncident(true);
+    (incident as unknown as JSONObject)["isPrivate"] = isPrivate as boolean;
+    return incident;
+  }
+
+  test.each([
+    ["Private on", true],
+    ['a hand-written "true"', "true"],
+  ])(
+    "is refused with %s, and nothing is posted",
+    async (_label: string, isPrivate: unknown) => {
+      jest
+        .spyOn(IncidentService, "findOneById")
+        .mockResolvedValue(privateIncident(isPrivate) as never);
+      const createSpy: jest.SpyInstance = jest
+        .spyOn(IncidentPublicNoteService, "create")
+        .mockResolvedValue(new IncidentPublicNote() as never);
+
+      let error: unknown = null;
+
+      try {
+        await PostIncidentStatusUpdateTool.execute(
+          { incidentId: INCIDENT_ID.toString(), note: NOTE_TEXT },
+          ctx,
+        );
+      } catch (err) {
+        error = err;
+      }
+
+      expect(error).toBeInstanceOf(BadDataException);
+      expect((error as Error).message).toBe(
+        "This incident is private, so public notes cannot be added to it. Use a private note. create_incident_note adds one.",
+      );
+      expect(createSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("whatever notifySubscribers says", async () => {
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(privateIncident(true) as never);
+    const createSpy: jest.SpyInstance = jest
+      .spyOn(IncidentPublicNoteService, "create")
+      .mockResolvedValue(new IncidentPublicNote() as never);
+
+    for (const notifySubscribers of [true, false]) {
+      await expect(
+        PostIncidentStatusUpdateTool.execute(
+          {
+            incidentId: INCIDENT_ID.toString(),
+            note: NOTE_TEXT,
+            notifySubscribers: notifySubscribers,
+          },
+          ctx,
+        ),
+      ).rejects.toThrow("This incident is private");
+    }
+
+    expect(createSpy).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["not private", false],
+    ["with Private never set", null],
+  ])(
+    "an incident %s gets its update as always",
+    async (_label: string, isPrivate: unknown) => {
+      const run: ToolRun = await runTool(privateIncident(isPrivate));
+
+      expect(run.createSpy).toHaveBeenCalledTimes(1);
+      expect(run.result.dataForLlm).toContain(
+        "Posted a public status update on incident #42",
+      );
+    },
+  );
+
+  test("the tool description tells the model a private incident takes a private note instead", () => {
+    expect(PostIncidentStatusUpdateTool.description).toContain(
+      "A private incident takes no public notes: for one, write a private note with create_incident_note instead.",
+    );
+  });
+});

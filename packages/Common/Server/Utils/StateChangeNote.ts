@@ -30,8 +30,8 @@ import ModelPermission from "../Types/Database/Permissions/Index";
  * person who sent it was answered with an error, as if nothing had happened.
  *
  * So every state timeline asks first - before the change reads or writes
- * anything, and all but the incident timeline before it even takes the
- * event's lock - with the very check the note's own create runs
+ * anything, and for every note but the incident's public one before it even
+ * takes the event's lock - with the very check the note's own create runs
  * (ModelPermission.checkCreatePermissions, with the same note and the same
  * props), and a change whose note its sender may not post is refused whole,
  * with one plain message: the state was not changed, why, and that leaving

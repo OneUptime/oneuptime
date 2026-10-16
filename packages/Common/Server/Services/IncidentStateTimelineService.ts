@@ -117,6 +117,24 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
   ): Promise<OnCreate<IncidentStateTimeline>> {
     await super.onBeforeCreate(createBy);
 
+    /*
+     * The private note that can come with the change (`privateNote`): what a
+     * private incident's state change dialog offers in place of the public
+     * one - a private incident takes no public notes - and what the Change
+     * State bulk action sends for the private incidents it moves. Built and
+     * checked now, as its sender, before the incident is even locked, and
+     * posted once the change is saved: the rule every state timeline holds
+     * its private note to (StateChangeNote).
+     */
+    const privateNotesToPost: Array<IncidentInternalNote> =
+      StateChangeNote.preparePrivateNotes({
+        noteModelType: IncidentInternalNote,
+        stateChange: createBy.data,
+        eventColumn: "incidentId",
+        miscDataProps: createBy.miscDataProps as JSONObject | undefined,
+        props: createBy.props,
+      });
+
     let mutex: SemaphoreMutex | null = null;
 
     try {
@@ -209,23 +227,6 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
           projectId: noteProjectId,
         });
       }
-
-      /*
-       * And the private note that can come with it (`privateNote`): what a
-       * private incident's state change dialog offers in place of the public
-       * one, and the Change State bulk action sends for the private
-       * incidents it moves. Built and checked now, as its sender, posted
-       * once the change is saved - the rule every state timeline holds its
-       * note to (StateChangeNote).
-       */
-      const privateNotesToPost: Array<IncidentInternalNote> =
-        StateChangeNote.preparePrivateNotes({
-          noteModelType: IncidentInternalNote,
-          stateChange: createBy.data,
-          eventColumn: "incidentId",
-          miscDataProps: createBy.miscDataProps as JSONObject | undefined,
-          props: createBy.props,
-        });
 
       // Who made the change, under either name of it: see CreatedByUser.
       const changedByUserId: ObjectID | null = CreatedByUser.getId(
