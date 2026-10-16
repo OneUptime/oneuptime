@@ -1,9 +1,11 @@
 import CreateBy from "../Types/Database/CreateBy";
+import CreateLimit from "../Types/Database/CreateLimit";
 import { OnCreate } from "../Types/Database/Hooks";
 import CookieUtil from "../Utils/Cookie";
 import { ExpressRequest } from "../Utils/Express";
 import JSONWebToken from "../Utils/JsonWebToken";
 import logger, { LogAttributes } from "../Utils/Logger";
+import ProjectCountLimit from "../Utils/Database/ProjectCountLimit";
 import DashboardLabelRuleEngineService from "./DashboardLabelRuleEngineService";
 import DashboardOwnerRuleEngineService from "./DashboardOwnerRuleEngineService";
 import ProjectReferencesService from "./ProjectReferencesService";
@@ -25,6 +27,7 @@ import DashboardViewConfig from "../../Types/Dashboard/DashboardViewConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { resolveClientIp } from "../Utils/ClientIp";
 import { DASHBOARD_MASTER_PASSWORD_COOKIE_IDENTIFIER } from "../../Types/Dashboard/MasterPassword";
 import PublicDashboardAccessPolicy, {
@@ -35,9 +38,40 @@ import PublicDashboardAccessPolicy, {
   UNKNOWN_PUBLIC_DASHBOARD_VISITOR,
 } from "../Utils/Dashboard/PublicDashboardAccess";
 
+/*
+ * THE FREE PLAN'S LIMIT ON DASHBOARDS: one.
+ *
+ * Asked twice: early, in onBeforeCreate, and again with the INSERT, in its
+ * own transaction under the limit's lock in the project (getCreateLimit,
+ * ProjectCountLimit), so dashboards created at the same moment cannot all
+ * pass. How many the Free plan allows, the lock's name, what it counts -
+ * every dashboard of the project, as the early check counts them - and the
+ * refusal both checks give.
+ */
+export const ALLOWED_DASHBOARD_COUNT_IN_FREE_PLAN: number = 1;
+
+export const FREE_PLAN_DASHBOARD_LIMIT_NAME: string = "free-plan-dashboards";
+
+export const DASHBOARD_COUNT_STATEMENT: string =
+  'SELECT COUNT(*)::int AS "count" FROM "Dashboard" WHERE "projectId" = $1 AND "deletedAt" IS NULL';
+
+export const FREE_PLAN_DASHBOARD_LIMIT_MESSAGE: string =
+  "Free plan can only have 1 dashboard. Please upgrade your plan.";
+
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * Whether the Free plan's limit on dashboards holds this create: billing
+   * on, and a caller on the Free plan (the plan CommonAPI read for the
+   * request). OneUptime itself and a server admin carry no plan.
+   */
+  private isHeldToFreePlanLimit(
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    return IsBillingEnabled && props.currentPlan === PlanType.Free;
   }
 
   @CaptureSpan()
@@ -46,27 +80,22 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
-    if (IsBillingEnabled) {
-      // then if free plan, make sure it can only have 1 dashboard.
+    // On the Free plan, a project may only have one dashboard.
+    if (this.isHeldToFreePlanLimit(createBy.props)) {
+      // get count by project id.
+      const count: number = (
+        await this.countBy({
+          query: {
+            projectId: createBy.data.projectId,
+          },
+          props: {
+            isRoot: true,
+          },
+        })
+      ).toNumber();
 
-      if (createBy.props.currentPlan === PlanType.Free) {
-        // get count by project id.
-        const count: number = (
-          await this.countBy({
-            query: {
-              projectId: createBy.data.projectId,
-            },
-            props: {
-              isRoot: true,
-            },
-          })
-        ).toNumber();
-
-        if (count > 0) {
-          throw new BadDataException(
-            "Free plan can only have 1 dashboard. Please upgrade your plan.",
-          );
-        }
+      if (count >= ALLOWED_DASHBOARD_COUNT_IN_FREE_PLAN) {
+        throw new BadDataException(FREE_PLAN_DASHBOARD_LIMIT_MESSAGE);
       }
     }
 
@@ -113,6 +142,33 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return Promise.resolve({ createBy, carryForward: null });
+  }
+
+  /*
+   * The Free plan's limit on dashboards, decided again with the INSERT:
+   * counted in the INSERT's own transaction, under the limit's lock in the
+   * project, so dashboards created at the same moment - each of which
+   * passed the early count in onBeforeCreate - cannot all be added. Every
+   * create is asked, one that skips its hooks too. Null when the create is
+   * held to no such limit.
+   */
+  protected override async getCreateLimit(
+    createBy: CreateBy<Model>,
+  ): Promise<CreateLimit | null> {
+    const projectId: ObjectID | undefined = createBy.data.projectId;
+
+    if (!projectId || !this.isHeldToFreePlanLimit(createBy.props)) {
+      return null;
+    }
+
+    return ProjectCountLimit.getCreateLimit({
+      limitName: FREE_PLAN_DASHBOARD_LIMIT_NAME,
+      projectId: projectId,
+      allowed: ALLOWED_DASHBOARD_COUNT_IN_FREE_PLAN,
+      statement: DASHBOARD_COUNT_STATEMENT,
+      parameters: [projectId.toString()],
+      refusal: FREE_PLAN_DASHBOARD_LIMIT_MESSAGE,
+    });
   }
 
   @CaptureSpan()

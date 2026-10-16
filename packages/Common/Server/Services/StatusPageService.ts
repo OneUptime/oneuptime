@@ -1,6 +1,7 @@
 import DatabaseConfig from "../DatabaseConfig";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import CreateBy from "../Types/Database/CreateBy";
+import CreateLimit from "../Types/Database/CreateLimit";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import PartialEntity from "../../Types/Database/PartialEntity";
@@ -10,6 +11,7 @@ import JSONWebToken from "../Utils/JsonWebToken";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ProjectCountLimit from "../Utils/Database/ProjectCountLimit";
 import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectService, { CurrentPlan } from "./ProjectService";
@@ -275,6 +277,24 @@ export const assertStatusPageWriteValues: (
       );
   }
 };
+
+/*
+ * THE FREE PLAN'S LIMIT ON STATUS PAGES (AllowedStatusPageCountInFreePlan).
+ *
+ * Asked twice: early, in onBeforeCreate, and again with the INSERT, in its
+ * own transaction under the limit's lock in the project (getCreateLimit,
+ * ProjectCountLimit), so status pages created at the same moment cannot all
+ * pass. The lock's name, what it counts - every status page of the project,
+ * as the early check counts them - and the refusal both checks give.
+ */
+export const FREE_PLAN_STATUS_PAGE_LIMIT_NAME: string =
+  "free-plan-status-pages";
+
+export const STATUS_PAGE_COUNT_STATEMENT: string =
+  'SELECT COUNT(*)::int AS "count" FROM "StatusPage" WHERE "projectId" = $1 AND "deletedAt" IS NULL';
+
+export const FREE_PLAN_STATUS_PAGE_LIMIT_MESSAGE: string =
+  "You have reached the maximum allowed status page limit for the free plan. Please upgrade your plan to add more status pages.";
 
 export class Service extends ProjectReferencesService<StatusPage> {
   /*
@@ -586,9 +606,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
         });
 
         if (statusPageCount.toNumber() >= AllowedStatusPageCountInFreePlan) {
-          throw new BadDataException(
-            `You have reached the maximum allowed status page limit for the free plan. Please upgrade your plan to add more status pages.`,
-          );
+          throw new BadDataException(FREE_PLAN_STATUS_PAGE_LIMIT_MESSAGE);
         }
       }
     }
@@ -667,6 +685,40 @@ export class Service extends ProjectReferencesService<StatusPage> {
       createBy,
       carryForward: null,
     };
+  }
+
+  /*
+   * The Free plan's limit on status pages, decided again with the INSERT:
+   * counted in the INSERT's own transaction, under the limit's lock in the
+   * project, so status pages created at the same moment - each of which
+   * passed the early count in onBeforeCreate - cannot all be added. Every
+   * create is asked, one that skips its hooks too. Null on a plan with no
+   * such limit, and without billing.
+   */
+  protected override async getCreateLimit(
+    createBy: CreateBy<StatusPage>,
+  ): Promise<CreateLimit | null> {
+    const projectId: ObjectID | undefined = createBy.data.projectId;
+
+    if (!IsBillingEnabled || !projectId) {
+      return null;
+    }
+
+    const currentPlan: CurrentPlan =
+      await ProjectService.getCurrentPlan(projectId);
+
+    if (currentPlan.plan !== PlanType.Free) {
+      return null;
+    }
+
+    return ProjectCountLimit.getCreateLimit({
+      limitName: FREE_PLAN_STATUS_PAGE_LIMIT_NAME,
+      projectId: projectId,
+      allowed: AllowedStatusPageCountInFreePlan,
+      statement: STATUS_PAGE_COUNT_STATEMENT,
+      parameters: [projectId.toString()],
+      refusal: FREE_PLAN_STATUS_PAGE_LIMIT_MESSAGE,
+    });
   }
 
   /*
