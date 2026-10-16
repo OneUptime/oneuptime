@@ -1,3 +1,5 @@
+import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
+import AIRunEventType from "Common/Types/AI/AIRunEventType";
 import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 
@@ -129,4 +131,22 @@ export const scrollToAIInvestigationPanel: () => void = (): void => {
     block: "start",
   });
   investigationPanel.focus({ preventScroll: true });
+};
+
+/*
+ * Whether the run is an incident's follow-up check (issue #4787): its
+ * activity starts with why it checks again - an alert that opened on the
+ * incident's linked infrastructure after the first analysis
+ * (ProgressLog resultSummary.followUpCheck). The card heads such a run
+ * "OneUptime AI is checking again" while it works.
+ */
+export const isFollowUpCheckRun: (events: Array<AIRunEvent>) => boolean = (
+  events: Array<AIRunEvent>,
+): boolean => {
+  return events.some((event: AIRunEvent): boolean => {
+    return (
+      event.eventType === AIRunEventType.ProgressLog &&
+      Boolean(event.resultSummary?.followUpCheck)
+    );
+  });
 };

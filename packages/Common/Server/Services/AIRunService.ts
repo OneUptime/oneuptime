@@ -10,7 +10,7 @@ import CodeFixTaskType, {
   CodeFixContextKind,
   CodeFixTaskTypeHelper,
 } from "../../Types/AI/CodeFixTaskType";
-import {
+import CodeFixTaskContext, {
   getGitHubTaskContext,
   getInvestigationCodeFixTaskSnapshot,
   InvestigationCodeFixTaskContext,
@@ -49,6 +49,13 @@ export interface AIRunTransitionSet {
   codeFixRecommendation?: AIRunCodeFixRecommendation | undefined;
   // The claiming agent's id as a string (ObjectID.toString()) — see above.
   aiAgentId?: string | undefined;
+  /*
+   * The whole context, re-read and merged by the caller: TypeORM writes a
+   * jsonb column by replacing it. The column has no transformer, so the
+   * query-builder update stores the object as it is. For what has to be on
+   * the run the moment it is terminal — see update-task-status.
+   */
+  taskContext?: CodeFixTaskContext | undefined;
 }
 
 export class Service extends DatabaseService<Model> {

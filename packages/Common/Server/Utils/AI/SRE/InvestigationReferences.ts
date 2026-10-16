@@ -10,6 +10,7 @@ import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedExc
 import ObjectID from "../../../../Types/ObjectID";
 import {
   ExtractedInvestigationEventReference,
+  ParsedInvestigationReport,
   extractEventReferences,
   parseInvestigationReport,
 } from "../../../../Utils/AI/InvestigationReport";
@@ -254,13 +255,20 @@ export async function resolveInvestigationReferences(
     }
 
     /*
-     * Only the model's note: the server-authored Evidence checked labels
-     * ("Incident #6954 timeline") and footer are not references the report
-     * makes, and the panel never renders them as prose.
+     * Only the model's note, and a follow-up check's lead, which names the
+     * alert that made OneUptime AI check again: the server-authored Evidence
+     * checked labels ("Incident #6954 timeline") and footer are not
+     * references the report makes, and the panel never renders them as
+     * prose.
      */
+    const report: ParsedInvestigationReport = parseInvestigationReport(
+      data.markdown,
+    );
     const extracted: Array<ExtractedInvestigationEventReference> =
       extractEventReferences(
-        parseInvestigationReport(data.markdown).bodyMarkdown,
+        [report.followUpLead || "", report.bodyMarkdown]
+          .filter(Boolean)
+          .join("\n\n"),
         data.subjectType,
       );
 

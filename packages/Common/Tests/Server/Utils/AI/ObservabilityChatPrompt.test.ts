@@ -797,3 +797,88 @@ describe("network device transceiver guidance", () => {
     expect(TOOLBOX_TOOL_NAMES.has("query_network_transceivers")).toBe(true);
   });
 });
+
+describe("container host and split-metric guidance (issues #4784, #4785)", () => {
+  test.each([AIResourceType.DockerHost, AIResourceType.PodmanHost])(
+    "a %s page routes container questions to query_containers with its id",
+    (resourceType: AIResourceType) => {
+      const section: string = buildPageContextSection({
+        type: AIChatPageContextType.Resource,
+        resourceType,
+        entityId: ENTITY_ID,
+        entityTitle: "web-1",
+      });
+
+      expect(section).toContain(
+        `call query_containers with ${JSON.stringify({ resourceType, resourceId: ENTITY_ID })}`,
+      );
+      expect(section).toContain("the ones that stopped reporting");
+    },
+  );
+
+  test("the Docker hosts list names the tool without inventing a host", () => {
+    const section: string = buildPageContextSection({
+      type: AIChatPageContextType.ResourcesList,
+      resourceType: AIResourceType.DockerHost,
+    });
+
+    expect(section).toContain(
+      "call query_containers with its resourceType and resourceId",
+    );
+    expect(section).not.toContain(ENTITY_ID);
+  });
+
+  test.each(
+    Object.values(AIResourceType).filter((resourceType: AIResourceType) => {
+      return (
+        resourceType !== AIResourceType.DockerHost &&
+        resourceType !== AIResourceType.PodmanHost
+      );
+    }),
+  )(
+    "%s pages do not offer the container tool",
+    (resourceType: AIResourceType) => {
+      expect(
+        buildPageContextSection({
+          type: AIChatPageContextType.Resource,
+          resourceType,
+          entityId: ENTITY_ID,
+        }),
+      ).not.toContain("query_containers");
+    },
+  );
+
+  test("every resource page says metrics take attributes and groupBy, and split host metrics are read per state", () => {
+    const section: string = buildPageContextSection({
+      type: AIChatPageContextType.Resource,
+      resourceType: AIResourceType.Host,
+      entityId: ENTITY_ID,
+    });
+
+    expect(section).toContain(
+      "attributes filters a metric by attribute and groupBy reads one series per value",
+    );
+    expect(section).toContain("are read per state on their own");
+  });
+
+  test("the system prompt explains split host metrics and sends container questions to query_containers", () => {
+    const prompt: string = buildObservabilityChatSystemPrompt({
+      currentTime: new Date("2026-10-16T00:00:00Z"),
+      permissionMode: AIChatPermissionMode.ReadOnly,
+    });
+    const line: string | undefined = prompt
+      .split("\n")
+      .find((candidate: string): boolean => {
+        return candidate.startsWith(
+          "- Host metrics such as system.cpu.utilization",
+        );
+      });
+
+    expect(line).toBeDefined();
+    expect(line).toContain(
+      "the states add up to 1, so one average across them means nothing",
+    );
+    expect(line).toContain("use query_containers");
+    expect(TOOLBOX_TOOL_NAMES.has("query_containers")).toBe(true);
+  });
+});

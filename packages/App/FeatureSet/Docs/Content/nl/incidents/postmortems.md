@@ -1,0 +1,165 @@
+# Postmortem-analyses
+
+Een postmortem is het verslag na een incident: wat er gebeurde, waarom, wat het uw gebruikers kostte en wat er nu verandert. In OneUptime schrijft u het op het incident zelf. Het kan beginnen met uw eigen sjabloon of met een concept van OneUptime AI, en het kan op uw statuspagina worden gepubliceerd als de afsluitende update van het incident.
+
+:::cards
+- [Een postmortem schrijven](#een-postmortem-schrijven): Op de pagina Postmortem van het incident, in vijf stappen.
+- [Beginnen met een sjabloon of een AI-concept](#beginnen-met-een-sjabloon-of-een-ai-concept): Uw eigen opzet, of een die OneUptime AI invult.
+- [Het op uw statuspagina publiceren](#het-op-uw-statuspagina-publiceren): Het aan klanten tonen en abonnees één keer informeren.
+- [Postmortems van episodes](#postmortems-van-episodes): Eén verslag voor een groep incidenten.
+:::
+
+## Hoe een postmortem tot stand komt
+
+Een postmortem heeft drie delen, allemaal op het incident: de notitie, geschreven in Markdown; de bijlagen, zoals schermafbeeldingen en rapporten; en of het op uw statuspagina staat. Ze staan op de pagina **Postmortem** van het incident, onder **Onderzoek** in het zijmenu.
+
+```mermaid title="Van een opgelost incident naar een gepubliceerd postmortem"
+flowchart TB
+    R["Het incident is opgelost"] --> A["OneUptime AI stelt het op,<br/>als concepten aan staan"]
+    R --> W["Of u begint zelf: leeg,<br/>sjabloon of AI"]
+    A --> E["Uw team bewerkt het"]
+    W --> E
+    E --> P{"Publiceren op<br/>de statuspagina?"}
+    P -->|"Ja"| S["De statuspagina toont het"]
+    S --> N["Abonnees horen<br/>het één keer"]
+    P -->|"Nee"| K["Het blijft bij uw team"]
+```
+
+## Een postmortem schrijven
+
+:::steps
+### Het postmortem openen
+
+Open het incident en klik in het zijmenu onder **Onderzoek** op **Postmortem**. De kaart **Postmortem-notitie** toont de notitie, de bijlagen en of het postmortem op de statuspagina staat.
+
+### Op Postmortem-notitie bewerken klikken
+
+Het dialoogvenster **Postmortem-notitie bewerken** opent op de eerste stap, **Postmortem**.
+
+### De notitie schrijven en bestanden bijvoegen
+
+Schrijf de **Postmortem-notitie** in Markdown: wat er gebeurde, de impact, hoe het werd opgelost en de vervolgacties. Voeg schermafbeeldingen, rapporten of tijdlijnen toe onder **Postmortem-bijlagen**.
+
+### Kiezen of u publiceert
+
+Klik op **Volgende**. In de stap **Statuspagina** staat **Publiceren op statuspagina** uit, dus het postmortem blijft bij uw team. Om het aan klanten te tonen, zie [Het op uw statuspagina publiceren](#het-op-uw-statuspagina-publiceren).
+
+### Het postmortem opslaan
+
+Klik op **Wijzigingen opslaan**. De kaart toont de notitie en de bijlagen.
+:::
+
+Elke wijziging van de notitie wordt vastgelegd in de feed van het incident, en gepost in het Slack- of Microsoft Teams-kanaal van het incident als het er een heeft. Zolang het postmortem niet is gepubliceerd, hoort geen abonnee van de statuspagina ervan.
+
+Een postmortem schrijven vereist de rol Project Owner, Project Admin, Project Member, Incident Admin of Incident Member, of een aangepaste rol met de machtiging Edit Incident. Wie het incident kan lezen, kan ook het postmortem lezen.
+
+## Beginnen met een sjabloon of een AI-concept
+
+Twee knoppen op de kaart vullen de notitie voor u in: **Generate with AI**, en **Sjabloon toepassen** zodra het project een postmortem-sjabloon heeft. Beide openen dezelfde editor als **Postmortem-notitie bewerken**, met de notitie ingevuld en de rest van het postmortem ongewijzigd. Er wordt niets opgeslagen tot u op **Wijzigingen opslaan** klikt, dus lees de notitie eerst na en pas haar aan.
+
+### Een sjabloon toepassen
+
+**Sjabloon toepassen** verschijnt zodra het project een postmortem-sjabloon heeft. Sjablonen maakt u onder **Incidenten → Instellingen → Postmortem-sjablonen**: zie [Postmortem-sjablonen](/docs/incidents/settings#postmortem-sjablonen). In OneUptime Cloud vereisen sjablonen het Growth-abonnement.
+
+Klik op **Sjabloon toepassen**, kies er een onder **Selecteer sjabloon** in het dialoogvenster **Postmortemsjabloon toepassen** en klik op **Sjabloon toepassen**. Heeft het project maar één sjabloon, dan is dat al gekozen.
+
+### Het met AI genereren
+
+Klik op **Generate with AI**. Het dialoogvenster **Generate Postmortem with AI** biedt een opzet aan onder **Selecteer sjabloon**: **Standard Postmortem**, **Detailed Technical Postmortem** of **Brief Postmortem**, daarna uw eigen postmortem-sjablonen. **Template Preview** toont de opzet, en u kunt die wijzigen voordat u genereert.
+
+Klik onderaan het dialoogvenster op **Generate with AI**. OneUptime AI leest het incident (de beschrijving, de oorzaak en de oplossing, de statustijdlijn, de openbare en privénotities, en de berichten in het Slack- of Microsoft Teams-kanaal) en schrijft het postmortem in uw opzet. Daarna opent de editor met het resultaat.
+
+Genereren vereist dat AI voor het project is ingeschakeld, onder **Projectinstellingen → AI → AI Features**, en een LLM-provider: zie [LLM-providers](/docs/ai/llm-provider). Het vereist ook de rol Project Owner of Project Admin, of een aangepaste rol met de machtiging Edit Incident: andere rollen kunnen het postmortem schrijven, maar niet genereren.
+
+### OneUptime AI het laten opstellen wanneer een incident is opgelost
+
+Met **Een postmortem opstellen wanneer een incident is opgelost** aan stelt OneUptime AI het postmortem op telkens wanneer een incident wordt opgelost, slaat het op als notitie en post het in de feed van het incident zodat uw team het kan nakijken. De schakelaar staat onder **Incidenten → AI → Instellingen**, en staat aan voor nieuwe projecten.
+
+- Het vervangt nooit een notitie die al is geschreven.
+- Het schrijft nooit in een postmortem dat al is gepubliceerd, waar het concept ongecontroleerd op de statuspagina zou komen.
+- Het vereist dat AI voor het project is ingeschakeld, en stopt voor die dag zodra het project zijn dagelijkse AI-limieten bereikt. Zie [Automatisch postmortem](/docs/ai/ai-sre#automatisch-postmortem).
+
+## Het op uw statuspagina publiceren
+
+Een gepubliceerd postmortem is de afsluitende update van het incident voor uw klanten: de statuspagina toont de notitie, uitgelicht in de tijdlijn van het incident, met de bijlagen om te downloaden.
+
+:::steps
+### De stap Statuspagina openen
+
+Klik op **Postmortem-notitie bewerken** en daarna op **Volgende** om bij de stap **Statuspagina** te komen.
+
+### Publiceren op statuspagina aanzetten
+
+Zet **Publiceren op statuspagina** aan. Er verschijnen nog twee velden: **Abonnees op de hoogte stellen**, dat aan staat, en **Postmortem gepubliceerd op**, dat op nu staat.
+
+### Bepalen wie het hoort, en wanneer het verschijnt
+
+Zet **Abonnees op de hoogte stellen** uit om te publiceren zonder abonnees te informeren. Wijzig **Postmortem gepubliceerd op** om een ander tijdstip naast het postmortem te tonen.
+
+### Publiceren
+
+Klik op **Wijzigingen opslaan**. De kaart toont nu **Postmortem zichtbaar op statuspagina?**, **Abonnees op de hoogte stellen**, **Meldingsstatus abonnee** en **Postmortem gepubliceerd op**.
+:::
+
+Wat bepaalt of klanten het zien, en of ze het horen:
+
+- **Het incident moet op de statuspagina staan.** Een statuspagina toont een postmortem alleen bij een incident dat ze toont: **Zichtbaar op statuspagina** aan, en het incident niet privé.
+- **De notitie moet iets zeggen.** Een postmortem dat met een lege notitie wordt gepubliceerd, wordt niet getoond, en niemand wordt geïnformeerd.
+- **Abonnees worden één keer geïnformeerd**, de eerste keer dat de statuspagina het postmortem toont. Opnieuw opslaan, of bewerken terwijl het gepubliceerd is, werkt de pagina bij zonder iemand te informeren. Het eraf halen en opnieuw publiceren informeert hen opnieuw. Een postmortem dat wordt gepubliceerd terwijl het incident verborgen is, wordt verzonden zodra het incident zichtbaar wordt gemaakt.
+- **Abonnees op de hoogte stellen wordt gelezen wanneer de melding uitgaat.** Het aanzetten nadat het postmortem is gepubliceerd, verzendt niets.
+
+**Meldingsstatus abonnee** toont of de melding is verzonden, en biedt **Opnieuw proberen** als die mislukte. Zie [Het postmortem](/docs/status-pages/subscribers#de-postmortem) voor elk geval, en [Opnieuw proberen en opnieuw verzenden](/docs/status-pages/subscribers#opnieuw-proberen-en-opnieuw-verzenden).
+
+**Postmortem gepubliceerd op** is ook het moment waarop het postmortem als gepubliceerd telt voor de meting **Tijd tot postmortem**: zie [Kant-en-klare metingen](/docs/incidents/settings#kant-en-klare-metingen).
+
+## Postmortems van episodes
+
+Een incidentepisode heeft ook een pagina **Postmortem**, onder **Onderzoek**: één verslag voor elk incident in de episode. Klik op **Postmortem bewerken** om het te schrijven. **Sjabloon toepassen** en **Generate with AI** werken zoals bij een incident, en de AI leest de episode en de incidenten die erin zitten.
+
+Het postmortem van een episode is alleen de notitie: het heeft geen bijlagen, en geen statuspagina toont het. OneUptime AI stelt er geen uit zichzelf op wanneer een episode wordt opgelost. Genereren vereist de rol Project Owner of Project Admin, of een aangepaste rol met de machtiging Edit Incident Episode.
+
+Waarschuwingen en geplande onderhoudsgebeurtenissen hebben geen postmortem.
+
+## Via de API
+
+Een postmortem is een set velden van het incident, gelezen en geschreven via `/api/incident` zoals de rest van het incident:
+
+| Veld | Wat het is |
+| --- | --- |
+| `postmortemNote` | De notitie, in Markdown. |
+| `showPostmortemOnStatusPage` | Of het postmortem op uw statuspagina's is gepubliceerd. Begint op `false`. |
+| `notifySubscribersOnPostmortemPublished` | Of abonnees worden geïnformeerd wanneer het wordt gepubliceerd. Begint op `true`. |
+| `postmortemPostedAt` | Het tijdstip dat de statuspagina ernaast toont. |
+
+`showPostmortemOnStatusPage` als `true` schrijven over een geschreven `postmortemNote` publiceert het postmortem, zoals het dialoogvenster doet.
+
+## Problemen oplossen
+
+:::details Sjabloon toepassen staat niet op de kaart
+Het project heeft nog geen postmortem-sjabloon, of uw rol kan ze niet lezen. Maak er een onder **Incidenten → Instellingen → Postmortem-sjablonen**. In OneUptime Cloud vereisen sjablonen het Growth-abonnement.
+:::
+
+:::details Generate with AI meldt dat AI uit staat, of dat u de machtiging mist
+Zet AI aan onder **Projectinstellingen → AI → AI Features**. Genereren vereist de rol Project Owner of Project Admin, of een aangepaste rol met de machtiging Edit Incident, ook voor iemand die het postmortem kan bewerken.
+:::
+
+:::details Het postmortem staat niet op de statuspagina
+Controleer drie dingen: **Publiceren op statuspagina** staat aan, de notitie is niet leeg, en het incident wordt op de statuspagina getoond (**Zichtbaar op statuspagina** aan, en niet privé).
+:::
+
+:::details Abonnees zijn niet over het postmortem geïnformeerd
+**Abonnees op de hoogte stellen** stond uit bij het publiceren, of het incident is verborgen: dan wordt het verzonden zodra het incident zichtbaar wordt gemaakt. **Meldingsstatus abonnee** op de kaart vertelt welke het was.
+:::
+
+:::details Er verscheen geen AI-concept toen het incident werd opgelost
+Het incident had al een notitie, het postmortem was al gepubliceerd, of **Een postmortem opstellen wanneer een incident is opgelost** staat uit. AI moet voor het project zijn ingeschakeld, en het project mag zijn dagelijkse AI-limieten niet hebben bereikt.
+:::
+
+## Volgende stappen
+
+:::cards
+- [Incidenten – Overzicht](/docs/incidents/index): De andere pagina's van het incident, van melden tot oplossen.
+- [Incidentinstellingen en automatisering](/docs/incidents/settings): Postmortem-sjablonen en de meting van de tijd tot postmortem.
+- [Abonnees en aankondigingen](/docs/status-pages/subscribers): Alles wat een statuspagina haar abonnees vertelt.
+- [AI SRE](/docs/ai/ai-sre): Wat OneUptime AI uit zichzelf doet na een incident.
+:::

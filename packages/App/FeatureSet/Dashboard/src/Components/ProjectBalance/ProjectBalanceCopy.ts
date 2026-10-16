@@ -85,6 +85,41 @@ export const AUTO_RECHARGE_FAILED_DESCRIPTIONS: Readonly<
 };
 
 /*
+ * For a project a cloud marketplace bills (Project.billingMarketplace),
+ * which has no card: where its recharges are billed, after the Current
+ * Balance card's description - and, when Auto Recharge's last charge was
+ * refused, what to check: the project's subscription on the marketplace,
+ * not a payment method. Who can do something about it is worded as for a
+ * card.
+ */
+export const MARKETPLACE_RECHARGE_BILLED_TEMPLATE: string = translationKey(
+  "Recharges and Auto Recharge are billed through {{marketplace}}, not a card.",
+);
+
+export const MARKETPLACE_AUTO_RECHARGE_FAILED_TITLE_TEMPLATE: string =
+  translationKey("Auto Recharge could not bill {{marketplace}}.");
+
+export const MARKETPLACE_AUTO_RECHARGE_FAILED_DESCRIPTIONS: Readonly<
+  Record<ProjectBalanceType, ProjectBalanceCardDescriptions>
+> = {
+  [ProjectBalanceType.SmsOrCall]: {
+    forPeopleWhoMayAdd: translationKey(
+      "It tries again within an hour. Check that this project's subscription on {{marketplace}} is active, or recharge the balance now.",
+    ),
+    forEveryoneElse:
+      AUTO_RECHARGE_FAILED_DESCRIPTIONS[ProjectBalanceType.SmsOrCall]
+        .forEveryoneElse,
+  },
+  [ProjectBalanceType.AI]: {
+    forPeopleWhoMayAdd: translationKey(
+      "It tries again within an hour. Check that this project's subscription on {{marketplace}} is active, or add AI credits now.",
+    ),
+    forEveryoneElse:
+      AUTO_RECHARGE_FAILED_DESCRIPTIONS[ProjectBalanceType.AI].forEveryoneElse,
+  },
+};
+
+/*
  * The locked Recharge Balance button's tooltip: the permissions a recharge
  * needs, by their titles.
  */

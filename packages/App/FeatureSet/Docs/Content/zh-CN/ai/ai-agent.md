@@ -81,7 +81,7 @@ OneUptime AI 也会自行启动修复任务：来自发现代码更改的调查�
 | 内容 | OneUptime Cloud | 自托管 |
 | --- | --- | --- |
 | LLM 提供商 | 无需设置：没有自己提供商的项目使用全局提供商，费用从项目的 AI 额度中支付。在 **项目设置 → 人工智能 → LLM 提供商** 下添加的自有提供商优先。 | 在服务器上一次性设置 `GLOBAL_LLM_PROVIDER_*` 环境变量，或者为项目添加一个提供商。 |
-| 通过 GitHub App 连接的存储库 | **产品 → 代码 → 任务**，然后是 **代码存储库** 和 **Connect with GitHub App**。需要 Growth 套餐。 | 相同，只要你的实例有 GitHub App（请参阅 [GitHub 集成](/docs/self-hosted/github-integration)）。 |
+| 通过 GitHub App 连接的存储库 | **产品 → 代码 → 任务**，然后是 **代码存储库** 和 **Connect with GitHub App**。如果该应用已经安装在 GitHub 账号上，请改为点击 **连接现有安装**：再次安装并不会连接它。需要 Growth 套餐。 | 相同，只要你的实例有 GitHub App（请参阅 [GitHub 集成](/docs/self-hosted/github-integration)）。 |
 | 执行 AI 代码修复的 Runner | 无需运行任何东西：由 OneUptime 的共享 Runner 完成。 | Docker Compose 的 `runner` 服务，或 Helm chart 的 Runner（`runner.enabled`，默认开启），会自行注册并执行 AI 代码修复。 |
 
 在自托管实例上，全局提供商是 `config.env`（Docker Compose）或你的 Helm values 中的一个配置块。对于自托管的 Ollama：

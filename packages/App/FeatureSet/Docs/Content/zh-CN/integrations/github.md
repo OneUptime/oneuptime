@@ -32,6 +32,8 @@ flowchart TB
 
 打开 **产品 → 代码 → 任务**，然后打开 **代码存储库**，点击 **Connect with GitHub App**。GitHub 会询问要把应用安装到哪里，以及它可以使用哪些存储库。安装中的每个存储库都会被导入，并在你向安装中添加或移除存储库时保持同步。
 
+如果应用已经安装在该账户上（为另一个项目安装，或直接从 GitHub 安装），请点击 **Connect with GitHub App** 卡片下方的 **连接现有安装**，而不是再次安装。这需要一个管理该安装的 GitHub 账户：个人账户的所有者，或者对该安装可访问的每个存储库都有 admin 权限的人，组织的所有者就有这种权限。
+
 自托管实例首先需要它自己的 GitHub App：[GitHub 集成](/docs/self-hosted/github-integration) 介绍了如何创建它。之后，[修复任务](/docs/ai/ai-agent) 会在你的存储库中打开 pull request，[GitHub App](/docs/ai/github-app) 页面则介绍了在 issue 或 pull request 中提及该应用时它会做什么。
 
 ## 开始之前

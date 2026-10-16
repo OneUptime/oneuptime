@@ -81,7 +81,7 @@ Un'attività di correzione ha bisogno di tre cose. La pagina **AI Assistance** d
 | Cosa | OneUptime Cloud | Self-hosted |
 | --- | --- | --- |
 | Un provider LLM | Niente da configurare: un progetto senza un proprio provider usa il provider globale, pagato con i crediti IA del progetto. Un tuo provider, in **Impostazioni del progetto → IA → Provider LLM**, ha la precedenza. | Imposta una volta sul server le variabili d'ambiente `GLOBAL_LLM_PROVIDER_*`, oppure aggiungi un provider al progetto. |
-| Un repository collegato tramite la GitHub App | **Prodotti → Codice → Attività**, poi **Repository di codice** e **Connect with GitHub App**. Richiede il piano Growth. | Lo stesso, una volta che la tua istanza ha una GitHub App (vedi [Integrazione con GitHub](/docs/self-hosted/github-integration)). |
+| Un repository collegato tramite la GitHub App | **Prodotti → Codice → Attività**, poi **Repository di codice** e **Connect with GitHub App**. Se l'app è già installata sull'account GitHub, fai invece clic su **Collega un'installazione esistente**: installarla di nuovo non la collega. Richiede il piano Growth. | Lo stesso, una volta che la tua istanza ha una GitHub App (vedi [Integrazione con GitHub](/docs/self-hosted/github-integration)). |
 | Un Runner che esegue le correzioni di codice AI | Niente da gestire: se ne occupano i Runner condivisi di OneUptime. | Il servizio `runner` di Docker Compose, o il Runner del chart Helm (`runner.enabled`, attivo per impostazione predefinita), si registra da solo ed esegue le correzioni di codice AI. |
 
 Su un'istanza self-hosted, il provider globale è un blocco di `config.env` (Docker Compose) o dei tuoi valori Helm. Per un Ollama self-hosted:

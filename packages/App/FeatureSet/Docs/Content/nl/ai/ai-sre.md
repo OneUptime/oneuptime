@@ -46,6 +46,22 @@ Terwijl het onderzoek loopt, toont de pagina van het incident of de waarschuwing
 
 Een onderzoek loopt tot het klaar is: het heeft **geen tijdslimiet** en geen klein querybudget, dus het kan elke query en elke kubectl- of infrastructuuropdracht uitvoeren die het nodig heeft. Een lange opdrachtuitvoer (een `kubectl describe node` van een drukke node, de logs van een pod) wordt nooit afgekapt: OneUptime AI leest die pagina voor pagina. Wil je een harde stop, stel dan per signaaltype een **tijdslimiet voor onderzoeken** in (zie **Kostenbeheersing** hieronder).
 
+## Wat een onderzoek leest
+
+Een onderzoek begint bij het incident of de waarschuwing en bij de infrastructuur waaraan het is gekoppeld: de hosts, Docker- en Podman-hosts, Kubernetes-clusters, databases en services die de monitors ervan bewaken. Een website-, API- of synthetische monitor bewaakt waaraan je hem koppelt onder **Monitor → Overzicht → Gekoppelde resources**, dus koppel hem aan de hosts die leveren wat hij controleert, en elk onderzoek van zijn incidenten begint daar.
+
+- De waarschuwingen op die infrastructuur die in de 30 minuten vóór het incident zijn geopend, of nog open staan, de nieuwste eerst, zoals de waarschuwing voor hoge CPU van de host achter een trage site. Privéwaarschuwingen worden weggelaten.
+- De eigen metrics van de infrastructuur, gelezen zoals mensen ze lezen. Hostmetrics zoals `system.cpu.utilization` en `system.memory.utilization` worden één keer per status gerapporteerd, en de statussen tellen op tot 100%, dus één gemiddelde over alle zegt niets. OneUptime AI leest ze status voor status (bezette CPU is user plus system), en elke metric per container, per koppelpunt of naar elk ander attribuut.
+- De containers van een Docker- of Podman-host: de drukste naar CPU, geheugen of herstarts, en de containers die niets meer melden. Een gestopte container stuurt niets in plaats van nul, dus de cijfers van de hele host verbergen hem.
+
+De activiteit van het onderzoek op de kaart **AI Investigation** zegt hoeveel open of recente waarschuwingen het heeft gelezen, en op welke resources.
+
+### Opnieuw gecontroleerd als er een nieuwe waarschuwing opent
+
+Een onderzoek begint zodra een incident wordt gemeld, en een hostwaarschuwing die een paar minuten aan metrics nodig heeft, kan daarna openen. Opent er binnen 30 minuten na het incident een waarschuwing op de gekoppelde infrastructuur van het incident, nadat het onderzoek die heeft gelezen, en staat het incident nog open, dan controleert OneUptime AI het incident nog één keer met die waarschuwing in de hand. De nieuwe analyse begint met **Checked again** en de waarschuwing die de controle startte, en de activiteit zegt het ook.
+
+Dat gebeurt hoogstens één keer per incident, met dezelfde schakelaars en limieten als een nieuw onderzoek: **AI inschakelen**, _Nieuwe incidenten onderzoeken_, de AI-tegoeden en de dagelijkse en gelijktijdigheidslimieten. Er is niets in te schakelen. Een vervolgcontrole voert de automatische herstelacties nooit opnieuw uit en krijgt zelf nooit een vervolg, en het onderzoek van een waarschuwing wordt niet opnieuw gecontroleerd.
+
 ## Praat met OneUptime AI over het incident
 
 De kaart **AI Investigation** eindigt met een gesprek, **Ask OneUptime AI**, dat iedereen deelt die het incident of de waarschuwing kan zien. Het is één kaart, wat er ook boven gebeurde: onder een rapport stel je vervolgvragen, en als er geen automatisch onderzoek liep (of het stopte voor het rapport) is de eerste suggestie **What is the root cause?**, waarmee OneUptime AI op verzoek onderzoekt.

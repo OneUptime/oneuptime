@@ -32,6 +32,8 @@ flowchart TB
 
 開啟 **產品 → 程式碼 → 任務**，然後開啟 **程式碼儲存庫**，點選 **Connect with GitHub App**。GitHub 會詢問要把應用程式安裝到哪裡，以及它可以使用哪些儲存庫。安裝中的每個儲存庫都會被匯入，並在你向安裝中新增或移除儲存庫時保持同步。
 
+如果應用程式已安裝在該帳戶上（為另一個專案安裝，或直接從 GitHub 安裝），請點選 **Connect with GitHub App** 卡片下方的 **連接現有安裝**，而不是再次安裝。這需要一個管理該安裝的 GitHub 帳戶：個人帳戶的擁有者，或對該安裝可存取的每個儲存庫都有 admin 權限的人，組織的擁有者就有這種權限。
+
 自行託管執行個體首先需要它自己的 GitHub App：[GitHub 整合](/docs/self-hosted/github-integration) 介紹了如何建立它。之後，[修正任務](/docs/ai/ai-agent) 會在你的儲存庫中開啟 pull request，[GitHub App](/docs/ai/github-app) 頁面則介紹了在 issue 或 pull request 中提及該應用程式時它會做什麼。
 
 ## 開始之前

@@ -2213,6 +2213,40 @@ export class BillingService extends BaseService {
   }
 
   /*
+   * Ends a subscription now and settles it on one final invoice: the metered
+   * usage it has recorded and not yet invoiced, less a credit for the unused
+   * part of a period paid in advance. Used when a cloud marketplace takes
+   * over a project's billing (ProjectService.moveBillingToMarketplace): the
+   * card is charged for what it already owes and nothing after, and the
+   * marketplace bills from that moment on.
+   *
+   * Lenient like cancelSubscription: the marketplace has already started
+   * billing by the time this runs, so a failure here is logged for follow-up
+   * rather than undoing the move.
+   */
+  @CaptureSpan()
+  public async cancelSubscriptionWithFinalInvoice(
+    subscriptionId: string,
+  ): Promise<void> {
+    if (!this.isBillingEnabled()) {
+      throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
+    }
+
+    try {
+      await this.stripe.subscriptions.del(subscriptionId, {
+        invoice_now: true,
+        prorate: true,
+      });
+    } catch (err) {
+      logger.error(
+        `Could not cancel subscription ${subscriptionId} with a final invoice after its project moved to marketplace billing.`,
+        { subscriptionId } as LogAttributes,
+      );
+      logger.error(err, { subscriptionId } as LogAttributes);
+    }
+  }
+
+  /*
    * Moves the trial end of a project's subscriptions to a new date.
    *
    * Both the flat-fee subscription and the metered subscription have to move

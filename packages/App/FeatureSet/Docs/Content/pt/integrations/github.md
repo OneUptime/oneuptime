@@ -32,6 +32,8 @@ As duas são independentes, e você pode usar uma, a outra ou as duas. A GitHub 
 
 Abra **Produtos → Código → Tarefas**, depois **Repositórios de código**, e clique em **Connect with GitHub App**. O GitHub pergunta onde instalar o app e quais repositórios ele pode usar. Cada repositório da instalação é importado, e se mantém em dia quando você adiciona repositórios à instalação ou os retira.
 
+Se o app já estiver instalado na conta, para outro projeto ou direto pelo GitHub, clique em **Conectar uma instalação existente**, abaixo do cartão **Connect with GitHub App**, em vez de instalá-lo de novo. Isso exige uma conta do GitHub que administre a instalação: o dono de uma conta pessoal, ou alguém com permissão de admin em todos os repositórios que a instalação pode acessar, como tem um proprietário da organização.
+
 Uma instância auto-hospedada precisa primeiro de uma GitHub App própria: [Integração com GitHub](/docs/self-hosted/github-integration) mostra como criá-la. A partir daí, as [Tarefas de correção](/docs/ai/ai-agent) abrem pull requests nos seus repositórios, e a página [GitHub App](/docs/ai/github-app) mostra o que o app faz quando você o menciona em uma issue ou em um pull request.
 
 ## Antes de começar

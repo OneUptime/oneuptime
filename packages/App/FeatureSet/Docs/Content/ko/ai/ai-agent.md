@@ -81,7 +81,7 @@ OneUptime AI는 스스로 수정 작업을 시작하기도 합니다. 코드 변
 | 필요한 것 | OneUptime Cloud | 자체 호스팅 |
 | --- | --- | --- |
 | LLM 공급자 | 설정할 것이 없습니다. 자체 공급자가 없는 프로젝트는 전역 공급자를 사용하며, 비용은 프로젝트의 AI 크레딧에서 지불됩니다. **프로젝트 설정 → AI → LLM 공급자** 에 추가한 자체 공급자가 우선합니다. | 서버에 `GLOBAL_LLM_PROVIDER_*` 환경 변수를 한 번 설정하거나, 프로젝트에 공급자를 추가합니다. |
-| GitHub App으로 연결된 저장소 | **제품 → 코드 → 작업**, 그다음 **코드 저장소** 와 **Connect with GitHub App**. Growth 플랜이 필요합니다. | 인스턴스에 GitHub App이 있으면 동일합니다([GitHub 연동](/docs/self-hosted/github-integration) 참조). |
+| GitHub App으로 연결된 저장소 | **제품 → 코드 → 작업**, 그다음 **코드 저장소** 와 **Connect with GitHub App**. GitHub 계정에 앱이 이미 설치되어 있다면, 대신 **기존 설치 연결** 을 클릭합니다. 다시 설치해도 연결되지 않습니다. Growth 플랜이 필요합니다. | 인스턴스에 GitHub App이 있으면 동일합니다([GitHub 연동](/docs/self-hosted/github-integration) 참조). |
 | AI 코드 수정을 실행하는 Runner | 운영할 것이 없습니다. OneUptime의 공유 Runner가 처리합니다. | Docker Compose의 `runner` 서비스나 Helm 차트의 Runner(`runner.enabled`, 기본값 켜짐)가 스스로 등록하고 AI 코드 수정을 실행합니다. |
 
 자체 호스팅 인스턴스에서 전역 공급자는 `config.env`(Docker Compose) 또는 Helm 값의 블록 하나입니다. 자체 호스팅 Ollama의 경우:

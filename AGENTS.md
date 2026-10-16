@@ -100,6 +100,15 @@ published apps and the workspace, tenant and accounts that own them, and say how
 the live apps once it is released, how the Slack Marketplace and Microsoft Partner Center submissions work, and
 what customers must do after a permission change.
 
+### Cloud marketplace listings
+
+OneUptime Cloud is sold on AWS Marketplace, Microsoft Marketplace (Azure) and Google Cloud Marketplace through
+`packages/Common/Server/Utils/Marketplace` (purchases, landing pages, webhooks, hourly usage reporting) and Sign in with
+Microsoft. Before changing that code, its settings, the marketplace usage prices, or anything in a seller portal, read
+[the cloud marketplace guide](packages/Common/Server/Utils/Marketplace/RELEASING.md). It explains how a purchase is billed,
+the URLs and settings each marketplace is configured with, and which steps (seller registration, tax and banking,
+publishing) only a maintainer may do.
+
 ### Commit frequently
 
 Committing frequently helps keep your changes small and manageable. It also makes it easier to identify which changes introduced a bug if something goes wrong. Aim to commit logically related changes together and write clear commit messages that describe the purpose of the change. It also costs less when the work session is interrupted and resumed later.

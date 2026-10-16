@@ -54,6 +54,10 @@ const McpAuthorizePage: React.LazyExoticComponent<() => JSX.Element> = lazy(
     return import("./Pages/McpAuthorize");
   },
 );
+const MarketplacePurchasePage: React.LazyExoticComponent<() => JSX.Element> =
+  lazy(() => {
+    return import("./Pages/MarketplacePurchase");
+  });
 
 /*
  * Incident forms became forms (the Forms product), and kept their link keys,
@@ -138,6 +142,16 @@ function App(): ReactElement {
             <Route
               path="/accounts/mcp-authorize"
               element={<McpAuthorizePage />}
+            />
+            {/*
+             * Where a buyer from AWS, Microsoft or Google Cloud Marketplace
+             * chooses the project their purchase pays for. It needs a
+             * session; a visitor without one is sent to sign in and brought
+             * back (see the page).
+             */}
+            <Route
+              path="/accounts/marketplace"
+              element={<MarketplacePurchasePage />}
             />
             {/* 👇️ only match this when no other routes match */}
             <Route path="*" element={<NotFound />} />

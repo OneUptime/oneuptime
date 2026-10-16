@@ -2,9 +2,7 @@ import TelemetryExceptionService from "../Services/TelemetryExceptionService";
 import ServiceService from "../Services/ServiceService";
 import CodeRepositoryService from "../Services/CodeRepositoryService";
 import { RepoResolution } from "../Utils/CodeRepository/StackTraceRepoResolver";
-import AIAgentTaskPullRequestService from "../Services/AIAgentTaskPullRequestService";
 import AIRunService from "../Services/AIRunService";
-import AIRunEventService from "../Services/AIRunEventService";
 import IncidentService from "../Services/IncidentService";
 import AlertService from "../Services/AlertService";
 import PostedRootCause from "../Utils/AI/SRE/PostedRootCause";
@@ -17,18 +15,18 @@ import Express, {
 import Response from "../Utils/Response";
 import CodeFixAgentAuth, {
   CodeFixAgentIdentity,
-  CodeFixAgentSource,
 } from "../Utils/AI/CodeFix/CodeFixAgentAuth";
+import CodeFixPullRequestRecord, {
+  OpenedPullRequestFields,
+  RecordedPullRequest,
+} from "../Utils/AI/CodeFix/CodeFixPullRequestRecord";
 import TelemetryException from "../../Models/DatabaseModels/TelemetryException";
 import Service from "../../Models/DatabaseModels/Service";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
-import AIAgentTaskPullRequest from "../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import Incident from "../../Models/DatabaseModels/Incident";
 import Alert from "../../Models/DatabaseModels/Alert";
-import AIRunEventType from "../../Types/AI/AIRunEventType";
 import AIRunType from "../../Types/AI/AIRunType";
-import FixVerificationStatus from "../../Types/AI/FixVerificationStatus";
 import CodeFixTaskType, {
   CodeFixContextKind,
   CodeFixTaskTypeHelper,
@@ -65,8 +63,6 @@ import GitHubUtil, {
 } from "../Utils/CodeRepository/GitHub/GitHub";
 import GitHubInstallationBinding from "../Utils/CodeRepository/GitHub/GitHubInstallationBinding";
 import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
-import URL from "../../Types/API/URL";
-import PullRequestState from "../../Types/CodeRepository/PullRequestState";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 
 export default class AIAgentDataAPI {
@@ -1322,7 +1318,12 @@ export default class AIAgentDataAPI {
       },
     );
 
-    // Record a pull request created by the AI Agent
+    /*
+     * Record a pull request the worker has opened. Idempotent: a worker
+     * retries a record whose answer it did not get, and a pull request the run
+     * already recorded answers with its existing row (see
+     * CodeFixPullRequestRecord).
+     */
     this.router.post(
       "/ai-agent-data/record-pull-request",
       async (
@@ -1354,71 +1355,19 @@ export default class AIAgentDataAPI {
             );
           }
 
-          if (!data["codeRepositoryId"]) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("codeRepositoryId is required"),
-            );
-          }
+          let fields: OpenedPullRequestFields;
 
-          if (!data["pullRequestUrl"]) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("pullRequestUrl is required"),
-            );
-          }
+          try {
+            fields = CodeFixPullRequestRecord.readFields(data);
+          } catch (error) {
+            if (error instanceof BadDataException) {
+              return Response.sendErrorResponse(req, res, error);
+            }
 
-          if (!data["title"]) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("title is required"),
-            );
+            throw error;
           }
 
           const taskId: ObjectID = new ObjectID(data["taskId"] as string);
-          const codeRepositoryId: ObjectID = new ObjectID(
-            data["codeRepositoryId"] as string,
-          );
-          const pullRequestUrl: string = data["pullRequestUrl"] as string;
-          const pullRequestNumber: number | undefined = data[
-            "pullRequestNumber"
-          ] as number | undefined;
-          const pullRequestId: number | undefined = data["pullRequestId"] as
-            | number
-            | undefined;
-          const title: string = data["title"] as string;
-          const description: string | undefined = data["description"] as
-            | string
-            | undefined;
-          const headRefName: string | undefined = data["headRefName"] as
-            | string
-            | undefined;
-          const baseRefName: string | undefined = data["baseRefName"] as
-            | string
-            | undefined;
-
-          /*
-           * Runner-side build/test verification outcome (pre-PR, distinct
-           * from the ciStatus the sync worker fills post-PR). Unknown
-           * values are dropped rather than stored — the column is a typed
-           * enum and the Runner may be older or newer than this server.
-           */
-          const rawVerificationStatus: string | undefined = data[
-            "runnerVerificationStatus"
-          ] as string | undefined;
-          const runnerVerificationStatus: FixVerificationStatus | undefined =
-            rawVerificationStatus &&
-            Object.values(FixVerificationStatus).includes(
-              rawVerificationStatus as FixVerificationStatus,
-            )
-              ? (rawVerificationStatus as FixVerificationStatus)
-              : undefined;
-          const runnerVerificationSummary: string | undefined = data[
-            "runnerVerificationSummary"
-          ] as string | undefined;
 
           /*
            * `taskId` carries the AIRun id of the code-fix run — get the run
@@ -1437,6 +1386,7 @@ export default class AIAgentDataAPI {
 
           if (
             !run ||
+            !run.projectId ||
             CodeFixAgentAuth.deniesAccessToProject(aiAgent, run.projectId)
           ) {
             return Response.sendErrorResponse(
@@ -1446,32 +1396,15 @@ export default class AIAgentDataAPI {
             );
           }
 
-          // Get code repository for organization and repo name
-          const codeRepository: CodeRepository | null =
-            await CodeRepositoryService.findOneById({
-              id: codeRepositoryId,
-              select: {
-                _id: true,
-                projectId: true,
-                organizationName: true,
-                repositoryName: true,
-              },
-              props: {
-                isRoot: true,
-              },
+          const recordedPullRequest: RecordedPullRequest | null =
+            await CodeFixPullRequestRecord.record({
+              aiRunId: taskId,
+              projectId: run.projectId,
+              aiAgent: aiAgent,
+              fields: fields,
             });
 
-          /*
-           * The recorded repository must exist AND belong to the run's
-           * project. The pull-request row is what the open-PR cap counts, so
-           * a foreign repository id would let one project's records skew
-           * another's guardrail — and a nonexistent one would fail on the
-           * codeRepositoryId foreign key as an opaque 500.
-           */
-          if (
-            !codeRepository ||
-            codeRepository.projectId?.toString() !== run.projectId?.toString()
-          ) {
+          if (!recordedPullRequest) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -1479,107 +1412,16 @@ export default class AIAgentDataAPI {
             );
           }
 
-          // Create the pull request record
-          const pullRequest: AIAgentTaskPullRequest =
-            new AIAgentTaskPullRequest();
-
-          if (run.projectId) {
-            pullRequest.projectId = run.projectId;
-          }
-
-          pullRequest.aiRunId = taskId;
-
-          /*
-           * aiAgentId is a real foreign key into the AIAgent table, so it can
-           * only carry an AIAgent identity. A Runner leaves it null — the
-           * same "no AIAgent behind it" case chat-authored pull requests
-           * already use, and every consumer tolerates.
-           */
-          if (aiAgent.source === CodeFixAgentSource.AIAgent) {
-            pullRequest.aiAgentId = aiAgent.id!;
-          }
-          pullRequest.codeRepositoryId = codeRepositoryId;
-          pullRequest.pullRequestUrl = URL.fromString(pullRequestUrl);
-
-          if (pullRequestNumber !== undefined) {
-            pullRequest.pullRequestNumber = pullRequestNumber;
-          }
-
-          if (pullRequestId !== undefined) {
-            pullRequest.pullRequestId = pullRequestId;
-          }
-
-          // The column is ShortText — DatabaseService rejects over 100 chars.
-          pullRequest.title = title.substring(0, 100);
-
-          if (description) {
-            /*
-             * The column is LongText, which DatabaseService validates at 500
-             * characters — truncate, never reject the whole recording.
-             */
-            pullRequest.description = description.substring(0, 500);
-          }
-
-          pullRequest.pullRequestState = PullRequestState.Open;
-
-          if (headRefName) {
-            pullRequest.headRefName = headRefName;
-          }
-
-          if (baseRefName) {
-            pullRequest.baseRefName = baseRefName;
-          }
-
-          if (codeRepository?.organizationName) {
-            pullRequest.repoOrganizationName = codeRepository.organizationName;
-          }
-
-          if (codeRepository?.repositoryName) {
-            pullRequest.repoName = codeRepository.repositoryName;
-          }
-
-          if (runnerVerificationStatus) {
-            pullRequest.runnerVerificationStatus = runnerVerificationStatus;
-          }
-
-          if (runnerVerificationSummary) {
-            // The column is varchar(500) — truncate, never reject.
-            pullRequest.runnerVerificationSummary =
-              runnerVerificationSummary.substring(0, 500);
-          }
-
-          const createdPullRequest: AIAgentTaskPullRequest =
-            await AIAgentTaskPullRequestService.create({
-              data: pullRequest,
-              props: {
-                isRoot: true,
-              },
-            });
-
-          /*
-           * The pull request is the run's headline action — record it on
-           * the run's glass-box trail so the activity feed shows it.
-           */
-          if (run.projectId) {
-            await AIRunEventService.appendEventToRun({
-              projectId: run.projectId,
-              aiRunId: taskId,
-              eventType: AIRunEventType.ActionExecuted,
-              toolName: "open_pull_request",
-              resultSummary: {
-                message: `Opened pull request: ${title} — ${pullRequestUrl}`,
-              },
-            });
-          }
-
           logger.debug(
-            `Recorded pull request ${pullRequestUrl} for run ${taskId.toString()}`,
+            recordedPullRequest.created
+              ? `Recorded pull request ${fields.pullRequestUrl} for run ${taskId.toString()}`
+              : `Pull request ${fields.pullRequestUrl} was already recorded for run ${taskId.toString()}`,
             getLogAttributesFromRequest(req as any),
           );
 
           return Response.sendJsonObjectResponse(req, res, {
             success: true,
-            pullRequestId: createdPullRequest._id?.toString(),
+            pullRequestId: recordedPullRequest.pullRequest._id?.toString(),
           });
         } catch (err) {
           next(err);

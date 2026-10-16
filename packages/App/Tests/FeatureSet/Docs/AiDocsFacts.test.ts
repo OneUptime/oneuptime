@@ -670,6 +670,25 @@ describe("Fix Tasks", () => {
     ).toContain("Needs the Growth plan.");
   });
 
+  it("sends an account that already has the app to Connect an existing installation", () => {
+    const prerequisites: Array<Array<string>> = tableWithHeader(
+      englishSection(FIX_TASKS, "## Before you begin"),
+      "What",
+    );
+
+    expect(
+      dashboardSource("Pages/CodeRepository/CodeRepository.tsx"),
+    ).toContain('"Connect an existing installation"');
+    expect(
+      rowStartingWith(
+        prerequisites,
+        "A repository connected through the GitHub App",
+      )[1],
+    ).toContain(
+      `If the app is already installed on the GitHub account, click ${bold("Connect an existing installation")} instead: installing it again does not connect it.`,
+    );
+  });
+
   it("keeps the first 300 characters of each step's output in the run's log", () => {
     const agent: string = readRepoFile("Runner/CodeAgents/InHouseCodeAgent.ts");
 

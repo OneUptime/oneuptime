@@ -2530,6 +2530,66 @@ gitHubApp:
   privateKey:
   webhookSecret:
 
+# Sign in with Microsoft: a multi-tenant Microsoft Entra app registration
+# (work, school and personal Microsoft accounts) that lets people sign in to
+# OneUptime with their Microsoft account. Required to sell on Microsoft
+# Marketplace. Redirect URI: https://<host>/identity/microsoft/callback; add
+# the optional ID token claims "email" and "xms_edov". Leave empty to not
+# offer it.
+microsoftSignInApp:
+  clientId:
+  clientSecret:
+  # existingSecret:
+  #   name: "microsoft-sign-in-app-secret"
+  #   clientIdKey: clientId
+  #   clientSecretKey: clientSecret
+
+# Cloud marketplaces: sell OneUptime Cloud on AWS Marketplace, Microsoft
+# Marketplace (Azure) and Google Cloud Marketplace. Used only where billing is
+# enabled; a marketplace is offered only when all of its settings are set.
+# What each value is and where it comes from:
+# packages/Common/Server/Utils/Marketplace/RELEASING.md in the repository.
+cloudMarketplace:
+  # AWS Marketplace SaaS product. Fulfillment URL:
+  # https://<host>/api/marketplace/aws/register. EventBridge API destination:
+  # https://<host>/api/marketplace/aws/events, API key header
+  # x-oneuptime-marketplace-secret = eventsSecret.
+  aws:
+    accessKeyId:
+    secretAccessKey:
+    productCode:
+    eventsSecret:
+    # existingSecret:
+    #   name: "aws-marketplace-secret"
+    #   secretAccessKeyKey: secretAccessKey
+    #   eventsSecretKey: eventsSecret
+  # Microsoft Marketplace transactable SaaS offer. Landing page:
+  # https://<host>/api/marketplace/azure/landing. Connection webhook:
+  # https://<host>/api/marketplace/azure/webhook.
+  azure:
+    tenantId:
+    clientId:
+    clientSecret:
+    # existingSecret:
+    #   name: "azure-marketplace-secret"
+    #   clientSecretKey: clientSecret
+  # Google Cloud Marketplace integrated SaaS. Sign-up URL:
+  # https://<host>/api/marketplace/google-cloud/signup. Pub/Sub push endpoint:
+  # https://<host>/api/marketplace/google-cloud/events.
+  googleCloud:
+    providerId:
+    # The service account's JSON key, as downloaded or base64-encoded.
+    serviceAccountKey:
+    serviceName:
+    usageMetric:
+    pubSubServiceAccountEmail:
+    # Optional: default to the host and to the push endpoint's URL.
+    signupAudience:
+    pubSubAudience:
+    # existingSecret:
+    #   name: "google-cloud-marketplace-secret"
+    #   serviceAccountKeyKey: serviceAccountKey
+
 # Inbound Email Configuration
 # Required for Incoming Email Monitor feature
 # See documentation: https://oneuptime.com/docs/self-hosted/sendgrid-inbound-email

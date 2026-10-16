@@ -81,7 +81,7 @@ Una tarea de corrección necesita tres cosas. La página **Asistencia de IA** de
 | Qué | OneUptime Cloud | Autoalojado |
 | --- | --- | --- |
 | Un proveedor de LLM | Nada que configurar: un proyecto sin proveedor propio usa el proveedor global, pagado con los créditos de IA del proyecto. Un proveedor propio, en **Ajustes del proyecto → IA → Proveedores de LLM**, tiene prioridad. | Define una vez las variables de entorno `GLOBAL_LLM_PROVIDER_*` en el servidor, o añade un proveedor al proyecto. |
-| Un repositorio conectado mediante la GitHub App | **Productos → Código → Tareas**, luego **Repositorios de código** y **Conectar con la GitHub App**. Requiere el plan Growth. | Lo mismo, una vez que tu instancia tiene una GitHub App (consulta [Integración con GitHub](/docs/self-hosted/github-integration)). |
+| Un repositorio conectado mediante la GitHub App | **Productos → Código → Tareas**, luego **Repositorios de código** y **Conectar con la GitHub App**. Si la app ya está instalada en la cuenta de GitHub, haz clic en **Conectar una instalación existente** en su lugar: instalarla de nuevo no la conecta. Requiere el plan Growth. | Lo mismo, una vez que tu instancia tiene una GitHub App (consulta [Integración con GitHub](/docs/self-hosted/github-integration)). |
 | Un Runner que ejecuta correcciones de código con IA | Nada que operar: lo hacen los Runners compartidos de OneUptime. | El servicio `runner` de Docker Compose, o el Runner del chart de Helm (`runner.enabled`, activado por defecto), se registra solo y ejecuta correcciones de código con IA. |
 
 En una instancia autoalojada, el proveedor global es un bloque de `config.env` (Docker Compose) o de tus valores de Helm. Para un Ollama autoalojado:

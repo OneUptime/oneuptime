@@ -46,6 +46,22 @@ While the investigation runs, the incident or alert page shows a live **AI Inves
 
 An investigation runs until it is done: it has **no time limit** and no small query budget, so it can run every query and kubectl or infrastructure command it needs. A long command output (a `kubectl describe node` of a busy node, a pod's logs) is never cut off — OneUptime AI reads it a page at a time. If you want a hard stop, set an **investigation time limit** per signal type (see **Cost controls** below).
 
+## What an investigation reads
+
+An investigation starts from the incident or alert and from the infrastructure it is linked to: the hosts, Docker and Podman hosts, Kubernetes clusters, databases and services its monitors watch. A website, API or synthetic monitor watches what you link it to under **Monitor → Overview → Linked Resources**, so link it to the hosts that serve what it checks, and every investigation of its incidents starts there.
+
+- The alerts on that infrastructure that opened in the 30 minutes before the incident, or are still open, newest first, such as the high CPU alert of the host behind a slow site. Private alerts are left out.
+- The infrastructure's own metrics, read the way people read them. Host metrics such as `system.cpu.utilization` and `system.memory.utilization` are reported once per state, and the states add up to 100%, so one average across them says nothing. OneUptime AI reads them one state at a time (busy CPU is user plus system), and any metric per container, per mount point or by any other attribute.
+- The containers of a Docker or Podman host: the busiest by CPU, memory or restarts, and the ones that stopped reporting. A stopped container sends nothing rather than zero, so numbers for the whole host hide it.
+
+The investigation's activity on the **AI Investigation** card says how many open or recent alerts it read, and on which resources.
+
+### Checked again when a new alert opens
+
+An investigation starts the moment an incident is declared, and a host alert that needs a few minutes of metrics can open after it. When an alert opens on the incident's linked infrastructure within 30 minutes of the incident, after the investigation read it, and the incident is still open, OneUptime AI checks the incident once more with that alert in hand. The new analysis begins with **Checked again** and the alert that made it check, and its activity says so too.
+
+This happens at most once per incident, under the same switches and limits as a new investigation: **Enable AI**, _Investigate new incidents_, the AI credits, and the daily and concurrency limits. There is nothing to turn on. A follow-up check never runs auto-remediation again and is never followed up itself, and an alert's investigation is not checked again.
+
 ## Talk to OneUptime AI about the incident
 
 The **AI Investigation** card ends with a conversation — **Ask OneUptime AI** — shared by everyone who can see the incident or alert. It is one card whatever happened above it: under a report you ask follow-ups, and when no automatic investigation ran (or it stopped before reporting) the first suggestion is **What is the root cause?**, which has OneUptime AI investigate on demand.

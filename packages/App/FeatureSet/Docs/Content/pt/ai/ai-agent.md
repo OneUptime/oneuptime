@@ -81,7 +81,7 @@ Uma tarefa de correção precisa de três coisas. A página **AI Assistance** da
 | O quê | OneUptime Cloud | Auto-hospedado |
 | --- | --- | --- |
 | Um provedor de LLM | Nada a configurar: um projeto sem provedor próprio usa o provedor global, pago com os créditos de IA do projeto. Um provedor seu, em **Configurações do projeto → IA → Provedores LLM**, tem prioridade. | Defina uma vez as variáveis de ambiente `GLOBAL_LLM_PROVIDER_*` no servidor, ou adicione um provedor ao projeto. |
-| Um repositório conectado pela GitHub App | **Produtos → Código → Tarefas**, depois **Repositórios de código** e **Connect with GitHub App**. Requer o plano Growth. | O mesmo, assim que a sua instância tiver uma GitHub App (veja [Integração com o GitHub](/docs/self-hosted/github-integration)). |
+| Um repositório conectado pela GitHub App | **Produtos → Código → Tarefas**, depois **Repositórios de código** e **Connect with GitHub App**. Se a app já estiver instalada na conta do GitHub, clique em **Conectar uma instalação existente** em vez disso: instalá-la de novo não a conecta. Requer o plano Growth. | O mesmo, assim que a sua instância tiver uma GitHub App (veja [Integração com o GitHub](/docs/self-hosted/github-integration)). |
 | Um Runner que executa correções de código por IA | Nada a operar: os Runners compartilhados do OneUptime fazem isso. | O serviço `runner` do Docker Compose, ou o Runner do chart Helm (`runner.enabled`, ativado por padrão), se registra sozinho e executa correções de código por IA. |
 
 Em uma instância auto-hospedada, o provedor global é um bloco do `config.env` (Docker Compose) ou dos seus valores do Helm. Para um Ollama auto-hospedado:
