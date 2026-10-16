@@ -1,7 +1,9 @@
+import MarketplaceCharge from "../../../../Models/DatabaseModels/MarketplaceCharge";
 import MarketplaceSubscription from "../../../../Models/DatabaseModels/MarketplaceSubscription";
 import MarketplaceUsageReport from "../../../../Models/DatabaseModels/MarketplaceUsageReport";
 import Project from "../../../../Models/DatabaseModels/Project";
 import TelemetryUsageBilling from "../../../../Models/DatabaseModels/TelemetryUsageBilling";
+import ProjectBalanceType from "../../../../Types/Billing/ProjectBalanceType";
 import OneUptimeDate from "../../../../Types/Date";
 import Decimal from "../../../../Types/Decimal";
 import CloudMarketplace from "../../../../Types/Marketplace/CloudMarketplace";
@@ -9,6 +11,7 @@ import MarketplaceSubscriptionStatus from "../../../../Types/Marketplace/Marketp
 import MarketplaceUsageReportStatus from "../../../../Types/Marketplace/MarketplaceUsageReportStatus";
 import ObjectID from "../../../../Types/ObjectID";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
+import MarketplaceChargeService from "../../../../Server/Services/MarketplaceChargeService";
 import MarketplaceSubscriptionService from "../../../../Server/Services/MarketplaceSubscriptionService";
 import MarketplaceUsageReportService from "../../../../Server/Services/MarketplaceUsageReportService";
 import ProjectService from "../../../../Server/Services/ProjectService";
@@ -20,6 +23,7 @@ import MarketplaceAdapter, {
 import MarketplaceAdapters from "../../../../Server/Utils/Marketplace/MarketplaceAdapters";
 import MarketplaceUsageCalculator from "../../../../Server/Utils/Marketplace/MarketplaceUsageCalculator";
 import MarketplaceUsageReporter from "../../../../Server/Utils/Marketplace/MarketplaceUsageReporter";
+import logger from "../../../../Server/Utils/Logger";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -63,6 +67,13 @@ jest.mock("../../../../Server/Services/MarketplaceSubscriptionService", () => {
       updatePurchase: jest.fn(),
       getPurchaseSelect: jest.fn().mockReturnValue({ _id: true }),
     },
+  };
+});
+
+jest.mock("../../../../Server/Services/MarketplaceChargeService", () => {
+  return {
+    __esModule: true,
+    default: { findUnbilled: jest.fn(), updateOneById: jest.fn() },
   };
 });
 
@@ -141,6 +152,21 @@ const telemetryRow: (cost: number, day?: string) => TelemetryUsageBilling = (
   });
 };
 
+const balanceCharge: (
+  balanceType: ProjectBalanceType,
+  amountInUSD: number,
+) => MarketplaceCharge = (
+  balanceType: ProjectBalanceType,
+  amountInUSD: number,
+): MarketplaceCharge => {
+  return Object.assign(new MarketplaceCharge(), {
+    _id: ObjectID.generate().toString(),
+    balanceType: balanceType,
+    amountInUSD: new Decimal(amountInUSD),
+    isAutomatic: false,
+  });
+};
+
 const pendingReport: (
   overrides?: Partial<MarketplaceUsageReport>,
 ) => MarketplaceUsageReport = (
@@ -212,15 +238,17 @@ describe("MarketplaceUsageReporter", () => {
       },
     );
     mocked(MarketplaceUsageReportService.findBy).mockResolvedValue([]);
+    // As the database does: a report keeps the id the reporter gave it.
     mocked(MarketplaceUsageReportService.create).mockImplementation(
       async (data: {
         data: MarketplaceUsageReport;
       }): Promise<MarketplaceUsageReport> => {
-        return Object.assign(data.data, {
-          _id: ObjectID.generate().toString(),
-        });
+        return data.data._id
+          ? data.data
+          : Object.assign(data.data, { _id: ObjectID.generate().toString() });
       },
     );
+    mocked(MarketplaceChargeService.findUnbilled).mockResolvedValue([]);
     mocked(ProjectService.findOneById).mockResolvedValue(
       Object.assign(new Project(), {
         _id: PROJECT_ID.toString(),
@@ -487,6 +515,188 @@ describe("MarketplaceUsageReporter", () => {
         data: expect.objectContaining({ usageReportedUntil: HOUR_START }),
       }),
     );
+  });
+
+  it("bills the balance top-ups made since the last report in the hour's report, and gives them its id", async () => {
+    const sms: MarketplaceCharge = balanceCharge(
+      ProjectBalanceType.SmsOrCall,
+      20,
+    );
+    const ai: MarketplaceCharge = balanceCharge(ProjectBalanceType.AI, 50);
+    mocked(MarketplaceChargeService.findUnbilled).mockResolvedValue([sms, ai]);
+
+    await MarketplaceUsageReporter.reportForPurchase(purchase);
+
+    expect(MarketplaceChargeService.findUnbilled).toHaveBeenCalledWith(
+      purchase.id,
+    );
+
+    const written: MarketplaceUsageReport = (
+      mocked(MarketplaceUsageReportService.create).mock.calls[0]![0] as {
+        data: MarketplaceUsageReport;
+      }
+    ).data;
+
+    const usageOnly: number = MarketplaceUsageCalculator.calculate({
+      periodStart: LAST_REPORTED,
+      periodEnd: HOUR_START,
+      seats: 10,
+      seatPricePerMonthInUSD: 22,
+      trialEndsAt: null,
+      activeMonitors: 3,
+      activeMonitorPricePerMonthInUSD: 1,
+      telemetryInUSD: 1.75,
+      carriedInUSD: 0.004,
+    }).totalInUSD;
+
+    // $70 of top-ups is 7,000 more units than the usage alone.
+    expect(written.quantity).toBe(Math.floor((usageOnly + 70) * 100 + 1e-9));
+    expect(written.breakdown).toMatchObject({
+      chargesInUSD: 70,
+      smsOrCallBalanceInUSD: 20,
+      aiBalanceInUSD: 50,
+      charges: 2,
+    });
+
+    // Both charges now belong to the report that bills them.
+    const linked: Array<{ id: ObjectID; data: Record<string, unknown> }> =
+      mocked(MarketplaceChargeService.updateOneById).mock.calls.map(
+        (call: Array<unknown>) => {
+          return call[0] as { id: ObjectID; data: Record<string, unknown> };
+        },
+      );
+
+    expect(
+      linked.map((each: { id: ObjectID }) => {
+        return each.id.toString();
+      }),
+    ).toEqual([sms.id!.toString(), ai.id!.toString()]);
+
+    for (const each of linked) {
+      expect(String(each.data["marketplaceUsageReportId"])).toBe(
+        written.id!.toString(),
+      );
+    }
+
+    // And it is that report the marketplace is sent.
+    expect(
+      (adapter.reportUsage.mock.calls[0]![1] as MarketplaceUsageRecord)
+        .reportId,
+    ).toBe(written.id!.toString());
+  });
+
+  it("claims everything a report bills before writing it, so a crash cannot bill it twice", async () => {
+    mocked(MarketplaceChargeService.findUnbilled).mockResolvedValue([
+      balanceCharge(ProjectBalanceType.AI, 20),
+    ]);
+
+    await MarketplaceUsageReporter.reportForPurchase(purchase);
+
+    const writtenAt: number = mocked(MarketplaceUsageReportService.create).mock
+      .invocationCallOrder[0]!;
+
+    for (const claim of [
+      ...mocked(TelemetryUsageBillingService.updateOneById).mock
+        .invocationCallOrder,
+      ...mocked(MarketplaceChargeService.updateOneById).mock
+        .invocationCallOrder,
+      ...mocked(MarketplaceSubscriptionService.updateOneById).mock
+        .invocationCallOrder,
+    ]) {
+      expect(claim).toBeLessThan(writtenAt);
+    }
+  });
+
+  it("says loudly when a claimed report could not be written", async () => {
+    const errorLog: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation((): void => {});
+    mocked(MarketplaceUsageReportService.create).mockRejectedValueOnce(
+      new Error("connection lost"),
+    );
+
+    await expect(
+      MarketplaceUsageReporter.reportForPurchase(purchase),
+    ).rejects.toThrow("connection lost");
+
+    // The period was claimed - the next run will not price it again.
+    expect(MarketplaceSubscriptionService.updateOneById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ usageReportedUntil: HOUR_START }),
+      }),
+    );
+    expect(
+      errorLog.mock.calls.some((call: Array<unknown>) => {
+        return String(call[0]).includes("was NOT billed");
+      }),
+    ).toBe(true);
+    expect(adapter.reportUsage).not.toHaveBeenCalled();
+  });
+
+  it("bills top-ups during the plan's trial: they are bought, not used", async () => {
+    mocked(ProjectService.findOneById).mockResolvedValue(
+      Object.assign(new Project(), {
+        _id: PROJECT_ID.toString(),
+        paymentProviderPlanId: "growth_monthly",
+        trialEndsAt: new Date("2026-12-01T00:00:00.000Z"),
+        currentActiveMonitorsCount: 3,
+      }),
+    );
+    mocked(TelemetryUsageBillingService.findBy).mockResolvedValue([]);
+    mocked(MarketplaceChargeService.findUnbilled).mockResolvedValue([
+      balanceCharge(ProjectBalanceType.SmsOrCall, 25),
+    ]);
+    purchase = purchaseRow({ unreportedUsageInUSD: new Decimal(0) });
+
+    await MarketplaceUsageReporter.reportForPurchase(purchase);
+
+    const written: MarketplaceUsageReport = (
+      mocked(MarketplaceUsageReportService.create).mock.calls[0]![0] as {
+        data: MarketplaceUsageReport;
+      }
+    ).data;
+
+    expect(written.quantity).toBe(2500);
+    expect(written.breakdown).toMatchObject({
+      seatsInUSD: 0,
+      activeMonitorsInUSD: 0,
+      smsOrCallBalanceInUSD: 25,
+    });
+  });
+
+  it("bills the top-ups of a purchase whose usage is not metered, and nothing else", async () => {
+    mocked(MarketplaceChargeService.findUnbilled).mockResolvedValue([
+      balanceCharge(ProjectBalanceType.AI, 20),
+    ]);
+    purchase = purchaseRow({
+      isUsageMetered: false,
+      unreportedUsageInUSD: new Decimal(0),
+    });
+
+    await MarketplaceUsageReporter.reportForPurchase(purchase);
+
+    const written: MarketplaceUsageReport = (
+      mocked(MarketplaceUsageReportService.create).mock.calls[0]![0] as {
+        data: MarketplaceUsageReport;
+      }
+    ).data;
+
+    expect(written.quantity).toBe(2000);
+    expect(written.breakdown).toMatchObject({
+      seatsInUSD: 0,
+      activeMonitorsInUSD: 0,
+      telemetryInUSD: 0,
+      aiBalanceInUSD: 20,
+      isUsageMetered: false,
+    });
+
+    // Its usage is the deal's: not counted, not claimed.
+    expect(
+      TeamMemberService.getUniqueTeamMemberCountInProject,
+    ).not.toHaveBeenCalled();
+    expect(TelemetryUsageBillingService.findBy).not.toHaveBeenCalled();
+    expect(TelemetryUsageBillingService.updateOneById).not.toHaveBeenCalled();
+    expect(ProjectService.updateOneById).not.toHaveBeenCalled();
   });
 
   it("bills nothing new for a purchase that is not linked, not active, or not metered", async () => {

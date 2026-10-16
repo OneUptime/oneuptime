@@ -247,6 +247,36 @@ describe("MarketplaceUsageCalculator.calculate", () => {
     expect(charge.quantity).toBe(100);
   });
 
+  it("adds one-off charges as they are, and never waives them for a trial", () => {
+    const charge: MarketplaceUsageCharge = MarketplaceUsageCalculator.calculate(
+      baseInput({
+        seats: 5,
+        seatPricePerMonthInUSD: 99,
+        trialEndsAt: new Date("2026-12-01T00:00:00.000Z"),
+        activeMonitors: 3,
+        chargesInUSD: 20.005,
+      }),
+    );
+
+    expect(charge.breakdown["seatsInUSD"]).toBe(0);
+    expect(charge.breakdown["activeMonitorsInUSD"]).toBe(0);
+    expect(charge.breakdown["chargesInUSD"]).toBe(20.005);
+    expect(charge.quantity).toBe(2000);
+    expect(charge.carriedOutInUSD).toBeCloseTo(0.005, 10);
+  });
+
+  it("counts no charges when none are given", () => {
+    expect(
+      MarketplaceUsageCalculator.calculate(baseInput({})).breakdown[
+        "chargesInUSD"
+      ],
+    ).toBe(0);
+    expect(
+      MarketplaceUsageCalculator.calculate(baseInput({ chargesInUSD: -20 }))
+        .quantity,
+    ).toBe(0);
+  });
+
   it("treats negative, missing and non-finite inputs as nothing to charge", () => {
     const charge: MarketplaceUsageCharge = MarketplaceUsageCalculator.calculate(
       baseInput({
@@ -287,6 +317,7 @@ describe("MarketplaceUsageCalculator.calculate", () => {
       (charge.breakdown["seatsInUSD"] as number) +
       (charge.breakdown["activeMonitorsInUSD"] as number) +
       (charge.breakdown["telemetryInUSD"] as number) +
+      (charge.breakdown["chargesInUSD"] as number) +
       (charge.breakdown["carriedInUSD"] as number);
 
     expect(parts).toBeCloseTo(charge.totalInUSD, 6);

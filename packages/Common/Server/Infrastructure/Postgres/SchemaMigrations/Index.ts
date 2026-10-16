@@ -102,6 +102,7 @@ import { KeepChannelNamePrefixOfRulesWithoutOne1802500000000 } from "./180250000
 import { AddRecordNumbersStartAt1802700000000 } from "./1802700000000-AddRecordNumbersStartAt";
 import { AddEscalationNextInRotation1802750000000 } from "./1802750000000-AddEscalationNextInRotation";
 import { AddMarketplaceSubscriptions1802800000000 } from "./1802800000000-AddMarketplaceSubscriptions";
+import { AddMarketplaceCharges1802850000000 } from "./1802850000000-AddMarketplaceCharges";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1406,4 +1407,5 @@ export default [
   AddRecordNumbersStartAt1802700000000,
   AddEscalationNextInRotation1802750000000,
   AddMarketplaceSubscriptions1802800000000,
+  AddMarketplaceCharges1802850000000,
 ];

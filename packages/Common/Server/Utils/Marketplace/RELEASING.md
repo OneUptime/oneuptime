@@ -78,10 +78,21 @@ usage included), a master admin sets `isUsageMetered` to false on the
 purchase's `MarketplaceSubscription` row so OneUptime reports nothing for it,
 and moves the project to the Enterprise plan from the Admin Dashboard.
 
-**Not billed through marketplaces yet:** SMS, phone call and WhatsApp credit and
-OneUptime AI credit top-ups still go through a card. A marketplace-created
-project has no card customer, so it cannot top those balances up until that is
-added (see [Known gaps](#known-gaps)).
+**Balance top-ups** - the SMS, call, WhatsApp and Telegram balance and OneUptime
+AI credits, by hand or by Auto Recharge - are billed through the marketplace
+too, while the purchase is active there: each is recorded as a
+`MarketplaceCharge` and billed with the next hourly usage report, in the same
+usage units ([MarketplaceChargeService](../../Services/MarketplaceChargeService.ts)).
+Never as a record of its own: Microsoft Marketplace takes one usage event per
+hour per dimension. A top-up is billed during a plan's trial, and on a purchase
+whose usage is not metered (`isUsageMetered` false), whose hourly report then
+carries only top-ups. While the purchase is suspended or cancelled, a top-up is
+refused and the owners are told to put the subscription right.
+
+**What customers see:** the project's **Settings > Billing** page shows what each
+of the last three months of its marketplace bill was made of - users, active
+monitors, telemetry and top-ups (`GET /api/marketplace/usage`, read by the
+people who read the project's usage history).
 
 ## Before you start: decisions and facts that are the business's
 
@@ -477,14 +488,11 @@ Marketplace".
 
 ## Known gaps
 
-- SMS, call, WhatsApp and AI credit top-ups are not billed through
-  marketplaces (a marketplace-created project has no card customer).
 - The Admin Dashboard has no page for marketplace purchases yet; use the
-  master-admin API.
-- Customers see one line on their cloud bill, "Usage units". What each hour
-  was made of (seats, monitors, telemetry) is recorded in
-  `MarketplaceUsageReport.breakdown`, but no customer-facing page shows it
-  yet.
+  master-admin API (`/api/marketplace-subscription`,
+  `/api/marketplace-usage-report`, `/api/marketplace-charge`).
+- A project deleted within the hour after its last report: that hour's usage,
+  and any top-up made in it, is not billed (the reporter needs the project).
 - No product documentation page for buyers yet (docs pages must be translated
   into 16 languages to pass the docs tests).
 

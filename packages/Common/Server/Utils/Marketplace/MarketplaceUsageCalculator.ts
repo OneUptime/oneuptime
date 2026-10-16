@@ -18,6 +18,10 @@ import { MARKETPLACE_USAGE_UNIT_IN_USD } from "../../../Types/Marketplace/Market
  * marketplace buyer pays the same. Telemetry from the trial's days is left
  * out by the reporter, which knows which day each amount is for.
  *
+ * One-off charges - top-ups of the project's SMS and call balance or its AI
+ * credits (MarketplaceCharge) - are added as they are: they are bought, not
+ * used, and a trial does not waive them.
+ *
  * A marketplace bills whole units, so the fraction of a cent left over is
  * carried into the next report rather than rounded away or up. Amounts are
  * added up in millionths of a dollar, so repeated small charges do not drift.
@@ -33,6 +37,8 @@ export interface MarketplaceUsageInput {
   activeMonitors: number;
   activeMonitorPricePerMonthInUSD: number;
   telemetryInUSD: number;
+  // One-off charges (balance top-ups) the report bills.
+  chargesInUSD?: number | undefined;
   carriedInUSD: number;
 }
 
@@ -82,12 +88,20 @@ export default class MarketplaceUsageCalculator {
       MarketplaceUsageCalculator.nonNegative(input.telemetryInUSD),
     );
 
+    const chargesMicros: number = MarketplaceUsageCalculator.toMicros(
+      MarketplaceUsageCalculator.nonNegative(input.chargesInUSD || 0),
+    );
+
     const carriedInMicros: number = MarketplaceUsageCalculator.toMicros(
       MarketplaceUsageCalculator.nonNegative(input.carriedInUSD),
     );
 
     const totalMicros: number =
-      seatsMicros + monitorsMicros + telemetryMicros + carriedInMicros;
+      seatsMicros +
+      monitorsMicros +
+      telemetryMicros +
+      chargesMicros +
+      carriedInMicros;
 
     const quantity: number = Math.floor(totalMicros / MICROS_PER_UNIT);
     const carriedOutMicros: number = totalMicros - quantity * MICROS_PER_UNIT;
@@ -104,6 +118,7 @@ export default class MarketplaceUsageCalculator {
         activeMonitorPricePerMonthInUSD: input.activeMonitorPricePerMonthInUSD,
         activeMonitorsInUSD: monitorsMicros / MICROS_PER_USD,
         telemetryInUSD: telemetryMicros / MICROS_PER_USD,
+        chargesInUSD: chargesMicros / MICROS_PER_USD,
         carriedInUSD: carriedInMicros / MICROS_PER_USD,
         carriedOutInUSD: carriedOutMicros / MICROS_PER_USD,
         totalInUSD: totalMicros / MICROS_PER_USD,

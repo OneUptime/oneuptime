@@ -1,4 +1,5 @@
 import Models from "../../../Models/DatabaseModels/Index";
+import MarketplaceCharge from "../../../Models/DatabaseModels/MarketplaceCharge";
 import MarketplaceSubscription from "../../../Models/DatabaseModels/MarketplaceSubscription";
 import MarketplaceUsageReport from "../../../Models/DatabaseModels/MarketplaceUsageReport";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -161,6 +162,55 @@ describe("MarketplaceUsageReport model", () => {
   });
 });
 
+describe("MarketplaceCharge model", () => {
+  const model: MarketplaceCharge = new MarketplaceCharge();
+
+  it("is registered in the model index, so its table is created", () => {
+    expect(
+      Models.some((registered: { new (): BaseModel }) => {
+        return registered === MarketplaceCharge;
+      }),
+    ).toBe(true);
+  });
+
+  it("uses its own table and CRUD endpoint", () => {
+    expect(model.tableName).toBe("MarketplaceCharge");
+    expect(model.getCrudApiPath()?.toString()).toBe("/marketplace-charge");
+  });
+
+  it("is a global table, read by master admins only", () => {
+    expect(model.isTenantModel()).toBe(false);
+    expectMasterAdminOnly(model, 7);
+  });
+
+  it("requires what was topped up, for whom, through which purchase, and for how much", () => {
+    for (const column of [
+      "marketplaceSubscriptionId",
+      "projectId",
+      "marketplace",
+      "balanceType",
+      "amountInUSD",
+    ]) {
+      expect([column, model.getTableColumnMetadata(column).required]).toEqual([
+        column,
+        true,
+      ]);
+    }
+  });
+
+  it("is billed by a report it names once a report takes it", () => {
+    expect(model.getTableColumnMetadata("marketplaceUsageReportId").type).toBe(
+      TableColumnType.ObjectID,
+    );
+    expect(
+      model.getTableColumnMetadata("marketplaceUsageReportId").required,
+    ).toBeFalsy();
+    // Plain ids, not relations: a deleted project keeps the record of what was billed.
+    expect(model.getTableColumns().columns).not.toContain("project");
+    expect(model.getTableColumnMetadata("projectId").modelType).toBeUndefined();
+  });
+});
+
 describe("Project.billingMarketplace", () => {
   const project: Project = new Project();
 
@@ -197,5 +247,6 @@ describe("Marketplace migration", () => {
     expect(registeredNames).toContain(
       "AddMarketplaceSubscriptions1802800000000",
     );
+    expect(registeredNames).toContain("AddMarketplaceCharges1802850000000");
   });
 });

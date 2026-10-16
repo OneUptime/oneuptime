@@ -1037,6 +1037,9 @@ import MarketplaceSubscriptionService, {
 import MarketplaceUsageReportService, {
   Service as MarketplaceUsageReportServiceType,
 } from "Common/Server/Services/MarketplaceUsageReportService";
+import MarketplaceChargeService, {
+  Service as MarketplaceChargeServiceType,
+} from "Common/Server/Services/MarketplaceChargeService";
 import CodeRepositoryService, {
   Service as CodeRepositoryServiceType,
 } from "Common/Server/Services/CodeRepositoryService";
@@ -1492,6 +1495,7 @@ import PromoCode from "Common/Models/DatabaseModels/PromoCode";
 import DeletedProject from "Common/Models/DatabaseModels/DeletedProject";
 import MarketplaceSubscription from "Common/Models/DatabaseModels/MarketplaceSubscription";
 import MarketplaceUsageReport from "Common/Models/DatabaseModels/MarketplaceUsageReport";
+import MarketplaceCharge from "Common/Models/DatabaseModels/MarketplaceCharge";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import Reseller from "Common/Models/DatabaseModels/Reseller";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
@@ -5739,7 +5743,7 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    // Marketplace purchases and the usage reported for them: master admin only (empty table ACLs).
+    // Marketplace purchases, the usage reported for them and their balance top-ups: master admin only (empty table ACLs).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<MarketplaceSubscription, MarketplaceSubscriptionServiceType>(
@@ -5752,6 +5756,13 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<MarketplaceUsageReport, MarketplaceUsageReportServiceType>(
         MarketplaceUsageReport,
         MarketplaceUsageReportService,
+      ).getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MarketplaceCharge, MarketplaceChargeServiceType>(
+        MarketplaceCharge,
+        MarketplaceChargeService,
       ).getRouter(),
     );
 
