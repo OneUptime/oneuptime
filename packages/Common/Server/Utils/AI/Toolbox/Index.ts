@@ -21,6 +21,7 @@ import {
   QueryTelemetryResourcesTool,
   QueryResourceTelemetryTool,
 } from "./ResourceTools";
+import { QueryContainersTool } from "./ContainerTools";
 import { QueryNetworkTransceiversTool } from "./TransceiverTools";
 import { QueryScheduledMaintenanceTool } from "./ScheduledMaintenanceTools";
 import {
@@ -113,6 +114,8 @@ export default class AIToolbox {
     QueryRumWebVitalsTool,
     QueryTelemetryResourcesTool,
     QueryResourceTelemetryTool,
+    // A container host's containers: the busiest, and the ones that stopped.
+    QueryContainersTool,
     // A network device's optics, port by port, with their trend.
     QueryNetworkTransceiversTool,
     QueryScheduledMaintenanceTool,
