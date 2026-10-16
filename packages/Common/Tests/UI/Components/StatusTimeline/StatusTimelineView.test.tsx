@@ -22,14 +22,19 @@ import StatusTimelineViewSwitch, {
   StatusTimelineView,
   useStatusTimelineView,
 } from "../../../../UI/Components/StatusTimeline/StatusTimelineView";
+import IconProp from "../../../../Types/Icon/IconProp";
 import { forgetStatusTimelineView } from "../../../Helpers/StatusTimelineViewChoice";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
 import {
   AA_TEXT_CONTRAST,
+  contrastOfClasses,
+  groundClassOf,
   PAGE_TEXT_CLASS,
+  textClassOf,
   WrittenWords,
   wordsIn,
 } from "../../../Helpers/TailwindContrast";
+import { getGlyphOfIcon, getGlyphOfSvg } from "../MenuItemIcons";
 
 /*
  * Timeline | Table: how a status timeline page shows its history.
@@ -247,6 +252,128 @@ describe("for a screen reader and a keyboard", () => {
       within(pageNamed("Monitor")).getByRole("button", { name: "Table" }),
     ).toHaveAccessibleName("Table");
   });
+});
+
+/*
+ * Each option shows a picture of its view: the timeline's stretches of time
+ * stepping along (IconProp.Timeline), the table's grid (TableCells). The
+ * Timeline option used to show Heroicons' chart-bar - three upright bars, a
+ * bar chart, which the timeline is not ("Timeline icon should be better and
+ * more relevant", the maintainer).
+ */
+describe("each view's icon", () => {
+  // What WCAG 2.1 (1.4.11) asks of a graphic that helps say what a control is.
+  const NON_TEXT_CONTRAST: number = 3;
+
+  const VIEWS: Array<"Timeline" | "Table"> = ["Timeline", "Table"];
+
+  const svgOf: (view: "Timeline" | "Table") => SVGSVGElement = (
+    view: "Timeline" | "Table",
+  ): SVGSVGElement => {
+    const svg: SVGSVGElement | null = screen
+      .getByRole("button", { name: view })
+      .querySelector("svg");
+
+    expect(svg).not.toBeNull();
+
+    return svg as SVGSVGElement;
+  };
+
+  const glyphOf: (view: "Timeline" | "Table") => string = (
+    view: "Timeline" | "Table",
+  ): string => {
+    return getGlyphOfSvg(svgOf(view));
+  };
+
+  test.each([StatusTimelineView.Timeline, StatusTimelineView.Table])(
+    "with %s shown, Timeline draws the timeline's icon and Table the table's grid",
+    (view: StatusTimelineView) => {
+      render(<StatusTimelineViewSwitch value={view} onChange={() => {}} />);
+
+      expect(glyphOf("Timeline")).toBe(getGlyphOfIcon(IconProp.Timeline));
+      expect(glyphOf("Table")).toBe(getGlyphOfIcon(IconProp.TableCells));
+    },
+  );
+
+  test("Timeline is not drawn as a bar chart any more", () => {
+    render(
+      <StatusTimelineViewSwitch
+        value={StatusTimelineView.Timeline}
+        onChange={() => {}}
+      />,
+    );
+
+    expect(glyphOf("Timeline")).not.toBe(getGlyphOfIcon(IconProp.ChartBar));
+  });
+
+  test("the two views look different at a glance: neither draws the other's icon", () => {
+    render(
+      <StatusTimelineViewSwitch
+        value={StatusTimelineView.Timeline}
+        onChange={() => {}}
+      />,
+    );
+
+    expect(glyphOf("Timeline")).not.toBe("");
+    expect(glyphOf("Table")).not.toBe("");
+    expect(glyphOf("Timeline")).not.toBe(glyphOf("Table"));
+  });
+
+  test("switching views keeps each icon on its view; the shown view's turns indigo and the other takes its button's grey", () => {
+    render(<Page name="Monitor" />);
+
+    expect(svgOf("Timeline")).toHaveClass("text-indigo-600");
+    expect(svgOf("Table")).not.toHaveClass("text-indigo-600");
+
+    pick("Monitor", "Table");
+
+    expect(glyphOf("Timeline")).toBe(getGlyphOfIcon(IconProp.Timeline));
+    expect(glyphOf("Table")).toBe(getGlyphOfIcon(IconProp.TableCells));
+    expect(svgOf("Table")).toHaveClass("text-indigo-600");
+    expect(svgOf("Timeline")).not.toHaveClass("text-indigo-600");
+    expect(textClassOf(svgOf("Timeline"))).toBe("text-gray-600");
+  });
+
+  test("each icon is 16px, ahead of its view's name, and left out of the name a screen reader hears", () => {
+    render(
+      <StatusTimelineViewSwitch
+        value={StatusTimelineView.Timeline}
+        onChange={() => {}}
+      />,
+    );
+
+    for (const view of VIEWS) {
+      const button: HTMLElement = screen.getByRole("button", { name: view });
+      const svg: SVGSVGElement = svgOf(view);
+
+      expect(svg).toHaveClass("h-4", "w-4");
+      expect(svg).toHaveAttribute("aria-hidden", "true");
+      // The icon comes first, then the name.
+      expect(button.firstElementChild?.contains(svg)).toBe(true);
+      expect(button).toHaveTextContent(view);
+      expect(button).toHaveAccessibleName(view);
+    }
+  });
+
+  test.each([StatusTimelineView.Timeline, StatusTimelineView.Table])(
+    "with %s shown, both icons stand out from the switch at 3:1 or more (WCAG non-text contrast)",
+    (view: StatusTimelineView) => {
+      render(<StatusTimelineViewSwitch value={view} onChange={() => {}} />);
+
+      for (const option of VIEWS) {
+        const svg: SVGSVGElement = svgOf(option);
+        const contrast: number = contrastOfClasses(
+          textClassOf(svg, PAGE_TEXT_CLASS),
+          groundClassOf(svg),
+        );
+
+        expect({
+          option: option,
+          standsOut: contrast >= NON_TEXT_CONTRAST,
+        }).toEqual({ option: option, standsOut: true });
+      }
+    },
+  );
 });
 
 describe("its words can be read", () => {
