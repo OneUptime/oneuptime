@@ -1,7 +1,12 @@
 import PostgresAppInstance from "../../Infrastructure/PostgresDatabase";
+import UUIDColumnFilter from "../../Types/Database/UUIDColumnFilter";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import DatabaseNotConnectedException from "../../../Types/Exception/DatabaseNotConnectedException";
 import ObjectID from "../../../Types/ObjectID";
 import { DataSource, EntityManager } from "typeorm";
+
+// What a uuid's text may carry besides its 32 hex digits.
+const UUID_BRACES_AND_HYPHENS: RegExp = /[{}-]/g;
 
 /*
  * ONE LIMIT, ONE PROJECT, ONE WRITE AT A TIME.
@@ -40,7 +45,42 @@ export default class ProjectLimitLock {
     limitName: string;
     projectId: ObjectID;
   }): string {
-    return `project-limit:${data.limitName}:${data.projectId.toString()}`;
+    return `project-limit:${data.limitName}:${this.getProjectKey(data.projectId)}`;
+  }
+
+  /*
+   * The project, as the lock names it: its id as Postgres writes it - 32 hex
+   * digits in lower case, hyphenated 8-4-4-4-12.
+   *
+   * Postgres reads an id in upper or mixed case, in braces, without hyphens
+   * or with one after any four of its digits as the same uuid, and so does
+   * every count a limit makes; OneUptime takes each of those wherever an id
+   * is given (UUIDColumnFilter.isUUIDText), the project a request names
+   * included. The lock is named by the uuid, never by how a request wrote
+   * it: a lock per spelling would let creates that name the project
+   * differently count side by side again. Text that is no uuid names no
+   * project, and is refused.
+   */
+  public static getProjectKey(projectId: ObjectID): string {
+    const text: string = projectId.toString();
+
+    if (!UUIDColumnFilter.isUUIDText(text)) {
+      throw new BadDataException(
+        "Invalid project ID: a project's ID is a UUID.",
+      );
+    }
+
+    const digits: string = text
+      .replace(UUID_BRACES_AND_HYPHENS, "")
+      .toLowerCase();
+
+    return [
+      digits.slice(0, 8),
+      digits.slice(8, 12),
+      digits.slice(12, 16),
+      digits.slice(16, 20),
+      digits.slice(20),
+    ].join("-");
   }
 
   /*

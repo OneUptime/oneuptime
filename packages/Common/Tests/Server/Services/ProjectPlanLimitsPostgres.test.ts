@@ -27,6 +27,10 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import {
+  generateIdWithLetters,
+  spellingsOf,
+} from "../TestingUtils/IdSpellings";
+import {
   afterAll,
   afterEach,
   beforeAll,
@@ -287,14 +291,21 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
 
   /*
    * A project admin's request from the dashboard or the API: the plan on
-   * its props, as CommonAPI puts it there.
+   * its props, as CommonAPI puts it there. With `namedAs`, the request
+   * named the project by that spelling of its id (IdSpellings):
+   * its tenant and its permissions are keyed by the id as it was sent, as
+   * UserMiddleware keys them; the projects the person is in are read
+   * from the table.
    */
   function projectAdminProps(
     currentPlan: PlanType,
+    namedAs?: ObjectID | undefined,
   ): DatabaseCommonInteractionProps {
+    const tenantId: ObjectID = namedAs || projectId;
+
     return {
       userId: adminId,
-      tenantId: projectId,
+      tenantId: tenantId,
       currentPlan: currentPlan,
       isSubscriptionUnpaid: false,
       userGlobalAccessPermission: {
@@ -307,9 +318,9 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
         ],
       },
       userTenantAccessPermission: {
-        [projectId.toString()]: {
+        [tenantId.toString()]: {
           _type: "UserTenantAccessPermission",
-          projectId: projectId,
+          projectId: tenantId,
           permissions: [
             {
               _type: "UserPermission",
@@ -424,16 +435,38 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
     async function createStatusPage(
       name: string,
       props?: DatabaseCommonInteractionProps,
+      namedAs?: ObjectID | undefined,
     ): Promise<StatusPage> {
       const statusPage: StatusPage = new StatusPage();
       statusPage.name = name;
-      statusPage.projectId = projectId;
+      statusPage.projectId = namedAs || projectId;
 
       return await StatusPageService.create({
         data: statusPage,
-        props: props || projectAdminProps(PlanType.Free),
+        props: props || projectAdminProps(PlanType.Free, namedAs),
       });
     }
+
+    test("of twelve creates that each name the project by another spelling of its id, exactly one is added", async () => {
+      projectId = generateIdWithLetters();
+      await insertProject({ plan: "free" });
+      const spellings: Array<ObjectID> = spellingsOf(projectId);
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        holdAt: StatusPageService,
+        create: (index: number) => {
+          return createStatusPage(
+            `Racing page ${index}`,
+            undefined,
+            spellings[index],
+          );
+        },
+      });
+
+      expectOutcome(outcome, { created: 1, refusal: STATUS_PAGE_REFUSAL });
+      expect(await count("StatusPage")).toBe(1);
+    }, 120000);
 
     test("of twelve creates that all passed the early count, exactly one is added", async () => {
       await insertProject({ plan: "free" });
@@ -605,22 +638,76 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
       expectOutcome(outcome, { created: 2, refusal: SUBSCRIBER_REFUSAL });
       expect(await count("StatusPageSubscriber")).toBe(5);
     }, 120000);
+
+    test("the team adding subscribers, each naming the project by another spelling of its id, and visitors signing up share the room: exactly two are added", async () => {
+      projectId = generateIdWithLetters();
+      await insertProject({ plan: "free" });
+      await insertStatusPage();
+      await insertSubscribers(3);
+      const spellings: Array<ObjectID> = spellingsOf(projectId);
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        holdAt: StatusPageSubscriberService,
+        create: (index: number) => {
+          if (index % 4 === 0) {
+            return signUp(`visitor-${index}@example.com`);
+          }
+
+          const subscriber: StatusPageSubscriber = new StatusPageSubscriber();
+          subscriber.statusPageId = statusPageId;
+          subscriber.projectId = spellings[index]!;
+          subscriber.subscriberEmail = new Email(`added-${index}@example.com`);
+          subscriber.sendYouHaveSubscribedMessage = false;
+
+          return StatusPageSubscriberService.create({
+            data: subscriber,
+            props: projectAdminProps(PlanType.Free, spellings[index]),
+          });
+        },
+      });
+
+      expectOutcome(outcome, { created: 2, refusal: SUBSCRIBER_REFUSAL });
+      expect(await count("StatusPageSubscriber")).toBe(5);
+    }, 120000);
   });
 
   describe("dashboards on the Free plan", () => {
     async function createDashboard(
       name: string,
       props?: DatabaseCommonInteractionProps,
+      namedAs?: ObjectID | undefined,
     ): Promise<Dashboard> {
       const dashboard: Dashboard = new Dashboard();
       dashboard.name = name;
-      dashboard.projectId = projectId;
+      dashboard.projectId = namedAs || projectId;
 
       return await DashboardService.create({
         data: dashboard,
-        props: props || projectAdminProps(PlanType.Free),
+        props: props || projectAdminProps(PlanType.Free, namedAs),
       });
     }
+
+    test("of twelve creates that each name the project by another spelling of its id, exactly one is added", async () => {
+      projectId = generateIdWithLetters();
+      await insertProject({ plan: "free" });
+      const spellings: Array<ObjectID> = spellingsOf(projectId);
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        holdAt: DashboardService,
+        create: (index: number) => {
+          return createDashboard(
+            `Racing dashboard ${index}`,
+            undefined,
+            spellings[index],
+          );
+        },
+      });
+
+      expectOutcome(outcome, { created: 1, refusal: DASHBOARD_REFUSAL });
+      expect(await count("Dashboard")).toBe(1);
+    }, 120000);
 
     test("of twelve creates that all passed the early count, exactly one is added", async () => {
       await insertProject({ plan: "free" });
@@ -690,19 +777,43 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
       policyId: ObjectID,
       name: string,
       plan: PlanType = PlanType.Free,
+      namedAs?: ObjectID | undefined,
     ): Promise<OnCallDutyPolicyEscalationRule> {
       const rule: OnCallDutyPolicyEscalationRule =
         new OnCallDutyPolicyEscalationRule();
       rule.name = name;
-      rule.projectId = projectId;
+      rule.projectId = namedAs || projectId;
       rule.onCallDutyPolicyId = policyId;
       rule.escalateAfterInMinutes = 5;
 
       return await OnCallDutyPolicyEscalationRuleService.create({
         data: rule,
-        props: projectAdminProps(plan),
+        props: projectAdminProps(plan, namedAs),
       });
     }
+
+    test("of twelve creates on one policy that each name the project by another spelling of its id, exactly one is added", async () => {
+      projectId = generateIdWithLetters();
+      await insertProject({ plan: "free" });
+      const policyId: ObjectID = await insertPolicy();
+      const spellings: Array<ObjectID> = spellingsOf(projectId);
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        holdAt: OnCallDutyPolicyEscalationRuleService,
+        create: (index: number) => {
+          return createRule(
+            policyId,
+            `Racing rule ${index}`,
+            PlanType.Free,
+            spellings[index],
+          );
+        },
+      });
+
+      expectOutcome(outcome, { created: 1, refusal: ESCALATION_RULE_REFUSAL });
+      expect(await count("OnCallDutyPolicyEscalationRule")).toBe(1);
+    }, 120000);
 
     test("of twelve creates on one policy that all passed the early count, exactly one is added", async () => {
       await insertProject({ plan: "free" });
@@ -883,15 +994,16 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
       userId: ObjectID,
       currentPlan: PlanType,
       toTeamId?: ObjectID | undefined,
+      namedAs?: ObjectID | undefined,
     ): Promise<TeamMember> {
       const member: TeamMember = new TeamMember();
-      member.projectId = projectId;
+      member.projectId = namedAs || projectId;
       member.teamId = toTeamId || teamId;
       member.userId = userId;
 
       return await TeamMemberService.create({
         data: member,
-        props: projectAdminProps(currentPlan),
+        props: projectAdminProps(currentPlan, namedAs),
       });
     }
 
@@ -912,10 +1024,17 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
       return await count("TeamMember");
     }
 
-    // A first sign-in through the project's SSO: hooks skipped, as SSO.ts does.
-    async function joinThroughSso(userId: ObjectID): Promise<TeamMember> {
+    /*
+     * A first sign-in through the project's SSO: hooks skipped, as SSO.ts
+     * does, in the project its sign-in address names - by `namedAs`, when
+     * the address spells the id another way.
+     */
+    async function joinThroughSso(
+      userId: ObjectID,
+      namedAs?: ObjectID | undefined,
+    ): Promise<TeamMember> {
       const member: TeamMember = new TeamMember();
-      member.projectId = projectId;
+      member.projectId = namedAs || projectId;
       member.teamId = teamId;
       member.userId = userId;
       member.hasAcceptedInvitation = true;
@@ -1201,6 +1320,62 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
         refusal: Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN,
       });
       expect(await peopleInProject()).toBe(1);
+    }, 120000);
+
+    test("a plan's seat limit with room for one: of twelve invitations that each name the project by another spelling of its id, exactly one is added", async () => {
+      projectId = generateIdWithLetters();
+      await insertProject({ plan: "growth", seatLimit: 3 });
+      await insertTeam();
+      await insertPeople(2);
+      const spellings: Array<ObjectID> = spellingsOf(projectId);
+      const people: Array<ObjectID> = [];
+      for (let index: number = 0; index < RACING_CREATES; index++) {
+        people.push(await newPerson(index));
+      }
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        holdAt: TeamMemberService,
+        create: (index: number) => {
+          return invite(
+            people[index]!,
+            PlanType.Growth,
+            undefined,
+            spellings[index],
+          );
+        },
+      });
+
+      expectOutcome(outcome, {
+        created: 1,
+        refusal: Errors.TeamMemberService.LIMIT_REACHED,
+      });
+      expect(await peopleInProject()).toBe(3);
+    }, 120000);
+
+    test("first SSO sign-ins whose addresses each spell the project's id another way share the seats left: exactly two are added", async () => {
+      projectId = generateIdWithLetters();
+      await insertProject({ plan: "growth", seatLimit: 4 });
+      await insertTeam();
+      await insertPeople(2);
+      const spellings: Array<ObjectID> = spellingsOf(projectId);
+      const people: Array<ObjectID> = [];
+      for (let index: number = 0; index < RACING_CREATES; index++) {
+        people.push(await newPerson(index));
+      }
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        create: (index: number) => {
+          return joinThroughSso(people[index]!, spellings[index]);
+        },
+      });
+
+      expectOutcome(outcome, {
+        created: 2,
+        refusal: Errors.TeamMemberService.LIMIT_REACHED,
+      });
+      expect(await peopleInProject()).toBe(4);
     }, 120000);
 
     test("a project with no seat limit is held to nothing: every invitation is added", async () => {
