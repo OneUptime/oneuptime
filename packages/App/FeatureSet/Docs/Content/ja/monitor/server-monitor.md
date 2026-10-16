@@ -159,7 +159,7 @@ Linux と macOS では `sudo` を付けて、Windows では管理者の **コマ
 | フィルタータイプ | チェック内容 | フィルター条件 |
 | --- | --- | --- |
 | Is Online | エージェントが最近報告したかどうか（既定では直近 3 分以内） | 真, 偽 |
-| CPU Usage (in %) | CPU 全体の使用率 | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| CPU Usage (in %) | CPU 全体の使用率 | より大きい, より小さい, 以上, 以下 |
 | Memory Usage (in %) | 使用中のメモリ | CPU と同じ |
 | Disk Usage (in %) | **ディスクパス** で指定したディスクの使用率 | CPU と同じ |
 | Swap Usage (in %) | 使用中のスワップ | CPU と同じ |
@@ -195,10 +195,10 @@ Linux と macOS では `sudo` を付けて、Windows では管理者の **コマ
 | 目的 | フィルタータイプ | フィルター条件 | 値 |
 | --- | --- | --- | --- |
 | エージェントの報告が止まったらサーバーをオフラインにする | Is Online | 偽 | — |
-| CPU 使用率が 90% を超えたらアラート | CPU Usage (in %) | Greater Than | `90` |
-| ルートディスクの使用率が 85% を超えたらアラート | Disk Usage (in %)、**ディスクパス** `/` | Greater Than | `85` |
-| 使用率が 85% を超えたディスクごとに 1 件ずつアラート | Disk Usage (in %)、**ディスクパス** `*` | Greater Than | `85` |
-| メモリ使用率が 80% を超えたらアラート | Memory Usage (in %) | Greater Than | `80` |
+| CPU 使用率が 90% を超えたらアラート | CPU Usage (in %) | より大きい | `90` |
+| ルートディスクの使用率が 85% を超えたらアラート | Disk Usage (in %)、**ディスクパス** `/` | より大きい | `85` |
+| 使用率が 85% を超えたディスクごとに 1 件ずつアラート | Disk Usage (in %)、**ディスクパス** `*` | より大きい | `85` |
+| メモリ使用率が 80% を超えたらアラート | Memory Usage (in %) | より大きい | `80` |
 | nginx が停止したらアラート | Server Process Name | Is Not Executing | `nginx` |
 
 ## トラブルシューティング

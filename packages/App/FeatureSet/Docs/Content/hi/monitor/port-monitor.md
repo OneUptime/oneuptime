@@ -109,9 +109,9 @@ sequenceDiagram
 | फ़िल्टर | शर्तें | क्या जांचता है |
 | --- | --- | --- |
 | **Is Online** | **सही**, **गलत** | क्या पोर्ट ने कनेक्शन स्वीकार किया। |
-| **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | पूरा कनेक्शन समय, होस्ट नाम के लिए DNS लुकअप सहित। |
-| **Port DNS Lookup Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | पहले TCP प्रयास से पहले का DNS लुकअप। लक्ष्य IP पता हो तो इसका कोई मान नहीं होता। |
-| **Port TCP Connect Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | पहले TCP प्रयास से कनेक्शन स्वीकार होने तक, IPv6 और IPv4 फ़ॉलबैक सहित। |
+| **Total Connection Time (DNS + TCP) (in ms)** | **से बड़ा**, **से छोटा**, **से बड़ा या बराबर**, **से छोटा या बराबर** | पूरा कनेक्शन समय, होस्ट नाम के लिए DNS लुकअप सहित। |
+| **Port DNS Lookup Time (in ms)** | **से बड़ा**, **से छोटा**, **से बड़ा या बराबर**, **से छोटा या बराबर** | पहले TCP प्रयास से पहले का DNS लुकअप। लक्ष्य IP पता हो तो इसका कोई मान नहीं होता। |
+| **Port TCP Connect Time (in ms)** | **से बड़ा**, **से छोटा**, **से बड़ा या बराबर**, **से छोटा या बराबर** | पहले TCP प्रयास से कनेक्शन स्वीकार होने तक, IPv6 और IPv4 फ़ॉलबैक सहित। |
 | **Is Request Timeout** | **सही**, **गलत** | क्या हर प्रयास में DNS लुकअप या TCP कनेक्शन टाइमआउट से आगे चला गया। |
 
 जब लक्ष्य कोई IP पता हो, तो DNS लुकअप वाले मानदंड के पास मूल्यांकन के लिए कुछ नहीं होता। जिन मानदंडों को होस्ट नाम और IP पते, दोनों के साथ काम करना है, उनके लिए कुल या TCP कनेक्ट समय का उपयोग करें।
@@ -156,10 +156,10 @@ sequenceDiagram
 | लक्ष्य | फ़िल्टर | शर्त | मान |
 | --- | --- | --- | --- |
 | पोर्ट बंद होने पर ऑफ़लाइन | **Is Online** | **गलत** | — |
-| कनेक्ट होना धीमा हो तो अलर्ट करें | **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than** | `500` |
-| कनेक्ट होने में धीमी सेवा को डिग्रेडेड चिह्नित करें | **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than** | `200` |
-| DNS धीमा हो तो अलर्ट करें | **Port DNS Lookup Time (in ms)** | **Greater Than** | `100` |
-| TCP हैंडशेक धीमा हो तो अलर्ट करें | **Port TCP Connect Time (in ms)** | **Greater Than** | `250` |
+| कनेक्ट होना धीमा हो तो अलर्ट करें | **Total Connection Time (DNS + TCP) (in ms)** | **से बड़ा** | `500` |
+| कनेक्ट होने में धीमी सेवा को डिग्रेडेड चिह्नित करें | **Total Connection Time (DNS + TCP) (in ms)** | **से बड़ा** | `200` |
+| DNS धीमा हो तो अलर्ट करें | **Port DNS Lookup Time (in ms)** | **से बड़ा** | `100` |
+| TCP हैंडशेक धीमा हो तो अलर्ट करें | **Port TCP Connect Time (in ms)** | **से बड़ा** | `250` |
 
 ## समस्या निवारण
 

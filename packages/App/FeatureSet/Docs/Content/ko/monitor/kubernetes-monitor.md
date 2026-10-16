@@ -112,7 +112,7 @@ flowchart LR
 
 ### 조건
 
-정적 임계값은 입력한 **Threshold** 와 비교됩니다. **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To**, **Equal To** 가 있습니다.
+정적 임계값은 입력한 **Threshold** 와 비교됩니다. **보다 큼**, **보다 작음**, **이상**, **이하**, **같음** 이 있습니다.
 
 기준선 이상 탐지에는 임계값이 필요 없습니다. 다음 조건 중 하나를 고르면 양식에 대신 **민감도** 와 **기준선 기간** 이 표시됩니다.
 

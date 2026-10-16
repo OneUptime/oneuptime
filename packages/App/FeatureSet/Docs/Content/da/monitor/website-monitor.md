@@ -143,11 +143,11 @@ Kriterier afgør, hvornår webstedet tæller som online, forringet eller offline
 | Filter | Betingelser | Hvad det tjekker |
 | --- | --- | --- |
 | **Is Online** | **Sand**, **Falsk** | Om webstedet overhovedet svarede, uanset statuskode. |
-| **Svarstatuskode** | **Equal To**, **Not Equal To**, **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | HTTP-statuskoden. |
-| **Svartid (i ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Hvor lang tid anmodningen tog, omdirigeringer medregnet. |
-| **Svarets brødtekst** | **Indeholder**, **Not Contains** | Tekst i svarets brødtekst. Der skelnes mellem store og små bogstaver. |
-| **Response Header** | **Indeholder**, **Not Contains** | Om svaret har en header med dette navn. Angiv navnet med små bogstaver, som `x-cache`. |
-| **Response Header Value** | **Indeholder**, **Not Contains** | Om en header har præcis denne værdi, sammenlignet med små bogstaver, som `no-store`. |
+| **Svarstatuskode** | **Lig med**, **Ikke lig med**, **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | HTTP-statuskoden. |
+| **Svartid (i ms)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Hvor lang tid anmodningen tog, omdirigeringer medregnet. |
+| **Svarets brødtekst** | **Indeholder**, **Indeholder ikke** | Tekst i svarets brødtekst. Der skelnes mellem store og små bogstaver. |
+| **Response Header** | **Indeholder**, **Indeholder ikke** | Om svaret har en header med dette navn. Angiv navnet med små bogstaver, som `x-cache`. |
+| **Response Header Value** | **Indeholder**, **Indeholder ikke** | Om en header har præcis denne værdi, sammenlignet med små bogstaver, som `no-store`. |
 | **JavaScript Expression** | **Evaluates To True** | Et udtryk over svaret. Se [JavaScript-udtryk](/docs/monitor/javascript-expression). |
 | **Is Request Timeout** | **Sand**, **Falsk** | Om anmodningen fik timeout ved hvert forsøg. |
 
@@ -164,7 +164,7 @@ En ny webstedsmonitor starter med to kriterier, så den virker uden ændringer:
 
 På listen over kriterier er de navngivet efter monitoren: _Check if (name) is offline_ og _Check if (name) is online_.
 
-En side, der svarer `204 No Content`, eller en omdirigering, du holder øje med, mens **Følg ikke omdirigeringer** er slået til, tæller altså som oppe. Hvis kun én statuskode betyder sund for dig, så ret begge kriterier på monitorens side **Konfiguration → Kriterier**: for eksempel **Svarstatuskode** / **Equal To** / `200` i online-kriteriet og **Not Equal To** / `200` i offline-kriteriet, i stedet for de to statuskodefiltre, hvert af dem har.
+En side, der svarer `204 No Content`, eller en omdirigering, du holder øje med, mens **Følg ikke omdirigeringer** er slået til, tæller altså som oppe. Hvis kun én statuskode betyder sund for dig, så ret begge kriterier på monitorens side **Konfiguration → Kriterier**: for eksempel **Svarstatuskode** / **Lig med** / `200` i online-kriteriet og **Ikke lig med** / `200` i offline-kriteriet, i stedet for de to statuskodefiltre, hvert af dem har.
 
 Kriterier tjekkes fra top til bund, og det første, der matcher, afgør, hvad der sker.
 
@@ -200,10 +200,10 @@ Gør vinduet længere end overvågningsintervallet, så det rummer flere tjek: e
 
 | Mål | Filter | Betingelse | Værdi |
 | --- | --- | --- | --- |
-| Markér webstedet som forringet, når det er langsomt | **Svartid (i ms)** | **Greater Than** | `3000` |
-| Fang en fejlside, der leveres med `200` | **Svarets brødtekst** | **Not Contains** | `Welcome` |
+| Markér webstedet som forringet, når det er langsomt | **Svartid (i ms)** | **Større end** | `3000` |
+| Fang en fejlside, der leveres med `200` | **Svarets brødtekst** | **Indeholder ikke** | `Welcome` |
 | Tjek, at en CDN-header er til stede | **Response Header** | **Indeholder** | `x-cache` |
-| Accepter kun `200` som sund | **Svarstatuskode** | **Equal To** | `200` |
+| Accepter kun `200` som sund | **Svarstatuskode** | **Lig med** | `200` |
 
 For at komme igennem en genstart skal du slå **Evaluér disse kriterier over en periode** til for filteret på svarets brødtekst og vælge **All Values** over 15 minutter.
 

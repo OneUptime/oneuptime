@@ -155,11 +155,11 @@ Kriterier avgör när API:et räknas som online, försämrat eller offline, och 
 | Filter | Villkor | Vad det kontrollerar |
 | --- | --- | --- |
 | **Is Online** | **Sant**, **Falskt** | Om API:et svarade alls, oavsett statuskod. |
-| **Statuskod för svar** | **Equal To**, **Not Equal To**, **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | HTTP-statuskoden. |
-| **Svarstid (i ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Hur lång tid begäran tog, omdirigeringar inräknade. |
-| **Svarstext** | **Innehåller**, **Not Contains** | Text i svarets kropp. Jämförelsen skiljer på versaler och gemener. |
-| **Response Header** | **Innehåller**, **Not Contains** | Om svaret har ett huvud med det här namnet. Ange namnet med gemener, som `x-request-id`. |
-| **Response Header Value** | **Innehåller**, **Not Contains** | Om ett huvud har exakt det här värdet, jämfört med gemener, som `application/json`. |
+| **Statuskod för svar** | **Lika med**, **Inte lika med**, **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | HTTP-statuskoden. |
+| **Svarstid (i ms)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Hur lång tid begäran tog, omdirigeringar inräknade. |
+| **Svarstext** | **Innehåller**, **Innehåller inte** | Text i svarets kropp. Jämförelsen skiljer på versaler och gemener. |
+| **Response Header** | **Innehåller**, **Innehåller inte** | Om svaret har ett huvud med det här namnet. Ange namnet med gemener, som `x-request-id`. |
+| **Response Header Value** | **Innehåller**, **Innehåller inte** | Om ett huvud har exakt det här värdet, jämfört med gemener, som `application/json`. |
 | **JavaScript Expression** | **Evaluates To True** | Ett uttryck över svaret. Se [JavaScript-uttryck](/docs/monitor/javascript-expression). |
 | **Is Request Timeout** | **Sant**, **Falskt** | Om begäran nådde tidsgränsen vid varje försök. |
 
@@ -178,7 +178,7 @@ En ny API-monitor börjar med två kriterier, så den fungerar utan att du ändr
 
 I listan över kriterier är de namngivna efter monitorn: _Check if (name) is offline_ och _Check if (name) is online_.
 
-En slutpunkt som svarar `201 Created` eller `204 No Content` räknas alltså som uppe. Om bara en statuskod betyder frisk för dig ändrar du båda kriterierna på monitorns sida **Konfiguration → Kriterier**: till exempel **Statuskod för svar** / **Equal To** / `200` i online-kriteriet och **Not Equal To** / `200` i offline-kriteriet, i stället för de två statuskodsfilter som vart och ett har. För att även kontrollera vad API:et returnerar lägger du till ett filter **Svarstext** eller **JavaScript Expression** i offline-kriteriet.
+En slutpunkt som svarar `201 Created` eller `204 No Content` räknas alltså som uppe. Om bara en statuskod betyder frisk för dig ändrar du båda kriterierna på monitorns sida **Konfiguration → Kriterier**: till exempel **Statuskod för svar** / **Lika med** / `200` i online-kriteriet och **Inte lika med** / `200` i offline-kriteriet, i stället för de två statuskodsfilter som vart och ett har. För att även kontrollera vad API:et returnerar lägger du till ett filter **Svarstext** eller **JavaScript Expression** i offline-kriteriet.
 
 Kriterier kontrolleras uppifrån och ned, och det första som matchar avgör vad som händer.
 
@@ -214,10 +214,10 @@ Gör fönstret längre än övervakningsintervallet så att det rymmer flera kon
 
 | Mål | Filter | Villkor | Värde |
 | --- | --- | --- | --- |
-| Markera API:et som försämrat när det är långsamt | **Svarstid (i ms)** | **Greater Than** | `1000` |
-| Offline när hälsokontrollen rapporterar ett problem | **Svarstext** | **Not Contains** | `"status":"ok"` |
+| Markera API:et som försämrat när det är långsamt | **Svarstid (i ms)** | **Större än** | `1000` |
+| Offline när hälsokontrollen rapporterar ett problem | **Svarstext** | **Innehåller inte** | `"status":"ok"` |
 | Samma sak, läst ur den tolkade JSON:en | **JavaScript Expression** | **Evaluates To True** | `"{{responseBody.status}}" !== "ok"` |
-| Godta bara `201` från en `POST` | **Statuskod för svar** | **Equal To** | `201` |
+| Godta bara `201` från en `POST` | **Statuskod för svar** | **Lika med** | `201` |
 
 För att ta dig igenom en omstart slår du på **Utvärdera dessa kriterier över en tidsperiod** för filtret på svarstexten och väljer **All Values** över 15 minuter.
 

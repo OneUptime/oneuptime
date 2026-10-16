@@ -100,11 +100,11 @@ De criteria van een logs-monitor hebben één **Filtertype**: **Log Count**, het
 
 | Filtervoorwaarde | Komt overeen wanneer het aantal logs… |
 | --- | --- |
-| **Greater Than** | boven de waarde ligt |
-| **Greater Than Or Equal To** | gelijk is aan de waarde of hoger |
-| **Less Than** | onder de waarde ligt |
-| **Less Than Or Equal To** | gelijk is aan de waarde of lager |
-| **Equal To** | precies de waarde is |
+| **Groter dan** | boven de waarde ligt |
+| **Groter dan of gelijk aan** | gelijk is aan de waarde of hoger |
+| **Kleiner dan** | onder de waarde ligt |
+| **Kleiner dan of gelijk aan** | gelijk is aan de waarde of lager |
+| **Gelijk aan** | precies de waarde is |
 | **Anomalously High** | boven het verwachte bereik voor dit uur van de week ligt |
 | **Anomalously Low** | onder dat bereik ligt |
 | **Anomalous** | buiten dat bereik ligt, in welke richting ook |
@@ -115,11 +115,11 @@ Een nieuwe logs-monitor begint met deze criteria:
 
 | Criterium | Filter | Effect |
 | --- | --- | --- |
-| Check if … is offline | **Log Count** **Equal To** `0` | Zet de monitor offline en meldt een incident, dat automatisch wordt opgelost |
-| Check if … is online | **Log Count** **Greater Than** `0` | Zet de monitor online |
+| Check if … is offline | **Log Count** **Gelijk aan** `0` | Zet de monitor offline en meldt een incident, dat automatisch wordt opgelost |
+| Check if … is online | **Log Count** **Groter dan** `0` | Zet de monitor online |
 
 > [!TIP]
-> Om gewaarschuwd te worden voor fouten in plaats van voor stilte, zet u **Logernst** op **Fout** en wijzigt u het offline-criterium in **Log Count** **Greater Than** het aantal fouten dat u in het venster accepteert.
+> Om gewaarschuwd te worden voor fouten in plaats van voor stilte, zet u **Logernst** op **Fout** en wijzigt u het offline-criterium in **Log Count** **Groter dan** het aantal fouten dat u in het venster accepteert.
 
 ## Uitgewerkt voorbeeld: een piek in fouten
 
@@ -128,8 +128,8 @@ U wilt een incident wanneer de checkout-service in vijf minuten meer dan 50 fout
 - **Logernst**: **Fout**
 - **Bewaak logboeken gedurende (time)**: **Laatste 5 minuten**
 - **Filteren op telemetrieservice**: `checkout`
-- Criterium 1: **Log Count** **Greater Than** `50`: de monitor offline zetten en een incident melden
-- Criterium 2: **Log Count** **Less Than Or Equal To** `50`: de monitor online zetten
+- Criterium 1: **Log Count** **Groter dan** `50`: de monitor offline zetten en een incident melden
+- Criterium 2: **Log Count** **Kleiner dan of gelijk aan** `50`: de monitor online zetten
 
 Vier opeenvolgende evaluaties:
 
@@ -200,7 +200,7 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 2. Zet **Bewaak logboeken die deze tekst bevatten** op `terminated` en **Bewaak logboeken gedurende (time)** op **Laatste 5 minuten**.
 3. Voeg onder **Meer velden** het attribuutfilter `log_component` = `IPSec` toe.
 4. Voeg onder **Group by Attributes** `con_name` toe.
-5. Voeg een criterium toe met het filter **Log Count** **Greater Than** `0` dat een waarschuwing of een incident aanmaakt met de titel `IPsec tunnel {{con_name}} terminated`.
+5. Voeg een criterium toe met het filter **Log Count** **Groter dan** `0` dat een waarschuwing of een incident aanmaakt met de titel `IPsec tunnel {{con_name}} terminated`.
 :::
 
 Elke tunnel die een beëindiging logt, krijgt nu een eigen waarschuwing (`IPsec tunnel HQ-Branch1 terminated`, `IPsec tunnel Branch2 terminated`), en elke waarschuwing wordt los van de andere opgelost.
@@ -219,7 +219,7 @@ De waarde van elk Group By-attribuut is een [templatevariabele](/docs/monitor/in
 ### De evaluatie van criteria verschilt
 
 - **Elk criterium wordt geëvalueerd**, net als bij een gegroepeerde metrics-monitor, dus verschillende groepen kunnen tegelijk aan verschillende criteria voldoen. Een groep die aan twee criteria voldoet, krijgt nog steeds één waarschuwing, van het eerste; zet de criteria dus op volgorde van ernstigst naar minst ernstig.
-- **Een groep bestaat alleen als hij in het tijdvenster iets heeft gelogd.** Criteria als **Equal To 0** en **Less Than** gaan daarom alleen af voor groepen die minstens één keer hebben gelogd; om gewaarschuwd te worden wanneer logs helemaal niet meer binnenkomen, gebruikt u een monitor zonder Group By.
+- **Een groep bestaat alleen als hij in het tijdvenster iets heeft gelogd.** Criteria als **Gelijk aan 0** en **Kleiner dan** gaan daarom alleen af voor groepen die minstens één keer hebben gelogd; om gewaarschuwd te worden wanneer logs helemaal niet meer binnenkomen, gebruikt u een monitor zonder Group By.
 - **Anomaliedetectie** (**Anomalously High**, **Anomalously Low**, **Anomalous**) wordt niet per groep geëvalueerd (de baseline omvat de hele monitor), dus die filters komen bij een gegroepeerde monitor nooit overeen.
 - De status van de monitor volgt het eerste criterium waaraan een groep voldoet. Voldoet geen enkele groep aan een criterium, dan gaat de monitor terug naar zijn standaardstatus.
 
@@ -230,7 +230,7 @@ Het aantal was 0, dus de filters komen met geen enkele log van de service overee
 :::
 
 :::details Er was een piek, maar er kwam geen waarschuwing
-De criteria worden van boven naar beneden gecontroleerd en de eerste overeenkomst beslist. Een breed criterium boven het criterium dat u verwachtte, zoals **Log Count** **Greater Than** `0`, komt eerst overeen en houdt de rest tegen. Zet het ernstigste criterium bovenaan.
+De criteria worden van boven naar beneden gecontroleerd en de eerste overeenkomst beslist. Een breed criterium boven het criterium dat u verwachtte, zoals **Log Count** **Groter dan** `0`, komt eerst overeen en houdt de rest tegen. Zet het ernstigste criterium bovenaan.
 :::
 
 :::details Een anomaliecriterium gaat nooit af

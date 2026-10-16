@@ -396,7 +396,7 @@ Noget af det, en enhed ved, er en liste: én række pr. IPsec-tunnel, Wi-Fi-radi
 
 Tal læses som tal, og tekst, der starter med et tal, læses som det tal (`"36"`, `"-95 dBm"`, `"80MHz"`), fordi mange producenter lægger tal i strenge. Sæt en kolonnes værditype til **Text only** for værdier, der kun ser numeriske ud. **Value labels** gør koder til ord (`0=inactive, 1=active`): den rå værdi er stadig det, der vises i grafer og sammenlignes, etiketten er det, der vises. **Healthy values** (`1`) siger, hvilke værdier der betyder, at alt er godt: de farver rækken på enhedens side **SNMP Tables** og driver kriteriet **SNMP Table Row Is Unhealthy**.
 
-Nogle kolonner i producentskabeloner **justerer** også det tal, de læser, til MIB'er, der gemmer en værdi i en enhed for sig: ArubaOS rapporterer sendestyrken fordoblet (læst × 0.5), Aruba Instant støjgulvet uden fortegn (× −1), Aerohive støjgulvet plus 256 (− 256) og Extremes controller kanalbredden i trin på 20 MHz (× 20). Det justerede tal er det, der vises, sættes i grafer og sammenlignes, så **Noise Floor Greater Than -80** betyder det samme hos hver producent, og tabeleditoren viser regnestykket under kolonnen.
+Nogle kolonner i producentskabeloner **justerer** også det tal, de læser, til MIB'er, der gemmer en værdi i en enhed for sig: ArubaOS rapporterer sendestyrken fordoblet (læst × 0.5), Aruba Instant støjgulvet uden fortegn (× −1), Aerohive støjgulvet plus 256 (− 256) og Extremes controller kanalbredden i trin på 20 MHz (× 20). Det justerede tal er det, der vises, sættes i grafer og sammenlignes, så **Noise Floor Større end -80** betyder det samme hos hver producent, og tabeleditoren viser regnestykket under kolonnen.
 
 Tabeller kommer fra en [OID Collection Template](#oid-collection-templates), delt af hver tilknyttet enhed (op til 10 tabeller), eller fra enheden selv under **Device-Specific SNMP Tables** (op til 10 mere). De flettes efter nøgle ved hver polling, skabelonen først, og en enhedstabel med samme nøgle erstatter skabelonens. Begge editorer tilbyder **Add a Vendor's Tables**.
 
@@ -779,7 +779,7 @@ Ved en polling, hvor intet walk kørte, giver kriterierne markeret "Vurderes ikk
 
 Interfacetjekkene kræver **Walk Interfaces** slået til i enhedens pollingindstillinger, som det er som standard. OID-tjekkene læser enhedens konfigurerede tilstands-OID'er. Administrativt deaktiverede interfaces er nede med vilje og tæller aldrig som fejl.
 
-Kriterier for SNMP-tabeller vælger en tabel, en kolonne (for SNMP Table Value) og et rækkeomfang. Tom vurderer hver række som én samlet advarsel; `*` giver en separat advarsel for hver række, der hver løses for sig og er opkaldt efter sin række; alt andet navngiver én række efter navn eller indeks. Tal sammenlignes som tal, og tekst sammenlignes både med den rå værdi og med dens etiket, så Not Equal To `active` og Not Equal To `1` begge fanger en Sophos-tunnel, der er nede. En tabel, hvis walk fejlede ved denne polling, vurderes ikke i stedet for at blive læst som tom, og tabelkriterier vurderer kun det aktuelle walk, ikke et tidsrum.
+Kriterier for SNMP-tabeller vælger en tabel, en kolonne (for SNMP Table Value) og et rækkeomfang. Tom vurderer hver række som én samlet advarsel; `*` giver en separat advarsel for hver række, der hver løses for sig og er opkaldt efter sin række; alt andet navngiver én række efter navn eller indeks. Tal sammenlignes som tal, og tekst sammenlignes både med den rå værdi og med dens etiket, så Ikke lig med `active` og Ikke lig med `1` begge fanger en Sophos-tunnel, der er nede. En tabel, hvis walk fejlede ved denne polling, vurderes ikke i stedet for at blive læst som tom, og tabelkriterier vurderer kun det aktuelle walk, ikke et tidsrum.
 
 Transceiverkriterier har omfang som interfacetjekkene: tom vurderer hvert modul som én samlet advarsel, `*` giver en separat advarsel for hver port med et modul (hver løst for sig og opkaldt efter sin port), og alt andet navngiver én port efter navn eller alias. De vurderer enhedens [transceivere](#transceivere), som de er ved denne polling, der allerede bærer deres historik — hvor mange pollinger et modul har manglet, en måneds modtagne effekt —, så heller ikke de vurderes over et tidsrum. En polling, hvis læsning af transceivere fejlede, lader dem vurdere den seneste gode læsning, så en åben advarsel ikke løses ved en polling, der ikke kunne se.
 
@@ -860,19 +860,19 @@ Matchning sker på adresse, ikke på loginoplysninger, så en enhed kun med ping
 #### Eksempel: opret en hændelse ved linkDown
 
 - **Filtertype**: SNMP Trap Received (Trap OID)
-- **Filterbetingelse**: Equal To
+- **Filterbetingelse**: Lig med
 - **Værdi**: `1.3.6.1.6.3.1.1.5.3`
 
-Filteret tilbyder også Contains, Starts With og Ends With, så ét kriterie kan matche en familie af enterprise-traps efter OID-præfiks.
+Filteret tilbyder også Indeholder, Starter med og Slutter med, så ét kriterie kan matche en familie af enterprise-traps efter OID-præfiks.
 
 #### Eksempel: skeln mellem begivenheder, der deler én trap-OID
 
 Nogle producenter sender hver begivenhed som den samme trap og lægger begivenheden i en tekst-varbind: hver meddelelse fra en Sophos Firewall er `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`) med beskeden i `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Kombinér de to i ét kriterie:
 
-- **SNMP Trap Received (Trap OID)**: Equal To `1.3.6.1.4.1.2604.5.1.8.1.1`
-- **SNMP Trap Varbind Value**: varbind-OID `1.3.6.1.4.1.2604.5.1.8.1.2`, Contains `IPSec`
+- **SNMP Trap Received (Trap OID)**: Lig med `1.3.6.1.4.1.2604.5.1.8.1.1`
+- **SNMP Trap Varbind Value**: varbind-OID `1.3.6.1.4.1.2604.5.1.8.1.2`, Indeholder `IPSec`
 
-Et negativt filter (Not Contains, Not Equal To, Is Empty) er kun opfyldt, når ingen varbind inden for omfanget matcher dets positive form. Lad varbind-OID'en være tom for at søge i hver varbind, trappen bærer.
+Et negativt filter (Indeholder ikke, Ikke lig med, Er tom) er kun opfyldt, når ingen varbind inden for omfanget matcher dets positive form. Lad varbind-OID'en være tom for at søge i hver varbind, trappen bærer.
 
 ## Skabelonvariabler til advarsler
 

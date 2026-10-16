@@ -143,11 +143,11 @@ Kriterien entscheiden, wann die Website als online, beeinträchtigt oder offline
 | Filter | Bedingungen | Was er prüft |
 | --- | --- | --- |
 | **Is Online** | **Wahr**, **Falsch** | Ob die Website überhaupt geantwortet hat, egal mit welchem Statuscode. |
-| **Antwort-Statuscode** | **Equal To**, **Not Equal To**, **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Den HTTP-Statuscode. |
-| **Antwortzeit (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Wie lange die Anfrage gedauert hat, Weiterleitungen eingeschlossen. |
-| **Antworttext** | **Enthält**, **Not Contains** | Text im Antworttext. Groß- und Kleinschreibung wird unterschieden. |
-| **Response Header** | **Enthält**, **Not Contains** | Ob die Antwort einen Header mit diesem Namen hat. Geben Sie den Namen kleingeschrieben ein, etwa `x-cache`. |
-| **Response Header Value** | **Enthält**, **Not Contains** | Ob ein Header genau diesen Wert hat, kleingeschrieben verglichen, etwa `no-store`. |
+| **Antwort-Statuscode** | **Gleich**, **Ungleich**, **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Den HTTP-Statuscode. |
+| **Antwortzeit (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Wie lange die Anfrage gedauert hat, Weiterleitungen eingeschlossen. |
+| **Antworttext** | **Enthält**, **Enthält nicht** | Text im Antworttext. Groß- und Kleinschreibung wird unterschieden. |
+| **Response Header** | **Enthält**, **Enthält nicht** | Ob die Antwort einen Header mit diesem Namen hat. Geben Sie den Namen kleingeschrieben ein, etwa `x-cache`. |
+| **Response Header Value** | **Enthält**, **Enthält nicht** | Ob ein Header genau diesen Wert hat, kleingeschrieben verglichen, etwa `no-store`. |
 | **JavaScript Expression** | **Evaluates To True** | Ein Ausdruck über die Antwort. Siehe [JavaScript-Ausdrücke](/docs/monitor/javascript-expression). |
 | **Is Request Timeout** | **Wahr**, **Falsch** | Ob die Anfrage bei jedem Versuch in ein Zeitlimit gelaufen ist. |
 
@@ -164,7 +164,7 @@ Ein neuer Website-Monitor beginnt mit zwei Kriterien, sodass er ohne Änderungen
 
 In der Liste der Kriterien sind sie nach dem Monitor benannt: _Check if (name) is offline_ und _Check if (name) is online_.
 
-Eine Seite, die `204 No Content` antwortet, oder eine Weiterleitung, die Sie mit eingeschaltetem **Weiterleitungen nicht folgen** beobachten, zählt also als erreichbar. Wenn für Sie nur ein Statuscode gesund bedeutet, ändern Sie beide Kriterien auf der Seite **Konfiguration → Kriterien** des Monitors: zum Beispiel **Antwort-Statuscode** / **Equal To** / `200` im Online-Kriterium und **Not Equal To** / `200` im Offline-Kriterium, anstelle der beiden Statuscode-Filter, die jedes hat.
+Eine Seite, die `204 No Content` antwortet, oder eine Weiterleitung, die Sie mit eingeschaltetem **Weiterleitungen nicht folgen** beobachten, zählt also als erreichbar. Wenn für Sie nur ein Statuscode gesund bedeutet, ändern Sie beide Kriterien auf der Seite **Konfiguration → Kriterien** des Monitors: zum Beispiel **Antwort-Statuscode** / **Gleich** / `200` im Online-Kriterium und **Ungleich** / `200` im Offline-Kriterium, anstelle der beiden Statuscode-Filter, die jedes hat.
 
 Kriterien werden von oben nach unten geprüft, und das erste zutreffende entscheidet, was passiert.
 
@@ -200,10 +200,10 @@ Wählen Sie das Fenster länger als das Überwachungsintervall, damit es mehrere
 
 | Ziel | Filter | Bedingung | Wert |
 | --- | --- | --- | --- |
-| Die Website als beeinträchtigt markieren, wenn sie langsam ist | **Antwortzeit (in ms)** | **Greater Than** | `3000` |
-| Eine Fehlerseite erkennen, die mit `200` ausgeliefert wird | **Antworttext** | **Not Contains** | `Welcome` |
+| Die Website als beeinträchtigt markieren, wenn sie langsam ist | **Antwortzeit (in ms)** | **Größer als** | `3000` |
+| Eine Fehlerseite erkennen, die mit `200` ausgeliefert wird | **Antworttext** | **Enthält nicht** | `Welcome` |
 | Prüfen, ob ein CDN-Header vorhanden ist | **Response Header** | **Enthält** | `x-cache` |
-| Nur `200` als gesund akzeptieren | **Antwort-Statuscode** | **Equal To** | `200` |
+| Nur `200` als gesund akzeptieren | **Antwort-Statuscode** | **Gleich** | `200` |
 
 Um einen Neustart zu überstehen, schalten Sie für den Antworttext-Filter **Diese Kriterien über einen Zeitraum hinweg auswerten** ein und wählen Sie **All Values** über 15 Minuten.
 

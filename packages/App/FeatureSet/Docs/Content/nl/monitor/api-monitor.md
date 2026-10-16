@@ -155,11 +155,11 @@ Criteria bepalen wanneer de API als online, verminderd of offline telt, en of da
 | Filter | Voorwaarden | Wat het controleert |
 | --- | --- | --- |
 | **Is Online** | **Waar**, **Onwaar** | Of de API überhaupt antwoordde, ongeacht de statuscode. |
-| **Reactiestatuscode** | **Equal To**, **Not Equal To**, **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | De HTTP-statuscode. |
-| **Reactietijd (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Hoe lang de aanvraag duurde, omleidingen inbegrepen. |
-| **Antwoordlichaam** | **Bevat**, **Not Contains** | Tekst in de body van het antwoord. De vergelijking is hoofdlettergevoelig. |
-| **Response Header** | **Bevat**, **Not Contains** | Of het antwoord een header met deze naam heeft. Vul de naam in kleine letters in, zoals `x-request-id`. |
-| **Response Header Value** | **Bevat**, **Not Contains** | Of een header precies deze waarde heeft, vergeleken in kleine letters, zoals `application/json`. |
+| **Reactiestatuscode** | **Gelijk aan**, **Niet gelijk aan**, **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | De HTTP-statuscode. |
+| **Reactietijd (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Hoe lang de aanvraag duurde, omleidingen inbegrepen. |
+| **Antwoordlichaam** | **Bevat**, **Bevat niet** | Tekst in de body van het antwoord. De vergelijking is hoofdlettergevoelig. |
+| **Response Header** | **Bevat**, **Bevat niet** | Of het antwoord een header met deze naam heeft. Vul de naam in kleine letters in, zoals `x-request-id`. |
+| **Response Header Value** | **Bevat**, **Bevat niet** | Of een header precies deze waarde heeft, vergeleken in kleine letters, zoals `application/json`. |
 | **JavaScript Expression** | **Evaluates To True** | Een expressie over het antwoord. Zie [JavaScript-expressies](/docs/monitor/javascript-expression). |
 | **Is Request Timeout** | **Waar**, **Onwaar** | Of de aanvraag bij elke poging een time-out bereikte. |
 
@@ -178,7 +178,7 @@ Een nieuwe API-monitor begint met twee criteria, zodat hij werkt zonder dat u ie
 
 In de lijst met criteria zijn ze naar de monitor genoemd: _Check if (name) is offline_ en _Check if (name) is online_.
 
-Een endpoint dat `201 Created` of `204 No Content` antwoordt, telt dus als bereikbaar. Betekent voor u maar één statuscode gezond, wijzig dan beide criteria op de pagina **Configuratie → Criteria** van de monitor: bijvoorbeeld **Reactiestatuscode** / **Equal To** / `200` in het online-criterium en **Not Equal To** / `200` in het offline-criterium, in plaats van de twee statuscodefilters die elk heeft. Om ook te controleren wat de API teruggeeft, voegt u een filter **Antwoordlichaam** of **JavaScript Expression** toe aan het offline-criterium.
+Een endpoint dat `201 Created` of `204 No Content` antwoordt, telt dus als bereikbaar. Betekent voor u maar één statuscode gezond, wijzig dan beide criteria op de pagina **Configuratie → Criteria** van de monitor: bijvoorbeeld **Reactiestatuscode** / **Gelijk aan** / `200` in het online-criterium en **Niet gelijk aan** / `200` in het offline-criterium, in plaats van de twee statuscodefilters die elk heeft. Om ook te controleren wat de API teruggeeft, voegt u een filter **Antwoordlichaam** of **JavaScript Expression** toe aan het offline-criterium.
 
 Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenkomt bepaalt wat er gebeurt.
 
@@ -214,10 +214,10 @@ Maak het venster langer dan het monitoringinterval, zodat het meerdere controles
 
 | Doel | Filter | Voorwaarde | Waarde |
 | --- | --- | --- | --- |
-| De API als verminderd markeren wanneer hij traag is | **Reactietijd (in ms)** | **Greater Than** | `1000` |
-| Offline wanneer de gezondheidscontrole een probleem meldt | **Antwoordlichaam** | **Not Contains** | `"status":"ok"` |
+| De API als verminderd markeren wanneer hij traag is | **Reactietijd (in ms)** | **Groter dan** | `1000` |
+| Offline wanneer de gezondheidscontrole een probleem meldt | **Antwoordlichaam** | **Bevat niet** | `"status":"ok"` |
 | Hetzelfde, gelezen uit de geparste JSON | **JavaScript Expression** | **Evaluates To True** | `"{{responseBody.status}}" !== "ok"` |
-| Alleen `201` accepteren van een `POST` | **Reactiestatuscode** | **Equal To** | `201` |
+| Alleen `201` accepteren van een `POST` | **Reactiestatuscode** | **Gelijk aan** | `201` |
 
 Zet om een herstart te doorstaan **Evalueer deze criteria over een bepaalde periode** aan voor het filter op de antwoordbody en kies **All Values** over 15 minuten.
 

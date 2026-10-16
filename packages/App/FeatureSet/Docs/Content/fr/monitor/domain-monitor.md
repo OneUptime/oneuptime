@@ -106,13 +106,13 @@ Les critères décident quand le domaine compte comme bon ou défaillant, et si 
 | --- | --- | --- |
 | **Is Online** | **Vrai**, **Faux** | Si la recherche d'enregistrement elle-même a réussi. |
 | **Is Request Timeout** | **Vrai**, **Faux** | Si la recherche a expiré, à chaque tentative. |
-| **Domain Expires In Days** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Les jours avant l'expiration de l'enregistrement, arrondis au jour entier supérieur. |
+| **Domain Expires In Days** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Les jours avant l'expiration de l'enregistrement, arrondis au jour entier supérieur. |
 | **Domain Is Expired** | **Vrai**, **Faux** | Si la date d'expiration est passée. |
-| **Domain Registrar** | **Contient**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | Le nom du registraire. |
-| **Domain Name Server** | **Contient**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | Les serveurs de noms du domaine. Correspond quand l'un d'eux correspond. |
-| **Domain Status Code** | **Contient**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | Les codes de statut EPP du domaine. Correspond quand l'un d'eux correspond. |
+| **Domain Registrar** | **Contient**, **Ne contient pas**, **Commence par**, **Se termine par**, **Égal à**, **Différent de** | Le nom du registraire. |
+| **Domain Name Server** | **Contient**, **Ne contient pas**, **Commence par**, **Se termine par**, **Égal à**, **Différent de** | Les serveurs de noms du domaine. Correspond quand l'un d'eux correspond. |
+| **Domain Status Code** | **Contient**, **Ne contient pas**, **Commence par**, **Se termine par**, **Égal à**, **Différent de** | Les codes de statut EPP du domaine. Correspond quand l'un d'eux correspond. |
 
-Les codes de statut sont normalisés vers leur nom EPP (`clientTransferProhibited`) quel que soit le protocole qui a répondu, donc un critère continue de correspondre quand **Auto** passe de RDAP à WHOIS. Les _noms_ de registraire sont ce que publie le service qui répond et peuvent légèrement différer entre les deux protocoles, alors préférez **Contient** à **Equal To** pour un critère **Domain Registrar**.
+Les codes de statut sont normalisés vers leur nom EPP (`clientTransferProhibited`) quel que soit le protocole qui a répondu, donc un critère continue de correspondre quand **Auto** passe de RDAP à WHOIS. Les _noms_ de registraire sont ce que publie le service qui répond et peuvent légèrement différer entre les deux protocoles, alors préférez **Contient** à **Égal à** pour un critère **Domain Registrar**.
 
 Les dates sont normalisées en ISO 8601. Une date qu'un registre publie sous une forme impossible à analyser est omise plutôt qu'enregistrée, donc un critère d'expiration ne peut pas trancher, et ne correspond pas, au lieu de répondre en silence « non expiré » pour toujours.
 
@@ -136,7 +136,7 @@ Pour être averti plus tôt, changez la valeur du filtre **Domain Expires In Day
 Les moniteurs créés avant que OneUptime n'ajoute cet avertissement n'ont pas de critère « bientôt expiré ». Pour l'ajouter :
 
 1. Sur le moniteur, ouvrez **Configuration → Critères** et cliquez sur **Modifier les critères de surveillance**.
-2. Cliquez sur **Ajouter un critère**. Réglez son filtre sur **Domain Is Expired** / **Faux**, cliquez sur **Ajouter un filtre** et réglez le second sur **Domain Expires In Days** / **Less Than Or Equal To** / `30`. Laissez **Condition de correspondance** sur **Tous** (il apparaît sous les filtres dès qu'il y en a deux).
+2. Cliquez sur **Ajouter un critère**. Réglez son filtre sur **Domain Is Expired** / **Faux**, cliquez sur **Ajouter un filtre** et réglez le second sur **Domain Expires In Days** / **Inférieur ou égal à** / `30`. Laissez **Condition de correspondance** sur **Tous** (il apparaît sous les filtres dès qu'il y en a deux).
 3. Sous **Actions**, activez **Lorsque les filtres correspondent, créer une alerte.** et laissez **Lorsque les filtres correspondent, modifier le statut du moniteur.** désactivé, pour qu'il crée une alerte sans changer l'état du moniteur.
 4. Faites glisser le nouveau critère au-dessus du critère qui marque le moniteur en ligne, puis enregistrez.
 :::
@@ -145,20 +145,20 @@ Les moniteurs créés avant que OneUptime n'ajoute cet avertissement n'ont pas d
 
 | Objectif | Filtre | Condition | Valeur |
 | --- | --- | --- | --- |
-| Alerter quand le domaine expire dans les 30 jours (un critère par défaut) | **Domain Expires In Days** | **Less Than Or Equal To** | `30` |
+| Alerter quand le domaine expire dans les 30 jours (un critère par défaut) | **Domain Expires In Days** | **Inférieur ou égal à** | `30` |
 | Hors ligne quand le domaine a expiré | **Domain Is Expired** | **Vrai** | — |
 | Hors ligne quand l'enregistrement ne peut pas être lu | **Is Online** | **Faux** | — |
-| Alerter quand les serveurs de noms changent | **Domain Name Server** | **Not Contains** | `ns1.example.com` |
-| Alerter quand le domaine est déverrouillé pour un transfert | **Domain Status Code** | **Not Contains** | `clientTransferProhibited` |
+| Alerter quand les serveurs de noms changent | **Domain Name Server** | **Ne contient pas** | `ns1.example.com` |
+| Alerter quand le domaine est déverrouillé pour un transfert | **Domain Status Code** | **Ne contient pas** | `clientTransferProhibited` |
 
-**Domain Name Server** et **Domain Status Code** correspondent quand _n'importe quelle_ valeur correspond, donc **Not Contains** correspond dès qu'un serveur de noms, ou un code de statut, ne contient pas le texte.
+**Domain Name Server** et **Domain Status Code** correspondent quand _n'importe quelle_ valeur correspond, donc **Ne contient pas** correspond dès qu'un serveur de noms, ou un code de statut, ne contient pas le texte.
 
 ## Bonnes pratiques
 
 1. **Gardez-vous le temps de renouveler** — L'avertissement par défaut arrive 30 jours avant l'expiration. Si le renouvellement demande des validations ou un paiement qui prend plus de temps, passez-le à 60 jours.
 2. **Couvrez les recherches échouées** — Incluez un filtre **Is Online** / **Faux** dans votre critère hors ligne pour qu'un enregistrement illisible ne soit pas pris pour un enregistrement en bonne santé. Les nouveaux moniteurs l'ont dans leurs critères par défaut ; un moniteur créé avant son ajout a besoin qu'on l'ajoute à la main. Pour encaisser un serveur WHOIS qui limite la sonde de temps en temps, cochez **Évaluer ce critère sur une période donnée** sous ce filtre et choisissez **All Values** : le domaine ne passe alors hors ligne que quand chaque recherche de la fenêtre a échoué.
 3. **Surveillez tous les domaines critiques** — Incluez les domaines principaux, les sous-domaines enregistrés séparément et tous les domaines utilisés pour les e-mails ou les API.
-4. **Suivez les changements de registraire** — Ajoutez un critère avec **Domain Registrar** / **Not Contains** / le nom de votre registraire, pour repérer un transfert non autorisé.
+4. **Suivez les changements de registraire** — Ajoutez un critère avec **Domain Registrar** / **Ne contient pas** / le nom de votre registraire, pour repérer un transfert non autorisé.
 
 ## Dépannage
 

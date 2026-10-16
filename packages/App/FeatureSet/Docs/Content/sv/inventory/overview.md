@@ -101,7 +101,7 @@ Klicka på **Lägg till Item**. Välj dess **Typ**, ge det ett **Namn** och even
 Tre typer kan du lägga till manuellt:
 
 - `external.service` (**External Service**): ett API från tredje part eller ett beroende av en programvarutjänst.
-- `external.database` (**External Database**): en databas som inte är en server OneUptime kan modellera. En databasserver, egendriven eller hanterad, från PostgreSQL till Snowflake, hör i stället hemma under **Databases → Skapa Database** ([Databaser](/docs/telemetry/databases)): den posten kopplas till de traces, containrar och motormätvärden som nämner samma adress, vilket ett inventarieobjekt aldrig gör, och lägger du till samma server på båda sätten blir det två okopplade poster.
+- `external.database` (**External Database**): en databas som inte är en server OneUptime kan modellera. En databasserver, egendriven eller hanterad, från PostgreSQL till Snowflake, hör i stället hemma under **Databases → Skapa Databas** ([Databaser](/docs/telemetry/databases)): den posten kopplas till de traces, containrar och motormätvärden som nämner samma adress, vilket ett inventarieobjekt aldrig gör, och lägger du till samma server på båda sätten blir det två okopplade poster.
 - `appliance` (**Appliance**): hårdvara eller programvara utan agent.
 
 Begränsningen förhindrar dubbletter. Ett manuellt skapat objekt av en typ som OneUptime kan observera, som en värd, skulle få nyckel efter namnet du skrev, medan det upptäckta objektet för samma maskin får nyckel efter de attribut den rapporterar. De två skulle aldrig gå ihop, så samma värd skulle stå två gånger i din lista för alltid.

@@ -112,12 +112,12 @@ Os critérios de um monitor de exceções têm um único **Tipo de filtro**: **E
 
 | Condição do filtro | Corresponde quando a contagem de exceções está… |
 | --- | --- |
-| **Greater Than** | acima do valor |
-| **Greater Than Or Equal To** | no valor ou acima |
-| **Less Than** | abaixo do valor |
-| **Less Than Or Equal To** | no valor ou abaixo |
-| **Equal To** | exatamente no valor |
-| **Not Equal To** | em qualquer valor, menos esse |
+| **Maior que** | acima do valor |
+| **Maior ou igual a** | no valor ou acima |
+| **Menor que** | abaixo do valor |
+| **Menor ou igual a** | no valor ou abaixo |
+| **Igual a** | exatamente no valor |
+| **Diferente de** | em qualquer valor, menos esse |
 
 As contagens de exceções não têm condições de anomalia: não há uma linha de base com que compará-las.
 
@@ -125,8 +125,8 @@ Um novo monitor de exceções começa com estes critérios:
 
 | Critério | Filtro | Efeito |
 | --- | --- | --- |
-| Check if … has exceptions | **Exception Count** **Greater Than** `0` | Coloca o monitor offline e declara um incidente, resolvido automaticamente |
-| Check if … has no exceptions | **Exception Count** **Equal To** `0` | Coloca o monitor online |
+| Check if … has exceptions | **Exception Count** **Maior que** `0` | Coloca o monitor offline e declara um incidente, resolvido automaticamente |
+| Check if … has no exceptions | **Exception Count** **Igual a** `0` | Coloca o monitor online |
 
 ## Exemplo prático: só as exceções de produção
 
@@ -139,7 +139,7 @@ Você quer um incidente sempre que a API lançar uma exceção em produção, e 
 | `TimeoutError` × 2 | nenhum | Ativa | Não: sem ambiente |
 | `NullReferenceException` × 4 | `production` | Resolvida depois de ocorrer | Não: resolvida |
 
-O **Exception Count** é 3, então **Greater Than** `0` corresponde: o monitor fica offline e um incidente é declarado. Depois que passam cinco minutos sem nenhuma exceção de produção ativa, o critério online corresponde e o incidente se resolve sozinho.
+O **Exception Count** é 3, então **Maior que** `0` corresponde: o monitor fica offline e um incidente é declarado. Depois que passam cinco minutos sem nenhuma exceção de produção ativa, o critério online corresponde e o incidente se resolve sozinho.
 
 ## Solução de problemas
 

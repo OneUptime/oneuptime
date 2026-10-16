@@ -396,7 +396,7 @@ En del av det en enhet vet är en lista: en rad per IPsec-tunnel, Wi-Fi-radio, S
 
 Tal läses som tal, och text som börjar med ett tal läses som det talet (`"36"`, `"-95 dBm"`, `"80MHz"`), eftersom många tillverkare lägger tal i strängar. Sätt en kolumns värdetyp till **Text only** för värden som bara ser numeriska ut. **Value labels** gör koder till ord (`0=inactive, 1=active`): det råa värdet är fortfarande det som visas i diagram och jämförs, etiketten är det som visas. **Healthy values** (`1`) anger vilka värden som betyder att allt är bra: de färgar raden på enhetens sida **SNMP Tables** och driver kriteriet **SNMP Table Row Is Unhealthy**.
 
-Vissa kolumner i tillverkarmallar **justerar** också talet de läser, för MIB:ar som håller ett värde i en egen enhet: ArubaOS rapporterar sändeffekten fördubblad (läses × 0.5), Aruba Instant brusgolvet utan tecken (× −1), Aerohive brusgolvet plus 256 (− 256) och Extremes kontroller kanalbredden i steg om 20 MHz (× 20). Det justerade talet är det som visas, ritas i diagram och jämförs, så **Noise Floor Greater Than -80** betyder samma sak hos varje tillverkare, och tabellredigeraren visar beräkningen under kolumnen.
+Vissa kolumner i tillverkarmallar **justerar** också talet de läser, för MIB:ar som håller ett värde i en egen enhet: ArubaOS rapporterar sändeffekten fördubblad (läses × 0.5), Aruba Instant brusgolvet utan tecken (× −1), Aerohive brusgolvet plus 256 (− 256) och Extremes kontroller kanalbredden i steg om 20 MHz (× 20). Det justerade talet är det som visas, ritas i diagram och jämförs, så **Noise Floor Större än -80** betyder samma sak hos varje tillverkare, och tabellredigeraren visar beräkningen under kolumnen.
 
 Tabeller kommer från en [OID Collection Template](#oid-collection-templates), delad av varje kopplad enhet (upp till 10 tabeller), eller från enheten själv under **Device-Specific SNMP Tables** (upp till 10 till). De slås ihop efter nyckel vid varje avsökning, mallen först, och en enhetstabell med samma nyckel ersätter mallens. Båda redigerarna erbjuder **Add a Vendor's Tables**.
 
@@ -779,7 +779,7 @@ Vid en avsökning där ingen walk kördes ger kriterierna markerade "Utvärderas
 
 Gränssnittskontrollerna kräver **Walk Interfaces** påslaget i enhetens avsökningsinställningar, vilket det är som standard. OID-kontrollerna läser enhetens konfigurerade hälso-OID:er. Administrativt avaktiverade gränssnitt är nere med avsikt och räknas aldrig som fel.
 
-Kriterier för SNMP-tabeller väljer en tabell, en kolumn (för SNMP Table Value) och en radomfattning. Tomt bedömer varje rad som en sammanslagen varning; `*` ger en separat varning för varje rad, som var och en löses för sig och är namngiven efter sin rad; allt annat namnger en rad efter namn eller index. Tal jämförs som tal, och text jämförs både med det råa värdet och med dess etikett, så Not Equal To `active` och Not Equal To `1` fångar båda en Sophos-tunnel som är nere. En tabell vars walk misslyckades vid den här avsökningen utvärderas inte i stället för att läsas som tom, och tabellkriterier bedömer bara den aktuella walken, inte ett tidsintervall.
+Kriterier för SNMP-tabeller väljer en tabell, en kolumn (för SNMP Table Value) och en radomfattning. Tomt bedömer varje rad som en sammanslagen varning; `*` ger en separat varning för varje rad, som var och en löses för sig och är namngiven efter sin rad; allt annat namnger en rad efter namn eller index. Tal jämförs som tal, och text jämförs både med det råa värdet och med dess etikett, så Inte lika med `active` och Inte lika med `1` fångar båda en Sophos-tunnel som är nere. En tabell vars walk misslyckades vid den här avsökningen utvärderas inte i stället för att läsas som tom, och tabellkriterier bedömer bara den aktuella walken, inte ett tidsintervall.
 
 Transceiverkriterier har omfattning som gränssnittskontrollerna: tomt bedömer varje modul som en sammanslagen varning, `*` ger en separat varning för varje port med en modul (var och en löses för sig och är namngiven efter sin port), och allt annat namnger en port efter namn eller alias. De bedömer enhetens [transceivrar](#transceivrar) så som de är vid den här avsökningen, som redan bär sin historik — hur många avsökningar en modul har saknats, en månads mottagen effekt — så inte heller de utvärderas över ett tidsintervall. En avsökning vars läsning av transceivrar misslyckades låter dem bedöma den senaste bra läsningen, så en öppen varning löses inte vid en avsökning som inte kunde titta.
 
@@ -860,19 +860,19 @@ Matchningen sker på adress, inte på autentiseringsuppgifter, så en enhet med 
 #### Exempel: skapa en incident vid linkDown
 
 - **Filtertyp**: SNMP Trap Received (Trap OID)
-- **Filtervillkor**: Equal To
+- **Filtervillkor**: Lika med
 - **Värde**: `1.3.6.1.6.3.1.1.5.3`
 
-Filtret erbjuder också Contains, Starts With och Ends With, så ett kriterium kan matcha en familj av enterprise-traps efter OID-prefix.
+Filtret erbjuder också Innehåller, Börjar med och Slutar med, så ett kriterium kan matcha en familj av enterprise-traps efter OID-prefix.
 
 #### Exempel: skilj åt händelser som delar en trap-OID
 
 Vissa tillverkare skickar varje händelse som samma trap och lägger händelsen i en text-varbind: varje avisering från en Sophos Firewall är `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`) med meddelandet i `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Kombinera de två i ett kriterium:
 
-- **SNMP Trap Received (Trap OID)**: Equal To `1.3.6.1.4.1.2604.5.1.8.1.1`
-- **SNMP Trap Varbind Value**: varbind-OID `1.3.6.1.4.1.2604.5.1.8.1.2`, Contains `IPSec`
+- **SNMP Trap Received (Trap OID)**: Lika med `1.3.6.1.4.1.2604.5.1.8.1.1`
+- **SNMP Trap Varbind Value**: varbind-OID `1.3.6.1.4.1.2604.5.1.8.1.2`, Innehåller `IPSec`
 
-Ett negativt filter (Not Contains, Not Equal To, Is Empty) är bara uppfyllt när ingen varbind inom omfattningen matchar dess positiva form. Lämna varbind-OID:n tom för att söka i varje varbind som trapen bär.
+Ett negativt filter (Innehåller inte, Inte lika med, Är tom) är bara uppfyllt när ingen varbind inom omfattningen matchar dess positiva form. Lämna varbind-OID:n tom för att söka i varje varbind som trapen bär.
 
 ## Mallvariabler för varningar
 

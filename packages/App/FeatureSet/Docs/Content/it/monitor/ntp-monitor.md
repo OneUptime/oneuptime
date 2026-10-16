@@ -101,10 +101,10 @@ I criteri decidono quando il server è considerato online, degradato o offline, 
 | --- | --- | --- |
 | **NTP Is Online** | **Vero**, **Falso** | Se il server ha risposto alla richiesta della sonda con una risposta NTP. Un kiss-o'-death è una risposta. |
 | **NTP Is Synchronized** | **Vero**, **Falso** | Se il server che ha risposto fornisce un'ora sincronizzata. Quando il server non risponde, questo filtro non viene verificato; per questo usa **NTP Is Online**. |
-| **NTP Stratum** | **Greater Than**, **Greater Than Or Equal To**, **Less Than**, **Less Than Or Equal To**, **Equal To**, **Not Equal To** | Lo stratum del server. Lo 0 di un kiss-o'-death conta come 16, non sincronizzato. |
-| **NTP Clock Offset (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Quanto l'orologio del server si discosta da quello della sonda, in entrambe le direzioni. |
-| **NTP Response Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Dalla richiesta alla risposta. |
-| **NTP Root Dispersion (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | La stima del server stesso del suo errore massimo. |
+| **NTP Stratum** | **Maggiore di**, **Maggiore o uguale a**, **Minore di**, **Minore o uguale a**, **Uguale a**, **Diverso da** | Lo stratum del server. Lo 0 di un kiss-o'-death conta come 16, non sincronizzato. |
+| **NTP Clock Offset (in ms)** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | Quanto l'orologio del server si discosta da quello della sonda, in entrambe le direzioni. |
+| **NTP Response Time (in ms)** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | Dalla richiesta alla risposta. |
+| **NTP Root Dispersion (in ms)** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | La stima del server stesso del suo errore massimo. |
 
 Con due o più filtri, **Condizione di corrispondenza** decide se devono corrispondere **Tutti** o ne basta **Qualsiasi**. Le **Azioni** di un criterio decidono cosa fa: cambiare lo stato del monitor, creare un avviso, dichiarare un incidente o una qualsiasi combinazione.
 
@@ -125,10 +125,10 @@ I criteri vengono verificati dall'alto verso il basso, e il primo che corrispond
 
 | Obiettivo | Filtro | Condizione | Valore |
 | --- | --- | --- | --- |
-| Avvisare quando un server GPS ripiega su una sorgente di rete | **NTP Stratum** | **Greater Than** | `1` |
-| Avvisare quando l'orologio deriva | **NTP Clock Offset (in ms)** | **Greater Than** | `100` |
-| Avvisare quando il margine di errore del server cresce | **NTP Root Dispersion (in ms)** | **Greater Than** | `500` |
-| Avvisare quando le risposte diventano lente | **NTP Response Time (in ms)** | **Greater Than** | `1000` |
+| Avvisare quando un server GPS ripiega su una sorgente di rete | **NTP Stratum** | **Maggiore di** | `1` |
+| Avvisare quando l'orologio deriva | **NTP Clock Offset (in ms)** | **Maggiore di** | `100` |
+| Avvisare quando il margine di errore del server cresce | **NTP Root Dispersion (in ms)** | **Maggiore di** | `500` |
+| Avvisare quando le risposte diventano lente | **NTP Response Time (in ms)** | **Maggiore di** | `1000` |
 
 ## Risoluzione dei problemi
 

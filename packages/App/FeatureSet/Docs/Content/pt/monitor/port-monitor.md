@@ -109,9 +109,9 @@ Os critérios decidem quando a porta conta como online, degradada ou offline, e 
 | Filtro | Condições | O que verifica |
 | --- | --- | --- |
 | **Is Online** | **Verdadeiro**, **Falso** | Se a porta aceitou uma conexão. |
-| **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | O tempo de conexão inteiro, incluindo a resolução DNS de um nome de host. |
-| **Port DNS Lookup Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | A resolução DNS antes da primeira tentativa TCP. Não tem valor quando o destino é um endereço IP. |
-| **Port TCP Connect Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Da primeira tentativa TCP até a conexão ser aceita, incluindo a alternância entre IPv6 e IPv4. |
+| **Total Connection Time (DNS + TCP) (in ms)** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | O tempo de conexão inteiro, incluindo a resolução DNS de um nome de host. |
+| **Port DNS Lookup Time (in ms)** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | A resolução DNS antes da primeira tentativa TCP. Não tem valor quando o destino é um endereço IP. |
+| **Port TCP Connect Time (in ms)** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | Da primeira tentativa TCP até a conexão ser aceita, incluindo a alternância entre IPv6 e IPv4. |
 | **Is Request Timeout** | **Verdadeiro**, **Falso** | Se a resolução DNS ou a conexão TCP excedeu o tempo limite, em todas as tentativas. |
 
 Um critério de resolução DNS não tem nada a avaliar quando o destino é um endereço IP. Para critérios que precisam funcionar tanto com nomes de host quanto com endereços IP, use o tempo total ou o tempo de conexão TCP.
@@ -156,10 +156,10 @@ Escolha uma janela mais longa que o intervalo de monitoramento, para que ela con
 | Objetivo | Filtro | Condição | Valor |
 | --- | --- | --- | --- |
 | Offline quando a porta está fechada | **Is Online** | **Falso** | — |
-| Alertar quando a conexão está lenta | **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than** | `500` |
-| Marcar o serviço como degradado quando demora a conectar | **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than** | `200` |
-| Alertar quando o DNS está lento | **Port DNS Lookup Time (in ms)** | **Greater Than** | `100` |
-| Alertar quando o handshake TCP está lento | **Port TCP Connect Time (in ms)** | **Greater Than** | `250` |
+| Alertar quando a conexão está lenta | **Total Connection Time (DNS + TCP) (in ms)** | **Maior que** | `500` |
+| Marcar o serviço como degradado quando demora a conectar | **Total Connection Time (DNS + TCP) (in ms)** | **Maior que** | `200` |
+| Alertar quando o DNS está lento | **Port DNS Lookup Time (in ms)** | **Maior que** | `100` |
+| Alertar quando o handshake TCP está lento | **Port TCP Connect Time (in ms)** | **Maior que** | `250` |
 
 ## Solução de problemas
 

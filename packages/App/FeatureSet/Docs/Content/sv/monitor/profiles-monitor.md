@@ -90,12 +90,12 @@ En profilmonitors kriterier har ett enda filter, **Profile Count**: antalet prof
 
 | Filtervillkor | Matchar när antalet profiler är… |
 | --- | --- |
-| **Greater Than** | över värdet |
-| **Greater Than Or Equal To** | lika med värdet eller högre |
-| **Less Than** | under värdet |
-| **Less Than Or Equal To** | lika med värdet eller lägre |
-| **Equal To** | exakt värdet |
-| **Not Equal To** | allt utom värdet |
+| **Större än** | över värdet |
+| **Större än eller lika med** | lika med värdet eller högre |
+| **Mindre än** | under värdet |
+| **Mindre än eller lika med** | lika med värdet eller lägre |
+| **Lika med** | exakt värdet |
+| **Inte lika med** | allt utom värdet |
 
 Antal profiler har inga avvikelsevillkor: det finns ingen baslinje att jämföra dem med.
 
@@ -104,8 +104,8 @@ Antal profiler har inga avvikelsevillkor: det finns ingen baslinje att jämföra
 Checkout-tjänsten kör ett Pyroscope-SDK som laddar upp CPU-profiler. Du vill ha en incident när de uteblir i fem minuter:
 
 - `profileTypes`: `["cpu"]`, `telemetryServiceIds`: checkout-tjänsten, `lastXSecondsOfProfiles`: `300`
-- Kriterium 1: **Profile Count** **Equal To** `0`: markera monitorn som offline och deklarera en incident
-- Kriterium 2: **Profile Count** **Greater Than** `0`: markera monitorn som online
+- Kriterium 1: **Profile Count** **Lika med** `0`: markera monitorn som offline och deklarera en incident
+- Kriterium 2: **Profile Count** **Större än** `0`: markera monitorn som online
 
 Medan SDK:t laddar upp räknar varje utvärdering några profiler och kriterium 2 håller monitorn online. När tjänsten driftsätts utan SDK:t sjunker antalet till 0 fem minuter efter den senaste uppladdningen, kriterium 1 matchar och incidenten deklareras. Den första uppladdningen efter rättningen för antalet över 0 igen, och incidenten löser sig själv om **Lös incident automatiskt** är aktiverat för den.
 

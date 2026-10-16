@@ -77,8 +77,8 @@ Kriterien entscheiden, wann das Zertifikat als in Ordnung, beeinträchtigt oder 
 | **Is Not A Valid Certificate** | **Wahr**, **Falsch** | Das Gegenteil von **Is Valid Certificate**: **Wahr**, wenn das Zertifikat diese Prüfungen nicht besteht oder nicht geprüft werden konnte. |
 | **Is Expired Certificate** | **Wahr**, **Falsch** | Das Ablaufdatum des Zertifikats ist überschritten. |
 | **Is Self Signed Certificate** | **Wahr**, **Falsch** | Das Zertifikat oder eines in seiner Kette ist selbstsigniert. |
-| **Expires In Days** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Tage, bis das Zertifikat abläuft. |
-| **Expires In Hours** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Stunden, bis das Zertifikat abläuft. |
+| **Expires In Days** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Tage, bis das Zertifikat abläuft. |
+| **Expires In Hours** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Stunden, bis das Zertifikat abläuft. |
 
 **Expires In Days** zählt ganze Tage: Ein Zertifikat, das in 14 Tagen und 20 Stunden abläuft, hat noch 14 Tage. **Expires In Hours** zählt ganze Stunden auf dieselbe Weise.
 
@@ -102,7 +102,7 @@ Um früher gewarnt zu werden, ändern Sie den Wert des Filters **Expires In Days
 Monitore, die erstellt wurden, bevor OneUptime diese Warnung eingeführt hat, haben kein Kriterium „läuft bald ab“. So fügen Sie es hinzu:
 
 1. Öffnen Sie beim Monitor **Konfiguration → Kriterien** und klicken Sie auf **Überwachungskriterien bearbeiten**.
-2. Klicken Sie auf **Kriterien hinzufügen**. Setzen Sie seinen Filter auf **Is Valid Certificate** / **Wahr**, klicken Sie auf **Filter hinzufügen** und setzen Sie den zweiten auf **Expires In Days** / **Less Than Or Equal To** / `14`. Lassen Sie **Abgleichsbedingung** auf **Alle** (es erscheint unter den Filtern, sobald es zwei sind).
+2. Klicken Sie auf **Kriterien hinzufügen**. Setzen Sie seinen Filter auf **Is Valid Certificate** / **Wahr**, klicken Sie auf **Filter hinzufügen** und setzen Sie den zweiten auf **Expires In Days** / **Kleiner als oder gleich** / `14`. Lassen Sie **Abgleichsbedingung** auf **Alle** (es erscheint unter den Filtern, sobald es zwei sind).
 3. Schalten Sie unter **Aktionen** **Wenn Filter übereinstimmen, eine Warnung erstellen.** ein und lassen Sie **Wenn Filter übereinstimmen, Monitorstatus ändern.** ausgeschaltet, sodass es eine Warnung erstellt und den Monitorstatus nicht ändert.
 4. Ziehen Sie das neue Kriterium über das Kriterium, das den Monitor als online markiert, und speichern Sie dann.
 :::
@@ -111,8 +111,8 @@ Monitore, die erstellt wurden, bevor OneUptime diese Warnung eingeführt hat, ha
 
 | Ziel | Filter | Bedingung | Wert |
 | --- | --- | --- | --- |
-| Einen Monat im Voraus warnen | **Expires In Days** | **Less Than Or Equal To** | `30` |
-| Am letzten Tag jemanden alarmieren | **Expires In Hours** | **Less Than** | `24` |
+| Einen Monat im Voraus warnen | **Expires In Days** | **Kleiner als oder gleich** | `30` |
+| Am letzten Tag jemanden alarmieren | **Expires In Hours** | **Kleiner als** | `24` |
 | Erst offline, wenn das Zertifikat abgelaufen ist | **Is Expired Certificate** | **Wahr** | — |
 | Ein selbstsigniertes Zertifikat kennzeichnen | **Is Self Signed Certificate** | **Wahr** | — |
 

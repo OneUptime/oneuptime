@@ -143,11 +143,11 @@ Criteria bepalen wanneer de website als online, verminderd of offline telt, en o
 | Filter | Voorwaarden | Wat het controleert |
 | --- | --- | --- |
 | **Is Online** | **Waar**, **Onwaar** | Of de site überhaupt antwoordde, ongeacht de statuscode. |
-| **Reactiestatuscode** | **Equal To**, **Not Equal To**, **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | De HTTP-statuscode. |
-| **Reactietijd (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Hoe lang de aanvraag duurde, omleidingen inbegrepen. |
-| **Antwoordlichaam** | **Bevat**, **Not Contains** | Tekst in de body van het antwoord. De vergelijking is hoofdlettergevoelig. |
-| **Response Header** | **Bevat**, **Not Contains** | Of het antwoord een header met deze naam heeft. Vul de naam in kleine letters in, zoals `x-cache`. |
-| **Response Header Value** | **Bevat**, **Not Contains** | Of een header precies deze waarde heeft, vergeleken in kleine letters, zoals `no-store`. |
+| **Reactiestatuscode** | **Gelijk aan**, **Niet gelijk aan**, **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | De HTTP-statuscode. |
+| **Reactietijd (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Hoe lang de aanvraag duurde, omleidingen inbegrepen. |
+| **Antwoordlichaam** | **Bevat**, **Bevat niet** | Tekst in de body van het antwoord. De vergelijking is hoofdlettergevoelig. |
+| **Response Header** | **Bevat**, **Bevat niet** | Of het antwoord een header met deze naam heeft. Vul de naam in kleine letters in, zoals `x-cache`. |
+| **Response Header Value** | **Bevat**, **Bevat niet** | Of een header precies deze waarde heeft, vergeleken in kleine letters, zoals `no-store`. |
 | **JavaScript Expression** | **Evaluates To True** | Een expressie over het antwoord. Zie [JavaScript-expressies](/docs/monitor/javascript-expression). |
 | **Is Request Timeout** | **Waar**, **Onwaar** | Of de aanvraag bij elke poging een time-out bereikte. |
 
@@ -164,7 +164,7 @@ Een nieuwe websitemonitor begint met twee criteria, zodat hij werkt zonder dat u
 
 In de lijst met criteria zijn ze naar de monitor genoemd: _Check if (name) is offline_ en _Check if (name) is online_.
 
-Een pagina die `204 No Content` antwoordt, of een omleiding die u bewaakt met **Omleidingen niet volgen** aan, telt dus als bereikbaar. Betekent voor u maar één statuscode gezond, wijzig dan beide criteria op de pagina **Configuratie → Criteria** van de monitor: bijvoorbeeld **Reactiestatuscode** / **Equal To** / `200` in het online-criterium en **Not Equal To** / `200` in het offline-criterium, in plaats van de twee statuscodefilters die elk heeft.
+Een pagina die `204 No Content` antwoordt, of een omleiding die u bewaakt met **Omleidingen niet volgen** aan, telt dus als bereikbaar. Betekent voor u maar één statuscode gezond, wijzig dan beide criteria op de pagina **Configuratie → Criteria** van de monitor: bijvoorbeeld **Reactiestatuscode** / **Gelijk aan** / `200` in het online-criterium en **Niet gelijk aan** / `200` in het offline-criterium, in plaats van de twee statuscodefilters die elk heeft.
 
 Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenkomt bepaalt wat er gebeurt.
 
@@ -200,10 +200,10 @@ Maak het venster langer dan het monitoringinterval, zodat het meerdere controles
 
 | Doel | Filter | Voorwaarde | Waarde |
 | --- | --- | --- | --- |
-| De site als verminderd markeren wanneer hij traag is | **Reactietijd (in ms)** | **Greater Than** | `3000` |
-| Een foutpagina opvangen die met `200` wordt geleverd | **Antwoordlichaam** | **Not Contains** | `Welcome` |
+| De site als verminderd markeren wanneer hij traag is | **Reactietijd (in ms)** | **Groter dan** | `3000` |
+| Een foutpagina opvangen die met `200` wordt geleverd | **Antwoordlichaam** | **Bevat niet** | `Welcome` |
 | Controleren of een CDN-header aanwezig is | **Response Header** | **Bevat** | `x-cache` |
-| Alleen `200` als gezond accepteren | **Reactiestatuscode** | **Equal To** | `200` |
+| Alleen `200` als gezond accepteren | **Reactiestatuscode** | **Gelijk aan** | `200` |
 
 Zet om een herstart te doorstaan **Evalueer deze criteria over een bepaalde periode** aan voor het filter op de antwoordbody en kies **All Values** over 15 minuten.
 

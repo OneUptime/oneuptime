@@ -119,10 +119,10 @@ Vous pouvez configurer des critères pour décider quand le service externe est 
 | Type de filtre | Ce qu'il vérifie | Conditions de filtre |
 | --- | --- | --- |
 | **External Status Page Is Online** | Si la page de statut est accessible et renvoie des données de statut | Vrai ou Faux |
-| **External Status Page Overall Status** | Le statut global indiqué par la page | Equal To, Not Equal To, Contient, Not Contains, Starts With, Ends With |
-| **External Status Page Component Status** | Le statut des composants du périmètre (en respectant les filtres de groupe / de nom de composant) : Opérationnel, Under Maintenance, Performances dégradées, Partial Outage, Panne majeure ou Panne totale | Equal To, Not Equal To, Contient, Not Contains, Starts With, Ends With |
-| **External Status Page Active Incidents** | Le nombre d'incidents actuellement actifs signalés sur la page de statut (limité au groupe / composant quand un filtre est défini) | Equal To, Not Equal To, et les comparaisons numériques |
-| **External Status Page Response Time (in ms)** | Le temps nécessaire pour récupérer les données de la page de statut | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| **External Status Page Overall Status** | Le statut global indiqué par la page | Égal à, Différent de, Contient, Ne contient pas, Commence par, Se termine par |
+| **External Status Page Component Status** | Le statut des composants du périmètre (en respectant les filtres de groupe / de nom de composant) : Opérationnel, Under Maintenance, Performances dégradées, Partial Outage, Panne majeure ou Panne totale | Égal à, Différent de, Contient, Ne contient pas, Commence par, Se termine par |
+| **External Status Page Active Incidents** | Le nombre d'incidents actuellement actifs signalés sur la page de statut (limité au groupe / composant quand un filtre est défini) | Égal à, Différent de, et les comparaisons numériques |
+| **External Status Page Response Time (in ms)** | Le temps nécessaire pour récupérer les données de la page de statut | Supérieur à, Inférieur à, Supérieur ou égal à, Inférieur ou égal à |
 
 Le statut global est ce que dit la page : ses valeurs varient donc selon le fournisseur. Une Atlassian Statuspage rapporte sa propre description, comme `All Systems Operational` ; un flux rapporte `operational` ou `degraded_performance` ; la vérification d'accessibilité rapporte `reachable` ou `unreachable`. Ces comparaisons sont sensibles à la casse. Pour alerter sur les pannes, **External Status Page Active Incidents** et **External Status Page Component Status** sont généralement plus fiables.
 

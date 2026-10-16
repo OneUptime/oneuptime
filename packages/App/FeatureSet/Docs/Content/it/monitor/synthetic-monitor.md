@@ -234,10 +234,10 @@ Un'esecuzione può catturare al massimo 100 metriche, solo con valori numerici, 
 | **Errore** | L'errore generato da un'esecuzione, se presente. |
 | **Result Value** | I `data` restituiti da un'esecuzione. |
 | **Tempo di esecuzione (in ms)** | Quanto è durata un'esecuzione. |
-| **Tipo di browser** | Il browser usato da un'esecuzione: **Equal To** o **Not Equal To**. |
-| **Screen Size** | La dimensione dello schermo usata da un'esecuzione: **Equal To** o **Not Equal To**. |
+| **Tipo di browser** | Il browser usato da un'esecuzione: **Uguale a** o **Diverso da**. |
+| **Screen Size** | La dimensione dello schermo usata da un'esecuzione: **Uguale a** o **Diverso da**. |
 
-Ogni filtro viene controllato su ogni esecuzione, e corrisponde quando corrisponde anche una sola esecuzione. I filtri vengono controllati separatamente, non esecuzione per esecuzione: **Errore** Is Not Empty insieme a **Tipo di browser** Equal To `Firefox` corrisponde quando un'esecuzione qualsiasi è fallita e una delle esecuzioni ha usato Firefox, non solo quando è fallita l'esecuzione Firefox. Per tenere d'occhio un browser da solo, dategli un monitor tutto suo.
+Ogni filtro viene controllato su ogni esecuzione, e corrisponde quando corrisponde anche una sola esecuzione. I filtri vengono controllati separatamente, non esecuzione per esecuzione: **Errore** Non è vuoto insieme a **Tipo di browser** Uguale a `Firefox` corrisponde quando un'esecuzione qualsiasi è fallita e una delle esecuzioni ha usato Firefox, non solo quando è fallita l'esecuzione Firefox. Per tenere d'occhio un browser da solo, dategli un monitor tutto suo.
 
 Nei modelli di incidente e di avviso, ogni esecuzione si trova in `{{syntheticResponses}}`: consultate [Modelli di incidenti e avvisi](/docs/monitor/incident-alert-templating#monitor-sintetici).
 

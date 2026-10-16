@@ -198,7 +198,7 @@ Invoke-RestMethod -Method Post `
 | 条件 | 过滤器类型 | 过滤条件 | 值 | 效果 |
 | -------- | ------------ | ---------------- | ------- | -------------------------------------------- |
 | Offline  | 请求主体 | 包含 | `error` | 把监视器标记为离线，打开一个事件 |
-| Online   | 请求主体 | Not Contains | `error` | 把监视器标记为在线 |
+| Online   | 请求主体 | 不包含 | `error` | 把监视器标记为在线 |
 
 这适合发送方在负载中报告自身健康状况的常见情况：请求体中提到 `error` 的请求会让监视器下线，下一个不含该词的请求会让监视器恢复在线并解决事件。完全没有请求体的请求算作"不包含 `error`"，因此单纯的心跳调用会让监视器保持在线。
 
@@ -224,7 +224,7 @@ Invoke-RestMethod -Method Post `
 | 过滤器类型 | 条件 |
 | --- | --- |
 | **Incoming Request** | **Recieved In Minutes** —— 在指定的分钟数内收到了请求。**Not Recieved In Minutes** —— 在指定的分钟数内没有收到请求。（仪表板就是这样拼写的。） |
-| **请求主体**、**Request Header**、**Request Header Value** | **包含** 和 **Not Contains** |
+| **请求主体**、**Request Header**、**Request Header Value** | **包含** 和 **不包含** |
 | **JavaScript Expression** | **Evaluates To True** |
 
 > [!NOTE]
@@ -251,7 +251,7 @@ Invoke-RestMethod -Method Post `
 | **值** | `"status":"degraded"` |
 
 > [!IMPORTANT]
-> 把死人开关放在默认条件 **之上**。条件从上往下检查，第一个匹配的条件说了算。后台检查会重新读取最后一个请求，因此默认的在线条件（"Request Body Not Contains `error`"）会一直匹配它，排在它下面的条件永远轮不到。**添加条件** 会把条件加到底部：请把它拖上去。
+> 把死人开关放在默认条件 **之上**。条件从上往下检查，第一个匹配的条件说了算。后台检查会重新读取最后一个请求，因此默认的在线条件（"请求主体 不包含 `error`"）会一直匹配它，排在它下面的条件永远轮不到。**添加条件** 会把条件加到底部：请把它拖上去。
 
 > [!WARNING]
 > 只有当监视器至少有一个条件检查 **Incoming Request** 时，它才会在后台被重新评估。条件只检查请求主体、Request Header 或 JavaScript 表达式的监视器，只在请求到达时评估，其他时候都不会，因此它永远不会自行下线。如果你需要心跳缺失的告警，就需要一个 **Incoming Request** 条件。

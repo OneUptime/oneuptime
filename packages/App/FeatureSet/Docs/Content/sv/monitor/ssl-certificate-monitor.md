@@ -77,8 +77,8 @@ Kriterier avgör när certifikatet räknas som i ordning, försämrat eller tras
 | **Is Not A Valid Certificate** | **Sant**, **Falskt** | Motsatsen till **Is Valid Certificate**: **Sant** när certifikatet inte klarar de kontrollerna eller inte kunde kontrolleras. |
 | **Is Expired Certificate** | **Sant**, **Falskt** | Certifikatets utgångsdatum har passerat. |
 | **Is Self Signed Certificate** | **Sant**, **Falskt** | Certifikatet, eller ett i dess kedja, är självsignerat. |
-| **Expires In Days** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Dagar tills certifikatet går ut. |
-| **Expires In Hours** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Timmar tills certifikatet går ut. |
+| **Expires In Days** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Dagar tills certifikatet går ut. |
+| **Expires In Hours** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Timmar tills certifikatet går ut. |
 
 **Expires In Days** räknar hela dagar: ett certifikat som går ut om 14 dagar och 20 timmar har 14 dagar kvar. **Expires In Hours** räknar hela timmar på samma sätt.
 
@@ -102,7 +102,7 @@ För att bli varnad tidigare ändrar du värdet för filtret **Expires In Days**
 Monitorer som skapades innan OneUptime lade till den här varningen har inget kriterium "går snart ut". Så här lägger du till det:
 
 1. Öppna **Konfiguration → Kriterier** på monitorn och klicka på **Redigera Övervakningskriterier**.
-2. Klicka på **Lägg till kriterier**. Sätt dess filter till **Is Valid Certificate** / **Sant**, klicka på **Lägg till filter** och sätt det andra till **Expires In Days** / **Less Than Or Equal To** / `14`. Låt **Matchningsvillkor** stå på **Alla** (det visas under filtren så snart det finns två).
+2. Klicka på **Lägg till kriterier**. Sätt dess filter till **Is Valid Certificate** / **Sant**, klicka på **Lägg till filter** och sätt det andra till **Expires In Days** / **Mindre än eller lika med** / `14`. Låt **Matchningsvillkor** stå på **Alla** (det visas under filtren så snart det finns två).
 3. Slå på **När filter matchar, skapa en varning.** under **Åtgärder** och låt **När filter matchar, ändra övervakarstatus.** vara avstängt, så att det skapar ett larm och inte ändrar monitorns status.
 4. Dra det nya kriteriet ovanför kriteriet som markerar monitorn som online och spara sedan.
 :::
@@ -111,8 +111,8 @@ Monitorer som skapades innan OneUptime lade till den här varningen har inget kr
 
 | Mål | Filter | Villkor | Värde |
 | --- | --- | --- | --- |
-| Varna en månad i förväg | **Expires In Days** | **Less Than Or Equal To** | `30` |
-| Kalla in någon den sista dagen | **Expires In Hours** | **Less Than** | `24` |
+| Varna en månad i förväg | **Expires In Days** | **Mindre än eller lika med** | `30` |
+| Kalla in någon den sista dagen | **Expires In Hours** | **Mindre än** | `24` |
 | Offline först när certifikatet har gått ut | **Is Expired Certificate** | **Sant** | — |
 | Flagga ett självsignerat certifikat | **Is Self Signed Certificate** | **Sant** | — |
 

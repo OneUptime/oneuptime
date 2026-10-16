@@ -112,12 +112,12 @@ Los criterios de un monitor de excepciones tienen un único **Tipo de filtro**: 
 
 | Condición de filtro | Coincide cuando el recuento de excepciones está… |
 | --- | --- |
-| **Greater Than** | por encima del valor |
-| **Greater Than Or Equal To** | en el valor o por encima |
-| **Less Than** | por debajo del valor |
-| **Less Than Or Equal To** | en el valor o por debajo |
-| **Equal To** | exactamente en el valor |
-| **Not Equal To** | en cualquier valor menos ese |
+| **Mayor que** | por encima del valor |
+| **Mayor o igual que** | en el valor o por encima |
+| **Menor que** | por debajo del valor |
+| **Menor o igual que** | en el valor o por debajo |
+| **Igual a** | exactamente en el valor |
+| **Distinto de** | en cualquier valor menos ese |
 
 Los recuentos de excepciones no tienen condiciones de anomalía: no hay ninguna referencia con la que compararlos.
 
@@ -125,8 +125,8 @@ Un monitor de excepciones nuevo empieza con estos criterios:
 
 | Criterio | Filtro | Efecto |
 | --- | --- | --- |
-| Check if … has exceptions | **Exception Count** **Greater Than** `0` | Pone el monitor fuera de línea y declara un incidente que se resuelve solo |
-| Check if … has no exceptions | **Exception Count** **Equal To** `0` | Pone el monitor en línea |
+| Check if … has exceptions | **Exception Count** **Mayor que** `0` | Pone el monitor fuera de línea y declara un incidente que se resuelve solo |
+| Check if … has no exceptions | **Exception Count** **Igual a** `0` | Pone el monitor en línea |
 
 ## Ejemplo práctico: solo las excepciones de producción
 
@@ -139,7 +139,7 @@ Quieres un incidente cada vez que la API lance una excepción en producción, y 
 | `TimeoutError` × 2 | ninguno | Activa | No: sin entorno |
 | `NullReferenceException` × 4 | `production` | Resuelta después de ocurrir | No: resuelta |
 
-El **Exception Count** es 3, así que **Greater Than** `0` coincide: el monitor pasa a fuera de línea y se declara un incidente. Cuando pasan cinco minutos sin ninguna excepción de producción activa, coincide el criterio de en línea y el incidente se resuelve solo.
+El **Exception Count** es 3, así que **Mayor que** `0` coincide: el monitor pasa a fuera de línea y se declara un incidente. Cuando pasan cinco minutos sin ninguna excepción de producción activa, coincide el criterio de en línea y el incidente se resuelve solo.
 
 ## Solución de problemas
 

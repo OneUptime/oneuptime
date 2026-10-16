@@ -177,15 +177,15 @@ I criteri di un monitor Custom Code possono controllare:
 
 | Tipo di filtro | Cosa controlla | Condizioni del filtro |
 | --- | --- | --- |
-| **Errore** | L'errore generato dallo script, se presente. | Contiene, Not Contains, Equal To, Not Equal To, Is Empty, Is Not Empty |
-| **Result Value** | I `data` restituiti dallo script. Confrontati come numero quando lo sono. | Le stesse, più Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To, Vero e Falso |
+| **Errore** | L'errore generato dallo script, se presente. | Contiene, Non contiene, Uguale a, Diverso da, È vuoto, Non è vuoto |
+| **Result Value** | I `data` restituiti dallo script. Confrontati come numero quando lo sono. | Le stesse, più Maggiore di, Minore di, Maggiore o uguale a, Minore o uguale a, Vero e Falso |
 | **Tempo di esecuzione (in ms)** | Quanto è durato lo script. | Confronti numerici |
 
 I criteri predefiniti segnano il monitor online quando **Errore** è vuoto, e offline (con un incidente che si risolve da solo quando lo script torna a funzionare) quando non lo è. Nei modelli di incidente e di avviso, l'esecuzione è disponibile come `{{result}}`, `{{scriptError}}`, `{{logMessages}}` e `{{executionTimeInMs}}`: consultate [Modelli di incidenti e avvisi](/docs/monitor/incident-alert-templating).
 
 ### Avvisi sui dati restituiti
 
-Ciò che lo script restituisce come `data` è il **Result Value** del monitor, e un criterio può confrontarlo: per esempio _Result Value è Equal To `UP`_.
+Ciò che lo script restituisce come `data` è il **Result Value** del monitor, e un criterio può confrontarlo: per esempio _Result Value è Uguale a `UP`_.
 
 Quando `data` è un oggetto o un array, compilate **Percorso del campo (facoltativo)** nel filtro Result Value per confrontare uno dei suoi campi invece del valore intero. Usate i punti per i campi annidati e `[n]` per gli elementi di un array:
 
@@ -204,16 +204,16 @@ return {
 
 | Percorso del campo | Confronta | Condizione di esempio |
 | --- | --- | --- |
-| `status` | `"UP"` | Not Equal To `UP` |
-| `cpu_busy_percent` | `42` | Greater Than `90` |
+| `status` | `"UP"` | Diverso da `UP` |
+| `cpu_busy_percent` | `42` | Maggiore di `90` |
 | `healthy` | `true` | Falso |
-| `checks[0].latency` | `12` | Greater Than `500` |
+| `checks[0].latency` | `12` | Maggiore di `500` |
 
 Aggiungete un filtro per ogni campo da controllare; ognuno può avere la propria condizione e il proprio valore.
 
 - Lasciate vuoto il percorso del campo per confrontare il valore intero, come per uno script che restituisce un solo numero o una sola stringa.
-- Greater Than, Less Than e le altre condizioni numeriche corrispondono solo a un numero, quindi restituite un campo come `42`, non come `"42"`. Vero e Falso corrispondono solo a un booleano.
-- Un campo assente dai dati restituiti (una chiave mancante, o un indice oltre la fine dell'array) viene confrontato come vuoto: **Is Empty** vi corrisponde, e nessun'altra condizione.
+- Maggiore di, Minore di e le altre condizioni numeriche corrispondono solo a un numero, quindi restituite un campo come `42`, non come `"42"`. Vero e Falso corrispondono solo a un booleano.
+- Un campo assente dai dati restituiti (una chiave mancante, o un indice oltre la fine dell'array) viene confrontato come vuoto: **È vuoto** vi corrisponde, e nessun'altra condizione.
 - Un campo il cui nome contiene un punto non si può raggiungere con un percorso.
 - In Terraform, il `custom_code_monitor_options` del filtro imposta il percorso del campo: consultate [Passaggi del monitor](/docs/terraform/monitor-steps#confrontare-un-campo-del-risultato-di-uno-script).
 
