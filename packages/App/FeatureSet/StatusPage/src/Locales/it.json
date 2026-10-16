@@ -343,5 +343,13 @@
   "{{field}} is required.": "{{field}} è obbligatorio.",
   "{{field}} should match {{matchField}}": "{{field}} deve corrispondere a {{matchField}}",
   "Email is not valid.": "L'email non è valida.",
-  "Next": "Avanti"
+  "Next": "Avanti",
+  "Opens in a new tab": "Si apre in una nuova scheda",
+  "Note": "Nota",
+  "Tip": "Suggerimento",
+  "Info": "Info",
+  "Important": "Importante",
+  "Warning": "Avviso",
+  "Caution": "Attenzione",
+  "Danger": "Pericolo"
 }

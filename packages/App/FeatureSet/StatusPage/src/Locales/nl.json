@@ -343,5 +343,13 @@
   "{{field}} is required.": "{{field}} is verplicht.",
   "{{field}} should match {{matchField}}": "{{field}} moet overeenkomen met {{matchField}}",
   "Email is not valid.": "E-mailadres is ongeldig.",
-  "Next": "Volgende"
+  "Next": "Volgende",
+  "Opens in a new tab": "Opent in een nieuw tabblad",
+  "Note": "Opmerking",
+  "Tip": "Tip",
+  "Info": "Info",
+  "Important": "Belangrijk",
+  "Warning": "Waarschuwing",
+  "Caution": "Let op",
+  "Danger": "Gevaar"
 }

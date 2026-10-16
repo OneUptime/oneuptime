@@ -359,5 +359,13 @@
   "Quote": "Цитата",
   "Code Block": "Блок кода",
   "Switch to markdown source": "Перейти к исходному коду Markdown",
-  "Switch to visual editor": "Перейти к визуальному редактору"
+  "Switch to visual editor": "Перейти к визуальному редактору",
+  "Opens in a new tab": "Откроется в новой вкладке",
+  "Note": "Примечание",
+  "Tip": "Совет",
+  "Info": "Информация",
+  "Important": "Важно",
+  "Warning": "Предупреждение",
+  "Caution": "Осторожно",
+  "Danger": "Опасно"
 }
