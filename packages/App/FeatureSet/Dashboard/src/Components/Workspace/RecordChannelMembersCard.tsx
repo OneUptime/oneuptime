@@ -225,11 +225,14 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
   const [focusAfterJoin, setFocusAfterJoin] = useState<boolean>(false);
 
   useEffect(() => {
-    if (focusAfterJoin && openAfterJoinRef.current) {
-      openAfterJoinRef.current.focus();
-      setFocusAfterJoin(false);
+    if (!focusAfterJoin) {
+      return;
     }
-  }, [focusAfterJoin, joinSentences]);
+
+    // Drawn in the same render as the news; a channel without a link has none.
+    openAfterJoinRef.current?.focus();
+    setFocusAfterJoin(false);
+  }, [focusAfterJoin]);
 
   const popup: AnchoredFieldPopup = useAnchoredFieldPopup({
     popupMaxHeight: PEOPLE_SEARCH_POPUP_MAX_HEIGHT_PX,
