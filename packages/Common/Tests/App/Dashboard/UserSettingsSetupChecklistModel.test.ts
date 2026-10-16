@@ -379,7 +379,7 @@ describe("setup checklist - reaching you at all", () => {
     expect(step!.pageMap).toBeUndefined();
     expect(step!.detail).toBe(ChannelStepCopy.whoCanTurnOnDetail);
     expect(step!.detail).toContain(
-      "A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings",
+      "A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Settings",
     );
     expect(step!.actionTitle).toBe(ChannelStepCopy.whoCanTurnOnAction);
     expect(step!.detail.toLowerCase()).not.toContain("project admin");
@@ -435,11 +435,11 @@ describe("setup checklist - reaching you at all", () => {
     expect(step!.pageQuery).toBeUndefined();
     expect(step!.detail).toBe(ChannelStepCopy.canTurnOnDetail);
     expect(step!.detail).toContain(
-      "Turn it on in Project Settings → Notification Settings",
+      "Turn it on in Project Settings → Notifications → Notification Settings",
     );
     expect(step!.actionTitle).toBe(ChannelStepCopy.canTurnOnAction);
     expect(step!.actionTitle).toBe(
-      "Go to Project Settings → Notification Settings",
+      "Go to Project Settings → Notifications → Notification Settings",
     );
   });
 
@@ -481,17 +481,17 @@ describe("setup checklist - reaching you at all", () => {
   });
 
   test("names the people the server lets in, in the server's own words", () => {
-    // The dashboard writes "→" where the server writes ">".
+    // The dashboard writes "→" where the server writes ">", at every step.
     const serverClause: string = getWhoCanTurnOnClause("it").replace(
       PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PAGE,
-      PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PAGE.replace(" > ", " → "),
+      PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PAGE.split(" > ").join(" → "),
     );
 
     expect(ChannelStepCopy.whoCanTurnOnDetail.toLowerCase()).toContain(
       serverClause.toLowerCase(),
     );
     expect(serverClause).toBe(
-      "a project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings",
+      "a project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Settings",
     );
   });
 

@@ -98,10 +98,10 @@
       "title": "Autenticação",
       "intro": "Você precisará autenticar suas requisições para acessar qualquer um dos endpoints da API do OneUptime. Neste guia, veremos como funciona a autenticação. O OneUptime oferece uma forma de autenticar suas requisições à API - utilizando uma Chave de API.",
       "generateApiKey": "Gerar uma Chave de API",
-      "generateApiKeyBody": "Acesse <strong>Configurações do Projeto</strong> > <strong>Chaves de API</strong>. Crie uma nova Chave de API. Observação: Novas Chaves de API não possuem permissões atribuídas, portanto você precisará atribuir uma permissão antes de poder utilizá-la.",
+      "generateApiKeyBody": "Acesse <strong>Configurações do projeto</strong> > <strong>Avançado</strong> > <strong>Chaves de API</strong>. Crie uma nova Chave de API. Observação: Novas Chaves de API não possuem permissões atribuídas, portanto você precisará atribuir uma permissão antes de poder utilizá-la.",
       "readMorePermissions": "Leia mais sobre permissões",
       "projectId": "ID do Projeto",
-      "projectIdBody": "Acesse <strong>Configurações do Projeto</strong> > <strong>Projeto</strong>. Você verá o ID do seu Projeto lá.",
+      "projectIdBody": "Acesse <strong>Configurações do projeto</strong> > <strong>Projeto</strong>. Você verá o ID do seu Projeto lá.",
       "authWithApiKey": "Autenticação com Chave de API",
       "authWithApiKeyBody": "Você pode usar a Chave de API do OneUptime no Cabeçalho da Requisição quando estiver fazendo uma chamada. Você pode usar o cabeçalho <code>ApiKey</code> com sua Chave de API ao fazer uma requisição.",
       "exampleApiRequest": "Exemplo de requisição com Chave de API",
@@ -132,7 +132,7 @@
       "metaDescription": "Aprenda como as permissões funcionam no OneUptime",
       "badge": "Guia",
       "title": "Permissões",
-      "intro": "Seu Token de API precisa de permissões para criar, atualizar, ler ou excluir qualquer recurso. Se você não tiver permissões para realizar uma requisição, um status <code>4xx</code> será enviado como resposta. Você pode gerenciar permissões para sua Chave de API em Configurações do Projeto > Chaves de API.",
+      "intro": "Seu Token de API precisa de permissões para criar, atualizar, ler ou excluir qualquer recurso. Se você não tiver permissões para realizar uma requisição, um status <code>4xx</code> será enviado como resposta. Você pode gerenciar permissões para sua Chave de API em Configurações do projeto > Avançado > Chaves de API.",
       "jumpToCategory": "Ir para uma categoria"
     },
     "errors": {

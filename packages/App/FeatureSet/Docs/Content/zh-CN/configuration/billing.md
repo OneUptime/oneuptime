@@ -176,7 +176,7 @@ API 密钥需要 Growth 或更高的套餐，而在 Scale 套餐以下，SCIM �
 
 ## 故障排除
 
-:::details "Add a payment method in Project Settings > Billing before using paid monitoring or telemetry"
+:::details "Add a payment method in Project Settings > Billing and Invoices > Billing before using paid monitoring or telemetry"
 使用 Free 套餐的项目在创建活跃监视器或发送遥测数据之前需要支付方式，因为这些是按用量付费的。在[支付方式](#支付方式)下添加一个。手动监视器仍然免费。
 :::
 

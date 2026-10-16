@@ -241,7 +241,7 @@ router.get(
             tokenProvided: true,
             valid: false,
             message:
-              "This ingestion token is unknown or has been revoked. Create or copy a live key from Project Settings > Telemetry Ingestion Keys, then re-deploy the agent with it.",
+              "This ingestion token is unknown or has been revoked. Create or copy a live key from Project Settings > Telemetry & APM > Ingestion Keys, then re-deploy the agent with it.",
           },
           { statusCode: new StatusCode(401) },
         );
@@ -283,8 +283,8 @@ router.get(
             ...keyDiagnostics,
             message:
               policy.isEnabled === false
-                ? "This ingestion key has been disabled. Re-enable it, or create a new key, in Project Settings > Telemetry Ingestion Keys."
-                : "This ingestion key has expired. Extend its expiry, or create a new key, in Project Settings > Telemetry Ingestion Keys.",
+                ? "This ingestion key has been disabled. Re-enable it, or create a new key, in Project Settings > Telemetry & APM > Ingestion Keys."
+                : "This ingestion key has expired. Extend its expiry, or create a new key, in Project Settings > Telemetry & APM > Ingestion Keys.",
           },
           { statusCode: new StatusCode(401) },
         );

@@ -13,7 +13,7 @@ import {
 } from "@playwright/test";
 
 /*
- * A project's own daily AI limits, on Project Settings → AI Features →
+ * A project's own daily AI limits, on Project Settings → AI → AI Features →
  * More settings, against a real stack: the fold, the Daily limits card,
  * the server's rules and today's usage.
  *
@@ -45,7 +45,7 @@ const urlFor: (path: string) => string = (path: string): string => {
   return `${BASE_URL.toString().replace(/\/$/, "")}${path}`;
 };
 
-test.describe("Project Settings → AI Features: daily AI limits", () => {
+test.describe("Project Settings → AI → AI Features: daily AI limits", () => {
   let page: Page;
   let projectId: string = "";
 

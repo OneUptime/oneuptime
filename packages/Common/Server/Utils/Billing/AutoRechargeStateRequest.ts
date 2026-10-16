@@ -13,8 +13,8 @@ import ObjectID from "../../../Types/ObjectID";
 /*
  * What Auto Recharge of one of the project's prepaid balances would do now,
  * for the page that holds the balance: GET /notification/auto-recharge-state
- * (Project Settings > Notification Settings) and GET /ai/auto-recharge-state
- * (Project Settings > AI Credits). Off, Ready, or Failed - its last automatic
+ * (Project Settings > Notifications > Notification Settings) and GET
+ * /ai/auto-recharge-state (Project Settings > AI > AI Credits). Off, Ready, or Failed - its last automatic
  * charge did not go through, and it waits before it tries the card again -
  * which the page shows at the top, so nobody has to wait for the owners'
  * email to learn that Auto Recharge has stopped.

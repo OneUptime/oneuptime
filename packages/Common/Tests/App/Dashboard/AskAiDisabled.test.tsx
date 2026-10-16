@@ -265,7 +265,7 @@ describe("Ask AI on a project whose AI is switched off", () => {
     await openAskAi();
 
     expect(
-      screen.getByText("Go to Project Settings > AI Features"),
+      screen.getByText("Go to Project Settings > AI > AI Features"),
     ).toBeInTheDocument();
     /*
      * AI Features, not AI Credits: the credits page is in the menu only when

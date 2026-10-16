@@ -27,7 +27,7 @@ flowchart TB
 
 - **Een OneUptime-project en het recht om aan te maken wat u overneemt.** Projecteigenaren en projectbeheerders kunnen alles overnemen. Andere rollen kunnen ook een import uitvoeren en de soorten records overnemen die ze mogen aanmaken. De rest wordt getoond als niet overgenomen, met de reden.
 - **Een bestand uit Uptime Kuma.** In Uptime Kuma 1 bevat de JSON-back-up elke monitor met zijn instellingen. Uptime Kuma 2 heeft geen back-up, dus sla in plaats daarvan de metriekpagina op: die noemt de naam, het type en het adres van elke monitor, maar niet hoe vaak hij wordt gecontroleerd of waar hij naar zoekt.
-- **Een betaalmethode, in OneUptime Cloud.** Monitoren die controles uitvoeren, worden naar gebruik gefactureerd, ook met het Free-abonnement. Voeg er daarom vóór de import een toe onder **Projectinstellingen** > **Facturering**. Zonder betaalmethode worden die monitoren getoond als niet overgenomen.
+- **Een betaalmethode, in OneUptime Cloud.** Monitoren die controles uitvoeren, worden naar gebruik gefactureerd, ook met het Free-abonnement. Voeg er daarom vóór de import een toe onder **Projectinstellingen** > **Facturering en facturen** > **Facturering**. Zonder betaalmethode worden die monitoren getoond als niet overgenomen.
 
 ## Uw Uptime Kuma-monitoren importeren
 

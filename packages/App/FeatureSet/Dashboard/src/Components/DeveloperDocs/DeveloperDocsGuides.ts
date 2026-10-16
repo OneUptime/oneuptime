@@ -380,7 +380,7 @@ function connectTerraformStep(
     description:
       "Terraform signs in with a project API key, and the provider points it at this OneUptime.",
     markdown: joinParts([
-      `Create a key in [Project Settings → API Keys](${context.apiKeysUrl}) with permission to manage ${plural}, and make it available in your shell:`,
+      `Create a key in [Project Settings → Advanced → API Keys](${context.apiKeysUrl}) with permission to manage ${plural}, and make it available in your shell:`,
       codeBlock("bash", getApiKeyExportCommand()),
       "Then put the provider in a `.tf` file in your Terraform project:",
       codeBlock(
@@ -835,7 +835,7 @@ function apiKeyStep(context: DeveloperDocsGuideContext): DeveloperDocsStep {
     description:
       "Requests sign in with a project API key, sent in the ApiKey header. The project comes from the key.",
     markdown: [
-      `Create one in [Project Settings → API Keys](${context.apiKeysUrl}) with permission to manage ${plural}, then make it available in your shell:`,
+      `Create one in [Project Settings → Advanced → API Keys](${context.apiKeysUrl}) with permission to manage ${plural}, then make it available in your shell:`,
       "",
       codeBlock("bash", getApiKeyExportCommand()),
     ].join("\n"),

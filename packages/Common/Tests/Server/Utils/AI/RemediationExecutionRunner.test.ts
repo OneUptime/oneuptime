@@ -183,7 +183,7 @@ function mockProject(overrides: Partial<Record<string, unknown>> = {}): void {
 }
 
 const AI_DISABLED_MESSAGE: string =
-  "AI was disabled for this project before the run started (Project Settings → AI Features) — nothing was run or proposed.";
+  "AI was disabled for this project before the run started (Project Settings → AI → AI Features) — nothing was run or proposed.";
 
 function mockIncident(): void {
   jest.spyOn(IncidentService, "findOneById").mockResolvedValue({
@@ -666,7 +666,7 @@ describe("RemediationExecutionRunner.executeRemediation", () => {
       expectSettledNoneApplicable(AI_DISABLED_MESSAGE);
     });
 
-    it("sends people to Project Settings → AI Features, the page every install shows, and names no retired switch", async () => {
+    it("sends people to Project Settings → AI → AI Features, the page every install shows, and names no retired switch", async () => {
       mockSuggestion();
       mockProject({ enableAi: false });
       jest
@@ -680,7 +680,7 @@ describe("RemediationExecutionRunner.executeRemediation", () => {
           set: { rationaleMarkdown: string };
         }
       ).set.rationaleMarkdown;
-      expect(rationale).toContain("(Project Settings → AI Features)");
+      expect(rationale).toContain("(Project Settings → AI → AI Features)");
       expect(rationale).not.toMatch(/auto-remediation/i);
       expect(rationale).not.toMatch(/command execution/i);
     });

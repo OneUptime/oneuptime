@@ -12,10 +12,10 @@ import {
  *
  * - its balance for SMS, phone calls, WhatsApp and Telegram
  *   (Project.smsOrCallCurrentBalanceInUSDCents), on Project Settings >
- *   Notification Settings;
+ *   Notifications > Notification Settings;
  * - its AI credits (Project.aiCurrentBalanceInUSDCents), which pay for
  *   OneUptime AI on the OneUptime-hosted LLM provider, on Project Settings →
- *   AI Credits.
+ *   AI → AI Credits.
  *
  * Only a project owner, or someone with Manage Billing, may add to either:
  * the recharge routes (POST /notification/recharge and POST /ai/recharge)
@@ -95,7 +95,7 @@ export const PROJECT_BALANCE_SETTINGS_PAGE: Readonly<
   Record<ProjectBalanceType, string>
 > = {
   [ProjectBalanceType.SmsOrCall]: PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PAGE,
-  [ProjectBalanceType.AI]: "Project Settings → AI Credits",
+  [ProjectBalanceType.AI]: "Project Settings → AI → AI Credits",
 };
 
 // Where that page is in the dashboard, under a project's own route.
@@ -286,7 +286,7 @@ export const PROJECT_AI_CREDITS_USED_UP_OWNER_SENTENCE: string =
  * failed, most often for want of a working payment method. Turning it on is
  * no way out there, so this replaces getProjectBalanceOwnerSentence.
  */
-export const PROJECT_AI_AUTO_RECHARGE_COULD_NOT_ADD_OWNER_SENTENCE: string = `Auto Recharge is on, but it could not add AI credits. Check the payment method in Project Settings > Billing, or add AI credits in ${PROJECT_BALANCE_SETTINGS_PAGE[ProjectBalanceType.AI]}.`;
+export const PROJECT_AI_AUTO_RECHARGE_COULD_NOT_ADD_OWNER_SENTENCE: string = `Auto Recharge is on, but it could not add AI credits. Check the payment method in Project Settings > Billing and Invoices > Billing, or add AI credits in ${PROJECT_BALANCE_SETTINGS_PAGE[ProjectBalanceType.AI]}.`;
 
 // Why they get it, and how often - last.
 export const PROJECT_AI_CREDITS_USED_UP_OWNER_FREQUENCY_SENTENCE: string =

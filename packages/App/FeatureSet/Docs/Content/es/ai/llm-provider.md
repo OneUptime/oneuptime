@@ -38,7 +38,7 @@ En **OneUptime Cloud**, cada proyecto puede usar el proveedor global sin configu
 
 Para usar en su lugar tus propias claves de API o un modelo concreto, añade un proveedor propio, como se explica abajo: no se te cobra por la IA que se ejecuta en tu propio proveedor.
 
-El proveedor de LLM global se paga con los créditos de IA del proyecto. Para limitar lo que la IA puede gastar cada día, define un **Límite diario de gasto de IA (USD)** en **Ajustes del proyecto → Funciones de IA → Más ajustes**; un **Límite diario de tokens de IA** ahí limita los tokens en cualquier proveedor, también el tuyo. Consulta [los límites diarios propios del proyecto](/docs/ai/ai-sre#los-límites-diarios-propios-del-proyecto).
+El proveedor de LLM global se paga con los créditos de IA del proyecto. Para limitar lo que la IA puede gastar cada día, define un **Límite diario de gasto de IA (USD)** en **Ajustes del proyecto → IA → Funciones de IA → Más ajustes**; un **Límite diario de tokens de IA** ahí limita los tokens en cualquier proveedor, también el tuyo. Consulta [los límites diarios propios del proyecto](/docs/ai/ai-sre#los-límites-diarios-propios-del-proyecto).
 
 OneUptime Cloud solo puede llegar a endpoints de LLM en la internet pública. No puede conectarse a un modelo en tu red privada, como un servidor Ollama o vLLM autoalojado. Para usar un modelo que ejecutas tú mismo, aloja OneUptime en una red que pueda llegar a él, o expón el modelo en un endpoint público: consulta [Elegir una URL base para un modelo autoalojado](#elegir-una-url-base-para-un-modelo-autoalojado).
 

@@ -27,7 +27,7 @@ flowchart TB
 
 - **Et OneUptime-projekt og retten til at oprette det, du overfører.** Projektejere og projektadministratorer kan overføre alt. Andre roller kan også køre en import og overføre de typer poster, de må oprette. Resten vises som ikke overført, med årsagen.
 - **En UptimeRobot-API-nøgle.** Read-only API key er nok: Importen skriver aldrig til UptimeRobot. Main API key virker også, men en nøgle til én monitor læser kun den monitor.
-- **En betalingsmetode, i OneUptime Cloud.** Monitorer, der udfører kontroller, faktureres efter forbrug, også på Free-abonnementet, så tilføj en under **Projektindstillinger** > **Fakturering**, før du importerer. Uden en vises de monitorer som ikke overført.
+- **En betalingsmetode, i OneUptime Cloud.** Monitorer, der udfører kontroller, faktureres efter forbrug, også på Free-abonnementet, så tilføj en under **Projektindstillinger** > **Fakturering og fakturaer** > **Fakturering**, før du importerer. Uden en vises de monitorer som ikke overført.
 
 ## Importér din UptimeRobot-konto
 

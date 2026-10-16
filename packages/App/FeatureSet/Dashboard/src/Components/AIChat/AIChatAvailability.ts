@@ -43,7 +43,7 @@ const COPY: Record<AIChatUnavailableReason, AIChatUnavailableCopy> = {
     description:
       "Ask AI needs the Growth plan or higher. Upgrade the project to ask questions about your logs, traces, metrics, incidents and monitors.",
     actionPage: PageMap.SETTINGS_BILLING,
-    actionLabel: "Go to Project Settings > Billing",
+    actionLabel: "Go to Project Settings > Billing and Invoices > Billing",
   },
   [AIChatUnavailableReason.DisabledForProject]: {
     icon: IconProp.Sparkles,
@@ -56,7 +56,7 @@ const COPY: Record<AIChatUnavailableReason, AIChatUnavailableCopy> = {
      * a page they cannot find.
      */
     actionPage: PageMap.SETTINGS_AI_FEATURES,
-    actionLabel: "Go to Project Settings > AI Features",
+    actionLabel: "Go to Project Settings > AI > AI Features",
   },
   [AIChatUnavailableReason.NoProviderConfigured]: {
     icon: IconProp.Sparkles,

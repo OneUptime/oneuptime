@@ -87,7 +87,7 @@ Når du har åpnet en statusside, er den egne venstremenyen delt inn i ni seksjo
 | --- | --- |
 | **Grunnleggende** | **Oversikt**, **Kunngjøringer**, **Eiere**. |
 | **Ressurser** | Én skjerm **Ressurser** (gruppene til venstre, monitorene i den valgte gruppen til høyre) og **Monitor Rules**. |
-| **Abonnenter** | **E-postabonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **MS Teams-abonnenter**, **Webhook-abonnenter**, **Abonnentsinnstillinger**. |
+| **Abonnenter** | **E-postabonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **Microsoft Teams-abonnenter**, **Webhook-abonnenter**, **Abonnentsinnstillinger**. |
 | **Varsellogger** | **Varsellogger**: hva som er sendt til abonnentene. |
 | **Merkevare** | **Merkevare** (logo, tittel, favicon, lenker, bunntekst, farger og språk, på én side), **Egendefinerte domener**, **HTML, CSS og JavaScript**. |
 | **Sikkerhet** | **Tilgang** (hvem som kan se siden), **Private brukere**, **SSO**, **OIDC**, **SCIM**. |

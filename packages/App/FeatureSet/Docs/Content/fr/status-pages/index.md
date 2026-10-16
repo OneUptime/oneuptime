@@ -87,7 +87,7 @@ Une fois une page de statut ouverte, son propre menu latéral gauche est répart
 | --- | --- |
 | **Basique** | **Vue d'ensemble**, **Annonces**, **Propriétaires**. |
 | **Ressources** | Un seul écran **Ressources** — les groupes à gauche, les moniteurs du groupe sélectionné à droite — et **Règles de moniteurs**. |
-| **Abonnés** | **Abonnés e-mail**, **Abonnés SMS**, **Abonnés Slack**, **Abonnés MS Teams**, **Abonnés au webhook**, **Paramètres des abonnés**. |
+| **Abonnés** | **Abonnés e-mail**, **Abonnés SMS**, **Abonnés Slack**, **Abonnés Microsoft Teams**, **Abonnés au webhook**, **Paramètres des abonnés**. |
 | **Journaux de notification** | **Journaux de notification** — ce qui a été envoyé aux abonnés. |
 | **Image de marque** | **Image de marque** (logo, titre, favicon, liens, pied de page, couleurs et langues, sur une seule page), **Domaines personnalisés**, **HTML, CSS et JavaScript**. |
 | **Sécurité** | **Accès** (qui peut voir la page), **Utilisateurs privés**, **SSO**, **OIDC**, **SCIM**. |

@@ -18,9 +18,12 @@ import path from "path";
  * A path written into the Dashboard's copy has to name pages the reader can
  * find, in the menus as they are:
  *
- *   1. "Project Settings → X": X is a section or page of the Project
- *      Settings menu (or a page's own breadcrumb title), and a section is
- *      followed by one of its own pages.
+ *   1. "Project Settings → X" is walked through the Project Settings menu,
+ *      with the folded section of every page named, in every text the
+ *      product writes, by ProjectSettingsMenuPathsInProductText (the shared
+ *      walker in SettingsMenuPaths). This file once held it on its own, and
+ *      took "Project Settings → Domains" - a page of the folded Advanced
+ *      section - and a page's breadcrumb title for a path a reader can follow.
  *   2. "<Product> → Settings → Y" for the products below: Y is a page of
  *      that product's Settings section.
  *   3. "Incidents → AI → Z" and "Alerts → AI → Z": Z is a page of that
@@ -37,8 +40,6 @@ const DASHBOARD_SRC: string = path.resolve(
 
 // "→", "->", ">" and ">" as JSX text writes it.
 const SEPARATOR: string = String.raw`\s*(?:→|->|&gt;|>|›)\s*`;
-
-const STARTS_WITH_SEPARATOR: RegExp = new RegExp(`^${SEPARATOR}`);
 
 const WORD_CHARACTER: RegExp = /[A-Za-z0-9]/;
 
@@ -105,19 +106,6 @@ function readSideMenu(relativePath: string): Array<MenuSection> {
   return sections;
 }
 
-const PROJECT_SETTINGS_MENU: Array<MenuSection> = readSideMenu(
-  "Pages/Settings/SideMenu.tsx",
-);
-
-// The Project Settings pages by the title their breadcrumb gives them.
-const PROJECT_SETTINGS_BREADCRUMB_TITLES: Array<string> = Array.from(
-  readSource("Utils/Breadcrumbs/SettingsBreadcrumbs.ts").matchAll(
-    /"Project",\s*"Settings",\s*"([^"]+)"/g,
-  ),
-).map((match: RegExpMatchArray): string => {
-  return match[1]!;
-});
-
 // The products whose Settings section a path may name, by their menu title.
 const PRODUCT_SIDE_MENUS: Record<string, string> = {
   Incidents: "Pages/Incidents/SideMenu.tsx",
@@ -178,96 +166,8 @@ function findTitleAtStart(text: string, titles: Array<string>): string | null {
   return found;
 }
 
-// Where the path continues once the name is read, if it does.
-function getNextSegment(text: string): string | null {
-  const separator: RegExpMatchArray | null = text.match(STARTS_WITH_SEPARATOR);
-
-  if (!separator) {
-    return null;
-  }
-
-  return text.slice(separator[0].length);
-}
-
 function shorten(text: string): string {
   return text.slice(0, 60).split("\n")[0]!;
-}
-
-/*
- * What is wrong with the "Project Settings → …" paths in a text, one
- * sentence each. Exported in spirit for the checks below, which also feed
- * it known bad paths so it cannot quietly pass everything.
- */
-function findProjectSettingsPathProblems(text: string): Array<string> {
-  const problems: Array<string> = [];
-  const sectionTitles: Array<string> = PROJECT_SETTINGS_MENU.map(
-    (section: MenuSection): string => {
-      return section.title;
-    },
-  );
-  const pageTitles: Array<string> = [
-    ...PROJECT_SETTINGS_MENU.flatMap((section: MenuSection): Array<string> => {
-      return section.items.map((item: MenuItem): string => {
-        return item.title;
-      });
-    }),
-    ...PROJECT_SETTINGS_BREADCRUMB_TITLES,
-  ];
-
-  const pathStart: RegExp = new RegExp(`Project Settings${SEPARATOR}`, "g");
-
-  for (const match of text.matchAll(pathStart)) {
-    const rest: string = text.slice(match.index! + match[0].length);
-
-    // A name filled in at run time.
-    if (rest.startsWith("${") || rest.startsWith("{")) {
-      continue;
-    }
-
-    const title: string | null = findTitleAtStart(rest, [
-      ...sectionTitles,
-      ...pageTitles,
-    ]);
-
-    if (!title) {
-      problems.push(
-        `"Project Settings → ${shorten(rest)}": no Project Settings section or page is called that`,
-      );
-      continue;
-    }
-
-    const next: string | null = getNextSegment(rest.slice(title.length));
-
-    if (
-      next === null ||
-      pageTitles.includes(title) ||
-      next.startsWith("${") ||
-      next.startsWith("{")
-    ) {
-      continue;
-    }
-
-    const section: MenuSection | undefined = PROJECT_SETTINGS_MENU.find(
-      (candidate: MenuSection): boolean => {
-        return candidate.title === title;
-      },
-    );
-
-    const sectionPage: string | null = findTitleAtStart(
-      next,
-      (section?.items || []).map((item: MenuItem): string => {
-        return item.title;
-      }),
-    );
-
-    if (!sectionPage) {
-      problems.push(
-        `"Project Settings → ${title} → ${shorten(next)}": the ${title} section has no such page`,
-      );
-    }
-  }
-
-  return problems;
 }
 
 function findProductSettingsPathProblems(text: string): Array<string> {
@@ -379,26 +279,6 @@ const SOURCES: Array<{ file: string; text: string }> = listSourceFiles(
 
 describe("the menus the paths are checked against", () => {
   test("are read from the side menus", () => {
-    const projectSettingsSections: Array<string> = PROJECT_SETTINGS_MENU.map(
-      (section: MenuSection): string => {
-        return section.title;
-      },
-    );
-
-    expect(projectSettingsSections).toEqual(
-      expect.arrayContaining(["Notifications", "AI", "Advanced"]),
-    );
-    expect(
-      PROJECT_SETTINGS_MENU.find((section: MenuSection): boolean => {
-        return section.title === "AI";
-      })?.items.map((item: MenuItem): string => {
-        return item.title;
-      }),
-    ).toEqual(expect.arrayContaining(["AI Features", "LLM Providers"]));
-    expect(PROJECT_SETTINGS_BREADCRUMB_TITLES).toContain(
-      "Telemetry Ingestion Keys",
-    );
-
     for (const product of Object.keys(PRODUCT_SIDE_MENUS)) {
       expect(getProductSettingsItems(product).length).toBeGreaterThan(0);
     }
@@ -444,28 +324,6 @@ describe("the menus the paths are checked against", () => {
 
 describe("the path checks", () => {
   test.each([
-    "No postmortem templates have been created yet. You can create these in Project Settings > Incident > Postmortem Templates.",
-    "Add one under Project Settings > Incident Severity.",
-    "You can create templates in Project Settings > Status Pages > Subscriber Templates.",
-    "Go to Project Settings → Call & SMS to add your Twilio Account SID and Auth Token.",
-    "Use Project Settings &gt; Users &gt; Custom Fields.",
-    "Go to Project Settings → AI → Feature Flags.",
-  ])("refuse %s", (text: string) => {
-    expect(findProjectSettingsPathProblems(text)).toHaveLength(1);
-  });
-
-  test.each([
-    "Turn AI on in Project Settings → AI Features.",
-    "Go to Project Settings > AI > LLM Providers",
-    "Only domains verified in Project Settings → Domains are listed.",
-    "Two allowlists compose (Project Settings > Telemetry Ingestion Keys).",
-    "Go to Project Settings → Notification Settings → Twilio Config and add your Twilio credentials.",
-    "Refresh Chats in Project Settings > Workspace > ${name}, as long as",
-  ])("accept %s", (text: string) => {
-    expect(findProjectSettingsPathProblems(text)).toEqual([]);
-  });
-
-  test.each([
     "Configure incident roles in Incidents > Settings > Roles to start.",
     "Create them in Scheduled Maintenance → Settings → Templates.",
     "Add one under Monitors → Settings → Monitor Statuses.",
@@ -509,20 +367,6 @@ describe("the path checks", () => {
 });
 
 describe("paths in the Dashboard's copy", () => {
-  test("name Project Settings pages that exist", () => {
-    const problems: Array<string> = SOURCES.flatMap(
-      (source: { file: string; text: string }): Array<string> => {
-        return findProjectSettingsPathProblems(source.text).map(
-          (problem: string): string => {
-            return `${source.file}: ${problem}`;
-          },
-        );
-      },
-    );
-
-    expect(problems).toEqual([]);
-  });
-
   test("name pages of the product's own Settings section", () => {
     const problems: Array<string> = SOURCES.flatMap(
       (source: { file: string; text: string }): Array<string> => {

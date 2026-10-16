@@ -95,7 +95,7 @@ describe("the API reference", () => {
     );
 
     expect(keysSection).toContain(
-      "Below **Growth**, **Project Settings** > **API Keys** lists the keys the project still has and says they stopped, so any of them can be deleted (revoked) on every plan.",
+      "Below **Growth**, **Project Settings** > **Advanced** > **API Keys** lists the keys the project still has and says they stopped, so any of them can be deleted (revoked) on every plan.",
     );
   });
 

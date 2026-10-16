@@ -153,7 +153,7 @@ flowchart TB
 
 ### Prima di iniziare
 
-- **Il dominio padre deve essere verificato.** L'elenco **Dominio** mostra solo i domini verificati in **Impostazioni del progetto → Domini**, dove dimostrate con un record TXT che un dominio è vostro. Il link **Aggiungi un dominio** accanto al campo apre quella pagina in una nuova scheda.
+- **Il dominio padre deve essere verificato.** L'elenco **Dominio** mostra solo i domini verificati in **Impostazioni del progetto → Avanzato → Domini**, dove dimostrate con un record TXT che un dominio è vostro. Il link **Aggiungi un dominio** accanto al campo apre quella pagina in una nuova scheda.
 - **La vostra installazione ha bisogno di un record CNAME per le pagine di stato.** OneUptime Cloud ne ha uno. In un'installazione self-hosted, impostatelo su un nome host che punta al vostro server OneUptime (un record A), e assicuratevi che il server risponda sulla porta 80, dove Let's Encrypt lo verifica. Senza di esso, la scheda e la finestra di dialogo **Configurazione DNS** dicono «Custom Domains not enabled for this OneUptime installation» invece di mostrare un record.
 
 :::tabs

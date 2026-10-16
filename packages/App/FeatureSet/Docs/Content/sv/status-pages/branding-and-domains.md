@@ -153,7 +153,7 @@ flowchart TB
 
 ### Innan du börjar
 
-- **Den överordnade domänen måste vara verifierad.** Listrutan **Domän** visar bara de domäner som har verifierats under **Projektinställningar → Domäner**, där du med en TXT-post visar att du äger en domän. Länken **Lägg till en domän** bredvid fältet öppnar den sidan i en ny flik.
+- **Den överordnade domänen måste vara verifierad.** Listrutan **Domän** visar bara de domäner som har verifierats under **Projektinställningar → Avancerad → Domäner**, där du med en TXT-post visar att du äger en domän. Länken **Lägg till en domän** bredvid fältet öppnar den sidan i en ny flik.
 - **Din installation behöver en CNAME-post för statussidor.** OneUptime Cloud har en. På en egenhostad installation anger du den som ett värdnamn som pekar på din OneUptime-server (en A-post) och ser till att servern svarar på port 80, där Let's Encrypt kontrollerar den. Utan den säger kortet och dialogrutan **DNS-inställning** "Custom Domains not enabled for this OneUptime installation" i stället för att visa en post.
 
 :::tabs

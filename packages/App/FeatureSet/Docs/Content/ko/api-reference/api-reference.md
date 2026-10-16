@@ -149,12 +149,12 @@ OneUptime Cloud에서 일부 리소스는 플랜으로 제공됩니다. 싱글 �
 
 OneUptime Cloud에서 프로젝트의 API 키는 프로젝트가 **Growth** 이상에 있는 동안에만 작동하고, SCIM 연결(프로젝트 자체의 것과 상태 페이지의 것)은 **Scale** 이상에 있는 동안에만 완전히 작동합니다. 프로젝트가 그 플랜 아래로 내려가면 다음과 같습니다.
 
-- 프로젝트의 API 키로 보낸 모든 요청은 무엇을 요청하든 `402 Payment Required`로 거부됩니다. REST API, 그리고 API 키로 API를 호출하는 모든 것, 즉 Terraform, `oneuptime` CLI, API 키로 연결한 MCP 클라이언트, 요청 헤더로 키를 보내는 워크플로, 직접 만든 스크립트가 해당합니다. 메시지가 플랜을 알려 줍니다: `API keys need the Growth plan. This project's plan does not include them, so its API keys stopped working. The keys are kept: upgrade the project to Growth in Project Settings > Billing and they work again.`
+- 프로젝트의 API 키로 보낸 모든 요청은 무엇을 요청하든 `402 Payment Required`로 거부됩니다. REST API, 그리고 API 키로 API를 호출하는 모든 것, 즉 Terraform, `oneuptime` CLI, API 키로 연결한 MCP 클라이언트, 요청 헤더로 키를 보내는 워크플로, 직접 만든 스크립트가 해당합니다. 메시지가 플랜을 알려 줍니다: `API keys need the Growth plan. This project's plan does not include them, so its API keys stopped working. The keys are kept: upgrade the project to Growth in Project Settings > Billing and Invoices > Billing and they work again.`
 - SCIM 연결은 사람을 제거하기만 합니다. 사람을 비활성화하고 삭제하고 그룹에서 빼는 작업은 계속 작동하므로, 떠나는 사람은 여전히 접근을 잃습니다. 사람이나 그룹을 추가하거나 변경하는 SCIM 요청은 ID 공급자가 이유를 보여 줄 수 있도록 SCIM 오류 형식의 `402`로 거부됩니다([Scale 플랜 미만](/docs/identity/scim#scale-플랜-미만)).
 
 아무것도 삭제되거나 꺼지지 않습니다. 키와 연결은 보존되며, 프로젝트가 플랜으로 돌아오는 즉시 그대로 다시 완전히 작동합니다. 새 키를 만들 필요도, ID 공급자에서 다시 설정할 필요도 없습니다. 플랜 변경은 1분 안에 적용됩니다.
 
-**Growth** 미만에서는 **프로젝트 설정** > **API 키**에 프로젝트에 남아 있는 키가 나열되고 멈췄다고 표시되므로, 어느 플랜에서나 키를 삭제(취소)할 수 있습니다. 키를 만들거나 변경하려면 **Growth**가 필요합니다. **프로젝트 설정** > **결제**는 고를 수 있는 각 플랜에 대해, 낮은 플랜이 멈추는 API 키 수와 제한하는 SCIM 연결 수, 그리고 프로젝트의 플랜이 멈춘 것을 보여 줍니다. 플랜 변경으로 이것들이 멈추면 프로젝트 소유자에게 이메일이 갑니다. 이 동작이 시작될 때 이미 이 플랜들 아래에 있던 프로젝트의 소유자는 무엇이 멈췄고 어떻게 다시 켜는지 알려 주는 이메일을 한 통 받습니다.
+**Growth** 미만에서는 **프로젝트 설정** > **고급** > **API 키**에 프로젝트에 남아 있는 키가 나열되고 멈췄다고 표시되므로, 어느 플랜에서나 키를 삭제(취소)할 수 있습니다. 키를 만들거나 변경하려면 **Growth**가 필요합니다. **프로젝트 설정** > **결제 및 청구서** > **결제**는 고를 수 있는 각 플랜에 대해, 낮은 플랜이 멈추는 API 키 수와 제한하는 SCIM 연결 수, 그리고 프로젝트의 플랜이 멈춘 것을 보여 줍니다. 플랜 변경으로 이것들이 멈추면 프로젝트 소유자에게 이메일이 갑니다. 이 동작이 시작될 때 이미 이 플랜들 아래에 있던 프로젝트의 소유자는 무엇이 멈췄고 어떻게 다시 켜는지 알려 주는 이메일을 한 통 받습니다.
 
 영향을 받는 것은 프로젝트의 API 키와 SCIM 연결뿐입니다. 사람은 영향을 받지 않습니다. 대시보드 로그인과 로그인으로 연결한 MCP 클라이언트는 이전처럼 작동합니다. 텔레메트리 수집 키, 프로브 키, 에이전트 키는 API 키가 아니므로 계속 작동합니다. 자체 호스팅 설치에는 플랜이 없으므로 아무것도 바뀌지 않습니다.
 

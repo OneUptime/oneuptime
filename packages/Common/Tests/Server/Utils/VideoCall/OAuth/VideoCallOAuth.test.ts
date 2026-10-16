@@ -194,7 +194,7 @@ describe("VideoCallOAuthUtil.getRefreshError", () => {
       "Zoom no longer accepts OneUptime's sign-in for incidents@acme.com",
     );
     expect(error.message).toContain(
-      "Reconnect Zoom in Project Settings > Video Calls",
+      "Reconnect Zoom in Project Settings > Workspace > Video Calls",
     );
   });
 

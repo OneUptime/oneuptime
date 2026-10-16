@@ -1133,7 +1133,7 @@ service:
 Legg til en `logs`-pipeline igjen, med en smal `filelog`- eller `journald`-receiver, når du trenger den.
 
 > [!CAUTION]
-> Pass på hva du kutter. En loggmonitor trenger at loggene kommer inn, så å filtrere bort en alvorlighetsgrad eller en kanal gjør monitorene som overvåker den, tause, og Host-varslingsmalene trenger `*.utilization`-metrikkene. Trim dataene du ikke handler på, ikke dataene en monitor overvåker, og sjekk nedgangen under **Prosjektinnstillinger → Brukshistorikk** en dag eller to senere (bruk telles per dag) før du drar i neste spak.
+> Pass på hva du kutter. En loggmonitor trenger at loggene kommer inn, så å filtrere bort en alvorlighetsgrad eller en kanal gjør monitorene som overvåker den, tause, og Host-varslingsmalene trenger `*.utilization`-metrikkene. Trim dataene du ikke handler på, ikke dataene en monitor overvåker, og sjekk nedgangen under **Prosjektinnstillinger → Fakturering og fakturaer → Brukshistorikk** en dag eller to senere (bruk telles per dag) før du drar i neste spak.
 
 ## Selvhostet OneUptime og proxyer
 

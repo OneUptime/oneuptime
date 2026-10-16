@@ -23,7 +23,7 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The words and decisions of Project Settings → AI Features → More
+ * The words and decisions of Project Settings → AI → AI Features → More
  * settings, without React: what the folded sentence says for every
  * combination of limits, usage and billing, what the header lists, which
  * fields the card offers, and what the fields refuse - in English and, from

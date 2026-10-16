@@ -42,7 +42,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 
 /*
- * Project Settings > Video Calls: give every incident its own call.
+ * Project Settings > Workspace > Video Calls: give every incident its own call.
  *
  * The page answers three questions in order. How does it work (the steps
  * across the top)? Which providers can hold a call (the gallery, where one

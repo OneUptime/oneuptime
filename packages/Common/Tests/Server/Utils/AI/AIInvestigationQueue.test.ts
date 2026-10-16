@@ -745,7 +745,7 @@ describe("AIInvestigationQueue", () => {
 });
 
 /*
- * The project's own daily AI limits (Project Settings → AI Features → More
+ * The project's own daily AI limits (Project Settings → AI → AI Features → More
  * settings) are a ceiling over every lane - incident, alert and subjectless
  * work alike. Once one is reached every model call is refused until
  * midnight UTC, so the queue records no intent it could not run (the skip

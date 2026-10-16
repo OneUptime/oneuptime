@@ -384,7 +384,7 @@ describe("a page the project's balance cannot pay for", () => {
     await sms();
 
     expectTimelineNotSent(
-      "This project's balance is used up. A project owner or someone with Manage Billing can add balance in Project Settings > Notification Settings.",
+      "This project's balance is used up. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
     );
   });
 

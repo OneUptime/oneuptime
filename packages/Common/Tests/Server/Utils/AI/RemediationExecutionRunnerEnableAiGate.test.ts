@@ -95,7 +95,7 @@ const INCIDENT_ID: ObjectID = new ObjectID(
 );
 
 const AI_DISABLED_MESSAGE: string =
-  "AI was disabled for this project before the run started (Project Settings → AI Features) — nothing was run or proposed.";
+  "AI was disabled for this project before the run started (Project Settings → AI → AI Features) — nothing was run or proposed.";
 
 type RoundKind = "rule" | "cluster" | "resource";
 

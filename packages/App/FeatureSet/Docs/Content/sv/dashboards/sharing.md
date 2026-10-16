@@ -95,7 +95,7 @@ När den har verifierats kan instrumentpanelen nås både på din anpassade dom�
 Klicka på **Skapa Dashboard Domän**. Dialogrutan är en enda sida:
 
 - **Underdomän**: bara etiketten, med platshållaren `dashboard (leave blank for root)`. Ange bara `dashboard`, inte hela värdnamnet. Lämna den tom eller ange `@` för att använda rotdomänen (apex).
-- **Domän**: domänerna som har verifierats under **Projektinställningar → Domäner**, där du med en TXT-post bevisar att en domän är din. En domän som du inte har verifierat finns inte i listan, eftersom den skulle avvisas. Länken **Lägg till en domän** bredvid fältet öppnar den sidan i en ny flik.
+- **Domän**: domänerna som har verifierats under **Projektinställningar → Avancerad → Domäner**, där du med en TXT-post bevisar att en domän är din. En domän som du inte har verifierat finns inte i listan, eftersom den skulle avvisas. Länken **Lägg till en domän** bredvid fältet öppnar den sidan i en ny flik.
 - **Fler fält**: hopfällt. Så länge det är hopfällt säger rubriken vilket certifikat domänen kommer att använda: "Vi utfärdar ett gratis SSL-certifikat för den här domänen och förnyar det automatiskt." Öppna det bara för att använda ett eget certifikat (se nedan).
 
 Klicka på **Skapa Dashboard Domän**. Dialogrutan stängs och den nya domänens **DNS-inställning** öppnas. En domäns fullständiga namn ligger fast när du lägger till den, så **Redigera** ändrar bara dess certifikat. För att använda en annan underdomän lägger du till den domänen och tar bort den gamla.

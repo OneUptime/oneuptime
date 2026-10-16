@@ -4,7 +4,7 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * LlmLogService.getProjectUsageSince: what a project's AI used since a time,
- * for its own daily AI limits (Project Settings → AI Features → More
+ * for its own daily AI limits (Project Settings → AI → AI Features → More
  * settings). One aggregate over the project's AI Logs:
  *
  *   - tokens of EVERY call - every feature, every provider, Ask AI included

@@ -371,7 +371,7 @@ export default class VideoCallOAuthUtil {
       errorCode === "consent_required"
     ) {
       return new BadDataException(
-        `${title} no longer accepts OneUptime's sign-in for ${account}: it was removed from the account, revoked or has expired. Reconnect ${title} in Project Settings > Video Calls. (${summary})`,
+        `${title} no longer accepts OneUptime's sign-in for ${account}: it was removed from the account, revoked or has expired. Reconnect ${title} in Project Settings > Workspace > Video Calls. (${summary})`,
       );
     }
 

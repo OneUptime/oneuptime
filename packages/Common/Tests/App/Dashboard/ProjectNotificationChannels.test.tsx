@@ -975,7 +975,7 @@ describe("the panel at the top of a list while its channel is off", () => {
       expect([definition.list, definition.offSentence]).toEqual([
         definition.list,
         expect.stringMatching(
-          /off in this project\. A project owner, a Billing Admin or someone with Manage Billing can turn (it|them) on in Project Settings → Notification Settings\.$/,
+          /off in this project\. A project owner, a Billing Admin or someone with Manage Billing can turn (it|them) on in Project Settings → Notifications → Notification Settings\.$/,
         ),
       ]);
 
@@ -1035,7 +1035,7 @@ describe("the panel at the top of a list while its channel is off", () => {
           "A project owner, a Billing Admin or someone with Manage Billing",
         );
         expect(sentence).toHaveTextContent(
-          "Project Settings → Notification Settings",
+          "Project Settings → Notifications → Notification Settings",
         );
         expect(sentence.textContent?.toLowerCase()).not.toContain(
           "project admin",

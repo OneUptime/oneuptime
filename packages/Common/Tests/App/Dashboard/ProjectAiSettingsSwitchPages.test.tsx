@@ -1490,7 +1490,7 @@ describe("AI → Insights → Settings", () => {
   });
 });
 
-describe("Project Settings → AI Features", () => {
+describe("Project Settings → AI → AI Features", () => {
   test("Enable AI is the switch itself, with the project's value", async () => {
     openAiFeaturesPage();
 

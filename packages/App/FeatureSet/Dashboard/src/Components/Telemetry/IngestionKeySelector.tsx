@@ -240,8 +240,8 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
           <div className="text-xs text-red-600 mt-2 leading-relaxed">
             This browser key has no allowed origins, so every request made with
             it is refused. Add your web origins or exact app:// mobile
-            identities in Settings &gt; Telemetry Ingestion Keys before using
-            this snippet.
+            identities in Project Settings &gt; Telemetry &amp; APM &gt;
+            Ingestion Keys before using this snippet.
           </div>
         );
       }

@@ -87,7 +87,7 @@ Sobald eine Statusseite geöffnet ist, ist ihr eigenes Seitenmenü links in neun
 | --- | --- |
 | **Grundlegend** | **Übersicht**, **Ankündigungen**, **Eigentümer**. |
 | **Ressourcen** | Ein einziger Bildschirm **Ressourcen** – links die Gruppen, rechts die Monitore der gewählten Gruppe – und **Monitor-Regeln**. |
-| **Abonnenten** | **E-Mail-Abonnenten**, **SMS-Abonnenten**, **Slack-Abonnenten**, **MS Teams-Abonnenten**, **Webhook-Abonnenten**, **Abonnenten-Einstellungen**. |
+| **Abonnenten** | **E-Mail-Abonnenten**, **SMS-Abonnenten**, **Slack-Abonnenten**, **Microsoft Teams-Abonnenten**, **Webhook-Abonnenten**, **Abonnenten-Einstellungen**. |
 | **Benachrichtigungsprotokolle** | **Benachrichtigungsprotokolle** – was an Abonnenten gesendet wurde. |
 | **Branding** | **Branding** (Logo, Titel, Favicon, Links, Fußzeile, Farben und Sprachen, auf einer Seite), **Benutzerdefinierte Domains**, **HTML, CSS und JavaScript**. |
 | **Sicherheit** | **Zugriff** (wer die Seite sehen darf), **Private Benutzer**, **SSO**, **OIDC**, **SCIM**. |

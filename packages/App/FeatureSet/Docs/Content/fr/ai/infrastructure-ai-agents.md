@@ -234,7 +234,7 @@ Le texte des requêtes dans la sortie est normalisé — chaque littéral de cha
 
 ## Fonctionnement des correctifs
 
-Les correctifs sont désactivés tant que vous ne les activez pas, et cela demande deux réglages sur l'agent : `ONEUPTIME_AI_FIXES` réglé sur un mode autre que `off` (voir [Ce que l'IA peut faire, défini par l'agent](#ce-que-lia-peut-faire-défini-par-lagent)), et `ONEUPTIME_AI_ALLOW_WRITES=true` (voir [Accès en écriture sur l'agent](#accès-en-écriture-sur-lagent)). L'un sans l'autre ne change rien. Un agent plus ancien que `ONEUPTIME_AI_FIXES` prend plutôt les **Correctifs** de la page de l'agent IA de la ressource. Les correctifs nécessitent aussi que l'IA soit activée pour le projet (**Activer l'IA** sous Paramètres du projet → Fonctionnalités IA), ce qui est le cas sauf si quelqu'un l'a désactivée.
+Les correctifs sont désactivés tant que vous ne les activez pas, et cela demande deux réglages sur l'agent : `ONEUPTIME_AI_FIXES` réglé sur un mode autre que `off` (voir [Ce que l'IA peut faire, défini par l'agent](#ce-que-lia-peut-faire-défini-par-lagent)), et `ONEUPTIME_AI_ALLOW_WRITES=true` (voir [Accès en écriture sur l'agent](#accès-en-écriture-sur-lagent)). L'un sans l'autre ne change rien. Un agent plus ancien que `ONEUPTIME_AI_FIXES` prend plutôt les **Correctifs** de la page de l'agent IA de la ressource. Les correctifs nécessitent aussi que l'IA soit activée pour le projet (**Activer l'IA** sous Paramètres du projet → IA → Fonctionnalités IA), ce qui est le cas sauf si quelqu'un l'a désactivée.
 
 ### Modes de correctif
 
