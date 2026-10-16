@@ -20,6 +20,9 @@ import {
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import CompareCriteria from "Common/Server/Utils/Monitor/Criteria/CompareCriteria";
 import LogMonitorCriteria from "Common/Server/Utils/Monitor/Criteria/LogMonitorCriteria";
+import MetricWindowCoverage, {
+  MetricEvaluationWindow,
+} from "Common/Server/Utils/Monitor/Criteria/MetricWindowCoverage";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageMonitorRule from "Common/Models/DatabaseModels/StatusPageMonitorRule";
@@ -1579,6 +1582,63 @@ describe("the Metrics monitor", () => {
     expect(form).toContain('title="If No Data"');
     expect(METRICS).toContain(
       "a criteria does what its **If No Data** setting says, under **More fields**: **Ignore** (the default — the criteria does not match), **Treat As Zero**, or **Trigger**.",
+    );
+  });
+
+  /*
+   * #4793: All Values waits for a series' data to cover the time range, the
+   * evaluation log quotes the evaluator's own waiting message, and a
+   * Metrics monitor whose data all arrives late (CloudWatch) is judged up
+   * to its newest data point instead of now.
+   */
+  it("says All Values waits for the whole time range, quoting the evaluator's own message, and that late data counts up to its newest point", () => {
+    const window: MetricEvaluationWindow = {
+      startMs: Date.UTC(2026, 9, 16, 12, 0, 30),
+      endMs: Date.UTC(2026, 9, 16, 12, 15, 30),
+      completeFromMs: null,
+    };
+    const message: string = MetricWindowCoverage.describeWait(
+      MetricWindowCoverage.judge({
+        window: window,
+        // A series two minutes old: the minutes from 12:13 on.
+        samples: [13, 14, 15].map((minute: number) => {
+          return {
+            timestamp: new Date(Date.UTC(2026, 9, 16, 12, minute, 0)),
+            value: 1,
+          };
+        }),
+      }),
+    );
+
+    expect(message).toBe(
+      "Waiting for 15 minutes of data: 2 of 15 minutes so far.",
+    );
+    // Quoted as code, without its full stop.
+    expect(METRICS).toContain(
+      `the evaluation log says how far it has got: \`${message.slice(0, -1)}\`.`,
+    );
+
+    expect(METRICS).toContain("- **All Values needs the whole time range.**");
+    expect(METRICS).toContain(
+      "When all of the monitor's data arrives late, as CloudWatch's does, its newest data point takes the place of now.",
+    );
+
+    const criteria: string = oneLine(
+      readSource(
+        "Common/Server/Utils/Monitor/Criteria/MetricMonitorCriteria.ts",
+      ),
+    );
+
+    expect(criteria).toContain("MetricWindowCoverage.judge(");
+    // The Metrics monitor's step - not the infrastructure monitors'.
+    expect(criteria).toContain(
+      "): boolean { return Boolean(monitorStep.data?.metricMonitor); }",
+    );
+    expect(criteria).toContain(
+      "MetricMonitorCriteria.judgesFreshnessByNewestData(input.monitorStep) ? MetricWindowCoverage.getNewestDataPointMs(",
+    );
+    expect(criteria).toContain(
+      "monitorNewestDataPointMs: input.monitorNewestDataPointMs,",
     );
   });
 

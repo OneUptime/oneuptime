@@ -13,7 +13,8 @@
     "confirmPassword": "パスワードを確認",
     "newPassword": "新しいパスワード",
     "code": "コード",
-    "yourCompany": "あなたの会社"
+    "yourCompany": "あなたの会社",
+    "or": "または"
   },
   "language": {
     "label": "言語",
@@ -50,7 +51,7 @@
     "subtitle": "パスワード、組織のSSO、またはパスキーでサインインできます。",
     "submitButton": "ログイン",
     "forgotPassword": "パスワードをお忘れですか？",
-    "useSso": "代わりにシングルサインオン（SSO）を使用する",
+    "signInWithSso": "SSO でサインイン",
     "signInWithMicrosoft": "Microsoft でサインイン",
     "noAccountPrompt": "アカウントをお持ちでない方は",
     "registerLink": "登録。",
@@ -146,7 +147,7 @@
     "title": "SSOでログイン",
     "subtitle": "アカウントにアクセスするためにSSOプロバイダーでログインしてください。",
     "submitButton": "SSOでログイン",
-    "useUsernameInstead": "代わりにユーザー名とパスワードを使用する。",
+    "signInWithPassword": "パスワードでサインイン",
     "noAccountPrompt": "アカウントをお持ちでない方は",
     "registerLink": "登録。",
     "selectProjectTitle": "プロジェクトを選択",

@@ -931,6 +931,158 @@ const aggregatePerSeriesFromRawMetrics: (input: {
 };
 
 /**
+ * Where a read cut at its row limit becomes complete, or null when the read
+ * was whole.
+ *
+ * A monitor's reads return their newest rows first, up to LIMIT_PER_PROJECT
+ * rows. A read that returns that many was cut, and holds only the newest
+ * rows: every series in it seems to begin at its oldest row, whatever it
+ * did before. That is where the data becomes complete, and "All Values"
+ * judges a series' coverage from there (MetricWindowCoverage) - otherwise a
+ * grouped monitor over enough series would see every one of them begin part
+ * way through the window and never fire again.
+ */
+export const getCutReadCompleteFrom: (input: {
+  times: Array<Date | string | undefined>;
+  limit: number;
+}) => Date | null = (input: {
+  times: Array<Date | string | undefined>;
+  limit: number;
+}): Date | null => {
+  if (input.times.length < input.limit) {
+    return null;
+  }
+
+  let oldestMs: number | null = null;
+
+  for (const time of input.times) {
+    if (!time) {
+      continue;
+    }
+
+    const timeMs: number = OneUptimeDate.fromString(time).getTime();
+
+    if (Number.isFinite(timeMs) && (oldestMs === null || timeMs < oldestMs)) {
+      oldestMs = timeMs;
+    }
+  }
+
+  return oldestMs === null ? null : new Date(oldestMs);
+};
+
+// The later of two dates, either of which may be absent.
+const getLaterDate: (
+  current: Date | undefined,
+  candidate: Date | null,
+) => Date | undefined = (
+  current: Date | undefined,
+  candidate: Date | null,
+): Date | undefined => {
+  if (!candidate) {
+    return current;
+  }
+
+  if (!current || candidate.getTime() > current.getTime()) {
+    return candidate;
+  }
+
+  return current;
+};
+
+/*
+ * One query's data points over a monitor's window, and where the read was
+ * cut at its row limit, if it was.
+ */
+export interface QueryDataPoints {
+  aggregatedResult: AggregatedResult;
+  completeFrom: Date | null;
+}
+
+/**
+ * Read one query of an infrastructure monitor (Kubernetes, Docker, Host,
+ * Podman, Proxmox, VMware, IoT, Docker Swarm, Ceph, storage arrays) over its
+ * window: per series and minute from the raw rows when the query is
+ * grouped, per time bucket from ClickHouse when it is not.
+ */
+export const readQueryDataPoints: (input: {
+  query: Query<Metric>;
+  aggregationType: MetricsAggregationType;
+  groupByAttributeKeys: Array<string>;
+  groupBy: MetricQueryConfigData["metricQueryData"]["groupBy"];
+  startAndEndDate: InBetween<Date>;
+}) => Promise<QueryDataPoints> = async (input: {
+  query: Query<Metric>;
+  aggregationType: MetricsAggregationType;
+  groupByAttributeKeys: Array<string>;
+  groupBy: MetricQueryConfigData["metricQueryData"]["groupBy"];
+  startAndEndDate: InBetween<Date>;
+}): Promise<QueryDataPoints> => {
+  if (input.groupByAttributeKeys.length > 0) {
+    const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
+      query: input.query,
+      select: {
+        attributes: true,
+        value: true,
+        time: true,
+      },
+      sort: {
+        time: SortOrder.Descending,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return {
+      aggregatedResult: aggregatePerSeriesFromRawMetrics({
+        rawMetrics: rawMetricsForAgg,
+        attributeKeys: input.groupByAttributeKeys,
+        aggregationType: input.aggregationType,
+      }),
+      completeFrom: getCutReadCompleteFrom({
+        times: rawMetricsForAgg.map((metric: Metric): Date | undefined => {
+          return metric.time;
+        }),
+        limit: LIMIT_PER_PROJECT,
+      }),
+    };
+  }
+
+  const aggregatedResult: AggregatedResult = await MetricService.aggregateBy({
+    query: input.query,
+    aggregationType: input.aggregationType,
+    aggregateColumnName: "value",
+    aggregationTimestampColumnName: "time",
+    startTimestamp:
+      (input.startAndEndDate?.startValue as Date) ||
+      OneUptimeDate.getCurrentDate(),
+    endTimestamp:
+      (input.startAndEndDate?.endValue as Date) ||
+      OneUptimeDate.getCurrentDate(),
+    limit: LIMIT_PER_PROJECT,
+    skip: 0,
+    groupBy: input.groupBy,
+    // Alerting path: fail loud on timeout, never score partial buckets.
+    timeoutOverflowMode: "throw",
+    props: {
+      isRoot: true,
+    },
+  });
+
+  return {
+    aggregatedResult: aggregatedResult,
+    completeFrom: getCutReadCompleteFrom({
+      times: aggregatedResult.data.map((row: AggregatedModel): Date => {
+        return row.timestamp;
+      }),
+      limit: LIMIT_PER_PROJECT,
+    }),
+  };
+};
+
+/**
  * Build the per-series breakdown for a monitor step. Each entry in the
  * returned array has `aggregatedResults` aligned with the provided
  * `queryConfigs.length + formulaConfigs.length` so formula evaluation
@@ -1577,6 +1729,9 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
 
   const finalResult: Array<AggregatedResult> = [];
 
+  // Where a read was cut at its row limit - see getCutReadCompleteFrom.
+  let dataCompleteFrom: Date | undefined = undefined;
+
   const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
     metricMonitorConfig.metricViewConfig.queryConfigs,
   );
@@ -1658,6 +1813,16 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
       },
     );
 
+    dataCompleteFrom = getLaterDate(
+      dataCompleteFrom,
+      getCutReadCompleteFrom({
+        times: aggregatedResults.data.map((row: AggregatedModel): Date => {
+          return row.timestamp;
+        }),
+        limit: LIMIT_PER_PROJECT,
+      }),
+    );
+
     logger.debug("Aggregated results", {
       service: "workers",
       projectId: data.projectId.toString(),
@@ -1736,6 +1901,7 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
     projectId: data.projectId,
     metricViewConfig: metricMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
+    dataCompleteFrom: dataCompleteFrom,
     metricResult: resultsWithFormulas,
     monitorId: data.monitorId,
     seriesBreakdown: seriesBreakdown,
@@ -1910,6 +2076,9 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
 
   const finalResult: Array<AggregatedResult> = [];
 
+  // Where a read was cut at its row limit - see getCutReadCompleteFrom.
+  let dataCompleteFrom: Date | undefined = undefined;
+
   /*
    * One breakdown per query, in query order. A ratio template has two
    * queries (used ÷ allocatable) and a formula; keeping a single
@@ -1986,52 +2155,17 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
         .aggegationType as MetricsAggregationType) ||
       MetricsAggregationType.Avg;
 
-    let aggregatedResults: AggregatedResult;
+    const dataPoints: QueryDataPoints = await readQueryDataPoints({
+      query: query,
+      aggregationType: aggregationType,
+      groupByAttributeKeys: groupByAttributeKeys,
+      groupBy: queryConfig.metricQueryData.groupBy,
+      startAndEndDate: startAndEndDate,
+    });
 
-    if (groupByAttributeKeys.length > 0) {
-      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
-        query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+    const aggregatedResults: AggregatedResult = dataPoints.aggregatedResult;
 
-      aggregatedResults = aggregatePerSeriesFromRawMetrics({
-        rawMetrics: rawMetricsForAgg,
-        attributeKeys: groupByAttributeKeys,
-        aggregationType,
-      });
-    } else {
-      aggregatedResults = await MetricService.aggregateBy({
-        query: query,
-        aggregationType,
-        aggregateColumnName: "value",
-        aggregationTimestampColumnName: "time",
-        startTimestamp:
-          (startAndEndDate?.startValue as Date) ||
-          OneUptimeDate.getCurrentDate(),
-        endTimestamp:
-          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        groupBy: queryConfig.metricQueryData.groupBy,
-        // Alerting path: fail loud on timeout, never score partial buckets.
-        timeoutOverflowMode: "throw",
-        props: {
-          isRoot: true,
-        },
-      });
-    }
+    dataCompleteFrom = getLaterDate(dataCompleteFrom, dataPoints.completeFrom);
 
     logger.debug("Kubernetes monitor aggregated results", {
       service: "workers",
@@ -2116,6 +2250,7 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     projectId: data.projectId,
     metricViewConfig: kubernetesMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
+    dataCompleteFrom: dataCompleteFrom,
     metricResult: resultsWithFormulas,
     monitorId: data.monitorId,
     kubernetesResourceBreakdowns:
@@ -2154,6 +2289,9 @@ export const monitorDocker: MonitorDockerFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+
+  // Where a read was cut at its row limit - see getCutReadCompleteFrom.
+  let dataCompleteFrom: Date | undefined = undefined;
 
   const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
     dockerMonitorConfig.metricViewConfig.queryConfigs,
@@ -2215,52 +2353,17 @@ export const monitorDocker: MonitorDockerFunction = async (data: {
         .aggegationType as MetricsAggregationType) ||
       MetricsAggregationType.Avg;
 
-    let aggregatedResults: AggregatedResult;
+    const dataPoints: QueryDataPoints = await readQueryDataPoints({
+      query: query,
+      aggregationType: aggregationType,
+      groupByAttributeKeys: groupByAttributeKeys,
+      groupBy: queryConfig.metricQueryData.groupBy,
+      startAndEndDate: startAndEndDate,
+    });
 
-    if (groupByAttributeKeys.length > 0) {
-      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
-        query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+    const aggregatedResults: AggregatedResult = dataPoints.aggregatedResult;
 
-      aggregatedResults = aggregatePerSeriesFromRawMetrics({
-        rawMetrics: rawMetricsForAgg,
-        attributeKeys: groupByAttributeKeys,
-        aggregationType,
-      });
-    } else {
-      aggregatedResults = await MetricService.aggregateBy({
-        query: query,
-        aggregationType,
-        aggregateColumnName: "value",
-        aggregationTimestampColumnName: "time",
-        startTimestamp:
-          (startAndEndDate?.startValue as Date) ||
-          OneUptimeDate.getCurrentDate(),
-        endTimestamp:
-          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        groupBy: queryConfig.metricQueryData.groupBy,
-        // Alerting path: fail loud on timeout, never score partial buckets.
-        timeoutOverflowMode: "throw",
-        props: {
-          isRoot: true,
-        },
-      });
-    }
+    dataCompleteFrom = getLaterDate(dataCompleteFrom, dataPoints.completeFrom);
 
     logger.debug("Docker monitor aggregated results", {
       service: "workers",
@@ -2306,6 +2409,7 @@ export const monitorDocker: MonitorDockerFunction = async (data: {
     projectId: data.projectId,
     metricViewConfig: dockerMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
+    dataCompleteFrom: dataCompleteFrom,
     metricResult: resultsWithFormulas,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
@@ -2344,6 +2448,9 @@ export const monitorHost: MonitorHostFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+
+  // Where a read was cut at its row limit - see getCutReadCompleteFrom.
+  let dataCompleteFrom: Date | undefined = undefined;
 
   const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
     hostMonitorConfig.metricViewConfig.queryConfigs,
@@ -2392,52 +2499,17 @@ export const monitorHost: MonitorHostFunction = async (data: {
         .aggegationType as MetricsAggregationType) ||
       MetricsAggregationType.Avg;
 
-    let aggregatedResults: AggregatedResult;
+    const dataPoints: QueryDataPoints = await readQueryDataPoints({
+      query: query,
+      aggregationType: aggregationType,
+      groupByAttributeKeys: groupByAttributeKeys,
+      groupBy: queryConfig.metricQueryData.groupBy,
+      startAndEndDate: startAndEndDate,
+    });
 
-    if (groupByAttributeKeys.length > 0) {
-      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
-        query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+    const aggregatedResults: AggregatedResult = dataPoints.aggregatedResult;
 
-      aggregatedResults = aggregatePerSeriesFromRawMetrics({
-        rawMetrics: rawMetricsForAgg,
-        attributeKeys: groupByAttributeKeys,
-        aggregationType,
-      });
-    } else {
-      aggregatedResults = await MetricService.aggregateBy({
-        query: query,
-        aggregationType,
-        aggregateColumnName: "value",
-        aggregationTimestampColumnName: "time",
-        startTimestamp:
-          (startAndEndDate?.startValue as Date) ||
-          OneUptimeDate.getCurrentDate(),
-        endTimestamp:
-          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        groupBy: queryConfig.metricQueryData.groupBy,
-        // Alerting path: fail loud on timeout, never score partial buckets.
-        timeoutOverflowMode: "throw",
-        props: {
-          isRoot: true,
-        },
-      });
-    }
+    dataCompleteFrom = getLaterDate(dataCompleteFrom, dataPoints.completeFrom);
 
     logger.debug("Host monitor aggregated results", {
       service: "workers",
@@ -2503,6 +2575,7 @@ export const monitorHost: MonitorHostFunction = async (data: {
     projectId: data.projectId,
     metricViewConfig: hostMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
+    dataCompleteFrom: dataCompleteFrom,
     metricResult: resultsWithFormulas,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
@@ -2541,6 +2614,9 @@ export const monitorPodman: MonitorPodmanFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+
+  // Where a read was cut at its row limit - see getCutReadCompleteFrom.
+  let dataCompleteFrom: Date | undefined = undefined;
 
   const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
     podmanMonitorConfig.metricViewConfig.queryConfigs,
@@ -2602,52 +2678,17 @@ export const monitorPodman: MonitorPodmanFunction = async (data: {
         .aggegationType as MetricsAggregationType) ||
       MetricsAggregationType.Avg;
 
-    let aggregatedResults: AggregatedResult;
+    const dataPoints: QueryDataPoints = await readQueryDataPoints({
+      query: query,
+      aggregationType: aggregationType,
+      groupByAttributeKeys: groupByAttributeKeys,
+      groupBy: queryConfig.metricQueryData.groupBy,
+      startAndEndDate: startAndEndDate,
+    });
 
-    if (groupByAttributeKeys.length > 0) {
-      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
-        query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+    const aggregatedResults: AggregatedResult = dataPoints.aggregatedResult;
 
-      aggregatedResults = aggregatePerSeriesFromRawMetrics({
-        rawMetrics: rawMetricsForAgg,
-        attributeKeys: groupByAttributeKeys,
-        aggregationType,
-      });
-    } else {
-      aggregatedResults = await MetricService.aggregateBy({
-        query: query,
-        aggregationType,
-        aggregateColumnName: "value",
-        aggregationTimestampColumnName: "time",
-        startTimestamp:
-          (startAndEndDate?.startValue as Date) ||
-          OneUptimeDate.getCurrentDate(),
-        endTimestamp:
-          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        groupBy: queryConfig.metricQueryData.groupBy,
-        // Alerting path: fail loud on timeout, never score partial buckets.
-        timeoutOverflowMode: "throw",
-        props: {
-          isRoot: true,
-        },
-      });
-    }
+    dataCompleteFrom = getLaterDate(dataCompleteFrom, dataPoints.completeFrom);
 
     logger.debug("Podman monitor aggregated results", {
       service: "workers",
@@ -2693,6 +2734,7 @@ export const monitorPodman: MonitorPodmanFunction = async (data: {
     projectId: data.projectId,
     metricViewConfig: podmanMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
+    dataCompleteFrom: dataCompleteFrom,
     metricResult: resultsWithFormulas,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
@@ -2731,6 +2773,9 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+
+  // Where a read was cut at its row limit - see getCutReadCompleteFrom.
+  let dataCompleteFrom: Date | undefined = undefined;
 
   // One breakdown per query, in query order — see monitorKubernetes.
   const proxmoxResourceBreakdowns: Array<ProxmoxResourceBreakdown> = [];
@@ -2815,52 +2860,17 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
         .aggegationType as MetricsAggregationType) ||
       MetricsAggregationType.Avg;
 
-    let aggregatedResults: AggregatedResult;
+    const dataPoints: QueryDataPoints = await readQueryDataPoints({
+      query: query,
+      aggregationType: aggregationType,
+      groupByAttributeKeys: groupByAttributeKeys,
+      groupBy: queryConfig.metricQueryData.groupBy,
+      startAndEndDate: startAndEndDate,
+    });
 
-    if (groupByAttributeKeys.length > 0) {
-      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
-        query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+    const aggregatedResults: AggregatedResult = dataPoints.aggregatedResult;
 
-      aggregatedResults = aggregatePerSeriesFromRawMetrics({
-        rawMetrics: rawMetricsForAgg,
-        attributeKeys: groupByAttributeKeys,
-        aggregationType,
-      });
-    } else {
-      aggregatedResults = await MetricService.aggregateBy({
-        query: query,
-        aggregationType,
-        aggregateColumnName: "value",
-        aggregationTimestampColumnName: "time",
-        startTimestamp:
-          (startAndEndDate?.startValue as Date) ||
-          OneUptimeDate.getCurrentDate(),
-        endTimestamp:
-          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        groupBy: queryConfig.metricQueryData.groupBy,
-        // Alerting path: fail loud on timeout, never score partial buckets.
-        timeoutOverflowMode: "throw",
-        props: {
-          isRoot: true,
-        },
-      });
-    }
+    dataCompleteFrom = getLaterDate(dataCompleteFrom, dataPoints.completeFrom);
 
     logger.debug("Proxmox monitor aggregated results", {
       service: "workers",
@@ -2939,6 +2949,7 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
     projectId: data.projectId,
     metricViewConfig: proxmoxMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
+    dataCompleteFrom: dataCompleteFrom,
     metricResult: resultsWithFormulas,
     proxmoxResourceBreakdowns:
       proxmoxResourceBreakdowns.length > 0
@@ -3042,6 +3053,9 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
 
   const finalResult: Array<AggregatedResult> = [];
 
+  // Where a read was cut at its row limit - see getCutReadCompleteFrom.
+  let dataCompleteFrom: Date | undefined = undefined;
+
   // One breakdown per query, in query order — see monitorKubernetes.
   const vmwareResourceBreakdowns: Array<VMwareResourceBreakdown> = [];
 
@@ -3100,52 +3114,17 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
         .aggegationType as MetricsAggregationType) ||
       MetricsAggregationType.Avg;
 
-    let aggregatedResults: AggregatedResult;
+    const dataPoints: QueryDataPoints = await readQueryDataPoints({
+      query: query,
+      aggregationType: aggregationType,
+      groupByAttributeKeys: groupByAttributeKeys,
+      groupBy: queryConfig.metricQueryData.groupBy,
+      startAndEndDate: startAndEndDate,
+    });
 
-    if (groupByAttributeKeys.length > 0) {
-      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
-        query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+    const aggregatedResults: AggregatedResult = dataPoints.aggregatedResult;
 
-      aggregatedResults = aggregatePerSeriesFromRawMetrics({
-        rawMetrics: rawMetricsForAgg,
-        attributeKeys: groupByAttributeKeys,
-        aggregationType,
-      });
-    } else {
-      aggregatedResults = await MetricService.aggregateBy({
-        query: query,
-        aggregationType,
-        aggregateColumnName: "value",
-        aggregationTimestampColumnName: "time",
-        startTimestamp:
-          (startAndEndDate?.startValue as Date) ||
-          OneUptimeDate.getCurrentDate(),
-        endTimestamp:
-          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        groupBy: queryConfig.metricQueryData.groupBy,
-        // Alerting path: fail loud on timeout, never score partial buckets.
-        timeoutOverflowMode: "throw",
-        props: {
-          isRoot: true,
-        },
-      });
-    }
+    dataCompleteFrom = getLaterDate(dataCompleteFrom, dataPoints.completeFrom);
 
     logger.debug("VMware monitor aggregated results", {
       service: "workers",
@@ -3228,6 +3207,7 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
     projectId: data.projectId,
     metricViewConfig: vmwareMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
+    dataCompleteFrom: dataCompleteFrom,
     metricResult: resultsWithFormulas,
     vmwareResourceBreakdowns:
       vmwareResourceBreakdowns.length > 0
@@ -3266,6 +3246,9 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+
+  // Where a read was cut at its row limit - see getCutReadCompleteFrom.
+  let dataCompleteFrom: Date | undefined = undefined;
 
   const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
     iotMonitorConfig.metricViewConfig.queryConfigs,
@@ -3337,52 +3320,17 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
         .aggegationType as MetricsAggregationType) ||
       MetricsAggregationType.Avg;
 
-    let aggregatedResults: AggregatedResult;
+    const dataPoints: QueryDataPoints = await readQueryDataPoints({
+      query: query,
+      aggregationType: aggregationType,
+      groupByAttributeKeys: groupByAttributeKeys,
+      groupBy: queryConfig.metricQueryData.groupBy,
+      startAndEndDate: startAndEndDate,
+    });
 
-    if (groupByAttributeKeys.length > 0) {
-      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
-        query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+    const aggregatedResults: AggregatedResult = dataPoints.aggregatedResult;
 
-      aggregatedResults = aggregatePerSeriesFromRawMetrics({
-        rawMetrics: rawMetricsForAgg,
-        attributeKeys: groupByAttributeKeys,
-        aggregationType,
-      });
-    } else {
-      aggregatedResults = await MetricService.aggregateBy({
-        query: query,
-        aggregationType,
-        aggregateColumnName: "value",
-        aggregationTimestampColumnName: "time",
-        startTimestamp:
-          (startAndEndDate?.startValue as Date) ||
-          OneUptimeDate.getCurrentDate(),
-        endTimestamp:
-          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        groupBy: queryConfig.metricQueryData.groupBy,
-        // Alerting path: fail loud on timeout, never score partial buckets.
-        timeoutOverflowMode: "throw",
-        props: {
-          isRoot: true,
-        },
-      });
-    }
+    dataCompleteFrom = getLaterDate(dataCompleteFrom, dataPoints.completeFrom);
 
     logger.debug("IoT monitor aggregated results", {
       service: "workers",
@@ -3455,6 +3403,7 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
     projectId: data.projectId,
     metricViewConfig: iotMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
+    dataCompleteFrom: dataCompleteFrom,
     metricResult: resultsWithFormulas,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
@@ -3493,6 +3442,9 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+
+  // Where a read was cut at its row limit - see getCutReadCompleteFrom.
+  let dataCompleteFrom: Date | undefined = undefined;
 
   // One breakdown per query, in query order — see monitorKubernetes.
   const dockerSwarmResourceBreakdowns: Array<DockerSwarmResourceBreakdown> = [];
@@ -3584,52 +3536,17 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
         .aggegationType as MetricsAggregationType) ||
       MetricsAggregationType.Avg;
 
-    let aggregatedResults: AggregatedResult;
+    const dataPoints: QueryDataPoints = await readQueryDataPoints({
+      query: query,
+      aggregationType: aggregationType,
+      groupByAttributeKeys: groupByAttributeKeys,
+      groupBy: queryConfig.metricQueryData.groupBy,
+      startAndEndDate: startAndEndDate,
+    });
 
-    if (groupByAttributeKeys.length > 0) {
-      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
-        query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+    const aggregatedResults: AggregatedResult = dataPoints.aggregatedResult;
 
-      aggregatedResults = aggregatePerSeriesFromRawMetrics({
-        rawMetrics: rawMetricsForAgg,
-        attributeKeys: groupByAttributeKeys,
-        aggregationType,
-      });
-    } else {
-      aggregatedResults = await MetricService.aggregateBy({
-        query: query,
-        aggregationType,
-        aggregateColumnName: "value",
-        aggregationTimestampColumnName: "time",
-        startTimestamp:
-          (startAndEndDate?.startValue as Date) ||
-          OneUptimeDate.getCurrentDate(),
-        endTimestamp:
-          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        groupBy: queryConfig.metricQueryData.groupBy,
-        // Alerting path: fail loud on timeout, never score partial buckets.
-        timeoutOverflowMode: "throw",
-        props: {
-          isRoot: true,
-        },
-      });
-    }
+    dataCompleteFrom = getLaterDate(dataCompleteFrom, dataPoints.completeFrom);
 
     logger.debug("Docker Swarm monitor aggregated results", {
       service: "workers",
@@ -3718,6 +3635,7 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
     projectId: data.projectId,
     metricViewConfig: dockerSwarmMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
+    dataCompleteFrom: dataCompleteFrom,
     metricResult: resultsWithFormulas,
     dockerSwarmResourceBreakdowns:
       dockerSwarmResourceBreakdowns.length > 0
@@ -3756,6 +3674,9 @@ export const monitorCeph: MonitorCephFunction = async (data: {
     );
 
   const finalResult: Array<AggregatedResult> = [];
+
+  // Where a read was cut at its row limit - see getCutReadCompleteFrom.
+  let dataCompleteFrom: Date | undefined = undefined;
 
   // One breakdown per query, in query order — see monitorKubernetes.
   const cephResourceBreakdowns: Array<CephResourceBreakdown> = [];
@@ -3829,52 +3750,17 @@ export const monitorCeph: MonitorCephFunction = async (data: {
         .aggegationType as MetricsAggregationType) ||
       MetricsAggregationType.Avg;
 
-    let aggregatedResults: AggregatedResult;
+    const dataPoints: QueryDataPoints = await readQueryDataPoints({
+      query: query,
+      aggregationType: aggregationType,
+      groupByAttributeKeys: groupByAttributeKeys,
+      groupBy: queryConfig.metricQueryData.groupBy,
+      startAndEndDate: startAndEndDate,
+    });
 
-    if (groupByAttributeKeys.length > 0) {
-      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
-        query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+    const aggregatedResults: AggregatedResult = dataPoints.aggregatedResult;
 
-      aggregatedResults = aggregatePerSeriesFromRawMetrics({
-        rawMetrics: rawMetricsForAgg,
-        attributeKeys: groupByAttributeKeys,
-        aggregationType,
-      });
-    } else {
-      aggregatedResults = await MetricService.aggregateBy({
-        query: query,
-        aggregationType,
-        aggregateColumnName: "value",
-        aggregationTimestampColumnName: "time",
-        startTimestamp:
-          (startAndEndDate?.startValue as Date) ||
-          OneUptimeDate.getCurrentDate(),
-        endTimestamp:
-          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        groupBy: queryConfig.metricQueryData.groupBy,
-        // Alerting path: fail loud on timeout, never score partial buckets.
-        timeoutOverflowMode: "throw",
-        props: {
-          isRoot: true,
-        },
-      });
-    }
+    dataCompleteFrom = getLaterDate(dataCompleteFrom, dataPoints.completeFrom);
 
     logger.debug("Ceph monitor aggregated results", {
       service: "workers",
@@ -3953,6 +3839,7 @@ export const monitorCeph: MonitorCephFunction = async (data: {
     projectId: data.projectId,
     metricViewConfig: cephMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
+    dataCompleteFrom: dataCompleteFrom,
     metricResult: resultsWithFormulas,
     cephResourceBreakdowns:
       cephResourceBreakdowns.length > 0 ? cephResourceBreakdowns : undefined,
@@ -4065,6 +3952,9 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
 
   const finalResult: Array<AggregatedResult> = [];
 
+  // Where a read was cut at its row limit - see getCutReadCompleteFrom.
+  let dataCompleteFrom: Date | undefined = undefined;
+
   // One breakdown per query, in query order — see monitorKubernetes.
   const storageArrayResourceBreakdowns: Array<StorageArrayResourceBreakdown> =
     [];
@@ -4126,52 +4016,17 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
         .aggegationType as MetricsAggregationType) ||
       MetricsAggregationType.Avg;
 
-    let aggregatedResults: AggregatedResult;
+    const dataPoints: QueryDataPoints = await readQueryDataPoints({
+      query: query,
+      aggregationType: aggregationType,
+      groupByAttributeKeys: groupByAttributeKeys,
+      groupBy: queryConfig.metricQueryData.groupBy,
+      startAndEndDate: startAndEndDate,
+    });
 
-    if (groupByAttributeKeys.length > 0) {
-      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
-        query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+    const aggregatedResults: AggregatedResult = dataPoints.aggregatedResult;
 
-      aggregatedResults = aggregatePerSeriesFromRawMetrics({
-        rawMetrics: rawMetricsForAgg,
-        attributeKeys: groupByAttributeKeys,
-        aggregationType,
-      });
-    } else {
-      aggregatedResults = await MetricService.aggregateBy({
-        query: query,
-        aggregationType,
-        aggregateColumnName: "value",
-        aggregationTimestampColumnName: "time",
-        startTimestamp:
-          (startAndEndDate?.startValue as Date) ||
-          OneUptimeDate.getCurrentDate(),
-        endTimestamp:
-          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        groupBy: queryConfig.metricQueryData.groupBy,
-        // Alerting path: fail loud on timeout, never score partial buckets.
-        timeoutOverflowMode: "throw",
-        props: {
-          isRoot: true,
-        },
-      });
-    }
+    dataCompleteFrom = getLaterDate(dataCompleteFrom, dataPoints.completeFrom);
 
     logger.debug("Storage Array monitor aggregated results", {
       service: "workers",
@@ -4257,6 +4112,7 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
     projectId: data.projectId,
     metricViewConfig: storageArrayMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
+    dataCompleteFrom: dataCompleteFrom,
     metricResult: resultsWithFormulas,
     storageArrayResourceBreakdowns:
       storageArrayResourceBreakdowns.length > 0

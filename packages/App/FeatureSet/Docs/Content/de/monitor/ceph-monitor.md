@@ -218,7 +218,7 @@ Ein Kriterium vergleicht eine der Abfragen oder Formeln des Monitors mit einem S
 | Feld | Wirkung |
 | --- | --- |
 | **Metrik** | Die zu prüfende Abfrage oder Formel, über ihren Variablennamen. |
-| **Aggregation** | Wie die Werte im Fenster zu einer Antwort werden: **Durchschnitt**, **Summe**, **Maximum Value**, **Minimum Value**, **All Values** (jeder Wert muss zutreffen) oder **Any Value** (einer genügt). |
+| **Aggregation** | Wie die Werte im Fenster zu einer Antwort werden: **Durchschnitt**, **Summe**, **Maximum Value**, **Minimum Value**, **All Values** (jeder Wert muss zutreffen, im ganzen Fenster) oder **Any Value** (einer genügt). |
 | **Bedingung** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** oder **Gleich** — oder eine Anomaliebedingung: **Anomalously High**, **Anomalously Low** oder **Anomalous**. |
 | **Schwellenwert** | Der Vergleichswert. Daneben steht eine Einheitenauswahl, wenn die Metrik eine Einheit hat. Bei Anomaliebedingungen nicht sichtbar. |
 | **Empfindlichkeit** | Nur bei Anomaliebedingungen. **Low** (4σ), **Medium** (3σ, Standard) oder **Hoch** (2σ). |

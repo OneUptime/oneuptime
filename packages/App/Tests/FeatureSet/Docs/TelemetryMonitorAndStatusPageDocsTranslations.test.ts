@@ -432,6 +432,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Then the criteria's aggregation.",
     "Criteria from top to bottom.",
     "No data is not zero.",
+    "All Values needs the whole time range.",
     "OneUptime's own downtime is not silence.",
     "one alert (or incident) per breaching host",
     "one alert for the whole monitor",

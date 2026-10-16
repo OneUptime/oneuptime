@@ -18,6 +18,7 @@ export interface ComponentProps {
   onMouseLeave?: (() => void) | undefined;
   id?: string | undefined;
   title?: string | undefined;
+  dataTestId?: string | undefined;
 }
 
 const Link: FunctionComponent<ComponentProps> = (
@@ -46,6 +47,7 @@ const Link: FunctionComponent<ComponentProps> = (
     return (
       <span
         id={props.id}
+        data-testid={props.dataTestId}
         className={`cursor-default ${props.className || ""}`}
         onMouseOver={props.onMouseOver}
         onMouseOut={props.onMouseOut}
@@ -87,6 +89,7 @@ const Link: FunctionComponent<ComponentProps> = (
   return (
     <a
       id={props.id}
+      data-testid={props.dataTestId}
       className={`${cursorClassName} ${props.className || ""}`}
       onMouseOver={props.onMouseOver}
       onMouseOut={props.onMouseOut}

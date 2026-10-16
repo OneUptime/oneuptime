@@ -106,11 +106,12 @@ Più lungo è l'intervallo, più largo è ogni intervallo di raggruppamento, qui
 | Somma | la somma dei punti dati |
 | Maximum Value | il punto dati più alto |
 | Minimum Value | il punto dati più basso |
-| All Values | ogni punto dati: tutti devono soddisfare la condizione |
+| All Values | ogni punto dati: tutti devono soddisfare la condizione e coprire tutto l'intervallo di tempo |
 | Any Value | ogni punto dati: basta che uno soddisfi la condizione |
 
 - **Criteri dall'alto verso il basso.** In un monitor senza Group By decide il primo criterio che corrisponde, quindi mettete per primo il più grave. Un monitor raggruppato controlla ogni criterio per ogni serie (vedete [La valutazione dei criteri cambia](#la-valutazione-dei-criteri-cambia)).
 - **Nessun dato non è zero.** Quando la query non restituisce punti dati nell'intervallo, un criterio fa ciò che dice la sua impostazione **Se nessun dato**, in **Altri campi**: **Ignore** (il predefinito: il criterio non corrisponde), **Treat As Zero** o **Trigger**.
+- **All Values richiede tutto l'intervallo di tempo.** Una serie soddisfa un criterio **All Values** solo quando i suoi punti dati coprono l'intervallo di tempo, dal suo inizio a ora, senza un vuoto di più di un punto dati mancante. Quando tutti i dati del monitor arrivano in ritardo, come quelli di CloudWatch, il suo punto dati più recente prende il posto di ora. Un host, un container o un deployment che ha appena iniziato a inviare dati, o che è rimasto in silenzio per un po', attende di avere i dati di un intero intervallo di tempo, e il registro di valutazione indica a che punto è: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. Una serie il cui avviso o incidente è già aperto viene giudicata solo sui suoi punti dati, quindi un breve vuoto nei suoi dati non lo risolve. Se la metrica invia dati meno spesso di quanto duri l'intervallo di tempo, un singolo punto dati vale per tutto l'intervallo una volta che ha qualche minuto; per giudicare quanto dura un valore, l'intervallo di tempo deve coprire almeno due intervalli di invio.
 - **L'interruzione di OneUptime stesso non è silenzio.** Finché l'intervallo di tempo contiene un periodo in cui OneUptime stesso non riceveva dati (si stava riavviando, veniva aggiornato o recuperava un arretrato), il controllo attende: lo stato non cambia e nessun incidente o avviso viene aperto o risolto, qualunque cosa dica **Se nessun dato**. Vedete [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Criteri
@@ -197,7 +198,7 @@ I valori dell'attributo di raggruppamento sono disponibili anche come [variabili
 ## Risoluzione dei problemi
 
 :::details Il grafico mostra un superamento, ma il monitor non ha avvisato
-Controllate prima l'**Aggregazione** del criterio: **All Values** corrisponde solo quando ogni punto dati dell'intervallo supera la soglia, e **Media** smussa un picco breve. Controllate poi che la **Metrica** del criterio sia la query o la formula che intendete (`a` non è la formula `c`) e che la soglia sia nell'unità che pensate.
+Controllate prima l'**Aggregazione** del criterio: **All Values** corrisponde solo quando ogni punto dati dell'intervallo supera la soglia, e **Media** smussa un picco breve. **All Values** attende anche che una serie abbia dati per tutto l'intervallo di tempo, quindi un host o un deployment che ha appena iniziato a inviare dati non viene ancora giudicato. Controllate poi che la **Metrica** del criterio sia la query o la formula che intendete (`a` non è la formula `c`) e che la soglia sia nell'unità che pensate.
 :::
 
 :::details La metrica ha smesso di arrivare e non è successo nulla

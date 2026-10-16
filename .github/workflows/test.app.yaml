@@ -244,6 +244,7 @@ jobs:
               test-runbook-triggers-ui
               test-network-first-run-ui
               test-custom-roles-ui
+              test-sign-in-options-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -381,4 +382,5 @@ jobs:
             output/playwright/network-first-run-ui/test-results
             output/playwright/custom-roles-ui/*.png
             output/playwright/custom-roles-ui/test-results
+            output/playwright/sign-in-options-ui/test-results
           retention-days: 7

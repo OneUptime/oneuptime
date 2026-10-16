@@ -264,7 +264,8 @@
       "loginPrompt": "Effettua l'accesso per visualizzare {{statusPageName}}",
       "forgotPassword": "Password dimenticata?",
       "submit": "Accedi",
-      "useSSO": "Usa il Single Sign-On (SSO) invece"
+      "or": "oppure",
+      "logInWithSso": "Accedi con SSO"
     },
     "sso": {
       "title": "Accedi con SSO",

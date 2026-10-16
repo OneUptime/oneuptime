@@ -114,6 +114,11 @@ const HOST: string = "monitor/host-monitor";
 const PODMAN: string = "monitor/podman-monitor";
 const PROXMOX: string = "monitor/proxmox-monitor";
 const SWARM: string = "monitor/docker-swarm-monitor";
+// Their own suites hold the rest; they share the criteria table's wording.
+const CEPH: string = "monitor/ceph-monitor";
+const STORAGE_ARRAY: string = "monitor/storage-array-monitor";
+const IOT_DEVICE: string = "monitor/iot-device-monitor";
+const VMWARE: string = "monitor/vmware-monitor";
 
 const TELEMETRY_PAGES: Array<string> = [
   KUBERNETES,
@@ -1647,11 +1652,32 @@ describe("the criteria of the telemetry-backed monitors", () => {
       "Any Value",
     ]);
 
-    for (const page of [DOCKER, HOST, PODMAN, PROXMOX, SWARM]) {
+    /*
+     * All Values over the whole window: its data must cover the window, not
+     * just match where there is some (#4793) - what MetricMonitorCriteria
+     * holds it to, for every one of these monitor types.
+     */
+    for (const page of [
+      DOCKER,
+      HOST,
+      PODMAN,
+      PROXMOX,
+      SWARM,
+      CEPH,
+      STORAGE_ARRAY,
+      IOT_DEVICE,
+      VMWARE,
+    ]) {
       expect(englishPage(page)).toContain(
-        "**Average**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (every value must match) or **Any Value** (one is enough).",
+        "**Average**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (every value must match, over the whole window) or **Any Value** (one is enough).",
       );
     }
+
+    expect(
+      source(
+        "packages/Common/Server/Utils/Monitor/Criteria/MetricMonitorCriteria.ts",
+      ),
+    ).toContain("MetricWindowCoverage.judge(");
 
     expect(
       tableBody(sectionOf(KUBERNETES, "### Aggregation types")).map(

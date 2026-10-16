@@ -13,7 +13,8 @@
     "confirmPassword": "Bekreft passord",
     "newPassword": "Nytt passord",
     "code": "Kode",
-    "yourCompany": "Ditt firma"
+    "yourCompany": "Ditt firma",
+    "or": "eller"
   },
   "language": {
     "label": "Språk",
@@ -50,7 +51,7 @@
     "subtitle": "Bruk passordet ditt, organisasjonens SSO eller en passnøkkel.",
     "submitButton": "Logg inn",
     "forgotPassword": "Glemt passord?",
-    "useSso": "Bruk enkeltpålogging (SSO) i stedet",
+    "signInWithSso": "Logg inn med SSO",
     "signInWithMicrosoft": "Logg inn med Microsoft",
     "noAccountPrompt": "Har du ikke en konto?",
     "registerLink": "Registrer.",
@@ -146,7 +147,7 @@
     "title": "Logg inn med SSO",
     "subtitle": "Logg inn med SSO-leverandøren din for å få tilgang til kontoen din.",
     "submitButton": "Logg inn med SSO",
-    "useUsernameInstead": "Bruk brukernavn og passord i stedet.",
+    "signInWithPassword": "Logg inn med passord",
     "noAccountPrompt": "Har du ikke en konto?",
     "registerLink": "Registrer.",
     "selectProjectTitle": "Velg prosjekt",

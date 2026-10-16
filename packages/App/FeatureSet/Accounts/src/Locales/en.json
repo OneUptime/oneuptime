@@ -13,7 +13,8 @@
     "confirmPassword": "Confirm Password",
     "newPassword": "New Password",
     "code": "Code",
-    "yourCompany": "Your Company"
+    "yourCompany": "Your Company",
+    "or": "or"
   },
   "language": {
     "label": "Language",
@@ -50,7 +51,7 @@
       "tryAgain": "Try passkey again"
     },
     "forgotPassword": "Forgot password?",
-    "useSso": "Use single sign-on (SSO) instead",
+    "signInWithSso": "Sign in with SSO",
     "signInWithMicrosoft": "Sign in with Microsoft",
     "noAccountPrompt": "Don't have an account?",
     "registerLink": "Register.",
@@ -146,7 +147,7 @@
     "title": "Login with SSO",
     "subtitle": "Login with your SSO provider to access your account.",
     "submitButton": "Login with SSO",
-    "useUsernameInstead": "Use username and password instead.",
+    "signInWithPassword": "Sign in with password",
     "noAccountPrompt": "Don't have an account?",
     "registerLink": "Register.",
     "selectProjectTitle": "Select Project",

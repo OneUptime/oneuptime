@@ -10,12 +10,19 @@ import MetricCriteriaContext, {
   MetricAnomalyBaseline,
   MetricComponent,
   MetricComponentValue,
+  MetricWindowShortfall,
 } from "../../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
 import MetricSeriesResult from "../../../../Types/Monitor/MetricMonitor/MetricSeriesResult";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
+import SeriesLabelDisplay from "../../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import { JSONObject } from "../../../../Types/JSON";
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
+import MetricWindowCoverage, {
+  MetricEvaluationWindow,
+  MetricWindowCoverageResult,
+} from "./MetricWindowCoverage";
+import { WindowCoverageShortfall } from "./WindowCoverage";
 import {
   AnomalyDetectionSensitivity,
   CheckOn,
@@ -48,12 +55,37 @@ export interface MetricSeriesEvaluationResult {
   context: MetricCriteriaContext;
 }
 
+/*
+ * Whether the criteria being evaluated is already in effect for a series
+ * (undefined: the whole monitor) - an alert or incident it opened for that
+ * series is still open, or the monitor already has its status
+ * (CriteriaInEffect). Such a series is judged on its data points alone, as
+ * it always was; only a series the criteria has not acted on yet must wait
+ * for its data to cover the window.
+ */
+export type IsCriteriaInEffect = (
+  seriesFingerprint: string | undefined,
+) => Promise<boolean>;
+
+// The query or formula a criteria's metric alias names.
+interface ResolvedMetricAlias {
+  matchedQuery: MetricQueryConfigData | null;
+  matchedFormula: MetricFormulaConfigData | null;
+  /*
+   * Where its results sit among a series' results - the queries', then the
+   * formulas' - or -1 when the alias names neither (the first query's
+   * results are read then).
+   */
+  aliasIndex: number;
+}
+
 export default class MetricMonitorCriteria {
   @CaptureSpan()
   public static async isMonitorInstanceCriteriaFilterMet(input: {
     dataToProcess: DataToProcess;
     criteriaFilter: CriteriaFilter;
     monitorStep: MonitorStep;
+    isInEffect?: IsCriteriaInEffect | undefined;
   }): Promise<string | null> {
     const evaluations: Array<MetricSeriesEvaluationResult> =
       await MetricMonitorCriteria.evaluateAllSeries(input);
@@ -73,15 +105,58 @@ export default class MetricMonitorCriteria {
     /*
      * Always populate the legacy single-context field so the root-cause
      * renderer can still read metric identity from the criteria filter
-     * even when nothing matched. Pick the first evaluation's context.
+     * even when nothing matched. Pick the first evaluation's context -
+     * or, when series are waiting for a full window, the one closest to
+     * it, so the evaluation log can say why nothing fired yet.
      */
     if (evaluations.length > 0) {
       input.criteriaFilter.metricCriteriaContext = (
-        match || evaluations[0]!
+        match ||
+        MetricMonitorCriteria.getClosestWaitingEvaluation(evaluations) ||
+        evaluations[0]!
       ).context;
     }
 
     return match ? match.rootCause : null;
+  }
+
+  /*
+   * The waiting series nearest to a full window, with its message saying
+   * how many series wait. Undefined when none waits.
+   */
+  private static getClosestWaitingEvaluation(
+    evaluations: Array<MetricSeriesEvaluationResult>,
+  ): MetricSeriesEvaluationResult | undefined {
+    const waiting: Array<MetricSeriesEvaluationResult> = evaluations.filter(
+      (evaluation: MetricSeriesEvaluationResult) => {
+        return Boolean(evaluation.context.windowWait);
+      },
+    );
+
+    if (waiting.length === 0) {
+      return undefined;
+    }
+
+    let closest: MetricSeriesEvaluationResult = waiting[0]!;
+
+    for (const evaluation of waiting) {
+      if (
+        evaluation.context.windowWait!.coveredMs >
+        closest.context.windowWait!.coveredMs
+      ) {
+        closest = evaluation;
+      }
+    }
+
+    if (waiting.length > 1) {
+      closest.context.windowWait = {
+        ...closest.context.windowWait!,
+        waitingSeriesCount: waiting.length,
+        message: `${waiting.length} series are waiting for a full window of data. Closest: ${closest.context.windowWait!.message}`,
+      };
+    }
+
+    return closest;
   }
 
   /**
@@ -98,6 +173,11 @@ export default class MetricMonitorCriteria {
     dataToProcess: DataToProcess;
     criteriaFilter: CriteriaFilter;
     monitorStep: MonitorStep;
+    /*
+     * Absent: nothing is in effect, so every series that has not covered
+     * the window waits.
+     */
+    isInEffect?: IsCriteriaInEffect | undefined;
   }): Promise<Array<MetricSeriesEvaluationResult>> {
     if (
       input.criteriaFilter.metricMonitorOptions &&
@@ -128,11 +208,62 @@ export default class MetricMonitorCriteria {
     const nativeUnitsByMetricName: { [key: string]: string } | undefined =
       metricResponse.nativeUnitsByMetricName;
 
+    // What "All Values" judges each series' data against.
+    const window: MetricEvaluationWindow | null =
+      MetricWindowCoverage.getWindow(metricResponse);
+
+    const hasSeries: boolean = Boolean(
+      seriesBreakdown && seriesBreakdown.length > 0,
+    );
+
+    /*
+     * The data points this criteria compares - its query's or formula's -
+     * in every series. Only "All Values" judges a window's coverage.
+     */
+    const comparedSamplesOfEverySeries: Array<Array<AggregateModel>> | null =
+      window && MetricMonitorCriteria.isAllValues(input.criteriaFilter)
+        ? MetricMonitorCriteria.getComparedSamplesOfEverySeries({
+            criteriaFilter: input.criteriaFilter,
+            queryConfigs,
+            formulaConfigs,
+            resultsOfEverySeries: hasSeries
+              ? seriesBreakdown!.map((series: MetricSeriesResult) => {
+                  return series.aggregatedResults;
+                })
+              : [metricResponse.metricResult || []],
+          })
+        : null;
+
+    /*
+     * How often the monitor's series report, across all of them: what a
+     * series with too few data points to show its own cadence is judged by
+     * (MetricWindowCoverage).
+     */
+    const monitorIntervalMs: number | null | undefined =
+      comparedSamplesOfEverySeries
+        ? MetricWindowCoverage.getMonitorIntervalMs(
+            comparedSamplesOfEverySeries,
+          )
+        : undefined;
+
+    /*
+     * As far as the monitor's data reaches, for a monitor whose data may
+     * all arrive late (judgesFreshnessByNewestData): a series is then stale
+     * only when its data stopped well before the others' did.
+     */
+    const monitorNewestDataPointMs: number | null | undefined =
+      comparedSamplesOfEverySeries &&
+      MetricMonitorCriteria.judgesFreshnessByNewestData(input.monitorStep)
+        ? MetricWindowCoverage.getNewestDataPointMs(
+            comparedSamplesOfEverySeries,
+          )
+        : undefined;
+
     /*
      * Series-less path: one synthetic "all-series" evaluation over the
      * flat metricResult. Preserves the pre-group-by behavior exactly.
      */
-    if (!seriesBreakdown || seriesBreakdown.length === 0) {
+    if (!hasSeries) {
       const result: MetricSeriesEvaluationResult =
         await MetricMonitorCriteria.evaluateOneSeries({
           criteriaFilter: input.criteriaFilter,
@@ -143,12 +274,16 @@ export default class MetricMonitorCriteria {
           seriesLabels: {},
           projectId: metricResponse.projectId,
           nativeUnitsByMetricName,
+          window,
+          monitorIntervalMs,
+          monitorNewestDataPointMs,
+          isInEffect: input.isInEffect,
         });
       return [result];
     }
 
     return await Promise.all(
-      seriesBreakdown.map((series: MetricSeriesResult) => {
+      seriesBreakdown!.map((series: MetricSeriesResult) => {
         return MetricMonitorCriteria.evaluateOneSeries({
           criteriaFilter: input.criteriaFilter,
           aggregatedResults: series.aggregatedResults,
@@ -158,9 +293,161 @@ export default class MetricMonitorCriteria {
           seriesLabels: series.labels,
           projectId: metricResponse.projectId,
           nativeUnitsByMetricName,
+          window,
+          monitorIntervalMs,
+          monitorNewestDataPointMs,
+          isInEffect: input.isInEffect,
         });
       }),
     );
+  }
+
+  /*
+   * The query or formula a criteria's metric alias names. Explicit index
+   * checks - not `findIndex() || -1`, which falls back to -1 when the first
+   * one matches.
+   */
+  private static resolveAlias(input: {
+    metricAlias: string;
+    queryConfigs: Array<MetricQueryConfigData>;
+    formulaConfigs: Array<MetricFormulaConfigData>;
+  }): ResolvedMetricAlias {
+    if (!input.metricAlias) {
+      return { matchedQuery: null, matchedFormula: null, aliasIndex: -1 };
+    }
+
+    const queryIndex: number = input.queryConfigs.findIndex(
+      (query: MetricQueryConfigData) => {
+        return query.metricAliasData?.metricVariable === input.metricAlias;
+      },
+    );
+
+    if (queryIndex >= 0) {
+      return {
+        matchedQuery: input.queryConfigs[queryIndex] || null,
+        matchedFormula: null,
+        aliasIndex: queryIndex,
+      };
+    }
+
+    const formulaIndex: number = input.formulaConfigs.findIndex(
+      (formula: MetricFormulaConfigData) => {
+        return formula.metricAliasData?.metricVariable === input.metricAlias;
+      },
+    );
+
+    if (formulaIndex >= 0) {
+      return {
+        matchedQuery: null,
+        matchedFormula: input.formulaConfigs[formulaIndex] || null,
+        aliasIndex: input.queryConfigs.length + formulaIndex,
+      };
+    }
+
+    return { matchedQuery: null, matchedFormula: null, aliasIndex: -1 };
+  }
+
+  /*
+   * The data points a criteria compares, in every series: its alias's
+   * results in each - or the first query's, when it names none.
+   */
+  private static getComparedSamplesOfEverySeries(input: {
+    criteriaFilter: CriteriaFilter;
+    queryConfigs: Array<MetricQueryConfigData>;
+    formulaConfigs: Array<MetricFormulaConfigData>;
+    resultsOfEverySeries: Array<Array<AggregatedResult>>;
+  }): Array<Array<AggregateModel>> {
+    const aliasIndex: number = MetricMonitorCriteria.resolveAlias({
+      metricAlias: input.criteriaFilter.metricMonitorOptions?.metricAlias || "",
+      queryConfigs: input.queryConfigs,
+      formulaConfigs: input.formulaConfigs,
+    }).aliasIndex;
+
+    return input.resultsOfEverySeries.map(
+      (results: Array<AggregatedResult>) => {
+        return results[aliasIndex >= 0 ? aliasIndex : 0]?.data || [];
+      },
+    );
+  }
+
+  /*
+   * The evaluation type the window is judged with - the same precedence
+   * CompareCriteria compares with.
+   */
+  private static isAllValues(criteriaFilter: CriteriaFilter): boolean {
+    return (
+      (criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ||
+        criteriaFilter.metricMonitorOptions?.metricAggregationType) ===
+      EvaluateOverTimeType.AllValues
+    );
+  }
+
+  /*
+   * Whether a series' newest data point must be close to the monitor's
+   * newest data point, rather than to now, to count as fresh.
+   *
+   * A Metrics monitor reads any metric, and some sources deliver theirs
+   * minutes late by design: CloudWatch's polling receiver stamps each point
+   * with its period's start and reads periods 10 minutes old, so its newest
+   * point is 11 to 17 minutes old; Cloud Monitoring's arrives up to 9
+   * minutes late (MessageQueueAlertTemplates, WINDOWS AND LATE SOURCES).
+   * Measured against now, every series of such a monitor would look as if
+   * it had stopped, and "All Values" would never match again. Measured
+   * against the monitor's own newest data, a series that stopped while the
+   * others kept reporting still waits.
+   *
+   * The infrastructure monitors (Kubernetes, Docker, Host and the rest)
+   * read OneUptime's own collectors, which send what they read as they read
+   * it. There a series whose data stopped coming has stopped - even every
+   * series at once, when the agent went away - so they are measured
+   * against now.
+   */
+  private static judgesFreshnessByNewestData(
+    monitorStep: MonitorStep,
+  ): boolean {
+    return Boolean(monitorStep.data?.metricMonitor);
+  }
+
+  private static async isCriteriaInEffectFor(data: {
+    isInEffect: IsCriteriaInEffect | undefined;
+    seriesFingerprint: string | undefined;
+  }): Promise<boolean> {
+    if (!data.isInEffect) {
+      return false;
+    }
+
+    return await data.isInEffect(data.seriesFingerprint);
+  }
+
+  /*
+   * Why a series must wait, or null when it need not: its data covers the
+   * window, or none of its data points carries a time to judge by (it is
+   * then judged on its values, as before).
+   */
+  private static toWindowShortfall(
+    shortfall: WindowCoverageShortfall | null,
+  ): MetricWindowShortfall | null {
+    switch (shortfall) {
+      case WindowCoverageShortfall.StartsLate:
+        return "StartsLate";
+      case WindowCoverageShortfall.Hole:
+        return "Hole";
+      case WindowCoverageShortfall.Stale:
+        return "Stale";
+      default:
+        return null;
+    }
+  }
+
+  /*
+   * "Namespace: payments | Deployment: api - " before a grouped series'
+   * message, so the evaluation log says which series it is about. Empty for
+   * an ungrouped monitor.
+   */
+  private static getSeriesPrefix(seriesLabels: JSONObject): string {
+    const summary: string = SeriesLabelDisplay.buildInlineSummary(seriesLabels);
+
+    return summary ? `${summary} - ` : "";
   }
 
   /**
@@ -179,6 +466,20 @@ export default class MetricMonitorCriteria {
     seriesLabels: JSONObject;
     projectId: { toString(): string } | undefined;
     nativeUnitsByMetricName?: { [key: string]: string } | undefined;
+    // Null when the response does not say what window it read.
+    window?: MetricEvaluationWindow | null | undefined;
+    /*
+     * How often the monitor's series report, for a series with too few data
+     * points to show its own cadence (MetricWindowCoverage
+     * .getMonitorIntervalMs); null when none shows one.
+     */
+    monitorIntervalMs?: number | null | undefined;
+    /*
+     * The newest data point of any of the monitor's series, when a series'
+     * freshness is measured against it (judgesFreshnessByNewestData).
+     */
+    monitorNewestDataPointMs?: number | null | undefined;
+    isInEffect?: IsCriteriaInEffect | undefined;
   }): Promise<MetricSeriesEvaluationResult> {
     const rawThreshold: number | null =
       CompareCriteria.convertMetricThresholdToNumber(
@@ -191,38 +492,18 @@ export default class MetricMonitorCriteria {
     const metricAggregatedResult: Array<AggregatedResult> =
       input.aggregatedResults;
 
-    /*
-     * Resolve which query/formula the alias refers to. Use explicit index
-     * checks (not `findIndex() || -1`, which incorrectly falls back to -1
-     * when the first element matches).
-     */
-    let matchedQuery: MetricQueryConfigData | null = null;
-    let matchedFormula: MetricFormulaConfigData | null = null;
-    let aliasIndex: number = -1;
+    // Resolve which query/formula the alias refers to.
+    const resolvedAlias: ResolvedMetricAlias =
+      MetricMonitorCriteria.resolveAlias({
+        metricAlias,
+        queryConfigs: input.queryConfigs,
+        formulaConfigs: input.formulaConfigs,
+      });
 
-    if (metricAlias) {
-      const qIdx: number = input.queryConfigs.findIndex(
-        (q: MetricQueryConfigData) => {
-          return q.metricAliasData?.metricVariable === metricAlias;
-        },
-      );
-
-      if (qIdx >= 0) {
-        matchedQuery = input.queryConfigs[qIdx] || null;
-        aliasIndex = qIdx;
-      } else {
-        const fIdx: number = input.formulaConfigs.findIndex(
-          (f: MetricFormulaConfigData) => {
-            return f.metricAliasData?.metricVariable === metricAlias;
-          },
-        );
-
-        if (fIdx >= 0) {
-          matchedFormula = input.formulaConfigs[fIdx] || null;
-          aliasIndex = input.queryConfigs.length + fIdx;
-        }
-      }
-    }
+    let matchedQuery: MetricQueryConfigData | null = resolvedAlias.matchedQuery;
+    const matchedFormula: MetricFormulaConfigData | null =
+      resolvedAlias.matchedFormula;
+    const aliasIndex: number = resolvedAlias.aliasIndex;
 
     /*
      * If no alias was configured or it didn't match anything, fall back to
@@ -407,6 +688,73 @@ export default class MetricMonitorCriteria {
         rootCause: null,
         context: metricContext,
       };
+    }
+
+    /*
+     * "All Values over the past 15 minutes" says the condition held for
+     * the whole 15 minutes, and Array.every() is true of a single data
+     * point: a deployment that had existed for a minute matched "replica
+     * shortfall for 15 minutes" off its first reading (issue #4793). So
+     * every data point meeting the condition is not enough - they must
+     * cover the window too. Until they do, the series waits: a brand-new
+     * series, one that was gone and came back, one with a hole of more than
+     * one missing data point, and one whose data went stale (on a Metrics
+     * monitor: stopped while the monitor's other data kept coming - see
+     * judgesFreshnessByNewestData). (A time range too short to hold two data
+     * points of any series shows none of that: a lone data point inside it
+     * is then taken for the window, as MetricWindowCoverage explains.)
+     *
+     * Only the first match waits. A series the criteria is already in
+     * effect for (its alert or incident is open, or the monitor already has
+     * its status) is judged on its data points as before, so a short gap in
+     * a firing series' data neither resolves its alert nor opens it again a
+     * window later; a reading that misses the condition still resolves it,
+     * and a series whose data leaves the window entirely still goes away.
+     *
+     * If No Data keeps its documented meaning - a window with no data
+     * points at all - so a window with some does not reach it.
+     */
+    if (
+      input.window &&
+      samples.length > 0 &&
+      MetricMonitorCriteria.isAllValues(input.criteriaFilter)
+    ) {
+      const coverage: MetricWindowCoverageResult = MetricWindowCoverage.judge({
+        window: input.window,
+        samples: samples,
+        monitorIntervalMs: input.monitorIntervalMs,
+        monitorNewestDataPointMs: input.monitorNewestDataPointMs,
+      });
+
+      const shortfall: MetricWindowShortfall | null =
+        MetricMonitorCriteria.toWindowShortfall(coverage.shortfall);
+
+      if (
+        shortfall &&
+        !(await MetricMonitorCriteria.isCriteriaInEffectFor({
+          isInEffect: input.isInEffect,
+          seriesFingerprint: input.seriesFingerprint,
+        }))
+      ) {
+        metricContext.totalSamplesInWindow = samples.length;
+        metricContext.windowWait = {
+          message: `${MetricMonitorCriteria.getSeriesPrefix(input.seriesLabels)}${comparisonMessage.trim()} ${MetricWindowCoverage.describeWait(coverage)}`,
+          waitingSeriesCount: 1,
+          shortfall: shortfall,
+          windowMs: coverage.windowEndMs - coverage.windowStartMs,
+          coveredMs:
+            coverage.runStartMs !== null && coverage.runEndMs !== null
+              ? Math.max(0, coverage.runEndMs - coverage.runStartMs)
+              : 0,
+        };
+
+        return {
+          fingerprint: input.seriesFingerprint,
+          labels: input.seriesLabels,
+          rootCause: null,
+          context: metricContext,
+        };
+      }
     }
 
     /*

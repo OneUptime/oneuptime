@@ -107,7 +107,7 @@ Diese Monitore werten immer den **Metric Value** aus – den Wert der konfigurie
 | Summe | Summe aller Werte |
 | Maximum Value | Höchster Wert im Zeitfenster |
 | Minimum Value | Niedrigster Wert im Zeitfenster |
-| All Values | Alle Werte müssen das Kriterium erfüllen |
+| All Values | Alle Werte müssen das Kriterium erfüllen und das ganze Zeitfenster abdecken |
 | Any Value | Mindestens ein Wert muss zutreffen |
 
 ### Bedingungen

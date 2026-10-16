@@ -264,7 +264,8 @@
       "loginPrompt": "Пожалуйста, войдите, чтобы просмотреть {{statusPageName}}",
       "forgotPassword": "Забыли пароль?",
       "submit": "Войти",
-      "useSSO": "Использовать единый вход (SSO) вместо этого"
+      "or": "или",
+      "logInWithSso": "Войти через SSO"
     },
     "sso": {
       "title": "Войти через SSO",

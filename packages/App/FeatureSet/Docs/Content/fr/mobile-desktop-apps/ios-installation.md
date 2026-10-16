@@ -45,8 +45,8 @@ Ouvrez l'application. Sur **Connect your workspace**, gardez `https://oneuptime.
 Utilisez la méthode de connexion de votre compte :
 
 - Votre e-mail et votre mot de passe, puis **Sign In**. **Forgot password?** vous envoie par e-mail un lien pour en définir un nouveau.
-- **Sign in with a passkey**, une fois que vous en avez ajouté une dans le tableau de bord : voir [Ajouter une clé d'accès](/docs/introduction/your-account#ajouter-une-clé-daccès). Une fenêtre de navigateur s'ouvre pour la confirmer, puis vous ramène.
 - **Sign in with SSO**, si votre organisation utilise l'authentification unique. Choisissez votre fournisseur, ou saisissez votre e-mail professionnel et touchez **Continue**. Un navigateur sécurisé s'ouvre, et vous revenez dans l'application une fois connecté.
+- **Sign in with a passkey**, une fois que vous en avez ajouté une dans le tableau de bord : voir [Ajouter une clé d'accès](/docs/introduction/your-account#ajouter-une-clé-daccès). Une fenêtre de navigateur s'ouvre pour la confirmer, puis vous ramène.
 
 Si l'authentification à deux facteurs est activée, saisissez le code à six chiffres de votre application d'authentification, ou l'un de vos codes de secours. Une clé de sécurité ne peut pas être utilisée dans l'application. Si votre administrateur exige l'authentification à deux facteurs et que vous ne l'avez pas encore configurée, l'application configure d'abord avec vous une application d'authentification.
 

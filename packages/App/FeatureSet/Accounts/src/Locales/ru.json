@@ -13,7 +13,8 @@
     "confirmPassword": "Подтвердите пароль",
     "newPassword": "Новый пароль",
     "code": "Код",
-    "yourCompany": "Ваша компания"
+    "yourCompany": "Ваша компания",
+    "or": "или"
   },
   "language": {
     "label": "Язык",
@@ -50,7 +51,7 @@
     "subtitle": "Используйте пароль, SSO вашей организации или ключ доступа.",
     "submitButton": "Войти",
     "forgotPassword": "Забыли пароль?",
-    "useSso": "Использовать единый вход (SSO) вместо этого",
+    "signInWithSso": "Войти через SSO",
     "signInWithMicrosoft": "Войти через Microsoft",
     "noAccountPrompt": "Нет учетной записи?",
     "registerLink": "Зарегистрироваться.",
@@ -146,7 +147,7 @@
     "title": "Вход через SSO",
     "subtitle": "Войдите через своего поставщика SSO, чтобы получить доступ к вашей учетной записи.",
     "submitButton": "Войти через SSO",
-    "useUsernameInstead": "Использовать имя пользователя и пароль вместо этого.",
+    "signInWithPassword": "Войти с паролем",
     "noAccountPrompt": "Нет учетной записи?",
     "registerLink": "Зарегистрироваться.",
     "selectProjectTitle": "Выберите проект",

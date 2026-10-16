@@ -208,7 +208,10 @@ describe("the people search list's placement", () => {
 
     await openList();
 
-    expect(scrollCalls.length).toBeGreaterThan(0);
+    // The list is placed after its rows render; on a busy CI runner that can be a frame later.
+    await waitFor(() => {
+      expect(scrollCalls.length).toBeGreaterThan(0);
+    });
 
     for (const call of scrollCalls) {
       expect(call.dialogVisibility).toBe("visible");
