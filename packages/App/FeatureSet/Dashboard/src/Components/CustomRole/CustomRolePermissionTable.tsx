@@ -1,14 +1,18 @@
 import { getRoleCardSelectOptions } from "../Permission/RoleCardSelectOptions";
+import {
+  CUSTOM_ROLE_PERMISSION_DIALOG_WORDS,
+  CustomRolePermissionDialogWords,
+  CustomRolePermissionPickerType,
+  getCustomRolePermissionPickerType,
+  SINGLE_PERMISSION_FIELD_DESCRIPTION,
+} from "./CustomRolePermissionPicker";
 import CustomRolePermission from "Common/Models/DatabaseModels/CustomRolePermission";
 import Label from "Common/Models/DatabaseModels/Label";
 import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, {
-  PermissionHelper,
-  PermissionProps,
-} from "Common/Types/Permission";
+import Permission, { PermissionHelper } from "Common/Types/Permission";
 import {
   getPermissionTitleForSentence,
   PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE,
@@ -32,7 +36,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -63,11 +67,6 @@ import React, {
  * permission, its current pick shown either way.
  */
 
-export enum CreatePermissionType {
-  RoleBased = "RoleBased",
-  Granular = "Granular",
-}
-
 export interface ComponentProps {
   customRoleId: ObjectID;
   // The role's name, for the Add dialogs' titles; empty until it is read.
@@ -77,31 +76,6 @@ export interface ComponentProps {
   // After every load: how many permissions the role holds.
   onPermissionCountChange?: ((count: number) => void) | undefined;
 }
-
-/*
- * The picker a permission is edited with: the role cards for a built-in
- * role, the full list for anything else - the one it was added with.
- */
-export const getPermissionPickerType: (
-  permission: Permission | string | undefined | null,
-) => CreatePermissionType = (
-  permission: Permission | string | undefined | null,
-): CreatePermissionType => {
-  const isRole: boolean = PermissionHelper.getRolePermissionProps().some(
-    (props: PermissionProps): boolean => {
-      return props.permission === permission;
-    },
-  );
-
-  return isRole
-    ? CreatePermissionType.RoleBased
-    : CreatePermissionType.Granular;
-};
-
-// The help under a single permission's picker, in place of the API's words.
-export const SINGLE_PERMISSION_FIELD_DESCRIPTION: string = translationKey(
-  "A single permission, for exactly what the role needs.",
-);
 
 // The scope choices, worded for a role: the team it is given to owns.
 const SCOPE_OPTIONS: Array<{ value: PermissionScope; label: string }> = [
@@ -128,8 +102,9 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
       FormProps<FormValues<CustomRolePermission>>
     >() as MutableRefObject<FormProps<FormValues<CustomRolePermission>>>;
 
-  const [createPermissionType, setCreatePermissionType] =
-    useState<CreatePermissionType>(CreatePermissionType.RoleBased);
+  const [pickerType, setPickerType] = useState<CustomRolePermissionPickerType>(
+    CustomRolePermissionPickerType.Role,
+  );
 
   const [showCreateForm, setShowCreateForm] = useState<boolean>(false);
 
@@ -139,13 +114,13 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
       excludeRoles: PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE,
     });
 
-  type OpenCreateFormFunction = (type: CreatePermissionType) => void;
+  type OpenCreateFormFunction = (type: CustomRolePermissionPickerType) => void;
 
   // Flipped off and on, so the same button opens the form a second time.
   const openCreateForm: OpenCreateFormFunction = (
-    type: CreatePermissionType,
+    type: CustomRolePermissionPickerType,
   ): void => {
-    setCreatePermissionType(type);
+    setPickerType(type);
     setShowCreateForm(false);
     setTimeout(() => {
       setShowCreateForm(true);
@@ -172,7 +147,7 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
       icon: IconProp.Add,
       buttonStyle: ButtonStyleType.NORMAL,
       onClick: () => {
-        openCreateForm(CreatePermissionType.RoleBased);
+        openCreateForm(CustomRolePermissionPickerType.Role);
       },
     }),
     ...gate({
@@ -180,7 +155,7 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
       icon: IconProp.Lock,
       buttonStyle: ButtonStyleType.OUTLINE,
       onClick: () => {
-        openCreateForm(CreatePermissionType.Granular);
+        openCreateForm(CustomRolePermissionPickerType.SinglePermission);
       },
     }),
   ];
@@ -190,21 +165,18 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
    * title would read "Add New Permission" behind Add Role too.
    */
   const isRoleBased: boolean =
-    createPermissionType === CreatePermissionType.RoleBased;
+    pickerType === CustomRolePermissionPickerType.Role;
+
+  const dialogWords: CustomRolePermissionDialogWords =
+    CUSTOM_ROLE_PERMISSION_DIALOG_WORDS[pickerType];
 
   const roleName: string = (props.roleName || "").trim();
 
-  const createFormTitle: string = isRoleBased
-    ? roleName
-      ? translator.translateTemplate("Add a Role to {{role}}", {
-          role: roleName,
-        })
-      : translator.translateText("Add a Role") || "Add a Role"
-    : roleName
-      ? translator.translateTemplate("Add a Permission to {{role}}", {
-          role: roleName,
-        })
-      : translator.translateText("Add a Permission") || "Add a Permission";
+  const createFormTitle: string = roleName
+    ? translator.translateTemplate(dialogWords.titleWithRole, {
+        role: roleName,
+      })
+    : translator.translateText(dialogWords.title) || dialogWords.title;
 
   // What a change of permission does to the scope and labels already picked.
   const onPermissionPicked: (value: unknown) => Promise<void> = async (
@@ -281,7 +253,7 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
       singularName="Permission"
       pluralName="Permissions"
       createFormTitle={createFormTitle}
-      createFormSubmitButtonText={isRoleBased ? "Add Role" : "Add Permission"}
+      createFormSubmitButtonText={dialogWords.submitButtonText}
       name="Teams > Role > Permissions"
       createEditModalWidth={ModalWidth.Large}
       isViewable={false}
@@ -290,7 +262,7 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
         item: CustomRolePermission,
       ): Promise<CustomRolePermission> => {
         // Edit opens the picker the row was added with, its pick shown.
-        setCreatePermissionType(getPermissionPickerType(item.permission));
+        setPickerType(getCustomRolePermissionPickerType(item.permission));
         return Promise.resolve(item);
       }}
       query={{

@@ -81,6 +81,27 @@ export const getRoleIcon: (permission: Permission) => IconProp = (
   return ROLE_ICONS[permission] || IconProp.Lock;
 };
 
+/*
+ * Whether a permission is one of the built-in roles the cards offer, rather
+ * than a single permission from the full list: what a row is edited with is
+ * the picker it was added with (Add Role or Add Permission).
+ */
+export const isBuiltInRolePermission: (
+  permission: Permission | string | undefined | null,
+) => boolean = (
+  permission: Permission | string | undefined | null,
+): boolean => {
+  if (!permission) {
+    return false;
+  }
+
+  return PermissionHelper.getRolePermissionProps().some(
+    (props: PermissionProps): boolean => {
+      return props.permission === permission;
+    },
+  );
+};
+
 export const getRoleCardSelectOption: (
   props: PermissionProps,
 ) => CardSelectOption = (props: PermissionProps): CardSelectOption => {

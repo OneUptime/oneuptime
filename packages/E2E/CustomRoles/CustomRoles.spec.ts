@@ -48,6 +48,10 @@ const TEAM_IDS: Record<string, string> = {
 const LONG_WORD_NAME: string =
   "incident-responders.eu-west-1.enterprise-platform.payments-and-identity-services";
 
+// What the Roles card says a custom role is.
+const ROLES_CARD_DESCRIPTION: string =
+  "A set of permissions you name once, such as Incident Responder, and give to teams. Changing a role changes every team that has it.";
+
 // DeleteConsequences' sentence for a custom role.
 const ROLE_DELETE_CONSEQUENCE: string =
   "Deleting a custom role takes its permissions from every team that has it. The teams stay, with their members and their other roles and permissions.";
@@ -264,6 +268,17 @@ test.describe("Teams > Roles", () => {
     await expect(row(page, "Auditor")).toContainText("No permissions yet");
     await expect(row(page, "Incident Helper")).toContainText("2 permissions");
 
+    // Each row opens its role with a short "View Role", not "View Custom Role".
+    await expect(
+      row(page, "Incident Responder").getByRole("button", {
+        name: "View Role",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "View Custom Role" }),
+    ).toHaveCount(0);
+
     // The Teams menu has Roles beside All Teams, marked as the page.
     const menuEntry: Locator = sideMenu(page).getByRole("link", {
       name: "Roles",
@@ -283,11 +298,14 @@ test.describe("Teams > Roles", () => {
     await openRoles(page, "?roles=none");
 
     await expect(page.getByText("No custom roles yet")).toBeVisible();
-    await expect(
-      page.getByText(
-        "Create one to give the same permissions to several teams, and change them all in one place.",
-      ),
-    ).toBeVisible();
+    /*
+     * What a custom role is, said once: under the empty list's title, while
+     * the card's header leaves it out.
+     */
+    await expect(page.getByText(ROLES_CARD_DESCRIPTION)).toHaveCount(1);
+    await expect(page.getByTestId("custom-roles-table-no-items")).toContainText(
+      ROLES_CARD_DESCRIPTION,
+    );
     await expect(
       page.getByRole("button", { name: "Create Custom Role" }).first(),
     ).toBeVisible();
@@ -313,7 +331,14 @@ test.describe("Teams > Roles", () => {
     });
     await expect(permissionsPicker).toBeVisible();
     await expect(form).toContainText(
-      "The built-in roles this role bundles, for every resource in the project.",
+      "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.",
+    );
+    // Each field says what it is for, not the API's words for the column.
+    await expect(form).toContainText(
+      "Shown on every team you give the role to.",
+    );
+    await expect(form).not.toContainText(
+      "Unique in the project, and never the name of a built-in role.",
     );
     await expect(
       form.getByPlaceholder(
@@ -400,6 +425,35 @@ test.describe("Teams > Roles", () => {
 
     await notice.getByText("Open the role").click();
     await expectPath(page, ROLE_PAGE_PATH);
+  });
+
+  /*
+   * A member who may change teams but holds only Incident Member and Alert
+   * Member could put only those into a role: the server refuses the rest.
+   * Create offers only those, and says why the list is short.
+   */
+  test("offers only the built-in roles the user could put into a role, and says so", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRoles(page, "?user=editor");
+    await page
+      .getByRole("button", { name: "Create Custom Role" })
+      .first()
+      .click();
+
+    const form: Locator = dialog(page);
+    await expect(form).toContainText(
+      "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.",
+    );
+    await form.getByRole("combobox", { name: "Permissions" }).click();
+
+    const options: Locator = page.locator(".ou-select__option");
+    await expect(options).toHaveCount(2);
+    await expect(options.nth(0)).toContainText("Incident Member");
+    await expect(options.nth(1)).toContainText("Alert Member");
+    await screenshot(page, "role-create-editor");
   });
 
   test("the built-in roles are folded, and open to every role with what it can do", async ({
@@ -516,6 +570,11 @@ test.describe("a role's page", () => {
       sideMenu(page).getByRole("link", { name: "Roles", exact: true }),
     ).toHaveClass(/bg-indigo-50/);
 
+    // Its ID, under its name and description, as on every record's page.
+    await expect(
+      card(page, "Custom Role Details").getByTestId("detail-id-line"),
+    ).toBeVisible();
+
     const permissions: Locator = card(page, "Permissions");
     await expect(permissions).toContainText(
       "Given to 2 teams (4 people). A change here changes what they can do at once.",
@@ -529,6 +588,9 @@ test.describe("a role's page", () => {
     );
 
     const teams: Locator = page.getByTestId("custom-role-teams");
+    await expect(teams).toContainText(
+      "Members of these teams can do everything this role allows.",
+    );
     await expect(teams.locator("tbody tr")).toHaveCount(2);
     await expect(
       teams.getByRole("link", { name: "Platform On-Call" }),
@@ -550,6 +612,13 @@ test.describe("a role's page", () => {
       .click();
 
     const form: Locator = dialog(page);
+    // Named for the button that opened it, and the role it adds to.
+    await expect(form.getByTestId("modal-title")).toHaveText(
+      "Add a Role to Auditor",
+    );
+    await expect(form.getByTestId("modal-footer-submit-button")).toHaveText(
+      "Add Role",
+    );
     await expect(
       form.getByTestId("card-select-option-ProjectOwner"),
     ).toHaveCount(0);
@@ -616,6 +685,76 @@ test.describe("a role's page", () => {
     expect(JSON.stringify(permissions[0]!["labels"])).toContain(
       "20000000-0000-4000-8000-000000000001",
     );
+  });
+
+  test("Add Permission says what a single permission is for, in a dialog named for it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRole(page, ROLE_IDS["responder"]!);
+    await card(page, "Permissions")
+      .getByTestId("card-header")
+      .getByRole("button", { name: /more/i })
+      .first()
+      .click();
+    await page.getByRole("menuitem", { name: "Add Permission" }).click();
+
+    const form: Locator = dialog(page);
+    await expect(form.getByTestId("modal-title")).toHaveText(
+      "Add a Permission to Incident Responder",
+    );
+    await expect(form.getByTestId("modal-footer-submit-button")).toHaveText(
+      "Add Permission",
+    );
+    await expect(form).toContainText(
+      "A single permission, for exactly what the role needs.",
+    );
+    // Not the API's description, in code names.
+    await expect(form).not.toContainText("IncidentMember");
+    await expect(form).not.toContainText("ReadProjectIncident");
+    await screenshot(page, "role-add-permission");
+  });
+
+  test("Edit opens the picker a row was added with, its pick shown", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRole(page, ROLE_IDS["responder"]!);
+    const permissions: Locator = card(page, "Permissions");
+
+    // A single permission: the full list, on its row, pressed and in view.
+    await row(permissions, "Read Telemetry Service Log")
+      .getByRole("button", { name: "Edit" })
+      .click();
+
+    let form: Locator = dialog(page);
+    await expect(form.getByTestId("modal-title")).toHaveText("Edit Permission");
+    await expect(
+      form.getByTestId("card-select-option-IncidentMember"),
+    ).toHaveCount(0);
+    const picked: Locator = form
+      .getByTestId("permission-picker-list")
+      .getByRole("button", { pressed: true });
+    await expect(picked).toHaveCount(1);
+    await expect(picked).toContainText("Read Telemetry Service Log");
+    await expect(picked).toBeInViewport();
+    await screenshot(page, "role-edit-single-permission");
+
+    await form.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog(page)).toHaveCount(0);
+
+    // A built-in role: the role cards, that role picked.
+    await row(permissions, "Monitor Viewer")
+      .getByRole("button", { name: "Edit" })
+      .click();
+
+    form = dialog(page);
+    await expect(
+      form.getByTestId("card-select-option-MonitorViewer"),
+    ).toHaveAttribute("aria-checked", "true");
+    await expect(form.getByTestId("permission-picker-list")).toHaveCount(0);
   });
 
   test("gives the role to a team, offering only the teams that could take it", async ({
@@ -743,6 +882,9 @@ test.describe("a team's Permissions page", () => {
 
     const customRoles: Locator = page.getByTestId("team-custom-roles");
     await expect(customRoles).toBeVisible();
+    await expect(customRoles).toContainText(
+      "Named sets of permissions, made on the Roles page. Changing a role changes this team too.",
+    );
     await expect(row(customRoles, "Incident Responder")).toContainText(
       "6 permissions",
     );
@@ -823,6 +965,28 @@ test.describe("a team's Permissions page", () => {
     ).toBeVisible();
     await expect(page.getByTestId("team-custom-roles")).toHaveCount(0);
   });
+
+  /*
+   * The server refuses Owners and Admin every custom role: a card there
+   * could only offer an Add Custom Role that fails.
+   */
+  for (const teamKey of ["owners", "admin"]) {
+    test(`${teamKey === "owners" ? "Owners" : "Admin"}, whose permissions can't change, shows no Custom Roles card`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openTeamPermissions(page, TEAM_IDS[teamKey]!);
+
+      await expect(card(page, "Permissions").locator("tbody tr")).toHaveCount(
+        1,
+      );
+      await expect(page.getByTestId("team-custom-roles")).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: "Add Custom Role" }),
+      ).toHaveCount(0);
+    });
+  }
 });
 
 test.describe("Create Team", () => {
@@ -915,9 +1079,63 @@ test.describe("Create Team", () => {
     const form: Locator = dialog(page);
     const search: Locator = form.getByTestId("card-select-search");
     await expect(search).toBeVisible();
+    // What a search reads - not the monitor type picker's words.
+    await expect(form.getByTestId("card-select-search-summary")).toHaveText(
+      "34 to choose from. Search by name or by what a role allows.",
+    );
     await search.fill("Region 07");
     await expect(form.getByText("Region 07 Responders")).toBeVisible();
     await expect(form.getByText("Region 08 Responders")).toHaveCount(0);
+  });
+});
+
+/*
+ * "Incident Responder" is also a placeholder the Dashboard translates
+ * ("Vorfallbearbeiter" in German). A role someone called that is their
+ * name, and reads as they typed it wherever it is drawn.
+ */
+test.describe("in another language", () => {
+  const GERMAN_WORD_FOR_IT: string = "Vorfallbearbeiter";
+
+  test("a role's name reads as typed on its page, in Create Team and in Add Custom Role", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // The role's page: the end of the trail.
+    await page.goto(`${ROLES_ROUTE}/${ROLE_IDS["responder"]}?lang=de`);
+    const trail: Locator = page.getByRole("navigation", {
+      name: "Breadcrumb",
+    });
+    await expect(trail).toContainText("Incident Responder");
+    await expect(trail).not.toContainText(GERMAN_WORD_FOR_IT);
+
+    // Create Team's Access card for it.
+    await page.goto(`${TEAMS_ROUTE}?lang=de`);
+    await page.getByRole("button", { name: "Team erstellen" }).first().click();
+    const access: Locator = dialog(page).getByTestId(
+      `card-select-option-customRole:${ROLE_IDS["responder"]}`,
+    );
+    await expect(access).toContainText("Incident Responder");
+    await expect(access).not.toContainText(GERMAN_WORD_FOR_IT);
+    // The rest of the card is in German.
+    await expect(access).toContainText("Benutzerdefinierte Rolle");
+    await screenshot(page, "create-team-access-de");
+
+    // A team's Add Custom Role card for it (Members has no role yet).
+    await page.goto(
+      `${TEAMS_ROUTE}/${TEAM_IDS["members"]}/permissions?lang=de`,
+    );
+    await page
+      .getByTestId("team-custom-roles")
+      .getByRole("button", { name: "Benutzerdefinierte Rolle hinzufügen" })
+      .first()
+      .click();
+    const roleCard: Locator = dialog(page).getByTestId(
+      `card-select-option-${ROLE_IDS["responder"]}`,
+    );
+    await expect(roleCard).toContainText("Incident Responder");
+    await expect(roleCard).not.toContainText(GERMAN_WORD_FOR_IT);
   });
 });
 

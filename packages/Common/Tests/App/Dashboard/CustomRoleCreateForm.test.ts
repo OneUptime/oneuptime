@@ -2,9 +2,13 @@ import { describe, expect, test } from "@jest/globals";
 import {
   addPermissionsToCustomRole,
   buildCustomRolePermission,
+  CUSTOM_ROLE_DESCRIPTION_FIELD_DESCRIPTION,
+  CUSTOM_ROLE_NAME_FIELD_DESCRIPTION,
   CUSTOM_ROLE_PERMISSIONS_FIELD_DESCRIPTION,
+  CUSTOM_ROLE_PERMISSIONS_FIELD_DESCRIPTION_SOME_LEFT_OUT,
   CUSTOM_ROLE_PERMISSIONS_FIELD_KEY,
   getCustomRoleCreateFormFields,
+  getCustomRoleEditFormFields,
   getCustomRoleStartingRoleOptions,
   getPickedRolePermissions,
   PermissionNotAdded,
@@ -103,7 +107,7 @@ describe("the Create Custom Role form", () => {
       CUSTOM_ROLE_PERMISSIONS_FIELD_DESCRIPTION,
     );
     expect(CUSTOM_ROLE_PERMISSIONS_FIELD_DESCRIPTION).toBe(
-      "The built-in roles this role bundles, for every resource in the project. Add single permissions, or limit one to owned or labelled resources, on the role's page.",
+      "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.",
     );
     expect(new CustomRole().hasColumn(CUSTOM_ROLE_PERMISSIONS_FIELD_KEY)).toBe(
       false,
@@ -117,6 +121,135 @@ describe("the Create Custom Role form", () => {
 
     expect(again).not.toBe(fields);
     expect(again[1]).not.toBe(fields[1]);
+  });
+
+  /*
+   * Left without help of its own, a form shows the column's API description
+   * - English only, written for the API ("Friendly globally unique name for
+   * your object").
+   */
+  test("the name and the description say what they are for, in the Dashboard's words", () => {
+    expect(fields[0]!.description).toBe(CUSTOM_ROLE_NAME_FIELD_DESCRIPTION);
+    expect(CUSTOM_ROLE_NAME_FIELD_DESCRIPTION).toBe(
+      "Shown on every team you give the role to.",
+    );
+    expect(fields[2]!.description).toBe(
+      CUSTOM_ROLE_DESCRIPTION_FIELD_DESCRIPTION,
+    );
+    expect(CUSTOM_ROLE_DESCRIPTION_FIELD_DESCRIPTION).toBe(
+      "What the role is for, in a sentence or two.",
+    );
+  });
+});
+
+describe("Edit on a role's page", () => {
+  const editFields: Array<ModelField<CustomRole>> =
+    getCustomRoleEditFormFields();
+  const createFields: Array<ModelField<CustomRole>> =
+    getCustomRoleCreateFormFields();
+
+  test("asks the name and the description, with Create's help, nothing folded", () => {
+    expect(editFields.map(fieldKey)).toEqual(["name", "description"]);
+
+    for (const field of editFields) {
+      expect(field.collapsibleSection).toBeUndefined();
+      expect(field.stepId).toBeUndefined();
+    }
+
+    expect(editFields[0]!.description).toBe(createFields[0]!.description);
+    expect(editFields[1]!.description).toBe(createFields[2]!.description);
+  });
+
+  test("holds the name to the same rules as Create", () => {
+    const name: ModelField<CustomRole> = editFields[0]!;
+
+    expect(name.title).toBe("Name");
+    expect(name.required).toBe(true);
+    expect(name.validation).toEqual(createFields[0]!.validation);
+    expect(name.placeholder).toBe(createFields[0]!.placeholder);
+  });
+});
+
+describe("the roles offered to someone who can't give every one", () => {
+  // Someone who holds Incident Member and Alert Member, and nothing wider.
+  const canGrant: (permission: Permission) => boolean = (
+    permission: Permission,
+  ): boolean => {
+    return [Permission.IncidentMember, Permission.AlertMember].includes(
+      permission,
+    );
+  };
+
+  test("are only the roles they could put into a role, in Add Role's order", () => {
+    const groups: Array<DropdownOptionGroup> =
+      getCustomRoleStartingRoleOptions(canGrant);
+
+    expect(optionValues(groups)).toEqual([
+      Permission.IncidentMember,
+      Permission.AlertMember,
+    ]);
+    // A group with nothing left in it is left out, heading and all.
+    expect(
+      groups.map((group: DropdownOptionGroup): string => {
+        return group.label;
+      }),
+    ).toEqual(["Domain Roles"]);
+  });
+
+  test("and the field says why the list is shorter than Add Role's", () => {
+    const permissions: ModelField<CustomRole> = getCustomRoleCreateFormFields({
+      canGrant: canGrant,
+    })[1]!;
+
+    expect(permissions.title).toBe("Permissions");
+    expect(
+      optionValues(permissions.dropdownOptions as Array<DropdownOptionGroup>),
+    ).toEqual([Permission.IncidentMember, Permission.AlertMember]);
+    expect(permissions.description).toBe(
+      CUSTOM_ROLE_PERMISSIONS_FIELD_DESCRIPTION_SOME_LEFT_OUT,
+    );
+    expect(CUSTOM_ROLE_PERMISSIONS_FIELD_DESCRIPTION_SOME_LEFT_OUT).toBe(
+      "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.",
+    );
+  });
+
+  test("someone who may give every role sees every role but Project Owner, and the usual help", () => {
+    const permissions: ModelField<CustomRole> = getCustomRoleCreateFormFields({
+      canGrant: (): boolean => {
+        return true;
+      },
+    })[1]!;
+
+    expect(
+      optionValues(permissions.dropdownOptions as Array<DropdownOptionGroup>),
+    ).toHaveLength(39);
+    expect(permissions.description).toBe(
+      CUSTOM_ROLE_PERMISSIONS_FIELD_DESCRIPTION,
+    );
+  });
+
+  test("someone who could give none is not asked: the role starts empty", () => {
+    const fields: Array<ModelField<CustomRole>> = getCustomRoleCreateFormFields(
+      {
+        canGrant: (): boolean => {
+          return false;
+        },
+      },
+    );
+
+    expect(fields.map(fieldKey)).toEqual(["name", "description"]);
+  });
+
+  test("Project Owner is never asked about: no role holds it", () => {
+    const asked: Array<Permission> = [];
+
+    getCustomRoleStartingRoleOptions((permission: Permission): boolean => {
+      asked.push(permission);
+      return true;
+    });
+
+    expect(asked).not.toContain(Permission.ProjectOwner);
+    expect(asked).toHaveLength(39);
   });
 });
 

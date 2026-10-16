@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  canTeamTakeCustomRoles,
   CUSTOM_ROLE_ICON,
   CustomRoleSummary,
   getCustomRoleCardSelectOption,
@@ -160,8 +161,35 @@ describe("the project's custom roles", () => {
       title: "Incident Responder",
       description: "6 permissions · Declares, works and resolves incidents.",
       icon: CUSTOM_ROLE_ICON,
+      isUserContent: true,
     });
     expect(CUSTOM_ROLE_ICON).toBe(IconProp.Identification);
+  });
+
+  /*
+   * A role called "Incident Responder" read "Vorfallbearbeiter" to a German
+   * reader: the card picker looked the name up as interface text. The card
+   * is drawn as given - the name as typed, the description already worded in
+   * the reader's language.
+   */
+  test("a role's card is drawn as given: its name is never looked up", () => {
+    const german: Translator = createTranslator((text: string | undefined) => {
+      return text === "{{permissions}} · {{description}}"
+        ? "{{permissions}} – {{description}}"
+        : text;
+    }, "de");
+
+    const card: CardSelectOption = getCustomRoleCardSelectOption(german, {
+      id: RESPONDER_ID,
+      name: "Incident Responder",
+      description: "Bearbeitet Vorfälle.",
+      permissionCount: 1,
+    });
+
+    expect(card.isUserContent).toBe(true);
+    expect(card.title).toBe("Incident Responder");
+    // Worded in the reader's language once, here.
+    expect(card.description).toBe("1 permission – Bearbeitet Vorfälle.");
   });
 
   test("among the built-in roles, a card stands for the value it is given and says it is custom", () => {
@@ -173,6 +201,86 @@ describe("the project's custom roles", () => {
 
     expect(card.value).toBe(`customRole:${LEAD_ID}`);
     expect(card.description).toBe("Custom role · 1 permission");
+  });
+});
+
+describe("whether a team can take a custom role", () => {
+  interface GetItemCall {
+    modelType: unknown;
+    id: ObjectID;
+    select: Record<string, unknown>;
+  }
+
+  function teamModelAPI(
+    answer: () => Promise<Team | null>,
+    calls: Array<GetItemCall>,
+  ): typeof ModelAPI {
+    return {
+      getItem: async (call: GetItemCall): Promise<Team | null> => {
+        calls.push(call);
+        return await answer();
+      },
+    } as unknown as typeof ModelAPI;
+  }
+
+  function team(isPermissionsEditable: boolean | undefined): Team {
+    const record: Team = new Team();
+    record._id = TEAM_ID.toString();
+    if (isPermissionsEditable !== undefined) {
+      record.isPermissionsEditable = isPermissionsEditable;
+    }
+    return record;
+  }
+
+  test("a team of the project's own can: it reads only that one column", async () => {
+    const calls: Array<GetItemCall> = [];
+
+    expect(
+      await canTeamTakeCustomRoles({
+        teamId: TEAM_ID,
+        modelAPI: teamModelAPI(async () => {
+          return team(true);
+        }, calls),
+      }),
+    ).toBe(true);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.modelType).toBe(Team);
+    expect(calls[0]!.id).toBe(TEAM_ID);
+    expect(calls[0]!.select).toEqual({ isPermissionsEditable: true });
+  });
+
+  // Owners and Admin: the server refuses them every role.
+  test("a team whose permissions can't change can't", async () => {
+    expect(
+      await canTeamTakeCustomRoles({
+        teamId: TEAM_ID,
+        modelAPI: teamModelAPI(async () => {
+          return team(false);
+        }, []),
+      }),
+    ).toBe(false);
+  });
+
+  // The card is offered, and the server decides.
+  test("a team that can't be read, or reads without the column, is offered the card", async () => {
+    for (const answer of [
+      async (): Promise<Team | null> => {
+        return null;
+      },
+      async (): Promise<Team | null> => {
+        return team(undefined);
+      },
+      async (): Promise<Team | null> => {
+        throw new Error("You do not have permissions to read Team.");
+      },
+    ]) {
+      expect(
+        await canTeamTakeCustomRoles({
+          teamId: TEAM_ID,
+          modelAPI: teamModelAPI(answer, []),
+        }),
+      ).toBe(true);
+    }
   });
 });
 

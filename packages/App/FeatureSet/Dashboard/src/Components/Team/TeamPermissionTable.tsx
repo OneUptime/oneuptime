@@ -25,7 +25,10 @@ import {
   CardSelectOptionGroup,
 } from "Common/UI/Components/CardSelect/CardSelect";
 import IconProp from "Common/Types/Icon/IconProp";
-import { getRoleCardSelectOptions } from "../Permission/RoleCardSelectOptions";
+import {
+  getRoleCardSelectOptions,
+  isBuiltInRolePermission,
+} from "../Permission/RoleCardSelectOptions";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -147,6 +150,19 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
       createEditModalWidth={ModalWidth.Large}
       isViewable={false}
       createEditFromRef={formRef}
+      onBeforeEdit={(item: TeamPermission): Promise<TeamPermission> => {
+        /*
+         * Edit opens the picker the row was added with, its pick shown: the
+         * role cards for a built-in role, the full list for a single
+         * permission - not whichever Add was opened last.
+         */
+        setCreatePermissionType(
+          isBuiltInRolePermission(item.permission)
+            ? CreatePermissionType.RoleBased
+            : CreatePermissionType.Granular,
+        );
+        return Promise.resolve(item);
+      }}
       query={{
         teamId: teamId,
         projectId: ProjectUtil.getCurrentProjectId()!,

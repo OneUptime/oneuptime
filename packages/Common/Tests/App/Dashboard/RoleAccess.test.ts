@@ -65,6 +65,7 @@ import {
   ROLE_ACCESS_FIELD_KEY,
   ROLE_ACCESS_LATER,
   ROLE_ACCESS_ROLES,
+  ROLE_ACCESS_SEARCH_HINT,
   ROLE_ACCESS_SEARCH_THRESHOLD,
   RoleAccessHolder,
   TEAM_ACCESS_DESCRIPTION,
@@ -519,6 +520,16 @@ describe("a team's custom roles under Access", () => {
     });
     expect(searchable.cardSelectSearchable).toBe(true);
     expect(searchable.cardSelectSearchPlaceholder).toBe("Search roles");
+    /*
+     * The line under the box says what a search reads - a role's name and
+     * what it allows - not the card picker's monitor-type wording.
+     */
+    expect(searchable.cardSelectSearchHint).toBe(ROLE_ACCESS_SEARCH_HINT);
+    expect(ROLE_ACCESS_SEARCH_HINT).toEqual({
+      one: "{{count}} to choose from. Search by name or by what a role allows.",
+      other:
+        "{{count}} to choose from. Search by name or by what a role allows.",
+    });
 
     const plain: ModelField<Team> = getRoleAccessFormField<Team>({
       holder: RoleAccessHolder.Team,
@@ -526,6 +537,7 @@ describe("a team's custom roles under Access", () => {
     });
     expect(plain.cardSelectSearchable).toBeUndefined();
     expect(plain.cardSelectSearchPlaceholder).toBeUndefined();
+    expect(plain.cardSelectSearchHint).toBeUndefined();
   });
 });
 
