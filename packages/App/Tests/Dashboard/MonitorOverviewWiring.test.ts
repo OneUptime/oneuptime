@@ -538,7 +538,9 @@ describe("Monitor overview data flow", () => {
     expect(statusReads[0]).toContain(
       "select: { _id: true, name: true, color: true, }",
     );
-    expect(statusReads[0]).toContain("sort: { priority: SortOrder.Ascending, }");
+    expect(statusReads[0]).toContain(
+      "sort: { priority: SortOrder.Ascending, }",
+    );
     expect(statusReads[0]).toContain("limit: LIMIT_PER_PROJECT,");
     // Read when the menu mounts for a monitor, never on the poll.
     expect(menu).toContain("}, [monitorIdString]);");
@@ -568,10 +570,14 @@ describe("Monitor overview data flow", () => {
     expect(INDEX_CODE).toContain("onRefresh={() => { data.refresh(); }}");
 
     // The hero draws the actions per monitor, with the presentation's menu.
-    expect(hero).toContain("<MonitorOverviewActions key={props.monitorId.toString()}");
+    expect(hero).toContain(
+      "<MonitorOverviewActions key={props.monitorId.toString()}",
+    );
     expect(hero).toContain("moreActions={presentation.moreActions}");
     expect(actions).toContain('props.moreActions.includes("changeStatus")');
-    expect(actions).toContain("<MonitorChangeStatusMenu key={props.monitorId.toString()}");
+    expect(actions).toContain(
+      "<MonitorChangeStatusMenu key={props.monitorId.toString()}",
+    );
 
     // A change is a status event the server starts at its own now.
     expect(menu).toContain(

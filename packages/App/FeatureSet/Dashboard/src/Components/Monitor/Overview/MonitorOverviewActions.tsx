@@ -1,6 +1,5 @@
-import MonitorChangeStatusMenu, {
-  HERO_ICON_BUTTON_CLASS_NAME,
-} from "./MonitorChangeStatusMenu";
+import MonitorChangeStatusMenu from "./MonitorChangeStatusMenu";
+import { HERO_ICON_BUTTON_CLASS_NAME } from "./MonitorOverviewHeroButton";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -190,7 +189,9 @@ const MonitorOverviewActions: FunctionComponent<ComponentProps> = (
           <Icon
             icon={IconProp.Refresh}
             className={`h-4 w-4 ${
-              props.isRefreshing ? "animate-spin motion-reduce:animate-none" : ""
+              props.isRefreshing
+                ? "animate-spin motion-reduce:animate-none"
+                : ""
             }`}
           />
         </button>

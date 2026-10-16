@@ -41,10 +41,10 @@ import PermissionGate, {
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { HERO_ICON_BUTTON_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorOverviewHeroButton";
 import MonitorChangeStatusMenu, {
   ComponentProps,
   getMonitorStatusChoices,
-  HERO_ICON_BUTTON_CLASS_NAME,
   MONITOR_CHANGE_STATUS_FALLBACK_TEST_ID,
   MONITOR_CHANGE_STATUS_LOADING_TEST_ID,
   MONITOR_CHANGE_STATUS_MENU_TEST_ID,
@@ -245,7 +245,10 @@ describe("the statuses it offers", () => {
 
   test("a monitor with no status recorded yet is offered every status", () => {
     expect(
-      getMonitorStatusChoices({ statuses: choices, currentStatusId: undefined }),
+      getMonitorStatusChoices({
+        statuses: choices,
+        currentStatusId: undefined,
+      }),
     ).toEqual(choices);
     expect(
       getMonitorStatusChoices({ statuses: choices, currentStatusId: "" }),
@@ -272,6 +275,17 @@ describe("the statuses it offers", () => {
     expect(toMonitorStatusChoice(colourless)).toEqual({
       id: DEGRADED_ID,
       name: "Degraded",
+      color: undefined,
+    });
+  });
+
+  test("a colour that is not one is dropped, never passed to a style", () => {
+    const status: MonitorStatus = statusRow(OFFLINE_ID, "Offline", "#ef4444");
+    (status as unknown as { color: string }).color = "url(javascript:alert(1))";
+
+    expect(toMonitorStatusChoice(status)).toEqual({
+      id: OFFLINE_ID,
+      name: "Offline",
       color: undefined,
     });
   });
@@ -528,8 +542,11 @@ describe("changing the status", () => {
 
     expect(createMock).toHaveBeenCalledTimes(1);
 
-    const call: { model: MonitorStatusTimeline; modelType: unknown } = createMock
-      .mock.calls[0]![0] as { model: MonitorStatusTimeline; modelType: unknown };
+    const call: { model: MonitorStatusTimeline; modelType: unknown } =
+      createMock.mock.calls[0]![0] as {
+        model: MonitorStatusTimeline;
+        modelType: unknown;
+      };
 
     expect(call.modelType).toBe(MonitorStatusTimeline);
     expect(call.model).toBeInstanceOf(MonitorStatusTimeline);
@@ -705,6 +722,27 @@ describe("with nothing to offer it falls back to the Status Timeline", () => {
       statusTimelineRoute(MONITOR_ID),
     );
     expect(createMock).not.toHaveBeenCalled();
+  });
+
+  test("locked, saying why, for someone who may not change the status", async () => {
+    getListMock.mockImplementation(async (): Promise<unknown> => {
+      throw new Error("The server is restarting.");
+    });
+    gate = { isAllowed: false, disabledReason: LOCKED_REASON };
+
+    await renderLoaded();
+
+    const fallback: HTMLElement = within(openMenu()).getByTestId(
+      MONITOR_CHANGE_STATUS_FALLBACK_TEST_ID,
+    );
+
+    expect(fallback).toHaveAttribute("aria-disabled", "true");
+    expect(
+      document.getElementById(fallback.getAttribute("aria-describedby") || ""),
+    ).toHaveTextContent(LOCKED_REASON);
+
+    fireEvent.click(fallback);
+    expect(navigateMock).not.toHaveBeenCalled();
   });
 
   test("when the current status is the only one the project has", async () => {

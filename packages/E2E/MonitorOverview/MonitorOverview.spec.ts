@@ -2117,9 +2117,7 @@ function idOf(value: unknown): string {
   return String(value);
 }
 
-async function statusEventCreates(
-  page: Page,
-): Promise<Array<RecordedCreate>> {
+async function statusEventCreates(page: Page): Promise<Array<RecordedCreate>> {
   return (await fixture(page)).creates.filter(
     (create: RecordedCreate): boolean => {
       return create.modelName === "MonitorStatusTimeline";
@@ -2212,9 +2210,10 @@ test.describe("the hero's actions", () => {
         heroBox.x + heroBox.width - (more.x + more.width),
         `${width}px: the ⋯ at the hero's right edge`,
       ).toBeLessThanOrEqual(26);
-      expect(refresh.x + refresh.width, `${width}px: Refresh before the ⋯`).toBeLessThanOrEqual(
-        more.x,
-      );
+      expect(
+        refresh.x + refresh.width,
+        `${width}px: Refresh before the ⋯`,
+      ).toBeLessThanOrEqual(more.x);
       // On the badges' line, above the headline.
       expect(
         Math.abs(refresh.y + refresh.height / 2 - (badge.y + badge.height / 2)),
@@ -2380,7 +2379,10 @@ test.describe("the hero's actions", () => {
       .getByRole("menu")
       .getByRole("menuitem", { name: "Degraded" })
       .click();
-    await page.getByTestId("modal").getByRole("button", { name: "Cancel" }).click();
+    await page
+      .getByTestId("modal")
+      .getByRole("button", { name: "Cancel" })
+      .click();
     await expect(page.getByTestId("modal")).toHaveCount(0);
 
     expect(await statusEventCreates(page)).toHaveLength(0);
@@ -2525,9 +2527,9 @@ test.describe("the hero's actions", () => {
       .getByRole("menu")
       .getByRole("menuitem", { name: "Offline" })
       .click();
-    expect(
-      await backgroundColor(page.getByTestId("modal")),
-    ).not.toBe(WHITE_RGB);
+    expect(await backgroundColor(page.getByTestId("modal"))).not.toBe(
+      WHITE_RGB,
+    );
   });
 });
 

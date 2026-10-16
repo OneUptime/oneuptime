@@ -31,7 +31,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
-import { HERO_ICON_BUTTON_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorChangeStatusMenu";
+import { HERO_ICON_BUTTON_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorOverviewHeroButton";
 import MonitorOverviewActions, {
   ComponentProps,
   getLoadedAtText,
@@ -436,7 +436,10 @@ describe("the group", () => {
       name: "Monitor actions",
     });
 
-    expect(group).toHaveAttribute("data-testid", MONITOR_OVERVIEW_ACTIONS_TEST_ID);
+    expect(group).toHaveAttribute(
+      "data-testid",
+      MONITOR_OVERVIEW_ACTIONS_TEST_ID,
+    );
 
     const order: Array<string> = Array.from(
       group.querySelectorAll("[data-testid]"),

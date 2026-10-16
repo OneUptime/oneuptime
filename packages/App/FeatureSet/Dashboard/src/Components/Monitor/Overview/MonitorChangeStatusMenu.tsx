@@ -1,3 +1,4 @@
+import { HERO_ICON_BUTTON_CLASS_NAME } from "./MonitorOverviewHeroButton";
 import { getMonitorOverviewRoute } from "./MonitorOverviewLinks";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
@@ -23,6 +24,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import MonitorStatusHistoryUtil from "Common/Utils/Monitor/MonitorStatusHistoryUtil";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -58,13 +60,6 @@ export const MONITOR_CHANGE_STATUS_FALLBACK_TEST_ID: string =
 export const MONITOR_CHANGE_STATUS_LOADING_TEST_ID: string =
   "monitor-overview-change-status-loading";
 
-/*
- * The hero's icon buttons: Refresh and this menu's ⋯ are one pair, drawn
- * like the ⋯ beside an incident's state buttons (EventStatusPanel).
- */
-export const HERO_ICON_BUTTON_CLASS_NAME: string =
-  "inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-500 shadow-sm transition-colors duration-150 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
-
 // A status the menu can offer.
 export interface MonitorStatusChoice {
   id: string;
@@ -92,7 +87,11 @@ export const getMonitorStatusChoices: (data: {
   });
 };
 
-// A status row as a choice; a row with no id or no name is not offered.
+/*
+ * A status row as a choice; a row with no id or no name is not offered. Its
+ * colour is read the way the hero's status dot reads it: one that is not a
+ * colour is dropped, never passed to a style.
+ */
 export const toMonitorStatusChoice: (
   status: MonitorStatus,
 ) => MonitorStatusChoice | null = (
@@ -108,8 +107,16 @@ export const toMonitorStatusChoice: (
   return {
     id: id,
     name: name,
-    color: status.color ? status.color.toString() : undefined,
+    color: MonitorStatusHistoryUtil.normalizeColor(status.color),
   };
+};
+
+const isMonitorStatusChoice: (
+  choice: MonitorStatusChoice | null,
+) => choice is MonitorStatusChoice = (
+  choice: MonitorStatusChoice | null,
+): choice is MonitorStatusChoice => {
+  return choice !== null;
 };
 
 type StatusList =
@@ -143,12 +150,10 @@ const MonitorChangeStatusMenu: FunctionComponent<ComponentProps> = (
 
   const monitorIdString: string = props.monitorId.toString();
 
-  const statusEvent: MonitorStatusTimeline = useMemo(
-    (): MonitorStatusTimeline => {
+  const statusEvent: MonitorStatusTimeline =
+    useMemo((): MonitorStatusTimeline => {
       return new MonitorStatusTimeline();
-    },
-    [],
-  );
+    }, []);
 
   /*
    * A change of status is a new status event, so it is gated on creating
@@ -195,9 +200,7 @@ const MonitorChangeStatusMenu: FunctionComponent<ComponentProps> = (
           state: "loaded",
           statuses: result.data
             .map(toMonitorStatusChoice)
-            .filter((choice: MonitorStatusChoice | null): boolean => {
-              return choice !== null;
-            }) as Array<MonitorStatusChoice>,
+            .filter(isMonitorStatusChoice),
         });
       } catch {
         // The menu falls back to the Status Timeline page.
@@ -293,7 +296,7 @@ const MonitorChangeStatusMenu: FunctionComponent<ComponentProps> = (
     /*
      * The statuses could not be read, or there is no other one to pick:
      * the Status Timeline is where a status is changed then, as it was
-     * before the menu.
+     * before the menu. Locked, saying why, for someone who may not.
      */
     if (choices.length === 0) {
       return [
@@ -301,6 +304,8 @@ const MonitorChangeStatusMenu: FunctionComponent<ComponentProps> = (
           key="status-timeline"
           icon={IconProp.Pencil}
           text="Change status"
+          isDisabled={!gate.isAllowed}
+          tooltip={gate.isAllowed ? undefined : gate.disabledReason}
           dataTestId={MONITOR_CHANGE_STATUS_FALLBACK_TEST_ID}
           onClick={() => {
             Navigation.navigate(

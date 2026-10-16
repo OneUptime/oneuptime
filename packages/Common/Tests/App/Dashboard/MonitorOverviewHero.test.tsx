@@ -1503,10 +1503,15 @@ describe("MonitorOverviewHero turns monitoring back on", () => {
  * text below it.
  */
 describe("MonitorOverviewHero actions placement", () => {
+  // A stack that turns into a row from a screen up: `lg:flex-row`.
+  const RESPONSIVE_ROW: RegExp = /^(sm|md|lg|xl|2xl):flex-row$/;
+  const BREAKPOINT_VARIANT: RegExp = /^(sm|md|lg|xl|2xl):/;
+  const WHITESPACE: RegExp = /\s+/;
+
   const classesOf: (element: Element | null) => Array<string> = (
     element: Element | null,
   ): Array<string> => {
-    return (element?.getAttribute("class") || "").split(/\s+/);
+    return (element?.getAttribute("class") || "").split(WHITESPACE);
   };
 
   test("the layout is a grid of the state and a column sized to the actions", () => {
@@ -1541,7 +1546,7 @@ describe("MonitorOverviewHero actions placement", () => {
 
     // No breakpoint moves them: not a class of the cell names one.
     for (const token of classesOf(actionsCell)) {
-      expect(token).not.toMatch(/^(sm|md|lg|xl|2xl):/);
+      expect(token).not.toMatch(BREAKPOINT_VARIANT);
     }
   });
 
@@ -1640,7 +1645,7 @@ describe("MonitorOverviewHero actions placement", () => {
       const isStackingRow: boolean =
         tokens.includes("flex-col") &&
         tokens.some((token: string): boolean => {
-          return /^(sm|md|lg|xl|2xl):flex-row$/.test(token);
+          return RESPONSIVE_ROW.test(token);
         });
 
       expect({ isStackingRow }).toEqual({ isStackingRow: false });
@@ -1684,7 +1689,9 @@ describe("MonitorOverviewHero changes a manual monitor's status", () => {
       name: "Monitor actions",
     });
 
-    fireEvent.click(within(actions).getByRole("button", { name: "More actions" }));
+    fireEvent.click(
+      within(actions).getByRole("button", { name: "More actions" }),
+    );
 
     const menu: HTMLElement = screen.getByRole("menu");
 

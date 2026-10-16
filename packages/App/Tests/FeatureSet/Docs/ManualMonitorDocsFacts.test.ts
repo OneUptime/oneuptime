@@ -210,7 +210,9 @@ describe("changing its status in the dashboard", () => {
 
     // The ⋯ is named More actions, and follows Refresh...
     expect(menu).toContain('text="More actions"');
-    expect(actions).toContain('aria-label={translator.translateText("Refresh")}');
+    expect(actions).toContain(
+      'aria-label={translator.translateText("Refresh")}',
+    );
     expect(
       actions.indexOf("data-testid={MONITOR_OVERVIEW_REFRESH_TEST_ID}"),
     ).toBeLessThan(actions.indexOf("<MonitorChangeStatusMenu"));
