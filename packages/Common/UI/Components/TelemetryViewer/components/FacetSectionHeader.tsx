@@ -55,7 +55,14 @@ const FacetSectionHeader: FunctionComponent<FacetSectionHeaderProps> = (
               <Icon icon={props.icon} className="h-3.5 w-3.5 text-gray-400" />
             </span>
           )}
-          <span className="truncate text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+          {/*
+           * A long name is cut short to one line ("Clúster de Docker
+           * Swarm" in Spanish): pointing at it shows the whole name.
+           */}
+          <span
+            className="truncate text-[11px] font-semibold uppercase tracking-wider text-gray-500"
+            title={title}
+          >
             {title}
           </span>
           {props.activeCount > 0 && (

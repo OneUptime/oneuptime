@@ -258,6 +258,26 @@ describe("a facet section's header", () => {
     expect(header).toHaveAttribute("aria-expanded", "true");
   });
 
+  test("shows the whole name when pointed at, as a long one is cut to one line", () => {
+    inJapanese(
+      <FacetSectionHeader
+        title="Span Kind"
+        activeCount={1}
+        isExpanded={true}
+        onToggle={jest.fn()}
+      />,
+    );
+
+    const name: HTMLElement = screen.getByText("スパンの種類");
+
+    expect(name).toHaveClass("truncate");
+    expect(name).toHaveAttribute("title", "スパンの種類");
+    // The button is still named by its text, the count badge after it.
+    expect(
+      screen.getByRole("button", { name: "スパンの種類 1" }),
+    ).toBeInTheDocument();
+  });
+
   test("still toggles its section", () => {
     const onToggle: MockFunction = getJestMockFunction();
 
