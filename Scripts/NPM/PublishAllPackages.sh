@@ -71,7 +71,7 @@ publish_to_npm() {
 }
 
 
-# Publish Common first - other packages depend on it
+# Publish Common first, in the order the release has always published.
 publish_to_npm "packages/Common"
 
 # Wait for @oneuptime/common to be readable from the registry before the
