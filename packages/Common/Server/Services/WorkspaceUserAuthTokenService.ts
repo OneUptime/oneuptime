@@ -10,8 +10,26 @@ import Model, {
   SlackMiscData,
 } from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import QueryHelper from "../Types/Database/QueryHelper";
+import logger from "../Utils/Logger";
+import BadDataException from "../../Types/Exception/BadDataException";
+
+// What removeLinksNotMadeBySignIn removed.
+export interface LinksNotMadeBySignInCleanupResult {
+  // Links a person wrote through the API, removed.
+  removedLinkCount: number;
+  // Slack notification methods that pointed at one of them, removed.
+  removedSlackMethodCount: number;
+  // Microsoft Teams notification methods that pointed at one of them, removed.
+  removedMicrosoftTeamsMethodCount: number;
+  // Links that could not be removed, each logged.
+  failedLinkCount: number;
+}
 
 export class Service extends DatabaseService<Model> {
+  // How many links removeLinksNotMadeBySignIn reads at a time.
+  public static readonly CLEANUP_BATCH_SIZE: number = 100;
+
   public constructor() {
     super(Model);
   }
@@ -200,6 +218,200 @@ export class Service extends DatabaseService<Model> {
         },
       });
     }
+  }
+
+  /*
+   * Removes every link no sign-in wrote, with the Slack and Microsoft Teams
+   * notification methods that were made from one.
+   *
+   * A sign-in writes its link as OneUptime (refreshAuthToken), so the link
+   * names no creator. One that names a creator was written by a person
+   * through the API, which let anybody signed in write one - for an account
+   * they never signed in to, and before ownership was checked on create, for
+   * another member - until only the sign-ins could. Such a link proves
+   * nothing about who holds the chat account, yet the chat acted on it.
+   *
+   * Each link goes on its own, without the delete hook: the hook removes
+   * all of its member's methods in the project, and the member such a link
+   * names may hold a method of their own, made from their own sign-in. Only
+   * the methods that point at the removed link's chat account go, through
+   * their own delete, which removes the notification rules that use them -
+   * unless a sign-in connected the member to that same account too.
+   *
+   * Idempotent, and safe to run twice at once: it removes only links that
+   * name a creator, which nothing writes any more. A link that cannot be
+   * removed is logged and counted, and the rest go on.
+   */
+  @CaptureSpan()
+  public async removeLinksNotMadeBySignIn(): Promise<LinksNotMadeBySignInCleanupResult> {
+    const result: LinksNotMadeBySignInCleanupResult = {
+      removedLinkCount: 0,
+      removedSlackMethodCount: 0,
+      removedMicrosoftTeamsMethodCount: 0,
+      failedLinkCount: 0,
+    };
+
+    /*
+     * Links that could not be removed, left out of the next read: every
+     * read then returns links not tried yet, or none, and the walk ends.
+     */
+    const failedLinkIds: Array<string> = [];
+
+    for (;;) {
+      const links: Array<Model> = await this.findBy({
+        query: {
+          createdByUserId: QueryHelper.notNull(),
+          _id: QueryHelper.notIn(failedLinkIds),
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          userId: true,
+          workspaceType: true,
+          workspaceUserId: true,
+        },
+        skip: 0,
+        limit: Service.CLEANUP_BATCH_SIZE,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const readLinks: Array<Model> = links.filter((link: Model): boolean => {
+        return Boolean(link.id);
+      });
+
+      if (readLinks.length === 0) {
+        return result;
+      }
+
+      for (const link of readLinks) {
+        try {
+          const removedMethods: {
+            slack: number;
+            microsoftTeams: number;
+          } = await this.removeLinkNotMadeBySignIn(link);
+
+          result.removedLinkCount++;
+          result.removedSlackMethodCount += removedMethods.slack;
+          result.removedMicrosoftTeamsMethodCount +=
+            removedMethods.microsoftTeams;
+        } catch (err) {
+          failedLinkIds.push(link.id!.toString());
+          result.failedLinkCount++;
+          logger.error(
+            `Could not remove the chat account link ${link.id!.toString()}, which no sign-in wrote.`,
+          );
+          logger.error(err);
+        }
+      }
+    }
+  }
+
+  // One link no sign-in wrote, and the methods made from it.
+  private async removeLinkNotMadeBySignIn(
+    link: Model,
+  ): Promise<{ slack: number; microsoftTeams: number }> {
+    const deletedLinkCount: number = await this.deleteBy({
+      query: {
+        _id: link.id!,
+      },
+      limit: 1,
+      skip: 0,
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    /*
+     * A delete that removed nothing either lost a race to another run of
+     * this walk, which removed the link first, or failed - and a link it
+     * left would be read again.
+     */
+    if (
+      deletedLinkCount === 0 &&
+      (
+        await this.countBy({
+          query: {
+            _id: link.id!,
+          },
+          skip: 0,
+          limit: 1,
+          props: {
+            isRoot: true,
+          },
+        })
+      ).toNumber() > 0
+    ) {
+      throw new BadDataException(
+        `The chat account link ${link.id!.toString()} was not removed.`,
+      );
+    }
+
+    const removed: { slack: number; microsoftTeams: number } = {
+      slack: 0,
+      microsoftTeams: 0,
+    };
+
+    if (!link.projectId || !link.userId || !link.workspaceUserId) {
+      return removed;
+    }
+
+    // A sign-in connected the member to this same account: its methods stay.
+    const isAccountSignedInTo: boolean =
+      (
+        await this.countBy({
+          query: {
+            projectId: link.projectId,
+            userId: link.userId,
+            workspaceType: link.workspaceType!,
+            workspaceUserId: link.workspaceUserId,
+            createdByUserId: QueryHelper.isNull(),
+          },
+          skip: 0,
+          limit: 1,
+          props: {
+            isRoot: true,
+          },
+        })
+      ).toNumber() > 0;
+
+    if (isAccountSignedInTo) {
+      return removed;
+    }
+
+    if (link.workspaceType === WorkspaceType.Slack) {
+      removed.slack = await UserSlackService.deleteBy({
+        query: {
+          projectId: link.projectId,
+          userId: link.userId,
+          slackUserId: link.workspaceUserId,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (link.workspaceType === WorkspaceType.MicrosoftTeams) {
+      removed.microsoftTeams = await UserMicrosoftTeamsService.deleteBy({
+        query: {
+          projectId: link.projectId,
+          userId: link.userId,
+          microsoftTeamsUserId: link.workspaceUserId,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    return removed;
   }
 }
 export default new Service();

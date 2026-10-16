@@ -118,6 +118,7 @@ import EncryptProjectCallSMSConfigTwilioAuthToken from "./EncryptProjectCallSMSC
 import MoveGoogleSecOpsConnectionsToSecurityEventConnections from "./MoveGoogleSecOpsConnectionsToSecurityEventConnections";
 import BackfillAuditLogRootResource from "./BackfillAuditLogRootResource";
 import MaterializeAttributeValuesIndex from "./MaterializeAttributeValuesIndex";
+import RemoveChatAccountLinksNotMadeBySignIn from "./RemoveChatAccountLinksNotMadeBySignIn";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
@@ -725,6 +726,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * slot AddAuditLogMcpClientColumns asserts for itself.
    */
   new MaterializeAttributeValuesIndex(),
+  /*
+   * A Slack or Microsoft Teams account is connected to a member only by the
+   * member signing in to the chat as it; this removes the links people wrote
+   * through the API instead (they name a creator, which no sign-in does),
+   * with the notification methods made from them. Postgres-only, idempotent,
+   * never touches a link a sign-in wrote. No ordering requirement, so it
+   * sits before the last slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new RemoveChatAccountLinksNotMadeBySignIn(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
