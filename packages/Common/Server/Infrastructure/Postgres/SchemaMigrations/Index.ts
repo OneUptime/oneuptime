@@ -104,6 +104,7 @@ import { AddEscalationNextInRotation1802750000000 } from "./1802750000000-AddEsc
 import { ClearNextEventOfTemplatesThatDoNotRecur1802800000000 } from "./1802800000000-ClearNextEventOfTemplatesThatDoNotRecur";
 import { WidenAIAgentTaskPullRequestId1802850000000 } from "./1802850000000-WidenAIAgentTaskPullRequestId";
 import { AddAIAgentTaskPullRequestIdIndex1802900000000 } from "./1802900000000-AddAIAgentTaskPullRequestIdIndex";
+import { AddAIRunFollowUpForAlert1802950000000 } from "./1802950000000-AddAIRunFollowUpForAlert";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1410,4 +1411,5 @@ export default [
   ClearNextEventOfTemplatesThatDoNotRecur1802800000000,
   WidenAIAgentTaskPullRequestId1802850000000,
   AddAIAgentTaskPullRequestIdIndex1802900000000,
+  AddAIRunFollowUpForAlert1802950000000,
 ];

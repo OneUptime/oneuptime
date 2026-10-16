@@ -46,6 +46,22 @@ Während die Untersuchung läuft, zeigt die Seite des Vorfalls oder der Warnung 
 
 Eine Untersuchung läuft, bis sie fertig ist: Sie hat **kein Zeitlimit** und kein knappes Abfragebudget, sodass sie jede Abfrage und jeden kubectl- oder Infrastrukturbefehl ausführen kann, den sie braucht. Eine lange Befehlsausgabe (ein `kubectl describe node` eines ausgelasteten Knotens, die Logs eines Pods) wird nie abgeschnitten – OneUptime AI liest sie Seite für Seite. Wenn Sie einen harten Stopp möchten, legen Sie pro Signaltyp ein **Zeitlimit für Untersuchungen** fest (siehe **Kostenkontrollen** unten).
 
+## Was eine Untersuchung liest
+
+Eine Untersuchung beginnt beim Vorfall oder bei der Warnung und bei der Infrastruktur, mit der sie verknüpft ist: den Hosts, Docker- und Podman-Hosts, Kubernetes-Clustern, Datenbanken und Diensten, die ihre Monitore überwachen. Ein Website-, API- oder synthetischer Monitor überwacht, womit Sie ihn unter **Überwachung → Übersicht → Verknüpfte Ressourcen** verknüpfen. Verknüpfen Sie ihn also mit den Hosts, die das bereitstellen, was er prüft, dann beginnt jede Untersuchung seiner Vorfälle dort.
+
+- Die Warnungen auf dieser Infrastruktur, die in den 30 Minuten vor dem Vorfall ausgelöst wurden oder noch offen sind, die neuesten zuerst, etwa die Warnung zu hoher CPU-Last des Hosts hinter einer langsamen Website. Private Warnungen werden ausgelassen.
+- Die eigenen Metriken der Infrastruktur, so gelesen, wie Menschen sie lesen. Host-Metriken wie `system.cpu.utilization` und `system.memory.utilization` werden einmal je Zustand gemeldet, und die Zustände ergeben zusammen 100 %, daher sagt ein Durchschnitt über alle nichts aus. OneUptime AI liest sie Zustand für Zustand (belegte CPU ist user plus system) und jede Metrik pro Container, pro Mountpoint oder nach jedem anderen Attribut.
+- Die Container eines Docker- oder Podman-Hosts: die am stärksten ausgelasteten nach CPU, Arbeitsspeicher oder Neustarts und die, die keine Daten mehr melden. Ein gestoppter Container sendet nichts statt null, daher verbergen ihn die Zahlen des ganzen Hosts.
+
+Die Aktivität der Untersuchung auf der Karte **KI-Untersuchung** zeigt, wie viele offene oder neue Warnungen sie gelesen hat und auf welchen Ressourcen.
+
+### Erneut geprüft, wenn eine neue Warnung ausgelöst wird
+
+Eine Untersuchung beginnt in dem Moment, in dem ein Vorfall erklärt wird, und eine Host-Warnung, die einige Minuten an Metriken braucht, kann danach ausgelöst werden. Wird innerhalb von 30 Minuten nach dem Vorfall eine Warnung auf seiner verknüpften Infrastruktur ausgelöst, nachdem die Untersuchung sie gelesen hat, und ist der Vorfall noch offen, prüft OneUptime AI den Vorfall noch einmal mit dieser Warnung. Die neue Analyse beginnt mit **Checked again** und der Warnung, die die Prüfung ausgelöst hat, und ihre Aktivität sagt es ebenfalls.
+
+Das geschieht höchstens einmal pro Vorfall, mit denselben Schaltern und Limits wie eine neue Untersuchung: **KI aktivieren**, _Neue Vorfälle untersuchen_, die KI-Guthaben sowie die Tages- und Parallelitätslimits. Es gibt nichts einzuschalten. Eine erneute Prüfung führt die automatische Behebung nie noch einmal aus und wird selbst nie erneut geprüft, und die Untersuchung einer Warnung wird nicht erneut geprüft.
+
 ## Mit OneUptime AI über den Vorfall sprechen
 
 Die Karte **KI-Untersuchung** endet mit einem Gespräch – **Ask OneUptime AI** –, das alle teilen, die den Vorfall oder die Warnung sehen können. Es ist eine einzige Karte, was auch immer darüber geschah: Unter einem Bericht stellen Sie Rückfragen, und wenn keine automatische Untersuchung lief (oder sie vor dem Bericht stoppte), lautet der erste Vorschlag **Was ist die Grundursache?**, womit OneUptime AI auf Anfrage untersucht.

@@ -46,6 +46,22 @@ Mentre l'indagine è in corso, la pagina dell'incidente o dell'avviso mostra un 
 
 Un'indagine prosegue finché non ha finito: non ha **alcun limite di tempo** né un piccolo budget di query, quindi può eseguire ogni query e ogni comando kubectl o di infrastruttura di cui ha bisogno. Un output di comando lungo (un `kubectl describe node` di un nodo molto carico, i log di un pod) non viene mai troncato: OneUptime AI lo legge una pagina alla volta. Se vuoi uno stop netto, imposta un **limite di tempo per le indagini** per tipo di segnale (vedi **Controllo dei costi** più sotto).
 
+## Che cosa legge un'indagine
+
+Un'indagine parte dall'incidente o dall'avviso e dall'infrastruttura a cui è collegato: gli host, gli host Docker e Podman, i cluster Kubernetes, i database e i servizi che i suoi monitor sorvegliano. Un monitor di sito web, API o sintetico sorveglia ciò a cui lo colleghi in **Monitor → Panoramica → Risorse collegate**: collegalo quindi agli host che servono ciò che controlla, e ogni indagine dei suoi incidenti partirà da lì.
+
+- Gli avvisi su quell'infrastruttura aperti nei 30 minuti prima dell'incidente, o ancora aperti, dal più recente, come l'avviso di CPU alta dell'host dietro un sito lento. Gli avvisi privati sono esclusi.
+- Le metriche proprie dell'infrastruttura, lette come le leggono le persone. Le metriche di host come `system.cpu.utilization` e `system.memory.utilization` sono riportate una volta per stato, e gli stati sommano al 100%, quindi una media su tutti non dice nulla. OneUptime AI le legge uno stato alla volta (la CPU occupata è user più system), e qualsiasi metrica per container, per punto di montaggio o per qualsiasi altro attributo.
+- I container di un host Docker o Podman: i più carichi per CPU, memoria o riavvii, e quelli che hanno smesso di inviare dati. Un container fermo non invia nulla invece di zero, quindi i numeri dell'intero host lo nascondono.
+
+L'attività dell'indagine nella scheda **AI Investigation** dice quanti avvisi aperti o recenti ha letto e su quali risorse.
+
+### Ricontrollato quando si apre un nuovo avviso
+
+Un'indagine parte nel momento in cui viene dichiarato un incidente, e un avviso di host che richiede qualche minuto di metriche può aprirsi dopo. Quando si apre un avviso sull'infrastruttura collegata all'incidente entro 30 minuti dall'incidente, dopo che l'indagine l'ha letta, e l'incidente è ancora aperto, OneUptime AI ricontrolla l'incidente un'altra volta con quell'avviso in mano. La nuova analisi inizia con **Checked again** e l'avviso che ha portato al controllo, e lo dice anche la sua attività.
+
+Accade al massimo una volta per incidente, con gli stessi interruttori e limiti di una nuova indagine: **Abilita IA**, _Indaga sui nuovi incidenti_, i crediti IA e i limiti giornalieri e di concorrenza. Non c'è nulla da attivare. Un controllo di follow-up non riesegue mai la correzione automatica e non viene mai ricontrollato a sua volta, e l'indagine di un avviso non viene ricontrollata.
+
 ## Parla con OneUptime AI dell'incidente
 
 La scheda **AI Investigation** termina con una conversazione, **Ask OneUptime AI**, condivisa da tutti coloro che possono vedere l'incidente o l'avviso. È un'unica scheda qualunque cosa sia successa sopra: sotto un report fai domande di approfondimento, e quando non è stata eseguita alcuna indagine automatica (o si è fermata prima del report) il primo suggerimento è **What is the root cause?**, che fa indagare OneUptime AI su richiesta.

@@ -183,8 +183,9 @@ describe("the activity feed draws what an investigation left out", () => {
       />,
     );
 
+    // Each step's words (with its detail, which these steps have none of).
     const lines: Array<string> = Array.from(
-      container.querySelectorAll(".text-xs > span:last-child"),
+      container.querySelectorAll("[data-testid='activity-step-text']"),
     ).map((element: Element): string => {
       return element.textContent || "";
     });

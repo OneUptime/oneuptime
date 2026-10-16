@@ -46,6 +46,22 @@ Medan utredningen pågår visar incidentens eller larmets sida en livepanel **AI
 
 En utredning pågår tills den är klar: den har **ingen tidsgräns** och ingen liten frågebudget, så den kan köra alla frågor och alla kubectl- eller infrastrukturkommandon som den behöver. Långa kommandoutdata (en `kubectl describe node` för en hårt belastad nod, en pods loggar) kapas aldrig: OneUptime AI läser dem en sida i taget. Vill du ha ett hårt stopp anger du en **tidsgräns för utredningar** per signaltyp (se **Kostnadskontroll** nedan).
 
+## Vad en utredning läser
+
+En utredning utgår från incidenten eller larmet och från infrastrukturen den är länkad till: värdarna, Docker- och Podman-värdarna, Kubernetes-klustren, databaserna och tjänsterna som dess övervakningar bevakar. En webbplats-, API- eller syntetisk övervakning bevakar det du länkar den till under **Övervakning → Översikt → Länkade resurser**, så länka den till värdarna som levererar det den kontrollerar, så börjar varje utredning av dess incidenter där.
+
+- Larmen på den infrastrukturen som öppnades under de 30 minuterna före incidenten eller fortfarande är öppna, de nyaste först, som larmet om hög CPU på värden bakom en långsam webbplats. Privata larm utelämnas.
+- Infrastrukturens egna mätvärden, lästa så som människor läser dem. Värdmätvärden som `system.cpu.utilization` och `system.memory.utilization` rapporteras en gång per tillstånd, och tillstånden summerar till 100 %, så ett medelvärde över dem alla säger ingenting. OneUptime AI läser dem ett tillstånd i taget (upptagen CPU är user plus system), och vilket mätvärde som helst per container, per monteringspunkt eller efter vilket annat attribut som helst.
+- Containrarna på en Docker- eller Podman-värd: de mest belastade efter CPU, minne eller omstarter, och de som slutade rapportera. En stoppad container skickar ingenting i stället för noll, så siffrorna för hela värden döljer den.
+
+Utredningens aktivitet på kortet **AI Investigation** säger hur många öppna eller nya larm den läste, och på vilka resurser.
+
+### Kontrolleras igen när ett nytt larm öppnas
+
+En utredning startar i samma ögonblick som en incident deklareras, och ett värdlarm som behöver några minuters mätvärden kan öppnas efteråt. När ett larm öppnas på incidentens länkade infrastruktur inom 30 minuter efter incidenten, efter att utredningen läste den, och incidenten fortfarande är öppen, kontrollerar OneUptime AI incidenten en gång till med det larmet i handen. Den nya analysen börjar med **Checked again** och larmet som ledde till kontrollen, och dess aktivitet säger det också.
+
+Det sker högst en gång per incident, med samma reglage och gränser som en ny utredning: **Aktivera AI**, _Utred nya incidenter_, AI-krediterna och gränserna per dag och för samtidighet. Det finns inget att slå på. En uppföljande kontroll kör aldrig automatisk åtgärd igen och följs aldrig upp själv, och ett larms utredning kontrolleras inte igen.
+
 ## Prata med OneUptime AI om incidenten
 
 Kortet **AI Investigation** slutar med en konversation, **Ask OneUptime AI**, som delas av alla som kan se incidenten eller larmet. Det är ett enda kort oavsett vad som hände ovanför: under en rapport ställer du följdfrågor, och när ingen automatisk utredning kördes (eller den stoppade före rapporten) är det första förslaget **What is the root cause?**, som får OneUptime AI att utreda på begäran.

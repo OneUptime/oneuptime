@@ -1211,8 +1211,12 @@ describe("what happens when an alert is created", () => {
     expect(steps).toContain(
       "mayOpenEpisode: StartingStageUtil.pagesOnCall(startingStage),",
     );
-    // A resolved one opens no channel, starts no runbook, is not grouped or remediated.
-    expect(steps.split("if (!isOngoing) {").length - 1).toBe(3);
+    /*
+     * A resolved one opens no channel, starts no runbook, is not grouped or
+     * remediated, and has OneUptime AI check no open incident again.
+     */
+    expect(steps.split("if (!isOngoing) {").length - 1).toBe(4);
+    expect(steps).toContain("await IncidentFollowUpCheck.onAlertOpened({");
     expect(steps).toContain(
       "if (createdItem.projectId && createdItem.id && isOngoing) {",
     );

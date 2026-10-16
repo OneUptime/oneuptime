@@ -79,6 +79,7 @@ import {
   AIInvestigationStage,
   getAIInvestigationStage,
   getAIInvestigationVerdict,
+  isFollowUpCheckRun,
 } from "./AIInvestigationStatus";
 
 export type InvestigationSubjectType = "incident" | "alert";
@@ -1361,7 +1362,9 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                 {translator.translateText(
                   isFailed
                     ? "What the investigation got through"
-                    : "OneUptime AI is investigating",
+                    : isFollowUpCheckRun(events)
+                      ? "OneUptime AI is checking again"
+                      : "OneUptime AI is investigating",
                 )}
               </h3>
               <p className="mt-1 text-sm leading-6 text-gray-500">

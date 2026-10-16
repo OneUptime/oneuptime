@@ -108,7 +108,8 @@ export const PLAN_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
  *     the field's options write it;
  *   - text the server writes in English: a refused Base URL's message,
  *     the context window errors, the investigation card's line for an
- *     incident outside the rules, and the AI Logs statuses;
+ *     incident outside the rules, the AI Logs statuses, and the lead of a
+ *     follow-up check's analysis (IncidentFollowUpCheck.buildReportLead);
  *   - the namespaces Kubernetes names kube-system, kube-public and
  *     kube-node-lease;
  *   - the command policy's SafeWrite and RiskyWrite tiers.
@@ -125,6 +126,7 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Insufficient Balance",
       "Most likely root cause",
       "Suggested next steps",
+      "Checked again",
     ],
     [INFRASTRUCTURE_AI_AGENTS]: ["⋯", "SafeWrite", "RiskyWrite"],
     [FIX_TASKS]: ["Fix with AI"],
