@@ -386,6 +386,40 @@ describe("a length as it is said", () => {
     });
   });
 
+  test("the time left of a shift under way is said in whole hours from two hours up", () => {
+    const left: (hours: number, minutes: number) => ShiftLength = (
+      hours: number,
+      minutes: number,
+    ): ShiftLength => {
+      return roundShiftLength(
+        { days: 0, hours: hours, minutes: minutes },
+        { isTimeLeft: true },
+      );
+    };
+
+    expect(left(5, 4)).toEqual({ days: 0, hours: 5, minutes: 0 });
+    expect(left(5, 30)).toEqual({ days: 0, hours: 6, minutes: 0 });
+    expect(left(2, 0)).toEqual({ days: 0, hours: 2, minutes: 0 });
+    // Under two hours the minutes still matter.
+    expect(left(1, 30)).toEqual({ days: 0, hours: 1, minutes: 30 });
+    expect(left(0, 20)).toEqual({ days: 0, hours: 0, minutes: 20 });
+    expect(left(23, 45)).toEqual({ days: 1, hours: 0, minutes: 0 });
+
+    // A shift's own length keeps its minutes.
+    expect(roundShiftLength({ days: 0, hours: 5, minutes: 4 })).toEqual({
+      days: 0,
+      hours: 5,
+      minutes: 4,
+    });
+    expect(
+      plain(
+        formatShiftLength({ days: 0, hours: 5, minutes: 4 }, "de", {
+          isTimeLeft: true,
+        }),
+      ),
+    ).toBe("5 Stunden");
+  });
+
   test("in English", () => {
     expect(formatShiftLength({ days: 30, hours: 0, minutes: 0 }, "en")).toBe(
       "30 days",

@@ -60,6 +60,7 @@ import { buildUpcomingShifts } from "./UpcomingShiftsFixture";
  *              (default) | daily | weekdays | dst | long | empty |
  *              truncated | truncated-empty | error (UpcomingShiftsFixture.js
  *              says what each one holds)
+ *   ?shiftsDelay=   how many milliseconds /my-shifts takes to answer
  *   ?billing=on&plan=free   OneUptime Cloud below the Growth plan
  *   ?theme=dark   ?lang=de|ja|fa|ru
  */
@@ -393,7 +394,7 @@ const state = {
   // The Upcoming shifts card's answer: which scenario, and how it answers.
   shiftsScenario: shiftsScenario,
   shiftsFailuresLeft: shiftsScenario === "error" ? 1 : 0,
-  shiftsDelayMilliseconds: 0,
+  shiftsDelayMilliseconds: Number(params.get("shiftsDelay") || 0),
 };
 
 window.__calendarFeedFixture = {

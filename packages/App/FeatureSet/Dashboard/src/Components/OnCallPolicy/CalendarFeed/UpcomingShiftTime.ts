@@ -401,14 +401,30 @@ export const getShiftLength: (data: {
   return { days: days, hours: hours, minutes: minutes };
 };
 
+export interface ShiftLengthOptions {
+  /*
+   * The time left of a shift under way. Its row says the end to the minute,
+   * so from two hours up the time left is said in whole hours: "5 hours
+   * left", not "5 hours, 4 minutes left" ticking on every visit.
+   */
+  isTimeLeft?: boolean | undefined;
+}
+
+// From this many hours left, the minutes are left out.
+export const TIME_LEFT_WHOLE_HOURS_FROM: number = 2;
+
 /*
  * A length as it is said, at the precision it is read at: minutes under an
  * hour; hours (and any minutes) under a day; days (and any whole hours)
  * under a week; whole days from a week up, where "29 days, 23 hours" would
  * only be noise.
  */
-export const roundShiftLength: (length: ShiftLength) => ShiftLength = (
+export const roundShiftLength: (
   length: ShiftLength,
+  options?: ShiftLengthOptions | undefined,
+) => ShiftLength = (
+  length: ShiftLength,
+  options?: ShiftLengthOptions | undefined,
 ): ShiftLength => {
   if (length.days >= 7) {
     const roundUp: boolean = length.hours >= 12;
@@ -426,6 +442,17 @@ export const roundShiftLength: (length: ShiftLength) => ShiftLength = (
     }
 
     return { days: days, hours: hours, minutes: 0 };
+  }
+
+  if (
+    options?.isTimeLeft &&
+    length.hours >= TIME_LEFT_WHOLE_HOURS_FROM
+  ) {
+    const hours: number = length.hours + (length.minutes >= 30 ? 1 : 0);
+
+    return hours >= 24
+      ? { days: 1, hours: hours - 24, minutes: 0 }
+      : { days: 0, hours: hours, minutes: 0 };
   }
 
   if (length.hours > 0) {
@@ -546,9 +573,14 @@ const joinUnits: (items: Array<string>, locale: string) => string = (
 export const formatShiftLength: (
   length: ShiftLength,
   language: string,
-) => string = (length: ShiftLength, language: string): string => {
+  options?: ShiftLengthOptions | undefined,
+) => string = (
+  length: ShiftLength,
+  language: string,
+  options?: ShiftLengthOptions | undefined,
+): string => {
   const locale: string = getFeedLocale(language);
-  const rounded: ShiftLength = roundShiftLength(length);
+  const rounded: ShiftLength = roundShiftLength(length, options);
   const parts: Array<string> = [];
 
   if (rounded.days > 0) {

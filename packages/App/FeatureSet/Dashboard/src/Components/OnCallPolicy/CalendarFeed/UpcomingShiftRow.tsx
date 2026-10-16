@@ -88,6 +88,17 @@ export const UPCOMING_SHIFT_COVERING_BADGE_CLASS_NAME: string =
 export const UPCOMING_SHIFT_POLICY_BADGE_CLASS_NAME: string =
   "bg-purple-50 text-purple-700 ring-purple-200";
 
+/*
+ * How long and Get cover, at the row's end. From sm up they stand under
+ * each other at the right of the row and keep their width. On a phone they
+ * come under the text, side by side while they fit and one under the other
+ * when they do not - "Noch mindestens 31 Tage" and "Vertretung finden" are
+ * wider together than a 360px phone leaves them - so the page never scrolls
+ * sideways.
+ */
+export const UPCOMING_SHIFT_END_CLASS_NAME: string =
+  "flex min-w-0 flex-wrap items-center gap-x-4 gap-y-0.5 sm:flex-none sm:flex-col sm:flex-nowrap sm:items-end";
+
 const SEPARATOR: ReactElement = (
   <span className="mx-1.5 text-gray-300" aria-hidden="true">
     ·
@@ -148,7 +159,10 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
     clock,
   )} – ${formatShiftFullDateTime(span.end, clock)}`;
 
-  // How long, from the start - or, on call now, what is left of it.
+  /*
+   * How long, from the start - or, on call now, what is left of it, as
+   * calmly as it can be said: the row already says the end to the minute.
+   */
   const length: string = formatShiftLength(
     getShiftLength({
       start: span.isOnCallNow ? now : span.start,
@@ -156,6 +170,7 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
       timezone: clock.timezone,
     }),
     clock.language,
+    span.isOnCallNow ? { isTimeLeft: true } : undefined,
   );
 
   let lengthText: string = length;
@@ -340,7 +355,7 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
           )}
         </div>
 
-        <div className="flex flex-none items-center gap-4 sm:flex-col sm:items-end sm:gap-0.5">
+        <div className={UPCOMING_SHIFT_END_CLASS_NAME}>
           <span
             className="whitespace-nowrap text-sm leading-6 text-gray-500"
             data-testid="upcoming-shift-length"
