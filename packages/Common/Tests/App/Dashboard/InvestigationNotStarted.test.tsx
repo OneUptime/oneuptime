@@ -82,11 +82,11 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const EVALUATED_AT: string = "2026-09-17T12:24:00.000Z";
 const NEXT_EVALUATED_AT: string = "2026-09-17T12:25:00.000Z";
 const AI_DISABLED_WHO_CAN_ACT: string =
-  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI Features.";
+  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.";
 const NO_CREDITS_WHO_CAN_ACT: string =
   "A project owner or someone with Manage Billing can add AI credits.";
 const DAILY_LIMIT_WHO_CAN_ACT: string =
-  "A project owner or someone with Manage Billing can change the project's daily AI limits in Project Settings → AI Features.";
+  "A project owner or someone with Manage Billing can change the project's daily AI limits in Project Settings → AI → AI Features.";
 
 interface ReasonExample {
   code: InvestigationNotStartedCode;
@@ -121,7 +121,7 @@ const REASONS: Array<ReasonExample> = [
     description:
       "The project uses OneUptime's AI provider and has no AI credits left.",
     nextStep:
-      "Review AI credits under Project Settings → AI Credits. Adding credits later does not retry this incident.",
+      "Review AI credits under Project Settings → AI → AI Credits. Adding credits later does not retry this incident.",
   },
   {
     code: "project_daily_limit_reached",
@@ -129,7 +129,7 @@ const REASONS: Array<ReasonExample> = [
     description:
       "This project had reached one of its own daily AI limits when this incident was created.",
     nextStep:
-      "Review the project's daily AI limits under Project Settings → AI Features → More settings.",
+      "Review the project's daily AI limits under Project Settings → AI → AI Features → More settings.",
   },
   {
     code: "no_investigation_rule_matched",
@@ -760,7 +760,7 @@ describe("investigation settings actions", () => {
   });
 
   /*
-   * The switch moved to Project Settings → AI Features, which every install
+   * The switch moved to Project Settings → AI → AI Features, which every install
    * shows. AI Credits is listed only when billing is on, so on a self-hosted
    * install the old link led to a page the menu never offered.
    */
@@ -770,7 +770,7 @@ describe("investigation settings actions", () => {
     await flush();
 
     const link: HTMLElement = screen.getByRole("link", {
-      name: "Go to Project Settings → AI Features",
+      name: "Go to Project Settings → AI → AI Features",
     });
     expect(link).toHaveAttribute(
       "href",
@@ -789,7 +789,7 @@ describe("investigation settings actions", () => {
     expect(screen.getByText("The project is out of AI credits")).toBeVisible();
     expect(
       screen.getByText(
-        "Review AI credits under Project Settings → AI Credits. Adding credits later does not retry this incident.",
+        "Review AI credits under Project Settings → AI → AI Credits. Adding credits later does not retry this incident.",
       ),
     ).toBeVisible();
     expect(
@@ -817,7 +817,7 @@ describe("investigation settings actions", () => {
 
       expect(
         screen.queryByRole("link", {
-          name: "Go to Project Settings → AI Features",
+          name: "Go to Project Settings → AI → AI Features",
         }) !== null,
       ).toBe(offered);
       expect(screen.queryByText(AI_DISABLED_WHO_CAN_ACT) !== null).toBe(
@@ -908,7 +908,7 @@ describe("investigation settings actions", () => {
 
     expect(
       screen.getByRole("link", {
-        name: "Go to Project Settings → AI Features",
+        name: "Go to Project Settings → AI → AI Features",
       }),
     ).toBeVisible();
     expect(screen.queryByText(AI_DISABLED_WHO_CAN_ACT)).toBeNull();
@@ -964,7 +964,7 @@ describe("which settings page each reason points at", () => {
    */
   test("the AI switch: AI Features, for whoever may update Project.enableAi", () => {
     expect(actionFor("ai_disabled")).toEqual({
-      label: "Go to Project Settings → AI Features",
+      label: "Go to Project Settings → AI → AI Features",
       page: PageMap.SETTINGS_AI_FEATURES,
       permissions:
         new Project().getColumnAccessControlFor("enableAi")?.update || [],
@@ -977,14 +977,14 @@ describe("which settings page each reason points at", () => {
   });
 
   /*
-   * The project's own daily AI limits are on Project Settings → AI Features
+   * The project's own daily AI limits are on Project Settings → AI → AI Features
    * (More settings), which every install shows, and take what the limit
    * columns take - not the incident AI settings a project admin may edit.
    */
   test("the project's daily AI limit: AI Features, for whoever may change the limits", () => {
     for (const subjectType of ["incident", "alert"] as const) {
       expect(actionFor("project_daily_limit_reached", subjectType)).toEqual({
-        label: "Go to Project Settings → AI Features",
+        label: "Go to Project Settings → AI → AI Features",
         page: PageMap.SETTINGS_AI_FEATURES,
         permissions:
           new Project().getColumnAccessControlFor("aiDailyTokenLimit")
@@ -1041,7 +1041,7 @@ describe("which settings page each reason points at", () => {
 
   test("the AI switch's no-link sentence says where the switch is", () => {
     expect(actionFor("ai_disabled")!.whoCanAct).toContain(
-      "Project Settings → AI Features",
+      "Project Settings → AI → AI Features",
     );
   });
 

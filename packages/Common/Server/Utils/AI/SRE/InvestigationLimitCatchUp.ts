@@ -28,8 +28,8 @@ import AIIncidentInvestigationRunner from "./IncidentInvestigationRunner";
  * AI SRE - incidents and alerts skipped while the project's own daily AI
  * limit was reached are investigated after the reset.
  *
- * When a project's own daily AI limit (Project Settings → AI Features →
- * More settings) stops OneUptime AI, a new incident or alert is not
+ * When a project's own daily AI limit (Project Settings → AI → AI Features
+ * → More settings) stops OneUptime AI, a new incident or alert is not
  * investigated: its AI card records project_daily_limit_reached. Before
  * this, nothing came back for it - after midnight UTC, when the count
  * starts again, it stayed uninvestigated however long it stayed open.

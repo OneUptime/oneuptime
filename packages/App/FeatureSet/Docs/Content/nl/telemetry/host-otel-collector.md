@@ -1133,7 +1133,7 @@ service:
 Voeg weer een `logs`-pipeline toe, met een smalle `filelog`- of `journald`-receiver, wanneer je die nodig hebt.
 
 > [!CAUTION]
-> Let op wat je wegsnoeit. Een logmonitor heeft zijn logs nodig, dus het wegfilteren van een severity of een kanaal legt de monitors die ernaar kijken het zwijgen op, en de Host-waarschuwingssjablonen hebben de metrics `*.utilization` nodig. Snoei de gegevens waarop je niet handelt, niet de gegevens waarnaar een monitor kijkt, en controleer de daling onder **Projectinstellingen → Gebruiksgeschiedenis** een dag of twee later (gebruik wordt per dag geteld) voordat je aan de volgende hefboom trekt.
+> Let op wat je wegsnoeit. Een logmonitor heeft zijn logs nodig, dus het wegfilteren van een severity of een kanaal legt de monitors die ernaar kijken het zwijgen op, en de Host-waarschuwingssjablonen hebben de metrics `*.utilization` nodig. Snoei de gegevens waarop je niet handelt, niet de gegevens waarnaar een monitor kijkt, en controleer de daling onder **Projectinstellingen → Facturering en facturen → Gebruiksgeschiedenis** een dag of twee later (gebruik wordt per dag geteld) voordat je aan de volgende hefboom trekt.
 
 ## Zelf-gehoste OneUptime en proxy's
 

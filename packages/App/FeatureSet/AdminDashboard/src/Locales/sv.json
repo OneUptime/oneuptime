@@ -894,5 +894,13 @@
   "Test again": "Testa igen",
   "Test passed": "Testet godkändes",
   "Test passed, with a warning": "Testet godkändes, med en varning",
-  "Test failed": "Testet misslyckades"
+  "Test failed": "Testet misslyckades",
+  "Opens in a new tab": "Öppnas i en ny flik",
+  "Note": "Obs",
+  "Tip": "Tips",
+  "Info": "Info",
+  "Important": "Viktigt",
+  "Warning": "Varning",
+  "Caution": "Försiktighet",
+  "Danger": "Fara"
 }

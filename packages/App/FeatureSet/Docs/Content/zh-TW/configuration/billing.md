@@ -176,7 +176,7 @@ API 金鑰需要 Growth 或更高的方案，而在 Scale 方案以下，SCIM �
 
 ## 疑難排解
 
-:::details "Add a payment method in Project Settings > Billing before using paid monitoring or telemetry"
+:::details "Add a payment method in Project Settings > Billing and Invoices > Billing before using paid monitoring or telemetry"
 使用 Free 方案的專案在建立作用中監測器或傳送遙測資料之前需要付款方式，因為這些是依用量付費的。在[付款方式](#付款方式)下新增一個。手動監測器仍然免費。
 :::
 

@@ -124,7 +124,7 @@ const toPayInvoiceError: ToPayInvoiceErrorFunction = (
     : `${providerMessage}.`;
 
   return new BadDataException(
-    `Your payment could not be completed: ${sentence} Please update your payment method in Project Settings > Billing and try again.`,
+    `Your payment could not be completed: ${sentence} Please update your payment method in Project Settings > Billing and Invoices > Billing and try again.`,
   );
 };
 

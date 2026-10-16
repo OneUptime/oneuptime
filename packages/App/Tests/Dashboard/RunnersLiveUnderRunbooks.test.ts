@@ -182,7 +182,7 @@ describe("the sweep reads the code it claims to", () => {
   test.each([
     "Create one under Runbooks → Runners.",
     "Assign it under Runbooks → Runner Credentials.",
-    "Project Settings → AI Features",
+    "Project Settings → AI → AI Features",
     "getRunnerScopeSettings(runner)",
     "const settings: RunnerWriteScopeSettings = load();",
   ])("and leaves %s alone", (sentence: string) => {

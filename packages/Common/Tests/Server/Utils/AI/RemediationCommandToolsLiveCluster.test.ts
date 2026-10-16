@@ -363,7 +363,7 @@ describe("RemediationCommandToolkit re-reads the cluster's AI page before every 
             code: "project_ai_disabled",
             title: "AI is disabled for this project",
             description: "OneUptime AI is switched off at the project level.",
-            nextStep: "Enable AI under Project Settings → AI Features.",
+            nextStep: "Enable AI under Project Settings → AI → AI Features.",
             blocks: "both",
           },
         ],

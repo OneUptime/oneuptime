@@ -234,7 +234,7 @@ Il testo delle query nell'output è normalizzato (ogni letterale stringa e numer
 
 ## Come funzionano le correzioni
 
-Le correzioni restano disattivate finché non le attivi, e per farlo servono due impostazioni sull'agente: `ONEUPTIME_AI_FIXES` impostato su una modalità diversa da `off` (vedi [Cosa può fare l'IA, deciso dall'agente](#cosa-può-fare-lia-deciso-dallagente)) e `ONEUPTIME_AI_ALLOW_WRITES=true` (vedi [Accesso in scrittura sull'agente](#accesso-in-scrittura-sullagente)). Una sola delle due non cambia nulla. Un agente precedente a `ONEUPTIME_AI_FIXES` prende invece le **Correzioni** dalla pagina dell'agente IA della risorsa. Le correzioni richiedono anche che l'IA sia abilitata per il progetto (**Abilita IA** in Impostazioni del progetto → AI Features), cosa che vale a meno che qualcuno non l'abbia disattivata.
+Le correzioni restano disattivate finché non le attivi, e per farlo servono due impostazioni sull'agente: `ONEUPTIME_AI_FIXES` impostato su una modalità diversa da `off` (vedi [Cosa può fare l'IA, deciso dall'agente](#cosa-può-fare-lia-deciso-dallagente)) e `ONEUPTIME_AI_ALLOW_WRITES=true` (vedi [Accesso in scrittura sull'agente](#accesso-in-scrittura-sullagente)). Una sola delle due non cambia nulla. Un agente precedente a `ONEUPTIME_AI_FIXES` prende invece le **Correzioni** dalla pagina dell'agente IA della risorsa. Le correzioni richiedono anche che l'IA sia abilitata per il progetto (**Abilita IA** in Impostazioni del progetto → IA → AI Features), cosa che vale a meno che qualcuno non l'abbia disattivata.
 
 ### Modalità di correzione
 

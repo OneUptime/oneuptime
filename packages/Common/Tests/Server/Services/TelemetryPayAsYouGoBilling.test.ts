@@ -164,7 +164,7 @@ describe("telemetry key creation and enablement payment admission", () => {
     const input: CreateBy<TelemetryIngestionKey> = createInput();
     delete input.data.keyType;
     await expect(hooks.onBeforeCreate(input)).rejects.toThrow(
-      "Project Settings > Billing",
+      "Project Settings > Billing and Invoices > Billing",
     );
   });
 

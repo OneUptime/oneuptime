@@ -84,7 +84,7 @@ describe("what a refused API key request is told", () => {
 
   test("is one plain message", () => {
     expect(message).toBe(
-      "API keys need the Growth plan. This project's plan does not include them, so its API keys stopped working. The keys are kept: upgrade the project to Growth in Project Settings > Billing and they work again.",
+      "API keys need the Growth plan. This project's plan does not include them, so its API keys stopped working. The keys are kept: upgrade the project to Growth in Project Settings > Billing and Invoices > Billing and they work again.",
     );
   });
 
@@ -95,7 +95,9 @@ describe("what a refused API key request is told", () => {
   test("says the keys are kept and work again, with the one thing to do", () => {
     expect(message).toContain("The keys are kept");
     expect(message).toContain("they work again");
-    expect(message).toContain("Project Settings > Billing");
+    expect(message).toContain(
+      "Project Settings > Billing and Invoices > Billing",
+    );
   });
 
   test("names whatever plan it is given", () => {
@@ -110,7 +112,7 @@ describe("what an identity provider is told", () => {
 
   test("is one plain message", () => {
     expect(message).toBe(
-      "SCIM provisioning needs the Scale plan. This project's plan does not include it, so its SCIM connections can only remove people: requests that add or change people or groups are refused. The connections are kept: upgrade the project to Scale in Project Settings > Billing and they work fully again.",
+      "SCIM provisioning needs the Scale plan. This project's plan does not include it, so its SCIM connections can only remove people: requests that add or change people or groups are refused. The connections are kept: upgrade the project to Scale in Project Settings > Billing and Invoices > Billing and they work fully again.",
     );
   });
 
@@ -130,7 +132,9 @@ describe("what an identity provider is told", () => {
   test("says the connections are kept, and where to upgrade", () => {
     expect(message).toContain("The connections are kept");
     expect(message).toContain("upgrade the project to Scale");
-    expect(message).toContain("Project Settings > Billing");
+    expect(message).toContain(
+      "Project Settings > Billing and Invoices > Billing",
+    );
     expect(message).toContain("they work fully again");
   });
 });

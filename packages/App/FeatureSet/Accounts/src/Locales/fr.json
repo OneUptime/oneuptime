@@ -240,7 +240,7 @@
     "accessWriteDescription": "Consulter les données et apporter des modifications : prendre en compte et résoudre les incidents et les alertes, ajouter des notes, et créer, mettre à jour ou supprimer des ressources.",
     "accessReadTitle": "Lecture seule",
     "accessReadDescription": "Consulter les incidents, les alertes, les moniteurs, les pages de statut et la télémétrie. Ne peut rien modifier.",
-    "permissionsNote": "Le client agit sous votre identité et ne peut jamais aller au-delà de vos propres permissions dans ce projet. Vous pouvez le déconnecter à tout moment dans Paramètres du projet > Serveur MCP.",
+    "permissionsNote": "Le client agit sous votre identité et ne peut jamais aller au-delà de vos propres permissions dans ce projet. Vous pouvez le déconnecter à tout moment dans Paramètres du projet > IA > Serveur MCP.",
     "authorizeButton": "Autoriser",
     "denyButton": "Annuler",
     "redirecting": "Nous vous renvoyons vers {{clientName}}...",
@@ -286,7 +286,7 @@
       "bought_from_reseller": "{{name}} – facturé par un revendeur"
     },
     "nothingToChoose": "Aucun de vos projets ne peut recevoir cet achat, et vous ne pouvez pas créer de projet sur ce serveur. Demandez au propriétaire du projet que cet achat doit couvrir de le configurer.",
-    "billingNote": "Votre forfait et votre utilisation sont facturés via {{marketplace}}, aux prix indiqués sur oneuptime.com/pricing. Vous pouvez changer de forfait à tout moment dans Paramètres du projet → Facturation.",
+    "billingNote": "Votre forfait et votre utilisation sont facturés via {{marketplace}}, aux prix indiqués sur oneuptime.com/pricing. Vous pouvez changer de forfait à tout moment dans Paramètres du projet → Facturation et factures → Facturation.",
     "submitButton": "Configurer l'achat",
     "notNowButton": "Pas maintenant",
     "redirecting": "Votre achat est configuré. Redirection vers votre projet…",
@@ -359,5 +359,13 @@
   "Quote": "Citation",
   "Code Block": "Bloc de code",
   "Switch to markdown source": "Passer à la source Markdown",
-  "Switch to visual editor": "Passer à l'éditeur visuel"
+  "Switch to visual editor": "Passer à l'éditeur visuel",
+  "Opens in a new tab": "S'ouvre dans un nouvel onglet",
+  "Note": "Remarque",
+  "Tip": "Astuce",
+  "Info": "Info",
+  "Important": "Important",
+  "Warning": "Avertissement",
+  "Caution": "Attention",
+  "Danger": "Danger"
 }

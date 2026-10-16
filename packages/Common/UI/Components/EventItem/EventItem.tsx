@@ -316,9 +316,14 @@ const EventItem: FunctionComponent<ComponentProps> = (
                               </p>
                             </div>
                             <div className="mt-2 text-sm text-gray-700">
-                              <p>
+                              {/*
+                               * A <div>, not a <p>: the note's Markdown draws
+                               * paragraphs, quotes and callouts of its own,
+                               * and none of them may sit inside a <p>.
+                               */}
+                              <div data-testid="event-item-note">
                                 <MarkdownViewer text={item.note || ""} />
-                              </p>
+                              </div>
                               {item.attachments &&
                                 item.attachments.length > 0 && (
                                   <EventAttachmentList

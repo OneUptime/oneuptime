@@ -394,7 +394,7 @@ describe("a cluster's AI access status: Enable AI is the only project switch", (
           projectGaps: ["project_ai_disabled/both"],
         });
         expect(projectGaps[0]?.nextStep).toBe(
-          "Enable AI under Project Settings → AI Features.",
+          "Enable AI under Project Settings → AI → AI Features.",
         );
         expect(status.isInvestigationReady).toBe(false);
         expect(status.isRemediationReady).toBe(false);
@@ -649,7 +649,7 @@ describe("a resource's AI access status: Enable AI is the only project switch", 
             projectGaps: ["ai_disabled_for_project/true/true"],
           });
           expect(projectGaps[0]?.nextStep).toBe(
-            "Enable AI under Project Settings → AI Features.",
+            "Enable AI under Project Settings → AI → AI Features.",
           );
           expect(status.isInvestigationReady).toBe(false);
           expect(status.isRemediationReady).toBe(false);

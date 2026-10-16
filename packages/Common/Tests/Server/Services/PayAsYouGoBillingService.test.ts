@@ -121,7 +121,7 @@ describe("PayAsYouGoBillingService", () => {
       PaymentRequiredException,
     );
     await expect(service.requirePayAsYouGo(PROJECT_ID)).rejects.toThrow(
-      "Project Settings > Billing",
+      "Project Settings > Billing and Invoices > Billing",
     );
     expect(getSubscription).not.toHaveBeenCalled();
     expect(findProject).toHaveBeenCalledWith(

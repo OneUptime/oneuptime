@@ -27,7 +27,7 @@ flowchart TB
 
 - **Ett OneUptime-projekt och rätten att skapa det du för över.** Projektägare och projektadministratörer kan föra över allt. Andra roller kan också köra en import och föra över de typer av poster de får skapa. Resten visas som inte överfört, med orsaken.
 - **En fil från Uptime Kuma.** I Uptime Kuma 1 innehåller JSON-säkerhetskopian varje monitor med dess inställningar. Uptime Kuma 2 har ingen säkerhetskopia, så spara dess mätvärdessida i stället: den anger varje monitors namn, typ och adress, men inte hur ofta den kontrolleras eller vad den letar efter.
-- **En betalningsmetod, i OneUptime Cloud.** Monitorer som kör kontroller faktureras efter användning, även med abonnemanget Free, så lägg till en under **Projektinställningar** > **Fakturering** innan du importerar. Utan en visas de monitorerna som inte överförda.
+- **En betalningsmetod, i OneUptime Cloud.** Monitorer som kör kontroller faktureras efter användning, även med abonnemanget Free, så lägg till en under **Projektinställningar** > **Fakturering och fakturor** > **Fakturering** innan du importerar. Utan en visas de monitorerna som inte överförda.
 
 ## Importera dina Uptime Kuma-monitorer
 

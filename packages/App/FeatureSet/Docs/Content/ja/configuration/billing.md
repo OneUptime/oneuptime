@@ -176,7 +176,7 @@ OneUptime Cloud では、次の管理設定にプランが必要です。その�
 
 ## トラブルシューティング
 
-:::details "Add a payment method in Project Settings > Billing before using paid monitoring or telemetry"
+:::details "Add a payment method in Project Settings > Billing and Invoices > Billing before using paid monitoring or telemetry"
 Free プランのプロジェクトでアクティブなモニターを作成したりテレメトリを送信したりするには、支払い方法が必要です。これらは従量課金だからです。[支払い方法](#支払い方法) で追加してください。手動モニターは引き続き無料です。
 :::
 

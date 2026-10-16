@@ -54,8 +54,8 @@ export default class InvestigationEligibility {
           ? `AI was disabled for this project when this ${kind} was created, so its automatic investigation did not start.`
           : "AI is currently disabled for this project, so new automatic investigations cannot start.",
         nextStep: recorded
-          ? "Review project AI settings (Project Settings → AI Features) for new records. Existing records are not automatically retried when AI is enabled."
-          : "Turn on Enable AI (Project Settings → AI Features) and automatic investigations to investigate new records. Existing records are not automatically retried.",
+          ? "Review project AI settings (Project Settings → AI → AI Features) for new records. Existing records are not automatically retried when AI is enabled."
+          : "Turn on Enable AI (Project Settings → AI → AI Features) and automatic investigations to investigate new records. Existing records are not automatically retried.",
       },
       automatic_investigation_disabled: {
         title: recorded
@@ -93,8 +93,8 @@ export default class InvestigationEligibility {
          * cannot refill the credits (it is off, or its last charge failed).
          */
         nextStep: recorded
-          ? `Review AI credits under Project Settings → AI Credits. Adding credits later does not retry this ${kind}.`
-          : `New ${kind}s can be investigated once AI credits are added under Project Settings → AI Credits. Existing records are not automatically retried.`,
+          ? `Review AI credits under Project Settings → AI → AI Credits. Adding credits later does not retry this ${kind}.`
+          : `New ${kind}s can be investigated once AI credits are added under Project Settings → AI → AI Credits. Existing records are not automatically retried.`,
       },
       project_daily_limit_reached: {
         title: recorded
@@ -109,8 +109,8 @@ export default class InvestigationEligibility {
          * limit is raised or removed, while the record is still open.
          */
         nextStep: recorded
-          ? `OneUptime AI investigates this ${kind} after the limit resets at midnight UTC, if it is still open then, or as soon as the limit is raised or removed under Project Settings → AI Features → More settings.`
-          : "Raise or remove the limit under Project Settings → AI Features → More settings, or wait for midnight UTC, when usage resets. Existing records are not automatically retried.",
+          ? `OneUptime AI investigates this ${kind} after the limit resets at midnight UTC, if it is still open then, or as soon as the limit is raised or removed under Project Settings → AI → AI Features → More settings.`
+          : "Raise or remove the limit under Project Settings → AI → AI Features → More settings, or wait for midnight UTC, when usage resets. Existing records are not automatically retried.",
       },
       severity_below_threshold: {
         title: recorded

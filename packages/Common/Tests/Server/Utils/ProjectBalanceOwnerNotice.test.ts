@@ -128,7 +128,7 @@ describe("the notice", () => {
       `${SafeHtml.escape(getProjectBalanceOwnerSentence(ProjectBalanceType.SmsOrCall))} <br/> <br/> <a href="${NOTIFICATION_SETTINGS_LINK}">${NOTIFICATION_SETTINGS_LINK}</a>`,
     );
     expect(html).toContain(
-      "Add balance in Project Settings &gt; Notification Settings, or turn on Auto Recharge there so it does not run out.",
+      "Add balance in Project Settings &gt; Notifications &gt; Notification Settings, or turn on Auto Recharge there so it does not run out.",
     );
   });
 
@@ -149,7 +149,9 @@ describe("the notice", () => {
       projectId: PROJECT_ID,
     });
 
-    expect(html).not.toContain("Project Settings > Notification Settings");
+    expect(html).not.toContain(
+      "Project Settings > Notifications > Notification Settings",
+    );
     expect(html.match(/<a href=/g)).toHaveLength(1);
   });
 
@@ -176,11 +178,12 @@ describe("the notice", () => {
     const html: string = ProjectBalanceOwnerNotice.getHtml({
       balance: ProjectBalanceType.AI,
       projectId: PROJECT_ID,
-      sentence: "Check the payment method in Project Settings > Billing.",
+      sentence:
+        "Check the payment method in Project Settings > Billing and Invoices > Billing.",
     });
 
     expect(html).toBe(
-      `Check the payment method in Project Settings &gt; Billing. <br/> <br/> <a href="${AI_CREDITS_LINK}">${AI_CREDITS_LINK}</a>`,
+      `Check the payment method in Project Settings &gt; Billing and Invoices &gt; Billing. <br/> <br/> <a href="${AI_CREDITS_LINK}">${AI_CREDITS_LINK}</a>`,
     );
   });
 
@@ -208,7 +211,7 @@ describe("the notice", () => {
         projectId: PROJECT_ID,
       }),
     ).toBe(
-      "Add balance in Project Settings &gt; Notification Settings, or turn on Auto Recharge there so it does not run out.",
+      "Add balance in Project Settings &gt; Notifications &gt; Notification Settings, or turn on Auto Recharge there so it does not run out.",
     );
   });
 });

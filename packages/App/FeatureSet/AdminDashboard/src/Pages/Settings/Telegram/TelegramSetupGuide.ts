@@ -13,7 +13,7 @@
  */
 
 export const TELEGRAM_PROJECT_SWITCH_STEP: string =
-  "In each project that should use Telegram, a project owner, a **Billing Admin** or someone with **Manage Billing** turns **Telegram** on in **Project Settings → Notification Settings**, in the **Notification Channels** card. It starts off in every project, and until it is on nobody in the project can link a Telegram account.";
+  "In each project that should use Telegram, a project owner, a **Billing Admin** or someone with **Manage Billing** turns **Telegram** on in **Project Settings → Notifications → Notification Settings**, in the **Notification Channels** card. It starts off in every project, and until it is on nobody in the project can link a Telegram account.";
 
 export const buildTelegramSetupMarkdown: (webhookUrl: string) => string = (
   webhookUrl: string,

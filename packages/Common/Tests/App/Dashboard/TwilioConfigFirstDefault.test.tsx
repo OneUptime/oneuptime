@@ -28,7 +28,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * A PROJECT'S FIRST TWILIO CONFIG BECOMES ITS DEFAULT: the Twilio Config
- * card on Project Settings > Notification Settings, on the real component,
+ * card on Project Settings > Notifications > Notification Settings, on the real component,
  * through the real ModelFormModal, ModelForm and BasicForm. Only the
  * network and the table around the dialog are stand-ins.
  *

@@ -98,7 +98,7 @@
       "title": "Authentification",
       "intro": "Vous devez authentifier vos requêtes pour accéder à l'un des points de terminaison de l'API OneUptime. Dans ce guide, nous verrons comment fonctionne l'authentification. OneUptime propose une seule méthode pour authentifier vos requêtes API : l'utilisation d'une clé API.",
       "generateApiKey": "Générer une clé API",
-      "generateApiKeyBody": "Veuillez vous rendre dans <strong>Paramètres du projet</strong> > <strong>Clés API</strong>. Créez une nouvelle clé API. Veuillez noter que les nouvelles clés API n'ont aucune autorisation attribuée, vous devrez donc en attribuer une avant de pouvoir l'utiliser.",
+      "generateApiKeyBody": "Veuillez vous rendre dans <strong>Paramètres du projet</strong> > <strong>Avancé</strong> > <strong>Clés API</strong>. Créez une nouvelle clé API. Veuillez noter que les nouvelles clés API n'ont aucune autorisation attribuée, vous devrez donc en attribuer une avant de pouvoir l'utiliser.",
       "readMorePermissions": "En savoir plus sur les autorisations",
       "projectId": "ID du projet",
       "projectIdBody": "Veuillez vous rendre dans <strong>Paramètres du projet</strong> > <strong>Projet</strong>. Vous devriez y voir l'ID de votre projet.",
@@ -132,7 +132,7 @@
       "metaDescription": "Découvrez comment fonctionnent les autorisations avec OneUptime",
       "badge": "Guide",
       "title": "Autorisations",
-      "intro": "Votre jeton API a besoin d'autorisations pour créer, mettre à jour, lire ou supprimer une ressource. Si vous ne disposez pas des autorisations nécessaires pour effectuer une requête, un statut <code>4xx</code> sera renvoyé en réponse. Vous pouvez gérer les autorisations de votre clé API dans Paramètres du projet > Clés API.",
+      "intro": "Votre jeton API a besoin d'autorisations pour créer, mettre à jour, lire ou supprimer une ressource. Si vous ne disposez pas des autorisations nécessaires pour effectuer une requête, un statut <code>4xx</code> sera renvoyé en réponse. Vous pouvez gérer les autorisations de votre clé API dans Paramètres du projet > Avancé > Clés API.",
       "jumpToCategory": "Aller à une catégorie"
     },
     "errors": {

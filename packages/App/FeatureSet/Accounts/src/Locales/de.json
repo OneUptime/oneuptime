@@ -240,7 +240,7 @@
     "accessWriteDescription": "Daten ansehen und Änderungen vornehmen: Vorfälle und Warnungen bestätigen und beheben, Notizen hinzufügen sowie Ressourcen erstellen, aktualisieren oder löschen.",
     "accessReadTitle": "Nur Lesen",
     "accessReadDescription": "Vorfälle, Warnungen, Monitore, Statusseiten und Telemetrie ansehen. Kann nichts ändern.",
-    "permissionsNote": "Der Client handelt in Ihrem Namen und kann niemals mehr tun, als Ihre eigenen Berechtigungen in diesem Projekt erlauben. Sie können die Verbindung jederzeit unter Projekteinstellungen > MCP-Server trennen.",
+    "permissionsNote": "Der Client handelt in Ihrem Namen und kann niemals mehr tun, als Ihre eigenen Berechtigungen in diesem Projekt erlauben. Sie können die Verbindung jederzeit unter Projekteinstellungen > KI > MCP-Server trennen.",
     "authorizeButton": "Autorisieren",
     "denyButton": "Abbrechen",
     "redirecting": "Sie werden zu {{clientName}} zurückgeleitet...",
@@ -286,7 +286,7 @@
       "bought_from_reseller": "{{name}} – wird über einen Wiederverkäufer abgerechnet"
     },
     "nothingToChoose": "Keines Ihrer Projekte kann diesen Kauf übernehmen, und Sie können auf diesem Server keine Projekte erstellen. Bitten Sie den Eigentümer des Projekts, das darüber bezahlt werden soll, den Kauf einzurichten.",
-    "billingNote": "Ihr Tarif und Ihre Nutzung werden über den {{marketplace}} zu den Preisen auf oneuptime.com/pricing abgerechnet. Sie können Ihren Tarif jederzeit unter Projekteinstellungen → Abrechnung ändern.",
+    "billingNote": "Ihr Tarif und Ihre Nutzung werden über den {{marketplace}} zu den Preisen auf oneuptime.com/pricing abgerechnet. Sie können Ihren Tarif jederzeit unter Projekteinstellungen → Abrechnung und Rechnungen → Abrechnung ändern.",
     "submitButton": "Kauf einrichten",
     "notNowButton": "Jetzt nicht",
     "redirecting": "Ihr Kauf ist eingerichtet. Sie werden zu Ihrem Projekt weitergeleitet…",
@@ -359,5 +359,13 @@
   "Quote": "Zitat",
   "Code Block": "Codeblock",
   "Switch to markdown source": "Zur Markdown-Quelle wechseln",
-  "Switch to visual editor": "Zum visuellen Editor wechseln"
+  "Switch to visual editor": "Zum visuellen Editor wechseln",
+  "Opens in a new tab": "Öffnet in einem neuen Tab",
+  "Note": "Hinweis",
+  "Tip": "Tipp",
+  "Info": "Info",
+  "Important": "Wichtig",
+  "Warning": "Warnung",
+  "Caution": "Vorsicht",
+  "Danger": "Gefahr"
 }

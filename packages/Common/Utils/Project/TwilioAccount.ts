@@ -3,13 +3,13 @@ import { PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PAGE } from "./NotificationChanne
 /*
  * The Twilio account SMS and phone calls go through.
  *
- * SMS and calls to the people in a project - on-call alerts, notifications,
- * and the codes that verify their phone numbers - go through the project's
- * default Twilio config (Project Settings > Notification Settings), and
+ * SMS and calls to the people in a project - on-call alerts, notifications, and
+ * the codes that verify their phone numbers - go through the project's default
+ * Twilio config (Project Settings > Notifications > Notification Settings), and
  * through the Twilio account of the OneUptime server itself when the project
  * has none (Admin Dashboard > Settings > Call and SMS). OneUptime Cloud always
- * has the second. A self-hosted server has neither until somebody sets one
- * up, and until then no SMS or call can go anywhere.
+ * has the second. A self-hosted server has neither until somebody sets one up,
+ * and until then no SMS or call can go anywhere.
  *
  * That used to be found out the hard way: the Notification service logged
  * "Twilio Config not found", the verification code was sent fire-and-forget,

@@ -956,7 +956,7 @@ describe("how the page explains authentication", () => {
 
     const link: HTMLElement = within(card("Authentication")).getByRole("link");
 
-    expect(link).toHaveTextContent("Project Settings → API Keys");
+    expect(link).toHaveTextContent("Project Settings → Advanced → API Keys");
     expect(link).toHaveAttribute(
       "href",
       `/dashboard/${PROJECT_ID}/settings/api-keys`,

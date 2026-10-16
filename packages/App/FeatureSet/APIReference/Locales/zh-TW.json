@@ -98,10 +98,10 @@
       "title": "身分驗證",
       "intro": "您需要對請求進行身分驗證才能存取 OneUptime API 中的任何端點。在本指南中,我們將了解身分驗證的運作方式。OneUptime 提供一種對您的 API 請求進行身分驗證的方式 - 使用 API 金鑰。",
       "generateApiKey": "產生 API 金鑰",
-      "generateApiKeyBody": "請前往 <strong>Project Settings</strong> > <strong>API Keys</strong>。建立一個新的 API 金鑰。請注意:新的 API 金鑰未指派任何權限,因此您必須先指派權限才能使用它。",
+      "generateApiKeyBody": "請前往 <strong>專案設定</strong> > <strong>進階</strong> > <strong>API 金鑰</strong>。建立一個新的 API 金鑰。請注意:新的 API 金鑰未指派任何權限,因此您必須先指派權限才能使用它。",
       "readMorePermissions": "閱讀更多關於權限的內容",
       "projectId": "專案 ID",
-      "projectIdBody": "請前往 <strong>Project Settings</strong> > <strong>Project</strong>。您應該能在那裡看到您的專案 ID。",
+      "projectIdBody": "請前往 <strong>專案設定</strong> > <strong>專案</strong>。您應該能在那裡看到您的專案 ID。",
       "authWithApiKey": "使用 API 金鑰進行身分驗證",
       "authWithApiKeyBody": "在發起請求時,您可以在請求標頭中使用 OneUptime API 金鑰。當您發起請求時,可以在 <code>ApiKey</code> 標頭中使用您的 API 金鑰。",
       "exampleApiRequest": "使用 API 金鑰的請求範例",
@@ -132,7 +132,7 @@
       "metaDescription": "了解 OneUptime 中權限的運作方式",
       "badge": "指南",
       "title": "權限",
-      "intro": "您的 API 權杖需要權限才能建立、更新、讀取或刪除任何資源。如果您沒有權限發起請求,將回傳 <code>4xx</code> 狀態作為回應。您可以在 Project Settings > API Keys 中管理您的 API 金鑰的權限。",
+      "intro": "您的 API 權杖需要權限才能建立、更新、讀取或刪除任何資源。如果您沒有權限發起請求,將回傳 <code>4xx</code> 狀態作為回應。您可以在 專案設定 > 進階 > API 金鑰 中管理您的 API 金鑰的權限。",
       "jumpToCategory": "跳轉到分類"
     },
     "errors": {

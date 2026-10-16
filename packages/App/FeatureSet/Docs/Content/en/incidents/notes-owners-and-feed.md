@@ -95,7 +95,7 @@ The same composer opens in a dialog from **Add Public Note** in the **Actions** 
 > [!TIP]
 > **The posting time is the note's real timestamp.** Status pages sort and display public notes by `postedAt`, not by when you typed them — so if you're catching the status page up on an update you sent 40 minutes ago, choose **Posted now** and set when it actually happened. If a note arrives through the API (`/api/incident-public-note`) without one, OneUptime stamps the current time.
 
-Each note shows who wrote it, its posting time, the rendered Markdown with its attachments and, in its header, where its subscriber notification stands. **Search notes…** finds notes by what they say, and the feed can be read newest or oldest first.
+Each note shows who wrote it, its posting time, the rendered Markdown with its attachments and, in its header, where its subscriber notification stands. **Search notes…** finds notes by what they say, and the feed can be read newest or oldest first. Links to other sites and to attachments open in a new tab. Lines that start with `>` show as a quote; a quote whose first line is just `> [!NOTE]`, `> [!TIP]` or `> [!WARNING]` shows as a callout instead.
 
 ## Posting a private note
 

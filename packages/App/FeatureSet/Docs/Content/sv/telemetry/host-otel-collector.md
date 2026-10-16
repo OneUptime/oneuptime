@@ -1133,7 +1133,7 @@ service:
 Lägg tillbaka en `logs`-pipeline, med en smal `filelog`- eller `journald`-receiver, när du behöver den.
 
 > [!CAUTION]
-> Var försiktig med vad du skär bort. En loggmonitor behöver att dess loggar kommer in, så att filtrera bort en allvarlighetsgrad eller en kanal tystar de monitorer som bevakar den, och Host-larmmallarna behöver `*.utilization`-mätvärdena. Trimma data som du inte agerar på, inte data som en monitor bevakar, och kontrollera minskningen under **Projektinställningar → Användningshistorik** en dag eller två senare (användning räknas per dag) innan du drar i nästa spak.
+> Var försiktig med vad du skär bort. En loggmonitor behöver att dess loggar kommer in, så att filtrera bort en allvarlighetsgrad eller en kanal tystar de monitorer som bevakar den, och Host-larmmallarna behöver `*.utilization`-mätvärdena. Trimma data som du inte agerar på, inte data som en monitor bevakar, och kontrollera minskningen under **Projektinställningar → Fakturering och fakturor → Användningshistorik** en dag eller två senare (användning räknas per dag) innan du drar i nästa spak.
 
 ## Självhostad OneUptime och proxyservrar
 

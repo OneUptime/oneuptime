@@ -95,7 +95,7 @@ Dasselbe Eingabefeld öffnet sich in einem Dialog über **Öffentliche Notiz hin
 > [!TIP]
 > **Der Zeitpunkt des Postens ist der echte Zeitstempel der Notiz.** Statusseiten sortieren und zeigen öffentliche Notizen nach `postedAt`, nicht danach, wann Sie sie getippt haben – wenn Sie die Statusseite also mit einem Update nachziehen, das Sie vor 40 Minuten verschickt haben, wählen Sie **Posted now** und setzen den tatsächlichen Zeitpunkt. Kommt eine Notiz über die API (`/api/incident-public-note`) ohne ihn an, stempelt OneUptime die aktuelle Zeit.
 
-Jede Notiz zeigt, wer sie geschrieben hat, ihren Zeitpunkt, das gerenderte Markdown mit ihren Anhängen und in ihrer Kopfzeile den Stand ihrer Abonnentenbenachrichtigung. **Notizen durchsuchen…** findet Notizen nach ihrem Inhalt, und der Feed lässt sich mit den neuesten oder ältesten zuerst lesen.
+Jede Notiz zeigt, wer sie geschrieben hat, ihren Zeitpunkt, das gerenderte Markdown mit ihren Anhängen und in ihrer Kopfzeile den Stand ihrer Abonnentenbenachrichtigung. **Notizen durchsuchen…** findet Notizen nach ihrem Inhalt, und der Feed lässt sich mit den neuesten oder ältesten zuerst lesen. Links zu anderen Websites und zu Anhängen öffnen sich in einem neuen Tab. Zeilen, die mit `>` beginnen, werden als Zitat angezeigt; beginnen Sie es mit einer eigenen Zeile `> [!NOTE]`, `> [!TIP]` oder `> [!WARNING]`, um es stattdessen als Hinweisfeld anzuzeigen.
 
 ## Eine private Notiz posten
 

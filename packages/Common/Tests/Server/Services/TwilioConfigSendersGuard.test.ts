@@ -6,7 +6,7 @@ import path from "path";
  * EVERY SMS AND CALL THE SERVER SENDS SAYS WHICH TWILIO ACCOUNT IT GOES
  * THROUGH, AND THE ONES TO A PROJECT'S MEMBERS GO THROUGH ITS DEFAULT.
  *
- * Project Settings -> Notification Settings tells people that the SMS and
+ * Project Settings -> Notifications -> Notification Settings tells people that the SMS and
  * calls to everyone in their project - on-call alerts, notifications,
  * verification codes - go through the project's default Twilio config, and
  * a project's first config now becomes that default by itself. That is only

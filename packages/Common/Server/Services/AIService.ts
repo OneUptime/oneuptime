@@ -325,7 +325,7 @@ export const INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS: number = 4 * 60 * 1000;
  * screen where the switch can be turned back on.
  */
 export const AI_DISABLED_MESSAGE: string =
-  "AI features are disabled for this project. Enable them in Project Settings → AI Features.";
+  "AI features are disabled for this project. Enable them in Project Settings → AI → AI Features.";
 
 /*
  * Why no AI run can start in a project whose OneUptime AI credits are used
@@ -360,7 +360,7 @@ export const PROJECT_DAILY_AI_LIMIT_REACHED_PATTERN: RegExp =
 
 /*
  * Where a project stands against its own daily AI limits (Project Settings
- * → AI Features → More settings) for one piece of AI work: see
+ * → AI → AI Features → More settings) for one piece of AI work: see
  * Types/AI/ProjectAiDailyLimits for what the limits mean.
  */
 export interface ProjectAiDailyLimitStatus extends ProjectAiDailyLimitValues {
@@ -1146,7 +1146,7 @@ export class Service extends BaseService {
 
     if (!llmProvider) {
       throw new BadDataException(
-        "No LLM provider configured for this project. Please configure an LLM provider in Settings > AI > LLM Providers.",
+        "No LLM provider configured for this project. Please configure an LLM provider in Project Settings > AI > LLM Providers.",
       );
     }
 
@@ -1280,8 +1280,8 @@ export class Service extends BaseService {
     }
 
     /*
-     * The project's own daily AI limits (Project Settings → AI Features →
-     * More settings): a ceiling over EVERY call, Ask AI and every other
+     * The project's own daily AI limits (Project Settings → AI → AI
+     * Features → More settings): a ceiling over EVERY call, Ask AI and every other
      * interactive feature included, not only autonomous work - it is what
      * the project's owners chose to let AI use in a day. The token limit
      * counts every call; the spend limit only calls billed to the project's

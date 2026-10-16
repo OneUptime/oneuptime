@@ -470,7 +470,7 @@ describePostgres(
 
         for (const refusal of outcome.refusals) {
           expect(refusal).toBe(
-            "This project has reached its plan's limit of 5 active monitors, so no more can be added. Delete monitors you no longer need, or change the plan in Project Settings > Billing. Manual monitors do not count towards the limit; monitors that are turned off or archived do.",
+            "This project has reached its plan's limit of 5 active monitors, so no more can be added. Delete monitors you no longer need, or change the plan in Project Settings > Billing and Invoices > Billing. Manual monitors do not count towards the limit; monitors that are turned off or archived do.",
           );
         }
 
@@ -539,7 +539,7 @@ describePostgres(
         await expect(
           createMonitor(MonitorType.IncomingRequest, "One too many"),
         ).rejects.toThrow(
-          "This project has 7 active monitors and its plan includes 5, so no more can be added until it has fewer than 5. All of its monitors keep running. Delete monitors you no longer need, or change the plan in Project Settings > Billing. Manual monitors do not count towards the limit; monitors that are turned off or archived do.",
+          "This project has 7 active monitors and its plan includes 5, so no more can be added until it has fewer than 5. All of its monitors keep running. Delete monitors you no longer need, or change the plan in Project Settings > Billing and Invoices > Billing. Manual monitors do not count towards the limit; monitors that are turned off or archived do.",
         );
 
         const manual: Monitor = await createMonitor(

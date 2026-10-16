@@ -328,8 +328,8 @@ export default class AIInvestigationEngine {
     }
 
     /*
-     * The project's own daily AI limits (Project Settings → AI Features →
-     * More settings): once one is reached, every model call is refused
+     * The project's own daily AI limits (Project Settings → AI → AI
+     * Features → More settings): once one is reached, every model call is refused
      * until midnight UTC, so a run started now would only fail. Fails open
      * like the balance check - the model call still enforces the limits.
      */

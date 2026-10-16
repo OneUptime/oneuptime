@@ -343,5 +343,13 @@
   "{{field}} is required.": "{{field}} आवश्यक है।",
   "{{field}} should match {{matchField}}": "{{field}} को {{matchField}} से मेल खाना चाहिए",
   "Email is not valid.": "ईमेल मान्य नहीं है।",
-  "Next": "अगला"
+  "Next": "अगला",
+  "Opens in a new tab": "नए टैब में खुलता है",
+  "Note": "नोट",
+  "Tip": "सुझाव",
+  "Info": "जानकारी",
+  "Important": "महत्वपूर्ण",
+  "Warning": "चेतावनी",
+  "Caution": "सावधानी",
+  "Danger": "खतरा"
 }

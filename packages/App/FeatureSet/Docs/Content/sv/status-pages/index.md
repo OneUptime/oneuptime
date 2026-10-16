@@ -87,7 +87,7 @@ När du har öppnat en statussida är dess egen vänstermeny indelad i nio sekti
 | --- | --- |
 | **Grundläggande** | **Översikt**, **Meddelanden**, **Ägare**. |
 | **Resurser** | En enda skärm **Resurser** (grupperna till vänster, den valda gruppens monitorer till höger) och **Monitor Rules**. |
-| **Prenumeranter** | **E-postprenumeranter**, **SMS-prenumeranter**, **Slack-prenumeranter**, **MS Teams-prenumeranter**, **Webhook-prenumeranter**, **Prenumerantinställningar**. |
+| **Prenumeranter** | **E-postprenumeranter**, **SMS-prenumeranter**, **Slack-prenumeranter**, **Microsoft Teams-prenumeranter**, **Webhook-prenumeranter**, **Prenumerantinställningar**. |
 | **Aviseringsloggar** | **Aviseringsloggar**: vad som har skickats till prenumeranterna. |
 | **Varumärke** | **Varumärke** (logotyp, titel, favicon, länkar, sidfot, färger och språk, på en sida), **Anpassade domäner**, **HTML, CSS och JavaScript**. |
 | **Säkerhet** | **Åtkomst** (vem som får se sidan), **Privata användare**, **SSO**, **OIDC**, **SCIM**. |

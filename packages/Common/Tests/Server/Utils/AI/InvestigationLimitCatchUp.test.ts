@@ -34,7 +34,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * Regression (found in #4410): an incident or alert created while the
- * project's own daily AI limit (Project Settings → AI Features → More
+ * project's own daily AI limit (Project Settings → AI → AI Features → More
  * settings) was reached was skipped - its AI card says "project_daily_limit_
  * reached" - and nothing ever came back for it. After midnight UTC, when
  * the limit resets, it stayed uninvestigated however long it stayed open.

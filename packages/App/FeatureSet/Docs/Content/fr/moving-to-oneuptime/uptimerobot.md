@@ -27,7 +27,7 @@ flowchart TB
 
 - **Un projet OneUptime, et le droit de créer ce que vous importez.** Les propriétaires et administrateurs du projet peuvent tout importer. Les autres rôles peuvent aussi lancer un import, et importer les types d'enregistrements qu'ils peuvent créer. Le reste est affiché comme non importé, avec la raison.
 - **Une clé API UptimeRobot.** La Read-only API key suffit : l'import n'écrit jamais dans UptimeRobot. La Main API key fonctionne aussi, mais une clé propre à un moniteur ne lit que ce moniteur.
-- **Un moyen de paiement, sur OneUptime Cloud.** Les moniteurs qui effectuent des vérifications sont facturés à l'usage, même avec l'offre Free : ajoutez-en un dans **Paramètres du projet** > **Facturation** avant l'import. Sans lui, ces moniteurs sont affichés comme non importés.
+- **Un moyen de paiement, sur OneUptime Cloud.** Les moniteurs qui effectuent des vérifications sont facturés à l'usage, même avec l'offre Free : ajoutez-en un dans **Paramètres du projet** > **Facturation et factures** > **Facturation** avant l'import. Sans lui, ces moniteurs sont affichés comme non importés.
 
 ## Importer votre compte UptimeRobot
 

@@ -192,6 +192,9 @@ const INPUTS_SCRIPT: string = String.raw`
     "a paragraph of lines": () => lines64("lorem ipsum dolor sit amet\n"),
     // Every parser ran out of stack.
     "quotes nested deep": () => repeatTo("> ", QUADRATIC_SIZE) + "a",
+    // The viewer's callout pass reads the start of every quote.
+    "callouts": () => lines64("> [!WARNING]\n> careful\n\n"),
+    "quotes opening with a bold label": () => lines64("> **Note:** a\n\n"),
     "lists nested deep": () => {
       let text = "";
       for (let depth = 0; text.length < QUADRATIC_SIZE; depth++) {
@@ -586,14 +589,16 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
 
   test("the dashboard renders it, and still renders what is around it", () => {
     /*
-     * What MarkdownViewer does with a text: react-markdown with remark-gfm,
-     * the held-back text put back by the viewer's rehype plugin, and the
-     * viewer's urlTransform - rendered to HTML as a browser would get it.
+     * What MarkdownViewer does with a text: react-markdown with remark-gfm
+     * and the viewer's callout pass, the held-back text put back by the
+     * viewer's rehype plugin, and the viewer's urlTransform - rendered to
+     * HTML as a browser would get it.
      */
     const report: ProcessReport = runUnoptimized(
       [
         'export { holdBackForViewer, rehypePutBackHeldText } from "./UI/Components/Markdown.tsx/MarkdownViewerOverLongText";',
         'export { markdownUrlTransform } from "./UI/Components/Markdown.tsx/MarkdownUrlTransform";',
+        'export { remarkMarkdownCallouts } from "./UI/Components/Markdown.tsx/MarkdownCallouts";',
         'export { default as MonitorTemplateUtil } from "./Server/Utils/Monitor/MonitorTemplateUtil";',
       ],
       String.raw`
@@ -614,7 +619,7 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
             React.createElement(
               ReactMarkdown,
               {
-                remarkPlugins: [remarkGfm],
+                remarkPlugins: [remarkGfm, lib.remarkMarkdownCallouts],
                 rehypePlugins:
                   heldBack.held.length > 0
                     ? [[lib.rehypePutBackHeldText, { held: heldBack.held }]]
@@ -828,6 +833,7 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
       [
         'export { holdBackForViewer, rehypePutBackHeldText } from "./UI/Components/Markdown.tsx/MarkdownViewerOverLongText";',
         'export { markdownUrlTransform } from "./UI/Components/Markdown.tsx/MarkdownUrlTransform";',
+        'export { remarkMarkdownCallouts } from "./UI/Components/Markdown.tsx/MarkdownCallouts";',
       ],
       String.raw`
         const React = require("react");
@@ -847,7 +853,7 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
               React.createElement(
                 ReactMarkdown,
                 {
-                  remarkPlugins: [remarkGfm],
+                  remarkPlugins: [remarkGfm, lib.remarkMarkdownCallouts],
                   rehypePlugins:
                     heldBack.held.length > 0
                       ? [[lib.rehypePutBackHeldText, { held: heldBack.held, heldLines: heldBack.heldLines }]]

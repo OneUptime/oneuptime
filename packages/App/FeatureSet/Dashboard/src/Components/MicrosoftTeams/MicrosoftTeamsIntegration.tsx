@@ -916,6 +916,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                 text={`
 ##### Installation Steps:
 
+> [!WARNING]
 > **Do not skip this because a "OneUptime" app is already in your tenant.**
 > Only the package downloaded from this page carries this deployment's bot id (\`${MicrosoftTeamsAppClientId}\`). The OneUptime app in the Microsoft Teams store points at OneUptime Cloud's bot, so Teams will accept it, show it in **Manage team → Apps**, and then refuse every message this deployment sends with *"The bot is not part of the conversation roster."* If a OneUptime app is already installed and you did not upload it from this page, remove it first.
 

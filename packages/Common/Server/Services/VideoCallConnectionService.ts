@@ -86,7 +86,7 @@ export class Service extends ProjectReferencesService<Model> {
        */
       if (!createBy.props.isRoot) {
         throw new BadDataException(
-          `A connection made by signing in is created by signing in: use Connect on ${getVideoCallProviderDisplayName(createBy.data.provider)} in Project Settings > Video Calls.`,
+          `A connection made by signing in is created by signing in: use Connect on ${getVideoCallProviderDisplayName(createBy.data.provider)} in Project Settings > Workspace > Video Calls.`,
         );
       }
 
@@ -208,7 +208,7 @@ export class Service extends ProjectReferencesService<Model> {
         const title: string = getVideoCallProviderDisplayName(current.provider);
 
         throw new BadDataException(
-          `The credentials of a connection made by signing in are kept by OneUptime. To sign in again, reconnect ${title} in Project Settings > Video Calls.`,
+          `The credentials of a connection made by signing in are kept by OneUptime. To sign in again, reconnect ${title} in Project Settings > Workspace > Video Calls.`,
         );
       }
 
@@ -298,7 +298,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (!connection || !connection.provider) {
       throw new BadDataException(
-        "The video call connection no longer exists. Pick another one, or connect a provider again in Project Settings > Video Calls.",
+        "The video call connection no longer exists. Pick another one, or connect a provider again in Project Settings > Workspace > Video Calls.",
       );
     }
 

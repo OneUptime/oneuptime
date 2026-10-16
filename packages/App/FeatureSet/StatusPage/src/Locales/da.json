@@ -343,5 +343,13 @@
   "{{field}} is required.": "{{field}} er påkrævet.",
   "{{field}} should match {{matchField}}": "{{field}} skal matche {{matchField}}",
   "Email is not valid.": "E-mailen er ugyldig.",
-  "Next": "Næste"
+  "Next": "Næste",
+  "Opens in a new tab": "Åbner i en ny fane",
+  "Note": "Bemærk",
+  "Tip": "Tip",
+  "Info": "Info",
+  "Important": "Vigtigt",
+  "Warning": "Advarsel",
+  "Caution": "Forsigtig",
+  "Danger": "Fare"
 }

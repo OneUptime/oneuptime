@@ -240,7 +240,7 @@
     "accessWriteDescription": "Visualizzare i dati e apportare modifiche: riconoscere e risolvere incidenti e avvisi, aggiungere note e creare, aggiornare o eliminare risorse.",
     "accessReadTitle": "Sola lettura",
     "accessReadDescription": "Visualizzare incidenti, avvisi, monitor, pagine di stato e telemetria. Non può modificare nulla.",
-    "permissionsNote": "Il client agisce a tuo nome e non può mai fare più di quanto consentono i tuoi stessi permessi in questo progetto. Puoi scollegarlo in qualsiasi momento in Impostazioni del progetto > Server MCP.",
+    "permissionsNote": "Il client agisce a tuo nome e non può mai fare più di quanto consentono i tuoi stessi permessi in questo progetto. Puoi scollegarlo in qualsiasi momento in Impostazioni del progetto > IA > Server MCP.",
     "authorizeButton": "Autorizza",
     "denyButton": "Annulla",
     "redirecting": "Ti stiamo riportando a {{clientName}}...",
@@ -286,7 +286,7 @@
       "bought_from_reseller": "{{name}} – fatturato da un rivenditore"
     },
     "nothingToChoose": "Nessuno dei tuoi progetti può ricevere questo acquisto e non puoi creare progetti su questo server. Chiedi al proprietario del progetto da pagare con questo acquisto di configurarlo.",
-    "billingNote": "Il tuo piano e il tuo utilizzo vengono fatturati tramite {{marketplace}}, ai prezzi indicati su oneuptime.com/pricing. Puoi cambiare piano in qualsiasi momento in Impostazioni del progetto → Fatturazione.",
+    "billingNote": "Il tuo piano e il tuo utilizzo vengono fatturati tramite {{marketplace}}, ai prezzi indicati su oneuptime.com/pricing. Puoi cambiare piano in qualsiasi momento in Impostazioni del progetto → Fatturazione e fatture → Fatturazione.",
     "submitButton": "Configura acquisto",
     "notNowButton": "Non ora",
     "redirecting": "Il tuo acquisto è configurato. Ti stiamo portando al tuo progetto…",
@@ -359,5 +359,13 @@
   "Quote": "Citazione",
   "Code Block": "Blocco di codice",
   "Switch to markdown source": "Passa al sorgente Markdown",
-  "Switch to visual editor": "Passa all'editor visuale"
+  "Switch to visual editor": "Passa all'editor visuale",
+  "Opens in a new tab": "Si apre in una nuova scheda",
+  "Note": "Nota",
+  "Tip": "Suggerimento",
+  "Info": "Info",
+  "Important": "Importante",
+  "Warning": "Avviso",
+  "Caution": "Attenzione",
+  "Danger": "Pericolo"
 }

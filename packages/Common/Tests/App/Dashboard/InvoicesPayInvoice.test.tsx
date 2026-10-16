@@ -453,7 +453,7 @@ describe("Invoices page Pay Invoice", () => {
           return true;
         },
         message:
-          "Your payment could not be completed: Your card was declined. Please update your payment method in Project Settings > Billing and try again.",
+          "Your payment could not be completed: Your card was declined. Please update your payment method in Project Settings > Billing and Invoices > Billing and try again.",
       });
 
       await renderAndClickPay();

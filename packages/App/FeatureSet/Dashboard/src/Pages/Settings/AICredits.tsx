@@ -40,7 +40,7 @@ import React, {
 } from "react";
 
 /*
- * Project Settings -> AI Credits (listed only where billing is on): the
+ * Project Settings -> AI -> AI Credits (listed only where billing is on): the
  * balance OneUptime AI is paid from on the OneUptime-hosted provider, and
  * its Auto Recharge.
  *
@@ -139,7 +139,7 @@ const AIBillingSettings: FunctionComponent<
       />
 
       {/*
-       * Enable AI moved to Project Settings → AI Features
+       * Enable AI moved to Project Settings → AI → AI Features
        * (Pages/Settings/AIFeatures), which every install shows. This page is
        * listed only when billing is on, so it keeps the balance and recharge
        * settings alone.
