@@ -122,7 +122,7 @@ flowchart TB
 
 ### ट्रिगर जोड़ें
 
-डैश वाले **Choose what starts this workflow** ब्लॉक पर क्लिक करें, फिर **Add Trigger** पैनल में **Popular** के अंतर्गत **On Create Incident** पर क्लिक करें।
+डैश वाले **Choose what starts this workflow** ब्लॉक पर क्लिक करें, फिर **ट्रिगर जोड़ें** पैनल में **Popular** के अंतर्गत **On Create Incident** पर क्लिक करें।
 
 ट्रिगर डैश वाले ब्लॉक की जगह ले लेता है। उस पर दिखने वाला ID, `incident-on-create-1`, वही है जिससे बाद के ब्लॉक इसका संदर्भ देते हैं।
 

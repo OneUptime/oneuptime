@@ -122,7 +122,7 @@ flowchart TB
 
 ### 新增觸發器
 
-點選虛線的 **Choose what starts this workflow** 區塊，然後在 **Add Trigger** 面板中點選 **Popular** 底下的 **On Create Incident**。
+點選虛線的 **Choose what starts this workflow** 區塊，然後在 **新增觸發器** 面板中點選 **Popular** 底下的 **On Create Incident**。
 
 觸發器會取代虛線區塊的位置。它上面的 ID `incident-on-create-1` 就是後續區塊參照它的方式。
 

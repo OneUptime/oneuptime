@@ -25,8 +25,10 @@ Hvert workflow har præcis én **trigger** øverst. Alt andet er en **komponent*
 
 | For at tilføje         | Klik på                                                        | Panel, der åbner              |
 | ---------------------- | -------------------------------------------------------------- | ----------------------------- |
-| Triggeren              | Den stiplede pladsholderblok                                   | **Add Trigger**               |
+| Triggeren              | Den stiplede pladsholderblok, eller **Tilføj trigger** i værktøjslinjen | **Tilføj trigger**            |
 | Enhver anden blok      | **Tilføj komponent**, i værktøjslinjen over lærredet           | **Tilføj komponent**          |
+
+Knappen i værktøjslinjen hedder **Tilføj trigger**, så længe workflowet ikke har en trigger, og **Tilføj komponent**, så snart det har en.
 
 Begge paneler åbner på de blokke, de fleste workflows bruger, under **Popular**, efterfulgt af de øvrige indbyggede blokke. Under **OneUptime resources** klikker du på en ressource som **Hændelse** for at se, hvad du kan gøre med den; **Browse all resources** viser dem alle. Eller søg: skriv et par ord, som `create incident`, og det bedste match kommer først. Tryk på `/` for at hoppe til søgefeltet, på piletasterne for at gå gennem resultaterne og på **Enter** for at tilføje den fremhævede blok. Et klik på en blok tilføjer den.
 
@@ -127,7 +129,7 @@ Den fanger de fejl, der ellers er usynlige, indtil en kørsel går galt:
 Den hurtigste måde at lære lærredet at kende på er et workflow med to blokke, som du starter manuelt:
 
 :::steps
-1. Klik på den stiplede pladsholderblok, og klik så på **Manual** i panelet **Add Trigger**.
+1. Klik på den stiplede pladsholderblok, og klik så på **Manual** i panelet **Tilføj trigger**.
 2. Klik på **Tilføj komponent**, og klik så på **Log** under **Popular**. Den nye blok havner under triggeren. Forbind triggerens punkt **Execute** ned til Log-blokkens inputpunkt.
 3. Klik på Log-blokken, hvor der står **Click to set up**, og skriv `Hello from ` i dens **Value**. Klik på **{ }**, og klik så på **JSON** under **Manual**. Indstillingen viser **Manual › JSON** og gemmer `{{local.components.manual-1.returnValues.value}}`. `manual-1` er triggerens **Identifier**, som vises på triggerblokken. Klik på **Gem**.
 4. Tilbage i **Bygger** klikker du på **Kør arbejdsgang**, skriver `{ "name": "Ada" }` i feltet **JSON**, klikker på **Kør arbejdsgang manuelt** og bekræfter med **Kør**. Workflowet er stadig slået fra, og det behøver ikke være slået til: en kørsel, du selv starter, er en **Testkørsel**.

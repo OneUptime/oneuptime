@@ -59,7 +59,7 @@ describe("Permissions docs pages", () => {
   });
 
   describe("navigation", () => {
-    it("has a Users & Permissions group with both pages", () => {
+    it("has a Users & Permissions group with its pages, Inviting People between the two", () => {
       const group: NavGroup | undefined = DocsNav.find((item: NavGroup) => {
         return item.title === NAV_GROUP_TITLE;
       });
@@ -69,7 +69,11 @@ describe("Permissions docs pages", () => {
         group!.links.map((link: NavLink) => {
           return link.url;
         }),
-      ).toEqual(["/docs/permissions/index", "/docs/permissions/reference"]);
+      ).toEqual([
+        "/docs/permissions/index",
+        "/docs/permissions/inviting-people",
+        "/docs/permissions/reference",
+      ]);
     });
 
     it("uses URLs that resolve to files on disk", () => {
@@ -103,7 +107,7 @@ describe("Permissions docs pages", () => {
           })!;
 
         expect(group).toBeDefined();
-        expect(group.links.length).toBe(2);
+        expect(group.links.length).toBe(3);
 
         /*
          * A missing key falls back to the key itself, so a title equal to the
@@ -132,6 +136,7 @@ describe("Permissions docs pages", () => {
         }),
       ).toEqual([
         "/docs/de/permissions/index",
+        "/docs/de/permissions/inviting-people",
         "/docs/de/permissions/reference",
       ]);
     });

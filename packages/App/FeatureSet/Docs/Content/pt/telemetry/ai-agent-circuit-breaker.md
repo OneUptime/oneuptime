@@ -125,7 +125,7 @@ Abra **Produtos → Fluxos de trabalho** e clique em **Criar fluxo de trabalho**
 
 ### Adicione o gatilho
 
-Clique no bloco tracejado **Choose what starts this workflow** e escolha **On Create Alert** no painel **Add Trigger**. Clique no gatilho: **Fields to pass on** começa com o título, então clique em **Adicionar campo**, marque a descrição e clique em **Salvar**. O ID no bloco, `alert-on-create-1`, é como os blocos seguintes se referem a ele.
+Clique no bloco tracejado **Choose what starts this workflow** e escolha **On Create Alert** no painel **Adicionar gatilho**. Clique no gatilho: **Fields to pass on** começa com o título, então clique em **Adicionar campo**, marque a descrição e clique em **Salvar**. O ID no bloco, `alert-on-create-1`, é como os blocos seguintes se referem a ele.
 
 ### Verifique o título
 

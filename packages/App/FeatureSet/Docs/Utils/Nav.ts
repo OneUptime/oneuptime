@@ -1307,6 +1307,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/permissions/index",
       },
       {
+        title: "Inviting People",
+        url: "/docs/permissions/inviting-people",
+      },
+      {
         title: "Permission Reference",
         url: "/docs/permissions/reference",
       },
@@ -1334,6 +1338,18 @@ const DocsNav: NavGroup[] = [
     title: "Configuration",
     section: "Administration",
     links: [
+      {
+        title: "Project Settings",
+        url: "/docs/configuration/project-settings",
+      },
+      {
+        title: "Billing & Usage",
+        url: "/docs/configuration/billing",
+      },
+      {
+        title: "Audit Logs",
+        url: "/docs/configuration/audit-logs",
+      },
       {
         title: "IP Addresses",
         url: "/docs/configuration/ip-addresses",

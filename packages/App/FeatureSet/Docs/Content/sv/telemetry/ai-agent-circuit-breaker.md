@@ -125,7 +125,7 @@ Spara först slutpunktens token där arbetsflödet kan använda den utan att vis
 
 ### Lägg till utlösaren
 
-Klicka på det streckade blocket **Choose what starts this workflow** och välj **On Create Alert** i panelen **Add Trigger**. Klicka på utlösaren: **Fields to pass on** börjar med titeln, så klicka på **Lägg till fält**, markera beskrivningen och klicka på **Spara**. ID:t på blocket, `alert-on-create-1`, är hur senare block hänvisar till det.
+Klicka på det streckade blocket **Choose what starts this workflow** och välj **On Create Alert** i panelen **Lägg till utlösare**. Klicka på utlösaren: **Fields to pass on** börjar med titeln, så klicka på **Lägg till fält**, markera beskrivningen och klicka på **Spara**. ID:t på blocket, `alert-on-create-1`, är hur senare block hänvisar till det.
 
 ### Kontrollera titeln
 

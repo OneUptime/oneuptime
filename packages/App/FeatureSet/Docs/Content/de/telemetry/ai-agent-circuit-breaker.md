@@ -125,7 +125,7 @@ Speichern Sie zuerst das Token des Endpunkts dort, wo der Workflow es nutzen kan
 
 ### Den Trigger hinzufügen
 
-Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Alert** im Bereich **Add Trigger**. Klicken Sie auf den Trigger: **Fields to pass on** beginnt mit dem Titel, klicken Sie also auf **Feld hinzufügen**, haken Sie die Beschreibung an und klicken Sie auf **Speichern**. Die ID auf dem Baustein, `alert-on-create-1`, ist der Name, unter dem spätere Bausteine auf ihn verweisen.
+Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Alert** im Bereich **Auslöser hinzufügen**. Klicken Sie auf den Trigger: **Fields to pass on** beginnt mit dem Titel, klicken Sie also auf **Feld hinzufügen**, haken Sie die Beschreibung an und klicken Sie auf **Speichern**. Die ID auf dem Baustein, `alert-on-create-1`, ist der Name, unter dem spätere Bausteine auf ihn verweisen.
 
 ### Den Titel prüfen
 

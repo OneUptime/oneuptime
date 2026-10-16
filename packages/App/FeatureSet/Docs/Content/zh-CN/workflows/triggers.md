@@ -196,7 +196,7 @@ flowchart TB
 | **状态页面 订阅者**                       | 欢迎订阅状态页面的人。                                                                    |
 | **值班策略**                              | 把策略的变更同步到另一个值班系统。                                                        |
 
-在 **Add Trigger** 面板中，它们位于 **OneUptime resources** 下：先点击资源，再点击触发器。**Browse all resources** 列出全部资源，搜索框可以用几个词找到触发器，例如 `incident created`。
+在 **添加触发器** 面板中，它们位于 **OneUptime resources** 下：先点击资源，再点击触发器。**Browse all resources** 列出全部资源，搜索框可以用几个词找到触发器，例如 `incident created`。
 
 ## 后续步骤
 

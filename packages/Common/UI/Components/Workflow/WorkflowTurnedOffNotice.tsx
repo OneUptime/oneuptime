@@ -49,12 +49,13 @@ export const getNoticeBody: GetNoticeBodyFunction = (data: {
 };
 
 /*
- * Above the Builder's canvas while the workflow is turned off. It says what
- * off means - the workflow's trigger is paused, so nothing starts it on its
- * own - and what it does not: the workflow can still be tested with Run
- * Workflow, as a test run (Types/Workflow/WorkflowEnabled). Then the one
- * thing to do about it, Turn on workflow, for whoever may; anyone else is
- * told who can.
+ * Above the Builder's canvas while the workflow is turned off and has a
+ * trigger: a workflow without one is shown Add Trigger instead (the
+ * Builder's hasTrigger). It says what off means - the workflow's trigger is
+ * paused, so nothing starts it on its own - and what it does not: the
+ * workflow can still be tested with Run Workflow, as a test run
+ * (Types/Workflow/WorkflowEnabled). Then the one thing to do about it, Turn
+ * on workflow, for whoever may; anyone else is told who can.
  *
  * Amber rather than red: off is a normal state for a workflow that is still
  * being built, not a failure, but nothing it is meant to do on its own
@@ -72,11 +73,18 @@ const WorkflowTurnedOffNotice: FunctionComponent<ComponentProps> = (
     canTest: canTest,
   });
 
+  /*
+   * The button sits beside the sentences only from lg up. The notice is as
+   * wide as the Builder's column, which beside the side menu is some 430px
+   * on a tablet: a row there squeezed the sentences into a column of one
+   * or two words a line beside Turn on workflow, a dozen lines tall in
+   * German. Narrower than lg, the button goes under them.
+   */
   return (
     <div
       role="status"
       data-testid="workflow-turned-off-notice"
-      className="flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+      className="flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 lg:flex-row lg:items-center lg:justify-between"
     >
       <div className="flex min-w-0 items-start gap-3">
         <div
@@ -118,7 +126,12 @@ const WorkflowTurnedOffNotice: FunctionComponent<ComponentProps> = (
         </div>
       </div>
       {props.onTurnOn ? (
-        <div className="shrink-0">
+        /*
+         * Under the sentences (md to lg) the button starts where they do,
+         * past the icon: its own md:ml-3 plus this pl-8 is the icon's width
+         * and the gap after it. On a phone it is as wide as the notice.
+         */
+        <div className="shrink-0 md:pl-8 lg:pl-0">
           <Button
             title={WorkflowEnabledCopy.turnOnWorkflow}
             icon={IconProp.Power}
