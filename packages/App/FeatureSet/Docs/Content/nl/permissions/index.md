@@ -37,6 +37,7 @@ flowchart TB
 | Team | Een benoemde groep binnen een project die machtigingen draagt. |
 | Teamlid | Een gebruiker die voor een team is uitgenodigd en heeft geaccepteerd. |
 | Machtiging | Eén vermogen, bijv. `CreateProjectMonitor`, of een rol die er veel bundelt, bijv. `MonitorAdmin`. |
+| Aangepaste rol | Een set machtigingen die u één keer een naam geeft en aan teams geeft. |
 | Bereik | Hoe ver een toegestane machtiging reikt: alle resources, alleen eigen of alleen gelabelde. |
 | Eigenaar | Een gebruiker of team dat verantwoordelijk is gemaakt voor één specifieke resource. |
 | Label | Een tag die u op resources zet, gebruikt om machtigingen te beperken en om te ordenen. |
@@ -131,6 +132,24 @@ Een machtiging om iets te wijzigen of te verwijderen reikt alleen tot wat u ook 
 Dit zijn ook de sleutels die u gebruikt bij het aanmaken van API-sleutels, en die de API en de Terraform-provider verwachten.
 
 De volledige lijst staat in de [Machtigingsreferentie](/docs/permissions/reference).
+
+### Aangepaste rollen
+
+Een aangepaste rol is een set machtigingen die u één keer een naam geeft en aan teams geeft: bijvoorbeeld een "Incidentbehandelaar" met `IncidentMember`, `AlertMember` en `OnCallViewer`, of een "Teamleider". Elk team dat u de rol geeft, krijgt dezelfde machtigingen, en u wijzigt ze voor al die teams op één plek. Op OneUptime Cloud vragen aangepaste rollen het Scale-abonnement, net als het wijzigen van de machtigingen van een team.
+
+:::steps
+1. Open **Teams** in het menu **Producten**, onder **Instellingen**, daarna **Rollen**, en klik op **Aangepaste rol aanmaken**.
+2. Typ de **Naam** en kies onder **Machtigingen** de ingebouwde rollen die ze bundelt, voor elke resource in het project. De beschrijving staat onder **Meer velden**.
+3. Maak de rol aan. Ze opent op haar pagina, waar **Rol toevoegen** nog een ingebouwde rol toevoegt en **Machtiging toevoegen** (in het menu **⋯** van de kaart) één machtiging, elk met een bereik en labels, zoals bij een team.
+4. Klik op **Aan een team geven** onder **Teams met deze rol**. De pagina **Machtigingen** van een team heeft ook **Aangepaste rol toevoegen**, en **Team maken** biedt onder **Toegang** de aangepaste rollen aan die u zou kunnen geven.
+:::
+
+- De leden van een team krijgen elke machtiging van zijn aangepaste rollen, met hetzelfde bereik en dezelfde labels, precies alsof het team ze zelf had. Een blokkering op het team wint nog steeds.
+- Een rol blijft verbonden met de teams die haar hebben: een wijziging bereikt ze allemaal meteen, en de pagina van de rol zegt om hoeveel teams en personen het gaat. **Verwijderen** neemt de rol van één team weg. De rol zelf verwijderen neemt haar machtigingen weg bij elk team dat haar heeft; de teams houden hun leden en hun andere rollen en machtigingen.
+- U kunt in een rol, en als rol aan een team, alleen geven wat u het team ook rechtstreeks zou kunnen geven: een rol met een machtiging die u niet met hetzelfde of een ruimer bereik hebt, wordt geweigerd, en de weigering noemt de machtiging. Een rol bevat nooit `ProjectOwner`, en **Owners** en **Admin** krijgen er nooit een.
+- De pagina **Machtigingen** van een team toont zijn aangepaste rollen boven zijn eigen machtigingen. Wat een rol geeft, wijzigt u op de pagina van de rol, niet op die van het team.
+- API-sleutels krijgen geen aangepaste rollen. Een sleutel dient één integratie, dus geef hem op zijn eigen pagina precies de machtigingen die hij nodig heeft.
+- De ingebouwde rollen staan onder **Ingebouwde rollen**, onderaan de pagina **Rollen**.
 
 ### Toestaan en blokkeren
 

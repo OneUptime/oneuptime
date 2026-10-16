@@ -1,5 +1,6 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ProjectUtil from "Common/UI/Utils/Project";
+import IsNull from "Common/Types/BaseDatabase/IsNull";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
@@ -24,7 +25,10 @@ import {
   CardSelectOptionGroup,
 } from "Common/UI/Components/CardSelect/CardSelect";
 import IconProp from "Common/Types/Icon/IconProp";
-import { getRoleCardSelectOptions } from "../Permission/RoleCardSelectOptions";
+import {
+  getRoleCardSelectOptions,
+  isBuiltInRolePermission,
+} from "../Permission/RoleCardSelectOptions";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -146,10 +150,29 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
       createEditModalWidth={ModalWidth.Large}
       isViewable={false}
       createEditFromRef={formRef}
+      onBeforeEdit={(item: TeamPermission): Promise<TeamPermission> => {
+        /*
+         * Edit opens the picker the row was added with, its pick shown: the
+         * role cards for a built-in role, the full list for a single
+         * permission - not whichever Add was opened last.
+         */
+        setCreatePermissionType(
+          isBuiltInRolePermission(item.permission)
+            ? CreatePermissionType.RoleBased
+            : CreatePermissionType.Granular,
+        );
+        return Promise.resolve(item);
+      }}
       query={{
         teamId: teamId,
         projectId: ProjectUtil.getCurrentProjectId()!,
         isBlockPermission: permissionType === PermissionType.BlockPermissions,
+        /*
+         * The team's own permissions only. What it has through a custom
+         * role is the role's, listed by role above (TeamCustomRoleTable)
+         * and changed on the role's page.
+         */
+        teamCustomRoleId: new IsNull(),
       }}
       selectMoreFields={{
         labels: {

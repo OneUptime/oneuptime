@@ -37,6 +37,7 @@ flowchart TB
 | Equipo | Un grupo con nombre dentro de un proyecto que lleva permisos. |
 | Miembro de equipo | Un usuario al que se ha invitado a un equipo y que ha aceptado. |
 | Permiso | Una capacidad concreta, p. ej. `CreateProjectMonitor`, o un rol que agrupa muchas, p. ej. `MonitorAdmin`. |
+| Rol personalizado | Un conjunto de permisos al que pone nombre una vez y que da a equipos. |
 | Alcance | Hasta dónde llega un permiso concedido: todos los recursos, solo los propios o solo los etiquetados. |
 | Propietario | Un usuario o equipo marcado como responsable de un recurso concreto. |
 | Etiqueta | Una marca que pone en los recursos, usada para restringir permisos y para organizar. |
@@ -131,6 +132,24 @@ Un permiso para cambiar o eliminar algo solo alcanza lo que usted también puede
 Estas son también las claves que usa al crear claves de API, y las que esperan la API y el proveedor de Terraform.
 
 La lista completa está en la [Referencia de permisos](/docs/permissions/reference).
+
+### Roles personalizados
+
+Un rol personalizado es un conjunto de permisos al que pone nombre una vez y que da a equipos: por ejemplo, una «Respuesta a incidentes» formada por `IncidentMember`, `AlertMember` y `OnCallViewer`, o un «Líder de equipo». Cada equipo al que se lo da recibe los mismos permisos, y usted los cambia para todos esos equipos en un solo lugar. En OneUptime Cloud, los roles personalizados requieren el plan Scale, como cambiar los permisos de un equipo.
+
+:::steps
+1. Abra **Equipos** en el menú **Productos**, en **Ajustes**, luego **Roles**, y haga clic en **Crear Rol personalizado**.
+2. Escriba su **Nombre** y elija en **Permisos** los roles predefinidos que agrupa, para cada recurso del proyecto. La descripción está en **Más campos**.
+3. Cree el rol. Se abre en su página, donde **Añadir rol** añade otro rol predefinido y **Añadir permiso** (en el menú **⋯** de la tarjeta) un permiso suelto, cada uno con un alcance y etiquetas, como en un equipo.
+4. Haga clic en **Dar a un equipo** en **Equipos con este rol**. La página **Permisos** de un equipo también tiene **Añadir rol personalizado**, y **Crear equipo** ofrece en **Acceso** los roles personalizados que usted podría dar.
+:::
+
+- Los miembros de un equipo reciben cada permiso de sus roles personalizados, con el mismo alcance y las mismas etiquetas, exactamente como si el equipo los tuviera. Un bloqueo en el equipo sigue ganando.
+- Un rol sigue vinculado a los equipos que lo tienen: un cambio en él les llega a todos al instante, y la página del rol dice cuántos equipos y personas son. **Eliminar** quita el rol a un equipo. Eliminar el propio rol quita sus permisos a cada equipo que lo tiene; los equipos conservan sus miembros y sus otros roles y permisos.
+- Solo puede poner en un rol, y dar como rol a un equipo, lo que podría dar al equipo directamente: un rol con un permiso que usted no tiene con el mismo alcance o uno más amplio se rechaza, y el rechazo nombra el permiso. Un rol nunca contiene `ProjectOwner`, y **Owners** y **Admin** nunca reciben uno.
+- La página **Permisos** de un equipo lista sus roles personalizados encima de sus propios permisos. Lo que da un rol se cambia en la página del rol, no en la del equipo.
+- Las claves de API no admiten roles personalizados. Una clave sirve a una sola integración, así que dele exactamente los permisos que necesita en su propia página.
+- Los roles predefinidos aparecen en **Roles predefinidos**, al final de la página **Roles**.
 
 ### Permitir y bloquear
 

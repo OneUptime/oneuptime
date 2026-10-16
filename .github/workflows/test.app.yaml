@@ -243,6 +243,7 @@ jobs:
               test-episode-bulk-add-ui
               test-runbook-triggers-ui
               test-network-first-run-ui
+              test-custom-roles-ui
               test-sign-in-options-ui
     steps:
       - uses: actions/checkout@v4
@@ -379,5 +380,7 @@ jobs:
             output/playwright/runbook-triggers-ui/test-results
             output/playwright/network-first-run-ui/*.png
             output/playwright/network-first-run-ui/test-results
+            output/playwright/custom-roles-ui/*.png
+            output/playwright/custom-roles-ui/test-results
             output/playwright/sign-in-options-ui/test-results
           retention-days: 7

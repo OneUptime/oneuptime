@@ -285,6 +285,18 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
       ),
       deletedWith: ["ApiKeyPermission"],
     },
+    /*
+     * The permissions the role gave go from every team that has it, in the
+     * same delete: the teams' copies of them (TeamPermission) and the
+     * teams' hold of the role (TeamCustomRole) cascade with it.
+     */
+    CustomRole: {
+      sentence: translationKey(
+        "Deleting a custom role takes its permissions from every team that has it. The teams stay, with their members and their other roles and permissions.",
+      ),
+      deletedWith: ["CustomRolePermission", "TeamCustomRole", "TeamPermission"],
+      stays: ["Team", "TeamMember"],
+    },
     TelemetryIngestionKey: {
       sentence: translationKey(
         "Deleting an ingestion key makes OneUptime refuse telemetry that is still sent with it.",

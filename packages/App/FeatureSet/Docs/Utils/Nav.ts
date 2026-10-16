@@ -622,6 +622,31 @@ const DocsNav: NavGroup[] = [
         title: "OpenTelemetry",
         url: "/docs/telemetry/open-telemetry",
       },
+      /*
+       * Where the telemetry goes once it arrives: the services it belongs
+       * to, then the explorers a reader works in, before the reference
+       * pages (search syntax, zooming) those explorers share.
+       */
+      {
+        title: "Service Catalog",
+        url: "/docs/telemetry/services",
+      },
+      {
+        title: "Logs Explorer",
+        url: "/docs/telemetry/logs-explorer",
+      },
+      {
+        title: "Traces Explorer",
+        url: "/docs/telemetry/traces-explorer",
+      },
+      {
+        title: "Metrics Explorer",
+        url: "/docs/telemetry/metrics-explorer",
+      },
+      {
+        title: "Exception Tracking",
+        url: "/docs/telemetry/exceptions",
+      },
       {
         title: "Search Syntax",
         url: "/docs/telemetry/search-syntax",
