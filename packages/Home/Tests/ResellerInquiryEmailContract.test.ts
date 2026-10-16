@@ -18,8 +18,9 @@ import path from "path";
  * a value moved to a slot that does not escape it puts what a visitor typed
  * into the email as markup. So: the template reads exactly the variables
  * the site sends, every value a visitor typed through plainText (escaped),
- * the message through blockText (escaped here, line by line), and the reply
- * link through the button.
+ * the message through blockText (escaped here, line by line), the reply
+ * link through the button, and the inbox's preview line (preheader) through
+ * the Start partial, which escapes it.
  *
  * App/Tests/Notification/ResellerInquiryTemplate.test.ts renders the
  * template itself.
@@ -145,6 +146,18 @@ function sentVariables(): Array<string> {
   return Object.keys(getResellerInquiryEmailVariables(parsed.inquiry)).sort();
 }
 
+/*
+ * Variables the template does not name itself: a shared partial it hands
+ * all of its variables to ({{> Start this}}) reads them.
+ */
+const READ_BY_START_PARTIAL: Array<string> = ["preheader"];
+
+const START_PARTIAL_PATH: string = path.join(
+  path.dirname(TEMPLATE_PATH),
+  "Partials",
+  "Start.hbs",
+);
+
 describe("the reseller inquiry email's two sides", () => {
   const source: string = fs.readFileSync(TEMPLATE_PATH, "utf8");
 
@@ -159,10 +172,25 @@ describe("the reseller inquiry email's two sides", () => {
       "contactEmail",
       "contactName",
       "messageHtml",
+      "preheader",
       "regions",
       "replyUrl",
     ]);
-    expect(variablesRead(source)).toEqual(sentVariables());
+    expect([...variablesRead(source), ...READ_BY_START_PARTIAL].sort()).toEqual(
+      sentVariables(),
+    );
+  });
+
+  test("the inbox's preview line reaches the Start partial, which escapes it", () => {
+    // The template hands the Start partial every variable it was sent.
+    expect(source.trimStart().startsWith("{{> Start this}}")).toBe(true);
+
+    const start: string = fs.readFileSync(START_PARTIAL_PATH, "utf8");
+
+    for (const name of READ_BY_START_PARTIAL) {
+      expect(start).toContain(`{{${name}}}`);
+      expect(start).not.toContain(`{{{${name}}}}`);
+    }
   });
 
   test("every value a visitor typed goes on a row that escapes it", () => {

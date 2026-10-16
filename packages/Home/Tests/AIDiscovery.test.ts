@@ -477,7 +477,7 @@ describe("the resellers, for machines", () => {
 
     expect(md).toContain("## Become a reseller");
     expect(md).toContain(
-      "https://oneuptime.com/resellers#become-a-reseller, or email partners@example.com.",
+      "Companies that want to sell OneUptime can send the form at https://oneuptime.com/resellers#become-a-reseller, or email partners@example.com.",
     );
   });
 

@@ -185,6 +185,38 @@ describe("the Resellers page", () => {
     ).toEqual(["/accounts/register", "/enterprise/demo"]);
   });
 
+  test("says how to buy directly after the resellers, so a phone reads the list first", () => {
+    const buyDirect: Element | null = page.querySelector(
+      '[data-testid="resellers-buy-direct"]',
+    );
+    const regions: Array<Element> = Array.from(
+      page.querySelectorAll('[data-testid="reseller-region"]'),
+    );
+    const lastRegion: Element = regions[regions.length - 1]!;
+
+    // In the list's own column, after its last region.
+    expect(buyDirect?.parentElement).toBe(lastRegion.parentElement);
+    expect(
+      lastRegion.compareDocumentPosition(buyDirect!) &
+        page.defaultView!.Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // The section's heading column says only what the section is.
+    expect(
+      textOf(page.getElementById("resellers-list-title")?.parentElement),
+    ).toBe(
+      "Our resellers Get in touch with a reseller to buy OneUptime in your country.",
+    );
+  });
+
+  test("gives every reseller a row of its own, so a region never shows a hole", () => {
+    for (const list of Array.from(
+      page.querySelectorAll('[data-testid="reseller-region"] ul'),
+    )) {
+      expect(list.className).not.toContain("grid-cols");
+      expect(list.className).toContain("space-y-4");
+    }
+  });
+
   test("shows no empty state while there are resellers", () => {
     expect(page.querySelector('[data-testid="resellers-empty"]')).toBeNull();
   });
@@ -213,6 +245,29 @@ describe("the Resellers page", () => {
     expect(line?.querySelector("a")?.getAttribute("href")).toBe(
       `mailto:${INBOX}`,
     );
+  });
+
+  test("offers email after the form, so a phone reaches the form first", () => {
+    const line: Element | null = page.querySelector(
+      '[data-testid="reseller-inquiry-email"]',
+    );
+    const form: Element | null = page.getElementById("reseller-inquiry-form");
+    const success: Element | null = page.getElementById(
+      "reseller-inquiry-success",
+    );
+
+    expect(
+      form!.compareDocumentPosition(line!) &
+        page.defaultView!.Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // Under the form's card, where it stays once the thanks replace the form.
+    expect(line?.previousElementSibling?.contains(form)).toBe(true);
+    expect(line?.previousElementSibling?.contains(success)).toBe(true);
+    // And not beside the points, before the form.
+    expect(
+      page.querySelector('[data-testid="reseller-points"]')?.parentElement
+        ?.textContent,
+    ).not.toContain("Prefer email?");
   });
 });
 
@@ -260,6 +315,27 @@ describe("the form", () => {
       expect(control!.hasAttribute("required")).toBe(rule.required);
       expect(control!.getAttribute("maxlength")).toBe(String(rule.maxLength));
       expect(control!.tagName).toBe(rule.multiline ? "TEXTAREA" : "INPUT");
+    },
+  );
+
+  test.each(
+    ResellerInquiryFieldOrder.map((field: ResellerInquiryField) => {
+      return [field];
+    }),
+  )(
+    "has a line under the %s for what to fix in it, empty and hidden",
+    (field: ResellerInquiryField) => {
+      const control: Element | null = form.querySelector(`[name="${field}"]`);
+      const line: HTMLElement | null = page.getElementById(
+        `reseller-inquiry-${field}-error`,
+      );
+
+      expect(line).not.toBeNull();
+      expect(line!.hasAttribute("data-reseller-field-error")).toBe(true);
+      expect(line!.hidden).toBe(true);
+      expect(line!.textContent).toBe("");
+      // Right under its field, in the field's own block.
+      expect(line!.previousElementSibling).toBe(control);
     },
   );
 
@@ -361,7 +437,7 @@ describe("the form", () => {
     );
     expect(success?.hidden).toBe(true);
     expect(textOf(success?.querySelector("h3"))).toBe(
-      "Thanks, your message is on its way",
+      "Thanks, we got your message",
     );
   });
 
@@ -381,9 +457,20 @@ describe("the resellers by region, drawn from other lists", () => {
       ),
     );
 
-    expect(textOf(page.querySelector('[data-testid="resellers-empty"]'))).toBe(
-      "We are adding our first resellers Until then, you can buy OneUptime directly from us.",
+    const empty: Element | null = page.querySelector(
+      '[data-testid="resellers-empty"]',
     );
+
+    expect(textOf(empty)).toBe(
+      "We are adding our first resellers Until then, buy directly from us: start for free or talk to our team.",
+    );
+    expect(
+      Array.from(empty!.querySelectorAll("a")).map(
+        (link: HTMLAnchorElement) => {
+          return link.getAttribute("href");
+        },
+      ),
+    ).toEqual(["/accounts/register", "/enterprise/demo"]);
     expect(
       page.querySelectorAll('[data-testid="reseller-region"]'),
     ).toHaveLength(0);
@@ -391,9 +478,13 @@ describe("the resellers by region, drawn from other lists", () => {
       0,
     );
     expect(page.getElementById("reseller-inquiry-form")).not.toBeNull();
+    // One note, not two saying the same thing.
     expect(
       page.querySelector('[data-testid="resellers-buy-direct"]'),
-    ).not.toBeNull();
+    ).toBeNull();
+    expect(
+      page.querySelectorAll('#resellers-list a[href="/accounts/register"]'),
+    ).toHaveLength(1);
   });
 
   test("lists the regions that have resellers, in the page's order, and no other", async () => {
@@ -714,18 +805,49 @@ describe("the form's script", () => {
     page.form.dispatchEvent(
       new page.window.Event("submit", { cancelable: true }),
     );
+    page.submit();
 
     expect(page.calls).toHaveLength(1);
-    expect(button.disabled).toBe(true);
+    expect(button.getAttribute("aria-disabled")).toBe("true");
     expect(button.textContent).toBe("Sending…");
     expect(page.form.getAttribute("aria-busy")).toBe("true");
 
     page.answer(jsonResponse(502, { sent: false, message: "Try later." }));
     await settle();
 
-    expect(button.disabled).toBe(false);
+    expect(button.hasAttribute("aria-disabled")).toBe(false);
     expect(button.textContent).toBe("Send message");
     expect(page.form.getAttribute("aria-busy")).toBe("false");
+
+    // Ready to send again.
+    page.submit();
+    expect(page.calls).toHaveLength(2);
+  });
+
+  test("keeps the keyboard's place on the button while it sends", async () => {
+    const page: ScriptedPage = await scriptedPage();
+    const button: HTMLButtonElement = page.form.querySelector(
+      "button",
+    ) as HTMLButtonElement;
+
+    page.fill();
+    button.focus();
+    page.submit();
+
+    /*
+     * A disabled button gives up the focus, and the keyboard's place on the
+     * page with it; this one is only marked busy.
+     */
+    expect(button.disabled).toBe(false);
+    expect(button.getAttribute("aria-disabled")).toBe("true");
+    expect(page.document.activeElement).toBe(button);
+    // Its look while busy comes from the mark, not from the disabled state.
+    expect(button.className).toContain("aria-disabled:opacity-60");
+    expect(
+      button.className.split(" ").filter((name: string) => {
+        return name.startsWith("disabled:");
+      }),
+    ).toEqual([]);
   });
 
   test("shows the thanks once the server has sent it, naming where the reply goes", async () => {
@@ -770,7 +892,17 @@ describe("the form's script", () => {
     expect(replyTo?.children).toHaveLength(0);
   });
 
-  test("points at the field the server says to fix, and says what to fix", async () => {
+  // The line under a field for what to fix in it.
+  const fieldLine: (page: ScriptedPage, field: string) => HTMLElement = (
+    page: ScriptedPage,
+    field: string,
+  ): HTMLElement => {
+    return page.document.getElementById(
+      `reseller-inquiry-${field}-error`,
+    ) as HTMLElement;
+  };
+
+  test("says what to fix right under the field the server names, and moves there", async () => {
     const page: ScriptedPage = await scriptedPage();
 
     page.fill();
@@ -788,16 +920,26 @@ describe("the form's script", () => {
       "reseller-inquiry-error",
     ) as HTMLElement;
     const email: HTMLInputElement = page.field("email") as HTMLInputElement;
+    const line: HTMLElement = fieldLine(page, "email");
 
-    expect(error.hidden).toBe(false);
-    expect(
-      error.querySelector("[data-reseller-error-message]")?.textContent,
-    ).toBe("Please enter a valid email address, like name@company.com.");
+    expect(line.hidden).toBe(false);
+    expect(line.textContent).toBe(
+      "Please enter a valid email address, like name@company.com.",
+    );
     expect(email.getAttribute("aria-invalid")).toBe("true");
     expect(email.getAttribute("aria-describedby")).toBe(
-      "reseller-inquiry-error-message",
+      "reseller-inquiry-email-error",
     );
     expect(page.document.activeElement).toBe(email);
+    // The box above the button is for what is not about one field.
+    expect(error.hidden).toBe(true);
+    // Every other field is left as it was.
+    for (const field of ResellerInquiryFieldOrder) {
+      if (field !== "email") {
+        expect(fieldLine(page, field).hidden).toBe(true);
+        expect(page.field(field).hasAttribute("aria-invalid")).toBe(false);
+      }
+    }
     expect(page.form.hidden).toBe(false);
     expect(
       (page.document.getElementById("reseller-inquiry-success") as HTMLElement)
@@ -816,16 +958,20 @@ describe("the form's script", () => {
     await settle();
 
     const email: HTMLInputElement = page.field("email") as HTMLInputElement;
+    const line: HTMLElement = fieldLine(page, "email");
 
     // Typing somewhere else leaves the mark alone.
     page
       .field("name")
       .dispatchEvent(new page.window.Event("input", { bubbles: true }));
     expect(email.getAttribute("aria-invalid")).toBe("true");
+    expect(line.hidden).toBe(false);
 
     email.dispatchEvent(new page.window.Event("input", { bubbles: true }));
     expect(email.hasAttribute("aria-invalid")).toBe(false);
     expect(email.hasAttribute("aria-describedby")).toBe(false);
+    expect(line.hidden).toBe(true);
+    expect(line.textContent).toBe("");
   });
 
   test("moves the mark when the next answer names another field", async () => {
@@ -848,7 +994,9 @@ describe("the form's script", () => {
     await settle();
 
     expect(page.field("email").hasAttribute("aria-invalid")).toBe(false);
+    expect(fieldLine(page, "email").hidden).toBe(true);
     expect(page.field("company").getAttribute("aria-invalid")).toBe("true");
+    expect(fieldLine(page, "company").textContent).toBe("And this.");
     expect(page.document.activeElement).toBe(page.field("company"));
   });
 
@@ -866,6 +1014,92 @@ describe("the form's script", () => {
 
     page.submit();
     expect(error.hidden).toBe(true);
+  });
+
+  test("clears what to fix in a field while it sends again", async () => {
+    const page: ScriptedPage = await scriptedPage();
+
+    page.fill();
+    page.submit();
+    page.answer(
+      jsonResponse(400, { sent: false, message: "Fix it.", field: "website" }),
+    );
+    await settle();
+    expect(fieldLine(page, "website").hidden).toBe(false);
+
+    page.submit();
+    expect(fieldLine(page, "website").hidden).toBe(true);
+    expect(page.field("website").hasAttribute("aria-invalid")).toBe(false);
+  });
+
+  test("writes what to fix in a field as text, whatever it holds", async () => {
+    const page: ScriptedPage = await scriptedPage();
+    const message: string = '<img src=x onerror="window.hacked = 1">Bad';
+
+    page.fill();
+    page.submit();
+    page.answer(jsonResponse(400, { sent: false, message, field: "name" }));
+    await settle();
+
+    const line: HTMLElement = fieldLine(page, "name");
+
+    expect(line.textContent).toBe(message);
+    expect(line.children).toHaveLength(0);
+    expect(
+      (page.window as unknown as { hacked?: number }).hacked,
+    ).toBeUndefined();
+  });
+
+  test("shows the box above the button when a field is named with nothing to say about it", async () => {
+    const page: ScriptedPage = await scriptedPage();
+
+    page.fill();
+    page.submit();
+    page.answer(jsonResponse(400, { sent: false, field: "email" }));
+    await settle();
+
+    const error: HTMLElement = page.document.getElementById(
+      "reseller-inquiry-error",
+    ) as HTMLElement;
+
+    expect(error.hidden).toBe(false);
+    expect(
+      error.querySelector("[data-reseller-error-message]")?.textContent,
+    ).toBe(
+      "We could not send your message just now. Please try again in a few minutes.",
+    );
+    expect(fieldLine(page, "email").hidden).toBe(true);
+    expect(page.document.activeElement).toBe(error);
+  });
+
+  test("never shows a field's line for the hidden field only a program fills in", async () => {
+    const page: ScriptedPage = await scriptedPage();
+
+    page.fill();
+    page.submit();
+    page.answer(
+      jsonResponse(400, {
+        sent: false,
+        message: "Fix it.",
+        field: RESELLER_INQUIRY_HONEYPOT_FIELD,
+      }),
+    );
+    await settle();
+
+    expect(
+      (page.document.getElementById("reseller-inquiry-error") as HTMLElement)
+        .hidden,
+    ).toBe(false);
+    expect(
+      page.form.querySelector(
+        `[name="${RESELLER_INQUIRY_HONEYPOT_FIELD}"][aria-invalid]`,
+      ),
+    ).toBeNull();
+    expect(
+      page.document.querySelectorAll(
+        "[data-reseller-field-error]:not([hidden])",
+      ),
+    ).toHaveLength(0);
   });
 
   test.each([

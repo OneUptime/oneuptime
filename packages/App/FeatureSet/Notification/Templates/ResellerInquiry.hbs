@@ -12,7 +12,9 @@
   Handlebars escapes. messageHtml is the message with its line breaks kept:
   Home/Utils/ResellerInquiry.ts (getMessageHtml) escapes every line and adds
   nothing but the <br/> between them. replyUrl is a mailto: link whose two
-  address parts that file percent-encodes (getReplyMailtoUrl).
+  address parts that file percent-encodes (getReplyMailtoUrl). preheader -
+  who wrote, their company and where they sell, for the inbox's preview
+  line - is read by the Start partial above, which escapes it.
 --}}
 
 {{> InfoBlock plainInfo="A company asked to become a reseller using the form on the Resellers page of your website. Reply to them at the email address below."}}

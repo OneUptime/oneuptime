@@ -25,6 +25,7 @@ import {
   getReplyMailtoUrl,
   getResellerInquiryEmailVariables,
   getResellerInquiryFormContent,
+  getResellerInquiryPreheader,
   getResellerInquirySubject,
   getTooLongMessage,
   isAcceptableEmailAddress,
@@ -697,6 +698,7 @@ describe("the email an inquiry sends", () => {
 
   test("hands the template the inquiry, and only it", () => {
     expect(getResellerInquiryEmailVariables(validInquiry(answers()))).toEqual({
+      preheader: "Jane Kim at Acme Korea · South Korea, Japan",
       companyName: "Acme Korea",
       companyWebsite: "acme.co.kr",
       regions: "South Korea, Japan",
@@ -706,6 +708,39 @@ describe("the email an inquiry sends", () => {
         "We resell DevOps tools.<br/>We would like to add OneUptime.",
       replyUrl: "mailto:jane@acme.co.kr?subject=Your%20reseller%20inquiry",
     });
+  });
+
+  test("gives the inbox a preview line: who wrote, their company and where they sell", () => {
+    const inquiry: ResellerInquiry = validInquiry(
+      answers({ name: "김민지", company: "슬렉슨", regions: "대한민국" }),
+    );
+
+    expect(getResellerInquiryPreheader(inquiry)).toBe(
+      "김민지 at 슬렉슨 · 대한민국",
+    );
+    expect(getResellerInquiryEmailVariables(inquiry)["preheader"]).toBe(
+      getResellerInquiryPreheader(inquiry),
+    );
+  });
+
+  test("keeps the preview line to one line, and never names the address or the message", () => {
+    const preheader: string = getResellerInquiryPreheader(
+      validInquiry(
+        answers({
+          name: "Jane\r\nKim",
+          company: "Acme\nBcc: someone@example.com",
+          regions: "South Korea,\tJapan",
+          message: "A private note.",
+        }),
+      ),
+    );
+
+    expect(preheader).toBe(
+      "Jane Kim at Acme Bcc: someone@example.com · South Korea, Japan",
+    );
+    expect(preheader.includes("\n") || preheader.includes("\r")).toBe(false);
+    expect(preheader).not.toContain("jane@acme.co.kr");
+    expect(preheader).not.toContain("A private note.");
   });
 
   test("leaves the website and the message empty when they were, so the template leaves their rows out", () => {

@@ -635,12 +635,25 @@ export const getReplyMailtoUrl: (email: string) => string = (
   )}?subject=${encodeURIComponent(REPLY_SUBJECT)}`;
 };
 
+/*
+ * The line an inbox shows next to the subject, before the email is opened:
+ * who wrote, from which company, and where they sell - "Jane Kim at Acme
+ * Korea · South Korea, Japan". Every part is one line already
+ * (cleanSingleLine), and the template's Start partial escapes it.
+ */
+export const getResellerInquiryPreheader: (
+  inquiry: ResellerInquiry,
+) => string = (inquiry: ResellerInquiry): string => {
+  return `${inquiry.name} at ${inquiry.company} · ${inquiry.regions}`;
+};
+
 export const getResellerInquiryEmailVariables: (
   inquiry: ResellerInquiry,
 ) => Dictionary<string | JSONObject> = (
   inquiry: ResellerInquiry,
 ): Dictionary<string | JSONObject> => {
   return {
+    preheader: getResellerInquiryPreheader(inquiry),
     companyName: inquiry.company,
     companyWebsite: inquiry.website,
     regions: inquiry.regions,

@@ -73,48 +73,42 @@
         <div class="lg:col-span-2">
           <h2 id="resellers-list-title" class="text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl">Our resellers</h2>
           <p class="mt-3 text-base leading-7 text-gray-600">Get in touch with a reseller to buy OneUptime in your country.</p>
-          <p class="mt-6 text-sm leading-6 text-gray-600" data-testid="resellers-buy-direct">
-            No reseller in your country yet? Buy directly from us:
-            <a href="/accounts/register" class="font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600">start for free</a>
-            or
-            <a href="/enterprise/demo" class="font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600">talk to our team</a>.
-          </p>
         </div>
 
+        <%#
+          One row per reseller, under its region: a list never has a hole in
+          it, however many resellers a region has. What to do without one
+          comes after the list, so it reads in that order on a phone too.
+        -%>
         <div class="space-y-10 lg:col-span-3">
-        <% if (regions.length === 0) { -%>
-        <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 sm:p-8" data-testid="resellers-empty">
-          <p class="text-base font-semibold text-gray-900">We are adding our first resellers</p>
-          <p class="mt-2 text-sm leading-6 text-gray-600">Until then, you can buy OneUptime directly from us.</p>
-        </div>
-        <% } -%>
-
         <% regions.forEach(function (group) { -%>
         <div id="region-<%= group.anchorId %>" data-testid="reseller-region">
           <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-500"><%= group.region %></h3>
-          <ul role="list" class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <ul role="list" class="mt-4 space-y-4">
             <% group.resellers.forEach(function (reseller) { -%>
-            <li class="flex flex-col rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200" data-testid="reseller-card">
-              <% if (reseller.logoPath) { -%>
-              <img src="<%= reseller.logoPath %>" alt="<%= reseller.name %> logo" class="mb-5 h-8 w-auto max-w-[10rem] self-start object-contain" loading="lazy" decoding="async">
-              <% } -%>
-              <h4 class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <span class="text-lg font-semibold text-gray-900"><%= reseller.name %></span>
-                <% if (reseller.localName) { -%>
-                <span class="text-sm text-gray-500"<% if (reseller.localNameLanguage) { %> lang="<%= reseller.localNameLanguage %>"<% } %>><%= reseller.localName %></span>
+            <li class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 sm:flex sm:items-start sm:justify-between sm:gap-8" data-testid="reseller-card">
+              <div class="min-w-0">
+                <% if (reseller.logoPath) { -%>
+                <img src="<%= reseller.logoPath %>" alt="<%= reseller.name %> logo" class="mb-4 h-8 w-auto max-w-[10rem] object-contain" loading="lazy" decoding="async">
                 <% } -%>
-              </h4>
-              <p class="mt-2 flex items-center gap-1.5 text-sm text-gray-500">
+                <h4 class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <span class="text-lg font-semibold text-gray-900"><%= reseller.name %></span>
+                  <% if (reseller.localName) { -%>
+                  <span class="text-sm text-gray-500"<% if (reseller.localNameLanguage) { %> lang="<%= reseller.localNameLanguage %>"<% } %>><%= reseller.localName %></span>
+                  <% } -%>
+                </h4>
+                <p class="mt-1 flex items-center gap-1.5 text-sm text-gray-500">
+                  <svg class="h-4 w-4 flex-none text-gray-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                  </svg>
+                  <span><%= reseller.location %></span>
+                </p>
+                <p class="mt-3 text-sm leading-6 text-gray-600"><%= reseller.summary %></p>
+              </div>
+              <a href="<%= reseller.websiteUrl %>" target="_blank" rel="noopener noreferrer" class="mt-5 inline-flex max-w-full items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 sm:mt-0 sm:max-w-[45%] sm:flex-none">
+                <span class="min-w-0 break-words"><%= reseller.websiteLabel %></span>
                 <svg class="h-4 w-4 flex-none text-gray-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                </svg>
-                <span><%= reseller.location %></span>
-              </p>
-              <p class="mt-4 flex-1 text-sm leading-6 text-gray-600"><%= reseller.summary %></p>
-              <a href="<%= reseller.websiteUrl %>" target="_blank" rel="noopener noreferrer" class="mt-6 inline-flex items-center gap-1.5 self-start rounded-md text-sm font-medium text-gray-900 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900">
-                <%= reseller.websiteLabel %>
-                <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                 </svg>
                 <span class="sr-only">(opens <%= reseller.name %>'s website in a new tab)</span>
@@ -124,6 +118,28 @@
           </ul>
         </div>
         <% }); -%>
+
+        <% if (regions.length === 0) { -%>
+        <div class="rounded-2xl border border-dashed border-gray-300 px-6 py-5" data-testid="resellers-empty">
+          <p class="text-sm font-semibold leading-6 text-gray-900">We are adding our first resellers</p>
+          <p class="mt-1 text-sm leading-6 text-gray-600">
+            Until then, buy directly from us:
+            <a href="/accounts/register" class="font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600">start for free</a>
+            or
+            <a href="/enterprise/demo" class="font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600">talk to our team</a>.
+          </p>
+        </div>
+        <% } else { -%>
+        <div class="rounded-2xl border border-dashed border-gray-300 px-6 py-5" data-testid="resellers-buy-direct">
+          <p class="text-sm font-semibold leading-6 text-gray-900">No reseller in your country yet?</p>
+          <p class="mt-1 text-sm leading-6 text-gray-600">
+            Buy directly from us:
+            <a href="/accounts/register" class="font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600">start for free</a>
+            or
+            <a href="/enterprise/demo" class="font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600">talk to our team</a>.
+          </p>
+        </div>
+        <% } -%>
         </div>
       </div>
     </section>
@@ -173,11 +189,6 @@
               <dd class="mt-1 text-sm leading-6 text-gray-600">Tell us about your company and the customers you serve. We agree terms with each reseller.</dd>
             </div>
           </dl>
-
-          <p class="mt-10 text-sm leading-6 text-gray-600" data-testid="reseller-inquiry-email">
-            Prefer email? Write to
-            <a href="mailto:<%= fallbackEmail %>" class="font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600"><%= fallbackEmail %></a>.
-          </p>
         </div>
 
         <div class="lg:col-span-3">
@@ -187,20 +198,28 @@
               <h3 id="reseller-inquiry-form-title" class="text-lg font-semibold text-gray-900">Tell us about your company</h3>
               <p class="mt-1 text-sm text-gray-500">We reply to every message by email.</p>
 
+              <%#
+                Each field has a line under it for what the server says to
+                fix in it (data-reseller-field-error), shown by the script
+                below; the box after the fields is for everything else.
+              -%>
               <div class="mt-6 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
                 <div>
                   <label for="reseller-inquiry-name" class="block text-sm font-medium leading-6 text-gray-900"><%= fields.name.label %></label>
                   <input id="reseller-inquiry-name" name="name" type="text" autocomplete="name" required maxlength="<%= fields.name.maxLength %>" class="mt-2 block w-full rounded-lg border-0 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-900 aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-red-500">
+                  <p id="reseller-inquiry-name-error" class="mt-2 text-sm leading-5 text-red-600" data-reseller-field-error hidden></p>
                 </div>
 
                 <div>
                   <label for="reseller-inquiry-email" class="block text-sm font-medium leading-6 text-gray-900"><%= fields.email.label %></label>
                   <input id="reseller-inquiry-email" name="email" type="email" autocomplete="email" required maxlength="<%= fields.email.maxLength %>" placeholder="name@company.com" class="mt-2 block w-full rounded-lg border-0 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-900 aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-red-500">
+                  <p id="reseller-inquiry-email-error" class="mt-2 text-sm leading-5 text-red-600" data-reseller-field-error hidden></p>
                 </div>
 
                 <div>
                   <label for="reseller-inquiry-company" class="block text-sm font-medium leading-6 text-gray-900"><%= fields.company.label %></label>
                   <input id="reseller-inquiry-company" name="company" type="text" autocomplete="organization" required maxlength="<%= fields.company.maxLength %>" class="mt-2 block w-full rounded-lg border-0 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-900 aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-red-500">
+                  <p id="reseller-inquiry-company-error" class="mt-2 text-sm leading-5 text-red-600" data-reseller-field-error hidden></p>
                 </div>
 
                 <div>
@@ -209,11 +228,13 @@
                     <span class="text-xs font-normal text-gray-500">Optional</span>
                   </label>
                   <input id="reseller-inquiry-website" name="website" type="text" inputmode="url" autocomplete="url" maxlength="<%= fields.website.maxLength %>" placeholder="company.com" class="mt-2 block w-full rounded-lg border-0 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-900 aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-red-500">
+                  <p id="reseller-inquiry-website-error" class="mt-2 text-sm leading-5 text-red-600" data-reseller-field-error hidden></p>
                 </div>
 
                 <div class="sm:col-span-2">
                   <label for="reseller-inquiry-regions" class="block text-sm font-medium leading-6 text-gray-900"><%= fields.regions.label %></label>
                   <input id="reseller-inquiry-regions" name="regions" type="text" required maxlength="<%= fields.regions.maxLength %>" placeholder="For example: Japan, South Korea" class="mt-2 block w-full rounded-lg border-0 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-900 aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-red-500">
+                  <p id="reseller-inquiry-regions-error" class="mt-2 text-sm leading-5 text-red-600" data-reseller-field-error hidden></p>
                 </div>
 
                 <div class="sm:col-span-2">
@@ -222,6 +243,7 @@
                     <span class="text-xs font-normal text-gray-500">Optional</span>
                   </label>
                   <textarea id="reseller-inquiry-message" name="message" rows="4" maxlength="<%= fields.message.maxLength %>" placeholder="Your customers, the products you sell today, anything we should know." class="mt-2 block w-full resize-y rounded-lg border-0 bg-white px-3.5 py-2.5 text-sm leading-6 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-900 aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-red-500"></textarea>
+                  <p id="reseller-inquiry-message-error" class="mt-2 text-sm leading-5 text-red-600" data-reseller-field-error hidden></p>
                 </div>
               </div>
 
@@ -252,7 +274,7 @@
                   We use these details only to reply to you. See our
                   <a href="/legal/privacy" class="underline underline-offset-2 hover:text-gray-700">privacy policy</a>.
                 </p>
-                <button type="submit" data-reseller-submit class="inline-flex w-full flex-none items-center justify-center rounded-lg bg-gray-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">
+                <button type="submit" data-reseller-submit class="inline-flex w-full flex-none items-center justify-center rounded-lg bg-gray-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 aria-disabled:cursor-wait aria-disabled:opacity-60 sm:w-auto">
                   Send message
                 </button>
               </div>
@@ -271,14 +293,20 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                   </svg>
                 </div>
-                <h3 id="reseller-inquiry-success-title" tabindex="-1" class="mt-5 text-lg font-semibold text-gray-900 focus:outline-none">Thanks, your message is on its way</h3>
+                <h3 id="reseller-inquiry-success-title" tabindex="-1" class="mt-5 text-balance text-lg font-semibold text-gray-900 focus:outline-none">Thanks, we got your message</h3>
                 <p class="mx-auto mt-2 max-w-sm text-sm leading-6 text-gray-600">
-                  We will reply to <span class="font-medium text-gray-900" data-reseller-reply-to>your email address</span> as soon as we can.
+                  We will reply to <span class="break-words font-medium text-gray-900" data-reseller-reply-to>your email address</span> as soon as we can.
                 </p>
               </div>
             </div>
 
           </div>
+
+          <%# After the form, so a phone reaches it once it has seen the form. -%>
+          <p class="mt-6 text-sm leading-6 text-gray-600" data-testid="reseller-inquiry-email">
+            Prefer email? Write to
+            <a href="mailto:<%= fallbackEmail %>" class="font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600"><%= fallbackEmail %></a>.
+          </p>
         </div>
       </div>
     </section>
@@ -291,8 +319,10 @@
     /*
      * The reseller form, sent as JSON (Home/API/ResellerInquiryAPI.ts). The
      * browser checks the required fields first; the server checks everything
-     * again and answers { sent, message, field? }. Text from the answer and
-     * from the form is only ever set as textContent.
+     * again and answers { sent, message, field? }. What it says about a field
+     * shows under that field; anything else shows in the box above the
+     * button, with the email address to write to instead. Text from the
+     * answer and from the form is only ever set as textContent.
      */
     (function () {
       var form = document.getElementById('reseller-inquiry-form');
@@ -309,6 +339,8 @@
       var submitLabel = submitButton ? submitButton.textContent.trim() : '';
       var replyTo = success.querySelector('[data-reseller-reply-to]');
       var invalidField = null;
+      var invalidFieldError = null;
+      var busy = false;
 
       function clearInvalidField() {
         if (invalidField) {
@@ -316,36 +348,67 @@
           invalidField.removeAttribute('aria-describedby');
           invalidField = null;
         }
+
+        if (invalidFieldError) {
+          invalidFieldError.textContent = '';
+          invalidFieldError.hidden = true;
+          invalidFieldError = null;
+        }
       }
 
-      function setBusy(busy) {
+      /*
+       * While it sends, the button says so and ignores presses, but stays
+       * focusable (aria-disabled, not disabled): a disabled button would drop
+       * the keyboard's place on the page.
+       */
+      function setBusy(isBusy) {
+        busy = isBusy;
+        form.setAttribute('aria-busy', isBusy ? 'true' : 'false');
+
         if (!submitButton) {
           return;
         }
-        submitButton.disabled = busy;
-        submitButton.textContent = busy ? 'Sending…' : submitLabel;
-        form.setAttribute('aria-busy', busy ? 'true' : 'false');
+
+        if (isBusy) {
+          submitButton.setAttribute('aria-disabled', 'true');
+        } else {
+          submitButton.removeAttribute('aria-disabled');
+        }
+
+        submitButton.textContent = isBusy ? 'Sending…' : submitLabel;
+      }
+
+      // The line under a field of this form for what to fix in it, if any.
+      function fieldErrorOf(fieldName) {
+        var line = document.getElementById('reseller-inquiry-' + fieldName + '-error');
+
+        return line && form.contains(line) && line.hasAttribute('data-reseller-field-error')
+          ? line
+          : null;
       }
 
       function showError(message, fieldName) {
         clearInvalidField();
+
+        var field = fieldName ? form.elements.namedItem(fieldName) : null;
+        var fieldError = fieldName ? fieldErrorOf(fieldName) : null;
+
+        if (message && field && fieldError && typeof field.focus === 'function') {
+          invalidField = field;
+          invalidFieldError = fieldError;
+          fieldError.textContent = message;
+          fieldError.hidden = false;
+          field.setAttribute('aria-invalid', 'true');
+          field.setAttribute('aria-describedby', fieldError.id);
+          field.focus();
+          return;
+        }
 
         if (errorMessage) {
           errorMessage.textContent = message || defaultErrorMessage;
         }
 
         errorBox.hidden = false;
-
-        var field = fieldName ? form.elements.namedItem(fieldName) : null;
-
-        if (field && typeof field.focus === 'function' && field.type !== 'hidden') {
-          invalidField = field;
-          field.setAttribute('aria-invalid', 'true');
-          field.setAttribute('aria-describedby', 'reseller-inquiry-error-message');
-          field.focus();
-          return;
-        }
-
         errorBox.focus();
       }
 
@@ -373,7 +436,7 @@
       form.addEventListener('submit', function (event) {
         event.preventDefault();
 
-        if (submitButton && submitButton.disabled) {
+        if (busy) {
           return;
         }
 
@@ -384,6 +447,7 @@
         });
 
         errorBox.hidden = true;
+        clearInvalidField();
         setBusy(true);
 
         fetch(form.getAttribute('data-endpoint'), {

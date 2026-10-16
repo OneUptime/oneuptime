@@ -349,6 +349,7 @@ describe("an inquiry from the Resellers page", () => {
     expect(mail.subject).toBe("Reseller inquiry: Acme Korea");
     expect(mail.isSubjectLiteral).toBe(true);
     expect(mail.vars).toEqual({
+      preheader: "Jane Kim at Acme Korea · South Korea, Japan",
       companyName: "Acme Korea",
       companyWebsite: "acme.co.kr",
       regions: "South Korea, Japan",

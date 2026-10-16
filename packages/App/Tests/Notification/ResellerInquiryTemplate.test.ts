@@ -54,6 +54,7 @@ const templateSource: () => string = (): string => {
 
 // What the site sends for an inquiry with every field filled in.
 const SENT: Record<string, string> = {
+  preheader: "Jane Kim at Acme Korea · South Korea, Japan",
   companyName: "Acme Korea",
   companyWebsite: "acme.co.kr",
   regions: "South Korea, Japan",
@@ -289,6 +290,48 @@ describe("the reseller inquiry email", () => {
     ]) {
       expect(values[label]).toBe(hostile);
     }
+  });
+
+  // The hidden line an inbox shows next to the subject (Partials/Start.hbs).
+  const previewLines: (html: string) => Array<EmailElement> = (
+    html: string,
+  ): Array<EmailElement> => {
+    return findElements(
+      markupOf(html).root,
+      (element: EmailElement): boolean => {
+        return (
+          element.name === "div" &&
+          (element.attributes["style"] || "").includes("display: none")
+        );
+      },
+    );
+  };
+
+  test("gives the inbox a preview line - who wrote, their company, where they sell - that the email itself hides", () => {
+    const lines: Array<EmailElement> = previewLines(render());
+
+    expect(lines).toHaveLength(1);
+    expect(decodeHtmlEntities(textOf(lines[0]!)).trim()).toBe(
+      "Jane Kim at Acme Korea · South Korea, Japan",
+    );
+    expect(lines[0]!.attributes["style"]).toContain("max-height: 0");
+  });
+
+  test("writes the preview line as text, whatever a visitor typed", () => {
+    const hostile: string =
+      '<script>alert(1)</script><a href="https://evil.example">Reset</a> & {{contactEmail}}';
+    const lines: Array<EmailElement> = previewLines(
+      render({ ...SENT, preheader: hostile }),
+    );
+
+    expect(lines).toHaveLength(1);
+    expect(decodeHtmlEntities(textOf(lines[0]!))).toBe(hostile);
+    // Nothing a visitor typed became an element.
+    expect(
+      findElements(lines[0]!, (): boolean => {
+        return true;
+      }),
+    ).toEqual([]);
   });
 
   test("places a value's {{ }} as written, never as part of the template", () => {

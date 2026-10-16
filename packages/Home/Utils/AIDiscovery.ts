@@ -423,7 +423,7 @@ export function generateResellersMarkdown(
   lines.push("## Become a reseller");
   lines.push("");
   lines.push(
-    `Companies that want to sell OneUptime send the form at ${baseUrl}/resellers#become-a-reseller, or email ${content.form.fallbackEmail}.`,
+    `Companies that want to sell OneUptime can send the form at ${baseUrl}/resellers#become-a-reseller, or email ${content.form.fallbackEmail}.`,
   );
 
   lines.push("");
