@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import MarketplacePendingPurchase from "../../../UI/Utils/MarketplacePendingPurchase";
 import Navigation from "../../../UI/Utils/Navigation";
 import { resumePendingMarketplacePurchase } from "../../../../App/FeatureSet/Dashboard/src/Utils/MarketplacePurchaseResume";
@@ -49,7 +50,7 @@ describe("the pending purchase marker", () => {
   });
 
   test("sends the browser back to the purchase page once, then forgets it", () => {
-    const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation(() => {});
 
@@ -75,7 +76,7 @@ describe("the pending purchase marker", () => {
   });
 
   test("ignores a marker with any other value, and forgets it", () => {
-    const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation(() => {});
 
@@ -97,7 +98,7 @@ describe("the pending purchase marker", () => {
   });
 
   test("does nothing when no purchase is waiting", () => {
-    const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation(() => {});
 
