@@ -21,20 +21,31 @@ export interface ComponentProps {
   tabIndex?: number | undefined;
   onBlur?: (() => void) | undefined;
   error?: string | undefined;
+  /*
+   * Permissions not offered: a custom role's Add Permission leaves out
+   * Project Owner, which no custom role holds.
+   */
+  excludePermissions?: ReadonlyArray<Permission> | undefined;
 }
 
 const PermissionPicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const excludePermissions: ReadonlyArray<Permission> | undefined =
+    props.excludePermissions;
   const [selectedPermission, setSelectedPermission] =
     useState<Permission | null>(props.initialValue || null);
   const [activeGroup, setActiveGroup] = useState<PermissionGroup | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   const allPermissions: Array<PermissionProps> = useMemo(() => {
-    return PermissionHelper.getTenantPermissionProps();
-  }, []);
+    return PermissionHelper.getTenantPermissionProps().filter(
+      (props: PermissionProps): boolean => {
+        return !excludePermissions?.includes(props.permission);
+      },
+    );
+  }, [excludePermissions]);
 
   const groupedPermissions: Map<
     PermissionGroup,

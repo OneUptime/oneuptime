@@ -2543,6 +2543,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Team,
             keywords: ["create team", "groups", "permissions", "roles"],
           },
+          {
+            page: PageMap.TEAM_ROLES,
+            title: "Roles",
+            icon: IconProp.Identification,
+            keywords: [
+              "custom roles",
+              "custom role",
+              "create role",
+              "built-in roles",
+              "rbac",
+            ],
+          },
         ],
       },
       {

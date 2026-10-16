@@ -111,53 +111,68 @@ const ADMINISTRATION_ROLES: Array<Permission> = [
   Permission.BillingViewer,
 ];
 
+export interface RoleCardSelectOptionsFilter {
+  /*
+   * Roles left out: a custom role's Add Role offers every role but Project
+   * Owner, which no custom role holds (Types/Team/CustomRole).
+   */
+  excludeRoles?: ReadonlyArray<Permission> | undefined;
+}
+
 /*
  * Every role, in four groups: Owner (owner and admin of the whole project),
  * Project Roles (member and viewer of the whole project), Administration
  * (settings and billing) and Domain Roles (one product area each). Empty
  * groups are left out.
  */
-export const getRoleCardSelectOptions: () => Array<CardSelectOptionGroup> =
-  (): Array<CardSelectOptionGroup> => {
-    const ownerRoles: Array<CardSelectOption> = [];
-    const projectRoles: Array<CardSelectOption> = [];
-    const administrationRoles: Array<CardSelectOption> = [];
-    const domainRoles: Array<CardSelectOption> = [];
+export const getRoleCardSelectOptions: (
+  filter?: RoleCardSelectOptionsFilter,
+) => Array<CardSelectOptionGroup> = (
+  filter?: RoleCardSelectOptionsFilter,
+): Array<CardSelectOptionGroup> => {
+  const ownerRoles: Array<CardSelectOption> = [];
+  const projectRoles: Array<CardSelectOption> = [];
+  const administrationRoles: Array<CardSelectOption> = [];
+  const domainRoles: Array<CardSelectOption> = [];
 
-    for (const props of PermissionHelper.getRolePermissionProps()) {
-      const option: CardSelectOption = getRoleCardSelectOption(props);
-
-      if (OWNER_ROLES.includes(props.permission)) {
-        ownerRoles.push(option);
-      } else if (PROJECT_ROLES.includes(props.permission)) {
-        projectRoles.push(option);
-      } else if (ADMINISTRATION_ROLES.includes(props.permission)) {
-        administrationRoles.push(option);
-      } else {
-        domainRoles.push(option);
-      }
+  for (const props of PermissionHelper.getRolePermissionProps()) {
+    if (filter?.excludeRoles?.includes(props.permission)) {
+      continue;
     }
 
-    const groups: Array<CardSelectOptionGroup> = [
-      {
-        label: "Owner",
-        options: ownerRoles,
-      },
-      {
-        label: "Project Roles",
-        options: projectRoles,
-      },
-      {
-        label: "Administration",
-        options: administrationRoles,
-      },
-      {
-        label: "Domain Roles",
-        options: domainRoles,
-      },
-    ];
+    const option: CardSelectOption = getRoleCardSelectOption(props);
 
-    return groups.filter((group: CardSelectOptionGroup): boolean => {
-      return group.options.length > 0;
-    });
-  };
+    if (OWNER_ROLES.includes(props.permission)) {
+      ownerRoles.push(option);
+    } else if (PROJECT_ROLES.includes(props.permission)) {
+      projectRoles.push(option);
+    } else if (ADMINISTRATION_ROLES.includes(props.permission)) {
+      administrationRoles.push(option);
+    } else {
+      domainRoles.push(option);
+    }
+  }
+
+  const groups: Array<CardSelectOptionGroup> = [
+    {
+      label: "Owner",
+      options: ownerRoles,
+    },
+    {
+      label: "Project Roles",
+      options: projectRoles,
+    },
+    {
+      label: "Administration",
+      options: administrationRoles,
+    },
+    {
+      label: "Domain Roles",
+      options: domainRoles,
+    },
+  ];
+
+  return groups.filter((group: CardSelectOptionGroup): boolean => {
+    return group.options.length > 0;
+  });
+};

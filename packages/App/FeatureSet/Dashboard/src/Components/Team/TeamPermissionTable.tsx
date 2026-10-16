@@ -1,5 +1,6 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ProjectUtil from "Common/UI/Utils/Project";
+import IsNull from "Common/Types/BaseDatabase/IsNull";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
@@ -150,6 +151,12 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
         teamId: teamId,
         projectId: ProjectUtil.getCurrentProjectId()!,
         isBlockPermission: permissionType === PermissionType.BlockPermissions,
+        /*
+         * The team's own permissions only. What it has through a custom
+         * role is the role's, listed by role above (TeamCustomRoleTable)
+         * and changed on the role's page.
+         */
+        teamCustomRoleId: new IsNull(),
       }}
       selectMoreFields={{
         labels: {
