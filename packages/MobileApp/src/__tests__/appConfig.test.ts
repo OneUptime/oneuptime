@@ -47,7 +47,7 @@ interface SplashDefinition {
 
 const staticApp: {
   userInterfaceStyle: string;
-  ios: { bundleIdentifier: string; icon: string };
+  ios: { bundleIdentifier: string; icon?: string };
   android: {
     package: string;
     adaptiveIcon: { foregroundImage: string; backgroundColor: string };
@@ -282,7 +282,12 @@ describe("The native launch screen matches the app", () => {
       "d9f87edc-1c3e-466f-b032-1ced7621aa8a",
     );
     expect(staticApp.icon).toBe("./assets/icon.png");
-    expect(staticApp.ios.icon).toBe("./assets/icon.png");
+    /*
+     * iOS takes the shared icon above: Expo uses `icon` wherever `ios.icon`
+     * is not set. SDK 57's config schema reads `ios.icon` as an Icon Composer
+     * `.icon` folder, so a PNG there fails expo-doctor's schema check.
+     */
+    expect(staticApp.ios.icon).toBeUndefined();
     expect(staticApp.android.adaptiveIcon).toEqual({
       foregroundImage: "./assets/adaptive-icon.png",
       backgroundColor: "#000000",
