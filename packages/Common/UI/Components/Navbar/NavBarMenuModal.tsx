@@ -263,6 +263,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   const recentItems: Array<MoreMenuItem> = useMemo(() => {
     return pickRecentProducts(recentRoutes, props.items, isMoreMenuItemActive);
   }, [recentRoutes, props.items]);
+  const showsRecentRow: boolean = !isSearching && recentItems.length > 0;
 
   // Group filtered items by category, preserving first-seen order.
   const categoryGroups: Array<MenuCategory> = useMemo(() => {
@@ -281,7 +282,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
    * a plain heading, and the cursor moves over products alone.
    */
   const rawGroups: Array<RawGroup> = [];
-  if (!isSearching && recentItems.length > 0) {
+  if (showsRecentRow) {
     rawGroups.push({ title: recentLabel, items: recentItems, isRecent: true });
   }
   categoryGroups.forEach((category: MenuCategory) => {
@@ -371,9 +372,14 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   );
 
   /*
-   * Where the cursor is. When idle the menu opens "where you are", on the
-   * current page's product; while searching, on the first result. Either
-   * way it starts on a product, never on a category's heading row.
+   * Where the cursor is. When idle with a Recent row, the menu opens on its
+   * first card, the product used before this one, as switching apps does:
+   * the row is the first thing on screen and Enter goes back. The list
+   * scrolls to the cursor, so opening on a current product further down
+   * (Teams, Logs, Kubernetes) would push the Recent row out of sight.
+   * Without a Recent row the menu opens "where you are", on the current
+   * page's product (it keeps its dot either way); while searching, on the
+   * first result. It always starts on a product, never on a heading row.
    */
   const activeIndex: number = ((): number => {
     if (activeKey !== undefined) {
@@ -384,7 +390,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
         return index;
       }
     }
-    if (!isSearching && currentFlatIndex >= 0) {
+    if (!isSearching && !showsRecentRow && currentFlatIndex >= 0) {
       return currentFlatIndex;
     }
     const firstProductIndex: number = entries.findIndex(
@@ -899,13 +905,14 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                     />
                   </div>
                   <div className="min-w-0 text-left">
-                    <p className="flex items-center gap-1 text-sm font-medium text-gray-900">
+                    {/* A div, not a p: Icon draws a div, which a p cannot hold. */}
+                    <div className="flex items-center gap-1 text-sm font-medium text-gray-900">
                       <span className="truncate">{tx(props.footer.title)}</span>
                       <Icon
                         icon={IconProp.ExternalLink}
                         className="h-3 w-3 flex-shrink-0 text-gray-400 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
                       />
-                    </p>
+                    </div>
                     <p className="truncate text-xs text-gray-500">
                       {tx(props.footer.description)}
                     </p>

@@ -45,12 +45,17 @@ lists the products the same way.
 six products: two full rows of three cards on a desktop, three rows of two
 from 768px to 1023px (the dialog opens from 768px up, so it runs on the
 desktop project only). Seven products opened one after another leave the six
-before the last in the row on the last one's page; the arrow keys move
-between the two rows and on to the Essentials; a list of five remembered
-before the row grew still shows and grows past five; another project's
-products and the Admin Dashboard's pages remembered in between are skipped
-while the row still fills; the browser keeps twenty addresses at most; and
-the Dashboard's own navbar (`?navbar=true`) names the row Recently visited.
+before the last in the row on the last one's page; on a page low in the list
+(Teams) the menu opens at the top with the row in view and the cursor on its
+first card, which Enter opens; the arrow keys move between the two rows and
+on to the Essentials; a list of five remembered before the row grew still
+shows and grows past five; another project's products and the Admin
+Dashboard's pages remembered in between are skipped while the row still
+fills; the browser keeps twenty addresses at most; and the Dashboard's own
+navbar (`?navbar=true`) names the row Recently visited and opens it at the
+top without a console error. The tests that check where the menu opens open
+it twice first: the fixture's Tailwind runtime draws a class only once it is
+on the page, as a page in use already has.
 
 `ForeignHiddenRule.spec.ts` renders the real Dashboard navbar (`?navbar=true`)
 in a page that also carries a foreign `.hidden { display: none }` rule, the

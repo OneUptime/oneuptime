@@ -1,4 +1,4 @@
-import { expect, Locator, Page, test } from "@playwright/test";
+import { ConsoleMessage, expect, Locator, Page, test } from "@playwright/test";
 
 /*
  * The products menu's "Recently visited" row shows six products.
@@ -12,6 +12,11 @@ import { expect, Locator, Page, test } from "@playwright/test";
  * desktop, three rows of two from 768px (where the dialog first opens) to
  * 1023px. The browser remembers twenty, so the row still fills on the page
  * of one of them, and after work in another project.
+ *
+ * The menu opens at the top, with the cursor on the row's first card (the
+ * product used before this one, which Enter opens). It used to open on
+ * the current page's product and scroll the list to it, which hid the row
+ * on every page low in the list (Teams, Logs, Kubernetes).
  *
  * These run the production menu and Dashboard catalog in a real browser,
  * where the rows are laid out for real. A phone gets the menu toggle's list
@@ -289,6 +294,58 @@ test.describe("the Recently visited row of the products menu", () => {
     ).toHaveCount(0);
   });
 
+  test("on a page low in the menu, it opens at the top: the row in view and the cursor on its first card, which Enter opens", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // Teams sits in Settings, the last section of the list.
+    await rememberAndOpen(page, SEVEN.map(routeOf), "/teams");
+    /*
+     * Open it again: by now the page has drawn every class the menu uses,
+     * as a page in use has, so the list scrolls as it does for real.
+     */
+    await productsMenu(page).getByRole("combobox").press("Escape");
+    await expect(productsMenu(page)).toHaveCount(0);
+    await page.getByRole("button", { name: "Open products" }).click();
+    await menuAtRest(page);
+
+    await expect(
+      productsMenu(page).getByRole("heading", { name: "Recent", exact: true }),
+    ).toBeInViewport();
+    await expect(recentCards(page)).toHaveCount(6);
+    for (let index: number = 0; index < 6; index++) {
+      await expect(recentCards(page).nth(index)).toBeInViewport();
+    }
+    expect(await recentTitles(page)).toEqual(titlesOf(SEVEN.slice(1)));
+    expect(
+      await productsMenu(page)
+        .locator("#navbar-menu-listbox")
+        .evaluate((list: Element): number => {
+          return list.scrollTop;
+        }),
+    ).toBe(0);
+
+    // The cursor is on the product used before this one.
+    await expect(
+      recentRow(page).getByRole("option", { selected: true }),
+    ).toContainText(USERS.title);
+
+    // Teams is still marked where it is: its section opened by itself.
+    await expect(
+      productsMenu(page).getByRole("button", { name: "Settings", exact: true }),
+    ).toHaveAttribute("aria-expanded", "true");
+    await expect(
+      productsMenu(page).locator(`a[href="${routeOf(TEAMS)}"]`),
+    ).toHaveCount(1);
+
+    // Enter goes back to it.
+    await productsMenu(page).getByRole("combobox").press("Enter");
+    await expect(productsMenu(page)).toHaveCount(0);
+    await expect(page.getByTestId("current-route")).toHaveText(routeOf(USERS));
+    expect((await storedRoutes(page))[0]).toBe(routeOf(USERS));
+  });
+
   test("from 768 to 1023 pixels wide, the six cards are three rows of two", async ({
     page,
   }: {
@@ -473,5 +530,66 @@ test.describe("the Recently visited row of the products menu", () => {
         return row.length;
       }),
     ).toEqual([3, 3]);
+  });
+
+  test("in the Dashboard's own navbar, on a product's page, the row is at the top and opening the menu logs nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const errors: Array<string> = [];
+    page.on("console", (message: ConsoleMessage): void => {
+      if (message.type() === "error") {
+        errors.push(message.text());
+      }
+    });
+    page.on("pageerror", (error: Error): void => {
+      errors.push(error.message);
+    });
+    await page.goto(`${projectPath}/home?navbar=true`);
+    await page.evaluate(
+      ([key, value]: [string, string]): void => {
+        window.localStorage.setItem(key, value);
+      },
+      [RECENT_STORAGE_KEY, JSON.stringify(SEVEN.map(routeOf))] as [
+        string,
+        string,
+      ],
+    );
+    await page.goto(`${projectPath}/teams?navbar=true`);
+    // On a product's page, the top bar's button names the product.
+    const menuButton: Locator = page
+      .getByTestId("dashboard-navbar")
+      .getByRole("button", { name: TEAMS.title, exact: true });
+
+    // Twice, as on a page in use: the second time every class is drawn.
+    await menuButton.click();
+    await menuAtRest(page);
+    await page.keyboard.press("Escape");
+    await expect(productsMenu(page)).toHaveCount(0);
+    await menuButton.click();
+    await menuAtRest(page);
+
+    await expect(
+      productsMenu(page).getByRole("heading", {
+        name: "Recently visited",
+        exact: true,
+      }),
+    ).toBeInViewport();
+    await expect(
+      recentRow(page, "Recently visited").getByRole("option", {
+        selected: true,
+      }),
+    ).toContainText(USERS.title);
+    for (let index: number = 0; index < 6; index++) {
+      await expect(
+        recentCards(page, "Recently visited").nth(index),
+      ).toBeInViewport();
+    }
+    // The footer's link to GitHub is drawn, and nothing was logged.
+    await expect(
+      productsMenu(page).getByText("Report a bug or request a feature."),
+    ).toBeVisible();
+    expect(errors).toEqual([]);
   });
 });

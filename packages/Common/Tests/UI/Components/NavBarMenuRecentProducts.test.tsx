@@ -480,6 +480,151 @@ describe.each(MENU_KINDS)(
   },
 );
 
+/*
+ * Where the menu opens. The list scrolls to the keyboard cursor, so a cursor
+ * that started on the current page's product (Teams, Logs, Kubernetes: low
+ * in the list) scrolled the six recent cards out of sight on most product
+ * pages. With a Recently visited row, the cursor starts on its first card,
+ * the product used before this one, and Enter goes back, as switching apps
+ * does. Without a row, the menu still opens where the user is.
+ */
+describe.each(MENU_KINDS)(
+  "where the menu opens, in %s",
+  (_kind: string, categoriesOpenByDefault: Array<string> | undefined) => {
+    function renderMenu(
+      props: Partial<React.ComponentProps<typeof NavBarMenuModal>> = {},
+    ): ReturnType<typeof render> {
+      return render(
+        <NavBarMenuModal
+          items={CATALOG}
+          categoriesOpenByDefault={categoriesOpenByDefault}
+          onClose={() => {}}
+          {...props}
+        />,
+      );
+    }
+
+    // The product card the cursor is on, by its title.
+    function cursorCard(): HTMLElement {
+      const option: HTMLElement = screen.getByRole("option", {
+        selected: true,
+      });
+      expect(search()).toHaveAttribute("aria-activedescendant", option.id);
+      return option;
+    }
+
+    test("on a product's page, the cursor starts on the newest recent card, not on the page's own product", () => {
+      remember(SEVEN);
+      // Hosts is not remembered, and sits low in the list.
+      goTo("/p/hosts/42");
+
+      renderMenu();
+
+      expect(cursorText()).toBe("Kubernetes");
+      expect(recentRow()).toContainElement(cursorCard());
+      // The page's own product is still drawn, with its dot, under its category.
+      const hosts: HTMLElement = screen.getByRole("option", { name: /^Hosts/ });
+      expect(hosts).toHaveAttribute("aria-selected", "false");
+      expect(hosts.querySelector("span.rounded-full")).not.toBeNull();
+    });
+
+    test("Enter right away opens the product used before this one", () => {
+      const onClose: Mock<() => void> = jest.fn<() => void>();
+      remember(SEVEN);
+      // On the newest product's page, the one before it is first in the row.
+      goTo("/p/kubernetes");
+
+      renderMenu({ onClose });
+      expect(cursorText()).toBe("Logs");
+
+      press("Enter");
+
+      expect(Navigation.navigate).toHaveBeenCalledWith(new Route("/p/logs"));
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(stored()!.slice(0, 2)).toEqual([
+        routeOf("Logs"),
+        routeOf("Kubernetes"),
+      ]);
+    });
+
+    test("the list scrolls to the recent row's first card, never down to the page's own product", () => {
+      const scrolledTo: Array<string> = [];
+      const original: typeof Element.prototype.scrollIntoView =
+        Element.prototype.scrollIntoView;
+      Element.prototype.scrollIntoView = function (this: Element): void {
+        scrolledTo.push(
+          this.querySelector("span.truncate")?.textContent ??
+            this.textContent ??
+            "",
+        );
+      };
+
+      try {
+        remember(SEVEN);
+        goTo("/p/hosts/42");
+
+        renderMenu();
+      } finally {
+        Element.prototype.scrollIntoView = original;
+      }
+
+      expect(scrolledTo.length).toBeGreaterThan(0);
+      expect(new Set(scrolledTo)).toEqual(new Set(["Kubernetes"]));
+    });
+
+    test("with nothing remembered, the menu still opens on the page's own product", () => {
+      goTo("/p/hosts/42");
+
+      renderMenu();
+
+      expect(screen.queryByRole("group", { name: "Recent" })).toBeNull();
+      expect(cursorText()).toBe("Hosts");
+    });
+
+    test("with only the page's own product remembered there is no row, and the menu opens on that product", () => {
+      remember(["Hosts"]);
+      goTo("/p/hosts/42");
+
+      renderMenu();
+
+      expect(screen.queryByRole("group", { name: "Recent" })).toBeNull();
+      expect(cursorText()).toBe("Hosts");
+    });
+
+    test("a search moves the cursor to its first result, and clearing it puts the cursor back on the newest recent card", () => {
+      remember(SEVEN);
+      goTo("/p/hosts/42");
+      renderMenu();
+
+      fireEvent.change(search(), { target: { value: "metr" } });
+      expect(cursorText()).toBe("Metrics");
+
+      fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+      expect(cursorText()).toBe("Kubernetes");
+      expect(recentRow()).toContainElement(cursorCard());
+    });
+
+    test("the arrow keys still reach the page's own product from the row", () => {
+      remember(["Logs", "Users"]);
+      goTo("/p/teams");
+      renderMenu();
+      expect(cursorText()).toBe("Logs");
+
+      // Teams is the last product of the list; the cursor walks there.
+      const visited: Array<string> = [cursorText()];
+      for (let step: number = 0; step < 40; step++) {
+        press("ArrowRight");
+        visited.push(cursorText());
+        if (cursorText() === "Teams") {
+          break;
+        }
+      }
+
+      expect(visited[visited.length - 1]).toBe("Teams");
+    });
+  },
+);
+
 describe("what opening products from the menu leaves in the row", () => {
   function renderDashboardMenu(): ReturnType<typeof render> {
     return render(
