@@ -30239,5 +30239,10 @@
   "Already acknowledged": "Già confermato",
   "Already passed on": "Avviso già passato",
   "Nothing to pass on": "Niente da passare",
-  "Use Try again above to load it.": "Usa «Riprova» qui sopra per caricarlo."
+  "Use Try again above to load it.": "Usa «Riprova» qui sopra per caricarlo.",
+  "Caution": "Attenzione",
+  "Danger": "Pericolo",
+  "Important": "Importante",
+  "Opens in a new tab": "Si apre in una nuova scheda",
+  "Tip": "Suggerimento"
 }

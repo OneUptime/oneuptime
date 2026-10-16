@@ -343,5 +343,13 @@
   "{{field}} is required.": "{{field}}은(는) 필수입니다.",
   "{{field}} should match {{matchField}}": "{{field}}은(는) {{matchField}}과(와) 일치해야 합니다",
   "Email is not valid.": "이메일이 유효하지 않습니다.",
-  "Next": "다음"
+  "Next": "다음",
+  "Opens in a new tab": "새 탭에서 열림",
+  "Note": "참고",
+  "Tip": "팁",
+  "Info": "정보",
+  "Important": "중요",
+  "Warning": "경고",
+  "Caution": "주의",
+  "Danger": "위험"
 }

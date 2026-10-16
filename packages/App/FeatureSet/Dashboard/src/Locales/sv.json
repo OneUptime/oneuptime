@@ -30239,5 +30239,10 @@
   "Already acknowledged": "Redan kvitterat",
   "Already passed on": "Redan skickat vidare",
   "Nothing to pass on": "Inget att skicka vidare",
-  "Use Try again above to load it.": "Använd Försök igen ovan för att läsa in den."
+  "Use Try again above to load it.": "Använd Försök igen ovan för att läsa in den.",
+  "Caution": "Försiktighet",
+  "Danger": "Fara",
+  "Important": "Viktigt",
+  "Opens in a new tab": "Öppnas i en ny flik",
+  "Tip": "Tips"
 }

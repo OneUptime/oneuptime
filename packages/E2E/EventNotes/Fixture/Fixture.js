@@ -109,7 +109,15 @@ import PermissionUtil from "Common/UI/Utils/Permission";
  * ---------------------------------------------------------------------------
  */
 const params = new URLSearchParams(window.location.search);
-const notesMode = ["empty", "many"].includes(params.get("notes"))
+/*
+ * ?notes=links-and-quotes: the full set, plus the newest private note on
+ * incident #1042 saved from a Slack message - a quote, the file it carried,
+ * a callout, links to another incident and to the docs, and a long link
+ * (see "Links and quotes" below).
+ */
+const notesMode = ["empty", "many", "links-and-quotes"].includes(
+  params.get("notes"),
+)
   ? params.get("notes")
   : "full";
 const roleMode = ["viewer", "member"].includes(params.get("role"))
@@ -523,6 +531,32 @@ if (notesMode !== "empty") {
     by: people.sam,
     note: "All 5 alerts in this episode are downstream of the payments queue backlog.",
   });
+
+  /*
+   * Links and quotes (?notes=links-and-quotes): the newest private note on
+   * incident #1042, with what a note saved from a Slack message holds - a
+   * quote and the "📎" file link ChatMessageMarkdown writes - and a callout,
+   * a link to alert #311's notes, one to the docs and a link long enough to
+   * wrap on a phone. Added last, so no other note's id moves.
+   */
+  if (notesMode === "links-and-quotes") {
+    note(IncidentInternalNote, "incidentId", ID.incident(1042), {
+      createdAt: ago(2 * MINUTE),
+      by: people.sam,
+      note: [
+        "> They said the payment provider is degraded in eu-west.",
+        "",
+        "📎 [image.png](https://acme.slack.com/files/U0123ABCD/F0123ABCD/image.png)",
+        "",
+        "> [!WARNING]",
+        "> **Do not restart the primary.** Fail over to the replica first.",
+        "",
+        `It started with [ALT-311](/dashboard/${PROJECT_ID}/alerts/${ID.alert(311)}/internal-notes); see the [failover runbook](/docs/incidents/notes-owners-and-feed).`,
+        "",
+        "Latency panel: https://grafana.acme-commerce.example/d/checkout-api-latency-overview/checkout-api-latency?orgId=1&from=now-6h&to=now&var-region=eu-west-1",
+      ].join("\n"),
+    });
+  }
 }
 
 const TEMPLATE_SETS = {

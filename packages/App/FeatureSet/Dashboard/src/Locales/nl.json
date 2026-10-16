@@ -30239,5 +30239,10 @@
   "Already acknowledged": "Al bevestigd",
   "Already passed on": "Al doorgegeven",
   "Nothing to pass on": "Niets door te geven",
-  "Use Try again above to load it.": "Gebruik Opnieuw proberen hierboven om de lijst te laden."
+  "Use Try again above to load it.": "Gebruik Opnieuw proberen hierboven om de lijst te laden.",
+  "Caution": "Let op",
+  "Danger": "Gevaar",
+  "Important": "Belangrijk",
+  "Opens in a new tab": "Opent in een nieuw tabblad",
+  "Tip": "Tip"
 }

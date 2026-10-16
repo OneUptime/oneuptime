@@ -30239,5 +30239,10 @@
   "Already acknowledged": "すでに確認済み",
   "Already passed on": "パス済み",
   "Nothing to pass on": "パスするものはありません",
-  "Use Try again above to load it.": "上の「再試行」で読み込んでください。"
+  "Use Try again above to load it.": "上の「再試行」で読み込んでください。",
+  "Caution": "注意",
+  "Danger": "危険",
+  "Important": "重要",
+  "Opens in a new tab": "新しいタブで開きます",
+  "Tip": "ヒント"
 }

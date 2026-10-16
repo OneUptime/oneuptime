@@ -359,5 +359,13 @@
   "Quote": "引用",
   "Code Block": "程式碼區塊",
   "Switch to markdown source": "切換到 Markdown 原始碼",
-  "Switch to visual editor": "切換到視覺化編輯器"
+  "Switch to visual editor": "切換到視覺化編輯器",
+  "Opens in a new tab": "在新分頁中開啟",
+  "Note": "注意",
+  "Tip": "提示",
+  "Info": "資訊",
+  "Important": "重要",
+  "Warning": "警告",
+  "Caution": "小心",
+  "Danger": "危險"
 }

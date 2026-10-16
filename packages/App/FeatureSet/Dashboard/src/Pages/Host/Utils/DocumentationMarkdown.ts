@@ -448,7 +448,7 @@ ${codeBlock("yaml", getHostCollectorConfig(data))}${getPlaceholderNote(data.apiK
  * written with User=root.
  */
 const PACKAGED_UNIT_NOTE: string =
-  "> **Note for native installs:** Unlike Docker, the package install reads `/proc` and `/sys` directly — no `HOST_PROC` env vars or `/hostfs` mount required. The systemd unit shipped with the package runs as the unprivileged `otelcol-contrib` user; if you want the `process` scraper to see processes owned by other users, grant it `CAP_SYS_PTRACE` or run it as root.";
+  "> [!NOTE]\n> **Note for native installs:** Unlike Docker, the package install reads `/proc` and `/sys` directly — no `HOST_PROC` env vars or `/hostfs` mount required. The systemd unit shipped with the package runs as the unprivileged `otelcol-contrib` user; if you want the `process` scraper to see processes owned by other users, grant it `CAP_SYS_PTRACE` or run it as root.";
 
 function getInstallStep(data: HostCollectorGuideOptions): SetupGuideStep {
   switch (data.method) {
@@ -605,6 +605,7 @@ Load it:
 
 ${codeBlock("bash", `sudo launchctl load -w ${MACOS_PLIST_PATH}`)}
 
+> [!WARNING]
 > **Install the contrib build, as above.** The core \`otelcol\` build has no \`resourcedetection\` processor, so it refuses to start with this config.`,
       };
 
@@ -812,7 +813,7 @@ const HARDWARE_ALIASES: string =
   "`host.manufacturer`, `host.model.name`, `host.firmware.version` and `host.bios.version` are accepted as alternative spellings and stored under the `device.*` keys above (and `device.serial_number` under `host.serial_number`), so a config written either way ends up in one place.";
 
 const HARDWARE_MOBILE_WARNING: string =
-  "> **Don't set `device.manufacturer` on a mobile app's resource and a host's from the same config.** On a resource that carries no `host.name` or `host.id`, `device.manufacturer` still marks the batch as mobile Real User Monitoring.";
+  "> [!WARNING]\n> **Don't set `device.manufacturer` on a mobile app's resource and a host's from the same config.** On a resource that carries no `host.name` or `host.id`, `device.manufacturer` still marks the batch as mobile Real User Monitoring.";
 
 const HARDWARE_PIPELINE: string = `service:
   pipelines:

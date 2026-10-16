@@ -343,5 +343,13 @@
   "{{field}} is required.": "{{field}} är obligatoriskt.",
   "{{field}} should match {{matchField}}": "{{field}} måste matcha {{matchField}}",
   "Email is not valid.": "E-postadressen är ogiltig.",
-  "Next": "Nästa"
+  "Next": "Nästa",
+  "Opens in a new tab": "Öppnas i en ny flik",
+  "Note": "Obs",
+  "Tip": "Tips",
+  "Info": "Info",
+  "Important": "Viktigt",
+  "Warning": "Varning",
+  "Caution": "Försiktighet",
+  "Danger": "Fara"
 }

@@ -30239,5 +30239,10 @@
   "Already acknowledged": "이미 확인됨",
   "Already passed on": "이미 넘겼습니다",
   "Nothing to pass on": "넘길 것이 없습니다",
-  "Use Try again above to load it.": "위의 다시 시도를 사용해 불러오세요."
+  "Use Try again above to load it.": "위의 다시 시도를 사용해 불러오세요.",
+  "Caution": "주의",
+  "Danger": "위험",
+  "Important": "중요",
+  "Opens in a new tab": "새 탭에서 열림",
+  "Tip": "팁"
 }
