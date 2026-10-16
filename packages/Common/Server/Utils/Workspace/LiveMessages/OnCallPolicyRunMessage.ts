@@ -15,9 +15,11 @@ import OnCallDutyExecutionLogTimelineStatus from "../../../../Types/OnCallDutyPo
 import { ON_CALL_POLICY_ARCHIVED_EXECUTION_STOPPED_MESSAGE } from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyArchive";
 import { getOnCallPolicyRepeatsAllowed } from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRepeat";
 import {
+  ON_CALL_POLICY_RUN_EVERYBODY_PASSED_ON_MESSAGE,
   ON_CALL_POLICY_RUN_RECORD_HANDLED_MESSAGE_START,
   ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
 } from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
+import { ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import OnCallDutyPolicyStatus from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import UserNotificationStatus from "../../../../Types/UserNotification/UserNotificationStatus";
 import WorkspaceLiveMessageKey, {
@@ -1168,6 +1170,17 @@ export default class OnCallPolicyRunMessage {
             continue;
           }
 
+          /*
+           * Passed over by a later rule or a repeat, having passed the page
+           * on: their line says they passed it on, once - and a rule whose
+           * people all did reached nobody it had not asked already.
+           */
+          if (
+            step.statusMessage === ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE
+          ) {
+            continue;
+          }
+
           countStep(
             step.onCallDutyPolicyEscalationRuleId,
             stepIndex,
@@ -1250,12 +1263,18 @@ export default class OnCallPolicyRunMessage {
         if (
           status === OnCallDutyExecutionLogTimelineStatus.NotificationSent ||
           status ===
-            OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged
+            OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged ||
+          status === OnCallDutyExecutionLogTimelineStatus.PassedOn
         ) {
           person.timesPaged++;
         } else {
           // Started or Executing: the page is still going out.
           person.isBeingPaged = true;
+        }
+
+        // They could not take it, and passed it on (OnCallPagePassOn).
+        if (status === OnCallDutyExecutionLogTimelineStatus.PassedOn) {
+          person.passedOn = true;
         }
 
         if (
@@ -1471,12 +1490,23 @@ export default class OnCallPolicyRunMessage {
       }
     }
 
+    /*
+     * Somebody who passed the page on is not being paged by this run any
+     * more, whatever a page of theirs that was still going out said.
+     */
+    for (const person of pagedByUserId.values()) {
+      if (person.passedOn) {
+        person.isBeingPaged = false;
+      }
+    }
+
     // How each person's pages reached them.
     for (const delivery of data.deliveries) {
       if (
         !delivery.userId ||
         (delivery.status !== UserNotificationStatus.Sent &&
-          delivery.status !== UserNotificationStatus.Acknowledged)
+          delivery.status !== UserNotificationStatus.Acknowledged &&
+          delivery.status !== UserNotificationStatus.PassedOn)
       ) {
         continue;
       }
@@ -1613,6 +1643,11 @@ export default class OnCallPolicyRunMessage {
           statusMessage === ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE
         ) {
           return { outcome: OnCallPolicyRunOutcome.NobodyAcknowledged };
+        }
+
+        // Nobody was left: everybody it paged passed the page on.
+        if (statusMessage === ON_CALL_POLICY_RUN_EVERYBODY_PASSED_ON_MESSAGE) {
+          return { outcome: OnCallPolicyRunOutcome.EverybodyPassedOn };
         }
 
         if (

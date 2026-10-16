@@ -622,10 +622,16 @@ const DocsNav: NavGroup[] = [
         title: "OpenTelemetry",
         url: "/docs/telemetry/open-telemetry",
       },
+      // The key every sender needs, right after the guide that creates one.
+      {
+        title: "Ingestion Keys",
+        url: "/docs/telemetry/ingestion-keys",
+      },
       /*
        * Where the telemetry goes once it arrives: the services it belongs
-       * to, then the explorers a reader works in, before the reference
-       * pages (search syntax, zooming) those explorers share.
+       * to, then the explorers a reader works in and the map of how it all
+       * connects, before the reference pages (search syntax, zooming) those
+       * explorers share.
        */
       {
         title: "Service Catalog",
@@ -648,6 +654,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/exceptions",
       },
       {
+        title: "Topology",
+        url: "/docs/telemetry/topology",
+      },
+      {
         title: "Search Syntax",
         url: "/docs/telemetry/search-syntax",
       },
@@ -658,6 +668,18 @@ const DocsNav: NavGroup[] = [
       {
         title: "Log Pipelines",
         url: "/docs/telemetry/log-pipelines",
+      },
+      /*
+       * What happens to telemetry before and after it is stored: what is
+       * dropped or masked as it arrives, then how long the rest is kept.
+       */
+      {
+        title: "Drop Filters & Scrub Rules",
+        url: "/docs/telemetry/drop-filters-and-scrub-rules",
+      },
+      {
+        title: "Data Retention",
+        url: "/docs/telemetry/data-retention",
       },
       {
         title: "Continuous Profiling",

@@ -103,7 +103,14 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: { create: jest.fn(), countBy: jest.fn() },
+      // findBy: who passed the run's page on - nobody, here.
+      default: {
+        create: jest.fn(),
+        countBy: jest.fn(),
+        findBy: jest.fn(async () => {
+          return [];
+        }),
+      },
     };
   },
 );

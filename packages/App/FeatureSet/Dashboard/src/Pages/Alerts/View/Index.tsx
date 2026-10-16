@@ -102,6 +102,10 @@ import { getJoinVideoCallAction } from "../../../Components/VideoCall/JoinVideoC
 import useRecordChannelLinks, {
   getOpenInChatActions,
 } from "../../../Components/Workspace/useRecordChannelLinks";
+import usePassOnPage, {
+  PassOnPageControls,
+} from "../../../Components/OnCallPolicy/PassOn/usePassOnPage";
+import { OnCallPageRecordType } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
 import RecordChannelMembersCard from "../../../Components/Workspace/RecordChannelMembersCard";
 import {
   WorkspaceChannelLink,
@@ -434,6 +438,13 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     recordId: modelId,
     // A rule's channel arrives a moment after a new alert is created.
     recordStartedAt: alertStartedAt,
+  });
+  // "Pass it on", for somebody an on-call policy is paging about it.
+  const passOn: PassOnPageControls = usePassOnPage({
+    recordType: OnCallPageRecordType.Alert,
+    recordId: modelId,
+    // Passing it on is a new feed entry.
+    onPassedOn: refreshFeed,
   });
   const joinVideoCallAction: EventPanelAction | null = getJoinVideoCallAction(
     videoCalls.calls,
@@ -851,6 +862,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isPrivate={isPrivate}
           facts={headerFacts}
           secondaryActions={[
+            ...passOn.actions,
             ...(joinVideoCallAction ? [joinVideoCallAction] : []),
             ...getOpenInChatActions(channelLinks),
           ]}
@@ -861,8 +873,11 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             refreshData();
             // The state change is a new feed entry.
             refreshFeed();
+            // Acknowledging it ends the reader's own page, if they had one.
+            passOn.refresh();
           }}
         />
+        {passOn.dialog}
       </div>
 
       <EventStatBar

@@ -25,7 +25,7 @@ flowchart TB
 
 - **Der Name ist die Identität des Dienstes.** Groß- und Kleinschreibung spielen beim Vergleich keine Rolle, `Checkout-API` und `checkout-api` sind also ein Dienst. Ein neuer `service.name` beginnt einen neuen Dienst.
 - **Container benennen sich selbst.** Telemetrie der Docker- und Podman-Agenten benennt einen Dienst nach seinem Container, wenn sie keinen `service.name` hat.
-- **Ein Ingestion-Schlüssel kann den Dienst festlegen.** OpenTelemetry-Daten, die mit einem Schlüssel gesendet werden, dessen **Festgelegter Dienstname** gesetzt ist, landen unter diesem Namen, egal was ihr `service.name` sagt.
+- **Ein Ingestion-Schlüssel kann den Dienst festlegen.** OpenTelemetry-Daten, die mit einem Schlüssel gesendet werden, dessen **Festgelegter Dienstname** gesetzt ist, landen unter diesem Namen, egal was ihr `service.name` sagt. Siehe [Ingestion-Schlüssel](/docs/telemetry/ingestion-keys#einen-browser-schlüssel-absichern).
 - **Browser und Telefone sind keine Dienste.** Telemetrie aus einem Browser oder einer mobilen App gehört stattdessen zu einer [RUM-Anwendung](/docs/rum/applications).
 - **Beschriftungen können mit der Telemetrie kommen.** Ein Ressourcenattribut namens `oneuptime.label.<name>` gibt dem Dienst die Beschriftung `<name>:<value>`, etwa `oneuptime.label.team=payments` für `team:payments`.
 

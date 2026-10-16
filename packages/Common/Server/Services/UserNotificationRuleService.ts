@@ -1,4 +1,3 @@
-import DatabaseConfig from "../DatabaseConfig";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -43,10 +42,6 @@ import OnCallReadinessService, {
 } from "./OnCallReadinessService";
 import UserOnCallLogService from "./UserOnCallLogService";
 import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
-import { AppApiRoute } from "../../ServiceRoute";
-import Hostname from "../../Types/API/Hostname";
-import Protocol from "../../Types/API/Protocol";
-import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import AuditLogAction from "../../Types/AuditLog/AuditLogAction";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -109,6 +104,11 @@ import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 import Model from "../../Models/DatabaseModels/UserNotificationRule";
 import UserOnCallLog from "../../Models/DatabaseModels/UserOnCallLog";
 import UserOnCallLogTimeline from "../../Models/DatabaseModels/UserOnCallLogTimeline";
+import OnCallPageLinks from "../Utils/OnCall/OnCallPageLinks";
+import {
+  CANT_TAKE_IT_PASS_IT_ON,
+  getOnCallPageCallPassOnPrompt,
+} from "../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertService from "./AlertService";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
@@ -3824,10 +3824,6 @@ export class Service extends ProjectReferencesService<Model> {
     alert: Alert,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<CallRequest> {
-    const host: Hostname = await DatabaseConfig.getHost();
-
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
     const alertIdentifier: string =
       alert.alertNumber !== undefined
         ? `Alert number ${alert.alertNumber}, ${alert.title || "Alert"}`
@@ -3846,7 +3842,7 @@ export class Service extends ProjectReferencesService<Model> {
           sayMessage: alertIdentifier,
         },
         {
-          introMessage: "To acknowledge this alert press 1",
+          introMessage: `To acknowledge this alert, press 1. ${getOnCallPageCallPassOnPrompt()}`,
           numDigits: 1,
           timeoutInSeconds: 10,
           noInputMessage: "You have not entered any input. Good bye",
@@ -3858,14 +3854,9 @@ export class Service extends ProjectReferencesService<Model> {
               sayMessage: "Invalid input. Good bye",
             },
           },
-          responseUrl: new URL(
-            httpProtocol,
-            host,
-            new Route(AppApiRoute.toString())
-              .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-              .addRoute(
-                "/call/gather-input/" + userOnCallLogTimelineId.toString(),
-              ),
+          // Carries the page's token: pressing 2 passes the page on only through it.
+          responseUrl: await OnCallPageLinks.getCallResponseUrl(
+            userOnCallLogTimelineId,
           ),
         },
       ],
@@ -3880,10 +3871,6 @@ export class Service extends ProjectReferencesService<Model> {
     incident: Incident,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<CallRequest> {
-    const host: Hostname = await DatabaseConfig.getHost();
-
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
     const incidentIdentifier: string =
       incident.incidentNumber !== undefined
         ? `Incident number ${incident.incidentNumberWithPrefix || incident.incidentNumber}, ${incident.title || "Incident"}`
@@ -3902,7 +3889,7 @@ export class Service extends ProjectReferencesService<Model> {
           sayMessage: incidentIdentifier,
         },
         {
-          introMessage: "To acknowledge this incident press 1",
+          introMessage: `To acknowledge this incident, press 1. ${getOnCallPageCallPassOnPrompt()}`,
           numDigits: 1,
           timeoutInSeconds: 10,
           noInputMessage: "You have not entered any input. Good bye",
@@ -3914,14 +3901,9 @@ export class Service extends ProjectReferencesService<Model> {
               sayMessage: "Invalid input. Good bye",
             },
           },
-          responseUrl: new URL(
-            httpProtocol,
-            host,
-            new Route(AppApiRoute.toString())
-              .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-              .addRoute(
-                "/call/gather-input/" + userOnCallLogTimelineId.toString(),
-              ),
+          // Carries the page's token: pressing 2 passes the page on only through it.
+          responseUrl: await OnCallPageLinks.getCallResponseUrl(
+            userOnCallLogTimelineId,
           ),
         },
       ],
@@ -3936,10 +3918,6 @@ export class Service extends ProjectReferencesService<Model> {
     alertEpisode: AlertEpisode,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<CallRequest> {
-    const host: Hostname = await DatabaseConfig.getHost();
-
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
     const episodeIdentifier: string = alertEpisode.episodeNumberWithPrefix
       ? `Alert episode ${alertEpisode.episodeNumberWithPrefix}, ${alertEpisode.title || "Alert Episode"}`
       : alertEpisode.episodeNumber !== undefined
@@ -3959,7 +3937,7 @@ export class Service extends ProjectReferencesService<Model> {
           sayMessage: episodeIdentifier,
         },
         {
-          introMessage: "To acknowledge this alert episode press 1",
+          introMessage: `To acknowledge this alert episode, press 1. ${getOnCallPageCallPassOnPrompt()}`,
           numDigits: 1,
           timeoutInSeconds: 10,
           noInputMessage: "You have not entered any input. Good bye",
@@ -3971,14 +3949,9 @@ export class Service extends ProjectReferencesService<Model> {
               sayMessage: "Invalid input. Good bye",
             },
           },
-          responseUrl: new URL(
-            httpProtocol,
-            host,
-            new Route(AppApiRoute.toString())
-              .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-              .addRoute(
-                "/call/gather-input/" + userOnCallLogTimelineId.toString(),
-              ),
+          // Carries the page's token: pressing 2 passes the page on only through it.
+          responseUrl: await OnCallPageLinks.getCallResponseUrl(
+            userOnCallLogTimelineId,
           ),
         },
       ],
@@ -3993,10 +3966,6 @@ export class Service extends ProjectReferencesService<Model> {
     incidentEpisode: IncidentEpisode,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<CallRequest> {
-    const host: Hostname = await DatabaseConfig.getHost();
-
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
     const episodeIdentifier: string = incidentEpisode.episodeNumberWithPrefix
       ? `Incident episode ${incidentEpisode.episodeNumberWithPrefix}, ${incidentEpisode.title || "Incident Episode"}`
       : incidentEpisode.episodeNumber !== undefined
@@ -4016,7 +3985,7 @@ export class Service extends ProjectReferencesService<Model> {
           sayMessage: episodeIdentifier,
         },
         {
-          introMessage: "To acknowledge this incident episode press 1",
+          introMessage: `To acknowledge this incident episode, press 1. ${getOnCallPageCallPassOnPrompt()}`,
           numDigits: 1,
           timeoutInSeconds: 10,
           noInputMessage: "You have not entered any input. Good bye",
@@ -4029,14 +3998,9 @@ export class Service extends ProjectReferencesService<Model> {
               sayMessage: "Invalid input. Good bye",
             },
           },
-          responseUrl: new URL(
-            httpProtocol,
-            host,
-            new Route(AppApiRoute.toString())
-              .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-              .addRoute(
-                "/call/gather-input/" + userOnCallLogTimelineId.toString(),
-              ),
+          // Carries the page's token: pressing 2 passes the page on only through it.
+          responseUrl: await OnCallPageLinks.getCallResponseUrl(
+            userOnCallLogTimelineId,
           ),
         },
       ],
@@ -4051,19 +4015,9 @@ export class Service extends ProjectReferencesService<Model> {
     alert: Alert,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<SMS> {
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-    const shortUrl: ShortLink = await ShortLinkService.saveShortLinkFor(
-      new URL(
-        httpProtocol,
-        host,
-        new Route(AppApiRoute.toString())
-          .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
-      ),
+    const url: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
     );
-    const url: URL = await ShortLinkService.getShortenedUrl(shortUrl);
 
     const alertIdentifier: string =
       alert.alertNumber !== undefined
@@ -4072,7 +4026,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     const sms: SMS = {
       to,
-      message: `This is a message from OneUptime. A new alert has been created: ${alertIdentifier}. To acknowledge this alert, please click on the following link ${url.toString()}`,
+      message: `This is a message from OneUptime. A new alert has been created: ${alertIdentifier}. To acknowledge this alert, or pass it on if you can't take it, please click on the following link ${url.toString()}`,
     };
 
     return sms;
@@ -4084,19 +4038,9 @@ export class Service extends ProjectReferencesService<Model> {
     incident: Incident,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<SMS> {
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-    const shortUrl: ShortLink = await ShortLinkService.saveShortLinkFor(
-      new URL(
-        httpProtocol,
-        host,
-        new Route(AppApiRoute.toString())
-          .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
-      ),
+    const url: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
     );
-    const url: URL = await ShortLinkService.getShortenedUrl(shortUrl);
 
     const incidentIdentifier: string =
       incident.incidentNumber !== undefined
@@ -4105,7 +4049,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     const sms: SMS = {
       to,
-      message: `This is a message from OneUptime. A new incident has been created: ${incidentIdentifier}. To acknowledge this incident, please click on the following link ${url.toString()}`,
+      message: `This is a message from OneUptime. A new incident has been created: ${incidentIdentifier}. To acknowledge this incident, or pass it on if you can't take it, please click on the following link ${url.toString()}`,
     };
 
     return sms;
@@ -4117,19 +4061,9 @@ export class Service extends ProjectReferencesService<Model> {
     alertEpisode: AlertEpisode,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<SMS> {
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-    const shortUrl: ShortLink = await ShortLinkService.saveShortLinkFor(
-      new URL(
-        httpProtocol,
-        host,
-        new Route(AppApiRoute.toString())
-          .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
-      ),
+    const url: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
     );
-    const url: URL = await ShortLinkService.getShortenedUrl(shortUrl);
 
     const episodeIdentifier: string = alertEpisode.episodeNumberWithPrefix
       ? `${alertEpisode.episodeNumberWithPrefix} (${alertEpisode.title || "Alert Episode"})`
@@ -4139,7 +4073,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     const sms: SMS = {
       to,
-      message: `This is a message from OneUptime. A new alert episode has been created: ${episodeIdentifier}. To acknowledge this alert episode, please click on the following link ${url.toString()}`,
+      message: `This is a message from OneUptime. A new alert episode has been created: ${episodeIdentifier}. To acknowledge this alert episode, or pass it on if you can't take it, please click on the following link ${url.toString()}`,
     };
 
     return sms;
@@ -4163,26 +4097,33 @@ export class Service extends ProjectReferencesService<Model> {
 
     const sms: SMS = {
       to,
-      message: `This is a message from OneUptime. A new incident episode has been created: ${episodeIdentifier}. To acknowledge this incident episode, please click on the following link ${url.toString()}`,
+      message: `This is a message from OneUptime. A new incident episode has been created: ${episodeIdentifier}. To acknowledge this incident episode, or pass it on if you can't take it, please click on the following link ${url.toString()}`,
     };
 
     return sms;
   }
 
+  /*
+   * The short link of a page's acknowledge page. It carries the page's
+   * token (OnCallPageLinks), so the page offers "Can't take it? Pass it on"
+   * beside Acknowledge: a text, a WhatsApp message and a Telegram or chat
+   * message lead there.
+   */
   private async buildOnCallAcknowledgeShortUrl(
     userOnCallLogTimelineId: ObjectID,
   ): Promise<URL> {
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
     const shortUrl: ShortLink = await ShortLinkService.saveShortLinkFor(
-      new URL(
-        httpProtocol,
-        host,
-        new Route(AppApiRoute.toString())
-          .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
-      ),
+      await OnCallPageLinks.getAcknowledgePageUrl(userOnCallLogTimelineId),
+    );
+    return await ShortLinkService.getShortenedUrl(shortUrl);
+  }
+
+  // The short link of a page's "Can't take it? Pass it on" page.
+  private async buildOnCallPassOnShortUrl(
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<URL> {
+    const shortUrl: ShortLink = await ShortLinkService.saveShortLinkFor(
+      await OnCallPageLinks.getPassOnPageUrl(userOnCallLogTimelineId),
     );
     return await ShortLinkService.getShortenedUrl(shortUrl);
   }
@@ -4204,6 +4145,10 @@ export class Service extends ProjectReferencesService<Model> {
     userOnCallLogTimelineId: ObjectID,
   ): Promise<string> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const passOnUrl: URL = await this.buildOnCallPassOnShortUrl(
       userOnCallLogTimelineId,
     );
 
@@ -4234,6 +4179,8 @@ export class Service extends ProjectReferencesService<Model> {
     lines.push(
       "",
       `✅ <a href="${this.escapeTelegramHtml(ackUrl.toString())}">Tap to acknowledge</a>`,
+      "",
+      `⏭️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${CANT_TAKE_IT_PASS_IT_ON}</a>`,
     );
 
     return lines.join("\n");
@@ -4245,6 +4192,10 @@ export class Service extends ProjectReferencesService<Model> {
     userOnCallLogTimelineId: ObjectID,
   ): Promise<string> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const passOnUrl: URL = await this.buildOnCallPassOnShortUrl(
       userOnCallLogTimelineId,
     );
 
@@ -4276,6 +4227,8 @@ export class Service extends ProjectReferencesService<Model> {
     lines.push(
       "",
       `✅ <a href="${this.escapeTelegramHtml(ackUrl.toString())}">Tap to acknowledge</a>`,
+      "",
+      `⏭️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${CANT_TAKE_IT_PASS_IT_ON}</a>`,
     );
 
     return lines.join("\n");
@@ -4287,6 +4240,10 @@ export class Service extends ProjectReferencesService<Model> {
     userOnCallLogTimelineId: ObjectID,
   ): Promise<string> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const passOnUrl: URL = await this.buildOnCallPassOnShortUrl(
       userOnCallLogTimelineId,
     );
 
@@ -4319,6 +4276,8 @@ export class Service extends ProjectReferencesService<Model> {
     lines.push(
       "",
       `✅ <a href="${this.escapeTelegramHtml(ackUrl.toString())}">Tap to acknowledge</a>`,
+      "",
+      `⏭️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${CANT_TAKE_IT_PASS_IT_ON}</a>`,
     );
 
     return lines.join("\n");
@@ -4330,6 +4289,10 @@ export class Service extends ProjectReferencesService<Model> {
     userOnCallLogTimelineId: ObjectID,
   ): Promise<string> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const passOnUrl: URL = await this.buildOnCallPassOnShortUrl(
       userOnCallLogTimelineId,
     );
 
@@ -4362,6 +4325,8 @@ export class Service extends ProjectReferencesService<Model> {
     lines.push(
       "",
       `✅ <a href="${this.escapeTelegramHtml(ackUrl.toString())}">Tap to acknowledge</a>`,
+      "",
+      `⏭️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${CANT_TAKE_IT_PASS_IT_ON}</a>`,
     );
 
     return lines.join("\n");
@@ -4385,6 +4350,8 @@ export class Service extends ProjectReferencesService<Model> {
     dashboardUrl: URL | null;
     dashboardLinkText: string;
     ackUrl: URL;
+    // "Can't take it? Pass it on" (OnCallPagePassOn).
+    passOnUrl: URL;
   }): Array<WorkspaceMessageBlock> {
     const lines: Array<string> = [
       mdText`🚨 **${data.headline}**`.toString(),
@@ -4410,6 +4377,8 @@ export class Service extends ProjectReferencesService<Model> {
     lines.push(
       "",
       mdText`✅ [Acknowledge](${data.ackUrl.toString()})`.toString(),
+      "",
+      mdText`⏭️ [${CANT_TAKE_IT_PASS_IT_ON}](${data.passOnUrl.toString()})`.toString(),
     );
 
     const markdownBlock: WorkspacePayloadMarkdown = {
@@ -4426,6 +4395,10 @@ export class Service extends ProjectReferencesService<Model> {
     userOnCallLogTimelineId: ObjectID,
   ): Promise<Array<WorkspaceMessageBlock>> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const passOnUrl: URL = await this.buildOnCallPassOnShortUrl(
       userOnCallLogTimelineId,
     );
 
@@ -4449,6 +4422,7 @@ export class Service extends ProjectReferencesService<Model> {
       dashboardUrl: dashboardUrl,
       dashboardLinkText: "View alert in OneUptime",
       ackUrl: ackUrl,
+      passOnUrl: passOnUrl,
     });
   }
 
@@ -4458,6 +4432,10 @@ export class Service extends ProjectReferencesService<Model> {
     userOnCallLogTimelineId: ObjectID,
   ): Promise<Array<WorkspaceMessageBlock>> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const passOnUrl: URL = await this.buildOnCallPassOnShortUrl(
       userOnCallLogTimelineId,
     );
 
@@ -4481,6 +4459,7 @@ export class Service extends ProjectReferencesService<Model> {
       dashboardUrl: dashboardUrl,
       dashboardLinkText: "View incident in OneUptime",
       ackUrl: ackUrl,
+      passOnUrl: passOnUrl,
     });
   }
 
@@ -4490,6 +4469,10 @@ export class Service extends ProjectReferencesService<Model> {
     userOnCallLogTimelineId: ObjectID,
   ): Promise<Array<WorkspaceMessageBlock>> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const passOnUrl: URL = await this.buildOnCallPassOnShortUrl(
       userOnCallLogTimelineId,
     );
 
@@ -4514,6 +4497,7 @@ export class Service extends ProjectReferencesService<Model> {
       dashboardUrl: dashboardUrl,
       dashboardLinkText: "View alert episode in OneUptime",
       ackUrl: ackUrl,
+      passOnUrl: passOnUrl,
     });
   }
 
@@ -4523,6 +4507,10 @@ export class Service extends ProjectReferencesService<Model> {
     userOnCallLogTimelineId: ObjectID,
   ): Promise<Array<WorkspaceMessageBlock>> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
+
+    const passOnUrl: URL = await this.buildOnCallPassOnShortUrl(
       userOnCallLogTimelineId,
     );
 
@@ -4547,6 +4535,7 @@ export class Service extends ProjectReferencesService<Model> {
       dashboardUrl: dashboardUrl,
       dashboardLinkText: "View incident episode in OneUptime",
       ackUrl: ackUrl,
+      passOnUrl: passOnUrl,
     });
   }
 
@@ -4556,24 +4545,13 @@ export class Service extends ProjectReferencesService<Model> {
     alert: Alert,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<WhatsAppMessage> {
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-    const acknowledgeShortLink: ShortLink =
-      await ShortLinkService.saveShortLinkFor(
-        new URL(
-          httpProtocol,
-          host,
-          new Route(AppApiRoute.toString())
-            .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-            .addRoute(
-              "/acknowledge-page/" + userOnCallLogTimelineId.toString(),
-            ),
-        ),
-      );
-
-    const acknowledgeUrl: URL =
-      await ShortLinkService.getShortenedUrl(acknowledgeShortLink);
+    /*
+     * The template's wording is fixed (approved by Meta); its acknowledge
+     * link opens the page that offers "Can't take it? Pass it on" too.
+     */
+    const acknowledgeUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
 
     const alertLinkOnDashboard: string =
       alert.projectId && alert.id
@@ -4612,24 +4590,13 @@ export class Service extends ProjectReferencesService<Model> {
     incident: Incident,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<WhatsAppMessage> {
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-    const acknowledgeShortLink: ShortLink =
-      await ShortLinkService.saveShortLinkFor(
-        new URL(
-          httpProtocol,
-          host,
-          new Route(AppApiRoute.toString())
-            .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-            .addRoute(
-              "/acknowledge-page/" + userOnCallLogTimelineId.toString(),
-            ),
-        ),
-      );
-
-    const acknowledgeUrl: URL =
-      await ShortLinkService.getShortenedUrl(acknowledgeShortLink);
+    /*
+     * The template's wording is fixed (approved by Meta); its acknowledge
+     * link opens the page that offers "Can't take it? Pass it on" too.
+     */
+    const acknowledgeUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
 
     const incidentLinkOnDashboard: string =
       incident.projectId && incident.id
@@ -4670,24 +4637,13 @@ export class Service extends ProjectReferencesService<Model> {
     alertEpisode: AlertEpisode,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<WhatsAppMessage> {
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-    const acknowledgeShortLink: ShortLink =
-      await ShortLinkService.saveShortLinkFor(
-        new URL(
-          httpProtocol,
-          host,
-          new Route(AppApiRoute.toString())
-            .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-            .addRoute(
-              "/acknowledge-page/" + userOnCallLogTimelineId.toString(),
-            ),
-        ),
-      );
-
-    const acknowledgeUrl: URL =
-      await ShortLinkService.getShortenedUrl(acknowledgeShortLink);
+    /*
+     * The template's wording is fixed (approved by Meta); its acknowledge
+     * link opens the page that offers "Can't take it? Pass it on" too.
+     */
+    const acknowledgeUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
+      userOnCallLogTimelineId,
+    );
 
     const episodeLinkOnDashboard: string =
       alertEpisode.projectId && alertEpisode.id
@@ -4775,9 +4731,6 @@ export class Service extends ProjectReferencesService<Model> {
     alert: Alert,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<EmailMessage> {
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
     const alertNumber: string =
       alert.alertNumberWithPrefix ||
       (alert.alertNumber ? `#${alert.alertNumber}` : "");
@@ -4823,12 +4776,18 @@ export class Service extends ProjectReferencesService<Model> {
       alertViewLink: (
         await AlertService.getAlertLinkInDashboard(alert.projectId!, alert.id!)
       ).toString(),
-      acknowledgeAlertLink: new URL(
-        httpProtocol,
-        host,
-        new Route(AppApiRoute.toString())
-          .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
+      /*
+       * No token: the email has its own Pass it on button, and the link
+       * it prints to copy stays one line.
+       */
+      acknowledgeAlertLink: (
+        await OnCallPageLinks.getEmailAcknowledgePageUrl(
+          userOnCallLogTimelineId,
+        )
+      ).toString(),
+      // "Can't take it? Pass it on" (OnCallPagePassOn).
+      passOnLink: (
+        await OnCallPageLinks.getPassOnPageUrl(userOnCallLogTimelineId)
       ).toString(),
     };
 
@@ -4849,9 +4808,6 @@ export class Service extends ProjectReferencesService<Model> {
     incident: Incident,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<EmailMessage> {
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
     const incidentNumber: string =
       incident.incidentNumberWithPrefix ||
       (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
@@ -4893,12 +4849,18 @@ export class Service extends ProjectReferencesService<Model> {
           incident.id!,
         )
       ).toString(),
-      acknowledgeIncidentLink: new URL(
-        httpProtocol,
-        host,
-        new Route(AppApiRoute.toString())
-          .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
+      /*
+       * No token: the email has its own Pass it on button, and the link
+       * it prints to copy stays one line.
+       */
+      acknowledgeIncidentLink: (
+        await OnCallPageLinks.getEmailAcknowledgePageUrl(
+          userOnCallLogTimelineId,
+        )
+      ).toString(),
+      // "Can't take it? Pass it on" (OnCallPagePassOn).
+      passOnLink: (
+        await OnCallPageLinks.getPassOnPageUrl(userOnCallLogTimelineId)
       ).toString(),
     };
 
@@ -4919,9 +4881,6 @@ export class Service extends ProjectReferencesService<Model> {
     alertEpisode: AlertEpisode,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<EmailMessage> {
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
     // Fetch alerts that are members of this episode
     const episodeMembers: Array<AlertEpisodeMember> =
       await AlertEpisodeMemberService.findBy({
@@ -5046,12 +5005,18 @@ export class Service extends ProjectReferencesService<Model> {
           alertEpisode.id!,
         )
       ).toString(),
-      acknowledgeAlertEpisodeLink: new URL(
-        httpProtocol,
-        host,
-        new Route(AppApiRoute.toString())
-          .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
+      /*
+       * No token: the email has its own Pass it on button, and the link
+       * it prints to copy stays one line.
+       */
+      acknowledgeAlertEpisodeLink: (
+        await OnCallPageLinks.getEmailAcknowledgePageUrl(
+          userOnCallLogTimelineId,
+        )
+      ).toString(),
+      // "Can't take it? Pass it on" (OnCallPagePassOn).
+      passOnLink: (
+        await OnCallPageLinks.getPassOnPageUrl(userOnCallLogTimelineId)
       ).toString(),
     };
 
@@ -5072,9 +5037,6 @@ export class Service extends ProjectReferencesService<Model> {
     incidentEpisode: IncidentEpisode,
     userOnCallLogTimelineId: ObjectID,
   ): Promise<EmailMessage> {
-    const host: Hostname = await DatabaseConfig.getHost();
-    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
     // Fetch incidents that are members of this episode
     const episodeMembers: Array<IncidentEpisodeMember> =
       await IncidentEpisodeMemberService.findBy({
@@ -5208,12 +5170,18 @@ export class Service extends ProjectReferencesService<Model> {
           incidentEpisode.id!,
         )
       ).toString(),
-      acknowledgeIncidentEpisodeLink: new URL(
-        httpProtocol,
-        host,
-        new Route(AppApiRoute.toString())
-          .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
+      /*
+       * No token: the email has its own Pass it on button, and the link
+       * it prints to copy stays one line.
+       */
+      acknowledgeIncidentEpisodeLink: (
+        await OnCallPageLinks.getEmailAcknowledgePageUrl(
+          userOnCallLogTimelineId,
+        )
+      ).toString(),
+      // "Can't take it? Pass it on" (OnCallPagePassOn).
+      passOnLink: (
+        await OnCallPageLinks.getPassOnPageUrl(userOnCallLogTimelineId)
       ).toString(),
     };
 

@@ -20,6 +20,7 @@ flowchart TB
 - [Añadir una regla de escalado](#añadir-una-regla-de-escalado): Añade el siguiente nivel, paso a paso.
 - [Cómo avisan los niveles a las personas](#cómo-avisan-los-niveles-a-las-personas): Tiempos, repeticiones y cómo se localiza a cada persona.
 - [La siguiente persona de la rotación](#escalar-a-la-siguiente-persona-de-la-rotación): Avisa al suplente de quien está de guardia, de la misma rotación.
+- [Pasar un aviso](#pasar-un-aviso): ¿No puedes atender un aviso? Envíalo al siguiente nivel al momento.
 - [API y Terraform](#crear-reglas-con-la-api-o-terraform): Crea políticas y reglas como código.
 :::
 
@@ -74,7 +75,7 @@ Haz clic en **Crear regla**. La regla se añade debajo de las demás, como sigui
 
 ## Cómo avisan los niveles a las personas
 
-Cuando un incidente o una alerta llega a la política, **Level 1** avisa a sus destinatarios de inmediato. Si nadie reconoce el aviso dentro de su espera, se avisa a **Level 2**, y así sucesivamente hacia abajo. Cuando ha pasado la espera del último nivel sin reconocimiento, la política vuelve a empezar desde **Level 1** si su **Política de repetición** (debajo de las reglas) indica repetir, tantas veces como permita, y si no, se detiene. Reconocer o resolver el incidente o la alerta detiene los avisos en cualquier nivel.
+Cuando un incidente o una alerta llega a la política, **Level 1** avisa a sus destinatarios de inmediato. Si nadie reconoce el aviso dentro de su espera, se avisa a **Level 2**, y así sucesivamente hacia abajo. Cuando ha pasado la espera del último nivel sin reconocimiento, la política vuelve a empezar desde **Level 1** si su **Política de repetición** (debajo de las reglas) indica repetir, tantas veces como permita, y si no, se detiene. Reconocer o resolver el incidente o la alerta detiene los avisos en cualquier nivel. Quien recibe un aviso y no puede atenderlo puede pasarlo, y se avisa al siguiente nivel sin esperar: consulta [Pasar un aviso](#pasar-un-aviso).
 
 Un incidente, una alerta o un episodio que se crea ya reconocido o resuelto —registrado a posteriori— no ejecuta ninguna de sus políticas: no se avisa a nadie, y su feed lo indica, nombrándolas. Consulta [Declarado ya reconocido o resuelto](/docs/incidents/declaring-incidents#declarado-ya-reconocido-o-resuelto).
 
@@ -162,6 +163,45 @@ El mensaje de la ejecución en Slack y Microsoft Teams, el feed del incidente y 
 
 > [!TIP]
 > Basta con una programación: no hay una segunda programación de suplentes que mantener al día con la primera, y las ausencias que registran sus personas cuentan para ambos niveles.
+
+## Pasar un aviso
+
+Quien recibe un aviso y no puede atenderlo, porque está durmiendo, en un avión o ya trabajando en otro incidente, puede pasar el aviso en lugar de dejar que suene hasta el final. La política avisa entonces a su siguiente nivel de inmediato, sin esperar a que se cumpla el **Escalar después de (en minutos)** del nivel, y a esa persona no se le vuelve a avisar de ello.
+
+```mermaid title="Pasar un aviso lleva la política a su siguiente nivel al momento"
+flowchart TB
+    page["Level 1 avisa a Alex"] --> take{"¿Puede Alex<br/>atenderlo?"}
+    take -->|"Sí"| ack["Alex lo reconoce:<br/>los avisos se detienen"]
+    take -->|"No"| pass["Alex lo pasa"]
+    pass --> others{"¿Se sigue avisando a<br/>alguien más en Level 1?"}
+    others -->|"Sí"| wait["La política los espera,<br/>como antes"]
+    others -->|"No"| next["Se avisa a<br/>Level 2 ahora"]
+```
+
+Cada aviso se puede pasar desde donde te llegó:
+
+| Dónde | Cómo pasarlo |
+| --- | --- |
+| Correo | El botón **Pass it on**, y luego **Pass it on** en la página que abre |
+| SMS y WhatsApp | El enlace del mensaje abre la página para reconocerlo, que también tiene **Pass it on** |
+| Telegram, Slack y Microsoft Teams | El enlace "Can't take it? Pass it on", y luego **Pass it on** en la página que abre |
+| Llamada | Pulsa 2. Después, la llamada dice qué ha pasado |
+| Notificación push | Tócala: el incidente, la alerta o el episodio se abre en la app OneUptime On-Call, con **Pass it on** debajo |
+| OneUptime | **Pasar el aviso** en la parte superior del incidente, la alerta o el episodio, después de sus botones de estado |
+
+Todas las vías salvo la llamada preguntan antes de hacer nada y dicen qué va a pasar, por ejemplo «Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.»; en una llamada, pulsar 2 es la respuesta. Solo la persona a la que se avisa puede pasar su aviso: el botón en OneUptime solo se le muestra a ella, y el enlace de un mensaje solo pasa el aviso sobre el que se envió, para la persona a la que se envió, durante 7 días.
+
+Lo que pasa después depende de a quién más se esté avisando:
+
+- Se sigue avisando a otras personas del mismo nivel: la política las espera, como antes. Avanza cuando se cumple la espera del nivel, o en cuanto la última de ellas también pasa el aviso.
+- No queda nadie más en el nivel: se avisa al siguiente nivel de inmediato.
+- Era el último nivel: si la **Política de repetición** indica repetir, la política vuelve a empezar desde **Level 1** de inmediato. Si no, los avisos se detienen, y alguien tiene que encargarse.
+
+Pasar un aviso no lo reconoce: el incidente o la alerta sigue esperando a que alguien lo reconozca, y quien lo pasó todavía puede reconocerlo. Esta ejecución no le vuelve a avisar de ello: un nivel posterior, o una repetición, que la nombre la salta. Cuando todas las personas a las que avisó lo han pasado y no queda nadie a quien avisar, los avisos se detienen, y el feed del incidente lo indica.
+
+Un aviso que un workflow envía directamente a personas no tiene niveles: pasarlo deja de avisarte, y cuando todas las personas a las que avisó lo han pasado, los avisos se detienen.
+
+Cada vez que se pasa un aviso, queda registrado. La **Cronología de ejecución** de la ejecución marca la línea de la persona como **Aviso pasado**, el feed del incidente dice «Alex Kim passed on the page from on-call policy Payments at escalation rule Level 1.», el mensaje de la ejecución en Slack y Microsoft Teams dice que lo pasó, y sus **Registros de guardia** muestran el aviso como **Aviso pasado**.
 
 ## Editar, reordenar y eliminar reglas
 

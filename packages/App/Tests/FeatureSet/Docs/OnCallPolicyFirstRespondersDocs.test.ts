@@ -50,10 +50,11 @@ const POLICIES_MENU_ENTRY: string = "On-Call Policies";
 
 /*
  * Where the page's "## " sections are, in every language: the outline is
- * the English page's, so the API section is the sixth of the seven.
+ * the English page's, so the API section is the seventh of the eight (after
+ * Passing a page on, PassOnDocs.test.ts).
  */
-const SECTION_COUNT: number = 7;
-const API_SECTION: number = 5;
+const SECTION_COUNT: number = 8;
+const API_SECTION: number = 6;
 
 function readRepoFile(relative: string): string {
   return fs.readFileSync(path.join(REPO_ROOT, relative), "utf8");
@@ -108,6 +109,7 @@ describe("the Escalation Rules docs page, on who gets paged first", () => {
       "Adding an escalation rule",
       "How the levels page people",
       "Escalating to the next person in the rotation",
+      "Passing a page on",
       "Editing, reordering and deleting rules",
       "Creating rules with the API or Terraform",
       "Next steps",

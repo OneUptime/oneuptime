@@ -24,6 +24,12 @@
 
 {{> LinkBlock linkUrl=acknowledgeAlertLink linkLabel="You can also copy and paste this link:"}}
 
+{{#if passOnLink}}
+{{> InfoBlock info="Can't take it? Pass it on, and you won't be paged about it again."}}
+
+{{> ButtonBlock buttonUrl=passOnLink buttonText="Pass it on" secondary=true}}
+{{/if}}
+
 {{> InfoBlock info="You will be notified when the status of this alert changes."}}
 
 {{> TitleBlock title="Why am I receiving this email?"}}

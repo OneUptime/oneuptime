@@ -1322,6 +1322,9 @@ export class Service {
           // A direct page never pages the next person in a rotation; said all the same.
           case OnCallNotPagedReason.NobodyNextInRotation:
             return `Nobody is next in the rotation of schedule ${nameOf(data.targets.schedules, target.scheduleId) || "(unnamed)"} right now.`;
+          // A direct page pages everybody as it starts; said all the same.
+          case OnCallNotPagedReason.PassedOn:
+            return `${nameOfUser(target.userId)} was not paged: they passed this page on.`;
           case OnCallNotPagedReason.EmptyTeam:
           default:
             return `Team ${nameOf(data.targets.teams, target.teamId) || "(unnamed)"} has no members.`;
