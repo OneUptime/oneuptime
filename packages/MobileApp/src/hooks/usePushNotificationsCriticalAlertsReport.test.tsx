@@ -340,6 +340,65 @@ describe("the server holds what the phone does, from the root of the app", () =>
     expect(serverSpy()).not.toHaveBeenCalled();
   });
 
+  /*
+   * One failed read must not turn real pages ordinary until the app is next
+   * opened: the registration says nothing about critical alerts (a device
+   * the phone already has keeps what it holds, a new one starts off) and
+   * nothing is reported.
+   */
+  test("the OS could not be asked at start: registered without the flag, and nothing reported", async () => {
+    permissions.mockRejectedValue(new Error("native module unavailable"));
+
+    await startTheApp();
+
+    for (const call of registerSpy().mock.calls) {
+      expect(
+        "isCriticalAlertEnabled" in (call[0] as Record<string, unknown>),
+      ).toBe(false);
+    }
+    expect(serverSpy()).not.toHaveBeenCalled();
+  });
+
+  test("and once it answers, back in the app, the server is told", async () => {
+    permissions.mockRejectedValue(new Error("native module unavailable"));
+    await startTheApp();
+    expect(serverSpy()).not.toHaveBeenCalled();
+
+    iosAllows(true);
+    await backToTheApp();
+
+    await waitFor(() => {
+      expect(reported()).toEqual([true]);
+    });
+  });
+
+  /*
+   * A return due a registration asks Expo for the token again, once. When
+   * Expo does not give one, the phone still has the token it registered
+   * before: what changed while the app was away is told with that one.
+   */
+  test("back after five minutes with no fresh token from Expo: the change is still told, with the token the phone has", async () => {
+    registerSpy().mockResolvedValue({ isCriticalAlertEnabled: true } as never);
+    await startTheApp();
+    expect(serverSpy()).not.toHaveBeenCalled();
+
+    (
+      setupModule.requestPermissionsAndGetToken as unknown as jest.SpyInstance
+    ).mockResolvedValue(null as never);
+    iosAllows(false);
+    clockOffsetMs += SIX_MINUTES_MS;
+    await backToTheApp();
+
+    await waitFor(() => {
+      expect(serverSpy()).toHaveBeenCalledWith({
+        deviceToken: TOKEN,
+        isEnabled: false,
+      });
+    });
+    // No registration without a token.
+    expect(registerSpy()).toHaveBeenCalledTimes(mockProjects.length);
+  });
+
   test("no push token: nothing is registered, and nothing is reported", async () => {
     (
       setupModule.requestPermissionsAndGetToken as unknown as jest.SpyInstance

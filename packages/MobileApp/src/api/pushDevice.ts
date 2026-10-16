@@ -28,8 +28,10 @@ export async function registerPushDevice(params: {
   isCriticalAlertEnabled?: boolean;
   /*
    * The alarm sound and iPhone volume this device chose for critical pages
-   * (Settings > Alarm sound), restated like isCriticalAlertEnabled. A server
-   * older than the choice ignores them.
+   * (Settings > Alarm sound), for a device the registration creates (a new
+   * project, a new push token). A device the phone already has keeps the
+   * alarm the preferences route set. A server older than the choice ignores
+   * them.
    */
   criticalAlertSound?: CriticalAlertSoundIdValue | undefined;
   criticalAlertVolume?: number | undefined;
@@ -39,7 +41,7 @@ export async function registerPushDevice(params: {
    * token. A server older than this ignores it.
    */
   previousDeviceToken?: string | undefined;
-}): Promise<RegisteredPushDevice | undefined> {
+}): Promise<RegisteredPushDevice> {
   const deviceType: string =
     Platform.OS === "ios"
       ? "ios"
@@ -61,9 +63,13 @@ export async function registerPushDevice(params: {
          * device row, and a row created without this defaults to off - so the
          * phone would quietly stop overriding Do Not Disturb for exactly the
          * project they just joined. A device the phone already has takes it
-         * too, on a server that knows to.
+         * too, on a server that knows to. Left out when the phone does not
+         * know (the OS could not be asked): a device it already has then
+         * keeps what it holds, and a new one starts off.
          */
-        isCriticalAlertEnabled: Boolean(params.isCriticalAlertEnabled),
+        ...(params.isCriticalAlertEnabled !== undefined
+          ? { isCriticalAlertEnabled: params.isCriticalAlertEnabled }
+          : {}),
         /*
          * The same goes for the alarm: a row created without it plays the
          * system sound, not the one the responder picked.
@@ -98,12 +104,12 @@ export async function registerPushDevice(params: {
       (error as { response?: { data?: { message?: string } } })?.response?.data
         ?.message || String(error);
 
-    // Treat "already registered" as success
+    // Treat "already registered" as success: an older server, which says nothing more.
     if (status === 400 && message.includes("already registered")) {
       logger.info(
         `[PushNotifications] Device already registered for project ${params.projectId}`,
       );
-      return undefined;
+      return {};
     }
 
     // Log and re-throw other errors

@@ -41,43 +41,18 @@ import PushNotificationMessage from "../../Types/PushNotification/PushNotificati
  * Booleans arrive from the mobile client as JSON booleans, but the same routes
  * get called by hand and from form posts where "true" is a string.
  *
- * On REGISTRATION, absence is the normal case and means off: overriding a
- * silenced phone is never something a device registration turns on by itself.
- */
-export function parseCriticalAlertFlag(raw: unknown): boolean {
-  return raw === true || raw === "true";
-}
-
-/*
- * On the toggle route the caller is stating an intent, so an unrecognised
- * value is refused rather than read as false. Quietly storing "off" for a
- * client that meant "on" leaves a responder believing their phone will ring
- * while it will not, and nothing surfaces the mistake until a missed page.
- */
-export function parseCriticalAlertFlagStrict(raw: unknown): boolean {
-  if (raw === true || raw === "true") {
-    return true;
-  }
-
-  if (raw === false || raw === "false") {
-    return false;
-  }
-
-  throw new BadDataException("isEnabled must be either true or false.");
-}
-
-/*
- * The flag a phone states when it registers a device that is already
- * registered. The app restates it on every registration (MobileApp
- * pushDevice.ts) - in apps newer than 1.6.0 as what the phone will really do
- * with a critical page, the responder's switch and the phone's own permission
- * together - and the device takes it (UserPushService
- * .restateCriticalAlertChoices).
+ * What a request states about critical alerts, or undefined when it states
+ * nothing: absent, or anything but a boolean or its string. The three
+ * readings of the flag below differ only in what that undefined means.
  *
- * Unlike a new device, where absence means off, absence here leaves the
- * device as it is: a registration that does not mention critical alerts (an
- * app from before them, a hand-made request) says nothing about them. So does
- * anything but a boolean or its string.
+ * On a registration of a device that is ALREADY registered it means "keep
+ * what the device holds". The app restates the flag on every registration
+ * (MobileApp pushDevice.ts) - in apps newer than 1.6.0 as what the phone will
+ * really do with a critical page, the responder's switch and the phone's own
+ * permission together - and the device takes it (UserPushService
+ * .restateCriticalAlertEnabled). A registration that does not mention it (an
+ * app from before critical alerts, one that could not ask the OS, a
+ * hand-made request) changes nothing.
  */
 export function readStatedCriticalAlertFlag(raw: unknown): boolean | undefined {
   if (raw === true || raw === "true") {
@@ -89,6 +64,31 @@ export function readStatedCriticalAlertFlag(raw: unknown): boolean | undefined {
   }
 
   return undefined;
+}
+
+/*
+ * On a NEW device's registration, absence is the normal case and means off:
+ * overriding a silenced phone is never something a device registration turns
+ * on by itself.
+ */
+export function parseCriticalAlertFlag(raw: unknown): boolean {
+  return readStatedCriticalAlertFlag(raw) === true;
+}
+
+/*
+ * On the toggle route the caller is stating an intent, so an unrecognised
+ * value is refused rather than read as false. Quietly storing "off" for a
+ * client that meant "on" leaves a responder believing their phone will ring
+ * while it will not, and nothing surfaces the mistake until a missed page.
+ */
+export function parseCriticalAlertFlagStrict(raw: unknown): boolean {
+  const stated: boolean | undefined = readStatedCriticalAlertFlag(raw);
+
+  if (stated === undefined) {
+    throw new BadDataException("isEnabled must be either true or false.");
+  }
+
+  return stated;
 }
 
 /*
@@ -362,8 +362,6 @@ export default class UserPushAPI extends BaseAPI<
               isVerified: true,
               deviceType: true,
               isCriticalAlertEnabled: true,
-              criticalAlertSound: true,
-              criticalAlertVolume: true,
             },
           });
 
@@ -382,38 +380,38 @@ export default class UserPushAPI extends BaseAPI<
            */
           if (existingDevice) {
             /*
-             * A phone restates its critical alert choices every time it
-             * registers - whether a critical page rings through on it, and
-             * the alarm and volume - and its device takes them, so the
+             * A phone restates whether a critical page rings through on it
+             * every time it registers, and its device takes it, so the
              * Dashboard's device list, a test notification and every page
              * follow what the phone will really do. Said back to the app,
              * which tells the server again itself when this does not match
              * (an older server says nothing here). A browser has none.
+             *
+             * Never in the way of the registration itself: a write that
+             * failed leaves the answer without it - the app then tells the
+             * server outright - and a phone Expo said was gone is still
+             * verified again below.
              */
-            const criticalAlertAnswer: JSONObject = isExpoPushDeviceType(
-              existingDevice.deviceType,
-            )
-              ? {
-                  isCriticalAlertEnabled: (
-                    await this.service.restateCriticalAlertChoices({
+            let criticalAlertAnswer: JSONObject = {};
+
+            if (isExpoPushDeviceType(existingDevice.deviceType)) {
+              try {
+                criticalAlertAnswer = {
+                  isCriticalAlertEnabled:
+                    await this.service.restateCriticalAlertEnabled({
                       device: existingDevice,
-                      stated: {
-                        isCriticalAlertEnabled: readStatedCriticalAlertFlag(
-                          req.body.isCriticalAlertEnabled,
-                        ),
-                        criticalAlertSound:
-                          parseCriticalAlertSoundFromRegistration(
-                            req.body.criticalAlertSound,
-                          ),
-                        criticalAlertVolume:
-                          parseCriticalAlertVolumeFromRegistration(
-                            req.body.criticalAlertVolume,
-                          ),
-                      },
-                    })
-                  ).isCriticalAlertEnabled,
-                }
-              : {};
+                      isCriticalAlertEnabled: readStatedCriticalAlertFlag(
+                        req.body.isCriticalAlertEnabled,
+                      ),
+                    }),
+                };
+              } catch (restateError) {
+                logger.error(
+                  restateError,
+                  getLogAttributesFromRequest(req as OneUptimeRequest),
+                );
+              }
+            }
 
             /*
              * A phone that stopped receiving notifications - Expo said its

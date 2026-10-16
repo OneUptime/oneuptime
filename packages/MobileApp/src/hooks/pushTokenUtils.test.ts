@@ -116,6 +116,20 @@ describe("unregisterPushToken forgets what the server was told about critical al
     expect(await AsyncStorage.getItem(KEY)).toBeNull();
   });
 
+  test("even when dropping the stored token failed", async () => {
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, DEVICE_TOKEN);
+    await AsyncStorage.setItem(
+      KEY,
+      JSON.stringify({ deviceToken: DEVICE_TOKEN, isEnabled: true }),
+    );
+    // The token's removal fails; nothing after it may be skipped for that.
+    removeItemSpy().mockRejectedValueOnce(new Error("storage unavailable"));
+
+    await expect(unregisterPushToken()).resolves.toBeUndefined();
+
+    expect(await AsyncStorage.getItem(KEY)).toBeNull();
+  });
+
   test("the responder's own switch is kept: it belongs to the phone, not the account", async () => {
     await AsyncStorage.setItem(PUSH_TOKEN_KEY, DEVICE_TOKEN);
     await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");

@@ -49,6 +49,12 @@ export interface CriticalAlertsReading {
   status: CriticalAlertStatus;
   // Whether a critical page rings through: chosen AND allowed.
   isEffective: boolean;
+  /*
+   * Whether the OS answered. A read that failed shows the switch off (the
+   * cautious answer) but is never told to the server: one failed read must
+   * not turn real pages ordinary until the app is next opened.
+   */
+  isCertain: boolean;
 }
 
 export function isCriticalAlertsEffective(data: {
@@ -80,6 +86,7 @@ export async function readCriticalAlerts(): Promise<CriticalAlertsReading> {
       isChosen: isChosen,
       availability: status.availability,
     }),
+    isCertain: !status.isUncertain,
   };
 }
 
@@ -133,6 +140,11 @@ export enum CriticalAlertsReportOutcome {
   NotRegistered = "not-registered",
   // The request failed. The next chance - a start, a return - tries again.
   Failed = "failed",
+  /*
+   * The OS could not be asked: nothing is said, and the server keeps what it
+   * holds until a read that worked.
+   */
+  Uncertain = "uncertain",
   // The web build: no phone, and nothing to report.
   NotApplicable = "not-applicable",
 }
@@ -178,7 +190,13 @@ export async function reportCriticalAlerts(
           return CriticalAlertsReportOutcome.NoPushToken;
         }
 
-        const isEnabled: boolean = (await readCriticalAlerts()).isEffective;
+        const reading: CriticalAlertsReading = await readCriticalAlerts();
+
+        if (!reading.isCertain) {
+          return CriticalAlertsReportOutcome.Uncertain;
+        }
+
+        const isEnabled: boolean = reading.isEffective;
 
         if (options.serverHolds === isEnabled) {
           await setCriticalAlertsReport({

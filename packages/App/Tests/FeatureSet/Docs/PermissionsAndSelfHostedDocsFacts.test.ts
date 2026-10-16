@@ -146,6 +146,9 @@ const TABLE_SEPARATOR: RegExp = /^\|(?:\s*:?-+:?\s*\|)+$/;
 
 const INLINE_CODE: RegExp = /`([^`]+)`/g;
 
+// Taken out of code a fact reads, so it does not depend on prettier's wrapping.
+const WHITESPACE: RegExp = /\s+/;
+
 // A fenced code block, from its opening fence to its closing one.
 const FENCED_BLOCK: RegExp = /^```[^\n]*\n[\s\S]*?^```[ \t]*$/gm;
 
@@ -977,8 +980,8 @@ describe("Push Notifications: critical on-call alerts, against the server and th
     );
 
     // Each time the app is opened: every registration, and every return to it.
-    expect(registration).toContain(
-      "const isCriticalAlertEnabled: boolean = (await readCriticalAlerts())\n        .isEffective;",
+    expect(registration.split(WHITESPACE).join("")).toContain(
+      "constcriticalAlerts:CriticalAlertsReading=awaitreadCriticalAlerts();",
     );
     expect(registration).toContain("void reportCriticalAlerts();");
 
@@ -987,7 +990,7 @@ describe("Push Notifications: critical on-call alerts, against the server and th
 
     // ...and the server takes it from a phone it already has.
     expect(readSource("userPushApi")).toContain(
-      "this.service.restateCriticalAlertChoices({",
+      "this.service.restateCriticalAlertEnabled({",
     );
 
     // The release the page names is one the app has already shipped.

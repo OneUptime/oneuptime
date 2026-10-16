@@ -374,7 +374,13 @@ describe("POST /user-push/register restates a phone's critical alert choices", (
     },
   );
 
-  test("the alarm and volume the phone restates are taken too, in the same write", async () => {
+  /*
+   * A registration reads the alarm and volume once, before it tells each
+   * project in turn: restating them onto a device the phone already has
+   * could put back an alarm the responder changed meanwhile. They are the
+   * critical-alert-preferences route's to change.
+   */
+  test("the alarm and volume a registration names are not written onto a device the phone already has", async () => {
     await register(
       phoneRegistration({
         isCriticalAlertEnabled: true,
@@ -383,15 +389,10 @@ describe("POST /user-push/register restates a phone's critical alert choices", (
       }),
     );
 
-    expect(writes()).toEqual([
-      {
-        criticalAlertSound: CriticalAlertSound.Siren,
-        criticalAlertVolume: 50,
-      },
-    ]);
+    expect(update).not.toHaveBeenCalled();
   });
 
-  test("everything at once - a reinstalled app back on the defaults - is one write", async () => {
+  test("a reinstalled app back on its defaults: only the switch is written", async () => {
     lookup.mockResolvedValue(
       storedDevice({
         isCriticalAlertEnabled: true,
@@ -408,37 +409,52 @@ describe("POST /user-push/register restates a phone's critical alert choices", (
       }),
     );
 
-    expect(writes()).toEqual([
-      {
-        isCriticalAlertEnabled: false,
-        criticalAlertSound: CriticalAlertSound.Default,
-        criticalAlertVolume: 100,
-      },
-    ]);
+    expect(writes()).toEqual([{ isCriticalAlertEnabled: false }]);
   });
 
-  test("an alarm this server does not know, or a volume out of range, is not written", async () => {
-    await register(
-      phoneRegistration({
-        isCriticalAlertEnabled: true,
-        criticalAlertSound: "foghorn",
-        criticalAlertVolume: 7,
-      }),
-    );
-
-    expect(update).not.toHaveBeenCalled();
-  });
-
-  test("the lookup reads the columns the restating compares", async () => {
+  test("the lookup reads what the restating compares", async () => {
     await register(phoneRegistration());
 
-    expect(lookup.mock.calls[0]![0].select).toMatchObject({
+    expect(lookup.mock.calls[0]![0].select).toEqual({
       _id: true,
       isVerified: true,
       deviceType: true,
       isCriticalAlertEnabled: true,
-      criticalAlertSound: true,
-      criticalAlertVolume: true,
+    });
+  });
+
+  /*
+   * The restating is never in the way of the registration itself. A phone
+   * Expo said was gone is verified again whatever happens to the write, and
+   * the answer then says nothing about critical alerts - the app tells the
+   * server outright when it does not.
+   */
+  test("a write that fails does not stop the registration: verified again, answered without the flag", async () => {
+    lookup.mockResolvedValue(
+      storedDevice({
+        isVerified: false,
+        isCriticalAlertEnabled: true,
+      }) as never,
+    );
+    update.mockRejectedValue(new Error("Database not connected"));
+    const verifyAgain: SpyInstance<
+      typeof UserPushService.verifyExpoPushDeviceRegisteredAgain
+    > = jest
+      .spyOn(UserPushService, "verifyExpoPushDeviceRegisteredAgain")
+      .mockResolvedValue(true);
+
+    const answer: Answer = await register(
+      phoneRegistration({ isCriticalAlertEnabled: false }),
+    );
+
+    expect(verifyAgain).toHaveBeenCalledTimes(1);
+    expect(answer).toEqual({
+      json: {
+        success: true,
+        deviceId: DEVICE_ID.toString(),
+        alreadyRegistered: true,
+        isVerified: true,
+      },
     });
   });
 

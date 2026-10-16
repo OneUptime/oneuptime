@@ -19,6 +19,7 @@ import {
 import {
   readCriticalAlerts,
   reportCriticalAlerts,
+  type CriticalAlertsReading,
 } from "../notifications/criticalAlertsReport";
 import { useAuth } from "./useAuth";
 import { useProject } from "./useProject";
@@ -210,6 +211,15 @@ export function usePushNotifications(navigationRef: unknown): void {
               ? "[PushNotifications] No push token on coming back to the app — the device is registered again when one is available"
               : "[PushNotifications] Could not obtain push token after all retries — device will not be registered",
           );
+
+          /*
+           * The phone may still have the token it registered before: what
+           * changed while the app was away is told with that one, as a
+           * return too soon to register again tells it.
+           */
+          if (!cancelled) {
+            await reportCriticalAlerts();
+          }
         }
         return;
       }
@@ -237,8 +247,14 @@ export function usePushNotifications(navigationRef: unknown): void {
        * phone already has takes it too, so the Dashboard says what the phone
        * does, and a test from there goes as what a page would.
        */
-      const isCriticalAlertEnabled: boolean = (await readCriticalAlerts())
-        .isEffective;
+      const criticalAlerts: CriticalAlertsReading = await readCriticalAlerts();
+
+      /*
+       * Left out when the OS could not be asked: a device the phone already
+       * has keeps what it holds, and a new one starts off, as before.
+       */
+      const isCriticalAlertEnabled: boolean | undefined =
+        criticalAlerts.isCertain ? criticalAlerts.isEffective : undefined;
 
       // And so are the alarm and volume chosen for those pages.
       const criticalAlertSound: CriticalAlertSoundIdValue =
@@ -266,13 +282,18 @@ export function usePushNotifications(navigationRef: unknown): void {
             await registerPushDevice({
               deviceToken: token,
               projectId: project._id,
-              isCriticalAlertEnabled: isCriticalAlertEnabled,
+              ...(isCriticalAlertEnabled !== undefined
+                ? { isCriticalAlertEnabled: isCriticalAlertEnabled }
+                : {}),
               criticalAlertSound: criticalAlertSound,
               criticalAlertVolume: criticalAlertVolume,
               ...(previousToken ? { previousDeviceToken: previousToken } : {}),
             });
 
-          if (registered?.isCriticalAlertEnabled !== isCriticalAlertEnabled) {
+          if (
+            isCriticalAlertEnabled === undefined ||
+            registered?.isCriticalAlertEnabled !== isCriticalAlertEnabled
+          ) {
             isHeldByEveryProject = false;
           }
         } catch (error: unknown) {
@@ -296,7 +317,8 @@ export function usePushNotifications(navigationRef: unknown): void {
        * Every device of this phone now holds what it will do - when the
        * server said so for each project, and that is still so (the switch
        * may have moved meanwhile). Otherwise the server is told outright,
-       * through the route that writes every device of the phone at once.
+       * through the route that writes every device of the phone at once -
+       * once the OS answers (reportCriticalAlerts reads it again).
        */
       await reportCriticalAlerts(
         everyProjectRegistered && isHeldByEveryProject

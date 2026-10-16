@@ -90,6 +90,16 @@ const USE_PUSH_NOTIFICATIONS: string = read(
 );
 const APP_README: string = read(MOBILE_APP, "README.md");
 
+const WHITESPACE: RegExp = /\s+/;
+
+/*
+ * A source with its whitespace taken out, so a pin of code that spans lines
+ * does not depend on where prettier wraps it.
+ */
+function compact(source: string): string {
+  return source.split(WHITESPACE).join("");
+}
+
 // The source of one exported function of a file, to the next export.
 function exportedFunction(source: string, name: string): string {
   const start: number = source.indexOf(`export async function ${name}(`);
@@ -263,11 +273,18 @@ describe("the steps follow what the app does on each platform", () => {
      * server took it - which an Android phone without Do Not Disturb access
      * never reached. So the responder turns it on again.
      */
-    expect(USE_CRITICAL_ALERTS).toContain(
-      "isCriticalAlertsEffective({\n            isChosen: storedPreference,\n            availability: status.availability,",
+    expect(compact(USE_CRITICAL_ALERTS)).toContain(
+      compact(
+        "const reading: CriticalAlertsReading = await readCriticalAlerts();",
+      ),
     );
-    expect(CRITICAL_ALERTS_REPORT).toContain(
-      "data.isChosen && data.availability === CriticalAlertAvailability.Granted",
+    expect(compact(USE_CRITICAL_ALERTS)).toContain(
+      compact("setIsEnabled(reading.isEffective);"),
+    );
+    expect(compact(CRITICAL_ALERTS_REPORT)).toContain(
+      compact(
+        "data.isChosen && data.availability === CriticalAlertAvailability.Granted",
+      ),
     );
 
     const save: string = exportedFunction(
@@ -506,8 +523,10 @@ describe("the card shows a status because the server leaves nothing to change he
     expect(api).toContain(
       "const isCriticalAlert: boolean = isTestNotificationCritical(device);",
     );
-    expect(api).toContain(
-      "isExpoPushDeviceType(device.deviceType) &&\n    Boolean(device.isCriticalAlertEnabled)",
+    expect(compact(api)).toContain(
+      compact(
+        "isExpoPushDeviceType(device.deviceType) && Boolean(device.isCriticalAlertEnabled)",
+      ),
     );
     expect(api).toContain("testMessage.isCriticalAlert = isCriticalAlert;");
     // The Dashboard's dialog words this answer (readTestNotificationIsCritical).
@@ -524,25 +543,43 @@ describe("the card shows a status because the server leaves nothing to change he
  */
 describe("the column follows the phone because the app tells the server", () => {
   test("registration sends what the phone will do - the switch AND the phone's permission - not the switch alone", () => {
-    expect(USE_PUSH_NOTIFICATIONS).toContain(
-      "const isCriticalAlertEnabled: boolean = (await readCriticalAlerts())\n        .isEffective;",
+    const registration: string = compact(USE_PUSH_NOTIFICATIONS);
+
+    expect(registration).toContain(
+      compact(
+        "const criticalAlerts: CriticalAlertsReading = await readCriticalAlerts();",
+      ),
     );
-    expect(USE_PUSH_NOTIFICATIONS).not.toContain(
-      "await getCriticalAlertsEnabled()",
+    // ...and nothing, when the OS could not be asked.
+    expect(registration).toContain(
+      compact(
+        "criticalAlerts.isCertain ? criticalAlerts.isEffective : undefined;",
+      ),
     );
-    expect(USE_PUSH_NOTIFICATIONS).toContain(
-      "isCriticalAlertEnabled: isCriticalAlertEnabled,",
+    expect(registration).not.toContain(
+      compact("await getCriticalAlertsEnabled()"),
+    );
+    expect(registration).toContain(
+      compact("{ isCriticalAlertEnabled: isCriticalAlertEnabled }"),
     );
   });
 
   test("the app tells the server again after every registration, and on every return to it", () => {
-    const afterRegistering: number = USE_PUSH_NOTIFICATIONS.indexOf(
+    const afterRegistering: number = USE_PUSH_NOTIFICATIONS.lastIndexOf(
       "await reportCriticalAlerts(",
     );
 
     expect(afterRegistering).toBeGreaterThan(
       USE_PUSH_NOTIFICATIONS.indexOf("for (const project of projectList)"),
     );
+
+    // A registration that could not get a token still reports, with the one it has.
+    const noToken: string = USE_PUSH_NOTIFICATIONS.slice(
+      USE_PUSH_NOTIFICATIONS.indexOf("if (!token || cancelled) {"),
+      USE_PUSH_NOTIFICATIONS.indexOf("for (const project of projectList)"),
+    );
+
+    expect(noToken).toContain("await reportCriticalAlerts();");
 
     // A return too soon to register again still reports a change.
     const listener: string = USE_PUSH_NOTIFICATIONS.slice(
@@ -565,10 +602,10 @@ describe("the column follows the phone because the app tells the server", () => 
     const existing: string = api.slice(api.indexOf("if (existingDevice) {"));
 
     expect(
-      existing.indexOf("this.service.restateCriticalAlertChoices("),
+      existing.indexOf("this.service.restateCriticalAlertEnabled("),
     ).toBeGreaterThan(-1);
     expect(
-      existing.indexOf("this.service.restateCriticalAlertChoices("),
+      existing.indexOf("this.service.restateCriticalAlertEnabled("),
     ).toBeLessThan(existing.indexOf("return Response.sendJsonObjectResponse("));
     expect(existing).toContain("readStatedCriticalAlertFlag(");
   });

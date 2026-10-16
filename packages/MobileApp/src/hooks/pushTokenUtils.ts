@@ -26,12 +26,17 @@ export async function unregisterPushToken(): Promise<void> {
     if (await AsyncStorage.getItem(PREVIOUS_PUSH_TOKEN_KEY)) {
       await AsyncStorage.removeItem(PREVIOUS_PUSH_TOKEN_KEY);
     }
+  } catch {
+    // Best-effort: don't block logout
+  }
 
-    /*
-     * Nor is what the server was last told about this phone's critical
-     * alerts: the devices it was told about are gone with the sign-out, and
-     * whoever signs in next is told afresh.
-     */
+  /*
+   * Nor is what the server was last told about this phone's critical
+   * alerts: the devices it was told about are gone with the sign-out, and
+   * whoever signs in next is told afresh. Apart from the above, so a step
+   * of it that failed does not leave this behind.
+   */
+  try {
     await clearCriticalAlertsReport();
   } catch {
     // Best-effort: don't block logout

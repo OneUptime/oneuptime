@@ -791,7 +791,7 @@ describe("POST /user-push/register with an alarm and volume", () => {
     expect(created().criticalAlertVolume).toBe(25);
   });
 
-  test("a phone already registered here: nothing is created, and the device takes the alarm the phone restates", async () => {
+  test("a phone already registered here is answered as before: nothing is created, and its alarm is not written", async () => {
     lookup.mockResolvedValue({
       _id: EXISTING_DEVICE_ID.toString(),
       id: EXISTING_DEVICE_ID,
@@ -816,11 +816,11 @@ describe("POST /user-push/register with an alarm and volume", () => {
     );
     expect(create).not.toHaveBeenCalled();
 
-    // UserPushRegistrationRestatesCriticalAlerts.test.ts covers the rest.
-    expect(update).toHaveBeenCalledTimes(1);
-    expect(update.mock.calls[0]![0].data).toEqual({
-      criticalAlertSound: CriticalAlertSound.Siren,
-    });
+    /*
+     * A device the phone already has keeps its alarm: the preferences route
+     * changes it (UserPushRegistrationRestatesCriticalAlerts.test.ts).
+     */
+    expect(update).not.toHaveBeenCalled();
   });
 
   describe("a phone with a new token that says which it had before", () => {

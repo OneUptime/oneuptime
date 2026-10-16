@@ -8,14 +8,12 @@ import {
 } from "../notifications/criticalAlerts";
 import {
   CriticalAlertsChoiceOutcome,
-  isCriticalAlertsEffective,
+  type CriticalAlertsReading,
+  readCriticalAlerts,
   reportCriticalAlerts,
   saveCriticalAlertsChoice,
 } from "../notifications/criticalAlertsReport";
-import {
-  getCriticalAlertSound,
-  getCriticalAlertsEnabled,
-} from "../storage/preferences";
+import { getCriticalAlertSound } from "../storage/preferences";
 import type { CriticalAlertSoundIdValue } from "../notifications/criticalAlertSounds";
 import logger from "../utils/logger";
 
@@ -98,18 +96,13 @@ export function useCriticalAlerts(): CriticalAlertsState {
   const syncStatus: () => Promise<CriticalAlertStatus> =
     useCallback(async (): Promise<CriticalAlertStatus> => {
       /*
-       * On Android the alarm the responder chose decides which channel has to
-       * ring through Do Not Disturb, so it is read first.
+       * The responder's stored choice and the OS's answer for the alarm they
+       * chose (on Android each alarm rings through Do Not Disturb on a
+       * channel of its own), read the way the server is told them.
        */
-      const sound: CriticalAlertSoundIdValue = await getCriticalAlertSound();
+      const reading: CriticalAlertsReading = await readCriticalAlerts();
 
-      const [status, storedPreference]: [CriticalAlertStatus, boolean] =
-        await Promise.all([
-          getCriticalAlertStatus({ sound: sound }),
-          getCriticalAlertsEnabled(),
-        ]);
-
-      applyStatus(status);
+      applyStatus(reading.status);
 
       if (isMountedRef.current) {
         /*
@@ -118,12 +111,7 @@ export function useCriticalAlerts(): CriticalAlertsState {
          * longer honour it is the one reading that could let somebody sleep
          * through a page believing they were covered.
          */
-        setIsEnabled(
-          isCriticalAlertsEffective({
-            isChosen: storedPreference,
-            availability: status.availability,
-          }),
-        );
+        setIsEnabled(reading.isEffective);
       }
 
       /*
@@ -134,7 +122,7 @@ export function useCriticalAlerts(): CriticalAlertsState {
        */
       void reportCriticalAlerts();
 
-      return status;
+      return reading.status;
     }, [applyStatus]);
 
   const refresh: () => Promise<void> = useCallback(async (): Promise<void> => {

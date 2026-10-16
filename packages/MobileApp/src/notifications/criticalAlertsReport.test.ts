@@ -204,6 +204,26 @@ describe("readCriticalAlerts", () => {
     expect((await readCriticalAlerts()).isEffective).toBe(false);
   });
 
+  test("says the OS answered when it did", async () => {
+    await choose(true);
+    iosAllows(false);
+
+    expect((await readCriticalAlerts()).isCertain).toBe(true);
+  });
+
+  test("says the OS did not answer when it could not be asked", async () => {
+    await choose(true);
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockRejectedValue(new Error("native module unavailable") as never);
+
+    expect(await readCriticalAlerts()).toMatchObject({
+      isChosen: true,
+      isEffective: false,
+      isCertain: false,
+    });
+  });
+
   test("on a simulator nothing rings through", async () => {
     (Device as unknown as { isDevice: boolean }).isDevice = false;
     await choose(true);
@@ -422,6 +442,56 @@ describe("reportCriticalAlerts - telling the server when what the phone does cha
 
     await expect(reportCriticalAlerts()).resolves.toBe(
       CriticalAlertsReportOutcome.Failed,
+    );
+    expect(serverSpy()).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The reviewer's 3am case: the OS could not be asked once, and the cautious
+   * "denied" the screen shows would have turned every page ordinary until
+   * the app was next opened. Nothing is said on a read that failed.
+   */
+  test("an OS read that failed is never told: the server keeps what it holds", async () => {
+    await choose(true);
+    iosAllows(true);
+    await reportCriticalAlerts();
+
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockRejectedValue(new Error("native module unavailable") as never);
+
+    expect(await reportCriticalAlerts()).toBe(
+      CriticalAlertsReportOutcome.Uncertain,
+    );
+    expect(await reportCriticalAlerts({ force: true })).toBe(
+      CriticalAlertsReportOutcome.Uncertain,
+    );
+    expect(await reportCriticalAlerts({ serverHolds: true })).toBe(
+      CriticalAlertsReportOutcome.Uncertain,
+    );
+
+    // Only the first report, before the failure, reached the server.
+    expect(toldServer()).toEqual([
+      { deviceToken: DEVICE_TOKEN, isEnabled: true },
+    ]);
+    expect(await getCriticalAlertsReport()).toEqual({
+      deviceToken: DEVICE_TOKEN,
+      isEnabled: true,
+    });
+  });
+
+  test("on Android, channels that could be neither written nor read are never told as off", async () => {
+    setPlatform("android");
+    await choose(true);
+    jest
+      .spyOn(Notifications, "setNotificationChannelAsync")
+      .mockRejectedValue(new Error("binder died") as never);
+    jest
+      .spyOn(Notifications, "getNotificationChannelAsync")
+      .mockRejectedValue(new Error("binder died") as never);
+
+    expect(await reportCriticalAlerts()).toBe(
+      CriticalAlertsReportOutcome.Uncertain,
     );
     expect(serverSpy()).not.toHaveBeenCalled();
   });

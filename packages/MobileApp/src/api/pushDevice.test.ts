@@ -70,13 +70,19 @@ describe("registerPushDevice carries the critical alert opt-in", () => {
     expect(lastBody()["isCriticalAlertEnabled"]).toBe(false);
   });
 
-  test("sends false rather than undefined when the caller omits it", async () => {
+  /*
+   * The app leaves it out only when it could not ask the OS. A device the
+   * phone already has then keeps what it holds - "false" here would turn
+   * critical pages ordinary over one failed read - and the server creates a
+   * new one with it off, as before.
+   */
+  test("says nothing about critical alerts when the caller does not know", async () => {
     await registerPushDevice({
       deviceToken: "ExponentPushToken[abc]",
       projectId: "project-1",
     });
 
-    expect(lastBody()["isCriticalAlertEnabled"]).toBe(false);
+    expect("isCriticalAlertEnabled" in lastBody()).toBe(false);
   });
 
   test("still sends everything registration needed before this feature", async () => {
@@ -152,7 +158,7 @@ describe("registerPushDevice carries the critical alert opt-in", () => {
         projectId: "project-1",
         isCriticalAlertEnabled: true,
       }),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual({});
   });
 });
 
@@ -207,7 +213,7 @@ describe("registerPushDevice says what the server holds", () => {
     ).toEqual({});
   });
 
-  test('an older server\'s "already registered" refusal says nothing either', async () => {
+  test('an older server\'s "already registered" refusal says nothing either: the same answer', async () => {
     postSpy().mockRejectedValue({
       response: {
         status: 400,
@@ -221,7 +227,7 @@ describe("registerPushDevice says what the server holds", () => {
         projectId: "project-1",
         isCriticalAlertEnabled: true,
       }),
-    ).toBeUndefined();
+    ).toEqual({});
   });
 });
 

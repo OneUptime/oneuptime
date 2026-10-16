@@ -30,24 +30,6 @@ import {
   isExpoPushDeviceType,
 } from "../../Types/PushNotification/ExpoPushDeviceType";
 
-/*
- * What a phone says about its critical alerts when it registers: whether a
- * critical page rings through on it, and the alarm and volume it plays.
- * Each is left out when the registration does not say it.
- */
-export interface StatedCriticalAlertChoices {
-  isCriticalAlertEnabled?: boolean | undefined;
-  criticalAlertSound?: CriticalAlertSound | undefined;
-  criticalAlertVolume?: number | undefined;
-}
-
-// A device's critical alert choices as they stand once restated.
-export interface CriticalAlertChoices {
-  isCriticalAlertEnabled: boolean;
-  criticalAlertSound?: CriticalAlertSound | undefined;
-  criticalAlertVolume?: number | undefined;
-}
-
 export class Service extends DatabaseService<UserPush> {
   public constructor() {
     super(UserPush);
@@ -240,9 +222,8 @@ export class Service extends DatabaseService<UserPush> {
   /**
    * A phone registered a device it already has - the app does on every
    * start, every sign-in and every return to it at most five minutes apart -
-   * and restated its critical alert choices: whether a critical page rings
-   * through on it, and the alarm and volume it plays (MobileApp
-   * pushDevice.ts). The device takes them.
+   * and restated whether a critical page rings through on it (MobileApp
+   * pushDevice.ts). The device takes it.
    *
    * The app says what the phone will really do with a critical page: on
    * only while the responder has Critical On-Call Alerts on AND the phone's
@@ -252,61 +233,35 @@ export class Service extends DatabaseService<UserPush> {
    * on reading "On" in the Dashboard - and a test from there claimed to ring
    * through silent mode while the phone showed an ordinary notification.
    *
-   * Only an iOS or Android device: no browser can ring through silent mode,
-   * and a browser's device is left as it is. Only what the phone states is
-   * written (an older app that does not know the alarm leaves it), and only
-   * what differs from what the device holds, so the registrations the app
-   * makes every few minutes write nothing while nothing changes.
+   * Only the switch. The alarm and volume a registration names are a new
+   * device's; an existing device's are changed by the
+   * critical-alert-preferences route. A registration reads them once, before
+   * it tells each project in turn, so restating them could put back an alarm
+   * the responder changed meanwhile.
    *
-   * Returns the device's choices as they now stand.
+   * Only an iOS or Android device: no browser can ring through silent mode,
+   * and a browser's device is left as it is. Only when the phone states it
+   * (undefined: an app that does not know, or could not ask the OS), and
+   * only when it differs from what the device holds, so the registrations
+   * the app makes every few minutes write nothing while nothing changes.
+   *
+   * Returns whether critical pages ring through on the device now.
    */
   @CaptureSpan()
-  public async restateCriticalAlertChoices(data: {
-    // The device as read: _id, deviceType and the three columns.
+  public async restateCriticalAlertEnabled(data: {
+    // The device as read: _id, deviceType and isCriticalAlertEnabled.
     device: UserPush;
-    stated: StatedCriticalAlertChoices;
-  }): Promise<CriticalAlertChoices> {
+    isCriticalAlertEnabled: boolean | undefined;
+  }): Promise<boolean> {
     const device: UserPush = data.device;
-
-    const stored: CriticalAlertChoices = {
-      isCriticalAlertEnabled: Boolean(device.isCriticalAlertEnabled),
-      criticalAlertSound: device.criticalAlertSound,
-      criticalAlertVolume: device.criticalAlertVolume,
-    };
-
-    if (!device._id || !isExpoPushDeviceType(device.deviceType)) {
-      return stored;
-    }
-
-    // Only what differs, each column present only when it is written.
-    const changes: {
-      isCriticalAlertEnabled?: boolean;
-      criticalAlertSound?: CriticalAlertSound;
-      criticalAlertVolume?: number;
-    } = {};
+    const stored: boolean = Boolean(device.isCriticalAlertEnabled);
 
     if (
-      data.stated.isCriticalAlertEnabled !== undefined &&
-      data.stated.isCriticalAlertEnabled !== stored.isCriticalAlertEnabled
+      data.isCriticalAlertEnabled === undefined ||
+      data.isCriticalAlertEnabled === stored ||
+      !device._id ||
+      !isExpoPushDeviceType(device.deviceType)
     ) {
-      changes.isCriticalAlertEnabled = data.stated.isCriticalAlertEnabled;
-    }
-
-    if (
-      data.stated.criticalAlertSound !== undefined &&
-      data.stated.criticalAlertSound !== stored.criticalAlertSound
-    ) {
-      changes.criticalAlertSound = data.stated.criticalAlertSound;
-    }
-
-    if (
-      data.stated.criticalAlertVolume !== undefined &&
-      data.stated.criticalAlertVolume !== stored.criticalAlertVolume
-    ) {
-      changes.criticalAlertVolume = data.stated.criticalAlertVolume;
-    }
-
-    if (Object.keys(changes).length === 0) {
       return stored;
     }
 
@@ -314,20 +269,15 @@ export class Service extends DatabaseService<UserPush> {
       query: {
         _id: device._id.toString(),
       },
-      data: changes,
+      data: {
+        isCriticalAlertEnabled: data.isCriticalAlertEnabled,
+      },
       props: {
         isRoot: true,
       },
     });
 
-    return {
-      isCriticalAlertEnabled:
-        changes.isCriticalAlertEnabled ?? stored.isCriticalAlertEnabled,
-      criticalAlertSound:
-        changes.criticalAlertSound ?? stored.criticalAlertSound,
-      criticalAlertVolume:
-        changes.criticalAlertVolume ?? stored.criticalAlertVolume,
-    };
+    return data.isCriticalAlertEnabled;
   }
 
   /**
