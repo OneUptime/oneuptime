@@ -1456,20 +1456,23 @@ const Icon: FunctionComponent<ComponentProps> = ({
   } else if (icon === IconProp.Timeline) {
     /*
      * A timeline: three stretches of time stepping down to the right, each
-     * starting before the one above it ends - the steps a timeline view
-     * draws, and a status timeline's band with one status to a row. Solid
-     * bars rather than outlines, so they keep their shape at 16px: 3 units
-     * thick on rows 6, 12 and 18, each lands on whole pixels at 16px and at
-     * 32px. The bars run from 4.5 down to 19.5, the rows TableCells draws
-     * its frame on: the glyph it sits beside in a status timeline's
-     * Timeline | Table switch.
+     * starting halfway through the one above it - the steps a timeline view
+     * draws, and a status timeline's band with one status to a row. The
+     * three are the same length and the glyph is the same turned half a
+     * turn about the icon's centre, so it sits centred and as heavy as the
+     * icons around it; shorter bars read as dashes beside them. Solid bars
+     * rather than outlines, so they keep their shape at 16px: 3 units thick
+     * on rows 6, 12 and 18, each lands on whole pixels at 16px and at 32px.
+     * The bars run from 4.5 down to 19.5, the rows TableCells draws its
+     * frame on: the glyph it sits beside in a status timeline's Timeline |
+     * Table switch.
      */
     return getSvgWrapper(
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="3"
-        d="M4.5 6h6.75M9.75 12h6M14.25 18h5.25"
+        d="M4.5 6h7.5M8.25 12h7.5M12 18h7.5"
       />,
     );
   } else if (icon === IconProp.Compass) {

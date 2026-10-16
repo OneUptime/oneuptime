@@ -349,7 +349,7 @@ interface SwitchIcon {
 }
 
 // IconProp.Timeline: three stretches of time stepping down to the right.
-const TIMELINE_ICON_PATH: string = "M4.5 6h6.75M9.75 12h6M14.25 18h5.25";
+const TIMELINE_ICON_PATH: string = "M4.5 6h7.5M8.25 12h7.5M12 18h7.5";
 
 // IconProp.TableCells begins with its bottom edge.
 const TABLE_ICON_PATH_START: string = "M3.375 19.5h17.25";

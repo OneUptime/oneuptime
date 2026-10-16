@@ -18,16 +18,24 @@ import { getGlyphOfIcon } from "./MenuItemIcons";
  * The switch used to show Heroicons' chart-bar for Timeline - three upright
  * bars, a bar chart, which a timeline is not ("Timeline icon should be better
  * and more relevant", the maintainer). The glyph that replaced it is three
- * stretches of time stepping down to the right, each starting before the
- * one above it ends: the steps a timeline view draws, and a status band
- * with one status to a row.
+ * stretches of time stepping down to the right, each starting halfway
+ * through the one above it: the steps a timeline view draws, and a status
+ * band with one status to a row.
+ *
+ * The first drawing of it had shorter bars, each a little shorter than the
+ * one above. Beside the icons it sits with - the table's grid in the
+ * switch, a calendar and a chart in the menus and in Cmd+K - it looked
+ * small and light, three dashes rather than three stretches of time. Its
+ * bars are now all the same length and as long as the box allows, and the
+ * glyph is centred: the same turned half a turn about the icon's centre.
  *
  * Its geometry is read from the path data, so a redraw that loses what makes
- * it a timeline - the steps, the overlap, bars that stay crisp at the 16px
- * it is drawn at - fails here, not on somebody's screen.
+ * it a timeline - the steps, the overlap, stretches long enough to read as
+ * stretches, bars that stay crisp at the 16px it is drawn at - fails here,
+ * not on somebody's screen.
  */
 
-const TIMELINE_PATH: string = "M4.5 6h6.75M9.75 12h6M14.25 18h5.25";
+const TIMELINE_PATH: string = "M4.5 6h7.5M8.25 12h7.5M12 18h7.5";
 
 // The house outline stroke, from Icon's SVG wrapper.
 const OUTLINE_STROKE: number = 1.5;
@@ -169,10 +177,69 @@ describe("the Timeline icon", () => {
 
     expect(drawn.path.getAttribute("d")).toBe(TIMELINE_PATH);
     expect(drawn.bars).toEqual([
-      { y: 6, from: 4.5, to: 11.25 },
-      { y: 12, from: 9.75, to: 15.75 },
-      { y: 18, from: 14.25, to: 19.5 },
+      { y: 6, from: 4.5, to: 12 },
+      { y: 12, from: 8.25, to: 15.75 },
+      { y: 18, from: 12, to: 19.5 },
     ]);
+  });
+
+  it("steps evenly: the stretches are the same length, and each starts halfway through the one above", () => {
+    const bars: Array<Bar> = drawTimeline().bars;
+    const lengthOf: (bar: Bar) => number = (bar: Bar): number => {
+      return bar.to - bar.from;
+    };
+    const first: Bar = bars[0] as Bar;
+
+    for (let index: number = 1; index < bars.length; index++) {
+      const above: Bar = bars[index - 1] as Bar;
+      const bar: Bar = bars[index] as Bar;
+
+      // Not stairs that shrink as they go: every stretch as long as the first.
+      expect(lengthOf(bar)).toBe(lengthOf(first));
+      // Starting halfway through the one above, so the steps are even.
+      expect(bar.from).toBe(above.from + lengthOf(above) / 2);
+    }
+  });
+
+  it("reads as stretches of time, not dashes: each bar is longer than half the glyph is wide", () => {
+    const drawn: DrawnTimeline = drawTimeline();
+    const drawnLength: (bar: Bar) => number = (bar: Bar): number => {
+      // A round end reaches half the bar's thickness past each end point.
+      return bar.to - bar.from + drawn.thickness;
+    };
+    const left: number = Math.min(
+      ...drawn.bars.map((bar: Bar): number => {
+        return bar.from - drawn.thickness / 2;
+      }),
+    );
+    const right: number = Math.max(
+      ...drawn.bars.map((bar: Bar): number => {
+        return bar.to + drawn.thickness / 2;
+      }),
+    );
+
+    for (const bar of drawn.bars) {
+      expect({
+        y: bar.y,
+        longerThanHalf: drawnLength(bar) > (right - left) / 2,
+      }).toEqual({
+        y: bar.y,
+        longerThanHalf: true,
+      });
+    }
+  });
+
+  it("is balanced: turned half a turn about the icon's centre, it draws itself", () => {
+    const bars: Array<Bar> = drawTimeline().bars;
+    const turned: Array<Bar> = bars
+      .map((bar: Bar): Bar => {
+        return { y: BOX - bar.y, from: BOX - bar.to, to: BOX - bar.from };
+      })
+      .sort((a: Bar, b: Bar): number => {
+        return a.y - b.y;
+      });
+
+    expect(turned).toEqual(bars);
   });
 
   it("is one timeline, not scattered dashes: each stretch starts after the one above it starts, and before it ends", () => {
