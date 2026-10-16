@@ -1055,7 +1055,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           {
             page: PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE,
             title: "Schedule Timeline",
-            icon: IconProp.ViewColumns,
+            icon: IconProp.Timeline,
             keywords: ["rota", "who is on call", "calendar"],
           },
           {

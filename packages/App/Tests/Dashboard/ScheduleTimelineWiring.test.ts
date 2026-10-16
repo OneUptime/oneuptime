@@ -164,6 +164,10 @@ describe("Pages", () => {
     expect(page).toContain(
       compact("RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE] as Route"),
     );
+    // The timeline's own icon, as every way into a timeline shows it.
+    expect(page).toContain(
+      compact('title: "Timeline View", icon: IconProp.Timeline,'),
+    );
   });
 });
 
@@ -217,9 +221,17 @@ describe("Side menus", () => {
     expect(timelineIndex).toBeGreaterThan(listIndex);
     expect(feedsIndex).toBeGreaterThan(timelineIndex);
 
+    // The timeline's own icon (TimelineIconGuard), as on its Cmd+K entry.
     expect(menu).toContain(
       compact(
-        "RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE] as Route, ), }, icon: IconProp.ViewColumns,",
+        "RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE] as Route, ), }, icon: IconProp.Timeline,",
+      ),
+    );
+    expect(
+      readDashboardCode("Components", "CommandPalette", "PageSearchIndex.ts"),
+    ).toContain(
+      compact(
+        'page: PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE, title: "Schedule Timeline", icon: IconProp.Timeline,',
       ),
     );
   });
