@@ -90,6 +90,10 @@ OneUptime On-Call app sets, drawn as a status and never as a control:
 - a test to a phone with critical alerts on says it went as a critical alert;
   one to a phone with them off offers "How to turn on", which opens that
   phone's steps;
+- the dialog says what the server answered the test went as (its
+  `isCriticalAlert`), not what the list showed: a phone whose app turned
+  critical alerts off after the list was read gets the ordinary-push words,
+  and the list is read again so its row reads Off;
 - at 390px in the dark theme the list and the steps fit the screen, in the dark
   theme's colours;
 - in German at 390px the steps are German, and the app's own labels stay as

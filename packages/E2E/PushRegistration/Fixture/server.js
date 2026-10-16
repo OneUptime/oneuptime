@@ -632,9 +632,25 @@ async function main() {
         deviceId: testNotification[1],
         body: JSON.parse((await readBody(request)) || "{}"),
       });
+
+      /*
+       * Whether it went as a critical alert, as the real route answers
+       * (UserPushAPI): the device as the server holds it now - which a
+       * test may have changed after the page read the list, as the phone's
+       * app does when its critical alerts change.
+       */
+      const testedDevice = state.devices.find((device) => {
+        return device.id === testNotification[1];
+      });
+
       sendJson(response, 200, {
         success: true,
         message: "Test notification sent successfully",
+        isCriticalAlert: Boolean(
+          testedDevice &&
+            testedDevice.deviceType !== "web" &&
+            testedDevice.isCriticalAlertEnabled,
+        ),
       });
       return;
     }

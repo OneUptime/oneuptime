@@ -1547,6 +1547,58 @@ test.describe("critical alerts in the device list", () => {
     ).toHaveText(["Close"]);
   });
 
+  /*
+   * The maintainer's report: critical alerts turned off on the phone, the
+   * list still reading On, and the test's dialog claiming it rang through
+   * silent mode. The server says how the test went; the dialog says that,
+   * and the list is read again, so the row says the same.
+   */
+  test("a test to a phone whose app has since turned critical alerts off: an ordinary push, and the row catches up", async ({
+    page,
+    request,
+  }: {
+    page: Page;
+    request: APIRequestContext;
+  }) => {
+    await seed(request, [PIXEL]);
+    await open(page);
+
+    await expect(status(page, "Pixel 10")).toHaveAttribute("data-state", "on");
+
+    const readsBefore: number = await listReads(page);
+
+    // The phone's app reports them off; this page has not read the list since.
+    await seed(request, [{ ...PIXEL, isCriticalAlertEnabled: false }]);
+
+    await row(page, "Pixel 10")
+      .getByRole("button", { name: "Test Notification" })
+      .click();
+
+    await expect(page.getByTestId("modal-title")).toHaveText(
+      "Test Notification Sent",
+    );
+    await expect(page.getByTestId("confirm-modal-description")).toHaveText(
+      "Sent to Pixel 10. It follows the phone's sound settings, so a phone on silent or in Do Not Disturb stays quiet. Turn on critical alerts to have on-call pages ring through.",
+    );
+    await expect(
+      page.getByTestId("modal-footer").getByRole("button"),
+    ).toHaveText(["Close", "How to turn on"]);
+
+    await screenshot(page, "critical-alerts-test-sent-turned-off-since-synthetic");
+
+    await page
+      .getByTestId("modal-footer")
+      .getByRole("button", { name: "Close" })
+      .click();
+
+    await expect(page.getByTestId("modal")).toHaveCount(0);
+    await expect(status(page, "Pixel 10")).toHaveAttribute(
+      "data-state",
+      "off",
+    );
+    expect(await listReads(page)).toBeGreaterThan(readsBefore);
+  });
+
   test("on a phone, in the dark theme: the list and the steps fit the screen, in dark-theme colours", async ({
     page,
     request,
