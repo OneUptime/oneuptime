@@ -1175,7 +1175,9 @@ export default class OnCallPolicyRunMessage {
            * on: their line says they passed it on, once - and a rule whose
            * people all did reached nobody it had not asked already.
            */
-          if (step.statusMessage === ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE) {
+          if (
+            step.statusMessage === ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE
+          ) {
             continue;
           }
 

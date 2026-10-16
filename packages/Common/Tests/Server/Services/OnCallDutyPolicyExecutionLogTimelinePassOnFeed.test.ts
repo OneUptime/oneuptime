@@ -73,7 +73,8 @@ function lineOf(
     } as never;
   }
 
-  const { isDirectPage: _isDirectPage, ...rest } = data;
+  const rest: Record<string, unknown> = { ...data };
+  delete rest["isDirectPage"];
   Object.assign(row, rest);
 
   return row;
@@ -130,7 +131,9 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-async function feedFor(row: OnCallDutyPolicyExecutionLogTimeline): Promise<void> {
+async function feedFor(
+  row: OnCallDutyPolicyExecutionLogTimeline,
+): Promise<void> {
   jest
     .spyOn(OnCallDutyPolicyExecutionLogTimelineService, "findOneById")
     .mockResolvedValue(row);

@@ -132,7 +132,10 @@ function sameKey(a: unknown, b: unknown): boolean {
   );
 }
 
-function sameTime(a: Date | null | undefined, b: Date | null | undefined): boolean {
+function sameTime(
+  a: Date | null | undefined,
+  b: Date | null | undefined,
+): boolean {
   if (!a && !b) {
     return true;
   }
@@ -145,7 +148,7 @@ function sameTime(a: Date | null | undefined, b: Date | null | undefined): boole
 }
 
 // A copy of a row: a read hands back what was there when it was read.
-function copy<T extends object>(row: T): T {
+function copy<T extends Record<string, any>>(row: T): T {
   return Object.assign(
     Object.create(Object.getPrototypeOf(row)) as T,
     row,
@@ -158,7 +161,7 @@ type AnyFunction = (...args: Array<any>) => any;
  * An update, as Postgres takes it from TypeORM: a value left undefined is
  * not written.
  */
-function merge<T extends object>(row: T, data: Partial<T>): void {
+function merge<T extends Record<string, any>>(row: T, data: Partial<T>): void {
   for (const [key, value] of Object.entries(data)) {
     if (value !== undefined) {
       (row as Record<string, unknown>)[key] = value;
@@ -213,18 +216,20 @@ export default class PassOnWorld {
     this.installPeople();
   }
 
-  private spy(target: object, method: string, implementation: AnyFunction): void {
+  private spy(
+    target: unknown,
+    method: string,
+    implementation: AnyFunction,
+  ): void {
     jest.spyOn(target as any, method as any).mockImplementation(implementation);
   }
 
   private installRuns(): void {
-    const world: PassOnWorld = this;
-
     this.spy(
       OnCallDutyPolicyExecutionLogService,
       "findOneById",
       async (data: { id: ObjectID }) => {
-        const run: OnCallDutyPolicyExecutionLog | undefined = world.runs.find(
+        const run: OnCallDutyPolicyExecutionLog | undefined = this.runs.find(
           (row: OnCallDutyPolicyExecutionLog) => {
             return sameKey(row._id, data.id);
           },
@@ -238,7 +243,7 @@ export default class PassOnWorld {
       OnCallDutyPolicyExecutionLogService,
       "findBy",
       async (data: { query: Record<string, unknown> }) => {
-        return world.runs
+        return this.runs
           .filter((row: OnCallDutyPolicyExecutionLog) => {
             return matchesQuery(data.query, row as unknown as FakeRow);
           })
@@ -253,7 +258,7 @@ export default class PassOnWorld {
         id: ObjectID;
         data: Partial<OnCallDutyPolicyExecutionLog>;
       }) => {
-        const run: OnCallDutyPolicyExecutionLog | undefined = world.runs.find(
+        const run: OnCallDutyPolicyExecutionLog | undefined = this.runs.find(
           (row: OnCallDutyPolicyExecutionLog) => {
             return sameKey(row._id, data.id);
           },
@@ -266,7 +271,7 @@ export default class PassOnWorld {
         merge(run, data.data);
 
         if (data.data.status) {
-          world.runStatuses.push(data.data.status);
+          this.runStatuses.push(data.data.status);
         }
       },
     );
@@ -280,7 +285,7 @@ export default class PassOnWorld {
         previousLastEscalationRuleExecutedAt: Date | null;
         newLastEscalationRuleExecutedAt: Date;
       }) => {
-        const run: OnCallDutyPolicyExecutionLog | undefined = world.runs.find(
+        const run: OnCallDutyPolicyExecutionLog | undefined = this.runs.find(
           (row: OnCallDutyPolicyExecutionLog) => {
             return sameKey(row._id, data.executionLogId);
           },
@@ -295,13 +300,14 @@ export default class PassOnWorld {
             ),
         );
 
-        world.claims.push({
+        this.claims.push({
           previous: data.previousLastEscalationRuleExecutedAt,
           won: won,
         });
 
         if (won) {
-          run!.lastEscalationRuleExecutedAt = data.newLastEscalationRuleExecutedAt;
+          run!.lastEscalationRuleExecutedAt =
+            data.newLastEscalationRuleExecutedAt;
         }
 
         return won;
@@ -310,16 +316,14 @@ export default class PassOnWorld {
   }
 
   private installSteps(): void {
-    const world: PassOnWorld = this;
-
     this.spy(
       OnCallDutyPolicyExecutionLogTimelineService,
       "create",
       async (data: { data: OnCallDutyPolicyExecutionLogTimeline }) => {
         const step: OnCallDutyPolicyExecutionLogTimeline = data.data;
         step.id = nextId();
-        step.createdAt = new Date(world.clock);
-        world.steps.push(step);
+        step.createdAt = new Date(this.clock);
+        this.steps.push(step);
 
         return step;
       },
@@ -329,7 +333,7 @@ export default class PassOnWorld {
       OnCallDutyPolicyExecutionLogTimelineService,
       "findBy",
       async (data: { query: Record<string, unknown> }) => {
-        return world.steps
+        return this.steps
           .filter((row: OnCallDutyPolicyExecutionLogTimeline) => {
             return matchesQuery(data.query, row as unknown as FakeRow);
           })
@@ -352,7 +356,7 @@ export default class PassOnWorld {
       "countBy",
       async (data: { query: Record<string, unknown> }) => {
         return new PositiveNumber(
-          world.steps.filter((row: OnCallDutyPolicyExecutionLogTimeline) => {
+          this.steps.filter((row: OnCallDutyPolicyExecutionLogTimeline) => {
             return matchesQuery(data.query, row as unknown as FakeRow);
           }).length,
         );
@@ -367,7 +371,7 @@ export default class PassOnWorld {
         data: Partial<OnCallDutyPolicyExecutionLogTimeline>;
       }) => {
         const step: OnCallDutyPolicyExecutionLogTimeline | undefined =
-          world.steps.find((row: OnCallDutyPolicyExecutionLogTimeline) => {
+          this.steps.find((row: OnCallDutyPolicyExecutionLogTimeline) => {
             return sameKey(row._id, data.id);
           });
 
@@ -379,8 +383,6 @@ export default class PassOnWorld {
   }
 
   private installLogs(): void {
-    const world: PassOnWorld = this;
-
     // What paging somebody writes: their notification log, as it starts.
     this.spy(
       UserNotificationRuleService,
@@ -416,15 +418,16 @@ export default class PassOnWorld {
           log.triggeredByIncidentId = options.triggeredByIncidentId;
         }
 
-        log.userNotificationEventType = UserNotificationEventType.IncidentCreated;
+        log.userNotificationEventType =
+          UserNotificationEventType.IncidentCreated;
         log.status = UserNotificationExecutionStatus.Executing;
-        log.createdAt = new Date(world.clock);
-        world.logs.push(log);
+        log.createdAt = new Date(this.clock);
+        this.logs.push(log);
 
-        world.pages.push({
+        this.pages.push({
           userId: userId.toString(),
           ruleId: options.onCallPolicyEscalationRuleId?.toString() || null,
-          at: new Date(world.clock),
+          at: new Date(this.clock),
         });
       },
     );
@@ -433,7 +436,7 @@ export default class PassOnWorld {
       UserOnCallLogService,
       "findBy",
       async (data: { query: Record<string, unknown> }) => {
-        return world.logs
+        return this.logs
           .filter((row: UserOnCallLog) => {
             return matchesQuery(data.query, row as unknown as FakeRow);
           })
@@ -441,12 +444,14 @@ export default class PassOnWorld {
             const log: UserOnCallLog = copy(row);
 
             const step: OnCallDutyPolicyExecutionLogTimeline | undefined =
-              world.steps.find((candidate: OnCallDutyPolicyExecutionLogTimeline) => {
-                return sameKey(
-                  candidate._id,
-                  row.onCallDutyPolicyExecutionLogTimelineId,
-                );
-              });
+              this.steps.find(
+                (candidate: OnCallDutyPolicyExecutionLogTimeline) => {
+                  return sameKey(
+                    candidate._id,
+                    row.onCallDutyPolicyExecutionLogTimelineId,
+                  );
+                },
+              );
 
             if (step) {
               log.onCallDutyPolicyExecutionLogTimeline = copy(step);
@@ -469,7 +474,7 @@ export default class PassOnWorld {
         data: Partial<UserOnCallLog>;
         props: { isRoot: boolean };
       }) => {
-        const log: UserOnCallLog | undefined = world.logs.find(
+        const log: UserOnCallLog | undefined = this.logs.find(
           (row: UserOnCallLog) => {
             return sameKey(row._id, data.id);
           },
@@ -481,9 +486,9 @@ export default class PassOnWorld {
 
         merge(log, data.data);
 
-        await (
-          UserOnCallLogService as unknown as Record<string, AnyFunction>
-        )["onUpdateSuccess"]!.call(
+        await (UserOnCallLogService as unknown as Record<string, AnyFunction>)[
+          "onUpdateSuccess"
+        ]!.call(
           UserOnCallLogService,
           {
             updateBy: {
@@ -503,7 +508,7 @@ export default class PassOnWorld {
       "updateOneById",
       async (data: { id: ObjectID; data: Partial<UserOnCallLogTimeline> }) => {
         const delivery: UserOnCallLogTimeline | undefined =
-          world.deliveries.find((row: UserOnCallLogTimeline) => {
+          this.deliveries.find((row: UserOnCallLogTimeline) => {
             return sameKey(row._id, data.id);
           });
 
@@ -515,14 +520,15 @@ export default class PassOnWorld {
   }
 
   private installRules(): void {
-    const world: PassOnWorld = this;
-
-    const ruleById: (id: unknown) => OnCallDutyPolicyEscalationRule | undefined =
-      (id: unknown): OnCallDutyPolicyEscalationRule | undefined => {
-        return world.rules.find((rule: OnCallDutyPolicyEscalationRule) => {
-          return sameKey(rule._id, id);
-        });
-      };
+    const ruleById: (
+      id: unknown,
+    ) => OnCallDutyPolicyEscalationRule | undefined = (
+      id: unknown,
+    ): OnCallDutyPolicyEscalationRule | undefined => {
+      return this.rules.find((rule: OnCallDutyPolicyEscalationRule) => {
+        return sameKey(rule._id, id);
+      });
+    };
 
     this.spy(
       OnCallDutyPolicyEscalationRuleService,
@@ -541,7 +547,7 @@ export default class PassOnWorld {
       "findOneBy",
       async (data: { query: Record<string, unknown> }) => {
         const rule: OnCallDutyPolicyEscalationRule | undefined =
-          world.rules.find((row: OnCallDutyPolicyEscalationRule) => {
+          this.rules.find((row: OnCallDutyPolicyEscalationRule) => {
             return matchesQuery(data.query, row as unknown as FakeRow);
           });
 
@@ -553,7 +559,7 @@ export default class PassOnWorld {
       OnCallDutyPolicyEscalationRuleService,
       "findBy",
       async (data: { query: Record<string, unknown> }) => {
-        return world.rules
+        return this.rules
           .filter((row: OnCallDutyPolicyEscalationRule) => {
             return matchesQuery(data.query, row as unknown as FakeRow);
           })
@@ -577,7 +583,7 @@ export default class PassOnWorld {
           data.query["onCallDutyPolicyEscalationRuleId"],
         );
 
-        return (world.ruleUsers[ruleId] || []).map((userId: ObjectID) => {
+        return (this.ruleUsers[ruleId] || []).map((userId: ObjectID) => {
           return { userId: userId };
         });
       },
@@ -591,15 +597,19 @@ export default class PassOnWorld {
           data.query["onCallDutyPolicyEscalationRuleId"],
         );
 
-        return (world.ruleTeams[ruleId] || []).map((teamId: ObjectID) => {
+        return (this.ruleTeams[ruleId] || []).map((teamId: ObjectID) => {
           return { teamId: teamId };
         });
       },
     );
 
-    this.spy(OnCallDutyPolicyEscalationRuleScheduleService, "findBy", async () => {
-      return [];
-    });
+    this.spy(
+      OnCallDutyPolicyEscalationRuleScheduleService,
+      "findBy",
+      async () => {
+        return [];
+      },
+    );
 
     // Nobody is away.
     this.spy(OnCallDutyPolicyUserOverrideService, "findBy", async () => {
@@ -610,7 +620,7 @@ export default class PassOnWorld {
       TeamMemberService,
       "getUsersInTeams",
       async (teamIds: Array<ObjectID>) => {
-        return (world.teamMembers[teamIds[0]?.toString() || ""] || []).map(
+        return (this.teamMembers[teamIds[0]?.toString() || ""] || []).map(
           (userId: ObjectID) => {
             const user: User = new User();
             user.id = userId;
@@ -622,18 +632,18 @@ export default class PassOnWorld {
   }
 
   private installPeople(): void {
-    const world: PassOnWorld = this;
-
     // Everybody here is a member of the project.
-    this.spy(ProjectMembership, "getMemberUserIds", async (data: {
-      userIds: Array<ObjectID>;
-    }) => {
-      return new Set<string>(
-        data.userIds.map((userId: ObjectID) => {
-          return userId.toString().toLowerCase();
-        }),
-      );
-    });
+    this.spy(
+      ProjectMembership,
+      "getMemberUserIds",
+      async (data: { userIds: Array<ObjectID> }) => {
+        return new Set<string>(
+          data.userIds.map((userId: ObjectID) => {
+            return userId.toString().toLowerCase();
+          }),
+        );
+      },
+    );
 
     this.spy(UserService, "findBy", async () => {
       return Object.keys(NAMES).map((id: string) => {
@@ -653,15 +663,15 @@ export default class PassOnWorld {
     });
 
     this.spy(IncidentService, "isIncidentAcknowledged", async () => {
-      return world.isRecordAcknowledged;
+      return this.isRecordAcknowledged;
     });
 
     this.spy(
       IncidentService,
       "acknowledgeIncident",
       async (data: { acknowledgedByUserId: ObjectID }) => {
-        world.isRecordAcknowledged = true;
-        world.acknowledgedBy = data.acknowledgedByUserId;
+        this.isRecordAcknowledged = true;
+        this.acknowledgedBy = data.acknowledgedByUserId;
       },
     );
   }
@@ -693,7 +703,8 @@ export default class PassOnWorld {
 
   // A run of the policy, started as OneUptime starts one: its first rule pages.
   public async startRun(): Promise<void> {
-    const run: OnCallDutyPolicyExecutionLog = new OnCallDutyPolicyExecutionLog();
+    const run: OnCallDutyPolicyExecutionLog =
+      new OnCallDutyPolicyExecutionLog();
     run.id = RUN_ID;
     run.projectId = PROJECT_ID;
     run.onCallDutyPolicyId = POLICY_ID;
@@ -730,7 +741,8 @@ export default class PassOnWorld {
    * escalation rules.
    */
   public async startDirectPage(userIds: Array<ObjectID>): Promise<void> {
-    const run: OnCallDutyPolicyExecutionLog = new OnCallDutyPolicyExecutionLog();
+    const run: OnCallDutyPolicyExecutionLog =
+      new OnCallDutyPolicyExecutionLog();
     run.id = RUN_ID;
     run.projectId = PROJECT_ID;
     run.triggeredByIncidentId = INCIDENT_ID;
@@ -779,7 +791,9 @@ export default class PassOnWorld {
   }
 
   // Time passes; then the worker's tick moves the run on if its wait is over.
-  public async tick(minutes: number): Promise<OnCallEscalationAdvanceResult | null> {
+  public async tick(
+    minutes: number,
+  ): Promise<OnCallEscalationAdvanceResult | null> {
     this.clock = new Date(this.clock.getTime() + minutes * MINUTE_IN_MS);
 
     const run: OnCallDutyPolicyExecutionLog = copy(this.run);

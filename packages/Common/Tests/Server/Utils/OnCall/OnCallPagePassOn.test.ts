@@ -161,7 +161,9 @@ describe("one person on the rule passes the page on", () => {
     await world.passOn(ANA, delivery.id!);
 
     expect(delivery.status).toBe(UserNotificationStatus.PassedOn);
-    expect(delivery.statusMessage).toBe(ON_CALL_PAGE_PASSED_ON_DELIVERY_MESSAGE);
+    expect(delivery.statusMessage).toBe(
+      ON_CALL_PAGE_PASSED_ON_DELIVERY_MESSAGE,
+    );
   });
 
   test("passing it on again is refused: already passed on", async () => {
@@ -239,9 +241,7 @@ describe("several people on one rule", () => {
     expect(answer.result!.nextStepAt?.toISOString()).toBe(
       "2026-10-16T03:30:00.000Z",
     );
-    expect(
-      getOnCallPassOnSentence(answer.result!, { timezone: "UTC" }),
-    ).toBe(
+    expect(getOnCallPassOnSentence(answer.result!, { timezone: "UTC" })).toBe(
       "Bob Smith is still being paged. If nobody acknowledges by Oct 16, 2026, 3:30 AM UTC, escalation rule 2 of 2 (Level 2) is next.",
     );
   });
@@ -261,7 +261,8 @@ describe("several people on one rule", () => {
 
     expect(await world.tick(29)).toBeNull();
 
-    const advanced = await world.tick(1);
+    const advanced: Awaited<ReturnType<PassOnWorld["tick"]>> =
+      await world.tick(1);
 
     expect(advanced?.kind).toBe(OnCallEscalationAdvanceKind.RuleStarted);
     expect(world.pagedBy(level2)).toEqual(["Carl Diaz"]);
@@ -813,7 +814,9 @@ describe("a person's pages about one record (the Dashboard and the mobile app)",
 
     expect(pages).toHaveLength(1);
     expect(pages[0]!.executionLogId).toBe(RUN_ID.toString());
-    expect(pages[0]!.preview.outcome).toBe(OnCallPassOnOutcome.OthersStillPaged);
+    expect(pages[0]!.preview.outcome).toBe(
+      OnCallPassOnOutcome.OthersStillPaged,
+    );
   });
 
   test("lists nothing for somebody it is not paging", async () => {

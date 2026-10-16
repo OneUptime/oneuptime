@@ -194,7 +194,9 @@ describe("a person who passed the page on", () => {
 
     const markdown: string = OnCallPolicyRunMessageView.getMarkdown(run);
 
-    expect(markdown).toContain("**Ana Lopez**: passed it on · paged once · by email");
+    expect(markdown).toContain(
+      "**Ana Lopez**: passed it on · paged once · by email",
+    );
     expect(markdown).toContain("**Bob Smith**: being paged now");
     expect(markdown).not.toContain("Ana Lopez**: being paged now");
   });
@@ -387,9 +389,9 @@ describe("a run everybody it paged passed on", () => {
     expect(await ended(ON_CALL_POLICY_RUN_EVERYBODY_PASSED_ON_MESSAGE)).toBe(
       OnCallPolicyRunOutcome.EverybodyPassedOn,
     );
-    expect(await ended(ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE)).toBe(
-      OnCallPolicyRunOutcome.NobodyAcknowledged,
-    );
+    expect(
+      await ended(ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE),
+    ).toBe(OnCallPolicyRunOutcome.NobodyAcknowledged);
   });
 
   test("says nobody could take the record, at the top of its message", () => {

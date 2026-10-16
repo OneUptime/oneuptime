@@ -868,10 +868,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
       getResourceReference(timelineItem)?.resourceType.toString() || "page"
     ).toLowerCase();
 
-    if (
-      !timelineItem.userId ||
-      !timelineItem.onCallDutyPolicyExecutionLogId
-    ) {
+    if (!timelineItem.userId || !timelineItem.onCallDutyPolicyExecutionLogId) {
       return `${getOnCallPassOnRefusalSentence({
         passedOn: false,
         refusal: OnCallPassOnRefusal.NotPaged,

@@ -153,7 +153,9 @@ type RecordColumn =
 
 export default class OnCallPagePassOn {
   // The column of a run, and of a person's page, that names a record.
-  public static getRecordColumn(recordType: OnCallPageRecordType): RecordColumn {
+  public static getRecordColumn(
+    recordType: OnCallPageRecordType,
+  ): RecordColumn {
     switch (recordType) {
       case OnCallPageRecordType.Incident:
         return "triggeredByIncidentId";
@@ -991,7 +993,9 @@ export default class OnCallPagePassOn {
     });
   }
 
-  private static toRule(rule: OnCallDutyPolicyEscalationRule): OnCallPassOnRule {
+  private static toRule(
+    rule: OnCallDutyPolicyEscalationRule,
+  ): OnCallPassOnRule {
     return {
       order: rule.order || 0,
       name: rule.name?.trim() || undefined,

@@ -29,9 +29,7 @@ import { describe, expect, test } from "@jest/globals";
  * every way passing on can come out - before (a preview) and after.
  */
 
-function result(
-  overrides: Partial<OnCallPassOnResult>,
-): OnCallPassOnResult {
+function result(overrides: Partial<OnCallPassOnResult>): OnCallPassOnResult {
   return {
     outcome: OnCallPassOnOutcome.NextRulePaged,
     isPreview: false,
@@ -130,9 +128,7 @@ describe("names and rules in a sentence", () => {
       "escalation rule 2",
     );
     // A count the rule is beyond is no count at all.
-    expect(getOnCallPassOnRuleLabel({ order: 4 }, 3)).toBe(
-      "escalation rule 4",
-    );
+    expect(getOnCallPassOnRuleLabel({ order: 4 }, 3)).toBe("escalation rule 4");
   });
 });
 
@@ -191,7 +187,9 @@ describe("what passing it on did", () => {
           pagedNames: ["Sam Lee", "Kim Ito"],
         }),
       ),
-    ).toBe("Escalation rule 2 of 3 (Level 2) is paging Sam Lee and Kim Ito now.");
+    ).toBe(
+      "Escalation rule 2 of 3 (Level 2) is paging Sam Lee and Kim Ito now.",
+    );
   });
 
   test("the next rule, when it reached nobody yet", () => {
@@ -325,7 +323,9 @@ describe("why it could not be passed on", () => {
         { passedOn: false, refusal: OnCallPassOnRefusal.RecordAcknowledged },
         { recordLabel: "Alert #12" },
       ),
-    ).toBe("Alert #12 is already acknowledged, so there is nothing to pass on.");
+    ).toBe(
+      "Alert #12 is already acknowledged, so there is nothing to pass on.",
+    );
     expect(
       getOnCallPassOnRefusalSentence({
         passedOn: false,

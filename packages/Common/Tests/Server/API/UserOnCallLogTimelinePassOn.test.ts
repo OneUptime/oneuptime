@@ -172,18 +172,18 @@ beforeEach(() => {
   user.timezone = Timezone.UTC;
   item.user = user;
 
-  jest.spyOn(UserOnCallLogTimelineService, "findOneById").mockResolvedValue(item);
+  jest
+    .spyOn(UserOnCallLogTimelineService, "findOneById")
+    .mockResolvedValue(item);
 
   // The page's context is best effort: none here, the timeline's title stands.
   jest.spyOn(IncidentService, "findOneById").mockResolvedValue(null);
   jest.spyOn(AlertService, "findOneById").mockResolvedValue(null);
 
-  previewSpy = jest
-    .spyOn(OnCallPagePassOn, "getPreview")
-    .mockResolvedValue({
-      passedOn: false,
-      result: preview(OnCallPassOnOutcome.NextRulePaged),
-    });
+  previewSpy = jest.spyOn(OnCallPagePassOn, "getPreview").mockResolvedValue({
+    passedOn: false,
+    result: preview(OnCallPassOnOutcome.NextRulePaged),
+  });
 
   passOnSpy = jest.spyOn(OnCallPagePassOn, "passOn").mockResolvedValue({
     passedOn: true,
@@ -369,7 +369,10 @@ describe("the pass-on page", () => {
     ).handlerFunction as RouterFunction;
 
     await handler(
-      { params: { itemId: "not-an-id" }, query: {} } as unknown as ExpressRequest,
+      {
+        params: { itemId: "not-an-id" },
+        query: {},
+      } as unknown as ExpressRequest,
       {} as unknown as ExpressResponse,
       (() => {}) as unknown as NextFunction,
     );

@@ -141,15 +141,15 @@ beforeEach(() => {
       lastEscalationRuleExecutedAt: NOW,
     } as never);
 
-  jest.spyOn(OnCallDutyPolicyEscalationRuleService, "findOneBy").mockImplementation(
-    (async (data: { query: { order: number } }) => {
+  jest
+    .spyOn(OnCallDutyPolicyEscalationRuleService, "findOneBy")
+    .mockImplementation((async (data: { query: { order: number } }) => {
       return (
         rules.find((rule: OnCallDutyPolicyEscalationRule) => {
           return rule.order === data.query.order;
         }) || null
       );
-    }) as never,
-  );
+    }) as never);
 
   startSpy = jest
     .spyOn(OnCallDutyPolicyEscalationRuleService, "startRuleExecution")
@@ -168,9 +168,7 @@ beforeEach(() => {
 
   jest
     .spyOn(OnCallDutyPolicyExecutionLogTimelineService, "findBy")
-    .mockImplementation((async (data: {
-      query: { status?: unknown };
-    }) => {
+    .mockImplementation((async (data: { query: { status?: unknown } }) => {
       // The passers read asks for "Passed On" lines only.
       if (data.query.status === OnCallDutyExecutionLogTimelineStatus.PassedOn) {
         return lines.filter((row: OnCallDutyPolicyExecutionLogTimeline) => {
@@ -236,9 +234,9 @@ describe("the claim", () => {
 
     await advance(run);
 
-    expect(claimSpy.mock.calls[0]![0].previousLastEscalationRuleExecutedAt).toBe(
-      null,
-    );
+    expect(
+      claimSpy.mock.calls[0]![0].previousLastEscalationRuleExecutedAt,
+    ).toBe(null);
   });
 });
 
@@ -359,9 +357,9 @@ describe("a rule that only people who passed it on were on", () => {
     expect(result.rule?.order).toBe(3);
     expect(claimSpy).toHaveBeenCalledTimes(2);
     // The second claim compares the time the run moved on to the second rule.
-    expect(claimSpy.mock.calls[1]![0].previousLastEscalationRuleExecutedAt).toEqual(
-      NOW,
-    );
+    expect(
+      claimSpy.mock.calls[1]![0].previousLastEscalationRuleExecutedAt,
+    ).toEqual(NOW);
   });
 
   test("is left on when the claim to pass it is lost: somebody else moved the run on", async () => {
@@ -391,9 +389,9 @@ describe("a rule that only people who passed it on were on", () => {
   test("a loop of them stops: a guard, not a limit anybody meets", async () => {
     // Every rule, for ever, pages nobody but people who passed it on.
     startSpy.mockResolvedValue(outcome({ movesOnAtOnce: true }));
-    jest.spyOn(OnCallDutyPolicyEscalationRuleService, "findOneBy").mockResolvedValue(
-      rules[1]! as never,
-    );
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleService, "findOneBy")
+      .mockResolvedValue(rules[1]! as never);
 
     const result: OnCallEscalationAdvanceResult = await advance(runOn(1));
 
@@ -601,9 +599,9 @@ describe("whether a rule's outcome moves the run on at once", () => {
       hadScheduleGap: false,
     };
 
-    expect(OnCallDutyPolicyEscalationRuleServiceClass.movesOnAtOnce(mixed)).toBe(
-      true,
-    );
+    expect(
+      OnCallDutyPolicyEscalationRuleServiceClass.movesOnAtOnce(mixed),
+    ).toBe(true);
     expect(
       OnCallDutyPolicyEscalationRuleServiceClass.isEveryTargetPassedOn(mixed),
     ).toBe(false);

@@ -132,12 +132,17 @@ describe("the readers of a run's repeats", () => {
     },
   );
 
-  test.each(FETCHERS)("%s fetches the switch with the number", (file: string) => {
-    const source: string = readPackageFile(file);
+  test.each(FETCHERS)(
+    "%s fetches the switch with the number",
+    (file: string) => {
+      const source: string = readPackageFile(file);
 
-    expect(source).toContain("repeatPolicyIfNoOneAcknowledges: true,");
-    expect(source).toContain("repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,");
-  });
+      expect(source).toContain("repeatPolicyIfNoOneAcknowledges: true,");
+      expect(source).toContain(
+        "repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,",
+      );
+    },
+  );
 
   test("the worker hands the run it read, policy settings and all, to the one way a run moves on", () => {
     const worker: string = readPackageFile(

@@ -344,7 +344,9 @@ export default class OnCallEscalationAdvance {
 
       return this.uniqueIds(
         (lines || []).map(
-          (line: OnCallDutyPolicyExecutionLogTimeline): ObjectID | undefined => {
+          (
+            line: OnCallDutyPolicyExecutionLogTimeline,
+          ): ObjectID | undefined => {
             return line.alertSentToUserId;
           },
         ),

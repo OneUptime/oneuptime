@@ -88,12 +88,12 @@ beforeEach(() => {
     .mockResolvedValue(Protocol.HTTPS);
 
   // A short link stands for the URL it was made for: /l/<n>.
-  jest
-    .spyOn(ShortLinkService, "saveShortLinkFor")
-    .mockImplementation((async (url: URL) => {
-      shortened.push(url.toString());
-      return { shortId: String(shortened.length) };
-    }) as never);
+  jest.spyOn(ShortLinkService, "saveShortLinkFor").mockImplementation((async (
+    url: URL,
+  ) => {
+    shortened.push(url.toString());
+    return { shortId: String(shortened.length) };
+  }) as never);
   jest
     .spyOn(ShortLinkService, "getShortenedUrl")
     .mockImplementation((async (link: { shortId: string }) => {
@@ -107,7 +107,9 @@ beforeEach(() => {
   jest
     .spyOn(IncidentService, "getIncidentLinkInDashboard")
     .mockResolvedValue(dashboard);
-  jest.spyOn(AlertService, "getAlertLinkInDashboard").mockResolvedValue(dashboard);
+  jest
+    .spyOn(AlertService, "getAlertLinkInDashboard")
+    .mockResolvedValue(dashboard);
   jest
     .spyOn(IncidentEpisodeService, "getEpisodeLinkInDashboard")
     .mockResolvedValue(dashboard);
@@ -505,7 +507,9 @@ describe.each(KINDS)("the messages that page about $name", (kind: Kind) => {
       })
       .join("\n");
 
-    expect(markdown).toContain("✅ [Acknowledge](https://oneuptime.example.com/l/1)");
+    expect(markdown).toContain(
+      "✅ [Acknowledge](https://oneuptime.example.com/l/1)",
+    );
     expect(markdown).toContain(
       "⏭️ [Can't take it? Pass it on](https://oneuptime.example.com/l/2)",
     );

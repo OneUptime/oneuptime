@@ -16,13 +16,23 @@ import { htmlAsText } from "../../Helpers/HtmlText";
  * and a page they passed on would wake the next person for nothing.
  */
 
-const VIEWS: string = path.resolve(__dirname, "..", "..", "..", "Server", "Views");
+const VIEWS: string = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "Server",
+  "Views",
+);
 
 const ACKNOWLEDGE_VIEW: string = path.join(
   VIEWS,
   "AcknowledgeUserOnCallNotification.ejs",
 );
-const PASS_ON_VIEW: string = path.join(VIEWS, "PassOnUserOnCallNotification.ejs");
+const PASS_ON_VIEW: string = path.join(
+  VIEWS,
+  "PassOnUserOnCallNotification.ejs",
+);
 
 function render(viewPath: string, variables: Record<string, unknown>): string {
   return ejs.render(fs.readFileSync(viewPath, "utf8"), variables, {
@@ -32,7 +42,8 @@ function render(viewPath: string, variables: Record<string, unknown>): string {
 
 const FORM_URL: string =
   "https://oneuptime.example.com/api/user-notification-log-timeline/pass-on/1";
-const TOKEN: string = "eyJhbGciOiJIUzI1NiJ9.eyJwdXJwb3NlIjoib24tY2FsbC1wYWdlIn0.sig";
+const TOKEN: string =
+  "eyJhbGciOiJIUzI1NiJ9.eyJwdXJwb3NlIjoib24tY2FsbC1wYWdlIn0.sig";
 
 const ACKNOWLEDGE_BASE: Record<string, unknown> = {
   title: "Acknowledge Incident - Checkout is down",
@@ -65,7 +76,9 @@ describe("the acknowledge page", () => {
     expect(html).toContain(
       `<input type="hidden" name="pageToken" value="${TOKEN}">`,
     );
-    expect(html).toContain('<button type="submit" data-testid="pass-on-button"');
+    expect(html).toContain(
+      '<button type="submit" data-testid="pass-on-button"',
+    );
 
     const text: string = htmlAsText(html);
 
