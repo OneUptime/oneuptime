@@ -304,6 +304,9 @@ import StatusPageSubscriberNotificationTemplateStatusPageService from "./StatusP
 import TeamMemberService from "./TeamMemberService";
 import TeamMemberCustomFieldService from "./TeamMemberCustomFieldService";
 import TeamPermissionService from "./TeamPermissionService";
+import CustomRoleService from "./CustomRoleService";
+import CustomRolePermissionService from "./CustomRolePermissionService";
+import TeamCustomRoleService from "./TeamCustomRoleService";
 import TeamComplianceSettingService from "./TeamComplianceSettingService";
 // Team
 import TeamService from "./TeamService";
@@ -754,6 +757,9 @@ const services: Array<BaseService> = [
   TeamMemberService,
   TeamMemberCustomFieldService,
   TeamPermissionService,
+  CustomRoleService,
+  CustomRolePermissionService,
+  TeamCustomRoleService,
   TeamComplianceSettingService,
   TeamService,
 

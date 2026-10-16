@@ -1130,6 +1130,15 @@ import TeamMemberCustomFieldService, {
 import TeamPermissionService, {
   Service as TeamPermissionServiceType,
 } from "Common/Server/Services/TeamPermissionService";
+import CustomRoleService, {
+  Service as CustomRoleServiceType,
+} from "Common/Server/Services/CustomRoleService";
+import CustomRolePermissionService, {
+  Service as CustomRolePermissionServiceType,
+} from "Common/Server/Services/CustomRolePermissionService";
+import TeamCustomRoleService, {
+  Service as TeamCustomRoleServiceType,
+} from "Common/Server/Services/TeamCustomRoleService";
 import TeamComplianceSettingService, {
   TeamComplianceSettingService as TeamComplianceSettingServiceType,
 } from "Common/Server/Services/TeamComplianceSettingService";
@@ -1514,6 +1523,9 @@ import StatusPageOIDC from "Common/Models/DatabaseModels/StatusPageOidc";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
+import CustomRole from "Common/Models/DatabaseModels/CustomRole";
+import CustomRolePermission from "Common/Models/DatabaseModels/CustomRolePermission";
+import TeamCustomRole from "Common/Models/DatabaseModels/TeamCustomRole";
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
 import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
@@ -3744,6 +3756,30 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<TeamPermission, TeamPermissionServiceType>(
         TeamPermission,
         TeamPermissionService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CustomRole, CustomRoleServiceType>(
+        CustomRole,
+        CustomRoleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CustomRolePermission, CustomRolePermissionServiceType>(
+        CustomRolePermission,
+        CustomRolePermissionService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TeamCustomRole, TeamCustomRoleServiceType>(
+        TeamCustomRole,
+        TeamCustomRoleService,
       ).getRouter(),
     );
 
