@@ -974,16 +974,14 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       const translated: string = readPage(language, entry.page);
 
       for (const written of WRITTEN_CRITERIA[entry.page] || []) {
-        expect({
-          drawn: writtenCriteria(language, written),
-          found: true,
-          english: false,
-        }).toEqual({
-          drawn: writtenCriteria(language, written),
-          found: translated.includes(
-            `**${writtenCriteria(language, written)}**`,
-          ),
-          english: translated.includes(`**${writtenCriteria("en", written)}**`),
+        const drawn: string = writtenCriteria(language, written);
+        const english: string = writtenCriteria("en", written);
+
+        expect({ drawn, found: true, english: false }).toEqual({
+          drawn,
+          found: translated.includes(`**${drawn}**`),
+          // Where the language draws the condition otherwise, the English is gone.
+          english: drawn !== english && translated.includes(`**${english}**`),
         });
       }
     });
