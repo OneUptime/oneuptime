@@ -16,6 +16,9 @@
  *                 monitors not operational, two SLOs burning, one
  *                 maintenance window in progress and three coming up
  *               healthy: monitors up, nothing open, one window coming up
+ *               quiet: healthy, and nothing scheduled either - no
+ *                 Upcoming maintenance card, so Your project alone sits
+ *                 beside the all-clear
  *               attention: no incident, but alerts, a degraded monitor and
  *                 an SLO at risk
  *               maintenance: nothing wrong, one window in progress
@@ -114,7 +117,15 @@ function listParam(name) {
   );
 }
 
-const SCENARIOS = ["busy", "healthy", "attention", "maintenance", "new", "many"];
+const SCENARIOS = [
+  "busy",
+  "healthy",
+  "quiet",
+  "attention",
+  "maintenance",
+  "new",
+  "many",
+];
 const scenario = SCENARIOS.includes(params.get("scenario"))
   ? params.get("scenario")
   : "busy";
@@ -832,13 +843,17 @@ if (hasMaintenanceNow) {
   });
 }
 
-if (!isNew) {
+// Quiet: nothing coming up, so Home leaves the Upcoming maintenance card out.
+if (!isNew && scenario !== "quiet") {
   maintenance(2, {
     title: "Kubernetes 1.31 upgrade",
     currentScheduledMaintenanceState: maintenanceStates.scheduled,
     startsAt: fromNow(2 * DAY),
     endsAt: fromNow(2 * DAY + 2 * HOUR),
   });
+}
+
+if (!isNew) {
   maintenance(5, {
     title: "Quarterly storage cleanup",
     currentScheduledMaintenanceState: maintenanceStates.completed,

@@ -12,6 +12,10 @@ import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import { COULD_NOT_LOAD_THIS_LIST } from "Common/UI/Components/Table/EmptyTableMessage";
+import TableEmptyState, {
+  TableEmptyStateKind,
+} from "Common/UI/Components/Table/TableEmptyState";
 import {
   getPillColors,
   getPillDotStyle,
@@ -35,6 +39,11 @@ import React, { FunctionComponent, ReactElement } from "react";
  * each kind, most relevant first, with the total beside the kind's name and
  * a "View all" into the full list. Kinds with nothing open are left out, so
  * the card only ever shows what needs someone.
+ *
+ * On Home the card is as tall as its row, and the column beside it is often
+ * taller. A list keeps its rows at the top; a state with nothing to list -
+ * all clear, nothing monitored yet, or a list that could not be loaded - is
+ * the product's empty state, in the middle of the card.
  */
 
 export enum AttentionGroupKey {
@@ -91,6 +100,19 @@ export const NOTHING_MONITORED_TITLE: string = translationKey(
 export const NOTHING_MONITORED_DESCRIPTION: string = translationKey(
   "Once something is monitored, every open incident, alert and failing check is listed here first.",
 );
+
+export const UNAVAILABLE_DESCRIPTION: string = translationKey(
+  "Use Try again above to load it.",
+);
+
+/*
+ * A state with nothing to list - all clear, nothing monitored yet, or a
+ * list that could not be loaded - takes the room the card has and sits in
+ * its middle: beside a taller column the card is tall, and the state at its
+ * top would leave the rest of the card blank under it.
+ */
+export const CENTERED_STATE_CLASS_NAME: string =
+  "flex flex-1 flex-col justify-center border-t border-gray-100 px-5 md:px-6";
 
 const ENDS_TEMPLATE: string = translationKey("Ends {{time}}");
 const STARTED_TEMPLATE: string = translationKey("Started {{time}}");
@@ -489,14 +511,18 @@ const NeedsAttention: FunctionComponent<ComponentProps> = (
 
     if (!props.data) {
       return (
-        <p
+        <div
           data-testid="home-attention-unavailable"
-          className="px-5 pb-6 text-sm text-gray-500 md:px-6"
+          className={CENTERED_STATE_CLASS_NAME}
         >
-          {translator.translateText(
-            "This list could not be loaded. Use Refresh above to try again.",
-          )}
-        </p>
+          <TableEmptyState
+            kind={TableEmptyStateKind.Error}
+            title={COULD_NOT_LOAD_THIS_LIST}
+            description={UNAVAILABLE_DESCRIPTION}
+            isCompact={true}
+            dataTestId="home-attention-unavailable-state"
+          />
+        </div>
       );
     }
 
@@ -507,40 +533,35 @@ const NeedsAttention: FunctionComponent<ComponentProps> = (
         <div
           data-testid="home-attention-empty"
           data-state={isNothingMonitored ? "nothing-monitored" : "all-clear"}
-          className="flex items-start gap-4 border-t border-gray-100 px-5 py-5 md:px-6"
+          className={CENTERED_STATE_CLASS_NAME}
         >
-          <span
-            className={`flex h-10 w-10 flex-none items-center justify-center rounded-full ring-1 ring-inset ${
+          <TableEmptyState
+            kind={
               isNothingMonitored
-                ? "bg-gray-50 text-gray-500 ring-gray-200"
-                : "bg-emerald-50 text-emerald-600 ring-emerald-200"
-            }`}
-          >
-            <Icon
-              icon={isNothingMonitored ? IconProp.Inbox : IconProp.CheckCircle}
-              className="h-5 w-5"
-            />
-          </span>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-gray-900">
-              {translator.translateText(
-                isNothingMonitored ? NOTHING_MONITORED_TITLE : ALL_CLEAR_TITLE,
-              )}
-            </p>
-            <p className="mt-0.5 max-w-xl text-sm text-gray-500">
-              {translator.translateText(
-                isNothingMonitored
-                  ? NOTHING_MONITORED_DESCRIPTION
-                  : ALL_CLEAR_DESCRIPTION,
-              )}
-            </p>
-          </div>
+                ? TableEmptyStateKind.Empty
+                : TableEmptyStateKind.AllClear
+            }
+            icon={isNothingMonitored ? IconProp.Inbox : undefined}
+            title={
+              isNothingMonitored ? NOTHING_MONITORED_TITLE : ALL_CLEAR_TITLE
+            }
+            description={
+              isNothingMonitored
+                ? NOTHING_MONITORED_DESCRIPTION
+                : ALL_CLEAR_DESCRIPTION
+            }
+            isCompact={true}
+            dataTestId="home-attention-empty-state"
+          />
         </div>
       );
     }
 
     return (
-      <div className="divide-y divide-gray-100 border-t border-gray-100">
+      <div
+        data-testid="home-attention-groups"
+        className="divide-y divide-gray-100 border-t border-gray-100"
+      >
         {groups.map((group: AttentionGroup): ReactElement => {
           const hidden: number = Math.max(0, group.count - group.rows.length);
 
@@ -597,7 +618,13 @@ const NeedsAttention: FunctionComponent<ComponentProps> = (
 
   return (
     <div data-testid="home-needs-attention">
+      {/*
+       * As tall as Home's row: beside a taller column, a list keeps its
+       * rows at the top with room under them, and a state with nothing to
+       * list sits in the middle (CENTERED_STATE_CLASS_NAME).
+       */}
       <Card
+        fillHeight={true}
         title={NEEDS_ATTENTION_TITLE}
         description="What is open in this project right now, most urgent first. Open a row to respond."
         rightElement={

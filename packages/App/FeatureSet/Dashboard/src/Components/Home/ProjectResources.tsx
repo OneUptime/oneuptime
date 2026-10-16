@@ -251,7 +251,12 @@ const ProjectResources: FunctionComponent<ComponentProps> = (
 
   return (
     <div data-testid="home-project-resources">
+      {/*
+       * The last card of Home's side column - when nothing is scheduled -
+       * runs down to the end of the row, level with Needs attention.
+       */}
       <Card
+        fillHeight={true}
         title="Your project"
         description="What is set up in this project. Open one to manage it."
         headerLayout="stacked"

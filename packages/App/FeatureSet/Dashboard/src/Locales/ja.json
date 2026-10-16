@@ -30208,5 +30208,6 @@
   "View Role": "ロールを表示",
   "What the role is for, in a sentence or two.": "このロールの用途を 1、2 文で書きます。",
   "{{count}} to choose from. Search by name or by what a role allows.": "{{count}} 件から選べます。名前、またはロールで許可される内容で検索してください。",
-  "{{count}} to choose from. Search by name or by what a role allows._one": "{{count}} 件から選べます。名前、またはロールで許可される内容で検索してください。"
+  "{{count}} to choose from. Search by name or by what a role allows._one": "{{count}} 件から選べます。名前、またはロールで許可される内容で検索してください。",
+  "Use Try again above to load it.": "上の「再試行」で読み込んでください。"
 }

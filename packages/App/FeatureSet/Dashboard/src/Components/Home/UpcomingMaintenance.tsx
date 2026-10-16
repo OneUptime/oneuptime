@@ -284,7 +284,12 @@ const UpcomingMaintenance: FunctionComponent<ComponentProps> = (
 
   return (
     <div data-testid="home-upcoming-maintenance">
+      {/*
+       * The last card of Home's side column: it runs down to the end of the
+       * row, level with Needs attention, with any room under its rows.
+       */}
       <Card
+        fillHeight={true}
         title="Upcoming maintenance"
         description="The next scheduled maintenance windows, soonest first."
         headerLayout="stacked"

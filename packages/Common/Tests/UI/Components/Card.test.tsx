@@ -1,9 +1,16 @@
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import Card, {
+  CARD_FILL_HEIGHT_BODY_CLASS_NAME,
+  CARD_FILL_HEIGHT_CLASS_NAME,
+  CARD_FILL_HEIGHT_CONTENT_CLASS_NAME,
+  CARD_FILL_HEIGHT_FRAME_CLASS_NAME,
+  CARD_FRAME_CLASS_NAME,
   CARD_HEADER_ACTION_CLASS_NAME,
+  CARD_PADDING_CLASS_NAME,
   CardButtonSchema,
   ComponentProps,
 } from "../../../UI/Components/Card/Card";
+import CardSections from "../../../UI/Components/Card/CardSections";
 import "@testing-library/jest-dom";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -20,6 +27,7 @@ import {
   resolveDisplay,
 } from "../../ResponsiveVisibility";
 import { resolveFlex } from "../../ResponsiveFlexLayout";
+import { describeHeightFillChain } from "../../ResponsiveHeightFill";
 import { resolveSpacing } from "../../ResponsiveSpacing";
 
 describe("Card", () => {
@@ -703,5 +711,235 @@ describe("Card description", () => {
         }),
       ).toBe("hidden");
     }
+  });
+});
+
+/*
+ * Home's row: "Needs attention" ended two thirds of the way down the row it
+ * shares with "Your project", and the page showed under it - "We have quite
+ * a bit of empty space between cards." A card given fillHeight runs to the
+ * bottom of the box it is in, and its body takes the height the header
+ * leaves. Every other card is drawn exactly as before: the goldens above pin
+ * that markup, and these hold fillHeight to the same.
+ *
+ * jsdom lays nothing out, so the boxes are read the way the browser would
+ * lay them out (ResponsiveHeightFill). The browser half - real boxes on the
+ * real Home page - is in E2E/HomeOverview.
+ */
+describe("Card fillHeight", () => {
+  const WIDTHS: Array<number> = [
+    PHONE_WIDTH_IN_PX,
+    TABLET_WIDTH_IN_PX,
+    LAPTOP_WIDTH_IN_PX,
+    WIDE_DESKTOP_WIDTH_IN_PX,
+  ];
+
+  type RenderMarkupFunction = (props: ComponentProps) => string;
+
+  const renderMarkup: RenderMarkupFunction = (
+    props: ComponentProps,
+  ): string => {
+    const { container, unmount } = render(<Card {...props} />);
+    const markup: string = container.innerHTML;
+    unmount();
+    return markup;
+  };
+
+  const GOLDEN_FILL_HEIGHT: string =
+    '<div data-testid="card" data-fill-height="true" class="mb-5 !mb-0 h-full"><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible flex h-full flex-col"><div class="py-6 px-5 md:px-6 flex flex-1 flex-col"><div data-testid="card-header" data-header-layout="default" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:items-start"><div data-testid="card-header-title-block" class="w-full min-w-0"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed">Desc</p></div></div><div class="mt-4 -mx-5 flex flex-1 flex-col"><div>body</div></div></div></div></div>';
+
+  test("renders this exact markup", () => {
+    expect(
+      renderMarkup({
+        title: "Title",
+        description: "Desc",
+        children: <div>body</div>,
+        className: "!mb-0",
+        bodyClassName: "mt-4 -mx-5",
+        fillHeight: true,
+      }),
+    ).toBe(GOLDEN_FILL_HEIGHT);
+  });
+
+  test.each([
+    ["default", "default"],
+    ["stacked", "stacked"],
+  ] as Array<[string, "default" | "stacked"]>)(
+    "a %s card that does not ask, or asks for false, draws the markup it always did",
+    (_label: string, headerLayout: "default" | "stacked") => {
+      const props: ComponentProps = {
+        title: "Title",
+        description: "Desc",
+        rightElement: <span>right</span>,
+        children: <div>body</div>,
+        className: "extra",
+        bodyClassName: "mt-0",
+        headerLayout: headerLayout,
+      };
+      const markup: string = renderMarkup(props);
+
+      expect(renderMarkup({ ...props, fillHeight: false })).toBe(markup);
+      expect(markup).not.toContain("data-fill-height");
+      expect(markup).not.toContain(CARD_FILL_HEIGHT_CLASS_NAME);
+      expect(markup).not.toContain(CARD_FILL_HEIGHT_CONTENT_CLASS_NAME);
+      expect(markup).toContain(`<div class="${CARD_FRAME_CLASS_NAME}">`);
+      expect(markup).toContain(`<div class="${CARD_PADDING_CLASS_NAME}">`);
+      expect(markup).toContain('<div class="mt-0"><div>body</div></div>');
+    },
+  );
+
+  test("the card takes the box's height, its frame and padding are columns, and the body grows into what the header leaves", () => {
+    render(
+      <Card
+        title="Needs attention"
+        description="What is open."
+        bodyClassName="mt-4 -mx-5 -mb-6 md:-mx-6"
+        className="!mb-0"
+        fillHeight={true}
+      >
+        <div>rows</div>
+      </Card>,
+    );
+
+    const card: HTMLElement = screen.getByTestId("card");
+    const frame: HTMLElement = card.firstElementChild as HTMLElement;
+    const content: HTMLElement = frame.firstElementChild as HTMLElement;
+    const body: HTMLElement = screen.getByText("rows").parentElement!;
+
+    expect(card).toHaveAttribute("data-fill-height", "true");
+    expect(card.getAttribute("class")).toBe(
+      `mb-5 !mb-0 ${CARD_FILL_HEIGHT_CLASS_NAME}`,
+    );
+    expect(frame.getAttribute("class")).toBe(
+      `${CARD_FRAME_CLASS_NAME} ${CARD_FILL_HEIGHT_FRAME_CLASS_NAME}`,
+    );
+    expect(content.getAttribute("class")).toBe(
+      `${CARD_PADDING_CLASS_NAME} ${CARD_FILL_HEIGHT_CONTENT_CLASS_NAME}`,
+    );
+    // The body's own classes stay: its edge-to-edge margins included.
+    expect(body.getAttribute("class")).toBe(
+      `mt-4 -mx-5 -mb-6 md:-mx-6 ${CARD_FILL_HEIGHT_BODY_CLASS_NAME}`,
+    );
+    expect(content.lastElementChild).toBe(body);
+    expect(content.firstElementChild).toBe(screen.getByTestId("card-header"));
+  });
+
+  test("without a bodyClassName the body keeps the default mt-4", () => {
+    render(
+      <Card title="Title" fillHeight={true}>
+        <div>rows</div>
+      </Card>,
+    );
+
+    expect(screen.getByText("rows").parentElement!.getAttribute("class")).toBe(
+      `mt-4 ${CARD_FILL_HEIGHT_BODY_CLASS_NAME}`,
+    );
+  });
+
+  test("a card with no children has no body, and its frame still takes the box's height", () => {
+    render(<Card title="Title" fillHeight={true} />);
+
+    const content: HTMLElement = screen.getByTestId("card-header")
+      .parentElement as HTMLElement;
+
+    expect(content.children).toHaveLength(1);
+    expect(content).toHaveClass("flex", "flex-1", "flex-col");
+    expect(content.parentElement).toHaveClass("h-full", "flex-col");
+  });
+
+  /*
+   * The row Home builds: a grid whose columns stack their cards and grow
+   * the last one. With fillHeight every box from the body up to the grid
+   * fills the next, at every width; without it, the card is where the
+   * height stops.
+   */
+  function renderInRow(fillHeight: boolean): {
+    row: HTMLElement;
+    body: HTMLElement;
+  } {
+    render(
+      <div data-testid="row" className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+        <div className="flex min-w-0 flex-col gap-5 [&>*:last-child]:flex-1 xl:col-span-2">
+          <div data-testid="wrapper">
+            <Card title="Needs attention" fillHeight={fillHeight}>
+              <div>rows</div>
+            </Card>
+          </div>
+        </div>
+      </div>,
+    );
+
+    return {
+      row: screen.getByTestId("row"),
+      body: screen.getByText("rows").parentElement!,
+    };
+  }
+
+  test.each(WIDTHS)(
+    "at %ipx every box from the body up to the row fills the next",
+    (width: number) => {
+      const { row, body } = renderInRow(true);
+
+      expect(describeHeightFillChain(body, row, width)).toEqual([]);
+    },
+  );
+
+  test("without it the card ends where its content ends, and the body with it", () => {
+    const { row, body } = renderInRow(false);
+
+    expect(describeHeightFillChain(body, row, LAPTOP_WIDTH_IN_PX)).toEqual([
+      '<div class="mt-4"> is a block with an auto height inside <div class="py-6 px-5 md:px-6">, so it ends where its content ends (h-full, or a flex or grid parent)',
+      '<div class="py-6 px-5 md:px-6"> is a block with an auto height inside <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible">, so it ends where its content ends (h-full, or a flex or grid parent)',
+      '<div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible"> is a block with an auto height inside [data-testid="card"], so it ends where its content ends (h-full, or a flex or grid parent)',
+      '[data-testid="card"] is a block with an auto height inside [data-testid="wrapper"], so it ends where its content ends (h-full, or a flex or grid parent)',
+    ]);
+  });
+
+  test("the stacked header keeps its rows; only the body grows", () => {
+    render(
+      <Card
+        title="Your project"
+        description="What is set up."
+        headerLayout="stacked"
+        rightElement={<span>View all</span>}
+        fillHeight={true}
+      >
+        <div>rows</div>
+      </Card>,
+    );
+
+    const header: HTMLElement = screen.getByTestId("card-header");
+
+    expect(header).toHaveAttribute("data-header-layout", "stacked");
+    expect(header.getAttribute("class")).toBeNull();
+    expect(header.parentElement).toHaveClass("flex-1", "flex-col");
+    expect(screen.getByText("rows").parentElement).toHaveClass(
+      "flex-1",
+      "flex-col",
+    );
+  });
+
+  test("a card drawn as a section of another card ignores it: the card it is in has the height", () => {
+    const sectionMarkup: (fillHeight: boolean) => string = (
+      fillHeight: boolean,
+    ): string => {
+      const { container, unmount } = render(
+        <CardSections>
+          <Card title="Section" fillHeight={fillHeight}>
+            <div>rows</div>
+          </Card>
+        </CardSections>,
+      );
+      const markup: string = container.innerHTML;
+      unmount();
+      return markup;
+    };
+
+    const withFill: string = sectionMarkup(true);
+
+    expect(withFill).toBe(sectionMarkup(false));
+    expect(withFill).toContain('data-card-surface="section"');
+    expect(withFill).not.toContain("data-fill-height");
+    expect(withFill).not.toContain(CARD_FILL_HEIGHT_CONTENT_CLASS_NAME);
   });
 });
