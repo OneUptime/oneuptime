@@ -96,6 +96,52 @@ describe("unregisterPushToken with a token on the device", () => {
   });
 });
 
+describe("unregisterPushToken forgets what the server was told about critical alerts", () => {
+  const KEY: string = "oneuptime_critical_alerts_reported";
+
+  beforeEach(async () => {
+    await AsyncStorage.clear();
+    unregisterSpy().mockResolvedValue(undefined as never);
+  });
+
+  test("the devices it was told about are gone with the sign-out: whoever signs in next is told afresh", async () => {
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, DEVICE_TOKEN);
+    await AsyncStorage.setItem(
+      KEY,
+      JSON.stringify({ deviceToken: DEVICE_TOKEN, isEnabled: true }),
+    );
+
+    await unregisterPushToken();
+
+    expect(await AsyncStorage.getItem(KEY)).toBeNull();
+  });
+
+  test("even when dropping the stored token failed", async () => {
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, DEVICE_TOKEN);
+    await AsyncStorage.setItem(
+      KEY,
+      JSON.stringify({ deviceToken: DEVICE_TOKEN, isEnabled: true }),
+    );
+    // The token's removal fails; nothing after it may be skipped for that.
+    removeItemSpy().mockRejectedValueOnce(new Error("storage unavailable"));
+
+    await expect(unregisterPushToken()).resolves.toBeUndefined();
+
+    expect(await AsyncStorage.getItem(KEY)).toBeNull();
+  });
+
+  test("the responder's own switch is kept: it belongs to the phone, not the account", async () => {
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, DEVICE_TOKEN);
+    await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
+
+    await unregisterPushToken();
+
+    expect(
+      await AsyncStorage.getItem("oneuptime_critical_alerts_enabled"),
+    ).toBe("true");
+  });
+});
+
 describe("unregisterPushToken with nothing to unregister", () => {
   beforeEach(async () => {
     await AsyncStorage.clear();

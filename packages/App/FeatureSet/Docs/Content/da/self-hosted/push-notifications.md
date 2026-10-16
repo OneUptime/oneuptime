@@ -121,7 +121,7 @@ flowchart TB
 
 Fire ting skal alle være opfyldt, før en alarm tilsidesætter lydløs tilstand. Mangler blot én, leveres alarmen stadig – bare lydløst.
 
-1. **Personen har slået det til for den enhed.** Gemt pr. enhed, slået fra som standard, i `UserPush.isCriticalAlertEnabled`. En persons telefon og tablet er separate valg.
+1. **Personen har slået det til for den enhed.** Gemt pr. enhed, slået fra som standard, i `UserPush.isCriticalAlertEnabled`. En persons telefon og tablet er separate valg. Versioner af appen nyere end 1.6.0 rapporterer det igen, hver gang de åbnes, som slået fra, mens telefonens egne indstillinger ikke tillader kritiske alarmer, så enhedslisten viser, hvad telefonen faktisk vil gøre.
 2. **Den vagtregel, der sendte alarmen, beder om det.** Under **Brugerindstillinger > Vagtregler** står hver regel, der giver besked til en telefon, på ”Kritisk advarsel”, som er standard, eller på ”Normal”, der følger telefonens lydindstillinger – så en person kan blive vækket af en kritisk hændelse og få besked lydløst om en mindre. Gemt pr. regel i `UserNotificationRule.pushNotificationLevel`.
 3. **Serveren markerer alarmen som kritisk.** Den sender APNs' kritiske lyd-payload plus `interruptionLevel: critical` til iOS og bruger en kritisk notifikationskanal til Android: `oncall_critical` eller den valgte alarms egen kanal (se [Valg af alarmlyd](#valg-af-alarmlyd)).
 4. **Operativsystemet tillader det**, og det er her, de to platforme adskiller sig.
@@ -192,7 +192,7 @@ En push-regel kan sende sin alarm igen, indtil nogen bekræfter den. Under **Bru
 - **iOS**: Bekræft, at buildet bærer Apples entitlement til kritiske alarmer (se ovenfor), og at Critical Alerts er tilladt under iOS Settings > Notifications > OneUptime On-Call
 - **Android**: Bekræft, at appen har adgang til Forstyr ikke under Settings > Notifications > Do Not Disturb access
 - **Android**: Hvis du har valgt en alarmlyd, skal dens egen notifikationskanal også have lov til at tilsidesætte Forstyr ikke; appens skærm Alarm sound siger det, når den ikke har det
-- Indstillingsskærmen siger, hvilken af disse der mangler; den læser den aktuelle tilstand tilbage fra operativsystemet i stedet for at stole på, hvad appen sidst bad om
+- Indstillingsskærmen siger, hvilken af disse der mangler; den læser den aktuelle tilstand tilbage fra operativsystemet i stedet for at stole på, hvad appen sidst bad om, og fortæller serveren, hvad den finder
 
 ### Pushes markeret "ikke leveret"
 

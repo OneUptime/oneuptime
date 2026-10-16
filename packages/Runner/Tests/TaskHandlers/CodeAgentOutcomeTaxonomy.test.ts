@@ -449,14 +449,13 @@ describe.each(HANDLERS)("$label", (handlerCase: HandlerCase) => {
       return String(call[0]);
     });
 
-    expect(
-      errorLines.some((line: string) => {
-        return (
-          line.includes("https://github.com/acme/checkout/pull/7") &&
-          line.includes("Failed to record pull request")
-        );
-      }),
-    ).toBe(true);
+    /*
+     * The whole line, not a substring: a URL found by includes() is what
+     * CodeQL's incomplete-URL-substring check flags.
+     */
+    expect(errorLines).toContain(
+      "Opened https://github.com/acme/checkout/pull/7 but could not record it: Failed to record pull request — keeping it for the run's Completed report",
+    );
   });
 
   /*

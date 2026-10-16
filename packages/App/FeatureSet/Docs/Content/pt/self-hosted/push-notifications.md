@@ -121,7 +121,7 @@ flowchart TB
 
 Quatro coisas precisam ser verdadeiras para um alerta ignorar o modo silencioso. Se faltar qualquer uma delas, o alerta ainda é entregue – só que em silêncio.
 
-1. **A pessoa ligou a configuração nesse dispositivo.** Guardada por dispositivo, desligada por padrão, em `UserPush.isCriticalAlertEnabled`. O celular e o tablet de uma mesma pessoa são decisões separadas.
+1. **A pessoa ligou a configuração nesse dispositivo.** Guardada por dispositivo, desligada por padrão, em `UserPush.isCriticalAlertEnabled`. O celular e o tablet de uma mesma pessoa são decisões separadas. Versões do app posteriores à 1.6.0 informam isso de novo sempre que são abertas, como desligado enquanto as configurações do próprio celular não permitirem alertas críticos, para que a lista de dispositivos mostre o que o celular vai realmente fazer.
 2. **A regra de plantão que enviou o alerta pede isso.** Em **Configurações do usuário > Regras de Plantão**, cada regra que notifica um celular está em “Alerta crítico”, o padrão, ou em “Normal”, que segue as configurações de som do celular – assim uma pessoa pode ser acordada por um incidente crítico e avisada em silêncio por um menor. Guardada por regra em `UserNotificationRule.pushNotificationLevel`.
 3. **O servidor marca o alerta como crítico.** Ele envia o payload de som crítico do APNs mais `interruptionLevel: critical` para iOS, e usa um canal de notificação crítico para Android: `oncall_critical`, ou o canal próprio do alarme escolhido (veja [Escolhendo o som do alarme](#escolhendo-o-som-do-alarme)).
 4. **O sistema operacional permite**, e é aí que as duas plataformas diferem.
@@ -192,7 +192,7 @@ Uma regra de push pode enviar seu alerta de novo até alguém confirmá-lo. Em *
 - **iOS**: confirme que o build tem o entitlement de alertas críticos da Apple (veja acima) e que Critical Alerts está permitido em iOS Settings > Notifications > OneUptime On-Call
 - **Android**: confirme que o app tem acesso ao Não Perturbe em Settings > Notifications > Do Not Disturb access
 - **Android**: se você escolheu um som de alarme, o canal de notificação próprio dele também precisa ter permissão para ignorar o Não Perturbe; a tela Alarm sound do app avisa quando não tem
-- A tela de configurações diz qual deles está faltando; ela lê o estado atual do sistema operacional em vez de confiar no que o app pediu por último
+- A tela de configurações diz qual deles está faltando; ela lê o estado atual do sistema operacional em vez de confiar no que o app pediu por último, e informa ao servidor o que encontra
 
 ### Pushes marcados como "não entregues"
 

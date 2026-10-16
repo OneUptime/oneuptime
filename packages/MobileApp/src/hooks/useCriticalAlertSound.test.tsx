@@ -447,6 +447,62 @@ describe("choosing a sound on Android", () => {
 
     expect(android.writes.length).toBe(writesBefore);
   });
+
+  /*
+   * On Android each alarm rings through Do Not Disturb on a channel of its
+   * own, so choosing an alarm can change whether critical pages ring through
+   * at all. The server - and so the Dashboard's device list and every page -
+   * is told when it does, not at the next return to the app.
+   */
+  test("an alarm whose channel cannot ring through tells the server critical pages will not; one that can tells it they will", async () => {
+    const toldCriticalAlerts: jest.SpyInstance =
+      pushDeviceApi.setCriticalAlertsEnabledOnServer as unknown as jest.SpyInstance;
+    toldCriticalAlerts.mockReset();
+    toldCriticalAlerts.mockResolvedValue(undefined as never);
+
+    await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
+    android.userChangesChannel("oncall_critical_klaxon", { bypassDnd: false });
+    android.grantDoNotDisturbAccess();
+
+    const { result } = await renderAlarm();
+
+    await act(async () => {
+      await result.current.setSound("klaxon");
+    });
+
+    await waitFor(() => {
+      expect(toldCriticalAlerts).toHaveBeenLastCalledWith({
+        deviceToken: DEVICE_TOKEN,
+        isEnabled: false,
+      });
+    });
+
+    await act(async () => {
+      await result.current.setSound("siren");
+    });
+
+    await waitFor(() => {
+      expect(toldCriticalAlerts).toHaveBeenLastCalledWith({
+        deviceToken: DEVICE_TOKEN,
+        isEnabled: true,
+      });
+    });
+  });
+
+  test("a sound the server refused tells it nothing about critical alerts", async () => {
+    const toldCriticalAlerts: jest.SpyInstance =
+      pushDeviceApi.setCriticalAlertsEnabledOnServer as unknown as jest.SpyInstance;
+    toldCriticalAlerts.mockReset();
+    serverSpy().mockRejectedValue(new Error("offline") as never);
+
+    const { result } = await renderAlarm();
+
+    await act(async () => {
+      await result.current.setSound("rising");
+    });
+
+    expect(toldCriticalAlerts).not.toHaveBeenCalled();
+  });
 });
 
 describe("choosing a volume", () => {

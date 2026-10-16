@@ -41,11 +41,38 @@ import PushNotificationMessage from "../../Types/PushNotification/PushNotificati
  * Booleans arrive from the mobile client as JSON booleans, but the same routes
  * get called by hand and from form posts where "true" is a string.
  *
- * On REGISTRATION, absence is the normal case and means off: overriding a
- * silenced phone is never something a device registration turns on by itself.
+ * What a request states about critical alerts, or undefined when it states
+ * nothing: absent, or anything but a boolean or its string. The three
+ * readings of the flag below differ only in what that undefined means.
+ *
+ * On a registration of a device that is ALREADY registered it means "keep
+ * what the device holds". The app restates the flag on every registration
+ * (MobileApp pushDevice.ts) - in apps newer than 1.6.0 as what the phone will
+ * really do with a critical page, the responder's switch and the phone's own
+ * permission together - and the device takes it (UserPushService
+ * .restateCriticalAlertEnabled). A registration that does not mention it (an
+ * app from before critical alerts, one that could not ask the OS, a
+ * hand-made request) changes nothing.
+ */
+export function readStatedCriticalAlertFlag(raw: unknown): boolean | undefined {
+  if (raw === true || raw === "true") {
+    return true;
+  }
+
+  if (raw === false || raw === "false") {
+    return false;
+  }
+
+  return undefined;
+}
+
+/*
+ * On a NEW device's registration, absence is the normal case and means off:
+ * overriding a silenced phone is never something a device registration turns
+ * on by itself.
  */
 export function parseCriticalAlertFlag(raw: unknown): boolean {
-  return raw === true || raw === "true";
+  return readStatedCriticalAlertFlag(raw) === true;
 }
 
 /*
@@ -55,15 +82,28 @@ export function parseCriticalAlertFlag(raw: unknown): boolean {
  * while it will not, and nothing surfaces the mistake until a missed page.
  */
 export function parseCriticalAlertFlagStrict(raw: unknown): boolean {
-  if (raw === true || raw === "true") {
-    return true;
+  const stated: boolean | undefined = readStatedCriticalAlertFlag(raw);
+
+  if (stated === undefined) {
+    throw new BadDataException("isEnabled must be either true or false.");
   }
 
-  if (raw === false || raw === "false") {
-    return false;
-  }
+  return stated;
+}
 
-  throw new BadDataException("isEnabled must be either true or false.");
+/*
+ * Whether a test notification to this device goes out as a critical alert:
+ * a phone whose critical alerts are on, as its app last reported them. Never
+ * a browser, which cannot ring through silent mode whatever is stored for it.
+ */
+export function isTestNotificationCritical(device: {
+  deviceType?: unknown;
+  isCriticalAlertEnabled?: boolean | undefined;
+}): boolean {
+  return (
+    isExpoPushDeviceType(device.deviceType) &&
+    Boolean(device.isCriticalAlertEnabled)
+  );
 }
 
 /*
@@ -321,6 +361,7 @@ export default class UserPushAPI extends BaseAPI<
               _id: true,
               isVerified: true,
               deviceType: true,
+              isCriticalAlertEnabled: true,
             },
           });
 
@@ -338,6 +379,40 @@ export default class UserPushAPI extends BaseAPI<
            * device it already has receives notifications again.
            */
           if (existingDevice) {
+            /*
+             * A phone restates whether a critical page rings through on it
+             * every time it registers, and its device takes it, so the
+             * Dashboard's device list, a test notification and every page
+             * follow what the phone will really do. Said back to the app,
+             * which tells the server again itself when this does not match
+             * (an older server says nothing here). A browser has none.
+             *
+             * Never in the way of the registration itself: a write that
+             * failed leaves the answer without it - the app then tells the
+             * server outright - and a phone Expo said was gone is still
+             * verified again below.
+             */
+            let criticalAlertAnswer: JSONObject = {};
+
+            if (isExpoPushDeviceType(existingDevice.deviceType)) {
+              try {
+                criticalAlertAnswer = {
+                  isCriticalAlertEnabled:
+                    await this.service.restateCriticalAlertEnabled({
+                      device: existingDevice,
+                      isCriticalAlertEnabled: readStatedCriticalAlertFlag(
+                        req.body.isCriticalAlertEnabled,
+                      ),
+                    }),
+                };
+              } catch (restateError) {
+                logger.error(
+                  restateError,
+                  getLogAttributesFromRequest(req as OneUptimeRequest),
+                );
+              }
+            }
+
             /*
              * A phone that stopped receiving notifications - Expo said its
              * token was gone (UserPushService.markExpoPushTokenAsGone) - and
@@ -382,6 +457,7 @@ export default class UserPushAPI extends BaseAPI<
                 deviceId: deviceId.toString(),
                 alreadyRegistered: true,
                 isVerified: isVerified,
+                ...criticalAlertAnswer,
               });
             }
 
@@ -390,6 +466,7 @@ export default class UserPushAPI extends BaseAPI<
               deviceId: existingDevice._id!.toString(),
               alreadyRegistered: true,
               isVerified: Boolean(existingDevice.isVerified),
+              ...criticalAlertAnswer,
             });
           }
 
@@ -406,6 +483,9 @@ export default class UserPushAPI extends BaseAPI<
           });
 
           if (previousDeviceToken) {
+            const statedCriticalAlertEnabled: boolean | undefined =
+              readStatedCriticalAlertFlag(req.body.isCriticalAlertEnabled);
+
             const renewedDevice: UserPush | null =
               await this.service.renewExpoPushDevice({
                 userId: userId,
@@ -414,9 +494,7 @@ export default class UserPushAPI extends BaseAPI<
                 deviceToken: req.body.deviceToken,
                 deviceType: req.body.deviceType as PushDeviceType,
                 deviceName: req.body.deviceName || "Unknown Device",
-                isCriticalAlertEnabled: parseCriticalAlertFlag(
-                  req.body.isCriticalAlertEnabled,
-                ),
+                isCriticalAlertEnabled: statedCriticalAlertEnabled,
                 criticalAlertSound: parseCriticalAlertSoundFromRegistration(
                   req.body.criticalAlertSound,
                 ),
@@ -431,6 +509,10 @@ export default class UserPushAPI extends BaseAPI<
                 deviceId: renewedDevice._id!.toString(),
                 alreadyRegistered: true,
                 isVerified: true,
+                // What the device holds now: the phone's flag, or its own.
+                isCriticalAlertEnabled:
+                  statedCriticalAlertEnabled ??
+                  Boolean(renewedDevice.isCriticalAlertEnabled),
               });
             }
 
@@ -479,11 +561,14 @@ export default class UserPushAPI extends BaseAPI<
            * alerts on and the device is re-registering (a reinstall, a new push
            * token, a second project). Absent, it stays off: overriding a
            * silenced phone is never something a registration turns on by
-           * itself.
+           * itself. Nor is a browser ever given it: no browser can ring
+           * through silent mode, and a browser's device that said "on" would
+           * read back as though it could.
            */
-          userPush.isCriticalAlertEnabled = parseCriticalAlertFlag(
-            req.body.isCriticalAlertEnabled,
-          );
+          const isPhone: boolean = isExpoPushDeviceType(req.body.deviceType);
+
+          userPush.isCriticalAlertEnabled =
+            isPhone && parseCriticalAlertFlag(req.body.isCriticalAlertEnabled);
 
           /*
            * The alarm and volume the phone chose, when it says (a reinstall,
@@ -537,6 +622,13 @@ export default class UserPushAPI extends BaseAPI<
             deviceId: savedDevice._id!.toString(),
             alreadyRegistered: false,
             isVerified: true,
+            ...(isPhone
+              ? {
+                  isCriticalAlertEnabled: Boolean(
+                    userPush.isCriticalAlertEnabled,
+                  ),
+                }
+              : {}),
           });
         } catch (error: any) {
           next(error);
@@ -757,20 +849,19 @@ export default class UserPushAPI extends BaseAPI<
             );
           }
 
-          try {
-            // Send test notification
-            const isCriticalAlert: boolean = Boolean(
-              device.isCriticalAlertEnabled,
-            );
+          /*
+           * A test that behaves unlike the real page is not a test of
+           * anything. Critical alerts are the one setting whose effect a
+           * responder cannot check by reasoning about it - they have to
+           * silence the phone and hear it ring - so a device with the option
+           * on gets a test that overrides silent mode exactly as a 3am page
+           * would. The device as it is now: its app reports whether its
+           * critical alerts are on, and the list the test was sent from may
+           * have been read before it last did.
+           */
+          const isCriticalAlert: boolean = isTestNotificationCritical(device);
 
-            /*
-             * A test that behaves unlike the real page is not a test of
-             * anything. Critical alerts are the one setting whose effect a
-             * responder cannot check by reasoning about it - they have to
-             * silence the phone and hear it ring - so a device with the option
-             * on gets a test that overrides silent mode exactly as a 3am page
-             * would.
-             */
+          try {
             const testMessage: PushNotificationMessage =
               PushNotificationUtil.createGenericNotification({
                 title: isCriticalAlert
@@ -817,6 +908,12 @@ export default class UserPushAPI extends BaseAPI<
           return Response.sendJsonObjectResponse(req, res, {
             success: true,
             message: "Test notification sent successfully",
+            /*
+             * Whether it went as a critical alert. The Dashboard says what
+             * the test did from this, not from its list, which can be older
+             * than the phone's last report.
+             */
+            isCriticalAlert: isCriticalAlert,
           });
         } catch (error) {
           return next(error);
@@ -836,6 +933,14 @@ export default class UserPushAPI extends BaseAPI<
      * Keyed on the device token, like unregister and unlike verify: the mobile
      * app knows its own push token and holds no row ids, and one phone has a
      * row per project it is registered against.
+     *
+     * The app calls it when the responder moves the switch, and - in apps
+     * newer than 1.6.0 - whenever what the phone will do changes without
+     * them: critical alerts turned off or back on in iOS Settings, Do Not
+     * Disturb access taken away on Android. It says what the phone will
+     * really do, and saying the same again changes nothing, so the app may
+     * say it as often as it needs to. A token with no device here is
+     * refused, and the app leaves it to the phone's next registration.
      */
     this.router.post(
       `/user-push/critical-alerts`,

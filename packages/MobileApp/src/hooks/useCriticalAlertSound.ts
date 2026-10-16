@@ -28,6 +28,7 @@ import {
   CriticalAlertPreferencesUnsupportedError,
   setCriticalAlertPreferencesOnServer,
 } from "../api/pushDevice";
+import { reportCriticalAlerts } from "../notifications/criticalAlertsReport";
 import { PUSH_TOKEN_KEY } from "./pushTokenUtils";
 import logger from "../utils/logger";
 
@@ -291,6 +292,14 @@ export function useCriticalAlertSound(): CriticalAlertSoundState {
               checkError,
             );
           });
+
+          /*
+           * On Android each alarm rings through Do Not Disturb on a channel
+           * of its own, so a new alarm can change whether a critical page
+           * rings through at all: the server is told when it does. Never
+           * throws, and the screen does not wait for it.
+           */
+          void reportCriticalAlerts();
         }
       },
       [checkChannel, saveChange, sound],

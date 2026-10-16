@@ -121,7 +121,7 @@ flowchart TB
 
 Para que un aviso anule el modo silencio deben cumplirse cuatro cosas. Si falta cualquiera de ellas, el aviso se entrega igualmente – solo que en silencio.
 
-1. **La persona lo activó en ese dispositivo.** Se guarda por dispositivo, desactivado por defecto, en `UserPush.isCriticalAlertEnabled`. El móvil y la tableta de una misma persona son decisiones separadas.
+1. **La persona lo activó en ese dispositivo.** Se guarda por dispositivo, desactivado por defecto, en `UserPush.isCriticalAlertEnabled`. El móvil y la tableta de una misma persona son decisiones separadas. Las versiones de la app posteriores a la 1.6.0 lo vuelven a comunicar cada vez que se abren, como desactivado mientras los ajustes del propio teléfono no permitan alertas críticas, para que la lista de dispositivos muestre lo que el teléfono hará de verdad.
 2. **La regla de guardia que envió el aviso lo pide.** En **Ajustes de usuario > Reglas de guardia**, cada regla que notifica a un teléfono está en «Alerta crítica», el valor predeterminado, o en «Estándar», que sigue los ajustes de sonido del teléfono – así una persona puede despertarse por un incidente crítico y recibir en silencio uno menor. Se guarda por regla en `UserNotificationRule.pushNotificationLevel`.
 3. **El servidor marca el aviso como crítico.** Envía la carga de sonido crítico de APNs más `interruptionLevel: critical` para iOS, y apunta a un canal de notificación crítico para Android: `oncall_critical`, o el canal propio de la alarma elegida (ver [Elegir el sonido de alarma](#elegir-el-sonido-de-alarma)).
 4. **El sistema operativo lo permite**, y ahí es donde difieren las dos plataformas.
@@ -192,7 +192,7 @@ Una regla push puede volver a enviar su aviso hasta que alguien lo reconozca. En
 - **iOS**: confirma que la compilación lleva el entitlement de alertas críticas de Apple (ver arriba) y que Critical Alerts está permitido en iOS Settings > Notifications > OneUptime On-Call
 - **Android**: confirma que la app tiene acceso a No molestar en Settings > Notifications > Do Not Disturb access
 - **Android**: si elegiste un sonido de alarma, su propio canal de notificación también debe tener permiso para anular No molestar; la pantalla Alarm sound de la app indica cuándo no lo tiene
-- La pantalla de ajustes indica cuál de estos falta; lee el estado actual del sistema operativo en lugar de fiarse de lo que la app pidió por última vez
+- La pantalla de ajustes indica cuál de estos falta; lee el estado actual del sistema operativo en lugar de fiarse de lo que la app pidió por última vez, y comunica al servidor lo que encuentra
 
 ### Push marcados como «no entregados»
 

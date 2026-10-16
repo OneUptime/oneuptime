@@ -4,14 +4,34 @@ import apiClient from "./client";
 import type { CriticalAlertSoundIdValue } from "../notifications/criticalAlertSounds";
 import logger from "../utils/logger";
 
+/*
+ * What the server says about the device a registration made or found. A
+ * server from before it said leaves isCriticalAlertEnabled out, and so does
+ * one answering for a device that is not a phone's.
+ */
+export interface RegisteredPushDevice {
+  /*
+   * Whether a critical page rings through on this device, as the server
+   * holds it now that the registration is done.
+   */
+  isCriticalAlertEnabled?: boolean | undefined;
+}
+
 export async function registerPushDevice(params: {
   deviceToken: string;
   projectId: string;
+  /*
+   * What this phone will do with a critical page: on only while the
+   * responder has Critical On-Call Alerts on AND the phone's system allows
+   * it (notifications/criticalAlertsReport.ts).
+   */
   isCriticalAlertEnabled?: boolean;
   /*
    * The alarm sound and iPhone volume this device chose for critical pages
-   * (Settings > Alarm sound), restated like isCriticalAlertEnabled. A server
-   * older than the choice ignores them.
+   * (Settings > Alarm sound), for a device the registration creates (a new
+   * project, a new push token). A device the phone already has keeps the
+   * alarm the preferences route set. A server older than the choice ignores
+   * them.
    */
   criticalAlertSound?: CriticalAlertSoundIdValue | undefined;
   criticalAlertVolume?: number | undefined;
@@ -21,7 +41,7 @@ export async function registerPushDevice(params: {
    * token. A server older than this ignores it.
    */
   previousDeviceToken?: string | undefined;
-}): Promise<void> {
+}): Promise<RegisteredPushDevice> {
   const deviceType: string =
     Platform.OS === "ios"
       ? "ios"
@@ -30,36 +50,52 @@ export async function registerPushDevice(params: {
         : "web";
 
   try {
-    await apiClient.post("/api/user-push/register", {
-      deviceToken: params.deviceToken,
-      deviceType: deviceType,
-      deviceName: Device.modelName || "Unknown Device",
-      projectId: params.projectId,
-      /*
-       * Restated on every registration. A responder who joins a new project,
-       * reinstalls, or is issued a fresh push token creates a new device row,
-       * and a row created without this defaults to off - so the phone would
-       * quietly stop overriding Do Not Disturb for exactly the project they
-       * just joined.
-       */
-      isCriticalAlertEnabled: Boolean(params.isCriticalAlertEnabled),
-      /*
-       * The same goes for the alarm: a row created without it plays the
-       * system sound, not the one the responder picked.
-       */
-      ...(params.criticalAlertSound
-        ? { criticalAlertSound: params.criticalAlertSound }
-        : {}),
-      ...(params.criticalAlertVolume !== undefined
-        ? { criticalAlertVolume: params.criticalAlertVolume }
-        : {}),
-      ...(params.previousDeviceToken
-        ? { previousDeviceToken: params.previousDeviceToken }
-        : {}),
-    });
+    const response: { data?: unknown } | undefined = await apiClient.post(
+      "/api/user-push/register",
+      {
+        deviceToken: params.deviceToken,
+        deviceType: deviceType,
+        deviceName: Device.modelName || "Unknown Device",
+        projectId: params.projectId,
+        /*
+         * Restated on every registration. A responder who joins a new
+         * project, reinstalls, or is issued a fresh push token creates a new
+         * device row, and a row created without this defaults to off - so the
+         * phone would quietly stop overriding Do Not Disturb for exactly the
+         * project they just joined. A device the phone already has takes it
+         * too, on a server that knows to. Left out when the phone does not
+         * know (the OS could not be asked): a device it already has then
+         * keeps what it holds, and a new one starts off.
+         */
+        ...(params.isCriticalAlertEnabled !== undefined
+          ? { isCriticalAlertEnabled: params.isCriticalAlertEnabled }
+          : {}),
+        /*
+         * The same goes for the alarm: a row created without it plays the
+         * system sound, not the one the responder picked.
+         */
+        ...(params.criticalAlertSound
+          ? { criticalAlertSound: params.criticalAlertSound }
+          : {}),
+        ...(params.criticalAlertVolume !== undefined
+          ? { criticalAlertVolume: params.criticalAlertVolume }
+          : {}),
+        ...(params.previousDeviceToken
+          ? { previousDeviceToken: params.previousDeviceToken }
+          : {}),
+      },
+    );
     logger.info(
       `[PushNotifications] Device registered successfully for project ${params.projectId}`,
     );
+
+    const isCriticalAlertEnabled: unknown = (
+      response?.data as { isCriticalAlertEnabled?: unknown } | undefined
+    )?.isCriticalAlertEnabled;
+
+    return typeof isCriticalAlertEnabled === "boolean"
+      ? { isCriticalAlertEnabled: isCriticalAlertEnabled }
+      : {};
   } catch (error: unknown) {
     const status: number | undefined = (
       error as { response?: { status?: number } }
@@ -68,12 +104,12 @@ export async function registerPushDevice(params: {
       (error as { response?: { data?: { message?: string } } })?.response?.data
         ?.message || String(error);
 
-    // Treat "already registered" as success
+    // Treat "already registered" as success: an older server, which says nothing more.
     if (status === 400 && message.includes("already registered")) {
       logger.info(
         `[PushNotifications] Device already registered for project ${params.projectId}`,
       );
-      return;
+      return {};
     }
 
     // Log and re-throw other errors
