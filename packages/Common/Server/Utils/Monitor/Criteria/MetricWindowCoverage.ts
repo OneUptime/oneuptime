@@ -254,11 +254,20 @@ export default class MetricWindowCoverage {
      * (not yet stale), where its series may only just have started, and
      * not in the window's first data point's width, where it is the last
      * data point of a series that stopped, about to leave the window.
+     *
+     * Its age is read by the clock, whatever the series' freshness is
+     * measured against: measured against the monitor's newest data point,
+     * the only data point of a monitor's only series is never stale.
      */
+    const isStaleByTheClock: boolean =
+      coverage.sinceNewestReadingMs !== null &&
+      coverage.sinceNewestReadingMs > coverage.allowedGapMs;
+
     if (
       input.monitorIntervalMs === null &&
       ownGapsMs.length === 0 &&
-      coverage.shortfall === WindowCoverageShortfall.Stale &&
+      coverage.shortfall !== null &&
+      isStaleByTheClock &&
       coverage.runStartMs !== null &&
       coverage.runStartMs - windowStartMs >= dataPointMs
     ) {

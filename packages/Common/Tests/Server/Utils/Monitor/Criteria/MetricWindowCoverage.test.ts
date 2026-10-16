@@ -554,6 +554,45 @@ describe("when no series has two data points in the window", () => {
   });
 
   /*
+   * A Metrics monitor measures freshness against its own newest data point,
+   * and the only data point of its only series is that newest point - never
+   * stale against itself. Its age is still read by the clock here, so a
+   * slow metric's lone data point is judged as on any other monitor.
+   */
+  test("on a Metrics monitor's only series too: its age is read by the clock", () => {
+    const judgeOnly: (minute: number) => MetricWindowCoverageResult = (
+      minute: number,
+    ): MetricWindowCoverageResult => {
+      return MetricWindowCoverage.judge({
+        window: window(),
+        samples: [point(minute)],
+        monitorIntervalMs: null,
+        monitorNewestDataPointMs: (point(minute).timestamp as Date).getTime(),
+      });
+    };
+
+    for (const minute of [5, 8, 12]) {
+      expect({
+        minute,
+        isCovered: judgeOnly(minute).isCovered,
+        lone: judgeOnly(minute).isLoneDataPoint,
+      }).toEqual({ minute, isCovered: true, lone: true });
+    }
+
+    // Among the newest by the clock: it may be a new series, and waits.
+    expect(judgeOnly(14).shortfall).toBe(WindowCoverageShortfall.StartsLate);
+    expect(judgeOnly(14).isLoneDataPoint).toBe(false);
+
+    /*
+     * In the window's first minute it reaches from the window's start to
+     * the monitor's newest data - itself - so it covers the window as far
+     * as the monitor's data goes, with no exception needed.
+     */
+    expect(judgeOnly(1).isCovered).toBe(true);
+    expect(judgeOnly(1).isLoneDataPoint).toBe(false);
+  });
+
+  /*
    * A 5-minute range over a series that reports every 5 minutes: its data
    * point at 12:10 is evaluated each minute while it is in the range, and
    * is taken for the range once it is no longer among the newest and before
