@@ -171,7 +171,9 @@ describe("SubscriptionPlanPricing", () => {
       expect(
         getMonthlyPricePerUserInUSD(ENTERPRISE, BillingPeriod.Yearly),
       ).toBeNull();
-      expect(getChargePerUserInUSD(ENTERPRISE, BillingPeriod.Yearly)).toBeNull();
+      expect(
+        getChargePerUserInUSD(ENTERPRISE, BillingPeriod.Yearly),
+      ).toBeNull();
     });
 
     it("is free only at $0, and a custom price is never free", () => {
@@ -194,9 +196,7 @@ describe("SubscriptionPlanPricing", () => {
 
     it("is none for a period that is not a positive number", () => {
       expect(getTrialDays(plan({ monthly: 1, yearly: 1, trial: -3 }))).toBe(0);
-      expect(getTrialDays(plan({ monthly: 1, yearly: 1, trial: NaN }))).toBe(
-        0,
-      );
+      expect(getTrialDays(plan({ monthly: 1, yearly: 1, trial: NaN }))).toBe(0);
       // SubscriptionPlan.getSubscriptionPlans parses an empty trial as NaN.
       const parsed: Array<SubscriptionPlan> =
         SubscriptionPlan.getSubscriptionPlans({
@@ -328,9 +328,9 @@ describe("SubscriptionPlanPricing", () => {
           return getYearlySavingPercent(cloudPlan);
         }),
       ).toEqual([0, 9, 15, 0]);
-      expect(
-        getDefaultPlanIdForNewProject(cloud, BillingPeriod.Yearly),
-      ).toBe(cloud[0]!.getYearlyPlanId());
+      expect(getDefaultPlanIdForNewProject(cloud, BillingPeriod.Yearly)).toBe(
+        cloud[0]!.getYearlyPlanId(),
+      );
     });
   });
 
@@ -360,7 +360,9 @@ describe("SubscriptionPlanPricing", () => {
           BillingPeriod.Yearly,
         ),
       ).toBeNull();
-      expect(getDefaultPlanIdForNewProject([], BillingPeriod.Yearly)).toBeNull();
+      expect(
+        getDefaultPlanIdForNewProject([], BillingPeriod.Yearly),
+      ).toBeNull();
     });
   });
 

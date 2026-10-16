@@ -1,10 +1,5 @@
 import "@testing-library/jest-dom";
-import {
-  RenderResult,
-  cleanup,
-  render,
-  waitFor,
-} from "@testing-library/react";
+import { RenderResult, cleanup, render, waitFor } from "@testing-library/react";
 import React from "react";
 import {
   afterEach,
@@ -81,6 +76,7 @@ type CapturedTableProps = {
   formFields?: Array<Field<Project>> | undefined;
   formSteps?: Array<unknown> | undefined;
   isCreateable?: boolean | undefined;
+  createEditModalWidth?: ModalWidth | undefined;
 };
 
 let capturedTableProps: CapturedTableProps | null = null;
@@ -98,6 +94,7 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 import Projects from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Projects/Index";
 import Field from "../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
+import { ModalWidth } from "../../../UI/Components/Modal/Modal";
 import { getCreateProjectFormFields } from "../../../UI/Components/Project/CreateProjectFormFields";
 import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -162,6 +159,8 @@ describe("Admin > Projects > Create Project", () => {
 
     expect(capturedTableProps!.isCreateable).toBe(true);
     expect(capturedTableProps!.formSteps).toBeUndefined();
+    // The plans need the room the Dashboard's dialog gives them.
+    expect(capturedTableProps!.createEditModalWidth).toBe(ModalWidth.Medium);
     expect((capturedTableProps!.formFields || []).map(shapeOf)).toEqual(
       getCreateProjectFormFields({
         isBillingEnabled: true,
@@ -205,6 +204,7 @@ describe("Admin > Projects > Create Project", () => {
     await renderPage();
 
     expect(capturedTableProps!.formSteps).toBeUndefined();
+    expect(capturedTableProps!.createEditModalWidth).toBe(ModalWidth.Normal);
     expect(
       (capturedTableProps!.formFields || []).map((field: Field<Project>) => {
         return field.title;

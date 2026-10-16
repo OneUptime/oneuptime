@@ -1,5 +1,11 @@
 import "@testing-library/jest-dom";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import React, { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
@@ -196,9 +202,10 @@ describe("getCreateProjectFormFields", () => {
 
       expect(screen.getByTestId("plan-picker")).toBeVisible();
       expect(screen.getByRole("radio", { name: "Growth" })).toBeChecked();
-      expect(
-        screen.getByTestId("plan-picker-period-monthly"),
-      ).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByTestId("plan-picker-period-monthly")).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
       expect(screen.getByRole("alert")).toHaveTextContent("Plan is required.");
 
       act(() => {

@@ -252,9 +252,9 @@ describe("PlanPickerCopy: each plan's row", () => {
 
   it("keeps a plan's name as it is in every language, as the invoice does", () => {
     for (const code of LANGUAGES) {
-      expect(optionText(GROWTH, BillingPeriod.Yearly, translatorFor(code)).name).toBe(
-        "Growth",
-      );
+      expect(
+        optionText(GROWTH, BillingPeriod.Yearly, translatorFor(code)).name,
+      ).toBe("Growth");
     }
   });
 });
@@ -306,9 +306,9 @@ describe("PlanPickerCopy: what picking a plan means for money", () => {
     expect(terms(withTrial(GROWTH, 1), BillingPeriod.Yearly).headline).toBe(
       "Free for 1 day, no card needed to start.",
     );
-    expect(
-      terms(withTrial(ENTERPRISE, 1), BillingPeriod.Yearly).headline,
-    ).toBe("Free for 1 day.");
+    expect(terms(withTrial(ENTERPRISE, 1), BillingPeriod.Yearly).headline).toBe(
+      "Free for 1 day.",
+    );
   });
 
   it("Enterprise: its trial, and the sales team agrees on a price - said, not promised silently", () => {
@@ -436,9 +436,11 @@ describe("PlanPickerCopy: in every Dashboard language", () => {
          * their same-as-English lists; everything else is translated.
          */
         if (sentence !== PlanPickerCopy.label) {
-          expect({ code, sentence, untranslated: translated === sentence }).toEqual(
-            { code, sentence, untranslated: false },
-          );
+          expect({
+            code,
+            sentence,
+            untranslated: translated === sentence,
+          }).toEqual({ code, sentence, untranslated: false });
         }
       }
     }
@@ -479,8 +481,8 @@ describe("PlanPickerCopy: in every Dashboard language", () => {
       optionText(withTrial(GROWTH, 21), BillingPeriod.Yearly, russian)
         .trialBadge,
     ).toBe("Пробный период 21 день");
-    expect(
-      optionText(GROWTH, BillingPeriod.Yearly, russian).trialBadge,
-    ).toBe("Пробный период 14 дн.");
+    expect(optionText(GROWTH, BillingPeriod.Yearly, russian).trialBadge).toBe(
+      "Пробный период 14 дн.",
+    );
   });
 });

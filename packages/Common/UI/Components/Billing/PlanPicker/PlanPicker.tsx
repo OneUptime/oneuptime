@@ -271,10 +271,7 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
   return (
     <div data-testid={props.dataTestId || "plan-picker"}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span
-          id={labelId}
-          className="block text-sm font-medium text-gray-700"
-        >
+        <span id={labelId} className="block text-sm font-medium text-gray-700">
           {translator.translateText(PlanPickerCopy.label)}
         </span>
         <div className="flex items-center gap-2">

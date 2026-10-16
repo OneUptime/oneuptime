@@ -355,9 +355,9 @@ async function openMoreFields(): Promise<void> {
 
 // In the page while folded (a folded field keeps its value), but hidden.
 function promoInput(): HTMLInputElement | null {
-  return within(dialog()).queryByLabelText(/Promo Code/) as
-    | HTMLInputElement
-    | null;
+  return within(dialog()).queryByLabelText(
+    /Promo Code/,
+  ) as HTMLInputElement | null;
 }
 
 async function pressCreate(): Promise<void> {
@@ -581,9 +581,7 @@ describe("Create New Project, OneUptime Cloud (billing on)", () => {
 
     expect(planRadio("Growth")).toBeChecked();
     expect(planRadio("Free")).not.toBeChecked();
-    expect(termsText()).toContain(
-      "Free for 14 days, no card needed to start.",
-    );
+    expect(termsText()).toContain("Free for 14 days, no card needed to start.");
     expect(termsText()).toContain("Then $240 per user, billed yearly.");
 
     await pressCreate();
@@ -658,9 +656,9 @@ describe("Create New Project, OneUptime Cloud (billing on)", () => {
   test("says what yearly saves from the real prices: up to 15%, not 20%", async () => {
     await openDialog();
 
-    expect(within(dialog()).getByTestId("plan-picker-saving")).toHaveTextContent(
-      "Save up to 15%",
-    );
+    expect(
+      within(dialog()).getByTestId("plan-picker-saving"),
+    ).toHaveTextContent("Save up to 15%");
   });
 
   test("Enterprise says the sales team agrees on the price, and is created on its yearly price", async () => {
@@ -793,7 +791,11 @@ describe("Create New Project: the promo code is folded under More fields", () =>
 
   test("a refused code keeps the dialog open with what was typed, and says why", async () => {
     createOrUpdateMock.mockImplementation(async () => {
-      throw new HTTPErrorResponse(400, { message: "Promo code is invalid." }, {});
+      throw new HTTPErrorResponse(
+        400,
+        { message: "Promo code is invalid." },
+        {},
+      );
     });
     window.localStorage.setItem("promoCode", JSON.stringify("OLD10"));
 
@@ -802,7 +804,9 @@ describe("Create New Project: the promo code is folded under More fields", () =>
     await pressCreate();
 
     await waitFor(() => {
-      expect(within(dialog()).getByText("Promo code is invalid.")).toBeVisible();
+      expect(
+        within(dialog()).getByText("Promo code is invalid."),
+      ).toBeVisible();
     });
     expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
     expect(nameInput().value).toBe("Acme Production");
@@ -891,9 +895,7 @@ describe("Create New Project, in the reader's language", () => {
     expect(termsText()).toContain("Für immer kostenlos.");
 
     await act(async () => {
-      fireEvent.click(
-        within(picker).getByRole("radio", { name: "Growth" }),
-      );
+      fireEvent.click(within(picker).getByRole("radio", { name: "Growth" }));
     });
     await settle();
 

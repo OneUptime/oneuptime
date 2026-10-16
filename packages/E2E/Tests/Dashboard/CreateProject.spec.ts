@@ -85,9 +85,7 @@ test.describe.skip("Project Creation", () => {
        * One page, with no Next: the plan picker is under the name, with Free
        * picked, and the promo code folded under More fields.
        */
-      await expect(page.getByTestId("modal-footer-next-button")).toHaveCount(
-        0,
-      );
+      await expect(page.getByTestId("modal-footer-next-button")).toHaveCount(0);
       await expect(modalSubmitButton).toBeVisible();
       await expect(
         page.getByTestId("modal").getByRole("radio", { name: "Free" }),

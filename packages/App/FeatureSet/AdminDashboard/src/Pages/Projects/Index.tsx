@@ -16,6 +16,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Field from "Common/UI/Components/Forms/Types/Field";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Page from "Common/UI/Components/Page/Page";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { getCreateProjectFormFields } from "Common/UI/Components/Project/CreateProjectFormFields";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
@@ -210,6 +211,10 @@ const Projects: FunctionComponent = (): ReactElement => {
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
+        // Room for each plan's price beside it, as in the Dashboard's dialog.
+        createEditModalWidth={
+          BILLING_ENABLED ? ModalWidth.Medium : ModalWidth.Normal
+        }
         name="Projects"
         isViewable={true}
         cardProps={{

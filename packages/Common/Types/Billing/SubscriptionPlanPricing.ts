@@ -166,7 +166,9 @@ export function getYearlySaving(
 ): YearlySaving | null {
   const savings: Array<number> = plans
     .filter((plan: SubscriptionPlan): boolean => {
-      return !plan.isCustomPricing() && !isPlanFree(plan, BillingPeriod.Monthly);
+      return (
+        !plan.isCustomPricing() && !isPlanFree(plan, BillingPeriod.Monthly)
+      );
     })
     .map((plan: SubscriptionPlan): number => {
       return getYearlySavingPercent(plan);

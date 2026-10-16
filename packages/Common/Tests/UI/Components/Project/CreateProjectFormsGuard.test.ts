@@ -21,7 +21,15 @@ import ts from "typescript";
  *   - no source writes a yearly saving into its copy ("Save 20%").
  */
 
-const REPOSITORY_ROOT: string = path.join(__dirname, "..", "..", "..", "..", "..", "..");
+const REPOSITORY_ROOT: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "..",
+  "..",
+);
 
 const SOURCE_ROOTS: Array<string> = [
   "packages/App/FeatureSet/Dashboard/src",
@@ -138,9 +146,7 @@ function attribute(
 ): ts.JsxAttribute | undefined {
   return element.attributes.properties.find(
     (property: ts.JsxAttributeLike): property is ts.JsxAttribute => {
-      return (
-        ts.isJsxAttribute(property) && property.name.getText() === name
-      );
+      return ts.isJsxAttribute(property) && property.name.getText() === name;
     },
   );
 }
@@ -237,7 +243,9 @@ describe("Every form that creates a project", () => {
       SOURCES.map((source: SourceFile): string => {
         return source.file;
       }),
-    ).toEqual(expect.arrayContaining([BUILDER, BILLING_PAGE, ...PROJECT_CREATE_FORMS]));
+    ).toEqual(
+      expect.arrayContaining([BUILDER, BILLING_PAGE, ...PROJECT_CREATE_FORMS]),
+    );
   });
 
   it("is one of the known create-project forms", () => {
@@ -278,10 +286,9 @@ describe("Every form that creates a project", () => {
         continue;
       }
 
-      const formProps: string = attributeExpression(form.element, "formProps") || "";
-      const formPropsNode: ts.Node | undefined = (():
-        | ts.Node
-        | undefined => {
+      const formProps: string =
+        attributeExpression(form.element, "formProps") || "";
+      const formPropsNode: ts.Node | undefined = ((): ts.Node | undefined => {
         const found: ts.JsxAttribute | undefined = attribute(
           form.element,
           "formProps",
@@ -305,7 +312,9 @@ describe("Every form that creates a project", () => {
   });
 
   it("is the only place a promo code is asked for", () => {
-    expect(filesWithFormFieldFor("paymentProviderPromoCode")).toEqual([BUILDER]);
+    expect(filesWithFormFieldFor("paymentProviderPromoCode")).toEqual([
+      BUILDER,
+    ]);
   });
 
   it("asks for a plan only there, and on the Billing page's Change Plan", () => {

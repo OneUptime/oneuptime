@@ -170,13 +170,12 @@ export const getPlanPickerOptionText: (data: {
       ? translator.translatePlural(TRIAL_BADGE, trialDays)
       : null;
 
-  const base: Pick<PlanPickerOptionText, "name" | "audience" | "trialBadge"> =
-    {
-      // A plan's name is its name in every language, as on the invoice.
-      name: plan.getName(),
-      audience: audience ? translator.translateText(audience) || audience : null,
-      trialBadge: trialBadge,
-    };
+  const base: Pick<PlanPickerOptionText, "name" | "audience" | "trialBadge"> = {
+    // A plan's name is its name in every language, as on the invoice.
+    name: plan.getName(),
+    audience: audience ? translator.translateText(audience) || audience : null,
+    trialBadge: trialBadge,
+  };
 
   const perMonth: number | null = getMonthlyPricePerUserInUSD(plan, period);
 

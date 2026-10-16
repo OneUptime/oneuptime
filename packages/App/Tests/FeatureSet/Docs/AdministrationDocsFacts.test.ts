@@ -1149,7 +1149,9 @@ describe("Billing & Usage", () => {
     expect(billingPage).toContain('title: "Seats"');
     expect(billingPage).toContain('title="Yearly Plan"');
     // What yearly saves is worked out from the prices, never written in.
-    expect(billingPage).toContain("description={yearlySavingText || undefined}");
+    expect(billingPage).toContain(
+      "description={yearlySavingText || undefined}",
+    );
     expect(billingPage).not.toContain('description="(Save 20%)"');
     // Yearly starts on, unless a marketplace bills the project.
     expect(billingPage).toContain(
