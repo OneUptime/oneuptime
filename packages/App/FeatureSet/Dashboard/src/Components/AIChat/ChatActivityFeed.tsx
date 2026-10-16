@@ -19,10 +19,13 @@ import { RUN_KUBECTL_TOOL_NAME } from "Common/Types/Kubernetes/KubernetesCluster
 import { RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME } from "Common/Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
 import Icon from "Common/UI/Components/Icon/Icon";
 import {
+  composedValue,
   getGlobalTranslator,
+  TemplateValue,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { formatNameList, getListSeparator } from "../AiAccess/AiAccessModes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -245,8 +248,18 @@ const friendlyToolNames: { [key: string]: string } = {
   search_logs: translationKey("Searching logs"),
   log_histogram: translationKey("Charting log volume"),
   query_metrics: translationKey("Aggregating metrics"),
+  baseline_anomaly: translationKey("Comparing a metric with its baseline"),
+  query_telemetry_resources: translationKey("Listing infrastructure resources"),
   query_resource_telemetry: translationKey("Reading a resource's telemetry"),
   query_containers: translationKey("Checking the host's containers"),
+  /*
+   * What every investigation reads besides telemetry: past incidents like
+   * this one, what changed just before it, and its own timeline.
+   */
+  search_incidents: translationKey("Searching past incidents"),
+  recent_changes: translationKey("Checking recent changes"),
+  get_incident_timeline: translationKey("Reading the incident timeline"),
+  get_alert_timeline: translationKey("Reading the alert timeline"),
   query_traces: translationKey("Analyzing traces"),
   get_trace: translationKey("Reading trace"),
   lookup_context: translationKey("Resolving names"),
@@ -408,6 +421,40 @@ function describeLinkedResource(
 }
 
 /*
+ * The linked resources a line names, in the language of the sentence they go
+ * into: "Host web-1 and Docker host web-1", "Host a, Docker host b and
+ * Kubernetes cluster c", or the first NAMED_LINKED_RESOURCES and "and 2
+ * more". A composed value, so a sentence that is still English names them in
+ * English too.
+ */
+function linkedResourceList(
+  resources: Array<{ kind: string; name: string }>,
+): TemplateValue {
+  return composedValue((sentence: Translator): string => {
+    const named: Array<string> = resources
+      .slice(0, NAMED_LINKED_RESOURCES)
+      .map((resource: { kind: string; name: string }): string => {
+        return describeLinkedResource(resource, sentence);
+      });
+    const moreCount: number = resources.length - named.length;
+
+    if (moreCount <= 0) {
+      return formatNameList(named, "and", sentence);
+    }
+
+    return sentence.translatePlural(
+      {
+        one: "{{names}} and {{count}} more",
+        other: "{{names}} and {{count}} more",
+      },
+      moreCount,
+      // Listed the way their script lists: "a, b", "a、b", "a، b".
+      { names: named.join(getListSeparator(named)) },
+    );
+  });
+}
+
+/*
  * What an investigation read about the infrastructure its incident or alert
  * is linked to - the hosts, container hosts, clusters, databases and
  * services its monitors watch - and the alerts on it (issue #4786): one
@@ -417,31 +464,12 @@ export function describeLinkedInfrastructure(
   activity: LinkedInfrastructureActivity,
   translator: Translator = getGlobalTranslator(),
 ): string {
-  const resources: Array<{ kind: string; name: string }> =
-    activity.resources || [];
-  const named: Array<string> = resources
-    .slice(0, NAMED_LINKED_RESOURCES)
-    .map((resource: { kind: string; name: string }): string => {
-      return describeLinkedResource(resource, translator);
-    });
-  const moreCount: number = resources.length - named.length;
-  const list: string = named.join(", ");
-  const resourcesText: string =
-    moreCount > 0
-      ? translator.translatePlural(
-          {
-            one: "{{names}} and {{count}} more",
-            other: "{{names}} and {{count}} more",
-          },
-          moreCount,
-          { names: list },
-        )
-      : list;
+  const resources: TemplateValue = linkedResourceList(activity.resources || []);
 
   if (!activity.alertCount) {
     return translator.translateTemplate(
       "No open or recent alerts on {{resources}}",
-      { resources: resourcesText },
+      { resources },
     );
   }
 
@@ -450,7 +478,7 @@ export function describeLinkedInfrastructure(
       "Read the {{count}} newest open or recent alerts on {{resources}}",
       {
         count: translator.formatNumber(activity.alertCount),
-        resources: resourcesText,
+        resources,
       },
     );
   }
@@ -461,7 +489,7 @@ export function describeLinkedInfrastructure(
       other: "Read {{count}} open or recent alerts on {{resources}}",
     },
     activity.alertCount,
-    { resources: resourcesText },
+    { resources },
   );
 }
 
@@ -490,9 +518,14 @@ export function describeFollowUpCheck(
         ) as string);
   }
 
-  const resource: string = describeLinkedResource(
-    { kind: activity.resourceKind, name: activity.resourceName },
-    translator,
+  // Built in the sentence's language, like the linked resources above.
+  const resource: TemplateValue = composedValue(
+    (sentence: Translator): string => {
+      return describeLinkedResource(
+        { kind: activity.resourceKind, name: activity.resourceName },
+        sentence,
+      );
+    },
   );
 
   return alert
@@ -797,6 +830,24 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * A step's mark, centred on the step's first line: a long step (the
+   * linked infrastructure an investigation read, say) wraps, and its mark
+   * stays beside the line it starts, as a list's bullet does.
+   */
+  const renderStepMark: RenderStepIconFunction = (
+    step: ActivityStep,
+  ): ReactElement => {
+    return (
+      <div
+        className="flex h-4 flex-shrink-0 items-center"
+        data-testid="activity-step-mark"
+      >
+        {renderStepIcon(step)}
+      </div>
+    );
+  };
+
   type RenderStepTextFunction = (step: ActivityStep) => ReactElement;
 
   const renderStepText: RenderStepTextFunction = (
@@ -869,12 +920,28 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
         )}
         {visibleSteps.map((step: ActivityStep) => {
           return (
-            <div key={step.key} className="flex items-center gap-2 text-xs">
-              {renderStepIcon(step)}
-              {renderStepText(step)}
-              {step.detail && (
-                <span className="text-gray-400">· {step.detail}</span>
-              )}
+            <div
+              key={step.key}
+              className="flex items-start gap-2 text-xs leading-4"
+            >
+              {renderStepMark(step)}
+              {/*
+                The words and their detail ("· 3 rows · 0.4s") flow as one
+                line of text: a long step wraps, and its detail follows its
+                last word - whole, or on the next line when it does not fit
+                - instead of standing in a narrow column of its own.
+              */}
+              <div className="min-w-0" data-testid="activity-step-text">
+                {renderStepText(step)}
+                {step.detail && (
+                  <>
+                    {" "}
+                    <span className="inline-block max-w-full text-gray-400">
+                      · {step.detail}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
           );
         })}

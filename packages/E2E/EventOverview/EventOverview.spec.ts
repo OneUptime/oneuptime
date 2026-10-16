@@ -4477,7 +4477,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
       );
 
       await expect(answer).toContainText("to Sam Rivera");
-      await expect(steps).toContainText("Running recent_changes");
+      await expect(steps).toContainText("Checking recent changes");
       await expect(steps).toContainText("Searching logs");
       expect(await frameLook(steps)).toEqual({
         background: "rgba(0, 0, 0, 0)",

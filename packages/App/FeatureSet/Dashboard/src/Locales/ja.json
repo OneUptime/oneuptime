@@ -29985,5 +29985,16 @@
   "Reading a resource's telemetry": "リソースのテレメトリを読み取り中",
   "Storage array": "ストレージアレイ",
   "{{names}} and {{count}} more": "{{names}} ほか {{count}} 件",
-  "{{names}} and {{count}} more_one": "{{names}} ほか {{count}} 件"
+  "{{names}} and {{count}} more_one": "{{names}} ほか {{count}} 件",
+  "Checked a host's containers": "ホストのコンテナを確認しました",
+  "Checking recent changes": "最近の変更を確認中",
+  "Comparing a metric with its baseline": "メトリクスをベースラインと比較中",
+  "Listed infrastructure resources": "インフラストラクチャのリソースを一覧表示しました",
+  "Listing infrastructure resources": "インフラストラクチャのリソースを一覧表示中",
+  "OneUptime AI is checking again": "OneUptime AI が再確認中です",
+  "Read a resource's telemetry": "リソースのテレメトリを読み取りました",
+  "Reading the alert timeline": "アラートのタイムラインを読み取り中",
+  "Reading the incident timeline": "インシデントのタイムラインを読み取り中",
+  "Searching past incidents": "過去のインシデントを検索中",
+  "Ranked by": "並べ替え"
 }

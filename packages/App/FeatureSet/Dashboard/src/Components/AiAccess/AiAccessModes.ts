@@ -261,7 +261,7 @@ const IDEOGRAPHIC_REGEX: RegExp =
 const ARABIC_SCRIPT_REGEX: RegExp = /\p{Script=Arabic}/u;
 
 // The separator between clauses listed in a sentence, by their script.
-function getListSeparator(clauses: ReadonlyArray<string>): string {
+export function getListSeparator(clauses: ReadonlyArray<string>): string {
   if (
     clauses.some((clause: string): boolean => {
       return IDEOGRAPHIC_REGEX.test(clause);

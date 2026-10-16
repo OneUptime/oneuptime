@@ -29985,5 +29985,16 @@
   "Reading a resource's telemetry": "Reading a resource's telemetry",
   "Storage array": "Storage array",
   "{{names}} and {{count}} more": "{{names}} and {{count}} more",
-  "{{names}} and {{count}} more_one": "{{names}} and {{count}} more"
+  "{{names}} and {{count}} more_one": "{{names}} and {{count}} more",
+  "Checked a host's containers": "Checked a host's containers",
+  "Checking recent changes": "Checking recent changes",
+  "Comparing a metric with its baseline": "Comparing a metric with its baseline",
+  "Listed infrastructure resources": "Listed infrastructure resources",
+  "Listing infrastructure resources": "Listing infrastructure resources",
+  "OneUptime AI is checking again": "OneUptime AI is checking again",
+  "Read a resource's telemetry": "Read a resource's telemetry",
+  "Reading the alert timeline": "Reading the alert timeline",
+  "Reading the incident timeline": "Reading the incident timeline",
+  "Searching past incidents": "Searching past incidents",
+  "Ranked by": "Ranked by"
 }

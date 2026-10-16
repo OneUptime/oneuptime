@@ -8,6 +8,7 @@ import ChatActivityFeed, {
   describeFollowUpCheck,
   describeLinkedInfrastructure,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatActivityFeed";
+import { isFollowUpCheckRun } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AIInvestigationStatus";
 import AIRunEvent from "../../../Models/DatabaseModels/AIRunEvent";
 import {
   AIRunEventResultSummary,
@@ -113,18 +114,36 @@ afterEach(() => {
 });
 
 describe("describeLinkedInfrastructure", () => {
-  test("how many open or recent alerts were on which resources", () => {
+  test("how many open or recent alerts were on which resources, listed as a sentence lists them", () => {
     expect(describeLinkedInfrastructure(activity())).toBe(
-      "Read 2 open or recent alerts on Host web-1, Docker host web-1",
+      "Read 2 open or recent alerts on Host web-1 and Docker host web-1",
     );
     expect(describeLinkedInfrastructure(activity({ alertCount: 1 }))).toBe(
-      "Read 1 open or recent alert on Host web-1, Docker host web-1",
+      "Read 1 open or recent alert on Host web-1 and Docker host web-1",
     );
+    expect(
+      describeLinkedInfrastructure(
+        activity({
+          resources: [
+            { kind: "Host", name: "a" },
+            { kind: "DockerHost", name: "b" },
+            { kind: "KubernetesCluster", name: "c" },
+          ],
+        }),
+      ),
+    ).toBe(
+      "Read 2 open or recent alerts on Host a, Docker host b and Kubernetes cluster c",
+    );
+    expect(
+      describeLinkedInfrastructure(
+        activity({ resources: [{ kind: "Host", name: "web-1" }] }),
+      ),
+    ).toBe("Read 2 open or recent alerts on Host web-1");
   });
 
   test("none is said too: there was nothing on the infrastructure", () => {
     expect(describeLinkedInfrastructure(activity({ alertCount: 0 }))).toBe(
-      "No open or recent alerts on Host web-1, Docker host web-1",
+      "No open or recent alerts on Host web-1 and Docker host web-1",
     );
   });
 
@@ -134,7 +153,7 @@ describe("describeLinkedInfrastructure", () => {
         activity({ alertCount: 10, hasMoreAlerts: true }),
       ),
     ).toBe(
-      "Read the 10 newest open or recent alerts on Host web-1, Docker host web-1",
+      "Read the 10 newest open or recent alerts on Host web-1 and Docker host web-1",
     );
   });
 
@@ -168,7 +187,52 @@ describe("describeLinkedInfrastructure", () => {
           ],
         }),
       ),
-    ).toBe("No open or recent alerts on Resource enterprise, Host");
+    ).toBe("No open or recent alerts on Resource enterprise and Host");
+  });
+
+  test("a language lists the names its own way: its 'and', and its own comma", () => {
+    expect(describeLinkedInfrastructure(activity(), translatorFor("de"))).toBe(
+      "2 offene oder neue Warnungen auf Host web-1 und Docker-Host web-1 gelesen",
+    );
+
+    const many: LinkedInfrastructureActivity = activity({
+      alertCount: 0,
+      resources: [
+        { kind: "Host", name: "a" },
+        { kind: "DockerHost", name: "b" },
+        { kind: "KubernetesCluster", name: "c" },
+        { kind: "Service", name: "d" },
+      ],
+    });
+
+    // Japanese lists with 、, Persian with ، - never an English comma.
+    expect(describeLinkedInfrastructure(many, translatorFor("ja"))).toContain(
+      "ホスト a、Docker ホスト b、Kubernetes クラスター c",
+    );
+    expect(
+      describeLinkedInfrastructure(many, translatorFor("fa")),
+    ).not.toContain(", ");
+  });
+
+  test("a sentence a language has not worded yet is English through and through, names included", () => {
+    const halfway: Translator = createTranslator(
+      (text: string): string | undefined => {
+        return (
+          {
+            "Docker host": "Docker-Host",
+            "{{first}} and {{second}}": "{{first}} und {{second}}",
+          } as Record<string, string>
+        )[text];
+      },
+      "de",
+    );
+
+    expect(describeLinkedInfrastructure(activity(), halfway)).toBe(
+      "Read 2 open or recent alerts on Host web-1 and Docker host web-1",
+    );
+    expect(describeFollowUpCheck(followUp(), halfway)).toBe(
+      "Checking again: alert #12 opened on Host web-1 after the first analysis",
+    );
   });
 
   test.each(LANGUAGES)(
@@ -269,7 +333,7 @@ describe("the activity feed draws them", () => {
       "Checking again: alert #12 opened on Host web-1 after the first analysis",
     );
     const linkedLine: HTMLElement = screen.getByText(
-      "Read 2 open or recent alerts on Host web-1, Docker host web-1",
+      "Read 2 open or recent alerts on Host web-1 and Docker host web-1",
     );
 
     expect(followUpLine).toBeVisible();
@@ -297,5 +361,104 @@ describe("the activity feed draws them", () => {
     expect(container.textContent).toContain("Checking the host's containers…");
     expect(container.textContent).toContain("Reading a resource's telemetry…");
     expect(container.textContent).not.toContain("Running query_containers");
+  });
+
+  /*
+   * What every investigation reads besides telemetry used to show as
+   * "Running search_incidents", "Running recent_changes": the tool's id.
+   */
+  test.each([
+    ["search_incidents", "Searching past incidents"],
+    ["recent_changes", "Checking recent changes"],
+    ["get_incident_timeline", "Reading the incident timeline"],
+    ["get_alert_timeline", "Reading the alert timeline"],
+    ["baseline_anomaly", "Comparing a metric with its baseline"],
+    ["query_telemetry_resources", "Listing infrastructure resources"],
+  ])("%s reads as %s", (toolName: string, words: string) => {
+    const { container } = render(
+      <ChatActivityFeed events={[toolCall(toolName)]} hideChrome={true} />,
+    );
+
+    expect(container.textContent).toBe(`${words}…`);
+  });
+
+  test.each(LANGUAGES)(
+    "%s words the new step names too",
+    (language: string) => {
+      const translator: Translator = translatorFor(language);
+
+      for (const words of [
+        "Searching past incidents",
+        "Checking recent changes",
+        "Reading the incident timeline",
+        "Reading the alert timeline",
+        "Comparing a metric with its baseline",
+        "Listing infrastructure resources",
+        "OneUptime AI is checking again",
+      ]) {
+        expect(translator.translateText(words)).not.toBe(words);
+      }
+    },
+  );
+});
+
+describe("a step that wraps", () => {
+  test("its mark sits beside its first line, and its detail follows its words", () => {
+    const completed: AIRunEvent = new AIRunEvent(ObjectID.generate());
+    completed.eventType = AIRunEventType.ToolCallCompleted;
+    completed.toolName = "query_containers";
+    completed.resultSummary = { rowCount: 4, durationInMs: 600 };
+
+    const { container } = render(
+      <ChatActivityFeed
+        events={[
+          progressLog({ severity: "Info", linkedInfrastructure: activity() }),
+          toolCall("query_containers"),
+          completed,
+        ]}
+        hideChrome={true}
+      />,
+    );
+
+    const marks: Array<Element> = Array.from(
+      container.querySelectorAll("[data-testid='activity-step-mark']"),
+    );
+    const texts: Array<Element> = Array.from(
+      container.querySelectorAll("[data-testid='activity-step-text']"),
+    );
+
+    expect(marks).toHaveLength(2);
+    expect(texts).toHaveLength(2);
+
+    for (const mark of marks) {
+      // A first line's height, the mark centred in it, on a top-aligned row.
+      expect(mark).toHaveClass("flex", "h-4", "flex-shrink-0", "items-center");
+      expect(mark.parentElement).toHaveClass("items-start", "leading-4");
+      expect(mark.parentElement).not.toHaveClass("items-center");
+    }
+
+    // The detail flows after the words, inside the same block of text.
+    expect(texts[1]!.textContent).toBe(
+      "Checking the host's containers · 4 rows · 0.6s",
+    );
+    expect(screen.getByText("· 4 rows · 0.6s").parentElement).toBe(texts[1]);
+  });
+});
+
+describe("isFollowUpCheckRun", () => {
+  test("a run whose activity says it checks again is a follow-up check; any other run is not", () => {
+    expect(
+      isFollowUpCheckRun([
+        progressLog({ severity: "Info", followUpCheck: followUp() }),
+        progressLog({ severity: "Info", linkedInfrastructure: activity() }),
+      ]),
+    ).toBe(true);
+    expect(
+      isFollowUpCheckRun([
+        progressLog({ severity: "Info", linkedInfrastructure: activity() }),
+        toolCall("query_alerts"),
+      ]),
+    ).toBe(false);
+    expect(isFollowUpCheckRun([])).toBe(false);
   });
 });
