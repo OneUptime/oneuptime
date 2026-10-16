@@ -81,7 +81,7 @@ En rettelsesopgave kræver tre ting. Undtagelsens side **AI Assistance** kontrol
 | Hvad | OneUptime Cloud | Selvhostet |
 | --- | --- | --- |
 | En LLM-udbyder | Intet at sætte op: et projekt uden egen udbyder bruger den globale udbyder, betalt af projektets AI-kreditter. En udbyder af din egen under **Projektindstillinger → AI → LLM-udbydere** går forud. | Sæt miljøvariablerne `GLOBAL_LLM_PROVIDER_*` én gang på serveren, eller føj en udbyder til projektet. |
-| Et repositorie forbundet via GitHub App | **Produkter → Kode → Opgaver**, derefter **Koderepositorier** og **Connect with GitHub App**. Kræver Growth-planen. | Det samme, når din instans har en GitHub App (se [GitHub-integration](/docs/self-hosted/github-integration)). |
+| Et repositorie forbundet via GitHub App | **Produkter → Kode → Opgaver**, derefter **Koderepositorier** og **Connect with GitHub App**. Hvis appen allerede er installeret på GitHub-kontoen, så klik i stedet på **Forbind en eksisterende installation**: den bliver ikke forbundet af at installere den igen. Kræver Growth-planen. | Det samme, når din instans har en GitHub App (se [GitHub-integration](/docs/self-hosted/github-integration)). |
 | En Runner, der kører AI-koderettelser | Intet at drive: OneUptimes delte Runners gør det. | Docker Compose-tjenesten `runner` eller Helm-chartets Runner (`runner.enabled`, slået til som standard) registrerer sig selv og kører AI-koderettelser. |
 
 På en selvhostet instans er den globale udbyder én blok i `config.env` (Docker Compose) eller i dine Helm-værdier. Til en selvhostet Ollama:

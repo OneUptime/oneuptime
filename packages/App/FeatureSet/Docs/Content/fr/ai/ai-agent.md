@@ -81,7 +81,7 @@ Une tâche de correction a besoin de trois choses. La page **Assistance IA** de 
 | Quoi | OneUptime Cloud | Auto-hébergé |
 | --- | --- | --- |
 | Un fournisseur LLM | Rien à configurer : un projet sans fournisseur propre utilise le fournisseur global, payé sur les crédits IA du projet. Un fournisseur à vous, sous **Paramètres du projet → IA → Fournisseurs LLM**, passe en premier. | Définissez une fois les variables d'environnement `GLOBAL_LLM_PROVIDER_*` sur le serveur, ou ajoutez un fournisseur au projet. |
-| Un dépôt connecté via la GitHub App | **Produits → Code → Tâches**, puis **Dépôts de code** et **Se connecter avec l'application GitHub**. Nécessite le plan Growth. | Pareil, une fois que votre instance a une GitHub App (voir [Intégration GitHub](/docs/self-hosted/github-integration)). |
+| Un dépôt connecté via la GitHub App | **Produits → Code → Tâches**, puis **Dépôts de code** et **Se connecter avec l'application GitHub**. Si l'application est déjà installée sur le compte GitHub, cliquez plutôt sur **Connecter une installation existante** : l'installer de nouveau ne la connecte pas. Nécessite le plan Growth. | Pareil, une fois que votre instance a une GitHub App (voir [Intégration GitHub](/docs/self-hosted/github-integration)). |
 | Un Runner qui exécute les corrections de code IA | Rien à faire tourner : les Runners partagés de OneUptime s'en chargent. | Le service `runner` de Docker Compose, ou le Runner du chart Helm (`runner.enabled`, activé par défaut), s'enregistre tout seul et exécute les corrections de code IA. |
 
 Sur une instance auto-hébergée, le fournisseur global est un bloc de `config.env` (Docker Compose) ou de vos valeurs Helm. Pour un Ollama auto-hébergé :
