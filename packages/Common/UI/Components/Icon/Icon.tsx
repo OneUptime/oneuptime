@@ -1460,8 +1460,9 @@ const Icon: FunctionComponent<ComponentProps> = ({
      * draws, and a status timeline's band with one status to a row. Solid
      * bars rather than outlines, so they keep their shape at 16px: 3 units
      * thick on rows 6, 12 and 18, each lands on whole pixels at 16px and at
-     * 32px. Spans the same 15 units of height as TableCells, the glyph it
-     * sits beside in a status timeline's Timeline | Table switch.
+     * 32px. The bars run from 4.5 down to 19.5, the rows TableCells draws
+     * its frame on: the glyph it sits beside in a status timeline's
+     * Timeline | Table switch.
      */
     return getSvgWrapper(
       <path

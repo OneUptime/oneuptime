@@ -330,6 +330,163 @@ async function unreadableWords(page: Page): Promise<Array<UnreadableWords>> {
   });
 }
 
+/*
+ * The Timeline | Table switch's icons, as Chromium draws them: what each
+ * draws, how big, the colour it is drawn in and the grounds behind it (from
+ * the icon up to the page), and the extent of its drawing in the icon's 24
+ * units, stroke included.
+ */
+interface SwitchIcon {
+  view: string;
+  width: number;
+  height: number;
+  top: number;
+  paths: Array<{ d: string | null; strokeWidth: string | null }>;
+  inkWidth: number;
+  inkHeight: number;
+  colour: string;
+  grounds: Array<string>;
+}
+
+// IconProp.Timeline: three stretches of time stepping down to the right.
+const TIMELINE_ICON_PATH: string = "M4.5 6h6.75M9.75 12h6M14.25 18h5.25";
+
+// IconProp.TableCells begins with its bottom edge.
+const TABLE_ICON_PATH_START: string = "M3.375 19.5h17.25";
+
+// What WCAG 2.1 (1.4.11) asks of a graphic that helps say what a control is.
+const NON_TEXT_CONTRAST: number = 3;
+
+async function switchIcons(page: Page): Promise<Array<SwitchIcon>> {
+  return await page.evaluate((): Array<SwitchIcon> => {
+    return ["timeline", "table"].map((view: string): SwitchIcon => {
+      const svg: SVGSVGElement = document.querySelector(
+        `[data-testid="status-timeline-view-${view}"] svg`,
+      )!;
+      const box: DOMRect = svg.getBoundingClientRect();
+      const paths: Array<SVGPathElement> = Array.from(
+        svg.querySelectorAll("path"),
+      );
+      let left: number = Infinity;
+      let right: number = -Infinity;
+      let top: number = Infinity;
+      let bottom: number = -Infinity;
+
+      for (const path of paths) {
+        const shape: DOMRect = path.getBBox();
+        // A stroke, and a round end, reach half its width past the shape.
+        const reach: number =
+          Number.parseFloat(getComputedStyle(path).strokeWidth) / 2;
+
+        left = Math.min(left, shape.x - reach);
+        right = Math.max(right, shape.x + shape.width + reach);
+        top = Math.min(top, shape.y - reach);
+        bottom = Math.max(bottom, shape.y + shape.height + reach);
+      }
+
+      const grounds: Array<string> = [];
+      let element: Element | null = svg;
+
+      while (element) {
+        grounds.push(getComputedStyle(element).backgroundColor);
+        element = element.parentElement;
+      }
+
+      return {
+        view: view,
+        width: box.width,
+        height: box.height,
+        top: box.top,
+        paths: paths.map(
+          (
+            path: SVGPathElement,
+          ): { d: string | null; strokeWidth: string | null } => {
+            return {
+              d: path.getAttribute("d"),
+              strokeWidth: path.getAttribute("stroke-width"),
+            };
+          },
+        ),
+        inkWidth: right - left,
+        inkHeight: bottom - top,
+        colour: getComputedStyle(svg).color,
+        grounds: grounds,
+      };
+    });
+  });
+}
+
+type DrawnColour = [number, number, number, number];
+
+const COLOUR_CHANNELS: RegExp = /rgba?\(([^)]+)\)/;
+
+function rgbaOf(colour: string): DrawnColour {
+  const parts: Array<number> = (
+    colour.match(COLOUR_CHANNELS)?.[1] || "0, 0, 0, 0"
+  )
+    .split(",")
+    .map((part: string): number => {
+      return Number(part.trim());
+    });
+
+  return [
+    parts[0] || 0,
+    parts[1] || 0,
+    parts[2] || 0,
+    parts[3] === undefined ? 1 : parts[3],
+  ];
+}
+
+function drawnOver(colour: DrawnColour, ground: DrawnColour): DrawnColour {
+  const alpha: number = colour[3];
+
+  return [
+    colour[0] * alpha + ground[0] * (1 - alpha),
+    colour[1] * alpha + ground[1] * (1 - alpha),
+    colour[2] * alpha + ground[2] * (1 - alpha),
+    1,
+  ];
+}
+
+function luminanceOf(colour: DrawnColour): number {
+  const linear: Array<number> = colour.slice(0, 3).map((part: number) => {
+    const value: number = part / 255;
+
+    return value <= 0.03928
+      ? value / 12.92
+      : Math.pow((value + 0.055) / 1.055, 2.4);
+  });
+
+  return 0.2126 * linear[0]! + 0.7152 * linear[1]! + 0.0722 * linear[2]!;
+}
+
+/*
+ * How an icon stands out from what is behind it: the first solid ground
+ * above it, with any see-through ones between laid over it, nearest last.
+ */
+function contrastOfIcon(icon: SwitchIcon): number {
+  const grounds: Array<DrawnColour> = icon.grounds.map(rgbaOf);
+  const solid: number = grounds.findIndex((ground: DrawnColour): boolean => {
+    return ground[3] > 0.99;
+  });
+  let ground: DrawnColour =
+    solid < 0 ? [255, 255, 255, 1] : (grounds[solid] as DrawnColour);
+
+  for (
+    let index: number = (solid < 0 ? grounds.length : solid) - 1;
+    index >= 0;
+    index--
+  ) {
+    ground = drawnOver(grounds[index] as DrawnColour, ground);
+  }
+
+  const drawn: DrawnColour = drawnOver(rgbaOf(icon.colour), ground);
+  const lighter: number = Math.max(luminanceOf(drawn), luminanceOf(ground));
+  const darker: number = Math.min(luminanceOf(drawn), luminanceOf(ground));
+
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
 test.describe("a monitor's Status Timeline", () => {
   test("opens on a month's timeline, reading that month's events and the one in effect when it began - never the whole history", async ({
     page,
@@ -1118,6 +1275,78 @@ test.describe("a monitor's Status Timeline in German", () => {
     ).toBeVisible();
     await screenshot(page, "monitor-german", false);
   });
+});
+
+/*
+ * "Timeline icon should be better and more relevant" (the maintainer): the
+ * switch drew a bar chart for Timeline. Each view now shows a picture of
+ * itself - the timeline its stretches of time stepping along
+ * (IconProp.Timeline), the table its grid - measured here as Chromium draws
+ * them, in both themes and whichever view is shown.
+ */
+test.describe("the Timeline | Table switch's icons", () => {
+  for (const theme of ["light", "dark"]) {
+    test(`${theme} theme: each view draws a picture of itself, the two the same size, and each stands out from the switch whichever view is shown`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openMonitor(page, theme === "dark" ? "?theme=dark" : "");
+
+      for (const shown of ["timeline", "table"]) {
+        if (shown === "table") {
+          await page.getByTestId("status-timeline-view-table").click();
+          await expect(
+            page.getByTestId("status-timeline-view-table"),
+          ).toHaveAttribute("aria-pressed", "true");
+        }
+
+        const icons: Array<SwitchIcon> = await switchIcons(page);
+        const timeline: SwitchIcon = icons[0]!;
+        const table: SwitchIcon = icons[1]!;
+
+        // The timeline's steps, drawn as bars; the table's grid.
+        expect(timeline.paths).toEqual([
+          { d: TIMELINE_ICON_PATH, strokeWidth: "3" },
+        ]);
+        expect(table.paths).toHaveLength(1);
+        expect(table.paths[0]!.d!.startsWith(TABLE_ICON_PATH_START)).toBe(true);
+
+        // Both 16px, side by side on one line.
+        expect([timeline.width, timeline.height]).toEqual([16, 16]);
+        expect([table.width, table.height]).toEqual([16, 16]);
+        expect(Math.abs(timeline.top - table.top)).toBeLessThan(0.5);
+
+        // The same size to the eye: the timeline fills the table's box.
+        for (const ratio of [
+          timeline.inkWidth / table.inkWidth,
+          timeline.inkHeight / table.inkHeight,
+        ]) {
+          expect(ratio).toBeGreaterThanOrEqual(0.85);
+          expect(ratio).toBeLessThanOrEqual(1.1);
+        }
+
+        for (const icon of icons) {
+          const contrast: number = contrastOfIcon(icon);
+
+          expect({
+            view: icon.view,
+            shown: shown,
+            standsOut: contrast >= NON_TEXT_CONTRAST,
+          }).toEqual({ view: icon.view, shown: shown, standsOut: true });
+        }
+
+        await fs.mkdir(SCREENSHOTS, { recursive: true });
+        await page.getByTestId("status-timeline-view-switch").screenshot({
+          path: path.join(
+            SCREENSHOTS,
+            `view-switch-${theme}-${shown}-shown-synthetic.png`,
+          ),
+          animations: "disabled",
+        });
+      }
+    });
+  }
 });
 
 test.describe("an incident's Status Timeline", () => {
