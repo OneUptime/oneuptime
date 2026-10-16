@@ -1,15 +1,21 @@
 import {
+  buildTaskOutcomeReport,
   executeTask,
   PendingTask,
   TaskOutcome,
 } from "../../Jobs/PollCodeFixWork";
 import * as TaskHandlerIndex from "../../TaskHandlers/Index";
 import {
+  BaseTaskHandler,
+  TaskContext,
   TaskHandler,
   TaskResult,
 } from "../../TaskHandlers/TaskHandlerInterface";
 import TaskHandlerRegistry from "../../TaskHandlers/TaskHandlerRegistry";
+import BackendAPI from "../../Utils/BackendAPI";
+import RunnerAPIRequest from "../../Utils/RunnerAPIRequest";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
+import { JSONObject } from "Common/Types/JSON";
 
 /*
  * executeTask turns a handler's TaskResult into the status the run is
@@ -29,6 +35,8 @@ const task: PendingTask = {
   exceptionId: "exception-id",
   taskType: "FixException",
 };
+
+const PULL_REQUEST_URL: string = "https://github.com/acme/checkout/pull/77";
 
 // Register a handler whose execute() returns exactly the result under test.
 function stubHandlerReturning(result: TaskResult): void {
@@ -65,6 +73,35 @@ describe("executeTask outcome mapping", () => {
 
     expect(outcome.status).toBe(AIAgentTaskStatus.Completed);
     expect(outcome.statusMessage).toBeUndefined();
+  });
+
+  test("a successful task carries the pull requests it opened", async () => {
+    stubHandlerReturning({
+      success: true,
+      message: "Opened pull request #77 for issue #42",
+      pullRequestsCreated: 1,
+      pullRequestUrls: [PULL_REQUEST_URL],
+      data: { pullRequests: [PULL_REQUEST_URL] },
+    });
+
+    const outcome: TaskOutcome = await executeTask(task);
+
+    expect(outcome).toStrictEqual({
+      status: AIAgentTaskStatus.Completed,
+      pullRequestUrls: [PULL_REQUEST_URL],
+    });
+  });
+
+  test("a successful task that opened no pull request carries none", async () => {
+    stubHandlerReturning({
+      success: true,
+      message: "Answered the question in the thread",
+      pullRequestUrls: [],
+    });
+
+    const outcome: TaskOutcome = await executeTask(task);
+
+    expect(outcome).toStrictEqual({ status: AIAgentTaskStatus.Completed });
   });
 
   test("a no-fix result reports NoFixFound and carries the reason", async () => {
@@ -122,5 +159,132 @@ describe("executeTask outcome mapping", () => {
     await expect(executeTask(task)).rejects.toThrow(
       "No handler registered for task type: FixException",
     );
+  });
+});
+
+/*
+ * The status report that closes a finished task. A Completed task's pull
+ * requests go with it, and every field is sent only when it has a value, so
+ * a server that predates pullRequestUrls sees the report it always did.
+ */
+describe("buildTaskOutcomeReport", () => {
+  test("a Completed report carries the pull requests the task opened", () => {
+    const report: JSONObject = buildTaskOutcomeReport({
+      taskId: task.id,
+      outcome: {
+        status: AIAgentTaskStatus.Completed,
+        pullRequestUrls: [PULL_REQUEST_URL],
+      },
+    });
+
+    expect(report).toStrictEqual({
+      ...RunnerAPIRequest.getDefaultRequestBody(),
+      taskId: task.id,
+      status: AIAgentTaskStatus.Completed,
+      pullRequestUrls: [PULL_REQUEST_URL],
+    });
+  });
+
+  test("a Completed task that opened nothing reports exactly what it always did", () => {
+    const withoutField: JSONObject = buildTaskOutcomeReport({
+      taskId: task.id,
+      outcome: { status: AIAgentTaskStatus.Completed },
+    });
+
+    const withEmptyField: JSONObject = buildTaskOutcomeReport({
+      taskId: task.id,
+      outcome: { status: AIAgentTaskStatus.Completed, pullRequestUrls: [] },
+    });
+
+    const reportBeforeTheField: JSONObject = {
+      ...RunnerAPIRequest.getDefaultRequestBody(),
+      taskId: task.id,
+      status: AIAgentTaskStatus.Completed,
+    };
+
+    expect(withoutField).toStrictEqual(reportBeforeTheField);
+    expect(withEmptyField).toStrictEqual(reportBeforeTheField);
+  });
+
+  test("a NoFixFound report carries its reason and no pull requests", () => {
+    const report: JSONObject = buildTaskOutcomeReport({
+      taskId: task.id,
+      outcome: {
+        status: AIAgentTaskStatus.NoFixFound,
+        statusMessage: "No fixes could be applied to any repository",
+      },
+    });
+
+    expect(report).toStrictEqual({
+      ...RunnerAPIRequest.getDefaultRequestBody(),
+      taskId: task.id,
+      status: AIAgentTaskStatus.NoFixFound,
+      statusMessage: "No fixes could be applied to any repository",
+    });
+  });
+});
+
+/*
+ * The case the field exists for. GitHub has opened the pull request, but
+ * recording it on the server failed — on test.oneuptime.com, because the
+ * column could not hold GitHub's id. The task still succeeds (see
+ * BaseTaskHandler.recordOpenedPullRequest), so the pull request has to reach
+ * the server with the Completed status, or the thread that asked for it is
+ * told no pull request was recorded.
+ */
+describe("a pull request that opened but could not be recorded", () => {
+  class OpensOnePullRequest extends BaseTaskHandler {
+    public readonly taskType: string = "GitHubIssueFix";
+    public readonly name: string = "Opens One Pull Request";
+
+    public async execute(context: TaskContext): Promise<TaskResult> {
+      await this.recordOpenedPullRequest(context, {
+        taskId: context.taskId.toString(),
+        codeRepositoryId: "6650f0b1a1b2c3d4e5f60718",
+        pullRequestUrl: PULL_REQUEST_URL,
+        pullRequestNumber: 77,
+        pullRequestId: 3456789012,
+        title: "fix: retry the checkout call (#42)",
+      });
+
+      return {
+        success: true,
+        message: "Opened pull request #77 for issue #42",
+        pullRequestsCreated: 1,
+        pullRequestUrls: [PULL_REQUEST_URL],
+      };
+    }
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("still reaches the server with the Completed status", async () => {
+    const recordSpy: jest.SpyInstance = jest
+      .spyOn(BackendAPI.prototype, "recordPullRequest")
+      .mockRejectedValue(
+        new Error('value "3456789012" is out of range for type integer'),
+      );
+
+    jest.spyOn(TaskHandlerIndex, "getTaskHandlerRegistry").mockReturnValue({
+      getHandler: (): TaskHandler => {
+        return new OpensOnePullRequest();
+      },
+    } as unknown as TaskHandlerRegistry);
+
+    const outcome: TaskOutcome = await executeTask({
+      ...task,
+      taskType: "GitHubIssueFix",
+    });
+
+    const report: JSONObject = buildTaskOutcomeReport({
+      taskId: task.id,
+      outcome: outcome,
+    });
+
+    expect(recordSpy).toHaveBeenCalledTimes(1);
+    expect(report["status"]).toBe(AIAgentTaskStatus.Completed);
+    expect(report["pullRequestUrls"]).toEqual([PULL_REQUEST_URL]);
   });
 });
