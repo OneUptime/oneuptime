@@ -166,7 +166,7 @@ export const createResellerInquiryHandler: (
     const parsed: ResellerInquiryParseResult = parseResellerInquiry(req.body);
 
     if (parsed.kind === "trap") {
-      logger.info(
+      logger.debug(
         "Reseller inquiry: a form filled in by a program was answered and not sent.",
       );
       return answer(res, 200, { sent: true, message: SENT_MESSAGE });
@@ -188,9 +188,13 @@ export const createResellerInquiryHandler: (
     const overall: RateLimitDecision = options.overall.consume(OVERALL_KEY);
 
     if (!overall.allowed) {
-      logger.warn(
-        `Reseller inquiry: more than ${OVERALL_LIMIT} inquiries this hour; refusing until the hour is up.`,
-      );
+      // Once per window: a flood of refusals is not a flood of log lines.
+      if (overall.isFirstRefusalInWindow) {
+        logger.warn(
+          `Reseller inquiry: more than ${OVERALL_LIMIT} inquiries this hour; refusing until the hour is up.`,
+        );
+      }
+
       return answer(
         res,
         429,

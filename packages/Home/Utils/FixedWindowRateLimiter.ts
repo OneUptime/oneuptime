@@ -20,6 +20,12 @@ export interface RateLimitDecision {
   allowed: boolean;
   // Seconds until the window that refused the request ends; 0 when allowed.
   retryAfterSeconds: number;
+  /*
+   * True only for the request that first went over the limit in its window.
+   * A refused sender keeps knocking, so a caller that logs refusals logs
+   * this one: one line per key per window, not a line per request.
+   */
+  isFirstRefusalInWindow: boolean;
 }
 
 export interface FixedWindowRateLimiterOptions {
@@ -82,7 +88,11 @@ export default class FixedWindowRateLimiter {
     window.count++;
 
     if (window.count <= this.limit) {
-      return { allowed: true, retryAfterSeconds: 0 };
+      return {
+        allowed: true,
+        retryAfterSeconds: 0,
+        isFirstRefusalInWindow: false,
+      };
     }
 
     return {
@@ -91,6 +101,7 @@ export default class FixedWindowRateLimiter {
         1,
         Math.ceil((window.startedAt + this.windowInMs - now) / 1000),
       ),
+      isFirstRefusalInWindow: window.count === this.limit + 1,
     };
   }
 

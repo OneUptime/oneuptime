@@ -63,7 +63,25 @@ describe("a key's window", () => {
     expect(counter.consume("203.0.113.7")).toEqual({
       allowed: false,
       retryAfterSeconds: 3600,
+      isFirstRefusalInWindow: true,
     });
+  });
+
+  test("marks only the first refusal of a window, so a caller logs it once", () => {
+    const time: Clock = clock();
+    const counter: FixedWindowRateLimiter = limiter(time, 2);
+    const marks: () => Array<boolean> = (): Array<boolean> => {
+      return [1, 2, 3, 4, 5].map(() => {
+        return counter.consume("a").isFirstRefusalInWindow;
+      });
+    };
+
+    // Two let through, then three refused: only the first refusal is marked.
+    expect(marks()).toEqual([false, false, true, false, false]);
+
+    // The next window marks its own first refusal again.
+    time.advance(HOUR);
+    expect(marks()).toEqual([false, false, true, false, false]);
   });
 
   test("says when the refused sender may come back: when its window ends", () => {
@@ -90,6 +108,7 @@ describe("a key's window", () => {
     expect(counter.consume("a")).toEqual({
       allowed: false,
       retryAfterSeconds: 1,
+      isFirstRefusalInWindow: true,
     });
   });
 
@@ -119,6 +138,7 @@ describe("a key's window", () => {
     expect(counter.consume("a")).toEqual({
       allowed: true,
       retryAfterSeconds: 0,
+      isFirstRefusalInWindow: false,
     });
     expect(counter.consume("a").allowed).toBe(true);
     expect(counter.consume("a").allowed).toBe(false);

@@ -685,6 +685,31 @@ describe("a flood from many senders", () => {
     expectNoPersonalDetailsLogged();
   });
 
+  test("is logged once an hour, however many requests it refuses", async () => {
+    for (let index: number = 0; index < OVERALL_LIMIT + 30; index++) {
+      await site.post({ sender: `198.51.100.${index}` });
+    }
+
+    const warnings: (lines: Array<string>) => number = (
+      lines: Array<string>,
+    ): number => {
+      return lines.filter((line: string) => {
+        return line.includes(`more than ${OVERALL_LIMIT} inquiries`);
+      }).length;
+    };
+
+    expect(site.sent).toHaveLength(OVERALL_LIMIT);
+    expect(warnings(logs)).toBe(1);
+
+    // A new hour, a new flood: one more line.
+    site.advance(HOUR);
+    for (let index: number = 0; index < OVERALL_LIMIT + 5; index++) {
+      await site.post({ sender: `192.0.2.${index}` });
+    }
+
+    expect(warnings(logs)).toBe(2);
+  });
+
   test("sends again when the hour is up", async () => {
     for (let index: number = 0; index < OVERALL_LIMIT + 1; index++) {
       await site.post({ sender: `198.51.100.${index}` });
