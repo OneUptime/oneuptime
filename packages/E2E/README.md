@@ -324,7 +324,15 @@ cover the Add Component and Add Trigger picker over the whole catalog
 (`ComponentPicker.spec.ts`): it opens on a short list, a resource opens onto
 its steps, "incident" ranks Incident's steps before Incident State's, one click
 or Enter adds a step, typing a search never holds the page up, and it fits a
-phone and the dark theme. Failure traces are written to
+phone and the dark theme. `?page=builder-page` renders the Dashboard's real
+Builder page around the canvas, with only the API stood in for
+(`Fixture/BuilderPage.js`; `&graph=trigger` or `deleted`, `&enabled=1`, and
+`&column=430` for a tablet's column beside the side menu). Its checks
+(`WorkflowBuilderPageToolbar.spec.ts`) cover what the page puts first: Add
+Trigger as the one primary button until the workflow has a trigger, the off
+notice coming with the first trigger, the toolbar's buttons lining up with the
+Enabled switch when they wrap, and the notice's Turn on workflow under its
+sentences in a narrow column. Failure traces are written to
 `output/playwright/workflow-builder-ui/test-results/` at the repository root.
 
 ## Push registration UI regression tests

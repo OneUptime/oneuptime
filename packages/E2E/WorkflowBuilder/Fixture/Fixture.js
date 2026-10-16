@@ -61,6 +61,10 @@
  *                         window.__createdRecords for the spec to read.
  *                         ?failVariables=true makes writing a template's
  *                         settings fail, as a server error would.
+ *
+ * ?page=builder-page      the Dashboard's real Builder page around the
+ *                         canvas: its toolbar and the notice shown while
+ *                         the workflow is off (BuilderPage.js)
  */
 import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -92,6 +96,7 @@ import {
   installOnCallLogs,
 } from "./OnCallLogs";
 import { getPageScenario, installPageProject } from "./PageScenarios";
+import { BuilderPage, installBuilderPage } from "./BuilderPage";
 
 const params = new URLSearchParams(window.location.search);
 const scenario = params.get("scenario") || "graph";
@@ -747,6 +752,9 @@ if (fixturePage === "create-workflow") {
 } else if (fixturePage === "on-call-timeline") {
   installOnCallLogs();
   createRoot(document.getElementById("root")).render(<OnCallTimelinePage />);
+} else if (fixturePage === "builder-page") {
+  installBuilderPage();
+  createRoot(document.getElementById("root")).render(<BuilderPage />);
 } else {
   createRoot(document.getElementById("root")).render(<App />);
 }
