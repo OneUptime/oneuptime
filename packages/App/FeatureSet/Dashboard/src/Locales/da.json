@@ -30240,14 +30240,19 @@
   "Already passed on": "Allerede sendt videre",
   "Nothing to pass on": "Intet at sende videre",
   "Use Try again above to load it.": "Brug Prøv igen ovenfor for at indlæse den.",
+  "Caution": "Forsigtig",
   "Change status": "Skift status",
   "Change status to": "Skift status til",
   "Change status to {{status}}?": "Skift status til {{status}}?",
+  "Danger": "Fare",
+  "Important": "Vigtigt",
   "Monitor actions": "Handlinger for overvågning",
   "Monitor refreshed.": "Overvågningen er opdateret.",
+  "Opens in a new tab": "Åbner i en ny fane",
   "Refresh now. This page also refreshes every minute.": "Opdater nu. Siden opdateres også hvert minut.",
   "Refreshed at {{time}}": "Opdateret kl. {{time}}",
   "The monitor shows {{status}} from now on, here and on every status page that lists it.": "Overvågningen viser {{status}} fra nu af, her og på alle statussider, der viser den.",
   "Change the status from the menu (⋯) at the top of this page. The status timeline keeps every change.": "Skift status via menuen (⋯) øverst på denne side. Statustidslinjen gemmer hver ændring.",
-  "Status changed to {{status}}.": "Status skiftet til {{status}}."
+  "Status changed to {{status}}.": "Status skiftet til {{status}}.",
+  "Tip": "Tip"
 }

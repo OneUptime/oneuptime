@@ -30240,14 +30240,19 @@
   "Already passed on": "पहले ही आगे बढ़ा दिया गया है",
   "Nothing to pass on": "आगे बढ़ाने के लिए कुछ नहीं है",
   "Use Try again above to load it.": "इसे लोड करने के लिए ऊपर दिए गए “फिर से प्रयास करें” का उपयोग करें।",
+  "Caution": "सावधानी",
   "Change status": "स्थिति बदलें",
   "Change status to": "स्थिति बदलकर करें",
   "Change status to {{status}}?": "स्थिति बदलकर {{status}} करें?",
+  "Danger": "खतरा",
+  "Important": "महत्वपूर्ण",
   "Monitor actions": "मॉनिटर कार्रवाइयां",
   "Monitor refreshed.": "मॉनिटर रिफ्रेश हो गया।",
+  "Opens in a new tab": "नए टैब में खुलता है",
   "Refresh now. This page also refreshes every minute.": "अभी रिफ्रेश करें। यह पेज हर मिनट अपने-आप भी रिफ्रेश होता है।",
   "Refreshed at {{time}}": "{{time}} पर रिफ्रेश किया गया",
   "The monitor shows {{status}} from now on, here and on every status page that lists it.": "अब से यह मॉनिटर यहां और इसे दिखाने वाले हर स्थिति पृष्ठ पर {{status}} दिखाएगा।",
   "Change the status from the menu (⋯) at the top of this page. The status timeline keeps every change.": "इस पेज के ऊपर मेनू (⋯) से स्थिति बदलें। स्थिति टाइमलाइन हर बदलाव सहेजकर रखती है।",
-  "Status changed to {{status}}.": "स्थिति बदलकर {{status}} कर दी गई।"
+  "Status changed to {{status}}.": "स्थिति बदलकर {{status}} कर दी गई।",
+  "Tip": "सुझाव"
 }

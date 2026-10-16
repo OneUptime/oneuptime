@@ -30240,14 +30240,19 @@
   "Already passed on": "پیش‌تر واگذار شده است",
   "Nothing to pass on": "چیزی برای واگذاری نیست",
   "Use Try again above to load it.": "برای بارگذاری آن، از «تلاش دوباره» در بالا استفاده کنید.",
+  "Caution": "احتیاط",
   "Change status": "تغییر وضعیت",
   "Change status to": "تغییر وضعیت به",
   "Change status to {{status}}?": "وضعیت به {{status}} تغییر کند؟",
+  "Danger": "خطر",
+  "Important": "مهم",
   "Monitor actions": "اقدامات مانیتور",
   "Monitor refreshed.": "مانیتور تازه‌سازی شد.",
+  "Opens in a new tab": "در زبانه‌ای جدید باز می‌شود",
   "Refresh now. This page also refreshes every minute.": "اکنون تازه‌سازی کنید. این صفحه هر دقیقه هم خودکار تازه‌سازی می‌شود.",
   "Refreshed at {{time}}": "تازه‌سازی‌شده در {{time}}",
   "The monitor shows {{status}} from now on, here and on every status page that lists it.": "از این پس، مانیتور اینجا و در هر صفحه وضعیتی که آن را فهرست می‌کند {{status}} را نشان می‌دهد.",
   "Change the status from the menu (⋯) at the top of this page. The status timeline keeps every change.": "وضعیت را از منو (⋯) بالای این صفحه تغییر دهید. خط زمانی وضعیت هر تغییر را نگه می‌دارد.",
-  "Status changed to {{status}}.": "وضعیت به {{status}} تغییر کرد."
+  "Status changed to {{status}}.": "وضعیت به {{status}} تغییر کرد.",
+  "Tip": "نکته کاربردی"
 }

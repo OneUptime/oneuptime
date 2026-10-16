@@ -93,6 +93,9 @@ import {
   rehypePutBackHeldText,
 } from "./MarkdownViewerOverLongText";
 import { markdownUrlTransform } from "./MarkdownUrlTransform";
+import MarkdownLink from "./MarkdownLink";
+import MarkdownBlockquote, { useMarkdownTextClassName } from "./MarkdownQuote";
+import { remarkMarkdownCallouts } from "./MarkdownCallouts";
 import OneUptimeDate from "../../../Types/Date";
 import { Theme, useTheme } from "../../Utils/Theme";
 import {
@@ -596,6 +599,21 @@ const isMermaidCodeClass: (className: unknown) => boolean = (
 };
 
 /*
+ * What react-markdown hands a renderer, without the tree node it adds
+ * (`node`): spread onto an element, React wrote it out as
+ * node="[object Object]".
+ */
+const withoutTreeNode: (
+  props: Record<string, unknown>,
+) => Record<string, unknown> = (
+  props: Record<string, unknown>,
+): Record<string, unknown> => {
+  const attributes: Record<string, unknown> = { ...props };
+  delete attributes["node"];
+  return attributes;
+};
+
+/*
  * How many lists deep a list sits. Every level used to draw the same filled
  * disc, so a nested list stood apart from its parent only by its indent. A
  * bulleted list now steps through disc, circle and square -- the browser's
@@ -627,7 +645,7 @@ const MarkdownBulletList: FunctionComponent<any> = (
     <ListDepthContext.Provider value={depth + 1}>
       <ul
         className={`${getBulletStyleForDepth(depth)} pl-6 mt-0 mb-1`}
-        {...props}
+        {...withoutTreeNode(props)}
       />
     </ListDepthContext.Provider>
   );
@@ -639,8 +657,25 @@ const MarkdownNumberedList: FunctionComponent<any> = (
   const depth: number = useContext(ListDepthContext);
   return (
     <ListDepthContext.Provider value={depth + 1}>
-      <ol className="list-decimal pl-6 mt-0 mb-1" {...props} />
+      <ol className="list-decimal pl-6 mt-0 mb-1" {...withoutTreeNode(props)} />
     </ListDepthContext.Provider>
+  );
+};
+
+/*
+ * A paragraph. Inside a quote it takes the quote's lighter shade
+ * (MarkdownQuote), so a quote reads as somebody's words, in both themes.
+ */
+const MarkdownParagraph: FunctionComponent<any> = (
+  props: any,
+): ReactElement => {
+  const textClassName: string = useMarkdownTextClassName();
+
+  return (
+    <p
+      className={`text-sm mt-2 mb-1 ${textClassName} leading-relaxed`}
+      {...withoutTreeNode(props)}
+    />
   );
 };
 
@@ -671,6 +706,55 @@ const extractTextFromChildren: (children: unknown) => string = (
     );
   }
   return "";
+};
+
+/*
+ * A list item: a task's checkbox named after its text, and inside a quote
+ * the quote's lighter shade, as a paragraph takes it.
+ */
+const MarkdownListItem: FunctionComponent<any> = ({
+  children,
+  ...props
+}: any): ReactElement => {
+  const textClassName: string = useMarkdownTextClassName();
+
+  const isTaskItem: boolean =
+    typeof props.className === "string" &&
+    props.className.includes("task-list-item");
+
+  // Give the task-list checkbox an accessible name from its label text.
+  const renderedChildren: any = isTaskItem
+    ? React.Children.map(children, (child: any) => {
+        if (
+          React.isValidElement(child) &&
+          (child.type === "input" ||
+            (child.props as { type?: string } | null)?.type === "checkbox")
+        ) {
+          const existingLabel: string | undefined = (
+            child.props as { ["aria-label"]?: string }
+          )["aria-label"];
+          return React.cloneElement(
+            child as ReactElement,
+            {
+              "aria-label":
+                existingLabel ||
+                extractTextFromChildren(children).trim() ||
+                translateText("Task item"),
+            } as any,
+          );
+        }
+        return child;
+      })
+    : children;
+
+  return (
+    <li
+      className={`text-sm mt-1 mb-1 ${textClassName} leading-relaxed`}
+      {...withoutTreeNode(props)}
+    >
+      {renderedChildren}
+    </li>
+  );
 };
 
 const MarkdownViewer: FunctionComponent<ComponentProps> = (
@@ -714,7 +798,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         return (
           <h1
             className="text-lg mt-6 mb-3 text-gray-900 font-bold"
-            {...props}
+            {...withoutTreeNode(props)}
           />
         );
       },
@@ -722,7 +806,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         return (
           <h2
             className="text-base mt-6 mb-2 text-gray-900 font-semibold"
-            {...props}
+            {...withoutTreeNode(props)}
           />
         );
       },
@@ -730,7 +814,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         return (
           <h3
             className="text-base mt-4 mb-2 text-gray-900 font-semibold"
-            {...props}
+            {...withoutTreeNode(props)}
           />
         );
       },
@@ -738,7 +822,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         return (
           <h4
             className="text-sm mt-3 mb-2 text-gray-900 font-semibold"
-            {...props}
+            {...withoutTreeNode(props)}
           />
         );
       },
@@ -746,7 +830,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         return (
           <h5
             className="text-sm mt-3 mb-1 text-gray-900 font-medium"
-            {...props}
+            {...withoutTreeNode(props)}
           />
         );
       },
@@ -754,17 +838,12 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         return (
           <h6
             className="text-sm mt-2 mb-1 text-gray-700 font-medium"
-            {...props}
+            {...withoutTreeNode(props)}
           />
         );
       },
       p: ({ ...props }: any) => {
-        return (
-          <p
-            className="text-sm mt-2 mb-1 text-gray-700 leading-relaxed"
-            {...props}
-          />
-        );
+        return <MarkdownParagraph {...props} />;
       },
       a: ({ children, ...props }: any) => {
         if (safeMode) {
@@ -775,14 +854,12 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
             </span>
           );
         }
-        return (
-          <a
-            className="underline text-blue-600 hover:text-blue-800 font-medium transition-colors"
-            {...props}
-          >
-            {children}
-          </a>
-        );
+        /*
+         * A link that leaves the app - another site, an attachment - opens
+         * in a tab of its own; one to another page of the app stays in
+         * this one (MarkdownLink).
+         */
+        return <MarkdownLink {...props}>{children}</MarkdownLink>;
       },
       img: ({ alt, ...props }: any) => {
         if (safeMode) {
@@ -834,7 +911,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         return (
           <pre
             className="bg-gray-900 text-gray-100 mt-3 mb-3 p-3 rounded-md text-sm overflow-x-auto border border-gray-700"
-            {...rest}
+            {...withoutTreeNode(rest)}
           >
             {children}
           </pre>
@@ -842,48 +919,14 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
       },
       strong: ({ ...props }: any) => {
         return (
-          <strong className="text-sm font-semibold text-gray-900" {...props} />
+          <strong
+            className="text-sm font-semibold text-gray-900"
+            {...withoutTreeNode(props)}
+          />
         );
       },
-      li: ({ children, ...props }: any) => {
-        const isTaskItem: boolean =
-          typeof props.className === "string" &&
-          props.className.includes("task-list-item");
-
-        // Give the task-list checkbox an accessible name from its label text.
-        const renderedChildren: any = isTaskItem
-          ? React.Children.map(children, (child: any) => {
-              if (
-                React.isValidElement(child) &&
-                (child.type === "input" ||
-                  (child.props as { type?: string } | null)?.type ===
-                    "checkbox")
-              ) {
-                const existingLabel: string | undefined = (
-                  child.props as { ["aria-label"]?: string }
-                )["aria-label"];
-                return React.cloneElement(
-                  child as ReactElement,
-                  {
-                    "aria-label":
-                      existingLabel ||
-                      extractTextFromChildren(children).trim() ||
-                      translateText("Task item"),
-                  } as any,
-                );
-              }
-              return child;
-            })
-          : children;
-
-        return (
-          <li
-            className="text-sm mt-1 mb-1 text-gray-700 leading-relaxed"
-            {...props}
-          >
-            {renderedChildren}
-          </li>
-        );
+      li: ({ ...props }: any) => {
+        return <MarkdownListItem {...props} />;
       },
       ul: ({ ...props }: any) => {
         return <MarkdownBulletList {...props} />;
@@ -891,68 +934,67 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
       ol: ({ ...props }: any) => {
         return <MarkdownNumberedList {...props} />;
       },
-      blockquote: ({ children, ...props }: any) => {
-        return (
-          <blockquote
-            className="rounded-lg border border-amber-200 bg-amber-50/50 my-4 not-italic overflow-hidden"
-            {...props}
-          >
-            <div className="flex items-start gap-3 px-4 py-3">
-              <svg
-                className="h-5 w-5 flex-shrink-0 text-amber-500 mt-0.5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
-                />
-              </svg>
-              <div className="text-sm text-gray-700 leading-relaxed [&>p]:mt-0 [&>p]:mb-0 [&>p>strong:first-child]:text-amber-700 [&>p>strong:first-child]:mr-1">
-                {children}
-              </div>
-            </div>
-          </blockquote>
-        );
+      /*
+       * A quote is drawn as a quote; only a blockquote that asked to be a
+       * callout ("> [!WARNING]", "> **Note:**") is a tinted panel with its
+       * kind's icon (MarkdownQuote, MarkdownCallouts).
+       */
+      blockquote: ({ ...props }: any) => {
+        return <MarkdownBlockquote {...props} />;
       },
       table: ({ ...props }: any) => {
         return (
           <div className="overflow-hidden rounded-lg border border-gray-200 mt-4 mb-4 shadow-sm">
             <table
               className="min-w-full table-auto border-collapse text-sm"
-              {...props}
+              {...withoutTreeNode(props)}
             />
           </div>
         );
       },
       thead: ({ ...props }: any) => {
-        return <thead className="bg-gray-50" {...props} />;
+        return <thead className="bg-gray-50" {...withoutTreeNode(props)} />;
       },
       tbody: ({ ...props }: any) => {
-        return <tbody className="divide-y divide-gray-100" {...props} />;
+        return (
+          <tbody
+            className="divide-y divide-gray-100"
+            {...withoutTreeNode(props)}
+          />
+        );
       },
       tr: ({ ...props }: any) => {
-        return <tr className="hover:bg-gray-50 transition-colors" {...props} />;
+        return (
+          <tr
+            className="hover:bg-gray-50 transition-colors"
+            {...withoutTreeNode(props)}
+          />
+        );
       },
       th: ({ ...props }: any) => {
         return (
           <th
             className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 border-b border-gray-200"
-            {...props}
+            {...withoutTreeNode(props)}
           />
         );
       },
       td: ({ ...props }: any) => {
-        return <td className="px-4 py-2.5 text-sm text-gray-700" {...props} />;
+        return (
+          <td
+            className="px-4 py-2.5 text-sm text-gray-700"
+            {...withoutTreeNode(props)}
+          />
+        );
       },
       hr: ({ ...props }: any) => {
-        return <hr className="border-gray-300 my-6" {...props} />;
+        return (
+          <hr className="border-gray-300 my-6" {...withoutTreeNode(props)} />
+        );
       },
       code: (props: any) => {
-        const { children, className, ...rest } = props;
+        const { children, className, ...attributes } = props;
+        const rest: Record<string, unknown> = withoutTreeNode(attributes);
 
         const match: RegExpExecArray | null = RE_CODE_LANGUAGE.exec(
           className || "",
@@ -1046,8 +1088,9 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
             ? [
                 remarkGfm,
                 [remarkInlineReferences, INLINE_REFERENCE_TRANSFORM_OPTIONS],
+                remarkMarkdownCallouts,
               ]
-            : [remarkGfm]
+            : [remarkGfm, remarkMarkdownCallouts]
         }
         rehypePlugins={
           heldBack.held.length > 0

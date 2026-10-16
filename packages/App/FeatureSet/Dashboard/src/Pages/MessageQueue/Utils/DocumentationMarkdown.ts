@@ -1166,6 +1166,7 @@ function otlpEnvironmentBlock(vars: SetupGuideVariables): Array<string> {
       'OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"',
     ]),
     "",
+    "> [!WARNING]",
     "> **This token is a secret.** Use a **Server** ingestion key, kept in your",
     "> deployment's secrets. Never put a Server key in browser JavaScript — a",
     "> **Browser** ingestion key exists for that.",

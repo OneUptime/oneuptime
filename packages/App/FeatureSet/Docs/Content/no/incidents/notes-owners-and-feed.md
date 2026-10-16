@@ -95,7 +95,7 @@ Det samme redigeringsverktøyet åpner i en dialog fra **Add Public Note** i men
 > [!TIP]
 > **Publiseringstidspunktet er notatets egentlige tidsstempel.** Statussider sorterer og viser offentlige notater etter `postedAt`, ikke etter når du skrev dem — så hvis du oppdaterer statussiden med en oppdatering du sendte for 40 minutter siden, velger du **Posted now** og setter når det faktisk skjedde. Kommer et notat inn via API-et (`/api/incident-public-note`) uten et tidspunkt, stempler OneUptime gjeldende tidspunkt.
 
-Hvert notat viser hvem som skrev det, publiseringstidspunktet, den gjengitte Markdown-en med vedleggene og, i overskriften, hvordan det står til med varselet til abonnentene. **Search notes…** finner notater etter hva de sier, og feeden kan leses med de nyeste eller de eldste først.
+Hvert notat viser hvem som skrev det, publiseringstidspunktet, den gjengitte Markdown-en med vedleggene og, i overskriften, hvordan det står til med varselet til abonnentene. **Search notes…** finner notater etter hva de sier, og feeden kan leses med de nyeste eller de eldste først. Lenker til andre nettsteder og til vedlegg åpnes i en ny fane. Linjer som begynner med `>`, vises som et sitat; start det med en egen linje, `> [!NOTE]`, `> [!TIP]` eller `> [!WARNING]`, for å vise det som en uthevet boks i stedet.
 
 ## Publiser et privat notat
 

@@ -30240,14 +30240,19 @@
   "Already passed on": "Redan skickat vidare",
   "Nothing to pass on": "Inget att skicka vidare",
   "Use Try again above to load it.": "Använd Försök igen ovan för att läsa in den.",
+  "Caution": "Försiktighet",
   "Change status": "Ändra status",
   "Change status to": "Ändra status till",
   "Change status to {{status}}?": "Ändra status till {{status}}?",
+  "Danger": "Fara",
+  "Important": "Viktigt",
   "Monitor actions": "Åtgärder för övervakning",
   "Monitor refreshed.": "Övervakningen har uppdaterats.",
+  "Opens in a new tab": "Öppnas i en ny flik",
   "Refresh now. This page also refreshes every minute.": "Uppdatera nu. Sidan uppdateras också varje minut.",
   "Refreshed at {{time}}": "Uppdaterad kl. {{time}}",
   "The monitor shows {{status}} from now on, here and on every status page that lists it.": "Övervakningen visar {{status}} från och med nu, här och på varje statussida som listar den.",
   "Change the status from the menu (⋯) at the top of this page. The status timeline keeps every change.": "Ändra statusen via menyn (⋯) högst upp på den här sidan. Statustidslinjen sparar varje ändring.",
-  "Status changed to {{status}}.": "Status ändrad till {{status}}."
+  "Status changed to {{status}}.": "Status ändrad till {{status}}.",
+  "Tip": "Tips"
 }

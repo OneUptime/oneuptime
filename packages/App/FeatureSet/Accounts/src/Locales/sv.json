@@ -359,5 +359,13 @@
   "Quote": "Citat",
   "Code Block": "Kodblock",
   "Switch to markdown source": "Byt till Markdown-källa",
-  "Switch to visual editor": "Byt till visuell redigerare"
+  "Switch to visual editor": "Byt till visuell redigerare",
+  "Opens in a new tab": "Öppnas i en ny flik",
+  "Note": "Obs",
+  "Tip": "Tips",
+  "Info": "Info",
+  "Important": "Viktigt",
+  "Warning": "Varning",
+  "Caution": "Försiktighet",
+  "Danger": "Fara"
 }

@@ -30240,14 +30240,19 @@
   "Already passed on": "Уже передано дальше",
   "Nothing to pass on": "Передавать нечего",
   "Use Try again above to load it.": "Нажмите «Повторить попытку» выше, чтобы загрузить его.",
+  "Caution": "Осторожно",
   "Change status": "Изменить статус",
   "Change status to": "Изменить статус на",
   "Change status to {{status}}?": "Изменить статус на «{{status}}»?",
+  "Danger": "Опасно",
+  "Important": "Важно",
   "Monitor actions": "Действия с монитором",
   "Monitor refreshed.": "Монитор обновлён.",
+  "Opens in a new tab": "Откроется в новой вкладке",
   "Refresh now. This page also refreshes every minute.": "Обновить сейчас. Эта страница также обновляется каждую минуту.",
   "Refreshed at {{time}}": "Обновлено в {{time}}",
   "The monitor shows {{status}} from now on, here and on every status page that lists it.": "Теперь монитор показывает статус «{{status}}» — здесь и на каждой странице состояния, где он указан.",
   "Change the status from the menu (⋯) at the top of this page. The status timeline keeps every change.": "Меняйте статус через меню (⋯) вверху этой страницы. Хронология статуса хранит каждое изменение.",
-  "Status changed to {{status}}.": "Статус изменён на «{{status}}»."
+  "Status changed to {{status}}.": "Статус изменён на «{{status}}».",
+  "Tip": "Совет"
 }

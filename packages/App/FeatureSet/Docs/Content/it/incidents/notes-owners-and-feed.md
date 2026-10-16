@@ -95,7 +95,7 @@ Lo stesso editor si apre in una finestra da **Add Public Note** nel menu **Azion
 > [!TIP]
 > **L'ora di pubblicazione è il vero orario della nota.** Le pagine di stato ordinano e mostrano le note pubbliche per `postedAt`, non per quando le avete digitate — quindi, se state aggiornando la pagina di stato con un aggiornamento inviato 40 minuti fa, scegliete **Posted now** e impostate quando è avvenuto davvero. Se una nota arriva tramite l'API (`/api/incident-public-note`) senza ora, OneUptime le assegna l'ora attuale.
 
-Ogni nota mostra chi l'ha scritta, la sua ora di pubblicazione, il Markdown visualizzato con i suoi allegati e, nella sua intestazione, a che punto è la sua notifica agli iscritti. **Search notes…** trova le note in base a ciò che dicono, e il feed si può leggere dal più recente o dal meno recente.
+Ogni nota mostra chi l'ha scritta, la sua ora di pubblicazione, il Markdown visualizzato con i suoi allegati e, nella sua intestazione, a che punto è la sua notifica agli iscritti. **Search notes…** trova le note in base a ciò che dicono, e il feed si può leggere dal più recente o dal meno recente. I link ad altri siti e agli allegati si aprono in una nuova scheda. Le righe che iniziano con `>` si vedono come una citazione; fatela iniziare con una riga a sé, `> [!NOTE]`, `> [!TIP]` o `> [!WARNING]`, per mostrarla invece come un riquadro in evidenza.
 
 ## Pubblicare una nota privata
 

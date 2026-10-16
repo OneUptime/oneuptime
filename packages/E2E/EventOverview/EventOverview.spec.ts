@@ -9593,6 +9593,292 @@ test.describe("the feed, as a timeline", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * Links and quotes in a note
+ * ---------------------------------------------------------------------------
+ *
+ * A customer's feedback: a link in a note - the file a saved Slack message
+ * carried, an attachment - took over the OneUptime tab, and quoted text
+ * showed an amber exclamation mark, as if it were a warning.
+ * ?feed=links-and-quotes adds a private note saved from a Slack message to
+ * incident #1042's feed: a quote, the message's file, a callout, links to
+ * another incident and to the docs, and the note's attachment. Here each
+ * link is opened, and the quote and the callout are measured, in a real
+ * browser with the real Markdown parser.
+ */
+const SLACK_FILE_URL: string =
+  "https://acme.slack.com/files/U0123ABCD/F0123ABCD/image.png";
+const NOTE_ATTACHMENT_PATH: string = `/api/incident-internal-note/attachment/${PROJECT_ID}/${uuid("91000000", 1)}/${uuid("92000000", 1)}`;
+const QUOTED_WORDS: string = "They said the payment provider is degraded";
+
+function savedNote(page: Page): Locator {
+  return feedEntry(card(page, "Incident Feed"), QUOTED_WORDS);
+}
+
+async function computedStyleOf(
+  locator: Locator,
+  properties: Array<string>,
+): Promise<Record<string, string>> {
+  return await locator.evaluate(
+    (element: Element, names: Array<string>): Record<string, string> => {
+      const style: CSSStyleDeclaration = window.getComputedStyle(element);
+      const values: Record<string, string> = {};
+      for (const name of names) {
+        values[name] = style.getPropertyValue(name);
+      }
+      return values;
+    },
+    properties,
+  );
+}
+
+test.describe("links and quotes in a note", () => {
+  test("the file a saved Slack message carried opens in a new tab, and the incident stays open", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page
+      .context()
+      .route("https://acme.slack.com/**", async (route: PlaywrightRoute) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "text/plain",
+          body: "image.png",
+        });
+      });
+    await openReady(page, INCIDENT_PAGE, "feed=links-and-quotes");
+
+    const fileLink: Locator = savedNote(page).getByRole("link", {
+      name: "image.png",
+    });
+
+    await expect(fileLink).toHaveAttribute("href", SLACK_FILE_URL);
+    await expect(fileLink).toHaveAttribute("target", "_blank");
+    await expect(fileLink).toHaveAttribute("rel", "noopener noreferrer");
+    await expect(fileLink).toHaveAttribute(
+      "aria-description",
+      "Opens in a new tab",
+    );
+
+    const [tab] = await Promise.all([
+      page.context().waitForEvent("page"),
+      fileLink.click(),
+    ]);
+    await tab.waitForLoadState();
+
+    expect(tab.url()).toBe(SLACK_FILE_URL);
+    // Cut loose from the page that opened it.
+    expect(
+      await tab.evaluate((): boolean => {
+        return window.opener === null;
+      }),
+    ).toBe(true);
+
+    // The incident is still open, where it was.
+    expect(new URL(page.url()).pathname).toBe(INCIDENT_PATH);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      INCIDENT_PAGE.pageTitle,
+    );
+    await tab.close();
+  });
+
+  test("the note's attachment opens in a new tab once the session is refreshed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page
+      .context()
+      .route(`**${NOTE_ATTACHMENT_PATH}`, async (route: PlaywrightRoute) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "text/plain",
+          body: "runbook",
+        });
+      });
+    await openReady(page, INCIDENT_PAGE, "feed=links-and-quotes");
+
+    const attachment: Locator = savedNote(page).getByRole("link", {
+      name: "runbook.pdf",
+    });
+
+    await expect(attachment).toHaveAttribute("href", NOTE_ATTACHMENT_PATH);
+    await expect(attachment).toHaveAttribute("target", "_blank");
+    await expect(attachment).toHaveAttribute("rel", "noopener noreferrer");
+
+    const [tab] = await Promise.all([
+      page.context().waitForEvent("page"),
+      attachment.click(),
+    ]);
+    await tab.waitForURL(`**${NOTE_ATTACHMENT_PATH}`);
+
+    expect(new URL(tab.url()).pathname).toBe(NOTE_ATTACHMENT_PATH);
+    expect(new URL(page.url()).pathname).toBe(INCIDENT_PATH);
+    expect((await apiRequestsTo(page, "/identity/refresh-token")).length).toBe(
+      1,
+    );
+    await tab.close();
+  });
+
+  test("a link to another incident stays in the tab; one to the docs opens a new one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "feed=links-and-quotes");
+
+    const otherIncident: Locator = savedNote(page).getByRole("link", {
+      name: "Incident #1036",
+    });
+    const docs: Locator = savedNote(page).getByRole("link", {
+      name: "failover runbook",
+    });
+
+    await expect(docs).toHaveAttribute("target", "_blank");
+    await expect(docs).toHaveAttribute("rel", "noopener noreferrer");
+
+    await expect(otherIncident).not.toHaveAttribute("target", /.*/);
+    await expect(otherIncident).not.toHaveAttribute("rel", /.*/);
+    await expect(otherIncident).not.toHaveAttribute("aria-description", /.*/);
+
+    let openedTabs: number = 0;
+    page.context().on("page", () => {
+      openedTabs += 1;
+    });
+
+    await Promise.all([
+      page.waitForURL(`**${incidentPath(1036)}`),
+      otherIncident.click(),
+    ]);
+
+    expect(openedTabs).toBe(0);
+    expect(page.context().pages()).toHaveLength(1);
+  });
+
+  test("quoted text is a quote: a grey bar and lighter text, with no icon", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "feed=links-and-quotes");
+
+    const quote: Locator = savedNote(page)
+      .locator("blockquote")
+      .filter({ hasText: QUOTED_WORDS });
+
+    await expect(quote).toBeVisible();
+    await expect(quote.locator("svg")).toHaveCount(0);
+    await expect(quote).not.toHaveAttribute("role", /.*/);
+
+    expect(
+      await computedStyleOf(quote, [
+        "border-left-width",
+        "border-left-style",
+        "border-left-color",
+        "border-top-width",
+        "background-color",
+        "padding-left",
+      ]),
+    ).toEqual({
+      "border-left-width": "3px",
+      "border-left-style": "solid",
+      // border-gray-300, as the editor draws a quote.
+      "border-left-color": "rgb(209, 213, 219)",
+      "border-top-width": "0px",
+      "background-color": "rgba(0, 0, 0, 0)",
+      "padding-left": "12px",
+    });
+    // text-gray-600: lighter than the note's own text-gray-700.
+    expect(await computedStyleOf(quote.locator("p"), ["color"])).toEqual({
+      color: "rgb(75, 85, 99)",
+    });
+
+    await screenshotElement(savedNote(page), "feed-note-links-and-quotes");
+    await expectNoHorizontalOverflow(page);
+
+    // In text read right to left, the bar is on the side it starts from.
+    await quote.evaluate((element: Element): void => {
+      element.setAttribute("dir", "rtl");
+    });
+    expect(
+      await computedStyleOf(quote, [
+        "border-right-width",
+        "border-left-width",
+        "padding-right",
+      ]),
+    ).toEqual({
+      "border-right-width": "3px",
+      "border-left-width": "0px",
+      "padding-right": "12px",
+    });
+  });
+
+  test("a callout the note asked for is a panel with its sign", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "feed=links-and-quotes");
+
+    const callout: Locator = savedNote(page).getByRole("note", {
+      name: "Warning",
+    });
+
+    await expect(callout).toBeVisible();
+    await expect(callout).toHaveAttribute("data-callout", "warning");
+    expect(await plainText(callout)).toBe(
+      "Do not restart the primary. Fail over to the replica first.",
+    );
+    await expect(callout.locator("svg")).toBeVisible();
+    expect(
+      await computedStyleOf(callout, ["background-color", "border-top-color"]),
+    ).toEqual({
+      // bg-amber-50 and border-amber-200.
+      "background-color": "rgb(255, 251, 235)",
+      "border-top-color": "rgb(253, 230, 138)",
+    });
+  });
+
+  test("in the dark theme the quote and the callout take the theme's colours", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "feed=links-and-quotes&theme=dark");
+
+    const quote: Locator = savedNote(page)
+      .locator("blockquote")
+      .filter({ hasText: QUOTED_WORDS });
+
+    expect(await computedStyleOf(quote, ["border-left-color"])).toEqual({
+      // --ou-border-strong in the dark theme.
+      "border-left-color": "rgb(100, 116, 139)",
+    });
+    expect(await computedStyleOf(quote.locator("p"), ["color"])).toEqual({
+      // --ou-text-muted in the dark theme.
+      color: "rgb(203, 213, 225)",
+    });
+
+    const callout: Locator = savedNote(page).getByRole("note", {
+      name: "Warning",
+    });
+
+    expect(
+      await computedStyleOf(callout, ["background-color", "border-top-color"]),
+    ).toEqual({
+      "background-color": "rgba(120, 53, 15, 0.32)",
+      "border-top-color": "rgba(251, 191, 36, 0.42)",
+    });
+    expect(await computedStyleOf(callout.locator("svg"), ["color"])).toEqual({
+      color: "rgb(251, 191, 36)",
+    });
+
+    await screenshotElement(savedNote(page), "feed-note-links-and-quotes-dark");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * Open in Slack / Open in Microsoft Teams
  * ---------------------------------------------------------------------------
  *

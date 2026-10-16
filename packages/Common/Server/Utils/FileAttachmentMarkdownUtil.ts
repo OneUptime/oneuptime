@@ -12,8 +12,18 @@ import FeedMarkdown, {
 
 export interface FileAttachmentMarkdownInput {
   modelId: ObjectID;
+  /*
+   * The project the note is in. The download route reads it from the
+   * address (`${crudPath}/attachment/:projectId/:noteId/:fileId`) to check
+   * the reader's access, so a link without it was a 404.
+   */
+  projectId: ObjectID | undefined;
   attachmentIds: Array<ObjectID>;
-  attachmentApiPath: string;
+  /*
+   * The note model's download route ("/incident-internal-note/attachment"),
+   * or null for a note that has none: its files are listed by name.
+   */
+  attachmentApiPath: string | null;
 }
 
 export default class FileAttachmentMarkdownUtil {
@@ -73,7 +83,7 @@ export default class FileAttachmentMarkdownUtil {
         }),
     );
 
-    const attachmentLinks: Array<MarkdownText> = [];
+    const attachmentItems: Array<MarkdownText> = [];
 
     for (const id of input.attachmentIds) {
       const key: string = id.toString();
@@ -92,18 +102,30 @@ export default class FileAttachmentMarkdownUtil {
        */
       const fileName: string = file.name || "Attachment";
 
+      // No route to download it from: its name, as text.
+      if (!input.attachmentApiPath || !input.projectId) {
+        attachmentItems.push(mdText`${fileName}`);
+        continue;
+      }
+
+      /*
+       * The route the note's API serves the file at - the one the Notes
+       * page's attachment chips use - opened by the viewer in a tab of its
+       * own.
+       */
       const route: Route = Route.fromString(AppApiRoute.toString())
         .addRoute(input.attachmentApiPath)
+        .addRoute(`/${input.projectId.toString()}`)
         .addRoute(`/${input.modelId.toString()}`)
         .addRoute(`/${key}`);
 
-      attachmentLinks.push(FeedMarkdown.link(fileName, route.toString()));
+      attachmentItems.push(FeedMarkdown.link(fileName, route.toString()));
     }
 
-    if (!attachmentLinks.length) {
+    if (!attachmentItems.length) {
       return FeedMarkdown.empty();
     }
 
-    return mdText`\n\n**Attachments:**\n${FeedMarkdown.bulletList(attachmentLinks)}\n`;
+    return mdText`\n\n**Attachments:**\n${FeedMarkdown.bulletList(attachmentItems)}\n`;
   }
 }

@@ -894,5 +894,13 @@
   "Test again": "Opnieuw testen",
   "Test passed": "Test geslaagd",
   "Test passed, with a warning": "Test geslaagd, met een waarschuwing",
-  "Test failed": "Test mislukt"
+  "Test failed": "Test mislukt",
+  "Opens in a new tab": "Opent in een nieuw tabblad",
+  "Note": "Opmerking",
+  "Tip": "Tip",
+  "Info": "Info",
+  "Important": "Belangrijk",
+  "Warning": "Waarschuwing",
+  "Caution": "Let op",
+  "Danger": "Gevaar"
 }

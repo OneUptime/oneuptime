@@ -30240,14 +30240,19 @@
   "Already passed on": "Déjà transmise",
   "Nothing to pass on": "Rien à transmettre",
   "Use Try again above to load it.": "Cliquez sur « Réessayer » ci-dessus pour la charger.",
+  "Caution": "Attention",
   "Change status": "Changer le statut",
   "Change status to": "Changer le statut en",
   "Change status to {{status}}?": "Changer le statut en {{status}} ?",
+  "Danger": "Danger",
+  "Important": "Important",
   "Monitor actions": "Actions du moniteur",
   "Monitor refreshed.": "Moniteur actualisé.",
+  "Opens in a new tab": "S'ouvre dans un nouvel onglet",
   "Refresh now. This page also refreshes every minute.": "Actualiser maintenant. Cette page s'actualise aussi toutes les minutes.",
   "Refreshed at {{time}}": "Actualisé à {{time}}",
   "The monitor shows {{status}} from now on, here and on every status page that lists it.": "Le moniteur affiche désormais {{status}}, ici et sur chaque page de statut qui le présente.",
   "Change the status from the menu (⋯) at the top of this page. The status timeline keeps every change.": "Changez le statut depuis le menu (⋯) en haut de cette page. La chronologie des statuts conserve chaque changement.",
-  "Status changed to {{status}}.": "Statut changé en {{status}}."
+  "Status changed to {{status}}.": "Statut changé en {{status}}.",
+  "Tip": "Astuce"
 }
