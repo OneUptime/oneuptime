@@ -9804,6 +9804,329 @@ test.describe("Open in Slack / Microsoft Teams", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * Pass it on
+ * ---------------------------------------------------------------------------
+ *
+ * The person an on-call policy is paging about a record, who cannot take
+ * it, passes the page on from its header: the policy pages its next
+ * escalation rule at once instead of waiting. Only they see the button
+ * (?paged= picks the records the viewer is paged about; ?passOn= what
+ * passing on does). It asks first, saying what passing on will do, and then
+ * says what it did, or why there was nothing to pass on.
+ */
+
+function passOnButton(page: Page): Locator {
+  return heroActions(page).getByRole("button", { name: "Pass it on" });
+}
+
+function passOnDialog(page: Page): Locator {
+  return page.getByRole("dialog");
+}
+
+async function dialogLines(page: Page, testId: string): Promise<Array<string>> {
+  return (
+    await passOnDialog(page).getByTestId(testId).locator("p").allInnerTexts()
+  ).map((line: string): string => {
+    return line.trim();
+  });
+}
+
+test.describe("Pass it on", () => {
+  test("somebody the policy is not paging sees no button, and the page asked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "state=created");
+
+    await expect(passOnButton(page)).toHaveCount(0);
+
+    const requests: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      `/on-call-page/pass-on/incident/${INCIDENT_ID}`,
+    );
+    expect(requests).not.toHaveLength(0);
+    expect(requests[0]!.method).toBe("GET");
+  });
+
+  test("the person being paged passes it on: asked first, then told what it did", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "paged=incident&state=created");
+
+    // After the state buttons it is the alternative to.
+    const button: Locator = passOnButton(page);
+    await expect(button).toBeVisible();
+    const order: Array<string> = (
+      await heroActions(page).getByRole("button").allInnerTexts()
+    ).map((text: string): string => {
+      return text.trim();
+    });
+    expect(order).toContain("Acknowledge");
+    expect(order.indexOf("Pass it on")).toBeGreaterThan(
+      order.indexOf("Acknowledge"),
+    );
+
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "incident-hero-pass-on");
+
+    await button.click();
+    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
+      "Pass it on?",
+    );
+    expect(await dialogLines(page, "pass-on-preview")).toEqual([
+      "You won't be paged about it again.",
+      "Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+    ]);
+    await screenshotElement(passOnDialog(page), "pass-on-dialog-ask");
+
+    // Nothing is passed on until they say so.
+    expect(
+      (
+        await apiRequestsTo(
+          page,
+          `/on-call-page/pass-on/incident/${INCIDENT_ID}`,
+        )
+      ).filter((request: RecordedApiRequest): boolean => {
+        return request.method === "POST";
+      }),
+    ).toHaveLength(0);
+
+    await passOnDialog(page).getByTestId("modal-footer-submit-button").click();
+
+    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
+      "You passed it on",
+    );
+    expect(await dialogLines(page, "pass-on-answer")).toEqual([
+      "Escalation rule 2 of 3 (Level 2) is paging Sam Lee and Priya Patel now.",
+      "You won't be paged about it again.",
+    ]);
+    await screenshotElement(passOnDialog(page), "pass-on-dialog-done");
+
+    await passOnDialog(page).getByTestId("modal-footer-submit-button").click();
+    await expect(passOnDialog(page)).toHaveCount(0);
+
+    // No longer paged about it: the button is gone.
+    await expect(passOnButton(page)).toHaveCount(0);
+    expect(
+      (
+        await apiRequestsTo(
+          page,
+          `/on-call-page/pass-on/incident/${INCIDENT_ID}`,
+        )
+      ).filter((request: RecordedApiRequest): boolean => {
+        return request.method === "POST";
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("Cancel passes nothing on", async ({ page }: { page: Page }) => {
+    await openReady(page, INCIDENT_PAGE, "paged=incident&state=created");
+
+    await passOnButton(page).click();
+    await passOnDialog(page).getByTestId("modal-footer-close-button").click();
+
+    await expect(passOnDialog(page)).toHaveCount(0);
+    await expect(passOnButton(page)).toBeVisible();
+    expect(
+      (
+        await apiRequestsTo(
+          page,
+          `/on-call-page/pass-on/incident/${INCIDENT_ID}`,
+        )
+      ).filter((request: RecordedApiRequest): boolean => {
+        return request.method === "POST";
+      }),
+    ).toHaveLength(0);
+  });
+
+  test("others on the rule are still paged: who, and when the policy moves on", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=others",
+    );
+
+    await passOnButton(page).click();
+
+    const lines: Array<string> = await dialogLines(page, "pass-on-preview");
+    expect(lines[1]).toContain(
+      "Bob Smith is still being paged. If nobody acknowledges by ",
+    );
+    expect(lines[1]).toContain(", escalation rule 2 of 3 (Level 2) is next.");
+    await screenshotElement(passOnDialog(page), "pass-on-dialog-others");
+  });
+
+  test("two policies paging about the same record: each line names its policy", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=two",
+    );
+
+    await passOnButton(page).click();
+
+    expect(await dialogLines(page, "pass-on-preview")).toEqual([
+      "You won't be paged about it again.",
+      "Checkout on-call: Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+      "Payments escalation: Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+    ]);
+  });
+
+  test("somebody acknowledged it meanwhile: it says so, and nothing is passed on", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=acknowledged",
+    );
+
+    await passOnButton(page).click();
+    await passOnDialog(page).getByTestId("modal-footer-submit-button").click();
+
+    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
+      "Pass it on",
+    );
+    expect(await dialogLines(page, "pass-on-answer")).toEqual([
+      "Sam Lee acknowledged it already, so there is nothing to pass on.",
+    ]);
+  });
+
+  test("a failed request keeps the question open, with an error", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&fail=pass-on",
+    );
+
+    await passOnButton(page).click();
+    await passOnDialog(page).getByTestId("modal-footer-submit-button").click();
+
+    await expect(
+      passOnDialog(page).getByText("Could not pass it on. Please try again."),
+    ).toBeVisible();
+    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
+      "Pass it on?",
+    );
+  });
+
+  test("when the server cannot say, there is no button and nothing breaks", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&fail=pass-on-read",
+    );
+
+    await expect(passOnButton(page)).toHaveCount(0);
+    await expectNoErrorStates(page);
+  });
+
+  for (const passOnPage of [
+    { eventPage: ALERT_PAGE, recordType: "alert" },
+    { eventPage: INCIDENT_EPISODE_PAGE, recordType: "incident-episode" },
+    { eventPage: ALERT_EPISODE_PAGE, recordType: "alert-episode" },
+  ]) {
+    test(`the ${passOnPage.recordType} page has it too`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(
+        page,
+        passOnPage.eventPage,
+        `paged=${passOnPage.recordType}&state=created`,
+      );
+
+      await expect(passOnButton(page)).toBeVisible();
+      expect(
+        await apiRequestsTo(
+          page,
+          `/on-call-page/pass-on/${passOnPage.recordType}/${
+            new URL(page.url()).pathname.split("/").pop() || ""
+          }`,
+        ),
+      ).not.toHaveLength(0);
+    });
+  }
+
+  test("scheduled maintenance pages nobody, so it never asks", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, SCHEDULED_MAINTENANCE_PAGE, "paged=incident");
+
+    await expect(passOnButton(page)).toHaveCount(0);
+    expect(
+      (await fixture(page)).apiRequests.filter(
+        (request: RecordedApiRequest): boolean => {
+          return request.url.includes("/on-call-page/pass-on/");
+        },
+      ),
+    ).toHaveLength(0);
+  });
+
+  test("a phone shows the button and the dialog without sideways scrolling", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE, "paged=incident&state=created");
+
+    await expect(passOnButton(page)).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "incident-hero-pass-on-mobile");
+
+    await passOnButton(page).click();
+    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
+      "Pass it on?",
+    );
+    await expectNoHorizontalOverflow(page);
+    await screenshot(page, "pass-on-dialog-mobile", { fullPage: false });
+  });
+
+  test("in the dark theme", async ({ page }: { page: Page }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&theme=dark",
+    );
+
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "incident-hero-pass-on-dark");
+    await passOnButton(page).click();
+    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
+      "Pass it on?",
+    );
+    await screenshotElement(passOnDialog(page), "pass-on-dialog-ask-dark");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * The record's channel card: who is in its channel, Join channel, Add people
  * ---------------------------------------------------------------------------
  *
