@@ -1,3 +1,4 @@
+import { NO_BREAK_SPACE } from "./FeedStatusPanel";
 import {
   UpcomingShiftSpan,
   getCoverWindowForSpan,
@@ -76,11 +77,22 @@ export const UPCOMING_SHIFT_TILE_DAY_CLASS_NAME: string =
   "mt-1 text-lg font-semibold leading-none";
 
 /*
+ * The day and the times. On a 320px phone this column is some 150px wide,
+ * so every part of it may wrap - the day's label too ("Сейчас на
+ * дежурстве" is wider than that) - except a time, which never breaks
+ * inside itself.
+ */
+export const UPCOMING_SHIFT_WHEN_CLASS_NAME: string =
+  "text-sm leading-6 text-gray-900";
+
+/*
  * The facts that make a span different from a plain shift of yours, in the
- * pill shape the link card's status uses. Colours Theme.css remaps.
+ * pill shape the link card's status uses. Its corners are a pill's on one
+ * line and a soft box's when a long name wraps it onto three, where a full
+ * rounding drew a stadium. Colours Theme.css remaps.
  */
 export const UPCOMING_SHIFT_BADGE_CLASS_NAME: string =
-  "inline-flex max-w-full items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset";
+  "inline-flex max-w-full items-center rounded-xl px-2 py-0.5 text-xs font-medium ring-1 ring-inset";
 
 export const UPCOMING_SHIFT_COVERING_BADGE_CLASS_NAME: string =
   "bg-blue-50 text-blue-700 ring-blue-200";
@@ -99,9 +111,22 @@ export const UPCOMING_SHIFT_POLICY_BADGE_CLASS_NAME: string =
 export const UPCOMING_SHIFT_END_CLASS_NAME: string =
   "flex min-w-0 flex-wrap items-center gap-x-4 gap-y-0.5 sm:flex-none sm:flex-col sm:flex-nowrap sm:items-end";
 
+/*
+ * The dot between two facts. Its spaces are inside it, so a line that has
+ * to break can: a separator drawn with margins and no spaces glued the
+ * facts on both sides into one unbreakable word, which ran past a 320px
+ * phone in Russian. The space before the dot does not break, so a line
+ * never starts with one.
+ */
+export const UPCOMING_SHIFT_SEPARATOR: string = `${NO_BREAK_SPACE}· `;
+
 const SEPARATOR: ReactElement = (
-  <span className="mx-1.5 text-gray-300" aria-hidden="true">
-    ·
+  <span
+    className="text-gray-300"
+    aria-hidden="true"
+    data-testid="upcoming-shift-separator"
+  >
+    {UPCOMING_SHIFT_SEPARATOR}
   </span>
 );
 
@@ -110,6 +135,28 @@ const Unbroken: (text: string) => ReactElement = (
   text: string,
 ): ReactElement => {
   return <span className="whitespace-nowrap">{text}</span>;
+};
+
+/*
+ * The word next to a time of day keeps to it: "bis" is never left at the
+ * end of one line with "22:00" on the next. Only a time of day: glued to a
+ * whole date ("до пт, 13 нояб., 19:20") the pair would be wider than a
+ * 320px phone's column. The spaces between a phrase's words still break.
+ */
+export const keepWithTime: (text: string) => string = (
+  text: string,
+): string => {
+  let kept: string = text;
+
+  if (kept.startsWith(" ")) {
+    kept = `${NO_BREAK_SPACE}${kept.slice(1)}`;
+  }
+
+  if (kept.endsWith(" ")) {
+    kept = `${kept.slice(0, -1)}${NO_BREAK_SPACE}`;
+  }
+
+  return kept;
 };
 
 const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
@@ -226,7 +273,8 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
 
   if (span.isOnCallNow) {
     // Today's end as a time, a later one with its day.
-    const until: string = isSameShiftDay(now, span.end, clock)
+    const endsToday: boolean = isSameShiftDay(now, span.end, clock);
+    const until: string = endsToday
       ? formatShiftTime(span.end, clock)
       : formatShiftDateTime(span.end, clock);
 
@@ -245,6 +293,7 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
               span.mayContinue ? "until at least {{time}}" : "until {{time}}"
             }
             slots={{ time: Unbroken(until) }}
+            renderText={endsToday ? keepWithTime : undefined}
           />
         </span>
       </>
@@ -299,7 +348,7 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
       <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-x-6 gap-y-2">
         <div className="min-w-0">
           <p
-            className="text-sm leading-6 text-gray-900"
+            className={UPCOMING_SHIFT_WHEN_CLASS_NAME}
             title={fullRange}
             data-testid="upcoming-shift-when"
           >
@@ -357,7 +406,7 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
 
         <div className={UPCOMING_SHIFT_END_CLASS_NAME}>
           <span
-            className="whitespace-nowrap text-sm leading-6 text-gray-500"
+            className="text-sm leading-6 text-gray-500 sm:whitespace-nowrap"
             data-testid="upcoming-shift-length"
           >
             {lengthText}

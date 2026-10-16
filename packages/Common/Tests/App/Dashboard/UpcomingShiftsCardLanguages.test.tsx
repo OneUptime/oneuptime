@@ -64,6 +64,10 @@ import russianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/ru.j
 import japaneseLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import persianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import UpcomingShiftsCard from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/UpcomingShiftsCard";
+import {
+  UPCOMING_SHIFT_SEPARATOR,
+  keepWithTime,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/UpcomingShiftRow";
 import OneUptimeDate from "../../../Types/Date";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
@@ -397,6 +401,62 @@ describe("in German", () => {
       "mindestens bis Sa., 14. Nov., 15:00",
     );
     expect(text(row, "upcoming-shift-length")).toBe("Noch mindestens 31 Tage");
+  });
+});
+
+describe("where a row's line may break", () => {
+  const NO_BREAK_SPACE: string = "\u{00a0}";
+
+  test("a time of day keeps the word next to it, and the dot the word before it", () => {
+    expect(keepWithTime("bis ")).toBe(`bis${NO_BREAK_SPACE}`);
+    expect(keepWithTime(" まで")).toBe(`${NO_BREAK_SPACE}まで`);
+    // Only the space next to the time: the phrase's own words still break.
+    expect(keepWithTime("как минимум до ")).toBe(
+      `как минимум до${NO_BREAK_SPACE}`,
+    );
+    expect(keepWithTime("until")).toBe("until");
+    expect(UPCOMING_SHIFT_SEPARATOR).toBe(`${NO_BREAK_SPACE}· `);
+  });
+
+  test("in German, 'bis' keeps to today's end; a later end, a whole date, may break from its words", async () => {
+    const turns: Array<MaterializedShiftJson> = [];
+
+    for (let index: number = 0; index < 31; index++) {
+      turns.push(
+        shift({
+          shiftKey: `turn-${index}`,
+          start: at(-HOUR + index * DAY),
+          end: at(-HOUR + (index + 1) * DAY),
+        }),
+      );
+    }
+
+    const [today] = (await renderIn(
+      german,
+      Timezone.EuropeBerlin,
+      [shift({ shiftKey: "now", start: at(-2 * HOUR), end: at(6 * HOUR) })],
+      1,
+    )) as [HTMLElement];
+
+    expect(
+      within(today).getByTestId("upcoming-shift-times").textContent,
+    ).toBe(`bis${NO_BREAK_SPACE}23:00`);
+
+    cleanup();
+
+    const [later] = (await renderIn(
+      german,
+      Timezone.EuropeBerlin,
+      turns,
+      1,
+    )) as [HTMLElement];
+
+    const laterText: string =
+      within(later).getByTestId("upcoming-shift-times").textContent || "";
+
+    expect(plain(laterText)).toBe("mindestens bis Sa., 14. Nov., 15:00");
+    // A plain space after "bis": a whole date may go to the next line.
+    expect(laterText.charAt("mindestens bis".length)).toBe(" ");
   });
 });
 

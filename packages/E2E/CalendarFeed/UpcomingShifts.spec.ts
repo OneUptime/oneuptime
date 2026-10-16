@@ -91,6 +91,15 @@ async function shiftReads(page: Page): Promise<Array<FixtureRequest>> {
   });
 }
 
+// Runs of white space, no-break spaces included, as toHaveText reads them.
+const WHITE_SPACE: RegExp = /\s+/g;
+
+async function textsOf(locator: Locator): Promise<Array<string>> {
+  return (await locator.allTextContents()).map((text: string): string => {
+    return text.replace(WHITE_SPACE, " ").trim();
+  });
+}
+
 async function box(locator: Locator): Promise<Box> {
   const found: Box | null = await locator.boundingBox();
 
@@ -102,6 +111,36 @@ async function box(locator: Locator): Promise<Box> {
 async function horizontalOverflow(page: Page): Promise<number> {
   return await page.evaluate(() => {
     return document.documentElement.scrollWidth - window.innerWidth;
+  });
+}
+
+/*
+ * What in the list runs past the list's own right edge. A screen-wide check
+ * misses it: a row's text can run past the card's edge and still stop short
+ * of the screen's.
+ */
+async function pastTheListEdge(page: Page): Promise<Array<string>> {
+  return await page.evaluate(() => {
+    const list: Element | null = document.querySelector(
+      "[data-testid='upcoming-shifts-list']",
+    );
+
+    if (!list) {
+      return ["no list"];
+    }
+
+    const edge: number = list.getBoundingClientRect().right;
+    const past: Array<string> = [];
+
+    for (const element of Array.from(list.querySelectorAll("*"))) {
+      const rect: DOMRect = element.getBoundingClientRect();
+
+      if (rect.width > 0 && rect.right > edge + 0.5) {
+        past.push((element.textContent || "").slice(0, 60));
+      }
+    }
+
+    return past;
   });
 }
 
@@ -224,23 +263,21 @@ test.describe("a mixed month on a laptop", () => {
 
     await expect(rows(page)).toHaveCount(8);
 
-    const texts: Array<string> = await rows(page)
-      .getByTestId("upcoming-shift-when")
-      .allTextContents();
-
-    expect(texts).toEqual([
-      "On call now·until 22:00",
-      "Tomorrow·10:00 – 18:00",
-      "Saturday·23:00 – Sun, Oct 18, 07:00",
-      "Tuesday·10:00 – Tue, Oct 27, 09:00",
-      "Friday·09:00 – 17:00",
-      "Tuesday·09:00 – 17:00",
-      "Saturday·10:00 – 18:00",
-      "Thursday·18:00 – at least Sat, Nov 14, 18:00",
+    expect(
+      await textsOf(rows(page).getByTestId("upcoming-shift-when")),
+    ).toEqual([
+      "On call now · until 22:00",
+      "Tomorrow · 10:00 – 18:00",
+      "Saturday · 23:00 – Sun, Oct 18, 07:00",
+      "Tuesday · 10:00 – Tue, Oct 27, 09:00",
+      "Friday · 09:00 – 17:00",
+      "Tuesday · 09:00 – 17:00",
+      "Saturday · 10:00 – 18:00",
+      "Thursday · 18:00 – at least Sat, Nov 14, 18:00",
     ]);
 
     expect(
-      await rows(page).getByTestId("upcoming-shift-length").allTextContents(),
+      await textsOf(rows(page).getByTestId("upcoming-shift-length")),
     ).toEqual([
       "6 hours left",
       "8 hours",
@@ -253,7 +290,7 @@ test.describe("a mixed month on a laptop", () => {
     ]);
 
     expect(
-      await rows(page).getByTestId("upcoming-shift-tile").allTextContents(),
+      await textsOf(rows(page).getByTestId("upcoming-shift-tile")),
     ).toEqual([
       "Oct14",
       "Oct15",
@@ -284,9 +321,9 @@ test.describe("a mixed month on a laptop", () => {
     );
 
     // Layers with names of their own are named; "Layer 1" is never shown.
-    expect(
-      await page.getByTestId("upcoming-shift-layer").allTextContents(),
-    ).toEqual(["Weekdays", "Weekend"]);
+    expect(await textsOf(page.getByTestId("upcoming-shift-layer"))).toEqual(
+      ["Weekdays", "Weekend"],
+    );
     await expect(card(page)).not.toContainText("Layer 1");
     await expect(page.getByTestId("upcoming-shifts-list")).not.toContainText(
       "SYSNETIX DEMO",
@@ -446,6 +483,35 @@ test.describe("a phone", () => {
     await screenshot(page, "mixed-de-360");
   });
 
+  /*
+   * The text column of a row is some 150px wide on a 320px phone. A label
+   * kept on one line ("Сейчас на дежурстве"), a dot glued to it, or a word
+   * glued to a whole date ("mindestens Sa., 14. Nov., 18:00") all ran past
+   * the list's edge there; every part of a row now wraps but a time.
+   */
+  test("at 320px in Russian and German nothing in a row runs past the list's edge", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const query of [
+      "shifts=mixed&lang=ru",
+      "shifts=daily&lang=ru",
+      "shifts=mixed&lang=de",
+    ]) {
+      await open(page, query, 320, new Date("2026-10-14T15:56:00.000Z"));
+
+      await expect(rows(page).first()).toBeVisible();
+      expect({ query, past: await pastTheListEdge(page) }).toEqual({
+        query,
+        past: [],
+      });
+      expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    }
+
+    await screenshot(page, "mixed-de-320");
+  });
+
   test("long schedule, cover and policy names wrap inside the card", async ({
     page,
   }: {
@@ -596,7 +662,7 @@ test.describe("across the end of summer time in London", () => {
     const night: Locator = rows(page).nth(1);
 
     await expect(turns.getByTestId("upcoming-shift-when")).toHaveText(
-      "Today·17:20 – Mon, Oct 26, 17:20",
+      "Today · 17:20 – Mon, Oct 26, 17:20",
     );
     await expect(turns.getByTestId("upcoming-shift-length")).toHaveText(
       "4 days",
@@ -607,7 +673,7 @@ test.describe("across the end of summer time in London", () => {
     );
 
     await expect(night.getByTestId("upcoming-shift-when")).toHaveText(
-      "Sunday·00:00 – 08:00",
+      "Sunday · 00:00 – 08:00",
     );
     await expect(night.getByTestId("upcoming-shift-length")).toHaveText(
       "9 hours",
@@ -666,7 +732,7 @@ test.describe("in other languages", () => {
       const now: Locator = rows(page).first();
 
       await expect(now.getByTestId("upcoming-shift-when")).toHaveText(
-        "Jetzt in Bereitschaft·bis 23:00",
+        "Jetzt in Bereitschaft · bis 23:00",
       );
       await expect(now.getByTestId("upcoming-shift-length")).toHaveText(
         "Noch 6 Stunden",
@@ -674,7 +740,7 @@ test.describe("in other languages", () => {
       await expect(now.getByRole("link", { name: "Vertretung finden" })).toBeVisible();
 
       await expect(rows(page).nth(1).getByTestId("upcoming-shift-when")).toHaveText(
-        "Morgen·11:00 – 19:00",
+        "Morgen · 11:00 – 19:00",
       );
       await expect(rows(page).nth(1).getByTestId("upcoming-shift-tile")).toHaveText(
         "Okt15",
@@ -720,10 +786,10 @@ test.describe("in other languages", () => {
       await expect(rows(page)).toHaveCount(8);
       await expect(card(page)).toContainText("今後のシフト");
       await expect(rows(page).first().getByTestId("upcoming-shift-when")).toHaveText(
-        "現在のオンコール·6:00 まで",
+        "現在のオンコール · 6:00 まで",
       );
       await expect(rows(page).nth(1).getByTestId("upcoming-shift-when")).toHaveText(
-        "今日·18:00 – 10月16日(金) 2:00",
+        "今日 · 18:00 – 10月16日(金) 2:00",
       );
 
       await screenshot(page, "mixed-ja");
