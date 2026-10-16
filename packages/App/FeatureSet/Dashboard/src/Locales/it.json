@@ -3011,7 +3011,6 @@
   "How Often": "Con quale frequenza",
   "How often monitors created from this template will be evaluated, and how many probes must agree before the status changes.": "Con quale frequenza verranno valutati i monitor creati da questo modello e quante sonde devono concordare prima che lo stato cambi.",
   "How often the report will be sent.": "Con quale frequenza verrà inviato il report.",
-  "How often would you like this event to recur? You can choose from daily, weekly, monthly, or yearly.": "Con quale frequenza desideri che questo evento si ripeta? Puoi scegliere tra giornaliera, settimanale, mensile o annuale.",
   "How often would you like to send reports?": "Con quale frequenza desideri inviare i report?",
   "How often would you like to send reports? You can choose from daily, weekly, monthly, or yearly.": "Con quale frequenza desideri inviare i report? Puoi scegliere tra giornaliera, settimanale, mensile o annuale.",
   "How often would you this event to recur?": "Con quale frequenza desideri che questo evento si ripeta?",
@@ -20246,7 +20245,7 @@
   "Never run yet. Click {{runNow}} to start one.": "Never run yet. Click {{runNow}} to start one.",
   "New in this window: every one of the {{count}} occurrences landed in its second half, with none before.": "New in this window: every one of the {{count}} occurrences landed in its second half, with none before.",
   "New in this window: every one of the {{count}} occurrences landed in its second half, with none before._one": "New in this window: every one of the {{count}} occurrences landed in its second half, with none before.",
-  "Next event will be scheduled at {{date}}": "Next event will be scheduled at {{date}}",
+  "Next event will be scheduled at {{date}}": "Il prossimo evento verrà pianificato il {{date}}",
   "Next reminder: {{date}}": "Next reminder: {{date}}",
   "Next report": "Prossimo report",
   "Next scan {{time}}": "Next scan {{time}}",
@@ -29804,5 +29803,6 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "Ogni email che corrisponde apre un proprio incidente, anche se quelli precedenti sono ancora aperti. Le risposte vengono aggiunte a quell'incidente come note finché non viene risolto.",
   "alerts for every email": "avvisi per ogni email",
   "incidents for every email": "incidenti per ogni email",
-  "alerts and incidents for every email": "avvisi e incidenti per ogni email"
+  "alerts and incidents for every email": "avvisi e incidenti per ogni email",
+  "A number and a unit: hours, days, weeks, months or years.": "Un numero e un'unità: ore, giorni, settimane, mesi o anni."
 }

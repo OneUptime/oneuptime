@@ -3011,7 +3011,6 @@
   "How Often": "Как часто",
   "How often monitors created from this template will be evaluated, and how many probes must agree before the status changes.": "Как часто будут оцениваться мониторы, созданные из этого шаблона, и сколько зондов должны согласиться, прежде чем статус изменится.",
   "How often the report will be sent.": "Как часто будет отправляться отчёт.",
-  "How often would you like this event to recur? You can choose from daily, weekly, monthly, or yearly.": "Как часто вы хотите, чтобы это событие повторялось? Можно выбрать ежедневно, еженедельно, ежемесячно или ежегодно.",
   "How often would you like to send reports?": "Как часто вы хотите отправлять отчёты?",
   "How often would you like to send reports? You can choose from daily, weekly, monthly, or yearly.": "Как часто вы хотите отправлять отчёты? Можно выбрать ежедневно, еженедельно, ежемесячно или ежегодно.",
   "How often would you this event to recur?": "Как часто вы хотите, чтобы это событие повторялось?",
@@ -20246,7 +20245,7 @@
   "Never run yet. Click {{runNow}} to start one.": "Never run yet. Click {{runNow}} to start one.",
   "New in this window: every one of the {{count}} occurrences landed in its second half, with none before.": "New in this window: every one of the {{count}} occurrences landed in its second half, with none before.",
   "New in this window: every one of the {{count}} occurrences landed in its second half, with none before._one": "New in this window: every one of the {{count}} occurrences landed in its second half, with none before.",
-  "Next event will be scheduled at {{date}}": "Next event will be scheduled at {{date}}",
+  "Next event will be scheduled at {{date}}": "Следующее событие будет запланировано на {{date}}",
   "Next reminder: {{date}}": "Next reminder: {{date}}",
   "Next report": "Следующий отчёт",
   "Next scan {{time}}": "Next scan {{time}}",
@@ -29804,5 +29803,6 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "Каждое подходящее письмо открывает свой инцидент, даже пока прежние ещё открыты. Ответы добавляются к этому инциденту как заметки, пока он не будет устранён.",
   "alerts for every email": "оповещения для каждого письма",
   "incidents for every email": "инциденты для каждого письма",
-  "alerts and incidents for every email": "оповещения и инциденты для каждого письма"
+  "alerts and incidents for every email": "оповещения и инциденты для каждого письма",
+  "A number and a unit: hours, days, weeks, months or years.": "Число и единица: часы, дни, недели, месяцы или годы."
 }

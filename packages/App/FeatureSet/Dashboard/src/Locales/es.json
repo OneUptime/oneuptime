@@ -3011,7 +3011,6 @@
   "How Often": "Con qué frecuencia",
   "How often monitors created from this template will be evaluated, and how many probes must agree before the status changes.": "Con qué frecuencia se evaluarán los monitores creados a partir de esta plantilla, y cuántas sondas deben coincidir antes de que cambie el estado.",
   "How often the report will be sent.": "Con qué frecuencia se enviará el informe.",
-  "How often would you like this event to recur? You can choose from daily, weekly, monthly, or yearly.": "¿Con qué frecuencia quieres que se repita este evento? Puedes elegir entre diario, semanal, mensual o anual.",
   "How often would you like to send reports?": "¿Con qué frecuencia le gustaría enviar informes?",
   "How often would you like to send reports? You can choose from daily, weekly, monthly, or yearly.": "¿Con qué frecuencia quieres enviar informes? Puedes elegir entre diario, semanal, mensual o anual.",
   "How often would you this event to recur?": "¿Con qué frecuencia quieres que se repita este evento?",
@@ -29804,5 +29803,6 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "Cada correo que coincide abre su propio incidente, aunque los anteriores sigan abiertos. Las respuestas se añaden a ese incidente como notas hasta que se resuelva.",
   "alerts for every email": "alertas por cada correo",
   "incidents for every email": "incidentes por cada correo",
-  "alerts and incidents for every email": "alertas e incidentes por cada correo"
+  "alerts and incidents for every email": "alertas e incidentes por cada correo",
+  "A number and a unit: hours, days, weeks, months or years.": "Un número y una unidad: horas, días, semanas, meses o años."
 }

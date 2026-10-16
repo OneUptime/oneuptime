@@ -3011,7 +3011,6 @@
   "How Often": "هر چند وقت",
   "How often monitors created from this template will be evaluated, and how many probes must agree before the status changes.": "اینکه مانیتورهای ساخته‌شده از این قالب هر چند وقت یک بار ارزیابی شوند و پیش از تغییر وضعیت چند پراب باید هم‌نظر باشند.",
   "How often the report will be sent.": "اینکه گزارش هر چند وقت یک بار فرستاده شود.",
-  "How often would you like this event to recur? You can choose from daily, weekly, monthly, or yearly.": "می‌خواهید این رویداد هر چند وقت یک بار تکرار شود؟ می‌توانید روزانه، هفتگی، ماهانه یا سالانه را انتخاب کنید.",
   "How often would you like to send reports?": "می‌خواهید گزارش‌ها هر چند وقت یک بار فرستاده شوند؟",
   "How often would you like to send reports? You can choose from daily, weekly, monthly, or yearly.": "می‌خواهید گزارش‌ها هر چند وقت یک بار فرستاده شوند؟ می‌توانید روزانه، هفتگی، ماهانه یا سالانه را انتخاب کنید.",
   "How often would you this event to recur?": "می‌خواهید این رویداد هر چند وقت یک بار تکرار شود؟",
@@ -20246,7 +20245,7 @@
   "Never run yet. Click {{runNow}} to start one.": "Never run yet. Click {{runNow}} to start one.",
   "New in this window: every one of the {{count}} occurrences landed in its second half, with none before.": "New in this window: every one of the {{count}} occurrences landed in its second half, with none before.",
   "New in this window: every one of the {{count}} occurrences landed in its second half, with none before._one": "New in this window: every one of the {{count}} occurrences landed in its second half, with none before.",
-  "Next event will be scheduled at {{date}}": "Next event will be scheduled at {{date}}",
+  "Next event will be scheduled at {{date}}": "رویداد بعدی در {{date}} زمان‌بندی می‌شود",
   "Next reminder: {{date}}": "Next reminder: {{date}}",
   "Next report": "گزارش بعدی",
   "Next scan {{time}}": "Next scan {{time}}",
@@ -29804,5 +29803,6 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "هر ایمیلی که مطابقت داشته باشد حادثه‌ی جداگانه‌ی خودش را باز می‌کند، حتی اگر موارد قبلی هنوز باز باشند. پاسخ‌ها تا وقتی آن حادثه برطرف نشده به‌عنوان یادداشت به آن اضافه می‌شوند.",
   "alerts for every email": "هشدار برای هر ایمیل",
   "incidents for every email": "حادثه برای هر ایمیل",
-  "alerts and incidents for every email": "هشدار و حادثه برای هر ایمیل"
+  "alerts and incidents for every email": "هشدار و حادثه برای هر ایمیل",
+  "A number and a unit: hours, days, weeks, months or years.": "یک عدد و یک واحد: ساعت، روز، هفته، ماه یا سال."
 }

@@ -102,7 +102,7 @@ Per esempio, una finestra settimanale il cui primo evento viene creato un luned�
 
 Impostate **Primo evento pianificato alle** con tutto l'anticipo con cui volete che i vostri clienti vengano a sapere del lavoro. Tutte e tre le ore devono essere nel futuro quando create il modello, l'evento deve essere creato prima di iniziare e di terminare, e deve iniziare prima di terminare; il modulo dice quale regola viola un'ora.
 
-Un processo controlla i modelli ricorrenti ogni minuto. Quando arriva la prossima ora di un modello, sposta quell'ora avanti di un intervallo e crea l'evento. L'elenco dei modelli mostra quell'ora nella sua colonna **Evento ricorrente**. Un evento creato dalla pianificazione è come qualsiasi altro: le sue regole vengono eseguite, i suoi proprietari vengono aggiunti e i suoi iscritti vengono a sapere che è pianificato.
+Un processo controlla i modelli ricorrenti ogni minuto. Quando arriva la prossima ora di un modello, sposta quell'ora avanti di un intervallo e crea l'evento. L'elenco dei modelli mostra quell'ora nella sua colonna **Evento ricorrente**, e **No** per un modello che non si ripete. Un evento creato dalla pianificazione è come qualsiasi altro: le sue regole vengono eseguite, i suoi proprietari vengono aggiunti e i suoi iscritti vengono a sapere che è pianificato.
 
 ## Modificare o fermare un modello
 
@@ -112,7 +112,7 @@ Aprite un modello dall'elenco per vedere la sua pagina:
 - **Risorse interessate** contiene i suoi **Monitor**, il loro **Cambia lo stato del monitor in** e le sue **Altre risorse interessate**, con un proprio **Modifica**.
 - **Proprietari** elenca le persone e i team a cui appartiene ogni evento pianificato da esso.
 
-Le modifiche valgono per gli eventi creati dopo averle salvate; gli eventi già creati conservano i propri valori. Per fermare una pianificazione, disattivate **Evento ricorrente** in **Modifica**, oppure eliminate il modello. Eliminare un modello lascia gli eventi che ha creato.
+Le modifiche valgono per gli eventi creati dopo averle salvate; gli eventi già creati conservano i propri valori. Per fermare una pianificazione, disattivate **Evento ricorrente** in **Modifica**, oppure eliminate il modello. Un modello disattivato conserva la sua pianificazione: riattivatelo, e riprende dalla prossima ora della pianificazione, saltando le ore in cui era disattivato. Eliminare un modello lascia gli eventi che ha creato.
 
 ## Risoluzione dei problemi
 

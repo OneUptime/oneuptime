@@ -3011,7 +3011,6 @@
   "How Often": "How Often",
   "How often monitors created from this template will be evaluated, and how many probes must agree before the status changes.": "How often monitors created from this template will be evaluated, and how many probes must agree before the status changes.",
   "How often the report will be sent.": "How often the report will be sent.",
-  "How often would you like this event to recur? You can choose from daily, weekly, monthly, or yearly.": "How often would you like this event to recur? You can choose from daily, weekly, monthly, or yearly.",
   "How often would you like to send reports?": "How often would you like to send reports?",
   "How often would you like to send reports? You can choose from daily, weekly, monthly, or yearly.": "How often would you like to send reports? You can choose from daily, weekly, monthly, or yearly.",
   "How often would you this event to recur?": "How often would you this event to recur?",
@@ -29804,5 +29803,6 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.",
   "alerts for every email": "alerts for every email",
   "incidents for every email": "incidents for every email",
-  "alerts and incidents for every email": "alerts and incidents for every email"
+  "alerts and incidents for every email": "alerts and incidents for every email",
+  "A number and a unit: hours, days, weeks, months or years.": "A number and a unit: hours, days, weeks, months or years."
 }

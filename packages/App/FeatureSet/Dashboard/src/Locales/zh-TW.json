@@ -3011,7 +3011,6 @@
   "How Often": "頻率",
   "How often monitors created from this template will be evaluated, and how many probes must agree before the status changes.": "從此範本建立的監測器將以多久的頻率進行評估，以及在狀態變更前必須有多少個探測器達成一致。",
   "How often the report will be sent.": "報告傳送的頻率。",
-  "How often would you like this event to recur? You can choose from daily, weekly, monthly, or yearly.": "您希望此事件以多久的頻率重複？您可以選擇每日、每週、每月或每年。",
   "How often would you like to send reports?": "您希望以多久的頻率傳送報告？",
   "How often would you like to send reports? You can choose from daily, weekly, monthly, or yearly.": "您希望以多久的頻率傳送報告？您可以選擇每日、每週、每月或每年。",
   "How often would you this event to recur?": "您希望此事件以多久的頻率重複？",
@@ -20246,7 +20245,7 @@
   "Never run yet. Click {{runNow}} to start one.": "Never run yet. Click {{runNow}} to start one.",
   "New in this window: every one of the {{count}} occurrences landed in its second half, with none before.": "New in this window: every one of the {{count}} occurrences landed in its second half, with none before.",
   "New in this window: every one of the {{count}} occurrences landed in its second half, with none before._one": "New in this window: every one of the {{count}} occurrences landed in its second half, with none before.",
-  "Next event will be scheduled at {{date}}": "Next event will be scheduled at {{date}}",
+  "Next event will be scheduled at {{date}}": "下個事件將排定於 {{date}}",
   "Next reminder: {{date}}": "Next reminder: {{date}}",
   "Next report": "下一份報告",
   "Next scan {{time}}": "Next scan {{time}}",
@@ -29804,5 +29803,6 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "每封相符的電子郵件都會新建一個獨立的事件，即使先前的仍未關閉。在該事件解決之前，回覆會以備註加入其中。",
   "alerts for every email": "每封電子郵件一個警示",
   "incidents for every email": "每封電子郵件一個事件",
-  "alerts and incidents for every email": "每封電子郵件一個警示和事件"
+  "alerts and incidents for every email": "每封電子郵件一個警示和事件",
+  "A number and a unit: hours, days, weeks, months or years.": "一個數字和一個單位：小時、天、週、月或年。"
 }

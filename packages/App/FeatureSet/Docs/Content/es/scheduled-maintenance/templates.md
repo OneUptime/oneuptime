@@ -102,7 +102,7 @@ Por ejemplo, una ventana semanal cuyo primer evento se crea un lunes para el sá
 
 Pon **Primer evento programado a las** con tanta antelación al inicio como quieras que tus clientes se enteren del trabajo. Las tres horas deben estar en el futuro al crear la plantilla, el evento debe crearse antes de empezar y de terminar, y debe empezar antes de terminar; el formulario dice qué regla incumple una hora.
 
-Una tarea revisa las plantillas recurrentes cada minuto. Cuando llega la próxima hora de una plantilla, adelanta esa hora un intervalo y crea el evento. La lista de plantillas muestra esa hora en su columna **Evento recurrente**. Un evento creado por la programación es como cualquier otro: se ejecutan sus reglas, se añaden sus propietarios y sus suscriptores se enteran de que está programado.
+Una tarea revisa las plantillas recurrentes cada minuto. Cuando llega la próxima hora de una plantilla, adelanta esa hora un intervalo y crea el evento. La lista de plantillas muestra esa hora en su columna **Evento recurrente**, y **No** para una plantilla que no se repite. Un evento creado por la programación es como cualquier otro: se ejecutan sus reglas, se añaden sus propietarios y sus suscriptores se enteran de que está programado.
 
 ## Cambiar o detener una plantilla
 
@@ -112,7 +112,7 @@ Abre una plantilla desde la lista para ver su página:
 - **Recursos afectados** contiene sus **Monitores**, su **Cambiar el estado del monitor a** y sus **Otros recursos afectados**, con su propio **Editar**.
 - **Propietarios** lista las personas y los equipos a los que pertenece cada evento programado a partir de ella.
 
-Los cambios se aplican a los eventos creados después de guardarlos; los eventos ya creados conservan sus propios valores. Para detener una programación, desactiva **Evento recurrente** en **Editar**, o elimina la plantilla. Eliminar una plantilla deja los eventos que creó.
+Los cambios se aplican a los eventos creados después de guardarlos; los eventos ya creados conservan sus propios valores. Para detener una programación, desactiva **Evento recurrente** en **Editar**, o elimina la plantilla. Una plantilla desactivada conserva su programación: vuelve a activarla y retoma la próxima hora de la programación, saltándose las horas en que estuvo desactivada. Eliminar una plantilla deja los eventos que creó.
 
 ## Solución de problemas
 

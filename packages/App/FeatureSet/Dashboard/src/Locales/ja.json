@@ -3011,7 +3011,6 @@
   "How Often": "頻度",
   "How often monitors created from this template will be evaluated, and how many probes must agree before the status changes.": "このテンプレートから作成されたモニターが評価される頻度と、ステータスが変わる前に一致する必要があるプローブの数です。",
   "How often the report will be sent.": "レポートが送信される頻度です。",
-  "How often would you like this event to recur? You can choose from daily, weekly, monthly, or yearly.": "このイベントをどのくらいの頻度で繰り返しますか？毎日、毎週、毎月、または毎年から選択できます。",
   "How often would you like to send reports?": "どのくらいの頻度でレポートを送信しますか？",
   "How often would you like to send reports? You can choose from daily, weekly, monthly, or yearly.": "どのくらいの頻度でレポートを送信しますか？毎日、毎週、毎月、または毎年から選択できます。",
   "How often would you this event to recur?": "このイベントをどのくらいの頻度で繰り返しますか？",
@@ -29804,5 +29803,6 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "一致したメールは、以前のものが開いたままでも、それぞれ個別のインシデントを開きます。返信は、そのインシデントが解決されるまでメモとして追加されます。",
   "alerts for every email": "メールごとのアラート",
   "incidents for every email": "メールごとのインシデント",
-  "alerts and incidents for every email": "メールごとのアラートとインシデント"
+  "alerts and incidents for every email": "メールごとのアラートとインシデント",
+  "A number and a unit: hours, days, weeks, months or years.": "数値と単位。単位は時間、日、週、月、年です。"
 }

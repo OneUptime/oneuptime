@@ -3011,7 +3011,6 @@
   "How Often": "频率",
   "How often monitors created from this template will be evaluated, and how many probes must agree before the status changes.": "从此模板创建的监视器将多久评估一次，以及在状态变化前必须有多少个探测器达成一致。",
   "How often the report will be sent.": "报告的发送频率。",
-  "How often would you like this event to recur? You can choose from daily, weekly, monthly, or yearly.": "您希望此事件多久重复一次？您可以选择每日、每周、每月或每年。",
   "How often would you like to send reports?": "您希望多久发送一次报告？",
   "How often would you like to send reports? You can choose from daily, weekly, monthly, or yearly.": "您希望多久发送一次报告？您可以选择每日、每周、每月或每年。",
   "How often would you this event to recur?": "您希望此事件多久重复一次？",
@@ -20246,7 +20245,7 @@
   "Never run yet. Click {{runNow}} to start one.": "Never run yet. Click {{runNow}} to start one.",
   "New in this window: every one of the {{count}} occurrences landed in its second half, with none before.": "New in this window: every one of the {{count}} occurrences landed in its second half, with none before.",
   "New in this window: every one of the {{count}} occurrences landed in its second half, with none before._one": "New in this window: every one of the {{count}} occurrences landed in its second half, with none before.",
-  "Next event will be scheduled at {{date}}": "Next event will be scheduled at {{date}}",
+  "Next event will be scheduled at {{date}}": "下一个事件将安排在 {{date}}",
   "Next reminder: {{date}}": "Next reminder: {{date}}",
   "Next report": "下一份报告",
   "Next scan {{time}}": "Next scan {{time}}",
@@ -29804,5 +29803,6 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "每封匹配的邮件都会新建一个独立的事件，即使之前的仍未关闭。在该事件解决之前，回复会作为备注添加到其中。",
   "alerts for every email": "每封邮件一个警报",
   "incidents for every email": "每封邮件一个事件",
-  "alerts and incidents for every email": "每封邮件一个警报和事件"
+  "alerts and incidents for every email": "每封邮件一个警报和事件",
+  "A number and a unit: hours, days, weeks, months or years.": "一个数字和一个单位：小时、天、周、月或年。"
 }

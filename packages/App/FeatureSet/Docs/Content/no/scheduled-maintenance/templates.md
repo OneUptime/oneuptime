@@ -102,7 +102,7 @@ For eksempel et ukentlig vindu der den første hendelsen opprettes en mandag for
 
 Sett **Første hendelse planlagt til** så langt før starten som du vil at kundene dine skal høre om arbeidet. Alle tre tidspunktene må ligge i fremtiden når du oppretter malen, hendelsen må opprettes før den starter og slutter, og den må starte før den slutter; skjemaet sier hvilken regel et tidspunkt bryter.
 
-En jobb sjekker de gjentakende malene hvert minutt. Når det neste tidspunktet til en mal kommer, flytter den tidspunktet ett intervall frem og oppretter hendelsen. Mallisten viser det tidspunktet i kolonnen **Gjentakende hendelse**. En hendelse som er opprettet fra tidsplanen, er som alle andre: reglene kjører, eierne legges til, og abonnentene får vite at den er planlagt.
+En jobb sjekker de gjentakende malene hvert minutt. Når det neste tidspunktet til en mal kommer, flytter den tidspunktet ett intervall frem og oppretter hendelsen. Mallisten viser det tidspunktet i kolonnen **Gjentakende hendelse**, og **Nei** for en mal som ikke gjentas. En hendelse som er opprettet fra tidsplanen, er som alle andre: reglene kjører, eierne legges til, og abonnentene får vite at den er planlagt.
 
 ## Endre eller stopp en mal
 
@@ -112,7 +112,7 @@ En jobb sjekker de gjentakende malene hvert minutt. Når det neste tidspunktet t
 - **Berørte ressurser** rommer **Monitorer**, deres **Endre overvåkingsstatus til** og **Andre berørte ressurser**, med sin egen **Rediger**.
 - **Eiere** viser personene og teamene som eier hver hendelse som planlegges fra den.
 
-Endringer gjelder hendelsene som opprettes etter at du har lagret dem; hendelser som allerede er opprettet, beholder sine egne verdier. For å stoppe en tidsplan slår du av **Gjentakende hendelse** under **Rediger**, eller sletter malen. Sletter du en mal, blir hendelsene den har opprettet, værende.
+Endringer gjelder hendelsene som opprettes etter at du har lagret dem; hendelser som allerede er opprettet, beholder sine egne verdier. For å stoppe en tidsplan slår du av **Gjentakende hendelse** under **Rediger**, eller sletter malen. En mal som er slått av, beholder tidsplanen sin: slår du den på igjen, fortsetter den ved tidsplanens neste tidspunkt og hopper over tidspunktene den var av. Sletter du en mal, blir hendelsene den har opprettet, værende.
 
 ## Feilsøking
 

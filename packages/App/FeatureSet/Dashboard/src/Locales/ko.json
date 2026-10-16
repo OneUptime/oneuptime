@@ -3011,7 +3011,6 @@
   "How Often": "빈도",
   "How often monitors created from this template will be evaluated, and how many probes must agree before the status changes.": "이 템플릿에서 생성된 모니터가 평가되는 빈도와 상태가 변경되기 전에 동의해야 하는 프로브 수입니다.",
   "How often the report will be sent.": "보고서가 전송되는 빈도입니다.",
-  "How often would you like this event to recur? You can choose from daily, weekly, monthly, or yearly.": "이 이벤트가 얼마나 자주 반복되기를 원하십니까? 매일, 매주, 매월 또는 매년 중에서 선택할 수 있습니다.",
   "How often would you like to send reports?": "얼마나 자주 보고서를 보내시겠습니까?",
   "How often would you like to send reports? You can choose from daily, weekly, monthly, or yearly.": "얼마나 자주 보고서를 보내시겠습니까? 매일, 매주, 매월 또는 매년 중에서 선택할 수 있습니다.",
   "How often would you this event to recur?": "이 이벤트가 얼마나 자주 반복되기를 원하십니까?",
@@ -20246,7 +20245,7 @@
   "Never run yet. Click {{runNow}} to start one.": "Never run yet. Click {{runNow}} to start one.",
   "New in this window: every one of the {{count}} occurrences landed in its second half, with none before.": "New in this window: every one of the {{count}} occurrences landed in its second half, with none before.",
   "New in this window: every one of the {{count}} occurrences landed in its second half, with none before._one": "New in this window: every one of the {{count}} occurrences landed in its second half, with none before.",
-  "Next event will be scheduled at {{date}}": "Next event will be scheduled at {{date}}",
+  "Next event will be scheduled at {{date}}": "다음 이벤트는 {{date}}에 예약됩니다",
   "Next reminder: {{date}}": "Next reminder: {{date}}",
   "Next report": "다음 보고서",
   "Next scan {{time}}": "Next scan {{time}}",
@@ -29804,5 +29803,6 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "일치하는 이메일은 이전 항목이 아직 열려 있어도 각각 자체 인시던트를 엽니다. 답장은 해당 인시던트가 해결될 때까지 노트로 추가됩니다.",
   "alerts for every email": "이메일마다 알림",
   "incidents for every email": "이메일마다 인시던트",
-  "alerts and incidents for every email": "이메일마다 알림과 인시던트"
+  "alerts and incidents for every email": "이메일마다 알림과 인시던트",
+  "A number and a unit: hours, days, weeks, months or years.": "숫자와 단위입니다. 단위는 시간, 일, 주, 월, 년입니다."
 }
