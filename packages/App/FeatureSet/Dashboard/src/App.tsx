@@ -5,6 +5,7 @@ import MasterPage from "./Components/MasterPage/MasterPage";
 import UseTimezoneInitElement from "./Components/UserTimezone/UserTimezoneInit";
 import EventName from "./Utils/EventName";
 import { resumePendingMcpAuthorization } from "./Utils/McpAuthorizationResume";
+import { resumePendingMarketplacePurchase } from "./Utils/MarketplacePurchaseResume";
 import {
   rememberWorkspaceConnectLink,
   resumeWorkspaceConnect,
@@ -532,6 +533,15 @@ const App: () => JSX.Element = () => {
        * with.
        */
       if (resumePendingMcpAuthorization()) {
+        return;
+      }
+
+      /*
+       * Somebody who bought OneUptime on a cloud marketplace and had to sign
+       * in first: back to the page where they set up the purchase (see
+       * Utils/MarketplacePurchaseResume).
+       */
+      if (resumePendingMarketplacePurchase()) {
         return;
       }
 

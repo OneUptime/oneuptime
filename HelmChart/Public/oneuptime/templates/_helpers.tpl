@@ -251,6 +251,19 @@ call provider. The Dashboard offers it for a provider whose id is set
   {{- else }}
   value: {{ default "" $.Values.microsoftTeamsMeetingsApp.clientId | quote }}
   {{- end }}
+{{- /*
+Sign in with Microsoft: the public client id. The sign-in page offers the
+button when it is set; the secret is in oneuptime.env.runtime.
+*/}}
+- name: MICROSOFT_SIGN_IN_CLIENT_ID
+  {{- if ($.Values.microsoftSignInApp).existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.microsoftSignInApp.existingSecret.name | quote }}
+      key: {{ $.Values.microsoftSignInApp.existingSecret.clientIdKey | quote }}
+  {{- else }}
+  value: {{ default "" ($.Values.microsoftSignInApp).clientId | quote }}
+  {{- end }}
 - name: GITHUB_APP_ID
   value: {{ $.Values.gitHubApp.id | quote }}
 - name: GITHUB_APP_NAME
@@ -517,6 +530,78 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
 
 - name: GITHUB_APP_WEBHOOK_SECRET
   value: {{ $.Values.gitHubApp.webhookSecret }}
+
+- name: MICROSOFT_SIGN_IN_CLIENT_SECRET
+  {{- if ($.Values.microsoftSignInApp).existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.microsoftSignInApp.existingSecret.name | quote }}
+      key: {{ $.Values.microsoftSignInApp.existingSecret.clientSecretKey | quote }}
+  {{- else }}
+  value: {{ default "" ($.Values.microsoftSignInApp).clientSecret | quote }}
+  {{- end }}
+
+{{- /*
+Cloud marketplaces (AWS, Microsoft, Google Cloud Marketplace). Read only where
+billing is enabled; each marketplace is offered only when all of its values
+are set. Secrets can come from an existing Kubernetes secret.
+*/}}
+- name: AWS_MARKETPLACE_ACCESS_KEY_ID
+  value: {{ default "" ((($.Values.cloudMarketplace).aws).accessKeyId) | quote }}
+- name: AWS_MARKETPLACE_SECRET_ACCESS_KEY
+  {{- if ((($.Values.cloudMarketplace).aws).existingSecret) }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.cloudMarketplace.aws.existingSecret.name | quote }}
+      key: {{ $.Values.cloudMarketplace.aws.existingSecret.secretAccessKeyKey | quote }}
+  {{- else }}
+  value: {{ default "" ((($.Values.cloudMarketplace).aws).secretAccessKey) | quote }}
+  {{- end }}
+- name: AWS_MARKETPLACE_PRODUCT_CODE
+  value: {{ default "" ((($.Values.cloudMarketplace).aws).productCode) | quote }}
+- name: AWS_MARKETPLACE_EVENTS_SECRET
+  {{- if ((($.Values.cloudMarketplace).aws).existingSecret) }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.cloudMarketplace.aws.existingSecret.name | quote }}
+      key: {{ $.Values.cloudMarketplace.aws.existingSecret.eventsSecretKey | quote }}
+  {{- else }}
+  value: {{ default "" ((($.Values.cloudMarketplace).aws).eventsSecret) | quote }}
+  {{- end }}
+- name: AZURE_MARKETPLACE_TENANT_ID
+  value: {{ default "" ((($.Values.cloudMarketplace).azure).tenantId) | quote }}
+- name: AZURE_MARKETPLACE_CLIENT_ID
+  value: {{ default "" ((($.Values.cloudMarketplace).azure).clientId) | quote }}
+- name: AZURE_MARKETPLACE_CLIENT_SECRET
+  {{- if ((($.Values.cloudMarketplace).azure).existingSecret) }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.cloudMarketplace.azure.existingSecret.name | quote }}
+      key: {{ $.Values.cloudMarketplace.azure.existingSecret.clientSecretKey | quote }}
+  {{- else }}
+  value: {{ default "" ((($.Values.cloudMarketplace).azure).clientSecret) | quote }}
+  {{- end }}
+- name: GOOGLE_CLOUD_MARKETPLACE_PROVIDER_ID
+  value: {{ default "" ((($.Values.cloudMarketplace).googleCloud).providerId) | quote }}
+- name: GOOGLE_CLOUD_MARKETPLACE_SERVICE_ACCOUNT_KEY
+  {{- if ((($.Values.cloudMarketplace).googleCloud).existingSecret) }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.cloudMarketplace.googleCloud.existingSecret.name | quote }}
+      key: {{ $.Values.cloudMarketplace.googleCloud.existingSecret.serviceAccountKeyKey | quote }}
+  {{- else }}
+  value: {{ default "" ((($.Values.cloudMarketplace).googleCloud).serviceAccountKey) | quote }}
+  {{- end }}
+- name: GOOGLE_CLOUD_MARKETPLACE_SERVICE_NAME
+  value: {{ default "" ((($.Values.cloudMarketplace).googleCloud).serviceName) | quote }}
+- name: GOOGLE_CLOUD_MARKETPLACE_USAGE_METRIC
+  value: {{ default "" ((($.Values.cloudMarketplace).googleCloud).usageMetric) | quote }}
+- name: GOOGLE_CLOUD_MARKETPLACE_PUBSUB_SERVICE_ACCOUNT_EMAIL
+  value: {{ default "" ((($.Values.cloudMarketplace).googleCloud).pubSubServiceAccountEmail) | quote }}
+- name: GOOGLE_CLOUD_MARKETPLACE_SIGNUP_AUDIENCE
+  value: {{ default "" ((($.Values.cloudMarketplace).googleCloud).signupAudience) | quote }}
+- name: GOOGLE_CLOUD_MARKETPLACE_PUBSUB_AUDIENCE
+  value: {{ default "" ((($.Values.cloudMarketplace).googleCloud).pubSubAudience) | quote }}
 
 - name: CAPTCHA_SECRET_KEY
   value: {{ default "" $.Values.captcha.secretKey | quote }}

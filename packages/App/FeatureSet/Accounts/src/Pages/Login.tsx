@@ -26,7 +26,9 @@ import {
   DASHBOARD_URL,
   CAPTCHA_ENABLED,
   CAPTCHA_SITE_KEY,
+  MicrosoftSignInClientId,
 } from "Common/UI/Config";
+import MicrosoftSignInButton from "../Components/MicrosoftSignInButton/MicrosoftSignInButton";
 import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
 import { isProductRenamed } from "Common/UI/Utils/ProductBranding";
 import EditionLabel from "Common/UI/Components/EditionLabel/EditionLabel";
@@ -1202,14 +1204,21 @@ const LoginPage: () => JSX.Element = () => {
                   }}
                   maxPrimaryButtonWidth={true}
                   footer={
-                    <div className="actions text-center mt-4 hover:underline fw-semibold">
-                      <div>
+                    <div className="actions text-center mt-4">
+                      <div className="hover:underline fw-semibold">
                         <Link to={new Route("/accounts/sso")}>
                           <div className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm">
                             {t("login.useSso")}
                           </div>
                         </Link>
                       </div>
+                      {MicrosoftSignInClientId ? (
+                        <MicrosoftSignInButton
+                          title={t("login.signInWithMicrosoft")}
+                        />
+                      ) : (
+                        <></>
+                      )}
                     </div>
                   }
                 />

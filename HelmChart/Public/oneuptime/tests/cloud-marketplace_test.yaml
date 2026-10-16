@@ -1,0 +1,245 @@
+# Selling OneUptime Cloud on AWS Marketplace, Microsoft Marketplace and Google
+# Cloud Marketplace, and Sign in with Microsoft, which Microsoft Marketplace
+# requires.
+#
+# The marketplaces' landing pages, webhooks and events are answered by the
+# app, and the hourly usage report and daily sync run in the worker - so every
+# value has to reach both. The sign-in button is drawn from the public client
+# id in env.js; its secret stays server side. An install that sells through no
+# marketplace must start, so every value defaults to empty, and a marketplace
+# with an empty value is simply not offered.
+suite: cloud marketplaces
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: ships with no marketplace and no Microsoft sign-in
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MICROSOFT_SIGN_IN_CLIENT_ID
+            value: ""
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MICROSOFT_SIGN_IN_CLIENT_SECRET
+            value: ""
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AWS_MARKETPLACE_ACCESS_KEY_ID
+            value: ""
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AZURE_MARKETPLACE_CLIENT_SECRET
+            value: ""
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_CLOUD_MARKETPLACE_SERVICE_ACCOUNT_KEY
+            value: ""
+
+  - it: passes every marketplace value to the app
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      microsoftSignInApp.clientId: 6c1a8d3e-1111-4222-8333-944455556666
+      microsoftSignInApp.clientSecret: ms-sign-in-secret
+      cloudMarketplace.aws.accessKeyId: AKIAEXAMPLE
+      cloudMarketplace.aws.secretAccessKey: aws-secret
+      cloudMarketplace.aws.productCode: abc123productcode
+      cloudMarketplace.aws.eventsSecret: aws-events-secret
+      cloudMarketplace.azure.tenantId: 11111111-2222-3333-4444-555555555555
+      cloudMarketplace.azure.clientId: 66666666-7777-8888-9999-000000000000
+      cloudMarketplace.azure.clientSecret: azure-secret
+      cloudMarketplace.googleCloud.providerId: oneuptime-public
+      cloudMarketplace.googleCloud.serviceAccountKey: '{"client_email":"x"}'
+      cloudMarketplace.googleCloud.serviceName: oneuptime.gcpmarketplace.oneuptime.com
+      cloudMarketplace.googleCloud.usageMetric: oneuptime/usage_units
+      cloudMarketplace.googleCloud.pubSubServiceAccountEmail: push@example.iam.gserviceaccount.com
+      cloudMarketplace.googleCloud.signupAudience: oneuptime.com
+      cloudMarketplace.googleCloud.pubSubAudience: https://oneuptime.com/api/marketplace/google-cloud/events
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MICROSOFT_SIGN_IN_CLIENT_ID
+            value: 6c1a8d3e-1111-4222-8333-944455556666
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MICROSOFT_SIGN_IN_CLIENT_SECRET
+            value: ms-sign-in-secret
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AWS_MARKETPLACE_ACCESS_KEY_ID
+            value: AKIAEXAMPLE
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AWS_MARKETPLACE_SECRET_ACCESS_KEY
+            value: aws-secret
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AWS_MARKETPLACE_PRODUCT_CODE
+            value: abc123productcode
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AWS_MARKETPLACE_EVENTS_SECRET
+            value: aws-events-secret
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AZURE_MARKETPLACE_TENANT_ID
+            value: 11111111-2222-3333-4444-555555555555
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AZURE_MARKETPLACE_CLIENT_ID
+            value: 66666666-7777-8888-9999-000000000000
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AZURE_MARKETPLACE_CLIENT_SECRET
+            value: azure-secret
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_CLOUD_MARKETPLACE_PROVIDER_ID
+            value: oneuptime-public
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_CLOUD_MARKETPLACE_SERVICE_ACCOUNT_KEY
+            value: '{"client_email":"x"}'
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_CLOUD_MARKETPLACE_SERVICE_NAME
+            value: oneuptime.gcpmarketplace.oneuptime.com
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_CLOUD_MARKETPLACE_USAGE_METRIC
+            value: oneuptime/usage_units
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_CLOUD_MARKETPLACE_PUBSUB_SERVICE_ACCOUNT_EMAIL
+            value: push@example.iam.gserviceaccount.com
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_CLOUD_MARKETPLACE_SIGNUP_AUDIENCE
+            value: oneuptime.com
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_CLOUD_MARKETPLACE_PUBSUB_AUDIENCE
+            value: https://oneuptime.com/api/marketplace/google-cloud/events
+
+  - it: passes them to the worker, which reports usage and syncs purchases
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker.enabled: true
+      cloudMarketplace.aws.accessKeyId: AKIAEXAMPLE
+      cloudMarketplace.googleCloud.providerId: oneuptime-public
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AWS_MARKETPLACE_ACCESS_KEY_ID
+            value: AKIAEXAMPLE
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_CLOUD_MARKETPLACE_PROVIDER_ID
+            value: oneuptime-public
+
+  - it: reads the secrets from existing secrets when they are named
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      microsoftSignInApp.existingSecret:
+        name: microsoft-sign-in
+        clientIdKey: id
+        clientSecretKey: secret
+      cloudMarketplace.aws.existingSecret:
+        name: aws-marketplace
+        secretAccessKeyKey: secretAccessKey
+        eventsSecretKey: eventsSecret
+      cloudMarketplace.azure.existingSecret:
+        name: azure-marketplace
+        clientSecretKey: clientSecret
+      cloudMarketplace.googleCloud.existingSecret:
+        name: google-cloud-marketplace
+        serviceAccountKeyKey: serviceAccountKey
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MICROSOFT_SIGN_IN_CLIENT_ID
+            valueFrom:
+              secretKeyRef:
+                name: microsoft-sign-in
+                key: id
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MICROSOFT_SIGN_IN_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: microsoft-sign-in
+                key: secret
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AWS_MARKETPLACE_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: aws-marketplace
+                key: secretAccessKey
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AWS_MARKETPLACE_EVENTS_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: aws-marketplace
+                key: eventsSecret
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: AZURE_MARKETPLACE_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: azure-marketplace
+                key: clientSecret
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GOOGLE_CLOUD_MARKETPLACE_SERVICE_ACCOUNT_KEY
+            valueFrom:
+              secretKeyRef:
+                name: google-cloud-marketplace
+                key: serviceAccountKey

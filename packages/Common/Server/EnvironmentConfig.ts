@@ -56,6 +56,8 @@ const FRONTEND_ENV_ALLOW_LIST: Array<string> = [
   "MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID",
   "GITHUB_APP_CLIENT_ID",
   "GITHUB_APP_NAME",
+  // Public client id: the sign-in page offers Sign in with Microsoft when it is set.
+  "MICROSOFT_SIGN_IN_CLIENT_ID",
   "CAPTCHA_ENABLED",
   "CAPTCHA_SITE_KEY",
   "INBOUND_EMAIL_DOMAIN",
@@ -1446,6 +1448,77 @@ export const GitHubAppPrivateKey: string | null = decodePrivateKey(
 );
 export const GitHubAppWebhookSecret: string | null =
   process.env["GITHUB_APP_WEBHOOK_SECRET"] || null;
+
+/*
+ * Cloud marketplaces - selling OneUptime Cloud on AWS Marketplace, Microsoft
+ * Marketplace (Azure) and Google Cloud Marketplace. Used only where billing is
+ * enabled (OneUptime Cloud); a marketplace whose settings are not all present
+ * is simply not offered. What each value is, and where it comes from in each
+ * marketplace's seller portal, is in
+ * Server/Utils/Marketplace/RELEASING.md.
+ *
+ * AWS: an IAM user of the seller account allowed ResolveCustomer,
+ * BatchMeterUsage, GetEntitlements and DescribeAgreement; the product code of
+ * the SaaS listing; and the secret the EventBridge API destination sends with
+ * every event (/api/marketplace/aws/events).
+ */
+export const AwsMarketplaceAccessKeyId: string | null =
+  process.env["AWS_MARKETPLACE_ACCESS_KEY_ID"] || null;
+export const AwsMarketplaceSecretAccessKey: string | null =
+  process.env["AWS_MARKETPLACE_SECRET_ACCESS_KEY"] || null;
+export const AwsMarketplaceProductCode: string | null =
+  process.env["AWS_MARKETPLACE_PRODUCT_CODE"] || null;
+export const AwsMarketplaceEventsSecret: string | null =
+  process.env["AWS_MARKETPLACE_EVENTS_SECRET"] || null;
+
+/*
+ * Azure: the single-tenant Microsoft Entra app registered in the offer's
+ * Technical configuration. It calls the SaaS fulfillment and metering APIs,
+ * and the webhook's bearer token is issued for it.
+ */
+export const AzureMarketplaceTenantId: string | null =
+  process.env["AZURE_MARKETPLACE_TENANT_ID"] || null;
+export const AzureMarketplaceClientId: string | null =
+  process.env["AZURE_MARKETPLACE_CLIENT_ID"] || null;
+export const AzureMarketplaceClientSecret: string | null =
+  process.env["AZURE_MARKETPLACE_CLIENT_SECRET"] || null;
+
+/*
+ * Google Cloud: the partner (provider) ID from Producer Portal, the JSON key
+ * of the service account linked there for the Procurement API, Pub/Sub and
+ * Service Control (raw JSON or base64), and the Service Control service and
+ * metric usage is reported to. The sign-up token's audience is the domain the
+ * product is listed under (the host, unless set); the Pub/Sub push
+ * subscription signs each delivery as the named service account, for the
+ * named audience (the push endpoint's URL, unless set).
+ */
+export const GoogleCloudMarketplaceProviderId: string | null =
+  process.env["GOOGLE_CLOUD_MARKETPLACE_PROVIDER_ID"] || null;
+export const GoogleCloudMarketplaceServiceAccountKey: string | null =
+  process.env["GOOGLE_CLOUD_MARKETPLACE_SERVICE_ACCOUNT_KEY"] || null;
+export const GoogleCloudMarketplaceServiceName: string | null =
+  process.env["GOOGLE_CLOUD_MARKETPLACE_SERVICE_NAME"] || null;
+export const GoogleCloudMarketplaceUsageMetric: string | null =
+  process.env["GOOGLE_CLOUD_MARKETPLACE_USAGE_METRIC"] || null;
+export const GoogleCloudMarketplaceSignupAudience: string | null =
+  process.env["GOOGLE_CLOUD_MARKETPLACE_SIGNUP_AUDIENCE"] || null;
+export const GoogleCloudMarketplacePubSubServiceAccountEmail: string | null =
+  process.env["GOOGLE_CLOUD_MARKETPLACE_PUBSUB_SERVICE_ACCOUNT_EMAIL"] || null;
+export const GoogleCloudMarketplacePubSubAudience: string | null =
+  process.env["GOOGLE_CLOUD_MARKETPLACE_PUBSUB_AUDIENCE"] || null;
+
+/*
+ * Sign in with Microsoft: a multi-tenant Microsoft Entra app (work, school
+ * and personal Microsoft accounts) that lets anyone sign in to OneUptime with
+ * their Microsoft account. Microsoft Marketplace requires it of a SaaS offer
+ * sold through Microsoft: the buyer must be able to sign in with the account
+ * they bought with. The client id is public (the sign-in page shows the
+ * button when it is set); the secret is not.
+ */
+export const MicrosoftSignInClientId: string | null =
+  process.env["MICROSOFT_SIGN_IN_CLIENT_ID"] || null;
+export const MicrosoftSignInClientSecret: string | null =
+  process.env["MICROSOFT_SIGN_IN_CLIENT_SECRET"] || null;
 
 // VAPID Configuration for Web Push Notifications
 export const VapidPublicKey: string | undefined =

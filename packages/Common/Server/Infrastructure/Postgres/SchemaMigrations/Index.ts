@@ -105,6 +105,7 @@ import { ClearNextEventOfTemplatesThatDoNotRecur1802800000000 } from "./18028000
 import { WidenAIAgentTaskPullRequestId1802850000000 } from "./1802850000000-WidenAIAgentTaskPullRequestId";
 import { AddAIAgentTaskPullRequestIdIndex1802900000000 } from "./1802900000000-AddAIAgentTaskPullRequestIdIndex";
 import { AddAIRunFollowUpForAlert1802950000000 } from "./1802950000000-AddAIRunFollowUpForAlert";
+import { AddMarketplaceSubscriptions1803000000000 } from "./1803000000000-AddMarketplaceSubscriptions";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1412,4 +1413,5 @@ export default [
   WidenAIAgentTaskPullRequestId1802850000000,
   AddAIAgentTaskPullRequestIdIndex1802900000000,
   AddAIRunFollowUpForAlert1802950000000,
+  AddMarketplaceSubscriptions1803000000000,
 ];
