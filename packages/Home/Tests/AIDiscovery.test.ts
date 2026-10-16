@@ -7,8 +7,10 @@ import {
   generateCompareMarkdown,
   generateProductsJson,
   generateCompareIndexJson,
+  generateResellersMarkdown,
   RecentBlogPostLink,
 } from "../Utils/AIDiscovery";
+import { getResellersPageContent } from "../Utils/Resellers";
 import PageSEOConfig from "../Utils/PageSEO";
 import { getProductCompareSlugs } from "../Utils/ProductCompare";
 import McpOAuthConfig from "Common/Server/Utils/Mcp/McpOAuthConfig";
@@ -435,5 +437,67 @@ describe("the MCP manifest's scope list belongs to that manifest", () => {
         "scopes"
       ],
     ).toEqual(["mcp:read", "mcp:write"]);
+  });
+});
+
+describe("the resellers, for machines", () => {
+  test("llms.txt lists the Resellers page with the other ways to buy", () => {
+    const txt: string = generateLlmsTxt(homeUrl, []);
+    const enterprise: string = txt.slice(
+      txt.indexOf("## Enterprise"),
+      txt.indexOf("## Compare OneUptime"),
+    );
+
+    expect(enterprise).toContain(
+      `- [Resellers](https://oneuptime.com/resellers.md): ${PageSEOConfig["/resellers"]!.description}`,
+    );
+  });
+
+  test("/resellers.md lists each reseller by region, with its website", () => {
+    const md: string = generateResellersMarkdown(
+      homeUrl,
+      getResellersPageContent({ inquiryInbox: "partners@example.com" }),
+    );
+
+    expect(md.startsWith("# Resellers\n")).toBe(true);
+    expect(md).toContain(`> ${PageSEOConfig["/resellers"]!.description}`);
+    expect(md).toContain("Canonical page: https://oneuptime.com/resellers");
+    expect(md).toContain("## Resellers by region");
+    expect(md).toContain("### Asia Pacific");
+    expect(md).toContain(
+      "- [SLEXN](https://www.slexn.com) (슬렉슨), Seoul, South Korea: Software solutions and consulting.",
+    );
+  });
+
+  test("/resellers.md says how to become one, and where to write", () => {
+    const md: string = generateResellersMarkdown(
+      homeUrl,
+      getResellersPageContent({ inquiryInbox: "partners@example.com" }),
+    );
+
+    expect(md).toContain("## Become a reseller");
+    expect(md).toContain(
+      "https://oneuptime.com/resellers#become-a-reseller, or email partners@example.com.",
+    );
+  });
+
+  test("/resellers.md says so when no reseller is listed", () => {
+    const md: string = generateResellersMarkdown(
+      homeUrl,
+      getResellersPageContent({ resellers: [], inquiryInbox: "partners@example.com" }),
+    );
+
+    expect(md).toContain("No resellers are listed yet.");
+    expect(md).not.toContain("###");
+  });
+
+  test("/resellers.md normalizes a trailing slash on the home url", () => {
+    const md: string = generateResellersMarkdown(
+      "https://oneuptime.com/",
+      getResellersPageContent({ inquiryInbox: "partners@example.com" }),
+    );
+
+    expect(md).toContain("Canonical page: https://oneuptime.com/resellers");
+    expect(md).not.toContain("https://oneuptime.com//");
   });
 });

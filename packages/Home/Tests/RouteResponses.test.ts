@@ -8,6 +8,12 @@ import path from "path";
 import HomeFeatureSet from "../Routes";
 import { LegacyRedirect, LegacyRedirects } from "../Utils/LegacyRedirects";
 import {
+  ResellerCard,
+  ResellerRegionGroup,
+  ResellersPageContent,
+  getResellersPageContent,
+} from "../Utils/Resellers";
+import {
   CONTRIBUTORS_PER_PAGE,
   MAX_CONTRIBUTOR_PAGES,
 } from "../Utils/GitHubContributors";
@@ -107,6 +113,14 @@ jest.mock("Common/Server/Utils/Response", () => {
   return { __esModule: true, default: {} };
 });
 
+/*
+ * The Resellers page's form emails through it (API/ResellerInquiryAPI.ts);
+ * the real one would load the whole database layer.
+ */
+jest.mock("Common/Server/Services/MailService", () => {
+  return { __esModule: true, default: { sendMail: jest.fn() } };
+});
+
 type GitHubAnswer = HTTPResponse<Array<JSONObject>> | HTTPErrorResponse | Error;
 
 // What GitHub answers the Nth request (1-based) of the current test.
@@ -157,9 +171,15 @@ interface Answer {
   body: string;
 }
 
+// A request body, and the headers it is sent with.
+interface Outgoing {
+  headers: Record<string, string>;
+  body: string;
+}
+
 interface BootedHome {
   renders: Array<RenderedView>;
-  request: (method: string, url: string) => Promise<Answer>;
+  request: (method: string, url: string, outgoing?: Outgoing) => Promise<Answer>;
   close: () => Promise<void>;
 }
 
@@ -215,9 +235,14 @@ async function bootHome(app: ExpressApplication): Promise<BootedHome> {
 
   const port: number = (server.address() as AddressInfo).port;
 
-  const request: (method: string, url: string) => Promise<Answer> = (
+  const request: (
     method: string,
     url: string,
+    send?: Outgoing,
+  ) => Promise<Answer> = (
+    method: string,
+    url: string,
+    send?: Outgoing,
   ): Promise<Answer> => {
     return new Promise<Answer>(
       (resolve: (answer: Answer) => void, reject: (error: Error) => void) => {
@@ -227,6 +252,7 @@ async function bootHome(app: ExpressApplication): Promise<BootedHome> {
             port: port,
             method: method,
             path: url,
+            headers: send ? send.headers : {},
             agent: false,
           },
           (response: http.IncomingMessage) => {
@@ -251,6 +277,11 @@ async function bootHome(app: ExpressApplication): Promise<BootedHome> {
           outgoing.destroy(new Error(`${method} ${url} got no answer`));
         });
         outgoing.on("error", reject);
+
+        if (send) {
+          outgoing.write(send.body);
+        }
+
         outgoing.end();
       },
     );
@@ -487,6 +518,87 @@ describe("the route table over HTTP", () => {
 
       expect(answer.contentType).toContain("application/rss+xml");
       expect(answer.body).toContain("<rss");
+    });
+  });
+
+  describe("the Resellers page", () => {
+    function lastRender(): RenderedView {
+      return home.renders[home.renders.length - 1]!;
+    }
+
+    test("/resellers renders its page with its SEO data and the resellers", async () => {
+      const answer: Answer = await home.request("GET", "/resellers");
+
+      expect(answer.status).toBe(200);
+      expect(lastRender().view).toBe("resellers.ejs");
+      expect(
+        (lastRender().locals["seo"] as { canonicalPath: string }).canonicalPath,
+      ).toBe("/resellers");
+
+      const content: ResellersPageContent = lastRender().locals[
+        "resellers"
+      ] as ResellersPageContent;
+
+      expect(content).toEqual(
+        getResellersPageContent({
+          inquiryInbox: content.form.fallbackEmail,
+        }),
+      );
+      expect(
+        content.regions.flatMap((group: ResellerRegionGroup) => {
+          return group.resellers.map((card: ResellerCard) => {
+            return card.name;
+          });
+        }),
+      ).toContain("SLEXN");
+      expect(content.form.endpoint).toBe("/resellers/contact");
+    });
+
+    test("/resellers.md lists the resellers for machines", async () => {
+      const answer: Answer = await home.request("GET", "/resellers.md");
+
+      expect(answer.status).toBe(200);
+      expect(answer.contentType).toContain("text/markdown");
+      expect(answer.body).toContain("# Resellers");
+      expect(answer.body).toContain("[SLEXN](https://www.slexn.com)");
+      expect(answer.body).toContain("## Become a reseller");
+    });
+
+    test("the form's address answers a post, as JSON", async () => {
+      const answer: Answer = await home.request("POST", "/resellers/contact", {
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      });
+
+      // No body parser in this boot: the route reads no form, and says so.
+      expect(answer.status).toBe(400);
+      expect(answer.contentType).toContain("application/json");
+      expect(JSON.parse(answer.body)).toMatchObject({ sent: false });
+    });
+
+    test("the form's address refuses another site's page", async () => {
+      const answer: Answer = await home.request("POST", "/resellers/contact", {
+        headers: {
+          "content-type": "application/json",
+          origin: "https://evil.example",
+        },
+        body: "{}",
+      });
+
+      expect(answer.status).toBe(403);
+      expect(JSON.parse(answer.body)).toMatchObject({ sent: false });
+    });
+
+    test("the form's address is no page: a GET is not found", async () => {
+      const before: number = home.renders.length;
+      const answer: Answer = await home.request("GET", "/resellers/contact");
+
+      expect(answer.status).toBe(404);
+      expect(
+        home.renders.slice(before).map((r: RenderedView) => {
+          return r.view;
+        }),
+      ).toEqual(["not-found.ejs"]);
     });
   });
 

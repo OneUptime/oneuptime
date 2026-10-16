@@ -11,9 +11,9 @@
  * sender that keeps knocking stays refused until its window ends, rather
  * than being let through again whenever it pauses.
  *
- * Memory is bounded: past `maxKeys` keys, finished windows are dropped
- * first, then the oldest. Dropping a key only ever forgets a count - it can
- * let one sender start again early, never refuse one that should not be.
+ * Memory is bounded: with `maxKeys` keys counted, a new key takes the place
+ * of the oldest. Dropping a key only ever forgets a count - it can let one
+ * sender start again early, never refuse one that should not be.
  */
 
 export interface RateLimitDecision {
@@ -74,7 +74,7 @@ export default class FixedWindowRateLimiter {
         this.windows.delete(key);
       }
 
-      this.makeRoom(now);
+      this.makeRoom();
       window = { startedAt: now, count: 0 };
       this.windows.set(key, window);
     }
@@ -107,25 +107,23 @@ export default class FixedWindowRateLimiter {
     return now - window.startedAt >= this.windowInMs || now < window.startedAt;
   }
 
-  // Frees a place for one more key.
-  private makeRoom(now: number): void {
-    if (this.windows.size < this.maxKeys) {
-      return;
-    }
+  /*
+   * Frees a place for one more key: the oldest key goes. A Map keeps its
+   * keys in the order they were set, and a key is set when its window
+   * starts (a key whose window starts again is set again, at the newest
+   * end), so the oldest key holds the window that ends first - finished, or
+   * the nearest to it. Only that one key is touched; the limiter never
+   * walks the keys it counts.
+   */
+  private makeRoom(): void {
+    while (this.windows.size >= this.maxKeys) {
+      const oldest: IteratorResult<string> = this.windows.keys().next();
 
-    for (const [key, window] of this.windows) {
-      if (this.hasEnded(window, now)) {
-        this.windows.delete(key);
-      }
-    }
-
-    // A Map keeps its keys in the order they were set: the oldest first.
-    for (const key of this.windows.keys()) {
-      if (this.windows.size < this.maxKeys) {
-        break;
+      if (oldest.done) {
+        return;
       }
 
-      this.windows.delete(key);
+      this.windows.delete(oldest.value);
     }
   }
 }
