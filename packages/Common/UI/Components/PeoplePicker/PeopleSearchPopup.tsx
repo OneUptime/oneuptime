@@ -135,7 +135,8 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    searchInputRef.current?.focus();
+    // The list is placed at its button already: focusing it scrolls nothing.
+    searchInputRef.current?.focus({ preventScroll: true });
   }, [isOpen, Boolean(popup.popupPosition)]);
 
   useEffect(() => {
@@ -265,9 +266,18 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
   const activeRow: PeoplePickerOption | undefined =
     clampedActiveIndex >= 0 ? visibleRows[clampedActiveIndex] : undefined;
 
-  // Keep the row the keyboard is on in view.
+  /*
+   * Keep the row the keyboard is on in view - once the list is placed at
+   * its button. Until then it is hidden where the page's flow would put it,
+   * past the page's end, and scrolling a row there into view scrolled the
+   * whole page down: the list then opened off the screen, above its button,
+   * whenever the rows arrived before the list was placed (a quick answer, a
+   * button low on the page).
+   */
+  const isPlaced: boolean = Boolean(popup.popupPosition);
+
   useEffect(() => {
-    if (!activeRow || typeof document === "undefined") {
+    if (!activeRow || !isPlaced || typeof document === "undefined") {
       return;
     }
 
@@ -278,7 +288,7 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
     if (element && typeof element.scrollIntoView === "function") {
       element.scrollIntoView({ block: "nearest" });
     }
-  }, [activeRow ? getOptionId(activeRow) : ""]);
+  }, [activeRow ? getOptionId(activeRow) : "", isPlaced]);
 
   const pick: (row: PeoplePickerOption) => Promise<void> = async (
     row: PeoplePickerOption,
@@ -359,6 +369,15 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
       tabIndex={-1}
       className="fixed flex flex-col overflow-hidden rounded-lg bg-white shadow-xl ring-1 ring-gray-200"
       style={{
+        /*
+         * Fixed from its first frame, whatever the stylesheet has generated
+         * yet: the Dashboard's Tailwind writes a class's rule only once it
+         * sees the class on the page, and a list left in the page's flow
+         * for that frame sat past the page's end - focusing its search box
+         * there scrolled the whole page down, and the list then opened off
+         * the screen.
+         */
+        position: "fixed",
         bottom: popup.popupPosition?.bottom,
         left: popup.popupPosition?.left ?? 0,
         maxHeight: popup.popupPosition?.maxHeight,

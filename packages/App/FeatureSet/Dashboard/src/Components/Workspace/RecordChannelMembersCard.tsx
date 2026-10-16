@@ -123,7 +123,10 @@ const PersonRow: FunctionComponent<{ person: WorkspaceChannelPerson }> = (props:
         }}
         size="xs"
       />
-      <span className="min-w-0 truncate text-sm text-gray-900">
+      <span
+        data-testid="record-channel-person-name"
+        className="min-w-0 truncate text-sm text-gray-900"
+      >
         {props.person.name}
       </span>
       {props.person.isViewer && (
