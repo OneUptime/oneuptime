@@ -258,5 +258,9 @@ export const GitHubAppClientId: string | null =
 
 export const GitHubAppName: string | null = env("GITHUB_APP_NAME") || null;
 
+// Set when this server offers Sign in with Microsoft; the sign-in pages show the button.
+export const MicrosoftSignInClientId: string | null =
+  env("MICROSOFT_SIGN_IN_CLIENT_ID") || null;
+
 export const INBOUND_EMAIL_DOMAIN: string | undefined =
   env("INBOUND_EMAIL_DOMAIN") || undefined;

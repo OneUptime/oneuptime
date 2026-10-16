@@ -33,12 +33,14 @@ import URL from "../../../Types/API/URL";
 import AutoRechargeState from "../../../Types/Billing/AutoRechargeState";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../Types/JSON";
+import CloudMarketplace from "../../../Types/Marketplace/CloudMarketplace";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
+import ProjectUtil from "../../../UI/Utils/Project";
 import User from "../../../UI/Utils/User";
 import {
   PROJECT_BALANCE_AUTO_RECHARGE_STATE_ROUTE,
@@ -513,3 +515,93 @@ describe.each(PAGES)("$name", (page: BalancePage) => {
     );
   });
 });
+
+/*
+ * A project a cloud marketplace bills has no card: its balances are still
+ * recharged - by hand or by Auto Recharge - and billed through the
+ * marketplace. Each page says so on its Current Balance card, keeps the
+ * Recharge button for the people who may, and when Auto Recharge's last
+ * charge was refused names the marketplace to check, not the card.
+ */
+describe.each(PAGES)(
+  "$name on a project a cloud marketplace bills",
+  (page: BalancePage) => {
+    const BILLED_THROUGH_AWS: string =
+      "Recharges and Auto Recharge are billed through AWS Marketplace, not a card.";
+
+    beforeEach(() => {
+      jest.spyOn(ProjectUtil, "getCurrentProject").mockReturnValue(
+        Object.assign(new Project(), {
+          _id: PROJECT_ID,
+          billingMarketplace: CloudMarketplace.AWS,
+        }),
+      );
+    });
+
+    test("someone who may is asked to recharge it, told where it is billed, and may", async () => {
+      grant([...BASE_PERMISSIONS, Permission.ProjectOwner]);
+      page.open();
+
+      const balanceCard: HTMLElement = await cardOf("Current Balance");
+
+      expect(balanceCard).toHaveTextContent(
+        PROJECT_BALANCE_CARD_DESCRIPTIONS[page.balance].forPeopleWhoMayAdd,
+      );
+      expect(balanceCard).toHaveTextContent(BILLED_THROUGH_AWS);
+
+      const recharge: HTMLElement = buttonIn(balanceCard, "Recharge Balance")!;
+
+      expect(recharge).not.toBeNull();
+      expect(recharge).not.toBeDisabled();
+    });
+
+    test("everyone else is told who can, and where it is billed", async () => {
+      grant([...BASE_PERMISSIONS, Permission.ProjectMember]);
+      page.open();
+
+      const balanceCard: HTMLElement = await cardOf("Current Balance");
+
+      expect(balanceCard).toHaveTextContent(
+        PROJECT_BALANCE_CARD_DESCRIPTIONS[page.balance].forEveryoneElse,
+      );
+      expect(balanceCard).toHaveTextContent(BILLED_THROUGH_AWS);
+      expect(buttonIn(balanceCard, "Recharge Balance")).toBeDisabled();
+    });
+
+    test("a refused Auto Recharge names the marketplace to check, not the card", async () => {
+      autoRechargeState = AutoRechargeState.Failed;
+      grant([...BASE_PERMISSIONS, Permission.ProjectOwner]);
+      page.open();
+      await autoRechargeAsked();
+
+      const notice: HTMLElement = await screen.findByTestId(
+        NOTICE_TEST_ID,
+        {},
+        { timeout: WAIT_TIMEOUT },
+      );
+
+      expect(notice).toHaveTextContent(
+        "Auto Recharge could not bill AWS Marketplace.",
+      );
+      expect(notice).toHaveTextContent(
+        "Check that this project's subscription on AWS Marketplace is active",
+      );
+      expect(notice).not.toHaveTextContent(AUTO_RECHARGE_FAILED_TITLE);
+      expect(notice).not.toHaveTextContent(
+        AUTO_RECHARGE_FAILED_DESCRIPTIONS[page.balance].forPeopleWhoMayAdd,
+      );
+    });
+
+    test("a card-billed project's page says nothing about a marketplace", async () => {
+      jest
+        .spyOn(ProjectUtil, "getCurrentProject")
+        .mockReturnValue(Object.assign(new Project(), { _id: PROJECT_ID }));
+      grant([...BASE_PERMISSIONS, Permission.ProjectOwner]);
+      page.open();
+
+      const balanceCard: HTMLElement = await cardOf("Current Balance");
+
+      expect(balanceCard).not.toHaveTextContent("billed through");
+    });
+  },
+);

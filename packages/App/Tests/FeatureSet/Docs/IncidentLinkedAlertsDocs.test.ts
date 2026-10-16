@@ -319,6 +319,8 @@ const EXPECTED_PAGES: ReadonlyArray<ExpectedPage> = [
   { title: LINKED_ALERTS_TITLE, page: LINKED_ALERTS_PAGE },
   // Grouping incidents, or alerts, into episodes, and adding to one by hand.
   { title: "Episodes", page: "incidents/episodes" },
+  // The write-up after an incident, the last thing that happens to one.
+  { title: "Postmortems", page: "incidents/postmortems" },
   { title: "Incident Settings & Automation", page: SETTINGS_PAGE },
 ];
 

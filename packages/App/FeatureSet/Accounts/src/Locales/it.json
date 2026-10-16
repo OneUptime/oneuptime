@@ -51,6 +51,7 @@
     "submitButton": "Accedi",
     "forgotPassword": "Password dimenticata?",
     "useSso": "Usa invece il Single Sign-On (SSO)",
+    "signInWithMicrosoft": "Accedi con Microsoft",
     "noAccountPrompt": "Non hai un account?",
     "registerLink": "Registrati.",
     "twoFactor": {
@@ -121,7 +122,8 @@
     "verifyEmailOpensInNewTab": "(si apre in una nuova scheda)",
     "verifyEmailAlreadyVerifiedPrompt": "Hai già verificato la tua email?",
     "verifyEmailWrongAddressPrompt": "Indirizzo email sbagliato?",
-    "verifyEmailUseDifferentEmail": "Registrati con un'altra email"
+    "verifyEmailUseDifferentEmail": "Registrati con un'altra email",
+    "signUpWithMicrosoft": "Registrati con Microsoft"
   },
   "forgotPassword": {
     "title": "Password dimenticata",
@@ -257,6 +259,42 @@
       "server_error": "Qualcosa è andato storto da parte nostra. Riprova tra qualche minuto.",
       "framed": "Per la tua sicurezza, questa pagina non può essere usata all'interno di un'altra pagina. Aprila in una scheda o finestra separata del browser."
     }
+  },
+  "marketplacePurchase": {
+    "title": "Configura il tuo acquisto",
+    "subtitle": "Hai acquistato OneUptime su {{marketplace}}. Scegli il progetto da pagare con questo acquisto.",
+    "boughtOnLabel": "Acquistato su",
+    "buyerLabel": "Acquirente",
+    "marketplacePlanLabel": "Piano del marketplace",
+    "signedInAs": "Accesso effettuato come {{email}}",
+    "freeTrial": "Questo acquisto è in prova gratuita su {{marketplace}}.",
+    "choiceLabel": "Quale progetto vuoi pagare con questo acquisto?",
+    "createProjectOption": "Crea un nuovo progetto",
+    "projectNameLabel": "Nome del progetto",
+    "projectNamePlaceholder": "Il mio progetto",
+    "planLabel": "Piano OneUptime",
+    "planOption": "{{name}} – {{price}} per utente / mese",
+    "planOptionFree": "{{name}} – gratuito",
+    "existingProjectOption": "Usa uno dei miei progetti",
+    "projectLabel": "Progetto",
+    "projectPlaceholder": "Scegli un progetto",
+    "existingProjectHelp": "D'ora in poi, il suo piano e il suo utilizzo vengono fatturati tramite {{marketplace}} anziché con carta.",
+    "projectRefusal": {
+      "not_billing_manager": "{{name}} – solo i proprietari possono cambiarne la modalità di fatturazione",
+      "already_billed_by_marketplace": "{{name}} – già fatturato tramite un marketplace",
+      "bought_from_reseller": "{{name}} – fatturato da un rivenditore"
+    },
+    "nothingToChoose": "Nessuno dei tuoi progetti può ricevere questo acquisto e non puoi creare progetti su questo server. Chiedi al proprietario del progetto da pagare con questo acquisto di configurarlo.",
+    "billingNote": "Il tuo piano e il tuo utilizzo vengono fatturati tramite {{marketplace}}, ai prezzi indicati su oneuptime.com/pricing. Puoi cambiare piano in qualsiasi momento in Impostazioni del progetto → Fatturazione.",
+    "submitButton": "Configura acquisto",
+    "notNowButton": "Non ora",
+    "redirecting": "Il tuo acquisto è configurato. Ti stiamo portando al tuo progetto…",
+    "alreadySetUp": "Questo acquisto su {{marketplace}} è già configurato per uno dei tuoi progetti.",
+    "openProject": "Apri progetto",
+    "cancelled": "Questo acquisto è stato annullato su {{marketplace}}. Acquista di nuovo OneUptime su {{marketplace}} per continuare.",
+    "errorTitle": "Non è stato possibile configurare questo acquisto",
+    "errorHelp": "Apri di nuovo OneUptime dal marketplace in cui l'hai acquistato.",
+    "goToDashboard": "Vai alla dashboard"
   },
   "Use at least {{minimum}} characters.": "Usa almeno {{minimum}} caratteri.",
   "Try a few unrelated words.": "Prova con alcune parole non correlate.",

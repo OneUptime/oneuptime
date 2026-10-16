@@ -51,6 +51,7 @@
     "submitButton": "ورود",
     "forgotPassword": "رمز عبور را فراموش کرده‌اید؟",
     "useSso": "به‌جای آن از ورود یکپارچه (SSO) استفاده کنید",
+    "signInWithMicrosoft": "ورود با Microsoft",
     "noAccountPrompt": "حساب کاربری ندارید؟",
     "registerLink": "ثبت‌نام کنید.",
     "twoFactor": {
@@ -121,7 +122,8 @@
     "verifyEmailOpensInNewTab": "(در زبانه جدید باز می‌شود)",
     "verifyEmailAlreadyVerifiedPrompt": "ایمیل خود را قبلاً تأیید کرده‌اید؟",
     "verifyEmailWrongAddressPrompt": "آدرس ایمیل اشتباه است؟",
-    "verifyEmailUseDifferentEmail": "ثبت‌نام با ایمیلی دیگر"
+    "verifyEmailUseDifferentEmail": "ثبت‌نام با ایمیلی دیگر",
+    "signUpWithMicrosoft": "ثبت‌نام با Microsoft"
   },
   "forgotPassword": {
     "title": "رمز عبور خود را فراموش کرده‌اید",
@@ -257,6 +259,42 @@
       "server_error": "مشکلی در سمت ما پیش آمد. لطفاً چند دقیقه دیگر دوباره تلاش کنید.",
       "framed": "برای حفظ امنیت شما، این صفحه درون صفحه‌ای دیگر قابل استفاده نیست. آن را در زبانه یا پنجره جداگانه‌ای در مرورگر باز کنید."
     }
+  },
+  "marketplacePurchase": {
+    "title": "راه‌اندازی خرید",
+    "subtitle": "شما OneUptime را در {{marketplace}} خریده‌اید. پروژه‌ای را انتخاب کنید که هزینه‌اش با این خرید پرداخت می‌شود.",
+    "boughtOnLabel": "محل خرید",
+    "buyerLabel": "خریدار",
+    "marketplacePlanLabel": "طرح مارکت‌پلیس",
+    "signedInAs": "با {{email}} وارد شده‌اید",
+    "freeTrial": "این خرید در {{marketplace}} در دوره آزمایشی رایگان است.",
+    "choiceLabel": "هزینه کدام پروژه با این خرید پرداخت شود؟",
+    "createProjectOption": "ایجاد پروژه جدید",
+    "projectNameLabel": "نام پروژه",
+    "projectNamePlaceholder": "پروژه من",
+    "planLabel": "طرح OneUptime",
+    "planOption": "{{name}} – {{price}} به ازای هر کاربر / ماه",
+    "planOptionFree": "{{name}} – رایگان",
+    "existingProjectOption": "استفاده از یکی از پروژه‌هایم",
+    "projectLabel": "پروژه",
+    "projectPlaceholder": "یک پروژه انتخاب کنید",
+    "existingProjectHelp": "از این پس، هزینه طرح و مصرف این پروژه به‌جای کارت از طریق {{marketplace}} پرداخت می‌شود.",
+    "projectRefusal": {
+      "not_billing_manager": "{{name}} – فقط مالکان آن می‌توانند نحوه پرداخت را تغییر دهند",
+      "already_billed_by_marketplace": "{{name}} – هم‌اکنون از طریق یک مارکت‌پلیس پرداخت می‌شود",
+      "bought_from_reseller": "{{name}} – از طریق فروشنده واسط پرداخت می‌شود"
+    },
+    "nothingToChoose": "هیچ‌یک از پروژه‌های شما نمی‌تواند این خرید را بپذیرد و شما نمی‌توانید در این سرور پروژه ایجاد کنید. از مالک پروژه‌ای که هزینه‌اش باید با این خرید پرداخت شود بخواهید آن را راه‌اندازی کند.",
+    "billingNote": "هزینه طرح و مصرف شما با قیمت‌های oneuptime.com/pricing از طریق {{marketplace}} پرداخت می‌شود. هر زمان بخواهید می‌توانید طرح خود را در تنظیمات پروژه ← صورت‌حساب تغییر دهید.",
+    "submitButton": "راه‌اندازی خرید",
+    "notNowButton": "اکنون نه",
+    "redirecting": "خرید شما راه‌اندازی شد. در حال انتقال به پروژه شما…",
+    "alreadySetUp": "این خرید {{marketplace}} قبلاً برای یکی از پروژه‌های شما راه‌اندازی شده است.",
+    "openProject": "باز کردن پروژه",
+    "cancelled": "این خرید در {{marketplace}} لغو شده است. برای ادامه، OneUptime را دوباره از {{marketplace}} بخرید.",
+    "errorTitle": "نتوانستیم این خرید را راه‌اندازی کنیم",
+    "errorHelp": "OneUptime را دوباره از همان مارکت‌پلیسی که از آن خریده‌اید باز کنید.",
+    "goToDashboard": "رفتن به داشبورد"
   },
   "Use at least {{minimum}} characters.": "حداقل از {{minimum}} نویسه استفاده کنید.",
   "Try a few unrelated words.": "چند واژهٔ نامرتبط را امتحان کنید.",

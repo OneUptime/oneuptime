@@ -244,6 +244,9 @@ import PromoCodeService from "./PromoCodeService";
 import EnterpriseLicenseService from "./EnterpriseLicenseService";
 import EnterpriseLicenseInstanceService from "./EnterpriseLicenseInstanceService";
 import OpenSourceDeploymentService from "./OpenSourceDeploymentService";
+import MarketplaceSubscriptionService from "./MarketplaceSubscriptionService";
+import MarketplaceUsageReportService from "./MarketplaceUsageReportService";
+import MarketplaceChargeService from "./MarketplaceChargeService";
 import RecommendationDismissalService from "./RecommendationDismissalService";
 import ResellerPlanService from "./ResellerPlanService";
 import ResellerService from "./ResellerService";
@@ -502,6 +505,9 @@ const services: Array<BaseService> = [
   EnterpriseLicenseService,
   EnterpriseLicenseInstanceService,
   OpenSourceDeploymentService,
+  MarketplaceSubscriptionService,
+  MarketplaceUsageReportService,
+  MarketplaceChargeService,
 
   ResellerService,
   ResellerPlanService,

@@ -1297,6 +1297,34 @@ describe("GitHubIssueFixTaskHandler", () => {
     expect(recordFailure).toContain("Failed to record pull request");
   });
 
+  /*
+   * The record goes with the run's Completed status instead, for the server
+   * to make: without it the open-PR cap never counts the pull request and the
+   * PR state sync never tracks it.
+   */
+  test("keeps the record it could not make for the run's status report", async () => {
+    stubPipeline({
+      agentResult: agentSucceeded({
+        filesModified: ["src/checkout.ts"],
+        summary: "Guarded the empty cart.",
+      }),
+    });
+
+    const harness: Harness = buildHarness(issueDetails());
+    harness.recordPullRequest.mockRejectedValue(
+      new Error("Failed to record pull request"),
+    );
+
+    await run(harness);
+
+    const attempted: RecordPullRequestOptions = harness.recordPullRequest.mock
+      .calls[0]?.[0] as RecordPullRequestOptions;
+
+    expect(harness.context.unrecordedPullRequests).toEqual([attempted]);
+    expect(attempted.pullRequestUrl).toBe(PULL_REQUEST_URL);
+    expect(attempted.pullRequestNumber).toBe(7);
+  });
+
   test("the pull request body warns that it is AI-authored and unmerged", async () => {
     const pipeline: StubbedPipeline = stubPipeline({
       agentResult: agentSucceeded({
