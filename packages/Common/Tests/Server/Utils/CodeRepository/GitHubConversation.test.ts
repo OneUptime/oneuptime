@@ -48,6 +48,7 @@ import GitHubConversation, {
 import GitHubUtil, {
   GitHubInstallationToken,
 } from "../../../../Server/Utils/CodeRepository/GitHub/GitHub";
+import { GitHubCommentKind } from "../../../../Types/CodeRepository/GitHubCommand";
 import logger from "../../../../Server/Utils/Logger";
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
@@ -1082,7 +1083,9 @@ describe("GitHubConversation", () => {
       await expect(
         GitHubConversation.addReactionToComment({
           ...REPO,
+          issueNumber: 42,
           commentId: 99,
+          commentKind: GitHubCommentKind.IssueComment,
           reaction: GitHubReaction.Eyes,
         }),
       ).resolves.toBe(true);
@@ -1091,6 +1094,76 @@ describe("GitHubConversation", () => {
         "https://api.github.com/repos/acme/checkout/issues/comments/99/reactions",
       );
       expect(postBody(1)).toEqual({ content: "eyes" });
+    });
+
+    /*
+     * REGRESSION. An inline comment on a pull request's diff is a review
+     * comment, and its reactions live under /pulls/comments. Every reaction
+     * used to go to /issues/comments, which 404s for a review comment id —
+     * so a mention written on the diff got no 👀, and a refused commenter,
+     * whose only answer is a 😕, got no answer at all.
+     */
+    test("reacts on an inline review comment through the pull request comments route", async () => {
+      postMock.mockResolvedValueOnce(okJson({ id: 1, content: "eyes" }));
+
+      await expect(
+        GitHubConversation.addReactionToComment({
+          ...REPO,
+          issueNumber: 42,
+          commentId: 2718,
+          commentKind: GitHubCommentKind.ReviewComment,
+          reaction: GitHubReaction.Eyes,
+        }),
+      ).resolves.toBe(true);
+
+      expect(postMock).toHaveBeenCalledTimes(1);
+      expect(postCall(1).url.toString()).toBe(
+        "https://api.github.com/repos/acme/checkout/pulls/comments/2718/reactions",
+      );
+      expect(postBody(1)).toEqual({ content: "eyes" });
+    });
+
+    /*
+     * REGRESSION. GitHub has no reaction API for a submitted review, so a
+     * review's id on any comment route is a 404. The pull request it reviewed
+     * is the nearest thing the reviewer will see, so the reaction goes there.
+     */
+    test("reacts on the pull request for a submitted review, which has no reactions of its own", async () => {
+      postMock.mockResolvedValueOnce(okJson({ id: 1, content: "confused" }));
+
+      await expect(
+        GitHubConversation.addReactionToComment({
+          ...REPO,
+          issueNumber: 42,
+          commentId: 314159,
+          commentKind: GitHubCommentKind.Review,
+          reaction: GitHubReaction.Confused,
+        }),
+      ).resolves.toBe(true);
+
+      expect(postMock).toHaveBeenCalledTimes(1);
+      expect(postCall(1).url.toString()).toBe(
+        "https://api.github.com/repos/acme/checkout/issues/42/reactions",
+      );
+      expect(postCall(1).url.toString()).not.toContain("314159");
+      expect(postBody(1)).toEqual({ content: "confused" });
+    });
+
+    // The fallback keeps the contract: a refusal is false, never a throw.
+    test("returns false, without throwing, when GitHub refuses a review's reaction on its pull request", async () => {
+      postMock.mockResolvedValueOnce(
+        errorResponse(403, { message: "Resource not accessible" }),
+      );
+
+      await expect(
+        GitHubConversation.addReactionToComment({
+          ...REPO,
+          issueNumber: 42,
+          commentId: 314159,
+          commentKind: GitHubCommentKind.Review,
+          reaction: GitHubReaction.Eyes,
+        }),
+      ).resolves.toBe(false);
     });
 
     /*
@@ -1129,7 +1202,9 @@ describe("GitHubConversation", () => {
       await expect(
         GitHubConversation.addReactionToComment({
           ...REPO,
+          issueNumber: 42,
           commentId: 99,
+          commentKind: GitHubCommentKind.IssueComment,
           reaction: GitHubReaction.Confused,
         }),
       ).resolves.toBe(false);
@@ -1141,7 +1216,9 @@ describe("GitHubConversation", () => {
       await expect(
         GitHubConversation.addReactionToComment({
           ...REPO,
+          issueNumber: 42,
           commentId: 99,
+          commentKind: GitHubCommentKind.IssueComment,
           reaction: GitHubReaction.Eyes,
         }),
       ).resolves.toBe(false);
@@ -1169,7 +1246,9 @@ describe("GitHubConversation", () => {
       await expect(
         GitHubConversation.addReactionToComment({
           ...REPO,
+          issueNumber: 42,
           commentId: 99,
+          commentKind: GitHubCommentKind.IssueComment,
           reaction: GitHubReaction.Confused,
         }),
       ).resolves.toBe(false);
