@@ -1175,6 +1175,393 @@ describe("Workflow builder: trigger setup and deletion", () => {
   });
 });
 
+/*
+ * "When there are no triggers on the form, the Add Component button should
+ * say 'Add Trigger' so it's easier for people to use and understand." - the
+ * maintainer. The page draws the toolbar button's name (WorkflowAddButton);
+ * the canvas opens the panel of that name, read from its own nodes when the
+ * button is pressed. The Builder page's tests hold the name to the same
+ * canvases.
+ */
+describe("Workflow builder: the toolbar's add button opens the panel it names", () => {
+  type LastPickerFunction = () => PickerProps;
+
+  const lastPicker: LastPickerFunction = (): PickerProps => {
+    const last: PickerProps | undefined =
+      mockPickerProps[mockPickerProps.length - 1];
+
+    if (!last) {
+      throw new Error("Expected a picker to have opened.");
+    }
+
+    return last;
+  };
+
+  type ChooseTriggerFunction = () => void;
+
+  const chooseTrigger: ChooseTriggerFunction = (): void => {
+    fireEvent.click(
+      screen.getByRole("button", { name: `Choose ${TRIGGER_METADATA.title}` }),
+    );
+  };
+
+  test("a workflow from scratch, only the dashed card: Add Trigger, offering the triggers", () => {
+    const harness: BuilderHarness = renderBuilder({
+      initialNodes: [getPlaceholderTriggerNode()],
+    });
+    openPicker(harness);
+
+    expect(screen.getByTestId("picker-Trigger")).toBeInTheDocument();
+    expect(screen.queryByTestId("picker-Component")).not.toBeInTheDocument();
+    expect(lastPicker().componentsType).toBe(ComponentType.Trigger);
+    expect(lastPicker().components).toEqual([TRIGGER_METADATA]);
+    expect(
+      screen.queryByRole("button", { name: `Choose ${ACTION_METADATA.title}` }),
+    ).not.toBeInTheDocument();
+    // The page made the request itself; it hears only when the panel closes.
+    expect(harness.onPickerUpdate).not.toHaveBeenCalled();
+  });
+
+  test("a canvas with nothing on it at all: Add Trigger", () => {
+    const harness: BuilderHarness = renderBuilder({ initialNodes: [] });
+    openPicker(harness);
+
+    expect(screen.getByTestId("picker-Trigger")).toBeInTheDocument();
+    expect(screen.queryByTestId("picker-Component")).not.toBeInTheDocument();
+  });
+
+  test("once the workflow has a trigger: Add Component, offering the steps", () => {
+    const harness: BuilderHarness = renderBuilder();
+    openPicker(harness);
+
+    expect(screen.getByTestId("picker-Component")).toBeInTheDocument();
+    expect(screen.queryByTestId("picker-Trigger")).not.toBeInTheDocument();
+    expect(lastPicker().componentsType).toBe(ComponentType.Component);
+    expect(lastPicker().components).toEqual([ACTION_METADATA]);
+    expect(harness.onPickerUpdate).not.toHaveBeenCalled();
+  });
+
+  test("choosing a trigger in it puts the trigger in the dashed card's place, selected and focused, its settings closed", () => {
+    const placeholder: Node = getPlaceholderTriggerNode();
+    const harness: BuilderHarness = renderBuilder({
+      initialNodes: [placeholder],
+    });
+    openPicker(harness);
+    chooseTrigger();
+
+    expect(screen.queryByTestId("picker-Trigger")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
+    expect(harness.onPickerUpdate).toHaveBeenLastCalledWith(false);
+
+    const stored: Array<Node<WorkflowNodeRenderData>> =
+      getStoredNodes(harness);
+
+    expect(
+      stored.map((node: Node<WorkflowNodeRenderData>) => {
+        return [node.data.nodeType, node.data.componentType, node.data.id];
+      }),
+    ).toEqual([[NodeType.Node, ComponentType.Trigger, "manual-trigger-1"]]);
+    // Where the dashed card was.
+    expect(findRenderedNode("manual-trigger-1").position).toEqual(
+      placeholder.position,
+    );
+    expect(findRenderedNode("manual-trigger-1").selected).toBe(true);
+    expect(document.activeElement).toBe(getNodeElement("manual-trigger-1"));
+  });
+
+  test("steps whose trigger was deleted keep their settings when the new trigger comes in", () => {
+    const action: Node<NodeDataProp> = makeNode(ACTION_METADATA);
+    action.data.arguments = { message: "Deployment finished" };
+    const harness: BuilderHarness = renderBuilder({
+      initialNodes: [getPlaceholderTriggerNode(), action],
+    });
+    openPicker(harness);
+
+    expect(screen.getByTestId("picker-Trigger")).toBeInTheDocument();
+
+    chooseTrigger();
+
+    expect(
+      getStoredNodes(harness)
+        .map((node: Node<WorkflowNodeRenderData>) => {
+          return node.data.id;
+        })
+        .sort(),
+    ).toEqual(["manual-trigger-1", "write-log-1"]);
+    expect(findRenderedNode("write-log-1").data.arguments).toEqual({
+      message: "Deployment finished",
+    });
+    expect(
+      getStoredNodes(harness).some((node: Node<WorkflowNodeRenderData>) => {
+        return node.data.nodeType === NodeType.PlaceholderNode;
+      }),
+    ).toBe(false);
+  });
+
+  test("the press after the first trigger is in opens Add Component", () => {
+    const harness: BuilderHarness = renderBuilder({
+      initialNodes: [getPlaceholderTriggerNode()],
+    });
+    openPicker(harness);
+    chooseTrigger();
+
+    openPicker(harness);
+
+    expect(screen.getByTestId("picker-Component")).toBeInTheDocument();
+    expect(screen.queryByTestId("picker-Trigger")).not.toBeInTheDocument();
+
+    chooseAction();
+
+    expect(
+      getStoredNodes(harness).map((node: Node<WorkflowNodeRenderData>) => {
+        return node.data.id;
+      }),
+    ).toEqual(["manual-trigger-1", "write-log-1"]);
+  });
+
+  test("a trigger added from the dashed card turns the next press into Add Component too", () => {
+    const placeholder: Node = getPlaceholderTriggerNode();
+    const harness: BuilderHarness = renderBuilder({
+      initialNodes: [placeholder],
+    });
+    fireEvent.click(screen.getByTestId(`workflow-node-${placeholder.id}`));
+    chooseTrigger();
+
+    openPicker(harness);
+
+    expect(screen.getByTestId("picker-Component")).toBeInTheDocument();
+  });
+
+  test("deleting the last trigger brings Add Trigger back", () => {
+    const trigger: Node<NodeDataProp> = makeNode(TRIGGER_METADATA);
+    const harness: BuilderHarness = renderBuilder({
+      initialNodes: [trigger, makeNode(ACTION_METADATA)],
+    });
+
+    openPicker(harness);
+    expect(screen.getByTestId("picker-Component")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Close picker" }));
+
+    fireEvent.click(screen.getByTestId(`workflow-node-${trigger.id}`));
+    fireEvent.click(screen.getByRole("button", { name: "Delete step" }));
+
+    openPicker(harness);
+
+    expect(screen.getByTestId("picker-Trigger")).toBeInTheDocument();
+    expect(screen.queryByTestId("picker-Component")).not.toBeInTheDocument();
+
+    chooseTrigger();
+
+    expect(
+      getStoredNodes(harness)
+        .map((node: Node<WorkflowNodeRenderData>) => {
+          return [node.data.nodeType, node.data.id];
+        })
+        .sort(),
+    ).toEqual([
+      [NodeType.Node, "manual-trigger-1"],
+      [NodeType.Node, "write-log-1"],
+    ]);
+  });
+
+  test("closed without a choice: nothing is added, and the page hears it closed so the button opens it again", () => {
+    const harness: BuilderHarness = renderBuilder({
+      initialNodes: [getPlaceholderTriggerNode()],
+    });
+    const before: Array<Node<WorkflowNodeRenderData>> = getStoredNodes(harness);
+
+    openPicker(harness);
+    fireEvent.click(screen.getByRole("button", { name: "Close picker" }));
+
+    expect(screen.queryByTestId("picker-Trigger")).not.toBeInTheDocument();
+    expect(harness.onPickerUpdate).toHaveBeenLastCalledWith(false);
+    expect(getStoredNodes(harness)).toEqual(before);
+
+    openPicker(harness);
+
+    expect(screen.getByTestId("picker-Trigger")).toBeInTheDocument();
+  });
+
+  test("the page hears an add panel close, whichever opened it, and never hears one open", () => {
+    const placeholder: Node = getPlaceholderTriggerNode();
+    const harness: BuilderHarness = renderBuilder({
+      initialNodes: [placeholder],
+    });
+
+    // Nothing has closed yet.
+    expect(harness.onPickerUpdate).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId(`workflow-node-${placeholder.id}`));
+
+    expect(screen.getByTestId("picker-Trigger")).toBeInTheDocument();
+    expect(harness.onPickerUpdate).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Close picker" }));
+
+    expect(harness.onPickerUpdate.mock.calls).toEqual([[false]]);
+
+    openPicker(harness);
+    chooseTrigger();
+
+    expect(harness.onPickerUpdate.mock.calls).toEqual([[false], [false]]);
+  });
+
+  test("the page taking its request back closes whichever panel the button opened", () => {
+    const harness: BuilderHarness = renderBuilder({
+      initialNodes: [getPlaceholderTriggerNode()],
+    });
+    openPicker(harness);
+
+    expect(screen.getByTestId("picker-Trigger")).toBeInTheDocument();
+
+    harness.view.rerender(
+      <Workflow {...harness.props} showComponentsPickerModal={false} />,
+    );
+
+    expect(screen.queryByTestId("picker-Trigger")).not.toBeInTheDocument();
+    expect(harness.onPickerUpdate).toHaveBeenLastCalledWith(false);
+  });
+
+  test("the request a page makes before the canvas is drawn opens the panel the canvas starts with", () => {
+    renderBuilder({
+      initialNodes: [getPlaceholderTriggerNode()],
+      showComponentsPickerModal: true,
+    });
+
+    expect(screen.getByTestId("picker-Trigger")).toBeInTheDocument();
+
+    cleanup();
+    mockPickerProps = [];
+
+    renderBuilder({ showComponentsPickerModal: true });
+
+    expect(screen.getByTestId("picker-Component")).toBeInTheDocument();
+  });
+
+  /*
+   * A page that keeps its request from what the canvas tells it, as the
+   * Builder does. When the request and a panel changed in the same render,
+   * a canvas that told the page every opening as well as every closing set
+   * the two chasing each other: the request opened a panel while the closed
+   * panel cleared the request, and round again, for ever (the page never
+   * settled, and its tests hung). The canvas now tells only the closing.
+   */
+  type RenderFeedbackPageFunction = (initialNodes: Array<Node>) => {
+    reports: () => number;
+    request: (value: boolean) => void;
+  };
+
+  const renderFeedbackPage: RenderFeedbackPageFunction = (
+    initialNodes: Array<Node>,
+  ): { reports: () => number; request: (value: boolean) => void } => {
+    let reports: number = 0;
+    let setRequest: (value: boolean) => void = (): void => {};
+
+    const Page: React.FunctionComponent = (): ReactElement => {
+      const [isRequested, setIsRequested] = React.useState<boolean>(false);
+      setRequest = setIsRequested;
+
+      return (
+        <Workflow
+          initialNodes={initialNodes}
+          initialEdges={[]}
+          workflowId={new ObjectID("11111111-1111-4111-8111-111111111111")}
+          showComponentsPickerModal={isRequested}
+          showRunModal={false}
+          onWorkflowUpdated={() => {}}
+          onComponentPickerModalUpdate={(isShown: boolean) => {
+            reports++;
+
+            // A canvas going round: stop feeding it, so the test can fail.
+            if (reports <= 20) {
+              setIsRequested(isShown);
+            }
+          }}
+          onRunModalUpdate={() => {}}
+          onRun={() => {}}
+        />
+      );
+    };
+
+    render(<Page />);
+
+    return {
+      reports: (): number => {
+        return reports;
+      },
+      request: (value: boolean): void => {
+        setRequest(value);
+      },
+    };
+  };
+
+  test("a page that keeps its request from the canvas's word opens one panel at a time", () => {
+    const placeholder: Node = getPlaceholderTriggerNode();
+    const page: { reports: () => number; request: (value: boolean) => void } =
+      renderFeedbackPage([placeholder]);
+
+    fireEvent.click(screen.getByTestId(`workflow-node-${placeholder.id}`));
+
+    expect(screen.getAllByTestId("picker-Trigger")).toHaveLength(1);
+    expect(screen.queryByTestId("picker-Component")).not.toBeInTheDocument();
+
+    chooseTrigger();
+
+    expect(screen.queryByTestId("picker-Trigger")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("picker-Component")).not.toBeInTheDocument();
+
+    // The button, pressed now: the first trigger is in, so Add Component.
+    act(() => {
+      page.request(true);
+    });
+
+    expect(screen.getAllByTestId("picker-Component")).toHaveLength(1);
+    expect(screen.queryByTestId("picker-Trigger")).not.toBeInTheDocument();
+    expect(page.reports()).toBe(1);
+  });
+
+  test("its request and a closing panel in the same render settle at once, rather than chase each other", () => {
+    const placeholder: Node = getPlaceholderTriggerNode();
+    const page: { reports: () => number; request: (value: boolean) => void } =
+      renderFeedbackPage([placeholder]);
+
+    fireEvent.click(screen.getByTestId(`workflow-node-${placeholder.id}`));
+
+    act(() => {
+      // The trigger is chosen, closing the panel, as the button is pressed.
+      chooseTrigger();
+      page.request(true);
+    });
+
+    // Two closings told at most: the trigger panel's, and one more.
+    expect(page.reports()).toBeLessThanOrEqual(2);
+    expect(screen.queryAllByTestId("picker-Trigger")).toHaveLength(0);
+    expect(screen.queryAllByTestId("picker-Component").length).toBeLessThanOrEqual(
+      1,
+    );
+  });
+
+  test("so do a closing panel and a request taken back", () => {
+    const page: { reports: () => number; request: (value: boolean) => void } =
+      renderFeedbackPage([makeNode(TRIGGER_METADATA)]);
+
+    act(() => {
+      page.request(true);
+    });
+
+    expect(screen.getByTestId("picker-Component")).toBeInTheDocument();
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Close picker" }));
+      page.request(false);
+    });
+
+    expect(page.reports()).toBeLessThanOrEqual(2);
+    expect(screen.queryByTestId("picker-Component")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("picker-Trigger")).not.toBeInTheDocument();
+  });
+});
+
 describe("Workflow builder: rendering and persistence boundaries", () => {
   test("existing nodes open settings without mutating the initial graph to attach callbacks", () => {
     const action: Node<NodeDataProp> = makeNode(ACTION_METADATA);
@@ -1475,13 +1862,26 @@ describe("Workflow builder: rendering and persistence boundaries", () => {
 });
 
 describe("Workflow builder: running and modal state", () => {
-  test.each(["component picker", "trigger picker", "settings", "run"])(
+  test.each([
+    "component picker",
+    "trigger picker",
+    "toolbar's trigger picker",
+    "settings",
+    "run",
+  ])(
     "%s suspends canvas keyboard shortcuts until it closes",
     (modal: string) => {
       const placeholder: Node = getPlaceholderTriggerNode();
       const action: Node<NodeDataProp> = makeNode(ACTION_METADATA);
+      /*
+       * The toolbar's button opens Add Component only once the workflow has
+       * a trigger; without one it opens Add Trigger.
+       */
       const harness: BuilderHarness = renderBuilder({
-        initialNodes: [placeholder, action],
+        initialNodes:
+          modal === "component picker"
+            ? [makeNode(TRIGGER_METADATA), action]
+            : [placeholder, action],
       });
 
       expect(mockFlowProps).toEqual(
@@ -1496,8 +1896,12 @@ describe("Workflow builder: running and modal state", () => {
 
       if (modal === "component picker") {
         openPicker(harness);
+        expect(screen.getByTestId("picker-Component")).toBeInTheDocument();
       } else if (modal === "trigger picker") {
         fireEvent.click(screen.getByTestId(`workflow-node-${placeholder.id}`));
+      } else if (modal === "toolbar's trigger picker") {
+        openPicker(harness);
+        expect(screen.getByTestId("picker-Trigger")).toBeInTheDocument();
       } else if (modal === "settings") {
         closeButton = "Close settings";
         fireEvent.click(screen.getByTestId(`workflow-node-${action.id}`));

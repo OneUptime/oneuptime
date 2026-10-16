@@ -207,9 +207,9 @@ export interface ComponentProps {
   showComponentsPickerModal: boolean;
   showRunModal: boolean;
   /*
-   * Whether an add panel is open, Add Trigger or Add Component, whichever
-   * opened it: the page clears its request once the panel closes, so the
-   * button opens one again the next time.
+   * Told, with false, when an add panel closes - Add Trigger or Add
+   * Component, whatever opened it - so the page clears its request and the
+   * button opens a panel again the next time it is pressed.
    */
   onComponentPickerModalUpdate: (isModalShown: boolean) => void;
   workflowId: ObjectID;
@@ -750,14 +750,24 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     showRunModal;
 
   /*
-   * Either panel counts: the toolbar's button opens Add Trigger on a canvas
-   * without a trigger, and the page has to hear that it closed, or the
-   * button would not open anything the next time.
+   * The page hears when an add panel closes, either one: the toolbar's
+   * button opens Add Trigger on a canvas without a trigger, and a page that
+   * never heard it close would not open anything the next time. Only the
+   * closing is told. The page sets its own request when the button is
+   * pressed, and a canvas that also told it every opening could chase it
+   * back and forth for ever when both changed in the same render.
    */
+  const wasAddPanelOpenRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
   useEffect(() => {
-    props.onComponentPickerModalUpdate(
-      showComponentsModal || showTriggersModal,
-    );
+    const isAddPanelOpen: boolean = showComponentsModal || showTriggersModal;
+
+    if (wasAddPanelOpenRef.current && !isAddPanelOpen) {
+      props.onComponentPickerModalUpdate(false);
+    }
+
+    wasAddPanelOpenRef.current = isAddPanelOpen;
   }, [showComponentsModal, showTriggersModal]);
 
   const refreshEdges: VoidFunction = (): void => {
