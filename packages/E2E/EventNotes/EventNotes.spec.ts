@@ -1684,3 +1684,240 @@ test.describe("screenshots", () => {
     await screenshot(page, "incident-public-notes-composer");
   });
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * A private incident or episode takes no public notes
+ * ---------------------------------------------------------------------------
+ *
+ * It is on no status page and tells no subscriber, so a public note on it
+ * would reach nobody it was written for (Common/Types/StatusPage/
+ * PrivateRecordPublicNotes). Its Public Notes page says so where the
+ * composer was, with the way to its private notes; the public notes it
+ * already has stay, to read and edit, with nothing that tells subscribers.
+ */
+
+test.describe("a private incident or episode", () => {
+  const INCIDENT_EPISODE_PUBLIC: NotesPage = notesPage(
+    "incident-episode-public-notes",
+  );
+
+  test("the incident's public notes page takes no new public note, says why, and leads to its private notes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC, "private=1");
+
+    const lock: Locator = page.getByTestId("note-composer-private-event");
+    await expect(lock).toContainText(
+      "This incident is private, so public notes cannot be added to it. Use a private note.",
+    );
+    await expect(page.getByTestId("note-composer-prompt")).toHaveCount(0);
+    await expect(page.getByTestId("notes-description")).toHaveText(
+      "Customer-facing updates about this incident. While it is private, no status page shows them.",
+    );
+
+    // The public notes it already has are still there, to read.
+    await expect(cards(page).first()).toContainText(INCIDENT_PUBLIC.firstNote);
+
+    await lock.getByRole("link", { name: "Add Private Note" }).click();
+    await page.waitForURL((url: URL): boolean => {
+      return url.pathname === INCIDENT_PRIVATE.path;
+    });
+    expect(new URL(page.url()).searchParams.get("compose")).toBe("1");
+
+    // One click: the private notes, their composer open, the cursor in it.
+    const composer: Locator = page.getByTestId("note-composer");
+    await expect(composer).toBeVisible();
+    await expect(page.getByTestId("note-composer-prompt")).toHaveCount(0);
+    await expect(composer.getByTestId("note-audience")).toHaveText(
+      "Private·Only your team can see this",
+    );
+    await expect(composer.locator('[contenteditable="true"]')).toBeFocused();
+    await expect(cards(page).first()).toContainText(INCIDENT_PRIVATE.firstNote);
+    expect((await fixture(page)).creates).toEqual([]);
+
+    await page.keyboard.type("Rolled back the 14:02 deploy.");
+    await composer.getByTestId("note-submit").click();
+    await expect(cards(page).first()).toContainText(
+      "Rolled back the 14:02 deploy.",
+    );
+    expect(
+      (await fixture(page)).creates.map((entry: RecordedWrite) => {
+        return entry.modelName;
+      }),
+    ).toEqual(["IncidentInternalNote"]);
+  });
+
+  test("a public note it already has is edited without asking to tell subscribers", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC, "private=1");
+    const noteCard: Locator = card(page, "rotating it now");
+
+    await openActions(noteCard);
+    await page.getByRole("menuitem", { name: "Edit note" }).click();
+
+    const composer: Locator = noteCard.getByTestId("note-edit-composer");
+    await expect(composer).toBeVisible();
+    await expect(composer.getByTestId("note-notify-checkbox")).toHaveCount(0);
+    // Still a public note, but no status page shows it while it is private.
+    await expect(composer.getByTestId("note-audience")).toHaveText(
+      "Public·Not shown while this incident is private",
+    );
+
+    await composer.locator('[contenteditable="true"]').first().click();
+    await page.keyboard.press("ControlOrMeta+End");
+    await page.keyboard.type(" Rotation complete.");
+    await composer.getByTestId("note-submit").click();
+
+    await expect(noteCard.getByTestId("note-edit-composer")).toHaveCount(0);
+    await expect(noteCard.getByTestId("note-body")).toContainText(
+      "Rotation complete.",
+    );
+
+    const update: RecordedWrite = (await fixture(page)).updates.find(
+      (entry: RecordedWrite) => {
+        return entry.modelName === "IncidentPublicNote";
+      },
+    )!;
+    expect(String(update.data!["note"])).toContain("Rotation complete.");
+    expect(update.miscDataProps?.["notifySubscribersOfUpdate"]).not.toBe(true);
+  });
+
+  test("a public note's notification is not offered to be sent again, nor retried", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC, "private=1");
+    const sent: Locator = card(page, "Monitoring.").getByTestId(
+      "note-notification-status",
+    );
+    await expect(sent).toHaveText("Subscribers notified");
+
+    await sent.click();
+    await expect(
+      page.getByRole("button", { name: "Resend notification" }),
+    ).toHaveCount(0);
+    await page.keyboard.press("Escape");
+
+    // A failed one still says what happened, and offers no Retry.
+    const failed: Locator = card(page, "rotating it now").getByTestId(
+      "note-notification-status",
+    );
+    await expect(failed).toHaveText("Notification failed");
+
+    await failed.click();
+    await expect(
+      page.getByText("1,284 subscribers were not notified."),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Retry notification" }),
+    ).toHaveCount(0);
+
+    expect((await fixture(page)).updates).toEqual([]);
+  });
+
+  test("a public note it already has is deleted without claiming to leave a status page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC, "private=1");
+    const noteCard: Locator = card(page, "rotating it now");
+
+    await openActions(noteCard);
+    await page.getByRole("menuitem", { name: "Delete note" }).click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Delete this public note?",
+    });
+    // On no status page while the incident is private: none to leave.
+    await expect(dialog).toContainText(
+      "The note will be permanently deleted. This cannot be undone.",
+    );
+    await expect(dialog).not.toContainText("status page");
+    await dialog.getByRole("button", { name: "Delete note" }).click();
+
+    await expect(card(page, "rotating it now")).toHaveCount(0);
+    expect((await fixture(page)).deletes).toEqual([
+      {
+        modelName: "IncidentPublicNote",
+        id: uuid("70000000", 2),
+      },
+    ]);
+  });
+
+  test("its private notes are written as always", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PRIVATE, "private=1");
+    const composer: Locator = await openComposer(page);
+
+    await page.keyboard.type("Rolled back the 14:02 deploy.");
+    await composer.getByTestId("note-submit").click();
+
+    await expect(cards(page).first()).toContainText(
+      "Rolled back the 14:02 deploy.",
+    );
+    expect(
+      (await fixture(page)).creates.map((entry: RecordedWrite) => {
+        return entry.modelName;
+      }),
+    ).toEqual(["IncidentInternalNote"]);
+  });
+
+  test("the episode's public notes page says the same for the episode", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_EPISODE_PUBLIC, "private=1");
+
+    await expect(page.getByTestId("note-composer-private-event")).toContainText(
+      "This episode is private, so public notes cannot be added to it. Use a private note.",
+    );
+    await expect(page.getByTestId("note-composer-prompt")).toHaveCount(0);
+    await expect(page.getByTestId("notes-description")).toHaveText(
+      "Customer-facing updates about this episode. While it is private, no status page shows them.",
+    );
+    await expect(cards(page).first()).toContainText(
+      INCIDENT_EPISODE_PUBLIC.firstNote,
+    );
+  });
+
+  test("an incident that is not private takes public notes as always", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC);
+
+    await expect(page.getByTestId("note-composer-private-event")).toHaveCount(
+      0,
+    );
+    await expect(page.getByTestId("note-composer-prompt")).toBeVisible();
+  });
+
+  test("screenshots of the private incident's and episode's public notes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC, "private=1");
+    await screenshot(page, "incident-public-notes-private-incident");
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page, INCIDENT_PUBLIC, "private=1");
+    await screenshot(page, "incident-public-notes-private-incident-phone");
+
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await open(page, INCIDENT_EPISODE_PUBLIC, "private=1");
+    await screenshot(page, "incident-episode-public-notes-private-episode");
+  });
+});

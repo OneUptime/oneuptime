@@ -116,7 +116,7 @@ Criteria bepalen wanneer de poort als online, verminderd of offline telt, en of 
 
 Een criterium op de DNS-opzoektijd heeft niets te evalueren wanneer het doel een IP-adres is. Gebruik voor criteria die met hostnamen en IP-adressen gelijk moeten werken de totale tijd of de TCP-verbindingstijd.
 
-Bij twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** moeten overeenkomen of dat **Elke** afzonderlijke filter volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing maken, een incident melden, of meerdere daarvan.
+Bij twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** moeten overeenkomen of dat **Minstens één** filter volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing maken, een incident melden, of meerdere daarvan.
 
 ### Standaardcriteria
 

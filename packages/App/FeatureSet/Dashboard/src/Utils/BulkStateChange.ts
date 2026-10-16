@@ -97,6 +97,44 @@ export function buildBulkStateChangeMiscDataProps(data: {
   };
 }
 
+/*
+ * What one incident's bulk state change sends. The dialog writes one public
+ * note for every incident it moves, with "Notify Status Page Subscribers".
+ * A private incident takes no public notes and reaches no subscriber
+ * (Common/Types/StatusPage/PrivateRecordPublicNotes), and the server refuses
+ * a change that comes with a public note on one: it gets the same note as a
+ * private note, and notifies nobody. The dialog's description says so.
+ */
+export interface IncidentBulkStateChange {
+  miscDataProps: JSONObject;
+  shouldStatusPageSubscribersBeNotified: boolean;
+}
+
+export function buildIncidentBulkStateChange(data: {
+  isPrivate: boolean;
+  note?: string | undefined;
+  shouldStatusPageSubscribersBeNotified?: boolean | undefined;
+}): IncidentBulkStateChange {
+  if (data.isPrivate) {
+    return {
+      miscDataProps: buildBulkStateChangeMiscDataProps({
+        noteType: BulkStateChangeNoteType.Private,
+        note: data.note,
+      }),
+      shouldStatusPageSubscribersBeNotified: false,
+    };
+  }
+
+  return {
+    miscDataProps: buildBulkStateChangeMiscDataProps({
+      noteType: BulkStateChangeNoteType.Public,
+      note: data.note,
+    }),
+    shouldStatusPageSubscribersBeNotified:
+      data.shouldStatusPageSubscribersBeNotified ?? true,
+  };
+}
+
 export interface BulkStateChangeSkipDecision {
   shouldSkip: boolean;
   skippedMessage?: string | undefined;

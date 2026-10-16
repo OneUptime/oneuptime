@@ -400,6 +400,93 @@ describe("AzureMarketplaceAPI", () => {
     });
   });
 
+  /*
+   * A Duplicate comes back with the event Microsoft kept for that hour
+   * (error.additionalInfo.acceptedMessage), as in Microsoft's own example of
+   * the batch API: its ID and quantity tell this report, sent again, from
+   * another report filed in the same hour.
+   */
+  it("reads the event Microsoft kept when it answers Duplicate", async () => {
+    const http: FakeHttpClient = createFakeHttpClient([
+      TOKEN_ANSWER,
+      {
+        status: 200,
+        body: {
+          count: 3,
+          result: [
+            {
+              status: "Duplicate",
+              messageTime: "0001-01-01T00:00:00",
+              error: {
+                additionalInfo: {
+                  acceptedMessage: {
+                    usageEventId: "ue-kept",
+                    status: "Duplicate",
+                    messageTime: "2026-10-16T09:01:05.3458658Z",
+                    resourceId: SUBSCRIPTION_ID,
+                    quantity: 2200.0,
+                    dimension: "usage_units",
+                    effectiveStartTime: "2026-10-16T09:00:00Z",
+                    planId: "pay-as-you-go",
+                  },
+                },
+                message: "This usage event already exist.",
+                code: "Conflict",
+              },
+              resourceId: SUBSCRIPTION_ID,
+              quantity: 640,
+              dimension: "usage_units",
+              effectiveStartTime: "2026-10-16T09:00:00Z",
+              planId: "pay-as-you-go",
+            },
+            {
+              status: "Duplicate",
+              error: {
+                additionalInfo: {
+                  acceptedMessage: { quantity: "not a number" },
+                },
+                code: "Conflict",
+              },
+            },
+            {
+              status: "Duplicate",
+              error: { additionalInfo: "unexpected", code: "Conflict" },
+            },
+          ],
+        },
+      },
+    ]);
+
+    const results: Array<AzureUsageEventResult> = await createApi(
+      http,
+    ).reportUsageEvents([
+      {
+        resourceId: SUBSCRIPTION_ID,
+        quantity: 640,
+        dimension: "usage_units",
+        effectiveStartTime: new Date("2026-10-16T09:00:00.000Z"),
+        planId: "pay-as-you-go",
+      },
+    ]);
+
+    expect(results).toEqual([
+      {
+        status: "Duplicate",
+        usageEventId: null,
+        errorCode: "Conflict",
+        acceptedEvent: { usageEventId: "ue-kept", quantity: 2200 },
+      },
+      // What cannot be read is left unknown, never guessed.
+      {
+        status: "Duplicate",
+        usageEventId: null,
+        errorCode: "Conflict",
+        acceptedEvent: { usageEventId: null, quantity: null },
+      },
+      { status: "Duplicate", usageEventId: null, errorCode: "Conflict" },
+    ]);
+  });
+
   it("writes usage times the way Microsoft's examples do", () => {
     expect(
       AzureMarketplaceAPI.toUsageTime(new Date("2026-10-16T09:00:00.123Z")),

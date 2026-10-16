@@ -5641,7 +5641,7 @@
   "When would you like the first event to be scheduled?": "¿Cuándo le gustaría que se programara el primer evento?",
   "When would you like to send the first report?": "¿Cuándo le gustaría enviar el primer informe?",
   "When you create an alert, it is used to notify the team but is not shown on the status page.": "Cuando crea una alerta, se utiliza para notificar al equipo, pero no se muestra en la página de estado.",
-  "When you delcare an incident, it is used to notify the team and is shown on the status page as well.": "Cuando declara un incidente, se utiliza para notificar al equipo y también se muestra en la página de estado.",
+  "When you declare an incident, it is used to notify the team and is shown on the status page as well.": "Cuando declara un incidente, se utiliza para notificar al equipo y también se muestra en la página de estado.",
   "Where code is waiting on locks": "Dónde el código está esperando en bloqueos",
   "Where CPU cycles are being spent": "Dónde se están gastando los ciclos de CPU",
   "Where is this repository hosted?": "¿Dónde está alojado este repositorio?",
@@ -30066,5 +30066,16 @@
   "Reading the alert timeline": "Leyendo la cronología de la alerta",
   "Reading the incident timeline": "Leyendo la cronología del incidente",
   "Searching past incidents": "Buscando incidentes anteriores",
-  "Ranked by": "Ordenado por"
+  "Ranked by": "Ordenado por",
+  "Any type": "Cualquier tipo",
+  "If checked, only the incident's owner users and the members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "Si está marcado, solo los usuarios propietarios del incidente y los miembros de sus equipos propietarios (además de los administradores y propietarios del proyecto) pueden ver este incidente. Los incidentes privados se ocultan automáticamente de todas las páginas de estado y no se les pueden añadir notas públicas.",
+  "If enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "Si está habilitado, solo los usuarios propietarios del incidente y los miembros de sus equipos propietarios (además de los administradores y propietarios del proyecto) pueden ver este incidente. Los incidentes privados se ocultan automáticamente de todas las páginas de estado y no se les pueden añadir notas públicas.",
+  "When enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "Cuando está habilitado, solo los usuarios propietarios del incidente y los miembros de sus equipos propietarios (además de los administradores y propietarios del proyecto) pueden ver este incidente. Los incidentes privados se ocultan automáticamente de todas las páginas de estado y no se les pueden añadir notas públicas.",
+  "This episode is private, so public notes cannot be added to it. Use a private note.": "Este episodio es privado, así que no se le pueden añadir notas públicas. Usa una nota privada.",
+  "This incident is private, so public notes cannot be added to it. Use a private note.": "Este incidente es privado, así que no se le pueden añadir notas públicas. Usa una nota privada.",
+  "Customer-facing updates about this episode. While it is private, no status page shows them.": "Actualizaciones para los clientes sobre este episodio. Mientras sea privado, ninguna página de estado las muestra.",
+  "Customer-facing updates about this incident. While it is private, no status page shows them.": "Actualizaciones para los clientes sobre este incidente. Mientras sea privado, ninguna página de estado las muestra.",
+  "Not shown while this episode is private": "No se muestra mientras este episodio sea privado",
+  "Not shown while this incident is private": "No se muestra mientras este incidente sea privado",
+  "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "Eliminar este proyecto detiene su facturación, tras un último cargo por su uso hasta ahora. Tu compra de OneUptime en {{marketplace}} sigue activa hasta que la canceles allí."
 }

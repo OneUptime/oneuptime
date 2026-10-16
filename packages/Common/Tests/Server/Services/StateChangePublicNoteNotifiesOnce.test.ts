@@ -16,6 +16,7 @@ import ScheduledMaintenanceStateService from "../../../Server/Services/Scheduled
 import ScheduledMaintenanceStateTimelineService from "../../../Server/Services/ScheduledMaintenanceStateTimelineService";
 import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
+import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import ScheduledMaintenancePublicNote from "../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
@@ -28,6 +29,7 @@ import StateChangeSubscriberNotification from "../../../Types/StatusPage/StateCh
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import { getJestSpyOn } from "../../Spy";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubPrivateRecords } from "../TestingUtils/PrivateRecords";
 import {
   afterEach,
   beforeEach,
@@ -129,6 +131,12 @@ beforeEach(() => {
   ).mockResolvedValue(undefined);
   getJestSpyOn(Semaphore, "lock").mockResolvedValue(null);
   getJestSpyOn(Semaphore, "release").mockResolvedValue(undefined);
+  /*
+   * A change that comes with a public note asks whether its incident is
+   * private, which takes no public notes (PrivateRecordPublicNoteRule):
+   * none of these is.
+   */
+  stubPrivateRecords();
 });
 
 afterEach(() => {
@@ -729,6 +737,14 @@ describe("an incident state change with a public note tells subscribers once", (
       state.isResolvedState = false;
 
       getJestSpyOn(IncidentStateService, "findOneBy").mockResolvedValue(state);
+      /*
+       * The note's own create reads its incident once: whether it is
+       * private (a private incident takes no public notes) and whether it
+       * notified subscribers. Not private.
+       */
+      const incident: Incident = new Incident();
+      incident.isPrivate = false;
+      getJestSpyOn(IncidentService, "findOneBy").mockResolvedValue(incident);
       getJestSpyOn(IncidentService, "updateOneBy").mockResolvedValue(1);
       getJestSpyOn(IncidentService, "getIncidentNumber").mockResolvedValue({
         number: 17,

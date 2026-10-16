@@ -206,14 +206,14 @@ L'expression s'exécute dans un bac à sable auquel aucun champ de l'e-mail n'es
 
 ## Exemples de configuration
 
-Chaque exemple est une paire de critères. Un critère a des filtres, une **Condition de correspondance** (**Tous** ou **Tout** de ses filtres) et des actions : changer le statut du moniteur, créer une alerte, déclarer un incident. Activez **Résoudre automatiquement l'alerte** (ou **Résoudre automatiquement l'incident**) sous **Plus de champs** dans l'alerte ou l'incident, pour que le second critère résolve ce que le premier a ouvert.
+Chaque exemple est une paire de critères. Un critère a des filtres, une **Condition de correspondance** (**Tous** ou **Au moins un** de ses filtres) et des actions : changer le statut du moniteur, créer une alerte, déclarer un incident. Activez **Résoudre automatiquement l'alerte** (ou **Résoudre automatiquement l'incident**) sous **Plus de champs** dans l'alerte ou l'incident, pour que le second critère résolve ce que le premier a ouvert.
 
 ### Exemple 1 : créer une alerte sur les e-mails critiques
 
 | Critère | Filtres | Condition de correspondance | Actions |
 | --- | --- | --- | --- |
-| E-mail critique | **Objet de l'e-mail** Contient `CRITICAL` ; **Objet de l'e-mail** Contient `ALERT` ; **Objet de l'e-mail** Contient `ERROR` | **Tout** | Passer le statut à hors ligne ; créer une alerte |
-| E-mail de rétablissement | **Objet de l'e-mail** Contient `RESOLVED` ; **Objet de l'e-mail** Contient `RECOVERED` | **Tout** | Passer le statut à en ligne |
+| E-mail critique | **Objet de l'e-mail** Contient `CRITICAL` ; **Objet de l'e-mail** Contient `ALERT` ; **Objet de l'e-mail** Contient `ERROR` | **Au moins un** | Passer le statut à hors ligne ; créer une alerte |
+| E-mail de rétablissement | **Objet de l'e-mail** Contient `RESOLVED` ; **Objet de l'e-mail** Contient `RECOVERED` | **Au moins un** | Passer le statut à en ligne |
 
 Placez le critère critique en premier : les critères sont vérifiés depuis le haut, et le premier qui correspond décide.
 

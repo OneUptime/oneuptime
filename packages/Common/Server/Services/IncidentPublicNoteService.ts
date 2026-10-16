@@ -31,6 +31,8 @@ import SavedChatMessage from "../../Types/Workspace/SavedChatMessage";
 import SavedChatMessageNote, {
   SavedChatMessageNoteKind,
 } from "../Utils/Notes/SavedChatMessageNote";
+import PrivateRecordPublicNoteRule from "../Utils/Notes/PrivateRecordPublicNoteRule";
+import { PrivateRecordKind } from "../../Types/StatusPage/PrivateRecordPublicNotes";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -117,6 +119,24 @@ export class Service extends ProjectReferencesService<Model> {
     await super.onBeforeCreate(createBy);
 
     /*
+     * The incident the note is posted on, read once for the two things it
+     * decides here. A private incident takes no new public notes: a public
+     * note on it reached no status page and no subscriber, whatever its form
+     * promised, so it is refused on every way one is made - the API,
+     * workflows, the AI, Slack and Microsoft Teams, an SLA's reminders, a
+     * state change (PrivateRecordPublicNoteRule). And a note that does not
+     * say whether to notify subscribers follows the incident (below).
+     */
+    const incident: Incident | null = await this.getIncidentOfNote(
+      createBy.data,
+    );
+
+    PrivateRecordPublicNoteRule.assertRecordTakesPublicNotes({
+      kind: PrivateRecordKind.Incident,
+      record: incident,
+    });
+
+    /*
      * The state the incident moved to, when this is the note a state change
      * posts with it - what its subscriber messages name ("Status:
      * Resolved"). Only that note carries one (StateChangePublicNote): any
@@ -139,17 +159,16 @@ export class Service extends ProjectReferencesService<Model> {
      * An explicit true or false is kept as sent.
      */
     if (
-      createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated ===
+      (createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated ===
         undefined ||
-      createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated === null
+        createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated ===
+          null) &&
+      incident
     ) {
-      const notifyByDefault: boolean | null =
-        await this.getIncidentNotifyDefault(createBy.data);
-
-      if (notifyByDefault !== null) {
-        createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
-          notifyByDefault;
-      }
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
+        PublicNoteSubscriberNotificationDefault.shouldNotifyForIncident(
+          incident,
+        );
     }
 
     // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnNoteCreated
@@ -174,12 +193,15 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Whether a note on this incident notifies subscribers when nobody said,
-   * or null when the incident cannot be found (the column default applies).
-   * Read as root: posting a note does not require permission to read the
-   * incident, and the answer is only this one flag.
+   * The incident a note is posted on, with the two switches the note's
+   * create reads: whether it is private, and whether it notified
+   * subscribers when it was declared. Null when the note names no incident
+   * or it cannot be found: nothing is refused, and the column default
+   * decides whether the note notifies. Read as root - the create has made
+   * sure its caller may read the incident (DatabaseService
+   * checkCreateParents) - and only these two switches.
    */
-  private async getIncidentNotifyDefault(note: Model): Promise<boolean | null> {
+  private async getIncidentOfNote(note: Model): Promise<Incident | null> {
     const incidentId: ObjectID | null | undefined =
       note.incidentId || note.incident?.id;
 
@@ -195,23 +217,16 @@ export class Service extends ProjectReferencesService<Model> {
       query.projectId = note.projectId;
     }
 
-    const incident: Incident | null = await IncidentService.findOneBy({
+    return await IncidentService.findOneBy({
       query: query,
       select: {
+        isPrivate: true,
         shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
       },
       props: {
         isRoot: true,
       },
     });
-
-    if (!incident) {
-      return null;
-    }
-
-    return PublicNoteSubscriberNotificationDefault.shouldNotifyForIncident(
-      incident,
-    );
   }
 
   /*

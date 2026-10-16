@@ -134,7 +134,7 @@ Par défaut, OneUptime crée des critères fondés sur ce qui compte vraiment po
 
 | Critère | Filtres | Effet |
 | --- | --- | --- |
-| Hors ligne | **Tout** parmi : la page n'est pas en ligne ; il y a au moins un incident actif dans le périmètre ; un composant du périmètre signale Performances dégradées, Partial Outage, Panne majeure ou Panne totale | Marque le moniteur hors ligne et déclare un incident, qui se résout de lui-même quand le critère cesse de correspondre |
+| Hors ligne | **Au moins un** parmi : la page n'est pas en ligne ; il y a au moins un incident actif dans le périmètre ; un composant du périmètre signale Performances dégradées, Partial Outage, Panne majeure ou Panne totale | Marque le moniteur hors ligne et déclare un incident, qui se résout de lui-même quand le critère cesse de correspondre |
 | En ligne | **Tous** parmi : la page est en ligne ; il n'y a aucun incident actif dans le périmètre | Marque le moniteur en ligne |
 
 Comme le nombre d'incidents actifs et les statuts des composants respectent les filtres de groupe / de nom de composant, ces critères par défaut ne ciblent automatiquement que les composants qui vous intéressent.

@@ -11,12 +11,14 @@ import MarketplaceAdapter, {
   MarketplaceActivationError,
   MarketplacePurchaseFacts,
   MarketplaceStatus,
+  MarketplaceUsageHour,
   MarketplaceUsageRecord,
   MarketplaceUsageResult,
 } from "../MarketplaceAdapter";
 import MarketplaceApiError from "../MarketplaceApiError";
 import MarketplaceConfig from "../MarketplaceConfig";
 import AzureMarketplaceAPI, {
+  AzureAcceptedUsageEvent,
   AzureSaasSubscription,
   AzureUsageEventResult,
 } from "./AzureMarketplaceAPI";
@@ -90,6 +92,8 @@ export class AzureSubscriptionStatus {
 
 export default class AzureMarketplaceAdapter implements MarketplaceAdapter {
   public readonly marketplace: CloudMarketplace = CloudMarketplace.Azure;
+  // Microsoft takes one usage event per subscription, dimension and hour.
+  public readonly keepsOneReportPerHour: boolean = true;
   private api: AzureMarketplaceAPI | null;
 
   public constructor(api?: AzureMarketplaceAPI | undefined) {
@@ -191,11 +195,10 @@ export default class AzureMarketplaceAdapter implements MarketplaceAdapter {
   }
 
   /*
-   * One event per report, in the hour the report ends in. Microsoft takes one
-   * event per hour per dimension and answers a second with "Duplicate", so a
-   * retry is counted once; and an hour that ends a report is never the hour
-   * of an earlier one, because reports end on the hour (only a purchase's
-   * last report ends mid-hour, and nothing follows it).
+   * One event per report, in the hour the report is filed in
+   * (MarketplaceUsageHour). Microsoft takes one event per hour per dimension
+   * and answers a second with "Duplicate", so a retry is counted once; and
+   * the reporter never files two reports of a purchase in the same hour.
    */
   public async reportUsage(
     subscription: MarketplaceSubscription,
@@ -208,10 +211,9 @@ export default class AzureMarketplaceAdapter implements MarketplaceAdapter {
       };
     }
 
-    const effectiveStartTime: Date = new Date(
-      record.periodEnd.getTime() - 60 * 1000,
+    const effectiveStartTime: Date = MarketplaceUsageHour.getHour(
+      record.periodEnd,
     );
-    effectiveStartTime.setUTCMinutes(0, 0, 0);
 
     let results: Array<AzureUsageEventResult>;
 
@@ -244,11 +246,12 @@ export default class AzureMarketplaceAdapter implements MarketplaceAdapter {
 
     switch (result.status) {
       case "Accepted":
-      case "Duplicate":
         return {
           outcome: "accepted",
           externalReportId: result.usageEventId || undefined,
         };
+      case "Duplicate":
+        return AzureMarketplaceAdapter.readDuplicate(result, record);
       case "ResourceNotActive":
         return {
           outcome: "rejected",
@@ -266,5 +269,37 @@ export default class AzureMarketplaceAdapter implements MarketplaceAdapter {
           error: `Microsoft refused the event: ${result.status}${result.errorCode ? ` (${result.errorCode})` : ""}`,
         };
     }
+  }
+
+  /*
+   * Microsoft keeps one event per subscription, dimension and hour, and
+   * answers any other for that hour "Duplicate", with the event it kept. The
+   * same quantity is this report sent again after an answer that was lost:
+   * Microsoft has it. Another quantity is another report filed in the same
+   * hour: Microsoft bills that one, and this one is lost. When Microsoft
+   * leaves out the event it kept, the report is taken as sent again, as it
+   * almost always is.
+   */
+  private static readDuplicate(
+    result: AzureUsageEventResult,
+    record: MarketplaceUsageRecord,
+  ): MarketplaceUsageResult {
+    const kept: AzureAcceptedUsageEvent | undefined = result.acceptedEvent;
+
+    if (
+      kept &&
+      kept.quantity !== null &&
+      Math.abs(kept.quantity - record.quantity) > 1e-6
+    ) {
+      return {
+        outcome: "rejected",
+        error: `Microsoft already has another usage event for this hour (${kept.quantity} units${kept.usageEventId ? `, event ${kept.usageEventId}` : ""}).`,
+      };
+    }
+
+    return {
+      outcome: "accepted",
+      externalReportId: kept?.usageEventId || result.usageEventId || undefined,
+    };
   }
 }

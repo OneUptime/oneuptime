@@ -5641,7 +5641,7 @@
   "When would you like the first event to be scheduled?": "На какое время вы хотите запланировать первое событие?",
   "When would you like to send the first report?": "Когда вы хотите отправить первый отчёт?",
   "When you create an alert, it is used to notify the team but is not shown on the status page.": "Когда вы создаёте оповещение, оно используется для уведомления команды, но не отображается на странице статуса.",
-  "When you delcare an incident, it is used to notify the team and is shown on the status page as well.": "Когда вы объявляете инцидент, он используется для уведомления команды и также отображается на странице статуса.",
+  "When you declare an incident, it is used to notify the team and is shown on the status page as well.": "Когда вы объявляете инцидент, он используется для уведомления команды и также отображается на странице статуса.",
   "Where code is waiting on locks": "Где код ожидает блокировок",
   "Where CPU cycles are being spent": "На что расходуются циклы CPU",
   "Where is this repository hosted?": "Где размещён этот репозиторий?",
@@ -30066,5 +30066,16 @@
   "Reading the alert timeline": "Чтение хронологии оповещения",
   "Reading the incident timeline": "Чтение хронологии инцидента",
   "Searching past incidents": "Поиск прошлых инцидентов",
-  "Ranked by": "Сортировка"
+  "Ranked by": "Сортировка",
+  "Any type": "Любой тип",
+  "If checked, only the incident's owner users and the members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "Если отмечено, просматривать этот инцидент смогут только пользователи-владельцы инцидента и участники команд-владельцев (а также администраторы и владельцы проекта). Приватные инциденты автоматически скрываются со всех страниц статуса, и к ним нельзя добавлять публичные заметки.",
+  "If enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "Если включено, просматривать этот инцидент смогут только пользователи-владельцы инцидента и участники команд-владельцев (а также администраторы и владельцы проекта). Приватные инциденты автоматически скрываются со всех страниц статуса, и к ним нельзя добавлять публичные заметки.",
+  "When enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "Если включено, просматривать этот инцидент могут только пользователи-владельцы инцидента и участники команд-владельцев (а также администраторы и владельцы проекта). Приватные инциденты автоматически скрываются со всех страниц статуса, и к ним нельзя добавлять публичные заметки.",
+  "This episode is private, so public notes cannot be added to it. Use a private note.": "Этот эпизод приватный, поэтому к нему нельзя добавлять публичные заметки. Используйте приватную заметку.",
+  "This incident is private, so public notes cannot be added to it. Use a private note.": "Этот инцидент приватный, поэтому к нему нельзя добавлять публичные заметки. Используйте приватную заметку.",
+  "Customer-facing updates about this episode. While it is private, no status page shows them.": "Обновления для клиентов об этом эпизоде. Пока он приватный, ни одна страница статуса их не показывает.",
+  "Customer-facing updates about this incident. While it is private, no status page shows them.": "Обновления для клиентов об этом инциденте. Пока он приватный, ни одна страница статуса их не показывает.",
+  "Not shown while this episode is private": "Не показывается, пока этот эпизод приватный",
+  "Not shown while this incident is private": "Не показывается, пока этот инцидент приватный",
+  "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "После удаления этого проекта за него будет выставлен последний счёт за использование на данный момент, и оплата прекратится. Ваша покупка OneUptime в {{marketplace}} останется активной, пока вы не отмените её там."
 }

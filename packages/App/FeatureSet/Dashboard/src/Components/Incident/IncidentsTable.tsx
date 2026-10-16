@@ -84,9 +84,11 @@ import BulkChangeStateModal, {
 import {
   BulkStateChangeNoteType,
   BulkStateChangeSkipDecision,
-  buildBulkStateChangeMiscDataProps,
+  IncidentBulkStateChange,
+  buildIncidentBulkStateChange,
   getBulkStateChangeSkipDecision,
 } from "../../Utils/BulkStateChange";
+import PrivateRecordPublicNotes from "Common/Types/StatusPage/PrivateRecordPublicNotes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import Dictionary from "Common/Types/Dictionary";
@@ -442,11 +444,6 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
     const targetOrder: number = targetState.order || 0;
 
-    const miscDataProps: JSONObject = buildBulkStateChangeMiscDataProps({
-      noteType: BulkStateChangeNoteType.Public,
-      note: data.note,
-    });
-
     onBulkActionStart();
 
     const inProgressItems: Array<Incident> = [...items];
@@ -462,7 +459,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           throw new Error("Incident ID not found");
         }
 
-        // Fetch the incident's current state order since it's not loaded in the table
+        /*
+         * The incident's current state order, which the table does not
+         * load, and whether it is private: a private incident takes no
+         * public notes (buildIncidentBulkStateChange).
+         */
         const fetchedIncident: Incident | null =
           await ModelAPI.getItem<Incident>({
             modelType: Incident,
@@ -472,6 +473,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 order: true,
                 name: true,
               },
+              isPrivate: true,
             },
           });
 
@@ -493,6 +495,15 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             failedMessage: skipDecision.skippedMessage!,
           });
         } else {
+          // The note: public, or private on a private incident.
+          const change: IncidentBulkStateChange = buildIncidentBulkStateChange({
+            isPrivate:
+              !PrivateRecordPublicNotes.takesPublicNotes(fetchedIncident),
+            note: data.note,
+            shouldStatusPageSubscribersBeNotified:
+              data.shouldStatusPageSubscribersBeNotified,
+          });
+
           // Create state timeline to change state
           const stateTimeline: IncidentStateTimeline =
             new IncidentStateTimeline();
@@ -500,12 +511,12 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           stateTimeline.incidentStateId = targetStateId;
           stateTimeline.projectId = ProjectUtil.getCurrentProjectId()!;
           stateTimeline.shouldStatusPageSubscribersBeNotified =
-            data.shouldStatusPageSubscribersBeNotified ?? true;
+            change.shouldStatusPageSubscribersBeNotified;
 
           await ModelAPI.create<IncidentStateTimeline>({
             model: stateTimeline,
             modelType: IncidentStateTimeline,
-            miscDataProps: miscDataProps,
+            miscDataProps: change.miscDataProps,
           });
 
           successItems.push(incident);
@@ -1163,7 +1174,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           })}
           noteType={BulkStateChangeNoteType.Public}
           noteTitle="Public Note"
-          noteDescription="Post a public note about this state change to the status page. The same note is added to every incident you selected."
+          noteDescription="Post a public note about this state change to the status page. The same note is added to every incident you selected, as a private note on private incidents."
           noteTemplates={noteTemplates}
           noteModel={new IncidentPublicNote()}
           showNotifyStatusPageSubscribers={true}
