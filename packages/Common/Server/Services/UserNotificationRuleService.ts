@@ -620,6 +620,16 @@ const responderSourceProse: ResponderSourceProseFunction = (
 const DELETION_IMPACT_PAGE_SIZE: number = LIMIT_PER_PROJECT;
 const MAX_DELETION_IMPACT_PAGES: number = 50;
 
+/*
+ * Why the person a page reached cannot be added to the channels of the
+ * record it was for (runWorkspaceRulesForOnCallNotification): the page named
+ * no record, or more than one.
+ */
+export const ON_CALL_INVITE_RECORD_MISSING_MESSAGE: string =
+  "An incident, an alert or an episode is required.";
+export const ON_CALL_INVITE_RECORDS_MIXED_MESSAGE: string =
+  "A page is for one record: an incident, an alert or an episode.";
+
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
@@ -5304,12 +5314,26 @@ export class Service extends ProjectReferencesService<Model> {
       },
     });
 
-    // Alert workspace here. Invite users to channels for example. If they are not invited.
+    /*
+     * The person paged joins the channels of the record paged for whose
+     * rules add on-call responders: an incident's, an alert's, or an
+     * episode's. A page with no record (a direct page from chat) has none.
+     */
+    if (
+      !options.triggeredByIncidentId &&
+      !options.triggeredByAlertId &&
+      !options.triggeredByIncidentEpisodeId &&
+      !options.triggeredByAlertEpisodeId
+    ) {
+      return;
+    }
 
     this.runWorkspaceRulesForOnCallNotification({
       projectId: options.projectId,
       alertId: options.triggeredByAlertId,
       incidentId: options.triggeredByIncidentId,
+      incidentEpisodeId: options.triggeredByIncidentEpisodeId,
+      alertEpisodeId: options.triggeredByAlertEpisodeId,
       userId: userId,
     }).catch((error: Error) => {
       logger.error(error, {
@@ -5319,76 +5343,127 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
+  /*
+   * The person an on-call policy pages joins the channels of the record it
+   * pages for - an incident, an alert, or an incident or alert episode -
+   * whose rules add on-call responders ("On-call responders, as they are
+   * paged"). Each page adds the person paged, the first escalation rule's
+   * and the later ones', repeats included; somebody in the channel already
+   * is not invited again.
+   */
   @CaptureSpan()
   public async runWorkspaceRulesForOnCallNotification(data: {
     projectId: ObjectID;
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
+    incidentEpisodeId?: ObjectID | undefined;
+    alertEpisodeId?: ObjectID | undefined;
     userId: ObjectID;
   }): Promise<void> {
-    // if alert and incidient are both present, then throw an error.
-    if (data.incidentId && data.alertId) {
-      throw new BadDataException("Either incidentId or alertId is required.");
-    }
-
-    // if none are present, then throw an error.
-
-    if (!data.incidentId && !data.alertId) {
-      throw new BadDataException("Either incidentId or alertId is required.");
-    }
-
-    /*
-     * The rules that invite on-call users to the channel they created
-     * ("Automatically Invite On Call Users to New Channel"). This used to
-     * read the rules that invite owners: a rule that invited on-call users
-     * but not owners never added the person it paged, and a rule that
-     * invited owners but not on-call users added everybody paged.
-     */
-    const notificationRules: Array<WorkspaceNotificationRule> =
-      await WorkspaceNotificationRuleService.getNotificationRulesWhereOnCallIsTrue(
-        {
-          projectId: data.projectId!,
-          notificationFor: {
-            incidentId: data.incidentId,
-            alertId: data.alertId,
-          },
-          notificationRuleEventType: data.incidentId
-            ? NotificationRuleEventType.Incident
-            : NotificationRuleEventType.Alert,
-        },
-      );
-
-    let workspaceChannels: Array<NotificationRuleWorkspaceChannel> = [];
+    const records: Array<{
+      notificationFor: {
+        incidentId?: ObjectID;
+        alertId?: ObjectID;
+        incidentEpisodeId?: ObjectID;
+        alertEpisodeId?: ObjectID;
+      };
+      eventType: NotificationRuleEventType;
+      getChannels: () => Promise<Array<NotificationRuleWorkspaceChannel>>;
+    }> = [];
 
     if (data.incidentId) {
-      workspaceChannels = await IncidentService.getWorkspaceChannelForIncident({
-        incidentId: data.incidentId!,
+      const incidentId: ObjectID = data.incidentId;
+      records.push({
+        notificationFor: { incidentId: incidentId },
+        eventType: NotificationRuleEventType.Incident,
+        getChannels: () => {
+          return IncidentService.getWorkspaceChannelForIncident({
+            incidentId: incidentId,
+          });
+        },
       });
     }
 
     if (data.alertId) {
-      workspaceChannels = await AlertService.getWorkspaceChannelForAlert({
-        alertId: data.alertId!,
+      const alertId: ObjectID = data.alertId;
+      records.push({
+        notificationFor: { alertId: alertId },
+        eventType: NotificationRuleEventType.Alert,
+        getChannels: () => {
+          return AlertService.getWorkspaceChannelForAlert({
+            alertId: alertId,
+          });
+        },
       });
     }
 
-    WorkspaceNotificationRuleService.inviteUsersBasedOnRulesAndWorkspaceChannels(
-      {
-        notificationRules: notificationRules,
-        projectId: data.projectId!,
-        workspaceChannels: workspaceChannels,
-        userIds: [data.userId],
-        notificationFor: {
-          incidentId: data.incidentId,
-          alertId: data.alertId,
+    if (data.incidentEpisodeId) {
+      const episodeId: ObjectID = data.incidentEpisodeId;
+      records.push({
+        notificationFor: { incidentEpisodeId: episodeId },
+        eventType: NotificationRuleEventType.IncidentEpisode,
+        getChannels: () => {
+          return IncidentEpisodeService.getWorkspaceChannelForEpisode({
+            episodeId: episodeId,
+          });
         },
-      },
-    ).catch((error: Error) => {
-      logger.error(error, {
-        projectId: data.projectId?.toString(),
-        userId: data.userId?.toString(),
-      } as LogAttributes);
-    });
+      });
+    }
+
+    if (data.alertEpisodeId) {
+      const episodeId: ObjectID = data.alertEpisodeId;
+      records.push({
+        notificationFor: { alertEpisodeId: episodeId },
+        eventType: NotificationRuleEventType.AlertEpisode,
+        getChannels: () => {
+          return AlertEpisodeService.getWorkspaceChannelForEpisode({
+            episodeId: episodeId,
+          });
+        },
+      });
+    }
+
+    // A page is for one record.
+    if (records.length !== 1) {
+      throw new BadDataException(
+        records.length === 0
+          ? ON_CALL_INVITE_RECORD_MISSING_MESSAGE
+          : ON_CALL_INVITE_RECORDS_MIXED_MESSAGE,
+      );
+    }
+
+    for (const record of records) {
+      /*
+       * The rules that created one of the record's channels and add
+       * on-call responders. This used to read the rules that invite owners:
+       * a rule that invited on-call users but not owners never added the
+       * person it paged, and a rule that invited owners but not on-call
+       * users added everybody paged.
+       */
+      const notificationRules: Array<WorkspaceNotificationRule> =
+        await WorkspaceNotificationRuleService.getNotificationRulesWhereOnCallIsTrue(
+          {
+            projectId: data.projectId!,
+            notificationFor: record.notificationFor,
+            notificationRuleEventType: record.eventType,
+          },
+        );
+
+      WorkspaceNotificationRuleService.inviteUsersBasedOnRulesAndWorkspaceChannels(
+        {
+          notificationRules: notificationRules,
+          projectId: data.projectId!,
+          workspaceChannels: await record.getChannels(),
+          userIds: [data.userId],
+          notificationFor: record.notificationFor,
+        },
+      ).catch((error: Error) => {
+        logger.error(error, {
+          projectId: data.projectId?.toString(),
+          userId: data.userId?.toString(),
+        } as LogAttributes);
+      });
+    }
   }
 
   @CaptureSpan()

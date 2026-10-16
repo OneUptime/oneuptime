@@ -347,7 +347,7 @@ Installation is per team. Adding OneUptime to one team does nothing for any othe
 
 ### "Test Rule" passes but real notifications never arrive
 
-Check which destinations the rule actually has enabled. A rule only exercises what it is configured for: with **Create Microsoft Teams Channel** on, the test creates a channel and posts into that channel, which proves the bot can post _to the team that channel was created in_ — and nothing about any other team. **Project Settings > Notifications > Notification Logs** records every test send, including the raw error from Microsoft when one fails.
+Check which destinations the rule actually has enabled. A rule only exercises what it is configured for: with **Create a channel for each incident** on, the test creates a channel and posts into that channel, which proves the bot can post _to the team that channel was created in_ — and nothing about any other team. **Project Settings > Notifications > Notification Logs** records every test send, including the raw error from Microsoft when one fails.
 
 ### "Sorry, I couldn't find your project configuration"
 

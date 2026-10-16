@@ -102,7 +102,7 @@ Par exemple, une fenêtre hebdomadaire dont le premier événement est créé un
 
 Placez **Premier événement planifié à** aussi longtemps avant le début que vous voulez que vos clients soient informés des travaux. Les trois heures doivent être dans le futur quand vous créez le modèle, l'événement doit être créé avant de commencer et de se terminer, et il doit commencer avant de se terminer ; le formulaire indique quelle règle une heure enfreint.
 
-Une tâche vérifie les modèles récurrents chaque minute. Quand arrive la prochaine heure d'un modèle, elle décale cette heure d'un intervalle et crée l'événement. La liste des modèles affiche cette heure dans sa colonne **Événement récurrent**. Un événement créé par la planification est comme les autres : ses règles s'exécutent, ses propriétaires sont ajoutés et ses abonnés apprennent qu'il est planifié.
+Une tâche vérifie les modèles récurrents chaque minute. Quand arrive la prochaine heure d'un modèle, elle décale cette heure d'un intervalle et crée l'événement. La liste des modèles affiche cette heure dans sa colonne **Événement récurrent**, et **Non** pour un modèle qui ne se répète pas. Un événement créé par la planification est comme les autres : ses règles s'exécutent, ses propriétaires sont ajoutés et ses abonnés apprennent qu'il est planifié.
 
 ## Modifier ou arrêter un modèle
 
@@ -112,7 +112,7 @@ Ouvrez un modèle depuis la liste pour voir sa page :
 - **Ressources affectées** contient ses **Moniteurs**, leur **Changer le statut du moniteur en** et ses **Autres ressources affectées**, avec son propre **Modifier**.
 - **Propriétaires** liste les personnes et équipes à qui appartient chaque événement planifié à partir de lui.
 
-Les modifications s'appliquent aux événements créés après leur enregistrement ; les événements déjà créés gardent leurs propres valeurs. Pour arrêter une planification, désactivez **Événement récurrent** dans **Modifier**, ou supprimez le modèle. Supprimer un modèle laisse en place les événements qu'il a créés.
+Les modifications s'appliquent aux événements créés après leur enregistrement ; les événements déjà créés gardent leurs propres valeurs. Pour arrêter une planification, désactivez **Événement récurrent** dans **Modifier**, ou supprimez le modèle. Un modèle désactivé garde sa planification : réactivez-le, et il reprend à la prochaine heure de la planification, en sautant les heures où il était désactivé. Supprimer un modèle laisse en place les événements qu'il a créés.
 
 ## Dépannage
 

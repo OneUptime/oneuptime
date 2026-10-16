@@ -1526,20 +1526,12 @@ export class Service extends ProjectReferencesService<Model> {
         alertId: createdItem.id?.toString(),
       } as LogAttributes);
 
-      if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
-        // update alert with these channels.
-        await this.updateOneById({
-          id: createdItem.id,
-          data: {
-            postUpdatesToWorkspaceChannels:
-              workspaceResult.channelsCreated || [],
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-      }
-
+      /*
+       * The new channels are on the record already: the rule service stores
+       * them before it invites anybody, so whoever joins the alert while
+       * they are set up is invited too (WorkspaceNotificationRuleService
+       * .createChannelsAndInviteUsersToChannelsBasedOnRules).
+       */
       return workspaceResult?.membersNotAdded || [];
     } catch (error) {
       logger.error(`Error in handleAlertWorkspaceOperationsAsync: ${error}`, {

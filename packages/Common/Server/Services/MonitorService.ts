@@ -2457,18 +2457,12 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
         monitorName: data.monitorName,
       });
 
-    if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
-      // update monitor with these channels.
-      await this.updateOneById({
-        id: data.monitorId,
-        data: {
-          postUpdatesToWorkspaceChannels: workspaceResult.channelsCreated || [],
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    }
+    /*
+     * The new channels are on the monitor already: the rule service stores
+     * them before it invites anybody, so whoever joins the monitor while
+     * they are set up is invited too (WorkspaceNotificationRuleService
+     * .createChannelsAndInviteUsersToChannelsBasedOnRules).
+     */
 
     const monitorCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
       await MonitorWorkspaceMessages.getMonitorCreateMessageBlocks({

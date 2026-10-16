@@ -39,6 +39,7 @@ import { getSubscriberNotificationsSection } from "../../../Components/Scheduled
 import { getStatusPageSuggestionsFooter } from "../../../Components/StatusPage/StatusPageSuggestions";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import ObjectID from "Common/Types/ObjectID";
+import { getTemplateNextEventAt } from "../../../Utils/ScheduledMaintenanceTemplateSchedule";
 
 /*
  * A template is an event to schedule again and again, so its form walks the
@@ -497,8 +498,13 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       stepId: "recurring",
       showIf: isRecurring,
       required: isRecurring,
-      description:
-        "How often would you like this event to recur? You can choose from daily, weekly, monthly, or yearly.",
+      /*
+       * Every unit the picker offers - all of EventInterval
+       * (RecurringFieldElement) - in its order, as one sentence translated
+       * whole. Common's ScheduledMaintenanceTemplateForm test fails when
+       * EventInterval gains a unit this leaves out.
+       */
+      description: "A number and a unit: hours, days, weeks, months or years.",
       fieldType: FormFieldSchemaType.CustomComponent,
       getCustomElement: (
         value: FormValues<ScheduledMaintenanceTemplate>,
@@ -582,6 +588,10 @@ const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
+        selectMoreFields={{
+          // The Recurring Event column reads the switch beside the next time.
+          isRecurringEvent: true,
+        }}
         showViewIdButton={true}
         formSteps={getFormSteps({
           isViewPage: false,
@@ -628,16 +638,24 @@ const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (
             },
             title: "Recurring Event",
             type: FieldType.Element,
+            /*
+             * A next event only for a template that recurs: one turned off
+             * creates no more events, whatever time it still holds.
+             */
             getElement: (item: ScheduledMaintenanceTemplate) => {
-              return !item.scheduleNextEventAt ? (
-                <span>{translator.translateText("No")}</span>
+              const nextEventAt: Date | null = getTemplateNextEventAt(item);
+
+              return !nextEventAt ? (
+                <span data-testid="template-recurring-event">
+                  {translator.translateText("No")}
+                </span>
               ) : (
-                <span>
+                <span data-testid="template-recurring-event">
                   {translator.translateTemplate(
                     "Next event will be scheduled at {{date}}",
                     {
                       date: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                        item.scheduleNextEventAt,
+                        nextEventAt,
                       ),
                     },
                   )}

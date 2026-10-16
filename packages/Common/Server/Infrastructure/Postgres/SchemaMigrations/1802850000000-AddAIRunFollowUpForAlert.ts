@@ -13,10 +13,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * A nullable column with no default, which Postgres adds without rewriting
  * or scanning the table.
  */
-export class AddAIRunFollowUpForAlert1802800000000
+export class AddAIRunFollowUpForAlert1802850000000
   implements MigrationInterface
 {
-  public name: string = "AddAIRunFollowUpForAlert1802800000000";
+  public name: string = "AddAIRunFollowUpForAlert1802850000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

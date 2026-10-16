@@ -1,24 +1,30 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, test } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import React from "react";
 import NotificationRuleViewConditions, {
   getRuleConditionsSentence,
   RULE_CONDITIONS_SENTENCES,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleViewElement/NotificationRuleViewConditions";
+import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
-import NotificationRuleEventType from "../../../Types/Workspace/NotificationRules/EventType";
 import NotificationRuleCondition, {
   ConditionType,
   NotificationRuleConditionCheckOn,
 } from "../../../Types/Workspace/NotificationRules/NotificationRuleCondition";
 
 /*
- * The sentence above a workspace notification rule's conditions, in the
- * rules list. It said "This rule will be executed if any of the following
- * conditions are met:" over a single condition. All or Any is now said only
- * when there are two conditions to combine - as the rule's form asks it.
+ * A workspace notification rule's conditions, on its card, under "Which
+ * incidents". All or Any is said only when there are two conditions to
+ * combine - as the rule's form asks it - and one condition is simply the
+ * condition, on a line of its own.
+ *
+ * The card said "This rule runs when this condition is met:" over a single
+ * condition, in a framed box with a timeline's dots, under a label that
+ * already asked which incidents the rule is for.
  */
+
+const ACKNOWLEDGED_ID: string = "6a8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e";
 
 function titleContains(value: string): NotificationRuleCondition {
   return {
@@ -28,21 +34,29 @@ function titleContains(value: string): NotificationRuleCondition {
   };
 }
 
+function acknowledgedState(): IncidentState {
+  const state: IncidentState = new IncidentState();
+  state._id = ACKNOWLEDGED_ID;
+  state.name = "Acknowledged";
+
+  return state;
+}
+
 function renderConditions(
   conditions: Array<NotificationRuleCondition>,
   filterCondition: FilterCondition | undefined,
+  incidentStates: Array<IncidentState> = [],
 ): void {
   render(
     <NotificationRuleViewConditions
       criteriaFilters={conditions}
       filterCondition={filterCondition as FilterCondition}
-      eventType={NotificationRuleEventType.Incident}
       monitors={[]}
       labels={[]}
       alertStates={[]}
       alertSeverities={[]}
       incidentSeverities={[]}
-      incidentStates={[]}
+      incidentStates={incidentStates}
       scheduledMaintenanceStates={[]}
       monitorStatus={[]}
     />,
@@ -61,18 +75,33 @@ afterEach(() => {
 describe("the sentence over a rule's conditions", () => {
   test("is a whole sentence for each case, never glued from pieces", () => {
     expect(RULE_CONDITIONS_SENTENCES).toEqual({
-      one: "This rule runs when this condition is met:",
-      all: "This rule runs when all of these conditions are met:",
-      any: "This rule runs when any one of these conditions is met:",
+      all: "Those that match all of these:",
+      any: "Those that match any one of these:",
     });
   });
 
   test.each([FilterCondition.All, FilterCondition.Any, undefined])(
-    "over one condition says nothing of All or Any (%s)",
+    "over one condition says nothing: the condition is the line (%s)",
     (filterCondition: FilterCondition | undefined) => {
       renderConditions([titleContains("database")], filterCondition);
 
-      expect(sentence()).toBe("This rule runs when this condition is met:");
+      expect(
+        screen.queryByTestId("notification-rule-conditions-sentence"),
+      ).not.toBeInTheDocument();
+      expect(
+        getRuleConditionsSentence({
+          filters: [titleContains("database")],
+          filterCondition: filterCondition,
+        }),
+      ).toBeUndefined();
+
+      // The condition alone, as one line: what is checked, how, and what.
+      const items: Array<HTMLElement> = screen.getAllByRole("listitem");
+
+      expect(items).toHaveLength(1);
+      expect(items[0]).toHaveTextContent(
+        /^Incident Title\s*Contains\s*database$/,
+      );
     },
   );
 
@@ -82,9 +111,7 @@ describe("the sentence over a rule's conditions", () => {
       FilterCondition.All,
     );
 
-    expect(sentence()).toBe(
-      "This rule runs when all of these conditions are met:",
-    );
+    expect(sentence()).toBe("Those that match all of these:");
   });
 
   test("over two conditions says any one, for Any", () => {
@@ -93,9 +120,7 @@ describe("the sentence over a rule's conditions", () => {
       FilterCondition.Any,
     );
 
-    expect(sentence()).toBe(
-      "This rule runs when any one of these conditions is met:",
-    );
+    expect(sentence()).toBe("Those that match any one of these:");
   });
 
   test.each([FilterCondition.All, FilterCondition.Any, undefined])(
@@ -133,12 +158,49 @@ describe("the sentence over a rule's conditions", () => {
     ).toBe(RULE_CONDITIONS_SENTENCES.any);
   });
 
-  test("still lists every condition under it", () => {
+  test("lists every condition under it, one a line", () => {
     renderConditions(
       [titleContains("database"), titleContains("postgres")],
       FilterCondition.All,
     );
 
-    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+    const items: Array<HTMLElement> = screen.getAllByRole("listitem");
+
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent(/database$/);
+    expect(items[1]).toHaveTextContent(/postgres$/);
+    // Under the sentence that says how they combine.
+    expect(
+      screen
+        .getByTestId("notification-rule-conditions-sentence")
+        .compareDocumentPosition(items[0]!) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  /*
+   * A state, severity, label or monitor condition shows the picked values
+   * by name, as chips in the line, not by the ids the rule stores.
+   */
+  test("a state condition names its states, in the same line", () => {
+    renderConditions(
+      [
+        {
+          checkOn: NotificationRuleConditionCheckOn.IncidentState,
+          conditionType: ConditionType.ContainsAny,
+          value: [ACKNOWLEDGED_ID],
+        },
+      ],
+      FilterCondition.All,
+      [acknowledgedState()],
+    );
+
+    const line: HTMLElement = screen.getByRole("listitem");
+
+    expect(line).toHaveTextContent(
+      /^Incident State\s*Contains Any\s*Acknowledged$/,
+    );
+    expect(within(line).queryByText(ACKNOWLEDGED_ID)).not.toBeInTheDocument();
+    // No framed box or timeline dots around a single condition any more.
+    expect(document.querySelector(".rounded-xl")).toBeNull();
   });
 });

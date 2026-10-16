@@ -51,6 +51,7 @@ import {
   CreateFromRecordKindDefinition,
   CreatedRecordKind,
 } from "../../../FeatureSet/Dashboard/src/Components/CreateFromRecord/CreateFromRecord";
+import { getTemplateNextEventAt } from "../../../FeatureSet/Dashboard/src/Utils/ScheduledMaintenanceTemplateSchedule";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
@@ -148,6 +149,8 @@ function readWorkerSource(relative: string): string {
 const BOLD: RegExp = /\*\*([^*\n]+)\*\*/g;
 const HEADING_LEVEL: RegExp = /^(#+) /;
 const QUOTED_TITLE: RegExp = /title:\s*"([^"]*)"/g;
+// A form field's description, written as one string.
+const FIELD_DESCRIPTION: RegExp = /description:\s*"([^"]*)"/;
 
 // Every **bold** name in a piece of markdown, in order.
 function boldNames(markdown: string): Array<string> {
@@ -2683,17 +2686,35 @@ describe("recurring events", () => {
     ]);
   });
 
-  it("repeats every interval the schedule offers", () => {
-    expect(Object.values(EventInterval)).toEqual([
-      "Hour",
-      "Day",
-      "Week",
-      "Month",
-      "Year",
-    ]);
-    expect(recurring).toContain(
-      "A number and a unit: hours, days, weeks, months or years.",
+  /*
+   * The picker offers every EventInterval (RecurringFieldElement), so the
+   * sentence is built from EventInterval here: a unit added there fails
+   * until the field's description and the page both name it.
+   */
+  it("repeats every interval the schedule offers, in the words the field's description uses", () => {
+    const units: Array<string> = Object.values(EventInterval).map(
+      (interval: EventInterval): string => {
+        return `${interval.toLowerCase()}s`;
+      },
     );
+    const sentence: string = `A number and a unit: ${units.slice(0, -1).join(", ")} or ${units[units.length - 1]}.`;
+    const field: string = fieldObject(
+      TEMPLATES_PAGE,
+      "How often should this event recur?",
+    );
+    const row: Array<string> | undefined = tableRows(recurring)
+      .map(tableCells)
+      .find((cells: Array<string>): boolean => {
+        return cells[0] === "**How often should this event recur?**";
+      });
+
+    expect(
+      readCommonSource("UI/Components/Events/RecurringFieldElement.tsx"),
+    ).toContain(
+      "options={DropdownUtil.getDropdownOptionsFromEnum(EventInterval)}",
+    );
+    expect(field.match(FIELD_DESCRIPTION)?.[1]).toBe(sentence);
+    expect(row?.[1]).toBe(sentence);
   });
 
   it("refuses a schedule out of order, and, on a new template, times in the past", () => {
@@ -2789,15 +2810,37 @@ describe("recurring events", () => {
     );
   });
 
-  it("shows the next time in the templates list's Recurring Event column", () => {
+  it("shows the next time in the templates list's Recurring Event column, and No for a template that does not recur", () => {
     const column: string = fieldObject(TEMPLATES_PAGE, "Recurring Event");
-
-    expect(TEMPLATES_PAGE).toContain(
-      '{\n            field: {\n              scheduleNextEventAt: true,\n            },\n            title: "Recurring Event",',
+    const listColumn: string = TEMPLATES_PAGE.slice(
+      TEMPLATES_PAGE.indexOf(
+        '{\n            field: {\n              scheduleNextEventAt: true,\n            },\n            title: "Recurring Event",',
+      ),
     );
+
     expect(column).toBeTruthy();
+    expect(listColumn).toContain(
+      "const nextEventAt: Date | null = getTemplateNextEventAt(item);",
+    );
+    expect(listColumn).toContain('translator.translateText("No")');
+    // The list reads the switch beside the time, as the job does.
+    expect(TEMPLATES_PAGE).toContain(
+      "selectMoreFields={{\n          // The Recurring Event column reads the switch beside the next time.\n          isRecurringEvent: true,\n        }}",
+    );
+    expect(
+      getTemplateNextEventAt({
+        isRecurringEvent: false,
+        scheduleNextEventAt: new Date("2030-06-10T09:00:00.000Z"),
+      }),
+    ).toBeNull();
+    expect(
+      getTemplateNextEventAt({
+        isRecurringEvent: true,
+        scheduleNextEventAt: new Date("2030-06-10T09:00:00.000Z"),
+      }),
+    ).toEqual(new Date("2030-06-10T09:00:00.000Z"));
     expect(recurring).toContain(
-      "The templates list shows that time in its **Recurring Event** column.",
+      `The templates list shows that time in its **Recurring Event** column, and **No** for a template that does not recur.`,
     );
   });
 
@@ -2805,6 +2848,42 @@ describe("recurring events", () => {
     expect(recurringJob).toContain(RECURRING_TEMPLATES_QUERY);
     expect(templates).toContain(
       "To stop a schedule, turn **Recurring Event** off in **Edit**, or delete the template.",
+    );
+  });
+
+  /*
+   * Turned off, the service clears the template's next time and nothing
+   * else; turned back on, it works the next time out from the first event,
+   * the schedule's next time after now (Recurring.getNextDate).
+   */
+  it("keeps the schedule of a template turned off, and picks it up at its next time when it is turned back on", () => {
+    const update: string = TEMPLATE_SERVICE.slice(
+      TEMPLATE_SERVICE.indexOf("protected override async onBeforeUpdate("),
+      TEMPLATE_SERVICE.indexOf(
+        "private async validateProjectScopedReferences(",
+      ),
+    );
+
+    expect(update).toContain(
+      "if (!anyTemplateRecurs && (anyTemplateHoldsANextTime || writesANextTime)) {\n      newTemplate.scheduleNextEventAt = null;\n    }",
+    );
+
+    for (const kept of [
+      "firstEventScheduledAt",
+      "firstEventStartsAt",
+      "firstEventEndsAt",
+      "recurringInterval",
+    ]) {
+      expect(update).not.toContain(`newTemplate.${kept} =`);
+    }
+    expect(update).toContain(
+      "newTemplate.scheduleNextEventAt = this.getNextEventTime({\n            dateAndTime: firstEventScheduledAt,\n            recurringInterval: recurringInterval,\n          });",
+    );
+    expect(TEMPLATE_SERVICE).toContain(
+      "return Recurring.getNextDate(data.dateAndTime, data.recurringInterval);",
+    );
+    expect(templates).toContain(
+      "A template turned off keeps its schedule: turn it back on, and it picks up at the schedule's next time, skipping the times it was off.",
     );
   });
 });
