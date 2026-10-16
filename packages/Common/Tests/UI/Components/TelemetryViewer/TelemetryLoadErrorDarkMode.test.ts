@@ -51,8 +51,8 @@ describe("the explorers' load errors in the dark theme", () => {
         "text-gray-700",
         "hover:border-gray-300",
         "hover:bg-gray-50",
-        // A facet's count that was not taken: "—".
-        "text-gray-300",
+        // A facet's count that was not taken: "—", and a 0, faded.
+        "text-gray-400",
       ]),
     );
 

@@ -222,8 +222,13 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
                 ? "font-medium text-gray-500"
                 : isIncluded
                   ? "font-medium text-indigo-600"
-                  : isZeroCount || isExcluded
-                    ? "text-gray-300"
+                  : /*
+                     * Faded rather than a lighter grey: the dark theme turns
+                     * gray-300 text brighter than gray-400, which made a 0
+                     * stand out over the real counts beside it.
+                     */
+                    isZeroCount || isExcluded
+                    ? "text-gray-400 opacity-60"
                     : "text-gray-400"
             }`}
           >
@@ -232,41 +237,47 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
         </div>
       )}
 
-      {props.onExclude && !isLocked && (
+      {props.onExclude && (
         /*
-         * The button's place is kept while it is hidden, so the counts of
-         * the row under the pointer stay in line with every other row's.
+         * The button's place is kept while it is hidden - and on a locked
+         * row, which has none - so the counts of the row under the pointer
+         * stay in line with every other row's.
          */
         <span className="flex h-5 w-5 flex-none items-center justify-center">
-          <button
-            type="button"
-            aria-pressed={isExcluded}
-            className={
-              isExcluded
-                ? "flex h-5 w-5 items-center justify-center rounded bg-red-50 text-red-600 ring-1 ring-red-200 transition-colors hover:text-red-700"
-                : "flex h-5 w-5 items-center justify-center rounded text-[10px] text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 group-[:not(:hover)]:hidden"
-            }
-            onClick={(e: React.MouseEvent) => {
-              e.stopPropagation();
-
-              if (isExcluded) {
-                props.onClear(props.value);
-                return;
+          {!isLocked && (
+            <button
+              type="button"
+              aria-pressed={isExcluded}
+              className={
+                isExcluded
+                  ? "flex h-5 w-5 items-center justify-center rounded bg-red-50 text-red-600 ring-1 ring-red-200 transition-colors hover:text-red-700"
+                  : "flex h-5 w-5 items-center justify-center rounded text-[10px] text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 group-[:not(:hover)]:hidden"
               }
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
 
-              props.onExclude?.(props.value);
-            }}
-            title={
-              isExcluded
-                ? translator.translateTemplate("Remove exclusion: {{value}}", {
-                    value: displayLabel,
-                  })
-                : excludeLabel
-            }
-            aria-label={excludeLabel}
-          >
-            <Icon icon={IconProp.Minus} className="h-3 w-3" />
-          </button>
+                if (isExcluded) {
+                  props.onClear(props.value);
+                  return;
+                }
+
+                props.onExclude?.(props.value);
+              }}
+              title={
+                isExcluded
+                  ? translator.translateTemplate(
+                      "Remove exclusion: {{value}}",
+                      {
+                        value: displayLabel,
+                      },
+                    )
+                  : excludeLabel
+              }
+              aria-label={excludeLabel}
+            >
+              <Icon icon={IconProp.Minus} className="h-3 w-3" />
+            </button>
+          )}
         </span>
       )}
     </div>

@@ -133,7 +133,9 @@ describe("a value that is not filtering", () => {
     mount({ count: 0 });
 
     expect(screen.getByText("web-1")).toHaveClass("text-gray-400");
-    expect(screen.getByText("0")).toHaveClass("text-gray-300");
+    // Faded, not a lighter grey: the dark theme brightens gray-300.
+    expect(screen.getByText("0")).toHaveClass("text-gray-400", "opacity-60");
+    expect(screen.getByText("0")).not.toHaveClass("text-gray-300");
   });
 
   test("names an empty value '(empty)' and falls back to the raw value", () => {
@@ -259,10 +261,15 @@ describe("a value the page itself filters on", () => {
     expect(calls.onClear).not.toHaveBeenCalled();
   });
 
-  test("has no exclude button", () => {
+  test("has no exclude button, but keeps its place so its count lines up", () => {
     mount({ state: FacetValueState.Included, isLocked: true });
 
     expect(screen.queryByRole("button", { name: "Exclude web-1" })).toBeNull();
+
+    const row: HTMLElement = screen.getByTestId(FACET_VALUE_ROW_TEST_ID);
+    expect(row.children).toHaveLength(3);
+    expect(row.lastElementChild).toHaveClass("h-5", "w-5", "flex-none");
+    expect(row.lastElementChild).toBeEmptyDOMElement();
   });
 
   test("a lock on a value that is not filtering means nothing", () => {
