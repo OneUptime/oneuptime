@@ -143,9 +143,9 @@ test.describe("Workflow builder: the toolbar's add button says what the workflow
     await expect(stepCard(page, "manual-1")).toBeVisible();
     await expect(stepCard(page, "manual-1")).toBeFocused();
     await expect(dashedCard(page)).toHaveCount(0);
-    await expect(page.locator('[role="dialog"][aria-modal="true"]')).toHaveCount(
-      0,
-    );
+    await expect(
+      page.locator('[role="dialog"][aria-modal="true"]'),
+    ).toHaveCount(0);
 
     await expect(addButton(page)).toHaveText("Add Component");
     expect(await pressAddButton(page)).toBe("Add Component");
@@ -252,9 +252,9 @@ test.describe("Workflow builder: the toolbar's add button says what the workflow
     await expect(confirm).toBeVisible();
     await confirm.getByRole("button", { name: "Delete", exact: true }).click();
 
-    await expect(page.locator('[role="dialog"][aria-modal="true"]')).toHaveCount(
-      0,
-    );
+    await expect(
+      page.locator('[role="dialog"][aria-modal="true"]'),
+    ).toHaveCount(0);
     await expect(stepCard(page, "manual-1")).toHaveCount(0);
     await expect(dashedCard(page)).toBeVisible();
     await expect(addButton(page)).toHaveText("Add Trigger");

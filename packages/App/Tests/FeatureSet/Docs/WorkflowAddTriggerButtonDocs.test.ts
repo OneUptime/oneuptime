@@ -2,10 +2,7 @@ import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I1
 import { readPage } from "./DocsContentSupport";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { strayMarkers } from "./DocsTranslationChecks";
-import {
-  ComponentType,
-  NodeType,
-} from "Common/Types/Workflow/Component";
+import { ComponentType, NodeType } from "Common/Types/Workflow/Component";
 import {
   WORKFLOW_ADD_COMPONENT_TITLE,
   WORKFLOW_ADD_TRIGGER_TITLE,
@@ -229,8 +226,10 @@ describe("docs for the Builder's add button: Add Trigger until the workflow has 
       for (const page of PAGES_NAMING_THE_PANEL) {
         const markdown: string = readPage(language, page);
 
-        expect({ page, drawn: markdown.includes(bold(language, "Add Trigger")) })
-          .toEqual({ page, drawn: true });
+        expect({
+          page,
+          drawn: markdown.includes(bold(language, "Add Trigger")),
+        }).toEqual({ page, drawn: true });
         expect({ page, english: markdown.includes("**Add Trigger**") }).toEqual(
           { page, english: false },
         );
@@ -241,9 +240,9 @@ describe("docs for the Builder's add button: Add Trigger until the workflow has 
   test.each(LANGUAGES)(
     "%s: the authoring page draws every bold span it opens",
     async (language: string) => {
-      expect(await strayMarkers(readPage(language, AUTHORING), language)).toEqual(
-        [],
-      );
+      expect(
+        await strayMarkers(readPage(language, AUTHORING), language),
+      ).toEqual([]);
     },
   );
 });

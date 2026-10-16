@@ -224,10 +224,7 @@ import WorkflowModel from "../../../Models/DatabaseModels/Workflow";
 import Route from "../../../Types/API/Route";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import {
-  ComponentType,
-  NodeType,
-} from "../../../Types/Workflow/Component";
+import { ComponentType, NodeType } from "../../../Types/Workflow/Component";
 import Navigation from "../../../UI/Utils/Navigation";
 
 const WORKFLOW_ID: ObjectID = new ObjectID(

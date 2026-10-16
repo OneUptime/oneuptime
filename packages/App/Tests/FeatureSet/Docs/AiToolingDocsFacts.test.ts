@@ -759,9 +759,7 @@ describe("the AI Agent Circuit Breakers page", () => {
      * Component once On Create Alert is on the canvas - which is when the
      * page clicks it.
      */
-    expect(source("workflowBuilder")).toContain(
-      "getWorkflowAddButton(nodes)",
-    );
+    expect(source("workflowBuilder")).toContain("getWorkflowAddButton(nodes)");
     expect(source("workflowBuilder")).toContain("title={addButton.title}");
     expect(getWorkflowAddButton([]).title).toBe("Add Trigger");
     expect(

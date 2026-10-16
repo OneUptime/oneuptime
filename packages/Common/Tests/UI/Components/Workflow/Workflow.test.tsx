@@ -1253,8 +1253,7 @@ describe("Workflow builder: the toolbar's add button opens the panel it names", 
     expect(screen.queryByTestId("step-settings")).not.toBeInTheDocument();
     expect(harness.onPickerUpdate).toHaveBeenLastCalledWith(false);
 
-    const stored: Array<Node<WorkflowNodeRenderData>> =
-      getStoredNodes(harness);
+    const stored: Array<Node<WorkflowNodeRenderData>> = getStoredNodes(harness);
 
     expect(
       stored.map((node: Node<WorkflowNodeRenderData>) => {
@@ -1536,9 +1535,9 @@ describe("Workflow builder: the toolbar's add button opens the panel it names", 
     // Two closings told at most: the trigger panel's, and one more.
     expect(page.reports()).toBeLessThanOrEqual(2);
     expect(screen.queryAllByTestId("picker-Trigger")).toHaveLength(0);
-    expect(screen.queryAllByTestId("picker-Component").length).toBeLessThanOrEqual(
-      1,
-    );
+    expect(
+      screen.queryAllByTestId("picker-Component").length,
+    ).toBeLessThanOrEqual(1);
   });
 
   test("so do a closing panel and a request taken back", () => {

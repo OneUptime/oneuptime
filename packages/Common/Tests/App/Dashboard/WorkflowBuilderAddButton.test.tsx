@@ -146,10 +146,7 @@ import Route from "../../../Types/API/Route";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
-import {
-  ComponentType,
-  NodeType,
-} from "../../../Types/Workflow/Component";
+import { ComponentType, NodeType } from "../../../Types/Workflow/Component";
 import { buildGraphForTemplate } from "../../../Types/Workflow/Templates";
 import Navigation from "../../../UI/Utils/Navigation";
 import { Edge, Node as FlowNode } from "reactflow";
@@ -243,9 +240,7 @@ const canvas: CanvasFunction = (): CanvasProps => {
   return mockCanvasProps;
 };
 
-type RenderBuilderFunction = (wrap?: {
-  i18n: i18n;
-}) => Promise<void>;
+type RenderBuilderFunction = (wrap?: { i18n: i18n }) => Promise<void>;
 
 const renderBuilder: RenderBuilderFunction = async (wrap?: {
   i18n: i18n;
@@ -281,11 +276,10 @@ const expectAddButtonToSay: ExpectButtonFunction = (name: string): void => {
     addButton(),
   );
 
-  const other: string = name === "Add Trigger" ? "Add Component" : "Add Trigger";
+  const other: string =
+    name === "Add Trigger" ? "Add Component" : "Add Trigger";
 
-  expect(
-    screen.queryByRole("button", { name: other, exact: true }),
-  ).toBeNull();
+  expect(screen.queryByRole("button", { name: other, exact: true })).toBeNull();
 };
 
 type ReportFunction = (nodes: Array<JSONObject>) => Promise<void>;

@@ -349,9 +349,8 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   /*
    * The toolbar's add button opens the panel it names, read from the canvas
    * as it is when the button is pressed: Add Trigger while there is no
-   * trigger (the dashed card's panel), Add Component once there is one.
-   * Offering steps to a workflow that has nothing to start it was the
-   * other way round.
+   * trigger (the dashed card's panel), Add Component once there is one. It
+   * used to offer steps to a workflow that had nothing to start it.
    */
   useEffect(() => {
     if (!props.showComponentsPickerModal) {

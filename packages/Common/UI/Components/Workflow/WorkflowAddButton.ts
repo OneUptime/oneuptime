@@ -43,6 +43,12 @@ export interface WorkflowAddButtonNode {
     | undefined;
 }
 
+// The nodes on the canvas, or none before the graph is in.
+export type WorkflowAddButtonNodes =
+  | ReadonlyArray<WorkflowAddButtonNode | null | undefined>
+  | null
+  | undefined;
+
 type IsWorkflowTriggerNodeFunction = (
   node: WorkflowAddButtonNode | null | undefined,
 ) => boolean;
@@ -68,13 +74,11 @@ export const isWorkflowTriggerNode: IsWorkflowTriggerNodeFunction = (
   return data.componentType === ComponentType.Trigger;
 };
 
-type WorkflowHasTriggerFunction = (
-  nodes: ReadonlyArray<WorkflowAddButtonNode | null | undefined> | null | undefined,
-) => boolean;
+type WorkflowHasTriggerFunction = (nodes: WorkflowAddButtonNodes) => boolean;
 
 // Whether the workflow has a trigger on its canvas.
 export const workflowHasTrigger: WorkflowHasTriggerFunction = (
-  nodes: ReadonlyArray<WorkflowAddButtonNode | null | undefined> | null | undefined,
+  nodes: WorkflowAddButtonNodes,
 ): boolean => {
   return (nodes || []).some(
     (node: WorkflowAddButtonNode | null | undefined): boolean => {
@@ -91,12 +95,12 @@ export interface WorkflowAddButton {
 }
 
 type GetWorkflowAddButtonFunction = (
-  nodes: ReadonlyArray<WorkflowAddButtonNode | null | undefined> | null | undefined,
+  nodes: WorkflowAddButtonNodes,
 ) => WorkflowAddButton;
 
 // What the add button says and opens, for the canvas as it is now.
 export const getWorkflowAddButton: GetWorkflowAddButtonFunction = (
-  nodes: ReadonlyArray<WorkflowAddButtonNode | null | undefined> | null | undefined,
+  nodes: WorkflowAddButtonNodes,
 ): WorkflowAddButton => {
   if (workflowHasTrigger(nodes)) {
     return {

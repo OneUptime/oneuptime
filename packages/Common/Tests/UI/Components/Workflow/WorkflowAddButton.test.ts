@@ -8,10 +8,7 @@ import {
   workflowHasTrigger,
 } from "../../../../UI/Components/Workflow/WorkflowAddButton";
 import { getPlaceholderTriggerNode } from "../../../../UI/Components/Workflow/Workflow";
-import {
-  ComponentType,
-  NodeType,
-} from "../../../../Types/Workflow/Component";
+import { ComponentType, NodeType } from "../../../../Types/Workflow/Component";
 import { JSONObject } from "../../../../Types/JSON";
 import {
   WorkflowTemplate,
@@ -39,7 +36,10 @@ import path from "path";
  */
 
 const MODULE_SOURCE: string = fs.readFileSync(
-  path.join(__dirname, "../../../../UI/Components/Workflow/WorkflowAddButton.ts"),
+  path.join(
+    __dirname,
+    "../../../../UI/Components/Workflow/WorkflowAddButton.ts",
+  ),
   "utf8",
 );
 
@@ -105,7 +105,10 @@ describe("the toolbar's add button: the words", () => {
      * which the Dashboard translates the same way as the button.
      */
     const panelSource: string = fs.readFileSync(
-      path.join(__dirname, "../../../../UI/Components/Workflow/ComponentsModal.tsx"),
+      path.join(
+        __dirname,
+        "../../../../UI/Components/Workflow/ComponentsModal.tsx",
+      ),
       "utf8",
     );
 
@@ -138,7 +141,8 @@ describe("the toolbar's add button: the words", () => {
       // A module of the repository's own, written in .ts: no React, no JSX.
       expect({
         importPath,
-        isOwnTsModule: importPath.startsWith(".") && fs.existsSync(`${resolved}.ts`),
+        isOwnTsModule:
+          importPath.startsWith(".") && fs.existsSync(`${resolved}.ts`),
       }).toEqual({ importPath, isOwnTsModule: true });
       expect(fs.readFileSync(`${resolved}.ts`, "utf8")).not.toContain(
         'from "react"',
@@ -159,16 +163,14 @@ describe("the toolbar's add button on a workflow with no trigger: Add Trigger", 
   });
 
   test("steps whose trigger was deleted: the dashed card is back beside them", () => {
-    expect(
-      getWorkflowAddButton([PLACEHOLDER, ACTION, ANOTHER_ACTION]),
-    ).toEqual(ADD_TRIGGER);
+    expect(getWorkflowAddButton([PLACEHOLDER, ACTION, ANOTHER_ACTION])).toEqual(
+      ADD_TRIGGER,
+    );
     expect(getWorkflowAddButton([ACTION, PLACEHOLDER])).toEqual(ADD_TRIGGER);
   });
 
   test("steps and no dashed card: still no trigger", () => {
-    expect(getWorkflowAddButton([ACTION, ANOTHER_ACTION])).toEqual(
-      ADD_TRIGGER,
-    );
+    expect(getWorkflowAddButton([ACTION, ANOTHER_ACTION])).toEqual(ADD_TRIGGER);
   });
 
   test("the dashed card is no trigger, whatever it says it stands in for", () => {
@@ -237,9 +239,7 @@ describe("the toolbar's add button once the workflow has a trigger: Add Componen
   });
 
   test("a trigger beside a dashed card left over: the trigger counts", () => {
-    expect(getWorkflowAddButton([PLACEHOLDER, TRIGGER])).toEqual(
-      ADD_COMPONENT,
-    );
+    expect(getWorkflowAddButton([PLACEHOLDER, TRIGGER])).toEqual(ADD_COMPONENT);
   });
 
   test("a graph read back from JSON, its types as plain strings", () => {
@@ -292,7 +292,9 @@ describe("the toolbar's add button on every workflow template", () => {
     expect(graph).not.toBeNull();
     expect(
       getWorkflowAddButton(
-        (graph as JSONObject)["nodes"] as unknown as Array<WorkflowAddButtonNode>,
+        (graph as JSONObject)[
+          "nodes"
+        ] as unknown as Array<WorkflowAddButtonNode>,
       ),
     ).toEqual(ADD_COMPONENT);
   });
