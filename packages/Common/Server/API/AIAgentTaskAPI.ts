@@ -3,6 +3,7 @@ import AIRunEventService from "../Services/AIRunEventService";
 import CodeFixAgentAuth, {
   CodeFixAgentIdentity,
 } from "../Utils/AI/CodeFix/CodeFixAgentAuth";
+import CodeFixPullRequestRecord from "../Utils/AI/CodeFix/CodeFixPullRequestRecord";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -168,7 +169,8 @@ export default class AIAgentTaskAPI {
      * already Running from the claim); Completed/Error are CAS transitions
      * Running -> Completed/Error that also write the terminal
      * RunCompleted/RunFailed event to the run's glass-box trail. A Completed
-     * report may carry the pull request URLs the run opened.
+     * report may carry the pull request URLs the run opened, and the pull
+     * requests it opened but could not record.
      */
     this.router.post(
       `${API_BASE_PATH}/update-task-status`,
@@ -224,6 +226,18 @@ export default class AIAgentTaskAPI {
 
           const hasPullRequestUrls: boolean =
             Array.isArray(pullRequestUrls) && pullRequestUrls.length > 0;
+
+          /*
+           * The pull requests a Completed run opened but could not record on
+           * /ai-agent-data/record-pull-request, each with everything that
+           * route reads. Without a row the open-PR cap never counts the pull
+           * request and the PR state sync never tracks it, so they are
+           * recorded here. Older Runners send none.
+           */
+          const unrecordedPullRequests: unknown =
+            status === AIAgentTaskStatus.Completed
+              ? data["unrecordedPullRequests"]
+              : undefined;
 
           /* Validate status value */
           const validStatuses: Array<AIAgentTaskStatus> = [
@@ -333,6 +347,25 @@ export default class AIAgentTaskAPI {
                   pullRequestUrls: pullRequestUrls,
                 })
               : null;
+
+            /*
+             * Recorded before the run is terminal, so whatever reads its pull
+             * requests the moment it is (the GitHub reply) finds them. And
+             * recorded whoever wins the transition below: the pull requests
+             * are open on GitHub however the run ends.
+             */
+            if (
+              Array.isArray(unrecordedPullRequests) &&
+              unrecordedPullRequests.length > 0 &&
+              existingRun.projectId
+            ) {
+              await CodeFixPullRequestRecord.recordReportedPullRequests({
+                aiRunId: runId,
+                projectId: existingRun.projectId,
+                aiAgent: aiAgent,
+                pullRequests: unrecordedPullRequests,
+              });
+            }
 
             /*
              * CAS Running -> Completed/NoFixFound/Error. Losing the race (0
