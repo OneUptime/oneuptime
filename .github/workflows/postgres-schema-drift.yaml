@@ -1426,6 +1426,24 @@ jobs:
           Tests/Server/Utils/Workspace/WorkspaceMemberActionsPostgres.test.ts
           --forceExit
 
+      # Clones the migrated chat account link, workspace connection, Slack and
+      # Microsoft Teams notification method and on-call rule tables into an
+      # isolated schema: a sign-in's link names no creator, a person's create
+      # is refused, the one-time cleanup removes every link a person wrote and
+      # only the methods and rules made from them, and a Slack press finds the
+      # member among Slack links only.
+      - name: Test that only a sign-in connects a chat account, on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_WORKSPACE_USER_LINK_TESTS: "true"
+          WORKSPACE_USER_LINK_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WORKSPACE_USER_LINK_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WORKSPACE_USER_LINK_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/WorkspaceUserAuthTokenLinksPostgres.test.ts
+          --forceExit
+
       - name: Test workflow OAuth variables on migrated Postgres
         working-directory: packages/Common
         env:
