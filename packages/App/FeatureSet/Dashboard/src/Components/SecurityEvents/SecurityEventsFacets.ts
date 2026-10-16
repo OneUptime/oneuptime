@@ -14,6 +14,12 @@ import {
   FacetConfig,
   FacetValue,
 } from "Common/UI/Components/TelemetryViewer/types";
+import {
+  FACET_EXCLUDE_KEY_PREFIX,
+  getBaseFacetKey,
+  isExcludeFacetKey,
+  toExcludeFacetKey,
+} from "Common/UI/Components/TelemetryViewer/FacetSelection";
 import { encodeRouteQueryParamValue } from "../../Utils/TelemetryTabScope";
 import { SECURITY_EVENT_VOLUME_COLORS } from "./SecurityEventVolume";
 
@@ -50,24 +56,25 @@ export const SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX: string = "attributes.";
  * column name or attribute key starts with `!`, so the marker is
  * unambiguous, and it survives the `[[key, value], ...]` URL grammar the
  * other explorers already use without a second param.
+ *
+ * The marker is the shared facet sidebar's (FacetSelection), which reads it
+ * to draw an excluded value as excluded and to know which chip a click on
+ * it takes off.
  */
-export const SECURITY_EVENT_EXCLUDE_FACET_PREFIX: string = "!";
+export const SECURITY_EVENT_EXCLUDE_FACET_PREFIX: string =
+  FACET_EXCLUDE_KEY_PREFIX;
 
 export function isSecurityEventExcludeFacetKey(facetKey: string): boolean {
-  return facetKey.startsWith(SECURITY_EVENT_EXCLUDE_FACET_PREFIX);
+  return isExcludeFacetKey(facetKey);
 }
 
 export function toSecurityEventExcludeFacetKey(facetKey: string): string {
-  return isSecurityEventExcludeFacetKey(facetKey)
-    ? facetKey
-    : `${SECURITY_EVENT_EXCLUDE_FACET_PREFIX}${facetKey}`;
+  return toExcludeFacetKey(facetKey);
 }
 
 /** The plain facet key an include-or-exclude key stands for. */
 export function getSecurityEventBaseFacetKey(facetKey: string): string {
-  return isSecurityEventExcludeFacetKey(facetKey)
-    ? facetKey.substring(SECURITY_EVENT_EXCLUDE_FACET_PREFIX.length)
-    : facetKey;
+  return getBaseFacetKey(facetKey);
 }
 
 export function isSecurityEventAttributeFacetKey(facetKey: string): boolean {

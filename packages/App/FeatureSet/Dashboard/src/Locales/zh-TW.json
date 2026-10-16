@@ -21140,7 +21140,7 @@
   "Example: {{example}}": "Example: {{example}}",
   "Example: {{url}}": "Example: {{url}}",
   "Exception Spike": "Exception Spike",
-  "Exclude {{value}}": "Exclude {{value}}",
+  "Exclude {{value}}": "排除 {{value}}",
   "Executed action": "Executed action",
   "Executed {{tool}}": "Executed {{tool}}",
   "Exit code: {{code}}": "Exit code: {{code}}",
@@ -21163,7 +21163,7 @@
   "Filter on a custom log attribute": "Filter on a custom log attribute",
   "Filter on a custom span attribute": "Filter on a custom span attribute",
   "Filter on a custom {{entity}} attribute": "Filter on a custom {{entity}} attribute",
-  "Filter to {{value}}": "Filter to {{value}}",
+  "Filter to {{value}}": "篩選 {{value}}",
   "Filter {{count}} attributes": "Filter {{count}} attributes",
   "Filter {{count}} attributes_one": "Filter {{count}} attribute",
   "Find available metrics for my {{resources}} and compare relevant trends over the last 24 hours.": "Find available metrics for my {{resources}} and compare relevant trends over the last 24 hours.",
@@ -21482,7 +21482,7 @@
   "Released on {{date}}.": "Released on {{date}}.",
   "Reload list: {{list}}": "Reload list: {{list}}",
   "Remove condition {{number}}": "Remove condition {{number}}",
-  "Remove filter: {{value}}": "Remove filter: {{value}}",
+  "Remove filter: {{value}}": "移除篩選：{{value}}",
   "Remove {{column}}": "Remove {{column}}",
   "Remove {{key}}: {{value}}": "Remove {{key}}: {{value}}",
   "Remove {{member}} from {{role}}": "從{{role}}中移除{{member}}",
@@ -30124,5 +30124,8 @@
   "Slack didn't answer for {{names}}. Try again in a minute.": "Slack 未對 {{names}} 作出回應。請一分鐘後再試一次。",
   "Slack didn't let OneUptime add {{names}}.": "Slack 不允許 OneUptime 新增 {{names}}。",
   "{{names}} are guests in Slack, and Slack doesn't let OneUptime add them to this channel.": "{{names}} 是 Slack 中的訪客，Slack 不允許 OneUptime 將他們新增到此頻道。",
-  "{{names}} aren't members of this project, so OneUptime can't add them.": "{{names}} 不是此專案的成員，因此 OneUptime 無法新增他們。"
+  "{{names}} aren't members of this project, so OneUptime can't add them.": "{{names}} 不是此專案的成員，因此 OneUptime 無法新增他們。",
+  "Excluded": "已排除",
+  "Remove exclusion: {{value}}": "取消排除：{{value}}",
+  "Set by this page: {{value}}": "由此頁面設定：{{value}}"
 }

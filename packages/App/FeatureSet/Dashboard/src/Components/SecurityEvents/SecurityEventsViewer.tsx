@@ -805,6 +805,15 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
 
   // --- Filter actions ---
 
+  /*
+   * Include or exclude one value: the value ends up in exactly that state.
+   * Including a value it currently excludes (or the reverse) flips it.
+   *
+   * Never a toggle. The sidebar takes a checked or excluded value off
+   * through handleRemoveFilter, the chip's own x, and the drawer's "Filter
+   * by" is an add: pressing it on a value that is already applied used to
+   * take the filter off again.
+   */
   const applyFacetSelection: (
     facetKey: string,
     value: string,
@@ -822,10 +831,16 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
 
       setFacetFilters(
         (previous: Map<string, Set<string>>): Map<string, Set<string>> => {
-          const next: Map<string, Set<string>> = new Map(previous);
+          const opposite: Set<string> | undefined = previous.get(oppositeKey);
+          const isApplied: boolean = Boolean(
+            previous.get(targetKey)?.has(value),
+          );
 
-          // Including a value it currently excludes (or the reverse) flips it.
-          const opposite: Set<string> | undefined = next.get(oppositeKey);
+          if (isApplied && !opposite?.has(value)) {
+            return previous;
+          }
+
+          const next: Map<string, Set<string>> = new Map(previous);
 
           if (opposite?.has(value)) {
             const remaining: Set<string> = new Set(opposite);
@@ -838,20 +853,10 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
             }
           }
 
-          const current: Set<string> = new Set(next.get(targetKey) || []);
-
-          // A second click on the same choice clears it.
-          if (current.has(value)) {
-            current.delete(value);
-          } else {
-            current.add(value);
-          }
-
-          if (current.size === 0) {
-            next.delete(targetKey);
-          } else {
-            next.set(targetKey, current);
-          }
+          next.set(
+            targetKey,
+            new Set<string>([...Array.from(next.get(targetKey) || []), value]),
+          );
 
           return next;
         },

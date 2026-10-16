@@ -30124,5 +30124,8 @@
   "Slack didn't answer for {{names}}. Try again in a minute.": "Slack didn't answer for {{names}}. Try again in a minute.",
   "Slack didn't let OneUptime add {{names}}.": "Slack didn't let OneUptime add {{names}}.",
   "{{names}} are guests in Slack, and Slack doesn't let OneUptime add them to this channel.": "{{names}} are guests in Slack, and Slack doesn't let OneUptime add them to this channel.",
-  "{{names}} aren't members of this project, so OneUptime can't add them.": "{{names}} aren't members of this project, so OneUptime can't add them."
+  "{{names}} aren't members of this project, so OneUptime can't add them.": "{{names}} aren't members of this project, so OneUptime can't add them.",
+  "Excluded": "Excluded",
+  "Remove exclusion: {{value}}": "Remove exclusion: {{value}}",
+  "Set by this page: {{value}}": "Set by this page: {{value}}"
 }

@@ -92,6 +92,7 @@ function sidebarElement(
   if (sidebar === "logs") {
     return (
       <LogsFacetSidebar
+        onRemoveFilter={() => {}}
         facetData={options.facetData}
         isLoading={options.isLoading || false}
         serviceMap={{}}
@@ -110,6 +111,7 @@ function sidebarElement(
 
   return (
     <TelemetryFacetSidebar
+      onRemoveFilter={() => {}}
       facetData={options.facetData}
       facetConfigs={TELEMETRY_CONFIGS}
       isLoading={options.isLoading || false}
@@ -330,6 +332,7 @@ describe.each(CASES)(
       render(
         testCase.sidebar === "logs" ? (
           <LogsFacetSidebar
+            onRemoveFilter={() => {}}
             facetData={testCase.facetData}
             isLoading={false}
             serviceMap={{}}
@@ -344,6 +347,7 @@ describe.each(CASES)(
           />
         ) : (
           <TelemetryFacetSidebar
+            onRemoveFilter={() => {}}
             facetData={testCase.facetData}
             facetConfigs={TELEMETRY_CONFIGS}
             isLoading={false}
@@ -471,6 +475,7 @@ describe("a facet that folds away while empty, stopped at the time limit", () =>
   test("the traces / metrics / exceptions / security events sidebar keeps it, saying 'Not counted'", () => {
     render(
       <TelemetryFacetSidebar
+        onRemoveFilter={() => {}}
         facetData={{ severityName: [], vendorName: [], statusName: [] }}
         facetConfigs={HIDEABLE_CONFIGS}
         isLoading={false}
@@ -495,6 +500,7 @@ describe("a facet that folds away while empty, stopped at the time limit", () =>
   test("every facet stopped: no 'empty filters hidden' at all", () => {
     render(
       <TelemetryFacetSidebar
+        onRemoveFilter={() => {}}
         facetData={{ severityName: [], vendorName: [], statusName: [] }}
         facetConfigs={HIDEABLE_CONFIGS}
         isLoading={false}
@@ -512,6 +518,7 @@ describe("a facet that folds away while empty, stopped at the time limit", () =>
   test("the logs sidebar keeps a stopped resource facet with nothing listed, saying 'Not counted'", () => {
     render(
       <LogsFacetSidebar
+        onRemoveFilter={() => {}}
         facetData={{ severityText: [], hostId: [], dockerHostId: [] }}
         isLoading={false}
         serviceMap={{}}

@@ -30124,5 +30124,8 @@
   "Slack didn't answer for {{names}}. Try again in a minute.": "{{names}} について Slack から応答がありませんでした。1 分後にもう一度お試しください。",
   "Slack didn't let OneUptime add {{names}}.": "Slack が OneUptime による {{names}} の追加を許可しませんでした。",
   "{{names}} are guests in Slack, and Slack doesn't let OneUptime add them to this channel.": "{{names}} は Slack のゲストのため、Slack は OneUptime がこのチャネルに追加することを許可していません。",
-  "{{names}} aren't members of this project, so OneUptime can't add them.": "{{names}} はこのプロジェクトのメンバーではないため、OneUptime は追加できません。"
+  "{{names}} aren't members of this project, so OneUptime can't add them.": "{{names}} はこのプロジェクトのメンバーではないため、OneUptime は追加できません。",
+  "Excluded": "除外中",
+  "Remove exclusion: {{value}}": "除外を解除: {{value}}",
+  "Set by this page: {{value}}": "このページで設定: {{value}}"
 }

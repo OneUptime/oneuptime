@@ -23,7 +23,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * sidebar's TelemetryFacetSection are two copies of one control. Both got the
  * same polish — icon, turning chevron, a search box that clears, "Show N
  * more", honest empty states, and search text a sidebar can own — so every
- * case here runs against both.
+ * case here runs against both. They draw the same row
+ * (TelemetryFacetValueRow): a checkbox per value, which a click on a checked
+ * value unchecks.
  */
 
 type SectionRenderer = (props: FacetSectionProps) => ReactElement;
@@ -58,16 +60,27 @@ function baseProps(overrides: Partial<FacetSectionProps>): FacetSectionProps {
     values: makeValues(3),
     onIncludeValue: jest.fn(),
     onExcludeValue: jest.fn(),
+    onClearValue: jest.fn(),
     ...overrides,
   };
 }
 
+// The unchecked rows, by the value each announces.
 function rowNames(container: HTMLElement = document.body): Array<string> {
   return within(container)
-    .queryAllByRole("button")
+    .queryAllByRole("checkbox")
     .filter((element: HTMLElement): boolean => {
       return (element.getAttribute("title") || "").startsWith("Filter to ");
     })
+    .map((element: HTMLElement): string => {
+      return element.textContent || "";
+    });
+}
+
+// Every row, checked or not, by its label.
+function allRowNames(container: HTMLElement = document.body): Array<string> {
+  return within(container)
+    .queryAllByRole("checkbox")
     .map((element: HTMLElement): string => {
       return element.textContent || "";
     });
@@ -523,6 +536,209 @@ describe.each(SECTIONS)(
 
         expect(onIncludeValue).toHaveBeenCalledWith("hostId", "h-1");
         expect(onExcludeValue).toHaveBeenCalledWith("hostId", "h-1");
+      });
+
+      test("REGRESSION: a click on a checked value clears it instead of including it again", () => {
+        const onIncludeValue: MockFunction = getJestMockFunction();
+        const onClearValue: MockFunction = getJestMockFunction();
+        mount({
+          values: [
+            { value: "h-1", count: 3, displayName: "web-1" },
+            { value: "h-2", count: 1, displayName: "web-2" },
+          ],
+          activeValues: new Set<string>(["h-1"]),
+          onIncludeValue: onIncludeValue as any,
+          onClearValue: onClearValue as any,
+        });
+
+        const checked: HTMLElement = screen.getByRole("checkbox", {
+          name: "web-1",
+        });
+        expect(checked).toHaveAttribute("aria-checked", "true");
+        expect(checked).toHaveAttribute("title", "Remove filter: web-1");
+
+        fireEvent.click(checked);
+
+        expect(onClearValue.mock.calls).toEqual([["hostId", "h-1"]]);
+        expect(onIncludeValue).not.toHaveBeenCalled();
+
+        fireEvent.click(screen.getByRole("checkbox", { name: "web-2" }));
+
+        expect(onIncludeValue.mock.calls).toEqual([["hostId", "h-2"]]);
+        expect(onClearValue.mock.calls).toEqual([["hostId", "h-1"]]);
+      });
+
+      test("an excluded value reads as excluded, and a click clears the exclusion", () => {
+        const onIncludeValue: MockFunction = getJestMockFunction();
+        const onClearValue: MockFunction = getJestMockFunction();
+        const onExcludeValue: MockFunction = getJestMockFunction();
+        mount({
+          values: [{ value: "h-1", count: 0, displayName: "web-1" }],
+          excludedValues: new Set<string>(["h-1"]),
+          onIncludeValue: onIncludeValue as any,
+          onClearValue: onClearValue as any,
+          onExcludeValue: onExcludeValue as any,
+        });
+
+        const row: HTMLElement = screen.getByRole("checkbox", {
+          name: /web-1/,
+        });
+        expect(row).toHaveAttribute("aria-checked", "mixed");
+        expect(row).toHaveTextContent("Excluded");
+        expect(row).toHaveAttribute("title", "Remove exclusion: web-1");
+        expect(screen.getByText("web-1")).toHaveClass("line-through");
+
+        const exclude: HTMLElement = screen.getByRole("button", {
+          name: "Exclude web-1",
+        });
+        expect(exclude).toHaveAttribute("aria-pressed", "true");
+
+        fireEvent.click(row);
+        fireEvent.click(exclude);
+
+        expect(onClearValue.mock.calls).toEqual([
+          ["hostId", "h-1"],
+          ["hostId", "h-1"],
+        ]);
+        expect(onIncludeValue).not.toHaveBeenCalled();
+        expect(onExcludeValue).not.toHaveBeenCalled();
+      });
+
+      test("excluding a checked value goes through exclude, not clear", () => {
+        const onClearValue: MockFunction = getJestMockFunction();
+        const onExcludeValue: MockFunction = getJestMockFunction();
+        mount({
+          values: [{ value: "h-1", count: 3, displayName: "web-1" }],
+          activeValues: new Set<string>(["h-1"]),
+          onClearValue: onClearValue as any,
+          onExcludeValue: onExcludeValue as any,
+        });
+
+        const exclude: HTMLElement = screen.getByRole("button", {
+          name: "Exclude web-1",
+        });
+        expect(exclude).toHaveAttribute("aria-pressed", "false");
+
+        fireEvent.click(exclude);
+
+        expect(onExcludeValue.mock.calls).toEqual([["hostId", "h-1"]]);
+        expect(onClearValue).not.toHaveBeenCalled();
+      });
+
+      test("without an exclude handler no row has an exclude button", () => {
+        mount({
+          values: makeValues(3),
+          activeValues: new Set<string>(["host-1"]),
+          excludedValues: new Set<string>(["host-2"]),
+          onExcludeValue: undefined,
+        });
+
+        expect(screen.queryAllByRole("button", { name: /^Exclude / })).toEqual(
+          [],
+        );
+        expect(allRowNames()).toEqual(["host-1", "host-2Excluded", "host-3"]);
+      });
+
+      test("a value the page set shows checked, and a click changes nothing", () => {
+        const onIncludeValue: MockFunction = getJestMockFunction();
+        const onClearValue: MockFunction = getJestMockFunction();
+        mount({
+          values: [{ value: "h-1", count: 3, displayName: "web-1" }],
+          activeValues: new Set<string>(["h-1"]),
+          lockedValues: new Set<string>(["h-1"]),
+          onIncludeValue: onIncludeValue as any,
+          onClearValue: onClearValue as any,
+        });
+
+        const row: HTMLElement = screen.getByRole("checkbox", {
+          name: "web-1",
+        });
+        expect(row).toHaveAttribute("aria-checked", "true");
+        expect(row).toHaveAttribute("aria-disabled", "true");
+        expect(row).toHaveAttribute("title", "Set by this page: web-1");
+        expect(screen.queryByRole("button", { name: "Exclude web-1" })).toBe(
+          null,
+        );
+
+        fireEvent.click(row);
+
+        expect(onIncludeValue).not.toHaveBeenCalled();
+        expect(onClearValue).not.toHaveBeenCalled();
+      });
+
+      test("a checked value past the fold stays on screen, outside 'Show N more'", () => {
+        mount({
+          values: makeValues(9),
+          activeValues: new Set<string>(["host-8"]),
+        });
+
+        expect(allRowNames()).toEqual([
+          "host-1",
+          "host-2",
+          "host-3",
+          "host-4",
+          "host-5",
+          "host-8",
+        ]);
+        expect(
+          screen.getByRole("checkbox", { name: "host-8" }),
+        ).toHaveAttribute("aria-checked", "true");
+        // host-6, host-7 and host-9 are what the fold still holds.
+        expect(
+          screen.getByRole("button", { name: "Show 3 more" }),
+        ).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", { name: "Show 3 more" }));
+
+        expect(allRowNames()).toEqual([
+          "host-1",
+          "host-2",
+          "host-3",
+          "host-4",
+          "host-5",
+          "host-6",
+          "host-7",
+          "host-8",
+          "host-9",
+        ]);
+        expect(
+          screen.getByRole("button", { name: "Show less" }),
+        ).toBeInTheDocument();
+      });
+
+      test("an excluded value past the fold stays on screen too", () => {
+        mount({
+          values: makeValues(7),
+          excludedValues: new Set<string>(["host-7"]),
+        });
+
+        expect(allRowNames()).toContain("host-7Excluded");
+        expect(
+          screen.getByRole("button", { name: "Show 1 more" }),
+        ).toBeInTheDocument();
+      });
+
+      test("no 'Show N more' when every value past the fold is checked", () => {
+        mount({
+          values: makeValues(6),
+          activeValues: new Set<string>(["host-6"]),
+        });
+
+        expect(allRowNames()).toHaveLength(6);
+        expect(screen.queryByRole("button", { name: /^Show/ })).toBeNull();
+      });
+
+      test("the header's count holds checked and excluded values alike", () => {
+        mount({
+          values: makeValues(4),
+          activeValues: new Set<string>(["host-1"]),
+          excludedValues: new Set<string>(["host-2", "host-3"]),
+        });
+
+        const header: HTMLElement = screen.getByRole("button", {
+          name: /^Host\s*3$/,
+        });
+        expect(within(header).getByText("3")).toBeInTheDocument();
       });
 
       test("a resource with no telemetry in range is muted, not dropped", () => {
