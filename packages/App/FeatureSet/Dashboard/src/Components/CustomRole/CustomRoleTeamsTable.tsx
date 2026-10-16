@@ -1,7 +1,10 @@
 import { getRoleRemoveFromTeamSentence } from "./CustomRoleCopy";
+import { loadTeamIdsGivenCustomRole } from "./CustomRoleOptions";
 import TeamElement from "../Team/Team";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamCustomRole from "Common/Models/DatabaseModels/TeamCustomRole";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import Query from "Common/Types/BaseDatabase/Query";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -25,15 +28,17 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
   useState,
 } from "react";
 
 /*
  * THE TEAMS A CUSTOM ROLE IS GIVEN TO, on the role's page under its
  * permissions: each team links to its page, Give to a Team adds one, Remove
- * takes the role from one - from several at once in the bulk bar. A team
- * whose permissions can't be changed (Owners, Admin) is not offered: the
- * server refuses it.
+ * takes the role from one - from several at once in the bulk bar. Give to a
+ * Team offers only the teams that could take it: not one that has the role
+ * already, nor one whose permissions can't be changed (Owners, Admin) - the
+ * server refuses both.
  *
  * Giving the role hands the team's members everything in it, so the server
  * weighs it as giving each permission directly: a role holding a permission
@@ -58,6 +63,37 @@ const CustomRoleTeamsTable: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [isGiving, setIsGiving] = useState<boolean>(false);
   const [refreshToggle, setRefreshToggle] = useState<string>("");
+  // The teams that have the role: Give to a Team offers the others.
+  const [givenTeamIds, setGivenTeamIds] = useState<Array<string>>([]);
+  const [givenTeamsToggle, setGivenTeamsToggle] = useState<number>(0);
+
+  useEffect(() => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (!projectId) {
+      return;
+    }
+
+    loadTeamIdsGivenCustomRole({
+      customRoleId: props.customRoleId,
+      projectId: projectId,
+    })
+      .then((ids: Set<string>) => {
+        setGivenTeamIds(Array.from(ids));
+      })
+      .catch(() => {
+        // Then every team is offered, and the server refuses one that has it.
+        setGivenTeamIds([]);
+      });
+  }, [refreshToggle, givenTeamsToggle, props.customRoleId.toString()]);
+
+  const teamQuery: Query<Team> = {
+    isPermissionsEditable: true,
+  };
+
+  if (givenTeamIds.length > 0) {
+    teamQuery._id = new IncludesNone(givenTeamIds);
+  }
 
   // Locked, with the missing permission as the tooltip, as ModelTable locks its own Create.
   const giveButton: CardButtonSchema | null = PermissionGate.gateCardButton(
@@ -109,6 +145,9 @@ const CustomRoleTeamsTable: FunctionComponent<ComponentProps> = (
           }}
           noItemsMessage="No team has this role yet. Give it to a team to hand its members these permissions."
           onItemDeleted={() => {
+            setGivenTeamsToggle((count: number): number => {
+              return count + 1;
+            });
             props.onTeamsChange?.();
           }}
           getDeleteConfirmation={async (
@@ -167,7 +206,7 @@ const CustomRoleTeamsTable: FunctionComponent<ComponentProps> = (
         <ModelFormModal<TeamCustomRole>
           title={giveTitle}
           name="Give a custom role to a team"
-          description="Its members get everything this role allows, from now on. Owners and Admin are not listed: their permissions can't be changed."
+          description="Its members get everything this role allows, from now on."
           modelType={TeamCustomRole}
           submitButtonText="Give to Team"
           onClose={() => {
@@ -203,14 +242,14 @@ const CustomRoleTeamsTable: FunctionComponent<ComponentProps> = (
                   team: true,
                 },
                 title: "Team",
+                description:
+                  "Not listed: the teams that have this role already, and Owners and Admin, whose permissions can't be changed.",
                 fieldType: FormFieldSchemaType.Dropdown,
                 dropdownModal: {
                   type: Team,
                   labelField: "name",
                   valueField: "_id",
-                  query: {
-                    isPermissionsEditable: true,
-                  },
+                  query: teamQuery,
                 },
                 required: true,
                 placeholder: "Select a team",

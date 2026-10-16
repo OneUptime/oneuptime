@@ -113,17 +113,17 @@ const Teams: FunctionComponent<PageComponentProps> = (
   /*
    * The project's custom roles this user could give a team - every
    * permission in each one being one they may hand on - as Access cards.
-   * Read once, after the page opens; none until then, and none for someone
+   * Read once, after the page opens: null until then, and none for someone
    * who may not read them.
    */
-  const [customRoleOptions, setCustomRoleOptions] = useState<
-    Array<CardSelectOption>
-  >([]);
+  const [customRoleOptions, setCustomRoleOptions] =
+    useState<Array<CardSelectOption> | null>(null);
 
   useEffect(() => {
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
     if (!projectId) {
+      setCustomRoleOptions([]);
       return;
     }
 

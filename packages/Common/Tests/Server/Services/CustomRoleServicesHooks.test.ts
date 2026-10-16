@@ -517,8 +517,13 @@ describe("a team's copy of a role's permission", () => {
 
   test("named only by its marks, still says it is a role's", async () => {
     const bare: TeamPermission = copy();
-    bare.customRole = undefined;
-    bare.teamCustomRoleId = undefined;
+    // The row as read without its role: no name, no link to the team's hold.
+    const unset: Record<string, unknown> = bare as unknown as Record<
+      string,
+      unknown
+    >;
+    unset["customRole"] = undefined;
+    unset["teamCustomRoleId"] = undefined;
     getJestSpyOn(
       TeamPermissionService,
       "findRowsAndHoldDeleteToThem",

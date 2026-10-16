@@ -5,7 +5,10 @@ const path = require("path");
 const { createConfig } = require("../../../Common/UI/esbuild-config.js");
 const esbuild = require("../../../Common/node_modules/esbuild");
 const repository = path.resolve(__dirname, "../../../..");
-const output = path.join(repository, "output/playwright/custom-roles-ui/fixture");
+const output = path.join(
+  repository,
+  "output/playwright/custom-roles-ui/fixture",
+);
 const port = Number(process.env.CUSTOM_ROLES_FIXTURE_PORT || 4313);
 const config = createConfig({
   serviceName: "custom-roles-fixture",

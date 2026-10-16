@@ -3,6 +3,7 @@ import CustomRole from "../../../Models/DatabaseModels/CustomRole";
 import CustomRolePermission from "../../../Models/DatabaseModels/CustomRolePermission";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import Team from "../../../Models/DatabaseModels/Team";
 import TeamCustomRole from "../../../Models/DatabaseModels/TeamCustomRole";
 import TeamPermission from "../../../Models/DatabaseModels/TeamPermission";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
@@ -17,9 +18,9 @@ import TeamPermissionService from "../../../Server/Services/TeamPermissionServic
 import PermissionNamespace from "../../../Server/Types/Permission/PermissionNamespace";
 import CustomRoleSync from "../../../Server/Utils/CustomRole/CustomRoleSync";
 import RealtimeAccessChanges from "../../../Server/Utils/Realtime/RealtimeAccessChanges";
-import UserPermissionUtil from "../../../Server/Utils/UserPermission/UserPermission";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
+import QueryDeepPartialEntity from "../../../Types/Database/PartialEntity";
 import Exception from "../../../Types/Exception/Exception";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -86,7 +87,7 @@ import { DataSource, Logger } from "typeorm";
  * migrations declared. Only the cache (Valkey), the lock, realtime, workflow
  * and audit side effects are stood in for.
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_CUSTOM_ROLE_TESTS"] === "true"
     ? describe
     : describe.skip;
@@ -396,7 +397,7 @@ describePostgres("custom roles against a migrated Postgres", () => {
       CustomRolePermissionService,
       TeamCustomRoleService,
       TeamPermissionService,
-    ] as Array<DatabaseService<never>>) {
+    ] as unknown as Array<DatabaseService<never>>) {
       jest.spyOn(service, "onTriggerRealtime").mockResolvedValue(undefined);
       jest.spyOn(service, "onTriggerWorkflow").mockResolvedValue(undefined);
     }
@@ -1096,12 +1097,14 @@ describePostgres("custom roles against a migrated Postgres", () => {
 
       refreshedMembers = [];
 
+      const toProduction: QueryDeepPartialEntity<CustomRolePermission> = {
+        scope: PermissionScope.Labels,
+        labels: labelsOf([production]),
+      } as unknown as QueryDeepPartialEntity<CustomRolePermission>;
+
       await CustomRolePermissionService.updateOneById({
         id: row,
-        data: {
-          scope: PermissionScope.Labels,
-          labels: labelsOf([production]),
-        },
+        data: toProduction,
         props: owner,
       });
 
@@ -1124,11 +1127,13 @@ describePostgres("custom roles against a migrated Postgres", () => {
         await monitorsReadBy(await requestOf(roleMember, [roleTeam])),
       ).toEqual([lower(productionMonitor)]);
 
+      const toBoth: QueryDeepPartialEntity<CustomRolePermission> = {
+        labels: labelsOf([production, staging]),
+      } as unknown as QueryDeepPartialEntity<CustomRolePermission>;
+
       await CustomRolePermissionService.updateOneById({
         id: row,
-        data: {
-          labels: labelsOf([production, staging]),
-        },
+        data: toBoth,
         props: owner,
       });
 
@@ -1625,6 +1630,80 @@ describePostgres("custom roles against a migrated Postgres", () => {
           return giveRole(ownersTeam, role);
         }),
       ).toBe(TEAM_NOT_EDITABLE_FOR_ROLES_MESSAGE);
+    });
+
+    /*
+     * The role's page gives it from a team picker, which sends the team as
+     * the relation - `team: { _id }` - not as teamId. The checks hold the
+     * team the row is written with, whichever name the request uses.
+     */
+    test("a give naming the team by its relation is checked as one naming teamId; two names for two teams are refused", async () => {
+      const role: ObjectID = await createRole("Responders");
+      await addToRole(role, Permission.IncidentMember);
+
+      const teamNamed: (teamId: ObjectID) => Team = (
+        teamId: ObjectID,
+      ): Team => {
+        const team: Team = new Team();
+        team._id = teamId.toString();
+        return team;
+      };
+
+      const toOwners: TeamCustomRole = new TeamCustomRole();
+      toOwners.projectId = projectId;
+      toOwners.team = teamNamed(ownersTeam);
+      toOwners.customRoleId = role;
+
+      expect(
+        await refusal(() => {
+          return TeamCustomRoleService.create({ data: toOwners, props: owner });
+        }),
+      ).toBe(TEAM_NOT_EDITABLE_FOR_ROLES_MESSAGE);
+
+      // A team that may take the role under teamId, Owners under the relation.
+      const twoTeams: TeamCustomRole = new TeamCustomRole();
+      twoTeams.projectId = projectId;
+      twoTeams.teamId = roleTeam;
+      twoTeams.team = teamNamed(ownersTeam);
+      twoTeams.customRoleId = role;
+
+      expect(
+        await refusal(() => {
+          return TeamCustomRoleService.create({ data: twoTeams, props: owner });
+        }),
+      ).toContain("Conflicting");
+
+      const toOtherProject: TeamCustomRole = new TeamCustomRole();
+      toOtherProject.projectId = projectId;
+      toOtherProject.team = teamNamed(otherProjectTeam);
+      toOtherProject.customRoleId = role;
+
+      expect(
+        await refusal(() => {
+          return TeamCustomRoleService.create({
+            data: toOtherProject,
+            props: owner,
+          });
+        }),
+      ).toContain("references records that are not in this project");
+
+      expect(await count("TeamCustomRole")).toBe(0);
+      expect(await copiesOnTeam(ownersTeam)).toEqual([]);
+
+      // The relation alone, for a team that can take it: given, as from teamId.
+      const byRelation: TeamCustomRole = new TeamCustomRole();
+      byRelation.projectId = projectId;
+      byRelation.team = teamNamed(roleTeam);
+      byRelation.customRoleId = role;
+
+      await TeamCustomRoleService.create({ data: byRelation, props: owner });
+
+      expect(
+        (await copiesOnTeam(roleTeam)).map((row: StoredRow): string => {
+          return String(row.permission);
+        }),
+      ).toEqual([Permission.IncidentMember]);
+      expect(wasRefreshed(roleMember)).toBe(true);
     });
   });
 

@@ -70,10 +70,7 @@ const BuiltInRolesCard: FunctionComponent = (): ReactElement => {
         ]}
       >
         {isOpen ? (
-          <div
-            className="space-y-6"
-            data-testid={BUILT_IN_ROLES_LIST_TEST_ID}
-          >
+          <div className="space-y-6" data-testid={BUILT_IN_ROLES_LIST_TEST_ID}>
             {groups.map((group: CardSelectOptionGroup): ReactElement => {
               return (
                 <section key={group.label}>
@@ -104,9 +101,7 @@ const BuiltInRolesCard: FunctionComponent = (): ReactElement => {
                               </div>
                               {option.description ? (
                                 <div className="mt-0.5 text-sm text-gray-500 break-words">
-                                  {translator.translateText(
-                                    option.description,
-                                  )}
+                                  {translator.translateText(option.description)}
                                 </div>
                               ) : (
                                 <></>

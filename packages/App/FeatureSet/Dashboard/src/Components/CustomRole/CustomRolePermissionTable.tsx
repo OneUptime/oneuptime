@@ -87,11 +87,10 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const formRef: MutableRefObject<
-    FormProps<FormValues<CustomRolePermission>>
-  > = React.useRef<
-    FormProps<FormValues<CustomRolePermission>>
-  >() as MutableRefObject<FormProps<FormValues<CustomRolePermission>>>;
+  const formRef: MutableRefObject<FormProps<FormValues<CustomRolePermission>>> =
+    React.useRef<
+      FormProps<FormValues<CustomRolePermission>>
+    >() as MutableRefObject<FormProps<FormValues<CustomRolePermission>>>;
 
   const [createPermissionType, setCreatePermissionType] =
     useState<CreatePermissionType>(CreatePermissionType.RoleBased);
@@ -362,9 +361,7 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
             if (scope === PermissionScope.Owned) {
               return (
                 <p>
-                  {translator.translateText(
-                    "Owned by the team or its members",
-                  )}
+                  {translator.translateText("Owned by the team or its members")}
                 </p>
               );
             }

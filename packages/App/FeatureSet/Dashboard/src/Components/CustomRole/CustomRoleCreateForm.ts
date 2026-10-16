@@ -137,32 +137,33 @@ export const getCustomRoleCreateFormFields: () => Array<
  * The permissions a submitted Permissions value asks for, each once, in the
  * order picked - leaving out anything a role may not hold.
  */
-export const getPickedRolePermissions: (value: unknown) => Array<Permission> =
-  (value: unknown): Array<Permission> => {
-    const values: Array<unknown> = Array.isArray(value)
-      ? value
-      : value
-        ? [value]
-        : [];
-    const picked: Array<Permission> = [];
+export const getPickedRolePermissions: (value: unknown) => Array<Permission> = (
+  value: unknown,
+): Array<Permission> => {
+  const values: Array<unknown> = Array.isArray(value)
+    ? value
+    : value
+      ? [value]
+      : [];
+  const picked: Array<Permission> = [];
 
-    for (const item of values) {
-      const permission: unknown =
-        item && typeof item === "object" && "value" in item
-          ? (item as { value: unknown }).value
-          : item;
+  for (const item of values) {
+    const permission: unknown =
+      item && typeof item === "object" && "value" in item
+        ? (item as { value: unknown }).value
+        : item;
 
-      if (
-        typeof permission === "string" &&
-        isPermissionAllowedInCustomRole(permission) &&
-        !picked.includes(permission as Permission)
-      ) {
-        picked.push(permission as Permission);
-      }
+    if (
+      typeof permission === "string" &&
+      isPermissionAllowedInCustomRole(permission) &&
+      !picked.includes(permission as Permission)
+    ) {
+      picked.push(permission as Permission);
     }
+  }
 
-    return picked;
-  };
+  return picked;
+};
 
 // A permission row of a role: the whole project, as picked on Create.
 export const buildCustomRolePermission: (data: {

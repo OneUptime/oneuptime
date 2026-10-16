@@ -169,8 +169,8 @@ export const getRoleReachSentence: (
 
 /*
  * Who deleting a role takes access from, said in its Delete dialog after
- * what deleting any custom role does (DeleteConsequences): "Right now that
- * is 2 teams (4 people)."
+ * what deleting any custom role does (DeleteConsequences): "It is given to
+ * 2 teams (4 people) right now."
  */
 export const getRoleDeleteReachSentence: (
   translator: Translator,
@@ -180,7 +180,7 @@ export const getRoleDeleteReachSentence: (
     return text(translator, ROLE_DELETE_REACHES_NO_ONE);
   }
 
-  return translator.translateTemplate("Right now that is {{reach}}.", {
+  return translator.translateTemplate("It is given to {{reach}} right now.", {
     reach: composedValue((sentence: Translator): string => {
       return getTeamsAndPeople(sentence, reach);
     }),

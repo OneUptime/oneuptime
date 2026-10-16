@@ -2,6 +2,7 @@ import { getCustomRoleCardDescription } from "./CustomRoleCopy";
 import CustomRole from "Common/Models/DatabaseModels/CustomRole";
 import CustomRolePermission from "Common/Models/DatabaseModels/CustomRolePermission";
 import Label from "Common/Models/DatabaseModels/Label";
+import TeamCustomRole from "Common/Models/DatabaseModels/TeamCustomRole";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
@@ -18,7 +19,9 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
  * A PROJECT'S CUSTOM ROLES AS THE PICKERS OFFER THEM: a team's Add Custom
  * Role and Create Team's Access. One card per role - its name, its own
  * description or none, and how many permissions it holds ("Incident
- * Responder - Custom role: 6 permissions.") - in name order. React-free.
+ * Responder - Custom role: 6 permissions.") - in name order. And who has
+ * which role already, so a picker offers only what is not given yet.
+ * React-free.
  */
 
 export const CUSTOM_ROLE_ICON: IconProp = IconProp.Identification;
@@ -95,6 +98,80 @@ export const getCustomRoleCardSelectOption: (
     }),
     icon: CUSTOM_ROLE_ICON,
   };
+};
+
+// The custom roles a team has, by id.
+export const loadCustomRoleIdsOfTeam: (data: {
+  teamId: ObjectID;
+  projectId: ObjectID;
+  modelAPI?: typeof ModelAPI | undefined;
+}) => Promise<Set<string>> = async (data: {
+  teamId: ObjectID;
+  projectId: ObjectID;
+  modelAPI?: typeof ModelAPI | undefined;
+}): Promise<Set<string>> => {
+  const modelAPI: typeof ModelAPI = data.modelAPI || ModelAPI;
+
+  const given: ListResult<TeamCustomRole> = await modelAPI.getList({
+    modelType: TeamCustomRole,
+    query: {
+      teamId: data.teamId,
+      projectId: data.projectId,
+    },
+    select: {
+      customRoleId: true,
+    },
+    limit: LIMIT_PER_PROJECT,
+    skip: 0,
+    sort: {},
+  });
+
+  return new Set<string>(
+    given.data
+      .map((row: TeamCustomRole): string => {
+        return row.customRoleId?.toString().toLowerCase() || "";
+      })
+      .filter((id: string): boolean => {
+        return Boolean(id);
+      }),
+  );
+};
+
+// The teams a custom role is given to, by id.
+export const loadTeamIdsGivenCustomRole: (data: {
+  customRoleId: ObjectID;
+  projectId: ObjectID;
+  modelAPI?: typeof ModelAPI | undefined;
+}) => Promise<Set<string>> = async (data: {
+  customRoleId: ObjectID;
+  projectId: ObjectID;
+  modelAPI?: typeof ModelAPI | undefined;
+}): Promise<Set<string>> => {
+  const modelAPI: typeof ModelAPI = data.modelAPI || ModelAPI;
+
+  const given: ListResult<TeamCustomRole> = await modelAPI.getList({
+    modelType: TeamCustomRole,
+    query: {
+      customRoleId: data.customRoleId,
+      projectId: data.projectId,
+    },
+    select: {
+      teamId: true,
+    },
+    limit: LIMIT_PER_PROJECT,
+    skip: 0,
+    sort: {},
+  });
+
+  return new Set<string>(
+    given.data
+      .map((row: TeamCustomRole): string => {
+        return row.teamId?.toString().toLowerCase() || "";
+      })
+      .filter((id: string): boolean => {
+        return Boolean(id);
+      }),
+  );
 };
 
 /*

@@ -3,7 +3,6 @@ import Label from "../../../../Models/DatabaseModels/Label";
 import TeamCustomRole from "../../../../Models/DatabaseModels/TeamCustomRole";
 import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import TeamPermission from "../../../../Models/DatabaseModels/TeamPermission";
-import Semaphore from "../../../../Server/Infrastructure/Semaphore";
 import AccessTokenService from "../../../../Server/Services/AccessTokenService";
 import CustomRolePermissionService from "../../../../Server/Services/CustomRolePermissionService";
 import TeamCustomRoleService from "../../../../Server/Services/TeamCustomRoleService";

@@ -18,7 +18,9 @@ import {
  *     a right that differs between keys and teams;
  *   - the field the create forms ask it with;
  *   - the row a role becomes: an allow row, for a team at scope All, through
- *     the endpoint the record's own Permissions card uses.
+ *     the endpoint the record's own Permissions card uses;
+ *   - a team's custom roles: offered after the built-in roles, each the
+ *     role given to the new team (TeamCustomRole), never to a key.
  */
 
 let isMasterAdminForTest: boolean = false;
@@ -59,25 +61,32 @@ jest.mock("../../../UI/Utils/Permission", () => {
 import {
   API_KEY_ACCESS_DESCRIPTION,
   API_KEY_ACCESS_LATER_OPTION,
+  CUSTOM_ROLE_ACCESS_PREFIX,
   ROLE_ACCESS_FIELD_KEY,
   ROLE_ACCESS_LATER,
   ROLE_ACCESS_ROLES,
+  ROLE_ACCESS_SEARCH_THRESHOLD,
   RoleAccessHolder,
   TEAM_ACCESS_DESCRIPTION,
   TEAM_ACCESS_LATER_OPTION,
   buildApiKeyAccessPermission,
   buildTeamAccessPermission,
+  buildTeamCustomRoleAccess,
+  getCustomRoleAccessValue,
+  getRoleAccessCustomRoleId,
   getRoleAccessFormField,
   getRoleAccessLaterOption,
   getRoleAccessOptions,
   getRoleAccessOptionsForCurrentUser,
   getRoleAccessRole,
+  giveCustomRoleAccess,
   giveRoleAccess,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/RoleAccess";
 import { getRoleIcon } from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/RoleCardSelectOptions";
 import ApiKey from "../../../Models/DatabaseModels/ApiKey";
 import ApiKeyPermission from "../../../Models/DatabaseModels/ApiKeyPermission";
 import Team from "../../../Models/DatabaseModels/Team";
+import TeamCustomRole from "../../../Models/DatabaseModels/TeamCustomRole";
 import TeamPermission from "../../../Models/DatabaseModels/TeamPermission";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -97,6 +106,23 @@ const TEAM_ID: ObjectID = new ObjectID("0a000000-0000-4000-8000-000000000002");
 const API_KEY_ID: ObjectID = new ObjectID(
   "0a000000-0000-4000-8000-000000000003",
 );
+const RESPONDER_ID: string = "0a000000-0000-4000-8000-000000000004";
+const TEAM_LEAD_ID: string = "0a000000-0000-4000-8000-000000000005";
+
+// Create Team's cards for two of the project's custom roles.
+function customRoleCard(customRoleId: string, title: string): CardSelectOption {
+  return {
+    value: getCustomRoleAccessValue(customRoleId),
+    title: title,
+    description: "Custom role · 6 permissions",
+    icon: IconProp.Identification,
+  };
+}
+
+const CUSTOM_ROLE_CARDS: Array<CardSelectOption> = [
+  customRoleCard(RESPONDER_ID, "Incident Responder"),
+  customRoleCard(TEAM_LEAD_ID, "Team Lead"),
+];
 
 const HOLDERS: Array<RoleAccessHolder> = [
   RoleAccessHolder.ApiKey,
@@ -295,6 +321,212 @@ describe("the cards", () => {
       ).toEqual([]);
     },
   );
+});
+
+describe("a team's custom roles under Access", () => {
+  test("come after the built-in roles, before Choose permissions later", () => {
+    expect(
+      values(
+        getRoleAccessOptions({
+          holder: RoleAccessHolder.Team,
+          canGrant: anyRole,
+          canAddPermissions: true,
+          customRoleOptions: CUSTOM_ROLE_CARDS,
+        }),
+      ),
+    ).toEqual([
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      `customRole:${RESPONDER_ID}`,
+      `customRole:${TEAM_LEAD_ID}`,
+      ROLE_ACCESS_LATER,
+    ]);
+  });
+
+  test("are never offered for a key: a key is given permissions of its own", () => {
+    expect(
+      values(
+        getRoleAccessOptions({
+          holder: RoleAccessHolder.ApiKey,
+          canGrant: anyRole,
+          canAddPermissions: true,
+          customRoleOptions: CUSTOM_ROLE_CARDS,
+        }),
+      ),
+    ).toEqual([
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      ROLE_ACCESS_LATER,
+    ]);
+  });
+
+  test("a card that does not stand for a custom role is left out", () => {
+    expect(
+      values(
+        getRoleAccessOptions({
+          holder: RoleAccessHolder.Team,
+          canGrant: (): boolean => {
+            return false;
+          },
+          canAddPermissions: true,
+          customRoleOptions: [
+            { ...CUSTOM_ROLE_CARDS[0]!, value: Permission.ProjectOwner },
+            { ...CUSTOM_ROLE_CARDS[1]!, value: RESPONDER_ID },
+            CUSTOM_ROLE_CARDS[1]!,
+          ],
+        }),
+      ),
+    ).toEqual([`customRole:${TEAM_LEAD_ID}`, ROLE_ACCESS_LATER]);
+  });
+
+  test("someone who may give no built-in role is still offered the custom roles they could give", () => {
+    expect(
+      values(
+        getRoleAccessOptions({
+          holder: RoleAccessHolder.Team,
+          canGrant: (): boolean => {
+            return false;
+          },
+          canAddPermissions: true,
+          customRoleOptions: CUSTOM_ROLE_CARDS,
+        }),
+      ),
+    ).toEqual([
+      `customRole:${RESPONDER_ID}`,
+      `customRole:${TEAM_LEAD_ID}`,
+      ROLE_ACCESS_LATER,
+    ]);
+  });
+
+  test("someone who may not add permissions to a team is offered none of them", () => {
+    expect(
+      getRoleAccessOptions({
+        holder: RoleAccessHolder.Team,
+        canGrant: anyRole,
+        canAddPermissions: false,
+        customRoleOptions: CUSTOM_ROLE_CARDS,
+      }),
+    ).toEqual([]);
+  });
+
+  test("the signed-in user's cards take the custom roles the page read for a team only", () => {
+    isMasterAdminForTest = true;
+
+    expect(
+      values(
+        getRoleAccessOptionsForCurrentUser(
+          RoleAccessHolder.Team,
+          CUSTOM_ROLE_CARDS,
+        ),
+      ),
+    ).toEqual([
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      `customRole:${RESPONDER_ID}`,
+      `customRole:${TEAM_LEAD_ID}`,
+      ROLE_ACCESS_LATER,
+    ]);
+    expect(
+      values(
+        getRoleAccessOptionsForCurrentUser(
+          RoleAccessHolder.ApiKey,
+          CUSTOM_ROLE_CARDS,
+        ),
+      ),
+    ).not.toContain(`customRole:${RESPONDER_ID}`);
+  });
+
+  /*
+   * A form gives a field its default only when it opens: a Create Team
+   * opened before the custom roles arrive must already hold the question,
+   * answered, for the role cards to join.
+   */
+  test("while they are read, someone who may give no built-in role is asked already, Choose permissions later picked", () => {
+    const loading: {
+      canGrant: (permission: Permission) => boolean;
+      canAddPermissions: boolean;
+      areCustomRolesLoading: boolean;
+    } = {
+      canGrant: (): boolean => {
+        return false;
+      },
+      canAddPermissions: true,
+      areCustomRolesLoading: true,
+    };
+
+    expect(
+      values(
+        getRoleAccessOptions({ holder: RoleAccessHolder.Team, ...loading }),
+      ),
+    ).toEqual([ROLE_ACCESS_LATER]);
+    // A key waits for no custom role: it never has any.
+    expect(
+      getRoleAccessOptions({ holder: RoleAccessHolder.ApiKey, ...loading }),
+    ).toEqual([]);
+    // And no one is asked who may not add permissions to a team.
+    expect(
+      getRoleAccessOptions({
+        holder: RoleAccessHolder.Team,
+        ...loading,
+        canAddPermissions: false,
+      }),
+    ).toEqual([]);
+  });
+
+  test("the page holds null while it reads them; once read, a project with none asks as before", () => {
+    holding([
+      Permission.CreateProjectTeam,
+      Permission.EditProjectTeamPermissions,
+    ]);
+
+    expect(
+      values(getRoleAccessOptionsForCurrentUser(RoleAccessHolder.Team, null)),
+    ).toEqual([ROLE_ACCESS_LATER]);
+    expect(
+      getRoleAccessOptionsForCurrentUser(RoleAccessHolder.Team, []),
+    ).toEqual([]);
+    expect(getRoleAccessOptionsForCurrentUser(RoleAccessHolder.Team)).toEqual(
+      [],
+    );
+  });
+
+  test("past eight cards the question gets a search box; up to eight it stays a plain list", () => {
+    const manyRoles: Array<CardSelectOption> = Array.from(
+      { length: 6 },
+      (_value: unknown, index: number): CardSelectOption => {
+        return customRoleCard(
+          `0a000000-0000-4000-8000-00000000010${index}`,
+          `Region ${index} Responders`,
+        );
+      },
+    );
+    const options: Array<CardSelectOption> = getRoleAccessOptions({
+      holder: RoleAccessHolder.Team,
+      canGrant: anyRole,
+      canAddPermissions: true,
+      customRoleOptions: manyRoles,
+    });
+
+    expect(ROLE_ACCESS_SEARCH_THRESHOLD).toBe(8);
+    expect(options).toHaveLength(10);
+
+    const searchable: ModelField<Team> = getRoleAccessFormField<Team>({
+      holder: RoleAccessHolder.Team,
+      accessOptions: options,
+    });
+    expect(searchable.cardSelectSearchable).toBe(true);
+    expect(searchable.cardSelectSearchPlaceholder).toBe("Search roles");
+
+    const plain: ModelField<Team> = getRoleAccessFormField<Team>({
+      holder: RoleAccessHolder.Team,
+      accessOptions: options.slice(0, ROLE_ACCESS_SEARCH_THRESHOLD),
+    });
+    expect(plain.cardSelectSearchable).toBeUndefined();
+    expect(plain.cardSelectSearchPlaceholder).toBeUndefined();
+  });
 });
 
 describe("the cards for the signed-in user", () => {
@@ -521,6 +753,35 @@ describe("what a submitted Access value asks for", () => {
       expect(getRoleAccessRole(value)).toBeNull();
     }
   });
+
+  test("a custom role's card asks for that role, and for no built-in one", () => {
+    const value: string = getCustomRoleAccessValue(RESPONDER_ID);
+
+    expect(CUSTOM_ROLE_ACCESS_PREFIX).toBe("customRole:");
+    expect(value).toBe(`customRole:${RESPONDER_ID}`);
+    expect(getRoleAccessCustomRoleId(value)).toBe(RESPONDER_ID);
+    expect(getRoleAccessRole(value)).toBeNull();
+  });
+
+  test("a built-in role's card, Choose permissions later and anything else ask for no custom role", () => {
+    for (const value of [
+      undefined,
+      null,
+      "",
+      0,
+      ROLE_ACCESS_LATER,
+      Permission.ProjectAdmin,
+      RESPONDER_ID,
+      "customRole:",
+      "customRole:not-an-id",
+      `customRole:${RESPONDER_ID}/../teams`,
+      `CUSTOMROLE:${RESPONDER_ID}`,
+      [`customRole:${RESPONDER_ID}`],
+      { value: `customRole:${RESPONDER_ID}` },
+    ]) {
+      expect(getRoleAccessCustomRoleId(value)).toBeNull();
+    }
+  });
 });
 
 describe("the Access field", () => {
@@ -642,6 +903,20 @@ describe("the row a role becomes", () => {
     expect(row.getCrudApiPath()?.toString()).toBe("/team-permission");
   });
 
+  test("a custom role on a team: the role given to the team, exactly what Add Custom Role creates", () => {
+    const given: TeamCustomRole = buildTeamCustomRoleAccess({
+      teamId: TEAM_ID,
+      projectId: PROJECT_ID,
+      customRoleId: new ObjectID(RESPONDER_ID),
+    });
+
+    expect(given).toBeInstanceOf(TeamCustomRole);
+    expect(given.teamId?.toString()).toBe(TEAM_ID.toString());
+    expect(given.projectId?.toString()).toBe(PROJECT_ID.toString());
+    expect(given.customRoleId?.toString()).toBe(RESPONDER_ID);
+    expect(given.getCrudApiPath()?.toString()).toBe("/team-custom-role");
+  });
+
   test("on a key: an allow row with no labels", () => {
     const row: ApiKeyPermission = buildApiKeyAccessPermission({
       apiKeyId: API_KEY_ID,
@@ -710,6 +985,46 @@ describe("giving a new record its access", () => {
         role: Permission.ProjectAdmin,
       }),
     );
+  });
+
+  test("a team given a custom role: one TeamCustomRole, and no permission of its own", async () => {
+    const created: Array<CreateCall> = [];
+
+    await giveCustomRoleAccess({
+      teamId: TEAM_ID,
+      projectId: PROJECT_ID,
+      customRoleId: new ObjectID(RESPONDER_ID),
+      modelAPI: recordingModelAPI(created),
+    });
+
+    expect(created).toHaveLength(1);
+    expect(created[0]!.modelType).toBe(TeamCustomRole);
+    expect(created[0]!.model).toEqual(
+      buildTeamCustomRoleAccess({
+        teamId: TEAM_ID,
+        projectId: PROJECT_ID,
+        customRoleId: new ObjectID(RESPONDER_ID),
+      }),
+    );
+  });
+
+  test("a custom role the server refuses is the caller's to show, in the server's words", async () => {
+    const refusal: string =
+      "You can't give Incident Responder: it has Incident Admin, and your own access doesn't include that permission at the same or a broader scope.";
+    const modelAPI: typeof ModelAPI = {
+      create: async (): Promise<never> => {
+        throw new Error(refusal);
+      },
+    } as unknown as typeof ModelAPI;
+
+    await expect(
+      giveCustomRoleAccess({
+        teamId: TEAM_ID,
+        projectId: PROJECT_ID,
+        customRoleId: new ObjectID(RESPONDER_ID),
+        modelAPI: modelAPI,
+      }),
+    ).rejects.toThrow(refusal);
   });
 
   test("a refusal is the caller's to show", async () => {

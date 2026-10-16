@@ -57,6 +57,7 @@ import Permission from "Common/Types/Permission";
 import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import MultiSearch from "Common/Types/BaseDatabase/MultiSearch";
 import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -180,6 +181,8 @@ const ROLES = {
   responder: "30000000-0000-4000-8000-000000000001",
   lead: "30000000-0000-4000-8000-000000000002",
   auditor: "30000000-0000-4000-8000-000000000003",
+  // Made only of what the editor (user=editor) holds: theirs to give.
+  helper: "30000000-0000-4000-8000-000000000004",
 };
 
 function customRole(id, name, description) {
@@ -219,6 +222,7 @@ if (rolesScenario !== "none") {
       "Runs a team: its incidents, its on-call and who is on it.",
     ),
     customRole(ROLES.auditor, "Auditor", ""),
+    customRole(ROLES.helper, "Incident Helper", "Works incidents and alerts."),
   );
 
   customRolePermissions.push(
@@ -236,6 +240,8 @@ if (rolesScenario !== "none") {
     rolePermission(ROLES.lead, Permission.IncidentAdmin),
     rolePermission(ROLES.lead, Permission.OnCallAdmin),
     rolePermission(ROLES.lead, Permission.AlertMember, PermissionScope.Owned),
+    rolePermission(ROLES.helper, Permission.IncidentMember),
+    rolePermission(ROLES.helper, Permission.AlertMember),
   );
 }
 
@@ -249,9 +255,7 @@ if (rolesScenario === "many") {
         "Responders for one region.",
       ),
     );
-    customRolePermissions.push(
-      rolePermission(id, Permission.IncidentMember),
-    );
+    customRolePermissions.push(rolePermission(id, Permission.IncidentMember));
   }
 }
 
@@ -355,7 +359,9 @@ function recount() {
 
 function resolveRelations() {
   for (const given of teamCustomRoles) {
-    given.team = teams.find((candidate) => idOf(candidate._id) === idOf(given.teamId));
+    given.team = teams.find(
+      (candidate) => idOf(candidate._id) === idOf(given.teamId),
+    );
     given.customRole = customRoles.find(
       (candidate) => idOf(candidate._id) === idOf(given.customRoleId),
     );
@@ -384,6 +390,10 @@ function matchesCondition(value, condition) {
   if (condition instanceof Includes) {
     const wanted = (condition.values || []).map((item) => idOf(item));
     return wanted.includes(idOf(value));
+  }
+  if (condition instanceof IncludesNone) {
+    const unwanted = (condition.values || []).map((item) => idOf(item));
+    return !unwanted.includes(idOf(value));
   }
   if (typeof condition === "boolean") {
     return Boolean(value) === condition;
@@ -546,8 +556,24 @@ ModelAPI.count = async (options) => {
 };
 ModelAPI.getCount = ModelAPI.count;
 
+/*
+ * As DatabaseService.create does before any hook runs
+ * (fillIdColumnsFromRelations): a record the form names by its relation -
+ * Give to a Team sends `team: { _id }` - gets the id in its ID column too.
+ */
+function fillIdColumnsFromRelations(record) {
+  for (const relation of ["team", "customRole"]) {
+    const idColumn = `${relation}Id`;
+    if (!record[idColumn] && record[relation] && idOf(record[relation])) {
+      record[idColumn] = new ObjectID(idOf(record[relation]));
+    }
+  }
+}
+
 // What the services answer for a write, in their words.
 function createRecord(tableName, record) {
+  fillIdColumnsFromRelations(record);
+
   if (tableName === "CustomRolePermission") {
     if (refusedPermission && record.permission === refusedPermission) {
       throw new Error(
@@ -574,7 +600,9 @@ function createRecord(tableName, record) {
     record.permissionCount = 0;
     customRoles.push(record);
   } else if (tableName === "TeamCustomRole") {
-    const target = teams.find((candidate) => idOf(candidate._id) === idOf(record.teamId));
+    const target = teams.find(
+      (candidate) => idOf(candidate._id) === idOf(record.teamId),
+    );
     if (target && !target.isPermissionsEditable) {
       throw new Error(
         "This team's permissions can't be changed, so it can't be given a custom role. Create a team of your own and give the role to it.",

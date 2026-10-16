@@ -1,6 +1,7 @@
 import {
   CustomRoleSummary,
   getCustomRoleCardSelectOption,
+  loadCustomRoleIdsOfTeam,
   loadCustomRoles,
 } from "../CustomRole/CustomRoleOptions";
 import {
@@ -69,6 +70,27 @@ const TeamCustomRoleTable: FunctionComponent<ComponentProps> = (
   const [roles, setRoles] = useState<Array<CustomRoleSummary> | null>(null);
   const [isAdding, setIsAdding] = useState<boolean>(false);
   const [refreshToggle, setRefreshToggle] = useState<string>("");
+  // The roles the team has: Add Custom Role offers the others.
+  const [givenRoleIds, setGivenRoleIds] = useState<Set<string>>(
+    new Set<string>(),
+  );
+
+  useEffect(() => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (!projectId) {
+      return;
+    }
+
+    loadCustomRoleIdsOfTeam({ teamId: props.teamId, projectId: projectId })
+      .then((ids: Set<string>) => {
+        setGivenRoleIds(ids);
+      })
+      .catch(() => {
+        // Then every role is offered, and the server refuses one the team has.
+        setGivenRoleIds(new Set<string>());
+      });
+  }, [refreshToggle, props.teamId.toString()]);
 
   useEffect(() => {
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -92,11 +114,13 @@ const TeamCustomRoleTable: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const roleOptions: Array<CardSelectOption> = roles.map(
-    (role: CustomRoleSummary): CardSelectOption => {
+  const roleOptions: Array<CardSelectOption> = roles
+    .filter((role: CustomRoleSummary): boolean => {
+      return !givenRoleIds.has(role.id.toLowerCase());
+    })
+    .map((role: CustomRoleSummary): CardSelectOption => {
       return getCustomRoleCardSelectOption(translator, role);
-    },
-  );
+    });
 
   const getRoleRoute: (customRoleId: string) => Route = (
     customRoleId: string,
@@ -114,6 +138,12 @@ const TeamCustomRoleTable: FunctionComponent<ComponentProps> = (
       // NORMAL with the Add icon, so the empty table repeats it as its way on.
       icon: IconProp.Add,
       buttonStyle: ButtonStyleType.NORMAL,
+      // Every role the project has is the team's already: nothing to add.
+      disabled: roleOptions.length === 0,
+      tooltip:
+        roleOptions.length === 0
+          ? "This team has every custom role already. Make another on the Roles page."
+          : undefined,
       onClick: () => {
         setIsAdding(true);
       },
@@ -138,6 +168,9 @@ const TeamCustomRoleTable: FunctionComponent<ComponentProps> = (
           pluralName="Custom Roles"
           deleteButtonText="Remove"
           refreshToggle={refreshToggle}
+          onItemDeleted={() => {
+            setRefreshToggle(new Date().toISOString());
+          }}
           query={{
             teamId: props.teamId,
             projectId: ProjectUtil.getCurrentProjectId()!,
@@ -158,8 +191,7 @@ const TeamCustomRoleTable: FunctionComponent<ComponentProps> = (
               }),
               description: getRoleRemoveFromTeamSentence(translator, {
                 roleName: item.customRole?.name || "",
-                teamName:
-                  translator.translateText("This team") || "This team",
+                teamName: translator.translateText("This team") || "This team",
               }),
               submitButtonText: "Remove",
             };
@@ -255,6 +287,7 @@ const TeamCustomRoleTable: FunctionComponent<ComponentProps> = (
                   customRoleId: true,
                 },
                 title: "Custom Role",
+                description: "Roles this team has already are not listed.",
                 fieldType: FormFieldSchemaType.CardSelect,
                 cardSelectOptions: roleOptions,
                 required: true,

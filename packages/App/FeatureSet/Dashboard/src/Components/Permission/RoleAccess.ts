@@ -193,6 +193,13 @@ type GetRoleAccessOptionsFunction = (data: {
    * whose values are getCustomRoleAccessValue(id). Never a key's.
    */
   customRoleOptions?: Array<CardSelectOption> | undefined;
+  /*
+   * A team's custom roles are still being read. A form gives a field its
+   * default only when it opens (BasicForm), so the question is asked from
+   * the start - Choose permissions later picked - even before a role is
+   * known to be offered, and it is there, answered, when the roles arrive.
+   */
+  areCustomRolesLoading?: boolean | undefined;
 }) => Array<CardSelectOption>;
 
 /*
@@ -206,6 +213,7 @@ export const getRoleAccessOptions: GetRoleAccessOptionsFunction = (data: {
   canGrant: (permission: Permission) => boolean;
   canAddPermissions: boolean;
   customRoleOptions?: Array<CardSelectOption> | undefined;
+  areCustomRolesLoading?: boolean | undefined;
 }): Array<CardSelectOption> => {
   if (!data.canAddPermissions) {
     return [];
@@ -226,7 +234,15 @@ export const getRoleAccessOptions: GetRoleAccessOptionsFunction = (data: {
         )
       : [];
 
-  if (roles.length === 0 && customRoles.length === 0) {
+  const mayStillOfferCustomRoles: boolean =
+    data.holder === RoleAccessHolder.Team &&
+    Boolean(data.areCustomRolesLoading);
+
+  if (
+    roles.length === 0 &&
+    customRoles.length === 0 &&
+    !mayStillOfferCustomRoles
+  ) {
     return [];
   }
 
@@ -241,11 +257,14 @@ export const getRoleAccessOptions: GetRoleAccessOptionsFunction = (data: {
  */
 export const getRoleAccessOptionsForCurrentUser: (
   holder: RoleAccessHolder,
-  // A team's: the project's custom roles the user could give.
-  customRoleOptions?: Array<CardSelectOption> | undefined,
+  /*
+   * A team's: the project's custom roles the user could give - or null
+   * while they are being read.
+   */
+  customRoleOptions?: Array<CardSelectOption> | null | undefined,
 ) => Array<CardSelectOption> = (
   holder: RoleAccessHolder,
-  customRoleOptions?: Array<CardSelectOption> | undefined,
+  customRoleOptions?: Array<CardSelectOption> | null | undefined,
 ): Array<CardSelectOption> => {
   const permissionModel: ApiKeyPermission | TeamPermission =
     HOLDERS[holder].permissionModel();
@@ -260,7 +279,8 @@ export const getRoleAccessOptionsForCurrentUser: (
       !GrantablePermission.isCurrentUserBlockedFromAny(
         permissionModel.getCreatePermissions(),
       ),
-    customRoleOptions: customRoleOptions,
+    customRoleOptions: customRoleOptions || [],
+    areCustomRolesLoading: customRoleOptions === null,
   });
 };
 
@@ -285,7 +305,10 @@ export const getRoleAccessRole: (value: unknown) => Permission | null = (
 export const getRoleAccessCustomRoleId: (value: unknown) => string | null = (
   value: unknown,
 ): string | null => {
-  if (typeof value !== "string" || !value.startsWith(CUSTOM_ROLE_ACCESS_PREFIX)) {
+  if (
+    typeof value !== "string" ||
+    !value.startsWith(CUSTOM_ROLE_ACCESS_PREFIX)
+  ) {
     return null;
   }
 
@@ -320,9 +343,13 @@ export const getRoleAccessFormField: <TBaseModel extends BaseModel>(data: {
     fieldType: FormFieldSchemaType.CardSelect,
     cardSelectOptions: data.accessOptions,
     cardSelectSingleColumn: true,
-    cardSelectSearchable:
-      data.accessOptions.length > ROLE_ACCESS_SEARCH_THRESHOLD,
-    cardSelectSearchPlaceholder: "Search roles",
+    // A long list - a project with many custom roles - gets a search box.
+    ...(data.accessOptions.length > ROLE_ACCESS_SEARCH_THRESHOLD
+      ? {
+          cardSelectSearchable: true,
+          cardSelectSearchPlaceholder: "Search roles",
+        }
+      : {}),
     required: true,
     defaultValue: ROLE_ACCESS_LATER,
     dataTestId: HOLDERS[data.holder].dataTestId,

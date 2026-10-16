@@ -191,7 +191,9 @@ const TeamRoleView: FunctionComponent<PageComponentProps> = (
         }
         onDeleteSuccess={() => {
           Navigation.navigate(
-            RouteUtil.populateRouteParams(RouteMap[PageMap.TEAM_ROLES] as Route),
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.TEAM_ROLES] as Route,
+            ),
           );
         }}
       />
