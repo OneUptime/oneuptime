@@ -678,18 +678,12 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
         },
       );
 
-    if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
-      // update incident with these channels.
-      await this.updateOneById({
-        id: createdItem.id!,
-        data: {
-          postUpdatesToWorkspaceChannels: workspaceResult.channelsCreated || [],
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    }
+    /*
+     * The new channels are on the policy already: the rule service stores
+     * them before it invites anybody, so whoever joins the policy while they
+     * are set up is invited too (WorkspaceNotificationRuleService
+     * .createChannelsAndInviteUsersToChannelsBasedOnRules).
+     */
 
     const onCallDutyPolicyCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
       await OnCallDutyPolicyWorkspaceMessages.getOnCallDutyPolicyCreateMessageBlocks(

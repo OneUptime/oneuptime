@@ -146,7 +146,6 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [SLACK]: ["Connect my account with Slack"],
-  [TEAMS]: ["Create Microsoft Teams Channel"],
 };
 
 /*

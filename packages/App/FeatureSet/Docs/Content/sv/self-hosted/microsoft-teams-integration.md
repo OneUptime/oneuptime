@@ -347,7 +347,7 @@ Installation sker per team. Att lägga till OneUptime i ett team gör ingenting 
 
 ### "Testregel" fungerar men riktiga aviseringar kommer aldrig fram
 
-Kontrollera vilka mål regeln faktiskt har aktiverade. En regel testar bara det den är inställd för: med **Create Microsoft Teams Channel** aktiverat skapar testet en kanal och publicerar i den, vilket bevisar att boten kan publicera *i det team där den kanalen skapades*, och ingenting om något annat team. **Projektinställningar > Aviseringar > Aviseringsloggar** registrerar varje testutskick, inklusive Microsofts exakta fel när ett misslyckas.
+Kontrollera vilka mål regeln faktiskt har aktiverade. En regel testar bara det den är inställd för: med **Skapa en kanal för varje incident** aktiverat skapar testet en kanal och publicerar i den, vilket bevisar att boten kan publicera *i det team där den kanalen skapades*, och ingenting om något annat team. **Projektinställningar > Aviseringar > Aviseringsloggar** registrerar varje testutskick, inklusive Microsofts exakta fel när ett misslyckas.
 
 ### "Sorry, I couldn't find your project configuration"
 
