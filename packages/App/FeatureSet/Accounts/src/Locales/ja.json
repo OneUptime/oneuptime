@@ -51,6 +51,7 @@
     "submitButton": "ログイン",
     "forgotPassword": "パスワードをお忘れですか？",
     "useSso": "代わりにシングルサインオン（SSO）を使用する",
+    "signInWithMicrosoft": "Microsoft でサインイン",
     "noAccountPrompt": "アカウントをお持ちでない方は",
     "registerLink": "登録。",
     "twoFactor": {
@@ -121,7 +122,8 @@
     "verifyEmailOpensInNewTab": "（新しいタブで開きます）",
     "verifyEmailAlreadyVerifiedPrompt": "メールアドレスの確認はお済みですか？",
     "verifyEmailWrongAddressPrompt": "メールアドレスが間違っていますか？",
-    "verifyEmailUseDifferentEmail": "別のメールアドレスでサインアップ"
+    "verifyEmailUseDifferentEmail": "別のメールアドレスでサインアップ",
+    "signUpWithMicrosoft": "Microsoft でサインアップ"
   },
   "forgotPassword": {
     "title": "パスワードをお忘れの場合",
@@ -257,6 +259,42 @@
       "server_error": "こちら側で問題が発生しました。数分後にもう一度お試しください。",
       "framed": "安全のため、このページは他のページの中では使用できません。ブラウザーの独立したタブまたはウィンドウで開いてください。"
     }
+  },
+  "marketplacePurchase": {
+    "title": "購入の設定",
+    "subtitle": "{{marketplace}} で OneUptime を購入しました。この購入で料金を支払うプロジェクトを選択してください。",
+    "boughtOnLabel": "購入元",
+    "buyerLabel": "購入者",
+    "marketplacePlanLabel": "マーケットプレイスのプラン",
+    "signedInAs": "{{email}} としてサインイン中",
+    "freeTrial": "この購入は {{marketplace}} で無料トライアル中です。",
+    "choiceLabel": "この購入でどのプロジェクトの料金を支払いますか？",
+    "createProjectOption": "新しいプロジェクトを作成",
+    "projectNameLabel": "プロジェクト名",
+    "projectNamePlaceholder": "マイプロジェクト",
+    "planLabel": "OneUptime のプラン",
+    "planOption": "{{name}} – ユーザーあたり月額 {{price}}",
+    "planOptionFree": "{{name}} – 無料",
+    "existingProjectOption": "既存のプロジェクトを使用",
+    "projectLabel": "プロジェクト",
+    "projectPlaceholder": "プロジェクトを選択",
+    "existingProjectHelp": "今後、このプロジェクトのプランと使用量は、カードではなく {{marketplace}} を通じて請求されます。",
+    "projectRefusal": {
+      "not_billing_manager": "{{name}} – 請求方法を変更できるのは所有者のみです",
+      "already_billed_by_marketplace": "{{name}} – すでにマーケットプレイス経由で請求されています",
+      "bought_from_reseller": "{{name}} – リセラー経由で請求されています"
+    },
+    "nothingToChoose": "この購入を適用できるプロジェクトがなく、このサーバーでプロジェクトを作成することもできません。この購入で料金を支払うプロジェクトの所有者に、設定を依頼してください。",
+    "billingNote": "プランと使用量は、oneuptime.com/pricing に記載の価格で {{marketplace}} を通じて請求されます。プランは「プロジェクト設定 → 請求」でいつでも変更できます。",
+    "submitButton": "購入を設定",
+    "notNowButton": "今はしない",
+    "redirecting": "購入の設定が完了しました。プロジェクトに移動しています…",
+    "alreadySetUp": "この {{marketplace}} での購入は、すでにいずれかのプロジェクトに設定されています。",
+    "openProject": "プロジェクトを開く",
+    "cancelled": "この購入は {{marketplace}} でキャンセルされました。続行するには、{{marketplace}} で OneUptime をもう一度購入してください。",
+    "errorTitle": "この購入を設定できませんでした",
+    "errorHelp": "OneUptime を購入したマーケットプレイスから、もう一度開いてください。",
+    "goToDashboard": "ダッシュボードへ移動"
   },
   "Use at least {{minimum}} characters.": "{{minimum}}文字以上で入力してください。",
   "Try a few unrelated words.": "関連のない単語をいくつか組み合わせてみてください。",

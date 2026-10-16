@@ -1,4 +1,5 @@
-import { IsBillingEnabled } from "../EnvironmentConfig";
+import { IsBillingEnabled, getAllEnvVars } from "../EnvironmentConfig";
+import SubscriptionPlan from "../../Types/Billing/SubscriptionPlan";
 import MasterAdminAuthorization from "../Middleware/MasterAdminAuthorization";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import ProjectService, {
@@ -112,6 +113,7 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
             id: projectId,
             select: {
               paymentProviderCustomerId: true,
+              billingMarketplace: true,
             },
             props: {
               isRoot: true,
@@ -122,19 +124,39 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
             throw new BadDataException("Project not found");
           }
 
-          if (!project.paymentProviderCustomerId) {
-            throw new BadDataException("Payment Provider customer not found");
-          }
+          if (project.billingMarketplace) {
+            /*
+             * A cloud marketplace pays for this project, so no card is
+             * needed. A custom-priced plan (Enterprise) is agreed with
+             * OneUptime's sales team as a private offer on the marketplace,
+             * and set by OneUptime once it is - never picked here.
+             */
+            if (
+              SubscriptionPlan.isCustomPricingPlan(
+                paymentProviderPlanId,
+                getAllEnvVars(),
+              ) &&
+              !(req as OneUptimeRequest).userAuthorization?.isMasterAdmin
+            ) {
+              throw new BadDataException(
+                "This plan is arranged with OneUptime's sales team. Please contact sales to move to it.",
+              );
+            }
+          } else {
+            if (!project.paymentProviderCustomerId) {
+              throw new BadDataException("Payment Provider customer not found");
+            }
 
-          const hasPaymentMethods: boolean =
-            await BillingService.hasPaymentMethods(
-              project.paymentProviderCustomerId,
-            );
+            const hasPaymentMethods: boolean =
+              await BillingService.hasPaymentMethods(
+                project.paymentProviderCustomerId,
+              );
 
-          if (!hasPaymentMethods) {
-            throw new BadDataException(
-              Errors.BillingService.NO_PAYMENTS_METHODS,
-            );
+            if (!hasPaymentMethods) {
+              throw new BadDataException(
+                Errors.BillingService.NO_PAYMENTS_METHODS,
+              );
+            }
           }
 
           const hasBillingPermission: boolean = CallerPermission.holdsAnyOf(
@@ -545,6 +567,8 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
             trialEndsAt: true,
             paymentProviderPlanId: true,
             resellerId: true,
+            // A marketplace-billed project has no card to ask for (Header).
+            billingMarketplace: true,
             isFeatureFlagMonitorGroupsEnabled: true,
             paymentProviderMeteredSubscriptionStatus: true,
             paymentProviderSubscriptionStatus: true,

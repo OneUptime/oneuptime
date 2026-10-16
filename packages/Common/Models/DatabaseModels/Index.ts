@@ -525,6 +525,9 @@ import ProjectSCIM from "./ProjectSCIM";
 import ProjectSCIMLog from "./ProjectSCIMLog";
 import StatusPageSCIMLog from "./StatusPageSCIMLog";
 import DeletedProject from "./DeletedProject";
+import MarketplaceSubscription from "./MarketplaceSubscription";
+import MarketplaceUsageReport from "./MarketplaceUsageReport";
+import MarketplaceCharge from "./MarketplaceCharge";
 import UserNotificationEmailRollupItem from "./UserNotificationEmailRollupItem";
 import UserNotificationEmailRollupBatch from "./UserNotificationEmailRollupBatch";
 import UserNotificationEmailRollupSetting from "./UserNotificationEmailRollupSetting";
@@ -1076,6 +1079,9 @@ const AllModelTypes: Array<{
   RumSessionErasureRequest,
   RumSessionPin,
   DeletedProject,
+  MarketplaceSubscription,
+  MarketplaceUsageReport,
+  MarketplaceCharge,
   UserNotificationEmailRollupItem,
   UserNotificationEmailRollupBatch,
   UserNotificationEmailRollupSetting,
