@@ -472,6 +472,35 @@ describe("a link into the same app stays in the tab", () => {
   });
 });
 
+/*
+ * An address pasted into a note is one long word, and on a phone it ran out
+ * past the note's edge, cut off. A link may break anywhere when its line has
+ * no room left (the Notes page's E2E measures it on a phone).
+ */
+describe("a long address wraps inside the text it is in", () => {
+  const LONG_ADDRESS: string =
+    "https://grafana.acme.example/d/checkout-api-latency-overview/checkout-api-latency?orgId=1&from=now-6h&to=now&var-region=eu-west-1";
+
+  test("a link that opens a new tab and one that stays alike", () => {
+    showMarkdown(
+      root(
+        paragraph(link(LONG_ADDRESS, LONG_ADDRESS)),
+        paragraph(link(`/dashboard/${PROJECT_ID}/monitors`, "Monitors")),
+      ),
+    );
+
+    expectOpensInNewTab(linkNamed(LONG_ADDRESS));
+    expectStaysInTab(linkNamed("Monitors"));
+
+    for (const name of [LONG_ADDRESS, "Monitors"]) {
+      expect(linkNamed(name)).toHaveClass("[overflow-wrap:anywhere]");
+    }
+    expect(MARKDOWN_LINK_CLASS_NAME.split(" ")).toContain(
+      "[overflow-wrap:anywhere]",
+    );
+  });
+});
+
 describe("an attachment opens in a new tab", () => {
   test("on the Dashboard, a plain click refreshes the session, then points the tab at the file", async () => {
     const tab: {

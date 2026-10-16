@@ -19,8 +19,14 @@ import useTranslator from "../../Utils/UseTranslator";
  * that reached this component would be dropped all the same.
  */
 
+/*
+ * [overflow-wrap:anywhere]: an address pasted into a note is one long word
+ * ("https://grafana.example/d/checkout-api-latency?..."), and on a phone it
+ * ran out past the note's edge, cut off. It wraps inside the note instead,
+ * in a table cell too, as the product's Alert wraps its message.
+ */
 export const MARKDOWN_LINK_CLASS_NAME: string =
-  "underline text-blue-600 hover:text-blue-800 font-medium transition-colors";
+  "underline text-blue-600 hover:text-blue-800 font-medium transition-colors [overflow-wrap:anywhere]";
 
 // What a link that opens a tab of its own tells a screen reader.
 export const NEW_TAB_DESCRIPTION: string = translationKey("Opens in a new tab");
