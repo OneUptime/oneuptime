@@ -57,7 +57,9 @@ import {
   wasTestSentAsCriticalAlert,
 } from "./PushDeviceCriticalAlerts";
 import PushDeviceCriticalAlertStatus from "./PushDeviceCriticalAlertStatus";
-import PushDeviceCriticalAlertSteps from "./PushDeviceCriticalAlertSteps";
+import PushDeviceCriticalAlertSteps, {
+  CriticalAlertTestDidNotRingHint,
+} from "./PushDeviceCriticalAlertSteps";
 
 interface RegisteredBrowser {
   deviceId: string;
@@ -102,6 +104,12 @@ interface TestNotificationResult {
  * show notifications. For a test from the list, isCriticalAlertEnabled is
  * what the server said it sent (wasTestSentAsCriticalAlert), not what the
  * list showed.
+ *
+ * An ordinary test says why: critical alerts are off on that phone. The
+ * list may have said On a moment ago - the phone's app turned them off
+ * since, and the row catches up behind the dialog - and "it follows the
+ * phone's sound settings" alone left the person to work out that the
+ * Dashboard now knows.
  */
 export function getTestNotificationSentDescription(
   translator: Translator,
@@ -122,8 +130,24 @@ export function getTestNotificationSentDescription(
   }
 
   return translator.translateTemplate(
-    "Sent to {{deviceName}}. It follows the phone's sound settings, so a phone on silent or in Do Not Disturb stays quiet. Turn on critical alerts to have on-call pages ring through.",
+    "Sent to {{deviceName}}. Critical alerts are off on that phone, so it stays quiet on silent or in Do Not Disturb. Turn them on to have on-call pages ring through.",
     { deviceName: device.deviceName },
+  );
+}
+
+/*
+ * Whether the dialog that says a test went out also says what to do when it
+ * did not ring through (CriticalAlertTestDidNotRingHint): only for a phone
+ * it went to as a critical alert - the one dialog that promises it rings
+ * through silent mode, which the phone's own settings can still have
+ * stopped without its app saying so.
+ */
+export function canOfferDidNotRingHintAfterTest(
+  device: ShownPushDevice,
+): boolean {
+  return (
+    device.platform !== PushDevicePlatform.Browser &&
+    device.isCriticalAlertEnabled
   );
 }
 
@@ -501,6 +525,11 @@ const Push: () => JSX.Element = (): ReactElement => {
     testedDevice && canOfferCriticalAlertStepsAfterTest(testedDevice),
   );
 
+  // Whether it also says what to do when a critical test did not ring through.
+  const canShowDidNotRingHint: boolean = Boolean(
+    testedDevice && canOfferDidNotRingHintAfterTest(testedDevice),
+  );
+
   return (
     <>
       <ModelTable<UserPush>
@@ -713,6 +742,10 @@ const Push: () => JSX.Element = (): ReactElement => {
            * do, as its app last reported it: the app reports it whenever
            * it is opened, and turns it off here when the phone's own
            * settings stop allowing critical alerts.
+           *
+           * The (i) says what it does and where it is set, in two sentences.
+           * That a browser cannot have it is said by the browser's own cell
+           * ("Not available in browsers"), so the (i) does not say it again.
            */
           {
             field: {
@@ -720,7 +753,7 @@ const Push: () => JSX.Element = (): ReactElement => {
             },
             title: "Critical Alerts",
             headerTooltip:
-              "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Set in the OneUptime On-Call mobile app, which updates it here each time it's opened. Browsers can't override a device's ringer.",
+              "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Set in the OneUptime On-Call mobile app, which updates it here each time it's opened.",
             type: FieldType.Element,
             wrapContent: true,
             wrapMaxWidthClassName: "max-w-xs",
@@ -828,7 +861,9 @@ const Push: () => JSX.Element = (): ReactElement => {
       {/*
        * A phone with critical alerts off is told to turn them on, so the
        * dialog leads there - to that phone's steps - rather than leaving the
-       * advice with nowhere to go. Any other device's dialog only closes.
+       * advice with nowhere to go. A phone sent a critical test is told where
+       * to look if it did not ring through. Any other device's dialog only
+       * closes.
        */}
       {testedDevice ? (
         <ConfirmModal
@@ -858,7 +893,11 @@ const Push: () => JSX.Element = (): ReactElement => {
               setStepsDevice(testedDevice);
             }
           }}
-        />
+        >
+          {canShowDidNotRingHint ? (
+            <CriticalAlertTestDidNotRingHint />
+          ) : undefined}
+        </ConfirmModal>
       ) : (
         <></>
       )}

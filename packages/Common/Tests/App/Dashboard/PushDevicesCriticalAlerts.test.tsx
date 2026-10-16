@@ -727,9 +727,42 @@ describe("How to turn on: the steps on that phone, as its app asks", () => {
         },
       ),
     ).toEqual([
-      "Tapped Don't Allow? Turn on Critical Alerts in iOS Settings > Notifications > OneUptime On-Call, then turn on Critical On-Call Alerts in the app again.",
-      "iOS didn't ask? Update OneUptime On-Call from the App Store: versions before 1.5.0 cannot receive critical alerts.",
+      "Tapped Don't Allow, or iOS didn't ask? Turn on Critical Alerts in iOS Settings > Notifications > OneUptime On-Call, then turn on Critical On-Call Alerts in the app again.",
+      "No Critical Alerts switch there? Update OneUptime On-Call from the App Store: versions before 1.5.0 cannot receive critical alerts.",
     ]);
+  });
+
+  /*
+   * A phone whose critical alerts were turned off in iOS Settings reads Off
+   * now that its app reports it, and its "How to turn on" leads here. iOS
+   * does not ask such a phone again, so "iOS didn't ask?" must not lead
+   * straight to an App Store update: it is fixed in iOS Settings, and only
+   * a missing switch there means an app too old for critical alerts.
+   */
+  test("an iPhone whose critical alerts were turned off in iOS Settings is sent to iOS Settings, not to the App Store", async () => {
+    render(<PushMethods />);
+
+    const modal: HTMLElement = await openStepsFor("iPhone 15 Pro");
+
+    const fixes: Array<string> = Array.from(
+      within(modal)
+        .getByTestId("critical-alert-steps-troubleshooting")
+        .querySelectorAll("li"),
+    ).map((item: Element): string => {
+      return item.textContent || "";
+    });
+
+    // The first fix covers iOS not asking, and sends the person to iOS Settings.
+    expect(fixes[0]).toContain("iOS didn't ask?");
+    expect(fixes[0]).toContain("Turn on Critical Alerts in iOS Settings");
+    // The update is only for an app iOS Settings has no switch for.
+    expect(fixes[1]!.startsWith("No Critical Alerts switch there?")).toBe(true);
+    expect(fixes[1]).toContain("Update OneUptime On-Call from the App Store");
+    expect(
+      fixes.filter((fix: string): boolean => {
+        return fix.startsWith("iOS didn't ask?");
+      }),
+    ).toEqual([]);
   });
 
   test("an Android phone: Android opens Do Not Disturb access, and the switch is turned on again after", async () => {
@@ -1124,6 +1157,15 @@ describe("a test notification says what it did on that device", () => {
     return await screen.findByTestId("confirm-modal-description");
   }
 
+  // The dialog's buttons, as its footer draws them, left to right.
+  function footerButtons(): Array<string> {
+    return Array.from(
+      within(screen.getByTestId("modal-footer")).getAllByRole("button"),
+    ).map((button: HTMLElement): string => {
+      return button.textContent || "";
+    });
+  }
+
   test("a phone with critical alerts on: sent as a critical alert, which rings through silence", async () => {
     render(<PushMethods />);
 
@@ -1137,22 +1179,93 @@ describe("a test notification says what it did on that device", () => {
     );
   });
 
-  test("a phone with them off: an ordinary push, which a silenced phone keeps quiet", async () => {
+  /*
+   * The maintainer's report: the dialog said the test rang through silent
+   * mode, and the phone showed it quietly - its own settings had stopped
+   * critical alerts, and the app had not said so. The server can only go by
+   * what the app last reported, so the critical dialog also says where to
+   * look when it did not ring through, and no longer ends there.
+   */
+  test("a phone sent a critical test is also told where to look if it did not ring through", async () => {
+    render(<PushMethods />);
+
+    await sendTestTo("Pixel 10");
+
+    const hint: HTMLElement = within(dialog()).getByTestId(
+      "test-notification-did-not-ring",
+    );
+
+    expect(hint).toHaveTextContent(
+      "Didn't ring through? Open OneUptime On-Call on the phone, tap Settings and check that Critical On-Call Alerts is on.",
+    );
+    // The app's own labels, in bold, as the steps draw them.
+    expect(boldLabelsOf(hint)).toEqual([
+      "OneUptime On-Call",
+      "Settings",
+      "Critical On-Call Alerts",
+    ]);
+    // Under the sentence that says what the test did, not part of it.
+    expect(
+      screen.getByTestId("confirm-modal-description"),
+    ).not.toContainElement(hint);
+    expect(
+      screen
+        .getByTestId("confirm-modal-description")
+        .compareDocumentPosition(hint) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("the line is an aside: nothing in it is a control, and the critical dialog still only closes", async () => {
+    render(<PushMethods />);
+
+    await sendTestTo("Pixel 10");
+
+    const hint: HTMLElement = within(dialog()).getByTestId(
+      "test-notification-did-not-ring",
+    );
+
+    expect(within(hint).queryAllByRole("button")).toHaveLength(0);
+    expect(within(hint).queryAllByRole("link")).toHaveLength(0);
+    expect(footerButtons()).toEqual(["Close"]);
+
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("modal")).toBeNull();
+    });
+    // Only the test itself was sent.
+    expect(postMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("a phone with them off: an ordinary push, because critical alerts are off on that phone", async () => {
     render(<PushMethods />);
 
     expect(await sendTestTo("iPhone 15 Pro")).toHaveTextContent(
-      "Sent to iPhone 15 Pro. It follows the phone's sound settings, so a phone on silent or in Do Not Disturb stays quiet. Turn on critical alerts to have on-call pages ring through.",
+      "Sent to iPhone 15 Pro. Critical alerts are off on that phone, so it stays quiet on silent or in Do Not Disturb. Turn them on to have on-call pages ring through.",
     );
   });
 
-  // The dialog's buttons, as its footer draws them, left to right.
-  function footerButtons(): Array<string> {
-    return Array.from(
-      within(screen.getByTestId("modal-footer")).getAllByRole("button"),
-    ).map((button: HTMLElement): string => {
-      return button.textContent || "";
+  test("an ordinary test and a browser's have no did-not-ring line: one leads to How to turn on, the other cannot ring through at all", async () => {
+    render(<PushMethods />);
+
+    await sendTestTo("iPhone 15 Pro");
+
+    expect(
+      within(dialog()).queryByTestId("test-notification-did-not-ring"),
+    ).toBeNull();
+
+    fireEvent.click(screen.getByTestId("modal-footer-close-button"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("modal")).toBeNull();
     });
-  }
+
+    await sendTestTo("Chrome on macOS");
+
+    expect(
+      within(dialog()).queryByTestId("test-notification-did-not-ring"),
+    ).toBeNull();
+  });
 
   test("a phone with them off: the dialog that says to turn them on leads to how, for that phone", async () => {
     render(<PushMethods />);
@@ -1375,11 +1488,18 @@ describe("a test notification says what the server sent, not what the list showe
 
     const description: HTMLElement = await sendTestTo("Pixel 10");
 
+    /*
+     * It says why - critical alerts are off on that phone - so a list that
+     * said On a moment ago is not left unexplained.
+     */
     expect(description).toHaveTextContent(
-      "Sent to Pixel 10. It follows the phone's sound settings, so a phone on silent or in Do Not Disturb stays quiet. Turn on critical alerts to have on-call pages ring through.",
+      "Sent to Pixel 10. Critical alerts are off on that phone, so it stays quiet on silent or in Do Not Disturb. Turn them on to have on-call pages ring through.",
     );
     expect(description).not.toHaveTextContent("as a critical alert");
     expect(footerButtons()).toEqual(["Close", "How to turn on"]);
+    expect(
+      within(dialog()).queryByTestId("test-notification-did-not-ring"),
+    ).toBeNull();
 
     // The list is read again, and the row says Off like the dialog.
     await waitFor(() => {
@@ -1417,6 +1537,11 @@ describe("a test notification says what the server sent, not what the list showe
 
     expect(await sendTestTo("iPhone 15 Pro")).toHaveTextContent(
       "Sent to iPhone 15 Pro as a critical alert: it rings even when the phone is on silent or in Do Not Disturb, as an on-call page would.",
+    );
+    expect(
+      within(dialog()).getByTestId("test-notification-did-not-ring"),
+    ).toHaveTextContent(
+      "Didn't ring through? Open OneUptime On-Call on the phone, tap Settings and check that Critical On-Call Alerts is on.",
     );
     // Nothing to turn on: the dialog only closes.
     expect(footerButtons()).toEqual(["Close"]);
@@ -1471,7 +1596,7 @@ describe("a test notification says what the server sent, not what the list showe
     });
 
     expect(await sendTestTo("iPhone 15 Pro")).toHaveTextContent(
-      "Sent to iPhone 15 Pro. It follows the phone's sound settings",
+      "Sent to iPhone 15 Pro. Critical alerts are off on that phone",
     );
   });
 
@@ -1494,7 +1619,7 @@ describe("a test notification says what the server sent, not what the list showe
     expect(deviceListReads().length).toBe(readsBefore);
   });
 
-  test("the column's (i) says the app keeps it up to date", async () => {
+  test("the column's (i) says what it does and that the app keeps it up to date, in two sentences", async () => {
     devices = [PIXEL_ON()];
 
     render(<PushMethods />);
@@ -1511,8 +1636,13 @@ describe("a test notification says what the server sent, not what the list showe
 
     expect(
       await screen.findByText(
-        "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Set in the OneUptime On-Call mobile app, which updates it here each time it's opened. Browsers can't override a device's ringer.",
+        "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Set in the OneUptime On-Call mobile app, which updates it here each time it's opened.",
       ),
     ).toBeInTheDocument();
+    /*
+     * That a browser cannot have them is its own cell's to say ("Not
+     * available in browsers"); the (i) no longer says it again.
+     */
+    expect(screen.queryByText(/Browsers can't override/)).toBeNull();
   });
 });

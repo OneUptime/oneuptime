@@ -87,9 +87,10 @@ OneUptime On-Call app sets, drawn as a status and never as a control:
 - a browser alone is offered the mobile app, with both stores, and the steps
   name the address the app connects to (this server's); an empty list offers
   this browser and the app;
-- a test to a phone with critical alerts on says it went as a critical alert;
-  one to a phone with them off offers "How to turn on", which opens that
-  phone's steps;
+- a test to a phone with critical alerts on says it went as a critical alert,
+  and, under that, where to look on the phone if it did not ring through
+  (also in German at 390px); one to a phone with them off says they are off
+  on that phone and offers "How to turn on", which opens that phone's steps;
 - the dialog says what the server answered the test went as (its
   `isCriticalAlert`), not what the list showed: a phone whose app turned
   critical alerts off after the list was read gets the ordinary-push words,

@@ -5,6 +5,7 @@ import {
   CRITICAL_ALERT_HOW_TO_HEAR_IT,
   CRITICAL_ALERT_ONCE_ON,
   CRITICAL_ALERT_STEPS,
+  CRITICAL_ALERT_TEST_DID_NOT_RING,
   CRITICAL_ALERT_TROUBLESHOOTING,
   MOBILE_APP_LABELS,
   PushDevicePlatform,
@@ -335,8 +336,8 @@ describe("the steps follow what the app does on each platform", () => {
     expect(
       CRITICAL_ALERT_TROUBLESHOOTING[PushDevicePlatform.IOS].map(filled),
     ).toEqual([
-      "Tapped Don't Allow? Turn on Critical Alerts in iOS Settings > Notifications > OneUptime On-Call, then turn on Critical On-Call Alerts in the app again.",
-      "iOS didn't ask? Update OneUptime On-Call from the App Store: versions before 1.5.0 cannot receive critical alerts.",
+      "Tapped Don't Allow, or iOS didn't ask? Turn on Critical Alerts in iOS Settings > Notifications > OneUptime On-Call, then turn on Critical On-Call Alerts in the app again.",
+      "No Critical Alerts switch there? Update OneUptime On-Call from the App Store: versions before 1.5.0 cannot receive critical alerts.",
     ]);
     expect(
       CRITICAL_ALERT_TROUBLESHOOTING[PushDevicePlatform.Android].map(filled),
@@ -346,6 +347,46 @@ describe("the steps follow what the app does on each platform", () => {
     expect(CRITICAL_ALERT_TROUBLESHOOTING[PushDevicePlatform.Browser]).toEqual(
       [],
     );
+  });
+
+  /*
+   * A critical test that did not ring through - the maintainer's report:
+   * the phone's own settings had stopped critical alerts, and the server
+   * still said On. The dialog sends the person to the app's switch. That is
+   * the right place only while the switch shows what the phone will really
+   * do (the OS's answer, not just the saved choice), turning it on says what
+   * the phone still needs, and opening the app tells the server again.
+   */
+  test("a critical test that did not ring through sends the person to the switch, which reads the phone's own settings", () => {
+    expect(filled(CRITICAL_ALERT_TEST_DID_NOT_RING)).toBe(
+      "Didn't ring through? Open OneUptime On-Call on the phone, tap Settings and check that Critical On-Call Alerts is on.",
+    );
+
+    // The switch is the saved choice AND what the OS allows now.
+    expect(compact(USE_CRITICAL_ALERTS)).toContain(
+      compact("setIsEnabled(reading.isEffective);"),
+    );
+
+    // Turned on while the OS refuses, it says what the OS needs.
+    const setEnabled: string = USE_CRITICAL_ALERTS.slice(
+      USE_CRITICAL_ALERTS.indexOf("const setEnabled:"),
+    );
+    const refused: number = setEnabled.indexOf(
+      "status.availability !== CriticalAlertAvailability.Granted",
+    );
+
+    expect(refused).toBeGreaterThan(-1);
+    expect(setEnabled.indexOf("setError(status.reason);")).toBeGreaterThan(
+      refused,
+    );
+
+    // ...and every look at the OS tells the server, so the list catches up.
+    const syncStatus: string = USE_CRITICAL_ALERTS.slice(
+      USE_CRITICAL_ALERTS.indexOf("const syncStatus:"),
+      USE_CRITICAL_ALERTS.indexOf("const refresh:"),
+    );
+
+    expect(syncStatus).toContain("void reportCriticalAlerts();");
   });
 
   test("the version the card names is the first App Store build with Apple's entitlement, and the app is past it", () => {
