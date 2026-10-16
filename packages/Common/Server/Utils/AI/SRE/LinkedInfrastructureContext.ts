@@ -552,7 +552,12 @@ export default class LinkedInfrastructureContext {
     };
   }
 
-  // The activity line in English.
+  /*
+   * The activity line in English, worded as the AI Investigation card draws
+   * it (ChatActivityFeed.describeLinkedInfrastructure): the card words it
+   * from the data in the reader's language; this is what an API reader of
+   * the run's events gets.
+   */
   public static describeActivity(
     activity: LinkedInfrastructureActivity,
   ): string {
@@ -566,15 +571,24 @@ export default class LinkedInfrastructureContext {
         return resource.name ? `${noun} ${resource.name}` : noun;
       });
     const more: number = activity.resources.length - names.length;
+    // "a", "a and b", "a, b and c", "a, b, c and 2 more".
     const resources: string =
-      more > 0 ? `${names.join(", ")} and ${more} more` : names.join(", ");
+      more > 0
+        ? `${names.join(", ")} and ${more} more`
+        : names.length > 1
+          ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`
+          : names.join("");
 
     if (activity.alertCount === 0) {
       return `No open or recent alerts on ${resources}`;
     }
 
-    return `Read ${activity.alertCount}${activity.hasMoreAlerts ? "+" : ""} open or recent alert${
-      activity.alertCount === 1 && !activity.hasMoreAlerts ? "" : "s"
+    if (activity.hasMoreAlerts) {
+      return `Read the ${activity.alertCount} newest open or recent alerts on ${resources}`;
+    }
+
+    return `Read ${activity.alertCount} open or recent alert${
+      activity.alertCount === 1 ? "" : "s"
     } on ${resources}`;
   }
 

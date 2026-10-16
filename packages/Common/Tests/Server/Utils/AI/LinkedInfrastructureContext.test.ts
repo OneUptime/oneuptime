@@ -634,7 +634,7 @@ describe("what people see in the run's activity", () => {
       lookbackMinutes: 30,
     });
     expect(note!.message).toBe(
-      "Read 2 open or recent alerts on Host web-1, Docker host web-1",
+      "Read 2 open or recent alerts on Host web-1 and Docker host web-1",
     );
     expect(note!.severity).toBe("Info");
   });
@@ -660,7 +660,7 @@ describe("what people see in the run's activity", () => {
         alertCount: 10,
         hasMoreAlerts: true,
       }),
-    ).toBe("Read 10+ open or recent alerts on Host web-1");
+    ).toBe("Read the 10 newest open or recent alerts on Host web-1");
     expect(
       LinkedInfrastructureContext.describeActivity({
         ...base,
@@ -674,6 +674,18 @@ describe("what people see in the run's activity", () => {
       }),
     ).toBe(
       "No open or recent alerts on Host a, Host b, Kubernetes cluster prod and 2 more",
+    );
+    expect(
+      LinkedInfrastructureContext.describeActivity({
+        ...base,
+        resources: [
+          { kind: "Host", name: "a" },
+          { kind: "DockerHost", name: "b" },
+          { kind: "KubernetesCluster", name: "c" },
+        ],
+      }),
+    ).toBe(
+      "No open or recent alerts on Host a, Docker host b and Kubernetes cluster c",
     );
   });
 });
