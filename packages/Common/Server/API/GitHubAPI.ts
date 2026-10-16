@@ -18,6 +18,7 @@ import {
 } from "../EnvironmentConfig";
 import ObjectID from "../../Types/ObjectID";
 import GitHubUtil from "../Utils/CodeRepository/GitHub/GitHub";
+import GitHubConversation from "../Utils/CodeRepository/GitHub/GitHubConversation";
 import GitHubWebhookHandler, {
   GitHubWebhookHandlingResult,
 } from "../Utils/CodeRepository/GitHub/GitHubWebhookHandler";
@@ -110,7 +111,7 @@ export default class GitHubAPI {
         });
 
       logger.info(
-        `GitHub webhook: imported ${importResult.imported} repositories (${importResult.skipped} skipped) into project ${projectId.toString()} for installation ${installationId}`,
+        `GitHub webhook: imported ${importResult.imported} repositories (${importResult.reconnected} reconnected, ${importResult.skipped} skipped) into project ${projectId.toString()} for installation ${installationId}`,
       );
     }
   }
@@ -320,7 +321,7 @@ export default class GitHubAPI {
               });
 
             logger.info(
-              `GitHub App installation ${installationId}: imported ${importResult.imported} repositories (${importResult.skipped} skipped) into project ${projectId.toString()}`,
+              `GitHub App installation ${installationId}: imported ${importResult.imported} repositories (${importResult.reconnected} reconnected, ${importResult.skipped} skipped) into project ${projectId.toString()}`,
               getLogAttributesFromRequest(req as OneUptimeRequest),
             );
           } catch (importError) {
@@ -363,6 +364,16 @@ export default class GitHubAPI {
           const caller: GitHubConnectCaller =
             await GitHubConnectAccess.assertMayStart(req);
 
+          /*
+           * GitHub addresses an app by its slug, not its display name: an app
+           * named "OneUptime Test" lives at /apps/oneuptime-test, and
+           * /apps/OneUptime%20Test is a 404. GITHUB_APP_NAME holds the display
+           * name, so the slug is read from GitHub (cached), with the name
+           * slugified the way GitHub does it when GitHub cannot be asked.
+           */
+          const appSlug: string =
+            (await GitHubConversation.getAppSlug()) || GitHubAppName;
+
           const { state } = await WorkspaceOAuthState.create({
             req,
             res,
@@ -373,7 +384,7 @@ export default class GitHubAPI {
 
           const callbackUrl: string = `${HomeClientUrl.toString()}api/github/auth/callback`;
           const installUrl: string = `https://github.com/apps/${encodeURIComponent(
-            GitHubAppName,
+            appSlug,
           )}/installations/new?state=${encodeURIComponent(
             state,
           )}&redirect_uri=${encodeURIComponent(callbackUrl)}`;
