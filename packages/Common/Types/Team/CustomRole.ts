@@ -250,13 +250,19 @@ export const getCustomRoleGrantRefusedMessage: (data: {
  * its own: it is the role's.
  */
 export const getRoleCopyChangeRefusedMessage: (data: {
-  roleName: string;
+  roleName?: string | undefined;
   permission: Permission | string;
 }) => string = (data: {
-  roleName: string;
+  roleName?: string | undefined;
   permission: Permission | string;
 }): string => {
-  return `${getPermissionTitleForSentence(data.permission)} comes with the custom role ${data.roleName}. Change the role, or take the role away from the team.`;
+  const title: string = getPermissionTitleForSentence(data.permission);
+
+  if (!data.roleName) {
+    return `${title} comes with a custom role. Change the role, or take the role away from the team.`;
+  }
+
+  return `${title} comes with the custom role ${data.roleName}. Change the role, or take the role away from the team.`;
 };
 
 export const TEAM_NOT_EDITABLE_FOR_ROLES_MESSAGE: string =

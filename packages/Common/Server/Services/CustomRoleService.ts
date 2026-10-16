@@ -132,6 +132,17 @@ export class Service extends DatabaseService<Model> {
     return { createBy, carryForward: null };
   }
 
+  /*
+   * A new role holds no permission yet: its count is OneUptime's to keep
+   * (CustomRolePermissionService), whatever a create sends.
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    onCreate.createBy.data.permissionCount = 0;
+  }
+
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,

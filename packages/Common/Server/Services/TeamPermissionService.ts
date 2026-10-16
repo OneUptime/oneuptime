@@ -137,7 +137,7 @@ export class Service extends ProjectReferencesService<Model> {
     if (copy) {
       throw new BadDataException(
         getRoleCopyChangeRefusedMessage({
-          roleName: copy.customRole?.name || "it",
+          roleName: copy.customRole?.name,
           permission: copy.permission!,
         }),
       );
