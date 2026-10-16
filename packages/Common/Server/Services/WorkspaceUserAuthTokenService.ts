@@ -4,8 +4,10 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import DatabaseService from "./DatabaseService";
 import UserSlackService from "./UserSlackService";
 import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
+import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnDelete } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import Model, {
   SlackMiscData,
 } from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
@@ -13,6 +15,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger from "../Utils/Logger";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 
 // What removeLinksNotMadeBySignIn removed.
 export interface LinksNotMadeBySignInCleanupResult {
@@ -30,8 +33,41 @@ export class Service extends DatabaseService<Model> {
   // How many links removeLinksNotMadeBySignIn reads at a time.
   public static readonly CLEANUP_BATCH_SIZE: number = 100;
 
+  // What a write of a link by anybody but the sign-ins is refused with.
+  public static readonly WRITTEN_BY_SIGN_IN_ONLY_MESSAGE: string =
+    "A Slack or Microsoft Teams account is connected only by signing in to it, under User Settings > Workspace.";
+
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * Only the sign-ins write a link - as OneUptime (refreshAuthToken), once
+   * the chat has said which account signed in. The model's permissions keep
+   * out every caller of the API; this keeps out whoever they do not hold to
+   * (a server admin), and any later code that would write one as a person.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    if (!createBy.props.isRoot) {
+      throw new NotAuthorizedException(Service.WRITTEN_BY_SIGN_IN_ONLY_MESSAGE);
+    }
+
+    return { createBy, carryForward: null };
+  }
+
+  // Nor does anybody but a sign-in point a link at another account.
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    if (!updateBy.props.isRoot) {
+      throw new NotAuthorizedException(Service.WRITTEN_BY_SIGN_IN_ONLY_MESSAGE);
+    }
+
+    return { updateBy, carryForward: null };
   }
 
   /*

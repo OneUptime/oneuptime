@@ -552,6 +552,73 @@ describe("nobody connects a Slack or Microsoft Teams account through the API", (
   );
 });
 
+describe("a server admin, whom the API's permissions do not hold, cannot write one either", () => {
+  function serverAdmin(): DatabaseCommonInteractionProps {
+    return {
+      ...customDomainCaller({
+        permissions: [],
+        projectId: PROJECT_ID,
+        isMasterAdmin: true,
+      }),
+      userType: UserType.MasterAdmin,
+      ...ON_HIGHEST_PLAN,
+    };
+  }
+
+  test("a link to any account is refused, with how an account is connected", async () => {
+    props = serverAdmin();
+
+    const { error } = await callRoute("POST", LINKS_ROUTE, {
+      body: linkBody({
+        workspaceType: WorkspaceType.Slack,
+        workspaceUserId: COLLEAGUE_SLACK_ID,
+      }),
+    });
+
+    expect(error?.message).toBe(
+      WorkspaceUserAuthTokenServiceType.WRITTEN_BY_SIGN_IN_ONLY_MESSAGE,
+    );
+    expect(links.inserts).toHaveLength(0);
+    expect(rowsOf(links)).toHaveLength(2);
+  });
+
+  test("a member's link is not pointed at another account", async () => {
+    props = serverAdmin();
+
+    const { error } = await callRoute("PUT", LINK_ROUTE, {
+      params: { id: SIGNED_IN_SLACK_LINK_ID },
+      body: { data: { workspaceUserId: COLLEAGUE_SLACK_ID } },
+    });
+
+    expect(error?.message).toBe(
+      WorkspaceUserAuthTokenServiceType.WRITTEN_BY_SIGN_IN_ONLY_MESSAGE,
+    );
+    expect(links.updates).toHaveLength(0);
+    expect(links.get(SIGNED_IN_SLACK_LINK_ID)?.["workspaceUserId"]).toBe(
+      SIGNED_IN_SLACK_ID,
+    );
+  });
+
+  test("a write as a person from inside the server is refused the same way", async () => {
+    const link: WorkspaceUserAuthToken = new WorkspaceUserAuthToken();
+    link.projectId = PROJECT_ID;
+    link.workspaceType = WorkspaceType.Slack;
+    link.workspaceUserId = COLLEAGUE_SLACK_ID;
+    link.authToken = "";
+    link.miscData = { userId: COLLEAGUE_SLACK_ID };
+
+    await expect(
+      WorkspaceUserAuthTokenService.create({
+        data: link,
+        props: serverAdmin(),
+      }),
+    ).rejects.toThrow(
+      WorkspaceUserAuthTokenServiceType.WRITTEN_BY_SIGN_IN_ONLY_MESSAGE,
+    );
+    expect(links.inserts).toHaveLength(0);
+  });
+});
+
 describe("an account nobody signed in to is nobody's", () => {
   test("a Slack press from it does not act as whoever tried to connect it: it is asked to connect", async () => {
     props = caller([Permission.ProjectMember]);
