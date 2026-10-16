@@ -67,6 +67,17 @@ export interface ComponentProps {
   bodyClassName?: string | undefined;
   rightElement?: ReactElement | undefined;
   headerLayout?: CardHeaderLayout | undefined;
+  /*
+   * The card is as tall as the box it is in, and its body takes the height
+   * the header leaves - for cards that share a grid row, so the row ends on
+   * one line instead of leaving the page showing under the shorter card.
+   * The box gives the height: a grid cell is as tall as its row. The body
+   * is a column, so what is in it can grow into the room (flex-1) or sit in
+   * its middle. The card adds no gap under itself: the box's parent spaces
+   * its cards. A card drawn as a section of another card ignores it: the
+   * card it is in has the height.
+   */
+  fillHeight?: boolean | undefined;
 }
 
 /*
@@ -135,6 +146,20 @@ export const CARD_FRAME_CLASS_NAME: string =
 export const CARD_SECTION_CLASS_NAME: string = "border-t border-gray-200";
 
 export const CARD_PADDING_CLASS_NAME: string = "py-6 px-5 md:px-6";
+
+/*
+ * What fillHeight adds, exported so the tests read the same strings: the
+ * card and its frame take the box's height, the frame and the padding are
+ * columns, and the body grows into what the header leaves.
+ */
+export const CARD_FILL_HEIGHT_CLASS_NAME: string = "h-full";
+
+export const CARD_FILL_HEIGHT_FRAME_CLASS_NAME: string = "flex h-full flex-col";
+
+export const CARD_FILL_HEIGHT_CONTENT_CLASS_NAME: string =
+  "flex flex-1 flex-col";
+
+export const CARD_FILL_HEIGHT_BODY_CLASS_NAME: string = "flex flex-1 flex-col";
 
 /*
  * A section's title, a step below a card's: the sections are parts of one
@@ -293,12 +318,34 @@ const Card: FunctionComponent<ComponentProps> = (
     </div>
   );
 
+  /*
+   * Only a card with a frame of its own fills its box: a section's height
+   * is the card it is in. Without fillHeight every class below is exactly
+   * what it was, so no other card changes.
+   */
+  const fillsHeight: boolean = Boolean(props.fillHeight) && !isSection;
+  const bodyClassName: string = props.bodyClassName || "mt-4";
+
   const content: ReactElement = (
-    <div className={CARD_PADDING_CLASS_NAME}>
+    <div
+      className={
+        fillsHeight
+          ? `${CARD_PADDING_CLASS_NAME} ${CARD_FILL_HEIGHT_CONTENT_CLASS_NAME}`
+          : CARD_PADDING_CLASS_NAME
+      }
+    >
       {isStacked ? stackedHeader : defaultHeader}
 
       {props.children && (
-        <div className={props.bodyClassName || "mt-4"}>{props.children}</div>
+        <div
+          className={
+            fillsHeight
+              ? `${bodyClassName} ${CARD_FILL_HEIGHT_BODY_CLASS_NAME}`
+              : bodyClassName
+          }
+        >
+          {props.children}
+        </div>
       )}
     </div>
   );
@@ -315,10 +362,31 @@ const Card: FunctionComponent<ComponentProps> = (
     );
   }
 
+  /*
+   * A card that fills its box leaves no gap under it either: that would
+   * reach past the box's bottom, and its parent spaces its cards (a grid's
+   * or a column's gap).
+   */
+  const frameBoxClassName: string = fillsHeight
+    ? [props.className, CARD_FILL_HEIGHT_CLASS_NAME].filter(Boolean).join(" ")
+    : `mb-5 ${props.className || ""}`;
+
   return (
     <React.Fragment>
-      <div data-testid="card" className={`mb-5 ${props.className || ""}`}>
-        <div className={CARD_FRAME_CLASS_NAME}>{content}</div>
+      <div
+        data-testid="card"
+        data-fill-height={fillsHeight ? "true" : undefined}
+        className={frameBoxClassName}
+      >
+        <div
+          className={
+            fillsHeight
+              ? `${CARD_FRAME_CLASS_NAME} ${CARD_FILL_HEIGHT_FRAME_CLASS_NAME}`
+              : CARD_FRAME_CLASS_NAME
+          }
+        >
+          {content}
+        </div>
       </div>
     </React.Fragment>
   );

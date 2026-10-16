@@ -27,7 +27,7 @@ so ("Preview workspace · Synthetic data"). The clock is pinned: all dates are r
   Home never shows.
 - **SLOs**: Checkout availability and Search latency, burning in the busy scenario; API
   availability, always healthy; a disabled and an archived one, never counted as burning.
-- **Maintenance**: a window in progress, three coming up, and a completed one.
+- **Maintenance**: a window in progress, three coming up (none in `quiet`), and a completed one.
 - **Resources**: 2 status pages, 3 on-call policies, 8 services and 4 dashboards (each with an
   archived one that is not counted), no workflows, and 6 team members (1 in a new project).
 
@@ -44,7 +44,7 @@ command palette.
 
 | Parameter    | Values                                                                                                                                                                                                                                                                                      |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `?scenario=` | `busy` (default: 2 open incidents, 3 open alerts, 2 monitors not operational, 2 SLOs burning, 1 maintenance window in progress and 3 coming up), `healthy` (nothing open, 1 window coming up), `attention` (alerts, a degraded monitor and an SLO at risk, no incident), `maintenance` (only a window in progress), `new` (a project made a minute ago), `many` (busy with 9 open incidents) |
+| `?scenario=` | `busy` (default: 2 open incidents, 3 open alerts, 2 monitors not operational, 2 SLOs burning, 1 maintenance window in progress and 3 coming up), `healthy` (nothing open, 1 window coming up), `quiet` (healthy with nothing scheduled: the all-clear beside Your project alone), `attention` (alerts, a degraded monitor and an SLO at risk, no incident), `maintenance` (only a window in progress), `new` (a project made a minute ago), `many` (busy with 9 open incidents) |
 | `?role=`     | `owner` (default, ProjectOwner), `viewer` (may read, may create nothing)                                                                                                                                                                                                                    |
 | `?fail=`     | comma separated: `overview` (every Incident list fails, so Home's batch does), `overview-once` (only the first one does), `resources` (every Status Page count fails), `upcoming` (the upcoming maintenance list fails)                                                                    |
 | `?lang=`     | `de` reads the German locale file                                                                                                                                                                                                                                                           |
@@ -69,13 +69,21 @@ command palette.
   needs attention ("4 issues need attention"), maintenance in progress, a new project (the
   checklist under the headline, every resource to set up, no maintenance card) and more open
   incidents than a group shows ("View all 9").
-- **Failures and Refresh**: the batch failing shows the card's error and never a strip of zeros;
-  Try again recovering; a resource count the role may not read losing only its row; the upcoming
+- **Failures and Refresh**: the batch failing shows the card's error and never a strip of zeros,
+  and the list says it could not be loaded and points at Try again; Try again recovering; a resource count the role may not read losing only its row; the upcoming
   list failing leaving out its card; Refresh reading again without blanking the page.
 - **The requests**: one list per open kind, five rows each, the upcoming card's three, soonest
   first, and the two set-up totals.
 - **Screens and themes**: 390px (one column, nothing wider than the screen), 768px (the numbers
   two to a row) and the dark theme (every card on a dark surface).
+- **The row under the health card**: at 1440px and 1280px, in every scenario (quiet, healthy,
+  maintenance, attention, busy, many, many with nothing coming up, new, the batch failing, German
+  and dark), Needs attention and the side column's last card end on one line, with Explore 20px
+  under it; all clear, a new project's "Problems will show up here" and a failed list sit in the
+  middle of their card; a short list keeps its rows at the top; at 1440px and 1920px the dividers
+  under Needs attention's and Your project's headers run on one line; with the open work the taller side,
+  Upcoming maintenance runs down to its end while Your project keeps its rows' height; below xl
+  (1024px, 768px, 390px) the cards stack, each as tall as what it holds.
 
 `afterEach` fails a test on an uncaught page error, on any request the fixture does not model,
 and on any request the network fence had to abort.

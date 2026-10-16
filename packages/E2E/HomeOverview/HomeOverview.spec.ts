@@ -672,7 +672,18 @@ test.describe("failures and Refresh", () => {
       "Incidents could not be read. The API is restarting.",
     );
     await expect(page.getByTestId("home-overview-stats")).toHaveCount(0);
-    await expect(page.getByTestId("home-attention-unavailable")).toBeVisible();
+
+    // The list says it failed, and points at the button the card above has.
+    const unavailable: Locator = page.getByTestId("home-attention-unavailable");
+    await expect(unavailable).toBeVisible();
+    await expect(
+      unavailable.getByTestId("home-attention-unavailable-state-title"),
+    ).toHaveText("Couldn't load this list");
+    await expect(
+      unavailable.getByTestId("home-attention-unavailable-state-description"),
+    ).toHaveText("Use Try again above to load it.");
+    await expect(page.getByTestId("home-health-try-again")).toBeVisible();
+    await expect(page.getByTestId("home-health-refresh")).toHaveCount(0);
   });
 
   test("Try again loads it once the API answers", async ({
@@ -998,5 +1009,422 @@ test.describe("screens and themes", () => {
     }
 
     await screenshot(page, "home-dark");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The row under the health card
+ * ---------------------------------------------------------------------------
+ *
+ * "We have quite a bit of empty space between cards." From xl up, Needs
+ * attention shares a row with Your project and Upcoming maintenance, and
+ * whichever side was shorter ended early, leaving bare page under it - the
+ * all-clear of a healthy project above all. The row now ends on one line:
+ * the last card in each column runs to the row's bottom. A list keeps its
+ * rows at the top of its card; a state with nothing to list sits in its
+ * middle. Below xl the cards stack, each as tall as what it holds.
+ */
+
+interface PageBox {
+  top: number;
+  bottom: number;
+  left: number;
+  height: number;
+}
+
+interface RowBoxes {
+  // Each card's frame - what the reader sees as the card.
+  attention: PageBox;
+  side: Array<{ testId: string; frame: PageBox }>;
+  explore: PageBox;
+}
+
+// Home after every card has read what it reads.
+async function openSettled(page: Page, query: string): Promise<void> {
+  await open(page, query);
+  await expect(page.getByTestId("home-project-health")).not.toHaveAttribute(
+    "data-health",
+    "loading",
+    { timeout: 30000 },
+  );
+  // Skeletons: the health card's, the strip's, the list's and the cards'.
+  await expect(page.locator('[data-testid$="-loading"]')).toHaveCount(0);
+}
+
+async function rowBoxes(page: Page): Promise<RowBoxes> {
+  return page.evaluate((): RowBoxes => {
+    const boxOf: (element: Element) => PageBox = (
+      element: Element,
+    ): PageBox => {
+      const rect: DOMRect = element.getBoundingClientRect();
+      return {
+        top: Math.round(rect.top + window.scrollY),
+        bottom: Math.round(rect.bottom + window.scrollY),
+        left: Math.round(rect.left),
+        height: Math.round(rect.height),
+      };
+    };
+    const frameOf: (wrapper: Element) => Element = (
+      wrapper: Element,
+    ): Element => {
+      return wrapper.querySelector(':scope > [data-testid="card"] > div')!;
+    };
+    const side: Element = document.querySelector(
+      '[data-testid="home-overview-row-side"]',
+    )!;
+
+    return {
+      attention: boxOf(
+        frameOf(
+          document.querySelector('[data-testid="home-needs-attention"]')!,
+        ),
+      ),
+      side: Array.from(side.children).map(
+        (wrapper: Element): { testId: string; frame: PageBox } => {
+          return {
+            testId: wrapper.getAttribute("data-testid") || "",
+            frame: boxOf(frameOf(wrapper)),
+          };
+        },
+      ),
+      explore: boxOf(
+        frameOf(
+          document.querySelector('[data-testid="home-explore-products"]')!,
+        ),
+      ),
+    };
+  });
+}
+
+test.describe("the row under the health card", () => {
+  const SCENARIOS: Array<[string, string, Array<string>]> = [
+    [
+      "all clear beside Your project alone (nothing scheduled)",
+      "scenario=quiet",
+      ["home-project-resources"],
+    ],
+    [
+      "all clear beside Your project and a window coming up",
+      "scenario=healthy",
+      ["home-project-resources", "home-upcoming-maintenance"],
+    ],
+    [
+      "one maintenance row beside the side column",
+      "scenario=maintenance",
+      ["home-project-resources", "home-upcoming-maintenance"],
+    ],
+    [
+      "alerts, a monitor and an SLO open",
+      "scenario=attention",
+      ["home-project-resources", "home-upcoming-maintenance"],
+    ],
+    [
+      "a busy project: the open work is the taller side",
+      "scenario=busy",
+      ["home-project-resources", "home-upcoming-maintenance"],
+    ],
+    [
+      "more open than a group shows",
+      "scenario=many",
+      ["home-project-resources", "home-upcoming-maintenance"],
+    ],
+    [
+      "more open, and nothing coming up: Your project is the last card",
+      "scenario=many&fail=upcoming",
+      ["home-project-resources"],
+    ],
+    [
+      "a new project: where problems will show, beside everything to set up",
+      "scenario=new",
+      ["home-project-resources"],
+    ],
+    [
+      "the batch failing",
+      "fail=overview",
+      ["home-project-resources", "home-upcoming-maintenance"],
+    ],
+    [
+      "in German",
+      "lang=de",
+      ["home-project-resources", "home-upcoming-maintenance"],
+    ],
+    [
+      "in the dark theme",
+      "scenario=quiet&theme=dark",
+      ["home-project-resources"],
+    ],
+  ];
+
+  for (const width of [1440, 1280]) {
+    for (const [label, query, sideCards] of SCENARIOS) {
+      test(`at ${width}px, ${label}: both sides end on one line, with Explore right under it`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await page.setViewportSize({ width, height: 1000 });
+        await openSettled(page, query);
+
+        const boxes: RowBoxes = await rowBoxes(page);
+        const lastSide: PageBox = boxes.side[boxes.side.length - 1]!.frame;
+
+        expect(
+          boxes.side.map((card: { testId: string }): string => {
+            return card.testId;
+          }),
+        ).toEqual(sideCards);
+        // Side by side, their tops level.
+        expect(boxes.side[0]!.frame.left).toBeGreaterThan(
+          boxes.attention.left + 100,
+        );
+        expect(Math.abs(boxes.side[0]!.frame.top - boxes.attention.top)).toBe(
+          0,
+        );
+        // ...and their bottoms: no bare page under either side.
+        expect({
+          width,
+          query,
+          gap: lastSide.bottom - boxes.attention.bottom,
+        }).toEqual({ width, query, gap: 0 });
+        // The cards of the side column stack with the row's gap between them.
+        for (let index: number = 1; index < boxes.side.length; index++) {
+          expect(
+            boxes.side[index]!.frame.top - boxes.side[index - 1]!.frame.bottom,
+          ).toBe(20);
+        }
+        // The next card follows the row at the page's own gap.
+        expect(boxes.explore.top - boxes.attention.bottom).toBe(20);
+        await hasNoSidewaysScroll(page);
+      });
+    }
+  }
+
+  test("all clear sits in the middle of its card, as the product's all-clear state", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSettled(page, "scenario=quiet");
+
+    const empty: Locator = page.getByTestId("home-attention-empty");
+    const state: Locator = empty.getByTestId("home-attention-empty-state");
+
+    await expect(empty).toHaveAttribute("data-state", "all-clear");
+    await expect(state).toHaveAttribute("data-empty-state-kind", "all-clear");
+    await expect(
+      state.getByTestId("home-attention-empty-state-title"),
+    ).toHaveText("Nothing needs your attention");
+
+    const room: { y: number; height: number; x: number; width: number } =
+      (await empty.boundingBox())!;
+    const content: { y: number; height: number; x: number; width: number } =
+      (await state.boundingBox())!;
+    const boxes: RowBoxes = await rowBoxes(page);
+
+    // The room is what the card has under its header, to its bottom edge.
+    expect(Math.round(room.y + room.height)).toBe(boxes.attention.bottom - 1);
+    expect(room.height).toBeGreaterThan(content.height + 100);
+    // The state is in its middle, up and down and across.
+    expect(
+      Math.abs(room.y + room.height / 2 - (content.y + content.height / 2)),
+    ).toBeLessThan(2);
+    expect(
+      Math.abs(room.x + room.width / 2 - (content.x + content.width / 2)),
+    ).toBeLessThan(2);
+
+    await screenshot(page, "home-quiet");
+  });
+
+  test("a new project's 'Problems will show up here' and a failed list sit in the middle too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [query, testId] of [
+      ["scenario=new", "home-attention-empty"],
+      ["fail=overview", "home-attention-unavailable"],
+    ]) {
+      await openSettled(page, query!);
+
+      const room: { y: number; height: number } = (await page
+        .getByTestId(testId!)
+        .boundingBox())!;
+      const content: { y: number; height: number } = (await page
+        .getByTestId(`${testId}-state`)
+        .boundingBox())!;
+
+      expect({
+        query,
+        offCentre:
+          Math.abs(
+            room.y + room.height / 2 - (content.y + content.height / 2),
+          ) < 2,
+      }).toEqual({ query, offCentre: true });
+      expect(room.height).toBeGreaterThan(content.height + 100);
+    }
+  });
+
+  test("a short list keeps its rows at the top, with the room under them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSettled(page, "scenario=maintenance");
+
+    const groups: { y: number; height: number } = (await page
+      .getByTestId("home-attention-groups")
+      .boundingBox())!;
+    const header: { y: number; height: number } = (await page
+      .getByTestId("home-needs-attention")
+      .getByTestId("card-header")
+      .boundingBox())!;
+    const boxes: RowBoxes = await rowBoxes(page);
+
+    // Right under the header...
+    expect(groups.y - (header.y + header.height)).toBeLessThan(20);
+    // ...with the rest of the card's height under the last row.
+    expect(boxes.attention.bottom - (groups.y + groups.height)).toBeGreaterThan(
+      200,
+    );
+    await expect(
+      page.getByTestId("home-attention-row-maintenance"),
+    ).toHaveCount(1);
+  });
+
+  /*
+   * Side by side with their tops level, Needs attention's and Your
+   * project's headers are equally tall wherever Your project's description
+   * fits on one line, and the dividers under them read as one line across
+   * the row. Needs attention used to start its list 4px further down.
+   */
+  test("the dividers under the headers of Needs attention and Your project run on one line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [1440, 1920]) {
+      for (const query of [
+        "scenario=quiet",
+        "scenario=busy",
+        "scenario=new",
+        "fail=overview",
+      ]) {
+        await page.setViewportSize({ width, height: 1000 });
+        await openSettled(page, query);
+
+        const lines: Record<string, { header: number; divider: number }> =
+          await page.evaluate(
+            (): Record<string, { header: number; divider: number }> => {
+              const result: Record<
+                string,
+                { header: number; divider: number }
+              > = {};
+
+              for (const testId of [
+                "home-needs-attention",
+                "home-project-resources",
+              ]) {
+                const padding: Element = document.querySelector(
+                  `[data-testid="${testId}"] > [data-testid="card"] > div > div`,
+                )!;
+                const header: Element = padding.querySelector(
+                  '[data-testid="card-header"]',
+                )!;
+                // The first box in the body draws the divider (border-top).
+                const divider: Element =
+                  padding.lastElementChild!.firstElementChild!;
+
+                result[testId] = {
+                  header: Math.round(header.getBoundingClientRect().bottom),
+                  divider: Math.round(divider.getBoundingClientRect().top),
+                };
+              }
+
+              return result;
+            },
+          );
+
+        expect({ width, query, lines }).toEqual({
+          width,
+          query,
+          lines: {
+            "home-needs-attention": lines["home-project-resources"],
+            "home-project-resources": lines["home-project-resources"],
+          },
+        });
+      }
+    }
+  });
+
+  test("the taller open work: the side column's last card runs down to its end, Your project keeps its rows' height", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSettled(page, "scenario=many");
+
+    const boxes: RowBoxes = await rowBoxes(page);
+    const [resources, upcoming] = boxes.side;
+
+    // Your project is as tall as with nothing beside it.
+    await page.setViewportSize({ width: 1024, height: 1000 });
+    const stacked: RowBoxes = await rowBoxes(page);
+
+    expect(resources!.frame.height).toBe(stacked.side[0]!.frame.height);
+    // Upcoming maintenance takes the rest of the row.
+    expect(upcoming!.frame.bottom).toBe(boxes.attention.bottom);
+    expect(upcoming!.frame.height).toBeGreaterThan(
+      stacked.side[1]!.frame.height + 100,
+    );
+  });
+
+  test("below xl the cards stack, each as tall as what it holds", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [1024, 768, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await openSettled(page, "scenario=quiet");
+
+      const boxes: RowBoxes = await rowBoxes(page);
+      const resources: PageBox = boxes.side[0]!.frame;
+
+      // One under the other, in the page's order.
+      expect({ width, left: resources.left }).toEqual({
+        width,
+        left: boxes.attention.left,
+      });
+      expect(resources.top - boxes.attention.bottom).toBe(20);
+      // The all-clear is as tall as it is, not as Your project.
+      expect({
+        width,
+        shorter: boxes.attention.height < resources.height,
+      }).toEqual({ width, shorter: true });
+      expect(boxes.explore.top - resources.bottom).toBe(20);
+      await hasNoSidewaysScroll(page);
+    }
+
+    await screenshot(page, "home-quiet-mobile");
+  });
+
+  test("dark: the all-clear card beside Your project", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSettled(page, "scenario=quiet&theme=dark");
+
+    const background: string = await page
+      .getByTestId("home-needs-attention")
+      .getByTestId("card")
+      .locator(":scope > div")
+      .evaluate((frame: Element): string => {
+        return getComputedStyle(frame).backgroundColor;
+      });
+
+    expect(background).not.toBe("rgb(255, 255, 255)");
+    await screenshot(page, "home-quiet-dark");
   });
 });
