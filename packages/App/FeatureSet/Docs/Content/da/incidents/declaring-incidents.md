@@ -233,12 +233,12 @@ Hændelser, der meldes på denne måde, erklæres skjult for statussider, med **
 Hver hændelse får et fortløbende nummer fra en tæller pr. projekt, som serveren tildeler ved oprettelsen. To kolonner rummer det: `incidentNumber` (det rå heltal) og `incidentNumberWithPrefix` (det, du faktisk ser). Uden præfiks er den viste værdi `#42`.
 
 :::steps
-1. Gå til **Hændelser → Indstillinger → Nummerpræfiks**, og klik på **Opdater**.
+1. Gå til **Hændelser → Indstillinger → Nummerering**, og klik på **Opdater** på kortet **Nummerpræfiks**.
 2. Skriv præfikset i **Nummerpræfiks for hændelse**. Feltet viser nummeret, mens du skriver: `INC-` gør det til `INC-42`. Lad det stå tomt for at beholde standarden `#`.
 3. Klik på **Gem ændringer**. Hændelser, der erklæres fra nu af, får det nye præfiks; eksisterende hændelser beholder deres numre.
 :::
 
-Den samme dialog har **Nummerpræfiks for hændelsesepisode** til nummerering af episoder. [Nummerpræfikser](/docs/incidents/settings#nummerpræfikser) nævner de regler, et præfiks følger.
+Den samme dialog har **Nummerpræfiks for hændelsesepisode** til nummerering af episoder. [Nummerpræfikser](/docs/incidents/settings#nummerpræfikser) nævner de regler, et præfiks følger. For at fortsætte et andet værktøjs numre skal du sætte **Næste hændelsesnummer** på kortet **Næste nummer** på samme side: se [Næste numre](/docs/incidents/settings#næste-numre).
 
 Nummeret vises som den første kolonne i listen over hændelser, linker til hændelsen og vises som **Hændelsesnummer** på hændelsens **Oversigt**.
 

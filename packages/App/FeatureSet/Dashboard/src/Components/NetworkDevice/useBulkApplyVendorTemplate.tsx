@@ -3,7 +3,7 @@ import React, { ReactElement, useState } from "react";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
-import { JSONArray, JSONObject } from "Common/Types/JSON";
+import { JSONObject } from "Common/Types/JSON";
 import { NetworkDeviceMonitoringMethodUtil } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import { SnmpVendorTemplate } from "Common/Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -38,6 +38,7 @@ import {
   VendorTemplatePlanSummary,
   VendorTemplateSkip,
   decideVendorTemplate,
+  getVendorTemplateWriteData,
   getGenericVendorTemplateLabel,
   getVendorTemplateOptions,
   mergeVendorTemplate,
@@ -275,19 +276,8 @@ function useBulkApplyVendorTemplate(): BulkApplyVendorTemplateResult {
           );
         }
 
-        /*
-         * Only the list that grew is written: an unchanged list sent back
-         * would be validated and stored again for nothing.
-         */
-        const data: JSONObject = {};
-
-        if (merge.addedOidCount > 0) {
-          data["snmpOids"] = merge.snmpOids as unknown as JSONArray;
-        }
-
-        if (merge.addedTableCount > 0) {
-          data["snmpTables"] = merge.snmpTables as unknown as JSONArray;
-        }
+        // Only the list that grew is written (getVendorTemplateWriteData).
+        const data: JSONObject = getVendorTemplateWriteData(merge);
 
         await ModelAPI.updateById<NetworkDevice>({
           id: item.id,

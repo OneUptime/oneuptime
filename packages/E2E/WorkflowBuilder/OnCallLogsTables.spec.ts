@@ -799,3 +799,132 @@ test.describe("On-call logs: the timeline of a direct page", () => {
     expect(widths.page).toBeLessThanOrEqual(widths.window);
   });
 });
+
+/*
+ * A policy's run that escalated to the next person in a rotation (an
+ * escalation rule can page a schedule's Next in rotation: the person after
+ * whoever is on call). The line of the backup's page says so under its
+ * schedule's name, and a line where nobody was next says so where a person
+ * would be named. On a phone too: the Schedule column used to be left off
+ * the phone's cards, and there the backup's page read like any other.
+ */
+async function openNextInRotationTimeline(
+  page: Page,
+  theme?: string,
+): Promise<void> {
+  await page.goto(
+    `/?page=on-call-timeline&run=next-in-rotation${theme ? `&theme=${theme}` : ""}`,
+  );
+  await expect(page.getByText("Execution Timeline")).toBeVisible();
+  await expect(
+    page.getByTestId("on-call-timeline-next-in-rotation"),
+  ).toHaveCount(2);
+}
+
+test.describe("On-call logs: a run that paged the next person in a rotation", () => {
+  let pageErrors: Array<string> = [];
+
+  test.beforeEach(async ({ page }: { page: Page }) => {
+    pageErrors = [];
+    page.on("pageerror", (error: Error) => {
+      pageErrors.push(error.message);
+    });
+  });
+
+  test.afterEach(() => {
+    expect(pageErrors).toEqual([]);
+  });
+
+  test("the backup's line says Next in rotation under its schedule, on a laptop and on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openNextInRotationTimeline(page);
+
+    const lines: Locator = page.getByTestId(
+      "on-call-timeline-next-in-rotation",
+    );
+
+    for (const [index, schedule] of [
+      [0, "Primary"],
+      [1, "Secondary"],
+    ] as Array<[number, string]>) {
+      const line: Locator = lines.nth(index);
+
+      await expect(line).toBeVisible();
+      await expect(line).toHaveText(`${schedule}Next in rotation`);
+      // The fast-forward mark beside the words.
+      await expect(line.locator("svg")).toHaveCount(1);
+    }
+
+    // Who was paged as the backup is named, as on any line.
+    await expect(page.getByText("Sam Lee").first()).toBeVisible();
+    // Level 1's page to whoever was on call says nothing of a rotation.
+    await expect(page.getByText("Primary", { exact: true })).toHaveCount(2);
+  });
+
+  test("where nobody was next, the line says so where a person would be named, readable in both themes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const theme of ["light", "dark"]) {
+      await openNextInRotationTimeline(page, theme);
+
+      const nobody: Locator = page.getByTestId(
+        "on-call-timeline-nobody-next-in-rotation",
+      );
+
+      await expect(nobody).toHaveCount(1);
+      await expect(nobody).toBeVisible();
+      await expect(nobody).toHaveText("Nobody was next in the rotation");
+      await expect(nobody.locator("svg")).toHaveCount(1);
+      // Not that nobody was on call: somebody was.
+      await expect(page.getByText("No one was on call")).toHaveCount(0);
+
+      const colors: { text: string; background: string } =
+        await colorsOf(nobody);
+
+      expect({
+        theme,
+        readable: contrastOf(colors.text, colors.background) >= 4.5,
+      }).toEqual({ theme, readable: true });
+
+      const label: Locator = page
+        .getByTestId("on-call-timeline-next-in-rotation")
+        .first()
+        .getByText("Next in rotation");
+      const labelText: string = (await colorsOf(label)).text;
+      const behind: string = await backgroundBehind(label);
+
+      expect({
+        theme,
+        readable: contrastOf(labelText, behind) >= 4.5,
+      }).toEqual({ theme, readable: true });
+    }
+  });
+
+  test("on a phone nothing scrolls sideways", async ({
+    page,
+    isMobile,
+  }: {
+    page: Page;
+    isMobile: boolean;
+  }) => {
+    test.skip(!isMobile, "A laptop draws the lines as table rows.");
+
+    await openNextInRotationTimeline(page);
+
+    const widths: { page: number; window: number } = await page.evaluate(
+      (): { page: number; window: number } => {
+        return {
+          page: document.documentElement.scrollWidth,
+          window: document.documentElement.clientWidth,
+        };
+      },
+    );
+
+    expect(widths.page).toBeLessThanOrEqual(widths.window);
+  });
+});

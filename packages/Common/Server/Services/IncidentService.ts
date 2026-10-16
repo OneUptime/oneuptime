@@ -4298,13 +4298,18 @@ export class Service extends ProjectReferencesService<Model> {
        * characters, "![](https://tracker...)" is not fetched and "<!here>"
        * is not a mention, while "Site 03 - payments (EU)" reads unchanged.
        * The description stays Markdown: that is what it is written in.
+       *
+       * The description, the root cause and the remediation notes count
+       * only when they say something: one of nothing but spaces and line
+       * breaks - which an API write can store - left a heading with nothing
+       * under it ("Root Cause:") in the feed, Slack and Teams.
        */
       let feedInfoInMarkdown: string =
         mdText`#### 🚨 Incident ${incidentNumberDisplay} Created:
         
 **${incident.title || "No title provided."}**:
 
-${FeedMarkdown.asMarkdown(incident.description || "No description provided.")}
+${FeedMarkdown.asMarkdown(incident.description?.trim() ? incident.description : "No description provided.")}
 
 `.toString();
 
@@ -4351,7 +4356,7 @@ ${FeedMarkdown.asMarkdown(incident.description || "No description provided.")}
         feedInfoInMarkdown += `\n\n`;
       }
 
-      if (incident.rootCause) {
+      if (incident.rootCause?.trim()) {
         feedInfoInMarkdown += mdText`\n
 📄 **Root Cause**:
 
@@ -4360,7 +4365,7 @@ ${FeedMarkdown.asMarkdown(incident.rootCause || "No root cause provided.")}
 `;
       }
 
-      if (incident.remediationNotes) {
+      if (incident.remediationNotes?.trim()) {
         feedInfoInMarkdown += mdText`\n 
 🎯 **Remediation Notes**:
 

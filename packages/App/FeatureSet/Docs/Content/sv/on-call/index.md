@@ -59,7 +59,7 @@ Gå till **Jourpolicyer** och klicka på **Skapa Jourpolicy**. Välj schemat und
 
 ### Lägg till nästa nivåer
 
-Klicka på **Lägg till eskaleringsregel** på policyns sida **Eskaleringsregler** för varje nivå efter den första: ett andra schema, en teamledare, en chef. Se [Eskaleringsregler](/docs/on-call/escalation-rules).
+Klicka på **Lägg till eskaleringsregel** på policyns sida **Eskaleringsregler** för varje nivå efter den första: nästa person i samma schemas rotation, en teamledare, en chef. Se [Eskaleringsregler](/docs/on-call/escalation-rules).
 
 ### Kör policyn automatiskt
 

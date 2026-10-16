@@ -1023,7 +1023,11 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
         },
       });
 
-    // do the same for schedules.
+    /*
+     * Do the same for schedules: the rules that page whoever is on call in
+     * them. A rule that pages the next person in a schedule's rotation does
+     * not page its on-call person, so it is not one they are on call for.
+     */
     const escalationRulesBySchedule: Array<OnCallDutyPolicyEscalationRuleSchedule> =
       await OnCallDutyPolicyEscalationRuleScheduleService.findBy({
         query: {
@@ -1048,6 +1052,7 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
             name: true,
             _id: true,
           },
+          pageNextInRotation: true,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
@@ -1059,7 +1064,11 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
     return {
       escalationRulesByUser: escalationRulesByUser,
       escalationRulesByTeam: escalationRulesByTeam,
-      escalationRulesBySchedule: escalationRulesBySchedule,
+      escalationRulesBySchedule: escalationRulesBySchedule.filter(
+        (escalationRule: OnCallDutyPolicyEscalationRuleSchedule): boolean => {
+          return !escalationRule.pageNextInRotation;
+        },
+      ),
     };
   }
 }

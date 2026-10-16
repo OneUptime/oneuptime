@@ -6,7 +6,7 @@ La configuration des alertes se trouve dans **Alertes**, pas dans les **Paramèt
 - [Les règles que traverse une nouvelle alerte](#les-règles-que-traverse-une-nouvelle-alerte): Dans l'ordre, et ce que fait chacune.
 - [Règles d'astreinte](#règles-dastreinte): Alerter les bonnes personnes sans choisir une politique à chaque fois.
 - [Règles de rappel](#règles-de-rappel): Rappeler les propriétaires tant qu'une alerte reste ouverte.
-- [Paramètres](#paramètres): Modèles de notes, champs personnalisés, mesures et préfixes de numéro.
+- [Paramètres](#paramètres): Modèles de notes, champs personnalisés, mesures et numérotation.
 :::
 
 ## Où se trouvent les paramètres des alertes
@@ -23,7 +23,7 @@ Ouvrez **Alertes** depuis le menu **Produits** de la barre supérieure. Les sect
 | **Règles d'étiquettes**         | Ajoute des étiquettes aux alertes et aux épisodes qui correspondent.                           |
 | **Reminder Rules**              | Rappelle aux propriétaires, à intervalle régulier, qu'une alerte est ouverte.                  |
 
-La section **Paramètres** contient **État de l'alerte** et **Gravité de l'alerte**, traités dans [États et sévérités des alertes](/docs/alerts/states-and-severities), puis **Modèles de notes**, **Champs personnalisés**, **Mesures** et **Préfixe de numéro**, traités ci-dessous.
+La section **Paramètres** contient **État de l'alerte** et **Gravité de l'alerte**, traités dans [États et sévérités des alertes](/docs/alerts/states-and-severities), puis **Modèles de notes**, **Champs personnalisés**, **Mesures** et **Numérotation**, traités ci-dessous.
 
 Deux autres sections agissent sur les alertes. **Alertes → IA → Paramètres** décide de ce que OneUptime AI fait de lui-même : **Investiguer les nouvelles alertes**, activé pour les nouveaux projets, et **Corriger automatiquement les nouvelles alertes**, désactivé jusqu'à ce que vous l'activiez. Voir [AI SRE](/docs/ai/ai-sre). **Alertes → Espace de travail** contient les règles Slack et Microsoft Teams qui publient les alertes et les épisodes dans des canaux, ainsi que son onglet **Summary**. Voir [Slack](/docs/workspace-connections/slack).
 
@@ -142,9 +142,11 @@ Les propriétaires reçoivent chaque rappel sous la forme **Rappel d'alerte**, a
 
 **Alertes → Paramètres → Mesures** chronomètre le temps que prennent les choses sur chaque alerte. Choisissez **Délai de prise en compte** ou **Délai de résolution**, ou deux moments à vous, comme quand **L'alerte est créée** et quand elle entre dans un état que vous choisissez. Chaque mesure s'affiche sur la page de l'alerte et figure dans les graphiques sous `oneuptime.alert.measurement.<key>`. Voir [Mesures](/docs/incidents/settings#mesures), qui fonctionne de la même façon pour les alertes.
 
-### Préfixe de numéro
+### Numérotation
 
-**Alertes → Paramètres → Préfixe de numéro** définit le texte placé devant les numéros d'alerte et d'épisode : `ALT-` et `AE-` dans un nouveau projet, ou `#` sans préfixe. **Mettre à jour** ouvre **Préfixe du numéro d'alerte** et **Préfixe du numéro d'épisode d'alerte**, avec un aperçu pendant la saisie. Seuls les alertes et les épisodes créés ensuite reçoivent le nouveau préfixe. Les règles d'un préfixe sont décrites dans [Préfixes de numéro](/docs/incidents/settings#préfixes-de-numéro).
+**Alertes → Paramètres → Numérotation** définit le texte placé devant les numéros d'alerte et d'épisode : `ALT-` et `AE-` dans un nouveau projet, ou `#` sans préfixe. **Mettre à jour** ouvre **Préfixe du numéro d'alerte** et **Préfixe du numéro d'épisode d'alerte**, avec un aperçu pendant la saisie. Seuls les alertes et les épisodes créés ensuite reçoivent le nouveau préfixe. Les règles d'un préfixe sont décrites dans [Préfixes de numéro](/docs/incidents/settings#préfixes-de-numéro).
+
+La carte **Prochain numéro** en dessous fixe le numéro que recevront la prochaine alerte et le prochain épisode, pour poursuivre les numéros d'un autre outil : **Mettre à jour** ouvre **Prochain numéro d'alerte** et **Prochain numéro d'épisode d'alerte**, chacun supérieur au plus élevé utilisé à ce jour. Voir [Prochains numéros](/docs/incidents/settings#prochains-numéros).
 
 > [!NOTE]
 > Sur OneUptime Cloud, les modèles de notes et les champs personnalisés nécessitent l'offre **Growth** ou supérieure.

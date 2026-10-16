@@ -59,7 +59,7 @@ Ve a **Políticas de guardia** y haz clic en **Crear Política de guardia**. En 
 
 ### Añadir los niveles siguientes
 
-En la página **Reglas de escalado** de la política, haz clic en **Añadir regla de escalado** para cada nivel después del primero: una segunda programación, un jefe de equipo, un responsable. Consulta [Reglas de escalado](/docs/on-call/escalation-rules).
+En la página **Reglas de escalado** de la política, haz clic en **Añadir regla de escalado** para cada nivel después del primero: la siguiente persona de la rotación de la misma programación, un jefe de equipo, un responsable. Consulta [Reglas de escalado](/docs/on-call/escalation-rules).
 
 ### Ejecutar la política automáticamente
 

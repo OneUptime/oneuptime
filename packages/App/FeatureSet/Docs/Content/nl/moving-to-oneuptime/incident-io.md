@@ -90,6 +90,9 @@ Open elk schema onder **Bereikbaarheidsdienst** > **Bereikbaarheidsschema's** en
 ### Zorg dat iedereen kan worden opgeroepen
 Uitgenodigde personen accepteren hun uitnodiging en voegen dan een telefoonnummer, een e-mailadres of de mobiele app toe om op te worden opgeroepen. **Bereikbaarheidsdienst** > **Gereedheid** laat zien wie nog niet bereikbaar is.
 
+### Zet uw incidentnummers voort
+Als uw team incidenten bij nummer noemt, laat die van OneUptime dan beginnen na uw laatste in incident.io: stel onder **Incidenten** > **Instellingen** > **Nummering** op de kaart **Volgend nummer** het **Volgend incidentnummer** in op het nummer daarna. Een nummer staat dan nooit voor twee verschillende incidenten.
+
 ### Stuur uw waarschuwingen naar OneUptime
 Richt uw monitoren en de tools die waarschuwingen geven op OneUptime, en roep uzelf eenmaal op om het te testen.
 

@@ -1,6 +1,6 @@
 # Hendelsesinnstillinger og automatisering
 
-Konfigurasjonen av hendelser ligger under **Hendelser**, ikke under **Prosjektinnstillinger**: tilstander og alvorlighetsgrader, maler, egendefinerte felt, roller, målinger og nummerprefikser, og reglene som virker på hver ny hendelse. Denne siden er oppslagsverket for hver av de sidene, og for det som kjører av seg selv i det øyeblikket en hendelse erklæres.
+Konfigurasjonen av hendelser ligger under **Hendelser**, ikke under **Prosjektinnstillinger**: tilstander og alvorlighetsgrader, maler, egendefinerte felt, roller, målinger og nummerering, og reglene som virker på hver ny hendelse. Denne siden er oppslagsverket for hver av de sidene, og for det som kjører av seg selv i det øyeblikket en hendelse erklæres.
 
 :::cards
 - [Hendelsesmaler](#hendelsesmaler): Erklær samme type hendelse, forhåndsutfylt, hver gang.
@@ -24,7 +24,7 @@ Konfigurasjonen av hendelser ligger under **Hendelser**, ikke under **Prosjektin
 | **Hendelsesroller**          | Definere rollene du tildeler dem som responderer, som Hendelsesleder.                        |
 | **Målinger**                 | Måle hvor lang tid ting tar, som tiden til bekreftelse eller til løsning, på hver hendelse.  |
 | **Tilknyttede varsler**      | Velge om varslene som er knyttet til en hendelse, bekreftes og løses sammen med den. Begge er slått på i nye prosjekter. |
-| **Nummerprefiks**            | Teksten foran hendelses- og episodenumre, som `INC-` i `INC-42`.                             |
+| **Nummerering**              | Teksten foran hendelses- og episodenumre, som `INC-` i `INC-42`, og nummeret den neste får. |
 
 Det OneUptime AI gjør på egen hånd, settes ikke her: det har en egen seksjon, **Hendelser → KI**, på ruter som begynner med `/dashboard/{projectId}/incidents/ai/`. Siden **Innstillinger** der slår av eller på undersøkelse av nye hendelser, automatisk retting av dem (slått av til du slår den på), med pull requestene for rettinger og manglende telemetri som hører til rettingen, samlet under den, og utkast til etteranalyser, og hver lagres så snart du slår den om; undersøkelsesreglene og reglene for automatisk utbedring som snevrer inn hvilke hendelser som undersøkes og rettes, og de valgfrie grensene KI jobber under, er brettet sammen under **Flere innstillinger**, og ingen av dem gjelder før du setter dem. **Innsikt** og **Logger** står ved siden av: hva KI har lært av hendelsene dine, og alt den har gjort. Se [AI SRE](/docs/ai/ai-sre).
 
@@ -469,7 +469,7 @@ Roller er bare definisjoner. Du tildeler folk til dem per hendelse — erklærin
 
 Hver hendelse får et nummer fra en teller per prosjekt. Uten prefiks vises det som `#42`; med et vises det som `INC-42`. Sier teamet ditt "INC-42" høyt, få produktet til å si det samme. Nye prosjekter starter med `INC-` for hendelser og `IE-` for hendelsesepisoder.
 
-Gå til **Hendelser → Innstillinger → Nummerprefiks** (`/dashboard/{projectId}/incidents/settings/number-prefix`). Kortet **Nummerprefiks** har en rad for **Hendelser** og en for **Hendelse Episoder**. Hver viser prefikset og et eksempel på nummeret det danner: `INC-`, og deretter **Eksempel:** `INC-42`. Et prosjekt uten prefiks viser **Ingen prefiks** og `#42`.
+Gå til **Hendelser → Innstillinger → Nummerering** (`/dashboard/{projectId}/incidents/settings/numbering`). Kortet **Nummerprefiks** har en rad for **Hendelser** og en for **Hendelse Episoder**. Hver viser prefikset og et eksempel på nummeret det danner: `INC-`, og deretter **Eksempel:** `INC-42`. Et prosjekt uten prefiks viser **Ingen prefiks** og `#42`.
 
 :::steps
 1. Klikk på **Oppdater**. Dialogen **Rediger nummerprefiks** åpner, med to felt: **Nummerprefiks for hendelse** (plassholder `INC-`) og **Nummerprefiks for hendelsesepisode** (plassholder `IE-`).
@@ -489,7 +489,33 @@ Dialogen sier hva som er galt før du lagrer, og API-et avviser de samme prefiks
 
 Project Owners, Project Admins og alle med **Edit Project** kan endre prefiksene. Alle andre ser dem med knappen **Oppdater** låst.
 
-Varsler og planlagte vedlikeholdshendelser har den samme siden: **Varsler → Innstillinger → Nummerprefiks** for numrene til varsler og varselepisoder (`ALT-` og `AE-` i nye prosjekter), og **Planlagt vedlikehold → Innstillinger → Nummerprefiks** for numrene til hendelser (`SM-`). I alle tre fungerer den gamle adressen for **Flere innstillinger** (`…/settings/more`) fortsatt og åpner **Nummerprefiks**.
+Varsler og planlagte vedlikeholdshendelser har den samme siden: **Varsler → Innstillinger → Nummerering** for numrene til varsler og varselepisoder (`ALT-` og `AE-` i nye prosjekter), og **Planlagt vedlikehold → Innstillinger → Nummerering** for numrene til hendelser (`SM-`). I alle tre fungerer sidens gamle adresser fortsatt og åpner **Nummerering**: **Flere innstillinger** (`…/settings/more`) og **Nummerprefiks** (`…/settings/number-prefix`).
+
+## Neste numre
+
+Hver ny hendelse får nummeret etter det høyeste som er brukt så langt, og hver ny episode også: `INC-1`, `INC-2`, `INC-3` fra et prosjekts første. Bytter du fra et annet verktøy? La OneUptimes numre starte etter verktøyets siste, så et nummer aldri betyr to forskjellige hendelser: Et team der siste hendelse i det gamle verktøyet var `INC-2345`, setter neste nummer til `2346`, eller til `10000` for å skille hendelsene i OneUptime fra de gamle med en gang.
+
+Kortet **Neste nummer**, under **Nummerprefiks** på den samme siden, har en rad for **Hendelser** og en for **Hendelse Episoder**. Hver viser nummeret den neste får, med prefiks, og deretter **Høyeste så langt:** og det høyeste brukte nummeret, eller **Ingen brukt ennå**.
+
+:::steps
+1. Klikk på **Oppdater** på kortet **Neste nummer**. Dialogen **Rediger neste nummer** åpnes med **Neste hendelsesnummer** og **Neste nummer for hendelsesepisode**, hver fylt ut med nummeret som kommer neste og med hva det må være høyere enn.
+2. Skriv nummeret den neste skal få. Under hvert felt viser **Forhåndsvisning:** det med prefiks, så du ser `INC-10000` før du lagrer `10000`.
+3. Klikk på **Lagre endringer**. Den neste hendelsen får det nummeret, og de etter den teller videre derfra: `INC-10000`, `INC-10001`.
+:::
+
+Et neste nummer:
+
+- er et heltall fra 1 til 1 000 000 000;
+- må være høyere enn det høyeste nummeret som er brukt så langt — slettede hendelser teller med — så et nummer aldri brukes to ganger;
+- kan settes ned igjen så lenge ingen hendelse har brukt det: En skrivefeil som `100000` for `10000` rettes ved å lagre `10000`.
+
+Dialogen sier hva som er galt før du lagrer, og bare numrene du har endret, lagres. Serveren sjekker de samme reglene, og hvis en hendelse tok nummeret mens dialogen var åpen, sier den det, og dialogen viser det nye høyeste nummeret.
+
+**Hva et nytt neste nummer endrer.** Eksisterende hendelser og episoder beholder numrene sine. Serveren deler ut hvert nummer i ett trinn mens posten opprettes, så hendelser som erklæres i samme øyeblikk — av en monitor, en arbeidsflyt og en person — får hvert sitt nummer, også mens noen endrer neste nummer. I API-et og i Terraform er neste nummer der numrene starter: prosjektets `incidentNumbersStartAt` og `incidentEpisodeNumbersStartAt` (`incident_numbers_start_at` og `incident_episode_numbers_start_at` i Terraform). En verdi på eller under det høyeste brukte nummeret avvises, og verdien som allerede er satt, sendt på nytt, godtas, så en Terraform-apply fortsatt lykkes når hendelser har passert den.
+
+Project Owners, Project Admins og alle med **Edit Project** kan endre de neste numrene, slik som prefiksene. Alle andre ser dem med knappen **Oppdater** låst.
+
+Varsler og planlagte vedlikeholdshendelser har det samme kortet på sidene sine **Nummerering**: **Neste varselnummer** og **Neste nummer for varselepisode**, og **Neste nummer for planlagt vedlikehold**. [Importer fra et annet verktøy](/docs/moving-to-oneuptime/incident-io) henter oppsettet ditt, ikke de tidligere hendelsene dine, og lar derfor numrene være som de er: Sett de neste numrene før den første hendelsen erklæres i OneUptime.
 
 ## Brytere for tilknyttede varsler
 

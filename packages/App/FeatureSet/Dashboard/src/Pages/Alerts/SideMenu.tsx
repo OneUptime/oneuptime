@@ -280,12 +280,12 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Clock,
         },
-        // The text in front of alert and episode numbers (ALT-42).
+        // How alert and episode numbers look (ALT-42) and which comes next.
         {
           link: {
-            title: "Number Prefix",
+            title: "Numbering",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ALERTS_SETTINGS_NUMBER_PREFIX] as Route,
+              RouteMap[PageMap.ALERTS_SETTINGS_NUMBERING] as Route,
             ),
           },
           icon: IconProp.Hashtag,

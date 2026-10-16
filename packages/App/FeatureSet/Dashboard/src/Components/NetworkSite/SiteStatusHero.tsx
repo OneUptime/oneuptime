@@ -26,6 +26,7 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getNetworkSiteTypeName } from "Common/Utils/NetworkSite/SiteTypeName";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -129,6 +130,10 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
               color: true,
             },
             lastRollupAt: true,
+            // The type's name: the relation, and the old column as its fallback.
+            networkSiteType: {
+              name: true,
+            },
             siteType: true,
           },
         }),
@@ -456,7 +461,9 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
         <div>
           <SiteHeroTileTitle title="Site Type" />
           <div className="mt-1.5 text-sm text-gray-900">
-            {data.site?.siteType?.toString() || (
+            {data.site ? (
+              getNetworkSiteTypeName(data.site)
+            ) : (
               <span className="text-gray-400">—</span>
             )}
           </div>

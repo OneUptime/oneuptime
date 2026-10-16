@@ -59,7 +59,7 @@ Gå til **Vaktretningslinjer**, og klikk på **Opprett Vaktpolicy**. Velg vaktpl
 
 ### Legg til de neste nivåene
 
-Klikk på **Legg til eskaleringsregel** på siden **Eskaleringsregler** for retningslinjen, for hvert nivå etter det første: en annen vaktplan, en teamleder, en leder. Se [Eskaleringsregler](/docs/on-call/escalation-rules).
+Klikk på **Legg til eskaleringsregel** på siden **Eskaleringsregler** for retningslinjen, for hvert nivå etter det første: neste person i samme vaktplans rotasjon, en teamleder, en leder. Se [Eskaleringsregler](/docs/on-call/escalation-rules).
 
 ### Kjør retningslinjen automatisk
 

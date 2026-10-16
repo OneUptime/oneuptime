@@ -86,6 +86,7 @@ import {
   initialGestureState,
   reduceGesture,
 } from "./TopologyInteraction";
+import NetworkTopologyEmptyState from "./NetworkTopologyEmptyState";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -1121,24 +1122,7 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
    */
 
   if (nodes.length === 0) {
-    return (
-      <div className="flex items-center justify-center py-16 px-6">
-        <div className="text-center max-w-md">
-          <div className="text-sm font-medium text-gray-900">
-            No network topology discovered yet.
-          </div>
-          <p className="mt-1 text-sm text-gray-500">
-            Add your devices and they appear here. Devices read over SNMP are
-            linked to the neighbours they report.
-          </p>
-          {props.emptyStateFooter ? (
-            <p className="mt-3">{props.emptyStateFooter}</p>
-          ) : (
-            <></>
-          )}
-        </div>
-      </div>
-    );
+    return <NetworkTopologyEmptyState footer={props.emptyStateFooter} />;
   }
 
   const showLabels: boolean = view.scale >= LABEL_VISIBILITY_MIN_SCALE;

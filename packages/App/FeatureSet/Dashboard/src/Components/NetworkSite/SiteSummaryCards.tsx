@@ -99,7 +99,12 @@ const SiteSummaryCards: FunctionComponent<ComponentProps> = (
     });
   }, [props.refreshToggle]);
 
-  if (hasError) {
+  /*
+   * A project with no sites at all: the list's own empty state says what a
+   * site is and offers to add one; four zeros above it only pushed that down
+   * the page. The strip appears with the first site.
+   */
+  if (hasError || (counts && counts.totalSites === 0)) {
     return <></>;
   }
 

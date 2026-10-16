@@ -74,6 +74,7 @@ import Email from "../../../../../Types/Email";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import { OnCallDirectPageTargets } from "../../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
+import { NOBODY_NEXT_IN_ROTATION_TIMELINE_MESSAGE } from "../../../../../Types/OnCallDutyPolicy/NextInRotation";
 import OnCallDutyExecutionLogTimelineStatus from "../../../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import OnCallDutyPolicyStatus from "../../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import {
@@ -198,11 +199,21 @@ const CONNECTED: Record<string, string> = {
   [JANE.toString()]: "U0JANE",
 };
 
-// Who OneUptime pages on each escalation rule, and how it comes out.
+/*
+ * Who OneUptime pages on each escalation rule, and how it comes out. A page
+ * can be to the next person in the schedule's rotation (isNextInRotation),
+ * and a schedule can have somebody on call but nobody next (nobodyNext).
+ */
 type Target =
-  | { kind: "page"; userId: ObjectID; scheduleId?: ObjectID | undefined }
+  | {
+      kind: "page";
+      userId: ObjectID;
+      scheduleId?: ObjectID | undefined;
+      isNextInRotation?: boolean | undefined;
+    }
   | { kind: "notMember"; userId: ObjectID }
-  | { kind: "gap"; scheduleId: ObjectID };
+  | { kind: "gap"; scheduleId: ObjectID }
+  | { kind: "nobodyNext"; scheduleId: ObjectID };
 
 export interface RuleScript {
   id: ObjectID;
@@ -1535,6 +1546,19 @@ export default class QuietChannelsWorld {
         continue;
       }
 
+      // Somebody on call in the schedule, nobody next in its rotation.
+      if (target.kind === "nobodyNext") {
+        step.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
+        step.statusMessage = NOBODY_NEXT_IN_ROTATION_TIMELINE_MESSAGE;
+        step.onCallDutyScheduleId = target.scheduleId;
+        step.isNextInRotation = true;
+        await OnCallDutyPolicyExecutionLogTimelineService.create({
+          data: step,
+          props: { isRoot: true },
+        });
+        continue;
+      }
+
       paged++;
       step.status = OnCallDutyExecutionLogTimelineStatus.Executing;
       step.statusMessage = "Sending notification to user.";
@@ -1542,6 +1566,10 @@ export default class QuietChannelsWorld {
 
       if (target.scheduleId) {
         step.onCallDutyScheduleId = target.scheduleId;
+      }
+
+      if (target.isNextInRotation) {
+        step.isNextInRotation = true;
       }
 
       const created: OnCallDutyPolicyExecutionLogTimeline =

@@ -74,7 +74,7 @@ export const NETWORK_DEVICE_METRIC_DESCRIPTIONS: Record<
     "Whether this device answered its most recent check: the probe's ping, plus an SNMP walk when credentials are set, or for a monitor-backed device, whether its bound monitor reports it offline. Pending means no result yet.",
   ),
   monitorStatus: translationKey(
-    "The status last reported by a monitor that watches this device, such as Operational or Offline. It can differ from Reachability because a monitor may also check things like ports going down; Not monitored means no monitor has reported yet.",
+    "The status a monitor watching this device last reported, such as Operational or Offline. It can differ from Reachability, because a monitor can also check things like ports going down. No alerts yet means nothing opens an incident when it goes down.",
   ),
   heroInterfaces: translationKey(
     "Ports on this device from its last successful SNMP walk: up means enabled with a working link, down means enabled with no link. Ports an administrator switched off count in neither and fill the grey rest of the bar.",

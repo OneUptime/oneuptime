@@ -531,7 +531,7 @@ const NetworkSites: FunctionComponent<
             stepId: "site-details",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "Unit 1042 - Springfield",
+            placeholder: "London office",
           },
           {
             field: {
@@ -695,7 +695,7 @@ const NetworkSites: FunctionComponent<
               if (!item.parentSite?.name) {
                 return (
                   <span className="text-sm text-gray-400">
-                    {translator.translateText("Root")}
+                    {translator.translateText("Top level")}
                   </span>
                 );
               }

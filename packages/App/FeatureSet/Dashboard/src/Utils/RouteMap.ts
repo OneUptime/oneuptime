@@ -982,7 +982,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_ROLES]: "settings/roles",
   [PageMap.INCIDENTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
   [PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS]: "settings/linked-alerts",
-  [PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX]: "settings/number-prefix",
+  [PageMap.INCIDENTS_SETTINGS_NUMBERING]: "settings/numbering",
 
   // Integrations that open incidents: Huntress connections.
   [PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS]: "integrations/huntress",
@@ -1062,7 +1062,7 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_SETTINGS_RUNBOOK_RULES]: "settings/runbook-rules",
   [PageMap.ALERTS_SETTINGS_REMINDER_RULES]: "settings/reminder-rules",
   [PageMap.ALERTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
-  [PageMap.ALERTS_SETTINGS_NUMBER_PREFIX]: "settings/number-prefix",
+  [PageMap.ALERTS_SETTINGS_NUMBERING]: "settings/numbering",
 
   /*
    * The AI section. Settings and Auto Remediation Rules were at settings/ai
@@ -1124,8 +1124,8 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
     "settings/reminder-rules",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MEASUREMENTS]:
     "settings/measurements",
-  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX]:
-    "settings/number-prefix",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING]:
+    "settings/numbering",
 
   [PageMap.SCHEDULED_MAINTENANCE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
@@ -1810,9 +1810,9 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.ALERTS_SETTINGS_NUMBER_PREFIX]: new Route(
+  [PageMap.ALERTS_SETTINGS_NUMBERING]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
-      AlertsRoutePath[PageMap.ALERTS_SETTINGS_NUMBER_PREFIX]
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_NUMBERING]
     }`,
   ),
 
@@ -2387,9 +2387,9 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX]: new Route(
+  [PageMap.INCIDENTS_SETTINGS_NUMBERING]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
-      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX]
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_NUMBERING]
     }`,
   ),
 
@@ -2669,10 +2669,10 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX]: new Route(
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING]: new Route(
     `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
       ScheduledMaintenanceEventsRoutePath[
-        PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX
+        PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING
       ]
     }`,
   ),

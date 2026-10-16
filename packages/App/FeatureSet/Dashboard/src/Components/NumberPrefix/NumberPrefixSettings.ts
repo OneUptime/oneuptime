@@ -5,23 +5,28 @@ import {
 } from "Common/Utils/Project/NumberPrefix";
 
 /*
- * What each product's Number Prefix page holds: Incidents → Settings →
- * Number Prefix (incidents and incident episodes), the same page under
- * Alerts (alerts and alert episodes) and under Scheduled Maintenance
- * (events). One card per page, one row per kind of number, edited together
- * in one dialog. The copy lives here, beside the columns it describes, so
- * the three pages say the same thing the same way.
+ * What each product's Numbering page says about number prefixes:
+ * Incidents → Settings → Numbering (incidents and incident episodes), the
+ * same page under Alerts (alerts and alert episodes) and under Scheduled
+ * Maintenance (events). Its Number Prefix card has one row per kind of
+ * number, edited together in one dialog; the Next Number card under it
+ * (Components/NextNumber) says which number each kind gives next. The copy
+ * lives here, beside the columns it describes, so the three pages say the
+ * same thing the same way.
  */
 
 export const NUMBER_PREFIX_PAGE_TITLE: string = "Number Prefix";
 
 /*
- * Where the prefixes were before, in each product: a page called More
- * Settings that held nothing else. The address still works and forwards to
- * Number Prefix (MovedNumberPrefixPageRedirect), so a bookmark or an older
- * link lands on the page that replaced it.
+ * The page's old addresses, in each product: More Settings, a page that held
+ * the prefixes and nothing else, then Number Prefix, the page's name until it
+ * held the next numbers too. Both still work and forward to Numbering
+ * (MovedNumberPrefixPageRedirect), so a bookmark or an older link lands on
+ * the page that replaced them.
  */
 export const MORE_SETTINGS_PATH: string = "settings/more";
+
+export const NUMBER_PREFIX_PATH: string = "settings/number-prefix";
 
 export const NUMBER_PREFIX_EDIT_BUTTON_TITLE: string = "Update";
 

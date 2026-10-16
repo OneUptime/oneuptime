@@ -48,6 +48,13 @@ const POLICIES_PAGE_FILE: string =
 const QUESTION: string = "Who gets paged first?";
 const POLICIES_MENU_ENTRY: string = "On-Call Policies";
 
+/*
+ * Where the page's "## " sections are, in every language: the outline is
+ * the English page's, so the API section is the sixth of the seven.
+ */
+const SECTION_COUNT: number = 7;
+const API_SECTION: number = 5;
+
 function readRepoFile(relative: string): string {
   return fs.readFileSync(path.join(REPO_ROOT, relative), "utf8");
 }
@@ -100,10 +107,15 @@ describe("the Escalation Rules docs page, on who gets paged first", () => {
       "Who gets paged first",
       "Adding an escalation rule",
       "How the levels page people",
+      "Escalating to the next person in the rotation",
       "Editing, reordering and deleting rules",
       "Creating rules with the API or Terraform",
       "Next steps",
     ]);
+    expect(sections(ENGLISH)).toHaveLength(SECTION_COUNT);
+    expect(sections(ENGLISH)[API_SECTION]!.heading).toBe(
+      "Creating rules with the API or Terraform",
+    );
   });
 
   it("names the question the create form asks, and the page it is asked on", () => {
@@ -147,7 +159,7 @@ describe("the Escalation Rules docs page, on who gets paged first", () => {
   });
 
   it("gives the API: the policy's route and the misc data keys the server reads", () => {
-    const api: string = sections(ENGLISH)[4]!.body;
+    const api: string = sections(ENGLISH)[API_SECTION]!.body;
 
     expect(api).toContain(
       `\`/api${String(new OnCallDutyPolicy().crudApiPath)}\``,
@@ -177,10 +189,10 @@ describe("the Escalation Rules docs page, on who gets paged first", () => {
         const pageSections: Array<{ heading: string; body: string }> =
           sections(page);
 
-        expect(pageSections).toHaveLength(6);
+        expect(pageSections).toHaveLength(SECTION_COUNT);
 
         const first: string = pageSections[0]!.body;
-        const api: string = pageSections[4]!.body;
+        const api: string = pageSections[API_SECTION]!.body;
 
         for (const label of [
           QUESTION,

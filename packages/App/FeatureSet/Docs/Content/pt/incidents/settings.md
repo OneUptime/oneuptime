@@ -1,6 +1,6 @@
 # Configurações e automação de incidentes
 
-A configuração de incidentes fica em **Incidentes**, não em **Configurações do projeto**: os estados e as severidades, os modelos, os campos personalizados, as funções, as medições e os prefixos de número, e as regras que agem sobre cada incidente novo. Esta página é a referência de cada uma dessas páginas, e do que é executado por conta própria no momento em que um incidente é declarado.
+A configuração de incidentes fica em **Incidentes**, não em **Configurações do projeto**: os estados e as severidades, os modelos, os campos personalizados, as funções, as medições e a numeração, e as regras que agem sobre cada incidente novo. Esta página é a referência de cada uma dessas páginas, e do que é executado por conta própria no momento em que um incidente é declarado.
 
 :::cards
 - [Modelos de incidentes](#modelos-de-incidentes): Declare o mesmo tipo de incidente, preenchido, toda vez.
@@ -24,7 +24,7 @@ Abra **Incidentes** no menu **Produtos** da barra superior e expanda **Configura
 | **Funções de incidente**        | Definir as funções a que você atribui os respondedores, como Comandante do incidente.              |
 | **Medições**                    | Medir quanto tempo as coisas levam, como o tempo até a confirmação ou até a resolução, em todo incidente. |
 | **Alertas vinculados**          | Escolher se os alertas vinculados a um incidente são confirmados e resolvidos junto com ele. Os dois vêm ativados em projetos novos. |
-| **Prefixo do número**           | O texto antes dos números de incidente e de episódio, como `INC-` em `INC-42`.                     |
+| **Numeração**                   | O texto antes dos números de incidente e de episódio, como `INC-` em `INC-42`, e o número que o próximo recebe. |
 
 O que o OneUptime AI faz por conta própria não é configurado aqui: ele tem uma seção própria, **Incidentes → IA**, em rotas que começam com `/dashboard/{projectId}/incidents/ai/`. A página **Configurações** dela ativa ou desativa a investigação de incidentes novos, a correção automática deles (desativada até você ativá-la) — com os pull requests de correção e de telemetria ausente, que fazem parte da correção, agrupados abaixo dela — e os rascunhos de post-mortem, e cada um é salvo assim que você o altera; as regras de investigação e as regras de remediação automática que restringem quais incidentes são investigados e corrigidos, e os limites opcionais sob os quais a IA trabalha, ficam recolhidos em **Mais configurações**, e nenhum se aplica até você defini-lo. **Insights** e **Registros** ficam ao lado: o que a IA aprendeu com seus incidentes, e tudo o que ela fez. Veja [AI SRE](/docs/ai/ai-sre).
 
@@ -469,7 +469,7 @@ As funções são só definições. Você atribui pessoas a elas incidente por i
 
 Todo incidente recebe um número de um contador do projeto. Sem prefixo, ele aparece como `#42`; com um, aparece como `INC-42`. Se sua equipe diz «INC-42» em voz alta, faça o produto dizer isso também. Os projetos novos começam com `INC-` para incidentes e `IE-` para episódios de incidente.
 
-Vá em **Incidentes → Configurações → Prefixo do número** (`/dashboard/{projectId}/incidents/settings/number-prefix`). O cartão **Prefixo do número** tem uma linha para **Incidentes** e uma para **Incidente Episódios**. Cada uma mostra o prefixo dela e um exemplo do número que ele forma: `INC-`, e depois **Exemplo:** `INC-42`. Um projeto sem prefixo mostra **Sem prefixo** e `#42`.
+Vá em **Incidentes → Configurações → Numeração** (`/dashboard/{projectId}/incidents/settings/numbering`). O cartão **Prefixo do número** tem uma linha para **Incidentes** e uma para **Incidente Episódios**. Cada uma mostra o prefixo dela e um exemplo do número que ele forma: `INC-`, e depois **Exemplo:** `INC-42`. Um projeto sem prefixo mostra **Sem prefixo** e `#42`.
 
 :::steps
 1. Clique em **Atualizar**. A caixa de diálogo **Editar prefixo do número** se abre, com dois campos: **Prefixo de número de incidente** (texto de exemplo `INC-`) e **Prefixo de número de episódio de incidente** (texto de exemplo `IE-`).
@@ -489,7 +489,33 @@ A caixa de diálogo diz o que está errado antes de você salvar, e a API recusa
 
 Project Owners, Project Admins e qualquer pessoa com **Edit Project** podem alterar os prefixos. Todos os outros os veem com o botão **Atualizar** bloqueado.
 
-Alertas e eventos de manutenção programada têm a mesma página: **Alertas → Configurações → Prefixo do número** para os números de alertas e de episódios de alertas (`ALT-` e `AE-` em projetos novos), e **Manutenção programada → Configurações → Prefixo do número** para os números de eventos (`SM-`). Nos três, o endereço antigo de **Mais configurações** (`…/settings/more`) continua funcionando e abre **Prefixo do número**.
+Alertas e eventos de manutenção programada têm a mesma página: **Alertas → Configurações → Numeração** para os números de alertas e de episódios de alertas (`ALT-` e `AE-` em projetos novos), e **Manutenção programada → Configurações → Numeração** para os números de eventos (`SM-`). Nos três, os endereços antigos da página continuam funcionando e abrem **Numeração**: **Mais configurações** (`…/settings/more`) e **Prefixo do número** (`…/settings/number-prefix`).
+
+## Próximos números
+
+Cada incidente novo recebe o número depois do mais alto usado até agora, e cada episódio novo também: `INC-1`, `INC-2`, `INC-3` desde o primeiro de um projeto. Vindo de outra ferramenta? Faça os números do OneUptime começarem depois do último dessa ferramenta, para que um número nunca indique dois incidentes diferentes: uma equipe cujo último incidente na ferramenta antiga foi `INC-2345` define o próximo número como `2346`, ou como `10000` para distinguir num relance os incidentes do OneUptime.
+
+O cartão **Próximo número**, abaixo de **Prefixo do número** na mesma página, tem uma linha para **Incidentes** e uma para **Incidente Episódios**. Cada uma mostra o número que o próximo recebe, com o prefixo, e depois **Mais alto até agora:** e o número mais alto usado, ou **Nenhum usado ainda**.
+
+:::steps
+1. Clique em **Atualizar** no cartão **Próximo número**. A caixa de diálogo **Editar próximo número** abre, com **Próximo número de incidente** e **Próximo número de episódio de incidente**, cada um preenchido com o número que vem a seguir e dizendo o que precisa superar.
+2. Digite o número que o próximo deve receber. Abaixo de cada campo, **Pré-visualização:** o mostra com o prefixo, então você vê `INC-10000` antes de salvar `10000`.
+3. Clique em **Salvar alterações**. O próximo incidente recebe esse número, e os seguintes contam a partir dele: `INC-10000`, `INC-10001`.
+:::
+
+Um próximo número:
+
+- é um número inteiro de 1 a 1.000.000.000;
+- precisa ser maior que o número mais alto usado até agora — incidentes excluídos também contam —, para que um número nunca seja usado duas vezes;
+- pode ser baixado de novo enquanto nenhum incidente o usou: um erro de digitação como `100000` em vez de `10000` é desfeito salvando `10000`.
+
+A caixa de diálogo diz o que está errado antes de você salvar, e só os números que você mudou são salvos. O servidor verifica as mesmas regras e, se um incidente pegou o número enquanto a caixa de diálogo estava aberta, ele avisa e a caixa de diálogo mostra o novo número mais alto.
+
+**O que um novo próximo número muda.** Incidentes e episódios existentes mantêm seus números. O servidor atribui cada número em um único passo enquanto o registro é criado, então incidentes declarados no mesmo momento — por um monitor, um workflow e uma pessoa — recebem cada um o seu número, mesmo enquanto alguém muda o próximo número. Na API e no Terraform, o próximo número é onde os números começam: `incidentNumbersStartAt` e `incidentEpisodeNumbersStartAt` do projeto (`incident_numbers_start_at` e `incident_episode_numbers_start_at` no Terraform). Um valor igual ou menor que o número mais alto usado é recusado, e o valor já definido, enviado de novo, é aceito, então um apply do Terraform continua funcionando depois que os incidentes o ultrapassaram.
+
+Project Owners, Project Admins e qualquer pessoa com **Edit Project** podem alterar os próximos números, como os prefixos. Todos os outros os veem com o botão **Atualizar** bloqueado.
+
+Alertas e eventos de manutenção programada têm o mesmo cartão em suas páginas **Numeração**: **Próximo número de alerta** e **Próximo número de episódio de alerta**, e **Próximo número de manutenção programada**. [Importar de outra ferramenta](/docs/moving-to-oneuptime/incident-io) traz a sua configuração, não os seus incidentes passados, então deixa os números como estão: defina os próximos números antes de o primeiro incidente ser declarado no OneUptime.
 
 ## Interruptores de alertas vinculados
 

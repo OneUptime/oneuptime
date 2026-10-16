@@ -501,44 +501,48 @@ describe("Incidents side menu", () => {
           href: routeFor(PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS),
         },
         /*
-         * The number prefixes, on a page named for them. It replaced More
-         * Settings, which held nothing else.
+         * How numbers look and which comes next, on a page named for them.
+         * It was More Settings, then Number Prefix.
          */
         {
-          title: "Number Prefix",
-          href: routeFor(PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX),
+          title: "Numbering",
+          href: routeFor(PageMap.INCIDENTS_SETTINGS_NUMBERING),
         },
       ]);
     });
 
-    test("lists Number Prefix last, at settings/number-prefix", async () => {
+    test("lists Numbering last, at settings/numbering", async () => {
       await renderIncidentsMenu();
 
       const settings: Array<MenuLink> = linksIn("Settings");
 
       expect(settings[settings.length - 1]).toEqual({
-        title: "Number Prefix",
-        href: `/dashboard/${PROJECT_ID}/incidents/settings/number-prefix`,
+        title: "Numbering",
+        href: `/dashboard/${PROJECT_ID}/incidents/settings/numbering`,
       });
     });
 
-    test("has no More Settings entry, and nothing points at the old address", async () => {
+    test("has no More Settings or Number Prefix entry, and nothing points at their old addresses", async () => {
       await renderIncidentsMenu();
 
       expect(titlesInMenu()).not.toContain("More Settings");
+      expect(titlesInMenu()).not.toContain("Number Prefix");
       expect(hrefsInMenu()).not.toContain(
         `/dashboard/${PROJECT_ID}/incidents/settings/more`,
+      );
+      expect(hrefsInMenu()).not.toContain(
+        `/dashboard/${PROJECT_ID}/incidents/settings/number-prefix`,
       );
     });
 
     // Settings is collapsed by default, so it must open itself on its pages.
-    test("opens itself on the Number Prefix page, and marks it", async () => {
-      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/number-prefix`);
+    test("opens itself on the Numbering page, and marks it", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/numbering`);
       await renderIncidentsMenu();
 
       expect(isExpanded("Settings")).toBe(true);
       expect(isExpanded("Rules")).toBe(false);
-      expect(activeLinkTitles()).toEqual(["Number Prefix"]);
+      expect(activeLinkTitles()).toEqual(["Numbering"]);
     });
 
     test("lists Linked Alerts at settings/linked-alerts", async () => {
@@ -639,8 +643,8 @@ describe("Incidents side menu", () => {
       PageMap.INCIDENTS_SETTINGS_SLA_RULES,
       PageMap.INCIDENTS_SETTINGS_REMINDER_RULES,
       PageMap.INCIDENTS_SETTINGS_ROLES,
-      // More Settings, renamed for the one thing it held.
-      PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX,
+      // More Settings, then Number Prefix: named for what it holds.
+      PageMap.INCIDENTS_SETTINGS_NUMBERING,
     ];
 
     test("every settings page reachable before the move is still reachable", async () => {
@@ -750,11 +754,11 @@ describe("Incidents side menu", () => {
       expect(mobileSummaryText()).toContain("Settings / Incident Roles");
     });
 
-    test("names the Settings section on the Number Prefix page", async () => {
-      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/number-prefix`);
+    test("names the Settings section on the Numbering page", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/numbering`);
       await renderIncidentsMenu();
 
-      expect(mobileSummaryText()).toContain("Settings / Number Prefix");
+      expect(mobileSummaryText()).toContain("Settings / Numbering");
     });
 
     test("names the Settings section on the Linked Alerts page", async () => {

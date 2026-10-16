@@ -230,7 +230,7 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
         <div className="flex flex-1 items-center">
           <p className="text-[11px] leading-4 text-gray-400">
             {translator.translateText(
-              "Nothing reporting yet — no units or devices attached.",
+              "Nothing reporting yet: no devices or sites in it.",
             )}
           </p>
         </div>
@@ -250,9 +250,13 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
                   </div>
                 </React.Fragment>
               ) : (
-                <div className="truncate text-[11px] leading-4 text-gray-400">
-                  {translator.translateText("No unit rollup yet")}
-                </div>
+                /*
+                 * No unit-level sites below this one: nothing to count here.
+                 * "No unit rollup yet" waited for units that a company whose
+                 * sites are its offices never has; the devices line below
+                 * says what the site holds.
+                 */
+                <></>
               )}
             </div>
             <div className="flex-shrink-0 text-right">

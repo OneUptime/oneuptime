@@ -30,7 +30,10 @@ import URL from "../../../Types/API/URL";
 import { JSONObject } from "../../../Types/JSON";
 import { APIRequestOptions } from "../../../Utils/API";
 import MonitorType from "../../../Types/Monitor/MonitorType";
-import { ToolImportCategory } from "../../../Types/ToolImport/ToolImportCatalog";
+import {
+  getToolImportSourceDefinition,
+  ToolImportCategory,
+} from "../../../Types/ToolImport/ToolImportCatalog";
 import {
   ToolImportAction,
   ToolImportOutcome,
@@ -1324,4 +1327,101 @@ describe("uptime monitoring and status page tools", () => {
       },
     });
   });
+});
+
+/*
+ * The report's Finish the switch checklist, as the Moving from pages have
+ * it. A team leaving an on-call tool refers to its incidents by number: the
+ * import brings the setup over, not past incidents, so the numbers are the
+ * team's to carry on - before its first incident here - on Incidents →
+ * Settings → Numbering, where it sets the next incident number.
+ */
+describe("the report's Finish the switch checklist", () => {
+  const STEP: string = "Carry on your incident numbers";
+  const LINK: string = "Open Incident Numbering";
+
+  const toolsOf: (category: ToolImportCategory) => Array<ToolImportSource> = (
+    category: ToolImportCategory,
+  ): Array<ToolImportSource> => {
+    return AllToolImportSources.filter((source: ToolImportSource) => {
+      return getToolImportSourceDefinition(source).category === category;
+    });
+  };
+
+  async function openReport(source: ToolImportSource): Promise<HTMLElement> {
+    const done: ToolImportRunView = runView({
+      source: source,
+      status: ToolImportRunStatus.Completed,
+    });
+    server.runs = [done];
+    answerRun(RUN_ID, details(done, { report: { items: [] } }));
+
+    await renderPage();
+    fireEvent.click(
+      await screen.findByTestId(`tool-import-history-open-${RUN_ID}`, {}, WAIT),
+    );
+
+    return await screen.findByTestId("tool-import-finish", {}, WAIT);
+  }
+
+  // Each step of the checklist, in order.
+  function steps(finish: HTMLElement): Array<HTMLElement> {
+    return Array.from(finish.querySelectorAll("ol > li")) as Array<HTMLElement>;
+  }
+
+  function stepTitle(step: HTMLElement): string {
+    return step.querySelector("p")?.textContent || "";
+  }
+
+  test("the on-call tools are the five whose Moving from pages have the step", () => {
+    expect(toolsOf(ToolImportCategory.OnCall)).toEqual([
+      ToolImportSource.OpsGenie,
+      ToolImportSource.PagerDuty,
+      ToolImportSource.IncidentIo,
+      ToolImportSource.SplunkOnCall,
+      ToolImportSource.GrafanaOnCall,
+    ]);
+  });
+
+  test.each(toolsOf(ToolImportCategory.OnCall))(
+    "%s: carry on the incident numbers after making sure everyone can be paged, from Incidents → Settings → Numbering",
+    async (source: ToolImportSource) => {
+      const finish: HTMLElement = await openReport(source);
+      const titles: Array<string> = steps(finish).map(stepTitle);
+      const at: number = titles.indexOf(STEP);
+
+      expect(titles).toEqual([
+        "Check the on-call schedules",
+        "Make sure everyone can be paged",
+        STEP,
+        "Send your alerts to OneUptime",
+        `Turn off paging in ${getToolImportSourceDefinition(source).title}`,
+      ]);
+
+      const step: HTMLElement = steps(finish)[at]!;
+
+      expect(step).toHaveTextContent(
+        `If your team refers to incidents by number, start OneUptime's after your last one in ${
+          getToolImportSourceDefinition(source).title
+        }: set Next Incident Number to one past it. A number then never means two different incidents.`,
+      );
+      expect(within(step).getByRole("link", { name: LINK })).toHaveAttribute(
+        "href",
+        `/dashboard/${PROJECT_ID}/incidents/settings/numbering`,
+      );
+    },
+  );
+
+  test.each(toolsOf(ToolImportCategory.Monitoring))(
+    "%s: an uptime or status page tool's checklist has no numbering step",
+    async (source: ToolImportSource) => {
+      const finish: HTMLElement = await openReport(source);
+
+      expect(steps(finish).length).toBeGreaterThan(0);
+      expect(finish).not.toHaveTextContent(STEP);
+      expect(
+        within(finish).queryByRole("link", { name: LINK }),
+      ).not.toBeInTheDocument();
+    },
+  );
 });

@@ -303,43 +303,47 @@ describe("Scheduled maintenance side menu", () => {
          * Settings, which held nothing else.
          */
         {
-          title: "Number Prefix",
+          title: "Numbering",
           href: routeFor(
-            PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX,
+            PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING,
           ),
         },
       ]);
     });
 
-    test("lists Number Prefix last, at settings/number-prefix", async () => {
+    test("lists Numbering last, at settings/numbering", async () => {
       await renderScheduledMaintenanceMenu();
 
       const settings: Array<MenuLink> = linksIn("Settings");
 
       expect(settings[settings.length - 1]).toEqual({
-        title: "Number Prefix",
-        href: `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/settings/number-prefix`,
+        title: "Numbering",
+        href: `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/settings/numbering`,
       });
     });
 
-    test("has no More Settings entry, and nothing points at the old address", async () => {
+    test("has no More Settings or Number Prefix entry, and nothing points at their old addresses", async () => {
       await renderScheduledMaintenanceMenu();
 
       expect(titlesInMenu()).not.toContain("More Settings");
+      expect(titlesInMenu()).not.toContain("Number Prefix");
       expect(hrefsInMenu()).not.toContain(
         `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/settings/more`,
+      );
+      expect(hrefsInMenu()).not.toContain(
+        `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/settings/number-prefix`,
       );
     });
 
     // Settings is collapsed by default, so it must open itself on its pages.
-    test("opens itself on the Number Prefix page, and marks it", async () => {
+    test("opens itself on the Numbering page, and marks it", async () => {
       goTo(
-        `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/settings/number-prefix`,
+        `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/settings/numbering`,
       );
       await renderScheduledMaintenanceMenu();
 
       expect(isExpanded("Settings")).toBe(true);
-      expect(activeLinkTitles()).toEqual(["Number Prefix"]);
+      expect(activeLinkTitles()).toEqual(["Numbering"]);
     });
 
     test("no longer holds any rule page", async () => {
@@ -367,8 +371,8 @@ describe("Scheduled maintenance side menu", () => {
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RUNBOOK_RULES,
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULES,
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_REMINDER_RULES,
-      // More Settings, renamed for the one thing it held.
-      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBER_PREFIX,
+      // More Settings, then Number Prefix: named for what it holds.
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING,
     ];
 
     test("every settings page reachable before the move is still reachable", async () => {

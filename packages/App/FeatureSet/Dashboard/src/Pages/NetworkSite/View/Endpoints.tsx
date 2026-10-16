@@ -43,9 +43,9 @@ const NetworkSiteEndpoints: FunctionComponent<
         cardProps={{
           title: "Endpoints at this Site",
           description:
-            "Devices attached to this site's monitored switches and routers, discovered from ARP and FDB data.",
+            "What is plugged into this site's switches and routers, read from their address tables.",
         }}
-        noItemsMessage="No endpoints discovered at this site yet. Enable endpoint collection on the site's switch and router monitors — attached devices appear here as ARP and FDB data comes in."
+        noItemsMessage="No endpoints at this site yet. Turn on Collect Connected Endpoints on one of its switches or routers - its Settings page, Edit Polling - and what is plugged into it appears here after its next poll."
         formFields={[
           {
             field: {

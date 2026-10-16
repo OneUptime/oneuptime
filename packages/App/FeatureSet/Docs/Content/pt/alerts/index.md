@@ -60,7 +60,7 @@ Abra **Alertas** no menu **Produtos** da barra superior. A lista de alertas fica
 | **IA**                 | **Insights**, **Registros** e **Configurações**: o que o OneUptime AI aprendeu com seus alertas, tudo o que fez e o que pode fazer. |
 | **Espaço de trabalho** | **Slack** e **Microsoft Teams**, conforme o que o projeto conectou, ou **Conectar Slack ou Teams** quando não tem nenhum dos dois. |
 | **Regras**             | **Regras de agrupamento**, **Regras de Plantão**, **Regras de proprietário**, **Regras de runbook**, **Regras de privacidade**, **Regras de Rótulos**, **Reminder Rules**. |
-| **Configurações**      | **Estado do alerta**, **Severidade do alerta**, **Modelos de notas**, **Campos personalizados**, **Medições**, **Prefixo do número**. |
+| **Configurações**      | **Estado do alerta**, **Severidade do alerta**, **Modelos de notas**, **Campos personalizados**, **Medições**, **Numeração**. |
 
 **Alertas** e **Episódios** ficam abertas; **IA**, **Espaço de trabalho**, **Regras**, **Configurações** e **Desenvolvedores** começam recolhidas, e uma seção se abre sozinha quando você está em uma de suas páginas. A configuração dos alertas fica aqui, não em **Configurações do projeto**.
 

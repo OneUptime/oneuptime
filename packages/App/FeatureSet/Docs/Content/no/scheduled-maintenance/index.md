@@ -57,7 +57,7 @@ Kunngjøringer beskrives på [Abonnenter og kunngjøringer](/docs/status-pages/s
 | **Oversikt**  | **Alle hendelser** og **Pågående hendelser**, der merket teller hendelsene som pågår akkurat nå.                            |
 | **Arbeidsområde** | **Slack** og **Microsoft Teams**, avhengig av hva prosjektet har koblet til, eller **Koble til Slack eller Teams** når det ikke har noen av dem. |
 | **Regler**    | **Eierregler**, **Runbook-regler**, **Etikettregler**, **Reminder Rules**.                                                  |
-| **Innstillinger** | **Hendelsesstatus**, **Hendelsesmaler**, **Notatmaler**, **Egendefinerte felt**, **Målinger**, **Nummerprefiks**.       |
+| **Innstillinger** | **Hendelsesstatus**, **Hendelsesmaler**, **Notatmaler**, **Egendefinerte felt**, **Målinger**, **Nummerering**.       |
 
 **Oversikt** er åpen; **Arbeidsområde**, **Regler**, **Innstillinger** og **Utvikler** starter sammenslått, og en seksjon åpner seg av seg selv når du er på en av sidene dens. **Utvikler** rommer **Terraform**, **API** og **AI-assistenter**, for å styre vedlikehold fra kode. Alt om vedlikehold ligger her, ikke i **Prosjektinnstillinger**.
 

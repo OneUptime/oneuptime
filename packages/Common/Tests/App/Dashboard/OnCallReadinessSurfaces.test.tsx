@@ -1024,15 +1024,18 @@ describe("the escalation summary's readiness dots", () => {
   };
 
   /*
-   * The chip is the element whose own text is the responder label - the icon and
-   * the dot are element children, so they do not interfere with the match.
+   * The chip is the responder element around the label. The label and what
+   * is said about it ("next in rotation") are one run of text inside it, so
+   * a long name wraps as a line; the icon and the dot sit beside that text.
    */
   type ChipForFunction = (label: string) => HTMLElement;
 
   const chipFor: ChipForFunction = (label: string): HTMLElement => {
     const chip: HTMLElement | null = screen
       .getByText(label)
-      .closest("span") as HTMLElement | null;
+      .closest(
+        '[data-testid="escalation-summary-responder"]',
+      ) as HTMLElement | null;
 
     if (!chip) {
       throw new Error(`no responder chip for ${label}`);

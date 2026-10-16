@@ -88,6 +88,9 @@ En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan kryss
 ### Sørg for at alle kan varsles
 Inviterte personer godtar invitasjonen og legger deretter til et telefonnummer, en e-postadresse eller mobilappen de kan varsles på. **Vakttjeneste** > **Beredskap** viser hvem som ikke kan nås ennå.
 
+### Fortsett hendelsesnumrene dine
+Hvis teamet ditt omtaler hendelser med nummer, la numrene i OneUptime starte etter det siste du hadde i PagerDuty: Under **Hendelser** > **Innstillinger** > **Nummerering** setter du **Neste hendelsesnummer** på kortet **Neste nummer** til nummeret etter det. Et nummer betyr da aldri to forskjellige hendelser.
+
 ### Send varslene dine til OneUptime
 Pek monitorene dine og verktøyene som utløser varsler, mot OneUptime, og varsle deg selv én gang for å teste det.
 

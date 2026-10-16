@@ -34,6 +34,10 @@ function readSource(relativePath: string): string {
   );
 }
 
+// The confirmation's count goes through the plural template, however wrapped.
+const COUNTED_CONFIRMATION_CALL: RegExp =
+  /translator\.translatePlural\( ?RECOMMENDED_POLICY_CONFIRM_COUNTED, ?deviceCount,? ?\)/;
+
 function squash(text: string): string {
   return text.replace(/\s+/g, " ");
 }
@@ -361,10 +365,22 @@ describe("the policies page is where policies are managed", () => {
   test("the copy is honest about the bill, a ping-only device and the delete", () => {
     const source: string = squash(readSource(PAGE_SOURCE));
 
-    expect(source).toContain("one Network Device monitor per matching device");
-    expect(source).toContain("counts towards your plan");
-    expect(source).toContain("which is the most this can provision");
-    expect(source).toContain("only the reachability item can fire");
+    // The bill: one monitor per device, each on the plan.
+    expect(source).toContain("adds one monitor to every device it covers");
+    expect(source).toContain("each monitor counts towards your plan");
+    expect(source).toContain(
+      "adds one monitor per covered device, each counted towards your plan",
+    );
+    // The reach, as an upper bound, in a sentence a language can word whole.
+    expect(source).toContain("up to {{count}} monitors today");
+    expect(source).toContain("up to {{count}} monitor today");
+    expect(source).toMatch(COUNTED_CONFIRMATION_CALL);
+    expect(source).not.toContain("which is the most this can provision");
+    // The ping-only device.
+    expect(source).toContain(
+      "A device without SNMP credentials is only pinged, so only the stops-answering check can fire on it.",
+    );
+    // The delete.
     expect(source).toContain("deleting one deletes them");
   });
 });

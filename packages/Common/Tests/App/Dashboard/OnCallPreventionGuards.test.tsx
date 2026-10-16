@@ -234,6 +234,7 @@ describe("Escalation rule form: reading the responder selection", () => {
   test("a rule's current join rows become the picks its edit dialog opens with", () => {
     expect(getRuleResponderIds(membersByRuleId["rule-1"]!)).toEqual({
       onCallSchedules: [],
+      nextInRotationSchedules: [],
       teams: [USER_JO],
       users: [USER_ALEX, USER_SAM],
     });
@@ -244,7 +245,12 @@ describe("Escalation rule form: reading the responder selection", () => {
         teamJoins: [],
         scheduleJoins: [{ onCallDutyPolicySchedule: { name: "x" } } as any],
       }),
-    ).toEqual({ onCallSchedules: [], teams: [], users: [] });
+    ).toEqual({
+      onCallSchedules: [],
+      nextInRotationSchedules: [],
+      teams: [],
+      users: [],
+    });
   });
 });
 
