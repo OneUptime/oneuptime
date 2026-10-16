@@ -71,6 +71,7 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
+import ProductBrandingText from "../Utils/ProductBrandingText";
 import ChannelMembersNotAddedNotice, {
   ChannelMembersNotAdded,
 } from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
@@ -2510,13 +2511,16 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       const ruleName: string = (data.rules[0]?.name || "").trim();
 
+      // The installation's own name, when it goes by one.
+      const productName: string = ProductBrandingText.getProductName();
+
       const heading: MarkdownText = data.record.title
         ? mdText`📌 This channel is for **[${data.record.displayName}](${data.record.link.toString()})**: ${data.record.title}`
         : mdText`📌 This channel is for **[${data.record.displayName}](${data.record.link.toString()})**.`;
 
       const why: MarkdownText = ruleName
-        ? mdText`OneUptime created it when the ${recordWord} matched the rule **${ruleName}**, and posts the ${recordWord}'s updates here.`
-        : mdText`OneUptime created it when the ${recordWord} matched a notification rule, and posts the ${recordWord}'s updates here.`;
+        ? mdText`${productName} created it when the ${recordWord} matched the rule **${ruleName}**, and posts the ${recordWord}'s updates here.`
+        : mdText`${productName} created it when the ${recordWord} matched a notification rule, and posts the ${recordWord}'s updates here.`;
 
       const markdown: string = FeedMarkdown.join(
         [heading, why],

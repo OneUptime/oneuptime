@@ -3,6 +3,7 @@ import Semaphore, {
   SemaphoreLockTimeoutError,
 } from "../../../../Server/Infrastructure/Semaphore";
 import WorkspaceNotificationRuleService from "../../../../Server/Services/WorkspaceNotificationRuleService";
+import EnterpriseEdition from "../../../../Server/Enterprise/EnterpriseEdition";
 import MicrosoftTeamsUtil from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import { WorkspaceSendMessageResponse } from "../../../../Server/Utils/Workspace/WorkspaceBase";
 import { JSONObject } from "../../../../Types/JSON";
@@ -598,5 +599,23 @@ describe("the intro's words", () => {
     // A rule's name is text: its Markdown characters are escaped.
     expect(text).not.toContain("**[rule](https://example.com)**");
     expect(text).toContain("OneUptime created it when the incident matched");
+  });
+
+  // Server-written text that names the product says the installation's name.
+  test("name the installation as it goes by another name", async () => {
+    jest.spyOn(EnterpriseEdition, "getProductBranding").mockReturnValue({
+      productName: "Acme Paging",
+    });
+
+    acknowledgedIncidentsRule();
+
+    await world.createIncidentChannels();
+    await acknowledge();
+
+    const intro: JSONObject = world.slackRequestsOf("chat.postMessage")[0]!;
+    const text: string = JSON.stringify(intro["blocks"]);
+
+    expect(text).toContain("Acme Paging created it when the incident matched");
+    expect(text).not.toContain("OneUptime created it");
   });
 });
