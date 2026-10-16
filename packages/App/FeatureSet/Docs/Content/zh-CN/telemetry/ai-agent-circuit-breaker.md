@@ -125,7 +125,7 @@ app.post("/circuit-breaker", (req, res) => {
 
 ### 添加触发器
 
-点击虚线框 **Choose what starts this workflow** ，在 **Add Trigger** 面板中选择 **On Create Alert** 。点击触发器： **Fields to pass on** 一开始就带有标题，所以点击 **添加字段** ，勾选描述，然后点击 **保存** 。块上的 ID `alert-on-create-1` 是后续块引用它的方式。
+点击虚线框 **Choose what starts this workflow** ，在 **添加触发器** 面板中选择 **On Create Alert** 。点击触发器： **Fields to pass on** 一开始就带有标题，所以点击 **添加字段** ，勾选描述，然后点击 **保存** 。块上的 ID `alert-on-create-1` 是后续块引用它的方式。
 
 ### 检查标题
 

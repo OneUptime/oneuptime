@@ -122,7 +122,7 @@ Il nuovo workflow si apre nel **Costruttore**, disattivato.
 
 ### Aggiungi il trigger
 
-Fai clic sul blocco tratteggiato **Choose what starts this workflow**, poi su **On Create Incident** sotto **Popular** nel pannello **Add Trigger**.
+Fai clic sul blocco tratteggiato **Choose what starts this workflow**, poi su **On Create Incident** sotto **Popular** nel pannello **Aggiungi trigger**.
 
 Il trigger prende il posto del blocco tratteggiato. L'ID che compare su di esso, `incident-on-create-1`, è il modo in cui i blocchi successivi vi fanno riferimento.
 

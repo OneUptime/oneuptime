@@ -243,3 +243,60 @@ describe("the notice for a workflow that is off", () => {
     expect(notice.querySelector('[aria-hidden="true"] svg')).not.toBeNull();
   });
 });
+
+/*
+ * UI review: the notice is as wide as the Builder's column, which beside the
+ * side menu is some 430px on a tablet. With the button beside the sentences
+ * from sm up, they were squeezed into a column of one or two words a line, a
+ * dozen lines tall in German. jsdom draws no layout, so this holds the
+ * classes; the screenshots of the review saw the result.
+ */
+describe("the notice's layout on narrow screens", () => {
+  type ClassesFunction = (element: HTMLElement) => Array<string>;
+
+  const classesOf: ClassesFunction = (element: HTMLElement): Array<string> => {
+    return Array.from(element.classList);
+  };
+
+  test("its button sits beside the sentences only from lg up, and under them before that", () => {
+    render(<WorkflowTurnedOffNotice onTurnOn={getJestMockFunction()} />);
+
+    const notice: HTMLElement = screen.getByTestId(
+      "workflow-turned-off-notice",
+    );
+
+    expect(classesOf(notice)).toEqual(
+      expect.arrayContaining(["flex", "flex-col", "lg:flex-row"]),
+    );
+    // Not from a tablet's width: sm (640px) and md (768px) are too narrow.
+    const ROW_FROM_A_TABLET: RegExp = /^(sm|md):flex-row$/;
+
+    expect(
+      classesOf(notice).filter((name: string) => {
+        return ROW_FROM_A_TABLET.test(name);
+      }),
+    ).toEqual([]);
+  });
+
+  test("under the sentences, the button starts where they do, past the icon", () => {
+    render(<WorkflowTurnedOffNotice onTurnOn={getJestMockFunction()} />);
+
+    const holder: HTMLElement = screen.getByTestId("workflow-turn-on-button")
+      .parentElement as HTMLElement;
+
+    // The icon is h-8 w-8 and gap-3 follows it: 32px, plus the button's 12px.
+    expect(classesOf(holder)).toEqual(
+      expect.arrayContaining(["shrink-0", "md:pl-8", "lg:pl-0"]),
+    );
+    expect(classesOf(screen.getByTestId("workflow-turn-on-button"))).toContain(
+      "md:ml-3",
+    );
+    expect(
+      classesOf(
+        screen
+          .getByTestId("workflow-turned-off-notice")
+          .querySelector('[aria-hidden="true"]') as HTMLElement,
+      ),
+    ).toEqual(expect.arrayContaining(["h-8", "w-8"]));
+  });
+});

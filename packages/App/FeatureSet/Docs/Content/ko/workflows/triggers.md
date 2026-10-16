@@ -196,7 +196,7 @@ flowchart TB
 | **상태 페이지 구독자**                    | 상태 페이지를 구독한 사람을 환영하기.                                                     |
 | **온콜 정책**                             | 정책 변경을 다른 온콜 시스템과 동기화하기.                                                |
 
-**Add Trigger** 패널에서는 **OneUptime resources** 아래에 있습니다. 리소스를 클릭한 다음 트리거를 클릭하세요. **Browse all resources**에는 모두 있고, 검색 상자는 `incident created` 처럼 몇 단어로 트리거를 찾아 줍니다.
+**트리거 추가** 패널에서는 **OneUptime resources** 아래에 있습니다. 리소스를 클릭한 다음 트리거를 클릭하세요. **Browse all resources**에는 모두 있고, 검색 상자는 `incident created` 처럼 몇 단어로 트리거를 찾아 줍니다.
 
 ## 다음 단계
 
