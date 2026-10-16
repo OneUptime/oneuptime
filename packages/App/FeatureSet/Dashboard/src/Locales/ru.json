@@ -29804,5 +29804,19 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "Каждое подходящее письмо открывает свой инцидент, даже пока прежние ещё открыты. Ответы добавляются к этому инциденту как заметки, пока он не будет устранён.",
   "alerts for every email": "оповещения для каждого письма",
   "incidents for every email": "инциденты для каждого письма",
-  "alerts and incidents for every email": "оповещения и инциденты для каждого письма"
+  "alerts and incidents for every email": "оповещения и инциденты для каждого письма",
+  "Checking again: alert {{alert}} opened on this incident's infrastructure after the first analysis": "Повторная проверка: после первого анализа в инфраструктуре этого инцидента открылось оповещение {{alert}}",
+  "Checking again: alert {{alert}} opened on {{resource}} after the first analysis": "Повторная проверка: после первого анализа на {{resource}} открылось оповещение {{alert}}",
+  "Checking again: an alert opened on this incident's infrastructure after the first analysis": "Повторная проверка: после первого анализа в инфраструктуре этого инцидента открылось оповещение",
+  "Checking again: an alert opened on {{resource}} after the first analysis": "Повторная проверка: после первого анализа на {{resource}} открылось оповещение",
+  "Checking the host's containers": "Проверка контейнеров хоста",
+  "Follow-up For Alert ID": "ID оповещения повторной проверки",
+  "No open or recent alerts on {{resources}}": "Нет открытых или недавних оповещений на {{resources}}",
+  "Read the {{count}} newest open or recent alerts on {{resources}}": "Прочитаны {{count}} самых новых открытых или недавних оповещений на {{resources}}",
+  "Read {{count}} open or recent alerts on {{resources}}": "Прочитано открытых или недавних оповещений на {{resources}}: {{count}}",
+  "Read {{count}} open or recent alerts on {{resources}}_one": "Прочитано {{count}} открытое или недавнее оповещение на {{resources}}",
+  "Reading a resource's telemetry": "Чтение телеметрии ресурса",
+  "Storage array": "Система хранения",
+  "{{names}} and {{count}} more": "{{names}} и ещё {{count}}",
+  "{{names}} and {{count}} more_one": "{{names}} и ещё {{count}}"
 }

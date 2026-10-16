@@ -29804,5 +29804,19 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "每封匹配的邮件都会新建一个独立的事件，即使之前的仍未关闭。在该事件解决之前，回复会作为备注添加到其中。",
   "alerts for every email": "每封邮件一个警报",
   "incidents for every email": "每封邮件一个事件",
-  "alerts and incidents for every email": "每封邮件一个警报和事件"
+  "alerts and incidents for every email": "每封邮件一个警报和事件",
+  "Checking again: alert {{alert}} opened on this incident's infrastructure after the first analysis": "再次检查：首次分析后，此事件的基础设施上触发了警报 {{alert}}",
+  "Checking again: alert {{alert}} opened on {{resource}} after the first analysis": "再次检查：首次分析后，{{resource}} 上触发了警报 {{alert}}",
+  "Checking again: an alert opened on this incident's infrastructure after the first analysis": "再次检查：首次分析后，此事件的基础设施上触发了一条警报",
+  "Checking again: an alert opened on {{resource}} after the first analysis": "再次检查：首次分析后，{{resource}} 上触发了一条警报",
+  "Checking the host's containers": "正在检查主机的容器",
+  "Follow-up For Alert ID": "再次检查的警报 ID",
+  "No open or recent alerts on {{resources}}": "{{resources}} 上没有未解决或最近的警报",
+  "Read the {{count}} newest open or recent alerts on {{resources}}": "已读取 {{resources}} 上最新的 {{count}} 条未解决或最近的警报",
+  "Read {{count}} open or recent alerts on {{resources}}": "已读取 {{resources}} 上 {{count}} 条未解决或最近的警报",
+  "Read {{count}} open or recent alerts on {{resources}}_one": "已读取 {{resources}} 上 {{count}} 条未解决或最近的警报",
+  "Reading a resource's telemetry": "正在读取资源的遥测数据",
+  "Storage array": "存储阵列",
+  "{{names}} and {{count}} more": "{{names}} 等另外 {{count}} 个",
+  "{{names}} and {{count}} more_one": "{{names}} 等另外 {{count}} 个"
 }

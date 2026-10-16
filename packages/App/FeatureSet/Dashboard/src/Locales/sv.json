@@ -29804,5 +29804,19 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "Varje e-postmeddelande som matchar öppnar en egen incident, även medan tidigare fortfarande är öppna. Svar läggs till i incidenten som anteckningar tills den är löst.",
   "alerts for every email": "varningar för varje e-postmeddelande",
   "incidents for every email": "incidenter för varje e-postmeddelande",
-  "alerts and incidents for every email": "varningar och incidenter för varje e-postmeddelande"
+  "alerts and incidents for every email": "varningar och incidenter för varje e-postmeddelande",
+  "Checking again: alert {{alert}} opened on this incident's infrastructure after the first analysis": "Kontrollerar igen: varning {{alert}} öppnades på den här incidentens infrastruktur efter den första analysen",
+  "Checking again: alert {{alert}} opened on {{resource}} after the first analysis": "Kontrollerar igen: varning {{alert}} öppnades på {{resource}} efter den första analysen",
+  "Checking again: an alert opened on this incident's infrastructure after the first analysis": "Kontrollerar igen: en varning öppnades på den här incidentens infrastruktur efter den första analysen",
+  "Checking again: an alert opened on {{resource}} after the first analysis": "Kontrollerar igen: en varning öppnades på {{resource}} efter den första analysen",
+  "Checking the host's containers": "Kontrollerar värdens containrar",
+  "Follow-up For Alert ID": "Varnings-ID för den nya kontrollen",
+  "No open or recent alerts on {{resources}}": "Inga öppna eller nya varningar på {{resources}}",
+  "Read the {{count}} newest open or recent alerts on {{resources}}": "Läste de {{count}} senaste öppna eller nya varningarna på {{resources}}",
+  "Read {{count}} open or recent alerts on {{resources}}": "Läste {{count}} öppna eller nya varningar på {{resources}}",
+  "Read {{count}} open or recent alerts on {{resources}}_one": "Läste {{count}} öppen eller ny varning på {{resources}}",
+  "Reading a resource's telemetry": "Läser en resurs telemetri",
+  "Storage array": "Lagringsarray",
+  "{{names}} and {{count}} more": "{{names}} och {{count}} till",
+  "{{names}} and {{count}} more_one": "{{names}} och {{count}} till"
 }

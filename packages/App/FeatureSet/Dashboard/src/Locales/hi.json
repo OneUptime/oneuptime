@@ -29804,5 +29804,19 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "मेल खाने वाला हर ईमेल अपनी अलग घटना खोलता है, भले ही पहले वाली अभी खुली हों। जवाब उस घटना में नोट के रूप में तब तक जुड़ते हैं जब तक वह सुलझ नहीं जाती।",
   "alerts for every email": "हर ईमेल के लिए अलर्ट",
   "incidents for every email": "हर ईमेल के लिए घटनाएं",
-  "alerts and incidents for every email": "हर ईमेल के लिए अलर्ट और घटनाएं"
+  "alerts and incidents for every email": "हर ईमेल के लिए अलर्ट और घटनाएं",
+  "Checking again: alert {{alert}} opened on this incident's infrastructure after the first analysis": "फिर से जाँच: पहले विश्लेषण के बाद इस घटना के इन्फ्रास्ट्रक्चर पर अलर्ट {{alert}} खुला",
+  "Checking again: alert {{alert}} opened on {{resource}} after the first analysis": "फिर से जाँच: पहले विश्लेषण के बाद {{resource}} पर अलर्ट {{alert}} खुला",
+  "Checking again: an alert opened on this incident's infrastructure after the first analysis": "फिर से जाँच: पहले विश्लेषण के बाद इस घटना के इन्फ्रास्ट्रक्चर पर एक अलर्ट खुला",
+  "Checking again: an alert opened on {{resource}} after the first analysis": "फिर से जाँच: पहले विश्लेषण के बाद {{resource}} पर एक अलर्ट खुला",
+  "Checking the host's containers": "होस्ट के कंटेनर जाँचे जा रहे हैं",
+  "Follow-up For Alert ID": "फिर से जाँच की अलर्ट ID",
+  "No open or recent alerts on {{resources}}": "{{resources}} पर कोई खुला या हाल का अलर्ट नहीं",
+  "Read the {{count}} newest open or recent alerts on {{resources}}": "{{resources}} पर सबसे नए {{count}} खुले या हाल के अलर्ट पढ़े",
+  "Read {{count}} open or recent alerts on {{resources}}": "{{resources}} पर {{count}} खुले या हाल के अलर्ट पढ़े",
+  "Read {{count}} open or recent alerts on {{resources}}_one": "{{resources}} पर {{count}} खुला या हाल का अलर्ट पढ़ा",
+  "Reading a resource's telemetry": "किसी संसाधन की टेलीमेट्री पढ़ी जा रही है",
+  "Storage array": "स्टोरेज ऐरे",
+  "{{names}} and {{count}} more": "{{names}} और {{count}} अन्य",
+  "{{names}} and {{count}} more_one": "{{names}} और {{count}} अन्य"
 }

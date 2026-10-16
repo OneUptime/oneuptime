@@ -29804,5 +29804,19 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "일치하는 이메일은 이전 항목이 아직 열려 있어도 각각 자체 인시던트를 엽니다. 답장은 해당 인시던트가 해결될 때까지 노트로 추가됩니다.",
   "alerts for every email": "이메일마다 알림",
   "incidents for every email": "이메일마다 인시던트",
-  "alerts and incidents for every email": "이메일마다 알림과 인시던트"
+  "alerts and incidents for every email": "이메일마다 알림과 인시던트",
+  "Checking again: alert {{alert}} opened on this incident's infrastructure after the first analysis": "다시 확인 중: 첫 번째 분석 후 이 인시던트의 인프라에서 경고 {{alert}}이(가) 발생했습니다",
+  "Checking again: alert {{alert}} opened on {{resource}} after the first analysis": "다시 확인 중: 첫 번째 분석 후 {{resource}}에서 경고 {{alert}}이(가) 발생했습니다",
+  "Checking again: an alert opened on this incident's infrastructure after the first analysis": "다시 확인 중: 첫 번째 분석 후 이 인시던트의 인프라에서 경고가 발생했습니다",
+  "Checking again: an alert opened on {{resource}} after the first analysis": "다시 확인 중: 첫 번째 분석 후 {{resource}}에서 경고가 발생했습니다",
+  "Checking the host's containers": "호스트의 컨테이너 확인 중",
+  "Follow-up For Alert ID": "재확인 경고 ID",
+  "No open or recent alerts on {{resources}}": "{{resources}}에 열려 있거나 최근 발생한 경고가 없습니다",
+  "Read the {{count}} newest open or recent alerts on {{resources}}": "{{resources}}에서 열려 있거나 최근 발생한 경고 중 최신 {{count}}개를 읽었습니다",
+  "Read {{count}} open or recent alerts on {{resources}}": "{{resources}}에서 열려 있거나 최근 발생한 경고 {{count}}개를 읽었습니다",
+  "Read {{count}} open or recent alerts on {{resources}}_one": "{{resources}}에서 열려 있거나 최근 발생한 경고 {{count}}개를 읽었습니다",
+  "Reading a resource's telemetry": "리소스의 텔레메트리 읽는 중",
+  "Storage array": "스토리지 어레이",
+  "{{names}} and {{count}} more": "{{names}} 외 {{count}}개",
+  "{{names}} and {{count}} more_one": "{{names}} 외 {{count}}개"
 }

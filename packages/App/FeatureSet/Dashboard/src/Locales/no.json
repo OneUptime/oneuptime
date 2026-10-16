@@ -29804,5 +29804,19 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "Hver e-post som samsvarer, åpner sin egen hendelse, selv mens tidligere fortsatt er åpne. Svar legges til hendelsen som notater til den er løst.",
   "alerts for every email": "varsler for hver e-post",
   "incidents for every email": "hendelser for hver e-post",
-  "alerts and incidents for every email": "varsler og hendelser for hver e-post"
+  "alerts and incidents for every email": "varsler og hendelser for hver e-post",
+  "Checking again: alert {{alert}} opened on this incident's infrastructure after the first analysis": "Sjekker igjen: varsel {{alert}} ble åpnet på denne hendelsens infrastruktur etter den første analysen",
+  "Checking again: alert {{alert}} opened on {{resource}} after the first analysis": "Sjekker igjen: varsel {{alert}} ble åpnet på {{resource}} etter den første analysen",
+  "Checking again: an alert opened on this incident's infrastructure after the first analysis": "Sjekker igjen: et varsel ble åpnet på denne hendelsens infrastruktur etter den første analysen",
+  "Checking again: an alert opened on {{resource}} after the first analysis": "Sjekker igjen: et varsel ble åpnet på {{resource}} etter den første analysen",
+  "Checking the host's containers": "Sjekker vertens containere",
+  "Follow-up For Alert ID": "Varsel-ID for den nye sjekken",
+  "No open or recent alerts on {{resources}}": "Ingen åpne eller nye varsler på {{resources}}",
+  "Read the {{count}} newest open or recent alerts on {{resources}}": "Leste de {{count}} nyeste åpne eller nye varslene på {{resources}}",
+  "Read {{count}} open or recent alerts on {{resources}}": "Leste {{count}} åpne eller nye varsler på {{resources}}",
+  "Read {{count}} open or recent alerts on {{resources}}_one": "Leste {{count}} åpent eller nytt varsel på {{resources}}",
+  "Reading a resource's telemetry": "Leser en ressurs' telemetri",
+  "Storage array": "Lagringsarray",
+  "{{names}} and {{count}} more": "{{names}} og {{count}} til",
+  "{{names}} and {{count}} more_one": "{{names}} og {{count}} til"
 }

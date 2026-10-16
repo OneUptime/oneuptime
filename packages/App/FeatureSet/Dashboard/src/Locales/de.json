@@ -29804,5 +29804,19 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "Jede passende E-Mail eröffnet einen eigenen Vorfall, auch wenn frühere noch offen sind. Antworten werden dem Vorfall als Notizen hinzugefügt, bis er behoben ist.",
   "alerts for every email": "Warnungen für jede E-Mail",
   "incidents for every email": "Vorfälle für jede E-Mail",
-  "alerts and incidents for every email": "Warnungen und Vorfälle für jede E-Mail"
+  "alerts and incidents for every email": "Warnungen und Vorfälle für jede E-Mail",
+  "Checking again: alert {{alert}} opened on this incident's infrastructure after the first analysis": "Erneute Prüfung: Warnung {{alert}} wurde nach der ersten Analyse in der Infrastruktur dieses Vorfalls ausgelöst",
+  "Checking again: alert {{alert}} opened on {{resource}} after the first analysis": "Erneute Prüfung: Warnung {{alert}} wurde nach der ersten Analyse auf {{resource}} ausgelöst",
+  "Checking again: an alert opened on this incident's infrastructure after the first analysis": "Erneute Prüfung: Nach der ersten Analyse wurde in der Infrastruktur dieses Vorfalls eine Warnung ausgelöst",
+  "Checking again: an alert opened on {{resource}} after the first analysis": "Erneute Prüfung: Nach der ersten Analyse wurde auf {{resource}} eine Warnung ausgelöst",
+  "Checking the host's containers": "Container des Hosts werden geprüft",
+  "Follow-up For Alert ID": "Warnungs-ID der erneuten Prüfung",
+  "No open or recent alerts on {{resources}}": "Keine offenen oder neuen Warnungen auf {{resources}}",
+  "Read the {{count}} newest open or recent alerts on {{resources}}": "Die {{count}} neuesten offenen oder neuen Warnungen auf {{resources}} gelesen",
+  "Read {{count}} open or recent alerts on {{resources}}": "{{count}} offene oder neue Warnungen auf {{resources}} gelesen",
+  "Read {{count}} open or recent alerts on {{resources}}_one": "{{count}} offene oder neue Warnung auf {{resources}} gelesen",
+  "Reading a resource's telemetry": "Telemetrie einer Ressource wird gelesen",
+  "Storage array": "Speicher-Array",
+  "{{names}} and {{count}} more": "{{names}} und {{count}} weitere",
+  "{{names}} and {{count}} more_one": "{{names}} und {{count}} weitere"
 }

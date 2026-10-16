@@ -29804,5 +29804,19 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "一致したメールは、以前のものが開いたままでも、それぞれ個別のインシデントを開きます。返信は、そのインシデントが解決されるまでメモとして追加されます。",
   "alerts for every email": "メールごとのアラート",
   "incidents for every email": "メールごとのインシデント",
-  "alerts and incidents for every email": "メールごとのアラートとインシデント"
+  "alerts and incidents for every email": "メールごとのアラートとインシデント",
+  "Checking again: alert {{alert}} opened on this incident's infrastructure after the first analysis": "再確認中: 最初の分析の後、このインシデントのインフラでアラート {{alert}} が発生しました",
+  "Checking again: alert {{alert}} opened on {{resource}} after the first analysis": "再確認中: 最初の分析の後、{{resource}} でアラート {{alert}} が発生しました",
+  "Checking again: an alert opened on this incident's infrastructure after the first analysis": "再確認中: 最初の分析の後、このインシデントのインフラでアラートが発生しました",
+  "Checking again: an alert opened on {{resource}} after the first analysis": "再確認中: 最初の分析の後、{{resource}} でアラートが発生しました",
+  "Checking the host's containers": "ホストのコンテナを確認中",
+  "Follow-up For Alert ID": "再確認のアラート ID",
+  "No open or recent alerts on {{resources}}": "{{resources}} に未解決または最近のアラートはありません",
+  "Read the {{count}} newest open or recent alerts on {{resources}}": "{{resources}} の未解決または最近のアラートのうち最新の {{count}} 件を読み取りました",
+  "Read {{count}} open or recent alerts on {{resources}}": "{{resources}} の未解決または最近のアラート {{count}} 件を読み取りました",
+  "Read {{count}} open or recent alerts on {{resources}}_one": "{{resources}} の未解決または最近のアラート {{count}} 件を読み取りました",
+  "Reading a resource's telemetry": "リソースのテレメトリを読み取り中",
+  "Storage array": "ストレージアレイ",
+  "{{names}} and {{count}} more": "{{names}} ほか {{count}} 件",
+  "{{names}} and {{count}} more_one": "{{names}} ほか {{count}} 件"
 }

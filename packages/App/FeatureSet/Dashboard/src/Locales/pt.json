@@ -29804,5 +29804,19 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "Cada e-mail correspondente abre o seu próprio incidente, mesmo enquanto os anteriores ainda estão abertos. As respostas são adicionadas a esse incidente como notas até que ele seja resolvido.",
   "alerts for every email": "alertas para cada e-mail",
   "incidents for every email": "incidentes para cada e-mail",
-  "alerts and incidents for every email": "alertas e incidentes para cada e-mail"
+  "alerts and incidents for every email": "alertas e incidentes para cada e-mail",
+  "Checking again: alert {{alert}} opened on this incident's infrastructure after the first analysis": "Nova verificação: o alerta {{alert}} foi aberto na infraestrutura deste incidente após a primeira análise",
+  "Checking again: alert {{alert}} opened on {{resource}} after the first analysis": "Nova verificação: o alerta {{alert}} foi aberto em {{resource}} após a primeira análise",
+  "Checking again: an alert opened on this incident's infrastructure after the first analysis": "Nova verificação: um alerta foi aberto na infraestrutura deste incidente após a primeira análise",
+  "Checking again: an alert opened on {{resource}} after the first analysis": "Nova verificação: um alerta foi aberto em {{resource}} após a primeira análise",
+  "Checking the host's containers": "Verificando os contêineres do host",
+  "Follow-up For Alert ID": "ID do alerta da nova verificação",
+  "No open or recent alerts on {{resources}}": "Nenhum alerta aberto ou recente em {{resources}}",
+  "Read the {{count}} newest open or recent alerts on {{resources}}": "Lidos os {{count}} alertas abertos ou recentes mais novos em {{resources}}",
+  "Read {{count}} open or recent alerts on {{resources}}": "Lidos {{count}} alertas abertos ou recentes em {{resources}}",
+  "Read {{count}} open or recent alerts on {{resources}}_one": "Lido {{count}} alerta aberto ou recente em {{resources}}",
+  "Reading a resource's telemetry": "Lendo a telemetria de um recurso",
+  "Storage array": "Array de armazenamento",
+  "{{names}} and {{count}} more": "{{names}} e mais {{count}}",
+  "{{names}} and {{count}} more_one": "{{names}} e mais {{count}}"
 }

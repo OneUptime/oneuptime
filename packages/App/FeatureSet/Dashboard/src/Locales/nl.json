@@ -29804,5 +29804,19 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "Elke overeenkomende e-mail opent een eigen incident, ook als eerdere nog openstaan. Antwoorden worden als notities aan dat incident toegevoegd totdat het is opgelost.",
   "alerts for every email": "waarschuwingen voor elke e-mail",
   "incidents for every email": "incidenten voor elke e-mail",
-  "alerts and incidents for every email": "waarschuwingen en incidenten voor elke e-mail"
+  "alerts and incidents for every email": "waarschuwingen en incidenten voor elke e-mail",
+  "Checking again: alert {{alert}} opened on this incident's infrastructure after the first analysis": "Opnieuw controleren: waarschuwing {{alert}} is na de eerste analyse geopend op de infrastructuur van dit incident",
+  "Checking again: alert {{alert}} opened on {{resource}} after the first analysis": "Opnieuw controleren: waarschuwing {{alert}} is na de eerste analyse geopend op {{resource}}",
+  "Checking again: an alert opened on this incident's infrastructure after the first analysis": "Opnieuw controleren: na de eerste analyse is een waarschuwing geopend op de infrastructuur van dit incident",
+  "Checking again: an alert opened on {{resource}} after the first analysis": "Opnieuw controleren: na de eerste analyse is een waarschuwing geopend op {{resource}}",
+  "Checking the host's containers": "Containers van de host controleren",
+  "Follow-up For Alert ID": "Waarschuwings-ID van de nieuwe controle",
+  "No open or recent alerts on {{resources}}": "Geen open of recente waarschuwingen op {{resources}}",
+  "Read the {{count}} newest open or recent alerts on {{resources}}": "De {{count}} nieuwste open of recente waarschuwingen op {{resources}} gelezen",
+  "Read {{count}} open or recent alerts on {{resources}}": "{{count}} open of recente waarschuwingen op {{resources}} gelezen",
+  "Read {{count}} open or recent alerts on {{resources}}_one": "{{count}} open of recente waarschuwing op {{resources}} gelezen",
+  "Reading a resource's telemetry": "Telemetrie van een resource lezen",
+  "Storage array": "Opslagarray",
+  "{{names}} and {{count}} more": "{{names}} en nog {{count}}",
+  "{{names}} and {{count}} more_one": "{{names}} en nog {{count}}"
 }

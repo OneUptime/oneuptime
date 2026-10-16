@@ -29804,5 +29804,19 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.",
   "alerts for every email": "alerts for every email",
   "incidents for every email": "incidents for every email",
-  "alerts and incidents for every email": "alerts and incidents for every email"
+  "alerts and incidents for every email": "alerts and incidents for every email",
+  "Checking again: alert {{alert}} opened on this incident's infrastructure after the first analysis": "Checking again: alert {{alert}} opened on this incident's infrastructure after the first analysis",
+  "Checking again: alert {{alert}} opened on {{resource}} after the first analysis": "Checking again: alert {{alert}} opened on {{resource}} after the first analysis",
+  "Checking again: an alert opened on this incident's infrastructure after the first analysis": "Checking again: an alert opened on this incident's infrastructure after the first analysis",
+  "Checking again: an alert opened on {{resource}} after the first analysis": "Checking again: an alert opened on {{resource}} after the first analysis",
+  "Checking the host's containers": "Checking the host's containers",
+  "Follow-up For Alert ID": "Follow-up For Alert ID",
+  "No open or recent alerts on {{resources}}": "No open or recent alerts on {{resources}}",
+  "Read the {{count}} newest open or recent alerts on {{resources}}": "Read the {{count}} newest open or recent alerts on {{resources}}",
+  "Read {{count}} open or recent alerts on {{resources}}": "Read {{count}} open or recent alerts on {{resources}}",
+  "Read {{count}} open or recent alerts on {{resources}}_one": "Read {{count}} open or recent alert on {{resources}}",
+  "Reading a resource's telemetry": "Reading a resource's telemetry",
+  "Storage array": "Storage array",
+  "{{names}} and {{count}} more": "{{names}} and {{count}} more",
+  "{{names}} and {{count}} more_one": "{{names}} and {{count}} more"
 }

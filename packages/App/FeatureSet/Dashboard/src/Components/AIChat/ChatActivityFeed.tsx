@@ -396,7 +396,7 @@ function describeLinkedResource(
   translator: Translator,
 ): string {
   const noun: string = translator.translateText(
-    LINKED_RESOURCE_KIND_NOUNS[resource.kind] || "Resource",
+    LINKED_RESOURCE_KIND_NOUNS[resource.kind] || translationKey("Resource"),
   ) as string;
 
   return resource.name

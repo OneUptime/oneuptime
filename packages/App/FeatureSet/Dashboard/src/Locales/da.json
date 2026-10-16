@@ -29804,5 +29804,19 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "Hver e-mail, der matcher, åbner sin egen hændelse, også mens tidligere stadig er åbne. Svar føjes til hændelsen som noter, indtil den er løst.",
   "alerts for every email": "advarsler for hver e-mail",
   "incidents for every email": "hændelser for hver e-mail",
-  "alerts and incidents for every email": "advarsler og hændelser for hver e-mail"
+  "alerts and incidents for every email": "advarsler og hændelser for hver e-mail",
+  "Checking again: alert {{alert}} opened on this incident's infrastructure after the first analysis": "Tjekker igen: advarsel {{alert}} blev åbnet på denne hændelses infrastruktur efter den første analyse",
+  "Checking again: alert {{alert}} opened on {{resource}} after the first analysis": "Tjekker igen: advarsel {{alert}} blev åbnet på {{resource}} efter den første analyse",
+  "Checking again: an alert opened on this incident's infrastructure after the first analysis": "Tjekker igen: en advarsel blev åbnet på denne hændelses infrastruktur efter den første analyse",
+  "Checking again: an alert opened on {{resource}} after the first analysis": "Tjekker igen: en advarsel blev åbnet på {{resource}} efter den første analyse",
+  "Checking the host's containers": "Tjekker værtens containere",
+  "Follow-up For Alert ID": "Advarsels-ID for det nye tjek",
+  "No open or recent alerts on {{resources}}": "Ingen åbne eller nye advarsler på {{resources}}",
+  "Read the {{count}} newest open or recent alerts on {{resources}}": "Læste de {{count}} nyeste åbne eller nye advarsler på {{resources}}",
+  "Read {{count}} open or recent alerts on {{resources}}": "Læste {{count}} åbne eller nye advarsler på {{resources}}",
+  "Read {{count}} open or recent alerts on {{resources}}_one": "Læste {{count}} åben eller ny advarsel på {{resources}}",
+  "Reading a resource's telemetry": "Læser en ressources telemetri",
+  "Storage array": "Lagerarray",
+  "{{names}} and {{count}} more": "{{names}} og {{count}} mere",
+  "{{names}} and {{count}} more_one": "{{names}} og {{count}} mere"
 }

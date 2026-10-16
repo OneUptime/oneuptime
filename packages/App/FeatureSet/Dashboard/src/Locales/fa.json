@@ -29804,5 +29804,19 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "هر ایمیلی که مطابقت داشته باشد حادثه‌ی جداگانه‌ی خودش را باز می‌کند، حتی اگر موارد قبلی هنوز باز باشند. پاسخ‌ها تا وقتی آن حادثه برطرف نشده به‌عنوان یادداشت به آن اضافه می‌شوند.",
   "alerts for every email": "هشدار برای هر ایمیل",
   "incidents for every email": "حادثه برای هر ایمیل",
-  "alerts and incidents for every email": "هشدار و حادثه برای هر ایمیل"
+  "alerts and incidents for every email": "هشدار و حادثه برای هر ایمیل",
+  "Checking again: alert {{alert}} opened on this incident's infrastructure after the first analysis": "بررسی دوباره: پس از نخستین تحلیل، هشدار {{alert}} روی زیرساخت این حادثه باز شد",
+  "Checking again: alert {{alert}} opened on {{resource}} after the first analysis": "بررسی دوباره: پس از نخستین تحلیل، هشدار {{alert}} روی {{resource}} باز شد",
+  "Checking again: an alert opened on this incident's infrastructure after the first analysis": "بررسی دوباره: پس از نخستین تحلیل، یک هشدار روی زیرساخت این حادثه باز شد",
+  "Checking again: an alert opened on {{resource}} after the first analysis": "بررسی دوباره: پس از نخستین تحلیل، یک هشدار روی {{resource}} باز شد",
+  "Checking the host's containers": "بررسی کانتینرهای میزبان",
+  "Follow-up For Alert ID": "شناسه هشدار بررسی دوباره",
+  "No open or recent alerts on {{resources}}": "هیچ هشدار باز یا تازه‌ای روی {{resources}} نیست",
+  "Read the {{count}} newest open or recent alerts on {{resources}}": "{{count}} هشدار باز یا تازه‌ی جدیدتر روی {{resources}} خوانده شد",
+  "Read {{count}} open or recent alerts on {{resources}}": "{{count}} هشدار باز یا تازه روی {{resources}} خوانده شد",
+  "Read {{count}} open or recent alerts on {{resources}}_one": "{{count}} هشدار باز یا تازه روی {{resources}} خوانده شد",
+  "Reading a resource's telemetry": "خواندن تله‌متری یک منبع",
+  "Storage array": "آرایه ذخیره‌سازی",
+  "{{names}} and {{count}} more": "{{names}} و {{count}} مورد دیگر",
+  "{{names}} and {{count}} more_one": "{{names}} و {{count}} مورد دیگر"
 }
