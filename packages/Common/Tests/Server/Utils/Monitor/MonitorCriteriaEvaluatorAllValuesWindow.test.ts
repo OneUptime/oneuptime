@@ -602,6 +602,67 @@ describe("MonitorCriteriaEvaluator: All Values waits for a full window (#4793)",
       // Never off the first five minutes; 13.5 minutes after it came back.
       expect(firstFiring?.minute).toBe(43);
     });
+
+    /*
+     * The cluster's agent stops at 12:08, while api has been short since
+     * 12:00 - not yet a whole window - and comes back at 12:30. As the last
+     * readings leave the window, every deployment is down to one, its last:
+     * with no deployment showing how often they report, a lone reading
+     * inside a window can stand for it (a metric that reports less often
+     * than its window has nothing else), but not one about to leave it - so
+     * nothing opens 15 minutes after the agent went. Back, api waits for a
+     * whole window again.
+     */
+    test("an agent away for longer than the window: nothing opens as the last readings leave it, and a whole window is needed again after it", async () => {
+      const away: (replicas: Replicas) => Replicas = (
+        replicas: Replicas,
+      ): Replicas => {
+        return (minute: number): [number, number] | null => {
+          return minute >= 8 && minute < 30 ? null : replicas(minute);
+        };
+      };
+
+      const checks: Array<Check> = await runChecks({
+        type: MonitorType.Kubernetes,
+        step: replicaStep,
+        grouped: true,
+        fromMinute: 1,
+        toMinute: 50,
+        responseAt: (minute: number) => {
+          return replicaResponse(minute, {
+            checkout: away(CHECKOUT),
+            api: away(API_STUCK),
+          });
+        },
+      });
+
+      const firingMinutes: Array<number> = checks
+        .filter((check: Check) => {
+          return firingAt(check, replicaStep).length > 0;
+        })
+        .map((check: Check) => {
+          return check.minute;
+        });
+
+      // Back at 12:30; its data covers the window 13.5 minutes later.
+      expect(firingMinutes).toEqual([43, 44, 45, 46, 47, 48, 49, 50]);
+
+      // 12:22:30: each deployment's one reading left is 12:07's.
+      const lastReadings: Check = checks.find((check: Check) => {
+        return check.minute === 22;
+      })!;
+      expect(firingFilterMessage(lastReadings)).toBe(
+        "Deployment: api | Namespace: payments - Deployment Replica Shortfall was 1 in 1 reading, above the 0 threshold. Waiting for 15 minutes of data: no new data point for the last 14 minutes.",
+      );
+
+      // 12:30:30: each deployment's first reading back waits too.
+      const firstBack: Check = checks.find((check: Check) => {
+        return check.minute === 30;
+      })!;
+      expect(firingFilterMessage(firstBack)).toBe(
+        "Deployment: api | Namespace: payments - Deployment Replica Shortfall was 1 in 1 reading, above the 0 threshold. Waiting for 15 minutes of data: less than a minute of 15 minutes so far.",
+      );
+    });
   });
 
   describe("Pod Stuck in Pending, ungrouped", () => {

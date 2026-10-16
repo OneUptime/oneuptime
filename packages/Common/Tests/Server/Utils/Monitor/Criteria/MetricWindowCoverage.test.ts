@@ -256,8 +256,11 @@ describe("MetricWindowCoverage.judge", () => {
     expect(result.isCovered).toBe(true);
   });
 
-  test("a single data point of a slow series cannot say what its cadence is, and waits", () => {
-    expect(judge([point(12)]).isCovered).toBe(false);
+  test("judged alone, a single data point cannot say what its series' cadence is, and waits", () => {
+    const result: MetricWindowCoverageResult = judge([point(12)]);
+
+    expect(result.isCovered).toBe(false);
+    expect(result.isLoneDataPoint).toBe(false);
   });
 
   test("timestamps that arrive as strings are read", () => {
@@ -333,6 +336,277 @@ describe("MetricWindowCoverage.judge", () => {
 
     expect(result.dataPointMs).toBe(15 * MINUTE);
     expect(result.isCovered).toBe(true);
+  });
+});
+
+// The worker's window for a rolling time evaluated at `at`.
+function windowAt(rollingTime: RollingTime, at: Date): MetricEvaluationWindow {
+  return MetricWindowCoverage.getWindow(
+    response({
+      startAndEndDate: RollingTimeUtil.convertToStartAndEndDate(
+        rollingTime,
+        at,
+      ),
+    }),
+  )!;
+}
+
+describe("MetricWindowCoverage.getMonitorIntervalMs", () => {
+  test("pools the gaps of every series: how often most of them report", () => {
+    expect(
+      MetricWindowCoverage.getMonitorIntervalMs([
+        points(0, 15),
+        points(4, 15),
+        // A device reporting every 5 minutes is outvoted.
+        [point(2), point(7), point(12)],
+      ]),
+    ).toBe(MINUTE);
+  });
+
+  test("a fleet that reports every 3 minutes reports every 3 minutes, whatever its phase", () => {
+    expect(
+      MetricWindowCoverage.getMonitorIntervalMs([
+        [point(11), point(14)],
+        [point(12), point(15)],
+        // Only one data point in the window so far: adds nothing.
+        [point(13)],
+      ]),
+    ).toBe(3 * MINUTE);
+  });
+
+  test("is null when no series has two data points: the range is no longer than the reporting interval", () => {
+    expect(
+      MetricWindowCoverage.getMonitorIntervalMs([
+        [point(11)],
+        [point(13)],
+        [],
+        // Two rows of one bucket are one data point.
+        [point(12), point(12)],
+      ]),
+    ).toBeNull();
+    expect(MetricWindowCoverage.getMonitorIntervalMs([])).toBeNull();
+  });
+
+  test("reads times that arrive as strings and skips unreadable ones", () => {
+    expect(
+      MetricWindowCoverage.getMonitorIntervalMs([
+        [
+          {
+            timestamp: point(10).timestamp.toISOString() as unknown as Date,
+            value: 1,
+          },
+          { timestamp: "garbage" as unknown as Date, value: 1 },
+          point(12),
+        ],
+      ]),
+    ).toBe(2 * MINUTE);
+  });
+});
+
+describe("a series with too few data points to show its own cadence goes by the monitor's", () => {
+  test("one data point among series reporting every minute: a new series, it waits", () => {
+    const result: MetricWindowCoverageResult = MetricWindowCoverage.judge({
+      window: window(),
+      samples: [point(15)],
+      monitorIntervalMs: MINUTE,
+    });
+
+    expect(result.shortfall).toBe(WindowCoverageShortfall.StartsLate);
+    expect(result.intervalMs).toBe(MINUTE);
+    expect(result.isLoneDataPoint).toBe(false);
+  });
+
+  /*
+   * Two data points 13 minutes apart: the last one of a deployment that
+   * went at 12:01, and the first one of the deployment recreated under its
+   * name at 12:14. Judged alone, the hole passes for a cadence of 13
+   * minutes; among deployments reporting every minute, it is a hole.
+   */
+  test("two data points either side of a hole - a deployment recreated under an old name - wait", () => {
+    const recreated: Array<AggregateModel> = [point(1), point(14)];
+
+    expect(judge(recreated).intervalMs).toBe(13 * MINUTE);
+    expect(judge(recreated).isCovered).toBe(true);
+
+    const result: MetricWindowCoverageResult = MetricWindowCoverage.judge({
+      window: window(),
+      samples: recreated,
+      monitorIntervalMs: MINUTE,
+    });
+
+    expect(result.intervalMs).toBe(MINUTE);
+    expect(result.shortfall).toBe(WindowCoverageShortfall.Hole);
+  });
+
+  test("in a fleet that reports every 3 minutes, one data point covers a 5-minute range", () => {
+    // 12:15:30: the range starts at 12:10:30.
+    const fiveMinutes: MetricEvaluationWindow = windowAt(
+      RollingTime.Past5Minutes,
+      NOW,
+    );
+
+    const result: MetricWindowCoverageResult = MetricWindowCoverage.judge({
+      window: fiveMinutes,
+      samples: [point(12)],
+      monitorIntervalMs: 3 * MINUTE,
+    });
+
+    expect(result.intervalMs).toBe(3 * MINUTE);
+    expect(result.isCovered).toBe(true);
+    expect(result.isLoneDataPoint).toBe(false);
+
+    // Judged alone, the same data point could not tell, and waited.
+    expect(
+      MetricWindowCoverage.judge({ window: fiveMinutes, samples: [point(12)] })
+        .isCovered,
+    ).toBe(false);
+  });
+
+  test("with three data points or more a series goes by its own cadence, whatever the others do", () => {
+    // A device reporting every 5 minutes, among devices reporting every minute.
+    const result: MetricWindowCoverageResult = MetricWindowCoverage.judge({
+      window: window(),
+      samples: [point(2), point(7), point(12)],
+      monitorIntervalMs: MINUTE,
+    });
+
+    expect(result.intervalMs).toBe(5 * MINUTE);
+    expect(result.isCovered).toBe(true);
+  });
+
+  test("never finer than the data points: a monitor interval under a minute is a minute", () => {
+    expect(
+      MetricWindowCoverage.judge({
+        window: window(),
+        samples: [point(15)],
+        monitorIntervalMs: 20 * SECOND,
+      }).intervalMs,
+    ).toBe(MINUTE);
+  });
+});
+
+/*
+ * When no series of the monitor has two data points in the window, the time
+ * range is no longer than the metric's reporting interval - a VMware
+ * collector set to read every 5 minutes, an IoT device that wakes every 10 -
+ * and no data point can show how often its series reports, or whether it
+ * is new. Waiting for coverage would wait for ever: a lone data point
+ * inside the window is taken for it, as before #4793.
+ */
+describe("when no series has two data points in the window", () => {
+  function judgeLone(
+    samples: Array<AggregateModel>,
+    at: MetricEvaluationWindow = window(),
+  ): MetricWindowCoverageResult {
+    return MetricWindowCoverage.judge({
+      window: at,
+      samples: samples,
+      monitorIntervalMs: null,
+    });
+  }
+
+  test("a lone data point inside the window is taken for it", () => {
+    // The window runs from 12:00:30 to 12:15:30.
+    for (const minute of [2, 5, 8, 12]) {
+      const result: MetricWindowCoverageResult = judgeLone([point(minute)]);
+
+      expect({
+        minute,
+        isCovered: result.isCovered,
+        shortfall: result.shortfall,
+        isLoneDataPoint: result.isLoneDataPoint,
+      }).toEqual({
+        minute,
+        isCovered: true,
+        shortfall: null,
+        isLoneDataPoint: true,
+      });
+    }
+  });
+
+  test("but not while it is among the newest: its series may only just have started", () => {
+    for (const minute of [13, 14, 15]) {
+      const result: MetricWindowCoverageResult = judgeLone([point(minute)]);
+
+      expect({ minute, shortfall: result.shortfall }).toEqual({
+        minute,
+        shortfall: WindowCoverageShortfall.StartsLate,
+      });
+      expect(result.isLoneDataPoint).toBe(false);
+    }
+  });
+
+  test("nor in the window's first minute: it is the last data point of a series that stopped", () => {
+    // 12:00 began before the window; 12:01 is 30 seconds into it.
+    for (const minute of [0, 1]) {
+      const result: MetricWindowCoverageResult = judgeLone([point(minute)]);
+
+      expect({ minute, shortfall: result.shortfall }).toEqual({
+        minute,
+        shortfall: WindowCoverageShortfall.Stale,
+      });
+      expect(result.isLoneDataPoint).toBe(false);
+    }
+  });
+
+  test("two rows of one minute are one data point", () => {
+    expect(judgeLone([point(5), point(5)]).isLoneDataPoint).toBe(true);
+  });
+
+  /*
+   * A 5-minute range over a series that reports every 5 minutes: its data
+   * point at 12:10 is evaluated each minute while it is in the range, and
+   * is taken for the range once it is no longer among the newest and before
+   * it reaches the range's first minute - at least once in its life,
+   * wherever in the minute the checks run.
+   */
+  test("a 5-minute range: a data point is taken for it at least once while it is in it", () => {
+    for (const secondsIntoMinute of [0, 10, 30, 45, 59]) {
+      const verdicts: Array<string> = [];
+
+      for (let minutesLater: number = 0; minutesLater < 5; minutesLater++) {
+        const at: Date = new Date(
+          point(10).timestamp.getTime() +
+            minutesLater * MINUTE +
+            secondsIntoMinute * SECOND,
+        );
+        const result: MetricWindowCoverageResult = judgeLone(
+          [point(10)],
+          windowAt(RollingTime.Past5Minutes, at),
+        );
+
+        verdicts.push(
+          result.isLoneDataPoint ? "taken" : String(result.shortfall),
+        );
+      }
+
+      expect({
+        secondsIntoMinute,
+        taken: verdicts.includes("taken"),
+      }).toEqual({ secondsIntoMinute, taken: true });
+      // Never at its first check, when it is the newest data point there is.
+      expect(verdicts[0]).toBe(WindowCoverageShortfall.StartsLate);
+    }
+  });
+
+  test("a 1-minute range needs no exception: a single data point covers it", () => {
+    const oneMinute: MetricEvaluationWindow = windowAt(
+      RollingTime.Past1Minute,
+      NOW,
+    );
+
+    for (const minute of [14, 15]) {
+      const result: MetricWindowCoverageResult = judgeLone(
+        [point(minute)],
+        oneMinute,
+      );
+
+      expect({ minute, isCovered: result.isCovered }).toEqual({
+        minute,
+        isCovered: true,
+      });
+      expect(result.isLoneDataPoint).toBe(false);
+    }
   });
 });
 

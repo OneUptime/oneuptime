@@ -765,6 +765,200 @@ describe("All Values over a metric monitor's time range waits for a full window 
     });
   });
 
+  /*
+   * A series with fewer than three data points in the window cannot show
+   * how often it reports - two of them may straddle a hole - so it goes by
+   * how often the monitor's series report together.
+   */
+  describe("a series with too few data points to show how often it reports", () => {
+    test("a deployment recreated under its old name, a reading of each in the window, waits beside deployments reporting every minute", async () => {
+      // The old api's last reading at 12:01; the new api's first at 12:14.
+      const recreated: MetricSeriesResult = series("api", [
+        { minute: 1, desired: 2, available: 1 },
+        { minute: 14, desired: 1, available: 0 },
+      ]);
+
+      const evaluations: Array<MetricSeriesEvaluationResult> = await evaluate({
+        breakdown: [shortSince("checkout", 0), recreated],
+      });
+
+      expect(fired(evaluations)).toEqual(["checkout"]);
+      expect(evaluations[1]!.context.windowWait?.shortfall).toBe("Hole");
+    });
+
+    test("every deployment just back - the agent was away longer than the window: none fires on its first reading", async () => {
+      const evaluations: Array<MetricSeriesEvaluationResult> = await evaluate({
+        breakdown: [shortSince("api", 15), shortSince("checkout", 15)],
+      });
+
+      expect(fired(evaluations)).toEqual([]);
+      for (const evaluation of evaluations) {
+        expect(evaluation.context.windowWait?.shortfall).toBe("StartsLate");
+      }
+    });
+
+    test("every deployment's last reading about to leave the window - the agent stopped a window ago: none fires on it", async () => {
+      // 12:01 is the window's first minute: it starts at 12:00:30.
+      const evaluations: Array<MetricSeriesEvaluationResult> = await evaluate({
+        breakdown: [
+          series("api", minutes(1, 1, 2, 1)),
+          series("checkout", minutes(1, 1, 3, 1)),
+        ],
+      });
+
+      expect(fired(evaluations)).toEqual([]);
+      for (const evaluation of evaluations) {
+        expect(evaluation.context.windowWait?.shortfall).toBe("Stale");
+      }
+    });
+
+    test("deployments reporting every 3 minutes, watched over 5: one with a single reading in the range goes by the others and fires", async () => {
+      // 12:10:30 to 12:15:30.
+      const evaluations: Array<MetricSeriesEvaluationResult> = await evaluate({
+        breakdown: [
+          series("api", [
+            { minute: 11, desired: 2, available: 1 },
+            { minute: 14, desired: 2, available: 1 },
+          ]),
+          series("checkout", minutes(12, 12, 2, 1)),
+        ],
+        window: RollingTimeUtil.convertToStartAndEndDate(
+          RollingTime.Past5Minutes,
+          NOW,
+        ),
+      });
+
+      expect(fired(evaluations)).toEqual(["api", "checkout"]);
+    });
+  });
+
+  /*
+   * When no series has two data points in the window, its time range is no
+   * longer than the metric's reporting interval - a VMware collector set to
+   * read every 5 minutes, an IoT device waking every 10, watched over 5 -
+   * and no data point can show whether its series is new, slow or gone.
+   * Waiting for coverage would wait for ever, so a lone data point inside
+   * the range is judged on its value, as before #4793; one only just in, or
+   * about to leave, still waits.
+   */
+  describe("a time range no longer than the metric's reporting interval", () => {
+    // 12:10:30 to 12:15:30, every deployment reporting once in it.
+    const FIVE_MINUTES: InBetween<Date> =
+      RollingTimeUtil.convertToStartAndEndDate(RollingTime.Past5Minutes, NOW);
+
+    test("a lone reading inside the range is taken for it: the condition fires, as it did before", async () => {
+      const evaluations: Array<MetricSeriesEvaluationResult> = await evaluate({
+        breakdown: [
+          series("api", minutes(12, 12, 2, 1)),
+          series("checkout", minutes(13, 13, 2, 2)),
+        ],
+        window: FIVE_MINUTES,
+      });
+
+      expect(fired(evaluations)).toEqual(["api"]);
+      expect(evaluations[0]!.rootCause).toBe(
+        "Deployment Replica Shortfall was 1 in 1 reading, above the 0 threshold.",
+      );
+      expect(evaluations[0]!.context.windowWait).toBeUndefined();
+    });
+
+    test("one only just in waits: its series may be new", async () => {
+      const [evaluation] = await evaluate({
+        breakdown: [series("api", minutes(14, 14, 2, 1))],
+        window: FIVE_MINUTES,
+      });
+
+      expect(evaluation!.rootCause).toBeNull();
+      expect(evaluation!.context.windowWait?.shortfall).toBe("StartsLate");
+    });
+
+    test("one about to leave the range waits too: its series may have stopped", async () => {
+      // 12:10 began before the range, 12:11 is in its first minute.
+      for (const minute of [10, 11]) {
+        const [evaluation] = await evaluate({
+          breakdown: [series("api", minutes(minute, minute, 2, 1))],
+          window: FIVE_MINUTES,
+        });
+
+        expect({
+          minute,
+          shortfall: evaluation!.context.windowWait?.shortfall,
+        }).toEqual({ minute, shortfall: "Stale" });
+      }
+    });
+
+    test("the recovery criteria takes a lone reading too, so the monitor can be called healthy again", async () => {
+      expect(
+        fired(
+          await evaluate({
+            breakdown: [series("api", minutes(12, 12, 2, 2))],
+            criteriaFilter: JSON.parse(JSON.stringify(healthyFilter)),
+            window: FIVE_MINUTES,
+          }),
+        ),
+      ).toEqual(["api"]);
+    });
+
+    /*
+     * desired reports every minute, available once in the range: the
+     * formula the criteria compares has one data point a deployment - at
+     * 12:07 - and that is what shows how often it reports, not the query
+     * beside it.
+     */
+    test("how often a series reports is read from what the criteria compares", async () => {
+      function formulaSeries(
+        deployment: string,
+        available: number,
+      ): MetricSeriesResult {
+        const desiredRows: AggregatedResult = {
+          data: minutes(0, 15, 2, 0).map((minute: Minute): AggregateModel => {
+            return {
+              timestamp: bucket(minute.minute),
+              value: minute.desired,
+              attributes: labelsOf(deployment),
+            };
+          }),
+        };
+        const availableRows: AggregatedResult = {
+          data: [
+            {
+              timestamp: bucket(7),
+              value: available,
+              attributes: labelsOf(deployment),
+            },
+          ],
+        };
+
+        return {
+          fingerprint: fingerprintOf(deployment),
+          labels: labelsOf(deployment),
+          aggregatedResults: [
+            desiredRows,
+            availableRows,
+            MetricFormulaEvaluator.evaluateFormula({
+              formula:
+                viewConfig.formulaConfigs[0]!.metricFormulaData.metricFormula,
+              queryConfigs: viewConfig.queryConfigs,
+              formulaConfigs: [],
+              results: [desiredRows, availableRows],
+            }),
+          ],
+        };
+      }
+
+      const api: MetricSeriesResult = formulaSeries("api", 1);
+      expect(api.aggregatedResults[2]!.data).toHaveLength(1);
+
+      expect(
+        fired(
+          await evaluate({
+            breakdown: [api, formulaSeries("checkout", 2)],
+          }),
+        ),
+      ).toEqual(["api"]);
+    });
+  });
+
   describe("an ungrouped monitor", () => {
     function ungrouped(data: Array<Minute>): MetricMonitorResponse {
       const whole: MetricSeriesResult = series("whole", data);
@@ -774,6 +968,37 @@ describe("All Values over a metric monitor's time range waits for a full window 
         metricResult: whole.aggregatedResults,
       };
     }
+
+    test("brand new, it waits on its very first reading too", async () => {
+      const [evaluation] = await MetricMonitorCriteria.evaluateAllSeries({
+        dataToProcess: ungrouped(minutes(15, 15, 2, 1)) as DataToProcess,
+        criteriaFilter: filter(),
+        monitorStep: step,
+      });
+
+      expect(evaluation!.rootCause).toBeNull();
+      expect(evaluation!.context.windowWait?.message).toBe(
+        "Deployment Replica Shortfall was 1 in 1 reading, above the 0 threshold. Waiting for 15 minutes of data: less than a minute of 15 minutes so far.",
+      );
+    });
+
+    test("reporting less often than its time range, it is judged on a lone reading inside it", async () => {
+      const [evaluation] = await MetricMonitorCriteria.evaluateAllSeries({
+        dataToProcess: {
+          ...ungrouped(minutes(12, 12, 2, 1)),
+          startAndEndDate: RollingTimeUtil.convertToStartAndEndDate(
+            RollingTime.Past5Minutes,
+            NOW,
+          ),
+        } as DataToProcess,
+        criteriaFilter: filter(),
+        monitorStep: step,
+      });
+
+      expect(evaluation!.rootCause).toBe(
+        "Deployment Replica Shortfall was 1 in 1 reading, above the 0 threshold.",
+      );
+    });
 
     test("judges the whole monitor by the same rule", async () => {
       const waiting: Array<MetricSeriesEvaluationResult> =

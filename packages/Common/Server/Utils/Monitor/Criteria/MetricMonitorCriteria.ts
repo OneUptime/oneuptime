@@ -67,6 +67,18 @@ export type IsCriteriaInEffect = (
   seriesFingerprint: string | undefined,
 ) => Promise<boolean>;
 
+// The query or formula a criteria's metric alias names.
+interface ResolvedMetricAlias {
+  matchedQuery: MetricQueryConfigData | null;
+  matchedFormula: MetricFormulaConfigData | null;
+  /*
+   * Where its results sit among a series' results - the queries', then the
+   * formulas' - or -1 when the alias names neither (the first query's
+   * results are read then).
+   */
+  aliasIndex: number;
+}
+
 export default class MetricMonitorCriteria {
   @CaptureSpan()
   public static async isMonitorInstanceCriteriaFilterMet(input: {
@@ -200,11 +212,37 @@ export default class MetricMonitorCriteria {
     const window: MetricEvaluationWindow | null =
       MetricWindowCoverage.getWindow(metricResponse);
 
+    const hasSeries: boolean = Boolean(
+      seriesBreakdown && seriesBreakdown.length > 0,
+    );
+
+    /*
+     * How often the monitor's series report, read from the query or formula
+     * this criteria compares across all of them: what a series with too few
+     * data points to show its own cadence is judged by (MetricWindowCoverage).
+     * Only "All Values" judges a window's coverage.
+     */
+    const monitorIntervalMs: number | null | undefined =
+      window && MetricMonitorCriteria.isAllValues(input.criteriaFilter)
+        ? MetricWindowCoverage.getMonitorIntervalMs(
+            MetricMonitorCriteria.getComparedSamplesOfEverySeries({
+              criteriaFilter: input.criteriaFilter,
+              queryConfigs,
+              formulaConfigs,
+              resultsOfEverySeries: hasSeries
+                ? seriesBreakdown!.map((series: MetricSeriesResult) => {
+                    return series.aggregatedResults;
+                  })
+                : [metricResponse.metricResult || []],
+            }),
+          )
+        : undefined;
+
     /*
      * Series-less path: one synthetic "all-series" evaluation over the
      * flat metricResult. Preserves the pre-group-by behavior exactly.
      */
-    if (!seriesBreakdown || seriesBreakdown.length === 0) {
+    if (!hasSeries) {
       const result: MetricSeriesEvaluationResult =
         await MetricMonitorCriteria.evaluateOneSeries({
           criteriaFilter: input.criteriaFilter,
@@ -216,13 +254,14 @@ export default class MetricMonitorCriteria {
           projectId: metricResponse.projectId,
           nativeUnitsByMetricName,
           window,
+          monitorIntervalMs,
           isInEffect: input.isInEffect,
         });
       return [result];
     }
 
     return await Promise.all(
-      seriesBreakdown.map((series: MetricSeriesResult) => {
+      seriesBreakdown!.map((series: MetricSeriesResult) => {
         return MetricMonitorCriteria.evaluateOneSeries({
           criteriaFilter: input.criteriaFilter,
           aggregatedResults: series.aggregatedResults,
@@ -233,9 +272,78 @@ export default class MetricMonitorCriteria {
           projectId: metricResponse.projectId,
           nativeUnitsByMetricName,
           window,
+          monitorIntervalMs,
           isInEffect: input.isInEffect,
         });
       }),
+    );
+  }
+
+  /*
+   * The query or formula a criteria's metric alias names. Explicit index
+   * checks - not `findIndex() || -1`, which falls back to -1 when the first
+   * one matches.
+   */
+  private static resolveAlias(input: {
+    metricAlias: string;
+    queryConfigs: Array<MetricQueryConfigData>;
+    formulaConfigs: Array<MetricFormulaConfigData>;
+  }): ResolvedMetricAlias {
+    if (!input.metricAlias) {
+      return { matchedQuery: null, matchedFormula: null, aliasIndex: -1 };
+    }
+
+    const queryIndex: number = input.queryConfigs.findIndex(
+      (query: MetricQueryConfigData) => {
+        return query.metricAliasData?.metricVariable === input.metricAlias;
+      },
+    );
+
+    if (queryIndex >= 0) {
+      return {
+        matchedQuery: input.queryConfigs[queryIndex] || null,
+        matchedFormula: null,
+        aliasIndex: queryIndex,
+      };
+    }
+
+    const formulaIndex: number = input.formulaConfigs.findIndex(
+      (formula: MetricFormulaConfigData) => {
+        return formula.metricAliasData?.metricVariable === input.metricAlias;
+      },
+    );
+
+    if (formulaIndex >= 0) {
+      return {
+        matchedQuery: null,
+        matchedFormula: input.formulaConfigs[formulaIndex] || null,
+        aliasIndex: input.queryConfigs.length + formulaIndex,
+      };
+    }
+
+    return { matchedQuery: null, matchedFormula: null, aliasIndex: -1 };
+  }
+
+  /*
+   * The data points a criteria compares, in every series: its alias's
+   * results in each - or the first query's, when it names none.
+   */
+  private static getComparedSamplesOfEverySeries(input: {
+    criteriaFilter: CriteriaFilter;
+    queryConfigs: Array<MetricQueryConfigData>;
+    formulaConfigs: Array<MetricFormulaConfigData>;
+    resultsOfEverySeries: Array<Array<AggregatedResult>>;
+  }): Array<Array<AggregateModel>> {
+    const aliasIndex: number = MetricMonitorCriteria.resolveAlias({
+      metricAlias: input.criteriaFilter.metricMonitorOptions?.metricAlias || "",
+      queryConfigs: input.queryConfigs,
+      formulaConfigs: input.formulaConfigs,
+    }).aliasIndex;
+
+    return input.resultsOfEverySeries.map(
+      (results: Array<AggregatedResult>) => {
+        return results[aliasIndex >= 0 ? aliasIndex : 0]?.data || [];
+      },
     );
   }
 
@@ -311,6 +419,12 @@ export default class MetricMonitorCriteria {
     nativeUnitsByMetricName?: { [key: string]: string } | undefined;
     // Null when the response does not say what window it read.
     window?: MetricEvaluationWindow | null | undefined;
+    /*
+     * How often the monitor's series report, for a series with too few data
+     * points to show its own cadence (MetricWindowCoverage
+     * .getMonitorIntervalMs); null when none shows one.
+     */
+    monitorIntervalMs?: number | null | undefined;
     isInEffect?: IsCriteriaInEffect | undefined;
   }): Promise<MetricSeriesEvaluationResult> {
     const rawThreshold: number | null =
@@ -324,38 +438,18 @@ export default class MetricMonitorCriteria {
     const metricAggregatedResult: Array<AggregatedResult> =
       input.aggregatedResults;
 
-    /*
-     * Resolve which query/formula the alias refers to. Use explicit index
-     * checks (not `findIndex() || -1`, which incorrectly falls back to -1
-     * when the first element matches).
-     */
-    let matchedQuery: MetricQueryConfigData | null = null;
-    let matchedFormula: MetricFormulaConfigData | null = null;
-    let aliasIndex: number = -1;
+    // Resolve which query/formula the alias refers to.
+    const resolvedAlias: ResolvedMetricAlias =
+      MetricMonitorCriteria.resolveAlias({
+        metricAlias,
+        queryConfigs: input.queryConfigs,
+        formulaConfigs: input.formulaConfigs,
+      });
 
-    if (metricAlias) {
-      const qIdx: number = input.queryConfigs.findIndex(
-        (q: MetricQueryConfigData) => {
-          return q.metricAliasData?.metricVariable === metricAlias;
-        },
-      );
-
-      if (qIdx >= 0) {
-        matchedQuery = input.queryConfigs[qIdx] || null;
-        aliasIndex = qIdx;
-      } else {
-        const fIdx: number = input.formulaConfigs.findIndex(
-          (f: MetricFormulaConfigData) => {
-            return f.metricAliasData?.metricVariable === metricAlias;
-          },
-        );
-
-        if (fIdx >= 0) {
-          matchedFormula = input.formulaConfigs[fIdx] || null;
-          aliasIndex = input.queryConfigs.length + fIdx;
-        }
-      }
-    }
+    let matchedQuery: MetricQueryConfigData | null = resolvedAlias.matchedQuery;
+    const matchedFormula: MetricFormulaConfigData | null =
+      resolvedAlias.matchedFormula;
+    const aliasIndex: number = resolvedAlias.aliasIndex;
 
     /*
      * If no alias was configured or it didn't match anything, fall back to
@@ -550,7 +644,10 @@ export default class MetricMonitorCriteria {
      * every data point meeting the condition is not enough - they must
      * cover the window too. Until they do, the series waits: a brand-new
      * series, one that was gone and came back, one with a hole of more than
-     * one missing data point, and one whose data went stale.
+     * one missing data point, and one whose data went stale. (A time range
+     * too short to hold two data points of any series shows none of that:
+     * a lone data point inside it is then taken for the window, as
+     * MetricWindowCoverage explains.)
      *
      * Only the first match waits. A series the criteria is already in
      * effect for (its alert or incident is open, or the monitor already has
@@ -570,6 +667,7 @@ export default class MetricMonitorCriteria {
       const coverage: MetricWindowCoverageResult = MetricWindowCoverage.judge({
         window: input.window,
         samples: samples,
+        monitorIntervalMs: input.monitorIntervalMs,
       });
 
       const shortfall: MetricWindowShortfall | null =

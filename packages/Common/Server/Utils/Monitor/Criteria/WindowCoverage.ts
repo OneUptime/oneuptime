@@ -180,6 +180,17 @@ export default class WindowCoverage {
   public static getTypicalIntervalMs(
     readingTimesMs: Array<number>,
   ): number | null {
+    return WindowCoverage.getTypicalGapMs(
+      WindowCoverage.getGapsMs(readingTimesMs),
+    );
+  }
+
+  /*
+   * The gaps between consecutive readings, oldest first. Readings taken at
+   * the same moment say nothing of the cadence and are left out, and so
+   * are unreadable times.
+   */
+  public static getGapsMs(readingTimesMs: Array<number>): Array<number> {
     const times: Array<number> = readingTimesMs
       .filter((time: number) => {
         return Number.isFinite(time);
@@ -198,13 +209,26 @@ export default class WindowCoverage {
       }
     }
 
+    return gaps;
+  }
+
+  /*
+   * The lower median of some gaps - of one series, or of several series
+   * pooled. The lower one, so a hole and a beat cannot tie it upwards: of
+   * two gaps, it is the shorter. Null without a gap.
+   */
+  public static getTypicalGapMs(gapsMs: Array<number>): number | null {
+    const gaps: Array<number> = gapsMs
+      .filter((gapMs: number) => {
+        return Number.isFinite(gapMs) && gapMs > 0;
+      })
+      .sort((a: number, b: number) => {
+        return a - b;
+      });
+
     if (gaps.length === 0) {
       return null;
     }
-
-    gaps.sort((a: number, b: number) => {
-      return a - b;
-    });
 
     return gaps[Math.floor((gaps.length - 1) / 2)]!;
   }

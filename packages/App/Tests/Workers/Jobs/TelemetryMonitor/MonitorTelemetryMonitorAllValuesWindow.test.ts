@@ -316,20 +316,35 @@ function seriesRows(input: {
 }
 
 /*
- * What the store holds over a window: "steady" all of it, "fresh" its
- * last minute - or, for a read that is cut, those plus enough of a third
- * series over the last five minutes that the read stops at its limit.
+ * What the store holds over a window:
+ *   - "steady-and-fresh": "steady" all of it, "fresh" its last minute;
+ *   - "cut": those, plus enough of a third series over the last five
+ *     minutes that the read stops at its limit;
+ *   - "slow-fleet": series that report less often than the window is
+ *     long, one row each - "slow-inside" seven minutes before its end,
+ *     "slow-new" ten seconds before it, "slow-leaving" ten seconds after
+ *     its start.
  */
+type StoreShape = "steady-and-fresh" | "cut" | "slow-fleet";
+
 function storedRows(input: {
   window: { startMs: number; endMs: number };
-  cut: boolean;
+  shape: StoreShape;
 }): Array<{ timeMs: number; name: string }> {
+  if (input.shape === "slow-fleet") {
+    return [
+      { timeMs: input.window.endMs - 10 * SECOND, name: "slow-new" },
+      { timeMs: input.window.endMs - 7 * MINUTE, name: "slow-inside" },
+      { timeMs: input.window.startMs + 10 * SECOND, name: "slow-leaving" },
+    ];
+  }
+
   const rows: Array<{ timeMs: number; name: string }> = [
     ...seriesRows({ name: "steady", window: input.window, minutesBack: null }),
     ...seriesRows({ name: "fresh", window: input.window, minutesBack: 1 }),
   ];
 
-  if (input.cut) {
+  if (input.shape === "cut") {
     /*
      * A row limit's worth, spread evenly across the newest five minutes:
      * with steady's and fresh's rows there, a read stops just short of
@@ -350,12 +365,12 @@ function storedRows(input: {
   });
 }
 
-let cutReads: boolean = false;
+let storeShape: StoreShape = "steady-and-fresh";
 // The time of the oldest row a cut read returned.
 let oldestReturnedMs: number | null = null;
 
-function givenStore(cut: boolean): void {
-  cutReads = cut;
+function givenStore(shape: StoreShape): void {
+  storeShape = shape;
   oldestReturnedMs = null;
 
   // The grouped raw read (and the affected-resources scan, limit 100).
@@ -369,7 +384,7 @@ function givenStore(cut: boolean): void {
     };
     const rows: Array<{ timeMs: number; name: string }> = storedRows({
       window: windowOf(findBy.query.time),
-      cut: cutReads,
+      shape: storeShape,
     }).slice(0, findBy.limit);
 
     if (findBy.limit === LIMIT_PER_PROJECT && rows.length === findBy.limit) {
@@ -400,7 +415,7 @@ function givenStore(cut: boolean): void {
           startMs: aggregate.startTimestamp.getTime(),
           endMs: aggregate.endTimestamp.getTime(),
         },
-        cut: cutReads,
+        shape: storeShape,
       })) {
         const bucketMs: number = Math.floor(row.timeMs / MINUTE) * MINUTE;
         const key: string = `${row.name}|${bucketMs}`;
@@ -455,6 +470,7 @@ async function checkOnce(
 async function verdicts(
   monitorType: MonitorType,
   response: MetricMonitorResponse,
+  names: Array<string> = ["steady", "fresh"],
 ): Promise<Record<string, string>> {
   const evaluations: Array<MetricSeriesEvaluationResult> =
     await MetricMonitorCriteria.evaluateAllSeries({
@@ -466,7 +482,7 @@ async function verdicts(
   const byName: Record<string, string> = {};
   for (const evaluation of evaluations) {
     const name: string = String(evaluation.labels[SERIES_KEY]);
-    if (name === "steady" || name === "fresh") {
+    if (names.includes(name)) {
       byName[name] = evaluation.rootCause
         ? "fires"
         : evaluation.context.windowWait?.message || "not met";
@@ -560,7 +576,7 @@ describe("every metric-backed monitor type: All Values waits for a series to cov
   test.each(types)(
     "%s: the worker hands over the window it read, and a whole read says nothing more",
     async (monitorType: MonitorType) => {
-      givenStore(false);
+      givenStore("steady-and-fresh");
       const before: number = Date.now();
 
       const response: MetricMonitorResponse = await checkOnce(monitorType);
@@ -581,7 +597,7 @@ describe("every metric-backed monitor type: All Values waits for a series to cov
   test.each(types)(
     "%s: the series reporting all along fires; the one a minute old waits",
     async (monitorType: MonitorType) => {
-      givenStore(false);
+      givenStore("steady-and-fresh");
 
       const response: MetricMonitorResponse = await checkOnce(monitorType);
 
@@ -597,7 +613,7 @@ describe("every metric-backed monitor type: All Values waits for a series to cov
   test.each(types)(
     "%s: a read cut at its row limit reports where it is complete, and the window is judged from there",
     async (monitorType: MonitorType) => {
-      givenStore(true);
+      givenStore("cut");
 
       const response: MetricMonitorResponse = await checkOnce(monitorType);
 
@@ -618,6 +634,39 @@ describe("every metric-backed monitor type: All Values waits for a series to cov
       expect(byName["fresh"]).toContain(
         "of the 15-minute time range could be read",
       );
+    },
+  );
+
+  /*
+   * A collector or device that reports less often than the window is
+   * long has one data point in it at most, and none of its series shows
+   * how often they report: a lone data point inside the window is taken
+   * for it, as before #4793, so such a monitor still fires. One only just
+   * in still waits - its series may be new - and so does one about to
+   * leave the window, the last of a series that stopped.
+   */
+  test.each(types)(
+    "%s: series reporting less often than the window - a lone data point inside it fires; one just in, or about to leave, waits",
+    async (monitorType: MonitorType) => {
+      givenStore("slow-fleet");
+
+      const response: MetricMonitorResponse = await checkOnce(monitorType);
+
+      expect(
+        await verdicts(monitorType, response, [
+          "slow-inside",
+          "slow-new",
+          "slow-leaving",
+        ]),
+      ).toEqual({
+        "slow-inside": "fires",
+        "slow-new": expect.stringContaining(
+          "Waiting for 15 minutes of data: less than a minute of 15 minutes so far.",
+        ),
+        "slow-leaving": expect.stringContaining(
+          "Waiting for 15 minutes of data: no new data point for the last",
+        ),
+      });
     },
   );
 });

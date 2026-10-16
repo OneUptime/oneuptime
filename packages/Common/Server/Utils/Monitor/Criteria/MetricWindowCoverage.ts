@@ -31,6 +31,12 @@ export interface MetricWindowCoverageResult extends WindowCoverageResult {
   intervalMs: number;
   // The data could not be read back to the start of the configured window.
   isCutByRowLimit: boolean;
+  /*
+   * No series of the monitor has two data points in the window, so nothing
+   * showed how often the metric reports, and this series' only data point -
+   * inside the window, not at either edge of it - was taken to cover it.
+   */
+  isLoneDataPoint: boolean;
 }
 
 const MINUTE_IN_MS: number = 60 * 1000;
@@ -48,7 +54,9 @@ const DAY_IN_MS: number = 24 * HOUR_IN_MS;
  * with no hole wider than its cadence allows, by the rule WindowCoverage
  * holds for every over-time window. Its cadence is the bucket width, or the
  * gap between its points most of the time when it reports less often than
- * that (a metric exported every five minutes).
+ * that (a metric exported every five minutes). A series with too few points
+ * to show its own cadence goes by how often the monitor's other series
+ * report.
  *
  * So a brand-new series - a new deployment, host or container - waits until
  * it has data for the whole window, and so does one that was gone and came
@@ -102,32 +110,73 @@ export default class MetricWindowCoverage {
     );
   }
 
+  /*
+   * How often a monitor's series report, as far as the window shows it: the
+   * lower median of the gaps between consecutive data points of every
+   * series, pooled. It is the cadence of a series that has too few data
+   * points to show its own. Null when no series has two data points in the
+   * window - its time range is then no longer than the metric's reporting
+   * interval.
+   */
+  public static getMonitorIntervalMs(
+    seriesSamples: Array<Array<AggregateModel>>,
+  ): number | null {
+    const gapsMs: Array<number> = [];
+
+    for (const samples of seriesSamples) {
+      gapsMs.push(
+        ...WindowCoverage.getGapsMs(MetricWindowCoverage.getTimesMs(samples)),
+      );
+    }
+
+    return WindowCoverage.getTypicalGapMs(gapsMs);
+  }
+
   public static judge(input: {
     window: MetricEvaluationWindow;
     samples: Array<AggregateModel>;
+    /*
+     * How often the monitor's series report (getMonitorIntervalMs), for a
+     * series with too few data points to show its own cadence; null when
+     * no series shows one. Left out, the series is judged on its own data
+     * alone.
+     */
+    monitorIntervalMs?: number | null | undefined;
   }): MetricWindowCoverageResult {
     const dataPointMs: number = MetricWindowCoverage.getDataPointMs(
       input.window,
     );
 
-    const readingTimesMs: Array<number> = [];
+    const readingTimesMs: Array<number> = MetricWindowCoverage.getTimesMs(
+      input.samples,
+    );
 
-    for (const sample of input.samples) {
-      const timeMs: number | null = MetricWindowCoverage.toMs(sample.timestamp);
+    const ownGapsMs: Array<number> = WindowCoverage.getGapsMs(readingTimesMs);
 
-      if (timeMs !== null) {
-        readingTimesMs.push(timeMs);
-      }
+    /*
+     * A series goes by its own cadence once it has two gaps to go by: the
+     * lower median of two is the shorter, so a hole cannot pass for the
+     * cadence. With fewer - a series that only just appeared, or one whose
+     * two data points straddle a hole - it goes by how often the monitor's
+     * series report together: among deployments reporting every minute,
+     * one recreated under an old name 13 minutes after the old one went
+     * does not pass for one that reports every 13 minutes.
+     */
+    let cadenceMs: number = 0;
+
+    if (ownGapsMs.length >= 2) {
+      cadenceMs = WindowCoverage.getTypicalGapMs(ownGapsMs) || 0;
+    } else if (typeof input.monitorIntervalMs === "number") {
+      cadenceMs = input.monitorIntervalMs;
+    } else {
+      cadenceMs = WindowCoverage.getTypicalGapMs(ownGapsMs) || 0;
     }
 
     /*
      * Never finer than the buckets: two points cannot be closer than one
      * bucket apart. Coarser when the series itself reports less often.
      */
-    const intervalMs: number = Math.max(
-      dataPointMs,
-      WindowCoverage.getTypicalIntervalMs(readingTimesMs) || 0,
-    );
+    const intervalMs: number = Math.max(dataPointMs, cadenceMs);
 
     const windowStartMs: number =
       input.window.completeFromMs !== null
@@ -143,7 +192,7 @@ export default class MetricWindowCoverage {
       holesBreakCoverage: true,
     });
 
-    return {
+    const result: MetricWindowCoverageResult = {
       ...coverage,
       windowStartMs: windowStartMs,
       windowEndMs: input.window.endMs,
@@ -151,7 +200,52 @@ export default class MetricWindowCoverage {
       dataPointMs: dataPointMs,
       intervalMs: intervalMs,
       isCutByRowLimit: input.window.completeFromMs !== null,
+      isLoneDataPoint: false,
     };
+
+    /*
+     * When no series of the monitor has two data points in the window, its
+     * time range is no longer than the metric's reporting interval - a
+     * VMware collector reading every 5 minutes, or an IoT device waking
+     * every 10, watched over 5 minutes - and nothing shows how often a
+     * series reports, or whether it is new. Waiting for coverage would wait
+     * for ever, so a lone data point is judged on its value, as before,
+     * while it sits inside the window: not while it is among the newest
+     * (not yet stale), where its series may only just have started, and
+     * not in the window's first data point's width, where it is the last
+     * data point of a series that stopped, about to leave the window.
+     */
+    if (
+      input.monitorIntervalMs === null &&
+      ownGapsMs.length === 0 &&
+      coverage.shortfall === WindowCoverageShortfall.Stale &&
+      coverage.runStartMs !== null &&
+      coverage.runStartMs - windowStartMs >= dataPointMs
+    ) {
+      return {
+        ...result,
+        isCovered: true,
+        shortfall: null,
+        isLoneDataPoint: true,
+      };
+    }
+
+    return result;
+  }
+
+  // Each data point's time in milliseconds, leaving out unreadable ones.
+  private static getTimesMs(samples: Array<AggregateModel>): Array<number> {
+    const timesMs: Array<number> = [];
+
+    for (const sample of samples) {
+      const timeMs: number | null = MetricWindowCoverage.toMs(sample.timestamp);
+
+      if (timeMs !== null) {
+        timesMs.push(timeMs);
+      }
+    }
+
+    return timesMs;
   }
 
   /*

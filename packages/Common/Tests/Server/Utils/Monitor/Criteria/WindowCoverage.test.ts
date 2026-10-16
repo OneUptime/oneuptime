@@ -393,3 +393,62 @@ describe("WindowCoverage.getTypicalIntervalMs", () => {
     ).toBeNull();
   });
 });
+
+describe("WindowCoverage.getGapsMs", () => {
+  test("the gaps between consecutive readings, oldest first, whatever order they come in", () => {
+    expect(
+      WindowCoverage.getGapsMs([
+        WINDOW_START + 7 * MINUTE,
+        WINDOW_START,
+        WINDOW_START + 2 * MINUTE,
+      ]),
+    ).toEqual([2 * MINUTE, 5 * MINUTE]);
+  });
+
+  test("leaves out readings taken at the same moment and unreadable ones", () => {
+    expect(
+      WindowCoverage.getGapsMs([
+        WINDOW_START,
+        NaN,
+        WINDOW_START,
+        Infinity,
+        WINDOW_START + MINUTE,
+      ]),
+    ).toEqual([MINUTE]);
+  });
+
+  test("is empty for fewer than two readings apart", () => {
+    expect(WindowCoverage.getGapsMs([])).toEqual([]);
+    expect(WindowCoverage.getGapsMs([WINDOW_START])).toEqual([]);
+    expect(WindowCoverage.getGapsMs([WINDOW_START, WINDOW_START])).toEqual([]);
+  });
+});
+
+describe("WindowCoverage.getTypicalGapMs", () => {
+  test("is the lower median of gaps pooled from several series", () => {
+    // Two series a minute apart and one a five: the minute is typical.
+    expect(
+      WindowCoverage.getTypicalGapMs([
+        ...WindowCoverage.getGapsMs(minutes(0, 4)),
+        ...WindowCoverage.getGapsMs(minutes(3, 6)),
+        ...WindowCoverage.getGapsMs([WINDOW_START, WINDOW_START + 5 * MINUTE]),
+      ]),
+    ).toBe(MINUTE);
+  });
+
+  test("of two gaps, it is the shorter: a hole cannot pass for the cadence", () => {
+    expect(WindowCoverage.getTypicalGapMs([13 * MINUTE, MINUTE])).toBe(MINUTE);
+  });
+
+  test("of one gap, it is that gap", () => {
+    expect(WindowCoverage.getTypicalGapMs([3 * MINUTE])).toBe(3 * MINUTE);
+  });
+
+  test("ignores gaps that are not gaps, and is null without one", () => {
+    expect(WindowCoverage.getTypicalGapMs([])).toBeNull();
+    expect(WindowCoverage.getTypicalGapMs([0, -MINUTE, NaN])).toBeNull();
+    expect(WindowCoverage.getTypicalGapMs([0, 2 * MINUTE, NaN])).toBe(
+      2 * MINUTE,
+    );
+  });
+});
