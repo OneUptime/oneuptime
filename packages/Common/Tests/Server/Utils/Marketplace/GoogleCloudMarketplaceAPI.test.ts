@@ -414,3 +414,82 @@ describe("GoogleCloudMarketplaceAPI calls", () => {
     ).rejects.toThrow(/SERVICE_NAME/);
   });
 });
+
+/*
+ * A provider, account or entitlement ID goes into a Procurement API path (or
+ * the entitlements filter) only in the shape Google writes its IDs in, so no
+ * value can send a request to another path of the API than the resource it
+ * names. The refusal is not retryable: a redelivered message would carry the
+ * same ID.
+ */
+describe("GoogleCloudMarketplaceAPI resource IDs in request paths", () => {
+  it("names a resource whose ID is shaped the way Google writes it", () => {
+    expect(
+      GoogleCloudMarketplaceAPI.getEntitlementName("oneuptime-public", "ent-1"),
+    ).toBe("providers/oneuptime-public/entitlements/ent-1");
+    expect(
+      GoogleCloudMarketplaceAPI.getAccountName("oneuptime-public", "acct_1"),
+    ).toBe("providers/oneuptime-public/accounts/acct_1");
+    expect(
+      GoogleCloudMarketplaceAPI.getEntitlementName(
+        "oneuptime-public",
+        "0f8fad5b-d9cb-469f-a165-70867728950e",
+      ),
+    ).toBe(
+      "providers/oneuptime-public/entitlements/0f8fad5b-d9cb-469f-a165-70867728950e",
+    );
+  });
+
+  it.each([
+    ["a step up the path", "../accounts/acct-2"],
+    ["a dot segment", ".."],
+    ["a slash", "ent-1/approve"],
+    ["a query", "ent-1?view=full"],
+    ["a fragment", "ent-1#x"],
+    ["an encoded slash", "ent-1%2Fapprove"],
+    ["a method suffix", "ent-1:approve"],
+    ["a space", "ent 1"],
+    ["nothing", ""],
+  ])("refuses an entitlement ID with %s", (_label: string, id: string) => {
+    let error: unknown = null;
+
+    try {
+      GoogleCloudMarketplaceAPI.getEntitlementName("oneuptime-public", id);
+    } catch (err) {
+      error = err;
+    }
+
+    expect(error).toBeInstanceOf(MarketplaceApiError);
+    expect((error as MarketplaceApiError).isRetryable).toBe(false);
+  });
+
+  it("refuses a provider ID it would put in a path the same way", () => {
+    expect(() => {
+      return GoogleCloudMarketplaceAPI.getAccountName("../v2", "acct-1");
+    }).toThrow(MarketplaceApiError);
+  });
+
+  it("sends nothing, not even the token exchange, for an entitlement ID it refuses", async () => {
+    const http: FakeHttpClient = createFakeHttpClient([
+      TOKEN_ANSWER,
+      { status: 200, body: ENTITLEMENT },
+    ]);
+
+    await expect(
+      createApi(http).getEntitlement("../accounts/acct-2"),
+    ).rejects.toBeInstanceOf(MarketplaceApiError);
+    expect(http.requests).toHaveLength(0);
+  });
+
+  it("refuses an account ID that would add a clause to the entitlements filter", async () => {
+    const http: FakeHttpClient = createFakeHttpClient([
+      TOKEN_ANSWER,
+      { status: 200, body: { entitlements: [] } },
+    ]);
+
+    await expect(
+      createApi(http).listEntitlements("acct-1 OR provider=someone-else"),
+    ).rejects.toBeInstanceOf(MarketplaceApiError);
+    expect(http.requests).toHaveLength(0);
+  });
+});
