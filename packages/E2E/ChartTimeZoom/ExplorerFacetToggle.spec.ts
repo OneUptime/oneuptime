@@ -217,9 +217,7 @@ async function rowGeometry(page: Page): Promise<Array<RowGeometry>> {
         const count: Element | null = row.querySelector(
           "[data-testid='facet-value-count']",
         );
-        const bar: Element | null = count
-          ? count.previousElementSibling
-          : null;
+        const bar: Element | null = count ? count.previousElementSibling : null;
 
         if (!checkbox || !count || !bar) {
           continue;
@@ -517,7 +515,10 @@ test.describe("Facet rows: the name keeps the row's width", () => {
     page: Page;
   }) => {
     // A day of spans: every service counts in the thousands.
-    await open(page, `${TRACES_PATH}?range=${encodeURIComponent("Past 1 Day")}`);
+    await open(
+      page,
+      `${TRACES_PATH}?range=${encodeURIComponent("Past 1 Day")}`,
+    );
 
     const services: Locator = facetSection(page, "Service");
     await expect(valueRow(services, "checkout-api")).toBeVisible({
@@ -600,9 +601,15 @@ test.describe("Facet rows: the name keeps the row's width", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, `${TRACES_PATH}?range=${encodeURIComponent("Past 1 Day")}`);
+    await open(
+      page,
+      `${TRACES_PATH}?range=${encodeURIComponent("Past 1 Day")}`,
+    );
 
-    const checkout: Locator = valueRow(facetSection(page, "Service"), "checkout-api");
+    const checkout: Locator = valueRow(
+      facetSection(page, "Service"),
+      "checkout-api",
+    );
     await expect(checkout).toHaveAttribute("aria-checked", "false", {
       timeout: 30000,
     });

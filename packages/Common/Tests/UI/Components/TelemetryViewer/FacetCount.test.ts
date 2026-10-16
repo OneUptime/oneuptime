@@ -22,9 +22,12 @@ describe("formatFacetCount", () => {
     [1, "1"],
     [42, "42"],
     [999, "999"],
-  ])("%d, under a thousand, is written out: %s", (count: number, text: string) => {
-    expect(formatFacetCount(count)).toBe(text);
-  });
+  ])(
+    "%d, under a thousand, is written out: %s",
+    (count: number, text: string) => {
+      expect(formatFacetCount(count)).toBe(text);
+    },
+  );
 
   test.each([
     [1000, "1K"],
@@ -119,9 +122,7 @@ describe("formatFacetCount", () => {
 
 describe("formatExactFacetCount", () => {
   test("the full count, grouped as the reader's browser writes numbers", () => {
-    expect(formatExactFacetCount(2417585)).toBe(
-      (2417585).toLocaleString(),
-    );
+    expect(formatExactFacetCount(2417585)).toBe((2417585).toLocaleString());
     expect(formatExactFacetCount(0)).toBe("0");
     expect(formatExactFacetCount(999)).toBe((999).toLocaleString());
   });
