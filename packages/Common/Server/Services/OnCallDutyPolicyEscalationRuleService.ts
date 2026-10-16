@@ -55,6 +55,7 @@ import {
   NOBODY_NEXT_IN_ROTATION_TIMELINE_MESSAGE,
   readNextInRotationScheduleIds,
 } from "../../Types/OnCallDutyPolicy/NextInRotation";
+import { ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 
 /*
  * The escalation timeline's line for a recipient the rule would have paged
@@ -167,6 +168,11 @@ export enum OnCallNotPagedReason {
    * it is away.
    */
   NobodyNextInRotation = "NobodyNextInRotation",
+  /*
+   * They passed this run's page on (OnCallPagePassOn): the run's later
+   * escalation rules and repeats do not page them again.
+   */
+  PassedOn = "PassedOn",
 }
 
 // One person a set of targets paged.
@@ -208,6 +214,16 @@ export interface OnCallPagingOutcome {
   notPaged: Array<OnCallNotPagedTarget>;
   // A schedule among the targets had nobody on call.
   hadScheduleGap: boolean;
+}
+
+/*
+ * What running one escalation rule came to (startRuleExecution): who it
+ * paged and who it did not, and whether the run moves on from it at once
+ * rather than waiting out its wait - it paged nobody because everybody it
+ * names had passed the run's page on (movesOnAtOnce).
+ */
+export interface OnCallRuleExecutionOutcome extends OnCallPagingOutcome {
+  movesOnAtOnce: boolean;
 }
 
 /*
@@ -357,6 +373,16 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     };
   }
 
+  /*
+   * Runs one escalation rule of a run: records the rule on the run, pages
+   * everybody it names (pageTargets) and hands back who it paged and who it
+   * did not, with why.
+   *
+   * `passedOnUserIds` are the people who passed this run's page on
+   * (OnCallPagePassOn): the rule passes them over. The run's first rule has
+   * nobody to pass over; every later rule and repeat is started by
+   * OnCallEscalationAdvance, which reads them.
+   */
   @CaptureSpan()
   public async startRuleExecution(
     ruleId: ObjectID,
@@ -369,8 +395,9 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       userNotificationEventType: UserNotificationEventType;
       onCallPolicyExecutionLogId: ObjectID;
       onCallPolicyId: ObjectID;
+      passedOnUserIds?: Array<ObjectID> | undefined;
     },
-  ): Promise<void> {
+  ): Promise<OnCallRuleExecutionOutcome> {
     logger.debug(`Starting rule execution for ruleId: ${ruleId.toString()}`, {
       projectId: options.projectId.toString(),
       onCallDutyPolicyEscalationRuleId: ruleId.toString(),
@@ -529,9 +556,18 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       nextInRotationScheduleIds: getScheduleIdsOfRule(true),
       // A rule's team with nobody in it has always gone unsaid.
       notesEmptyTeams: false,
+      passedOnUserIds: options.passedOnUserIds || [],
     });
 
-    if (outcome.paged.length === 0) {
+    /*
+     * Everybody the rule names passed this run's page on already: each has
+     * a line of their own, and "no users in this rule" would not be true.
+     * The run moves on from such a rule at once (OnCallEscalationAdvance).
+     */
+    const everyTargetPassedItOn: boolean =
+      Service.isEveryTargetPassedOn(outcome);
+
+    if (outcome.paged.length === 0 && !everyTargetPassedItOn) {
       const log: OnCallDutyPolicyExecutionLogTimeline =
         Service.getNewTimelineLog({
           context: options,
@@ -623,6 +659,52 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       projectId: options.projectId.toString(),
       onCallDutyPolicyEscalationRuleId: ruleId.toString(),
     } as LogAttributes);
+
+    return {
+      ...outcome,
+      movesOnAtOnce: Service.movesOnAtOnce(outcome),
+    };
+  }
+
+  /*
+   * A rule that paged nobody because everybody it names passed the run's
+   * page on: nobody is on it, and nobody may come on call in it, so there
+   * is nothing to wait for.
+   */
+  public static isEveryTargetPassedOn(outcome: OnCallPagingOutcome): boolean {
+    return (
+      outcome.paged.length === 0 &&
+      outcome.notPaged.length > 0 &&
+      outcome.notPaged.every((target: OnCallNotPagedTarget): boolean => {
+        return target.reason === OnCallNotPagedReason.PassedOn;
+      })
+    );
+  }
+
+  /*
+   * Whether a run moves on from a rule at once rather than waiting out the
+   * rule's wait: the rule reached nobody, at least one person it names had
+   * passed the page on, and no schedule of it had a gap that somebody may
+   * fill in a minute (those rules are tried again: startRuleExecution).
+   * Waiting for a rule that pages nobody would only hold up the people the
+   * page was passed on to.
+   */
+  public static movesOnAtOnce(
+    outcome: OnCallPagingOutcome | null | undefined,
+  ): boolean {
+    if (
+      !outcome ||
+      !Array.isArray(outcome.paged) ||
+      !Array.isArray(outcome.notPaged) ||
+      outcome.paged.length > 0 ||
+      outcome.hadScheduleGap
+    ) {
+      return false;
+    }
+
+    return outcome.notPaged.some((target: OnCallNotPagedTarget): boolean => {
+      return target.reason === OnCallNotPagedReason.PassedOn;
+    });
   }
 
   /*
@@ -690,6 +772,8 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       nextInRotationScheduleIds: [],
       // "Team Platform has no members" is why nobody was paged through it.
       notesEmptyTeams: true,
+      // A direct page pages everybody once, as it starts: nobody has passed it on.
+      passedOnUserIds: [],
     });
 
     /*
@@ -845,6 +929,11 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     nextInRotationScheduleIds: Array<ObjectID>;
     // Whether a team with no accepted member gets a line of its own.
     notesEmptyTeams: boolean;
+    /*
+     * People who passed this run's page on (OnCallPagePassOn): not paged
+     * again by it, whichever target names them.
+     */
+    passedOnUserIds: Array<ObjectID>;
   }): Promise<OnCallPagingOutcome> {
     const options: PageContext = data.context;
     const ruleId: ObjectID | null = data.ruleId;
@@ -1252,6 +1341,18 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       );
     };
 
+    const passedOnUserIds: Set<string> = new Set<string>(
+      data.passedOnUserIds.map((userId: ObjectID): string => {
+        return userId.toString().toLowerCase();
+      }),
+    );
+
+    const hasPassedItOn: (userId: ObjectID) => boolean = (
+      userId: ObjectID,
+    ): boolean => {
+      return passedOnUserIds.has(userId.toString().toLowerCase());
+    };
+
     for (const target of targets) {
       if (target.kind === RuleTargetKind.ScheduleGap) {
         hadScheduleGap = true;
@@ -1425,6 +1526,56 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
 
         pagedUserId = target.originalUserId;
         onBehalfOfUserId = target.originalUserId;
+      }
+
+      /*
+       * They passed this run's page on: they said they cannot take it, and
+       * are not paged about it again - not by this rule, a later one or a
+       * repeat. The line stays on the run's own page; the feed and the
+       * run's Slack and Microsoft Teams message said once that they passed
+       * it on.
+       */
+      if (hasPassedItOn(pagedUserId)) {
+        // Said once per rule, whichever of its targets names them again.
+        if (alreadyNotified(pagedUserId)) {
+          continue;
+        }
+
+        uniqueUserIds.push(pagedUserId);
+
+        const log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
+        log.statusMessage = ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE;
+        log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
+        log.alertSentToUserId = pagedUserId;
+
+        if (target.teamId) {
+          log.userBelongsToTeamId = target.teamId;
+        }
+
+        if (target.scheduleId) {
+          log.onCallDutyScheduleId = target.scheduleId;
+        }
+
+        if (target.isNextInRotation) {
+          log.isNextInRotation = true;
+        }
+
+        await OnCallDutyPolicyExecutionLogTimelineService.create({
+          data: log,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        outcome.notPaged.push({
+          reason: OnCallNotPagedReason.PassedOn,
+          userId: pagedUserId,
+          teamId: target.teamId,
+          scheduleId: target.scheduleId,
+          awayUntil: null,
+        });
+
+        continue;
       }
 
       if (!alreadyNotified(pagedUserId)) {

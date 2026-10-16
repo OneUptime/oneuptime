@@ -250,6 +250,16 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     text={UserNotificationExecutionStatus.Executing}
                   />
                 );
+              } else if (
+                // You could not take it, and passed it on.
+                item["status"] === UserNotificationExecutionStatus.PassedOn
+              ) {
+                return (
+                  <Pill
+                    color={Yellow}
+                    text={UserNotificationExecutionStatus.PassedOn}
+                  />
+                );
               }
 
               return (

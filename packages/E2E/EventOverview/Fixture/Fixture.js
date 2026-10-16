@@ -43,8 +43,9 @@
  *   ?fail=   comma separated: evidence, verdict, create-fix-task,
  *            investigation, conversation, conversation-send, resend,
  *            channel-links, channel-members (the channel card's read),
- *            channel-add (its Join channel and Add people). The
- *            matching API call throws HTTPErrorResponse. "conversation" is
+ *            channel-add (its Join channel and Add people), pass-on-read
+ *            (whether the viewer is paged, for Pass it on), pass-on (passing
+ *            it on). The matching API call throws HTTPErrorResponse. "conversation" is
  *            the read of the AI card's thread and "conversation-send" a
  *            question sent to it. "resend" also marks the subscriber
  *            notifications of Incident #1042 and Scheduled Maintenance #58 as
@@ -99,6 +100,18 @@
  *            POST .../add adds people: Alex Kim is nobody Slack knows (not
  *            found), and a team adds its people.
  *   ?teamsPrivate=1 the Teams channel is private.
+ *   ?paged=  the kinds of record an on-call policy is paging the viewer
+ *            about, as GET /on-call-page/pass-on answers it (the header's
+ *            Pass it on): a comma list of incident, alert, incident-episode
+ *            and alert-episode. Nobody is paged by default: no button.
+ *   ?passOn= what passing the page on would do, and did (POST
+ *            /on-call-page/pass-on): next (default; escalation rule 2 of 3,
+ *            Level 2, is paged at once), others (Bob Smith is still paged on
+ *            the rule, and Level 2 is next at 18:40), restart (the last rule:
+ *            the policy starts again from rule 1), stopped (nobody is left
+ *            to page), acknowledged (Sam Lee acknowledged it meanwhile: the
+ *            POST refuses) or two (two policies page the viewer about it).
+ *            Once passed on, the record no longer pages the viewer.
  *   ?unknown= the people Slack does not know, as POST .../add answers them
  *            (not found): a comma list of maya, sam, jordan, alex. Alex by
  *            default.
@@ -325,6 +338,24 @@ const membersMode = MEMBERS_MODES.includes(params.get("members"))
   ? params.get("members")
   : "some";
 const isTeamsChannelPrivate = params.get("teamsPrivate") === "1";
+/*
+ * ?paged= / ?passOn=: whether an on-call policy is paging the viewer about
+ * the record, for the header's Pass it on, and what passing on does.
+ */
+const pagedKinds = new Set(
+  (params.get("paged") || "").split(",").filter((value) => value.length > 0),
+);
+const PASS_ON_MODES = [
+  "next",
+  "others",
+  "restart",
+  "stopped",
+  "acknowledged",
+  "two",
+];
+const passOnMode = PASS_ON_MODES.includes(params.get("passOn"))
+  ? params.get("passOn")
+  : "next";
 const unknownToSlack = new Set(
   (params.get("unknown") ?? "alex")
     .split(",")
@@ -5185,8 +5216,131 @@ async function handleApi(method, options) {
     return ok(channelMembers(url));
   }
 
+  /*
+   * GET /on-call-page/pass-on/<record type>/<record id>: the viewer's own
+   * open pages about the record (?paged=, ?passOn=); POST passes them on.
+   */
+  if (url.includes("/on-call-page/pass-on/")) {
+    const [recordType, recordId] = url
+      .split("/on-call-page/pass-on/")[1]
+      .split("?")[0]
+      .split("/");
+
+    if (method === "GET") {
+      if (failures.has("pass-on-read")) {
+        throw fail(500, "Whether you are paged could not be read.");
+      }
+      return ok({ pages: openPassOnPages(recordType, recordId) });
+    }
+
+    if (method === "POST") {
+      if (failures.has("pass-on")) {
+        throw fail(500, "The page could not be passed on.");
+      }
+      return ok({ answers: passOnAnswers(recordType, recordId) });
+    }
+  }
+
   fixture.unhandled.push({ kind: "api", method, url });
   return ok({ data: [], count: 0 });
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Pass it on (?paged=, ?passOn=): the record's on-call pages to the viewer.
+ * The answers have the shape OnCallPagePassOnAPI gives, times as ISO text.
+ * ---------------------------------------------------------------------------
+ */
+const passedOnRecords = new Set();
+
+function passOnResult(isPreview, policyName) {
+  const base = {
+    isPreview,
+    isDirectPage: false,
+    policyName,
+    pagedNames: [],
+    stillPagedNames: [],
+    ruleCount: 3,
+  };
+
+  if (passOnMode === "others") {
+    return {
+      ...base,
+      outcome: "OthersStillPaged",
+      rule: { order: 1, name: "Level 1" },
+      stillPagedNames: ["Bob Smith"],
+      nextStepAt: new Date(NOW.getTime() + 20 * 60 * 1000).toISOString(),
+      nextRule: { order: 2, name: "Level 2" },
+    };
+  }
+
+  if (passOnMode === "restart") {
+    return {
+      ...base,
+      outcome: "PolicyStartedAgain",
+      rule: { order: 1, name: "Level 1" },
+      pagedNames: isPreview ? [] : ["Jordan Lee"],
+    };
+  }
+
+  if (passOnMode === "stopped") {
+    return { ...base, outcome: "PagingStopped" };
+  }
+
+  return {
+    ...base,
+    outcome: "NextRulePaged",
+    rule: { order: 2, name: "Level 2" },
+    pagedNames: isPreview ? [] : ["Sam Lee", "Priya Patel"],
+  };
+}
+
+function openPassOnPages(recordType, recordId) {
+  if (
+    !pagedKinds.has(recordType) ||
+    passedOnRecords.has(`${recordType}:${recordId}`)
+  ) {
+    return [];
+  }
+
+  const policies =
+    passOnMode === "two"
+      ? ["Checkout on-call", "Payments escalation"]
+      : ["Checkout on-call"];
+
+  return policies.map((policyName, index) => {
+    return {
+      executionLogId: uuid("73000000", index + 1),
+      preview: passOnResult(true, policyName),
+    };
+  });
+}
+
+function passOnAnswers(recordType, recordId) {
+  const pages = openPassOnPages(recordType, recordId);
+
+  if (pages.length === 0) {
+    return [{ passedOn: false, refusal: "NotPaged" }];
+  }
+
+  if (passOnMode === "acknowledged") {
+    return [
+      {
+        passedOn: false,
+        refusal: "RecordAcknowledged",
+        acknowledgedByName: "Sam Lee",
+      },
+    ];
+  }
+
+  passedOnRecords.add(`${recordType}:${recordId}`);
+
+  return pages.map((page) => {
+    return {
+      passedOn: true,
+      result: passOnResult(false, page.preview.policyName),
+    };
+  });
 }
 
 /*

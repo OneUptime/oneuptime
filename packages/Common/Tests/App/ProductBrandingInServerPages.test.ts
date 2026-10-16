@@ -274,6 +274,10 @@ describe("the product logo on the server's own pages", () => {
       "./Partials/ProductLogo.ejs",
     ],
     [
+      "Common/Server/Views/PassOnUserOnCallNotification.ejs",
+      "./Partials/ProductLogo.ejs",
+    ],
+    [
       "App/FeatureSet/Identity/Views/Message.ejs",
       "../../../../Common/Server/Views/Partials/ProductLogo.ejs",
     ],

@@ -8,6 +8,8 @@ import {
   within,
 } from "@testing-library/react-native";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
+import * as passOnApi from "../api/onCallPassOn";
+import type { OnCallPassOnPage } from "../api/onCallPassOn";
 import type { QueryClient, UseQueryResult } from "@tanstack/react-query";
 import AlertDetailScreen from "./AlertDetailScreen";
 import { lightColors } from "../theme";
@@ -122,6 +124,31 @@ jest.mock("../api/alerts", () => {
 jest.mock("../api/alertNotes", () => {
   return {
     createAlertNote: jest.fn(),
+  };
+});
+
+/*
+ * Whether the signed-in person is being paged about it, for Pass it on
+ * (hooks/usePassOnAction.test.tsx owns how that works). Unless a test says,
+ * the answer never comes: the screen renders as it always did, and nothing
+ * updates it after a test has looked.
+ */
+const mockPassOnPages: { current: OnCallPassOnPage[] | null } = {
+  current: null,
+};
+
+jest.mock("../api/onCallPassOn", () => {
+  return {
+    fetchOnCallPassOnPages: jest.fn(() => {
+      return mockPassOnPages.current
+        ? Promise.resolve(mockPassOnPages.current)
+        : new Promise<never>(() => {
+            // Never answers.
+          });
+    }),
+    passOnOnCallPages: jest.fn(async () => {
+      return [];
+    }),
   };
 });
 
@@ -1308,5 +1335,43 @@ describe("Acknowledged by the order of the project's states (utils/acknowledgedS
         ACKNOWLEDGED_STATE._id,
       );
     });
+  });
+});
+
+describe("Passing the page on", () => {
+  const fetchPassOnMock: jest.Mock =
+    passOnApi.fetchOnCallPassOnPages as unknown as jest.Mock;
+
+  const PASS_ON_PAGE: OnCallPassOnPage = {
+    executionLogId: "run-1",
+    policyName: "Payments",
+    sentence:
+      "Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+  };
+
+  afterEach(() => {
+    mockPassOnPages.current = null;
+  });
+
+  test("the person being paged about this alert is offered Pass it on", async () => {
+    fetchPassOnMock.mockClear();
+    mockPassOnPages.current = [PASS_ON_PAGE];
+
+    mockAlertDetail.current = queryState<AlertItem | null>({
+      data: makeLoadedAlert(),
+    });
+    mockAlertStates.current = queryState<AlertState[]>({
+      data: [TRIAGE_STATE, ACKNOWLEDGED_STATE, RESOLVED_STATE],
+    });
+    mockAlertTimeline.current = queryState<StateTimelineItem[]>();
+    mockAlertFeed.current = queryState<FeedItem[]>({ data: [] });
+    mockAlertNotes.current = queryState<NoteItem[]>({ data: [] });
+
+    await renderScreen(createTestQueryClient());
+
+    expect(
+      await screen.findByRole("button", { name: "Pass this alert page on" }),
+    ).toBeTruthy();
+    expect(fetchPassOnMock).toHaveBeenCalledWith(PROJECT_ID, "alert", ALERT_ID);
   });
 });
