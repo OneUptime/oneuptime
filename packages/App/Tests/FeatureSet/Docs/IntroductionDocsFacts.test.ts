@@ -44,6 +44,13 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Project from "Common/Models/DatabaseModels/Project";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
+import {
+  BillingPeriod,
+  getDefaultPlanIdForNewProject,
+  getTrialDays,
+  isPlanFree,
+} from "Common/Types/Billing/SubscriptionPlanPricing";
 import User from "Common/Models/DatabaseModels/User";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -408,6 +415,62 @@ describe("Getting Started", () => {
 // ---- Quickstart -------------------------------------------------------------
 
 describe("Quickstart", () => {
+  /*
+   * Create New Project is one page: the plan is picked under the name, Free
+   * is picked to start with (getDefaultPlanIdForNewProject), and a new
+   * project on a paid plan starts with its trial - on the plans OneUptime
+   * Cloud is configured with (Common's test-setup.sh, which the suites run
+   * with). It used to walk a second step for the plan.
+   */
+  it("picks the plan on the same page as the name, Free first, with the paid plans' trials", () => {
+    const picker: string = dashboard("Components/Header/ProjectPicker.tsx");
+    const fields: string = readSource(
+      COMMON_DIR,
+      "UI/Components/Project/CreateProjectFormFields.tsx",
+    );
+    const env: Record<string, string> = {};
+
+    for (const line of readSource(COMMON_DIR, "test-setup.sh").split("\n")) {
+      if (line.startsWith("SUBSCRIPTION_PLAN_")) {
+        env[line.slice(0, line.indexOf("="))] = line.slice(
+          line.indexOf("=") + 1,
+        );
+      }
+    }
+
+    const plans: Array<SubscriptionPlan> =
+      SubscriptionPlan.getSubscriptionPlans(env);
+    const free: SubscriptionPlan | undefined = plans.find(
+      (plan: SubscriptionPlan): boolean => {
+        return isPlanFree(plan, BillingPeriod.Yearly);
+      },
+    );
+
+    expect(free?.getName()).toBe("Free");
+    expect(getDefaultPlanIdForNewProject(plans, BillingPeriod.Yearly)).toBe(
+      free!.getYearlyPlanId(),
+    );
+
+    for (const plan of plans) {
+      if (plan !== free) {
+        expect({
+          plan: plan.getName(),
+          trial: getTrialDays(plan) > 0,
+        }).toEqual({ plan: plan.getName(), trial: true });
+      }
+    }
+
+    // One page: no steps in the dialog, and no field on a step.
+    expect(picker).not.toContain("steps:");
+    expect(fields).not.toContain("stepId");
+    expect(fields).toContain("getDefaultPlanIdForNewProject(");
+
+    expect(QUICKSTART).toContain(
+      "Enter a **Project Name**, such as your company's name. On OneUptime Cloud, pick a plan below it as well: Free is already picked, and the paid plans start with a free trial.",
+    );
+    expect(QUICKSTART).not.toContain("the next step asks you to pick a plan");
+  });
+
   it("starts a monitor on the interval the create form starts on", () => {
     expect(getMonitoringIntervalLabel(DEFAULT_MONITORING_INTERVAL)).toBe(
       "Every 5 Minutes",
@@ -1656,9 +1719,14 @@ describe("Your Account", () => {
 
   it("creates, joins and leaves projects with the controls that do it", () => {
     const picker: string = dashboard("Components/Header/ProjectPicker.tsx");
+    const fields: string = readSource(
+      COMMON_DIR,
+      "UI/Components/Project/CreateProjectFormFields.tsx",
+    );
 
     expect(picker).toContain('title="Create New Project"');
-    expect(picker).toContain('title: "Project Name"');
+    expect(picker).toContain("getCreateProjectFormFields({");
+    expect(fields).toContain('title: "Project Name"');
     expect(picker).toContain('submitButtonText="Create Project"');
     expect(picker).toContain(
       "setCanCreateProject(!vars.disableUserProjectCreation);",

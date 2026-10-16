@@ -82,11 +82,16 @@ test.describe.skip("Project Creation", () => {
 
     if (IS_BILLING_ENABLED) {
       /*
-       * Click "Next" to go to the plan selection step, the last one: Create
-       * Project is on it, not on Basic.
+       * One page, with no Next: the plan picker is under the name, with Free
+       * picked, and the promo code folded under More fields.
        */
-      await expect(modalSubmitButton).toHaveCount(0);
-      await page.getByTestId("modal-footer-next-button").click();
+      await expect(page.getByTestId("modal-footer-next-button")).toHaveCount(
+        0,
+      );
+      await expect(modalSubmitButton).toBeVisible();
+      await expect(
+        page.getByTestId("modal").getByRole("radio", { name: "Free" }),
+      ).toBeChecked();
 
       await selectProjectPlan({ page, submitButton: modalSubmitButton });
 

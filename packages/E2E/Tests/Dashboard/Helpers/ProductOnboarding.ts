@@ -161,14 +161,9 @@ export const registerAndCreateProject: RegisterAndCreateProjectFunction =
 
     if (IS_BILLING_ENABLED) {
       /*
-       * Basic is not the last step: its plain Next walks on to Select Plan,
-       * the last step, where Create Project is.
+       * One page: the plan picker is under the name, with Free picked, and
+       * Create Project is the dialog's only button besides Cancel.
        */
-      await page
-        .getByTestId("modal")
-        .getByTestId("modal-footer-next-button")
-        .click();
-
       await selectProjectPlan({
         page,
         submitButton: modalSubmitButton,
