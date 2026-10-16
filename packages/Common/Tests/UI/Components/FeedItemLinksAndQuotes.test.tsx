@@ -167,7 +167,8 @@ function renderMockNode(
   }
 
   const tagName: string = MOCK_TAG_BY_NODE_TYPE[node.type] || "span";
-  const component: React.ElementType = components[tagName] || tagName;
+  const component: React.ElementType = (components[tagName] ||
+    tagName) as React.ElementType;
   const props: Record<string, unknown> = { key: key };
 
   if (typeof component !== "string") {

@@ -30,9 +30,12 @@ import useTranslator from "../../Utils/UseTranslator";
  * icon and tint say which kind it is; a screen reader is told by its name.
  */
 
-// The quote, as MarkdownEditor's visual mode draws it.
+/*
+ * The quote, as MarkdownEditor's visual mode draws it, its bar on the side
+ * the text starts from (left to right: the left).
+ */
 export const MARKDOWN_QUOTE_CLASS_NAME: string =
-  "my-2 border-l-[3px] border-gray-300 pl-3";
+  "my-2 border-s-[3px] border-gray-300 ps-3";
 
 // The text of a paragraph or a list item, in a quote and anywhere else.
 export const MARKDOWN_QUOTED_TEXT_CLASS_NAME: string = "text-gray-600";

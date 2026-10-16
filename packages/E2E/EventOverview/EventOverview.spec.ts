@@ -9795,6 +9795,22 @@ test.describe("links and quotes in a note", () => {
 
     await screenshotElement(savedNote(page), "feed-note-links-and-quotes");
     await expectNoHorizontalOverflow(page);
+
+    // In text read right to left, the bar is on the side it starts from.
+    await quote.evaluate((element: Element): void => {
+      element.setAttribute("dir", "rtl");
+    });
+    expect(
+      await computedStyleOf(quote, [
+        "border-right-width",
+        "border-left-width",
+        "padding-right",
+      ]),
+    ).toEqual({
+      "border-right-width": "3px",
+      "border-left-width": "0px",
+      "padding-right": "12px",
+    });
   });
 
   test("a callout the note asked for is a panel with its sign", async ({

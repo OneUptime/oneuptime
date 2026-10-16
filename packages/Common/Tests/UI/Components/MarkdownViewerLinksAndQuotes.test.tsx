@@ -146,7 +146,8 @@ function renderMockNode(
   }
 
   const tagName: string = MOCK_TAG_BY_NODE_TYPE[node.type] || "span";
-  const component: React.ElementType = components[tagName] || tagName;
+  const component: React.ElementType = (components[tagName] ||
+    tagName) as React.ElementType;
   const elementProps: Record<string, unknown> = { key: key };
 
   // react-markdown hands every component the tree node it renders.
@@ -664,7 +665,8 @@ describe("quoted text is a quote, not a warning", () => {
     const quote: HTMLElement = quoteContaining("They said something");
 
     expect(quote.className).toBe(MARKDOWN_QUOTE_CLASS_NAME);
-    expect(quote).toHaveClass("border-l-[3px]", "border-gray-300", "pl-3");
+    // A bar on the side the text starts from, and the space after it.
+    expect(quote).toHaveClass("border-s-[3px]", "border-gray-300", "ps-3");
     expect(quote).not.toHaveClass("bg-amber-50/50", "rounded-lg", "border");
     expect(quote.querySelector("svg")).toBeNull();
     expect(container.innerHTML).not.toContain(OLD_QUOTE_ICON_PATH);
