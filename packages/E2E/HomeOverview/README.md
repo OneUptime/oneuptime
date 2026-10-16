@@ -80,7 +80,8 @@ command palette.
   maintenance, attention, busy, many, many with nothing coming up, new, the batch failing, German
   and dark), Needs attention and the side column's last card end on one line, with Explore 20px
   under it; all clear, a new project's "Problems will show up here" and a failed list sit in the
-  middle of their card; a short list keeps its rows at the top; with the open work the taller side,
+  middle of their card; a short list keeps its rows at the top; at 1440px and 1920px the dividers
+  under Needs attention's and Your project's headers run on one line; with the open work the taller side,
   Upcoming maintenance runs down to its end while Your project keeps its rows' height; below xl
   (1024px, 768px, 390px) the cards stack, each as tall as what it holds.
 
