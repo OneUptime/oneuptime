@@ -159,7 +159,7 @@ Os critérios decidem quando o monitor está online, degradado ou offline, e qua
 | Tipo de filtro | O que verifica | Condições do filtro |
 | --- | --- | --- |
 | Is Online | Se o agente informou recentemente (nos últimos 3 minutos, por padrão) | Verdadeiro, Falso |
-| CPU Usage (in %) | Uso geral da CPU | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| CPU Usage (in %) | Uso geral da CPU | Maior que, Menor que, Maior ou igual a, Menor ou igual a |
 | Memory Usage (in %) | Memória em uso | Igual à CPU |
 | Disk Usage (in %) | Uso do disco indicado em **Caminho do disco** | Igual à CPU |
 | Swap Usage (in %) | Swap em uso | Igual à CPU |
@@ -195,10 +195,10 @@ Os critérios decidem quando o monitor está online, degradado ou offline, e qua
 | Objetivo | Tipo de filtro | Condição do filtro | Valor |
 | --- | --- | --- | --- |
 | Marcar o servidor como offline quando o agente para de informar | Is Online | Falso | — |
-| Alertar quando o uso de CPU passar de 90% | CPU Usage (in %) | Greater Than | `90` |
-| Alertar quando o disco raiz estiver mais de 85% cheio | Disk Usage (in %), **Caminho do disco** `/` | Greater Than | `85` |
-| Alertar para qualquer disco mais de 85% cheio, um alerta por disco | Disk Usage (in %), **Caminho do disco** `*` | Greater Than | `85` |
-| Alertar quando o uso de memória passar de 80% | Memory Usage (in %) | Greater Than | `80` |
+| Alertar quando o uso de CPU passar de 90% | CPU Usage (in %) | Maior que | `90` |
+| Alertar quando o disco raiz estiver mais de 85% cheio | Disk Usage (in %), **Caminho do disco** `/` | Maior que | `85` |
+| Alertar para qualquer disco mais de 85% cheio, um alerta por disco | Disk Usage (in %), **Caminho do disco** `*` | Maior que | `85` |
+| Alertar quando o uso de memória passar de 80% | Memory Usage (in %) | Maior que | `80` |
 | Alertar quando o nginx parar de executar | Server Process Name | Is Not Executing | `nginx` |
 
 ## Solução de problemas

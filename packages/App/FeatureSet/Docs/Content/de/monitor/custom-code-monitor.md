@@ -177,15 +177,15 @@ Die Kriterien eines Custom-Code-Monitors können prüfen:
 
 | Filtertyp | Was er prüft | Filterbedingungen |
 | --- | --- | --- |
-| **Fehler** | Den Fehler, den das Skript geworfen hat, falls vorhanden. | Enthält, Not Contains, Equal To, Not Equal To, Is Empty, Is Not Empty |
-| **Result Value** | Die `data`, die das Skript zurückgegeben hat. Als Zahl verglichen, wenn es eine ist. | Dieselben, dazu Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To, Wahr und Falsch |
+| **Fehler** | Den Fehler, den das Skript geworfen hat, falls vorhanden. | Enthält, Enthält nicht, Gleich, Ungleich, Ist leer, Ist nicht leer |
+| **Result Value** | Die `data`, die das Skript zurückgegeben hat. Als Zahl verglichen, wenn es eine ist. | Dieselben, dazu Größer als, Kleiner als, Größer als oder gleich, Kleiner als oder gleich, Wahr und Falsch |
 | **Ausführungszeit (in ms)** | Wie lange das Skript lief. | Numerische Vergleiche |
 
 Die Standardkriterien markieren den Monitor als online, wenn **Fehler** leer ist, und als offline — mit einem Vorfall, der sich selbst behebt, sobald das Skript wieder erfolgreich läuft — wenn nicht. In Vorfall- und Warnungsvorlagen steht der Lauf als `{{result}}`, `{{scriptError}}`, `{{logMessages}}` und `{{executionTimeInMs}}` zur Verfügung: siehe [Vorfall- & Warnmeldungsvorlagen](/docs/monitor/incident-alert-templating).
 
 ### Auf die zurückgegebenen Daten alarmieren
 
-Was das Skript als `data` zurückgibt, ist der **Result Value** des Monitors, und ein Kriterium kann ihn vergleichen — zum Beispiel _Result Value ist Equal To `UP`_.
+Was das Skript als `data` zurückgibt, ist der **Result Value** des Monitors, und ein Kriterium kann ihn vergleichen — zum Beispiel _Result Value ist Gleich `UP`_.
 
 Ist `data` ein Objekt oder ein Array, füllen Sie im Result-Value-Filter **Feldpfad (optional)** aus, um ein Feld daraus statt des ganzen Werts zu vergleichen. Verwenden Sie Punkte für verschachtelte Felder und `[n]` für Array-Elemente:
 
@@ -204,16 +204,16 @@ return {
 
 | Feldpfad | Vergleicht | Beispielbedingung |
 | --- | --- | --- |
-| `status` | `"UP"` | Not Equal To `UP` |
-| `cpu_busy_percent` | `42` | Greater Than `90` |
+| `status` | `"UP"` | Ungleich `UP` |
+| `cpu_busy_percent` | `42` | Größer als `90` |
 | `healthy` | `true` | Falsch |
-| `checks[0].latency` | `12` | Greater Than `500` |
+| `checks[0].latency` | `12` | Größer als `500` |
 
 Fügen Sie pro Feld, das Sie prüfen möchten, einen Filter hinzu; jeder kann eine eigene Bedingung und einen eigenen Wert haben.
 
 - Lassen Sie den Feldpfad leer, um den ganzen Wert zu vergleichen, wie bei einem Skript, das eine einzelne Zahl oder Zeichenkette zurückgibt.
-- Greater Than, Less Than und die anderen Zahlenbedingungen treffen nur auf eine Zahl zu, geben Sie ein Feld also als `42` zurück, nicht als `"42"`. Wahr und Falsch treffen nur auf einen booleschen Wert zu.
-- Ein Feld, das in den zurückgegebenen Daten fehlt — ein fehlender Schlüssel oder ein Array-Index hinter dem Ende — gilt als leer: **Is Empty** trifft darauf zu, keine andere Bedingung.
+- Größer als, Kleiner als und die anderen Zahlenbedingungen treffen nur auf eine Zahl zu, geben Sie ein Feld also als `42` zurück, nicht als `"42"`. Wahr und Falsch treffen nur auf einen booleschen Wert zu.
+- Ein Feld, das in den zurückgegebenen Daten fehlt — ein fehlender Schlüssel oder ein Array-Index hinter dem Ende — gilt als leer: **Ist leer** trifft darauf zu, keine andere Bedingung.
 - Ein Feld, dessen Name einen Punkt enthält, lässt sich mit einem Pfad nicht ansprechen.
 - In Terraform legt `custom_code_monitor_options` des Filters den Feldpfad fest: siehe [Monitor-Schritte](/docs/terraform/monitor-steps#ein-feld-des-skriptergebnisses-vergleichen).
 

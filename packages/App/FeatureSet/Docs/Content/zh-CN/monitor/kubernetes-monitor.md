@@ -112,7 +112,7 @@ flowchart LR
 
 ### 条件类型
 
-静态阈值与你输入的 **Threshold** 进行比较：**Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** 和 **Equal To**。
+静态阈值与你输入的 **Threshold** 进行比较：**大于**、**小于**、**大于或等于**、**小于或等于** 和 **等于**。
 
 基于基线的异常检测不需要阈值。选择以下条件之一后，表单会改为显示 **灵敏度** 和 **基线窗口**：
 

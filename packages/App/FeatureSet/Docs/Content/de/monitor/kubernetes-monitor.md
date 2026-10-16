@@ -112,7 +112,7 @@ Diese Monitore werten immer den **Metric Value** aus – den Wert der konfigurie
 
 ### Bedingungen
 
-Statische Schwellenwerte werden mit dem **Schwellenwert** verglichen, den Sie eingeben: **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** und **Equal To**.
+Statische Schwellenwerte werden mit dem **Schwellenwert** verglichen, den Sie eingeben: **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** und **Gleich**.
 
 Die Anomalieerkennung anhand einer Baseline braucht keinen Schwellenwert. Wählen Sie eine dieser Bedingungen, und das Formular zeigt stattdessen **Empfindlichkeit** und **Baseline-Fenster**:
 

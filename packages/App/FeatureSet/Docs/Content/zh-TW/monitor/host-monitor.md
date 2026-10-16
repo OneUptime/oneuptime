@@ -173,7 +173,7 @@ OneUptime 有兩種用於機器的監測器。它們可以在同一台主機上�
 | --- | --- |
 | **指標** | 要檢查的查詢或公式，以其變數名稱指定。 |
 | **彙總** | 視窗中的值如何變成一個結果：**平均**、**總和**、**Maximum Value**、**Minimum Value**、**All Values**（每個值都必須符合）或 **Any Value**（一個就夠）。 |
-| **條件** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** 或 **Equal To**，或是異常條件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
+| **條件** | **大於**、**小於**、**大於或等於**、**小於或等於** 或 **等於**，或是異常條件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
 | **Threshold** | 用來比較的值。如果指標有單位，旁邊會有單位清單。異常條件下不會顯示。 |
 | **敏感度** | 僅限異常條件。**低**（4σ）、**中**（3σ，預設）或 **高**（2σ）。 |
 | **基準視窗** | 僅限異常條件。14 天（預設）、28、60 或 90 天的歷史。 |

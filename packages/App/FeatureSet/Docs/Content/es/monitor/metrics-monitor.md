@@ -119,11 +119,11 @@ Estos monitores evalúan siempre el **Metric Value**: el valor agregado de la co
 
 | Condición | Coincide cuando el valor está… |
 | --- | --- |
-| **Greater Than** | por encima del umbral |
-| **Greater Than Or Equal To** | en el umbral o por encima |
-| **Less Than** | por debajo del umbral |
-| **Less Than Or Equal To** | en el umbral o por debajo |
-| **Equal To** | exactamente en el umbral |
+| **Mayor que** | por encima del umbral |
+| **Mayor o igual que** | en el umbral o por encima |
+| **Menor que** | por debajo del umbral |
+| **Menor o igual que** | en el umbral o por debajo |
+| **Igual a** | exactamente en el umbral |
 | **Anomalously High** | por encima del rango esperado para esta hora de la semana |
 | **Anomalously Low** | por debajo de ese rango |
 | **Anomalous** | fuera de ese rango, en cualquier sentido |
@@ -134,8 +134,8 @@ Un monitor de métricas nuevo empieza con dos criterios sobre su primera consult
 
 | Criterio | Condición | Efecto |
 | --- | --- | --- |
-| Check if … is offline | **Equal To** `0` | Pone el monitor fuera de línea y declara un incidente que se resuelve solo |
-| Check if … is online | **Greater Than** `0` | Pone el monitor en línea |
+| Check if … is offline | **Igual a** `0` | Pone el monitor fuera de línea y declara un incidente que se resuelve solo |
+| Check if … is online | **Mayor que** `0` | Pone el monitor en línea |
 
 > [!NOTE]
 > El criterio de fuera de línea se dispara con un valor informado de 0, no con el silencio. Para alertar cuando una métrica deja de llegar, pon su **Si no hay datos** en **Disparador**.
@@ -148,7 +148,7 @@ Quieres un incidente cuando la cola de checkout se mantiene profunda. La consult
 | --- | --- | --- | --- | --- | --- |
 | `a` | 640 | 980 | 1500 | 1620 | 1100 |
 
-Un criterio con **Métrica** `a`, **Condición** **Greater Than** y **Umbral** `1000` da una respuesta distinta con cada **Agregación**:
+Un criterio con **Métrica** `a`, **Condición** **Mayor que** y **Umbral** `1000` da una respuesta distinta con cada **Agregación**:
 
 | Agregación | Comparado con 1000 | ¿Coincide? |
 | --- | --- | --- |

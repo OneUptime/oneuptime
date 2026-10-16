@@ -144,7 +144,7 @@ En ny monitor för inkommande e-post skapas med två kriterier som läser e-post
 | Kriterium | Filtertyp | Filtervillkor | Värde | Effekt |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
 | Offline  | Email Body  | Innehåller | `error` | Markerar monitorn som offline, öppnar en incident |
-| Online   | Email Body  | Not Contains | `error` | Markerar monitorn som online |
+| Online   | Email Body  | Innehåller inte | `error` | Markerar monitorn som online |
 
 Det passar det vanliga fallet där ett jobb eller ett verktyg från tredje part mejlar sitt eget resultat: ett meddelande vars innehåll nämner `error` tar ned monitorn, och nästa meddelande utan ordet tar upp monitorn igen och löser incidenten. Jämförelsen av innehållet skiljer inte på versaler och gemener, så `Error` och `ERROR` matchar också.
 
@@ -175,13 +175,13 @@ Monitorns egen adress maskeras innan något kriterium läser e-postmeddelandet, 
 | Filtervillkor | Beskrivning | Exempel |
 | ---------------- | ----------------------------------------- | ---------------------------------- |
 | **Innehåller** | Fältet innehåller den angivna texten | Ämnet innehåller "CRITICAL" |
-| **Not Contains** | Fältet innehåller inte den angivna texten | Ämnet innehåller inte "TEST" |
-| **Equal To** | Fältet stämmer exakt med den angivna texten | Avsändaren är lika med "alerts@service.com" |
-| **Not Equal To** | Fältet stämmer inte med den angivna texten | Ämnet är inte lika med "OK" |
-| **Starts With** | Fältet börjar med den angivna texten | Ämnet börjar med "[ALERT]" |
-| **Ends With** | Fältet slutar med den angivna texten | Ämnet slutar med "- Production" |
-| **Is Empty** | Fältet är tomt | Innehållet är tomt |
-| **Is Not Empty** | Fältet har innehåll | Ämnet är inte tomt |
+| **Innehåller inte** | Fältet innehåller inte den angivna texten | Ämnet innehåller inte "TEST" |
+| **Lika med** | Fältet stämmer exakt med den angivna texten | Avsändaren är lika med "alerts@service.com" |
+| **Inte lika med** | Fältet stämmer inte med den angivna texten | Ämnet är inte lika med "OK" |
+| **Börjar med** | Fältet börjar med den angivna texten | Ämnet börjar med "[ALERT]" |
+| **Slutar med** | Fältet slutar med den angivna texten | Ämnet slutar med "- Production" |
+| **Är tom** | Fältet är tomt | Innehållet är tomt |
+| **Är inte tom** | Fältet har innehåll | Ämnet är inte tomt |
 
 Ingen av de här jämförelserna skiljer på versaler och gemener. Ett filter med ett tomt värde matchar aldrig.
 
@@ -221,8 +221,8 @@ Lägg det kritiska kriteriet först: kriterierna kontrolleras uppifrån, och det
 
 | Kriterium | Filter | Matchningsvillkor | Åtgärder |
 | --- | --- | --- | --- |
-| Misslyckat jobb | **Email From Address** Equal To `monitoring@legacy-system.com`; **E-postämne** Innehåller `Failed` | **Alla** | Ändra statusen till offline; deklarera en incident |
-| Lyckat jobb | **Email From Address** Equal To `monitoring@legacy-system.com`; **E-postämne** Innehåller `Success` | **Alla** | Ändra statusen till online |
+| Misslyckat jobb | **Email From Address** Lika med `monitoring@legacy-system.com`; **E-postämne** Innehåller `Failed` | **Alla** | Ändra statusen till offline; deklarera en incident |
+| Lyckat jobb | **Email From Address** Lika med `monitoring@legacy-system.com`; **E-postämne** Innehåller `Success` | **Alla** | Ändra statusen till online |
 
 ### Exempel 3: Heartbeat-monitor (ingen e-post = larm)
 
@@ -240,7 +240,7 @@ Ett kriterium håller en incident öppen i taget: så länge den är öppen öpp
 :::steps
 ### Välj e-postmeddelandena
 
-Ge kriteriet ett filter som matchar de e-postmeddelanden som ska öppna incidenter. För att bara ta emot rapporter från era egna medarbetare använder du **Email From Address** med **Ends With** och er domän, till exempel `@example.com`.
+Ge kriteriet ett filter som matchar de e-postmeddelanden som ska öppna incidenter. För att bara ta emot rapporter från era egna medarbetare använder du **Email From Address** med **Slutar med** och er domän, till exempel `@example.com`.
 
 ### Deklarera incidenten
 
@@ -327,7 +327,7 @@ Tills det är konfigurerat säger monitorns adresskort att inkommande e-post int
 - **E-postadressens säkerhet**: Monitorns e-postadress fungerar som ett lösenord: alla som känner till den kan skicka e-post till monitorn. Dela den inte offentligt, och återställ den från monitorns flik **Inställningar** om den läcker.
 - **E-postens storlek**: OneUptime tar emot ett inkommande e-postmeddelande på upp till 50 MB, bilagor inräknade. Bilagor lagras inte — bara deras namn, typer och storlekar.
 - **Behandlingstid**: E-post behandlas asynkront. Det kan dröja några sekunder från att ett e-postmeddelande skickas tills larmet skapas.
-- **Skiftlägesokänslighet**: Ingen av strängjämförelserna (Innehåller, Equal To osv.) skiljer på versaler och gemener.
+- **Skiftlägesokänslighet**: Ingen av strängjämförelserna (Innehåller, Lika med osv.) skiljer på versaler och gemener.
 - **Oformaterad text**: Kriterier på innehållet läser e-postmeddelandets oformaterade textdel. Ett e-postmeddelande som bara skickats som HTML har ett tomt innehåll för kriterierna — så det innehåller inte `error`, och standardkriterierna markerar monitorn som online.
 
 ## Felsökning

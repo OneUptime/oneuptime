@@ -97,11 +97,11 @@ UNSET 并不表示数据缺失。OpenTelemetry 埋点会在操作失败时将状
 
 | 过滤条件 | 当 Span 数量…时匹配 |
 | --- | --- |
-| **Greater Than** | 高于该值 |
-| **Greater Than Or Equal To** | 等于或高于该值 |
-| **Less Than** | 低于该值 |
-| **Less Than Or Equal To** | 等于或低于该值 |
-| **Equal To** | 正好等于该值 |
+| **大于** | 高于该值 |
+| **大于或等于** | 等于或高于该值 |
+| **小于** | 低于该值 |
+| **小于或等于** | 等于或低于该值 |
+| **等于** | 正好等于该值 |
 | **Anomalously High** | 高于每周这个时段的预期范围 |
 | **Anomalously Low** | 低于该范围 |
 | **Anomalous** | 向任一方向超出该范围 |
@@ -112,8 +112,8 @@ UNSET 并不表示数据缺失。OpenTelemetry 埋点会在操作失败时将状
 
 | 条件 | 过滤器 | 效果 |
 | --- | --- | --- |
-| Check if … is offline | **Span Count** **Equal To** `0` | 将监视器标记为离线并声明事件，事件会自动解决 |
-| Check if … is online | **Span Count** **Greater Than** `0` | 将监视器标记为在线 |
+| Check if … is offline | **Span Count** **等于** `0` | 将监视器标记为离线并声明事件，事件会自动解决 |
+| Check if … is online | **Span Count** **大于** `0` | 将监视器标记为在线 |
 
 ## 实例：结账请求失败
 
@@ -131,8 +131,8 @@ UNSET 并不表示数据缺失。OpenTelemetry 埋点会在操作失败时将状
 - **Span 名称**：`POST /api/checkout`
 - **监视器跟踪（时间）**：**最近 5 分钟**
 - **按跨度状态过滤**：**错误**
-- 条件 1：**Span Count** **Greater Than** `10`：将监视器标记为离线并声明事件
-- 条件 2：**Span Count** **Less Than Or Equal To** `10`：将监视器标记为在线
+- 条件 1：**Span Count** **大于** `10`：将监视器标记为离线并声明事件
+- 条件 2：**Span Count** **小于或等于** `10`：将监视器标记为在线
 
 有 30 个失败请求时，条件 1 匹配并声明事件。当五分钟内失败数不超过 10 个时，条件 2 匹配，监视器恢复在线，事件会自行解决。
 

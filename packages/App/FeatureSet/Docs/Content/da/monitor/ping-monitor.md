@@ -82,9 +82,9 @@ Kriterier afgør, hvornår værten tæller som online, forringet eller offline, 
 | Filter | Betingelser | Hvad det tjekker |
 | --- | --- | --- |
 | **Is Online** | **Sand**, **Falsk** | Om mindst én ekkoanmodning fik svar. |
-| **Svartid (i ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Svarenes gennemsnitlige rundturstid. |
-| **Packet Loss (in %)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Andelen af de fem ekkoanmodninger, der ikke fik svar. |
-| **Jitter (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Standardafvigelsen af rundturstiderne over pakkerne i ét tjek. |
+| **Svartid (i ms)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Svarenes gennemsnitlige rundturstid. |
+| **Packet Loss (in %)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Andelen af de fem ekkoanmodninger, der ikke fik svar. |
+| **Jitter (in ms)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Standardafvigelsen af rundturstiderne over pakkerne i ét tjek. |
 | **Is Request Timeout** | **Sand**, **Falsk** | Om pingen fik timeout ved hvert forsøg. |
 
 Med to eller flere filtre afgør **Matchbetingelse**, om **Alle** skal matche, eller om **Enhver** enkelt er nok. Et kriteriums **Handlinger** afgør, hvad det gør: ændrer monitorstatus, opretter en advarsel, erklærer en hændelse eller flere af dem.
@@ -127,9 +127,9 @@ Gør vinduet længere end overvågningsintervallet, så det rummer flere tjek: e
 | Mål | Filter | Betingelse | Værdi |
 | --- | --- | --- | --- |
 | Offline, når værten ikke kan nås | **Is Online** | **Falsk** | — |
-| Advar, når latensen er høj | **Svartid (i ms)** | **Greater Than** | `200` |
-| Markér værten som forringet på en forbindelse med tab | **Packet Loss (in %)** | **Greater Than** | `20` |
-| Advar ved en ustabil forbindelse | **Jitter (in ms)** | **Greater Than** | `30` |
+| Advar, når latensen er høj | **Svartid (i ms)** | **Større end** | `200` |
+| Markér værten som forringet på en forbindelse med tab | **Packet Loss (in %)** | **Større end** | `20` |
+| Advar ved en ustabil forbindelse | **Jitter (in ms)** | **Større end** | `30` |
 
 For kun at advare, når latensen forbliver høj, slår du **Evaluér disse kriterier over en periode** til for svartidsfilteret og vælger **All Values** over **5** minutter.
 

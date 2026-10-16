@@ -101,10 +101,10 @@ sequenceDiagram
 | --- | --- | --- |
 | **NTP Is Online** | **是**、**否** | 服务器是否用 NTP 应答回复了探测器的请求。kiss-o'-death 也算应答。 |
 | **NTP Is Synchronized** | **是**、**否** | 已应答的服务器是否提供已同步的时间。服务器没有应答时不检查此筛选器；这种情况请使用 **NTP Is Online**。 |
-| **NTP Stratum** | **Greater Than**、**Greater Than Or Equal To**、**Less Than**、**Less Than Or Equal To**、**Equal To**、**Not Equal To** | 服务器的层级。kiss-o'-death 的 0 按 16（未同步）计算。 |
-| **NTP Clock Offset (in ms)** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 服务器的时钟与探测器的时钟相差多少，不分方向。 |
-| **NTP Response Time (in ms)** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 从请求到应答的时间。 |
-| **NTP Root Dispersion (in ms)** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 服务器自己估计的最大误差。 |
+| **NTP Stratum** | **大于**、**大于或等于**、**小于**、**小于或等于**、**等于**、**不等于** | 服务器的层级。kiss-o'-death 的 0 按 16（未同步）计算。 |
+| **NTP Clock Offset (in ms)** | **大于**、**小于**、**大于或等于**、**小于或等于** | 服务器的时钟与探测器的时钟相差多少，不分方向。 |
+| **NTP Response Time (in ms)** | **大于**、**小于**、**大于或等于**、**小于或等于** | 从请求到应答的时间。 |
+| **NTP Root Dispersion (in ms)** | **大于**、**小于**、**大于或等于**、**小于或等于** | 服务器自己估计的最大误差。 |
 
 有两个或更多筛选器时，**匹配条件** 决定必须 **全部** 匹配，还是 **任意** 一个匹配即可。标准的 **操作** 决定它做什么：更改监视器状态、创建告警、宣布事件，或这些的任意组合。
 
@@ -125,10 +125,10 @@ sequenceDiagram
 
 | 目标 | 筛选器 | 条件 | 值 |
 | --- | --- | --- | --- |
-| GPS 服务器退回到网络源时告警 | **NTP Stratum** | **Greater Than** | `1` |
-| 时钟漂移时告警 | **NTP Clock Offset (in ms)** | **Greater Than** | `100` |
-| 服务器的误差上限变大时告警 | **NTP Root Dispersion (in ms)** | **Greater Than** | `500` |
-| 应答变慢时告警 | **NTP Response Time (in ms)** | **Greater Than** | `1000` |
+| GPS 服务器退回到网络源时告警 | **NTP Stratum** | **大于** | `1` |
+| 时钟漂移时告警 | **NTP Clock Offset (in ms)** | **大于** | `100` |
+| 服务器的误差上限变大时告警 | **NTP Root Dispersion (in ms)** | **大于** | `500` |
+| 应答变慢时告警 | **NTP Response Time (in ms)** | **大于** | `1000` |
 
 ## 故障排查
 

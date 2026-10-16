@@ -169,7 +169,7 @@ Opprett en monitor av typen **Målinger** (se [Metrikk-overvåking](/docs/monito
 1. **Metrikkspørring:** `sdwan.gateway.latency.ms`, aggregering **Gjennomsnitt**, **Grupper etter** `gw_name` og `profile_name`.
 2. **Rullerende tidsvindu:** Past 15 Minutes. Brannmuren rapporterer med noen minutters mellomrom, så vinduet inneholder flere punkter per gateway.
 3. **Aggregeringsstrategi:** **All Values**: hvert punkt i vinduet må overskride grensen, slik at ett tregt sammendrag ikke vekker noen. Bruk heller **Gjennomsnitt** for å få varsel ved et høyt gjennomsnitt.
-4. **Kriterier:** Metric value **Greater Than** `150` åpner et varsel.
+4. **Kriterier:** Metric value **Større enn** `150` åpner et varsel.
 5. Bruk eventuelt grupperingsverdiene i tittelen på varselet, f.eks. `SD-WAN latency high on {{gw_name}} ({{profile_name}})`.
 
 Med gruppering satt er hver gateway sin egen serie: blir WAN2 treg, åpnes et varsel bare for WAN2, og det løses av seg selv når WAN2 kommer seg. Se [Varsler per serie](/docs/monitor/metrics-monitor#varsler-per-serie-group-by).

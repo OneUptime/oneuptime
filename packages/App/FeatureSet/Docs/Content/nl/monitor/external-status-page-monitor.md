@@ -119,10 +119,10 @@ U kunt criteria instellen die bepalen wanneer de externe dienst als online of of
 | Filtertype | Wat het controleert | Filtervoorwaarden |
 | --- | --- | --- |
 | **External Status Page Is Online** | Of de statuspagina bereikbaar is en statusgegevens teruggeeft | Waar of Onwaar |
-| **External Status Page Overall Status** | De algemene status die de pagina meldt | Equal To, Not Equal To, Bevat, Not Contains, Starts With, Ends With |
-| **External Status Page Component Status** | De status van de componenten binnen de afbakening (met inachtneming van de filters op componentgroep / componentnaam): Operationeel, Under Maintenance, Degraded Performance, Partial Outage, Major Outage of Full Outage | Equal To, Not Equal To, Bevat, Not Contains, Starts With, Ends With |
-| **External Status Page Active Incidents** | Het aantal momenteel actieve incidenten op de statuspagina (afgebakend tot de componentgroep / het component als er een filter is ingesteld) | Equal To, Not Equal To en de numerieke vergelijkingen |
-| **External Status Page Response Time (in ms)** | Hoe lang het ophalen van de gegevens van de statuspagina duurt | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| **External Status Page Overall Status** | De algemene status die de pagina meldt | Gelijk aan, Niet gelijk aan, Bevat, Bevat niet, Begint met, Eindigt op |
+| **External Status Page Component Status** | De status van de componenten binnen de afbakening (met inachtneming van de filters op componentgroep / componentnaam): Operationeel, Under Maintenance, Degraded Performance, Partial Outage, Major Outage of Full Outage | Gelijk aan, Niet gelijk aan, Bevat, Bevat niet, Begint met, Eindigt op |
+| **External Status Page Active Incidents** | Het aantal momenteel actieve incidenten op de statuspagina (afgebakend tot de componentgroep / het component als er een filter is ingesteld) | Gelijk aan, Niet gelijk aan en de numerieke vergelijkingen |
+| **External Status Page Response Time (in ms)** | Hoe lang het ophalen van de gegevens van de statuspagina duurt | Groter dan, Kleiner dan, Groter dan of gelijk aan, Kleiner dan of gelijk aan |
 
 De algemene status is wat de pagina zegt, dus de waarden verschillen per provider: een Atlassian Statuspage meldt haar eigen omschrijving, zoals `All Systems Operational`; een feed meldt `operational` of `degraded_performance`; de controle op bereikbaarheid meldt `reachable` of `unreachable`. Bij deze vergelijkingen tellen hoofdletters mee. Om bij storingen te waarschuwen, zijn **External Status Page Active Incidents** en **External Status Page Component Status** meestal betrouwbaarder.
 

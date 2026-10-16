@@ -143,11 +143,11 @@ curl --cert client.crt --key client.key https://example.com/health
 | 筛选器 | 条件 | 检查内容 |
 | --- | --- | --- |
 | **Is Online** | **是**、**否** | 网站是否有应答，无论状态码是什么。 |
-| **响应状态码** | **Equal To**、**Not Equal To**、**Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | HTTP 状态码。 |
-| **响应时间（毫秒）** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 请求所用的时间，包括重定向。 |
-| **响应主体** | **包含**、**Not Contains** | 响应正文中的文本。匹配区分大小写。 |
-| **Response Header** | **包含**、**Not Contains** | 响应中是否有此名称的标头。以小写输入名称，例如 `x-cache`。 |
-| **Response Header Value** | **包含**、**Not Contains** | 某个标头的值是否恰好是此值，以小写比较，例如 `no-store`。 |
+| **响应状态码** | **等于**、**不等于**、**大于**、**小于**、**大于或等于**、**小于或等于** | HTTP 状态码。 |
+| **响应时间（毫秒）** | **大于**、**小于**、**大于或等于**、**小于或等于** | 请求所用的时间，包括重定向。 |
+| **响应主体** | **包含**、**不包含** | 响应正文中的文本。匹配区分大小写。 |
+| **Response Header** | **包含**、**不包含** | 响应中是否有此名称的标头。以小写输入名称，例如 `x-cache`。 |
+| **Response Header Value** | **包含**、**不包含** | 某个标头的值是否恰好是此值，以小写比较，例如 `no-store`。 |
 | **JavaScript Expression** | **Evaluates To True** | 针对响应的表达式。请参阅 [JavaScript 表达式](/docs/monitor/javascript-expression)。 |
 | **Is Request Timeout** | **是**、**否** | 请求是否在每次尝试中都超时。 |
 
@@ -164,7 +164,7 @@ curl --cert client.crt --key client.key https://example.com/health
 
 在条件列表中，它们以监视器命名：_Check if (name) is offline_ 和 _Check if (name) is online_。
 
-因此，返回 `204 No Content` 的页面，或者在打开 **不跟随重定向** 时监视的重定向，都算作正常。如果对您来说只有一个状态码表示健康，请在监视器的 **配置 → 标准** 页面上修改这两个条件：例如在线条件中使用 **响应状态码** / **Equal To** / `200`，离线条件中使用 **Not Equal To** / `200`，替换各自原有的两个状态码筛选器。
+因此，返回 `204 No Content` 的页面，或者在打开 **不跟随重定向** 时监视的重定向，都算作正常。如果对您来说只有一个状态码表示健康，请在监视器的 **配置 → 标准** 页面上修改这两个条件：例如在线条件中使用 **响应状态码** / **等于** / `200`，离线条件中使用 **不等于** / `200`，替换各自原有的两个状态码筛选器。
 
 条件从上到下检查，第一个匹配的条件决定接下来发生什么。
 
@@ -200,10 +200,10 @@ curl --cert client.crt --key client.key https://example.com/health
 
 | 目标 | 筛选器 | 条件 | 值 |
 | --- | --- | --- | --- |
-| 网站变慢时标记为性能下降 | **响应时间（毫秒）** | **Greater Than** | `3000` |
-| 发现以 `200` 返回的错误页面 | **响应主体** | **Not Contains** | `Welcome` |
+| 网站变慢时标记为性能下降 | **响应时间（毫秒）** | **大于** | `3000` |
+| 发现以 `200` 返回的错误页面 | **响应主体** | **不包含** | `Welcome` |
 | 检查 CDN 标头是否存在 | **Response Header** | **包含** | `x-cache` |
-| 只接受 `200` 为健康 | **响应状态码** | **Equal To** | `200` |
+| 只接受 `200` 为健康 | **响应状态码** | **等于** | `200` |
 
 要挺过重启，请为响应主体筛选器打开 **在一段时间内评估此条件**，并选择 15 分钟内的 **All Values**。
 

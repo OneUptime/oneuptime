@@ -119,10 +119,10 @@ Du kan konfigurera kriterier som avgör när den externa tjänsten anses vara on
 | Filtertyp | Vad den kontrollerar | Filtervillkor |
 | --- | --- | --- |
 | **External Status Page Is Online** | Om statussidan kan nås och returnerar statusdata | Sant eller Falskt |
-| **External Status Page Overall Status** | Den övergripande status som sidan rapporterar | Equal To, Not Equal To, Innehåller, Not Contains, Starts With, Ends With |
-| **External Status Page Component Status** | Statusen för komponenterna inom avgränsningen (med hänsyn till filtren för komponentgrupp / komponentnamn): Fungerar, Under Maintenance, Degraded Performance, Partial Outage, Major Outage eller Full Outage | Equal To, Not Equal To, Innehåller, Not Contains, Starts With, Ends With |
-| **External Status Page Active Incidents** | Antalet incidenter som för närvarande är aktiva på statussidan (avgränsat till komponentgruppen / komponenten när ett filter är angivet) | Equal To, Not Equal To och de numeriska jämförelserna |
-| **External Status Page Response Time (in ms)** | Hur lång tid det tar att hämta statussidans data | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| **External Status Page Overall Status** | Den övergripande status som sidan rapporterar | Lika med, Inte lika med, Innehåller, Innehåller inte, Börjar med, Slutar med |
+| **External Status Page Component Status** | Statusen för komponenterna inom avgränsningen (med hänsyn till filtren för komponentgrupp / komponentnamn): Fungerar, Under Maintenance, Degraded Performance, Partial Outage, Major Outage eller Full Outage | Lika med, Inte lika med, Innehåller, Innehåller inte, Börjar med, Slutar med |
+| **External Status Page Active Incidents** | Antalet incidenter som för närvarande är aktiva på statussidan (avgränsat till komponentgruppen / komponenten när ett filter är angivet) | Lika med, Inte lika med och de numeriska jämförelserna |
+| **External Status Page Response Time (in ms)** | Hur lång tid det tar att hämta statussidans data | Större än, Mindre än, Större än eller lika med, Mindre än eller lika med |
 
 Den övergripande statusen är det som sidan säger, så värdena varierar mellan leverantörer: en Atlassian Statuspage rapporterar sin egen beskrivning, som `All Systems Operational`; ett flöde rapporterar `operational` eller `degraded_performance`; kontrollen av om sidan kan nås rapporterar `reachable` eller `unreachable`. De här jämförelserna skiljer på versaler och gemener. För att larma om avbrott är **External Status Page Active Incidents** och **External Status Page Component Status** oftast mer tillförlitliga.
 

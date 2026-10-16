@@ -97,11 +97,11 @@ En trace-monitors kriterier har én **Filtertype**: **Span Count**, antallet af 
 
 | Filterbetingelse | Matcher, når antallet af spans er… |
 | --- | --- |
-| **Greater Than** | over værdien |
-| **Greater Than Or Equal To** | lig med værdien eller derover |
-| **Less Than** | under værdien |
-| **Less Than Or Equal To** | lig med værdien eller derunder |
-| **Equal To** | præcis værdien |
+| **Større end** | over værdien |
+| **Større end eller lig med** | lig med værdien eller derover |
+| **Mindre end** | under værdien |
+| **Mindre end eller lig med** | lig med værdien eller derunder |
+| **Lig med** | præcis værdien |
 | **Anomalously High** | over det forventede interval for denne time på ugen |
 | **Anomalously Low** | under det interval |
 | **Anomalous** | uden for det interval, i begge retninger |
@@ -112,8 +112,8 @@ En ny trace-monitor starter med disse kriterier:
 
 | Kriterium | Filter | Effekt |
 | --- | --- | --- |
-| Check if … is offline | **Span Count** **Equal To** `0` | Sætter monitoren offline og erklærer en hændelse, der løses automatisk |
-| Check if … is online | **Span Count** **Greater Than** `0` | Sætter monitoren online |
+| Check if … is offline | **Span Count** **Lig med** `0` | Sætter monitoren offline og erklærer en hændelse, der løses automatisk |
+| Check if … is online | **Span Count** **Større end** `0` | Sætter monitoren online |
 
 ## Gennemgået eksempel: mislykkede checkout-anmodninger
 
@@ -131,8 +131,8 @@ For at blive kaldt ud, når mere end 10 checkout-anmodninger mislykkes på fem m
 - **Span-navn**: `POST /api/checkout`
 - **Overvågningsspor i (time)**: **Seneste 5 minutter**
 - **Filtrér efter span-status**: **Fejl**
-- Kriterium 1: **Span Count** **Greater Than** `10`: sæt monitoren offline, og erklær en hændelse
-- Kriterium 2: **Span Count** **Less Than Or Equal To** `10`: sæt monitoren online
+- Kriterium 1: **Span Count** **Større end** `10`: sæt monitoren offline, og erklær en hændelse
+- Kriterium 2: **Span Count** **Mindre end eller lig med** `10`: sæt monitoren online
 
 Med 30 mislykkede anmodninger matcher kriterium 1, og hændelsen erklæres. Når der er gået fem minutter med 10 eller færre fejl, matcher kriterium 2, monitoren er online igen, og hændelsen løser sig selv.
 

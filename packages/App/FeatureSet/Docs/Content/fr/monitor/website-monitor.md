@@ -143,11 +143,11 @@ Les critères décident quand le site web compte comme en ligne, dégradé ou ho
 | Filtre | Conditions | Ce qu'il vérifie |
 | --- | --- | --- |
 | **Is Online** | **Vrai**, **Faux** | Si le site a répondu, quel que soit le code de statut. |
-| **Code de statut de la réponse** | **Equal To**, **Not Equal To**, **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Le code de statut HTTP. |
-| **Temps de réponse (en ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Le temps qu'a pris la requête, redirections comprises. |
-| **Corps de la réponse** | **Contient**, **Not Contains** | Du texte dans le corps de la réponse. La correspondance respecte la casse. |
-| **Response Header** | **Contient**, **Not Contains** | Si la réponse a un en-tête avec ce nom. Saisissez le nom en minuscules, comme `x-cache`. |
-| **Response Header Value** | **Contient**, **Not Contains** | Si un en-tête a exactement cette valeur, comparée en minuscules, comme `no-store`. |
+| **Code de statut de la réponse** | **Égal à**, **Différent de**, **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Le code de statut HTTP. |
+| **Temps de réponse (en ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Le temps qu'a pris la requête, redirections comprises. |
+| **Corps de la réponse** | **Contient**, **Ne contient pas** | Du texte dans le corps de la réponse. La correspondance respecte la casse. |
+| **Response Header** | **Contient**, **Ne contient pas** | Si la réponse a un en-tête avec ce nom. Saisissez le nom en minuscules, comme `x-cache`. |
+| **Response Header Value** | **Contient**, **Ne contient pas** | Si un en-tête a exactement cette valeur, comparée en minuscules, comme `no-store`. |
 | **JavaScript Expression** | **Evaluates To True** | Une expression sur la réponse. Voir [Expressions JavaScript](/docs/monitor/javascript-expression). |
 | **Is Request Timeout** | **Vrai**, **Faux** | Si la requête a expiré à chaque tentative. |
 
@@ -164,7 +164,7 @@ Un nouveau moniteur de site web commence avec deux critères, il fonctionne donc
 
 Dans la liste des critères, ils sont nommés d'après le moniteur : _Check if (name) is offline_ et _Check if (name) is online_.
 
-Ainsi, une page qui répond `204 No Content`, ou une redirection que vous surveillez avec **Ne pas suivre les redirections** activé, compte comme disponible. Si un seul code de statut signifie « en bonne santé » pour vous, modifiez les deux critères sur la page **Configuration → Critères** du moniteur : par exemple **Code de statut de la réponse** / **Equal To** / `200` dans le critère en ligne et **Not Equal To** / `200` dans le critère hors ligne, à la place des deux filtres de code de statut de chacun.
+Ainsi, une page qui répond `204 No Content`, ou une redirection que vous surveillez avec **Ne pas suivre les redirections** activé, compte comme disponible. Si un seul code de statut signifie « en bonne santé » pour vous, modifiez les deux critères sur la page **Configuration → Critères** du moniteur : par exemple **Code de statut de la réponse** / **Égal à** / `200` dans le critère en ligne et **Différent de** / `200` dans le critère hors ligne, à la place des deux filtres de code de statut de chacun.
 
 Les critères sont vérifiés de haut en bas, et le premier qui correspond décide de ce qui se passe.
 
@@ -200,10 +200,10 @@ Choisissez une fenêtre plus longue que l'intervalle de surveillance, pour qu'el
 
 | Objectif | Filtre | Condition | Valeur |
 | --- | --- | --- | --- |
-| Marquer le site dégradé quand il est lent | **Temps de réponse (en ms)** | **Greater Than** | `3000` |
-| Repérer une page d'erreur servie avec `200` | **Corps de la réponse** | **Not Contains** | `Welcome` |
+| Marquer le site dégradé quand il est lent | **Temps de réponse (en ms)** | **Supérieur à** | `3000` |
+| Repérer une page d'erreur servie avec `200` | **Corps de la réponse** | **Ne contient pas** | `Welcome` |
 | Vérifier qu'un en-tête de CDN est présent | **Response Header** | **Contient** | `x-cache` |
-| N'accepter que `200` comme sain | **Code de statut de la réponse** | **Equal To** | `200` |
+| N'accepter que `200` comme sain | **Code de statut de la réponse** | **Égal à** | `200` |
 
 Pour traverser un redémarrage, activez **Évaluer ce critère sur une période donnée** pour le filtre du corps de la réponse et choisissez **All Values** sur 15 minutes.
 

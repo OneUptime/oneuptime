@@ -109,9 +109,9 @@ Kriterien entscheiden, wann der Port als online, beeinträchtigt oder offline gi
 | Filter | Bedingungen | Was er prüft |
 | --- | --- | --- |
 | **Is Online** | **Wahr**, **Falsch** | Ob der Port eine Verbindung angenommen hat. |
-| **Gesamte Verbindungszeit (DNS + TCP) (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Die gesamte Verbindungszeit, einschließlich des DNS-Nachschlagens bei einem Hostnamen. |
-| **Port DNS Lookup Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Das DNS-Nachschlagen vor dem ersten TCP-Versuch. Es hat keinen Wert, wenn das Ziel eine IP-Adresse ist. |
-| **Port TCP Connect Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Vom ersten TCP-Versuch bis zur Annahme der Verbindung, einschließlich des Wechsels zwischen IPv6 und IPv4. |
+| **Gesamte Verbindungszeit (DNS + TCP) (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Die gesamte Verbindungszeit, einschließlich des DNS-Nachschlagens bei einem Hostnamen. |
+| **Port DNS Lookup Time (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Das DNS-Nachschlagen vor dem ersten TCP-Versuch. Es hat keinen Wert, wenn das Ziel eine IP-Adresse ist. |
+| **Port TCP Connect Time (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Vom ersten TCP-Versuch bis zur Annahme der Verbindung, einschließlich des Wechsels zwischen IPv6 und IPv4. |
 | **Is Request Timeout** | **Wahr**, **Falsch** | Ob das DNS-Nachschlagen oder die TCP-Verbindung bei jedem Versuch das Zeitlimit überschritten hat. |
 
 Ein Kriterium zur DNS-Nachschlagezeit hat nichts auszuwerten, wenn das Ziel eine IP-Adresse ist. Für Kriterien, die mit Hostnamen und IP-Adressen gleichermaßen funktionieren müssen, verwenden Sie die Gesamt- oder die TCP-Verbindungszeit.
@@ -156,10 +156,10 @@ Wählen Sie das Fenster länger als das Überwachungsintervall, damit es mehrere
 | Ziel | Filter | Bedingung | Wert |
 | --- | --- | --- | --- |
 | Offline, wenn der Port geschlossen ist | **Is Online** | **Falsch** | — |
-| Warnen, wenn der Verbindungsaufbau langsam ist | **Gesamte Verbindungszeit (DNS + TCP) (in ms)** | **Greater Than** | `500` |
-| Den Dienst als beeinträchtigt markieren, wenn er langsam verbindet | **Gesamte Verbindungszeit (DNS + TCP) (in ms)** | **Greater Than** | `200` |
-| Warnen, wenn DNS langsam ist | **Port DNS Lookup Time (in ms)** | **Greater Than** | `100` |
-| Warnen, wenn der TCP-Handshake langsam ist | **Port TCP Connect Time (in ms)** | **Greater Than** | `250` |
+| Warnen, wenn der Verbindungsaufbau langsam ist | **Gesamte Verbindungszeit (DNS + TCP) (in ms)** | **Größer als** | `500` |
+| Den Dienst als beeinträchtigt markieren, wenn er langsam verbindet | **Gesamte Verbindungszeit (DNS + TCP) (in ms)** | **Größer als** | `200` |
+| Warnen, wenn DNS langsam ist | **Port DNS Lookup Time (in ms)** | **Größer als** | `100` |
+| Warnen, wenn der TCP-Handshake langsam ist | **Port TCP Connect Time (in ms)** | **Größer als** | `250` |
 
 ## Fehlerbehebung
 

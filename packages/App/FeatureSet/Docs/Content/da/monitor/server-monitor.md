@@ -159,7 +159,7 @@ Kriterier afgør, hvornår monitoren er online, forringet eller offline, og hvor
 | Filtertype | Hvad den kontrollerer | Filterbetingelser |
 | --- | --- | --- |
 | Is Online | Om agenten har rapporteret for nylig (som standard inden for de sidste 3 minutter) | Sand, Falsk |
-| CPU Usage (in %) | Samlet CPU-forbrug | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| CPU Usage (in %) | Samlet CPU-forbrug | Større end, Mindre end, Større end eller lig med, Mindre end eller lig med |
 | Memory Usage (in %) | Hukommelse i brug | Som for CPU |
 | Disk Usage (in %) | Forbrug på disken angivet i **Disksti** | Som for CPU |
 | Swap Usage (in %) | Swap i brug | Som for CPU |
@@ -195,10 +195,10 @@ Kriterier afgør, hvornår monitoren er online, forringet eller offline, og hvor
 | Mål | Filtertype | Filterbetingelse | Værdi |
 | --- | --- | --- | --- |
 | Markér serveren som offline, når agenten holder op med at rapportere | Is Online | Falsk | — |
-| Advar, når CPU-forbruget er over 90 % | CPU Usage (in %) | Greater Than | `90` |
-| Advar, når roddisken er mere end 85 % fuld | Disk Usage (in %), **Disksti** `/` | Greater Than | `85` |
-| Advar om enhver disk, der er mere end 85 % fuld, én advarsel pr. disk | Disk Usage (in %), **Disksti** `*` | Greater Than | `85` |
-| Advar, når hukommelsesforbruget er over 80 % | Memory Usage (in %) | Greater Than | `80` |
+| Advar, når CPU-forbruget er over 90 % | CPU Usage (in %) | Større end | `90` |
+| Advar, når roddisken er mere end 85 % fuld | Disk Usage (in %), **Disksti** `/` | Større end | `85` |
+| Advar om enhver disk, der er mere end 85 % fuld, én advarsel pr. disk | Disk Usage (in %), **Disksti** `*` | Større end | `85` |
+| Advar, når hukommelsesforbruget er over 80 % | Memory Usage (in %) | Større end | `80` |
 | Advar, når nginx holder op med at køre | Server Process Name | Is Not Executing | `nginx` |
 
 ## Fejlfinding

@@ -97,11 +97,11 @@ UNSET은 데이터가 누락되었다는 뜻이 아닙니다. OpenTelemetry 계�
 
 | 필터 조건 | 스팬 수가 다음과 같을 때 일치 |
 | --- | --- |
-| **Greater Than** | 값보다 큼 |
-| **Greater Than Or Equal To** | 값 이상 |
-| **Less Than** | 값보다 작음 |
-| **Less Than Or Equal To** | 값 이하 |
-| **Equal To** | 값과 정확히 같음 |
+| **보다 큼** | 값보다 큼 |
+| **이상** | 값 이상 |
+| **보다 작음** | 값보다 작음 |
+| **이하** | 값 이하 |
+| **같음** | 값과 정확히 같음 |
 | **Anomalously High** | 이번 주의 이 시간대에 예상되는 범위보다 높음 |
 | **Anomalously Low** | 그 범위보다 낮음 |
 | **Anomalous** | 어느 방향으로든 그 범위를 벗어남 |
@@ -112,8 +112,8 @@ UNSET은 데이터가 누락되었다는 뜻이 아닙니다. OpenTelemetry 계�
 
 | 기준 | 필터 | 효과 |
 | --- | --- | --- |
-| Check if … is offline | **Span Count** **Equal To** `0` | 모니터를 오프라인으로 표시하고 인시던트를 선언합니다(자동 해결) |
-| Check if … is online | **Span Count** **Greater Than** `0` | 모니터를 온라인으로 표시합니다 |
+| Check if … is offline | **Span Count** **같음** `0` | 모니터를 오프라인으로 표시하고 인시던트를 선언합니다(자동 해결) |
+| Check if … is online | **Span Count** **보다 큼** `0` | 모니터를 온라인으로 표시합니다 |
 
 ## 실전 예: checkout 요청 실패
 
@@ -131,8 +131,8 @@ UNSET은 데이터가 누락되었다는 뜻이 아닙니다. OpenTelemetry 계�
 - **스팬 이름**: `POST /api/checkout`
 - **(시간) 동안의 모니터 트레이스**: **지난 5분**
 - **스팬 상태로 필터링**: **오류**
-- 기준 1: **Span Count** **Greater Than** `10`: 모니터를 오프라인으로 표시하고 인시던트 선언
-- 기준 2: **Span Count** **Less Than Or Equal To** `10`: 모니터를 온라인으로 표시
+- 기준 1: **Span Count** **보다 큼** `10`: 모니터를 오프라인으로 표시하고 인시던트 선언
+- 기준 2: **Span Count** **이하** `10`: 모니터를 온라인으로 표시
 
 실패한 요청이 30개이면 기준 1이 일치하고 인시던트가 선언됩니다. 실패가 10개 이하인 5분이 지나면 기준 2가 일치해 모니터가 다시 온라인이 되고, 인시던트가 저절로 해결됩니다.
 

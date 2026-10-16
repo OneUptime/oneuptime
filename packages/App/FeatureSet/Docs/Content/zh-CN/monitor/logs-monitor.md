@@ -100,11 +100,11 @@ OneUptime 每分钟统计一次与监视器过滤器匹配、且在其时间窗�
 
 | 过滤条件 | 当日志数量…时匹配 |
 | --- | --- |
-| **Greater Than** | 高于该值 |
-| **Greater Than Or Equal To** | 等于或高于该值 |
-| **Less Than** | 低于该值 |
-| **Less Than Or Equal To** | 等于或低于该值 |
-| **Equal To** | 正好等于该值 |
+| **大于** | 高于该值 |
+| **大于或等于** | 等于或高于该值 |
+| **小于** | 低于该值 |
+| **小于或等于** | 等于或低于该值 |
+| **等于** | 正好等于该值 |
 | **Anomalously High** | 高于每周这个时段的预期范围 |
 | **Anomalously Low** | 低于该范围 |
 | **Anomalous** | 向任一方向超出该范围 |
@@ -115,11 +115,11 @@ OneUptime 每分钟统计一次与监视器过滤器匹配、且在其时间窗�
 
 | 条件 | 过滤器 | 效果 |
 | --- | --- | --- |
-| Check if … is offline | **Log Count** **Equal To** `0` | 将监视器标记为离线并声明事件，事件会自动解决 |
-| Check if … is online | **Log Count** **Greater Than** `0` | 将监视器标记为在线 |
+| Check if … is offline | **Log Count** **等于** `0` | 将监视器标记为离线并声明事件，事件会自动解决 |
+| Check if … is online | **Log Count** **大于** `0` | 将监视器标记为在线 |
 
 > [!TIP]
-> 若要针对错误而不是沉默告警，请把 **日志严重程度** 设为 **错误**，并把离线条件改为 **Log Count** **Greater Than** 窗口内您能容忍的错误数量。
+> 若要针对错误而不是沉默告警，请把 **日志严重程度** 设为 **错误**，并把离线条件改为 **Log Count** **大于** 窗口内您能容忍的错误数量。
 
 ## 实例：错误激增
 
@@ -128,8 +128,8 @@ OneUptime 每分钟统计一次与监视器过滤器匹配、且在其时间窗�
 - **日志严重程度**：**错误**
 - **监视器日志（时间）**：**最近 5 分钟**
 - **按遥测服务过滤**：`checkout`
-- 条件 1：**Log Count** **Greater Than** `50`：将监视器标记为离线并声明事件
-- 条件 2：**Log Count** **Less Than Or Equal To** `50`：将监视器标记为在线
+- 条件 1：**Log Count** **大于** `50`：将监视器标记为离线并声明事件
+- 条件 2：**Log Count** **小于或等于** `50`：将监视器标记为在线
 
 连续四次评估：
 
@@ -200,7 +200,7 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 2. 将 **包含此文本的监视器日志** 设为 `terminated`，将 **监视器日志（时间）** 设为 **最近 5 分钟**。
 3. 在 **更多字段** 下添加属性过滤器 `log_component` = `IPSec`。
 4. 在 **Group by Attributes** 下添加 `con_name`。
-5. 添加一个使用过滤器 **Log Count** **Greater Than** `0` 的条件，用于创建标题为 `IPsec tunnel {{con_name}} terminated` 的告警或事件。
+5. 添加一个使用过滤器 **Log Count** **大于** `0` 的条件，用于创建标题为 `IPsec tunnel {{con_name}} terminated` 的告警或事件。
 :::
 
 现在，每条记录了终止的隧道都会收到自己的告警（`IPsec tunnel HQ-Branch1 terminated`、`IPsec tunnel Branch2 terminated`），每个告警各自独立解决。
@@ -219,7 +219,7 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 ### 条件的评估方式不同
 
 - **所有条件都会被评估**，与分组的指标监视器一样，因此不同分组可以同时满足不同的条件。满足两个条件的分组仍然只会收到一个告警，来自第一个条件；所以请按从最严重到最不严重的顺序排列条件。
-- **只有在时间窗口内记录过内容的分组才存在。** 因此 **Equal To 0** 和 **Less Than** 条件只会对至少记录过一次的分组触发；若要在日志完全不再到达时告警，请使用不带 Group By 的监视器。
+- **只有在时间窗口内记录过内容的分组才存在。** 因此 **等于 0** 和 **小于** 条件只会对至少记录过一次的分组触发；若要在日志完全不再到达时告警，请使用不带 Group By 的监视器。
 - **异常检测**（**Anomalously High**、**Anomalously Low**、**Anomalous**）不按分组评估（其基线涵盖整个监视器），因此这些过滤器在分组的监视器上永远不会匹配。
 - 监视器的状态跟随任一分组满足的第一个条件。当没有任何分组满足任何条件时，监视器回到默认状态。
 
@@ -230,7 +230,7 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 :::
 
 :::details 出现了激增，但没有任何告警
-条件从上到下检查，第一个匹配的条件决定结果。如果在您预期的条件之上有一个宽泛的条件，例如 **Log Count** **Greater Than** `0`，它会先匹配并阻止其余条件。请把最严重的条件放在最上面。
+条件从上到下检查，第一个匹配的条件决定结果。如果在您预期的条件之上有一个宽泛的条件，例如 **Log Count** **大于** `0`，它会先匹配并阻止其余条件。请把最严重的条件放在最上面。
 :::
 
 :::details 异常条件从不触发

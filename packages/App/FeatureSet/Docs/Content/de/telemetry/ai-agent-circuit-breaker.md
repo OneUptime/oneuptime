@@ -47,7 +47,7 @@ Ausgaben sind das sicherste Zeichen eines außer Kontrolle geratenen Agenten. Ei
 1. Öffnen Sie **Produkte → KI / LLM → Budgets** und klicken Sie auf **LLM-Kostenbudget erstellen**. Legen Sie ein **Tagesbudget (USD)** fest und wählen Sie unter **Dienst (optional)** den Dienst des Agenten, damit das Budget nur diesen Agenten beobachtet.
 2. Wählen Sie im Zeilenmenü des neuen Budgets **ID anzeigen** und kopieren Sie die ID.
 3. Erstellen Sie einen [Metrics-Monitor](/docs/monitor/metrics-monitor) auf `oneuptime.llm.budget.percent.used`, gefiltert nach dem Attribut `oneuptime.llm.budget.id` mit der kopierten ID, und setzen Sie seinen **Zeitbereich** auf **Letzte 30 Minuten**.
-4. Fügen Sie ein Kriterium **Greater Than Or Equal To** `100` hinzu, das eine Warnung erstellt, und geben Sie ihm einen **Warnungstitel**, der den Agenten nennt, etwa `LLM budget exceeded: support-bot`. Der Workflow und Ihr Endpunkt lesen beide diesen Titel.
+4. Fügen Sie ein Kriterium **Größer als oder gleich** `100` hinzu, das eine Warnung erstellt, und geben Sie ihm einen **Warnungstitel**, der den Agenten nennt, etwa `LLM budget exceeded: support-bot`. Der Workflow und Ihr Endpunkt lesen beide diesen Titel.
 :::
 
 Filtern Sie nach der ID, nicht nach dem Namen: Wer ein Budget umbenennt, benennt seine Zeitreihe um, und ein nach dem alten Namen gefilterter Monitor träfe stillschweigend nichts mehr. Lassen Sie den Zeitbereich bei 30 Minuten: Ein Budget veröffentlicht alle 15 Minuten einen Punkt, also findet ein kürzerer Bereich zwischen zwei Punkten nichts, und die Warnung öffnet und schließt sich immer wieder.
@@ -62,7 +62,7 @@ Ein festgefahrener Agent hinterlässt eine Spur, die Sie erkennen: denselben Too
 1. Öffnen Sie **Monitore**, klicken Sie auf **Monitor erstellen** und wählen Sie **Traces** unter **Weitere Monitortypen**.
 2. Setzen Sie unter **Weitere Felder** den Filter **Nach Telemetrie-Dienst filtern** auf den Dienst des Agenten und **Nach Attributen filtern** auf `gen_ai.tool.name` gleich dem Tool, bei dem Sie eine Schleife erwarten, etwa `search_web`. Wenn Ihre Instrumentierung den Span jedes Tools benennt, tragen Sie diesen Namen stattdessen in **Span-Name** ein.
 3. Setzen Sie **Überwachungs-Traces für (time)** auf **Letzte 5 Minuten**.
-4. Fügen Sie ein Kriterium **Span Count** **Greater Than** einer Zahl hinzu, die kein gesunder Lauf in fünf Minuten erreicht, etwa `50`, das eine Warnung mit einem Titel wie `Agent loop: support-bot` erstellt.
+4. Fügen Sie ein Kriterium **Span Count** **Größer als** einer Zahl hinzu, die kein gesunder Lauf in fünf Minuten erreicht, etwa `50`, das eine Warnung mit einem Titel wie `Agent loop: support-bot` erstellt.
 :::
 
 Ein zweiter Traces-Monitor mit **Nach Span-Status filtern** auf **Fehler** und einer niedrigeren Zahl erkennt Wiederholungsstürme: ein Tool, das immer wieder fehlschlägt, und einen Agenten, der es immer wieder versucht.

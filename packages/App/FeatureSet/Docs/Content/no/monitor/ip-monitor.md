@@ -87,9 +87,9 @@ Kriterier avgjør når adressen regnes som tilkoblet, redusert eller frakoblet, 
 | Filter | Betingelser | Hva det sjekker |
 | --- | --- | --- |
 | **Is Online** | **Sann**, **Usann** | Om minst én ekkoforespørsel fikk svar. |
-| **Svartid (i ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Gjennomsnittlig tur-retur-tid for svarene. |
-| **Packet Loss (in %)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Andelen av de fem ekkoforespørslene som ikke fikk svar. |
-| **Jitter (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Standardavviket for tur-retur-tidene over pakkene i én sjekk. |
+| **Svartid (i ms)** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Gjennomsnittlig tur-retur-tid for svarene. |
+| **Packet Loss (in %)** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Andelen av de fem ekkoforespørslene som ikke fikk svar. |
+| **Jitter (in ms)** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Standardavviket for tur-retur-tidene over pakkene i én sjekk. |
 | **Is Request Timeout** | **Sann**, **Usann** | Om pingen fikk tidsavbrudd ved hvert forsøk. |
 
 Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvare, eller om **Hvilken som helst** av dem holder. Et kriteriums **Handlinger** avgjør hva det gjør: endrer monitorstatusen, oppretter et varsel, erklærer en hendelse, eller flere av disse.
@@ -132,9 +132,9 @@ Gjør vinduet lengre enn overvåkingsintervallet, slik at det rommer flere sjekk
 | Mål | Filter | Betingelse | Verdi |
 | --- | --- | --- | --- |
 | Frakoblet når adressen ikke kan nås | **Is Online** | **Usann** | — |
-| Varsle når forsinkelsen er høy | **Svartid (i ms)** | **Greater Than** | `100` |
-| Merk adressen som redusert på en forbindelse med tap | **Packet Loss (in %)** | **Greater Than** | `20` |
-| Varsle ved en ustabil forbindelse | **Jitter (in ms)** | **Greater Than** | `30` |
+| Varsle når forsinkelsen er høy | **Svartid (i ms)** | **Større enn** | `100` |
+| Merk adressen som redusert på en forbindelse med tap | **Packet Loss (in %)** | **Større enn** | `20` |
+| Varsle ved en ustabil forbindelse | **Jitter (in ms)** | **Større enn** | `30` |
 
 ## Feilsøking
 

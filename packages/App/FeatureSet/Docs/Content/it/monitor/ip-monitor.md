@@ -87,9 +87,9 @@ I criteri decidono quando l'indirizzo conta come online, degradato o offline, e 
 | Filtro | Condizioni | Cosa controlla |
 | --- | --- | --- |
 | **Is Online** | **Vero**, **Falso** | Se almeno una richiesta di eco ha ricevuto risposta. |
-| **Tempo di risposta (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Il tempo medio di andata e ritorno delle risposte. |
-| **Packet Loss (in %)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | La quota delle cinque richieste di eco rimaste senza risposta. |
-| **Jitter (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | La deviazione standard dei tempi di andata e ritorno tra i pacchetti inviati in un controllo. |
+| **Tempo di risposta (in ms)** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | Il tempo medio di andata e ritorno delle risposte. |
+| **Packet Loss (in %)** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | La quota delle cinque richieste di eco rimaste senza risposta. |
+| **Jitter (in ms)** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | La deviazione standard dei tempi di andata e ritorno tra i pacchetti inviati in un controllo. |
 | **Is Request Timeout** | **Vero**, **Falso** | Se il ping è andato in timeout a ogni tentativo. |
 
 Con due o più filtri, **Condizione di corrispondenza** decide se devono corrispondere **Tutti** o basta **Qualsiasi** filtro. Le **Azioni** di un criterio decidono cosa fa: cambiare lo stato del monitor, creare un avviso, dichiarare un incidente, o più di queste cose.
@@ -132,9 +132,9 @@ Scegliete una finestra più lunga dell'intervallo di monitoraggio, così che con
 | Obiettivo | Filtro | Condizione | Valore |
 | --- | --- | --- | --- |
 | Offline quando l'indirizzo non è raggiungibile | **Is Online** | **Falso** | — |
-| Avvisare quando la latenza è alta | **Tempo di risposta (in ms)** | **Greater Than** | `100` |
-| Segnare l'indirizzo degradato su un collegamento con perdite | **Packet Loss (in %)** | **Greater Than** | `20` |
-| Avvisare in caso di connessione instabile | **Jitter (in ms)** | **Greater Than** | `30` |
+| Avvisare quando la latenza è alta | **Tempo di risposta (in ms)** | **Maggiore di** | `100` |
+| Segnare l'indirizzo degradato su un collegamento con perdite | **Packet Loss (in %)** | **Maggiore di** | `20` |
+| Avvisare in caso di connessione instabile | **Jitter (in ms)** | **Maggiore di** | `30` |
 
 ## Risoluzione dei problemi
 

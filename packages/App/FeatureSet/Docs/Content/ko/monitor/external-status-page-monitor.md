@@ -119,10 +119,10 @@ flowchart TB
 | 필터 유형 | 검사 대상 | 필터 조건 |
 | --- | --- | --- |
 | **External Status Page Is Online** | 상태 페이지에 도달할 수 있고 상태 데이터를 반환하는지 여부 | 참 또는 거짓 |
-| **External Status Page Overall Status** | 페이지가 보고하는 전체 상태 | Equal To, Not Equal To, 포함, Not Contains, Starts With, Ends With |
-| **External Status Page Component Status** | 범위 안 구성 요소의 상태(구성 요소 그룹 / 구성 요소 이름 필터 반영): 정상 작동, Under Maintenance, Degraded Performance, Partial Outage, Major Outage, Full Outage | Equal To, Not Equal To, 포함, Not Contains, Starts With, Ends With |
-| **External Status Page Active Incidents** | 상태 페이지에 보고된 현재 활성 인시던트 수(필터를 설정하면 구성 요소 그룹 / 구성 요소로 범위가 좁혀집니다) | Equal To, Not Equal To 및 숫자 비교 |
-| **External Status Page Response Time (in ms)** | 상태 페이지 데이터를 가져오는 데 걸리는 시간 | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| **External Status Page Overall Status** | 페이지가 보고하는 전체 상태 | 같음, 같지 않음, 포함, 포함하지 않음, 다음으로 시작, 다음으로 끝남 |
+| **External Status Page Component Status** | 범위 안 구성 요소의 상태(구성 요소 그룹 / 구성 요소 이름 필터 반영): 정상 작동, Under Maintenance, Degraded Performance, Partial Outage, Major Outage, Full Outage | 같음, 같지 않음, 포함, 포함하지 않음, 다음으로 시작, 다음으로 끝남 |
+| **External Status Page Active Incidents** | 상태 페이지에 보고된 현재 활성 인시던트 수(필터를 설정하면 구성 요소 그룹 / 구성 요소로 범위가 좁혀집니다) | 같음, 같지 않음 및 숫자 비교 |
+| **External Status Page Response Time (in ms)** | 상태 페이지 데이터를 가져오는 데 걸리는 시간 | 보다 큼, 보다 작음, 이상, 이하 |
 
 전체 상태는 페이지에 쓰인 그대로이므로 값은 공급자마다 다릅니다. Atlassian Statuspage는 `All Systems Operational` 같은 자체 설명을, 피드는 `operational` 이나 `degraded_performance` 를, 도달 가능성 검사는 `reachable` 이나 `unreachable` 을 보고합니다. 이 비교는 대소문자를 구분합니다. 장애에 대한 알림에는 보통 **External Status Page Active Incidents** 와 **External Status Page Component Status** 가 더 믿을 만합니다.
 

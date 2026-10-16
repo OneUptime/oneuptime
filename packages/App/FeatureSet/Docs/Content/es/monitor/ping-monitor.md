@@ -82,9 +82,9 @@ Los criterios deciden cuándo el host cuenta como en línea, degradado o sin con
 | Filtro | Condiciones | Qué comprueba |
 | --- | --- | --- |
 | **Is Online** | **Verdadero**, **Falso** | Si al menos una solicitud de eco recibió respuesta. |
-| **Tiempo de respuesta (en ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | El tiempo medio de ida y vuelta de las respuestas. |
-| **Packet Loss (in %)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | La parte de las cinco solicitudes de eco que no recibió respuesta. |
-| **Jitter (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | La desviación estándar de los tiempos de ida y vuelta entre los paquetes enviados en una comprobación. |
+| **Tiempo de respuesta (en ms)** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | El tiempo medio de ida y vuelta de las respuestas. |
+| **Packet Loss (in %)** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | La parte de las cinco solicitudes de eco que no recibió respuesta. |
+| **Jitter (in ms)** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | La desviación estándar de los tiempos de ida y vuelta entre los paquetes enviados en una comprobación. |
 | **Is Request Timeout** | **Verdadero**, **Falso** | Si el ping agotó el tiempo de espera en todos los intentos. |
 
 Con dos o más filtros, **Condición de coincidencia** decide si deben coincidir **Todos** o basta con **Cualquiera**. Las **Acciones** de un criterio deciden qué hace: cambiar el estado del monitor, crear una alerta, declarar un incidente, o varias de estas cosas.
@@ -127,9 +127,9 @@ Elija una ventana más larga que el intervalo de supervisión, para que contenga
 | Objetivo | Filtro | Condición | Valor |
 | --- | --- | --- | --- |
 | Sin conexión cuando el host no es accesible | **Is Online** | **Falso** | — |
-| Alertar cuando la latencia es alta | **Tiempo de respuesta (en ms)** | **Greater Than** | `200` |
-| Marcar el host como degradado en un enlace con pérdidas | **Packet Loss (in %)** | **Greater Than** | `20` |
-| Alertar ante una conexión inestable | **Jitter (in ms)** | **Greater Than** | `30` |
+| Alertar cuando la latencia es alta | **Tiempo de respuesta (en ms)** | **Mayor que** | `200` |
+| Marcar el host como degradado en un enlace con pérdidas | **Packet Loss (in %)** | **Mayor que** | `20` |
+| Alertar ante una conexión inestable | **Jitter (in ms)** | **Mayor que** | `30` |
 
 Para alertar solo cuando la latencia se mantiene alta, active **Evaluar estos criterios durante un periodo de tiempo** para el filtro de tiempo de respuesta y elija **All Values** durante **5** minutos.
 

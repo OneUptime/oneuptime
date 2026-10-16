@@ -270,7 +270,7 @@ Een criterium vergelijkt een van de queries of formules van de monitor met een d
 | --- | --- |
 | **Metriek** | De query of formule om te controleren, op haar variabelenaam. |
 | **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value**, **All Values** (elke waarde moet overeenkomen) of **Any Value** (één is genoeg). |
-| **Voorwaarde** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** of **Equal To** — of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. |
+| **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** — of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. |
 | **Threshold** | De waarde om mee te vergelijken. Er staat een eenhedenlijst naast als de metriek een eenheid heeft. Niet getoond bij anomalievoorwaarden. |
 | **Gevoeligheid** | Alleen bij anomalievoorwaarden. **Laag** (4σ), **Gemiddeld** (3σ, de standaard) of **Hoog** (2σ). |
 | **Baseline-venster** | Alleen bij anomalievoorwaarden. 14 dagen (de standaard), 28, 60 of 90 dagen geschiedenis. |
@@ -280,11 +280,11 @@ Anomalievoorwaarden vergelijken elke waarde met hetzelfde uur van de week in de 
 
 Enkele criteria om mee te beginnen:
 
-- **Een host is verzadigd:** `vcenter.host.cpu.utilization`, Gemiddelde, gegroepeerd op `resource.vcenter.host.name`, **Greater Than** `90`, over de laatste 5 minuten.
-- **Een datastore loopt vol:** `vcenter.datastore.disk.utilization`, Gemiddelde, gegroepeerd op `resource.vcenter.datastore.name`, **Greater Than** `80`.
-- **Een cluster verloor een host:** `vcenter.cluster.host.count` gefilterd op `effective = false`, Maximum, gegroepeerd op `resource.vcenter.cluster.name`, **Greater Than** `0`.
-- **Er draaien minder VM's dan verwacht:** `vcenter.cluster.vm.count` gefilterd op `power_state = on` en `resource.vcenter.cluster.name = Production`, Som, **Less Than** het aantal dat je verwacht.
-- **Een VM wordt door de host geswapt:** `vcenter.vm.memory.swapped`, Maximum, gegroepeerd op `resource.vcenter.vm.name`, **Greater Than** `0`.
+- **Een host is verzadigd:** `vcenter.host.cpu.utilization`, Gemiddelde, gegroepeerd op `resource.vcenter.host.name`, **Groter dan** `90`, over de laatste 5 minuten.
+- **Een datastore loopt vol:** `vcenter.datastore.disk.utilization`, Gemiddelde, gegroepeerd op `resource.vcenter.datastore.name`, **Groter dan** `80`.
+- **Een cluster verloor een host:** `vcenter.cluster.host.count` gefilterd op `effective = false`, Maximum, gegroepeerd op `resource.vcenter.cluster.name`, **Groter dan** `0`.
+- **Er draaien minder VM's dan verwacht:** `vcenter.cluster.vm.count` gefilterd op `power_state = on` en `resource.vcenter.cluster.name = Production`, Som, **Kleiner dan** het aantal dat je verwacht.
+- **Een VM wordt door de host geswapt:** `vcenter.vm.memory.swapped`, Maximum, gegroepeerd op `resource.vcenter.vm.name`, **Groter dan** `0`.
 
 ### Standaardcriteria
 

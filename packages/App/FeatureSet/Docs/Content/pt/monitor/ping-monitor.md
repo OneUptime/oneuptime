@@ -82,9 +82,9 @@ Os critérios decidem quando o host conta como online, degradado ou offline, e s
 | Filtro | Condições | O que verifica |
 | --- | --- | --- |
 | **Is Online** | **Verdadeiro**, **Falso** | Se pelo menos uma requisição de eco recebeu resposta. |
-| **Tempo de resposta (em ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | O tempo médio de ida e volta das respostas. |
-| **Packet Loss (in %)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | A parcela das cinco requisições de eco que ficaram sem resposta. |
-| **Jitter (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | O desvio padrão dos tempos de ida e volta entre os pacotes enviados em uma verificação. |
+| **Tempo de resposta (em ms)** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | O tempo médio de ida e volta das respostas. |
+| **Packet Loss (in %)** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | A parcela das cinco requisições de eco que ficaram sem resposta. |
+| **Jitter (in ms)** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** | O desvio padrão dos tempos de ida e volta entre os pacotes enviados em uma verificação. |
 | **Is Request Timeout** | **Verdadeiro**, **Falso** | Se o ping excedeu o tempo limite em todas as tentativas. |
 
 Com dois ou mais filtros, **Condição de correspondência** decide se **Todos** precisam corresponder ou se basta **Qualquer** um. As **Ações** de um critério decidem o que ele faz: mudar o status do monitor, criar um alerta, declarar um incidente, ou várias dessas coisas.
@@ -127,9 +127,9 @@ Escolha uma janela mais longa que o intervalo de monitoramento, para que ela con
 | Objetivo | Filtro | Condição | Valor |
 | --- | --- | --- | --- |
 | Offline quando o host está inacessível | **Is Online** | **Falso** | — |
-| Alertar quando a latência está alta | **Tempo de resposta (em ms)** | **Greater Than** | `200` |
-| Marcar o host como degradado em um enlace com perdas | **Packet Loss (in %)** | **Greater Than** | `20` |
-| Alertar sobre uma conexão instável | **Jitter (in ms)** | **Greater Than** | `30` |
+| Alertar quando a latência está alta | **Tempo de resposta (em ms)** | **Maior que** | `200` |
+| Marcar o host como degradado em um enlace com perdas | **Packet Loss (in %)** | **Maior que** | `20` |
+| Alertar sobre uma conexão instável | **Jitter (in ms)** | **Maior que** | `30` |
 
 Para alertar só quando a latência continua alta, ative **Avaliar este critério durante um período de tempo** no filtro de tempo de resposta e escolha **All Values** durante **5** minutos.
 

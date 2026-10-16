@@ -100,14 +100,6 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
 
 const MONITOR_PAGES: Array<string> = [STORAGE, IOT, VMWARE];
 
-const STATIC_CONDITIONS: Array<string> = [
-  "Greater Than",
-  "Less Than",
-  "Greater Than Or Equal To",
-  "Less Than Or Equal To",
-  "Equal To",
-];
-
 const ANOMALY_CONDITIONS: Array<string> = [
   "Anomalously High",
   "Anomalously Low",
@@ -135,7 +127,6 @@ const FORM_NAMES: Array<string> = [
 
 const CRITERIA_NAMES: Array<string> = [
   ...UNKEYED_AGGREGATES,
-  ...STATIC_CONDITIONS,
   ...ANOMALY_CONDITIONS,
   ...UNKEYED_NO_DATA,
 ];

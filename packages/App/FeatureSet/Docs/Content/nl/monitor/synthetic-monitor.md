@@ -234,10 +234,10 @@ Een uitvoering kan hoogstens 100 metrieken vastleggen, alleen met numerieke waar
 | **Fout** | De fout die een uitvoering gooide, als die er is. |
 | **Result Value** | De `data` die een uitvoering teruggaf. |
 | **Uitvoeringstijd (in ms)** | Hoe lang een uitvoering duurde. |
-| **Browsertype** | De browser die een uitvoering gebruikte: **Equal To** of **Not Equal To**. |
-| **Screen Size** | Het schermformaat dat een uitvoering gebruikte: **Equal To** of **Not Equal To**. |
+| **Browsertype** | De browser die een uitvoering gebruikte: **Gelijk aan** of **Niet gelijk aan**. |
+| **Screen Size** | Het schermformaat dat een uitvoering gebruikte: **Gelijk aan** of **Niet gelijk aan**. |
 
-Elk filter wordt aan elke uitvoering getoetst en komt overeen zodra één uitvoering overeenkomt. Filters worden los van elkaar getoetst, niet per uitvoering: **Fout** Is Not Empty samen met **Browsertype** Equal To `Firefox` komt overeen als er een uitvoering mislukte en een van de uitvoeringen Firefox gebruikte, niet alleen als de Firefox-uitvoering mislukte. Wilt u één browser apart volgen, geef die dan een eigen monitor.
+Elk filter wordt aan elke uitvoering getoetst en komt overeen zodra één uitvoering overeenkomt. Filters worden los van elkaar getoetst, niet per uitvoering: **Fout** Is niet leeg samen met **Browsertype** Gelijk aan `Firefox` komt overeen als er een uitvoering mislukte en een van de uitvoeringen Firefox gebruikte, niet alleen als de Firefox-uitvoering mislukte. Wilt u één browser apart volgen, geef die dan een eigen monitor.
 
 In incident- en waarschuwingssjablonen staat elke uitvoering in `{{syntheticResponses}}`: zie [Incident- en waarschuwingstemplates](/docs/monitor/incident-alert-templating#synthetische-monitors).
 

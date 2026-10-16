@@ -263,7 +263,7 @@ OneUptime در مجموع ۱۸ قالب دارد – ۱۱ قالب برای Flas
 | --- | --- |
 | **متریک** | پرس‌وجو یا فرمولی که بررسی می‌شود، بر پایه نام متغیرش. |
 | **تجمیع** | اینکه مقدارهای پنجره چطور به یک پاسخ تبدیل می‌شوند: **میانگین**، **جمع**، **Maximum Value**، **Minimum Value**، **All Values** (همه مقدارها باید جور باشند) یا **Any Value** (یکی کافی است). |
-| **شرط** | **Greater Than**، **Less Than**، **Greater Than Or Equal To**، **Less Than Or Equal To** یا **Equal To** – یا یک شرط ناهنجاری: **Anomalously High**، **Anomalously Low** یا **Anomalous**. |
+| **شرط** | **بزرگ‌تر از**، **کوچک‌تر از**، **بزرگ‌تر یا برابر با**، **کوچک‌تر یا برابر با** یا **برابر با** – یا یک شرط ناهنجاری: **Anomalously High**، **Anomalously Low** یا **Anomalous**. |
 | **Threshold** | مقداری که با آن مقایسه می‌شود. وقتی متریک یکا دارد، فهرستی از یکاها کنارش هست. برای شرط‌های ناهنجاری نشان داده نمی‌شود. |
 | **حساسیت** | فقط شرط‌های ناهنجاری. **پایین** (۴σ)، **متوسط** (۳σ، پیش‌فرض) یا **بالا** (۲σ). |
 | **پنجره مبنا** | فقط شرط‌های ناهنجاری. ۱۴ روز (پیش‌فرض)، ۲۸، ۶۰ یا ۹۰ روز سابقه. |
@@ -273,10 +273,10 @@ OneUptime در مجموع ۱۸ قالب دارد – ۱۱ قالب برای Flas
 
 چند معیار برای شروع:
 
-- **یک حجم کند است:** `purefa_volume_performance_latency_usec` با فیلتر `dimension=usec_per_read_op`، میانگین، گروه‌بندی‌شده بر پایه `name`، **Greater Than** `2000`، در ۱۰ دقیقه گذشته.
-- **آرایه در حال پر شدن است:** `purefa_array_space_utilization`، بیشینه، **Greater Than** `85`، در ۱۵ دقیقه گذشته.
-- **یک میزبان با یک کنترلر کار می‌کند:** `purefa_host_connectivity_info` با فیلتر `status=critical`، بیشینه، گروه‌بندی‌شده بر پایه `host`، **Greater Than** `0`.
-- **یک سیستم فایل FlashBlade تقریباً پر است:** `purefb_file_systems_space_bytes` با فیلتر `space=available_ratio`، کمینه، گروه‌بندی‌شده بر پایه `name`، **Less Than** `0.05`.
+- **یک حجم کند است:** `purefa_volume_performance_latency_usec` با فیلتر `dimension=usec_per_read_op`، میانگین، گروه‌بندی‌شده بر پایه `name`، **بزرگ‌تر از** `2000`، در ۱۰ دقیقه گذشته.
+- **آرایه در حال پر شدن است:** `purefa_array_space_utilization`، بیشینه، **بزرگ‌تر از** `85`، در ۱۵ دقیقه گذشته.
+- **یک میزبان با یک کنترلر کار می‌کند:** `purefa_host_connectivity_info` با فیلتر `status=critical`، بیشینه، گروه‌بندی‌شده بر پایه `host`، **بزرگ‌تر از** `0`.
+- **یک سیستم فایل FlashBlade تقریباً پر است:** `purefb_file_systems_space_bytes` با فیلتر `space=available_ratio`، کمینه، گروه‌بندی‌شده بر پایه `name`، **کوچک‌تر از** `0.05`.
 
 ### معیارهای پیش‌فرض
 

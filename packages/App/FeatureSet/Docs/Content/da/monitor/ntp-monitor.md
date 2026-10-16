@@ -101,10 +101,10 @@ Kriterier afgør, hvornår serveren regnes som online, forringet eller offline, 
 | --- | --- | --- |
 | **NTP Is Online** | **Sand**, **Falsk** | Om serveren besvarede sondens anmodning med et NTP-svar. Et kiss-o'-death er et svar. |
 | **NTP Is Synchronized** | **Sand**, **Falsk** | Om serveren, der svarede, leverer synkroniseret tid. Når serveren ikke svarer, kontrolleres dette filter ikke; brug **NTP Is Online** til det. |
-| **NTP Stratum** | **Greater Than**, **Greater Than Or Equal To**, **Less Than**, **Less Than Or Equal To**, **Equal To**, **Not Equal To** | Serverens stratum. Et kiss-o'-deaths 0 tæller som 16, ikke synkroniseret. |
-| **NTP Clock Offset (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Hvor langt serverens ur er fra sondens, i begge retninger. |
-| **NTP Response Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Fra anmodningen til svaret. |
-| **NTP Root Dispersion (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Serverens eget skøn over sin største fejl. |
+| **NTP Stratum** | **Større end**, **Større end eller lig med**, **Mindre end**, **Mindre end eller lig med**, **Lig med**, **Ikke lig med** | Serverens stratum. Et kiss-o'-deaths 0 tæller som 16, ikke synkroniseret. |
+| **NTP Clock Offset (in ms)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Hvor langt serverens ur er fra sondens, i begge retninger. |
+| **NTP Response Time (in ms)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Fra anmodningen til svaret. |
+| **NTP Root Dispersion (in ms)** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Serverens eget skøn over sin største fejl. |
 
 Med to eller flere filtre afgør **Matchbetingelse**, om **Alle** skal matche, eller om **Enhver** enkelt er nok. Et kriteriums **Handlinger** afgør, hvad det gør: ændrer monitorens status, opretter en advarsel, erklærer en hændelse eller en kombination af dem.
 
@@ -125,10 +125,10 @@ Kriterierne kontrolleres oppefra og ned, og det første, der matcher, afgør, hv
 
 | Mål | Filter | Betingelse | Værdi |
 | --- | --- | --- | --- |
-| Advar, når en GPS-server falder tilbage til en netværkskilde | **NTP Stratum** | **Greater Than** | `1` |
-| Advar, når uret driver | **NTP Clock Offset (in ms)** | **Greater Than** | `100` |
-| Advar, når serverens fejlmargin vokser | **NTP Root Dispersion (in ms)** | **Greater Than** | `500` |
-| Advar, når svarene bliver langsomme | **NTP Response Time (in ms)** | **Greater Than** | `1000` |
+| Advar, når en GPS-server falder tilbage til en netværkskilde | **NTP Stratum** | **Større end** | `1` |
+| Advar, når uret driver | **NTP Clock Offset (in ms)** | **Større end** | `100` |
+| Advar, når serverens fejlmargin vokser | **NTP Root Dispersion (in ms)** | **Større end** | `500` |
+| Advar, når svarene bliver langsomme | **NTP Response Time (in ms)** | **Større end** | `1000` |
 
 ## Fejlfinding
 

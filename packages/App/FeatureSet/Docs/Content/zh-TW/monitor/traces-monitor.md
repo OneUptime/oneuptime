@@ -97,11 +97,11 @@ UNSET 並不表示缺少資料。OpenTelemetry 檢測會在作業失敗時將狀
 
 | 篩選條件 | 當 Span 數量…時符合 |
 | --- | --- |
-| **Greater Than** | 高於該值 |
-| **Greater Than Or Equal To** | 等於或高於該值 |
-| **Less Than** | 低於該值 |
-| **Less Than Or Equal To** | 等於或低於該值 |
-| **Equal To** | 正好等於該值 |
+| **大於** | 高於該值 |
+| **大於或等於** | 等於或高於該值 |
+| **小於** | 低於該值 |
+| **小於或等於** | 等於或低於該值 |
+| **等於** | 正好等於該值 |
 | **Anomalously High** | 高於每週這個時段的預期範圍 |
 | **Anomalously Low** | 低於該範圍 |
 | **Anomalous** | 往任一方向超出該範圍 |
@@ -112,8 +112,8 @@ UNSET 並不表示缺少資料。OpenTelemetry 檢測會在作業失敗時將狀
 
 | 條件 | 篩選器 | 效果 |
 | --- | --- | --- |
-| Check if … is offline | **Span Count** **Equal To** `0` | 將監測器標記為離線並宣告事件，事件會自動解決 |
-| Check if … is online | **Span Count** **Greater Than** `0` | 將監測器標記為上線 |
+| Check if … is offline | **Span Count** **等於** `0` | 將監測器標記為離線並宣告事件，事件會自動解決 |
+| Check if … is online | **Span Count** **大於** `0` | 將監測器標記為上線 |
 
 ## 實例：結帳請求失敗
 
@@ -131,8 +131,8 @@ UNSET 並不表示缺少資料。OpenTelemetry 檢測會在作業失敗時將狀
 - **Span 名稱**：`POST /api/checkout`
 - **監測 (time) 內的追蹤**：**過去 5 分鐘**
 - **依 Span 狀態篩選**：**錯誤**
-- 條件 1：**Span Count** **Greater Than** `10`：將監測器標記為離線並宣告事件
-- 條件 2：**Span Count** **Less Than Or Equal To** `10`：將監測器標記為上線
+- 條件 1：**Span Count** **大於** `10`：將監測器標記為離線並宣告事件
+- 條件 2：**Span Count** **小於或等於** `10`：將監測器標記為上線
 
 有 30 個失敗請求時，條件 1 符合並宣告事件。當五分鐘內失敗數不超過 10 個時，條件 2 符合，監測器恢復上線，事件會自行解決。
 

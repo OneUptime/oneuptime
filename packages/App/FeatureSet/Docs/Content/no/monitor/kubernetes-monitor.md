@@ -112,7 +112,7 @@ Disse monitorene evaluerer alltid **Metric Value** – verdien av den konfigurer
 
 ### Betingelser
 
-Statiske terskler sammenlignes med **Threshold** du angir: **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** og **Equal To**.
+Statiske terskler sammenlignes med **Threshold** du angir: **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** og **Lik**.
 
 Avviksdeteksjon mot en grunnlinje trenger ingen terskel. Velg en av disse betingelsene, så viser skjemaet i stedet **Følsomhet** og **Grunnlinjevindu**:
 

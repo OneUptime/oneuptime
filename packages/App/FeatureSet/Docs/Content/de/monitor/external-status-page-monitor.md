@@ -119,10 +119,10 @@ Sie können Kriterien festlegen, die entscheiden, wann der externe Dienst als on
 | Filtertyp | Was er prüft | Filterbedingungen |
 | --- | --- | --- |
 | **External Status Page Is Online** | Ob die Statusseite erreichbar ist und Statusdaten liefert | Wahr oder Falsch |
-| **External Status Page Overall Status** | Der Gesamtstatus, den die Seite meldet | Equal To, Not Equal To, Enthält, Not Contains, Starts With, Ends With |
-| **External Status Page Component Status** | Der Status der Komponenten im Umfang (unter Beachtung der Filter für Komponentengruppe / Komponentenname): Betriebsbereit, In Wartung, Beeinträchtigte Leistung, Teilweiser Ausfall, Schwerer Ausfall oder Vollständiger Ausfall | Equal To, Not Equal To, Enthält, Not Contains, Starts With, Ends With |
-| **External Status Page Active Incidents** | Die Zahl der aktuell aktiven Vorfälle auf der Statusseite (auf die Komponentengruppe / Komponente beschränkt, wenn ein Filter gesetzt ist) | Equal To, Not Equal To und die numerischen Vergleiche |
-| **External Status Page Response Time (in ms)** | Wie lange das Abrufen der Daten der Statusseite dauert | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| **External Status Page Overall Status** | Der Gesamtstatus, den die Seite meldet | Gleich, Ungleich, Enthält, Enthält nicht, Beginnt mit, Endet mit |
+| **External Status Page Component Status** | Der Status der Komponenten im Umfang (unter Beachtung der Filter für Komponentengruppe / Komponentenname): Betriebsbereit, In Wartung, Beeinträchtigte Leistung, Teilweiser Ausfall, Schwerer Ausfall oder Vollständiger Ausfall | Gleich, Ungleich, Enthält, Enthält nicht, Beginnt mit, Endet mit |
+| **External Status Page Active Incidents** | Die Zahl der aktuell aktiven Vorfälle auf der Statusseite (auf die Komponentengruppe / Komponente beschränkt, wenn ein Filter gesetzt ist) | Gleich, Ungleich und die numerischen Vergleiche |
+| **External Status Page Response Time (in ms)** | Wie lange das Abrufen der Daten der Statusseite dauert | Größer als, Kleiner als, Größer als oder gleich, Kleiner als oder gleich |
 
 Der Gesamtstatus ist das, was die Seite sagt, seine Werte hängen also vom Anbieter ab: Eine Atlassian Statuspage meldet ihre eigene Beschreibung, etwa `All Systems Operational`; ein Feed meldet `operational` oder `degraded_performance`; die Erreichbarkeitsprüfung meldet `reachable` oder `unreachable`. Diese Vergleiche beachten die Groß- und Kleinschreibung. Um auf Ausfälle zu alarmieren, sind **External Status Page Active Incidents** und **External Status Page Component Status** meist zuverlässiger.
 

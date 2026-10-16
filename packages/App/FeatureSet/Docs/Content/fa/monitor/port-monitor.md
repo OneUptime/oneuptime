@@ -109,9 +109,9 @@ sequenceDiagram
 | فیلتر | شرط‌ها | چه چیزی را بررسی می‌کند |
 | --- | --- | --- |
 | **Is Online** | **درست**، **نادرست** | اینکه پورت اتصالی را پذیرفت یا نه. |
-| **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than**، **Less Than**، **Greater Than Or Equal To**، **Less Than Or Equal To** | کل زمان اتصال، با احتساب جست‌وجوی DNS برای یک نام میزبان. |
-| **Port DNS Lookup Time (in ms)** | **Greater Than**، **Less Than**، **Greater Than Or Equal To**، **Less Than Or Equal To** | جست‌وجوی DNS پیش از نخستین تلاش TCP. وقتی هدف یک آدرس IP است مقداری ندارد. |
-| **Port TCP Connect Time (in ms)** | **Greater Than**، **Less Than**، **Greater Than Or Equal To**، **Less Than Or Equal To** | از نخستین تلاش TCP تا پذیرفته شدن اتصال، با احتساب جابه‌جایی بین IPv6 و IPv4. |
+| **Total Connection Time (DNS + TCP) (in ms)** | **بزرگ‌تر از**، **کوچک‌تر از**، **بزرگ‌تر یا برابر با**، **کوچک‌تر یا برابر با** | کل زمان اتصال، با احتساب جست‌وجوی DNS برای یک نام میزبان. |
+| **Port DNS Lookup Time (in ms)** | **بزرگ‌تر از**، **کوچک‌تر از**، **بزرگ‌تر یا برابر با**، **کوچک‌تر یا برابر با** | جست‌وجوی DNS پیش از نخستین تلاش TCP. وقتی هدف یک آدرس IP است مقداری ندارد. |
+| **Port TCP Connect Time (in ms)** | **بزرگ‌تر از**، **کوچک‌تر از**، **بزرگ‌تر یا برابر با**، **کوچک‌تر یا برابر با** | از نخستین تلاش TCP تا پذیرفته شدن اتصال، با احتساب جابه‌جایی بین IPv6 و IPv4. |
 | **Is Request Timeout** | **درست**، **نادرست** | اینکه جست‌وجوی DNS یا اتصال TCP در همهٔ تلاش‌ها از وقفه گذشت یا نه. |
 
 وقتی هدف یک آدرس IP است، معیار جست‌وجوی DNS چیزی برای ارزیابی ندارد. برای معیارهایی که باید هم با نام میزبان و هم با آدرس IP کار کنند، از زمان کل یا زمان اتصال TCP استفاده کنید.
@@ -156,10 +156,10 @@ sequenceDiagram
 | هدف | فیلتر | شرط | مقدار |
 | --- | --- | --- | --- |
 | آفلاین وقتی پورت بسته است | **Is Online** | **نادرست** | — |
-| هشدار وقتی اتصال کند است | **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than** | `500` |
-| علامت کاهش کارایی برای سرویسی که دیر وصل می‌شود | **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than** | `200` |
-| هشدار وقتی DNS کند است | **Port DNS Lookup Time (in ms)** | **Greater Than** | `100` |
-| هشدار وقتی دست‌دهی TCP کند است | **Port TCP Connect Time (in ms)** | **Greater Than** | `250` |
+| هشدار وقتی اتصال کند است | **Total Connection Time (DNS + TCP) (in ms)** | **بزرگ‌تر از** | `500` |
+| علامت کاهش کارایی برای سرویسی که دیر وصل می‌شود | **Total Connection Time (DNS + TCP) (in ms)** | **بزرگ‌تر از** | `200` |
+| هشدار وقتی DNS کند است | **Port DNS Lookup Time (in ms)** | **بزرگ‌تر از** | `100` |
+| هشدار وقتی دست‌دهی TCP کند است | **Port TCP Connect Time (in ms)** | **بزرگ‌تر از** | `250` |
 
 ## رفع اشکال
 

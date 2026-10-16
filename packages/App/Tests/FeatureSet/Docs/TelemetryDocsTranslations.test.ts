@@ -143,9 +143,8 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [RECORDING_RULES]: [
     // The editor's aggregation option, which has no locale key.
     "Count of logs",
-    // A metrics monitor's aggregation strategy and condition.
+    // A metrics monitor's aggregation strategy.
     "All Values",
-    "Greater Than",
   ],
 };
 
