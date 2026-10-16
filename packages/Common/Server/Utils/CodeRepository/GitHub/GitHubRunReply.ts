@@ -1,7 +1,9 @@
 import logger from "../../Logger";
 import ObjectID from "../../../../Types/ObjectID";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
-import GitHubCommandType from "../../../../Types/CodeRepository/GitHubCommand";
+import GitHubCommandType, {
+  GitHubCommentKind,
+} from "../../../../Types/CodeRepository/GitHubCommand";
 import CodeFixTaskContext, {
   getGitHubConversationNumber,
   getGitHubTaskContext,
@@ -70,7 +72,9 @@ export default class GitHubRunReply {
         installationId: data.github.installationId,
         organizationName: data.github.organizationName,
         repositoryName: data.github.repositoryName,
+        issueNumber: conversationNumber,
         commentId: data.github.triggerCommentId,
+        commentKind: GitHubRunReply.getTriggerCommentKind(data.github),
         reaction: GitHubReaction.Eyes,
       });
     } else {
@@ -199,7 +203,9 @@ export default class GitHubRunReply {
           installationId: data.github.installationId,
           organizationName: data.github.organizationName,
           repositoryName: data.github.repositoryName,
+          issueNumber: getGitHubConversationNumber(data.github),
           commentId: data.github.triggerCommentId,
+          commentKind: GitHubRunReply.getTriggerCommentKind(data.github),
           reaction:
             data.run.status === AIRunStatus.Completed
               ? GitHubReaction.Rocket
@@ -211,6 +217,17 @@ export default class GitHubRunReply {
     }
 
     return true;
+  }
+
+  /*
+   * A run queued before the kind was recorded carries none. Those were all
+   * reacted on as conversation comments, so that is what they are read as —
+   * the same route, and the same result, as before.
+   */
+  private static getTriggerCommentKind(
+    github: GitHubTaskContext,
+  ): GitHubCommentKind {
+    return github.triggerCommentKind || GitHubCommentKind.IssueComment;
   }
 
   private static async composeOutcomeBody(data: {

@@ -21,6 +21,7 @@ import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
 import { GitHubTaskContext } from "../../../../Types/AI/CodeFixTaskContext";
 import GitHubCommandType, {
   GitHubCommandSurface,
+  GitHubCommentKind,
 } from "../../../../Types/CodeRepository/GitHubCommand";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
@@ -270,6 +271,32 @@ describe("GitHubWebhookHandler", () => {
     };
   }
 
+  /*
+   * `pull_request_review_comment`: an inline comment on the diff. It carries
+   * `comment` like issue_comment does, but its id is a REVIEW comment id —
+   * reactions to it live on a different route.
+   */
+  function reviewCommentPayload(data: {
+    body: string;
+    commentId?: number;
+  }): JSONObject {
+    return {
+      ...webhookEnvelope(),
+      action: "created",
+      pull_request: {
+        number: PULL_REQUEST_NUMBER,
+        title: "fix: back off the retry loop",
+      },
+      comment: {
+        id: data.commentId ?? TRIGGER_COMMENT_ID,
+        body: data.body,
+        path: "src/retry.ts",
+        line: 12,
+        user: { login: SENDER_LOGIN, type: "User" },
+      },
+    };
+  }
+
   function issuesLabeledPayload(data: {
     labelName: string;
     issueNumber?: number;
@@ -394,7 +421,9 @@ describe("GitHubWebhookHandler", () => {
     installationId: string;
     organizationName: string;
     repositoryName: string;
+    issueNumber: number;
     commentId: number;
+    commentKind: GitHubCommentKind;
     reaction: GitHubReaction;
   }
 
@@ -832,6 +861,9 @@ describe("GitHubWebhookHandler", () => {
       });
 
       expect(enqueuedContext(1).triggerCommentId).toBe(777001);
+      expect(enqueuedContext(1).triggerCommentKind).toBe(
+        GitHubCommentKind.IssueComment,
+      );
       expect(enqueuedContext(1).triggeredByLogin).toBe(SENDER_LOGIN);
       expect(enqueuedContext(1).webhookDeliveryId).toBe(DELIVERY_ID);
     });
@@ -1065,6 +1097,47 @@ describe("GitHubWebhookHandler", () => {
       );
       expect(enqueuedContext(1).pullRequestNumber).toBe(PULL_REQUEST_NUMBER);
       expect(enqueuedContext(1).triggerCommentId).toBe(314159);
+      expect(enqueuedContext(1).triggerCommentKind).toBe(
+        GitHubCommentKind.Review,
+      );
+    });
+
+    /*
+     * REGRESSION. An inline comment's id is a review comment id, and its
+     * reactions live on the pull request comments route. Recorded without
+     * its kind, it was reacted on through the issue comments route — a 404,
+     * so a mention written on the diff never got its 👀.
+     */
+    test("an inline review comment is recorded as one, so its reactions find it", async () => {
+      const result: GitHubWebhookHandlingResult = await handle({
+        event: "pull_request_review_comment",
+        payload: reviewCommentPayload({
+          body: `@${APP_SLUG} revise this to back off exponentially`,
+          commentId: 271828,
+        }),
+      });
+
+      expect(result.outcome).toBe("queued");
+      expect(enqueueArguments(1).taskType).toBe(
+        CodeFixTaskType.GitHubPullRequestRevision,
+      );
+      expect(enqueuedContext(1).pullRequestNumber).toBe(PULL_REQUEST_NUMBER);
+      expect(enqueuedContext(1).triggerCommentId).toBe(271828);
+      expect(enqueuedContext(1).triggerCommentKind).toBe(
+        GitHubCommentKind.ReviewComment,
+      );
+    });
+
+    // issue_comment on a pull request is still a conversation comment.
+    test("a conversation comment on a pull request is recorded as an issue comment", async () => {
+      await handle({
+        event: "issue_comment",
+        payload: pullRequestCommentPayload({ body: `@${APP_SLUG} review` }),
+      });
+
+      expect(enqueuedContext(1).triggerCommentKind).toBe(
+        GitHubCommentKind.IssueComment,
+      );
     });
   });
 
@@ -1588,6 +1661,7 @@ describe("GitHubWebhookHandler", () => {
       // Nobody wrote a sentence, so the agent is told to read the issue.
       expect(enqueuedContext(1).instruction).toBe("");
       expect(enqueuedContext(1).triggerCommentId).toBeUndefined();
+      expect(enqueuedContext(1).triggerCommentKind).toBeUndefined();
     });
 
     test("the bot login is matched case-insensitively", async () => {
@@ -1845,7 +1919,84 @@ describe("GitHubWebhookHandler", () => {
       expect(addReactionToCommentSpy).toHaveBeenCalledTimes(1);
       expect(reactionArguments(1).reaction).toBe(GitHubReaction.Confused);
       expect(reactionArguments(1).commentId).toBe(4242);
+      expect(reactionArguments(1).commentKind).toBe(
+        GitHubCommentKind.IssueComment,
+      );
+      expect(reactionArguments(1).issueNumber).toBe(ISSUE_NUMBER);
       expect(reactionArguments(1).installationId).toBe(INSTALLATION_ID);
+    });
+
+    /*
+     * REGRESSION. The 😕 is a refused commenter's ONLY answer. On an inline
+     * comment it used to go to the issue comments route, which 404s for a
+     * review comment id — so the refusal was invisible.
+     */
+    test("insufficient permission on an inline review comment reacts on that review comment", async () => {
+      authorizeSpy.mockResolvedValue({
+        outcome: GitHubAuthorizationOutcome.InsufficientPermission,
+        codeRepository: connectedRepository(),
+      });
+
+      const result: GitHubWebhookHandlingResult = await handle({
+        event: "pull_request_review_comment",
+        payload: reviewCommentPayload({
+          body: `@${APP_SLUG} revise this`,
+          commentId: 271828,
+        }),
+      });
+
+      expect(result.outcome).toBe("unresolvable-context");
+      expect(createIssueCommentSpy).not.toHaveBeenCalled();
+      expect(enqueueRunSpy).not.toHaveBeenCalled();
+      expect(addReactionToCommentSpy).toHaveBeenCalledTimes(1);
+      expect(reactionArguments(1).reaction).toBe(GitHubReaction.Confused);
+      expect(reactionArguments(1).commentId).toBe(271828);
+      expect(reactionArguments(1).commentKind).toBe(
+        GitHubCommentKind.ReviewComment,
+      );
+      expect(reactionArguments(1).issueNumber).toBe(PULL_REQUEST_NUMBER);
+    });
+
+    /*
+     * REGRESSION. A review payload carries `review`, not `comment`, so a
+     * refused reviewer used to get no reaction at all — no answer anywhere.
+     * A review has no reactions of its own, so the 😕 goes on the pull
+     * request. The real routing runs here, down to the issue-route call.
+     */
+    test("insufficient permission on a submitted review gets its 😕 on the pull request", async () => {
+      authorizeSpy.mockResolvedValue({
+        outcome: GitHubAuthorizationOutcome.InsufficientPermission,
+        codeRepository: connectedRepository(),
+      });
+
+      addReactionToCommentSpy.mockRestore();
+
+      const result: GitHubWebhookHandlingResult = await handle({
+        event: "pull_request_review",
+        payload: reviewSubmittedPayload({
+          body: `@${APP_SLUG} review`,
+          reviewId: 314159,
+        }),
+      });
+
+      expect(result.outcome).toBe("unresolvable-context");
+      expect(createIssueCommentSpy).not.toHaveBeenCalled();
+      expect(enqueueRunSpy).not.toHaveBeenCalled();
+      expect(addReactionToIssueSpy).toHaveBeenCalledTimes(1);
+
+      const reaction: {
+        installationId: string;
+        issueNumber: number;
+        reaction: GitHubReaction;
+      } = nthCallArgument(addReactionToIssueSpy, 1) as {
+        installationId: string;
+        issueNumber: number;
+        reaction: GitHubReaction;
+      };
+
+      expect(reaction.issueNumber).toBe(PULL_REQUEST_NUMBER);
+      expect(reaction.reaction).toBe(GitHubReaction.Confused);
+      expect(reaction.installationId).toBe(INSTALLATION_ID);
     });
 
     test("insufficient permission on an event with no comment says nothing at all", async () => {

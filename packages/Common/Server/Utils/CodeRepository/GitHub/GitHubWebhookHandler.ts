@@ -8,6 +8,7 @@ import { GitHubTaskContext } from "../../../../Types/AI/CodeFixTaskContext";
 import GitHubCommandType, {
   GitHubCommand,
   GitHubCommandSurface,
+  GitHubCommentKind,
   isConversationalCommand,
 } from "../../../../Types/CodeRepository/GitHubCommand";
 import GlobalCache from "../../../Infrastructure/GlobalCache";
@@ -258,7 +259,23 @@ export default class GitHubWebhookHandler {
         : GitHubCommandSurface.Issue,
       conversationNumber: conversationNumber,
       triggerCommentId: (commentContainer?.["id"] as number) || undefined,
+      triggerCommentKind: GitHubWebhookHandler.getCommentKind(data.event),
     });
+  }
+
+  /*
+   * The kind of comment a mention event carries. Each event has its own, and
+   * the kind is what tells the app where that comment's reactions go.
+   */
+  private static getCommentKind(event: string | undefined): GitHubCommentKind {
+    switch (event) {
+      case GitHubWebhookEvent.PullRequestReviewComment:
+        return GitHubCommentKind.ReviewComment;
+      case GitHubWebhookEvent.PullRequestReview:
+        return GitHubCommentKind.Review;
+      default:
+        return GitHubCommentKind.IssueComment;
+    }
   }
 
   /*
@@ -368,6 +385,7 @@ export default class GitHubWebhookHandler {
       surface: GitHubCommandSurface.Issue,
       conversationNumber: issueNumber,
       triggerCommentId: undefined,
+      triggerCommentKind: undefined,
       deliveryId: data.deliveryId,
     });
   }
@@ -425,6 +443,7 @@ export default class GitHubWebhookHandler {
       surface: GitHubCommandSurface.PullRequest,
       conversationNumber: pullRequestNumber,
       triggerCommentId: undefined,
+      triggerCommentKind: undefined,
       deliveryId: data.deliveryId,
     });
   }
@@ -439,6 +458,7 @@ export default class GitHubWebhookHandler {
     surface: GitHubCommandSurface;
     conversationNumber: number;
     triggerCommentId: number | undefined;
+    triggerCommentKind: GitHubCommentKind;
   }): Promise<GitHubWebhookHandlingResult> {
     const appSlug: string | null = await GitHubConversation.getAppSlug();
 
@@ -461,7 +481,16 @@ export default class GitHubWebhookHandler {
     }
 
     const context: ResolvedWebhookContext | null =
-      await GitHubWebhookHandler.resolveContext(data.payload);
+      await GitHubWebhookHandler.resolveContext(
+        data.payload,
+        data.triggerCommentId
+          ? {
+              conversationNumber: data.conversationNumber,
+              commentId: data.triggerCommentId,
+              commentKind: data.triggerCommentKind,
+            }
+          : undefined,
+      );
 
     if (!context) {
       return NOT_HANDLED("unresolvable-context");
@@ -507,6 +536,7 @@ export default class GitHubWebhookHandler {
       surface: data.surface,
       conversationNumber: data.conversationNumber,
       triggerCommentId: data.triggerCommentId,
+      triggerCommentKind: data.triggerCommentKind,
       deliveryId: data.deliveryId,
     });
   }
@@ -594,6 +624,7 @@ export default class GitHubWebhookHandler {
     surface: GitHubCommandSurface;
     conversationNumber: number;
     triggerCommentId: number | undefined;
+    triggerCommentKind: GitHubCommentKind | undefined;
     deliveryId: string | undefined;
   }): Promise<GitHubWebhookHandlingResult> {
     const codeRepository: CodeRepository | undefined =
@@ -701,7 +732,10 @@ export default class GitHubWebhookHandler {
         ? { isPullRequestFromFork: isPullRequestFromFork }
         : {}),
       ...(data.triggerCommentId
-        ? { triggerCommentId: data.triggerCommentId }
+        ? {
+            triggerCommentId: data.triggerCommentId,
+            triggerCommentKind: data.triggerCommentKind,
+          }
         : {}),
       ...(data.context.sender
         ? { triggeredByLogin: data.context.sender.login }
@@ -781,6 +815,8 @@ export default class GitHubWebhookHandler {
    */
   private static async resolveContext(
     payload: JSONObject,
+    // The comment that addressed the app, when a comment did.
+    triggerComment?: TriggerComment | undefined,
   ): Promise<ResolvedWebhookContext | null> {
     const repository: GitHubWebhookRepository | null =
       GitHubWebhookEvents.getRepository(payload);
@@ -815,16 +851,14 @@ export default class GitHubWebhookHandler {
        * here would let any GitHub account use this app to post in a
        * repository it has no write access to.
        */
-      const commentId: number | undefined = (
-        payload["comment"] as JSONObject
-      )?.["id"] as number | undefined;
-
-      if (commentId) {
+      if (triggerComment) {
         await GitHubConversation.addReactionToComment({
           installationId: installationId,
           organizationName: repository.organizationName,
           repositoryName: repository.repositoryName,
-          commentId: commentId,
+          issueNumber: triggerComment.conversationNumber,
+          commentId: triggerComment.commentId,
+          commentKind: triggerComment.commentKind,
           reaction: GitHubReaction.Confused,
         });
       }
@@ -903,4 +937,11 @@ interface ResolvedWebhookContext {
   installationId: string;
   sender: GitHubWebhookSender;
   authorization: GitHubAuthorizationResult;
+}
+
+// A comment that mentioned the app, and the conversation it is in.
+interface TriggerComment {
+  conversationNumber: number;
+  commentId: number;
+  commentKind: GitHubCommentKind;
 }
