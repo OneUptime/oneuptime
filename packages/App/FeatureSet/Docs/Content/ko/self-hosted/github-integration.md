@@ -7,7 +7,7 @@
 :::cards
 - [GitHub App 만들기](#github-app-만들기): 올바른 URL, 권한, 이벤트로 앱을 등록합니다.
 - [OneUptime 구성](#oneuptime-구성): 앱의 값 여섯 개를 서버에 넣습니다.
-- [저장소 연결](#저장소-연결): OneUptime에서 앱을 설치합니다.
+- [저장소 연결](#저장소-연결): OneUptime에서 앱을 설치하거나 기존 설치를 연결합니다.
 - [문제 해결](#문제-해결): 코드 저장소에 표시되는 메시지의 뜻입니다.
 :::
 
@@ -30,7 +30,7 @@ sequenceDiagram
     G->>O: /api/github/webhook으로 웹훅
 ```
 
-- 브라우저 리디렉션에는 설치 정보와 일회용 OAuth 코드가 담겨 있습니다. OneUptime은 이 코드를 교환해 앱을 설치한 GitHub 계정이 그 설치를 관리하는지 확인한 다음, 설치의 저장소를 가져옵니다.
+- 브라우저 리디렉션에는 설치 정보와 일회용 OAuth 코드가 담겨 있습니다. OneUptime은 이 코드를 교환해 앱을 설치한 GitHub 계정이 그 설치를 관리하는지 확인한 다음, 설치의 저장소를 가져옵니다. 이미 있는 설치는 대신 GitHub에 로그인해 연결합니다. 이때 코드는 그 계정이 관리하는 설치가 무엇인지 OneUptime에 알려 줍니다.
 - 웹훅은 저장소 목록을 동기화하고 앱에 작업을 넘깁니다. 멘션, 할당, 트리거 레이블, 리뷰 요청입니다. GitHub는 웹훅마다 webhook secret으로 서명하며, OneUptime은 검증할 수 없는 웹훅을 거부합니다.
 
 ## 시작하기 전에
@@ -166,7 +166,7 @@ OneUptime이 다시 실행되면 **코드 저장소**에 **GitHub App is not con
 | Docker Compose (`config.env`) | Helm (`values.yaml`) | 값 |
 | --- | --- | --- |
 | `GITHUB_APP_ID` | `gitHubApp.id` | **App ID**. 앱으로서 인증하는 데 쓰입니다. |
-| `GITHUB_APP_NAME` | `gitHubApp.name` | 앱의 정확한 이름. 설치 링크와 앱의 `@mention` 핸들(소문자, 공백은 하이픈)이 이 값으로 만들어집니다. 이 값이 없으면 **코드 저장소**가 연결할 수 없습니다. |
+| `GITHUB_APP_NAME` | `gitHubApp.name` | 앱의 이름. 공백과 대문자가 들어간 표시 이름 그대로도 괜찮습니다. 설치 링크와 앱의 `@mention` 핸들은 GitHub가 알려 주는 앱의 slug를 쓰며, OneUptime이 GitHub에 물어볼 수 없을 때만 이 이름으로 만들어집니다(소문자, 공백은 하이픈). 이 값이 없으면 **코드 저장소**가 연결할 수 없습니다. |
 | `GITHUB_APP_CLIENT_ID` | `gitHubApp.clientId` | **Client ID**. 누가 앱을 설치했는지 확인하는 데 필요합니다. |
 | `GITHUB_APP_CLIENT_SECRET` | `gitHubApp.clientSecret` | 생성한 client secret. client ID와 함께 필요합니다. |
 | `GITHUB_APP_PRIVATE_KEY` | `gitHubApp.privateKey` | 개인 키. PEM이나 base64로 인코딩한 PEM입니다. |
@@ -183,11 +183,13 @@ OneUptime이 다시 실행되면 **코드 저장소**에 **GitHub App is not con
 2. **제품** > **작업** > **코드 저장소**로 이동합니다
 3. **Connect with GitHub App**을 클릭합니다. OneUptime이 GitHub로 안내합니다
 4. 앱을 설치할 조직이나 계정을 선택하고, 앱이 접근할 저장소를 고릅니다. **All repositories**(현재와 향후의 모든 저장소) 또는 **Only select repositories**입니다
-5. **Install**을 클릭합니다(이미 그곳에 앱이 설치되어 있다면 **Save**)
+5. **Install**을 클릭합니다
 6. GitHub가 **코드 저장소**로 돌려보내고, 설치의 모든 저장소를 가져옵니다. 나중에 설치에 추가되거나 제거된 저장소도 자동으로 동기화됩니다.
 :::
 
-**연결할 수 있는 사람.** 연결하면 설치의 저장소를 프로젝트로 가져오므로 코드 저장소를 추가할 권한이 필요합니다. **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member**, 또는 **Create Code Repository**가 있는 팀입니다. 이 권한을 차단하는 팀은 권한을 빼앗습니다. OneUptime Cloud에서 코드 저장소는 Growth 요금제 이상이 필요합니다. 그 밖의 사람에게는 카드가 잠기고 무엇이 필요한지 표시됩니다.
+**계정에 앱이 이미 설치되어 있다면**(다른 프로젝트용으로 설치했거나 GitHub에서 바로 설치한 경우) 다시 설치해도 연결되지 않습니다. GitHub는 설치 설정을 열 뿐 다시 돌려보내지 않습니다. 대신 **Connect with GitHub App** 카드 아래의 **기존 설치 연결**을 클릭하세요. GitHub에 로그인하면 OneUptime이 로그인한 GitHub 계정이 관리하는 설치를 연결합니다. 관리하는 설치가 둘 이상이면 **코드 저장소**에 목록이 표시되니, 프로젝트가 사용할 저장소의 계정을 고르세요.
+
+**연결할 수 있는 사람.** 연결하면 설치의 저장소를 프로젝트로 가져오므로 코드 저장소를 추가할 권한이 필요합니다. **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member**, 또는 **Create Code Repository**가 있는 팀입니다. 이 권한을 차단하는 팀은 권한을 빼앗습니다. OneUptime Cloud에서 코드 저장소는 Growth 요금제 이상이 필요합니다. 그 밖의 사람에게는 카드가 잠기고 무엇이 필요한지 표시됩니다. GitHub에서는 앱을 설치하거나 연결하는 계정이 그 설치를 관리해야 합니다. 개인 계정이라면 그 소유자, 조직이라면 설치가 접근할 수 있는 모든 저장소에 admin 권한이 있는 사람입니다(조직 소유자는 이 권한이 있습니다). 저장소 중 하나에 읽기 권한만 있는 것으로는 부족합니다.
 
 **같은 브라우저에서 15분 안에 마치세요.** 링크는 시작한 브라우저에서 15분 동안 한 번만 작동합니다. GitHub가 돌려보내면 OneUptime은 무엇이든 가져오기 전에 권한을 다시 확인합니다.
 
@@ -236,12 +238,13 @@ GitHub가 돌려보냈는데 설치가 연결되지 않았다면, **코드 저�
 
 | 페이지 표시 | 해야 할 일 |
 | --- | --- |
-| **"이 연결 링크가 잘못되었거나 만료되었거나 이미 사용되었습니다. 처음부터 다시 시작하세요."** | 링크는 시작한 브라우저에서 15분 동안 한 번만 작동합니다. **코드 저장소**에서 다시 시작하고 같은 브라우저에서 15분 안에 GitHub에서 마무리하세요. GitHub의 앱 페이지에서 설치하면 어떤 프로젝트에도 연결되지 않습니다. |
+| **"이 연결 링크가 잘못되었거나 만료되었거나 이미 사용되었습니다. 처음부터 다시 시작하세요."** | 링크는 시작한 브라우저에서 15분 동안 한 번만 작동합니다. **코드 저장소**에서 다시 시작하고 같은 브라우저에서 15분 안에 GitHub에서 마무리하세요. GitHub의 앱 페이지에서 설치하면 어떤 프로젝트에도 연결되지 않습니다. 그렇게 만든 설치를 연결하려면 **기존 설치 연결**을 클릭하세요. |
 | **"이 프로젝트에 코드 저장소를 추가할 권한이 없습니다."** | 연결하려면 코드 저장소를 추가할 권한이 필요합니다([저장소 연결](#저장소-연결) 참고). 프로젝트 관리자에게 권한을 요청하세요. GitHub가 돌려보낼 때 다시 확인하므로, 그사이에 권한을 잃었다면 여기서도 연결이 끝납니다. |
 | **"GitHub를 연결하려면 ... 요금제가 필요합니다."** | OneUptime Cloud에서 코드 저장소는 문장에 적힌 요금제가 필요합니다. 프로젝트의 요금제를 업그레이드한 뒤 다시 연결하세요. |
 | **"GitHub가 앱을 설치한 사용자를 확인하지 않아 설치를 검증할 수 없었습니다."** | GitHub App 설정에서 **Request user authorization (OAuth) during installation**을 켜고([GitHub App 만들기](#github-app-만들기) 참고) 다시 연결하세요. |
-| **"OneUptime이 회원님의 GitHub 계정이 이 설치를 관리할 수 있는지 확인하지 못했습니다."** | 설치를 마친 GitHub 계정은 그 설치를 관리하지 않습니다. 앱이 설치되는 조직이나 사용자를 소유한 계정으로 설치하거나, 소유자에게 요청하세요. |
-| **"GitHub가 설치 정보를 돌려보내지 않았습니다."** | 조직 구성원이 앱을 설치하는 대신 요청한 경우, 조직 소유자가 먼저 요청을 승인해야 합니다. 승인된 뒤 다시 연결하세요. |
+| **"OneUptime이 회원님의 GitHub 계정이 이 설치를 관리할 수 있는지 확인하지 못했습니다."** | 설치를 마친 GitHub 계정은 그 설치를 관리하지 않습니다(누가 관리하는지는 [저장소 연결](#저장소-연결) 참고). 앱은 GitHub에 설치된 채로 남아 있으므로, 설치를 관리하는 사람에게 **기존 설치 연결**로 연결해 달라고 요청하세요. |
+| **"GitHub가 설치 정보를 돌려보내지 않았습니다."** | 조직 구성원이 앱을 설치하는 대신 요청한 경우, 조직 소유자가 먼저 요청을 승인해야 합니다. 승인된 뒤에는 설치를 관리하는 사람이 **기존 설치 연결**로 연결합니다. |
+| **"회원님의 GitHub 계정은 아직 앱 설치를 관리하지 않습니다."** | 로그인한 GitHub 계정이 앱의 어떤 설치도 관리하지 않습니다(누가 관리하는지는 [저장소 연결](#저장소-연결) 참고). 계정에 아직 앱이 설치되어 있지 않다면 **Connect with GitHub App**으로 설치하세요. 설치되어 있다면 설치를 관리하는 계정으로 GitHub에 로그인해 다시 연결하거나, 관리하는 사람에게 요청하세요. |
 | **"이 OneUptime 서버에는 GitHub App이 설정되어 있지 않습니다."** | `GITHUB_APP_CLIENT_ID`와 `GITHUB_APP_CLIENT_SECRET`을 모두 설정하고([OneUptime 구성](#oneuptime-구성) 참고) OneUptime을 다시 시작하세요. |
 | **"OneUptime이 연결을 완료하지 못했습니다. 다시 시도하세요."** | GitHub가 오류로 응답했거나, 마무리하는 동안 요청이나 쓰기가 실패했습니다. 어느 쪽인지는 OneUptime 서버 로그에 나옵니다. 다시 시도하고, 계속 발생하면 로그와 GitHub App 설정을 확인하세요. |
 
@@ -252,7 +255,7 @@ GitHub가 돌려보냈는데 설치가 연결되지 않았다면, **코드 저�
 :::
 
 :::details 앱을 설치한 뒤 OneUptime으로 돌아가지 않음
-앱의 **Callback URL**이 `https://your-oneuptime-domain.com/api/github/auth/callback`인지, 그리고 설정되어 있다면 **Setup URL**도 같은지 확인하세요. 둘 다 `HOST`의 호스트 이름에 있는 같은 `/api/github/auth/callback` 엔드포인트를 가리켜야 합니다.
+계정에 앱이 이미 설치되어 있다면 GitHub는 대신 설치 설정을 열고, 거기서는 아무도 돌려보내지 않습니다. **기존 설치 연결**로 연결하세요. 그렇지 않다면 앱의 **Callback URL**이 `https://your-oneuptime-domain.com/api/github/auth/callback`인지, 그리고 설정되어 있다면 **Setup URL**도 같은지 확인하세요. 둘 다 `HOST`의 호스트 이름에 있는 같은 `/api/github/auth/callback` 엔드포인트를 가리켜야 합니다.
 :::
 
 :::details GitHub의 Recent Deliveries에 "Invalid webhook signature"가 표시됨
@@ -272,7 +275,7 @@ GitHub의 설치 설정에서 설치가 접근할 수 있는 저장소를 확인
 :::
 
 :::details 앱이 GitHub의 멘션을 무시함
-앱에 **Issues: Read and write**를 주고, [웹훅 이벤트 구독](#웹훅-이벤트-구독)의 대화형 이벤트를 구독하게 하세요. 또한 멘션은 `GITHUB_APP_NAME`으로 만든 핸들과만 일치하므로, 이 값을 앱의 실제 이름으로 설정하세요.
+앱에 **Issues: Read and write**를 주고, [웹훅 이벤트 구독](#웹훅-이벤트-구독)의 대화형 이벤트를 구독하게 하세요. 또한 멘션은 앱의 핸들, 즉 GitHub에서의 slug와만 일치합니다. slug는 앱 이름을 소문자로 바꾸고 공백을 하이픈으로 바꾼 것입니다. OneUptime은 이 값을 GitHub에서 읽고, 읽을 수 없을 때만 `GITHUB_APP_NAME`으로 만듭니다.
 :::
 
 ## 보안 모범 사례

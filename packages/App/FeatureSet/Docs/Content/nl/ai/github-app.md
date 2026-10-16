@@ -33,13 +33,13 @@ Het is dezelfde agent en dezelfde Runner als bij [Hersteltaken](/docs/ai/ai-agen
 
 ## Voordat je begint
 
-- De repository moet via de GitHub App **gekoppeld zijn aan een OneUptime-project**: koppel hem onder **Taken → Code-repositories** (open **Producten → Code → Taken**). Een zelf gehoste instantie heeft eerst een eigen GitHub App nodig: zie [GitHub-integratie](/docs/self-hosted/github-integration).
+- De repository moet via de GitHub App **gekoppeld zijn aan een OneUptime-project**: koppel hem onder **Taken → Code-repositories** (open **Producten → Code → Taken**). Een zelf gehoste instantie heeft eerst een eigen GitHub App nodig: zie [GitHub-integratie](/docs/self-hosted/github-integration). Is de app al op het GitHub-account geïnstalleerd, klik daar dan op **Een bestaande installatie koppelen** in plaats van hem opnieuw te installeren.
 - Er moet een Runner met **Voert AI-codecorrecties uit** online zijn: dezelfde Runner die de [Hersteltaken](/docs/ai/ai-agent) uitvoert. Zonder Runner worden opdrachten geaccepteerd en mislukken ze na 30 minuten, met een melding dat geen agent ze heeft opgepakt.
 - De GitHub App heeft de machtiging **Issues** met **Read & write** nodig en moet zijn geabonneerd op de webhook-events onder [Waarop je je abonneert](#waarop-je-je-abonneert).
 
 ## De opdrachten
 
-Elke opdracht begint met een vermelding van de app. De vermelding mag overal in de opmerking staan, en alles wat je erna schrijft, wordt doorgegeven als je verzoek.
+Elke opdracht begint met een vermelding van de app. De vermelding mag overal in de opmerking staan, en alles wat je erna schrijft, wordt doorgegeven als je verzoek. Een opmerking bewerken die de app al vermeldt, voert hem niet opnieuw uit: schrijf een nieuwe opmerking om je verzoek te wijzigen. Een bewerking die de vermelding toevoegt, is een nieuw verzoek.
 
 ### In een pull request
 

@@ -33,13 +33,13 @@ Det är samma agent och samma Runner som för [Åtgärdsuppgifter](/docs/ai/ai-a
 
 ## Innan du börjar
 
-- Repositoriet måste vara **anslutet till ett OneUptime-projekt** via GitHub App: anslut det under **Uppgifter → Kodrepositorier** (öppna **Produkter → Kod → Uppgifter**). En självhostad instans behöver först en egen GitHub App: se [GitHub-integration](/docs/self-hosted/github-integration).
+- Repositoriet måste vara **anslutet till ett OneUptime-projekt** via GitHub App: anslut det under **Uppgifter → Kodrepositorier** (öppna **Produkter → Kod → Uppgifter**). En självhostad instans behöver först en egen GitHub App: se [GitHub-integration](/docs/self-hosted/github-integration). Om appen redan är installerad på GitHub-kontot klickar du där på **Anslut en befintlig installation** i stället för att installera den igen.
 - En Runner med **Kör AI-kodfixar** måste vara online: samma Runner som utför [Åtgärdsuppgifter](/docs/ai/ai-agent). Utan en godtas kommandon och fallerar sedan efter 30 minuter, med ett meddelande om att ingen agent plockade upp dem.
 - GitHub App behöver behörigheten **Issues** med **Read & write**, och måste prenumerera på webhook-händelserna under [Vad du ska prenumerera på](#vad-du-ska-prenumerera-på).
 
 ## Kommandona
 
-Varje kommando börjar med ett omnämnande av appen. Omnämnandet kan stå var som helst i kommentaren, och allt du skriver efter det skickas vidare som din begäran.
+Varje kommando börjar med ett omnämnande av appen. Omnämnandet kan stå var som helst i kommentaren, och allt du skriver efter det skickas vidare som din begäran. Att redigera en kommentar som redan nämner appen kör den inte igen: skriv en ny kommentar för att ändra din begäran. En redigering som lägger till omnämnandet är en ny begäran.
 
 ### I en pull request
 

@@ -7,7 +7,7 @@
 :::cards
 - [创建 GitHub App](#创建-github-app): 使用正确的 URL、权限和事件注册应用。
 - [配置 OneUptime](#配置-oneuptime): 把应用的六个值交给服务器。
-- [连接仓库](#连接仓库): 从 OneUptime 安装应用。
+- [连接仓库](#连接仓库): 从 OneUptime 安装应用，或连接现有安装。
 - [故障排除](#故障排除): 代码存储库中的消息是什么意思。
 :::
 
@@ -30,7 +30,7 @@ sequenceDiagram
     G->>O: Webhook 发送到 /api/github/webhook
 ```
 
-- 浏览器重定向携带安装信息和一次性 OAuth 代码。OneUptime 交换该代码，以确认安装该应用的 GitHub 账号管理着这个安装，然后导入其中的仓库。
+- 浏览器重定向携带安装信息和一次性 OAuth 代码。OneUptime 交换该代码，以确认安装该应用的 GitHub 账号管理着这个安装，然后导入其中的仓库。已经存在的安装则改为通过登录 GitHub 来连接：这时该代码会告诉 OneUptime 这个账号管理着哪些安装。
 - Webhook 保持仓库列表同步，并把工作交给应用：提及、分配、触发标签和评审请求。GitHub 用 webhook secret 为每个 Webhook 签名，无法验证的 Webhook 会被 OneUptime 拒绝。
 
 ## 开始之前
@@ -166,7 +166,7 @@ OneUptime 恢复运行后，**代码存储库** 会显示 **Connect with GitHub 
 | Docker Compose (`config.env`) | Helm (`values.yaml`) | 值 |
 | --- | --- | --- |
 | `GITHUB_APP_ID` | `gitHubApp.id` | **App ID**。用于以应用身份认证。 |
-| `GITHUB_APP_NAME` | `gitHubApp.name` | 应用的准确名称。安装链接和应用的 `@mention` 句柄（小写，空格替换为连字符）由它生成。没有它，**代码存储库** 无法连接。 |
+| `GITHUB_APP_NAME` | `gitHubApp.name` | 应用的名称。直接用显示名称即可，包括空格和大写字母：安装链接和应用的 `@mention` 句柄使用 GitHub 报告的应用 slug，只有当 OneUptime 无法询问 GitHub 时，才由这个名称生成（小写，空格替换为连字符）。没有它，**代码存储库** 无法连接。 |
 | `GITHUB_APP_CLIENT_ID` | `gitHubApp.clientId` | **Client ID**。用于验证是谁安装了应用。 |
 | `GITHUB_APP_CLIENT_SECRET` | `gitHubApp.clientSecret` | 你生成的 client secret。需要与 client ID 一起使用。 |
 | `GITHUB_APP_PRIVATE_KEY` | `gitHubApp.privateKey` | 私钥：PEM，或经过 base64 编码的 PEM。 |
@@ -183,11 +183,13 @@ OneUptime 恢复运行后，**代码存储库** 会显示 **Connect with GitHub 
 2. 前往 **产品** > **任务** > **代码存储库**
 3. 点击 **Connect with GitHub App**。OneUptime 会带你前往 GitHub
 4. 选择要安装应用的组织或账号，并选择它可以访问哪些仓库：**All repositories**（所有现有和将来的仓库）或 **Only select repositories**
-5. 点击 **Install**（如果应用已经安装在那里，则点击 **Save**）
+5. 点击 **Install**
 6. GitHub 会把你送回 **代码存储库**，安装中的每个仓库都会被导入。之后添加到安装中或从中移除的仓库会自动保持同步。
 :::
 
-**谁可以连接。** 连接会把安装中的仓库导入项目，因此需要添加代码仓库的权限：**Project Owner**、**Project Admin**、**Project Member**、**Settings Admin**、**Settings Member**，或拥有 **Create Code Repository** 的团队。阻止该权限的团队会收回它。在 OneUptime Cloud 上，代码仓库需要 Growth 套餐或更高套餐。对于其他人，卡片会被锁定，并说明需要什么。
+**如果应用已经安装在该账号上**（为另一个项目安装，或直接从 GitHub 安装），再次安装并不会连接它：GitHub 只会打开该安装的设置，而且不会把你送回来。请改为点击 **Connect with GitHub App** 卡片下方的 **连接现有安装**。你登录 GitHub 后，OneUptime 会连接你的 GitHub 账号管理的安装。如果它管理多个安装，**代码存储库** 会列出它们：选择项目要使用其仓库的那个账号。
+
+**谁可以连接。** 连接会把安装中的仓库导入项目，因此需要添加代码仓库的权限：**Project Owner**、**Project Admin**、**Project Member**、**Settings Admin**、**Settings Member**，或拥有 **Create Code Repository** 的团队。阻止该权限的团队会收回它。在 OneUptime Cloud 上，代码仓库需要 Growth 套餐或更高套餐。对于其他人，卡片会被锁定，并说明需要什么。在 GitHub 上，安装或连接应用的账号必须管理该安装：个人账号的所有者，或者对该安装可访问的每个仓库都有 admin 权限的人，组织的所有者就有这种权限。只对其中某个仓库有读取权限是不够的。
 
 **请在 15 分钟内用同一个浏览器完成。** 链接只能在发起它的浏览器中使用一次，有效期 15 分钟。GitHub 把你送回时，OneUptime 会在导入任何内容之前再次检查权限。
 
@@ -236,12 +238,13 @@ GitHub 文档介绍了 [投递诊断](https://docs.github.com/en/webhooks/testin
 
 | 页面显示 | 怎么做 |
 | --- | --- |
-| **"此连接链接无效、已过期或已被使用。请重新开始。"** | 链接只能在发起它的浏览器中使用一次，有效期 15 分钟。从 **代码存储库** 重新开始，并在 15 分钟内用同一个浏览器在 GitHub 上完成。从 GitHub 上的应用页面安装应用，并不会把它连接到任何项目。 |
+| **"此连接链接无效、已过期或已被使用。请重新开始。"** | 链接只能在发起它的浏览器中使用一次，有效期 15 分钟。从 **代码存储库** 重新开始，并在 15 分钟内用同一个浏览器在 GitHub 上完成。从 GitHub 上的应用页面安装应用，并不会把它连接到任何项目：要连接在那里创建的安装，请点击 **连接现有安装**。 |
 | **"您没有向此项目添加代码仓库的权限。"** | 连接需要添加代码仓库的权限（请参阅 [连接仓库](#连接仓库)）。请项目管理员授予该权限。GitHub 把你送回时会再次检查，因此在此期间被撤销的权限也会在这里终止连接。 |
 | **"连接 GitHub 需要 ... 套餐。"** | 在 OneUptime Cloud 上，代码仓库需要这句话中提到的套餐。升级项目的套餐，然后重新连接。 |
 | **"GitHub 未确认是谁安装了该应用，因此无法验证此安装。"** | 在 GitHub App 的设置中开启 **Request user authorization (OAuth) during installation**（请参阅 [创建 GitHub App](#创建-github-app)），然后重新连接。 |
-| **"OneUptime 无法确认您的 GitHub 账号可以管理此安装。"** | 完成安装的 GitHub 账号并不管理该安装。请使用拥有应用安装所在组织或用户的账号安装应用，或者请所有者来安装。 |
-| **"GitHub 没有返回安装信息。"** | 当组织成员请求应用而不是直接安装时，组织的所有者必须先批准请求。批准后再重新连接。 |
+| **"OneUptime 无法确认您的 GitHub 账号可以管理此安装。"** | 完成安装的 GitHub 账号并不管理该安装（谁可以管理，请参阅 [连接仓库](#连接仓库)）。应用仍然安装在 GitHub 上，因此请让管理该安装的人用 **连接现有安装** 来连接它。 |
+| **"GitHub 没有返回安装信息。"** | 当组织成员请求应用而不是直接安装时，组织的所有者必须先批准请求。批准后，由管理该安装的人用 **连接现有安装** 来连接它。 |
+| **"您的 GitHub 账号尚未管理该应用的任何安装。"** | 你登录所用的 GitHub 账号没有管理该应用的任何安装（谁可以管理，请参阅 [连接仓库](#连接仓库)）。如果该账号上还没有安装应用，请用 **Connect with GitHub App** 安装。如果已经安装，请用管理该安装的账号登录 GitHub 后重新连接，或者请管理它的人来连接。 |
 | **"此 OneUptime 服务器未设置 GitHub App。"** | 同时设置 `GITHUB_APP_CLIENT_ID` 和 `GITHUB_APP_CLIENT_SECRET`（请参阅 [配置 OneUptime](#配置-oneuptime)），然后重启 OneUptime。 |
 | **"OneUptime 无法完成连接。请重试。"** | GitHub 返回了错误，或者在完成过程中某个请求或写入失败了。OneUptime 服务器日志会说明是哪一种。请重试；如果问题持续，请检查日志和 GitHub App 的设置。 |
 
@@ -252,7 +255,7 @@ GitHub 文档介绍了 [投递诊断](https://docs.github.com/en/webhooks/testin
 :::
 
 :::details 安装应用后没有被送回 OneUptime
-检查应用的 **Callback URL** 是否为 `https://your-oneuptime-domain.com/api/github/auth/callback`；如果设置了 **Setup URL**，也一并检查。两者都必须指向 `HOST` 中主机名上的同一个 `/api/github/auth/callback` 端点。
+如果应用已经安装在该账号上，GitHub 会改为打开该安装的设置，并且不会从那里把任何人送回：请用 **连接现有安装** 来连接它。否则，检查应用的 **Callback URL** 是否为 `https://your-oneuptime-domain.com/api/github/auth/callback`；如果设置了 **Setup URL**，也一并检查。两者都必须指向 `HOST` 中主机名上的同一个 `/api/github/auth/callback` 端点。
 :::
 
 :::details GitHub 的 Recent Deliveries 显示 "Invalid webhook signature"
@@ -272,7 +275,7 @@ OneUptime 使用 `GITHUB_APP_ID` 和 `GITHUB_APP_PRIVATE_KEY` 以应用身份认
 :::
 
 :::details 应用忽略 GitHub 中的提及
-给应用授予 **Issues: Read and write**，并让它订阅 [订阅 Webhook 事件](#订阅-webhook-事件) 中的交互式事件。此外，提及只匹配由 `GITHUB_APP_NAME` 生成的句柄，因此请把它设为应用的真实名称。
+给应用授予 **Issues: Read and write**，并让它订阅 [订阅 Webhook 事件](#订阅-webhook-事件) 中的交互式事件。此外，提及只匹配应用的句柄，也就是它在 GitHub 上的 slug：应用名称的小写形式，空格替换为连字符。OneUptime 会从 GitHub 读取它，只有在读取不到时才由 `GITHUB_APP_NAME` 生成。
 :::
 
 ## 安全最佳实践
