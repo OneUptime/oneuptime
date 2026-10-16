@@ -58,7 +58,9 @@ import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import CloudMarketplace, {
   CloudMarketplaceUtil,
 } from "Common/Types/Marketplace/CloudMarketplace";
-import MonitorType, { MonitorTypeHelper } from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
 import {
@@ -130,7 +132,8 @@ const AMOUNT_BELOW: RegExp = /if \(amount < (\d+)\)/;
 const DOLLARS: RegExp = /\$(\d+(?:[.,]\d+)*)/g;
 const TITLE_PROPERTY: RegExp = /title: "([^"]+)"/g;
 const TAB_NAME: RegExp = /name: "([^"]+)"/g;
-const CACHE_TTL: RegExp = /PROJECT_SETTINGS_CACHE_TTL_MS: number = (\d+) \* 1000;/;
+const CACHE_TTL: RegExp =
+  /PROJECT_SETTINGS_CACHE_TTL_MS: number = (\d+) \* 1000;/;
 const RETENTION_CLAMP: RegExp =
   /Math\.max\(1, Math\.min\(retentionInDays \|\| (\d+), (\d+)\)\)/;
 const UP_TO_DAYS: RegExp = /up to (\d+) days/;
@@ -447,7 +450,11 @@ describe("Inviting People", () => {
   });
 
   it("asks for a Name only for an address no account uses yet", () => {
-    const nameField: string = between(users, 'title: "Name"', "},\n              {");
+    const nameField: string = between(
+      users,
+      'title: "Name"',
+      "},\n              {",
+    );
 
     expect(nameField).toContain("isEmailRegistered === false");
     expect(nameField).toContain("required: false");
@@ -545,9 +552,9 @@ describe("Inviting People", () => {
     );
 
     // The grant ceiling the page names.
-    expect(
-      readCommonSource("Server/Services/TeamMemberService.ts"),
-    ).toContain("TeamPermissionService.assertCanGrantTeamPermissions");
+    expect(readCommonSource("Server/Services/TeamMemberService.ts")).toContain(
+      "TeamPermissionService.assertCanGrantTeamPermissions",
+    );
   });
 
   it("names the invitation email's subjects and buttons", () => {
@@ -584,9 +591,9 @@ describe("Inviting People", () => {
 
     // In a project: the bell counts them and opens Project Invitations.
     expect(header).toContain('id: "invitations"');
-    expect(
-      between(header, 'case "invitations":', "break;"),
-    ).toContain("PageMap.PROJECT_INVITATIONS");
+    expect(between(header, 'case "invitations":', "break;")).toContain(
+      "PageMap.PROJECT_INVITATIONS",
+    );
     expect(invitations).toContain('title={"Project Invitations"}');
     expect(invitations).toContain('title: "Accept"');
     expect(invitations).toContain('deleteButtonText="Reject"');
@@ -689,7 +696,11 @@ describe("Inviting People", () => {
   });
 
   it("names the Users list's columns, statuses and filters", () => {
-    for (const title of ['title: "User"', 'title: "Teams"', 'title: "Status"']) {
+    for (const title of [
+      'title: "User"',
+      'title: "Teams"',
+      'title: "Status"',
+    ]) {
       expect(users).toContain(title);
     }
 
@@ -744,7 +755,11 @@ describe("Inviting People", () => {
 
     // Who sees the On-Call section: the person, and these.
     expect(
-      between(menu, "NOTIFICATION_RULE_READ_PERMISSIONS: Array<Permission> = [", "];"),
+      between(
+        menu,
+        "NOTIFICATION_RULE_READ_PERMISSIONS: Array<Permission> = [",
+        "];",
+      ),
     ).toContain("Permission.ReadProjectUserNotificationRule");
     expect(menu).toContain("signedInUserId === props.modelId.toString()");
     expect(page).toContain(
@@ -754,7 +769,9 @@ describe("Inviting People", () => {
 
   it("names the Teams page's buttons, and what removing the last team does", () => {
     const teams: string = readDashboardSource("Pages/Users/View/Teams.tsx");
-    const removal: string = readDashboardSource("Utils/TeamMembershipRemoval.ts");
+    const removal: string = readDashboardSource(
+      "Utils/TeamMembershipRemoval.ts",
+    );
 
     expect(teams).toContain('createVerb={"Invite"}');
     expect(teams).toContain('deleteButtonText="Remove"');
@@ -768,7 +785,9 @@ describe("Inviting People", () => {
   });
 
   it("says the Owners team keeps a member who has joined", () => {
-    const projects: string = readCommonSource("Server/Services/ProjectService.ts");
+    const projects: string = readCommonSource(
+      "Server/Services/ProjectService.ts",
+    );
 
     expect(projects).toContain('ownerTeam.name = "Owners";');
     expect(projects).toContain("ownerTeam.shouldHaveAtLeastOneMember = true;");
@@ -858,9 +877,9 @@ describe("Project Settings", () => {
 
     expect(aiCredits).toContain("?");
     expect(sideMenu).toContain("if (BILLING_ENABLED) {");
-    expect(
-      between(sideMenu, "if (BILLING_ENABLED) {", "});"),
-    ).toContain('title: "Billing and Invoices"');
+    expect(between(sideMenu, "if (BILLING_ENABLED) {", "});")).toContain(
+      'title: "Billing and Invoices"',
+    );
     expect(page).toContain(
       "**Billing and Invoices** and **AI Credits** are on OneUptime Cloud only",
     );
@@ -899,9 +918,7 @@ describe("Project Settings", () => {
     );
 
     // Set by OneUptime only, and shown only where it is set on the Cloud.
-    expect(
-      readCommonSource("Utils/Project/DataResidency.ts"),
-    ).toContain(
+    expect(readCommonSource("Utils/Project/DataResidency.ts")).toContain(
       "return data.isBillingEnabled && DataResidencyUtil.isSet(data.dataResidency);",
     );
   });
@@ -911,11 +928,15 @@ describe("Project Settings", () => {
       "Components/Project/CustomerSupportAccessSwitchCopy.ts",
     );
 
-    expect(copy).toContain('cardTitle: translationKey("Customer Support Access")');
+    expect(copy).toContain(
+      'cardTitle: translationKey("Customer Support Access")',
+    );
     expect(copy).toContain(
       'switchTitle: translationKey("Let OneUptime support access this project")',
     );
-    expect(copy).toContain('allowConfirmButton: translationKey("Let support in")');
+    expect(copy).toContain(
+      'allowConfirmButton: translationKey("Let support in")',
+    );
     expect(
       sorted(
         new Project().getColumnAccessControlFor(
@@ -923,9 +944,9 @@ describe("Project Settings", () => {
         )?.update || [],
       ),
     ).toEqual(sorted([Permission.ProjectOwner, Permission.ProjectAdmin]));
-    expect(
-      readDashboardSource("Pages/Settings/ProjectSettings.tsx"),
-    ).toContain("{BILLING_ENABLED && (\n        <CustomerSupportAccessCard");
+    expect(readDashboardSource("Pages/Settings/ProjectSettings.tsx")).toContain(
+      "{BILLING_ENABLED && (\n        <CustomerSupportAccessCard",
+    );
     expect(page).toContain(
       "Turn on **Let OneUptime support access this project** when you want their help",
     );
@@ -1037,13 +1058,17 @@ describe("Project Settings", () => {
       between(dangerZone, "confirmationContent={", "onDeleteSuccess"),
     ).toContain("BILLING_ENABLED ?");
     expect(
-      readCommonSource("UI/Components/DeleteConfirmation/TypeToConfirmDelete.tsx"),
+      readCommonSource(
+        "UI/Components/DeleteConfirmation/TypeToConfirmDelete.tsx",
+      ),
     ).toContain("return name.length > 0 && data.typed.trim() === name;");
     expect(sorted(new Project().getDeletePermissions())).toEqual(
       sorted([Permission.ProjectOwner, Permission.DeleteProject]),
     );
 
-    const projects: string = readCommonSource("Server/Services/ProjectService.ts");
+    const projects: string = readCommonSource(
+      "Server/Services/ProjectService.ts",
+    );
 
     expect(projects).toContain(
       "await BillingService.cancelSubscription(\n            project.paymentProviderSubscriptionId,",
@@ -1163,9 +1188,9 @@ describe("Billing & Usage", () => {
     expect(
       readCommonSource("UI/Components/ModelDetail/CardModelDetail.tsx"),
     ).toContain("submitButtonText={`Save Changes`}");
-    expect(
-      readDashboardSource("Components/Billing/PlanCutoff.ts"),
-    ).toContain('stoppedNoteTitle: translationKey("Not included in this plan")');
+    expect(readDashboardSource("Components/Billing/PlanCutoff.ts")).toContain(
+      'stoppedNoteTitle: translationKey("Not included in this plan")',
+    );
   });
 
   it("counts a person as a seat from the moment they are invited", () => {
@@ -1257,7 +1282,9 @@ describe("Billing & Usage", () => {
     const fields: string = between(card, "formFields={[", "]}");
 
     expect(card).toContain('editButtonText={"Update"}');
-    expect(card).toContain('{ title: "Billing Address", id: "billing-address" }');
+    expect(card).toContain(
+      '{ title: "Billing Address", id: "billing-address" }',
+    );
     expect(card).toContain('{ title: "Invoices", id: "invoices" }');
 
     const rows: Array<Array<string>> = tableRows(
@@ -1281,9 +1308,9 @@ describe("Billing & Usage", () => {
       ["Finance / Accounting Email", "invoices"],
       ["Send Invoices by Email", "invoices"],
     ] as Array<[string, string]>) {
-      expect(
-        between(fields, `title: "${title}",`, "required"),
-      ).toContain(`stepId: "${stepId}"`);
+      expect(between(fields, `title: "${title}",`, "required")).toContain(
+        `stepId: "${stepId}"`,
+      );
     }
   });
 
@@ -1302,9 +1329,9 @@ describe("Billing & Usage", () => {
     }
 
     // Pay Invoice is the row's button: Download waits in its menu.
-    expect(
-      between(invoices, 'title: "Pay Invoice"', "onClick"),
-    ).toContain("placement: ActionButtonPlacement.Primary");
+    expect(between(invoices, 'title: "Pay Invoice"', "onClick")).toContain(
+      "placement: ActionButtonPlacement.Primary",
+    );
     expect(capturedNumber(invoices, UP_TO_DAYS)).toBe(2);
     expect(section(page, "## Invoices")).toContain(
       "some banks take up to 2 days to confirm a card payment",
@@ -1312,7 +1339,9 @@ describe("Billing & Usage", () => {
   });
 
   it("names Usage History's columns as the table draws them", () => {
-    const usage: string = readDashboardSource("Pages/Settings/UsageHistory.tsx");
+    const usage: string = readDashboardSource(
+      "Pages/Settings/UsageHistory.tsx",
+    );
     const columns: string = between(usage, "columns={[", "]}");
     const drawn: Array<string> = [
       ...new Set(
@@ -1333,7 +1362,9 @@ describe("Billing & Usage", () => {
       "Total Cost",
     ]);
     expect(usage).toContain('title: "Telemetry Usage History"');
-    expect(usage).toContain("Please wait until the end of the day for usage to show up.");
+    expect(usage).toContain(
+      "Please wait until the end of the day for usage to show up.",
+    );
 
     const rows: Array<string> = tableRows(
       section(page, "## Usage history"),
@@ -1365,7 +1396,11 @@ describe("Billing & Usage", () => {
     const settings: string = readDashboardSource(
       "Pages/Settings/NotificationSettings.tsx",
     );
-    const dialog: string = between(settings, 'title={"Recharge Balance"}', "/>");
+    const dialog: string = between(
+      settings,
+      'title={"Recharge Balance"}',
+      "/>",
+    );
 
     expect(dialog).toContain('submitButtonText={"Recharge"}');
     expect(capturedNumber(dialog, MIN_VALUE)).toBe(20);
@@ -1378,7 +1413,10 @@ describe("Billing & Usage", () => {
 
     const project: Project = new Project();
 
-    for (const balance of [ProjectBalanceType.SmsOrCall, ProjectBalanceType.AI]) {
+    for (const balance of [
+      ProjectBalanceType.SmsOrCall,
+      ProjectBalanceType.AI,
+    ]) {
       const [enable, by, when] = PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS[
         balance
       ] as Array<string>;
@@ -1461,7 +1499,9 @@ describe("Billing & Usage", () => {
     );
 
     // Auto Recharge takes what a recharge takes.
-    for (const columns of Object.values(PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS)) {
+    for (const columns of Object.values(
+      PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS,
+    )) {
       for (const column of columns) {
         expect({
           column,
@@ -1535,8 +1575,9 @@ describe("Billing & Usage", () => {
   });
 
   it("quotes the server's refusal for paid usage without a payment method", () => {
-    const quoted: string = PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE.split(". ")[0]
-      ?.trim() as string;
+    const quoted: string = PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE.split(
+      ". ",
+    )[0]?.trim() as string;
 
     expect(page).toContain(`:::details "${quoted}"`);
     expect(PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE).toContain(
@@ -1732,9 +1773,9 @@ describe("Audit Logs", () => {
     expect(Object.values(AuditLogAction).sort()).toEqual(
       ["Create", "Update", "Delete", "Download"].sort(),
     );
-    expect(
-      readCommonSource("Server/API/PacketCaptureAPI.ts"),
-    ).toContain("AuditLogService.recordDownload({");
+    expect(readCommonSource("Server/API/PacketCaptureAPI.ts")).toContain(
+      "AuditLogService.recordDownload({",
+    );
 
     const actions: string = tableRows(
       section(page, "## Read the audit log"),
@@ -1743,7 +1784,12 @@ describe("Audit Logs", () => {
       return row[0] === "**Action**";
     })?.[1] as string;
 
-    expect(inlineCodes(actions)).toEqual(["Create", "Update", "Delete", "Download"]);
+    expect(inlineCodes(actions)).toEqual([
+      "Create",
+      "Update",
+      "Delete",
+      "Download",
+    ]);
   });
 
   it("says an administrator's changes to someone else's notification setup are recorded", () => {
@@ -1761,9 +1807,9 @@ describe("Audit Logs", () => {
 
   it("says the audit log can be read through the API, by the permission that reads it", () => {
     expect(new AuditLog().crudApiPath?.toString()).toBe("/audit-log");
-    expect(
-      readPackageFile("App/FeatureSet/BaseAPI/Index.ts"),
-    ).toContain("new BaseAnalyticsAPI<AuditLog, AuditLogServiceType>(");
+    expect(readPackageFile("App/FeatureSet/BaseAPI/Index.ts")).toContain(
+      "new BaseAnalyticsAPI<AuditLog, AuditLogServiceType>(",
+    );
     expect(section(page, "## How long entries are kept")).toContain(
       "read them through the API with an API key that holds **Read Audit Log**",
     );
@@ -1811,7 +1857,11 @@ describe("Audit Logs", () => {
     expect(capturedNumber(retention, MAX_VALUE)).toBe(180);
 
     const table: string = read("Dashboard/AuditLogs/AuditLogsTable.tsx");
-    const columns: string = between(table, "columns={[", "/>\n\n      <AuditLogChangesModal");
+    const columns: string = between(
+      table,
+      "columns={[",
+      "/>\n\n      <AuditLogChangesModal",
+    );
 
     for (const title of ["When", "Action", "Resource", "Actor", "Changes"]) {
       expect(columns).toContain(`title: "${title}"`);
@@ -1825,19 +1875,29 @@ describe("Audit Logs", () => {
           return match[1] as string;
         },
       ),
-    ).toEqual(["Resource Type", "Resource Name", "Action", "User Email", "Time"]);
+    ).toEqual([
+      "Resource Type",
+      "Resource Name",
+      "Action",
+      "User Email",
+      "Time",
+    ]);
     expect(section(page, "## Read the audit log")).toContain(
       "Filter by **Resource Type**, **Resource Name**, **Action**, **User Email** or **Time**.",
     );
     expect(table).toContain("sortOrder={SortOrder.Descending}");
     // A change OneUptime made by itself is drawn as System.
-    expect(table).toContain('const userType: string = item.userType || "System";');
+    expect(table).toContain(
+      'const userType: string = item.userType || "System";',
+    );
 
     const recorder: string = read("Server/AuditLog/AuditLogRecorder.ts");
 
     // Within a minute: the project's settings are read again each minute.
     expect(capturedNumber(recorder, CACHE_TTL)).toBe(60);
-    expect(page).toContain("A change to these settings applies within a minute.");
+    expect(page).toContain(
+      "A change to these settings applies within a minute.",
+    );
 
     // Kept for the project's retention, at most 180 days, 7 unless set.
     const clamp: RegExpExecArray | null = RETENTION_CLAMP.exec(recorder);
@@ -1860,7 +1920,9 @@ describe("Audit Logs", () => {
       "if (ac && Array.isArray(ac.read) && ac.read.length === 0) {",
     );
 
-    const notice: string = read("Dashboard/AuditLogs/AuditLogsLicenseNotice.tsx");
+    const notice: string = read(
+      "Dashboard/AuditLogs/AuditLogsLicenseNotice.tsx",
+    );
 
     expect(notice).toContain("Entries recorded so far are kept.");
     expect(notice).toContain("Recording resumes with the same settings");
@@ -1917,9 +1979,12 @@ describe("every page", () => {
           segments,
           key: true,
         });
-        expect(navbarValue("categories", productsMenuCategory(itemKeys[item] as string))).toBe(
-          segments[1],
-        );
+        expect(
+          navbarValue(
+            "categories",
+            productsMenuCategory(itemKeys[item] as string),
+          ),
+        ).toBe(segments[1]);
       }
     },
   );

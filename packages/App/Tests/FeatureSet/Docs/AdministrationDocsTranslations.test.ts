@@ -808,9 +808,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
         const translated: string = readPage(language, entry.page);
 
         expect(amountsOfMoney(translated)).toBe(amountsOfMoney(english));
-        expect(numbersIn(prose(translated))).toEqual(
-          numbersIn(prose(english)),
-        );
+        expect(numbersIn(prose(translated))).toEqual(numbersIn(prose(english)));
       });
 
       it("closes every bold and code span it opens", () => {
@@ -1031,9 +1029,7 @@ describe("the helpers, on these pages' shapes", () => {
       "**Produkte → Einstellungen → Benutzer**",
     );
     // Persian bolds each segment, joined by " > ".
-    expect(drawnPath("fa", ["Products", "Settings", "Users"])).toContain(
-      " > ",
-    );
+    expect(drawnPath("fa", ["Products", "Settings", "Users"])).toContain(" > ");
   });
 
   it("tell the Dashboard's labels from the words a page keeps", () => {
