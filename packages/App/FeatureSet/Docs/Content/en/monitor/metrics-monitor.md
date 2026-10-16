@@ -106,11 +106,12 @@ The longer the range, the wider each time bucket, so one data point stands for m
 | Sum | the sum of the data points |
 | Maximum Value | the highest data point |
 | Minimum Value | the lowest data point |
-| All Values | every data point: all of them must meet the condition |
+| All Values | every data point: all of them must meet the condition, and they must cover the whole time range |
 | Any Value | every data point: one of them meeting the condition is enough |
 
 - **Criteria from top to bottom.** On a monitor without Group By, the first criteria that matches decides, so put the most severe one first. A grouped monitor checks every criteria for every series — see [Criteria evaluation differs](#criteria-evaluation-differs).
 - **No data is not zero.** When the query returns no data points in the time range, a criteria does what its **If No Data** setting says, under **More fields**: **Ignore** (the default — the criteria does not match), **Treat As Zero**, or **Trigger**.
+- **All Values needs the whole time range.** A series meets an **All Values** criteria only once its data points cover the time range, from its start to now, with no gap of more than one missing data point. When all of the monitor's data arrives late, as CloudWatch's does, its newest data point takes the place of now. A host, container or deployment that only just started reporting, or that went quiet for a while, waits until it has a whole time range of data, and the evaluation log says how far it has got: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. A series whose alert or incident is already open is judged on its data points alone, so a short gap in its data does not resolve it. When the metric reports less often than the time range is long, a lone data point counts for the whole range once it is a few minutes old; to judge how long a value lasts, make the time range at least two reporting intervals long.
 - **OneUptime's own downtime is not silence.** While the time range holds time OneUptime itself was not receiving data — it was restarting, being upgraded or catching up — the check waits: the status does not change, and no incident or alert is opened or resolved, whatever **If No Data** says. See [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Criteria
@@ -197,7 +198,7 @@ The grouping attribute values are also available as [template variables](/docs/m
 ## Troubleshooting
 
 :::details The chart shows a breach, but the monitor did not alert
-Check the criteria's **Aggregation** first: **All Values** only matches when every data point in the time range breaches, and **Average** smooths out a short spike. Then check that the criteria's **Metric** is the query or formula you mean (`a` is not the formula `c`), and that the threshold is in the unit you think.
+Check the criteria's **Aggregation** first: **All Values** only matches when every data point in the time range breaches, and **Average** smooths out a short spike. **All Values** also waits until a series has data for the whole time range, so a host or deployment that only just started reporting is not judged yet. Then check that the criteria's **Metric** is the query or formula you mean (`a` is not the formula `c`), and that the threshold is in the unit you think.
 :::
 
 :::details The metric stopped arriving and nothing happened

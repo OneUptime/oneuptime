@@ -1,4 +1,5 @@
 import UserPushService from "../../../Server/Services/UserPushService";
+import UserPush from "../../../Models/DatabaseModels/UserPush";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../Types/ObjectID";
 import PushDeviceType from "../../../Types/PushNotification/PushDeviceType";
@@ -145,6 +146,50 @@ describe("UserPushService.renewExpoPushDevice", () => {
     // Renewed in place: its rules stay with it, nothing is made or removed.
     expect(created).not.toHaveBeenCalled();
     expect(deleted).not.toHaveBeenCalled();
+  });
+
+  test("a phone that does not say leaves the device's critical alerts as they are, and says what they are", async () => {
+    find.mockResolvedValue({
+      _id: DEVICE_ID.toString(),
+      id: DEVICE_ID,
+      isCriticalAlertEnabled: true,
+    } as never);
+
+    const renewed: unknown = await UserPushService.renewExpoPushDevice(
+      renewal({ isCriticalAlertEnabled: undefined }),
+    );
+
+    const data: Record<string, unknown> = (
+      update.mock.calls[0]![0] as { data: Record<string, unknown> }
+    ).data;
+
+    expect("isCriticalAlertEnabled" in data).toBe(false);
+    expect((renewed as UserPush).isCriticalAlertEnabled).toBe(true);
+    // The lookup reads it, to say so.
+    expect(
+      (find.mock.calls[0]![0].select as Record<string, unknown>)[
+        "isCriticalAlertEnabled"
+      ],
+    ).toBe(true);
+  });
+
+  test("a phone that says writes it, and the device says so", async () => {
+    find.mockResolvedValue({
+      _id: DEVICE_ID.toString(),
+      id: DEVICE_ID,
+      isCriticalAlertEnabled: true,
+    } as never);
+
+    const renewed: unknown = await UserPushService.renewExpoPushDevice(
+      renewal({ isCriticalAlertEnabled: false }),
+    );
+
+    expect(
+      (update.mock.calls[0]![0] as { data: Record<string, unknown> }).data[
+        "isCriticalAlertEnabled"
+      ],
+    ).toBe(false);
+    expect((renewed as UserPush).isCriticalAlertEnabled).toBe(false);
   });
 
   test("a device that was marked as not receiving notifications is verified again by it", async () => {

@@ -27,6 +27,9 @@ import Email from "Common/Types/Email";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import StaticModelList from "Common/UI/Components/ModelList/StaticModelList";
+import LabelledDivider from "Common/UI/Components/Divider/LabelledDivider";
+import SignInOptionLink from "Common/UI/Components/SignInOption/SignInOptionLink";
+import IconProp from "Common/Types/Icon/IconProp";
 
 const LoginPage: () => JSX.Element = () => {
   const { t } = useTranslation();
@@ -368,16 +371,10 @@ const LoginPage: () => JSX.Element = () => {
                 renderGlobalSamlList(globalSamlConfigs)}
               {globalOidcConfigs.length > 0 &&
                 renderGlobalOidcList(globalOidcConfigs)}
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="bg-white px-2 text-gray-500">
-                    {t("sso.globalProvidersDivider")}
-                  </span>
-                </div>
-              </div>
+              <LabelledDivider
+                label={t("sso.globalProvidersDivider")}
+                dataTestId="global-providers-divider"
+              />
             </div>
           )}
           <BasicForm
@@ -404,14 +401,26 @@ const LoginPage: () => JSX.Element = () => {
               await fetchSsoConfigs(data["email"] as Email);
             }}
             footer={
-              <div className="actions text-center mt-4 hover:underline fw-semibold">
-                <div>
-                  <Link to={new Route("/accounts/login")}>
-                    <div className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm">
-                      {t("sso.useUsernameInstead")}
-                    </div>
-                  </Link>
-                </div>
+              /*
+               * The way back to the password form, drawn as the password
+               * page draws its other ways in: an outlined button under "or",
+               * as wide and as tall as this page's own button
+               * (SignInOptionStyle). It was a small text link, the mirror of
+               * the one that brought the visitor here.
+               */
+              <div data-testid="sign-in-options">
+                <LabelledDivider
+                  label={t("common.or")}
+                  className="my-5"
+                  dataTestId="sign-in-options-divider"
+                />
+                <SignInOptionLink
+                  to={new Route("/accounts/login")}
+                  id="password-login"
+                  dataTestId="password-login"
+                  icon={IconProp.Lock}
+                  title={t("sso.signInWithPassword")}
+                />
               </div>
             }
           />

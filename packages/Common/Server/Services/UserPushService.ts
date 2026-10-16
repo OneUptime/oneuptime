@@ -25,7 +25,10 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Includes from "../../Types/BaseDatabase/Includes";
-import { EXPO_PUSH_DEVICE_TYPES } from "../../Types/PushNotification/ExpoPushDeviceType";
+import {
+  EXPO_PUSH_DEVICE_TYPES,
+  isExpoPushDeviceType,
+} from "../../Types/PushNotification/ExpoPushDeviceType";
 
 export class Service extends DatabaseService<UserPush> {
   public constructor() {
@@ -214,6 +217,67 @@ export class Service extends DatabaseService<UserPush> {
         isCriticalAlertEnabled: data.isEnabled,
       },
     });
+  }
+
+  /**
+   * A phone registered a device it already has - the app does on every
+   * start, every sign-in and every return to it at most five minutes apart -
+   * and restated whether a critical page rings through on it (MobileApp
+   * pushDevice.ts). The device takes it.
+   *
+   * The app says what the phone will really do with a critical page: on
+   * only while the responder has Critical On-Call Alerts on AND the phone's
+   * system allows it. A device that was already registered used to keep
+   * whatever it was created with, so a phone whose app was reinstalled, or
+   * whose critical alerts were turned off in the phone's own settings, went
+   * on reading "On" in the Dashboard - and a test from there claimed to ring
+   * through silent mode while the phone showed an ordinary notification.
+   *
+   * Only the switch. The alarm and volume a registration names are a new
+   * device's; an existing device's are changed by the
+   * critical-alert-preferences route. A registration reads them once, before
+   * it tells each project in turn, so restating them could put back an alarm
+   * the responder changed meanwhile.
+   *
+   * Only an iOS or Android device: no browser can ring through silent mode,
+   * and a browser's device is left as it is. Only when the phone states it
+   * (undefined: an app that does not know, or could not ask the OS), and
+   * only when it differs from what the device holds, so the registrations
+   * the app makes every few minutes write nothing while nothing changes.
+   *
+   * Returns whether critical pages ring through on the device now.
+   */
+  @CaptureSpan()
+  public async restateCriticalAlertEnabled(data: {
+    // The device as read: _id, deviceType and isCriticalAlertEnabled.
+    device: UserPush;
+    isCriticalAlertEnabled: boolean | undefined;
+  }): Promise<boolean> {
+    const device: UserPush = data.device;
+    const stored: boolean = Boolean(device.isCriticalAlertEnabled);
+
+    if (
+      data.isCriticalAlertEnabled === undefined ||
+      data.isCriticalAlertEnabled === stored ||
+      !device._id ||
+      !isExpoPushDeviceType(device.deviceType)
+    ) {
+      return stored;
+    }
+
+    await this.updateOneBy({
+      query: {
+        _id: device._id.toString(),
+      },
+      data: {
+        isCriticalAlertEnabled: data.isCriticalAlertEnabled,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return data.isCriticalAlertEnabled;
   }
 
   /**
@@ -507,7 +571,12 @@ export class Service extends DatabaseService<UserPush> {
     deviceToken: string;
     deviceType: PushDeviceType;
     deviceName: string;
-    isCriticalAlertEnabled: boolean;
+    /*
+     * Whether critical pages ring through on the phone, as it registers now.
+     * Left out - the phone could not ask its OS - the device keeps its own,
+     * as a device the phone already has does (restateCriticalAlertEnabled).
+     */
+    isCriticalAlertEnabled?: boolean | undefined;
     // The phone's alarm and volume as it registers now; left out, kept.
     criticalAlertSound?: CriticalAlertSound | undefined;
     criticalAlertVolume?: number | undefined;
@@ -529,6 +598,7 @@ export class Service extends DatabaseService<UserPush> {
       },
       select: {
         _id: true,
+        isCriticalAlertEnabled: true,
       },
       props: {
         isRoot: true,
@@ -556,7 +626,9 @@ export class Service extends DatabaseService<UserPush> {
         deviceType: data.deviceType,
         deviceName: data.deviceName,
         isVerified: true,
-        isCriticalAlertEnabled: data.isCriticalAlertEnabled,
+        ...(data.isCriticalAlertEnabled !== undefined
+          ? { isCriticalAlertEnabled: data.isCriticalAlertEnabled }
+          : {}),
         ...(data.criticalAlertSound !== undefined
           ? { criticalAlertSound: data.criticalAlertSound }
           : {}),
@@ -569,7 +641,16 @@ export class Service extends DatabaseService<UserPush> {
       },
     });
 
-    return renewedCount > 0 ? previous : null;
+    if (renewedCount === 0) {
+      return null;
+    }
+
+    // What critical pages do on the device now.
+    previous.isCriticalAlertEnabled = Boolean(
+      data.isCriticalAlertEnabled ?? previous.isCriticalAlertEnabled,
+    );
+
+    return previous;
   }
 
   /**

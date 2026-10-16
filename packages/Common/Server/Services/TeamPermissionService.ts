@@ -19,6 +19,10 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import PermissionScope from "../../Types/Database/AccessControl/PermissionScope";
 import ObjectID from "../../Types/ObjectID";
 import Permission, { UserPermission } from "../../Types/Permission";
+import {
+  getPermissionTitleForSentence,
+  getRoleCopyChangeRefusedMessage,
+} from "../../Types/Team/CustomRole";
 import Label from "../../Models/DatabaseModels/Label";
 import Team from "../../Models/DatabaseModels/Team";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
@@ -113,6 +117,34 @@ export class Service extends ProjectReferencesService<Model> {
         return permission.permission === Permission.ProjectOwner;
       })
     );
+  }
+
+  /*
+   * A team's copy of a custom role's permission (CustomRoleSync) is the
+   * role's: it is changed and removed through the role - or by taking the
+   * role from the team - never on its own, or the team would no longer
+   * hold what the role gives. Only OneUptime's own writes touch one.
+   */
+  private assertNoRoleCopies(
+    rows: Array<Model>,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot) {
+      return;
+    }
+
+    const copy: Model | undefined = rows.find((row: Model): boolean => {
+      return Boolean(row.teamCustomRoleId || row.customRoleId);
+    });
+
+    if (copy) {
+      throw new BadDataException(
+        getRoleCopyChangeRefusedMessage({
+          roleName: copy.customRole?.name,
+          permission: copy.permission!,
+        }),
+      );
+    }
   }
 
   /**
@@ -223,8 +255,9 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     if (!canDelegate || isBlocked) {
+      // The permission by its title ("Incident Member"), not its code name.
       throw new NotAuthorizedException(
-        `You cannot grant ${data.permission} because your own access does not include that permission at an equal or broader scope.`,
+        `You cannot grant ${getPermissionTitleForSentence(data.permission)} because your own access does not include that permission at an equal or broader scope.`,
       );
     }
   }
@@ -423,12 +456,18 @@ export class Service extends ProjectReferencesService<Model> {
 
     const isBlockPermission: boolean = createBy.data.isBlockPermission || false;
 
+    /*
+     * Only the team's own rows count: a copy of a custom role's permission
+     * is the role's (CustomRoleSync), and the team may hold the same
+     * permission of its own beside it - kept when the role is taken away.
+     */
     const existingPermission: Model | null = await this.findOneBy({
       query: {
         teamId: createBy.data.teamId,
         projectId: createBy.data.projectId,
         permission: createBy.data.permission,
         isBlockPermission: isBlockPermission,
+        teamCustomRoleId: QueryHelper.isNull(),
       },
       select: {
         _id: true,
@@ -454,6 +493,7 @@ export class Service extends ProjectReferencesService<Model> {
           projectId: createBy.data.projectId,
           permission: createBy.data.permission,
           isBlockPermission: !isBlockPermission,
+          teamCustomRoleId: QueryHelper.isNull(),
         },
         select: {
           _id: true,
@@ -552,7 +592,14 @@ export class Service extends ProjectReferencesService<Model> {
         team: {
           isPermissionsEditable: true,
         },
+        teamCustomRoleId: true,
+        customRoleId: true,
+        customRole: {
+          name: true,
+        },
       });
+
+    this.assertNoRoleCopies(teamPermissions, updateBy.props);
 
     for (const permission of teamPermissions) {
       this.assertProjectMatchesTenant(permission.projectId!, updateBy.props);
@@ -618,6 +665,7 @@ export class Service extends ProjectReferencesService<Model> {
             projectId: alreadySavedPermission.projectId!,
             permission: alreadySavedPermission.permission!,
             isBlockPermission: !isBlockPermission,
+            teamCustomRoleId: QueryHelper.isNull(),
           },
           select: {
             _id: true,
@@ -720,7 +768,14 @@ export class Service extends ProjectReferencesService<Model> {
         team: {
           isPermissionsEditable: true,
         },
+        teamCustomRoleId: true,
+        customRoleId: true,
+        customRole: {
+          name: true,
+        },
       });
+
+    this.assertNoRoleCopies(teamPermissions, deleteBy.props);
 
     for (const permission of teamPermissions) {
       this.assertProjectMatchesTenant(permission.projectId!, deleteBy.props);

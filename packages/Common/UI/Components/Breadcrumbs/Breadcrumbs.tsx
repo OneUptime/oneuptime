@@ -21,8 +21,10 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
         {links &&
           links.length > 0 &&
           links.map((link: Link, i: number) => {
-            const translatedTitle: string =
-              translateString(link.title) || link.title;
+            // A record's name is drawn as typed (Link.isRecordName).
+            const translatedTitle: string = link.isRecordName
+              ? link.title
+              : translateString(link.title) || link.title;
             return (
               <li className="breadcrumb-item" key={i}>
                 {i === 0 && (

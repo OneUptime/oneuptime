@@ -758,6 +758,7 @@ const FormField: <T extends GenericObject>(
               singleColumn={props.field.cardSelectSingleColumn}
               searchable={props.field.cardSelectSearchable}
               searchPlaceholder={props.field.cardSelectSearchPlaceholder}
+              searchHint={props.field.cardSelectSearchHint}
               catalog={props.field.cardSelectCatalog}
               onChange={(value: string) => {
                 onChange(value);

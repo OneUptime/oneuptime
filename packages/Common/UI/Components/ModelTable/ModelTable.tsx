@@ -312,15 +312,23 @@ const ModelTable: <TBaseModel extends BaseModel>(
             return (
               <ModelFormModal<TBaseModel>
                 modelAPI={props.modelAPI}
-                title={translateNamedAction(translator, {
-                  template:
-                    modalType === ModalType.Create
-                      ? CREATE_NEW_TEMPLATES[props.createVerb || "Create"] ||
-                        CREATE_NEW_TEMPLATE
-                      : "Edit {{itemName}}",
-                  itemName: props.singularName || model.singularName || "",
-                  values: { action: translatableTerm(props.createVerb || "") },
-                })}
+                title={
+                  modalType === ModalType.Create && props.createFormTitle
+                    ? props.createFormTitle
+                    : translateNamedAction(translator, {
+                        template:
+                          modalType === ModalType.Create
+                            ? CREATE_NEW_TEMPLATES[
+                                props.createVerb || "Create"
+                              ] || CREATE_NEW_TEMPLATE
+                            : "Edit {{itemName}}",
+                        itemName:
+                          props.singularName || model.singularName || "",
+                        values: {
+                          action: translatableTerm(props.createVerb || ""),
+                        },
+                      })
+                }
                 formRef={props.createEditFromRef}
                 modalWidth={props.createEditModalWidth}
                 name={
@@ -340,7 +348,8 @@ const ModelTable: <TBaseModel extends BaseModel>(
                 onClose={onClose}
                 submitButtonText={
                   modalType === ModalType.Create
-                    ? translateCreateAction(translator, {
+                    ? props.createFormSubmitButtonText ||
+                      translateCreateAction(translator, {
                         verb: props.createVerb,
                         itemName:
                           props.singularName || model.singularName || "",

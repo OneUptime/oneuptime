@@ -121,7 +121,7 @@ flowchart TB
 
 Perché un avviso superi la modalità silenziosa devono essere vere quattro condizioni. Se ne manca anche una, l'avviso viene comunque consegnato – solo in silenzio.
 
-1. **La persona l'ha attivato per quel dispositivo.** Memorizzato per dispositivo, disattivato per impostazione predefinita, in `UserPush.isCriticalAlertEnabled`. Il telefono e il tablet di una stessa persona sono decisioni separate.
+1. **La persona l'ha attivato per quel dispositivo.** Memorizzato per dispositivo, disattivato per impostazione predefinita, in `UserPush.isCriticalAlertEnabled`. Il telefono e il tablet di una stessa persona sono decisioni separate. Le versioni dell'app successive alla 1.6.0 lo comunicano di nuovo a ogni apertura, come disattivato finché le impostazioni del telefono stesso non consentono gli avvisi critici, così l'elenco dei dispositivi mostra ciò che il telefono farà davvero.
 2. **La regola di reperibilità che ha inviato l'avviso lo chiede.** In **Impostazioni utente > Regole di reperibilità**, ogni regola che notifica un telefono è impostata su «Avviso critico», il valore predefinito, o su «Standard», che segue le impostazioni audio del telefono – così una persona può essere svegliata per un incidente critico e avvisata in silenzio per uno minore. Memorizzato per regola in `UserNotificationRule.pushNotificationLevel`.
 3. **Il server contrassegna l'avviso come critico.** Invia il payload del suono critico di APNs più `interruptionLevel: critical` per iOS, e punta a un canale di notifica critico per Android: `oncall_critical`, o il canale proprio dell'allarme scelto (vedi [Scegliere il suono di allarme](#scegliere-il-suono-di-allarme)).
 4. **Il sistema operativo lo consente**, ed è qui che le due piattaforme differiscono.
@@ -192,7 +192,7 @@ Una regola push può inviare di nuovo il suo avviso finché qualcuno non lo rico
 - **iOS**: conferma che la build abbia l'entitlement degli avvisi critici di Apple (vedi sopra), e che Critical Alerts sia consentito in iOS Settings > Notifications > OneUptime On-Call
 - **Android**: conferma che l'app abbia l'accesso a Non disturbare in Settings > Notifications > Do Not Disturb access
 - **Android**: se hai scelto un suono di allarme, anche il suo canale di notifica deve poter superare Non disturbare; la schermata Alarm sound dell'app indica quando non può
-- La schermata delle impostazioni indica quale di questi manca; legge lo stato attuale dal sistema operativo invece di fidarsi di quanto l'app ha richiesto l'ultima volta
+- La schermata delle impostazioni indica quale di questi manca; legge lo stato attuale dal sistema operativo invece di fidarsi di quanto l'app ha richiesto l'ultima volta, e comunica al server ciò che trova
 
 ### Push contrassegnati come «non consegnati»
 

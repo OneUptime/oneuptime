@@ -13,7 +13,8 @@
     "confirmPassword": "Confirmer le mot de passe",
     "newPassword": "Nouveau mot de passe",
     "code": "Code",
-    "yourCompany": "Votre entreprise"
+    "yourCompany": "Votre entreprise",
+    "or": "ou"
   },
   "language": {
     "label": "Langue",
@@ -50,7 +51,7 @@
     "subtitle": "Utilisez votre mot de passe, le SSO de votre organisation ou une clé d’accès.",
     "submitButton": "Connexion",
     "forgotPassword": "Mot de passe oublié ?",
-    "useSso": "Utiliser plutôt l'authentification unique (SSO)",
+    "signInWithSso": "Se connecter avec SSO",
     "signInWithMicrosoft": "Se connecter avec Microsoft",
     "noAccountPrompt": "Vous n'avez pas de compte ?",
     "registerLink": "Inscription.",
@@ -146,7 +147,7 @@
     "title": "Connexion avec SSO",
     "subtitle": "Connectez-vous avec votre fournisseur SSO pour accéder à votre compte.",
     "submitButton": "Connexion avec SSO",
-    "useUsernameInstead": "Utiliser plutôt nom d'utilisateur et mot de passe.",
+    "signInWithPassword": "Se connecter avec un mot de passe",
     "noAccountPrompt": "Vous n'avez pas de compte ?",
     "registerLink": "Inscription.",
     "selectProjectTitle": "Sélectionner un projet",

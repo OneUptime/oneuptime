@@ -1,6 +1,9 @@
+import CustomRole from "./CustomRole";
+import CustomRolePermission from "./CustomRolePermission";
 import Label from "./Label";
 import Project from "./Project";
 import Team from "./Team";
+import TeamCustomRole from "./TeamCustomRole";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -518,4 +521,218 @@ export default class TeamPermission extends BaseModel {
     default: PermissionScope.All,
   })
   public scope?: PermissionScope = undefined;
+
+  /*
+   * The custom role this permission came with, when it came with one.
+   * A team given a role holds a copy of each of the role's permissions,
+   * marked with the role, the role given to the team (teamCustomRoleId)
+   * and the role's own row it copies (customRolePermissionId). OneUptime
+   * writes and removes them as the role changes (CustomRoleSync); no request
+   * may set them, and a copy is changed or removed only through its role.
+   * Each goes with what it names (ON DELETE CASCADE). A permission given to
+   * the team directly names none of them.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectTeam,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "customRoleId",
+    type: TableColumnType.Entity,
+    modelType: CustomRole,
+    title: "Custom Role",
+    description:
+      "The custom role this permission comes from. Empty when the permission was given to the team directly. Change it on the role.",
+    example: "Incident Responder",
+  })
+  @ManyToOne(
+    () => {
+      return CustomRole;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "customRoleId" })
+  public customRole?: CustomRole = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectTeam,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Custom Role ID",
+    description:
+      "ID of the custom role this permission comes from. Empty when the permission was given to the team directly.",
+    example: "7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public customRoleId?: ObjectID = undefined;
+
+  /*
+   * The custom role given to the team that brought this permission.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectTeam,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "teamCustomRoleId",
+    type: TableColumnType.Entity,
+    modelType: TeamCustomRole,
+    title: "Team Custom Role",
+    description:
+      "The custom role given to the team that brought this permission. Empty when the permission was given to the team directly.",
+    example: "Incident Responder",
+  })
+  @ManyToOne(
+    () => {
+      return TeamCustomRole;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "teamCustomRoleId" })
+  public teamCustomRole?: TeamCustomRole = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectTeam,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Team Custom Role ID",
+    description:
+      "ID of the custom role given to the team that brought this permission. Empty when the permission was given to the team directly.",
+    example: "7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public teamCustomRoleId?: ObjectID = undefined;
+
+  /*
+   * The custom role's own permission this one copies.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectTeam,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "customRolePermissionId",
+    type: TableColumnType.Entity,
+    modelType: CustomRolePermission,
+    title: "Custom Role Permission",
+    description:
+      "The custom role's own permission this one copies. Empty when the permission was given to the team directly.",
+    example: "IncidentMember",
+  })
+  @ManyToOne(
+    () => {
+      return CustomRolePermission;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "customRolePermissionId" })
+  public customRolePermission?: CustomRolePermission = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectTeam,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Custom Role Permission ID",
+    description:
+      "ID of the custom role's own permission this one copies. Empty when the permission was given to the team directly.",
+    example: "7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public customRolePermissionId?: ObjectID = undefined;
 }

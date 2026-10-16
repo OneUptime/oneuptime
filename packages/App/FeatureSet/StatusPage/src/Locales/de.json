@@ -264,7 +264,8 @@
       "loginPrompt": "Bitte melden Sie sich an, um {{statusPageName}} anzuzeigen",
       "forgotPassword": "Passwort vergessen?",
       "submit": "Anmelden",
-      "useSSO": "Stattdessen Single Sign-On (SSO) verwenden"
+      "or": "oder",
+      "logInWithSso": "Mit SSO anmelden"
     },
     "sso": {
       "title": "Mit SSO anmelden",

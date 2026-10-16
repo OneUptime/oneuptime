@@ -812,13 +812,22 @@ describe("MetricService aggregate statement generation", () => {
           .split("MetricService.aggregateBy(")
           .slice(1);
 
-        expect(callSites.length).toBeGreaterThanOrEqual(9);
+        /*
+         * The Metrics monitor's own read, and readQueryDataPoints - the one
+         * read every infrastructure monitor (Kubernetes, Docker, Host and
+         * the rest) makes its queries through.
+         */
+        expect(callSites.length).toBeGreaterThanOrEqual(2);
         for (const callSite of callSites) {
           // Each call's argument object is well under 1200 characters.
           expect(callSite.slice(0, 1200)).toContain(
             'timeoutOverflowMode: "throw"',
           );
         }
+
+        expect(
+          workerSource.split("await readQueryDataPoints(").length - 1,
+        ).toBeGreaterThanOrEqual(10);
       });
     });
   });

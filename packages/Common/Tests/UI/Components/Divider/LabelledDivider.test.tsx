@@ -1,0 +1,81 @@
+import "@testing-library/jest-dom";
+import { cleanup, render, screen } from "@testing-library/react";
+import React from "react";
+import { afterEach, describe, expect, test } from "@jest/globals";
+import LabelledDivider from "../../../../UI/Components/Divider/LabelledDivider";
+
+/*
+ * A hairline with a few words in its middle - "or" between a sign-in page's
+ * own button and its other ways in.
+ */
+describe("LabelledDivider", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("draws its words between two hairlines", () => {
+    render(<LabelledDivider label="or" dataTestId="divider" />);
+    const divider: HTMLElement = screen.getByTestId("divider");
+    const lines: Array<HTMLElement> = screen.getAllByTestId("divider-line");
+    const words: HTMLElement = screen.getByText("or");
+
+    expect(lines).toHaveLength(2);
+    expect(Array.from(divider.children)).toEqual([lines[0], words, lines[1]]);
+    for (const line of lines) {
+      expect(line).toHaveClass("flex-1", "border-t", "border-gray-200");
+      expect(line).toBeEmptyDOMElement();
+    }
+    expect(divider).toHaveClass("flex", "items-center", "gap-3");
+    expect(words).toHaveClass("text-sm", "text-gray-500", "text-center");
+  });
+
+  test("the words are read; the lines are hidden from assistive technology", () => {
+    render(<LabelledDivider label="or" dataTestId="divider" />);
+
+    for (const line of screen.getAllByTestId("divider-line")) {
+      expect(line).toHaveAttribute("aria-hidden", "true");
+    }
+    expect(screen.getByText("or")).not.toHaveAttribute("aria-hidden");
+    expect(screen.getByTestId("divider")).toHaveTextContent(/^or$/);
+    // Not a separator role: a separator's words are not read.
+    expect(screen.queryByRole("separator")).not.toBeInTheDocument();
+  });
+
+  /*
+   * The single sign-on page drew its divider as one line behind words on a
+   * white patch. The patch only hides the line on a white card: on a faded
+   * paused form, a tinted surface or a dark theme it shows as a box.
+   */
+  test("draws no white patch behind its words, and positions nothing over the line", () => {
+    const { container } = render(<LabelledDivider label="Or continue" />);
+
+    expect(container.querySelector(".bg-white")).toBeNull();
+    expect(container.querySelector(".absolute")).toBeNull();
+    expect(container.querySelector(".relative")).toBeNull();
+  });
+
+  test("keeps 1.5rem above and below unless the page asks for other spacing", () => {
+    const { rerender } = render(
+      <LabelledDivider label="or" dataTestId="divider" />,
+    );
+    expect(screen.getByTestId("divider")).toHaveClass("my-6");
+
+    rerender(
+      <LabelledDivider label="or" dataTestId="divider" className="my-5" />,
+    );
+    expect(screen.getByTestId("divider")).toHaveClass("my-5");
+    expect(screen.getByTestId("divider")).not.toHaveClass("my-6");
+  });
+
+  test("lays its words out by their own direction", () => {
+    render(<LabelledDivider label="یا" />);
+
+    expect(screen.getByText("یا")).toHaveAttribute("dir", "auto");
+  });
+
+  test("without a test id it adds none to itself or its lines", () => {
+    const { container } = render(<LabelledDivider label="or" />);
+
+    expect(container.querySelector("[data-testid]")).toBeNull();
+  });
+});

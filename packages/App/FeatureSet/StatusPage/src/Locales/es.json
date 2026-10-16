@@ -264,7 +264,8 @@
       "loginPrompt": "Por favor, inicie sesión para ver {{statusPageName}}",
       "forgotPassword": "¿Olvidó su contraseña?",
       "submit": "Iniciar sesión",
-      "useSSO": "Usar inicio de sesión único (SSO) en su lugar"
+      "or": "o",
+      "logInWithSso": "Iniciar sesión con SSO"
     },
     "sso": {
       "title": "Iniciar sesión con SSO",

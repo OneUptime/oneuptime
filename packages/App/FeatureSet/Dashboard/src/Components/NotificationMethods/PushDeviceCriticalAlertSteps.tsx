@@ -14,6 +14,7 @@ import {
   CRITICAL_ALERT_HOW_TO_HEAR_IT,
   CRITICAL_ALERT_ONCE_ON,
   CRITICAL_ALERT_STEPS,
+  CRITICAL_ALERT_TEST_DID_NOT_RING,
   CRITICAL_ALERT_TROUBLESHOOTING,
   CriticalAlertSentenceSlot,
   MOBILE_APP_LABELS,
@@ -45,6 +46,52 @@ import { getMobileAppServerUrl } from "../../Utils/MobileAppServerUrl";
 
 export const CRITICAL_ALERT_STEPS_TEST_ID: string = "critical-alert-steps";
 
+export const CRITICAL_ALERT_TEST_DID_NOT_RING_TEST_ID: string =
+  "test-notification-did-not-ring";
+
+/*
+ * One of the OneUptime On-Call app's own labels, as the app draws it: in
+ * bold, in English whatever the Dashboard's language, and kept on one line,
+ * as the phone shows it.
+ */
+export const MobileAppLabel: FunctionComponent<{ text: string }> = (props: {
+  text: string;
+}): ReactElement => {
+  return (
+    <strong className="whitespace-nowrap font-semibold text-gray-900">
+      {props.text}
+    </strong>
+  );
+};
+
+/*
+ * The line under a sent test's words when it went to a phone as a critical
+ * alert (Push.tsx): where on the phone to look when it did not ring through
+ * (CRITICAL_ALERT_TEST_DID_NOT_RING). Quieter than the words above it - an
+ * aside for when the test did not do what they say - and naming the app's
+ * labels as these steps do.
+ */
+export const CriticalAlertTestDidNotRingHint: FunctionComponent =
+  (): ReactElement => {
+    return (
+      <p
+        className="text-sm leading-6 text-gray-500"
+        data-testid={CRITICAL_ALERT_TEST_DID_NOT_RING_TEST_ID}
+      >
+        <TranslatedSentence
+          template={CRITICAL_ALERT_TEST_DID_NOT_RING}
+          slots={{
+            app: <MobileAppLabel text={MOBILE_APP_LABELS.appName} />,
+            settings: <MobileAppLabel text={MOBILE_APP_LABELS.settingsTab} />,
+            criticalAlerts: (
+              <MobileAppLabel text={MOBILE_APP_LABELS.criticalAlertsSwitch} />
+            ),
+          }}
+        />
+      </p>
+    );
+  };
+
 export interface ComponentProps {
   deviceName: string;
   platform: PushDevicePlatform;
@@ -58,15 +105,11 @@ const PushDeviceCriticalAlertSteps: FunctionComponent<ComponentProps> = (
 
   const isBrowser: boolean = props.platform === PushDevicePlatform.Browser;
 
-  // A label as the app draws it: kept on one line, as the phone shows it.
+  // A label as the app draws it.
   const appLabel: (text: string) => ReactElement = (
     text: string,
   ): ReactElement => {
-    return (
-      <strong className="whitespace-nowrap font-semibold text-gray-900">
-        {text}
-      </strong>
-    );
+    return <MobileAppLabel text={text} />;
   };
 
   // Settings > Notifications > Alarm sound: wraps between its steps only.

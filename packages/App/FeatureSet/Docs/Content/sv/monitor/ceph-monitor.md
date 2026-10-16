@@ -218,7 +218,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med ett tröskelvä
 | Fält | Vad det gör |
 | --- | --- |
 | **Mätvärde** | Frågan eller formeln som kontrolleras, efter dess variabelnamn. |
-| **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste matcha) eller **Any Value** (ett räcker). |
+| **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste matcha, i hela fönstret) eller **Any Value** (ett räcker). |
 | **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett avvikelsevillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
 | **Threshold** | Värdet att jämföra med. Bredvid finns en enhetslista när mätvärdet har en enhet. Visas inte för avvikelsevillkor. |
 | **Känslighet** | Endast avvikelsevillkor. **Low** (4σ), **Medium** (3σ, standard) eller **High** (2σ). |

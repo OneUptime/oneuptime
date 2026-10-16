@@ -110,6 +110,9 @@ const SOURCES: Record<string, string> = {
   mobileEas: `${MOBILE_APP}/eas.json`,
   mobileChannels: `${MOBILE_APP}/src/notifications/channels.ts`,
   mobileCriticalAlerts: `${MOBILE_APP}/src/notifications/criticalAlerts.ts`,
+  mobileCriticalAlertsReport: `${MOBILE_APP}/src/notifications/criticalAlertsReport.ts`,
+  mobilePushNotifications: `${MOBILE_APP}/src/hooks/usePushNotifications.ts`,
+  mobileUseCriticalAlerts: `${MOBILE_APP}/src/hooks/useCriticalAlerts.ts`,
   mobileSettingsScreen: `${MOBILE_APP}/src/screens/SettingsScreen.tsx`,
   mobileAlarmSounds: `${MOBILE_APP}/src/notifications/criticalAlertSounds.ts`,
   mobileAlarmSoundScreen: `${MOBILE_APP}/src/screens/settings/CriticalAlertSoundScreen.tsx`,
@@ -142,6 +145,9 @@ const TABLE_ROW: RegExp = /^\|.*\|$/;
 const TABLE_SEPARATOR: RegExp = /^\|(?:\s*:?-+:?\s*\|)+$/;
 
 const INLINE_CODE: RegExp = /`([^`]+)`/g;
+
+// Taken out of code a fact reads, so it does not depend on prettier's wrapping.
+const WHITESPACE: RegExp = /\s+/;
 
 // A fenced code block, from its opening fence to its closing one.
 const FENCED_BLOCK: RegExp = /^```[^\n]*\n[\s\S]*?^```[ \t]*$/gm;
@@ -954,6 +960,54 @@ describe("Push Notifications: critical on-call alerts, against the server and th
 
     expect(page).toContain(
       "The same list shows whether each device has critical alerts on and, for a phone that does not, how to turn them on.",
+    );
+  });
+
+  /*
+   * The maintainer turned critical alerts off on a phone, and the device
+   * list went on saying "On": the stored setting followed only the app's
+   * switch, and only when it moved. The app now keeps it in step with the
+   * phone, and the page says so.
+   */
+  it("says the app keeps the stored setting in step with the phone, as the app and the server do", () => {
+    const report: string = readSource("mobileCriticalAlertsReport");
+    const registration: string = readSource("mobilePushNotifications");
+    const settingsHook: string = readSource("mobileUseCriticalAlerts");
+
+    // What it reports: the switch AND what the phone's own settings allow.
+    expect(report).toContain(
+      "data.isChosen && data.availability === CriticalAlertAvailability.Granted",
+    );
+
+    // Each time the app is opened: every registration, and every return to it.
+    expect(registration.split(WHITESPACE).join("")).toContain(
+      "constcriticalAlerts:CriticalAlertsReading=awaitreadCriticalAlerts();",
+    );
+    expect(registration).toContain("void reportCriticalAlerts();");
+
+    // The settings screen tells the server what it reads from the OS.
+    expect(settingsHook).toContain("void reportCriticalAlerts();");
+
+    // ...and the server takes it from a phone it already has.
+    expect(readSource("userPushApi")).toContain(
+      "this.service.restateCriticalAlertEnabled({",
+    );
+
+    // The release the page names is one the app has already shipped.
+    const version: string = (
+      JSON.parse(readSource("mobileAppJson")) as {
+        expo: { version: string };
+      }
+    ).expo.version;
+    const [major, minor] = version.split(".").map(Number);
+
+    expect(major! > 1 || (major === 1 && minor! >= 6)).toBe(true);
+
+    expect(page).toContain(
+      "Versions of the app newer than 1.6.0 report it again each time they are opened, as off while the phone's own settings do not allow critical alerts, so the device list shows what the phone will really do.",
+    );
+    expect(page).toContain(
+      "it reads the current state back from the OS rather than trusting what the app last requested, and tells the server what it finds",
     );
   });
 

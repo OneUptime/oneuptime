@@ -37,6 +37,7 @@ flowchart TB
 | Team | En namngiven grupp i ett projekt som bär behörigheter. |
 | Teammedlem | En användare som har bjudits in till ett team och accepterat. |
 | Behörighet | En enskild förmåga, t.ex. `CreateProjectMonitor`, eller en roll som samlar många, t.ex. `MonitorAdmin`. |
+| Anpassad roll | En uppsättning behörigheter som du namnger en gång och ger till team. |
 | Omfattning | Hur långt en tillåten behörighet når: alla resurser, bara ägda eller bara etiketterade. |
 | Ägare | En användare eller ett team som har markerats som ansvarig för en viss resurs. |
 | Etikett | En märkning du sätter på resurser, som används för att begränsa behörigheter och för att organisera. |
@@ -131,6 +132,24 @@ En behörighet att ändra eller ta bort något når bara det du också får läs
 Det här är också nycklarna du använder när du skapar API-nycklar, och de som API:et och Terraform-providern förväntar sig.
 
 Hela listan finns i [Behörighetsreferensen](/docs/permissions/reference).
+
+### Anpassade roller
+
+En anpassad roll är en uppsättning behörigheter som du namnger en gång och ger till team: till exempel en "Incidenthanterare" med `IncidentMember`, `AlertMember` och `OnCallViewer`, eller en "Teamledare". Varje team du ger den till får samma behörigheter, och du ändrar dem för alla de teamen på ett ställe. På OneUptime Cloud kräver anpassade roller Scale-planen, liksom att ändra ett teams behörigheter.
+
+:::steps
+1. Öppna **Team** i menyn **Produkter**, under **Inställningar**, sedan **Roller**, och klicka på **Skapa Anpassad roll**.
+2. Skriv dess **Namn** och välj under **Behörigheter** de inbyggda roller den samlar, för varje resurs i projektet. Beskrivningen finns under **Fler fält**.
+3. Skapa rollen. Den öppnas på sin sida, där **Lägg till roll** lägger till ytterligare en inbyggd roll och **Lägg till behörighet** (i kortets meny **⋯**) en enstaka behörighet, var och en med omfattning och etiketter, som på ett team.
+4. Klicka på **Ge till ett team** under **Team med den här rollen**. Ett teams sida **Behörigheter** har också **Lägg till anpassad roll**, och **Skapa team** erbjuder under **Åtkomst** de anpassade roller du skulle kunna ge.
+:::
+
+- Ett teams medlemmar får varje behörighet i teamets anpassade roller, med samma omfattning och samma etiketter, precis som om teamet hade dem själv. En blockering på teamet vinner fortfarande.
+- En roll förblir kopplad till de team som har den: en ändring av den når alla direkt, och rollens sida säger hur många team och personer det är. **Ta bort** tar rollen från ett team. Tar du bort själva rollen förlorar varje team som har den dess behörigheter; teamen behåller sina medlemmar och sina andra roller och behörigheter.
+- Du kan bara lägga i en roll, och ge ett team som roll, det du kunde ha gett teamet direkt: en roll med en behörighet som du inte har med samma eller en bredare omfattning avvisas, och avvisningen namnger behörigheten. En roll innehåller aldrig `ProjectOwner`, och **Owners** och **Admin** får aldrig någon.
+- Ett teams sida **Behörigheter** visar dess anpassade roller ovanför dess egna behörigheter. Vad en roll ger ändras på rollens sida, inte på teamets.
+- API-nycklar tar inte anpassade roller. En nyckel tjänar en enda integration, så ge den exakt de behörigheter den behöver på dess egen sida.
+- De inbyggda rollerna listas under **Inbyggda roller**, längst ned på sidan **Roller**.
 
 ### Tillåt och blockera
 

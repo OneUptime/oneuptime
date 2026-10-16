@@ -37,6 +37,7 @@ flowchart TB
 | Team | Un gruppo con nome all'interno di un progetto che porta le autorizzazioni. |
 | Membro del team | Un utente invitato in un team che ha accettato. |
 | Autorizzazione | Una singola capacità, ad es. `CreateProjectMonitor`, o un ruolo che ne raggruppa molte, ad es. `MonitorAdmin`. |
+| Ruolo personalizzato | Un insieme di autorizzazioni a cui date un nome una volta e che assegnate ai team. |
 | Ambito | Fin dove arriva un'autorizzazione concessa: tutte le risorse, solo quelle possedute o solo quelle etichettate. |
 | Proprietario | Un utente o un team indicato come responsabile di una risorsa specifica. |
 | Etichetta | Un'etichetta che mettete sulle risorse, usata per restringere le autorizzazioni e per organizzare. |
@@ -131,6 +132,24 @@ Un'autorizzazione a modificare o eliminare qualcosa raggiunge solo ciò che pote
 Sono anche le chiavi da usare quando create chiavi API, e quelle che si aspettano l'API e il provider Terraform.
 
 L'elenco completo è nel [Riferimento delle autorizzazioni](/docs/permissions/reference).
+
+### Ruoli personalizzati
+
+Un ruolo personalizzato è un insieme di autorizzazioni a cui date un nome una volta e che assegnate ai team: per esempio un «Gestore degli incidenti» fatto di `IncidentMember`, `AlertMember` e `OnCallViewer`, oppure un «Responsabile del team». Ogni team a cui lo assegnate riceve le stesse autorizzazioni, e le modificate per tutti quei team in un unico punto. Su OneUptime Cloud, i ruoli personalizzati richiedono il piano Scale, come la modifica delle autorizzazioni di un team.
+
+:::steps
+1. Aprite **Team** dal menu **Prodotti**, sotto **Impostazioni**, poi **Ruoli**, e fate clic su **Crea: Ruolo personalizzato**.
+2. Scrivete il suo **Nome** e scegliete sotto **Autorizzazioni** i ruoli integrati che raggruppa, per ogni risorsa del progetto. La descrizione è sotto **Altri campi**.
+3. Create il ruolo. Si apre sulla sua pagina, dove **Aggiungi ruolo** aggiunge un altro ruolo integrato e **Aggiungi autorizzazione** (nel menu **⋯** della scheda) una singola autorizzazione, ciascuna con un ambito ed etichette, come su un team.
+4. Fate clic su **Assegna a un team** sotto **Team con questo ruolo**. Anche la pagina **Autorizzazioni** di un team ha **Aggiungi ruolo personalizzato**, e **Crea team** offre sotto **Accesso** i ruoli personalizzati che potreste assegnare.
+:::
+
+- I membri di un team ricevono ogni autorizzazione dei suoi ruoli personalizzati, con lo stesso ambito e le stesse etichette, esattamente come se il team le avesse direttamente. Un blocco sul team vince comunque.
+- Un ruolo resta collegato ai team che lo hanno: una sua modifica li raggiunge tutti subito, e la pagina del ruolo dice quanti team e persone sono. **Rimuovi** toglie il ruolo a un team. Eliminare il ruolo stesso toglie le sue autorizzazioni a ogni team che lo ha; i team mantengono i loro membri e gli altri ruoli e autorizzazioni.
+- Potete mettere in un ruolo, e assegnare come ruolo a un team, solo ciò che potreste dare direttamente al team: un ruolo con un'autorizzazione che non avete con un ambito uguale o più ampio viene rifiutato, e il rifiuto nomina l'autorizzazione. Un ruolo non contiene mai `ProjectOwner`, e **Owners** e **Admin** non ne ricevono mai uno.
+- La pagina **Autorizzazioni** di un team elenca i suoi ruoli personalizzati sopra le sue autorizzazioni. Ciò che un ruolo dà si modifica sulla pagina del ruolo, non su quella del team.
+- Le chiavi API non accettano ruoli personalizzati. Una chiave serve una sola integrazione, quindi datele esattamente le autorizzazioni di cui ha bisogno sulla sua pagina.
+- I ruoli integrati sono elencati sotto **Ruoli integrati**, in fondo alla pagina **Ruoli**.
 
 ### Concedere e bloccare
 
