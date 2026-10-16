@@ -389,6 +389,17 @@ describe("the count column", () => {
     },
   );
 
+  test("a count under a thousand is written in the chart's digits whatever the browser's locale, like the shortened ones beside it", () => {
+    // A browser whose locale writes numbers in digits of its own.
+    jest
+      .spyOn(Number.prototype, "toLocaleString")
+      .mockReturnValue("LOCAL-DIGITS");
+
+    mount({ count: 999, maxCount: 999 });
+
+    expect(count()).toHaveTextContent(/^999$/);
+  });
+
   test("a count under a thousand is written out once, with nothing to add on hover", () => {
     mount({ count: 999, maxCount: 999 });
 

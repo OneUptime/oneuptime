@@ -278,7 +278,11 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
                 <span className="sr-only">{exactCount}</span>
               </>
             ) : (
-              exactCount
+              /*
+               * Written the same way as a shortened count beside it, in the
+               * digits the chart's axis uses whatever the browser's locale.
+               */
+              formatFacetCount(props.count)
             )}
           </span>
         </div>
