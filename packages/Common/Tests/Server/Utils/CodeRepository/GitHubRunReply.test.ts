@@ -8,7 +8,9 @@ import AIAgentTaskPullRequestService from "../../../../Server/Services/AIAgentTa
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
-import GitHubCommandType from "../../../../Types/CodeRepository/GitHubCommand";
+import GitHubCommandType, {
+  GitHubCommentKind,
+} from "../../../../Types/CodeRepository/GitHubCommand";
 import CodeFixTaskContext, {
   GitHubTaskContext,
 } from "../../../../Types/AI/CodeFixTaskContext";
@@ -73,7 +75,9 @@ interface ReactionOnCommentCall {
   installationId: string;
   organizationName: string;
   repositoryName: string;
+  issueNumber: number;
   commentId: number;
+  commentKind: GitHubCommentKind;
   reaction: GitHubReaction;
 }
 
@@ -485,6 +489,72 @@ describe("GitHubRunReply", () => {
         expect(reactionOnComment().organizationName).toBe("acme");
         expect(reactionOnComment().repositoryName).toBe("checkout");
         expect(reactionOnComment().installationId).toBe("12345678");
+      });
+
+      /*
+       * REGRESSION. The reaction route depends on the kind of comment, so the
+       * kind has to reach the reaction — an inline review comment reacted on
+       * as a conversation comment is a 404 and no 👀 at all.
+       */
+      test("passes an inline review comment's kind and its pull request through to the reaction", async () => {
+        await GitHubRunReply.acknowledge({
+          aiRunId: aiRunId,
+          projectId: projectId,
+          projectName: "Acme",
+          github: pullRequestContext({
+            triggerCommentKind: GitHubCommentKind.ReviewComment,
+          }),
+        });
+
+        expect(addReactionToCommentSpy).toHaveBeenCalledTimes(1);
+        expect(reactionOnComment().commentId).toBe(TRIGGER_COMMENT_ID);
+        expect(reactionOnComment().commentKind).toBe(
+          GitHubCommentKind.ReviewComment,
+        );
+        expect(reactionOnComment().issueNumber).toBe(PULL_REQUEST_NUMBER);
+        expect(reactionOnComment().reaction).toBe(GitHubReaction.Eyes);
+      });
+
+      /*
+       * REGRESSION. A review has no reactions of its own, so the 👀 for a
+       * mention in a review body lands on the pull request. The real routing
+       * runs here, down to the issue-route call it falls back to.
+       */
+      test("a mention in a submitted review gets its 👀 on the pull request", async () => {
+        addReactionToCommentSpy.mockRestore();
+
+        await GitHubRunReply.acknowledge({
+          aiRunId: aiRunId,
+          projectId: projectId,
+          projectName: "Acme",
+          github: pullRequestContext({
+            triggerCommentKind: GitHubCommentKind.Review,
+          }),
+        });
+
+        expect(addReactionToIssueSpy).toHaveBeenCalledTimes(1);
+        expect(reactionOnIssue().issueNumber).toBe(PULL_REQUEST_NUMBER);
+        expect(reactionOnIssue().reaction).toBe(GitHubReaction.Eyes);
+        expect(reactionOnIssue().organizationName).toBe("acme");
+        expect(reactionOnIssue().repositoryName).toBe("checkout");
+      });
+
+      /*
+       * Runs queued before the kind was recorded carry none. They were all
+       * reacted on as conversation comments, and still are.
+       */
+      test("a run queued before the kind was recorded is reacted on as a conversation comment", async () => {
+        await GitHubRunReply.acknowledge({
+          aiRunId: aiRunId,
+          projectId: projectId,
+          projectName: "Acme",
+          github: issueContext({ triggerCommentKind: undefined }),
+        });
+
+        expect(reactionOnComment().commentKind).toBe(
+          GitHubCommentKind.IssueComment,
+        );
+        expect(reactionOnComment().issueNumber).toBe(ISSUE_NUMBER);
       });
     });
 
@@ -1284,6 +1354,41 @@ describe("GitHubRunReply", () => {
         }
       });
 
+      test("🚀 on an inline review comment goes where its reactions live", async () => {
+        await GitHubRunReply.reportOutcome({
+          run: aiRun({ status: AIRunStatus.Completed }),
+          github: pullRequestContext({
+            triggerCommentKind: GitHubCommentKind.ReviewComment,
+            acknowledgementCommentId: ACKNOWLEDGEMENT_COMMENT_ID,
+          }),
+        });
+
+        expect(reactionOnComment().reaction).toBe(GitHubReaction.Rocket);
+        expect(reactionOnComment().commentId).toBe(TRIGGER_COMMENT_ID);
+        expect(reactionOnComment().commentKind).toBe(
+          GitHubCommentKind.ReviewComment,
+        );
+        expect(reactionOnComment().issueNumber).toBe(PULL_REQUEST_NUMBER);
+      });
+
+      // Same rule as the 👀: a review's reaction lands on its pull request.
+      test("😕 for a run a review started lands on the pull request", async () => {
+        addReactionToCommentSpy.mockRestore();
+
+        await GitHubRunReply.reportOutcome({
+          run: aiRun({ status: AIRunStatus.Error }),
+          github: pullRequestContext({
+            commandType: GitHubCommandType.Review,
+            triggerCommentKind: GitHubCommentKind.Review,
+            acknowledgementCommentId: ACKNOWLEDGEMENT_COMMENT_ID,
+          }),
+        });
+
+        expect(addReactionToIssueSpy).toHaveBeenCalledTimes(1);
+        expect(reactionOnIssue().issueNumber).toBe(PULL_REQUEST_NUMBER);
+        expect(reactionOnIssue().reaction).toBe(GitHubReaction.Confused);
+      });
+
       test("no reaction at all when a label or an assignment triggered the run", async () => {
         await GitHubRunReply.reportOutcome({
           run: aiRun({ status: AIRunStatus.Completed }),
@@ -1481,6 +1586,7 @@ describe("GitHubRunReply", () => {
         pullRequestHeadRefName: "oneuptime-ai/retry-backoff",
         isPullRequestFromFork: false,
         triggerCommentId: TRIGGER_COMMENT_ID,
+        triggerCommentKind: GitHubCommentKind.ReviewComment,
         triggeredByLogin: "octocat",
         acknowledgementCommentId: ACKNOWLEDGEMENT_COMMENT_ID,
         webhookDeliveryId: "1a2b3c4d-0000-0000-0000-000000000000",

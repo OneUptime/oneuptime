@@ -188,7 +188,7 @@ class TestSubjectHandler extends SubjectPullRequestTaskHandler {
 function stubPipeline(data: {
   agentResult: CodeAgentResult;
   clonedBaseBranch?: string;
-}): { createPullRequest: jest.Mock } {
+}): { createPullRequest: jest.Mock; agent: CodeAgent } {
   const createPullRequest: jest.Mock = jest.fn().mockResolvedValue({
     id: 1,
     number: 7,
@@ -235,11 +235,11 @@ function stubPipeline(data: {
     .spyOn(PullRequestCreator.prototype, "createPullRequest")
     .mockImplementation(createPullRequest as never);
 
-  jest
-    .spyOn(CodeAgentFactory, "createDefaultAgent")
-    .mockReturnValue(buildAgent(data.agentResult));
+  const agent: CodeAgent = buildAgent(data.agentResult);
 
-  return { createPullRequest };
+  jest.spyOn(CodeAgentFactory, "createDefaultAgent").mockReturnValue(agent);
+
+  return { createPullRequest, agent };
 }
 
 afterEach(() => {
@@ -405,5 +405,57 @@ describe.each(HANDLERS)("$label", (handlerCase: HandlerCase) => {
     ).mock.calls[0]?.[0];
 
     expect(recorded.baseRefName).toBe("trunk");
+  });
+
+  /*
+   * REGRESSION. The pull request is open on GitHub before it is recorded. A
+   * record that failed used to throw out of processRepository, so the
+   * repository counted as failed: with one repository the run reported Error
+   * while its pull request sat open, and the agent was never cleaned up.
+   */
+  test("a pull request that opened but could not be recorded still counts as opened", async () => {
+    const { createPullRequest, agent } = stubPipeline({
+      agentResult: {
+        success: true,
+        filesModified: ["src/checkout.ts"],
+        summary: "Fixed.",
+        logs: [],
+        exitCode: 0,
+      },
+    });
+
+    const backendAPI: BackendAPI = buildBackendAPI();
+    (backendAPI.recordPullRequest as unknown as jest.Mock).mockRejectedValue(
+      new Error("Failed to record pull request"),
+    );
+
+    const context: TaskContext = buildContext(backendAPI);
+    const result: TaskResult = await build().handler.execute(context);
+
+    expect(createPullRequest).toHaveBeenCalledTimes(1);
+    expect(result.success).toBe(true);
+    expect(result.data?.["isError"]).toBeUndefined();
+    expect(result.data?.["errors"]).toBeUndefined();
+    expect(result.pullRequestsCreated).toBe(1);
+    expect(result.pullRequestUrls).toEqual([
+      "https://github.com/acme/checkout/pull/7",
+    ]);
+    expect(agent.cleanup).toHaveBeenCalledTimes(1);
+
+    // Not swallowed silently: the run's log names the pull request and why.
+    const errorLines: Array<string> = (
+      context.logger.error as unknown as jest.Mock
+    ).mock.calls.map((call: Array<unknown>) => {
+      return String(call[0]);
+    });
+
+    expect(
+      errorLines.some((line: string) => {
+        return (
+          line.includes("https://github.com/acme/checkout/pull/7") &&
+          line.includes("Failed to record pull request")
+        );
+      }),
+    ).toBe(true);
   });
 });
