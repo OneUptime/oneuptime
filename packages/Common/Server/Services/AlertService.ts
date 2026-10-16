@@ -112,6 +112,7 @@ import AlertOwnerRuleEngineService from "./AlertOwnerRuleEngineService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
 import AutoRemediationRuleEngineService from "./AutoRemediationRuleEngineService";
 import AIAlertInvestigationRunner from "../Utils/AI/SRE/AlertInvestigationRunner";
+import IncidentFollowUpCheck from "../Utils/AI/SRE/IncidentFollowUpCheck";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import AlertPrivacyRuleEngineService from "./AlertPrivacyRuleEngineService";
 import ProjectService from "./ProjectService";
@@ -1457,6 +1458,23 @@ export class Service extends ProjectReferencesService<Model> {
             } as LogAttributes,
           );
         }
+      })
+      .then(async () => {
+        /*
+         * An open incident on the same infrastructure that OneUptime AI
+         * already investigated without this alert is checked again, once,
+         * with it in hand (IncidentFollowUpCheck). Last, so it delays
+         * nothing above; never throws. An alert created resolved is over
+         * and checks nothing again.
+         */
+        if (!isOngoing) {
+          return;
+        }
+
+        await IncidentFollowUpCheck.onAlertOpened({
+          projectId: createdItem.projectId!,
+          alertId: createdItem.id!,
+        });
       })
       .catch((error: Error) => {
         logger.error(

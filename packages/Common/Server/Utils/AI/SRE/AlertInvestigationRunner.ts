@@ -47,6 +47,10 @@ import { ResourceAiAccessStatus } from "../../../../Types/ResourceAiAgent/Resour
 import ResourceAiAccessService from "../../../Services/ResourceAiAccessService";
 import ResourceAccessContext from "../ResourceAccess/ResourceAccessContext";
 import NetworkTransceiverContext from "./NetworkTransceiverContext";
+import LinkedInfrastructureContext, {
+  LinkedInfrastructure,
+} from "./LinkedInfrastructureContext";
+import { AIRunEventResultSummary } from "../../../../Types/AI/AIChatTypes";
 import InfrastructureInvestigationToolkit from "../ResourceAccess/InfrastructureInvestigationToolkit";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -199,6 +203,8 @@ export default class AIAlertInvestigationRunner {
     let resourceStatuses: Array<ResourceAiAccessStatus> = [];
     // What the summary left out of the alert's text, for the run to say.
     const promptOmissions: AIPromptOmissions = PromptText.noOmissions();
+    // What the starting context read, for the run's activity.
+    const contextNotes: Array<AIRunEventResultSummary> = [];
     try {
       const contextData: AlertContextData =
         await AlertAIContextBuilder.buildAlertContext({
@@ -206,6 +212,31 @@ export default class AIAlertInvestigationRunner {
         });
 
       contextSummary = this.buildAlertSummary(contextData, promptOmissions);
+
+      /*
+       * The infrastructure the alert is linked to - hosts, container hosts,
+       * clusters, databases, services - and the other alerts on it.
+       * Enrichment only: a read that fails leaves the context as it was.
+       */
+      try {
+        const linked: LinkedInfrastructure | null =
+          await LinkedInfrastructureContext.readForAlert({
+            projectId,
+            alertId,
+          });
+        const linkedNote: AIRunEventResultSummary | null =
+          LinkedInfrastructureContext.buildActivityNote(linked);
+
+        contextSummary += LinkedInfrastructureContext.buildContextSection(linked);
+
+        if (linkedNote) {
+          contextNotes.push(linkedNote);
+        }
+      } catch (error) {
+        logger.error(
+          `AI: could not read the linked infrastructure of alert ${alertId.toString()}; investigating it without it: ${error}`,
+        );
+      }
 
       /*
        * Direct cluster access. Never a prerequisite: an access lookup that
@@ -380,6 +411,7 @@ export default class AIAlertInvestigationRunner {
         alertId,
         contextSummary,
         promptOmissions,
+        ...(contextNotes.length > 0 ? { contextNotes } : {}),
         maxLlmCalls: runLimits.maxLlmCalls,
         maxToolCalls: runLimits.maxToolCalls,
         maxWallClockMs: runLimits.maxWallClockMs,

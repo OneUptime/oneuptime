@@ -101,6 +101,7 @@ import { AddRunbookScheduleNextRunIndex1802450000000 } from "./1802450000000-Add
 import { KeepChannelNamePrefixOfRulesWithoutOne1802500000000 } from "./1802500000000-KeepChannelNamePrefixOfRulesWithoutOne";
 import { AddRecordNumbersStartAt1802700000000 } from "./1802700000000-AddRecordNumbersStartAt";
 import { AddEscalationNextInRotation1802750000000 } from "./1802750000000-AddEscalationNextInRotation";
+import { AddAIRunFollowUpForAlert1802800000000 } from "./1802800000000-AddAIRunFollowUpForAlert";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1404,4 +1405,5 @@ export default [
   KeepChannelNamePrefixOfRulesWithoutOne1802500000000,
   AddRecordNumbersStartAt1802700000000,
   AddEscalationNextInRotation1802750000000,
+  AddAIRunFollowUpForAlert1802800000000,
 ];

@@ -448,6 +448,37 @@ export default class AIRun extends BaseModel {
   })
   public triggeredByAlertId?: ObjectID = undefined;
 
+  /*
+   * Set on the one follow-up check of an incident: the alert that opened on
+   * the incident's linked infrastructure after its first investigation, and
+   * made OneUptime AI check the incident again with that alert in hand
+   * (IncidentFollowUpCheck). Null on every other run.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Follow-up For Alert ID",
+    description:
+      "For a follow-up check of an incident: the alert that opened on the incident's linked infrastructure after its first investigation and made OneUptime AI check it again.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public followUpForAlertId?: ObjectID = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

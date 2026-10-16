@@ -8,7 +8,11 @@ import {
 } from "../AI/ClusterToolFormat";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import AIRunEventType from "Common/Types/AI/AIRunEventType";
-import { AIPromptOmissions } from "Common/Types/AI/AIChatTypes";
+import {
+  AIPromptOmissions,
+  FollowUpCheckActivity,
+  LinkedInfrastructureActivity,
+} from "Common/Types/AI/AIChatTypes";
 import { formatSize } from "Common/Utils/AI/PromptText";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RUN_KUBECTL_TOOL_NAME } from "Common/Types/Kubernetes/KubernetesClusterAiAccessToolNames";
@@ -241,6 +245,8 @@ const friendlyToolNames: { [key: string]: string } = {
   search_logs: translationKey("Searching logs"),
   log_histogram: translationKey("Charting log volume"),
   query_metrics: translationKey("Aggregating metrics"),
+  query_resource_telemetry: translationKey("Reading a resource's telemetry"),
+  query_containers: translationKey("Checking the host's containers"),
   query_traces: translationKey("Analyzing traces"),
   get_trace: translationKey("Reading trace"),
   lookup_context: translationKey("Resolving names"),
@@ -363,6 +369,144 @@ export function describePromptOmissions(
 }
 
 /*
+ * What a kind of linked resource is called (LinkedAffectedResourceType, as
+ * the server records it in an investigation's activity).
+ */
+const LINKED_RESOURCE_KIND_NOUNS: { [kind: string]: string } = {
+  Host: translationKey("Host"),
+  DockerHost: translationKey("Docker host"),
+  PodmanHost: translationKey("Podman host"),
+  KubernetesCluster: translationKey("Kubernetes cluster"),
+  DockerSwarmCluster: translationKey("Docker Swarm cluster"),
+  ProxmoxCluster: translationKey("Proxmox cluster"),
+  VMwareVCenter: translationKey("VMware vCenter"),
+  CephCluster: translationKey("Ceph cluster"),
+  StorageArray: translationKey("Storage array"),
+  IoTFleet: translationKey("IoT fleet"),
+  DatabaseServer: translationKey("Database"),
+  Service: translationKey("Service"),
+};
+
+// How many linked resources a line names before "and N more".
+const NAMED_LINKED_RESOURCES: number = 3;
+
+// "Host web-1", in the reader's language.
+function describeLinkedResource(
+  resource: { kind: string; name: string },
+  translator: Translator,
+): string {
+  const noun: string = translator.translateText(
+    LINKED_RESOURCE_KIND_NOUNS[resource.kind] || "Resource",
+  ) as string;
+
+  return resource.name
+    ? translator.translateTemplate("{{kind}} {{name}}", {
+        kind: noun,
+        name: resource.name,
+      })
+    : noun;
+}
+
+/*
+ * What an investigation read about the infrastructure its incident or alert
+ * is linked to - the hosts, container hosts, clusters, databases and
+ * services its monitors watch - and the alerts on it (issue #4786): one
+ * line, in the reader's language.
+ */
+export function describeLinkedInfrastructure(
+  activity: LinkedInfrastructureActivity,
+  translator: Translator = getGlobalTranslator(),
+): string {
+  const resources: Array<{ kind: string; name: string }> =
+    activity.resources || [];
+  const named: Array<string> = resources
+    .slice(0, NAMED_LINKED_RESOURCES)
+    .map((resource: { kind: string; name: string }): string => {
+      return describeLinkedResource(resource, translator);
+    });
+  const moreCount: number = resources.length - named.length;
+  const list: string = named.join(", ");
+  const resourcesText: string =
+    moreCount > 0
+      ? translator.translatePlural(
+          {
+            one: "{{names}} and {{count}} more",
+            other: "{{names}} and {{count}} more",
+          },
+          moreCount,
+          { names: list },
+        )
+      : list;
+
+  if (!activity.alertCount) {
+    return translator.translateTemplate(
+      "No open or recent alerts on {{resources}}",
+      { resources: resourcesText },
+    );
+  }
+
+  if (activity.hasMoreAlerts) {
+    return translator.translateTemplate(
+      "Read the {{count}} newest open or recent alerts on {{resources}}",
+      {
+        count: translator.formatNumber(activity.alertCount),
+        resources: resourcesText,
+      },
+    );
+  }
+
+  return translator.translatePlural(
+    {
+      one: "Read {{count}} open or recent alert on {{resources}}",
+      other: "Read {{count}} open or recent alerts on {{resources}}",
+    },
+    activity.alertCount,
+    { resources: resourcesText },
+  );
+}
+
+/*
+ * Why an investigation checked its incident again (issue #4787): the alert
+ * that opened on the incident's infrastructure after the first analysis.
+ */
+export function describeFollowUpCheck(
+  activity: FollowUpCheckActivity,
+  translator: Translator = getGlobalTranslator(),
+): string {
+  const alert: string = activity.alertNumberWithPrefix
+    ? activity.alertNumberWithPrefix
+    : activity.alertNumber !== undefined
+      ? `#${activity.alertNumber}`
+      : "";
+
+  if (!activity.resourceKind) {
+    return alert
+      ? translator.translateTemplate(
+          "Checking again: alert {{alert}} opened on this incident's infrastructure after the first analysis",
+          { alert },
+        )
+      : (translator.translateText(
+          "Checking again: an alert opened on this incident's infrastructure after the first analysis",
+        ) as string);
+  }
+
+  const resource: string = describeLinkedResource(
+    { kind: activity.resourceKind, name: activity.resourceName },
+    translator,
+  );
+
+  return alert
+    ? translator.translateTemplate(
+        "Checking again: alert {{alert}} opened on {{resource}} after the first analysis",
+        { alert, resource },
+      )
+    : translator.translateTemplate(
+        "Checking again: an alert opened on {{resource}} after the first analysis",
+        { resource },
+      );
+}
+
+/*
  * The steps the events draw, in the reader's language. A step is completed
  * by matching its text, which is always produced by the same translator.
  */
@@ -478,6 +622,37 @@ function buildSteps(
               });
             },
           );
+          break;
+        }
+
+        /*
+         * What the starting context read about the linked infrastructure,
+         * and why a follow-up check runs: drawn from the data, in the
+         * reader's language, not from the English line.
+         */
+        const followUpCheck: FollowUpCheckActivity | undefined =
+          event.resultSummary?.followUpCheck;
+
+        if (followUpCheck) {
+          steps.push({
+            key,
+            text: describeFollowUpCheck(followUpCheck, translator),
+            status: "done",
+            kind: "log",
+          });
+          break;
+        }
+
+        const linkedInfrastructure: LinkedInfrastructureActivity | undefined =
+          event.resultSummary?.linkedInfrastructure;
+
+        if (linkedInfrastructure) {
+          steps.push({
+            key,
+            text: describeLinkedInfrastructure(linkedInfrastructure, translator),
+            status: "done",
+            kind: "log",
+          });
           break;
         }
 

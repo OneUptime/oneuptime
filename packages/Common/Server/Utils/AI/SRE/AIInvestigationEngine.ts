@@ -47,7 +47,10 @@ import ObservabilityAssistant, {
 import logger from "../../Logger";
 import LLMService from "../../LLM/LLMService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
-import FeedMarkdown, { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * AI SRE — the shared autonomous-investigation engine.
@@ -134,7 +137,7 @@ const STEP_EVENT_TYPE: Record<ObservabilityAssistantStepType, AIRunEventType> =
 const INVESTIGATION_PERSONA: string = `You are OneUptime AI, OneUptime's autonomous AI Site Reliability Engineer. You have been woken automatically because a NEW signal (an incident or alert) was just declared in this project — no human has asked you a question yet. Investigate it proactively and produce a first-pass root cause analysis that the on-call engineer will read the moment they are paged.
 
 Investigate like a senior on-call engineer:
-- Start from the affected monitors/services named in the signal.
+- Start from the affected monitors/services named in the signal, and from the infrastructure the context lists them linked to (hosts, Docker hosts, clusters) — read the alerts on it first.
 - Use your read tools to inspect the telemetry AROUND the signal's creation time: recent exceptions and their trends, error/latency metrics versus their normal range (use baseline_anomaly to judge a metric against its learned hour-of-week baseline quantitatively instead of eyeballing), failing traces, relevant logs, and recent changes / deploys.
 - Form the single most likely root-cause hypothesis. If the evidence is inconclusive, say so plainly and list what you checked — do NOT guess a cause the data does not support.
 - If the context lists past resolved incidents, check whether this is a RECURRENCE. If the current signal matches one, say so explicitly, reference that incident number, and note how it was resolved before — but still verify against the current telemetry.
@@ -236,6 +239,19 @@ export interface InvestigationRequest {
   additionalInstructions?: string | undefined;
   // Replaces the "A new signal has just been declared..." user preamble.
   questionOverride?: string | undefined;
+  /*
+   * What the runner's starting context read, for people: each one is
+   * recorded in the run's activity as a ProgressLog event before the model
+   * starts (the linked infrastructure and its alerts, why an incident is
+   * checked again). Deterministic, never model output.
+   */
+  contextNotes?: Array<AIRunEventResultSummary> | undefined;
+  /*
+   * A line placed between the report's heading and the model's analysis,
+   * written by the runner from its own data - why this report exists, for a
+   * follow-up check. Never model output.
+   */
+  reportLead?: MarkdownText | undefined;
   /*
    * Run-scoped tools grafted onto the loop (see
    * ObservabilityAssistantExtraTool). The read-only toolbox is always
@@ -492,6 +508,17 @@ export default class AIInvestigationEngine {
       });
     }
 
+    // What the starting context read, in the run's activity before anything else.
+    for (const contextNote of request.contextNotes || []) {
+      await this.emitEvent({
+        projectId,
+        aiRunId,
+        sequence: sequence++,
+        eventType: AIRunEventType.ProgressLog,
+        resultSummary: contextNote,
+      });
+    }
+
     /*
      * Cluster tool calls this attempt started. The run's toolCallCount
      * includes them, and the posted report must not call them telemetry
@@ -587,8 +614,14 @@ export default class AIInvestigationEngine {
           incidentId: request.incidentId,
           alertId: request.alertId,
           aiRunId,
-          // System run — full read access to the project's telemetry.
-          props: { isRoot: true },
+          /*
+           * System run — full read access to the project's telemetry, and
+           * to this project only. The tenant is what holds a root read to
+           * one project: the model layer adds it to every query of a model
+           * with a project column, so a tool that does not name the project
+           * itself still reads only this one.
+           */
+          props: { isRoot: true, tenantId: projectId },
           feature: request.feature,
           systemInstructions: `${request.personaOverride ?? INVESTIGATION_PERSONA}${
             request.additionalInstructions
@@ -763,6 +796,7 @@ export default class AIInvestigationEngine {
         analysis,
         clusterToolCallCount,
         infrastructureToolCallCount,
+        request.reportLead,
       );
 
       await request.postAnalysis({
@@ -1045,9 +1079,14 @@ export default class AIInvestigationEngine {
     analysisMarkdown: string,
     clusterToolCallCount: number = 0,
     infrastructureToolCallCount: number = 0,
+    // The runner's own line under the heading (a follow-up check's why).
+    reportLead?: MarkdownText | undefined,
   ): string {
-    let markdown: string =
-      mdText`## 🧠 AI — Automated Root Cause Analysis\n\n${FeedMarkdown.aiWritten(analysisMarkdown)}`.toString();
+    let markdown: string = (
+      reportLead && reportLead.toString().trim()
+        ? mdText`## 🧠 AI — Automated Root Cause Analysis\n\n${reportLead}\n\n${FeedMarkdown.aiWritten(analysisMarkdown)}`
+        : mdText`## 🧠 AI — Automated Root Cause Analysis\n\n${FeedMarkdown.aiWritten(analysisMarkdown)}`
+    ).toString();
 
     const citations: Array<AIChatCitation> = result.citations || [];
 
