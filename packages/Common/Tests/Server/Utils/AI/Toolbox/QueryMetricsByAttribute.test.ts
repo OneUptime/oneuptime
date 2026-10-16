@@ -257,11 +257,16 @@ describe("a metric split by state, asked for as a whole", () => {
       "3 series by state, cpu.mode, the highest peak first.",
     );
     expect(result.rowCount).toBe(3);
+    // Grouped by both names a collector may send; named by the one it did.
     expect(result.citationLabel).toBe(
-      `Avg(system.cpu.utilization) by state, cpu.mode, ${START} – ${END}`,
+      `Avg(system.cpu.utilization) by state, ${START} – ${END}`,
     );
     expect(result.isTruncated).toBe(false);
     expect(result.widget?.type).toBe(AIChatWidgetType.TimeSeriesChart);
+    // Titled like the ungrouped chart ("Avg of ..."), dated by its window.
+    expect(result.widget?.title).toBe("Avg of system.cpu.utilization by state");
+    expect(result.widget?.description).toBe(`${START} – ${END}`);
+    // One attribute tells the lines apart, so each is named by its value.
     expect(
       (
         (
@@ -272,7 +277,7 @@ describe("a metric split by state, asked for as a whole", () => {
       ).map((series: AIChatWidgetSeries): string => {
         return series.name;
       }),
-    ).toEqual(["state=user", "state=system", "state=idle"]);
+    ).toEqual(["user", "system", "idle"]);
   });
 
   test("a filter on one state reads that state as one series, with what it means", async () => {

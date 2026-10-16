@@ -497,3 +497,97 @@ describe("what the model reads", () => {
     ]);
   });
 });
+
+/*
+ * What people read on a grouped chart. A split metric is grouped by its old
+ * and its new attribute name at once (state and cpu.mode), and a collector
+ * sends one of them: the chart names the one there is - "... by state" -
+ * and calls its lines "user", "system", "idle", not "state=user".
+ */
+describe("a grouped chart's names", () => {
+  const BOTH_NAMES: Array<string> = ["state", "cpu.mode"];
+
+  function seriesOf(
+    rows: Array<AggregatedModel>,
+    groupBy: Array<string>,
+  ): Array<MetricSeries> {
+    return GroupedMetricSeries.toSeries({ valueRows: rows, groupBy });
+  }
+
+  test("only the grouped keys the series carry are named", () => {
+    const oldNames: Array<MetricSeries> = seriesOf(
+      [row({ state: "user" }, 0, 0.9), row({ state: "idle" }, 0, 0.1)],
+      BOTH_NAMES,
+    );
+    const newNames: Array<MetricSeries> = seriesOf(
+      [row({ "cpu.mode": "user" }, 0, 0.9)],
+      BOTH_NAMES,
+    );
+
+    expect(GroupedMetricSeries.getShownGroupBy(oldNames, BOTH_NAMES)).toEqual([
+      "state",
+    ]);
+    expect(GroupedMetricSeries.getShownGroupBy(newNames, BOTH_NAMES)).toEqual([
+      "cpu.mode",
+    ]);
+  });
+
+  test("all of them when no series carries any, and every one that some series does, in their order", () => {
+    expect(
+      GroupedMetricSeries.getShownGroupBy(
+        seriesOf([row({}, 0, 1)], BOTH_NAMES),
+        BOTH_NAMES,
+      ),
+    ).toEqual(BOTH_NAMES);
+    expect(
+      GroupedMetricSeries.getShownGroupBy(
+        seriesOf(
+          [
+            row({ "service.name": "api" }, 0, 1),
+            row({ "service.name": "web", region: "eu" }, 0, 2),
+          ],
+          ["region", "service.name"],
+        ),
+        ["region", "service.name"],
+      ),
+    ).toEqual(["region", "service.name"]);
+  });
+
+  test("one attribute telling the lines apart: each line is its value", () => {
+    const series: Array<MetricSeries> = seriesOf(
+      [
+        row({ state: "user" }, 0, 0.9),
+        row({ state: "idle" }, 0, 0.1),
+        row({}, 0, 0.5),
+      ],
+      BOTH_NAMES,
+    );
+
+    expect(
+      GroupedMetricSeries.toWidgetSeries(series, BOTH_NAMES).map(
+        (item: { name: string }): string => {
+          return item.name;
+        },
+      ),
+    ).toEqual(["user", NO_ATTRIBUTE_VALUE_LABEL, "idle"]);
+  });
+
+  test("several: each line keeps its label, which says which is which", () => {
+    const series: Array<MetricSeries> = seriesOf(
+      [
+        row({ "service.name": "api", region: "eu" }, 0, 2),
+        row({ "service.name": "web", region: "us" }, 0, 1),
+      ],
+      ["service.name", "region"],
+    );
+
+    expect(
+      GroupedMetricSeries.toWidgetSeries(series, [
+        "service.name",
+        "region",
+      ]).map((item: { name: string }): string => {
+        return item.name;
+      }),
+    ).toEqual(["service.name=api, region=eu", "service.name=web, region=us"]);
+  });
+});

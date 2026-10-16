@@ -903,8 +903,9 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
       ctx,
     });
     const target: AIChatCitationTarget = resourceTarget(type, id);
-    const label: string = `${getAIResourceDefinition(type).label} ${signal}, ${startTime.toISOString()} – ${endTime.toISOString()}`;
-    const note: string = `${scope.note} Requested window: ${startTime.toISOString()} – ${endTime.toISOString()}.`;
+    const window: string = `${startTime.toISOString()} – ${endTime.toISOString()}`;
+    const label: string = `${getAIResourceDefinition(type).label} ${signal}, ${window}`;
+    const note: string = `${scope.note} Requested window: ${window}.`;
     if (signal === "metrics") {
       const name: string | undefined = ToolArgs.getString(args, "metricName");
       const aggregation: string =
@@ -962,19 +963,31 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
           endTime,
           props: ctx.props,
         });
+        // The keys the series differ in: "state", not "state, cpu.mode".
+        const by: string = GroupedMetricSeries.getShownGroupBy(
+          read.series,
+          plan.groupBy,
+        ).join(", ");
         return resultForRows({
           rows: read.series.map((series: MetricSeries): JSONObject => {
             return GroupedMetricSeries.toLlmRow(series);
           }),
-          label: `${label} by ${plan.groupBy.join(", ")}`,
+          label: `${getAIResourceDefinition(type).label} ${signal} by ${by}, ${window}`,
           target,
           truncated: read.isTruncated,
           widget:
             mode === "trend" && read.series.length > 0
               ? WidgetBuilder.timeSeries({
-                  title: `${aggregation}(${name}) by ${plan.groupBy.join(", ")}`,
-                  description: note,
-                  series: GroupedMetricSeries.toWidgetSeries(read.series),
+                  /*
+                   * For people: what was read and over which window. The
+                   * scope note is the model's; it stays in the result.
+                   */
+                  title: `${aggregation} of ${name} by ${by}`,
+                  description: window,
+                  series: GroupedMetricSeries.toWidgetSeries(
+                    read.series,
+                    plan.groupBy,
+                  ),
                   link: target,
                 })
               : undefined,
@@ -1059,8 +1072,9 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
       const widget: AIChatWidget | undefined =
         name && mode === "trend" && rows.length > 0
           ? WidgetBuilder.timeSeries({
-              title: `${aggregation}(${name})`,
-              description: note,
+              // Titled and dated like the grouped chart above.
+              title: `${aggregation} of ${name}`,
+              description: window,
               series: [
                 {
                   name,

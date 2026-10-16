@@ -163,6 +163,21 @@ function formatPercent(value: number | null): string {
   return value === null ? "no data" : String(Number(value.toFixed(1)));
 }
 
+// A percentage as the table shows it: one decimal, or empty.
+function roundPercent(value: number | null): number | null {
+  return value === null ? null : Number(value.toFixed(1));
+}
+
+/*
+ * A container's status as the table says it. The tool's rows keep the
+ * lower-case words the model reads ("stopped reporting").
+ */
+export const CONTAINER_STATUS_LABELS: Record<ContainerStatus, string> = {
+  [ContainerStatus.StoppedReporting]: "Stopped reporting",
+  [ContainerStatus.StartedInWindow]: "Started in this window",
+  [ContainerStatus.Reporting]: "Reporting",
+};
+
 export const QueryContainersTool: ObservabilityTool = {
   name: QUERY_CONTAINERS_TOOL_NAME,
   description:
@@ -532,29 +547,35 @@ function buildContainersWidget(data: {
     return undefined;
   }
 
+  /*
+   * What a responder reads first comes first: which container, whether it
+   * is still reporting, and how busy it was. The image - often the longest
+   * value - closes the row, so it never pushes the numbers out of a narrow
+   * chat column.
+   */
   return WidgetBuilder.table({
     title: `Containers of ${data.hostLabel}`,
     description: data.window,
     columns: [
       { key: "container", title: "Container" },
-      { key: "image", title: "Image" },
       { key: "status", title: "Status" },
       { key: "cpuAvg", title: "CPU avg %", type: "number" },
       { key: "cpuPeak", title: "CPU peak %", type: "number" },
       { key: "memoryPeak", title: "Memory peak %", type: "number" },
       { key: "restarts", title: "Restarts", type: "number" },
       { key: "lastSeen", title: "Last seen", type: "date" },
+      { key: "image", title: "Image" },
     ],
     rows: data.containers.map((container: ContainerActivity): JSONObject => {
       return {
         container: container.containerName,
-        image: container.imageName,
-        status: container.status,
-        cpuAvg: container.cpuAverage,
-        cpuPeak: container.cpuPeak,
-        memoryPeak: container.memoryPeak,
+        status: CONTAINER_STATUS_LABELS[container.status],
+        cpuAvg: roundPercent(container.cpuAverage),
+        cpuPeak: roundPercent(container.cpuPeak),
+        memoryPeak: roundPercent(container.memoryPeak),
         restarts: container.restartsInWindow,
         lastSeen: container.lastSeenAt.toISOString(),
+        image: container.imageName,
       };
     }),
     link: data.target,

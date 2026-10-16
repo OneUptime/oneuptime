@@ -344,12 +344,46 @@ export default class GroupedMetricSeries {
     return sentences.join(" ");
   }
 
+  /*
+   * The grouped keys the series are told apart by: those of `groupBy` that
+   * carry a value in at least one series, in its order. A split metric is
+   * grouped by its old and its new attribute name at once (state and
+   * cpu.mode), and a collector sends one of them, so people are told only
+   * of the one there is. All of `groupBy` when no series has a value.
+   */
+  public static getShownGroupBy(
+    series: Array<MetricSeries>,
+    groupBy: Array<string>,
+  ): Array<string> {
+    const shown: Array<string> = groupBy.filter((key: string): boolean => {
+      return series.some((item: MetricSeries): boolean => {
+        return Boolean(item.attributes[key]);
+      });
+    });
+
+    return shown.length > 0 ? shown : groupBy;
+  }
+
+  /*
+   * The chart's lines. Each is named by its label ("state=user, host=a"),
+   * or, when the series differ in one attribute only, by its value ("user")
+   * - the chart's title names the attribute ("... by state").
+   */
   public static toWidgetSeries(
     series: Array<MetricSeries>,
+    groupBy?: Array<string> | undefined,
   ): Array<AIChatWidgetSeries> {
+    const shown: Array<string> = groupBy
+      ? GroupedMetricSeries.getShownGroupBy(series, groupBy)
+      : [];
+    const onlyKey: string | undefined =
+      shown.length === 1 ? shown[0] : undefined;
+
     return series.map((item: MetricSeries): AIChatWidgetSeries => {
       return {
-        name: item.label,
+        name: onlyKey
+          ? item.attributes[onlyKey] || NO_ATTRIBUTE_VALUE_LABEL
+          : item.label,
         points: item.points.map((point: MetricSeriesPoint) => {
           return { x: point.timestamp.toISOString(), y: point.value };
         }),

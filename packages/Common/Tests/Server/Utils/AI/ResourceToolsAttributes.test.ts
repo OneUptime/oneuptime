@@ -150,8 +150,27 @@ describe("a host's split metrics", () => {
     expect(result.dataForLlm).toContain(
       "Scope is the parent resource; no individual child identity or namespace was selected.",
     );
-    expect(result.citationLabel).toContain("by state, cpu.mode");
+    // Named by the attribute the rows carry, before the window it read.
+    expect(result.citationLabel).toBe(
+      `Host metrics by state, ${START} – ${END}`,
+    );
     expect(result.widget?.type).toBe(AIChatWidgetType.TimeSeriesChart);
+    /*
+     * What people read on the chart: what was read, and the window. The
+     * scope note is the model's, in the result above, never the chart's.
+     */
+    expect(result.widget?.title).toBe("Avg of system.cpu.utilization by state");
+    expect(result.widget?.description).toBe(`${START} – ${END}`);
+    expect(result.widget?.description).not.toContain("Scope is");
+    expect(
+      (
+        result.widget?.data as unknown as {
+          series: Array<{ name: string }>;
+        }
+      ).series.map((series: { name: string }): string => {
+        return series.name;
+      }),
+    ).toContain("user");
   });
 
   test("a whole-window summary of a split metric is one value per state, and no chart", async () => {

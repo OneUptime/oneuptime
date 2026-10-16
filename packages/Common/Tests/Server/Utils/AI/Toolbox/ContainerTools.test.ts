@@ -564,15 +564,128 @@ describe("how it reads", () => {
     ).toEqual([
       {
         container: "api",
-        image: "api",
-        status: "reporting",
+        status: "Reporting",
         cpuAvg: 3,
         cpuPeak: 3,
         memoryPeak: 12,
         restarts: 0,
         lastSeen: END.toISOString(),
+        image: "api",
       },
     ]);
+  });
+});
+
+/*
+ * The table a person reads in Ask AI and in an investigation's evidence:
+ * a narrow chat column shows its first columns and scrolls for the rest,
+ * so what a responder looks for first comes first, in the product's words.
+ */
+describe("the table people read", () => {
+  async function table(): Promise<{
+    columns: Array<{ key: string; title: string; type?: string }>;
+    rows: Array<JSONObject>;
+  }> {
+    answerFrom([
+      {
+        name: "stopped",
+        image: "acme/worker:1",
+        from: 0,
+        to: 20,
+        cpu: 0.41837,
+        memory: 8.73311,
+        restarts: [1, 3],
+      },
+      {
+        name: "busy",
+        image: "acme/checkout-api:2026.10.16-1",
+        from: 0,
+        to: 45,
+        cpu: 187.41237,
+        memory: 61.30982,
+        restarts: [0, 0],
+      },
+      {
+        name: "new",
+        image: "nginx:1.27-alpine",
+        from: 30,
+        to: 45,
+        cpu: 1.25,
+        memory: 3.1,
+        restarts: [0, 0],
+      },
+    ]);
+
+    const result: ToolExecutionResult = await QueryContainersTool.execute(
+      args(),
+      rootRun(),
+    );
+
+    return result.widget?.data as unknown as {
+      columns: Array<{ key: string; title: string; type?: string }>;
+      rows: Array<JSONObject>;
+    };
+  }
+
+  test("which container, whether it still reports and how busy it was come first; the image closes the row", async () => {
+    expect(
+      (await table()).columns.map(
+        (column: { key: string; title: string; type?: string }) => {
+          return column.title;
+        },
+      ),
+    ).toEqual([
+      "Container",
+      "Status",
+      "CPU avg %",
+      "CPU peak %",
+      "Memory peak %",
+      "Restarts",
+      "Last seen",
+      "Image",
+    ]);
+  });
+
+  test("a status reads as a label, while the model keeps its own words", async () => {
+    const rows: Array<JSONObject> = (await table()).rows;
+
+    expect(
+      rows.map((row: JSONObject) => {
+        return [row["container"], row["status"]];
+      }),
+    ).toEqual([
+      ["stopped", "Stopped reporting"],
+      ["busy", "Reporting"],
+      ["new", "Started in this window"],
+    ]);
+
+    answerFrom([
+      { name: "stopped", image: "a", from: 0, to: 20, cpu: 1 },
+      { name: "busy", image: "b", from: 0, to: 45, cpu: 2 },
+    ]);
+
+    const result: ToolExecutionResult = await QueryContainersTool.execute(
+      args(),
+      rootRun(),
+    );
+
+    expect(result.dataForLlm).toContain("status=stopped reporting");
+  });
+
+  test("percentages are shown to one decimal", async () => {
+    const busy: JSONObject | undefined = (await table()).rows.find(
+      (row: JSONObject): boolean => {
+        return row["container"] === "busy";
+      },
+    );
+
+    expect(busy).toEqual(
+      expect.objectContaining({
+        cpuAvg: 187.4,
+        cpuPeak: 187.4,
+        memoryPeak: 61.3,
+      }),
+    );
   });
 });
 

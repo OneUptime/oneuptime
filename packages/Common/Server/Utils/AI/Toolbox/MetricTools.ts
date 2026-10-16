@@ -101,7 +101,12 @@ async function readGroupedQueryMetrics(data: {
   ];
 
   const window: string = `${data.startTime.toISOString()} – ${data.endTime.toISOString()}`;
-  const label: string = `${data.aggregationType}(${data.metricName}) by ${data.groupBy.join(", ")}`;
+  // The keys the series differ in: "state", not "state, cpu.mode".
+  const by: string = GroupedMetricSeries.getShownGroupBy(
+    read.series,
+    data.groupBy,
+  ).join(", ");
+  const label: string = `${data.aggregationType}(${data.metricName}) by ${by}`;
 
   return {
     dataForLlm: `${serialized.text}\n${notes.join("\n")}`,
@@ -115,9 +120,13 @@ async function readGroupedQueryMetrics(data: {
     widget:
       read.series.length > 0
         ? WidgetBuilder.timeSeries({
-            title: label,
+            // As the ungrouped chart is titled: "Avg of <metric>".
+            title: `${data.aggregationType} of ${data.metricName} by ${by}`,
             description: window,
-            series: GroupedMetricSeries.toWidgetSeries(read.series),
+            series: GroupedMetricSeries.toWidgetSeries(
+              read.series,
+              data.groupBy,
+            ),
             valueLabel: data.aggregationType,
             link: { type: AIChatCitationTargetType.Metrics },
           })
