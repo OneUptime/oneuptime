@@ -16,9 +16,10 @@ You do not have to create services. Every batch of telemetry names the service t
 ```mermaid title="Where a batch of telemetry goes"
 flowchart TB
     batch["Telemetry with a<br/>service.name"] --> find{"A service with<br/>that name?"}
-    find -->|"Yes"| update["Last Seen and<br/>details updated"]
+    find -->|"Yes"| known["Filed under<br/>that service"]
     find -->|"No"| create["Service created,<br/>named after it"]
     create --> rules["Label and owner<br/>rules run"]
+    known --> update["Last Seen and<br/>details updated"]
     rules --> update
 ```
 

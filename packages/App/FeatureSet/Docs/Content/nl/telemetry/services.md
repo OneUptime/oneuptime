@@ -16,9 +16,10 @@ U hoeft geen services aan te maken. Elke batch telemetrie noemt de service die h
 ```mermaid title="Waar een batch telemetrie naartoe gaat"
 flowchart TB
     batch["Telemetrie met<br/>een service.name"] --> find{"Een service met<br/>die naam?"}
-    find -->|"Ja"| update["Laatst gezien en<br/>details bijgewerkt"]
+    find -->|"Ja"| known["Bij die service<br/>ingedeeld"]
     find -->|"Nee"| create["Service aangemaakt,<br/>met die naam"]
     create --> rules["Label- en eigenaars-<br/>regels lopen"]
+    known --> update["Laatst gezien en<br/>details bijgewerkt"]
     rules --> update
 ```
 

@@ -16,9 +16,10 @@
 ```mermaid title="テレメトリのバッチの行き先"
 flowchart TB
     batch["service.name を<br/>持つテレメトリ"] --> find{"その名前の<br/>サービスがある？"}
-    find -->|"はい"| update["最終確認と<br/>詳細を更新"]
+    find -->|"はい"| known["そのサービスに<br/>振り分け"]
     find -->|"いいえ"| create["その名前で<br/>サービスを作成"]
     create --> rules["ラベルルールと<br/>所有者ルールを実行"]
+    known --> update["最終確認と<br/>詳細を更新"]
     rules --> update
 ```
 

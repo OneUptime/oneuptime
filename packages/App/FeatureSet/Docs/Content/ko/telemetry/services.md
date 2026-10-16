@@ -16,9 +16,10 @@
 ```mermaid title="텔레메트리 배치가 가는 곳"
 flowchart TB
     batch["service.name이<br/>있는 텔레메트리"] --> find{"같은 이름의<br/>서비스가 있나요?"}
-    find -->|"예"| update["마지막 확인과<br/>세부 정보 갱신"]
+    find -->|"예"| known["그 서비스 아래에<br/>기록"]
     find -->|"아니요"| create["그 이름으로<br/>서비스 생성"]
     create --> rules["레이블 및 소유자<br/>규칙 실행"]
+    known --> update["마지막 확인과<br/>세부 정보 갱신"]
     rules --> update
 ```
 

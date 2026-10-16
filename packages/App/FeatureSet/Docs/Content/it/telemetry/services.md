@@ -16,9 +16,10 @@ Non dovete creare i servizi. Ogni lotto di telemetria indica il servizio che l'h
 ```mermaid title="Dove finisce un lotto di telemetria"
 flowchart TB
     batch["Telemetria con<br/>un service.name"] --> find{"Un servizio con<br/>quel nome?"}
-    find -->|"Sì"| update["Visto l'ultima volta e<br/>dettagli aggiornati"]
+    find -->|"Sì"| known["Archiviato sotto<br/>quel servizio"]
     find -->|"No"| create["Servizio creato,<br/>con quel nome"]
     create --> rules["Si applicano le regole<br/>etichette e proprietari"]
+    known --> update["Visto l'ultima volta e<br/>dettagli aggiornati"]
     rules --> update
 ```
 

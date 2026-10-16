@@ -16,9 +16,10 @@
 ```mermaid title="一批遥测的去向"
 flowchart TB
     batch["带有 service.name<br/>的遥测"] --> find{"有同名的<br/>服务吗？"}
-    find -->|"有"| update["更新最后一次出现<br/>和详情"]
+    find -->|"有"| known["归入该服务"]
     find -->|"没有"| create["以该名称<br/>创建服务"]
     create --> rules["运行标签和<br/>所有者规则"]
+    known --> update["更新最后一次出现<br/>和详情"]
     rules --> update
 ```
 

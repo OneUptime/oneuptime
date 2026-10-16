@@ -16,9 +16,10 @@ Du trenger ikke å opprette tjenester. Hver batch med telemetri navngir tjeneste
 ```mermaid title="Hvor en batch med telemetri havner"
 flowchart TB
     batch["Telemetri med<br/>et service.name"] --> find{"En tjeneste med<br/>det navnet?"}
-    find -->|"Ja"| update["Sist sett og<br/>detaljer oppdatert"]
+    find -->|"Ja"| known["Lagt under<br/>den tjenesten"]
     find -->|"Nei"| create["Tjeneste opprettet,<br/>med det navnet"]
     create --> rules["Etikett- og eier-<br/>regler kjører"]
+    known --> update["Sist sett og<br/>detaljer oppdatert"]
     rules --> update
 ```
 

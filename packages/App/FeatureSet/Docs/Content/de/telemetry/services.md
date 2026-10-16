@@ -16,9 +16,10 @@ Sie müssen keine Dienste anlegen. Jeder Telemetrie-Batch nennt den Dienst, der 
 ```mermaid title="Wohin ein Telemetrie-Batch geht"
 flowchart TB
     batch["Telemetrie mit<br/>service.name"] --> find{"Ein Dienst mit<br/>diesem Namen?"}
-    find -->|"Ja"| update["Zuletzt gesehen und<br/>Details aktualisiert"]
+    find -->|"Ja"| known["Dem Dienst<br/>zugeordnet"]
     find -->|"Nein"| create["Dienst angelegt,<br/>nach ihm benannt"]
     create --> rules["Beschriftungs- und<br/>Eigentümerregeln laufen"]
+    known --> update["Zuletzt gesehen und<br/>Details aktualisiert"]
     rules --> update
 ```
 

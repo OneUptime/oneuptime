@@ -16,9 +16,10 @@ Vous n'avez pas à créer de services. Chaque lot de télémétrie nomme le serv
 ```mermaid title="Où va un lot de télémétrie"
 flowchart TB
     batch["Télémétrie avec<br/>un service.name"] --> find{"Un service de<br/>ce nom ?"}
-    find -->|"Oui"| update["Dernière fois vu et<br/>détails mis à jour"]
+    find -->|"Oui"| known["Rangé sous<br/>ce service"]
     find -->|"Non"| create["Service créé,<br/>à son nom"]
     create --> rules["Règles d'étiquettes et<br/>de propriétaires lancées"]
+    known --> update["Dernière fois vu et<br/>détails mis à jour"]
     rules --> update
 ```
 
