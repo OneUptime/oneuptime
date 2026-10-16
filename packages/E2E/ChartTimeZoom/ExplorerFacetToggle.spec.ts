@@ -5,6 +5,7 @@ import {
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
+import { formatFacetCount } from "Common/UI/Components/TelemetryViewer/FacetCount";
 
 /*
  * "I'm not able to uncheck when I click on this. Please check if we have the
@@ -190,6 +191,71 @@ async function serviceId(page: Page, name: string): Promise<string> {
 async function expectNoExcludeButtons(page: Page): Promise<void> {
   await expect(page.getByRole("button", { name: /^Exclude / })).toHaveCount(0);
 }
+
+// One facet value row as it lays out on the page.
+interface RowGeometry {
+  value: string;
+  rowWidth: number;
+  checkboxWidth: number;
+  barLeft: number;
+  countRight: number;
+  // What the count column shows: "17K", or a count under a thousand.
+  shownCount: string;
+  // The full count on hover, for a shortened one.
+  fullCount: string | null;
+}
+
+// Every value row of the sidebar that has a count, measured in the browser.
+async function rowGeometry(page: Page): Promise<Array<RowGeometry>> {
+  return page
+    .getByTestId("facet-value-row")
+    .evaluateAll((rows: Array<Element>): Array<RowGeometry> => {
+      const measured: Array<RowGeometry> = [];
+
+      for (const row of rows) {
+        const checkbox: Element | null = row.querySelector("[role=checkbox]");
+        const count: Element | null = row.querySelector(
+          "[data-testid='facet-value-count']",
+        );
+        const bar: Element | null = count
+          ? count.previousElementSibling
+          : null;
+
+        if (!checkbox || !count || !bar) {
+          continue;
+        }
+
+        const shown: Element = count.querySelector("[aria-hidden]") || count;
+
+        measured.push({
+          value: row.getAttribute("data-value") || "",
+          rowWidth: Math.round(row.getBoundingClientRect().width),
+          checkboxWidth: Math.round(checkbox.getBoundingClientRect().width),
+          barLeft: Math.round(bar.getBoundingClientRect().left),
+          countRight: Math.round(count.getBoundingClientRect().right),
+          shownCount: (shown.textContent || "").trim(),
+          fullCount: count.getAttribute("title"),
+        });
+      }
+
+      return measured;
+    });
+}
+
+function distinct(values: Array<number>): Array<number> {
+  return Array.from(new Set<number>(values));
+}
+
+// "17,231": a count grouped the way en-US writes it.
+const GROUPED_COUNT: RegExp = /^[0-9]{1,3}(,[0-9]{3})+$/;
+
+// A shortened count: "17K", "8.6K", "2.4M".
+const SHORTENED_COUNT: RegExp = /^[0-9]+(\.[0-9])?[KMBT]$/;
+
+const DIGIT_GROUP_SEPARATOR: string = ",";
+
+// A count under a thousand, written out.
+const SMALL_COUNT: RegExp = /^[0-9]{1,3}$/;
 
 test.describe("Traces explorer: a facet value clicks on and off", () => {
   test("Status: Error checks, then unchecks, and the chart and counts follow", async ({
@@ -434,6 +500,129 @@ test.describe("Exceptions explorer: a facet value clicks on and off", () => {
       .toBeUndefined();
 
     await expectNoExcludeButtons(page);
+  });
+});
+
+/*
+ * The report's screenshot showed a checked service cut to "one..." in the
+ * 224px sidebar: its count was written out in full ("2,417,585") and the
+ * exclude button kept a column of its own. A count is now shortened the way
+ * the chart labels its axis, in one column of one width, so every bar and
+ * count of the sidebar lines up and the name keeps the rest of the row.
+ */
+test.describe("Facet rows: the name keeps the row's width", () => {
+  test("REGRESSION: counts are shortened in one column, so the bars and counts line up and no count takes the name's room", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // A day of spans: every service counts in the thousands.
+    await open(page, `${TRACES_PATH}?range=${encodeURIComponent("Past 1 Day")}`);
+
+    const services: Locator = facetSection(page, "Service");
+    await expect(valueRow(services, "checkout-api")).toBeVisible({
+      timeout: 30000,
+    });
+    // The day's counts are in: some row counts more than nothing.
+    await expect
+      .poll(async () => {
+        return (await rowGeometry(page)).some((row: RowGeometry): boolean => {
+          return row.shownCount !== "" && row.shownCount !== "0";
+        });
+      })
+      .toBe(true);
+
+    const rows: Array<RowGeometry> = await rowGeometry(page);
+    expect(rows.length).toBeGreaterThan(8);
+
+    // One column: every count ends, and every bar starts, at the same x.
+    expect(
+      distinct(
+        rows.map((row: RowGeometry): number => {
+          return row.countRight;
+        }),
+      ),
+    ).toHaveLength(1);
+    expect(
+      distinct(
+        rows.map((row: RowGeometry): number => {
+          return row.barLeft;
+        }),
+      ),
+    ).toHaveLength(1);
+
+    // So every name gets the same width, whatever its count holds...
+    expect(
+      distinct(
+        rows.map((row: RowGeometry): number => {
+          return row.checkboxWidth;
+        }),
+      ),
+    ).toHaveLength(1);
+    /*
+     * ...and most of the row: 132 of a row's 214px in the 224px sidebar.
+     * A count written out in full, or a column kept for an exclude button,
+     * left the name 104px or less.
+     */
+    for (const row of rows) {
+      expect(row.checkboxWidth / row.rowWidth).toBeGreaterThan(0.6);
+    }
+
+    // A day of spans counts in the thousands, so some counts are shortened.
+    expect(
+      rows.some((row: RowGeometry): boolean => {
+        return SHORTENED_COUNT.test(row.shownCount);
+      }),
+    ).toBe(true);
+
+    for (const row of rows) {
+      expect(row.shownCount.length).toBeLessThanOrEqual(4);
+
+      if (row.fullCount === null) {
+        // Under a thousand: written out, nothing more on hover.
+        expect(row.shownCount).toMatch(SMALL_COUNT);
+        continue;
+      }
+
+      // Shortened, with the full count on hover, and the two agree.
+      expect(row.shownCount).toMatch(SHORTENED_COUNT);
+      expect(row.fullCount).toMatch(GROUPED_COUNT);
+      expect(
+        formatFacetCount(
+          Number(row.fullCount.split(DIGIT_GROUP_SEPARATOR).join("")),
+        ),
+      ).toBe(row.shownCount);
+    }
+  });
+
+  test("a checked value keeps the row's width, and its count stays in the column", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${TRACES_PATH}?range=${encodeURIComponent("Past 1 Day")}`);
+
+    const checkout: Locator = valueRow(facetSection(page, "Service"), "checkout-api");
+    await expect(checkout).toHaveAttribute("aria-checked", "false", {
+      timeout: 30000,
+    });
+    const before: Array<RowGeometry> = await rowGeometry(page);
+
+    await checkout.click();
+    await expect(checkout).toHaveAttribute("aria-checked", "true");
+
+    const after: Array<RowGeometry> = await rowGeometry(page);
+    const checkedId: string = await serviceId(page, "checkout-api");
+    const checkedRow: RowGeometry | undefined = after.find(
+      (row: RowGeometry): boolean => {
+        return row.value === checkedId;
+      },
+    );
+
+    expect(checkedRow).toBeDefined();
+    expect(checkedRow!.checkboxWidth).toBe(before[0]!.checkboxWidth);
+    expect(checkedRow!.countRight).toBe(before[0]!.countRight);
+    expect(checkedRow!.barLeft).toBe(before[0]!.barLeft);
   });
 });
 

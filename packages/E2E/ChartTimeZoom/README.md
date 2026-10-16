@@ -485,7 +485,7 @@ Screenshots: `value-suggestions-logs`, `value-suggestions-loading`,
 
 ## Explorers: a facet value clicks on and off
 
-`ExplorerFacetToggle.spec.ts` (8 tests, same fixture and command) pins the report
+`ExplorerFacetToggle.spec.ts` (10 tests, same fixture and command) pins the report
 "I'm not able to uncheck when I click on this": a checked value in the filter sidebar
 of the Traces, Metrics and Exceptions explorers stayed checked when clicked, and the
 Traces "Root spans" value could not be cleared from its row at all. Each value row is a
@@ -505,7 +505,15 @@ and the explorer's reads follow:
 - none of the four offers an exclude button, on hover or otherwise: their charts and
   counts cannot leave a value out (the button did nothing before). Security Events,
   which can, keeps it; that explorer is pinned in
-  `Common/Tests/App/Dashboard/SecurityEventsViewer.test.tsx`.
+  `Common/Tests/App/Dashboard/SecurityEventsViewer.test.tsx`;
+- a value's name keeps the row's width (the report's screenshot showed a checked service
+  cut to "one..." beside "2,417,585"): over `?range=Past 1 Day` every service counts in
+  the thousands, and each count is shortened the way the chart labels its axis ("17K",
+  "8.6K"), never more than four characters, with the full count in its `title`
+  ("17,231"). Every count of the sidebar ends, and every bar starts, at the same x, so
+  every name gets the same width, more than 60% of the row (132 of 214px); checking a
+  value keeps its row's geometry. Run against a row that writes counts out in full,
+  the bars of one section start 4px apart and the test fails.
 
 ## Run it
 
