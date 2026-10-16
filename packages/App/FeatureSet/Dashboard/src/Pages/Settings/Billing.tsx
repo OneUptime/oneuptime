@@ -77,6 +77,9 @@ import {
   getSetDefaultPaymentMethodGate,
 } from "../../Components/Billing/BillingActionGates";
 import Reseller from "Common/Models/DatabaseModels/Reseller";
+import CloudMarketplace, {
+  CloudMarketplaceUtil,
+} from "Common/Types/Marketplace/CloudMarketplace";
 import ResellerPlan from "Common/Models/DatabaseModels/ResellerPlan";
 import React, {
   Fragment,
@@ -117,6 +120,14 @@ const Settings: FunctionComponent<ComponentProps> = (
   const [reseller, setReseller] = useState<Reseller | null>(null);
 
   const [resellerPlan, setResellerPlan] = useState<ResellerPlan | null>(null);
+
+  /*
+   * The cloud marketplace that bills this project, when one does (AWS,
+   * Microsoft or Google Cloud Marketplace). Its plan is still chosen here,
+   * without a card; everything about payment happens on the marketplace.
+   */
+  const [billingMarketplace, setBillingMarketplace] =
+    useState<CloudMarketplace | null>(null);
 
   const [balance, setBalance] = useState<number>(0);
 
@@ -404,6 +415,7 @@ const Settings: FunctionComponent<ComponentProps> = (
         select: {
           paymentProviderPlanId: true,
           trialEndsAt: true,
+          billingMarketplace: true,
           reseller: {
             name: true,
             description: true,
@@ -427,6 +439,15 @@ const Settings: FunctionComponent<ComponentProps> = (
       }
 
       setTrialEndsAt(project?.trialEndsAt || null);
+
+      if (
+        project?.billingMarketplace &&
+        CloudMarketplaceUtil.isCloudMarketplace(project.billingMarketplace)
+      ) {
+        setBillingMarketplace(project.billingMarketplace);
+        // A marketplace bills month to month; a yearly price is a private offer there.
+        setIsSubscriptionPlanYearly(false);
+      }
 
       if (project?.reseller) {
         setReseller(project.reseller);
@@ -651,14 +672,18 @@ const Settings: FunctionComponent<ComponentProps> = (
 
     return (
       <>
-        <Toggle
-          title="Yearly Plan"
-          value={isSubscriptionPlanYearly}
-          description="(Save 20%)"
-          onChange={(value: boolean) => {
-            setIsSubscriptionPlanYearly(value);
-          }}
-        />
+        {billingMarketplace ? (
+          <></>
+        ) : (
+          <Toggle
+            title="Yearly Plan"
+            value={isSubscriptionPlanYearly}
+            description="(Save 20%)"
+            onChange={(value: boolean) => {
+              setIsSubscriptionPlanYearly(value);
+            }}
+          />
+        )}
         <ChangePlanBillingNote trialEndsAt={trialEndsAt} />
       </>
     );
@@ -674,6 +699,48 @@ const Settings: FunctionComponent<ComponentProps> = (
         <div>
           <PlanCutoffNote counts={planCutoffCounts} plan={currentPlanType} />
 
+          {billingMarketplace && (
+            <Card
+              title={translator.translateTemplate(
+                "Billed through {{marketplace}}",
+                {
+                  marketplace:
+                    CloudMarketplaceUtil.getDisplayName(billingMarketplace),
+                },
+              )}
+              description={translator.translateTemplate(
+                "This project's plan and usage are billed on your {{marketplace}} bill, at the prices on oneuptime.com/pricing. You can change the plan here; the purchase itself is managed on {{marketplace}}.",
+                {
+                  marketplace:
+                    CloudMarketplaceUtil.getDisplayName(billingMarketplace),
+                },
+              )}
+              buttons={[
+                {
+                  title: translator.translateTemplate(
+                    "Manage on {{marketplace}}",
+                    {
+                      marketplace:
+                        CloudMarketplaceUtil.getDisplayName(billingMarketplace),
+                    },
+                  ),
+                  buttonStyle: ButtonStyleType.NORMAL,
+                  onClick: () => {
+                    Navigation.navigate(
+                      URL.fromString(
+                        CloudMarketplaceUtil.getManageSubscriptionUrl(
+                          billingMarketplace,
+                        ),
+                      ),
+                      { openInNewTab: true },
+                    );
+                  },
+                  icon: IconProp.ExternalLink,
+                },
+              ]}
+            />
+          )}
+
           {!reseller && (
             <CardModelDetail<Project>
               name="Plan Details"
@@ -682,10 +749,12 @@ const Settings: FunctionComponent<ComponentProps> = (
                 description:
                   "Your subscription plan controls included features. Pay as you go usage is billed separately.",
               }}
-              isEditable={paymentMethodsCount !== null}
+              isEditable={
+                  paymentMethodsCount !== null || Boolean(billingMarketplace)
+                }
               editButtonText={"Change Plan"}
               onBeforeEdit={() => {
-                if (paymentMethodsCount === 0) {
+                if (!billingMarketplace && paymentMethodsCount === 0) {
                   setShowNoPaymentMethodModal(true);
                   return false;
                 }
@@ -1009,6 +1078,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             </Card>
           )}
 
+          {!billingMarketplace && (
           <ModelTable<BillingPaymentMethod>
             modelType={BillingPaymentMethod}
             id="payment-methods-table"
@@ -1169,6 +1239,7 @@ const Settings: FunctionComponent<ComponentProps> = (
               },
             ]}
           />
+          )}
 
           {showNoPaymentMethodModal ? (
             <ConfirmModal
@@ -1420,7 +1491,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             }}
           />
 
-          {balance < 0 && (
+          {balance < 0 && !billingMarketplace && (
             <Card
               title="Customer Balance"
               description={translator.translateTemplate(
@@ -1430,7 +1501,20 @@ const Settings: FunctionComponent<ComponentProps> = (
             />
           )}
 
-          {!reseller && (
+          {billingMarketplace && (
+            <Card
+              title={`Cancel Plan`}
+              description={translator.translateTemplate(
+                "To cancel, cancel your OneUptime purchase on {{marketplace}}. The project stops being billed when the purchase ends.",
+                {
+                  marketplace:
+                    CloudMarketplaceUtil.getDisplayName(billingMarketplace),
+                },
+              )}
+            />
+          )}
+
+          {!reseller && !billingMarketplace && (
             <Card
               title={`Cancel Plan`}
               description={`If you would like to cancel the plan, you need to delete the project.`}

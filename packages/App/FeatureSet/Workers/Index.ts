@@ -71,6 +71,10 @@ import "./Jobs/IncomingRequestMonitor/CheckHeartbeat";
 import "./Jobs/IncomingEmailMonitor/CheckOnlineStatus";
 import "./Jobs/MeteredPlan/ReportTelemetryMeteredPlan";
 
+// Cloud marketplaces (AWS, Microsoft, Google Cloud): hourly usage, daily status sync.
+import "./Jobs/Marketplace/ReportMarketplaceUsage";
+import "./Jobs/Marketplace/SyncMarketplacePurchases";
+
 // Monitor Owners
 import "./Jobs/MonitorOwners/SendCreatedResourceNotification";
 import "./Jobs/MonitorOwners/SendOwnerAddedNotification";

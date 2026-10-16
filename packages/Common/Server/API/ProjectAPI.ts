@@ -567,6 +567,8 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
             trialEndsAt: true,
             paymentProviderPlanId: true,
             resellerId: true,
+            // A marketplace-billed project has no card to ask for (Header).
+            billingMarketplace: true,
             isFeatureFlagMonitorGroupsEnabled: true,
             paymentProviderMeteredSubscriptionStatus: true,
             paymentProviderSubscriptionStatus: true,
