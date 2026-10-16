@@ -13,9 +13,10 @@ import { FindOperator } from "typeorm";
  * It answers the repository calls that pipeline makes (find, count, save,
  * update, delete) and understands the where clauses it builds: plain values,
  * TypeORM's In / Equal / Not / IsNull / And operators, and the Raw SQL that
- * QueryHelper and the permission layer write (equality, IN, NOT IN ... OR IS
- * NULL, IS NULL, IS NOT NULL, comparisons, TRUE = TRUE / FALSE). A condition
- * it does not understand fails the test loudly instead of matching quietly.
+ * QueryHelper and the permission layer write (equality, IN, NOT IN, NOT IN
+ * ... OR IS NULL, IS NULL, IS NOT NULL, comparisons, TRUE = TRUE / FALSE).
+ * A condition it does not understand fails the test loudly instead of
+ * matching quietly.
  *
  * Rows are plain objects; every value is compared as text, ids case
  * insensitively.
@@ -138,6 +139,12 @@ function matchesRaw(stored: unknown, operator: FindOperator<unknown>): boolean {
   match = sql.match(/^\(c NOT IN \(:\.\.\.(\w+)\) or c IS NULL\)$/i);
   if (match) {
     return storedText === null || !listOf(match[1]!).includes(storedText);
+  }
+
+  // SQL's NOT IN never matches an empty value (QueryHelper.notIn).
+  match = sql.match(/^\(c NOT IN \(:\.\.\.(\w+)\)\)$/);
+  if (match) {
+    return storedText !== null && !listOf(match[1]!).includes(storedText);
   }
 
   match = sql.match(/^\(?c (>=|<=|>|<) :(\w+)\)?$/);
