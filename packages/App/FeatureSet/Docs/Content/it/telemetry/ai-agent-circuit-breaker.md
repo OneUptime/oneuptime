@@ -125,7 +125,7 @@ Apri **Prodotti → Flussi di lavoro** e fai clic su **Crea flusso di lavoro**. 
 
 ### Aggiungi il trigger
 
-Fai clic sul blocco tratteggiato **Choose what starts this workflow** e scegli **On Create Alert** nel pannello **Add Trigger**. Fai clic sul trigger: **Fields to pass on** parte con il titolo, quindi fai clic su **Aggiungi campo**, spunta la descrizione e fai clic su **Salva**. L'ID sul blocco, `alert-on-create-1`, è il modo in cui i blocchi successivi vi fanno riferimento.
+Fai clic sul blocco tratteggiato **Choose what starts this workflow** e scegli **On Create Alert** nel pannello **Aggiungi trigger**. Fai clic sul trigger: **Fields to pass on** parte con il titolo, quindi fai clic su **Aggiungi campo**, spunta la descrizione e fai clic su **Salva**. L'ID sul blocco, `alert-on-create-1`, è il modo in cui i blocchi successivi vi fanno riferimento.
 
 ### Controlla il titolo
 

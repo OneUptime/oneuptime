@@ -196,7 +196,7 @@ För att testa en händelseutlösare utan att vänta på händelsen klickar du p
 | **Statussida Prenumerant**                | Välkomna någon som prenumererar på en statussida.                                         |
 | **Jourpolicy**                            | Synkronisera ändringar i policyn med ett annat jourschemasystem.                          |
 
-I panelen **Add Trigger** finns de under **OneUptime resources**: klicka på resursen och sedan på utlösaren. **Browse all resources** har alla, och sökfältet hittar en utlösare utifrån några få ord, som `incident created`.
+I panelen **Lägg till utlösare** finns de under **OneUptime resources**: klicka på resursen och sedan på utlösaren. **Browse all resources** har alla, och sökfältet hittar en utlösare utifrån några få ord, som `incident created`.
 
 ## Nästa steg
 

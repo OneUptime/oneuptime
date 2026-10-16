@@ -196,7 +196,7 @@ Um einen Ereignis-Trigger zu testen, ohne auf das Ereignis zu warten, klicken Si
 | **Statusseite Abonnent**          | Jemanden begrüßen, der eine Statusseite abonniert.                                       |
 | **Bereitschaftsrichtlinie**       | Änderungen an Richtlinien mit einem anderen Dienstplansystem abgleichen.                 |
 
-Im Bereich **Add Trigger** stehen diese unter **OneUptime-Ressourcen**: Klicken Sie auf die Ressource, dann auf den Trigger. **Alle Ressourcen durchsuchen** enthält jede, und das Suchfeld findet einen Trigger mit ein paar Wörtern wie `incident created`.
+Im Bereich **Auslöser hinzufügen** stehen diese unter **OneUptime-Ressourcen**: Klicken Sie auf die Ressource, dann auf den Trigger. **Alle Ressourcen durchsuchen** enthält jede, und das Suchfeld findet einen Trigger mit ein paar Wörtern wie `incident created`.
 
 ## Nächste Schritte
 
