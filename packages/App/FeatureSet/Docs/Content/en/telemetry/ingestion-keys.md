@@ -15,17 +15,13 @@ Every request carries the key's secret, usually in an `x-oneuptime-token` header
 
 ```mermaid title="What OneUptime checks before it accepts telemetry"
 flowchart TB
-    request["A request with<br/>x-oneuptime-token"] --> known{"A known key?"}
-    known -->|"No"| unknown["Refused: 401"]
-    known -->|"Yes"| usable{"Enabled and<br/>not expired?"}
-    usable -->|"No"| stopped["Refused"]
-    usable -->|"Yes"| browser{"A Browser key?"}
-    browser -->|"Yes"| origin{"From an allowed<br/>origin?"}
-    origin -->|"No"| refused["Refused: 422"]
+    request["A request with<br/>x-oneuptime-token"] --> known{"Known, enabled,<br/>not expired?"}
+    known -->|"Yes"| origin{"Allowed origin, for<br/>a Browser key?"}
     origin -->|"Yes"| limit{"Under its limit?"}
-    browser -->|"No"| limit
-    limit -->|"No"| busy["Refused: 429"]
     limit -->|"Yes"| accepted["Accepted into the<br/>key's project"]
+    known -->|"No"| refused["Refused, with a<br/>status that says why"]
+    origin -->|"No"| refused
+    limit -->|"No"| refused
 ```
 
 - **The key decides the project.** You never send a project ID: data sent with a key lands in the project the key belongs to.

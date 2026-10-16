@@ -155,10 +155,15 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
   ],
 };
 
-// Every diagram on these pages reads top to bottom, to fit the docs column.
+/*
+ * The kind of diagram each page draws. The decision flows read top to
+ * bottom, to fit the docs column; Topology's three short chains (where each
+ * view's data comes from, and the view) read left to right, one under the
+ * other.
+ */
 export const DIAGRAM_KINDS: Readonly<Record<string, string>> = {
   [INGESTION_KEYS]: "flowchart TB",
-  [TOPOLOGY]: "flowchart TB",
+  [TOPOLOGY]: "flowchart LR",
   [DROP_FILTERS_AND_SCRUB_RULES]: "flowchart TB",
   [DATA_RETENTION]: "flowchart TB",
 };

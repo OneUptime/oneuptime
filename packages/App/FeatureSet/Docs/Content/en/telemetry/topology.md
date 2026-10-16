@@ -14,12 +14,10 @@ Topology draws how your systems connect: which services call which, what runs wh
 Each view of Topology is built from a different kind of telemetry:
 
 ```mermaid title="Where each view of Topology comes from"
-flowchart TB
-    traces["Traces from<br/>your services"] --> calls["Calls between services,<br/>found every 10 minutes"]
-    ebpf["eBPF from the<br/>Kubernetes agent"] --> calls
-    calls --> serviceMap["Service Map"]
+flowchart LR
+    traces["Traces and eBPF,<br/>read every 10 minutes"] --> serviceMap["Service Map"]
     resources["Hosts, clusters and<br/>containers reporting"] --> infrastructure["Infrastructure"]
-    neighbours["Neighbours that devices<br/>report over LLDP"] --> network["Network"]
+    neighbours["Neighbours your devices<br/>report over LLDP"] --> network["Network"]
 ```
 
 - **Only what was active is drawn.** A view shows the services and resources that reported in the time range, and the connections seen in it. Turn on **Show inactive** to draw the silent ones too.

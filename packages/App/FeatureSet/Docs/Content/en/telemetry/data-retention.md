@@ -15,14 +15,13 @@ Each log, span, metric point and profile sample gets its retention as it arrives
 
 ```mermaid title="Which setting decides how long a record is kept"
 flowchart TB
-    arrive["A log, span or<br/>metric point arrives"] --> resource{"Does its service<br/>or resource set<br/>a retention?"}
-    resource -->|"Yes"| ownDays["Kept for the service's<br/>or resource's days"]
-    resource -->|"No"| byType{"Does the project<br/>set one for<br/>this type?"}
-    byType -->|"Yes"| typeDays["Kept for that<br/>type's days"]
-    byType -->|"No"| projectDays["Kept for the project's<br/>default: 15 days<br/>unless changed"]
-    ownDays --> deleted["Deleted after<br/>those days"]
-    typeDays --> deleted
-    projectDays --> deleted
+    arrive["A log, span or<br/>metric point arrives"] --> resource{"Set on its service<br/>or resource?"}
+    resource -->|"No"| byType{"Set on the project<br/>for this type?"}
+    byType -->|"No"| projectDefault["The project's default:<br/>15 days unless changed"]
+    resource -->|"Yes"| stamped["Stamped with an expiry:<br/>arrival plus the days"]
+    byType -->|"Yes"| stamped
+    projectDefault --> stamped
+    stamped --> deleted["Deleted after<br/>that date"]
 ```
 
 In full, OneUptime reads these settings in this order, and the first one set decides:
