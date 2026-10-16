@@ -3,6 +3,7 @@ import WorkspaceProjectAuthToken, {
 } from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import ObjectID from "../../../../../Types/ObjectID";
+import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import WorkspaceUserAuthTokenService from "../../../../Services/WorkspaceUserAuthTokenService";
 import { ExpressRequest } from "../../../Express";
 import SlackUtil from "../Slack";
@@ -335,10 +336,15 @@ export default class SlackAuthAction {
       };
     }
 
+    /*
+     * The member who signed in to Slack as this account in the project - a
+     * Slack link, never another chat's (WorkspaceUserAuthToken).
+     */
     const userAuth: WorkspaceUserAuthToken | null =
       await WorkspaceUserAuthTokenService.findOneBy({
         query: {
           workspaceUserId: slackUserId,
+          workspaceType: WorkspaceType.Slack,
           projectId: projectId,
         },
         select: {
