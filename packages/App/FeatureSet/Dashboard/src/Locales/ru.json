@@ -29804,5 +29804,12 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "Каждое подходящее письмо открывает свой инцидент, даже пока прежние ещё открыты. Ответы добавляются к этому инциденту как заметки, пока он не будет устранён.",
   "alerts for every email": "оповещения для каждого письма",
   "incidents for every email": "инциденты для каждого письма",
-  "alerts and incidents for every email": "оповещения и инциденты для каждого письма"
+  "alerts and incidents for every email": "оповещения и инциденты для каждого письма",
+  "Already installed the app on GitHub? {{connectExisting}}": "Приложение уже установлено на GitHub? {{connectExisting}}",
+  "Choose the GitHub account to connect": "Выберите учётную запись GitHub для подключения",
+  "Connect an existing installation": "Подключить существующую установку",
+  "Install on another account": "Установить в другую учётную запись",
+  "Personal account": "Личная учётная запись",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "Ваша учётная запись GitHub пока не управляет ни одной установкой приложения. Установите его с помощью «Connect with GitHub App».",
+  "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "Ваша учётная запись GitHub управляет приложением в нескольких учётных записях. Выберите ту, репозитории которой должен использовать этот проект."
 }

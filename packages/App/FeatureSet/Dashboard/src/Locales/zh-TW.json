@@ -29804,5 +29804,12 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "每封相符的電子郵件都會新建一個獨立的事件，即使先前的仍未關閉。在該事件解決之前，回覆會以備註加入其中。",
   "alerts for every email": "每封電子郵件一個警示",
   "incidents for every email": "每封電子郵件一個事件",
-  "alerts and incidents for every email": "每封電子郵件一個警示和事件"
+  "alerts and incidents for every email": "每封電子郵件一個警示和事件",
+  "Already installed the app on GitHub? {{connectExisting}}": "已在 GitHub 上安裝此應用程式？{{connectExisting}}",
+  "Choose the GitHub account to connect": "選擇要連接的 GitHub 帳號",
+  "Connect an existing installation": "連接現有安裝",
+  "Install on another account": "安裝到其他帳號",
+  "Personal account": "個人帳號",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "您的 GitHub 帳號尚未管理此應用程式的任何安裝。請透過「Connect with GitHub App」安裝。",
+  "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "您的 GitHub 帳號在多個帳號上管理此應用程式。請選擇此專案要使用其存放庫的帳號。"
 }

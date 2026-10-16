@@ -29804,5 +29804,12 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "هر ایمیلی که مطابقت داشته باشد حادثه‌ی جداگانه‌ی خودش را باز می‌کند، حتی اگر موارد قبلی هنوز باز باشند. پاسخ‌ها تا وقتی آن حادثه برطرف نشده به‌عنوان یادداشت به آن اضافه می‌شوند.",
   "alerts for every email": "هشدار برای هر ایمیل",
   "incidents for every email": "حادثه برای هر ایمیل",
-  "alerts and incidents for every email": "هشدار و حادثه برای هر ایمیل"
+  "alerts and incidents for every email": "هشدار و حادثه برای هر ایمیل",
+  "Already installed the app on GitHub? {{connectExisting}}": "برنامه را قبلاً در GitHub نصب کرده‌اید؟ {{connectExisting}}",
+  "Choose the GitHub account to connect": "حساب GitHub مورد نظر برای اتصال را انتخاب کنید",
+  "Connect an existing installation": "اتصال یک نصب موجود",
+  "Install on another account": "نصب در حساب دیگر",
+  "Personal account": "حساب شخصی",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "حساب GitHub شما هنوز هیچ نصبی از برنامه را مدیریت نمی‌کند. لطفاً آن را با «Connect with GitHub App» نصب کنید.",
+  "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "حساب GitHub شما برنامه را در بیش از یک حساب مدیریت می‌کند. حسابی را انتخاب کنید که این پروژه باید از مخزن‌های آن استفاده کند."
 }

@@ -29804,5 +29804,12 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "Chaque e-mail correspondant ouvre son propre incident, même si les précédents sont encore ouverts. Les réponses sont ajoutées à cet incident sous forme de notes jusqu'à sa résolution.",
   "alerts for every email": "alertes pour chaque e-mail",
   "incidents for every email": "incidents pour chaque e-mail",
-  "alerts and incidents for every email": "alertes et incidents pour chaque e-mail"
+  "alerts and incidents for every email": "alertes et incidents pour chaque e-mail",
+  "Already installed the app on GitHub? {{connectExisting}}": "Vous avez déjà installé l'application sur GitHub ? {{connectExisting}}",
+  "Choose the GitHub account to connect": "Choisissez le compte GitHub à connecter",
+  "Connect an existing installation": "Connecter une installation existante",
+  "Install on another account": "Installer sur un autre compte",
+  "Personal account": "Compte personnel",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "Votre compte GitHub ne gère encore aucune installation de l'application. Veuillez l'installer avec « Se connecter avec l'application GitHub ».",
+  "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "Votre compte GitHub gère l'application sur plusieurs comptes. Choisissez celui dont ce projet doit utiliser les dépôts."
 }

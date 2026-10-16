@@ -29804,5 +29804,12 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "Hver e-post som samsvarer, åpner sin egen hendelse, selv mens tidligere fortsatt er åpne. Svar legges til hendelsen som notater til den er løst.",
   "alerts for every email": "varsler for hver e-post",
   "incidents for every email": "hendelser for hver e-post",
-  "alerts and incidents for every email": "varsler og hendelser for hver e-post"
+  "alerts and incidents for every email": "varsler og hendelser for hver e-post",
+  "Already installed the app on GitHub? {{connectExisting}}": "Har du allerede installert appen på GitHub? {{connectExisting}}",
+  "Choose the GitHub account to connect": "Velg GitHub-kontoen som skal kobles til",
+  "Connect an existing installation": "Koble til en eksisterende installasjon",
+  "Install on another account": "Installer på en annen konto",
+  "Personal account": "Personlig konto",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "GitHub-kontoen din administrerer ennå ingen installasjon av appen. Installer den med «Connect with GitHub App».",
+  "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "GitHub-kontoen din administrerer appen på mer enn én konto. Velg den som har repositoriene dette prosjektet skal bruke."
 }

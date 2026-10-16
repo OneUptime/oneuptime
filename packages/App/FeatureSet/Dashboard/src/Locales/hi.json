@@ -29804,5 +29804,12 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "मेल खाने वाला हर ईमेल अपनी अलग घटना खोलता है, भले ही पहले वाली अभी खुली हों। जवाब उस घटना में नोट के रूप में तब तक जुड़ते हैं जब तक वह सुलझ नहीं जाती।",
   "alerts for every email": "हर ईमेल के लिए अलर्ट",
   "incidents for every email": "हर ईमेल के लिए घटनाएं",
-  "alerts and incidents for every email": "हर ईमेल के लिए अलर्ट और घटनाएं"
+  "alerts and incidents for every email": "हर ईमेल के लिए अलर्ट और घटनाएं",
+  "Already installed the app on GitHub? {{connectExisting}}": "क्या आपने GitHub पर ऐप पहले से इंस्टॉल किया है? {{connectExisting}}",
+  "Choose the GitHub account to connect": "कनेक्ट करने के लिए GitHub खाता चुनें",
+  "Connect an existing installation": "मौजूदा इंस्टॉलेशन कनेक्ट करें",
+  "Install on another account": "किसी दूसरे खाते पर इंस्टॉल करें",
+  "Personal account": "व्यक्तिगत खाता",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "आपका GitHub खाता अभी तक ऐप के किसी इंस्टॉलेशन को प्रबंधित नहीं करता है। कृपया इसे “Connect with GitHub App” से इंस्टॉल करें।",
+  "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "आपका GitHub खाता एक से अधिक खातों पर ऐप को प्रबंधित करता है। वह खाता चुनें जिसकी रिपॉज़िटरी इस प्रोजेक्ट को उपयोग करनी चाहिए।"
 }

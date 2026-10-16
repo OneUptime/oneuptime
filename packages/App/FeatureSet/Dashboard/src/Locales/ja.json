@@ -29804,5 +29804,12 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "一致したメールは、以前のものが開いたままでも、それぞれ個別のインシデントを開きます。返信は、そのインシデントが解決されるまでメモとして追加されます。",
   "alerts for every email": "メールごとのアラート",
   "incidents for every email": "メールごとのインシデント",
-  "alerts and incidents for every email": "メールごとのアラートとインシデント"
+  "alerts and incidents for every email": "メールごとのアラートとインシデント",
+  "Already installed the app on GitHub? {{connectExisting}}": "GitHub にアプリをインストール済みですか? {{connectExisting}}",
+  "Choose the GitHub account to connect": "接続する GitHub アカウントを選択",
+  "Connect an existing installation": "既存のインストールを接続",
+  "Install on another account": "別のアカウントにインストール",
+  "Personal account": "個人アカウント",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "お使いの GitHub アカウントは、まだアプリのインストールを管理していません。「GitHub App で接続」からインストールしてください。",
+  "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "お使いの GitHub アカウントは、複数のアカウントでアプリを管理しています。このプロジェクトで使うリポジトリがあるアカウントを選んでください。"
 }

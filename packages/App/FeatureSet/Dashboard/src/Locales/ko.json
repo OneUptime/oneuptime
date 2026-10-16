@@ -29804,5 +29804,12 @@
   "Each email that matches opens its own incident, even while earlier ones are open. Replies are added to that incident as notes until it is resolved.": "일치하는 이메일은 이전 항목이 아직 열려 있어도 각각 자체 인시던트를 엽니다. 답장은 해당 인시던트가 해결될 때까지 노트로 추가됩니다.",
   "alerts for every email": "이메일마다 알림",
   "incidents for every email": "이메일마다 인시던트",
-  "alerts and incidents for every email": "이메일마다 알림과 인시던트"
+  "alerts and incidents for every email": "이메일마다 알림과 인시던트",
+  "Already installed the app on GitHub? {{connectExisting}}": "GitHub에 앱을 이미 설치하셨나요? {{connectExisting}}",
+  "Choose the GitHub account to connect": "연결할 GitHub 계정 선택",
+  "Connect an existing installation": "기존 설치 연결",
+  "Install on another account": "다른 계정에 설치",
+  "Personal account": "개인 계정",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "회원님의 GitHub 계정은 아직 앱 설치를 관리하지 않습니다. 'Connect with GitHub App'으로 설치하세요.",
+  "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "회원님의 GitHub 계정은 둘 이상의 계정에서 앱을 관리합니다. 이 프로젝트에서 사용할 저장소가 있는 계정을 선택하세요."
 }
