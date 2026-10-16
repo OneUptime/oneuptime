@@ -458,6 +458,39 @@ describe("a workflow from scratch, in the real Builder", () => {
     await expectButtonToSay("Add Component");
   });
 
+  /*
+   * UI review: until the workflow has a trigger, Add Trigger is the page's
+   * primary button and the off notice waits - it would say the trigger is
+   * paused and offer Turn on workflow as a second primary button.
+   */
+  test("off, it starts with a primary Add Trigger and no notice; the trigger chosen brings the notice and a plain Add Component", async () => {
+    await renderBuilder();
+    await expectButtonToSay("Add Trigger");
+
+    expect(addButton()).toHaveClass("bg-indigo-600");
+    expect(screen.queryByTestId("workflow-turned-off-notice")).toBeNull();
+
+    await pressAddButton();
+    await choose("Manual");
+    await expectButtonToSay("Add Component");
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("workflow-turned-off-notice"),
+      ).toHaveTextContent("This workflow is off");
+    });
+    expect(addButton()).toHaveClass("bg-white", "border-gray-300");
+    expect(addButton()).not.toHaveClass("bg-indigo-600");
+
+    // Deleting the trigger again: the dashed card, a primary Add Trigger, no notice.
+    fireEvent.click(screen.getByTestId("workflow-node-manual-1"));
+    fireEvent.click(screen.getByRole("button", { name: "Delete step" }));
+
+    await expectButtonToSay("Add Trigger");
+    expect(addButton()).toHaveClass("bg-indigo-600");
+    expect(screen.queryByTestId("workflow-turned-off-notice")).toBeNull();
+  });
+
   test("closed without a choice, the panel opens again on the next press", async () => {
     await renderBuilder();
 

@@ -539,25 +539,142 @@ describe("pressing the Builder's add button", () => {
   });
 });
 
-describe("the Builder's add button: one button, whatever it says", () => {
-  test("the same plus, outline and one line on a phone, in both of its names", async () => {
+/*
+ * UI review: while the workflow has no trigger, choosing one is the only
+ * thing to do first, so Add Trigger is the page's one primary button. Once
+ * it has one, Add Component is a plain bordered button like the product's
+ * other Create and Add buttons - it used to be a borderless one with no
+ * hover that read like a label beside the Enabled switch.
+ */
+const PRIMARY_FILL: string = "bg-indigo-600";
+const PLAIN_FILL: string = "bg-white";
+const PLAIN_BORDER: string = "border-gray-300";
+
+type ClassesFunction = (element: HTMLElement) => Array<string>;
+
+const classesOf: ClassesFunction = (element: HTMLElement): Array<string> => {
+  return Array.from(element.classList);
+};
+
+type ExpectStyleFunction = () => void;
+
+const expectAddTriggerToBePrimary: ExpectStyleFunction = (): void => {
+  expect(classesOf(addButton())).toContain(PRIMARY_FILL);
+  expect(classesOf(addButton())).toContain("text-white");
+  expect(classesOf(addButton())).not.toContain(PLAIN_FILL);
+};
+
+const expectAddComponentToBePlain: ExpectStyleFunction = (): void => {
+  expect(classesOf(addButton())).toContain(PLAIN_FILL);
+  expect(classesOf(addButton())).toContain(PLAIN_BORDER);
+  expect(classesOf(addButton())).not.toContain(PRIMARY_FILL);
+};
+
+type PrimaryButtonsFunction = () => Array<HTMLElement>;
+
+// Every button on the page drawn as a primary one.
+const primaryButtons: PrimaryButtonsFunction = (): Array<HTMLElement> => {
+  return screen.getAllByRole("button").filter((button: HTMLElement) => {
+    return classesOf(button).includes(PRIMARY_FILL);
+  });
+};
+
+describe("the Builder's add button: the page's primary button until the workflow has a trigger", () => {
+  test("Add Trigger is drawn as the primary button on a workflow with no trigger", async () => {
     await renderBuilder();
 
-    const asTrigger: { className: string; icon: string } = {
-      className: addButton().className,
+    expectAddButtonToSay("Add Trigger");
+    expectAddTriggerToBePrimary();
+  });
+
+  test("Add Component is a plain bordered button once the workflow has a trigger", async () => {
+    stored.graph = { nodes: [WEBHOOK_TRIGGER, IF_ELSE_STEP], edges: [] };
+
+    await renderBuilder();
+
+    expectAddButtonToSay("Add Component");
+    expectAddComponentToBePlain();
+  });
+
+  test("it changes with the label: plain once the first trigger is in, primary again when the last one goes", async () => {
+    await renderBuilder();
+    expectAddTriggerToBePrimary();
+
+    await canvasReports([WEBHOOK_TRIGGER]);
+    expectAddButtonToSay("Add Component");
+    expectAddComponentToBePlain();
+
+    await canvasReports([IF_ELSE_STEP]);
+    expectAddButtonToSay("Add Trigger");
+    expectAddTriggerToBePrimary();
+  });
+
+  test("a workflow from scratch that is off has one primary button, Add Trigger", async () => {
+    stored = {
+      isEnabled: false,
+      isArchived: false,
+      graph: { nodes: [], edges: [] },
+    };
+
+    await renderBuilder();
+
+    expect(primaryButtons()).toEqual([addButton()]);
+  });
+
+  test("once it has a trigger, the primary button is the notice's Turn on workflow, not Add Component", async () => {
+    stored = {
+      isEnabled: false,
+      isArchived: false,
+      graph: { nodes: [WEBHOOK_TRIGGER], edges: [] },
+    };
+
+    await renderBuilder();
+
+    expect(primaryButtons()).toEqual([
+      screen.getByTestId("workflow-turn-on-button"),
+    ]);
+  });
+
+  test("the same plus, and one line on a phone, in both of its names", async () => {
+    await renderBuilder();
+
+    const asTrigger: { icon: string; isOneLine: boolean } = {
       icon: addButton().querySelector("svg")?.outerHTML || "",
+      isOneLine: classesOf(addButton()).includes("whitespace-nowrap"),
     };
 
     await canvasReports([WEBHOOK_TRIGGER]);
 
-    const asComponent: { className: string; icon: string } = {
-      className: addButton().className,
+    const asComponent: { icon: string; isOneLine: boolean } = {
       icon: addButton().querySelector("svg")?.outerHTML || "",
+      isOneLine: classesOf(addButton()).includes("whitespace-nowrap"),
     };
 
     expect(asTrigger.icon).not.toBe("");
     expect(asComponent).toEqual(asTrigger);
-    expect(asTrigger.className).toContain("whitespace-nowrap");
+    expect(asTrigger.isOneLine).toBe(true);
+  });
+
+  test("neither toolbar button keeps a left margin of its own, so one that starts a wrapped row lines up with the switch above it", async () => {
+    for (const graph of [
+      { nodes: [], edges: [] },
+      { nodes: [WEBHOOK_TRIGGER], edges: [] },
+    ]) {
+      stored.graph = graph;
+
+      await renderBuilder();
+
+      for (const button of [
+        addButton(),
+        screen.getByTestId("run-workflow-button"),
+      ]) {
+        // The button's md:ml-3 is there, and the inline margin overrides it.
+        expect(classesOf(button)).toContain("md:ml-3");
+        expect(button.style.marginLeft).toBe("0px");
+      }
+
+      cleanup();
+    }
   });
 
   test("it stays where Add Component always was: after the Enabled switch, before Run Workflow", async () => {
@@ -575,6 +692,139 @@ describe("the Builder's add button: one button, whatever it says", () => {
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
     }
+  });
+});
+
+/*
+ * UI review: the off notice says the workflow's trigger is paused and that
+ * Run Workflow still tests it - neither is true of a workflow with nothing to
+ * start it - and its Turn on workflow would be a second primary button
+ * beside Add Trigger. So it waits for the first trigger.
+ */
+describe("the off notice waits for the workflow's first trigger", () => {
+  type NoticeFunction = () => HTMLElement | null;
+
+  const notice: NoticeFunction = (): HTMLElement | null => {
+    return screen.queryByTestId("workflow-turned-off-notice");
+  };
+
+  test("a workflow from scratch that is off: no notice, the switch says off, and Add Trigger", async () => {
+    stored = {
+      isEnabled: false,
+      isArchived: false,
+      graph: { nodes: [], edges: [] },
+    };
+
+    await renderBuilder();
+
+    expect(notice()).toBeNull();
+    expect(screen.getByRole("switch", { name: "Enabled" })).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    expectAddButtonToSay("Add Trigger");
+  });
+
+  test("a workflow whose trigger was deleted, with its steps left: no notice", async () => {
+    stored = {
+      isEnabled: false,
+      isArchived: false,
+      graph: { nodes: [IF_ELSE_STEP], edges: [] },
+    };
+
+    await renderBuilder();
+
+    expect(notice()).toBeNull();
+  });
+
+  test("the first trigger brings it, saying the workflow is off", async () => {
+    await renderBuilder();
+    expect(notice()).toBeNull();
+
+    await canvasReports([WEBHOOK_TRIGGER]);
+
+    expect(notice()).not.toBeNull();
+    expect(notice()).toHaveTextContent("This workflow is off");
+    expect(
+      screen.getByTestId("workflow-turned-off-notice-body"),
+    ).toHaveTextContent(
+      "Its trigger is paused until you turn it on. You can still test it with Run Workflow.",
+    );
+  });
+
+  test("deleting the last trigger takes it away again, and a new one brings it back", async () => {
+    stored.graph = { nodes: [WEBHOOK_TRIGGER, IF_ELSE_STEP], edges: [] };
+
+    await renderBuilder();
+    expect(notice()).not.toBeNull();
+
+    await canvasReports([IF_ELSE_STEP]);
+    expect(notice()).toBeNull();
+
+    await canvasReports([WEBHOOK_TRIGGER, IF_ELSE_STEP]);
+    expect(notice()).not.toBeNull();
+  });
+
+  test("an off workflow with a trigger shows it as soon as it loads", async () => {
+    stored = {
+      isEnabled: false,
+      isArchived: false,
+      graph: { nodes: [WEBHOOK_TRIGGER], edges: [] },
+    };
+
+    await renderBuilder();
+
+    expect(notice()).not.toBeNull();
+    expect(screen.getByTestId("workflow-turn-on-button")).toBeInTheDocument();
+  });
+
+  test("on, or archived, there is no notice, trigger or not", async () => {
+    for (const state of [
+      { isEnabled: true, isArchived: false },
+      { isEnabled: false, isArchived: true },
+    ]) {
+      for (const graph of [
+        { nodes: [], edges: [] },
+        { nodes: [WEBHOOK_TRIGGER], edges: [] },
+      ]) {
+        stored = { ...state, graph: graph };
+
+        await renderBuilder();
+
+        expect(notice()).toBeNull();
+        cleanup();
+      }
+    }
+  });
+
+  test("the notice is not drawn while the workflow loads", async () => {
+    stored.graph = { nodes: [WEBHOOK_TRIGGER], edges: [] };
+
+    let finishLoading: () => void = (): void => {};
+    const loaded: Promise<void> = new Promise<void>((resolve: () => void) => {
+      finishLoading = resolve;
+    });
+    const load: (...args: Array<unknown>) => unknown =
+      mockGetItem.getMockImplementation() as (
+        ...args: Array<unknown>
+      ) => unknown;
+
+    mockGetItem.mockImplementation(async (...args: Array<unknown>) => {
+      await loaded;
+      return load(...args);
+    });
+
+    render(<Builder {...PAGE_PROPS} />);
+
+    expect(notice()).toBeNull();
+
+    await act(async () => {
+      finishLoading();
+    });
+
+    await waitFor(() => {
+      expect(notice()).not.toBeNull();
+    });
   });
 });
 
