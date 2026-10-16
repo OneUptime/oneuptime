@@ -1,9 +1,11 @@
+import MarketplaceCharge from "../../../Models/DatabaseModels/MarketplaceCharge";
 import MarketplaceSubscription from "../../../Models/DatabaseModels/MarketplaceSubscription";
 import MarketplaceUsageReport from "../../../Models/DatabaseModels/MarketplaceUsageReport";
 import Project from "../../../Models/DatabaseModels/Project";
 import TelemetryUsageBilling from "../../../Models/DatabaseModels/TelemetryUsageBilling";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH } from "../../../Types/Billing/PayAsYouGoPricing";
+import ProjectBalanceType from "../../../Types/Billing/ProjectBalanceType";
 import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
@@ -13,6 +15,7 @@ import MarketplaceUsageReportStatus from "../../../Types/Marketplace/Marketplace
 import ObjectID from "../../../Types/ObjectID";
 import { getAllEnvVars } from "../../EnvironmentConfig";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
+import MarketplaceChargeService from "../../Services/MarketplaceChargeService";
 import MarketplaceSubscriptionService from "../../Services/MarketplaceSubscriptionService";
 import MarketplaceUsageReportService from "../../Services/MarketplaceUsageReportService";
 import ProjectService from "../../Services/ProjectService";
@@ -47,8 +50,15 @@ import MarketplaceUsageCalculator, {
  *     with "Duplicate";
  *   - Google Cloud's Service Control counts an operation ID once.
  *
- * The telemetry rows a report includes are marked reported as it is written,
- * so no later report bills them again.
+ * A report also bills the project's balance top-ups since the last one
+ * (MarketplaceCharge): they ride in the hour's report, never as a record of
+ * their own, because Microsoft Marketplace takes one event per hour per
+ * dimension and would refuse a second as a duplicate.
+ *
+ * What a report bills - the period, the telemetry rows, the charges - is
+ * claimed for it before the report is written, so no later report bills it
+ * again, even after a crash part way through: that loses a report (logged
+ * loudly) rather than billing anything twice.
  *
  * A report the marketplace will not take any more (it is a day old - their
  * deadline - or refused for good) is marked Failed and logged loudly: that is
@@ -209,7 +219,6 @@ export default class MarketplaceUsageReporter {
 
       if (
         !current.projectId ||
-        current.isUsageMetered === false ||
         current.status !== MarketplaceSubscriptionStatus.Active
       ) {
         return;
@@ -218,6 +227,12 @@ export default class MarketplaceUsageReporter {
       const report: MarketplaceUsageReport | null =
         await MarketplaceUsageReporter.writeNextReport(current, {
           isFinal: Boolean(options?.isFinal),
+          /*
+           * A deal whose fee the marketplace already charges in full (a flat
+           * private offer) meters no usage - but a balance top-up is bought on
+           * top of it, and is still billed.
+           */
+          chargesOnly: current.isUsageMetered === false,
         });
 
       if (report) {
@@ -235,14 +250,21 @@ export default class MarketplaceUsageReporter {
   }
 
   /*
-   * Price the period since the last report and write it down. Returns the
-   * report to send, or null when there is nothing to bill yet - a regular
-   * report waits for the hour to end; the period still moves on, carrying
-   * any fraction of a cent.
+   * Price the period since the last report, and the balance top-ups made
+   * since, and write it down. Returns the report to send, or null when there
+   * is nothing to bill yet - a regular report waits for the hour to end; the
+   * period still moves on, carrying any fraction of a cent.
+   *
+   * Everything the report bills is claimed for it first - the telemetry rows
+   * marked reported, the charges given the report's id, the period and the
+   * carried fraction moved on - and the report is written last. A crash in
+   * between leaves that much unbilled, and logged; written first, the next
+   * run would price the same period, rows and charges again and bill them a
+   * second time.
    */
   private static async writeNextReport(
     purchase: MarketplaceSubscription,
-    options: { isFinal: boolean },
+    options: { isFinal: boolean; chargesOnly: boolean },
   ): Promise<MarketplaceUsageReport | null> {
     const now: Date = OneUptimeDate.getCurrentDate();
     const periodStart: Date =
@@ -272,15 +294,19 @@ export default class MarketplaceUsageReporter {
       return null;
     }
 
-    const seats: number =
-      await TeamMemberService.getUniqueTeamMemberCountInProject(projectId);
+    let seats: number = 0;
+    let activeMonitors: number = 0;
+    let telemetryRows: Array<TelemetryUsageBilling> = [];
 
-    const activeMonitors: number =
-      project.currentActiveMonitorsCount ??
-      (await ActiveMonitorLimit.refreshCount(projectId));
+    if (!options.chargesOnly) {
+      seats =
+        await TeamMemberService.getUniqueTeamMemberCountInProject(projectId);
 
-    const telemetryRows: Array<TelemetryUsageBilling> =
-      await TelemetryUsageBillingService.findBy({
+      activeMonitors =
+        project.currentActiveMonitorsCount ??
+        (await ActiveMonitorLimit.refreshCount(projectId));
+
+      telemetryRows = await TelemetryUsageBillingService.findBy({
         query: {
           projectId: projectId,
           isReportedToBillingProvider: false,
@@ -291,6 +317,7 @@ export default class MarketplaceUsageReporter {
         limit: LIMIT_MAX,
         props: { isRoot: true },
       });
+    }
 
     const trialEndsAt: Date | null = project.trialEndsAt || null;
     let telemetryInUSD: number = 0;
@@ -312,50 +339,49 @@ export default class MarketplaceUsageReporter {
       telemetryInUSD += cost;
     }
 
+    const charges: Array<MarketplaceCharge> =
+      await MarketplaceChargeService.findUnbilled(purchase.id!);
+
+    let smsOrCallBalanceInUSD: number = 0;
+    let aiBalanceInUSD: number = 0;
+
+    for (const each of charges) {
+      const amount: number = Number(each.amountInUSD?.value || 0);
+
+      if (!Number.isFinite(amount) || amount <= 0) {
+        continue;
+      }
+
+      if (each.balanceType === ProjectBalanceType.AI) {
+        aiBalanceInUSD += amount;
+      } else {
+        smsOrCallBalanceInUSD += amount;
+      }
+    }
+
     const charge: MarketplaceUsageCharge = MarketplaceUsageCalculator.calculate(
       {
         periodStart: periodStart,
         periodEnd: periodEnd,
         seats: seats,
-        seatPricePerMonthInUSD: MarketplaceUsageReporter.getSeatPricePerMonth(
-          project.paymentProviderPlanId,
-        ),
+        seatPricePerMonthInUSD: options.chargesOnly
+          ? 0
+          : MarketplaceUsageReporter.getSeatPricePerMonth(
+              project.paymentProviderPlanId,
+            ),
         trialEndsAt: trialEndsAt,
         activeMonitors: activeMonitors,
         activeMonitorPricePerMonthInUSD: ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH,
         telemetryInUSD: telemetryInUSD,
+        chargesInUSD: smsOrCallBalanceInUSD + aiBalanceInUSD,
         carriedInUSD: Number(purchase.unreportedUsageInUSD?.value || 0),
       },
     );
 
-    let report: MarketplaceUsageReport | null = null;
+    // The report's id, given before anything is claimed for it.
+    const reportId: ObjectID = ObjectID.generate();
 
-    if (charge.quantity > 0) {
-      const newReport: MarketplaceUsageReport = new MarketplaceUsageReport();
-      newReport.marketplaceSubscriptionId = purchase.id!;
-      newReport.projectId = projectId;
-      newReport.marketplace = purchase.marketplace!;
-      newReport.periodStart = periodStart;
-      newReport.periodEnd = periodEnd;
-      newReport.quantity = charge.quantity;
-      newReport.status = MarketplaceUsageReportStatus.Pending;
-      newReport.attempts = 0;
-      newReport.breakdown = {
-        ...charge.breakdown,
-        planId: project.paymentProviderPlanId || null,
-        trialEndsAt: trialEndsAt ? OneUptimeDate.toString(trialEndsAt) : null,
-        trialTelemetryWaivedInUSD: trialTelemetryInUSD,
-        telemetryRows: telemetryRows.length,
-        isFinal: options.isFinal,
-      };
-
-      report = await MarketplaceUsageReportService.create({
-        data: newReport,
-        props: { isRoot: true },
-      });
-    }
-
-    // The telemetry is in this report (or in the carried fraction): never bill it again.
+    // Claimed: the telemetry is in this report (or in the carried fraction).
     for (const row of telemetryRows) {
       await TelemetryUsageBillingService.updateOneById({
         id: row.id!,
@@ -363,6 +389,15 @@ export default class MarketplaceUsageReporter {
           isReportedToBillingProvider: true,
           reportedToBillingProviderAt: now,
         },
+        props: { isRoot: true },
+      });
+    }
+
+    // Claimed: the charges are this report's.
+    for (const each of charges) {
+      await MarketplaceChargeService.updateOneById({
+        id: each.id!,
+        data: { marketplaceUsageReportId: reportId },
         props: { isRoot: true },
       });
     }
@@ -376,14 +411,53 @@ export default class MarketplaceUsageReporter {
       props: { isRoot: true },
     });
 
-    // What the Billing page shows as the project's seats.
-    await ProjectService.updateOneById({
-      id: projectId,
-      data: { paymentProviderSubscriptionSeats: seats },
-      props: { isRoot: true, ignoreHooks: true },
-    });
+    if (!options.chargesOnly) {
+      // What the Billing page shows as the project's seats.
+      await ProjectService.updateOneById({
+        id: projectId,
+        data: { paymentProviderSubscriptionSeats: seats },
+        props: { isRoot: true, ignoreHooks: true },
+      });
+    }
 
-    return report;
+    if (charge.quantity <= 0) {
+      return null;
+    }
+
+    const newReport: MarketplaceUsageReport = new MarketplaceUsageReport();
+    newReport.id = reportId;
+    newReport.marketplaceSubscriptionId = purchase.id!;
+    newReport.projectId = projectId;
+    newReport.marketplace = purchase.marketplace!;
+    newReport.periodStart = periodStart;
+    newReport.periodEnd = periodEnd;
+    newReport.quantity = charge.quantity;
+    newReport.status = MarketplaceUsageReportStatus.Pending;
+    newReport.attempts = 0;
+    newReport.breakdown = {
+      ...charge.breakdown,
+      planId: project.paymentProviderPlanId || null,
+      trialEndsAt: trialEndsAt ? OneUptimeDate.toString(trialEndsAt) : null,
+      trialTelemetryWaivedInUSD: trialTelemetryInUSD,
+      telemetryRows: telemetryRows.length,
+      smsOrCallBalanceInUSD: smsOrCallBalanceInUSD,
+      aiBalanceInUSD: aiBalanceInUSD,
+      charges: charges.length,
+      isUsageMetered: !options.chargesOnly,
+      isFinal: options.isFinal,
+    };
+
+    try {
+      return await MarketplaceUsageReportService.create({
+        data: newReport,
+        props: { isRoot: true },
+      });
+    } catch (err) {
+      logger.error(
+        `Marketplace usage of purchase ${purchase.id?.toString()} (${purchase.marketplace}, project ${projectId.toString()}) was NOT billed: ${charge.quantity} units for ${OneUptimeDate.toString(periodStart)} - ${OneUptimeDate.toString(periodEnd)} were claimed, and their report ${reportId.toString()} could not be written.`,
+      );
+      throw err;
+    }
   }
 
   /*

@@ -1,10 +1,14 @@
 import Project from "Common/Models/DatabaseModels/Project";
+import CloudMarketplace, {
+  CloudMarketplaceUtil,
+} from "Common/Types/Marketplace/CloudMarketplace";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import ProjectUtil from "Common/UI/Utils/Project";
 import {
   getGlobalTranslator,
   Translator,
@@ -16,6 +20,8 @@ import {
 } from "Common/Utils/Project/ProjectBalance";
 import {
   AUTO_RECHARGE_FAILED_DESCRIPTIONS,
+  MARKETPLACE_AUTO_RECHARGE_FAILED_DESCRIPTIONS,
+  MARKETPLACE_RECHARGE_BILLED_TEMPLATE,
   PROJECT_BALANCE_CARD_DESCRIPTIONS,
   RECHARGE_BALANCE_LOCKED_TEMPLATE,
 } from "./ProjectBalanceCopy";
@@ -134,6 +140,82 @@ export const getAutoRechargeFailedDescription: (
   return access === ProjectBalanceAccess.Yes
     ? AUTO_RECHARGE_FAILED_DESCRIPTIONS[balance].forPeopleWhoMayAdd
     : AUTO_RECHARGE_FAILED_DESCRIPTIONS[balance].forEveryoneElse;
+};
+
+/*
+ * The cloud marketplace that bills the current project, if one does
+ * (Project.billingMarketplace, which the projects list carries). Such a
+ * project has no card: its recharges are billed through the marketplace.
+ */
+export const getCurrentProjectBillingMarketplace: () => CloudMarketplace | null =
+  (): CloudMarketplace | null => {
+    const marketplace: unknown =
+      ProjectUtil.getCurrentProject()?.billingMarketplace;
+
+    return CloudMarketplaceUtil.isCloudMarketplace(marketplace)
+      ? (marketplace as CloudMarketplace)
+      : null;
+  };
+
+/*
+ * The Current Balance card's description for a project a marketplace bills,
+ * in the reader's language: the usual words, then where its recharges are
+ * billed.
+ */
+export const getMarketplaceBalanceCardDescription: (data: {
+  balance: ProjectBalanceType;
+  access: ProjectBalanceAccess;
+  marketplace: CloudMarketplace;
+  translator?: Translator | undefined;
+}) => string = (data: {
+  balance: ProjectBalanceType;
+  access: ProjectBalanceAccess;
+  marketplace: CloudMarketplace;
+  translator?: Translator | undefined;
+}): string => {
+  const words: Translator = data.translator || getGlobalTranslator();
+  const description: string = getProjectBalanceCardDescription(
+    data.balance,
+    data.access,
+  );
+
+  return `${words.translateText(description) || description} ${words.translateTemplate(
+    MARKETPLACE_RECHARGE_BILLED_TEMPLATE,
+    { marketplace: CloudMarketplaceUtil.getDisplayName(data.marketplace) },
+  )}`;
+};
+
+/*
+ * What the Auto Recharge failure notice says after its title for a project
+ * a marketplace bills, in the reader's language: check the subscription on
+ * the marketplace, for someone who may add balance; who can, for everyone
+ * else.
+ */
+export const getMarketplaceAutoRechargeFailedDescription: (data: {
+  balance: ProjectBalanceType;
+  access: ProjectBalanceAccess;
+  marketplace: CloudMarketplace;
+  translator?: Translator | undefined;
+}) => string = (data: {
+  balance: ProjectBalanceType;
+  access: ProjectBalanceAccess;
+  marketplace: CloudMarketplace;
+  translator?: Translator | undefined;
+}): string => {
+  const words: Translator = data.translator || getGlobalTranslator();
+
+  if (data.access === ProjectBalanceAccess.Yes) {
+    return words.translateTemplate(
+      MARKETPLACE_AUTO_RECHARGE_FAILED_DESCRIPTIONS[data.balance]
+        .forPeopleWhoMayAdd,
+      { marketplace: CloudMarketplaceUtil.getDisplayName(data.marketplace) },
+    );
+  }
+
+  const whoCan: string =
+    MARKETPLACE_AUTO_RECHARGE_FAILED_DESCRIPTIONS[data.balance].forEveryoneElse;
+
+  return words.translateText(whoCan) || whoCan;
 };
 
 // Why the Recharge Balance button is locked, in the reader's language.

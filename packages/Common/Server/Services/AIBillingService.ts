@@ -6,6 +6,7 @@ import { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import logger, { LogAttributes } from "../Utils/Logger";
 import BaseService from "./BaseService";
 import BillingService from "./BillingService";
+import MarketplaceChargeService from "./MarketplaceChargeService";
 import ProjectService from "./ProjectService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Email from "../../Types/Email";
@@ -24,6 +25,7 @@ import BalanceRechargeGuard, {
   getAutoRechargeSettings,
 } from "../Utils/Billing/BalanceRechargeGuard";
 import ProjectBalanceType from "../../Types/Billing/ProjectBalanceType";
+import { CloudMarketplaceUtil } from "../../Types/Marketplace/CloudMarketplace";
 import Exception from "../../Types/Exception/Exception";
 
 /*
@@ -329,6 +331,8 @@ export class AIBillingService extends BaseService {
       id: data.projectId,
       select: {
         paymentProviderCustomerId: true,
+        // A cloud marketplace that bills the project instead of a card.
+        billingMarketplace: true,
         name: true,
         sendInvoicesByEmail: true,
         financeAccountingEmail: true,
@@ -346,67 +350,119 @@ export class AIBillingService extends BaseService {
     }
 
     /*
-     * The no-payment-method branch below throws, and that throw lands in this
-     * method's own catch. Without this the FIRST no-payment-method failure
-     * sends two "ACTION REQUIRED" emails about the same fact, one from each
-     * place.
+     * The no-payment-method and marketplace branches below throw, and that
+     * throw lands in this method's own catch. Without this the FIRST such
+     * failure sends two "ACTION REQUIRED" emails about the same fact, one
+     * from each place.
      */
     let ownersAlreadyToldAboutThisFailure: boolean = false;
 
     try {
-      if (
-        !(await BillingService.hasPaymentMethods(
-          project.paymentProviderCustomerId!,
-        ))
-      ) {
+      if (project.billingMarketplace) {
         /*
-         * The same 24h window as the catch below. The project boolean this
-         * branch used to latch on is cleared only by a SUCCESSFUL recharge, so
-         * a project that never manages one was told once and then never again.
+         * A cloud marketplace pays for this project, and there is no card:
+         * the top-up is billed there with the next hourly usage report
+         * (MarketplaceChargeService) - while the purchase is active there.
          */
-        ownersAlreadyToldAboutThisFailure = true;
-
-        const shouldTellOwners: boolean = await shouldSendBillingFailureNotice({
-          projectId: project.id!,
-          kind: BillingFailureNoticeKind.AiCreditRechargeFailed,
-        });
-
-        if (shouldTellOwners) {
-          await ProjectService.updateOneById({
-            data: {
-              failedAiBalanceChargeNotificationSentToOwners: true,
-            },
-            id: project.id!,
-            props: {
-              isRoot: true,
-            },
+        try {
+          await MarketplaceChargeService.recordBalanceRecharge({
+            projectId: project.id!,
+            balanceType: ProjectBalanceType.AI,
+            amountInUSD: amountInUSD,
+            isAutomatic: data.isAutomatic,
           });
-          await ProjectService.sendEmailToProjectOwners(
-            project.id!,
-            "ACTION REQUIRED: AI Balance Recharge Failed for project - " +
-              (project.name || ""),
-            `We have tried to recharge your AI balance for project - ${
-              project.name || ""
-            } and failed. We could not find a payment method for the project. Please add a payment method in Project Settings.`,
+        } catch (err) {
+          // The owners are told what to put right: the purchase, not a card.
+          ownersAlreadyToldAboutThisFailure = true;
+
+          const shouldTellOwners: boolean =
+            await shouldSendBillingFailureNotice({
+              projectId: project.id!,
+              kind: BillingFailureNoticeKind.AiCreditRechargeFailed,
+            });
+
+          if (shouldTellOwners) {
+            await ProjectService.updateOneById({
+              data: {
+                failedAiBalanceChargeNotificationSentToOwners: true,
+              },
+              id: project.id!,
+              props: {
+                isRoot: true,
+              },
+            });
+            await ProjectService.sendEmailToProjectOwners(
+              project.id!,
+              "ACTION REQUIRED: AI Balance Recharge Failed for project - " +
+                (project.name || ""),
+              `We have tried to recharge your AI balance for project - ${
+                project.name || ""
+              } and failed. ${
+                err instanceof BadDataException
+                  ? err.message
+                  : "Please try again later."
+              }`,
+            );
+          }
+
+          throw err;
+        }
+      } else {
+        if (
+          !(await BillingService.hasPaymentMethods(
+            project.paymentProviderCustomerId!,
+          ))
+        ) {
+          /*
+           * The same 24h window as the catch below. The project boolean this
+           * branch used to latch on is cleared only by a SUCCESSFUL recharge, so
+           * a project that never manages one was told once and then never again.
+           */
+          ownersAlreadyToldAboutThisFailure = true;
+
+          const shouldTellOwners: boolean =
+            await shouldSendBillingFailureNotice({
+              projectId: project.id!,
+              kind: BillingFailureNoticeKind.AiCreditRechargeFailed,
+            });
+
+          if (shouldTellOwners) {
+            await ProjectService.updateOneById({
+              data: {
+                failedAiBalanceChargeNotificationSentToOwners: true,
+              },
+              id: project.id!,
+              props: {
+                isRoot: true,
+              },
+            });
+            await ProjectService.sendEmailToProjectOwners(
+              project.id!,
+              "ACTION REQUIRED: AI Balance Recharge Failed for project - " +
+                (project.name || ""),
+              `We have tried to recharge your AI balance for project - ${
+                project.name || ""
+              } and failed. We could not find a payment method for the project. Please add a payment method in Project Settings.`,
+            );
+          }
+          throw new BadDataException(
+            "No payment methods found for the project. Please add a payment method in Project Settings to continue.",
           );
         }
-        throw new BadDataException(
-          "No payment methods found for the project. Please add a payment method in Project Settings to continue.",
+
+        await BillingService.generateInvoiceAndChargeCustomer(
+          project.paymentProviderCustomerId!,
+          "AI Balance Recharge",
+          amountInUSD,
+          {
+            sendInvoiceByEmail: project.sendInvoicesByEmail || false,
+            recipientEmails: project.financeAccountingEmail
+              ? Email.parseList(project.financeAccountingEmail)
+              : undefined,
+            projectId: project.id || undefined,
+          },
         );
       }
-
-      await BillingService.generateInvoiceAndChargeCustomer(
-        project.paymentProviderCustomerId!,
-        "AI Balance Recharge",
-        amountInUSD,
-        {
-          sendInvoiceByEmail: project.sendInvoicesByEmail || false,
-          recipientEmails: project.financeAccountingEmail
-            ? Email.parseList(project.financeAccountingEmail)
-            : undefined,
-          projectId: project.id || undefined,
-        },
-      );
     } catch (err) {
       /*
        * Auto Recharge waits before it tries the card again, so the AI calls
@@ -505,7 +561,11 @@ export class AIBillingService extends BaseService {
           project.name || ""
         } by ${amountInUSD} USD. Your current balance is ${
           updatedAmount / 100
-        } USD.`,
+        } USD.${
+          project.billingMarketplace
+            ? ` It is billed through ${CloudMarketplaceUtil.getDisplayName(project.billingMarketplace)}.`
+            : ""
+        }`,
       );
     }
 

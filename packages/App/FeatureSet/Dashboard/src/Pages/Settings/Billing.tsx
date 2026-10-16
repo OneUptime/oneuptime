@@ -40,6 +40,7 @@ import Text from "Common/Types/Text";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ButtonType from "Common/UI/Components/Button/ButtonTypes";
 import Card from "Common/UI/Components/Card/Card";
+import MarketplaceUsageCard from "../../Components/Billing/MarketplaceUsageCard";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -739,6 +740,10 @@ const Settings: FunctionComponent<ComponentProps> = (
                 },
               ]}
             />
+          )}
+
+          {billingMarketplace && (
+            <MarketplaceUsageCard marketplace={billingMarketplace} />
           )}
 
           {!reseller && (

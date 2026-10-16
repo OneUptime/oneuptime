@@ -149,18 +149,14 @@ export const MCP_OAUTH_CONSENT_DENY_API_URL: URL = URL.fromURL(
  * HttpOnly cookie that is sent with these calls and nothing else - its path is
  * /api/marketplace, so these must stay under the API's own route.
  */
-const MARKETPLACE_PURCHASE_URL: URL = URL.fromURL(APP_API_URL).addRoute(
-  new Route("/marketplace/purchase"),
-);
-
 export const MARKETPLACE_PURCHASE_DETAILS_API_URL: URL = URL.fromURL(
-  MARKETPLACE_PURCHASE_URL,
-).addRoute(new Route("/details"));
+  APP_API_URL,
+).addRoute(new Route("/marketplace/purchase/details"));
 
 export const MARKETPLACE_PURCHASE_COMPLETE_API_URL: URL = URL.fromURL(
-  MARKETPLACE_PURCHASE_URL,
-).addRoute(new Route("/complete"));
+  APP_API_URL,
+).addRoute(new Route("/marketplace/purchase/complete"));
 
 export const MARKETPLACE_PURCHASE_DISMISS_API_URL: URL = URL.fromURL(
-  MARKETPLACE_PURCHASE_URL,
-).addRoute(new Route("/dismiss"));
+  APP_API_URL,
+).addRoute(new Route("/marketplace/purchase/dismiss"));
