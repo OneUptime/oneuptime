@@ -30247,5 +30247,6 @@
   "Monitor refreshed.": "モニターを更新しました。",
   "Refresh now. This page also refreshes every minute.": "今すぐ更新します。このページは 1 分ごとにも自動で更新されます。",
   "Refreshed at {{time}}": "{{time}} に更新",
-  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "このモニターは今後、このページと、このモニターを掲載しているすべてのステータスページで{{status}}と表示されます。"
+  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "このモニターは今後、このページと、このモニターを掲載しているすべてのステータスページで{{status}}と表示されます。",
+  "Change the status from ⋯ at the top of this page; the status timeline keeps every change.": "ステータスはこのページ上部の ⋯ から変更します。すべての変更はステータスタイムラインに残ります。"
 }

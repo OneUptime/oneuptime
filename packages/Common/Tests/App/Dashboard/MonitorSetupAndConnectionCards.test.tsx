@@ -586,8 +586,11 @@ describe("MonitorManualGuideCard", () => {
     expect(screen.getByTestId("card-description")).toHaveTextContent(
       "Status is set by people, not by checks.",
     );
+    // The status is changed from the hero's ⋯; the timeline keeps it.
     expect(
-      screen.getByText("Change the status from the status timeline."),
+      screen.getByText(
+        "Change the status from ⋯ at the top of this page; the status timeline keeps every change.",
+      ),
     ).toBeInTheDocument();
     expect(
       screen.getByText(

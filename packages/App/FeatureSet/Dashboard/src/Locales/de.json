@@ -30247,5 +30247,6 @@
   "Monitor refreshed.": "Monitor aktualisiert.",
   "Refresh now. This page also refreshes every minute.": "Jetzt aktualisieren. Diese Seite aktualisiert sich außerdem jede Minute.",
   "Refreshed at {{time}}": "Aktualisiert um {{time}}",
-  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "Der Monitor zeigt ab sofort {{status}} – hier und auf jeder Statusseite, die ihn aufführt."
+  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "Der Monitor zeigt ab sofort {{status}} – hier und auf jeder Statusseite, die ihn aufführt.",
+  "Change the status from ⋯ at the top of this page; the status timeline keeps every change.": "Ändern Sie den Status über ⋯ oben auf dieser Seite; die Statuszeitachse bewahrt jede Änderung auf."
 }

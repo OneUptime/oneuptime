@@ -12934,7 +12934,7 @@
   "More Info": "More Info",
   "More Information": "More Information",
   "More Information (in Markdown)": "More Information (in Markdown)",
-  "More actions": "और कार्रवाइयां",
+  "More actions": "More actions",
   "More actions for": "More actions for",
   "More dashboard options": "More dashboard options",
   "More player options": "More player options",
@@ -30247,5 +30247,6 @@
   "Monitor refreshed.": "मॉनिटर रिफ्रेश हो गया।",
   "Refresh now. This page also refreshes every minute.": "अभी रिफ्रेश करें। यह पेज हर मिनट अपने-आप भी रिफ्रेश होता है।",
   "Refreshed at {{time}}": "{{time}} पर रिफ्रेश किया गया",
-  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "अब से यह मॉनिटर यहां और इसे दिखाने वाले हर स्थिति पृष्ठ पर {{status}} दिखाएगा।"
+  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "अब से यह मॉनिटर यहां और इसे दिखाने वाले हर स्थिति पृष्ठ पर {{status}} दिखाएगा।",
+  "Change the status from ⋯ at the top of this page; the status timeline keeps every change.": "इस पेज के ऊपर ⋯ से स्थिति बदलें; स्थिति टाइमलाइन हर बदलाव सहेजकर रखती है।"
 }

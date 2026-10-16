@@ -12934,7 +12934,7 @@
   "More Info": "More Info",
   "More Information": "More Information",
   "More Information (in Markdown)": "More Information (in Markdown)",
-  "More actions": "추가 작업",
+  "More actions": "More actions",
   "More actions for": "More actions for",
   "More dashboard options": "More dashboard options",
   "More player options": "More player options",
@@ -30247,5 +30247,6 @@
   "Monitor refreshed.": "모니터를 새로고침했습니다.",
   "Refresh now. This page also refreshes every minute.": "지금 새로고침합니다. 이 페이지는 1분마다 자동으로도 새로고침됩니다.",
   "Refreshed at {{time}}": "{{time}}에 새로고침됨",
-  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "이제부터 이 모니터는 여기와 이 모니터가 표시되는 모든 상태 페이지에서 {{status}}(으)로 표시됩니다."
+  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "이제부터 이 모니터는 여기와 이 모니터가 표시되는 모든 상태 페이지에서 {{status}}(으)로 표시됩니다.",
+  "Change the status from ⋯ at the top of this page; the status timeline keeps every change.": "이 페이지 위쪽의 ⋯에서 상태를 변경합니다. 모든 변경은 상태 타임라인에 남습니다."
 }

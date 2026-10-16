@@ -56,6 +56,14 @@ Enter a **Name** — and a **Description** under **More fields**, if you like �
 ### In the dashboard
 
 :::steps
+1. Open the monitor. At the top right of its overview, beside **Refresh**, click **More actions** (⋯).
+2. Under **Change status to**, pick the new status.
+3. Click **Change status**. The new status starts now, and shows on the monitor, and on every status page that lists it, straight away.
+:::
+
+A change that started earlier is recorded on the monitor's status timeline instead:
+
+:::steps
 1. Open the monitor and click **Status Timeline** in its side menu.
 2. Click **Create Monitor Status Event**.
 3. Pick the **Monitor Status**. **Starts At** is now; set an earlier time if the change happened earlier.

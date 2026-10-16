@@ -153,10 +153,15 @@ const MonitorOverviewActions: FunctionComponent<ComponentProps> = (
       data-testid={MONITOR_OVERVIEW_ACTIONS_TEST_ID}
       className="-my-1.5 flex items-center justify-end gap-2"
     >
+      {/*
+       * From lg only: below it the hero shares its row with the side menu
+       * (or a phone's width), and the time would push the badges onto lines
+       * of their own.
+       */}
       {props.lastLoadedAt ? (
         <span
           data-testid={MONITOR_OVERVIEW_REFRESHED_AT_TEST_ID}
-          className="max-sm:hidden sm:inline mr-1 whitespace-nowrap text-xs text-gray-500"
+          className="max-lg:hidden lg:inline mr-1 whitespace-nowrap text-xs text-gray-500"
         >
           <TranslatedSentence
             template="Refreshed at {{time}}"

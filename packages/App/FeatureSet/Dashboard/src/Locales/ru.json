@@ -12934,7 +12934,7 @@
   "More Info": "More Info",
   "More Information": "More Information",
   "More Information (in Markdown)": "More Information (in Markdown)",
-  "More actions": "Другие действия",
+  "More actions": "More actions",
   "More actions for": "More actions for",
   "More dashboard options": "More dashboard options",
   "More player options": "More player options",
@@ -30247,5 +30247,6 @@
   "Monitor refreshed.": "Монитор обновлён.",
   "Refresh now. This page also refreshes every minute.": "Обновить сейчас. Эта страница также обновляется каждую минуту.",
   "Refreshed at {{time}}": "Обновлено в {{time}}",
-  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "Теперь монитор показывает статус «{{status}}» — здесь и на каждой странице состояния, где он указан."
+  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "Теперь монитор показывает статус «{{status}}» — здесь и на каждой странице состояния, где он указан.",
+  "Change the status from ⋯ at the top of this page; the status timeline keeps every change.": "Меняйте статус через ⋯ вверху этой страницы; хронология статуса хранит каждое изменение."
 }

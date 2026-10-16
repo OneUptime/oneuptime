@@ -12934,7 +12934,7 @@
   "More Info": "More Info",
   "More Information": "More Information",
   "More Information (in Markdown)": "More Information (in Markdown)",
-  "More actions": "Flere handlinger",
+  "More actions": "More actions",
   "More actions for": "More actions for",
   "More dashboard options": "More dashboard options",
   "More player options": "More player options",
@@ -30247,5 +30247,6 @@
   "Monitor refreshed.": "Overvågningen er opdateret.",
   "Refresh now. This page also refreshes every minute.": "Opdater nu. Siden opdateres også hvert minut.",
   "Refreshed at {{time}}": "Opdateret kl. {{time}}",
-  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "Overvågningen viser {{status}} fra nu af, her og på alle statussider, der viser den."
+  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "Overvågningen viser {{status}} fra nu af, her og på alle statussider, der viser den.",
+  "Change the status from ⋯ at the top of this page; the status timeline keeps every change.": "Skift status via ⋯ øverst på denne side; statustidslinjen gemmer hver ændring."
 }

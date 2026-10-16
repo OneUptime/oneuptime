@@ -298,12 +298,20 @@ describe("when the data on screen is from", () => {
     expect(refreshButton()).toBeInTheDocument();
   });
 
-  test("gives the badges the row on a phone, and is back from sm up", () => {
+  test("gives the badges the row below lg, where the hero is narrow, and is back from lg up", () => {
     renderActions();
 
-    expect(
-      screen.getByTestId(MONITOR_OVERVIEW_REFRESHED_AT_TEST_ID),
-    ).toHaveClass("max-sm:hidden", "sm:inline", "whitespace-nowrap");
+    const caption: HTMLElement = screen.getByTestId(
+      MONITOR_OVERVIEW_REFRESHED_AT_TEST_ID,
+    );
+
+    expect(caption).toHaveClass(
+      "max-lg:hidden",
+      "lg:inline",
+      "whitespace-nowrap",
+    );
+    // Hidden with a max- variant, so a foreign .hidden rule cannot pin it shut.
+    expect(caption).not.toHaveClass("hidden");
   });
 
   test("the loaded-at text is today's clock time, or the day and time of an earlier day", () => {

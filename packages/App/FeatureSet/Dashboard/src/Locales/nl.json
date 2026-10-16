@@ -12934,7 +12934,7 @@
   "More Info": "More Info",
   "More Information": "More Information",
   "More Information (in Markdown)": "More Information (in Markdown)",
-  "More actions": "Meer acties",
+  "More actions": "More actions",
   "More actions for": "More actions for",
   "More dashboard options": "More dashboard options",
   "More player options": "More player options",
@@ -30247,5 +30247,6 @@
   "Monitor refreshed.": "Monitor vernieuwd.",
   "Refresh now. This page also refreshes every minute.": "Nu vernieuwen. Deze pagina wordt ook elke minuut vernieuwd.",
   "Refreshed at {{time}}": "Vernieuwd om {{time}}",
-  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "De monitor toont vanaf nu {{status}}, hier en op elke statuspagina waarop hij staat."
+  "The monitor shows {{status}} from now on, here and on every status page that lists it.": "De monitor toont vanaf nu {{status}}, hier en op elke statuspagina waarop hij staat.",
+  "Change the status from ⋯ at the top of this page; the status timeline keeps every change.": "Wijzig de status via ⋯ boven aan deze pagina; de statustijdlijn bewaart elke wijziging."
 }
