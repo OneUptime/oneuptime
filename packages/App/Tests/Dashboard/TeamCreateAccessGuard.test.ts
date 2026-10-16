@@ -108,15 +108,21 @@ describe("Create Team asks the Access question Create API Key asks", () => {
   test("the Teams page builds its form, its cards and the role from the shared helper", () => {
     const page: string = readSource("Pages/Teams/Index.tsx");
 
+    // The cards: the roles the user may hand on, then the project's custom roles.
     expect(page).toContain(
-      "getRoleAccessOptionsForCurrentUser(RoleAccessHolder.Team)",
+      "getRoleAccessOptionsForCurrentUser( RoleAccessHolder.Team, customRoleOptions, )",
     );
     expect(page).toContain("getTeamCreateFormFields({");
     expect(page).toContain("formFields={createFormFields}");
     expect(page).toContain(
-      "getRoleAccessRole( formValues[ROLE_ACCESS_FIELD_KEY], )",
+      "role: getRoleAccessRole(formValues[ROLE_ACCESS_FIELD_KEY])",
+    );
+    expect(page).toContain(
+      "customRoleId: getRoleAccessCustomRoleId( formValues[ROLE_ACCESS_FIELD_KEY], )",
     );
     expect(page).toContain("giveRoleAccess({ holder: RoleAccessHolder.Team,");
+    // A custom role picked is given through the helper Add Custom Role uses.
+    expect(page).toContain("giveCustomRoleAccess({ teamId: createdTeam.id,");
     expect(page).toContain("<RoleAccessNotice holder={RoleAccessHolder.Team}");
     // Where a new team opens is decided in one place (TeamCreateForm).
     expect(page).toContain("getNewTeamPage({");

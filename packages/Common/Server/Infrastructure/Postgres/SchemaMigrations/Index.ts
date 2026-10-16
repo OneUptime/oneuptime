@@ -107,6 +107,8 @@ import { AddAIAgentTaskPullRequestIdIndex1802900000000 } from "./1802900000000-A
 import { AddAIRunFollowUpForAlert1802950000000 } from "./1802950000000-AddAIRunFollowUpForAlert";
 import { AddMarketplaceSubscriptions1803000000000 } from "./1803000000000-AddMarketplaceSubscriptions";
 import { AddMarketplaceCharges1803050000000 } from "./1803050000000-AddMarketplaceCharges";
+import { AddCustomRoles1803100000000 } from "./1803100000000-AddCustomRoles";
+import { AddTeamPermissionCustomRoleLinks1803150000000 } from "./1803150000000-AddTeamPermissionCustomRoleLinks";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1416,4 +1418,6 @@ export default [
   AddAIRunFollowUpForAlert1802950000000,
   AddMarketplaceSubscriptions1803000000000,
   AddMarketplaceCharges1803050000000,
+  AddCustomRoles1803100000000,
+  AddTeamPermissionCustomRoleLinks1803150000000,
 ];

@@ -37,6 +37,7 @@ flowchart TB
 | Team | Eine benannte Gruppe innerhalb eines Projekts, die Berechtigungen trägt. |
 | Teammitglied | Ein Benutzer, der in ein Team eingeladen wurde und angenommen hat. |
 | Berechtigung | Eine einzelne Fähigkeit, z. B. `CreateProjectMonitor`, oder eine Rolle, die viele bündelt, z. B. `MonitorAdmin`. |
+| Benutzerdefinierte Rolle | Eine Reihe von Berechtigungen, die Sie einmal benennen und Teams geben. |
 | Geltungsbereich | Wie weit eine Erlaubt-Berechtigung reicht: alle Ressourcen, nur eigene oder nur gelabelte. |
 | Eigentümer | Ein Benutzer oder Team, der bzw. das für eine konkrete Ressource verantwortlich ist. |
 | Label | Eine Markierung an Ressourcen, mit der Berechtigungen eingeschränkt und Ressourcen organisiert werden. |
@@ -131,6 +132,24 @@ Eine Berechtigung zum Ändern oder Löschen reicht nur so weit, wie Sie auch les
 Es sind zugleich die Schlüssel, die Sie beim Anlegen von API-Schlüsseln verwenden, und die die API und der Terraform-Provider erwarten.
 
 Die vollständige Liste steht in der [Berechtigungsreferenz](/docs/permissions/reference).
+
+### Benutzerdefinierte Rollen
+
+Eine benutzerdefinierte Rolle ist eine Reihe von Berechtigungen, die Sie einmal benennen und Teams geben: etwa ein „Vorfallbearbeiter“ aus `IncidentMember`, `AlertMember` und `OnCallViewer` oder eine „Teamleitung“. Jedes Team, dem Sie sie geben, erhält dieselben Berechtigungen, und Sie ändern sie für alle diese Teams an einer Stelle. In OneUptime Cloud brauchen benutzerdefinierte Rollen den Scale-Tarif, wie das Ändern der Berechtigungen eines Teams.
+
+:::steps
+1. Öffnen Sie **Teams** im Menü **Produkte** unter **Einstellungen**, dann **Rollen**, und klicken Sie auf **Benutzerdefinierte Rolle erstellen**.
+2. Geben Sie ihren **Name** ein und wählen Sie unter **Berechtigungen** die vordefinierten Rollen, die sie bündelt, für jede Ressource im Projekt. Die Beschreibung liegt unter **Weitere Felder**.
+3. Legen Sie die Rolle an. Sie öffnet sich auf ihrer Seite, wo **Rolle hinzufügen** eine weitere vordefinierte Rolle hinzufügt und **Berechtigung hinzufügen** (im Menü **⋯** der Karte) eine einzelne Berechtigung, jeweils mit Geltungsbereich und Beschriftungen, wie bei einem Team.
+4. Klicken Sie unter **Teams mit dieser Rolle** auf **Einem Team geben**. Auch die Seite **Berechtigungen** eines Teams hat **Benutzerdefinierte Rolle hinzufügen**, und **Team erstellen** bietet unter **Zugriff** die benutzerdefinierten Rollen an, die Sie vergeben könnten.
+:::
+
+- Die Mitglieder eines Teams erhalten jede Berechtigung seiner benutzerdefinierten Rollen, mit demselben Geltungsbereich und denselben Beschriftungen, genau so, als hätte das Team sie selbst. Eine Sperre auf dem Team gewinnt weiterhin.
+- Eine Rolle bleibt mit den Teams verbunden, die sie haben: Eine Änderung an ihr erreicht sie alle sofort, und die Seite der Rolle sagt, wie viele Teams und Personen das sind. **Entfernen** nimmt einem Team die Rolle. Das Löschen der Rolle nimmt ihre Berechtigungen jedem Team, das sie hat; die Teams behalten ihre Mitglieder und ihre anderen Rollen und Berechtigungen.
+- In eine Rolle aufnehmen und einem Team als Rolle geben können Sie nur, was Sie dem Team auch direkt geben könnten: Eine Rolle mit einer Berechtigung, die Sie nicht im selben oder einem weiteren Geltungsbereich haben, wird abgelehnt, und die Ablehnung nennt die Berechtigung. Eine Rolle enthält nie `ProjectOwner`, und **Owners** und **Admin** bekommen nie eine.
+- Die Seite **Berechtigungen** eines Teams zeigt seine benutzerdefinierten Rollen über seinen eigenen Berechtigungen. Was eine Rolle gibt, ändern Sie auf der Seite der Rolle, nicht auf der des Teams.
+- API-Schlüssel bekommen keine benutzerdefinierten Rollen. Ein Schlüssel dient einer einzigen Integration, also geben Sie ihm auf seiner eigenen Seite genau die Berechtigungen, die er braucht.
+- Die vordefinierten Rollen stehen unter **Vordefinierte Rollen** unten auf der Seite **Rollen**.
 
 ### Erlauben und sperren
 

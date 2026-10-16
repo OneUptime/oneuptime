@@ -111,7 +111,10 @@ const Page: FunctionComponent<ComponentProps> = (
       breadcrumbLinks && breadcrumbLinks.length > 0
         ? breadcrumbLinks
             .map((link: Link) => {
-              return translateString(link.title);
+              // A record's name reads as typed (Link.isRecordName).
+              return link.isRecordName
+                ? link.title
+                : translateString(link.title);
             })
             .filter((value: string | undefined): value is string => {
               return Boolean(value);

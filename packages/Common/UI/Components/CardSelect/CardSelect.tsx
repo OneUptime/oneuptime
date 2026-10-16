@@ -9,7 +9,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Translator } from "../../Utils/TranslateTemplate";
+import { PluralTemplate, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 
 export interface CardSelectOption {
@@ -23,6 +23,14 @@ export interface CardSelectOption {
    * one screen has no use for them.
    */
   keywords?: Array<string> | undefined;
+  /*
+   * The title and description are drawn as given, never looked up: a name
+   * and a sentence someone typed (a custom role's), or words already in the
+   * reader's language. Interface text is looked up in the reader's
+   * language, and a name that happened to match some ("Incident Responder")
+   * would otherwise be shown translated.
+   */
+  isUserContent?: boolean | undefined;
 }
 
 export interface CardSelectOptionGroup {
@@ -78,6 +86,13 @@ export interface ComponentProps {
    */
   searchable?: boolean | undefined;
   searchPlaceholder?: string | undefined;
+  /*
+   * The line under the search box while nothing is typed: how many there
+   * are, and what a search reads. The default is worded for the monitor
+   * type picker ("... or what you want to watch"); a picker of something
+   * else says what its own search reads.
+   */
+  searchHint?: PluralTemplate | undefined;
   /*
    * Opt in to the catalog layout (CardSelectCatalog). Off by default: a
    * handful of cards reads fine as a plain grid.
@@ -369,6 +384,15 @@ const CardSelect: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [search, setSearch] = useState<string>("");
   const translator: Translator = useTranslator();
+
+  // A card's words: interface text looked up, a typed name as it is.
+  const getOptionText: (option: CardSelectOption, text: string) => string = (
+    option: CardSelectOption,
+    text: string,
+  ): string => {
+    return option.isUserContent ? text : translator.translateText(text) || text;
+  };
+
   const searchInputRef: React.RefObject<HTMLInputElement> =
     useRef<HTMLInputElement>(null);
   const containerRef: React.RefObject<HTMLDivElement> =
@@ -777,14 +801,14 @@ const CardSelect: FunctionComponent<ComponentProps> = (
                 isSelected ? "text-gray-900" : "text-gray-900"
               }`}
             >
-              {translator.translateText(option.title)}
+              {getOptionText(option, option.title)}
             </span>
             <span
               className={`mt-1 block text-sm ${
                 isSelected ? "text-gray-600" : "text-gray-500"
               }`}
             >
-              {translator.translateText(option.description)}
+              {getOptionText(option, option.description)}
             </span>
           </div>
           {isSelected && (
@@ -845,10 +869,10 @@ const CardSelect: FunctionComponent<ComponentProps> = (
         </div>
         <div className="min-w-0 flex-1">
           <span className="block text-sm font-medium text-gray-900">
-            {translator.translateText(option.title)}
+            {getOptionText(option, option.title)}
           </span>
           <span className="mt-0.5 block text-xs leading-5 text-gray-500">
-            {translator.translateText(option.description)}
+            {getOptionText(option, option.description)}
           </span>
         </div>
         {isSelected && (
@@ -904,10 +928,10 @@ const CardSelect: FunctionComponent<ComponentProps> = (
               className="block text-sm font-medium text-gray-900"
               data-testid="card-select-summary-title"
             >
-              {translator.translateText(selectedOption.title)}
+              {getOptionText(selectedOption, selectedOption.title)}
             </span>
             <span className="mt-0.5 block text-xs leading-5 text-gray-500">
-              {translator.translateText(selectedOption.description)}
+              {getOptionText(selectedOption, selectedOption.description)}
             </span>
           </div>
           <button
@@ -944,7 +968,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
       ? // The catalog says nothing while idle: the common rows say it all.
         ""
       : translator.translatePlural(
-          {
+          props.searchHint || {
             one: "{{count}} to choose from. Search by name, category, or what you want to watch.",
             other:
               "{{count}} to choose from. Search by name, category, or what you want to watch.",
