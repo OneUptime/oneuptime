@@ -30014,5 +30014,8 @@
   "Reading the alert timeline": "アラートのタイムラインを読み取り中",
   "Reading the incident timeline": "インシデントのタイムラインを読み取り中",
   "Searching past incidents": "過去のインシデントを検索中",
-  "Ranked by": "並べ替え"
+  "Ranked by": "並べ替え",
+  "Excluded": "除外中",
+  "Remove exclusion: {{value}}": "除外を解除: {{value}}",
+  "Set by this page: {{value}}": "このページで設定: {{value}}"
 }
