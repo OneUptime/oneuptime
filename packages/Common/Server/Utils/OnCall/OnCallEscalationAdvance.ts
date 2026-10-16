@@ -118,7 +118,10 @@ export default class OnCallEscalationAdvance {
         executionLogId: runId,
         previousLastEscalationRuleExecutedAt:
           run.lastEscalationRuleExecutedAt || null,
-        newLastEscalationRuleExecutedAt: data.now,
+        newLastEscalationRuleExecutedAt: this.getClaimTime({
+          previous: run.lastEscalationRuleExecutedAt,
+          now: data.now,
+        }),
       });
 
     if (!claimed) {
@@ -356,6 +359,29 @@ export default class OnCallEscalationAdvance {
     }
   }
 
+  /*
+   * The time a claim writes: now, or - when now is no later than the time it
+   * read, as for two people passing a page on within the same millisecond,
+   * or a worker replica whose clock runs behind - a moment after it. A claim
+   * only excludes the next one if it changes what the next one compares.
+   */
+  public static getClaimTime(data: {
+    previous: Date | null | undefined;
+    now: Date;
+  }): Date {
+    if (!data.previous) {
+      return data.now;
+    }
+
+    const previous: number = new Date(data.previous).getTime();
+
+    if (isNaN(previous) || data.now.getTime() > previous) {
+      return data.now;
+    }
+
+    return new Date(previous + 1);
+  }
+
   // Ids, once each and in order, none missing.
   public static uniqueIds(
     userIds: Array<ObjectID | null | undefined>,
@@ -407,7 +433,10 @@ export default class OnCallEscalationAdvance {
       executionLogId: runId,
       previousLastEscalationRuleExecutedAt:
         current.lastEscalationRuleExecutedAt || null,
-      newLastEscalationRuleExecutedAt: OneUptimeDate.getCurrentDate(),
+      newLastEscalationRuleExecutedAt: this.getClaimTime({
+        previous: current.lastEscalationRuleExecutedAt,
+        now: OneUptimeDate.getCurrentDate(),
+      }),
     });
   }
 

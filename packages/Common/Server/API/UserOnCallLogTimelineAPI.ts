@@ -159,7 +159,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
           if (
             req.body["Digits"] === ON_CALL_PAGE_CALL_PASS_ON_DIGIT &&
             OnCallPageLinkToken.isValid({
-              token: req.query[ON_CALL_PAGE_LINK_TOKEN_PARAM],
+              token: req.query?.[ON_CALL_PAGE_LINK_TOKEN_PARAM],
               userOnCallLogTimelineId: itemId,
             })
           ) {
@@ -307,7 +307,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
            * messages and the chat messages all lead here.
            */
           const passOn: JSONObject | null = await this.getPassOnBlock({
-            token: req.query[ON_CALL_PAGE_LINK_TOKEN_PARAM],
+            token: req.query?.[ON_CALL_PAGE_LINK_TOKEN_PARAM],
             itemId: itemId,
             timelineItem: timelineItem,
             timezone: timelineItem.user?.timezone?.toString(),
@@ -538,7 +538,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
           const record: NotificationRecord =
             await this.readNotificationRecord(timelineItem);
 
-          const pageToken: unknown = req.query[ON_CALL_PAGE_LINK_TOKEN_PARAM];
+          const pageToken: unknown = req.query?.[ON_CALL_PAGE_LINK_TOKEN_PARAM];
 
           if (
             !OnCallPageLinkToken.isValid({

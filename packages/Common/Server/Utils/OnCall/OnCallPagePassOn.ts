@@ -908,7 +908,10 @@ export default class OnCallPagePassOn {
         executionLogId: run.id!,
         previousLastEscalationRuleExecutedAt:
           run.lastEscalationRuleExecutedAt || null,
-        newLastEscalationRuleExecutedAt: OneUptimeDate.getCurrentDate(),
+        newLastEscalationRuleExecutedAt: OnCallEscalationAdvance.getClaimTime({
+          previous: run.lastEscalationRuleExecutedAt,
+          now: OneUptimeDate.getCurrentDate(),
+        }),
       });
 
     if (!claimed) {
