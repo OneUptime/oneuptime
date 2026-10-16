@@ -16781,7 +16781,7 @@
   "Span Name Remapper Configuration": "スパン名リマッパーの設定",
   "Span Sources": "スパンのソース",
   "Span Status Code": "スパンのステータスコード",
-  "Span Type": "スパンの種類",
+  "Span Type": "スパンタイプ",
   "Span counts or response-time percentiles over time, optionally split by an attribute (e.g. per tenant).": "スパン数または応答時間のパーセンタイルの推移。必要に応じて属性で分割します（例: テナントごと）。",
   "Span details": "スパンの詳細",
   "Span name contains": "スパン名に次を含む",

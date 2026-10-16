@@ -16781,7 +16781,7 @@
   "Span Name Remapper Configuration": "Configuración del reasignador del nombre de span",
   "Span Sources": "Orígenes de spans",
   "Span Status Code": "Código de estado del span",
-  "Span Type": "Tipo de span",
+  "Span Type": "Categoría de span",
   "Span counts or response-time percentiles over time, optionally split by an attribute (e.g. per tenant).": "Número de spans o percentiles del tiempo de respuesta a lo largo del tiempo, opcionalmente divididos por un atributo (p. ej., por tenant).",
   "Span details": "Detalles del span",
   "Span name contains": "El nombre del span contiene",

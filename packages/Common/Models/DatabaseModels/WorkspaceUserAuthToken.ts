@@ -26,12 +26,27 @@ export interface SlackMiscData extends MiscData {
   userId: string;
 }
 
+/*
+ * Which Slack or Microsoft Teams account is which OneUptime member in a
+ * project. A button, a command or a reaction in the chat acts as the member
+ * its account is connected to, with that member's permissions, and the
+ * member's direct messages, channel invitations and Slack or Microsoft Teams
+ * notification method go to the account.
+ *
+ * So a row says that the member signed in to the chat as that account: only
+ * the sign-ins write it (the Slack install and sign-in callbacks, the
+ * Microsoft Teams sign-in callback - WorkspaceUserAuthTokenService
+ * .refreshAuthToken, as OneUptime), each after the chat confirmed the account.
+ * Nobody creates or changes one through the API, not even for themselves:
+ * a row typed in there would connect an account its writer never signed in
+ * to. A member reads and disconnects their own.
+ */
 @TenantColumn("projectId")
 @TableAccessControl({
-  create: [Permission.CurrentUser],
+  create: [],
   read: [Permission.CurrentUser],
   delete: [Permission.CurrentUser],
-  update: [Permission.CurrentUser],
+  update: [],
 })
 @CrudApiEndpoint(new Route("/workspace-user-auth-token"))
 @Entity({
@@ -47,7 +62,7 @@ export interface SlackMiscData extends MiscData {
 @CurrentUserCanAccessRecordBy("userId")
 class WorkspaceUserAuthToken extends BaseModel {
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
+    create: [],
     read: [Permission.CurrentUser],
     update: [],
   })
@@ -73,7 +88,7 @@ class WorkspaceUserAuthToken extends BaseModel {
   public project?: Project = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
+    create: [],
     read: [Permission.CurrentUser],
     update: [],
   })
@@ -93,7 +108,7 @@ class WorkspaceUserAuthToken extends BaseModel {
   public projectId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
+    create: [],
     read: [],
     update: [],
   })
@@ -112,7 +127,7 @@ class WorkspaceUserAuthToken extends BaseModel {
   public authToken?: string = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
+    create: [],
     read: [Permission.CurrentUser],
     update: [],
   })
@@ -133,7 +148,7 @@ class WorkspaceUserAuthToken extends BaseModel {
   public workspaceUserId?: string = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
+    create: [],
     read: [Permission.CurrentUser],
     update: [],
   })
@@ -154,7 +169,7 @@ class WorkspaceUserAuthToken extends BaseModel {
   public workspaceType?: WorkspaceType = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
+    create: [],
     read: [Permission.CurrentUser],
     update: [],
   })
@@ -173,7 +188,7 @@ class WorkspaceUserAuthToken extends BaseModel {
   public miscData?: MiscData = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
+    create: [],
     read: [Permission.CurrentUser],
     update: [],
   })
@@ -199,7 +214,7 @@ class WorkspaceUserAuthToken extends BaseModel {
   public user?: User = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
+    create: [],
     read: [Permission.CurrentUser],
     update: [],
   })
@@ -217,7 +232,7 @@ class WorkspaceUserAuthToken extends BaseModel {
   public userId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
+    create: [],
     read: [Permission.CurrentUser],
     update: [],
   })
@@ -244,7 +259,7 @@ class WorkspaceUserAuthToken extends BaseModel {
   public createdByUser?: User = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
+    create: [],
     read: [Permission.CurrentUser],
     update: [],
   })

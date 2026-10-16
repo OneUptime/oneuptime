@@ -45,9 +45,11 @@ import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
  * allow-list intersection over column names. So on any model whose create list
  * is CurrentUser-only, a caller could write a row owned by somebody else.
  *
- * Sixteen models have that shape, and every one of them is a "my own X"
+ * Fifteen models have that shape, and every one of them is a "my own X"
  * resource: notification rules, all nine notification methods behind them,
- * sessions, TOTP and WebAuthn credentials, workspace tokens. On the
+ * sessions, TOTP and WebAuthn credentials. (Workspace tokens had it too,
+ * until only the Slack and Microsoft Teams sign-ins could write one: nobody
+ * creates one through the API now, not even for themselves.) On the
  * notification models the ownership column is not bookkeeping — it decides
  * whose on-call pages select the row, while the address actually messaged is
  * read from the method relation the row points at. A row owned by one person
@@ -129,7 +131,7 @@ type ModelConstructor = { new (): BaseModel };
  * Every model whose create list is exactly [Permission.CurrentUser]. These are
  * the ones the fix protects, and the ones an attacker could previously write on
  * another user's behalf. Enumerated rather than discovered so that adding a
- * seventeenth model with this shape is a deliberate act that shows up in
+ * sixteenth model with this shape is a deliberate act that shows up in
  * review.
  */
 const CURRENT_USER_ONLY_MODELS: Array<[string, ModelConstructor]> = [
@@ -148,7 +150,6 @@ const CURRENT_USER_ONLY_MODELS: Array<[string, ModelConstructor]> = [
   ["UserSession", UserSession],
   ["UserTotpAuth", UserTotpAuth],
   ["UserWebAuthn", UserWebAuthn],
-  ["WorkspaceUserAuthToken", WorkspaceUserAuthToken],
 ];
 
 function makeRow(
@@ -344,6 +345,39 @@ describe("create-time ownership scoping — the hole", () => {
         memberProps(),
       );
     }).toThrow(NotAuthorizedException);
+  });
+});
+
+describe("a workspace token is created by no caller at all", () => {
+  test("not for another user, and not for the caller themselves: only a Slack or Microsoft Teams sign-in writes one", () => {
+    for (const ownerId of [OTHER_USER_ID, CALLER_ID, undefined]) {
+      expect(() => {
+        return CreatePermission.checkCreatePermissions(
+          WorkspaceUserAuthToken,
+          makeRow(WorkspaceUserAuthToken, ownerId) as never,
+          memberProps(),
+        );
+      }).toThrow(NotAuthorizedException);
+    }
+
+    // Not with a project role either.
+    expect(() => {
+      return CreatePermission.checkCreatePermissions(
+        WorkspaceUserAuthToken,
+        makeRow(WorkspaceUserAuthToken, CALLER_ID) as never,
+        adminProps(Permission.ProjectOwner),
+      );
+    }).toThrow(NotAuthorizedException);
+  });
+
+  test("the sign-ins' own write, as OneUptime, is not held to it", () => {
+    expect(() => {
+      return CreatePermission.checkCreatePermissions(
+        WorkspaceUserAuthToken,
+        makeRow(WorkspaceUserAuthToken, OTHER_USER_ID) as never,
+        { isRoot: true },
+      );
+    }).not.toThrow();
   });
 });
 

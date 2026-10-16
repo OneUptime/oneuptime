@@ -40,6 +40,7 @@ import {
   generateCompareMarkdown,
   generateProductsJson,
   generateCompareIndexJson,
+  generateResellersMarkdown,
   RecentBlogPostLink,
 } from "./Utils/AIDiscovery";
 import { generateNostrWellKnown } from "./Utils/Nostr";
@@ -52,6 +53,12 @@ import { getSelfHostedContent } from "./Utils/SelfHosted";
 import { getDatabasesPageContent } from "./Utils/Databases";
 import { getQueuesPageContent } from "./Utils/Queues";
 import { getCliPageContent } from "./Utils/CliPage";
+import { getResellersPageContent } from "./Utils/Resellers";
+import {
+  ResellerInquiryHandlerOptions,
+  createDefaultResellerInquiryOptions,
+  registerResellerInquiryRoute,
+} from "./API/ResellerInquiryAPI";
 import { redirectPreservingQuery } from "./Utils/Redirect";
 import { redirectLegacyUrl } from "./Utils/LegacyRedirects";
 import { fetchGitHubContributors } from "./Utils/GitHubContributors";
@@ -114,6 +121,10 @@ const getSEOForPath: (
 const HomeFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
+
+    // Where the Resellers page's form sends, and its limits (/resellers).
+    const resellerInquiry: ResellerInquiryHandlerOptions =
+      createDefaultResellerInquiryOptions();
 
     /*
      * The compiled Tailwind stylesheet the image build wrote
@@ -420,6 +431,13 @@ const HomeFeatureSet: FeatureSet = {
 
       if (pagePath === "/pricing") {
         markdown = generatePricingMarkdown(homeUrl);
+      } else if (pagePath === "/resellers") {
+        markdown = generateResellersMarkdown(
+          homeUrl,
+          getResellersPageContent({
+            inquiryInbox: resellerInquiry.inbox.toString(),
+          }),
+        );
       } else if (pagePath.startsWith("/compare/")) {
         markdown = generateCompareMarkdown(
           pagePath.replace("/compare/", ""),
@@ -587,6 +605,29 @@ const HomeFeatureSet: FeatureSet = {
         });
       },
     );
+
+    /*
+     * Resellers: the companies that sell OneUptime by region, and the form
+     * other companies send to become one (Utils/Resellers.ts). The form
+     * posts to RESELLER_INQUIRY_PATH, which emails the one inbox inquiries
+     * go to (API/ResellerInquiryAPI.ts); the page names that inbox for
+     * people who would rather write.
+     */
+    app.get("/resellers", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/resellers",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/resellers`, {
+        enableGoogleTagManager: GoogleTagManagerEnabled,
+        seo,
+        resellers: getResellersPageContent({
+          inquiryInbox: resellerInquiry.inbox.toString(),
+        }),
+      });
+    });
+
+    registerResellerInquiryRoute(app, resellerInquiry);
 
     app.get(
       "/product/status-page",

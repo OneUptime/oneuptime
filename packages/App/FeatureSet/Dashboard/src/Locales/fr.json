@@ -16781,7 +16781,7 @@
   "Span Name Remapper Configuration": "Span Name Remapper Configuration",
   "Span Sources": "Span Sources",
   "Span Status Code": "Span Status Code",
-  "Span Type": "Span Type",
+  "Span Type": "Catégorie de span",
   "Span counts or response-time percentiles over time, optionally split by an attribute (e.g. per tenant).": "Span counts or response-time percentiles over time, optionally split by an attribute (e.g. per tenant).",
   "Span details": "Span details",
   "Span name contains": "Span name contains",

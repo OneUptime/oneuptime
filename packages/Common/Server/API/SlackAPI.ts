@@ -2341,6 +2341,7 @@ export default class SlackAPI {
       await WorkspaceUserAuthTokenService.findOneBy({
         query: {
           workspaceUserId: slackUserId,
+          workspaceType: WorkspaceType.Slack,
           projectId: projectId,
         },
         select: {

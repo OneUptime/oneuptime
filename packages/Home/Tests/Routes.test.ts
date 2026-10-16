@@ -677,3 +677,40 @@ describe("One handler per path", () => {
     expect(redirectsPermanently("/status-page")).toBe(true);
   });
 });
+
+describe("Resellers routes", () => {
+  test("/resellers renders its page with its SEO entry and the resellers", () => {
+    const body: string | null = bodyOfGetRoute("/resellers");
+
+    expect(body).not.toBeNull();
+    expect(body).toMatch(/getSEOForPath\(\s*"\/resellers"/);
+    expect(body).toContain("`${ViewsPath}/resellers`");
+    expect(body).toContain("resellers: getResellersPageContent(");
+  });
+
+  test("the page names the inbox the form's route sends to", () => {
+    expect(bodyOfGetRoute("/resellers")).toContain(
+      "inquiryInbox: resellerInquiry.inbox.toString()",
+    );
+  });
+
+  test("the form's route is registered once, with the production settings", () => {
+    expect(
+      routesSource.split("registerResellerInquiryRoute(app, resellerInquiry)")
+        .length - 1,
+    ).toBe(1);
+    expect(
+      routesSource.split("createDefaultResellerInquiryOptions()").length - 1,
+    ).toBe(1);
+  });
+
+  test("/resellers.md lists the resellers rather than the page's description alone", () => {
+    expect(routesSource).toContain('pagePath === "/resellers"');
+    expect(routesSource).toContain("generateResellersMarkdown(");
+  });
+
+  test("/resellers is a page, not a redirect", () => {
+    expect(redirectTargetOf("/resellers")).toBeNull();
+    expect(isRedirectPath("/resellers")).toBe(false);
+  });
+});
