@@ -63,7 +63,7 @@ Jeder Tarif zeigt seinen Preis pro Benutzer. Der Hinweis unter den Tarifen sagt,
 Klicken Sie auf **Änderungen speichern**. Ein kostenpflichtiger Tarif wird ab dem Moment des Wechsels abgerechnet, und jede Person, die Sie in diesem Tarif einladen, wird bei der Einladung abgerechnet.
 :::
 
-API-Schlüssel funktionieren nur im Growth-Tarif, und unterhalb des Scale-Tarifs entfernen SCIM-Verbindungen nur noch Personen. Ein Tarif, der sie stoppt, sagt vor der Wahl, wie viele es betrifft, und die Seite **Abrechnung** zeigt **In diesem Tarif nicht enthalten**, solange sie gestoppt sind. Nichts wird gelöscht: In einem Tarif, der sie enthält, funktionieren sie wieder.
+API-Schlüssel funktionieren erst ab dem Growth-Tarif, und unterhalb des Scale-Tarifs entfernen SCIM-Verbindungen nur noch Personen. Ein Tarif, der sie stoppt, sagt vor der Wahl, wie viele es betrifft, und die Seite **Abrechnung** zeigt **In diesem Tarif nicht enthalten**, solange sie gestoppt sind. Nichts wird gelöscht: In einem Tarif, der sie enthält, funktionieren sie wieder.
 
 > [!NOTE]
 > Haben Sie OneUptime über einen Wiederverkäufer oder einen Cloud-Marketplace gekauft (AWS Marketplace, Microsoft Marketplace oder Google Cloud Marketplace)? Die Seite **Abrechnung** sagt es. Ein Wiederverkäufer ändert Ihren Tarif für Sie, und ein Marketplace rechnet Tarif und Nutzung des Projekts über Ihre Cloud-Rechnung ab.

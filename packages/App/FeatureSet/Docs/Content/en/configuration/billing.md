@@ -63,7 +63,7 @@ Each plan shows its price per user. The note under the plans says what happens t
 Click **Save Changes**. A paid plan is billed from the moment you change to it, and every person you invite on it is billed when you invite them.
 :::
 
-API keys work only on the Growth plan, and below the Scale plan SCIM connections only remove people. A plan that stops them says how many before you pick it, and the **Billing** page shows **Not included in this plan** while they are stopped. Nothing is deleted: they work again on a plan that includes them.
+API keys need the Growth plan or a higher one, and below the Scale plan SCIM connections only remove people. A plan that stops them says how many before you pick it, and the **Billing** page shows **Not included in this plan** while they are stopped. Nothing is deleted: they work again on a plan that includes them.
 
 > [!NOTE]
 > Bought OneUptime through a reseller or a cloud marketplace (AWS Marketplace, Microsoft Marketplace or Google Cloud Marketplace)? The **Billing** page says so. A reseller changes your plan for you, and a marketplace bills the project's plan and usage on your cloud bill.

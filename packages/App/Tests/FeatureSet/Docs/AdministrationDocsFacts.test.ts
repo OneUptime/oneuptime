@@ -1195,8 +1195,17 @@ describe("Billing & Usage", () => {
   it("names the plans API keys and SCIM connections need, as the plan cut-off reads them", () => {
     expect(new ApiKey().getCreateBillingPlan()).toBe(PlanType.Growth);
     expect(new ProjectSCIM().getCreateBillingPlan()).toBe(PlanType.Scale);
+
+    // A plan at or above the one they need keeps them working: Scale and Enterprise too.
+    const cutoff: string = readDashboardSource(
+      "Components/Billing/PlanCutoff.ts",
+    );
+
+    expect(cutoff).toContain("return isPlanAtLeast(");
+    expect(cutoff).toContain("new ApiKey().getCreateBillingPlan()");
+    expect(cutoff).toContain("new ProjectSCIM().getCreateBillingPlan()");
     expect(section(page, "## Change the plan")).toContain(
-      "API keys work only on the Growth plan, and below the Scale plan SCIM connections only remove people.",
+      "API keys need the Growth plan or a higher one, and below the Scale plan SCIM connections only remove people.",
     );
   });
 

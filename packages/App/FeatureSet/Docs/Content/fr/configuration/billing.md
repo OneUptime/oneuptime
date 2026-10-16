@@ -63,7 +63,7 @@ Chaque forfait affiche son prix par utilisateur. La note sous les forfaits dit c
 Cliquez sur **Enregistrer les modifications**. Un forfait payant est facturé dès que vous y passez, et chaque personne que vous invitez sur ce forfait est facturée au moment de l'invitation.
 :::
 
-Les clés API ne fonctionnent qu'avec le forfait Growth, et sous le forfait Scale, les connexions SCIM ne font plus que retirer des personnes. Un forfait qui les arrête indique combien sont concernées avant que vous le choisissiez, et la page **Facturation** affiche **Non inclus dans ce forfait** tant qu'elles sont arrêtées. Rien n'est supprimé : elles fonctionnent de nouveau avec un forfait qui les inclut.
+Les clés API ne fonctionnent qu'à partir du forfait Growth, et sous le forfait Scale, les connexions SCIM ne font plus que retirer des personnes. Un forfait qui les arrête indique combien sont concernées avant que vous le choisissiez, et la page **Facturation** affiche **Non inclus dans ce forfait** tant qu'elles sont arrêtées. Rien n'est supprimé : elles fonctionnent de nouveau avec un forfait qui les inclut.
 
 > [!NOTE]
 > Vous avez acheté OneUptime via un revendeur ou une marketplace cloud (AWS Marketplace, Microsoft Marketplace ou Google Cloud Marketplace) ? La page **Facturation** l'indique. Un revendeur change votre forfait pour vous, et une marketplace facture le forfait et l'utilisation du projet sur votre facture cloud.

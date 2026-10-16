@@ -63,7 +63,7 @@ Elk abonnement toont zijn prijs per gebruiker. De opmerking onder de abonnemente
 Klik op **Wijzigingen opslaan**. Een betaald abonnement wordt gefactureerd vanaf het moment dat u overstapt, en elke persoon die u daarop uitnodigt, wordt gefactureerd bij de uitnodiging.
 :::
 
-API-sleutels werken alleen met het Growth-abonnement, en onder het Scale-abonnement verwijderen SCIM-koppelingen alleen nog mensen. Een abonnement dat ze stopt, zegt hoeveel het er betreft voordat u het kiest, en de pagina **Facturering** toont **Niet inbegrepen in dit abonnement** zolang ze gestopt zijn. Er wordt niets verwijderd: met een abonnement dat ze omvat, werken ze weer.
+API-sleutels werken alleen met het Growth-abonnement of een hoger abonnement, en onder het Scale-abonnement verwijderen SCIM-koppelingen alleen nog mensen. Een abonnement dat ze stopt, zegt hoeveel het er betreft voordat u het kiest, en de pagina **Facturering** toont **Niet inbegrepen in dit abonnement** zolang ze gestopt zijn. Er wordt niets verwijderd: met een abonnement dat ze omvat, werken ze weer.
 
 > [!NOTE]
 > OneUptime gekocht via een wederverkoper of een cloudmarketplace (AWS Marketplace, Microsoft Marketplace of Google Cloud Marketplace)? De pagina **Facturering** zegt dat. Een wederverkoper wijzigt uw abonnement voor u, en een marketplace factureert het abonnement en het gebruik van het project via uw cloudrekening.

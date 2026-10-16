@@ -63,7 +63,7 @@ Cada plano mostra o preço por usuário. A nota abaixo dos planos diz o que acon
 Clique em **Salvar alterações**. Um plano pago é cobrado a partir do momento em que você muda para ele, e cada pessoa que você convida nele é cobrada no momento do convite.
 :::
 
-As chaves de API só funcionam no plano Growth, e abaixo do plano Scale as conexões SCIM só removem pessoas. Um plano que as interrompe diz quantas antes de você escolhê-lo, e a página **Cobrança** mostra **Não incluído neste plano** enquanto estiverem interrompidas. Nada é excluído: elas voltam a funcionar em um plano que as inclua.
+As chaves de API só funcionam a partir do plano Growth, e abaixo do plano Scale as conexões SCIM só removem pessoas. Um plano que as interrompe diz quantas antes de você escolhê-lo, e a página **Cobrança** mostra **Não incluído neste plano** enquanto estiverem interrompidas. Nada é excluído: elas voltam a funcionar em um plano que as inclua.
 
 > [!NOTE]
 > Comprou o OneUptime por um revendedor ou por um marketplace de nuvem (AWS Marketplace, Microsoft Marketplace ou Google Cloud Marketplace)? A página **Cobrança** informa isso. Um revendedor muda o seu plano por você, e um marketplace cobra o plano e o uso do projeto na sua fatura de nuvem.
