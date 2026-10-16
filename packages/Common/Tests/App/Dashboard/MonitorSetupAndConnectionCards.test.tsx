@@ -3,6 +3,7 @@
 import "@testing-library/jest-dom";
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -16,8 +17,13 @@ import {
   screen,
   within,
 } from "@testing-library/react";
+import fs from "fs";
+import { createInstance, i18n } from "i18next";
+import path from "path";
 import React, { ReactElement } from "react";
+import { I18nextProvider } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
+import { JSONObject } from "../../../Types/JSON";
 
 /*
  * The push-based monitors' setup and connection cards, and the manual
@@ -614,5 +620,81 @@ describe("MonitorManualGuideCard", () => {
       "data-header-layout",
       "stacked",
     );
+  });
+});
+
+/*
+ * The card's sentences were translated, but its links ("Open status
+ * timeline", "View incidents") are SloOverviewActionLink titles, which were
+ * drawn as written: a German reader got German sentences with English links
+ * under them.
+ */
+describe("MonitorManualGuideCard in German", () => {
+  const german: i18n = createInstance();
+
+  // The Dashboard's own German file, so a missing translation fails here.
+  const GERMAN: JSONObject = JSON.parse(
+    fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "..",
+        "App",
+        "FeatureSet",
+        "Dashboard",
+        "src",
+        "Locales",
+        "de.json",
+      ),
+      "utf8",
+    ),
+  ) as JSONObject;
+
+  function inGerman(key: string): string {
+    const value: unknown = GERMAN[key];
+
+    if (typeof value !== "string" || value === key) {
+      throw new Error(`"${key}" has no German translation.`);
+    }
+
+    return value;
+  }
+
+  // Before the fake clock of each test: i18next's init waits on a timer.
+  beforeAll(async () => {
+    await german.init({
+      lng: "de",
+      resources: { de: { translation: GERMAN } },
+      interpolation: { escapeValue: false },
+      keySeparator: false,
+      nsSeparator: false,
+    });
+  });
+
+  test("reads in German, its links included", () => {
+    renderInRouter(
+      <I18nextProvider i18n={german}>
+        <MonitorManualGuideCard monitorId={MONITOR_ID} />
+      </I18nextProvider>,
+    );
+
+    expect(
+      screen.getByText(
+        inGerman(
+          "Change the status from the menu (⋯) at the top of this page. The status timeline keeps every change.",
+        ),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: inGerman("Open status timeline") }),
+    ).toHaveAttribute("href", routeFor(PageMap.MONITOR_VIEW_STATUS_TIMELINE));
+    expect(
+      screen.getByRole("link", { name: inGerman("View incidents") }),
+    ).toHaveAttribute("href", routeFor(PageMap.MONITOR_VIEW_INCIDENTS));
+    expect(
+      screen.queryByRole("link", { name: "Open status timeline" }),
+    ).toBeNull();
   });
 });

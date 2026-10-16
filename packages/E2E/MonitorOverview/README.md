@@ -132,12 +132,16 @@ another monitor lands on a plain, healthy one.
 - **The hero's actions**: Refresh is an icon button with its tooltip ("Refresh now. This page
   also refreshes every minute.") and "Refreshed at 12:00" beside it, re-reads the page and runs
   no check; Refresh and a manual monitor's ⋯ keep to the top right, on the badges' line, at
-  1440, 1280, 1024, 768, 640 and 390px (the time left out below 1024px); the pulse sits under
-  them from lg and after the text below it. A manual monitor's ⋯ lists "Change status to"
-  Degraded and Offline in their colours; picking Offline asks, records a status event (no
-  `startsAt`), and the hero turns Offline; Escape and Cancel change nothing; the keyboard alone
-  works; a viewer finds the statuses locked with the reason; `fail=change-status` keeps the
-  dialog open with the reason; the menu and dialog fit 390px; dark mode.
+  1440, 1280, 1024, 768, 640 and 390px (the time left out below 1280px, so at 1024px the text
+  keeps at least 60% of the hero's row); the pulse sits under them from lg and after the text
+  below it; the call to action ("Turn monitoring on", free and locked, and "Check probes")
+  starts where the headline does at 1440, 1024, 768 and 390px. A manual monitor's ⋯ lists
+  "Change status to" Degraded and Offline in their colours; picking Offline asks, records a
+  status event (no `startsAt`), says "Status changed to Offline." in a status region, gives
+  the focus back to the ⋯, and the hero turns Offline; Escape and Cancel change nothing; the
+  keyboard alone works; a viewer finds the statuses locked with the reason;
+  `fail=change-status` keeps the dialog open with the reason; the menu and dialog fit 390px;
+  dark mode.
 - **Monitoring Logs**: the incoming email monitor's Email column (subject over sender, "Scheduled
   check"), View Summary on an email row and on a scheduled check, the table inside the card at
   1280px and 1440px (View Summary never pushed off it), no sideways scroll at 390px, and the
