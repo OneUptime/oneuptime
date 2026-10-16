@@ -88,7 +88,7 @@ Sophos가 active로 보고하는 터널은 보안 연결(SA)이 올라와 있다
 
 ### 트랩
 
-Sophos의 모든 알림은 같은 트랩 `sfosNotification`(`1.3.6.1.4.1.2604.5.1.8.1.1`)이며, 이벤트는 `sfosTrapMessage`(`1.3.6.1.4.1.2604.5.1.8.1.2`)에 텍스트로 들어 있습니다. 한 종류의 이벤트에 알림을 걸려면 **SNMP Trap Received (Trap OID)** Equal To `1.3.6.1.4.1.2604.5.1.8.1.1`과, 그 varbind에 대한 **SNMP Trap Varbind Value**(예: Contains `IPSec`)를 결합하세요. 방화벽의 트랩 대상은 SNMP v2c로 설정하세요. 프로브의 트랩 수신기는 v1과 v2c 트랩을 받습니다.
+Sophos의 모든 알림은 같은 트랩 `sfosNotification`(`1.3.6.1.4.1.2604.5.1.8.1.1`)이며, 이벤트는 `sfosTrapMessage`(`1.3.6.1.4.1.2604.5.1.8.1.2`)에 텍스트로 들어 있습니다. 한 종류의 이벤트에 알림을 걸려면 **SNMP Trap Received (Trap OID)** 같음 `1.3.6.1.4.1.2604.5.1.8.1.1`과, 그 varbind에 대한 **SNMP Trap Varbind Value**(예: 포함 `IPSec`)를 결합하세요. 방화벽의 트랩 대상은 SNMP v2c로 설정하세요. 프로브의 트랩 수신기는 v1과 v2c 트랩을 받습니다.
 
 ## Extreme Networks (EXOS / Switch Engine 및 Fabric Engine / VOSS)
 
@@ -130,9 +130,9 @@ IQ Engine(HiveOS) 액세스 포인트와 ExtremeCloud IQ Controller에는 자체
 | 알림 | 기준 |
 | --- | --- |
 | 꺼진 무선 | **SNMP Table Row Is Unhealthy**, 권장 알림에 포함 |
-| 송신 전력 변경 | **SNMP Table Value**, 열 TX Power, 계획한 전력과 Not Equal To |
-| 붐비는 무선 | **SNMP Table Value**, 열 Clients, 한도보다 Greater Than |
-| 시끄러운 채널 | **SNMP Table Value**, 열 Noise Floor, Greater Than `-80` |
+| 송신 전력 변경 | **SNMP Table Value**, 열 TX Power, 계획한 전력과 같지 않음 |
+| 붐비는 무선 | **SNMP Table Value**, 열 Clients, 한도보다 큼 |
+| 시끄러운 채널 | **SNMP Table Value**, 열 Noise Floor, 보다 큼 `-80` |
 
 모든 숫자 무선 값은 메트릭(`oneuptime.monitor.snmp.table.value`, 무선과 열마다 하나의 시계열)이기도 하므로, 채널, 전력, 클라이언트를 대시보드에서 시간에 따라 차트로 그릴 수 있습니다. 계속 바뀌는 채널은 DFS가 작동하고 있다는 뜻입니다.
 

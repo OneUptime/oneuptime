@@ -270,7 +270,7 @@ OneUptime برای مشکلات رایج VMware در مجموع ۲۳ قالب د
 | --- | --- |
 | **متریک** | پرس‌وجو یا فرمولی که بررسی می‌شود، بر پایه نام متغیرش. |
 | **تجمیع** | اینکه مقدارهای پنجره چطور به یک پاسخ تبدیل می‌شوند: **میانگین**، **جمع**، **Maximum Value**، **Minimum Value**، **All Values** (همه مقدارها باید جور باشند) یا **Any Value** (یکی کافی است). |
-| **شرط** | **Greater Than**، **Less Than**، **Greater Than Or Equal To**، **Less Than Or Equal To** یا **Equal To** – یا یک شرط ناهنجاری: **Anomalously High**، **Anomalously Low** یا **Anomalous**. |
+| **شرط** | **بزرگ‌تر از**، **کوچک‌تر از**، **بزرگ‌تر یا برابر با**، **کوچک‌تر یا برابر با** یا **برابر با** – یا یک شرط ناهنجاری: **Anomalously High**، **Anomalously Low** یا **Anomalous**. |
 | **Threshold** | مقداری که با آن مقایسه می‌شود. وقتی متریک یکا دارد، فهرستی از یکاها کنارش هست. برای شرط‌های ناهنجاری نشان داده نمی‌شود. |
 | **حساسیت** | فقط شرط‌های ناهنجاری. **پایین** (۴σ)، **متوسط** (۳σ، پیش‌فرض) یا **بالا** (۲σ). |
 | **پنجره مبنا** | فقط شرط‌های ناهنجاری. ۱۴ روز (پیش‌فرض)، ۲۸، ۶۰ یا ۹۰ روز سابقه. |
@@ -280,11 +280,11 @@ OneUptime برای مشکلات رایج VMware در مجموع ۲۳ قالب د
 
 چند معیار برای شروع:
 
-- **یک میزبان اشباع شده است:** `vcenter.host.cpu.utilization`، میانگین، گروه‌بندی‌شده بر پایه `resource.vcenter.host.name`، **Greater Than** `90`، در ۵ دقیقه گذشته.
-- **یک دیتااستور در حال پر شدن است:** `vcenter.datastore.disk.utilization`، میانگین، گروه‌بندی‌شده بر پایه `resource.vcenter.datastore.name`، **Greater Than** `80`.
-- **یک خوشه میزبانی را از دست داده است:** `vcenter.cluster.host.count` با فیلتر `effective = false`، بیشینه، گروه‌بندی‌شده بر پایه `resource.vcenter.cluster.name`، **Greater Than** `0`.
-- **ماشین‌های مجازی در حال اجرا کمتر از انتظارند:** `vcenter.cluster.vm.count` با فیلتر `power_state = on` و `resource.vcenter.cluster.name = Production`، جمع، **Less Than** عددی که انتظار دارید.
-- **میزبان حافظه یک ماشین مجازی را سواپ می‌کند:** `vcenter.vm.memory.swapped`، بیشینه، گروه‌بندی‌شده بر پایه `resource.vcenter.vm.name`، **Greater Than** `0`.
+- **یک میزبان اشباع شده است:** `vcenter.host.cpu.utilization`، میانگین، گروه‌بندی‌شده بر پایه `resource.vcenter.host.name`، **بزرگ‌تر از** `90`، در ۵ دقیقه گذشته.
+- **یک دیتااستور در حال پر شدن است:** `vcenter.datastore.disk.utilization`، میانگین، گروه‌بندی‌شده بر پایه `resource.vcenter.datastore.name`، **بزرگ‌تر از** `80`.
+- **یک خوشه میزبانی را از دست داده است:** `vcenter.cluster.host.count` با فیلتر `effective = false`، بیشینه، گروه‌بندی‌شده بر پایه `resource.vcenter.cluster.name`، **بزرگ‌تر از** `0`.
+- **ماشین‌های مجازی در حال اجرا کمتر از انتظارند:** `vcenter.cluster.vm.count` با فیلتر `power_state = on` و `resource.vcenter.cluster.name = Production`، جمع، **کوچک‌تر از** عددی که انتظار دارید.
+- **میزبان حافظه یک ماشین مجازی را سواپ می‌کند:** `vcenter.vm.memory.swapped`، بیشینه، گروه‌بندی‌شده بر پایه `resource.vcenter.vm.name`، **بزرگ‌تر از** `0`.
 
 ### معیارهای پیش‌فرض
 

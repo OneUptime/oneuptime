@@ -101,10 +101,10 @@ sequenceDiagram
 | --- | --- | --- |
 | **NTP Is Online** | **是**、**否** | 伺服器是否以 NTP 回應答覆了探測器的請求。kiss-o'-death 也算回應。 |
 | **NTP Is Synchronized** | **是**、**否** | 已回應的伺服器是否提供已同步的時間。伺服器沒有回應時不會檢查此篩選器；這種情況請使用 **NTP Is Online**。 |
-| **NTP Stratum** | **Greater Than**、**Greater Than Or Equal To**、**Less Than**、**Less Than Or Equal To**、**Equal To**、**Not Equal To** | 伺服器的階層。kiss-o'-death 的 0 會以 16（未同步）計算。 |
-| **NTP Clock Offset (in ms)** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 伺服器的時鐘與探測器的時鐘相差多少，不分方向。 |
-| **NTP Response Time (in ms)** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 從請求到回應的時間。 |
-| **NTP Root Dispersion (in ms)** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 伺服器自己估計的最大誤差。 |
+| **NTP Stratum** | **大於**、**大於或等於**、**小於**、**小於或等於**、**等於**、**不等於** | 伺服器的階層。kiss-o'-death 的 0 會以 16（未同步）計算。 |
+| **NTP Clock Offset (in ms)** | **大於**、**小於**、**大於或等於**、**小於或等於** | 伺服器的時鐘與探測器的時鐘相差多少，不分方向。 |
+| **NTP Response Time (in ms)** | **大於**、**小於**、**大於或等於**、**小於或等於** | 從請求到回應的時間。 |
+| **NTP Root Dispersion (in ms)** | **大於**、**小於**、**大於或等於**、**小於或等於** | 伺服器自己估計的最大誤差。 |
 
 有兩個或更多篩選器時，**符合條件** 決定必須 **全部** 符合，還是 **任何** 一個符合即可。條件的 **操作** 決定它要做什麼：變更監測器狀態、建立警示、宣告事件，或這些的任意組合。
 
@@ -125,10 +125,10 @@ sequenceDiagram
 
 | 目標 | 篩選器 | 條件 | 值 |
 | --- | --- | --- | --- |
-| GPS 伺服器退回網路來源時發出警示 | **NTP Stratum** | **Greater Than** | `1` |
-| 時鐘漂移時發出警示 | **NTP Clock Offset (in ms)** | **Greater Than** | `100` |
-| 伺服器的誤差上限變大時發出警示 | **NTP Root Dispersion (in ms)** | **Greater Than** | `500` |
-| 回應變慢時發出警示 | **NTP Response Time (in ms)** | **Greater Than** | `1000` |
+| GPS 伺服器退回網路來源時發出警示 | **NTP Stratum** | **大於** | `1` |
+| 時鐘漂移時發出警示 | **NTP Clock Offset (in ms)** | **大於** | `100` |
+| 伺服器的誤差上限變大時發出警示 | **NTP Root Dispersion (in ms)** | **大於** | `500` |
+| 回應變慢時發出警示 | **NTP Response Time (in ms)** | **大於** | `1000` |
 
 ## 疑難排解
 

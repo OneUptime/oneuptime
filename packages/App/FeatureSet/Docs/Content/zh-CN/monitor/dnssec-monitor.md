@@ -93,7 +93,7 @@ flowchart TB
 | **DNSSEC Chain Is Valid** | **是**、**否** | 上述四项检查全部成立：密钥已发布、父区域中有 DS、签名存在且剩余一天或更久，以及每个解析器都返回 AD 标志。 |
 | **DNSSEC DNSKEY Record Exists** | **是**、**否** | 区域至少发布了一条 DNSKEY 记录。 |
 | **DNSSEC DS Record Exists At Parent** | **是**、**否** | 父区域为该区域发布了 DS 记录。 |
-| **DNSSEC Signature Expires In Days** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 距最早过期的签名（RRSIG）过期还剩的整天数。 |
+| **DNSSEC Signature Expires In Days** | **大于**、**小于**、**大于或等于**、**小于或等于** | 距最早过期的签名（RRSIG）过期还剩的整天数。 |
 | **DNSSEC Resolver Consensus (AD Flag)** | **是**、**否** | **解析器** 中的每个解析器都返回 AD 标志。 |
 | **DNSSEC Nameservers Are Consistent** | **是**、**否** | 每个权威域名服务器都以相同的 SOA 序列号应答。在 **检查域名服务器一致性** 关闭期间始终为 **是**。 |
 
@@ -115,7 +115,7 @@ flowchart TB
 | 目标 | 筛选器 | 条件 | 值 |
 | --- | --- | --- | --- |
 | 信任链断裂时为离线（默认条件之一） | **DNSSEC Chain Is Valid** | **否** | — |
-| 在签名过期之前发出警告 | **DNSSEC Signature Expires In Days** | **Less Than** | `7` |
+| 在签名过期之前发出警告 | **DNSSEC Signature Expires In Days** | **小于** | `7` |
 | 发现丢失了 DS 记录的委派 | **DNSSEC DS Record Exists At Parent** | **否** | — |
 | 发现意见不一致的解析器 | **DNSSEC Resolver Consensus (AD Flag)** | **否** | — |
 | 发现不同步的域名服务器 | **DNSSEC Nameservers Are Consistent** | **否** | — |
@@ -123,7 +123,7 @@ flowchart TB
 ## 最佳实践
 
 1. **选择始终可以访问的解析器。** 每个解析器都必须返回 AD 标志，信任链才算有效，因此探测器无法访问的解析器会在重试用完后让检查失败。默认值 `1.1.1.1`、`8.8.8.8` 和 `9.9.9.9` 由三家不同的运营方运行，这还能发现在一个解析器上通过验证、在另一个解析器上却通不过的区域。
-2. **在签名过期之前收到警告。** 签名工具会在签名到期之前为区域重新签名，因此临近过期的签名意味着重新签名已经停止。添加一个 **DNSSEC Signature Expires In Days** / **Less Than** / `7` 的条件来创建警报，再添加一个值为 `2` 的条件来声明事件。由于第一个匹配的条件生效，请把两者都拖到将信任链标记为有效的条件上方，并把 `2` 天的条件放在前面。选择低于签名工具重新签名前通常为签名保留的时长的阈值，这样在重新签名正常时它们会保持安静。
+2. **在签名过期之前收到警告。** 签名工具会在签名到期之前为区域重新签名，因此临近过期的签名意味着重新签名已经停止。添加一个 **DNSSEC Signature Expires In Days** / **小于** / `7` 的条件来创建警报，再添加一个值为 `2` 的条件来声明事件。由于第一个匹配的条件生效，请把两者都拖到将信任链标记为有效的条件上方，并把 `2` 天的条件放在前面。选择低于签名工具重新签名前通常为签名保留的时长的阈值，这样在重新签名正常时它们会保持安静。
 3. **监控每个已签名的区域。** 包括顶点域名、已签名的子域名，以及委派给其他运营方的任何区域。
 4. **保持域名服务器一致性检查为打开状态，** 并为它添加一个条件。它能发现已停止从主服务器同步区域传送的辅助服务器，而仅靠 DNSSEC 验证可能会漏掉这一点。
 

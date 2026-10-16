@@ -198,7 +198,7 @@ Ein neuer Monitor für eingehende Anfragen wird mit zwei Kriterien erstellt, die
 | Kriterium | Filtertyp | Filterbedingung | Wert | Wirkung |
 | -------- | ------------ | ---------------- | ------- | -------------------------------------------- |
 | Offline  | Anfragetext | Enthält | `error` | Markiert den Monitor als offline, eröffnet einen Vorfall |
-| Online   | Anfragetext | Not Contains | `error` | Markiert den Monitor als online |
+| Online   | Anfragetext | Enthält nicht | `error` | Markiert den Monitor als online |
 
 Das passt zum häufigen Fall, dass der Absender seinen eigenen Zustand in der Nutzlast meldet: Eine Anfrage, deren Body `error` erwähnt, nimmt den Monitor offline, und die nächste Anfrage ohne das Wort bringt ihn wieder online und behebt den Vorfall. Eine Anfrage ganz ohne Body gilt als "enthält nicht `error`", ein einfacher Heartbeat-Aufruf hält den Monitor also online.
 
@@ -224,7 +224,7 @@ Jeder Filtertyp bietet eigene Bedingungen:
 | Filtertyp | Bedingungen |
 | --- | --- |
 | **Eingehende Anfrage** | **Recieved In Minutes** — innerhalb der angegebenen Zahl von Minuten ging eine Anfrage ein. **Not Recieved In Minutes** — innerhalb der angegebenen Zahl von Minuten ging keine Anfrage ein. (Das Dashboard schreibt sie so.) |
-| **Anfragetext**, **Request Header**, **Request Header Value** | **Enthält** und **Not Contains** |
+| **Anfragetext**, **Request Header**, **Request Header Value** | **Enthält** und **Enthält nicht** |
 | **JavaScript Expression** | **Evaluates To True** |
 
 > [!NOTE]
@@ -251,7 +251,7 @@ Objekt-Bodys werden als kompaktes JSON ohne Leerzeichen verglichen, ein Filter *
 | **Wert** | `"status":"degraded"` |
 
 > [!IMPORTANT]
-> Setzen Sie den Totmannschalter **über** die Standardkriterien. Kriterien werden von oben geprüft, und das erste, das zutrifft, entscheidet. Die Prüfung im Hintergrund liest die letzte Anfrage erneut, das Online-Standardkriterium — "Request Body Not Contains `error`" — trifft also weiter darauf zu, und ein Kriterium darunter kommt nie an die Reihe. **Kriterien hinzufügen** fügt ein Kriterium unten an: Ziehen Sie es nach oben.
+> Setzen Sie den Totmannschalter **über** die Standardkriterien. Kriterien werden von oben geprüft, und das erste, das zutrifft, entscheidet. Die Prüfung im Hintergrund liest die letzte Anfrage erneut, das Online-Standardkriterium — "Anfragetext Enthält nicht `error`" — trifft also weiter darauf zu, und ein Kriterium darunter kommt nie an die Reihe. **Kriterien hinzufügen** fügt ein Kriterium unten an: Ziehen Sie es nach oben.
 
 > [!WARNING]
 > Ein Monitor wird nur dann im Hintergrund erneut geprüft, wenn mindestens eines seiner Kriterien **Eingehende Anfrage** prüft. Ein Monitor, dessen Kriterien nur Anfragetext, Request Header oder einen JavaScript-Ausdruck prüfen, wird geprüft, wenn eine Anfrage eintrifft, und zu keinem anderen Zeitpunkt — er kann also nie von selbst offline gehen. Wenn Sie einen Alarm bei fehlendem Heartbeat wollen, brauchen Sie ein Kriterium **Eingehende Anfrage**.

@@ -177,15 +177,15 @@ De criteria van een Custom Code-monitor kunnen controleren:
 
 | Filtertype | Wat het controleert | Filtervoorwaarden |
 | --- | --- | --- |
-| **Fout** | De fout die het script gooide, als die er is. | Bevat, Not Contains, Equal To, Not Equal To, Is Empty, Is Not Empty |
-| **Result Value** | De `data` die het script teruggaf. Als getal vergeleken als het er een is. | Dezelfde, plus Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To, Waar en Onwaar |
+| **Fout** | De fout die het script gooide, als die er is. | Bevat, Bevat niet, Gelijk aan, Niet gelijk aan, Is leeg, Is niet leeg |
+| **Result Value** | De `data` die het script teruggaf. Als getal vergeleken als het er een is. | Dezelfde, plus Groter dan, Kleiner dan, Groter dan of gelijk aan, Kleiner dan of gelijk aan, Waar en Onwaar |
 | **Uitvoeringstijd (in ms)** | Hoe lang het script liep. | Numerieke vergelijkingen |
 
 De standaardcriteria markeren de monitor als online als **Fout** leeg is, en als offline (met een incident dat zichzelf oplost zodra het script weer slaagt) als dat niet zo is. In incident- en waarschuwingssjablonen is de uitvoering beschikbaar als `{{result}}`, `{{scriptError}}`, `{{logMessages}}` en `{{executionTimeInMs}}`: zie [Incident- en waarschuwingstemplates](/docs/monitor/incident-alert-templating).
 
 ### Waarschuwen op de teruggegeven gegevens
 
-Wat het script als `data` teruggeeft, is de **Result Value** van de monitor, en een criterium kan die vergelijken: bijvoorbeeld _Result Value is Equal To `UP`_.
+Wat het script als `data` teruggeeft, is de **Result Value** van de monitor, en een criterium kan die vergelijken: bijvoorbeeld _Result Value is Gelijk aan `UP`_.
 
 Is `data` een object of een array, vul dan **Veldpad (optioneel)** in op het Result Value-filter om één veld ervan te vergelijken in plaats van de hele waarde. Gebruik punten voor geneste velden en `[n]` voor array-elementen:
 
@@ -204,16 +204,16 @@ return {
 
 | Veldpad | Vergelijkt | Voorbeeldvoorwaarde |
 | --- | --- | --- |
-| `status` | `"UP"` | Not Equal To `UP` |
-| `cpu_busy_percent` | `42` | Greater Than `90` |
+| `status` | `"UP"` | Niet gelijk aan `UP` |
+| `cpu_busy_percent` | `42` | Groter dan `90` |
 | `healthy` | `true` | Onwaar |
-| `checks[0].latency` | `12` | Greater Than `500` |
+| `checks[0].latency` | `12` | Groter dan `500` |
 
 Voeg één filter toe per veld dat u wilt controleren; elk filter kan een eigen voorwaarde en waarde hebben.
 
 - Laat het veldpad leeg om de hele waarde te vergelijken, zoals bij een script dat één getal of één tekenreeks teruggeeft.
-- Greater Than, Less Than en de andere getalvoorwaarden komen alleen overeen met een getal, dus geef een veld terug als `42`, niet als `"42"`. Waar en Onwaar komen alleen overeen met een boolean.
-- Een veld dat niet in de teruggegeven gegevens staat (een ontbrekende sleutel, of een array-index voorbij het einde) wordt als leeg vergeleken: **Is Empty** komt ermee overeen, en geen enkele andere voorwaarde.
+- Groter dan, Kleiner dan en de andere getalvoorwaarden komen alleen overeen met een getal, dus geef een veld terug als `42`, niet als `"42"`. Waar en Onwaar komen alleen overeen met een boolean.
+- Een veld dat niet in de teruggegeven gegevens staat (een ontbrekende sleutel, of een array-index voorbij het einde) wordt als leeg vergeleken: **Is leeg** komt ermee overeen, en geen enkele andere voorwaarde.
 - Een veld met een punt in de naam is niet bereikbaar met een pad.
 - In Terraform stelt de `custom_code_monitor_options` van het filter het veldpad in: zie [Monitorstappen](/docs/terraform/monitor-steps#eén-veld-van-het-resultaat-van-een-script-vergelijken).
 

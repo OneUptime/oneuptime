@@ -88,7 +88,7 @@ De to første står på listen under **Opprett varsel**; for det tredje åpner d
 
 ### Traps
 
-Hver Sophos-melding er den samme trapen, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), med hendelsen som tekst i `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). For å varsle om én type hendelse kombinerer du **SNMP Trap Received (Trap OID)** Equal To `1.3.6.1.4.1.2604.5.1.8.1.1` med **SNMP Trap Varbind Value** på den varbinden, Contains `IPSec` for eksempel. Sett brannmurens trapdestinasjon til SNMP v2c: sondens trapmottaker tar imot v1- og v2c-traps.
+Hver Sophos-melding er den samme trapen, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), med hendelsen som tekst i `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). For å varsle om én type hendelse kombinerer du **SNMP Trap Received (Trap OID)** Lik `1.3.6.1.4.1.2604.5.1.8.1.1` med **SNMP Trap Varbind Value** på den varbinden, Inneholder `IPSec` for eksempel. Sett brannmurens trapdestinasjon til SNMP v2c: sondens trapmottaker tar imot v1- og v2c-traps.
 
 ## Extreme Networks (EXOS / Switch Engine og Fabric Engine / VOSS)
 
@@ -130,9 +130,9 @@ Nyttige varsler, alle på tabellen `wifi_radios` med Row `*`, slik at hver radio
 | Varsel | Kriterium |
 | --- | --- |
 | En radio slått av | **SNMP Table Row Is Unhealthy**, en del av de anbefalte varslene |
-| Sendeeffekten endret | **SNMP Table Value**, kolonnen TX Power, Not Equal To den planlagte effekten din |
-| En overfylt radio | **SNMP Table Value**, kolonnen Clients, Greater Than grensen din |
-| En støyende kanal | **SNMP Table Value**, kolonnen Noise Floor, Greater Than `-80` |
+| Sendeeffekten endret | **SNMP Table Value**, kolonnen TX Power, Ikke lik den planlagte effekten din |
+| En overfylt radio | **SNMP Table Value**, kolonnen Clients, Større enn grensen din |
+| En støyende kanal | **SNMP Table Value**, kolonnen Noise Floor, Større enn `-80` |
 
 Hver numerisk radioverdi er også en måling (`oneuptime.monitor.snmp.table.value`, én serie per radio og kolonne), så kanal, effekt og klienter kan vises i diagrammer over tid på et dashbord; en kanal som stadig endres, er DFS i arbeid.
 

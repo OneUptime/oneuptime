@@ -119,10 +119,10 @@ flowchart TB
 | 过滤器类型 | 检查内容 | 过滤条件 |
 | --- | --- | --- |
 | **External Status Page Is Online** | 状态页是否可访问并返回状态数据 | 是 或 否 |
-| **External Status Page Overall Status** | 页面报告的整体状态 | Equal To、Not Equal To、包含、Not Contains、Starts With、Ends With |
-| **External Status Page Component Status** | 范围内组件的状态（遵循组件组 / 组件名称过滤器）：运行正常、Under Maintenance、Degraded Performance、Partial Outage、Major Outage 或 Full Outage | Equal To、Not Equal To、包含、Not Contains、Starts With、Ends With |
-| **External Status Page Active Incidents** | 状态页上当前进行中的事件数（设置了过滤器时限定到该组件组 / 组件） | Equal To、Not Equal To 以及数值比较 |
-| **External Status Page Response Time (in ms)** | 获取状态页数据所花的时间 | Greater Than、Less Than、Greater Than Or Equal To、Less Than Or Equal To |
+| **External Status Page Overall Status** | 页面报告的整体状态 | 等于、不等于、包含、不包含、开头是、结尾是 |
+| **External Status Page Component Status** | 范围内组件的状态（遵循组件组 / 组件名称过滤器）：运行正常、Under Maintenance、Degraded Performance、Partial Outage、Major Outage 或 Full Outage | 等于、不等于、包含、不包含、开头是、结尾是 |
+| **External Status Page Active Incidents** | 状态页上当前进行中的事件数（设置了过滤器时限定到该组件组 / 组件） | 等于、不等于以及数值比较 |
+| **External Status Page Response Time (in ms)** | 获取状态页数据所花的时间 | 大于、小于、大于或等于、小于或等于 |
 
 整体状态就是页面上写的内容，因此其取值因服务商而异：Atlassian Statuspage 报告它自己的描述，例如 `All Systems Operational`；订阅源报告 `operational` 或 `degraded_performance`；可达性检查报告 `reachable` 或 `unreachable`。这些比较区分大小写。要针对故障告警，**External Status Page Active Incidents** 和 **External Status Page Component Status** 通常更可靠。
 

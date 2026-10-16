@@ -112,12 +112,12 @@ API로 모니터를 만들 때는 단계의 `exceptionMonitor`에서 `environmen
 
 | 필터 조건 | 예외 수가 다음과 같을 때 일치 |
 | --- | --- |
-| **Greater Than** | 값보다 큼 |
-| **Greater Than Or Equal To** | 값 이상 |
-| **Less Than** | 값보다 작음 |
-| **Less Than Or Equal To** | 값 이하 |
-| **Equal To** | 값과 정확히 같음 |
-| **Not Equal To** | 값이 아닌 모든 것 |
+| **보다 큼** | 값보다 큼 |
+| **이상** | 값 이상 |
+| **보다 작음** | 값보다 작음 |
+| **이하** | 값 이하 |
+| **같음** | 값과 정확히 같음 |
+| **같지 않음** | 값이 아닌 모든 것 |
 
 예외 수에는 이상 조건이 없습니다. 비교할 기준선이 없기 때문입니다.
 
@@ -125,8 +125,8 @@ API로 모니터를 만들 때는 단계의 `exceptionMonitor`에서 `environmen
 
 | 기준 | 필터 | 효과 |
 | --- | --- | --- |
-| Check if … has exceptions | **Exception Count** **Greater Than** `0` | 모니터를 오프라인으로 표시하고 인시던트를 선언합니다(자동 해결) |
-| Check if … has no exceptions | **Exception Count** **Equal To** `0` | 모니터를 온라인으로 표시합니다 |
+| Check if … has exceptions | **Exception Count** **보다 큼** `0` | 모니터를 오프라인으로 표시하고 인시던트를 선언합니다(자동 해결) |
+| Check if … has no exceptions | **Exception Count** **같음** `0` | 모니터를 온라인으로 표시합니다 |
 
 ## 실전 예: 프로덕션 예외만
 
@@ -139,7 +139,7 @@ API가 프로덕션에서 예외를 던질 때마다 인시던트를 만들고, 
 | `TimeoutError` × 2 | 없음 | 활성 | 아니요: 환경 없음 |
 | `NullReferenceException` × 4 | `production` | 발생 후 해결됨 | 아니요: 해결됨 |
 
-**Exception Count**가 3이므로 **Greater Than** `0`이 일치합니다. 모니터가 오프라인이 되고 인시던트가 선언됩니다. 활성 프로덕션 예외가 없는 5분이 지나면 온라인 기준이 일치하고 인시던트가 저절로 해결됩니다.
+**Exception Count**가 3이므로 **보다 큼** `0`이 일치합니다. 모니터가 오프라인이 되고 인시던트가 선언됩니다. 활성 프로덕션 예외가 없는 5분이 지나면 온라인 기준이 일치하고 인시던트가 저절로 해결됩니다.
 
 ## 문제 해결
 

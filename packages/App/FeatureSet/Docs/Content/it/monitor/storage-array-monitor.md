@@ -263,7 +263,7 @@ Un criterio confronta una delle query o formule del monitor con una soglia. I cr
 | --- | --- |
 | **Metrica** | La query o la formula da controllare, tramite il nome della sua variabile. |
 | **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Maximum Value**, **Minimum Value**, **All Values** (ogni valore deve corrispondere) o **Any Value** (ne basta uno). |
-| **Condizione** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** o **Equal To** — oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
+| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a** — oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
 | **Threshold** | Il valore con cui confrontare. Accanto c'è un elenco di unità quando la metrica ha un'unità. Non mostrato per le condizioni di anomalia. |
 | **Sensibilità** | Solo condizioni di anomalia. **Bassa** (4σ), **Media** (3σ, il predefinito) o **Alta** (2σ). |
 | **Finestra di riferimento** | Solo condizioni di anomalia. 14 giorni (il predefinito), 28, 60 o 90 giorni di storico. |
@@ -273,10 +273,10 @@ Le condizioni di anomalia confrontano ogni valore con la stessa ora della settim
 
 Alcuni criteri da cui partire:
 
-- **Un volume è lento:** `purefa_volume_performance_latency_usec` filtrata su `dimension=usec_per_read_op`, Media, raggruppata per `name`, **Greater Than** `2000`, negli ultimi 10 minuti.
-- **L'array si sta riempiendo:** `purefa_array_space_utilization`, Massimo, **Greater Than** `85`, negli ultimi 15 minuti.
-- **Un host funziona su un solo controller:** `purefa_host_connectivity_info` filtrata su `status=critical`, Massimo, raggruppata per `host`, **Greater Than** `0`.
-- **Un file system FlashBlade è quasi pieno:** `purefb_file_systems_space_bytes` filtrata su `space=available_ratio`, Minimo, raggruppata per `name`, **Less Than** `0.05`.
+- **Un volume è lento:** `purefa_volume_performance_latency_usec` filtrata su `dimension=usec_per_read_op`, Media, raggruppata per `name`, **Maggiore di** `2000`, negli ultimi 10 minuti.
+- **L'array si sta riempiendo:** `purefa_array_space_utilization`, Massimo, **Maggiore di** `85`, negli ultimi 15 minuti.
+- **Un host funziona su un solo controller:** `purefa_host_connectivity_info` filtrata su `status=critical`, Massimo, raggruppata per `host`, **Maggiore di** `0`.
+- **Un file system FlashBlade è quasi pieno:** `purefb_file_systems_space_bytes` filtrata su `space=available_ratio`, Minimo, raggruppata per `name`, **Minore di** `0.05`.
 
 ### Criteri predefiniti
 

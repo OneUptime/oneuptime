@@ -234,10 +234,10 @@ Ein Lauf kann höchstens 100 Metriken erfassen, nur mit numerischen Werten, und 
 | **Fehler** | Den Fehler, den ein Lauf geworfen hat, falls vorhanden. |
 | **Result Value** | Die `data`, die ein Lauf zurückgegeben hat. |
 | **Ausführungszeit (in ms)** | Wie lange ein Lauf dauerte. |
-| **Browser-Typ** | Der Browser, den ein Lauf verwendet hat: **Equal To** oder **Not Equal To**. |
-| **Screen Size** | Die Bildschirmgröße, die ein Lauf verwendet hat: **Equal To** oder **Not Equal To**. |
+| **Browser-Typ** | Der Browser, den ein Lauf verwendet hat: **Gleich** oder **Ungleich**. |
+| **Screen Size** | Die Bildschirmgröße, die ein Lauf verwendet hat: **Gleich** oder **Ungleich**. |
 
-Jeder Filter wird an jedem Lauf geprüft und trifft zu, wenn ein einziger Lauf zutrifft. Filter werden getrennt geprüft, nicht Lauf für Lauf: **Fehler** Is Not Empty zusammen mit **Browser-Typ** Equal To `Firefox` trifft zu, wenn irgendein Lauf fehlschlug und einer der Läufe Firefox verwendete — nicht nur, wenn der Firefox-Lauf fehlschlug. Um einen Browser für sich zu beobachten, geben Sie ihm einen eigenen Monitor.
+Jeder Filter wird an jedem Lauf geprüft und trifft zu, wenn ein einziger Lauf zutrifft. Filter werden getrennt geprüft, nicht Lauf für Lauf: **Fehler** Ist nicht leer zusammen mit **Browser-Typ** Gleich `Firefox` trifft zu, wenn irgendein Lauf fehlschlug und einer der Läufe Firefox verwendete — nicht nur, wenn der Firefox-Lauf fehlschlug. Um einen Browser für sich zu beobachten, geben Sie ihm einen eigenen Monitor.
 
 In Vorfall- und Warnungsvorlagen steht jeder Lauf in `{{syntheticResponses}}`: siehe [Vorfall- & Warnmeldungsvorlagen](/docs/monitor/incident-alert-templating#synthetische-monitore).
 

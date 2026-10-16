@@ -97,11 +97,11 @@ Kriteriene til en trasemonitor har én **Filtertype**: **Span Count**, antallet 
 
 | Filtervilkår | Samsvarer når antallet spans er… |
 | --- | --- |
-| **Greater Than** | over verdien |
-| **Greater Than Or Equal To** | lik verdien eller høyere |
-| **Less Than** | under verdien |
-| **Less Than Or Equal To** | lik verdien eller lavere |
-| **Equal To** | nøyaktig verdien |
+| **Større enn** | over verdien |
+| **Større enn eller lik** | lik verdien eller høyere |
+| **Mindre enn** | under verdien |
+| **Mindre enn eller lik** | lik verdien eller lavere |
+| **Lik** | nøyaktig verdien |
 | **Anomalously High** | over det forventede området for denne timen i uken |
 | **Anomalously Low** | under det området |
 | **Anomalous** | utenfor det området, i hvilken som helst retning |
@@ -112,8 +112,8 @@ En ny trasemonitor starter med disse kriteriene:
 
 | Kriterium | Filter | Virkning |
 | --- | --- | --- |
-| Check if … is offline | **Span Count** **Equal To** `0` | Setter monitoren som frakoblet og erklærer en hendelse som løses automatisk |
-| Check if … is online | **Span Count** **Greater Than** `0` | Setter monitoren som tilkoblet |
+| Check if … is offline | **Span Count** **Lik** `0` | Setter monitoren som frakoblet og erklærer en hendelse som løses automatisk |
+| Check if … is online | **Span Count** **Større enn** `0` | Setter monitoren som tilkoblet |
 
 ## Gjennomgått eksempel: mislykkede checkout-forespørsler
 
@@ -131,8 +131,8 @@ For å bli tilkalt når mer enn 10 checkout-forespørsler mislykkes på fem minu
 - **Span-navn**: `POST /api/checkout`
 - **Overvåk spor i (tid)**: **Siste 5 minutter**
 - **Filtrer etter span-status**: **Feil**
-- Kriterium 1: **Span Count** **Greater Than** `10`: sett monitoren som frakoblet og erklær en hendelse
-- Kriterium 2: **Span Count** **Less Than Or Equal To** `10`: sett monitoren som tilkoblet
+- Kriterium 1: **Span Count** **Større enn** `10`: sett monitoren som frakoblet og erklær en hendelse
+- Kriterium 2: **Span Count** **Mindre enn eller lik** `10`: sett monitoren som tilkoblet
 
 Med 30 mislykkede forespørsler samsvarer kriterium 1, og hendelsen erklæres. Når det har gått fem minutter med 10 eller færre feil, samsvarer kriterium 2, monitoren er tilkoblet igjen, og hendelsen løser seg selv.
 

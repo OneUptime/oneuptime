@@ -396,7 +396,7 @@ Noe av det en enhet vet, er en liste: én rad per IPsec-tunnel, Wi-Fi-radio, SSI
 
 Tall leses som tall, og tekst som begynner med et tall, leses som det tallet (`"36"`, `"-95 dBm"`, `"80MHz"`), fordi mange produsenter legger tall i strenger. Sett en kolonnes verditype til **Text only** for verdier som bare ser numeriske ut. **Value labels** gjør koder om til ord (`0=inactive, 1=active`): råverdien er fortsatt det som vises i diagrammer og sammenlignes, etiketten er det som vises. **Healthy values** (`1`) sier hvilke verdier som betyr at alt er bra: de fargelegger raden på enhetens side **SNMP Tables** og driver kriteriet **SNMP Table Row Is Unhealthy**.
 
-Noen kolonner i produsentmaler **justerer** også tallet de leser, for MIB-er som holder en verdi i en egen enhet: ArubaOS rapporterer sendeeffekten doblet (leses × 0.5), Aruba Instant støygulvet uten fortegn (× −1), Aerohive støygulvet pluss 256 (− 256), og Extremes kontroller kanalbredden i trinn på 20 MHz (× 20). Det justerte tallet er det som vises, tegnes i diagrammer og sammenlignes, så **Noise Floor Greater Than -80** betyr det samme hos hver produsent, og tabellredigeringen viser utregningen under kolonnen.
+Noen kolonner i produsentmaler **justerer** også tallet de leser, for MIB-er som holder en verdi i en egen enhet: ArubaOS rapporterer sendeeffekten doblet (leses × 0.5), Aruba Instant støygulvet uten fortegn (× −1), Aerohive støygulvet pluss 256 (− 256), og Extremes kontroller kanalbredden i trinn på 20 MHz (× 20). Det justerte tallet er det som vises, tegnes i diagrammer og sammenlignes, så **Noise Floor Større enn -80** betyr det samme hos hver produsent, og tabellredigeringen viser utregningen under kolonnen.
 
 Tabeller kommer fra en [OID Collection Template](#oid-collection-templates), delt av hver tilknyttet enhet (opptil 10 tabeller), eller fra enheten selv under **Device-Specific SNMP Tables** (opptil 10 til). De slås sammen etter nøkkel ved hver polling, malen først, og en enhetstabell med samme nøkkel erstatter malens. Begge redigeringsverktøyene tilbyr **Add a Vendor's Tables**.
 
@@ -779,7 +779,7 @@ Ved en polling der ikke noe walk kjørte, gir kriteriene merket "Vurderes ikke" 
 
 Grensesnittsjekkene krever **Walk Interfaces** slått på i enhetens pollinginnstillinger, slik det er som standard. OID-sjekkene leser enhetens konfigurerte helse-OID-er. Administrativt deaktiverte grensesnitt er nede med vilje og teller aldri som feil.
 
-Kriterier for SNMP-tabeller velger en tabell, en kolonne (for SNMP Table Value) og et radomfang. Tomt vurderer hver rad som ett samlet varsel; `*` gir et separat varsel for hver rad, der hvert løses for seg og har navn etter raden sin; alt annet navngir én rad etter navn eller indeks. Tall sammenlignes som tall, og tekst sammenlignes både med råverdien og med etiketten, så Not Equal To `active` og Not Equal To `1` fanger begge en Sophos-tunnel som er nede. En tabell der walket feilet ved denne pollingen, vurderes ikke i stedet for å leses som tom, og tabellkriterier vurderer bare det gjeldende walket, ikke et tidsrom.
+Kriterier for SNMP-tabeller velger en tabell, en kolonne (for SNMP Table Value) og et radomfang. Tomt vurderer hver rad som ett samlet varsel; `*` gir et separat varsel for hver rad, der hvert løses for seg og har navn etter raden sin; alt annet navngir én rad etter navn eller indeks. Tall sammenlignes som tall, og tekst sammenlignes både med råverdien og med etiketten, så Ikke lik `active` og Ikke lik `1` fanger begge en Sophos-tunnel som er nede. En tabell der walket feilet ved denne pollingen, vurderes ikke i stedet for å leses som tom, og tabellkriterier vurderer bare det gjeldende walket, ikke et tidsrom.
 
 Transceiverkriterier har omfang som grensesnittsjekkene: tomt vurderer hver modul som ett samlet varsel, `*` gir et separat varsel for hver port med en modul (hvert løst for seg og med navn etter porten), og alt annet navngir én port etter navn eller alias. De vurderer enhetens [transceivere](#transceivere) slik de er ved denne pollingen, som allerede bærer historikken sin — hvor mange pollinger en modul har manglet, en måneds mottatt effekt — så heller ikke de vurderes over et tidsrom. En polling der lesingen av transceivere feilet, lar dem vurdere den siste gode lesingen, så et åpent varsel løses ikke ved en polling som ikke kunne se.
 
@@ -860,19 +860,19 @@ Matchingen skjer på adresse, ikke på påloggingsinformasjon, så en enhet med 
 #### Eksempel: opprett en hendelse ved linkDown
 
 - **Filtertype**: SNMP Trap Received (Trap OID)
-- **Filtervilkår**: Equal To
+- **Filtervilkår**: Lik
 - **Verdi**: `1.3.6.1.6.3.1.1.5.3`
 
-Filteret tilbyr også Contains, Starts With og Ends With, så ett kriterium kan treffe en familie av enterprise-traps etter OID-prefiks.
+Filteret tilbyr også Inneholder, Starter med og Slutter med, så ett kriterium kan treffe en familie av enterprise-traps etter OID-prefiks.
 
 #### Eksempel: skill mellom hendelser som deler én trap-OID
 
 Noen produsenter sender hver hendelse som den samme trapen og legger hendelsen i en tekst-varbind: hver melding fra en Sophos Firewall er `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`) med meldingen i `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Kombiner de to i ett kriterium:
 
-- **SNMP Trap Received (Trap OID)**: Equal To `1.3.6.1.4.1.2604.5.1.8.1.1`
-- **SNMP Trap Varbind Value**: varbind-OID `1.3.6.1.4.1.2604.5.1.8.1.2`, Contains `IPSec`
+- **SNMP Trap Received (Trap OID)**: Lik `1.3.6.1.4.1.2604.5.1.8.1.1`
+- **SNMP Trap Varbind Value**: varbind-OID `1.3.6.1.4.1.2604.5.1.8.1.2`, Inneholder `IPSec`
 
-Et negativt filter (Not Contains, Not Equal To, Is Empty) er bare oppfylt når ingen varbind innenfor omfanget passer den positive formen. La varbind-OID-en stå tom for å søke i hver varbind trapen bærer.
+Et negativt filter (Inneholder ikke, Ikke lik, Er tom) er bare oppfylt når ingen varbind innenfor omfanget passer den positive formen. La varbind-OID-en stå tom for å søke i hver varbind trapen bærer.
 
 ## Malvariabler for varsler
 

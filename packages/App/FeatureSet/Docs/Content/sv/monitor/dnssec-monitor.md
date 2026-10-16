@@ -93,7 +93,7 @@ Kriterier avgör när zonen räknas som online, försämrad eller offline, och o
 | **DNSSEC Chain Is Valid** | **Sant**, **Falskt** | Alla fyra kontrollerna ovan håller: nycklar publicerade, DS i den överordnade zonen, signaturer som finns med en dag eller mer kvar, och AD-flaggan från varje upplösare. |
 | **DNSSEC DNSKEY Record Exists** | **Sant**, **Falskt** | Zonen publicerar minst en DNSKEY-post. |
 | **DNSSEC DS Record Exists At Parent** | **Sant**, **Falskt** | Den överordnade zonen publicerar en DS-post för zonen. |
-| **DNSSEC Signature Expires In Days** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Hela dagar tills den signatur (RRSIG) som går ut först går ut. |
+| **DNSSEC Signature Expires In Days** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Hela dagar tills den signatur (RRSIG) som går ut först går ut. |
 | **DNSSEC Resolver Consensus (AD Flag)** | **Sant**, **Falskt** | Varje upplösare i **Upplösare** returnerar AD-flaggan. |
 | **DNSSEC Nameservers Are Consistent** | **Sant**, **Falskt** | Varje auktoritativ namnserver svarar med samma SOA-serienummer. Alltid **Sant** så länge **Kontrollera namnserverkonsekvens** är avstängt. |
 
@@ -115,7 +115,7 @@ Standardkriterierna bevakar inte själva signaturernas utgång eller namnserverk
 | Mål | Filter | Villkor | Värde |
 | --- | --- | --- | --- |
 | Offline när kedjan är bruten (ett standardkriterium) | **DNSSEC Chain Is Valid** | **Falskt** | — |
-| Varna innan signaturer går ut | **DNSSEC Signature Expires In Days** | **Less Than** | `7` |
+| Varna innan signaturer går ut | **DNSSEC Signature Expires In Days** | **Mindre än** | `7` |
 | Fånga en delegering som har tappat sin DS-post | **DNSSEC DS Record Exists At Parent** | **Falskt** | — |
 | Fånga upplösare som inte håller med varandra | **DNSSEC Resolver Consensus (AD Flag)** | **Falskt** | — |
 | Fånga namnservrar i otakt | **DNSSEC Nameservers Are Consistent** | **Falskt** | — |
@@ -123,7 +123,7 @@ Standardkriterierna bevakar inte själva signaturernas utgång eller namnserverk
 ## Bästa praxis
 
 1. **Välj upplösare som alltid går att nå.** Varje upplösare måste returnera AD-flaggan för att kedjan ska räknas som giltig, så en upplösare som sonden inte når får kontrollen att misslyckas när återförsöken är slut. Standardvärdena, `1.1.1.1`, `8.8.8.8` och `9.9.9.9`, drivs av tre olika operatörer, vilket också fångar en zon som validerar hos en upplösare men inte hos en annan.
-2. **Bli varnad innan signaturer går ut.** Signeringsprogram signerar om en zon innan dess signaturer tar slut, så en signatur nära utgång betyder att omsigneringen har stannat. Lägg till ett kriterium med **DNSSEC Signature Expires In Days** / **Less Than** / `7` som skapar ett larm, och ett till på `2` som deklarerar en incident. Dra båda ovanför kriteriet som markerar kedjan som giltig, med `2`-dagarskriteriet först, eftersom det första kriteriet som matchar vinner. Välj tröskelvärden som är lägre än den tid ditt signeringsprogram normalt lämnar kvar på en signatur innan det signerar om, så att de förblir tysta så länge omsigneringen fungerar.
+2. **Bli varnad innan signaturer går ut.** Signeringsprogram signerar om en zon innan dess signaturer tar slut, så en signatur nära utgång betyder att omsigneringen har stannat. Lägg till ett kriterium med **DNSSEC Signature Expires In Days** / **Mindre än** / `7` som skapar ett larm, och ett till på `2` som deklarerar en incident. Dra båda ovanför kriteriet som markerar kedjan som giltig, med `2`-dagarskriteriet först, eftersom det första kriteriet som matchar vinner. Välj tröskelvärden som är lägre än den tid ditt signeringsprogram normalt lämnar kvar på en signatur innan det signerar om, så att de förblir tysta så länge omsigneringen fungerar.
 3. **Övervaka varje signerad zon.** Ta med apex-domänen, signerade underdomäner och varje zon som är delegerad till en annan operatör.
 4. **Låt kontrollen av namnserverkonsekvens vara påslagen,** och lägg till ett kriterium för den. Den fångar en sekundär server som har slutat hämta zonöverföringar från den primära, vilket DNSSEC-validering ensam kan missa.
 

@@ -219,7 +219,7 @@ Un criterio confronta una delle query o formule del monitor con una soglia. I cr
 | --- | --- |
 | **Metrica** | La query o formula da controllare, tramite il suo nome di variabile. |
 | **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Maximum Value**, **Minimum Value**, **All Values** (ogni valore deve corrispondere) o **Any Value** (ne basta uno). |
-| **Condizione** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** o **Equal To**, oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
+| **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a**, oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
 | **Threshold** | Il valore di confronto. Accanto compare un elenco di unità quando la metrica ne ha una. Non visibile per le condizioni di anomalia. |
 | **Sensibilità** | Solo condizioni di anomalia. **Low** (4σ), **Medium** (3σ, predefinito) o **High** (2σ). |
 | **Finestra di riferimento** | Solo condizioni di anomalia. 14 giorni (predefinito), 28, 60 o 90 giorni di storico. |
@@ -254,7 +254,7 @@ L'agente deve interrogare **ogni** daemon mgr, non solo quello attivo: gli stand
 :::
 
 :::details ceph_health_status vale 1 ma non scatta nulla
-Controlla che il criterio usi **Greater Than Or Equal To** `1` e non **Greater Than**, e che l'**Intervallo di tempo** del monitor copra almeno una raccolta di 30 secondi.
+Controlla che il criterio usi **Maggiore o uguale a** `1` e non **Maggiore di**, e che l'**Intervallo di tempo** del monitor copra almeno una raccolta di 30 secondi.
 :::
 
 :::details I modelli degli health check non scattano mai

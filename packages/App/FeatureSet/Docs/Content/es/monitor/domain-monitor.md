@@ -106,13 +106,13 @@ Los criterios deciden cuándo el dominio cuenta como correcto o roto, y si eso d
 | --- | --- | --- |
 | **Is Online** | **Verdadero**, **Falso** | Si la propia búsqueda de registro tuvo éxito. |
 | **Is Request Timeout** | **Verdadero**, **Falso** | Si la búsqueda agotó el tiempo de espera, en todos los intentos. |
-| **Domain Expires In Days** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Los días que faltan para que caduque el registro, redondeados hacia arriba a un día completo. |
+| **Domain Expires In Days** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | Los días que faltan para que caduque el registro, redondeados hacia arriba a un día completo. |
 | **Domain Is Expired** | **Verdadero**, **Falso** | Si la fecha de caducidad ya pasó. |
-| **Domain Registrar** | **Contiene**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | El nombre del registrador. |
-| **Domain Name Server** | **Contiene**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | Los servidores de nombres del dominio. Coincide cuando coincide uno cualquiera de ellos. |
-| **Domain Status Code** | **Contiene**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | Los códigos de estado EPP del dominio. Coincide cuando coincide uno cualquiera de ellos. |
+| **Domain Registrar** | **Contiene**, **No contiene**, **Empieza por**, **Termina en**, **Igual a**, **Distinto de** | El nombre del registrador. |
+| **Domain Name Server** | **Contiene**, **No contiene**, **Empieza por**, **Termina en**, **Igual a**, **Distinto de** | Los servidores de nombres del dominio. Coincide cuando coincide uno cualquiera de ellos. |
+| **Domain Status Code** | **Contiene**, **No contiene**, **Empieza por**, **Termina en**, **Igual a**, **Distinto de** | Los códigos de estado EPP del dominio. Coincide cuando coincide uno cualquiera de ellos. |
 
-Los códigos de estado se normalizan a sus nombres EPP (`clientTransferProhibited`) sea cual sea el protocolo que respondió, así que un criterio sigue coincidiendo cuando **Automático** cambia entre RDAP y WHOIS. Los _nombres_ de registrador son lo que publique el servicio que responde y pueden variar ligeramente entre los dos protocolos, así que prefiera **Contiene** a **Equal To** para un criterio **Domain Registrar**.
+Los códigos de estado se normalizan a sus nombres EPP (`clientTransferProhibited`) sea cual sea el protocolo que respondió, así que un criterio sigue coincidiendo cuando **Automático** cambia entre RDAP y WHOIS. Los _nombres_ de registrador son lo que publique el servicio que responde y pueden variar ligeramente entre los dos protocolos, así que prefiera **Contiene** a **Igual a** para un criterio **Domain Registrar**.
 
 Las fechas se normalizan a ISO 8601. Una fecha que un registro publica en un formato que no se puede analizar se omite en lugar de guardarse, así que un criterio de caducidad no puede decidir, y no coincide, en lugar de responder en silencio «no caducado» para siempre.
 
@@ -136,7 +136,7 @@ Para recibir el aviso antes, cambie el valor del filtro **Domain Expires In Days
 Los monitores creados antes de que OneUptime añadiera este aviso no tienen un criterio de «caduca pronto». Para añadirlo:
 
 1. En el monitor, abra **Configuración → Criterios** y haga clic en **Editar criterios de monitoreo**.
-2. Haga clic en **Añadir criterios**. Ponga su filtro en **Domain Is Expired** / **Falso**, haga clic en **Añadir filtro** y ponga el segundo en **Domain Expires In Days** / **Less Than Or Equal To** / `30`. Deje **Condición de coincidencia** en **Todos** (aparece bajo los filtros en cuanto hay dos).
+2. Haga clic en **Añadir criterios**. Ponga su filtro en **Domain Is Expired** / **Falso**, haga clic en **Añadir filtro** y ponga el segundo en **Domain Expires In Days** / **Menor o igual que** / `30`. Deje **Condición de coincidencia** en **Todos** (aparece bajo los filtros en cuanto hay dos).
 3. En **Acciones**, active **Cuando los filtros coinciden, crear una alerta.** y deje desactivado **Cuando los filtros coinciden, cambiar el estado del monitor.**, para que cree una alerta y no cambie el estado del monitor.
 4. Arrastre el nuevo criterio por encima del criterio que marca el monitor como en línea, y guarde.
 :::
@@ -145,20 +145,20 @@ Los monitores creados antes de que OneUptime añadiera este aviso no tienen un c
 
 | Objetivo | Filtro | Condición | Valor |
 | --- | --- | --- | --- |
-| Alertar cuando el dominio caduca en 30 días (uno predeterminado) | **Domain Expires In Days** | **Less Than Or Equal To** | `30` |
+| Alertar cuando el dominio caduca en 30 días (uno predeterminado) | **Domain Expires In Days** | **Menor o igual que** | `30` |
 | Sin conexión cuando el dominio ha caducado | **Domain Is Expired** | **Verdadero** | — |
 | Sin conexión cuando no se puede leer el registro | **Is Online** | **Falso** | — |
-| Alertar cuando cambian los servidores de nombres | **Domain Name Server** | **Not Contains** | `ns1.example.com` |
-| Alertar cuando el dominio se desbloquea para una transferencia | **Domain Status Code** | **Not Contains** | `clientTransferProhibited` |
+| Alertar cuando cambian los servidores de nombres | **Domain Name Server** | **No contiene** | `ns1.example.com` |
+| Alertar cuando el dominio se desbloquea para una transferencia | **Domain Status Code** | **No contiene** | `clientTransferProhibited` |
 
-**Domain Name Server** y **Domain Status Code** coinciden cuando coincide _cualquier_ valor, así que **Not Contains** coincide en cuanto un servidor de nombres, o un código de estado, no contiene el texto.
+**Domain Name Server** y **Domain Status Code** coinciden cuando coincide _cualquier_ valor, así que **No contiene** coincide en cuanto un servidor de nombres, o un código de estado, no contiene el texto.
 
 ## Buenas prácticas
 
 1. **Dese tiempo para renovar** — El aviso predeterminado llega 30 días antes de la caducidad. Si renovar requiere aprobaciones o un pago que tarda más, súbalo a 60 días.
 2. **Cubra las búsquedas fallidas** — Incluya un filtro **Is Online** / **Falso** en su criterio sin conexión para que un registro ilegible no se tome por uno sano. Los monitores nuevos lo tienen en sus criterios predeterminados; un monitor creado antes de que se añadiera lo necesita a mano. Para aguantar un servidor WHOIS que limita a la sonda de vez en cuando, marque **Evaluar estos criterios durante un periodo de tiempo** bajo ese filtro y elija **All Values**: el dominio solo pasa a sin conexión cuando fallaron todas las búsquedas de la ventana.
 3. **Monitorice todos los dominios críticos** — Incluya los dominios principales, los subdominios registrados por separado y cualquier dominio que se use para correo o API.
-4. **Siga los cambios de registrador** — Añada un criterio con **Domain Registrar** / **Not Contains** / el nombre de su registrador, para detectar una transferencia no autorizada.
+4. **Siga los cambios de registrador** — Añada un criterio con **Domain Registrar** / **No contiene** / el nombre de su registrador, para detectar una transferencia no autorizada.
 
 ## Solución de problemas
 

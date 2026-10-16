@@ -112,12 +112,12 @@ Die Kriterien eines Ausnahmen-Monitors haben einen **Filtertyp**: **Exception Co
 
 | Filterbedingung | Passt, wenn die Anzahl der Ausnahmen … |
 | --- | --- |
-| **Greater Than** | über dem Wert liegt |
-| **Greater Than Or Equal To** | den Wert erreicht oder darüber liegt |
-| **Less Than** | unter dem Wert liegt |
-| **Less Than Or Equal To** | den Wert erreicht oder darunter liegt |
-| **Equal To** | genau dem Wert entspricht |
-| **Not Equal To** | alles außer dem Wert ist |
+| **Größer als** | über dem Wert liegt |
+| **Größer als oder gleich** | den Wert erreicht oder darüber liegt |
+| **Kleiner als** | unter dem Wert liegt |
+| **Kleiner als oder gleich** | den Wert erreicht oder darunter liegt |
+| **Gleich** | genau dem Wert entspricht |
+| **Ungleich** | alles außer dem Wert ist |
 
 Für Ausnahmeanzahlen gibt es keine Anomaliebedingungen: Es gibt keine Baseline, mit der sie verglichen werden könnten.
 
@@ -125,8 +125,8 @@ Ein neuer Ausnahmen-Monitor beginnt mit diesen Kriterien:
 
 | Kriterium | Filter | Wirkung |
 | --- | --- | --- |
-| Check if … has exceptions | **Exception Count** **Greater Than** `0` | Setzt den Monitor auf offline und eröffnet einen Vorfall, der automatisch behoben wird |
-| Check if … has no exceptions | **Exception Count** **Equal To** `0` | Setzt den Monitor auf online |
+| Check if … has exceptions | **Exception Count** **Größer als** `0` | Setzt den Monitor auf offline und eröffnet einen Vorfall, der automatisch behoben wird |
+| Check if … has no exceptions | **Exception Count** **Gleich** `0` | Setzt den Monitor auf online |
 
 ## Ein Beispiel: nur Produktionsausnahmen
 
@@ -139,7 +139,7 @@ Sie wollen einen Vorfall, wann immer die API in der Produktion eine Ausnahme wir
 | `TimeoutError` × 2 | keine | Aktiv | Nein: keine Umgebung |
 | `NullReferenceException` × 4 | `production` | Nach ihrem Auftreten behoben | Nein: behoben |
 
-Der **Exception Count** ist 3, also passt **Greater Than** `0`: Der Monitor geht offline, und ein Vorfall wird eröffnet. Sobald fünf Minuten ohne aktive Produktionsausnahme vergangen sind, passt das Online-Kriterium, und der Vorfall behebt sich selbst.
+Der **Exception Count** ist 3, also passt **Größer als** `0`: Der Monitor geht offline, und ein Vorfall wird eröffnet. Sobald fünf Minuten ohne aktive Produktionsausnahme vergangen sind, passt das Online-Kriterium, und der Vorfall behebt sich selbst.
 
 ## Fehlerbehebung
 

@@ -112,12 +112,12 @@ Kriteriene til en unntaksmonitor har én **Filtertype**: **Exception Count**, an
 
 | Filtervilkår | Samsvarer når antallet unntak er… |
 | --- | --- |
-| **Greater Than** | over verdien |
-| **Greater Than Or Equal To** | lik verdien eller høyere |
-| **Less Than** | under verdien |
-| **Less Than Or Equal To** | lik verdien eller lavere |
-| **Equal To** | nøyaktig verdien |
-| **Not Equal To** | alt annet enn verdien |
+| **Større enn** | over verdien |
+| **Større enn eller lik** | lik verdien eller høyere |
+| **Mindre enn** | under verdien |
+| **Mindre enn eller lik** | lik verdien eller lavere |
+| **Lik** | nøyaktig verdien |
+| **Ikke lik** | alt annet enn verdien |
 
 Antall unntak har ingen avviksvilkår: det finnes ingen grunnlinje å sammenligne dem med.
 
@@ -125,8 +125,8 @@ En ny unntaksmonitor starter med disse kriteriene:
 
 | Kriterium | Filter | Virkning |
 | --- | --- | --- |
-| Check if … has exceptions | **Exception Count** **Greater Than** `0` | Setter monitoren som frakoblet og erklærer en hendelse som løses automatisk |
-| Check if … has no exceptions | **Exception Count** **Equal To** `0` | Setter monitoren som tilkoblet |
+| Check if … has exceptions | **Exception Count** **Større enn** `0` | Setter monitoren som frakoblet og erklærer en hendelse som løses automatisk |
+| Check if … has no exceptions | **Exception Count** **Lik** `0` | Setter monitoren som tilkoblet |
 
 ## Gjennomgått eksempel: bare produksjonsunntak
 
@@ -139,7 +139,7 @@ Du vil ha en hendelse hver gang API-et kaster et unntak i produksjon, og ingenti
 | `TimeoutError` × 2 | ingen | Aktivt | Nei: intet miljø |
 | `NullReferenceException` × 4 | `production` | Løst etter at de oppsto | Nei: løst |
 
-**Exception Count** er 3, så **Greater Than** `0` samsvarer: monitoren blir frakoblet, og en hendelse erklæres. Når det har gått fem minutter uten noe aktivt produksjonsunntak, samsvarer tilkoblet-kriteriet, og hendelsen løser seg selv.
+**Exception Count** er 3, så **Større enn** `0` samsvarer: monitoren blir frakoblet, og en hendelse erklæres. Når det har gått fem minutter uten noe aktivt produksjonsunntak, samsvarer tilkoblet-kriteriet, og hendelsen løser seg selv.
 
 ## Feilsøking
 

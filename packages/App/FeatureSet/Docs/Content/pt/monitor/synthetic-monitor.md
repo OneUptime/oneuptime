@@ -234,10 +234,10 @@ Uma execução pode capturar no máximo 100 métricas, só com valores numérico
 | **Erro** | O erro que uma execução lançou, se houver. |
 | **Result Value** | Os `data` que uma execução retornou. |
 | **Tempo de execução (em ms)** | Quanto tempo uma execução levou. |
-| **Tipo de navegador** | O navegador que uma execução usou: **Equal To** ou **Not Equal To**. |
-| **Screen Size** | O tamanho de tela que uma execução usou: **Equal To** ou **Not Equal To**. |
+| **Tipo de navegador** | O navegador que uma execução usou: **Igual a** ou **Diferente de**. |
+| **Screen Size** | O tamanho de tela que uma execução usou: **Igual a** ou **Diferente de**. |
 
-Cada filtro é verificado em cada execução, e corresponde quando uma única execução corresponde. Os filtros são verificados separadamente, não execução por execução: **Erro** Is Not Empty junto com **Tipo de navegador** Equal To `Firefox` corresponde quando qualquer execução falhou e uma das execuções usou o Firefox, não só quando a execução do Firefox falhou. Para acompanhar um navegador sozinho, dê a ele um monitor próprio.
+Cada filtro é verificado em cada execução, e corresponde quando uma única execução corresponde. Os filtros são verificados separadamente, não execução por execução: **Erro** Não está vazio junto com **Tipo de navegador** Igual a `Firefox` corresponde quando qualquer execução falhou e uma das execuções usou o Firefox, não só quando a execução do Firefox falhou. Para acompanhar um navegador sozinho, dê a ele um monitor próprio.
 
 Nos modelos de incidente e de alerta, cada execução está em `{{syntheticResponses}}`: veja [Modelos de incidentes e alertas](/docs/monitor/incident-alert-templating#monitores-sintéticos).
 

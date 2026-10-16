@@ -119,11 +119,11 @@ Ces moniteurs évaluent toujours la **Metric Value** – la valeur agrégée de 
 
 | Condition | Correspond quand la valeur est… |
 | --- | --- |
-| **Greater Than** | au-dessus du seuil |
-| **Greater Than Or Equal To** | égale ou supérieure au seuil |
-| **Less Than** | en dessous du seuil |
-| **Less Than Or Equal To** | égale ou inférieure au seuil |
-| **Equal To** | exactement le seuil |
+| **Supérieur à** | au-dessus du seuil |
+| **Supérieur ou égal à** | égale ou supérieure au seuil |
+| **Inférieur à** | en dessous du seuil |
+| **Inférieur ou égal à** | égale ou inférieure au seuil |
+| **Égal à** | exactement le seuil |
 | **Anomalously High** | au-dessus de la plage attendue pour cette heure de la semaine |
 | **Anomalously Low** | en dessous de cette plage |
 | **Anomalous** | hors de cette plage, dans un sens ou dans l'autre |
@@ -134,8 +134,8 @@ Un nouveau moniteur de métriques commence avec deux critères sur sa première 
 
 | Critère | Condition | Effet |
 | --- | --- | --- |
-| Check if … is offline | **Equal To** `0` | Passe le moniteur hors ligne et déclare un incident, résolu automatiquement |
-| Check if … is online | **Greater Than** `0` | Passe le moniteur en ligne |
+| Check if … is offline | **Égal à** `0` | Passe le moniteur hors ligne et déclare un incident, résolu automatiquement |
+| Check if … is online | **Supérieur à** `0` | Passe le moniteur en ligne |
 
 > [!NOTE]
 > Le critère hors ligne se déclenche sur une valeur rapportée de 0, pas sur le silence. Pour alerter quand une métrique cesse d'arriver, réglez son **En l'absence de données** sur **Déclencheur**.
@@ -148,7 +148,7 @@ Vous voulez un incident quand la file de checkout reste profonde. La requête `a
 | --- | --- | --- | --- | --- | --- |
 | `a` | 640 | 980 | 1 500 | 1 620 | 1 100 |
 
-Un critère avec **Métrique** `a`, **Condition** **Greater Than** et **Threshold** `1000` donne une réponse différente pour chaque **Agrégation** :
+Un critère avec **Métrique** `a`, **Condition** **Supérieur à** et **Threshold** `1000` donne une réponse différente pour chaque **Agrégation** :
 
 | Agrégation | Comparé à 1 000 | Correspond ? |
 | --- | --- | --- |

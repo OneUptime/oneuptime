@@ -263,7 +263,7 @@ Et kriterium sammenligner en av monitorens spørringer eller formler med en ters
 | --- | --- |
 | **Metrikk** | Spørringen eller formelen som skal sjekkes, etter variabelnavnet. |
 | **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver verdi må samsvare) eller **Any Value** (én er nok). |
-| **Betingelse** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** eller **Equal To** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
+| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
 | **Threshold** | Verdien det sammenlignes med. En enhetsliste står ved siden av når metrikken har en enhet. Vises ikke for anomalibetingelser. |
 | **Følsomhet** | Bare anomalibetingelser. **Lav** (4σ), **Middels** (3σ, standarden) eller **Høy** (2σ). |
 | **Grunnlinjevindu** | Bare anomalibetingelser. 14 dager (standarden), 28, 60 eller 90 dagers historikk. |
@@ -273,10 +273,10 @@ Anomalibetingelser sammenligner hver verdi med den samme timen i uken i grunnlin
 
 Noen kriterier å starte med:
 
-- **Et volum er tregt:** `purefa_volume_performance_latency_usec` filtrert til `dimension=usec_per_read_op`, Gjennomsnitt, gruppert etter `name`, **Greater Than** `2000`, over de siste 10 minuttene.
-- **Arrayet er i ferd med å bli fullt:** `purefa_array_space_utilization`, Maksimum, **Greater Than** `85`, over de siste 15 minuttene.
-- **En vert kjører på én kontroller:** `purefa_host_connectivity_info` filtrert til `status=critical`, Maksimum, gruppert etter `host`, **Greater Than** `0`.
-- **Et FlashBlade-filsystem er nesten fullt:** `purefb_file_systems_space_bytes` filtrert til `space=available_ratio`, Minimum, gruppert etter `name`, **Less Than** `0.05`.
+- **Et volum er tregt:** `purefa_volume_performance_latency_usec` filtrert til `dimension=usec_per_read_op`, Gjennomsnitt, gruppert etter `name`, **Større enn** `2000`, over de siste 10 minuttene.
+- **Arrayet er i ferd med å bli fullt:** `purefa_array_space_utilization`, Maksimum, **Større enn** `85`, over de siste 15 minuttene.
+- **En vert kjører på én kontroller:** `purefa_host_connectivity_info` filtrert til `status=critical`, Maksimum, gruppert etter `host`, **Større enn** `0`.
+- **Et FlashBlade-filsystem er nesten fullt:** `purefb_file_systems_space_bytes` filtrert til `space=available_ratio`, Minimum, gruppert etter `name`, **Mindre enn** `0.05`.
 
 ### Standardkriterier
 

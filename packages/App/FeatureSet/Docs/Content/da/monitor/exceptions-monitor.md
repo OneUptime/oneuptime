@@ -112,12 +112,12 @@ En undtagelse-monitors kriterier har én **Filtertype**: **Exception Count**, an
 
 | Filterbetingelse | Matcher, når antallet af undtagelser er… |
 | --- | --- |
-| **Greater Than** | over værdien |
-| **Greater Than Or Equal To** | lig med værdien eller derover |
-| **Less Than** | under værdien |
-| **Less Than Or Equal To** | lig med værdien eller derunder |
-| **Equal To** | præcis værdien |
-| **Not Equal To** | alt andet end værdien |
+| **Større end** | over værdien |
+| **Større end eller lig med** | lig med værdien eller derover |
+| **Mindre end** | under værdien |
+| **Mindre end eller lig med** | lig med værdien eller derunder |
+| **Lig med** | præcis værdien |
+| **Ikke lig med** | alt andet end værdien |
 
 Antal undtagelser har ingen anomalibetingelser: der er ingen baseline at sammenligne dem med.
 
@@ -125,8 +125,8 @@ En ny undtagelse-monitor starter med disse kriterier:
 
 | Kriterium | Filter | Effekt |
 | --- | --- | --- |
-| Check if … has exceptions | **Exception Count** **Greater Than** `0` | Sætter monitoren offline og erklærer en hændelse, der løses automatisk |
-| Check if … has no exceptions | **Exception Count** **Equal To** `0` | Sætter monitoren online |
+| Check if … has exceptions | **Exception Count** **Større end** `0` | Sætter monitoren offline og erklærer en hændelse, der løses automatisk |
+| Check if … has no exceptions | **Exception Count** **Lig med** `0` | Sætter monitoren online |
 
 ## Gennemgået eksempel: kun produktionsundtagelser
 
@@ -139,7 +139,7 @@ Du vil have en hændelse, hver gang API'et kaster en undtagelse i produktion, og
 | `TimeoutError` × 2 | intet | Aktiv | Nej: intet miljø |
 | `NullReferenceException` × 4 | `production` | Løst, efter at de opstod | Nej: løst |
 
-**Exception Count** er 3, så **Greater Than** `0` matcher: monitoren går offline, og der erklæres en hændelse. Når der er gået fem minutter uden nogen aktiv produktionsundtagelse, matcher online-kriteriet, og hændelsen løser sig selv.
+**Exception Count** er 3, så **Større end** `0` matcher: monitoren går offline, og der erklæres en hændelse. Når der er gået fem minutter uden nogen aktiv produktionsundtagelse, matcher online-kriteriet, og hændelsen løser sig selv.
 
 ## Fejlfinding
 

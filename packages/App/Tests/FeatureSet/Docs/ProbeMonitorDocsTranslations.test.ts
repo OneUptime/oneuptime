@@ -42,12 +42,15 @@ import { describe, expect, it } from "@jest/globals";
  *     language's Dashboard locale, Persian included, as on the on-call,
  *     runbook, workflow and introduction pages (drawnActionLabel). Menu
  *     paths ("A → B → C") are drawn segment by segment.
- *   - The criteria filters and their conditions (Is Online, Greater Than,
- *     Evaluates To True), the HTTP methods, two template sync field names
- *     and a few more have no Dashboard locale key at all: every language's
- *     Dashboard shows them in English, so every translation names them in
- *     English (SHOWN_IN_ENGLISH). When the Dashboard gains a key for one, a
- *     test below fails until the pages name it as drawn.
+ *   - The criteria filters, a few of their conditions and options (Is
+ *     Online, Evaluates To True, Treat As Zero), the HTTP methods, two
+ *     template sync field names and a few more have no Dashboard locale key
+ *     at all: every language's Dashboard shows them in English, so every
+ *     translation names them in English (SHOWN_IN_ENGLISH). When the
+ *     Dashboard gains a key for one, a test below fails until the pages name
+ *     it as drawn. The comparisons (Greater Than, Equal To, Not Contains)
+ *     gained theirs in adc8421a1b: they are labels now, drawn like any other
+ *     (DocsCriteriaConditions holds every page to them).
  *   - The request headers' Add button is drawn from the "Add {{itemName}}"
  *     template around an item name that has no translation
  *     (TEMPLATED_LABELS).
@@ -100,17 +103,13 @@ const PROBE_CHECK_PAGES: Array<string> = [
 ];
 
 /*
- * The criteria filters, their conditions and the over-time aggregates the
- * criteria form offers without a locale key (CheckOn, FilterType,
- * EvaluateOverTimeType and NoDataPolicy values), on every probe check page
- * that names them.
+ * The criteria filters and the over-time aggregates the criteria form offers
+ * without a locale key (CheckOn, EvaluateOverTimeType and NoDataPolicy
+ * values), on every probe check page that names them. Their conditions
+ * (FilterType) have keys, and are drawn.
  */
 const CRITERIA_NAMES_IN_ENGLISH: Array<string> = [
   "Is Online",
-  "Greater Than",
-  "Less Than",
-  "Greater Than Or Equal To",
-  "Less Than Or Equal To",
   "Is Request Timeout",
   "Maximum Value",
   "Minimum Value",
@@ -120,11 +119,8 @@ const CRITERIA_NAMES_IN_ENGLISH: Array<string> = [
   "Treat As Zero",
 ];
 
-// The HTTP criteria the Website and API monitors add.
+// The HTTP criteria the Website and API monitors add, but their conditions.
 const HTTP_CRITERIA_IN_ENGLISH: Array<string> = [
-  "Equal To",
-  "Not Equal To",
-  "Not Contains",
   "Response Header",
   "Response Header Value",
   "JavaScript Expression",

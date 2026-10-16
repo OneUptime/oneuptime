@@ -119,11 +119,11 @@ Disse monitorene evaluerer alltid **Metric Value**: den aggregerte verdien av de
 
 | Betingelse | Samsvarer når verdien er… |
 | --- | --- |
-| **Greater Than** | over terskelen |
-| **Greater Than Or Equal To** | lik terskelen eller høyere |
-| **Less Than** | under terskelen |
-| **Less Than Or Equal To** | lik terskelen eller lavere |
-| **Equal To** | nøyaktig terskelen |
+| **Større enn** | over terskelen |
+| **Større enn eller lik** | lik terskelen eller høyere |
+| **Mindre enn** | under terskelen |
+| **Mindre enn eller lik** | lik terskelen eller lavere |
+| **Lik** | nøyaktig terskelen |
 | **Anomalously High** | over det forventede området for denne timen i uken |
 | **Anomalously Low** | under det området |
 | **Anomalous** | utenfor det området, i hvilken som helst retning |
@@ -134,8 +134,8 @@ En ny metrikkmonitor starter med to kriterier på den første spørringen, begge
 
 | Kriterium | Betingelse | Virkning |
 | --- | --- | --- |
-| Check if … is offline | **Equal To** `0` | Setter monitoren som frakoblet og erklærer en hendelse som løses automatisk |
-| Check if … is online | **Greater Than** `0` | Setter monitoren som tilkoblet |
+| Check if … is offline | **Lik** `0` | Setter monitoren som frakoblet og erklærer en hendelse som løses automatisk |
+| Check if … is online | **Større enn** `0` | Setter monitoren som tilkoblet |
 
 > [!NOTE]
 > Frakoblet-kriteriet utløses av en rapportert verdi på 0, ikke av stillhet. For å bli varslet når en metrikk slutter å komme, setter du **Hvis ingen data** for den til **Trigger**.
@@ -148,7 +148,7 @@ Du vil ha en hendelse når checkout-køen forblir dyp. Spørring `a` er måleren
 | --- | --- | --- | --- | --- | --- |
 | `a` | 640 | 980 | 1 500 | 1 620 | 1 100 |
 
-Et kriterium med **Metrikk** `a`, **Betingelse** **Greater Than** og **Threshold** `1000` gir et ulikt svar for hver **Aggregering**:
+Et kriterium med **Metrikk** `a`, **Betingelse** **Større enn** og **Threshold** `1000` gir et ulikt svar for hver **Aggregering**:
 
 | Aggregering | Sammenlignet med 1 000 | Samsvarer? |
 | --- | --- | --- |

@@ -96,12 +96,12 @@ Les critères décident quand le nom compte comme en ligne, dégradé ou hors li
 | Filtre | Conditions | Ce qu'il vérifie |
 | --- | --- | --- |
 | **DNS Is Online** | **Vrai**, **Faux** | Si la requête a renvoyé au moins un enregistrement du type. |
-| **DNS Response Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | La durée de la requête. |
+| **DNS Response Time (in ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | La durée de la requête. |
 | **DNS Record Exists** | **Vrai**, **Faux** | Si un enregistrement du type est revenu. |
-| **DNS Record Value** | **Contient**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | Les valeurs des enregistrements. Le filtre correspond quand un seul enregistrement correspond. |
+| **DNS Record Value** | **Contient**, **Ne contient pas**, **Commence par**, **Se termine par**, **Égal à**, **Différent de** | Les valeurs des enregistrements. Le filtre correspond quand un seul enregistrement correspond. |
 | **DNSSEC Is Valid** | **Vrai**, **Faux** | Si un résolveur validant pose l'indicateur AD sur la réponse. |
 
-**DNS Record Value** correspond quand _n'importe lequel_ des enregistrements correspond. Avec plusieurs enregistrements `A`, **Equal To** `93.184.216.34` correspond quand l'un d'eux est cette adresse, et **Not Equal To** correspond quand l'un d'eux ne l'est pas.
+**DNS Record Value** correspond quand _n'importe lequel_ des enregistrements correspond. Avec plusieurs enregistrements `A`, **Égal à** `93.184.216.34` correspond quand l'un d'eux est cette adresse, et **Différent de** correspond quand l'un d'eux ne l'est pas.
 
 **DNSSEC Is Valid** interroge le serveur indiqué dans **Serveur DNS (facultatif)**, sur son **Port**, ou Google Public DNS (`8.8.8.8`) quand ce champ est vide : le serveur que vous indiquez doit donc valider DNSSEC. Le filtre n'a pas de valeur, et ne correspond dans aucun sens, quand la sonde ne peut pas faire cette vérification. Pour une vérification complète d'une zone signée, utilisez un [moniteur DNSSEC](/docs/monitor/dnssec-monitor).
 
@@ -141,9 +141,9 @@ Les critères sont vérifiés de haut en bas, et le premier qui correspond déci
 | Objectif | Filtre | Condition | Valeur |
 | --- | --- | --- | --- |
 | Hors ligne quand le nom ne se résout plus | **DNS Is Online** | **Faux** | — |
-| Alerter quand l'unique enregistrement `A` d'un nom change | **DNS Record Value** | **Not Equal To** | `93.184.216.34` |
-| Alerter quand un enregistrement `MX` pointe hors de votre domaine | **DNS Record Value** | **Not Contains** | `example.com` |
-| Marquer le DNS dégradé quand il est lent | **DNS Response Time (in ms)** | **Greater Than** | `500` |
+| Alerter quand l'unique enregistrement `A` d'un nom change | **DNS Record Value** | **Différent de** | `93.184.216.34` |
+| Alerter quand un enregistrement `MX` pointe hors de votre domaine | **DNS Record Value** | **Ne contient pas** | `example.com` |
+| Marquer le DNS dégradé quand il est lent | **DNS Response Time (in ms)** | **Supérieur à** | `500` |
 | Alerter quand la validation DNSSEC échoue | **DNSSEC Is Valid** | **Faux** | — |
 
 ## Dépannage
@@ -156,11 +156,11 @@ dig @8.8.8.8 example.com A
 ```
 :::
 
-:::details Un critère Not Equal To se déclenche alors que la bonne adresse est là
-**DNS Record Value** correspond quand un seul enregistrement correspond. Avec plusieurs enregistrements, **Not Equal To** se déclenche dès que l'un d'eux diffère. Pour vérifier qu'une valeur précise figure parmi les enregistrements, appuyez-vous sur l'ordre des critères, puisque le premier qui correspond l'emporte :
+:::details Un critère Différent de se déclenche alors que la bonne adresse est là
+**DNS Record Value** correspond quand un seul enregistrement correspond. Avec plusieurs enregistrements, **Différent de** se déclenche dès que l'un d'eux diffère. Pour vérifier qu'une valeur précise figure parmi les enregistrements, appuyez-vous sur l'ordre des critères, puisque le premier qui correspond l'emporte :
 
 1. Gardez en haut le critère hors ligne par défaut : **DNS Is Online** / **Faux**.
-2. En dessous, ajoutez un critère avec **DNS Record Value** / **Equal To** / la valeur attendue, qui marque le moniteur **Opérationnel**.
+2. En dessous, ajoutez un critère avec **DNS Record Value** / **Égal à** / la valeur attendue, qui marque le moniteur **Opérationnel**.
 3. En dessous encore, ajoutez un critère avec **DNS Is Online** / **Vrai**, qui marque le moniteur **Hors ligne** et déclare un incident. Il ne correspond qu'aux réponses qui n'ont pas la valeur.
 :::
 

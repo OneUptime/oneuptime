@@ -270,7 +270,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med ett tröskelvä
 | --- | --- |
 | **Mätvärde** | Frågan eller formeln som ska kontrolleras, efter variabelnamnet. |
 | **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste matcha) eller **Any Value** (ett räcker). |
-| **Villkor** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** eller **Equal To** — eller ett anomalivillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
+| **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** — eller ett anomalivillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
 | **Threshold** | Värdet som det jämförs med. En enhetslista står bredvid när mätvärdet har en enhet. Visas inte för anomalivillkor. |
 | **Känslighet** | Bara anomalivillkor. **Låg** (4σ), **Medel** (3σ, standard) eller **Hög** (2σ). |
 | **Baslinjefönster** | Bara anomalivillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |
@@ -280,11 +280,11 @@ Anomalivillkor jämför varje värde med samma timme i veckan i baslinjen. De st
 
 Några kriterier att börja med:
 
-- **En värd är mättad:** `vcenter.host.cpu.utilization`, Genomsnitt, grupperat efter `resource.vcenter.host.name`, **Greater Than** `90`, över de senaste 5 minuterna.
-- **En datastore håller på att bli full:** `vcenter.datastore.disk.utilization`, Genomsnitt, grupperat efter `resource.vcenter.datastore.name`, **Greater Than** `80`.
-- **Ett kluster har förlorat en värd:** `vcenter.cluster.host.count` filtrerat till `effective = false`, Maximum, grupperat efter `resource.vcenter.cluster.name`, **Greater Than** `0`.
-- **Färre virtuella maskiner körs än förväntat:** `vcenter.cluster.vm.count` filtrerat till `power_state = on` och `resource.vcenter.cluster.name = Production`, Summa, **Less Than** antalet du förväntar dig.
-- **En VM swappas av värden:** `vcenter.vm.memory.swapped`, Maximum, grupperat efter `resource.vcenter.vm.name`, **Greater Than** `0`.
+- **En värd är mättad:** `vcenter.host.cpu.utilization`, Genomsnitt, grupperat efter `resource.vcenter.host.name`, **Större än** `90`, över de senaste 5 minuterna.
+- **En datastore håller på att bli full:** `vcenter.datastore.disk.utilization`, Genomsnitt, grupperat efter `resource.vcenter.datastore.name`, **Större än** `80`.
+- **Ett kluster har förlorat en värd:** `vcenter.cluster.host.count` filtrerat till `effective = false`, Maximum, grupperat efter `resource.vcenter.cluster.name`, **Större än** `0`.
+- **Färre virtuella maskiner körs än förväntat:** `vcenter.cluster.vm.count` filtrerat till `power_state = on` och `resource.vcenter.cluster.name = Production`, Summa, **Mindre än** antalet du förväntar dig.
+- **En VM swappas av värden:** `vcenter.vm.memory.swapped`, Maximum, grupperat efter `resource.vcenter.vm.name`, **Större än** `0`.
 
 ### Standardkriterier
 

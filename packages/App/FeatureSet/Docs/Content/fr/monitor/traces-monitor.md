@@ -97,11 +97,11 @@ Les critères d'un moniteur de traces ont un seul **Type de filtre** : **Span Co
 
 | Condition de filtre | Correspond quand le nombre de spans est… |
 | --- | --- |
-| **Greater Than** | au-dessus de la valeur |
-| **Greater Than Or Equal To** | égal ou supérieur à la valeur |
-| **Less Than** | en dessous de la valeur |
-| **Less Than Or Equal To** | égal ou inférieur à la valeur |
-| **Equal To** | exactement la valeur |
+| **Supérieur à** | au-dessus de la valeur |
+| **Supérieur ou égal à** | égal ou supérieur à la valeur |
+| **Inférieur à** | en dessous de la valeur |
+| **Inférieur ou égal à** | égal ou inférieur à la valeur |
+| **Égal à** | exactement la valeur |
 | **Anomalously High** | au-dessus de la plage attendue pour cette heure de la semaine |
 | **Anomalously Low** | en dessous de cette plage |
 | **Anomalous** | hors de cette plage, dans un sens ou dans l'autre |
@@ -112,8 +112,8 @@ Un nouveau moniteur de traces commence avec ces critères :
 
 | Critère | Filtre | Effet |
 | --- | --- | --- |
-| Check if … is offline | **Span Count** **Equal To** `0` | Passe le moniteur hors ligne et déclare un incident, résolu automatiquement |
-| Check if … is online | **Span Count** **Greater Than** `0` | Passe le moniteur en ligne |
+| Check if … is offline | **Span Count** **Égal à** `0` | Passe le moniteur hors ligne et déclare un incident, résolu automatiquement |
+| Check if … is online | **Span Count** **Supérieur à** `0` | Passe le moniteur en ligne |
 
 ## Exemple : des requêtes de checkout en échec
 
@@ -131,8 +131,8 @@ Pour être alerté quand plus de 10 requêtes de checkout échouent en cinq minu
 - **Nom du span** : `POST /api/checkout`
 - **Surveiller les traces pendant (durée)** : **Dernières 5 minutes**
 - **Filtrer par statut de span** : **Erreur**
-- Critère 1 : **Span Count** **Greater Than** `10` – passer le moniteur hors ligne et déclarer un incident
-- Critère 2 : **Span Count** **Less Than Or Equal To** `10` – passer le moniteur en ligne
+- Critère 1 : **Span Count** **Supérieur à** `10` – passer le moniteur hors ligne et déclarer un incident
+- Critère 2 : **Span Count** **Inférieur ou égal à** `10` – passer le moniteur en ligne
 
 Avec 30 requêtes en échec, le critère 1 correspond et l'incident est déclaré. Une fois cinq minutes passées avec 10 échecs ou moins, le critère 2 correspond, le moniteur est de nouveau en ligne et l'incident se résout de lui-même.
 
