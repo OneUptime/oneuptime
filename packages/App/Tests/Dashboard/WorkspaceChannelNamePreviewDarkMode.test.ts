@@ -3,9 +3,10 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The channel name preview under a rule's Channel Name Prefix field, and the
- * prefix chip and example on a rule's card
- * (Components/Workspace/NotificationRuleForm/ChannelNamePreview.tsx).
+ * The channel name preview under a rule's Channel Name Prefix field
+ * (Components/Workspace/NotificationRuleForm/ChannelNamePreview.tsx). A
+ * rule's card names the channel in its Then sentences now, with no prefix
+ * chip of its own.
  *
  * The dark theme does not use Tailwind's dark: variants. Theme.css
  * re-colours the light utility classes under html.dark, one rule per class.
@@ -129,16 +130,16 @@ const COLOR_TOKENS: Array<string> = Array.from(
   ),
 );
 
-describe("the channel name preview and summary in the dark theme", () => {
+describe("the channel name preview in the dark theme", () => {
   test("use no dark: variants and build no colour class from a template", () => {
     expect(CODE).not.toContain("dark:");
     expect(CODE).not.toMatch(TEMPLATED_COLOUR);
   });
 
   test("every colour class they use is remapped for dark mode", () => {
-    // The scan found the preview, the notes and the chip at all.
+    // The scan found the preview's name and its notes at all.
     expect(COLOR_TOKENS).toEqual(
-      expect.arrayContaining(["bg-gray-100", "text-gray-900", "text-gray-500"]),
+      expect.arrayContaining(["text-gray-900", "text-gray-500"]),
     );
 
     expect(

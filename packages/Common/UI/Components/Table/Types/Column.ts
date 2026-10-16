@@ -61,6 +61,12 @@ export default interface Column<T extends GenericObject> {
   key?: keyof T | null; //can be null because actions column does not have a key.
   hideOnMobile?: boolean | undefined; // Hide column on mobile devices
   /*
+   * List view only (ModelTable's ShowAs.List, where each item is a card of
+   * its columns): draw this column's row only when this says so. A table
+   * keeps every column for every row and does not read it.
+   */
+  showInListIf?: ((item: T) => boolean) | undefined;
+  /*
    * Every field that backs this cell, in declaration order. A ModelTable
    * column may declare more than one - e.g. the alert "Affected Resources"
    * cell spans hosts / kubernetesClusters / dockerHosts / podmanHosts /

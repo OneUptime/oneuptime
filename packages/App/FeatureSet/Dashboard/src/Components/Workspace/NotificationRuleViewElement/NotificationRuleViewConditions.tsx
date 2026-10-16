@@ -5,7 +5,6 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import NotificationRuleConditionElement from "./NotificationRuleViewCondition";
 import React, { FunctionComponent, ReactElement } from "react";
 import NotificationRuleCondition from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
-import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Label from "Common/Models/DatabaseModels/Label";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -18,7 +17,6 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 export interface ComponentProps {
   criteriaFilters: Array<NotificationRuleCondition>;
   filterCondition: FilterCondition;
-  eventType: NotificationRuleEventType;
   monitors: Array<Monitor>;
   labels: Array<Label>;
   alertStates: Array<AlertState>;
@@ -30,21 +28,22 @@ export interface ComponentProps {
 }
 
 /*
- * The sentence above a rule's conditions. All or Any is said only when
- * there are two or more conditions to combine (isFilterConditionNeeded):
- * one condition is simply the condition. A rule saved without a match
- * condition reads as "any", as it always did here.
+ * The line over a rule's conditions, under the card's "Which incidents".
+ * All or Any is said only when there are two or more conditions to combine
+ * (isFilterConditionNeeded): one condition is simply the condition, on a
+ * line of its own. A rule saved without a match condition reads as "any",
+ * as it always did here.
+ *
+ * It said "This rule runs when this condition is met:" over a single
+ * condition, in a framed box with a timeline's dots, under a label that
+ * asks which records the rule is for already.
  */
 export const RULE_CONDITIONS_SENTENCES: {
-  readonly one: string;
   readonly all: string;
   readonly any: string;
 } = {
-  one: translationKey("This rule runs when this condition is met:"),
-  all: translationKey("This rule runs when all of these conditions are met:"),
-  any: translationKey(
-    "This rule runs when any one of these conditions is met:",
-  ),
+  all: translationKey("Those that match all of these:"),
+  any: translationKey("Those that match any one of these:"),
 };
 
 export const getRuleConditionsSentence: (data: {
@@ -54,13 +53,12 @@ export const getRuleConditionsSentence: (data: {
   filters: Array<NotificationRuleCondition> | undefined;
   filterCondition: FilterCondition | undefined;
 }): string | undefined => {
-  // No conditions: the rule runs for every event, which its view says itself.
-  if (!data.filters || data.filters.length === 0) {
+  /*
+   * No conditions: the rule runs for every event, which its card says
+   * itself. One condition: the condition says it all.
+   */
+  if (!data.filters || !isFilterConditionNeeded(data.filters)) {
     return undefined;
-  }
-
-  if (!isFilterConditionNeeded(data.filters)) {
-    return RULE_CONDITIONS_SENTENCES.one;
   }
 
   return data.filterCondition === FilterCondition.All
@@ -72,49 +70,66 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const conditions: Array<NotificationRuleCondition> =
+    props.criteriaFilters || [];
   const sentence: string | undefined = getRuleConditionsSentence({
-    filters: props.criteriaFilters,
+    filters: conditions,
     filterCondition: props.filterCondition,
   });
 
-  return (
-    <div>
-      {sentence && (
-        <div
-          className="text-gray-700 text-sm py-2"
-          data-testid="notification-rule-conditions-sentence"
-        >
-          {translator.translateText(sentence)}
-        </div>
-      )}
+  const drawCondition: (
+    condition: NotificationRuleCondition,
+  ) => ReactElement = (condition: NotificationRuleCondition): ReactElement => {
+    return (
+      <NotificationRuleConditionElement
+        notificationRuleCondition={condition}
+        monitors={props.monitors}
+        labels={props.labels}
+        alertStates={props.alertStates}
+        alertSeverities={props.alertSeverities}
+        incidentSeverities={props.incidentSeverities}
+        incidentStates={props.incidentStates}
+        scheduledMaintenanceStates={props.scheduledMaintenanceStates}
+        monitorStatus={props.monitorStatus}
+      />
+    );
+  };
 
-      <div className="ml-3 mt-5 mb-5 bg-gray-50 rounded rounded-xl p-5 border border-2 border-gray-100">
-        <ul role="list" className="space-y-6">
-          {(props.criteriaFilters || []).map(
-            (i: NotificationRuleCondition, index: number) => {
-              const isLastItem: boolean =
-                index === props.criteriaFilters.length - 1;
-              return (
-                <li className="relative flex gap-x-4" key={index}>
-                  {!isLastItem && (
-                    <div className="absolute left-0 top-0 flex w-6 justify-center -bottom-6">
-                      <div className="w-px bg-gray-200"></div>
-                    </div>
-                  )}
-                  <div className="relative flex h-6 w-6  flex-none items-center justify-center bg-gray-50">
-                    <div className="h-1.5 w-1.5 rounded-full bg-gray-100 ring-1 ring-gray-300"></div>
-                  </div>
-                  <NotificationRuleConditionElement
-                    {...props}
-                    key={index}
-                    notificationRuleCondition={i}
-                  />{" "}
-                </li>
-              );
-            },
-          )}
-        </ul>
-      </div>
+  // One condition: the condition, as a line of its own.
+  if (!sentence) {
+    return (
+      <ul role="list" className="text-sm text-gray-700">
+        {conditions.map(
+          (condition: NotificationRuleCondition, index: number) => {
+            return <li key={index}>{drawCondition(condition)}</li>;
+          },
+        )}
+      </ul>
+    );
+  }
+
+  /*
+   * Several: whether all of them or any one must be true, then each, as the
+   * card's Then lists what the rule does.
+   */
+  return (
+    <div className="space-y-1">
+      <p
+        className="text-sm text-gray-700"
+        data-testid="notification-rule-conditions-sentence"
+      >
+        {translator.translateText(sentence)}
+      </p>
+      <ul
+        role="list"
+        className="list-disc space-y-1 pl-5 text-sm text-gray-700 marker:text-gray-400"
+      >
+        {conditions.map(
+          (condition: NotificationRuleCondition, index: number) => {
+            return <li key={index}>{drawCondition(condition)}</li>;
+          },
+        )}
+      </ul>
     </div>
   );
 };

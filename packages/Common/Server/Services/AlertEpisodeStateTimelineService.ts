@@ -38,6 +38,7 @@ import StateChangeNote from "../Utils/StateChangeNote";
 import StateChangeFeedEmoji from "../Utils/StateChangeFeedEmoji";
 import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import StateMoveCheck from "../Utils/StateMoveCheck";
+import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import { StateMoveRecord, StateMoveState } from "../../Utils/StateMove";
 
 export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline> {
@@ -558,6 +559,38 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
       savedStateChange: createdItem,
       props: onCreate.createBy.props,
     });
+
+    /*
+     * Resolved: the episode's channels whose rule says to archive them when
+     * the episode is resolved are archived, as an alert's are. The rule form
+     * offered it for episodes, and nothing archived them.
+     */
+    if (isResolvedState && !createdItem.endsAt && createdItem.projectId) {
+      WorkspaceNotificationRuleService.archiveWorkspaceChannels({
+        projectId: createdItem.projectId,
+        notificationFor: {
+          alertEpisodeId: createdItem.alertEpisodeId,
+        },
+        sendMessageBeforeArchiving: {
+          _type: "WorkspacePayloadMarkdown",
+          text: mdText`**[Episode ${episodeDisplayNumber}](${(
+            await AlertEpisodeService.getEpisodeLinkInDashboard(
+              createdItem.projectId,
+              createdItem.alertEpisodeId!,
+            )
+          ).toString()})** is resolved. Archiving channel.`.toString(),
+        },
+      }).catch((error: Error) => {
+        logger.error(`Error while archiving workspace channels:`, {
+          projectId: createdItem.projectId?.toString(),
+          alertEpisodeId: createdItem.alertEpisodeId?.toString(),
+        } as LogAttributes);
+        logger.error(error, {
+          projectId: createdItem.projectId?.toString(),
+          alertEpisodeId: createdItem.alertEpisodeId?.toString(),
+        } as LogAttributes);
+      });
+    }
 
     return createdItem;
   }

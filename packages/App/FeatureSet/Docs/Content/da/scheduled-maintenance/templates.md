@@ -102,7 +102,7 @@ For eksempel et ugentligt vindue, hvor den første begivenhed oprettes en mandag
 
 Sæt **Første begivenhed planlagt til** så langt før starten, som du vil have, at dine kunder hører om arbejdet. Alle tre tidspunkter skal ligge i fremtiden, når du opretter skabelonen, begivenheden skal oprettes, før den starter og slutter, og den skal starte, før den slutter; formularen siger, hvilken regel et tidspunkt bryder.
 
-Et job kontrollerer de tilbagevendende skabeloner hvert minut. Når en skabelons næste tidspunkt kommer, flytter det tidspunktet ét interval frem og opretter begivenheden. Skabelonlisten viser det tidspunkt i sin kolonne **Tilbagevendende begivenhed**. En begivenhed, der er oprettet ud fra tidsplanen, er som enhver anden: dens regler kører, dens ejere tilføjes, og dens abonnenter får at vide, at den er planlagt.
+Et job kontrollerer de tilbagevendende skabeloner hvert minut. Når en skabelons næste tidspunkt kommer, flytter det tidspunktet ét interval frem og opretter begivenheden. Skabelonlisten viser det tidspunkt i sin kolonne **Tilbagevendende begivenhed**, og **Nej** for en skabelon, der ikke gentages. En begivenhed, der er oprettet ud fra tidsplanen, er som enhver anden: dens regler kører, dens ejere tilføjes, og dens abonnenter får at vide, at den er planlagt.
 
 ## Ændr eller stop en skabelon
 
@@ -112,7 +112,7 @@ Et job kontrollerer de tilbagevendende skabeloner hvert minut. Når en skabelons
 - **Berørte ressourcer** rummer dens **Monitorer**, deres **Skift overvågningsstatus til** og dens **Andre berørte ressourcer**, med sin egen **Rediger**.
 - **Ejere** viser de personer og teams, der ejer hver begivenhed, der planlægges ud fra den.
 
-Ændringer gælder de begivenheder, der oprettes, efter du har gemt dem; begivenheder, der allerede er oprettet, beholder deres egne værdier. For at stoppe en tidsplan slår du **Tilbagevendende begivenhed** fra under **Rediger** eller sletter skabelonen. Sletter du en skabelon, bliver de begivenheder, den har oprettet, stående.
+Ændringer gælder de begivenheder, der oprettes, efter du har gemt dem; begivenheder, der allerede er oprettet, beholder deres egne værdier. For at stoppe en tidsplan slår du **Tilbagevendende begivenhed** fra under **Rediger** eller sletter skabelonen. En skabelon, der er slået fra, beholder sin tidsplan: slår du den til igen, fortsætter den ved tidsplanens næste tidspunkt og springer de tidspunkter over, hvor den var slået fra. Sletter du en skabelon, bliver de begivenheder, den har oprettet, stående.
 
 ## Fejlfinding
 
