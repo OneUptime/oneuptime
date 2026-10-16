@@ -2,11 +2,16 @@
  * The real workflow builder canvas: react-flow, the step cards, the Add
  * Component / Add Trigger picker and the step settings dialog, with the real
  * component catalog. Nothing is faked; the page around it is reduced to the
- * one toolbar button the Builder page has for adding a step.
+ * one toolbar button the Builder page has for adding a step. Like the
+ * Builder's, it says Add Trigger while the canvas has no trigger and Add
+ * Component once it has one (WorkflowAddButton), read from the graph the
+ * canvas last reported.
  *
  * ?scenario=graph         a Manual trigger connected to a set-up Log step
  * ?scenario=trigger-only  just a Manual trigger
  * ?scenario=empty         the dashed "choose a trigger" placeholder
+ * ?scenario=no-trigger    a Log step whose trigger was deleted, and the
+ *                         dashed placeholder back in the trigger's place
  * ?scenario=switch        a Manual trigger, then a Switch / Case on an
  *                         environment: "production" leads to log-1,
  *                         "staging" to log-2 and Default to log-3; log-4 is
@@ -62,6 +67,7 @@ import { createRoot } from "react-dom/client";
 import Workflow, {
   getPlaceholderTriggerNode,
 } from "Common/UI/Components/Workflow/Workflow";
+import { getWorkflowAddButton } from "Common/UI/Components/Workflow/WorkflowAddButton";
 import { loadComponentsAndCategories } from "Common/UI/Components/Workflow/Utils";
 import ObjectID from "Common/Types/ObjectID";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -163,6 +169,11 @@ function storedFields(name, fallback) {
 
 if (scenario === "empty" || scenario === "record-new") {
   initialNodes = [getPlaceholderTriggerNode()];
+} else if (scenario === "no-trigger") {
+  initialNodes = [
+    getPlaceholderTriggerNode(),
+    step("log", 1, 96, 320, { value: "Deployment finished" }),
+  ];
 } else if (scenario === "record") {
   const recordTrigger =
     params.get("trigger") === "create-or-update"
@@ -569,6 +580,8 @@ window.__runs = [];
 function App() {
   const [showPicker, setShowPicker] = useState(false);
   const [showRun, setShowRun] = useState(false);
+  // The graph as the canvas last reported it, as the Builder page keeps it.
+  const [graphNodes, setGraphNodes] = useState(initialNodes);
 
   return (
     <div style={{ padding: "16px" }}>
@@ -581,7 +594,7 @@ function App() {
             setShowPicker(true);
           }}
         >
-          Add Component
+          {getWorkflowAddButton(graphNodes).title}
         </button>
         <button
           type="button"
@@ -615,6 +628,7 @@ function App() {
         runsAreTestRuns={params.get("off") === "1"}
         onWorkflowUpdated={(nodes, edges) => {
           window.__savedGraph = { nodes: nodes, edges: edges };
+          setGraphNodes(nodes);
         }}
       />
     </div>
