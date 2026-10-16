@@ -238,7 +238,7 @@ flowchart TB
 
 事件片段會在 `shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated` 中記錄建立時是否通知了訂閱者。用 **建立片段** 按鈕或透過 **分組規則** 建立的片段會開啟它；API 請求可以在把它設為 `false` 的情況下建立片段。
 
-在建立時把它設為 `false` 的片段上，新的公開備註會以關閉 **Notify status page subscribers** 的狀態開始，下方有一行說明原因，這適用於片段的 **公開備註** 頁面，以及 **片段動態** 上開啟同一個備註編輯器的 **Add Public Note**。你仍然可以勾選它。沒有明確選擇而發布的備註也遵循同樣的設定：Slack 備註、工作流程，以及省略了 `shouldStatusPageSubscribersBeNotifiedOnNoteCreated` 的 API 請求。明確的 `true` 或 `false` 一律會被保留。只有這項設定有作用：與事件不同，把片段設為私人不會改變核取方塊的初始狀態。
+在建立時把它設為 `false` 的片段上，新的公開備註會以關閉 **Notify status page subscribers** 的狀態開始，下方有一行說明原因，這適用於片段的 **公開備註** 頁面，以及 **片段動態** 上開啟同一個備註編輯器的 **Add Public Note**。你仍然可以勾選它。沒有明確選擇而發布的備註也遵循同樣的設定：Slack 備註、工作流程，以及省略了 `shouldStatusPageSubscribersBeNotifiedOnNoteCreated` 的 API 請求。明確的 `true` 或 `false` 一律會被保留。只有這項設定有作用。私人片段完全不能新增公開備註：請參閱[私人事件只能新增私人備註](/docs/incidents/notes-owners-and-feed#私人事件只能新增私人備註)。
 
 這只涉及公開備註。片段的狀態變更（**確認**、**解決** 和自動解決）仍然會通知訂閱者，因為片段的狀態變更對話方塊和其 **狀態時間軸** 頁面上的表單都沒有 **通知狀態頁面訂閱者** 核取方塊。
 

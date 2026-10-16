@@ -11,6 +11,7 @@ import ScheduledMaintenanceStateTimelineService from "../../../Server/Services/S
 import UserService from "../../../Server/Services/UserService";
 import StateChangePublicNote from "../../../Server/Utils/StatusPage/StateChangePublicNote";
 import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
+import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import ScheduledMaintenancePublicNote from "../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
@@ -37,6 +38,7 @@ import {
 } from "../TestingUtils/InMemoryRepository";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { stubReadableParents } from "../TestingUtils/ReadableParents";
+import { stubPrivateRecords } from "../TestingUtils/PrivateRecords";
 import {
   afterEach,
   beforeEach,
@@ -326,6 +328,12 @@ beforeEach(() => {
    * found.
    */
   stubReadableParents();
+  /*
+   * A change that comes with a public note asks whether its incident is
+   * private, which takes no public notes (PrivateRecordPublicNoteRule):
+   * none of these is.
+   */
+  stubPrivateRecords();
   lock = getJestSpyOn(Semaphore, "lock").mockResolvedValue({
     key: "state-change",
   });
@@ -690,6 +698,14 @@ describe("what an incident state change with a public note saves", () => {
     getJestSpyOn(IncidentStateService, "findOneBy").mockResolvedValue(
       acknowledged,
     );
+    /*
+     * The note's own create reads its incident once: whether it is private
+     * (a private incident takes no public notes) and whether it notified
+     * subscribers. Not private.
+     */
+    const incident: Incident = new Incident();
+    incident.isPrivate = false;
+    getJestSpyOn(IncidentService, "findOneBy").mockResolvedValue(incident);
     getJestSpyOn(IncidentService, "updateOneBy").mockResolvedValue(1);
     getJestSpyOn(IncidentService, "getIncidentNumber").mockResolvedValue({
       number: 42,

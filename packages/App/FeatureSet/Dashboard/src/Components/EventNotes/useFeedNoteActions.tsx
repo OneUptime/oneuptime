@@ -1,7 +1,9 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { ReactElement, useEffect, useState } from "react";
-import { getNoteCreateGate, NoteCreateGate } from "./EventNoteComposer";
+import { getNoteKindCreateGate, NoteCreateGate } from "./EventNoteComposer";
 import EventNoteComposerDialog, {
   NOTE_COMPOSER_DIALOG_TITLES,
 } from "./EventNoteComposerDialog";
@@ -38,14 +40,17 @@ interface OpenDialog {
  * dialog they open, which is the event's Notes page composer
  * (EventNoteComposerDialog) for the same kind of note.
  *
- * Each item is gated like the Notes page's composer: locked with the missing
- * permission as its tooltip, or not offered while the permissions have not
- * arrived. And like the Notes page, a draft never follows the reader to
- * another event: the dialog belongs to the event it was opened on.
+ * Each item is gated like the Notes page's composer: locked with the
+ * missing permission as its tooltip, or not offered while the permissions
+ * have not arrived. A private incident's or episode's "Add Public Note" is
+ * locked with why it takes no public notes (getNoteKindCreateGate). And like
+ * the Notes page, a draft never follows the reader to another event: the
+ * dialog belongs to the event it was opened on.
  */
 export default function useFeedNoteActions(
   options: FeedNoteActionsOptions,
 ): FeedNoteActions {
+  const translator: Translator = useTranslator();
   const [openDialog, setOpenDialog] = useState<OpenDialog | null>(null);
 
   // Every kind of note on a feed is on the same event.
@@ -75,7 +80,7 @@ export default function useFeedNoteActions(
   const menuItems: Array<ReactElement> = [];
 
   for (const entry of kinds) {
-    const gate: NoteCreateGate = getNoteCreateGate(entry.kind.modelType);
+    const gate: NoteCreateGate = getNoteKindCreateGate(entry.kind, translator);
 
     if (!gate.isShown) {
       continue;

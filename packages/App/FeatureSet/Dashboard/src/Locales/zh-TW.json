@@ -30067,5 +30067,14 @@
   "Reading the incident timeline": "正在讀取事件時間軸",
   "Searching past incidents": "正在搜尋過去的事件",
   "Ranked by": "排序依據",
+  "If checked, only the incident's owner users and the members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "若勾選，則只有此事件的擁有者使用者及其擁有者團隊的成員（加上專案管理員與擁有者）能夠檢視此事件。私人事件會自動從所有狀態頁面隱藏，且無法新增公開備註。",
+  "If enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "若啟用，則只有此事件的擁有者使用者及其擁有者團隊的成員（加上專案管理員與擁有者）能夠檢視此事件。私人事件會自動從所有狀態頁面隱藏，且無法新增公開備註。",
+  "When enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "啟用時，只有事件的擁有者使用者及其擁有者團隊的成員（加上專案管理員和擁有者）才能檢視此事件。私人事件會自動從所有狀態頁面隱藏，且無法新增公開備註。",
+  "This episode is private, so public notes cannot be added to it. Use a private note.": "此片段為私人片段，因此無法新增公開備註。請使用私人備註。",
+  "This incident is private, so public notes cannot be added to it. Use a private note.": "此事件為私人事件，因此無法新增公開備註。請使用私人備註。",
+  "Customer-facing updates about this episode. While it is private, no status page shows them.": "關於此片段的面向客戶的更新。在此片段為私人期間，任何狀態頁面都不會顯示這些更新。",
+  "Customer-facing updates about this incident. While it is private, no status page shows them.": "關於此事件的面向客戶的更新。在此事件為私人期間，任何狀態頁面都不會顯示這些更新。",
+  "Not shown while this episode is private": "此片段為私人期間不顯示",
+  "Not shown while this incident is private": "此事件為私人期間不顯示",
   "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "刪除此專案後，將對目前為止的使用量進行最後一次計費，然後停止計費。您在 {{marketplace}} 上的 OneUptime 購買將維持有效，直到您在那裡取消。"
 }

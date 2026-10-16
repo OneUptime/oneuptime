@@ -1231,11 +1231,11 @@ describe("the notify box on the summary step", () => {
     expect(screen.queryByTestId(PREVIEW_TEST_ID)).toBeNull();
   });
 
-  test("the Private Incident box still says it hides the incident from every status page", async () => {
+  test("the Private Incident box still says it hides the incident from every status page, and takes no public notes", async () => {
     await renderCreate();
 
     expect(fieldFor("isPrivate").description).toContain(
-      "Private incidents are automatically hidden from all status pages.",
+      "Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.",
     );
   });
 });

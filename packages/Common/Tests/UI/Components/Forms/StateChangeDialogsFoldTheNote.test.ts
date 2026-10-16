@@ -239,6 +239,49 @@ describe("state change dialogs", () => {
     }
   });
 
+  /*
+   * A private incident takes no public notes and reaches no status page
+   * subscriber (Common/Types/StatusPage/PrivateRecordPublicNotes; the server
+   * refuses a change that comes with a public note on one). Its dialog is
+   * the one call of the shared piece with the incident's privacy deciding
+   * the note: a private note, offered to who may post one, and no question
+   * about subscribers - and it notifies nobody.
+   */
+  test("the incident dialog gives a private incident a private note, and asks nothing about subscribers", () => {
+    const source: string = code(
+      `${DASHBOARD}/Components/Incident/ChangeState.tsx`,
+    );
+
+    expect(source).toContain(
+      'import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";',
+    );
+    expect(source).toContain(
+      "fields: getStateChangeFormFields<IncidentStateTimeline>({ ...(props.isPrivate ? { noteType: BulkStateChangeNoteType.Private,",
+    );
+
+    const privateStart: number = source.indexOf("...(props.isPrivate ? {");
+    const publicStart: number = source.indexOf(
+      ": { noteType: BulkStateChangeNoteType.Public,",
+      privateStart,
+    );
+
+    expect(privateStart).toBeGreaterThan(-1);
+    expect(publicStart).toBeGreaterThan(privateStart);
+
+    const privateBranch: string = source.slice(privateStart, publicStart);
+
+    expect(privateBranch).toContain("noteModel: new IncidentInternalNote(),");
+    expect(privateBranch).toContain(
+      '"Post a private note about this state change."',
+    );
+    expect(privateBranch).not.toContain("notifySubscribers");
+    expect(privateBranch).not.toContain("IncidentPublicNote");
+
+    expect(source).toContain(
+      "shouldStatusPageSubscribersBeNotified: props.isPrivate ? false : notifySubscribersByDefault,",
+    );
+  });
+
   test("no dialog asks for a width: short while the note is folded, wide once it is open", () => {
     for (const file of [...STATE_CHANGE_DIALOGS, BULK_DIALOG]) {
       const source: string = code(file);

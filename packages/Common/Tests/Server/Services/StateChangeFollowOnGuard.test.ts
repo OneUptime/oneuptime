@@ -46,7 +46,11 @@ const STATE_TIMELINES: Array<StateTimeline> = [
   {
     file: "IncidentStateTimelineService.ts",
     eventService: "IncidentService",
-    noteWriters: [/IncidentPublicNoteService\.create/],
+    // A public note, or - what a private incident takes - a private one.
+    noteWriters: [
+      /IncidentPublicNoteService\.create/,
+      /StateChangeNote\.postPrivateNotes/,
+    ],
   },
   {
     file: "AlertStateTimelineService.ts",

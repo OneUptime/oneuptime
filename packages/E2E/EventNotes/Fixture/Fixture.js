@@ -24,6 +24,8 @@
  *   ?templates= some (default) | none | many
  *   ?quiet=     1 marks Incident #1042 as declared without notifying
  *               subscribers, so its public note composer starts unticked.
+ *   ?private=   1 makes Incident #1042 and Incident Episode #12 private: a
+ *               private incident or episode takes no new public notes.
  *   ?fail=      comma separated: list, create, update, delete, resend,
  *               templates, ai. The matching call throws HTTPErrorResponse.
  *   ?theme=     dark adds html.dark (handled by server.js).
@@ -117,6 +119,7 @@ const templatesMode = ["none", "many"].includes(params.get("templates"))
   ? params.get("templates")
   : "some";
 const isQuietIncident = params.get("quiet") === "1";
+const isPrivateEvent = params.get("private") === "1";
 const failures = new Set((params.get("fail") || "").split(",").filter(Boolean));
 
 const NOW = new Date();
@@ -161,6 +164,7 @@ const fixture = {
     role: roleMode,
     templates: templatesMode,
     quiet: isQuietIncident,
+    private: isPrivateEvent,
     fail: Array.from(failures),
   },
   ids: {
@@ -322,6 +326,7 @@ insert(Incident, {
   incidentNumberWithPrefix: "INC-1042",
   title: "Checkout API returning 502s for EU customers",
   shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: !isQuietIncident,
+  isPrivate: isPrivateEvent,
 });
 insert(Alert, {
   _id: ID.alert(311),
@@ -340,6 +345,7 @@ insert(IncidentEpisode, {
   episodeNumber: 12,
   title: "EU edge network degradation",
   shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated: true,
+  isPrivate: isPrivateEvent,
 });
 insert(AlertEpisode, {
   _id: ID.alertEpisode(7),

@@ -1,4 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  PrivateRecordLookup,
+  stubPrivateRecords,
+} from "../../TestingUtils/PrivateRecords";
 
 /*
  * Pinning (📌) or megaphoning (📣) a message in a Microsoft Teams incident /
@@ -79,6 +83,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { WorkspaceNoteType } from "../../../../Types/Workspace/WorkspaceNoteReaction";
+import { PrivateRecordKind } from "../../../../Types/StatusPage/PrivateRecordPublicNotes";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import API from "../../../../Utils/API";
 import type { ConversationReference, TurnContext } from "botbuilder";
@@ -221,6 +226,16 @@ function noteReaction(
 
 afterEach((): void => {
   jest.restoreAllMocks();
+});
+
+/*
+ * A public note asked for in a chat - a 📣, an Add Note form - first asks
+ * whether its incident or episode is private, which takes no public notes
+ * (WorkspaceReactionNote.getNoteTypeSavedAs, WorkspaceNoteForm): none of
+ * these is.
+ */
+beforeEach((): void => {
+  stubPrivateRecords();
 });
 
 describe("MicrosoftTeamsReactionNoteSync.getNoteReactions", () => {
@@ -715,6 +730,115 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
     );
   });
 
+  /*
+   * A private incident takes no public notes (Types/StatusPage/
+   * PrivateRecordPublicNotes): a 📣 in its channel is saved as a private
+   * note - checked, authorized and saved as one - and the confirmation says
+   * why.
+   */
+  test("a megaphone on a private incident saves a private note, as one, and says why", async () => {
+    stubPrivateRecords([incidentId]);
+
+    await expect(
+      MicrosoftTeamsReactionNoteSync.processReaction({
+        channel: watchedChannel(),
+        reaction: noteReaction({ noteType: WorkspaceNoteType.Public }),
+        now: NOW,
+      }),
+    ).resolves.toBe(MicrosoftTeamsReactionOutcome.Saved);
+
+    expect(hasNoteSpy.mock.calls[0]![0].noteType).toBe(
+      WorkspaceNoteType.Private,
+    );
+    expect(authorizeSpy.mock.calls[0]![0].action).toBe(
+      "add a private note to this incident",
+    );
+    expect(authorizeSpy.mock.calls[0]![0].modelType).toBe(
+      WorkspaceReactionNote.getNoteModelType(
+        WorkspaceNoteResourceType.Incident,
+        WorkspaceNoteType.Private,
+      ),
+    );
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+    expect(saveSpy.mock.calls[0]![0].noteType).toBe(WorkspaceNoteType.Private);
+    expect(replySpy).toHaveBeenCalledTimes(1);
+    expect(replySpy.mock.calls[0]![0].text).toBe(
+      "✅ Saved as a **private note** on [Incident #42](https://oneuptime.test/incidents/42). The incident is private, so public notes cannot be added to it.",
+    );
+  });
+
+  test("a megaphone on a private incident keeps the message's files, as a private note does", async () => {
+    stubPrivateRecords([incidentId]);
+
+    const message: JSONObject = graphMessage({
+      id: "1700000000200",
+      content: '<attachment id="f"></attachment>',
+      attachments: [
+        {
+          contentType: "reference",
+          contentUrl: "https://contoso.sharepoint.com/rca.pdf",
+          name: "rca.pdf",
+        },
+      ],
+    });
+
+    await expect(
+      MicrosoftTeamsReactionNoteSync.processReaction({
+        channel: watchedChannel(),
+        reaction: noteReaction({
+          message: message,
+          noteType: WorkspaceNoteType.Public,
+        }),
+        now: NOW,
+      }),
+    ).resolves.toBe(MicrosoftTeamsReactionOutcome.Saved);
+
+    // Not refused for having only files: nothing goes to a status page.
+    expect(saveSpy.mock.calls[0]![0].note).toBe(
+      "📎 [rca.pdf](https://contoso.sharepoint.com/rca.pdf)",
+    );
+    expect(answerSpy).not.toHaveBeenCalled();
+  });
+
+  test("a megaphone asks once whether its incident is private: this incident, in its project", async () => {
+    const lookups: Array<PrivateRecordLookup> = stubPrivateRecords([
+      incidentId,
+    ]);
+
+    await MicrosoftTeamsReactionNoteSync.processReaction({
+      channel: watchedChannel(),
+      reaction: noteReaction({ noteType: WorkspaceNoteType.Public }),
+      now: NOW,
+    });
+
+    expect(lookups).toEqual([
+      {
+        kind: PrivateRecordKind.Incident,
+        recordId: incidentId.toString(),
+        projectId: projectId.toString(),
+      },
+    ]);
+  });
+
+  test("a pin on a private incident is confirmed as always, and asks nothing", async () => {
+    const lookups: Array<PrivateRecordLookup> = stubPrivateRecords([
+      incidentId,
+    ]);
+
+    await MicrosoftTeamsReactionNoteSync.processReaction({
+      channel: watchedChannel(),
+      reaction: noteReaction(),
+      now: NOW,
+    });
+
+    expect(lookups).toEqual([]);
+
+    expect(saveSpy.mock.calls[0]![0].noteType).toBe(WorkspaceNoteType.Private);
+    expect(replySpy.mock.calls[0]![0].text).toBe(
+      "✅ Saved as a **private note** on [Incident #42](https://oneuptime.test/incidents/42).",
+    );
+  });
+
   test("the reaction is claimed once, keyed to the resource, message, person and time", async () => {
     const reaction: MicrosoftTeamsNoteReaction = noteReaction();
 
@@ -903,6 +1027,32 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
     );
     expect(answerSpy.mock.calls[0]![0].answer.text).toBe(
       "Connect your Microsoft Teams account to save the message you reacted to as a public note on this incident",
+    );
+  });
+
+  test("a megaphone on a private incident asks to save a private note", async () => {
+    stubPrivateRecords([incidentId]);
+    userAuthSpy.mockResolvedValue(null);
+
+    await MicrosoftTeamsReactionNoteSync.processReaction({
+      channel: watchedChannel(),
+      reaction: noteReaction({ noteType: WorkspaceNoteType.Public }),
+      now: NOW,
+    });
+
+    /*
+     * The pending action is still the 📣's - it finds the reaction again
+     * once they connect - but what they are asked, and what it becomes, is
+     * a private note.
+     */
+    expect(linkSpy.mock.calls[0]![0].pendingAction.kind).toBe(
+      WorkspacePendingActionKind.SavePublicNote,
+    );
+    expect(linkSpy.mock.calls[0]![0].purpose).toBe(
+      "save the message you reacted to as a private note on this incident",
+    );
+    expect(answerSpy.mock.calls[0]![0].answer.text).toBe(
+      "Connect your Microsoft Teams account to save the message you reacted to as a private note on this incident",
     );
   });
 
@@ -1523,6 +1673,8 @@ describe("MicrosoftTeamsReactionNoteSync.saveAfterConnect", () => {
   test("saves the message she pinned, and confirms it once in its thread", async () => {
     await expect(saveAfterConnect()).resolves.toEqual({
       outcome: WorkspaceMessageNoteOutcome.Saved,
+      // Saved as the note the pin asked for: the incident is not private.
+      noteType: WorkspaceNoteType.Private,
     });
 
     expect(readSpy).toHaveBeenCalledWith({
@@ -1595,6 +1747,7 @@ describe("MicrosoftTeamsReactionNoteSync.saveAfterConnect", () => {
 
     await expect(saveAfterConnect()).resolves.toEqual({
       outcome: WorkspaceMessageNoteOutcome.Saved,
+      noteType: WorkspaceNoteType.Private,
     });
 
     hasNoteSpy.mockResolvedValue(false);
@@ -1602,6 +1755,59 @@ describe("MicrosoftTeamsReactionNoteSync.saveAfterConnect", () => {
     await expect(saveAfterConnect()).resolves.toEqual({
       outcome: WorkspaceMessageNoteOutcome.Failed,
     });
+  });
+
+  /*
+   * Her 📣 on an incident that is private - by now, if not when she reacted:
+   * it is saved as the private note the incident takes, and said so, on the
+   * Connect button's page and in the thread.
+   */
+  test("her megaphone on a private incident is saved as a private note", async () => {
+    stubPrivateRecords([incidentId]);
+    readSpy.mockResolvedValue([
+      pinnedMessage([
+        graphReaction({
+          reactionType: "📣",
+          displayName: "Megaphone",
+          createdDateTime: minutesAgo(30),
+        }),
+      ]),
+    ]);
+
+    await expect(saveAfterConnect(WorkspaceNoteType.Public)).resolves.toEqual({
+      outcome: WorkspaceMessageNoteOutcome.Saved,
+      noteType: WorkspaceNoteType.Private,
+    });
+
+    expect(saveSpy.mock.calls[0]![0].noteType).toBe(WorkspaceNoteType.Private);
+    expect(replySpy.mock.calls[0]![0].text).toBe(
+      "✅ Saved as a **private note** on [Incident #42](https://oneuptime.test/incidents/42). The incident is private, so public notes cannot be added to it.",
+    );
+  });
+
+  test("her megaphone on a private incident a run is saving right now: looked for as the private note it becomes", async () => {
+    stubPrivateRecords([incidentId]);
+    readSpy.mockResolvedValue([
+      pinnedMessage([
+        graphReaction({
+          reactionType: "📣",
+          displayName: "Megaphone",
+          createdDateTime: minutesAgo(30),
+        }),
+      ]),
+    ]);
+    claimSpy.mockResolvedValue(false);
+    hasNoteSpy.mockImplementation((async (data: {
+      noteType: WorkspaceNoteType;
+    }): Promise<boolean> => {
+      return data.noteType === WorkspaceNoteType.Private;
+    }) as never);
+
+    await expect(saveAfterConnect(WorkspaceNoteType.Public)).resolves.toEqual({
+      outcome: WorkspaceMessageNoteOutcome.Saved,
+      noteType: WorkspaceNoteType.Private,
+    });
+    expect(saveSpy).not.toHaveBeenCalled();
   });
 
   test("a refusal is told on the Connect button's page, not in the thread", async () => {

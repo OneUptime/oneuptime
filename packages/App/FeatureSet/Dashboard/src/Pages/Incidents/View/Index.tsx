@@ -1253,6 +1253,7 @@ const IncidentView: FunctionComponent<
             notifyStatusPageSubscribersByDefault={
               notifyStatusPageSubscribersByDefault
             }
+            isPrivate={isPrivate}
           />
         </div>
 
