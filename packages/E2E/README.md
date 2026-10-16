@@ -282,6 +282,25 @@ keyboard path, the dark theme, and the swatches wrapping on a phone. See
 `ColorPicker/README.md`. Failure traces are written to
 `output/playwright/color-picker-ui/test-results/` at the repository root.
 
+## Sign-in options UI regression tests
+
+Run the sign-in options checks without starting the app or database:
+
+```bash
+cd packages/E2E
+npm run test-sign-in-options-ui
+```
+
+The fixture (`SignInOptions/Fixture`, port 4311) renders the real Accounts
+sign-in, single sign-on and sign-up pages and a private status page's sign-in
+page, with the network stubbed, the production Tailwind and the Inter font. In
+all 17 languages, from a 320 px phone to a laptop, it checks that every other
+way to sign in (SSO, Microsoft, a passkey, the password form) keeps its icon
+right before its words, never overflows, is as tall as the page's filled button
+when its words fit one line, and balances its lines when they wrap. See
+`SignInOptions/README.md`. Failure traces and review screenshots are written to
+`output/playwright/sign-in-options-ui/test-results/` at the repository root.
+
 ## Workflow builder UI regression tests
 
 Run the workflow builder canvas checks without starting the app or database:
