@@ -21,6 +21,11 @@ import {
   UNCATEGORIZED_TITLE,
   useCategoryFolds,
 } from "./NavBarMenuCatalog";
+import {
+  pickRecentProducts,
+  readRecentProductRoutes,
+  rememberRecentProductRoute,
+} from "./NavBarRecentProducts";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -86,49 +91,6 @@ export const ICON_COLOR_CLASSES: Record<string, IconColorClasses> = {
   },
   red: { bg: "bg-red-50", ring: "ring-red-200", text: "text-red-600" },
   teal: { bg: "bg-teal-50", ring: "ring-teal-200", text: "text-teal-600" },
-};
-
-// Persist the handful of most-recently opened products across sessions.
-const RECENT_STORAGE_KEY: string = "oneuptime-navbar-recent-products";
-const RECENT_LIMIT: number = 5;
-
-const readRecentRoutes: () => string[] = (): string[] => {
-  try {
-    if (typeof window === "undefined" || !window.localStorage) {
-      return [];
-    }
-    const raw: string | null = window.localStorage.getItem(RECENT_STORAGE_KEY);
-    if (!raw) {
-      return [];
-    }
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-    return parsed.filter((value: unknown): value is string => {
-      return typeof value === "string";
-    });
-  } catch {
-    // Ignore storage access / parse errors (e.g. private mode, bad JSON).
-    return [];
-  }
-};
-
-const writeRecentRoute: (routeString: string) => void = (
-  routeString: string,
-): void => {
-  try {
-    if (typeof window === "undefined" || !window.localStorage) {
-      return;
-    }
-    const existing: string[] = readRecentRoutes().filter((route: string) => {
-      return route !== routeString;
-    });
-    const next: string[] = [routeString, ...existing].slice(0, RECENT_LIMIT);
-    window.localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify(next));
-  } catch {
-    // Ignore storage write errors (e.g. private mode, quota exceeded).
-  }
 };
 
 export interface ComponentProps {
@@ -236,9 +198,12 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   const [activeKey, setActiveKey] = useState<string | undefined>(undefined);
   // Drives the open transition (fade + scale-in) on the first paint.
   const [isShown, setIsShown] = useState<boolean>(false);
-  // Recently opened product routes, read once when the modal opens.
-  const [recentRoutes] = useState<string[]>(() => {
-    return readRecentRoutes();
+  /*
+   * The products opened from this menu before, the most recent first, read
+   * once when the menu opens (NavBarRecentProducts.ts).
+   */
+  const [recentRoutes] = useState<Array<string>>(() => {
+    return readRecentProductRoutes();
   });
   const inputRef: React.RefObject<HTMLInputElement> =
     useRef<HTMLInputElement>(null);
@@ -291,25 +256,12 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   }, [props.items, query]);
 
   /*
-   * The "Recent" row: resolve stored routes to current items, skip the page
-   * we're already on, and cap the count. Only shown while idle (no query).
+   * The "Recent" row: the remembered products of this menu, without the
+   * page we're already on, six at most (two full rows of three cards).
+   * Only shown while idle (no query).
    */
-  const recentItems: MoreMenuItem[] = useMemo(() => {
-    if (recentRoutes.length === 0) {
-      return [];
-    }
-    const itemByRoute: Map<string, MoreMenuItem> = new Map();
-    props.items.forEach((item: MoreMenuItem) => {
-      itemByRoute.set(item.route.toString(), item);
-    });
-    const resolved: MoreMenuItem[] = [];
-    recentRoutes.forEach((route: string) => {
-      const item: MoreMenuItem | undefined = itemByRoute.get(route);
-      if (item && !isMoreMenuItemActive(item)) {
-        resolved.push(item);
-      }
-    });
-    return resolved.slice(0, RECENT_LIMIT);
+  const recentItems: Array<MoreMenuItem> = useMemo(() => {
+    return pickRecentProducts(recentRoutes, props.items, isMoreMenuItemActive);
   }, [recentRoutes, props.items]);
 
   // Group filtered items by category, preserving first-seen order.
@@ -482,7 +434,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   const selectItem: (item: MoreMenuItem) => void = (
     item: MoreMenuItem,
   ): void => {
-    writeRecentRoute(item.route.toString());
+    rememberRecentProductRoute(item.route.toString());
     props.onClose();
   };
 

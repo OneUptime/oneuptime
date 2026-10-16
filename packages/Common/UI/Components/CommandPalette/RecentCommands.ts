@@ -1,8 +1,9 @@
 /*
  * Recently-run palette commands, persisted as an array of command ids in
  * localStorage. Same guarded read/write shape as the navbar's recent products
- * (NavBarMenuModal): storage can be absent (SSR), locked (private mode), or
- * hold garbage — every failure mode degrades to "no recents", never a throw.
+ * (NavBarRecentProducts.ts): storage can be absent (SSR), locked (private
+ * mode), or hold garbage — every failure mode degrades to "no recents",
+ * never a throw.
  */
 
 export const RECENT_COMMANDS_LIMIT: number = 7;
