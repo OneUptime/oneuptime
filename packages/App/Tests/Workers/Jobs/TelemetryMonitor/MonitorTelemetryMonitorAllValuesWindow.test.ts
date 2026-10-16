@@ -1,5 +1,7 @@
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
-import MonitorType, { MonitorTypeHelper } from "Common/Types/Monitor/MonitorType";
+import MonitorType, {
+  MonitorTypeHelper,
+} from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
@@ -343,11 +345,9 @@ function storedRows(input: {
     }
   }
 
-  return rows.sort(
-    (a: { timeMs: number }, b: { timeMs: number }) => {
-      return b.timeMs - a.timeMs;
-    },
-  );
+  return rows.sort((a: { timeMs: number }, b: { timeMs: number }) => {
+    return b.timeMs - a.timeMs;
+  });
 }
 
 let cutReads: boolean = false;
@@ -437,7 +437,9 @@ async function checkOnce(
     _id: monitorId.toString(),
     projectId,
     monitorType,
-    monitorSteps: { data: { monitorStepsInstanceArray: [stepFor(monitorType)] } },
+    monitorSteps: {
+      data: { monitorStepsInstanceArray: [stepFor(monitorType)] },
+    },
   });
 
   await processTelemetryMonitorEvaluationFromQueue({
@@ -613,7 +615,9 @@ describe("every metric-backed monitor type: All Values waits for a series to cov
       );
       expect(byName["steady"]).toBe("fires");
       expect(byName["fresh"]).toContain("Only the newest");
-      expect(byName["fresh"]).toContain("of the 15-minute time range could be read");
+      expect(byName["fresh"]).toContain(
+        "of the 15-minute time range could be read",
+      );
     },
   );
 });

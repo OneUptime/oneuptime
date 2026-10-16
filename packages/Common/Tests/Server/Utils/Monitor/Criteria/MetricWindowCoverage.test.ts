@@ -358,7 +358,9 @@ describe("MetricWindowCoverage.describeWait", () => {
           samples: [point(15)],
         }),
       ),
-    ).toBe("Waiting for 15 minutes of data: less than a minute of 15 minutes so far.");
+    ).toBe(
+      "Waiting for 15 minutes of data: less than a minute of 15 minutes so far.",
+    );
   });
 
   test("a hole: how long since it, and how big it was", () => {

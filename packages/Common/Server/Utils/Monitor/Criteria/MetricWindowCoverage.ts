@@ -113,9 +113,7 @@ export default class MetricWindowCoverage {
     const readingTimesMs: Array<number> = [];
 
     for (const sample of input.samples) {
-      const timeMs: number | null = MetricWindowCoverage.toMs(
-        sample.timestamp,
-      );
+      const timeMs: number | null = MetricWindowCoverage.toMs(sample.timestamp);
 
       if (timeMs !== null) {
         readingTimesMs.push(timeMs);

@@ -441,9 +441,9 @@ describe("CriteriaInEffect", () => {
 
       const alertQuery: JSONObject = alertQueries[0]!["query"] as JSONObject;
       expect(String(alertQuery["monitor"])).toBe(MONITOR_ID.toString());
-      expect(
-        JSON.stringify(alertQuery["currentAlertStateId"]),
-      ).toContain(UNRESOLVED_ALERT_STATE.toString());
+      expect(JSON.stringify(alertQuery["currentAlertStateId"])).toContain(
+        UNRESOLVED_ALERT_STATE.toString(),
+      );
       expect(alertQueries[0]!["select"]).toEqual({
         _id: true,
         createdCriteriaId: true,
@@ -459,18 +459,18 @@ describe("CriteriaInEffect", () => {
           return id.toString();
         }),
       ).toEqual([MONITOR_ID.toString()]);
-      expect(
-        JSON.stringify(incidentQuery["currentIncidentStateId"]),
-      ).toContain(UNRESOLVED_INCIDENT_STATE.toString());
+      expect(JSON.stringify(incidentQuery["currentIncidentStateId"])).toContain(
+        UNRESOLVED_INCIDENT_STATE.toString(),
+      );
       expect(incidentQueries[0]!["select"]).toEqual({
         _id: true,
         createdCriteriaId: true,
         seriesFingerprint: true,
       });
 
-      expect(
-        AlertStateService.getUnresolvedAlertStateIds,
-      ).toHaveBeenCalledWith(PROJECT_ID);
+      expect(AlertStateService.getUnresolvedAlertStateIds).toHaveBeenCalledWith(
+        PROJECT_ID,
+      );
       expect(
         IncidentStateService.getUnresolvedIncidentStateIds,
       ).toHaveBeenCalledWith(PROJECT_ID);

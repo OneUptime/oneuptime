@@ -289,7 +289,11 @@ async function runChecks(data: {
   const checks: Array<Check> = [];
   let kept: Kept = newMonitorKept();
 
-  for (let minute: number = data.fromMinute; minute <= data.toMinute; minute++) {
+  for (
+    let minute: number = data.fromMinute;
+    minute <= data.toMinute;
+    minute++
+  ) {
     const monitor: Monitor = monitorOf(data.type, kept);
     const open: Set<string> = kept.open;
     const summary: MonitorEvaluationSummary = {

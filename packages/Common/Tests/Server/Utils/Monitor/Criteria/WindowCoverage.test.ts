@@ -78,7 +78,9 @@ describe("WindowCoverage.judge", () => {
     });
 
     test("a data point dated slightly in the future is fresh, not a gap", () => {
-      expect(judgeBuckets([...minutes(0, 14), WINDOW_END + 5 * SECOND])).toEqual(
+      expect(
+        judgeBuckets([...minutes(0, 14), WINDOW_END + 5 * SECOND]),
+      ).toEqual(
         expect.objectContaining({ isCovered: true, sinceNewestReadingMs: 0 }),
       );
     });

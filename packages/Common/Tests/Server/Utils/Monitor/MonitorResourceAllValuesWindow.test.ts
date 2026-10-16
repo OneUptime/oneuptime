@@ -262,7 +262,10 @@ describe("MonitorResourceUtil.monitorResource: All Values waits for a full windo
       .spyOn(MonitorAlert, "checkOpenAlertsAndCloseIfResolved")
       .mockResolvedValue([] as never);
     jest
-      .spyOn(MonitorIncident, "criteriaMetCreateIncidentsAndUpdateMonitorStatus")
+      .spyOn(
+        MonitorIncident,
+        "criteriaMetCreateIncidentsAndUpdateMonitorStatus",
+      )
       .mockResolvedValue(undefined as never);
     createAlerts = jest
       .spyOn(MonitorAlert, "criteriaMetCreateAlertsAndUpdateMonitorStatus")
@@ -370,9 +373,9 @@ describe("MonitorResourceUtil.monitorResource: All Values waits for a full windo
         ] || [],
       ),
     ).toEqual([fingerprintOf("api")]);
-    expect(Array.from(resolveInput.breachingSeriesFingerprints || [])).toContain(
-      fingerprintOf("api"),
-    );
+    expect(
+      Array.from(resolveInput.breachingSeriesFingerprints || []),
+    ).toContain(fingerprintOf("api"));
   });
 
   test("an open alert of another deployment does not let a new one skip its window", async () => {
@@ -404,20 +407,12 @@ describe("MonitorResourceUtil.monitorResource: All Values waits for a full windo
       {
         ...series("api", range(0, 15), 1, 0),
         aggregatedResults: (() => {
-          const short: MetricSeriesResult = series(
-            "api",
-            range(0, 14),
-            1,
-            0,
-          );
+          const short: MetricSeriesResult = series("api", range(0, 14), 1, 0);
           const fixed: MetricSeriesResult = series("api", [15], 1, 1);
           return short.aggregatedResults.map(
             (result: AggregatedResult, index: number): AggregatedResult => {
               return {
-                data: [
-                  ...result.data,
-                  ...fixed.aggregatedResults[index]!.data,
-                ],
+                data: [...result.data, ...fixed.aggregatedResults[index]!.data],
               };
             },
           );

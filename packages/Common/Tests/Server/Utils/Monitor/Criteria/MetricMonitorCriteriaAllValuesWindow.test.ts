@@ -218,7 +218,9 @@ async function evaluate(input: {
   });
 }
 
-function fired(evaluations: Array<MetricSeriesEvaluationResult>): Array<string> {
+function fired(
+  evaluations: Array<MetricSeriesEvaluationResult>,
+): Array<string> {
   return evaluations
     .filter((evaluation: MetricSeriesEvaluationResult) => {
       return evaluation.rootCause !== null;
@@ -235,9 +237,9 @@ function shortSince(deployment: string, from: number): MetricSeriesResult {
 
 describe("All Values over a metric monitor's time range waits for a full window (#4793)", () => {
   test("the shipped template is the customer's: All Values over the past 15 minutes, grouped by namespace and deployment", () => {
-    expect(
-      step.data!.kubernetesMonitor!.rollingTime,
-    ).toBe(RollingTime.Past15Minutes);
+    expect(step.data!.kubernetesMonitor!.rollingTime).toBe(
+      RollingTime.Past15Minutes,
+    );
     expect(unhealthyFilter.metricMonitorOptions?.metricAggregationType).toBe(
       EvaluateOverTimeType.AllValues,
     );
@@ -304,12 +306,12 @@ describe("All Values over a metric monitor's time range waits for a full window 
      * window starts mid-minute.
      */
     test("the boundary: data from 12:02 covers the window that starts at 12:00:30; from 12:03 it does not", async () => {
-      expect(fired(await evaluate({ breakdown: [shortSince("api", 2)] }))).toEqual(
-        ["api"],
-      );
-      expect(fired(await evaluate({ breakdown: [shortSince("api", 3)] }))).toEqual(
-        [],
-      );
+      expect(
+        fired(await evaluate({ breakdown: [shortSince("api", 2)] })),
+      ).toEqual(["api"]);
+      expect(
+        fired(await evaluate({ breakdown: [shortSince("api", 3)] })),
+      ).toEqual([]);
     });
 
     /*
@@ -323,10 +325,11 @@ describe("All Values over a metric monitor's time range waits for a full window 
 
       for (let checkMinute: number = 1; checkMinute <= 20; checkMinute++) {
         const checkAt: Date = new Date(bucket(checkMinute).getTime() + 30_000);
-        const window: InBetween<Date> = RollingTimeUtil.convertToStartAndEndDate(
-          RollingTime.Past15Minutes,
-          checkAt,
-        );
+        const window: InBetween<Date> =
+          RollingTimeUtil.convertToStartAndEndDate(
+            RollingTime.Past15Minutes,
+            checkAt,
+          );
         // Buckets from 12:00 up to the minute of the check.
         const [evaluation] = await evaluate({
           breakdown: [series("api", minutes(0, checkMinute, 2, 1))],
@@ -372,9 +375,9 @@ describe("All Values over a metric monitor's time range waits for a full window 
         },
       );
 
-      expect(fired(await evaluate({ breakdown: [series("api", data)] }))).toEqual(
-        ["api"],
-      );
+      expect(
+        fired(await evaluate({ breakdown: [series("api", data)] })),
+      ).toEqual(["api"]);
     });
 
     test("three missing minutes in the middle: it waits, since the gap", async () => {
@@ -658,15 +661,18 @@ describe("All Values over a metric monitor's time range waits for a full window 
       EvaluateOverTimeType.Sum,
       EvaluateOverTimeType.MaximumValue,
       EvaluateOverTimeType.MunimumValue,
-    ])("%s compares the readings there are, without waiting", async (type: EvaluateOverTimeType) => {
-      const [evaluation] = await evaluate({
-        breakdown: [shortSince("api", 14)],
-        criteriaFilter: withAggregation(type),
-      });
+    ])(
+      "%s compares the readings there are, without waiting",
+      async (type: EvaluateOverTimeType) => {
+        const [evaluation] = await evaluate({
+          breakdown: [shortSince("api", 14)],
+          criteriaFilter: withAggregation(type),
+        });
 
-      expect(evaluation!.rootCause).not.toBeNull();
-      expect(evaluation!.context.windowWait).toBeUndefined();
-    });
+        expect(evaluation!.rootCause).not.toBeNull();
+        expect(evaluation!.context.windowWait).toBeUndefined();
+      },
+    );
 
     test("an anomaly criteria is not touched", async () => {
       const [evaluation] = await evaluate({
@@ -680,7 +686,11 @@ describe("All Values over a metric monitor's time range waits for a full window 
   });
 
   describe("If No Data keeps its meaning: a window with no data points at all", () => {
-    test.each([NoDataPolicy.Trigger, NoDataPolicy.TreatAsZero, NoDataPolicy.Ignore])(
+    test.each([
+      NoDataPolicy.Trigger,
+      NoDataPolicy.TreatAsZero,
+      NoDataPolicy.Ignore,
+    ])(
       "%s: a window with some data that does not cover it waits",
       async (policy: NoDataPolicy) => {
         const criteriaFilter: CriteriaFilter = filter();
