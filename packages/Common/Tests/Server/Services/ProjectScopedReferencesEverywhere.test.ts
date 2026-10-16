@@ -118,7 +118,6 @@ const SERVICES_WITH_ANOTHER_CHECK: Record<string, AnotherCheck> = {
   "UserTelegramService.ts": { kind: "owner-is-the-caller" },
   "UserWebhookService.ts": { kind: "owner-is-the-caller" },
   "UserWhatsAppService.ts": { kind: "owner-is-the-caller" },
-  "WorkspaceUserAuthTokenService.ts": { kind: "owner-is-the-caller" },
   "ProjectSsoService.ts": {
     kind: "own-check",
     reason:

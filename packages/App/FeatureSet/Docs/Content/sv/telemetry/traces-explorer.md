@@ -21,7 +21,7 @@ flowchart TB
     pay --> call["Span: anropa<br/>betalningsleverantören"]
 ```
 
-Varje rad i utforskaren är ett span, så en upptagen tjänst fyller listan med sina databasfrågor och interna anrop. För att visa en rad per förfrågan väljer du **Root spans** under **Span Type** i sidopanelen.
+Varje rad i utforskaren är ett span, så en upptagen tjänst fyller listan med sina databasfrågor och interna anrop. För att visa en rad per förfrågan väljer du **Root spans** under **Span-kategori** i sidopanelen.
 
 Utforskaren har fyra flikar:
 
@@ -54,7 +54,7 @@ Skriv en fråga och tryck på Enter, till exempel `service:checkout status:error
 
 ### Avgränsa med filter
 
-Klicka på ett värde i sidopanelen **Filter** för att lägga till det som ett chip. Sidopanelen filtrerar på **Tjänst**, på värden, klustret eller den andra resursen som skickade spannet, på **Status**, **Span Type**, **Har undantag**, **Span-typ**, **Span-namn**, **Service Instance** och **Värdens namn**.
+Klicka på ett värde i sidopanelen **Filter** för att lägga till det som ett chip. Sidopanelen filtrerar på **Tjänst**, på värden, klustret eller den andra resursen som skickade spannet, på **Status**, **Span-kategori**, **Har undantag**, **Span-typ**, **Span-namn**, **Service Instance** och **Värdens namn**.
 
 ### Öppna ett span
 
@@ -135,7 +135,7 @@ De pekar på ett föräldraspan som OneUptime inte har tagit emot, ofta för att
 :::
 
 :::details Listan visar betydligt fler rader än förfrågningar
-Varje rad är ett span, inte en förfrågan. Välj **Root spans** under **Span Type** i sidopanelen för att visa en rad per förfrågan.
+Varje rad är ett span, inte en förfrågan. Välj **Root spans** under **Span-kategori** i sidopanelen för att visa en rad per förfrågan.
 :::
 
 ## Nästa steg

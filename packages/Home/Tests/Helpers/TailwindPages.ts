@@ -4,6 +4,7 @@ import ProductCompare, {
   getProductCompareSlugs,
 } from "../../Utils/ProductCompare";
 import { getSelfHostedContent } from "../../Utils/SelfHosted";
+import { getResellersPageContent } from "../../Utils/Resellers";
 import { getPageSEO, PageSEOData } from "../../Utils/PageSEO";
 import type { BlogPost, BlogPostContributor } from "../../Utils/BlogPost";
 import BlogTag from "../../Utils/BlogTag";
@@ -321,6 +322,20 @@ export const MARKETING_PAGES: Array<MarketingPage> = [
         requestDemoCta: true,
         selfHosted: getSelfHostedContent(),
         seo: seoFor("/enterprise/self-hosted"),
+      };
+    },
+  },
+  {
+    name: "the resellers page",
+    template: "resellers.ejs",
+    locals: async (): Promise<Record<string, unknown>> => {
+      // The locals Routes.ts hands the page.
+      return {
+        enableGoogleTagManager: false,
+        seo: seoFor("/resellers"),
+        resellers: getResellersPageContent({
+          inquiryInbox: "sales@oneuptime.com",
+        }),
       };
     },
   },

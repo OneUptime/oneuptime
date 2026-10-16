@@ -21,7 +21,7 @@ flowchart TB
     pay --> call["Span: chamar o<br/>provedor de pagamento"]
 ```
 
-Cada linha do explorador é um span, então um serviço movimentado enche a lista com suas consultas ao banco e chamadas internas. Para listar uma linha por requisição, escolha **Root spans** em **Span Type** na barra lateral.
+Cada linha do explorador é um span, então um serviço movimentado enche a lista com suas consultas ao banco e chamadas internas. Para listar uma linha por requisição, escolha **Root spans** em **Categoria de span** na barra lateral.
 
 O explorador tem quatro abas:
 
@@ -54,7 +54,7 @@ Digite uma consulta e pressione Enter, por exemplo `service:checkout status:erro
 
 ### Refinar com filtros
 
-Clique em um valor da barra lateral **Filtros** para adicioná-lo como chip. A barra lateral filtra por **Serviço**, pelo host, cluster ou outro recurso que enviou o span, por **Status**, **Span Type**, **Tem exceção**, **Tipo de span**, **Nome do span**, **Service Instance** e **Nome do Host**.
+Clique em um valor da barra lateral **Filtros** para adicioná-lo como chip. A barra lateral filtra por **Serviço**, pelo host, cluster ou outro recurso que enviou o span, por **Status**, **Categoria de span**, **Tem exceção**, **Tipo de span**, **Nome do span**, **Service Instance** e **Nome do Host**.
 
 ### Abrir um span
 
@@ -135,7 +135,7 @@ Eles indicam um span pai que o OneUptime não recebeu, muitas vezes porque o ser
 :::
 
 :::details A lista mostra muito mais linhas do que requisições
-Cada linha é um span, não uma requisição. Escolha **Root spans** em **Span Type** na barra lateral para listar uma linha por requisição.
+Cada linha é um span, não uma requisição. Escolha **Root spans** em **Categoria de span** na barra lateral para listar uma linha por requisição.
 :::
 
 ## Próximos passos

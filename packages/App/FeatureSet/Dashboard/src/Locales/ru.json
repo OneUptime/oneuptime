@@ -16781,7 +16781,7 @@
   "Span Name Remapper Configuration": "Span Name Remapper Configuration",
   "Span Sources": "Span Sources",
   "Span Status Code": "Span Status Code",
-  "Span Type": "Span Type",
+  "Span Type": "Категория span",
   "Span counts or response-time percentiles over time, optionally split by an attribute (e.g. per tenant).": "Span counts or response-time percentiles over time, optionally split by an attribute (e.g. per tenant).",
   "Span details": "Span details",
   "Span name contains": "Span name contains",
@@ -30238,5 +30238,6 @@
   "{{count}} to choose from. Search by name or by what a role allows._one": "{{count}} вариант. Ищите по названию или по тому, что разрешает роль.",
   "Already acknowledged": "Уже подтверждено",
   "Already passed on": "Уже передано дальше",
-  "Nothing to pass on": "Передавать нечего"
+  "Nothing to pass on": "Передавать нечего",
+  "Use Try again above to load it.": "Нажмите «Повторить попытку» выше, чтобы загрузить его."
 }

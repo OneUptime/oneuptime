@@ -21,7 +21,7 @@ flowchart TB
     pay --> call["Span: kall<br/>betalingsleverandøren"]
 ```
 
-Hver rad i utforskeren er et span, så en travel tjeneste fyller listen med databasespørringer og interne kall. For å vise én rad per forespørsel velger du **Root spans** under **Span Type** i sidepanelet.
+Hver rad i utforskeren er et span, så en travel tjeneste fyller listen med databasespørringer og interne kall. For å vise én rad per forespørsel velger du **Root spans** under **Span-kategori** i sidepanelet.
 
 Utforskeren har fire faner:
 
@@ -54,7 +54,7 @@ Skriv et søk og trykk Enter, for eksempel `service:checkout status:error durati
 
 ### Snevre inn med filtre
 
-Klikk på en verdi i sidepanelet **Filtre** for å legge den til som en brikke. Sidepanelet filtrerer etter **Tjeneste**, etter verten, klyngen eller den andre ressursen som sendte spannet, etter **Status**, **Span Type**, **Har unntak**, **Span-type**, **Span-navn**, **Service Instance** og **Vertens navn**.
+Klikk på en verdi i sidepanelet **Filtre** for å legge den til som en brikke. Sidepanelet filtrerer etter **Tjeneste**, etter verten, klyngen eller den andre ressursen som sendte spannet, etter **Status**, **Span-kategori**, **Har unntak**, **Span-type**, **Span-navn**, **Service Instance** og **Vertens navn**.
 
 ### Åpne et span
 
@@ -135,7 +135,7 @@ De viser til et forelder-span som OneUptime ikke har mottatt, ofte fordi tjenest
 :::
 
 :::details Listen viser langt flere rader enn forespørsler
-Hver rad er et span, ikke en forespørsel. Velg **Root spans** under **Span Type** i sidepanelet for å vise én rad per forespørsel.
+Hver rad er et span, ikke en forespørsel. Velg **Root spans** under **Span-kategori** i sidepanelet for å vise én rad per forespørsel.
 :::
 
 ## Neste steg
