@@ -240,7 +240,7 @@
     "accessWriteDescription": "Se data og gjøre endringer: bekrefte og løse hendelser og varsler, legge til notater samt opprette, oppdatere eller slette ressurser.",
     "accessReadTitle": "Kun lesetilgang",
     "accessReadDescription": "Se hendelser, varsler, overvåkere, statussider og telemetri. Kan ikke endre noe.",
-    "permissionsNote": "Klienten handler i ditt navn og kan aldri gjøre mer enn det dine egne tillatelser i dette prosjektet tillater. Du kan når som helst koble den fra under Prosjektinnstillinger > MCP-server.",
+    "permissionsNote": "Klienten handler i ditt navn og kan aldri gjøre mer enn det dine egne tillatelser i dette prosjektet tillater. Du kan når som helst koble den fra under Prosjektinnstillinger > KI > MCP-server.",
     "authorizeButton": "Godkjenn",
     "denyButton": "Avbryt",
     "redirecting": "Sender deg tilbake til {{clientName}}...",
@@ -286,7 +286,7 @@
       "bought_from_reseller": "{{name}} – faktureres av en forhandler"
     },
     "nothingToChoose": "Ingen av prosjektene dine kan ta imot dette kjøpet, og du kan ikke opprette prosjekter på denne serveren. Be eieren av prosjektet som kjøpet skal betale for, om å konfigurere kjøpet.",
-    "billingNote": "Abonnementet og forbruket ditt faktureres via {{marketplace}} til prisene på oneuptime.com/pricing. Du kan når som helst endre abonnementet ditt under Prosjektinnstillinger → Fakturering.",
+    "billingNote": "Abonnementet og forbruket ditt faktureres via {{marketplace}} til prisene på oneuptime.com/pricing. Du kan når som helst endre abonnementet ditt under Prosjektinnstillinger → Fakturering og fakturaer → Fakturering.",
     "submitButton": "Konfigurer kjøp",
     "notNowButton": "Ikke nå",
     "redirecting": "Kjøpet ditt er konfigurert. Sender deg til prosjektet ditt…",

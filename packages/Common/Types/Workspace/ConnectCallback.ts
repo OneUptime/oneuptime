@@ -25,9 +25,9 @@ export enum ConnectProvider {
   MicrosoftTeams = "microsoft-teams",
   GitHub = "github",
   /*
-   * The one-click Connect of a video call provider. All three start from,
-   * and come back to, Project Settings > Video Calls, which reads which one
-   * it was from `?provider=` (getPageQuery).
+   * The one-click Connect of a video call provider. All three start from, and
+   * come back to, Project Settings > Workspace > Video Calls, which reads which
+   * one it was from `?provider=` (getPageQuery).
    */
   Zoom = "zoom",
   GoogleMeet = "google-meet",
@@ -44,7 +44,7 @@ export const VideoCallConnectProviders: Array<ConnectProvider> = [
  * The page a Slack or Microsoft Teams connection was started from, and goes
  * back to: the project's settings, or the person's own settings in the
  * project. A GitHub installation is always started from Code Repositories,
- * and a video call provider from Project Settings > Video Calls.
+ * and a video call provider from Project Settings > Workspace > Video Calls.
  */
 export enum ConnectStartPage {
   ProjectSettings = "project-settings",

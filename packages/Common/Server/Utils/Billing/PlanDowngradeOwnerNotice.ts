@@ -706,7 +706,7 @@ export default class PlanDowngradeOwnerNotice {
       );
     }
 
-    const nothingDeleted: string = `Nothing was deleted. Upgrade the project in Project Settings > Billing and they work fully again as they are: ${PlanDowngradeOwnerNotice.getNothingToRedo(
+    const nothingDeleted: string = `Nothing was deleted. Upgrade the project in Project Settings > Billing and Invoices > Billing and they work fully again as they are: ${PlanDowngradeOwnerNotice.getNothingToRedo(
       data.stopped,
     )}`;
 

@@ -30,9 +30,9 @@ import ProjectNotificationChannelsCopy, {
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
 
 /*
- * Project Settings -> Notification Settings: the project's four channel
- * switches (SMS, calls, WhatsApp, Telegram), one row each - its name, what
- * it sends, and the switch, which saves the moment it is flipped
+ * Project Settings -> Notifications -> Notification Settings: the project's
+ * four channel switches (SMS, calls, WhatsApp, Telegram), one row each - its
+ * name, what it sends, and the switch, which saves the moment it is flipped
  * (ModelSwitchRow).
  *
  * It replaced an "Enable Notifications" card whose Edit button opened a

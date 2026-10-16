@@ -109,7 +109,7 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
     explanation:
       "The policy endpoint refused the request: the ingestion token is wrong or revoked, or the origin is not allowed.",
     action:
-      "Confirm the token under Project Settings > Telemetry Ingestion Keys and the origin allowlists on the key and the application.",
+      "Confirm the token under Project Settings > Telemetry & APM > Ingestion Keys and the origin allowlists on the key and the application.",
     isOutcome: true,
   },
   "config-body-unparseable": {

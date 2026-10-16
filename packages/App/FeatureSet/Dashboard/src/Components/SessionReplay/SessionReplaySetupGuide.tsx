@@ -435,7 +435,7 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
                 RouteMap[PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS] as Route,
               )}
             >
-              Project Settings &gt; Telemetry Ingestion Keys
+              Project Settings &gt; Telemetry &amp; APM &gt; Ingestion Keys
             </Link>
             : the new key opens on its own page, with the token. It sits in your
             page&apos;s JavaScript, so treat it as public: it grants ingestion

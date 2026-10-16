@@ -128,7 +128,7 @@ export const CreateIncidentTool: ObservabilityTool = {
 
     if (severities.length === 0) {
       throw new BadDataException(
-        "No incident severities are configured for this project. Add one in Project Settings > Incidents > Severities first.",
+        "No incident severities are configured for this project. Add one in Incidents > Settings > Incident Severity first.",
       );
     }
 

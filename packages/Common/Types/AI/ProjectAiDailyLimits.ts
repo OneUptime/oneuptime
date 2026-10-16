@@ -93,7 +93,7 @@ export const PROJECT_AI_DAILY_LIMIT_REACHED_AT_COLUMNS: Readonly<
  * Where the limits are changed, as every sentence about them names it.
  */
 export const PROJECT_AI_DAILY_LIMITS_LOCATION: string =
-  "Project Settings → AI Features → More settings";
+  "Project Settings → AI → AI Features → More settings";
 
 /*
  * Who may change the limits: the update permissions of both limit columns
@@ -273,7 +273,8 @@ export default class ProjectAiDailyLimits {
    * Who can change the limits, and where, as the sentence that follows one
    * saying a limit stopped AI - for whoever reads it, who may or may not be
    * one of them: "A project owner or someone with Manage Billing can raise
-   * or remove the limit in Project Settings → AI Features → More settings."
+   * or remove the limit in Project Settings → AI → AI Features → More
+   * settings."
    */
   public static getWhoCanChangeSentence(): string {
     const who: string = WHO_CAN_CHANGE_PROJECT_AI_DAILY_LIMITS;

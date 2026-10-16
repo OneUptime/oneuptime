@@ -318,7 +318,7 @@ Keep \`browser.platform\` coarse: every distinct value becomes a row on the **Cl
 - it can only write traces, logs, metrics and session replays — not profiles, source maps, syslog, Fluent, Pyroscope or security events;
 - it is rate limited per key, can be switched off in one edit, and can be given an expiry.
 
-An origin includes the scheme and any port, and may start with one \`*.\` host wildcard — \`https://app.example.com\`, \`https://*.example.com\`. Setting **Pinned Service Name** on the key as well forces \`service.name\` on everything it writes, so a copied key cannot pass its telemetry off as one of your backend services. Both are on the key's page in **Settings > Telemetry Ingestion Keys**.
+An origin includes the scheme and any port, and may start with one \`*.\` host wildcard — \`https://app.example.com\`, \`https://*.example.com\`. Setting **Pinned Service Name** on the key as well forces \`service.name\` on everything it writes, so a copied key cannot pass its telemetry off as one of your backend services. Both are on the key's page in **Project Settings > Telemetry & APM > Ingestion Keys**.
 
 ${NEVER_SHIP_A_SERVER_KEY}`,
     },
@@ -437,7 +437,7 @@ function getBrowserTroubleshootingTopics(
       title: "The request is blocked or refused",
       markdown: `- **Blocked by the Content Security Policy** — the console says so. Add \`connect-src 'self' ${data.oneuptimeUrl};\` (step 4).
 - **Blocked by CORS** — the OneUptime OTLP endpoints allow any origin and the \`x-oneuptime-token\` header, so a CORS failure almost always means the request is not reaching OneUptime at all: a corporate proxy, an ad blocker, or a typo in the host.
-- **\`Origin … is not allowed for this browser ingestion key\`** — add your site's exact origin (scheme, host and port) to the key's **Allowed Origins** in **Settings > Telemetry Ingestion Keys**.
+- **\`Origin … is not allowed for this browser ingestion key\`** — add your site's exact origin (scheme, host and port) to the key's **Allowed Origins** in **Project Settings > Telemetry & APM > Ingestion Keys**.
 - **\`This telemetry ingestion key has been disabled\`** — switch the key back on there, or pick another key in step 1.
 - **\`401\`** — the key is unknown, revoked or expired. Run the key check in step 5, and pick or create a live Browser key in step 1.
 - **\`404\`** — the URL is wrong. The trace exporter needs the full path, \`/otlp/v1/traces\`.`,
@@ -552,7 +552,7 @@ ${DEVICE_MANUFACTURER_CAVEAT}
         "Mobile apps need a Server key, so pin a service name on it, set a limit and an expiry, and rotate it.",
       markdown: `${MOBILE_NEEDS_A_SERVER_KEY}
 
-All three are on the key's page in **Settings > Telemetry Ingestion Keys**: **Pinned Service Name** replaces \`service.name\` on everything the key writes, **Requests Per Minute Limit** caps the key across every copy of your app, and **Expires At** stops it being accepted after a date.`,
+All three are on the key's page in **Project Settings > Telemetry & APM > Ingestion Keys**: **Pinned Service Name** replaces \`service.name\` on everything the key writes, **Requests Per Minute Limit** caps the key across every copy of your app, and **Expires At** stops it being accepted after a date.`,
     },
     {
       title: "SDK notes for Android, iOS and React Native",

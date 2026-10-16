@@ -101,7 +101,7 @@ export class Service extends DatabaseService<Model> {
    * it was doing: every token of every call (any feature, any provider,
    * Ask AI included), and what was billed to the project's AI credits. One
    * SQL aggregate, read on the hot path of the project's own daily limits
-   * (Project Settings → AI Features) - only when the project has set one.
+   * (Project Settings → AI → AI Features) - only when the project has set one.
    *
    * Spend is the cost of the calls that were billed (wasBilled): only a
    * call through the OneUptime-hosted provider, with billing on, is. A call

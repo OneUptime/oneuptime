@@ -292,13 +292,13 @@ export default class MicrosoftTeamsMeetingClient {
     if (organizer.isSignIn) {
       if (response.status === 401) {
         return new BadDataException(
-          `Microsoft no longer accepts OneUptime's sign-in for ${organizer.label}. Reconnect Microsoft Teams in Project Settings > Video Calls. (${summary})`,
+          `Microsoft no longer accepts OneUptime's sign-in for ${organizer.label}. Reconnect Microsoft Teams in Project Settings > Workspace > Video Calls. (${summary})`,
         );
       }
 
       if (response.status === 403 || response.status === 404) {
         return new BadDataException(
-          `Microsoft Graph did not let ${organizer.label} create a Teams meeting. Check that the account has a Microsoft Teams license and may schedule meetings, then reconnect Microsoft Teams in Project Settings > Video Calls. (${summary})`,
+          `Microsoft Graph did not let ${organizer.label} create a Teams meeting. Check that the account has a Microsoft Teams license and may schedule meetings, then reconnect Microsoft Teams in Project Settings > Workspace > Video Calls. (${summary})`,
         );
       }
     }

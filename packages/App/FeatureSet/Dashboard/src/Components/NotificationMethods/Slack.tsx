@@ -199,7 +199,7 @@ const Slack: () => JSX.Element = (): ReactElement => {
         <ConfirmModal
           title={`Could not add Slack`}
           description={addError}
-          submitButtonText={"Open Slack Integration Settings"}
+          submitButtonText={"Open Slack Settings"}
           closeButtonText={"Close"}
           onClose={() => {
             setAddError("");

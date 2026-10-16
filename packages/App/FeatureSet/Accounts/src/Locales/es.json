@@ -240,7 +240,7 @@
     "accessWriteDescription": "Ver datos y hacer cambios: reconocer y resolver incidentes y alertas, añadir notas y crear, actualizar o eliminar recursos.",
     "accessReadTitle": "Solo lectura",
     "accessReadDescription": "Ver incidentes, alertas, monitores, páginas de estado y telemetría. No puede cambiar nada.",
-    "permissionsNote": "El cliente actúa en tu nombre y nunca puede ir más allá de tus propios permisos en este proyecto. Puedes desconectarlo en cualquier momento en Ajustes del proyecto > Servidor MCP.",
+    "permissionsNote": "El cliente actúa en tu nombre y nunca puede ir más allá de tus propios permisos en este proyecto. Puedes desconectarlo en cualquier momento en Ajustes del proyecto > IA > Servidor MCP.",
     "authorizeButton": "Autorizar",
     "denyButton": "Cancelar",
     "redirecting": "Te estamos enviando de vuelta a {{clientName}}...",
@@ -286,7 +286,7 @@
       "bought_from_reseller": "{{name}} – lo factura un revendedor"
     },
     "nothingToChoose": "Ninguno de tus proyectos puede recibir esta compra y no puedes crear proyectos en este servidor. Pide al propietario del proyecto que se debe pagar con ella que la configure.",
-    "billingNote": "Tu plan y tu uso se facturan a través de {{marketplace}}, a los precios de oneuptime.com/pricing. Puedes cambiar de plan en cualquier momento en Ajustes del proyecto → Facturación.",
+    "billingNote": "Tu plan y tu uso se facturan a través de {{marketplace}}, a los precios de oneuptime.com/pricing. Puedes cambiar de plan en cualquier momento en Ajustes del proyecto → Facturación y facturas → Facturación.",
     "submitButton": "Configurar compra",
     "notNowButton": "Ahora no",
     "redirecting": "Tu compra está configurada. Te llevamos a tu proyecto…",
