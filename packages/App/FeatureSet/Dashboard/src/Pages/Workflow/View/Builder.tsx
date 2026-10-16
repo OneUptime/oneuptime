@@ -48,6 +48,10 @@ import WorkflowStatusBar, {
   WorkflowSaveState,
 } from "Common/UI/Components/Workflow/WorkflowStatusBar";
 import { loadComponentsAndCategories } from "Common/UI/Components/Workflow/Utils";
+import {
+  WorkflowAddButton,
+  getWorkflowAddButton,
+} from "Common/UI/Components/Workflow/WorkflowAddButton";
 import Workflow, {
   getEdgeDefaultProps,
   getPlaceholderTriggerNode,
@@ -541,6 +545,15 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
    */
   const stepTitlesByNodeId: Dictionary<string> = buildStepTitlesByNodeId(nodes);
 
+  /*
+   * The toolbar's add button says what the workflow needs next: Add Trigger
+   * while it has no trigger, since nothing can start it yet, then Add
+   * Component. It opens the panel it names (WorkflowAddButton). `nodes` is
+   * the graph as the canvas last reported it, so the label changes as soon
+   * as the first trigger is added or the last one is deleted.
+   */
+  const addButton: WorkflowAddButton = getWorkflowAddButton(nodes);
+
   type SendRunFunction = (component: NodeDataProp) => Promise<void>;
 
   // Run just this step. Rejects with the API's error when it is refused.
@@ -687,7 +700,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             )}
             {/*
              * On a phone the two buttons get a row of their own, and Run
-             * Workflow drops below Add Component rather than either label
+             * Workflow drops below the add button rather than either label
              * breaking over two lines inside its button.
              */}
             <div
@@ -698,15 +711,25 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 gap: "0.5rem",
               }}
             >
-              <Button
-                title="Add Component"
-                icon={IconProp.Add}
-                buttonStyle={ButtonStyleType.OUTLINE}
-                className="whitespace-nowrap"
-                onClick={() => {
-                  setShowComponentPickerModal(true);
-                }}
-              />
+              {/*
+               * Only once the graph has loaded, like the Enabled switch:
+               * drawn before then, it would say Add Trigger for a workflow
+               * that has a trigger.
+               */}
+              {!isLoading ? (
+                <Button
+                  title={addButton.title}
+                  icon={IconProp.Add}
+                  buttonStyle={ButtonStyleType.OUTLINE}
+                  className="whitespace-nowrap"
+                  dataTestId="workflow-add-button"
+                  onClick={() => {
+                    setShowComponentPickerModal(true);
+                  }}
+                />
+              ) : (
+                <></>
+              )}
               <Button
                 title="Run Workflow"
                 icon={IconProp.Play}

@@ -27,6 +27,7 @@ import {
   getStepValueSources,
 } from "./ValuePicker/StepGraph";
 import { loadComponentsAndCategories } from "./Utils";
+import { getWorkflowAddButton } from "./WorkflowAddButton";
 import {
   ConnectionGraphEdge,
   ConnectionGraphNode,
@@ -198,8 +199,18 @@ export interface ComponentProps {
   initialNodes: Array<Node>;
   initialEdges: Array<Edge>;
   onWorkflowUpdated: (nodes: Array<Node>, edges: Array<Edge>) => void;
+  /*
+   * The toolbar's add button was pressed. It opens the panel the button
+   * names (WorkflowAddButton): Add Trigger while the canvas has no trigger,
+   * Add Component once it has one.
+   */
   showComponentsPickerModal: boolean;
   showRunModal: boolean;
+  /*
+   * Whether an add panel is open, Add Trigger or Add Component, whichever
+   * opened it: the page clears its request once the panel closes, so the
+   * button opens one again the next time.
+   */
   onComponentPickerModalUpdate: (isModalShown: boolean) => void;
   workflowId: ObjectID;
   onRunModalUpdate: (isModalShown: boolean) => void;
@@ -335,11 +346,24 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     }
   }, []);
 
+  /*
+   * The toolbar's add button opens the panel it names, read from the canvas
+   * as it is when the button is pressed: Add Trigger while there is no
+   * trigger (the dashed card's panel), Add Component once there is one.
+   * Offering steps to a workflow that has nothing to start it was the
+   * other way round.
+   */
   useEffect(() => {
-    if (props.showComponentsPickerModal) {
-      setShowComponentsModal(true);
-    } else {
+    if (!props.showComponentsPickerModal) {
       setShowComponentsModal(false);
+      setShowTriggersModal(false);
+      return;
+    }
+
+    if (getWorkflowAddButton(nodes).componentsType === ComponentType.Trigger) {
+      setShowTriggersModal(true);
+    } else {
+      setShowComponentsModal(true);
     }
   }, [props.showComponentsPickerModal]);
 
@@ -725,9 +749,16 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     showComponentSettingsModal ||
     showRunModal;
 
+  /*
+   * Either panel counts: the toolbar's button opens Add Trigger on a canvas
+   * without a trigger, and the page has to hear that it closed, or the
+   * button would not open anything the next time.
+   */
   useEffect(() => {
-    props.onComponentPickerModalUpdate(showComponentsModal);
-  }, [showComponentsModal]);
+    props.onComponentPickerModalUpdate(
+      showComponentsModal || showTriggersModal,
+    );
+  }, [showComponentsModal, showTriggersModal]);
 
   const refreshEdges: VoidFunction = (): void => {
     setEdges((eds: Array<Edge>) => {
