@@ -835,15 +835,18 @@ describe("container host and split-metric guidance (issues #4784, #4785)", () =>
         resourceType !== AIResourceType.PodmanHost
       );
     }),
-  )("%s pages do not offer the container tool", (resourceType: AIResourceType) => {
-    expect(
-      buildPageContextSection({
-        type: AIChatPageContextType.Resource,
-        resourceType,
-        entityId: ENTITY_ID,
-      }),
-    ).not.toContain("query_containers");
-  });
+  )(
+    "%s pages do not offer the container tool",
+    (resourceType: AIResourceType) => {
+      expect(
+        buildPageContextSection({
+          type: AIChatPageContextType.Resource,
+          resourceType,
+          entityId: ENTITY_ID,
+        }),
+      ).not.toContain("query_containers");
+    },
+  );
 
   test("every resource page says metrics take attributes and groupBy, and split host metrics are read per state", () => {
     const section: string = buildPageContextSection({
@@ -866,11 +869,15 @@ describe("container host and split-metric guidance (issues #4784, #4785)", () =>
     const line: string | undefined = prompt
       .split("\n")
       .find((candidate: string): boolean => {
-        return candidate.startsWith("- Host metrics such as system.cpu.utilization");
+        return candidate.startsWith(
+          "- Host metrics such as system.cpu.utilization",
+        );
       });
 
     expect(line).toBeDefined();
-    expect(line).toContain("the states add up to 1, so one average across them means nothing");
+    expect(line).toContain(
+      "the states add up to 1, so one average across them means nothing",
+    );
     expect(line).toContain("use query_containers");
     expect(TOOLBOX_TOOL_NAMES.has("query_containers")).toBe(true);
   });

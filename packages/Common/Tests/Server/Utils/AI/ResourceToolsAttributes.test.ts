@@ -1,5 +1,12 @@
 import "../../TestingUtils/Init";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import Metric from "../../../../Models/AnalyticsModels/Metric";
 import DockerHostService from "../../../../Server/Services/DockerHostService";
@@ -59,10 +66,7 @@ function host(): JSONObject {
   };
 }
 
-function args(
-  type: AIResourceType,
-  extra: JSONObject = {},
-): JSONObject {
+function args(type: AIResourceType, extra: JSONObject = {}): JSONObject {
   return {
     resourceType: type,
     resourceId: HOST_ID.toString(),

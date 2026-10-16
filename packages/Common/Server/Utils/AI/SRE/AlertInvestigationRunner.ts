@@ -50,7 +50,6 @@ import NetworkTransceiverContext from "./NetworkTransceiverContext";
 import LinkedInfrastructureContext, {
   LinkedInfrastructure,
 } from "./LinkedInfrastructureContext";
-import { AIRunEventResultSummary } from "../../../../Types/AI/AIChatTypes";
 import InfrastructureInvestigationToolkit from "../ResourceAccess/InfrastructureInvestigationToolkit";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -58,7 +57,10 @@ import InvestigationRules, {
   InvestigationRuleScope,
 } from "./InvestigationRules";
 import PromptText from "../../../../Utils/AI/PromptText";
-import { AIPromptOmissions } from "../../../../Types/AI/AIChatTypes";
+import {
+  AIPromptOmissions,
+  AIRunEventResultSummary,
+} from "../../../../Types/AI/AIChatTypes";
 
 /*
  * AI SRE — alert investigation.
@@ -227,7 +229,8 @@ export default class AIAlertInvestigationRunner {
         const linkedNote: AIRunEventResultSummary | null =
           LinkedInfrastructureContext.buildActivityNote(linked);
 
-        contextSummary += LinkedInfrastructureContext.buildContextSection(linked);
+        contextSummary +=
+          LinkedInfrastructureContext.buildContextSection(linked);
 
         if (linkedNote) {
           contextNotes.push(linkedNote);

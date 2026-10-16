@@ -420,8 +420,7 @@ export const QueryContainersTool: ObservabilityTool = {
 
       if (
         summary.hostLastSeenAt &&
-        endTime.getTime() - summary.hostLastSeenAt.getTime() >
-          10 * 60 * 1000
+        endTime.getTime() - summary.hostLastSeenAt.getTime() > 10 * 60 * 1000
       ) {
         notes.push(
           `The host's containers last reported at ${summary.hostLastSeenAt.toISOString()}, well before the window's end: the whole collector may have stopped.`,
@@ -468,7 +467,8 @@ async function readContainerMetric(data: {
     time: new InBetween(data.startTime, data.endTime),
     ...(data.scope.resourceScopes
       ? {
-          resourceEntityScopes: data.scope.resourceScopes as unknown as JSONValue,
+          resourceEntityScopes: data.scope
+            .resourceScopes as unknown as JSONValue,
         }
       : {}),
     ...(data.scope.attributes ? { attributes: data.scope.attributes } : {}),

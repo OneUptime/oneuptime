@@ -269,11 +269,9 @@ export default class LinkedInfrastructureContext {
       .filter((resource: LinkedAffectedResource): boolean => {
         return order.includes(resource.type) && Boolean(resource.id);
       })
-      .sort(
-        (a: LinkedAffectedResource, b: LinkedAffectedResource): number => {
-          return order.indexOf(a.type) - order.indexOf(b.type);
-        },
-      )
+      .sort((a: LinkedAffectedResource, b: LinkedAffectedResource): number => {
+        return order.indexOf(a.type) - order.indexOf(b.type);
+      })
       .slice(0, MAX_LINKED_RESOURCES)
       .map((resource: LinkedAffectedResource) => {
         return { type: resource.type, id: resource.id, name: resource.name };
@@ -482,7 +480,9 @@ export default class LinkedInfrastructureContext {
     ];
 
     for (const resource of data.resources) {
-      lines.push(`- ${LinkedInfrastructureContext.describeResourceForTools(resource)}`);
+      lines.push(
+        `- ${LinkedInfrastructureContext.describeResourceForTools(resource)}`,
+      );
     }
 
     const windowStartText: string = data.windowStart.toISOString();
@@ -499,7 +499,9 @@ export default class LinkedInfrastructureContext {
       );
 
       for (const alert of data.alerts) {
-        lines.push(`- ${LinkedInfrastructureContext.describeAlert(alert, data)}`);
+        lines.push(
+          `- ${LinkedInfrastructureContext.describeAlert(alert, data)}`,
+        );
       }
 
       if (data.hasMoreAlerts) {

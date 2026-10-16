@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import Metric from "../../../../../Models/AnalyticsModels/Metric";
 import MetricService from "../../../../../Server/Services/MetricService";
@@ -55,7 +62,10 @@ function row(
 }
 
 // What the host agent sends for one CPU state, as bucket averages.
-function cpuState(state: string, values: Array<number>): Array<AggregatedModel> {
+function cpuState(
+  state: string,
+  values: Array<number>,
+): Array<AggregatedModel> {
   return values.map((value: number, index: number): AggregatedModel => {
     return row({ state, "cpu.mode": "" }, index, value);
   });
@@ -297,13 +307,11 @@ describe("GroupedMetricSeries.toSeries", () => {
       groupBy: ["http.route"],
     });
 
-    expect(series[0]!.points.map((point: MetricSeriesPoint): number | null => {
+    expect(
+      series[0]!.points.map((point: MetricSeriesPoint): number | null => {
         return point.value;
-      })).toEqual([
-      0.2,
-      null,
-      0.4,
-    ]);
+      }),
+    ).toEqual([0.2, null, 0.4]);
     expect(series[0]!.min).toBe(0.2);
     expect(GroupedMetricSeries.formatTrend(series[0]!.points)).toBe(
       `0.2 ${TREND_GAP} 0.4`,
@@ -319,9 +327,11 @@ describe("GroupedMetricSeries.toSeries", () => {
       groupBy: ["state"],
     });
 
-    expect(series[0]!.points.map((point: MetricSeriesPoint): number | null => {
+    expect(
+      series[0]!.points.map((point: MetricSeriesPoint): number | null => {
         return point.value;
-      })).toEqual([0, null]);
+      }),
+    ).toEqual([0, null]);
     expect(series[0]!.max).toBe(0);
   });
 

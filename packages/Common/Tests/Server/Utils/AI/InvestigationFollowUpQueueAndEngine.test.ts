@@ -68,9 +68,9 @@ describe("the queue and a follow-up check", () => {
       limitInTokens: null,
       usedTokensToday: 0,
     });
-    jest.spyOn(AIService, "getReachedProjectDailyLimit").mockResolvedValue(
-      null as never,
-    );
+    jest
+      .spyOn(AIService, "getReachedProjectDailyLimit")
+      .mockResolvedValue(null as never);
     jest.spyOn(Semaphore, "lock").mockResolvedValue({} as never);
     jest.spyOn(Semaphore, "release").mockResolvedValue();
     jest
@@ -320,7 +320,7 @@ describe("what the engine records", () => {
   const CONTEXT_NOTES: Array<AIRunEventResultSummary> = [
     {
       message:
-        "Checking again: alert #12 opened on Host \"web-1\" after the first analysis",
+        'Checking again: alert #12 opened on Host "web-1" after the first analysis',
       severity: "Info",
       followUpCheck: {
         alertNumber: 12,

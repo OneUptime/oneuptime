@@ -152,8 +152,18 @@ describe("which containers stopped reporting", () => {
   test("with wide buckets, a container is never stale by less than two of them", () => {
     const fiveMinutes: number = 5 * MINUTE;
     const buckets: Array<ContainerCpuBucket> = [
-      { containerName: "web", imageName: "web", bucketStart: at(40), cpuPercent: 3 },
-      { containerName: "api", imageName: "api", bucketStart: at(35), cpuPercent: 3 },
+      {
+        containerName: "web",
+        imageName: "web",
+        bucketStart: at(40),
+        cpuPercent: 3,
+      },
+      {
+        containerName: "api",
+        imageName: "api",
+        bucketStart: at(35),
+        cpuPercent: 3,
+      },
     ];
 
     // One bucket behind is the collector, not a stop.
@@ -332,9 +342,9 @@ describe("the order a reader needs", () => {
   }
 
   test("by CPU: the stopped first (the latest stop first), then the busiest, ties by name", () => {
-    expect(names(ContainerActivityUtil.sort(summary.containers, "cpu"))).toEqual(
-      ["api", "worker", "cpu-hog", "cache", "web"],
-    );
+    expect(
+      names(ContainerActivityUtil.sort(summary.containers, "cpu")),
+    ).toEqual(["api", "worker", "cpu-hog", "cache", "web"]);
   });
 
   test("by memory and by restarts, the stopped still lead", () => {

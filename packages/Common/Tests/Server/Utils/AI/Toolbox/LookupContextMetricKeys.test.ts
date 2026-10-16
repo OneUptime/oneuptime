@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import TelemetryAttributeService from "../../../../../Server/Services/TelemetryAttributeService";
 import { LookupContextTool } from "../../../../../Server/Utils/AI/Toolbox/ContextTools";
@@ -27,15 +34,15 @@ const CTX: ToolContext = {
   props: { isRoot: true, tenantId: PROJECT_ID },
 };
 
-let fetchAttributes: SpyInstance<typeof TelemetryAttributeService.fetchAttributes>;
+let fetchAttributes: SpyInstance<
+  typeof TelemetryAttributeService.fetchAttributes
+>;
 
 beforeEach(() => {
   fetchAttributes = jest
     .spyOn(TelemetryAttributeService, "fetchAttributes")
     .mockResolvedValue(["cpu", "state", "resource.host.name"]);
-  jest
-    .spyOn(TelemetryReadAccess, "getServiceFilter")
-    .mockResolvedValue({});
+  jest.spyOn(TelemetryReadAccess, "getServiceFilter").mockResolvedValue({});
 });
 
 afterEach(() => {

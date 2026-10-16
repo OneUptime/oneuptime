@@ -1,5 +1,12 @@
 import "../../TestingUtils/Init";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import Incident from "../../../../Models/DatabaseModels/Incident";
@@ -126,38 +133,40 @@ let findAlerts: SpyInstance<typeof AlertService.findBy>;
 function answerAlertReads(): void {
   findAlerts = jest
     .spyOn(AlertService, "findBy")
-    .mockImplementation(async (findBy: FindBy<Alert>): Promise<Array<Alert>> => {
-      alertReads.push(findBy);
-      const query: JSONObject = findBy.query as unknown as JSONObject;
-      const column: string | undefined = (
-        ["hosts", "dockerHosts", "services"] as Array<string>
-      ).find((candidate: string): boolean => {
-        return query[candidate] !== undefined;
-      });
-      const isOpenRead: boolean = query["currentAlertStateId"] !== undefined;
-      const windowStart: Date = new Date(
-        DECLARED_AT.getTime() - RELATED_ALERTS_LOOKBACK_MINUTES * MINUTE,
-      );
+    .mockImplementation(
+      async (findBy: FindBy<Alert>): Promise<Array<Alert>> => {
+        alertReads.push(findBy);
+        const query: JSONObject = findBy.query as unknown as JSONObject;
+        const column: string | undefined = (
+          ["hosts", "dockerHosts", "services"] as Array<string>
+        ).find((candidate: string): boolean => {
+          return query[candidate] !== undefined;
+        });
+        const isOpenRead: boolean = query["currentAlertStateId"] !== undefined;
+        const windowStart: Date = new Date(
+          DECLARED_AT.getTime() - RELATED_ALERTS_LOOKBACK_MINUTES * MINUTE,
+        );
 
-      return fixtures
-        .filter((fixture: AlertFixture): boolean => {
-          const openedAt: Date = minutesFromIncident(
-            fixture.openedMinutesFromIncident,
-          );
+        return fixtures
+          .filter((fixture: AlertFixture): boolean => {
+            const openedAt: Date = minutesFromIncident(
+              fixture.openedMinutesFromIncident,
+            );
 
-          return (
-            fixture.column === column &&
-            (isOpenRead
-              ? fixture.isOpen && openedAt.getTime() < windowStart.getTime()
-              : openedAt.getTime() >= windowStart.getTime())
-          );
-        })
-        .sort((a: AlertFixture, b: AlertFixture): number => {
-          return b.openedMinutesFromIncident - a.openedMinutesFromIncident;
-        })
-        .slice(0, findBy.limit as number)
-        .map(toAlert);
-    });
+            return (
+              fixture.column === column &&
+              (isOpenRead
+                ? fixture.isOpen && openedAt.getTime() < windowStart.getTime()
+                : openedAt.getTime() >= windowStart.getTime())
+            );
+          })
+          .sort((a: AlertFixture, b: AlertFixture): number => {
+            return b.openedMinutesFromIncident - a.openedMinutesFromIncident;
+          })
+          .slice(0, findBy.limit as number)
+          .map(toAlert);
+      },
+    );
 }
 
 beforeEach(() => {
@@ -168,13 +177,13 @@ beforeEach(() => {
     linked(LinkedAffectedResourceType.DockerHost, DOCKER_A, "web-1"),
     linked(LinkedAffectedResourceType.Host, HOST_A, "web-1"),
   ];
-  jest.spyOn(IncidentService, "findOneBy").mockImplementation(
-    async (): Promise<Incident | null> => {
+  jest
+    .spyOn(IncidentService, "findOneBy")
+    .mockImplementation(async (): Promise<Incident | null> => {
       const incident: Incident = new Incident(INCIDENT_ID);
       incident.createdAt = DECLARED_AT;
       return incident;
-    },
-  );
+    });
   jest
     .spyOn(LinkedAffectedResources, "readForIncident")
     .mockImplementation(async (): Promise<Array<LinkedAffectedResource>> => {
@@ -210,14 +219,22 @@ describe("which resources", () => {
 
     expect(result.resources).toEqual([
       { type: LinkedAffectedResourceType.Host, id: HOST_A, name: "web-1" },
-      { type: LinkedAffectedResourceType.DockerHost, id: DOCKER_A, name: "web-1" },
+      {
+        type: LinkedAffectedResourceType.DockerHost,
+        id: DOCKER_A,
+        name: "web-1",
+      },
     ]);
   });
 
   test("services count; SLOs and network sites do not", () => {
     expect(
       LinkedInfrastructureContext.keepInfrastructure([
-        linked(LinkedAffectedResourceType.ServiceLevelObjective, OTHER_HOST, "Checkout SLO"),
+        linked(
+          LinkedAffectedResourceType.ServiceLevelObjective,
+          OTHER_HOST,
+          "Checkout SLO",
+        ),
         linked(LinkedAffectedResourceType.NetworkSite, OTHER_HOST, "Berlin"),
         linked(LinkedAffectedResourceType.Service, SERVICE_ID, "checkout-api"),
       ]),
@@ -424,9 +441,9 @@ describe("which alerts", () => {
     const result: LinkedInfrastructure = await readIncident();
 
     expect(result.alerts).toEqual([]);
-    expect(LinkedInfrastructureContext.buildContextSection(result)).not.toContain(
-      "Payroll",
-    );
+    expect(
+      LinkedInfrastructureContext.buildContextSection(result),
+    ).not.toContain("Payroll");
   });
 
   test("an alert on two linked resources is listed once, on both", async () => {
@@ -460,7 +477,10 @@ describe("which alerts", () => {
           return resource.type;
         },
       ),
-    ).toEqual([LinkedAffectedResourceType.Host, LinkedAffectedResourceType.DockerHost]);
+    ).toEqual([
+      LinkedAffectedResourceType.Host,
+      LinkedAffectedResourceType.DockerHost,
+    ]);
   });
 
   test(`at most ${MAX_RELATED_ALERTS} alerts, the newest, and the context says there were more`, async () => {
@@ -497,13 +517,13 @@ describe("which alerts", () => {
   test("an alert's investigation never lists the alert itself", async () => {
     const SUBJECT: string = alertId(5);
 
-    jest.spyOn(AlertService, "findOneBy").mockImplementation(
-      async (): Promise<Alert | null> => {
+    jest
+      .spyOn(AlertService, "findOneBy")
+      .mockImplementation(async (): Promise<Alert | null> => {
         const alert: Alert = new Alert(new ObjectID(SUBJECT));
         alert.createdAt = DECLARED_AT;
         return alert;
-      },
-    );
+      });
     jest
       .spyOn(LinkedAffectedResources, "readForAlert")
       .mockResolvedValue([

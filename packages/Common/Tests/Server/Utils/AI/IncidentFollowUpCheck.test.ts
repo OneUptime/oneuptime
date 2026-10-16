@@ -1,5 +1,12 @@
 import "../../TestingUtils/Init";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
@@ -155,25 +162,27 @@ beforeEach(() => {
     return undefined;
   });
 
-  jest.spyOn(AlertService, "findOneBy").mockImplementation(
-    async (findOneBy: FindOneBy<Alert>): Promise<Alert | null> => {
-      const alert: Alert = newAlert(
-        ALERT_ID,
-        world.alertOpenedAt,
-        world.alertIsPrivate,
-      );
-      const select: JSONObject = findOneBy.select as unknown as JSONObject;
+  jest
+    .spyOn(AlertService, "findOneBy")
+    .mockImplementation(
+      async (findOneBy: FindOneBy<Alert>): Promise<Alert | null> => {
+        const alert: Alert = newAlert(
+          ALERT_ID,
+          world.alertOpenedAt,
+          world.alertIsPrivate,
+        );
+        const select: JSONObject = findOneBy.select as unknown as JSONObject;
 
-      if (select["title"]) {
-        alert.alertNumber = 12;
-        alert.title = "[Host] High CPU Utilization (>80%) - web-1";
-        alert.rootCause = "CPU busy (user + system) was 97.4%.";
-        alert.alertSeverity = { name: "Warning" } as never;
-      }
+        if (select["title"]) {
+          alert.alertNumber = 12;
+          alert.title = "[Host] High CPU Utilization (>80%) - web-1";
+          alert.rootCause = "CPU busy (user + system) was 97.4%.";
+          alert.alertSeverity = { name: "Warning" } as never;
+        }
 
-      return alert;
-    },
-  );
+        return alert;
+      },
+    );
   jest
     .spyOn(LinkedAffectedResources, "readForAlert")
     .mockImplementation(async (): Promise<Array<LinkedAffectedResource>> => {
@@ -192,70 +201,78 @@ beforeEach(() => {
   jest
     .spyOn(IncidentStateService, "getUnresolvedIncidentStateIds")
     .mockResolvedValue([OPEN_STATE]);
-  jest.spyOn(IncidentService, "findBy").mockImplementation(
-    async (findBy: FindBy<Incident>): Promise<Array<Incident>> => {
-      incidentReads.push(findBy);
-      const incident: Incident = new Incident(INCIDENT_ID);
-      incident.createdAt = DECLARED_AT;
-      return world.incidentState.toString() === OPEN_STATE.toString()
-        ? [incident]
-        : [];
-    },
-  );
-  jest.spyOn(IncidentService, "findOneBy").mockImplementation(
-    async (): Promise<Incident | null> => {
+  jest
+    .spyOn(IncidentService, "findBy")
+    .mockImplementation(
+      async (findBy: FindBy<Incident>): Promise<Array<Incident>> => {
+        incidentReads.push(findBy);
+        const incident: Incident = new Incident(INCIDENT_ID);
+        incident.createdAt = DECLARED_AT;
+        return world.incidentState.toString() === OPEN_STATE.toString()
+          ? [incident]
+          : [];
+      },
+    );
+  jest
+    .spyOn(IncidentService, "findOneBy")
+    .mockImplementation(async (): Promise<Incident | null> => {
       const incident: Incident = new Incident(INCIDENT_ID);
       incident.createdAt = DECLARED_AT;
       incident.currentIncidentStateId = world.incidentState;
       return incident;
-    },
-  );
-  jest.spyOn(AIRunService, "findBy").mockImplementation(
-    async (findBy: FindBy<AIRun>): Promise<Array<AIRun>> => {
-      const query: JSONObject = findBy.query as unknown as JSONObject;
-      const runs: Array<AIRun> = [...world.runs].filter((item: AIRun) => {
-        // The previous analysis: a completed first investigation.
-        if (query["followUpForAlertId"] !== undefined) {
-          return (
-            !item.followUpForAlertId && item.status === AIRunStatus.Completed
-          );
-        }
-        return true;
-      });
+    });
+  jest
+    .spyOn(AIRunService, "findBy")
+    .mockImplementation(
+      async (findBy: FindBy<AIRun>): Promise<Array<AIRun>> => {
+        const query: JSONObject = findBy.query as unknown as JSONObject;
+        const runs: Array<AIRun> = [...world.runs].filter((item: AIRun) => {
+          // The previous analysis: a completed first investigation.
+          if (query["followUpForAlertId"] !== undefined) {
+            return (
+              !item.followUpForAlertId && item.status === AIRunStatus.Completed
+            );
+          }
+          return true;
+        });
 
-      return runs
-        .sort((a: AIRun, b: AIRun): number => {
-          return b.createdAt!.getTime() - a.createdAt!.getTime();
-        })
-        .slice(0, findBy.limit as number);
-    },
-  );
-  jest.spyOn(AIRunService, "findOneBy").mockImplementation(
-    async (findOneBy: FindOneBy<AIRun>): Promise<AIRun | null> => {
-      const id: unknown = (findOneBy.query as unknown as JSONObject)["_id"];
-      return (
-        world.runs.find((item: AIRun): boolean => {
-          return item.id?.toString() === String(id);
-        }) || null
-      );
-    },
-  );
-  jest.spyOn(AIRunService, "countBy").mockImplementation(
-    async (countBy: CountBy<AIRun>): Promise<PositiveNumber> => {
-      const query: JSONObject = countBy.query as unknown as JSONObject;
-      expect(query["followUpForAlertId"]).toBeDefined();
-      return new PositiveNumber(
-        world.runs.filter((item: AIRun): boolean => {
-          return Boolean(item.followUpForAlertId);
-        }).length,
-      );
-    },
-  );
-  jest.spyOn(AlertService, "findBy").mockImplementation(
-    async (): Promise<Array<Alert>> => {
+        return runs
+          .sort((a: AIRun, b: AIRun): number => {
+            return b.createdAt!.getTime() - a.createdAt!.getTime();
+          })
+          .slice(0, findBy.limit as number);
+      },
+    );
+  jest
+    .spyOn(AIRunService, "findOneBy")
+    .mockImplementation(
+      async (findOneBy: FindOneBy<AIRun>): Promise<AIRun | null> => {
+        const id: unknown = (findOneBy.query as unknown as JSONObject)["_id"];
+        return (
+          world.runs.find((item: AIRun): boolean => {
+            return item.id?.toString() === String(id);
+          }) || null
+        );
+      },
+    );
+  jest
+    .spyOn(AIRunService, "countBy")
+    .mockImplementation(
+      async (countBy: CountBy<AIRun>): Promise<PositiveNumber> => {
+        const query: JSONObject = countBy.query as unknown as JSONObject;
+        expect(query["followUpForAlertId"]).toBeDefined();
+        return new PositiveNumber(
+          world.runs.filter((item: AIRun): boolean => {
+            return Boolean(item.followUpForAlertId);
+          }).length,
+        );
+      },
+    );
+  jest
+    .spyOn(AlertService, "findBy")
+    .mockImplementation(async (): Promise<Array<Alert>> => {
       return world.laterAlerts;
-    },
-  );
+    });
   /*
    * The queue, with its subject lock: one enqueue at a time admits and
    * creates, as InvestigationSubjectLock serializes them.
@@ -345,7 +362,9 @@ describe("an alert opens on an open incident's infrastructure", () => {
     ).toEqual([HOST_A]);
     expect(query["currentIncidentStateId"]).toBeDefined();
     expect(JSON.stringify(query["createdAt"])).toContain(
-      at(2 - FOLLOW_UP_WINDOW_MINUTES).toISOString().slice(0, 19),
+      at(2 - FOLLOW_UP_WINDOW_MINUTES)
+        .toISOString()
+        .slice(0, 19),
     );
     expect(incidentReads[0]!.limit).toBe(MAX_INCIDENTS_PER_ALERT);
     expect(incidentReads[0]!.props).toEqual({ isRoot: true });
@@ -370,70 +389,111 @@ describe("an alert opens on an open incident's infrastructure", () => {
   });
 
   test.each([
-    ["a private alert: its title would reach the report", (): void => {
-      world.alertIsPrivate = true;
-    }],
-    ["an alert on no infrastructure", (): void => {
-      world.alertResources = [
-        {
-          type: LinkedAffectedResourceType.Monitor,
-          id: HOST_A,
-          name: "Synthetic",
-        },
-      ];
-    }],
-    ["automatic incident investigation is off", (): void => {
-      world.laneClosedBy = "automatic_investigation_disabled";
-    }],
-    ["the project's daily AI limit is reached", (): void => {
-      world.laneClosedBy = "project_daily_limit_reached";
-    }],
-    ["the incident was resolved meanwhile", (): void => {
-      world.incidentState = RESOLVED_STATE;
-    }],
-    ["the alert opened more than 30 minutes after the incident", (): void => {
-      world.alertOpenedAt = at(FOLLOW_UP_WINDOW_MINUTES + 1);
-    }],
-    ["the incident was never investigated", (): void => {
-      world.runs = [];
-    }],
-    ["its investigation is still queued: it reads the alert when it starts", (): void => {
-      world.runs = [
-        run({ status: AIRunStatus.Queued, startedMinutesFromIncident: 0 }),
-      ];
-    }],
-    ["its investigation is running: it is checked when that run settles", (): void => {
-      world.runs = [
-        run({ status: AIRunStatus.Running, startedMinutesFromIncident: 0 }),
-      ];
-    }],
-    ["its investigation failed", (): void => {
-      world.runs = [
-        run({ status: AIRunStatus.Error, startedMinutesFromIncident: 0 }),
-      ];
-    }],
-    ["its investigation read its context after the alert opened", (): void => {
-      world.runs = [
-        run({ status: AIRunStatus.Completed, startedMinutesFromIncident: 3 }),
-      ];
-    }],
-    ["its latest run is already the follow-up", (): void => {
-      world.runs.push(
-        run({
-          status: AIRunStatus.Completed,
-          startedMinutesFromIncident: 1,
-          followUpForAlertId: ObjectID.generate(),
-        }),
-      );
-    }],
-  ])("nothing is checked again when %s", async (_label: string, arrange: () => void) => {
-    arrange();
+    [
+      "a private alert: its title would reach the report",
+      (): void => {
+        world.alertIsPrivate = true;
+      },
+    ],
+    [
+      "an alert on no infrastructure",
+      (): void => {
+        world.alertResources = [
+          {
+            type: LinkedAffectedResourceType.Monitor,
+            id: HOST_A,
+            name: "Synthetic",
+          },
+        ];
+      },
+    ],
+    [
+      "automatic incident investigation is off",
+      (): void => {
+        world.laneClosedBy = "automatic_investigation_disabled";
+      },
+    ],
+    [
+      "the project's daily AI limit is reached",
+      (): void => {
+        world.laneClosedBy = "project_daily_limit_reached";
+      },
+    ],
+    [
+      "the incident was resolved meanwhile",
+      (): void => {
+        world.incidentState = RESOLVED_STATE;
+      },
+    ],
+    [
+      "the alert opened more than 30 minutes after the incident",
+      (): void => {
+        world.alertOpenedAt = at(FOLLOW_UP_WINDOW_MINUTES + 1);
+      },
+    ],
+    [
+      "the incident was never investigated",
+      (): void => {
+        world.runs = [];
+      },
+    ],
+    [
+      "its investigation is still queued: it reads the alert when it starts",
+      (): void => {
+        world.runs = [
+          run({ status: AIRunStatus.Queued, startedMinutesFromIncident: 0 }),
+        ];
+      },
+    ],
+    [
+      "its investigation is running: it is checked when that run settles",
+      (): void => {
+        world.runs = [
+          run({ status: AIRunStatus.Running, startedMinutesFromIncident: 0 }),
+        ];
+      },
+    ],
+    [
+      "its investigation failed",
+      (): void => {
+        world.runs = [
+          run({ status: AIRunStatus.Error, startedMinutesFromIncident: 0 }),
+        ];
+      },
+    ],
+    [
+      "its investigation read its context after the alert opened",
+      (): void => {
+        world.runs = [
+          run({ status: AIRunStatus.Completed, startedMinutesFromIncident: 3 }),
+        ];
+      },
+    ],
+    [
+      "its latest run is already the follow-up",
+      (): void => {
+        world.runs.push(
+          run({
+            status: AIRunStatus.Completed,
+            startedMinutesFromIncident: 1,
+            followUpForAlertId: ObjectID.generate(),
+          }),
+        );
+      },
+    ],
+  ])(
+    "nothing is checked again when %s",
+    async (_label: string, arrange: () => void) => {
+      arrange();
 
-    expect(await alertOpens()).toEqual([]);
-    expect(admitted.every((value: boolean): boolean => {
-      return value === false;
-    })).toBe(true);
-  });
+      expect(await alertOpens()).toEqual([]);
+      expect(
+        admitted.every((value: boolean): boolean => {
+          return value === false;
+        }),
+      ).toBe(true);
+    },
+  );
 
   test("a failure decides nothing and never throws into the alert's creation", async () => {
     jest
@@ -447,7 +507,9 @@ describe("an alert opens on an open incident's infrastructure", () => {
 });
 
 describe("an investigation settles while an alert opened", () => {
-  async function settles(runId: ObjectID = FIRST_RUN_ID): Promise<ObjectID | null> {
+  async function settles(
+    runId: ObjectID = FIRST_RUN_ID,
+  ): Promise<ObjectID | null> {
     return await IncidentFollowUpCheck.onInvestigationSettled({
       projectId: PROJECT_ID,
       incidentId: INCIDENT_ID,
@@ -535,7 +597,9 @@ describe("what the follow-up run is told, and says", () => {
         alertTitle: "[Host] High CPU Utilization (>80%) - web-1",
         alertOpenedAt: at(2),
         alertSeverityName: "Warning",
-        resources: [{ type: LinkedAffectedResourceType.Host, id: HOST_A, name: "web-1" }],
+        resources: [
+          { type: LinkedAffectedResourceType.Host, id: HOST_A, name: "web-1" },
+        ],
         previousAnalysisAt: at(1),
       }),
     );

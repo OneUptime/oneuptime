@@ -53,9 +53,7 @@ describe("the catalog", () => {
     ]);
     expect(split("system.cpu.time").splitBy).toEqual(["state", "cpu.mode"]);
     // What a reader needs to know to read it: the states sum to 1, busy = user + system.
-    expect(split("system.cpu.utilization").meaning).toContain(
-      "add up to 1",
-    );
+    expect(split("system.cpu.utilization").meaning).toContain("add up to 1");
     expect(split("system.cpu.utilization").meaning).toContain(
       "Busy CPU is user + system",
     );

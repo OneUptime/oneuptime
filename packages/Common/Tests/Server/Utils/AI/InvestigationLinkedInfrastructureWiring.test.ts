@@ -339,9 +339,9 @@ describe("the runners wire the linked infrastructure and the follow-up check", (
   });
 
   test("a follow-up whose context cannot be built fails without releasing remediation; a first investigation releases it", async () => {
-    (AIInvestigationQueue.failOrRequeue as unknown as jest.Mock).mockResolvedValue(
-      "finalized",
-    );
+    (
+      AIInvestigationQueue.failOrRequeue as unknown as jest.Mock
+    ).mockResolvedValue("finalized");
     jest
       .spyOn(IncidentAIContextBuilder, "buildIncidentContext")
       .mockRejectedValue(new Error("Incident not found"));

@@ -457,7 +457,8 @@ export default class AIIncidentInvestigationRunner {
         const linkedNote: AIRunEventResultSummary | null =
           LinkedInfrastructureContext.buildActivityNote(linked);
 
-        contextSummary += LinkedInfrastructureContext.buildContextSection(linked);
+        contextSummary +=
+          LinkedInfrastructureContext.buildContextSection(linked);
 
         if (linkedNote) {
           contextNotes.push(linkedNote);

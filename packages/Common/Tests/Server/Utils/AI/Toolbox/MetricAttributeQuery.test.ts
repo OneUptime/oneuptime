@@ -72,15 +72,18 @@ describe("readAttributeFilter", () => {
     }).toThrow("attributes must be an object");
   });
 
-  test.each([
+  test.each<[string, JSONObject]>([
     ["an object value", { state: { not: "idle" } }],
     ["a list value", { state: ["idle", "user"] }],
     ["a null value", { state: null }],
-  ])("refuses %s, saying what a value may be", (_label: string, attributes) => {
-    expect(() => {
-      return readAttributeFilter({ attributes } as JSONObject);
-    }).toThrow('The value of attribute "state" must be a string');
-  });
+  ])(
+    "refuses %s, saying what a value may be",
+    (_label: string, attributes: JSONObject) => {
+      expect(() => {
+        return readAttributeFilter({ attributes });
+      }).toThrow('The value of attribute "state" must be a string');
+    },
+  );
 
   test("refuses more filters than a read takes", () => {
     const attributes: JSONObject = {};

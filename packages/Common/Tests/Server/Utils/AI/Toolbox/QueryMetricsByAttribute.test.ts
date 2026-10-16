@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import Metric from "../../../../../Models/AnalyticsModels/Metric";
 import MetricBaselineService from "../../../../../Server/Services/MetricBaselineService";
@@ -47,7 +54,10 @@ const START: string = "2026-10-16T13:00:00.000Z";
 const END: string = "2026-10-16T13:10:00.000Z";
 
 // An autonomous investigation's tool context, before the engine set a tenant.
-const ROOT_RUN: ToolContext = { projectId: PROJECT_ID, props: { isRoot: true } };
+const ROOT_RUN: ToolContext = {
+  projectId: PROJECT_ID,
+  props: { isRoot: true },
+};
 
 function memberContext(): ToolContext {
   return {
@@ -159,9 +169,9 @@ describe("every read names the project", () => {
       expect(requests.length).toBeGreaterThan(0);
 
       for (const request of requests) {
-        expect(
-          (request.query as JSONObject)["projectId"]?.toString(),
-        ).toBe(PROJECT_ID.toString());
+        expect((request.query as JSONObject)["projectId"]?.toString()).toBe(
+          PROJECT_ID.toString(),
+        );
         expect(request.props).toBe(ctx.props);
       }
     }
@@ -254,8 +264,11 @@ describe("a metric split by state, asked for as a whole", () => {
     expect(result.widget?.type).toBe(AIChatWidgetType.TimeSeriesChart);
     expect(
       (
-        (result.widget?.data as unknown as { series: Array<AIChatWidgetSeries> })
-          .series || []
+        (
+          result.widget?.data as unknown as {
+            series: Array<AIChatWidgetSeries>;
+          }
+        ).series || []
       ).map((series: AIChatWidgetSeries): string => {
         return series.name;
       }),

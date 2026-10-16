@@ -1,5 +1,12 @@
 import "../../../TestingUtils/Init";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import Metric from "../../../../../Models/AnalyticsModels/Metric";
 import DockerHost from "../../../../../Models/DatabaseModels/DockerHost";
@@ -64,7 +71,10 @@ const END: Date = new Date("2026-10-16T14:30:00.000Z");
 const READ_START: Date = new Date(START.getTime() - LOOKBACK_MINUTES * MINUTE);
 
 function rootRun(): ToolContext {
-  return { projectId: PROJECT_ID, props: { isRoot: true, tenantId: PROJECT_ID } };
+  return {
+    projectId: PROJECT_ID,
+    props: { isRoot: true, tenantId: PROJECT_ID },
+  };
 }
 
 function memberWith(permissions: Array<Permission>): ToolContext {
@@ -143,7 +153,11 @@ function answerFrom(containers: Array<ContainerFixture>): void {
           const data: Array<AggregatedModel> = [];
 
           for (const container of containers) {
-            for (let minute: number = container.from; minute <= container.to; minute++) {
+            for (
+              let minute: number = container.from;
+              minute <= container.to;
+              minute++
+            ) {
               data.push({
                 timestamp: new Date(READ_START.getTime() + minute * MINUTE),
                 value: container.cpu,
@@ -202,7 +216,9 @@ beforeEach(() => {
   findDockerHost = jest
     .spyOn(DockerHostService, "findBy")
     .mockResolvedValue([hostRow()] as never);
-  jest.spyOn(PodmanHostService, "findBy").mockResolvedValue([hostRow()] as never);
+  jest
+    .spyOn(PodmanHostService, "findBy")
+    .mockResolvedValue([hostRow()] as never);
 });
 
 afterEach(() => {
@@ -212,9 +228,33 @@ afterEach(() => {
 describe("the customer's cases", () => {
   test("a CPU-bound container leads the list, its CPU in percent of a core", async () => {
     answerFrom([
-      { name: "nginx", image: "nginx:1.27", from: 0, to: 45, cpu: 4, memory: 10, restarts: [0, 0] },
-      { name: "shop-api", image: "acme/shop-api:2.1", from: 0, to: 45, cpu: 197.4, memory: 35, restarts: [0, 0] },
-      { name: "redis", image: "redis:7", from: 0, to: 45, cpu: 1.2, memory: 61.5, restarts: [0, 0] },
+      {
+        name: "nginx",
+        image: "nginx:1.27",
+        from: 0,
+        to: 45,
+        cpu: 4,
+        memory: 10,
+        restarts: [0, 0],
+      },
+      {
+        name: "shop-api",
+        image: "acme/shop-api:2.1",
+        from: 0,
+        to: 45,
+        cpu: 197.4,
+        memory: 35,
+        restarts: [0, 0],
+      },
+      {
+        name: "redis",
+        image: "redis:7",
+        from: 0,
+        to: 45,
+        cpu: 1.2,
+        memory: 61.5,
+        restarts: [0, 0],
+      },
     ]);
 
     const result: ToolExecutionResult = await QueryContainersTool.execute(
@@ -240,9 +280,30 @@ describe("the customer's cases", () => {
 
   test("a container that stopped 3 minutes before the incident leads the list as stopped reporting", async () => {
     answerFrom([
-      { name: "shop-api", image: "acme/shop-api:2.1", from: 0, to: 42, cpu: 6, restarts: [0, 0] },
-      { name: "nginx", image: "nginx:1.27", from: 0, to: 45, cpu: 4, restarts: [0, 0] },
-      { name: "redis", image: "redis:7", from: 0, to: 45, cpu: 1, restarts: [0, 0] },
+      {
+        name: "shop-api",
+        image: "acme/shop-api:2.1",
+        from: 0,
+        to: 42,
+        cpu: 6,
+        restarts: [0, 0],
+      },
+      {
+        name: "nginx",
+        image: "nginx:1.27",
+        from: 0,
+        to: 45,
+        cpu: 4,
+        restarts: [0, 0],
+      },
+      {
+        name: "redis",
+        image: "redis:7",
+        from: 0,
+        to: 45,
+        cpu: 1,
+        restarts: [0, 0],
+      },
     ]);
 
     const result: ToolExecutionResult = await QueryContainersTool.execute(
@@ -302,7 +363,9 @@ describe("the customer's cases", () => {
     expect(result.dataForLlm).toContain(
       "No container reported container.cpu.utilization for this host in that time.",
     );
-    expect(result.dataForLlm).toContain("Missing data is not evidence of health.");
+    expect(result.dataForLlm).toContain(
+      "Missing data is not evidence of health.",
+    );
     expect(result.widget).toBeUndefined();
   });
 });
@@ -330,7 +393,10 @@ describe("how it reads", () => {
           attributes: { "resource.container.runtime": "docker" },
         }),
       );
-      expect(request.topK).toEqual({ count: MAX_CONTAINERS_READ, rankBy: "max" });
+      expect(request.topK).toEqual({
+        count: MAX_CONTAINERS_READ,
+        rankBy: "max",
+      });
       expect(request.props).toEqual(rootRun().props);
     }
 
@@ -396,18 +462,24 @@ describe("how it reads", () => {
 
   test.each([
     [{ resourceType: "Host" }, "resourceType must be DockerHost or PodmanHost"],
-    [{ resourceType: "KubernetesCluster" }, "resourceType must be DockerHost or PodmanHost"],
+    [
+      { resourceType: "KubernetesCluster" },
+      "resourceType must be DockerHost or PodmanHost",
+    ],
     [{ resourceId: "web-1" }, "resourceId must be the host's OneUptime UUID"],
     [{ sortBy: "network" }, "sortBy must be cpu, memory or restarts"],
-  ])("refuses %j before reading anything", async (extra: JSONObject, message: string) => {
-    answerFrom([]);
+  ])(
+    "refuses %j before reading anything",
+    async (extra: JSONObject, message: string) => {
+      answerFrom([]);
 
-    await expect(
-      QueryContainersTool.execute(args(extra), rootRun()),
-    ).rejects.toThrow(message);
-    expect(findDockerHost).not.toHaveBeenCalled();
-    expect(requests).toEqual([]);
-  });
+      await expect(
+        QueryContainersTool.execute(args(extra), rootRun()),
+      ).rejects.toThrow(message);
+      expect(findDockerHost).not.toHaveBeenCalled();
+      expect(requests).toEqual([]);
+    },
+  );
 
   test("a long window is read in wider buckets, never more than the activity budget", () => {
     for (const hours of [0.5, 1, 3, 12, 24, 24 * 7]) {
@@ -423,7 +495,10 @@ describe("how it reads", () => {
     }
 
     expect(
-      chooseActivityInterval(READ_START, new Date(READ_START.getTime() + 75 * MINUTE)),
+      chooseActivityInterval(
+        READ_START,
+        new Date(READ_START.getTime() + 75 * MINUTE),
+      ),
     ).toBe(AggregationInterval.Minute);
   });
 
@@ -457,7 +532,15 @@ describe("how it reads", () => {
 
   test("the citation and the table link to the host's own page", async () => {
     answerFrom([
-      { name: "api", image: "api", from: 0, to: 45, cpu: 3, memory: 12, restarts: [0, 0] },
+      {
+        name: "api",
+        image: "api",
+        from: 0,
+        to: 45,
+        cpu: 3,
+        memory: 12,
+        restarts: [0, 0],
+      },
     ]);
 
     const result: ToolExecutionResult = await QueryContainersTool.execute(
@@ -520,7 +603,9 @@ describe("who may use it", () => {
     ).toEqual(new PodmanHost().getReadPermissions());
     // An unknown kind of resource fails closed.
     expect(
-      QueryContainersTool.getRequiredPermissionGroups!({ resourceType: "Host" })[0],
+      QueryContainersTool.getRequiredPermissionGroups!({
+        resourceType: "Host",
+      })[0],
     ).toEqual([]);
   });
 

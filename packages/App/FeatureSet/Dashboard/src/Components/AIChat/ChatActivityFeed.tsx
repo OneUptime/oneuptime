@@ -649,7 +649,10 @@ function buildSteps(
         if (linkedInfrastructure) {
           steps.push({
             key,
-            text: describeLinkedInfrastructure(linkedInfrastructure, translator),
+            text: describeLinkedInfrastructure(
+              linkedInfrastructure,
+              translator,
+            ),
             status: "done",
             kind: "log",
           });

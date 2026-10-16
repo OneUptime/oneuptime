@@ -12,10 +12,7 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
 import PromptText from "../../../../Utils/AI/PromptText";
-import {
-  MarkdownText,
-  mdText,
-} from "../../../../Utils/Markdown/FeedMarkdown";
+import { MarkdownText, mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import AIRunService from "../../../Services/AIRunService";
 import AlertService from "../../../Services/AlertService";
 import IncidentService from "../../../Services/IncidentService";
@@ -148,13 +145,14 @@ export default class IncidentFollowUpCheck {
       const queued: Array<ObjectID> = [];
 
       for (const incidentId of incidentIds) {
-        const runId: ObjectID | null =
-          await IncidentFollowUpCheck.enqueueIfDue({
+        const runId: ObjectID | null = await IncidentFollowUpCheck.enqueueIfDue(
+          {
             projectId: data.projectId,
             incidentId,
             alertId: data.alertId,
             alertOpenedAt: alert.createdAt,
-          });
+          },
+        );
 
         if (runId) {
           queued.push(runId);
@@ -319,9 +317,8 @@ export default class IncidentFollowUpCheck {
       return null;
     }
 
-    const latest: AIRun | null = await IncidentFollowUpCheck.readLatestRun(
-      data,
-    );
+    const latest: AIRun | null =
+      await IncidentFollowUpCheck.readLatestRun(data);
 
     if (
       !latest ||
@@ -377,8 +374,7 @@ export default class IncidentFollowUpCheck {
     const contextReadAt: Date | undefined = run.startedAt || run.createdAt;
 
     return Boolean(
-      contextReadAt &&
-        contextReadAt.getTime() < data.alertOpenedAt.getTime(),
+      contextReadAt && contextReadAt.getTime() < data.alertOpenedAt.getTime(),
     );
   }
 
@@ -420,11 +416,7 @@ export default class IncidentFollowUpCheck {
         }),
       ]);
 
-    if (
-      !incident?.createdAt ||
-      !alert?.createdAt ||
-      alert.isPrivate === true
-    ) {
+    if (!incident?.createdAt || !alert?.createdAt || alert.isPrivate === true) {
       return null;
     }
 
@@ -612,9 +604,8 @@ export default class IncidentFollowUpCheck {
       return false;
     }
 
-    const latest: AIRun | null = await IncidentFollowUpCheck.readLatestRun(
-      data,
-    );
+    const latest: AIRun | null =
+      await IncidentFollowUpCheck.readLatestRun(data);
 
     return Boolean(
       latest &&

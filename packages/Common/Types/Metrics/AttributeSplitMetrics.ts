@@ -182,8 +182,6 @@ export function isSplitDecidedByCaller(data: {
   groupBy: ReadonlyArray<string>;
 }): boolean {
   return data.split.splitBy.some((key: string): boolean => {
-    return (
-      data.attributeFilterKeys.includes(key) || data.groupBy.includes(key)
-    );
+    return data.attributeFilterKeys.includes(key) || data.groupBy.includes(key);
   });
 }

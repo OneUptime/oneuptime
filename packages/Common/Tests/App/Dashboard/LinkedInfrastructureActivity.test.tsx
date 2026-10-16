@@ -210,9 +210,7 @@ describe("describeFollowUpCheck", () => {
   });
 
   test("without a number, or without a resource, it still reads", () => {
-    expect(
-      describeFollowUpCheck(followUp({ alertNumber: undefined })),
-    ).toBe(
+    expect(describeFollowUpCheck(followUp({ alertNumber: undefined }))).toBe(
       "Checking again: an alert opened on Host web-1 after the first analysis",
     );
     expect(describeFollowUpCheck(followUp({ resourceKind: "" }))).toBe(

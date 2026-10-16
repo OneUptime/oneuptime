@@ -128,7 +128,7 @@ async function readGroupedQueryMetrics(data: {
 export const QueryMetricsTool: ObservabilityTool = {
   name: "query_metrics",
   description:
-    "Aggregate a metric over time: Avg, Max, Min, Sum, Count or P50/P75/P90/P95/P99 percentiles (histogram-aware). Requires the exact metric name — discover names via lookup_context. Monitor metrics use reserved names like oneuptime.monitor.response.time with the monitor's ID as entityId. Filter by attribute with attributes, and read one series per attribute value with groupBy (for example per container with groupBy [\"resource.container.name\"]). Host metrics split by an attribute — system.cpu.utilization and system.memory.* by state, system.filesystem.* by mountpoint — are read one series per value automatically, because one average across them is meaningless (CPU states always add up to 1). For one infrastructure resource, query_resource_telemetry scopes the read to it.",
+    'Aggregate a metric over time: Avg, Max, Min, Sum, Count or P50/P75/P90/P95/P99 percentiles (histogram-aware). Requires the exact metric name — discover names via lookup_context. Monitor metrics use reserved names like oneuptime.monitor.response.time with the monitor\'s ID as entityId. Filter by attribute with attributes, and read one series per attribute value with groupBy (for example per container with groupBy ["resource.container.name"]). Host metrics split by an attribute — system.cpu.utilization and system.memory.* by state, system.filesystem.* by mountpoint — are read one series per value automatically, because one average across them is meaningless (CPU states always add up to 1). For one infrastructure resource, query_resource_telemetry scopes the read to it.',
   inputSchema: {
     type: "object",
     properties: {
@@ -286,7 +286,9 @@ export const QueryMetricsTool: ObservabilityTool = {
       : `${aggregationTypeString}(${metricName})`;
 
     return {
-      dataForLlm: planNote ? `${serialized.text}\n${planNote}` : serialized.text,
+      dataForLlm: planNote
+        ? `${serialized.text}\n${planNote}`
+        : serialized.text,
       rowCount: serialized.rowCount,
       citationLabel: `${aggregationTypeString}(${metricName}), ${startTime.toISOString()} – ${endTime.toISOString()}`,
       citationTarget: {
