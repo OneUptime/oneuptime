@@ -53,6 +53,8 @@ import {
   ALSO_INVITE_DESCRIPTION,
   ALSO_INVITE_TITLE,
   ARCHIVE_CHANNEL_TITLES,
+  CHATS_DESCRIPTION,
+  CHATS_PLACEHOLDER,
   CHATS_TITLE,
   CREATE_CHANNEL_DESCRIPTIONS,
   CREATE_CHANNEL_TITLES,
@@ -62,6 +64,7 @@ import {
   INCIDENT_ROLES_DESCRIPTION,
   INCIDENT_ROLES_TITLE,
   NEW_CHANNEL_TEAM_DESCRIPTION,
+  NO_CHATS_DESCRIPTION,
   ON_CALL_RESPONDERS_DESCRIPTION,
   ON_CALL_RESPONDERS_TITLE,
   OWNERS_TITLE,
@@ -70,6 +73,7 @@ import {
   POST_TO_EXISTING_CHANNELS_DESCRIPTION,
   POST_TO_EXISTING_CHANNELS_TITLE,
   RULE_SUMMARY_TITLE,
+  TEAM_PLACEHOLDER,
   TEAM_TITLE,
   TEAMS_WHO_JOINS_NOTE,
   WHO_JOINS_SECTION_DESCRIPTION,
@@ -319,6 +323,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       title: TEAM_TITLE,
       description: EXISTING_CHANNELS_TEAM_DESCRIPTION,
       fieldType: FormFieldSchemaType.Dropdown,
+      placeholder: TEAM_PLACEHOLDER,
       required: true,
       showIf: (formValue: FormValues<BaseNotificationRule>) => {
         return Boolean(formValue.shouldPostToExistingChannel) && isTeams;
@@ -361,9 +366,10 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         },
         title: CHATS_TITLE,
         description: hasConnectedChats
-          ? "Only chats that the OneUptime app has been added to are listed here. To add more, open the chat in Microsoft Teams and add the OneUptime app to it. A group chat listed by its members' names, or under an old name, picks up its current name when you click Refresh Chats in Project Settings > Workspace > Microsoft Teams, as long as Microsoft Teams lets OneUptime read it."
-          : "No chats are connected yet. Open Microsoft Teams, go to the chat you want to notify, and add the OneUptime app to it — the chat will then appear here.",
+          ? CHATS_DESCRIPTION
+          : NO_CHATS_DESCRIPTION,
         fieldType: FormFieldSchemaType.MultiSelectDropdown,
+        placeholder: CHATS_PLACEHOLDER,
         required: true,
         showIf: (formValue: FormValues<BaseNotificationRule>) => {
           return Boolean(formValue.shouldPostToExistingChat);
@@ -425,6 +431,11 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
     },
   };
 
+  /*
+   * Microsoft Teams: the same section as Slack's, with what Teams does in
+   * place of the boxes - its heading and the note under it, as Slack's
+   * heading and its sentence.
+   */
   const whoJoinsFields: Array<Field<NotificationRulesType>> = isTeams
     ? [
         {
@@ -432,19 +443,20 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
             [TEAMS_WHO_JOINS_NOTE_FIELD_KEY]: true,
           } as never,
           title: WHO_JOINS_SECTION_TITLE,
+          sectionTitle: WHO_JOINS_SECTION_TITLE,
+          sectionDescription: (
+            <span data-testid="who-joins-teams-note">
+              {translator.translateText(TEAMS_WHO_JOINS_NOTE)}
+            </span>
+          ),
           fieldType: FormFieldSchemaType.CustomComponent,
+          // The section says it all: there is nothing to fill in.
+          customElementDrawsOwnLabel: true,
           required: false,
           hideOptionalLabel: true,
           showIf: createsChannel,
           getCustomElement: (): ReactElement => {
-            return (
-              <p
-                data-testid="who-joins-teams-note"
-                className="text-sm text-gray-500"
-              >
-                {translator.translateText(TEAMS_WHO_JOINS_NOTE)}
-              </p>
-            );
+            return <></>;
           },
         },
       ]
@@ -518,6 +530,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       title: TEAM_TITLE,
       description: NEW_CHANNEL_TEAM_DESCRIPTION,
       fieldType: FormFieldSchemaType.Dropdown,
+      placeholder: TEAM_PLACEHOLDER,
       required: true,
       showIf: (formValue: FormValues<NotificationRulesType>) => {
         return createsChannel(formValue) && isTeams;
@@ -539,7 +552,6 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         return createsChannel(formValue) && !isTeams;
       },
     },
-    ...whoJoinsFields,
     /*
      * Optional: without a prefix, a channel is named after its record -
      * inc-42 for incident INC-42 - and a prefix goes in front of that name,
@@ -583,6 +595,12 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         );
       },
     },
+    /*
+     * Who joins the channel, under a heading of its own, last: the fold
+     * above it is the channel's, so it sits with the channel's switches,
+     * not under who joins.
+     */
+    ...whoJoinsFields,
   ]);
 
   const isDestination: boolean =

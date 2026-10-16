@@ -1,9 +1,8 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup } from "@testing-library/react";
 import fs from "fs";
 import path from "path";
-import React from "react";
 
 /*
  * WHAT A WORKSPACE NOTIFICATION RULE SAYS IT DOES.
@@ -48,11 +47,7 @@ import {
   getNotificationRuleSummary,
   NotificationRuleSummaryInput,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleCopy";
-import NotificationRuleViewElement from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleViewElement/NotificationRuleViewElement";
-import Team from "../../../Models/DatabaseModels/Team";
-import User from "../../../Models/DatabaseModels/User";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
-import Name from "../../../Types/Name";
 import NotificationRuleEventType from "../../../Types/Workspace/NotificationRules/EventType";
 import NotificationRuleInvites from "../../../Types/Workspace/NotificationRules/NotificationRuleInvites";
 import {
@@ -61,7 +56,6 @@ import {
 } from "../../../Types/Workspace/NotificationRules/NotificationRuleCondition";
 import IncidentNotificationRule from "../../../Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
-import { WorkspaceChannelNumberPrefixes } from "../../../Utils/Workspace/WorkspaceChannelName";
 import {
   createTranslator,
   getTemplatePlaceholders,
@@ -110,14 +104,6 @@ function translatorFor(language: string): Translator {
 }
 
 const ENGLISH: Translator = translatorFor("en");
-
-const PREFIXES: WorkspaceChannelNumberPrefixes = {
-  [NotificationRuleEventType.Incident]: "INC-",
-  [NotificationRuleEventType.Alert]: "ALT-",
-  [NotificationRuleEventType.IncidentEpisode]: "IE-",
-  [NotificationRuleEventType.AlertEpisode]: "AE-",
-  [NotificationRuleEventType.ScheduledMaintenance]: "SM-",
-};
 
 const ALL_EVENT_TYPES: Array<NotificationRuleEventType> = Object.values(
   NotificationRuleEventType,
@@ -211,16 +197,44 @@ describe("the sentences that say what a rule does", () => {
     ).toBe("Invites on-call responders as they are paged.");
   });
 
+  /*
+   * In a sentence of their own, as the form asks them under "Also invite":
+   * they were the last item of one long list, "... owners as they are added
+   * and Alice and Database when the channel is created".
+   */
   test("the people and teams the rule names join when the channel is created", () => {
     expect(
       sentences({
         rule: rule({ shouldInviteOwnersToNewChannel: true }),
         userNames: ["Alice"],
         teamNames: ["Database"],
+      }).slice(1),
+    ).toEqual([
+      "Invites the Incident Commander and other incident roles as they are assigned and owners as they are added.",
+      "Also invites Alice and Database when the channel is created.",
+    ]);
+    // Named alone, they are who the rule invites.
+    expect(
+      sentences({
+        rule: rule({}),
+        userNames: ["Alice"],
+        teamNames: ["Database"],
       })[1],
-    ).toBe(
-      "Invites the Incident Commander and other incident roles as they are assigned, owners as they are added and Alice and Database when the channel is created.",
-    );
+    ).toBe("Invites Alice and Database when the channel is created.");
+  });
+
+  test("a German reader reads the people named in a sentence of their own", () => {
+    expect(
+      sentences({
+        translator: translatorFor("de"),
+        rule: rule({ shouldAutomaticallyInviteOnCallUsersToNewChannel: true }),
+        userNames: ["Alice"],
+        teamNames: ["Database"],
+      }).slice(1),
+    ).toEqual([
+      "Lädt Personen in Bereitschaft bei ihrer Alarmierung und den Vorfall-Kommandanten und weitere Vorfallsrollen bei ihrer Zuweisung ein.",
+      "Lädt außerdem Alice und Database beim Erstellen des Kanals ein.",
+    ]);
   });
 
   test("a rule that invites nobody says so, and how to add people", () => {
@@ -299,10 +313,20 @@ describe("the sentences that say what a rule does", () => {
         exampleChannelName: "inc-42",
       })[1],
     ).toBe("Everyone in the team can open the channel.");
+    // One chat is one chat: "in the chats On-call leads" read as several.
+    expect(
+      sentences({
+        rule: teamsRule,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        exampleChannelName: "inc-42",
+        channelTeamName: "Ops",
+        chatNames: ["On-call leads"],
+      })[2],
+    ).toBe("Posts updates in the chat On-call leads.");
     // A Slack rule has no chats.
     expect(
-      sentences({ rule: teamsRule, chatNames: ["On-call leads"] }),
-    ).not.toContain("Posts updates in the chats On-call leads.");
+      sentences({ rule: teamsRule, chatNames: ["On-call leads"] }).join(" "),
+    ).not.toContain("On-call leads");
   });
 
   test.each([
@@ -402,113 +426,85 @@ describe("the sentences that say what a rule does", () => {
   });
 });
 
-describe("the rule's card: When, then Then", () => {
-  function renderCard(data: {
-    value: IncidentNotificationRule;
-    users?: Array<User>;
-    teams?: Array<Team>;
-  }): void {
-    render(
-      <NotificationRuleViewElement
-        value={data.value}
-        eventType={NotificationRuleEventType.Incident}
-        monitors={[]}
-        labels={[]}
-        alertStates={[]}
-        alertSeverities={[]}
-        incidentSeverities={[]}
-        incidentStates={[]}
-        scheduledMaintenanceStates={[]}
-        monitorStatus={[]}
-        workspaceType={WorkspaceType.Slack}
-        teams={data.teams || []}
-        users={data.users || []}
-        numberPrefixes={PREFIXES}
-      />,
+/*
+ * The rule's card - which records it is for, then these sentences - is drawn
+ * by the rules list: WorkspaceNotificationRuleCard.test.tsx.
+ */
+
+/*
+ * What a rule's conditions check and how, by the words the Conditions
+ * step's dropdowns and the card show them: every condition the rules know
+ * has its words, translated with the rest.
+ */
+describe("the words of a rule's conditions", () => {
+  test("every field a condition can check, and every way it compares, is listed", () => {
+    expect([...Copy.CONDITION_FIELD_WORDS].sort()).toEqual(
+      Object.values(NotificationRuleConditionCheckOn).sort(),
     );
-  }
-
-  function thenSentences(): Array<string> {
-    return within(screen.getByTestId("notification-rule-summary"))
-      .queryAllByRole("listitem")
-      .map((item: HTMLElement): string => {
-        return item.textContent || "";
-      });
-  }
-
-  test("a rule without conditions is for every incident, and says what it does", () => {
-    renderCard({
-      value: rule({
-        shouldAutomaticallyInviteOnCallUsersToNewChannel: true,
-        shouldInviteIncidentRolesToNewChannel: true,
-        shouldInviteOwnersToNewChannel: true,
-        archiveChannelAutomatically: true,
-      }),
-    });
-
-    expect(screen.getByText("When")).toBeVisible();
-    expect(
-      screen.getByTestId("notification-rule-no-conditions"),
-    ).toHaveTextContent("Every incident.");
-    expect(screen.getByText("Then")).toBeVisible();
-    expect(thenSentences()).toEqual([
-      "Creates a channel like #inc-42 for each incident.",
-      "Invites on-call responders as they are paged, the Incident Commander and other incident roles as they are assigned and owners as they are added.",
-      "Archives the channel when the incident is resolved.",
-    ]);
-    // No switch is listed Yes or No any more.
-    expect(screen.queryAllByText("Yes")).toHaveLength(0);
-    expect(screen.queryAllByText("No")).toHaveLength(0);
+    expect([...Copy.CONDITION_OPERATOR_WORDS].sort()).toEqual(
+      Object.values(ConditionType).sort(),
+    );
   });
 
-  test("a rule with conditions lists them under When", () => {
-    renderCard({
-      value: rule({
-        filters: [
-          {
-            checkOn: NotificationRuleConditionCheckOn.IncidentTitle,
-            conditionType: ConditionType.Contains,
-            value: "database",
-          },
-        ],
-      }),
-    });
+  test("read in the reader's language, as a German reader sees them", () => {
+    const german: Translator = translatorFor("de");
+
+    expect(german.translateText(ConditionType.ContainsAny)).toBe(
+      "Enthält eines von",
+    );
+    expect(
+      german.translateText(NotificationRuleConditionCheckOn.IncidentState),
+    ).toBe("Vorfallsstatus");
+    expect(
+      german.translateText(
+        NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
+      ),
+    ).toBe("Beschriftungen der Bereitschaftsrichtlinie");
+  });
+});
+
+/*
+ * What one rule of each kind is called - on the Create button, the form's
+ * title, the list's count and empty state - whole, so it reads in the
+ * reader's language. It was "Incident" + " Notification Rule", which no
+ * locale had: "Neu erstellen: Incident Notification Rule".
+ */
+describe("the name of each kind of rule", () => {
+  test("every kind of record has a rule's name, one and many, each its own", () => {
+    for (const eventType of ALL_EVENT_TYPES) {
+      expect(Copy.RULE_SINGULAR_NAMES[eventType]).toMatch(
+        / Notification Rule$/,
+      );
+      expect(Copy.RULE_PLURAL_NAMES[eventType]).toBe(
+        `${Copy.RULE_SINGULAR_NAMES[eventType]}s`,
+      );
+    }
+
+    expect(new Set(Object.values(Copy.RULE_SINGULAR_NAMES)).size).toBe(
+      ALL_EVENT_TYPES.length,
+    );
+    // The product's word for an on-call policy, not the record's type name.
+    expect(
+      Copy.RULE_SINGULAR_NAMES[NotificationRuleEventType.OnCallDutyPolicy],
+    ).toBe("On-Call Policy Notification Rule");
+  });
+
+  test("a German reader reads the whole name", () => {
+    const german: Translator = translatorFor("de");
 
     expect(
-      screen.queryByTestId("notification-rule-no-conditions"),
-    ).not.toBeInTheDocument();
-    expect(screen.getByText(/database/)).toBeVisible();
-  });
-
-  test("names the people and teams the rule invites", () => {
-    const alice: User = new User();
-    alice._id = "aaaaaaaa-0000-4000-8000-000000000001";
-    alice.name = new Name("Alice Moreau");
-
-    const database: Team = new Team();
-    database._id = "bbbbbbbb-0000-4000-8000-000000000002";
-    database.name = "Database";
-
-    renderCard({
-      value: rule({
-        inviteUsersToNewChannel: [alice._id],
-        inviteTeamsToNewChannel: [database._id],
+      german.translateText(
+        Copy.RULE_SINGULAR_NAMES[NotificationRuleEventType.Incident],
+      ),
+    ).toBe("Benachrichtigungsregel für Vorfälle");
+    expect(
+      german.translateTemplate("Create New {{itemName}}", {
+        itemName:
+          german.translateText(
+            Copy.RULE_SINGULAR_NAMES[NotificationRuleEventType.Incident],
+          ) || "",
       }),
-      users: [alice],
-      teams: [database],
-    });
-
-    expect(thenSentences()[1]).toBe(
-      "Invites Alice Moreau and Database when the channel is created.",
-    );
-  });
-
-  test("a rule that posts nowhere says what is to pick", () => {
-    renderCard({ value: rule({ shouldCreateNewChannel: false }) });
-
-    expect(screen.getByTestId("notification-rule-summary")).toHaveTextContent(
-      "Pick where this rule posts: existing channels, a channel of its own for each one, or both.",
-    );
+    ).toBe("Neu erstellen: Benachrichtigungsregel für Vorfälle");
   });
 });
 

@@ -61,7 +61,10 @@ import {
 } from "../../../Types/Workspace/NotificationRules/NotificationRuleCondition";
 import IncidentNotificationRule from "../../../Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
-import { MicrosoftTeamsTeam } from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import {
+  MicrosoftTeamsChat,
+  MicrosoftTeamsTeam,
+} from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 
 const SAVED_RULE: IncidentNotificationRule = {
   _type: "IncidentNotificationRule",
@@ -99,12 +102,32 @@ const OPS_TEAM: MicrosoftTeamsTeam = {
   name: "Ops",
 } as MicrosoftTeamsTeam;
 
+const LEADS_CHAT: MicrosoftTeamsChat = {
+  id: "chat-leads",
+  name: "On-call leads",
+  chatType: "groupChat",
+} as MicrosoftTeamsChat;
+
+const ALICE_CHAT: MicrosoftTeamsChat = {
+  id: "chat-alice",
+  name: "Alice Smith",
+  chatType: "personal",
+} as MicrosoftTeamsChat;
+
+// a comes before b in the page, as a reader meets them.
+function isBefore(a: HTMLElement, b: HTMLElement): boolean {
+  return Boolean(
+    a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING,
+  );
+}
+
 async function renderPart(data: {
   part: NotificationRuleFormPart;
   value?: IncidentNotificationRule | undefined;
   workspaceType?: WorkspaceType | undefined;
   eventType?: NotificationRuleEventType | undefined;
   onChange?: MockFunction | undefined;
+  microsoftTeamsChats?: Array<MicrosoftTeamsChat> | undefined;
 }): Promise<MockFunction> {
   const onChange: MockFunction = data.onChange || getJestMockFunction();
 
@@ -129,7 +152,7 @@ async function renderPart(data: {
         teams={[]}
         users={[]}
         microsoftTeamsTeams={[OPS_TEAM]}
-        microsoftTeamsChats={[]}
+        microsoftTeamsChats={data.microsoftTeamsChats || []}
         numberPrefixes={{
           [NotificationRuleEventType.Incident]: "INC-",
           [NotificationRuleEventType.Alert]: "ALT-",
@@ -428,8 +451,11 @@ describe("who joins the channel a rule creates", () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
+      screen.getByText("Everyone paged by an on-call policy."),
+    ).toBeVisible();
+    expect(
       screen.getByText(
-        "The commander is usually assigned when someone first acknowledges or changes the state.",
+        "The commander is usually assigned when someone first acknowledges the incident or changes its state.",
       ),
     ).toBeVisible();
     // Anybody else the rule names, people or teams, in one picker.
@@ -587,6 +613,18 @@ describe("who joins the channel a rule creates", () => {
     expect(await screen.findByTestId("who-joins-teams-note")).toHaveTextContent(
       "Everyone in the team can open the channel: Microsoft Teams shows a team's channels to all of its members.",
     );
+    /*
+     * Under the same heading as Slack's section, drawn the same way: it was
+     * a field label there, smaller than Slack's heading over the same thing.
+     */
+    const heading: HTMLElement = screen.getByRole("heading", {
+      name: "Who joins the channel",
+    });
+
+    expect(heading.tagName).toBe("H3");
+    expect(isBefore(heading, screen.getByTestId("who-joins-teams-note"))).toBe(
+      true,
+    );
     expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
     expect(
       screen.queryByRole("switch", { name: /^Archive the channel/ }),
@@ -598,6 +636,127 @@ describe("who joins the channel a rule creates", () => {
     expect(summary()).toEqual([
       "Creates a channel like oneuptime-incident-inc-42 for each incident.",
       "Everyone in Ops can open the channel.",
+    ]);
+  });
+});
+
+describe("the Destination step, as a reader meets it", () => {
+  /*
+   * The prefix of the channel's name is the channel's: its More fields fold
+   * sits with the channel's switches, above the Who joins the channel
+   * heading - not at the end of the step, where it read as one more thing
+   * about who joins.
+   */
+  test("the channel's More fields fold comes before who joins it", async () => {
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      value: SAVED_RULE,
+    });
+
+    const archive: HTMLElement = await screen.findByRole("switch", {
+      name: /^Archive the channel when the incident is resolved/,
+    });
+    const moreFields: HTMLElement = screen.getByRole("button", {
+      name: "More fields",
+    });
+    const heading: HTMLElement = screen.getByRole("heading", {
+      name: "Who joins the channel",
+    });
+
+    expect(
+      isBefore(
+        screen.getByRole("switch", {
+          name: /^Create a channel for each incident/,
+        }),
+        archive,
+      ),
+    ).toBe(true);
+    expect(isBefore(archive, moreFields)).toBe(true);
+    expect(isBefore(moreFields, heading)).toBe(true);
+    expect(
+      isBefore(heading, screen.getByRole("checkbox", { name: ON_CALL_BOX })),
+    ).toBe(true);
+    // Nothing of the channel's name after who joins.
+    expect(
+      isBefore(
+        screen.getByRole("button", { name: /Add people or teams/ }),
+        moreFields,
+      ),
+    ).toBe(false);
+  });
+
+  test("Microsoft Teams: each team and chat list says what to pick", async () => {
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      microsoftTeamsChats: [LEADS_CHAT, ALICE_CHAT],
+      value: {
+        ...SAVED_RULE,
+        shouldPostToExistingChannel: true,
+        shouldPostToExistingChat: true,
+      } as IncidentNotificationRule,
+    });
+
+    // The posting team and the channel's team, each empty until picked.
+    expect(await screen.findAllByText("Select a team")).toHaveLength(2);
+    expect(screen.getByText("Select chats")).toBeVisible();
+    // Which chats are listed, and what to do about a missing or old one.
+    expect(
+      screen.getByText(
+        "Chats the OneUptime app was added to. To list another chat, add the OneUptime app to it in Microsoft Teams. If a group chat shows its members' names or an old name, click Refresh Chats in Project Settings > Workspace > Microsoft Teams.",
+      ),
+    ).toBeVisible();
+  });
+
+  test("Microsoft Teams without a chat says how to connect one", async () => {
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      value: {
+        ...SAVED_RULE,
+        shouldPostToExistingChat: true,
+      } as IncidentNotificationRule,
+    });
+
+    expect(
+      await screen.findByText(
+        "No chats are connected yet. In Microsoft Teams, add the OneUptime app to the chat you want to post to, and it appears here.",
+      ),
+    ).toBeVisible();
+  });
+
+  // One chat is one chat: "in the chats On-call leads" read as several.
+  test("the summary names one chat as one, and several as several", async () => {
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      microsoftTeamsChats: [LEADS_CHAT, ALICE_CHAT],
+      value: {
+        ...SAVED_RULE,
+        shouldCreateNewChannel: false,
+        shouldPostToExistingChat: true,
+        existingChatIds: [LEADS_CHAT.id],
+      } as IncidentNotificationRule,
+    });
+
+    expect(summary()).toEqual(["Posts updates in the chat On-call leads."]);
+
+    cleanup();
+
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      microsoftTeamsChats: [LEADS_CHAT, ALICE_CHAT],
+      value: {
+        ...SAVED_RULE,
+        shouldCreateNewChannel: false,
+        shouldPostToExistingChat: true,
+        existingChatIds: [LEADS_CHAT.id, ALICE_CHAT.id],
+      } as IncidentNotificationRule,
+    });
+
+    expect(summary()).toEqual([
+      "Posts updates in the chats On-call leads and Alice Smith.",
     ]);
   });
 });

@@ -58,12 +58,19 @@ const PROJECT_ID: ObjectID = new ObjectID(
 
 const createOrUpdateMock: MockFunction = getJestMockFunction();
 
+// What the rules page hands its table, as the table last got it.
+const tableProps: {
+  last: ModelTableProps<WorkspaceNotificationRule> | undefined;
+} = { last: undefined };
+
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
     __esModule: true,
     default: (
       props: ModelTableProps<WorkspaceNotificationRule>,
     ): ReactElement => {
+      tableProps.last = props;
+
       // What the real table opens from its Create button.
       return (
         <ModelFormModal<WorkspaceNotificationRule>
@@ -829,6 +836,76 @@ describe("Create a Slack notification rule for incidents", () => {
     ).toBeVisible();
   });
 
+  /*
+   * Each step opens with its question as a heading, at the level of the
+   * Destination step's own "Who joins the channel" section. The questions
+   * were field labels, smaller than that section's heading, so the step's
+   * one title read as a caption under it.
+   */
+  test("each step opens with its question as a heading, as its sections are headed", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toConditions(user);
+
+    const which: HTMLElement = within(dialog()).getByRole("heading", {
+      name: "Which incidents",
+    });
+
+    expect(which.tagName).toBe("H3");
+    // Nothing on the step is left out: no "(Optional)" beside its question.
+    expect(which).toHaveTextContent(/^Which incidents$/);
+
+    await next(user);
+    await waitForStep("Destination");
+    await within(dialog()).findByRole("switch", {
+      name: /^Post to existing channels/,
+    });
+    await settle();
+
+    const then: HTMLElement = within(dialog()).getByRole("heading", {
+      name: "Then, in Slack",
+    });
+
+    expect(then.tagName).toBe("H3");
+    expect(
+      within(dialog()).getByText(
+        "Where updates are posted, and who joins the channel the rule creates.",
+      ),
+    ).toBeVisible();
+
+    await user.click(switchNamed(/^Create a channel for each incident/));
+
+    const whoJoins: HTMLElement = await within(dialog()).findByRole("heading", {
+      name: "Who joins the channel",
+    });
+
+    // The step's heading and its section's, one level, in reading order.
+    expect(whoJoins.tagName).toBe(then.tagName);
+    expect(whoJoins.className).toBe(then.className);
+    expect(
+      then.compareDocumentPosition(whoJoins) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    fireEvent.change(await prefixField(), {
+      target: { value: "oneuptime-incident-" },
+    });
+    await settle();
+    await toVideoCall(user);
+
+    const videoCall: HTMLElement = within(dialog()).getByRole("heading", {
+      name: "Video call",
+    });
+
+    expect(videoCall.className).toBe(then.className);
+    expect(
+      within(dialog()).getByText(
+        "Start a dedicated call for the incident when this rule fires.",
+      ),
+    ).toBeVisible();
+  });
+
   test("creates a rule that starts the huddle of the channel it creates", async () => {
     const user: UserEvent = await renderForm(
       NotificationRuleEventType.Incident,
@@ -907,6 +984,73 @@ describe("Create a Slack notification rule for incidents", () => {
     expect(summary()[0]).toBe(
       "Creates a channel like #prod-inc-42 for each incident.",
     );
+  });
+});
+
+/*
+ * The rules list around the form: what a rule of each kind is called, and
+ * what the list says when there is none.
+ */
+describe("the rules list", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  test.each([
+    [
+      NotificationRuleEventType.Incident,
+      "Incident Notification Rule",
+      "Incident Notification Rules",
+    ],
+    [
+      NotificationRuleEventType.OnCallDutyPolicy,
+      "On-Call Policy Notification Rule",
+      "On-Call Policy Notification Rules",
+    ],
+  ])(
+    "calls an %s rule by its whole, translatable name",
+    async (
+      eventType: NotificationRuleEventType,
+      singular: string,
+      plural: string,
+    ) => {
+      await renderForm(eventType);
+
+      expect(tableProps.last?.singularName).toBe(singular);
+      expect(tableProps.last?.pluralName).toBe(plural);
+    },
+  );
+
+  /*
+   * No rules yet is the list's own empty state - "No incident notification
+   * rules yet.", what a rule does, the Create button - not "No notification
+   * rules found.", which read as a search that missed.
+   */
+  test("leaves no rules yet to the list's own empty state", async () => {
+    await renderForm(NotificationRuleEventType.Incident);
+
+    expect(tableProps.last?.noItemsMessage).toBeUndefined();
+    expect(tableProps.last?.cardProps?.description).toBe(
+      "Each rule picks the incidents it is for, then posts their updates to channels you have, or creates a channel for each incident with the people working on it.",
+    );
+  });
+
+  test("draws each rule as a card of named rows", async () => {
+    await renderForm(NotificationRuleEventType.Incident);
+
+    expect(
+      (tableProps.last?.columns || []).map(
+        (column: { title: string }): string => {
+          return column.title;
+        },
+      ),
+    ).toEqual([
+      "Rule Name",
+      "Rule Description",
+      "Which incidents",
+      "Then",
+      "Video Call",
+    ]);
   });
 });
 

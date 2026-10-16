@@ -107,6 +107,120 @@ export const NO_CONDITIONS_YET_SENTENCES: ByEventType = {
   ),
 };
 
+/*
+ * What one rule of each kind is called - on the card's Create button, the
+ * rule form's title, the list's count and its empty state - whole, so each
+ * reads in the reader's language. They were made from the kind's name,
+ * "Incident" + " Notification Rule", which no locale had: German read
+ * "Neu erstellen: Incident Notification Rule".
+ */
+export const RULE_SINGULAR_NAMES: ByEventType = {
+  [NotificationRuleEventType.Incident]: translationKey(
+    "Incident Notification Rule",
+  ),
+  [NotificationRuleEventType.Alert]: translationKey("Alert Notification Rule"),
+  [NotificationRuleEventType.IncidentEpisode]: translationKey(
+    "Incident Episode Notification Rule",
+  ),
+  [NotificationRuleEventType.AlertEpisode]: translationKey(
+    "Alert Episode Notification Rule",
+  ),
+  [NotificationRuleEventType.ScheduledMaintenance]: translationKey(
+    "Scheduled Maintenance Notification Rule",
+  ),
+  [NotificationRuleEventType.Monitor]: translationKey(
+    "Monitor Notification Rule",
+  ),
+  [NotificationRuleEventType.OnCallDutyPolicy]: translationKey(
+    "On-Call Policy Notification Rule",
+  ),
+};
+
+export const RULE_PLURAL_NAMES: ByEventType = {
+  [NotificationRuleEventType.Incident]: translationKey(
+    "Incident Notification Rules",
+  ),
+  [NotificationRuleEventType.Alert]: translationKey("Alert Notification Rules"),
+  [NotificationRuleEventType.IncidentEpisode]: translationKey(
+    "Incident Episode Notification Rules",
+  ),
+  [NotificationRuleEventType.AlertEpisode]: translationKey(
+    "Alert Episode Notification Rules",
+  ),
+  [NotificationRuleEventType.ScheduledMaintenance]: translationKey(
+    "Scheduled Maintenance Notification Rules",
+  ),
+  [NotificationRuleEventType.Monitor]: translationKey(
+    "Monitor Notification Rules",
+  ),
+  [NotificationRuleEventType.OnCallDutyPolicy]: translationKey(
+    "On-Call Policy Notification Rules",
+  ),
+};
+
+/*
+ * What a rule's conditions check, and how: the Conditions step's dropdowns
+ * and the rule's card show a condition by its own values
+ * (NotificationRuleConditionCheckOn, ConditionType - "Incident State",
+ * "Contains Any"), and these are their words, listed so each is translated:
+ * a German reader read "Vorfallsstatus Contains Any". A test holds the lists
+ * to the enums. They are not imported here, which keeps this module free of
+ * the condition module and the UI it reaches.
+ */
+export const CONDITION_FIELD_WORDS: ReadonlyArray<string> = [
+  translationKey("Monitor Name"),
+  translationKey("Incident Title"),
+  translationKey("Incident Description"),
+  translationKey("Incident Severity"),
+  translationKey("Incident State"),
+  translationKey("Monitor Type"),
+  translationKey("Monitor Status"),
+  translationKey("Alert Title"),
+  translationKey("Alert Description"),
+  translationKey("Alert Severity"),
+  translationKey("Alert State"),
+  translationKey("Alert Episode Title"),
+  translationKey("Alert Episode Description"),
+  translationKey("Alert Episode Severity"),
+  translationKey("Alert Episode State"),
+  translationKey("Alert Episode Labels"),
+  translationKey("Incident Episode Title"),
+  translationKey("Incident Episode Description"),
+  translationKey("Incident Episode Severity"),
+  translationKey("Incident Episode State"),
+  translationKey("Incident Episode Labels"),
+  translationKey("Scheduled Maintenance Title"),
+  translationKey("Scheduled Maintenance Description"),
+  translationKey("Scheduled Maintenance State"),
+  translationKey("Incident Labels"),
+  translationKey("Alert Labels"),
+  translationKey("Monitor Labels"),
+  translationKey("Scheduled Maintenance Labels"),
+  translationKey("Monitors"),
+  translationKey("On Call Duty Policy Name"),
+  translationKey("On Call Duty Policy Description"),
+  translationKey("On Call Duty Policy Labels"),
+];
+
+export const CONDITION_OPERATOR_WORDS: ReadonlyArray<string> = [
+  translationKey("Equal To"),
+  translationKey("Not Equal To"),
+  translationKey("Greater Than"),
+  translationKey("Less Than"),
+  translationKey("Greater Than Or Equal To"),
+  translationKey("Less Than Or Equal To"),
+  translationKey("Contains"),
+  translationKey("Contains Any"),
+  translationKey("Not Contains"),
+  translationKey("Starts With"),
+  translationKey("Ends With"),
+  translationKey("Is Empty"),
+  translationKey("Is Not Empty"),
+  translationKey("True"),
+  translationKey("False"),
+  translationKey("Contains All"),
+];
+
 // The rules' card on a product's Slack or Microsoft Teams page.
 export const NOTIFICATION_RULES_CARD_TITLE: string =
   translationKey("Notification Rules");
@@ -210,7 +324,7 @@ export const ON_CALL_RESPONDERS_TITLE: string = translationKey(
 );
 
 export const ON_CALL_RESPONDERS_DESCRIPTION: string = translationKey(
-  "Each person an on-call policy pages.",
+  "Everyone paged by an on-call policy.",
 );
 
 export const INCIDENT_ROLES_TITLE: string = translationKey(
@@ -218,7 +332,7 @@ export const INCIDENT_ROLES_TITLE: string = translationKey(
 );
 
 export const INCIDENT_ROLES_DESCRIPTION: string = translationKey(
-  "The commander is usually assigned when someone first acknowledges or changes the state.",
+  "The commander is usually assigned when someone first acknowledges the incident or changes its state.",
 );
 
 export const OWNERS_TITLE: string = translationKey("Owners, as they are added");
@@ -290,6 +404,8 @@ export const EXISTING_CHANNEL_NAMES_DESCRIPTIONS: Readonly<
 
 export const TEAM_TITLE: string = translationKey("Team");
 
+export const TEAM_PLACEHOLDER: string = translationKey("Select a team");
+
 export const EXISTING_CHANNELS_TEAM_DESCRIPTION: string = translationKey(
   "The team whose channels these are.",
 );
@@ -306,8 +422,41 @@ export const POST_TO_CHATS_DESCRIPTION: string = translationKey(
 
 export const CHATS_TITLE: string = translationKey("Chats");
 
-// The rule's card.
-export const RULE_WHEN_TITLE: string = translationKey("When");
+export const CHATS_PLACEHOLDER: string = translationKey("Select chats");
+
+/*
+ * Which chats are listed, and what to do when one is missing or shows an
+ * old name. It was a paragraph of four clauses under the field.
+ */
+export const CHATS_DESCRIPTION: string = translationKey(
+  "Chats the OneUptime app was added to. To list another chat, add the OneUptime app to it in Microsoft Teams. If a group chat shows its members' names or an old name, click Refresh Chats in Project Settings > Workspace > Microsoft Teams.",
+);
+
+export const NO_CHATS_DESCRIPTION: string = translationKey(
+  "No chats are connected yet. In Microsoft Teams, add the OneUptime app to the chat you want to post to, and it appears here.",
+);
+
+// The Video Call step, of the rules that can start a call.
+export const VIDEO_CALL_STEP_TITLE: string = translationKey("Video call");
+
+export const VIDEO_CALL_STEP_DESCRIPTIONS: Readonly<
+  Partial<Record<NotificationRuleEventType, string>>
+> = {
+  [NotificationRuleEventType.Incident]: translationKey(
+    "Start a dedicated call for the incident when this rule fires.",
+  ),
+  [NotificationRuleEventType.Alert]: translationKey(
+    "Start a dedicated call for the alert when this rule fires.",
+  ),
+};
+
+/*
+ * The rule's card: which records the rule is for - titled as the
+ * Conditions step asks it, NOTIFICATION_RULE_CONDITIONS_TITLES - then what
+ * it does with them. It was "When", whose translations are the "when?" of a
+ * time ("Wann", "タイミング"): the key also names the time columns of the
+ * AI logs.
+ */
 export const RULE_THEN_TITLE: string = translationKey("Then");
 export const RULE_SUMMARY_TITLE: string = translationKey("What this rule does");
 
@@ -403,9 +552,19 @@ export const INVITEE_PHRASES: Readonly<
   [NotificationRuleInvitee.Owners]: translationKey("owners as they are added"),
 };
 
-// The people and teams a rule names, at the end of the invites sentence.
+// The people and teams a rule names, when it names nobody else.
 export const NAMED_PEOPLE_PHRASE: string = translationKey(
   "{{names}} when the channel is created",
+);
+
+/*
+ * The people and teams a rule names, in a sentence of their own after the
+ * kinds of people it invites - as the form asks them, under "Also invite".
+ * They were the last item of one list: "... and owners as they are added
+ * and Alice Smith, Bob Jones and Platform when the channel is created".
+ */
+export const ALSO_INVITES_SENTENCE: string = translationKey(
+  "Also invites {{names}} when the channel is created.",
 );
 
 export const TEAMS_EVERYONE_SENTENCE: string = translationKey(
@@ -446,6 +605,11 @@ export const POSTS_IN_CHANNELS_SENTENCE: string = translationKey(
 
 export const POSTS_IN_CHATS_SENTENCE: string = translationKey(
   "Posts updates in the chats {{chats}}.",
+);
+
+// One chat is one chat: "in the chats On-call leads" read as several.
+export const POSTS_IN_CHAT_SENTENCE: string = translationKey(
+  "Posts updates in the chat {{chat}}.",
 );
 
 export const NOTHING_CHOSEN_SENTENCE: string = translationKey(
@@ -524,7 +688,7 @@ export function getNotificationRuleSummary(
               "",
       );
     } else {
-      sentences.push(getInvitesSentence(input));
+      sentences.push(...getInvitesSentences(input));
 
       // Slack only: OneUptime cannot archive a Microsoft Teams channel.
       if (rule.archiveChannelAutomatically) {
@@ -557,11 +721,15 @@ export function getNotificationRuleSummary(
     input.chatNames.length > 0
   ) {
     sentences.push(
-      translator.translateTemplate(POSTS_IN_CHATS_SENTENCE, {
-        chats: composedValue((sentence: Translator): string => {
-          return formatNameList(input.chatNames, "and", sentence);
-        }),
-      }),
+      input.chatNames.length === 1
+        ? translator.translateTemplate(POSTS_IN_CHAT_SENTENCE, {
+            chat: input.chatNames[0]!,
+          })
+        : translator.translateTemplate(POSTS_IN_CHATS_SENTENCE, {
+            chats: composedValue((sentence: Translator): string => {
+              return formatNameList(input.chatNames, "and", sentence);
+            }),
+          }),
     );
   }
 
@@ -571,11 +739,15 @@ export function getNotificationRuleSummary(
 }
 
 /*
- * Who the rule invites to its channel, in one sentence: the kinds of people
- * the record has, as they join it, then the people and teams the rule
- * names.
+ * Who the rule invites to its channel: the kinds of people the record has,
+ * as they join it, in one sentence, then the people and teams the rule
+ * names, in one of their own ("Also invites Alice Smith and Platform when
+ * the channel is created."). A rule that names people only invites them in
+ * the first.
  */
-function getInvitesSentence(input: NotificationRuleSummaryInput): string {
+function getInvitesSentences(
+  input: NotificationRuleSummaryInput,
+): Array<string> {
   const translator: Translator = input.translator;
 
   const invitees: Array<NotificationRuleInvitee> =
@@ -587,26 +759,48 @@ function getInvitesSentence(input: NotificationRuleSummaryInput): string {
   const names: Array<string> = [...input.userNames, ...input.teamNames];
 
   if (invitees.length === 0 && names.length === 0) {
-    return translator.translateText(INVITES_NOBODY_SENTENCE) || "";
+    return [translator.translateText(INVITES_NOBODY_SENTENCE) || ""];
   }
 
-  return translator.translateTemplate(INVITES_SENTENCE, {
-    people: composedValue((sentence: Translator): string => {
-      const phrases: Array<string> = invitees.map(
-        (invitee: NotificationRuleInvitee): string => {
-          return sentence.translateText(INVITEE_PHRASES[invitee]) || "";
-        },
-      );
+  const namedPeople: (sentence: Translator) => string = (
+    sentence: Translator,
+  ): string => {
+    return formatNameList(names, "and", sentence);
+  };
 
-      if (names.length > 0) {
-        phrases.push(
-          sentence.translateTemplate(NAMED_PEOPLE_PHRASE, {
-            names: formatNameList(names, "and", sentence),
+  if (invitees.length === 0) {
+    return [
+      translator.translateTemplate(INVITES_SENTENCE, {
+        people: composedValue((sentence: Translator): string => {
+          return sentence.translateTemplate(NAMED_PEOPLE_PHRASE, {
+            names: namedPeople(sentence),
+          });
+        }),
+      }),
+    ];
+  }
+
+  const sentences: Array<string> = [
+    translator.translateTemplate(INVITES_SENTENCE, {
+      people: composedValue((sentence: Translator): string => {
+        return formatNameList(
+          invitees.map((invitee: NotificationRuleInvitee): string => {
+            return sentence.translateText(INVITEE_PHRASES[invitee]) || "";
           }),
+          "and",
+          sentence,
         );
-      }
-
-      return formatNameList(phrases, "and", sentence);
+      }),
     }),
-  });
+  ];
+
+  if (names.length > 0) {
+    sentences.push(
+      translator.translateTemplate(ALSO_INVITES_SENTENCE, {
+        names: composedValue(namedPeople),
+      }),
+    );
+  }
+
+  return sentences;
 }
