@@ -9,10 +9,11 @@ It does not cover self-hosted installations: every self-hosted server creates
 its own Slack app from the manifest its server generates
 ([self-hosted Slack integration](https://oneuptime.com/docs/self-hosted/slack-integration)).
 
-The state below was verified on **15 October 2026**, when the production and
-staging apps were brought up to date with `app-manifest.json` and the Slack
-Marketplace resubmission was prepared. Recheck the live state before acting:
-the dates and versions here are history, not instructions to repeat.
+The state below was verified on **16 October 2026**, when the production app's
+scopes were trimmed to the manifest 14.0.61 serves and the Slack Marketplace
+resubmission was sent. The production and staging apps had been brought up to
+date with `app-manifest.json` the day before. Recheck the live state before
+acting: the dates and versions here are history, not instructions to repeat.
 
 ## How a change reaches customers
 
@@ -44,7 +45,7 @@ create a replacement app: every connected workspace is tied to this one.
 
 | App                                   | App ID        | Client ID                     | Points at                    | Notes                                                                                                 |
 | ------------------------------------- | ------------- | ----------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------- |
-| OneUptime (production)                | `A08CBJX7KBJ` | `7205733110631.8419643257392` | `https://oneuptime.com`      | Publicly distributed, not (yet) listed in the Slack Marketplace.                                      |
+| OneUptime (production)                | `A08CBJX7KBJ` | `7205733110631.8419643257392` | `https://oneuptime.com`      | Publicly distributed. Submitted to the Slack Marketplace on 16 October 2026, in review.               |
 | OneUptime (staging)                   | `A08JW21RJ64` | see its Basic Information     | `https://test.oneuptime.com` | Publicly distributed. In October 2026 staging had no `SLACK_APP_CLIENT_ID`, so nothing used this app. |
 | OneUptime (internal, not distributed) | `A0775KG03B2` | —                             | —                            | An internal bot (for example sign-up notifications). Not the customer app; leave it alone.            |
 
@@ -85,14 +86,26 @@ Entry points (they need the HackerBay `hackerbayhq` sign-in):
    rest field by field. Keep the keys Slack adds itself, with their live values:
    `oauth_config.pkce_enabled`, `settings.app_level_token_rotation_enabled`,
    `settings.is_mcp_enabled`, and `features.app_home.agent_tasks_enabled`
-   (Slack sets it to `true` once the Home tab is on).
+   (Slack sets it to `true` once the Home tab is on). Keep the live
+   `display_information.long_description` too: it is the Marketplace listing's
+   long description, rewritten on the listing page in October 2026, and
+   `app-manifest.json` still has the older text.
 4. **Get a maintainer's approval for the exact diff.** This is a production
    change for every connected workspace.
 5. **Edit and save.** The editor is CodeMirror 5 with no auto-closing brackets:
-   click into it, select all, and type the compact JSON. Read the editor's
-   contents back and compare them with the target before you press **Save
-   Changes**. Slack reformats the JSON on save. Reload the page and compare once
-   more.
+   click into it, select all, and type the compact JSON. To remove one entry,
+   put the cursor at the end of its line and delete it with Backspace instead,
+   which leaves the long description alone. Read the editor's contents back and
+   compare them with the target before you press **Save Changes**. Slack
+   reformats the JSON on save, and drops a scope list left empty. Reload the
+   page and compare once more.
+
+   A scope can also be removed on **OAuth & Permissions**: its remove button
+   saves at once, without asking. The button is disabled for a scope that a
+   configured event or the slash command needs, and in October 2026 also for
+   the user-token `users:read`, with no reason given. Remove such a scope in
+   the manifest editor.
+
 6. **Staging**: do the same on `A08JW21RJ64`, with `https://test.oneuptime.com`
    URLs (`https://test.oneuptime.com/api/slack/app-manifest`). While staging
    has no Slack secrets, Slack shows its events URL as "isn't verified". That is
@@ -113,6 +126,7 @@ After a save:
 | Date       | Apps                | Change                                                                                                                                                                                                                                                                                                                                                                                             |
 | ---------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-10-15 | production, staging | From the September 2025 manifest to the repo's: Home tab on; `/incident` and `/maintenance` removed; `/oneuptime` gained its full description and usage hint and `should_escape: true` (needed for `page @someone`); bot scopes `files:write`, `pins:read`, `users:read.email`, `usergroups:read`, `usergroups:write` added; events `pin_added`, `app_home_opened`, `member_joined_channel` added. |
+| 2026-10-16 | production          | Bot scopes `channels:write.topic`, `im:write`, `mpim:write` and the user-token `users:read` removed, to match the manifest 14.0.61 serves (PR #4860): the bot scopes on **OAuth & Permissions**, `users:read` in the manifest editor. Staging not changed.                                                                                                                                         |
 
 Add a row whenever you change a live app's configuration.
 
@@ -141,10 +155,23 @@ merging anything that touches `app-manifest.json`.
 
 - The app has never been listed. Its first submission (2025) was returned on
   **22 May 2025** with 9 items, below.
-- The resubmission was being prepared on 15 October 2026: the code changes
-  Slack asked for, the security and compliance answers, the testing
-  instructions and the reviewer project were done. The listing screenshots, the
-  install-flow video and the final **Resubmit App** were still open.
+- It was resubmitted on **16 October 2026**. Every item on the feedback page
+  was marked **I have fixed it**, the production app's scopes were trimmed
+  (see [Configuration history](#configuration-history)), and the install-flow
+  video went into Testing information. A maintainer pressed **Submit App for
+  Review**. Slack emails nawazdhandala@oneuptime.com once it has looked.
+- While Slack reviews it, change nothing in the app's configuration. The pages
+  under **Submit to Slack Marketplace** show "Your app has been submitted for
+  review" instead, and **Keep Editing** or any configuration change voids the
+  submission. That includes the `/oneuptime` usage hint
+  `incident [title or number] | …`, merged after 14.0.61 (PR #4870): apply
+  it once the app is approved, when it may need a review of its own.
+- After approval, connect a second member of a project with **Connect my
+  account with Slack**. It uses Sign in with Slack (`/slack/sign-in-url` in
+  `SlackAPI`, scopes `openid profile email`), and those scopes are not among
+  the app's configured scopes. Slack's Sign in with Slack guide asks only for a
+  redirect URL and requests them in a flow of their own, but a listed app "will
+  only be able to use permission scopes Slack has approved".
 
 ### The submission, section by section
 
@@ -175,9 +202,21 @@ without saving, so finish a page in one go.
 4. **Testing information**: who Slack notifies, test-account details, how to
    test, and a **video or screenshots URL** of the full install flow
    (required). Never put a password in this form. Point the reviewers at their
-   own account instead.
-5. **Automated checks**: Slack's own checks, then **Resubmit App**. Pressing
-   it is a maintainer's decision.
+   own account instead. The October 2026 video,
+   `https://youtu.be/ucgFztdCcHE`, installs the app into a fresh test
+   workspace from a OneUptime project with no Slack connection: **Connect with
+   Slack**, Slack's consent page, the connected cards, **Send Test** to a
+   channel, the Home and Messages tabs, "help", and `/oneuptime incident`
+   creating an incident that the Home tab then lists.
+5. **Automated checks**: Slack's own checks, and **Submit App for Review**.
+   In October 2026 the only finding was a warning that `users:read.email` needs
+   people's consent before you email them. OneUptime sends no email with it (it
+   only matches Slack members to OneUptime users), and the warning does not
+   stop a submission. Pressing **Submit App for Review** is a maintainer's
+   decision.
+
+After a returned review, **Resubmit App** on the **Feedback from review** page
+stays disabled until **I have fixed it** is pressed on every item.
 
 ### The reviewers' OneUptime project
 
@@ -201,46 +240,48 @@ higher on OneUptime Cloud.
 
 Keep this table equal to `oauth_config.scopes.bot` and paste it into **Review
 scopes**. A scope that no code uses has no reason: remove it instead (Slack
-returned the first submission partly for unused scopes).
+returned the first submission partly for unused scopes). These are the reasons
+submitted on 16 October 2026. Each one stands alone on that page, so none
+leans on the row above it.
 
-| Scope                    | Why OneUptime needs it                                                                                                                                                                                                     |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `commands`               | The `/oneuptime` slash command, and the Create New Incident and Create Scheduled Event shortcuts.                                                                                                                          |
-| `app_mentions:read`      | To answer people who mention @OneUptime in a channel with a command or a question for OneUptime AI.                                                                                                                        |
-| `chat:write`             | To post incident, alert and maintenance notifications, answers to commands, and confirmations of actions.                                                                                                                  |
-| `channels:read`          | To list public channels when a project picks where notifications go, and to look up a channel's name and members.                                                                                                          |
-| `groups:read`            | The same, for private channels OneUptime has been added to.                                                                                                                                                                |
-| `im:read`                | When someone runs `/oneuptime incident`, `maintenance` or `page` in the app's direct messages, OneUptime posts the confirmation there and first looks the conversation up (`conversations.info`, `conversations.members`). |
-| `mpim:read`              | The same, when those commands are run in a group DM OneUptime has been added to.                                                                                                                                           |
-| `channels:join`          | To join the public channel a project chose for notifications, so OneUptime can post there.                                                                                                                                 |
-| `channels:manage`        | To create a public channel for each incident when a project turns on incident channels, and to archive it afterwards.                                                                                                      |
-| `groups:write`           | The same for private incident channels, and to invite the people involved into them.                                                                                                                                       |
-| `channels:write.invites` | To invite the people on call and the incident's owners into an incident channel.                                                                                                                                           |
-| `channels:history`       | To read the thread a person asks OneUptime AI about, and the message someone pins or marks with 📌 to save it as an incident note, in public channels OneUptime is in.                                                     |
-| `groups:history`         | The same, in private channels OneUptime is a member of.                                                                                                                                                                    |
-| `im:history`             | To read what people send OneUptime in its Messages tab, so it can answer them.                                                                                                                                             |
-| `mpim:history`           | To read messages addressed to OneUptime in group DMs it was added to.                                                                                                                                                      |
-| `users:read`             | To show people's names and timezones, and to match Slack users with OneUptime users for paging and on-call.                                                                                                                |
-| `users:read.email`       | To find the Slack member who is a OneUptime user (by email) when paging someone or keeping an on-call user group up to date.                                                                                               |
-| `usergroups:read`        | To list user groups so a project can connect one to an on-call schedule.                                                                                                                                                   |
-| `usergroups:write`       | To keep a connected user group equal to whoever is on call in its schedule.                                                                                                                                                |
-| `pins:read`              | To receive the `pin_added` event, so a pinned message can be saved as an incident note.                                                                                                                                    |
-| `reactions:read`         | To receive the `reaction_added` event, so a 📌 or 📣 reaction saves a message as a note.                                                                                                                                   |
-| `files:write`            | To attach a synthetic monitor's screenshot to the incident message it belongs to.                                                                                                                                          |
+| Scope                    | Why OneUptime needs it                                                                                                                                                                                                                  |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `commands`               | The `/oneuptime` slash command, and the Create New Incident and Create Scheduled Event shortcuts.                                                                                                                                       |
+| `app_mentions:read`      | To answer people who mention @OneUptime in a channel with a command or a question for OneUptime AI.                                                                                                                                     |
+| `chat:write`             | To post incident, alert and maintenance notifications, answers to commands, and confirmations of actions.                                                                                                                               |
+| `channels:read`          | To list public channels when a project picks where notifications go, and to look up a channel's name and members.                                                                                                                       |
+| `groups:read`            | To list the private channels OneUptime has been added to when a project picks where notifications go, and to look up a channel's name and members.                                                                                      |
+| `im:read`                | When someone runs `/oneuptime incident`, `maintenance` or `page` in the app's direct messages, OneUptime posts the confirmation there and first looks the conversation up (`conversations.info`, `conversations.members`).              |
+| `mpim:read`              | When someone runs `/oneuptime incident`, `maintenance` or `page` in a group DM OneUptime has been added to, OneUptime posts the confirmation there and first looks the conversation up (`conversations.info`, `conversations.members`). |
+| `channels:join`          | To join the public channel a project chose for notifications, so OneUptime can post there.                                                                                                                                              |
+| `channels:manage`        | To create a public channel for each incident when a project turns on incident channels, and to archive it afterwards.                                                                                                                   |
+| `groups:write`           | To create a private channel for each incident when a project uses private incident channels, to invite the people involved into it, and to archive it afterwards.                                                                       |
+| `channels:write.invites` | To invite the people on call and the incident's owners into an incident channel.                                                                                                                                                        |
+| `channels:history`       | To read the thread a person asks OneUptime AI about, and the message someone pins or marks with 📌 to save it as an incident note, in public channels OneUptime is in.                                                                  |
+| `groups:history`         | To read the thread a person asks OneUptime AI about, and the message someone pins or marks with 📌 to save it as an incident note, in private channels OneUptime is a member of.                                                        |
+| `im:history`             | To read what people send OneUptime in its Messages tab, so it can answer them.                                                                                                                                                          |
+| `mpim:history`           | To read messages addressed to OneUptime in group DMs it was added to, so it can answer them.                                                                                                                                            |
+| `users:read`             | To show people's names and timezones, and to match Slack users with OneUptime users for paging and on-call.                                                                                                                             |
+| `users:read.email`       | To find the Slack member who is a OneUptime user (by email) when paging someone or keeping an on-call user group up to date.                                                                                                            |
+| `usergroups:read`        | To list the workspace's user groups so a project can connect one to an on-call schedule.                                                                                                                                                |
+| `usergroups:write`       | To keep a connected user group equal to whoever is on call in its schedule, so mentioning the group reaches them.                                                                                                                       |
+| `pins:read`              | To receive the `pin_added` event, so a pinned message can be saved as an incident note.                                                                                                                                                 |
+| `reactions:read`         | To receive the `reaction_added` event, so a 📌 or 📣 reaction saves a message as a note.                                                                                                                                                |
+| `files:write`            | To attach a synthetic monitor's screenshot to the incident message it belongs to.                                                                                                                                                       |
 
 ### The first review's feedback (May 2025) and how it was answered
 
-| #   | Slack's item                                                                                | Answer                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| --- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | The Messages tab must answer people and send a welcome on `app_home_opened` the first time. | `SlackMessagesWelcome` welcomes someone the first time they open the Messages tab; `SlackDirectMessageHelp` answers "help" there with the commands, with no AI or connected account needed; other messages go to OneUptime AI. The welcome is remembered in the cache (Valkey), which keeps nothing across a restart, so a restart can welcome someone once more.                                                               |
-| 2   | Reviewers could not test the web app, incident channels or on-call; add their account.      | The reviewers' project above, with instructions in Testing information.                                                                                                                                                                                                                                                                                                                                                         |
-| 3   | The OAuth `state` must be unique and unguessable.                                           | `WorkspaceOAuthState`: 32 random bytes, single use, expiring, bound to the user.                                                                                                                                                                                                                                                                                                                                                |
-| 4   | The landing page must link to the privacy policy.                                           | The Slack docs page has a section on the data the app reads, linking the privacy policy.                                                                                                                                                                                                                                                                                                                                        |
-| 5   | The landing page must describe the integration.                                             | `https://oneuptime.com/docs/workspace-connections/slack`.                                                                                                                                                                                                                                                                                                                                                                       |
-| 6   | The long description must say how the app works in Slack.                                   | Rewritten in October 2026.                                                                                                                                                                                                                                                                                                                                                                                                      |
-| 7   | Minimum scopes: drop `im:read`/`im:write` and the user-token `users:read` if unused.        | Removed the unused `im:write`, `mpim:write`, `channels:write.topic` and the user-token `users:read` (PR #4860). `im:read` and `mpim:read` stay, for the reason in the scope table. With no user scope Slack returns no user token, so `WorkspaceUserAuthTokenService` accepts an empty one; without that every install would fail. `SlackAppManifest.test.ts` fails if a scope is unused or a called method's scope is missing. |
-| 8   | `oneuptime.com` must not accept TLS 1.0 or 1.1.                                             | Verified in October 2026 with `nmap --script ssl-enum-ciphers -p 443 oneuptime.com`: TLS 1.2 only.                                                                                                                                                                                                                                                                                                                              |
-| 9   | Write the data policies out instead of linking to them.                                     | Written out in Security and compliance.                                                                                                                                                                                                                                                                                                                                                                                         |
+| #   | Slack's item                                                                                | Answer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| --- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | The Messages tab must answer people and send a welcome on `app_home_opened` the first time. | `SlackMessagesWelcome` welcomes someone the first time they open the Messages tab; `SlackDirectMessageHelp` answers "help" there with the commands, with no AI or connected account needed; other messages go to OneUptime AI. The welcome is remembered in the cache (Valkey), which keeps nothing across a restart, so a restart can welcome someone once more.                                                                                                                                               |
+| 2   | Reviewers could not test the web app, incident channels or on-call; add their account.      | The reviewers' project above, with instructions in Testing information.                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 3   | The OAuth `state` must be unique and unguessable.                                           | `WorkspaceOAuthState`: 32 random bytes, single use, expiring, bound to the user.                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| 4   | The landing page must link to the privacy policy.                                           | The Slack docs page has a section on the data the app reads, linking the privacy policy.                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| 5   | The landing page must describe the integration.                                             | `https://oneuptime.com/docs/workspace-connections/slack`.                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| 6   | The long description must say how the app works in Slack.                                   | Rewritten in October 2026.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 7   | Minimum scopes: drop `im:read`/`im:write` and the user-token `users:read` if unused.        | Removed the unused `im:write`, `mpim:write`, `channels:write.topic` and the user-token `users:read` from the manifest (PR #4860) and from the production app's configuration (16 October 2026). `im:read` and `mpim:read` stay, for the reason in the scope table. With no user scope Slack returns no user token, so `WorkspaceUserAuthTokenService` accepts an empty one; without that every install would fail. `SlackAppManifest.test.ts` fails if a scope is unused or a called method's scope is missing. |
+| 8   | `oneuptime.com` must not accept TLS 1.0 or 1.1.                                             | Verified in October 2026 with `nmap --script ssl-enum-ciphers -p 443 oneuptime.com`, and again on 16 October with `openssl s_client -tls1` and `-tls1_1` (OpenSSL 3 offers them only with `-cipher 'DEFAULT:@SECLEVEL=0'`): the server refuses both with a protocol-version alert. TLS 1.2 and 1.3 connect.                                                                                                                                                                                                     |
+| 9   | Write the data policies out instead of linking to them.                                     | Written out in Security and compliance.                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 
 ## Notes for agents driving the browser
 
@@ -250,3 +291,7 @@ returned the first submission partly for unused scopes).
   select-all and typing, which can splice the new text into the old.
 - Inviting an outside address as **Owners** of a OneUptime project is refused as
   a permission grant; **Members** is enough for Slack's reviewers.
+- Page-text tools do not see the App Manifest editor's contents. Read them with
+  `document.querySelector('.CodeMirror').CodeMirror.getValue()`.
+- The built-in browser does not let a page open a new tab (Slack's links to
+  OneUptime, for example). Navigate the tab to the link's address instead.
