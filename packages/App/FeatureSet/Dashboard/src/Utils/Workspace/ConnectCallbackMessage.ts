@@ -114,6 +114,9 @@ const PROVIDERS_OF_CODE: Partial<
   [ConnectCallbackError.GitHubNoInstallation]: [ConnectProvider.GitHub],
   [ConnectCallbackError.GitHubNoAuthorization]: [ConnectProvider.GitHub],
   [ConnectCallbackError.GitHubNotVerified]: [ConnectProvider.GitHub],
+  [ConnectCallbackError.GitHubNoInstallationToConnect]: [
+    ConnectProvider.GitHub,
+  ],
   [ConnectCallbackError.VideoCallPermissionNotGranted]:
     VideoCallConnectProviders,
   [ConnectCallbackError.VideoCallWorkAccountRequired]: [
@@ -208,6 +211,10 @@ export const getConnectCallbackMessageKey: (
     case ConnectCallbackError.GitHubNotVerified:
       return translationKey(
         "OneUptime could not confirm that your GitHub account can manage this installation. Please install the app with a GitHub account that can.",
+      );
+    case ConnectCallbackError.GitHubNoInstallationToConnect:
+      return translationKey(
+        "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.",
       );
     case ConnectCallbackError.VideoCallPermissionNotGranted:
       return translationKey(

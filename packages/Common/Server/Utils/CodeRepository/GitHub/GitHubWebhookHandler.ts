@@ -253,6 +253,18 @@ export default class GitHubWebhookHandler {
       payload: data.payload,
       deliveryId: data.deliveryId,
       body: body,
+      /*
+       * What the comment said before this edit. An edit to a comment that
+       * already addressed the app - a typo fixed, a sentence added - was
+       * answered when the comment was written; only an edit that adds the
+       * mention is a new request.
+       */
+      bodyBeforeEdit:
+        action === "edited"
+          ? ((data.payload["changes"] as JSONObject)?.["body"] as JSONObject)?.[
+              "from"
+            ]?.toString() || ""
+          : undefined,
       surface: isPullRequest
         ? GitHubCommandSurface.PullRequest
         : GitHubCommandSurface.Issue,
@@ -436,6 +448,8 @@ export default class GitHubWebhookHandler {
     payload: JSONObject;
     deliveryId: string | undefined;
     body: string;
+    // Set for an edited comment: its body before the edit.
+    bodyBeforeEdit?: string | undefined;
     surface: GitHubCommandSurface;
     conversationNumber: number;
     triggerCommentId: number | undefined;
@@ -458,6 +472,17 @@ export default class GitHubWebhookHandler {
     if (!command) {
       // By far the common case: an ordinary comment that never mentions us.
       return NOT_HANDLED("no-mention");
+    }
+
+    if (
+      data.bodyBeforeEdit !== undefined &&
+      GitHubCommandParser.parse({
+        body: data.bodyBeforeEdit,
+        appSlug: appSlug,
+        surface: data.surface,
+      })
+    ) {
+      return NOT_HANDLED("mention-already-there-before-edit");
     }
 
     const context: ResolvedWebhookContext | null =
