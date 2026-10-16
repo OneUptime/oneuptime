@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en" id="resellers">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title><%= seo.title %></title>
+  <meta name="description" content="<%= seo.description %>">
+  <%# Open Graph and Twitter tags come from head-social.ejs, built from seo. -%>
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+  }) -%>
+  <style>
+    html {
+      scroll-behavior: smooth;
+    }
+  </style>
+  <%- include('./Partials/tailwind-stylesheet') -%>
+</head>
+
+<%
+  /*
+   * resellers is Utils/Resellers.ts's getResellersPageContent(): the resellers
+   * by region, and what the form needs (Utils/ResellerInquiry.ts).
+   */
+  const regions = resellers.regions;
+  const form = resellers.form;
+  const fields = form.fields;
+  const fallbackEmail = form.fallbackEmail;
+-%>
+
+<body class="antialiased bg-white">
+  <%- include('nav') -%>
+
+  <main id="main-content">
+
+    <!-- Hero -->
+    <section class="relative isolate overflow-hidden bg-white" id="resellers-hero">
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+      <div class="mx-auto max-w-7xl px-6 py-20 sm:py-28 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center">
+          <p class="inline-flex items-center gap-2 rounded-full bg-gray-50 px-4 py-1.5 text-sm text-gray-600 ring-1 ring-inset ring-gray-200">
+            <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+            </svg>
+            <span>Resellers</span>
+          </p>
+
+          <h1 class="mt-8 text-balance text-4xl font-medium tracking-tight text-gray-900 sm:text-5xl lg:text-[3.5rem] lg:leading-[1.15]">
+            Buy OneUptime from a partner near you
+          </h1>
+
+          <p class="mx-auto mt-6 max-w-xl text-balance text-base leading-7 text-gray-600 sm:text-lg sm:leading-8">
+            Our resellers offer OneUptime to customers in their own country. If you sell software to businesses, you can become one.
+          </p>
+
+          <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+            <a href="#resellers-list" class="inline-flex w-full items-center justify-center rounded-lg bg-gray-900 px-6 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 sm:w-auto">
+              Find a reseller
+            </a>
+            <a href="#become-a-reseller" class="inline-flex w-full items-center justify-center rounded-lg bg-white px-6 py-3 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600 sm:w-auto">
+              Become a reseller
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Resellers by region -->
+    <section id="resellers-list" class="scroll-mt-8 border-t border-gray-100 bg-gray-50 py-16 sm:py-24" aria-labelledby="resellers-list-title">
+      <div class="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 lg:grid-cols-5 lg:gap-16 lg:px-8">
+        <div class="lg:col-span-2">
+          <h2 id="resellers-list-title" class="text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl">Our resellers</h2>
+          <p class="mt-3 text-base leading-7 text-gray-600">Get in touch with a reseller to buy OneUptime in your country.</p>
+        </div>
+
+        <%#
+          One row per reseller, under its region: a list never has a hole in
+          it, however many resellers a region has. What to do without one
+          comes after the list, so it reads in that order on a phone too.
+        -%>
+        <div class="space-y-10 lg:col-span-3">
+        <% regions.forEach(function (group) { -%>
+        <div id="region-<%= group.anchorId %>" data-testid="reseller-region">
+          <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-500"><%= group.region %></h3>
+          <ul role="list" class="mt-4 space-y-4">
+            <% group.resellers.forEach(function (reseller) { -%>
+            <li class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 sm:flex sm:items-start sm:justify-between sm:gap-8" data-testid="reseller-card">
+              <div class="min-w-0">
+                <% if (reseller.logoPath) { -%>
+                <img src="<%= reseller.logoPath %>" alt="<%= reseller.name %> logo" class="mb-4 h-8 w-auto max-w-[10rem] object-contain" loading="lazy" decoding="async">
+                <% } -%>
+                <h4 class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <span class="text-lg font-semibold text-gray-900"><%= reseller.name %></span>
+                  <% if (reseller.localName) { -%>
+                  <span class="text-sm text-gray-500"<% if (reseller.localNameLanguage) { %> lang="<%= reseller.localNameLanguage %>"<% } %>><%= reseller.localName %></span>
+                  <% } -%>
+                </h4>
+                <p class="mt-1 flex items-center gap-1.5 text-sm text-gray-500">
+                  <svg class="h-4 w-4 flex-none text-gray-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                  </svg>
+                  <span><%= reseller.location %></span>
+                </p>
+                <p class="mt-3 text-sm leading-6 text-gray-600"><%= reseller.summary %></p>
+              </div>
+              <a href="<%= reseller.websiteUrl %>" target="_blank" rel="noopener noreferrer" class="mt-5 inline-flex max-w-full items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 sm:mt-0 sm:max-w-[45%] sm:flex-none">
+                <span class="min-w-0 break-words"><%= reseller.websiteLabel %></span>
+                <svg class="h-4 w-4 flex-none text-gray-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                </svg>
+                <span class="sr-only">(opens <%= reseller.name %>'s website in a new tab)</span>
+              </a>
+            </li>
+            <% }); -%>
+          </ul>
+        </div>
+        <% }); -%>
+
+        <% if (regions.length === 0) { -%>
+        <div class="rounded-2xl border border-dashed border-gray-300 px-6 py-5" data-testid="resellers-empty">
+          <p class="text-sm font-semibold leading-6 text-gray-900">We are adding our first resellers</p>
+          <p class="mt-1 text-sm leading-6 text-gray-600">
+            Until then, buy directly from us:
+            <a href="/accounts/register" class="font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600">start for free</a>
+            or
+            <a href="/enterprise/demo" class="font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600">talk to our team</a>.
+          </p>
+        </div>
+        <% } else { -%>
+        <div class="rounded-2xl border border-dashed border-gray-300 px-6 py-5" data-testid="resellers-buy-direct">
+          <p class="text-sm font-semibold leading-6 text-gray-900">No reseller in your country yet?</p>
+          <p class="mt-1 text-sm leading-6 text-gray-600">
+            Buy directly from us:
+            <a href="/accounts/register" class="font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600">start for free</a>
+            or
+            <a href="/enterprise/demo" class="font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600">talk to our team</a>.
+          </p>
+        </div>
+        <% } -%>
+        </div>
+      </div>
+    </section>
+
+    <!-- Become a reseller -->
+    <section id="become-a-reseller" class="scroll-mt-8 bg-white py-16 sm:py-24" aria-labelledby="become-a-reseller-title">
+      <div class="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-6 lg:grid-cols-5 lg:gap-16 lg:px-8">
+
+        <div class="lg:col-span-2">
+          <h2 id="become-a-reseller-title" class="text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl">Become a reseller</h2>
+          <p class="mt-3 text-base leading-7 text-gray-600">
+            For IT consultancies, system integrators, managed service providers and software resellers who want to offer OneUptime to their customers.
+          </p>
+
+          <dl class="mt-10 space-y-8" data-testid="reseller-points">
+            <div class="relative pl-14">
+              <dt class="text-base font-semibold leading-7 text-gray-900">
+                <span class="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-gray-900" aria-hidden="true">
+                  <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                  </svg>
+                </span>
+                One platform to sell
+              </dt>
+              <dd class="mt-1 text-sm leading-6 text-gray-600">Monitoring, status pages, incidents, on-call, logs, metrics and traces in one product.</dd>
+            </div>
+            <div class="relative pl-14">
+              <dt class="text-base font-semibold leading-7 text-gray-900">
+                <span class="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-gray-900" aria-hidden="true">
+                  <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z" />
+                  </svg>
+                </span>
+                Cloud or self-hosted
+              </dt>
+              <dd class="mt-1 text-sm leading-6 text-gray-600">Your customers can use OneUptime Cloud, or run OneUptime on their own infrastructure.</dd>
+            </div>
+            <div class="relative pl-14">
+              <dt class="text-base font-semibold leading-7 text-gray-900">
+                <span class="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-gray-900" aria-hidden="true">
+                  <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
+                  </svg>
+                </span>
+                Terms that fit your market
+              </dt>
+              <dd class="mt-1 text-sm leading-6 text-gray-600">Tell us about your company and the customers you serve. We agree terms with each reseller.</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="lg:col-span-3">
+          <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 sm:p-8">
+
+            <form id="reseller-inquiry-form" method="post" action="<%= form.endpoint %>" data-endpoint="<%= form.endpoint %>" aria-labelledby="reseller-inquiry-form-title">
+              <h3 id="reseller-inquiry-form-title" class="text-lg font-semibold text-gray-900">Tell us about your company</h3>
+              <p class="mt-1 text-sm text-gray-500">We reply to every message by email.</p>
+
+              <%#
+                Each field has a line under it for what the server says to
+                fix in it (data-reseller-field-error), shown by the script
+                below; the box after the fields is for everything else.
+              -%>
+              <div class="mt-6 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+                <div>
+                  <label for="reseller-inquiry-name" class="block text-sm font-medium leading-6 text-gray-900"><%= fields.name.label %></label>
+                  <input id="reseller-inquiry-name" name="name" type="text" autocomplete="name" required maxlength="<%= fields.name.maxLength %>" class="mt-2 block w-full rounded-lg border-0 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-900 aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-red-500">
+                  <p id="reseller-inquiry-name-error" class="mt-2 text-sm leading-5 text-red-600" data-reseller-field-error hidden></p>
+                </div>
+
+                <div>
+                  <label for="reseller-inquiry-email" class="block text-sm font-medium leading-6 text-gray-900"><%= fields.email.label %></label>
+                  <input id="reseller-inquiry-email" name="email" type="email" autocomplete="email" required maxlength="<%= fields.email.maxLength %>" placeholder="name@company.com" class="mt-2 block w-full rounded-lg border-0 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-900 aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-red-500">
+                  <p id="reseller-inquiry-email-error" class="mt-2 text-sm leading-5 text-red-600" data-reseller-field-error hidden></p>
+                </div>
+
+                <div>
+                  <label for="reseller-inquiry-company" class="block text-sm font-medium leading-6 text-gray-900"><%= fields.company.label %></label>
+                  <input id="reseller-inquiry-company" name="company" type="text" autocomplete="organization" required maxlength="<%= fields.company.maxLength %>" class="mt-2 block w-full rounded-lg border-0 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-900 aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-red-500">
+                  <p id="reseller-inquiry-company-error" class="mt-2 text-sm leading-5 text-red-600" data-reseller-field-error hidden></p>
+                </div>
+
+                <div>
+                  <label for="reseller-inquiry-website" class="flex items-baseline justify-between gap-2 text-sm font-medium leading-6 text-gray-900">
+                    <span><%= fields.website.label %></span>
+                    <span class="text-xs font-normal text-gray-500">Optional</span>
+                  </label>
+                  <input id="reseller-inquiry-website" name="website" type="text" inputmode="url" autocomplete="url" maxlength="<%= fields.website.maxLength %>" placeholder="company.com" class="mt-2 block w-full rounded-lg border-0 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-900 aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-red-500">
+                  <p id="reseller-inquiry-website-error" class="mt-2 text-sm leading-5 text-red-600" data-reseller-field-error hidden></p>
+                </div>
+
+                <div class="sm:col-span-2">
+                  <label for="reseller-inquiry-regions" class="block text-sm font-medium leading-6 text-gray-900"><%= fields.regions.label %></label>
+                  <input id="reseller-inquiry-regions" name="regions" type="text" required maxlength="<%= fields.regions.maxLength %>" placeholder="For example: Japan, South Korea" class="mt-2 block w-full rounded-lg border-0 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-900 aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-red-500">
+                  <p id="reseller-inquiry-regions-error" class="mt-2 text-sm leading-5 text-red-600" data-reseller-field-error hidden></p>
+                </div>
+
+                <div class="sm:col-span-2">
+                  <label for="reseller-inquiry-message" class="flex items-baseline justify-between gap-2 text-sm font-medium leading-6 text-gray-900">
+                    <span><%= fields.message.label %></span>
+                    <span class="text-xs font-normal text-gray-500">Optional</span>
+                  </label>
+                  <textarea id="reseller-inquiry-message" name="message" rows="4" maxlength="<%= fields.message.maxLength %>" placeholder="Your customers, the products you sell today, anything we should know." class="mt-2 block w-full resize-y rounded-lg border-0 bg-white px-3.5 py-2.5 text-sm leading-6 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-900 aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-red-500"></textarea>
+                  <p id="reseller-inquiry-message-error" class="mt-2 text-sm leading-5 text-red-600" data-reseller-field-error hidden></p>
+                </div>
+              </div>
+
+              <%#
+                The honeypot: off the screen, out of the tab order and hidden
+                from screen readers, so only a program fills it in
+                (Utils/ResellerInquiry.ts, RESELLER_INQUIRY_HONEYPOT_FIELD).
+              -%>
+              <div aria-hidden="true" style="position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden;">
+                <label for="reseller-inquiry-<%= form.honeypotField %>">Leave this field empty</label>
+                <input id="reseller-inquiry-<%= form.honeypotField %>" name="<%= form.honeypotField %>" type="text" tabindex="-1" autocomplete="off" value="">
+              </div>
+
+              <div id="reseller-inquiry-error" class="mt-6" tabindex="-1" hidden data-testid="reseller-inquiry-error">
+                <div role="alert" class="flex gap-3 rounded-lg bg-red-50 p-4 ring-1 ring-inset ring-red-200">
+                  <svg class="h-5 w-5 flex-none text-red-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                  </svg>
+                  <div class="text-sm leading-6 text-red-800">
+                    <p id="reseller-inquiry-error-message" data-reseller-error-message>We could not send your message just now. Please try again in a few minutes.</p>
+                    <p class="mt-1">You can also email us at <a href="mailto:<%= fallbackEmail %>" class="font-medium underline underline-offset-2"><%= fallbackEmail %></a>.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-6 flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <p class="text-xs leading-5 text-gray-500">
+                  We use these details only to reply to you. See our
+                  <a href="/legal/privacy" class="underline underline-offset-2 hover:text-gray-700">privacy policy</a>.
+                </p>
+                <button type="submit" data-reseller-submit class="inline-flex w-full flex-none items-center justify-center rounded-lg bg-gray-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 aria-disabled:cursor-wait aria-disabled:opacity-60 sm:w-auto">
+                  Send message
+                </button>
+              </div>
+
+              <noscript>
+                <p class="mt-6 rounded-lg bg-gray-50 p-4 text-sm leading-6 text-gray-700 ring-1 ring-inset ring-gray-200">
+                  This form needs JavaScript. Please email us at <a href="mailto:<%= fallbackEmail %>" class="font-medium underline underline-offset-2"><%= fallbackEmail %></a> instead.
+                </p>
+              </noscript>
+            </form>
+
+            <div id="reseller-inquiry-success" hidden data-testid="reseller-inquiry-success">
+              <div class="py-8 text-center">
+                <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 ring-1 ring-inset ring-emerald-200">
+                  <svg class="h-6 w-6 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                </div>
+                <h3 id="reseller-inquiry-success-title" tabindex="-1" class="mt-5 text-balance text-lg font-semibold text-gray-900 focus:outline-none">Thanks, we got your message</h3>
+                <p class="mx-auto mt-2 max-w-sm text-sm leading-6 text-gray-600">
+                  We will reply to <span class="break-words font-medium text-gray-900" data-reseller-reply-to>your email address</span> as soon as we can.
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+          <%# After the form, so a phone reaches it once it has seen the form. -%>
+          <p class="mt-6 text-sm leading-6 text-gray-600" data-testid="reseller-inquiry-email">
+            Prefer email? Write to
+            <a href="mailto:<%= fallbackEmail %>" class="font-medium text-gray-900 underline underline-offset-2 hover:text-gray-600"><%= fallbackEmail %></a>.
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <%- include('footer') -%>
+
+  <script>
+    /*
+     * The reseller form, sent as JSON (Home/API/ResellerInquiryAPI.ts). The
+     * browser checks the required fields first; the server checks everything
+     * again and answers { sent, message, field? }. What it says about a field
+     * shows under that field; anything else shows in the box above the
+     * button, with the email address to write to instead. Text from the
+     * answer and from the form is only ever set as textContent.
+     */
+    (function () {
+      var form = document.getElementById('reseller-inquiry-form');
+      var success = document.getElementById('reseller-inquiry-success');
+      var errorBox = document.getElementById('reseller-inquiry-error');
+
+      if (!form || !success || !errorBox || typeof window.fetch !== 'function') {
+        return;
+      }
+
+      var errorMessage = errorBox.querySelector('[data-reseller-error-message]');
+      var defaultErrorMessage = errorMessage ? errorMessage.textContent : '';
+      var submitButton = form.querySelector('[data-reseller-submit]');
+      var submitLabel = submitButton ? submitButton.textContent.trim() : '';
+      var replyTo = success.querySelector('[data-reseller-reply-to]');
+      var invalidField = null;
+      var invalidFieldError = null;
+      var busy = false;
+
+      function clearInvalidField() {
+        if (invalidField) {
+          invalidField.removeAttribute('aria-invalid');
+          invalidField.removeAttribute('aria-describedby');
+          invalidField = null;
+        }
+
+        if (invalidFieldError) {
+          invalidFieldError.textContent = '';
+          invalidFieldError.hidden = true;
+          invalidFieldError = null;
+        }
+      }
+
+      /*
+       * While it sends, the button says so and ignores presses, but stays
+       * focusable (aria-disabled, not disabled): a disabled button would drop
+       * the keyboard's place on the page.
+       */
+      function setBusy(isBusy) {
+        busy = isBusy;
+        form.setAttribute('aria-busy', isBusy ? 'true' : 'false');
+
+        if (!submitButton) {
+          return;
+        }
+
+        if (isBusy) {
+          submitButton.setAttribute('aria-disabled', 'true');
+        } else {
+          submitButton.removeAttribute('aria-disabled');
+        }
+
+        submitButton.textContent = isBusy ? 'Sending…' : submitLabel;
+      }
+
+      // The line under a field of this form for what to fix in it, if any.
+      function fieldErrorOf(fieldName) {
+        var line = document.getElementById('reseller-inquiry-' + fieldName + '-error');
+
+        return line && form.contains(line) && line.hasAttribute('data-reseller-field-error')
+          ? line
+          : null;
+      }
+
+      function showError(message, fieldName) {
+        clearInvalidField();
+
+        var field = fieldName ? form.elements.namedItem(fieldName) : null;
+        var fieldError = fieldName ? fieldErrorOf(fieldName) : null;
+
+        if (message && field && fieldError && typeof field.focus === 'function') {
+          invalidField = field;
+          invalidFieldError = fieldError;
+          fieldError.textContent = message;
+          fieldError.hidden = false;
+          field.setAttribute('aria-invalid', 'true');
+          field.setAttribute('aria-describedby', fieldError.id);
+          field.focus();
+          return;
+        }
+
+        if (errorMessage) {
+          errorMessage.textContent = message || defaultErrorMessage;
+        }
+
+        errorBox.hidden = false;
+        errorBox.focus();
+      }
+
+      function showSuccess(email) {
+        form.hidden = true;
+        success.hidden = false;
+
+        if (replyTo && email) {
+          replyTo.textContent = email;
+        }
+
+        var title = document.getElementById('reseller-inquiry-success-title');
+
+        if (title) {
+          title.focus();
+        }
+      }
+
+      form.addEventListener('input', function (event) {
+        if (invalidField && event.target === invalidField) {
+          clearInvalidField();
+        }
+      });
+
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        if (busy) {
+          return;
+        }
+
+        var answers = {};
+
+        new FormData(form).forEach(function (value, key) {
+          answers[key] = typeof value === 'string' ? value : '';
+        });
+
+        errorBox.hidden = true;
+        clearInvalidField();
+        setBusy(true);
+
+        fetch(form.getAttribute('data-endpoint'), {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(answers)
+        })
+          .then(function (response) {
+            return response
+              .json()
+              .catch(function () {
+                return {};
+              })
+              .then(function (answer) {
+                return { ok: response.ok, answer: answer || {} };
+              });
+          })
+          .then(function (result) {
+            setBusy(false);
+
+            if (result.ok && result.answer.sent === true) {
+              showSuccess(typeof answers.email === 'string' ? answers.email.trim() : '');
+              return;
+            }
+
+            showError(
+              typeof result.answer.message === 'string' ? result.answer.message : '',
+              typeof result.answer.field === 'string' ? result.answer.field : ''
+            );
+          })
+          .catch(function () {
+            setBusy(false);
+            showError('', '');
+          });
+      });
+    })();
+  </script>
+</body>
+
+</html>
