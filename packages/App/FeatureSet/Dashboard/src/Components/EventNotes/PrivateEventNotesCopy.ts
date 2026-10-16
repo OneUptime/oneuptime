@@ -26,25 +26,24 @@ export interface PrivateEventNotesCopy {
 }
 
 // The events that can be private: incidents and incident episodes.
-export const PRIVATE_EVENT_NOTES_COPY: Record<string, PrivateEventNotesCopy> =
-  {
-    incident: {
-      refusal: translationKey(
-        "This incident is private, so public notes cannot be added to it. Use a private note.",
-      ),
-      description: translationKey(
-        "This incident is private, so no status page shows it or its public notes.",
-      ),
-    },
-    episode: {
-      refusal: translationKey(
-        "This episode is private, so public notes cannot be added to it. Use a private note.",
-      ),
-      description: translationKey(
-        "This episode is private, so no status page shows it or its public notes.",
-      ),
-    },
-  };
+export const PRIVATE_EVENT_NOTES_COPY: Record<string, PrivateEventNotesCopy> = {
+  incident: {
+    refusal: translationKey(
+      "This incident is private, so public notes cannot be added to it. Use a private note.",
+    ),
+    description: translationKey(
+      "This incident is private, so no status page shows it or its public notes.",
+    ),
+  },
+  episode: {
+    refusal: translationKey(
+      "This episode is private, so public notes cannot be added to it. Use a private note.",
+    ),
+    description: translationKey(
+      "This episode is private, so no status page shows it or its public notes.",
+    ),
+  },
+};
 
 // The way to the event's private notes, from where the composer was.
 export const PRIVATE_EVENT_PRIVATE_NOTE_ACTION: string =

@@ -992,7 +992,10 @@ export default class MicrosoftTeamsReactionNoteSync {
             messageId: reaction.messageId,
           }),
         }))
-          ? { outcome: WorkspaceMessageNoteOutcome.Saved, noteType: noteSavedAs }
+          ? {
+              outcome: WorkspaceMessageNoteOutcome.Saved,
+              noteType: noteSavedAs,
+            }
           : { outcome: WorkspaceMessageNoteOutcome.Failed };
       }
       case MicrosoftTeamsReactionOutcome.NotLinked:

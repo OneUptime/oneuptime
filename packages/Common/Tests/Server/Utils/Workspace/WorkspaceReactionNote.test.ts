@@ -1326,7 +1326,9 @@ describe("WorkspaceReactionNote.getConfirmationMessage, on a private incident", 
         resourceLabel: "Incident INC-42",
         resourceLink: "https://x/42",
       }).toString(),
-    ).toBe("✅ Saved as a **private note** on [Incident INC-42](https://x/42).");
+    ).toBe(
+      "✅ Saved as a **private note** on [Incident INC-42](https://x/42).",
+    );
   });
 
   test("Slack posts it as mrkdwn: the reason is plain text after the link", () => {

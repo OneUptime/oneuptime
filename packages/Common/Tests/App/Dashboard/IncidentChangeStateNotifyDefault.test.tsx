@@ -754,7 +754,6 @@ describe("ChangeIncidentState: the default follows the page", () => {
   });
 });
 
-
 /*
  * A private incident takes no public notes and reaches no status page
  * subscriber (Common/Types/StatusPage/PrivateRecordPublicNotes; the server
@@ -833,10 +832,7 @@ describe("ChangeIncidentState on a private incident", () => {
         withTemplate: true,
       });
 
-      expect(fieldKeys(props)).toEqual([
-        "privateNoteTemplate",
-        "privateNote",
-      ]);
+      expect(fieldKeys(props)).toEqual(["privateNoteTemplate", "privateNote"]);
 
       const note: StateChangeField = fieldByKey(props, "privateNote");
 
@@ -861,9 +857,7 @@ describe("ChangeIncidentState on a private incident", () => {
       await props.onBeforeCreate(model);
 
       expect(model.incidentId?.toString()).toBe(INCIDENT_ID);
-      expect(model.incidentStateId?.toString()).toBe(
-        openCase.expectedStateId,
-      );
+      expect(model.incidentStateId?.toString()).toBe(openCase.expectedStateId);
     });
   });
 

@@ -496,16 +496,13 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           });
         } else {
           // The note: public, or private on a private incident.
-          const change: IncidentBulkStateChange = buildIncidentBulkStateChange(
-            {
-              isPrivate: !PrivateRecordPublicNotes.takesPublicNotes(
-                fetchedIncident,
-              ),
-              note: data.note,
-              shouldStatusPageSubscribersBeNotified:
-                data.shouldStatusPageSubscribersBeNotified,
-            },
-          );
+          const change: IncidentBulkStateChange = buildIncidentBulkStateChange({
+            isPrivate:
+              !PrivateRecordPublicNotes.takesPublicNotes(fetchedIncident),
+            note: data.note,
+            shouldStatusPageSubscribersBeNotified:
+              data.shouldStatusPageSubscribersBeNotified,
+          });
 
           // Create state timeline to change state
           const stateTimeline: IncidentStateTimeline =

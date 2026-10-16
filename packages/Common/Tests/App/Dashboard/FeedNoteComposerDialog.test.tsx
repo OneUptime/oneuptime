@@ -1342,7 +1342,6 @@ describe("nobody is offered a note their permissions will refuse", () => {
   );
 });
 
-
 /*
  * A private incident or episode takes no public notes
  * (Common/Types/StatusPage/PrivateRecordPublicNotes): it is on no status page

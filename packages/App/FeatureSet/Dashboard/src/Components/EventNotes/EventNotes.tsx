@@ -876,70 +876,70 @@ function EventNotes<TNote extends BaseModel>(
       )}
 
       {showFeed && (
-      <section
-        className="rounded-xl border border-gray-200 bg-white shadow-sm"
-        data-testid="notes-feed"
-        aria-live="polite"
-      >
-        {showToolbar && (
-          <div className="flex flex-col gap-2 border-b border-gray-100 px-4 py-3 sm:flex-row sm:items-center sm:px-5">
-            <label className="relative flex min-w-0 flex-1 items-center">
-              <span className="sr-only">{tx("Search notes")}</span>
-              <Icon
-                icon={IconProp.Search}
-                className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="search"
-                data-testid="notes-search"
-                value={searchInput}
-                placeholder={tx("Search notes…")}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                  setSearchInput(event.target.value);
-                }}
-                className="block w-full rounded-md border border-gray-200 bg-gray-50 py-1.5 pl-8 pr-3 text-sm text-gray-900 placeholder-gray-400 transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-            </label>
-            <div className="flex items-center justify-between gap-3 sm:justify-end">
-              <span
-                className="text-xs text-gray-500"
-                data-testid="notes-summary"
-              >
-                {isSearching
-                  ? translator.translatePlural(
-                      { one: "{{count}} match", other: "{{count}} matches" },
-                      totalCount,
-                    )
-                  : translator.translatePlural(
-                      { one: "{{count}} note", other: "{{count}} notes" },
-                      totalCount,
-                    )}
-              </span>
-              <button
-                type="button"
-                data-testid="notes-sort"
-                onClick={() => {
-                  setSortOrder(sortOrder === "newest" ? "oldest" : "newest");
-                }}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-              >
+        <section
+          className="rounded-xl border border-gray-200 bg-white shadow-sm"
+          data-testid="notes-feed"
+          aria-live="polite"
+        >
+          {showToolbar && (
+            <div className="flex flex-col gap-2 border-b border-gray-100 px-4 py-3 sm:flex-row sm:items-center sm:px-5">
+              <label className="relative flex min-w-0 flex-1 items-center">
+                <span className="sr-only">{tx("Search notes")}</span>
                 <Icon
-                  icon={
-                    sortOrder === "newest"
-                      ? IconProp.BarsArrowDown
-                      : IconProp.BarsArrowUp
-                  }
-                  className="h-4 w-4 text-gray-400"
+                  icon={IconProp.Search}
+                  className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
                 />
-                {sortOrder === "newest"
-                  ? tx("Newest first")
-                  : tx("Oldest first")}
-              </button>
+                <input
+                  type="search"
+                  data-testid="notes-search"
+                  value={searchInput}
+                  placeholder={tx("Search notes…")}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                    setSearchInput(event.target.value);
+                  }}
+                  className="block w-full rounded-md border border-gray-200 bg-gray-50 py-1.5 pl-8 pr-3 text-sm text-gray-900 placeholder-gray-400 transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </label>
+              <div className="flex items-center justify-between gap-3 sm:justify-end">
+                <span
+                  className="text-xs text-gray-500"
+                  data-testid="notes-summary"
+                >
+                  {isSearching
+                    ? translator.translatePlural(
+                        { one: "{{count}} match", other: "{{count}} matches" },
+                        totalCount,
+                      )
+                    : translator.translatePlural(
+                        { one: "{{count}} note", other: "{{count}} notes" },
+                        totalCount,
+                      )}
+                </span>
+                <button
+                  type="button"
+                  data-testid="notes-sort"
+                  onClick={() => {
+                    setSortOrder(sortOrder === "newest" ? "oldest" : "newest");
+                  }}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                >
+                  <Icon
+                    icon={
+                      sortOrder === "newest"
+                        ? IconProp.BarsArrowDown
+                        : IconProp.BarsArrowUp
+                    }
+                    className="h-4 w-4 text-gray-400"
+                  />
+                  {sortOrder === "newest"
+                    ? tx("Newest first")
+                    : tx("Oldest first")}
+                </button>
+              </div>
             </div>
-          </div>
-        )}
-        <div className="px-4 py-5 sm:px-5">{getFeedBody()}</div>
-      </section>
+          )}
+          <div className="px-4 py-5 sm:px-5">{getFeedBody()}</div>
+        </section>
       )}
     </div>
   );

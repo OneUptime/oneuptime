@@ -2686,9 +2686,9 @@ describe("event notes: a private incident or episode", () => {
       eventNoun: "episode",
     });
 
-    expect(
-      screen.getByTestId("note-composer-private-event"),
-    ).toHaveTextContent(EPISODE_REFUSAL);
+    expect(screen.getByTestId("note-composer-private-event")).toHaveTextContent(
+      EPISODE_REFUSAL,
+    );
     expect(screen.getByTestId("notes-description")).toHaveTextContent(
       EPISODE_DESCRIPTION,
     );
@@ -2763,8 +2763,8 @@ describe("event notes: a private incident or episode", () => {
     });
 
     expect(updateMock).toHaveBeenCalledTimes(1);
-    const request: { miscDataProps: Record<string, unknown> } = updateMock
-      .mock.calls[0]![0] as { miscDataProps: Record<string, unknown> };
+    const request: { miscDataProps: Record<string, unknown> } = updateMock.mock
+      .calls[0]![0] as { miscDataProps: Record<string, unknown> };
     // No update notification is asked for.
     expect(request.miscDataProps).toEqual({});
   });

@@ -144,9 +144,7 @@ export default class WorkspaceNoteForm {
     recordId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): Promise<WorkspaceAnswer> {
-    const reason: string = WorkspaceNoteForm.getSavedPrivatelyReason(
-      data.kind,
-    );
+    const reason: string = WorkspaceNoteForm.getSavedPrivatelyReason(data.kind);
 
     let found: {
       record: DatabaseBaseModel;

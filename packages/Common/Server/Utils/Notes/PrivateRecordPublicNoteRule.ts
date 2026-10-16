@@ -67,7 +67,9 @@ export default class PrivateRecordPublicNoteRule {
     const record: StatusPageVisibilitySwitches | null =
       await PrivateRecordPublicNoteRule.readPrivacy(data);
 
-    return Boolean(record) && !PrivateRecordPublicNotes.takesPublicNotes(record);
+    return (
+      Boolean(record) && !PrivateRecordPublicNotes.takesPublicNotes(record)
+    );
   }
 
   /*

@@ -868,19 +868,21 @@ describe("a 📣 in a private incident's Microsoft Teams channel", () => {
 
   // Incident INC-8 is private.
   function makeIncidentPrivate(): void {
-    getJestSpyOn(IncidentService, "findOneBy").mockImplementation((async (
-      options: { query: { _id?: unknown } },
-    ): Promise<Incident | null> => {
-      if (String(options.query._id) !== INCIDENT_ID.toString()) {
-        return null;
-      }
+    getJestSpyOn(IncidentService, "findOneBy").mockImplementation(
+      (async (options: {
+        query: { _id?: unknown };
+      }): Promise<Incident | null> => {
+        if (String(options.query._id) !== INCIDENT_ID.toString()) {
+          return null;
+        }
 
-      const incident: Incident = new Incident();
-      incident._id = INCIDENT_ID.toString();
-      incident.projectId = PROJECT_ID;
-      incident.isPrivate = true;
-      return incident;
-    }) as never);
+        const incident: Incident = new Incident();
+        incident._id = INCIDENT_ID.toString();
+        incident.projectId = PROJECT_ID;
+        incident.isPrivate = true;
+        return incident;
+      }) as never,
+    );
   }
 
   beforeEach(() => {

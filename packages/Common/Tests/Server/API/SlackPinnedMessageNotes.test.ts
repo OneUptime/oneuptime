@@ -1048,19 +1048,21 @@ describe("a 📣 in a private incident's channel", () => {
 
   // Incident INC-8 is private.
   beforeEach(() => {
-    getJestSpyOn(IncidentService, "findOneBy").mockImplementation((async (
-      options: { query: { _id?: unknown } },
-    ): Promise<Incident | null> => {
-      if (String(options.query._id) !== INCIDENT_ID.toString()) {
-        return null;
-      }
+    getJestSpyOn(IncidentService, "findOneBy").mockImplementation(
+      (async (options: {
+        query: { _id?: unknown };
+      }): Promise<Incident | null> => {
+        if (String(options.query._id) !== INCIDENT_ID.toString()) {
+          return null;
+        }
 
-      const incident: Incident = new Incident();
-      incident._id = INCIDENT_ID.toString();
-      incident.projectId = PROJECT_ID;
-      incident.isPrivate = true;
-      return incident;
-    }) as never);
+        const incident: Incident = new Incident();
+        incident._id = INCIDENT_ID.toString();
+        incident.projectId = PROJECT_ID;
+        incident.isPrivate = true;
+        return incident;
+      }) as never,
+    );
   });
 
   test("saves the message as a private note, and says why in its thread", async () => {
@@ -1227,14 +1229,16 @@ describe("a 📣 in a private incident's channel", () => {
     )![1]!;
 
     // ...and private by the time she connects.
-    getJestSpyOn(IncidentService, "findOneBy").mockImplementation((async (
-      options: { query: { _id?: unknown } },
-    ): Promise<Incident | null> => {
-      const incident: Incident = new Incident();
-      incident._id = String(options.query._id);
-      incident.isPrivate = true;
-      return incident;
-    }) as never);
+    getJestSpyOn(IncidentService, "findOneBy").mockImplementation(
+      (async (options: {
+        query: { _id?: unknown };
+      }): Promise<Incident | null> => {
+        const incident: Incident = new Incident();
+        incident._id = String(options.query._id);
+        incident.isPrivate = true;
+        return incident;
+      }) as never,
+    );
 
     linked.set(CAROL, CAROL_ID);
     slackCalls = [];

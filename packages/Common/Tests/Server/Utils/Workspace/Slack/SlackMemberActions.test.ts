@@ -1639,16 +1639,16 @@ describe.each(PRIVATE_RECORD_NOTE_KINDS)(
       mockMember([Permission.IncidentMember]);
       stubPrivateRecords();
 
-      await kind.handle(
-        handlerArgs(kind.view, ObjectID.generate().toString()),
-      );
+      await kind.handle(handlerArgs(kind.view, ObjectID.generate().toString()));
 
       const modal: WorkspaceModalBlock =
         showModalSpy.mock.calls[0]![0].modalBlock;
 
-      expect(modal.blocks.map((block: WorkspaceMessageBlock) => {
-        return block._type;
-      })).toEqual(["WorkspaceDropdownBlock", "WorkspaceTextAreaBlock"]);
+      expect(
+        modal.blocks.map((block: WorkspaceMessageBlock) => {
+          return block._type;
+        }),
+      ).toEqual(["WorkspaceDropdownBlock", "WorkspaceTextAreaBlock"]);
       expect(
         (modal.blocks[0] as WorkspaceDropdownBlock).options.map(
           (option: { value: string }): string => {

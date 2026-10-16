@@ -77,20 +77,24 @@ describe("PrivateRecordPublicNoteRule.assertRecordTakesPublicNotes", () => {
     ["never set", { isPrivate: null }],
     ["not found", null],
     ["not read", undefined],
-  ])("lets a note through on a record %s", (_label: string, record: unknown) => {
-    expect(() => {
-      PrivateRecordPublicNoteRule.assertRecordTakesPublicNotes({
-        kind: PrivateRecordKind.Incident,
-        record: record as { isPrivate?: unknown } | null | undefined,
-      });
-    }).not.toThrow();
-  });
+  ])(
+    "lets a note through on a record %s",
+    (_label: string, record: unknown) => {
+      expect(() => {
+        PrivateRecordPublicNoteRule.assertRecordTakesPublicNotes({
+          kind: PrivateRecordKind.Incident,
+          record: record as { isPrivate?: unknown } | null | undefined,
+        });
+      }).not.toThrow();
+    },
+  );
 });
 
 describe("PrivateRecordPublicNoteRule.isPrivate", () => {
   test("reads the incident as OneUptime, in its project, and only its Private switch", async () => {
-    const findOneBy: SpiedFunction<typeof IncidentService.findOneBy> =
-      jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(incident(true));
+    const findOneBy: SpiedFunction<typeof IncidentService.findOneBy> = jest
+      .spyOn(IncidentService, "findOneBy")
+      .mockResolvedValue(incident(true));
 
     await expect(
       PrivateRecordPublicNoteRule.isPrivate({
@@ -114,11 +118,10 @@ describe("PrivateRecordPublicNoteRule.isPrivate", () => {
   test("reads an episode from its own table", async () => {
     const incidentRead: SpiedFunction<typeof IncidentService.findOneBy> =
       jest.spyOn(IncidentService, "findOneBy");
-    const episodeRead: SpiedFunction<
-      typeof IncidentEpisodeService.findOneBy
-    > = jest
-      .spyOn(IncidentEpisodeService, "findOneBy")
-      .mockResolvedValue(episode(true));
+    const episodeRead: SpiedFunction<typeof IncidentEpisodeService.findOneBy> =
+      jest
+        .spyOn(IncidentEpisodeService, "findOneBy")
+        .mockResolvedValue(episode(true));
 
     await expect(
       PrivateRecordPublicNoteRule.isPrivate({
@@ -137,19 +140,18 @@ describe("PrivateRecordPublicNoteRule.isPrivate", () => {
   });
 
   test("reads by id alone when no project is named", async () => {
-    const findOneBy: SpiedFunction<typeof IncidentService.findOneBy> =
-      jest
-        .spyOn(IncidentService, "findOneBy")
-        .mockResolvedValue(incident(false));
+    const findOneBy: SpiedFunction<typeof IncidentService.findOneBy> = jest
+      .spyOn(IncidentService, "findOneBy")
+      .mockResolvedValue(incident(false));
 
     await PrivateRecordPublicNoteRule.isPrivate({
       kind: PrivateRecordKind.Incident,
       recordId: RECORD_ID,
     });
 
-    expect(
-      (findOneBy.mock.calls[0]![0] as FindOneBy<Incident>).query,
-    ).toEqual({ _id: RECORD_ID.toString() });
+    expect((findOneBy.mock.calls[0]![0] as FindOneBy<Incident>).query).toEqual({
+      _id: RECORD_ID.toString(),
+    });
   });
 
   test.each([

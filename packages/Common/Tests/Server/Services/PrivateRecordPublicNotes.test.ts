@@ -146,26 +146,36 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+// One kind of public note, on the record that can be private.
+interface PublicNoteCase {
+  name: string;
+  service: unknown;
+  refusal: string;
+  permissions: Array<Permission>;
+  readRecord: (isPrivate: () => boolean | null | undefined) => MockFunction;
+  buildNote: () => IncidentPublicNote | IncidentEpisodePublicNote;
+  addNote: (props: DatabaseCommonInteractionProps) => Promise<void>;
+}
+
 /*
  * The note services' create, with the save and the success hooks answered:
  * what is asked of the database before the note is written is real.
  */
-describe.each([
+describe.each<PublicNoteCase>([
   {
     name: "an incident's public note",
     service: IncidentPublicNoteService,
     refusal: INCIDENT_REFUSAL,
     permissions: NOTE_CREATOR_PERMISSIONS,
-    readRecord: (
-      isPrivate: () => boolean | null | undefined,
-    ): MockFunction => {
+    readRecord: (isPrivate: () => boolean | null | undefined): MockFunction => {
       const read: MockFunction = getJestMockFunction().mockImplementation(
         async (): Promise<Incident> => {
           const incident: Incident = new Incident();
           incident._id = INCIDENT_ID.toString();
           (incident as unknown as JSONObject)["isPrivate"] =
             isPrivate() as boolean;
-          incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated = true;
+          incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated =
+            true;
           return incident;
         },
       );
@@ -199,9 +209,7 @@ describe.each([
       Permission.CreateIncidentEpisodePublicNote,
       Permission.ReadIncidentEpisode,
     ],
-    readRecord: (
-      isPrivate: () => boolean | null | undefined,
-    ): MockFunction => {
+    readRecord: (isPrivate: () => boolean | null | undefined): MockFunction => {
       const read: MockFunction = getJestMockFunction().mockImplementation(
         async (): Promise<IncidentEpisode> => {
           const episode: IncidentEpisode = new IncidentEpisode();
@@ -234,7 +242,7 @@ describe.each([
       });
     },
   },
-])("$name", (noteCase) => {
+])("$name", (noteCase: PublicNoteCase) => {
   type NoteService = typeof IncidentPublicNoteService;
 
   const service: NoteService = noteCase.service as unknown as NoteService;
@@ -317,7 +325,8 @@ describe.each([
   ])(
     "saying '%s' gets no note through",
     async (_label: string, notify: boolean) => {
-      const note: IncidentPublicNote = noteCase.buildNote() as IncidentPublicNote;
+      const note: IncidentPublicNote =
+        noteCase.buildNote() as IncidentPublicNote;
       note.shouldStatusPageSubscribersBeNotifiedOnNoteCreated = notify;
 
       const error: unknown = await rejectionOf(create(rootProps(), note));
@@ -393,7 +402,9 @@ describe.each([
  * change is never saved with a note that is then refused.
  */
 describe("an incident state change that comes with a public note", () => {
-  type OnBeforeCreate = (input: unknown) => Promise<OnCreate<IncidentStateTimeline>>;
+  type OnBeforeCreate = (
+    input: unknown,
+  ) => Promise<OnCreate<IncidentStateTimeline>>;
 
   const onBeforeCreate: OnBeforeCreate = (input: unknown) => {
     return (

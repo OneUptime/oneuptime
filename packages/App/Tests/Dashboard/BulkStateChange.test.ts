@@ -328,6 +328,8 @@ describe("an incident's bulk state change", () => {
         buildIncidentBulkStateChange({ isPrivate: true, note: "Fixed." })
           .miscDataProps,
       ),
-    ).toEqual([getBulkStateChangeNoteFieldKey(BulkStateChangeNoteType.Private)]);
+    ).toEqual([
+      getBulkStateChangeNoteFieldKey(BulkStateChangeNoteType.Private),
+    ]);
   });
 });

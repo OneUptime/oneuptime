@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import Incident from "../../../../Models/DatabaseModels/Incident";
-import WorkspaceActionAnswers from "../../../../Server/Utils/Workspace/WorkspaceActionAnswers";
+import WorkspaceActionAnswers, {
+  WorkspaceAnswer,
+} from "../../../../Server/Utils/Workspace/WorkspaceActionAnswers";
 import WorkspaceMemberActions, {
   WorkspaceEvent,
   WorkspaceEventType,
@@ -13,7 +15,6 @@ import WorkspaceNoteForm, {
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../../Types/ObjectID";
 import { PrivateRecordKind } from "../../../../Types/StatusPage/PrivateRecordPublicNotes";
-import { WorkspaceAnswer } from "../../../../Server/Utils/Workspace/WorkspaceActionAnswers";
 import {
   WorkspaceDropdownBlock,
   WorkspaceMessageBlock,
@@ -162,8 +163,8 @@ describe("WorkspaceNoteForm.getSlackForm", () => {
     expect(form.title).toBe("Add Note");
     expect(form.blocks).toHaveLength(2);
 
-    const noteType: WorkspaceDropdownBlock =
-      form.blocks[0] as WorkspaceDropdownBlock;
+    const noteType: WorkspaceDropdownBlock = form
+      .blocks[0] as WorkspaceDropdownBlock;
 
     expect(noteType).toEqual({
       _type: "WorkspaceDropdownBlock",
@@ -269,9 +270,7 @@ describe("WorkspaceNoteForm.getSubmittedNote: what a submission writes", () => {
 
 describe("WorkspaceNoteForm.isPrivateRecord", () => {
   test("asks the one rule, about this record, in its project", async () => {
-    const lookups: Array<PrivateRecordLookup> = stubPrivateRecords([
-      RECORD_ID,
-    ]);
+    const lookups: Array<PrivateRecordLookup> = stubPrivateRecords([RECORD_ID]);
 
     await expect(
       WorkspaceNoteForm.isPrivateRecord({
