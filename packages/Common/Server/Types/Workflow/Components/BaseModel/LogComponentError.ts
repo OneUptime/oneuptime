@@ -9,6 +9,7 @@ import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorized
 import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
 import CallerPlan from "../../../../Utils/Billing/CallerPlan";
 import ColumnWriteRefusedException from "../../../Database/Permissions/ColumnWriteRefusedException";
+import WorkflowAccessChangeRefusedException from "../../../Database/Permissions/WorkflowAccessChangeRefusedException";
 import logger from "../../../../Utils/Logger";
 import { RunOptions } from "../../ComponentCode";
 import {
@@ -70,9 +71,12 @@ type DescribeRefusalFunction = (data: {
  * (WorkflowPrincipal). When it is refused for either - something only an
  * owner, or the billing team, or nobody but OneUptime itself may do;
  * something the plan does not sell - the run log says so in plain words and
- * names the step, before the reason the refusal itself gave. Refusals are
- * told by their type (a column refusal is a ColumnWriteRefusedException),
- * never by their words. Null for any other failure.
+ * names the step, before the reason the refusal itself gave. A change to
+ * who may do what in the project is refused to every step, though a
+ * Project Admin may make it, so its reason is said as it is
+ * (WorkflowAccessChangeRefusedException). Refusals are told by their type
+ * (a column refusal is a ColumnWriteRefusedException), never by their
+ * words. Null for any other failure.
  */
 export const describeRefusal: DescribeRefusalFunction = (data: {
   error: unknown;
@@ -87,6 +91,10 @@ export const describeRefusal: DescribeRefusalFunction = (data: {
 
   if (data.error instanceof PaymentRequiredException) {
     return `${step} was refused because of this project's plan: ${data.message}`;
+  }
+
+  if (data.error instanceof WorkflowAccessChangeRefusedException) {
+    return `${step} was refused. ${data.message}`;
   }
 
   if (
