@@ -5641,7 +5641,7 @@
   "When would you like the first event to be scheduled?": "最初のイベントはいつ予定したいですか？",
   "When would you like to send the first report?": "最初のレポートはいつ送信したいですか？",
   "When you create an alert, it is used to notify the team but is not shown on the status page.": "アラートを作成すると、チームへの通知に使用されますが、ステータスページには表示されません。",
-  "When you delcare an incident, it is used to notify the team and is shown on the status page as well.": "インシデントを宣言すると、チームへの通知に使用され、ステータスページにも表示されます。",
+  "When you declare an incident, it is used to notify the team and is shown on the status page as well.": "インシデントを宣言すると、チームへの通知に使用され、ステータスページにも表示されます。",
   "Where code is waiting on locks": "コードがロックを待機している場所",
   "Where CPU cycles are being spent": "CPU サイクルが消費されている場所",
   "Where is this repository hosted?": "このリポジトリはどこにホストされていますか？",

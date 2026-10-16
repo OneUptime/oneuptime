@@ -5641,7 +5641,7 @@
   "When would you like the first event to be scheduled?": "Hvornår vil du have den første begivenhed planlagt?",
   "When would you like to send the first report?": "Hvornår vil du sende den første rapport?",
   "When you create an alert, it is used to notify the team but is not shown on the status page.": "Når du opretter en advarsel, bruges den til at underrette teamet, men den vises ikke på statussiden.",
-  "When you delcare an incident, it is used to notify the team and is shown on the status page as well.": "Når du erklærer en hændelse, bruges den til at underrette teamet og vises også på statussiden.",
+  "When you declare an incident, it is used to notify the team and is shown on the status page as well.": "Når du erklærer en hændelse, bruges den til at underrette teamet og vises også på statussiden.",
   "Where code is waiting on locks": "Hvor kode venter på låse",
   "Where CPU cycles are being spent": "Hvor CPU-cyklusser bliver brugt",
   "Where is this repository hosted?": "Hvor er dette repository hostet?",

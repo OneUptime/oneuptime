@@ -5641,7 +5641,7 @@
   "When would you like the first event to be scheduled?": "¿Cuándo le gustaría que se programara el primer evento?",
   "When would you like to send the first report?": "¿Cuándo le gustaría enviar el primer informe?",
   "When you create an alert, it is used to notify the team but is not shown on the status page.": "Cuando crea una alerta, se utiliza para notificar al equipo, pero no se muestra en la página de estado.",
-  "When you delcare an incident, it is used to notify the team and is shown on the status page as well.": "Cuando declara un incidente, se utiliza para notificar al equipo y también se muestra en la página de estado.",
+  "When you declare an incident, it is used to notify the team and is shown on the status page as well.": "Cuando declara un incidente, se utiliza para notificar al equipo y también se muestra en la página de estado.",
   "Where code is waiting on locks": "Dónde el código está esperando en bloqueos",
   "Where CPU cycles are being spent": "Dónde se están gastando los ciclos de CPU",
   "Where is this repository hosted?": "¿Dónde está alojado este repositorio?",

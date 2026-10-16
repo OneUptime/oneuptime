@@ -5641,7 +5641,7 @@
   "When would you like the first event to be scheduled?": "첫 번째 이벤트를 언제로 예약하시겠습니까?",
   "When would you like to send the first report?": "첫 번째 보고서를 언제 전송하시겠습니까?",
   "When you create an alert, it is used to notify the team but is not shown on the status page.": "경고를 생성하면 팀에 알리는 데 사용되지만 상태 페이지에는 표시되지 않습니다.",
-  "When you delcare an incident, it is used to notify the team and is shown on the status page as well.": "인시던트를 선언하면 팀에 알리는 데 사용되며 상태 페이지에도 표시됩니다.",
+  "When you declare an incident, it is used to notify the team and is shown on the status page as well.": "인시던트를 선언하면 팀에 알리는 데 사용되며 상태 페이지에도 표시됩니다.",
   "Where code is waiting on locks": "코드가 잠금을 대기하는 위치",
   "Where CPU cycles are being spent": "CPU 사이클이 소비되는 위치",
   "Where is this repository hosted?": "이 리포지토리는 어디에 호스팅됩니까?",

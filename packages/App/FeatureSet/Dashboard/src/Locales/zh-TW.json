@@ -5641,7 +5641,7 @@
   "When would you like the first event to be scheduled?": "您希望第一個事件排定在何時？",
   "When would you like to send the first report?": "您希望何時傳送第一份報告？",
   "When you create an alert, it is used to notify the team but is not shown on the status page.": "當您建立警示時，它會用來通知團隊，但不會顯示在狀態頁面上。",
-  "When you delcare an incident, it is used to notify the team and is shown on the status page as well.": "當您宣告事件時，它會用來通知團隊，並且也會顯示在狀態頁面上。",
+  "When you declare an incident, it is used to notify the team and is shown on the status page as well.": "當您宣告事件時，它會用來通知團隊，並且也會顯示在狀態頁面上。",
   "Where code is waiting on locks": "程式碼在何處等待鎖定",
   "Where CPU cycles are being spent": "CPU 週期花費在何處",
   "Where is this repository hosted?": "此儲存庫託管於何處？",

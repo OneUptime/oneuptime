@@ -5641,7 +5641,7 @@
   "When would you like the first event to be scheduled?": "На какое время вы хотите запланировать первое событие?",
   "When would you like to send the first report?": "Когда вы хотите отправить первый отчёт?",
   "When you create an alert, it is used to notify the team but is not shown on the status page.": "Когда вы создаёте оповещение, оно используется для уведомления команды, но не отображается на странице статуса.",
-  "When you delcare an incident, it is used to notify the team and is shown on the status page as well.": "Когда вы объявляете инцидент, он используется для уведомления команды и также отображается на странице статуса.",
+  "When you declare an incident, it is used to notify the team and is shown on the status page as well.": "Когда вы объявляете инцидент, он используется для уведомления команды и также отображается на странице статуса.",
   "Where code is waiting on locks": "Где код ожидает блокировок",
   "Where CPU cycles are being spent": "На что расходуются циклы CPU",
   "Where is this repository hosted?": "Где размещён этот репозиторий?",
