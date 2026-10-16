@@ -10,12 +10,19 @@ import MetricCriteriaContext, {
   MetricAnomalyBaseline,
   MetricComponent,
   MetricComponentValue,
+  MetricWindowShortfall,
 } from "../../../../Types/Monitor/MetricMonitor/MetricCriteriaContext";
 import MetricSeriesResult from "../../../../Types/Monitor/MetricMonitor/MetricSeriesResult";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
+import SeriesLabelDisplay from "../../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import { JSONObject } from "../../../../Types/JSON";
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
+import MetricWindowCoverage, {
+  MetricEvaluationWindow,
+  MetricWindowCoverageResult,
+} from "./MetricWindowCoverage";
+import { WindowCoverageShortfall } from "./WindowCoverage";
 import {
   AnomalyDetectionSensitivity,
   CheckOn,
@@ -48,12 +55,25 @@ export interface MetricSeriesEvaluationResult {
   context: MetricCriteriaContext;
 }
 
+/*
+ * Whether the criteria being evaluated is already in effect for a series
+ * (undefined: the whole monitor) - an alert or incident it opened for that
+ * series is still open, or the monitor already has its status
+ * (CriteriaInEffect). Such a series is judged on its data points alone, as
+ * it always was; only a series the criteria has not acted on yet must wait
+ * for its data to cover the window.
+ */
+export type IsCriteriaInEffect = (
+  seriesFingerprint: string | undefined,
+) => Promise<boolean>;
+
 export default class MetricMonitorCriteria {
   @CaptureSpan()
   public static async isMonitorInstanceCriteriaFilterMet(input: {
     dataToProcess: DataToProcess;
     criteriaFilter: CriteriaFilter;
     monitorStep: MonitorStep;
+    isInEffect?: IsCriteriaInEffect | undefined;
   }): Promise<string | null> {
     const evaluations: Array<MetricSeriesEvaluationResult> =
       await MetricMonitorCriteria.evaluateAllSeries(input);
@@ -73,15 +93,58 @@ export default class MetricMonitorCriteria {
     /*
      * Always populate the legacy single-context field so the root-cause
      * renderer can still read metric identity from the criteria filter
-     * even when nothing matched. Pick the first evaluation's context.
+     * even when nothing matched. Pick the first evaluation's context -
+     * or, when series are waiting for a full window, the one closest to
+     * it, so the evaluation log can say why nothing fired yet.
      */
     if (evaluations.length > 0) {
       input.criteriaFilter.metricCriteriaContext = (
-        match || evaluations[0]!
+        match ||
+        MetricMonitorCriteria.getClosestWaitingEvaluation(evaluations) ||
+        evaluations[0]!
       ).context;
     }
 
     return match ? match.rootCause : null;
+  }
+
+  /*
+   * The waiting series nearest to a full window, with its message saying
+   * how many series wait. Undefined when none waits.
+   */
+  private static getClosestWaitingEvaluation(
+    evaluations: Array<MetricSeriesEvaluationResult>,
+  ): MetricSeriesEvaluationResult | undefined {
+    const waiting: Array<MetricSeriesEvaluationResult> = evaluations.filter(
+      (evaluation: MetricSeriesEvaluationResult) => {
+        return Boolean(evaluation.context.windowWait);
+      },
+    );
+
+    if (waiting.length === 0) {
+      return undefined;
+    }
+
+    let closest: MetricSeriesEvaluationResult = waiting[0]!;
+
+    for (const evaluation of waiting) {
+      if (
+        evaluation.context.windowWait!.coveredMs >
+        closest.context.windowWait!.coveredMs
+      ) {
+        closest = evaluation;
+      }
+    }
+
+    if (waiting.length > 1) {
+      closest.context.windowWait = {
+        ...closest.context.windowWait!,
+        waitingSeriesCount: waiting.length,
+        message: `${waiting.length} series are waiting for a full window of data. Closest: ${closest.context.windowWait!.message}`,
+      };
+    }
+
+    return closest;
   }
 
   /**
@@ -98,6 +161,11 @@ export default class MetricMonitorCriteria {
     dataToProcess: DataToProcess;
     criteriaFilter: CriteriaFilter;
     monitorStep: MonitorStep;
+    /*
+     * Absent: nothing is in effect, so every series that has not covered
+     * the window waits.
+     */
+    isInEffect?: IsCriteriaInEffect | undefined;
   }): Promise<Array<MetricSeriesEvaluationResult>> {
     if (
       input.criteriaFilter.metricMonitorOptions &&
@@ -128,6 +196,10 @@ export default class MetricMonitorCriteria {
     const nativeUnitsByMetricName: { [key: string]: string } | undefined =
       metricResponse.nativeUnitsByMetricName;
 
+    // What "All Values" judges each series' data against.
+    const window: MetricEvaluationWindow | null =
+      MetricWindowCoverage.getWindow(metricResponse);
+
     /*
      * Series-less path: one synthetic "all-series" evaluation over the
      * flat metricResult. Preserves the pre-group-by behavior exactly.
@@ -143,6 +215,8 @@ export default class MetricMonitorCriteria {
           seriesLabels: {},
           projectId: metricResponse.projectId,
           nativeUnitsByMetricName,
+          window,
+          isInEffect: input.isInEffect,
         });
       return [result];
     }
@@ -158,9 +232,65 @@ export default class MetricMonitorCriteria {
           seriesLabels: series.labels,
           projectId: metricResponse.projectId,
           nativeUnitsByMetricName,
+          window,
+          isInEffect: input.isInEffect,
         });
       }),
     );
+  }
+
+  /*
+   * The evaluation type the window is judged with - the same precedence
+   * CompareCriteria compares with.
+   */
+  private static isAllValues(criteriaFilter: CriteriaFilter): boolean {
+    return (
+      (criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ||
+        criteriaFilter.metricMonitorOptions?.metricAggregationType) ===
+      EvaluateOverTimeType.AllValues
+    );
+  }
+
+  private static async isCriteriaInEffectFor(data: {
+    isInEffect: IsCriteriaInEffect | undefined;
+    seriesFingerprint: string | undefined;
+  }): Promise<boolean> {
+    if (!data.isInEffect) {
+      return false;
+    }
+
+    return await data.isInEffect(data.seriesFingerprint);
+  }
+
+  /*
+   * Why a series must wait, or null when it need not: its data covers the
+   * window, or none of its data points carries a time to judge by (it is
+   * then judged on its values, as before).
+   */
+  private static toWindowShortfall(
+    shortfall: WindowCoverageShortfall | null,
+  ): MetricWindowShortfall | null {
+    switch (shortfall) {
+      case WindowCoverageShortfall.StartsLate:
+        return "StartsLate";
+      case WindowCoverageShortfall.Hole:
+        return "Hole";
+      case WindowCoverageShortfall.Stale:
+        return "Stale";
+      default:
+        return null;
+    }
+  }
+
+  /*
+   * "Namespace: payments | Deployment: api - " before a grouped series'
+   * message, so the evaluation log says which series it is about. Empty for
+   * an ungrouped monitor.
+   */
+  private static getSeriesPrefix(seriesLabels: JSONObject): string {
+    const summary: string = SeriesLabelDisplay.buildInlineSummary(seriesLabels);
+
+    return summary ? `${summary} - ` : "";
   }
 
   /**
@@ -179,6 +309,9 @@ export default class MetricMonitorCriteria {
     seriesLabels: JSONObject;
     projectId: { toString(): string } | undefined;
     nativeUnitsByMetricName?: { [key: string]: string } | undefined;
+    // Null when the response does not say what window it read.
+    window?: MetricEvaluationWindow | null | undefined;
+    isInEffect?: IsCriteriaInEffect | undefined;
   }): Promise<MetricSeriesEvaluationResult> {
     const rawThreshold: number | null =
       CompareCriteria.convertMetricThresholdToNumber(
@@ -407,6 +540,67 @@ export default class MetricMonitorCriteria {
         rootCause: null,
         context: metricContext,
       };
+    }
+
+    /*
+     * "All Values over the past 15 minutes" says the condition held for
+     * the whole 15 minutes, and Array.every() is true of a single data
+     * point: a deployment that had existed for a minute matched "replica
+     * shortfall for 15 minutes" off its first reading (issue #4793). So
+     * every data point meeting the condition is not enough - they must
+     * cover the window too. Until they do, the series waits: a brand-new
+     * series, one that was gone and came back, one with a hole of more than
+     * one missing data point, and one whose data went stale.
+     *
+     * Only the first match waits. A series the criteria is already in
+     * effect for (its alert or incident is open, or the monitor already has
+     * its status) is judged on its data points as before, so a short gap in
+     * a firing series' data neither resolves its alert nor opens it again a
+     * window later; a reading that misses the condition still resolves it,
+     * and a series whose data leaves the window entirely still goes away.
+     *
+     * If No Data keeps its documented meaning - a window with no data
+     * points at all - so a window with some does not reach it.
+     */
+    if (
+      input.window &&
+      samples.length > 0 &&
+      MetricMonitorCriteria.isAllValues(input.criteriaFilter)
+    ) {
+      const coverage: MetricWindowCoverageResult = MetricWindowCoverage.judge({
+        window: input.window,
+        samples: samples,
+      });
+
+      const shortfall: MetricWindowShortfall | null =
+        MetricMonitorCriteria.toWindowShortfall(coverage.shortfall);
+
+      if (
+        shortfall &&
+        !(await MetricMonitorCriteria.isCriteriaInEffectFor({
+          isInEffect: input.isInEffect,
+          seriesFingerprint: input.seriesFingerprint,
+        }))
+      ) {
+        metricContext.totalSamplesInWindow = samples.length;
+        metricContext.windowWait = {
+          message: `${MetricMonitorCriteria.getSeriesPrefix(input.seriesLabels)}${comparisonMessage.trim()} ${MetricWindowCoverage.describeWait(coverage)}`,
+          waitingSeriesCount: 1,
+          shortfall: shortfall,
+          windowMs: coverage.windowEndMs - coverage.windowStartMs,
+          coveredMs:
+            coverage.runStartMs !== null && coverage.runEndMs !== null
+              ? Math.max(0, coverage.runEndMs - coverage.runStartMs)
+              : 0,
+        };
+
+        return {
+          fingerprint: input.seriesFingerprint,
+          labels: input.seriesLabels,
+          rootCause: null,
+          context: metricContext,
+        };
+      }
     }
 
     /*

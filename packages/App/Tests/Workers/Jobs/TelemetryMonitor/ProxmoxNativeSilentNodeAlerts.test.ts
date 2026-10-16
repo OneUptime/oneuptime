@@ -24,6 +24,10 @@ import {
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import MonitorCriteriaEvaluator from "Common/Server/Utils/Monitor/MonitorCriteriaEvaluator";
+import CriteriaInEffect, {
+  OpenCriteriaRecord,
+} from "Common/Server/Utils/Monitor/CriteriaInEffect";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import {
   PROXMOX_INFERRED_ATTRIBUTE,
   PROXMOX_INFERRED_NOT_REPORTING,
@@ -98,8 +102,12 @@ import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
  *     the affected-resource scans; unit handling;
  *   - the verdict: MonitorCriteriaEvaluator.processMonitorStep, the
  *     call MonitorResource makes on the worker's response (per-series
- *     fan-out, AllValues over the window's minute buckets, first-match
- *     status).
+ *     fan-out, AllValues over the window's minute buckets - which waits
+ *     for a series' minutes to cover the window unless its criteria is
+ *     already in effect - first-match status), with what MonitorResource
+ *     keeps between evaluations read back through CriteriaInEffect: the
+ *     monitor's status and the series with an open incident, kept here
+ *     as MonitorResource would keep them (nextMonitorState).
  *
  * STAND-INS (ProxmoxNativeClusterSimulator.ts):
  *   - the Proxmox nodes (pvestatd pushing node / qemu / lxc / storage
@@ -367,11 +375,57 @@ function idsMatchedBy(
 }
 
 /*
+ * What MonitorResource keeps of one monitor between evaluations, as far as
+ * the criteria evaluator reads it back (CriteriaInEffect): its status, and
+ * the series its offline criteria has an open incident and alert for, by
+ * fingerprint ("" for the whole, ungrouped monitor). A new monitor starts
+ * in the operational status - the healthy criteria's - with nothing open.
+ */
+interface SimulatedMonitorState {
+  isOnline: boolean;
+  openOfflineSeries: Set<string>;
+}
+
+function newMonitorState(): SimulatedMonitorState {
+  return { isOnline: true, openOfflineSeries: new Set<string>() };
+}
+
+/*
+ * The state MonitorResource leaves after acting on a verdict: the first
+ * matching criteria sets the status; the offline criteria opens a record
+ * for every series it matched and auto-resolves every other one; and a
+ * check where no criteria matched takes a monitor that is not in its
+ * default (operational) status back to it, resolving everything.
+ */
+function nextMonitorState(data: {
+  state: SimulatedMonitorState;
+  matched: "offline" | "healthy" | null;
+  offlineSeries: Array<string>;
+}): SimulatedMonitorState {
+  if (data.matched === "offline") {
+    return {
+      isOnline: false,
+      openOfflineSeries: new Set<string>(data.offlineSeries),
+    };
+  }
+
+  if (data.matched === "healthy" || !data.state.isOnline) {
+    return newMonitorState();
+  }
+
+  return data.state;
+}
+
+// Per template, for the scenario being run.
+const monitorStates: Map<string, SimulatedMonitorState> = new Map();
+
+/*
  * What the telemetry worker does for one monitor on one tick —
  * processTelemetryMonitorEvaluationFromQueue minus the Monitor lookup:
  * monitorProxmox, then MonitorCriteriaEvaluator.processMonitorStep on
- * its response. A fresh step per tick, as the worker loads it from the
- * database each time.
+ * its response, with what MonitorResource kept from the ticks before. A
+ * fresh step per tick, as the worker loads it from the database each
+ * time.
  */
 async function evaluateTemplate(data: {
   templateId: string;
@@ -399,11 +453,17 @@ async function evaluateTemplate(data: {
     projectId: projectId,
   });
 
+  const state: SimulatedMonitorState =
+    monitorStates.get(data.templateId) || newMonitorState();
+
   const monitor: Monitor = new Monitor();
   monitor._id = monitorId.toString();
   monitor.projectId = projectId;
   monitor.monitorType = MonitorType.Proxmox;
   monitor.name = `${data.clusterName} - ${template.name}`;
+  monitor.currentMonitorStatusId = state.isOnline
+    ? templateArgs.onlineMonitorStatusId
+    : templateArgs.offlineMonitorStatusId;
 
   const result: ProbeApiIngestResponse =
     await MonitorCriteriaEvaluator.processMonitorStep({
@@ -416,7 +476,46 @@ async function evaluateTemplate(data: {
         criteriaResults: [],
         events: [],
       },
+      criteriaInEffect: new CriteriaInEffect({
+        monitor: monitor,
+        readOpenRecords: async (): Promise<Array<OpenCriteriaRecord>> => {
+          return Array.from(state.openOfflineSeries).map(
+            (series: string): OpenCriteriaRecord => {
+              return {
+                createdCriteriaId: offlineCriteriaId,
+                seriesFingerprint: series || undefined,
+              };
+            },
+          );
+        },
+      }),
     });
+
+  const matched: "offline" | "healthy" | null =
+    result.criteriaMetId === offlineCriteriaId
+      ? "offline"
+      : result.criteriaMetId === healthyCriteriaId
+        ? "healthy"
+        : null;
+
+  monitorStates.set(
+    data.templateId,
+    nextMonitorState({
+      state: state,
+      matched: matched,
+      offlineSeries: response.seriesBreakdown
+        ? (
+            (result.matchedCriteria || []).find(
+              (entry: MatchedCriteriaResult) => {
+                return entry.criteriaId === offlineCriteriaId;
+              },
+            )?.perSeriesMatches || []
+          ).map((match: PerSeriesCriteriaMatch) => {
+            return match.fingerprint;
+          })
+        : [""],
+    }),
+  );
 
   const queryCount: number =
     MonitorStep.getMetricsViewConfig(monitorStep)?.queryConfigs.length || 0;
@@ -513,6 +612,7 @@ async function runScenario(input: ScenarioInput): Promise<ScenarioRun> {
   activeTable = table;
   redis.flushAll();
   clearProxmoxNodeRosterCache();
+  monitorStates.clear();
   metricFindBy.mockClear();
   metricAggregateBy.mockClear();
   jest.setSystemTime(SIM_START_MS);
@@ -1204,6 +1304,120 @@ function allMeet(values: Array<number>, threshold: CriteriaThreshold): boolean {
   );
 }
 
+/*
+ * ...and its minutes cover the window (issue #4793), unless the criteria
+ * is already in effect: they reach from the window's start to its end
+ * with no stretch longer than one and a half intervals without one - the
+ * interval being the minute, or the series' usual gap when that is longer.
+ * A minute stands for the whole minute from its start. The start moves up
+ * to where a read cut at its row limit becomes complete.
+ */
+function coversWindow(data: {
+  minuteStartsMs: Array<number>;
+  fromMs: number;
+  toMs: number;
+}): boolean {
+  const minutes: Array<number> = Array.from(new Set(data.minuteStartsMs)).sort(
+    (a: number, b: number) => {
+      return a - b;
+    },
+  );
+
+  if (minutes.length === 0) {
+    return false;
+  }
+
+  const gaps: Array<number> = [];
+  for (let index: number = 1; index < minutes.length; index++) {
+    gaps.push(minutes[index]! - minutes[index - 1]!);
+  }
+  gaps.sort((a: number, b: number) => {
+    return a - b;
+  });
+
+  const intervalMs: number = Math.max(
+    MINUTE_MS,
+    gaps.length > 0 ? gaps[Math.floor((gaps.length - 1) / 2)]! : 0,
+  );
+  const allowedMs: number = 1.5 * intervalMs;
+
+  if (minutes[0]! - data.fromMs > allowedMs) {
+    return false;
+  }
+  if (data.toMs - (minutes[minutes.length - 1]! + MINUTE_MS) > allowedMs) {
+    return false;
+  }
+  for (let index: number = 1; index < minutes.length; index++) {
+    if (minutes[index]! - (minutes[index - 1]! + MINUTE_MS) > allowedMs) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/*
+ * How the oracle judges "All Values": as it is now - the minutes must
+ * cover the window unless the criteria is in effect - or as it was before
+ * #4793, when every minute meeting the condition was enough. The
+ * counterfactuals below use the latter to show the page a design flaw
+ * used to cost, beside what it costs now.
+ */
+interface OracleJudging {
+  allValuesWaitsForCoverage: boolean;
+}
+
+const JUDGED_AS_NOW: OracleJudging = { allValuesWaitsForCoverage: true };
+const JUDGED_BEFORE_4793: OracleJudging = { allValuesWaitsForCoverage: false };
+
+// What the oracle keeps between evaluations: nextMonitorState's, by node id.
+interface OracleMonitorState {
+  isOnline: boolean;
+  // Node ids for Node Offline; "" for Quorum, which is not grouped.
+  openOffline: Set<string>;
+}
+
+function newOracleState(): OracleMonitorState {
+  return { isOnline: true, openOffline: new Set<string>() };
+}
+
+function nextOracleState(data: {
+  state: OracleMonitorState;
+  offline: Array<string>;
+  healthy: boolean;
+}): OracleMonitorState {
+  if (data.offline.length > 0) {
+    return { isOnline: false, openOffline: new Set<string>(data.offline) };
+  }
+  if (data.healthy || !data.state.isOnline) {
+    return newOracleState();
+  }
+  return data.state;
+}
+
+/*
+ * Where the grouped raw read of pve_up becomes complete: it returns the
+ * newest rows first, at most 10000 of them, so once the window holds more
+ * it is complete only from the oldest row it returned (null otherwise).
+ */
+function groupedReadCompleteFromMs(
+  run: ScenarioRun,
+  atMs: number,
+): number | null {
+  const times: Array<number> = nodeScopeRows(run, "pve_up")
+    .map((row: SimulatedMetricRow) => {
+      return row.time.getTime();
+    })
+    .filter((rowMs: number) => {
+      return rowMs >= atMs - WINDOW_MS && rowMs <= atMs;
+    })
+    .sort((a: number, b: number) => {
+      return b - a;
+    });
+  return times.length >= LIMIT_PER_PROJECT
+    ? times[LIMIT_PER_PROJECT - 1]!
+    : null;
+}
+
 function minuteOf(ms: number): number {
   return Math.floor(ms / MINUTE_MS) * MINUTE_MS;
 }
@@ -1251,6 +1465,8 @@ function expectedQuorum(data: {
   run: ScenarioRun;
   replay: Map<NodeStatusPushRecord, ExpectedReport>;
   atMs: number;
+  state: OracleMonitorState;
+  judging: OracleJudging;
 }): ExpectedQuorum {
   const buckets: Map<number, { online: number; total: number }> = new Map();
   for (const push of pushesInWindow(data.run, data.atMs)) {
@@ -1280,13 +1496,27 @@ function expectedQuorum(data: {
   const values: Array<number> = points.map((point: FormulaPoint) => {
     return point.value;
   });
-  const fires: boolean = allMeet(values, QUORUM_THRESHOLDS.offline);
+  const covered: boolean =
+    !data.judging.allValuesWaitsForCoverage ||
+    coversWindow({
+      minuteStartsMs: points.map((point: FormulaPoint) => {
+        return point.timestampMs;
+      }),
+      fromMs: data.atMs - WINDOW_MS,
+      toMs: data.atMs,
+    });
+  const fires: boolean =
+    allMeet(values, QUORUM_THRESHOLDS.offline) &&
+    (covered || data.state.openOffline.has(""));
 
   return {
     points: points,
     fires: fires,
     // Ungrouped: the healthy criteria is only reached when offline is not met.
-    healthy: !fires && allMeet(values, QUORUM_THRESHOLDS.healthy),
+    healthy:
+      !fires &&
+      allMeet(values, QUORUM_THRESHOLDS.healthy) &&
+      (covered || data.state.isOnline),
   };
 }
 
@@ -1299,6 +1529,8 @@ function expectedNodeOffline(data: {
   run: ScenarioRun;
   replay: Map<NodeStatusPushRecord, ExpectedReport>;
   atMs: number;
+  state: OracleMonitorState;
+  judging: OracleJudging;
 }): ExpectedNodeOffline {
   // id → minute → lowest pve_up in it.
   const lowest: Map<string, Map<number, number>> = new Map();
@@ -1321,19 +1553,90 @@ function expectedNodeOffline(data: {
     }
   }
 
+  const completeFromMs: number | null = groupedReadCompleteFromMs(
+    data.run,
+    data.atMs,
+  );
+
   const offlineIds: Array<string> = [];
   const healthyIds: Array<string> = [];
   for (const [id, byMinute] of lowest) {
     const minima: Array<number> = Array.from(byMinute.values());
-    if (allMeet(minima, NODE_OFFLINE_THRESHOLDS.offline)) {
+    const covered: boolean =
+      !data.judging.allValuesWaitsForCoverage ||
+      coversWindow({
+        minuteStartsMs: Array.from(byMinute.keys()),
+        fromMs: Math.max(data.atMs - WINDOW_MS, completeFromMs ?? 0),
+        toMs: data.atMs,
+      });
+    if (
+      allMeet(minima, NODE_OFFLINE_THRESHOLDS.offline) &&
+      (covered || data.state.openOffline.has(id))
+    ) {
       offlineIds.push(id);
     }
     // Grouped: every criteria is evaluated for every series.
-    if (allMeet(minima, NODE_OFFLINE_THRESHOLDS.healthy)) {
+    if (
+      allMeet(minima, NODE_OFFLINE_THRESHOLDS.healthy) &&
+      (covered || data.state.isOnline)
+    ) {
       healthyIds.push(id);
     }
   }
   return { offlineIds: offlineIds.sort(), healthyIds: healthyIds.sort() };
+}
+
+interface ExpectedTick {
+  atMs: number;
+  nodeOffline: ExpectedNodeOffline;
+  quorum: ExpectedQuorum;
+}
+
+/*
+ * The oracle's verdict on every evaluation of the run, in order: each
+ * one is judged with what MonitorResource kept from the ones before
+ * (nextOracleState), as the monitor's own were.
+ */
+function expectedTicks(
+  run: ScenarioRun,
+  replay: Map<NodeStatusPushRecord, ExpectedReport>,
+  judging: OracleJudging = JUDGED_AS_NOW,
+): Array<ExpectedTick> {
+  let nodeOfflineState: OracleMonitorState = newOracleState();
+  let quorumState: OracleMonitorState = newOracleState();
+  const expected: Array<ExpectedTick> = [];
+
+  for (const tick of run.ticks) {
+    const nodeOffline: ExpectedNodeOffline = expectedNodeOffline({
+      run,
+      replay,
+      atMs: tick.atMs,
+      state: nodeOfflineState,
+      judging,
+    });
+    const quorum: ExpectedQuorum = expectedQuorum({
+      run,
+      replay,
+      atMs: tick.atMs,
+      state: quorumState,
+      judging,
+    });
+
+    expected.push({ atMs: tick.atMs, nodeOffline, quorum });
+
+    nodeOfflineState = nextOracleState({
+      state: nodeOfflineState,
+      offline: nodeOffline.offlineIds,
+      healthy: nodeOffline.healthyIds.length > 0,
+    });
+    quorumState = nextOracleState({
+      state: quorumState,
+      offline: quorum.fires ? [""] : [],
+      healthy: quorum.healthy,
+    });
+  }
+
+  return expected;
 }
 
 function expectMatchesOracle(run: ScenarioRun): void {
@@ -1342,17 +1645,11 @@ function expectMatchesOracle(run: ScenarioRun): void {
   const replay: Map<NodeStatusPushRecord, ExpectedReport> = replayReports(run);
   expectReportsMatchReplay(run, replay);
 
-  for (const tick of run.ticks) {
-    const nodeOffline: ExpectedNodeOffline = expectedNodeOffline({
-      run,
-      replay,
-      atMs: tick.atMs,
-    });
-    const quorum: ExpectedQuorum = expectedQuorum({
-      run,
-      replay,
-      atMs: tick.atMs,
-    });
+  const expected: Array<ExpectedTick> = expectedTicks(run, replay);
+
+  for (const [index, tick] of run.ticks.entries()) {
+    const nodeOffline: ExpectedNodeOffline = expected[index]!.nodeOffline;
+    const quorum: ExpectedQuorum = expected[index]!.quorum;
     const context: string = `at ${new Date(tick.atMs).toISOString()}`;
 
     expect({ context, ids: tick.nodeOffline.offlineIds }).toEqual({
@@ -1510,26 +1807,31 @@ function oracleVerdicts(
   run: ScenarioRun,
   ticks: Array<Tick>,
   rules: ReplayRules,
+  judging: OracleJudging = JUDGED_AS_NOW,
 ): Array<Verdict> {
   const replay: Map<NodeStatusPushRecord, ExpectedReport> = replayReports(
     run,
     rules,
   );
-  return ticks.map((tick: Tick) => {
-    const quorum: ExpectedQuorum = expectedQuorum({
-      run,
-      replay,
-      atMs: tick.atMs,
+  // Judged from the run's first evaluation on, as the monitor would have.
+  const wanted: Set<number> = new Set<number>(
+    ticks.map((tick: Tick) => {
+      return tick.atMs;
+    }),
+  );
+  return expectedTicks(run, replay, judging)
+    .filter((expected: ExpectedTick) => {
+      return wanted.has(expected.atMs);
+    })
+    .map((expected: ExpectedTick) => {
+      return {
+        atMs: expected.atMs,
+        quorumFires: expected.quorum.fires,
+        quorumHealthy: expected.quorum.healthy,
+        quorumPoints: expected.quorum.points,
+        offlineIds: expected.nodeOffline.offlineIds,
+      };
     });
-    return {
-      atMs: tick.atMs,
-      quorumFires: quorum.fires,
-      quorumHealthy: quorum.healthy,
-      quorumPoints: quorum.points,
-      offlineIds: expectedNodeOffline({ run, replay, atMs: tick.atMs })
-        .offlineIds,
-    };
-  });
 }
 
 function describeQuorum(verdict: Verdict): string {
@@ -1984,16 +2286,32 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
       }
     });
 
-    test("Node Offline fires for node/pve3 — and only it — 5 to 5.5 minutes after its last push", () => {
+    test("Node Offline fires for node/pve3 — and only it — once its reports cover the window, 5 to 6.5 minutes after its last push", () => {
       const first: Tick | undefined = firstTick(run, (tick: Tick) => {
         return tick.nodeOffline.fires;
       });
       expect(first).toBeDefined();
 
       // The window must hold none of pve3's own pve_up = 1 rows.
-      expect(first!.atMs - lastOwnPush.pushTimeMs).toBeGreaterThan(WINDOW_MS);
+      const ownRowLeavesMs: number = lastOwnPush.pushTimeMs + WINDOW_MS;
+      expect(first!.atMs).toBeGreaterThan(ownRowLeavesMs);
+
+      /*
+       * ...and the reports, which begin 2 minutes after its last push,
+       * must cover it (#4793): their first minute within one and a half
+       * minutes of the window's start. Not a tick before both hold, and
+       * the first tick after.
+       */
+      const coveredFromMs: number =
+        minuteOf(reportingPushes(run)[0]!.pushTimeMs) +
+        WINDOW_MS -
+        1.5 * MINUTE_MS;
+      expect(first!.atMs).toBeGreaterThanOrEqual(coveredFromMs);
+      expect(first!.atMs).toBeLessThanOrEqual(
+        Math.max(ownRowLeavesMs, coveredFromMs) + EVALUATION_STEP_MS,
+      );
       expect(first!.atMs - lastOwnPush.pushTimeMs).toBeLessThanOrEqual(
-        WINDOW_MS + EVALUATION_STEP_MS,
+        WINDOW_MS + 1.5 * MINUTE_MS,
       );
 
       // The headline: by t + 7 min, never before t + 4 min.
@@ -3104,15 +3422,27 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
         );
       });
 
-      test("Node Offline fires for node/pve3 at the first evaluation after the first report, and keeps firing — never for pve1 or pve2", () => {
+      test("Node Offline fires for node/pve3 once the reports after the outage cover the window, and keeps firing — never for pve1 or pve2", () => {
         const firstReport: NodeStatusPushRecord = reportingPushes(run)[0]!;
         const first: Tick | undefined = firstTick(run, (tick: Tick) => {
           return tick.nodeOffline.fires;
         });
         expect(first).toBeDefined();
-        expect(first!.atMs).toBeGreaterThanOrEqual(firstReport.receiveMs);
+        /*
+         * pve3 has been down since before the outage, but nothing said so
+         * until the first report after it, so its series in the window
+         * starts there and waits for the reports to cover the window
+         * (#4793): their first minute within one and a half minutes of
+         * the window's start, and the first tick after that. (In
+         * production the check also waits while its window holds the
+         * outage itself - ReceivingCoverage - which this simulation does
+         * not model.)
+         */
+        const coveredFromMs: number =
+          minuteOf(firstReport.pushTimeMs) + WINDOW_MS - 1.5 * MINUTE_MS;
+        expect(first!.atMs).toBeGreaterThanOrEqual(coveredFromMs);
         expect(first!.atMs).toBeLessThanOrEqual(
-          firstReport.receiveMs + EVALUATION_STEP_MS,
+          coveredFromMs + EVALUATION_STEP_MS,
         );
 
         const after: Array<Tick> = ticksFrom(run, first!.atMs);
@@ -3905,10 +4235,23 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
         ).toEqual([]);
         for (const tick of through) {
           expect(tick.nodeOffline.offlineIds).toEqual(DEAD_IDS);
-          expect(tick.nodeOffline.healthyIds).toEqual([
-            "node/pve1",
-            "node/pve2",
-          ]);
+          /*
+           * A survivor is never named healthy-and-dead, and is healthy
+           * again once its window is clear of the outage. While the
+           * outage's hole is in its window it may wait: the monitor is
+           * offline, so the healthy criteria is not in effect and waits
+           * for the survivor's minutes to cover the window (#4793) - which
+           * changes nothing, the offline criteria holding the status.
+           */
+          for (const id of tick.nodeOffline.healthyIds) {
+            expect(["node/pve1", "node/pve2"]).toContain(id);
+          }
+          if (tick.atMs >= OUTAGE.toMs + WINDOW_MS + MINUTE_MS) {
+            expect(tick.nodeOffline.healthyIds).toEqual([
+              "node/pve1",
+              "node/pve2",
+            ]);
+          }
           for (const point of tick.quorum.formulaPoints) {
             expect(point.value).toBe(50);
           }
@@ -4579,7 +4922,7 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
       }
     });
 
-    test("with the mark's age taken at each push against the window plus the cache's 30 s, the first push back would have reported pve3 — up — the pushes its cached roster served dropped it, the next roster read carried it on until pve3's own push, and Node Offline would have fired for node/pve3", () => {
+    test("with the mark's age taken at each push against the window plus the cache's 30 s, the first push back would have reported pve3 — up — the pushes its cached roster served dropped it, the next roster read carried it on until pve3's own push, and Node Offline would have fired for node/pve3 before #4793", () => {
       const slack: Map<NodeStatusPushRecord, ExpectedReport> = replayReports(
         run,
         MARK_AGE_AT_PUSH_WITH_CACHE_SLACK,
@@ -4614,18 +4957,29 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
       }
       expect(replayedReportOf(slack, pve3Back).silentNodes).toEqual([]);
 
-      const falseOffline: Array<Verdict> = oracleVerdicts(
-        run,
-        ticksFrom(run, outage.toMs),
-        MARK_AGE_AT_PUSH_WITH_CACHE_SLACK,
-      ).filter((verdict: Verdict) => {
-        return verdict.offlineIds.includes("node/pve3");
-      });
-      expect(falseOffline.length).toBeGreaterThan(0);
-      for (const verdict of falseOffline) {
+      const falseOffline: (judging: OracleJudging) => Array<Verdict> = (
+        judging: OracleJudging,
+      ): Array<Verdict> => {
+        return oracleVerdicts(
+          run,
+          ticksFrom(run, outage.toMs),
+          MARK_AGE_AT_PUSH_WITH_CACHE_SLACK,
+          judging,
+        ).filter((verdict: Verdict) => {
+          return verdict.offlineIds.includes("node/pve3");
+        });
+      };
+      const pagedBefore4793: Array<Verdict> = falseOffline(JUDGED_BEFORE_4793);
+      expect(pagedBefore4793.length).toBeGreaterThan(0);
+      for (const verdict of pagedBefore4793) {
         expect(verdict.atMs).toBeGreaterThan(firstBack.receiveMs);
         expect(verdict.atMs).toBeLessThan(pve3Back.receiveMs + 2 * MINUTE_MS);
       }
+      /*
+       * Now those reports - shorter than the window - would not page on
+       * their own either: All Values waits for them to cover it (#4793).
+       */
+      expect(falseOffline(JUDGED_AS_NOW)).toEqual([]);
     });
 
     test("the verdicts equal the oracle on every evaluation", () => {
@@ -5123,15 +5477,29 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
           }
         });
 
-        test("Node Offline fires for node/pve3 — a node that is up", () => {
+        test("Node Offline fired for node/pve3 — a node that is up — before #4793; now the reports, shorter than the window, never cover it", () => {
           const pve3Back: NodeStatusPushRecord = firstOwnPush(run, "pve3");
-          const firing: Array<Tick> = run.ticks.filter((tick: Tick) => {
-            return tick.nodeOffline.offlineIds.includes("node/pve3");
+          const firedBefore4793: Array<Verdict> = oracleVerdicts(
+            run,
+            run.ticks,
+            DESIGN_RULES,
+            JUDGED_BEFORE_4793,
+          ).filter((verdict: Verdict) => {
+            return verdict.offlineIds.includes("node/pve3");
           });
-          expect(firing.length).toBeGreaterThan(0);
-          for (const tick of firing) {
-            expect(tick.atMs).toBeLessThan(pve3Back.receiveMs + 2 * MINUTE_MS);
+          expect(firedBefore4793.length).toBeGreaterThan(0);
+          for (const verdict of firedBefore4793) {
+            expect(verdict.atMs).toBeLessThan(
+              pve3Back.receiveMs + 2 * MINUTE_MS,
+            );
           }
+
+          // All Values now waits for them to cover the window (#4793).
+          expect(
+            run.ticks.filter((tick: Tick) => {
+              return tick.nodeOffline.offlineIds.includes("node/pve3");
+            }),
+          ).toEqual([]);
         });
 
         test("the verdicts equal the oracle (which replays the mark in updatedAt) on every evaluation", () => {
@@ -5321,11 +5689,15 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
         ).toEqual([]);
       });
 
-      test("as the continuation first shipped — ungated, L from live keys — pve1 back alone would have weighed pve4 as a whole node and Quorum at Risk would have fired; either fix alone prevents it", () => {
-        const firedAt: (rules: ReplayRules) => Array<number> = (
+      test("as the continuation first shipped — ungated, L from live keys — pve1 back alone would have weighed pve4 as a whole node and Quorum at Risk would have fired before #4793; either fix alone prevents it", () => {
+        const firedAt: (
           rules: ReplayRules,
+          judging?: OracleJudging,
+        ) => Array<number> = (
+          rules: ReplayRules,
+          judging: OracleJudging = JUDGED_BEFORE_4793,
         ): Array<number> => {
-          return oracleVerdicts(run, run.ticks, rules)
+          return oracleVerdicts(run, run.ticks, rules, judging)
             .filter((verdict: Verdict) => {
               return verdict.quorumFires;
             })
@@ -5333,6 +5705,15 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
               return verdict.atMs;
             });
         };
+
+        /*
+         * Now its window - pve1's L = 1 pushes alone, after a 10-minute
+         * outage - would not page on its own either: it does not cover the
+         * window (#4793).
+         */
+        expect(firedAt(CONTINUATION_AS_FIRST_SHIPPED, JUDGED_AS_NOW)).toEqual(
+          [],
+        );
 
         const asShipped: Array<number> = firedAt(CONTINUATION_AS_FIRST_SHIPPED);
         expect(asShipped.length).toBeGreaterThan(0);
@@ -5472,12 +5853,16 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
         ).toEqual([]);
       });
 
-      test("without the window gate, the first nodes back would have reported pve3 until its own push was in, and Node Offline would have fired for it", () => {
+      test("without the window gate, the first nodes back would have reported pve3 until its own push was in, and Node Offline would have fired for it before #4793", () => {
         const after: Array<Tick> = ticksFrom(run, OUTAGE.toMs);
-        const firingFor: (rules: ReplayRules) => Array<number> = (
+        const firingFor: (
           rules: ReplayRules,
+          judging?: OracleJudging,
+        ) => Array<number> = (
+          rules: ReplayRules,
+          judging: OracleJudging = JUDGED_BEFORE_4793,
         ): Array<number> => {
-          return oracleVerdicts(run, after, rules)
+          return oracleVerdicts(run, after, rules, judging)
             .filter((verdict: Verdict) => {
               return verdict.offlineIds.includes("node/pve3");
             })
@@ -5485,6 +5870,12 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
               return verdict.atMs;
             });
         };
+
+        /*
+         * Now those reports - shorter than the window - would not page on
+         * their own either: All Values waits for them to cover it (#4793).
+         */
+        expect(firingFor(WITHOUT_WINDOW_GATE, JUDGED_AS_NOW)).toEqual([]);
 
         const ungated: Array<number> = firingFor(WITHOUT_WINDOW_GATE);
         expect(ungated.length).toBeGreaterThan(0);
@@ -5658,14 +6049,28 @@ describe("Proxmox VE native push: Node Offline and Quorum at Risk end to end", (
         }
       });
 
-      test("Node Offline fires for node/pve3 after the outage — up since its middle", () => {
-        const firing: Array<number> = nodeOfflineForPve3After(run);
-        expect(firing.length).toBeGreaterThan(0);
+      test("Node Offline fired for node/pve3 after the outage — up since its middle — before #4793; now the reports, shorter than the window, never cover it", () => {
+        const firedBefore4793: Array<number> = oracleVerdicts(
+          run,
+          ticksFrom(run, OUTAGE.toMs),
+          DESIGN_RULES,
+          JUDGED_BEFORE_4793,
+        )
+          .filter((verdict: Verdict) => {
+            return verdict.offlineIds.includes("node/pve3");
+          })
+          .map((verdict: Verdict) => {
+            return verdict.atMs;
+          });
+        expect(firedBefore4793.length).toBeGreaterThan(0);
         const pve3Back: NodeStatusPushRecord = firstPushBack(run, "pve3");
-        for (const atMs of firing) {
+        for (const atMs of firedBefore4793) {
           expect(atMs).toBeGreaterThan(firstPushBack(run, null).receiveMs);
           expect(atMs).toBeLessThan(pve3Back.receiveMs + 2 * MINUTE_MS);
         }
+
+        // All Values now waits for them to cover the window (#4793).
+        expect(nodeOfflineForPve3After(run)).toEqual([]);
       });
 
       test("the verdicts equal the oracle (which replays the database's clock) on every evaluation", () => {
