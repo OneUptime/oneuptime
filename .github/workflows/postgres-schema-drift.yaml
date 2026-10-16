@@ -1022,6 +1022,23 @@ jobs:
           Tests/Server/Services/PermissionBlockDeletionPostgres.test.ts
           --forceExit
 
+      # Custom roles end to end: roles, their permissions and the teams given
+      # them written through the real services, every team's copies kept by
+      # the real sync, the grant ceiling, the cascades the migrations
+      # declared, and a member's permissions through a role compared with
+      # the same permissions given directly.
+      - name: Test custom roles on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CUSTOM_ROLE_TESTS: "true"
+          CUSTOM_ROLE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CUSTOM_ROLE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CUSTOM_ROLE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/CustomRolesPostgres.test.ts
+          --forceExit
+
       - name: Test project data residency on migrated Postgres
         working-directory: packages/Common
         env:

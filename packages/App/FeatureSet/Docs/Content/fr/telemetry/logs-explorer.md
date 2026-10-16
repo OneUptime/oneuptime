@@ -1,0 +1,178 @@
+# Explorateur de journaux
+
+L'explorateur de journaux est l'endroit où vous cherchez et lisez les journaux que vos services, vos hôtes et vos agents envoient à OneUptime. Réduisez des millions de lignes aux quelques-unes qui comptent, suivez les nouvelles à mesure qu'elles arrivent, représentez-les en graphiques et enregistrez les vues auxquelles votre équipe revient.
+
+:::cards
+- [Trouver une ligne de journal](#trouver-une-ligne-de-journal): Une plage de temps, une recherche et quelques filtres.
+- [Lire un journal](#lire-un-journal): Ses attributs, sa trace et les lignes qui l'entourent.
+- [Suivre les journaux en direct](#suivre-les-journaux-en-direct): De nouvelles lignes toutes les 10 secondes.
+- [Enregistrer une vue](#enregistrer-une-vue): Garder une recherche, ses filtres et ses colonnes pour tout le monde.
+- [Analyses des journaux](#analyses-des-journaux): Erreurs principales, gravités et qui journalise quoi.
+:::
+
+## Comment l'explorateur réduit vos journaux
+
+Tout l'onglet **Lecteur** travaille sur un seul ensemble de journaux : ceux de la plage de temps qui correspondent à votre recherche et à chaque puce de filtre. Changez l'un d'eux, et la liste, le graphique de volume et les compteurs de la barre latérale changent ensemble.
+
+```mermaid title="Comment le Lecteur réduit vos journaux"
+flowchart TB
+    all["Chaque journal de<br/>la plage de temps"] --> search["Votre recherche,<br/>par ex. severity:error"]
+    search --> chips["Vos puces de filtre,<br/>par ex. un service"]
+    chips --> list["Liste : récents d'abord,<br/>100 par page"]
+    chips --> chart["Analytique : comptes<br/>et valeurs principales"]
+    list --> details["Un journal : détails<br/>et contexte"]
+```
+
+L'explorateur a quatre onglets :
+
+| Onglet | À quoi il sert |
+| --- | --- |
+| **Lecteur** | Chercher, filtrer et lire les journaux. Il s'ouvre sur la dernière heure, les plus récents d'abord, 100 journaux par page. |
+| **Analyses** | Ce que vos services ont journalisé sur une plage de temps, et ce qui a mal tourné. |
+| **Guide de configuration** | Comment envoyer des journaux avec OpenTelemetry, Fluent Bit ou Fluentd, avec l'une de vos clés d'ingestion. |
+| **Paramètres** | Ce qui arrive aux journaux à leur arrivée : **Pipelines**, **Filtres de suppression**, **Règles de masquage** et **Règles d'enregistrement**. |
+
+## Avant de commencer
+
+- **Des journaux qui arrivent.** Envoyez-les avec [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) ou [Syslog](/docs/telemetry/syslog). L'onglet **Guide de configuration** montre la configuration pour votre langage ou votre collecteur.
+- **Un rôle qui peut lire la télémétrie.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou un rôle personnalisé avec la permission Read Telemetry Service Log. Sa portée décide de quels journaux vous voyez : voir [Télémétrie](/docs/permissions/index#télémétrie).
+
+## Trouver une ligne de journal
+
+:::steps
+### Ouvrir le Lecteur
+
+Ouvrez **Produits → Observabilité → Journaux**. Le **Lecteur** liste les journaux de la dernière heure, les plus récents d'abord, avec leur **Heure**, leur **Service**, leur **Gravité** et leur **Message**.
+
+### Choisir la plage de temps
+
+Choisissez une plage dans le sélecteur de temps, ou faites glisser la souris sur le graphique de volume au-dessus de la liste pour zoomer sur un pic. Double-cliquez sur le graphique pour dézoomer. Voir [Zoomer sur une plage temporelle](/docs/telemetry/charts-and-time-ranges).
+
+### Chercher
+
+Tapez une requête dans la zone de recherche et appuyez sur Entrée, par exemple `severity:error service:checkout timeout`. Les mots seuls cherchent dans le message, et `@key:value` cherche dans un attribut. Voir [Syntaxe de recherche](/docs/telemetry/search-syntax#journaux).
+
+### Affiner avec des filtres
+
+Cliquez sur une valeur de la barre latérale **Filtres** pour l'ajouter comme puce : une gravité, un service, ou un hôte, un cluster ou une autre ressource qui a envoyé des journaux. Chaque valeur indique combien de journaux la portent. Sur un téléphone, touchez **Filtres** pour ouvrir la barre latérale.
+
+### Ouvrir un journal
+
+Cliquez sur une ligne. Ses détails s'ouvrent à côté de la liste.
+:::
+
+Votre recherche, vos puces et la plage de temps sont gardées dans l'adresse de la page : un rafraîchissement, un favori ou un lien partagé ouvre les mêmes journaux.
+
+## Lire un journal
+
+Le panneau de détails a deux onglets :
+
+| Onglet | Ce qu'il montre |
+| --- | --- |
+| **Détails** | Le **Corps du journal**, son **ID de trace**, son **ID du span** et sa **Session** quand il en a, et ses **Attributs**, en liste ou en JSON. |
+| **Contexte** | Le journal parmi ses voisins. **À proximité (service + heure)** montre les cinq lignes avant et après lui du même service, et **This trace** montre jusqu'à 100 journaux de sa trace. |
+
+- Cliquez sur l'ID de trace pour ouvrir toute la requête dans l'[Explorateur de traces](/docs/telemetry/traces-explorer).
+- Pointez un attribut et cliquez sur son icône de filtre pour chercher cette valeur, ou copiez-la. Vous pouvez copier tous les attributs d'un coup en JSON.
+- **This trace** n'apparaît que pour un journal écrit à l'intérieur d'une trace.
+
+## Suivre les journaux en direct
+
+Cliquez sur **En direct** au-dessus de la liste. L'explorateur passe à la première page, triée des plus récents aux plus anciens, et cherche de nouveaux journaux toutes les 10 secondes, si bien que les lignes apparaissent à mesure que vos services les écrivent.
+
+Le mode direct se coupe tout seul quand vous changez la recherche, un filtre ou la plage de temps, ou passez à une autre page de résultats : il ne montre que les journaux les plus récents. Cliquez de nouveau sur **En direct** pour reprendre.
+
+## Choisir les colonnes et exporter
+
+- **Colonnes** choisit ce que la liste affiche. **Heure**, **Service**, **Gravité** et **Message** viennent en premier ; ajoutez **ID de trace**, **ID du span** ou n'importe quel attribut, déplacez les colonnes vers le haut ou le bas, ou revenez aux valeurs par défaut avec **Réinitialiser**.
+- **Export** télécharge les journaux de la page que vous regardez. **Exporter en CSV** écrit les colonnes affichées ; **Exporter en JSON** écrit chaque champ de chaque journal, avec tous ses attributs.
+
+## Enregistrer une vue
+
+Une vue enregistrée garde une recherche, ses puces de filtre, la plage de temps, les colonnes, le tri et la taille de page, sous un nom.
+
+:::steps
+### Préparer la vue
+
+Cherchez, filtrez et choisissez les colonnes que vous voulez garder.
+
+### L'enregistrer
+
+Ouvrez **Saved Views** et cliquez sur **+ Enregistrer la vue actuelle**. Saisissez un **Nom**, cochez **Définir par défaut** si cette vue doit s'ouvrir chaque fois que quelqu'un ouvre les journaux, et cliquez sur **Enregistrer la vue**.
+
+### L'utiliser
+
+Choisissez la vue dans **Saved Views** pour l'appliquer, et **Effacer la vue** pour revenir à la dernière heure sans filtre. Pointez une vue de la liste pour la **Modifier** ou la **Supprimer**, ou, tant qu'elle est appliquée, pour la **Mettre à jour** avec vos changements.
+:::
+
+Les vues enregistrées appartiennent au projet : tout le monde y voit la même liste. Une plage glissante comme la dernière heure reste glissante : la vue montre l'heure qui précède son ouverture, pas l'heure où vous l'avez enregistrée. Tant que le projet n'a pas de vue par défaut, la prochaine vue enregistrée le devient, et un projet n'a qu'une vue par défaut à la fois.
+
+## Représenter vos journaux en graphiques
+
+Passez la liste en **Analytique** pour compter les journaux au lieu de les lire. Choisissez une série temporelle, un classement ou un tableau ; comptez chaque journal, ou les valeurs uniques d'un champ ; et regroupez par gravité, service, trace, span ou n'importe quel attribut, puis par un second champ. Un classement ou un tableau montre les 5, 10, 25 ou 50 premiers groupes.
+
+Cliquez sur **Liste** pour revenir aux lignes elles-mêmes.
+
+## Ouvrir les traces et les métriques liées
+
+Les boutons **Traces** et **Métriques** à côté de **Saved Views** ouvrent l'[Explorateur de traces](/docs/telemetry/traces-explorer) ou l'[Explorateur de métriques](/docs/telemetry/metrics-explorer) sur la même fenêtre de temps, avec autant de votre filtrage que cet explorateur peut en utiliser. Pointez un bouton pour voir ce qu'il ne peut pas reprendre.
+
+## Analyses des journaux
+
+L'onglet **Analyses** montre ce que vos services ont journalisé sur une plage de temps, et ce qui a mal tourné. Limitez-le à certains services, hôtes ou clusters avec la liste déroulante à côté du sélecteur de temps.
+
+| Panneau | Ce qu'il montre |
+| --- | --- |
+| Cartes de synthèse | **Total des journaux**, **Erreurs**, **Erreurs distinctes** et **Reporting sources**. |
+| **Severity distribution** | La répartition des journaux par gravité. |
+| **Top errors** | Les messages distincts journalisés avec la gravité Error ou Fatal, les plus fréquents d'abord. |
+| **Sources reporting logs** | Le volume et le signal d'erreur de chaque service, hôte ou autre source. |
+
+Sélectionnez une erreur principale pour voir ce qui se passait autour : quand elle s'est produite, ce que ses occurrences ont en commun, où elle se produit, les traces qui la portent et ses lignes les plus récentes. **Ouvrir les journaux correspondants** les ouvre dans le **Lecteur**, et **Explain with AI** ouvre [Ask AI](/docs/ai/ask-ai) avec l'erreur et ses éléments de preuve comme invite modifiable.
+
+## Ce qui arrive aux journaux à leur arrivée
+
+L'onglet **Paramètres** contient les règles que OneUptime applique à chaque journal avant de le stocker. Elles agissent sur les journaux qui arrivent ensuite, pas sur ceux déjà stockés.
+
+| Règle | Ce qu'elle fait |
+| --- | --- |
+| **Filtres de suppression** | Écarter les journaux que vous ne voulez pas garder, ou n'en garder qu'un échantillon. |
+| **Règles de masquage** | Masquer les données sensibles, comme les adresses e-mail et les numéros de carte. |
+| **Pipelines** | Extraire des champs du message, corriger la gravité, renommer des attributs. Voir [Pipelines de journaux](/docs/telemetry/log-pipelines). |
+| **Règles d'enregistrement** | Transformer les journaux correspondants en métriques. Voir [Règles d'enregistrement de journaux](/docs/telemetry/log-recording-rules). |
+
+## Raccourcis clavier
+
+Appuyez sur `?` dans le Lecteur pour les voir.
+
+| Touche | Ce qu'elle fait |
+| --- | --- |
+| `j` / `k` | Passer au journal suivant ou précédent. |
+| Enter | Ouvrir ou fermer le journal sélectionné. |
+| Esc | Fermer le panneau de détails. |
+| `/` | Aller à la zone de recherche. |
+| ⌘ + Enter ou Ctrl + Enter | Appliquer la recherche. |
+| `?` | Afficher ou masquer les raccourcis. |
+
+## Dépannage
+
+:::details Aucun journal n'apparaît
+Élargissez d'abord la plage de temps : le Lecteur s'ouvre sur la dernière heure. Si la liste reste vide, comparez votre configuration avec le **Guide de configuration**, et vérifiez que la portée de votre rôle couvre le service qui envoie les journaux.
+:::
+
+:::details La recherche indique qu'elle a manqué de temps
+Une recherche qui dure plus de 45 secondes est arrêtée. Choisissez une plage de temps plus courte, ou ajoutez une valeur exacte comme un service, pour que OneUptime puisse utiliser son index. Voir [Syntaxe de recherche](/docs/telemetry/search-syntax#bon-à-savoir).
+:::
+
+:::details Le mode direct se coupe sans cesse
+Le mode direct ne suit que les journaux les plus récents : changer la recherche, un filtre, la plage de temps ou la page le coupe. Cliquez de nouveau sur **En direct** une fois vos filtres en place.
+:::
+
+## Étapes suivantes
+
+:::cards
+- [Syntaxe de recherche](/docs/telemetry/search-syntax): Chaque filtre que comprend la zone de recherche.
+- [Surveillance des journaux](/docs/monitor/logs-monitor): Être alerté quand les journaux que vous cherchez apparaissent.
+- [Pipelines de journaux](/docs/telemetry/log-pipelines): Transformer des parties d'une ligne de journal en attributs filtrables.
+- [Explorateur de traces](/docs/telemetry/traces-explorer): Suivre la requête d'un journal à travers vos services.
+:::

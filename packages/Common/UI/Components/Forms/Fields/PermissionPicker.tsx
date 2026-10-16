@@ -10,6 +10,7 @@ import React, {
   ReactElement,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -21,20 +22,31 @@ export interface ComponentProps {
   tabIndex?: number | undefined;
   onBlur?: (() => void) | undefined;
   error?: string | undefined;
+  /*
+   * Permissions not offered: a custom role's Add Permission leaves out
+   * Project Owner, which no custom role holds.
+   */
+  excludePermissions?: ReadonlyArray<Permission> | undefined;
 }
 
 const PermissionPicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const excludePermissions: ReadonlyArray<Permission> | undefined =
+    props.excludePermissions;
   const [selectedPermission, setSelectedPermission] =
     useState<Permission | null>(props.initialValue || null);
   const [activeGroup, setActiveGroup] = useState<PermissionGroup | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   const allPermissions: Array<PermissionProps> = useMemo(() => {
-    return PermissionHelper.getTenantPermissionProps();
-  }, []);
+    return PermissionHelper.getTenantPermissionProps().filter(
+      (props: PermissionProps): boolean => {
+        return !excludePermissions?.includes(props.permission);
+      },
+    );
+  }, [excludePermissions]);
 
   const groupedPermissions: Map<
     PermissionGroup,
@@ -74,6 +86,38 @@ const PermissionPicker: FunctionComponent<ComponentProps> = (
       setActiveGroup(groups[0]!);
     }
   }, [activeGroup, groups, props.initialValue]);
+
+  /*
+   * Opened on a permission already picked (an Edit), its group is shown and
+   * the list scrolls to it once, so the pick is in view and not some
+   * hundred rows down. Only the list scrolls: the dialog stays put.
+   */
+  const permissionListRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  const hasShownInitialValue: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  useEffect(() => {
+    const list: HTMLDivElement | null = permissionListRef.current;
+
+    if (hasShownInitialValue.current || !props.initialValue || !list) {
+      return;
+    }
+
+    const picked: HTMLElement | null = list.querySelector<HTMLElement>(
+      '[aria-pressed="true"]',
+    );
+
+    if (!picked) {
+      return;
+    }
+
+    hasShownInitialValue.current = true;
+    list.scrollTop = Math.max(
+      0,
+      picked.offsetTop - (list.clientHeight - picked.offsetHeight) / 2,
+    );
+  }, [activeGroup, props.initialValue]);
 
   const isSearching: boolean = searchQuery.trim().length > 0;
   const lowerQuery: string = searchQuery.toLowerCase();
@@ -205,7 +249,11 @@ const PermissionPicker: FunctionComponent<ComponentProps> = (
           </div>
 
           {/* Right panel - permissions */}
-          <div className="flex-1 overflow-y-auto">
+          <div
+            ref={permissionListRef}
+            className="relative flex-1 overflow-y-auto"
+            data-testid="permission-picker-list"
+          >
             {visiblePermissions.length === 0 && (
               <div className="flex items-center justify-center h-full text-gray-400 text-sm">
                 {translator.translateText(
@@ -223,6 +271,8 @@ const PermissionPicker: FunctionComponent<ComponentProps> = (
                 <button
                   key={perm.permission}
                   type="button"
+                  // Which one is picked, for a screen reader as for the eye.
+                  aria-pressed={isSelected}
                   className={`w-full text-left px-4 py-2.5 border-b border-gray-100 transition-colors ${
                     isSelected
                       ? "bg-indigo-50 border-l-2 border-l-indigo-500"

@@ -1,0 +1,145 @@
+# Unntakssporing
+
+Unntakssporing samler feilene koden din kaster, og grupperer hver forekomst av den samme feilen i ett unntak, med stack trace, utvikling og forespørslene det skjedde i. Gå gjennom dem som en oppgaveliste: rett, løs eller arkiver støyen, og la AI åpne en pull request for dem den kan rette.
+
+:::cards
+- [Hvor unntak kommer fra](#hvor-unntak-kommer-fra): Spans og logger tjenestene dine allerede sender.
+- [Gå gjennom listen](#gå-gjennom-listen): Det uløste først, støyen skjult.
+- [Siden til et unntak](#siden-til-et-unntak): Stack trace, forekomster og kontekst.
+- [Rett det med AI](#rett-det-med-ai): En pull request med rettingen, eller en regresjonstest.
+:::
+
+## Hvor unntak kommer fra
+
+Du sender ikke unntak for seg. OneUptime finner dem i telemetrien tjenestene dine allerede sender:
+
+- en unntakshendelse på et span, som er det `recordException()` i OpenTelemetry skriver;
+- en logg med attributtene `exception.type`, `exception.message` eller `exception.stacktrace`;
+- en logg med alvorlighetsgraden Error eller Fatal der meldingen inneholder en stack trace, når loggen ikke ble skrevet inne i et span (spannet melder det allerede).
+
+Hver forekomst grupperes med de tidligere forekomstene av samme feil i ett unntak:
+
+```mermaid title="Slik kommer en forekomst inn i unntaket sitt"
+flowchart TB
+    span["Unntakshendelse<br/>på et span"] --> fp["Fingeravtrykk: tjeneste,<br/>type, melding, stakk"]
+    log["Feillogg med<br/>en stack trace"] --> fp
+    fp --> seen{"Sett før?"}
+    seen -->|"Nei"| new["Nytt unntak,<br/>uløst"]
+    seen -->|"Ja"| count["Telt igjen; gjenåpnet<br/>hvis det var løst"]
+```
+
+- **Ett unntak per tjeneste og feil.** Fingeravtrykket lages fra tjenesten, unntakstypen, meldingen og stack trace. Verdier som endrer seg fra kall til kall, tas ut først: UUID-er og andre ID-er, tidsstempler, IP- og e-postadresser, og tall med sju sifre eller flere. Derfor er `Order id=1042 not found` og `Order id=2077 not found` ett unntak.
+- **En ny forekomst gjenåpner et løst unntak.** Skjer det igjen etter at du løste det, holdt ikke rettingen.
+- **Et arkivert unntak forblir arkivert.** De nye forekomstene telles fortsatt, men de sender ikke lenger varsler.
+
+> [!TIP]
+> For å holde en forventet feil utenfor unntakssporingen, som ugyldig inndata tjenesten din avviste, setter du attributtet `error.class` til `user-error` eller `expected-denial` på spannets unntakshendelse. Da registrerer ikke OneUptime noe unntak for den.
+
+## Før du begynner
+
+- **Spans eller logger som kommer inn.** Instrumenter tjenestene dine med [OpenTelemetry](/docs/telemetry/open-telemetry). Fanen **Oppsettveiledning** viser koden for språket ditt.
+- **En rolle som kan lese telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en egendefinert rolle med tillatelsen Read Telemetry Service Exception. Å løse og arkivere krever Project Owner eller Project Admin, eller tillatelsen Edit Telemetry Service Exception.
+
+## Gå gjennom listen
+
+:::steps
+### Åpne unntak
+
+Gå til **Produkter → Observerbarhet → Unntak**. Merket på fanen **Unntak** teller de uløste problemene, og listen åpnes på unntakene under **Uløst**.
+
+### Velg en status
+
+Bytt mellom **Uløst**, **Løst**, **Arkivert** og **Alle**. Diagrammet over listen viser hvor mange forekomster som var **Uhåndtert**, og hvor mange som var **Håndtert** over tid.
+
+### Velg hva som teller som et problem
+
+**Problemer**, som er standard, skjuler brukerfeil og forventede avvisninger, slik at listen viser det som trenger retting. **User errors** viser bare dem, og **Alle** viser alle unntak.
+
+### Søk og filtrer
+
+Skriv et søk som `type:TypeError env:production`, se [Søkesyntaks](/docs/telemetry/search-syntax#unntak), eller klikk på en verdi i sidepanelet **Filtre**: en tjeneste, en vert eller en annen ressurs, en **Unntakstype**, et **Miljø** eller en **Error Class**.
+
+### Åpne et unntak
+
+Klikk på en rad for å åpne siden til unntaket.
+:::
+
+## Siden til et unntak
+
+Sidemenyen på siden samler det du gjør med et unntak:
+
+| Side | Hva den viser |
+| --- | --- |
+| **Oversikt** | Meldingen, tjenesten, hvor ofte det skjedde og når det først og sist ble sett, utviklingen over tid, og den siste forekomsten: release, miljø, span, spor og brukerøkt. |
+| **Stack trace** | Rammene i stakken. For nettleserkode de opprinnelige filene og linjene, når du har lastet opp [Source maps](/docs/telemetry/source-maps) for releasen. |
+| **Occurrences** | Hver forekomst, med tidspunkt, melding og sporet den skjedde i. |
+| **Context** | Attributtene til den siste forekomsten, øktopptaket når det finnes, og trinnene som førte frem til den. |
+| **Logger** | Loggene som ble skrevet rundt den siste forekomsten. |
+| **AI Assistance** | AI-oppgaver som retter unntaket eller tester det. |
+| **Innstillinger** | Løs eller arkiver unntaket. Den ligger under **Manage**, som er lukket i starten. |
+
+## Løs, gjenåpne og arkiver
+
+Knappene øverst på siden til unntaket, og siden **Innstillinger**, endrer statusen:
+
+| Handling | Når du bruker den | Hva som skjer etterpå |
+| --- | --- | --- |
+| **Løs** | Du har rullet ut rettingen. | Det forlater listen **Uløst**. En ny forekomst gjenåpner det. |
+| **Reopen** | Rettingen virket ikke. | Det er uløst igjen. |
+| **Arkiver** | Det er støy du ikke tenker å rette. | Det forlater listen. Nye forekomster telles, men sender ikke lenger varsler. |
+| **Fjern fra arkiv** | Du vil høre om det igjen. | Det er tilbake i listen det hører hjemme i. |
+
+**Innstillinger** viser hvem som sist løste eller arkiverte unntaket, og når. Knappene der heter **Merk som løst** eller **Merk som uløst**, og **Arkiver** eller **Fjern fra arkiv**.
+
+## Feilklasser
+
+Hvert unntak har en feilklasse, som sier hvem sitt problem det er. OneUptime AI setter den når den går gjennom en innsikt om unntaket, som et nytt unntak eller et som øker kraftig: se [AI SRE](/docs/ai/ai-sre#innsikt-proaktiv-oppdagelse). Et unntak den ikke har gått gjennom, forblir `unknown`.
+
+| Klasse | Hva den betyr | I **Problemer** |
+| --- | --- | --- |
+| `code-fault` | En feil i koden. Den eneste klassen AI retter på egen hånd. | Ja |
+| `infrastructure` | Et tidsavbrudd, en brutt forbindelse eller oppbrukte ressurser. | Ja |
+| `unknown` | Ikke klassifisert ennå. | Ja |
+| `user-error` | Resultatet av ugyldig inndata fra en bruker. | Nei |
+| `expected-denial` | En kontroll som gjør jobben sin, som en avvist pålogging. | Nei |
+
+Med **Arkiver forventede unntak** slått på, i innstillingene for AI-innsikt, arkiveres unntak som gjennomgangen finner ut er forventede avvisninger, for deg.
+
+## Rett det med AI
+
+Siden **AI Assistance** tilbyr tre oppgaver. Hver kjører som en AI-oppgave som åpner en pull request i kodelageret ditt:
+
+| Oppgave | Hva pull requesten gjør |
+| --- | --- |
+| **Fix this exception with AI** | Retter rotårsaken. Start den med **Fix with AI**. |
+| **Generate Regression Test** | Legger til en test som feiler til feilen er rettet. |
+| **Improve Error Handling** | For forventede feil: validerer inndata tidligere, holder brukerdata ute av meldinger og merker feilen som håndtert. |
+
+AI trenger tre ting først: en LLM-leverandør, et GitHub-lager koblet til via GitHub App, og en AI-agent på nett som kjører oppgaven. Siden sjekker hver av dem og lenker til det som mangler. Oppgavene står på pause mens unntaket er løst eller arkivert. Se [Rettingsoppgaver](/docs/ai/ai-agent).
+
+## Innsikt i unntak
+
+Fanen **Innsikt** teller unntakene dine under **Uløst**, **Løst** og **Arkivert** og løsningsraten din, og viser de vanligste unntakene, tjenestene de rammer og de som sist ble sett.
+
+## Feilsøking
+
+:::details Et unntak jeg nettopp kastet, er ikke i listen
+Sjekk visningen først: **Problemer** skjuler brukerfeil og forventede avvisninger, så velg **Alle**. Utvid deretter tidsintervallet, og kontroller at unntaket ble registrert på et span eller i en logg med en stack trace.
+:::
+
+:::details Én feil vises som flere unntak
+Fingeravtrykket inkluderer meldingen og stack trace. Når de er forskjellige, for eksempel når en melding inneholder et kort tall eller et navn som endrer seg ved hvert kall, er hver variant et eget unntak.
+:::
+
+:::details Et løst unntak kommer stadig tilbake
+En ny forekomst gjenåpner et løst unntak med vilje: feilen skjer fortsatt. Kontroller at rettingen nådde releasen som rapporterer den, eller arkiver unntaket hvis du ikke lenger vil høre om det.
+:::
+
+## Neste steg
+
+:::cards
+- [Unntak-overvåking](/docs/monitor/exceptions-monitor): Få varsel når unntak øker kraftig.
+- [Source maps](/docs/telemetry/source-maps): Lesbare stack traces for nettleserkode.
+- [Rettingsoppgaver](/docs/ai/ai-agent): Hvordan AI retter kode og åpner pull requests.
+- [Sporutforsker](/docs/telemetry/traces-explorer): Se forespørselen et unntak skjedde i.
+:::

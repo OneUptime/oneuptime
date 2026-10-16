@@ -37,6 +37,7 @@ flowchart TB
 | Team | En navngivet gruppe i et projekt, der bærer tilladelser. |
 | Teammedlem | En bruger, der er inviteret til et team og har accepteret. |
 | Tilladelse | Én enkelt evne, f.eks. `CreateProjectMonitor`, eller en rolle, der samler mange, f.eks. `MonitorAdmin`. |
+| Brugerdefineret rolle | Et sæt tilladelser, du navngiver én gang og giver til teams. |
 | Omfang | Hvor langt en tilladt rettighed rækker: alle ressourcer, kun ejede eller kun mærkede. |
 | Ejer | En bruger eller et team, der er markeret som ansvarlig for én bestemt ressource. |
 | Label | Et mærke, du sætter på ressourcer, brugt til at begrænse tilladelser og til at organisere. |
@@ -131,6 +132,24 @@ En tilladelse til at ændre eller slette noget når kun det, du også må læse,
 Det er også de nøgler, du bruger, når du opretter API-nøgler, og dem, API'et og Terraform-provideren forventer.
 
 Den fulde liste står i [Tilladelsesreferencen](/docs/permissions/reference).
+
+### Brugerdefinerede roller
+
+En brugerdefineret rolle er et sæt tilladelser, du navngiver én gang og giver til teams: fx en "Hændelsesansvarlig" med `IncidentMember`, `AlertMember` og `OnCallViewer` eller en "Teamleder". Hvert team, du giver den, får de samme tilladelser, og du ændrer dem for alle de teams ét sted. På OneUptime Cloud kræver brugerdefinerede roller Scale-planen, ligesom det at ændre et teams tilladelser.
+
+:::steps
+1. Åbn **Teams** i menuen **Produkter** under **Indstillinger**, derefter **Roller**, og klik på **Opret Brugerdefineret rolle**.
+2. Skriv dens **Navn**, og vælg under **Tilladelser** de indbyggede roller, den samler, for hver ressource i projektet. Beskrivelsen ligger under **Flere felter**.
+3. Opret rollen. Den åbner på sin side, hvor **Tilføj rolle** tilføjer endnu en indbygget rolle og **Tilføj tilladelse** (i menuen **⋯** på kortet) en enkelt tilladelse, hver med et omfang og etiketter, som på et team.
+4. Klik på **Giv til et team** under **Teams med denne rolle**. Et teams side **Tilladelser** har også **Tilføj brugerdefineret rolle**, og **Opret team** tilbyder under **Adgang** de brugerdefinerede roller, du kunne give.
+:::
+
+- Et teams medlemmer får hver tilladelse fra teamets brugerdefinerede roller, med samme omfang og samme etiketter, præcis som hvis teamet selv havde dem. En blokering på teamet vinder stadig.
+- En rolle forbliver knyttet til de teams, der har den: en ændring af den når dem alle med det samme, og rollens side fortæller, hvor mange teams og personer det er. **Fjern** tager rollen fra ét team. Sletter du selve rollen, mister hvert team, der har den, dens tilladelser; teamene beholder deres medlemmer og deres andre roller og tilladelser.
+- Du kan kun lægge i en rolle, og give et team som rolle, hvad du kunne give teamet direkte: en rolle med en tilladelse, du ikke har med samme eller et bredere omfang, afvises, og afvisningen nævner tilladelsen. En rolle indeholder aldrig `ProjectOwner`, og **Owners** og **Admin** får aldrig en.
+- Et teams side **Tilladelser** viser dets brugerdefinerede roller over dets egne tilladelser. Hvad en rolle giver, ændres på rollens side, ikke på teamets.
+- API-nøgler tager ikke brugerdefinerede roller. En nøgle tjener én integration, så giv den præcis de tilladelser, den har brug for, på dens egen side.
+- De indbyggede roller står under **Indbyggede roller** nederst på siden **Roller**.
 
 ### Tillad og blokér
 
