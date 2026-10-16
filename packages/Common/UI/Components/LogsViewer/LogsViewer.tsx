@@ -177,8 +177,18 @@ export interface ComponentProps {
   onHistogramTimeRangeSelect?: (startTime: Date, endTime: Date) => void;
   facetData?: FacetData;
   facetLoading?: boolean;
+  /*
+   * A facet value that is not filtering was clicked: add its chip. A click
+   * on a checked value takes its chip off through onRemoveFilter instead,
+   * so adding a chip that is already there should change nothing.
+   */
   onFacetInclude?: (facetKey: string, value: string) => void;
-  onFacetExclude?: (facetKey: string, value: string) => void;
+  /*
+   * Leave a facet value's rows out. Only a host whose list, chart and
+   * counts can all leave a value out passes this: without it the facet rows
+   * carry no exclude button.
+   */
+  onFacetExclude?: ((facetKey: string, value: string) => void) | undefined;
   /*
    * Debounced search emit for resource facets (serviceId / hostId / etc.).
    * Parent updates state and re-fetches facets so the result includes
@@ -1371,7 +1381,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               kubernetesClusterMap={kubernetesClusterMap}
               entityNameMap={entityNameMap}
               onIncludeFilter={props.onFacetInclude || (() => {})}
-              onExcludeFilter={props.onFacetExclude || (() => {})}
+              onExcludeFilter={props.onFacetExclude}
+              onRemoveFilter={props.onRemoveFilter || (() => {})}
               activeFilters={props.activeFilters}
               savedViews={props.savedViews}
               selectedSavedViewId={props.selectedSavedViewId}

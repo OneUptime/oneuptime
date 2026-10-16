@@ -211,7 +211,7 @@ A field is either a short name (`severity`, `class`, `category`, `activity`, `st
 
 ### Facets
 
-The sidebar counts the window's events by **Source**, **Severity**, **Event Class**, **Category**, **Activity**, **Status**, **Vendor**, **Product**, **Detection Rule**, **Principal User** and **Principal Host**. Click a value to keep only its events, or the minus beside it to leave them out. The chart and every count describe exactly the events in the list.
+The sidebar counts the window's events by **Source**, **Severity**, **Event Class**, **Category**, **Activity**, **Status**, **Vendor**, **Product**, **Detection Rule**, **Principal User** and **Principal Host**. Click a value to keep only its events, or the minus beside it to leave them out. Click it again to undo. The chart and every count describe exactly the events in the list.
 
 ### Correlate
 

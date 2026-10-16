@@ -335,7 +335,8 @@ describe("scheduled maintenance overview: columns", () => {
 
   test("refreshes the feed after state changes and edits", () => {
     expect(page).toContain("refreshToken={feedRefreshToken}");
-    expect(count(page, "setFeedRefreshToken((token: number) => {")).toBe(3);
+    // State changes, two edits, and people added to the event's channel.
+    expect(count(page, "setFeedRefreshToken((token: number) => {")).toBe(4);
     expect(feed).toContain("refreshToken?: number | undefined;");
     expect(feed).toContain("refreshToken: props.refreshToken,");
   });

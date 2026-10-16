@@ -102,6 +102,8 @@ export const SCHEDULED_MAINTENANCE_FEED_KINDS: Record<
     SHARED_FEED_ENTRY_KINDS.OwnerRuleExecuted,
   [ScheduledMaintenanceFeedEventType.LabelRuleExecuted]:
     SHARED_FEED_ENTRY_KINDS.LabelRuleExecuted,
+  [ScheduledMaintenanceFeedEventType.ChannelMemberAdded]:
+    SHARED_FEED_ENTRY_KINDS.ChannelMemberAdded,
 };
 
 export const SCHEDULED_MAINTENANCE_FEED_ICONS: Record<

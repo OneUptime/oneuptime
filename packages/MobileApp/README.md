@@ -249,6 +249,15 @@ Without the OS capability the app does not pretend: the settings screen reads
 the real state back from the OS and tells the responder which setting is
 missing.
 
+Nor does the server. The app tells it what the phone will really do with a
+critical page - on only while the switch is on and the OS allows it - in every
+registration, when the switch moves, and whenever it changes without the
+responder (critical alerts turned off in iOS Settings, Do Not Disturb access
+taken away), on start and on every return to the app. So the Dashboard's
+device list, its test notification and every on-call page follow the phone.
+Writes to the server go through one queue, so a report never lands the state
+from before the switch moved. See `src/notifications/criticalAlertsReport.ts`.
+
 On iOS, Settings has a **Critical Alerts** switch for the app only once an
 entitled build has asked for the permission, which happens when the in-app
 setting is turned on. Until then iOS reports critical alerts as not supported

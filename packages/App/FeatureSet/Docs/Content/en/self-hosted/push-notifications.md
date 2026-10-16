@@ -121,7 +121,7 @@ flowchart TB
 
 Four things must all be true for a page to override silent mode. If any one is missing, the page is still delivered - just quietly.
 
-1. **The responder turned it on for that device.** Stored per device, off by default, in `UserPush.isCriticalAlertEnabled`. A responder's phone and their tablet are separate decisions.
+1. **The responder turned it on for that device.** Stored per device, off by default, in `UserPush.isCriticalAlertEnabled`. A responder's phone and their tablet are separate decisions. Versions of the app newer than 1.6.0 report it again each time they are opened, as off while the phone's own settings do not allow critical alerts, so the device list shows what the phone will really do.
 2. **The on-call rule that sent the page asks for it.** Under **User Settings > On-Call Rules**, every rule that notifies a phone is set to Critical alert, the default, or Standard, which follows the phone's sound settings - so a responder can be woken for a critical incident and paged quietly for a minor one. Stored per rule in `UserNotificationRule.pushNotificationLevel`.
 3. **The server marks the page critical.** It sends the APNs critical sound payload plus `interruptionLevel: critical` for iOS, and targets a critical notification channel for Android: `oncall_critical`, or the chosen alarm's own channel (see [Choosing the alarm sound](#choosing-the-alarm-sound)).
 4. **The operating system allows it**, which is where the two platforms differ.
@@ -192,7 +192,7 @@ A push rule can send its page again until somebody acknowledges it. Under **User
 - **iOS**: confirm the build carries Apple's critical alerts entitlement (see above), and that Critical Alerts is allowed under iOS Settings > Notifications > OneUptime On-Call
 - **Android**: confirm the app has Do Not Disturb access under Settings > Notifications > Do Not Disturb access
 - **Android**: if you chose an alarm sound, its own notification channel must be allowed to override Do Not Disturb too; the app's Alarm sound screen says when it is not
-- The settings screen states which of these is missing; it reads the current state back from the OS rather than trusting what the app last requested
+- The settings screen states which of these is missing; it reads the current state back from the OS rather than trusting what the app last requested, and tells the server what it finds
 
 ### Pushes marked "not delivered"
 

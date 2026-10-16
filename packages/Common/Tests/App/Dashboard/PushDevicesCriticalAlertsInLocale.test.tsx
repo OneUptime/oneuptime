@@ -7,11 +7,14 @@ import fs from "fs";
 import path from "path";
 import * as React from "react";
 import PushDeviceCriticalAlertStatus from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/PushDeviceCriticalAlertStatus";
-import PushDeviceCriticalAlertSteps from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/PushDeviceCriticalAlertSteps";
+import PushDeviceCriticalAlertSteps, {
+  CriticalAlertTestDidNotRingHint,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/PushDeviceCriticalAlertSteps";
 import {
   CRITICAL_ALERT_HOW_TO_HEAR_IT,
   CRITICAL_ALERT_ONCE_ON,
   CRITICAL_ALERT_STEPS,
+  CRITICAL_ALERT_TEST_DID_NOT_RING,
   CriticalAlertDeviceState,
   MOBILE_APP_LABELS,
   PushDevicePlatform,
@@ -246,6 +249,46 @@ describe.each(LANGUAGES)("in %s", (language: string) => {
       MOBILE_APP_LABELS.notificationsSection,
       MOBILE_APP_LABELS.alarmSoundRow,
     ]);
+  });
+
+  /*
+   * Under a test that went to a phone as a critical alert: where to look
+   * when it did not ring through. The locale's sentence, naming the app's
+   * labels as the app draws them - a German reader looks for "Settings" in
+   * the app, not "Einstellungen".
+   */
+  test("a critical test's did-not-ring line is the locale's sentence, with the app's labels as the app draws them", async () => {
+    await inLanguage(language);
+
+    render(<CriticalAlertTestDidNotRingHint />);
+
+    expect({
+      translated:
+        LOCALES[language]![CRITICAL_ALERT_TEST_DID_NOT_RING] !==
+        CRITICAL_ALERT_TEST_DID_NOT_RING,
+    }).toEqual({ translated: true });
+
+    const hint: HTMLElement = screen.getByTestId(
+      "test-notification-did-not-ring",
+    );
+
+    expect(hint.textContent).toBe(
+      expectedStep(language, CRITICAL_ALERT_TEST_DID_NOT_RING),
+    );
+    expect(
+      Array.from(hint.querySelectorAll("strong"))
+        .map((label: Element): string => {
+          return label.textContent || "";
+        })
+        .sort(),
+    ).toEqual(
+      [
+        MOBILE_APP_LABELS.appName,
+        MOBILE_APP_LABELS.settingsTab,
+        MOBILE_APP_LABELS.criticalAlertsSwitch,
+      ].sort(),
+    );
+    expect(hint.textContent).not.toContain("{{");
   });
 
   test("a browser's steps name the address the app connects to, unchanged by the locale", async () => {

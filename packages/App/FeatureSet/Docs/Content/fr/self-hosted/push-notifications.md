@@ -121,7 +121,7 @@ flowchart TB
 
 Quatre conditions doivent toutes être remplies pour qu'une alerte outrepasse le mode silencieux. S'il en manque une, l'alerte est quand même livrée – simplement en silence.
 
-1. **La personne l'a activé pour cet appareil.** Enregistré par appareil, désactivé par défaut, dans `UserPush.isCriticalAlertEnabled`. Le téléphone et la tablette d'une même personne sont des décisions distinctes.
+1. **La personne l'a activé pour cet appareil.** Enregistré par appareil, désactivé par défaut, dans `UserPush.isCriticalAlertEnabled`. Le téléphone et la tablette d'une même personne sont des décisions distinctes. Les versions de l'application postérieures à 1.6.0 le signalent de nouveau à chaque ouverture, comme désactivé tant que les réglages du téléphone lui-même n'autorisent pas les alertes critiques, afin que la liste des appareils montre ce que le téléphone fera vraiment.
 2. **La règle d'astreinte qui a envoyé l'alerte le demande.** Sous **Paramètres utilisateur > Règles d'astreinte**, chaque règle qui notifie un téléphone est réglée sur « Alerte critique », la valeur par défaut, ou sur « Standard », qui suit les réglages sonores du téléphone – ainsi une personne peut être réveillée pour un incident critique et prévenue en silence pour un incident mineur. Enregistré par règle dans `UserNotificationRule.pushNotificationLevel`.
 3. **Le serveur marque l'alerte comme critique.** Il envoie la charge utile de son critique d'APNs plus `interruptionLevel: critical` pour iOS, et cible un canal de notification critique pour Android : `oncall_critical`, ou le canal propre à l'alarme choisie (voir [Choisir le son d'alarme](#choisir-le-son-dalarme)).
 4. **Le système d'exploitation l'autorise**, et c'est là que les deux plateformes diffèrent.
@@ -192,7 +192,7 @@ Une règle push peut renvoyer son alerte jusqu'à ce que quelqu'un la prenne en 
 - **iOS** : confirmez que la compilation porte l'entitlement d'alertes critiques d'Apple (voir ci-dessus), et que Critical Alerts est autorisé sous iOS Settings > Notifications > OneUptime On-Call
 - **Android** : confirmez que l'application a l'accès à Ne pas déranger sous Settings > Notifications > Do Not Disturb access
 - **Android** : si vous avez choisi un son d'alarme, le canal de notification propre à ce son doit lui aussi être autorisé à outrepasser Ne pas déranger ; l'écran Alarm sound de l'application indique quand ce n'est pas le cas
-- L'écran de réglages indique lequel de ces éléments manque ; il relit l'état actuel auprès du système plutôt que de se fier à ce que l'application a demandé en dernier
+- L'écran de réglages indique lequel de ces éléments manque ; il relit l'état actuel auprès du système plutôt que de se fier à ce que l'application a demandé en dernier, et indique au serveur ce qu'il trouve
 
 ### Push marqués « non livrés »
 

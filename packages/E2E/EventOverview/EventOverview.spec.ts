@@ -9639,10 +9639,12 @@ test.describe("Open in Slack / Microsoft Teams", () => {
     await expect(slack).toHaveAttribute("target", "_blank");
     await expect(slack).toHaveAttribute("rel", "noopener noreferrer");
 
-    // Pointing at the button names the channel.
+    // Pointing at the button names the channel (the card names it too).
     await slack.hover();
     await expect(
-      page.getByText("#incident-1042-checkout-latency"),
+      page
+        .locator("[data-tippy-root]")
+        .getByText("#incident-1042-checkout-latency"),
     ).toBeVisible();
     await page.mouse.move(0, 0);
     await screenshotElement(hero(page), "incident-hero-open-in-chat");
@@ -9797,6 +9799,471 @@ test.describe("Open in Slack / Microsoft Teams", () => {
     await expectNoHorizontalOverflow(page);
     await page.mouse.move(0, 0);
     await screenshotElement(hero(page), "incident-hero-open-in-chat-mobile");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The record's channel card: who is in its channel, Join channel, Add people
+ * ---------------------------------------------------------------------------
+ *
+ * The customer: "if all users leave a private channel, can someone re-enter
+ * or invite others without requiring assistance from a Slack workspace
+ * admin?" A record with a channel of its own shows a card beside its call:
+ * the channel, the people in it, and - for somebody who may edit the record -
+ * Join channel and Add people, which have the OneUptime app invite them.
+ * The fixture answers GET /workspace-channel-members (?members=) and POST
+ * .../add; Maya Chen is the viewer.
+ */
+
+const MAYA_ID: string = uuid("80000000", 1);
+const SAM_ID: string = uuid("80000000", 2);
+const ALEX_ID: string = uuid("80000000", 4);
+
+function channelCard(page: Page): Locator {
+  return page.getByTestId("record-channel-members-card");
+}
+
+async function channelAdds(
+  page: Page,
+): Promise<Array<Record<string, unknown>>> {
+  return page.evaluate((): Array<Record<string, unknown>> => {
+    return JSON.parse(
+      JSON.stringify(
+        (
+          window as unknown as {
+            __eventOverviewFixture: {
+              channelAdds: Array<Record<string, unknown>>;
+            };
+          }
+        ).__eventOverviewFixture.channelAdds,
+      ),
+    ) as Array<Record<string, unknown>>;
+  });
+}
+
+test.describe("the record's channel card", () => {
+  test("no channel of its own: no card, and nothing asked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    await expect(channelCard(page)).toHaveCount(0);
+    expect(
+      await apiRequestsTo(
+        page,
+        `/workspace-channel-members/incident/${INCIDENT_ID}`,
+      ),
+    ).toHaveLength(0);
+  });
+
+  test("an incident's Slack channel: who is in it, and Join channel for a viewer who is not", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack");
+
+    const card: Locator = channelCard(page);
+    await expect(card.getByTestId("record-channel-person-name")).toHaveText([
+      "Jordan Patel",
+      "Priya from Support",
+      "Sam Rivera",
+    ]);
+    await expect(card.getByTestId("record-channel-meta")).toHaveText(
+      "Private channel · 3 people",
+    );
+    await expect(card.getByTestId("record-channel-name")).toHaveAttribute(
+      "href",
+      SLACK_CHANNEL_URL,
+    );
+    await expect(card.getByTestId("record-channel-not-in")).toHaveText(
+      "You're not in this channel.",
+    );
+    await expect(card.getByTestId("record-channel-join")).toBeVisible();
+    await expect(card.getByTestId("record-channel-add-people")).toBeVisible();
+    expect(
+      await apiRequestsTo(
+        page,
+        `/workspace-channel-members/incident/${INCIDENT_ID}`,
+      ),
+    ).toHaveLength(1);
+
+    await screenshotElement(card, "incident-channel-card");
+  });
+
+  test("everybody left the private channel: Join channel lets the viewer back in", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&members=empty");
+
+    const card: Locator = channelCard(page);
+    await expect(card.getByTestId("record-channel-nobody")).toHaveText(
+      "Nobody is in this channel.",
+    );
+    await screenshotElement(card, "incident-channel-card-empty");
+
+    await card.getByTestId("record-channel-join").click();
+
+    await expect(card.getByTestId("record-channel-join-result")).toContainText(
+      "You're in the channel now.",
+    );
+    await expect(card.getByTestId("record-channel-person-you")).toBeVisible();
+    await expect(card.getByTestId("record-channel-join")).toHaveCount(0);
+    expect(await channelAdds(page)).toEqual([
+      { channelId: "C0ACME0001", userIds: [MAYA_ID], teamIds: [] },
+    ]);
+
+    await screenshotElement(card, "incident-channel-card-joined");
+  });
+
+  test("Add people adds a person at once, and says who Slack does not know", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 1400 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack&members=empty");
+
+    const card: Locator = channelCard(page);
+    await card.getByTestId("record-channel-add-people").click();
+
+    const dialog: Locator = page.getByRole("dialog", { name: "Add people" });
+    await expect(dialog.getByRole("option").first()).toBeVisible();
+
+    await dialog.getByRole("option", { name: /Sam Rivera/ }).click();
+    await expect(card.getByTestId("record-channel-person-name")).toHaveText([
+      "Sam Rivera",
+    ]);
+    await expect(
+      dialog.getByRole("option", { name: /Sam Rivera/ }),
+    ).toHaveCount(0);
+    // Said where the pick was made, too.
+    await expect(dialog.getByTestId("people-search-notice-done")).toHaveText(
+      "Added Sam Rivera.",
+    );
+
+    await dialog.getByRole("option", { name: /Alex Kim/ }).click();
+    await expect(dialog.getByRole("alert")).toContainText(
+      "OneUptime can't find Alex Kim in Slack",
+    );
+
+    expect(await channelAdds(page)).toEqual([
+      { channelId: "C0ACME0001", userIds: [SAM_ID], teamIds: [] },
+      { channelId: "C0ACME0001", userIds: [ALEX_ID], teamIds: [] },
+    ]);
+
+    await screenshotElement(
+      page.locator("body"),
+      "incident-channel-card-add-people",
+    );
+  });
+
+  test("without permission to edit the incident: who to ask, and no buttons", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&members=readonly");
+
+    const card: Locator = channelCard(page);
+    await expect(card.getByTestId("record-channel-ask")).toHaveText(
+      "You're not in this channel. Ask someone who can edit this incident to add you.",
+    );
+    await expect(card.getByTestId("record-channel-join")).toHaveCount(0);
+    await expect(card.getByTestId("record-channel-add-people")).toHaveCount(0);
+  });
+
+  test("a channel the OneUptime app was removed from says so, and how to let it back in", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&members=unreachable");
+
+    await expect(
+      channelCard(page).getByTestId("record-channel-state"),
+    ).toContainText("/invite @OneUptime");
+    await expectNoErrorStates(page);
+  });
+
+  test("a Microsoft Teams channel says who can open it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=teams");
+
+    const card: Locator = channelCard(page);
+    await expect(card.getByTestId("record-channel-teams-note")).toHaveText(
+      "Everyone in Checkout SRE can open the channel.",
+    );
+    await expect(card.getByTestId("record-channel-add-people")).toHaveCount(0);
+    await expect(page.getByText("Microsoft Teams Channel")).toBeVisible();
+  });
+
+  test("a private Microsoft Teams channel says it is private once, then who adds people", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=teams&teamsPrivate=1");
+
+    const card: Locator = channelCard(page);
+    await expect(card.getByTestId("record-channel-meta")).toHaveText(
+      "Private channel",
+    );
+    await expect(card.getByTestId("record-channel-teams-note")).toHaveText(
+      "Only its members can open it. Its owners add people in Microsoft Teams.",
+    );
+  });
+
+  for (const channelPage of [
+    { eventPage: ALERT_PAGE, recordType: "alert" },
+    {
+      eventPage: SCHEDULED_MAINTENANCE_PAGE,
+      recordType: "scheduled-maintenance",
+    },
+    { eventPage: INCIDENT_EPISODE_PAGE, recordType: "incident-episode" },
+    { eventPage: ALERT_EPISODE_PAGE, recordType: "alert-episode" },
+  ]) {
+    test(`the ${channelPage.recordType} page has it too`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, channelPage.eventPage, "channels=slack");
+
+      await expect(
+        channelCard(page).getByTestId("record-channel-person-name"),
+      ).toHaveText(["Jordan Patel", "Priya from Support", "Sam Rivera"]);
+      expect(
+        await apiRequestsTo(
+          page,
+          `/workspace-channel-members/${channelPage.recordType}/${
+            new URL(page.url()).pathname.split("/").pop() || ""
+          }`,
+        ),
+      ).not.toHaveLength(0);
+    });
+  }
+
+  test("a phone shows the card without sideways scrolling", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack,slack2,teams");
+
+    await expect(channelCard(page).getByTestId("record-channel")).toHaveCount(
+      3,
+    );
+    await expectNoHorizontalOverflow(page);
+    await screenshotElement(channelCard(page), "incident-channel-card-mobile");
+  });
+
+  /*
+   * The UI review's polish: the buttons in the narrow column, what each pick
+   * in Add people came to, the card's own words when a read fails, the next
+   * step when Slack was taken off the project, and the keyboard after a join.
+   */
+  test("in the narrow column of a 1280px screen, Join channel and Add people each fill a row; on a phone they share one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack");
+
+    const actions: Locator = channelCard(page).getByTestId(
+      "record-channel-actions",
+    );
+    const join: Locator = actions.getByTestId("record-channel-join");
+    const addPeople: Locator = actions.getByTestId("record-channel-add-people");
+
+    await expect(addPeople).toBeVisible();
+
+    const row: { x: number; width: number } | null =
+      await actions.boundingBox();
+    const joinBox: { x: number; y: number; width: number } | null =
+      await join.boundingBox();
+    const addBox: { x: number; y: number; width: number } | null =
+      await addPeople.boundingBox();
+
+    // Stacked, each as wide as the column - not two ragged ends.
+    expect(addBox!.y).toBeGreaterThan(joinBox!.y);
+    expect(Math.abs(joinBox!.x - row!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(addBox!.x - row!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(joinBox!.width - row!.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(addBox!.width - row!.width)).toBeLessThanOrEqual(1);
+    await screenshotElement(channelCard(page), "incident-channel-card-1280");
+
+    // A phone's full-width card has room for both, side by side.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(async () => {
+      const phoneJoin: { y: number } | null = await join.boundingBox();
+      const phoneAdd: { y: number } | null = await addPeople.boundingBox();
+
+      expect(Math.abs(phoneJoin!.y - phoneAdd!.y)).toBeLessThanOrEqual(1);
+    }).toPass();
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("the video call card above it reads in lines in that column, its button under the words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack");
+
+    const empty: Locator = page.getByTestId("event-video-calls-empty");
+    const title: Locator = empty.getByText("No call yet");
+    const start: Locator = empty.getByTestId("event-video-call-start");
+
+    await expect(start).toBeVisible();
+
+    // Before, a row with the button beside it left the words a word a line.
+    const titleBox: { height: number; y: number } | null =
+      await title.boundingBox();
+    const startBox: { y: number } | null = await start.boundingBox();
+    const lineHeight: number = await title.evaluate(
+      (element: Element): number => {
+        return parseFloat(window.getComputedStyle(element).lineHeight);
+      },
+    );
+
+    expect(titleBox!.height).toBeLessThan(lineHeight * 1.5);
+    expect(startBox!.y).toBeGreaterThan(titleBox!.y + titleBox!.height);
+  });
+
+  test("a team picked in Add people: how many were added, and everyone Slack does not know, in one sentence", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 1400 });
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "channels=slack&members=empty&unknown=alex,jordan",
+    );
+
+    await channelCard(page).getByTestId("record-channel-add-people").click();
+
+    const dialog: Locator = page.getByRole("dialog", { name: "Add people" });
+    await dialog.getByRole("option", { name: /Checkout SRE/ }).click();
+
+    await expect(dialog.getByTestId("people-search-notice-done")).toHaveText(
+      "Added 2 people from Checkout SRE.",
+    );
+    await expect(dialog.getByRole("alert")).toHaveText(
+      "OneUptime can't find Jordan Patel and Alex Kim in Slack: their accounts aren't connected, and no Slack account has their email address. Ask them to connect Slack in User Settings.",
+    );
+    expect(await channelAdds(page)).toEqual([
+      { channelId: "C0ACME0001", userIds: [], teamIds: [uuid("81000000", 1)] },
+    ]);
+    await screenshotElement(dialog, "incident-channel-card-add-team");
+  });
+
+  test("a read that fails is said in the card's own words, with Try again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&fail=channel-members");
+
+    const box: Locator = channelCard(page).getByTestId(
+      "record-channel-read-error",
+    );
+
+    await expect(box.getByRole("alert")).toHaveText(
+      "Could not read who is in this channel. Slack could not be reached.",
+    );
+    await expect(channelCard(page).getByText("Refresh?")).toHaveCount(0);
+
+    const reads: number = (
+      await apiRequestsTo(
+        page,
+        `/workspace-channel-members/incident/${INCIDENT_ID}`,
+      )
+    ).length;
+
+    await box.getByRole("button", { name: "Try again" }).click();
+
+    await expect(async () => {
+      expect(
+        await apiRequestsTo(
+          page,
+          `/workspace-channel-members/incident/${INCIDENT_ID}`,
+        ),
+      ).toHaveLength(reads + 1);
+    }).toPass();
+  });
+
+  test("Slack taken off the project: Connect Slack goes to the project's Slack settings", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "channels=slack&members=not-connected",
+    );
+
+    const state: Locator = channelCard(page).getByTestId(
+      "record-channel-state",
+    );
+
+    await expect(state).toContainText("Slack isn't connected to this project.");
+    await expect(
+      state.getByRole("link", { name: "Connect Slack" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/settings/slack-integration`,
+    );
+  });
+
+  test("the command that lets the app back in reads as a command", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&members=unreachable");
+
+    const command: Locator = channelCard(page).locator("code");
+
+    await expect(command).toHaveText("/invite @OneUptime");
+    await expect(command).toHaveAttribute("dir", "ltr");
+  });
+
+  test("Join channel from the keyboard leaves focus on Open in Slack, the next step", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack");
+
+    const card: Locator = channelCard(page);
+
+    await card.getByTestId("record-channel-join").focus();
+    await page.keyboard.press("Enter");
+
+    const open: Locator = card.getByTestId("record-channel-open-after-join");
+
+    await expect(open).toBeFocused();
+    await expect(open).toHaveAttribute("href", SLACK_CHANNEL_URL);
+    await expect(card.getByTestId("record-channel-join")).toHaveCount(0);
+
+    await page.keyboard.press("Tab");
+    await expect(card.getByTestId("record-channel-add-people")).toBeFocused();
   });
 });
 

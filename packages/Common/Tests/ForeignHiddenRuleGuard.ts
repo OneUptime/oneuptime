@@ -113,9 +113,13 @@ const SKIPPED_DIRECTORIES: ReadonlySet<string> = new Set<string>([
   "build",
 ]);
 
-// The hand-converted state-variant sites the failure message points at.
+/*
+ * The hand-converted state-variant sites the failure message points at. The
+ * facet row's exclude button: the Logs sidebar's copy of the row
+ * (LogsViewer/components/FacetValueRow.tsx) was folded into this one.
+ */
 export const GROUP_HOVER_EXAMPLE_FILE: string =
-  "packages/Common/UI/Components/LogsViewer/components/FacetValueRow.tsx";
+  "packages/Common/UI/Components/TelemetryViewer/components/TelemetryFacetValueRow.tsx";
 export const DISCLOSURE_EXAMPLE_FILE: string =
   "packages/App/FeatureSet/Dashboard/src/Pages/Runbook/View/ExecutionView.tsx";
 export const NAMED_GROUP_EXAMPLE_FILE: string =
@@ -800,7 +804,7 @@ function sameStringRewrite(
 
   /*
    * `hidden ... group-hover:flex` inverts mechanically, exactly as
-   * FacetValueRow.tsx was converted - unless another unprefixed display
+   * TelemetryFacetValueRow.tsx was converted - unless another unprefixed display
    * utility would then compete with the one moved to the front.
    */
   const onlyToken: string | undefined =

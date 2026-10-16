@@ -470,6 +470,11 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Your on-call.",
     "What is open.",
     "Its buttons.",
+    // Who is in a record's channel, and adding people to it.
+    "Who may add people.",
+    "Who can be added.",
+    "What it records.",
+    "Taking someone out.",
     // What OneUptime reads from Slack, and why.
     "Messages addressed to OneUptime.",
     "Messages you save as notes.",

@@ -51,6 +51,7 @@ export enum IncidentFeedEventType {
   AutoRemediation = "AutoRemediation",
   VideoCallStarted = "VideoCallStarted",
   VideoCallFailed = "VideoCallFailed",
+  ChannelMemberAdded = "ChannelMemberAdded",
 }
 
 @EnableDocumentation()

@@ -1303,7 +1303,7 @@ test.describe("critical alerts in the device list", () => {
     ]);
     await expect(
       dialog(page).getByTestId("critical-alert-steps-troubleshooting"),
-    ).toContainText("Tapped Don't Allow?");
+    ).toContainText("Tapped Don't Allow, or iOS didn't ask?");
     await expect(
       dialog(page)
         .getByTestId("critical-alert-steps-troubleshooting")
@@ -1475,8 +1475,11 @@ test.describe("critical alerts in the device list", () => {
       "Test Notification Sent",
     );
     await expect(page.getByTestId("confirm-modal-description")).toContainText(
-      "Turn on critical alerts to have on-call pages ring through.",
+      "Critical alerts are off on that phone, so it stays quiet on silent or in Do Not Disturb. Turn them on to have on-call pages ring through.",
     );
+    await expect(
+      dialog(page).getByTestId("test-notification-did-not-ring"),
+    ).toHaveCount(0);
     await expect(
       page.getByTestId("modal-footer").getByRole("button"),
     ).toHaveText(["Close", "How to turn on"]);
@@ -1541,10 +1544,178 @@ test.describe("critical alerts in the device list", () => {
     await expect(page.getByTestId("confirm-modal-description")).toHaveText(
       "Sent to Pixel 10 as a critical alert: it rings even when the phone is on silent or in Do Not Disturb, as an on-call page would.",
     );
+
+    /*
+     * And where to look if it did not ring through: the phone's own
+     * settings can stop critical alerts without its app saying so (the
+     * maintainer's report), so the dialog does not end at its promise.
+     */
+    const hint: Locator = dialog(page).getByTestId(
+      "test-notification-did-not-ring",
+    );
+
+    await expect(hint).toHaveText(
+      "Didn't ring through? Open OneUptime On-Call on the phone, tap Settings and check that Critical On-Call Alerts is on.",
+    );
+    await expect(hint.locator("strong")).toHaveText([
+      "OneUptime On-Call",
+      "Settings",
+      "Critical On-Call Alerts",
+    ]);
+
+    // Under the words that say what the test did, quieter than them.
+    const [descriptionBox, hintBox] = await Promise.all([
+      page.getByTestId("confirm-modal-description").boundingBox(),
+      hint.boundingBox(),
+    ]);
+
+    expect(descriptionBox).not.toBeNull();
+    expect(hintBox).not.toBeNull();
+    expect(hintBox!.y).toBeGreaterThanOrEqual(
+      descriptionBox!.y + descriptionBox!.height,
+    );
+
+    const [descriptionColour, hintColour] = await Promise.all([
+      page
+        .getByTestId("confirm-modal-description")
+        .evaluate((element: Element): string => {
+          return getComputedStyle(element).color;
+        }),
+      hint.evaluate((element: Element): string => {
+        return getComputedStyle(element).color;
+      }),
+    ]);
+
+    expect(brightnessOf(hintColour)).toBeGreaterThan(
+      brightnessOf(descriptionColour),
+    );
+
     // Nothing to turn on: the dialog only closes.
     await expect(
       page.getByTestId("modal-footer").getByRole("button"),
     ).toHaveText(["Close"]);
+
+    await screenshot(page, "critical-alerts-test-sent-critical-synthetic");
+  });
+
+  test("on a phone, in German: a critical test's did-not-ring line is German, names the app's labels as the app shows them, and fits the sheet", async ({
+    page,
+    request,
+  }: {
+    page: Page;
+    request: APIRequestContext;
+  }) => {
+    const german: Record<string, string> = JSON.parse(
+      await fs.readFile(
+        path.resolve(
+          __dirname,
+          "../../App/FeatureSet/Dashboard/src/Locales/de.json",
+        ),
+        "utf8",
+      ),
+    ) as Record<string, string>;
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await seed(request, [PIXEL]);
+    await page.goto(`${ROUTE}?lang=de`);
+
+    // At this width the list is a stack of cards, not table rows.
+    await expect(
+      page.locator("[data-testid='critical-alert-status'][data-state='on']"),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: german["Test Notification"]! })
+      .first()
+      .click();
+
+    const hint: Locator = dialog(page).getByTestId(
+      "test-notification-did-not-ring",
+    );
+
+    await expect(hint).toHaveText(
+      german[
+        "Didn't ring through? Open {{app}} on the phone, tap {{settings}} and check that {{criticalAlerts}} is on."
+      ]!.split("{{app}}")
+        .join("OneUptime On-Call")
+        .split("{{settings}}")
+        .join("Settings")
+        .split("{{criticalAlerts}}")
+        .join("Critical On-Call Alerts"),
+    );
+
+    const box: { x: number; width: number } | null =
+      await dialog(page).boundingBox();
+    const hintBox: { x: number; width: number } | null =
+      await hint.boundingBox();
+
+    expect(box).not.toBeNull();
+    expect(hintBox).not.toBeNull();
+    expect(hintBox!.x).toBeGreaterThanOrEqual(box!.x);
+    expect(hintBox!.x + hintBox!.width).toBeLessThanOrEqual(
+      box!.x + box!.width,
+    );
+    expect(
+      await page.evaluate((): boolean => {
+        return document.documentElement.scrollWidth <= window.innerWidth;
+      }),
+    ).toBe(true);
+
+    await screenshot(
+      page,
+      "critical-alerts-german-phone-test-sent-critical-synthetic",
+    );
+  });
+
+  /*
+   * The maintainer's report: critical alerts turned off on the phone, the
+   * list still reading On, and the test's dialog claiming it rang through
+   * silent mode. The server says how the test went; the dialog says that,
+   * and the list is read again, so the row says the same.
+   */
+  test("a test to a phone whose app has since turned critical alerts off: an ordinary push, and the row catches up", async ({
+    page,
+    request,
+  }: {
+    page: Page;
+    request: APIRequestContext;
+  }) => {
+    await seed(request, [PIXEL]);
+    await open(page);
+
+    await expect(status(page, "Pixel 10")).toHaveAttribute("data-state", "on");
+
+    const readsBefore: number = await listReads(page);
+
+    // The phone's app reports them off; this page has not read the list since.
+    await seed(request, [{ ...PIXEL, isCriticalAlertEnabled: false }]);
+
+    await row(page, "Pixel 10")
+      .getByRole("button", { name: "Test Notification" })
+      .click();
+
+    await expect(page.getByTestId("modal-title")).toHaveText(
+      "Test Notification Sent",
+    );
+    await expect(page.getByTestId("confirm-modal-description")).toHaveText(
+      "Sent to Pixel 10. Critical alerts are off on that phone, so it stays quiet on silent or in Do Not Disturb. Turn them on to have on-call pages ring through.",
+    );
+    await expect(
+      page.getByTestId("modal-footer").getByRole("button"),
+    ).toHaveText(["Close", "How to turn on"]);
+
+    await screenshot(
+      page,
+      "critical-alerts-test-sent-turned-off-since-synthetic",
+    );
+
+    await page
+      .getByTestId("modal-footer")
+      .getByRole("button", { name: "Close" })
+      .click();
+
+    await expect(page.getByTestId("modal")).toHaveCount(0);
+    await expect(status(page, "Pixel 10")).toHaveAttribute("data-state", "off");
+    expect(await listReads(page)).toBeGreaterThan(readsBefore);
   });
 
   test("on a phone, in the dark theme: the list and the steps fit the screen, in dark-theme colours", async ({

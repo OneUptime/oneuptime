@@ -43,6 +43,7 @@ export enum AlertEpisodeFeedEventType {
   OwnerRuleExecuted = "OwnerRuleExecuted",
   PrivacyRuleExecuted = "PrivacyRuleExecuted",
   OnCallRuleExecuted = "OnCallRuleExecuted",
+  ChannelMemberAdded = "ChannelMemberAdded",
 }
 
 @EnableDocumentation()

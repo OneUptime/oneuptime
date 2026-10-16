@@ -121,7 +121,7 @@ flowchart TB
 
 Fire ting må alle være oppfylt for at et varsel skal overstyre lydløs modus. Mangler én av dem, blir varselet likevel levert – bare stille.
 
-1. **Personen har slått det på for den enheten.** Lagret per enhet, av som standard, i `UserPush.isCriticalAlertEnabled`. Telefonen og nettbrettet til en person er separate valg.
+1. **Personen har slått det på for den enheten.** Lagret per enhet, av som standard, i `UserPush.isCriticalAlertEnabled`. Telefonen og nettbrettet til en person er separate valg. Versjoner av appen nyere enn 1.6.0 rapporterer det på nytt hver gang de åpnes, som slått av så lenge telefonens egne innstillinger ikke tillater kritiske varsler, slik at enhetslisten viser hva telefonen faktisk vil gjøre.
 2. **Vaktregelen som sendte varselet, ber om det.** Under **Brukerinnstillinger > Vaktregler** står hver regel som varsler en telefon, på «Kritisk varsel», som er standard, eller på «Normal», som følger lydinnstillingene på telefonen – slik kan en person bli vekket av en kritisk hendelse og varslet stille om en mindre. Lagret per regel i `UserNotificationRule.pushNotificationLevel`.
 3. **Serveren merker varselet som kritisk.** Den sender den kritiske lyd-payloaden til APNs pluss `interruptionLevel: critical` for iOS, og bruker en kritisk varslingskanal for Android: `oncall_critical`, eller den valgte alarmens egen kanal (se [Velge alarmlyd](#velge-alarmlyd)).
 4. **Operativsystemet tillater det**, og det er her de to plattformene skiller seg.
@@ -192,7 +192,7 @@ En push-regel kan sende varselet sitt på nytt til noen bekrefter det. Under **B
 - **iOS**: Bekreft at bygget har Apples entitlement for kritiske varsler (se ovenfor), og at Critical Alerts er tillatt under iOS Settings > Notifications > OneUptime On-Call
 - **Android**: Bekreft at appen har tilgang til Ikke forstyrr under Settings > Notifications > Do Not Disturb access
 - **Android**: Hvis du har valgt en alarmlyd, må også dens egen varslingskanal få lov til å overstyre Ikke forstyrr; appens skjerm Alarm sound sier fra når den ikke har det
-- Innstillingsskjermen sier hvilken av disse som mangler; den leser den gjeldende tilstanden tilbake fra operativsystemet i stedet for å stole på det appen sist ba om
+- Innstillingsskjermen sier hvilken av disse som mangler; den leser den gjeldende tilstanden tilbake fra operativsystemet i stedet for å stole på det appen sist ba om, og forteller serveren hva den finner
 
 ### Pusher merket «ikke levert»
 

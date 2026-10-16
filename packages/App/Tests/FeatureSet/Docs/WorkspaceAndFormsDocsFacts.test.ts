@@ -1,6 +1,14 @@
 import { readPage } from "./DocsContentSupport";
 import { boldSpans, inlineCode } from "./DocsTranslationChecks";
 import FormsCopy from "../../../FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
+import { RECORD_CHANNEL_TEXT } from "../../../FeatureSet/Dashboard/src/Components/Workspace/RecordChannelMembers";
+import Alert from "Common/Models/DatabaseModels/Alert";
+import { AlertEpisodeFeedEventType } from "Common/Models/DatabaseModels/AlertEpisodeFeed";
+import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import { IncidentEpisodeFeedEventType } from "Common/Models/DatabaseModels/IncidentEpisodeFeed";
+import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
+import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
 import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnection";
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -35,6 +43,7 @@ import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import WorkspaceNoteReactionUtil, {
   WorkspaceNoteType,
 } from "Common/Types/Workspace/WorkspaceNoteReaction";
+import { getFeedEventTypeLabel } from "Common/UI/Components/Feed/FeedOptions";
 import { EVERY_DAY, EVERY_MINUTE } from "Common/Utils/CronTime";
 import WorkspaceChannelName, {
   WorkspaceChannelNameParts,
@@ -140,6 +149,13 @@ const SOURCES: Record<string, string> = {
     "Common/Server/Utils/VideoCall/OAuth/VideoCallOAuthTokenStore.ts",
   videoCallKeepAliveJob:
     "App/FeatureSet/Workers/Jobs/VideoCall/KeepVideoCallSignInsAlive.ts",
+  incidentPage: `${DASHBOARD}/Pages/Incidents/View/Index.tsx`,
+  alertPage: `${DASHBOARD}/Pages/Alerts/View/Index.tsx`,
+  incidentEpisodePage: `${DASHBOARD}/Pages/Incidents/EpisodeView/Index.tsx`,
+  alertEpisodePage: `${DASHBOARD}/Pages/Alerts/EpisodeView/Index.tsx`,
+  scheduledMaintenancePage: `${DASHBOARD}/Pages/ScheduledMaintenanceEvents/View/Index.tsx`,
+  slackChannelMembers: `${WORKSPACE_UTILS}/Slack/SlackChannelMembers.ts`,
+  channelMembersApi: "Common/Server/API/WorkspaceChannelMembersAPI.ts",
 };
 
 const SLACK: string = "workspace-connections/slack";
@@ -147,6 +163,7 @@ const TEAMS: string = "workspace-connections/microsoft-teams";
 const VIDEO_CALLS: string = "workspace-connections/video-calls";
 const BUILDING: string = "forms/building";
 const SHARING: string = "forms/sharing-and-security";
+const INCIDENT_FEED: string = "incidents/notes-owners-and-feed";
 
 const CHAT_PAGES: ReadonlyArray<string> = [SLACK, TEAMS];
 
@@ -1503,6 +1520,131 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     expect(readSource("notificationLogsTabs")).toContain('name: "Workspace",');
     expect(englishPage(SLACK)).toContain(
       "is listed in **Project Settings** > **Notifications** > **Notification Logs**, on the **Workspace** tab.",
+    );
+  });
+
+  it("says who is in a record's channel, who may add people, what it records and what it leaves to Slack, as the card and the server hold them", () => {
+    const channelSection: string = section(
+      englishPage(SLACK),
+      2,
+      "Who is in a record's channel",
+    );
+
+    // Every kind of record the page names draws the card on its page.
+    for (const [page, recordType] of [
+      ["incidentPage", "Incident"],
+      ["alertPage", "Alert"],
+      ["incidentEpisodePage", "IncidentEpisode"],
+      ["alertEpisodePage", "AlertEpisode"],
+      ["scheduledMaintenancePage", "ScheduledMaintenance"],
+    ] as Array<[string, string]>) {
+      const source: string = readSource(page);
+      const cardAt: number = source.search(/<RecordChannelMembersCard\s/);
+
+      expect({ page, card: cardAt >= 0 }).toEqual({ page, card: true });
+      expect(source.slice(cardAt, cardAt + 160)).toContain(
+        `recordType={WorkspaceChannelRecordType.${recordType}}`,
+      );
+    }
+
+    expect(
+      lineStarting(
+        channelSection,
+        "An incident, alert, episode or scheduled maintenance event with a Slack channel of its own has a ",
+      ),
+    ).toContain(`**${RECORD_CHANNEL_TEXT.slackChannel}** card`);
+
+    // The card's two buttons, as it draws them.
+    for (const button of [
+      RECORD_CHANNEL_TEXT.joinChannel,
+      RECORD_CHANNEL_TEXT.addPeople,
+    ]) {
+      expect(
+        boldSpans(lineStarting(channelSection, `- **${button}** `)),
+      ).toEqual([button]);
+    }
+
+    // Whoever may edit the record: an incident's editors, as the model holds them.
+    const incidentEditors: Array<string> = titlesOf(
+      new Incident()
+        .getUpdatePermissions()
+        .filter((permission: Permission): boolean => {
+          return permission !== Permission.EditProjectIncident;
+        }),
+    );
+
+    expect(new Incident().getUpdatePermissions()).toContain(
+      Permission.EditProjectIncident,
+    );
+    expect(new Alert().getUpdatePermissions()).toContain(Permission.EditAlert);
+    expect(
+      boldSpans(lineStarting(channelSection, "- **Who may add people.**")),
+    ).toEqual([
+      "Who may add people.",
+      ...incidentEditors,
+      PermissionHelper.getTitle(Permission.EditProjectIncident),
+      PermissionHelper.getTitle(Permission.EditAlert),
+    ]);
+
+    // The feed's entry, by the name its filter lists it under, for every kind of record.
+    for (const eventType of [
+      IncidentFeedEventType.ChannelMemberAdded,
+      AlertFeedEventType.ChannelMemberAdded,
+      IncidentEpisodeFeedEventType.ChannelMemberAdded,
+      AlertEpisodeFeedEventType.ChannelMemberAdded,
+      ScheduledMaintenanceFeedEventType.ChannelMemberAdded,
+    ] as Array<string>) {
+      expect(eventType).toBe("ChannelMemberAdded");
+    }
+
+    const feedLabel: string = getFeedEventTypeLabel(
+      IncidentFeedEventType.ChannelMemberAdded,
+    );
+
+    expect(feedLabel).toBe("Channel Member Added");
+
+    const records: string = lineStarting(
+      channelSection,
+      "- **What it records.**",
+    );
+
+    expect(records).toContain(`(**${feedLabel}**)`);
+    expect(records).toContain(
+      "**Project Settings** > **Notifications** > **Notification Logs**, on the **Workspace** tab.",
+    );
+
+    const people: string = lineStarting(
+      englishPage(INCIDENT_FEED),
+      "- **People** —",
+    );
+
+    expect(people).toContain(`\`${IncidentFeedEventType.ChannelMemberAdded}\``);
+    expect(people).toContain(`**${feedLabel}**`);
+    expect(people).toContain(
+      "(/docs/workspace-connections/slack#who-is-in-a-records-channel)",
+    );
+
+    // OneUptime asks Slack to invite and to join, never to remove anybody.
+    const slackCalls: string = readSource("slackChannelMembers");
+
+    expect(slackCalls).toContain('method: "conversations.invite"');
+    expect(slackCalls).not.toContain("conversations.kick");
+    expect(readSource("channelMembersApi")).not.toMatch(/\.delete\(/);
+    expect(lineStarting(channelSection, "- **Taking someone out.**")).toContain(
+      "remove someone from the channel in Slack",
+    );
+
+    // A channel the app was taken out of: the card's hint, as Troubleshooting quotes it.
+    expect(RECORD_CHANNEL_TEXT.unreachableHint).toContain(
+      "typing /invite @OneUptime.",
+    );
+    expect(section(englishPage(SLACK), 2, "Troubleshooting")).toContain(
+      "can add the app back by typing `/invite @OneUptime`.",
+    );
+
+    // A Microsoft Teams channel's card, by its title.
+    expect(englishPage(TEAMS)).toContain(
+      `**${RECORD_CHANNEL_TEXT.teamsChannel}** card, which says who can open the channel`,
     );
   });
 });

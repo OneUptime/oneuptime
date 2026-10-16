@@ -109,6 +109,18 @@ function serverSpy(): jest.SpyInstance {
 }
 
 /*
+ * What the server was told this phone does with a critical page, in order.
+ * The hook tells it on its own whenever that changes - "off" while the OS
+ * does not allow critical alerts - so a test of a phone that cannot ring
+ * through expects the server to hear "off", and never "on".
+ */
+function toldServer(): Array<boolean> {
+  return serverSpy().mock.calls.map((call: Array<unknown>): boolean => {
+    return (call[0] as { isEnabled: boolean }).isEnabled;
+  });
+}
+
+/*
  * renderHook is asynchronous in @testing-library/react-native v14, and the
  * hook's first useEffect kicks off an async status read - so every test waits
  * for that first pass to land before asserting, rather than racing it.
@@ -297,7 +309,10 @@ describe("useCriticalAlerts when the OS has not granted the capability", () => {
       await result.current.setEnabled(true);
     });
 
-    expect(serverSpy()).not.toHaveBeenCalled();
+    // Told what the phone does: off, never on.
+    await waitFor(() => {
+      expect(toldServer()).toEqual([false]);
+    });
   });
 
   test("the responder is told exactly which OS setting to change", async () => {
@@ -382,7 +397,9 @@ describe("useCriticalAlerts on an iOS build without Apple's entitlement", () => 
     });
 
     expect(result.current.isEnabled).toBe(false);
-    expect(serverSpy()).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(toldServer()).toEqual([false]);
+    });
     expect(await getCriticalAlertsEnabled()).toBe(false);
   });
 
@@ -455,7 +472,7 @@ describe("useCriticalAlerts after updating to a build with Apple's entitlement",
     });
 
     expect(result.current.isEnabled).toBe(false);
-    expect(serverSpy()).not.toHaveBeenCalled();
+    expect(toldServer()).not.toContain(true);
     expect(result.current.error).toContain(
       "Allow Critical Alerts for OneUptime On-Call in iOS Settings",
     );
@@ -530,7 +547,7 @@ describe("useCriticalAlerts on iOS with notifications turned off", () => {
     });
 
     expect(result.current.isEnabled).toBe(false);
-    expect(serverSpy()).not.toHaveBeenCalled();
+    expect(toldServer()).not.toContain(true);
     expect(result.current.error).toContain("Allow Notifications");
   });
 });
@@ -796,7 +813,8 @@ describe("useCriticalAlerts on Android, against Android's own channel rules", ()
     );
     expect(result.current.isEnabled).toBe(false);
     expect(result.current.error).toContain("Do Not Disturb access");
-    expect(serverSpy()).not.toHaveBeenCalled();
+    // Never "on" before Android let it through.
+    expect(toldServer()).not.toContain(true);
 
     // ...where they allow it, and come back.
     android.grantDoNotDisturbAccess();
@@ -822,17 +840,23 @@ describe("useCriticalAlerts on Android, against Android's own channel rules", ()
     );
   });
 
-  test("a responder who had already turned it on sees it come back on by itself", async () => {
+  test("a responder who had already turned it on sees it come back on by itself, and so does the server", async () => {
     /*
      * Opted in on this phone before (stored), but the channel was never given
      * the bypass. Once access is granted the setting shows as on again
-     * without being toggled - it is on the server already.
+     * without being toggled. The server was told "off" while Android did not
+     * let pages through, so it is told "on" again now - it used to be left
+     * as it was, which is how the Dashboard came to say the opposite of the
+     * phone.
      */
     await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
 
     const { result } = await renderCriticalAlerts();
 
     expect(result.current.isEnabled).toBe(false);
+    await waitFor(() => {
+      expect(toldServer()).toEqual([false]);
+    });
 
     android.grantDoNotDisturbAccess();
     await cameBackToTheApp();
@@ -840,7 +864,9 @@ describe("useCriticalAlerts on Android, against Android's own channel rules", ()
     await waitFor(() => {
       expect(result.current.isEnabled).toBe(true);
     });
-    expect(serverSpy()).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(toldServer()).toEqual([false, true]);
+    });
   });
 
   test("coming back without granting it leaves the setting off and the instruction up", async () => {
@@ -1056,8 +1082,319 @@ describe("useCriticalAlerts on Android answers for the alarm the responder chose
       await result.current.setEnabled(true);
     });
 
-    expect(serverSpy()).not.toHaveBeenCalled();
+    expect(toldServer()).not.toContain(true);
     expect(result.current.isEnabled).toBe(false);
     expect(result.current.error).not.toBe("");
+  });
+});
+
+/*
+ * The maintainer turned critical alerts off. The app showed them off; the
+ * Dashboard went on saying "On", and a test sent from it claimed to ring
+ * through silent mode while the phone showed an ordinary notification. The
+ * switch here showed what the phone would do (the responder's choice AND
+ * the OS), but the server was only told when the switch moved.
+ *
+ * Now the server is told the same thing the switch shows, whenever it
+ * changes - and the switch and the server never end up disagreeing.
+ */
+describe("useCriticalAlerts tells the server what the phone will do", () => {
+  // The server's answer for a token it has no device for (UserPushService).
+  const NO_DEVICE: unknown = {
+    response: {
+      status: 400,
+      data: {
+        message: "No registered device was found for this device token.",
+      },
+    },
+  };
+
+  let getSpy: jest.SpyInstance;
+  let addListenerSpy: jest.SpyInstance;
+
+  beforeEach(async () => {
+    setPlatform("ios");
+    setIsDevice(true);
+    await AsyncStorage.clear();
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, DEVICE_TOKEN);
+    serverSpy().mockReset();
+    serverSpy().mockResolvedValue(undefined as never);
+
+    getSpy = jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("granted", true));
+    jest
+      .spyOn(Notifications, "requestPermissionsAsync")
+      .mockResolvedValue(iosPermissions("granted", true));
+
+    addListenerSpy = jest.spyOn(AppState, "addEventListener");
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function cameBackToTheApp(): Promise<void> {
+    const handler: (state: string) => void = addListenerSpy.mock
+      .calls[0]![1] as (state: string) => void;
+
+    await act(async () => {
+      handler("active");
+    });
+  }
+
+  test("critical alerts turned off in iOS Settings: the switch reads off, and the server is told off", async () => {
+    await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
+    getSpy.mockResolvedValue(iosPermissions("granted", false));
+
+    const { result } = await renderCriticalAlerts();
+
+    expect(result.current.isEnabled).toBe(false);
+    await waitFor(() => {
+      expect(serverSpy()).toHaveBeenCalledWith({
+        deviceToken: DEVICE_TOKEN,
+        isEnabled: false,
+      });
+    });
+
+    // The responder's own choice is kept, for when iOS allows it again.
+    expect(await getCriticalAlertsEnabled()).toBe(true);
+    // Nothing was asked of the responder, so nothing is shown as an error.
+    expect(result.current.error).toBe("");
+  });
+
+  test("turned off in iOS Settings while the app was open in the background: coming back tells the server", async () => {
+    await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
+
+    const { result } = await renderCriticalAlerts();
+
+    await waitFor(() => {
+      expect(toldServer()).toEqual([true]);
+    });
+    expect(result.current.isEnabled).toBe(true);
+
+    getSpy.mockResolvedValue(iosPermissions("granted", false));
+    await cameBackToTheApp();
+
+    await waitFor(() => {
+      expect(result.current.isEnabled).toBe(false);
+    });
+    await waitFor(() => {
+      expect(toldServer()).toEqual([true, false]);
+    });
+  });
+
+  test("allowed again in iOS Settings: the switch comes back on, and so does the server", async () => {
+    await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
+    getSpy.mockResolvedValue(iosPermissions("granted", false));
+
+    const { result } = await renderCriticalAlerts();
+
+    await waitFor(() => {
+      expect(toldServer()).toEqual([false]);
+    });
+
+    getSpy.mockResolvedValue(iosPermissions("granted", true));
+    await cameBackToTheApp();
+
+    await waitFor(() => {
+      expect(result.current.isEnabled).toBe(true);
+    });
+    await waitFor(() => {
+      expect(toldServer()).toEqual([false, true]);
+    });
+  });
+
+  test("what the server was already told is not told again: opening Settings costs no request", async () => {
+    await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
+    await AsyncStorage.setItem(
+      "oneuptime_critical_alerts_reported",
+      JSON.stringify({ deviceToken: DEVICE_TOKEN, isEnabled: true }),
+    );
+
+    const { result } = await renderCriticalAlerts();
+
+    await waitFor(() => {
+      expect(result.current.isEnabled).toBe(true);
+    });
+    await cameBackToTheApp();
+    await act(async () => {
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 20);
+      });
+    });
+
+    expect(serverSpy()).not.toHaveBeenCalled();
+  });
+
+  test("the switch moved: the server is told once - coming back does not tell it again", async () => {
+    const { result } = await renderCriticalAlerts();
+
+    await waitFor(() => {
+      expect(toldServer()).toEqual([false]);
+    });
+
+    await act(async () => {
+      await result.current.setEnabled(true);
+    });
+
+    expect(toldServer()).toEqual([false, true]);
+
+    await cameBackToTheApp();
+    await act(async () => {
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 20);
+      });
+    });
+
+    expect(toldServer()).toEqual([false, true]);
+    expect(result.current.isEnabled).toBe(true);
+  });
+
+  test("turned off with no push token yet: off, kept off on the phone, and no error - nothing on the server disagrees", async () => {
+    await AsyncStorage.removeItem(PUSH_TOKEN_KEY);
+    await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
+
+    const { result } = await renderCriticalAlerts();
+
+    expect(result.current.isEnabled).toBe(true);
+
+    await act(async () => {
+      await result.current.setEnabled(false);
+    });
+
+    expect(result.current.isEnabled).toBe(false);
+    expect(result.current.error).toBe("");
+    expect(await getCriticalAlertsEnabled()).toBe(false);
+    expect(serverSpy()).not.toHaveBeenCalled();
+  });
+
+  test("turned off when the server has no device for this phone: off, kept off, no error", async () => {
+    await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
+    serverSpy().mockRejectedValue(NO_DEVICE as never);
+
+    const { result } = await renderCriticalAlerts();
+
+    await act(async () => {
+      await result.current.setEnabled(false);
+    });
+
+    expect(result.current.isEnabled).toBe(false);
+    expect(result.current.error).toBe("");
+    expect(await getCriticalAlertsEnabled()).toBe(false);
+  });
+
+  test("turned on when the server has no device for this phone: off, and the screen says the phone is not registered", async () => {
+    serverSpy().mockRejectedValue(NO_DEVICE as never);
+
+    const { result } = await renderCriticalAlerts();
+
+    await act(async () => {
+      await result.current.setEnabled(true);
+    });
+
+    expect(result.current.isEnabled).toBe(false);
+    expect(result.current.error).toContain("not registered");
+    expect(await getCriticalAlertsEnabled()).toBe(false);
+  });
+
+  test("turned off while offline: the switch stays on with the error - the phone still rings through, and the server still says so", async () => {
+    await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
+    await AsyncStorage.setItem(
+      "oneuptime_critical_alerts_reported",
+      JSON.stringify({ deviceToken: DEVICE_TOKEN, isEnabled: true }),
+    );
+    serverSpy().mockRejectedValue(new Error("Network Error") as never);
+
+    const { result } = await renderCriticalAlerts();
+
+    await waitFor(() => {
+      expect(result.current.isEnabled).toBe(true);
+    });
+
+    await act(async () => {
+      await result.current.setEnabled(false);
+    });
+
+    expect(result.current.isEnabled).toBe(true);
+    expect(result.current.error).toContain("Could not save this setting");
+    expect(await getCriticalAlertsEnabled()).toBe(true);
+  });
+
+  test("a report the server could not take shows no error: nobody asked for it, and it is tried again", async () => {
+    getSpy.mockResolvedValue(iosPermissions("granted", false));
+    serverSpy().mockRejectedValueOnce(new Error("Network Error") as never);
+
+    const { result } = await renderCriticalAlerts();
+
+    await waitFor(() => {
+      expect(serverSpy()).toHaveBeenCalledTimes(1);
+    });
+    expect(result.current.error).toBe("");
+
+    // Back online, back to the app: told.
+    await cameBackToTheApp();
+
+    await waitFor(() => {
+      expect(serverSpy()).toHaveBeenCalledTimes(2);
+    });
+    expect(toldServer()).toEqual([false, false]);
+  });
+});
+
+describe("useCriticalAlerts on Android tells the server when Do Not Disturb access goes", () => {
+  let android: FakeAndroidNotificationChannels;
+  let addListenerSpy: jest.SpyInstance;
+
+  beforeEach(async () => {
+    setPlatform("android");
+    setIsDevice(true);
+    await AsyncStorage.clear();
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, DEVICE_TOKEN);
+    serverSpy().mockReset();
+    serverSpy().mockResolvedValue(undefined as never);
+
+    android = new FakeAndroidNotificationChannels();
+    android.install();
+    jest.spyOn(Linking, "sendIntent").mockResolvedValue(undefined as never);
+    addListenerSpy = jest.spyOn(AppState, "addEventListener");
+
+    await setupNotificationChannels();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the bypass switched off in Android's settings: the switch and the server both turn off", async () => {
+    await AsyncStorage.setItem("oneuptime_critical_alerts_enabled", "true");
+    android.grantDoNotDisturbAccess();
+
+    const { result } = await renderCriticalAlerts();
+
+    await waitFor(() => {
+      expect(result.current.isEnabled).toBe(true);
+    });
+    await waitFor(() => {
+      expect(toldServer()).toEqual([true]);
+    });
+
+    android.userChangesChannel(NotificationChannelId.CRITICAL, {
+      bypassDnd: false,
+    });
+
+    const handler: (state: string) => void = addListenerSpy.mock
+      .calls[0]![1] as (state: string) => void;
+
+    await act(async () => {
+      handler("active");
+    });
+
+    await waitFor(() => {
+      expect(result.current.isEnabled).toBe(false);
+    });
+    await waitFor(() => {
+      expect(toldServer()).toEqual([true, false]);
+    });
   });
 });

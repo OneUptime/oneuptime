@@ -211,7 +211,7 @@ Un champ est soit un nom court (`severity`, `class`, `category`, `activity`, `st
 
 ### Facettes
 
-La barre latérale compte les événements de la fenêtre par **Source**, **Gravité**, **Classe d'événements**, **Catégorie**, **Activité**, **Statut**, **Fournisseur**, **Produit**, **Règle de détection**, **Utilisateur source** et **Hôte source**. Cliquez sur une valeur pour ne garder que ses événements, ou sur le signe moins à côté pour les exclure. Le graphique et chaque comptage décrivent exactement les événements de la liste.
+La barre latérale compte les événements de la fenêtre par **Source**, **Gravité**, **Classe d'événements**, **Catégorie**, **Activité**, **Statut**, **Fournisseur**, **Produit**, **Règle de détection**, **Utilisateur source** et **Hôte source**. Cliquez sur une valeur pour ne garder que ses événements, ou sur le signe moins à côté pour les exclure. Cliquez à nouveau pour annuler. Le graphique et chaque comptage décrivent exactement les événements de la liste.
 
 ### Corréler
 
