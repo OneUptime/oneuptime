@@ -164,7 +164,7 @@ describe("what the section says", () => {
 
   test("API keys take no custom role: no key model points at one", () => {
     const pointingAtARole: Array<string> = Entities.map(
-      (modelType: typeof DatabaseBaseModel): DatabaseBaseModel => {
+      (modelType: { new (): DatabaseBaseModel }): DatabaseBaseModel => {
         return new modelType();
       },
     )
