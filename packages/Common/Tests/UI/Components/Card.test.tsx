@@ -746,7 +746,7 @@ describe("Card fillHeight", () => {
   };
 
   const GOLDEN_FILL_HEIGHT: string =
-    '<div data-testid="card" data-fill-height="true" class="mb-5 !mb-0 h-full"><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible flex h-full flex-col"><div class="py-6 px-5 md:px-6 flex flex-1 flex-col"><div data-testid="card-header" data-header-layout="default" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:items-start"><div data-testid="card-header-title-block" class="w-full min-w-0"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed">Desc</p></div></div><div class="mt-4 -mx-5 flex flex-1 flex-col"><div>body</div></div></div></div></div>';
+    '<div data-testid="card" data-fill-height="true" class="extra h-full"><div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible flex h-full flex-col"><div class="py-6 px-5 md:px-6 flex flex-1 flex-col"><div data-testid="card-header" data-header-layout="default" class="flex flex-wrap items-center gap-x-4 gap-y-2 md:flex-nowrap md:items-start"><div data-testid="card-header-title-block" class="w-full min-w-0"><h2 data-testid="card-details-heading" id="card-details-heading" class="text-lg font-semibold leading-6 text-gray-900 text-balance break-words">Title</h2><p data-testid="card-description" class="mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed">Desc</p></div></div><div class="mt-4 -mx-5 flex flex-1 flex-col"><div>body</div></div></div></div></div>';
 
   test("renders this exact markup", () => {
     expect(
@@ -754,11 +754,23 @@ describe("Card fillHeight", () => {
         title: "Title",
         description: "Desc",
         children: <div>body</div>,
-        className: "!mb-0",
+        className: "extra",
         bodyClassName: "mt-4 -mx-5",
         fillHeight: true,
       }),
     ).toBe(GOLDEN_FILL_HEIGHT);
+  });
+
+  test("a card that fills its box leaves no gap under it: the box's parent spaces its cards", () => {
+    render(<Card title="Title" fillHeight={true} />);
+
+    const card: HTMLElement = screen.getByTestId("card");
+
+    expect(card.getAttribute("class")).toBe(CARD_FILL_HEIGHT_CLASS_NAME);
+    expect(resolveSpacing(card.getAttribute("class"), LAPTOP_WIDTH_IN_PX, "margin"))
+      .toEqual(
+        resolveSpacing("", LAPTOP_WIDTH_IN_PX, "margin"),
+      );
   });
 
   test.each([
@@ -794,7 +806,7 @@ describe("Card fillHeight", () => {
         title="Needs attention"
         description="What is open."
         bodyClassName="mt-4 -mx-5 -mb-6 md:-mx-6"
-        className="!mb-0"
+        className="min-w-0"
         fillHeight={true}
       >
         <div>rows</div>
@@ -807,8 +819,9 @@ describe("Card fillHeight", () => {
     const body: HTMLElement = screen.getByText("rows").parentElement!;
 
     expect(card).toHaveAttribute("data-fill-height", "true");
+    // The caller's classes stay; the gap under a card does not.
     expect(card.getAttribute("class")).toBe(
-      `mb-5 !mb-0 ${CARD_FILL_HEIGHT_CLASS_NAME}`,
+      `min-w-0 ${CARD_FILL_HEIGHT_CLASS_NAME}`,
     );
     expect(frame.getAttribute("class")).toBe(
       `${CARD_FRAME_CLASS_NAME} ${CARD_FILL_HEIGHT_FRAME_CLASS_NAME}`,

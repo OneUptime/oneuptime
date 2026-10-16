@@ -261,7 +261,6 @@ const ProjectResources: FunctionComponent<ComponentProps> = (
         description="What is set up in this project. Open one to manage it."
         headerLayout="stacked"
         bodyClassName="mt-3 -mx-5 -mb-6 md:-mx-6"
-        className="!mb-0"
       >
         <ul className="divide-y divide-gray-100 border-t border-gray-100">
           {visibleResources.map(

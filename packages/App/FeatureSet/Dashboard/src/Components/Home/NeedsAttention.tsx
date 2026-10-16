@@ -641,7 +641,6 @@ const NeedsAttention: FunctionComponent<ComponentProps> = (
           ) : undefined
         }
         bodyClassName="mt-4 -mx-5 -mb-6 md:-mx-6"
-        className="!mb-0"
       >
         {renderBody()}
       </Card>

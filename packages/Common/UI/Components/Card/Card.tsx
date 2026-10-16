@@ -73,7 +73,8 @@ export interface ComponentProps {
    * one line instead of leaving the page showing under the shorter card.
    * The box gives the height: a grid cell is as tall as its row. The body
    * is a column, so what is in it can grow into the room (flex-1) or sit in
-   * its middle. A card drawn as a section of another card ignores it: the
+   * its middle. The card adds no gap under itself: the box's parent spaces
+   * its cards. A card drawn as a section of another card ignores it: the
    * card it is in has the height.
    */
   fillHeight?: boolean | undefined;
@@ -360,14 +361,21 @@ const Card: FunctionComponent<ComponentProps> = (
     );
   }
 
+  /*
+   * A card that fills its box leaves no gap under it either: that would
+   * reach past the box's bottom, and its parent spaces its cards (a grid's
+   * or a column's gap).
+   */
+  const frameBoxClassName: string = fillsHeight
+    ? [props.className, CARD_FILL_HEIGHT_CLASS_NAME].filter(Boolean).join(" ")
+    : `mb-5 ${props.className || ""}`;
+
   return (
     <React.Fragment>
       <div
         data-testid="card"
         data-fill-height={fillsHeight ? "true" : undefined}
-        className={`mb-5 ${props.className || ""}${
-          fillsHeight ? ` ${CARD_FILL_HEIGHT_CLASS_NAME}` : ""
-        }`}
+        className={frameBoxClassName}
       >
         <div
           className={

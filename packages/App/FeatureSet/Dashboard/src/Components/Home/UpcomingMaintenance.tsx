@@ -304,7 +304,6 @@ const UpcomingMaintenance: FunctionComponent<ComponentProps> = (
           </AppLink>
         }
         bodyClassName="mt-3 -mx-5 -mb-6 md:-mx-6"
-        className="!mb-0"
       >
         {renderBody()}
       </Card>
