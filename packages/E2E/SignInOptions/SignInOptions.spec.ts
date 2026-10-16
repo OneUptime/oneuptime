@@ -321,6 +321,40 @@ const problemsWith: (
   return problems;
 };
 
+/*
+ * What is wrong with the "or" divider, as drawn: its word between two
+ * hairlines that never shrink to nothing, each centred on the word.
+ */
+const dividerProblems: (geometry: PageGeometry) => Array<string> = (
+  geometry: PageGeometry,
+): Array<string> => {
+  const words: Rect | null = geometry.dividerWords;
+  const [before, after]: Array<Rect | undefined> = geometry.hairlines;
+
+  if (!words || !before || !after || geometry.hairlines.length !== 2) {
+    return ["it is not a word between two hairlines"];
+  }
+
+  const problems: Array<string> = [];
+  for (const hairline of [before, after]) {
+    if (widthOf(hairline) < SHORTEST_HAIRLINE) {
+      problems.push(`a hairline is ${widthOf(hairline).toFixed(1)}px`);
+    }
+    const offCentre: number =
+      (hairline.top + hairline.bottom) / 2 - (words.top + words.bottom) / 2;
+    if (Math.abs(offCentre) > 1.5) {
+      problems.push(
+        `a hairline is ${offCentre.toFixed(1)}px off the word's middle`,
+      );
+    }
+  }
+  if (before.right > words.left || words.right > after.left) {
+    problems.push("its word is not between its hairlines");
+  }
+
+  return problems;
+};
+
 interface Survey {
   problems: Array<string>;
   wrapped: Array<string>;
@@ -359,12 +393,8 @@ const survey: (
       if (geometry.scrollsSideways) {
         result.problems.push(`${where}: the page scrolls sideways`);
       }
-      for (const hairline of geometry.hairlines) {
-        if (widthOf(hairline) < SHORTEST_HAIRLINE) {
-          result.problems.push(
-            `${where}: a hairline of the divider is ${widthOf(hairline).toFixed(1)}px`,
-          );
-        }
+      for (const problem of dividerProblems(geometry)) {
+        result.problems.push(`${where}: the divider - ${problem}`);
       }
       for (const option of geometry.options) {
         result.checked += 1;
