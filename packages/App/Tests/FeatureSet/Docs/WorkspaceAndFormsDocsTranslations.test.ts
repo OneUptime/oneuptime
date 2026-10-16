@@ -443,6 +443,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "What a form may name.",
     "Which records.",
     "What Change State offers.",
+    // A private incident or episode takes private notes only.
+    "Add Note on a private incident or episode.",
     "Where you are answered.",
     "If your Slack account is not connected.",
     // What OneUptime AI answers in Slack: the rule's two halves.
@@ -496,6 +498,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "What a form may name.",
     "Which records.",
     "What Change State offers.",
+    // A private incident takes private notes only.
+    "Add Note on a private incident.",
     "Where the person is answered.",
     "If their account is not connected.",
     // Paging someone from Microsoft Teams.

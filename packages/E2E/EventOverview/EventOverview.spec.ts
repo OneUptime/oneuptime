@@ -10918,3 +10918,256 @@ test.describe("the linked infrastructure, and the follow-up check (?linked=)", (
     await screenshotElement(feed, "incident-feed-followup");
   });
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * A private incident or episode takes no public notes
+ * ---------------------------------------------------------------------------
+ *
+ * ?private=1 makes incident #1042 and incident episode #12 private: on no
+ * status page and told to no subscriber, so a public note on them would reach
+ * nobody it was written for (Common/Types/StatusPage/PrivateRecordPublicNotes).
+ * The incident's state change dialogs fold a private note and ask nothing
+ * about subscribers, and both feeds' "Add Public Note" is locked with the
+ * reason - the sentence the server refuses one with.
+ */
+const PRIVATE_INCIDENT_REFUSAL: string =
+  "This incident is private, so public notes cannot be added to it. Use a private note.";
+const PRIVATE_EPISODE_REFUSAL: string =
+  "This episode is private, so public notes cannot be added to it. Use a private note.";
+
+async function openFeedActions(page: Page, feed: string): Promise<Locator> {
+  await card(page, feed).getByTestId("feed-actions-button").click();
+  const menu: Locator = page.getByRole("menu");
+  await expect(menu).toBeVisible();
+  return menu;
+}
+
+// The tooltip a locked menu item shows on hover, saying why it is locked.
+function tooltipSaying(page: Page, text: string): Locator {
+  return page.locator("[data-tippy-root]").filter({ hasText: text });
+}
+
+test.describe("a private incident or episode (?private=1)", () => {
+  test("Acknowledge on a private incident folds a private note, asks nothing about subscribers, and sends the note as a private one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "state=created&private=1");
+    await expect(hero(page)).toContainText("Private");
+
+    await heroActions(page)
+      .getByRole("button", { name: "Acknowledge" })
+      .click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Acknowledge Incident",
+    });
+    await expect(dialog).toBeVisible();
+    // A confirm: no subscribers to ask about, and the private note folded.
+    await expect(dialog.getByRole("checkbox")).toHaveCount(0);
+    await expect(
+      dialog.getByRole("button", { name: "Add a public note" }),
+    ).toHaveCount(0);
+    const noteFold: Locator = dialog.getByRole("button", {
+      name: "Add a private note",
+    });
+    await expect(noteFold).toHaveAttribute("aria-expanded", "false");
+    expect((await dialog.boundingBox())!.width).toBeLessThanOrEqual(512);
+    await page.mouse.move(0, 0);
+    await screenshotElement(dialog, "incident-private-acknowledge-dialog");
+
+    await noteFold.click();
+    await expect(dialog).toContainText(
+      "Post a private note about this state change.",
+    );
+    await dialog.locator('[contenteditable="true"]').first().click();
+    await page.keyboard.type("Paged the database team.");
+    await dialog
+      .getByTestId("modal-footer")
+      .getByRole("button", { name: "Acknowledge", exact: true })
+      .click();
+    await expect(dialog).toHaveCount(0);
+
+    const creates: Array<RecordedWrite> = (await fixture(page)).creates.filter(
+      (write: RecordedWrite): boolean => {
+        return write.modelName === "IncidentStateTimeline";
+      },
+    );
+    expect(creates).toHaveLength(1);
+    // A private note, never a public one, and nobody notified.
+    expect(String(creates[0]?.miscDataProps?.["privateNote"])).toContain(
+      "Paged the database team.",
+    );
+    expect(creates[0]?.miscDataProps?.["publicNote"]).toBeUndefined();
+    expect(creates[0]?.data?.["shouldStatusPageSubscribersBeNotified"]).toBe(
+      false,
+    );
+    await expectNoErrorStates(page);
+  });
+
+  test("Resolve on an incident that is not private still asks about subscribers and folds a public note", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "state=ongoing");
+
+    await page.locator("#incident-resolve-btn").click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Resolve Incident",
+    });
+    await expect(
+      dialog.getByRole("checkbox", { name: "Notify Status Page Subscribers" }),
+    ).toBeChecked();
+    await expect(
+      dialog.getByRole("button", { name: "Add a public note" }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Add a private note" }),
+    ).toHaveCount(0);
+  });
+
+  test("the private incident's feed locks Add Public Note with why, and Add Private Note opens the private composer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "private=1");
+
+    const menu: Locator = await openFeedActions(page, INCIDENT_PAGE.feed);
+    const addPublic: Locator = menu.getByRole("menuitem", {
+      name: "Add Public Note",
+      exact: true,
+    });
+    await expect(addPublic).toHaveAttribute("aria-disabled", "true");
+    await expect(addPublic).toHaveAccessibleDescription(
+      PRIVATE_INCIDENT_REFUSAL,
+    );
+
+    // Hovered, it says why; pressed, it opens nothing.
+    await addPublic.hover();
+    await expect(tooltipSaying(page, PRIVATE_INCIDENT_REFUSAL)).toBeVisible();
+    await addPublic.click({ force: true });
+    await expect(
+      page.getByRole("dialog", { name: "Add Public Note" }),
+    ).toHaveCount(0);
+
+    if (!(await menu.isVisible())) {
+      await openFeedActions(page, INCIDENT_PAGE.feed);
+    }
+    const addPrivate: Locator = page.getByRole("menuitem", {
+      name: "Add Private Note",
+      exact: true,
+    });
+    await expect(addPrivate).not.toHaveAttribute("aria-disabled", "true");
+    await addPrivate.click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Add Private Note",
+    });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByTestId("note-audience")).toContainText(
+      "Only your team can see this",
+    );
+    expect(
+      (await fixture(page)).creates.filter((write: RecordedWrite): boolean => {
+        return write.modelName === "IncidentPublicNote";
+      }),
+    ).toEqual([]);
+  });
+
+  test("the private episode's feed locks Add Public Note in the episode's words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_EPISODE_PAGE, "private=1");
+
+    const menu: Locator = await openFeedActions(
+      page,
+      INCIDENT_EPISODE_PAGE.feed,
+    );
+    const addPublic: Locator = menu.getByRole("menuitem", {
+      name: "Add Public Note",
+      exact: true,
+    });
+    await expect(addPublic).toHaveAttribute("aria-disabled", "true");
+    await expect(addPublic).toHaveAccessibleDescription(
+      PRIVATE_EPISODE_REFUSAL,
+    );
+    await expect(
+      menu.getByRole("menuitem", { name: "Add Private Note", exact: true }),
+    ).not.toHaveAttribute("aria-disabled", "true");
+  });
+
+  test("an incident that is not private offers Add Public Note as always", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const menu: Locator = await openFeedActions(page, INCIDENT_PAGE.feed);
+    await expect(
+      menu.getByRole("menuitem", { name: "Add Public Note", exact: true }),
+    ).not.toHaveAttribute("aria-disabled", "true");
+  });
+
+  test("screenshots of the private incident's locked Add Public Note", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "private=1");
+
+    const menu: Locator = await openFeedActions(page, INCIDENT_PAGE.feed);
+    await menu
+      .getByRole("menuitem", { name: "Add Public Note", exact: true })
+      .hover();
+    const tooltip: Locator = tooltipSaying(page, PRIVATE_INCIDENT_REFUSAL);
+    await expect(tooltip).toBeVisible();
+
+    // The Actions button, its menu and the tooltip beside it, in one shot.
+    const boxes: Array<Box> = [
+      await documentBox(
+        card(page, INCIDENT_PAGE.feed).getByTestId("feed-actions-button"),
+      ),
+      await documentBox(menu),
+      await documentBox(tooltip),
+    ];
+    const left: number = Math.min(
+      ...boxes.map((box: Box): number => {
+        return box.x;
+      }),
+    );
+    const top: number = Math.min(
+      ...boxes.map((box: Box): number => {
+        return box.y;
+      }),
+    );
+    const right: number = Math.max(
+      ...boxes.map((box: Box): number => {
+        return box.x + box.width;
+      }),
+    );
+    const bottom: number = Math.max(
+      ...boxes.map((box: Box): number => {
+        return box.y + box.height;
+      }),
+    );
+    await fs.mkdir(SCREENSHOTS, { recursive: true });
+    await page.screenshot({
+      path: path.join(
+        SCREENSHOTS,
+        "incident-private-feed-add-public-note-locked-synthetic.png",
+      ),
+      fullPage: true,
+      clip: {
+        x: Math.max(0, left - 16),
+        y: Math.max(0, top - 16),
+        width: right - left + 32,
+        height: bottom - top + 32,
+      },
+    });
+  });
+});

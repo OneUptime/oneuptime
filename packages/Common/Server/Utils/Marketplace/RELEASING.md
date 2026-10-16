@@ -45,6 +45,11 @@ the live state before acting: the portals change their wording and steps.
 Coming back later from the marketplace's "manage" / "set up account" link takes
 them straight to the project's Billing page.
 
+Deleting the project ends OneUptime's billing of it, after one last report for
+what it used since the last hourly one. The purchase itself stays active on the
+marketplace until they cancel it there; the project's Danger Zone page tells
+them so before they delete it.
+
 ## Pricing: the same prices as oneuptime.com, in usage units
 
 Every marketplace listing has **one public pay-as-you-go plan** and **one
@@ -100,15 +105,26 @@ Agents: these are maintainer decisions and company facts. Never guess them,
 never type banking or tax details, and never press a final publish / go live /
 submit button without a maintainer's explicit go-ahead in chat.
 
-- **Nothing here may depend on where OneUptime Cloud runs.** It runs on
-  Google Cloud today and is moving to OneUptime's own data centre; the
-  `oneuptime-k8s` Google Cloud project will be deleted. The integration only
-  calls the marketplaces' APIs over the internet, so it works from anywhere,
-  and the listings must not claim a cloud OneUptime will not be on:
-  - **Google Cloud Marketplace**: the listing lives in a Google Cloud project
-    of its own (`oneuptime-marketplace`), never in `oneuptime-k8s`. Whether a
-    purchase counts toward a buyer's Google Cloud commitment is Google's rule
-    for the product, not something to promise in the listing.
+- **The integration does not depend on where OneUptime Cloud runs; the
+  Google listing does.** OneUptime Cloud runs on Google Cloud today and is
+  moving to OneUptime's own data centre; the `oneuptime-k8s` Google Cloud
+  project will be deleted. The integration only calls the marketplaces' APIs
+  over the internet, so it works from anywhere, and the listings must not
+  claim a cloud OneUptime will not be on:
+  - **Google Cloud Marketplace** lists only products "hosted primarily on
+    Google Cloud". Google checks this against its approved hosting patterns
+    during onboarding, and a change that affects it must be reported to
+    Google for re-review
+    ([requirements](https://docs.cloud.google.com/marketplace/docs/partners/get-started)).
+    OneUptime qualifies while it runs fully on Google Cloud. **Before the
+    move**, a maintainer decides between keeping the listing eligible under
+    Google's "storage and backup on Google Cloud" pattern (the application
+    may run elsewhere, but all customer data must replicate to Google Cloud)
+    and telling Google and withdrawing the listing. The listing lives in a
+    Google Cloud project of its own (`oneuptime-marketplace`), never in
+    `oneuptime-k8s`. Whether a purchase counts toward a buyer's Google Cloud
+    commitment is Google's rule for the product, not something to promise in
+    the listing.
   - **AWS Marketplace** lists SaaS hosted anywhere (since May 2025). Only
     products deployed on AWS get the "Deployed on AWS" badge and count toward
     a buyer's AWS spend commitment, so OneUptime's listing has neither.
@@ -254,14 +270,20 @@ The listing, its service account, its Pub/Sub subscription and its Service
 Control service live in a Google Cloud project made for the listing,
 `oneuptime-marketplace` - never `oneuptime-k8s`, which hosts OneUptime Cloud
 today and will be deleted when OneUptime moves to its own data centre. Nothing
-in the integration depends on where OneUptime Cloud runs.
+in the integration depends on where OneUptime Cloud runs, but Google's listing
+rules do: see the hosting rule under
+[Before you start](#before-you-start-decisions-and-facts-that-are-the-businesss).
 
-1. **Become a Google Cloud Marketplace partner** (maintainer). Join Google
-   Cloud Partner Advantage, accept the Cloud Marketplace agreements, and set up
-   the payments profile Producer Portal asks for. Create the
+1. **Become a Google Cloud Marketplace partner** (maintainer). Join the Google
+   Cloud Partner Network (`https://partners.cloud.google.com`, "Create new
+   account"; Google confirms by email within 48 hours), then accept the Cloud
+   Marketplace agreements and set up the payments profile Producer Portal asks
+   for. Onboarding includes Google's hosting review. Create the
    `oneuptime-marketplace` project (with a billing account that will outlive
-   the move); Producer Portal is at
-   `https://console.cloud.google.com/producer-portal?project=oneuptime-marketplace`.
+   the move) and enable the Cloud Commerce Partner Procurement, Service
+   Control, Pub/Sub and IAM APIs in it. Producer Portal is at
+   `https://console.cloud.google.com/producer-portal?project=oneuptime-marketplace`;
+   it may not load until the partner account is approved.
 2. **Create the product**: a SaaS product, "integrated with Google Cloud"
    (Google Cloud bills it).
 3. **Pricing**: usage-based, one metric, `usage_units`, unit "unit", USD 0.01
@@ -490,9 +512,30 @@ Marketplace".
   Active -> active, Suspended -> unpaid (service stops, data kept), Cancelled
   -> cancelled. Nothing deletes a customer's project or data on its own, even
   when Google says the account was deleted.
-- **A buyer who deletes their project**: the purchase is unlinked and stops
-  being billed; it stays active on the marketplace until they cancel it there,
-  and they can link it to another project from the marketplace's link.
+- **A buyer who deletes their project**: before the project goes
+  (`ProjectService.onBeforeDelete`), OneUptime bills what it used since the
+  last hourly report - its users and active monitors for the part of the hour,
+  its staged telemetry, and every top-up bought since - in one final report
+  (`isFinal` in its breakdown;
+  `MarketplaceUsageReporter.reportFinalUsageOfProject`). The delete waits for
+  the report to be written, never for the marketplace: a report the
+  marketplace does not take now stays `Pending`, and the hourly job sends it
+  again, which needs only the report and its purchase, not the project. Then
+  the purchase is unlinked: its `MarketplaceSubscription` row stays, still
+  `Active`, with `projectId` empty, and no hourly report bills it again. It
+  stays active on the marketplace until the buyer cancels it there - the
+  Danger Zone page tells a marketplace customer so before they delete, as the
+  Billing page's Cancel Plan card does - or links it to another project from
+  the marketplace's link, whose billing starts at the new link.
+- **One report per purchase and hour on AWS and Microsoft**: both bill the
+  first usage record of a purchase in an hour and refuse any other as a
+  duplicate, unbilled. Every report is filed a minute before its period ends
+  (`MarketplaceUsageHour` in [MarketplaceAdapter.ts](MarketplaceAdapter.ts)):
+  an hourly report in the hour it covers, a final one in the hour it ends in.
+  An hourly report that would land in a final report's hour - after a project
+  delete that failed, or a purchase linked again within the hour - waits for
+  the next hour, and bills the whole time since. Google Cloud counts each
+  report by its own ID, and is never held back.
 - **Moving a marketplace customer back to card billing** is not built: today
   it is a master-admin job (clear `billingMarketplace`, give the project card
   subscriptions through Change Plan once a card is added).
@@ -502,8 +545,11 @@ Marketplace".
 - The Admin Dashboard has no page for marketplace purchases yet; use the
   master-admin API (`/api/marketplace-subscription`,
   `/api/marketplace-usage-report`, `/api/marketplace-charge`).
-- A project deleted within the hour after its last report: that hour's usage,
-  and any top-up made in it, is not billed (the reporter needs the project).
+- A project delete that fails after its final report, and is tried again in
+  the same clock hour, on AWS or Microsoft: the minutes between the two tries
+  cannot be billed in that hour, and are logged as "was NOT billed". A top-up
+  bought in those minutes stays on the purchase, and is billed if the purchase
+  is linked to another project.
 - No product documentation page for buyers yet (docs pages must be translated
   into 16 languages to pass the docs tests).
 

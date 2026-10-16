@@ -448,8 +448,15 @@ export default class WorkspaceConnectCompletion {
 
     switch (result.outcome) {
       case WorkspaceMessageNoteOutcome.Saved: {
+        /*
+         * As the note it was saved as: a 📣 on an incident made private
+         * since is saved as a private note (getNoteTypeSavedAs), and its
+         * confirmation in the thread says why.
+         */
         const verb: string = WorkspaceActionAnswers.getDoneVerb(
-          pendingAction.kind,
+          result.noteType === WorkspaceNoteType.Private
+            ? WorkspacePendingActionKind.SavePrivateNote
+            : pendingAction.kind,
         );
 
         return {

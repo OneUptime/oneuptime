@@ -143,7 +143,7 @@ flowchart TB
 | 表情回应 | 保存为 |
 | --- | --- |
 | 📌 图钉表情，或 Slack 自带的 **Pin to channel** | 仅您的团队可见的私密备注 |
-| 📢 扩音器或喇叭表情 | 显示在状态页上的公开备注。仅限事件和计划维护活动。 |
+| 📢 扩音器或喇叭表情 | 显示在状态页上的公开备注。仅限事件和计划维护活动。在私密事件上为私密备注，确认消息会说明原因。 |
 
 备注会保留消息在 Slack 中的样子：格式、链接和代码，以名字显示的被提及的人和频道，以及指向其文件和图片的链接。公开备注会去掉文件和图片，因为它们只对您的团队开放。
 
@@ -257,6 +257,7 @@ OneUptime 的 Slack 消息上的按钮同样以您的身份执行：即以您的
 - **谁可以使用。** 能在 OneUptime 中做出同样更改的人。确认、解决事件或更改其状态需要更改其状态的权限： **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member**，或自定义角色中的 **Create Incident State Timeline**。警报、片段或计划维护活动需要其自身类型的同等权限（例如 **Create Alert State Timeline** ），备注需要发布该类备注的权限。其他任何人都会收到告知，并且不会有任何更改。
 - **哪些记录。** 与在 OneUptime 中一样，是您可以读取的记录：如果角色仅限于某些标签，则为带有这些标签的事件、警报、片段和活动。任何其他记录或其他项目的记录上的按钮，都会得到该记录 "was not found in this project, or you do not have access to it." 的回复，并且不会有任何更改。在 OneUptime Cloud 上，项目套餐不包含的更改会被拒绝，并说明所需的套餐。
 - **Change State 提供什么。** 按项目的顺序，提供您可以读取、记录接下来可以转入的状态：不会提供早于其当前状态的状态，片段与事件、警报或计划维护活动一样，因为状态更改永远不会让记录在其列表中回退（请参阅 [顺序是真正的约束，而不是显示偏好](/docs/incidents/states-and-severities#顺序是真正的约束而不是显示偏好) ）。如果您一个都无法读取，会收到 "No incident states are available to you in this project. Ask a project admin for access to them."；如果记录处于它能达到的最后一个状态，会收到 "There is no later state to move this incident to."。这两种情况都不会打开空表单。
+- **私密事件或片段上的 Add Note。** 私密事件或片段不能添加公开备注，因此它的表单不会询问备注类型，而是添加一条私密备注。在它设为私密之前打开的表单也会添加私密备注，并说明这一点。参见[私密事件只能添加私密备注](/docs/incidents/notes-owners-and-feed#私密事件只能添加私密备注)。
 - **在哪里收到回复。** 在带有按钮的消息下方，以只有您能看到的消息回复；只有当 Slack 拒绝时，才会改用私信。按得太晚的按钮会说明谁先操作了、何时操作的，例如 "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **如果您的 Slack 账户未连接。** 回复会请您连接它，并附带一个 **Connect Slack account** 按钮。该按钮会打开您在 OneUptime 中自己的 Slack 设置，并在您按需登录 OneUptime 后一步连接您的账户。随后 OneUptime 会以您的身份完成您按下的操作，并在同一条消息下方回复；对于打开表单的按钮或命令，它会请您再按一次或再运行一次。该按钮只能使用一次，有效 30 分钟，并且只对按下它的 Slack 账户有效：以其他人的身份登录 Slack 时，它不会连接任何账户。
 

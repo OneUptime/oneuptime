@@ -141,7 +141,7 @@ OneUptime がインシデント、アラート、エピソード、定期メン�
 | リアクション | 保存される形式 |
 | --- | --- |
 | 📌 または 📍 | チームだけが見られる非公開メモ |
-| 📣 または 📢 | ステータスページに表示される公開メモ。インシデントと定期メンテナンスイベントのみ。 |
+| 📣 または 📢 | ステータスページに表示される公開メモ。インシデントと定期メンテナンスイベントのみ。プライベートインシデントでは非公開メモになり、確認メッセージがその理由を伝えます。 |
 
 メモには Microsoft Teams で表示されていたとおりのメッセージが残ります。書式、リンク、コード、メンションされた人の名前、そしてファイルや画像へのリンクです。公開メモでは、ファイルと画像はチームの中でしか開けないため含まれません。
 
@@ -244,6 +244,7 @@ OneUptime のカードのボタンは、個人チャット、チャネル、グ�
 - **使える人。** OneUptime で同じ変更を行える人です。インシデントの確認、解決、状態の変更には、その状態を変更する権限が必要です。 **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin**、 **Incident Member**、またはカスタムロールの **Create Incident State Timeline** です。アラート、エピソード、定期メンテナンスイベントには、それぞれの種類に対応する同じ権限 (たとえば **Create Alert State Timeline** ) が必要で、メモにはその種類のメモを投稿する権限が必要です。OneUptime の状態パネルと同じく、インシデントやアラート自体を編集する権限は求めません。それ以外の人にはそう伝えられ、何も変わりません。
 - **対象のレコード。** OneUptime と同じく、その人が読めるレコードです。一部のラベルに限定されたロールなら、それらのラベルが付いたインシデント、アラート、エピソード、イベントです。ほかのレコードや別のプロジェクトのレコードのボタンには、そのレコードが "was not found in this project, or you do not have access to it." と返され、何も変わりません。OneUptime Cloud では、プロジェクトのプランに含まれない変更は、必要なプランを示して拒否されます。
 - **Change State が提示するもの。** その人が読める状態のうち、レコードが次に移れる状態を、プロジェクトの順序で提示します。今の状態より前の状態は提示されません。これはインシデント、アラート、定期メンテナンスイベントと同様にエピソードでも同じです。状態の変更でレコードが一覧の上に戻ることはないからです ([順序は表示上の好みではなく、実際の制約](/docs/incidents/states-and-severities#順序は表示上の好みではなく実際の制約) を参照)。読める状態が 1 つもない場合、ボットは "No incident states are available to you in this project. Ask a project admin for access to them." と伝え、レコードが到達できる最後の状態にある場合は "There is no later state to move this incident to." と伝えます。どちらの場合も空のカードは表示されません。
+- **プライベートインシデントでの Add Note。** プライベートインシデントには公開メモを追加できないため、カードはメモの種類を尋ねず、非公開メモを追加します。プライベートになる前に送られたカードも非公開メモを追加し、そのことを伝えます。[プライベートインシデントには非公開メモだけ](/docs/incidents/notes-owners-and-feed#プライベートインシデントには非公開メモだけ) を参照してください。
 - **Escalate.** カードの **Escalate** は、カードの対象のインシデント、アラート、エピソードについて、そのオンコールポリシーを、押した人として、 **Execute On-Call Policy** と同じ権限で実行します。どれも対象にしていないカードには "This on-call policy can only be executed for an incident, an alert or an episode. Open the record you are paging about and use Execute On-Call Policy there." と返され、誰も呼び出されません。
 - **返答が届く場所。** 同じ会話 (チャネルではカードのスレッド) で、その人をメンションした返信が届くので、Microsoft Teams がその人に通知します。遅すぎたボタンの操作には、誰がいつ先に行ったかが伝えられます。たとえば "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM." です。
 - **アカウントが接続されていない場合。** 返信は **Connect Microsoft Teams account** ボタンで接続を求めます。このボタンは OneUptime のその人自身の Microsoft Teams 設定を開き、必要なら OneUptime にサインインした後、1 ステップでアカウントを接続します。その後 OneUptime は、その人が押した操作をその人として完了し、同じ会話で返信します。フォームを開くボタンやコマンドの場合は、もう一度押すか入力するよう求めます。ボタンは 30 分間、1 回だけ、押した Microsoft アカウントに対してのみ機能します。

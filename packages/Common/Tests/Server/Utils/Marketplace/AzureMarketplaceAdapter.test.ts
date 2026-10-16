@@ -218,6 +218,10 @@ describe("AzureMarketplaceAdapter", () => {
   });
 
   describe("reportUsage", () => {
+    it("says Microsoft keeps one event per subscription and hour", () => {
+      expect(adapter.keepsOneReportPerHour).toBe(true);
+    });
+
     it("sends one event, in the hour the report ends in", async () => {
       api.reportUsageEvents.mockResolvedValue([
         { status: "Accepted", usageEventId: "ue-1", errorCode: null },

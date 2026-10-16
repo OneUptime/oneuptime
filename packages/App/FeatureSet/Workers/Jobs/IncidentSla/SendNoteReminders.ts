@@ -10,6 +10,7 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import OneUptimeDate from "Common/Types/Date";
+import PrivateRecordPublicNotes from "Common/Types/StatusPage/PrivateRecordPublicNotes";
 
 import FeedMarkdown from "Common/Utils/Markdown/FeedMarkdown";
 /**
@@ -151,6 +152,7 @@ async function processPublicNoteReminders(): Promise<void> {
             _id: true,
             title: true,
             incidentNumber: true,
+            isPrivate: true,
           },
           props: {
             isRoot: true,
@@ -158,6 +160,23 @@ async function processPublicNoteReminders(): Promise<void> {
         });
 
         if (!incident) {
+          continue;
+        }
+
+        /*
+         * A private incident takes no public notes
+         * (PrivateRecordPublicNotes): its customer update is not posted,
+         * and the server would refuse it. Nothing is recorded as sent, so
+         * an incident made public again gets its update on the next run.
+         */
+        if (!PrivateRecordPublicNotes.takesPublicNotes(incident)) {
+          logger.debug(
+            `Skipped the public note reminder for incident ${sla.incidentId} (SLA ${sla.id}): the incident is private.`,
+            {
+              projectId: sla.projectId?.toString(),
+              incidentId: sla.incidentId?.toString(),
+            },
+          );
           continue;
         }
 

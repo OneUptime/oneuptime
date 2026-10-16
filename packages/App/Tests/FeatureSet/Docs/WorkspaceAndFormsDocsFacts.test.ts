@@ -1070,9 +1070,15 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
   });
 
   it("saves a message as its author's words, filed when it was posted, with no files on a public note, and not back in its channel", () => {
+    /*
+     * The note the message is saved as: the one its emoji asks for, or a
+     * private one for a 📣 on a private incident, which takes no public
+     * notes (WorkspaceReactionNote.getNoteTypeSavedAs) - and its files are
+     * kept as a private note keeps them.
+     */
     for (const [page, source, noteType] of [
       [SLACK, "slackReactionNote", "noteType"],
-      [TEAMS, "teamsReactionNoteSync", "reaction.noteType"],
+      [TEAMS, "teamsReactionNoteSync", "noteType"],
     ] as Array<[string, string, string]>) {
       const notes: string = section(
         englishPage(page),
@@ -1086,6 +1092,9 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
       );
       expect(readSource(source)).toContain(
         `withoutAttachments: ${noteType} === WorkspaceNoteType.Public`,
+      );
+      expect(readSource(source)).toContain(
+        "await WorkspaceReactionNote.getNoteTypeSavedAs({",
       );
 
       // Whose words they are, when they were posted, and who saved them.

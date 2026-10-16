@@ -24,6 +24,8 @@ import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentCustomField from "../../../Models/DatabaseModels/IncidentCustomField";
+import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInternalNote";
+import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
 import IncidentMember from "../../../Models/DatabaseModels/IncidentMember";
 import IncidentRole from "../../../Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
@@ -36,6 +38,8 @@ import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceP
 import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
 import IncidentCustomFieldService from "../../../Server/Services/IncidentCustomFieldService";
+import IncidentInternalNoteService from "../../../Server/Services/IncidentInternalNoteService";
+import IncidentPublicNoteService from "../../../Server/Services/IncidentPublicNoteService";
 import IncidentMemberService from "../../../Server/Services/IncidentMemberService";
 import IncidentRoleService from "../../../Server/Services/IncidentRoleService";
 import IncidentService from "../../../Server/Services/IncidentService";
@@ -2018,6 +2022,241 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
       expect(textOf(said.data["blocks"])).toBe(
         `👤 *Nawaz Dhandala* is now *Scribe* on ${RECORD_MRKDWN}.\n`,
       );
+    });
+  });
+
+  /*
+   * ADD NOTE ON A PRIVATE INCIDENT.
+   *
+   * A private incident takes no public notes (Types/StatusPage/
+   * PrivateRecordPublicNotes): it is on no status page and told to no
+   * subscriber. Its Add Note form asks for no kind - "Add Private Note", one
+   * line that says why, and the note - and adds a private note. A form
+   * opened before the incident was made private can still send Public Note:
+   * that note is added as a private note, and Simon is told what it became
+   * and why, where he opened the form. Whether it is private is read from
+   * the incident itself, as OneUptime (PrivateRecordPublicNoteRule).
+   */
+  describe("Add Note on a private incident: one kind of note, and the form says why", () => {
+    const NOTE: string = "Payroll export paused; nothing left the building.";
+    let isIncidentPrivate: boolean;
+    let privateNotesAdded: Array<JSONObject>;
+    let publicNotesAdded: Array<JSONObject>;
+
+    beforeEach(() => {
+      isIncidentPrivate = true;
+      privateNotesAdded = [];
+      publicNotesAdded = [];
+
+      // The project's one incident, with its Private switch.
+      jest
+        .spyOn(IncidentService, "findOneBy")
+        .mockImplementation((async (findOneBy: {
+          query: JSONObject;
+          props: DatabaseCommonInteractionProps;
+        }) => {
+          incidentReads.push({
+            query: findOneBy.query,
+            props: findOneBy.props,
+          });
+          const row: Incident | null = readIncident(findOneBy);
+
+          if (row) {
+            row.isPrivate = isIncidentPrivate;
+          }
+
+          return row;
+        }) as never);
+
+      jest
+        .spyOn(IncidentInternalNoteService, "addNote")
+        .mockImplementation((async (data: JSONObject) => {
+          privateNotesAdded.push(data);
+          return new IncidentInternalNote();
+        }) as never);
+      jest
+        .spyOn(IncidentPublicNoteService, "addNote")
+        .mockImplementation((async (data: JSONObject) => {
+          publicNotesAdded.push(data);
+          return new IncidentPublicNote();
+        }) as never);
+    });
+
+    // What Slack posts when 📄 Add Note on the incident's message is pressed.
+    function pressAddNote(): Promise<RouteAnswer> {
+      return postForm({
+        port: app.port,
+        path: "/api/slack/interactive",
+        fields: {
+          payload: JSON.stringify({
+            type: "block_actions",
+            user: { id: SLACK_USER_ID, username: "simon", name: "simon" },
+            team: { id: SLACK_TEAM_ID },
+            channel: { id: INCIDENT_CHANNEL_ID, name: "incident-42" },
+            container: {
+              type: "message",
+              channel_id: INCIDENT_CHANNEL_ID,
+              message_ts: "1760000000.000200",
+            },
+            message: { ts: "1760000000.000200" },
+            response_url: PRESS_RESPONSE_URL,
+            trigger_id: TRIGGER_ID,
+            actions: [
+              {
+                type: "button",
+                action_id: "ViewAddIncidentNote",
+                block_id: "incident-buttons",
+                text: { type: "plain_text", text: "📄 Add Note", emoji: true },
+                value: ID,
+                action_ts: "1760000001.000300",
+              },
+            ],
+          }),
+        },
+      });
+    }
+
+    function noteMetadata(): string {
+      return JSON.stringify({
+        oneuptime: 1,
+        value: ID,
+        channelId: INCIDENT_CHANNEL_ID,
+      });
+    }
+
+    function blockIds(view: JSONObject): Array<string> {
+      return (view["blocks"] as Array<JSONObject>).map(
+        (block: JSONObject): string => {
+          return String(block["block_id"] || block["type"]);
+        },
+      );
+    }
+
+    test("the form is 'Add Private Note': one line says why, then the note - no Note Type to pick", async () => {
+      const answer: RouteAnswer = await pressAddNote();
+
+      expect(answer.status).toBe(200);
+
+      const view: JSONObject = await openedForm();
+
+      expect(view["callback_id"]).toBe("SubmitIncidentNote");
+      expect(view["title"]).toEqual({
+        type: "plain_text",
+        text: "Add Private Note",
+      });
+      expect(textOf([(view["blocks"] as Array<JSONObject>)[0]])).toBe(
+        "🔒 This incident is private, so this note is private too: only the people who can see the incident can read it.\n",
+      );
+      expect(blockIds(view)).not.toContain("noteType");
+      expect(elementOf(view, "note")["type"]).toBe("plain_text_input");
+      expect(JSON.stringify(view)).not.toContain("Status Page");
+      expect(JSON.parse(view["private_metadata"] as string)).toEqual({
+        oneuptime: 1,
+        value: ID,
+        channelId: INCIDENT_CHANNEL_ID,
+      });
+
+      // Whether it is private: read as OneUptime, the incident's switch only.
+      expect(incidentReads).toContainEqual({
+        query: { _id: ID, projectId: PROJECT_ID },
+        props: { isRoot: true },
+      });
+    });
+
+    test("an incident that is not private gets the form as always: Public Note or Private Note", async () => {
+      isIncidentPrivate = false;
+
+      await pressAddNote();
+      const view: JSONObject = await openedForm();
+
+      expect(view["title"]).toEqual({ type: "plain_text", text: "Add Note" });
+      expect(optionTexts(elementOf(view, "noteType")["options"])).toEqual([
+        "Public Note (Will be posted on Status Page)",
+        "Private Note (Only visible to team members)",
+      ]);
+    });
+
+    test("submitted, it adds a private note, as Simon; the form closes, and nothing else is said", async () => {
+      const answer: RouteAnswer = await submit({
+        callbackId: "SubmitIncidentNote",
+        privateMetadata: noteMetadata(),
+        state: { note: textInput(NOTE) },
+      });
+
+      expect(answer.status).toBe(200);
+      expect(answer.body).toEqual({ response_action: "clear" });
+
+      await settle();
+
+      expect(publicNotesAdded).toEqual([]);
+      expect(privateNotesAdded).toHaveLength(1);
+      expect(privateNotesAdded[0]!["note"]).toBe(NOTE);
+      expect(String(privateNotesAdded[0]!["incidentId"])).toBe(ID);
+      expect(privateNotesAdded[0]!["props"]).toBe(PROPS);
+      expect(slackCalls).toEqual([]);
+    });
+
+    test("a form opened before the incident was made private, sent with Public Note: a private note, and Simon is told why where he opened it", async () => {
+      const answer: RouteAnswer = await submit({
+        callbackId: "SubmitIncidentNote",
+        privateMetadata: noteMetadata(),
+        state: {
+          noteType: staticSelect("public"),
+          note: textInput(NOTE),
+        },
+      });
+
+      expect(answer.body).toEqual({ response_action: "clear" });
+
+      const said: SlackCall = await onlyAnswer();
+
+      // Never a public note: the incident is private now.
+      expect(publicNotesAdded).toEqual([]);
+      expect(privateNotesAdded).toHaveLength(1);
+      expect(privateNotesAdded[0]!["note"]).toBe(NOTE);
+      expect(privateNotesAdded[0]!["props"]).toBe(PROPS);
+
+      expect(said.url).toBe("https://slack.com/api/chat.postEphemeral");
+      expect(said.data["channel"]).toBe(INCIDENT_CHANNEL_ID);
+      expect(said.data["user"]).toBe(SLACK_USER_ID);
+      expect(textOf(said.data["blocks"])).toBe(
+        `📄 You added a private note to ${RECORD_MRKDWN}. The incident is private, so public notes cannot be added to it.\n`,
+      );
+    });
+
+    test("Public Note on an incident that is not private is a public note, as always", async () => {
+      isIncidentPrivate = false;
+
+      await submit({
+        callbackId: "SubmitIncidentNote",
+        privateMetadata: noteMetadata(),
+        state: {
+          noteType: staticSelect("public"),
+          note: textInput(NOTE),
+        },
+      });
+      await settle();
+
+      expect(privateNotesAdded).toEqual([]);
+      expect(publicNotesAdded).toHaveLength(1);
+      expect(publicNotesAdded[0]!["props"]).toBe(PROPS);
+      expect(slackCalls).toEqual([]);
+    });
+
+    test("a Note Type no form offers is refused, and nothing is added", async () => {
+      const answer: RouteAnswer = await submit({
+        callbackId: "SubmitIncidentNote",
+        privateMetadata: noteMetadata(),
+        state: {
+          noteType: staticSelect("everyone"),
+          note: textInput(NOTE),
+        },
+      });
+      await settle();
+
+      expect(answer.status).toBe(400);
+      expect(privateNotesAdded).toEqual([]);
+      expect(publicNotesAdded).toEqual([]);
     });
   });
 

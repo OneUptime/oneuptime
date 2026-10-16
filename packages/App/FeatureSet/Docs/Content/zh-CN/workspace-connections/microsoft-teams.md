@@ -141,7 +141,7 @@ flowchart TB
 | 回应 | 保存为 |
 | --- | --- |
 | 📌 或 📍 | 仅您的团队可见的私密备注 |
-| 📣 或 📢 | 显示在状态页上的公开备注。仅限事件和计划维护活动。 |
+| 📣 或 📢 | 显示在状态页上的公开备注。仅限事件和计划维护活动。在私密事件上为私密备注，确认消息会说明原因。 |
 
 备注会保留消息在 Microsoft Teams 中的样子：格式、链接和代码，以名字显示的被提及的人，以及指向其文件和图片的链接。公开备注会去掉文件和图片，因为它们只对您的团队开放。
 
@@ -244,6 +244,7 @@ OneUptime 卡片上的按钮以点击者的身份执行，无论是在个人聊�
 - **谁可以使用。** 能在 OneUptime 中做出同样更改的人。确认、解决事件或更改其状态需要更改其状态的权限： **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member**，或自定义角色中的 **Create Incident State Timeline**。警报、片段或计划维护活动需要其自身类型的同等权限（例如 **Create Alert State Timeline** ），备注需要发布该类备注的权限。与 OneUptime 中的状态面板一样，它们不要求编辑事件或警报本身的权限。其他任何人都会收到告知，并且不会有任何更改。
 - **哪些记录。** 与在 OneUptime 中一样，是此人可以读取的记录：如果角色仅限于某些标签，则为带有这些标签的事件、警报、片段和活动。任何其他记录或其他项目的记录上的按钮，都会得到该记录 "was not found in this project, or you do not have access to it." 的回复，并且不会有任何更改。在 OneUptime Cloud 上，项目套餐不包含的更改会被拒绝，并说明所需的套餐。
 - **Change State 提供什么。** 按项目的顺序，提供此人可以读取、记录接下来可以转入的状态：不会提供早于其当前状态的状态，片段与事件、警报或计划维护活动一样，因为状态更改永远不会让记录在其列表中回退（请参阅 [顺序是真正的约束，而不是显示偏好](/docs/incidents/states-and-severities#顺序是真正的约束而不是显示偏好) ）。如果此人一个都无法读取，机器人会说 "No incident states are available to you in this project. Ask a project admin for access to them."；如果记录处于它能达到的最后一个状态，则会说 "There is no later state to move this incident to."。这两种情况都不会显示空卡片。
+- **私密事件上的 Add Note。** 私密事件不能添加公开备注，因此它的卡片不会询问备注类型，而是添加一条私密备注。在它设为私密之前发送的卡片也会添加私密备注，并说明这一点。参见[私密事件只能添加私密备注](/docs/incidents/notes-owners-and-feed#私密事件只能添加私密备注)。
 - **Escalate.** 卡片上的 **Escalate** 会针对卡片所涉及的事件、警报或片段执行其值班策略，以点击者的身份，并使用与 **Execute On-Call Policy** 相同的权限。不涉及其中任何一种的卡片会得到 "This on-call policy can only be executed for an incident, an alert or an episode. Open the record you are paging about and use Execute On-Call Policy there." 的回复，并且不会呼叫任何人。
 - **在哪里收到回复。** 在同一个对话中（在频道中即卡片的话题中）以提及此人的回复答复，因此 Microsoft Teams 会通知此人。按得太晚的按钮会说明谁先操作了、何时操作的，例如 "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **如果此人的账户未连接。** 回复会请此人连接，并附带一个 **Connect Microsoft Teams account** 按钮。该按钮会打开此人在 OneUptime 中自己的 Microsoft Teams 设置，并在按需登录 OneUptime 后一步连接账户。随后 OneUptime 会以此人的身份完成其按下的操作，并在同一个对话中回复；对于打开表单的按钮或命令，它会请此人再按一次或再输入一次。该按钮只能使用一次，有效 30 分钟，并且只对按下它的 Microsoft 账户有效。

@@ -76,6 +76,11 @@
  *            run on the card is the follow-up check (IncidentFollowUpCheck)
  *            - its activity starts with why, its report leads with
  *            "Checked again", and the feed holds both reports.
+ *   ?private= 1 makes Incident #1042 and Incident Episode #12 private. A
+ *            private incident or episode takes no public notes: the
+ *            incident's state change dialogs fold a private note and ask
+ *            nothing about subscribers, and both feeds' Add Public Note is
+ *            locked with why.
  *   ?theme=  dark adds html.dark (handled by server.js).
  *   ?channels= the record's own Slack / Microsoft Teams channels, as
  *            GET /workspace-channel-link answers them (the header's Open in
@@ -339,6 +344,11 @@ const LINKED_MODES = ["alerts", "more", "followup"];
 const linkedMode = LINKED_MODES.includes(params.get("linked"))
   ? params.get("linked")
   : "none";
+/*
+ * ?private=1: incident #1042 and incident episode #12 are private - hidden
+ * from every status page, and taking no public notes.
+ */
+const isPrivateMode = params.get("private") === "1";
 const isResolved = stateMode === "resolved";
 const isAcknowledged = stateMode !== "created";
 // Both a current report and a legacy one post the AI root-cause feed item.
@@ -433,6 +443,7 @@ const fixture = {
     thread: threadMode,
     members: membersMode,
     linked: linkedMode,
+    private: isPrivateMode,
   },
   // What the channel card asked to add: { channelId, userIds, teamIds }.
   channelAdds: [],
@@ -1005,8 +1016,9 @@ function defineIncident(spec) {
     subscriberNotificationStatusMessage: spec.notificationFailed
       ? RESEND_FAILURE_STATUS_MESSAGE
       : "Notified 1,284 status page subscribers.",
-    isPrivate: false,
-    isVisibleOnStatusPage: true,
+    // ?private=1 makes #1042 private, which also hides it from status pages.
+    isPrivate: isPrivateMode && spec.number === 1042,
+    isVisibleOnStatusPage: !(isPrivateMode && spec.number === 1042),
     rootCause: spec.rootCause,
     remediationNotes: spec.remediationNotes,
     incidentEpisode: spec.episode,
@@ -1696,8 +1708,8 @@ table(IncidentEpisode).push({
   labels: [labels.checkout, labels.production],
   assignedToUser: people.maya,
   assignedToUserId: people.maya.id,
-  isVisibleOnStatusPage: true,
-  isPrivate: false,
+  isVisibleOnStatusPage: !isPrivateMode,
+  isPrivate: isPrivateMode,
 });
 for (const [number, addedAt] of [
   [1038, "17:56"],
