@@ -56,6 +56,13 @@ export interface TaskOutcome {
   status: AIAgentTaskStatus.Completed | AIAgentTaskStatus.NoFixFound;
   // Why no fix was proposed. Only set for NoFixFound.
   statusMessage?: string | undefined;
+  /*
+   * The pull requests the task opened. Only set for Completed, and reported
+   * with it: recording a pull request can fail after GitHub has opened it
+   * (BaseTaskHandler.recordOpenedPullRequest), and the status report is then
+   * the only way the server learns where the pull request is.
+   */
+  pullRequestUrls?: Array<string> | undefined;
 }
 
 type ExecuteTaskFunction = (task: PendingTask) => Promise<TaskOutcome>;
@@ -145,7 +152,12 @@ export const executeTask: ExecuteTaskFunction = async (
       };
     }
 
-    return { status: AIAgentTaskStatus.Completed };
+    return {
+      status: AIAgentTaskStatus.Completed,
+      ...(result.pullRequestUrls && result.pullRequestUrls.length > 0
+        ? { pullRequestUrls: result.pullRequestUrls }
+        : {}),
+    };
   } finally {
     /*
      * dispose(), not flush(): a TaskLogger starts a repeating flush timer in
@@ -166,6 +178,34 @@ export const executeTask: ExecuteTaskFunction = async (
      */
     SecretRedactor.clearRegistered();
   }
+};
+
+type BuildTaskOutcomeReportFunction = (data: {
+  taskId: string;
+  outcome: TaskOutcome;
+}) => JSONObject;
+
+/*
+ * The status report that closes a task that finished. A field is only sent
+ * when it has a value, so a task that opened no pull request reports exactly
+ * what it always did — and a server that predates pullRequestUrls never reads
+ * it, which is all an older server needs.
+ */
+export const buildTaskOutcomeReport: BuildTaskOutcomeReportFunction = (data: {
+  taskId: string;
+  outcome: TaskOutcome;
+}): JSONObject => {
+  return {
+    ...RunnerAPIRequest.getDefaultRequestBody(),
+    taskId: data.taskId,
+    status: data.outcome.status,
+    ...(data.outcome.statusMessage
+      ? { statusMessage: data.outcome.statusMessage }
+      : {}),
+    ...(data.outcome.pullRequestUrls && data.outcome.pullRequestUrls.length > 0
+      ? { pullRequestUrls: data.outcome.pullRequestUrls }
+      : {}),
+  };
 };
 
 const startTaskProcessingLoop: () => Promise<void> =
@@ -289,14 +329,7 @@ const startTaskProcessingLoop: () => Promise<void> =
           /* Mark task as Completed / NoFixFound */
           let finalResult: HTTPResponse<JSONObject> = await API.post({
             url: updateTaskStatusUrl,
-            data: {
-              ...RunnerAPIRequest.getDefaultRequestBody(),
-              taskId: taskId,
-              status: outcome.status,
-              ...(outcome.statusMessage
-                ? { statusMessage: outcome.statusMessage }
-                : {}),
-            },
+            data: buildTaskOutcomeReport({ taskId: taskId, outcome: outcome }),
           });
 
           /*

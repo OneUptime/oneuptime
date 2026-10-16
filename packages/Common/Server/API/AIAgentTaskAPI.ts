@@ -20,7 +20,9 @@ import AIRunStatus from "../../Types/AI/AIRunStatus";
 import AIRunType from "../../Types/AI/AIRunType";
 import AIRunEventType from "../../Types/AI/AIRunEventType";
 import { CodeFixTaskTypeHelper } from "../../Types/AI/CodeFixTaskType";
+import CodeFixTaskContext from "../../Types/AI/CodeFixTaskContext";
 import PositiveNumber from "../../Types/PositiveNumber";
+import GitHubRunReply from "../Utils/CodeRepository/GitHub/GitHubRunReply";
 
 /*
  * The agent worker's task protocol. The route names and request shapes are
@@ -165,7 +167,8 @@ export default class AIAgentTaskAPI {
      * `taskId` is an AIRun id. InProgress is a heartbeat touch (the run is
      * already Running from the claim); Completed/Error are CAS transitions
      * Running -> Completed/Error that also write the terminal
-     * RunCompleted/RunFailed event to the run's glass-box trail.
+     * RunCompleted/RunFailed event to the run's glass-box trail. A Completed
+     * report may carry the pull request URLs the run opened.
      */
     this.router.post(
       `${API_BASE_PATH}/update-task-status`,
@@ -208,6 +211,20 @@ export default class AIAgentTaskAPI {
             | string
             | undefined;
 
+          /*
+           * The pull requests a Completed run opened. Recording one can fail
+           * after GitHub has opened it, and the thread a GitHub run came from
+           * should still get its link, so Runners send them with the status.
+           * Older Runners send none, and the run is stored as it always was.
+           */
+          const pullRequestUrls: unknown =
+            status === AIAgentTaskStatus.Completed
+              ? data["pullRequestUrls"]
+              : undefined;
+
+          const hasPullRequestUrls: boolean =
+            Array.isArray(pullRequestUrls) && pullRequestUrls.length > 0;
+
           /* Validate status value */
           const validStatuses: Array<AIAgentTaskStatus> = [
             AIAgentTaskStatus.InProgress,
@@ -233,6 +250,7 @@ export default class AIAgentTaskAPI {
               _id: true,
               projectId: true,
               status: true,
+              ...(hasPullRequestUrls ? { taskContext: true } : {}),
             },
             props: {
               isRoot: true,
@@ -302,6 +320,21 @@ export default class AIAgentTaskAPI {
                 toStatus === AIRunStatus.NoFixFound);
 
             /*
+             * The reported pull requests go on the run's GitHub context, in
+             * the same UPDATE that makes the run Completed. The outcome
+             * sweeper answers the thread as soon as the run is terminal, so a
+             * later write could land after the reply had already said no pull
+             * request was recorded. A run that did not come from GitHub has no
+             * thread to link them in, and its context is left alone.
+             */
+            const taskContext: CodeFixTaskContext | null = hasPullRequestUrls
+              ? GitHubRunReply.withOpenedPullRequestUrls({
+                  taskContext: existingRun.taskContext,
+                  pullRequestUrls: pullRequestUrls,
+                })
+              : null;
+
+            /*
              * CAS Running -> Completed/NoFixFound/Error. Losing the race (0
              * rows) means another actor already finalized the run — e.g. the
              * sweeper marked it Error after a heartbeat gap — and that outcome
@@ -318,6 +351,7 @@ export default class AIAgentTaskAPI {
                   ...(shouldStoreMessage
                     ? { errorMessage: statusMessage }
                     : {}),
+                  ...(taskContext ? { taskContext: taskContext } : {}),
                 },
               });
 
