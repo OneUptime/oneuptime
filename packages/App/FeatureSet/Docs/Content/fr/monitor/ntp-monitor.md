@@ -106,7 +106,7 @@ Les critères déterminent quand le serveur est considéré en ligne, dégradé 
 | **NTP Response Time (in ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | De la requête à la réponse. |
 | **NTP Root Dispersion (in ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | L'estimation, par le serveur lui-même, de son erreur maximale. |
 
-Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** doivent correspondre ou si **Tout** filtre suffit. Les **Actions** d'un critère décident de ce qu'il fait : changer le statut du moniteur, créer une alerte, déclarer un incident, ou une combinaison des trois.
+Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** doivent correspondre ou si **Au moins un** suffit. Les **Actions** d'un critère décident de ce qu'il fait : changer le statut du moniteur, créer une alerte, déclarer un incident, ou une combinaison des trois.
 
 ### Critères par défaut
 

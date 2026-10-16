@@ -1650,7 +1650,7 @@
   "Announcement Title": "Titre de l'annonce",
   "Answered": "Répondu",
   "Answered By": "Répondu par",
-  "Any": "Tout",
+  "Any": "Au moins un",
   "API Key Description": "Description de la clé API",
   "API Key Details": "Détails de la clé API",
   "API Key Name": "Nom de la clé API",
@@ -30066,5 +30066,6 @@
   "Reading the alert timeline": "Lecture de la chronologie de l'alerte",
   "Reading the incident timeline": "Lecture de la chronologie de l'incident",
   "Searching past incidents": "Recherche d'incidents passés",
-  "Ranked by": "Classé par"
+  "Ranked by": "Classé par",
+  "Any type": "Tout type"
 }

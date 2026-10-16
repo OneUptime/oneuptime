@@ -1650,7 +1650,7 @@
   "Announcement Title": "공지사항 제목",
   "Answered": "응답됨",
   "Answered By": "응답자",
-  "Any": "모두",
+  "Any": "하나 이상",
   "API Key Description": "API 키 설명",
   "API Key Details": "API 키 세부 정보",
   "API Key Name": "API 키 이름",
@@ -30066,5 +30066,6 @@
   "Reading the alert timeline": "경고 타임라인을 읽는 중",
   "Reading the incident timeline": "인시던트 타임라인을 읽는 중",
   "Searching past incidents": "과거 인시던트를 검색하는 중",
-  "Ranked by": "정렬 기준"
+  "Ranked by": "정렬 기준",
+  "Any type": "모든 유형"
 }

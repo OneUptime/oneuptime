@@ -30066,5 +30066,6 @@
   "Reading the alert timeline": "アラートのタイムラインを読み取り中",
   "Reading the incident timeline": "インシデントのタイムラインを読み取り中",
   "Searching past incidents": "過去のインシデントを検索中",
-  "Ranked by": "並べ替え"
+  "Ranked by": "並べ替え",
+  "Any type": "任意の型"
 }

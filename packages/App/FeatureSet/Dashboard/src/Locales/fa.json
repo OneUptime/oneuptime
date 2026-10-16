@@ -1650,7 +1650,7 @@
   "Announcement Title": "عنوان اطلاعیه",
   "Answered": "پاسخ داده شد",
   "Answered By": "پاسخ داده شده توسط",
-  "Any": "هر",
+  "Any": "دست‌کم یکی",
   "API Key Description": "توضیحات کلید API",
   "API Key Details": "جزئیات کلید API",
   "API Key Name": "نام کلید API",
@@ -30066,5 +30066,6 @@
   "Reading the alert timeline": "خواندن خط زمانی هشدار",
   "Reading the incident timeline": "خواندن خط زمانی حادثه",
   "Searching past incidents": "جست‌وجوی حادثه‌های گذشته",
-  "Ranked by": "مرتب‌سازی بر اساس"
+  "Ranked by": "مرتب‌سازی بر اساس",
+  "Any type": "هر نوعی"
 }

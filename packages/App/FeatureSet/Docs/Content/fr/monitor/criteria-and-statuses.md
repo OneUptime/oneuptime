@@ -47,7 +47,7 @@ Ouvrez un critère : il a un nom et trois sections, chacune se repliant en un r�
 
 Un filtre lit une donnée de la vérification et la compare : un **Type de filtre** (ce qui est lu, comme **Code de statut de la réponse**), une **Condition de filtre** (comment comparer, comme **Supérieur à**) et une **Valeur**. Les moniteurs qui comparent des métriques, comme les moniteurs Kubernetes et de métriques, demandent plutôt une **Condition** et un **Threshold**. Chaque type de moniteur propose ses propres types de filtre, listés sur sa page, par exemple [Surveillance de site web](/docs/monitor/website-monitor#critères-de-surveillance).
 
-À partir de deux filtres, la **Condition de correspondance** apparaît en dessous : **Tous** signifie que chaque filtre doit correspondre, **Tout** qu'un seul suffit. Un nouveau critère commence sur **Tous**.
+À partir de deux filtres, la **Condition de correspondance** apparaît en dessous : **Tous** signifie que chaque filtre doit correspondre, **Au moins un** qu'un seul suffit. Un nouveau critère commence sur **Tous**.
 
 Les filtres qui mesurent chaque vérification, comme **Is Online**, **Code de statut de la réponse** et **Temps de réponse (en ms)**, proposent **Évaluer ce critère sur une période donnée**. Il juge une fenêtre de vérifications récentes au lieu de la dernière seule, et commence sur les 5 dernières minutes avec **All Values**, qui ne correspond qu'une fois que chaque vérification de la fenêtre a correspondu. Voir [Évaluer sur une période](/docs/monitor/website-monitor#évaluer-sur-une-période).
 

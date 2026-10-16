@@ -1650,7 +1650,7 @@
   "Announcement Title": "Aankondigingstitel",
   "Answered": "Beantwoord",
   "Answered By": "Beantwoord door",
-  "Any": "Elke",
+  "Any": "Minstens één",
   "API Key Description": "API-sleutelbeschrijving",
   "API Key Details": "API-sleuteldetails",
   "API Key Name": "API-sleutelnaam",
@@ -30066,5 +30066,6 @@
   "Reading the alert timeline": "De tijdlijn van de waarschuwing lezen",
   "Reading the incident timeline": "De tijdlijn van het incident lezen",
   "Searching past incidents": "Eerdere incidenten doorzoeken",
-  "Ranked by": "Gesorteerd op"
+  "Ranked by": "Gesorteerd op",
+  "Any type": "Elk type"
 }
