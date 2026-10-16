@@ -76,6 +76,10 @@ export const ROLE_ACCESS_LATER: string = "ChoosePermissionsLater";
  */
 export const ROLE_ACCESS_SEARCH_THRESHOLD: number = 8;
 
+// What that search box says before anything is typed in it.
+export const ROLE_ACCESS_SEARCH_PLACEHOLDER: string =
+  translationKey("Search roles");
+
 // What a custom role's card stands for under Access: the prefix and the role's id.
 export const CUSTOM_ROLE_ACCESS_PREFIX: string = "customRole:";
 
@@ -347,7 +351,7 @@ export const getRoleAccessFormField: <TBaseModel extends BaseModel>(data: {
     ...(data.accessOptions.length > ROLE_ACCESS_SEARCH_THRESHOLD
       ? {
           cardSelectSearchable: true,
-          cardSelectSearchPlaceholder: "Search roles",
+          cardSelectSearchPlaceholder: ROLE_ACCESS_SEARCH_PLACEHOLDER,
         }
       : {}),
     required: true,

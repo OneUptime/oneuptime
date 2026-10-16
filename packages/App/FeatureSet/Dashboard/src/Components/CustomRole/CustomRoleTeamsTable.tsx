@@ -22,7 +22,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
@@ -172,8 +172,10 @@ const CustomRoleTeamsTable: FunctionComponent<ComponentProps> = (
             buttons: [ModalTableBulkDefaultActions.Delete],
             deleteVerb: "Remove",
             deleteIcon: IconProp.Minus,
-            deleteConfirmationWarning:
+            // Looked up where the dialog draws it (BaseModelTable).
+            deleteConfirmationWarning: translationKey(
               "Only this role is taken from them: the teams stay, with their members and their other roles and permissions.",
+            ),
           }}
           showRefreshButton={true}
           viewPageRoute={Navigation.getCurrentRoute()}
