@@ -599,13 +599,6 @@ const isMermaidCodeClass: (className: unknown) => boolean = (
 };
 
 /*
- * How many lists deep a list sits. Every level used to draw the same filled
- * disc, so a nested list stood apart from its parent only by its indent. A
- * bulleted list now steps through disc, circle and square -- the browser's
- * own defaults, and how Word and Outlook draw the same list -- and, as in
- * the browser's defaults, a numbered list counts as a level too.
- */
-/*
  * What react-markdown hands a renderer, without the tree node it adds
  * (`node`): spread onto an element, React wrote it out as
  * node="[object Object]".
@@ -620,6 +613,13 @@ const withoutTreeNode: (
   return attributes;
 };
 
+/*
+ * How many lists deep a list sits. Every level used to draw the same filled
+ * disc, so a nested list stood apart from its parent only by its indent. A
+ * bulleted list now steps through disc, circle and square -- the browser's
+ * own defaults, and how Word and Outlook draw the same list -- and, as in
+ * the browser's defaults, a numbered list counts as a level too.
+ */
 const ListDepthContext: React.Context<number> = React.createContext<number>(0);
 
 const BULLET_STYLES: Array<string> = [
