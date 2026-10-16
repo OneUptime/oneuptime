@@ -112,7 +112,7 @@ const OnCallDutyPage: FunctionComponent<
           buttons: [
             {
               title: "Timeline View",
-              icon: IconProp.ViewColumns,
+              icon: IconProp.Timeline,
               buttonStyle: ButtonStyleType.OUTLINE,
               onClick: () => {
                 Navigation.navigate(

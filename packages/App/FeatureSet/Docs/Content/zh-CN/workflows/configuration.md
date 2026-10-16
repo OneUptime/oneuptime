@@ -188,7 +188,8 @@ API 块和其他 HTTP 块从 OneUptime 发出请求，IRC 块从 OneUptime 连�
 读取和更改 OneUptime 记录的步骤——Find、Create、Update 和 Delete 组件，以及 On Create、On Update、On Create or Update 和 On Delete 触发器——以工作流所在项目的 **Project Admin** 身份执行。无论工作流是谁搭建的，步骤都要通过与 Project Admin 在仪表板和 API 中相同的检查：
 
 - **只限工作流自己的项目。** 步骤只读写工作流所属项目的记录，不涉及其他项目，Update 也绝不会把记录移到另一个项目。
-- **只限 Project Admin 可以做的事。** 步骤只能授予 Project Admin 自己拥有的团队和 API 密钥权限，所以它不能分发 **Project Owner**、计费或删除项目的权限，也不能把人加入权限超出 Project Admin 的团队，例如所有者团队。步骤无法读取是谁创建了探针或 AI 代理，那只有项目所有者能看到。
+- **只限 Project Admin 可以做的事。** 只有 **Project Owner**、计费或删除项目的权限才能做的事，步骤做不了；步骤也无法读取是谁创建了探针或 AI 代理，那只有项目所有者能看到。
+- **不改变谁有访问权限。** 步骤不会创建、更改或删除团队、团队成员、团队权限、自定义角色或 API 密钥权限，即使 Project Admin 可以这样做。工作流的步骤做什么由搭建它的人决定，而这个人可能是 **Project Member**，所以如果步骤能这样做，搭建者就能借它拿到自己没有被授予的访问权限，例如 **Project Admin**。这样的步骤会被拒绝，运行的日志会写明需要由管理项目团队和 API 密钥的人来做这个更改。这些记录上的触发器和 Find 步骤照常工作。
 - **不能读取 Runbook 凭据。** Project Admin 可以读取 Runbook 凭据，但这项权限不会借给步骤。当某个更改需要这项读取权限时——让 OneUptime AI 不经询问就运行它的命令、为某个 Runner 开启 **执行 AI 补救命令**、给运行 OneUptime AI 命令的 Runner 分配 SSH 凭据，或者指定一个 Runbook 凭据（例如在 Runbook 的步骤中）——会改为检查最后保存该工作流步骤的人，除非此人可以读取 Runbook 凭据（**Read Runbook Credential**，或者是 Project Owner 或 Project Admin），否则步骤会被拒绝。OneUptime 会在有人创建工作流时以及每次有人保存它的步骤时记录此人；重命名工作流、更改它的标签或开启关闭它，都不会改变最后保存步骤的人。用 API 密钥保存步骤不会记录任何人，因此在有人保存这些步骤之前，工作流的步骤无法做出这些更改。
 - **只限你的套餐包含的内容。** 在 OneUptime Cloud 上，创建或更改你的套餐不包含的内容的步骤会被拒绝，并说明所需的套餐，与仪表板一样。没有计费的自托管安装没有套餐限制。
 - **不涉及 OneUptime 自己保留的东西。** 以下操作对所有人都会被拒绝，包括工作流：
@@ -199,7 +200,7 @@ API 块和其他 HTTP 块从 OneUptime 发出请求，IRC 块从 OneUptime 连�
   - 在记录创建之后更改它属于哪条记录，例如所有者行对应的监视器，或者备注所在的事件。
 - **不以任何人的身份。** 工作流创建的记录没有创建者，审计日志会把工作流（以它当时的名称）记为做出更改的一方。
 
-当检查拒绝某个步骤时，步骤会走它的 **Error** 输出，不做被拒绝的更改，运行的日志会用通俗的语言写明步骤和原因，例如 *"Create One Team Permission" was refused. Workflow steps can do only what a Project Admin of this project can do: …*。可以在工作流的 [运行记录](/docs/workflows/runs-and-logs) 中查看。Create Many 步骤会一条一条地创建记录，并在第一条被拒绝时停止：在它之前创建的记录会保留。
+当检查拒绝某个步骤时，步骤会走它的 **Error** 输出，不做被拒绝的更改，运行的日志会用通俗的语言写明步骤和原因，例如 *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*。可以在工作流的 [运行记录](/docs/workflows/runs-and-logs) 中查看。Create Many 步骤会一条一条地创建记录，并在第一条被拒绝时停止：在它之前创建的记录会保留。
 
 与其他系统通信的步骤——API、Email、Slack、Microsoft Teams、Discord、Telegram、IRC、Mattermost、Custom Code 和 Generate Text with AI——不读取也不更改 OneUptime 记录，所以以上这些对它们都没有影响。
 

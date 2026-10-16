@@ -30238,5 +30238,6 @@
   "{{count}} to choose from. Search by name or by what a role allows._one": "{{count}} au choix. Recherchez par nom ou par ce qu'un rôle permet.",
   "Already acknowledged": "Déjà pris en compte",
   "Already passed on": "Déjà transmise",
-  "Nothing to pass on": "Rien à transmettre"
+  "Nothing to pass on": "Rien à transmettre",
+  "Use Try again above to load it.": "Cliquez sur « Réessayer » ci-dessus pour la charger."
 }
