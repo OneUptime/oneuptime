@@ -25,7 +25,7 @@ flowchart TB
 
 - **이름이 곧 서비스의 정체성입니다.** 대소문자를 구분하지 않고 비교하므로 `Checkout-API`와 `checkout-api`는 같은 서비스입니다. 새로운 `service.name`은 새 서비스가 됩니다.
 - **컨테이너는 스스로 이름을 붙입니다.** Docker와 Podman 에이전트에서 온 텔레메트리에 `service.name`이 없으면, 서비스는 컨테이너의 이름을 따릅니다.
-- **수집 키로 서비스를 정할 수 있습니다.** **Pinned Service Name**이 설정된 키로 보낸 OpenTelemetry 데이터는 `service.name`이 무엇이든 그 이름의 서비스 아래에 기록됩니다.
+- **수집 키로 서비스를 정할 수 있습니다.** **Pinned Service Name**이 설정된 키로 보낸 OpenTelemetry 데이터는 `service.name`이 무엇이든 그 이름의 서비스 아래에 기록됩니다. [수집 키](/docs/telemetry/ingestion-keys#브라우저-키-잠그기)를 참고하세요.
 - **브라우저와 휴대폰은 서비스가 아닙니다.** 브라우저나 모바일 앱에서 온 텔레메트리는 대신 [RUM 애플리케이션](/docs/rum/applications)에 속합니다.
 - **레이블이 텔레메트리와 함께 올 수 있습니다.** `oneuptime.label.<name>`이라는 리소스 속성은 서비스에 `<name>:<value>` 레이블을 추가합니다. 예를 들어 `oneuptime.label.team=payments`는 `team:payments`가 됩니다.
 
