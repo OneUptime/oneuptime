@@ -81,7 +81,7 @@ describe("SignInOptionLink", () => {
      * that wraps keeps its icon beside its first words.
      */
     expect(Array.from(option.children)).toEqual([words]);
-    expect(words.firstElementChild).toContainElement(icon as Element);
+    expect(words.firstElementChild).toContainElement(icon);
   });
 
   /*
