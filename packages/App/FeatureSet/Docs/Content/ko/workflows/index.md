@@ -122,7 +122,7 @@ flowchart TB
 
 ### 트리거 추가
 
-점선으로 된 **Choose what starts this workflow** 블록을 클릭한 다음, **Add Trigger** 패널의 **Popular** 아래에 있는 **On Create Incident**를 클릭합니다.
+점선으로 된 **Choose what starts this workflow** 블록을 클릭한 다음, **트리거 추가** 패널의 **Popular** 아래에 있는 **On Create Incident**를 클릭합니다.
 
 트리거가 점선 블록의 자리를 차지합니다. 그 위에 표시된 ID인 `incident-on-create-1` 이 이후 블록들이 이 트리거를 참조할 때 쓰는 이름입니다.
 

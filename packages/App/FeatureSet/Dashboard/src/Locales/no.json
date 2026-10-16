@@ -20880,7 +20880,7 @@
   "Acknowledging incident": "Acknowledging incident",
   "Action needed": "Action needed",
   "Acts on clear requests right away, within your permissions.": "Acts on clear requests right away, within your permissions.",
-  "Add Trigger": "Add Trigger",
+  "Add Trigger": "Legg til trigger",
   "Add a condition": "Add a condition",
   "Add a field": "Add a field",
   "Add a monitor to {{row}} and {{column}}": "Add a monitor to {{row}} and {{column}}",
@@ -30214,5 +30214,10 @@
   "Already acknowledged": "Allerede bekreftet",
   "Already passed on": "Allerede sendt videre",
   "Nothing to pass on": "Ingenting å sende videre",
-  "Use Try again above to load it.": "Bruk Prøv igjen ovenfor for å laste den inn."
+  "Use Try again above to load it.": "Bruk Prøv igjen ovenfor for å laste den inn.",
+  "Caution": "Forsiktig",
+  "Danger": "Fare",
+  "Important": "Viktig",
+  "Opens in a new tab": "Åpnes i en ny fane",
+  "Tip": "Tips"
 }

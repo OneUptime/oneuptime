@@ -122,7 +122,7 @@ flowchart TB
 
 ### افزودن تریگر
 
-روی بلوک خط‌چین **Choose what starts this workflow** کلیک کنید، سپس در پنل **Add Trigger** زیر **Popular** روی **On Create Incident** کلیک کنید.
+روی بلوک خط‌چین **Choose what starts this workflow** کلیک کنید، سپس در پنل **افزودن تریگر** زیر **Popular** روی **On Create Incident** کلیک کنید.
 
 تریگر جای بلوک خط‌چین را می‌گیرد. شناسه‌ای که روی آن هست، `incident-on-create-1`، همان چیزی است که بلوک‌های بعدی با آن به این تریگر ارجاع می‌دهند.
 

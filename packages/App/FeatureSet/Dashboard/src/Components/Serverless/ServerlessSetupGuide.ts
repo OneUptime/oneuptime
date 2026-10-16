@@ -308,7 +308,8 @@ function tokenCheckCommand(data: ServerlessGuideData): string {
 
 const NAME_BEFORE_EQUALS: string = "the name is the part before the first `=`";
 
-const SECRET_NOTE: string = `> **This token is a secret.** Use a **Server** ingestion key here and set it as a function environment variable. A key that reaches a browser can be read by anyone who views the page source; for anything running in a browser, create a **Browser** ingestion key instead.`;
+const SECRET_NOTE: string = `> [!WARNING]
+> **This token is a secret.** Use a **Server** ingestion key here and set it as a function environment variable. A key that reaches a browser can be read by anyone who views the page source; for anything running in a browser, create a **Browser** ingestion key instead.`;
 
 /*
  * Azure Functions: the function app's service.name names the function, and

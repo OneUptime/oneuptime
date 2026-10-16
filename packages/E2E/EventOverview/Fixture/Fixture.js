@@ -365,8 +365,15 @@ const unknownToSlack = new Set(
  * ?feed=oncall-run: incident #1042's on-call run in full, as the run writes
  * its feed entries now (OnCallFeedText) - four on-call entries within a
  * minute, which the feed folds into the newest of them.
+ * ?feed=links-and-quotes: a private note on incident #1042 saved from a
+ * Slack message, with the quote and the file the message carried, a
+ * callout, links to another incident and to the docs, and the note's
+ * attachment (see "Links and quotes in a note" below).
  */
-const feedMode = params.get("feed") === "oncall-run" ? "oncall-run" : "default";
+const FEED_MODES = ["oncall-run", "links-and-quotes"];
+const feedMode = FEED_MODES.includes(params.get("feed"))
+  ? params.get("feed")
+  : "default";
 /*
  * ?linked=: what the investigations read about the infrastructure their
  * incident or alert is linked to (see "Linked infrastructure" below).
@@ -1303,6 +1310,42 @@ insert(IncidentFeed, {
   createdAt: at("18:09"),
   user: people.maya,
 });
+/*
+ * Links and quotes in a note (?feed=links-and-quotes): a private note saved
+ * from a Slack message, written as IncidentInternalNoteService writes its
+ * feed entry. The quote and the "📎" file link are what ChatMessageMarkdown
+ * makes of the message; the attachment link is FileAttachmentMarkdownUtil's
+ * (the download route, project id first). The spec opens each link and
+ * reads how the quote and the callout are drawn.
+ */
+const SLACK_FILE_URL =
+  "https://acme.slack.com/files/U0123ABCD/F0123ABCD/image.png";
+const NOTE_ATTACHMENT_PATH = `/api/incident-internal-note/attachment/${PROJECT_ID}/${uuid("91000000", 1)}/${uuid("92000000", 1)}`;
+if (feedMode === "links-and-quotes") {
+  insert(IncidentFeed, {
+    incidentId: mainIncident.id,
+    incidentFeedEventType: IncidentFeedEventType.PrivateNote,
+    feedInfoInMarkdown: [
+      `📄 posted **private note** for this [Incident #${INCIDENT_NUMBER}](${incidentLink(INCIDENT_NUMBER)}):`,
+      "",
+      "> They said the payment provider is degraded in eu-west.",
+      "",
+      `📎 [image.png](${SLACK_FILE_URL})`,
+      "",
+      "> [!WARNING]",
+      "> **Do not restart the primary.** Fail over to the replica first.",
+      "",
+      `Same as [Incident #1036](${window.location.origin}${incidentLink(1036)}); see the [failover runbook](/docs/incidents/notes-owners-and-feed).`,
+      "",
+      "**Attachments:**",
+      `- [runbook.pdf](${NOTE_ATTACHMENT_PATH})`,
+    ].join("\n"),
+    displayColor: new Color("#64748b"),
+    postedAt: at("18:12"),
+    createdAt: at("18:12"),
+    user: people.sam,
+  });
+}
 insert(IncidentMember, {
   incidentId: mainIncident.id,
   userId: people.maya.id,
@@ -5369,6 +5412,21 @@ API.post = async (options) => handleApi("POST", options);
 API.put = async (options) => handleApi("PUT", options);
 API.delete = async (options) => handleApi("DELETE", options);
 API.fetch = async (options) => handleApi(options.method || "GET", options);
+
+/*
+ * The session refresh an attachment link asks for before its tab is pointed
+ * at the file (OpenAuthenticatedUrl). BaseAPI sends it through its parent
+ * class, past the stubs above, so it is answered here: the fixture's session
+ * is always live. It is recorded as the request it stands for.
+ */
+API.refreshSession = async () => {
+  fixture.apiRequests.push({
+    method: "POST",
+    url: "/identity/refresh-token",
+    body: {},
+  });
+  return true;
+};
 
 await i18next.use(initReactI18next).init({
   lng: "en",

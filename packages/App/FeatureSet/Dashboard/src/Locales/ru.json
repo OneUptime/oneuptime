@@ -20880,7 +20880,7 @@
   "Acknowledging incident": "Acknowledging incident",
   "Action needed": "Action needed",
   "Acts on clear requests right away, within your permissions.": "Acts on clear requests right away, within your permissions.",
-  "Add Trigger": "Add Trigger",
+  "Add Trigger": "Добавить триггер",
   "Add a condition": "Add a condition",
   "Add a field": "Add a field",
   "Add a monitor to {{row}} and {{column}}": "Add a monitor to {{row}} and {{column}}",
@@ -30214,5 +30214,10 @@
   "Already acknowledged": "Уже подтверждено",
   "Already passed on": "Уже передано дальше",
   "Nothing to pass on": "Передавать нечего",
-  "Use Try again above to load it.": "Нажмите «Повторить попытку» выше, чтобы загрузить его."
+  "Use Try again above to load it.": "Нажмите «Повторить попытку» выше, чтобы загрузить его.",
+  "Caution": "Осторожно",
+  "Danger": "Опасно",
+  "Important": "Важно",
+  "Opens in a new tab": "Откроется в новой вкладке",
+  "Tip": "Совет"
 }

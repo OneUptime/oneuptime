@@ -25,8 +25,10 @@ Los cambios se guardan automáticamente. Una píldora en la barra de herramienta
 
 | Para añadir            | Haz clic en                                                    | Panel que se abre               |
 | ---------------------- | -------------------------------------------------------------- | ------------------------------- |
-| El disparador          | El bloque marcador discontinuo                                 | **Añadir desencadenante**       |
+| El disparador          | El bloque marcador discontinuo, o **Añadir desencadenante** en la barra de herramientas | **Añadir desencadenante**       |
 | Cualquier otro bloque  | **Añadir componente**, en la barra de herramientas sobre el lienzo | **Añadir componente**        |
+
+El botón de la barra de herramientas dice **Añadir desencadenante** mientras el flujo de trabajo no tiene disparador, y **Añadir componente** en cuanto tiene uno.
 
 Los dos paneles se abren con los bloques que usan la mayoría de los flujos de trabajo, en **Populares**, seguidos del resto de bloques integrados. En **Recursos de OneUptime**, haz clic en un recurso como **Incidente** para ver qué puedes hacer con él; **Explorar todos los recursos** los muestra todos. O busca: escribe unas palabras, como `create incident`, y la coincidencia más cercana aparece primero. Pulsa `/` para ir al cuadro de búsqueda, las teclas de flecha para moverte por los resultados e **Intro** para añadir el bloque resaltado. Al hacer clic en un bloque, se añade.
 

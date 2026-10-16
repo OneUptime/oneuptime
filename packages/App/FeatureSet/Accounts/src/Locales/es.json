@@ -359,5 +359,13 @@
   "Quote": "Cita",
   "Code Block": "Bloque de código",
   "Switch to markdown source": "Cambiar al código fuente Markdown",
-  "Switch to visual editor": "Cambiar al editor visual"
+  "Switch to visual editor": "Cambiar al editor visual",
+  "Opens in a new tab": "Se abre en una pestaña nueva",
+  "Note": "Nota",
+  "Tip": "Consejo",
+  "Info": "Información",
+  "Important": "Importante",
+  "Warning": "Advertencia",
+  "Caution": "Precaución",
+  "Danger": "Peligro"
 }

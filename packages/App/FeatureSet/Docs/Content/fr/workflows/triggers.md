@@ -196,7 +196,7 @@ Pour tester un déclencheur d'événement sans attendre l'événement, cliquez s
 | **Abonné à la page de statut**             | Souhaiter la bienvenue à quelqu'un qui s'abonne à une page de statut.                       |
 | **Politique d'astreinte**                  | Synchroniser les modifications de politique avec un autre système de planning.              |
 
-Dans le panneau **Add Trigger**, ils se trouvent sous **Ressources OneUptime** : cliquez sur la ressource, puis sur le déclencheur. **Parcourir toutes les ressources** les contient tous, et le champ de recherche trouve un déclencheur à partir de quelques mots, comme `incident created`.
+Dans le panneau **Ajouter un déclencheur**, ils se trouvent sous **Ressources OneUptime** : cliquez sur la ressource, puis sur le déclencheur. **Parcourir toutes les ressources** les contient tous, et le champ de recherche trouve un déclencheur à partir de quelques mots, comme `incident created`.
 
 ## Étapes suivantes
 

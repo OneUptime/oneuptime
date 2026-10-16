@@ -38,6 +38,7 @@
     "Status",
     "Stratum",
     "Team",
+    "Tip",
     "Tunnel",
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",

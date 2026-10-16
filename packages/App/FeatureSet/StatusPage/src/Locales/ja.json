@@ -343,5 +343,13 @@
   "{{field}} is required.": "{{field}}は必須です。",
   "{{field}} should match {{matchField}}": "{{field}}は{{matchField}}と一致する必要があります",
   "Email is not valid.": "メールアドレスが無効です。",
-  "Next": "次へ"
+  "Next": "次へ",
+  "Opens in a new tab": "新しいタブで開きます",
+  "Note": "注記",
+  "Tip": "ヒント",
+  "Info": "情報",
+  "Important": "重要",
+  "Warning": "警告",
+  "Caution": "注意",
+  "Danger": "危険"
 }

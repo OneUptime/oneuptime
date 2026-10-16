@@ -312,8 +312,11 @@ CI=1 npm run test-workflow-builder-ui
 
 The fixture (`WorkflowBuilder/Fixture`, port 4237) renders the real builder:
 react-flow, the Add Component picker, the step cards and the step settings
-dialog, with the real component catalog. `?scenario=graph`, `trigger-only` and
-`empty` pick the starting graph, and `&theme=dark` the dark theme. Desktop and
+dialog, with the real component catalog. Its toolbar button names itself as the
+Builder's does: Add Trigger while the canvas has no trigger, Add Component once
+it has one (`WorkflowBuilderAddTrigger.spec.ts`). `?scenario=graph`,
+`trigger-only`, `empty` and `no-trigger` (a step whose trigger was deleted)
+pick the starting graph, and `&theme=dark` the dark theme. Desktop and
 Pixel 7 checks cover adding a step: its settings stay closed, it is selected,
 focused and in view (clear of the minimap and zoom buttons) at the zoom you
 chose, it says "Click to set up", and a click or Enter opens it. They also
@@ -321,7 +324,15 @@ cover the Add Component and Add Trigger picker over the whole catalog
 (`ComponentPicker.spec.ts`): it opens on a short list, a resource opens onto
 its steps, "incident" ranks Incident's steps before Incident State's, one click
 or Enter adds a step, typing a search never holds the page up, and it fits a
-phone and the dark theme. Failure traces are written to
+phone and the dark theme. `?page=builder-page` renders the Dashboard's real
+Builder page around the canvas, with only the API stood in for
+(`Fixture/BuilderPage.js`; `&graph=trigger` or `deleted`, `&enabled=1`, and
+`&column=430` for a tablet's column beside the side menu). Its checks
+(`WorkflowBuilderPageToolbar.spec.ts`) cover what the page puts first: Add
+Trigger as the one primary button until the workflow has a trigger, the off
+notice coming with the first trigger, the toolbar's buttons lining up with the
+Enabled switch when they wrap, and the notice's Turn on workflow under its
+sentences in a narrow column. Failure traces are written to
 `output/playwright/workflow-builder-ui/test-results/` at the repository root.
 
 ## Push registration UI regression tests

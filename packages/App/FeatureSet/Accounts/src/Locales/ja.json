@@ -359,5 +359,13 @@
   "Quote": "引用",
   "Code Block": "コードブロック",
   "Switch to markdown source": "Markdown ソースに切り替え",
-  "Switch to visual editor": "ビジュアルエディターに切り替え"
+  "Switch to visual editor": "ビジュアルエディターに切り替え",
+  "Opens in a new tab": "新しいタブで開きます",
+  "Note": "注記",
+  "Tip": "ヒント",
+  "Info": "情報",
+  "Important": "重要",
+  "Warning": "警告",
+  "Caution": "注意",
+  "Danger": "危険"
 }

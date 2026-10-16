@@ -95,7 +95,7 @@ El mismo editor se abre en un diálogo desde **Añadir nota pública** en el men
 > [!TIP]
 > **La hora de publicación es la marca de tiempo real de la nota.** Las páginas de estado ordenan y muestran las notas públicas por `postedAt`, no por cuándo las escribiste; así que, si estás poniendo al día la página de estado con una actualización que enviaste hace 40 minutos, elige **Posted now** y fija cuándo ocurrió de verdad. Si una nota llega por la API (`/api/incident-public-note`) sin hora, OneUptime le pone la hora actual.
 
-Cada nota muestra quién la escribió, su hora de publicación, el Markdown renderizado con sus adjuntos y, en su cabecera, en qué punto está su notificación a los suscriptores. **Buscar notas…** encuentra notas por lo que dicen, y el feed se puede leer de más reciente a más antiguo o al revés.
+Cada nota muestra quién la escribió, su hora de publicación, el Markdown renderizado con sus adjuntos y, en su cabecera, en qué punto está su notificación a los suscriptores. **Buscar notas…** encuentra notas por lo que dicen, y el feed se puede leer de más reciente a más antiguo o al revés. Los enlaces a otros sitios y a los adjuntos se abren en una pestaña nueva. Las líneas que empiezan por `>` se muestran como una cita; empiécela con una línea propia, `> [!NOTE]`, `> [!TIP]` o `> [!WARNING]`, para mostrarla en cambio como un recuadro destacado.
 
 ## Publicar una nota privada
 

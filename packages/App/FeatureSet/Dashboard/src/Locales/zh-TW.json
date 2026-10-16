@@ -20880,7 +20880,7 @@
   "Acknowledging incident": "Acknowledging incident",
   "Action needed": "Action needed",
   "Acts on clear requests right away, within your permissions.": "Acts on clear requests right away, within your permissions.",
-  "Add Trigger": "Add Trigger",
+  "Add Trigger": "新增觸發器",
   "Add a condition": "Add a condition",
   "Add a field": "Add a field",
   "Add a monitor to {{row}} and {{column}}": "Add a monitor to {{row}} and {{column}}",
@@ -30214,5 +30214,10 @@
   "Already acknowledged": "已有人確認",
   "Already passed on": "已轉交",
   "Nothing to pass on": "無需轉交",
-  "Use Try again above to load it.": "請使用上方的「再試一次」載入此清單。"
+  "Use Try again above to load it.": "請使用上方的「再試一次」載入此清單。",
+  "Caution": "小心",
+  "Danger": "危險",
+  "Important": "重要",
+  "Opens in a new tab": "在新分頁中開啟",
+  "Tip": "提示"
 }

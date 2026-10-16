@@ -359,5 +359,13 @@
   "Quote": "Citat",
   "Code Block": "Kodeblok",
   "Switch to markdown source": "Skift til Markdown-kilde",
-  "Switch to visual editor": "Skift til visuel editor"
+  "Switch to visual editor": "Skift til visuel editor",
+  "Opens in a new tab": "Åbner i en ny fane",
+  "Note": "Bemærk",
+  "Tip": "Tip",
+  "Info": "Info",
+  "Important": "Vigtigt",
+  "Warning": "Advarsel",
+  "Caution": "Forsigtig",
+  "Danger": "Fare"
 }

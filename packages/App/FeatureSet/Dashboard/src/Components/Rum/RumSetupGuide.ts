@@ -155,14 +155,17 @@ function getPlaceholderNotes(data: RumGuideData): Array<string> {
   ];
 }
 
-const NEVER_SHIP_A_SERVER_KEY: string = `> **Never ship a Server ingestion key to a browser.** A Server key has full ingest access from anywhere, with no origin check. Once it is in page source, anyone who finds it can write forged spans, logs and metrics into this project — poisoning dashboards, firing false alerts and running up your metered usage — until you notice and rotate it.`;
+const NEVER_SHIP_A_SERVER_KEY: string = `> [!WARNING]
+> **Never ship a Server ingestion key to a browser.** A Server key has full ingest access from anywhere, with no origin check. Once it is in page source, anyone who finds it can write forged spans, logs and metrics into this project — poisoning dashboards, firing false alerts and running up your metered usage — until you notice and rotate it.`;
 
-const SERVICE_NAME_IS_NOT_ENOUGH: string = `> **Setting \`service.name\` alone is not enough.** The OpenTelemetry browser SDKs do not add \`browser.*\` attributes unless you enable the browser resource detector or set them yourself — without them this becomes a backend Service, not a RUM application.`;
+const SERVICE_NAME_IS_NOT_ENOUGH: string = `> [!WARNING]
+> **Setting \`service.name\` alone is not enough.** The OpenTelemetry browser SDKs do not add \`browser.*\` attributes unless you enable the browser resource detector or set them yourself — without them this becomes a backend Service, not a RUM application.`;
 
 const DEVICE_MANUFACTURER_CAVEAT: string =
   "`device.manufacturer` also marks a batch as mobile, but only on a resource that carries no `host.name` or `host.id` — it doubles as the make of a physical machine on a host's inventory item. Set `device.id` or `device.model.identifier` as well and the distinction never comes up.";
 
-const MOBILE_NEEDS_A_SERVER_KEY: string = `> **Mobile needs a Server key, and a mobile bundle can be unpacked.** A Browser key is enforced against the \`Origin\` header, which a mobile SDK does not send, so it cannot be used here. Assume the token shipped in your app will be extracted, and use the controls that do apply: pin a service name on the key so extracted copies cannot forge backend telemetry, set a requests-per-minute limit and an expiry, and rotate the key with each release train.`;
+const MOBILE_NEEDS_A_SERVER_KEY: string = `> [!WARNING]
+> **Mobile needs a Server key, and a mobile bundle can be unpacked.** A Browser key is enforced against the \`Origin\` header, which a mobile SDK does not send, so it cannot be used here. Assume the token shipped in your app will be extracted, and use the controls that do apply: pin a service name on the key so extracted copies cannot forge backend telemetry, set a requests-per-minute limit and an expiry, and rotate the key with each release train.`;
 
 /* ------------------------------------------------------------ Browser */
 

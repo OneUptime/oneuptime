@@ -122,7 +122,7 @@ Det nya arbetsflödet öppnas i **Byggare**, avstängt.
 
 ### Lägg till utlösaren
 
-Klicka på det streckade blocket **Choose what starts this workflow** och klicka sedan på **On Create Incident** under **Popular** i panelen **Add Trigger**.
+Klicka på det streckade blocket **Choose what starts this workflow** och klicka sedan på **On Create Incident** under **Popular** i panelen **Lägg till utlösare**.
 
 Utlösaren tar det streckade blockets plats. ID:t på det, `incident-on-create-1`, är hur senare block hänvisar till det.
 

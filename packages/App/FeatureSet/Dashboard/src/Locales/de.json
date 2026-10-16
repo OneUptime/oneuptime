@@ -20880,7 +20880,7 @@
   "Acknowledging incident": "Acknowledging incident",
   "Action needed": "Action needed",
   "Acts on clear requests right away, within your permissions.": "Acts on clear requests right away, within your permissions.",
-  "Add Trigger": "Add Trigger",
+  "Add Trigger": "Auslöser hinzufügen",
   "Add a condition": "Add a condition",
   "Add a field": "Add a field",
   "Add a monitor to {{row}} and {{column}}": "Add a monitor to {{row}} and {{column}}",
@@ -30214,5 +30214,10 @@
   "Already acknowledged": "Bereits bestätigt",
   "Already passed on": "Bereits weitergegeben",
   "Nothing to pass on": "Nichts weiterzugeben",
-  "Use Try again above to load it.": "Klicken Sie oben auf „Erneut versuchen“, um sie zu laden."
+  "Use Try again above to load it.": "Klicken Sie oben auf „Erneut versuchen“, um sie zu laden.",
+  "Caution": "Vorsicht",
+  "Danger": "Gefahr",
+  "Important": "Wichtig",
+  "Opens in a new tab": "Öffnet in einem neuen Tab",
+  "Tip": "Tipp"
 }

@@ -27,6 +27,7 @@ import {
   getStepValueSources,
 } from "./ValuePicker/StepGraph";
 import { loadComponentsAndCategories } from "./Utils";
+import { getWorkflowAddButton } from "./WorkflowAddButton";
 import {
   ConnectionGraphEdge,
   ConnectionGraphNode,
@@ -198,8 +199,18 @@ export interface ComponentProps {
   initialNodes: Array<Node>;
   initialEdges: Array<Edge>;
   onWorkflowUpdated: (nodes: Array<Node>, edges: Array<Edge>) => void;
+  /*
+   * The toolbar's add button was pressed. It opens the panel the button
+   * names (WorkflowAddButton): Add Trigger while the canvas has no trigger,
+   * Add Component once it has one.
+   */
   showComponentsPickerModal: boolean;
   showRunModal: boolean;
+  /*
+   * Told, with false, when an add panel closes - Add Trigger or Add
+   * Component, whatever opened it - so the page clears its request and the
+   * button opens a panel again the next time it is pressed.
+   */
   onComponentPickerModalUpdate: (isModalShown: boolean) => void;
   workflowId: ObjectID;
   onRunModalUpdate: (isModalShown: boolean) => void;
@@ -335,11 +346,37 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     }
   }, []);
 
+  /*
+   * The toolbar's add button opens the panel it names, read from the canvas
+   * as it is when the button is pressed: Add Trigger while there is no
+   * trigger (the dashed card's panel), Add Component once there is one. It
+   * used to offer steps to a workflow that had nothing to start it.
+   *
+   * Only a change of the page's request acts. A request taken back closes
+   * the panel it opened; a canvas that merely starts without one closes
+   * nothing, so it never shuts a panel the dashed card opened before its
+   * first effects ran.
+   */
+  const wasAddPanelRequestedRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
   useEffect(() => {
-    if (props.showComponentsPickerModal) {
-      setShowComponentsModal(true);
+    const wasRequested: boolean = wasAddPanelRequestedRef.current;
+    wasAddPanelRequestedRef.current = props.showComponentsPickerModal;
+
+    if (!props.showComponentsPickerModal) {
+      if (wasRequested) {
+        setShowComponentsModal(false);
+        setShowTriggersModal(false);
+      }
+
+      return;
+    }
+
+    if (getWorkflowAddButton(nodes).componentsType === ComponentType.Trigger) {
+      setShowTriggersModal(true);
     } else {
-      setShowComponentsModal(false);
+      setShowComponentsModal(true);
     }
   }, [props.showComponentsPickerModal]);
 
@@ -725,9 +762,26 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     showComponentSettingsModal ||
     showRunModal;
 
+  /*
+   * The page hears when an add panel closes, either one: the toolbar's
+   * button opens Add Trigger on a canvas without a trigger, and a page that
+   * never heard it close would not open anything the next time. Only the
+   * closing is told. The page sets its own request when the button is
+   * pressed, and a canvas that also told it every opening could chase it
+   * back and forth for ever when both changed in the same render.
+   */
+  const wasAddPanelOpenRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
   useEffect(() => {
-    props.onComponentPickerModalUpdate(showComponentsModal);
-  }, [showComponentsModal]);
+    const isAddPanelOpen: boolean = showComponentsModal || showTriggersModal;
+
+    if (wasAddPanelOpenRef.current && !isAddPanelOpen) {
+      props.onComponentPickerModalUpdate(false);
+    }
+
+    wasAddPanelOpenRef.current = isAddPanelOpen;
+  }, [showComponentsModal, showTriggersModal]);
 
   const refreshEdges: VoidFunction = (): void => {
     setEdges((eds: Array<Edge>) => {

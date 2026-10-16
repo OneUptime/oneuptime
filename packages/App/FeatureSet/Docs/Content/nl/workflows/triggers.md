@@ -196,7 +196,7 @@ Om een gebeurtenistrigger te testen zonder op de gebeurtenis te wachten, klik je
 | **Statuspagina Abonnee**                  | Iemand verwelkomen die zich abonneert op een statuspagina.                                |
 | **Bereikbaarheidsbeleid**                 | Beleidswijzigingen synchroniseren met een ander roostersysteem.                           |
 
-In het paneel **Add Trigger** staan ze onder **OneUptime resources**: klik op de resource en daarna op de trigger. **Browse all resources** bevat ze allemaal, en het zoekveld vindt een trigger aan de hand van een paar woorden, zoals `incident created`.
+In het paneel **Trigger toevoegen** staan ze onder **OneUptime resources**: klik op de resource en daarna op de trigger. **Browse all resources** bevat ze allemaal, en het zoekveld vindt een trigger aan de hand van een paar woorden, zoals `incident created`.
 
 ## Volgende stappen
 

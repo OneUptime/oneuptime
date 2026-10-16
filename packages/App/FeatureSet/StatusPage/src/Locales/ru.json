@@ -343,5 +343,13 @@
   "{{field}} is required.": "{{field}} обязательно для заполнения.",
   "{{field}} should match {{matchField}}": "{{field}} должно совпадать с {{matchField}}",
   "Email is not valid.": "Электронная почта недействительна.",
-  "Next": "Далее"
+  "Next": "Далее",
+  "Opens in a new tab": "Откроется в новой вкладке",
+  "Note": "Примечание",
+  "Tip": "Совет",
+  "Info": "Информация",
+  "Important": "Важно",
+  "Warning": "Предупреждение",
+  "Caution": "Осторожно",
+  "Danger": "Опасно"
 }
