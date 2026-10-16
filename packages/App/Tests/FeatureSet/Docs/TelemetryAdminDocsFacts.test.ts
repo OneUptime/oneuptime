@@ -112,14 +112,12 @@ import LogSeverity from "Common/Types/Log/LogSeverity";
 import TimeRange from "Common/Types/Time/TimeRange";
 import TraceScrubField from "Common/Types/Trace/TraceScrubField";
 import OriginAllowList from "Common/Utils/Telemetry/OriginAllowList";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  jest,
-} from "@jest/globals";
+/*
+ * `jest` deliberately NOT imported from @jest/globals: the `jest.Mock`
+ * type below must resolve to the same @types/jest global namespace as the
+ * jest.fn()/jest.mock() calls (the StatusPageCertsJobs pattern).
+ */
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 
@@ -192,7 +190,7 @@ jest.mock(
   },
 );
 
-type MockFn = jest.Mock<(...args: Array<unknown>) => unknown>;
+type MockFn = jest.Mock;
 
 const REPO_DIR: string = path.resolve(PACKAGES_DIR, "..");
 const EE_DIR: string = path.join(REPO_DIR, "ee");
