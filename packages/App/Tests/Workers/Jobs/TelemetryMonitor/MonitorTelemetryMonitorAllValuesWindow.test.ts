@@ -1,7 +1,6 @@
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType, { MonitorTypeHelper } from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";

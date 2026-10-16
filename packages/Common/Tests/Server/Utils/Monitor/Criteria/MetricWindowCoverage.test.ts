@@ -98,10 +98,11 @@ describe("MetricWindowCoverage.getWindow", () => {
   });
 
   test("is null when the response does not say - a payload from before windows were recorded", () => {
+    const withoutWindow: MetricMonitorResponse = response();
+    delete withoutWindow.startAndEndDate;
+
     expect(MetricWindowCoverage.getWindow(undefined)).toBeNull();
-    expect(
-      MetricWindowCoverage.getWindow(response({ startAndEndDate: undefined })),
-    ).toBeNull();
+    expect(MetricWindowCoverage.getWindow(withoutWindow)).toBeNull();
   });
 
   test("is null for a window that is not one", () => {

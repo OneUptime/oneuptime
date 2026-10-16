@@ -183,16 +183,20 @@ function series(deployment: string, data: Array<Minute>): MetricSeriesResult {
 
 function response(input: {
   breakdown: Array<MetricSeriesResult>;
+  // Left out: the 12:15:30 window. Given as undefined: no window at all.
   window?: InBetween<Date> | undefined;
   dataCompleteFrom?: Date | undefined;
 }): MetricMonitorResponse {
+  const window: InBetween<Date> | undefined =
+    "window" in input ? input.window : WINDOW;
+
   return {
     projectId: ObjectID.generate(),
     monitorId: ObjectID.generate(),
     metricViewConfig: viewConfig,
     metricResult: [],
     seriesBreakdown: input.breakdown,
-    startAndEndDate: "window" in input ? input.window : WINDOW,
+    ...(window ? { startAndEndDate: window } : {}),
     ...(input.dataCompleteFrom
       ? { dataCompleteFrom: input.dataCompleteFrom }
       : {}),
