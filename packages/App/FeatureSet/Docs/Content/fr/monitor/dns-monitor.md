@@ -105,7 +105,7 @@ Les critères décident quand le nom compte comme en ligne, dégradé ou hors li
 
 **DNSSEC Is Valid** interroge le serveur indiqué dans **Serveur DNS (facultatif)**, sur son **Port**, ou Google Public DNS (`8.8.8.8`) quand ce champ est vide : le serveur que vous indiquez doit donc valider DNSSEC. Le filtre n'a pas de valeur, et ne correspond dans aucun sens, quand la sonde ne peut pas faire cette vérification. Pour une vérification complète d'une zone signée, utilisez un [moniteur DNSSEC](/docs/monitor/dnssec-monitor).
 
-Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** doivent correspondre ou si **Tout** filtre suffit. Les **Actions** d'un critère décident de ce qu'il fait : changer l'état du moniteur, créer une alerte, déclarer un incident, ou plusieurs de ces actions.
+Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** doivent correspondre ou si **Au moins un** suffit. Les **Actions** d'un critère décident de ce qu'il fait : changer l'état du moniteur, créer une alerte, déclarer un incident, ou plusieurs de ces actions.
 
 ### Critères par défaut
 

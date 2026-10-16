@@ -15,6 +15,7 @@
 import Dictionary from "../../../../Types/Dictionary";
 import IconProp from "../../../../Types/Icon/IconProp";
 import ObjectID from "../../../../Types/ObjectID";
+import { translationKey } from "../../../Utils/TranslateTemplate";
 import type { SometimesBefore, UnavailableStep } from "./StepGraph";
 import {
   ComponentInputType,
@@ -255,7 +256,13 @@ const TYPE_LABELS: Partial<Record<ComponentInputType, string>> = {
   [ComponentInputType.StringDictionary]: "Key / value",
   [ComponentInputType.BaseModel]: "Record",
   [ComponentInputType.BaseModelArray]: "Records",
-  [ComponentInputType.AnyValue]: "Any",
+  /*
+   * "Any type", not "Any": the Dashboard draws a bare "Any" as a monitor
+   * criteria's Match Condition ("any one of the filters"), which some
+   * languages word differently from a value that can be of any type. A key
+   * of its own, so the extractor reads it.
+   */
+  [ComponentInputType.AnyValue]: translationKey("Any type"),
   [ComponentInputType.JavaScript]: "Code",
 };
 

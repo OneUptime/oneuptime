@@ -134,7 +134,7 @@ Standaard maakt OneUptime criteria op basis van wat voor een statuspagina echt t
 
 | Criterium | Filters | Effect |
 | --- | --- | --- |
-| Offline | **Elke** van: de pagina is niet online; er is ten minste één actief incident binnen de afbakening; een component binnen de afbakening meldt Degraded Performance, Partial Outage, Major Outage of Full Outage | Markeert de monitor als offline en verklaart een incident, dat zichzelf oplost zodra het criterium niet meer overeenkomt |
+| Offline | **Minstens één** van: de pagina is niet online; er is ten minste één actief incident binnen de afbakening; een component binnen de afbakening meldt Degraded Performance, Partial Outage, Major Outage of Full Outage | Markeert de monitor als offline en verklaart een incident, dat zichzelf oplost zodra het criterium niet meer overeenkomt |
 | Online | **Alle** van: de pagina is online; er zijn geen actieve incidenten binnen de afbakening | Markeert de monitor als online |
 
 Omdat het aantal actieve incidenten en de componentstatussen de filters op componentgroep / componentnaam volgen, richten deze standaardcriteria zich automatisch alleen op de componenten die voor u tellen.

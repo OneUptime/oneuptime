@@ -121,7 +121,13 @@ export class TraceRecordingRuleDefinitionUtil {
 
   public static getSpanKindOptions(): Array<{ value: string; label: string }> {
     return [
-      { value: "", label: "Any" },
+      /*
+       * No filter on the kind: every kind is counted. "All", as the network
+       * discovery's name facet says it - not "Any", which the Dashboard
+       * draws as a monitor criteria's Match Condition ("any one of the
+       * filters"), a word some languages say differently from this one.
+       */
+      { value: "", label: "All" },
       { value: "SPAN_KIND_SERVER", label: "Server" },
       { value: "SPAN_KIND_CLIENT", label: "Client" },
       { value: "SPAN_KIND_PRODUCER", label: "Producer" },
