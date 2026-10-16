@@ -46,6 +46,7 @@ import Project from "Common/Models/DatabaseModels/Project";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
@@ -2372,9 +2373,8 @@ describe("where a postmortem is written", () => {
 
   it("is written by the roles that edit incidents, and read by whoever reads the incident", () => {
     const incident: Incident = new Incident();
-    const access:
-      | { read: Array<Permission>; update: Array<Permission> }
-      | undefined = incident.getColumnAccessControlFor("postmortemNote");
+    const access: ColumnAccessControl | null =
+      incident.getColumnAccessControlFor("postmortemNote");
     const roles: Array<string> = rolesOf(access?.update || []);
 
     expect(roles).toEqual([
