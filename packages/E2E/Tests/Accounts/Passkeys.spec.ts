@@ -145,45 +145,71 @@ test.describe("Passkey account lifecycle", () => {
     return bounds as Box;
   };
 
+  // Single sign-on, the first of the other ways in.
+  const ssoOption: () => Locator = (): Locator => {
+    return page.getByRole("link", { name: "Sign in with SSO", exact: true });
+  };
+
+  type Look = { background: string; border: string };
+
+  const lookOf: (locator: Locator) => Promise<Look> = async (
+    locator: Locator,
+  ): Promise<Look> => {
+    return locator.evaluate((element: HTMLElement): Look => {
+      const style: CSSStyleDeclaration = window.getComputedStyle(element);
+      return {
+        background: style.backgroundColor,
+        border: style.borderTopWidth,
+      };
+    });
+  };
+
   /*
    * The sign-in page leads with the password form, and Login is its one
-   * filled button. "Sign in with a passkey" is a link-weight option under the
-   * SSO link, with no surface of its own; the tinted panel and the divider
-   * that used to sit over the form are gone, and "New to passkeys?" waits for
-   * an attempt that did not sign in.
+   * filled button. Under it, an "or" divider and the other ways in as normal
+   * buttons, "Sign in with SSO" then "Sign in with a passkey": as wide and
+   * as tall as Login, lined up with it, white and outlined where it is
+   * filled. They used to be centred text links. The tinted passkey panel and
+   * its divider over the form are long gone, and "New to passkeys?" waits
+   * for an attempt that did not sign in.
    */
-  const expectFormFirstAndPasskeyQuiet: () => Promise<void> =
+  const expectFormFirstThenOtherWaysIn: () => Promise<void> =
     async (): Promise<void> => {
       const passkeyOption: Locator = page.getByTestId("passkey-login");
       const email: Box = await boxOf(page.getByTestId("email"));
       const signIn: Box = await boxOf(page.getByTestId("Login"));
-      const sso: Box = await boxOf(
-        page.getByRole("link", {
-          name: "Use single sign-on (SSO) instead",
-          exact: true,
-        }),
+      const divider: Box = await boxOf(
+        page.getByTestId("sign-in-options-divider"),
       );
+      const sso: Box = await boxOf(ssoOption());
       const passkey: Box = await boxOf(passkeyOption);
 
       expect(email.y).toBeLessThan(signIn.y);
-      expect(signIn.y + signIn.height).toBeLessThanOrEqual(sso.y);
+      expect(signIn.y + signIn.height).toBeLessThanOrEqual(divider.y);
+      expect(divider.y + divider.height).toBeLessThanOrEqual(sso.y);
       expect(sso.y + sso.height).toBeLessThanOrEqual(passkey.y);
-      expect(passkey.height).toBeLessThan(signIn.height);
-      expect(passkey.width).toBeLessThan(signIn.width);
-      expect(
-        await passkeyOption.evaluate((element: HTMLElement) => {
-          const style: CSSStyleDeclaration = window.getComputedStyle(element);
-          return {
-            background: style.backgroundColor,
-            border: style.borderTopWidth,
-            shadow: style.boxShadow,
-          };
-        }),
-      ).toEqual({
-        background: "rgba(0, 0, 0, 0)",
-        border: "0px",
-        shadow: "none",
-      });
+      for (const option of [sso, passkey]) {
+        expect(Math.abs(option.x - signIn.x)).toBeLessThanOrEqual(1);
+        expect(Math.abs(option.width - signIn.width)).toBeLessThanOrEqual(1);
+        expect(Math.abs(option.height - signIn.height)).toBeLessThanOrEqual(1);
+      }
+      await expect(page.getByTestId("sign-in-options-divider")).toHaveText(
+        "or",
+      );
+
+      const outlined: Look = {
+        background: "rgb(255, 255, 255)",
+        border: "1px",
+      };
+      expect(await lookOf(passkeyOption)).toEqual(outlined);
+      expect(await lookOf(ssoOption())).toEqual(outlined);
+      expect((await lookOf(page.getByTestId("Login"))).background).not.toBe(
+        outlined.background,
+      );
+
+      await expect(
+        page.getByText("Use single sign-on (SSO) instead", { exact: true }),
+      ).toHaveCount(0);
       await expect(
         page.getByText("Use a saved passkey", { exact: true }),
       ).toHaveCount(0);
@@ -441,12 +467,12 @@ test.describe("Passkey account lifecycle", () => {
 
   test("signs in with a passkey without entering an email or password", async () => {
     await signOut();
-    await expectFormFirstAndPasskeyQuiet();
+    await expectFormFirstThenOtherWaysIn();
     await saveScreenshot("passkey-login-desktop", test.info());
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.getByTestId("Login")).toBeInViewport();
     await expect(page.getByTestId("passkey-login")).toBeInViewport();
-    await expectFormFirstAndPasskeyQuiet();
+    await expectFormFirstThenOtherWaysIn();
     expect(
       await page.evaluate(() => {
         return document.documentElement.scrollWidth <= window.innerWidth;
@@ -598,16 +624,20 @@ test.describe("Passkey account lifecycle", () => {
       await expect(page.getByTestId("Login")).toBeDisabled();
       await expect(passwordForm).toHaveCSS("opacity", "0.5");
       await expect(passwordForm).toHaveCSS("pointer-events", "none");
+      // The "or" divider and single sign-on pause with the form.
+      await expect(ssoOption()).toHaveCSS("pointer-events", "none");
       await expect(
-        page.getByRole("link", {
-          name: "Use single sign-on (SSO) instead",
-          exact: true,
-        }),
-      ).toHaveCSS("pointer-events", "none");
+        passwordForm.getByTestId("sign-in-options-divider"),
+      ).toHaveCount(1);
       await expect(page.getByTestId("passkey-option")).toHaveCSS(
         "opacity",
         "1",
       );
+      // The passkey button keeps its look while its attempt runs.
+      expect(await lookOf(page.getByTestId("passkey-login"))).toEqual({
+        background: "rgb(255, 255, 255)",
+        border: "1px",
+      });
       await expect(page.getByTestId("cancel-passkey-login")).toHaveCSS(
         "pointer-events",
         "auto",

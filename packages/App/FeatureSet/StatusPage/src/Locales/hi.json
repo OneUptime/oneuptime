@@ -264,7 +264,8 @@
       "loginPrompt": "{{statusPageName}} देखने के लिए कृपया लॉग इन करें",
       "forgotPassword": "पासवर्ड भूल गए?",
       "submit": "लॉग इन करें",
-      "useSSO": "इसके बजाय सिंगल साइन-ऑन (SSO) का उपयोग करें"
+      "or": "या",
+      "logInWithSso": "SSO से लॉग इन करें"
     },
     "sso": {
       "title": "SSO से लॉग इन करें",

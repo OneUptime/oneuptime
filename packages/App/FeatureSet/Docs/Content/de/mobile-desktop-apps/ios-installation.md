@@ -45,8 +45,8 @@ flowchart TB
 Nutzen Sie den Weg, auf dem sich Ihr Konto anmeldet:
 
 - Ihre E-Mail-Adresse und Ihr Passwort, dann **Sign In**. **Forgot password?** schickt Ihnen per E-Mail einen Link, mit dem Sie ein neues festlegen.
-- **Sign in with a passkey**, sobald Sie im Dashboard einen hinzugefügt haben: siehe [Einen Passkey hinzufügen](/docs/introduction/your-account#einen-passkey-hinzufügen). Ein Browserfenster öffnet sich, um ihn zu bestätigen, und bringt Sie dann zurück.
 - **Sign in with SSO**, wenn Ihre Organisation Single Sign-On nutzt. Wählen Sie Ihren Anbieter, oder geben Sie Ihre geschäftliche E-Mail-Adresse ein und tippen Sie auf **Continue**. Ein sicherer Browser öffnet sich, und Sie sind zurück in der App, sobald Sie sich angemeldet haben.
+- **Sign in with a passkey**, sobald Sie im Dashboard einen hinzugefügt haben: siehe [Einen Passkey hinzufügen](/docs/introduction/your-account#einen-passkey-hinzufügen). Ein Browserfenster öffnet sich, um ihn zu bestätigen, und bringt Sie dann zurück.
 
 Ist die Zwei-Faktor-Authentifizierung eingeschaltet, geben Sie den sechsstelligen Code aus Ihrer Authenticator-App ein, oder einen Ihrer Backup-Codes. Ein Sicherheitsschlüssel lässt sich in der App nicht verwenden. Verlangt Ihr Administrator die Zwei-Faktor-Authentifizierung und Sie haben sie noch nicht eingerichtet, richtet die App zuerst mit Ihnen eine Authenticator-App ein.
 

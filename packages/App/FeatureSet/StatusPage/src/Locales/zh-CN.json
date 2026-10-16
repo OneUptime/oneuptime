@@ -264,7 +264,8 @@
       "loginPrompt": "请登录以查看 {{statusPageName}}",
       "forgotPassword": "忘记密码？",
       "submit": "登录",
-      "useSSO": "改用单点登录（SSO）"
+      "or": "或",
+      "logInWithSso": "通过 SSO 登录"
     },
     "sso": {
       "title": "通过 SSO 登录",

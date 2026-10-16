@@ -55,8 +55,8 @@ Abra o aplicativo. Em **Connect your workspace**, mantenha `https://oneuptime.co
 Use a forma de login da sua conta:
 
 - O seu e-mail e a sua senha, depois **Sign In**. **Forgot password?** envia por e-mail um link para definir uma nova.
-- **Sign in with a passkey**, depois de adicionar uma no painel: veja [Adicionar uma chave de acesso](/docs/introduction/your-account#adicionar-uma-chave-de-acesso). O navegador abre para confirmá-la e depois traz você de volta.
 - **Sign in with SSO**, se a sua organização usa login único. Escolha o seu provedor, ou digite o seu e-mail de trabalho e toque em **Continue**. Um navegador seguro abre, e você volta ao aplicativo assim que fizer login.
+- **Sign in with a passkey**, depois de adicionar uma no painel: veja [Adicionar uma chave de acesso](/docs/introduction/your-account#adicionar-uma-chave-de-acesso). O navegador abre para confirmá-la e depois traz você de volta.
 
 Com a autenticação de dois fatores ativada, digite o código de seis dígitos do seu aplicativo autenticador, ou um dos seus códigos de backup. Uma chave de segurança não pode ser usada no aplicativo. Se o seu administrador exige a autenticação de dois fatores e você ainda não a configurou, o aplicativo configura primeiro um aplicativo autenticador com você.
 

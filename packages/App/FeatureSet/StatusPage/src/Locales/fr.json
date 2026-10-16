@@ -264,7 +264,8 @@
       "loginPrompt": "Veuillez vous connecter pour voir {{statusPageName}}",
       "forgotPassword": "Mot de passe oublié ?",
       "submit": "Se connecter",
-      "useSSO": "Utiliser l'authentification unique (SSO) à la place"
+      "or": "ou",
+      "logInWithSso": "Se connecter avec SSO"
     },
     "sso": {
       "title": "Se connecter avec SSO",

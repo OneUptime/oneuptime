@@ -264,7 +264,8 @@
       "loginPrompt": "{{statusPageName}}을(를) 보려면 로그인해주세요",
       "forgotPassword": "비밀번호를 잊으셨나요?",
       "submit": "로그인",
-      "useSSO": "대신 싱글 사인온(SSO) 사용"
+      "or": "또는",
+      "logInWithSso": "SSO로 로그인"
     },
     "sso": {
       "title": "SSO로 로그인",
