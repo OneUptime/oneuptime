@@ -20,6 +20,7 @@ flowchart TB
 - [Tilføj en eskaleringsregel](#tilføj-en-eskaleringsregel): Tilføj næste niveau, trin for trin.
 - [Sådan tilkalder niveauerne folk](#sådan-tilkalder-niveauerne-folk): Timing, gentagelser og hvordan hver person nås.
 - [Den næste person i rotationen](#eskalér-til-den-næste-person-i-rotationen): Tilkald backup for den, der har vagt, fra samme rotation.
+- [Send et tilkald videre](#send-et-tilkald-videre): Kan du ikke tage et tilkald? Send det straks videre til næste niveau.
 - [API og Terraform](#opret-regler-med-apiet-eller-terraform): Opret politikker og regler som kode.
 :::
 
@@ -74,7 +75,7 @@ Klik på **Create Rule**. Reglen tilføjes under de andre, som politikkens næst
 
 ## Sådan tilkalder niveauerne folk
 
-Når en hændelse eller advarsel når politikken, tilkalder **Level 1** straks sine modtagere. Kvitterer ingen inden for ventetiden, tilkaldes **Level 2**, og så videre ned gennem listen. Når det sidste niveaus ventetid er gået uden kvittering, starter politikken forfra fra **Level 1**, hvis dens **Gentagelsespolitik** (under reglerne) siger, at der skal gentages, så mange gange som den tillader, og ellers stopper den. Kvitterer man for eller løser hændelsen eller advarslen, stopper tilkaldet på ethvert niveau.
+Når en hændelse eller advarsel når politikken, tilkalder **Level 1** straks sine modtagere. Kvitterer ingen inden for ventetiden, tilkaldes **Level 2**, og så videre ned gennem listen. Når det sidste niveaus ventetid er gået uden kvittering, starter politikken forfra fra **Level 1**, hvis dens **Gentagelsespolitik** (under reglerne) siger, at der skal gentages, så mange gange som den tillader, og ellers stopper den. Kvitterer man for eller løser hændelsen eller advarslen, stopper tilkaldet på ethvert niveau. Den, der bliver tilkaldt og ikke kan tage det, kan sende tilkaldet videre, og næste niveau tilkaldes uden at vente: se [Send et tilkald videre](#send-et-tilkald-videre).
 
 En hændelse, en advarsel eller en episode, der oprettes allerede bekræftet eller løst — registreret bagefter — udfører ingen af sine politikker: ingen tilkaldes, og dens feed siger det og nævner dem ved navn. Se [Erklæret allerede bekræftet eller løst](/docs/incidents/declaring-incidents#erklæret-allerede-bekræftet-eller-løst).
 
@@ -162,6 +163,45 @@ Kørslens besked i Slack og Microsoft Teams, hændelsens feed og **Tidslinje for
 
 > [!TIP]
 > Én vagtplan er nok: der er ingen anden backup-vagtplan, der skal holdes i takt med den første, og det fravær, dens personer registrerer, gælder for begge niveauer.
+
+## Send et tilkald videre
+
+Den, der bliver tilkaldt og ikke kan tage det, fordi vedkommende sover, sidder i et fly eller allerede arbejder på en anden hændelse, kan sende tilkaldet videre i stedet for at lade det ringe ud. Politikken tilkalder så straks sit næste niveau uden at vente niveauets **Eskalér efter (i minutter)** ud, og vedkommende bliver ikke tilkaldt om det igen.
+
+```mermaid title="Et tilkald sendt videre flytter politikken straks til næste niveau"
+flowchart TB
+    page["Level 1 tilkalder Alex"] --> take{"Kan Alex<br/>tage det?"}
+    take -->|"Ja"| ack["Alex kvitterer:<br/>tilkaldet stopper"]
+    take -->|"Nej"| pass["Alex sender det videre"]
+    pass --> others{"Tilkaldes andre på<br/>Level 1 stadig?"}
+    others -->|"Ja"| wait["Politikken venter<br/>på dem som før"]
+    others -->|"Nej"| next["Level 2 tilkaldes<br/>nu"]
+```
+
+Hvert tilkald kan sendes videre fra der, hvor det nåede dig:
+
+| Hvor | Sådan sender du det videre |
+| --- | --- |
+| E-mail | Knappen **Pass it on**, derefter **Pass it on** på siden, den åbner |
+| SMS og WhatsApp | Linket i beskeden åbner kvitteringssiden, hvor **Pass it on** også står |
+| Telegram, Slack og Microsoft Teams | Linket "Can't take it? Pass it on", derefter **Pass it on** på siden, det åbner |
+| Opkald | Tryk 2. Opkaldet siger derefter, hvad der skete |
+| Pushnotifikation | Tryk på den: hændelsen, advarslen eller episoden åbner i OneUptime On-Call-appen med **Pass it on** under sig |
+| OneUptime | **Send videre** øverst i hændelsen, advarslen eller episoden, efter dens tilstandsknapper |
+
+Alle veje undtagen opkaldet spørger, før de gør noget, og siger, hvad der vil ske, for eksempel "Escalation rule 2 of 3 (Level 2) is paged right away, without waiting."; i et opkald er det at trykke 2 svaret. Kun den, der bliver tilkaldt, kan sende sit tilkald videre: knappen i OneUptime vises kun for vedkommende, og linket i en besked sender kun det tilkald videre, det blev sendt om, for den person, det blev sendt til, i 7 dage.
+
+Hvad der sker bagefter, afhænger af, hvem der ellers bliver tilkaldt:
+
+- Andre på samme niveau bliver stadig tilkaldt: politikken venter på dem som før. Den går videre, når niveauets ventetid udløber, eller så snart den sidste af dem også sender tilkaldet videre.
+- Der er ingen andre tilbage på niveauet: næste niveau tilkaldes straks.
+- Det var det sidste niveau: hvis **Gentagelsespolitik** siger, at der skal gentages, starter politikken straks forfra fra **Level 1**. Ellers stopper tilkaldet, og nogen skal tage sig af det.
+
+At sende et tilkald videre kvitterer ikke for det: hændelsen eller advarslen venter stadig på, at nogen kvitterer, og den, der sendte det videre, kan stadig selv kvittere. Denne kørsel tilkalder ikke vedkommende om det igen: et senere niveau eller en gentagelse, der nævner vedkommende, springer vedkommende over. Når alle, den tilkaldte, har sendt det videre, og der ikke er nogen tilbage at tilkalde, stopper tilkaldet, og hændelsens feed siger det.
+
+Et tilkald, som et workflow sender direkte til personer, har ingen niveauer: sender du det videre, bliver du ikke tilkaldt mere, og når alle, det tilkaldte, har sendt det videre, stopper tilkaldet.
+
+Hver gang et tilkald sendes videre, bliver det registreret. Kørslens **Tidslinje for udførelsen** markerer personens linje **Sendt videre**, hændelsens feed siger "Alex Kim passed on the page from on-call policy Payments at escalation rule Level 1.", kørslens besked i Slack og Microsoft Teams siger, at vedkommende sendte det videre, og vedkommendes **Vagtlogs** viser tilkaldet som **Sendt videre**.
 
 ## Rediger, omarranger og slet regler
 

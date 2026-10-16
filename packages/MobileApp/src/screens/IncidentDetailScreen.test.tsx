@@ -1,6 +1,7 @@
 import React from "react";
 import { Alert } from "react-native";
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -8,6 +9,8 @@ import {
   within,
 } from "@testing-library/react-native";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
+import * as passOnApi from "../api/onCallPassOn";
+import type { OnCallPassOnPage } from "../api/onCallPassOn";
 import type { QueryClient, UseQueryResult } from "@tanstack/react-query";
 import IncidentDetailScreen from "./IncidentDetailScreen";
 import { ThemeProvider, darkColors, lightColors } from "../theme";
@@ -134,6 +137,31 @@ jest.mock("../api/incidents", () => {
 jest.mock("../api/incidentNotes", () => {
   return {
     createIncidentNote: jest.fn(),
+  };
+});
+
+/*
+ * Whether the signed-in person is being paged about it, for Pass it on
+ * (hooks/usePassOnAction.test.tsx owns how that works). Unless a test says,
+ * the answer never comes: the screen renders as it always did, and nothing
+ * updates it after a test has looked.
+ */
+const mockPassOnPages: { current: OnCallPassOnPage[] | null } = {
+  current: null,
+};
+
+jest.mock("../api/onCallPassOn", () => {
+  return {
+    fetchOnCallPassOnPages: jest.fn(() => {
+      return mockPassOnPages.current
+        ? Promise.resolve(mockPassOnPages.current)
+        : new Promise<never>(() => {
+            // Never answers.
+          });
+    }),
+    passOnOnCallPages: jest.fn(async () => {
+      return [];
+    }),
   };
 });
 
@@ -1467,6 +1495,192 @@ describe("Acknowledged by the order of the project's states (utils/acknowledgedS
         INCIDENT_ID,
         ACKNOWLEDGED_STATE._id,
       );
+    });
+  });
+});
+
+describe("Passing the page on", () => {
+  /*
+   * The person an on-call policy is paging about the incident, who cannot
+   * take it, passes it on from here: the policy pages its next escalation
+   * rule now instead of waiting. Only they are offered it, and only while
+   * the incident still waits for somebody to take it.
+   */
+  let alertSpy: jest.SpyInstance;
+  let refetchTimeline: jest.Mock;
+  let refetchFeed: jest.Mock;
+
+  const fetchPassOnMock: jest.Mock =
+    passOnApi.fetchOnCallPassOnPages as unknown as jest.Mock;
+  const passOnMock: jest.Mock =
+    passOnApi.passOnOnCallPages as unknown as jest.Mock;
+
+  const PASS_ON_PAGE: OnCallPassOnPage = {
+    executionLogId: "run-1",
+    policyName: "Payments",
+    sentence:
+      "Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+  };
+
+  function lastAlert(): [
+    string,
+    string | undefined,
+    Array<{ text?: string; onPress?: () => void }> | undefined,
+  ] {
+    const calls: Array<Array<unknown>> = alertSpy.mock.calls;
+    return calls[calls.length - 1] as [
+      string,
+      string | undefined,
+      Array<{ text?: string; onPress?: () => void }> | undefined,
+    ];
+  }
+
+  beforeEach(() => {
+    alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {
+      return undefined;
+    });
+    refetchTimeline = jest.fn(async () => {
+      return undefined;
+    });
+    refetchFeed = jest.fn(async () => {
+      return undefined;
+    });
+    fetchPassOnMock.mockClear();
+    passOnMock.mockClear();
+
+    mockIncidentDetail.current = queryState<IncidentItem | null>({
+      data: makeLoadedIncident(),
+    });
+    mockIncidentStates.current = queryState<IncidentState[]>({
+      data: [TRIAGE_STATE, ACKNOWLEDGED_STATE, RESOLVED_STATE],
+    });
+    mockIncidentTimeline.current = queryState<StateTimelineItem[]>({
+      refetch: refetchTimeline as unknown as IncidentTimelineState["refetch"],
+    });
+    mockIncidentFeed.current = queryState<FeedItem[]>({
+      data: [],
+      refetch: refetchFeed as unknown as IncidentFeedState["refetch"],
+    });
+    mockIncidentNotes.current = queryState<NoteItem[]>({ data: [] });
+  });
+
+  afterEach(() => {
+    alertSpy.mockRestore();
+    mockPassOnPages.current = null;
+  });
+
+  test("somebody the policy is not paging is offered no Pass it on", async () => {
+    mockPassOnPages.current = [];
+
+    await renderScreen(createTestQueryClient());
+
+    await waitFor(() => {
+      return expect(fetchPassOnMock).toHaveBeenCalledWith(
+        PROJECT_ID,
+        "incident",
+        INCIDENT_ID,
+      );
+    });
+    expect(
+      screen.queryByRole("button", { name: "Pass this incident page on" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Acknowledge incident" }),
+    ).toBeTruthy();
+  });
+
+  test("the person being paged is offered it, after Acknowledge and Resolve", async () => {
+    mockPassOnPages.current = [PASS_ON_PAGE];
+
+    await renderScreen(createTestQueryClient());
+
+    const passOn: unknown = await screen.findByRole("button", {
+      name: "Pass this incident page on",
+    });
+    const buttons: Array<unknown> = within(
+      screen.getByTestId("response-actions"),
+    ).getAllByRole("button");
+
+    expect(buttons).toHaveLength(3);
+    expect(buttons[2]).toBe(passOn);
+    expect(screen.getByText("Pass it on")).toBeTruthy();
+  });
+
+  test("an incident somebody acknowledged is not offered it, whatever the server last said", async () => {
+    mockPassOnPages.current = [PASS_ON_PAGE];
+    mockIncidentDetail.current = queryState<IncidentItem | null>({
+      data: makeLoadedIncident({
+        currentIncidentState: makeNamedEntityWithColor({
+          _id: ACKNOWLEDGED_STATE._id,
+          name: ACKNOWLEDGED_STATE.name,
+        }),
+      }),
+    });
+
+    await renderScreen(createTestQueryClient());
+
+    await waitFor(() => {
+      return expect(fetchPassOnMock).toHaveBeenCalled();
+    });
+    expect(
+      screen.queryByRole("button", { name: "Pass this incident page on" }),
+    ).toBeNull();
+  });
+
+  test("it asks first, passes it on, says what it did, and reads the feed and timeline again", async () => {
+    mockPassOnPages.current = [PASS_ON_PAGE];
+    passOnMock.mockResolvedValueOnce([
+      {
+        passedOn: true,
+        policyName: "Payments",
+        sentence: "Escalation rule 2 of 3 (Level 2) is paging Sam Lee now.",
+      },
+    ]);
+
+    await renderScreen(createTestQueryClient());
+
+    fireEvent.press(
+      await screen.findByRole("button", { name: "Pass this incident page on" }),
+    );
+
+    const [title, message, choices] = lastAlert();
+
+    expect(title).toBe("Pass it on?");
+    expect(message).toBe(
+      `You won't be paged about it again.\n\n${PASS_ON_PAGE.sentence}`,
+    );
+    // Nothing is passed on until they say so.
+    expect(passOnMock).not.toHaveBeenCalled();
+
+    // Read again after passing on: no longer paged.
+    mockPassOnPages.current = [];
+
+    await act(async () => {
+      choices!.find((choice: { text?: string }) => {
+        return choice.text === "Pass it on";
+      })!.onPress!();
+    });
+
+    await waitFor(() => {
+      return expect(lastAlert()[0]).toBe("You passed it on");
+    });
+    expect(lastAlert()[1]).toBe(
+      "Escalation rule 2 of 3 (Level 2) is paging Sam Lee now.\n\nYou won't be paged about it again.",
+    );
+    expect(passOnMock).toHaveBeenCalledWith(
+      PROJECT_ID,
+      "incident",
+      INCIDENT_ID,
+    );
+
+    await waitFor(() => {
+      return expect(refetchFeed).toHaveBeenCalled();
+    });
+    expect(refetchTimeline).toHaveBeenCalled();
+    await waitFor(() => {
+      return expect(
+        screen.queryByRole("button", { name: "Pass this incident page on" }),
+      ).toBeNull();
     });
   });
 });

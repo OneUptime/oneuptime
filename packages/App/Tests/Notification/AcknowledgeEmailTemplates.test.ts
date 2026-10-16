@@ -283,3 +283,52 @@ describe("the acknowledge emails show every row their template asks for", () => 
     });
   }
 });
+
+/*
+ * "CAN'T TAKE IT? PASS IT ON."
+ *
+ * Somebody woken by a page they cannot take passes it on from the email
+ * (OnCallPagePassOn): a line that says what passing on means for them, and
+ * a quieter button under Acknowledge. The button opens a page that asks
+ * first - a mail scanner that follows every link passes nothing on.
+ */
+describe("the acknowledge emails offer passing the page on", () => {
+  const PASS_ON_LINK: string =
+    "https://oneuptime.example.com/api/user-notification-log-timeline/pass-on-page/1?pageToken=t";
+
+  for (const template of TEMPLATES) {
+    test(`${template.file} says Can't take it? Pass it on, under Acknowledge`, () => {
+      const html: string = render(
+        template.file,
+        varsFor(template, { passOnLink: PASS_ON_LINK }),
+      );
+
+      expect(html).toContain(
+        "Can't take it? Pass it on, and you won't be paged about it again.",
+      );
+      // Handlebars writes the link's "=" as &#x3D;, which mail clients read back.
+      expect(html).toContain(
+        'href="https://oneuptime.example.com/api/user-notification-log-timeline/pass-on-page/1?pageToken&#x3D;t"',
+      );
+      expect(html).toContain(">Pass it on</a>");
+      expect(html.indexOf("Pass it on</a>")).toBeGreaterThan(
+        html.indexOf("You can also copy and paste this link:"),
+      );
+    });
+
+    test(`${template.file} leaves passing on out of an email without its link`, () => {
+      const html: string = render(template.file, varsFor(template));
+
+      expect(html).not.toContain("Pass it on");
+      expect(html).not.toContain("Can't take it?");
+    });
+
+    test(`${template.file} draws Pass it on as the secondary button`, () => {
+      const source: string = templateSource(template.file);
+
+      expect(source).toContain(
+        '{{> ButtonBlock buttonUrl=passOnLink buttonText="Pass it on" secondary=true}}',
+      );
+    });
+  }
+});
