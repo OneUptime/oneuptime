@@ -1686,6 +1686,7 @@ import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDisc
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
 import OnCallScheduleTimelineAPI from "Common/Server/API/OnCallScheduleTimelineAPI";
 import WorkspaceChannelLinkAPI from "Common/Server/API/WorkspaceChannelLinkAPI";
+import WorkspaceChannelMembersAPI from "Common/Server/API/WorkspaceChannelMembersAPI";
 import UserNotificationMethodAdminAPI from "Common/Server/API/UserNotificationMethodAdminAPI";
 
 import OnCallDutyPolicyFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyFeed";
@@ -5247,6 +5248,14 @@ const BaseAPIFeatureSet: FeatureSet = {
      * record is read with the caller's own permissions first.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WorkspaceChannelLinkAPI);
+
+    /*
+     * Who is in a record's own channel, and adding people to it from its
+     * page (/workspace-channel-members/<record type>/<id>, .../add). The
+     * record is read with the caller's own permissions first; adding
+     * needs permission to edit it.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, WorkspaceChannelMembersAPI);
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
