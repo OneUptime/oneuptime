@@ -91,6 +91,7 @@ import { getJoinVideoCallAction } from "../../../Components/VideoCall/JoinVideoC
 import useRecordChannelLinks, {
   getOpenInChatActions,
 } from "../../../Components/Workspace/useRecordChannelLinks";
+import RecordChannelMembersCard from "../../../Components/Workspace/RecordChannelMembersCard";
 import {
   WorkspaceChannelLink,
   WorkspaceChannelRecordType,
@@ -1253,6 +1254,7 @@ const IncidentView: FunctionComponent<
             notifyStatusPageSubscribersByDefault={
               notifyStatusPageSubscribersByDefault
             }
+            isPrivate={isPrivate}
           />
         </div>
 
@@ -1269,6 +1271,18 @@ const IncidentView: FunctionComponent<
               // A started call is a new feed entry.
               refreshFeed();
             }}
+          />
+
+          {/*
+           * Who is in the incident's own channel, beside its call: where its
+           * responders talk. Only for an incident with a channel of its own.
+           */}
+          <RecordChannelMembersCard
+            recordType={WorkspaceChannelRecordType.Incident}
+            recordId={modelId}
+            links={channelLinks}
+            // Somebody added is a new feed entry.
+            onChanged={refreshFeed}
           />
 
           {/* Incident View  */}

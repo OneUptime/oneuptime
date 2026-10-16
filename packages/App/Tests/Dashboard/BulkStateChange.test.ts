@@ -4,7 +4,9 @@ import {
   BulkStateChangeNoteTemplate,
   BulkStateChangeNoteType,
   BulkStateChangeSkipDecision,
+  IncidentBulkStateChange,
   buildBulkStateChangeMiscDataProps,
+  buildIncidentBulkStateChange,
   getBulkStateChangeNoteFieldKey,
   getBulkStateChangeNoteTemplateFieldKey,
   getBulkStateChangeSkipDecision,
@@ -246,5 +248,88 @@ describe("a note template row as the picker offers it", () => {
     expect(
       getNoteFromTemplate(templates, "019acd20-3333-4333-8333-333333333333"),
     ).toBe("All clear.");
+  });
+});
+
+/*
+ * The incidents table's bulk Change State writes one public note for every
+ * incident it moves, with "Notify Status Page Subscribers". A private
+ * incident takes no public notes and reaches no subscriber
+ * (Common/Types/StatusPage/PrivateRecordPublicNotes) - the server refuses a
+ * change that comes with a public note on one - so each incident's change is
+ * built on its own: a private one gets the same note as a private note
+ * (`privateNote`, which the incident state timeline posts), and notifies
+ * nobody.
+ */
+describe("an incident's bulk state change", () => {
+  test("an incident that is not private gets the public note, and the box as it was ticked", () => {
+    expect(
+      buildIncidentBulkStateChange({
+        isPrivate: false,
+        note: "Fixed by rolling back deploy 42.",
+        shouldStatusPageSubscribersBeNotified: true,
+      }),
+    ).toEqual({
+      miscDataProps: { publicNote: "Fixed by rolling back deploy 42." },
+      shouldStatusPageSubscribersBeNotified: true,
+    });
+
+    expect(
+      buildIncidentBulkStateChange({
+        isPrivate: false,
+        note: "Fixed.",
+        shouldStatusPageSubscribersBeNotified: false,
+      }).shouldStatusPageSubscribersBeNotified,
+    ).toBe(false);
+  });
+
+  test("a private incident gets the same note as a private note, and notifies nobody", () => {
+    const change: IncidentBulkStateChange = buildIncidentBulkStateChange({
+      isPrivate: true,
+      note: "Fixed by rolling back deploy 42.",
+      shouldStatusPageSubscribersBeNotified: true,
+    });
+
+    expect(change).toEqual({
+      miscDataProps: { privateNote: "Fixed by rolling back deploy 42." },
+      shouldStatusPageSubscribersBeNotified: false,
+    });
+    expect(change.miscDataProps).not.toHaveProperty("publicNote");
+  });
+
+  test("an untouched note writes nothing, private incident or not", () => {
+    for (const isPrivate of [true, false]) {
+      for (const note of [undefined, "", "   \n  "]) {
+        expect(
+          buildIncidentBulkStateChange({
+            isPrivate: isPrivate,
+            note: note,
+            shouldStatusPageSubscribersBeNotified: true,
+          }).miscDataProps,
+        ).toEqual({});
+      }
+    }
+  });
+
+  test("a box the dialog did not send notifies, as it always has, on an incident that is not private", () => {
+    expect(
+      buildIncidentBulkStateChange({ isPrivate: false, note: "Fixed." })
+        .shouldStatusPageSubscribersBeNotified,
+    ).toBe(true);
+    expect(
+      buildIncidentBulkStateChange({ isPrivate: true, note: "Fixed." })
+        .shouldStatusPageSubscribersBeNotified,
+    ).toBe(false);
+  });
+
+  test("the private note travels under the key the incident state timeline reads", () => {
+    expect(
+      Object.keys(
+        buildIncidentBulkStateChange({ isPrivate: true, note: "Fixed." })
+          .miscDataProps,
+      ),
+    ).toEqual([
+      getBulkStateChangeNoteFieldKey(BulkStateChangeNoteType.Private),
+    ]);
   });
 });

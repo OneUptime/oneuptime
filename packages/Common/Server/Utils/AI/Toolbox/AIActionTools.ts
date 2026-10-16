@@ -14,6 +14,9 @@ import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/Datab
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
 import PublicNoteSubscriberNotificationDefault from "../../../../Types/StatusPage/PublicNoteSubscriberNotificationDefault";
+import PrivateRecordPublicNotes, {
+  PrivateRecordKind,
+} from "../../../../Types/StatusPage/PrivateRecordPublicNotes";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import { RUNBOOK_RUN_PERMISSIONS } from "../../../../Types/Runbook/RunbookRunPermissions";
 import DatabaseRequestType from "../../../Types/BaseDatabase/DatabaseRequestType";
@@ -442,7 +445,7 @@ export const RunRunbookTool: ObservabilityTool = {
 export const PostIncidentStatusUpdateTool: ObservabilityTool = {
   name: "post_incident_status_update",
   description:
-    "Post a customer-facing status update (public note) on an incident. It appears on the status page and, by default, notifies subscribers - unless subscribers were not notified when the incident was declared, in which case it stays quiet by default. Provide the incident id and the update text.",
+    "Post a customer-facing status update (public note) on an incident. It appears on the status page and, by default, notifies subscribers - unless subscribers were not notified when the incident was declared, in which case it stays quiet by default. A private incident takes no public notes: for one, write a private note with create_incident_note instead. Provide the incident id and the update text.",
   inputSchema: {
     type: "object",
     properties: {
@@ -502,12 +505,26 @@ export const PostIncidentStatusUpdateTool: ObservabilityTool = {
         incidentNumber: true,
         title: true,
         shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+        isPrivate: true,
       },
       props: ctx.props,
     });
     if (!incident) {
       throw new BadDataException(
         "Incident not found (or you do not have access to it).",
+      );
+    }
+
+    /*
+     * A private incident takes no public notes (PrivateRecordPublicNotes):
+     * refused before anything is written, in the words the API refuses it
+     * with, and with the tool that writes the note it can take.
+     */
+    if (!PrivateRecordPublicNotes.takesPublicNotes(incident)) {
+      throw new BadDataException(
+        `${PrivateRecordPublicNotes.getRefusalMessage(
+          PrivateRecordKind.Incident,
+        )} create_incident_note adds one.`,
       );
     }
 

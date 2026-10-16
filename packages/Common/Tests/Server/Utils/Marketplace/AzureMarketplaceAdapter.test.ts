@@ -11,6 +11,7 @@ import AzureMarketplaceAPI, {
 import {
   MarketplaceActivationError,
   MarketplaceUsageRecord,
+  MarketplaceUsageResult,
 } from "../../../../Server/Utils/Marketplace/MarketplaceAdapter";
 import MarketplaceApiError from "../../../../Server/Utils/Marketplace/MarketplaceApiError";
 import { beforeEach, describe, expect, it } from "@jest/globals";
@@ -218,6 +219,10 @@ describe("AzureMarketplaceAdapter", () => {
   });
 
   describe("reportUsage", () => {
+    it("says Microsoft keeps one event per subscription and hour", () => {
+      expect(adapter.keepsOneReportPerHour).toBe(true);
+    });
+
     it("sends one event, in the hour the report ends in", async () => {
       api.reportUsageEvents.mockResolvedValue([
         { status: "Accepted", usageEventId: "ue-1", errorCode: null },
@@ -255,14 +260,109 @@ describe("AzureMarketplaceAdapter", () => {
       );
     });
 
-    it("counts an event Microsoft already has as sent", async () => {
+    /*
+     * Microsoft answers "Duplicate" to any second event for a subscription,
+     * dimension and hour, with the event it kept. The same quantity is this
+     * report, sent again after an answer that was lost: Microsoft has it.
+     */
+    it("counts a report sent again as sent: Microsoft kept an event of the same quantity", async () => {
       api.reportUsageEvents.mockResolvedValue([
-        { status: "Duplicate", usageEventId: null, errorCode: "Conflict" },
+        {
+          status: "Duplicate",
+          usageEventId: null,
+          errorCode: "Conflict",
+          acceptedEvent: { usageEventId: "ue-1", quantity: 2200 },
+        },
       ]);
 
       await expect(
         adapter.reportUsage(purchase(), record("2026-10-16T10:00:00.000Z")),
-      ).resolves.toEqual({ outcome: "accepted", externalReportId: undefined });
+      ).resolves.toEqual({ outcome: "accepted", externalReportId: "ue-1" });
+    });
+
+    it("compares the kept event's quantity as the number Microsoft writes", async () => {
+      api.reportUsageEvents.mockResolvedValue([
+        {
+          status: "Duplicate",
+          usageEventId: null,
+          errorCode: "Conflict",
+          acceptedEvent: { usageEventId: "ue-1", quantity: 2200.0000000001 },
+        },
+      ]);
+
+      await expect(
+        adapter.reportUsage(purchase(), record("2026-10-16T10:00:00.000Z")),
+      ).resolves.toMatchObject({ outcome: "accepted" });
+    });
+
+    /*
+     * Another quantity is another report filed in the same hour: Microsoft
+     * bills the event it kept, and this report is lost. It is refused, so
+     * the reporter marks it Failed and logs it as not billed.
+     */
+    it("refuses a report whose hour Microsoft already billed with another event", async () => {
+      api.reportUsageEvents.mockResolvedValue([
+        {
+          status: "Duplicate",
+          usageEventId: null,
+          errorCode: "Conflict",
+          acceptedEvent: { usageEventId: "ue-7", quantity: 640 },
+        },
+      ]);
+
+      const result: MarketplaceUsageResult = await adapter.reportUsage(
+        purchase(),
+        record("2026-10-16T10:00:00.000Z"),
+      );
+
+      expect(result).toEqual({
+        outcome: "rejected",
+        error:
+          "Microsoft already has another usage event for this hour (640 units, event ue-7).",
+      });
+      expect(result.isPurchaseInactive).toBeUndefined();
+    });
+
+    it("names no event it was not told of", async () => {
+      api.reportUsageEvents.mockResolvedValue([
+        {
+          status: "Duplicate",
+          usageEventId: null,
+          errorCode: "Conflict",
+          acceptedEvent: { usageEventId: null, quantity: 640 },
+        },
+      ]);
+
+      await expect(
+        adapter.reportUsage(purchase(), record("2026-10-16T10:00:00.000Z")),
+      ).resolves.toEqual({
+        outcome: "rejected",
+        error:
+          "Microsoft already has another usage event for this hour (640 units).",
+      });
+    });
+
+    /*
+     * Without the kept event (or its quantity) there is nothing to tell the
+     * two apart, and a report sent again is by far the likelier: the
+     * reporter never files two of a purchase's reports in one hour.
+     */
+    it("counts a Duplicate as sent when Microsoft leaves out the event it kept", async () => {
+      for (const duplicate of [
+        { status: "Duplicate", usageEventId: null, errorCode: "Conflict" },
+        {
+          status: "Duplicate",
+          usageEventId: null,
+          errorCode: "Conflict",
+          acceptedEvent: { usageEventId: "ue-1", quantity: null },
+        },
+      ]) {
+        api.reportUsageEvents.mockResolvedValueOnce([duplicate]);
+
+        await expect(
+          adapter.reportUsage(purchase(), record("2026-10-16T10:00:00.000Z")),
+        ).resolves.toMatchObject({ outcome: "accepted" });
+      }
     });
 
     it("says the purchase is inactive when Microsoft says so", async () => {

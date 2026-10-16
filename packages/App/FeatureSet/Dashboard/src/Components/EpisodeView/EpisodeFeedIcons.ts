@@ -70,6 +70,8 @@ export const INCIDENT_EPISODE_FEED_KINDS: Record<
     SHARED_FEED_ENTRY_KINDS.PrivacyRuleExecuted,
   [IncidentEpisodeFeedEventType.OnCallRuleExecuted]:
     SHARED_FEED_ENTRY_KINDS.OnCallRuleExecuted,
+  [IncidentEpisodeFeedEventType.ChannelMemberAdded]:
+    SHARED_FEED_ENTRY_KINDS.ChannelMemberAdded,
 };
 
 export const ALERT_EPISODE_FEED_KINDS: Record<
@@ -117,6 +119,8 @@ export const ALERT_EPISODE_FEED_KINDS: Record<
     SHARED_FEED_ENTRY_KINDS.PrivacyRuleExecuted,
   [AlertEpisodeFeedEventType.OnCallRuleExecuted]:
     SHARED_FEED_ENTRY_KINDS.OnCallRuleExecuted,
+  [AlertEpisodeFeedEventType.ChannelMemberAdded]:
+    SHARED_FEED_ENTRY_KINDS.ChannelMemberAdded,
 };
 
 export const INCIDENT_EPISODE_FEED_ICONS: Record<

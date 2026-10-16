@@ -46,6 +46,7 @@ import {
   getNoteTimestamp,
   groupNotesByDay,
   hasNotificationInFlight,
+  isComposerOpenRequested,
 } from "./EventNotesUtil";
 import NoteCard, { NoteActionGate } from "./NoteCard";
 import { NoteResendConfirmation } from "./NoteNotificationBadge";
@@ -60,6 +61,7 @@ import { EventNoteKind } from "./EventNoteKind";
 import NotesVisibilitySwitch from "./NotesVisibilitySwitch";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getPrivateEventPublicNotesCopy } from "./PrivateEventNotesCopy";
 
 /*
  * What the page hands the notes feed: the kind of note it shows, from the
@@ -108,16 +110,35 @@ function EventNotes<TNote extends BaseModel>(
     return translateString(value) || value;
   };
 
-  const copy: NotesCopy = getNotesCopy(
-    props.visibility,
-    props.eventNoun,
-    translator,
-  );
   const model: TNote = useMemo(() => {
     return new props.modelType();
   }, [props.modelType]);
 
   const isPublic: boolean = props.visibility === "public";
+  /*
+   * A private incident's or episode's public notes: the ones it already
+   * has, read and edited as any are, but no new ones - its composer says
+   * why, with the way to its private notes - and nothing offered that
+   * tells subscribers, whom a private event never reaches.
+   */
+  const isPrivateEvent: boolean = isPublic && Boolean(props.isPrivateEvent);
+  /*
+   * And nothing on the page says they are on a status page: the
+   * description, the audience of a note being edited and what deleting one
+   * does are a private event's own (getPrivateEventPublicNotesCopy).
+   */
+  const visibilityCopy: NotesCopy = getNotesCopy(
+    props.visibility,
+    props.eventNoun,
+    translator,
+  );
+  const copy: NotesCopy = isPrivateEvent
+    ? getPrivateEventPublicNotesCopy(
+        visibilityCopy,
+        props.eventNoun,
+        translator,
+      )
+    : visibilityCopy;
   // What the viewer holds, blocks included.
   const heldPermissions: HeldPermissions = PermissionGate.getHeldPermissions();
   const isMasterAdmin: boolean = User.isMasterAdmin();
@@ -164,6 +185,7 @@ function EventNotes<TNote extends BaseModel>(
    */
   const canResendPostedNotification: boolean =
     isPublic &&
+    !isPrivateEvent &&
     editGate.isShown &&
     !editGate.isDisabled &&
     createGate.isAllowed &&
@@ -180,6 +202,7 @@ function EventNotes<TNote extends BaseModel>(
    */
   const canNotifyAboutEdit: boolean =
     isPublic &&
+    !isPrivateEvent &&
     createGate.isAllowed &&
     canWrite("shouldStatusPageSubscribersBeNotifiedOnNoteCreated", "create") &&
     canWrite("subscriberNotificationStatusOnNoteUpdated", "update");
@@ -215,9 +238,13 @@ function EventNotes<TNote extends BaseModel>(
 
   /*
    * Whether the composer is open or folded to its prompt. Kept here, not in
-   * the composer, so the empty feed's "Post the first update" can open it.
+   * the composer, so the empty feed's "Post the first update" can open it -
+   * and a page opened to write a note (?compose=1, where "Add Private Note"
+   * on a private incident's public notes leads) starts with it open.
    */
-  const [isComposerOpen, setIsComposerOpen] = useState<boolean>(false);
+  const [isComposerOpen, setIsComposerOpen] = useState<boolean>(() => {
+    return isComposerOpenRequested(window.location.search);
+  });
 
   /*
    * Every fetch takes a number and drops its answer if a newer one started,
@@ -613,7 +640,7 @@ function EventNotes<TNote extends BaseModel>(
           <p className="mt-1 max-w-md text-sm text-gray-500">
             {tx(copy.emptyDescription)}
           </p>
-          {createGate.isAllowed && !isComposerOpen && (
+          {createGate.isAllowed && !isComposerOpen && !isPrivateEvent && (
             <button
               type="button"
               onClick={openComposer}
@@ -745,6 +772,19 @@ function EventNotes<TNote extends BaseModel>(
     !loadError &&
     (notes.length > 0 || isSearching || searchInput.length > 0);
 
+  /*
+   * A private event with no public notes has nothing to list: the composer's
+   * place already says why it takes none, so no empty feed is drawn under it.
+   */
+  const showFeed: boolean = !(
+    isPrivateEvent &&
+    !isLoading &&
+    !loadError &&
+    notes.length === 0 &&
+    !isSearching &&
+    searchInput.length === 0
+  );
+
   return (
     <div className="space-y-4" data-testid="event-notes">
       <section
@@ -774,7 +814,10 @@ function EventNotes<TNote extends BaseModel>(
                   </span>
                 )}
               </h2>
-              <p className="mt-1 max-w-2xl text-sm text-gray-500">
+              <p
+                className="mt-1 max-w-2xl text-sm text-gray-500"
+                data-testid="notes-description"
+              >
                 {tx(copy.description)}
               </p>
             </div>
@@ -844,70 +887,72 @@ function EventNotes<TNote extends BaseModel>(
         </div>
       )}
 
-      <section
-        className="rounded-xl border border-gray-200 bg-white shadow-sm"
-        data-testid="notes-feed"
-        aria-live="polite"
-      >
-        {showToolbar && (
-          <div className="flex flex-col gap-2 border-b border-gray-100 px-4 py-3 sm:flex-row sm:items-center sm:px-5">
-            <label className="relative flex min-w-0 flex-1 items-center">
-              <span className="sr-only">{tx("Search notes")}</span>
-              <Icon
-                icon={IconProp.Search}
-                className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="search"
-                data-testid="notes-search"
-                value={searchInput}
-                placeholder={tx("Search notes…")}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                  setSearchInput(event.target.value);
-                }}
-                className="block w-full rounded-md border border-gray-200 bg-gray-50 py-1.5 pl-8 pr-3 text-sm text-gray-900 placeholder-gray-400 transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-            </label>
-            <div className="flex items-center justify-between gap-3 sm:justify-end">
-              <span
-                className="text-xs text-gray-500"
-                data-testid="notes-summary"
-              >
-                {isSearching
-                  ? translator.translatePlural(
-                      { one: "{{count}} match", other: "{{count}} matches" },
-                      totalCount,
-                    )
-                  : translator.translatePlural(
-                      { one: "{{count}} note", other: "{{count}} notes" },
-                      totalCount,
-                    )}
-              </span>
-              <button
-                type="button"
-                data-testid="notes-sort"
-                onClick={() => {
-                  setSortOrder(sortOrder === "newest" ? "oldest" : "newest");
-                }}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-              >
+      {showFeed && (
+        <section
+          className="rounded-xl border border-gray-200 bg-white shadow-sm"
+          data-testid="notes-feed"
+          aria-live="polite"
+        >
+          {showToolbar && (
+            <div className="flex flex-col gap-2 border-b border-gray-100 px-4 py-3 sm:flex-row sm:items-center sm:px-5">
+              <label className="relative flex min-w-0 flex-1 items-center">
+                <span className="sr-only">{tx("Search notes")}</span>
                 <Icon
-                  icon={
-                    sortOrder === "newest"
-                      ? IconProp.BarsArrowDown
-                      : IconProp.BarsArrowUp
-                  }
-                  className="h-4 w-4 text-gray-400"
+                  icon={IconProp.Search}
+                  className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
                 />
-                {sortOrder === "newest"
-                  ? tx("Newest first")
-                  : tx("Oldest first")}
-              </button>
+                <input
+                  type="search"
+                  data-testid="notes-search"
+                  value={searchInput}
+                  placeholder={tx("Search notes…")}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                    setSearchInput(event.target.value);
+                  }}
+                  className="block w-full rounded-md border border-gray-200 bg-gray-50 py-1.5 pl-8 pr-3 text-sm text-gray-900 placeholder-gray-400 transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </label>
+              <div className="flex items-center justify-between gap-3 sm:justify-end">
+                <span
+                  className="text-xs text-gray-500"
+                  data-testid="notes-summary"
+                >
+                  {isSearching
+                    ? translator.translatePlural(
+                        { one: "{{count}} match", other: "{{count}} matches" },
+                        totalCount,
+                      )
+                    : translator.translatePlural(
+                        { one: "{{count}} note", other: "{{count}} notes" },
+                        totalCount,
+                      )}
+                </span>
+                <button
+                  type="button"
+                  data-testid="notes-sort"
+                  onClick={() => {
+                    setSortOrder(sortOrder === "newest" ? "oldest" : "newest");
+                  }}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                >
+                  <Icon
+                    icon={
+                      sortOrder === "newest"
+                        ? IconProp.BarsArrowDown
+                        : IconProp.BarsArrowUp
+                    }
+                    className="h-4 w-4 text-gray-400"
+                  />
+                  {sortOrder === "newest"
+                    ? tx("Newest first")
+                    : tx("Oldest first")}
+                </button>
+              </div>
             </div>
-          </div>
-        )}
-        <div className="px-4 py-5 sm:px-5">{getFeedBody()}</div>
-      </section>
+          )}
+          <div className="px-4 py-5 sm:px-5">{getFeedBody()}</div>
+        </section>
+      )}
     </div>
   );
 }

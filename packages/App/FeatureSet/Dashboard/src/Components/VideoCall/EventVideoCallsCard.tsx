@@ -241,14 +241,17 @@ const EventVideoCallsCard: FunctionComponent<ComponentProps> = (
   } else if (!primary) {
     /*
      * Most events never get a call, so the empty card is one quiet row
-     * rather than a panel that pushes the details down.
+     * rather than a panel that pushes the details down. The button goes
+     * under the words whenever the row is too narrow for both - the column
+     * beside an event's details is, on a 1280px screen - rather than
+     * squeezing them to a word a line.
      */
     body = (
       <div
         data-testid="event-video-calls-empty"
-        className="flex flex-col gap-3 rounded-lg border border-dashed border-gray-300 px-4 py-3 sm:flex-row sm:items-center"
+        className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-gray-300 px-4 py-3"
       >
-        <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="flex min-w-0 grow basis-44 items-center gap-3">
           <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
             <Icon icon={IconProp.VideoCamera} className="h-5 w-5" />
           </span>

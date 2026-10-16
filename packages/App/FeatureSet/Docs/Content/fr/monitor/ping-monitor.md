@@ -87,7 +87,7 @@ Les critères décident quand l'hôte compte comme en ligne, dégradé ou hors l
 | **Jitter (in ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | L'écart type des temps aller-retour sur les paquets envoyés lors d'une vérification. |
 | **Is Request Timeout** | **Vrai**, **Faux** | Si le ping a expiré à chaque tentative. |
 
-Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** doivent correspondre ou si **Tout** filtre suffit. Les **Actions** d'un critère décident de ce qu'il fait : changer l'état du moniteur, créer une alerte, déclarer un incident, ou plusieurs de ces actions.
+Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** doivent correspondre ou si **Au moins un** suffit. Les **Actions** d'un critère décident de ce qu'il fait : changer l'état du moniteur, créer une alerte, déclarer un incident, ou plusieurs de ces actions.
 
 ### Critères par défaut
 

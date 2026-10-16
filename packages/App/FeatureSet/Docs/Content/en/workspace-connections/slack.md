@@ -5,6 +5,7 @@ Connect OneUptime to Slack to post incidents, alerts, episodes, scheduled mainte
 :::cards
 - [Connect Slack](#connect-slack): Install OneUptime in your workspace, then link your own account.
 - [Notification rules](#notification-rules): Decide which events post where, and which get a channel of their own.
+- [Who is in a record's channel](#who-is-in-a-records-channel): See who is in it, join it and add people, from the record's page.
 - [The /oneuptime command](#the-oneuptime-command): Declare incidents, schedule maintenance, see who is on call and ask AI.
 - [On-call user groups](#on-call-user-groups): Keep a user group equal to whoever is on call, and page it.
 - [Acting on incidents, alerts and events from Slack](#acting-on-incidents-alerts-and-events-from-slack): The buttons on OneUptime's messages.
@@ -89,6 +90,20 @@ A channel stays readable: each event is posted once, and a record's first state 
 
 **Project Settings** > **Workspace** > **Slack** lists the channels OneUptime can see, with **Send Test** beside each one. OneUptime joins a public channel on its own the first time it posts there. A private channel is listed, and can be posted to, only after the OneUptime app is invited to it in Slack.
 
+## Who is in a record's channel
+
+An incident, alert, episode or scheduled maintenance event with a Slack channel of its own has a **Slack Channel** card on its page in OneUptime. The card shows the channel, as a link that opens it in Slack, whether it is private, and who is in it, you first. From the card, without a Slack admin:
+
+- **Join channel** adds you, when you are not in the channel.
+- **Add people** opens a list of the project's people and teams: pick a person to add them, or a team to add everyone in it.
+
+OneUptime's app adds them, as it adds the people of a rule's channel. The app stays in the channels it creates, so this works for a private channel that everybody has left, too.
+
+- **Who may add people.** Whoever may edit the record: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** and **Incident Member** for an incident, or **Edit Incident** in a custom role, and the same permission for an alert, an episode or an event (**Edit Alert**, for example). Anyone else sees who is in the channel, and how to get in.
+- **Who can be added.** Someone OneUptime can find in Slack: by the Slack account they connected, or else by the email address Slack has for them. The card names whoever it could not add, and why, such as a guest Slack keeps out of the channel.
+- **What it records.** Who was added, and by whom, in the record's feed (**Channel Member Added**) and in **Project Settings** > **Notifications** > **Notification Logs**, on the **Workspace** tab.
+- **Taking someone out.** OneUptime only adds people: remove someone from the channel in Slack.
+
 ## Testing a rule
 
 **Test Rule** on a rule's row posts a test message for that rule to the channels it names, so you can see it arrive. If the rule creates a channel for each event, the test creates one too and invites the rule's people to it.
@@ -128,7 +143,7 @@ React to a message in the channel of an incident, alert, episode or scheduled ma
 | Reaction | Saved as |
 | --- | --- |
 | 📌 A pin emoji, or Slack's own **Pin to channel** | A private note, seen only by your team |
-| 📢 A megaphone or loudspeaker emoji | A public note, shown on the status page. Incidents and scheduled maintenance events only. |
+| 📢 A megaphone or loudspeaker emoji | A public note, shown on the status page. Incidents and scheduled maintenance events only. On a private incident, a private note, and the confirmation says why. |
 
 The note keeps the message as Slack showed it: its formatting, links and code, the people and channels it mentions by name, and its files and images as links to them. A public note leaves the files and images out, since they open only for your team.
 
@@ -242,6 +257,7 @@ The buttons on OneUptime's Slack messages act as you too: as the OneUptime accou
 - **Who may use them.** The people who may make the same change in OneUptime. Acknowledging, resolving or changing the state of an incident needs permission to change its state: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** and **Incident Member**, or **Create Incident State Timeline** in a custom role. An alert, an episode or a scheduled maintenance event needs the same permission for its own kind (**Create Alert State Timeline**, for example), and a note needs permission to post that kind of note. Anyone else is told so, and nothing changes.
 - **Which records.** Those you may read, as in OneUptime: with a role limited to some labels, the incidents, alerts, episodes and events carrying them. A button on any other record, or on one of another project, is answered that the record "was not found in this project, or you do not have access to it.", and nothing changes. On OneUptime Cloud, a change the project's plan doesn't include is refused with the plan it needs.
 - **What Change State offers.** The states you may read that the record may move into next, in the project's order: none before the state it is in, for an episode as for an incident, an alert or a scheduled maintenance event, since a state change never moves a record back up its list (see [Order is a real constraint](/docs/incidents/states-and-severities#order-is-a-real-constraint-not-a-display-preference)). When you may read none, you are told "No incident states are available to you in this project. Ask a project admin for access to them."; when the record is in the last state it can reach, you are told "There is no later state to move this incident to." Neither opens an empty form.
+- **Add Note on a private incident or episode.** A private incident or episode takes no public notes, so its form asks for no note type and adds a private note. A form opened before it was made private adds a private note too, and says so. See [Private incidents take private notes only](/docs/incidents/notes-owners-and-feed#private-incidents-take-private-notes-only).
 - **Where you are answered.** Under the message the button is on, in a message only you see; in a direct message only if Slack refuses that. A button pressed too late says who got there first, and when, such as "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **If your Slack account is not connected.** The answer asks you to connect it, with a **Connect Slack account** button. The button opens your own Slack settings in OneUptime and connects your account in one step, after you sign in to OneUptime if you need to. OneUptime then finishes what you pressed, as you, and answers under the same message; for a button that opens a form, or a command, it asks you to press or run it again. The button works once, for 30 minutes, and only for the Slack account that pressed it: signed in to Slack as someone else, it connects nothing.
 
@@ -259,8 +275,8 @@ OneUptime reads from Slack only what these features need, with the permissions y
 
 - **Messages addressed to OneUptime.** A message that @mentions it, one you send it in a direct message, and your replies in a conversation with it, with the earlier messages of that thread or direct message, so OneUptime AI can answer. Slack also sends it the other messages of the channels and group DMs it is in; OneUptime neither answers nor keeps them.
 - **Messages you save as notes.** A message you react to with 📌 or 📢, or pin, in the channel of an incident, alert, episode or scheduled maintenance event, saved as a note on that record with its author's name.
-- **Names of channels and people.** The channels it can post to, so you can pick them, and people's names, to show who wrote or did something.
-- **Email addresses.** The email address Slack has for a person, to match their Slack account to their OneUptime account when they have not connected it: to page them, or to put them in an on-call user group.
+- **Names of channels and people.** The channels it can post to, so you can pick them, people's names, to show who wrote or did something, and who is in a record's own channel, read when the record's page shows it.
+- **Email addresses.** The email address Slack has for a person, to match their Slack account to their OneUptime account when they have not connected it: to page them, to put them in an on-call user group, or to add them to a record's channel.
 - **User groups.** Your workspace's user groups, to pick one for an on-call schedule, and the people in one you connect, to keep it equal to whoever is on call.
 
 What OneUptime keeps of it — the workspace's name, its channels, the Slack accounts people connect, the notes and the user groups — is stored with your project. The [Privacy Policy](https://oneuptime.com/legal/privacy) says how OneUptime handles your data.
@@ -272,7 +288,11 @@ Check the rule's conditions with **Test Rule**: if the test arrives, the rule's 
 :::
 
 :::details Someone is missing from a rule's channel
-The rule's card says under **Then** who the rule invites. Each kind of person joins as they join the record: the people paged as they are paged, the Incident Commander when assigned, an owner when added, and whoever was on the record already when the channel was created. Someone whose Slack account is not connected to OneUptime cannot be added; OneUptime names them in the channel, with a link to connect their account.
+The rule's card says under **Then** who the rule invites. Each kind of person joins as they join the record: the people paged as they are paged, the Incident Commander when assigned, an owner when added, and whoever was on the record already when the channel was created. Someone whose Slack account is not connected to OneUptime cannot be added; OneUptime names them in the channel, with a link to connect their account. To add someone now, press **Add people** on the record's **Slack Channel** card: it also finds people by the email address Slack has for them.
+:::
+
+:::details Everybody left a private channel
+Open the incident, alert, episode or event in OneUptime and press **Join channel** on its **Slack Channel** card, then **Add people** to bring the others back. It takes permission to edit the record, not a Slack admin: OneUptime's app is still in the channel, and adds them. If the card says OneUptime can't see the channel, the channel was deleted, or the app was removed from it: someone in the channel can add the app back by typing `/invite @OneUptime`.
 :::
 
 :::details Slack was not connected

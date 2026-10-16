@@ -105,6 +105,8 @@ export const ALERT_FEED_KINDS: Record<AlertFeedEventType, FeedEntryKind> = {
   [AlertFeedEventType.VideoCallStarted]:
     SHARED_FEED_ENTRY_KINDS.VideoCallStarted,
   [AlertFeedEventType.VideoCallFailed]: SHARED_FEED_ENTRY_KINDS.VideoCallFailed,
+  [AlertFeedEventType.ChannelMemberAdded]:
+    SHARED_FEED_ENTRY_KINDS.ChannelMemberAdded,
 };
 
 export const ALERT_FEED_ICONS: Record<AlertFeedEventType, IconProp> =

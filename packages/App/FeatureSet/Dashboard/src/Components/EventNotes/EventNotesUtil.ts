@@ -1,5 +1,6 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import FileModel from "Common/Models/DatabaseModels/File";
+import Route from "Common/Types/API/Route";
 import User from "Common/Models/DatabaseModels/User";
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import Search from "Common/Types/BaseDatabase/Search";
@@ -76,6 +77,26 @@ export type NoteSortOrder = "newest" | "oldest";
 
 // How many notes a page of the feed asks for.
 export const NOTES_PAGE_SIZE: number = 25;
+
+/*
+ * A notes page opened with ?compose=1 opens with its composer open, the
+ * cursor in the note: where a button that says "Add Private Note" leads
+ * (a private incident's public notes, EventNoteComposer), so the note is
+ * written in one click, not two.
+ */
+export const NOTE_COMPOSER_OPEN_QUERY_PARAM: string = "compose";
+
+export function getRouteWithComposerOpen(route: Route): Route {
+  return new Route(route.toString()).addQueryParams({
+    [NOTE_COMPOSER_OPEN_QUERY_PARAM]: "1",
+  });
+}
+
+export function isComposerOpenRequested(search: string): boolean {
+  return (
+    new URLSearchParams(search).get(NOTE_COMPOSER_OPEN_QUERY_PARAM) === "1"
+  );
+}
 
 // How long a search waits for typing to stop before it asks the server.
 export const NOTES_SEARCH_DEBOUNCE_MS: number = 350;

@@ -65,10 +65,18 @@ export interface AzureUsageEvent {
   planId: string;
 }
 
+// The event Microsoft kept for a subscription, dimension and hour.
+export interface AzureAcceptedUsageEvent {
+  usageEventId: string | null;
+  quantity: number | null;
+}
+
 export interface AzureUsageEventResult {
   status: string;
   usageEventId: string | null;
   errorCode: string | null;
+  // With Duplicate: the event Microsoft already has for that hour (error.additionalInfo.acceptedMessage).
+  acceptedEvent?: AzureAcceptedUsageEvent | undefined;
 }
 
 export default class AzureMarketplaceAPI {
@@ -347,6 +355,11 @@ export default class AzureMarketplaceAPI {
           result["error"] && typeof result["error"] === "object"
             ? (result["error"] as Record<string, unknown>)
             : null;
+        const additionalInfo: unknown = error?.["additionalInfo"];
+        const acceptedMessage: unknown =
+          additionalInfo && typeof additionalInfo === "object"
+            ? (additionalInfo as Record<string, unknown>)["acceptedMessage"]
+            : null;
 
         results.push({
           status: typeof result["status"] === "string" ? result["status"] : "",
@@ -355,11 +368,37 @@ export default class AzureMarketplaceAPI {
               ? result["usageEventId"]
               : null,
           errorCode: typeof error?.["code"] === "string" ? error["code"] : null,
+          ...(acceptedMessage && typeof acceptedMessage === "object"
+            ? {
+                acceptedEvent: AzureMarketplaceAPI.readAcceptedEvent(
+                  acceptedMessage as Record<string, unknown>,
+                ),
+              }
+            : {}),
         });
       }
     }
 
     return results;
+  }
+
+  private static readAcceptedEvent(
+    message: Record<string, unknown>,
+  ): AzureAcceptedUsageEvent {
+    const quantity: number = Number(message["quantity"]);
+
+    return {
+      usageEventId:
+        typeof message["usageEventId"] === "string"
+          ? message["usageEventId"]
+          : null,
+      quantity:
+        message["quantity"] !== null &&
+        message["quantity"] !== undefined &&
+        Number.isFinite(quantity)
+          ? quantity
+          : null,
+    };
   }
 
   // Microsoft's examples write the time without milliseconds: 2018-12-01T08:00:00.

@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubPrivateRecords } from "../../../TestingUtils/PrivateRecords";
 import type { SpyInstance } from "jest-mock";
 import IncidentEpisode from "../../../../../Models/DatabaseModels/IncidentEpisode";
 import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
@@ -232,6 +233,16 @@ beforeEach((): void => {
 
 afterEach((): void => {
   jest.restoreAllMocks();
+});
+
+/*
+ * A public note asked for in a chat - a 📣, an Add Note form - first asks
+ * whether its incident or episode is private, which takes no public notes
+ * (WorkspaceReactionNote.getNoteTypeSavedAs, WorkspaceNoteForm): none of
+ * these is.
+ */
+beforeEach((): void => {
+  stubPrivateRecords();
 });
 
 describe("SlackReactionNoteActions.handleEmojiReaction", () => {
@@ -811,7 +822,11 @@ describe("SlackReactionNoteActions.saveMessage: finished once an account is conn
         messageTs: MESSAGE_TS,
         tellPerson: false,
       }),
-    ).resolves.toEqual({ outcome: WorkspaceMessageNoteOutcome.Saved });
+    ).resolves.toEqual({
+      outcome: WorkspaceMessageNoteOutcome.Saved,
+      // Saved as the note the pin asked for: the incident is not private.
+      noteType: WorkspaceNoteType.Private,
+    });
 
     expect(saveSpy).toHaveBeenCalledTimes(1);
     expect(threadReplySpy).toHaveBeenCalledTimes(1);

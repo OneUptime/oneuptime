@@ -105,7 +105,7 @@ Criteria bepalen wanneer de naam telt als online, verminderd of offline, en of d
 
 **DNSSEC Is Valid** vraagt de server bij **DNS-server (optioneel)**, op zijn **Poort**, of Google Public DNS (`8.8.8.8`) wanneer dat veld leeg is, dus de server die u instelt moet DNSSEC valideren. Het filter heeft geen waarde, en komt in geen enkele richting overeen, wanneer de sonde die controle niet kan uitvoeren. Voor een volledige controle van een ondertekende zone gebruikt u een [DNSSEC-monitor](/docs/monitor/dnssec-monitor).
 
-Met twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** filters moeten overeenkomen of dat **Elke** filter volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing aanmaken, een incident melden, of meerdere daarvan.
+Met twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** filters moeten overeenkomen of dat **Minstens één** filter volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing aanmaken, een incident melden, of meerdere daarvan.
 
 ### Standaardcriteria
 

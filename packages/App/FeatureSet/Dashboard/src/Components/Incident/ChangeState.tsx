@@ -7,6 +7,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
+import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -603,10 +604,13 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
           /*
            * Seeded as a value, not only as the field's default: the form
            * drops a false default, and an unsent flag would fall back to
-           * notifying.
+           * notifying. A private incident reaches no subscriber, and is not
+           * asked about them: it notifies nobody.
            */
           initialValues={{
-            shouldStatusPageSubscribersBeNotified: notifySubscribersByDefault,
+            shouldStatusPageSubscribersBeNotified: props.isPrivate
+              ? false
+              : notifySubscribersByDefault,
           }}
           onBeforeCreate={async (model: IncidentStateTimeline) => {
             const projectId: ObjectID | undefined | null =
@@ -619,6 +623,17 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
             model.projectId = projectId;
             model.incidentId = props.incidentId;
             model.incidentStateId = selectedIncidentState!.id!;
+
+            /*
+             * A private incident's dialog has no notify box, and the form
+             * sends no value for a field it does not show - the seeded false
+             * above included - so the column's default (notify) would be
+             * recorded. Said here, as the Change State bulk action says it:
+             * a private incident notifies nobody.
+             */
+            if (props.isPrivate) {
+              model.shouldStatusPageSubscribersBeNotified = false;
+            }
 
             return model;
           }}
@@ -643,25 +658,41 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
              * under "Add a public note" (EventView/StateChangeFormFields). A
              * picked template's {{incident.*}} placeholders are filled with
              * this incident's values.
+             *
+             * A private incident takes no public notes and reaches no status
+             * page subscriber (Common/Types/StatusPage/PrivateRecordPublicNotes):
+             * its dialog folds a private note under "Add a private note", as
+             * an alert's does, and asks nothing about subscribers.
              */
             fields: getStateChangeFormFields<IncidentStateTimeline>({
-              noteType: BulkStateChangeNoteType.Public,
-              noteDescription: translationKey(
-                "Post a public note about this state change to the status page.",
-              ),
+              ...(props.isPrivate
+                ? {
+                    noteType: BulkStateChangeNoteType.Private,
+                    noteDescription: translationKey(
+                      "Post a private note about this state change.",
+                    ),
+                    // Offered only to someone who may post a private note.
+                    noteModel: new IncidentInternalNote(),
+                  }
+                : {
+                    noteType: BulkStateChangeNoteType.Public,
+                    noteDescription: translationKey(
+                      "Post a public note about this state change to the status page.",
+                    ),
+                    notifySubscribers: {
+                      byDefault: notifySubscribersByDefault,
+                      quietDescription:
+                        PublicNoteSubscriberNotificationDefault.quietIncidentDescription,
+                    },
+                    // Offered only to someone who may post a public note.
+                    noteModel: new IncidentPublicNote(),
+                  }),
               noteTemplates: incidentNoteTemplates.map(
                 toBulkStateChangeNoteTemplate,
               ),
               fillTemplate: (note: string): string => {
                 return fillNoteTemplate(note, noteTemplateVariables);
               },
-              notifySubscribers: {
-                byDefault: notifySubscribersByDefault,
-                quietDescription:
-                  PublicNoteSubscriberNotificationDefault.quietIncidentDescription,
-              },
-              // Offered only to someone who may post a public note.
-              noteModel: new IncidentPublicNote(),
             }),
             formType: FormType.Create,
           }}
