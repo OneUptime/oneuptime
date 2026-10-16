@@ -129,10 +129,15 @@ const HOUR_START: Date = new Date("2026-10-16T10:00:00.000Z");
 const LAST_REPORTED: Date = new Date("2026-10-16T09:00:00.000Z");
 const PROJECT_ID: ObjectID = ObjectID.generate();
 
+// Partial<T> under exactOptionalPropertyTypes forbids an explicit undefined.
+type SubscriptionOverrides = {
+  [K in keyof MarketplaceSubscription]?: MarketplaceSubscription[K] | undefined;
+};
+
 const purchaseRow: (
-  overrides?: Partial<MarketplaceSubscription>,
+  overrides?: SubscriptionOverrides,
 ) => MarketplaceSubscription = (
-  overrides?: Partial<MarketplaceSubscription>,
+  overrides?: SubscriptionOverrides,
 ): MarketplaceSubscription => {
   return Object.assign(new MarketplaceSubscription(), {
     _id: ObjectID.generate().toString(),
