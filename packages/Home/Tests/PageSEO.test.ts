@@ -313,3 +313,37 @@ describe("the Queues product page entry", () => {
     expect(features).toContain("Open source");
   });
 });
+
+describe("the Resellers page entry", () => {
+  const seo: PageSEOData | undefined = PageSEOConfig["/resellers"];
+
+  test("is registered at /resellers, as an enterprise page so llms.txt lists it", () => {
+    expect(seo).toBeDefined();
+    expect(seo!.canonicalPath).toBe("/resellers");
+    expect(seo!.pageType).toBe("enterprise");
+  });
+
+  test("walks Home → Resellers", () => {
+    expect(
+      seo!.breadcrumbs.map((crumb: BreadcrumbItem) => {
+        return [crumb.name, crumb.url];
+      }),
+    ).toEqual([
+      ["Home", "/"],
+      ["Resellers", "/resellers"],
+    ]);
+  });
+
+  test("leads with the page's name and fits in a search result", () => {
+    expect(seo!.title).toBe(
+      "Resellers | Buy Through a Local Partner | OneUptime",
+    );
+    expect(seo!.title.length).toBeLessThanOrEqual(60);
+    expect(seo!.description.length).toBeLessThanOrEqual(160);
+  });
+
+  test("names no reseller, so it stays true as the list changes", () => {
+    expect(`${seo!.title} ${seo!.description}`).not.toMatch(/SLEXN|Korea/);
+    expect(seo!.description).toContain("become one");
+  });
+});

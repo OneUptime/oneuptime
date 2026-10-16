@@ -1712,6 +1712,7 @@ import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
 import OnCallScheduleTimelineAPI from "Common/Server/API/OnCallScheduleTimelineAPI";
 import WorkspaceChannelLinkAPI from "Common/Server/API/WorkspaceChannelLinkAPI";
 import WorkspaceChannelMembersAPI from "Common/Server/API/WorkspaceChannelMembersAPI";
+import OnCallPagePassOnAPI from "Common/Server/API/OnCallPagePassOnAPI";
 import UserNotificationMethodAdminAPI from "Common/Server/API/UserNotificationMethodAdminAPI";
 
 import OnCallDutyPolicyFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyFeed";
@@ -5305,6 +5306,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * needs permission to edit it.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WorkspaceChannelMembersAPI);
+
+    /*
+     * "Can't take it? Pass it on" for the signed-in person's own pages about
+     * a record (/on-call-page/pass-on/<record type>/<id>), from a record's
+     * page in the Dashboard and from the mobile app.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallPagePassOnAPI);
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

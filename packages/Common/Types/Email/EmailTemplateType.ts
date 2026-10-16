@@ -109,6 +109,9 @@ enum EmailTemplateType {
   EnterpriseLicenseExpiryReminder = "EnterpriseLicenseExpiryReminder.hbs",
 
   NotificationRollup = "NotificationRollup.hbs",
+
+  // The marketing site's Resellers page form (Home/Utils/ResellerInquiry.ts).
+  ResellerInquiry = "ResellerInquiry.hbs",
 }
 
 export default EmailTemplateType;

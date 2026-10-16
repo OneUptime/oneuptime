@@ -1425,6 +1425,24 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     ],
   },
 
+  /*
+   * The companies that sell OneUptime, and the form for becoming one
+   * (Utils/Resellers.ts). An "enterprise" page, so llms.txt lists it with the
+   * other ways to buy; /resellers.md lists the resellers themselves.
+   */
+  "/resellers": {
+    title: "Resellers | Buy Through a Local Partner | OneUptime",
+    description:
+      "Buy OneUptime through a reseller in your country, or apply to become one. See our resellers by region and send us your details.",
+    canonicalPath: "/resellers",
+    twitterCard: "summary",
+    pageType: "enterprise",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Resellers", url: "/resellers" },
+    ],
+  },
+
   // About & Support
   "/about": {
     title: "About Us | Open Source Observability | OneUptime",

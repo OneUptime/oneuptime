@@ -103,23 +103,55 @@ describe("the repeats a policy allows", () => {
  * whose card says "Repeat disabled".
  */
 describe("the readers of a run's repeats", () => {
-  const READERS: ReadonlyArray<string> = [
-    "App/FeatureSet/Workers/Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions.ts",
+  /*
+   * What decides whether a run starts again, or says it will: moving a run
+   * on (OnCallEscalationAdvance, which the worker and a page passed on both
+   * use), what passing a page on would do, and the run's chat message.
+   */
+  const DECIDERS: ReadonlyArray<string> = [
+    "Common/Server/Utils/OnCall/OnCallEscalationAdvance.ts",
+    "Common/Server/Utils/OnCall/OnCallPagePassOn.ts",
     "Common/Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessage.ts",
   ];
 
-  test.each(READERS)(
+  // What reads the run they are decided on: the switch, with the number.
+  const FETCHERS: ReadonlyArray<string> = [
+    "App/FeatureSet/Workers/Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions.ts",
+    "Common/Server/Utils/OnCall/OnCallPagePassOn.ts",
+    "Common/Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessage.ts",
+  ];
+
+  const READERS: ReadonlyArray<string> = Array.from(
+    new Set<string>([...DECIDERS, ...FETCHERS]),
+  );
+
+  test.each(DECIDERS)(
     "%s reads them through getOnCallPolicyRepeatsAllowed",
+    (file: string) => {
+      expect(readPackageFile(file)).toContain("getOnCallPolicyRepeatsAllowed(");
+    },
+  );
+
+  test.each(FETCHERS)(
+    "%s fetches the switch with the number",
     (file: string) => {
       const source: string = readPackageFile(file);
 
-      expect(source).toContain("getOnCallPolicyRepeatsAllowed(");
       expect(source).toContain("repeatPolicyIfNoOneAcknowledges: true,");
       expect(source).toContain(
         "repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,",
       );
     },
   );
+
+  test("the worker hands the run it read, policy settings and all, to the one way a run moves on", () => {
+    const worker: string = readPackageFile(
+      "App/FeatureSet/Workers/Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions.ts",
+    );
+
+    expect(worker).toContain("OnCallEscalationAdvance.advance({");
+    expect(worker).toContain("run: executionLog,");
+  });
 
   test.each(READERS)(
     "%s never compares against the number on its own",
