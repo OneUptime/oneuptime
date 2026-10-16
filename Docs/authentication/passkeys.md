@@ -10,14 +10,14 @@ You can rename or remove a passkey from the same profile page and see when it wa
 
 ## Sign in on the website
 
-The login page leads with the email and password form. Under it, below **or**, the other ways in are buttons: **Sign in with SSO**, **Sign in with Microsoft** where the server offers it, and **Sign in with a passkey**, last. Choose **Sign in with a passkey** and select the passkey for your account. The page shows when it is waiting for your device and when it is completing sign-in. Choose **Cancel** while the device prompt is open to try again or use your password. When an attempt is canceled, times out or fails, **New to passkeys?** appears under it: it says what a passkey is and where to add one.
+The login page leads with the email and password form. Below it, under **or**, are buttons for the other ways to sign in: **Sign in with SSO**, **Sign in with Microsoft** (where the server offers it) and, last, **Sign in with a passkey**. Choose **Sign in with a passkey** and select the passkey for your account. The page shows when it is waiting for your device and when it is completing sign-in. Choose **Cancel** while the device prompt is open to try again or use your password. When an attempt is canceled, times out or fails, **New to passkeys?** appears under it: it says what a passkey is and where to add one.
 
 Web passkeys require HTTPS, or localhost during development, and a browser that supports WebAuthn. Where they are unavailable, choosing **Sign in with a passkey** explains why instead of starting an attempt. Password and SSO sign-in remain available.
 
 ## Sign in on iOS or Android
 
 1. Open the OneUptime app and check the server address shown on the login screen. Use **Change Server** if needed.
-2. Below the email and password form, under **or**, choose **Sign in with a passkey**, after **Sign in with SSO**. The app opens a secure sign-in page for that server in your system browser.
+2. Below the email and password form, under **or**, choose **Sign in with a passkey**, the button after **Sign in with SSO**. The app opens a secure sign-in page for that server in your system browser.
 3. On that page, choose **Sign in with a passkey** and approve your device's prompt.
 4. Return to OneUptime to finish signing in. If the browser remains open after confirmation, use **Return to app**.
 
