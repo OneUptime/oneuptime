@@ -264,7 +264,8 @@
       "loginPrompt": "Log alstublieft in om {{statusPageName}} te bekijken",
       "forgotPassword": "Wachtwoord vergeten?",
       "submit": "Inloggen",
-      "useSSO": "Gebruik in plaats daarvan eenmalige aanmelding (SSO)"
+      "or": "of",
+      "logInWithSso": "Inloggen met SSO"
     },
     "sso": {
       "title": "Inloggen met SSO",

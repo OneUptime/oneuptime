@@ -284,7 +284,7 @@ describe("a card-billed project", () => {
   test("still charges the card, and records no marketplace charge", async () => {
     findOneByIdSpy.mockImplementation(async (): Promise<Project> => {
       const project: Project = marketplaceProject();
-      project.billingMarketplace = undefined;
+      Object.assign(project, { billingMarketplace: undefined });
       project.paymentProviderCustomerId = "cus_test_card";
       return project;
     });

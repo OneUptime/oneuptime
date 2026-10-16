@@ -54,7 +54,8 @@
     "test-custom-roles-ui": "playwright test --config playwright.custom-roles-ui.config.ts",
     "test-status-timeline-ui": "playwright test --config playwright.status-timeline-ui.config.ts",
     "test-episode-bulk-add-ui": "playwright test --config playwright.episode-bulk-add-ui.config.ts",
-    "test-runbook-triggers-ui": "playwright test --config playwright.runbook-triggers-ui.config.ts"
+    "test-runbook-triggers-ui": "playwright test --config playwright.runbook-triggers-ui.config.ts",
+    "test-sign-in-options-ui": "playwright test --config playwright.sign-in-options-ui.config.ts"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

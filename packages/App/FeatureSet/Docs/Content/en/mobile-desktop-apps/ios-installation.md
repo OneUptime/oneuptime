@@ -45,8 +45,8 @@ Open the app. On **Connect your workspace**, keep `https://oneuptime.com` for On
 Use whichever way your account signs in:
 
 - Your email and password, then **Sign In**. **Forgot password?** emails you a link to set a new one.
-- **Sign in with a passkey**, once you have added one in the dashboard: see [Add a passkey](/docs/introduction/your-account#add-a-passkey). A browser sheet opens to confirm it, then brings you back.
 - **Sign in with SSO**, if your organization uses single sign-on. Choose your provider, or enter your work email and tap **Continue**. A secure browser opens, and you are back in the app once you have signed in.
+- **Sign in with a passkey**, once you have added one in the dashboard: see [Add a passkey](/docs/introduction/your-account#add-a-passkey). A browser sheet opens to confirm it, then brings you back.
 
 With two-factor authentication on, enter the six-digit code from your authenticator app, or one of your backup codes. A security key cannot be used in the app. If your administrator requires two-factor authentication and you have not set it up yet, the app sets up an authenticator app with you first.
 
