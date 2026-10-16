@@ -5,7 +5,10 @@ import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
+import Permission, {
+  PermissionHelper,
+  PermissionProps,
+} from "Common/Types/Permission";
 import {
   getPermissionTitleForSentence,
   PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE,
@@ -29,7 +32,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -52,20 +55,53 @@ import React, {
  * Every change here reaches every team with the role at once, which the
  * card's description says (the role's page hands it in), with how many
  * teams and people that is.
+ *
+ * Each dialog is named for the button that opened it - "Add a Role to
+ * Incident Responder" behind Add Role, "Add a Permission to Incident
+ * Responder" behind Add Permission - and Edit opens the picker the row was
+ * made with: the role cards for a built-in role, the full list for a single
+ * permission, its current pick shown either way.
  */
 
-enum CreatePermissionType {
+export enum CreatePermissionType {
   RoleBased = "RoleBased",
   Granular = "Granular",
 }
 
 export interface ComponentProps {
   customRoleId: ObjectID;
+  // The role's name, for the Add dialogs' titles; empty until it is read.
+  roleName?: string | undefined;
   // What a change reaches, said under the card's title.
   description: string;
   // After every load: how many permissions the role holds.
   onPermissionCountChange?: ((count: number) => void) | undefined;
 }
+
+/*
+ * The picker a permission is edited with: the role cards for a built-in
+ * role, the full list for anything else - the one it was added with.
+ */
+export const getPermissionPickerType: (
+  permission: Permission | string | undefined | null,
+) => CreatePermissionType = (
+  permission: Permission | string | undefined | null,
+): CreatePermissionType => {
+  const isRole: boolean = PermissionHelper.getRolePermissionProps().some(
+    (props: PermissionProps): boolean => {
+      return props.permission === permission;
+    },
+  );
+
+  return isRole
+    ? CreatePermissionType.RoleBased
+    : CreatePermissionType.Granular;
+};
+
+// The help under a single permission's picker, in place of the API's words.
+export const SINGLE_PERMISSION_FIELD_DESCRIPTION: string = translationKey(
+  "A single permission, for exactly what the role needs.",
+);
 
 // The scope choices, worded for a role: the team it is given to owns.
 const SCOPE_OPTIONS: Array<{ value: PermissionScope; label: string }> = [
@@ -149,6 +185,27 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
     }),
   ];
 
+  /*
+   * The Add dialog says what it adds, and to which role: the table's own
+   * title would read "Add New Permission" behind Add Role too.
+   */
+  const isRoleBased: boolean =
+    createPermissionType === CreatePermissionType.RoleBased;
+
+  const roleName: string = (props.roleName || "").trim();
+
+  const createFormTitle: string = isRoleBased
+    ? roleName
+      ? translator.translateTemplate("Add a Role to {{role}}", {
+          role: roleName,
+        })
+      : translator.translateText("Add a Role") || "Add a Role"
+    : roleName
+      ? translator.translateTemplate("Add a Permission to {{role}}", {
+          role: roleName,
+        })
+      : translator.translateText("Add a Permission") || "Add a Permission";
+
   // What a change of permission does to the scope and labels already picked.
   const onPermissionPicked: (value: unknown) => Promise<void> = async (
     value: unknown,
@@ -223,10 +280,19 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
       createVerb="Add"
       singularName="Permission"
       pluralName="Permissions"
+      createFormTitle={createFormTitle}
+      createFormSubmitButtonText={isRoleBased ? "Add Role" : "Add Permission"}
       name="Teams > Role > Permissions"
       createEditModalWidth={ModalWidth.Large}
       isViewable={false}
       createEditFromRef={formRef}
+      onBeforeEdit={(
+        item: CustomRolePermission,
+      ): Promise<CustomRolePermission> => {
+        // Edit opens the picker the row was added with, its pick shown.
+        setCreatePermissionType(getPermissionPickerType(item.permission));
+        return Promise.resolve(item);
+      }}
       query={{
         customRoleId: props.customRoleId,
         projectId: ProjectUtil.getCurrentProjectId()!,
@@ -264,7 +330,7 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
       }}
       noItemsMessage="This role gives nothing yet. Add a role or a single permission to it."
       formFields={
-        createPermissionType === CreatePermissionType.RoleBased
+        isRoleBased
           ? [
               {
                 field: {
@@ -288,6 +354,7 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
                 },
                 onChange: onPermissionPicked,
                 title: "Permission",
+                description: SINGLE_PERMISSION_FIELD_DESCRIPTION,
                 fieldType: FormFieldSchemaType.CustomComponent,
                 required: true,
                 placeholder: "Search permissions...",

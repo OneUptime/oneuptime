@@ -32,9 +32,10 @@ import {
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import GrantablePermission from "Common/UI/Utils/GrantablePermission";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
@@ -74,8 +75,16 @@ const TeamRoles: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
+  /*
+   * Only the built-in roles this user could put into a role are offered, so
+   * a pick is never refused once the role exists (CustomRoleCreateForm).
+   */
   const formFields: Array<ModelField<CustomRole>> = useMemo(() => {
-    return getCustomRoleCreateFormFields();
+    return getCustomRoleCreateFormFields({
+      canGrant: (permission: Permission): boolean => {
+        return GrantablePermission.canCurrentUserGrant(permission);
+      },
+    });
   }, []);
 
   /*
@@ -123,12 +132,17 @@ const TeamRoles: FunctionComponent<PageComponentProps> = (
         createVerb="Create"
         singularName="Custom Role"
         pluralName="Custom Roles"
+        // "View Custom Role" on every row was the longest thing on it.
+        viewButtonText={translationKey("View Role")}
+        /*
+         * What a custom role is. With no role yet the empty state says it
+         * under "No custom roles yet", and the header leaves it out.
+         */
         cardProps={{
           title: "Custom Roles",
           description:
-            "Name a set of permissions once, such as Incident Responder or Team Lead, and give it to teams. Change a role and every team that has it changes with it.",
+            "A set of permissions you name once, such as Incident Responder, and give to teams. Changing a role changes every team that has it.",
         }}
-        noItemsMessage="No custom roles yet. Create one to give the same permissions to several teams, and change them all in one place."
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}

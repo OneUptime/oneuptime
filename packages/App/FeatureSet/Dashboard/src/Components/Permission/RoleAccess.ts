@@ -12,7 +12,10 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import GrantablePermission from "Common/UI/Utils/GrantablePermission";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import { getRoleIcon } from "./RoleCardSelectOptions";
 
 /*
@@ -79,6 +82,16 @@ export const ROLE_ACCESS_SEARCH_THRESHOLD: number = 8;
 // What that search box says before anything is typed in it.
 export const ROLE_ACCESS_SEARCH_PLACEHOLDER: string =
   translationKey("Search roles");
+
+/*
+ * The line under that search box while nothing is typed: how many cards
+ * there are, and what a search reads - a role's name and what it allows.
+ * The search box's own default is worded for monitor types.
+ */
+export const ROLE_ACCESS_SEARCH_HINT: PluralTemplate = {
+  one: "{{count}} to choose from. Search by name or by what a role allows.",
+  other: "{{count}} to choose from. Search by name or by what a role allows.",
+};
 
 // What a custom role's card stands for under Access: the prefix and the role's id.
 export const CUSTOM_ROLE_ACCESS_PREFIX: string = "customRole:";
@@ -352,6 +365,7 @@ export const getRoleAccessFormField: <TBaseModel extends BaseModel>(data: {
       ? {
           cardSelectSearchable: true,
           cardSelectSearchPlaceholder: ROLE_ACCESS_SEARCH_PLACEHOLDER,
+          cardSelectSearchHint: ROLE_ACCESS_SEARCH_HINT,
         }
       : {}),
     required: true,

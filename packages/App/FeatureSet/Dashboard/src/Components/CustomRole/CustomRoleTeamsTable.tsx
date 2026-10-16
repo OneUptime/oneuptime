@@ -140,7 +140,7 @@ const CustomRoleTeamsTable: FunctionComponent<ComponentProps> = (
           cardProps={{
             title: "Teams with this Role",
             description:
-              "Their members can do everything this role allows. Give the role to a team here, or from the team's Permissions page.",
+              "Members of these teams can do everything this role allows.",
             buttons: giveButton ? [giveButton] : [],
           }}
           noItemsMessage="No team has this role yet. Give it to a team to hand its members these permissions."

@@ -52,39 +52,107 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 export const CUSTOM_ROLE_PERMISSIONS_FIELD_KEY: string = "startingPermissions";
 
 export const CUSTOM_ROLE_PERMISSIONS_FIELD_DESCRIPTION: string = translationKey(
-  "The built-in roles this role bundles, for every resource in the project. Add single permissions, or limit one to owned or labelled resources, on the role's page.",
+  "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.",
+);
+
+/*
+ * The same, when some built-in roles are left out because the user could
+ * not put them into a role: says why the list is shorter than Add Role's.
+ */
+export const CUSTOM_ROLE_PERMISSIONS_FIELD_DESCRIPTION_SOME_LEFT_OUT: string =
+  translationKey(
+    "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.",
+  );
+
+/*
+ * Whether the user may put a built-in role into a role, for every resource
+ * in the project: the server's grant ceiling (GrantablePermission).
+ */
+export type CanGrantRoleFunction = (permission: Permission) => boolean;
+
+/*
+ * The help under a role's Name and Description, on Create and on Edit. Each
+ * field says its own: left without, a form shows the column's API
+ * description instead, which is English only and written for the API.
+ */
+export const CUSTOM_ROLE_NAME_FIELD_DESCRIPTION: string = translationKey(
+  "Shown on every team you give the role to.",
+);
+
+export const CUSTOM_ROLE_DESCRIPTION_FIELD_DESCRIPTION: string = translationKey(
+  "What the role is for, in a sentence or two.",
 );
 
 /*
  * The built-in roles a new role can start with, in Add Role's groups and
  * order, without Project Owner. A card's description says what the role can
  * do, so the option keeps it.
+ *
+ * With `canGrant`, only the roles the user could put into a role - each one
+ * is for every resource in the project, where the dashboard's copy of the
+ * grant ceiling says exactly what the server says - so a pick never comes
+ * back refused. Groups left empty are left out.
  */
-export const getCustomRoleStartingRoleOptions: () => Array<DropdownOptionGroup> =
-  (): Array<DropdownOptionGroup> => {
-    return getRoleCardSelectOptions({
-      excludeRoles: PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE,
-    }).map((group: CardSelectOptionGroup): DropdownOptionGroup => {
+export const getCustomRoleStartingRoleOptions: (
+  canGrant?: CanGrantRoleFunction,
+) => Array<DropdownOptionGroup> = (
+  canGrant?: CanGrantRoleFunction,
+): Array<DropdownOptionGroup> => {
+  return getRoleCardSelectOptions({
+    excludeRoles: PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE,
+  })
+    .map((group: CardSelectOptionGroup): DropdownOptionGroup => {
       return {
         label: group.label,
-        options: group.options.map(
-          (option: CardSelectOption): DropdownOption => {
+        options: group.options
+          .filter((option: CardSelectOption): boolean => {
+            return !canGrant || canGrant(option.value as Permission);
+          })
+          .map((option: CardSelectOption): DropdownOption => {
             return {
               value: option.value,
               label: option.title,
               description: option.description,
             };
-          },
-        ),
+          }),
       };
+    })
+    .filter((group: DropdownOptionGroup): boolean => {
+      return group.options.length > 0;
     });
-  };
+};
 
-export const getCustomRoleCreateFormFields: () => Array<
-  ModelField<CustomRole>
-> = (): Array<ModelField<CustomRole>> => {
+// How many roles a group list offers.
+const countRoleOptions: (groups: Array<DropdownOptionGroup>) => number = (
+  groups: Array<DropdownOptionGroup>,
+): number => {
+  return groups.reduce((count: number, group: DropdownOptionGroup): number => {
+    return count + group.options.length;
+  }, 0);
+};
+
+export interface CustomRoleCreateFormOptions {
+  /*
+   * Whether the user may put a built-in role into a role. Left out, every
+   * built-in role but Project Owner is offered.
+   */
+  canGrant?: CanGrantRoleFunction | undefined;
+}
+
+export const getCustomRoleCreateFormFields: (
+  options?: CustomRoleCreateFormOptions,
+) => Array<ModelField<CustomRole>> = (
+  options?: CustomRoleCreateFormOptions,
+): Array<ModelField<CustomRole>> => {
   const advanced: FormFieldCollapsibleSection<CustomRole> =
     getAdvancedFormSection<CustomRole>();
+
+  const startingRoles: Array<DropdownOptionGroup> =
+    getCustomRoleStartingRoleOptions(options?.canGrant);
+
+  const offeredCount: number = countRoleOptions(startingRoles);
+  const isAnyLeftOut: boolean =
+    offeredCount < countRoleOptions(getCustomRoleStartingRoleOptions());
 
   return [
     {
@@ -92,6 +160,7 @@ export const getCustomRoleCreateFormFields: () => Array<
         name: true,
       },
       title: "Name",
+      description: CUSTOM_ROLE_NAME_FIELD_DESCRIPTION,
       fieldType: FormFieldSchemaType.Text,
       required: true,
       placeholder: "Incident Responder",
@@ -102,33 +171,77 @@ export const getCustomRoleCreateFormFields: () => Array<
     },
     /*
      * Not a column of the role: the page adds each pick once the role
-     * exists (addPermissionsToCustomRole), so nothing of it is sent with the
-     * role.
+     * exists (addPermissionsToCustomRole), so nothing of it is sent with
+     * the role. Left out when the user could put no built-in role into
+     * one: the role starts empty, as it may.
      */
-    {
-      overrideField: {
-        [CUSTOM_ROLE_PERMISSIONS_FIELD_KEY]: true,
-      },
-      overrideFieldKey: CUSTOM_ROLE_PERMISSIONS_FIELD_KEY,
-      formOnly: true,
-      showEvenIfPermissionDoesNotExist: true,
-      title: "Permissions",
-      description: CUSTOM_ROLE_PERMISSIONS_FIELD_DESCRIPTION,
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      dropdownOptions: getCustomRoleStartingRoleOptions(),
-      required: false,
-      placeholder: "Search roles, such as Incident Member",
-      dataTestId: "custom-role-starting-permissions",
-    } as ModelField<CustomRole>,
+    ...(offeredCount > 0
+      ? [
+          {
+            overrideField: {
+              [CUSTOM_ROLE_PERMISSIONS_FIELD_KEY]: true,
+            },
+            overrideFieldKey: CUSTOM_ROLE_PERMISSIONS_FIELD_KEY,
+            formOnly: true,
+            showEvenIfPermissionDoesNotExist: true,
+            title: "Permissions",
+            description: isAnyLeftOut
+              ? CUSTOM_ROLE_PERMISSIONS_FIELD_DESCRIPTION_SOME_LEFT_OUT
+              : CUSTOM_ROLE_PERMISSIONS_FIELD_DESCRIPTION,
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownOptions: startingRoles,
+            required: false,
+            placeholder: "Search roles, such as Incident Member",
+            dataTestId: "custom-role-starting-permissions",
+          } as ModelField<CustomRole>,
+        ]
+      : []),
     {
       field: {
         description: true,
       },
       title: "Description",
+      description: CUSTOM_ROLE_DESCRIPTION_FIELD_DESCRIPTION,
       fieldType: FormFieldSchemaType.LongText,
       required: false,
       placeholder: "Declares, works and resolves incidents and alerts.",
       collapsibleSection: advanced,
+    },
+  ];
+};
+
+/*
+ * A role's Name and Description on its page, where Edit changes them: the
+ * create form's two fields, with the same help, and nothing folded - two
+ * rows need no fold.
+ */
+export const getCustomRoleEditFormFields: () => Array<
+  ModelField<CustomRole>
+> = (): Array<ModelField<CustomRole>> => {
+  return [
+    {
+      field: {
+        name: true,
+      },
+      title: "Name",
+      description: CUSTOM_ROLE_NAME_FIELD_DESCRIPTION,
+      fieldType: FormFieldSchemaType.Text,
+      required: true,
+      placeholder: "Incident Responder",
+      validation: {
+        minLength: 2,
+        maxLength: CUSTOM_ROLE_NAME_MAX_LENGTH,
+      },
+    },
+    {
+      field: {
+        description: true,
+      },
+      title: "Description",
+      description: CUSTOM_ROLE_DESCRIPTION_FIELD_DESCRIPTION,
+      fieldType: FormFieldSchemaType.LongText,
+      required: false,
+      placeholder: "Declares, works and resolves incidents and alerts.",
     },
   ];
 };

@@ -1,4 +1,5 @@
 import {
+  canTeamTakeCustomRoles,
   CustomRoleSummary,
   getCustomRoleCardSelectOption,
   loadCustomRoleIdsOfTeam,
@@ -52,9 +53,11 @@ import React, {
  * it - so the role's permissions are changed on the role's page, never here.
  *
  * Only shown once the project has a custom role: a project that never makes
- * one sees the team's Permissions page exactly as before. The dialog is the
- * card's own ("Add a Custom Role"), not the table's create form, whose title
- * would read "Add New Custom Role" - as if a role were made here.
+ * one sees the team's Permissions page exactly as before. Never shown on
+ * Owners or Admin, whose permissions can't be changed: the server refuses
+ * them every role, so the card could only offer what fails. The dialog is
+ * the card's own ("Add a Custom Role"), not the table's create form, whose
+ * title would read "Add New Custom Role" - as if a role were made here.
  */
 
 export interface ComponentProps {
@@ -74,6 +77,18 @@ const TeamCustomRoleTable: FunctionComponent<ComponentProps> = (
   const [givenRoleIds, setGivenRoleIds] = useState<Set<string>>(
     new Set<string>(),
   );
+  // Null while it is read: the card waits, so it never flashes on Owners.
+  const [canTakeRoles, setCanTakeRoles] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    canTeamTakeCustomRoles({ teamId: props.teamId })
+      .then((canTake: boolean) => {
+        setCanTakeRoles(canTake);
+      })
+      .catch(() => {
+        setCanTakeRoles(true);
+      });
+  }, [props.teamId.toString()]);
 
   useEffect(() => {
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -110,7 +125,7 @@ const TeamCustomRoleTable: FunctionComponent<ComponentProps> = (
       });
   }, []);
 
-  if (!roles || roles.length === 0) {
+  if (!roles || roles.length === 0 || canTakeRoles !== true) {
     return <></>;
   }
 
@@ -178,7 +193,7 @@ const TeamCustomRoleTable: FunctionComponent<ComponentProps> = (
           cardProps={{
             title: "Custom Roles",
             description:
-              "Sets of permissions made on the Roles page. The team's members can do everything its roles allow, and a change to a role changes this team with it.",
+              "Named sets of permissions, made on the Roles page. Changing a role changes this team too.",
             buttons: addButton ? [addButton] : [],
           }}
           noItemsMessage="This team has no custom role yet. Add one to give its members everything the role allows."

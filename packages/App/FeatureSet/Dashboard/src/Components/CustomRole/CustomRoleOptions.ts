@@ -2,6 +2,7 @@ import { getCustomRoleCardDescription } from "./CustomRoleCopy";
 import CustomRole from "Common/Models/DatabaseModels/CustomRole";
 import CustomRolePermission from "Common/Models/DatabaseModels/CustomRolePermission";
 import Label from "Common/Models/DatabaseModels/Label";
+import Team from "Common/Models/DatabaseModels/Team";
 import TeamCustomRole from "Common/Models/DatabaseModels/TeamCustomRole";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -19,9 +20,9 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
  * A PROJECT'S CUSTOM ROLES AS THE PICKERS OFFER THEM: a team's Add Custom
  * Role and Create Team's Access. One card per role - its name, its own
  * description or none, and how many permissions it holds ("Incident
- * Responder - Custom role: 6 permissions.") - in name order. And who has
- * which role already, so a picker offers only what is not given yet.
- * React-free.
+ * Responder - Custom role: 6 permissions.") - in name order, drawn as
+ * written (CardSelectOption.isUserContent). And who has which role already,
+ * so a picker offers only what is not given yet. React-free.
  */
 
 export const CUSTOM_ROLE_ICON: IconProp = IconProp.Identification;
@@ -97,6 +98,12 @@ export const getCustomRoleCardSelectOption: (
       saysItIsCustom: options?.saysItIsCustom,
     }),
     icon: CUSTOM_ROLE_ICON,
+    /*
+     * The role's name as it was typed, and a description already in the
+     * reader's language: a role called "Incident Responder" is never shown
+     * as the Dashboard's word for it.
+     */
+    isUserContent: true,
   };
 };
 
@@ -135,6 +142,36 @@ export const loadCustomRoleIdsOfTeam: (data: {
         return Boolean(id);
       }),
   );
+};
+
+/*
+ * Whether a team can be given a custom role: not Owners or Admin, whose
+ * permissions can't be changed - the server refuses them every role
+ * (TEAM_NOT_EDITABLE_FOR_ROLES_MESSAGE). A team that can't be read is
+ * offered its card: the server still decides.
+ */
+export const canTeamTakeCustomRoles: (data: {
+  teamId: ObjectID;
+  modelAPI?: typeof ModelAPI | undefined;
+}) => Promise<boolean> = async (data: {
+  teamId: ObjectID;
+  modelAPI?: typeof ModelAPI | undefined;
+}): Promise<boolean> => {
+  const modelAPI: typeof ModelAPI = data.modelAPI || ModelAPI;
+
+  try {
+    const team: Team | null = await modelAPI.getItem<Team>({
+      modelType: Team,
+      id: data.teamId,
+      select: {
+        isPermissionsEditable: true,
+      },
+    });
+
+    return team?.isPermissionsEditable !== false;
+  } catch {
+    return true;
+  }
 };
 
 // The teams a custom role is given to, by id.

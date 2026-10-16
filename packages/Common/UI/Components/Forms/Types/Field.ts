@@ -23,6 +23,7 @@ import type { CodeEditorActions } from "../../CodeEditor/CodeEditor";
 import type { PeoplePickerFieldConfig } from "../../PeoplePicker/PeoplePickerTypes";
 import type { TemplateVariableGroups } from "../../../../Types/Template/TemplateVariable";
 import type IconProp from "../../../../Types/Icon/IconProp";
+import type { PluralTemplate } from "../../../Utils/TranslateTemplate";
 import { ReactElement, ReactNode } from "react";
 
 export enum FormFieldStyleType {
@@ -155,6 +156,11 @@ export default interface Field<TEntity> {
    */
   cardSelectSearchable?: boolean | undefined;
   cardSelectSearchPlaceholder?: string | undefined;
+  /*
+   * The line under the search box while nothing is typed (CardSelect
+   * searchHint): worded for monitor types unless the field says otherwise.
+   */
+  cardSelectSearchHint?: PluralTemplate | undefined;
   cardSelectCatalog?: CardSelectCatalog | undefined;
   fetchDropdownOptions?:
     | ((
