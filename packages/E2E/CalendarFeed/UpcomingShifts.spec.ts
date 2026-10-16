@@ -16,9 +16,11 @@ import path from "path";
  * as one row; the times in the reader's zone (London, across the end of
  * summer time); the tiles in one column and Get cover beside its row on a
  * wide screen; the phone width with nothing scrolling sideways and no time
- * broken in two; the fold; every state; the dark theme; German, Russian and
- * Japanese. The browser's clock is fixed, so every row is the same on every
- * run.
+ * broken in two; a row's end at its right edge from sm up and under its
+ * text on a phone, at every width between; the fold, and Show fewer
+ * keeping its place; Get cover's spoken name and focus ring; every state;
+ * the dark theme; German, Russian and Japanese. The browser's clock is
+ * fixed, so every row is the same on every run.
  *
  * The screenshots under output/playwright/calendar-feed-ui are for the
  * people who review the card.
@@ -424,13 +426,23 @@ test.describe("a phone", () => {
       await expect(rows(page)).toHaveCount(8);
       expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
 
-      // Every whole part of a row's times sits on one line.
+      /*
+       * Every whole part of a row's times sits on one line: the time left
+       * on the row on call now, a start and an end on a later day, and two
+       * times of one day as one piece ("10:00 – 18:00").
+       */
       const parts: Locator = page.locator(
         "[data-testid='upcoming-shift-times'] .whitespace-nowrap",
       );
       const count: number = await parts.count();
 
-      expect(count).toBeGreaterThanOrEqual(15);
+      expect(count).toBe(11);
+      await expect(
+        rows(page)
+          .nth(1)
+          .getByTestId("upcoming-shift-times")
+          .locator(".whitespace-nowrap"),
+      ).toHaveText(["10:00 – 18:00"]);
 
       for (let index: number = 0; index < count; index++) {
         const part: Box = await box(parts.nth(index));
@@ -543,8 +555,229 @@ test.describe("a phone", () => {
   });
 });
 
+/*
+ * Between a phone and a laptop. A row's end - how long, and Get cover -
+ * used to wrap on its own: beside a short row's text, under a long one's,
+ * and from sm up a wrapped end kept its right-aligned stack at the LEFT.
+ * At 768px (a tablet, with the side menu) and 900px, every other row had
+ * Get cover in a different place; at 600px short rows had it beside the
+ * text and long ones under it. Now the screen decides: under the text on a
+ * phone, at the right edge from sm up, on every row.
+ */
+test.describe("between a phone and a laptop", () => {
+  test.use({ timezoneId: "Europe/London" });
+
+  test("from sm up, every row keeps its length and Get cover at its right edge, level with its first line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [query, width] of [
+      ["shifts=mixed", 768],
+      ["shifts=mixed&lang=de", 768],
+      ["shifts=mixed&lang=ru", 768],
+      ["shifts=daily&lang=de", 768],
+      ["shifts=long", 768],
+      ["shifts=mixed", 900],
+      ["shifts=mixed&lang=de", 900],
+    ] as Array<[string, number]>) {
+      await open(page, query, width);
+      await expect(rows(page).first()).toBeVisible();
+
+      // The fixture draws the Dashboard's side menu from md up.
+      await expect(page.getByTestId("fixture-side-menu")).toBeVisible();
+
+      const count: number = await rows(page).count();
+      const lengthRights: Array<number> = [];
+
+      for (let index: number = 0; index < count; index++) {
+        const row: Locator = rows(page).nth(index);
+        const when: Box = await box(row.getByTestId("upcoming-shift-when"));
+        const length: Box = await box(row.getByTestId("upcoming-shift-length"));
+
+        // Beside the text, on its first line - never under it.
+        expect({ query, width, index, top: Math.round(length.y) }).toEqual({
+          query,
+          width,
+          index,
+          top: Math.round(when.y),
+        });
+        expect(length.x).toBeGreaterThan(when.x + when.width);
+
+        lengthRights.push(Math.round(length.x + length.width));
+
+        const cover: Locator = row.getByRole("link");
+
+        if ((await cover.count()) > 0) {
+          const coverBox: Box = await box(cover);
+
+          // Under the length, at the same right edge.
+          expect(coverBox.y).toBeGreaterThan(length.y);
+          expect(
+            Math.abs(coverBox.x + coverBox.width - (length.x + length.width)),
+          ).toBeLessThanOrEqual(1);
+        }
+      }
+
+      expect({
+        query,
+        width,
+        aligned: Math.max(...lengthRights) - Math.min(...lengthRights) <= 1,
+      }).toEqual({ query, width, aligned: true });
+      expect({ query, width, past: await pastTheListEdge(page) }).toEqual({
+        query,
+        width,
+        past: [],
+      });
+      expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+
+      if (width === 768 && query === "shifts=mixed") {
+        await screenshot(page, "mixed-768");
+      }
+
+      if (width === 768 && query === "shifts=mixed&lang=de") {
+        await screenshot(page, "mixed-de-768");
+      }
+    }
+  });
+
+  test("below sm, every row's length and Get cover come under its text and start where it starts, short rows too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "shifts=mixed", 600);
+
+    await expect(rows(page)).toHaveCount(8);
+    await expect(page.getByTestId("fixture-side-menu")).toBeHidden();
+
+    for (let index: number = 0; index < 8; index++) {
+      const row: Locator = rows(page).nth(index);
+      const when: Box = await box(row.getByTestId("upcoming-shift-when"));
+      const where: Box = await box(row.getByTestId("upcoming-shift-where"));
+      const length: Box = await box(row.getByTestId("upcoming-shift-length"));
+
+      /*
+       * "Tomorrow · 10:00 – 18:00" fits beside its end at 600px; it still
+       * goes under, like every other row.
+       */
+      expect({ index, under: length.y >= where.y + where.height }).toEqual({
+        index,
+        under: true,
+      });
+      expect(Math.abs(length.x - when.x)).toBeLessThanOrEqual(1);
+    }
+
+    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+  });
+});
+
+/*
+ * A reader who hears the page. A list of links - a screen reader's rotor -
+ * read "Get cover" once a row and never which shift; each link now says
+ * its shift after the words on screen. And the keyboard's focus on it is
+ * the card's own ring, not the browser's black outline.
+ */
+test.describe("a reader who hears the page or uses the keyboard", () => {
+  test.use({ timezoneId: "Europe/London" });
+
+  test("every Get cover link names its shift, and shows the card's focus ring", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "shifts=mixed");
+
+    await expect(rows(page)).toHaveCount(8);
+
+    const links: Locator = page
+      .getByTestId("upcoming-shifts-list")
+      .getByRole("link");
+
+    await expect(links).toHaveCount(7);
+    await expect(links.nth(0)).toHaveAccessibleName(
+      "Get cover (On call now, until 22:00)",
+    );
+    await expect(links.nth(1)).toHaveAccessibleName(
+      "Get cover (Thu, Oct 15, 10:00 – 18:00)",
+    );
+    await expect(links.nth(2)).toHaveAccessibleName(
+      "Get cover (Tue, Oct 20, 10:00 – Tue, Oct 27, 09:00)",
+    );
+    await expect(links.nth(6)).toHaveAccessibleName(
+      "Get cover (Thu, Nov 12, 18:00 – at least Sat, Nov 14, 18:00)",
+    );
+
+    const names: Array<string> = [];
+
+    for (const link of await links.all()) {
+      names.push(
+        await link.evaluate((element: Element): string => {
+          return element.textContent || "";
+        }),
+      );
+      // On screen it still says only "Get cover".
+      await expect(link.getByText("Get cover", { exact: true })).toBeVisible();
+    }
+
+    expect(new Set(names).size).toBe(7);
+
+    /*
+     * The keyboard's focus: the indigo ring the fold draws. Tailwind's
+     * outline-none keeps a transparent outline (for forced colours), so
+     * the browser's own black one is gone but an outline is still there.
+     */
+    await links.nth(0).focus();
+    await page.keyboard.press("Tab");
+    await expect(links.nth(1)).toBeFocused();
+
+    const focus: { boxShadow: string; outlineColor: string } = await links
+      .nth(1)
+      .evaluate((element: Element) => {
+        const style: CSSStyleDeclaration = getComputedStyle(element);
+
+        return { boxShadow: style.boxShadow, outlineColor: style.outlineColor };
+      });
+
+    expect(focus.boxShadow).toContain("rgb(99, 102, 241)");
+    expect(focus.outlineColor).toBe("rgba(0, 0, 0, 0)");
+  });
+});
+
 test.describe("the fold", () => {
   test.use({ timezoneId: "Europe/London" });
+
+  /*
+   * "Show fewer shifts" sits under the last of 23 rows. Folding them away
+   * used to pull the page up by all seventeen, so the button went off the
+   * top of the screen and the reader was left looking at the next card.
+   */
+  test("Show fewer shifts stays under the pointer: the rows above it fold up", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "shifts=weekdays");
+
+    const fold: Locator = page.getByTestId("upcoming-shifts-fold");
+
+    await fold.click();
+    await expect(rows(page)).toHaveCount(23);
+
+    await fold.scrollIntoViewIfNeeded();
+
+    const before: Box = await box(fold);
+
+    await fold.click();
+
+    await expect(rows(page)).toHaveCount(6);
+    await expect(fold).toHaveText("Show 17 more shifts");
+
+    const after: Box = await box(fold);
+
+    expect(Math.abs(after.y - before.y)).toBeLessThanOrEqual(1);
+    await expect(fold).toBeInViewport();
+  });
 
   test("a month of weekdays shows six rows, opens to all of them, and folds again", async ({
     page,

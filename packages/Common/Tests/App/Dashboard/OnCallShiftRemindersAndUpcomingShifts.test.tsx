@@ -16,6 +16,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import type { SpyInstance } from "jest-mock";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -111,6 +112,13 @@ import { MaterializedShiftJson } from "../../../Types/OnCallDutyPolicy/Materiali
 import UserOnCallShiftReminder from "../../../Models/DatabaseModels/UserOnCallShiftReminder";
 import ShiftRemindersCard from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/ShiftRemindersCard";
 import UpcomingShiftsCard from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/UpcomingShiftsCard";
+import {
+  UPCOMING_SHIFT_BODY_CLASS_NAME,
+  UPCOMING_SHIFT_COVER_CLASS_NAME,
+  UPCOMING_SHIFT_END_CLASS_NAME,
+  UPCOMING_SHIFT_SEPARATOR_CLASS_NAME,
+  UPCOMING_SHIFT_TEXT_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/UpcomingShiftRow";
 import {
   MY_SHIFTS_PATH,
   STANDING_ASSIGNMENTS_COPY,
@@ -1089,5 +1097,311 @@ describe("UpcomingShiftsCard", () => {
         " ",
       ),
     ).toBe("2:00 PM – 10:00 PM");
+  });
+
+  /*
+   * UI REVIEW.
+   *
+   * A list read link by link - a screen reader's list of links - heard
+   * "Get cover" once per row and never which shift each one covers; two
+   * rows on a Friday a week apart said the same "Friday". Each link now
+   * says its shift after the visible words, the start's date included,
+   * while the row still shows only "Get cover".
+   */
+  test("every Get cover says which shift it covers, to a reader who hears the links one by one", async () => {
+    serve([
+      shift({ shiftKey: "now", start: at(-2 * HOUR), end: at(6 * HOUR) }),
+      shift({
+        shiftKey: "tomorrow",
+        start: at(DAY - 6 * HOUR),
+        end: at(DAY + 2 * HOUR),
+      }),
+      shift({
+        shiftKey: "friday",
+        start: at(2 * DAY - 6 * HOUR),
+        end: at(2 * DAY + 2 * HOUR),
+      }),
+      shift({
+        shiftKey: "next-friday",
+        start: at(9 * DAY - 6 * HOUR),
+        end: at(9 * DAY + 2 * HOUR),
+      }),
+      shift({
+        shiftKey: "cover",
+        start: at(3 * DAY),
+        end: at(3 * DAY + 8 * HOUR),
+        override: {
+          originalUserId: "user-2",
+          originalUserName: "Bob",
+          overrideStartsAt: at(3 * DAY),
+          overrideEndsAt: at(3 * DAY + 8 * HOUR),
+        },
+      }),
+    ]);
+
+    render(<UpcomingShiftsCard now={OCTOBER} />);
+
+    await waitFor(() => {
+      expect(rows()).toHaveLength(5);
+    });
+
+    const names: Array<string> = screen
+      .getAllByRole("link")
+      .map((link: HTMLElement): string => {
+        return (link.textContent || "").replace(NARROW_SPACES, " ");
+      });
+
+    expect(names).toEqual([
+      "Get cover (On call now, until 22:00)",
+      "Get cover (Thu, Oct 15, 10:00 – 18:00)",
+      "Get cover (Fri, Oct 16, 10:00 – 18:00)",
+      "Get cover (Fri, Oct 23, 10:00 – 18:00)",
+    ]);
+
+    // Both Fridays read "Friday" on the row; their links tell them apart.
+    const [, , friday, cover, nextFriday] = rows() as [
+      HTMLElement,
+      HTMLElement,
+      HTMLElement,
+      HTMLElement,
+      HTMLElement,
+    ];
+
+    expect(
+      [friday, nextFriday].map((row: HTMLElement): string => {
+        return (
+          within(row).getByTestId("upcoming-shift-day-label").textContent || ""
+        );
+      }),
+    ).toEqual(["Friday", "Friday"]);
+    expect(
+      screen.getByRole("link", {
+        name: "Get cover (Fri, Oct 23, 10:00 – 18:00)",
+      }),
+    ).toBeInTheDocument();
+
+    // The words beside a row are still just "Get cover": the rest is hidden.
+    for (const link of screen.getAllByRole("link")) {
+      expect(within(link).getByText("Get cover").className).not.toContain(
+        "sr-only",
+      );
+      expect(
+        within(link).getByTestId("upcoming-shift-cover-context").className,
+      ).toBe("sr-only");
+    }
+
+    // Cover for someone else still has no link at all.
+    expect(within(cover).getByTestId("upcoming-shift-covering")).toBeVisible();
+    expect(within(cover).queryByRole("link")).toBeNull();
+  });
+
+  test("Get cover draws the card's focus ring, and the dots between facts are a grey that shows", async () => {
+    serve([
+      shift({
+        shiftKey: "tomorrow",
+        start: at(DAY - 6 * HOUR),
+        end: at(DAY + 2 * HOUR),
+        layerName: "Weekdays",
+      }),
+    ]);
+
+    render(<UpcomingShiftsCard now={OCTOBER} />);
+
+    await waitFor(() => {
+      expect(rows()).toHaveLength(1);
+    });
+
+    const link: HTMLElement = screen.getByRole("link");
+
+    expect(link.className).toContain(UPCOMING_SHIFT_COVER_CLASS_NAME);
+
+    for (const focusClass of [
+      "focus:outline-none",
+      "focus-visible:ring-2",
+      "focus-visible:ring-indigo-500",
+      "focus-visible:ring-offset-2",
+    ]) {
+      expect(UPCOMING_SHIFT_COVER_CLASS_NAME.split(" ")).toContain(focusClass);
+    }
+
+    const separators: Array<HTMLElement> = within(rows()[0]!).getAllByTestId(
+      "upcoming-shift-separator",
+    );
+
+    // The day and the times, the schedule and the layer.
+    expect(separators).toHaveLength(2);
+
+    for (const separator of separators) {
+      expect(separator).toHaveAttribute("aria-hidden", "true");
+      expect(separator.className).toBe(UPCOMING_SHIFT_SEPARATOR_CLASS_NAME);
+    }
+
+    expect(UPCOMING_SHIFT_SEPARATOR_CLASS_NAME).toBe("text-gray-400");
+  });
+
+  /*
+   * Left to wrap on its own, a row's end (how long, Get cover) sat beside
+   * a short row's text and under a long one's - and from sm up a wrapped
+   * end kept its right-aligned stack at the LEFT. Where the end goes is
+   * now the screen's choice: under the text on a phone, at the right from
+   * sm up, on every row. The browser suite measures it at 600, 768 and
+   * 900px; this pins the classes that decide it.
+   */
+  test("a row's length and Get cover go under its text on a phone and beside it from sm up, on every row alike", async () => {
+    serve([
+      shift({
+        shiftKey: "short",
+        start: at(DAY - 6 * HOUR),
+        end: at(DAY + 2 * HOUR),
+      }),
+      shift({
+        shiftKey: "long",
+        start: at(3 * DAY + 7 * HOUR),
+        end: at(4 * DAY + 15 * HOUR),
+        scheduleName:
+          "Platform Infrastructure Primary Escalation Rotation for the EMEA Region",
+      }),
+    ]);
+
+    render(<UpcomingShiftsCard now={OCTOBER} />);
+
+    await waitFor(() => {
+      expect(rows()).toHaveLength(2);
+    });
+
+    const bodyClasses: Array<string> =
+      UPCOMING_SHIFT_BODY_CLASS_NAME.split(" ");
+
+    expect(bodyClasses).toEqual(
+      expect.arrayContaining(["flex", "flex-col", "sm:flex-row"]),
+    );
+    // Nothing wraps on its own, at any width.
+    expect(bodyClasses.join(" ")).not.toContain("wrap");
+    expect(UPCOMING_SHIFT_TEXT_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["min-w-0", "sm:flex-1"]),
+    );
+    expect(UPCOMING_SHIFT_END_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["sm:flex-none", "sm:flex-col", "sm:items-end"]),
+    );
+
+    for (const row of rows()) {
+      const body: HTMLElement = within(row).getByTestId("upcoming-shift-body");
+
+      expect(body.className).toBe(UPCOMING_SHIFT_BODY_CLASS_NAME);
+      // The text first, then the end: one order for every row.
+      expect(body.children).toHaveLength(2);
+      expect(body.children[0]!.className).toBe(UPCOMING_SHIFT_TEXT_CLASS_NAME);
+      expect(body.children[1]!.className).toBe(UPCOMING_SHIFT_END_CLASS_NAME);
+      expect(
+        within(body.children[1] as HTMLElement).getByTestId(
+          "upcoming-shift-length",
+        ),
+      ).toBeInTheDocument();
+    }
+  });
+
+  /*
+   * On a 320px phone a row's text column is some 150px wide. Two times of
+   * one day are one piece there, so the line breaks after the day
+   * ("Tomorrow ·", then "10:00 – 18:00") instead of leaving "18:00" alone
+   * under "Tomorrow · 10:00 –". An end on a later day still breaks from
+   * the start, or "23:00 – Sun, Oct 18, 07:00" would be wider than the
+   * column.
+   */
+  test("two times of one day never break apart; an end on a later day may go to the next line", async () => {
+    serve([
+      shift({
+        shiftKey: "day",
+        start: at(DAY - 6 * HOUR),
+        end: at(DAY + 2 * HOUR),
+      }),
+      shift({
+        shiftKey: "night",
+        start: at(3 * DAY + 7 * HOUR),
+        end: at(3 * DAY + 15 * HOUR),
+      }),
+    ]);
+
+    render(<UpcomingShiftsCard now={OCTOBER} />);
+
+    await waitFor(() => {
+      expect(rows()).toHaveLength(2);
+    });
+
+    const pieces: (row: HTMLElement) => Array<string> = (
+      row: HTMLElement,
+    ): Array<string> => {
+      return Array.from(
+        within(row)
+          .getByTestId("upcoming-shift-times")
+          .querySelectorAll(".whitespace-nowrap"),
+      ).map((piece: Element): string => {
+        return piece.textContent || "";
+      });
+    };
+
+    const [day, night] = rows() as [HTMLElement, HTMLElement];
+
+    expect(pieces(day)).toEqual(["10:00 – 18:00"]);
+    expect(pieces(night)).toEqual(["23:00 –", "Sun, Oct 18, 07:00"]);
+  });
+
+  /*
+   * "Show fewer shifts" sits under the last of the rows. Folding them away
+   * used to pull the page up by all of them, so the button went off the
+   * top of the screen; now the page scrolls by what the button moved, and
+   * it stays under the pointer. A browser measures where it ends up
+   * (UpcomingShifts.spec.ts); jsdom lays nothing out, so the button's
+   * position is given here.
+   */
+  test("Show fewer shifts scrolls the page by what the fold moved, so the button stays under the pointer", async () => {
+    const weekdays: Array<MaterializedShiftJson> = [];
+
+    for (let day: number = 1; day <= 22; day++) {
+      weekdays.push(
+        shift({
+          shiftKey: `weekday-${day}`,
+          start: at(day * DAY),
+          end: at(day * DAY + 8 * HOUR),
+        }),
+      );
+    }
+
+    serve(weekdays);
+
+    // The overload the card calls: scrollBy(x, y).
+    const scrollBy: SpyInstance<(x: number, y: number) => void> = jest
+      .spyOn(window, "scrollBy")
+      .mockImplementation((): void => {});
+
+    render(<UpcomingShiftsCard now={OCTOBER} />);
+
+    await waitFor(() => {
+      expect(rows()).toHaveLength(6);
+    });
+
+    const fold: HTMLElement = screen.getByTestId("upcoming-shifts-fold");
+    const topAt: (top: number) => DOMRect = (top: number): DOMRect => {
+      return { top: top } as DOMRect;
+    };
+    const position: SpyInstance<() => DOMRect> = jest
+      .spyOn(fold, "getBoundingClientRect")
+      .mockReturnValueOnce(topAt(1700))
+      .mockReturnValueOnce(topAt(436));
+
+    // Opening reads no position and scrolls nothing.
+    fireEvent.click(fold);
+
+    expect(rows()).toHaveLength(22);
+    expect(position).not.toHaveBeenCalled();
+    expect(scrollBy).not.toHaveBeenCalled();
+
+    // Folding: 1,700px down the screen before, 436px after.
+    fireEvent.click(fold);
+
+    expect(rows()).toHaveLength(6);
+    expect(position).toHaveBeenCalledTimes(2);
+    expect(scrollBy).toHaveBeenCalledTimes(1);
+    expect(scrollBy).toHaveBeenCalledWith(0, 436 - 1700);
   });
 });

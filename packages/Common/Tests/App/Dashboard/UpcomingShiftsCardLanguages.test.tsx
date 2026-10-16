@@ -406,6 +406,30 @@ describe("in German", () => {
       "mindestens bis Sa., 14. Nov., 15:00",
     );
     expect(text(row, "upcoming-shift-length")).toBe("Noch mindestens 31 Tage");
+
+    // Get cover says the same, to a reader who hears it, in German.
+    expect(plain(within(row).getByRole("link").textContent)).toBe(
+      "Vertretung finden (Jetzt in Bereitschaft, mindestens bis Sa., 14. Nov., 15:00)",
+    );
+  });
+
+  /*
+   * Each Get cover link names its shift for a screen reader (UI review):
+   * the words after "Vertretung finden" are hidden, and German like the
+   * rest of the row - the start's day and date from Intl, the phrases
+   * from the locale.
+   */
+  test("Get cover names its shift to a screen reader in German", async () => {
+    await renderIn(german, Timezone.EuropeBerlin, today(), 2);
+
+    expect(
+      screen.getAllByRole("link").map((link: HTMLElement): string => {
+        return plain(link.textContent);
+      }),
+    ).toEqual([
+      "Vertretung finden (Jetzt in Bereitschaft, bis 23:00)",
+      "Vertretung finden (Do., 15. Okt., 11:00 – 19:00)",
+    ]);
   });
 });
 

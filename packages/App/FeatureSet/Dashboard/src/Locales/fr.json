@@ -6266,7 +6266,7 @@
   "{{count}} days": "{{count}} jours",
   "{{count}} hours": "{{count}} heures",
   "{{count}} minutes": "{{count}} minutes",
-  "No shifts could be listed for the next 30 days.": "Aucune garde n'a pu être listée pour les 30 prochains jours.",
+  "No shifts could be listed for the next 30 days.": "Aucune permanence n'a pu être listée pour les 30 prochains jours.",
   "Calendar feeds require the Growth plan": "Les flux de calendrier nécessitent le forfait Growth",
   "This project's plan does not include calendar feeds, so a link generated here would always show an empty calendar.": "Le forfait de ce projet n'inclut pas les flux de calendrier ; un lien généré ici afficherait toujours un calendrier vide.",
   "Upgrade your plan in Billing settings": "Mettez à niveau votre forfait dans les paramètres de facturation",

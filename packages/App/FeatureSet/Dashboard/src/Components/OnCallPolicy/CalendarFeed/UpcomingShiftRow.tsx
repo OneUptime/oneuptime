@@ -38,10 +38,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  * where (the schedule, its layer when that helps, the project when the list
  * holds more than one) and anything that makes the span different (cover
  * for someone else, a policy it is the only shift on). How long it lasts
- * and "Get cover" sit together at the row's end - beside the text on a
- * phone, under each other from sm up - inside a list no wider than a
- * comfortable reading measure, so on a wide screen they are never a screen
- * away from the row they belong to.
+ * and "Get cover" sit together at the row's end - side by side under the
+ * text on a phone, one under the other at the right from sm up - inside a
+ * list no wider than a comfortable reading measure, so on a wide screen
+ * they are never a screen away from the row they belong to.
  *
  * The span you are on call for now is today's tile in green, says "On call
  * now" and when it ends, and how much of it is left.
@@ -98,6 +98,21 @@ export const UPCOMING_SHIFT_POLICY_BADGE_CLASS_NAME: string =
   "bg-purple-50 text-purple-700 ring-purple-200";
 
 /*
+ * The row beside the tile: its text, then its end (how long, and Get
+ * cover). Where the end goes is the screen's choice, never the text's: on
+ * a phone it comes under the text on every row; from sm up it stands at
+ * the row's right edge on every row, and the text wraps in what is left.
+ * Left to wrap on its own, the end sat beside a short row and under a long
+ * one - and from sm up a wrapped end kept its right-aligned stack at the
+ * LEFT, so on a 768px tablet with the side menu, or a 900px window, every
+ * other row had Get cover in a different place.
+ */
+export const UPCOMING_SHIFT_BODY_CLASS_NAME: string =
+  "flex min-w-0 flex-1 flex-col gap-y-2 sm:flex-row sm:items-start sm:gap-x-6";
+
+export const UPCOMING_SHIFT_TEXT_CLASS_NAME: string = "min-w-0 sm:flex-1";
+
+/*
  * How long and Get cover, at the row's end. From sm up they stand under
  * each other at the right of the row and keep their width. On a phone they
  * come under the text, side by side while they fit and one under the other
@@ -109,6 +124,14 @@ export const UPCOMING_SHIFT_END_CLASS_NAME: string =
   "flex min-w-0 flex-wrap items-center gap-x-4 gap-y-0.5 sm:flex-none sm:flex-col sm:flex-nowrap sm:items-end";
 
 /*
+ * Get cover: a link to Add User Override, with the focus ring the card's
+ * other controls draw (the fold under the list) rather than the browser's
+ * own outline.
+ */
+export const UPCOMING_SHIFT_COVER_CLASS_NAME: string =
+  "whitespace-nowrap rounded-sm text-sm font-medium leading-6 text-indigo-600 hover:text-indigo-500 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+
+/*
  * The dot between two facts. Its spaces are inside it, so a line that has
  * to break can: a separator drawn with margins and no spaces glued the
  * facts on both sides into one unbreakable word, which ran past a 320px
@@ -117,9 +140,17 @@ export const UPCOMING_SHIFT_END_CLASS_NAME: string =
  */
 export const UPCOMING_SHIFT_SEPARATOR: string = `${NO_BREAK_SPACE}· `;
 
+/*
+ * The dot's grey: quieter than the words it parts, but there - gray-300
+ * all but vanished on white, and Theme.css drew it as bright as the text
+ * in the dark theme. The link card's status line parts its facts with a
+ * dot in the line's own grey.
+ */
+export const UPCOMING_SHIFT_SEPARATOR_CLASS_NAME: string = "text-gray-400";
+
 const SEPARATOR: ReactElement = (
   <span
-    className="text-gray-300"
+    className={UPCOMING_SHIFT_SEPARATOR_CLASS_NAME}
     aria-hidden="true"
     data-testid="upcoming-shift-separator"
   >
@@ -268,12 +299,28 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
 
   let when: ReactElement;
 
+  /*
+   * The row's when in words, for Get cover's name: a list read link by
+   * link - a screen reader's list of links - heard "Get cover" seven times
+   * and never which shift each one covers. The start's date is in it
+   * because two rows can share a weekday ("Friday"), and the tile that
+   * tells them apart is a picture of a date.
+   */
+  let spokenWhen: string;
+
   if (span.isOnCallNow) {
     // Today's end as a time, a later one with its day.
     const endsToday: boolean = isSameShiftDay(now, span.end, clock);
     const until: string = endsToday
       ? formatShiftTime(span.end, clock)
       : formatShiftDateTime(span.end, clock);
+
+    spokenWhen = `${translator.translateText(
+      "On call now",
+    )}, ${translator.translateTemplate(
+      span.mayContinue ? "until at least {{time}}" : "until {{time}}",
+      { time: until },
+    )}`;
 
     when = (
       <>
@@ -301,6 +348,14 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
       end: span.end,
       clock: clock,
     });
+    // formatShiftEnd wrote the end as a bare time: it is on the start's day.
+    const endsOnStartDay: boolean = isSameShiftDay(span.start, span.end, clock);
+
+    spokenWhen = `${formatShiftDateTime(span.start, clock)} – ${
+      span.mayContinue
+        ? translator.translateTemplate("at least {{time}}", { time: end })
+        : end
+    }`;
 
     when = (
       <>
@@ -311,16 +366,25 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
         {/*
          * The start and the end each stay whole, so a line that has to
          * break does so between them - never inside "Sun, Oct 18, 07:00".
+         * Two times of one day are one piece: on a 320px phone the line
+         * breaks after the day ("Tomorrow ·", then "10:00 – 18:00"),
+         * rather than leaving "18:00" alone under "Tomorrow · 10:00 –".
          */}
         <span data-testid="upcoming-shift-times">
-          {Unbroken(`${formatShiftTime(span.start, clock)} –`)}{" "}
-          {span.mayContinue ? (
-            <TranslatedSentence
-              template="at least {{time}}"
-              slots={{ time: Unbroken(end) }}
-            />
+          {endsOnStartDay && !span.mayContinue ? (
+            Unbroken(`${formatShiftTime(span.start, clock)} – ${end}`)
           ) : (
-            Unbroken(end)
+            <>
+              {Unbroken(`${formatShiftTime(span.start, clock)} –`)}{" "}
+              {span.mayContinue ? (
+                <TranslatedSentence
+                  template="at least {{time}}"
+                  slots={{ time: Unbroken(end) }}
+                />
+              ) : (
+                Unbroken(end)
+              )}
+            </>
           )}
         </span>
       </>
@@ -339,8 +403,11 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
     >
       {tile}
 
-      <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-x-6 gap-y-2">
-        <div className="min-w-0">
+      <div
+        className={UPCOMING_SHIFT_BODY_CLASS_NAME}
+        data-testid="upcoming-shift-body"
+      >
+        <div className={UPCOMING_SHIFT_TEXT_CLASS_NAME}>
           <p
             className={UPCOMING_SHIFT_WHEN_CLASS_NAME}
             title={fullRange}
@@ -404,11 +471,19 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
             {lengthText}
           </span>
           {coverRoute && (
-            <Link
-              to={coverRoute}
-              className="whitespace-nowrap text-sm font-medium leading-6 text-indigo-600 hover:text-indigo-500 hover:underline"
-            >
-              {translator.translateText("Get cover")}
+            <Link to={coverRoute} className={UPCOMING_SHIFT_COVER_CLASS_NAME}>
+              <span>{translator.translateText("Get cover")}</span>
+              {/*
+               * In brackets after a space: the hidden text is out of the
+               * line, which Chromium reads as a word of its own, so a comma
+               * there was heard as "Get cover , Thu, Oct 15".
+               */}
+              <span
+                className="sr-only"
+                data-testid="upcoming-shift-cover-context"
+              >
+                {` (${spokenWhen})`}
+              </span>
             </Link>
           )}
         </div>

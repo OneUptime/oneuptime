@@ -34,9 +34,12 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
   useId,
+  useLayoutEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -86,6 +89,35 @@ const UpcomingShiftsCard: FunctionComponent<ComponentProps> = (
     null,
   );
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
+
+  /*
+   * "Show fewer shifts" sits under the last of some twenty rows, so folding
+   * them away pulled the page up by all of them and left the reader looking
+   * at the next card, the button they pressed gone off the top. The fold
+   * keeps the button where it was on the screen instead: the rows above it
+   * fold up, and the pointer stays on it.
+   */
+  const foldRef: MutableRefObject<HTMLButtonElement | null> =
+    useRef<HTMLButtonElement | null>(null);
+  const foldTopBeforeFolding: MutableRefObject<number | null> = useRef<
+    number | null
+  >(null);
+
+  useLayoutEffect(() => {
+    const before: number | null = foldTopBeforeFolding.current;
+
+    foldTopBeforeFolding.current = null;
+
+    if (before === null || !foldRef.current) {
+      return;
+    }
+
+    const moved: number = foldRef.current.getBoundingClientRect().top - before;
+
+    if (moved !== 0 && typeof window.scrollBy === "function") {
+      window.scrollBy(0, moved);
+    }
+  }, [isExpanded]);
 
   const now: Date = props.now || OneUptimeDate.getCurrentDate();
 
@@ -224,12 +256,18 @@ const UpcomingShiftsCard: FunctionComponent<ComponentProps> = (
 
         {isUpcomingShiftsFoldable(spans.length) && (
           <button
+            ref={foldRef}
             type="button"
             className="mt-3 inline-flex items-center gap-1 rounded-md text-sm font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             aria-expanded={isExpanded}
             aria-controls={listId}
             data-testid="upcoming-shifts-fold"
-            onClick={() => {
+            onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+              if (isExpanded) {
+                foldTopBeforeFolding.current =
+                  event.currentTarget.getBoundingClientRect().top;
+              }
+
               setIsExpanded(!isExpanded);
             }}
           >
