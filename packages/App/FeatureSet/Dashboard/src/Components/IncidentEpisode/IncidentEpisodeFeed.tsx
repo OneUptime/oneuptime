@@ -59,6 +59,11 @@ export interface ComponentProps {
    * False when the episode was created without notifying subscribers.
    */
   notifyStatusPageSubscribersByDefault?: boolean | undefined;
+  /*
+   * The episode is private: it takes no public notes, so "Add Public Note"
+   * is locked with why (EventNoteKind.isPrivateEvent).
+   */
+  isPrivate?: boolean | undefined;
 }
 
 /*
@@ -188,6 +193,7 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
     publicNoteKind: getIncidentEpisodePublicNoteKind({
       incidentEpisodeId: props.incidentEpisodeId,
       isNotifyingByDefault: notifySubscribersByDefault,
+      isPrivate: props.isPrivate,
     }),
     privateNoteKind: getIncidentEpisodePrivateNoteKind({
       incidentEpisodeId: props.incidentEpisodeId,

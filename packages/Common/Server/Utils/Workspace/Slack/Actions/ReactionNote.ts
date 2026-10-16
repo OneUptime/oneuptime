@@ -57,7 +57,9 @@ export interface SlackReactionData {
  * reaction_added and pin_added: a pin on a message - Slack's own "Pin to
  * channel" or a 📌 - saves it as a private note, a megaphone as a public
  * note, on the incident / alert / scheduled maintenance / episode the
- * channel belongs to.
+ * channel belongs to. A private incident takes no public notes: a megaphone
+ * there saves the message as a private note, and the confirmation says why
+ * (WorkspaceReactionNote.getNoteTypeSavedAs).
  *
  * The note is the message as it read in Slack - its formatting, links,
  * mentions as names, files and images as links (SlackSavedMessage,
@@ -133,6 +135,12 @@ export default class SlackReactionNoteActions {
     noteType: WorkspaceNoteType;
     channelId: string;
     messageTs: string;
+    /*
+     * The note it will be saved as, when that is not `noteType`: a public
+     * note asked for on a private incident is saved as a private one, and
+     * the prompt says so (WorkspaceReactionNote.getNoteTypeSavedAs).
+     */
+    noteSavedAs?: WorkspaceNoteType | undefined;
   }): WorkspacePressDescription {
     const kind: WorkspacePendingActionKind =
       data.noteType === WorkspaceNoteType.Public
@@ -147,6 +155,7 @@ export default class SlackReactionNoteActions {
         kind: kind,
         eventType: eventType,
         workspaceType: WorkspaceType.Slack,
+        noteSavedAs: data.noteSavedAs,
       }),
       pendingAction: {
         kind: kind,
@@ -298,6 +307,11 @@ export default class SlackReactionNoteActions {
           noteType: noteType,
           channelId: channelId,
           messageTs: messageTs,
+          // A 📣 on a private incident: what it will be saved as.
+          noteSavedAs: await WorkspaceReactionNote.getNoteTypeSavedAs({
+            resource: resource,
+            noteType: noteType,
+          }),
         }),
         conversation: {
           workspaceType: WorkspaceType.Slack,
@@ -338,7 +352,10 @@ export default class SlackReactionNoteActions {
    * Saves the message at `messageTs` as a note of `noteType` on `resource`,
    * as the member behind `requester`: checked as a note they post in
    * OneUptime is, read from Slack, saved once, and confirmed once in the
-   * message's thread.
+   * message's thread. A public note asked for on a private incident is
+   * saved, checked and confirmed as a private note
+   * (WorkspaceReactionNote.getNoteTypeSavedAs): the record takes no public
+   * notes, and the confirmation says so.
    *
    * A refusal - they may not post that note, the message has nothing to
    * save - is told to them where they reacted, a message only they see;
@@ -355,10 +372,17 @@ export default class SlackReactionNoteActions {
     messageTs: string;
     tellPerson?: boolean | undefined;
   }): Promise<WorkspaceMessageNoteResult> {
-    const { requester, resource, noteType, channelId, messageTs } = data;
+    const { requester, resource, channelId, messageTs } = data;
     const projectId: ObjectID = resource.projectId;
     const authToken: string = requester.projectAuthToken || "";
     const tellPerson: boolean = data.tellPerson !== false;
+    // What the reaction asked for, and what the record takes.
+    const askedNoteType: WorkspaceNoteType = data.noteType;
+    const noteType: WorkspaceNoteType =
+      await WorkspaceReactionNote.getNoteTypeSavedAs({
+        resource: resource,
+        noteType: askedNoteType,
+      });
 
     const refuse: (
       reason: string,
@@ -541,6 +565,8 @@ export default class SlackReactionNoteActions {
             noteType: noteType,
             resourceLabel: display.label,
             resourceLink: display.link.toString(),
+            askedNoteType: askedNoteType,
+            resourceType: resource.resourceType,
           }).toString(),
         ).trim(),
         withoutLinkPreviews: true,
@@ -553,6 +579,6 @@ export default class SlackReactionNoteActions {
       logger.error(err);
     }
 
-    return { outcome: WorkspaceMessageNoteOutcome.Saved };
+    return { outcome: WorkspaceMessageNoteOutcome.Saved, noteType: noteType };
   }
 }

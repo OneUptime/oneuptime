@@ -351,6 +351,9 @@ import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import PublicNoteSubscriberNotificationDefault from "../../../Types/StatusPage/PublicNoteSubscriberNotificationDefault";
+import PrivateRecordPublicNotes, {
+  PrivateRecordKind,
+} from "../../../Types/StatusPage/PrivateRecordPublicNotes";
 
 const NOW: Date = new Date("2026-09-14T18:20:00.000Z");
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
@@ -1335,6 +1338,137 @@ describe("nobody is offered a note their permissions will refuse", () => {
 
       expect(createMock).toHaveBeenCalledTimes(1);
       expect(createdModelType()).toBe(dialogCase.note.modelType);
+    },
+  );
+});
+
+/*
+ * A private incident or episode takes no public notes
+ * (Common/Types/StatusPage/PrivateRecordPublicNotes): it is on no status page
+ * and told to no subscriber, so its feed's "Add Public Note" is locked with
+ * why - the server's own words - for everyone, whatever they may do, and
+ * "Add Private Note" is the way to write about it.
+ */
+describe("a private incident's or episode's feed offers no public note", () => {
+  interface PrivateFeedCase {
+    name: string;
+    refusal: string;
+    privateNoteModel: ModelClass;
+    render: (isPrivate: boolean | undefined) => ReactElement;
+  }
+
+  const PRIVATE_FEEDS: Array<PrivateFeedCase> = [
+    {
+      name: "Incident Feed",
+      refusal: PrivateRecordPublicNotes.getRefusalMessage(
+        PrivateRecordKind.Incident,
+      ),
+      privateNoteModel: IncidentInternalNote,
+      render: (isPrivate: boolean | undefined): ReactElement => {
+        return (
+          <IncidentFeedElement
+            incidentId={new ObjectID(EVENT_ID)}
+            refreshToken={0}
+            isPrivate={isPrivate}
+          />
+        );
+      },
+    },
+    {
+      name: "Incident Episode Feed",
+      refusal: PrivateRecordPublicNotes.getRefusalMessage(
+        PrivateRecordKind.IncidentEpisode,
+      ),
+      privateNoteModel: IncidentEpisodeInternalNote,
+      render: (isPrivate: boolean | undefined): ReactElement => {
+        return (
+          <IncidentEpisodeFeedElement
+            incidentEpisodeId={new ObjectID(EVENT_ID)}
+            refreshToken={0}
+            isPrivate={isPrivate}
+          />
+        );
+      },
+    },
+  ];
+
+  async function renderPrivateFeed(
+    feed: PrivateFeedCase,
+    isPrivate: boolean | undefined,
+  ): Promise<void> {
+    render(feed.render(isPrivate));
+    await flush();
+  }
+
+  test.each(PRIVATE_FEEDS)(
+    "$name: Add Public Note is locked, saying why in the server's words",
+    async (feed: PrivateFeedCase) => {
+      await renderPrivateFeed(feed, true);
+      const menu: HTMLElement = await openActionsMenu();
+      const item: HTMLElement = within(menu).getByRole("menuitem", {
+        name: "Add Public Note",
+      });
+
+      expect(item).toHaveAttribute("aria-disabled", "true");
+      expect(item).toHaveAccessibleDescription(feed.refusal);
+
+      fireEvent.click(item);
+      await flush();
+
+      expect(
+        screen.queryByRole("dialog", { name: "Add Public Note" }),
+      ).toBeNull();
+      expect(createMock).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(PRIVATE_FEEDS)(
+    "$name: locked even for someone who may post public notes, and while the permissions load",
+    async (feed: PrivateFeedCase) => {
+      isMasterAdmin = false;
+      currentPermissions = [];
+
+      await renderPrivateFeed(feed, true);
+      const menu: HTMLElement = await openActionsMenu();
+      const item: HTMLElement = within(menu).getByRole("menuitem", {
+        name: "Add Public Note",
+      });
+
+      // Said, not hidden: whoever looks for it learns why it is not there.
+      expect(item).toHaveAttribute("aria-disabled", "true");
+      expect(item).toHaveAccessibleDescription(feed.refusal);
+    },
+  );
+
+  test.each(PRIVATE_FEEDS)(
+    "$name: Add Private Note still writes a private note",
+    async (feed: PrivateFeedCase) => {
+      await renderPrivateFeed(feed, true);
+      const dialog: HTMLElement = await openDialog("Add Private Note");
+
+      type(editorIn(dialog), "Rolled back the deploy.");
+      await post(dialog);
+
+      expect(createMock).toHaveBeenCalledTimes(1);
+      expect(createdModelType()).toBe(feed.privateNoteModel);
+      expect(createdPayload()["note"]).toBe("Rolled back the deploy.");
+    },
+  );
+
+  test.each(PRIVATE_FEEDS)(
+    "$name: one that is not private offers Add Public Note as before",
+    async (feed: PrivateFeedCase) => {
+      for (const isPrivate of [false, undefined]) {
+        cleanup();
+        await renderPrivateFeed(feed, isPrivate);
+        const menu: HTMLElement = await openActionsMenu();
+        const item: HTMLElement = within(menu).getByRole("menuitem", {
+          name: "Add Public Note",
+        });
+
+        expect(item).toHaveAttribute("aria-disabled", "false");
+        expect(item).not.toHaveAccessibleDescription(feed.refusal);
+      }
     },
   );
 });

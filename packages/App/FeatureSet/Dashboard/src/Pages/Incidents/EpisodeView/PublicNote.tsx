@@ -6,6 +6,7 @@ import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodePublicNote from "Common/Models/DatabaseModels/IncidentEpisodePublicNote";
 import ObjectID from "Common/Types/ObjectID";
 import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
+import PrivateRecordPublicNotes from "Common/Types/StatusPage/PrivateRecordPublicNotes";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -16,17 +17,25 @@ const EpisodePublicNotes: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const { isNotifyingByDefault, error } =
+  const { isNotifyingByDefault, isPrivate, error } =
     useParentNotifyDefault<IncidentEpisode>({
       modelType: IncidentEpisode,
       id: modelId,
       select: {
         shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated: true,
+        isPrivate: true,
       },
       resolve: (episode: IncidentEpisode | null): boolean => {
         return PublicNoteSubscriberNotificationDefault.shouldNotifyForIncidentEpisode(
           episode,
         );
+      },
+      /*
+       * A private episode takes no public notes: the page keeps the ones it
+       * has and says why there are no new ones.
+       */
+      resolveIsPrivate: (episode: IncidentEpisode | null): boolean => {
+        return !PrivateRecordPublicNotes.takesPublicNotes(episode);
       },
     });
 
@@ -44,6 +53,7 @@ const EpisodePublicNotes: FunctionComponent<PageComponentProps> = (
       {...getIncidentEpisodePublicNoteKind({
         incidentEpisodeId: modelId,
         isNotifyingByDefault,
+        isPrivate,
       })}
       currentProject={props.currentProject}
     />

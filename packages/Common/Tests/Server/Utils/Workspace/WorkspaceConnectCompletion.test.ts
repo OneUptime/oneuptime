@@ -814,6 +814,96 @@ describe("a pinned message, saved once the account is connected", () => {
     );
   });
 
+  /*
+   * A private incident takes no public notes (Types/StatusPage/
+   * PrivateRecordPublicNotes): a 📣 there - private when Jane reacted, or
+   * made private since - is saved as a private note, and the answer says
+   * what it was saved as, never "a public note".
+   */
+  test.each([
+    [WorkspaceType.Slack, "Slack"],
+    [WorkspaceType.MicrosoftTeams, "Microsoft Teams"],
+  ])(
+    "%s: a 📣 saved as a private note, on a private incident, is answered as one",
+    async (workspaceType: WorkspaceType, chatName: string) => {
+      slackSave.mockResolvedValue({
+        outcome: WorkspaceMessageNoteOutcome.Saved,
+        noteType: WorkspaceNoteType.Private,
+      });
+      teamsSave.mockResolvedValue({
+        outcome: WorkspaceMessageNoteOutcome.Saved,
+        noteType: WorkspaceNoteType.Private,
+      });
+
+      const result: WorkspaceConnectCompletionResult =
+        await WorkspaceConnectCompletion.complete({
+          request:
+            workspaceType === WorkspaceType.Slack
+              ? notePress(
+                  {
+                    purpose:
+                      "save the message you reacted to as a private note on this incident",
+                  },
+                  WorkspacePendingActionKind.SavePublicNote,
+                )
+              : request({
+                  workspaceType: WorkspaceType.MicrosoftTeams,
+                  workspaceUserId: "aad-jane",
+                  purpose:
+                    "save the message you reacted to as a private note on this incident",
+                  pendingAction: {
+                    kind: WorkspacePendingActionKind.SavePublicNote,
+                    eventType: WorkspaceEventType.Incident,
+                    eventId: INCIDENT_ID,
+                    message: {
+                      channelId: "19:inc-2@thread.tacv2",
+                      messageId: "1760000000200",
+                      teamId: "graph-team-ops",
+                    },
+                  },
+                  slack: undefined,
+                }),
+          userId: USER_ID,
+        });
+
+      // Asked for as the 📣 it was: the chat finds the reaction by its kind.
+      const save: jest.SpyInstance =
+        workspaceType === WorkspaceType.Slack ? slackSave : teamsSave;
+      expect(save.mock.calls[0]![0].noteType).toBe(WorkspaceNoteType.Public);
+
+      expect(result).toEqual({
+        outcome: ConnectRequestOutcome.Done,
+        answer: {
+          markdown: `✅ **Your ${chatName} account is connected to OneUptime.** You saved the message as a private note on **[Incident INC-2](${INCIDENT_LINK})**.`,
+          text: `Your ${chatName} account is connected to OneUptime. You saved the message as a private note on Incident INC-2`,
+        },
+      });
+    },
+  );
+
+  test("a 📣 saved as asked is answered as a public note, as always", async () => {
+    slackSave.mockResolvedValue({
+      outcome: WorkspaceMessageNoteOutcome.Saved,
+      noteType: WorkspaceNoteType.Public,
+    });
+
+    const result: WorkspaceConnectCompletionResult =
+      await WorkspaceConnectCompletion.complete({
+        request: notePress(
+          {
+            purpose:
+              "save the message you reacted to as a public note on this incident",
+          },
+          WorkspacePendingActionKind.SavePublicNote,
+        ),
+        userId: USER_ID,
+      });
+
+    expect(result.answer.text).toBe(
+      "Your Slack account is connected to OneUptime. You saved the message as a public note on Incident INC-2",
+    );
+  });
+
   test.each([
     [
       "saved by somebody else meanwhile",

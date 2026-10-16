@@ -32,6 +32,11 @@ export function getIncidentEpisodePublicNoteKind(data: {
    * - PublicNoteSubscriberNotificationDefault.shouldNotifyForIncidentEpisode.
    */
   isNotifyingByDefault: boolean;
+  /*
+   * The episode is private: it takes no public notes
+   * (Common/Types/StatusPage/PrivateRecordPublicNotes), so none is offered.
+   */
+  isPrivate?: boolean | undefined;
 }): EventNoteKind<IncidentEpisodePublicNote> {
   const incidentEpisodeId: ObjectID = data.incidentEpisodeId;
 
@@ -52,6 +57,7 @@ export function getIncidentEpisodePublicNoteKind(data: {
       RouteMap[PageMap.INCIDENT_EPISODE_VIEW_INTERNAL_NOTE] as Route,
       { modelId: incidentEpisodeId },
     ),
+    isPrivateEvent: data.isPrivate === true,
   };
 }
 

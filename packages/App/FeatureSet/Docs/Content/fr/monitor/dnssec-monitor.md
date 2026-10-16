@@ -97,7 +97,7 @@ Les critères décident quand la zone compte comme en ligne, dégradée ou hors 
 | **DNSSEC Resolver Consensus (AD Flag)** | **Vrai**, **Faux** | Chaque résolveur de **Résolveurs** renvoie l'indicateur AD. |
 | **DNSSEC Nameservers Are Consistent** | **Vrai**, **Faux** | Chaque serveur de noms faisant autorité répond avec le même numéro de série SOA. Toujours **Vrai** tant que **Vérifier la cohérence des serveurs de noms** est désactivé. |
 
-Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** doivent correspondre ou si **Tout** filtre suffit. Les **Actions** d'un critère décident de ce qu'il fait : changer l'état du moniteur, créer une alerte, déclarer un incident, ou plusieurs de ces actions.
+Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** doivent correspondre ou si **Au moins un** suffit. Les **Actions** d'un critère décident de ce qu'il fait : changer l'état du moniteur, créer une alerte, déclarer un incident, ou plusieurs de ces actions.
 
 ### Critères par défaut
 

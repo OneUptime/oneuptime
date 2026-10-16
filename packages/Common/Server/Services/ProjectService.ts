@@ -10,6 +10,7 @@ import {
 import AllMeteredPlans from "../Types/Billing/MeteredPlan/AllMeteredPlans";
 import PayAsYouGoBillingService from "./PayAsYouGoBillingService";
 import MarketplaceSubscriptionService from "./MarketplaceSubscriptionService";
+import MarketplaceUsageReporter from "../Utils/Marketplace/MarketplaceUsageReporter";
 import CloudMarketplace from "../../Types/Marketplace/CloudMarketplace";
 import MarketplaceSubscriptionStatus, {
   MarketplaceSubscriptionStatusUtil,
@@ -3917,6 +3918,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
         paymentProviderSubscriptionSeats: true,
         trialEndsAt: true,
         currentActiveMonitorsCount: true,
+        billingMarketplace: true,
         isBlocked: true,
         createdByUserId: true,
         createdByUser: {
@@ -3929,6 +3931,22 @@ export class ProjectService extends ProjectReferencesService<Model> {
         },
       },
     );
+
+    /*
+     * A marketplace bills a project's usage by the hour, after the hour:
+     * what it used since the last hourly report, and the balance top-ups
+     * bought since, are billed now, while the project is still here to be
+     * priced. Once it is gone its purchase is unlinked (onDeleteSuccess), and
+     * nothing would bill that time. The delete never waits on, or fails
+     * because of, a marketplace (reportFinalUsageOfProject).
+     */
+    if (IsBillingEnabled) {
+      for (const project of projects) {
+        if (project.id && project.billingMarketplace) {
+          await MarketplaceUsageReporter.reportFinalUsageOfProject(project.id);
+        }
+      }
+    }
 
     return { deleteBy, carryForward: projects };
   }
@@ -4007,7 +4025,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
       /*
        * A marketplace purchase that paid for a deleted project stops being
-       * reported against it. The purchase itself is the buyer's, on the
+       * reported against it: its last usage was billed before the delete
+       * (onBeforeDelete). The purchase itself is the buyer's, on the
        * marketplace: it is cancelled there, or linked to another project
        * from the marketplace's "manage" link.
        */

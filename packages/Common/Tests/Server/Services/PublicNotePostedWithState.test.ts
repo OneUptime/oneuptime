@@ -1,4 +1,6 @@
 import IncidentPublicNoteService from "../../../Server/Services/IncidentPublicNoteService";
+import IncidentService from "../../../Server/Services/IncidentService";
+import Incident from "../../../Models/DatabaseModels/Incident";
 import ScheduledMaintenancePublicNoteService from "../../../Server/Services/ScheduledMaintenancePublicNoteService";
 import ColumnPermissions from "../../../Server/Types/Database/Permissions/ColumnPermission";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
@@ -143,6 +145,15 @@ function memberProps(
 
 beforeEach(() => {
   stubProjectDirectory({});
+
+  /*
+   * An incident public note's create reads its incident once: whether it
+   * is private - a private one takes no public notes - and whether it
+   * notified subscribers. Answered as an incident that is not private.
+   */
+  const incident: Incident = new Incident();
+  incident.isPrivate = false;
+  jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(incident);
 });
 
 afterEach(() => {

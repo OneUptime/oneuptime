@@ -97,7 +97,7 @@ Criteria bepalen wanneer de zone telt als online, verminderd of offline, en of d
 | **DNSSEC Resolver Consensus (AD Flag)** | **Waar**, **Onwaar** | Elke resolver bij **Resolvers** geeft de AD-vlag terug. |
 | **DNSSEC Nameservers Are Consistent** | **Waar**, **Onwaar** | Elke gezaghebbende naamserver antwoordt met hetzelfde SOA-serienummer. Altijd **Waar** zolang **Consistentie van naamservers controleren** uit staat. |
 
-Met twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** filters moeten overeenkomen of dat **Elke** filter volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing aanmaken, een incident melden, of meerdere daarvan.
+Met twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** filters moeten overeenkomen of dat **Minstens één** filter volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing aanmaken, een incident melden, of meerdere daarvan.
 
 ### Standaardcriteria
 

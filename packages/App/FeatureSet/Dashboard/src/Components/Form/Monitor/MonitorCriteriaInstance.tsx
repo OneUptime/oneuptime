@@ -613,7 +613,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
             <Toggle
               value={showIncidentControl}
               title="When filters match, declare an incident."
-              tooltip="When you delcare an incident, it is used to notify the team and is shown on the status page as well."
+              tooltip="When you declare an incident, it is used to notify the team and is shown on the status page as well."
               onChange={(value: boolean) => {
                 setShowIncidentControl(value);
                 monitorCriteriaInstance.setCreateIncidents(value);

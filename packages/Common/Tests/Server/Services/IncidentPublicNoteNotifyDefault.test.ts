@@ -315,7 +315,7 @@ describe.each([
       ).toBe(StatusPageSubscriberNotificationStatus.Skipped);
     });
 
-    test("an explicit yes on a quiet incident is kept, without reading the incident", async () => {
+    test("an explicit yes on a quiet incident is kept: the incident is read once, only for whether it is private", async () => {
       mockIncidentLookup(incidentWithFlag(false));
 
       const result: OnCreate<IncidentPublicNote> = await runBeforeCreate(
@@ -323,7 +323,7 @@ describe.each([
         buildProps(),
       );
 
-      expect(IncidentService.findOneBy).not.toHaveBeenCalled();
+      expect(IncidentService.findOneBy).toHaveBeenCalledTimes(1);
       expect(
         result.createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated,
       ).toBe(true);
@@ -332,7 +332,7 @@ describe.each([
       ).toBe(StatusPageSubscriberNotificationStatus.Pending);
     });
 
-    test("an explicit no on a notifying incident is kept, without reading the incident", async () => {
+    test("an explicit no on a notifying incident is kept: the incident is read once, only for whether it is private", async () => {
       mockIncidentLookup(incidentWithFlag(true));
 
       const result: OnCreate<IncidentPublicNote> = await runBeforeCreate(
@@ -340,7 +340,7 @@ describe.each([
         buildProps(),
       );
 
-      expect(IncidentService.findOneBy).not.toHaveBeenCalled();
+      expect(IncidentService.findOneBy).toHaveBeenCalledTimes(1);
       expect(
         result.createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated,
       ).toBe(false);
@@ -486,12 +486,13 @@ describe("IncidentPublicNoteService onBeforeCreate incident lookup", () => {
     expect(incidentLookupQuery()).toEqual({ _id: INCIDENT_ID.toString() });
   });
 
-  test("reads only the incident's notify setting", async () => {
+  test("reads only whether the incident is private and its notify setting", async () => {
     mockIncidentLookup(incidentWithFlag(false));
 
     await runBeforeCreate(buildNote());
 
     expect(incidentLookup().select).toEqual({
+      isPrivate: true,
       shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
     });
   });
@@ -686,7 +687,8 @@ describe("IncidentPublicNoteService create() with the notify default", () => {
       props: noteCreatorProps(),
     });
 
-    expect(IncidentService.findOneBy).not.toHaveBeenCalled();
+    // Read once, for whether the incident is private: it is not.
+    expect(IncidentService.findOneBy).toHaveBeenCalledTimes(1);
     expect(saved.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(true);
     expect(saved.subscriberNotificationStatusOnNoteCreated).toBe(
       StatusPageSubscriberNotificationStatus.Pending,
