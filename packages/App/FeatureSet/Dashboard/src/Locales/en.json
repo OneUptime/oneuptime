@@ -30235,5 +30235,8 @@
   "View Role": "View Role",
   "What the role is for, in a sentence or two.": "What the role is for, in a sentence or two.",
   "{{count}} to choose from. Search by name or by what a role allows.": "{{count}} to choose from. Search by name or by what a role allows.",
-  "{{count}} to choose from. Search by name or by what a role allows._one": "{{count}} to choose from. Search by name or by what a role allows."
+  "{{count}} to choose from. Search by name or by what a role allows._one": "{{count}} to choose from. Search by name or by what a role allows.",
+  "Already acknowledged": "Already acknowledged",
+  "Already passed on": "Already passed on",
+  "Nothing to pass on": "Nothing to pass on"
 }

@@ -4776,8 +4776,14 @@ export class Service extends ProjectReferencesService<Model> {
       alertViewLink: (
         await AlertService.getAlertLinkInDashboard(alert.projectId!, alert.id!)
       ).toString(),
+      /*
+       * No token: the email has its own Pass it on button, and the link
+       * it prints to copy stays one line.
+       */
       acknowledgeAlertLink: (
-        await OnCallPageLinks.getAcknowledgePageUrl(userOnCallLogTimelineId)
+        await OnCallPageLinks.getEmailAcknowledgePageUrl(
+          userOnCallLogTimelineId,
+        )
       ).toString(),
       // "Can't take it? Pass it on" (OnCallPagePassOn).
       passOnLink: (
@@ -4843,8 +4849,14 @@ export class Service extends ProjectReferencesService<Model> {
           incident.id!,
         )
       ).toString(),
+      /*
+       * No token: the email has its own Pass it on button, and the link
+       * it prints to copy stays one line.
+       */
       acknowledgeIncidentLink: (
-        await OnCallPageLinks.getAcknowledgePageUrl(userOnCallLogTimelineId)
+        await OnCallPageLinks.getEmailAcknowledgePageUrl(
+          userOnCallLogTimelineId,
+        )
       ).toString(),
       // "Can't take it? Pass it on" (OnCallPagePassOn).
       passOnLink: (
@@ -4993,8 +5005,14 @@ export class Service extends ProjectReferencesService<Model> {
           alertEpisode.id!,
         )
       ).toString(),
+      /*
+       * No token: the email has its own Pass it on button, and the link
+       * it prints to copy stays one line.
+       */
       acknowledgeAlertEpisodeLink: (
-        await OnCallPageLinks.getAcknowledgePageUrl(userOnCallLogTimelineId)
+        await OnCallPageLinks.getEmailAcknowledgePageUrl(
+          userOnCallLogTimelineId,
+        )
       ).toString(),
       // "Can't take it? Pass it on" (OnCallPagePassOn).
       passOnLink: (
@@ -5152,8 +5170,14 @@ export class Service extends ProjectReferencesService<Model> {
           incidentEpisode.id!,
         )
       ).toString(),
+      /*
+       * No token: the email has its own Pass it on button, and the link
+       * it prints to copy stays one line.
+       */
       acknowledgeIncidentEpisodeLink: (
-        await OnCallPageLinks.getAcknowledgePageUrl(userOnCallLogTimelineId)
+        await OnCallPageLinks.getEmailAcknowledgePageUrl(
+          userOnCallLogTimelineId,
+        )
       ).toString(),
       // "Can't take it? Pass it on" (OnCallPagePassOn).
       passOnLink: (

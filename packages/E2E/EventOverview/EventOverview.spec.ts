@@ -9960,7 +9960,81 @@ test.describe("Pass it on", () => {
       "Bob Smith is still being paged. If nobody acknowledges by ",
     );
     expect(lines[1]).toContain(", escalation rule 2 of 3 (Level 2) is next.");
+    // Twenty minutes away, today: the time alone, with no date in front of it.
+    expect(lines[1]).toContain("by 6:40 PM ");
+    expect(lines[1]).not.toContain("2026");
+    await expect(passOnDialog(page).getByTestId("pass-on-warning")).toHaveCount(
+      0,
+    );
     await screenshotElement(passOnDialog(page), "pass-on-dialog-others");
+  });
+
+  test("nobody left to page: the dialog warns about it first, before and after", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=stopped",
+    );
+
+    await passOnButton(page).click();
+
+    const asked: Locator = passOnDialog(page).getByTestId("pass-on-warning");
+    await expect(asked).toHaveText(
+      "Nobody else is left to page: paging stops, and somebody needs to take it.",
+    );
+    await expect(asked).toHaveAttribute("role", "alert");
+    // The warning, then the one line about the reader.
+    expect(await dialogLines(page, "pass-on-preview")).toEqual([
+      "You won't be paged about it again.",
+    ]);
+    const warningBox: { y: number } | null = await asked.boundingBox();
+    const lineBox: { y: number } | null = await passOnDialog(page)
+      .getByTestId("pass-on-preview")
+      .locator("p")
+      .first()
+      .boundingBox();
+    expect(warningBox!.y).toBeLessThan(lineBox!.y);
+    await screenshotElement(passOnDialog(page), "pass-on-dialog-stopped-ask");
+
+    await passOnDialog(page).getByTestId("modal-footer-submit-button").click();
+
+    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
+      "You passed it on",
+    );
+    await expect(passOnDialog(page).getByTestId("pass-on-warning")).toHaveText(
+      "Nobody else is left to page, so paging stopped. Somebody needs to take it.",
+    );
+    expect(await dialogLines(page, "pass-on-answer")).toEqual([
+      "You won't be paged about it again.",
+    ]);
+    await screenshotElement(passOnDialog(page), "pass-on-dialog-stopped-done");
+  });
+
+  test("nobody left to page, in the dark theme and on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=stopped&theme=dark",
+    );
+
+    await passOnButton(page).click();
+    await expect(
+      passOnDialog(page).getByTestId("pass-on-warning"),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await screenshotElement(
+      passOnDialog(page),
+      "pass-on-dialog-stopped-ask-dark-mobile",
+    );
   });
 
   test("two policies paging about the same record: each line names its policy", async ({
@@ -9997,12 +10071,14 @@ test.describe("Pass it on", () => {
     await passOnButton(page).click();
     await passOnDialog(page).getByTestId("modal-footer-submit-button").click();
 
+    // Why, in a few words: not the button's "Pass it on", an instruction.
     await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
-      "Pass it on",
+      "Already acknowledged",
     );
     expect(await dialogLines(page, "pass-on-answer")).toEqual([
       "Sam Lee acknowledged it already, so there is nothing to pass on.",
     ]);
+    await screenshotElement(passOnDialog(page), "pass-on-dialog-acknowledged");
   });
 
   test("a failed request keeps the question open, with an error", async ({

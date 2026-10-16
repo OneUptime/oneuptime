@@ -30235,5 +30235,8 @@
   "View Role": "Просмотр роли",
   "What the role is for, in a sentence or two.": "Для чего нужна роль, в одном-двух предложениях.",
   "{{count}} to choose from. Search by name or by what a role allows.": "Вариантов: {{count}}. Ищите по названию или по тому, что разрешает роль.",
-  "{{count}} to choose from. Search by name or by what a role allows._one": "{{count}} вариант. Ищите по названию или по тому, что разрешает роль."
+  "{{count}} to choose from. Search by name or by what a role allows._one": "{{count}} вариант. Ищите по названию или по тому, что разрешает роль.",
+  "Already acknowledged": "Уже подтверждено",
+  "Already passed on": "Уже передано дальше",
+  "Nothing to pass on": "Передавать нечего"
 }

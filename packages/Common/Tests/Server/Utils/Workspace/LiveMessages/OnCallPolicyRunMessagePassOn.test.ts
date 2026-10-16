@@ -396,13 +396,13 @@ describe("a run everybody it paged passed on", () => {
 
   test("says nobody could take the record, at the top of its message", () => {
     expect(OnCallPolicyRunMessageView.getMarkdown(endedRun())).toContain(
-      "⚠️ Nobody could take **[Incident INC-8](https://oneuptime.test/incident)**: everybody **[Payments](https://oneuptime.test/policy)** paged passed it on",
+      "⚠️ Nobody could take **[Incident INC-8](https://oneuptime.test/incident)**: everybody paged by **[Payments](https://oneuptime.test/policy)** passed it on",
     );
   });
 
   test("and in the line a notification shows of it", () => {
     expect(OnCallPolicyRunMessageView.getPlainText(endedRun())).toBe(
-      "Nobody could take Incident INC-8: everybody Payments paged passed it on",
+      "Nobody could take Incident INC-8: everybody paged by Payments passed it on",
     );
   });
 
@@ -414,7 +414,7 @@ describe("a run everybody it paged passed on", () => {
       {
         key: ON_CALL_RUN_ALARM_OUTCOME,
         markdown:
-          "⚠️ Nobody can take **[Incident INC-8](https://oneuptime.test/incident)**: everybody **[Payments](https://oneuptime.test/policy)** paged passed it on (Ana Lopez and Bob Smith). Someone needs to take it.",
+          "⚠️ Nobody can take **[Incident INC-8](https://oneuptime.test/incident)**: everybody paged by **[Payments](https://oneuptime.test/policy)** passed it on (Ana Lopez and Bob Smith). Someone needs to take it.",
         text: "Nobody can take Incident INC-8: someone needs to take it",
       },
     ]);
@@ -424,10 +424,10 @@ describe("a run everybody it paged passed on", () => {
     const run: OnCallPolicyRun = endedRun({ startedByPersonName: "Simon Lee" });
 
     expect(OnCallPolicyRunMessageView.getPlainText(run)).toBe(
-      "Nobody could take Incident INC-8: everybody Simon Lee paged passed it on",
+      "Nobody could take Incident INC-8: everybody paged by Simon Lee passed it on",
     );
     expect(OnCallPolicyRunMessageView.getAlarms(run)[0]!.markdown).toContain(
-      "everybody **Simon Lee** paged passed it on (Ana Lopez and Bob Smith)",
+      "everybody paged by **Simon Lee** passed it on (Ana Lopez and Bob Smith)",
     );
   });
 
@@ -437,7 +437,7 @@ describe("a run everybody it paged passed on", () => {
     });
 
     expect(OnCallPolicyRunMessageView.getPlainText(run)).toBe(
-      "Nobody could take Incident INC-8: everybody workflow Page SRE paged passed it on",
+      "Nobody could take Incident INC-8: everybody paged by workflow Page SRE passed it on",
     );
   });
 });

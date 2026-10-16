@@ -196,6 +196,17 @@ describe("the links that carry it", () => {
     ).toBe(true);
   });
 
+  test("an email's acknowledge page: the same page, without the token - the email prints it in full", async () => {
+    const url: URL =
+      await OnCallPageLinks.getEmailAcknowledgePageUrl(NOTIFICATION);
+
+    // One short line to copy and paste, as before passing on existed.
+    expect(url.toString()).toBe(
+      `https://oneuptime.example.com/api/user-notification-log-timeline/acknowledge-page/${NOTIFICATION.toString()}`,
+    );
+    expect(tokenOf(url)).toBeNull();
+  });
+
   test("the pass-on page, with the token", async () => {
     const url: URL = await OnCallPageLinks.getPassOnPageUrl(NOTIFICATION);
     const parsed: globalThis.URL = new globalThis.URL(url.toString());

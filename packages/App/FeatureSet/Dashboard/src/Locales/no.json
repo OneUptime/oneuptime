@@ -30235,5 +30235,8 @@
   "View Role": "Vis rolle",
   "What the role is for, in a sentence or two.": "Hva rollen er til, i en setning eller to.",
   "{{count}} to choose from. Search by name or by what a role allows.": "{{count}} å velge mellom. Søk etter navn eller etter hva en rolle tillater.",
-  "{{count}} to choose from. Search by name or by what a role allows._one": "{{count}} å velge mellom. Søk etter navn eller etter hva en rolle tillater."
+  "{{count}} to choose from. Search by name or by what a role allows._one": "{{count}} å velge mellom. Søk etter navn eller etter hva en rolle tillater.",
+  "Already acknowledged": "Allerede bekreftet",
+  "Already passed on": "Allerede sendt videre",
+  "Nothing to pass on": "Ingenting å sende videre"
 }

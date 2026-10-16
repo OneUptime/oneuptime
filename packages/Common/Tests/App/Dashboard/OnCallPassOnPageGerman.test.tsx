@@ -53,6 +53,7 @@ import ObjectID from "../../../Types/ObjectID";
 import {
   OnCallPageRecordType,
   OnCallPassOnOutcome,
+  OnCallPassOnRefusal,
   OnCallPassOnResult,
 } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
@@ -112,6 +113,9 @@ const PASS_ON_KEYS: Array<string> = [
   "Pass it on",
   "Pass it on?",
   "You passed it on",
+  "Already acknowledged",
+  "Already passed on",
+  "Nothing to pass on",
   "You won't be paged about it again.",
   "Could not pass it on. Please try again.",
   "Passed On",
@@ -402,6 +406,83 @@ describe("in German", () => {
       expect(
         screen.getByTestId("modal-footer-submit-button"),
       ).toHaveTextContent(DE["Close"]!);
+    });
+
+    test("nothing passed on: why, in a few German words over the sentence", async () => {
+      getAnswers.push({
+        pages: [
+          {
+            executionLogId: "a1b2c3d4-0000-4000-8000-000000000001",
+            preview: result({}),
+          },
+        ] as unknown as JSONObject["pages"],
+      });
+      postAnswers.push({
+        answers: [
+          {
+            passedOn: false,
+            refusal: OnCallPassOnRefusal.RecordAcknowledged,
+            acknowledgedByName: "Ana Lopez",
+          },
+        ] as unknown as JSONObject["answers"],
+      });
+
+      render(
+        <I18nextProvider i18n={german}>
+          <Header />
+        </I18nextProvider>,
+      );
+      await flush();
+
+      fireEvent.click(
+        within(
+          screen.getByRole("group", {
+            name: DE["Event actions"] || "Event actions",
+          }),
+        ).getByRole("button", { name: "Weitergeben" }),
+      );
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+      await flush();
+
+      expect(screen.getByTestId("modal-title")).toHaveTextContent(
+        "Bereits bestätigt",
+      );
+      expect(lines("pass-on-answer")).toEqual([
+        "Ana Lopez hat es bereits bestätigt, daher gibt es nichts weiterzugeben.",
+      ]);
+    });
+
+    test("nobody left to page: the warning, in German", async () => {
+      getAnswers.push({
+        pages: [
+          {
+            executionLogId: "a1b2c3d4-0000-4000-8000-000000000001",
+            preview: result({ outcome: OnCallPassOnOutcome.PagingStopped }),
+          },
+        ] as unknown as JSONObject["pages"],
+      });
+
+      render(
+        <I18nextProvider i18n={german}>
+          <Header />
+        </I18nextProvider>,
+      );
+      await flush();
+
+      fireEvent.click(
+        within(
+          screen.getByRole("group", {
+            name: DE["Event actions"] || "Event actions",
+          }),
+        ).getByRole("button", { name: "Weitergeben" }),
+      );
+
+      expect(screen.getByTestId("pass-on-warning")).toHaveTextContent(
+        "Es ist niemand mehr übrig, der alarmiert werden kann: Die Alarmierung endet, und jemand muss sich darum kümmern.",
+      );
+      expect(lines("pass-on-preview")).toEqual([
+        "Sie werden dazu nicht mehr alarmiert.",
+      ]);
     });
   });
 });

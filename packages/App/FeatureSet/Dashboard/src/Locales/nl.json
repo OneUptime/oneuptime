@@ -30235,5 +30235,8 @@
   "View Role": "Rol bekijken",
   "What the role is for, in a sentence or two.": "Waar de rol voor is, in een of twee zinnen.",
   "{{count}} to choose from. Search by name or by what a role allows.": "{{count}} om uit te kiezen. Zoek op naam of op wat een rol toestaat.",
-  "{{count}} to choose from. Search by name or by what a role allows._one": "{{count}} om uit te kiezen. Zoek op naam of op wat een rol toestaat."
+  "{{count}} to choose from. Search by name or by what a role allows._one": "{{count}} om uit te kiezen. Zoek op naam of op wat een rol toestaat.",
+  "Already acknowledged": "Al bevestigd",
+  "Already passed on": "Al doorgegeven",
+  "Nothing to pass on": "Niets door te geven"
 }

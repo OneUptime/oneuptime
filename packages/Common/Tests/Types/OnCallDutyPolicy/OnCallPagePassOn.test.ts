@@ -14,7 +14,11 @@ import {
   getOnCallPassOnRefusalSentence,
   getOnCallPassOnRuleLabel,
   getOnCallPassOnSentence,
+  getOnCallPassOnTime,
+  getOnCallPassOnTimeOfDay,
   isOnCallPageRecordType,
+  isOnCallPassOnPagingStopped,
+  isOnCallPassOnTimeToday,
   joinOnCallPassOnNames,
   readOnCallPassOnResult,
 } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
@@ -250,6 +254,8 @@ describe("what passing it on did", () => {
 
 describe("somebody else still paged", () => {
   const AT: Date = new Date("2026-10-16T03:30:00.000Z");
+  // Half an hour before: the rule's wait is running.
+  const NOW: Date = new Date("2026-10-16T03:00:00.000Z");
 
   test("one person, and when the next rule comes, in the reader's own zone", () => {
     expect(
@@ -260,10 +266,10 @@ describe("somebody else still paged", () => {
           nextStepAt: AT,
           nextRule: { order: 2, name: "Level 2" },
         }),
-        { timezone: "America/New_York" },
+        { timezone: "America/New_York", now: NOW },
       ),
     ).toBe(
-      "Bob Smith is still being paged. If nobody acknowledges by Oct 15, 2026, 11:30 PM EDT, escalation rule 2 of 3 (Level 2) is next.",
+      "Bob Smith is still being paged. If nobody acknowledges by 11:30 PM EDT, escalation rule 2 of 3 (Level 2) is next.",
     );
   });
 
@@ -275,10 +281,41 @@ describe("somebody else still paged", () => {
           stillPagedNames: ["Bob", "Carl"],
           nextStepAt: AT,
         }),
-        { timezone: "UTC" },
+        { timezone: "UTC", now: NOW },
       ),
     ).toBe(
-      "Bob and Carl are still being paged. If nobody acknowledges by Oct 16, 2026, 3:30 AM UTC, the policy moves on.",
+      "Bob and Carl are still being paged. If nobody acknowledges by 3:30 AM UTC, the policy moves on.",
+    );
+  });
+
+  test("a time on another day keeps its date - on the reader's own calendar", () => {
+    // 11 PM in New York: the next rule comes after midnight there.
+    expect(
+      getOnCallPassOnSentence(
+        result({
+          outcome: OnCallPassOnOutcome.OthersStillPaged,
+          stillPagedNames: ["Bob Smith"],
+          nextStepAt: new Date("2026-10-16T04:30:00.000Z"),
+          nextRule: { order: 2, name: "Level 2" },
+        }),
+        { timezone: "America/New_York", now: NOW },
+      ),
+    ).toBe(
+      "Bob Smith is still being paged. If nobody acknowledges by Oct 16, 2026, 12:30 AM EDT, escalation rule 2 of 3 (Level 2) is next.",
+    );
+
+    // A long wait, read the evening before.
+    expect(
+      getOnCallPassOnSentence(
+        result({
+          outcome: OnCallPassOnOutcome.OthersStillPaged,
+          stillPagedNames: ["Bob"],
+          nextStepAt: AT,
+        }),
+        { timezone: "UTC", now: new Date("2026-10-15T21:00:00.000Z") },
+      ),
+    ).toBe(
+      "Bob is still being paged. If nobody acknowledges by Oct 16, 2026, 3:30 AM UTC, the policy moves on.",
     );
   });
 
@@ -301,6 +338,76 @@ describe("somebody else still paged", () => {
         result({ outcome: OnCallPassOnOutcome.OthersStillPaged }),
       ),
     ).toBe("Somebody else is still being paged.");
+  });
+});
+
+describe("when the policy moves on, as a time", () => {
+  const AT: Date = new Date("2026-10-16T03:30:00.000Z");
+
+  test("is the day's time when it is today on the reader's clock", () => {
+    expect(
+      isOnCallPassOnTimeToday({
+        at: AT,
+        now: new Date("2026-10-16T00:10:00.000Z"),
+        timezone: "UTC",
+      }),
+    ).toBe(true);
+    expect(
+      getOnCallPassOnTime(AT, {
+        timezone: "Europe/Berlin",
+        now: new Date("2026-10-16T03:00:00.000Z"),
+      }),
+    ).toBe("5:30 AM CEST");
+  });
+
+  test("today is the reader's today, not the server's", () => {
+    // 11:55 PM in UTC, but already 1:55 AM on the 16th in Berlin.
+    const now: Date = new Date("2026-10-15T23:55:00.000Z");
+
+    expect(isOnCallPassOnTimeToday({ at: AT, now: now, timezone: "UTC" })).toBe(
+      false,
+    );
+    expect(
+      isOnCallPassOnTimeToday({
+        at: AT,
+        now: now,
+        timezone: "Europe/Berlin",
+      }),
+    ).toBe(true);
+  });
+
+  test("a time of day names its zone, as it was then", () => {
+    expect(getOnCallPassOnTimeOfDay({ at: AT, timezone: "UTC" })).toBe(
+      "3:30 AM UTC",
+    );
+    // New York is on EST in January.
+    expect(
+      getOnCallPassOnTimeOfDay({
+        at: new Date("2027-01-16T03:30:00.000Z"),
+        timezone: "America/New_York",
+      }),
+    ).toBe("10:30 PM EST");
+  });
+
+  test("reads the clock when it is not told the time", () => {
+    const soon: Date = new Date(Date.now() + 60 * 1000);
+
+    expect(isOnCallPassOnTimeToday({ at: new Date(), timezone: "UTC" })).toBe(
+      true,
+    );
+    expect(
+      getOnCallPassOnTime(soon, { timezone: "UTC" }).endsWith(" UTC"),
+    ).toBe(true);
+  });
+});
+
+describe("passing on that leaves nobody being paged", () => {
+  test("is the one outcome said as a warning", () => {
+    for (const outcome of Object.values(OnCallPassOnOutcome)) {
+      expect(isOnCallPassOnPagingStopped(result({ outcome: outcome }))).toBe(
+        outcome === OnCallPassOnOutcome.PagingStopped,
+      );
+    }
   });
 });
 

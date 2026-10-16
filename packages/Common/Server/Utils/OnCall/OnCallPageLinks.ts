@@ -72,6 +72,22 @@ export default class OnCallPageLinks {
     );
   }
 
+  /*
+   * The page an email's Acknowledge button opens, and the link under it to
+   * copy and paste - without the token. An email has its own Pass it on
+   * button, so its acknowledge page need not offer passing on as well, and
+   * a token would stretch the link the email prints in full from one line
+   * to five (a token is some 300 characters).
+   */
+  public static async getEmailAcknowledgePageUrl(
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<URL> {
+    return await this.getUrl({
+      path: "acknowledge-page",
+      userOnCallLogTimelineId: userOnCallLogTimelineId,
+    });
+  }
+
   // The page a message's "Pass it on" link opens.
   public static async getPassOnPageUrl(
     userOnCallLogTimelineId: ObjectID,

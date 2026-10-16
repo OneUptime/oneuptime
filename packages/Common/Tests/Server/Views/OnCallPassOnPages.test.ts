@@ -204,3 +204,111 @@ describe("the pass-on page", () => {
     expect(source).not.toContain("oneuptime-logo.svg");
   });
 });
+
+/*
+ * "Nobody else is left to page": passing on that leaves nobody being paged
+ * is said as a warning of its own (Partials/OnCallPassOnWarning.ejs) - on
+ * the acknowledge page, the pass-on page and the page after it - not in the
+ * grey line beside the button, where a person woken at 3 a.m. reads past it.
+ */
+describe("the warning when nobody is left to page", () => {
+  const MESSAGE_VIEW: string = path.join(VIEWS, "ViewMessage.ejs");
+
+  const STOPS: string =
+    "Nobody else is left to page: paging stops, and somebody needs to take it.";
+
+  // The warning's element, from its opening tag to its end.
+  function warningOf(html: string): string {
+    const marker: number = html.indexOf('data-testid="pass-on-warning"');
+
+    expect(marker).toBeGreaterThan(0);
+
+    const start: number = html.lastIndexOf("<div", marker);
+
+    return html.slice(start, html.indexOf("</div>", marker));
+  }
+
+  test("the acknowledge page draws it apart, above the Pass it on button", () => {
+    const html: string = render(ACKNOWLEDGE_VIEW, {
+      ...ACKNOWLEDGE_BASE,
+      passOn: {
+        ...PASS_ON_BLOCK,
+        explanation: "You won't be paged about it again.",
+        warning: STOPS,
+      },
+    });
+
+    const warning: string = warningOf(html);
+
+    expect(warning).toContain('role="alert"');
+    expect(warning).toContain("bg-amber-50");
+    expect(htmlAsText(warning)).toContain(STOPS);
+    expect(html.indexOf('data-testid="pass-on-warning"')).toBeLessThan(
+      html.indexOf('data-testid="pass-on-button"'),
+    );
+  });
+
+  test("the pass-on page draws it under its question", () => {
+    const html: string = render(PASS_ON_VIEW, {
+      title: "Pass on Incident INC-42?",
+      message: "You won't be paged about it again.",
+      warning: STOPS,
+      passOnText: "Pass it on",
+      passOnFormUrl: FORM_URL,
+      pageTokenParam: "pageToken",
+      pageToken: TOKEN,
+      acknowledgeText: "Acknowledge Incident instead",
+      acknowledgeUrl:
+        "https://oneuptime.example.com/api/user-notification-log-timeline/acknowledge/1",
+      resourceTitle: "Checkout is down",
+    });
+
+    expect(htmlAsText(warningOf(html))).toContain(STOPS);
+    expect(html.indexOf("You won't be paged about it again.")).toBeLessThan(
+      html.indexOf('data-testid="pass-on-warning"'),
+    );
+  });
+
+  test("the page after passing on draws it too", () => {
+    const html: string = render(MESSAGE_VIEW, {
+      title: "You passed it on - Checkout is down",
+      message: "You won't be paged about it again.",
+      warning:
+        "Nobody else is left to page, so paging stopped. Somebody needs to take it.",
+      viewDetailsText: "View Incident",
+      viewDetailsUrl: "https://oneuptime.example.com/dashboard/p/incidents/1",
+      resourceTitle: "Checkout is down",
+    });
+
+    expect(htmlAsText(warningOf(html))).toContain(
+      "Nobody else is left to page, so paging stopped. Somebody needs to take it.",
+    );
+  });
+
+  test("a page with nothing to warn about draws no box - every other page of a message is as it was", () => {
+    expect(
+      render(ACKNOWLEDGE_VIEW, { ...ACKNOWLEDGE_BASE, passOn: PASS_ON_BLOCK }),
+    ).not.toContain("pass-on-warning");
+    expect(
+      render(MESSAGE_VIEW, {
+        title: "Notification Already Acknowledged - Checkout is down",
+        message: "This notification has already been acknowledged.",
+        viewDetailsText: "View Incident",
+        viewDetailsUrl: "https://oneuptime.example.com/dashboard/p/incidents/1",
+      }),
+    ).not.toContain("pass-on-warning");
+  });
+
+  test("escapes what it is handed", () => {
+    const html: string = render(MESSAGE_VIEW, {
+      title: "You passed it on",
+      message: "You won't be paged about it again.",
+      warning: "<img src=x onerror=alert(1)>",
+      viewDetailsText: "View Incident",
+      viewDetailsUrl: "https://oneuptime.example.com/dashboard/p/incidents/1",
+    });
+
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&lt;img src=x");
+  });
+});

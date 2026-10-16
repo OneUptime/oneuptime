@@ -30235,5 +30235,8 @@
   "View Role": "مشاهده نقش",
   "What the role is for, in a sentence or two.": "این نقش برای چیست، در یک یا دو جمله.",
   "{{count}} to choose from. Search by name or by what a role allows.": "{{count}} گزینه برای انتخاب. بر اساس نام یا آنچه یک نقش اجازه می‌دهد جستجو کنید.",
-  "{{count}} to choose from. Search by name or by what a role allows._one": "{{count}} گزینه برای انتخاب. بر اساس نام یا آنچه یک نقش اجازه می‌دهد جستجو کنید."
+  "{{count}} to choose from. Search by name or by what a role allows._one": "{{count}} گزینه برای انتخاب. بر اساس نام یا آنچه یک نقش اجازه می‌دهد جستجو کنید.",
+  "Already acknowledged": "پیش‌تر تأیید شده است",
+  "Already passed on": "پیش‌تر واگذار شده است",
+  "Nothing to pass on": "چیزی برای واگذاری نیست"
 }

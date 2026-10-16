@@ -30235,5 +30235,8 @@
   "View Role": "역할 보기",
   "What the role is for, in a sentence or two.": "역할의 용도를 한두 문장으로 적습니다.",
   "{{count}} to choose from. Search by name or by what a role allows.": "{{count}}개 중에서 선택합니다. 이름이나 역할이 허용하는 내용으로 검색하세요.",
-  "{{count}} to choose from. Search by name or by what a role allows._one": "{{count}}개 중에서 선택합니다. 이름이나 역할이 허용하는 내용으로 검색하세요."
+  "{{count}} to choose from. Search by name or by what a role allows._one": "{{count}}개 중에서 선택합니다. 이름이나 역할이 허용하는 내용으로 검색하세요.",
+  "Already acknowledged": "이미 확인됨",
+  "Already passed on": "이미 넘겼습니다",
+  "Nothing to pass on": "넘길 것이 없습니다"
 }

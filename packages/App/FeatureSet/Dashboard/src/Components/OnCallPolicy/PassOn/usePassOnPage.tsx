@@ -5,6 +5,7 @@ import {
   OnCallPageRecordType,
   OnCallPassOnAnswer,
 } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -13,9 +14,11 @@ import React, { ReactElement, useCallback, useEffect, useState } from "react";
 import { EventPanelAction } from "../../EventView/EventStatusPanel";
 import {
   PASS_ON_PAGE_TEXT,
-  describePassOnAnswers,
-  describePassOnPreview,
+  PassOnDialogLine,
   fetchOpenPages,
+  getPassOnAnswerLines,
+  getPassOnAnswerTitle,
+  getPassOnQuestionLines,
   isAnyPassedOn,
   passOnPages,
 } from "./PassOnPage";
@@ -55,12 +58,27 @@ interface LoadedPages {
   pages: Array<OnCallOpenPage>;
 }
 
-// The paragraphs of a dialog's text, each on its own.
-function paragraphs(lines: Array<string>, testId: string): ReactElement {
+/*
+ * The dialog's text: a warning first when passing on leaves nobody being
+ * paged (PassOnDialogLine), then each sentence as a paragraph of its own.
+ */
+function dialogText(
+  lines: Array<PassOnDialogLine>,
+  testId: string,
+): ReactElement {
   return (
-    <div className="space-y-2" data-testid={testId}>
-      {lines.map((line: string, index: number) => {
-        return <p key={index}>{line}</p>;
+    <div className="space-y-3" data-testid={testId}>
+      {lines.map((line: PassOnDialogLine, index: number) => {
+        return line.isWarning ? (
+          <Alert
+            key={index}
+            type={AlertType.WARNING}
+            title={line.text}
+            dataTestId="pass-on-warning"
+          />
+        ) : (
+          <p key={index}>{line.text}</p>
+        );
       })}
     </div>
   );
@@ -161,12 +179,8 @@ export default function usePassOnPage(data: {
     dialog = (
       <ConfirmModal
         title={PASS_ON_PAGE_TEXT.dialogTitle}
-        description={paragraphs(
-          [
-            translator.translateText(PASS_ON_PAGE_TEXT.notPagedAgain) ||
-              PASS_ON_PAGE_TEXT.notPagedAgain,
-            ...describePassOnPreview(pages, translator),
-          ],
+        description={dialogText(
+          getPassOnQuestionLines(pages, translator),
           "pass-on-preview",
         )}
         submitButtonText={PASS_ON_PAGE_TEXT.button}
@@ -179,21 +193,11 @@ export default function usePassOnPage(data: {
   }
 
   if (stage === DialogStage.Done) {
-    const passed: boolean = isAnyPassedOn(answers);
-
     dialog = (
       <ConfirmModal
-        title={passed ? PASS_ON_PAGE_TEXT.doneTitle : PASS_ON_PAGE_TEXT.button}
-        description={paragraphs(
-          [
-            ...describePassOnAnswers(answers, translator),
-            ...(passed
-              ? [
-                  translator.translateText(PASS_ON_PAGE_TEXT.notPagedAgain) ||
-                    PASS_ON_PAGE_TEXT.notPagedAgain,
-                ]
-              : []),
-          ],
+        title={getPassOnAnswerTitle(answers)}
+        description={dialogText(
+          getPassOnAnswerLines(answers, translator),
           "pass-on-answer",
         )}
         submitButtonText="Close"

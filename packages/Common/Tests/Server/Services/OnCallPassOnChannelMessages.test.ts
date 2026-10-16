@@ -61,7 +61,8 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *   Slack and
  *   Teams DMs
  *   email      a Pass it on button under Acknowledge (its template draws it
- *              from passOnLink), and an Acknowledge link with the token.
+ *              from passOnLink); its Acknowledge link has no token, so the
+ *              link it prints to copy stays one line.
  *
  * Every link that can pass the page on carries a token signed for this one
  * notification (OnCallPageLinkToken) - checked here by verifying it.
@@ -522,12 +523,20 @@ describe.each(KINDS)("the messages that page about $name", (kind: Kind) => {
     ]);
   });
 
-  test("an email gets a Pass it on button, and its Acknowledge button's page offers it too", async () => {
+  test("an email gets a Pass it on button with the token, beside an Acknowledge link as short as it always was", async () => {
     const email: EmailMessage = await kind.email();
 
+    /*
+     * The email prints its Acknowledge link in full, to copy and paste: a
+     * token would stretch it from one line to five. The email's own Pass it
+     * on button is the way to pass it on.
+     */
+    expect(String(email.vars[kind.acknowledgeVar])).toBe(
+      `https://oneuptime.example.com${ACKNOWLEDGE_PAGE}`,
+    );
     expect(readLink(String(email.vars[kind.acknowledgeVar]))).toEqual({
       path: ACKNOWLEDGE_PAGE,
-      hasToken: true,
+      hasToken: false,
     });
     expect(readLink(String(email.vars["passOnLink"]))).toEqual({
       path: PASS_ON_PAGE,

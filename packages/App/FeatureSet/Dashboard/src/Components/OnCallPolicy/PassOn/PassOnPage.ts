@@ -13,6 +13,9 @@ import {
   OnCallPassOnRefusal,
   OnCallPassOnResult,
   OnCallPassOnRule,
+  getOnCallPassOnTimeOfDay,
+  isOnCallPassOnPagingStopped,
+  isOnCallPassOnTimeToday,
   readOnCallPassOnResult,
 } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
 import { APP_API_URL } from "Common/UI/Config";
@@ -46,6 +49,9 @@ export const PASS_ON_PAGE_TEXT: {
   dialogTitle: string;
   notPagedAgain: string;
   doneTitle: string;
+  alreadyAcknowledgedTitle: string;
+  alreadyPassedOnTitle: string;
+  nothingToPassOnTitle: string;
   failed: string;
   passedOnStatus: string;
 } = {
@@ -53,6 +59,13 @@ export const PASS_ON_PAGE_TEXT: {
   dialogTitle: translationKey("Pass it on?"),
   notPagedAgain: translationKey("You won't be paged about it again."),
   doneTitle: translationKey("You passed it on"),
+  /*
+   * The dialog's title when nothing was passed on, by why - the headings the
+   * pages a message's links open use (UserOnCallLogTimelineAPI).
+   */
+  alreadyAcknowledgedTitle: translationKey("Already acknowledged"),
+  alreadyPassedOnTitle: translationKey("Already passed on"),
+  nothingToPassOnTitle: translationKey("Nothing to pass on"),
   failed: translationKey("Could not pass it on. Please try again."),
   /*
    * The status a page passed on has, on the run's Execution Timeline and in
@@ -200,12 +213,27 @@ function names(list: Array<string>): ReturnType<typeof composedValue> {
 }
 
 /*
+ * "6:40 PM GMT" - when the policy moves on, on the reader's own clock. A
+ * rule's wait is minutes away, so on the same day the time says it, and a
+ * date in front of it would only stand between the reader and the clock;
+ * a time on another day keeps its date (getOnCallPassOnTime words the
+ * server's sentences the same way).
+ */
+export function formatPassOnTime(at: Date, now?: Date | undefined): string {
+  return isOnCallPassOnTimeToday({ at: at, now: now })
+    ? getOnCallPassOnTimeOfDay({ at: at })
+    : OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(at);
+}
+
+/*
  * What passing a page on would do, or did, in the reader's language: the
  * Dashboard's words for the server's sentences (getOnCallPassOnSentence).
+ * `now` is when it is read, for whether a time needs its date.
  */
 export function describePassOnResult(
   result: OnCallPassOnResult,
   translator: Translator,
+  now?: Date | undefined,
 ): string {
   const rule: RuleValues | null = ruleValues(
     result.rule,
@@ -270,10 +298,7 @@ export function describePassOnResult(
         return still;
       }
 
-      const time: string =
-        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-          result.nextStepAt,
-        );
+      const time: string = formatPassOnTime(result.nextStepAt, now);
 
       const then: string = next
         ? translator.translateTemplate(
@@ -411,4 +436,135 @@ export function isAnyPassedOn(answers: Array<OnCallPassOnAnswer>): boolean {
   return answers.some((answer: OnCallPassOnAnswer): boolean => {
     return answer.passedOn;
   });
+}
+
+/*
+ * A line of the dialog: a sentence, or - when passing on leaves nobody being
+ * paged (isOnCallPassOnPagingStopped) - a warning, drawn apart and first.
+ * Nobody is on the record then, and the person reading may decide to take
+ * it after all.
+ */
+export interface PassOnDialogLine {
+  text: string;
+  isWarning: boolean;
+}
+
+// Warnings first, the rest in their order.
+function warningsFirst(
+  lines: Array<PassOnDialogLine>,
+): Array<PassOnDialogLine> {
+  return [
+    ...lines.filter((line: PassOnDialogLine): boolean => {
+      return line.isWarning;
+    }),
+    ...lines.filter((line: PassOnDialogLine): boolean => {
+      return !line.isWarning;
+    }),
+  ];
+}
+
+function notPagedAgain(translator: Translator): PassOnDialogLine {
+  return {
+    text:
+      translator.translateText(PASS_ON_PAGE_TEXT.notPagedAgain) ||
+      PASS_ON_PAGE_TEXT.notPagedAgain,
+    isWarning: false,
+  };
+}
+
+/*
+ * What the dialog says before passing on: that the person is not paged
+ * about it again, then what passing on does on each of their pages.
+ */
+export function getPassOnQuestionLines(
+  pages: Array<OnCallOpenPage>,
+  translator: Translator,
+): Array<PassOnDialogLine> {
+  const sentences: Array<string> = describePassOnPreview(pages, translator);
+
+  return warningsFirst([
+    notPagedAgain(translator),
+    ...sentences.map((text: string, index: number): PassOnDialogLine => {
+      const page: OnCallOpenPage | undefined = pages[index];
+
+      return {
+        text: text,
+        isWarning: Boolean(page && isOnCallPassOnPagingStopped(page.preview)),
+      };
+    }),
+  ]);
+}
+
+/*
+ * What the dialog says once it has passed them on: what came of each page -
+ * or why there was nothing to pass on - and, when it passed any on, that the
+ * person is not paged about it again.
+ */
+export function getPassOnAnswerLines(
+  answers: Array<OnCallPassOnAnswer>,
+  translator: Translator,
+): Array<PassOnDialogLine> {
+  const sentences: Array<string> = describePassOnAnswers(answers, translator);
+
+  const lines: Array<PassOnDialogLine> = sentences.map(
+    (text: string, index: number): PassOnDialogLine => {
+      const answer: OnCallPassOnAnswer | undefined = answers[index];
+
+      return {
+        text: text,
+        isWarning: Boolean(
+          answer?.passedOn &&
+            answer.result &&
+            isOnCallPassOnPagingStopped(answer.result),
+        ),
+      };
+    },
+  );
+
+  if (isAnyPassedOn(answers)) {
+    lines.push(notPagedAgain(translator));
+  }
+
+  return warningsFirst(lines);
+}
+
+/*
+ * The dialog's title once it has asked the server: "You passed it on", or,
+ * when nothing was passed on, why in a few words - "Already acknowledged",
+ * "Already passed on", "Nothing to pass on" - with the sentence under it
+ * saying the rest.
+ */
+export function getPassOnAnswerTitle(
+  answers: Array<OnCallPassOnAnswer>,
+): string {
+  if (isAnyPassedOn(answers)) {
+    return PASS_ON_PAGE_TEXT.doneTitle;
+  }
+
+  const refusals: Array<OnCallPassOnRefusal | undefined> = answers.map(
+    (answer: OnCallPassOnAnswer): OnCallPassOnRefusal | undefined => {
+      return answer.refusal;
+    },
+  );
+
+  const everyOne: (refusal: OnCallPassOnRefusal) => boolean = (
+    refusal: OnCallPassOnRefusal,
+  ): boolean => {
+    return (
+      refusals.length > 0 &&
+      refusals.every((each: OnCallPassOnRefusal | undefined): boolean => {
+        return each === refusal;
+      })
+    );
+  };
+
+  if (everyOne(OnCallPassOnRefusal.RecordAcknowledged)) {
+    return PASS_ON_PAGE_TEXT.alreadyAcknowledgedTitle;
+  }
+
+  if (everyOne(OnCallPassOnRefusal.AlreadyPassedOn)) {
+    return PASS_ON_PAGE_TEXT.alreadyPassedOnTitle;
+  }
+
+  return PASS_ON_PAGE_TEXT.nothingToPassOnTitle;
 }

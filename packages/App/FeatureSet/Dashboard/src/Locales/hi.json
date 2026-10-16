@@ -30235,5 +30235,8 @@
   "View Role": "भूमिका देखें",
   "What the role is for, in a sentence or two.": "भूमिका किसलिए है, एक या दो वाक्यों में।",
   "{{count}} to choose from. Search by name or by what a role allows.": "चुनने के लिए {{count}}। नाम से या भूमिका जिसकी अनुमति देती है उससे खोजें।",
-  "{{count}} to choose from. Search by name or by what a role allows._one": "चुनने के लिए {{count}}। नाम से या भूमिका जिसकी अनुमति देती है उससे खोजें।"
+  "{{count}} to choose from. Search by name or by what a role allows._one": "चुनने के लिए {{count}}। नाम से या भूमिका जिसकी अनुमति देती है उससे खोजें।",
+  "Already acknowledged": "पहले ही स्वीकार किया जा चुका है",
+  "Already passed on": "पहले ही आगे बढ़ा दिया गया है",
+  "Nothing to pass on": "आगे बढ़ाने के लिए कुछ नहीं है"
 }

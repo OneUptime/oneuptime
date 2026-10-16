@@ -108,7 +108,7 @@ import WorkspaceMessageTime from "../WorkspaceMessageTime";
  *
  * When everybody it paged passed it on, the run ends with nobody on the
  * record, and that is loud: "⚠️ Nobody can take Incident INC-8: everybody
- * PolicyX paged passed it on (Alex and Sam). Someone needs to take it."
+ * paged by PolicyX passed it on (Alex and Sam). Someone needs to take it."
  */
 
 // How a run's message is drawn for one place.
@@ -452,7 +452,7 @@ export default class OnCallPolicyRunMessageView {
       case OnCallPolicyRunOutcome.NobodyAcknowledged:
         return `Nobody acknowledged ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.EverybodyPassedOn:
-        return `Nobody could take ${run.recordLabel}: everybody ${pagerNameInSentence} paged passed it on`;
+        return `Nobody could take ${run.recordLabel}: everybody paged by ${pagerNameInSentence} passed it on`;
       case OnCallPolicyRunOutcome.NobodyReached:
         return `${pagerName} could not reach anyone for ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.Failed:
@@ -530,7 +530,7 @@ export default class OnCallPolicyRunMessageView {
         alarms.push({
           key: ON_CALL_RUN_ALARM_OUTCOME,
           markdown:
-            mdText`⚠️ Nobody can take ${record}: everybody ${this.getPager(run, { isInSentence: true })} paged passed it on (${this.getPagedNames(run)}). Someone needs to take it.`.toString(),
+            mdText`⚠️ Nobody can take ${record}: everybody paged by ${this.getPager(run, { isInSentence: true })} passed it on (${this.getPagedNames(run)}). Someone needs to take it.`.toString(),
           text: `Nobody can take ${run.recordLabel}: someone needs to take it`,
         });
         break;
@@ -626,7 +626,7 @@ export default class OnCallPolicyRunMessageView {
           ? mdText`⚠️ ${policy} paged for ${record} and nobody acknowledged`
           : mdText`⚠️ ${policy} went through every escalation rule for ${record} and nobody acknowledged`;
       case OnCallPolicyRunOutcome.EverybodyPassedOn:
-        return mdText`⚠️ Nobody could take ${record}: everybody ${policyInSentence} paged passed it on`;
+        return mdText`⚠️ Nobody could take ${record}: everybody paged by ${policyInSentence} passed it on`;
       case OnCallPolicyRunOutcome.NobodyReached:
         return mdText`⚠️ ${policy} could not reach anyone for ${record}`;
       case OnCallPolicyRunOutcome.Failed:

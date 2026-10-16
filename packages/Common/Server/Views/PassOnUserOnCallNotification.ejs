@@ -26,6 +26,9 @@
                                         <h2 id="pass-on-heading"
                                             class="text-lg font-medium leading-6 text-gray-900"><%= title %></h2>
                                         <p class="mt-1 text-sm text-gray-500"><%= message %></p>
+                                        <% if (typeof warning !== 'undefined' && warning) { %>
+                                        <%- include('./Partials/OnCallPassOnWarning.ejs', { warning: warning }) -%>
+                                        <% } %>
                                     </div>
 
                                     <%- include('./Partials/OnCallNotificationDetails.ejs') -%>

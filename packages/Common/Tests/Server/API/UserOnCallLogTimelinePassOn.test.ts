@@ -25,6 +25,7 @@ import User from "../../../Models/DatabaseModels/User";
 import UserOnCallLogTimeline from "../../../Models/DatabaseModels/UserOnCallLogTimeline";
 import Hostname from "../../../Types/API/Hostname";
 import Protocol from "../../../Types/API/Protocol";
+import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -258,6 +259,26 @@ describe("the acknowledge page", () => {
     expect(rendered().variables["passOn"]).toBeUndefined();
   });
 
+  test("passing on that would leave nobody paged is a warning beside the button", async () => {
+    previewSpy.mockResolvedValue({
+      passedOn: false,
+      result: preview(OnCallPassOnOutcome.PagingStopped),
+    });
+
+    await call({
+      method: "GET",
+      uri: `${BASE}/acknowledge-page/:itemId`,
+      query: { pageToken: VALID_TOKEN() },
+    });
+
+    expect(rendered().variables["passOn"]).toMatchObject({
+      lead: "Can't take it?",
+      explanation: "You won't be paged about it again.",
+      warning:
+        "Nobody else is left to page: paging stops, and somebody needs to take it.",
+    });
+  });
+
   test("a page that cannot be passed on any more offers nothing", async () => {
     previewSpy.mockResolvedValue({
       passedOn: false,
@@ -291,8 +312,9 @@ describe("the pass-on page", () => {
     );
     expect(variables).toMatchObject({
       title: "Pass on this incident?",
+      // They followed "Can't take it? Pass it on" here: it is not asked again.
       message:
-        "Can't take it? You won't be paged about it again. Escalation rule 2 of 2 (Level 2) is paged right away, without waiting.",
+        "You won't be paged about it again. Escalation rule 2 of 2 (Level 2) is paged right away, without waiting.",
       passOnText: "Pass it on",
       passOnFormUrl: `https://oneuptime.example.com/api/user-notification-log-timeline/pass-on/${ITEM.toString()}`,
       pageTokenParam: "pageToken",
@@ -325,8 +347,9 @@ describe("the pass-on page", () => {
       const { path, variables } = rendered();
 
       expect(path).toBe("/usr/src/Common/Server/Views/ViewMessage.ejs");
+      // The heading says it in a few words; the sentence under it, why.
       expect(variables["title"]).toBe(
-        "This link cannot pass the page on - Checkout is down",
+        "This link has expired - Checkout is down",
       );
       expect(variables["message"]).toBe(
         "This link cannot pass the page on: it is not valid, or it has expired. Use the link in the newest message you were paged with.",
@@ -360,6 +383,72 @@ describe("the pass-on page", () => {
     expect(variables["viewDetailsUrl"]).toBe(
       `https://oneuptime.example.com/dashboard/${PROJECT.toString()}/incidents/${INCIDENT.toString()}`,
     );
+  });
+
+  test("a page that is over says so under a heading that does not say it twice", async () => {
+    previewSpy.mockResolvedValue({
+      passedOn: false,
+      refusal: OnCallPassOnRefusal.PageOver,
+    });
+
+    await call({
+      method: "GET",
+      uri: `${BASE}/pass-on-page/:itemId`,
+      query: { pageToken: VALID_TOKEN() },
+    });
+
+    const { variables } = rendered();
+
+    expect(variables["title"]).toBe("Nothing to pass on - Checkout is down");
+    expect(variables["message"]).toBe(
+      "This page is over: the on-call policy has stopped paging.",
+    );
+  });
+
+  test("passing on that would leave nobody paged is a warning of its own", async () => {
+    previewSpy.mockResolvedValue({
+      passedOn: false,
+      result: preview(OnCallPassOnOutcome.PagingStopped),
+    });
+
+    await call({
+      method: "GET",
+      uri: `${BASE}/pass-on-page/:itemId`,
+      query: { pageToken: VALID_TOKEN() },
+    });
+
+    const { path, variables } = rendered();
+
+    expect(path).toBe(
+      "/usr/src/Common/Server/Views/PassOnUserOnCallNotification.ejs",
+    );
+    expect(variables["message"]).toBe("You won't be paged about it again.");
+    expect(variables["warning"]).toBe(
+      "Nobody else is left to page: paging stops, and somebody needs to take it.",
+    );
+  });
+
+  test("anything else it would do is no warning", async () => {
+    for (const outcome of [
+      OnCallPassOnOutcome.NextRulePaged,
+      OnCallPassOnOutcome.PolicyStartedAgain,
+      OnCallPassOnOutcome.OthersStillPaged,
+      OnCallPassOnOutcome.AlreadyEscalated,
+    ]) {
+      (Response.render as unknown as jest.Mock).mockClear();
+      previewSpy.mockResolvedValue({
+        passedOn: false,
+        result: preview(outcome),
+      });
+
+      await call({
+        method: "GET",
+        uri: `${BASE}/pass-on-page/:itemId`,
+        query: { pageToken: VALID_TOKEN() },
+      });
+
+      expect(rendered().variables["warning"]).toBeUndefined();
+    }
   });
 
   test("an id that is no id is refused before anything is read", async () => {
@@ -421,6 +510,31 @@ describe("the pass-on button", () => {
     expect(variables["viewDetailsText"]).toBe("View Incident");
   });
 
+  test("passed on with nobody left to page: says so as a warning", async () => {
+    passOnSpy.mockResolvedValue({
+      passedOn: true,
+      result: {
+        ...preview(OnCallPassOnOutcome.PagingStopped),
+        isPreview: false,
+      },
+    });
+
+    await call({
+      method: "POST",
+      uri: `${BASE}/pass-on/:itemId`,
+      body: { pageToken: VALID_TOKEN() },
+    });
+
+    const { path, variables } = rendered();
+
+    expect(path).toBe("/usr/src/Common/Server/Views/ViewMessage.ejs");
+    expect(variables["title"]).toBe("You passed it on - Checkout is down");
+    expect(variables["message"]).toBe("You won't be paged about it again.");
+    expect(variables["warning"]).toBe(
+      "Nobody else is left to page, so paging stopped. Somebody needs to take it.",
+    );
+  });
+
   test("reads the token from the form, not the address", async () => {
     await call({
       method: "POST",
@@ -431,7 +545,7 @@ describe("the pass-on button", () => {
 
     expect(passOnSpy).not.toHaveBeenCalled();
     expect(rendered().variables["title"]).toBe(
-      "This link cannot pass the page on - Checkout is down",
+      "This link has expired - Checkout is down",
     );
   });
 
@@ -504,6 +618,45 @@ describe("a call's second key", () => {
     });
     expect(sayOf()).toContain(
       "You passed this incident on. Escalation rule 2 of 2 (Level 2) is paging Bob Smith now. Good bye.",
+    );
+  });
+
+  test("reads a time out on the person's own clock, without a date that day", async () => {
+    const berlinItem: UserOnCallLogTimeline = new UserOnCallLogTimeline();
+    berlinItem.id = ITEM;
+    berlinItem.projectId = PROJECT;
+    berlinItem.userId = ANA;
+    berlinItem.onCallDutyPolicyExecutionLogId = RUN;
+    berlinItem.triggeredByIncidentId = INCIDENT;
+    const user: User = new User();
+    user.timezone = Timezone.EuropeBerlin;
+    berlinItem.user = user;
+
+    const findSpy: jest.SpyInstance = jest
+      .spyOn(UserOnCallLogTimelineService, "findOneById")
+      .mockResolvedValue(berlinItem);
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(new Date("2026-10-16T03:00:00.000Z"));
+
+    passOnSpy.mockResolvedValue({
+      passedOn: true,
+      result: {
+        ...preview(OnCallPassOnOutcome.OthersStillPaged),
+        isPreview: false,
+        stillPagedNames: ["Bob Smith"],
+        nextStepAt: new Date("2026-10-16T03:30:00.000Z"),
+        nextRule: { order: 2, name: "Level 2" },
+      },
+    });
+
+    await press("2", VALID_TOKEN());
+
+    expect(
+      (findSpy.mock.calls[0]![0] as { select: JSONObject }).select["user"],
+    ).toEqual({ timezone: true });
+    expect(sayOf()).toContain(
+      "You passed this incident on. Bob Smith is still being paged. If nobody acknowledges by 5:30 AM CEST, escalation rule 2 of 2 (Level 2) is next. Good bye.",
     );
   });
 

@@ -241,8 +241,9 @@ describe("several people on one rule", () => {
     expect(answer.result!.nextStepAt?.toISOString()).toBe(
       "2026-10-16T03:30:00.000Z",
     );
+    // The world's clock reads 3:00 AM: the time is today, so no date.
     expect(getOnCallPassOnSentence(answer.result!, { timezone: "UTC" })).toBe(
-      "Bob Smith is still being paged. If nobody acknowledges by Oct 16, 2026, 3:30 AM UTC, escalation rule 2 of 2 (Level 2) is next.",
+      "Bob Smith is still being paged. If nobody acknowledges by 3:30 AM UTC, escalation rule 2 of 2 (Level 2) is next.",
     );
   });
 

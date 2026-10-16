@@ -30235,5 +30235,8 @@
   "View Role": "Visa roll",
   "What the role is for, in a sentence or two.": "Vad rollen är till för, i en eller två meningar.",
   "{{count}} to choose from. Search by name or by what a role allows.": "{{count}} att välja mellan. Sök på namn eller på vad en roll tillåter.",
-  "{{count}} to choose from. Search by name or by what a role allows._one": "{{count}} att välja mellan. Sök på namn eller på vad en roll tillåter."
+  "{{count}} to choose from. Search by name or by what a role allows._one": "{{count}} att välja mellan. Sök på namn eller på vad en roll tillåter.",
+  "Already acknowledged": "Redan kvitterat",
+  "Already passed on": "Redan skickat vidare",
+  "Nothing to pass on": "Inget att skicka vidare"
 }

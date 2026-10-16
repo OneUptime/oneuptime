@@ -41,7 +41,11 @@ import {
   describePassOnRefusal,
   describePassOnResult,
   fetchOpenPages,
+  formatPassOnTime,
+  getPassOnAnswerLines,
+  getPassOnAnswerTitle,
   getPassOnPageRoute,
+  getPassOnQuestionLines,
   isAnyPassedOn,
   passOnPages,
   readOpenPages,
@@ -66,6 +70,7 @@ import {
   OnCallPassOnOutcome,
   OnCallPassOnRefusal,
   OnCallPassOnResult,
+  getOnCallPassOnTimeOfDay,
 } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import API from "../../../UI/Utils/API/API";
@@ -234,10 +239,14 @@ describe("what passing on will do, and did", () => {
     ).toBe("Bob Smith and Carl Diaz are still being paged.");
   });
 
-  test("...and when the policy moves on if none of them acknowledges", () => {
-    const at: Date = new Date("2026-10-16T09:30:00.000Z");
-    const time: string =
-      OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(at);
+  test("...and when the policy moves on if none of them acknowledges: today, just the time", () => {
+    const at: Date = new Date("2026-10-16T12:30:00.000Z");
+    // Half an hour before: the rule's wait is running.
+    const now: Date = new Date("2026-10-16T12:00:00.000Z");
+    const time: string = getOnCallPassOnTimeOfDay({ at: at });
+
+    // "6:40 PM GMT": no date in front of a time half an hour away.
+    expect(time).not.toContain("2026");
 
     expect(
       describePassOnResult(
@@ -248,6 +257,7 @@ describe("what passing on will do, and did", () => {
           nextRule: { order: 3, name: "Managers" },
         }),
         ENGLISH,
+        now,
       ),
     ).toBe(
       `Bob Smith is still being paged. If nobody acknowledges by ${time}, escalation rule 3 of 3 (Managers) is next.`,
@@ -261,10 +271,44 @@ describe("what passing on will do, and did", () => {
           nextStepAt: at,
         }),
         ENGLISH,
+        now,
       ),
     ).toBe(
       `Bob Smith is still being paged. If nobody acknowledges by ${time}, the policy moves on.`,
     );
+  });
+
+  test("...a time on another day keeps its date", () => {
+    const at: Date = new Date("2026-10-17T12:30:00.000Z");
+    const now: Date = new Date("2026-10-16T12:00:00.000Z");
+    const time: string =
+      OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(at);
+
+    expect(formatPassOnTime(at, now)).toBe(time);
+    expect(time).toContain("2026");
+    expect(
+      describePassOnResult(
+        result({
+          outcome: OnCallPassOnOutcome.OthersStillPaged,
+          stillPagedNames: ["Bob Smith"],
+          nextStepAt: at,
+        }),
+        ENGLISH,
+        now,
+      ),
+    ).toBe(
+      `Bob Smith is still being paged. If nobody acknowledges by ${time}, the policy moves on.`,
+    );
+  });
+
+  test("...read now, unless it is told when", () => {
+    const soon: Date = new Date("2026-10-16T12:30:00.000Z");
+
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(new Date("2026-10-16T12:00:00.000Z"));
+
+    expect(formatPassOnTime(soon)).toBe(getOnCallPassOnTimeOfDay({ at: soon }));
   });
 
   test("a direct page has no rules to move on to: who is still paged, only", () => {
@@ -452,6 +496,164 @@ describe("one person, two policies paging them about the same record", () => {
     expect(isAnyPassedOn(answers)).toBe(true);
     expect(isAnyPassedOn([answers[1]!])).toBe(false);
     expect(isAnyPassedOn([])).toBe(false);
+  });
+});
+
+describe("the dialog's lines", () => {
+  const STOPS: string =
+    "Nobody else is left to page: paging stops, and somebody needs to take it.";
+
+  test("asking: not paged again, then what passing on does - no warning when somebody is paged", () => {
+    expect(getPassOnQuestionLines([page({})], ENGLISH)).toEqual([
+      { text: "You won't be paged about it again.", isWarning: false },
+      {
+        text: "Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+        isWarning: false,
+      },
+    ]);
+  });
+
+  test("asking, when nobody is left to page: that is a warning, and it comes first", () => {
+    expect(
+      getPassOnQuestionLines(
+        [page({ outcome: OnCallPassOnOutcome.PagingStopped })],
+        ENGLISH,
+      ),
+    ).toEqual([
+      { text: STOPS, isWarning: true },
+      { text: "You won't be paged about it again.", isWarning: false },
+    ]);
+  });
+
+  test("asking about two pages: only the one that stops paging warns", () => {
+    expect(
+      getPassOnQuestionLines(
+        [
+          page({}),
+          page({
+            policyName: "Database",
+            outcome: OnCallPassOnOutcome.PagingStopped,
+          }),
+        ],
+        ENGLISH,
+      ),
+    ).toEqual([
+      { text: `Database: ${STOPS}`, isWarning: true },
+      { text: "You won't be paged about it again.", isWarning: false },
+      {
+        text: "Critical: Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+        isWarning: false,
+      },
+    ]);
+  });
+
+  test("answering: what came of it, then not paged again", () => {
+    expect(
+      getPassOnAnswerLines(
+        [
+          {
+            passedOn: true,
+            result: result({ isPreview: false, pagedNames: ["Carl Diaz"] }),
+          },
+        ],
+        ENGLISH,
+      ),
+    ).toEqual([
+      {
+        text: "Escalation rule 2 of 3 (Level 2) is paging Carl Diaz now.",
+        isWarning: false,
+      },
+      { text: "You won't be paged about it again.", isWarning: false },
+    ]);
+  });
+
+  test("answering, when paging stopped: the warning first", () => {
+    expect(
+      getPassOnAnswerLines(
+        [
+          {
+            passedOn: true,
+            result: result({
+              isPreview: false,
+              outcome: OnCallPassOnOutcome.PagingStopped,
+            }),
+          },
+        ],
+        ENGLISH,
+      ),
+    ).toEqual([
+      {
+        text: "Nobody else is left to page, so paging stopped. Somebody needs to take it.",
+        isWarning: true,
+      },
+      { text: "You won't be paged about it again.", isWarning: false },
+    ]);
+  });
+
+  test("a refusal is no warning, and promises nothing about being paged", () => {
+    expect(
+      getPassOnAnswerLines(
+        [{ passedOn: false, refusal: OnCallPassOnRefusal.PageOver }],
+        ENGLISH,
+      ),
+    ).toEqual([
+      {
+        text: "This page is over: the on-call policy has stopped paging.",
+        isWarning: false,
+      },
+    ]);
+  });
+});
+
+describe("the dialog's title once the server has answered", () => {
+  function refused(refusal: OnCallPassOnRefusal): OnCallPassOnAnswer {
+    return { passedOn: false, refusal: refusal };
+  }
+
+  test("passed on: You passed it on - even when another page was refused", () => {
+    expect(
+      getPassOnAnswerTitle([
+        { passedOn: true, result: result({ isPreview: false }) },
+        refused(OnCallPassOnRefusal.PageOver),
+      ]),
+    ).toBe("You passed it on");
+  });
+
+  test("refused: why, in a few words - the sentence under it says the rest", () => {
+    expect(
+      getPassOnAnswerTitle([refused(OnCallPassOnRefusal.RecordAcknowledged)]),
+    ).toBe("Already acknowledged");
+    expect(
+      getPassOnAnswerTitle([refused(OnCallPassOnRefusal.AlreadyPassedOn)]),
+    ).toBe("Already passed on");
+
+    for (const refusal of [
+      OnCallPassOnRefusal.PageOver,
+      OnCallPassOnRefusal.NotPaged,
+      OnCallPassOnRefusal.InvalidLink,
+    ]) {
+      expect(getPassOnAnswerTitle([refused(refusal)])).toBe(
+        "Nothing to pass on",
+      );
+    }
+  });
+
+  test("refused for different reasons, or no answer at all: Nothing to pass on", () => {
+    expect(
+      getPassOnAnswerTitle([
+        refused(OnCallPassOnRefusal.RecordAcknowledged),
+        refused(OnCallPassOnRefusal.AlreadyPassedOn),
+      ]),
+    ).toBe("Nothing to pass on");
+    expect(getPassOnAnswerTitle([])).toBe("Nothing to pass on");
+  });
+
+  test("never the button's own words: a refusal is no instruction", () => {
+    for (const refusal of Object.values(OnCallPassOnRefusal)) {
+      expect(getPassOnAnswerTitle([refused(refusal)])).not.toBe(
+        PASS_ON_PAGE_TEXT.button,
+      );
+    }
   });
 });
 
@@ -906,7 +1108,11 @@ describe("in a record's header", () => {
   });
 
   test("others on the rule still paged: the dialog says who, and when the policy moves on", async () => {
-    const at: Date = new Date("2026-10-16T09:30:00.000Z");
+    const at: Date = new Date("2026-10-16T12:30:00.000Z");
+
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(new Date("2026-10-16T12:00:00.000Z"));
 
     getAnswers.push(
       pagedAbout({
@@ -923,10 +1129,48 @@ describe("in a record's header", () => {
     fireEvent.click(passOnButton()!);
 
     expect(dialogLines()[1]).toBe(
-      `Bob Smith is still being paged. If nobody acknowledges by ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-        at,
+      `Bob Smith is still being paged. If nobody acknowledges by ${getOnCallPassOnTimeOfDay(
+        { at: at },
       )}, escalation rule 3 of 3 (Managers) is next.`,
     );
+    expect(screen.queryByTestId("pass-on-warning")).toBeNull();
+  });
+
+  test("nobody left to page: the dialog warns about it first, before and after", async () => {
+    getAnswers.push(pagedAbout({ outcome: OnCallPassOnOutcome.PagingStopped }));
+    postAnswers.push(
+      passed({ outcome: OnCallPassOnOutcome.PagingStopped, pagedNames: [] }),
+    );
+    getAnswers.push({ pages: [] });
+
+    render(<Header />);
+    await flush();
+
+    fireEvent.click(passOnButton()!);
+
+    const asked: HTMLElement = screen.getByTestId("pass-on-warning");
+    expect(asked).toHaveAttribute("role", "alert");
+    expect(asked).toHaveTextContent(
+      "Nobody else is left to page: paging stops, and somebody needs to take it.",
+    );
+    // The warning comes before the line about the reader.
+    expect(
+      asked.compareDocumentPosition(
+        screen.getByText("You won't be paged about it again."),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(dialogLines()).toEqual(["You won't be paged about it again."]);
+
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    await flush();
+
+    expect(screen.getByTestId("modal-title")).toHaveTextContent(
+      "You passed it on",
+    );
+    expect(screen.getByTestId("pass-on-warning")).toHaveTextContent(
+      "Nobody else is left to page, so paging stopped. Somebody needs to take it.",
+    );
+    expect(dialogLines()).toEqual(["You won't be paged about it again."]);
   });
 
   test("somebody acknowledged it meanwhile: it says so, and nothing was passed on", async () => {
@@ -950,9 +1194,9 @@ describe("in a record's header", () => {
     fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
     await flush();
 
-    expect(screen.getByTestId("modal-title")).toHaveTextContent("Pass it on");
-    expect(screen.getByTestId("modal-title")).not.toHaveTextContent(
-      "You passed it on",
+    // Why, in a few words - not the button's "Pass it on", which reads as an instruction.
+    expect(screen.getByTestId("modal-title")).toHaveTextContent(
+      "Already acknowledged",
     );
     expect(dialogLines()).toEqual([
       "Ana Lopez acknowledged it already, so there is nothing to pass on.",
@@ -1125,6 +1369,9 @@ describe("in a record's header", () => {
       dialogTitle: "Pass it on?",
       notPagedAgain: "You won't be paged about it again.",
       doneTitle: "You passed it on",
+      alreadyAcknowledgedTitle: "Already acknowledged",
+      alreadyPassedOnTitle: "Already passed on",
+      nothingToPassOnTitle: "Nothing to pass on",
       failed: "Could not pass it on. Please try again.",
       passedOnStatus: "Passed On",
     });

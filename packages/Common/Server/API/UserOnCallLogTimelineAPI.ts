@@ -41,9 +41,11 @@ import {
   ON_CALL_PAGE_NOT_PAGED_AGAIN,
   OnCallPassOnAnswer,
   OnCallPassOnRefusal,
+  OnCallPassOnResult,
   PASS_IT_ON,
   getOnCallPassOnRefusalSentence,
   getOnCallPassOnSentence,
+  isOnCallPassOnPagingStopped,
 } from "../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 
 /*
@@ -98,6 +100,15 @@ interface NotificationRecord {
   timezone: string | undefined;
 }
 
+/*
+ * What a page that offers passing on says under its heading, and - when
+ * passing on leaves nobody being paged - the warning it draws apart.
+ */
+interface PassOnWording {
+  explanation: string;
+  warning?: string | undefined;
+}
+
 export default class UserNotificationLogTimelineAPI extends BaseAPI<
   UserOnCallLogTimeline,
   UserNotificationLogTimelineServiceType
@@ -138,6 +149,10 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                 triggeredByAlertId: true,
                 triggeredByAlertEpisodeId: true,
                 triggeredByIncidentEpisodeId: true,
+                // A time the second key's answer reads out is the person's own.
+                user: {
+                  timezone: true,
+                },
               },
               props: {
                 isRoot: true,
@@ -575,16 +590,24 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
             });
           }
 
+          /*
+           * The heading asks; under it, what passing on does - for them
+           * first, then for the page. The person followed "Can't take it?
+           * Pass it on" to get here, so the page does not ask that again.
+           */
+          const wording: PassOnWording = this.getPassOnWording({
+            result: preview.result,
+            timezone: record.timezone,
+          });
+
           return Response.render(
             req,
             res,
             "/usr/src/Common/Server/Views/PassOnUserOnCallNotification.ejs",
             {
               title: `Pass on ${record.labelInSentence}?`,
-              message: `${CANT_TAKE_IT} ${ON_CALL_PAGE_NOT_PAGED_AGAIN} ${getOnCallPassOnSentence(
-                preview.result,
-                { timezone: record.timezone },
-              )}`,
+              message: wording.explanation,
+              ...(wording.warning ? { warning: wording.warning } : {}),
               passOnText: PASS_IT_ON,
               passOnFormUrl: (
                 await OnCallPageLinks.getPassOnUrl(itemId)
@@ -784,12 +807,15 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
       return null;
     }
 
+    const wording: PassOnWording = this.getPassOnWording({
+      result: preview.result,
+      timezone: data.timezone,
+    });
+
     return {
       lead: CANT_TAKE_IT,
-      explanation: `${ON_CALL_PAGE_NOT_PAGED_AGAIN} ${getOnCallPassOnSentence(
-        preview.result,
-        { timezone: data.timezone },
-      )}`,
+      explanation: wording.explanation,
+      ...(wording.warning ? { warning: wording.warning } : {}),
       buttonText: PASS_IT_ON,
       formUrl: (await OnCallPageLinks.getPassOnUrl(data.itemId)).toString(),
       tokenParam: ON_CALL_PAGE_LINK_TOKEN_PARAM,
@@ -812,14 +838,24 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
         ? "You passed it on"
         : this.getRefusalHeading(answer.refusal);
 
-    const message: string =
-      answer.passedOn && answer.result
-        ? `${getOnCallPassOnSentence(answer.result, {
-            timezone: record.timezone,
-          })} ${ON_CALL_PAGE_NOT_PAGED_AGAIN}`
-        : getOnCallPassOnRefusalSentence(answer, {
-            recordLabel: record.label,
-          });
+    let message: string = getOnCallPassOnRefusalSentence(answer, {
+      recordLabel: record.label,
+    });
+    let warning: string | undefined = undefined;
+
+    if (answer.passedOn && answer.result) {
+      const sentence: string = getOnCallPassOnSentence(answer.result, {
+        timezone: record.timezone,
+      });
+
+      // Nobody is left to page: said as a warning (OnCallPassOnWarning).
+      if (isOnCallPassOnPagingStopped(answer.result)) {
+        message = ON_CALL_PAGE_NOT_PAGED_AGAIN;
+        warning = sentence;
+      } else {
+        message = `${sentence} ${ON_CALL_PAGE_NOT_PAGED_AGAIN}`;
+      }
+    }
 
     return Response.render(
       data.req,
@@ -828,6 +864,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
       {
         title: record.title ? `${heading} - ${record.title}` : heading,
         message: message,
+        ...(warning ? { warning: warning } : {}),
         viewDetailsText: record.viewDetailsText,
         viewDetailsUrl: record.viewDetailsUrl,
         resourceNumber: record.context?.resourceNumber || "",
@@ -838,20 +875,47 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
     );
   }
 
+  /*
+   * The heading over a refusal. It names what happened in a few words, and
+   * leaves the why to the sentence under it - which would otherwise open by
+   * saying the heading again ("This page is over" over "This page is over:
+   * the on-call policy has stopped paging.").
+   */
   private getRefusalHeading(refusal: OnCallPassOnRefusal | undefined): string {
     switch (refusal) {
       case OnCallPassOnRefusal.RecordAcknowledged:
         return "Already acknowledged";
       case OnCallPassOnRefusal.AlreadyPassedOn:
         return "Already passed on";
-      case OnCallPassOnRefusal.PageOver:
-        return "This page is over";
+      // A link outlives its page by days at most: one past its week is why.
       case OnCallPassOnRefusal.InvalidLink:
-        return "This link cannot pass the page on";
+        return "This link has expired";
+      case OnCallPassOnRefusal.PageOver:
       case OnCallPassOnRefusal.NotPaged:
       default:
         return "Nothing to pass on";
     }
+  }
+
+  /*
+   * What the pages that offer passing on say under their heading: that the
+   * person is not paged about it again, and what passing on does. When it
+   * leaves nobody being paged (isOnCallPassOnPagingStopped), that sentence
+   * is a warning of its own, drawn apart (OnCallPassOnWarning.ejs).
+   */
+  private getPassOnWording(data: {
+    result: OnCallPassOnResult;
+    timezone: string | undefined;
+  }): PassOnWording {
+    const sentence: string = getOnCallPassOnSentence(data.result, {
+      timezone: data.timezone,
+    });
+
+    if (isOnCallPassOnPagingStopped(data.result)) {
+      return { explanation: ON_CALL_PAGE_NOT_PAGED_AGAIN, warning: sentence };
+    }
+
+    return { explanation: `${ON_CALL_PAGE_NOT_PAGED_AGAIN} ${sentence}` };
   }
 
   /*
@@ -882,8 +946,10 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
     });
 
     if (answer.passedOn && answer.result) {
+      // "by 3:34 AM CEST": a time read out is the person's own.
       return `You passed this ${noun} on. ${getOnCallPassOnSentence(
         answer.result,
+        { timezone: timelineItem.user?.timezone?.toString() || undefined },
       )} Good bye.`;
     }
 

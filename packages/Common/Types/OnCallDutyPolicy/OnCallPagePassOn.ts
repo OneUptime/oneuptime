@@ -42,6 +42,7 @@
  */
 
 import OneUptimeDate from "../Date";
+import Timezone from "../Timezone";
 
 // The action, on every button and link: "Pass it on".
 export const PASS_IT_ON: string = "Pass it on";
@@ -259,6 +260,11 @@ export interface OnCallPassOnWording {
   recordLabel?: string | undefined;
   // The reader's own time zone, for "by 5:28 AM UTC". Server time without one.
   timezone?: string | undefined;
+  /*
+   * When the sentence is read, for whether "by 5:28 AM UTC" needs its date
+   * (getOnCallPassOnTime). Now without one.
+   */
+  now?: Date | undefined;
 }
 
 // "Alex, Sam and Kim" - names are text.
@@ -300,11 +306,69 @@ function capitalize(text: string): string {
   return text.length > 0 ? text[0]!.toUpperCase() + text.slice(1) : text;
 }
 
-// "5:28 AM UTC" in the reader's zone, or the server's without one.
-function formatTime(at: Date, timezone: string | undefined): string {
+/*
+ * Whether `at` falls on the day `now` does, as the reader's clock reads both
+ * - in `timezone`, or the server's or browser's zone without one.
+ */
+export function isOnCallPassOnTimeToday(data: {
+  at: Date;
+  now?: Date | undefined;
+  timezone?: string | undefined;
+}): boolean {
+  const day: (date: Date) => string = (date: Date): string => {
+    return OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+      date: date,
+      format: "YYYY-MM-DD",
+      timezone: data.timezone,
+    });
+  };
+
+  return day(data.at) === day(data.now || OneUptimeDate.getCurrentDate());
+}
+
+// "5:28 AM UTC": the time of day of `at`, with its zone.
+export function getOnCallPassOnTimeOfDay(data: {
+  at: Date;
+  timezone?: string | undefined;
+}): string {
+  const time: string = OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+    date: data.at,
+    format: OneUptimeDate.getUserPrefers12HourFormat() ? "h:mm A" : "HH:mm",
+    timezone: data.timezone,
+  });
+
+  const zone: string = OneUptimeDate.getZoneAbbrByTimezone(
+    (data.timezone || OneUptimeDate.getCurrentTimezone()) as Timezone,
+    data.at,
+  );
+
+  return `${time} ${zone}`.trim();
+}
+
+/*
+ * When the policy moves on, in the reader's zone (the server's without
+ * one). A rule's wait is minutes away, so on the same day the time says it
+ * - "by 5:28 AM UTC" - and a date in front of it would only stand between
+ * the reader and the clock, on a page read at 3 a.m. or a call read out. A
+ * time on another day keeps its date: "by Oct 17, 2026, 12:10 AM UTC".
+ */
+export function getOnCallPassOnTime(
+  at: Date,
+  wording: OnCallPassOnWording = {},
+): string {
+  if (
+    isOnCallPassOnTimeToday({
+      at: at,
+      now: wording.now,
+      timezone: wording.timezone,
+    })
+  ) {
+    return getOnCallPassOnTimeOfDay({ at: at, timezone: wording.timezone });
+  }
+
   return OneUptimeDate.getDateAsFormattedStringInTimezone({
     date: at,
-    timezone: timezone,
+    timezone: wording.timezone,
   });
 }
 
@@ -313,8 +377,8 @@ function formatTime(at: Date, timezone: string | undefined): string {
  * page, the page after it, a phone call and the API answer say.
  *
  *   Escalation rule 2 of 3 (Level 2) is paging Sam Lee now.
- *   Bob Smith is still being paged. If nobody acknowledges by Oct 16, 2026,
- *     5:28 AM UTC, escalation rule 2 of 3 is next.
+ *   Bob Smith is still being paged. If nobody acknowledges by 5:28 AM UTC,
+ *     escalation rule 2 of 3 is next.
  *
  * It never says the person is not paged again: every place says that once,
  * in its own words, beside it.
@@ -363,9 +427,9 @@ export function getOnCallPassOnSentence(
         ? `${getOnCallPassOnRuleLabel(result.nextRule, result.ruleCount)} is next`
         : "the policy moves on";
 
-      return `${still} If nobody acknowledges by ${formatTime(
+      return `${still} If nobody acknowledges by ${getOnCallPassOnTime(
         result.nextStepAt,
-        wording.timezone,
+        wording,
       )}, ${next}.`;
     }
     case OnCallPassOnOutcome.AlreadyEscalated: {
@@ -415,6 +479,18 @@ export function getOnCallPassOnRefusalSentence(
     default:
       return "You are not being paged about this right now.";
   }
+}
+
+/*
+ * Whether passing on leaves - or left - nobody being paged: the last rule
+ * with no repeat, or everybody else passed it on too. Every place says that
+ * one as a warning, not in passing: nobody is on the record, and somebody
+ * still needs to take it.
+ */
+export function isOnCallPassOnPagingStopped(
+  result: OnCallPassOnResult,
+): boolean {
+  return result.outcome === OnCallPassOnOutcome.PagingStopped;
 }
 
 /*
