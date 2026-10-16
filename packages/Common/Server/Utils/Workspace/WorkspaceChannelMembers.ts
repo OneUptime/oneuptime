@@ -606,7 +606,18 @@ export default class WorkspaceChannelMembers {
     });
 
     if (people.length === 0) {
-      throw new BadDataException("Choose at least one person or team to add.");
+      /*
+       * A team picked in Add people with nobody in it - none of its members
+       * has joined the project yet - is said so, not taken for an empty
+       * request.
+       */
+      throw new BadDataException(
+        data.userIds.length === 0 && data.teamIds.length === 1
+          ? "The team you picked has nobody in it yet."
+          : data.userIds.length === 0 && data.teamIds.length > 1
+            ? "The teams you picked have nobody in them yet."
+            : "Choose at least one person or team to add.",
+      );
     }
 
     if (people.length > WORKSPACE_CHANNEL_ADD_MAX_PEOPLE) {

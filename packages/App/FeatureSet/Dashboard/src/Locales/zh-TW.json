@@ -30067,7 +30067,6 @@
   "Reading the incident timeline": "正在讀取事件時間軸",
   "Searching past incidents": "正在搜尋過去的事件",
   "Ranked by": "排序依據",
-  "A private channel: only its members can open it. Its owners add people in Microsoft Teams.": "這是私人頻道：只有其成員可以開啟。頻道擁有者會在 Microsoft Teams 中新增成員。",
   "Add people": "新增成員",
   "Added {{name}}.": "已新增 {{name}}。",
   "Chat Channels": "聊天頻道",
@@ -30105,5 +30104,14 @@
   "{{name}} is a guest in Slack, and Slack doesn't let OneUptime add them to this channel.": "{{name}} 是 Slack 中的訪客，Slack 不允許 OneUptime 將其新增到此頻道。",
   "{{name}} is already in this channel.": "{{name}} 已在此頻道中。",
   "{{name}} isn't a member of this project, so OneUptime can't add them.": "{{name}} 不是此專案的成員，因此 OneUptime 無法新增。",
-  "Channel Member Added": "已新增頻道成員"
+  "Channel Member Added": "已新增頻道成員",
+  "Added {{count}} people from {{team}}.": "已從 {{team}} 新增 {{count}} 人。",
+  "Added {{count}} people from {{team}}._one": "已從 {{team}} 新增 {{count}} 人。",
+  "Everyone in {{team}} is already in this channel.": "{{team}} 中的每個人都已在此頻道中。",
+  "OneUptime can't find {{names}} in Slack: their accounts aren't connected, and no Slack account has their email address. Ask them to connect Slack in User Settings.": "OneUptime 在 Slack 中找不到 {{names}}：他們的帳戶未連結，也沒有 Slack 帳戶使用他們的電子郵件地址。請他們在使用者設定中連結 Slack。",
+  "Only its members can open it. Its owners add people in Microsoft Teams.": "只有其成員可以開啟。頻道擁有者會在 Microsoft Teams 中新增成員。",
+  "Slack didn't answer for {{names}}. Try again in a minute.": "Slack 未對 {{names}} 作出回應。請一分鐘後再試一次。",
+  "Slack didn't let OneUptime add {{names}}.": "Slack 不允許 OneUptime 新增 {{names}}。",
+  "{{names}} are guests in Slack, and Slack doesn't let OneUptime add them to this channel.": "{{names}} 是 Slack 中的訪客，Slack 不允許 OneUptime 將他們新增到此頻道。",
+  "{{names}} aren't members of this project, so OneUptime can't add them.": "{{names}} 不是此專案的成員，因此 OneUptime 無法新增他們。"
 }

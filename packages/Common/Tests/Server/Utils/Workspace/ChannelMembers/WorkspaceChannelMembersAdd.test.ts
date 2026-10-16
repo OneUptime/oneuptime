@@ -392,6 +392,28 @@ describe("adding a team", () => {
     ).rejects.toBeInstanceOf(BadDataException);
     expect(world.slackRequests).toEqual([]);
   });
+
+  /*
+   * Add people shows the server's words under its list: a team picked with
+   * nobody in it yet is said so, not "choose someone" - somebody just did.
+   */
+  test("a team with nobody in it yet is said so, not taken for an empty request", async () => {
+    world.platformTeam = world.platformTeam.map(
+      (member: { userId: ObjectID; accepted: boolean }) => {
+        return { ...member, accepted: false };
+      },
+    );
+
+    await expect(add({ teamIds: [PLATFORM_TEAM_ID] })).rejects.toThrow(
+      new BadDataException("The team you picked has nobody in it yet."),
+    );
+    await expect(
+      add({ teamIds: [PLATFORM_TEAM_ID, OTHER_PROJECT_TEAM_ID] }),
+    ).rejects.toThrow(
+      new BadDataException("The teams you picked have nobody in them yet."),
+    );
+    expect(world.slackRequests).toEqual([]);
+  });
 });
 
 describe("a channel that can take nobody", () => {
@@ -556,7 +578,9 @@ describe("who may add people, and to which channel", () => {
   });
 
   test("nobody to add is refused", async () => {
-    await expect(add({})).rejects.toBeInstanceOf(BadDataException);
+    await expect(add({})).rejects.toThrow(
+      new BadDataException("Choose at least one person or team to add."),
+    );
   });
 });
 

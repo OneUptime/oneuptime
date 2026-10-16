@@ -70,6 +70,8 @@ export interface RecordChannelMembersState {
   answer: WorkspaceRecordChannels | null;
   // The first read has not answered yet.
   isLoading: boolean;
+  // A read asked for with refresh() has not answered yet.
+  isRefreshing: boolean;
   error: string;
   refresh: () => void;
 }
@@ -94,6 +96,7 @@ export default function useRecordChannelMembers(data: {
     error: string;
   } | null>(null);
   const [attempt, setAttempt] = useState<number>(0);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   useEffect(() => {
     if (!data.isEnabled) {
@@ -109,6 +112,7 @@ export default function useRecordChannelMembers(data: {
       .then((answer: WorkspaceRecordChannels) => {
         if (isCurrent) {
           setLoaded({ recordKey, answer, error: "" });
+          setIsRefreshing(false);
         }
       })
       .catch((err: unknown) => {
@@ -118,6 +122,7 @@ export default function useRecordChannelMembers(data: {
             answer: null,
             error: API.getFriendlyMessage(err),
           });
+          setIsRefreshing(false);
         }
       });
 
@@ -127,6 +132,7 @@ export default function useRecordChannelMembers(data: {
   }, [recordKey, data.readKey, data.isEnabled, attempt]);
 
   const refresh: () => void = useCallback((): void => {
+    setIsRefreshing(true);
     setAttempt((current: number) => {
       return current + 1;
     });
@@ -139,6 +145,7 @@ export default function useRecordChannelMembers(data: {
   return {
     answer: isCurrentRecord ? loaded!.answer : null,
     isLoading: !isCurrentRecord,
+    isRefreshing: isCurrentRecord && isRefreshing,
     error: isCurrentRecord ? loaded!.error : "",
     refresh: refresh,
   };

@@ -41,7 +41,9 @@
  *            minutes after its start; "overrun" is still Ongoing 30 minutes
  *            after its end.
  *   ?fail=   comma separated: evidence, verdict, create-fix-task,
- *            investigation, conversation, conversation-send, resend. The
+ *            investigation, conversation, conversation-send, resend,
+ *            channel-links, channel-members (the channel card's read),
+ *            channel-add (its Join channel and Add people). The
  *            matching API call throws HTTPErrorResponse. "conversation" is
  *            the read of the AI card's thread and "conversation-send" a
  *            question sent to it. "resend" also marks the subscriber
@@ -92,6 +94,9 @@
  *            POST .../add adds people: Alex Kim is nobody Slack knows (not
  *            found), and a team adds its people.
  *   ?teamsPrivate=1 the Teams channel is private.
+ *   ?unknown= the people Slack does not know, as POST .../add answers them
+ *            (not found): a comma list of maya, sam, jordan, alex. Alex by
+ *            default.
  *   ?role=   owner (default) | alert-member | loading
  *            Who is signed in. "owner" is a master admin who is also the
  *            Project Owner, so every permission gate is open. "alert-member"
@@ -315,6 +320,11 @@ const membersMode = MEMBERS_MODES.includes(params.get("members"))
   ? params.get("members")
   : "some";
 const isTeamsChannelPrivate = params.get("teamsPrivate") === "1";
+const unknownToSlack = new Set(
+  (params.get("unknown") ?? "alex")
+    .split(",")
+    .filter((value) => value.length > 0),
+);
 /*
  * ?feed=oncall-run: incident #1042's on-call run in full, as the run writes
  * its feed entries now (OnCallFeedText) - four on-call entries within a
@@ -5021,8 +5031,12 @@ function addToChannel(body) {
     });
     const name = member ? member.name.toString() : "Someone";
 
-    // Nobody in Slack has Alex Kim's email address.
-    if (member === people.alex) {
+    // Nobody in Slack has their email address (?unknown=, Alex by default).
+    const memberKey = Object.keys(people).find((key) => {
+      return people[key] === member;
+    });
+
+    if (memberKey && unknownToSlack.has(memberKey)) {
       return { userId, name, outcome: "not-found" };
     }
 

@@ -400,6 +400,57 @@ describe("whether there is a card at all", () => {
     await card();
     expect(requestsOf("GET").length).toBe(2);
   });
+
+  test("a read that fails is said in the card's own quiet box, with Try again - busy until the next answer", async () => {
+    let answerRetry: (() => void) | undefined;
+
+    readAnswers = [new HTTPErrorResponse(500, { message: "Server Error" }, {})];
+    lastRead = { channels: [slackChannel()], canAddPeople: true };
+    renderCard({});
+
+    const box: HTMLElement = await screen.findByTestId(
+      "record-channel-read-error",
+    );
+
+    // Not the page-wide error panel with its "Refresh?" link.
+    expect(within(box).getByRole("alert")).toHaveTextContent(
+      "Could not read who is in this channel. Server Error",
+    );
+    expect(screen.queryByText("Refresh?")).toBeNull();
+
+    // The retry is held until this test lets it answer.
+    jest.spyOn(API, "get").mockImplementationOnce((async () => {
+      await new Promise<void>((resolve: () => void) => {
+        answerRetry = resolve;
+      });
+
+      return new HTTPResponse<JSONObject>(
+        200,
+        WorkspaceChannelMembersUtil.channelsToJSON(lastRead),
+        {},
+      );
+    }) as never);
+
+    const tryAgain: HTMLElement = within(box).getByTestId(
+      "record-channel-read-try-again",
+    );
+
+    expect(tryAgain).toHaveTextContent("Try again");
+    fireEvent.click(tryAgain);
+
+    await waitFor(() => {
+      expect(tryAgain).toBeDisabled();
+    });
+    expect(tryAgain).toHaveAttribute("aria-busy", "true");
+
+    await act(async () => {
+      answerRetry?.();
+      await Promise.resolve();
+    });
+
+    await card();
+    expect(screen.queryByTestId("record-channel-read-error")).toBeNull();
+  });
 });
 
 describe("the channel and the people in it", () => {
@@ -621,6 +672,82 @@ describe("joining the channel", () => {
     });
     expect(open).toHaveAttribute("href", SLACK_URL);
     expect(within(element).queryByTestId("record-channel-join")).toBeNull();
+
+    /*
+     * The button pressed is gone: the keyboard moves on to the channel's
+     * link beside the news, not back to the top of the page.
+     */
+    expect(open).toHaveAttribute(
+      "data-testid",
+      "record-channel-open-after-join",
+    );
+    expect(document.activeElement).toBe(open);
+  });
+
+  test("a join Slack refused leaves focus on Join channel, to try again", async () => {
+    readAnswer({ channels: [slackChannel()], canAddPeople: true });
+    addAnswers = [
+      {
+        results: [
+          {
+            userId: VIEWER,
+            name: "Alice Smith",
+            outcome: WorkspaceChannelAddOutcome.Refused,
+          },
+        ],
+      },
+    ];
+    renderCard({});
+
+    const element: HTMLElement = await card();
+    const join: HTMLElement = within(element).getByTestId(
+      "record-channel-join",
+    );
+
+    join.focus();
+    fireEvent.click(join);
+
+    expect(
+      await within(element).findByText("Slack didn't let OneUptime add you."),
+    ).toBeInTheDocument();
+    expect(
+      within(element).queryByTestId("record-channel-open-after-join"),
+    ).toBeNull();
+    expect(document.activeElement).toBe(join);
+  });
+
+  test("Join channel and Add people share one row and fill it, each a full row when the column is too narrow for both", async () => {
+    readAnswer({ channels: [slackChannel()], canAddPeople: true });
+    renderCard({});
+
+    const element: HTMLElement = await card();
+    const actions: HTMLElement = within(element).getByTestId(
+      "record-channel-actions",
+    );
+    const join: HTMLElement = within(actions).getByTestId(
+      "record-channel-join",
+    );
+    const addPeople: HTMLElement = within(actions).getByTestId(
+      "record-channel-add-people",
+    );
+
+    // jsdom lays nothing out: the classes that do it (E2E measures it).
+    expect(actions.className.split(" ")).toEqual(
+      expect.arrayContaining(["flex", "flex-wrap"]),
+    );
+    expect(join.className.split(" ")).toEqual(
+      expect.arrayContaining([
+        "flex-auto",
+        "justify-center",
+        "whitespace-nowrap",
+      ]),
+    );
+    expect(addPeople.parentElement!.className.split(" ")).toContain(
+      "flex-auto",
+    );
+    expect(addPeople.className.split(" ")).toEqual(
+      expect.arrayContaining(["w-full", "justify-center", "whitespace-nowrap"]),
+    );
   });
 
   test("a viewer OneUptime cannot find in Slack is told so where they pressed", async () => {
@@ -787,6 +914,40 @@ describe("what somebody without Join channel is told", () => {
       "You're not in this channel. It's public: open it in Slack to join.",
     );
   });
+
+  test("what someone without Join channel is told reads as large as 'You're not in this channel.'", async () => {
+    readAnswer({ channels: [slackChannel()], canAddPeople: true });
+    renderCard({});
+
+    const notIn: HTMLElement = within(await card()).getByTestId(
+      "record-channel-not-in",
+    );
+    const sentenceClasses: Array<string> = notIn.className
+      .split(" ")
+      .filter((name: string): boolean => {
+        return name.startsWith("text-");
+      });
+
+    cleanup();
+
+    for (const [isPrivate, testId] of [
+      [true, "record-channel-ask"],
+      [false, "record-channel-join-in-slack"],
+    ] as Array<[boolean, string]>) {
+      readAnswer({
+        channels: [slackChannel({ isPrivate })],
+        canAddPeople: false,
+      });
+      renderCard({});
+
+      const prompt: HTMLElement = within(await card()).getByTestId(testId);
+
+      expect(prompt.className.split(" ")).toEqual(
+        expect.arrayContaining(sentenceClasses),
+      );
+      cleanup();
+    }
+  });
 });
 
 describe("a channel that can take nobody", () => {
@@ -842,6 +1003,17 @@ describe("a channel that can take nobody", () => {
       "If it's still there, someone in it can add the app back by typing /invite @OneUptime.",
     );
     expect(screen.queryByTestId("record-channel-people")).toBeNull();
+
+    // The command reads as one: to be typed as written, left to right.
+    const command: HTMLElement = within(state).getByText("/invite @OneUptime");
+
+    expect(command.tagName).toBe("CODE");
+    expect(command).toHaveAttribute("dir", "ltr");
+    expect(
+      within(state).getByTestId("record-channel-unreachable-hint"),
+    ).toHaveTextContent(
+      /^If it's still there, someone in it can add the app back by typing \/invite @OneUptime\.$/,
+    );
   });
 
   test("Slack not answering: Try again reads again", async () => {
@@ -870,7 +1042,7 @@ describe("a channel that can take nobody", () => {
     });
   });
 
-  test("Slack disconnected from the project", async () => {
+  test("Slack disconnected from the project: Connect Slack, to the project's Slack settings", async () => {
     readAnswer({
       channels: [
         slackChannel({
@@ -883,9 +1055,79 @@ describe("a channel that can take nobody", () => {
     });
     renderCard({});
 
+    const state: HTMLElement = within(await card()).getByTestId(
+      "record-channel-state",
+    );
+
+    expect(state).toHaveTextContent("Slack isn't connected to this project.");
+
+    const connect: HTMLElement = within(state).getByRole("link", {
+      name: "Connect Slack",
+    });
+
+    expect(connect).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/settings/slack-integration`,
+    );
     expect(
-      within(await card()).getByTestId("record-channel-state"),
-    ).toHaveTextContent("Slack isn't connected to this project.");
+      within(state).getByTestId("record-channel-connect-project"),
+    ).toContainElement(connect);
+  });
+
+  test("Slack not answering: Try again is busy until the next answer", async () => {
+    let answerRetry: (() => void) | undefined;
+
+    readAnswer({
+      channels: [
+        slackChannel({
+          state: WorkspaceChannelState.Unavailable,
+          people: [],
+          peopleCount: 0,
+        }),
+      ],
+      canAddPeople: true,
+    });
+    renderCard({});
+
+    const element: HTMLElement = await card();
+
+    jest.spyOn(API, "get").mockImplementationOnce((async () => {
+      await new Promise<void>((resolve: () => void) => {
+        answerRetry = resolve;
+      });
+
+      return new HTTPResponse<JSONObject>(
+        200,
+        WorkspaceChannelMembersUtil.channelsToJSON({
+          channels: [slackChannel()],
+          canAddPeople: true,
+        }),
+        {},
+      );
+    }) as never);
+
+    const tryAgain: HTMLElement = within(element).getByTestId(
+      "record-channel-try-again",
+    );
+
+    expect(tryAgain).not.toBeDisabled();
+    fireEvent.click(tryAgain);
+
+    await waitFor(() => {
+      expect(tryAgain).toBeDisabled();
+    });
+
+    await act(async () => {
+      answerRetry?.();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(within(element).getByTestId("record-channel")).toHaveAttribute(
+        "data-channel-state",
+        WorkspaceChannelState.Members,
+      );
+    });
   });
 });
 
@@ -910,7 +1152,7 @@ describe("Microsoft Teams channels", () => {
     ).toBeNull();
   });
 
-  test("a private one: only its members, added by its owners in Teams", async () => {
+  test("a private one: only its members, added by its owners in Teams - 'private' said once", async () => {
     readAnswer({
       channels: [teamsChannel({ isPrivate: true })],
       canAddPeople: true,
@@ -921,12 +1163,17 @@ describe("Microsoft Teams channels", () => {
 
     expect(
       within(element).getByTestId("record-channel-meta"),
-    ).toHaveTextContent("Private channel");
-    expect(
-      within(element).getByTestId("record-channel-teams-note"),
-    ).toHaveTextContent(
-      "A private channel: only its members can open it. Its owners add people in Microsoft Teams.",
+    ).toHaveTextContent(/^Private channel$/);
+
+    const note: HTMLElement = within(element).getByTestId(
+      "record-channel-teams-note",
     );
+
+    expect(note).toHaveTextContent(
+      /^Only its members can open it\. Its owners add people in Microsoft Teams\.$/,
+    );
+    // The line above says it is private; the note does not say it again.
+    expect(note.textContent?.toLowerCase()).not.toContain("private");
   });
 
   test("one Microsoft Graph could not tell about, and a team without a name", async () => {
@@ -1063,6 +1310,68 @@ describe("Add people", () => {
       expect(optionIds(dialog)).not.toContain(CAROL);
     });
     expect(within(dialog).queryByRole("alert")).toBeNull();
+
+    // And says so where the pick was made.
+    expect(
+      within(dialog).getByTestId("people-search-notice-done"),
+    ).toHaveTextContent(/^Added Carol Lee\.$/);
+    expect(
+      within(dialog).getByTestId("people-search-notice-done"),
+    ).toHaveAttribute("role", "status");
+  });
+
+  test("picking yourself joins you, said as 'you'", async () => {
+    readAnswer({ channels: [slackChannel()], canAddPeople: true });
+    addAnswers = [
+      {
+        results: [
+          {
+            userId: VIEWER,
+            name: "Alice Smith",
+            outcome: WorkspaceChannelAddOutcome.Added,
+          },
+        ],
+      },
+    ];
+    renderCard({});
+
+    const dialog: HTMLElement = await openAddPeople(await card());
+
+    fireEvent.click(
+      within(dialog).getByRole("option", { name: /Alice Smith/ }),
+    );
+
+    expect(
+      await within(dialog).findByTestId("people-search-notice-done"),
+    ).toHaveTextContent(/^You're in the channel now\.$/);
+  });
+
+  test("somebody in the channel already is said in grey, not as a problem", async () => {
+    readAnswer({ channels: [slackChannel()], canAddPeople: true });
+    addAnswers = [
+      {
+        results: [
+          {
+            userId: CAROL,
+            name: "Carol Lee",
+            outcome: WorkspaceChannelAddOutcome.AlreadyIn,
+          },
+        ],
+      },
+    ];
+    renderCard({});
+
+    const dialog: HTMLElement = await openAddPeople(await card());
+
+    fireEvent.click(within(dialog).getByRole("option", { name: /Carol Lee/ }));
+
+    expect(
+      await within(dialog).findByTestId("people-search-notice-unchanged"),
+    ).toHaveTextContent(/^Carol Lee is already in this channel\.$/);
+    expect(within(dialog).queryByRole("alert")).toBeNull();
+    expect(
+      within(dialog).queryByTestId("people-search-notice-done"),
+    ).toBeNull();
   });
 
   test("a person OneUptime cannot find in Slack is said under the list, with what to do", async () => {
@@ -1124,6 +1433,160 @@ describe("Add people", () => {
     expect(await within(dialog).findByRole("alert")).toHaveTextContent(
       "Dan Brown is a guest in Slack, and Slack doesn't let OneUptime add them to this channel.",
     );
+    // Who was added, by how many and from which team.
+    expect(
+      within(dialog).getByTestId("people-search-notice-done"),
+    ).toHaveTextContent(/^Added 1 person from Platform\.$/);
+  });
+
+  test("a team's people with the same problem are named in one sentence, problems after what was done", async () => {
+    readAnswer({ channels: [slackChannel()], canAddPeople: true });
+    addAnswers = [
+      {
+        results: [
+          {
+            userId: BOB,
+            name: "Bob Jones",
+            outcome: WorkspaceChannelAddOutcome.AlreadyIn,
+          },
+          {
+            userId: CAROL,
+            name: "Carol Lee",
+            outcome: WorkspaceChannelAddOutcome.Guest,
+          },
+          {
+            userId: DAN,
+            name: "Dan Brown",
+            outcome: WorkspaceChannelAddOutcome.NotFound,
+          },
+          {
+            userId: "c8000000-0000-4000-8000-000000000015",
+            name: "Eve Stone",
+            outcome: WorkspaceChannelAddOutcome.NotFound,
+          },
+          {
+            userId: VIEWER,
+            name: "Alice Smith",
+            outcome: WorkspaceChannelAddOutcome.Added,
+          },
+        ],
+      },
+    ];
+    renderCard({});
+
+    const dialog: HTMLElement = await openAddPeople(await card());
+
+    fireEvent.click(within(dialog).getByRole("option", { name: /Platform/ }));
+
+    const problems: HTMLElement = await within(dialog).findByTestId(
+      "people-search-notice-problem",
+    );
+
+    expect(problems).toHaveAttribute("role", "alert");
+    expect(
+      within(problems)
+        .getAllByText(/./, { selector: "p" })
+        .map((line: HTMLElement) => {
+          return line.textContent;
+        }),
+    ).toEqual([
+      "OneUptime can't find Dan Brown and Eve Stone in Slack: their accounts aren't connected, and no Slack account has their email address. Ask them to connect Slack in User Settings.",
+      "Carol Lee is a guest in Slack, and Slack doesn't let OneUptime add them to this channel.",
+    ]);
+    expect(
+      within(dialog).getByTestId("people-search-notice-done"),
+    ).toHaveTextContent(/^Added 1 person from Platform\.$/);
+
+    // What was done first, then what went wrong.
+    expect(
+      Array.from(
+        within(dialog)
+          .getByTestId("people-search-notices")
+          .querySelectorAll("[data-testid^='people-search-notice-']"),
+      ).map((band: Element) => {
+        return band.getAttribute("data-testid");
+      }),
+    ).toEqual(["people-search-notice-done", "people-search-notice-problem"]);
+  });
+
+  test("a team whose people are all in the channel already says so, so the pick is not silent", async () => {
+    readAnswer({ channels: [slackChannel()], canAddPeople: true });
+    addAnswers = [
+      {
+        results: [
+          {
+            userId: BOB,
+            name: "Bob Jones",
+            outcome: WorkspaceChannelAddOutcome.AlreadyIn,
+          },
+        ],
+      },
+    ];
+    renderCard({});
+
+    const dialog: HTMLElement = await openAddPeople(await card());
+
+    fireEvent.click(within(dialog).getByRole("option", { name: /Platform/ }));
+
+    expect(
+      await within(dialog).findByTestId("people-search-notice-unchanged"),
+    ).toHaveTextContent(/^Everyone in Platform is already in this channel\.$/);
+    expect(within(dialog).queryByRole("alert")).toBeNull();
+  });
+
+  test("a channel archived since the card was read is said under the list", async () => {
+    readAnswer({ channels: [slackChannel()], canAddPeople: true });
+    addAnswers = [
+      { channelState: WorkspaceChannelState.Archived, results: [] },
+    ];
+    renderCard({});
+
+    const dialog: HTMLElement = await openAddPeople(await card());
+
+    fireEvent.click(within(dialog).getByRole("option", { name: /Carol Lee/ }));
+
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+      /^This channel is archived\. Unarchive it in Slack to add people\.$/,
+    );
+  });
+
+  test("each pick says what it came to, in place of the last one's", async () => {
+    readAnswer({ channels: [slackChannel()], canAddPeople: true });
+    addAnswers = [
+      {
+        results: [
+          {
+            userId: DAN,
+            name: "Dan Brown",
+            outcome: WorkspaceChannelAddOutcome.NotFound,
+          },
+        ],
+      },
+      {
+        results: [
+          {
+            userId: CAROL,
+            name: "Carol Lee",
+            outcome: WorkspaceChannelAddOutcome.Added,
+          },
+        ],
+      },
+    ];
+    renderCard({});
+
+    const dialog: HTMLElement = await openAddPeople(await card());
+
+    fireEvent.click(within(dialog).getByRole("option", { name: /Dan Brown/ }));
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+      "OneUptime can't find Dan Brown in Slack",
+    );
+
+    fireEvent.click(within(dialog).getByRole("option", { name: /Carol Lee/ }));
+
+    expect(
+      await within(dialog).findByTestId("people-search-notice-done"),
+    ).toHaveTextContent("Added Carol Lee.");
+    expect(within(dialog).queryByRole("alert")).toBeNull();
   });
 
   test("into the channel it was opened from, when the record has several", async () => {

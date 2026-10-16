@@ -30067,7 +30067,6 @@
   "Reading the incident timeline": "インシデントのタイムラインを読み取り中",
   "Searching past incidents": "過去のインシデントを検索中",
   "Ranked by": "並べ替え",
-  "A private channel: only its members can open it. Its owners add people in Microsoft Teams.": "プライベート チャネルです。開けるのはメンバーだけです。メンバーの追加は、チャネルの所有者が Microsoft Teams で行います。",
   "Add people": "メンバーを追加",
   "Added {{name}}.": "{{name}} を追加しました。",
   "Chat Channels": "チャット チャネル",
@@ -30105,5 +30104,14 @@
   "{{name}} is a guest in Slack, and Slack doesn't let OneUptime add them to this channel.": "{{name}} は Slack のゲストのため、Slack は OneUptime がこのチャネルに追加することを許可していません。",
   "{{name}} is already in this channel.": "{{name}} はすでにこのチャネルに参加しています。",
   "{{name}} isn't a member of this project, so OneUptime can't add them.": "{{name}} はこのプロジェクトのメンバーではないため、OneUptime は追加できません。",
-  "Channel Member Added": "チャネル メンバー追加済み"
+  "Channel Member Added": "チャネル メンバー追加済み",
+  "Added {{count}} people from {{team}}.": "{{team}} から {{count}} 人を追加しました。",
+  "Added {{count}} people from {{team}}._one": "{{team}} から {{count}} 人を追加しました。",
+  "Everyone in {{team}} is already in this channel.": "{{team}} の全員がすでにこのチャネルに参加しています。",
+  "OneUptime can't find {{names}} in Slack: their accounts aren't connected, and no Slack account has their email address. Ask them to connect Slack in User Settings.": "OneUptime は Slack で {{names}} を見つけられません。アカウントが接続されておらず、そのメールアドレスを持つ Slack アカウントもありません。ユーザー設定で Slack を接続するよう依頼してください。",
+  "Only its members can open it. Its owners add people in Microsoft Teams.": "開けるのはメンバーだけです。メンバーの追加は、チャネルの所有者が Microsoft Teams で行います。",
+  "Slack didn't answer for {{names}}. Try again in a minute.": "{{names}} について Slack から応答がありませんでした。1 分後にもう一度お試しください。",
+  "Slack didn't let OneUptime add {{names}}.": "Slack が OneUptime による {{names}} の追加を許可しませんでした。",
+  "{{names}} are guests in Slack, and Slack doesn't let OneUptime add them to this channel.": "{{names}} は Slack のゲストのため、Slack は OneUptime がこのチャネルに追加することを許可していません。",
+  "{{names}} aren't members of this project, so OneUptime can't add them.": "{{names}} はこのプロジェクトのメンバーではないため、OneUptime は追加できません。"
 }

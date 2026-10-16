@@ -11,7 +11,18 @@ import {
 } from "Common/Types/Workspace/WorkspaceChannelMembers";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import {
+  PeopleSearchNotice,
+  PeopleSearchNoticeTone,
+} from "Common/UI/Components/PeoplePicker/PeopleSearchNotice";
+import {
+  createTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import {
+  ADDED_FROM_TEAM,
   ADD_OUTCOME_TEXT,
+  ADD_PROBLEM_ORDER,
+  ADD_PROBLEM_TEXT_FOR_SEVERAL,
   ASK_TO_BE_ADDED,
   AddOutcomeSentence,
   CHANNEL_PEOPLE_FOLDED_COUNT,
@@ -23,14 +34,17 @@ import {
   UNNAMED_PEOPLE,
   canAddPeopleTo,
   getAddOutcomeSentences,
+  getAddProblemSentences,
   getCardTitle,
   getChannelLabel,
   getFoldedCount,
   getPeopleInChannelUserIds,
+  getPickNotices,
   getShownPeople,
   getUnnamedCount,
   getViewerPrompt,
   isAddProblem,
+  splitAtSlackInviteCommand,
 } from "../../FeatureSet/Dashboard/src/Components/Workspace/RecordChannelMembers";
 
 /*
@@ -388,6 +402,364 @@ describe("what adding people says", () => {
 });
 
 /*
+ * What the Add people list says under it after a pick (getPickNotices): a
+ * pick never seems to do nothing, and a team's people with one problem are
+ * named in one sentence instead of a long sentence each.
+ */
+const ENGLISH: Translator = createTranslator(undefined, "en");
+const CAROL: string = "c7000000-0000-4000-8000-000000000003";
+const DAN: string = "c7000000-0000-4000-8000-000000000004";
+const EVE: string = "c7000000-0000-4000-8000-000000000005";
+const FAY: string = "c7000000-0000-4000-8000-000000000006";
+
+type Outcome = WorkspaceChannelAddOutcome;
+
+const result: (
+  userId: string,
+  name: string,
+  outcome: Outcome,
+) => { userId: string; name: string; outcome: Outcome } = (
+  userId: string,
+  name: string,
+  outcome: Outcome,
+): { userId: string; name: string; outcome: Outcome } => {
+  return { userId, name, outcome };
+};
+
+describe("what a pick in Add people says", () => {
+  test("a person: added by name, or the viewer as 'you'", () => {
+    expect(
+      getPickNotices({
+        answer: {
+          results: [result(BOB, "Bob", WorkspaceChannelAddOutcome.Added)],
+        },
+        viewerUserId: VIEWER,
+        translator: ENGLISH,
+      }),
+    ).toEqual([{ tone: PeopleSearchNoticeTone.Done, text: "Added Bob." }]);
+
+    expect(
+      getPickNotices({
+        answer: {
+          results: [result(VIEWER, "Alice", WorkspaceChannelAddOutcome.Added)],
+        },
+        viewerUserId: VIEWER.toUpperCase(),
+        translator: ENGLISH,
+      }),
+    ).toEqual([
+      { tone: PeopleSearchNoticeTone.Done, text: "You're in the channel now." },
+    ]);
+  });
+
+  test("a person in the channel already is said, in grey - not as a problem", () => {
+    expect(
+      getPickNotices({
+        answer: {
+          results: [result(BOB, "Bob", WorkspaceChannelAddOutcome.AlreadyIn)],
+        },
+        viewerUserId: VIEWER,
+        translator: ENGLISH,
+      }),
+    ).toEqual([
+      {
+        tone: PeopleSearchNoticeTone.Unchanged,
+        text: "Bob is already in this channel.",
+      },
+    ]);
+  });
+
+  test("a team: how many it added, from which team, in the count's own form", () => {
+    const notices: (count: number) => Array<PeopleSearchNotice> = (
+      count: number,
+    ): Array<PeopleSearchNotice> => {
+      return getPickNotices({
+        answer: {
+          results: [
+            ...[BOB, CAROL, DAN].slice(0, count).map((userId: string) => {
+              return result(userId, userId, WorkspaceChannelAddOutcome.Added);
+            }),
+            result(EVE, "Eve", WorkspaceChannelAddOutcome.AlreadyIn),
+          ],
+        },
+        viewerUserId: VIEWER,
+        teamName: "Platform",
+        translator: ENGLISH,
+      });
+    };
+
+    expect(notices(1)).toEqual([
+      {
+        tone: PeopleSearchNoticeTone.Done,
+        text: "Added 1 person from Platform.",
+      },
+    ]);
+    expect(notices(3)).toEqual([
+      {
+        tone: PeopleSearchNoticeTone.Done,
+        text: "Added 3 people from Platform.",
+      },
+    ]);
+  });
+
+  test("a team whose people are all in the channel says so, so the pick is not silent", () => {
+    expect(
+      getPickNotices({
+        answer: {
+          results: [
+            result(BOB, "Bob", WorkspaceChannelAddOutcome.AlreadyIn),
+            result(CAROL, "Carol", WorkspaceChannelAddOutcome.AlreadyIn),
+          ],
+        },
+        viewerUserId: VIEWER,
+        teamName: "Platform",
+        translator: ENGLISH,
+      }),
+    ).toEqual([
+      {
+        tone: PeopleSearchNoticeTone.Unchanged,
+        text: "Everyone in Platform is already in this channel.",
+      },
+    ]);
+  });
+
+  test("a team that added nobody and hit problems says only the problems", () => {
+    expect(
+      getPickNotices({
+        answer: {
+          results: [
+            result(BOB, "Bob", WorkspaceChannelAddOutcome.AlreadyIn),
+            result(CAROL, "Carol", WorkspaceChannelAddOutcome.Refused),
+          ],
+        },
+        viewerUserId: VIEWER,
+        teamName: "Platform",
+        translator: ENGLISH,
+      }),
+    ).toEqual([
+      {
+        tone: PeopleSearchNoticeTone.Problem,
+        text: "Slack didn't let OneUptime add Carol.",
+      },
+    ]);
+  });
+
+  test("a channel that took nobody is said by its state", () => {
+    expect(
+      getPickNotices({
+        answer: {
+          channelState: WorkspaceChannelState.Unreachable,
+          results: [],
+        },
+        viewerUserId: VIEWER,
+        teamName: "Platform",
+        translator: ENGLISH,
+      }),
+    ).toEqual([
+      {
+        tone: PeopleSearchNoticeTone.Problem,
+        text: "OneUptime can't see this channel. It was deleted, or the OneUptime app was removed from it.",
+      },
+    ]);
+  });
+});
+
+describe("the problems of one pick", () => {
+  test("several people with one problem: one sentence that names them all, in the language's list form", () => {
+    expect(
+      getAddProblemSentences({
+        results: [
+          result(BOB, "Bob Jones", WorkspaceChannelAddOutcome.NotFound),
+          result(CAROL, "Carol Lee", WorkspaceChannelAddOutcome.NotFound),
+        ],
+        viewerUserId: VIEWER,
+        translator: ENGLISH,
+      }),
+    ).toEqual([
+      "OneUptime can't find Bob Jones and Carol Lee in Slack: their accounts aren't connected, and no Slack account has their email address. Ask them to connect Slack in User Settings.",
+    ]);
+
+    expect(
+      getAddProblemSentences({
+        results: [BOB, CAROL, DAN, EVE].map((userId: string, index: number) => {
+          return result(
+            userId,
+            ["Bob", "Carol", "Dan", "Eve"][index]!,
+            WorkspaceChannelAddOutcome.TryAgain,
+          );
+        }),
+        viewerUserId: VIEWER,
+        translator: ENGLISH,
+      }),
+    ).toEqual([
+      "Slack didn't answer for Bob, Carol, Dan and Eve. Try again in a minute.",
+    ]);
+  });
+
+  test("one person: the one-person sentence; the viewer: 'you', before the others", () => {
+    expect(
+      getAddProblemSentences({
+        results: [
+          result(BOB, "Bob", WorkspaceChannelAddOutcome.Guest),
+          result(VIEWER, "Alice", WorkspaceChannelAddOutcome.Guest),
+        ],
+        viewerUserId: VIEWER,
+        translator: ENGLISH,
+      }),
+    ).toEqual([
+      "You're a guest in Slack, and Slack doesn't let OneUptime add you to this channel.",
+      "Bob is a guest in Slack, and Slack doesn't let OneUptime add them to this channel.",
+    ]);
+  });
+
+  test("said in a fixed order - what to do first, first - whatever order Slack answered in", () => {
+    expect(ADD_PROBLEM_ORDER).toEqual([
+      WorkspaceChannelAddOutcome.NotFound,
+      WorkspaceChannelAddOutcome.NotProjectMember,
+      WorkspaceChannelAddOutcome.Guest,
+      WorkspaceChannelAddOutcome.Refused,
+      WorkspaceChannelAddOutcome.TryAgain,
+    ]);
+
+    expect(
+      getAddProblemSentences({
+        results: [
+          result(BOB, "Bob", WorkspaceChannelAddOutcome.TryAgain),
+          result(CAROL, "Carol", WorkspaceChannelAddOutcome.NotProjectMember),
+          result(DAN, "Dan", WorkspaceChannelAddOutcome.Added),
+          result(EVE, "Eve", WorkspaceChannelAddOutcome.NotFound),
+          result(FAY, "Fay", WorkspaceChannelAddOutcome.AlreadyIn),
+        ],
+        viewerUserId: VIEWER,
+        translator: ENGLISH,
+      }).map((sentence: string): string => {
+        return sentence.split(" ").slice(0, 3).join(" ");
+      }),
+    ).toEqual(["OneUptime can't find", "Carol isn't a", "Slack didn't answer"]);
+  });
+
+  test("every problem has a sentence for several people, naming them with {{names}}", () => {
+    const problems: Array<WorkspaceChannelAddOutcome> = Object.values(
+      WorkspaceChannelAddOutcome,
+    ).filter((outcome: WorkspaceChannelAddOutcome): boolean => {
+      return isAddProblem({ userId: BOB, name: "Bob", outcome: outcome });
+    });
+
+    expect(Object.keys(ADD_PROBLEM_TEXT_FOR_SEVERAL).sort()).toEqual(
+      [...problems].sort(),
+    );
+    expect([...ADD_PROBLEM_ORDER].sort()).toEqual([...problems].sort());
+
+    for (const text of Object.values(ADD_PROBLEM_TEXT_FOR_SEVERAL)) {
+      expect(text).toContain("{{names}}");
+      expect(text).not.toContain("{{name}}");
+    }
+  });
+
+  test("in German, the names are listed the German way, inside the German sentence", () => {
+    const german: Record<string, string> = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "FeatureSet",
+          "Dashboard",
+          "src",
+          "Locales",
+          "de.json",
+        ),
+        "utf8",
+      ),
+    ) as Record<string, string>;
+    const translator: Translator = createTranslator((text: string) => {
+      return german[text];
+    }, "de");
+
+    expect(
+      getAddProblemSentences({
+        results: [
+          result(BOB, "Bob", WorkspaceChannelAddOutcome.Refused),
+          result(CAROL, "Carol", WorkspaceChannelAddOutcome.Refused),
+        ],
+        viewerUserId: VIEWER,
+        translator: translator,
+      }),
+    ).toEqual([
+      "Slack hat OneUptime nicht erlaubt, Bob und Carol hinzuzufügen.",
+    ]);
+
+    expect(
+      getPickNotices({
+        answer: {
+          results: [result(BOB, "Bob", WorkspaceChannelAddOutcome.Added)],
+        },
+        viewerUserId: VIEWER,
+        teamName: "Plattform",
+        translator: translator,
+      }),
+    ).toEqual([
+      {
+        tone: PeopleSearchNoticeTone.Done,
+        text: "1 Person aus Plattform hinzugefügt.",
+      },
+    ]);
+  });
+});
+
+describe("the Slack command in the hint for a channel the app was taken out of", () => {
+  test("is cut out of the sentence, without the sentence's own full stop", () => {
+    expect(
+      splitAtSlackInviteCommand(
+        "If it's still there, someone in it can add the app back by typing /invite @OneUptime.",
+      ),
+    ).toEqual({
+      before:
+        "If it's still there, someone in it can add the app back by typing ",
+      command: "/invite @OneUptime",
+      after: ".",
+    });
+  });
+
+  test("ends where the handle does: at a space, or a word written straight after it", () => {
+    expect(
+      splitAtSlackInviteCommand(
+        "채널이 아직 있다면 채널에 있는 사람이 /invite @OneUptime을 입력해 앱을 다시 추가할 수 있습니다.",
+      ).command,
+    ).toBe("/invite @OneUptime");
+    expect(
+      splitAtSlackInviteCommand(
+        "Falls er noch existiert, kann jemand darin die App mit /invite @OneUptime wieder hinzufügen.",
+      ),
+    ).toEqual({
+      before: "Falls er noch existiert, kann jemand darin die App mit ",
+      command: "/invite @OneUptime",
+      after: " wieder hinzufügen.",
+    });
+  });
+
+  test("a sentence without the command, or with only its start, is left whole", () => {
+    expect(splitAtSlackInviteCommand("Ask a Slack admin.")).toEqual({
+      before: "Ask a Slack admin.",
+      command: "",
+      after: "",
+    });
+    expect(splitAtSlackInviteCommand("Type /invite @.")).toEqual({
+      before: "Type /invite @.",
+      command: "",
+      after: "",
+    });
+  });
+
+  test("a long run of handle characters is read in one pass", () => {
+    const hint: string = `typing /invite @${"a".repeat(400000)}.`;
+    const startedAt: number = Date.now();
+
+    expect(splitAtSlackInviteCommand(hint).command.length).toBe(400009);
+    expect(Date.now() - startedAt).toBeLessThan(2000);
+  });
+});
+
+/*
  * Every sentence the card draws is a key of the Dashboard's locale files,
  * worded in every one of its languages, with the English placeholders.
  */
@@ -457,9 +829,14 @@ describe("the card's words in every Dashboard language", () => {
           return [text.self, text.other];
         },
       ),
+      ...Object.values(ADD_PROBLEM_TEXT_FOR_SEVERAL),
+      // Lists two or three names, as the grouped sentences fill {{names}}.
+      "{{first}} and {{second}}",
+      "{{first}}, {{second}} and {{third}}",
       PEOPLE_COUNT.other,
       SHOW_MORE_PEOPLE.other,
       UNNAMED_PEOPLE.other,
+      ADDED_FROM_TEAM.other,
       "Channel Member Added",
       "Open in Slack",
       "Open in Microsoft Teams",
@@ -515,6 +892,25 @@ describe("the card's words in every Dashboard language", () => {
           "{{count}}",
         ]);
       }
+
+      expect(locale[`${ADDED_FROM_TEAM.other}_one`]).toBeTruthy();
+      expect(placeholders(locale[`${ADDED_FROM_TEAM.other}_one`]!)).toEqual([
+        "{{count}}",
+        "{{team}}",
+      ]);
+      expect(english[`${ADDED_FROM_TEAM.other}_one`]).toBe(ADDED_FROM_TEAM.one);
+    },
+  );
+
+  test.each(["en", ...LANGUAGES])(
+    "%s keeps the Slack command in the hint whole, so the card shows it as one",
+    (language: string) => {
+      const hint: string | undefined =
+        read(language)[RECORD_CHANNEL_TEXT.unreachableHint];
+
+      expect(splitAtSlackInviteCommand(hint || "").command).toBe(
+        "/invite @OneUptime",
+      );
     },
   );
 });

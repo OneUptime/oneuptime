@@ -30067,7 +30067,6 @@
   "Reading the incident timeline": "Läser incidentens tidslinje",
   "Searching past incidents": "Söker bland tidigare incidenter",
   "Ranked by": "Sorterat efter",
-  "A private channel: only its members can open it. Its owners add people in Microsoft Teams.": "En privat kanal: bara dess medlemmar kan öppna den. Dess ägare lägger till personer i Microsoft Teams.",
   "Add people": "Lägg till personer",
   "Added {{name}}.": "{{name}} har lagts till.",
   "Chat Channels": "Chattkanaler",
@@ -30105,5 +30104,14 @@
   "{{name}} is a guest in Slack, and Slack doesn't let OneUptime add them to this channel.": "{{name}} är gäst i Slack, och Slack låter inte OneUptime lägga till personen i den här kanalen.",
   "{{name}} is already in this channel.": "{{name}} är redan i den här kanalen.",
   "{{name}} isn't a member of this project, so OneUptime can't add them.": "{{name}} är inte medlem i det här projektet, så OneUptime kan inte lägga till personen.",
-  "Channel Member Added": "Kanalmedlem tillagd"
+  "Channel Member Added": "Kanalmedlem tillagd",
+  "Added {{count}} people from {{team}}.": "{{count}} personer från {{team}} har lagts till.",
+  "Added {{count}} people from {{team}}._one": "{{count}} person från {{team}} har lagts till.",
+  "Everyone in {{team}} is already in this channel.": "Alla i {{team}} är redan i den här kanalen.",
+  "OneUptime can't find {{names}} in Slack: their accounts aren't connected, and no Slack account has their email address. Ask them to connect Slack in User Settings.": "OneUptime hittar inte {{names}} i Slack: kontona är inte anslutna, och inget Slack-konto har deras e-postadresser. Be dem ansluta Slack under Användarinställningar.",
+  "Only its members can open it. Its owners add people in Microsoft Teams.": "Bara dess medlemmar kan öppna den. Dess ägare lägger till personer i Microsoft Teams.",
+  "Slack didn't answer for {{names}}. Try again in a minute.": "Slack svarade inte för {{names}}. Försök igen om en minut.",
+  "Slack didn't let OneUptime add {{names}}.": "Slack lät inte OneUptime lägga till {{names}}.",
+  "{{names}} are guests in Slack, and Slack doesn't let OneUptime add them to this channel.": "{{names}} är gäster i Slack, och Slack låter inte OneUptime lägga till dem i den här kanalen.",
+  "{{names}} aren't members of this project, so OneUptime can't add them.": "{{names}} är inte medlemmar i det här projektet, så OneUptime kan inte lägga till dem."
 }

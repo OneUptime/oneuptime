@@ -30067,7 +30067,6 @@
   "Reading the incident timeline": "인시던트 타임라인을 읽는 중",
   "Searching past incidents": "과거 인시던트를 검색하는 중",
   "Ranked by": "정렬 기준",
-  "A private channel: only its members can open it. Its owners add people in Microsoft Teams.": "비공개 채널입니다. 멤버만 열 수 있습니다. 채널 소유자가 Microsoft Teams에서 사람을 추가합니다.",
   "Add people": "사람 추가",
   "Added {{name}}.": "{{name}}님을 추가했습니다.",
   "Chat Channels": "채팅 채널",
@@ -30105,5 +30104,14 @@
   "{{name}} is a guest in Slack, and Slack doesn't let OneUptime add them to this channel.": "{{name}}님은 Slack의 게스트이므로 Slack이 OneUptime의 이 채널 추가를 허용하지 않습니다.",
   "{{name}} is already in this channel.": "{{name}}님은 이미 이 채널에 있습니다.",
   "{{name}} isn't a member of this project, so OneUptime can't add them.": "{{name}}님은 이 프로젝트의 멤버가 아니므로 OneUptime이 추가할 수 없습니다.",
-  "Channel Member Added": "채널 멤버 추가됨"
+  "Channel Member Added": "채널 멤버 추가됨",
+  "Added {{count}} people from {{team}}.": "{{team}}에서 {{count}}명을 추가했습니다.",
+  "Added {{count}} people from {{team}}._one": "{{team}}에서 {{count}}명을 추가했습니다.",
+  "Everyone in {{team}} is already in this channel.": "{{team}}의 모든 구성원이 이미 이 채널에 있습니다.",
+  "OneUptime can't find {{names}} in Slack: their accounts aren't connected, and no Slack account has their email address. Ask them to connect Slack in User Settings.": "OneUptime이 Slack에서 다음 사람들을 찾을 수 없습니다: {{names}}. 계정이 연결되어 있지 않고 해당 이메일 주소를 가진 Slack 계정도 없습니다. 사용자 설정에서 Slack을 연결해 달라고 요청하세요.",
+  "Only its members can open it. Its owners add people in Microsoft Teams.": "멤버만 열 수 있습니다. 채널 소유자가 Microsoft Teams에서 사람을 추가합니다.",
+  "Slack didn't answer for {{names}}. Try again in a minute.": "Slack이 다음 사람들에 대해 응답하지 않았습니다: {{names}}. 1분 후에 다시 시도하세요.",
+  "Slack didn't let OneUptime add {{names}}.": "Slack이 OneUptime의 다음 사람들 추가를 허용하지 않았습니다: {{names}}.",
+  "{{names}} are guests in Slack, and Slack doesn't let OneUptime add them to this channel.": "다음 사람들은 Slack의 게스트이므로 Slack이 OneUptime의 이 채널 추가를 허용하지 않습니다: {{names}}.",
+  "{{names}} aren't members of this project, so OneUptime can't add them.": "다음 사람들은 이 프로젝트의 멤버가 아니므로 OneUptime이 추가할 수 없습니다: {{names}}."
 }

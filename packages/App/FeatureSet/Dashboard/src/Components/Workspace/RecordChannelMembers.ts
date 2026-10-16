@@ -10,9 +10,16 @@ import {
 } from "Common/Types/Workspace/WorkspaceChannelMembers";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import {
+  PeopleSearchNotice,
+  PeopleSearchNoticeTone,
+} from "Common/UI/Components/PeoplePicker/PeopleSearchNotice";
+import {
+  composedValue,
   PluralTemplate,
   translationKey,
+  Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { formatNameList } from "../AiAccess/AiAccessModes";
 
 /*
  * THE CHANNEL CARD OF A RECORD'S PAGE: WHO IS IN ITS CHANNEL, AND ADDING
@@ -67,6 +74,8 @@ export const RECORD_CHANNEL_TEXT: {
   couldNotRead: string;
   joined: string;
   openInSlack: string;
+  connectProjectSlack: string;
+  teamAlreadyIn: string;
 } = {
   slackChannel: translationKey("Slack Channel"),
   slackChannels: translationKey("Slack Channels"),
@@ -107,8 +116,9 @@ export const RECORD_CHANNEL_TEXT: {
   teamsTeamUnknown: translationKey(
     "Everyone in the team can open the channel.",
   ),
+  // Under "Private channel": what that means in Teams, not said twice.
   teamsPrivate: translationKey(
-    "A private channel: only its members can open it. Its owners add people in Microsoft Teams.",
+    "Only its members can open it. Its owners add people in Microsoft Teams.",
   ),
   teamsUnknown: translationKey(
     "Microsoft Teams decides who can open it: open it there to see.",
@@ -118,6 +128,18 @@ export const RECORD_CHANNEL_TEXT: {
   ),
   joined: translationKey("You're in the channel now."),
   openInSlack: translationKey("Open in Slack"),
+  // Slack was taken off the project: where it is connected again.
+  connectProjectSlack: translationKey("Connect Slack"),
+  // A team picked in Add people whose people are all in the channel.
+  teamAlreadyIn: translationKey(
+    "Everyone in {{team}} is already in this channel.",
+  ),
+};
+
+// What picking a team in Add people did: "Added 3 people from Platform."
+export const ADDED_FROM_TEAM: PluralTemplate = {
+  one: "Added {{count}} person from {{team}}.",
+  other: "Added {{count}} people from {{team}}.",
 };
 
 // "Show 3 more", folded under the first people.
@@ -192,6 +214,45 @@ export const ADD_OUTCOME_TEXT: Record<
     other: translationKey("Slack didn't let OneUptime add {{name}}."),
   },
 };
+
+// The outcomes somebody has to do something about.
+export type AddProblemOutcome = Exclude<
+  WorkspaceChannelAddOutcome,
+  WorkspaceChannelAddOutcome.Added | WorkspaceChannelAddOutcome.AlreadyIn
+>;
+
+/*
+ * Several people with the same problem, said once: "OneUptime can't find
+ * Ada Lovelace and Bob Stone in Slack: ..." - a team picked in Add people
+ * would otherwise repeat a long sentence for each of them. {{names}} is
+ * their names, listed the way the sentence's language lists names.
+ */
+export const ADD_PROBLEM_TEXT_FOR_SEVERAL: Record<AddProblemOutcome, string> = {
+  [WorkspaceChannelAddOutcome.NotFound]: translationKey(
+    "OneUptime can't find {{names}} in Slack: their accounts aren't connected, and no Slack account has their email address. Ask them to connect Slack in User Settings.",
+  ),
+  [WorkspaceChannelAddOutcome.NotProjectMember]: translationKey(
+    "{{names}} aren't members of this project, so OneUptime can't add them.",
+  ),
+  [WorkspaceChannelAddOutcome.Guest]: translationKey(
+    "{{names}} are guests in Slack, and Slack doesn't let OneUptime add them to this channel.",
+  ),
+  [WorkspaceChannelAddOutcome.TryAgain]: translationKey(
+    "Slack didn't answer for {{names}}. Try again in a minute.",
+  ),
+  [WorkspaceChannelAddOutcome.Refused]: translationKey(
+    "Slack didn't let OneUptime add {{names}}.",
+  ),
+};
+
+// The order the problems of one pick are said in: what to do first, first.
+export const ADD_PROBLEM_ORDER: ReadonlyArray<AddProblemOutcome> = [
+  WorkspaceChannelAddOutcome.NotFound,
+  WorkspaceChannelAddOutcome.NotProjectMember,
+  WorkspaceChannelAddOutcome.Guest,
+  WorkspaceChannelAddOutcome.Refused,
+  WorkspaceChannelAddOutcome.TryAgain,
+];
 
 // What the card says about a channel that can take nobody.
 export const CHANNEL_STATE_TEXT: Record<
@@ -431,4 +492,206 @@ export function isAddProblem(result: WorkspaceChannelAddResult): boolean {
     result.outcome !== WorkspaceChannelAddOutcome.Added &&
     result.outcome !== WorkspaceChannelAddOutcome.AlreadyIn
   );
+}
+
+/*
+ * Every problem of an answer, in the reader's language: the viewer as
+ * "you", somebody else by name, and several people with the same problem
+ * in one sentence that names them all.
+ */
+export function getAddProblemSentences(data: {
+  results: Array<WorkspaceChannelAddResult>;
+  viewerUserId: string | null;
+  translator: Translator;
+}): Array<string> {
+  const translator: Translator = data.translator;
+  const viewerKey: string = (data.viewerUserId || "").toLowerCase();
+  const sentences: Array<string> = [];
+
+  for (const outcome of ADD_PROBLEM_ORDER) {
+    const people: Array<WorkspaceChannelAddResult> = data.results.filter(
+      (result: WorkspaceChannelAddResult): boolean => {
+        return result.outcome === outcome;
+      },
+    );
+    const others: Array<WorkspaceChannelAddResult> = people.filter(
+      (result: WorkspaceChannelAddResult): boolean => {
+        return !viewerKey || result.userId.toLowerCase() !== viewerKey;
+      },
+    );
+
+    if (others.length < people.length) {
+      const self: string = ADD_OUTCOME_TEXT[outcome].self;
+
+      sentences.push(translator.translateText(self) || self);
+    }
+
+    if (others.length === 1) {
+      sentences.push(
+        translator.translateTemplate(ADD_OUTCOME_TEXT[outcome].other, {
+          name: others[0]!.name,
+        }),
+      );
+    } else if (others.length > 1) {
+      const names: Array<string> = others.map(
+        (result: WorkspaceChannelAddResult): string => {
+          return result.name;
+        },
+      );
+
+      sentences.push(
+        translator.translateTemplate(ADD_PROBLEM_TEXT_FOR_SEVERAL[outcome], {
+          names: composedValue((sentence: Translator): string => {
+            return formatNameList(names, "and", sentence);
+          }),
+        }),
+      );
+    }
+  }
+
+  return sentences;
+}
+
+/*
+ * What the Add people list says under it after a pick, as it says it: who
+ * was added - a person by name, a team's people by how many - or that they
+ * were in the channel already, then every problem, and a channel that took
+ * nobody by its state. Nothing is left unsaid, so a pick never seems to do
+ * nothing.
+ */
+export function getPickNotices(data: {
+  answer: WorkspaceChannelAddAnswer;
+  viewerUserId: string | null;
+  // The team picked, by its name; undefined when a person was picked.
+  teamName?: string | undefined;
+  translator: Translator;
+}): Array<PeopleSearchNotice> {
+  const translator: Translator = data.translator;
+  const results: Array<WorkspaceChannelAddResult> = data.answer.results;
+  const viewerKey: string = (data.viewerUserId || "").toLowerCase();
+  const notices: Array<PeopleSearchNotice> = [];
+
+  const added: Array<WorkspaceChannelAddResult> = results.filter(
+    (result: WorkspaceChannelAddResult): boolean => {
+      return result.outcome === WorkspaceChannelAddOutcome.Added;
+    },
+  );
+  const alreadyIn: Array<WorkspaceChannelAddResult> = results.filter(
+    (result: WorkspaceChannelAddResult): boolean => {
+      return result.outcome === WorkspaceChannelAddOutcome.AlreadyIn;
+    },
+  );
+  const problems: Array<string> = getAddProblemSentences({
+    results: results,
+    viewerUserId: data.viewerUserId,
+    translator: translator,
+  });
+
+  if (data.teamName !== undefined) {
+    if (added.length > 0) {
+      notices.push({
+        tone: PeopleSearchNoticeTone.Done,
+        text: translator.translatePlural(ADDED_FROM_TEAM, added.length, {
+          team: data.teamName,
+        }),
+      });
+    } else if (alreadyIn.length > 0 && problems.length === 0) {
+      notices.push({
+        tone: PeopleSearchNoticeTone.Unchanged,
+        text: translator.translateTemplate(RECORD_CHANNEL_TEXT.teamAlreadyIn, {
+          team: data.teamName,
+        }),
+      });
+    }
+  } else {
+    for (const result of [...added, ...alreadyIn]) {
+      const text: { self: string; other: string } =
+        ADD_OUTCOME_TEXT[result.outcome];
+      const isViewer: boolean =
+        Boolean(viewerKey) && result.userId.toLowerCase() === viewerKey;
+
+      notices.push({
+        tone:
+          result.outcome === WorkspaceChannelAddOutcome.Added
+            ? PeopleSearchNoticeTone.Done
+            : PeopleSearchNoticeTone.Unchanged,
+        text: isViewer
+          ? translator.translateText(text.self) || text.self
+          : translator.translateTemplate(text.other, { name: result.name }),
+      });
+    }
+  }
+
+  for (const problem of problems) {
+    notices.push({ tone: PeopleSearchNoticeTone.Problem, text: problem });
+  }
+
+  if (data.answer.channelState) {
+    const stateText: string | undefined =
+      CHANNEL_STATE_TEXT[
+        data.answer.channelState as keyof typeof CHANNEL_STATE_TEXT
+      ];
+
+    if (stateText) {
+      notices.push({
+        tone: PeopleSearchNoticeTone.Problem,
+        text: translator.translateText(stateText) || stateText,
+      });
+    }
+  }
+
+  return notices;
+}
+
+/*
+ * The hint for a channel the app was taken out of, in three parts, so the
+ * page can show the Slack command in it as a command: the words before it,
+ * the command ("/invite @OneUptime"), the words after. Without a command in
+ * it - a language that words it otherwise - the whole hint is `before`.
+ */
+export const SLACK_INVITE_COMMAND_START: string = "/invite @";
+
+/*
+ * What a Slack handle is written with. The command ends where they do: at a
+ * space, at a sentence's full stop, or at a word a language writes straight
+ * after it (Korean's "/invite @OneUptime을").
+ */
+const SLACK_HANDLE_CHARACTER_REGEX: RegExp = /[A-Za-z0-9._-]/;
+
+export function splitAtSlackInviteCommand(hint: string): {
+  before: string;
+  command: string;
+  after: string;
+} {
+  const start: number = hint.indexOf(SLACK_INVITE_COMMAND_START);
+
+  if (start < 0) {
+    return { before: hint, command: "", after: "" };
+  }
+
+  let end: number = start + SLACK_INVITE_COMMAND_START.length;
+
+  while (
+    end < hint.length &&
+    SLACK_HANDLE_CHARACTER_REGEX.test(hint.charAt(end))
+  ) {
+    end++;
+  }
+
+  // The full stop that ends the sentence is not the handle's.
+  while (end > start && hint.charAt(end - 1) === ".") {
+    end--;
+  }
+
+  const command: string = hint.substring(start, end);
+
+  if (command.length <= SLACK_INVITE_COMMAND_START.length) {
+    return { before: hint, command: "", after: "" };
+  }
+
+  return {
+    before: hint.substring(0, start),
+    command: command,
+    after: hint.substring(end),
+  };
 }

@@ -18,10 +18,10 @@ import {
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import PeopleAvatar from "Common/UI/Components/PeoplePicker/PeopleAvatar";
+import { PeopleSearchNotice } from "Common/UI/Components/PeoplePicker/PeopleSearchNotice";
 import PeopleSearchPopup, {
   PEOPLE_SEARCH_POPUP_MAX_HEIGHT_PX,
   PEOPLE_SEARCH_POPUP_WIDTH_PX,
@@ -41,7 +41,9 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
+  useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import PageMap from "../../Utils/PageMap";
@@ -61,9 +63,11 @@ import {
   getChannelLabel,
   getFoldedCount,
   getPeopleInChannelUserIds,
+  getPickNotices,
   getShownPeople,
   getUnnamedCount,
   getViewerPrompt,
+  splitAtSlackInviteCommand,
 } from "./RecordChannelMembers";
 import useRecordChannelMembers, {
   RecordChannelMembersState,
@@ -84,15 +88,60 @@ import useRecordChannelMembers, {
  */
 
 /*
- * The card's two actions, one row: Join channel leads, Add people beside it.
- * Small buttons of their own - the shared Button is a dialog footer's,
- * full width below md and set off by a margin.
+ * The card's two actions: Join channel leads, Add people beside it. Small
+ * buttons of their own - the shared Button is a dialog footer's, full width
+ * below md and set off by a margin. They share their row and fill it; in
+ * the narrow column beside a page's details (1280px wide) they do not fit
+ * side by side, and each takes a row of its own, full width, rather than
+ * leaving two ragged ends.
  */
+export const CHANNEL_ACTIONS_CLASS_NAME: string = "mt-3 flex flex-wrap gap-2";
+
 export const JOIN_BUTTON_CLASS_NAME: string =
-  "inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-2.5 py-1 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 disabled:cursor-wait disabled:opacity-70";
+  "inline-flex flex-auto items-center justify-center gap-1.5 whitespace-nowrap rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 disabled:cursor-wait disabled:opacity-70";
 
 export const ADD_PEOPLE_BUTTON_CLASS_NAME: string =
-  "inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2.5 py-1 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1";
+  "inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1";
+
+// A quiet box for what a channel - or the card - cannot do, and why.
+const STATE_BOX_CLASS_NAME: string =
+  "mt-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5";
+
+// The link-like button or link that offers the next step inside that box.
+const STATE_ACTION_CLASS_NAME: string =
+  "mt-1.5 inline-flex items-center gap-1.5 rounded text-sm font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-wait disabled:opacity-70";
+
+/*
+ * "Try again" for a read that did not answer: busy, with a spinner, while
+ * the next read is on its way.
+ */
+const TryAgainButton: FunctionComponent<{
+  testId: string;
+  isBusy: boolean;
+  onClick: () => void;
+}> = (props: {
+  testId: string;
+  isBusy: boolean;
+  onClick: () => void;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <button
+      type="button"
+      data-testid={props.testId}
+      disabled={props.isBusy}
+      aria-busy={props.isBusy || undefined}
+      onClick={props.onClick}
+      className={STATE_ACTION_CLASS_NAME}
+    >
+      {props.isBusy && (
+        <Icon icon={IconProp.Spinner} className="h-3.5 w-3.5 animate-spin" />
+      )}
+      <span>{translator.translateText("Try again")}</span>
+    </button>
+  );
+};
 
 export interface ComponentProps {
   recordType: WorkspaceChannelRecordType;
@@ -148,6 +197,8 @@ interface ChannelSectionProps {
   recordId: ObjectID;
   onAdded: () => void;
   onRetry: () => void;
+  // A read asked for again has not answered yet.
+  isRetrying: boolean;
 }
 
 const ChannelSection: FunctionComponent<ChannelSectionProps> = (
@@ -163,6 +214,22 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
     [],
   );
   const [joinError, setJoinError] = useState<string>("");
+
+  /*
+   * After a join, the button pressed goes away (the viewer is in): focus
+   * moves to the link to the channel beside the news, the next step, so
+   * the keyboard does not fall back to the top of the page.
+   */
+  const openAfterJoinRef: React.MutableRefObject<HTMLAnchorElement | null> =
+    useRef<HTMLAnchorElement | null>(null);
+  const [focusAfterJoin, setFocusAfterJoin] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (focusAfterJoin && openAfterJoinRef.current) {
+      openAfterJoinRef.current.focus();
+      setFocusAfterJoin(false);
+    }
+  }, [focusAfterJoin, joinSentences]);
 
   const popup: AnchoredFieldPopup = useAnchoredFieldPopup({
     popupMaxHeight: PEOPLE_SEARCH_POPUP_MAX_HEIGHT_PX,
@@ -237,9 +304,16 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
       const answer: WorkspaceChannelAddAnswer = await add({
         userIds: [viewerUserId],
       });
+      const sentences: Array<AddOutcomeSentence> = getAddOutcomeSentences({
+        answer: answer,
+        viewerUserId: viewerUserId,
+      });
 
-      setJoinSentences(
-        getAddOutcomeSentences({ answer: answer, viewerUserId: viewerUserId }),
+      setJoinSentences(sentences);
+      setFocusAfterJoin(
+        sentences.some((sentence: AddOutcomeSentence): boolean => {
+          return !sentence.isProblem;
+        }),
       );
     } catch (err) {
       setJoinError(API.getFriendlyMessage(err));
@@ -250,30 +324,26 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
 
   /*
    * A pick from the Add people list adds that person, or everybody in that
-   * team. The list says what went wrong under it; the people added appear
-   * in the channel's list above.
+   * team, and the list says under it what the pick came to: who was added,
+   * who was in the channel already, and what went wrong. The people added
+   * also appear in the channel's list above.
    */
-  const pick: (option: PeoplePickerOption) => Promise<void> = async (
+  const pick: (
     option: PeoplePickerOption,
-  ): Promise<void> => {
+  ) => Promise<Array<PeopleSearchNotice>> = async (
+    option: PeoplePickerOption,
+  ): Promise<Array<PeopleSearchNotice>> => {
+    const isTeam: boolean = option.kind === PeoplePickerKind.Team;
     const answer: WorkspaceChannelAddAnswer = await add(
-      option.kind === PeoplePickerKind.Team
-        ? { teamIds: [option.id] }
-        : { userIds: [option.id] },
+      isTeam ? { teamIds: [option.id] } : { userIds: [option.id] },
     );
 
-    const problems: Array<string> = getAddOutcomeSentences({
+    return getPickNotices({
       answer: answer,
       viewerUserId: viewerUserId,
-    })
-      .filter((sentence: AddOutcomeSentence) => {
-        return sentence.isProblem;
-      })
-      .map(sentenceOf);
-
-    if (problems.length > 0) {
-      throw new Error(problems.join(" "));
-    }
+      teamName: isTeam ? option.name : undefined,
+      translator: translator,
+    });
   };
 
   const label: string = getChannelLabel(channel);
@@ -326,6 +396,17 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
   ).addQueryParams({
     [CONNECT_ACCOUNT_QUERY_PARAM]: CONNECT_ACCOUNT_QUERY_VALUE,
   });
+
+  // Project Settings > Workspace > Slack, where Slack is connected again.
+  const projectSlackRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.SETTINGS_SLACK_INTEGRATION] as Route,
+  );
+
+  // "... by typing /invite @OneUptime.", with the command shown as one.
+  const unreachableHint: { before: string; command: string; after: string } =
+    splitAtSlackInviteCommand(
+      translator.translateText(RECORD_CHANNEL_TEXT.unreachableHint) || "",
+    );
 
   return (
     <li
@@ -436,25 +517,44 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
       {stateText && (
         <div
           data-testid="record-channel-state"
-          className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5"
+          className={STATE_BOX_CLASS_NAME}
         >
           <p className="text-sm text-gray-700">
             {translator.translateText(stateText)}
           </p>
           {channel.state === WorkspaceChannelState.Unreachable && (
-            <p className="mt-1 text-xs text-gray-500">
-              {translator.translateText(RECORD_CHANNEL_TEXT.unreachableHint)}
+            <p
+              data-testid="record-channel-unreachable-hint"
+              className="mt-1 text-xs text-gray-500"
+            >
+              {unreachableHint.before}
+              {unreachableHint.command && (
+                <code
+                  dir="ltr"
+                  translate="no"
+                  className="whitespace-nowrap rounded bg-white px-1 py-0.5 font-mono text-[11px] text-gray-700 ring-1 ring-inset ring-gray-200"
+                >
+                  {unreachableHint.command}
+                </code>
+              )}
+              {unreachableHint.after}
             </p>
           )}
           {channel.state === WorkspaceChannelState.Unavailable && (
-            <button
-              type="button"
-              data-testid="record-channel-try-again"
+            <TryAgainButton
+              testId="record-channel-try-again"
+              isBusy={props.isRetrying}
               onClick={props.onRetry}
-              className="mt-1.5 rounded text-sm font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-            >
-              {translator.translateText("Try again")}
-            </button>
+            />
+          )}
+          {channel.state === WorkspaceChannelState.NotConnected && (
+            <div data-testid="record-channel-connect-project">
+              <Link to={projectSlackRoute} className={STATE_ACTION_CLASS_NAME}>
+                {translator.translateText(
+                  RECORD_CHANNEL_TEXT.connectProjectSlack,
+                )}
+              </Link>
+            </div>
           )}
         </div>
       )}
@@ -462,7 +562,7 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
       {prompt === ChannelViewerPrompt.AskToBeAdded && (
         <p
           data-testid="record-channel-ask"
-          className="mt-3 text-xs text-gray-500"
+          className="mt-3 text-sm text-gray-600"
         >
           {translator.translateText(ASK_TO_BE_ADDED[props.recordType])}
         </p>
@@ -471,7 +571,7 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
       {prompt === ChannelViewerPrompt.JoinInSlack && (
         <p
           data-testid="record-channel-join-in-slack"
-          className="mt-3 text-xs text-gray-500"
+          className="mt-3 text-sm text-gray-600"
         >
           {translator.translateText(RECORD_CHANNEL_TEXT.publicJoinInSlack)}
         </p>
@@ -521,10 +621,12 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
                   <>
                     {" "}
                     <a
+                      ref={openAfterJoinRef}
                       href={channel.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-medium text-indigo-600 hover:text-indigo-700"
+                      data-testid="record-channel-open-after-join"
+                      className="rounded font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                     >
                       {translator.translateText(
                         RECORD_CHANNEL_TEXT.openInSlack,
@@ -549,7 +651,10 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
       )}
 
       {(prompt === ChannelViewerPrompt.Join || mayAdd) && (
-        <div className="mt-2.5 flex flex-wrap items-center gap-2">
+        <div
+          data-testid="record-channel-actions"
+          className={CHANNEL_ACTIONS_CLASS_NAME}
+        >
           {prompt === ChannelViewerPrompt.Join && (
             <button
               type="button"
@@ -574,7 +679,7 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
           )}
 
           {mayAdd && (
-            <div ref={popup.anchorRef}>
+            <div ref={popup.anchorRef} className="flex flex-auto">
               <button
                 type="button"
                 data-testid="record-channel-add-people"
@@ -601,7 +706,9 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
           kinds={[PeoplePickerKind.User, PeoplePickerKind.Team]}
           selectedKeys={takenKeys}
           selectionMode="add"
-          onPick={(option: PeoplePickerOption): Promise<void> => {
+          onPick={(
+            option: PeoplePickerOption,
+          ): Promise<Array<PeopleSearchNotice>> => {
             return pick(option);
           }}
           searchPlaceholder={RECORD_CHANNEL_TEXT.addPeopleSearch}
@@ -649,14 +756,23 @@ const RecordChannelMembersCard: FunctionComponent<ComponentProps> = (
   if (members.isLoading) {
     body = <ComponentLoader />;
   } else if (members.error || !members.answer) {
+    // Said the way the card says what a channel cannot do: quietly, in a box.
     body = (
-      <ErrorMessage
-        message={translator.translateTemplate(
-          RECORD_CHANNEL_TEXT.couldNotRead,
-          { error: members.error },
-        )}
-        onRefreshClick={members.refresh}
-      />
+      <div
+        data-testid="record-channel-read-error"
+        className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5"
+      >
+        <p role="alert" className="text-sm text-gray-700">
+          {translator.translateTemplate(RECORD_CHANNEL_TEXT.couldNotRead, {
+            error: members.error,
+          })}
+        </p>
+        <TryAgainButton
+          testId="record-channel-read-try-again"
+          isBusy={members.isRefreshing}
+          onClick={members.refresh}
+        />
+      </div>
     );
   } else {
     body = (
@@ -674,6 +790,7 @@ const RecordChannelMembersCard: FunctionComponent<ComponentProps> = (
                 props.onChanged?.();
               }}
               onRetry={members.refresh}
+              isRetrying={members.isRefreshing}
             />
           );
         })}
