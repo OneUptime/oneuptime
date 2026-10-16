@@ -889,5 +889,13 @@
   "Test again": "Tester à nouveau",
   "Test passed": "Test réussi",
   "Test passed, with a warning": "Test réussi, avec un avertissement",
-  "Test failed": "Échec du test"
+  "Test failed": "Échec du test",
+  "Opens in a new tab": "S'ouvre dans un nouvel onglet",
+  "Note": "Remarque",
+  "Tip": "Astuce",
+  "Info": "Info",
+  "Important": "Important",
+  "Warning": "Avertissement",
+  "Caution": "Attention",
+  "Danger": "Danger"
 }

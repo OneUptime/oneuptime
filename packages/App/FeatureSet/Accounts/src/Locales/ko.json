@@ -359,5 +359,13 @@
   "Quote": "인용",
   "Code Block": "코드 블록",
   "Switch to markdown source": "Markdown 원본으로 전환",
-  "Switch to visual editor": "시각적 편집기로 전환"
+  "Switch to visual editor": "시각적 편집기로 전환",
+  "Opens in a new tab": "새 탭에서 열림",
+  "Note": "참고",
+  "Tip": "팁",
+  "Info": "정보",
+  "Important": "중요",
+  "Warning": "경고",
+  "Caution": "주의",
+  "Danger": "위험"
 }

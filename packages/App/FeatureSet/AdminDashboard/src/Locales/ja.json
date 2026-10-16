@@ -889,5 +889,13 @@
   "Test again": "再テスト",
   "Test passed": "テストに合格しました",
   "Test passed, with a warning": "テストに合格しました（警告あり）",
-  "Test failed": "テストに失敗しました"
+  "Test failed": "テストに失敗しました",
+  "Opens in a new tab": "新しいタブで開きます",
+  "Note": "注記",
+  "Tip": "ヒント",
+  "Info": "情報",
+  "Important": "重要",
+  "Warning": "警告",
+  "Caution": "注意",
+  "Danger": "危険"
 }

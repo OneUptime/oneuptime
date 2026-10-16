@@ -889,5 +889,13 @@
   "Test again": "Test igen",
   "Test passed": "Test bestået",
   "Test passed, with a warning": "Test bestået med en advarsel",
-  "Test failed": "Testen mislykkedes"
+  "Test failed": "Testen mislykkedes",
+  "Opens in a new tab": "Åbner i en ny fane",
+  "Note": "Bemærk",
+  "Tip": "Tip",
+  "Info": "Info",
+  "Important": "Vigtigt",
+  "Warning": "Advarsel",
+  "Caution": "Forsigtig",
+  "Danger": "Fare"
 }

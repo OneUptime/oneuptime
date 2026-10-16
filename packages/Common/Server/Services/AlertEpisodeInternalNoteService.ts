@@ -194,9 +194,13 @@ export class Service extends ProjectReferencesService<Model> {
     const episodeNumberDisplay: string =
       episodeNumberResult.numberWithPrefix || "#" + episodeNumberResult.number;
 
+    /*
+     * An episode's private note has no download route, so its files are
+     * listed by name: a link would only lead to "not found".
+     */
     const attachmentsMarkdown: MarkdownText = await this.getAttachmentsMarkdown(
       createdItem.id!,
-      "/alert-episode-internal-note/attachment",
+      null,
     );
 
     const episodeLink: string = (
@@ -291,10 +295,8 @@ ${FeedMarkdown.asMarkdown(createdItem.note)}${attachmentsMarkdown}
         const episode: AlertEpisode = updatedItem.alertEpisode!;
 
         const attachmentsMarkdown: MarkdownText =
-          await this.getAttachmentsMarkdown(
-            updatedItem.id!,
-            "/alert-episode-internal-note/attachment",
-          );
+          // No download route: the files are listed by name (see above).
+          await this.getAttachmentsMarkdown(updatedItem.id!, null);
 
         await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
           alertEpisodeId: updatedItem.alertEpisodeId!,
@@ -319,7 +321,7 @@ ${FeedMarkdown.asMarkdown(updatedItem.note)}${attachmentsMarkdown}
 
   private async getAttachmentsMarkdown(
     modelId: ObjectID,
-    attachmentApiPath: string,
+    attachmentApiPath: string | null,
   ): Promise<MarkdownText> {
     if (!modelId) {
       return FeedMarkdown.empty();
@@ -328,6 +330,7 @@ ${FeedMarkdown.asMarkdown(updatedItem.note)}${attachmentsMarkdown}
     const noteWithAttachments: Model | null = await this.findOneById({
       id: modelId,
       select: {
+        projectId: true,
         attachments: {
           _id: true,
         },
@@ -363,6 +366,7 @@ ${FeedMarkdown.asMarkdown(updatedItem.note)}${attachmentsMarkdown}
 
     return await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
       modelId,
+      projectId: noteWithAttachments.projectId,
       attachmentIds,
       attachmentApiPath,
     });

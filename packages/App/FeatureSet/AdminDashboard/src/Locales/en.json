@@ -889,5 +889,13 @@
   "Test again": "Test again",
   "Test passed": "Test passed",
   "Test passed, with a warning": "Test passed, with a warning",
-  "Test failed": "Test failed"
+  "Test failed": "Test failed",
+  "Opens in a new tab": "Opens in a new tab",
+  "Note": "Note",
+  "Tip": "Tip",
+  "Info": "Info",
+  "Important": "Important",
+  "Warning": "Warning",
+  "Caution": "Caution",
+  "Danger": "Danger"
 }

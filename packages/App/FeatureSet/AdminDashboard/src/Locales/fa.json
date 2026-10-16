@@ -889,5 +889,13 @@
   "Test again": "آزمایش دوباره",
   "Test passed": "آزمایش موفق بود",
   "Test passed, with a warning": "آزمایش موفق بود، با یک هشدار",
-  "Test failed": "آزمایش ناموفق بود"
+  "Test failed": "آزمایش ناموفق بود",
+  "Opens in a new tab": "در زبانه‌ای جدید باز می‌شود",
+  "Note": "نکته",
+  "Tip": "نکته کاربردی",
+  "Info": "اطلاعات",
+  "Important": "مهم",
+  "Warning": "هشدار",
+  "Caution": "احتیاط",
+  "Danger": "خطر"
 }

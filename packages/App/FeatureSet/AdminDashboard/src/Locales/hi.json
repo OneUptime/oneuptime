@@ -889,5 +889,13 @@
   "Test again": "फिर से परीक्षण करें",
   "Test passed": "परीक्षण सफल",
   "Test passed, with a warning": "परीक्षण सफल, एक चेतावनी के साथ",
-  "Test failed": "परीक्षण विफल"
+  "Test failed": "परीक्षण विफल",
+  "Opens in a new tab": "नए टैब में खुलता है",
+  "Note": "नोट",
+  "Tip": "सुझाव",
+  "Info": "जानकारी",
+  "Important": "महत्वपूर्ण",
+  "Warning": "चेतावनी",
+  "Caution": "सावधानी",
+  "Danger": "खतरा"
 }

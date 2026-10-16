@@ -95,7 +95,7 @@ O mesmo editor abre em uma caixa de diálogo a partir de **Add Public Note** no 
 > [!TIP]
 > **O horário de publicação é o carimbo de tempo real da nota.** As páginas de status ordenam e exibem as notas públicas por `postedAt`, não por quando você as digitou — então, se você está atualizando a página de status com algo que enviou há 40 minutos, escolha **Posted now** e defina quando realmente aconteceu. Se uma nota chegar pela API (`/api/incident-public-note`) sem horário, o OneUptime coloca o horário atual.
 
-Cada nota mostra quem a escreveu, seu horário de publicação, o Markdown renderizado com os anexos e, no cabeçalho, em que ponto está a notificação aos assinantes. **Search notes…** encontra notas pelo que elas dizem, e o feed pode ser lido do mais recente ou do mais antigo primeiro.
+Cada nota mostra quem a escreveu, seu horário de publicação, o Markdown renderizado com os anexos e, no cabeçalho, em que ponto está a notificação aos assinantes. **Search notes…** encontra notas pelo que elas dizem, e o feed pode ser lido do mais recente ou do mais antigo primeiro. Links para outros sites e para anexos abrem em uma nova aba. Linhas que começam com `>` aparecem como citação; comece-a com uma linha própria, `> [!NOTE]`, `> [!TIP]` ou `> [!WARNING]`, para mostrá-la como um quadro de destaque.
 
 ## Publicar uma nota privada
 

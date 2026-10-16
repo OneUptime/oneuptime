@@ -19,7 +19,8 @@ import path from "path";
  * errors or on any request the fixture does not model.
  */
 
-const PORT: string = "4223";
+// The fixture server's port (playwright.event-notes-ui.config.ts).
+const PORT: string = process.env["EVENT_NOTES_FIXTURE_PORT"] || "4223";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const NOW: Date = new Date("2026-09-14T18:20:00.000Z");
 
@@ -1919,5 +1920,314 @@ test.describe("a private incident or episode", () => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await open(page, INCIDENT_EPISODE_PUBLIC, "private=1");
     await screenshot(page, "incident-episode-public-notes-private-episode");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Links and quotes in a note
+ * ---------------------------------------------------------------------------
+ *
+ * A customer's feedback: a link in a note - the file a saved Slack message
+ * carried - took over the OneUptime tab, and quoted text showed an amber
+ * exclamation mark, as if it were a warning. ?notes=links-and-quotes puts a
+ * note like that on top of incident #1042's private notes: a quote, the
+ * message's file, a callout, a link to alert #311's notes, one to the docs
+ * and a link long enough to wrap on a phone. The feed draws the same note
+ * through the same viewer (packages/E2E/EventOverview, ?feed=).
+ */
+
+const SLACK_FILE_URL: string =
+  "https://acme.slack.com/files/U0123ABCD/F0123ABCD/image.png";
+const QUOTED_WORDS: string = "They said the payment provider is degraded";
+const LONG_LINK: string =
+  "https://grafana.acme-commerce.example/d/checkout-api-latency-overview/checkout-api-latency?orgId=1&from=now-6h&to=now&var-region=eu-west-1";
+
+function savedNote(page: Page): Locator {
+  return card(page, QUOTED_WORDS);
+}
+
+function noteBody(page: Page): Locator {
+  return savedNote(page).getByTestId("note-body");
+}
+
+async function openSavedNote(page: Page, query: string = ""): Promise<void> {
+  await open(
+    page,
+    INCIDENT_PRIVATE,
+    ["notes=links-and-quotes", query].filter(Boolean).join("&"),
+  );
+  await expect(savedNote(page)).toBeVisible();
+}
+
+async function computedStyleOf(
+  locator: Locator,
+  properties: Array<string>,
+): Promise<Record<string, string>> {
+  return await locator.evaluate(
+    (element: Element, names: Array<string>): Record<string, string> => {
+      const style: CSSStyleDeclaration = window.getComputedStyle(element);
+      const values: Record<string, string> = {};
+      for (const name of names) {
+        values[name] = style.getPropertyValue(name);
+      }
+      return values;
+    },
+    properties,
+  );
+}
+
+async function screenshotNote(page: Page, name: string): Promise<void> {
+  await fs.mkdir(SCREENSHOTS, { recursive: true });
+  await page.mouse.move(0, 0);
+  await savedNote(page).screenshot({
+    path: path.join(SCREENSHOTS, `${name}-synthetic.png`),
+  });
+}
+
+test.describe("links and quotes in a note", () => {
+  test("the file a saved Slack message carried opens in a new tab, and the notes stay open", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page
+      .context()
+      .route("https://acme.slack.com/**", async (route: PlaywrightRoute) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "text/plain",
+          body: "image.png",
+        });
+      });
+    await openSavedNote(page);
+
+    const fileLink: Locator = noteBody(page).getByRole("link", {
+      name: "image.png",
+    });
+
+    await expect(fileLink).toHaveAttribute("href", SLACK_FILE_URL);
+    await expect(fileLink).toHaveAttribute("target", "_blank");
+    await expect(fileLink).toHaveAttribute("rel", "noopener noreferrer");
+    await expect(fileLink).toHaveAttribute(
+      "aria-description",
+      "Opens in a new tab",
+    );
+
+    const [tab] = await Promise.all([
+      page.context().waitForEvent("page"),
+      fileLink.click(),
+    ]);
+    await tab.waitForLoadState();
+
+    expect(tab.url()).toBe(SLACK_FILE_URL);
+    // Cut loose from the page that opened it.
+    expect(
+      await tab.evaluate((): boolean => {
+        return window.opener === null;
+      }),
+    ).toBe(true);
+
+    // The notes are still open, where they were.
+    expect(new URL(page.url()).pathname).toBe(INCIDENT_PRIVATE.path);
+    await expect(savedNote(page)).toBeVisible();
+    await tab.close();
+  });
+
+  test("a link to another page of the dashboard stays in the tab; one to the docs opens a new one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSavedNote(page);
+
+    const alertLink: Locator = noteBody(page).getByRole("link", {
+      name: "ALT-311",
+    });
+    const docsLink: Locator = noteBody(page).getByRole("link", {
+      name: "failover runbook",
+    });
+
+    await expect(docsLink).toHaveAttribute("target", "_blank");
+    await expect(docsLink).toHaveAttribute("rel", "noopener noreferrer");
+    await expect(docsLink).toHaveAttribute(
+      "aria-description",
+      "Opens in a new tab",
+    );
+
+    await expect(alertLink).not.toHaveAttribute("target", /.*/);
+    await expect(alertLink).not.toHaveAttribute("rel", /.*/);
+    await expect(alertLink).not.toHaveAttribute("aria-description", /.*/);
+
+    let openedTabs: number = 0;
+    page.context().on("page", () => {
+      openedTabs += 1;
+    });
+
+    await Promise.all([
+      page.waitForURL(`**${ALERT_PRIVATE.path}`),
+      alertLink.click(),
+    ]);
+    await expect(page.getByTestId("event-notes")).toBeVisible({
+      timeout: 30000,
+    });
+
+    expect(openedTabs).toBe(0);
+    expect(page.context().pages()).toHaveLength(1);
+  });
+
+  test("quoted text is a quote: a grey bar and lighter text, with no icon", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSavedNote(page);
+
+    const quote: Locator = noteBody(page)
+      .locator("blockquote")
+      .filter({ hasText: QUOTED_WORDS });
+
+    await expect(quote).toBeVisible();
+    await expect(quote.locator("svg")).toHaveCount(0);
+    await expect(quote).not.toHaveAttribute("role", /.*/);
+
+    expect(
+      await computedStyleOf(quote, [
+        "border-left-width",
+        "border-left-color",
+        "border-top-width",
+        "background-color",
+        "padding-left",
+      ]),
+    ).toEqual({
+      "border-left-width": "3px",
+      // border-gray-300, as the editor the note is written in draws a quote.
+      "border-left-color": "rgb(209, 213, 219)",
+      "border-top-width": "0px",
+      "background-color": "rgba(0, 0, 0, 0)",
+      "padding-left": "12px",
+    });
+    // text-gray-600: a shade lighter than the note's own words (gray-700).
+    expect(await colorOf(quote.locator("p"))).toBe("rgb(75, 85, 99)");
+    expect(
+      await colorOf(
+        noteBody(page).locator("p").filter({ hasText: "It started with" }),
+      ),
+    ).toBe("rgb(55, 65, 81)");
+  });
+
+  test("a callout the note asked for is a panel with its sign, its marker not shown", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSavedNote(page);
+
+    const callout: Locator = noteBody(page).getByRole("note", {
+      name: "Warning",
+    });
+
+    await expect(callout).toBeVisible();
+    await expect(callout).toHaveAttribute("data-callout", "warning");
+    await expect(callout.locator("svg")).toBeVisible();
+    await expect(callout).toContainText(
+      "Do not restart the primary. Fail over to the replica first.",
+    );
+    await expect(noteBody(page)).not.toContainText("[!WARNING]");
+    expect(
+      await computedStyleOf(callout, ["background-color", "border-top-color"]),
+    ).toEqual({
+      // bg-amber-50 and border-amber-200.
+      "background-color": "rgb(255, 251, 235)",
+      "border-top-color": "rgb(253, 230, 138)",
+    });
+
+    await screenshotNote(page, "incident-private-notes-links-and-quotes");
+  });
+
+  test("in the dark theme the quote and the callout take the theme's colours", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSavedNote(page, "theme=dark");
+
+    const quote: Locator = noteBody(page)
+      .locator("blockquote")
+      .filter({ hasText: QUOTED_WORDS });
+
+    expect(await computedStyleOf(quote, ["border-left-color"])).toEqual({
+      "border-left-color": "rgb(100, 116, 139)",
+    });
+    expect(await colorOf(quote.locator("p"))).toBe("rgb(203, 213, 225)");
+    expect(
+      await computedStyleOf(
+        noteBody(page).getByRole("note", { name: "Warning" }),
+        ["background-color"],
+      ),
+    ).toEqual({ "background-color": "rgba(120, 53, 15, 0.32)" });
+
+    await screenshotNote(page, "incident-private-notes-links-and-quotes-dark");
+  });
+
+  test.describe("on a phone", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("a long link wraps inside its note instead of running past its edge", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openSavedNote(page);
+
+      const body: Locator = noteBody(page);
+      const longLink: Locator = body.getByRole("link", {
+        name: LONG_LINK,
+        exact: true,
+      });
+      // The paragraph the link is in: the width the note's text may take.
+      const paragraph: Locator = body.locator("p").filter({
+        has: page.getByRole("link", { name: LONG_LINK, exact: true }),
+      });
+
+      await longLink.scrollIntoViewIfNeeded();
+
+      const paragraphBox: Box = await boxOf(paragraph);
+      const lineRights: Array<number> = await longLink.evaluate(
+        (element: Element): Array<number> => {
+          return Array.from(element.getClientRects()).map(
+            (rect: DOMRect): number => {
+              return rect.right;
+            },
+          );
+        },
+      );
+
+      // Several lines, every one of them inside the note's text.
+      expect(lineRights.length).toBeGreaterThan(2);
+      for (const right of lineRights) {
+        expect(right).toBeLessThanOrEqual(
+          paragraphBox.x + paragraphBox.width + 0.5,
+        );
+      }
+      expect(
+        await paragraph.evaluate((element: Element): number => {
+          return element.scrollWidth - element.clientWidth;
+        }),
+      ).toBeLessThanOrEqual(0);
+      expect(
+        await page.evaluate((): number => {
+          return (
+            document.documentElement.scrollWidth -
+            document.documentElement.clientWidth
+          );
+        }),
+      ).toBeLessThanOrEqual(0);
+
+      await screenshotNote(
+        page,
+        "incident-private-notes-links-and-quotes-mobile",
+      );
+    });
   });
 });

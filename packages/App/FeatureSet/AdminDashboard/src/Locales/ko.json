@@ -889,5 +889,13 @@
   "Test again": "다시 테스트",
   "Test passed": "테스트 통과",
   "Test passed, with a warning": "테스트 통과(경고 있음)",
-  "Test failed": "테스트 실패"
+  "Test failed": "테스트 실패",
+  "Opens in a new tab": "새 탭에서 열림",
+  "Note": "참고",
+  "Tip": "팁",
+  "Info": "정보",
+  "Important": "중요",
+  "Warning": "경고",
+  "Caution": "주의",
+  "Danger": "위험"
 }
