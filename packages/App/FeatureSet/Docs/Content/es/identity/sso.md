@@ -44,6 +44,8 @@ Quienes inician sesión por primera vez se unen a los **Equipos** del proveedor,
 > [!NOTE]
 > En OneUptime Cloud, la primera vez que alguien inicia sesión en el proyecto con uno de sus proveedores SAML u OIDC, OneUptime le envía un enlace por correo en lugar de iniciar su sesión. La persona lo abre, confirma que el inicio de sesión único del proyecto puede iniciar su sesión y continúa. El enlace es válido durante 24 horas. Esto ocurre una vez por proyecto, y de nuevo si la persona deja el proyecto y vuelve. Las instalaciones autoalojadas inician la sesión de inmediato.
 
+En OneUptime Cloud, quien se une al proyecto mediante SSO ocupa un puesto, igual que alguien a quien invitas. Si tu plan incluye un número fijo de puestos y todos están ocupados, las personas nuevas no pueden unirse mediante SSO hasta que quede un puesto libre.
+
 ## Configurar SSO
 
 Necesitas permiso para añadir proveedores de SSO — **Project Owner**, **Project Admin** o **Create Project SSO** — y, en OneUptime Cloud, el plan **Scale**. Para la parte de tu proveedor de identidad, consulta las [guías de proveedores de identidad](#guías-de-proveedores-de-identidad).

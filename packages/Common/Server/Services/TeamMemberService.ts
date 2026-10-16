@@ -99,12 +99,12 @@ const USER_KEYS: Array<string> = ["userId", "user"];
  * included (getUniqueTeamMemberCountInProject) - so someone already in the
  * project joins another of its teams whatever the count.
  *
- * Asked twice: early, in onBeforeCreate, before anyone is looked up or
- * mailed, and again with the INSERT, in its own transaction under the
- * limit's lock in the project (getCreateLimit), so people added at the same
- * moment cannot all pass - on every path that adds someone: an invitation, a
- * first sign-in through the project's SSO, SCIM, an import. The lock's
- * name, and what it counts.
+ * Asked twice: early, in onBeforeCreate, before an account is made for
+ * an invitee or anyone is mailed, and again with the INSERT, in its own
+ * transaction under the limit's lock in the project (getCreateLimit), so
+ * people added at the same moment cannot all pass - on every path that adds
+ * someone: an invitation, a first sign-in through the project's SSO, SCIM,
+ * an import. The lock's name, and what it counts.
  */
 export const SEAT_LIMIT_NAME: string = "seats";
 
@@ -299,8 +299,9 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
 
     /*
      * Check if this project can have more people: early, so a project at
-     * its limit is told before anyone is looked up or mailed. The INSERT
-     * asks again, under the limit's lock (getCreateLimit).
+     * its limit is refused before an account is made for the invitee or
+     * anyone is mailed. The INSERT asks again, under the limit's lock
+     * (getCreateLimit).
      */
     if (IsBillingEnabled && createBy.data.projectId) {
       const peopleLimits: ProjectPeopleLimits | null =
