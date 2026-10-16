@@ -240,6 +240,13 @@ describe("which columns record a person doing something", () => {
       "deleted",
       "dismissed",
       "humanVerdict",
+      /*
+       * MarketplaceSubscription.linkedByUserId: who linked a cloud
+       * marketplace purchase to a project, on the purchase page. OneUptime
+       * stamps it from the signed-in caller as the link is made; no request
+       * chooses it.
+       */
+      "linked",
       "markedAsArchived",
       "markedAsResolved",
       "overrided",

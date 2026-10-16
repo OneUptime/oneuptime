@@ -10,6 +10,11 @@ import {
   MARKETPLACE_PURCHASE_PAGE_ROUTE,
   MarketplacePurchaseDetails,
 } from "../../Types/Marketplace/MarketplacePurchase";
+import {
+  MARKETPLACE_USAGE_ROUTE,
+  MarketplaceUsageSummary,
+} from "../../Types/Marketplace/MarketplaceUsageSummary";
+import { PROJECT_USAGE_READ_PERMISSIONS } from "../../Utils/Project/ProjectBilling";
 import ObjectID from "../../Types/ObjectID";
 import {
   IsBillingEnabled,
@@ -42,6 +47,8 @@ import MarketplaceApiError from "../Utils/Marketplace/MarketplaceApiError";
 import MarketplaceClaimToken from "../Utils/Marketplace/MarketplaceClaimToken";
 import MarketplaceConfig from "../Utils/Marketplace/MarketplaceConfig";
 import MarketplacePurchaseClaim from "../Utils/Marketplace/MarketplacePurchaseClaim";
+import MarketplaceUsageSummarizer from "../Utils/Marketplace/MarketplaceUsageSummarizer";
+import CallerPermission from "../Utils/Permission/CallerPermission";
 import { JwtVerificationError } from "../Utils/Marketplace/RemoteJwtVerifier";
 import Response from "../Utils/Response";
 import SameOriginRequest from "../Utils/SameOriginRequest";
@@ -63,6 +70,8 @@ import SameOriginRequest from "../Utils/SameOriginRequest";
  *     POST /purchase/details        what the purchase is, and what it can be linked to
  *     POST /purchase/complete       link it to a project, or a new one
  *     POST /purchase/dismiss        forget it in this browser
+ *   The Billing page of a marketplace-billed project
+ *     GET  /usage                   what its marketplace bill was made of, by month
  *
  * Only on OneUptime Cloud (billing enabled), and each marketplace only when
  * this server is set up for it (MarketplaceConfig); otherwise the buyer is
@@ -235,6 +244,57 @@ export default class MarketplaceAPI {
       (req: ExpressRequest, res: ExpressResponse) => {
         MarketplaceClaimToken.clearCookies(res);
         return Response.sendEmptySuccessResponse(req, res);
+      },
+    );
+
+    /*
+     * What the project's marketplace bill was made of, month by month, for
+     * its Billing page - read by whoever reads its usage history
+     * (PROJECT_USAGE_READ_PERMISSIONS). Sums only: the reports themselves
+     * stay master-admin only.
+     */
+    this.router.get(
+      MARKETPLACE_USAGE_ROUTE,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          if (!IsBillingEnabled) {
+            throw new ForbiddenException(
+              "Cloud marketplaces are not available on this server.",
+            );
+          }
+
+          if (
+            !CallerPermission.holdsAnyOf(
+              req as OneUptimeRequest,
+              PROJECT_USAGE_READ_PERMISSIONS,
+            ) &&
+            !(req as OneUptimeRequest).userAuthorization?.isMasterAdmin
+          ) {
+            throw new ForbiddenException(
+              "You need Project Owner, Project Admin, Manage Billing or a billing role to view the project's marketplace usage.",
+            );
+          }
+
+          const projectId: ObjectID | undefined = (req as OneUptimeRequest)
+            .tenantId;
+
+          if (!projectId) {
+            throw new ForbiddenException("Choose a project first.");
+          }
+
+          const summary: MarketplaceUsageSummary =
+            await MarketplaceUsageSummarizer.getSummary(projectId);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            summary as unknown as JSONObject,
+          );
+        } catch (err) {
+          next(err);
+        }
       },
     );
   }
