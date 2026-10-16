@@ -69,6 +69,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useRecordChannelLinks, {
   getOpenInChatActions,
 } from "../../../Components/Workspace/useRecordChannelLinks";
+import RecordChannelMembersCard from "../../../Components/Workspace/RecordChannelMembersCard";
 import {
   WorkspaceChannelLink,
   WorkspaceChannelRecordType,
@@ -476,6 +477,19 @@ const IncidentEpisodeView: FunctionComponent<
         </div>
 
         <div className="min-w-0 xl:col-span-1">
+          {/* Who is in the episode's own channel, above its details. */}
+          <RecordChannelMembersCard
+            recordType={WorkspaceChannelRecordType.IncidentEpisode}
+            recordId={modelId}
+            links={channelLinks}
+            // Somebody added is a new feed entry.
+            onChanged={() => {
+              setContentRefreshToken((token: number): number => {
+                return token + 1;
+              });
+            }}
+          />
+
           <CardModelDetail<IncidentEpisode>
             name="Episode Details"
             cardProps={{
