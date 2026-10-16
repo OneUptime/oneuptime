@@ -351,11 +351,25 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
    * as it is when the button is pressed: Add Trigger while there is no
    * trigger (the dashed card's panel), Add Component once there is one. It
    * used to offer steps to a workflow that had nothing to start it.
+   *
+   * Only a change of the page's request acts. A request taken back closes
+   * the panel it opened; a canvas that merely starts without one closes
+   * nothing, so it never shuts a panel the dashed card opened before its
+   * first effects ran.
    */
+  const wasAddPanelRequestedRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
   useEffect(() => {
+    const wasRequested: boolean = wasAddPanelRequestedRef.current;
+    wasAddPanelRequestedRef.current = props.showComponentsPickerModal;
+
     if (!props.showComponentsPickerModal) {
-      setShowComponentsModal(false);
-      setShowTriggersModal(false);
+      if (wasRequested) {
+        setShowComponentsModal(false);
+        setShowTriggersModal(false);
+      }
+
       return;
     }
 

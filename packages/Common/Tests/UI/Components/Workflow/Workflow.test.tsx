@@ -1421,6 +1421,54 @@ describe("Workflow builder: the toolbar's add button opens the panel it names", 
     expect(harness.onPickerUpdate).toHaveBeenLastCalledWith(false);
   });
 
+  test("a panel the dashed card opens in the canvas's first moment stays open: starting without a request closes nothing", () => {
+    const placeholder: Node = getPlaceholderTriggerNode();
+    let pressed: boolean = false;
+
+    /*
+     * The dashed card pressed in the commit that first draws the canvas,
+     * before the canvas's first effects have run: a quick tap as the
+     * Builder finishes loading, and what the Builder's tests did when its
+     * graph loaded outside act. Those first effects used to close both
+     * panels, as if a request had been taken back.
+     */
+    const PressOnFirstDraw: React.FunctionComponent<{
+      children: ReactElement;
+    }> = (pressProps: { children: ReactElement }): ReactElement => {
+      React.useLayoutEffect(() => {
+        const card: HTMLElement | null = document.querySelector(
+          `[data-testid="workflow-node-${placeholder.id}"]`,
+        );
+
+        if (card) {
+          card.click();
+          pressed = true;
+        }
+      }, []);
+
+      return pressProps.children;
+    };
+
+    render(
+      <PressOnFirstDraw>
+        <Workflow
+          initialNodes={[placeholder]}
+          initialEdges={[]}
+          workflowId={new ObjectID("11111111-1111-4111-8111-111111111111")}
+          showComponentsPickerModal={false}
+          showRunModal={false}
+          onWorkflowUpdated={getJestMockFunction()}
+          onComponentPickerModalUpdate={getJestMockFunction()}
+          onRunModalUpdate={getJestMockFunction()}
+          onRun={getJestMockFunction()}
+        />
+      </PressOnFirstDraw>,
+    );
+
+    expect(pressed).toBe(true);
+    expect(screen.getByTestId("picker-Trigger")).toBeInTheDocument();
+  });
+
   test("the request a page makes before the canvas is drawn opens the panel the canvas starts with", () => {
     renderBuilder({
       initialNodes: [getPlaceholderTriggerNode()],
