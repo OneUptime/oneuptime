@@ -26,7 +26,7 @@ import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
- * A project's own daily AI limits (Project Settings → AI Features → More
+ * A project's own daily AI limits (Project Settings → AI → AI Features → More
  * settings): the most tokens its AI may use each UTC day, and - where AI is
  * billed - the most AI credits it may spend. They are a ceiling over EVERY
  * AI call, Ask AI included, enforced inside AIService.executeWithLogging,
@@ -216,7 +216,7 @@ describe("the sentence a refusal says", () => {
         usage: { usedTokensToday: 201234, spentTodayInUSDCents: 0 },
       }),
     ).toBe(
-      "This project has reached its daily AI token limit: 201,234 of 200,000 tokens used today. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI Features → More settings.",
+      "This project has reached its daily AI token limit: 201,234 of 200,000 tokens used today. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.",
     );
   });
 
@@ -229,7 +229,7 @@ describe("the sentence a refusal says", () => {
         usage: { usedTokensToday: 9_000_000, spentTodayInUSDCents: 2503 },
       }),
     ).toBe(
-      "This project has reached its daily AI spend limit: $25.03 of $25 spent today. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI Features → More settings.",
+      "This project has reached its daily AI spend limit: $25.03 of $25 spent today. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.",
     );
   });
 
@@ -872,7 +872,7 @@ describe.each([
         ];
 
         const expected: string =
-          "This project has reached its daily AI token limit: 5,000 of 5,000 tokens used today. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI Features → More settings.";
+          "This project has reached its daily AI token limit: 5,000 of 5,000 tokens used today. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.";
 
         const call: Promise<AILogResponse> = execute(feature);
 

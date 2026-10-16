@@ -272,9 +272,9 @@ describe("what the dashboard is told", () => {
 
 describe("the refusal", () => {
   const PLAN_ROOM_TEXT: string =
-    "Delete monitors you no longer need, or change the plan in Project Settings > Billing. Manual monitors do not count towards the limit; monitors that are turned off or archived do.";
+    "Delete monitors you no longer need, or change the plan in Project Settings > Billing and Invoices > Billing. Manual monitors do not count towards the limit; monitors that are turned off or archived do.";
   const FREE_ROOM_TEXT: string =
-    "Upgrade the plan in Project Settings > Billing to add more. Manual monitors do not count towards the limit; monitors that are turned off or archived do.";
+    "Upgrade the plan in Project Settings > Billing and Invoices > Billing to add more. Manual monitors do not count towards the limit; monitors that are turned off or archived do.";
 
   test("at a plan's own limit: which limit, and what to do", () => {
     expect(
@@ -385,7 +385,7 @@ describe("the refusal", () => {
     expect(message).not.toContain("activeMonitorsLimit");
     expect(message).not.toContain("currentActiveMonitorsCount");
     expect(message).not.toContain("$");
-    expect(message).toContain("Project Settings > Billing");
+    expect(message).toContain("Project Settings > Billing and Invoices > Billing");
   });
 });
 

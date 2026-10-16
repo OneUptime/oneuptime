@@ -244,7 +244,7 @@ const OTHER_DESCRIPTIONS: Array<[string, string]> = [
   ],
   [
     "Pages/Teams/View/Members.tsx",
-    "Add and remove this team's members in your identity provider. To change them here instead, turn off Push Groups in Settings > SCIM.",
+    "Add and remove this team's members in your identity provider. To change them here instead, turn off Push Groups in Project Settings > Security > SCIM.",
   ],
   [
     "Pages/Monitor/View/Criteria.tsx",

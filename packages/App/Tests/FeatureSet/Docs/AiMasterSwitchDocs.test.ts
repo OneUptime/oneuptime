@@ -15,7 +15,7 @@ import path from "path";
  * Enable AI is the project's only AI switch, in the docs as in the product.
  *
  * "Enable auto-remediation" and "Enable AI command execution" used to sit
- * next to it on Project Settings → AI Features. Both were folded into it, so
+ * next to it on Project Settings → AI → AI Features. Both were folded into it, so
  * auto-remediation and AI commands on Runners are on exactly when Enable AI
  * is. A page that still told people to turn either one on would send them
  * looking for a toggle that no longer exists. The upgrade notes, and the
@@ -172,7 +172,7 @@ describe("the Infrastructure AI Agents page", () => {
 
   it("says fixes also need Enable AI, where it lives, and that it is on by default", () => {
     expect(page).toContain(
-      "Fixes also need AI to be enabled for the project (**Enable AI** under Project Settings → AI Features), which it is unless someone turned it off.",
+      "Fixes also need AI to be enabled for the project (**Enable AI** under Project Settings → AI → AI Features), which it is unless someone turned it off.",
     );
   });
 

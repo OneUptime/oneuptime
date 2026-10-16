@@ -191,7 +191,7 @@ describe("where each balance is", () => {
       PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PAGE,
     );
     expect(PROJECT_BALANCE_SETTINGS_PAGE[ProjectBalanceType.SmsOrCall]).toBe(
-      "Project Settings > Notification Settings",
+      "Project Settings > Notifications > Notification Settings",
     );
     expect(PROJECT_BALANCE_SETTINGS_PATH[ProjectBalanceType.SmsOrCall]).toBe(
       PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PATH,
@@ -200,7 +200,7 @@ describe("where each balance is", () => {
 
   test("AI credits are on AI Credits, named as the other AI sentences name pages", () => {
     expect(PROJECT_BALANCE_SETTINGS_PAGE[ProjectBalanceType.AI]).toBe(
-      "Project Settings → AI Credits",
+      "Project Settings → AI → AI Credits",
     );
     expect(PROJECT_BALANCE_SETTINGS_PATH[ProjectBalanceType.AI]).toBe(
       "settings/ai-credits",
@@ -213,13 +213,13 @@ describe("who can add balance, as a sentence", () => {
     expect(
       getProjectBalanceWhoCanAddSentence(ProjectBalanceType.SmsOrCall),
     ).toBe(
-      "A project owner or someone with Manage Billing can add balance in Project Settings > Notification Settings.",
+      "A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
     );
   });
 
   test("names the people and the page, for AI credits", () => {
     expect(getProjectBalanceWhoCanAddSentence(ProjectBalanceType.AI)).toBe(
-      "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI Credits.",
+      "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
     );
   });
 
@@ -236,19 +236,19 @@ describe("what the server says when a method's code cannot be paid for", () => {
   test.each([
     [
       ProjectNotificationChannel.SMS,
-      "This project's balance is too low to send SMS. A project owner or someone with Manage Billing can add balance in Project Settings > Notification Settings.",
+      "This project's balance is too low to send SMS. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
     ],
     [
       ProjectNotificationChannel.Call,
-      "This project's balance is too low to make phone calls. A project owner or someone with Manage Billing can add balance in Project Settings > Notification Settings.",
+      "This project's balance is too low to make phone calls. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
     ],
     [
       ProjectNotificationChannel.WhatsApp,
-      "This project's balance is too low to send WhatsApp messages. A project owner or someone with Manage Billing can add balance in Project Settings > Notification Settings.",
+      "This project's balance is too low to send WhatsApp messages. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
     ],
     [
       ProjectNotificationChannel.Telegram,
-      "This project's balance is too low to send Telegram messages. A project owner or someone with Manage Billing can add balance in Project Settings > Notification Settings.",
+      "This project's balance is too low to send Telegram messages. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
     ],
   ])("%s", (channel: ProjectNotificationChannel, expected: string) => {
     expect(getProjectBalanceTooLowMessage(channel)).toBe(expected);
@@ -262,7 +262,7 @@ describe("what the server says when a method's code cannot be paid for", () => {
 
   test("numbers for incoming calls say they are verified by SMS", () => {
     expect(INCOMING_CALL_NUMBER_BALANCE_TOO_LOW_MESSAGE).toBe(
-      "Numbers for incoming calls are verified by SMS, and this project's balance is too low to send SMS. A project owner or someone with Manage Billing can add balance in Project Settings > Notification Settings.",
+      "Numbers for incoming calls are verified by SMS, and this project's balance is too low to send SMS. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
     );
   });
 });
@@ -323,7 +323,7 @@ describe("why one message was not sent", () => {
         costInUSDCents: 35,
       }),
     ).toBe(
-      "This project's balance (0.20 USD) is less than this call costs (0.35 USD). A project owner or someone with Manage Billing can add balance in Project Settings > Notification Settings.",
+      "This project's balance (0.20 USD) is less than this call costs (0.35 USD). A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
     );
     expect(
       getProjectBalanceMessageNotSentReason({
@@ -332,7 +332,7 @@ describe("why one message was not sent", () => {
         costInUSDCents: 1,
       }),
     ).toBe(
-      "This project's balance is used up. A project owner or someone with Manage Billing can add balance in Project Settings > Notification Settings.",
+      "This project's balance is used up. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
     );
   });
 });
@@ -340,7 +340,7 @@ describe("why one message was not sent", () => {
 describe("what the owners are told", () => {
   test("to add balance or turn on Auto Recharge, which tops it up at once", () => {
     expect(getProjectBalanceOwnerSentence(ProjectBalanceType.SmsOrCall)).toBe(
-      "Add balance in Project Settings > Notification Settings, or turn on Auto Recharge there so it does not run out.",
+      "Add balance in Project Settings > Notifications > Notification Settings, or turn on Auto Recharge there so it does not run out.",
     );
   });
 
@@ -351,7 +351,7 @@ describe("what the owners are told", () => {
    */
   test("to add AI credits or turn on Auto Recharge, which refills them when they run out", () => {
     expect(getProjectBalanceOwnerSentence(ProjectBalanceType.AI)).toBe(
-      "Add AI credits in Project Settings → AI Credits, or turn on Auto Recharge there so they do not run out.",
+      "Add AI credits in Project Settings → AI → AI Credits, or turn on Auto Recharge there so they do not run out.",
     );
   });
 });
@@ -382,7 +382,7 @@ describe("the owners' email when the AI credits run out", () => {
 
   test("when Auto Recharge is on and could not add more, it points at the payment method, not at Auto Recharge", () => {
     expect(PROJECT_AI_AUTO_RECHARGE_COULD_NOT_ADD_OWNER_SENTENCE).toBe(
-      "Auto Recharge is on, but it could not add AI credits. Check the payment method in Project Settings > Billing, or add AI credits in Project Settings → AI Credits.",
+      "Auto Recharge is on, but it could not add AI credits. Check the payment method in Project Settings > Billing and Invoices > Billing, or add AI credits in Project Settings → AI → AI Credits.",
     );
     expect(PROJECT_AI_AUTO_RECHARGE_COULD_NOT_ADD_OWNER_SENTENCE).not.toMatch(
       /turn on Auto Recharge/i,
@@ -411,7 +411,7 @@ describe("the owners' email when the AI credits run out", () => {
 describe("the AI call refusal", () => {
   test("says the credits are used up, and who can add them", () => {
     expect(PROJECT_AI_CREDITS_USED_UP_MESSAGE).toBe(
-      "This project's AI credits are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings → AI Credits.",
+      "This project's AI credits are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
     );
   });
 });

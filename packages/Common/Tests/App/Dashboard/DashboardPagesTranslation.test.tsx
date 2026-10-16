@@ -47,7 +47,8 @@ const GERMAN: Record<string, string> = {
   "API key.": "API-Schlüssel.",
   "For an agent that runs unattended, send a OneUptime API key in the {{apiKeyHeader}} header (or {{bearerHeader}}). The key determines which project the agent operates on and what it may do. Create a scoped API key with least-privilege permissions in {{apiKeysLink}}. Never give an AI agent a master API key — it would grant instance-wide admin access across all projects.":
     "Ein Agent, der unbeaufsichtigt läuft, sendet einen OneUptime-API-Schlüssel im Header {{apiKeyHeader}} (oder {{bearerHeader}}). Erstellen Sie unter {{apiKeysLink}} einen Schlüssel mit möglichst wenigen Rechten. Geben Sie einem KI-Agenten nie einen Master-API-Schlüssel.",
-  "Project Settings → API Keys": "Projekteinstellungen → API-Schlüssel",
+  "Project Settings → Advanced → API Keys":
+    "Projekteinstellungen → Erweitert → API-Schlüssel",
   "Connected {{date}}": "Verbunden am {{date}}",
   'Disconnect "{{name}}"? It is signed out immediately and has to be connected again before it can work with this project. Nothing it created is deleted.':
     "„{{name}}“ trennen? Er wird sofort abgemeldet und muss neu verbunden werden. Nichts, was er erstellt hat, wird gelöscht.",
@@ -315,7 +316,7 @@ describe("Settings > MCP Server in German", () => {
       "Ein Agent, der unbeaufsichtigt läuft, sendet einen OneUptime-API-Schlüssel im Header x-api-key (oder Authorization: Bearer).",
     );
     expect(text).toContain(
-      "Erstellen Sie unter Projekteinstellungen → API-Schlüssel einen Schlüssel mit möglichst wenigen Rechten.",
+      "Erstellen Sie unter Projekteinstellungen → Erweitert → API-Schlüssel einen Schlüssel mit möglichst wenigen Rechten.",
     );
 
     // The slots are the page's own elements, not text.
@@ -332,7 +333,7 @@ describe("Settings > MCP Server in German", () => {
           return link.textContent || "";
         },
       ),
-    ).toEqual(["Projekteinstellungen → API-Schlüssel"]);
+    ).toEqual(["Projekteinstellungen → Erweitert → API-Schlüssel"]);
   });
 
   test("the Claude Code step keeps the command inside the German sentence", () => {

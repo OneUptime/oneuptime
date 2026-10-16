@@ -381,7 +381,7 @@ describe("the AI balance gate (insufficient_ai_balance)", () => {
           subject.alertId ? "alert" : "incident"
         } was created, so its automatic investigation did not start.`,
       );
-      expect(reason.nextStep).toContain("Project Settings → AI Credits");
+      expect(reason.nextStep).toContain("Project Settings → AI → AI Credits");
       /*
        * Not "turn on auto-recharge": the reason is only recorded when it
        * cannot refill the credits (off, or its last charge failed). And no
@@ -389,7 +389,7 @@ describe("the AI balance gate (insufficient_ai_balance)", () => {
        */
       expect(reason.nextStep).not.toMatch(/auto-?recharge/i);
       expect(reason.nextStep).toBe(
-        `Review AI credits under Project Settings → AI Credits. Adding credits later does not retry this ${subject.alertId ? "alert" : "incident"}.`,
+        `Review AI credits under Project Settings → AI → AI Credits. Adding credits later does not retry this ${subject.alertId ? "alert" : "incident"}.`,
       );
     },
   );
@@ -409,7 +409,7 @@ describe("the AI balance gate (insufficient_ai_balance)", () => {
       expect(reason.source).toBe("current_configuration");
       expect(reason.title).toBe("The project is currently out of AI credits");
       expect(reason.nextStep).toBe(
-        `New ${subject.alertId ? "alert" : "incident"}s can be investigated once AI credits are added under Project Settings → AI Credits. Existing records are not automatically retried.`,
+        `New ${subject.alertId ? "alert" : "incident"}s can be investigated once AI credits are added under Project Settings → AI → AI Credits. Existing records are not automatically retried.`,
       );
       expect(reason.nextStep).not.toMatch(/auto-?recharge/i);
       // The subject gate and the daily budget are never reached.
@@ -426,11 +426,11 @@ describe("the AI balance gate (insufficient_ai_balance)", () => {
 
 describe("the AI switches page is named where AI is off", () => {
   it.each(subjects)(
-    "recorded and current ai_disabled next steps name Project Settings → AI Features for %o",
+    "recorded and current ai_disabled next steps name Project Settings → AI → AI Features for %o",
     async (subject: InvestigationSubject) => {
       const recorded: InvestigationNotStartedReason =
         InvestigationEligibility.reason("ai_disabled", subject);
-      expect(recorded.nextStep).toContain("Project Settings → AI Features");
+      expect(recorded.nextStep).toContain("Project Settings → AI → AI Features");
       expect(recorded.nextStep).not.toContain("AI Credits");
 
       mockMissingDecision();
@@ -439,7 +439,7 @@ describe("the AI switches page is named where AI is off", () => {
         .mockResolvedValue("ai_disabled");
       const current: InvestigationNotStartedReason =
         await InvestigationEligibility.getNotStartedReason(subject);
-      expect(current.nextStep).toContain("Project Settings → AI Features");
+      expect(current.nextStep).toContain("Project Settings → AI → AI Features");
       expect(current.nextStep).not.toContain("AI Credits");
     },
   );
@@ -1128,7 +1128,7 @@ describe("a record created already resolved (created_resolved)", () => {
 });
 
 /*
- * The project's own daily AI limits (Project Settings → AI Features → More
+ * The project's own daily AI limits (Project Settings → AI → AI Features → More
  * settings) are a ceiling over everything its AI does. Once one is reached
  * every model call is refused until midnight UTC, so an investigation
  * started then would only fail and be retried: the gate refuses up front,
@@ -1300,7 +1300,7 @@ describe("the project's own daily AI limits (project_daily_limit_reached)", () =
       expect(reason.nextStep).toBe(
         `OneUptime AI investigates this ${
           subject.alertId ? "alert" : "incident"
-        } after the limit resets at midnight UTC, if it is still open then, or as soon as the limit is raised or removed under Project Settings → AI Features → More settings.`,
+        } after the limit resets at midnight UTC, if it is still open then, or as soon as the limit is raised or removed under Project Settings → AI → AI Features → More settings.`,
       );
       expect(reason.nextStep).not.toContain("not automatically retried");
     },
@@ -1323,7 +1323,7 @@ describe("the project's own daily AI limits (project_daily_limit_reached)", () =
         "The project's daily AI limit is currently reached",
       );
       expect(reason.nextStep).toContain(
-        "Project Settings → AI Features → More settings",
+        "Project Settings → AI → AI Features → More settings",
       );
       expect(reason.nextStep).toContain("midnight UTC");
       // The subject gate and the lane budget are never reached.

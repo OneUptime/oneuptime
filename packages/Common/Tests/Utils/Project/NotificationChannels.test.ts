@@ -201,9 +201,9 @@ describe("who may turn them on", () => {
 });
 
 describe("where the switches are", () => {
-  test("Project Settings > Notification Settings, at the project's settings/notification-settings", () => {
+  test("Project Settings > Notifications > Notification Settings, at the project's settings/notification-settings", () => {
     expect(PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PAGE).toBe(
-      "Project Settings > Notification Settings",
+      "Project Settings > Notifications > Notification Settings",
     );
     expect(PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PATH).toBe(
       "settings/notification-settings",
@@ -225,10 +225,10 @@ describe("who can turn it on, as words", () => {
     "the clause and the sentence for %s",
     (pronoun: ChannelPronoun) => {
       expect(getWhoCanTurnOnClause(pronoun)).toBe(
-        `a project owner, a Billing Admin or someone with Manage Billing can turn ${pronoun} on in Project Settings > Notification Settings`,
+        `a project owner, a Billing Admin or someone with Manage Billing can turn ${pronoun} on in Project Settings > Notifications > Notification Settings`,
       );
       expect(getWhoCanTurnOnSentence(pronoun)).toBe(
-        `A project owner, a Billing Admin or someone with Manage Billing can turn ${pronoun} on in Project Settings > Notification Settings.`,
+        `A project owner, a Billing Admin or someone with Manage Billing can turn ${pronoun} on in Project Settings > Notifications > Notification Settings.`,
       );
     },
   );
@@ -238,19 +238,19 @@ describe("what the server says when a channel is off", () => {
   test.each([
     [
       ProjectNotificationChannel.SMS,
-      "SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notification Settings.",
+      "SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Settings.",
     ],
     [
       ProjectNotificationChannel.Call,
-      "Phone calls are off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notification Settings.",
+      "Phone calls are off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Settings.",
     ],
     [
       ProjectNotificationChannel.WhatsApp,
-      "WhatsApp is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notification Settings.",
+      "WhatsApp is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Settings.",
     ],
     [
       ProjectNotificationChannel.Telegram,
-      "Telegram is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notification Settings.",
+      "Telegram is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Settings.",
     ],
   ] as Array<[ProjectNotificationChannel, string]>)(
     "%s",
@@ -261,13 +261,13 @@ describe("what the server says when a channel is off", () => {
 
   test("incoming call numbers need SMS, because they are verified by text", () => {
     expect(INCOMING_CALL_NUMBER_SMS_OFF_MESSAGE).toBe(
-      "Numbers for incoming calls are verified by SMS, which is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notification Settings.",
+      "Numbers for incoming calls are verified by SMS, which is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Settings.",
     );
   });
 
   test("a status page's SMS subscriptions need SMS on for the project", () => {
     expect(STATUS_PAGE_SMS_SUBSCRIPTIONS_SMS_OFF_MESSAGE).toBe(
-      "Visitors can't subscribe by SMS while SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notification Settings.",
+      "Visitors can't subscribe by SMS while SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Settings.",
     );
   });
 
@@ -307,19 +307,19 @@ describe("what the owners are told about a message that was not sent", () => {
   test.each([
     [
       ProjectNotificationChannel.SMS,
-      "SMS is off in this project. If it should be on, turn it on in Project Settings > Notification Settings.",
+      "SMS is off in this project. If it should be on, turn it on in Project Settings > Notifications > Notification Settings.",
     ],
     [
       ProjectNotificationChannel.Call,
-      "Phone calls are off in this project. If they should be on, turn them on in Project Settings > Notification Settings.",
+      "Phone calls are off in this project. If they should be on, turn them on in Project Settings > Notifications > Notification Settings.",
     ],
     [
       ProjectNotificationChannel.WhatsApp,
-      "WhatsApp is off in this project. If it should be on, turn it on in Project Settings > Notification Settings.",
+      "WhatsApp is off in this project. If it should be on, turn it on in Project Settings > Notifications > Notification Settings.",
     ],
     [
       ProjectNotificationChannel.Telegram,
-      "Telegram is off in this project. If it should be on, turn it on in Project Settings > Notification Settings.",
+      "Telegram is off in this project. If it should be on, turn it on in Project Settings > Notifications > Notification Settings.",
     ],
   ] as Array<[ProjectNotificationChannel, string]>)(
     "%s: they may turn it on, so they are told to, if it should be on",

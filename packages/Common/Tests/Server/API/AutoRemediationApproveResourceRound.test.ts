@@ -169,7 +169,7 @@ const APPROVE_ROUTE: string = "/auto-remediation/approve";
 
 // What the route answers, word for word, while the project has AI off.
 const AI_DISABLED_REFUSAL: string =
-  "AI is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI Features, or dismiss the suggestion.";
+  "AI is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI → AI Features, or dismiss the suggestion.";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",

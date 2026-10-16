@@ -777,7 +777,7 @@ describe("setup checklist page - acting on a step", () => {
     expect(
       screen.getByTestId("setup-checklist-detail-channels-enabled"),
     ).toHaveTextContent(
-      "A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings",
+      "A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Settings",
     );
   });
 
@@ -1410,7 +1410,7 @@ describe("setup checklist page - who can turn a channel on", () => {
     ["a Billing Admin", [Permission.BillingAdmin], false],
     ["a master admin", [], true],
   ] as Array<[string, Array<Permission>, boolean]>)(
-    "%s gets the step as their own, opening Project Settings → Notification Settings",
+    "%s gets the step as their own, opening Project Settings → Notifications → Notification Settings",
     async (
       _who: string,
       permissions: Array<Permission>,
@@ -1429,13 +1429,13 @@ describe("setup checklist page - who can turn a channel on", () => {
       expect(step).toHaveAttribute("data-status", "Incomplete");
       expect(step).toHaveAttribute("role", "button");
       expect(step).toHaveTextContent(
-        "Go to Project Settings → Notification Settings →",
+        "Go to Project Settings → Notifications → Notification Settings →",
       );
       expect(
         screen.getByTestId("setup-checklist-detail-channels-enabled")
           .textContent,
       ).toBe(
-        "Every method you have verified is on a channel this project has switched off. Turn it on in Project Settings → Notification Settings, or add an email or push device instead.",
+        "Every method you have verified is on a channel this project has switched off. Turn it on in Project Settings → Notifications → Notification Settings, or add an email or push device instead.",
       );
 
       // Nothing is somebody else's to do, so nothing is said about it.
@@ -1481,7 +1481,7 @@ describe("setup checklist page - who can turn a channel on", () => {
           .textContent || "";
 
       expect(detail).toBe(
-        "Every method you have verified is on a channel this project has switched off. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings, or you can add an email or push device instead.",
+        "Every method you have verified is on a channel this project has switched off. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Settings, or you can add an email or push device instead.",
       );
       expect(detail.toLowerCase()).not.toContain("project admin");
       expect(within(step).getByText("Needs someone else")).toBeInTheDocument();
@@ -1549,7 +1549,7 @@ describe("setup checklist page - who can turn a channel on", () => {
 
     expect(step).toHaveAttribute("data-status", "Incomplete");
     expect(step).toHaveTextContent(
-      "Go to Project Settings → Notification Settings →",
+      "Go to Project Settings → Notifications → Notification Settings →",
     );
     expect(screen.queryByText("Needs someone else")).not.toBeInTheDocument();
   });

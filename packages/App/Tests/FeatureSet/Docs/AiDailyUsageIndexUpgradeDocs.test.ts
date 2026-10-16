@@ -75,7 +75,7 @@ describe("the AI Logs index upgrade note", () => {
     const text: string = flat(note());
 
     expect(text).toContain(
-      "**Project Settings → AI Features → More settings**",
+      "**Project Settings → AI → AI Features → More settings**",
     );
     expect(text).toContain("the incident and alert daily token limits");
     expect(text).toContain("(`LlmLog`)");

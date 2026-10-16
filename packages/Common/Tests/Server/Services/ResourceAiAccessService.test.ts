@@ -389,7 +389,7 @@ describe("ResourceAiAccessService.buildStatus", () => {
 
     expect(codes(off)).toEqual(["ai_disabled_for_project"]);
     expect(gap(off, "ai_disabled_for_project").nextStep).toBe(
-      "Enable AI under Project Settings → AI Features.",
+      "Enable AI under Project Settings → AI → AI Features.",
     );
     expect(codes(off)).not.toContain("auto_remediation_disabled_for_project");
     expect(off.isInvestigationReady).toBe(false);

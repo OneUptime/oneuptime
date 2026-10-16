@@ -93,7 +93,7 @@ describe("the Telegram setup guide's end-to-end test", () => {
 
   test("says exactly who can switch Telegram on, and where", () => {
     expect(TELEGRAM_PROJECT_SWITCH_STEP).toContain(
-      "a project owner, a **Billing Admin** or someone with **Manage Billing** turns **Telegram** on in **Project Settings → Notification Settings**, in the **Notification Channels** card.",
+      "a project owner, a **Billing Admin** or someone with **Manage Billing** turns **Telegram** on in **Project Settings → Notifications → Notification Settings**, in the **Notification Channels** card.",
     );
     expect(TELEGRAM_PROJECT_SWITCH_STEP).toContain(
       "It starts off in every project, and until it is on nobody in the project can link a Telegram account.",

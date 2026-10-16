@@ -181,7 +181,7 @@ describe("creating a monitor in a project whose plan caps active monitors", () =
       hooks.onBeforeCreate(createInput(MonitorType.Website)),
     ).rejects.toThrow(
       new BadDataException(
-        "This project has reached its plan's limit of 500 active monitors, so no more can be added. Delete monitors you no longer need, or change the plan in Project Settings > Billing. Manual monitors do not count towards the limit; monitors that are turned off or archived do.",
+        "This project has reached its plan's limit of 500 active monitors, so no more can be added. Delete monitors you no longer need, or change the plan in Project Settings > Billing and Invoices > Billing. Manual monitors do not count towards the limit; monitors that are turned off or archived do.",
       ),
     );
   });
@@ -241,7 +241,7 @@ describe("creating a monitor in a project whose plan caps active monitors", () =
     await expect(
       hooks.onBeforeCreate(createInput(MonitorType.Website)),
     ).rejects.toThrow(
-      "This project has reached the Free plan's limit of 10 active monitors, so no more can be added. Upgrade the plan in Project Settings > Billing to add more.",
+      "This project has reached the Free plan's limit of 10 active monitors, so no more can be added. Upgrade the plan in Project Settings > Billing and Invoices > Billing to add more.",
     );
   });
 

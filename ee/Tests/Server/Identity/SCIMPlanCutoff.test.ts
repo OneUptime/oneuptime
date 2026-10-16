@@ -611,7 +611,7 @@ describe.each([PlanType.Free, PlanType.Growth])(
       expect(detail).toContain("SCIM provisioning needs the Scale plan.");
       expect(detail).toContain("can only remove people");
       expect(detail).toContain("The connections are kept");
-      expect(detail).toContain("Project Settings > Billing");
+      expect(detail).toContain("Project Settings > Billing and Invoices > Billing");
     });
 
     test("the plan read is the connection's own project's", async () => {

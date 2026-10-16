@@ -229,7 +229,7 @@ describe("AiCreditsUsedUpOwnerNotice.getHtml", () => {
     expect(html).toBe(
       [
         "This project&#39;s AI credits are used up, so OneUptime AI has stopped: Ask AI, investigations and the other AI features paid from them are refused until credits are added.",
-        `Add AI credits in Project Settings → AI Credits, or turn on Auto Recharge there so they do not run out. <br/> <br/> <a href="${AI_CREDITS_LINK}">${AI_CREDITS_LINK}</a>`,
+        `Add AI credits in Project Settings → AI → AI Credits, or turn on Auto Recharge there so they do not run out. <br/> <br/> <a href="${AI_CREDITS_LINK}">${AI_CREDITS_LINK}</a>`,
         "Project owners get this email once each time the AI credits run out.",
       ].join(" <br/> <br/> "),
     );
@@ -242,8 +242,8 @@ describe("AiCreditsUsedUpOwnerNotice.getHtml", () => {
     });
 
     expect(html.match(/<a href=/g)).toHaveLength(1);
-    expect(html).not.toContain("Project Settings > Billing");
-    expect(html).toContain("Project Settings &gt; Billing");
+    expect(html).not.toContain("Project Settings > Billing and Invoices > Billing");
+    expect(html).toContain("Project Settings &gt; Billing and Invoices &gt; Billing");
   });
 
   test("without the dashboard's address, no link - the sentences still say where", () => {
@@ -255,7 +255,7 @@ describe("AiCreditsUsedUpOwnerNotice.getHtml", () => {
     });
 
     expect(html).not.toContain("<a href=");
-    expect(html).toContain("Project Settings → AI Credits");
+    expect(html).toContain("Project Settings → AI → AI Credits");
   });
 
   test("names no one else: it goes to the owners, who may add credits", () => {

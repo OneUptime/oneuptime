@@ -2461,7 +2461,7 @@ describe("toPanelClusterAccess gap next steps", () => {
       AI_BALANCE_INSUFFICIENT_NEXT_STEP,
     );
     expect(AI_BALANCE_INSUFFICIENT_NEXT_STEP).toBe(
-      "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI Credits.",
+      "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
     );
     expect(AI_BALANCE_INSUFFICIENT_NEXT_STEP).not.toContain("Runner");
     expect(AI_BALANCE_INSUFFICIENT_NEXT_STEP).not.toContain("credential");

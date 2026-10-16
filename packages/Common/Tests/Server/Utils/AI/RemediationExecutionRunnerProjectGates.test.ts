@@ -27,7 +27,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 );
 
 const AI_DISABLED_MESSAGE: string =
-  "AI was disabled for this project before the run started (Project Settings → AI Features) — nothing was run or proposed.";
+  "AI was disabled for this project before the run started (Project Settings → AI → AI Features) — nothing was run or proposed.";
 
 function mockProject(
   project: Record<string, unknown> | null,
@@ -153,12 +153,12 @@ describe("RemediationExecutionRunner.checkProjectGates", () => {
   });
 
   describe("the refusal", () => {
-    it("names Project Settings → AI Features, the page every install shows, and says nothing ran", async () => {
+    it("names Project Settings → AI → AI Features, the page every install shows, and says nothing ran", async () => {
       mockProject(aiOn({ enableAi: false }));
 
       const failure: string = (await gates()) || "";
 
-      expect(failure).toContain("(Project Settings → AI Features)");
+      expect(failure).toContain("(Project Settings → AI → AI Features)");
       expect(failure).toContain("nothing was run or proposed");
       expect(failure).not.toContain("AI Credits");
       expect(failure).not.toMatch(/Project Settings → AI\)/);

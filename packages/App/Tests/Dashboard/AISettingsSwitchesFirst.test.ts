@@ -543,7 +543,7 @@ describe("the pages draw switches first, and fold the limits", () => {
     expect(page).not.toContain("CardModelDetail");
   });
 
-  test("Project Settings → AI Features is Enable AI's switch, asking before it turns AI off", () => {
+  test("Project Settings → AI → AI Features is Enable AI's switch, asking before it turns AI off", () => {
     const page: string = readDashboard(AI_FEATURES_PAGE);
     const confirmation: string = readDashboard(CONFIRMATION);
 
