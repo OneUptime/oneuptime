@@ -121,7 +121,7 @@ flowchart TB
 
 Fyra saker måste alla stämma för att ett larm ska åsidosätta tyst läge. Saknas någon av dem levereras larmet ändå – bara tyst.
 
-1. **Personen har slagit på det för den enheten.** Lagras per enhet, av som standard, i `UserPush.isCriticalAlertEnabled`. En persons telefon och surfplatta är separata beslut.
+1. **Personen har slagit på det för den enheten.** Lagras per enhet, av som standard, i `UserPush.isCriticalAlertEnabled`. En persons telefon och surfplatta är separata beslut. Versioner av appen nyare än 1.6.0 rapporterar det igen varje gång de öppnas, som avstängt så länge telefonens egna inställningar inte tillåter kritiska larm, så att enhetslistan visar vad telefonen verkligen kommer att göra.
 2. **Jourregeln som skickade larmet ber om det.** Under **Användarinställningar > Jourregler** står varje regel som aviserar en telefon på ”Kritisk varning”, som är standard, eller på ”Normal”, som följer telefonens ljudinställningar – så kan en person väckas av en kritisk incident och aviseras tyst om en mindre. Lagras per regel i `UserNotificationRule.pushNotificationLevel`.
 3. **Servern markerar larmet som kritiskt.** Den skickar APNs kritiska ljud-payload plus `interruptionLevel: critical` för iOS, och använder en kritisk aviseringskanal för Android: `oncall_critical`, eller det valda larmets egen kanal (se [Välja larmljud](#välja-larmljud)).
 4. **Operativsystemet tillåter det**, och det är här de två plattformarna skiljer sig.
@@ -192,7 +192,7 @@ En push-regel kan skicka sitt larm igen tills någon bekräftar det. Under **Anv
 - **iOS**: bekräfta att bygget har Apples entitlement för kritiska larm (se ovan), och att Critical Alerts är tillåtet under iOS Settings > Notifications > OneUptime On-Call
 - **Android**: bekräfta att appen har åtkomst till Stör ej under Settings > Notifications > Do Not Disturb access
 - **Android**: om du har valt ett larmljud måste även dess egen aviseringskanal få åsidosätta Stör ej; appens skärm Alarm sound talar om när den inte får det
-- Inställningsskärmen anger vilken av dessa som saknas; den läser tillbaka det aktuella tillståndet från operativsystemet i stället för att lita på vad appen senast begärde
+- Inställningsskärmen anger vilken av dessa som saknas; den läser tillbaka det aktuella tillståndet från operativsystemet i stället för att lita på vad appen senast begärde, och berättar för servern vad den hittar
 
 ### Pushar markerade som "inte levererade"
 

@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, AppStateStatus, Platform } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   CriticalAlertAvailability,
   CriticalAlertStatus,
@@ -8,13 +7,14 @@ import {
   requestCriticalAlertPermission,
 } from "../notifications/criticalAlerts";
 import {
-  getCriticalAlertSound,
-  getCriticalAlertsEnabled,
-  setCriticalAlertsEnabled as storeCriticalAlertsEnabled,
-} from "../storage/preferences";
+  CriticalAlertsChoiceOutcome,
+  type CriticalAlertsReading,
+  readCriticalAlerts,
+  reportCriticalAlerts,
+  saveCriticalAlertsChoice,
+} from "../notifications/criticalAlertsReport";
+import { getCriticalAlertSound } from "../storage/preferences";
 import type { CriticalAlertSoundIdValue } from "../notifications/criticalAlertSounds";
-import { setCriticalAlertsEnabledOnServer } from "../api/pushDevice";
-import { PUSH_TOKEN_KEY } from "./pushTokenUtils";
 import logger from "../utils/logger";
 
 export interface CriticalAlertsState {
@@ -22,7 +22,11 @@ export interface CriticalAlertsState {
   isSupported: boolean;
   // Whether the OS has actually granted the capability right now.
   isPermissionGranted: boolean;
-  // The responder's choice, as far as the server knows it.
+  /*
+   * Whether a critical page rings through on this phone: the responder's
+   * choice AND the OS allowing it - what the server is told, too
+   * (notifications/criticalAlertsReport.ts).
+   */
   isEnabled: boolean;
   isBusy: boolean;
   /*
@@ -84,26 +88,21 @@ export function useCriticalAlerts(): CriticalAlertsState {
   );
 
   /*
-   * Read the OS and the stored preference and reconcile them. Returns the
-   * status so callers that care about the transition (the foreground listener
-   * below) can act on it; `refresh` is the void-returning wrapper the settings
-   * screen sees.
+   * Read the OS and the stored preference and reconcile them, then make sure
+   * the server holds the same. Returns the status so callers that care about
+   * the transition (the foreground listener below) can act on it; `refresh`
+   * is the void-returning wrapper the settings screen sees.
    */
   const syncStatus: () => Promise<CriticalAlertStatus> =
     useCallback(async (): Promise<CriticalAlertStatus> => {
       /*
-       * On Android the alarm the responder chose decides which channel has to
-       * ring through Do Not Disturb, so it is read first.
+       * The responder's stored choice and the OS's answer for the alarm they
+       * chose (on Android each alarm rings through Do Not Disturb on a
+       * channel of its own), read the way the server is told them.
        */
-      const sound: CriticalAlertSoundIdValue = await getCriticalAlertSound();
+      const reading: CriticalAlertsReading = await readCriticalAlerts();
 
-      const [status, storedPreference]: [CriticalAlertStatus, boolean] =
-        await Promise.all([
-          getCriticalAlertStatus({ sound: sound }),
-          getCriticalAlertsEnabled(),
-        ]);
-
-      applyStatus(status);
+      applyStatus(reading.status);
 
       if (isMountedRef.current) {
         /*
@@ -112,13 +111,18 @@ export function useCriticalAlerts(): CriticalAlertsState {
          * longer honour it is the one reading that could let somebody sleep
          * through a page believing they were covered.
          */
-        setIsEnabled(
-          storedPreference &&
-            status.availability === CriticalAlertAvailability.Granted,
-        );
+        setIsEnabled(reading.isEffective);
       }
 
-      return status;
+      /*
+       * The server is told the same, when it does not hold it already: the
+       * Dashboard shows it, and pages go out by it. Permission revoked in
+       * system settings used to turn the switch off here and nowhere else.
+       * Never throws, and the screen does not wait for it.
+       */
+      void reportCriticalAlerts();
+
+      return reading.status;
     }, [applyStatus]);
 
   const refresh: () => Promise<void> = useCallback(async (): Promise<void> => {
@@ -216,10 +220,20 @@ export function useCriticalAlerts(): CriticalAlertsState {
           return;
         }
 
-        const deviceToken: string | null =
-          await AsyncStorage.getItem(PUSH_TOKEN_KEY);
+        /*
+         * The server first, and the phone keeps the choice only once the
+         * server took it (saveCriticalAlertsChoice). The local copy is what
+         * re-registration replays, so persisting an unsaved "on" would keep
+         * telling the server something the responder was told had failed.
+         */
+        const outcome: CriticalAlertsChoiceOutcome =
+          await saveCriticalAlertsChoice(enabled);
 
-        if (!deviceToken) {
+        if (outcome === CriticalAlertsChoiceOutcome.NotRegistered) {
+          /*
+           * No device on the server to turn it on for: storing "on" anyway
+           * would show a switch backed by nothing.
+           */
           if (isMountedRef.current) {
             setIsEnabled(false);
             setError(NO_DEVICE_ERROR);
@@ -227,18 +241,11 @@ export function useCriticalAlerts(): CriticalAlertsState {
           return;
         }
 
-        await setCriticalAlertsEnabledOnServer({
-          deviceToken: deviceToken,
-          isEnabled: enabled,
-        });
-
         /*
-         * Stored only after the server accepted it. The local copy is what
-         * re-registration replays, so persisting an unsaved "on" would keep
-         * telling the server something the responder was told had failed.
+         * Saved, or - turning it off with no device on the server to turn
+         * off - kept on the phone, which the registration that makes the
+         * device restates. Either way the switch says what is in force.
          */
-        await storeCriticalAlertsEnabled(enabled);
-
         if (isMountedRef.current) {
           setIsEnabled(enabled);
         }

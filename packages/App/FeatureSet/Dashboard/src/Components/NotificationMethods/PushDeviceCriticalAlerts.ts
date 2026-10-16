@@ -104,6 +104,49 @@ export function getCriticalAlertDeviceState(
 }
 
 /*
+ * Whether a test notification went out as a critical alert, as the server
+ * answered it (UserPushAPI's test-notification route): the device as it is
+ * when the test is sent. null when the answer does not say, as a server from
+ * before it did.
+ */
+export function readTestNotificationIsCritical(
+  answer: unknown,
+): boolean | null {
+  if (!answer || typeof answer !== "object" || Array.isArray(answer)) {
+    return null;
+  }
+
+  const isCriticalAlert: unknown = (answer as Record<string, unknown>)[
+    "isCriticalAlert"
+  ];
+
+  return typeof isCriticalAlert === "boolean" ? isCriticalAlert : null;
+}
+
+/*
+ * What the dialog after a test says the test did. The server's answer when
+ * it gave one: the phone's app reports its critical alerts whenever they
+ * change - turned off in the app or in the phone's own settings - so the list
+ * may have been read before the phone last did, and the dialog said what the
+ * list showed: "as a critical alert" to a phone that had them off. Only a
+ * server that does not answer leaves it to the list. A browser never gets
+ * one, whatever is stored for it.
+ */
+export function wasTestSentAsCriticalAlert(data: {
+  platform: PushDevicePlatform;
+  // The device's critical alerts as the list showed them.
+  isListedAsOn: boolean;
+  // readTestNotificationIsCritical of the server's answer.
+  answer: boolean | null;
+}): boolean {
+  if (data.platform === PushDevicePlatform.Browser) {
+    return false;
+  }
+
+  return data.answer ?? data.isListedAsOn;
+}
+
+/*
  * The app's own labels, exactly as its screens draw them
  * (packages/MobileApp: app.json's name, the Settings tab, and the
  * Notifications group of the Settings screen). Drawn as they are in every
@@ -126,7 +169,9 @@ export const MOBILE_APP_LABELS: {
 /*
  * The {{placeholders}} the sentences below use. Each is drawn by the dialog
  * as it is, never translated: the app's labels in bold, the stores as links,
- * and the address the app connects to as the code it is.
+ * and the address the app connects to as the code it is. The line under a
+ * sent test's words (CRITICAL_ALERT_TEST_DID_NOT_RING) draws the app's
+ * labels the same way.
  */
 export type CriticalAlertSentenceSlot =
   | "app"
@@ -201,6 +246,14 @@ export const CRITICAL_ALERT_STEPS: Record<
 /*
  * When the steps did not turn it on: what the app says then, and what to do
  * about it (the reasons in MobileApp's notifications/criticalAlerts.ts).
+ *
+ * On an iPhone, iOS asks once. A phone whose critical alerts were turned off
+ * in iOS Settings - which the list reads as Off now that the app reports it
+ * - is never asked again, and neither is one that tapped Don't Allow: both
+ * are fixed in iOS Settings. Only when iOS Settings has no Critical Alerts
+ * switch for the app at all is the app too old for them. "iOS didn't ask?"
+ * used to lead straight to an App Store update, which was wrong for the
+ * first two.
  */
 export const CRITICAL_ALERT_TROUBLESHOOTING: Record<
   PushDevicePlatform,
@@ -208,10 +261,10 @@ export const CRITICAL_ALERT_TROUBLESHOOTING: Record<
 > = {
   [PushDevicePlatform.IOS]: [
     translationKey(
-      "Tapped Don't Allow? Turn on Critical Alerts in iOS Settings > Notifications > {{app}}, then turn on {{criticalAlerts}} in the app again.",
+      "Tapped Don't Allow, or iOS didn't ask? Turn on Critical Alerts in iOS Settings > Notifications > {{app}}, then turn on {{criticalAlerts}} in the app again.",
     ),
     translationKey(
-      "iOS didn't ask? Update {{app}} from the App Store: versions before 1.5.0 cannot receive critical alerts.",
+      "No Critical Alerts switch there? Update {{app}} from the App Store: versions before 1.5.0 cannot receive critical alerts.",
     ),
   ],
   [PushDevicePlatform.Android]: [
@@ -236,4 +289,19 @@ export const CRITICAL_ALERT_ONCE_ON: string = translationKey(
 
 export const CRITICAL_ALERT_HOW_TO_HEAR_IT: string = translationKey(
   "To hear it, silence the phone and send it a Test Notification from this list.",
+);
+
+/*
+ * Under a test that went to a phone as a critical alert: what to do when it
+ * did not ring through. The server goes by what the phone's app last
+ * reported, and the phone's own settings can stop critical alerts without
+ * the app saying so - an app from before it reported them (1.6.0 and
+ * earlier), or one not opened since. That was the maintainer's report: the
+ * dialog said the test rang through silent mode, and the phone showed it
+ * quietly. The app's switch reads the phone's settings, and turning it on
+ * says what the phone needs; opening a newer app also reports them, so the
+ * list catches up.
+ */
+export const CRITICAL_ALERT_TEST_DID_NOT_RING: string = translationKey(
+  "Didn't ring through? Open {{app}} on the phone, tap {{settings}} and check that {{criticalAlerts}} is on.",
 );

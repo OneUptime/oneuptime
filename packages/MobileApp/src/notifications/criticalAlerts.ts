@@ -65,6 +65,13 @@ export interface CriticalAlertStatus {
    * "denied" means two very different chores on the two platforms.
    */
   reason: string;
+  /*
+   * Set when the OS could not be asked at all. The availability is then the
+   * cautious answer for the screen to show (denied), not a reading anything
+   * may act on: the server is never told that a phone stopped ringing
+   * through over a failed read (notifications/criticalAlertsReport.ts).
+   */
+  isUncertain?: boolean | undefined;
 }
 
 const IOS_DENIED_REASON: string =
@@ -119,6 +126,18 @@ const GRANTED_REASON: string =
 export async function isCriticalChannelBypassingDnd(
   sound?: CriticalAlertSoundIdValue,
 ): Promise<boolean> {
+  return Boolean(await readCriticalChannelBypass(sound));
+}
+
+/*
+ * isCriticalChannelBypassingDnd's answer, or null when Android could not be
+ * asked at all: writing the channels failed and reading the chosen one
+ * failed too. A channel that is not there is an answer (false); a read that
+ * threw is not one.
+ */
+async function readCriticalChannelBypass(
+  sound?: CriticalAlertSoundIdValue,
+): Promise<boolean | null> {
   if (Platform.OS !== "android") {
     return false;
   }
@@ -165,7 +184,7 @@ export async function isCriticalChannelBypassingDnd(
       `[CriticalAlerts] Could not read the critical notification channel ${chosenChannelId}:`,
       error,
     );
-    return false;
+    return null;
   }
 }
 
@@ -222,7 +241,7 @@ async function getIosCriticalAlertStatus(): Promise<CriticalAlertStatus> {
 async function getAndroidCriticalAlertStatus(
   sound: CriticalAlertSoundIdValue | undefined,
 ): Promise<CriticalAlertStatus> {
-  const bypassesDnd: boolean = await isCriticalChannelBypassingDnd(sound);
+  const bypassesDnd: boolean | null = await readCriticalChannelBypass(sound);
 
   if (bypassesDnd) {
     return {
@@ -234,6 +253,7 @@ async function getAndroidCriticalAlertStatus(
   return {
     availability: CriticalAlertAvailability.Denied,
     reason: ANDROID_DENIED_REASON,
+    ...(bypassesDnd === null ? { isUncertain: true } : {}),
   };
 }
 
@@ -269,11 +289,14 @@ export async function getCriticalAlertStatus(
      * Report "denied" rather than "granted" when the answer is unknown. The
      * cost of being wrong in this direction is a responder who is told to
      * check a setting that was already fine; the other direction is a
-     * responder told their phone will wake them when it will not.
+     * responder told their phone will wake them when it will not. Marked
+     * uncertain, so nothing tells the server pages should stop ringing
+     * through on the strength of it.
      */
     return {
       availability: CriticalAlertAvailability.Denied,
       reason: Platform.OS === "ios" ? IOS_DENIED_REASON : ANDROID_DENIED_REASON,
+      isUncertain: true,
     };
   }
 }

@@ -8,11 +8,13 @@ import {
 const KEYS: {
   readonly BIOMETRIC_ENABLED: "oneuptime_biometric_enabled";
   readonly CRITICAL_ALERTS_ENABLED: "oneuptime_critical_alerts_enabled";
+  readonly CRITICAL_ALERTS_REPORTED: "oneuptime_critical_alerts_reported";
   readonly CRITICAL_ALERT_SOUND: "oneuptime_critical_alert_sound";
   readonly CRITICAL_ALERT_VOLUME: "oneuptime_critical_alert_volume";
 } = {
   BIOMETRIC_ENABLED: "oneuptime_biometric_enabled",
   CRITICAL_ALERTS_ENABLED: "oneuptime_critical_alerts_enabled",
+  CRITICAL_ALERTS_REPORTED: "oneuptime_critical_alerts_reported",
   CRITICAL_ALERT_SOUND: "oneuptime_critical_alert_sound",
   CRITICAL_ALERT_VOLUME: "oneuptime_critical_alert_volume",
 } as const;
@@ -48,6 +50,70 @@ export async function setCriticalAlertsEnabled(
   enabled: boolean,
 ): Promise<void> {
   await AsyncStorage.setItem(KEYS.CRITICAL_ALERTS_ENABLED, String(enabled));
+}
+
+/*
+ * What the server last took from this phone about its critical alerts
+ * (notifications/criticalAlertsReport.ts): whether a critical page rings
+ * through, for the push token it was told with. Kept so the phone tells the
+ * server again only when that changes, not every time the app is opened.
+ *
+ * Absent - nothing told yet, or storage holding something this build cannot
+ * read - means the server is told at the next chance.
+ */
+export interface CriticalAlertsReport {
+  deviceToken: string;
+  isEnabled: boolean;
+}
+
+export async function getCriticalAlertsReport(): Promise<CriticalAlertsReport | null> {
+  const stored: string | null = await AsyncStorage.getItem(
+    KEYS.CRITICAL_ALERTS_REPORTED,
+  );
+
+  if (!stored) {
+    return null;
+  }
+
+  try {
+    const report: unknown = JSON.parse(stored);
+
+    if (
+      report &&
+      typeof report === "object" &&
+      typeof (report as CriticalAlertsReport).deviceToken === "string" &&
+      (report as CriticalAlertsReport).deviceToken &&
+      typeof (report as CriticalAlertsReport).isEnabled === "boolean"
+    ) {
+      return {
+        deviceToken: (report as CriticalAlertsReport).deviceToken,
+        isEnabled: (report as CriticalAlertsReport).isEnabled,
+      };
+    }
+  } catch {
+    // Not one this build wrote: as good as nothing told.
+  }
+
+  return null;
+}
+
+export async function setCriticalAlertsReport(
+  report: CriticalAlertsReport,
+): Promise<void> {
+  await AsyncStorage.setItem(
+    KEYS.CRITICAL_ALERTS_REPORTED,
+    JSON.stringify({
+      deviceToken: report.deviceToken,
+      isEnabled: report.isEnabled,
+    }),
+  );
+}
+
+// Forgets what the server was told. Storage is touched only when there is one.
+export async function clearCriticalAlertsReport(): Promise<void> {
+  if (await AsyncStorage.getItem(KEYS.CRITICAL_ALERTS_REPORTED)) {
+    await AsyncStorage.removeItem(KEYS.CRITICAL_ALERTS_REPORTED);
+  }
 }
 
 /*

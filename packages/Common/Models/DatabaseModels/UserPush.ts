@@ -364,8 +364,16 @@ class UserPush extends BaseModel {
    *
    * `update` is empty like every other column here: the value is written by
    * UserPushAPI's critical-alerts route, which checks the row belongs to the
-   * caller and then writes as root. That keeps "who may change this" in one
+   * caller and then writes as root, and restated by its register route on
+   * every registration of the phone. That keeps "who may change this" in one
    * readable place rather than spread across the generic CRUD surface.
+   *
+   * It holds what the phone will really do with a critical page, as its app
+   * last reported it: on only while the responder has the switch on AND the
+   * phone's system allows critical alerts. The app reports it again whenever
+   * either changes - critical alerts turned off in iOS Settings, Do Not
+   * Disturb access taken away on Android - so pages, the Dashboard's device
+   * list and its test notification all follow the phone.
    */
   @ColumnAccessControl({
     create: [Permission.CurrentUser],

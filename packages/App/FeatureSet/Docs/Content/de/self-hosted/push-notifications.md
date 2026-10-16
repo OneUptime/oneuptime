@@ -121,7 +121,7 @@ flowchart TB
 
 Damit ein Alarm den Stummmodus durchbricht, müssen vier Dinge zutreffen. Fehlt eines davon, wird der Alarm trotzdem zugestellt – nur leise.
 
-1. **Die Person hat es für dieses Gerät eingeschaltet.** Gespeichert pro Gerät, standardmäßig aus, in `UserPush.isCriticalAlertEnabled`. Telefon und Tablet derselben Person sind getrennte Entscheidungen.
+1. **Die Person hat es für dieses Gerät eingeschaltet.** Gespeichert pro Gerät, standardmäßig aus, in `UserPush.isCriticalAlertEnabled`. Telefon und Tablet derselben Person sind getrennte Entscheidungen. Versionen der App nach 1.6.0 melden es bei jedem Öffnen erneut, und zwar als aus, solange die Einstellungen des Telefons selbst keine kritischen Warnungen erlauben, damit die Geräteliste zeigt, was das Telefon wirklich tun wird.
 2. **Die Bereitschaftsregel, die den Alarm ausgelöst hat, verlangt es.** Unter **Benutzereinstellungen > Bereitschaftsregeln** steht jede Regel, die ein Telefon benachrichtigt, auf „Kritische Warnung“ – die Voreinstellung – oder auf „Normal“, das den Toneinstellungen des Telefons folgt. So kann eine Person bei einem kritischen Vorfall geweckt und bei einem kleinen leise benachrichtigt werden. Gespeichert pro Regel in `UserNotificationRule.pushNotificationLevel`.
 3. **Der Server markiert den Alarm als kritisch.** Er sendet für iOS die kritische Sound-Payload von APNs plus `interruptionLevel: critical` und zielt für Android auf einen kritischen Benachrichtigungskanal: `oncall_critical` oder den eigenen Kanal des gewählten Alarmtons (siehe [Den Alarmton wählen](#den-alarmton-wählen)).
 4. **Das Betriebssystem erlaubt es**, und genau hier unterscheiden sich die beiden Plattformen.
@@ -192,7 +192,7 @@ Eine Push-Regel kann ihren Alarm erneut senden, bis jemand ihn bestätigt. Unter
 - **iOS**: Bestätigen Sie, dass der Build Apples Entitlement für kritische Warnungen trägt (siehe oben) und dass Critical Alerts unter iOS Settings > Notifications > OneUptime On-Call erlaubt ist
 - **Android**: Bestätigen Sie, dass die App unter Settings > Notifications > Do Not Disturb access Zugriff auf „Nicht stören“ hat
 - **Android**: Wenn Sie einen Alarmton gewählt haben, muss auch dessen eigener Benachrichtigungskanal „Nicht stören“ übersteuern dürfen; der Bildschirm Alarm sound der App sagt, wenn das nicht so ist
-- Der Einstellungsbildschirm sagt, was davon fehlt; er liest den aktuellen Zustand vom Betriebssystem zurück, statt dem zu vertrauen, was die App zuletzt angefordert hat
+- Der Einstellungsbildschirm sagt, was davon fehlt; er liest den aktuellen Zustand vom Betriebssystem zurück, statt dem zu vertrauen, was die App zuletzt angefordert hat, und teilt dem Server mit, was er vorfindet
 
 ### Pushes als „nicht zugestellt“ markiert
 
