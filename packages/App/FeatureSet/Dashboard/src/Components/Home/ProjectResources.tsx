@@ -1,3 +1,4 @@
+import { HOME_ROW_CARD_BODY_CLASS_NAME } from "./HomeRowCard";
 import AppLink from "../AppLink/AppLink";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -251,12 +252,16 @@ const ProjectResources: FunctionComponent<ComponentProps> = (
 
   return (
     <div data-testid="home-project-resources">
+      {/*
+       * The last card of Home's side column - when nothing is scheduled -
+       * runs down to the end of the row, level with Needs attention.
+       */}
       <Card
+        fillHeight={true}
         title="Your project"
         description="What is set up in this project. Open one to manage it."
         headerLayout="stacked"
-        bodyClassName="mt-3 -mx-5 -mb-6 md:-mx-6"
-        className="!mb-0"
+        bodyClassName={HOME_ROW_CARD_BODY_CLASS_NAME}
       >
         <ul className="divide-y divide-gray-100 border-t border-gray-100">
           {visibleResources.map(
