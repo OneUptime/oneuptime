@@ -3,6 +3,7 @@ import AIIncidentInvestigationRunner from "../../../Server/Utils/AI/SRE/Incident
 import AIInvestigationEngine from "../../../Server/Utils/AI/SRE/AIInvestigationEngine";
 import AIInvestigationQueue from "../../../Server/Utils/AI/SRE/InvestigationQueue";
 import InvestigationEligibility from "../../../Server/Utils/AI/SRE/InvestigationEligibility";
+import IncidentFollowUpCheck from "../../../Server/Utils/AI/SRE/IncidentFollowUpCheck";
 import AlertEpisodeFeedService from "../../../Server/Services/AlertEpisodeFeedService";
 import AlertEpisodeLabelRuleEngineService from "../../../Server/Services/AlertEpisodeLabelRuleEngineService";
 import AlertEpisodeOnCallRuleEngineService from "../../../Server/Services/AlertEpisodeOnCallRuleEngineService";
@@ -205,6 +206,11 @@ interface Probes {
   investigated: Array<Record<string, unknown>>;
   // InvestigationEligibility.recordSkipped: the code recorded.
   investigationSkipped: Array<string>;
+  /*
+   * IncidentFollowUpCheck.onAlertOpened: a new alert has open incidents on
+   * its infrastructure checked again.
+   */
+  followUpChecks: Array<Record<string, unknown>>;
   sla: Array<Record<string, unknown>>;
   monitorStatus: Array<Array<unknown>>;
   monitoringPaused: Array<unknown>;
@@ -233,6 +239,7 @@ function newProbes(): Probes {
     remediated: [],
     investigated: [],
     investigationSkipped: [],
+    followUpChecks: [],
     sla: [],
     monitorStatus: [],
     monitoringPaused: [],
@@ -322,6 +329,8 @@ interface Kind {
     monitorStatus: boolean;
     reminders: boolean;
     videoCalls: boolean;
+    // A new alert has open incidents on its infrastructure checked again.
+    followUpCheck: boolean;
   };
   // A create payload, as the create form or the API sends it.
   newRecord: (policyIds: Array<string>) => DatabaseBaseModel;
@@ -358,6 +367,7 @@ const INCIDENT: Kind = {
     monitorStatus: true,
     reminders: true,
     videoCalls: true,
+    followUpCheck: false,
   },
   newRecord: (policyIds: Array<string>): DatabaseBaseModel => {
     const incident: Incident = new Incident();
@@ -529,6 +539,7 @@ const ALERT: Kind = {
     monitorStatus: false,
     reminders: true,
     videoCalls: true,
+    followUpCheck: true,
   },
   newRecord: (policyIds: Array<string>): DatabaseBaseModel => {
     const alert: Alert = new Alert();
@@ -635,6 +646,16 @@ const ALERT: Kind = {
         probes.remediated.push(args[0] as Record<string, unknown>);
       },
     );
+    stub(
+      IncidentFollowUpCheck,
+      "onAlertOpened",
+      (args: Array<unknown>) => {
+        probes.followUpChecks.push(args[0] as Record<string, unknown>);
+      },
+      () => {
+        return [];
+      },
+    );
     stub(AlertFeedService, "createAlertFeedItem", (args: Array<unknown>) => {
       probes.feed.push(args[0] as Record<string, unknown>);
     });
@@ -676,6 +697,7 @@ const ALERT_EPISODE: Kind = {
     monitorStatus: false,
     reminders: false,
     videoCalls: false,
+    followUpCheck: false,
   },
   newRecord: (): DatabaseBaseModel => {
     const episode: AlertEpisode = new AlertEpisode();
@@ -779,6 +801,7 @@ const INCIDENT_EPISODE: Kind = {
     monitorStatus: false,
     reminders: false,
     videoCalls: false,
+    followUpCheck: false,
   },
   newRecord: (): DatabaseBaseModel => {
     const episode: IncidentEpisode = new IncidentEpisode();
@@ -1102,6 +1125,11 @@ describe.each(KINDS)(
           kind.has.investigation ? [false] : [],
         );
         expect(probes.investigationSkipped).toEqual([]);
+        expect(probes.followUpChecks).toEqual(
+          kind.has.followUpCheck
+            ? [{ projectId: PROJECT_ID, alertId: RECORD_ID }]
+            : [],
+        );
         expect(probes.sla).toHaveLength(kind.has.sla ? 1 : 0);
         expect(probes.monitorStatus).toHaveLength(
           kind.has.monitorStatus ? 1 : 0,
@@ -1222,6 +1250,9 @@ describe.each(KINDS)(
           kind.has.investigation ? [false] : [],
         );
         expect(probes.investigationSkipped).toEqual([]);
+        expect(probes.followUpChecks).toHaveLength(
+          kind.has.followUpCheck ? 1 : 0,
+        );
         expect(probes.monitorStatus).toHaveLength(
           kind.has.monitorStatus ? 1 : 0,
         );
@@ -1280,6 +1311,15 @@ describe.each(KINDS)(
         const { probes } = await create(kind, RESOLVED);
 
         expect(probes.remediated).toEqual([]);
+      });
+    }
+
+    if (kind.has.followUpCheck) {
+      test("no open incident is checked again for it: it was over before it was recorded", async () => {
+        const { probes } = await create(kind, RESOLVED);
+
+        expect(probes.followUpChecks).toEqual([]);
+        expect(chainErrors()).toEqual([]);
       });
     }
 

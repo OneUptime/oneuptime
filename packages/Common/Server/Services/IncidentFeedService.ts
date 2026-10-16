@@ -126,6 +126,11 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
           appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
           // Not posted in this channel: the note came from a message there.
           exceptChannel?: WorkspaceChannelToSkip | undefined;
+          /*
+           * What the post's phone or desktop notification says, when the
+           * start of the post does not say enough (WorkspacePayload text).
+           */
+          notificationText?: string | undefined;
         }
       | undefined;
   }): Promise<void> {
@@ -258,6 +263,8 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
       appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
       // Not posted in this channel: the note came from a message there.
       exceptChannel?: WorkspaceChannelToSkip | undefined;
+      // What the post's notification says, when the caller words it.
+      notificationText?: string | undefined;
     };
   }): Promise<void> {
     return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
@@ -267,6 +274,7 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
           incidentId: data.incidentId,
         },
         feedInfoInMarkdown: data.feedInfoInMarkdown,
+        notificationText: data.workspaceNotification.notificationText,
         workspaceNotification: data.workspaceNotification,
       },
     );

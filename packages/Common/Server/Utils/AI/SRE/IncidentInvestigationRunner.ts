@@ -57,7 +57,18 @@ import InvestigationRules, {
   InvestigationRuleScope,
 } from "./InvestigationRules";
 import PromptText from "../../../../Utils/AI/PromptText";
-import { AIPromptOmissions } from "../../../../Types/AI/AIChatTypes";
+import {
+  AIPromptOmissions,
+  AIRunEventResultSummary,
+} from "../../../../Types/AI/AIChatTypes";
+import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
+import WorkspaceNotificationText from "../../Workspace/WorkspaceNotificationText";
+import LinkedInfrastructureContext, {
+  LinkedInfrastructure,
+} from "./LinkedInfrastructureContext";
+import IncidentFollowUpCheck, {
+  FollowUpCheckContext,
+} from "./IncidentFollowUpCheck";
 
 /*
  * AI SRE — incident investigation.
@@ -381,14 +392,25 @@ export default class AIIncidentInvestigationRunner {
     projectId: ObjectID;
     incidentId: ObjectID;
     attemptCount: number;
+    /*
+     * Set on the incident's follow-up check (IncidentFollowUpCheck): the
+     * alert that opened on its linked infrastructure after the first
+     * investigation.
+     */
+    followUpForAlertId?: ObjectID | undefined;
   }): Promise<void> {
     const { aiRunId, projectId, incidentId, attemptCount } = data;
+    const isFollowUp: boolean = Boolean(data.followUpForAlertId);
 
     let contextSummary: string;
     let clusterStatuses: Array<KubernetesClusterAiAccessStatus> = [];
     let resourceStatuses: Array<ResourceAiAccessStatus> = [];
     // What the summary left out of the incident's text, for the run to say.
     const promptOmissions: AIPromptOmissions = PromptText.noOmissions();
+    // What the starting context read, for the run's activity.
+    const contextNotes: Array<AIRunEventResultSummary> = [];
+    // A follow-up check's first line: why it was written.
+    let reportLead: MarkdownText | undefined = undefined;
     try {
       const contextData: IncidentContextData =
         await IncidentAIContextBuilder.buildIncidentContext({
@@ -420,6 +442,62 @@ export default class AIIncidentInvestigationRunner {
       contextSummary =
         this.buildIncidentSummary(contextData, promptOmissions) +
         priorCasesContext;
+
+      /*
+       * The infrastructure the incident is linked to - the hosts, container
+       * hosts, clusters, databases and services its monitors watch - and the
+       * alerts on it (issue #4786). Enrichment only: a read that fails
+       * leaves the context as it was.
+       */
+      try {
+        const linked: LinkedInfrastructure | null =
+          await LinkedInfrastructureContext.readForIncident({
+            projectId,
+            incidentId,
+          });
+        const linkedNote: AIRunEventResultSummary | null =
+          LinkedInfrastructureContext.buildActivityNote(linked);
+
+        contextSummary +=
+          LinkedInfrastructureContext.buildContextSection(linked);
+
+        if (linkedNote) {
+          contextNotes.push(linkedNote);
+        }
+      } catch (error) {
+        logger.error(
+          `AI: could not read the linked infrastructure of incident ${incidentId.toString()}; investigating it without it: ${error}`,
+        );
+      }
+
+      /*
+       * A follow-up check (issue #4787) leads with why it runs: the alert
+       * that opened on the incident's infrastructure after the first
+       * analysis. When that alert can no longer be read, it runs as a plain
+       * investigation.
+       */
+      if (data.followUpForAlertId) {
+        try {
+          const followUp: FollowUpCheckContext | null =
+            await IncidentFollowUpCheck.readContext({
+              projectId,
+              incidentId,
+              alertId: data.followUpForAlertId,
+            });
+
+          if (followUp) {
+            contextSummary = `${IncidentFollowUpCheck.buildContextSection(followUp)}\n${contextSummary}`;
+            contextNotes.unshift(
+              IncidentFollowUpCheck.buildActivityNote(followUp),
+            );
+            reportLead = IncidentFollowUpCheck.buildReportLead(followUp);
+          }
+        } catch (error) {
+          logger.error(
+            `AI: could not read why incident ${incidentId.toString()} is checked again; checking it as a plain investigation: ${error}`,
+          );
+        }
+      }
 
       // Direct cluster access — enrichment only, never a prerequisite.
       try {
@@ -505,7 +583,8 @@ export default class AIIncidentInvestigationRunner {
           isPermanent: false,
         });
 
-      if (outcome === "finalized") {
+      // A follow-up check never releases remediation: the first run did.
+      if (outcome === "finalized" && !isFollowUp) {
         await RemediationHandoff.runForSettledInvestigation({
           projectId,
           incidentId,
@@ -598,6 +677,8 @@ export default class AIIncidentInvestigationRunner {
         incidentId,
         contextSummary,
         promptOmissions,
+        ...(contextNotes.length > 0 ? { contextNotes } : {}),
+        ...(reportLead ? { reportLead } : {}),
         maxLlmCalls: runLimits.maxLlmCalls,
         maxToolCalls: runLimits.maxToolCalls,
         maxWallClockMs: runLimits.maxWallClockMs,
@@ -630,6 +711,20 @@ export default class AIIncidentInvestigationRunner {
                 AIConfidenceSignal.shouldSendWorkspaceNotification(
                   postData.confidence,
                 ),
+              /*
+               * The incident's second analysis: its notification says why
+               * it was written - "🧠 AI — Automated Root Cause Analysis:
+               * Checked again after alert #12 opened on Host web-1, ..." -
+               * where the heading alone would read like the first one again.
+               */
+              ...(reportLead
+                ? {
+                    notificationText: WorkspaceNotificationText.fromMarkdown(
+                      postData.analysisMarkdown,
+                      { isFirstParagraphAHeadline: true },
+                    ),
+                  }
+                : {}),
             },
           });
 
@@ -665,16 +760,19 @@ export default class AIIncidentInvestigationRunner {
            * Measurement layer: record the time-to-rca metric (seconds from
            * incident creation to this analysis post, with the same base
            * attribute shape as every other incident metric). Best-effort —
-           * metrics must never break the RCA post.
+           * metrics must never break the RCA post. A follow-up check is not
+           * the first analysis, so it records none.
            */
-          try {
-            await IncidentService.recordTimeToRootCausePostedMetric({
-              incidentId,
-            });
-          } catch (error) {
-            logger.error(
-              `AI: failed to record time-to-rca metric for incident ${incidentId.toString()}: ${error}`,
-            );
+          if (!isFollowUp) {
+            try {
+              await IncidentService.recordTimeToRootCausePostedMetric({
+                incidentId,
+              });
+            } catch (error) {
+              logger.error(
+                `AI: failed to record time-to-rca metric for incident ${incidentId.toString()}: ${error}`,
+              );
+            }
           }
 
           /*
@@ -726,11 +824,27 @@ export default class AIIncidentInvestigationRunner {
          * RCA-first ordering: auto-remediation for this incident was
          * deferred at creation because this investigation was enqueued —
          * release it now that the run has settled (any terminal outcome).
+         * A follow-up check releases nothing (the first run did), and is
+         * itself never followed up.
+         *
+         * Then, when an alert opened on the incident's infrastructure while
+         * this run was reading it, check the incident again with that alert
+         * (IncidentFollowUpCheck; once per incident, and never a loop).
          */
         onSettled: async (): Promise<void> => {
+          if (isFollowUp) {
+            return;
+          }
+
           await RemediationHandoff.runForSettledInvestigation({
             projectId,
             incidentId,
+          });
+
+          await IncidentFollowUpCheck.onInvestigationSettled({
+            projectId,
+            incidentId,
+            aiRunId,
           });
         },
       },

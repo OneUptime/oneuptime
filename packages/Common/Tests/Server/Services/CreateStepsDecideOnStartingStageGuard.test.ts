@@ -11,7 +11,8 @@ import { describe, expect, test } from "@jest/globals";
  *
  * A record created at or past the acknowledged state pages nobody, and one
  * created at or past the resolved state is also not grouped, not remediated,
- * not investigated and gets no workspace channel. The behaviour is pinned
+ * not investigated and gets no workspace channel (and an alert has OneUptime
+ * AI check no open incident again: IncidentFollowUpCheck). The behaviour is pinned
  * per kind in CreatedClosedNoAutomations.test.ts; this guard keeps it from
  * coming undone as steps are added or moved:
  *
@@ -124,6 +125,7 @@ const SERVICES: Array<ServiceSteps> = [
       "RunbookRuleEngineService.applyRulesToAlert",
       "AlertGroupingEngineService.processAlert",
       "AutoRemediationRuleEngineService.onAlertCreated",
+      "IncidentFollowUpCheck.onAlertOpened",
     ],
     handedIsOngoing: ["AIAlertInvestigationRunner.investigateNewAlert"],
     grouping: "AlertGroupingEngineService.processAlert",

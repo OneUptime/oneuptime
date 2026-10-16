@@ -201,8 +201,41 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
 
   const hasSummary: boolean = Boolean(tldr || summaryMarkdown);
 
+  /*
+   * A follow-up check's report says first why it was written: "Checked
+   * again after alert #12 opened on Host web-1, ...". It is the runner's
+   * line, not the model's, and it frames everything under it, so it leads
+   * the report as a quiet line with a mark rather than sitting between the
+   * Summary and the root cause, where the report's own text has it.
+   */
+  const followUpLead: string = (report.followUpLead || "").trim();
+
   return (
     <>
+      {followUpLead ? (
+        <div
+          data-testid="investigation-report-lead"
+          className="flex items-start gap-3"
+        >
+          {/* A div, not a span: Icon renders its own div around the svg. */}
+          <div className="flex h-6 w-4 flex-shrink-0 items-center justify-center">
+            <Icon
+              icon={IconProp.Refresh}
+              className="h-4 w-4 flex-shrink-0 text-indigo-500"
+            />
+          </div>
+          {/*
+            The paragraph's own margins are dropped, so its first line sits
+            level with the mark, as the feed draws a note.
+          */}
+          <div className="min-w-0 flex-1 break-words text-sm leading-6 text-gray-700 [&_.max-w-none>*:first-child]:mt-0 [&_.max-w-none>*:last-child]:mb-0">
+            {renderMarkdown(followUpLead)}
+          </div>
+        </div>
+      ) : (
+        <></>
+      )}
+
       {hasSummary ? (
         <section
           aria-label={translator.translateText("Investigation summary")}

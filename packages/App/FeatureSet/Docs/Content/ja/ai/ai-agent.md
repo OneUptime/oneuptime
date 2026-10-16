@@ -81,7 +81,7 @@ OneUptime AI は修正タスクを自ら開始することもあります。コ�
 | 必要なもの | OneUptime Cloud | セルフホスト |
 | --- | --- | --- |
 | LLM プロバイダー | 設定は不要です。独自のプロバイダーがないプロジェクトはグローバルプロバイダーを使い、その料金はプロジェクトの AI クレジットから支払われます。**プロジェクト設定 → AI → LLM プロバイダー** で追加した独自のプロバイダーが優先されます。 | サーバーで環境変数 `GLOBAL_LLM_PROVIDER_*` を一度設定するか、プロジェクトにプロバイダーを追加します。 |
-| GitHub App で接続されたリポジトリ | **製品 → コード → タスク**、次に **コードリポジトリ** と **GitHub App で接続**。Growth プランが必要です。 | 同じです。インスタンスに GitHub App があれば使えます([GitHub 連携](/docs/self-hosted/github-integration) を参照)。 |
+| GitHub App で接続されたリポジトリ | **製品 → コード → タスク**、次に **コードリポジトリ** と **GitHub App で接続**。GitHub アカウントにアプリがすでにインストールされている場合は、代わりに **既存のインストールを接続** をクリックします。もう一度インストールしても接続されません。Growth プランが必要です。 | 同じです。インスタンスに GitHub App があれば使えます([GitHub 連携](/docs/self-hosted/github-integration) を参照)。 |
 | AI コード修正を実行する Runner | 運用は不要です。OneUptime の共有 Runner が担います。 | Docker Compose の `runner` サービス、または Helm チャートの Runner(`runner.enabled`、既定でオン)が自身を登録し、AI コード修正を実行します。 |
 
 セルフホストのインスタンスでは、グローバルプロバイダーは `config.env`(Docker Compose)または Helm の values の 1 ブロックです。セルフホストの Ollama の場合:

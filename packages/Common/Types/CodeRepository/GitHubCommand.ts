@@ -40,6 +40,24 @@ export enum GitHubCommandSurface {
   PullRequest = "PullRequest",
 }
 
+/*
+ * What kind of comment a command was written in. It decides where the app's
+ * reactions to it go: GitHub keeps a conversation comment's reactions and an
+ * inline review comment's on different routes, and has no reaction API for a
+ * submitted review at all.
+ *
+ * Persisted on AIRun.taskContext beside the comment id, so these strings are
+ * a wire contract too.
+ */
+export enum GitHubCommentKind {
+  // A comment in the issue or pull request conversation (issue_comment).
+  IssueComment = "IssueComment",
+  // An inline comment on a pull request's diff (pull_request_review_comment).
+  ReviewComment = "ReviewComment",
+  // The body of a submitted pull request review (pull_request_review).
+  Review = "Review",
+}
+
 export interface GitHubCommand {
   commandType: GitHubCommandType;
   /*

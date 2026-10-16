@@ -851,6 +851,51 @@ describe("InvestigationPanel card states", () => {
     expect(live).toContainElement(screen.getByTestId("investigation-activity"));
   });
 
+  /*
+   * An incident's follow-up check (issue #4787) replaces the report the
+   * responder was reading with a live run: its heading says why, while its
+   * first activity line says which alert made it check again.
+   */
+  test("heads a follow-up check's live run 'checking again'", async () => {
+    postMock.mockResolvedValue(
+      successfulResponse(
+        investigationPayload({
+          status: AIRunStatus.Running,
+          events: [
+            {
+              _id: EVENT_ID,
+              sequence: 1,
+              eventType: AIRunEventType.ProgressLog,
+              resultSummary: {
+                message:
+                  'Checking again: alert #12 opened on Host "web-1" after the first analysis',
+                severity: "Info",
+                followUpCheck: {
+                  alertNumber: 12,
+                  resourceKind: "Host",
+                  resourceName: "web-1",
+                  minutesAfterIncident: 2,
+                },
+              },
+              createdAt: new Date("2026-08-07T10:00:00.000Z"),
+            },
+            { ...activityEvent, _id: undefined, sequence: 2 },
+          ],
+        }),
+      ) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    const live: HTMLElement = screen.getByLabelText("Live investigation");
+    expect(within(live).getByRole("heading", { level: 3 })).toHaveTextContent(
+      "OneUptime AI is checking again",
+    );
+    expect(live).not.toHaveTextContent("OneUptime AI is investigating");
+    expect(live).toHaveTextContent("Read-only — nothing is changed");
+  });
+
   test("explains the wait while the run is only queued", async () => {
     postMock.mockResolvedValue(
       successfulResponse(

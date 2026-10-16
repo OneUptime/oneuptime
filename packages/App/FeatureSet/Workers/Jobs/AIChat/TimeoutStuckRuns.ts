@@ -55,6 +55,7 @@ RunCron(
         projectId: true,
         triggeredByIncidentId: true,
         triggeredByAlertId: true,
+        followUpForAlertId: true,
       },
       limit: 100,
       skip: 0,
@@ -105,6 +106,8 @@ RunCron(
               projectId: run.projectId,
               triggeredByIncidentId: run.triggeredByIncidentId,
               triggeredByAlertId: run.triggeredByAlertId,
+              // A follow-up check never releases remediation a second time.
+              followUpForAlertId: run.followUpForAlertId,
             });
 
           logger.info(

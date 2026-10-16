@@ -33,13 +33,13 @@ C'est le même agent et le même Runner que pour les [Tâches de correction](/do
 
 ## Avant de commencer
 
-- Le dépôt doit être **connecté à un projet OneUptime** via la GitHub App : connectez-le sous **Tâches → Dépôts de code** (ouvrez **Produits → Code → Tâches**). Une instance auto-hébergée a d'abord besoin de sa propre GitHub App : voir [Intégration GitHub](/docs/self-hosted/github-integration).
+- Le dépôt doit être **connecté à un projet OneUptime** via la GitHub App : connectez-le sous **Tâches → Dépôts de code** (ouvrez **Produits → Code → Tâches**). Une instance auto-hébergée a d'abord besoin de sa propre GitHub App : voir [Intégration GitHub](/docs/self-hosted/github-integration). Si l'app est déjà installée sur le compte GitHub, cliquez à cet endroit sur **Connecter une installation existante** au lieu de la réinstaller.
 - Un Runner avec **Exécute les corrections de code IA** doit être en ligne : le même Runner que celui qui mène les [Tâches de correction](/docs/ai/ai-agent). Sans lui, les commandes sont acceptées puis échouent au bout de 30 minutes, avec un message indiquant qu'aucun agent ne les a prises.
 - La GitHub App a besoin de l'autorisation **Issues** en **Read & write**, et doit être abonnée aux événements de webhook listés sous [À quoi s'abonner](#à-quoi-sabonner).
 
 ## Les commandes
 
-Chaque commande commence par une mention de l'app. La mention peut se trouver n'importe où dans le commentaire, et tout ce que vous écrivez après est transmis comme votre demande.
+Chaque commande commence par une mention de l'app. La mention peut se trouver n'importe où dans le commentaire, et tout ce que vous écrivez après est transmis comme votre demande. Modifier un commentaire qui mentionne déjà l'app ne la relance pas : pour changer votre demande, écrivez un nouveau commentaire. Une modification qui ajoute la mention est une nouvelle demande.
 
 ### Dans une pull request
 

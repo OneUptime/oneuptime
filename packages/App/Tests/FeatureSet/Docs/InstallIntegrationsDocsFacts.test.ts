@@ -2617,13 +2617,18 @@ describe("GitHub Integration, against the server and Code Repositories", () => {
     expect(page).toContain("base64 < private-key.pem | tr -d '\\n'");
   });
 
-  it("the install link needs GITHUB_APP_NAME, and the mention handle falls back to it lower-cased and hyphenated", () => {
+  it("the install link needs GITHUB_APP_NAME, and it and the mention handle use the slug GitHub reports, falling back to the name lower-cased and hyphenated", () => {
     const install: string = blockFrom(
       api,
       '"/github/install-url"',
       "router.post(",
     );
     const conversation: string = readSource("githubConversation");
+    const appSlug: string = blockFrom(
+      conversation,
+      "public static async getAppSlug",
+      "\n  }\n",
+    );
     const slugify: string = blockFrom(
       conversation,
       "public static slugifyAppName",
@@ -2631,14 +2636,16 @@ describe("GitHub Integration, against the server and Code Repositories", () => {
     );
 
     expect(install).toContain("if (!GitHubAppName) {");
+    expect(install).toContain("await GitHubConversation.getAppSlug()");
     expect(install).toContain("https://github.com/apps/${encodeURIComponent(");
-    expect(conversation).toContain(
+    expect(appSlug).toContain('"https://api.github.com/app"');
+    expect(appSlug).toContain(
       "return GitHubConversation.slugifyAppName(GitHubAppName);",
     );
     expect(slugify).toContain(".toLowerCase()");
     expect(slugify).toContain('.replace(/[^a-z0-9]+/g, "-")');
     expect(page).toContain(
-      "The install link and the app's `@mention` handle (lower-cased, spaces as hyphens) are built from it.",
+      "The display name is fine, spaces and capitals included: the install link and the app's `@mention` handle use the slug GitHub reports for the app, and are built from this name (lower-cased, spaces as hyphens) only when OneUptime cannot ask GitHub.",
     );
   });
 
