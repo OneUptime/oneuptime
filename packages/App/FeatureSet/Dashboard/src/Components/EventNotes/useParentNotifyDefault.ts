@@ -8,9 +8,18 @@ import { useEffect, useState } from "react";
 export interface UseParentNotifyDefaultProps<TParent extends BaseModel> {
   modelType: { new (): TParent };
   id: ObjectID;
-  // Only the parent's own "notified subscribers when it started" flag.
+  /*
+   * Only the parent's own "notified subscribers when it started" flag - and,
+   * for an incident or an episode, whether it is private.
+   */
   select: Select<TParent>;
   resolve: (parent: TParent | null) => boolean;
+  /*
+   * Whether the parent is private, for the events that can be: a private
+   * incident or episode takes no public notes (EventNoteKind.isPrivateEvent).
+   * Left out, the parent is never private.
+   */
+  resolveIsPrivate?: ((parent: TParent | null) => boolean) | undefined;
 }
 
 export interface UseParentNotifyDefaultResult {
@@ -20,6 +29,8 @@ export interface UseParentNotifyDefaultResult {
    * before this is known.
    */
   isNotifyingByDefault: boolean | null;
+  // Whether the parent is private; false until it loads, and for one that cannot be.
+  isPrivate: boolean;
   error: string;
 }
 
@@ -27,6 +38,7 @@ interface LoadedSetting {
   // The event the answer belongs to.
   id: string;
   isNotifyingByDefault: boolean | null;
+  isPrivate: boolean;
   error: string;
 }
 
@@ -62,6 +74,9 @@ export default function useParentNotifyDefault<TParent extends BaseModel>(
           setLoaded({
             id,
             isNotifyingByDefault: props.resolve(parent),
+            isPrivate: props.resolveIsPrivate
+              ? props.resolveIsPrivate(parent)
+              : false,
             error: "",
           });
         }
@@ -71,6 +86,7 @@ export default function useParentNotifyDefault<TParent extends BaseModel>(
           setLoaded({
             id,
             isNotifyingByDefault: null,
+            isPrivate: false,
             error: API.getFriendlyMessage(err),
           });
         }
@@ -82,11 +98,12 @@ export default function useParentNotifyDefault<TParent extends BaseModel>(
   }, [id]);
 
   if (!loaded || loaded.id !== id) {
-    return { isNotifyingByDefault: null, error: "" };
+    return { isNotifyingByDefault: null, isPrivate: false, error: "" };
   }
 
   return {
     isNotifyingByDefault: loaded.isNotifyingByDefault,
+    isPrivate: loaded.isPrivate,
     error: loaded.error,
   };
 }

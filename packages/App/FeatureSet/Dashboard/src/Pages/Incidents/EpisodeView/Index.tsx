@@ -3,6 +3,7 @@ import { StateListType } from "Common/Utils/StateOrder";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import IncidentEpisodeFeedElement from "../../../Components/IncidentEpisode/IncidentEpisodeFeed";
 import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
+import PrivateRecordPublicNotes from "Common/Types/StatusPage/PrivateRecordPublicNotes";
 import IncidentEpisodeMemberRoleAssignment from "../../../Components/IncidentEpisode/IncidentEpisodeMemberRoleAssignment";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -69,6 +70,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useRecordChannelLinks, {
   getOpenInChatActions,
 } from "../../../Components/Workspace/useRecordChannelLinks";
+import RecordChannelMembersCard from "../../../Components/Workspace/RecordChannelMembersCard";
 import {
   WorkspaceChannelLink,
   WorkspaceChannelRecordType,
@@ -208,6 +210,8 @@ const IncidentEpisodeView: FunctionComponent<
             resolvedAt: true,
             incidentCount: true,
             shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated: true,
+            // A private episode takes no public notes: see its feed.
+            isPrivate: true,
           },
         }),
       ]);
@@ -472,10 +476,24 @@ const IncidentEpisodeView: FunctionComponent<
             notifyStatusPageSubscribersByDefault={
               notifyStatusPageSubscribersByDefault
             }
+            isPrivate={!PrivateRecordPublicNotes.takesPublicNotes(episode)}
           />
         </div>
 
         <div className="min-w-0 xl:col-span-1">
+          {/* Who is in the episode's own channel, above its details. */}
+          <RecordChannelMembersCard
+            recordType={WorkspaceChannelRecordType.IncidentEpisode}
+            recordId={modelId}
+            links={channelLinks}
+            // Somebody added is a new feed entry.
+            onChanged={() => {
+              setContentRefreshToken((token: number): number => {
+                return token + 1;
+              });
+            }}
+          />
+
           <CardModelDetail<IncidentEpisode>
             name="Episode Details"
             cardProps={{

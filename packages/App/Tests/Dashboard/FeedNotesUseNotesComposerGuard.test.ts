@@ -392,7 +392,14 @@ describe("the dialog is the composer, in one step", () => {
 
   test("the feed's note actions are gated like the Notes page's composer", () => {
     expect(hook).toContain(
-      "const gate: NoteCreateGate = getNoteCreateGate(entry.kind.modelType);",
+      "const gate: NoteCreateGate = getNoteKindCreateGate(entry.kind, translator);",
+    );
+    /*
+     * The kind's gate is the composer's own, and locks a private event's
+     * public note with why it takes none.
+     */
+    expect(composer).toContain(
+      'if (kind.isPrivateEvent && kind.visibility === "public") { return { isShown: true, isDisabled: true, tooltip: getPrivateEventPublicNoteRefusal(kind.eventNoun, translator), }; } return getNoteCreateGate(kind.modelType);',
     );
     expect(hook).toContain("isDisabled={gate.isDisabled}");
     expect(hook).toContain("tooltip={gate.tooltip}");

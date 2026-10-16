@@ -167,7 +167,7 @@ Een JSON-antwoord wordt in zijn compacte vorm gecontroleerd, zonder spaties tuss
 
 **Criteria toevoegen** voegt een criterium toe dat al naar zijn filter is genoemd, bijvoorbeeld _Response Time (in ms) is above 3000_. De naam verandert mee met de filters totdat u zelf een naam typt. Een beschrijving is optioneel: om er een toe te voegen, opent u de **Instellingen** van het criterium.
 
-Bij twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** moeten overeenkomen of dat **Elke** afzonderlijke filter volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing maken, een incident melden, of meerdere daarvan.
+Bij twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** moeten overeenkomen of dat **Minstens één** filter volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing maken, een incident melden, of meerdere daarvan.
 
 ### Standaardcriteria
 

@@ -139,9 +139,9 @@ describe("Incident change state", () => {
     );
   });
 
-  test("seeds the flag as an initial form value, not only as the checkbox default", () => {
+  test("seeds the flag as an initial form value, not only as the checkbox default - off on a private incident, which reaches no subscriber", () => {
     expect(modal).toMatch(
-      /initialValues=\{\{ shouldStatusPageSubscribersBeNotified: notifySubscribersByDefault,? \}\}/,
+      /initialValues=\{\{ shouldStatusPageSubscribersBeNotified: props\.isPrivate \? false : notifySubscribersByDefault,? \}\}/,
     );
   });
 
@@ -186,7 +186,7 @@ describe("incident feed public note", () => {
 
   test("builds the dialog's public note from the incident's kind, with that default", () => {
     expect(source).toContain(
-      'const noteActions: FeedNoteActions = useFeedNoteActions({ keyPrefix: "incident", publicNoteKind: getIncidentPublicNoteKind({ incidentId: props.incidentId, isNotifyingByDefault: notifySubscribersByDefault, }), privateNoteKind: getIncidentPrivateNoteKind({ incidentId: props.incidentId, }),',
+      'const noteActions: FeedNoteActions = useFeedNoteActions({ keyPrefix: "incident", publicNoteKind: getIncidentPublicNoteKind({ incidentId: props.incidentId, isNotifyingByDefault: notifySubscribersByDefault, isPrivate: props.isPrivate, }), privateNoteKind: getIncidentPrivateNoteKind({ incidentId: props.incidentId, }),',
     );
     expect(source).toContain("{noteActions.dialog}");
     expect(source).toContain("...noteActions.menuItems,");
@@ -222,6 +222,7 @@ describePublicNotesTab({
   quietDescriptionReference: QUIET_DESCRIPTION_REFERENCE,
   audienceSummary:
     '( <SubscriberAudienceSummary request={{ incidentId: incidentId }} dataTestId="incident-public-note-audience" />',
+  canBePrivate: true,
 });
 
 describeSharedPublicNoteWiring();

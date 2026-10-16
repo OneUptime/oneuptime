@@ -103,4 +103,13 @@ export interface EventNoteKind<TNote extends BaseModel> {
   ai?: EventNotesAIConfig | undefined;
   // The other kind of note's page for the same event.
   siblingRoute?: Route | undefined;
+  /*
+   * The event is a private incident or episode, which takes no public notes
+   * (Common/Types/StatusPage/PrivateRecordPublicNotes). Set on a public
+   * note kind: its Notes page keeps the public notes the event already has
+   * and says, where the composer was, why there are no new ones - with the
+   * way to its private notes - and the feed's "Add Public Note" is locked
+   * with the same words (PrivateEventNotesCopy).
+   */
+  isPrivateEvent?: boolean | undefined;
 }

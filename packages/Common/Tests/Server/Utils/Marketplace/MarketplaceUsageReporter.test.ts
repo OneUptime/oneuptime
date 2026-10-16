@@ -17,6 +17,13 @@ import MarketplaceUsageReportService from "../../../../Server/Services/Marketpla
 import ProjectService from "../../../../Server/Services/ProjectService";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import TelemetryUsageBillingService from "../../../../Server/Services/TelemetryUsageBillingService";
+import AwsMarketplaceAdapter from "../../../../Server/Utils/Marketplace/AWS/AwsMarketplaceAdapter";
+import AwsMarketplaceAPI from "../../../../Server/Utils/Marketplace/AWS/AwsMarketplaceAPI";
+import AzureMarketplaceAdapter from "../../../../Server/Utils/Marketplace/Azure/AzureMarketplaceAdapter";
+import AzureMarketplaceAPI, {
+  AzureUsageEvent,
+  AzureUsageEventResult,
+} from "../../../../Server/Utils/Marketplace/Azure/AzureMarketplaceAPI";
 import MarketplaceAdapter, {
   MarketplaceUsageRecord,
 } from "../../../../Server/Utils/Marketplace/MarketplaceAdapter";
@@ -899,5 +906,170 @@ describe("MarketplaceUsageReporter", () => {
         new Date("2026-10-16T10:59:59.999Z"),
       ),
     ).toEqual(HOUR_START);
+  });
+
+  /*
+   * AWS and Microsoft bill the first record of a purchase in an hour. A
+   * report that lands in an hour where they already have a different one is
+   * lost: it must end Failed and logged as not billed - never counted as
+   * sent - while the same report sent again still counts as sent. Run with
+   * the real adapters, over fake API clients.
+   */
+  describe("a marketplace that already billed another record in the report's hour", () => {
+    let errorLog: jest.SpyInstance;
+
+    beforeEach(() => {
+      errorLog = jest.spyOn(logger, "error").mockImplementation((): void => {});
+    });
+
+    afterEach(() => {
+      MarketplaceAdapters.set(CloudMarketplace.AWS, null);
+      MarketplaceAdapters.set(CloudMarketplace.Azure, null);
+    });
+
+    const loggedAsNotBilled: () => boolean = (): boolean => {
+      return errorLog.mock.calls.some((call: Array<unknown>) => {
+        return String(call[0]).includes("was NOT billed");
+      });
+    };
+
+    const useAws: (status: string) => jest.Mock = (
+      status: string,
+    ): jest.Mock => {
+      const batchMeterUsage: jest.Mock = jest
+        .fn()
+        .mockResolvedValue([{ status: status, meteringRecordId: "mr-1" }]);
+      MarketplaceAdapters.set(
+        CloudMarketplace.AWS,
+        new AwsMarketplaceAdapter({
+          describeAgreement: jest.fn(),
+          batchMeterUsage: batchMeterUsage,
+        } as unknown as AwsMarketplaceAPI),
+      );
+      purchase = purchaseRow({
+        marketplace: CloudMarketplace.AWS,
+        externalSubscriptionId: "arn:aws:license-manager::1:license:l-1",
+        externalCustomerId: "123456789012",
+      });
+      return batchMeterUsage;
+    };
+
+    // Microsoft answers Duplicate, with the event it kept: `keptQuantity` units, or the report's own.
+    const useAzure: (keptQuantity?: number | undefined) => jest.Mock = (
+      keptQuantity?: number | undefined,
+    ): jest.Mock => {
+      const reportUsageEvents: jest.Mock = jest
+        .fn()
+        .mockImplementation(
+          async (
+            events: Array<AzureUsageEvent>,
+          ): Promise<Array<AzureUsageEventResult>> => {
+            return [
+              {
+                status: "Duplicate",
+                usageEventId: null,
+                errorCode: "Conflict",
+                acceptedEvent: {
+                  usageEventId: "ue-kept",
+                  quantity: keptQuantity ?? events[0]!.quantity,
+                },
+              },
+            ];
+          },
+        );
+      MarketplaceAdapters.set(
+        CloudMarketplace.Azure,
+        new AzureMarketplaceAdapter({
+          reportUsageEvents: reportUsageEvents,
+        } as unknown as AzureMarketplaceAPI),
+      );
+      purchase = purchaseRow({
+        marketplace: CloudMarketplace.Azure,
+        externalSubscriptionId: "6f1a2b3c-0000-4000-8000-000000000001",
+        externalPlanId: "pay-as-you-go",
+      });
+      return reportUsageEvents;
+    };
+
+    it("marks a report AWS answers DuplicateRecord Failed, and logs it as not billed", async () => {
+      const batchMeterUsage: jest.Mock = useAws("DuplicateRecord");
+
+      await MarketplaceUsageReporter.reportForPurchase(purchase);
+
+      expect(batchMeterUsage).toHaveBeenCalledTimes(1);
+      expect(reportUpdates()).toEqual([
+        {
+          id: expect.any(String),
+          data: expect.objectContaining({
+            status: MarketplaceUsageReportStatus.Failed,
+            lastError:
+              "AWS already billed another record for this license in this hour (DuplicateRecord).",
+            attempts: 1,
+          }),
+        },
+      ]);
+      expect(loggedAsNotBilled()).toBe(true);
+      // The buyer is still subscribed: the purchase is not read back.
+      expect(
+        MarketplaceSubscriptionService.updatePurchase,
+      ).not.toHaveBeenCalled();
+    });
+
+    it("never sends a report AWS refused as a duplicate again", async () => {
+      const batchMeterUsage: jest.Mock = useAws("DuplicateRecord");
+
+      await MarketplaceUsageReporter.reportForPurchase(purchase);
+
+      // The next run looks for Pending reports only; this one is Failed.
+      expect(
+        mocked(MarketplaceUsageReportService.findBy).mock.calls.every(
+          (call: Array<unknown>) => {
+            return (
+              (call[0] as { query: Record<string, unknown> }).query[
+                "status"
+              ] === MarketplaceUsageReportStatus.Pending
+            );
+          },
+        ),
+      ).toBe(true);
+      expect(batchMeterUsage).toHaveBeenCalledTimes(1);
+    });
+
+    it("counts a report AWS answers Success as sent", async () => {
+      useAws("Success");
+
+      await MarketplaceUsageReporter.reportForPurchase(purchase);
+
+      expect(reportUpdates()[0]!.data).toMatchObject({
+        status: MarketplaceUsageReportStatus.Reported,
+        externalReportId: "mr-1",
+      });
+      expect(loggedAsNotBilled()).toBe(false);
+    });
+
+    it("marks a report Failed when Microsoft kept another event for its hour", async () => {
+      useAzure(640);
+
+      await MarketplaceUsageReporter.reportForPurchase(purchase);
+
+      expect(reportUpdates()[0]!.data).toMatchObject({
+        status: MarketplaceUsageReportStatus.Failed,
+        lastError:
+          "Microsoft already has another usage event for this hour (640 units, event ue-kept).",
+      });
+      expect(loggedAsNotBilled()).toBe(true);
+    });
+
+    it("counts a report sent again as sent when the event Microsoft kept is this one", async () => {
+      useAzure();
+
+      await MarketplaceUsageReporter.reportForPurchase(purchase);
+
+      expect(reportUpdates()[0]!.data).toMatchObject({
+        status: MarketplaceUsageReportStatus.Reported,
+        externalReportId: "ue-kept",
+      });
+      expect(loggedAsNotBilled()).toBe(false);
+    });
   });
 });

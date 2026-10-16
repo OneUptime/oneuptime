@@ -116,7 +116,7 @@ Statuscodes worden genormaliseerd naar hun EPP-namen (`clientTransferProhibited`
 
 Data worden genormaliseerd naar ISO 8601. Een datum die een registry publiceert in een vorm die niet kan worden ingelezen, wordt weggelaten in plaats van opgeslagen, zodat een vervalcriterium niet kan beslissen en niet overeenkomt, in plaats van stilzwijgend voor altijd "niet verlopen" te antwoorden.
 
-Met twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** filters moeten overeenkomen of dat **Elke** filter volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing aanmaken, een incident melden, of meerdere daarvan.
+Met twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** filters moeten overeenkomen of dat **Minstens één** filter volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing aanmaken, een incident melden, of meerdere daarvan.
 
 ### Standaardcriteria
 

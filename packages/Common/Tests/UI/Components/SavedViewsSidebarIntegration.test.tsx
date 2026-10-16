@@ -127,7 +127,7 @@ function sidebarElement(options: SidebarOptions): ReactElement {
       isLoading={false}
       serviceMap={{}}
       onIncludeFilter={jest.fn()}
-      onExcludeFilter={jest.fn()}
+      onRemoveFilter={jest.fn()}
       savedViews={options.savedViews}
       selectedSavedViewId={options.selectedSavedViewId ?? null}
       onSavedViewSelect={options.onSavedViewSelect}
@@ -154,12 +154,15 @@ function savedViewRowNames(
     });
 }
 
-// Facet rows announce their own value; the include button's title names it.
+/*
+ * Facet rows are checkboxes that announce their own value; the include
+ * title names it.
+ */
 function severityRowNames(
   container: HTMLElement = document.body,
 ): Array<string> {
   return within(container)
-    .queryAllByRole("button")
+    .queryAllByRole("checkbox")
     .filter((element: HTMLElement): boolean => {
       return (element.getAttribute("title") || "").startsWith("Filter to Sev");
     })

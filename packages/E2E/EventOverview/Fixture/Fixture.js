@@ -41,7 +41,9 @@
  *            minutes after its start; "overrun" is still Ongoing 30 minutes
  *            after its end.
  *   ?fail=   comma separated: evidence, verdict, create-fix-task,
- *            investigation, conversation, conversation-send, resend. The
+ *            investigation, conversation, conversation-send, resend,
+ *            channel-links, channel-members (the channel card's read),
+ *            channel-add (its Join channel and Add people). The
  *            matching API call throws HTTPErrorResponse. "conversation" is
  *            the read of the AI card's thread and "conversation-send" a
  *            question sent to it. "resend" also marks the subscriber
@@ -74,12 +76,32 @@
  *            run on the card is the follow-up check (IncidentFollowUpCheck)
  *            - its activity starts with why, its report leads with
  *            "Checked again", and the feed holds both reports.
+ *   ?private= 1 makes Incident #1042 and Incident Episode #12 private. A
+ *            private incident or episode takes no public notes: the
+ *            incident's state change dialogs fold a private note and ask
+ *            nothing about subscribers, and both feeds' Add Public Note is
+ *            locked with why.
  *   ?theme=  dark adds html.dark (handled by server.js).
  *   ?channels= the record's own Slack / Microsoft Teams channels, as
  *            GET /workspace-channel-link answers them (the header's Open in
  *            Slack / Open in Microsoft Teams): a comma list of slack (one
  *            Slack channel), slack2 (a second one), teams (one Teams
- *            channel). None by default: no button.
+ *            channel). None by default: no button, and no channel card.
+ *   ?members= who is in those Slack channels, as
+ *            GET /workspace-channel-members answers it for the channel card:
+ *            some (default: Sam, Jordan and Priya, who is in Slack only;
+ *            the viewer is not in it), in (the viewer is), empty (everybody
+ *            left: only the OneUptime app), many (fourteen people), archived,
+ *            unreachable (the app was removed from the private channel),
+ *            not-connected, unavailable, not-found (OneUptime cannot find the
+ *            viewer's Slack account), readonly (the viewer may not edit the
+ *            record) and readonly-public (nor is the channel private).
+ *            POST .../add adds people: Alex Kim is nobody Slack knows (not
+ *            found), and a team adds its people.
+ *   ?teamsPrivate=1 the Teams channel is private.
+ *   ?unknown= the people Slack does not know, as POST .../add answers them
+ *            (not found): a comma list of maya, sam, jordan, alex. Alex by
+ *            default.
  *   ?role=   owner (default) | alert-member | loading
  *            Who is signed in. "owner" is a master admin who is also the
  *            Project Owner, so every permission gate is open. "alert-member"
@@ -286,6 +308,28 @@ const threadMode = THREAD_MODES.includes(params.get("thread"))
 const channelModes = new Set(
   (params.get("channels") || "").split(",").filter((value) => value.length > 0),
 );
+const MEMBERS_MODES = [
+  "some",
+  "in",
+  "empty",
+  "many",
+  "archived",
+  "unreachable",
+  "not-connected",
+  "unavailable",
+  "not-found",
+  "readonly",
+  "readonly-public",
+];
+const membersMode = MEMBERS_MODES.includes(params.get("members"))
+  ? params.get("members")
+  : "some";
+const isTeamsChannelPrivate = params.get("teamsPrivate") === "1";
+const unknownToSlack = new Set(
+  (params.get("unknown") ?? "alex")
+    .split(",")
+    .filter((value) => value.length > 0),
+);
 /*
  * ?feed=oncall-run: incident #1042's on-call run in full, as the run writes
  * its feed entries now (OnCallFeedText) - four on-call entries within a
@@ -300,6 +344,11 @@ const LINKED_MODES = ["alerts", "more", "followup"];
 const linkedMode = LINKED_MODES.includes(params.get("linked"))
   ? params.get("linked")
   : "none";
+/*
+ * ?private=1: incident #1042 and incident episode #12 are private - hidden
+ * from every status page, and taking no public notes.
+ */
+const isPrivateMode = params.get("private") === "1";
 const isResolved = stateMode === "resolved";
 const isAcknowledged = stateMode !== "created";
 // Both a current report and a legacy one post the AI root-cause feed item.
@@ -392,8 +441,12 @@ const fixture = {
     resources: resourcesMode,
     clusters: clustersMode,
     thread: threadMode,
+    members: membersMode,
     linked: linkedMode,
+    private: isPrivateMode,
   },
+  // What the channel card asked to add: { channelId, userIds, teamIds }.
+  channelAdds: [],
   getItemRequests: [],
   listRequests: [],
   countRequests: [],
@@ -963,8 +1016,9 @@ function defineIncident(spec) {
     subscriberNotificationStatusMessage: spec.notificationFailed
       ? RESEND_FAILURE_STATUS_MESSAGE
       : "Notified 1,284 status page subscribers.",
-    isPrivate: false,
-    isVisibleOnStatusPage: true,
+    // ?private=1 makes #1042 private, which also hides it from status pages.
+    isPrivate: isPrivateMode && spec.number === 1042,
+    isVisibleOnStatusPage: !(isPrivateMode && spec.number === 1042),
     rootCause: spec.rootCause,
     remediationNotes: spec.remediationNotes,
     incidentEpisode: spec.episode,
@@ -1654,8 +1708,8 @@ table(IncidentEpisode).push({
   labels: [labels.checkout, labels.production],
   assignedToUser: people.maya,
   assignedToUserId: people.maya.id,
-  isVisibleOnStatusPage: true,
-  isPrivate: false,
+  isVisibleOnStatusPage: !isPrivateMode,
+  isPrivate: isPrivateMode,
 });
 for (const [number, addedAt] of [
   [1038, "17:56"],
@@ -4815,6 +4869,206 @@ function channelLinks(url) {
   return links;
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Who is in the record's channels (the channel card, ?members=)
+ * ---------------------------------------------------------------------------
+ */
+function channelPerson(key, name, member) {
+  return member
+    ? { key, name, userId: member.id.toString(), hasProfilePicture: true }
+    : { key, name };
+}
+
+const SLACK_ONLY_NAMES = [
+  "Priya from Support",
+  "Diego Alvarez",
+  "Hannah Okafor",
+  "Lena Fischer",
+  "Marco Rossi",
+  "Noor Haddad",
+  "Oliver Grant",
+  "Ravi Menon",
+  "Tomás Silva",
+  "Yuki Tanaka",
+];
+
+function initialChannelPeople() {
+  const sam = channelPerson("U0SAM", "Sam Rivera", people.sam);
+  const jordan = channelPerson("U0JORDAN", "Jordan Patel", people.jordan);
+  const maya = channelPerson("U0MAYA", "Maya Chen", people.maya);
+  const priya = channelPerson("U0PRIYA", SLACK_ONLY_NAMES[0]);
+
+  switch (membersMode) {
+    case "in":
+      return [maya, sam, priya];
+    case "empty":
+    case "unreachable":
+    case "not-connected":
+    case "unavailable":
+      return [];
+    case "many":
+      return [
+        sam,
+        jordan,
+        ...SLACK_ONLY_NAMES.map((name, index) => {
+          return channelPerson(`U0SLACK${index}`, name);
+        }),
+        channelPerson("U0ALEXK", "Alex Kim", people.alex),
+      ];
+    case "archived":
+      return [sam, jordan];
+    default:
+      return [sam, jordan, priya];
+  }
+}
+
+// The people in each Slack channel, as the card's adds change them.
+const channelPeopleById = {
+  C0ACME0001: initialChannelPeople(),
+  C0ACME0002: initialChannelPeople(),
+};
+
+const SLACK_CHANNEL_IDS_BY_NAME = {
+  "sre-war-room": "C0ACME0002",
+};
+
+function channelStateOf() {
+  return (
+    {
+      archived: "archived",
+      unreachable: "unreachable",
+      "not-connected": "not-connected",
+      unavailable: "unavailable",
+    }[membersMode] || "members"
+  );
+}
+
+function channelMembers(url) {
+  const route = url.split("/workspace-channel-members/")[1];
+  const links = channelLinks(`/workspace-channel-link/${route}`);
+  const state = channelStateOf();
+
+  const channels = links.map((link) => {
+    if (link.workspaceType === WorkspaceType.MicrosoftTeams) {
+      return {
+        channelId: "19:acme0001acme0001acme0001acme0001@thread.tacv2",
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        name: link.channelName,
+        url: link.url,
+        isPrivate: isTeamsChannelPrivate,
+        state: "managed-in-teams",
+        people: [],
+        peopleCount: 0,
+        viewer: "not-found",
+        teamName: "Checkout SRE",
+      };
+    }
+
+    const channelId =
+      SLACK_CHANNEL_IDS_BY_NAME[link.channelName] || "C0ACME0001";
+    const listed = state === "members" || state === "archived";
+    const inChannel = listed ? channelPeopleById[channelId] : [];
+    const viewerId = people.maya.id.toString();
+    const isViewerIn = inChannel.some((person) => {
+      return person.userId === viewerId;
+    });
+
+    return {
+      channelId,
+      workspaceType: WorkspaceType.Slack,
+      name: link.channelName,
+      url: link.url,
+      isPrivate: listed ? membersMode !== "readonly-public" : null,
+      state,
+      // The viewer first, then everybody by name, as the server sorts them.
+      people: inChannel
+        .map((person) => {
+          return person.userId === viewerId
+            ? { ...person, isViewer: true }
+            : person;
+        })
+        .sort((a, b) => {
+          if (Boolean(a.isViewer) !== Boolean(b.isViewer)) {
+            return a.isViewer ? -1 : 1;
+          }
+          return a.name.localeCompare(b.name);
+        }),
+      peopleCount: inChannel.length,
+      viewer:
+        !listed || membersMode === "not-found"
+          ? "not-found"
+          : isViewerIn
+            ? "in"
+            : "not-in",
+    };
+  });
+
+  return {
+    canAddPeople:
+      roleMode === "owner" &&
+      membersMode !== "readonly" &&
+      membersMode !== "readonly-public",
+    channels,
+  };
+}
+
+function addToChannel(body) {
+  fixture.channelAdds.push(body);
+
+  const inChannel = channelPeopleById[body.channelId];
+
+  if (!inChannel) {
+    throw fail(404, "This channel is not one of this incident's channels.");
+  }
+
+  if (membersMode === "archived") {
+    return { channelState: "archived", results: [] };
+  }
+
+  const everybody = Object.values(people);
+  const userIds = [...(body.userIds || [])];
+
+  if ((body.teamIds || []).length > 0) {
+    for (const member of everybody) {
+      if (!userIds.includes(member.id.toString())) {
+        userIds.push(member.id.toString());
+      }
+    }
+  }
+
+  const results = userIds.map((userId) => {
+    const member = everybody.find((candidate) => {
+      return candidate.id.toString() === userId;
+    });
+    const name = member ? member.name.toString() : "Someone";
+
+    // Nobody in Slack has their email address (?unknown=, Alex by default).
+    const memberKey = Object.keys(people).find((key) => {
+      return people[key] === member;
+    });
+
+    if (memberKey && unknownToSlack.has(memberKey)) {
+      return { userId, name, outcome: "not-found" };
+    }
+
+    if (
+      inChannel.some((person) => {
+        return person.userId === userId;
+      })
+    ) {
+      return { userId, name, outcome: "already-in" };
+    }
+
+    inChannel.push(
+      channelPerson(`U0${name.split(" ")[0].toUpperCase()}`, name, member),
+    );
+    return { userId, name, outcome: "added" };
+  });
+
+  return { results };
+}
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   const body = serialize(options.data) || {};
@@ -4911,6 +5165,24 @@ async function handleApi(method, options) {
       throw fail(500, "The channel links could not be read.");
     }
     return ok({ links: channelLinks(url) });
+  }
+
+  /*
+   * GET /workspace-channel-members/<record type>/<record id>: who is in the
+   * record's channels (?members=); POST .../add adds people to one.
+   */
+  if (method === "POST" && url.includes("/workspace-channel-members/")) {
+    if (failures.has("channel-add")) {
+      throw fail(500, "Could not add people to the channel.");
+    }
+    return ok(addToChannel(body));
+  }
+
+  if (method === "GET" && url.includes("/workspace-channel-members/")) {
+    if (failures.has("channel-members")) {
+      throw fail(500, "Slack could not be reached.");
+    }
+    return ok(channelMembers(url));
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

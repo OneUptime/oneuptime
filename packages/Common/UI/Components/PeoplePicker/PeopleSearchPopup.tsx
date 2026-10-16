@@ -13,6 +13,10 @@ import {
   PeoplePickerKindDefinition,
 } from "./PeoplePickerKinds";
 import {
+  PeopleSearchNotice,
+  PeopleSearchNoticeTone,
+} from "./PeopleSearchNotice";
+import {
   getPeoplePickerOptionKey,
   PeoplePickerKind,
   PeoplePickerOption,
@@ -51,6 +55,33 @@ export const PEOPLE_SEARCH_POPUP_MAX_HEIGHT_PX: number = 380;
 
 export type PeopleSearchSelectionMode = "toggle" | "add" | "single";
 
+/*
+ * How each kind of notice is drawn under the list: what a pick did in
+ * green, what it left as it was in grey, what went wrong in red - a band
+ * each, in that order.
+ */
+const NOTICE_BANDS: ReadonlyArray<{
+  tone: PeopleSearchNoticeTone;
+  icon: IconProp;
+  className: string;
+}> = [
+  {
+    tone: PeopleSearchNoticeTone.Done,
+    icon: IconProp.CheckCircle,
+    className: "bg-green-50 text-green-700",
+  },
+  {
+    tone: PeopleSearchNoticeTone.Unchanged,
+    icon: IconProp.Info,
+    className: "bg-gray-50 text-gray-600",
+  },
+  {
+    tone: PeopleSearchNoticeTone.Problem,
+    icon: IconProp.Alert,
+    className: "bg-red-50 text-red-600",
+  },
+];
+
 export interface ComponentProps {
   popup: AnchoredFieldPopup;
   kinds: Array<PeoplePickerKind>;
@@ -65,12 +96,14 @@ export interface ComponentProps {
   /*
    * A row was picked. isPicked says whether it was picked already (in toggle
    * mode, picking it again takes it away). A promise shows the row as busy
-   * until it settles, and its error under the list.
+   * until it settles, and its error under the list. A list whose picks act
+   * at once may answer with what the pick came to: said under the list,
+   * until the next pick.
    */
   onPick: (
     option: PeoplePickerOption,
     isPicked: boolean,
-  ) => void | Promise<void>;
+  ) => void | Promise<void> | Promise<Array<PeopleSearchNotice>>;
   // Every row the list fetched, so a picker knows their names.
   onOptionsLoaded?: ((options: Array<PeoplePickerOption>) => void) | undefined;
   searchPlaceholder?: string | undefined;
@@ -100,6 +133,7 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
   const [loadError, setLoadError] = useState<string>("");
   const [pendingKey, setPendingKey] = useState<string>("");
   const [pickError, setPickError] = useState<string>("");
+  const [pickNotices, setPickNotices] = useState<Array<PeopleSearchNotice>>([]);
   const [activeIndex, setActiveIndex] = useState<number>(0);
 
   const searchInputRef: React.MutableRefObject<HTMLInputElement | null> =
@@ -123,6 +157,7 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
     setDebouncedSearch("");
     setLoadError("");
     setPickError("");
+    setPickNotices([]);
     setActiveIndex(0);
   }, [isOpen]);
 
@@ -135,7 +170,8 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    searchInputRef.current?.focus();
+    // The list is placed at its button already: focusing it scrolls nothing.
+    searchInputRef.current?.focus({ preventScroll: true });
   }, [isOpen, Boolean(popup.popupPosition)]);
 
   useEffect(() => {
@@ -265,9 +301,18 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
   const activeRow: PeoplePickerOption | undefined =
     clampedActiveIndex >= 0 ? visibleRows[clampedActiveIndex] : undefined;
 
-  // Keep the row the keyboard is on in view.
+  /*
+   * Keep the row the keyboard is on in view - once the list is placed at
+   * its button. Until then it is hidden where the page's flow would put it,
+   * past the page's end, and scrolling a row there into view scrolled the
+   * whole page down: the list then opened off the screen, above its button,
+   * whenever the rows arrived before the list was placed (a quick answer, a
+   * button low on the page).
+   */
+  const isPlaced: boolean = Boolean(popup.popupPosition);
+
   useEffect(() => {
-    if (!activeRow || typeof document === "undefined") {
+    if (!activeRow || !isPlaced || typeof document === "undefined") {
       return;
     }
 
@@ -278,7 +323,7 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
     if (element && typeof element.scrollIntoView === "function") {
       element.scrollIntoView({ block: "nearest" });
     }
-  }, [activeRow ? getOptionId(activeRow) : ""]);
+  }, [activeRow ? getOptionId(activeRow) : "", isPlaced]);
 
   const pick: (row: PeoplePickerOption) => Promise<void> = async (
     row: PeoplePickerOption,
@@ -291,17 +336,23 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
     const isPicked: boolean = props.selectedKeys.has(key);
 
     setPickError("");
+    setPickNotices([]);
 
-    const result: void | Promise<void> = props.onPick(row, isPicked);
+    const result: void | Promise<void> | Promise<Array<PeopleSearchNotice>> =
+      props.onPick(row, isPicked);
 
-    if (!result || typeof (result as Promise<void>).then !== "function") {
+    if (!result || typeof (result as Promise<unknown>).then !== "function") {
       return;
     }
 
     setPendingKey(key);
 
     try {
-      await result;
+      const notices: void | Array<PeopleSearchNotice> = await result;
+
+      if (Array.isArray(notices)) {
+        setPickNotices(notices);
+      }
     } catch (err) {
       setPickError(API.getFriendlyMessage(err));
     } finally {
@@ -359,6 +410,15 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
       tabIndex={-1}
       className="fixed flex flex-col overflow-hidden rounded-lg bg-white shadow-xl ring-1 ring-gray-200"
       style={{
+        /*
+         * Fixed from its first frame, whatever the stylesheet has generated
+         * yet: the Dashboard's Tailwind writes a class's rule only once it
+         * sees the class on the page, and a list left in the page's flow
+         * for that frame sat past the page's end - focusing its search box
+         * there scrolled the whole page down, and the list then opened off
+         * the screen.
+         */
+        position: "fixed",
         bottom: popup.popupPosition?.bottom,
         left: popup.popupPosition?.left ?? 0,
         maxHeight: popup.popupPosition?.maxHeight,
@@ -549,16 +609,69 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
         })}
       </div>
 
-      {pickError && (
+      {/*
+       * What the last pick came to. It scrolls on its own past a few
+       * lines, so a long list of problems never squeezes out the people.
+       */}
+      {(pickError || pickNotices.length > 0) && (
         <div
-          role="alert"
-          className="flex flex-shrink-0 items-start gap-2 border-t border-gray-100 bg-red-50 px-3 py-2 text-xs text-red-600"
+          data-testid="people-search-notices"
+          className="max-h-40 flex-shrink-0 divide-y divide-gray-100 overflow-y-auto border-t border-gray-100"
         >
-          <Icon
-            icon={IconProp.Alert}
-            className="mt-0.5 h-3.5 w-3.5 flex-shrink-0"
-          />
-          <span>{pickError}</span>
+          {NOTICE_BANDS.map(
+            (band: {
+              tone: PeopleSearchNoticeTone;
+              icon: IconProp;
+              className: string;
+            }): ReactElement | null => {
+              const texts: Array<string> = pickNotices
+                .filter((notice: PeopleSearchNotice): boolean => {
+                  return notice.tone === band.tone;
+                })
+                .map((notice: PeopleSearchNotice): string => {
+                  return notice.text;
+                });
+
+              if (texts.length === 0) {
+                return null;
+              }
+
+              return (
+                <div
+                  key={band.tone}
+                  role={
+                    band.tone === PeopleSearchNoticeTone.Problem
+                      ? "alert"
+                      : "status"
+                  }
+                  data-testid={`people-search-notice-${band.tone}`}
+                  className={`flex items-start gap-2 px-3 py-2 text-xs ${band.className}`}
+                >
+                  <Icon
+                    icon={band.icon}
+                    className="mt-0.5 h-3.5 w-3.5 flex-shrink-0"
+                  />
+                  <div className="min-w-0 space-y-1">
+                    {texts.map((text: string, index: number): ReactElement => {
+                      return <p key={index}>{text}</p>;
+                    })}
+                  </div>
+                </div>
+              );
+            },
+          )}
+          {pickError && (
+            <div
+              role="alert"
+              className="flex items-start gap-2 bg-red-50 px-3 py-2 text-xs text-red-600"
+            >
+              <Icon
+                icon={IconProp.Alert}
+                className="mt-0.5 h-3.5 w-3.5 flex-shrink-0"
+              />
+              <span>{pickError}</span>
+            </div>
+          )}
         </div>
       )}
     </div>,

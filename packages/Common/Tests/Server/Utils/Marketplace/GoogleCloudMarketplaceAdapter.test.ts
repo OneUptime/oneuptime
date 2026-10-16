@@ -388,6 +388,10 @@ describe("GoogleCloudMarketplaceAdapter", () => {
   });
 
   describe("reportUsage", () => {
+    it("says Google Cloud counts reports by their ID, not one per hour", () => {
+      expect(adapter.keepsOneReportPerHour).toBe(false);
+    });
+
     it("checks, then reports, the record as one operation keyed by the report's ID", async () => {
       api.checkUsage.mockResolvedValue([]);
       api.reportUsage.mockResolvedValue([]);
