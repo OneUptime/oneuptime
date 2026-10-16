@@ -109,9 +109,9 @@ Criteria bepalen wanneer de poort als online, verminderd of offline telt, en of 
 | Filter | Voorwaarden | Wat het controleert |
 | --- | --- | --- |
 | **Is Online** | **Waar**, **Onwaar** | Of de poort een verbinding accepteerde. |
-| **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | De volledige verbindingstijd, inclusief het DNS-opzoeken voor een hostnaam. |
-| **Port DNS Lookup Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Het DNS-opzoeken vóór de eerste TCP-poging. Het heeft geen waarde wanneer het doel een IP-adres is. |
-| **Port TCP Connect Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Van de eerste TCP-poging tot de verbinding wordt geaccepteerd, inclusief het wisselen tussen IPv6 en IPv4. |
+| **Total Connection Time (DNS + TCP) (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | De volledige verbindingstijd, inclusief het DNS-opzoeken voor een hostnaam. |
+| **Port DNS Lookup Time (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Het DNS-opzoeken vóór de eerste TCP-poging. Het heeft geen waarde wanneer het doel een IP-adres is. |
+| **Port TCP Connect Time (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Van de eerste TCP-poging tot de verbinding wordt geaccepteerd, inclusief het wisselen tussen IPv6 en IPv4. |
 | **Is Request Timeout** | **Waar**, **Onwaar** | Of het DNS-opzoeken of de TCP-verbinding bij elke poging de time-out overschreed. |
 
 Een criterium op de DNS-opzoektijd heeft niets te evalueren wanneer het doel een IP-adres is. Gebruik voor criteria die met hostnamen en IP-adressen gelijk moeten werken de totale tijd of de TCP-verbindingstijd.
@@ -156,10 +156,10 @@ Maak het venster langer dan het monitoringinterval, zodat het meerdere controles
 | Doel | Filter | Voorwaarde | Waarde |
 | --- | --- | --- | --- |
 | Offline wanneer de poort dicht is | **Is Online** | **Onwaar** | — |
-| Waarschuwen wanneer verbinden traag gaat | **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than** | `500` |
-| De dienst als verminderd markeren wanneer hij traag verbindt | **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than** | `200` |
-| Waarschuwen wanneer DNS traag is | **Port DNS Lookup Time (in ms)** | **Greater Than** | `100` |
-| Waarschuwen wanneer de TCP-handshake traag is | **Port TCP Connect Time (in ms)** | **Greater Than** | `250` |
+| Waarschuwen wanneer verbinden traag gaat | **Total Connection Time (DNS + TCP) (in ms)** | **Groter dan** | `500` |
+| De dienst als verminderd markeren wanneer hij traag verbindt | **Total Connection Time (DNS + TCP) (in ms)** | **Groter dan** | `200` |
+| Waarschuwen wanneer DNS traag is | **Port DNS Lookup Time (in ms)** | **Groter dan** | `100` |
+| Waarschuwen wanneer de TCP-handshake traag is | **Port TCP Connect Time (in ms)** | **Groter dan** | `250` |
 
 ## Problemen oplossen
 

@@ -198,7 +198,7 @@ Um novo monitor de requisições recebidas é criado com dois critérios que lee
 | Critério | Tipo de filtro | Condição do filtro | Valor | Efeito |
 | -------- | ------------ | ---------------- | ------- | -------------------------------------------- |
 | Offline  | Corpo da Requisição | Contém | `error` | Marca o monitor como offline, abre um incidente |
-| Online   | Corpo da Requisição | Not Contains | `error` | Marca o monitor como online |
+| Online   | Corpo da Requisição | Não contém | `error` | Marca o monitor como online |
 
 Isso atende ao caso comum em que o remetente informa a própria saúde no payload: uma requisição cujo corpo menciona `error` deixa o monitor offline, e a próxima requisição sem essa palavra o traz de volta e resolve o incidente. Uma requisição sem corpo nenhum conta como "não contém `error`", então uma simples chamada de heartbeat mantém o monitor online.
 
@@ -224,7 +224,7 @@ Cada tipo de filtro oferece suas próprias condições:
 | Tipo de filtro | Condições |
 | --- | --- |
 | **Incoming Request** | **Recieved In Minutes**: uma requisição foi recebida dentro do número de minutos informado. **Not Recieved In Minutes**: nenhuma requisição foi recebida dentro do número de minutos informado. (O dashboard as escreve assim.) |
-| **Corpo da Requisição**, **Request Header**, **Request Header Value** | **Contém** e **Not Contains** |
+| **Corpo da Requisição**, **Request Header**, **Request Header Value** | **Contém** e **Não contém** |
 | **JavaScript Expression** | **Evaluates To True** |
 
 > [!NOTE]
@@ -251,7 +251,7 @@ Corpos de objeto são comparados como JSON compacto sem espaços, então um filt
 | **Valor** | `"status":"degraded"` |
 
 > [!IMPORTANT]
-> Coloque o interruptor de homem morto **acima** dos critérios padrão. Os critérios são verificados de cima para baixo, e o primeiro que corresponde decide. A verificação em segundo plano relê a última requisição, então o critério online padrão ("Request Body Not Contains `error`") continua correspondendo a ela, e um critério abaixo dele nunca tem sua vez. **Adicionar critérios** adiciona um critério no final: arraste-o para cima.
+> Coloque o interruptor de homem morto **acima** dos critérios padrão. Os critérios são verificados de cima para baixo, e o primeiro que corresponde decide. A verificação em segundo plano relê a última requisição, então o critério online padrão ("Corpo da Requisição Não contém `error`") continua correspondendo a ela, e um critério abaixo dele nunca tem sua vez. **Adicionar critérios** adiciona um critério no final: arraste-o para cima.
 
 > [!WARNING]
 > Um monitor só é reavaliado em segundo plano se pelo menos um dos seus critérios verificar **Incoming Request**. Um monitor cujos critérios só verificam o corpo da requisição, Request Header ou uma expressão JavaScript é avaliado quando uma requisição chega e em nenhum outro momento, então nunca pode ficar offline sozinho. Se você quer um alarme de heartbeat ausente, precisa de um critério **Incoming Request**.

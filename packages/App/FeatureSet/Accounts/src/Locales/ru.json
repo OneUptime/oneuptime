@@ -51,6 +51,7 @@
     "submitButton": "Войти",
     "forgotPassword": "Забыли пароль?",
     "useSso": "Использовать единый вход (SSO) вместо этого",
+    "signInWithMicrosoft": "Войти через Microsoft",
     "noAccountPrompt": "Нет учетной записи?",
     "registerLink": "Зарегистрироваться.",
     "twoFactor": {
@@ -121,7 +122,8 @@
     "verifyEmailOpensInNewTab": "(откроется в новой вкладке)",
     "verifyEmailAlreadyVerifiedPrompt": "Уже подтвердили адрес электронной почты?",
     "verifyEmailWrongAddressPrompt": "Неверный адрес электронной почты?",
-    "verifyEmailUseDifferentEmail": "Зарегистрироваться с другим адресом"
+    "verifyEmailUseDifferentEmail": "Зарегистрироваться с другим адресом",
+    "signUpWithMicrosoft": "Зарегистрироваться через Microsoft"
   },
   "forgotPassword": {
     "title": "Забыли пароль",
@@ -257,6 +259,42 @@
       "server_error": "Что-то пошло не так на нашей стороне. Повторите попытку через несколько минут.",
       "framed": "В целях вашей безопасности эту страницу нельзя использовать внутри другой страницы. Откройте её в отдельной вкладке или отдельном окне браузера."
     }
+  },
+  "marketplacePurchase": {
+    "title": "Настройка покупки",
+    "subtitle": "Вы купили OneUptime в {{marketplace}}. Выберите проект, который будет оплачиваться этой покупкой.",
+    "boughtOnLabel": "Куплено в",
+    "buyerLabel": "Покупатель",
+    "marketplacePlanLabel": "Тариф в маркетплейсе",
+    "signedInAs": "Вы вошли как {{email}}",
+    "freeTrial": "Для этой покупки в {{marketplace}} действует бесплатный пробный период.",
+    "choiceLabel": "Какой проект будет оплачиваться этой покупкой?",
+    "createProjectOption": "Создать новый проект",
+    "projectNameLabel": "Название проекта",
+    "projectNamePlaceholder": "Мой проект",
+    "planLabel": "Тариф OneUptime",
+    "planOption": "{{name}} – {{price}} за пользователя / месяц",
+    "planOptionFree": "{{name}} – бесплатно",
+    "existingProjectOption": "Использовать один из моих проектов",
+    "projectLabel": "Проект",
+    "projectPlaceholder": "Выберите проект",
+    "existingProjectHelp": "С этого момента его тариф и использование оплачиваются через {{marketplace}}, а не картой.",
+    "projectRefusal": {
+      "not_billing_manager": "{{name}} – изменить способ оплаты могут только его владельцы",
+      "already_billed_by_marketplace": "{{name}} – уже оплачивается через маркетплейс",
+      "bought_from_reseller": "{{name}} – оплачивается через реселлера"
+    },
+    "nothingToChoose": "Ни один из ваших проектов не может принять эту покупку, а создавать проекты на этом сервере вы не можете. Попросите владельца проекта, который должен оплачиваться этой покупкой, настроить её.",
+    "billingNote": "Ваш тариф и использование оплачиваются через {{marketplace}} по ценам на oneuptime.com/pricing. Сменить тариф можно в любой момент в разделе Настройки проекта → Биллинг.",
+    "submitButton": "Настроить покупку",
+    "notNowButton": "Не сейчас",
+    "redirecting": "Покупка настроена. Переходим к вашему проекту…",
+    "alreadySetUp": "Эта покупка в {{marketplace}} уже настроена для одного из ваших проектов.",
+    "openProject": "Открыть проект",
+    "cancelled": "Эта покупка отменена в {{marketplace}}. Чтобы продолжить, купите OneUptime в {{marketplace}} снова.",
+    "errorTitle": "Не удалось настроить эту покупку",
+    "errorHelp": "Снова откройте OneUptime из маркетплейса, в котором вы его купили.",
+    "goToDashboard": "Перейти в панель управления"
   },
   "Use at least {{minimum}} characters.": "Используйте не менее {{minimum}} символов.",
   "Try a few unrelated words.": "Попробуйте несколько не связанных между собой слов.",

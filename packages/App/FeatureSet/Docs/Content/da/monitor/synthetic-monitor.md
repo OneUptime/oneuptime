@@ -234,10 +234,10 @@ En kørsel kan indsamle højst 100 metrikker, kun med numeriske værdier, og One
 | **Fejl** | Den fejl, en kørsel kastede, hvis nogen. |
 | **Result Value** | De `data`, en kørsel returnerede. |
 | **Udførelsestid (i ms)** | Hvor længe en kørsel tog. |
-| **Browsertype** | Den browser, en kørsel brugte: **Equal To** eller **Not Equal To**. |
-| **Screen Size** | Den skærmstørrelse, en kørsel brugte: **Equal To** eller **Not Equal To**. |
+| **Browsertype** | Den browser, en kørsel brugte: **Lig med** eller **Ikke lig med**. |
+| **Screen Size** | Den skærmstørrelse, en kørsel brugte: **Lig med** eller **Ikke lig med**. |
 
-Hvert filter tjekkes mod hver kørsel og matcher, når blot én kørsel matcher det. Filtrene tjekkes hver for sig, ikke kørsel for kørsel: **Fejl** Is Not Empty sammen med **Browsertype** Equal To `Firefox` matcher, når en kørsel mislykkedes, og en af kørslerne brugte Firefox — ikke kun når Firefox-kørslen mislykkedes. Vil du holde øje med én browser for sig, så giv den sin egen monitor.
+Hvert filter tjekkes mod hver kørsel og matcher, når blot én kørsel matcher det. Filtrene tjekkes hver for sig, ikke kørsel for kørsel: **Fejl** Er ikke tom sammen med **Browsertype** Lig med `Firefox` matcher, når en kørsel mislykkedes, og en af kørslerne brugte Firefox — ikke kun når Firefox-kørslen mislykkedes. Vil du holde øje med én browser for sig, så giv den sin egen monitor.
 
 I hændelses- og advarselsskabeloner findes hver kørsel i `{{syntheticResponses}}`: se [Hændelse- og advarselsskabeloner](/docs/monitor/incident-alert-templating#syntetiske-monitorer).
 

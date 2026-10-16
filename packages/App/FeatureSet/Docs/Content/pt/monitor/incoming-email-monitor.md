@@ -144,7 +144,7 @@ Um novo monitor de e-mails recebidos é criado com dois critérios que leem o co
 | Critério | Tipo de filtro | Condição do filtro | Valor | Efeito |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
 | Offline  | Email Body  | Contém | `error` | Marca o monitor como offline, abre um incidente |
-| Online   | Email Body  | Not Contains | `error` | Marca o monitor como online |
+| Online   | Email Body  | Não contém | `error` | Marca o monitor como online |
 
 Isso atende ao caso comum em que um job ou uma ferramenta de terceiros envia o próprio resultado por e-mail: uma mensagem cujo corpo menciona `error` deixa o monitor offline, e a próxima mensagem sem essa palavra o traz de volta e resolve o incidente. A comparação no corpo não diferencia maiúsculas de minúsculas, então `Error` e `ERROR` também correspondem.
 
@@ -175,13 +175,13 @@ O endereço do próprio monitor é mascarado antes de qualquer critério ler o e
 | Condição do filtro | Descrição | Exemplo |
 | ---------------- | ----------------------------------------- | ---------------------------------- |
 | **Contém** | O campo contém o texto informado | O assunto contém "CRITICAL" |
-| **Not Contains** | O campo não contém o texto informado | O assunto não contém "TEST" |
-| **Equal To** | O campo corresponde exatamente ao texto informado | O remetente é igual a "alerts@service.com" |
-| **Not Equal To** | O campo não corresponde ao texto informado | O assunto é diferente de "OK" |
-| **Starts With** | O campo começa com o texto informado | O assunto começa com "[ALERT]" |
-| **Ends With** | O campo termina com o texto informado | O assunto termina com "- Production" |
-| **Is Empty** | O campo está vazio ou em branco | O corpo está vazio |
-| **Is Not Empty** | O campo tem conteúdo | O assunto não está vazio |
+| **Não contém** | O campo não contém o texto informado | O assunto não contém "TEST" |
+| **Igual a** | O campo corresponde exatamente ao texto informado | O remetente é igual a "alerts@service.com" |
+| **Diferente de** | O campo não corresponde ao texto informado | O assunto é diferente de "OK" |
+| **Começa com** | O campo começa com o texto informado | O assunto começa com "[ALERT]" |
+| **Termina com** | O campo termina com o texto informado | O assunto termina com "- Production" |
+| **Está vazio** | O campo está vazio ou em branco | O corpo está vazio |
+| **Não está vazio** | O campo tem conteúdo | O assunto não está vazio |
 
 Todas essas comparações não diferenciam maiúsculas de minúsculas. Um filtro com valor vazio nunca corresponde.
 
@@ -221,8 +221,8 @@ Coloque o critério crítico primeiro: os critérios são verificados de cima pa
 
 | Critério | Filtros | Condição de correspondência | Ações |
 | --- | --- | --- | --- |
-| Job com falha | **Email From Address** Equal To `monitoring@legacy-system.com`; **Assunto do e-mail** Contém `Failed` | **Todos** | Mudar o status para offline; declarar um incidente |
-| Job bem-sucedido | **Email From Address** Equal To `monitoring@legacy-system.com`; **Assunto do e-mail** Contém `Success` | **Todos** | Mudar o status para online |
+| Job com falha | **Email From Address** Igual a `monitoring@legacy-system.com`; **Assunto do e-mail** Contém `Failed` | **Todos** | Mudar o status para offline; declarar um incidente |
+| Job bem-sucedido | **Email From Address** Igual a `monitoring@legacy-system.com`; **Assunto do e-mail** Contém `Success` | **Todos** | Mudar o status para online |
 
 ### Exemplo 3: monitor de heartbeat (sem e-mail = alerta)
 
@@ -240,7 +240,7 @@ Um critério mantém um único incidente aberto por vez: enquanto ele está aber
 :::steps
 ### Escolher os e-mails
 
-Dê ao critério um filtro que corresponda aos e-mails para os quais abrir incidentes. Para aceitar só relatos da sua própria equipe, use **Email From Address** com **Ends With** e o seu domínio, por exemplo `@example.com`.
+Dê ao critério um filtro que corresponda aos e-mails para os quais abrir incidentes. Para aceitar só relatos da sua própria equipe, use **Email From Address** com **Termina com** e o seu domínio, por exemplo `@example.com`.
 
 ### Declarar o incidente
 
@@ -327,7 +327,7 @@ Enquanto ele não estiver configurado, o cartão de endereço do monitor diz que
 - **Segurança do endereço de e-mail**: o endereço de e-mail do monitor funciona como uma senha: qualquer pessoa que o conheça pode enviar e-mails ao monitor. Não o compartilhe publicamente, e redefina-o na aba **Configurações** do monitor se ele vazar.
 - **Tamanho do e-mail**: o OneUptime aceita um e-mail recebido de até 50 MB, anexos incluídos. Os anexos não são armazenados, só os nomes, tipos e tamanhos deles.
 - **Tempo de processamento**: os e-mails são processados de forma assíncrona. Pode haver alguns segundos entre o envio de um e-mail e a criação do alerta.
-- **Sem diferenciar maiúsculas de minúsculas**: todas as comparações de strings (Contém, Equal To etc.) não diferenciam maiúsculas de minúsculas.
+- **Sem diferenciar maiúsculas de minúsculas**: todas as comparações de strings (Contém, Igual a etc.) não diferenciam maiúsculas de minúsculas.
 - **Texto simples**: os critérios sobre o corpo leem a parte de texto simples do e-mail. Um e-mail enviado só em HTML tem o corpo vazio para os critérios, então não contém `error`, e os critérios padrão marcam o monitor como online.
 
 ## Solução de problemas

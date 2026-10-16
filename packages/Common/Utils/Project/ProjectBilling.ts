@@ -95,6 +95,8 @@ export const PROJECT_BILLING_READ_COLUMNS: ReadonlyArray<string> = [
   "resellerId",
   "resellerPlan",
   "resellerPlanId",
+  // The cloud marketplace that bills the project, if one does.
+  "billingMarketplace",
   ...PROJECT_BILLING_CONTACT_COLUMNS,
   "smsOrCallCurrentBalanceInUSDCents",
   "enableAutoRechargeSmsOrCallBalance",

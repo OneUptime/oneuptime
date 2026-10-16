@@ -62,6 +62,9 @@ jest.mock("../../../FeatureSet/Identity/API/Authentication", () => {
 jest.mock("../../../FeatureSet/Identity/API/Reseller", () => {
   return { __esModule: true, default: { coreRouter: "reseller" } };
 });
+jest.mock("../../../FeatureSet/Identity/API/MicrosoftSignIn", () => {
+  return { __esModule: true, default: { coreRouter: "microsoft-sign-in" } };
+});
 jest.mock("../../../FeatureSet/Identity/API/StatusPageAuthentication", () => {
   return { __esModule: true, default: { coreRouter: "status-page" } };
 });
@@ -595,7 +598,7 @@ describe("the Identity feature set mounts the SSO routers", () => {
       },
     ),
   )(
-    "at /api/identity and /, after authentication and reseller, before ee's routers and status page authentication (%s)",
+    "at /api/identity and /, after authentication, reseller and Sign in with Microsoft, before ee's routers and status page authentication (%s)",
     async (_label: string, state: EditionStateCase) => {
       const fake: FakeEnterpriseModule | null = state.apply();
 
@@ -608,6 +611,10 @@ describe("the Identity feature set mounts the SSO routers", () => {
       expect(mounted).toEqual([
         { paths: IDENTITY_PREFIXES, router: { coreRouter: "authentication" } },
         { paths: IDENTITY_PREFIXES, router: { coreRouter: "reseller" } },
+        {
+          paths: IDENTITY_PREFIXES,
+          router: { coreRouter: "microsoft-sign-in" },
+        },
         ...SSO_MOUNTS(),
         ...(state.isLoaded
           ? [{ paths: IDENTITY_PREFIXES, router: EE_SCIM_ROUTER }]
@@ -620,7 +627,7 @@ describe("the Identity feature set mounts the SSO routers", () => {
 
       // The very same router instances, not copies.
       SSO_ROUTERS.forEach((entry: SsoRouterEntry, index: number): void => {
-        expect(mounted[2 + index]!.router).toBe(entry.router);
+        expect(mounted[3 + index]!.router).toBe(entry.router);
       });
     },
   );
@@ -635,6 +642,7 @@ describe("the Identity feature set mounts the SSO routers", () => {
     ).toEqual([
       { coreRouter: "authentication" },
       { coreRouter: "reseller" },
+      { coreRouter: "microsoft-sign-in" },
       ...SSO_ROUTERS.map((entry: SsoRouterEntry): ExpressRouter => {
         return entry.router;
       }),

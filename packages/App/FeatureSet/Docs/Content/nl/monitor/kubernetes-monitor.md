@@ -112,7 +112,7 @@ Deze monitors evalueren altijd de **Metric Value** – de waarde van de geconfig
 
 ### Voorwaarden
 
-Statische drempels worden vergeleken met de **Threshold** die u invult: **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** en **Equal To**.
+Statische drempels worden vergeleken met de **Threshold** die u invult: **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** en **Gelijk aan**.
 
 Anomaliedetectie ten opzichte van een baseline heeft geen drempel nodig. Kies een van deze voorwaarden, en het formulier toont in plaats daarvan **Gevoeligheid** en **Baseline-venster**:
 

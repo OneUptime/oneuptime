@@ -219,7 +219,7 @@ flowchart TB
 | --- | --- |
 | **指标** | 要检查的查询或公式，按其变量名指定。 |
 | **聚合** | 窗口中的值如何变成一个结果：**平均值**、**总和**、**Maximum Value**、**Minimum Value**、**All Values**（每个值都必须满足）或 **Any Value**（一个就够）。 |
-| **条件** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** 或 **Equal To**，或者异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
+| **条件** | **大于**、**小于**、**大于或等于**、**小于或等于** 或 **等于**，或者异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
 | **Threshold** | 要比较的值。如果指标有单位，旁边会有一个单位列表。异常条件下不显示。 |
 | **灵敏度** | 仅限异常条件。**Low**（4σ）、**Medium**（3σ，默认）或 **High**（2σ）。 |
 | **基线窗口** | 仅限异常条件。14 天（默认）、28 天、60 天或 90 天的历史。 |
@@ -254,7 +254,7 @@ flowchart TB
 :::
 
 :::details ceph_health_status 为 1，但没有任何触发
-检查条件使用的是 **Greater Than Or Equal To** `1`，而不是 **Greater Than**，并且监视器的**时间范围**至少覆盖一次 30 秒的抓取。
+检查条件使用的是 **大于或等于** `1`，而不是 **大于**，并且监视器的**时间范围**至少覆盖一次 30 秒的抓取。
 :::
 
 :::details 健康检查模板从不触发

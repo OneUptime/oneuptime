@@ -368,8 +368,8 @@ PostgreSQL은 `track_io_timing`이 켜져 있을 때만 I/O 읽기 시간과 쓰
 | 필터 유형 | 확인하는 것 |
 |---|---|
 | **Database Is Online** | 데이터베이스에 접근할 수 있었고 프로브 쿼리가 성공했는지 여부. 모니터를 만들 때 함께 생기는 오프라인 기준이며, 접근 가능성을 반영하는 유일한 확인입니다. |
-| **Database Metric** | 메트릭을 골라 비교합니다: Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To, Equal To, Not Equal To. 메트릭 선택기는 선택한 엔진이 만들 수 있는 메트릭만 보여 주므로, 영원히 충족되지 않는 기준을 만들 수는 없습니다(예외가 하나 있는데, Microsoft SQL Server용으로 제공되는 Replication 메트릭은 Azure SQL Database에서 수집되지 않습니다). 어떤 확인에서 메트릭이 수집되지 않았다면(그룹이 실패했거나 엔진이 그 메트릭을 보고하지 않는 경우) 필터는 일치하지 않으며, "false"로도 일치하지 않고 건너뜁니다. 권한 문제로 누군가가 호출되는 일은 없습니다. |
-| **Database Collection Error** | 그 확인의 수집 문제 요약으로, 사용할 수 없는 그룹마다 "그룹: 메시지"가 하나씩 들어갑니다. 비어 있지 않을 때 알림을 받으면 가시성 손실을 알아챌 수 있고, 특정 그룹을 지켜보려면 Contains를 사용하세요. |
+| **Database Metric** | 메트릭을 골라 비교합니다: 보다 큼, 보다 작음, 이상, 이하, 같음, 같지 않음. 메트릭 선택기는 선택한 엔진이 만들 수 있는 메트릭만 보여 주므로, 영원히 충족되지 않는 기준을 만들 수는 없습니다(예외가 하나 있는데, Microsoft SQL Server용으로 제공되는 Replication 메트릭은 Azure SQL Database에서 수집되지 않습니다). 어떤 확인에서 메트릭이 수집되지 않았다면(그룹이 실패했거나 엔진이 그 메트릭을 보고하지 않는 경우) 필터는 일치하지 않으며, "false"로도 일치하지 않고 건너뜁니다. 권한 문제로 누군가가 호출되는 일은 없습니다. |
+| **Database Collection Error** | 그 확인의 수집 문제 요약으로, 사용할 수 없는 그룹마다 "그룹: 메시지"가 하나씩 들어갑니다. 비어 있지 않을 때 알림을 받으면 가시성 손실을 알아챌 수 있고, 특정 그룹을 지켜보려면 포함을 사용하세요. |
 | **JavaScript Expression** | 완전한 제어. [JavaScript 표현식](/docs/monitor/javascript-expression)을 참조하세요. |
 
 임계값은 정수입니다. `90.5`가 아니라 `90`으로 쓰세요. 백분율과 초는 정수로 비교됩니다.

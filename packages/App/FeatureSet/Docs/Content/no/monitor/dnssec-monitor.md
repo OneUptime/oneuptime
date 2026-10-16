@@ -93,7 +93,7 @@ Kriterier avgjør når sonen regnes som tilkoblet, redusert eller frakoblet, og 
 | **DNSSEC Chain Is Valid** | **Sann**, **Usann** | Alle fire sjekkene ovenfor holder: nøkler publisert, DS i den overordnede sonen, signaturer til stede med en dag eller mer igjen, og AD-flagget fra hver løser. |
 | **DNSSEC DNSKEY Record Exists** | **Sann**, **Usann** | Sonen publiserer minst én DNSKEY-post. |
 | **DNSSEC DS Record Exists At Parent** | **Sann**, **Usann** | Den overordnede sonen publiserer en DS-post for sonen. |
-| **DNSSEC Signature Expires In Days** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Hele dager til signaturen (RRSIG) som utløper først, utløper. |
+| **DNSSEC Signature Expires In Days** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Hele dager til signaturen (RRSIG) som utløper først, utløper. |
 | **DNSSEC Resolver Consensus (AD Flag)** | **Sann**, **Usann** | Hver løser i **Løsere** returnerer AD-flagget. |
 | **DNSSEC Nameservers Are Consistent** | **Sann**, **Usann** | Hver autoritative navneserver svarer med det samme SOA-serienummeret. Alltid **Sann** så lenge **Sjekk navneserverkonsistens** er slått av. |
 
@@ -115,7 +115,7 @@ Standardkriteriene følger ikke selv med på signaturutløp eller navneserverkon
 | Mål | Filter | Betingelse | Verdi |
 | --- | --- | --- | --- |
 | Frakoblet når kjeden er brutt (et standardkriterium) | **DNSSEC Chain Is Valid** | **Usann** | — |
-| Varsle før signaturer utløper | **DNSSEC Signature Expires In Days** | **Less Than** | `7` |
+| Varsle før signaturer utløper | **DNSSEC Signature Expires In Days** | **Mindre enn** | `7` |
 | Fang opp en delegering som har mistet DS-posten sin | **DNSSEC DS Record Exists At Parent** | **Usann** | — |
 | Fang opp løsere som er uenige | **DNSSEC Resolver Consensus (AD Flag)** | **Usann** | — |
 | Fang opp navneservere som er ute av takt | **DNSSEC Nameservers Are Consistent** | **Usann** | — |
@@ -123,7 +123,7 @@ Standardkriteriene følger ikke selv med på signaturutløp eller navneserverkon
 ## Beste praksis
 
 1. **Velg løsere som alltid kan nås.** Hver løser må returnere AD-flagget for at kjeden skal regnes som gyldig, så en løser sonden ikke kan nå, får sjekken til å feile når de nye forsøkene er brukt opp. Standardverdiene, `1.1.1.1`, `8.8.8.8` og `9.9.9.9`, drives av tre forskjellige operatører, noe som også fanger opp en sone som validerer hos én løser, men ikke hos en annen.
-2. **Bli varslet før signaturer utløper.** Signeringsprogrammer signerer en sone på nytt før signaturene går ut, så en signatur nær utløp betyr at nysigneringen har stoppet. Legg til et kriterium med **DNSSEC Signature Expires In Days** / **Less Than** / `7` som oppretter et varsel, og et til på `2` som erklærer en hendelse. Dra begge over kriteriet som merker kjeden som gyldig, med `2`-dagerskriteriet først, fordi det første kriteriet som samsvarer, vinner. Velg terskler som er lavere enn tiden signeringsprogrammet ditt vanligvis lar en signatur ha igjen før det signerer på nytt, så de holder seg stille så lenge nysigneringen fungerer.
+2. **Bli varslet før signaturer utløper.** Signeringsprogrammer signerer en sone på nytt før signaturene går ut, så en signatur nær utløp betyr at nysigneringen har stoppet. Legg til et kriterium med **DNSSEC Signature Expires In Days** / **Mindre enn** / `7` som oppretter et varsel, og et til på `2` som erklærer en hendelse. Dra begge over kriteriet som merker kjeden som gyldig, med `2`-dagerskriteriet først, fordi det første kriteriet som samsvarer, vinner. Velg terskler som er lavere enn tiden signeringsprogrammet ditt vanligvis lar en signatur ha igjen før det signerer på nytt, så de holder seg stille så lenge nysigneringen fungerer.
 3. **Overvåk hver signert sone.** Ta med apex-domenet, signerte underdomener og alle soner som er delegert til en annen operatør.
 4. **La sjekken av navneserverkonsistens være slått på,** og legg til et kriterium for den. Den fanger opp en sekundærserver som har sluttet å hente overføringer fra primærserveren, noe DNSSEC-validering alene kan overse.
 

@@ -93,7 +93,7 @@ I criteri decidono quando la zona conta come online, degradata o offline, e se q
 | **DNSSEC Chain Is Valid** | **Vero**, **Falso** | Valgono tutti e quattro i controlli sopra: chiavi pubblicate, DS nella zona padre, firme presenti con un giorno o più davanti, e il flag AD da ogni resolver. |
 | **DNSSEC DNSKEY Record Exists** | **Vero**, **Falso** | La zona pubblica almeno un record DNSKEY. |
 | **DNSSEC DS Record Exists At Parent** | **Vero**, **Falso** | La zona padre pubblica un record DS per la zona. |
-| **DNSSEC Signature Expires In Days** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | I giorni interi prima che scada la firma (RRSIG) più vicina alla scadenza. |
+| **DNSSEC Signature Expires In Days** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | I giorni interi prima che scada la firma (RRSIG) più vicina alla scadenza. |
 | **DNSSEC Resolver Consensus (AD Flag)** | **Vero**, **Falso** | Ogni resolver in **Risolutori** restituisce il flag AD. |
 | **DNSSEC Nameservers Are Consistent** | **Vero**, **Falso** | Ogni nameserver autorevole risponde con lo stesso numero di serie SOA. Sempre **Vero** finché **Verifica la coerenza dei nameserver** è disattivato. |
 
@@ -115,7 +115,7 @@ I criteri predefiniti non sorvegliano da soli la scadenza delle firme né la coe
 | Obiettivo | Filtro | Condizione | Valore |
 | --- | --- | --- | --- |
 | Offline quando la catena è interrotta (uno predefinito) | **DNSSEC Chain Is Valid** | **Falso** | — |
-| Avvisare prima che le firme scadano | **DNSSEC Signature Expires In Days** | **Less Than** | `7` |
+| Avvisare prima che le firme scadano | **DNSSEC Signature Expires In Days** | **Minore di** | `7` |
 | Accorgersi di una delega che ha perso il suo record DS | **DNSSEC DS Record Exists At Parent** | **Falso** | — |
 | Accorgersi di resolver in disaccordo | **DNSSEC Resolver Consensus (AD Flag)** | **Falso** | — |
 | Accorgersi di nameserver non allineati | **DNSSEC Nameservers Are Consistent** | **Falso** | — |
@@ -123,7 +123,7 @@ I criteri predefiniti non sorvegliano da soli la scadenza delle firme né la coe
 ## Buone pratiche
 
 1. **Scegliete resolver sempre raggiungibili.** Ogni resolver deve restituire il flag AD perché la catena conti come valida, quindi un resolver che la sonda non raggiunge fa fallire il controllo una volta esauriti i tentativi. I predefiniti, `1.1.1.1`, `8.8.8.8` e `9.9.9.9`, sono gestiti da tre operatori diversi, il che individua anche una zona che si convalida su un resolver ma non su un altro.
-2. **Fatevi avvisare prima che le firme scadano.** I firmatari rifirmano una zona prima che le sue firme scadano, quindi una firma vicina alla scadenza significa che la rifirma si è fermata. Aggiungete un criterio con **DNSSEC Signature Expires In Days** / **Less Than** / `7` che crei un avviso, e un secondo a `2` che dichiari un incidente. Trascinate entrambi sopra il criterio che segna la catena come valida, prima quello a `2` giorni, perché vince il primo criterio che corrisponde. Scegliete soglie più basse del tempo che il vostro firmatario lascia di solito su una firma prima di rifirmare, così restano silenziose finché la rifirma funziona.
+2. **Fatevi avvisare prima che le firme scadano.** I firmatari rifirmano una zona prima che le sue firme scadano, quindi una firma vicina alla scadenza significa che la rifirma si è fermata. Aggiungete un criterio con **DNSSEC Signature Expires In Days** / **Minore di** / `7` che crei un avviso, e un secondo a `2` che dichiari un incidente. Trascinate entrambi sopra il criterio che segna la catena come valida, prima quello a `2` giorni, perché vince il primo criterio che corrisponde. Scegliete soglie più basse del tempo che il vostro firmatario lascia di solito su una firma prima di rifirmare, così restano silenziose finché la rifirma funziona.
 3. **Monitorate ogni zona firmata.** Includete il dominio apex, i sottodomini firmati e ogni zona delegata a un operatore diverso.
 4. **Tenete attivo il controllo di coerenza dei nameserver,** e aggiungete un criterio per esso. Individua un secondario che ha smesso di ricevere i trasferimenti dal primario, cosa che la sola convalida DNSSEC può non notare.
 

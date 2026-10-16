@@ -153,6 +153,14 @@ export interface GitHubTaskContext {
   // The X-GitHub-Delivery of the webhook that started this run.
   webhookDeliveryId?: string | undefined;
   /*
+   * The pull requests the worker said this run opened, sent with its
+   * Completed report and stored with that status. Read only when the run
+   * recorded no pull request of its own — recording one can fail after GitHub
+   * has opened it — and only those that are plainly pull requests of this
+   * repository (see GitHubRunReply.readOpenedPullRequests).
+   */
+  openedPullRequestUrls?: Array<string> | undefined;
+  /*
    * When the run's OUTCOME was reported back into the thread. Set by the
    * sweeper that posts it, and the only thing stopping the next sweep from
    * posting again — see GitHubRunReply for why the report is swept for rather

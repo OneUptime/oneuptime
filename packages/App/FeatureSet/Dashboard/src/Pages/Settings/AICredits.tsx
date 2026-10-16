@@ -1,11 +1,14 @@
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import {
+  getCurrentProjectBillingMarketplace,
+  getMarketplaceBalanceCardDescription,
   getProjectBalanceAccess,
   getProjectBalanceCardDescription,
   getRechargeBalanceButtons,
   ProjectBalanceAccess,
 } from "../../Components/ProjectBalance/ProjectBalanceAccess";
+import CloudMarketplace from "Common/Types/Marketplace/CloudMarketplace";
 import AutoRechargeFailedNotice from "../../Components/ProjectBalance/AutoRechargeFailedNotice";
 import {
   getProjectColumnsEditGate,
@@ -73,6 +76,9 @@ const AIBillingSettings: FunctionComponent<
   const balanceAccess: ProjectBalanceAccess = getProjectBalanceAccess(
     ProjectBalanceType.AI,
   );
+  // A project a cloud marketplace bills has no card: its recharges go there.
+  const billingMarketplace: CloudMarketplace | null =
+    getCurrentProjectBillingMarketplace();
   const autoRechargeGate: ProjectColumnsEditGate = getProjectColumnsEditGate({
     fields: [...PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS[ProjectBalanceType.AI]],
     buttonTitle: "Edit Auto Recharge",
@@ -91,10 +97,17 @@ const AIBillingSettings: FunctionComponent<
         name="Current Balance"
         cardProps={{
           title: "Current Balance",
-          description: getProjectBalanceCardDescription(
-            ProjectBalanceType.AI,
-            balanceAccess,
-          ),
+          description: billingMarketplace
+            ? getMarketplaceBalanceCardDescription({
+                balance: ProjectBalanceType.AI,
+                access: balanceAccess,
+                marketplace: billingMarketplace,
+                translator: translator,
+              })
+            : getProjectBalanceCardDescription(
+                ProjectBalanceType.AI,
+                balanceAccess,
+              ),
           buttons: getRechargeBalanceButtons({
             access: balanceAccess,
             translator: translator,

@@ -198,7 +198,7 @@ En ny monitor för inkommande förfrågningar skapas med två kriterier som läs
 | Kriterium | Filtertyp | Filtervillkor | Värde | Effekt |
 | -------- | ------------ | ---------------- | ------- | -------------------------------------------- |
 | Offline  | Begärandekropp | Innehåller | `error` | Markerar monitorn som offline, öppnar en incident |
-| Online   | Begärandekropp | Not Contains | `error` | Markerar monitorn som online |
+| Online   | Begärandekropp | Innehåller inte | `error` | Markerar monitorn som online |
 
 Det passar det vanliga fallet där avsändaren rapporterar sin egen hälsa i nyttolasten: en förfrågan vars kropp nämner `error` tar ned monitorn, och nästa förfrågan utan ordet tar upp monitorn igen och löser incidenten. En förfrågan helt utan kropp räknas som "innehåller inte `error`", så ett vanligt heartbeat-anrop håller monitorn online.
 
@@ -224,7 +224,7 @@ Varje filtertyp har sina egna villkor:
 | Filtertyp | Villkor |
 | --- | --- |
 | **Incoming Request** | **Recieved In Minutes** — en förfrågan har tagits emot inom det angivna antalet minuter. **Not Recieved In Minutes** — ingen förfrågan har tagits emot inom det angivna antalet minuter. (Instrumentpanelen stavar dem så.) |
-| **Begärandekropp**, **Request Header**, **Request Header Value** | **Innehåller** och **Not Contains** |
+| **Begärandekropp**, **Request Header**, **Request Header Value** | **Innehåller** och **Innehåller inte** |
 | **JavaScript Expression** | **Evaluates To True** |
 
 > [!NOTE]
@@ -251,7 +251,7 @@ Objekt som kropp jämförs som kompakt JSON utan mellanslag, så ett filter **Be
 | **Värde** | `"status":"degraded"` |
 
 > [!IMPORTANT]
-> Lägg dödmansgreppet **ovanför** standardkriterierna. Kriterierna kontrolleras uppifrån, och det första som matchar avgör. Bakgrundskontrollen läser den senaste förfrågan igen, så standardkriteriet för online — "Request Body Not Contains `error`" — fortsätter att matcha den, och ett kriterium under det kommer aldrig till tals. **Lägg till kriterier** lägger till ett kriterium längst ned: dra upp det.
+> Lägg dödmansgreppet **ovanför** standardkriterierna. Kriterierna kontrolleras uppifrån, och det första som matchar avgör. Bakgrundskontrollen läser den senaste förfrågan igen, så standardkriteriet för online — "Begärandekropp Innehåller inte `error`" — fortsätter att matcha den, och ett kriterium under det kommer aldrig till tals. **Lägg till kriterier** lägger till ett kriterium längst ned: dra upp det.
 
 > [!WARNING]
 > En monitor utvärderas bara på nytt i bakgrunden om minst ett av dess kriterier kontrollerar **Incoming Request**. En monitor vars kriterier bara kontrollerar kroppen, Request Header eller ett JavaScript-uttryck utvärderas när en förfrågan kommer och vid ingen annan tidpunkt — så den kan aldrig bli offline av sig själv. Om du vill ha ett larm för uteblivna heartbeats behöver du ett kriterium med **Incoming Request**.

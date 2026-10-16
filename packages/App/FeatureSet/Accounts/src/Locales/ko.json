@@ -51,6 +51,7 @@
     "submitButton": "로그인",
     "forgotPassword": "비밀번호를 잊으셨나요?",
     "useSso": "대신 SSO (단일 로그인) 사용",
+    "signInWithMicrosoft": "Microsoft로 로그인",
     "noAccountPrompt": "계정이 없으신가요?",
     "registerLink": "등록.",
     "twoFactor": {
@@ -121,7 +122,8 @@
     "verifyEmailOpensInNewTab": "(새 탭에서 열림)",
     "verifyEmailAlreadyVerifiedPrompt": "이미 이메일을 인증하셨나요?",
     "verifyEmailWrongAddressPrompt": "이메일 주소가 잘못되었나요?",
-    "verifyEmailUseDifferentEmail": "다른 이메일로 가입하기"
+    "verifyEmailUseDifferentEmail": "다른 이메일로 가입하기",
+    "signUpWithMicrosoft": "Microsoft로 가입하기"
   },
   "forgotPassword": {
     "title": "비밀번호 잊음",
@@ -257,6 +259,42 @@
       "server_error": "저희 쪽에서 문제가 발생했습니다. 몇 분 후에 다시 시도해 주세요.",
       "framed": "보안을 위해 이 페이지는 다른 페이지 안에서는 사용할 수 없습니다. 브라우저의 별도 탭이나 창에서 열어 주세요."
     }
+  },
+  "marketplacePurchase": {
+    "title": "구매 설정",
+    "subtitle": "{{marketplace}}에서 OneUptime을 구매하셨습니다. 이 구매로 요금을 낼 프로젝트를 선택하세요.",
+    "boughtOnLabel": "구매처",
+    "buyerLabel": "구매자",
+    "marketplacePlanLabel": "마켓플레이스 요금제",
+    "signedInAs": "{{email}} 계정으로 로그인됨",
+    "freeTrial": "이 구매는 {{marketplace}}에서 무료 체험 중입니다.",
+    "choiceLabel": "이 구매로 어떤 프로젝트의 요금을 내시겠습니까?",
+    "createProjectOption": "새 프로젝트 만들기",
+    "projectNameLabel": "프로젝트 이름",
+    "projectNamePlaceholder": "내 프로젝트",
+    "planLabel": "OneUptime 요금제",
+    "planOption": "{{name}} – 사용자당 월 {{price}}",
+    "planOptionFree": "{{name}} – 무료",
+    "existingProjectOption": "내 프로젝트 중 하나 사용",
+    "projectLabel": "프로젝트",
+    "projectPlaceholder": "프로젝트 선택",
+    "existingProjectHelp": "이제부터 이 프로젝트의 요금제와 사용량은 카드 대신 {{marketplace}}에서 청구됩니다.",
+    "projectRefusal": {
+      "not_billing_manager": "{{name}} – 소유자만 결제 방식을 변경할 수 있음",
+      "already_billed_by_marketplace": "{{name}} – 이미 마켓플레이스에서 청구됨",
+      "bought_from_reseller": "{{name}} – 리셀러가 청구함"
+    },
+    "nothingToChoose": "이 구매를 적용할 수 있는 프로젝트가 없으며, 이 서버에서는 프로젝트를 만들 수 없습니다. 이 구매로 요금을 낼 프로젝트의 소유자에게 설정을 요청하세요.",
+    "billingNote": "요금제와 사용량은 oneuptime.com/pricing의 가격으로 {{marketplace}}에서 청구됩니다. 요금제는 프로젝트 설정 → 결제에서 언제든지 변경할 수 있습니다.",
+    "submitButton": "구매 설정",
+    "notNowButton": "나중에",
+    "redirecting": "구매 설정이 완료되었습니다. 프로젝트로 이동하는 중…",
+    "alreadySetUp": "이 {{marketplace}} 구매는 이미 내 프로젝트 중 하나에 설정되어 있습니다.",
+    "openProject": "프로젝트 열기",
+    "cancelled": "이 구매는 {{marketplace}}에서 취소되었습니다. 계속하려면 {{marketplace}}에서 OneUptime을 다시 구매하세요.",
+    "errorTitle": "이 구매를 설정할 수 없습니다",
+    "errorHelp": "OneUptime을 구매한 마켓플레이스에서 다시 여세요.",
+    "goToDashboard": "대시보드로 이동"
   },
   "Use at least {{minimum}} characters.": "{{minimum}}자 이상 사용하세요.",
   "Try a few unrelated words.": "서로 관련 없는 단어 몇 개를 조합해 보세요.",

@@ -96,12 +96,12 @@ Kriterier avgjør når navnet regnes som tilkoblet, redusert eller frakoblet, og
 | Filter | Betingelser | Hva det sjekker |
 | --- | --- | --- |
 | **DNS Is Online** | **Sann**, **Usann** | Om spørringen returnerte minst én post av typen. |
-| **DNS Response Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Hvor lang tid spørringen tok. |
+| **DNS Response Time (in ms)** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Hvor lang tid spørringen tok. |
 | **DNS Record Exists** | **Sann**, **Usann** | Om det kom tilbake noen post av typen. |
-| **DNS Record Value** | **Inneholder**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | Postenes verdier. Filteret samsvarer når én enkelt post samsvarer. |
+| **DNS Record Value** | **Inneholder**, **Inneholder ikke**, **Starter med**, **Slutter med**, **Lik**, **Ikke lik** | Postenes verdier. Filteret samsvarer når én enkelt post samsvarer. |
 | **DNSSEC Is Valid** | **Sann**, **Usann** | Om en validerende løser setter AD-flagget på svaret. |
 
-**DNS Record Value** samsvarer når _hvilken som helst_ av postene samsvarer. Med flere `A`-poster samsvarer **Equal To** `93.184.216.34` når én av dem er den adressen, og **Not Equal To** samsvarer når én av dem ikke er det.
+**DNS Record Value** samsvarer når _hvilken som helst_ av postene samsvarer. Med flere `A`-poster samsvarer **Lik** `93.184.216.34` når én av dem er den adressen, og **Ikke lik** samsvarer når én av dem ikke er det.
 
 **DNSSEC Is Valid** spør serveren i **DNS-server (valgfritt)**, på dens **Port**, eller Google Public DNS (`8.8.8.8`) når feltet er tomt, så serveren du angir, bør være en som validerer DNSSEC. Filteret har ingen verdi og samsvarer verken den ene eller den andre veien når sonden ikke kan kjøre den sjekken. For en full sjekk av en signert sone bruker du en [DNSSEC-monitor](/docs/monitor/dnssec-monitor).
 
@@ -141,9 +141,9 @@ Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva s
 | Mål | Filter | Betingelse | Verdi |
 | --- | --- | --- | --- |
 | Frakoblet når navnet slutter å kunne slås opp | **DNS Is Online** | **Usann** | — |
-| Varsle når et navns eneste `A`-post endres | **DNS Record Value** | **Not Equal To** | `93.184.216.34` |
-| Varsle når en `MX`-post peker utenfor domenet ditt | **DNS Record Value** | **Not Contains** | `example.com` |
-| Merk DNS som redusert når det er tregt | **DNS Response Time (in ms)** | **Greater Than** | `500` |
+| Varsle når et navns eneste `A`-post endres | **DNS Record Value** | **Ikke lik** | `93.184.216.34` |
+| Varsle når en `MX`-post peker utenfor domenet ditt | **DNS Record Value** | **Inneholder ikke** | `example.com` |
+| Merk DNS som redusert når det er tregt | **DNS Response Time (in ms)** | **Større enn** | `500` |
 | Varsle når DNSSEC-valideringen feiler | **DNSSEC Is Valid** | **Usann** | — |
 
 ## Feilsøking
@@ -156,11 +156,11 @@ dig @8.8.8.8 example.com A
 ```
 :::
 
-:::details Et kriterium med Not Equal To utløses selv om riktig adresse er der
-**DNS Record Value** samsvarer når én enkelt post samsvarer. Med flere poster utløses **Not Equal To** så snart én av dem avviker. For å sjekke at én bestemt verdi er blant postene, støtter du deg på rekkefølgen av kriteriene, siden det første som samsvarer, vinner:
+:::details Et kriterium med Ikke lik utløses selv om riktig adresse er der
+**DNS Record Value** samsvarer når én enkelt post samsvarer. Med flere poster utløses **Ikke lik** så snart én av dem avviker. For å sjekke at én bestemt verdi er blant postene, støtter du deg på rekkefølgen av kriteriene, siden det første som samsvarer, vinner:
 
 1. Behold standardkriteriet for frakoblet øverst: **DNS Is Online** / **Usann**.
-2. Under det legger du til et kriterium med **DNS Record Value** / **Equal To** / verdien du forventer, som merker monitoren som **I drift**.
+2. Under det legger du til et kriterium med **DNS Record Value** / **Lik** / verdien du forventer, som merker monitoren som **I drift**.
 3. Under det igjen legger du til et kriterium med **DNS Is Online** / **Sann**, som merker monitoren som **Frakoblet** og erklærer en hendelse. Det samsvarer bare med svar som ikke har verdien.
 :::
 

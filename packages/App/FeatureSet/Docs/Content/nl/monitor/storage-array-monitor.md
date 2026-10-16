@@ -263,7 +263,7 @@ Een criterium vergelijkt een van de queries of formules van de monitor met een d
 | --- | --- |
 | **Metriek** | De query of formule om te controleren, op haar variabelenaam. |
 | **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value**, **All Values** (elke waarde moet overeenkomen) of **Any Value** (één is genoeg). |
-| **Voorwaarde** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** of **Equal To** — of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. |
+| **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** — of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. |
 | **Threshold** | De waarde om mee te vergelijken. Er staat een eenhedenlijst naast als de metriek een eenheid heeft. Niet getoond bij anomalievoorwaarden. |
 | **Gevoeligheid** | Alleen bij anomalievoorwaarden. **Laag** (4σ), **Gemiddeld** (3σ, de standaard) of **Hoog** (2σ). |
 | **Baseline-venster** | Alleen bij anomalievoorwaarden. 14 dagen (de standaard), 28, 60 of 90 dagen geschiedenis. |
@@ -273,10 +273,10 @@ Anomalievoorwaarden vergelijken elke waarde met hetzelfde uur van de week in de 
 
 Enkele criteria om mee te beginnen:
 
-- **Een volume is traag:** `purefa_volume_performance_latency_usec` gefilterd op `dimension=usec_per_read_op`, Gemiddelde, gegroepeerd op `name`, **Greater Than** `2000`, over de laatste 10 minuten.
-- **De array raakt vol:** `purefa_array_space_utilization`, Maximum, **Greater Than** `85`, over de laatste 15 minuten.
-- **Een host draait op één controller:** `purefa_host_connectivity_info` gefilterd op `status=critical`, Maximum, gegroepeerd op `host`, **Greater Than** `0`.
-- **Een FlashBlade-bestandssysteem is bijna vol:** `purefb_file_systems_space_bytes` gefilterd op `space=available_ratio`, Minimum, gegroepeerd op `name`, **Less Than** `0.05`.
+- **Een volume is traag:** `purefa_volume_performance_latency_usec` gefilterd op `dimension=usec_per_read_op`, Gemiddelde, gegroepeerd op `name`, **Groter dan** `2000`, over de laatste 10 minuten.
+- **De array raakt vol:** `purefa_array_space_utilization`, Maximum, **Groter dan** `85`, over de laatste 15 minuten.
+- **Een host draait op één controller:** `purefa_host_connectivity_info` gefilterd op `status=critical`, Maximum, gegroepeerd op `host`, **Groter dan** `0`.
+- **Een FlashBlade-bestandssysteem is bijna vol:** `purefb_file_systems_space_bytes` gefilterd op `space=available_ratio`, Minimum, gegroepeerd op `name`, **Kleiner dan** `0.05`.
 
 ### Standaardcriteria
 

@@ -109,9 +109,9 @@ Les critères décident quand le port compte comme en ligne, dégradé ou hors l
 | Filtre | Conditions | Ce qu'il vérifie |
 | --- | --- | --- |
 | **Is Online** | **Vrai**, **Faux** | Si le port a accepté une connexion. |
-| **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Le temps de connexion complet, y compris la résolution DNS pour un nom d'hôte. |
-| **Port DNS Lookup Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | La résolution DNS avant la première tentative TCP. Elle n'a pas de valeur quand la cible est une adresse IP. |
-| **Port TCP Connect Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | De la première tentative TCP jusqu'à l'acceptation de la connexion, y compris le basculement entre IPv6 et IPv4. |
+| **Total Connection Time (DNS + TCP) (in ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Le temps de connexion complet, y compris la résolution DNS pour un nom d'hôte. |
+| **Port DNS Lookup Time (in ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | La résolution DNS avant la première tentative TCP. Elle n'a pas de valeur quand la cible est une adresse IP. |
+| **Port TCP Connect Time (in ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | De la première tentative TCP jusqu'à l'acceptation de la connexion, y compris le basculement entre IPv6 et IPv4. |
 | **Is Request Timeout** | **Vrai**, **Faux** | Si la résolution DNS ou la connexion TCP a dépassé le délai, à chaque tentative. |
 
 Un critère sur la résolution DNS n'a rien à évaluer quand la cible est une adresse IP. Pour des critères qui doivent fonctionner aussi bien avec des noms d'hôte qu'avec des adresses IP, utilisez le temps total ou le temps de connexion TCP.
@@ -156,10 +156,10 @@ Choisissez une fenêtre plus longue que l'intervalle de surveillance, pour qu'el
 | Objectif | Filtre | Condition | Valeur |
 | --- | --- | --- | --- |
 | Hors ligne quand le port est fermé | **Is Online** | **Faux** | — |
-| Alerter quand la connexion est lente | **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than** | `500` |
-| Marquer le service dégradé quand il est lent à se connecter | **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than** | `200` |
-| Alerter quand le DNS est lent | **Port DNS Lookup Time (in ms)** | **Greater Than** | `100` |
-| Alerter quand la poignée de main TCP est lente | **Port TCP Connect Time (in ms)** | **Greater Than** | `250` |
+| Alerter quand la connexion est lente | **Total Connection Time (DNS + TCP) (in ms)** | **Supérieur à** | `500` |
+| Marquer le service dégradé quand il est lent à se connecter | **Total Connection Time (DNS + TCP) (in ms)** | **Supérieur à** | `200` |
+| Alerter quand le DNS est lent | **Port DNS Lookup Time (in ms)** | **Supérieur à** | `100` |
+| Alerter quand la poignée de main TCP est lente | **Port TCP Connect Time (in ms)** | **Supérieur à** | `250` |
 
 ## Dépannage
 

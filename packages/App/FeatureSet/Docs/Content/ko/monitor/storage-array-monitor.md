@@ -263,7 +263,7 @@ OneUptime은 템플릿 18개(FlashArray용 11개, FlashBlade용 7개)를 제공�
 | --- | --- |
 | **메트릭** | 확인할 쿼리나 수식(변수 이름으로). |
 | **집계** | 기간 안의 값을 답 하나로 만드는 방법: **평균**, **합계**, **Maximum Value**, **Minimum Value**, **All Values**(모든 값이 일치해야 함), **Any Value**(하나면 충분). |
-| **조건** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To**, **Equal To**, 또는 이상 조건: **Anomalously High**, **Anomalously Low**, **Anomalous**. |
+| **조건** | **보다 큼**, **보다 작음**, **이상**, **이하**, **같음**, 또는 이상 조건: **Anomalously High**, **Anomalously Low**, **Anomalous**. |
 | **Threshold** | 비교할 값. 메트릭에 단위가 있으면 옆에 단위 목록이 있습니다. 이상 조건에서는 표시되지 않습니다. |
 | **민감도** | 이상 조건만. **낮음**(4σ), **중간**(3σ, 기본값), **높음**(2σ). |
 | **기준선 기간** | 이상 조건만. 14일(기본값), 28일, 60일, 90일의 기록. |
@@ -273,10 +273,10 @@ OneUptime은 템플릿 18개(FlashArray용 11개, FlashBlade용 7개)를 제공�
 
 시작하기 좋은 기준:
 
-- **볼륨이 느림:** `purefa_volume_performance_latency_usec` 를 `dimension=usec_per_read_op` 로 필터링, 평균, `name` 으로 그룹화, **Greater Than** `2000`, 최근 10분.
-- **어레이가 가득 차고 있음:** `purefa_array_space_utilization`, 최대, **Greater Than** `85`, 최근 15분.
-- **호스트가 컨트롤러 하나로 동작함:** `purefa_host_connectivity_info` 를 `status=critical` 로 필터링, 최대, `host` 로 그룹화, **Greater Than** `0`.
-- **FlashBlade 파일 시스템이 거의 가득 참:** `purefb_file_systems_space_bytes` 를 `space=available_ratio` 로 필터링, 최소, `name` 으로 그룹화, **Less Than** `0.05`.
+- **볼륨이 느림:** `purefa_volume_performance_latency_usec` 를 `dimension=usec_per_read_op` 로 필터링, 평균, `name` 으로 그룹화, **보다 큼** `2000`, 최근 10분.
+- **어레이가 가득 차고 있음:** `purefa_array_space_utilization`, 최대, **보다 큼** `85`, 최근 15분.
+- **호스트가 컨트롤러 하나로 동작함:** `purefa_host_connectivity_info` 를 `status=critical` 로 필터링, 최대, `host` 로 그룹화, **보다 큼** `0`.
+- **FlashBlade 파일 시스템이 거의 가득 참:** `purefb_file_systems_space_bytes` 를 `space=available_ratio` 로 필터링, 최소, `name` 으로 그룹화, **보다 작음** `0.05`.
 
 ### 기본 기준
 

@@ -219,7 +219,7 @@ Un criterio compara una de las consultas o fórmulas del monitor con un umbral. 
 | --- | --- |
 | **Métrica** | La consulta o fórmula que se comprueba, por su nombre de variable. |
 | **Agregación** | Cómo los valores de la ventana se convierten en una sola respuesta: **Promedio**, **Suma**, **Maximum Value**, **Minimum Value**, **All Values** (todos los valores deben cumplirse) o **Any Value** (basta con uno). |
-| **Condición** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** o **Equal To**, o una condición de anomalía: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
+| **Condición** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** o **Igual a**, o una condición de anomalía: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
 | **Umbral** | El valor con el que se compara. Junto a él aparece una lista de unidades cuando la métrica tiene unidad. No se muestra con las condiciones de anomalía. |
 | **Sensibilidad** | Solo condiciones de anomalía. **Low** (4σ), **Medium** (3σ, la predeterminada) o **Alta** (2σ). |
 | **Ventana de referencia** | Solo condiciones de anomalía. 14 días (la predeterminada), 28, 60 o 90 días de historial. |
@@ -254,7 +254,7 @@ El agente tiene que consultar **todos** los daemons mgr, no solo el activo: los 
 :::
 
 :::details ceph_health_status es 1 pero no se dispara nada
-Comprueba que el criterio usa **Greater Than Or Equal To** `1` y no **Greater Than**, y que el **Intervalo de tiempo** del monitor cubre al menos una consulta de 30 segundos.
+Comprueba que el criterio usa **Mayor o igual que** `1` y no **Mayor que**, y que el **Intervalo de tiempo** del monitor cubre al menos una consulta de 30 segundos.
 :::
 
 :::details Las plantillas de health checks nunca se disparan

@@ -93,7 +93,7 @@ flowchart TB
 | **DNSSEC Chain Is Valid** | **是**、**否** | 上述四項檢查全部成立：金鑰已發布、父區域中有 DS、簽章存在且剩餘一天或更久，以及每個解析器都回傳 AD 旗標。 |
 | **DNSSEC DNSKEY Record Exists** | **是**、**否** | 區域至少發布了一筆 DNSKEY 記錄。 |
 | **DNSSEC DS Record Exists At Parent** | **是**、**否** | 父區域為該區域發布了 DS 記錄。 |
-| **DNSSEC Signature Expires In Days** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 距最早到期的簽章（RRSIG）到期還剩的整天數。 |
+| **DNSSEC Signature Expires In Days** | **大於**、**小於**、**大於或等於**、**小於或等於** | 距最早到期的簽章（RRSIG）到期還剩的整天數。 |
 | **DNSSEC Resolver Consensus (AD Flag)** | **是**、**否** | **解析器** 中的每個解析器都回傳 AD 旗標。 |
 | **DNSSEC Nameservers Are Consistent** | **是**、**否** | 每個權威名稱伺服器都以相同的 SOA 序號回應。在 **檢查名稱伺服器一致性** 關閉期間一律為 **是**。 |
 
@@ -115,7 +115,7 @@ flowchart TB
 | 目標 | 篩選器 | 條件 | 值 |
 | --- | --- | --- | --- |
 | 信任鏈斷裂時為離線（預設條件之一） | **DNSSEC Chain Is Valid** | **否** | — |
-| 在簽章到期之前發出警告 | **DNSSEC Signature Expires In Days** | **Less Than** | `7` |
+| 在簽章到期之前發出警告 | **DNSSEC Signature Expires In Days** | **小於** | `7` |
 | 發現遺失了 DS 記錄的委派 | **DNSSEC DS Record Exists At Parent** | **否** | — |
 | 發現意見不一致的解析器 | **DNSSEC Resolver Consensus (AD Flag)** | **否** | — |
 | 發現不同步的名稱伺服器 | **DNSSEC Nameservers Are Consistent** | **否** | — |
@@ -123,7 +123,7 @@ flowchart TB
 ## 最佳實務
 
 1. **選擇隨時都能連到的解析器。** 每個解析器都必須回傳 AD 旗標，信任鏈才算有效，因此探測器連不到的解析器會在重試用完後讓檢查失敗。預設值 `1.1.1.1`、`8.8.8.8` 和 `9.9.9.9` 由三家不同的業者營運，這也能發現在一個解析器上通過驗證、在另一個解析器上卻通不過的區域。
-2. **在簽章到期之前收到警告。** 簽署工具會在簽章到期之前重新簽署區域，因此即將到期的簽章代表重新簽署已經停止。新增一個 **DNSSEC Signature Expires In Days** / **Less Than** / `7` 的條件來建立警示，再新增一個值為 `2` 的條件來宣告事件。由於第一個符合的條件會生效，請把兩者都拖到將信任鏈標記為有效的條件上方，並把 `2` 天的條件放在前面。選擇低於簽署工具重新簽署前通常為簽章保留的時間的門檻，這樣在重新簽署正常時它們會保持安靜。
+2. **在簽章到期之前收到警告。** 簽署工具會在簽章到期之前重新簽署區域，因此即將到期的簽章代表重新簽署已經停止。新增一個 **DNSSEC Signature Expires In Days** / **小於** / `7` 的條件來建立警示，再新增一個值為 `2` 的條件來宣告事件。由於第一個符合的條件會生效，請把兩者都拖到將信任鏈標記為有效的條件上方，並把 `2` 天的條件放在前面。選擇低於簽署工具重新簽署前通常為簽章保留的時間的門檻，這樣在重新簽署正常時它們會保持安靜。
 3. **監測每個已簽署的區域。** 包括頂點網域、已簽署的子網域，以及委派給其他業者的任何區域。
 4. **讓名稱伺服器一致性檢查保持開啟，** 並為它新增一個條件。它能發現已停止從主要伺服器同步區域傳送的次要伺服器，而單靠 DNSSEC 驗證可能會漏掉這一點。
 

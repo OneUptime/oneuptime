@@ -186,6 +186,21 @@ export interface RecordPullRequestResult {
 }
 
 /*
+ * A pull request the task opened but could not record, as a Completed status
+ * report carries it to the server: the record it failed to make, without the
+ * task (the report names it). See BaseTaskHandler.recordOpenedPullRequest.
+ */
+export type UnrecordedPullRequest = Omit<RecordPullRequestOptions, "taskId">;
+
+/*
+ * A record is retried when the request never got an answer, or got one that
+ * says the server broke rather than the request — a deploy, a dropped
+ * connection, a database that hiccuped. The server records a pull request
+ * once, so a retry of a record that did land is answered with that row.
+ */
+const RECORD_PULL_REQUEST_RETRIES: number = 3;
+
+/*
  * Server-mediated LLM completion (B4 Tier 0): the in-house code agent's
  * tool loop calls POST /api/ai-agent-data/llm-completion per turn. The
  * server validates the run (claimed, Running, owned by this agent),
@@ -567,6 +582,11 @@ export default class BackendAPI {
         baseRefName: options.baseRefName,
         runnerVerificationStatus: options.runnerVerificationStatus,
         runnerVerificationSummary: options.runnerVerificationSummary,
+      },
+      options: {
+        retries: RECORD_PULL_REQUEST_RETRIES,
+        exponentialBackoff: true,
+        retryOnlyOnRetryableErrors: true,
       },
     });
 

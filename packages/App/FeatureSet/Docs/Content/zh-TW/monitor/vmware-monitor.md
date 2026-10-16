@@ -270,7 +270,7 @@ OneUptime 為常見的 VMware 問題提供 23 個範本，**Quick Setup** 會提
 | --- | --- |
 | **指標** | 要檢查的查詢或公式，依其變數名稱。 |
 | **彙總** | 視窗中的值如何變成一個答案：**平均**、**總和**、**Maximum Value**、**Minimum Value**、**All Values**(每個值都必須相符)或 **Any Value**(一個就夠)。 |
-| **條件** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** 或 **Equal To**——或者一個異常條件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
+| **條件** | **大於**、**小於**、**大於或等於**、**小於或等於** 或 **等於**——或者一個異常條件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
 | **Threshold** | 用於比較的值。指標有單位時，旁邊會有一份單位清單。異常條件不會顯示此欄位。 |
 | **敏感度** | 僅限異常條件。**低**(4σ)、**中**(3σ，預設)或 **高**(2σ)。 |
 | **基準視窗** | 僅限異常條件。14 天(預設)、28、60 或 90 天的歷史。 |
@@ -280,11 +280,11 @@ OneUptime 為常見的 VMware 問題提供 23 個範本，**Quick Setup** 會提
 
 一些可以作為起點的條件：
 
-- **某台主機已飽和：** `vcenter.host.cpu.utilization`，平均，依 `resource.vcenter.host.name` 分組，**Greater Than** `90`，過去 5 分鐘。
-- **某個資料存放區即將寫滿：** `vcenter.datastore.disk.utilization`，平均，依 `resource.vcenter.datastore.name` 分組，**Greater Than** `80`。
-- **某個叢集失去了一台主機：** `vcenter.cluster.host.count` 篩選到 `effective = false`，最大值，依 `resource.vcenter.cluster.name` 分組，**Greater Than** `0`。
-- **執行中的 VM 少於預期：** `vcenter.cluster.vm.count` 篩選到 `power_state = on` 和 `resource.vcenter.cluster.name = Production`，總和，**Less Than** 你預期的數量。
-- **某個 VM 正被主機置換：** `vcenter.vm.memory.swapped`，最大值，依 `resource.vcenter.vm.name` 分組，**Greater Than** `0`。
+- **某台主機已飽和：** `vcenter.host.cpu.utilization`，平均，依 `resource.vcenter.host.name` 分組，**大於** `90`，過去 5 分鐘。
+- **某個資料存放區即將寫滿：** `vcenter.datastore.disk.utilization`，平均，依 `resource.vcenter.datastore.name` 分組，**大於** `80`。
+- **某個叢集失去了一台主機：** `vcenter.cluster.host.count` 篩選到 `effective = false`，最大值，依 `resource.vcenter.cluster.name` 分組，**大於** `0`。
+- **執行中的 VM 少於預期：** `vcenter.cluster.vm.count` 篩選到 `power_state = on` 和 `resource.vcenter.cluster.name = Production`，總和，**小於** 你預期的數量。
+- **某個 VM 正被主機置換：** `vcenter.vm.memory.swapped`，最大值，依 `resource.vcenter.vm.name` 分組，**大於** `0`。
 
 ### 預設條件
 

@@ -100,11 +100,11 @@ En log-monitors kriterier har én **Filtertype**: **Log Count**, antallet af log
 
 | Filterbetingelse | Matcher, når antallet af logs er… |
 | --- | --- |
-| **Greater Than** | over værdien |
-| **Greater Than Or Equal To** | lig med værdien eller derover |
-| **Less Than** | under værdien |
-| **Less Than Or Equal To** | lig med værdien eller derunder |
-| **Equal To** | præcis værdien |
+| **Større end** | over værdien |
+| **Større end eller lig med** | lig med værdien eller derover |
+| **Mindre end** | under værdien |
+| **Mindre end eller lig med** | lig med værdien eller derunder |
+| **Lig med** | præcis værdien |
 | **Anomalously High** | over det forventede interval for denne time på ugen |
 | **Anomalously Low** | under det interval |
 | **Anomalous** | uden for det interval, i begge retninger |
@@ -115,11 +115,11 @@ En ny log-monitor starter med disse kriterier:
 
 | Kriterium | Filter | Effekt |
 | --- | --- | --- |
-| Check if … is offline | **Log Count** **Equal To** `0` | Sætter monitoren offline og erklærer en hændelse, der løses automatisk |
-| Check if … is online | **Log Count** **Greater Than** `0` | Sætter monitoren online |
+| Check if … is offline | **Log Count** **Lig med** `0` | Sætter monitoren offline og erklærer en hændelse, der løses automatisk |
+| Check if … is online | **Log Count** **Større end** `0` | Sætter monitoren online |
 
 > [!TIP]
-> For at få advarsler om fejl i stedet for om stilhed sætter du **Logalvorlighed** til **Fejl** og ændrer offline-kriteriet til **Log Count** **Greater Than** det antal fejl, du kan acceptere i vinduet.
+> For at få advarsler om fejl i stedet for om stilhed sætter du **Logalvorlighed** til **Fejl** og ændrer offline-kriteriet til **Log Count** **Større end** det antal fejl, du kan acceptere i vinduet.
 
 ## Gennemgået eksempel: en stigning i fejl
 
@@ -128,8 +128,8 @@ Du vil have en hændelse, når checkout-tjenesten logger mere end 50 fejl på fe
 - **Logalvorlighed**: **Fejl**
 - **Overvågningslogfiler i (time)**: **Seneste 5 minutter**
 - **Filtrér efter telemetritjeneste**: `checkout`
-- Kriterium 1: **Log Count** **Greater Than** `50`: sæt monitoren offline, og erklær en hændelse
-- Kriterium 2: **Log Count** **Less Than Or Equal To** `50`: sæt monitoren online
+- Kriterium 1: **Log Count** **Større end** `50`: sæt monitoren offline, og erklær en hændelse
+- Kriterium 2: **Log Count** **Mindre end eller lig med** `50`: sæt monitoren online
 
 Fire evalueringer i træk:
 
@@ -200,7 +200,7 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 2. Sæt **Overvågningslogfiler, der indeholder denne tekst** til `terminated` og **Overvågningslogfiler i (time)** til **Seneste 5 minutter**.
 3. Under **Flere felter** tilføjer du attributfilteret `log_component` = `IPSec`.
 4. Under **Group by Attributes** tilføjer du `con_name`.
-5. Tilføj et kriterium med filteret **Log Count** **Greater Than** `0`, der opretter en advarsel eller en hændelse med titlen `IPsec tunnel {{con_name}} terminated`.
+5. Tilføj et kriterium med filteret **Log Count** **Større end** `0`, der opretter en advarsel eller en hændelse med titlen `IPsec tunnel {{con_name}} terminated`.
 :::
 
 Hver tunnel, der logger en afslutning, får nu sin egen advarsel (`IPsec tunnel HQ-Branch1 terminated`, `IPsec tunnel Branch2 terminated`), og hver af dem løses for sig.
@@ -219,7 +219,7 @@ Værdien af hver Group By-attribut er en [skabelonvariabel](/docs/monitor/incide
 ### Evalueringen af kriterier er anderledes
 
 - **Alle kriterier evalueres**, som på en grupperet metrik-monitor, så forskellige grupper kan opfylde forskellige kriterier samtidig. En gruppe, der opfylder to kriterier, får stadig kun én advarsel, fra det første; sorter derfor kriterierne fra mest til mindst alvorlige.
-- **En gruppe findes kun, hvis den har logget noget i tidsvinduet.** Kriterier som **Equal To 0** og **Less Than** udløses derfor kun for grupper, der har logget mindst én gang; for at få en advarsel, når logs helt holder op med at komme, bruger du en monitor uden Group By.
+- **En gruppe findes kun, hvis den har logget noget i tidsvinduet.** Kriterier som **Lig med 0** og **Mindre end** udløses derfor kun for grupper, der har logget mindst én gang; for at få en advarsel, når logs helt holder op med at komme, bruger du en monitor uden Group By.
 - **Anomalidetektion** (**Anomalously High**, **Anomalously Low**, **Anomalous**) evalueres ikke pr. gruppe (dens baseline dækker hele monitoren), så de filtre matcher aldrig på en grupperet monitor.
 - Monitorens status følger det første kriterium, som en gruppe opfylder. Når ingen gruppe opfylder et kriterium, går monitoren tilbage til sin standardstatus.
 
@@ -230,7 +230,7 @@ Antallet var 0, så filtrene matcher ingen af de logs, tjenesten sender. Åbn mo
 :::
 
 :::details Der var en stigning, men ingen advarsel
-Kriterierne tjekkes fra top til bund, og det første match afgør det. Et bredt kriterium over det, du forventede, såsom **Log Count** **Greater Than** `0`, matcher først og stopper resten. Sæt det alvorligste kriterium øverst.
+Kriterierne tjekkes fra top til bund, og det første match afgør det. Et bredt kriterium over det, du forventede, såsom **Log Count** **Større end** `0`, matcher først og stopper resten. Sæt det alvorligste kriterium øverst.
 :::
 
 :::details Et anomalikriterium udløses aldrig

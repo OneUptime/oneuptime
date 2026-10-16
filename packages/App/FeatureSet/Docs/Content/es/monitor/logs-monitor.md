@@ -100,11 +100,11 @@ Los criterios de un monitor de registros tienen un único **Tipo de filtro**: **
 
 | Condición de filtro | Coincide cuando el recuento de registros está… |
 | --- | --- |
-| **Greater Than** | por encima del valor |
-| **Greater Than Or Equal To** | en el valor o por encima |
-| **Less Than** | por debajo del valor |
-| **Less Than Or Equal To** | en el valor o por debajo |
-| **Equal To** | exactamente en el valor |
+| **Mayor que** | por encima del valor |
+| **Mayor o igual que** | en el valor o por encima |
+| **Menor que** | por debajo del valor |
+| **Menor o igual que** | en el valor o por debajo |
+| **Igual a** | exactamente en el valor |
 | **Anomalously High** | por encima del rango esperado para esta hora de la semana |
 | **Anomalously Low** | por debajo de ese rango |
 | **Anomalous** | fuera de ese rango, en cualquier sentido |
@@ -115,11 +115,11 @@ Un monitor de registros nuevo empieza con estos criterios:
 
 | Criterio | Filtro | Efecto |
 | --- | --- | --- |
-| Check if … is offline | **Log Count** **Equal To** `0` | Pone el monitor fuera de línea y declara un incidente que se resuelve solo |
-| Check if … is online | **Log Count** **Greater Than** `0` | Pone el monitor en línea |
+| Check if … is offline | **Log Count** **Igual a** `0` | Pone el monitor fuera de línea y declara un incidente que se resuelve solo |
+| Check if … is online | **Log Count** **Mayor que** `0` | Pone el monitor en línea |
 
 > [!TIP]
-> Para alertar sobre errores en lugar de sobre el silencio, pon **Gravedad del registro** en **Error** y cambia el criterio de fuera de línea a **Log Count** **Greater Than** el número de errores que toleras en la ventana.
+> Para alertar sobre errores en lugar de sobre el silencio, pon **Gravedad del registro** en **Error** y cambia el criterio de fuera de línea a **Log Count** **Mayor que** el número de errores que toleras en la ventana.
 
 ## Ejemplo práctico: un pico de errores
 
@@ -128,8 +128,8 @@ Quieres un incidente cuando el servicio de checkout registra más de 50 errores 
 - **Gravedad del registro**: **Error**
 - **Registros del monitor durante (tiempo)**: **Últimos 5 minutos**
 - **Filtrar por servicio de telemetría**: `checkout`
-- Criterio 1: **Log Count** **Greater Than** `50`: poner el monitor fuera de línea y declarar un incidente
-- Criterio 2: **Log Count** **Less Than Or Equal To** `50`: poner el monitor en línea
+- Criterio 1: **Log Count** **Mayor que** `50`: poner el monitor fuera de línea y declarar un incidente
+- Criterio 2: **Log Count** **Menor o igual que** `50`: poner el monitor en línea
 
 Cuatro evaluaciones consecutivas:
 
@@ -200,7 +200,7 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 2. Pon **Registros del monitor que incluyen este texto** en `terminated` y **Registros del monitor durante (tiempo)** en **Últimos 5 minutos**.
 3. En **Más campos**, añade el filtro de atributo `log_component` = `IPSec`.
 4. En **Group by Attributes**, añade `con_name`.
-5. Añade un criterio con el filtro **Log Count** **Greater Than** `0` que cree una alerta o un incidente con el título `IPsec tunnel {{con_name}} terminated`.
+5. Añade un criterio con el filtro **Log Count** **Mayor que** `0` que cree una alerta o un incidente con el título `IPsec tunnel {{con_name}} terminated`.
 :::
 
 Cada túnel que registra una terminación recibe ahora su propia alerta (`IPsec tunnel HQ-Branch1 terminated`, `IPsec tunnel Branch2 terminated`), y cada una se resuelve por su cuenta.
@@ -219,7 +219,7 @@ El valor de cada atributo de Group By es una [variable de plantilla](/docs/monit
 ### La evaluación de los criterios es distinta
 
 - **Se evalúan todos los criterios**, como en un monitor de métricas agrupado, así que distintos grupos pueden cumplir distintos criterios a la vez. Un grupo que cumple dos criterios sigue recibiendo una sola alerta, la del primero, así que ordena los criterios del más grave al menos grave.
-- **Un grupo solo existe si registró algo en la ventana de tiempo.** Por eso los criterios **Equal To 0** y **Less Than** solo se disparan en grupos que registraron al menos una vez; para alertar cuando los registros dejan de llegar del todo, usa un monitor sin Group By.
+- **Un grupo solo existe si registró algo en la ventana de tiempo.** Por eso los criterios **Igual a 0** y **Menor que** solo se disparan en grupos que registraron al menos una vez; para alertar cuando los registros dejan de llegar del todo, usa un monitor sin Group By.
 - **La detección de anomalías** (**Anomalously High**, **Anomalously Low**, **Anomalous**) no se evalúa por grupo (su referencia abarca todo el monitor), así que esos filtros nunca coinciden en un monitor agrupado.
 - El estado del monitor sigue al primer criterio que cumple algún grupo. Cuando ningún grupo cumple ningún criterio, el monitor vuelve a su estado predeterminado.
 
@@ -230,7 +230,7 @@ El recuento fue 0, así que los filtros no coinciden con ninguno de los registro
 :::
 
 :::details Hubo un pico, pero nada alertó
-Los criterios se comprueban de arriba abajo y decide la primera coincidencia. Un criterio amplio por encima del que esperabas, como **Log Count** **Greater Than** `0`, coincide primero y detiene el resto. Pon arriba el criterio más grave.
+Los criterios se comprueban de arriba abajo y decide la primera coincidencia. Un criterio amplio por encima del que esperabas, como **Log Count** **Mayor que** `0`, coincide primero y detiene el resto. Pon arriba el criterio más grave.
 :::
 
 :::details Un criterio de anomalía nunca se dispara

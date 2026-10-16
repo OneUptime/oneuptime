@@ -82,9 +82,9 @@ Kriterier avgör när värden räknas som online, försämrad eller offline, och
 | Filter | Villkor | Vad det kontrollerar |
 | --- | --- | --- |
 | **Is Online** | **Sant**, **Falskt** | Om minst en ekobegäran fick svar. |
-| **Svarstid (i ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Svarens genomsnittliga tur och retur-tid. |
-| **Packet Loss (in %)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Andelen av de fem ekobegäranden som inte fick svar. |
-| **Jitter (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Standardavvikelsen för tur och retur-tiderna över paketen i en kontroll. |
+| **Svarstid (i ms)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Svarens genomsnittliga tur och retur-tid. |
+| **Packet Loss (in %)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Andelen av de fem ekobegäranden som inte fick svar. |
+| **Jitter (in ms)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Standardavvikelsen för tur och retur-tiderna över paketen i en kontroll. |
 | **Is Request Timeout** | **Sant**, **Falskt** | Om pingen nådde tidsgränsen vid varje försök. |
 
 Med två eller fler filter avgör **Matchningsvillkor** om **Alla** måste matcha eller om **Valfri** av dem räcker. Ett kriteriums **Åtgärder** avgör vad det gör: ändrar monitorns status, skapar ett larm, deklarerar en incident eller flera av dessa.
@@ -127,9 +127,9 @@ Gör fönstret längre än övervakningsintervallet så att det rymmer flera kon
 | Mål | Filter | Villkor | Värde |
 | --- | --- | --- | --- |
 | Offline när värden inte kan nås | **Is Online** | **Falskt** | — |
-| Larma när latensen är hög | **Svarstid (i ms)** | **Greater Than** | `200` |
-| Markera värden som försämrad på en länk med förluster | **Packet Loss (in %)** | **Greater Than** | `20` |
-| Larma vid en instabil anslutning | **Jitter (in ms)** | **Greater Than** | `30` |
+| Larma när latensen är hög | **Svarstid (i ms)** | **Större än** | `200` |
+| Markera värden som försämrad på en länk med förluster | **Packet Loss (in %)** | **Större än** | `20` |
+| Larma vid en instabil anslutning | **Jitter (in ms)** | **Större än** | `30` |
 
 För att bara larma när latensen förblir hög slår du på **Utvärdera dessa kriterier över en tidsperiod** för svarstidsfiltret och väljer **All Values** över **5** minuter.
 

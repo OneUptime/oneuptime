@@ -155,11 +155,11 @@ Kriterien entscheiden, wann die API als online, beeinträchtigt oder offline gil
 | Filter | Bedingungen | Was er prüft |
 | --- | --- | --- |
 | **Is Online** | **Wahr**, **Falsch** | Ob die API überhaupt geantwortet hat, egal mit welchem Statuscode. |
-| **Antwort-Statuscode** | **Equal To**, **Not Equal To**, **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Den HTTP-Statuscode. |
-| **Antwortzeit (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Wie lange die Anfrage gedauert hat, Weiterleitungen eingeschlossen. |
-| **Antworttext** | **Enthält**, **Not Contains** | Text im Antworttext. Groß- und Kleinschreibung wird unterschieden. |
-| **Response Header** | **Enthält**, **Not Contains** | Ob die Antwort einen Header mit diesem Namen hat. Geben Sie den Namen kleingeschrieben ein, etwa `x-request-id`. |
-| **Response Header Value** | **Enthält**, **Not Contains** | Ob ein Header genau diesen Wert hat, kleingeschrieben verglichen, etwa `application/json`. |
+| **Antwort-Statuscode** | **Gleich**, **Ungleich**, **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Den HTTP-Statuscode. |
+| **Antwortzeit (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Wie lange die Anfrage gedauert hat, Weiterleitungen eingeschlossen. |
+| **Antworttext** | **Enthält**, **Enthält nicht** | Text im Antworttext. Groß- und Kleinschreibung wird unterschieden. |
+| **Response Header** | **Enthält**, **Enthält nicht** | Ob die Antwort einen Header mit diesem Namen hat. Geben Sie den Namen kleingeschrieben ein, etwa `x-request-id`. |
+| **Response Header Value** | **Enthält**, **Enthält nicht** | Ob ein Header genau diesen Wert hat, kleingeschrieben verglichen, etwa `application/json`. |
 | **JavaScript Expression** | **Evaluates To True** | Ein Ausdruck über die Antwort. Siehe [JavaScript-Ausdrücke](/docs/monitor/javascript-expression). |
 | **Is Request Timeout** | **Wahr**, **Falsch** | Ob die Anfrage bei jedem Versuch in ein Zeitlimit gelaufen ist. |
 
@@ -178,7 +178,7 @@ Ein neuer API-Monitor beginnt mit zwei Kriterien, sodass er ohne Änderungen fun
 
 In der Liste der Kriterien sind sie nach dem Monitor benannt: _Check if (name) is offline_ und _Check if (name) is online_.
 
-Ein Endpunkt, der `201 Created` oder `204 No Content` antwortet, zählt also als erreichbar. Wenn für Sie nur ein Statuscode gesund bedeutet, ändern Sie beide Kriterien auf der Seite **Konfiguration → Kriterien** des Monitors: zum Beispiel **Antwort-Statuscode** / **Equal To** / `200` im Online-Kriterium und **Not Equal To** / `200` im Offline-Kriterium, anstelle der beiden Statuscode-Filter, die jedes hat. Um auch zu prüfen, was die API zurückgibt, fügen Sie dem Offline-Kriterium einen Filter **Antworttext** oder **JavaScript Expression** hinzu.
+Ein Endpunkt, der `201 Created` oder `204 No Content` antwortet, zählt also als erreichbar. Wenn für Sie nur ein Statuscode gesund bedeutet, ändern Sie beide Kriterien auf der Seite **Konfiguration → Kriterien** des Monitors: zum Beispiel **Antwort-Statuscode** / **Gleich** / `200` im Online-Kriterium und **Ungleich** / `200` im Offline-Kriterium, anstelle der beiden Statuscode-Filter, die jedes hat. Um auch zu prüfen, was die API zurückgibt, fügen Sie dem Offline-Kriterium einen Filter **Antworttext** oder **JavaScript Expression** hinzu.
 
 Kriterien werden von oben nach unten geprüft, und das erste zutreffende entscheidet, was passiert.
 
@@ -214,10 +214,10 @@ Wählen Sie das Fenster länger als das Überwachungsintervall, damit es mehrere
 
 | Ziel | Filter | Bedingung | Wert |
 | --- | --- | --- | --- |
-| Die API als beeinträchtigt markieren, wenn sie langsam ist | **Antwortzeit (in ms)** | **Greater Than** | `1000` |
-| Offline, wenn die Integritätsprüfung ein Problem meldet | **Antworttext** | **Not Contains** | `"status":"ok"` |
+| Die API als beeinträchtigt markieren, wenn sie langsam ist | **Antwortzeit (in ms)** | **Größer als** | `1000` |
+| Offline, wenn die Integritätsprüfung ein Problem meldet | **Antworttext** | **Enthält nicht** | `"status":"ok"` |
 | Dasselbe, aus dem geparsten JSON gelesen | **JavaScript Expression** | **Evaluates To True** | `"{{responseBody.status}}" !== "ok"` |
-| Von einem `POST` nur `201` akzeptieren | **Antwort-Statuscode** | **Equal To** | `201` |
+| Von einem `POST` nur `201` akzeptieren | **Antwort-Statuscode** | **Gleich** | `201` |
 
 Um einen Neustart zu überstehen, schalten Sie für den Antworttext-Filter **Diese Kriterien über einen Zeitraum hinweg auswerten** ein und wählen Sie **All Values** über 15 Minuten.
 

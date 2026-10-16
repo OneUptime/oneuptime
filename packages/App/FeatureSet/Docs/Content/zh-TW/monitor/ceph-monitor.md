@@ -219,7 +219,7 @@ flowchart TB
 | --- | --- |
 | **指標** | 要檢查的查詢或公式，依其變數名稱指定。 |
 | **彙總** | 視窗中的值如何變成一個結果：**平均**、**總和**、**Maximum Value**、**Minimum Value**、**All Values**（每個值都必須符合）或 **Any Value**（一個就夠）。 |
-| **條件** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** 或 **Equal To**，或者異常條件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
+| **條件** | **大於**、**小於**、**大於或等於**、**小於或等於** 或 **等於**，或者異常條件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
 | **Threshold** | 要比較的值。如果指標有單位，旁邊會有一個單位清單。異常條件下不會顯示。 |
 | **敏感度** | 僅限異常條件。**Low**（4σ）、**Medium**（3σ，預設）或 **High**（2σ）。 |
 | **基準視窗** | 僅限異常條件。14 天（預設）、28 天、60 天或 90 天的歷史記錄。 |
@@ -254,7 +254,7 @@ flowchart TB
 :::
 
 :::details ceph_health_status 為 1，但沒有任何觸發
-請檢查條件使用的是 **Greater Than Or Equal To** `1`，而不是 **Greater Than**，並且監測器的**時間範圍**至少涵蓋一次 30 秒的擷取。
+請檢查條件使用的是 **大於或等於** `1`，而不是 **大於**，並且監測器的**時間範圍**至少涵蓋一次 30 秒的擷取。
 :::
 
 :::details 健康檢查範本從不觸發

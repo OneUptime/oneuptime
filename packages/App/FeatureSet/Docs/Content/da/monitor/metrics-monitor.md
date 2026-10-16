@@ -119,11 +119,11 @@ Disse monitorer evaluerer altid **Metric Value**: den aggregerede værdi af den 
 
 | Betingelse | Matcher, når værdien er… |
 | --- | --- |
-| **Greater Than** | over tærsklen |
-| **Greater Than Or Equal To** | lig med tærsklen eller derover |
-| **Less Than** | under tærsklen |
-| **Less Than Or Equal To** | lig med tærsklen eller derunder |
-| **Equal To** | præcis tærsklen |
+| **Større end** | over tærsklen |
+| **Større end eller lig med** | lig med tærsklen eller derover |
+| **Mindre end** | under tærsklen |
+| **Mindre end eller lig med** | lig med tærsklen eller derunder |
+| **Lig med** | præcis tærsklen |
 | **Anomalously High** | over det forventede interval for denne time på ugen |
 | **Anomalously Low** | under det interval |
 | **Anomalous** | uden for det interval, i begge retninger |
@@ -134,8 +134,8 @@ En ny metrik-monitor starter med to kriterier på sin første forespørgsel, beg
 
 | Kriterium | Betingelse | Effekt |
 | --- | --- | --- |
-| Check if … is offline | **Equal To** `0` | Sætter monitoren offline og erklærer en hændelse, der løses automatisk |
-| Check if … is online | **Greater Than** `0` | Sætter monitoren online |
+| Check if … is offline | **Lig med** `0` | Sætter monitoren offline og erklærer en hændelse, der løses automatisk |
+| Check if … is online | **Større end** `0` | Sætter monitoren online |
 
 > [!NOTE]
 > Offline-kriteriet udløses af en rapporteret værdi på 0, ikke af stilhed. For at få en advarsel, når en metrik holder op med at komme, sætter du dens **Hvis ingen data** til **Trigger**.
@@ -148,7 +148,7 @@ Du vil have en hændelse, når checkout-køen forbliver dyb. Forespørgsel `a` e
 | --- | --- | --- | --- | --- | --- |
 | `a` | 640 | 980 | 1.500 | 1.620 | 1.100 |
 
-Et kriterium med **Metrik** `a`, **Betingelse** **Greater Than** og **Threshold** `1000` giver et forskelligt svar for hver **Aggregering**:
+Et kriterium med **Metrik** `a`, **Betingelse** **Større end** og **Threshold** `1000` giver et forskelligt svar for hver **Aggregering**:
 
 | Aggregering | Sammenlignet med 1.000 | Matcher? |
 | --- | --- | --- |

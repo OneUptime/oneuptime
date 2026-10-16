@@ -106,13 +106,13 @@ RDAP 請求會遵循探測器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROX
 | --- | --- | --- |
 | **Is Online** | **是**、**否** | 註冊查詢本身是否成功。 |
 | **Is Request Timeout** | **是**、**否** | 查詢是否在每次嘗試中都逾時。 |
-| **Domain Expires In Days** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 距註冊到期的天數，無條件進位到整天。 |
+| **Domain Expires In Days** | **大於**、**小於**、**大於或等於**、**小於或等於** | 距註冊到期的天數，無條件進位到整天。 |
 | **Domain Is Expired** | **是**、**否** | 到期日是否已過。 |
-| **Domain Registrar** | **包含**、**Not Contains**、**Starts With**、**Ends With**、**Equal To**、**Not Equal To** | 註冊商的名稱。 |
-| **Domain Name Server** | **包含**、**Not Contains**、**Starts With**、**Ends With**、**Equal To**、**Not Equal To** | 網域的名稱伺服器。只要其中任何一個符合即符合。 |
-| **Domain Status Code** | **包含**、**Not Contains**、**Starts With**、**Ends With**、**Equal To**、**Not Equal To** | 網域的 EPP 狀態碼。只要其中任何一個符合即符合。 |
+| **Domain Registrar** | **包含**、**不包含**、**開頭是**、**結尾是**、**等於**、**不等於** | 註冊商的名稱。 |
+| **Domain Name Server** | **包含**、**不包含**、**開頭是**、**結尾是**、**等於**、**不等於** | 網域的名稱伺服器。只要其中任何一個符合即符合。 |
+| **Domain Status Code** | **包含**、**不包含**、**開頭是**、**結尾是**、**等於**、**不等於** | 網域的 EPP 狀態碼。只要其中任何一個符合即符合。 |
 
-無論是哪種通訊協定回應，狀態碼都會正規化為它們的 EPP 名稱（`clientTransferProhibited`），因此當 **Auto** 在 RDAP 和 WHOIS 之間切換時，條件仍能持續符合。註冊商的 _名稱_ 取決於回應服務發布的內容，在兩種通訊協定之間可能略有不同，因此對於 **Domain Registrar** 條件，請優先使用 **包含** 而不是 **Equal To**。
+無論是哪種通訊協定回應，狀態碼都會正規化為它們的 EPP 名稱（`clientTransferProhibited`），因此當 **Auto** 在 RDAP 和 WHOIS 之間切換時，條件仍能持續符合。註冊商的 _名稱_ 取決於回應服務發布的內容，在兩種通訊協定之間可能略有不同，因此對於 **Domain Registrar** 條件，請優先使用 **包含** 而不是 **等於**。
 
 日期會正規化為 ISO 8601。註冊管理機構以無法解析的格式發布的日期會被省略而不是儲存，這樣到期條件就無法判斷、也不會符合，而不是一直默默地回答「未到期」。
 
@@ -136,7 +136,7 @@ RDAP 請求會遵循探測器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROX
 在 OneUptime 新增此提醒之前建立的監測器沒有「即將到期」條件。若要新增它：
 
 1. 在監測器上開啟 **設定 → 條件**，然後點選 **編輯監測條件**。
-2. 點選 **新增條件準則**。將其篩選器設為 **Domain Is Expired** / **否**，點選 **新增篩選器**，並將第二個設為 **Domain Expires In Days** / **Less Than Or Equal To** / `30`。讓 **符合條件** 保持為 **全部**（有兩個篩選器後，它會出現在篩選器下方）。
+2. 點選 **新增條件準則**。將其篩選器設為 **Domain Is Expired** / **否**，點選 **新增篩選器**，並將第二個設為 **Domain Expires In Days** / **小於或等於** / `30`。讓 **符合條件** 保持為 **全部**（有兩個篩選器後，它會出現在篩選器下方）。
 3. 在 **操作** 下開啟 **當篩選器相符時，建立警示。** 並讓 **當篩選器相符時，變更監測器狀態。** 保持關閉，使它建立警示而不變更監測器狀態。
 4. 將新條件拖到把監測器標記為上線的條件上方，然後儲存。
 :::
@@ -145,20 +145,20 @@ RDAP 請求會遵循探測器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROX
 
 | 目標 | 篩選器 | 條件 | 值 |
 | --- | --- | --- | --- |
-| 網域在 30 天內到期時發出警示（預設條件之一） | **Domain Expires In Days** | **Less Than Or Equal To** | `30` |
+| 網域在 30 天內到期時發出警示（預設條件之一） | **Domain Expires In Days** | **小於或等於** | `30` |
 | 網域到期時為離線 | **Domain Is Expired** | **是** | — |
 | 無法讀取註冊時為離線 | **Is Online** | **否** | — |
-| 名稱伺服器變更時發出警示 | **Domain Name Server** | **Not Contains** | `ns1.example.com` |
-| 網域的轉移鎖定被解除時發出警示 | **Domain Status Code** | **Not Contains** | `clientTransferProhibited` |
+| 名稱伺服器變更時發出警示 | **Domain Name Server** | **不包含** | `ns1.example.com` |
+| 網域的轉移鎖定被解除時發出警示 | **Domain Status Code** | **不包含** | `clientTransferProhibited` |
 
-只要 _任何一個_ 值符合，**Domain Name Server** 和 **Domain Status Code** 就會符合，因此只要有一個名稱伺服器或一個狀態碼不包含該文字，**Not Contains** 就會符合。
+只要 _任何一個_ 值符合，**Domain Name Server** 和 **Domain Status Code** 就會符合，因此只要有一個名稱伺服器或一個狀態碼不包含該文字，**不包含** 就會符合。
 
 ## 最佳實務
 
 1. **給自己留出續約的時間** — 預設提醒會在到期前 30 天發出。如果續約需要核准或耗時較長的付款，請提高到 60 天。
 2. **涵蓋查詢失敗的情況** — 在離線條件中加入 **Is Online** / **否** 篩選器，避免把無法讀取的註冊誤認為正常。新監測器的預設條件中已包含它；在它加入之前建立的監測器需要手動新增。若要撐過偶爾對探測器限速的 WHOIS 伺服器，請在該篩選器下勾選 **在一段時間內評估此條件**，並選擇 **All Values**：這樣只有當時間範圍內的每次查詢都失敗時，網域才會離線。
 3. **監測所有重要網域** — 包括主要網域、另外註冊的子網域，以及用於電子郵件或 API 的任何網域。
-4. **追蹤註冊商變更** — 新增一個 **Domain Registrar** / **Not Contains** / 您的註冊商名稱 的條件，以發現未經授權的轉移。
+4. **追蹤註冊商變更** — 新增一個 **Domain Registrar** / **不包含** / 您的註冊商名稱 的條件，以發現未經授權的轉移。
 
 ## 疑難排解
 
