@@ -55,13 +55,14 @@ For å legge til en tjeneste før telemetrien dens kommer, for eksempel for å a
 
 ## Sidene til en tjeneste
 
-Sidemenyen til en tjeneste har fire seksjoner:
+Sidemenyen til en tjeneste har fem seksjoner:
 
 | Seksjon | Sider |
 | --- | --- |
 | **Grunnleggende** | **Oversikt**: forespørsler, feilrate og p95-latens fra spannene, diagrammer og detaljene. **Recommendations**: ferdige monitorer for tjenesten, valgt etter språket. **Eiere**: personene og teamene som har ansvaret for den. **Feed**: alt som har skjedd med den, fra hvordan den ble opprettet til hver endring siden. |
 | **Telemetri** | **Logger**, **Spor**, **Målinger**, **Ytelsesprofiler**, **Unntak** og **Source Maps**, allerede filtrert til denne tjenesten. |
 | **Aktivitet** | **Hendelser**, **Varsler** og hendelser under **Planlagt vedlikehold** som berører den. |
+| **Utvikler** | **Terraform**, **API** og **AI-assistenter**: tjenesten styrt fra kode. Seksjonen er slått sammen fra start. |
 | **Avansert** | **Innstillinger**, **Revisjonslogger** og **Slett tjeneste**. **Avansert** er lukket i starten: åpne den først. |
 
 Eiere betyr noe også utenfor siden: en rolle med omfanget Owned leser telemetrien til tjenestene som du eller teamene dine eier. Se [Telemetri](/docs/permissions/index#telemetri).

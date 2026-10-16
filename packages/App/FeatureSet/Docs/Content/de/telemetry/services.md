@@ -55,13 +55,14 @@ Um einen Dienst anzulegen, bevor seine Telemetrie eintrifft, etwa um zuerst sein
 
 ## Die Seiten eines Dienstes
 
-Das Seitenmenü eines Dienstes hat vier Abschnitte:
+Das Seitenmenü eines Dienstes hat fünf Abschnitte:
 
 | Abschnitt | Seiten |
 | --- | --- |
 | **Grundlegend** | **Übersicht**: Anfragen, Fehlerrate und p95-Latenz aus seinen Spans, Diagramme und seine Details. **Empfehlungen**: fertige Monitore für den Dienst, passend zu seiner Sprache. **Eigentümer**: die Personen und Teams, die für ihn verantwortlich sind. **Feed**: alles, was ihm passiert ist, von seiner Entstehung bis zu jeder Änderung seitdem. |
 | **Telemetrie** | Seine **Protokolle**, **Traces**, **Metriken**, **Leistungsprofile**, **Ausnahmen** und **Source Maps**, bereits auf diesen Dienst gefiltert. |
 | **Aktivität** | Die **Vorfälle**, **Warnungen** und Ereignisse der **Geplante Wartung**, die ihn betreffen. |
+| **Entwickler** | **Terraform**, **API** und **KI-Assistenten**: der Dienst, aus Code verwaltet. Der Abschnitt ist zunächst eingeklappt. |
 | **Erweitert** | **Einstellungen**, **Audit-Protokolle** und **Dienst löschen**. **Erweitert** ist anfangs eingeklappt: Klappen Sie es zuerst auf. |
 
 Eigentümer zählen auch über die Seite hinaus: Eine Rolle mit dem Bereich Owned liest die Telemetrie der Dienste, die Ihnen oder Ihren Teams gehören. Siehe [Telemetrie](/docs/permissions/index#telemetrie).

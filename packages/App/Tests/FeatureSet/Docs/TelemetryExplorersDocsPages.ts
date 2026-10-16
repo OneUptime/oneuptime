@@ -179,10 +179,9 @@ export const METRIC_PIPELINE_RULE_TYPES: ReadonlyArray<string> = [
 ];
 
 // The read permission each explorer page names, by page.
-export const SIGNAL_READ_PERMISSION_TITLES: Readonly<Record<string, string>> =
-  {
-    [LOGS_EXPLORER]: "Read Telemetry Service Log",
-    [TRACES_EXPLORER]: "Read Telemetry Service Traces",
-    [METRICS_EXPLORER]: "Read Telemetry Service Metrics",
-    [EXCEPTIONS]: "Read Telemetry Service Exception",
-  };
+export const SIGNAL_READ_PERMISSION_TITLES: Readonly<Record<string, string>> = {
+  [LOGS_EXPLORER]: "Read Telemetry Service Log",
+  [TRACES_EXPLORER]: "Read Telemetry Service Traces",
+  [METRICS_EXPLORER]: "Read Telemetry Service Metrics",
+  [EXCEPTIONS]: "Read Telemetry Service Exception",
+};

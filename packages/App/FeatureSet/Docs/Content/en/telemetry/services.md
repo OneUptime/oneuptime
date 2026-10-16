@@ -55,13 +55,14 @@ To add a service before its telemetry arrives, for example to set its owners fir
 
 ## A service's pages
 
-A service's side menu has four sections:
+A service's side menu has five sections:
 
 | Section | Pages |
 | --- | --- |
 | **Basic** | **Overview**: requests, error rate and p95 latency from its spans, charts, and its details. **Recommendations**: ready-made monitors for the service, picked for its language. **Owners**: the people and teams responsible for it. **Feed**: everything that happened to it, from how it was created to every change since. |
 | **Telemetry** | Its **Logs**, **Traces**, **Metrics**, **Performance Profiles**, **Exceptions** and **Source Maps**, already filtered to this service. |
 | **Activity** | The **Incidents**, **Alerts** and **Scheduled Maintenance** events that affect it. |
+| **Developer** | **Terraform**, **API** and **AI Assistants**: the service managed from code. It starts collapsed. |
 | **Advanced** | **Settings**, **Audit Logs** and **Delete Service**. **Advanced** starts collapsed: expand it first. |
 
 Owners matter beyond the page: a role whose scope is Owned reads the telemetry of the services you or your teams own. See [Telemetry](/docs/permissions/index#telemetry).

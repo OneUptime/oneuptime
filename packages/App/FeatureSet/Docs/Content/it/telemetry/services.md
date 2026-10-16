@@ -55,13 +55,14 @@ Per aggiungere un servizio prima che ne arrivi la telemetria, ad esempio per def
 
 ## Le pagine di un servizio
 
-Il menu laterale di un servizio ha quattro sezioni:
+Il menu laterale di un servizio ha cinque sezioni:
 
 | Sezione | Pagine |
 | --- | --- |
 | **Base** | **Panoramica**: richieste, tasso di errore e latenza p95 dai suoi span, grafici e dettagli. **Recommendations**: monitor pronti all'uso per il servizio, scelti in base al suo linguaggio. **Proprietari**: le persone e i team che ne sono responsabili. **Feed**: tutto ciò che gli è successo, da come è stato creato a ogni modifica successiva. |
 | **Telemetria** | I suoi **Registri**, **Tracce**, **Metriche**, **Profili di prestazioni**, **Eccezioni** e **Source Maps**, già filtrati su questo servizio. |
 | **Attività** | Gli **Incidenti**, gli **Avvisi** e gli eventi di **Manutenzione programmata** che lo riguardano. |
+| **Sviluppatori** | **Terraform**, **API** e **Assistenti IA**: il servizio gestito dal codice. All'inizio è chiusa. |
 | **Avanzato** | **Impostazioni**, **Registri di audit** ed **Elimina servizio**. **Avanzato** è inizialmente compresso: espandetelo prima. |
 
 I proprietari contano anche oltre la pagina: un ruolo con ambito Owned legge la telemetria dei servizi che appartengono a voi o ai vostri team. Vedere [Telemetria](/docs/permissions/index#telemetria).
