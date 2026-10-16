@@ -167,7 +167,7 @@ describe("bulk change-state modal offers a note on every event table", () => {
           "currentIncidentState: { order: true, name: true, }, isPrivate: true,",
         );
         expect(source).toContain(
-          "const change: IncidentBulkStateChange = buildIncidentBulkStateChange( { isPrivate: !PrivateRecordPublicNotes.takesPublicNotes( fetchedIncident, ), note: data.note, shouldStatusPageSubscribersBeNotified: data.shouldStatusPageSubscribersBeNotified, }, );",
+          "const change: IncidentBulkStateChange = buildIncidentBulkStateChange({ isPrivate: !PrivateRecordPublicNotes.takesPublicNotes(fetchedIncident), note: data.note, shouldStatusPageSubscribersBeNotified: data.shouldStatusPageSubscribersBeNotified, });",
         );
         expect(source).toContain("miscDataProps: change.miscDataProps,");
         expect(source).not.toContain("buildBulkStateChangeMiscDataProps");
