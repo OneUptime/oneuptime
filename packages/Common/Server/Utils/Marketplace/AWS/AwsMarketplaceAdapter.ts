@@ -219,10 +219,24 @@ export default class AwsMarketplaceAdapter implements MarketplaceAdapter {
       return { outcome: "retry", error: "AWS did not process the record." };
     }
 
-    if (result.status === "Success" || result.status === "DuplicateRecord") {
+    if (result.status === "Success") {
       return {
         outcome: "accepted",
         externalReportId: result.meteringRecordId || undefined,
+      };
+    }
+
+    /*
+     * The same record sent again is answered as it was the first time
+     * (Success). DuplicateRecord is a different record AWS has already
+     * metered for this license and dimension in this hour: AWS bills that
+     * one, and this one is lost.
+     */
+    if (result.status === "DuplicateRecord") {
+      return {
+        outcome: "rejected",
+        error:
+          "AWS already billed another record for this license in this hour (DuplicateRecord).",
       };
     }
 

@@ -82,7 +82,7 @@ Les critères décident quand le certificat compte comme bon, dégradé ou défa
 
 **Expires In Days** compte des jours entiers : un certificat qui expire dans 14 jours et 20 heures a encore 14 jours. **Expires In Hours** compte des heures entières de la même manière.
 
-Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** doivent correspondre ou si **Tout** filtre suffit. Les **Actions** d'un critère décident de ce qu'il fait : changer l'état du moniteur, créer une alerte, déclarer un incident, ou plusieurs de ces actions.
+Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** doivent correspondre ou si **Au moins un** suffit. Les **Actions** d'un critère décident de ce qu'il fait : changer l'état du moniteur, créer une alerte, déclarer un incident, ou plusieurs de ces actions.
 
 ### Critères par défaut
 

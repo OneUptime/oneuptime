@@ -46,9 +46,10 @@ import MarketplaceUsageCalculator, {
  * operation ID), so a send that fails, times out, or whose answer is lost is
  * sent again as exactly the same record, and is counted once:
  *
- *   - AWS drops an identical BatchMeterUsage record;
+ *   - AWS answers an identical BatchMeterUsage record as it did the first
+ *     time;
  *   - Azure accepts one event per hour per dimension and answers a second
- *     with "Duplicate";
+ *     with "Duplicate" and the event it kept - this one, sent again;
  *   - Google Cloud's Service Control counts an operation ID once.
  *
  * A report also bills the project's balance top-ups since the last one
@@ -67,8 +68,9 @@ import MarketplaceUsageCalculator, {
  * of the purchase is filed in (isHourTaken).
  *
  * A report the marketplace will not take any more (it is a day old - their
- * deadline - or refused for good) is marked Failed and logged loudly: that is
- * revenue someone has to look at.
+ * deadline - or refused for good, including as a duplicate of a different
+ * report in its hour) is marked Failed and logged loudly: that is revenue
+ * someone has to look at.
  */
 
 const REPORT_LOCK_NAMESPACE: string = "marketplace-usage-report";

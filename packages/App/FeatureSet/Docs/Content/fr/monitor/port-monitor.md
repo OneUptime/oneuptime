@@ -116,7 +116,7 @@ Les critères décident quand le port compte comme en ligne, dégradé ou hors l
 
 Un critère sur la résolution DNS n'a rien à évaluer quand la cible est une adresse IP. Pour des critères qui doivent fonctionner aussi bien avec des noms d'hôte qu'avec des adresses IP, utilisez le temps total ou le temps de connexion TCP.
 
-Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** doivent correspondre ou si **Tout** filtre suffit. Les **Actions** d'un critère décident de ce qu'il fait : changer l'état du moniteur, créer une alerte, déclarer un incident, ou plusieurs de ces actions.
+Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** doivent correspondre ou si **Au moins un** suffit. Les **Actions** d'un critère décident de ce qu'il fait : changer l'état du moniteur, créer une alerte, déclarer un incident, ou plusieurs de ces actions.
 
 ### Critères par défaut
 
