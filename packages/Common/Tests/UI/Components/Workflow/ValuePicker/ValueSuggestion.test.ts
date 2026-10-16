@@ -67,6 +67,25 @@ describe("typeLabelForInputType", () => {
     expect(typeLabelForInputType(undefined)).toBeUndefined();
   });
 
+  /*
+   * Not the bare "Any": the Dashboard draws that as a monitor criteria's
+   * Match Condition ("one or more" in Korean), which is not a type.
+   */
+  test("calls a value of any type Any type", () => {
+    expect(typeLabelForInputType(ComponentInputType.AnyValue)).toBe(
+      "Any type",
+    );
+    expect(
+      Object.values(ComponentInputType)
+        .map((type: ComponentInputType): string | undefined => {
+          return typeLabelForInputType(type);
+        })
+        .filter((label: string | undefined): boolean => {
+          return label === "Any";
+        }),
+    ).toEqual([]);
+  });
+
   test("never shows the input type's code name", () => {
     for (const type of Object.values(ComponentInputType)) {
       const label: string | undefined = typeLabelForInputType(type);
