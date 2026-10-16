@@ -322,8 +322,11 @@ function seriesRows(input: {
  *     minutes that the read stops at its limit;
  *   - "slow-fleet": series that report less often than the window is
  *     long, one row each - "slow-inside" seven minutes before its end,
- *     "slow-new" ten seconds before it, "slow-leaving" ten seconds after
- *     its start.
+ *     "slow-new" at its very end, "slow-leaving" ten seconds after its
+ *     start. "slow-new" sits at the end, not a few seconds before it, so
+ *     it shares the end's minute whatever second the check runs at: a
+ *     row from the previous minute would make it "1 of 15 minutes so far"
+ *     in a check run in a minute's first seconds.
  */
 type StoreShape = "steady-and-fresh" | "cut" | "slow-fleet";
 
@@ -333,7 +336,7 @@ function storedRows(input: {
 }): Array<{ timeMs: number; name: string }> {
   if (input.shape === "slow-fleet") {
     return [
-      { timeMs: input.window.endMs - 10 * SECOND, name: "slow-new" },
+      { timeMs: input.window.endMs, name: "slow-new" },
       { timeMs: input.window.endMs - 7 * MINUTE, name: "slow-inside" },
       { timeMs: input.window.startMs + 10 * SECOND, name: "slow-leaving" },
     ];
