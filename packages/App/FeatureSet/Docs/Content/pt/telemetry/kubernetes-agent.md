@@ -866,7 +866,7 @@ Aperte mais conforme precisar: suba `minSeverity` para `ERROR`, adicione `metric
 
 ### Meça o efeito
 
-O uso de telemetria é contado por dia, então confira a tendência em **Configurações do projeto → Histórico de uso** ao longo de um ou dois dias: ela não muda no momento em que você aplica uma alteração. Mude uma configuração de cada vez (logs desativados, depois o intervalo maior, depois o eBPF reduzido) para saber o que cada uma fez, em vez de reduzir tudo de uma vez e perder um monitor em que você confiava.
+O uso de telemetria é contado por dia, então confira a tendência em **Configurações do projeto → Cobrança e faturas → Histórico de uso** ao longo de um ou dois dias: ela não muda no momento em que você aplica uma alteração. Mude uma configuração de cada vez (logs desativados, depois o intervalo maior, depois o eBPF reduzido) para saber o que cada uma fez, em vez de reduzir tudo de uma vez e perder um monitor em que você confiava.
 
 ## Solução de problemas
 

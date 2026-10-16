@@ -176,7 +176,7 @@ Pour ne plus payer un projet, supprimez-le : la facturation s'arrête quand il e
 
 ## Dépannage
 
-:::details "Add a payment method in Project Settings > Billing before using paid monitoring or telemetry"
+:::details "Add a payment method in Project Settings > Billing and Invoices > Billing before using paid monitoring or telemetry"
 Un projet au forfait Free a besoin d'un moyen de paiement avant de créer des moniteurs actifs ou d'envoyer de la télémétrie, car ils sont payés à l'usage. Ajoutez-en un dans [Moyens de paiement](#moyens-de-paiement). Les moniteurs manuels restent gratuits.
 :::
 

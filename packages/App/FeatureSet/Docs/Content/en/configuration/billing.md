@@ -176,7 +176,7 @@ To stop paying for a project, delete it: billing stops when it is deleted. See [
 
 ## Troubleshooting
 
-:::details "Add a payment method in Project Settings > Billing before using paid monitoring or telemetry"
+:::details "Add a payment method in Project Settings > Billing and Invoices > Billing before using paid monitoring or telemetry"
 A project on the Free plan needs a payment method before it creates active monitors or sends telemetry, because they are paid as you go. Add one under [Payment methods](#payment-methods). Manual monitors stay free.
 :::
 

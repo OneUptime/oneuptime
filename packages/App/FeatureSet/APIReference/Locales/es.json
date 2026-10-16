@@ -98,10 +98,10 @@
       "title": "Autenticación",
       "intro": "Necesitarás autenticar tus solicitudes para acceder a cualquiera de los endpoints de la API de OneUptime. En esta guía, veremos cómo funciona la autenticación. OneUptime ofrece una forma de autenticar tus solicitudes a la API: mediante una API Key.",
       "generateApiKey": "Generar una API Key",
-      "generateApiKeyBody": "Dirígete a <strong>Configuración del proyecto</strong> > <strong>API Keys</strong>. Crea una nueva API Key. Ten en cuenta lo siguiente: las nuevas API Keys no tienen permisos asignados, por lo que tendrás que asignarle un permiso antes de poder utilizarla.",
+      "generateApiKeyBody": "Dirígete a <strong>Ajustes del proyecto</strong> > <strong>Avanzado</strong> > <strong>Claves de API</strong>. Crea una nueva API Key. Ten en cuenta lo siguiente: las nuevas API Keys no tienen permisos asignados, por lo que tendrás que asignarle un permiso antes de poder utilizarla.",
       "readMorePermissions": "Más información sobre los permisos",
       "projectId": "ID del proyecto",
-      "projectIdBody": "Dirígete a <strong>Configuración del proyecto</strong> > <strong>Proyecto</strong>. Allí deberías ver el ID de tu proyecto.",
+      "projectIdBody": "Dirígete a <strong>Ajustes del proyecto</strong> > <strong>Proyecto</strong>. Allí deberías ver el ID de tu proyecto.",
       "authWithApiKey": "Autenticación con API Key",
       "authWithApiKeyBody": "Puedes utilizar la API Key de OneUptime en la cabecera de la solicitud cuando realices una petición. Puedes usar la cabecera <code>ApiKey</code> con tu API Key al realizar una solicitud.",
       "exampleApiRequest": "Ejemplo de solicitud con API Key",
@@ -132,7 +132,7 @@
       "metaDescription": "Aprende cómo funcionan los permisos en OneUptime",
       "badge": "Guía",
       "title": "Permisos",
-      "intro": "Tu token de API necesita permisos para crear, actualizar, leer o eliminar cualquier recurso. Si no tienes permisos para realizar una solicitud, se enviará un estado <code>4xx</code> como respuesta. Puedes gestionar los permisos de tu API Key en Configuración del proyecto > API Keys.",
+      "intro": "Tu token de API necesita permisos para crear, actualizar, leer o eliminar cualquier recurso. Si no tienes permisos para realizar una solicitud, se enviará un estado <code>4xx</code> como respuesta. Puedes gestionar los permisos de tu API Key en Ajustes del proyecto > Avanzado > Claves de API.",
       "jumpToCategory": "Ir a una categoría"
     },
     "errors": {

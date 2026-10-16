@@ -144,7 +144,7 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
             {props.providers.length === 0 && (
               <div className="px-3 py-3 text-xs text-gray-500">
                 {translator.translateText(
-                  "No AI providers configured yet. Add one in Settings → AI → LLM Providers.",
+                  "No AI providers configured yet. Add one in Project Settings → AI → LLM Providers.",
                 )}
               </div>
             )}

@@ -326,7 +326,7 @@ describe("a workflow's Terraform page", () => {
     expect(text).toContain('oneuptime_url = "https://oneuptime.acme.com"');
     expect(text).toContain('version = ">= 14.0, <= 14.0.11"');
     expect(text).toContain(
-      `[Project Settings → API Keys](/dashboard/${PROJECT_ID}/settings/api-keys)`,
+      `[Project Settings → Advanced → API Keys](/dashboard/${PROJECT_ID}/settings/api-keys)`,
     );
   });
 

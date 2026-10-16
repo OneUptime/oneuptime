@@ -234,7 +234,7 @@ Abfragetext in der Ausgabe wird normalisiert – jedes String- und Zahlenliteral
 
 ## So funktionieren Korrekturen
 
-Korrekturen sind aus, bis Sie sie einschalten, und dafür braucht es zwei Einstellungen am Agenten: `ONEUPTIME_AI_FIXES` auf einen anderen Modus als `off` gesetzt (siehe [Was die KI tun darf, vom Agenten festgelegt](#was-die-ki-tun-darf-vom-agenten-festgelegt)) und `ONEUPTIME_AI_ALLOW_WRITES=true` (siehe [Schreibzugriff am Agenten](#schreibzugriff-am-agenten)). Eine allein ändert nichts. Ein Agent, der älter ist als `ONEUPTIME_AI_FIXES`, übernimmt **Korrekturen** stattdessen von der Seite des KI-Agenten der Ressource. Korrekturen brauchen außerdem KI, die für das Projekt aktiviert ist (**KI aktivieren** unter Projekteinstellungen → KI-Funktionen), was sie ist, sofern niemand sie ausgeschaltet hat.
+Korrekturen sind aus, bis Sie sie einschalten, und dafür braucht es zwei Einstellungen am Agenten: `ONEUPTIME_AI_FIXES` auf einen anderen Modus als `off` gesetzt (siehe [Was die KI tun darf, vom Agenten festgelegt](#was-die-ki-tun-darf-vom-agenten-festgelegt)) und `ONEUPTIME_AI_ALLOW_WRITES=true` (siehe [Schreibzugriff am Agenten](#schreibzugriff-am-agenten)). Eine allein ändert nichts. Ein Agent, der älter ist als `ONEUPTIME_AI_FIXES`, übernimmt **Korrekturen** stattdessen von der Seite des KI-Agenten der Ressource. Korrekturen brauchen außerdem KI, die für das Projekt aktiviert ist (**KI aktivieren** unter Projekteinstellungen → KI → KI-Funktionen), was sie ist, sofern niemand sie ausgeschaltet hat.
 
 ### Korrekturmodi
 

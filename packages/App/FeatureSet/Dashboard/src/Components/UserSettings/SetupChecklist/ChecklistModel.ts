@@ -285,13 +285,13 @@ export const ChannelStepCopy: {
   whoCanTurnOnAction: string;
 } = {
   canTurnOnDetail: translationKey(
-    "Every method you have verified is on a channel this project has switched off. Turn it on in Project Settings → Notification Settings, or add an email or push device instead.",
+    "Every method you have verified is on a channel this project has switched off. Turn it on in Project Settings → Notifications → Notification Settings, or add an email or push device instead.",
   ),
   canTurnOnAction: translationKey(
-    "Go to Project Settings → Notification Settings",
+    "Go to Project Settings → Notifications → Notification Settings",
   ),
   whoCanTurnOnDetail: translationKey(
-    "Every method you have verified is on a channel this project has switched off. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings, or you can add an email or push device instead.",
+    "Every method you have verified is on a channel this project has switched off. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Settings, or you can add an email or push device instead.",
   ),
   whoCanTurnOnAction: translationKey(
     "Ask a project owner, a Billing Admin or someone with Manage Billing to turn it on",

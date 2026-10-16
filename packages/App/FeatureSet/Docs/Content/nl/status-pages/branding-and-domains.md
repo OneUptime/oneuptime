@@ -153,7 +153,7 @@ flowchart TB
 
 ### Voordat u begint
 
-- **Het bovenliggende domein moet geverifieerd zijn.** De keuzelijst **Domein** toont alleen de domeinen die zijn geverifieerd onder **Projectinstellingen → Domeinen**, waar u met een TXT-record bewijst dat een domein van u is. De link **Domein toevoegen** naast het veld opent die pagina in een nieuw tabblad.
+- **Het bovenliggende domein moet geverifieerd zijn.** De keuzelijst **Domein** toont alleen de domeinen die zijn geverifieerd onder **Projectinstellingen → Geavanceerd → Domeinen**, waar u met een TXT-record bewijst dat een domein van u is. De link **Domein toevoegen** naast het veld opent die pagina in een nieuw tabblad.
 - **Uw installatie heeft een statuspagina-CNAME-record nodig.** OneUptime Cloud heeft er een. Stel het bij een zelfgehoste installatie in op een hostnaam die naar uw OneUptime-server wijst (een A-record), en zorg dat de server antwoordt op poort 80, waar Let's Encrypt hem controleert. Zonder dat record zeggen de kaart en het dialoogvenster **DNS-instelling** "Custom Domains not enabled for this OneUptime installation" in plaats van een record te tonen.
 
 :::tabs

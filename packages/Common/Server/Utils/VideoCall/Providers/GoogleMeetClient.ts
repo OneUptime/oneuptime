@@ -400,13 +400,13 @@ export default class GoogleMeetClient {
 
     if (owner.isSignIn && response.status === 401) {
       return new BadDataException(
-        `Google no longer accepts OneUptime's sign-in for ${owner.label}. Reconnect Google Meet in Project Settings > Video Calls. (${summary})`,
+        `Google no longer accepts OneUptime's sign-in for ${owner.label}. Reconnect Google Meet in Project Settings > Workspace > Video Calls. (${summary})`,
       );
     }
 
     if (owner.isSignIn && response.status === 403) {
       return new BadDataException(
-        `Google did not allow ${owner.label} to create a meeting space. Check that the account can use Google Meet, then reconnect Google Meet in Project Settings > Video Calls. (${errorCode || response.status}: ${summary})`,
+        `Google did not allow ${owner.label} to create a meeting space. Check that the account can use Google Meet, then reconnect Google Meet in Project Settings > Workspace > Video Calls. (${errorCode || response.status}: ${summary})`,
       );
     }
 

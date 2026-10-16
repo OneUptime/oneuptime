@@ -176,7 +176,7 @@ Per smettere di pagare un progetto, eliminalo: la fatturazione si ferma quando v
 
 ## Risoluzione dei problemi
 
-:::details "Add a payment method in Project Settings > Billing before using paid monitoring or telemetry"
+:::details "Add a payment method in Project Settings > Billing and Invoices > Billing before using paid monitoring or telemetry"
 Un progetto con il piano Free ha bisogno di un metodo di pagamento prima di creare monitor attivi o inviare telemetria, perché si pagano a consumo. Aggiungine uno in [Metodi di pagamento](#metodi-di-pagamento). I monitor manuali restano gratuiti.
 :::
 

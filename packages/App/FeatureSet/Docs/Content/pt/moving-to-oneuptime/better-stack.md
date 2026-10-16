@@ -27,7 +27,7 @@ flowchart TB
 
 - **Um projeto do OneUptime e o direito de criar o que você traz.** Proprietários e administradores do projeto podem trazer tudo. Outros papéis também podem executar uma importação e trazer os tipos de registro que podem criar. O resto aparece como não trazido, com o motivo.
 - **Um token da API Uptime do Better Stack.** Use um token Uptime de equipe: ele lê os monitores, heartbeats e páginas de status dessa equipe. A importação nunca grava no Better Stack.
-- **Uma forma de pagamento, no OneUptime Cloud.** Monitores que fazem verificações são cobrados conforme o uso, mesmo no plano Free, então adicione uma em **Configurações do projeto** > **Cobrança** antes de importar. Sem ela, esses monitores aparecem como não trazidos.
+- **Uma forma de pagamento, no OneUptime Cloud.** Monitores que fazem verificações são cobrados conforme o uso, mesmo no plano Free, então adicione uma em **Configurações do projeto** > **Cobrança e faturas** > **Cobrança** antes de importar. Sem ela, esses monitores aparecem como não trazidos.
 
 ## Importe sua conta do Better Stack
 

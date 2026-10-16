@@ -22,10 +22,9 @@ import {
 } from "./ProjectAiSettingsCopy";
 
 /*
- * What the folded More settings section of Project Settings → AI Features
+ * What the folded More settings section of Project Settings → AI → AI Features
  * says: the Daily limits card by name - a chip once a limit is set - and the
- * sentence of what applies and what AI used today (see
- * ProjectAiSettingsCopy).
+ * sentence of what applies and what AI used today (see ProjectAiSettingsCopy).
  *
  * The limits come from the card itself, through onCardLoaded, when it first
  * reads and again after each save, so the sentence follows an edit at once.

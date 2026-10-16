@@ -1133,7 +1133,7 @@ service:
 Fügen Sie eine Pipeline `logs` mit einem engen Receiver `filelog` oder `journald` wieder hinzu, wenn Sie sie brauchen.
 
 > [!CAUTION]
-> Achten Sie darauf, was Sie kürzen. Ein Log-Monitor braucht seine Logs; wer einen Schweregrad oder einen Kanal herausfiltert, bringt die Monitore zum Schweigen, die ihn beobachten, und die Host-Alarmvorlagen brauchen die Metriken `*.utilization`. Kürzen Sie die Daten, nach denen Sie nicht handeln, nicht die Daten, die ein Monitor beobachtet, und prüfen Sie den Rückgang ein, zwei Tage später unter **Projekteinstellungen → Nutzungsverlauf** (die Nutzung wird pro Tag gezählt), bevor Sie den nächsten Hebel ziehen.
+> Achten Sie darauf, was Sie kürzen. Ein Log-Monitor braucht seine Logs; wer einen Schweregrad oder einen Kanal herausfiltert, bringt die Monitore zum Schweigen, die ihn beobachten, und die Host-Alarmvorlagen brauchen die Metriken `*.utilization`. Kürzen Sie die Daten, nach denen Sie nicht handeln, nicht die Daten, die ein Monitor beobachtet, und prüfen Sie den Rückgang ein, zwei Tage später unter **Projekteinstellungen → Abrechnung und Rechnungen → Nutzungsverlauf** (die Nutzung wird pro Tag gezählt), bevor Sie den nächsten Hebel ziehen.
 
 ## Selbst gehostetes OneUptime und Proxys
 

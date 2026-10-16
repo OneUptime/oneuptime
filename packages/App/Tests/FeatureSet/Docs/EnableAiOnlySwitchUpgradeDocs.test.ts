@@ -77,7 +77,7 @@ describe("the Enable AI upgrade note", () => {
 
     expect(note).toContain("**Enable Auto-Remediation**");
     expect(note).toContain("**Enable AI Command Execution (for Runners)**");
-    expect(note).toContain("**Project Settings → AI Features**");
+    expect(note).toContain("**Project Settings → AI → AI Features**");
     expect(note).toContain(
       "auto-remediation and AI commands on Runners run whenever **Enable AI** is on",
     );

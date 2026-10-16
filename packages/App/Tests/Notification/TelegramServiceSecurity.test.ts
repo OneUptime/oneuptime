@@ -221,7 +221,7 @@ describe("TelegramService credential containment", () => {
       ),
     );
     expect(persistedLog.statusMessage).toBe(
-      "Telegram is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notification Settings.",
+      "Telegram is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Settings.",
     );
   });
 
@@ -245,7 +245,7 @@ describe("TelegramService credential containment", () => {
     expect(serializedOwnerEmail).not.toContain(CHAT_ID);
     expect(serializedOwnerEmail).not.toContain(MESSAGE_BODY);
     expect(serializedOwnerEmail).toContain(
-      "A Telegram notification was not sent. Telegram is off in this project. If it should be on, turn it on in Project Settings &gt; Notification Settings.",
+      "A Telegram notification was not sent. Telegram is off in this project. If it should be on, turn it on in Project Settings &gt; Notifications &gt; Notification Settings.",
     );
     // And the switch, one click away: the owners may flip it.
     expect(serializedOwnerEmail).toContain(

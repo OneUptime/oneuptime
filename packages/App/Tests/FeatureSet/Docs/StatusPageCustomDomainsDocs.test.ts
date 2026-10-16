@@ -79,8 +79,10 @@ describe("Status page custom domains (English docs)", () => {
     ).toEqual(new Set(["15 minutes", "15 minute"]));
   });
 
-  it("sends readers to Project Settings → Domains, by its menu name", () => {
-    expect(CUSTOM_DOMAINS).toContain("**Project Settings → Domains**");
+  it("sends readers to Project Settings → Advanced → Domains, by its menu names", () => {
+    expect(CUSTOM_DOMAINS).toContain(
+      "**Project Settings → Advanced → Domains**",
+    );
     expect(PAGE).not.toContain("More → Project Settings → Custom Domains");
     expect(CUSTOM_DOMAINS).toContain(
       `**${CustomDomainCopy.domainFieldSideLink}**`,

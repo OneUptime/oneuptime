@@ -240,7 +240,7 @@
     "accessWriteDescription": "Gegevens bekijken en wijzigingen aanbrengen: incidenten en waarschuwingen bevestigen en oplossen, notities toevoegen en resources aanmaken, bijwerken of verwijderen.",
     "accessReadTitle": "Alleen lezen",
     "accessReadDescription": "Incidenten, waarschuwingen, monitoren, statuspagina's en telemetrie bekijken. Kan niets wijzigen.",
-    "permissionsNote": "De client handelt namens u en kan nooit meer doen dan uw eigen machtigingen in dit project toestaan. U kunt de client op elk moment loskoppelen via Projectinstellingen > MCP-server.",
+    "permissionsNote": "De client handelt namens u en kan nooit meer doen dan uw eigen machtigingen in dit project toestaan. U kunt de client op elk moment loskoppelen via Projectinstellingen > AI > MCP-server.",
     "authorizeButton": "Autoriseren",
     "denyButton": "Annuleren",
     "redirecting": "U wordt teruggestuurd naar {{clientName}}...",
@@ -286,7 +286,7 @@
       "bought_from_reseller": "{{name}} – wordt gefactureerd door een reseller"
     },
     "nothingToChoose": "Geen van uw projecten kan deze aankoop overnemen, en u kunt op deze server geen projecten maken. Vraag de eigenaar van het project dat met deze aankoop moet worden betaald om de aankoop in te stellen.",
-    "billingNote": "Uw abonnement en gebruik worden via {{marketplace}} gefactureerd tegen de prijzen op oneuptime.com/pricing. U kunt uw abonnement op elk moment wijzigen via Projectinstellingen → Facturering.",
+    "billingNote": "Uw abonnement en gebruik worden via {{marketplace}} gefactureerd tegen de prijzen op oneuptime.com/pricing. U kunt uw abonnement op elk moment wijzigen via Projectinstellingen → Facturering en facturen → Facturering.",
     "submitButton": "Aankoop instellen",
     "notNowButton": "Niet nu",
     "redirecting": "Uw aankoop is ingesteld. U wordt naar uw project gebracht…",

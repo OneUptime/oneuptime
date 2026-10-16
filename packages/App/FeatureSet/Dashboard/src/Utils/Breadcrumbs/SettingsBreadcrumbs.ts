@@ -46,11 +46,11 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_SLACK_INTEGRATION, [
       "Project",
       "Settings",
-      "Slack Integration",
+      "Slack",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION,
-      ["Project", "Settings", "Microsoft Teams Integration"],
+      ["Project", "Settings", "Microsoft Teams"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_VIDEO_CALLS, [
       "Project",

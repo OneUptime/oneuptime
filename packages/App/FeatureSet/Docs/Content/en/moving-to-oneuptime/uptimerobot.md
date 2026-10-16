@@ -27,7 +27,7 @@ flowchart TB
 
 - **A OneUptime project, and the right to create what you bring over.** Project Owners and Project Admins can bring everything over. Other roles can run an import too, and bring over the kinds of records they may create. Everything else is shown as not brought over, with the reason.
 - **An UptimeRobot API key.** The Read-only API key is enough: the import never writes to UptimeRobot. The Main API key works too, but a monitor-specific key reads only one monitor.
-- **A payment method, on OneUptime Cloud.** Monitors that run checks are billed as they are used, even on the Free plan, so add one under **Project Settings** > **Billing** before you import. Without one, those monitors are shown as not brought over.
+- **A payment method, on OneUptime Cloud.** Monitors that run checks are billed as they are used, even on the Free plan, so add one under **Project Settings** > **Billing and Invoices** > **Billing** before you import. Without one, those monitors are shown as not brought over.
 
 ## Import your UptimeRobot account
 

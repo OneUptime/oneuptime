@@ -27,7 +27,7 @@ flowchart TB
 
 - **Un projet OneUptime, et le droit de créer ce que vous importez.** Les propriétaires et administrateurs du projet peuvent tout importer. Les autres rôles peuvent aussi lancer un import, et importer les types d'enregistrements qu'ils peuvent créer. Le reste est affiché comme non importé, avec la raison.
 - **Un jeton d'API Uptime de Better Stack.** Utilisez un jeton Uptime d'équipe : il lit les moniteurs, heartbeats et pages de statut de cette équipe. L'import n'écrit jamais dans Better Stack.
-- **Un moyen de paiement, sur OneUptime Cloud.** Les moniteurs qui effectuent des vérifications sont facturés à l'usage, même avec l'offre Free : ajoutez-en un dans **Paramètres du projet** > **Facturation** avant l'import. Sans lui, ces moniteurs sont affichés comme non importés.
+- **Un moyen de paiement, sur OneUptime Cloud.** Les moniteurs qui effectuent des vérifications sont facturés à l'usage, même avec l'offre Free : ajoutez-en un dans **Paramètres du projet** > **Facturation et factures** > **Facturation** avant l'import. Sans lui, ces moniteurs sont affichés comme non importés.
 
 ## Importer votre compte Better Stack
 

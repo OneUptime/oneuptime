@@ -98,10 +98,10 @@
       "title": "身份验证",
       "intro": "您需要对请求进行身份验证才能访问 OneUptime API 中的任何端点。在本指南中,我们将了解身份验证的工作原理。OneUptime 提供一种对您的 API 请求进行身份验证的方式 - 使用 API 密钥。",
       "generateApiKey": "生成 API 密钥",
-      "generateApiKeyBody": "请前往 <strong>Project Settings</strong> > <strong>API Keys</strong>。创建一个新的 API 密钥。请注意:新的 API 密钥未分配任何权限,因此您必须先分配权限才能使用它。",
+      "generateApiKeyBody": "请前往 <strong>项目设置</strong> > <strong>高级</strong> > <strong>API 密钥</strong>。创建一个新的 API 密钥。请注意:新的 API 密钥未分配任何权限,因此您必须先分配权限才能使用它。",
       "readMorePermissions": "阅读更多关于权限的内容",
       "projectId": "项目 ID",
-      "projectIdBody": "请前往 <strong>Project Settings</strong> > <strong>Project</strong>。您应该能在那里看到您的项目 ID。",
+      "projectIdBody": "请前往 <strong>项目设置</strong> > <strong>项目</strong>。您应该能在那里看到您的项目 ID。",
       "authWithApiKey": "使用 API 密钥进行身份验证",
       "authWithApiKeyBody": "在发起请求时,您可以在请求标头中使用 OneUptime API 密钥。当您发起请求时,可以在 <code>ApiKey</code> 标头中使用您的 API 密钥。",
       "exampleApiRequest": "使用 API 密钥的请求示例",
@@ -132,7 +132,7 @@
       "metaDescription": "了解 OneUptime 中权限的工作原理",
       "badge": "指南",
       "title": "权限",
-      "intro": "您的 API 令牌需要权限才能创建、更新、读取或删除任何资源。如果您没有权限发起请求,将返回 <code>4xx</code> 状态作为响应。您可以在 Project Settings > API Keys 中管理您的 API 密钥的权限。",
+      "intro": "您的 API 令牌需要权限才能创建、更新、读取或删除任何资源。如果您没有权限发起请求,将返回 <code>4xx</code> 状态作为响应。您可以在 项目设置 > 高级 > API 密钥 中管理您的 API 密钥的权限。",
       "jumpToCategory": "跳转到分类"
     },
     "errors": {

@@ -99,7 +99,7 @@ For self-hosted instances, replace `oneuptime.com` with your OneUptime host in a
 
 ### API key
 
-Create a **project API key** in OneUptime under **Project Settings → API Keys** and grant it the least privilege the agent needs (read-only keys work for all `get_`/`list_`/`count_` tools). The project is inferred from the key — create tools never need a `projectId` argument.
+Create a **project API key** in OneUptime under **Project Settings → Advanced → API Keys** and grant it the least privilege the agent needs (read-only keys work for all `get_`/`list_`/`count_` tools). The project is inferred from the key — create tools never need a `projectId` argument.
 
 > **Warning — never give an AI agent a master key.** A OneUptime *master* API key is also accepted on this header and grants instance-wide admin access. Always use a project-scoped API key with least privilege for AI agents.
 

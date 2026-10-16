@@ -224,7 +224,7 @@ describe("every reason can be explained to the person who hit it", () => {
 
   test("the kill-switch notice never sends people to AI Credits — that page is billing-only", () => {
     /*
-     * Enable AI lives on Project Settings > AI Features, which every install
+     * Enable AI lives on Project Settings > AI > AI Features, which every install
      * shows. AI Credits is in the menu only when billing is on, so pointing a
      * self-hosted user at it would be a dead end.
      */

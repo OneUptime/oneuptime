@@ -10,7 +10,7 @@ import ts from "typescript";
  * credits, can only be added to by a project owner or someone with Manage
  * Billing. Every message that said one ran low used to tell its reader to
  * recharge ("Your SMS balance is low. Please recharge your SMS balance in
- * Project Settings > Notification Settings.", "Insufficient AI balance.
+ * Project Settings > Notifications > Notification Settings.", "Insufficient AI balance.
  * Please recharge...", "Please enable auto recharge or recharge manually"),
  * and the AI agent pages linked a project admin - who may not - to AI
  * Credits. They now name who can, from one wording

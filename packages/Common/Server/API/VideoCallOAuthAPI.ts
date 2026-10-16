@@ -53,7 +53,7 @@ import {
 /*
  * THE ONE-CLICK CONNECT OF A VIDEO CALL PROVIDER.
  *
- * Project Settings > Video Calls asks a start route for the provider's
+ * Project Settings > Workspace > Video Calls asks a start route for the provider's
  * sign-in URL, sends the browser there, and the provider sends it back to
  * the callback once someone has signed in and allowed OneUptime to create
  * meetings. The callback saves the sign-in as a connection
@@ -77,7 +77,7 @@ import {
 export default class VideoCallOAuthAPI {
   // What a connection signed out by the account at Zoom says until it is reconnected.
   public static readonly ZOOM_REMOVED_MESSAGE: string =
-    "OneUptime was removed from the Zoom account this connection signed in with, so its sign-in was deleted. Reconnect Zoom in Project Settings > Video Calls to start calls again.";
+    "OneUptime was removed from the Zoom account this connection signed in with, so its sign-in was deleted. Reconnect Zoom in Project Settings > Workspace > Video Calls to start calls again.";
 
   /*
    * The last step of a callback, once the provider's own error has been

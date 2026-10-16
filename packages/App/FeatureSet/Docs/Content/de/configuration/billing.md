@@ -176,7 +176,7 @@ Um für ein Projekt nicht mehr zu bezahlen, löschen Sie es: Die Abrechnung ende
 
 ## Fehlerbehebung
 
-:::details "Add a payment method in Project Settings > Billing before using paid monitoring or telemetry"
+:::details "Add a payment method in Project Settings > Billing and Invoices > Billing before using paid monitoring or telemetry"
 Ein Projekt im Free-Tarif braucht eine Zahlungsmethode, bevor es aktive Monitore anlegt oder Telemetrie sendet, weil diese nutzungsbasiert abgerechnet werden. Fügen Sie eine unter [Zahlungsmethoden](#zahlungsmethoden) hinzu. Manuelle Monitore bleiben kostenlos.
 :::
 

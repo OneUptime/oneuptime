@@ -98,7 +98,7 @@
       "title": "Godkendelse",
       "intro": "Du skal godkende dine anmodninger for at få adgang til endpoints i OneUptime API'et. I denne vejledning ser vi på, hvordan godkendelsen fungerer. OneUptime tilbyder én måde at godkende dine API-anmodninger på - ved at bruge en API-nøgle.",
       "generateApiKey": "Generér en API-nøgle",
-      "generateApiKeyBody": "Gå til <strong>Projektindstillinger</strong> > <strong>API-nøgler</strong>. Opret en ny API-nøgle. Bemærk venligst: Nye API-nøgler har ingen tilladelser tildelt, så du skal tildele en tilladelse, før du kan bruge den.",
+      "generateApiKeyBody": "Gå til <strong>Projektindstillinger</strong> > <strong>Avanceret</strong> > <strong>API-nøgler</strong>. Opret en ny API-nøgle. Bemærk venligst: Nye API-nøgler har ingen tilladelser tildelt, så du skal tildele en tilladelse, før du kan bruge den.",
       "readMorePermissions": "Læs mere om tilladelser",
       "projectId": "Projekt-ID",
       "projectIdBody": "Gå til <strong>Projektindstillinger</strong> > <strong>Projekt</strong>. Du burde se dit projekt-ID der.",
@@ -132,7 +132,7 @@
       "metaDescription": "Lær, hvordan tilladelser fungerer med OneUptime",
       "badge": "Vejledning",
       "title": "Tilladelser",
-      "intro": "Dit API-token skal have tilladelser til at oprette, opdatere, læse eller slette enhver ressource. Hvis du ikke har tilladelser til at foretage en anmodning, sendes der en <code>4xx</code>-status som svar. Du kan administrere tilladelser for din API-nøgle under Projektindstillinger > API-nøgler.",
+      "intro": "Dit API-token skal have tilladelser til at oprette, opdatere, læse eller slette enhver ressource. Hvis du ikke har tilladelser til at foretage en anmodning, sendes der en <code>4xx</code>-status som svar. Du kan administrere tilladelser for din API-nøgle under Projektindstillinger > Avanceret > API-nøgler.",
       "jumpToCategory": "Spring til en kategori"
     },
     "errors": {

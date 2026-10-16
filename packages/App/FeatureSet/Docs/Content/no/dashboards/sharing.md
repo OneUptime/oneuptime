@@ -95,7 +95,7 @@ Når det er bekreftet, kan dashbordet nås både på det egendefinerte domenet d
 Klikk på **Opprett Dashboard Domene**. Dialogen er én side:
 
 - **Underdomene**: bare etiketten, med plassholderen `dashboard (leave blank for root)`. Skriv bare `dashboard`, ikke hele vertsnavnet. La det stå tomt eller skriv `@` for å bruke rotdomenet (apex).
-- **Domene**: domenene som er bekreftet under **Prosjektinnstillinger → Domener**, der du beviser med en TXT-post at et domene er ditt. Et domene du ikke har bekreftet, står ikke på listen, fordi det ville blitt avvist. Lenken **Legg til et domene** ved siden av feltet åpner den siden i en ny fane.
+- **Domene**: domenene som er bekreftet under **Prosjektinnstillinger → Avansert → Domener**, der du beviser med en TXT-post at et domene er ditt. Et domene du ikke har bekreftet, står ikke på listen, fordi det ville blitt avvist. Lenken **Legg til et domene** ved siden av feltet åpner den siden i en ny fane.
 - **Flere felt**: sammenslått. Så lenge det er sammenslått, sier overskriften hvilket sertifikat domenet skal bruke: "Vi utsteder et gratis SSL-sertifikat for dette domenet og fornyer det automatisk." Åpne det bare for å bruke ditt eget sertifikat (se nedenfor).
 
 Klikk på **Opprett Dashboard Domene**. Dialogen lukkes, og **DNS-oppsett** for det nye domenet åpnes. Et domenes fulle navn ligger fast når du legger det til, så **Rediger** endrer bare sertifikatet. For å bruke et annet underdomene legger du til det domenet og sletter det gamle.

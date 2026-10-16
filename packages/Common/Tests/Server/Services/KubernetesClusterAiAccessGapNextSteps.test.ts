@@ -443,7 +443,7 @@ describe("KubernetesClusterAiAccessService gap next steps", () => {
     }
   });
 
-  it("the project-level steps name Project Settings → AI Features, never AI Credits for a switch", async () => {
+  it("the project-level steps name Project Settings → AI → AI Features, never AI Credits for a switch", async () => {
     const gaps: Array<KubernetesAiAccessGap> = await gapsOf(
       SCENARIOS[SCENARIOS.length - 1]!,
     );
@@ -459,7 +459,7 @@ describe("KubernetesClusterAiAccessService gap next steps", () => {
     };
 
     expect(stepOf("project_ai_disabled")).toBe(
-      "Enable AI under Project Settings → AI Features.",
+      "Enable AI under Project Settings → AI → AI Features.",
     );
     // Enable AI is the one switch on AI Features: nothing else sends there.
     expect(
@@ -476,7 +476,7 @@ describe("KubernetesClusterAiAccessService gap next steps", () => {
      * buy them, named for everyone else who reads the gap.
      */
     expect(stepOf("ai_balance_insufficient")).toBe(
-      "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI Credits.",
+      "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
     );
   });
 

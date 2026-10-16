@@ -866,7 +866,7 @@ Strama åt ytterligare efter behov: höj `minSeverity` till `ERROR`, lägg till 
 
 ### Mät effekten
 
-Telemetrianvändning räknas per dag, så kontrollera trenden under **Projektinställningar → Användningshistorik** under en dag eller två: den rör sig inte i samma ögonblick som du tillämpar en ändring. Ändra en inställning i taget (loggar av, sedan intervallet upp, sedan eBPF trimmat) så att du kan se vad var och en gjorde, i stället för att skruva ned allt på en gång och förlora en monitor du förlitade dig på.
+Telemetrianvändning räknas per dag, så kontrollera trenden under **Projektinställningar → Fakturering och fakturor → Användningshistorik** under en dag eller två: den rör sig inte i samma ögonblick som du tillämpar en ändring. Ändra en inställning i taget (loggar av, sedan intervallet upp, sedan eBPF trimmat) så att du kan se vad var och en gjorde, i stället för att skruva ned allt på en gång och förlora en monitor du förlitade dig på.
 
 ## Felsökning
 

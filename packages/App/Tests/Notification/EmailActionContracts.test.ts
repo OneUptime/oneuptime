@@ -210,7 +210,7 @@ const SINGLE_ACTION_CONTRACTS: Array<
   [
     "AIAgentConnectionStatusChange",
     "viewAIAgentsLink",
-    "View AI Agents",
+    "View Tasks",
     "viewAIAgentsLink",
   ],
   [

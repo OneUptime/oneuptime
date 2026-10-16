@@ -333,7 +333,7 @@ describe.each([
       const outcome: unknown = await create({ domain: { _id: ID_A } });
 
       expect((outcome as Error).message).toBe(
-        "This domain is not verified. Please verify it by going to Settings > Domains",
+        "This domain is not verified. Please verify it in Project Settings > Advanced > Domains.",
       );
       expect(
         (firstCallArgument(findOneBy)["query"] as Record<string, unknown>)[

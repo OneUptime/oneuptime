@@ -148,16 +148,16 @@ export function getSettingsAction(
   subjectType: "incident" | "alert",
 ): SettingsAction | null {
   /*
-   * The project's AI switch lives on Project Settings → AI Features, which
+   * The project's AI switch lives on Project Settings → AI → AI Features, which
    * every install shows (AI Credits is listed only when billing is on).
    */
   if (code === "ai_disabled") {
     return {
-      label: "Go to Project Settings → AI Features",
+      label: "Go to Project Settings → AI → AI Features",
       page: PageMap.SETTINGS_AI_FEATURES,
       permissions: getEnableAiUpdatePermissions(),
       whoCanAct: translationKey(
-        "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI Features.",
+        "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
       ),
     };
   }
@@ -183,11 +183,11 @@ export function getSettingsAction(
    */
   if (code === "project_daily_limit_reached") {
     return {
-      label: "Go to Project Settings → AI Features",
+      label: "Go to Project Settings → AI → AI Features",
       page: PageMap.SETTINGS_AI_FEATURES,
       permissions: getDailyAiLimitUpdatePermissions(),
       whoCanAct: translationKey(
-        "A project owner or someone with Manage Billing can change the project's daily AI limits in Project Settings → AI Features.",
+        "A project owner or someone with Manage Billing can change the project's daily AI limits in Project Settings → AI → AI Features.",
       ),
     };
   }

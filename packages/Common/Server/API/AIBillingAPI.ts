@@ -135,10 +135,10 @@ router.post(
 );
 
 /*
- * What Auto Recharge of the project's AI credits would do now: Off, Ready,
- * or Failed (its last automatic charge did not go through, and it waits
- * before trying the card again). Project Settings > AI Credits shows Failed
- * at the top, so nobody has to wait for the owners' email. Any member of the
+ * What Auto Recharge of the project's AI credits would do now: Off, Ready, or
+ * Failed (its last automatic charge did not go through, and it waits before
+ * trying the card again). Project Settings > AI > AI Credits shows Failed at
+ * the top, so nobody has to wait for the owners' email. Any member of the
  * project may ask (Utils/Billing/AutoRechargeStateRequest).
  */
 router.get(
