@@ -1013,7 +1013,11 @@ describe("the helpers, on these pages' shapes", () => {
       "**Products → Observability → Topology**",
     );
     expect(
-      drawnPath("en", ["Project Settings", "Telemetry & APM", "Ingestion Keys"]),
+      drawnPath("en", [
+        "Project Settings",
+        "Telemetry & APM",
+        "Ingestion Keys",
+      ]),
     ).toBe("**Project Settings → Telemetry & APM → Ingestion Keys**");
     // Persian bolds each segment, joined by " > ".
     expect(drawnPath("fa", ["Logs", "Settings", "Drop Filters"])).toContain(
@@ -1047,14 +1051,16 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("read the numbers a row states, in any digits, code left out", () => {
-    expect(numbersIn("`422` until 6,000 a minute, `x-1` and 15 days")).toEqual(
-      ["15", "6000"],
-    );
+    expect(numbersIn("`422` until 6,000 a minute, `x-1` and 15 days")).toEqual([
+      "15",
+      "6000",
+    ]);
     expect(numbersIn("۶٬۰۰۰ درخواست")).toEqual(["6000"]);
   });
 
   it("find an untranslated line of prose, but not a line of names or code", () => {
-    let names: string = "OneUptime Cloud, OpenTelemetry, Fluent Bit, ClickHouse";
+    let names: string =
+      "OneUptime Cloud, OpenTelemetry, Fluent Bit, ClickHouse";
 
     for (const name of NAMES_LONGEST_FIRST) {
       names = names.split(name).join(" ");

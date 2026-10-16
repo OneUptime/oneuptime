@@ -175,19 +175,22 @@ jest.mock("Common/Server/Utils/Response", () => {
   };
 });
 
-jest.mock("Common/Server/Utils/Telemetry/TelemetryIngestionKeyRateLimiter", () => {
-  const actual: Record<string, unknown> = jest.requireActual(
-    "Common/Server/Utils/Telemetry/TelemetryIngestionKeyRateLimiter",
-  ) as Record<string, unknown>;
+jest.mock(
+  "Common/Server/Utils/Telemetry/TelemetryIngestionKeyRateLimiter",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "Common/Server/Utils/Telemetry/TelemetryIngestionKeyRateLimiter",
+    ) as Record<string, unknown>;
 
-  return {
-    __esModule: true,
-    ...actual,
-    default: {
-      consume: jest.fn(),
-    },
-  };
-});
+    return {
+      __esModule: true,
+      ...actual,
+      default: {
+        consume: jest.fn(),
+      },
+    };
+  },
+);
 
 type MockFn = jest.Mock<(...args: Array<unknown>) => unknown>;
 
@@ -356,7 +359,10 @@ function permissionTitles(permissions: Array<Permission>): Array<string> {
 }
 
 // A list as a page writes it in prose: "A, B or C".
-function writtenList(items: ReadonlyArray<string>, conjunction: string): string {
+function writtenList(
+  items: ReadonlyArray<string>,
+  conjunction: string,
+): string {
   if (items.length < 2) {
     return items.join("");
   }
@@ -390,7 +396,9 @@ function productsMenuCategory(itemKey: string): string {
   return category?.[1] || "";
 }
 
-const SETTINGS_MENU: string = readDashboardSource("Pages/Settings/SideMenu.tsx");
+const SETTINGS_MENU: string = readDashboardSource(
+  "Pages/Settings/SideMenu.tsx",
+);
 
 /*
  * ---------------------------------------------------------------------
@@ -570,21 +578,21 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
     expect(createForm).toContain('{ id: "billing", title: "Billing" }');
 
     // The description is folded under Advanced on the first step.
-    expect(
-      between(createForm, 'title: "Description",', "},"),
-    ).toContain("collapsibleSection: advanced,");
+    expect(between(createForm, 'title: "Description",', "},")).toContain(
+      "collapsibleSection: advanced,",
+    );
     // A Browser key's origins on Browser Settings, its pinned name under Advanced.
     expect(
       between(
         createForm,
-        "getAllowedOriginsField({\n            stepId: \"browser-settings\"",
+        'getAllowedOriginsField({\n            stepId: "browser-settings"',
         "})",
       ),
     ).toContain("showIf: isBrowserIngestionKey");
     expect(
       between(
         createForm,
-        "getPinnedServiceNameField({\n            stepId: \"browser-settings\"",
+        'getPinnedServiceNameField({\n            stepId: "browser-settings"',
         "})",
       ),
     ).toContain("collapsibleSection: advanced");
@@ -607,9 +615,9 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
     expect(between(keyPage, "secretKey: true,", "isCopyable")).toContain(
       "fieldType: FieldType.HiddenText,",
     );
-    expect(readCommonSource("UI/Components/HiddenText/HiddenText.tsx")).toContain(
-      'translator.translateText("Click to reveal")',
-    );
+    expect(
+      readCommonSource("UI/Components/HiddenText/HiddenText.tsx"),
+    ).toContain('translator.translateText("Click to reveal")');
     expect(page).toContain(
       "The key's own page opens: copy its **Secret Key** and give it to your senders.",
     );
@@ -684,9 +692,7 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
     expect(page).toContain(
       "OneUptime also reads the key from an `x-oneuptime-ingestion-key` or `x-oneuptime-service-token` header, which some older setups send.",
     );
-    expect(page).toContain(
-      "x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY",
-    );
+    expect(page).toContain("x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY");
   });
 
   it("accepts a Browser key only for traces, logs, metrics and session replays", () => {
@@ -720,9 +726,11 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       "",
     );
 
-    expect(rows.map((row: Array<string>): string => row[0] as string)).toEqual(
-      ["For", "Sends", "A secret", "Origins", "Requests per minute"],
-    );
+    expect(
+      rows.map((row: Array<string>): string => {
+        return row[0] as string;
+      }),
+    ).toEqual(["For", "Sends", "A secret", "Origins", "Requests per minute"]);
     expect(rows[1]).toEqual([
       "Sends",
       "Every kind of telemetry, to every endpoint",
@@ -755,9 +763,8 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       ),
     ).toBe(120);
 
-    const limit: string = DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE.toLocaleString(
-      "en-US",
-    );
+    const limit: string =
+      DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE.toLocaleString("en-US");
 
     expect(page).toContain(
       `| Requests per minute | No limit, unless you set one | ${limit}, unless you set another limit |`,
@@ -792,9 +799,10 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
     ]);
 
     for (const origin of example) {
-      expect({ origin, problem: OriginAllowList.validateOriginPattern(origin) }).toEqual(
-        { origin, problem: null },
-      );
+      expect({
+        origin,
+        problem: OriginAllowList.validateOriginPattern(origin),
+      }).toEqual({ origin, problem: null });
     }
 
     expect(
@@ -861,10 +869,12 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
   });
 
   it("turns a key off on Access & Limits, resets its secret, and deletes it from its page", () => {
-    expect(keyPage).toContain('{ title: "Access & Limits", id: "access-and-limits" }');
-    expect(
-      between(keyPage, 'title: "Enabled",', "description:"),
-    ).toContain('stepId: "access-and-limits",');
+    expect(keyPage).toContain(
+      '{ title: "Access & Limits", id: "access-and-limits" }',
+    );
+    expect(between(keyPage, 'title: "Enabled",', "description:")).toContain(
+      'stepId: "access-and-limits",',
+    );
     expect(keyPage).toContain('text="Disabled — telemetry refused"');
     expect(keyPage).toContain('title={"Reset Secret Key"}');
     expect(keyPage).toContain("<ModelDelete");
@@ -884,9 +894,15 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
       "To",
     );
 
-    expect(rows.map((row: Array<string>): string => row[2] as string)).toEqual(
-      ["`422` until you turn it back on", "`401` until they send the new secret", "`401`"],
-    );
+    expect(
+      rows.map((row: Array<string>): string => {
+        return row[2] as string;
+      }),
+    ).toEqual([
+      "`422` until you turn it back on",
+      "`401` until they send the new secret",
+      "`401`",
+    ]);
     expect(rows[0]?.[1]).toContain(
       "Click **Edit Telemetry Ingestion Key**, open **Access & Limits** and turn **Enabled** off.",
     );
@@ -906,9 +922,7 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
   });
 
   it("refuses an expiry in the past, so a key cannot be saved already dead", () => {
-    expect(keyService).toContain(
-      "The expiry date must be in the future.",
-    );
+    expect(keyService).toContain("The expiry date must be in the future.");
     expect(
       between(keyPage, 'title: "Expires At",', "},\n          {"),
     ).toContain("dateShouldBeInTheFuture: true,");
@@ -1101,15 +1115,17 @@ describe("Data Retention (telemetry/data-retention)", () => {
     expect(settings).toContain('editButtonText="Edit Retention Settings"');
     expect(settings).toContain('title: "Default Retention (Days)",');
     expect(
-      between(settings, 'title: "Default Retention (Days)",', "},\n          },"),
+      between(
+        settings,
+        'title: "Default Retention (Days)",',
+        "},\n          },",
+      ),
     ).toContain("minValue: 1,");
-    expect(readCommonSource("UI/Components/ModelDetail/CardModelDetail.tsx")).toContain(
-      "submitButtonText={`Save Changes`}",
-    );
+    expect(
+      readCommonSource("UI/Components/ModelDetail/CardModelDetail.tsx"),
+    ).toContain("submitButtonText={`Save Changes`}");
 
-    expect(page).toContain(
-      "then deletes them: 15 days unless you change it.",
-    );
+    expect(page).toContain("then deletes them: 15 days unless you change it.");
     expect(page).toContain(
       "Click **Edit Retention Settings**, enter the number of days, at least 1, and click **Save Changes**.",
     );
@@ -1120,7 +1136,10 @@ describe("Data Retention (telemetry/data-retention)", () => {
       "defaultTelemetryRetentionInDays",
     )?.update as Array<Permission>;
 
-    expect(permissionTitles(editors)).toEqual(["Project Owner", "Project Admin"]);
+    expect(permissionTitles(editors)).toEqual([
+      "Project Owner",
+      "Project Admin",
+    ]);
     expect(page).toContain(
       "**A role that changes the project.** Project Owner or Project Admin change the project's retention.",
     );
@@ -1129,9 +1148,11 @@ describe("Data Retention (telemetry/data-retention)", () => {
   it("reads the six settings in the order the table lists them, the first one set deciding", () => {
     const rows: Array<Array<string>> = tableRows(page, "Order");
 
-    expect(rows.map((row: Array<string>): string => row[0] as string)).toEqual(
-      ["1", "2", "3", "4", "5", "6"],
-    );
+    expect(
+      rows.map((row: Array<string>): string => {
+        return row[0] as string;
+      }),
+    ).toEqual(["1", "2", "3", "4", "5", "6"]);
 
     // Every setting set, each to its own number of days: 1 decides first.
     const serviceConfig: TelemetryRetentionConfig = {
@@ -1197,7 +1218,11 @@ describe("Data Retention (telemetry/data-retention)", () => {
 
   it("applies the overrides only where the Enterprise Edition is active, and sells them with the Scale plan", () => {
     expect(
-      between(ingest, "public static applyRetentionOverrideEdition(", "public static"),
+      between(
+        ingest,
+        "public static applyRetentionOverrideEdition(",
+        "public static",
+      ),
     ).toContain("EnterpriseFeature.TelemetryRetention");
     expect(
       readDashboardSource("Enterprise/EnterpriseEligibility.ts"),
@@ -1329,14 +1354,18 @@ describe("Data Retention (telemetry/data-retention)", () => {
       );
     };
     const projectCard: string = read("ProjectTelemetryRetentionByType.tsx");
-    const resourceCards: string = read("TelemetryResourceRetentionSettings.tsx");
+    const resourceCards: string = read(
+      "TelemetryResourceRetentionSettings.tsx",
+    );
     const form: string = read("TelemetryRetentionConfigForm.tsx");
     const notice: string = read("TelemetryRetentionLicenseNotice.tsx");
 
     expect(projectCard).toContain('title: "Retention by Telemetry Type",');
     expect(projectCard).toContain('editButtonText="Edit Overrides"');
     expect(resourceCards).toContain('title: "Telemetry Data Retention",');
-    expect(resourceCards).toContain('title: "Retain Telemetry Data For (Days)",');
+    expect(resourceCards).toContain(
+      'title: "Retain Telemetry Data For (Days)",',
+    );
     expect(resourceCards).toContain('title: "Retention by Telemetry Type",');
 
     for (const field of [
@@ -1372,7 +1401,9 @@ describe("Data Retention (telemetry/data-retention)", () => {
       "Components/TelemetryResource/RetentionOverrideLeftoverCopy.ts",
     );
 
-    expect(leftover).toContain('removeButton: translationKey("Remove Override"),');
+    expect(leftover).toContain(
+      'removeButton: translationKey("Remove Override"),',
+    );
     expect(page).toContain(
       "Its page shows it under the upgrade card, with a **Remove Override** button that works on every plan.",
     );
@@ -1395,19 +1426,23 @@ describe("Data Retention (telemetry/data-retention)", () => {
 
     const rows: Array<Array<string>> = tableRows(page, "Data");
 
-    expect(rows.map((row: Array<string>): string => row[1] as string)).toEqual(
-      [
-        `${DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS} days unless changed`,
-        "1 day unless changed",
-        "30 days unless changed",
-      ],
-    );
+    expect(
+      rows.map((row: Array<string>): string => {
+        return row[1] as string;
+      }),
+    ).toEqual([
+      `${DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS} days unless changed`,
+      "1 day unless changed",
+      "30 days unless changed",
+    ]);
   });
 
   it("bills telemetry on OneUptime Cloud by the GB and the days it is kept, 15 days included", () => {
     expect(TELEMETRY_PRICE_RETENTION_IN_DAYS).toBe(15);
     expect(
-      readCommonSource("Server/Types/Billing/MeteredPlan/TelemetryMeteredPlan.ts"),
+      readCommonSource(
+        "Server/Types/Billing/MeteredPlan/TelemetryMeteredPlan.ts",
+      ),
     ).toContain(
       "return data.dataIngestedInGB * data.retentionInDays * this.unitCostInUSD;",
     );
@@ -1417,7 +1452,9 @@ describe("Data Retention (telemetry/data-retention)", () => {
       "TELEMETRY_PRICE_IN_USD_PER_GB / TELEMETRY_PRICE_RETENTION_IN_DAYS;",
     );
 
-    const usage: string = readDashboardSource("Pages/Settings/UsageHistory.tsx");
+    const usage: string = readDashboardSource(
+      "Pages/Settings/UsageHistory.tsx",
+    );
 
     expect(usage).toContain('title: "Telemetry Usage History",');
     expect(usage).toContain('title: "Data Retention (in Days)",');
@@ -1442,9 +1479,9 @@ describe("Data Retention (telemetry/data-retention)", () => {
     expect(ttl).toContain("+ INTERVAL 1 DAY DELETE");
 
     for (const model of ["Log", "Metric"]) {
-      expect(
-        readCommonSource(`Models/AnalyticsModels/${model}.ts`),
-      ).toContain("ttlExpression: RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY,");
+      expect(readCommonSource(`Models/AnalyticsModels/${model}.ts`)).toContain(
+        "ttlExpression: RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY,",
+      );
     }
 
     expect(page).toContain(
@@ -1492,9 +1529,10 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     body: string,
     rules: Array<{ rule: LogScrubRule; regex: RegExp }>,
   ): string {
-    return LogScrubRuleService.scrubLog({ body, attributes: {} }, rules as never)[
-      "body"
-    ] as string;
+    return LogScrubRuleService.scrubLog(
+      { body, attributes: {} },
+      rules as never,
+    )["body"] as string;
   }
 
   it("lives under Logs → Settings and Traces → Settings, with Pipelines and Recording Rules", () => {
@@ -1536,7 +1574,11 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
 
     for (const order of [logOrder, spanOrder]) {
       expect(order[0]).toBeGreaterThan(-1);
-      expect(order).toEqual([...order].sort((a: number, b: number) => a - b));
+      expect(order).toEqual(
+        [...order].sort((a: number, b: number) => {
+          return a - b;
+        }),
+      );
     }
 
     // Syslog, Fluent Bit and Fluentd logs go through the same three.
@@ -1613,9 +1655,9 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
   it("creates a filter on Match then Action, Drop picked, with the description and Enabled under Advanced", () => {
     expect(dropForm).toContain('{ title: "Match", id: "match" },');
     expect(dropForm).toContain('{ title: "Action", id: "action" },');
-    expect(allMatches(between(dropForm, "dropdownOptions: [", "],"), LABEL_PROPERTY)).toEqual(
-      ["Drop", "Sample"],
-    );
+    expect(
+      allMatches(between(dropForm, "dropdownOptions: [", "],"), LABEL_PROPERTY),
+    ).toEqual(["Drop", "Sample"]);
     expect(
       readDashboardSource("Pages/Logs/Settings/DropFilters.tsx"),
     ).toContain("action: LogDropFilterAction.Drop,");
@@ -1665,7 +1707,10 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     );
 
     expect(
-      allMatches(between(condition, "const operatorOptions", "];"), LABEL_PROPERTY),
+      allMatches(
+        between(condition, "const operatorOptions", "];"),
+        LABEL_PROPERTY,
+      ),
     ).toEqual(["equals", "does not equal", "contains", "is one of"]);
     expect(
       tableRows(page, "Operator").map((row: Array<string>): string => {
@@ -1681,13 +1726,21 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     };
 
     // equals keeps its case; contains does not, and takes % as a wildcard.
-    expect(matches("severityText = 'Debug'", { severityText: "Debug" })).toBe(true);
-    expect(matches("severityText = 'Debug'", { severityText: "DEBUG" })).toBe(false);
-    expect(matches("severityText != 'Debug'", { severityText: "Error" })).toBe(true);
-    expect(matches("body LIKE 'healthcheck'", { body: "GET /HealthCheck 200" })).toBe(
+    expect(matches("severityText = 'Debug'", { severityText: "Debug" })).toBe(
       true,
     );
-    expect(matches("body LIKE 'GET%200'", { body: "GET /health 200" })).toBe(true);
+    expect(matches("severityText = 'Debug'", { severityText: "DEBUG" })).toBe(
+      false,
+    );
+    expect(matches("severityText != 'Debug'", { severityText: "Error" })).toBe(
+      true,
+    );
+    expect(
+      matches("body LIKE 'healthcheck'", { body: "GET /HealthCheck 200" }),
+    ).toBe(true);
+    expect(matches("body LIKE 'GET%200'", { body: "GET /health 200" })).toBe(
+      true,
+    );
     expect(
       matches("severityText IN ('Debug', 'Trace')", { severityText: "Trace" }),
     ).toBe(true);
@@ -1726,26 +1779,39 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
 
   it("samples record by record, and lets a record a sample keeps go on to the next filter", () => {
     // At 10, a record whose draw falls in the first tenth is kept.
-    expect(shouldDropBySampling(10, () => 0.05)).toBe(false);
-    expect(shouldDropBySampling(10, () => 0.5)).toBe(true);
+    expect(
+      shouldDropBySampling(10, () => {
+        return 0.05;
+      }),
+    ).toBe(false);
+    expect(
+      shouldDropBySampling(10, () => {
+        return 0.5;
+      }),
+    ).toBe(true);
 
-    const filter: (action: string, percentage?: number) => LoadedLogDropFilter =
-      (action: string, percentage?: number): LoadedLogDropFilter => {
-        const dropFilter: LogDropFilter = new LogDropFilter();
-        dropFilter.action = action;
+    const filter: (
+      action: string,
+      percentage?: number,
+    ) => LoadedLogDropFilter = (
+      action: string,
+      percentage?: number,
+    ): LoadedLogDropFilter => {
+      const dropFilter: LogDropFilter = new LogDropFilter();
+      dropFilter.action = action;
 
-        if (percentage !== undefined) {
-          dropFilter.samplePercentage = percentage;
-        }
+      if (percentage !== undefined) {
+        dropFilter.samplePercentage = percentage;
+      }
 
-        return {
-          filter: dropFilter,
-          compiledFilter: compileFilter("severityText = 'Debug'", {
-            emptyQueryMatches: false,
-          }),
-          projectId: new ObjectID(PROJECT_ID),
-        };
+      return {
+        filter: dropFilter,
+        compiledFilter: compileFilter("severityText = 'Debug'", {
+          emptyQueryMatches: false,
+        }),
+        projectId: new ObjectID(PROJECT_ID),
       };
+    };
 
     const random: { mockRestore: () => void } = jest
       .spyOn(Math, "random")
@@ -1777,7 +1843,9 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
   });
 
   it("counts what a filter dropped on the list and on the filter's own page", () => {
-    const list: string = readDashboardSource("Pages/Logs/Settings/DropFilters.tsx");
+    const list: string = readDashboardSource(
+      "Pages/Logs/Settings/DropFilters.tsx",
+    );
     const view: string = readDashboardSource(
       "Pages/Logs/Settings/DropFilterView.tsx",
     );
@@ -1812,18 +1880,22 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
           role,
           reads: model.readRecordPermissions.includes(role),
           creates: model.createRecordPermissions.includes(role),
-        }).toEqual({ model: model.tableName, role, reads: true, creates: false });
+        }).toEqual({
+          model: model.tableName,
+          role,
+          reads: true,
+          creates: false,
+        });
       }
 
-      expect(permissionTitles(model.createRecordPermissions).slice(0, 2)).toEqual([
-        "Project Owner",
-        "Project Admin",
-      ]);
+      expect(
+        permissionTitles(model.createRecordPermissions).slice(0, 2),
+      ).toEqual(["Project Owner", "Project Admin"]);
     }
 
-    expect(PermissionHelper.getTitle(Permission.CreateProjectLogDropFilter)).toBe(
-      "Create Log Drop Filter",
-    );
+    expect(
+      PermissionHelper.getTitle(Permission.CreateProjectLogDropFilter),
+    ).toBe("Create Log Drop Filter");
     expect(
       PermissionHelper.getTitle(Permission.CreateProjectTraceScrubRule),
     ).toBe("Create Trace Scrub Rule");
@@ -1853,22 +1925,26 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     };
     const rows: Array<Array<string>> = tableRows(page, "Pattern Type");
 
-    Object.keys(examples).forEach((patternType: string, index: number): void => {
-      const written: Array<string> = inlineCodes(rows[index]?.[1] || "");
+    Object.keys(examples).forEach(
+      (patternType: string, index: number): void => {
+        const written: Array<string> = inlineCodes(rows[index]?.[1] || "");
 
-      expect({ patternType, written }).toEqual({
-        patternType,
-        written: examples[patternType],
-      });
+        expect({ patternType, written }).toEqual({
+          patternType,
+          written: examples[patternType],
+        });
 
-      for (const example of written) {
-        const regex: RegExp = getRegexForPattern(patternType) as RegExp;
+        for (const example of written) {
+          const regex: RegExp = getRegexForPattern(patternType) as RegExp;
 
-        expect({ patternType, example, whole: example.replace(regex, "") }).toEqual(
-          { patternType, example, whole: "" },
-        );
-      }
-    });
+          expect({
+            patternType,
+            example,
+            whole: example.replace(regex, ""),
+          }).toEqual({ patternType, example, whole: "" });
+        }
+      },
+    );
 
     // The keys a sensitive-keys rule catches, whatever their values.
     const keyRegex: RegExp = getRegexForPattern(
@@ -1876,7 +1952,10 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     ) as RegExp;
 
     for (const key of inlineCodes(rows[5]?.[1] || "")) {
-      expect({ key, caught: keyRegex.test(key) }).toEqual({ key, caught: true });
+      expect({ key, caught: keyRegex.test(key) }).toEqual({
+        key,
+        caught: true,
+      });
     }
 
     // A custom pattern is matched with its case, and only with the g flag.
@@ -1928,9 +2007,7 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       patternType: string,
       value: string,
     ): string => {
-      return scrubbedBody(value, [
-        scrubRule(patternType, LogScrubAction.Mask),
-      ]);
+      return scrubbedBody(value, [scrubRule(patternType, LogScrubAction.Mask)]);
     };
 
     expect(mask(LogScrubPatternType.CreditCard, "4111 1111 1111 1234")).toBe(
@@ -1947,7 +2024,9 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     // A sensitive value keeps its first and last characters.
     const secret: JSONObject = LogScrubRuleService.scrubLog(
       { body: "", attributes: { api_key: "abcdef" } },
-      [scrubRule(LogScrubPatternType.SensitiveKeys, LogScrubAction.Mask)] as never,
+      [
+        scrubRule(LogScrubPatternType.SensitiveKeys, LogScrubAction.Mask),
+      ] as never,
     );
 
     expect((secret["attributes"] as JSONObject)["api_key"]).toBe("a****f");
@@ -1962,7 +2041,11 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     ).toEqual(["Both (Body & Attributes)", "Body Only", "Attributes Only"]);
     expect(
       allMatches(
-        between(scrubForm, "TRACE_SCRUB_RULE_FORM_OPTIONS", "fieldsToScrubHelp"),
+        between(
+          scrubForm,
+          "TRACE_SCRUB_RULE_FORM_OPTIONS",
+          "fieldsToScrubHelp",
+        ),
         LABEL_PROPERTY,
       ),
     ).toEqual([
@@ -1979,7 +2062,9 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
   it("scrubs exceptions with their records, and session replays with the log rules", () => {
     expect(logsIngest).toContain("so scrubbed secrets never reach the");
     expect(
-      readPackageFile("App/FeatureSet/Telemetry/Services/TraceScrubRuleService.ts"),
+      readPackageFile(
+        "App/FeatureSet/Telemetry/Services/TraceScrubRuleService.ts",
+      ),
     ).toContain("public static scrubExceptionContent(");
     expect(
       readPackageFile(
@@ -1995,7 +2080,9 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     expect(
       readDashboardSource("Components/Telemetry/ScrubRulePatternPill.tsx"),
     ).toContain('text="Scrubs nothing"');
-    expect(page).toContain(":::details A custom scrub rule says Scrubs nothing");
+    expect(page).toContain(
+      ":::details A custom scrub rule says Scrubs nothing",
+    );
   });
 });
 
@@ -2065,15 +2152,19 @@ describe("Topology (telemetry/topology)", () => {
     )) {
       expect({
         view,
-        drawn: between(topologyPage, "viewDescriptions", "const selectTab").includes(
-          `description: "${question}"`,
-        ),
+        drawn: between(
+          topologyPage,
+          "viewDescriptions",
+          "const selectTab",
+        ).includes(`description: "${question}"`),
       }).toEqual({ view, drawn: true });
     }
 
-    expect(rows.map((row: Array<string>): string => unbold(row[0] as string))).toEqual(
-      ["Service Map", "Infrastructure", "Network"],
-    );
+    expect(
+      rows.map((row: Array<string>): string => {
+        return unbold(row[0] as string);
+      }),
+    ).toEqual(["Service Map", "Infrastructure", "Network"]);
     expect(topologyPage).toContain("range: TimeRange.PAST_ONE_DAY,");
     expect(TimeRange.PAST_ONE_DAY).toBe("Past 1 Day");
     expect(page).toContain(
@@ -2083,14 +2174,16 @@ describe("Topology (telemetry/topology)", () => {
 
   it("draws only what reported in the range unless Show inactive is on, and keeps the network view live", () => {
     expect(topologyPage).toContain('translateString("Show inactive")');
-    expect(topologyPage).toContain('inactive: event.target.checked ? "show" : null,');
+    expect(topologyPage).toContain(
+      'inactive: event.target.checked ? "show" : null,',
+    );
     expect(topologyPage).toContain(
       "The network map is live. Device connections refresh automatically.",
     );
     // The time picker is not drawn on the Network view.
-    expect(between(topologyPage, "{!isNetworkTab && (", "</div>\n        )}")).toContain(
-      "<TelemetryTimeRangePicker",
-    );
+    expect(
+      between(topologyPage, "{!isNetworkTab && (", "</div>\n        )}"),
+    ).toContain("<TelemetryTimeRangePicker");
     expect(topologyPage).toContain(
       'translateString("What is shown · About this data")',
     );
@@ -2104,9 +2197,13 @@ describe("Topology (telemetry/topology)", () => {
       "App/FeatureSet/Workers/Jobs/TelemetryEntity/ComputeServiceDependencies.ts",
     );
 
-    expect(worker).toContain('const EVERY_TEN_MINUTES: string = "*/10 * * * *";');
+    expect(worker).toContain(
+      'const EVERY_TEN_MINUTES: string = "*/10 * * * *";',
+    );
     expect(numberConstant(worker, "WINDOW_MINUTES")).toBe(15);
-    expect(numberConstant(topologyPage, "METRICS_WINDOW_SECONDS")).toBe(15 * 60);
+    expect(numberConstant(topologyPage, "METRICS_WINDOW_SECONDS")).toBe(
+      15 * 60,
+    );
     expect(page).toContain(
       "OneUptime looks for calls between services every 10 minutes, and the traffic figures cover the latest 15 minutes, not the whole time range.",
     );
@@ -2270,7 +2367,9 @@ describe("Topology (telemetry/topology)", () => {
   });
 
   it("names the roles that read the map as the inventory grants them, which the Topology API checks", () => {
-    const api: string = readPackageFile("App/FeatureSet/BaseAPI/API/Topology.ts");
+    const api: string = readPackageFile(
+      "App/FeatureSet/BaseAPI/API/Topology.ts",
+    );
 
     expect(api).toContain(
       "await ModelPermission.checkReadQueryPermission<InventoryItem>(",
@@ -2280,10 +2379,9 @@ describe("Topology (telemetry/topology)", () => {
       Permission.ReadTelemetryService,
     );
 
-    expect(permissionTitles(new InventoryItem().readRecordPermissions)).toEqual([
-      ...TOPOLOGY_READ_ROLES,
-      permission,
-    ]);
+    expect(permissionTitles(new InventoryItem().readRecordPermissions)).toEqual(
+      [...TOPOLOGY_READ_ROLES, permission],
+    );
     expect(page).toContain(
       `**A role that reads telemetry.** ${writtenList(TOPOLOGY_READ_ROLES, "or")}, or a custom role with the ${permission} permission.`,
     );
@@ -2315,7 +2413,9 @@ describe("the four pages together", () => {
       "Entry point": "Components/Topology/ServiceMapViewModel.ts",
       "No calls observed": "Components/Topology/ServiceMapViewModel.ts",
     };
-    const keptOnTopology: Array<string> = [...(KEPT_AS_WRITTEN[TOPOLOGY] || [])];
+    const keptOnTopology: Array<string> = [
+      ...(KEPT_AS_WRITTEN[TOPOLOGY] || []),
+    ];
 
     expect([...keptOnTopology].sort()).toEqual(Object.keys(drawnIn).sort());
 
@@ -2332,7 +2432,9 @@ describe("the four pages together", () => {
     for (const word of keptOnTopology) {
       expect({
         word,
-        drawn: readDashboardSource(drawnIn[word] as string).includes(`"${word}"`),
+        drawn: readDashboardSource(drawnIn[word] as string).includes(
+          `"${word}"`,
+        ),
       }).toEqual({ word, drawn: true });
     }
   });
@@ -2360,7 +2462,11 @@ describe("the four pages together", () => {
       const named: Array<string> = boldNames(english(entry.page));
 
       for (const menuPath of paths[entry.page] || []) {
-        expect({ page: entry.page, menuPath, named: named.includes(menuPath) }).toEqual({
+        expect({
+          page: entry.page,
+          menuPath,
+          named: named.includes(menuPath),
+        }).toEqual({
           page: entry.page,
           menuPath,
           named: true,
