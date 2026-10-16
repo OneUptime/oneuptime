@@ -9,6 +9,7 @@ import {
   scanMarkdown,
 } from "./DocsContentSupport";
 import { drawnActionLabel, isActionLabel } from "./DocsDashboardLabels";
+import { readDashboardSource } from "./DocsDashboardMenus";
 import {
   CARD_LINE,
   anchorProblems,
@@ -76,6 +77,9 @@ import { describe, expect, it } from "@jest/globals";
  *     (SHOWN_IN_ENGLISH); so do permission names (PERMISSIONS), the labels
  *     of other products' consoles (OTHER_CONSOLES) and names of products,
  *     vendors and vendor templates (NAMES).
+ *   - A criteria written out as the form sets it up ("**Noise Floor Greater
+ *     Than -80**") keeps its column as the form lists it and draws its
+ *     condition, which has a key since adc8421a1b (WRITTEN_CRITERIA).
  *
  * The pages' own bold leads are PROSE_LEADS, which a translation words
  * freely. A new bold word on these English pages fails "know every bold
@@ -124,8 +128,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "SNMP Transceiver Reading",
     "SNMP Trap Received (Trap OID)",
     "SNMP Trap Varbind Value",
-    // A criteria as the form shows it: a template column, a filter type, a number.
-    "Noise Floor Greater Than -80",
     // Review Results' label for a host found without a name.
     "No name found",
     // The template and the policy the recommended policy creates, named in English.
@@ -147,6 +149,36 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "SNMP Table Value",
   ],
 };
+
+/*
+ * A criteria written out the way the criteria form sets it up: a vendor
+ * template's column, the condition and the number - "**Noise Floor Greater
+ * Than -80** means the same on every vendor". The form's Column list names a
+ * column by its template name and OID, which no locale has, so the column
+ * stays as written; the condition is a Dashboard label, drawn as this
+ * language's form draws it ("**Noise Floor Größer als -80**" in German); the
+ * number is what a reader types.
+ */
+interface WrittenCriteria {
+  column: string;
+  condition: string;
+  value: string;
+}
+
+const WRITTEN_CRITERIA: Record<string, Array<WrittenCriteria>> = {
+  [DEVICE]: [
+    { column: "Noise Floor", condition: "Greater Than", value: "-80" },
+  ],
+};
+
+// A written-out criteria, as a page in this language writes it.
+function writtenCriteria(language: string, entry: WrittenCriteria): string {
+  return [
+    entry.column,
+    drawnNetworkLabel(language, entry.condition),
+    entry.value,
+  ].join(" ");
+}
 
 // Permission names, which the docs write as the product names them, in English.
 const PERMISSIONS: Record<string, Array<string>> = {
@@ -535,6 +567,7 @@ describe("the lists this test keeps", () => {
       NAMES,
       PROSE,
       PROSE_LEADS,
+      WRITTEN_CRITERIA,
     ]) {
       for (const page of Object.keys(lists)) {
         expect(PAGE_NAMES).toContain(page);
@@ -576,6 +609,37 @@ describe("the lists this test keeps", () => {
     }
   });
 
+  /*
+   * A written-out criteria is drawn only because its condition is a label,
+   * and its column is kept only because the criteria form lists it in
+   * English: either changing fails here.
+   */
+  it("write out only criteria the English page bolds, with a condition the Dashboard draws and a column as the criteria form lists it", () => {
+    const columnLabel: string = readDashboardSource(
+      "Components/Form/Monitor/CriteriaFilter.tsx",
+    );
+
+    // The Column list's option: the column's name and its OID, together.
+    expect(columnLabel).toContain(
+      "label: `${column.name} (${SnmpOidListUtil.normalizeOid(column.oid)})`",
+    );
+
+    for (const page of Object.keys(WRITTEN_CRITERIA)) {
+      const labels: Array<string> = boldLabels(englishPage(page));
+
+      for (const entry of WRITTEN_CRITERIA[page] as Array<WrittenCriteria>) {
+        expect({ page, entry, bold: true, condition: true }).toEqual({
+          page,
+          entry,
+          bold: labels.includes(writtenCriteria("en", entry)),
+          condition: isActionLabel(entry.condition),
+        });
+        // The whole span is no label of its own: it is drawn in parts.
+        expect(isDrawnLabel(writtenCriteria("en", entry))).toBe(false);
+      }
+    }
+  });
+
   it("list permissions, other consoles' labels and names the English pages really make bold", () => {
     for (const lists of [PERMISSIONS, OTHER_CONSOLES, NAMES]) {
       for (const page of Object.keys(lists)) {
@@ -603,7 +667,12 @@ describe("the lists this test keeps", () => {
             !listed(PERMISSIONS, page).includes(span) &&
             !listed(OTHER_CONSOLES, page).includes(span) &&
             !listed(NAMES, page).includes(span) &&
-            !listed(PROSE_LEADS, page).includes(span)
+            !listed(PROSE_LEADS, page).includes(span) &&
+            !(WRITTEN_CRITERIA[page] || []).some(
+              (entry: WrittenCriteria): boolean => {
+                return writtenCriteria("en", entry) === span;
+              },
+            )
           );
         },
       );
@@ -901,6 +970,22 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       expect(missing).toEqual([]);
     });
 
+    it("writes out each criteria with its condition as this language's Dashboard draws it, never in English", () => {
+      const translated: string = readPage(language, entry.page);
+
+      for (const written of WRITTEN_CRITERIA[entry.page] || []) {
+        const drawn: string = writtenCriteria(language, written);
+        const english: string = writtenCriteria("en", written);
+
+        expect({ drawn, found: true, english: false }).toEqual({
+          drawn,
+          found: translated.includes(`**${drawn}**`),
+          // Where the language draws the condition otherwise, the English is gone.
+          english: drawn !== english && translated.includes(`**${english}**`),
+        });
+      }
+    });
+
     it("keeps in English what every Dashboard, and other consoles, show in English, and names, as written", () => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = [
@@ -1023,6 +1108,22 @@ describe("the helpers, on these pages' shapes", () => {
       `**${drawnActionLabel("fa", "Network")}**${PERSIAN_PATH_SEPARATOR}**${drawnActionLabel("fa", "Settings")}**`,
     );
     expect(drawnPath("en", ["Network", "Map"])).toBe("**Network → Map**");
+  });
+
+  it("write a criteria out with its column as listed and its condition drawn", () => {
+    const noiseFloor: WrittenCriteria = {
+      column: "Noise Floor",
+      condition: "Greater Than",
+      value: "-80",
+    };
+
+    expect(writtenCriteria("en", noiseFloor)).toBe(
+      "Noise Floor Greater Than -80",
+    );
+    expect(writtenCriteria("de", noiseFloor)).toBe(
+      `Noise Floor ${drawnActionLabel("de", "Greater Than")} -80`,
+    );
+    expect(writtenCriteria("de", noiseFloor)).not.toContain("Greater Than");
   });
 
   it("name a label drawn from a longer string by its start", () => {

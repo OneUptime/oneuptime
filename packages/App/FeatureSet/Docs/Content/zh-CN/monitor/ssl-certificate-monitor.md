@@ -77,8 +77,8 @@ flowchart TB
 | **Is Not A Valid Certificate** | **是**、**否** | 与 **Is Valid Certificate** 相反：证书未通过这些检查或无法检查时为 **是**。 |
 | **Is Expired Certificate** | **是**、**否** | 证书的到期日期已过。 |
 | **Is Self Signed Certificate** | **是**、**否** | 证书或其链中的某个证书是自签名的。 |
-| **Expires In Days** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 距证书过期的天数。 |
-| **Expires In Hours** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 距证书过期的小时数。 |
+| **Expires In Days** | **大于**、**小于**、**大于或等于**、**小于或等于** | 距证书过期的天数。 |
+| **Expires In Hours** | **大于**、**小于**、**大于或等于**、**小于或等于** | 距证书过期的小时数。 |
 
 **Expires In Days** 按整天计算：14 天 20 小时后过期的证书还剩 14 天。**Expires In Hours** 以同样的方式按整小时计算。
 
@@ -102,7 +102,7 @@ flowchart TB
 在 OneUptime 添加此提醒之前创建的监视器没有“即将过期”条件。要添加它：
 
 1. 在监视器上打开 **配置 → 标准**，然后点击 **编辑监控条件**。
-2. 点击 **添加条件**。将其筛选器设为 **Is Valid Certificate** / **是**，点击 **添加过滤器**，并将第二个设为 **Expires In Days** / **Less Than Or Equal To** / `14`。将 **匹配条件** 保持为 **全部**（有两个筛选器后，它会出现在筛选器下方）。
+2. 点击 **添加条件**。将其筛选器设为 **Is Valid Certificate** / **是**，点击 **添加过滤器**，并将第二个设为 **Expires In Days** / **小于或等于** / `14`。将 **匹配条件** 保持为 **全部**（有两个筛选器后，它会出现在筛选器下方）。
 3. 在 **操作** 下打开 **当过滤器匹配时，创建警报。** 并保持 **当过滤器匹配时，更改监视器状态。** 关闭，使它创建警报而不改变监视器状态。
 4. 将新条件拖到把监视器标记为在线的条件上方，然后保存。
 :::
@@ -111,8 +111,8 @@ flowchart TB
 
 | 目标 | 筛选器 | 条件 | 值 |
 | --- | --- | --- | --- |
-| 提前一个月提醒 | **Expires In Days** | **Less Than Or Equal To** | `30` |
-| 在最后一天呼叫某人 | **Expires In Hours** | **Less Than** | `24` |
+| 提前一个月提醒 | **Expires In Days** | **小于或等于** | `30` |
+| 在最后一天呼叫某人 | **Expires In Hours** | **小于** | `24` |
 | 仅在证书过期后才离线 | **Is Expired Certificate** | **是** | — |
 | 标记自签名证书 | **Is Self Signed Certificate** | **是** | — |
 

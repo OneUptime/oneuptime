@@ -144,7 +144,7 @@ Un nouveau moniteur d'e-mails entrants est créé avec deux critères qui lisent
 | Critère | Type de filtre | Condition de filtre | Valeur | Effet |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
 | Hors ligne | Email Body | Contient | `error` | Marque le moniteur hors ligne, ouvre un incident |
-| En ligne | Email Body | Not Contains | `error` | Marque le moniteur en ligne |
+| En ligne | Email Body | Ne contient pas | `error` | Marque le moniteur en ligne |
 
 Cela convient au cas courant où une tâche ou un outil tiers envoie son propre résultat par e-mail : un message dont le corps mentionne `error` met le moniteur hors ligne, et le message suivant sans ce mot le remet en ligne et résout l'incident. La correspondance sur le corps ne tient pas compte de la casse : `Error` et `ERROR` correspondent aussi.
 
@@ -175,13 +175,13 @@ L'adresse du moniteur lui-même est masquée avant qu'un critère ne lise l'e-ma
 | Condition de filtre | Description | Exemple |
 | ---------------- | ----------------------------------------- | ---------------------------------- |
 | **Contient** | Le champ contient le texte indiqué | L'objet contient "CRITICAL" |
-| **Not Contains** | Le champ ne contient pas le texte indiqué | L'objet ne contient pas "TEST" |
-| **Equal To** | Le champ correspond exactement au texte indiqué | L'expéditeur est égal à "alerts@service.com" |
-| **Not Equal To** | Le champ ne correspond pas au texte indiqué | L'objet est différent de "OK" |
-| **Starts With** | Le champ commence par le texte indiqué | L'objet commence par "[ALERT]" |
-| **Ends With** | Le champ se termine par le texte indiqué | L'objet se termine par "- Production" |
-| **Is Empty** | Le champ est vide | Le corps est vide |
-| **Is Not Empty** | Le champ a un contenu | L'objet n'est pas vide |
+| **Ne contient pas** | Le champ ne contient pas le texte indiqué | L'objet ne contient pas "TEST" |
+| **Égal à** | Le champ correspond exactement au texte indiqué | L'expéditeur est égal à "alerts@service.com" |
+| **Différent de** | Le champ ne correspond pas au texte indiqué | L'objet est différent de "OK" |
+| **Commence par** | Le champ commence par le texte indiqué | L'objet commence par "[ALERT]" |
+| **Se termine par** | Le champ se termine par le texte indiqué | L'objet se termine par "- Production" |
+| **Est vide** | Le champ est vide | Le corps est vide |
+| **N'est pas vide** | Le champ a un contenu | L'objet n'est pas vide |
 
 Toutes ces comparaisons ignorent la casse. Un filtre dont la valeur est vide ne correspond jamais.
 
@@ -221,8 +221,8 @@ Placez le critère critique en premier : les critères sont vérifiés depuis le
 
 | Critère | Filtres | Condition de correspondance | Actions |
 | --- | --- | --- | --- |
-| Tâche échouée | **Email From Address** Equal To `monitoring@legacy-system.com` ; **Objet de l'e-mail** Contient `Failed` | **Tous** | Passer le statut à hors ligne ; déclarer un incident |
-| Tâche réussie | **Email From Address** Equal To `monitoring@legacy-system.com` ; **Objet de l'e-mail** Contient `Success` | **Tous** | Passer le statut à en ligne |
+| Tâche échouée | **Email From Address** Égal à `monitoring@legacy-system.com` ; **Objet de l'e-mail** Contient `Failed` | **Tous** | Passer le statut à hors ligne ; déclarer un incident |
+| Tâche réussie | **Email From Address** Égal à `monitoring@legacy-system.com` ; **Objet de l'e-mail** Contient `Success` | **Tous** | Passer le statut à en ligne |
 
 ### Exemple 3 : moniteur heartbeat (pas d'e-mail = alerte)
 
@@ -240,7 +240,7 @@ Un critère garde un seul incident ouvert à la fois : tant qu'il est ouvert, le
 :::steps
 ### Choisir les e-mails
 
-Donnez au critère un filtre qui correspond aux e-mails pour lesquels ouvrir des incidents. Pour n'accepter que les signalements de vos propres équipes, utilisez **Email From Address** avec **Ends With** et votre domaine, par exemple `@example.com`.
+Donnez au critère un filtre qui correspond aux e-mails pour lesquels ouvrir des incidents. Pour n'accepter que les signalements de vos propres équipes, utilisez **Email From Address** avec **Se termine par** et votre domaine, par exemple `@example.com`.
 
 ### Déclarer l'incident
 
@@ -327,7 +327,7 @@ Tant qu'il n'est pas configuré, la carte d'adresse du moniteur indique que la r
 - **Sécurité de l'adresse e-mail** : l'adresse e-mail du moniteur fonctionne comme un mot de passe : quiconque la connaît peut envoyer des e-mails au moniteur. Ne la partagez pas publiquement, et réinitialisez-la depuis l'onglet **Paramètres** du moniteur si elle fuit.
 - **Taille des e-mails** : OneUptime accepte un e-mail entrant jusqu'à 50 Mo, pièces jointes comprises. Les pièces jointes ne sont pas stockées — seulement leurs noms, types et tailles.
 - **Délai de traitement** : les e-mails sont traités de façon asynchrone. Quelques secondes peuvent séparer l'envoi d'un e-mail et la création de l'alerte.
-- **Insensibilité à la casse** : toutes les comparaisons de chaînes (Contient, Equal To, etc.) ignorent la casse.
+- **Insensibilité à la casse** : toutes les comparaisons de chaînes (Contient, Égal à, etc.) ignorent la casse.
 - **Texte brut** : les critères sur le corps lisent la partie texte brut de l'e-mail. Un e-mail envoyé uniquement en HTML a un corps vide pour les critères — il ne contient donc pas `error`, et les critères par défaut marquent le moniteur en ligne.
 
 ## Dépannage

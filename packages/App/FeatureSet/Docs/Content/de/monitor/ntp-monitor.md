@@ -101,10 +101,10 @@ Kriterien entscheiden, wann der Server als online, eingeschränkt oder offline g
 | --- | --- | --- |
 | **NTP Is Online** | **Wahr**, **Falsch** | Ob der Server die Anfrage der Sonde mit einer NTP-Antwort beantwortet hat. Ein Kiss-o'-Death ist eine Antwort. |
 | **NTP Is Synchronized** | **Wahr**, **Falsch** | Ob der Server, der geantwortet hat, synchronisierte Zeit liefert. Antwortet der Server nicht, wird dieser Filter nicht geprüft; dafür ist **NTP Is Online** da. |
-| **NTP Stratum** | **Greater Than**, **Greater Than Or Equal To**, **Less Than**, **Less Than Or Equal To**, **Equal To**, **Not Equal To** | Das Stratum des Servers. Die 0 eines Kiss-o'-Death zählt als 16, nicht synchronisiert. |
-| **NTP Clock Offset (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Wie weit die Uhr des Servers von der der Sonde abweicht, in beide Richtungen. |
-| **NTP Response Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Von der Anfrage bis zur Antwort. |
-| **NTP Root Dispersion (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Die eigene Schätzung des Servers für seinen maximalen Fehler. |
+| **NTP Stratum** | **Größer als**, **Größer als oder gleich**, **Kleiner als**, **Kleiner als oder gleich**, **Gleich**, **Ungleich** | Das Stratum des Servers. Die 0 eines Kiss-o'-Death zählt als 16, nicht synchronisiert. |
+| **NTP Clock Offset (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Wie weit die Uhr des Servers von der der Sonde abweicht, in beide Richtungen. |
+| **NTP Response Time (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Von der Anfrage bis zur Antwort. |
+| **NTP Root Dispersion (in ms)** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Die eigene Schätzung des Servers für seinen maximalen Fehler. |
 
 Bei zwei oder mehr Filtern entscheidet **Abgleichsbedingung**, ob **Alle** zutreffen müssen oder **Beliebig** einer genügt. Die **Aktionen** eines Kriteriums legen fest, was es tut: den Monitorstatus ändern, einen Alarm erstellen, einen Vorfall erklären oder eine Kombination davon.
 
@@ -125,10 +125,10 @@ Kriterien werden von oben nach unten geprüft, und das erste zutreffende entsche
 
 | Ziel | Filter | Bedingung | Wert |
 | --- | --- | --- | --- |
-| Alarm, wenn ein GPS-Server auf eine Netzwerkquelle zurückfällt | **NTP Stratum** | **Greater Than** | `1` |
-| Alarm, wenn die Uhr abdriftet | **NTP Clock Offset (in ms)** | **Greater Than** | `100` |
-| Alarm, wenn die Fehlergrenze des Servers wächst | **NTP Root Dispersion (in ms)** | **Greater Than** | `500` |
-| Alarm, wenn die Antworten langsam werden | **NTP Response Time (in ms)** | **Greater Than** | `1000` |
+| Alarm, wenn ein GPS-Server auf eine Netzwerkquelle zurückfällt | **NTP Stratum** | **Größer als** | `1` |
+| Alarm, wenn die Uhr abdriftet | **NTP Clock Offset (in ms)** | **Größer als** | `100` |
+| Alarm, wenn die Fehlergrenze des Servers wächst | **NTP Root Dispersion (in ms)** | **Größer als** | `500` |
+| Alarm, wenn die Antworten langsam werden | **NTP Response Time (in ms)** | **Größer als** | `1000` |
 
 ## Fehlerbehebung
 

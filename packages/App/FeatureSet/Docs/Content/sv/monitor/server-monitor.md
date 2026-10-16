@@ -159,7 +159,7 @@ Kriterier avgör när monitorn är online, försämrad eller offline, och när d
 | Filtertyp | Vad den kontrollerar | Filtervillkor |
 | --- | --- | --- |
 | Is Online | Om agenten har rapporterat nyligen (som standard under de senaste 3 minuterna) | Sant, Falskt |
-| CPU Usage (in %) | Total CPU-användning | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| CPU Usage (in %) | Total CPU-användning | Större än, Mindre än, Större än eller lika med, Mindre än eller lika med |
 | Memory Usage (in %) | Minne som används | Som för CPU |
 | Disk Usage (in %) | Användning av disken som anges i **Diskväg** | Som för CPU |
 | Swap Usage (in %) | Swap som används | Som för CPU |
@@ -195,10 +195,10 @@ Kriterier avgör när monitorn är online, försämrad eller offline, och när d
 | Mål | Filtertyp | Filtervillkor | Värde |
 | --- | --- | --- | --- |
 | Markera servern som offline när agenten slutar rapportera | Is Online | Falskt | — |
-| Varna när CPU-användningen är över 90 % | CPU Usage (in %) | Greater Than | `90` |
-| Varna när rotdisken är mer än 85 % full | Disk Usage (in %), **Diskväg** `/` | Greater Than | `85` |
-| Varna för varje disk som är mer än 85 % full, en varning per disk | Disk Usage (in %), **Diskväg** `*` | Greater Than | `85` |
-| Varna när minnesanvändningen är över 80 % | Memory Usage (in %) | Greater Than | `80` |
+| Varna när CPU-användningen är över 90 % | CPU Usage (in %) | Större än | `90` |
+| Varna när rotdisken är mer än 85 % full | Disk Usage (in %), **Diskväg** `/` | Större än | `85` |
+| Varna för varje disk som är mer än 85 % full, en varning per disk | Disk Usage (in %), **Diskväg** `*` | Större än | `85` |
+| Varna när minnesanvändningen är över 80 % | Memory Usage (in %) | Större än | `80` |
 | Varna när nginx slutar köras | Server Process Name | Is Not Executing | `nginx` |
 
 ## Felsökning

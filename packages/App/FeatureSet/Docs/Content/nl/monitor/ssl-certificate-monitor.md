@@ -77,8 +77,8 @@ Criteria bepalen wanneer het certificaat telt als in orde, verminderd of kapot, 
 | **Is Not A Valid Certificate** | **Waar**, **Onwaar** | Het tegenovergestelde van **Is Valid Certificate**: **Waar** wanneer het certificaat die controles niet doorstaat of niet kon worden gecontroleerd. |
 | **Is Expired Certificate** | **Waar**, **Onwaar** | De vervaldatum van het certificaat is verstreken. |
 | **Is Self Signed Certificate** | **Waar**, **Onwaar** | Het certificaat, of een certificaat in de keten, is zelfondertekend. |
-| **Expires In Days** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Dagen totdat het certificaat verloopt. |
-| **Expires In Hours** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Uren totdat het certificaat verloopt. |
+| **Expires In Days** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Dagen totdat het certificaat verloopt. |
+| **Expires In Hours** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Uren totdat het certificaat verloopt. |
 
 **Expires In Days** telt hele dagen: een certificaat dat over 14 dagen en 20 uur verloopt, heeft nog 14 dagen. **Expires In Hours** telt hele uren op dezelfde manier.
 
@@ -102,7 +102,7 @@ Om eerder gewaarschuwd te worden, wijzigt u de waarde van het filter **Expires I
 Monitoren die zijn gemaakt voordat OneUptime deze waarschuwing toevoegde, hebben geen criterium "verloopt binnenkort". Zo voegt u het toe:
 
 1. Open bij de monitor **Configuratie → Criteria** en klik op **Bewakingscriteria bewerken**.
-2. Klik op **Criteria toevoegen**. Zet het filter op **Is Valid Certificate** / **Waar**, klik op **Filter toevoegen** en zet het tweede op **Expires In Days** / **Less Than Or Equal To** / `14`. Laat **Overeenkomstvoorwaarde** op **Alle** staan (het verschijnt onder de filters zodra er twee zijn).
+2. Klik op **Criteria toevoegen**. Zet het filter op **Is Valid Certificate** / **Waar**, klik op **Filter toevoegen** en zet het tweede op **Expires In Days** / **Kleiner dan of gelijk aan** / `14`. Laat **Overeenkomstvoorwaarde** op **Alle** staan (het verschijnt onder de filters zodra er twee zijn).
 3. Zet onder **Acties** **Wanneer filters overeenkomen, maak een waarschuwing aan.** aan en laat **Wanneer filters overeenkomen, wijzig de monitorstatus.** uit, zodat het een waarschuwing aanmaakt en de monitorstatus niet wijzigt.
 4. Sleep het nieuwe criterium boven het criterium dat de monitor als online markeert, en sla op.
 :::
@@ -111,8 +111,8 @@ Monitoren die zijn gemaakt voordat OneUptime deze waarschuwing toevoegde, hebben
 
 | Doel | Filter | Voorwaarde | Waarde |
 | --- | --- | --- | --- |
-| Een maand van tevoren waarschuwen | **Expires In Days** | **Less Than Or Equal To** | `30` |
-| Iemand op de laatste dag oproepen | **Expires In Hours** | **Less Than** | `24` |
+| Een maand van tevoren waarschuwen | **Expires In Days** | **Kleiner dan of gelijk aan** | `30` |
+| Iemand op de laatste dag oproepen | **Expires In Hours** | **Kleiner dan** | `24` |
 | Pas offline wanneer het certificaat verlopen is | **Is Expired Certificate** | **Waar** | — |
 | Een zelfondertekend certificaat markeren | **Is Self Signed Certificate** | **Waar** | — |
 

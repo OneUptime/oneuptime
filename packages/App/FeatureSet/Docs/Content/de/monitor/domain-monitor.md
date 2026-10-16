@@ -106,13 +106,13 @@ Kriterien entscheiden, wann die Domain als in Ordnung oder fehlerhaft gilt und o
 | --- | --- | --- |
 | **Is Online** | **Wahr**, **Falsch** | Ob die Registrierungsabfrage selbst erfolgreich war. |
 | **Is Request Timeout** | **Wahr**, **Falsch** | Ob die Abfrage bei jedem Versuch in ein Zeitlimit gelaufen ist. |
-| **Domain Expires In Days** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Tage, bis die Registrierung abläuft, auf einen ganzen Tag aufgerundet. |
+| **Domain Expires In Days** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** | Tage, bis die Registrierung abläuft, auf einen ganzen Tag aufgerundet. |
 | **Domain Is Expired** | **Wahr**, **Falsch** | Ob das Ablaufdatum überschritten ist. |
-| **Domain Registrar** | **Enthält**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | Der Name des Registrars. |
-| **Domain Name Server** | **Enthält**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | Die Nameserver der Domain. Trifft zu, wenn einer von ihnen zutrifft. |
-| **Domain Status Code** | **Enthält**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | Die EPP-Statuscodes der Domain. Trifft zu, wenn einer von ihnen zutrifft. |
+| **Domain Registrar** | **Enthält**, **Enthält nicht**, **Beginnt mit**, **Endet mit**, **Gleich**, **Ungleich** | Der Name des Registrars. |
+| **Domain Name Server** | **Enthält**, **Enthält nicht**, **Beginnt mit**, **Endet mit**, **Gleich**, **Ungleich** | Die Nameserver der Domain. Trifft zu, wenn einer von ihnen zutrifft. |
+| **Domain Status Code** | **Enthält**, **Enthält nicht**, **Beginnt mit**, **Endet mit**, **Gleich**, **Ungleich** | Die EPP-Statuscodes der Domain. Trifft zu, wenn einer von ihnen zutrifft. |
 
-Statuscodes werden auf ihre EPP-Namen (`clientTransferProhibited`) vereinheitlicht, egal welches Protokoll geantwortet hat, sodass ein Kriterium weiter zutrifft, wenn **Auto** zwischen RDAP und WHOIS wechselt. Registrar-_Namen_ sind das, was der antwortende Dienst veröffentlicht, und können sich zwischen den beiden Protokollen leicht unterscheiden. Verwenden Sie für ein Kriterium mit **Domain Registrar** daher lieber **Enthält** als **Equal To**.
+Statuscodes werden auf ihre EPP-Namen (`clientTransferProhibited`) vereinheitlicht, egal welches Protokoll geantwortet hat, sodass ein Kriterium weiter zutrifft, wenn **Auto** zwischen RDAP und WHOIS wechselt. Registrar-_Namen_ sind das, was der antwortende Dienst veröffentlicht, und können sich zwischen den beiden Protokollen leicht unterscheiden. Verwenden Sie für ein Kriterium mit **Domain Registrar** daher lieber **Enthält** als **Gleich**.
 
 Datumsangaben werden auf ISO 8601 vereinheitlicht. Ein Datum, das eine Registry in einer Form veröffentlicht, die sich nicht auswerten lässt, wird weggelassen statt gespeichert, sodass ein Ablaufkriterium nicht entscheiden kann und nicht zutrifft, statt stillschweigend für immer „nicht abgelaufen“ zu antworten.
 
@@ -136,7 +136,7 @@ Um früher gewarnt zu werden, ändern Sie den Wert des Filters **Domain Expires 
 Monitore, die erstellt wurden, bevor OneUptime diese Warnung eingeführt hat, haben kein Kriterium „läuft bald ab“. So fügen Sie es hinzu:
 
 1. Öffnen Sie beim Monitor **Konfiguration → Kriterien** und klicken Sie auf **Überwachungskriterien bearbeiten**.
-2. Klicken Sie auf **Kriterien hinzufügen**. Setzen Sie seinen Filter auf **Domain Is Expired** / **Falsch**, klicken Sie auf **Filter hinzufügen** und setzen Sie den zweiten auf **Domain Expires In Days** / **Less Than Or Equal To** / `30`. Lassen Sie **Abgleichsbedingung** auf **Alle** (es erscheint unter den Filtern, sobald es zwei sind).
+2. Klicken Sie auf **Kriterien hinzufügen**. Setzen Sie seinen Filter auf **Domain Is Expired** / **Falsch**, klicken Sie auf **Filter hinzufügen** und setzen Sie den zweiten auf **Domain Expires In Days** / **Kleiner als oder gleich** / `30`. Lassen Sie **Abgleichsbedingung** auf **Alle** (es erscheint unter den Filtern, sobald es zwei sind).
 3. Schalten Sie unter **Aktionen** **Wenn Filter übereinstimmen, eine Warnung erstellen.** ein und lassen Sie **Wenn Filter übereinstimmen, Monitorstatus ändern.** ausgeschaltet, sodass es eine Warnung erstellt und den Monitorstatus nicht ändert.
 4. Ziehen Sie das neue Kriterium über das Kriterium, das den Monitor als online markiert, und speichern Sie dann.
 :::
@@ -145,20 +145,20 @@ Monitore, die erstellt wurden, bevor OneUptime diese Warnung eingeführt hat, ha
 
 | Ziel | Filter | Bedingung | Wert |
 | --- | --- | --- | --- |
-| Warnen, wenn die Domain innerhalb von 30 Tagen abläuft (ein Standardkriterium) | **Domain Expires In Days** | **Less Than Or Equal To** | `30` |
+| Warnen, wenn die Domain innerhalb von 30 Tagen abläuft (ein Standardkriterium) | **Domain Expires In Days** | **Kleiner als oder gleich** | `30` |
 | Offline, wenn die Domain abgelaufen ist | **Domain Is Expired** | **Wahr** | — |
 | Offline, wenn die Registrierung nicht gelesen werden kann | **Is Online** | **Falsch** | — |
-| Warnen, wenn sich die Nameserver ändern | **Domain Name Server** | **Not Contains** | `ns1.example.com` |
-| Warnen, wenn die Domain für einen Transfer entsperrt ist | **Domain Status Code** | **Not Contains** | `clientTransferProhibited` |
+| Warnen, wenn sich die Nameserver ändern | **Domain Name Server** | **Enthält nicht** | `ns1.example.com` |
+| Warnen, wenn die Domain für einen Transfer entsperrt ist | **Domain Status Code** | **Enthält nicht** | `clientTransferProhibited` |
 
-**Domain Name Server** und **Domain Status Code** treffen zu, wenn _irgendein_ einzelner Wert zutrifft, daher trifft **Not Contains** zu, sobald ein Nameserver oder ein Statuscode den Text nicht enthält.
+**Domain Name Server** und **Domain Status Code** treffen zu, wenn _irgendein_ einzelner Wert zutrifft, daher trifft **Enthält nicht** zu, sobald ein Nameserver oder ein Statuscode den Text nicht enthält.
 
 ## Bewährte Vorgehensweisen
 
 1. **Lassen Sie sich Zeit zum Verlängern** — Die Standardwarnung kommt 30 Tage vor dem Ablauf. Braucht die Verlängerung Freigaben oder eine Zahlung, die länger dauert, erhöhen Sie sie auf 60 Tage.
 2. **Decken Sie fehlgeschlagene Abfragen ab** — Nehmen Sie einen Filter **Is Online** / **Falsch** in Ihr Offline-Kriterium auf, damit eine nicht lesbare Registrierung nicht für eine gesunde gehalten wird. Neue Monitore haben ihn in ihren Standardkriterien; ein Monitor, der vorher erstellt wurde, braucht ihn von Hand. Um einen WHOIS-Server zu überstehen, der die Sonde ab und zu drosselt, setzen Sie unter diesem Filter **Diese Kriterien über einen Zeitraum hinweg auswerten** und wählen Sie **All Values**: Die Domain geht dann erst offline, wenn jede Abfrage im Fenster fehlgeschlagen ist.
 3. **Überwachen Sie alle wichtigen Domains** — Schließen Sie Hauptdomains, separat registrierte Subdomains und alle Domains ein, die für E-Mails oder APIs verwendet werden.
-4. **Verfolgen Sie Registrarwechsel** — Fügen Sie ein Kriterium mit **Domain Registrar** / **Not Contains** / dem Namen Ihres Registrars hinzu, um einen unbefugten Transfer zu bemerken.
+4. **Verfolgen Sie Registrarwechsel** — Fügen Sie ein Kriterium mit **Domain Registrar** / **Enthält nicht** / dem Namen Ihres Registrars hinzu, um einen unbefugten Transfer zu bemerken.
 
 ## Fehlerbehebung
 

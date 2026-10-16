@@ -396,7 +396,7 @@ Parte di ciò che un dispositivo sa è un elenco: una riga per tunnel IPsec, rad
 
 I numeri vengono letti come numeri, e il testo che inizia con un numero viene letto come quel numero (`"36"`, `"-95 dBm"`, `"80MHz"`), perché molti produttori mettono i numeri dentro stringhe. Imposta il tipo di valore di una colonna su **Text only** per i valori che sembrano soltanto numerici. Le **Value labels** trasformano i codici in parole (`0=inactive, 1=active`): il valore grezzo resta ciò che viene tracciato e confrontato, l'etichetta è ciò che viene mostrato. Gli **Healthy values** (`1`) dicono quali valori significano che va tutto bene: colorano la riga nella pagina **SNMP Tables** del dispositivo e alimentano il criterio **SNMP Table Row Is Unhealthy**.
 
-Alcune colonne dei modelli dei produttori **regolano** anche il numero che leggono, per le MIB che conservano un valore in un'unità tutta loro: ArubaOS riporta la potenza di trasmissione raddoppiata (letta × 0.5), Aruba Instant il rumore di fondo senza segno (× −1), Aerohive il rumore di fondo più 256 (− 256) e il controller di Extreme l'ampiezza del canale in passi di 20 MHz (× 20). Il numero regolato è ciò che viene mostrato, tracciato e confrontato, quindi **Noise Floor Greater Than -80** significa la stessa cosa per ogni produttore, e l'editor delle tabelle mostra il calcolo sotto la colonna.
+Alcune colonne dei modelli dei produttori **regolano** anche il numero che leggono, per le MIB che conservano un valore in un'unità tutta loro: ArubaOS riporta la potenza di trasmissione raddoppiata (letta × 0.5), Aruba Instant il rumore di fondo senza segno (× −1), Aerohive il rumore di fondo più 256 (− 256) e il controller di Extreme l'ampiezza del canale in passi di 20 MHz (× 20). Il numero regolato è ciò che viene mostrato, tracciato e confrontato, quindi **Noise Floor Maggiore di -80** significa la stessa cosa per ogni produttore, e l'editor delle tabelle mostra il calcolo sotto la colonna.
 
 Le tabelle vengono da un [OID Collection Template](#oid-collection-templates), condiviso da ogni dispositivo collegato (fino a 10 tabelle), o dal dispositivo stesso in **Device-Specific SNMP Tables** (fino a 10 in più). Si uniscono per chiave a ogni polling, prima il modello, e una tabella del dispositivo con la stessa chiave sostituisce quella del modello. Entrambi gli editor offrono **Add a Vendor's Tables**.
 
@@ -779,7 +779,7 @@ In un polling senza walk, i criteri indicati come «Non valutato» non restituis
 
 I controlli sulle interfacce richiedono **Walk Interfaces** attivo nelle impostazioni di polling del dispositivo, come è per impostazione predefinita. I controlli sugli OID leggono gli OID di salute configurati del dispositivo. Le interfacce disabilitate a livello amministrativo sono spente di proposito e non contano mai come guasti.
 
-I criteri delle tabelle SNMP scelgono una tabella, una colonna (per SNMP Table Value) e un ambito di righe. Vuoto giudica tutte le righe come un unico avviso combinato; `*` genera un avviso separato per ogni riga, ognuno dei quali si risolve da solo e porta il nome della sua riga; qualsiasi altro valore indica una riga per nome o per indice. I numeri si confrontano come numeri, e il testo sia con il valore grezzo sia con la sua etichetta, quindi Not Equal To `active` e Not Equal To `1` intercettano entrambi un tunnel Sophos inattivo. Una tabella il cui walk è fallito in questo polling non viene valutata invece di essere letta come vuota, e i criteri delle tabelle giudicano solo il walk attuale, non un arco di tempo.
+I criteri delle tabelle SNMP scelgono una tabella, una colonna (per SNMP Table Value) e un ambito di righe. Vuoto giudica tutte le righe come un unico avviso combinato; `*` genera un avviso separato per ogni riga, ognuno dei quali si risolve da solo e porta il nome della sua riga; qualsiasi altro valore indica una riga per nome o per indice. I numeri si confrontano come numeri, e il testo sia con il valore grezzo sia con la sua etichetta, quindi Diverso da `active` e Diverso da `1` intercettano entrambi un tunnel Sophos inattivo. Una tabella il cui walk è fallito in questo polling non viene valutata invece di essere letta come vuota, e i criteri delle tabelle giudicano solo il walk attuale, non un arco di tempo.
 
 I criteri dei transceiver hanno un ambito come i controlli sulle interfacce: vuoto giudica tutte le ottiche come un unico avviso combinato, `*` genera un avviso separato per ogni porta con un'ottica (ognuno si risolve da solo e porta il nome della sua porta), e qualsiasi altro valore indica una porta per nome o per alias. Giudicano i [transceiver](#transceiver) del dispositivo così come sono in questo polling, che contengono già la loro storia — da quanti polling manca un'ottica, un mese di potenza ricevuta —, quindi nemmeno loro vengono valutati su un arco di tempo. Un polling in cui la lettura dei transceiver è fallita li lascia a giudicare l'ultima lettura valida, quindi un avviso aperto non si risolve con un polling che non ha potuto guardare.
 
@@ -860,19 +860,19 @@ L'abbinamento avviene per indirizzo, non per credenziali, quindi anche un dispos
 #### Esempio: aprire un incidente su linkDown
 
 - **Tipo di filtro**: SNMP Trap Received (Trap OID)
-- **Condizione del filtro**: Equal To
+- **Condizione del filtro**: Uguale a
 - **Valore**: `1.3.6.1.6.3.1.1.5.3`
 
-Il filtro offre anche Contains, Starts With ed Ends With, quindi un solo criterio può intercettare una famiglia di trap enterprise tramite il prefisso dell'OID.
+Il filtro offre anche Contiene, Inizia con e Finisce con, quindi un solo criterio può intercettare una famiglia di trap enterprise tramite il prefisso dell'OID.
 
 #### Esempio: distinguere eventi che condividono lo stesso OID di trap
 
 Alcuni produttori inviano ogni evento come lo stesso trap e mettono l'evento in un varbind di testo: ogni notifica di un Sophos Firewall è `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`) con il messaggio in `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Combina i due in un criterio:
 
-- **SNMP Trap Received (Trap OID)**: Equal To `1.3.6.1.4.1.2604.5.1.8.1.1`
-- **SNMP Trap Varbind Value**: OID del varbind `1.3.6.1.4.1.2604.5.1.8.1.2`, Contains `IPSec`
+- **SNMP Trap Received (Trap OID)**: Uguale a `1.3.6.1.4.1.2604.5.1.8.1.1`
+- **SNMP Trap Varbind Value**: OID del varbind `1.3.6.1.4.1.2604.5.1.8.1.2`, Contiene `IPSec`
 
-Un filtro negativo (Not Contains, Not Equal To, Is Empty) è soddisfatto solo quando nessun varbind nell'ambito corrisponde alla sua forma positiva. Lascia vuoto l'OID del varbind per cercare in tutti i varbind che porta il trap.
+Un filtro negativo (Non contiene, Diverso da, È vuoto) è soddisfatto solo quando nessun varbind nell'ambito corrisponde alla sua forma positiva. Lascia vuoto l'OID del varbind per cercare in tutti i varbind che porta il trap.
 
 ## Variabili dei modelli per gli avvisi
 

@@ -2,11 +2,14 @@ import CustomCallSMSTable from "../../Components/CallSMS/CallSMSConfigTable";
 import CustomSMTPTable from "../../Components/CustomSMTP/CustomSMTPTable";
 import ProjectNotificationChannelsCard from "../../Components/NotificationMethods/ProjectNotificationChannelsCard";
 import {
+  getCurrentProjectBillingMarketplace,
+  getMarketplaceBalanceCardDescription,
   getProjectBalanceAccess,
   getProjectBalanceCardDescription,
   getRechargeBalanceButtons,
   ProjectBalanceAccess,
 } from "../../Components/ProjectBalance/ProjectBalanceAccess";
+import CloudMarketplace from "Common/Types/Marketplace/CloudMarketplace";
 import AutoRechargeFailedNotice from "../../Components/ProjectBalance/AutoRechargeFailedNotice";
 import {
   getProjectColumnsEditGate,
@@ -75,6 +78,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const balanceAccess: ProjectBalanceAccess = getProjectBalanceAccess(
     ProjectBalanceType.SmsOrCall,
   );
+  // A project a cloud marketplace bills has no card: its recharges go there.
+  const billingMarketplace: CloudMarketplace | null =
+    getCurrentProjectBillingMarketplace();
   const autoRechargeGate: ProjectColumnsEditGate = getProjectColumnsEditGate({
     fields: [
       ...PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS[ProjectBalanceType.SmsOrCall],
@@ -99,10 +105,17 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           name="Current Balance"
           cardProps={{
             title: "Current Balance",
-            description: getProjectBalanceCardDescription(
-              ProjectBalanceType.SmsOrCall,
-              balanceAccess,
-            ),
+            description: billingMarketplace
+              ? getMarketplaceBalanceCardDescription({
+                  balance: ProjectBalanceType.SmsOrCall,
+                  access: balanceAccess,
+                  marketplace: billingMarketplace,
+                  translator: translator,
+                })
+              : getProjectBalanceCardDescription(
+                  ProjectBalanceType.SmsOrCall,
+                  balanceAccess,
+                ),
             buttons: getRechargeBalanceButtons({
               access: balanceAccess,
               translator: translator,

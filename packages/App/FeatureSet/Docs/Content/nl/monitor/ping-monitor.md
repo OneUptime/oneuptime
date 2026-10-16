@@ -82,9 +82,9 @@ Criteria bepalen wanneer de host als online, verminderd of offline telt, en of d
 | Filter | Voorwaarden | Wat het controleert |
 | --- | --- | --- |
 | **Is Online** | **Waar**, **Onwaar** | Of minstens één echoverzoek een antwoord kreeg. |
-| **Reactietijd (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | De gemiddelde roundtriptijd van de antwoorden. |
-| **Packet Loss (in %)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Het deel van de vijf echoverzoeken dat geen antwoord kreeg. |
-| **Jitter (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | De standaardafwijking van de roundtriptijden over de pakketten van één controle. |
+| **Reactietijd (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | De gemiddelde roundtriptijd van de antwoorden. |
+| **Packet Loss (in %)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Het deel van de vijf echoverzoeken dat geen antwoord kreeg. |
+| **Jitter (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | De standaardafwijking van de roundtriptijden over de pakketten van één controle. |
 | **Is Request Timeout** | **Waar**, **Onwaar** | Of de ping bij elke poging een time-out bereikte. |
 
 Bij twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** moeten overeenkomen of dat **Elke** afzonderlijke filter volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing maken, een incident melden, of meerdere daarvan.
@@ -127,9 +127,9 @@ Maak het venster langer dan het monitoringinterval, zodat het meerdere controles
 | Doel | Filter | Voorwaarde | Waarde |
 | --- | --- | --- | --- |
 | Offline wanneer de host onbereikbaar is | **Is Online** | **Onwaar** | — |
-| Waarschuwen bij hoge latentie | **Reactietijd (in ms)** | **Greater Than** | `200` |
-| De host als verminderd markeren op een verbinding met verlies | **Packet Loss (in %)** | **Greater Than** | `20` |
-| Waarschuwen bij een instabiele verbinding | **Jitter (in ms)** | **Greater Than** | `30` |
+| Waarschuwen bij hoge latentie | **Reactietijd (in ms)** | **Groter dan** | `200` |
+| De host als verminderd markeren op een verbinding met verlies | **Packet Loss (in %)** | **Groter dan** | `20` |
+| Waarschuwen bij een instabiele verbinding | **Jitter (in ms)** | **Groter dan** | `30` |
 
 Om alleen te waarschuwen wanneer de latentie hoog blijft, zet u **Evalueer deze criteria over een bepaalde periode** aan voor het reactietijdfilter en kiest u **All Values** over **5** minuten.
 

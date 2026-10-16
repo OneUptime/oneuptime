@@ -101,10 +101,10 @@ Kriterier avgör när servern räknas som online, försämrad eller offline, och
 | --- | --- | --- |
 | **NTP Is Online** | **Sant**, **Falskt** | Om servern besvarade sondens begäran med ett NTP-svar. Ett kiss-o'-death är ett svar. |
 | **NTP Is Synchronized** | **Sant**, **Falskt** | Om servern som svarade levererar synkroniserad tid. När servern inte svarar kontrolleras inte det här filtret; använd **NTP Is Online** för det. |
-| **NTP Stratum** | **Greater Than**, **Greater Than Or Equal To**, **Less Than**, **Less Than Or Equal To**, **Equal To**, **Not Equal To** | Serverns stratum. Ett kiss-o'-deaths 0 räknas som 16, inte synkroniserad. |
-| **NTP Clock Offset (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Hur långt serverns klocka ligger från sondens, åt båda hållen. |
-| **NTP Response Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Från begäran till svaret. |
-| **NTP Root Dispersion (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Serverns egen uppskattning av sitt största fel. |
+| **NTP Stratum** | **Större än**, **Större än eller lika med**, **Mindre än**, **Mindre än eller lika med**, **Lika med**, **Inte lika med** | Serverns stratum. Ett kiss-o'-deaths 0 räknas som 16, inte synkroniserad. |
+| **NTP Clock Offset (in ms)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Hur långt serverns klocka ligger från sondens, åt båda hållen. |
+| **NTP Response Time (in ms)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Från begäran till svaret. |
+| **NTP Root Dispersion (in ms)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Serverns egen uppskattning av sitt största fel. |
 
 Med två eller flera filter avgör **Matchningsvillkor** om **Alla** måste matcha eller om det räcker med **Valfri** av dem. Ett kriteriums **Åtgärder** avgör vad det gör: ändrar monitorns status, skapar en varning, deklarerar en incident eller en kombination av dessa.
 
@@ -125,10 +125,10 @@ Kriterierna kontrolleras uppifrån och ned, och det första som matchar avgör v
 
 | Mål | Filter | Villkor | Värde |
 | --- | --- | --- | --- |
-| Varna när en GPS-server faller tillbaka på en nätverkskälla | **NTP Stratum** | **Greater Than** | `1` |
-| Varna när klockan driver | **NTP Clock Offset (in ms)** | **Greater Than** | `100` |
-| Varna när serverns felmarginal växer | **NTP Root Dispersion (in ms)** | **Greater Than** | `500` |
-| Varna när svaren blir långsamma | **NTP Response Time (in ms)** | **Greater Than** | `1000` |
+| Varna när en GPS-server faller tillbaka på en nätverkskälla | **NTP Stratum** | **Större än** | `1` |
+| Varna när klockan driver | **NTP Clock Offset (in ms)** | **Större än** | `100` |
+| Varna när serverns felmarginal växer | **NTP Root Dispersion (in ms)** | **Större än** | `500` |
+| Varna när svaren blir långsamma | **NTP Response Time (in ms)** | **Större än** | `1000` |
 
 ## Felsökning
 

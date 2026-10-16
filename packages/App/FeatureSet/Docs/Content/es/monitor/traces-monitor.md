@@ -97,11 +97,11 @@ Los criterios de un monitor de trazas tienen un único **Tipo de filtro**: **Spa
 
 | Condición de filtro | Coincide cuando el recuento de spans está… |
 | --- | --- |
-| **Greater Than** | por encima del valor |
-| **Greater Than Or Equal To** | en el valor o por encima |
-| **Less Than** | por debajo del valor |
-| **Less Than Or Equal To** | en el valor o por debajo |
-| **Equal To** | exactamente en el valor |
+| **Mayor que** | por encima del valor |
+| **Mayor o igual que** | en el valor o por encima |
+| **Menor que** | por debajo del valor |
+| **Menor o igual que** | en el valor o por debajo |
+| **Igual a** | exactamente en el valor |
 | **Anomalously High** | por encima del rango esperado para esta hora de la semana |
 | **Anomalously Low** | por debajo de ese rango |
 | **Anomalous** | fuera de ese rango, en cualquier sentido |
@@ -112,8 +112,8 @@ Un monitor de trazas nuevo empieza con estos criterios:
 
 | Criterio | Filtro | Efecto |
 | --- | --- | --- |
-| Check if … is offline | **Span Count** **Equal To** `0` | Pone el monitor fuera de línea y declara un incidente que se resuelve solo |
-| Check if … is online | **Span Count** **Greater Than** `0` | Pone el monitor en línea |
+| Check if … is offline | **Span Count** **Igual a** `0` | Pone el monitor fuera de línea y declara un incidente que se resuelve solo |
+| Check if … is online | **Span Count** **Mayor que** `0` | Pone el monitor en línea |
 
 ## Ejemplo práctico: solicitudes de checkout fallidas
 
@@ -131,8 +131,8 @@ Para que te avisen cuando fallen más de 10 solicitudes de checkout en cinco min
 - **Nombre del span**: `POST /api/checkout`
 - **Trazas del monitor durante (tiempo)**: **Últimos 5 minutos**
 - **Filtrar por estado de span**: **Error**
-- Criterio 1: **Span Count** **Greater Than** `10`: poner el monitor fuera de línea y declarar un incidente
-- Criterio 2: **Span Count** **Less Than Or Equal To** `10`: poner el monitor en línea
+- Criterio 1: **Span Count** **Mayor que** `10`: poner el monitor fuera de línea y declarar un incidente
+- Criterio 2: **Span Count** **Menor o igual que** `10`: poner el monitor en línea
 
 Con 30 solicitudes fallidas, coincide el criterio 1 y se declara el incidente. Cuando pasan cinco minutos con 10 fallos o menos, coincide el criterio 2, el monitor vuelve a estar en línea y el incidente se resuelve solo.
 

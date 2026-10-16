@@ -234,10 +234,10 @@ En körning kan samla in högst 100 mätvärden, bara med numeriska värden, och
 | **Fel** | Felet som en körning kastade, om något. |
 | **Result Value** | `data` som en körning returnerade. |
 | **Körningstid (i ms)** | Hur lång tid en körning tog. |
-| **Webbläsartyp** | Webbläsaren som en körning använde: **Equal To** eller **Not Equal To**. |
-| **Screen Size** | Skärmstorleken som en körning använde: **Equal To** eller **Not Equal To**. |
+| **Webbläsartyp** | Webbläsaren som en körning använde: **Lika med** eller **Inte lika med**. |
+| **Screen Size** | Skärmstorleken som en körning använde: **Lika med** eller **Inte lika med**. |
 
-Varje filter kontrolleras mot varje körning och matchar när någon enda körning matchar det. Filtren kontrolleras var för sig, inte körning för körning: **Fel** Is Not Empty tillsammans med **Webbläsartyp** Equal To `Firefox` matchar när någon körning misslyckades och en av körningarna använde Firefox — inte bara när Firefox-körningen misslyckades. Om du vill följa en webbläsare för sig ger du den en egen monitor.
+Varje filter kontrolleras mot varje körning och matchar när någon enda körning matchar det. Filtren kontrolleras var för sig, inte körning för körning: **Fel** Är inte tom tillsammans med **Webbläsartyp** Lika med `Firefox` matchar när någon körning misslyckades och en av körningarna använde Firefox — inte bara när Firefox-körningen misslyckades. Om du vill följa en webbläsare för sig ger du den en egen monitor.
 
 I incident- och larmmallar finns varje körning i `{{syntheticResponses}}`: se [Incident- och varningsmallar](/docs/monitor/incident-alert-templating#syntetiska-monitorer).
 

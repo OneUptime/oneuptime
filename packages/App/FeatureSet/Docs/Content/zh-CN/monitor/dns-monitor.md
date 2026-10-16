@@ -96,12 +96,12 @@ flowchart TB
 | 筛选器 | 条件 | 检查内容 |
 | --- | --- | --- |
 | **DNS Is Online** | **是**、**否** | 查询是否返回了至少一条该类型的记录。 |
-| **DNS Response Time (in ms)** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** | 查询所用的时间。 |
+| **DNS Response Time (in ms)** | **大于**、**小于**、**大于或等于**、**小于或等于** | 查询所用的时间。 |
 | **DNS Record Exists** | **是**、**否** | 是否返回了该类型的任何记录。 |
-| **DNS Record Value** | **包含**、**Not Contains**、**Starts With**、**Ends With**、**Equal To**、**Not Equal To** | 记录的值。只要有一条记录匹配，筛选器即匹配。 |
+| **DNS Record Value** | **包含**、**不包含**、**开头是**、**结尾是**、**等于**、**不等于** | 记录的值。只要有一条记录匹配，筛选器即匹配。 |
 | **DNSSEC Is Valid** | **是**、**否** | 验证型解析器是否在应答上设置了 AD 标志。 |
 
-只要 _任意一条_ 记录匹配，**DNS Record Value** 就会匹配。有多条 `A` 记录时，只要其中一条是该地址，**Equal To** `93.184.216.34` 就会匹配；只要其中一条不是该地址，**Not Equal To** 就会匹配。
+只要 _任意一条_ 记录匹配，**DNS Record Value** 就会匹配。有多条 `A` 记录时，只要其中一条是该地址，**等于** `93.184.216.34` 就会匹配；只要其中一条不是该地址，**不等于** 就会匹配。
 
 **DNSSEC Is Valid** 会在 **DNS 服务器（可选）** 中服务器的 **端口** 上查询它；该字段为空时，则查询 Google Public DNS（`8.8.8.8`）。因此您设置的服务器应当能够验证 DNSSEC。当探测器无法执行此检查时，该筛选器没有值，两种情况都不匹配。要全面检查已签名的区域，请使用 [DNSSEC 监控](/docs/monitor/dnssec-monitor)。
 
@@ -141,9 +141,9 @@ flowchart TB
 | 目标 | 筛选器 | 条件 | 值 |
 | --- | --- | --- | --- |
 | 名称不再能解析时为离线 | **DNS Is Online** | **否** | — |
-| 名称唯一的 `A` 记录变化时发出警报 | **DNS Record Value** | **Not Equal To** | `93.184.216.34` |
-| `MX` 记录指向您的域名之外时发出警报 | **DNS Record Value** | **Not Contains** | `example.com` |
-| DNS 变慢时标记为性能下降 | **DNS Response Time (in ms)** | **Greater Than** | `500` |
+| 名称唯一的 `A` 记录变化时发出警报 | **DNS Record Value** | **不等于** | `93.184.216.34` |
+| `MX` 记录指向您的域名之外时发出警报 | **DNS Record Value** | **不包含** | `example.com` |
+| DNS 变慢时标记为性能下降 | **DNS Response Time (in ms)** | **大于** | `500` |
 | DNSSEC 验证失败时发出警报 | **DNSSEC Is Valid** | **否** | — |
 
 ## 故障排查
@@ -156,11 +156,11 @@ dig @8.8.8.8 example.com A
 ```
 :::
 
-:::details 正确的地址明明存在，Not Equal To 条件却触发了
-只要有一条记录匹配，**DNS Record Value** 就会匹配。有多条记录时，只要其中一条不同，**Not Equal To** 就会触发。要检查某个特定值是否在记录之中，请利用条件的顺序，因为第一个匹配的条件生效：
+:::details 正确的地址明明存在，“不等于”条件却触发了
+只要有一条记录匹配，**DNS Record Value** 就会匹配。有多条记录时，只要其中一条不同，**不等于** 就会触发。要检查某个特定值是否在记录之中，请利用条件的顺序，因为第一个匹配的条件生效：
 
 1. 将默认的离线条件保留在最上方：**DNS Is Online** / **否**。
-2. 在其下方添加一个 **DNS Record Value** / **Equal To** / 期望值 的条件，将监视器标记为 **运行正常**。
+2. 在其下方添加一个 **DNS Record Value** / **等于** / 期望值 的条件，将监视器标记为 **运行正常**。
 3. 再在其下方添加一个 **DNS Is Online** / **是** 的条件，将监视器标记为 **离线** 并声明事件。它只匹配不含该值的应答。
 :::
 

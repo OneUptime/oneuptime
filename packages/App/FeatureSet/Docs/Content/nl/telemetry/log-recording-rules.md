@@ -169,7 +169,7 @@ Maak een monitor van het type **Metrieken** (zie [Metrics-monitor](/docs/monitor
 1. **Metriekquery:** `sdwan.gateway.latency.ms`, aggregatie **Gemiddelde**, **Groeperen op** `gw_name` en `profile_name`.
 2. **Voortschrijdend tijdvenster:** Past 15 Minutes. De firewall meldt zich om de paar minuten, dus het venster bevat meerdere punten per gateway.
 3. **Aggregatiestrategie:** **All Values**: elk punt in het venster moet de drempel overschrijden, zodat één trage samenvatting niemand oproept. Gebruik in plaats daarvan **Gemiddelde** om bij een hoog gemiddelde te waarschuwen.
-4. **Criteria:** Metric value **Greater Than** `150` opent een waarschuwing.
+4. **Criteria:** Metric value **Groter dan** `150` opent een waarschuwing.
 5. Gebruik eventueel de groeperingswaarden in de titel van de waarschuwing, bijvoorbeeld `SD-WAN latency high on {{gw_name}} ({{profile_name}})`.
 
 Met groepering ingesteld is elke gateway een eigen reeks: wordt WAN2 traag, dan opent er alleen voor WAN2 een waarschuwing, en die lost zichzelf op wanneer WAN2 herstelt. Zie [Waarschuwingen per reeks](/docs/monitor/metrics-monitor#waarschuwingen-per-reeks-group-by).

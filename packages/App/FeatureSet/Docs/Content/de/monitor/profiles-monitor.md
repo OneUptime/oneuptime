@@ -90,12 +90,12 @@ Die Kriterien eines Profile-Monitors haben einen Filter, **Profile Count**: die 
 
 | Filterbedingung | Passt, wenn die Anzahl der Profile … |
 | --- | --- |
-| **Greater Than** | über dem Wert liegt |
-| **Greater Than Or Equal To** | den Wert erreicht oder darüber liegt |
-| **Less Than** | unter dem Wert liegt |
-| **Less Than Or Equal To** | den Wert erreicht oder darunter liegt |
-| **Equal To** | genau dem Wert entspricht |
-| **Not Equal To** | alles außer dem Wert ist |
+| **Größer als** | über dem Wert liegt |
+| **Größer als oder gleich** | den Wert erreicht oder darüber liegt |
+| **Kleiner als** | unter dem Wert liegt |
+| **Kleiner als oder gleich** | den Wert erreicht oder darunter liegt |
+| **Gleich** | genau dem Wert entspricht |
+| **Ungleich** | alles außer dem Wert ist |
 
 Für Profilanzahlen gibt es keine Anomaliebedingungen: Es gibt keine Baseline, mit der sie verglichen werden könnten.
 
@@ -104,8 +104,8 @@ Für Profilanzahlen gibt es keine Anomaliebedingungen: Es gibt keine Baseline, m
 Der Checkout-Dienst führt ein Pyroscope-SDK aus, das CPU-Profile hochlädt. Sie wollen einen Vorfall, wenn diese fünf Minuten lang ausbleiben:
 
 - `profileTypes`: `["cpu"]`, `telemetryServiceIds`: der Checkout-Dienst, `lastXSecondsOfProfiles`: `300`
-- Kriterium 1: **Profile Count** **Equal To** `0` – den Monitor auf offline setzen und einen Vorfall eröffnen
-- Kriterium 2: **Profile Count** **Greater Than** `0` – den Monitor auf online setzen
+- Kriterium 1: **Profile Count** **Gleich** `0` – den Monitor auf offline setzen und einen Vorfall eröffnen
+- Kriterium 2: **Profile Count** **Größer als** `0` – den Monitor auf online setzen
 
 Solange das SDK hochlädt, zählt jede Auswertung einige Profile, und Kriterium 2 hält den Monitor online. Wird der Dienst ohne das SDK ausgerollt, fällt die Anzahl fünf Minuten nach dem letzten Upload auf 0, Kriterium 1 passt, und der Vorfall wird eröffnet. Der erste Upload nach der Korrektur hebt die Anzahl wieder über 0, und der Vorfall behebt sich selbst, wenn **Vorfall automatisch beheben** dafür eingeschaltet ist.
 

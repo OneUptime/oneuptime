@@ -4259,6 +4259,204 @@
             },
             "additionalProperties": false
         },
+        "microsoftSignInApp": {
+            "type": "object",
+            "properties": {
+                "clientId": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "clientSecret": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "existingSecret": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "clientIdKey": {
+                            "type": "string"
+                        },
+                        "clientSecretKey": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "name",
+                        "clientIdKey",
+                        "clientSecretKey"
+                    ],
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "cloudMarketplace": {
+            "type": "object",
+            "properties": {
+                "aws": {
+                    "type": "object",
+                    "properties": {
+                        "accessKeyId": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "secretAccessKey": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "productCode": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "eventsSecret": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "existingSecret": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                },
+                                "secretAccessKeyKey": {
+                                    "type": "string"
+                                },
+                                "eventsSecretKey": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "name",
+                                "secretAccessKeyKey",
+                                "eventsSecretKey"
+                            ],
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "azure": {
+                    "type": "object",
+                    "properties": {
+                        "tenantId": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "clientId": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "clientSecret": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "existingSecret": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                },
+                                "clientSecretKey": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "name",
+                                "clientSecretKey"
+                            ],
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "googleCloud": {
+                    "type": "object",
+                    "properties": {
+                        "providerId": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "serviceAccountKey": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "serviceName": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "usageMetric": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "pubSubServiceAccountEmail": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "signupAudience": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "pubSubAudience": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "existingSecret": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                },
+                                "serviceAccountKeyKey": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "name",
+                                "serviceAccountKeyKey"
+                            ],
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
         "inboundEmail": {
             "type": "object",
             "properties": {

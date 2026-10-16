@@ -12,6 +12,8 @@ import SubscriptionPlan, {
 } from "../../../Types/Billing/SubscriptionPlan";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../Types/ObjectID";
+import SubscriptionStatus from "../../../Types/Billing/SubscriptionStatus";
+import CloudMarketplace from "../../../Types/Marketplace/CloudMarketplace";
 import Stripe from "stripe";
 import { getJestSpyOn } from "../../Spy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
@@ -388,6 +390,56 @@ describe("PayAsYouGoBillingService", () => {
   it("does not treat an incomplete reseller reference as payment authorization", async () => {
     project.resellerId = ObjectID.generate();
     await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(false);
+  });
+
+  describe("projects billed by a cloud marketplace", () => {
+    beforeEach(() => {
+      // A project created for a marketplace purchase: no card customer, no card subscription.
+      project.billingMarketplace = CloudMarketplace.AWS;
+      delete project.paymentProviderCustomerId;
+      delete project.paymentProviderSubscriptionId;
+    });
+
+    it("may incur usage while the purchase is in force, without a card", async () => {
+      project.paymentProviderSubscriptionStatus = SubscriptionStatus.Active;
+
+      await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(true);
+      expect(hasPaymentMethods).not.toHaveBeenCalled();
+    });
+
+    it("counts a project with no status yet as in force, like every other project", async () => {
+      delete project.paymentProviderSubscriptionStatus;
+
+      await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(true);
+    });
+
+    it("may not once the marketplace has suspended or cancelled the purchase", async () => {
+      for (const status of [
+        SubscriptionStatus.Unpaid,
+        SubscriptionStatus.Canceled,
+        SubscriptionStatus.Incomplete,
+      ]) {
+        project.paymentProviderSubscriptionStatus = status;
+        service.invalidate(PROJECT_ID);
+
+        await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(false);
+      }
+
+      expect(hasPaymentMethods).not.toHaveBeenCalled();
+    });
+
+    it("has no Stripe telemetry cutoff: the marketplace bills every day of it", async () => {
+      project.paymentProviderSubscriptionStatus = SubscriptionStatus.Active;
+      const start: jest.SpyInstance = getJestSpyOn(
+        BillingService,
+        "getMeteredBillingStartDate",
+      );
+
+      await expect(
+        service.getTelemetryBillingStartDate(PROJECT_ID),
+      ).resolves.toBeUndefined();
+      expect(start).not.toHaveBeenCalled();
+    });
   });
 
   describe("paid subscriptions without a stored payment method", () => {

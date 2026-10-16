@@ -119,10 +119,10 @@ flowchart TB
 | फ़िल्टर प्रकार | यह क्या जाँचता है | फ़िल्टर शर्तें |
 | --- | --- | --- |
 | **External Status Page Is Online** | क्या स्थिति पृष्ठ पहुँच योग्य है और स्थिति डेटा लौटा रहा है | सही या गलत |
-| **External Status Page Overall Status** | पृष्ठ द्वारा बताई गई समग्र स्थिति | Equal To, Not Equal To, शामिल है, Not Contains, Starts With, Ends With |
-| **External Status Page Component Status** | दायरे के घटकों की स्थिति (घटक समूह / घटक नाम फ़िल्टर का पालन करते हुए): कार्यरत, Under Maintenance, Degraded Performance, Partial Outage, Major Outage या Full Outage | Equal To, Not Equal To, शामिल है, Not Contains, Starts With, Ends With |
-| **External Status Page Active Incidents** | स्थिति पृष्ठ पर अभी सक्रिय घटनाओं की संख्या (फ़िल्टर सेट होने पर घटक समूह / घटक तक सीमित) | Equal To, Not Equal To, और संख्यात्मक तुलनाएँ |
-| **External Status Page Response Time (in ms)** | स्थिति पृष्ठ का डेटा लाने में कितना समय लगता है | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| **External Status Page Overall Status** | पृष्ठ द्वारा बताई गई समग्र स्थिति | बराबर है, बराबर नहीं है, शामिल है, शामिल नहीं है, से शुरू होता है, पर खत्म होता है |
+| **External Status Page Component Status** | दायरे के घटकों की स्थिति (घटक समूह / घटक नाम फ़िल्टर का पालन करते हुए): कार्यरत, Under Maintenance, Degraded Performance, Partial Outage, Major Outage या Full Outage | बराबर है, बराबर नहीं है, शामिल है, शामिल नहीं है, से शुरू होता है, पर खत्म होता है |
+| **External Status Page Active Incidents** | स्थिति पृष्ठ पर अभी सक्रिय घटनाओं की संख्या (फ़िल्टर सेट होने पर घटक समूह / घटक तक सीमित) | बराबर है, बराबर नहीं है, और संख्यात्मक तुलनाएँ |
+| **External Status Page Response Time (in ms)** | स्थिति पृष्ठ का डेटा लाने में कितना समय लगता है | से बड़ा, से छोटा, से बड़ा या बराबर, से छोटा या बराबर |
 
 समग्र स्थिति वही है जो पृष्ठ कहता है, इसलिए उसके मान प्रदाता के अनुसार बदलते हैं: Atlassian Statuspage अपना विवरण बताता है, जैसे `All Systems Operational`; feed `operational` या `degraded_performance` बताता है; पहुँच-योग्यता जाँच `reachable` या `unreachable` बताती है। ये तुलनाएँ case-sensitive हैं। Outages पर अलर्ट के लिए **External Status Page Active Incidents** और **External Status Page Component Status** आम तौर पर ज़्यादा भरोसेमंद होते हैं।
 

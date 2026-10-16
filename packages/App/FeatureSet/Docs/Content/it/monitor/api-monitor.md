@@ -155,11 +155,11 @@ I criteri decidono quando l'API conta come online, degradata o offline, e se ci�
 | Filtro | Condizioni | Cosa controlla |
 | --- | --- | --- |
 | **Is Online** | **Vero**, **Falso** | Se l'API ha risposto, qualunque sia il codice di stato. |
-| **Codice di stato della risposta** | **Equal To**, **Not Equal To**, **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Il codice di stato HTTP. |
-| **Tempo di risposta (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Quanto è durata la richiesta, reindirizzamenti compresi. |
-| **Corpo della Risposta** | **Contiene**, **Not Contains** | Testo nel corpo della risposta. La corrispondenza distingue maiuscole e minuscole. |
-| **Response Header** | **Contiene**, **Not Contains** | Se la risposta ha un'intestazione con questo nome. Inserite il nome in minuscolo, come `x-request-id`. |
-| **Response Header Value** | **Contiene**, **Not Contains** | Se un'intestazione ha esattamente questo valore, confrontato in minuscolo, come `application/json`. |
+| **Codice di stato della risposta** | **Uguale a**, **Diverso da**, **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | Il codice di stato HTTP. |
+| **Tempo di risposta (in ms)** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | Quanto è durata la richiesta, reindirizzamenti compresi. |
+| **Corpo della Risposta** | **Contiene**, **Non contiene** | Testo nel corpo della risposta. La corrispondenza distingue maiuscole e minuscole. |
+| **Response Header** | **Contiene**, **Non contiene** | Se la risposta ha un'intestazione con questo nome. Inserite il nome in minuscolo, come `x-request-id`. |
+| **Response Header Value** | **Contiene**, **Non contiene** | Se un'intestazione ha esattamente questo valore, confrontato in minuscolo, come `application/json`. |
 | **JavaScript Expression** | **Evaluates To True** | Un'espressione sulla risposta. Vedete [Espressioni JavaScript](/docs/monitor/javascript-expression). |
 | **Is Request Timeout** | **Vero**, **Falso** | Se la richiesta è andata in timeout a ogni tentativo. |
 
@@ -178,7 +178,7 @@ Un nuovo monitor API parte con due criteri, quindi funziona senza cambiare nulla
 
 Nell'elenco dei criteri prendono il nome dal monitor: _Check if (name) is offline_ e _Check if (name) is online_.
 
-Quindi un endpoint che risponde `201 Created` o `204 No Content` conta come attivo. Se per voi solo un codice di stato significa che tutto è a posto, modificate entrambi i criteri nella pagina **Configurazione → Criteri** del monitor: per esempio **Codice di stato della risposta** / **Equal To** / `200` nel criterio online e **Not Equal To** / `200` in quello offline, al posto dei due filtri sul codice di stato che ha ciascuno. Per controllare anche cosa restituisce l'API, aggiungete un filtro **Corpo della Risposta** o **JavaScript Expression** al criterio offline.
+Quindi un endpoint che risponde `201 Created` o `204 No Content` conta come attivo. Se per voi solo un codice di stato significa che tutto è a posto, modificate entrambi i criteri nella pagina **Configurazione → Criteri** del monitor: per esempio **Codice di stato della risposta** / **Uguale a** / `200` nel criterio online e **Diverso da** / `200` in quello offline, al posto dei due filtri sul codice di stato che ha ciascuno. Per controllare anche cosa restituisce l'API, aggiungete un filtro **Corpo della Risposta** o **JavaScript Expression** al criterio offline.
 
 I criteri vengono controllati dall'alto verso il basso, e il primo che corrisponde decide cosa succede.
 
@@ -214,10 +214,10 @@ Scegliete una finestra più lunga dell'intervallo di monitoraggio, così che con
 
 | Obiettivo | Filtro | Condizione | Valore |
 | --- | --- | --- | --- |
-| Segnare l'API degradata quando è lenta | **Tempo di risposta (in ms)** | **Greater Than** | `1000` |
-| Offline quando il controllo di salute segnala un problema | **Corpo della Risposta** | **Not Contains** | `"status":"ok"` |
+| Segnare l'API degradata quando è lenta | **Tempo di risposta (in ms)** | **Maggiore di** | `1000` |
+| Offline quando il controllo di salute segnala un problema | **Corpo della Risposta** | **Non contiene** | `"status":"ok"` |
 | Lo stesso, letto dal JSON analizzato | **JavaScript Expression** | **Evaluates To True** | `"{{responseBody.status}}" !== "ok"` |
-| Accettare solo `201` da un `POST` | **Codice di stato della risposta** | **Equal To** | `201` |
+| Accettare solo `201` da un `POST` | **Codice di stato della risposta** | **Uguale a** | `201` |
 
 Per superare un riavvio, attivate **Valuta questo criterio su un periodo di tempo** per il filtro del corpo della risposta e scegliete **All Values** su 15 minuti.
 

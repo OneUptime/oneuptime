@@ -144,7 +144,7 @@ En ny monitor for innkommende e-post opprettes med to kriterier som leser innhol
 | Kriterium | Filtertype | Filtervilkår | Verdi | Virkning |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
 | Offline  | Email Body  | Inneholder | `error` | Markerer monitoren som frakoblet, åpner en hendelse |
-| Online   | Email Body  | Not Contains | `error` | Markerer monitoren som online |
+| Online   | Email Body  | Inneholder ikke | `error` | Markerer monitoren som online |
 
 Dette passer for det vanlige tilfellet der en jobb eller et verktøy fra en tredjepart sender sitt eget resultat på e-post: en melding der innholdet nevner `error`, tar monitoren ned, og den neste meldingen uten ordet får monitoren opp igjen og løser hendelsen. Sammenligningen av innholdet skiller ikke mellom store og små bokstaver, så `Error` og `ERROR` samsvarer også.
 
@@ -175,13 +175,13 @@ Monitorens egen adresse maskeres før noe kriterium leser e-posten, så i **Emai
 | Filtervilkår | Beskrivelse | Eksempel |
 | ---------------- | ----------------------------------------- | ---------------------------------- |
 | **Inneholder** | Feltet inneholder den angitte teksten | Emnet inneholder "CRITICAL" |
-| **Not Contains** | Feltet inneholder ikke den angitte teksten | Emnet inneholder ikke "TEST" |
-| **Equal To** | Feltet samsvarer nøyaktig med den angitte teksten | Avsenderen er lik "alerts@service.com" |
-| **Not Equal To** | Feltet samsvarer ikke med den angitte teksten | Emnet er ikke lik "OK" |
-| **Starts With** | Feltet starter med den angitte teksten | Emnet starter med "[ALERT]" |
-| **Ends With** | Feltet slutter med den angitte teksten | Emnet slutter med "- Production" |
-| **Is Empty** | Feltet er tomt | Innholdet er tomt |
-| **Is Not Empty** | Feltet har innhold | Emnet er ikke tomt |
+| **Inneholder ikke** | Feltet inneholder ikke den angitte teksten | Emnet inneholder ikke "TEST" |
+| **Lik** | Feltet samsvarer nøyaktig med den angitte teksten | Avsenderen er lik "alerts@service.com" |
+| **Ikke lik** | Feltet samsvarer ikke med den angitte teksten | Emnet er ikke lik "OK" |
+| **Starter med** | Feltet starter med den angitte teksten | Emnet starter med "[ALERT]" |
+| **Slutter med** | Feltet slutter med den angitte teksten | Emnet slutter med "- Production" |
+| **Er tom** | Feltet er tomt | Innholdet er tomt |
+| **Er ikke tom** | Feltet har innhold | Emnet er ikke tomt |
 
 Ingen av disse sammenligningene skiller mellom store og små bokstaver. Et filter med tom verdi samsvarer aldri.
 
@@ -221,8 +221,8 @@ Legg det kritiske kriteriet først: kriteriene sjekkes ovenfra, og det første s
 
 | Kriterium | Filtre | Samsvarsbetingelse | Handlinger |
 | --- | --- | --- | --- |
-| Mislykket jobb | **Email From Address** Equal To `monitoring@legacy-system.com`; **E-postemne** Inneholder `Failed` | **Alle** | Endre statusen til frakoblet; erklær en hendelse |
-| Vellykket jobb | **Email From Address** Equal To `monitoring@legacy-system.com`; **E-postemne** Inneholder `Success` | **Alle** | Endre statusen til online |
+| Mislykket jobb | **Email From Address** Lik `monitoring@legacy-system.com`; **E-postemne** Inneholder `Failed` | **Alle** | Endre statusen til frakoblet; erklær en hendelse |
+| Vellykket jobb | **Email From Address** Lik `monitoring@legacy-system.com`; **E-postemne** Inneholder `Success` | **Alle** | Endre statusen til online |
 
 ### Eksempel 3: Heartbeat-monitor (ingen e-post = varsel)
 
@@ -240,7 +240,7 @@ Et kriterium holder én hendelse åpen om gangen: så lenge den er åpen, åpner
 :::steps
 ### Velg e-postene
 
-Gi kriteriet et filter som samsvarer med e-postene det skal åpnes hendelser for. For å ta imot meldinger bare fra deres egne folk bruker du **Email From Address** med **Ends With** og domenet deres, for eksempel `@example.com`.
+Gi kriteriet et filter som samsvarer med e-postene det skal åpnes hendelser for. For å ta imot meldinger bare fra deres egne folk bruker du **Email From Address** med **Slutter med** og domenet deres, for eksempel `@example.com`.
 
 ### Erklær hendelsen
 
@@ -327,7 +327,7 @@ Inntil det er satt opp, sier monitorens adressekort at innkommende e-post ikke e
 - **Sikkerheten til e-postadressen**: Monitorens e-postadresse fungerer som et passord: alle som kjenner den, kan sende e-post til monitoren. Ikke del den offentlig, og tilbakestill den fra monitorens fane **Innstillinger** hvis den lekker.
 - **Størrelse på e-post**: OneUptime godtar en innkommende e-post på opptil 50 MB, vedlegg inkludert. Vedlegg lagres ikke — bare navnene, typene og størrelsene deres.
 - **Behandlingstid**: E-poster behandles asynkront. Det kan gå noen sekunder fra en e-post sendes til varselet opprettes.
-- **Store og små bokstaver**: Ingen av strengsammenligningene (Inneholder, Equal To osv.) skiller mellom store og små bokstaver.
+- **Store og små bokstaver**: Ingen av strengsammenligningene (Inneholder, Lik osv.) skiller mellom store og små bokstaver.
 - **Ren tekst**: Kriterier for innholdet leser ren tekst-delen av e-posten. En e-post som bare er sendt som HTML, har et tomt innhold for kriteriene — så den inneholder ikke `error`, og standardkriteriene markerer monitoren som online.
 
 ## Feilsøking

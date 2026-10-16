@@ -47,7 +47,7 @@ La dépense est le signe le plus sûr d'un agent emballé. Un budget additionne 
 1. Ouvrez **Produits → IA / LLM → Budgets** et cliquez sur **Créer : Budget de coûts LLM**. Fixez un **Budget quotidien (USD)**, et choisissez le service de l'agent dans **Service (facultatif)** pour que le budget ne surveille que cet agent.
 2. Dans le menu de la ligne du nouveau budget, choisissez **Afficher l'ID** et copiez l'ID.
 3. Créez un [moniteur de métriques](/docs/monitor/metrics-monitor) sur `oneuptime.llm.budget.percent.used`, filtré par l'attribut `oneuptime.llm.budget.id` avec l'ID copié, et réglez sa **Plage temporelle** sur **Past 30 Minutes**.
-4. Ajoutez un critère **Greater Than Or Equal To** `100` qui crée une alerte, et donnez-lui un **Titre de l'alerte** qui nomme l'agent, par exemple `LLM budget exceeded: support-bot`. Le flux de travail et votre endpoint lisent tous deux ce titre.
+4. Ajoutez un critère **Supérieur ou égal à** `100` qui crée une alerte, et donnez-lui un **Titre de l'alerte** qui nomme l'agent, par exemple `LLM budget exceeded: support-bot`. Le flux de travail et votre endpoint lisent tous deux ce titre.
 :::
 
 Filtrez par l'ID, pas par le nom : renommer un budget renomme sa série, et un moniteur filtré sur l'ancien nom cesserait de correspondre sans prévenir. Gardez la plage à 30 minutes : un budget publie un point toutes les 15 minutes, donc une plage plus courte ne trouve rien entre deux points et l'alerte s'ouvre et se résout sans arrêt.
@@ -62,7 +62,7 @@ Un agent bloqué laisse une trace reconnaissable : le même span d'outil, encore
 1. Ouvrez **Moniteurs**, cliquez sur **Créer un moniteur** et choisissez **Traces** sous **Plus de types de moniteurs**.
 2. Sous **Plus de champs**, réglez **Filtrer par service de télémétrie** sur le service de l'agent, et **Filtrer par attributs** sur `gen_ai.tool.name` égal à l'outil sur lequel vous attendez une boucle, par exemple `search_web`. Si votre instrumentation nomme le span de chaque outil, mettez plutôt ce nom dans **Nom du span**.
 3. Réglez **Surveiller les traces pendant (durée)** sur **Dernières 5 minutes**.
-4. Ajoutez un critère **Span Count** **Greater Than** un nombre qu'aucune exécution saine n'atteint en cinq minutes, par exemple `50`, qui crée une alerte intitulée comme `Agent loop: support-bot`.
+4. Ajoutez un critère **Span Count** **Supérieur à** un nombre qu'aucune exécution saine n'atteint en cinq minutes, par exemple `50`, qui crée une alerte intitulée comme `Agent loop: support-bot`.
 :::
 
 Un second moniteur de traces avec **Filtrer par statut de span** réglé sur **Erreur** et un comptage plus bas repère les tempêtes de relances : un outil qui échoue sans cesse et un agent qui le relance sans cesse.

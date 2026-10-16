@@ -144,7 +144,7 @@ Ein neuer Monitor für eingehende E-Mails wird mit zwei Kriterien erstellt, die 
 | Kriterium | Filtertyp | Filterbedingung | Wert | Wirkung |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
 | Offline  | Email Body  | Enthält | `error` | Markiert den Monitor als offline, eröffnet einen Vorfall |
-| Online   | Email Body  | Not Contains | `error` | Markiert den Monitor als online |
+| Online   | Email Body  | Enthält nicht | `error` | Markiert den Monitor als online |
 
 Das passt zum häufigen Fall, dass ein Job oder ein Werkzeug eines Drittanbieters sein eigenes Ergebnis per E-Mail meldet: Eine Nachricht, deren Text `error` erwähnt, nimmt den Monitor offline, und die nächste Nachricht ohne das Wort bringt ihn wieder online und behebt den Vorfall. Der Textvergleich beachtet die Groß- und Kleinschreibung nicht, `Error` und `ERROR` treffen also ebenfalls zu.
 
@@ -175,13 +175,13 @@ Die eigene Adresse des Monitors wird maskiert, bevor ein Kriterium die E-Mail li
 | Filterbedingung | Beschreibung | Beispiel |
 | ---------------- | ----------------------------------------- | ---------------------------------- |
 | **Enthält** | Das Feld enthält den angegebenen Text | Betreff enthält "CRITICAL" |
-| **Not Contains** | Das Feld enthält den angegebenen Text nicht | Betreff enthält nicht "TEST" |
-| **Equal To** | Das Feld entspricht genau dem angegebenen Text | Absender gleich "alerts@service.com" |
-| **Not Equal To** | Das Feld entspricht nicht dem angegebenen Text | Betreff ungleich "OK" |
-| **Starts With** | Das Feld beginnt mit dem angegebenen Text | Betreff beginnt mit "[ALERT]" |
-| **Ends With** | Das Feld endet mit dem angegebenen Text | Betreff endet mit "- Production" |
-| **Is Empty** | Das Feld ist leer | Text ist leer |
-| **Is Not Empty** | Das Feld hat Inhalt | Betreff ist nicht leer |
+| **Enthält nicht** | Das Feld enthält den angegebenen Text nicht | Betreff enthält nicht "TEST" |
+| **Gleich** | Das Feld entspricht genau dem angegebenen Text | Absender gleich "alerts@service.com" |
+| **Ungleich** | Das Feld entspricht nicht dem angegebenen Text | Betreff ungleich "OK" |
+| **Beginnt mit** | Das Feld beginnt mit dem angegebenen Text | Betreff beginnt mit "[ALERT]" |
+| **Endet mit** | Das Feld endet mit dem angegebenen Text | Betreff endet mit "- Production" |
+| **Ist leer** | Das Feld ist leer | Text ist leer |
+| **Ist nicht leer** | Das Feld hat Inhalt | Betreff ist nicht leer |
 
 Alle diese Vergleiche beachten die Groß- und Kleinschreibung nicht. Ein Filter mit leerem Wert trifft nie zu.
 
@@ -221,8 +221,8 @@ Setzen Sie das kritische Kriterium an den Anfang: Kriterien werden von oben gepr
 
 | Kriterium | Filter | Abgleichsbedingung | Aktionen |
 | --- | --- | --- | --- |
-| Fehlgeschlagener Job | **Email From Address** Equal To `monitoring@legacy-system.com`; **E-Mail-Betreff** Enthält `Failed` | **Alle** | Den Status auf offline ändern; einen Vorfall eröffnen |
-| Erfolgreicher Job | **Email From Address** Equal To `monitoring@legacy-system.com`; **E-Mail-Betreff** Enthält `Success` | **Alle** | Den Status auf online ändern |
+| Fehlgeschlagener Job | **Email From Address** Gleich `monitoring@legacy-system.com`; **E-Mail-Betreff** Enthält `Failed` | **Alle** | Den Status auf offline ändern; einen Vorfall eröffnen |
+| Erfolgreicher Job | **Email From Address** Gleich `monitoring@legacy-system.com`; **E-Mail-Betreff** Enthält `Success` | **Alle** | Den Status auf online ändern |
 
 ### Beispiel 3: Heartbeat-Monitor (keine E-Mail = Warnung)
 
@@ -240,7 +240,7 @@ Ein Kriterium hält jeweils einen Vorfall offen: Solange er offen ist, eröffnen
 :::steps
 ### Die E-Mails auswählen
 
-Geben Sie dem Kriterium einen Filter, der die E-Mails erfasst, für die Vorfälle eröffnet werden sollen. Um nur Meldungen Ihrer eigenen Leute anzunehmen, verwenden Sie **Email From Address** mit **Ends With** und Ihrer Domain, etwa `@example.com`.
+Geben Sie dem Kriterium einen Filter, der die E-Mails erfasst, für die Vorfälle eröffnet werden sollen. Um nur Meldungen Ihrer eigenen Leute anzunehmen, verwenden Sie **Email From Address** mit **Endet mit** und Ihrer Domain, etwa `@example.com`.
 
 ### Den Vorfall deklarieren
 
@@ -327,7 +327,7 @@ Solange er nicht eingerichtet ist, meldet die Adresskarte des Monitors, dass ein
 - **Sicherheit der E-Mail-Adresse**: Die E-Mail-Adresse des Monitors wirkt wie ein Passwort: Wer sie kennt, kann E-Mails an den Monitor senden. Geben Sie sie nicht öffentlich weiter und setzen Sie sie im Tab **Einstellungen** des Monitors zurück, wenn sie bekannt wird.
 - **E-Mail-Größe**: OneUptime nimmt eine eingehende E-Mail bis 50 MB an, Anhänge eingeschlossen. Anhänge werden nicht gespeichert — nur ihre Namen, Typen und Größen.
 - **Verarbeitungszeit**: E-Mails werden asynchron verarbeitet. Zwischen dem Senden einer E-Mail und dem Erstellen der Warnung können einige Sekunden liegen.
-- **Groß- und Kleinschreibung**: Alle Zeichenkettenvergleiche (Enthält, Equal To usw.) beachten die Groß- und Kleinschreibung nicht.
+- **Groß- und Kleinschreibung**: Alle Zeichenkettenvergleiche (Enthält, Gleich usw.) beachten die Groß- und Kleinschreibung nicht.
 - **Klartext**: Kriterien auf den E-Mail-Text lesen den Klartextteil der E-Mail. Eine nur als HTML gesendete E-Mail hat für Kriterien einen leeren Text — sie enthält also kein `error`, und die Standardkriterien markieren den Monitor als online.
 
 ## Fehlerbehebung

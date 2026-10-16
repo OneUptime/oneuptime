@@ -101,10 +101,10 @@ Kriterier avgjør når serveren regnes som online, redusert eller frakoblet, og 
 | --- | --- | --- |
 | **NTP Is Online** | **Sann**, **Usann** | Om serveren besvarte sondens forespørsel med et NTP-svar. Et kiss-o'-death er et svar. |
 | **NTP Is Synchronized** | **Sann**, **Usann** | Om serveren som svarte, leverer synkronisert tid. Når serveren ikke svarer, kontrolleres ikke dette filteret; bruk **NTP Is Online** til det. |
-| **NTP Stratum** | **Greater Than**, **Greater Than Or Equal To**, **Less Than**, **Less Than Or Equal To**, **Equal To**, **Not Equal To** | Serverens stratum. Et kiss-o'-deaths 0 teller som 16, ikke synkronisert. |
-| **NTP Clock Offset (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Hvor langt serverens klokke er fra sondens, i begge retninger. |
-| **NTP Response Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Fra forespørselen til svaret. |
-| **NTP Root Dispersion (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Serverens eget anslag over sin største feil. |
+| **NTP Stratum** | **Større enn**, **Større enn eller lik**, **Mindre enn**, **Mindre enn eller lik**, **Lik**, **Ikke lik** | Serverens stratum. Et kiss-o'-deaths 0 teller som 16, ikke synkronisert. |
+| **NTP Clock Offset (in ms)** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Hvor langt serverens klokke er fra sondens, i begge retninger. |
+| **NTP Response Time (in ms)** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Fra forespørselen til svaret. |
+| **NTP Root Dispersion (in ms)** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Serverens eget anslag over sin største feil. |
 
 Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvare, eller om **Hvilken som helst** av dem er nok. Et kriteriums **Handlinger** avgjør hva det gjør: endrer monitorens status, oppretter et varsel, erklærer en hendelse eller en kombinasjon av disse.
 
@@ -125,10 +125,10 @@ Kriteriene kontrolleres ovenfra og ned, og det første som samsvarer, avgjør hv
 
 | Mål | Filter | Betingelse | Verdi |
 | --- | --- | --- | --- |
-| Varsle når en GPS-server faller tilbake til en nettverkskilde | **NTP Stratum** | **Greater Than** | `1` |
-| Varsle når klokken driver | **NTP Clock Offset (in ms)** | **Greater Than** | `100` |
-| Varsle når serverens feilmargin vokser | **NTP Root Dispersion (in ms)** | **Greater Than** | `500` |
-| Varsle når svarene blir trege | **NTP Response Time (in ms)** | **Greater Than** | `1000` |
+| Varsle når en GPS-server faller tilbake til en nettverkskilde | **NTP Stratum** | **Større enn** | `1` |
+| Varsle når klokken driver | **NTP Clock Offset (in ms)** | **Større enn** | `100` |
+| Varsle når serverens feilmargin vokser | **NTP Root Dispersion (in ms)** | **Større enn** | `500` |
+| Varsle når svarene blir trege | **NTP Response Time (in ms)** | **Større enn** | `1000` |
 
 ## Feilsøking
 
