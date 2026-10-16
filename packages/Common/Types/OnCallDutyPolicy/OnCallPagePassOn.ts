@@ -78,18 +78,15 @@ export const ON_CALL_PAGE_PASSED_ON_DELIVERY_MESSAGE: string =
   "Passed on from this notification.";
 
 /*
- * What a phone call says the second key does, and what it answers when it
- * was pressed and the page went on. The call's own record kind is in it:
- * "If you can't take it, press 2 to pass it on."
+ * The key a phone call asks the person to press to pass the page on, and
+ * what it says about it, after "To acknowledge this incident, press 1.": "If
+ * you can't take it, press 2 to pass it on." What it answers when the key is
+ * pressed depends on what came of it (UserOnCallLogTimelineAPI).
  */
 export const ON_CALL_PAGE_CALL_PASS_ON_DIGIT: string = "2";
 
 export function getOnCallPageCallPassOnPrompt(): string {
   return `If you can't take it, press ${ON_CALL_PAGE_CALL_PASS_ON_DIGIT} to pass it on.`;
-}
-
-export function getOnCallPageCallPassedOnAnswer(recordNoun: string): string {
-  return `You passed this ${recordNoun} on. Good bye.`;
 }
 
 // The record kinds a page is about, as the Dashboard's API names them.
@@ -404,7 +401,7 @@ export function getOnCallPassOnRefusalSentence(
     case OnCallPassOnRefusal.PageOver:
       return "This page is over: the on-call policy has stopped paging.";
     case OnCallPassOnRefusal.InvalidLink:
-      return "This link is not valid, or it has expired. Open the newest message you were paged with, or OneUptime itself.";
+      return "This link cannot pass the page on: it is not valid, or it has expired. Use the link in the newest message you were paged with.";
     case OnCallPassOnRefusal.NotPaged:
     default:
       return "You are not being paged about this right now.";

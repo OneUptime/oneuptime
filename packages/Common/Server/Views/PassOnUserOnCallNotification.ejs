@@ -1,0 +1,57 @@
+<html>
+
+<head>
+    <%- include('./Partials/Head.ejs') -%>
+    <title> <%= title %> </title>
+</head>
+
+<body class="bg-gray-100">
+
+    <div class="h-full">
+
+        <main class="mx-auto max-w-3xl pb-10 lg:py-12 lg:px-8">
+
+            <div class="sm:mx-auto sm:w-full sm:max-w-md flex justify-center mt-10 mb-10">
+                <%- include('./Partials/ProductLogo.ejs') -%>
+            </div>
+
+
+            <div class="">
+                <div class="space-y-6 sm:px-6 lg:col-span-9 lg:px-0">
+                    <section aria-labelledby="pass-on-heading">
+
+                            <div class="shadow sm:overflow-hidden sm:rounded-md">
+                                <div class="bg-white py-6 px-4 sm:p-6">
+                                    <div>
+                                        <h2 id="pass-on-heading"
+                                            class="text-lg font-medium leading-6 text-gray-900"><%= title %></h2>
+                                        <p class="mt-1 text-sm text-gray-500"><%= message %></p>
+                                    </div>
+
+                                    <%- include('./Partials/OnCallNotificationDetails.ejs') -%>
+
+                                    <div class="mt-6">
+                                        <%- include('./Partials/OnCallPassOnForm.ejs', { formUrl: passOnFormUrl, tokenParam: pageTokenParam, token: pageToken, buttonText: passOnText, isPrimary: true }) -%>
+                                    </div>
+
+                                    <%# Somebody who opened this by mistake, or who can take it after all. -%>
+                                    <div class="mt-4 text-center">
+                                        <a href="<%= acknowledgeUrl %>" data-testid="acknowledge-instead"
+                                            class="text-sm font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 rounded">
+                                            <%= acknowledgeText %>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                    </section>
+
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+</body>
+
+</html>
