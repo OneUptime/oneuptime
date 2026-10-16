@@ -107,6 +107,105 @@ describe("PublishAllPackages", () => {
     expect(cliPublish).toBeGreaterThan(commonInstall);
   });
 
+  /*
+   * #4872: the CLI was published depending on @oneuptime/common, which
+   * cannot answer its require("Common/...") calls (TypeScript at those
+   * paths, ES modules under build/dist), so every published CLI died at
+   * start. A package published here carries what it runs: the CLI bundles
+   * Common when npm packs it.
+   */
+  it("publishes no package that needs Common when it runs", () => {
+    const publishCall: RegExp = /^publish_to_npm "([^"\n]+)"$/gm;
+    const published: Array<string> = [...SOURCE.matchAll(publishCall)].map(
+      (match: RegExpMatchArray): string => {
+        return match[1] as string;
+      },
+    );
+
+    expect(published).toEqual([
+      "packages/Common",
+      "packages/App/FeatureSet/MobileRecorder",
+      "packages/CLI",
+    ]);
+
+    for (const directory of published.slice(1)) {
+      const manifest: Record<string, Record<string, string> | undefined> =
+        JSON.parse(
+          fs.readFileSync(
+            path.join(REPO_ROOT, directory, "package.json"),
+            "utf8",
+          ),
+        ) as Record<string, Record<string, string> | undefined>;
+
+      for (const field of [
+        "dependencies",
+        "peerDependencies",
+        "optionalDependencies",
+      ]) {
+        const declared: Record<string, string> = manifest[field] || {};
+
+        expect({ directory, field, Common: declared["Common"] }).toEqual({
+          directory,
+          field,
+          Common: undefined,
+        });
+        expect(Object.keys(declared)).not.toContain("@oneuptime/common");
+      }
+    }
+  });
+
+  /*
+   * The CLI's lockfile links ../Common, and its bundle is built from that
+   * link: this checkout's Common with its locked dependencies, the code CI
+   * tested. Rewriting the link to npm:@oneuptime/common made npm swap in a
+   * registry copy with freshly resolved dependencies.
+   */
+  it("leaves each package's Common link as its lockfile pins it", () => {
+    const commands: Array<string> = SOURCE.split("\n").filter(
+      (line: string): boolean => {
+        return !line.trim().startsWith("#");
+      },
+    );
+
+    expect(
+      commands.filter((line: string): boolean => {
+        return (
+          line.includes("npm:@oneuptime/common") || line.includes("sed -i")
+        );
+      }),
+    ).toEqual([]);
+  });
+
+  /*
+   * The CLI's prepack script builds the bundle npm publishes, and
+   * --ignore-scripts would skip it: the package would ship without the file
+   * its bin points at.
+   */
+  it("lets npm run the pack scripts that build what each package publishes", () => {
+    const publishLines: Array<string> = SOURCE.split("\n").filter(
+      (line: string): boolean => {
+        return line.trim().startsWith("npm publish");
+      },
+    );
+
+    expect(publishLines).toEqual(["        npm publish --access public"]);
+    expect(SOURCE).not.toContain("--ignore-scripts");
+
+    const cli: {
+      scripts: Record<string, string>;
+      bin: Record<string, string>;
+    } = JSON.parse(
+      fs.readFileSync(
+        path.join(REPO_ROOT, "packages/CLI/package.json"),
+        "utf8",
+      ),
+    ) as { scripts: Record<string, string>; bin: Record<string, string> };
+
+    expect(cli.scripts["prepack"]).toBe("npm run build");
+    expect(cli.scripts["build"]).toBe("node esbuild.config.js");
+    expect(cli.bin["oneuptime"]).toBe("build/dist/Index.js");
+  });
+
   it("isolates each nested package publish so the next path starts at the repo root", () => {
     const functionBody: string = SOURCE.slice(
       SOURCE.indexOf("publish_to_npm()"),
