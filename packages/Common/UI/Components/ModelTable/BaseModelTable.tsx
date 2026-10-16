@@ -1605,6 +1605,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         contentClassName: column.contentClassName,
         alignItem: column.alignItem,
         hideOnMobile: column.hideOnMobile, // Propagate hideOnMobile property
+        // A row the column leaves off this item's card (showInListIf).
+        showIf: column.showInListIf,
         getElement: column.getElement
           ? (item: TBaseModel): ReactElement => {
               return column.getElement!(item, onBeforeFetchData);

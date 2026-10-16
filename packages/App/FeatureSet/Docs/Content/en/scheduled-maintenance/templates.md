@@ -102,7 +102,7 @@ For example, a weekly window with the first event created on a Monday for the Sa
 
 Set **First Event Scheduled At** as far ahead of the start as you want your customers to hear about the work. All three times must be in the future when you create the template, the event has to be created before it starts and ends, and it has to start before it ends; the form says which rule a time breaks.
 
-A job checks the recurring templates every minute. When a template's next time comes, it moves that time on by one interval and creates the event. The templates list shows that time in its **Recurring Event** column. An event created from the schedule is like any other: its rules run, its owners are added, and its subscribers are told it is scheduled.
+A job checks the recurring templates every minute. When a template's next time comes, it moves that time on by one interval and creates the event. The templates list shows that time in its **Recurring Event** column, and **No** for a template that does not recur. An event created from the schedule is like any other: its rules run, its owners are added, and its subscribers are told it is scheduled.
 
 ## Change or stop a template
 
@@ -112,7 +112,7 @@ Open a template from the list to see its page:
 - **Affected Resources** holds its **Monitors**, their **Change Monitor Status to** and its **Other Affected Resources**, with an **Edit** of its own.
 - **Owners** lists the people and teams who own every event scheduled from it.
 
-Changes apply to the events created after you save them; events already created keep their own values. To stop a schedule, turn **Recurring Event** off in **Edit**, or delete the template. Deleting a template leaves the events it created.
+Changes apply to the events created after you save them; events already created keep their own values. To stop a schedule, turn **Recurring Event** off in **Edit**, or delete the template. A template turned off keeps its schedule: turn it back on, and it picks up at the schedule's next time, skipping the times it was off. Deleting a template leaves the events it created.
 
 ## Troubleshooting
 

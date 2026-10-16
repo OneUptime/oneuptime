@@ -84,7 +84,7 @@ describe("AIAgentTaskPullRequest.pullRequestId", () => {
     const widen: string = fs.readFileSync(
       path.join(
         MIGRATIONS_DIR,
-        "1802800000000-WidenAIAgentTaskPullRequestId.ts",
+        "1802850000000-WidenAIAgentTaskPullRequestId.ts",
       ),
       "utf8",
     );
@@ -92,13 +92,13 @@ describe("AIAgentTaskPullRequest.pullRequestId", () => {
     const rebuildIndex: string = fs.readFileSync(
       path.join(
         MIGRATIONS_DIR,
-        "1802850000000-AddAIAgentTaskPullRequestIdIndex.ts",
+        "1802900000000-AddAIAgentTaskPullRequestIdIndex.ts",
       ),
       "utf8",
     );
 
-    expect(index).toContain("  WidenAIAgentTaskPullRequestId1802800000000,");
-    expect(index).toContain("  AddAIAgentTaskPullRequestIdIndex1802850000000,");
+    expect(index).toContain("  WidenAIAgentTaskPullRequestId1802850000000,");
+    expect(index).toContain("  AddAIAgentTaskPullRequestIdIndex1802900000000,");
     expect(widen).toContain(
       `ALTER TABLE "AIAgentTaskPullRequest" ADD "pullRequestId" bigint`,
     );

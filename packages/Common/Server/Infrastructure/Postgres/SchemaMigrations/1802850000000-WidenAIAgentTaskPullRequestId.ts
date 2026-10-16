@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 /*
  * Generated with npm run generate-postgres-migration, then renumbered after
  * the last registered migration. Its index is rebuilt online, in
- * AddAIAgentTaskPullRequestIdIndex1802850000000.
+ * AddAIAgentTaskPullRequestIdIndex1802900000000.
  *
  * "AIAgentTaskPullRequest"."pullRequestId" holds the hosting platform's ID of
  * a pull request the agent opened. It was an integer, and GitHub's pull
@@ -12,10 +12,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * record pull request" for work it had done. Those inserts never landed, so
  * no row holds a GitHub ID to lose when the column is recreated as a bigint.
  */
-export class WidenAIAgentTaskPullRequestId1802800000000
+export class WidenAIAgentTaskPullRequestId1802850000000
   implements MigrationInterface
 {
-  public name: string = "WidenAIAgentTaskPullRequestId1802800000000";
+  public name: string = "WidenAIAgentTaskPullRequestId1802850000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

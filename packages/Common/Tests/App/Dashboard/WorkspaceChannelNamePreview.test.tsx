@@ -29,8 +29,6 @@ const GERMAN: Record<string, string> = {
   "For incident {{record}}.": "Für Vorfall {{record}}.",
   "If Slack already has a channel with this name, OneUptime adds -2 to the end.":
     "Wenn Slack bereits einen Kanal mit diesem Namen hat, hängt OneUptime -2 an.",
-  "No prefix": "Kein Präfix",
-  "Example:": "Beispiel:",
 };
 
 const askedFor: Array<string> = [];
@@ -71,14 +69,10 @@ import {
   CHANNEL_NAME_SHORTENED_NOTES,
   CHANNEL_NAME_TAKEN_NOTES,
   ChannelNamePreview,
-  ChannelNameSummary,
   getChannelNameTakenNote,
   getShownChannelName,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/ChannelNamePreview";
-import NotificationRuleViewElement from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleViewElement/NotificationRuleViewElement";
-import FilterCondition from "../../../Types/Filter/FilterCondition";
 import NotificationRuleEventType from "../../../Types/Workspace/NotificationRules/EventType";
-import IncidentNotificationRule from "../../../Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import { WorkspaceChannelNumberPrefixes } from "../../../Utils/Workspace/WorkspaceChannelName";
 import { Translator } from "../../../UI/Utils/TranslateTemplate";
@@ -330,189 +324,11 @@ describe("the preview under the Channel Name Prefix field", () => {
   });
 });
 
-describe("the channel name on a rule's card", () => {
-  function renderSummary(
-    prefix: unknown,
-    numberPrefixes?: WorkspaceChannelNumberPrefixes | undefined,
-  ): void {
-    render(
-      <ChannelNameSummary
-        workspaceType={WorkspaceType.Slack}
-        eventType={NotificationRuleEventType.Incident}
-        prefix={prefix}
-        numberPrefixes={numberPrefixes}
-        dataTestId="summary"
-      />,
-    );
-  }
-
-  test("a prefix, and the name it makes", () => {
-    renderSummary("prod-", PREFIXES);
-
-    expect(screen.getByTestId("channel-name-prefix-value")).toHaveTextContent(
-      "prod-",
-    );
-    expect(screen.getByTestId("summary")).toHaveTextContent(
-      "prod- Example: #prod-inc-42",
-    );
-    expect(screen.getByTestId("channel-name-example")).toHaveTextContent(
-      "#prod-inc-42",
-    );
-  });
-
-  test("Example: and its name are one piece, and the pieces share a baseline", () => {
-    renderSummary(
-      "a-very-long-prefix-for-the-production-environment-",
-      PREFIXES,
-    );
-
-    /*
-     * A long prefix wraps the example onto the next line as a whole: the
-     * label never stays behind at the end of the first line.
-     */
-    expect(
-      screen.getByTestId("channel-name-example").parentElement,
-    ).toHaveTextContent(
-      /^Example: #a-very-long-prefix-for-the-production-environment-inc-42$/,
-    );
-    expect(screen.getByTestId("summary")).toHaveClass("items-baseline");
-    expect(screen.getByTestId("summary")).not.toHaveClass("items-center");
-    // A prefix longer than the card wraps inside its chip.
-    expect(screen.getByTestId("channel-name-prefix-value")).toHaveClass(
-      "min-w-0",
-      "break-words",
-    );
-  });
-
-  test("no prefix, and the record's own name", () => {
-    renderSummary("", PREFIXES);
-
-    expect(screen.getByTestId("channel-name-prefix-value")).toHaveTextContent(
-      "No prefix",
-    );
-    expect(screen.getByTestId("channel-name-example")).toHaveTextContent(
-      "#inc-42",
-    );
-  });
-
-  test("without the project's number prefixes: the prefix alone", () => {
-    renderSummary("prod-", undefined);
-
-    expect(screen.getByTestId("channel-name-prefix-value")).toHaveTextContent(
-      "prod-",
-    );
-    expect(screen.queryByTestId("channel-name-example")).toBe(null);
-  });
-
-  test("in the reader's language", () => {
-    language = "de";
-    renderSummary(undefined, PREFIXES);
-
-    expect(screen.getByTestId("summary")).toHaveTextContent(
-      "Kein Präfix Beispiel: #inc-42",
-    );
-  });
-});
-
-describe("the rule's card shows its channel name", () => {
-  function rule(
-    fields: Partial<IncidentNotificationRule>,
-  ): IncidentNotificationRule {
-    return {
-      _type: "IncidentNotificationRule",
-      filterCondition: FilterCondition.All,
-      filters: [],
-      shouldPostToExistingChannel: false,
-      existingChannelNames: "",
-      shouldCreateNewChannel: true,
-      inviteTeamsToNewChannel: [],
-      inviteUsersToNewChannel: [],
-      shouldInviteOwnersToNewChannel: false,
-      archiveChannelAutomatically: false,
-      shouldAutomaticallyInviteOnCallUsersToNewChannel: false,
-      ...fields,
-    } as IncidentNotificationRule;
-  }
-
-  function renderCard(
-    value: IncidentNotificationRule,
-    workspaceType: WorkspaceType = WorkspaceType.Slack,
-  ): void {
-    render(
-      <NotificationRuleViewElement
-        value={value}
-        eventType={NotificationRuleEventType.Incident}
-        monitors={[]}
-        labels={[]}
-        alertStates={[]}
-        alertSeverities={[]}
-        incidentSeverities={[]}
-        incidentStates={[]}
-        scheduledMaintenanceStates={[]}
-        monitorStatus={[]}
-        workspaceType={workspaceType}
-        teams={[]}
-        users={[]}
-        numberPrefixes={PREFIXES}
-      />,
-    );
-  }
-
-  test("a rule that creates channels: Channel Name Prefix, with the example", () => {
-    renderCard(rule({ newChannelTemplateName: "ops-" }));
-
-    expect(screen.getByText("Channel Name Prefix")).toBeVisible();
-    expect(screen.getByTestId("channel-name-summary")).toHaveTextContent(
-      "ops- Example: #ops-inc-42",
-    );
-  });
-
-  test("a rule without a prefix says so", () => {
-    renderCard(rule({ newChannelTemplateName: "" }));
-
-    expect(screen.getByTestId("channel-name-summary")).toHaveTextContent(
-      "No prefix Example: #inc-42",
-    );
-  });
-
-  test("Microsoft Teams: the name as Teams shows it", () => {
-    renderCard(rule({}), WorkspaceType.MicrosoftTeams);
-
-    expect(screen.getByTestId("channel-name-example")).toHaveTextContent(
-      /^inc-42$/,
-    );
-  });
-
-  /*
-   * The rows around the channel name named the workspace by its enum value,
-   * "Create MicrosoftTeams Channel", while the form above them says
-   * "Create Microsoft Teams Channel".
-   */
-  test("Microsoft Teams is called Microsoft Teams on every row of the card", () => {
-    renderCard(rule({}), WorkspaceType.MicrosoftTeams);
-
-    expect(screen.getByText("Create Microsoft Teams Channel")).toBeVisible();
-    expect(
-      screen.getByText("Invite Teams to New Microsoft Teams Channel"),
-    ).toBeVisible();
-    expect(
-      screen.getByText("Invite Users to New Microsoft Teams Channel"),
-    ).toBeVisible();
-    expect(
-      screen.getByText(
-        "Automatically Invite On Call Users to New Microsoft Teams Channel",
-      ),
-    ).toBeVisible();
-    expect(document.body.textContent).not.toContain("MicrosoftTeams");
-  });
-
-  test("a rule that creates no channel shows no channel name", () => {
-    renderCard(rule({ shouldCreateNewChannel: false }));
-
-    expect(screen.queryByText("Channel Name Prefix")).toBe(null);
-    expect(screen.queryByTestId("channel-name-summary")).toBe(null);
-  });
-});
+/*
+ * A rule's card names the channel the rule creates once, in its Then - "Creates
+ * a channel like #ops-inc-42 for each incident." - not again in a Channel
+ * Name Prefix row of its own: WorkspaceNotificationRuleCard.test.tsx.
+ */
 
 describe("the words", () => {
   test("one description, one record sentence for every kind of record", () => {

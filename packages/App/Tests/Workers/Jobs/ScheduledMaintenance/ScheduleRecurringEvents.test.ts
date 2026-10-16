@@ -346,6 +346,47 @@ describe("ScheduledMaintenance:ScheduleRecurringEvents", () => {
     }
   });
 
+  /*
+   * A template whose Recurring Event switch is off is never read, whatever
+   * next time it may hold, so it creates no event - which is why
+   * ScheduledMaintenanceTemplateService clears that time and the templates
+   * list says No for such a template.
+   */
+  test("reads only templates whose Recurring Event switch is on and whose next time has come", async () => {
+    const before: number = Date.now();
+
+    await mockCapturedJobs[JOB_NAME]!();
+
+    const findAllByArgs: {
+      query: Record<string, unknown>;
+    } = (ScheduledMaintenanceTemplateService.findAllBy as jest.Mock).mock
+      .calls[0]![0] as { query: Record<string, unknown> };
+
+    expect(Object.keys(findAllByArgs.query).sort()).toEqual([
+      "isRecurringEvent",
+      "scheduleNextEventAt",
+    ]);
+    expect(findAllByArgs.query["isRecurringEvent"]).toBe(true);
+
+    const due: {
+      getSql: (alias: string) => string;
+      objectLiteralParameters?: Record<string, unknown>;
+    } = findAllByArgs.query["scheduleNextEventAt"] as {
+      getSql: (alias: string) => string;
+      objectLiteralParameters?: Record<string, unknown>;
+    };
+    const parameters: Array<unknown> = Object.values(
+      due.objectLiteralParameters || {},
+    );
+
+    // At or before now: a time still to come is not due yet.
+    expect(due.getSql("c").startsWith("(c <= :")).toBe(true);
+    expect(parameters).toHaveLength(1);
+    expect(parameters[0]).toBeInstanceOf(Date);
+    expect((parameters[0] as Date).getTime()).toBeGreaterThanOrEqual(before);
+    expect((parameters[0] as Date).getTime()).toBeLessThanOrEqual(Date.now());
+  });
+
   test("copies an empty resource set without inventing one", async () => {
     const template: ScheduledMaintenanceTemplate = recurringTemplate();
     template.hosts = [];

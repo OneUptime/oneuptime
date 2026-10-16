@@ -15,8 +15,8 @@ Koble OneUptime til Slack for å publisere hendelser, varsler, episoder, planlag
 ```mermaid title="Fra en begivenhet i OneUptime til en melding i Slack"
 flowchart TB
     event["En hendelse, et varsel eller en begivenhet<br/>opprettes eller endres"] --> rules{"Varslingsregler<br/>der betingelsene passer"}
-    rules -->|"Create Slack Channel"| own["En egen kanal,<br/>med folkene invitert"]
-    rules -->|"Post to Existing Slack Channel"| existing["De eksisterende kanalene dine"]
+    rules -->|"En kanal<br/>for hver"| own["En egen kanal,<br/>med folkene invitert etter hvert som de kommer til"]
+    rules -->|"Publiser i eksisterende kanaler"| existing["De eksisterende kanalene dine"]
     own --> message["En melding med knapper"]
     existing --> message
     message -->|"En responder trykker på én"| change["Endringen gjøres i OneUptime,<br/>som den responderen"]
@@ -47,7 +47,7 @@ Gå til **Prosjektinnstillinger** > **Arbeidsområde** > **Slack**, og klikk på
 
 ### Legg til en varslingsregel
 
-Gå til **Hendelser** > **Arbeidsområde** > **Slack**. Seksjonen **Arbeidsområde** viser bare chat-workspacene prosjektet ditt har koblet til, så **Slack** vises der så snart det er koblet til. Opprett en regel, for eksempel en som oppretter en Slack-kanal for hver nye hendelse og inviterer hendelsens eiere. Se [Varslingsregler](#varslingsregler).
+Gå til **Hendelser** > **Arbeidsområde** > **Slack**. Seksjonen **Arbeidsområde** viser bare chat-workspacene prosjektet ditt har koblet til, så **Slack** vises der så snart det er koblet til. Opprett en regel, for eksempel en som oppretter en Slack-kanal for hver nye hendelse med alle som jobber med den: de varslede, hendelseslederen og eierne. Se [Varslingsregler](#varslingsregler).
 
 ### Test regelen
 
@@ -71,13 +71,17 @@ En varslingsregel sier hvilke hendelser som publiseres i Slack, og hvor. Hvert p
 | Trinn | Hva du angir |
 | --- | --- |
 | **Grunnleggende** | **Regelnavn** og **Regelbeskrivelse**. |
-| **Betingelser** | Hvilke hendelser regelen utløses for, for eksempel etter alvorlighetsgrad, tilstand, etikett, monitor eller ord i tittelen. Uten betingelser utløses den for hver hendelse. Med to eller flere sier **Samsvarsbetingelse** om alle må passe, eller om én er nok. |
-| **Mål** | Hvor den publiserer: **Post to Existing Slack Channel** med kanalnavnene, **Create Slack Channel** med navnet på den nye kanalen og hvem som inviteres, eller begge. |
+| **Betingelser** | Hvilke hendelser regelen gjelder for, for eksempel etter alvorlighetsgrad, tilstand, etikett, monitor eller ord i tittelen. De kontrolleres når en hendelse opprettes, og på nytt ved hver oppdatering OneUptime publiserer om den, så en regel for bekreftede hendelser virker når en hendelse bekreftes. Uten betingelser gjelder regelen for hver hendelse. Med to eller flere sier **Samsvarsbetingelse** om alle må passe, eller om én er nok. |
+| **Mål** | Hvor den publiserer: **Publiser i eksisterende kanaler** med kanalnavnene, **Opprett en kanal for hver hendelse** (eller varsel, episode, planlagt vedlikehold, monitor eller vaktretningslinje) med hvem som blir med i den, eller begge. Under steget sier **Hva denne regelen gjør** det i setninger, som regelens kort. |
 | **Video Call** | Bare hendelser og varsler: start en samtale for hver. Se [Videosamtaler](/docs/workspace-connections/video-calls). |
 
 En kanal som regelen oppretter, får navn etter posten sin: hendelse INC-42 får `inc-42`, varsel ALT-7 får `alt-7`, og i et prosjekt uten nummerprefikser får hendelse 42 `incident-42`. Tekst i **Prefiks for kanalnavn** settes foran, så `prod-` gir `prod-inc-42`, og skjemaet viser navnet mens du skriver. For en planlagt vedlikeholdshendelse tar prefikset plassen til nummerprefikset: SM-5 får `sm-5`, og `maint-` gir `maint-5`. Slack tar små bokstaver, tall, `-` og `_`, opptil 80 tegn. Finnes det allerede en kanal med det navnet, for eksempel et annet prosjekts eller en arkivert kanal, legger OneUptime til `-2`, `-3` og så videre.
 
-Bare en opprettet kanal får folkene regelen inviterer: postens eiere, valgte team og brukere og, for hendelser og varsler, de vakthavende etter hvert som de tilkalles. En privat hendelse, et privat varsel eller en privat episode får en privat kanal. Hver senere oppdatering av posten — en tilstandsendring, et notat, en ny eier — publiseres i kanalene dens og i de eksisterende kanalene reglene dens nevner. En hendelse, et varsel eller en episode som ble opprettet allerede løst, får ingen egen kanal; opprettelsesmeldingen går likevel til kanalene reglene dine nevner. Se [Erklært allerede bekreftet eller løst](/docs/incidents/declaring-incidents#erklært-allerede-bekreftet-eller-løst).
+En regel oppretter kanalen sin første gang en hendelse samsvarer med den: når hendelsen opprettes, eller senere, når en oppdatering får den til å samsvare mens den fortsatt er åpen. En regel for bekreftede hendelser oppretter kanalen når hendelsen bekreftes. En privat hendelse, et privat varsel eller en privat episode får en privat kanal.
+
+**Hvem som blir med i kanalen** viser hvem regelen legger til i kanalen sin, hver etter hvert som de kommer til posten, ikke bare når kanalen opprettes: **Vakthavende, etter hvert som de varsles**, **Hendelsesleder og andre hendelsesroller, etter hvert som de tildeles** (hendelser og hendelsesepisoder) og **Eiere, etter hvert som de legges til**, alle krysset av for en ny regel, og personene og teamene i **Inviter også** når kanalen opprettes. Hendelseslederen tildeles vanligvis når noen første gang bekrefter hendelsen, og blir med i kanalen da. En regel som ble lagret før hendelsesroller fikk sin egen boks, legger dem til når den legger til eierne eller de vakthavende, og boksen vises krysset av. En eksisterende kanal en regel publiserer i, får ingen.
+
+Hver senere oppdatering av posten — en tilstandsendring, et notat, en ny eier — publiseres i kanalene dens, og i de eksisterende kanalene reglene dens nevner så lenge betingelsene deres stemmer. Med **Arkiver kanalen når hendelsen er løst** slått på, eller motstykket for varsler, episoder, planlagt vedlikehold, monitorer og vaktretningslinjer, arkiverer regelen som opprettet en kanal, den når posten er løst, fullført eller slettet, uansett hva betingelsene da sier. En hendelse, et varsel eller en episode som ble opprettet allerede løst, får ingen egen kanal; opprettelsesmeldingen går likevel til kanalene reglene dine nevner. Se [Erklært allerede bekreftet eller løst](/docs/incidents/declaring-incidents#erklært-allerede-bekreftet-eller-løst).
 
 En hendelse, et varsel, en episode eller en planlagt vedlikeholdshendelse med sin egen kanal har **Åpne i Slack** øverst på siden sin i OneUptime, ved siden av tilstandsknappene. Den åpner kanalen i en ny fane, i Slack-appen eller i nettleseren. En post med to egne kanaler viser begge under knappen. En post med kanaler i både Slack og Microsoft Teams har i stedet én knapp, **Åpne kanal**, som viser alle. De eksisterende kanalene reglene dine publiserer i, tilbys ikke.
 
@@ -265,6 +269,10 @@ Det OneUptime tar vare på av dette — navnet på arbeidsområdet, kanalene, Sl
 
 :::details En regel publiserer ingenting
 Sjekk regelens betingelser med **Testregel**: hvis testen kommer frem, passet ikke regelens betingelser på hendelsen. Hvis den ikke gjør det, sier Slack-siden hvorfor. For en privat kanal må du først invitere OneUptime-appen inn i den i Slack. Hver melding OneUptime publiserer, og hver melding Slack avviste, vises i **Prosjektinnstillinger** > **Varsler** > **Varsellogger**, på fanen **Arbeidsområde**.
+:::
+
+:::details Noen mangler i en regels kanal
+Regelens kort sier under **Deretter** hvem regelen inviterer. Hver type person blir med etter hvert som de kommer til posten: de varslede når de varsles, hendelseslederen når den tildeles, en eier når den legges til, og de som allerede var på posten da kanalen ble opprettet. Den som ikke har Slack-kontoen sin koblet til OneUptime, kan ikke legges til; OneUptime nevner personen i kanalen, med en lenke for å koble til kontoen.
 :::
 
 :::details Slack ble ikke koblet til

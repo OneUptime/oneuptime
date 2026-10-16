@@ -19,6 +19,8 @@ import MonitorStatusElement from "../../MonitorStatus/MonitorStatusElement";
 import LabelElement from "Common/UI/Components/Label/Label";
 import MonitorElement from "../../Monitor/Monitor";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   notificationRuleCondition: NotificationRuleCondition | undefined;
@@ -36,6 +38,8 @@ export interface ComponentProps {
 const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   const getValueElement: GetReactElementFunction = (): ReactElement => {
     const checkOn: NotificationRuleConditionCheckOn | undefined =
       props.notificationRuleCondition?.checkOn;
@@ -60,9 +64,13 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     let valueElement: ReactElement | undefined = Array.isArray(
       props.notificationRuleCondition?.value,
     ) ? (
-      <span>{props.notificationRuleCondition?.value.join(", ")}</span>
+      <span className="font-medium text-gray-900">
+        {props.notificationRuleCondition?.value.join(", ")}
+      </span>
     ) : (
-      <span>{props.notificationRuleCondition?.value}</span>
+      <span className="font-medium text-gray-900">
+        {props.notificationRuleCondition?.value}
+      </span>
     );
 
     if (
@@ -75,7 +83,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
         });
 
       valueElement = (
-        <div className="flex space-x-2 py-1">
+        <div className="inline-flex flex-wrap items-center gap-1.5">
           {selectedAlertSeverities.map(
             (alertSeverity: AlertSeverity, index: number) => {
               return (
@@ -101,7 +109,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
       );
 
       valueElement = (
-        <div className="flex space-x-2 py-1">
+        <div className="inline-flex flex-wrap items-center gap-1.5">
           {selectedAlertStates.map((alertState: AlertState, index: number) => {
             return <AlertStateElement alertState={alertState} key={index} />;
           })}
@@ -121,7 +129,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
         );
 
       valueElement = (
-        <div className="flex space-x-2 py-1">
+        <div className="inline-flex flex-wrap items-center gap-1.5">
           {selectedIncidentSeverities.map(
             (incidentSeverity: IncidentSeverity, index: number) => {
               return (
@@ -146,7 +154,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
         });
 
       valueElement = (
-        <div className="flex space-x-2 py-1">
+        <div className="inline-flex flex-wrap items-center gap-1.5">
           {selectedIncidentStates.map(
             (incidentState: IncidentState, index: number) => {
               return (
@@ -174,7 +182,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
         );
 
       valueElement = (
-        <div className="flex space-x-2 py-1">
+        <div className="inline-flex flex-wrap items-center gap-1.5">
           {selectedScheduledMaintenanceStates.map(
             (
               scheduledMaintenanceState: ScheduledMaintenanceState,
@@ -199,7 +207,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
         });
 
       valueElement = (
-        <div className="flex space-x-2 py-1">
+        <div className="inline-flex flex-wrap items-center gap-1.5">
           {selectedMonitorStatuses.map(
             (monitorStatus: MonitorStatus, index: number) => {
               return (
@@ -236,7 +244,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
       );
 
       valueElement = (
-        <div className="flex space-x-2 py-1">
+        <div className="inline-flex flex-wrap items-center gap-1.5">
           {selectedLabels.map((label: Label, index: number) => {
             return <LabelElement label={label} key={index} />;
           })}
@@ -252,7 +260,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
       );
 
       valueElement = (
-        <div className="flex space-x-2 py-1">
+        <div className="inline-flex flex-wrap items-center gap-1.5">
           {selectedMonitors.map((monitor: Monitor, index: number) => {
             return <MonitorElement monitor={monitor} key={index} />;
           })}
@@ -263,21 +271,25 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     return valueElement;
   };
 
+  /*
+   * One line: what is checked, how, and the values - chips for states,
+   * severities, labels and monitors - wrapping onto the next line when
+   * they do not fit. What is checked and how are named as the Conditions
+   * step's dropdowns name them, in the reader's language.
+   */
   return (
-    <div className="flex w-full -ml-3">
-      <div className="flex">
-        <div className="ml-1 flex-auto py-0.5 text-sm leading-5 text-gray-500">
-          <span className="font-medium text-gray-900">
-            {props.notificationRuleCondition?.checkOn || ""}
-          </span>
-          <span className="ml-1 font-medium text-gray-900">
-            {props.notificationRuleCondition?.conditionType || ""}
-          </span>
-          <span className="ml-1 font-medium text-gray-900">
-            {getValueElement()}
-          </span>
-        </div>
-      </div>
+    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm leading-6">
+      <span className="font-medium text-gray-900">
+        {translator.translateText(
+          props.notificationRuleCondition?.checkOn || "",
+        )}
+      </span>
+      <span className="text-gray-500">
+        {translator.translateText(
+          props.notificationRuleCondition?.conditionType || "",
+        )}
+      </span>
+      {getValueElement()}
     </div>
   );
 };

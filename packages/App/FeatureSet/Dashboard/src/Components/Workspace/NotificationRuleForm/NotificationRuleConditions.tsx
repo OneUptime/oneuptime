@@ -18,6 +18,9 @@ import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMai
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import ObjectID from "Common/Types/ObjectID";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { NO_CONDITIONS_YET_SENTENCES } from "./NotificationRuleCopy";
 
 export interface ComponentProps {
   value: Array<NotificationRuleCondition> | undefined;
@@ -77,15 +80,21 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
     }
   }, [rows]);
 
+  const translator: Translator = useTranslator();
+
   const checkOnByEventType: Array<NotificationRuleConditionCheckOn> =
     NotificationRuleConditionUtil.getCheckOnByEventType(props.eventType);
 
   return (
     <div>
       {notificationRuleConditions.length === 0 && (
-        <p className="text-sm text-gray-700 text-semibold">
-          If no filters are added, then this rule will trigger for every{" "}
-          {props.eventType}.
+        <p
+          className="text-sm text-gray-700"
+          data-testid="notification-rule-no-conditions-yet"
+        >
+          {translator.translateText(
+            NO_CONDITIONS_YET_SENTENCES[props.eventType],
+          )}
         </p>
       )}
 

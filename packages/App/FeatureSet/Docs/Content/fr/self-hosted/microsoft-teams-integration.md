@@ -347,7 +347,7 @@ L'installation se fait par équipe. Ajouter OneUptime à une équipe ne fait rie
 
 ### "Tester la règle" réussit mais les vraies notifications n'arrivent jamais
 
-Vérifiez quelles destinations la règle a réellement activées. Une règle n'exerce que ce pour quoi elle est configurée : avec **Create Microsoft Teams Channel** activé, le test crée un canal et y publie, ce qui prouve que le bot peut publier *dans l'équipe où ce canal a été créé* — et rien sur aucune autre équipe. **Paramètres du projet > Notifications > Journaux de notification** enregistre chaque envoi de test, y compris l'erreur brute de Microsoft en cas d'échec.
+Vérifiez quelles destinations la règle a réellement activées. Une règle n'exerce que ce pour quoi elle est configurée : avec **Créer un canal pour chaque incident** activé, le test crée un canal et y publie, ce qui prouve que le bot peut publier *dans l'équipe où ce canal a été créé* — et rien sur aucune autre équipe. **Paramètres du projet > Notifications > Journaux de notification** enregistre chaque envoi de test, y compris l'erreur brute de Microsoft en cas d'échec.
 
 ### "Sorry, I couldn't find your project configuration"
 
