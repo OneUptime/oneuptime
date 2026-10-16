@@ -143,7 +143,7 @@ OneUptime hat in Slack einen einzigen Befehl, `/oneuptime`. Das Wort, das Sie da
 | Befehl | Was er tut |
 | --- | --- |
 | `/oneuptime help` | Listet die Befehle auf, mit Beispielen. |
-| `/oneuptime incident [title]` | Öffnet das Vorfallsformular, mit ausgefülltem Titel. |
+| `/oneuptime incident [title or number]` | Öffnet das Vorfallsformular, mit ausgefülltem Titel. Die Nummer eines Vorfalls, etwa `42` oder `INC-42`, zeigt stattdessen diesen Vorfall: siehe [Einen Vorfall aus Slack verwalten](#einen-vorfall-aus-slack-verwalten). |
 | `/oneuptime maintenance [title]` | Öffnet das Formular für geplante Wartung, mit ausgefülltem Titel. |
 | `/oneuptime oncall` | Listet, wer gerade in jedem Bereitschaftsplan, den Sie sehen können, Bereitschaft hat, bis wann und wer als Nächstes dran ist. |
 | `/oneuptime page [who] [message]` | Alarmiert die Personen, die Sie mit @ erwähnen, wegen Ihrer Nachricht, oder öffnet ein Formular, in dem Sie wählen, wer alarmiert wird. Siehe [Jemanden aus Slack alarmieren](#jemanden-aus-slack-alarmieren). |
@@ -215,6 +215,25 @@ Für eine Gruppe, die die primäre und die sekundäre Bereitschaft enthält, ver
 - **Was Slack braucht.** Benutzergruppen gibt es in den kostenpflichtigen Tarifen von Slack, und ein Workspace kann nur seinen Inhabern und Admins erlauben, sie zu ändern: Die Karte sagt, was davon zutrifft und was zu tun ist. Wurde Slack verbunden, bevor OneUptime Benutzergruppen pflegen konnte, verbinden Sie es einmal erneut unter **Projekteinstellungen** > **Arbeitsbereich** > **Slack**.
 - **Wer eine verbinden darf.** Die Rollen, die Bereitschaftspläne bearbeiten dürfen: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** und **On-Call Member**, oder **Edit On-Call Duty Policy Schedule** in einer benutzerdefinierten Rolle. In OneUptime Cloud braucht das Verbinden den Tarif **Growth**.
 - **Trennen.** OneUptime ändert die Gruppe nicht mehr. Die Gruppe und ihre Mitglieder bleiben in Slack, wie sie sind.
+
+## Einen Vorfall aus Slack verwalten
+
+Die Nachricht eines Vorfalls hat vier Schaltflächen, **Acknowledge Incident**, **Resolve Incident**, **Add Note** und **View Incident**, und den Rest in ihrem Menü, der Schaltfläche mit drei Punkten dahinter:
+
+| Menüpunkt | Was er tut |
+| --- | --- |
+| **Change Severity** | Legt den Schweregrad des Vorfalls fest. |
+| **Change Incident State** | Versetzt den Vorfall in einen späteren Status. |
+| **Assign Role** | Gibt jemandem eine Rolle im Vorfall, etwa **Incident Commander**. Eine Rolle für nur eine Person geht an diese Person über. |
+| **Page Someone** | Alarmiert Personen, ein Team, wer in einem Bereitschaftsplan gerade Bereitschaft hat, oder eine Bereitschaftsrichtlinie zu dem Vorfall, bis jemand ihn bestätigt. |
+| **Edit Custom Fields** | Setzt die benutzerdefinierten Felder des Vorfalls, jedes ausgefüllt mit dem, was der Vorfall enthält. Ein leer gelassenes Feld wird geleert. |
+
+`/oneuptime incident 42` zeigt Vorfall 42, mit diesen Schaltflächen und seinem Menü, in einer Nachricht, die nur Sie sehen. Schreiben Sie die Nummer so, wie OneUptime sie zeigt: `42`, `#42` oder `INC-42`. Im eigenen Kanal eines Vorfalls zeigt `/oneuptime incident` allein diesen Vorfall.
+
+- **Wer sie nutzen darf.** Die Personen, die dieselbe Änderung in OneUptime vornehmen dürfen. **Change Severity** und **Edit Custom Fields** brauchen die Berechtigung, den Vorfall zu bearbeiten: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** und **Incident Member**, oder **Edit Incident** in einer benutzerdefinierten Rolle. **Assign Role** braucht **Create Incident Member**, und **Delete Incident Member**, um eine Rolle für nur eine Person zu übertragen. **Page Someone** braucht, was **Execute On-Call Policy** braucht. Alle anderen erfahren, warum, und es öffnet sich kein Formular.
+- **Was die Formulare anbieten.** Was Sie im Projekt lesen dürfen. Ein benutzerdefiniertes Feld, das vom Monitor des Vorfalls übernommen wird, fehlt, da es erneut übernommen würde, und ein Formular fasst 40 Felder: Bearbeiten Sie den Rest in OneUptime.
+- **Was dann passiert.** Das Formular schließt sich, und die Änderung wird als Sie vorgenommen, wie in OneUptime: Der Feed des Vorfalls und mit ihm die Kanäle des Vorfalls sagen, was sich geändert hat, jedes benutzerdefinierte Feld mit seinem neuen Wert. Ein Wert, der nicht zu seinem Feld passt, etwa Text für eine Zahl, wird unter dem Feld genannt, und das Formular bleibt offen. **Page Someone** sagt, wer alarmiert wurde oder warum niemand; ein bereits behobener Vorfall alarmiert niemanden.
+- **Nachrichten von vor dem Menü.** Sie behalten ihre Schaltfläche **Execute On-Call Policy**, und sie funktioniert weiter: **Page Someone** alarmiert auch eine Bereitschaftsrichtlinie. Warnungen und Episoden behalten ihre.
 
 ## Aus Slack auf Vorfälle, Warnungen und Ereignisse reagieren
 

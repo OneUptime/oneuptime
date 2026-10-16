@@ -174,7 +174,7 @@ describe("MicrosoftTeamsCommands.getManifestCommands: what Teams suggests after 
     }
 
     expect(descriptions["incident"]).toBe(
-      "Declare an incident. Type a title after it.",
+      "Declare an incident, or act on one by its number. Type a title or an incident's number after it.",
     );
     expect(descriptions["maintenance"]).toBe(
       "Schedule maintenance. Type a title after it.",

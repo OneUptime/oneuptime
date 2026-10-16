@@ -143,7 +143,7 @@ describe("WorkspaceCommands.getArgumentHint", () => {
         return [definition.name, WorkspaceCommands.getArgumentHint(definition)];
       }),
     ).toEqual([
-      ["incident", "[title]"],
+      ["incident", "[title or number]"],
       ["maintenance", "[title]"],
       ["oncall", ""],
       ["page", "[who] [message]"],
@@ -841,7 +841,7 @@ describe("WorkspaceCommands.getUsage", () => {
  */
 const SLACK_HELP_LINES: Array<string> = [
   "👋 **Here's what `/oneuptime` can do**",
-  "- `/oneuptime incident [title]`: declare an incident",
+  "- `/oneuptime incident [title or number]`: declare an incident, or act on one by its number",
   "- `/oneuptime maintenance [title]`: schedule maintenance",
   "- `/oneuptime oncall`: see who is on call right now",
   "- `/oneuptime page [who] [message]`: page a person, a team or whoever is on call",
@@ -853,7 +853,7 @@ const SLACK_HELP_LINES: Array<string> = [
 
 const TEAMS_HELP_LINES: Array<string> = [
   "👋 **Here's what I can do.** In a channel or a group chat, mention @OneUptime first.",
-  "- **incident [title]**: declare an incident",
+  "- **incident [title or number]**: declare an incident, or act on one by its number",
   "- **maintenance [title]**: schedule maintenance",
   "- **oncall**: see who is on call right now",
   "- **page [who] [message]**: page a person, a team or whoever is on call",
@@ -873,7 +873,7 @@ describe("WorkspaceCommands.getSummary", () => {
         return [definition.name, WorkspaceCommands.getSummary(definition.name)];
       }),
     ).toEqual([
-      ["incident", "declare an incident"],
+      ["incident", "declare an incident, or act on one by its number"],
       ["maintenance", "schedule maintenance"],
       ["oncall", "see who is on call right now"],
       ["page", "page a person, a team or whoever is on call"],

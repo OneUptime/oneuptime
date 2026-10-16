@@ -42,8 +42,10 @@ import {
  * threw the same way, before the form was removed.
  *
  * Every form submit that removes its form is driven here through its real
- * handler - the 14 "Hide the form card" sites and the two create forms (whose
- * create flow MicrosoftTeamsCreateSubmit.test.ts covers in depth) - with
+ * handler - the 14 "Hide the form card" sites, the 4 cards of the incident
+ * card's menu (Change Severity, Assign Role, Page Someone, Edit Custom
+ * Fields), and the two create forms (whose create flow
+ * MicrosoftTeamsCreateSubmit.test.ts covers in depth) - with
  * Teams refusing the removal, removing it, answering it only later, and with
  * no form to remove; then once more through handleBotInvokeActivity, where
  * "Sorry, that action failed" would come from. The rest of the contract
@@ -153,14 +155,25 @@ import MicrosoftTeamsReplies from "../../../../../Server/Utils/Workspace/Microso
 import WorkspacePage, {
   WorkspacePageOutcome,
 } from "../../../../../Server/Utils/Workspace/WorkspacePage";
-import { OnCallPageRecordType } from "../../../../../Server/Services/OnCallPageService";
+import {
+  OnCallPageRecordType,
+  OnCallPageResult,
+} from "../../../../../Server/Services/OnCallPageService";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import WorkspaceActionAuthorization from "../../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import WorkspaceIncidentActions, {
+  WorkspaceIncidentForForm,
+  WorkspaceRoleAssignment,
+} from "../../../../../Server/Utils/Workspace/WorkspaceIncidentActions";
+import WorkspaceIncidentCustomFields, {
+  WorkspaceCustomFieldDefinition,
+} from "../../../../../Server/Utils/Workspace/WorkspaceIncidentCustomFields";
 import WorkspaceMemberActions, {
   WorkspaceEvent,
   WorkspaceEventRecord,
   WorkspaceEventType,
 } from "../../../../../Server/Utils/Workspace/WorkspaceMemberActions";
+import CustomFieldType from "../../../../../Types/CustomField/CustomFieldType";
 import URL from "../../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { JSONObject } from "../../../../../Types/JSON";
@@ -412,10 +425,137 @@ function writeOutcome<T>(result: T, failure: Error | undefined): Promise<T> {
 
 type HandlerFamily =
   | "incident"
+  | "incident menu"
   | "alert"
   | "alert episode"
   | "incident episode"
   | "scheduled maintenance";
+
+/*
+ * THE INCIDENT CARD'S MENU (…). Each of its cards, submitted, acts on the
+ * incident as the member who submits it: the incident as their check read
+ * it, numbered as the confirmation names it.
+ */
+const MENU_INCIDENT_LINK: string = `${DASHBOARD_URL}/${PROJECT_ID.toString()}/incidents/${INCIDENT_ID}`;
+const MENU_INCIDENT: string = `**[Incident INC-42](${MENU_INCIDENT_LINK})**`;
+
+/*
+ * An incident menu form's confirmation, as Teams receives it: a small card
+ * that mentions who submitted the form (Alex) - anyone in the channel may -
+ * with what a notification of it shows (MicrosoftTeamsActionAnswer).
+ */
+function menuConfirmation(markdown: string, summary: string): string {
+  return JSON.stringify({
+    attachments: [
+      {
+        contentType: "application/vnd.microsoft.card.adaptive",
+        content: {
+          type: "AdaptiveCard",
+          $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+          version: "1.5",
+          body: [
+            {
+              type: "TextBlock",
+              text: `<at>Alex</at> ${markdown}`,
+              wrap: true,
+            },
+          ],
+          msteams: {
+            entities: [
+              {
+                type: "mention",
+                text: "<at>Alex</at>",
+                mentioned: { id: "29:teams-user", name: "Alex" },
+              },
+            ],
+          },
+        },
+      },
+    ],
+    summary: summary,
+  });
+}
+const ROLE_ID: string = "c2d3e4f5-a6b7-4c8d-9e0f-1a2b3c4d5e6f";
+const ASSIGNEE_ID: string = "d3e4f5a6-b7c8-4d9e-8f0a-2b3c4d5e6f7a";
+const TICKET_FIELD_ID: string = "e4f5a6b7-c8d9-4e0f-9a1b-3c4d5e6f7a8b";
+
+const TICKET_FIELD: WorkspaceCustomFieldDefinition = {
+  id: new ObjectID(TICKET_FIELD_ID),
+  name: "Ticket",
+  customFieldType: CustomFieldType.Text,
+};
+
+function menuIncident(): WorkspaceIncidentForForm {
+  return {
+    event: {
+      type: WorkspaceEventType.Incident,
+      id: new ObjectID(INCIDENT_ID),
+      projectId: PROJECT_ID,
+      currentStateId: undefined,
+      number: 42,
+      numberWithPrefix: "INC-42",
+    },
+    title: "Checkout is failing",
+  };
+}
+
+/*
+ * The member's check for a menu card (WorkspaceIncidentActions
+ * .authorizeForForm, pinned in its own tests): passed, handing back the
+ * incident as they read it. Its WriteCheck holds the card to asking it, once,
+ * for this incident, as the member, for what the card does.
+ */
+function stubMenuCheck(expected: {
+  kind: "create" | "update";
+  action: string;
+}): WriteCheck {
+  const authorizeForForm: SpyInstance<
+    typeof WorkspaceIncidentActions.authorizeForForm
+  > = jest
+    .spyOn(WorkspaceIncidentActions, "authorizeForForm")
+    .mockResolvedValue(menuIncident());
+
+  return (): void => {
+    expect(authorizeForForm).toHaveBeenCalledTimes(1);
+    expect(authorizeForForm).toHaveBeenCalledWith({
+      incidentId: new ObjectID(INCIDENT_ID),
+      props: MEMBER_PROPS,
+      check: expect.objectContaining({
+        kind: expected.kind,
+        action: expected.action,
+      }),
+    });
+  };
+}
+
+// A page about the incident that reached one person.
+function pageResult(): OnCallPageResult {
+  return {
+    record: {
+      type: OnCallPageRecordType.Incident,
+      id: new ObjectID(INCIDENT_ID),
+      label: "Incident INC-42",
+      title: "Checkout is failing",
+      url: URL.fromString(MENU_INCIDENT_LINK),
+      isNew: false,
+    },
+    paged: [
+      {
+        userId: new ObjectID(ASSIGNEE_ID),
+        name: "Nawaz Dhandala",
+        email: null,
+        teamName: null,
+        scheduleName: null,
+        coveringForName: null,
+      },
+    ],
+    startedPolicies: [],
+    notPaged: [],
+    isAnyonePaged: true,
+    directPageExecutionLogId: CREATED_ID,
+    summary: "",
+  };
+}
 
 // Asserts that the write a form asked for was attempted, once, as asked.
 type WriteCheck = () => void;
@@ -646,6 +786,176 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
         // Declared by the member, with their own props: the create credits them.
         expect(create.mock.calls[0]![0].props).toBe(MEMBER_PROPS);
         expect(incident.createdByUserId).toBeUndefined();
+      };
+    },
+  },
+  {
+    name: "incident menu: Change Severity",
+    family: "incident menu",
+    actionType: MicrosoftTeamsIncidentActionType.SubmitChangeIncidentSeverity,
+    actionValue: INCIDENT_ID,
+    fields: { incidentSeverity: SEVERITY_ID },
+    confirmation: menuConfirmation(
+      `⚠️ ${MENU_INCIDENT} is now **SEV 1**.`,
+      "Incident INC-42 is now SEV 1",
+    ),
+    failureReply: ACTION_FAILED,
+    stubWrite: (failure?: Error): WriteCheck => {
+      const checked: WriteCheck = stubMenuCheck({
+        kind: "update",
+        action: "change the severity of this incident",
+      });
+      const changeSeverity: SpyInstance<
+        typeof WorkspaceIncidentActions.changeSeverity
+      > = jest
+        .spyOn(WorkspaceIncidentActions, "changeSeverity")
+        .mockImplementation(
+          (): Promise<{ isChanged: boolean; severityName: string }> => {
+            return writeOutcome(
+              { isChanged: true, severityName: "SEV 1" },
+              failure,
+            );
+          },
+        );
+
+      return (): void => {
+        checked();
+        expect(changeSeverity).toHaveBeenCalledTimes(1);
+        expect(changeSeverity).toHaveBeenCalledWith({
+          event: menuIncident().event,
+          severityId: new ObjectID(SEVERITY_ID),
+          // The incident's update, as the member: the dashboard's own rules.
+          props: MEMBER_PROPS,
+        });
+      };
+    },
+  },
+  {
+    name: "incident menu: Assign Role",
+    family: "incident menu",
+    actionType: MicrosoftTeamsIncidentActionType.SubmitAssignIncidentRole,
+    actionValue: INCIDENT_ID,
+    fields: { incidentRole: ROLE_ID, incidentRolePerson: ASSIGNEE_ID },
+    confirmation: menuConfirmation(
+      `👤 **Nawaz Dhandala** is now **Incident Commander** on ${MENU_INCIDENT}, in place of **Ana Ruiz**.`,
+      "Nawaz Dhandala is now Incident Commander on Incident INC-42",
+    ),
+    failureReply: ACTION_FAILED,
+    stubWrite: (failure?: Error): WriteCheck => {
+      const checked: WriteCheck = stubMenuCheck({
+        kind: "create",
+        action: "assign a role on this incident",
+      });
+      const assignRole: SpyInstance<
+        typeof WorkspaceIncidentActions.assignRole
+      > = jest
+        .spyOn(WorkspaceIncidentActions, "assignRole")
+        .mockImplementation((): Promise<WorkspaceRoleAssignment> => {
+          return writeOutcome(
+            {
+              roleName: "Incident Commander",
+              personName: "Nawaz Dhandala",
+              isHeldAlready: false,
+              replacedNames: ["Ana Ruiz"],
+            },
+            failure,
+          );
+        });
+
+      return (): void => {
+        checked();
+        expect(assignRole).toHaveBeenCalledTimes(1);
+        expect(assignRole).toHaveBeenCalledWith({
+          event: menuIncident().event,
+          roleId: new ObjectID(ROLE_ID),
+          userId: new ObjectID(ASSIGNEE_ID),
+          props: MEMBER_PROPS,
+        });
+      };
+    },
+  },
+  {
+    name: "incident menu: Page Someone",
+    family: "incident menu",
+    actionType: MicrosoftTeamsIncidentActionType.SubmitPageAboutIncident,
+    actionValue: INCIDENT_ID,
+    fields: { incidentPageTargets: `user:${ASSIGNEE_ID}` },
+    confirmation: menuConfirmation(
+      `📟 Paged **Nawaz Dhandala** about ${MENU_INCIDENT}`,
+      "Paged Nawaz Dhandala about Incident INC-42",
+    ),
+    failureReply: ACTION_FAILED,
+    stubWrite: (failure?: Error): WriteCheck => {
+      const checked: WriteCheck = stubMenuCheck({
+        kind: "create",
+        action: "page someone about this incident",
+      });
+      // Still open: a resolved incident is answered, and nobody is paged.
+      jest.spyOn(WorkspaceMemberActions, "getStanding").mockResolvedValue({
+        isAcknowledged: false,
+        isResolved: false,
+        hasStarted: true,
+        isComplete: false,
+      });
+      const page: SpyInstance<typeof WorkspaceIncidentActions.page> = jest
+        .spyOn(WorkspaceIncidentActions, "page")
+        .mockImplementation((): Promise<OnCallPageResult> => {
+          return writeOutcome(pageResult(), failure);
+        });
+
+      return (): void => {
+        checked();
+        expect(page).toHaveBeenCalledTimes(1);
+        expect(page).toHaveBeenCalledWith({
+          event: menuIncident().event,
+          targets: expect.objectContaining({
+            userIds: [new ObjectID(ASSIGNEE_ID)],
+          }),
+          props: MEMBER_PROPS,
+        });
+      };
+    },
+  },
+  {
+    name: "incident menu: Edit Custom Fields",
+    family: "incident menu",
+    actionType: MicrosoftTeamsIncidentActionType.SubmitEditIncidentCustomFields,
+    actionValue: INCIDENT_ID,
+    fields: {
+      [WorkspaceIncidentCustomFields.getInputId(TICKET_FIELD.id)]: "OPS-200",
+    },
+    confirmation: menuConfirmation(
+      `📝 Updated **Ticket** on ${MENU_INCIDENT}.`,
+      "Updated Ticket on Incident INC-42",
+    ),
+    failureReply: ACTION_FAILED,
+    stubWrite: (failure?: Error): WriteCheck => {
+      const checked: WriteCheck = stubMenuCheck({
+        kind: "update",
+        action: "edit the custom fields of this incident",
+      });
+      jest
+        .spyOn(WorkspaceIncidentCustomFields, "readDefinitions")
+        .mockResolvedValue([TICKET_FIELD]);
+      jest
+        .spyOn(WorkspaceIncidentCustomFields, "readIncidentValues")
+        .mockResolvedValue({ stored: { Ticket: "OPS-118" }, monitorCount: 0 });
+      const save: SpyInstance<typeof WorkspaceIncidentCustomFields.save> = jest
+        .spyOn(WorkspaceIncidentCustomFields, "save")
+        .mockImplementation((): Promise<void> => {
+          return writeOutcome(undefined, failure);
+        });
+
+      return (): void => {
+        checked();
+        expect(save).toHaveBeenCalledTimes(1);
+        expect(save).toHaveBeenCalledWith({
+          incidentId: new ObjectID(INCIDENT_ID),
+          projectId: PROJECT_ID,
+          // Only the field that changed.
+          changes: [{ name: "Ticket", value: "OPS-200" }],
+          props: MEMBER_PROPS,
+        });
       };
     },
   },
@@ -1075,6 +1385,7 @@ function failureLogCalls(
 // Which file of the Teams bot each family's handler lives in.
 const FAMILY_SOURCE_FILES: Record<HandlerFamily, string> = {
   incident: "Actions/Incident.ts",
+  "incident menu": "Actions/IncidentMoreActions.ts",
   alert: "Actions/Alert.ts",
   "alert episode": "Actions/AlertEpisode.ts",
   "incident episode": "Actions/IncidentEpisode.ts",
@@ -1144,6 +1455,15 @@ type SubmitHandler = (
 // Each family's real bot handler, called as handleBotInvokeActivity calls it.
 const HANDLERS: Record<HandlerFamily, SubmitHandler> = {
   incident: (form: SubmittedForm, turnContext: TurnContext): Promise<void> => {
+    return MicrosoftTeamsIncidentActions.handleBotIncidentAction(
+      botActionArguments(form, turnContext),
+    );
+  },
+  // The menu's cards reach their handler through the incident's.
+  "incident menu": (
+    form: SubmittedForm,
+    turnContext: TurnContext,
+  ): Promise<void> => {
     return MicrosoftTeamsIncidentActions.handleBotIncidentAction(
       botActionArguments(form, turnContext),
     );

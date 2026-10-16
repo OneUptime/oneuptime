@@ -34,6 +34,7 @@ export type SlackActionRequester = Pick<
   | "triggerId"
   | "payloadType"
   | "slackViewType"
+  | "isFromPrivateMessage"
 >;
 
 // A Slack user who may press a button on a record, and the record as they read it.

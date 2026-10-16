@@ -159,6 +159,7 @@ export interface MicrosoftTeamsCommandSenderCheck {
 
 // What follows a command that opens a form (WORKSPACE_COMMANDS).
 const TITLE_ARGUMENT: string = "title";
+const TITLE_OR_NUMBER_ARGUMENT: string = "title or number";
 
 // A word, as a sentence says one: "a create command", "an oncall command".
 const STARTS_WITH_VOWEL: RegExp = /^[aeiou]/i;
@@ -560,6 +561,11 @@ export default class MicrosoftTeamsCommands {
   ): string {
     if (definition.argument === TITLE_ARGUMENT) {
       return "Type a title after it.";
+    }
+
+    // "incident": a title declares one; a number shows that incident.
+    if (definition.argument === TITLE_OR_NUMBER_ARGUMENT) {
+      return "Type a title or an incident's number after it.";
     }
 
     if (definition.name === WorkspaceCommandName.Page) {

@@ -20,6 +20,12 @@ import { JSONObject } from "../../../../Types/JSON";
 export interface SlackModalOrigin {
   channelId?: string | undefined;
   threadTs?: string | undefined;
+  /*
+   * The form was opened from a message only the person sees - the incident
+   * `/oneuptime incident 42` answers with - where nobody else sees what it
+   * does: its submission is answered with what it did.
+   */
+  isFromPrivateMessage?: boolean | undefined;
 }
 
 export interface SlackModalMetadataValue {
@@ -43,7 +49,10 @@ export default class SlackModalMetadata {
     value: string,
     origin: SlackModalOrigin | undefined,
   ): string {
-    if (!origin || (!origin.channelId && !origin.threadTs)) {
+    if (
+      !origin ||
+      (!origin.channelId && !origin.threadTs && !origin.isFromPrivateMessage)
+    ) {
       return value;
     }
 
@@ -58,6 +67,10 @@ export default class SlackModalMetadata {
 
     if (origin.threadTs) {
       envelope["threadTs"] = origin.threadTs;
+    }
+
+    if (origin.isFromPrivateMessage) {
+      envelope["private"] = 1;
     }
 
     const written: string = JSON.stringify(envelope);
@@ -90,6 +103,10 @@ export default class SlackModalMetadata {
 
           if (typeof read["threadTs"] === "string" && read["threadTs"]) {
             origin.threadTs = read["threadTs"];
+          }
+
+          if (read["private"] === 1) {
+            origin.isFromPrivateMessage = true;
           }
 
           return {

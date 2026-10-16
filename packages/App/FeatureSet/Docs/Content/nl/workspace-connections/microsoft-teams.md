@@ -154,7 +154,7 @@ Stuur de bot een bericht in een persoonlijke chat, of noem OneUptime met @ in ee
 | Bericht | Wat de bot doet |
 | --- | --- |
 | `help` | Toont wat hij kan. |
-| `incident [title]` | Opent het incidentformulier, met de titel ingevuld. |
+| `incident [title or number]` | Opent het incidentformulier, met de titel ingevuld. Het nummer van een incident, zoals `42` of `INC-42`, toont in plaats daarvan dat incident: zie [Een incident beheren vanuit Microsoft Teams](#een-incident-beheren-vanuit-microsoft-teams). |
 | `maintenance [title]` | Opent het formulier voor gepland onderhoud, met de titel ingevuld. |
 | `oncall` | Toont wie er nu dienst heeft in elk bereikbaarheidsschema dat je kunt zien, tot wanneer, en wie de volgende is. |
 | `page [who] [message]` | Roept de mensen op die je met @ noemt, over je bericht, of stuurt een kaart om te kiezen wie je oproept. Zie [Iemand oproepen vanuit Microsoft Teams](#iemand-oproepen-vanuit-microsoft-teams). |
@@ -215,6 +215,25 @@ Voor een tag met zowel de primaire als de secundaire dienst koppel je dezelfde t
 - **Wat Microsoft 365 nodig heeft.** Tags wijzigen vraagt de machtiging `TeamworkTag.ReadWrite.All` van de app, die een Microsoft 365-beheerder verleent met **Beheerderstoestemming verlenen** onder **Projectinstellingen** > **Werkruimte** > **Microsoft Teams**. Gaf je organisatie toestemming voordat OneUptime tags kon bijhouden, geef die dan één keer opnieuw.
 - **Wie er een mag koppelen.** De rollen die schema's mogen bewerken: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** en **On-Call Member**, of **Edit On-Call Duty Policy Schedule** in een aangepaste rol. In OneUptime Cloud vraagt koppelen het abonnement **Growth**.
 - **Ontkoppelen.** OneUptime past de tag niet meer aan. De tag en de leden blijven in Microsoft Teams zoals ze zijn.
+
+## Een incident beheren vanuit Microsoft Teams
+
+De kaart van een incident heeft vier knoppen, **Acknowledge Incident**, **Resolve Incident**, **Add Note** en **View Incident**, en de rest in haar menu, de knop met drie puntjes:
+
+| Menu-item | Wat het doet |
+| --- | --- |
+| **Change Severity** | Stelt de ernst van het incident in. |
+| **Change Incident State** | Zet het incident in een latere status. |
+| **Assign Role** | Geeft iemand een rol in het incident, zoals **Incident Commander**. Een rol voor één persoon gaat naar die persoon over. |
+| **Page Someone** | Roept mensen, een team, wie in een schema nu dienst heeft, of een bereikbaarheidsbeleid op over het incident, tot iemand het bevestigt. |
+| **Edit Custom Fields** | Stelt de aangepaste velden van het incident in, elk ingevuld met wat het incident bevat. Een leeg gelaten veld wordt gewist. |
+
+`incident 42`, getypt naar de bot, antwoordt met incident 42, deze knoppen en zijn menu. Typ het nummer zoals OneUptime het toont: `42`, `#42` of `INC-42`. In het eigen kanaal van een incident toont `incident` zonder meer dat incident.
+
+- **Wie ze mag gebruiken.** De mensen die dezelfde wijziging in OneUptime mogen maken, zoals in Slack: zie [Een incident beheren vanuit Slack](/docs/workspace-connections/slack#een-incident-beheren-vanuit-slack). Elk item antwoordt met een kaart, ingevuld zoals de persoon die het indrukte het incident mag zien. Iedereen in het gesprek mag de kaart versturen, als zichzelf, met de eigen rechten.
+- **Wat er gebeurt.** De wijziging wordt gemaakt als de persoon die de kaart verstuurde, zoals in OneUptime, en de feed van het incident zegt wat er veranderde. De bot zegt het in een antwoord dat diegene noemt, en verwijdert de kaart, zodat niemand haar twee keer verstuurt. **Page Someone** zegt wie werd opgeroepen, of waarom niemand; een incident dat al is opgelost, roept niemand op.
+- **Waar Microsoft Teams anders is.** Een kaart kan niet onder een veld zeggen wat er mis is: een waarde die niet past, wordt in een antwoord genoemd, en de kaart blijft staan om te verbeteren en opnieuw te versturen. Een veld voor datum en tijd is een dag en een tijd, in je eigen tijdzone. Een oudere Teams-client toont het menu als extra knoppen. `incident 42` antwoordt in het gesprek, waar iedereen erin het incident kan zien.
+- **Kaarten van vóór het menu.** Ze houden hun knop **Execute On-Call Policy**, en die blijft werken: **Page Someone** roept ook een bereikbaarheidsbeleid op. Waarschuwingen en episodes houden die van hen.
 
 ## Handelen op incidenten, waarschuwingen en gebeurtenissen vanuit Microsoft Teams
 

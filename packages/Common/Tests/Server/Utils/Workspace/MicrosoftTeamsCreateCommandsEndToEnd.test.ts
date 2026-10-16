@@ -2876,7 +2876,7 @@ describe("controls: commands that always worked still answer once with HTTP 200"
     );
     // Both create commands take the form's title after them.
     expect(reply).toContain(
-      "\n- **incident [title]**: declare an incident\n- **maintenance [title]**: schedule maintenance\n",
+      "\n- **incident [title or number]**: declare an incident, or act on one by its number\n- **maintenance [title]**: schedule maintenance\n",
     );
   });
 

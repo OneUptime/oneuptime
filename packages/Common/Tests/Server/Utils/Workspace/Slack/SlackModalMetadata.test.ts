@@ -38,6 +38,54 @@ describe("SlackModalMetadata", () => {
     });
   });
 
+  test("a form opened from a message only its presser sees carries that too: its submission is answered with what it did", () => {
+    const written: string = SlackModalMetadata.write(INCIDENT_ID, {
+      channelId: "C0INC2",
+      isFromPrivateMessage: true,
+    });
+
+    expect(JSON.parse(written)).toEqual({
+      oneuptime: 1,
+      value: INCIDENT_ID,
+      channelId: "C0INC2",
+      private: 1,
+    });
+    expect(SlackModalMetadata.read(written)).toEqual({
+      value: INCIDENT_ID,
+      origin: { channelId: "C0INC2", isFromPrivateMessage: true },
+    });
+  });
+
+  test("the private flag alone is worth an envelope; false is not written", () => {
+    expect(
+      SlackModalMetadata.read(
+        SlackModalMetadata.write(INCIDENT_ID, { isFromPrivateMessage: true }),
+      ),
+    ).toEqual({
+      value: INCIDENT_ID,
+      origin: { isFromPrivateMessage: true },
+    });
+    expect(
+      SlackModalMetadata.write(INCIDENT_ID, { isFromPrivateMessage: false }),
+    ).toBe(INCIDENT_ID);
+  });
+
+  test.each([[true], ["1"], [0], [2]])(
+    "an envelope whose private flag is %p - not the 1 OneUptime writes - is no private message",
+    (flag: unknown) => {
+      expect(
+        SlackModalMetadata.read(
+          JSON.stringify({
+            oneuptime: 1,
+            value: INCIDENT_ID,
+            channelId: "C0INC2",
+            private: flag,
+          }),
+        ),
+      ).toEqual({ value: INCIDENT_ID, origin: { channelId: "C0INC2" } });
+    },
+  );
+
   test("with nowhere to carry, the value is written bare, as it always was", () => {
     expect(SlackModalMetadata.write(INCIDENT_ID, undefined)).toBe(INCIDENT_ID);
     expect(SlackModalMetadata.write(INCIDENT_ID, {})).toBe(INCIDENT_ID);

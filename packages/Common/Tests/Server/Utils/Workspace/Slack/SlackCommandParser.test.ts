@@ -146,6 +146,45 @@ describe("SlackCommandParser.getAction: what a command asks for, as a press is r
     });
   });
 
+  test.each([
+    ["incident 42", "42"],
+    ["incident  #42 ", "#42"],
+    ["incident INC-42", "INC-42"],
+    ["INCIDENT inc-42", "inc-42"],
+  ])(
+    "/oneuptime %j: that incident, shown - and the command with its number, to run again as it was",
+    (text: string, word: string) => {
+      expect(actionOf("/oneuptime", text)).toEqual({
+        actionType: SlackActionType.ShowIncident,
+        actionValue: word,
+        command: `/oneuptime incident ${word}`,
+      });
+    },
+  );
+
+  test.each([
+    ["incident 500 errors on checkout", "500 errors on checkout"],
+    ["incident Checkout is down", "Checkout is down"],
+    ["incident", ""],
+  ])(
+    "/oneuptime %j: anything but a number is still the new incident's title",
+    (text: string, title: string) => {
+      expect(actionOf("/oneuptime", text)).toEqual({
+        actionType: SlackActionType.NewIncident,
+        actionValue: title,
+        command: "/oneuptime incident",
+      });
+    },
+  );
+
+  test("an older app's /incident 42 only ever declared an incident: its title is 42", () => {
+    expect(actionOf("/incident", "42")).toEqual({
+      actionType: SlackActionType.NewIncident,
+      actionValue: "42",
+      command: "/incident",
+    });
+  });
+
   test("/oneuptime create incident: the same form, run again as /oneuptime incident", () => {
     expect(actionOf("/oneuptime", "create incident Checkout is down")).toEqual({
       actionType: SlackActionType.NewIncident,

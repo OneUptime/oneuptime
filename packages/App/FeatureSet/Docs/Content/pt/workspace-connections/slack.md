@@ -143,7 +143,7 @@ O OneUptime tem um único comando no Slack, `/oneuptime`. A palavra que você di
 | Comando | O que faz |
 | --- | --- |
 | `/oneuptime help` | Lista os comandos, com exemplos. |
-| `/oneuptime incident [title]` | Abre o formulário de incidente, com o título preenchido. |
+| `/oneuptime incident [title or number]` | Abre o formulário de incidente, com o título preenchido. O número de um incidente, como `42` ou `INC-42`, mostra esse incidente em vez disso: consulte [Gerenciar um incidente pelo Slack](#gerenciar-um-incidente-pelo-slack). |
 | `/oneuptime maintenance [title]` | Abre o formulário de manutenção programada, com o título preenchido. |
 | `/oneuptime oncall` | Lista quem está de plantão agora em cada agendamento de plantão que você pode ver, até quando, e quem é o próximo. |
 | `/oneuptime page [who] [message]` | Aciona as pessoas que você menciona com @ sobre a sua mensagem, ou abre um formulário para escolher quem acionar. Consulte [Acionar alguém pelo Slack](#acionar-alguém-pelo-slack). |
@@ -215,6 +215,25 @@ Para um grupo com o plantão principal e o secundário, conecte o mesmo grupo na
 - **O que o Slack exige.** Grupos de usuários fazem parte dos planos pagos do Slack, e um espaço de trabalho pode permitir que só os proprietários e administradores os alterem: o cartão diz qual é o caso, e o que fazer. Se o Slack foi conectado antes de o OneUptime poder manter grupos de usuários, conecte-o de novo uma vez em **Configurações do projeto** > **Espaço de trabalho** > **Slack**.
 - **Quem pode conectar um.** As funções que podem editar agendamentos: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** e **On-Call Member**, ou **Edit On-Call Duty Policy Schedule** em uma função personalizada. No OneUptime Cloud, conectar um exige o plano **Growth**.
 - **Desconectar.** O OneUptime para de mudar o grupo. O grupo e os membros dele ficam no Slack como estão.
+
+## Gerenciar um incidente pelo Slack
+
+A mensagem de um incidente tem quatro botões, **Acknowledge Incident**, **Resolve Incident**, **Add Note** e **View Incident**, e o resto no menu dela, o botão de três pontos depois deles:
+
+| Item do menu | O que faz |
+| --- | --- |
+| **Change Severity** | Define a severidade do incidente. |
+| **Change Incident State** | Leva o incidente a um estado posterior. |
+| **Assign Role** | Dá a alguém uma função no incidente, como **Incident Commander**. Uma função de uma só pessoa passa para ela. |
+| **Page Someone** | Aciona pessoas, uma equipe, quem estiver de plantão em um agendamento, ou uma política de plantão sobre o incidente, até que alguém o confirme. |
+| **Edit Custom Fields** | Define os campos personalizados do incidente, cada um preenchido com o que o incidente tem. Um campo deixado vazio é limpo. |
+
+`/oneuptime incident 42` mostra o incidente 42, com esses botões e o menu dele, em uma mensagem que só você vê. Digite o número como o OneUptime o mostra: `42`, `#42` ou `INC-42`. No canal próprio de um incidente, `/oneuptime incident` sozinho mostra esse incidente.
+
+- **Quem pode usá-los.** As pessoas que podem fazer a mesma alteração no OneUptime. **Change Severity** e **Edit Custom Fields** exigem permissão para editar o incidente: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** e **Incident Member**, ou **Edit Incident** em uma função personalizada. **Assign Role** exige **Create Incident Member**, e **Delete Incident Member** para passar uma função de uma só pessoa. **Page Someone** exige o mesmo que **Execute On-Call Policy**. Qualquer outra pessoa fica sabendo por quê, e nenhum formulário abre.
+- **O que os formulários oferecem.** O que você pode ler no projeto. Um campo personalizado copiado do monitor do incidente fica de fora, pois seria copiado de novo, e um formulário comporta 40 campos: edite o restante no OneUptime.
+- **O que acontece.** O formulário fecha, e a alteração é feita como você, como no OneUptime: o feed do incidente, e com ele os canais do incidente, dizem o que mudou, cada campo personalizado com seu novo valor. Um valor que não cabe no campo, como texto para um número, é indicado abaixo do campo, e o formulário continua aberto. **Page Someone** diz quem foi acionado, ou por que ninguém foi; um incidente que já está resolvido não aciona ninguém.
+- **Mensagens publicadas antes do menu.** Elas mantêm o botão **Execute On-Call Policy**, que continua funcionando: **Page Someone** também aciona uma política de plantão. Alertas e episódios mantêm o deles.
 
 ## Agir sobre incidentes, alertas e eventos pelo Slack
 

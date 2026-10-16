@@ -61,6 +61,14 @@ import path from "path";
  *
  * The form Slack opens is held where its pickers are tested
  * (SlackNewIncidentModalScope).
+ *
+ * An incident's message no longer carries the button: its menu (⋯) has
+ * Page Someone, which pages the incident's on-call policies and people,
+ * teams and schedules too (WorkspaceIncidentActions). A message posted
+ * before keeps its button, which still opens the Dashboard's form, and is
+ * still named as the Dashboard names it when it asks somebody to connect.
+ * Every item of that menu that opens a form is held to the same rule as a
+ * button: pressed again by its own title.
  */
 
 // The most a button's text may hold, in Slack's Block Kit.
@@ -139,6 +147,7 @@ function withoutEmoji(title: string): string {
   return title.replace(LEADING_EMOJI, "");
 }
 
+// A message's buttons, and the items of its menu (⋯): each is pressed alike.
 function buttonsOf(
   blocks: Array<WorkspaceMessageBlock>,
 ): Array<WorkspaceMessagePayloadButton> {
@@ -148,7 +157,10 @@ function buttonsOf(
     })
     .flatMap(
       (block: WorkspaceMessageBlock): Array<WorkspaceMessagePayloadButton> => {
-        return (block as WorkspacePayloadButtons).buttons;
+        return [
+          ...(block as WorkspacePayloadButtons).buttons,
+          ...((block as WorkspacePayloadButtons).menuButtons || []),
+        ];
       },
     );
 }
@@ -164,6 +176,11 @@ interface RecordMessage {
   executeActionId: string;
   // The form's submission.
   submitActionId: string;
+  /*
+   * Whether a new message carries the button. An incident's pages from its
+   * menu's Page Someone instead; its older messages still carry it.
+   */
+  carriesButton: boolean;
 }
 
 const RECORD_MESSAGES: ReadonlyArray<RecordMessage> = [
@@ -177,6 +194,7 @@ const RECORD_MESSAGES: ReadonlyArray<RecordMessage> = [
     },
     executeActionId: SlackActionType.ViewExecuteIncidentOnCallPolicy,
     submitActionId: SlackActionType.SubmitExecuteIncidentOnCallPolicy,
+    carriesButton: false,
   },
   {
     record: "alert",
@@ -188,6 +206,7 @@ const RECORD_MESSAGES: ReadonlyArray<RecordMessage> = [
     },
     executeActionId: SlackActionType.ViewExecuteAlertOnCallPolicy,
     submitActionId: SlackActionType.SubmitExecuteAlertOnCallPolicy,
+    carriesButton: true,
   },
   {
     record: "incident episode",
@@ -201,6 +220,7 @@ const RECORD_MESSAGES: ReadonlyArray<RecordMessage> = [
     },
     executeActionId: SlackActionType.ViewExecuteIncidentEpisodeOnCallPolicy,
     submitActionId: SlackActionType.SubmitExecuteIncidentEpisodeOnCallPolicy,
+    carriesButton: true,
   },
   {
     record: "alert episode",
@@ -212,6 +232,7 @@ const RECORD_MESSAGES: ReadonlyArray<RecordMessage> = [
     },
     executeActionId: SlackActionType.ViewExecuteAlertEpisodeOnCallPolicy,
     submitActionId: SlackActionType.SubmitExecuteAlertEpisodeOnCallPolicy,
+    carriesButton: true,
   },
 ];
 
@@ -260,7 +281,11 @@ describe("the Dashboard names the action, the same on every record", () => {
 });
 
 describe("the button on every message about a record is named as the Dashboard names the action", () => {
-  test.each(RECORD_MESSAGES)(
+  test.each(
+    RECORD_MESSAGES.filter((message: RecordMessage): boolean => {
+      return message.carriesButton;
+    }),
+  )(
     "$record: Slack's and Microsoft Teams' buttons read 📞 Execute On-Call Policy, with the action id they always had",
     async (message: RecordMessage) => {
       const sent: Array<MessageBlocksByWorkspaceType> = await message.build();
@@ -293,6 +318,23 @@ describe("the button on every message about a record is named as the Dashboard n
       }
     },
   );
+
+  test("an incident's message pages from its menu's Page Someone, not with an Execute On-Call Policy button", async () => {
+    for (const byType of await IncidentWorkspaceMessages.getIncidentCreateMessageBlocks(
+      { incidentId: recordId, projectId },
+    )) {
+      const pressed: Array<string> = buttonsOf(byType.messageBlocks).map(
+        (button: WorkspaceMessagePayloadButton): string => {
+          return button.actionId;
+        },
+      );
+
+      expect(pressed).not.toContain(
+        SlackActionType.ViewExecuteIncidentOnCallPolicy,
+      );
+      expect(pressed).toContain(SlackActionType.ViewPageAboutIncident);
+    }
+  });
 
   test("the older Microsoft Teams message builders name it the same", async () => {
     const incident: Array<WorkspaceMessagePayloadButton> = buttonsOf(
@@ -429,7 +471,10 @@ describe("the Connect prompt names the button as the message draws it", () => {
         }
       }
 
-      // Add Note and Change State on both workspaces, and Execute On-Call Policy on a record.
+      /*
+       * Add Note and Change State on both workspaces, and Execute On-Call
+       * Policy (an incident: the four other forms of its menu) on a record.
+       */
       expect(formButtons).toBeGreaterThanOrEqual(4);
     },
   );
