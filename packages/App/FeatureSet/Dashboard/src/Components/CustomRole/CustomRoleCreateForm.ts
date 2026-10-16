@@ -6,6 +6,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import {
   CUSTOM_ROLE_NAME_MAX_LENGTH,
+  getPermissionTitleForSentence,
   isPermissionAllowedInCustomRole,
   PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE,
 } from "Common/Types/Team/CustomRole";
@@ -23,7 +24,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * CREATE CUSTOM ROLE: A NAME, THE ROLES IT STARTS WITH, AND THE REST FOLDED.
@@ -301,6 +302,28 @@ export interface PermissionNotAdded {
   permission: Permission;
   error: string;
 }
+
+/*
+ * Why one pick is missing from a new role, as the notice above the list
+ * says it: the server's words, which name the permission themselves ("You
+ * cannot grant Alert Member because ..."), or the permission's name then
+ * the server's words when they don't ("Alert Member: Network error.").
+ */
+export const getPermissionNotAddedReason: (
+  translator: Translator,
+  item: PermissionNotAdded,
+) => string = (translator: Translator, item: PermissionNotAdded): string => {
+  const title: string = getPermissionTitleForSentence(item.permission);
+
+  if (item.error.includes(title)) {
+    return item.error;
+  }
+
+  return translator.translateTemplate("{{permission}}: {{reason}}", {
+    permission: translator.translateText(title) || title,
+    reason: item.error,
+  });
+};
 
 /*
  * Adds the picked permissions to a new role, one request each, through the

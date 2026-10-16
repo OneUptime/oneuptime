@@ -55,6 +55,7 @@ import Color from "Common/Types/Color";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
+import { getPermissionTitleForSentence } from "Common/Types/Team/CustomRole";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
@@ -577,7 +578,7 @@ function createRecord(tableName, record) {
   if (tableName === "CustomRolePermission") {
     if (refusedPermission && record.permission === refusedPermission) {
       throw new Error(
-        `You cannot grant ${record.permission} because your own access does not include that permission at an equal or broader scope.`,
+        `You cannot grant ${getPermissionTitleForSentence(record.permission)} because your own access does not include that permission at an equal or broader scope.`,
       );
     }
     const role = customRoles.find(

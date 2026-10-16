@@ -19,7 +19,10 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import PermissionScope from "../../Types/Database/AccessControl/PermissionScope";
 import ObjectID from "../../Types/ObjectID";
 import Permission, { UserPermission } from "../../Types/Permission";
-import { getRoleCopyChangeRefusedMessage } from "../../Types/Team/CustomRole";
+import {
+  getPermissionTitleForSentence,
+  getRoleCopyChangeRefusedMessage,
+} from "../../Types/Team/CustomRole";
 import Label from "../../Models/DatabaseModels/Label";
 import Team from "../../Models/DatabaseModels/Team";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
@@ -252,8 +255,9 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     if (!canDelegate || isBlocked) {
+      // The permission by its title ("Incident Member"), not its code name.
       throw new NotAuthorizedException(
-        `You cannot grant ${data.permission} because your own access does not include that permission at an equal or broader scope.`,
+        `You cannot grant ${getPermissionTitleForSentence(data.permission)} because your own access does not include that permission at an equal or broader scope.`,
       );
     }
   }

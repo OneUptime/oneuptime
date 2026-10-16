@@ -644,7 +644,7 @@ describe("a role the server refuses", () => {
   beforeEach(() => {
     createMock.mockImplementation(async (): Promise<never> => {
       throw new Error(
-        "You cannot grant ProjectAdmin because your own access does not include that permission at an equal or broader scope.",
+        "You cannot grant Project Admin because your own access does not include that permission at an equal or broader scope.",
       );
     });
   });
@@ -662,7 +662,7 @@ describe("a role the server refuses", () => {
 
     expect(notice).toHaveTextContent("Support was created without access.");
     expect(notice).toHaveTextContent(
-      "You cannot grant ProjectAdmin because your own access does not include that permission at an equal or broader scope.",
+      "You cannot grant Project Admin because your own access does not include that permission at an equal or broader scope.",
     );
     expect(notice).toHaveTextContent("Open the team to give it a role");
 

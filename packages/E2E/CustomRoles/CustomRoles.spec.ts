@@ -415,8 +415,10 @@ test.describe("Teams > Roles", () => {
       "Night Shift was created without 1 of the roles picked for it.",
     );
     await expect(notice).toContainText(
-      "Alert Member: You cannot grant AlertMember because your own access does not include that permission at an equal or broader scope.",
+      "You cannot grant Alert Member because your own access does not include that permission at an equal or broader scope.",
     );
+    // The refusal names the role it left out; the notice does not name it twice.
+    await expect(notice).not.toContainText("Alert Member: You cannot grant");
 
     // Still on the list, with the role and what was put into it.
     await expectPath(page, ROLES_ROUTE);

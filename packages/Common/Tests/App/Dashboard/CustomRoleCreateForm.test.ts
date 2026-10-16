@@ -10,6 +10,7 @@ import {
   getCustomRoleCreateFormFields,
   getCustomRoleEditFormFields,
   getCustomRoleStartingRoleOptions,
+  getPermissionNotAddedReason,
   getPickedRolePermissions,
   PermissionNotAdded,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomRole/CustomRoleCreateForm";
@@ -29,6 +30,10 @@ import { ModelField } from "../../../UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import { ADVANCED_FORM_SECTION_ID } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import {
+  createTranslator,
+  Translator,
+} from "../../../UI/Utils/TranslateTemplate";
 
 /*
  * CREATE CUSTOM ROLE (Dashboard/src/Components/CustomRole/CustomRoleCreateForm).
@@ -383,7 +388,7 @@ describe("a pick, once the role exists", () => {
 
   test("one the server refuses does not stop the others, and comes back in the server's words", async () => {
     const refusal: string =
-      "You cannot grant AlertMember because your own access does not include that permission at an equal or broader scope.";
+      "You cannot grant Alert Member because your own access does not include that permission at an equal or broader scope.";
     const created: Array<string> = [];
     const modelAPI: typeof ModelAPI = {
       create: async (data: CreateCall): Promise<unknown> => {
@@ -435,5 +440,46 @@ describe("a pick, once the role exists", () => {
       }),
     ).toEqual([]);
     expect(calls).toBe(0);
+  });
+});
+
+describe("why a pick is missing, as the notice says it", () => {
+  const english: Translator = createTranslator(undefined, "en");
+
+  test("the server's refusal, which names the role itself, is said once", () => {
+    const refusal: string =
+      "You cannot grant Alert Member because your own access does not include that permission at an equal or broader scope.";
+
+    expect(
+      getPermissionNotAddedReason(english, {
+        permission: Permission.AlertMember,
+        error: refusal,
+      }),
+    ).toBe(refusal);
+  });
+
+  test("any other failure is told apart by the role's name", () => {
+    expect(
+      getPermissionNotAddedReason(english, {
+        permission: Permission.AlertMember,
+        error: "Network error.",
+      }),
+    ).toBe("Alert Member: Network error.");
+  });
+
+  test("the name is in the reader's language when the failure doesn't name it", () => {
+    const german: Translator = createTranslator(
+      (text: string | undefined): string | undefined => {
+        return text === "Alert Member" ? "Alarmmitglied" : text;
+      },
+      "de",
+    );
+
+    expect(
+      getPermissionNotAddedReason(german, {
+        permission: Permission.AlertMember,
+        error: "Netzwerkfehler.",
+      }),
+    ).toBe("Alarmmitglied: Netzwerkfehler.");
   });
 });

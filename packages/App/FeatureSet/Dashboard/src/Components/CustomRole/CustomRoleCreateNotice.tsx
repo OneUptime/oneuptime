@@ -1,5 +1,7 @@
-import { PermissionNotAdded } from "./CustomRoleCreateForm";
-import { getPermissionTitleForSentence } from "Common/Types/Team/CustomRole";
+import {
+  getPermissionNotAddedReason,
+  PermissionNotAdded,
+} from "./CustomRoleCreateForm";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -38,16 +40,10 @@ const CustomRoleCreateNotice: FunctionComponent<ComponentProps> = (
     { role: props.roleName },
   );
 
-  // Each missing one by name, with the server's reason.
+  // Each missing one, with the server's reason, named once.
   const reasons: string = props.notAdded
     .map((item: PermissionNotAdded): string => {
-      return translator.translateTemplate("{{permission}}: {{reason}}", {
-        permission:
-          translator.translateText(
-            getPermissionTitleForSentence(item.permission),
-          ) || item.permission,
-        reason: item.error,
-      });
+      return getPermissionNotAddedReason(translator, item);
     })
     .join(" ");
 

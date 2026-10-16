@@ -1429,7 +1429,7 @@ describePostgres("custom roles against a migrated Postgres", () => {
             props: teamEditor,
           });
         }),
-      ).toContain("You cannot grant MonitorViewer");
+      ).toContain("You cannot grant Monitor Viewer");
       expect(
         await refusal(() => {
           return addToRole(otherRole, Permission.MonitorViewer, {
@@ -1438,7 +1438,7 @@ describePostgres("custom roles against a migrated Postgres", () => {
             props: teamEditor,
           });
         }),
-      ).toContain("You cannot grant MonitorViewer");
+      ).toContain("You cannot grant Monitor Viewer");
 
       expect(await permissionCountOf(role)).toBe(2);
     });
@@ -1459,7 +1459,7 @@ describePostgres("custom roles against a migrated Postgres", () => {
             props: teamEditor,
           });
         }),
-      ).toContain("You cannot grant MonitorViewer");
+      ).toContain("You cannot grant Monitor Viewer");
 
       expect(
         await refusal(() => {
@@ -1473,7 +1473,7 @@ describePostgres("custom roles against a migrated Postgres", () => {
             props: teamEditor,
           });
         }),
-      ).toContain("You cannot grant ProjectAdmin");
+      ).toContain("You cannot grant Project Admin");
 
       const copies: Array<StoredRow> = await copiesOnTeam(roleTeam);
       expect(copies).toHaveLength(1);
@@ -1521,7 +1521,7 @@ describePostgres("custom roles against a migrated Postgres", () => {
         await refusal(() => {
           return addToRole(role, Permission.IncidentAdmin, { props: blocked });
         }),
-      ).toContain("IncidentAdmin");
+      ).toContain("Incident Admin");
 
       await addToRole(role, Permission.IncidentAdmin);
       expect(
@@ -1545,7 +1545,7 @@ describePostgres("custom roles against a migrated Postgres", () => {
             props: teamEditor,
           });
         }),
-      ).toContain("ProjectAdmin");
+      ).toContain("Project Admin");
 
       await TeamPermissionService.assertCanGrantTeamPermissions({
         teamId: roleTeam,
