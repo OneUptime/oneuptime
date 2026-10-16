@@ -481,6 +481,22 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
       expect(outcome).toEqual({ created: RACING_CREATES, refusals: [] });
       expect(await count("StatusPage")).toBe(RACING_CREATES);
     }, 120000);
+
+    test("without billing - a self-hosted install - nothing is held, whatever the plan id says", async () => {
+      setTestBillingEnabled(false);
+      await insertProject({ plan: "free" });
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        holdAt: StatusPageService,
+        create: (index: number) => {
+          return createStatusPage(`Racing page ${index}`);
+        },
+      });
+
+      expect(outcome).toEqual({ created: RACING_CREATES, refusals: [] });
+      expect(await count("StatusPage")).toBe(RACING_CREATES);
+    }, 120000);
   });
 
   describe("status page subscribers on the Free plan", () => {
@@ -558,6 +574,39 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
       expectOutcome(outcome, { created: 3, refusal: SUBSCRIBER_REFUSAL });
       expect(await count("StatusPageSubscriber")).toBe(5);
     }, 120000);
+
+    test("the team adding subscribers and visitors signing up at the same moment share the room: exactly two are added", async () => {
+      await insertProject({ plan: "free" });
+      await insertStatusPage();
+      await insertSubscribers(3);
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        holdAt: StatusPageSubscriberService,
+        create: (index: number) => {
+          if (index % 2 === 0) {
+            return signUp(`visitor-${index}@example.com`);
+          }
+
+          // A teammate's Add Subscriber, from the dashboard.
+          const subscriber: StatusPageSubscriber = new StatusPageSubscriber();
+          subscriber.statusPageId = statusPageId;
+          subscriber.projectId = projectId;
+          subscriber.subscriberEmail = new Email(
+            `added-${index}@example.com`,
+          );
+          subscriber.sendYouHaveSubscribedMessage = false;
+
+          return StatusPageSubscriberService.create({
+            data: subscriber,
+            props: projectAdminProps(PlanType.Free),
+          });
+        },
+      });
+
+      expectOutcome(outcome, { created: 2, refusal: SUBSCRIBER_REFUSAL });
+      expect(await count("StatusPageSubscriber")).toBe(5);
+    }, 120000);
   });
 
   describe("dashboards on the Free plan", () => {
@@ -603,6 +652,24 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
       expectOutcome(outcome, { created: 1, refusal: DASHBOARD_REFUSAL });
       expect(await count("Dashboard")).toBe(1);
     }, 120000);
+
+    test("a paid plan is held to nothing: every create is added", async () => {
+      await insertProject({ plan: "growth" });
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        holdAt: DashboardService,
+        create: (index: number) => {
+          return createDashboard(
+            `Racing dashboard ${index}`,
+            projectAdminProps(PlanType.Growth),
+          );
+        },
+      });
+
+      expect(outcome).toEqual({ created: RACING_CREATES, refusals: [] });
+      expect(await count("Dashboard")).toBe(RACING_CREATES);
+    }, 120000);
   });
 
   describe("escalation rules of an on-call policy on the Free plan", () => {
@@ -624,6 +691,7 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
     async function createRule(
       policyId: ObjectID,
       name: string,
+      plan: PlanType = PlanType.Free,
     ): Promise<OnCallDutyPolicyEscalationRule> {
       const rule: OnCallDutyPolicyEscalationRule =
         new OnCallDutyPolicyEscalationRule();
@@ -634,7 +702,7 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
 
       return await OnCallDutyPolicyEscalationRuleService.create({
         data: rule,
-        props: projectAdminProps(PlanType.Free),
+        props: projectAdminProps(plan),
       });
     }
 
@@ -668,6 +736,57 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
       expectOutcome(outcome, { created: 1, refusal: ESCALATION_RULE_REFUSAL });
       expect(await count("OnCallDutyPolicyEscalationRule")).toBe(1);
     }, 120000);
+
+    test("the limit is each policy's: a rule of another policy does not count, and each policy gets its one rule", async () => {
+      await insertProject({ plan: "free" });
+      const firstPolicyId: ObjectID = await insertPolicy();
+      const secondPolicyId: ObjectID = await insertPolicy();
+      await createRule(firstPolicyId, "First policy's rule");
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        holdAt: OnCallDutyPolicyEscalationRuleService,
+        create: (index: number) => {
+          return createRule(secondPolicyId, `Racing rule ${index}`);
+        },
+      });
+
+      expectOutcome(outcome, { created: 1, refusal: ESCALATION_RULE_REFUSAL });
+      expect(
+        await count(
+          "OnCallDutyPolicyEscalationRule",
+          `AND "onCallDutyPolicyId" = '${firstPolicyId.toString()}'`,
+        ),
+      ).toBe(1);
+      expect(
+        await count(
+          "OnCallDutyPolicyEscalationRule",
+          `AND "onCallDutyPolicyId" = '${secondPolicyId.toString()}'`,
+        ),
+      ).toBe(1);
+    }, 120000);
+
+    test("a paid plan is held to nothing: every rule is added", async () => {
+      await insertProject({ plan: "growth" });
+      const policyId: ObjectID = await insertPolicy();
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        holdAt: OnCallDutyPolicyEscalationRuleService,
+        create: (index: number) => {
+          return createRule(
+            policyId,
+            `Racing rule ${index}`,
+            PlanType.Growth,
+          );
+        },
+      });
+
+      expect(outcome).toEqual({ created: RACING_CREATES, refusals: [] });
+      expect(await count("OnCallDutyPolicyEscalationRule")).toBe(
+        RACING_CREATES,
+      );
+    }, 120000);
   });
 
   describe("seats", () => {
@@ -680,21 +799,53 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
       );
     }
 
+    let secondTeamId: ObjectID;
+
     async function insertTeam(): Promise<void> {
       teamId = ObjectID.generate();
+      secondTeamId = ObjectID.generate();
 
+      for (const [id, name] of [
+        [teamId, "Engineering"],
+        [secondTeamId, "Support"],
+      ] as Array<[ObjectID, string]>) {
+        await database.query(
+          `INSERT INTO "${schema}"."Team" ("_id", "version", "projectId", "name", "slug") VALUES ($1, 1, $2, $3, $4)`,
+          [
+            id.toString(),
+            projectId.toString(),
+            name,
+            `${name.toLowerCase()}-${id.toString()}`,
+          ],
+        );
+      }
+    }
+
+    async function insertMembership(
+      userId: ObjectID,
+      onTeamId: ObjectID,
+    ): Promise<void> {
       await database.query(
-        `INSERT INTO "${schema}"."Team" ("_id", "version", "projectId", "name", "slug") VALUES ($1, 1, $2, 'Engineering', $3)`,
+        `INSERT INTO "${schema}"."TeamMember" ("_id", "version", "projectId", "teamId", "userId", "hasAcceptedInvitation") VALUES ($1, 1, $2, $3, $4, true)`,
         [
-          teamId.toString(),
+          ObjectID.generate().toString(),
           projectId.toString(),
-          `engineering-${teamId.toString()}`,
+          onTeamId.toString(),
+          userId.toString(),
         ],
       );
     }
 
-    // People already in the project, each with an accepted membership.
-    async function insertPeople(howMany: number): Promise<void> {
+    /*
+     * People already in the project, each with an accepted membership of
+     * the first team - and, with onBothTeams, of the second as well.
+     */
+    async function insertPeople(
+      howMany: number,
+      options?: { onBothTeams?: boolean | undefined },
+    ): Promise<Array<ObjectID>> {
+      const people: Array<ObjectID> = [];
+
       for (let index: number = 0; index < howMany; index++) {
         const userId: ObjectID = index === 0 ? adminId : ObjectID.generate();
 
@@ -702,17 +853,16 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
           userId,
           `member-${index}-${projectId.toString()}@example.com`,
         );
+        await insertMembership(userId, teamId);
 
-        await database.query(
-          `INSERT INTO "${schema}"."TeamMember" ("_id", "version", "projectId", "teamId", "userId", "hasAcceptedInvitation") VALUES ($1, 1, $2, $3, $4, true)`,
-          [
-            ObjectID.generate().toString(),
-            projectId.toString(),
-            teamId.toString(),
-            userId.toString(),
-          ],
-        );
+        if (options?.onBothTeams) {
+          await insertMembership(userId, secondTeamId);
+        }
+
+        people.push(userId);
       }
+
+      return people;
     }
 
     // Somebody with an account who is not in the project yet.
@@ -738,16 +888,34 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
     async function invite(
       userId: ObjectID,
       currentPlan: PlanType,
+      toTeamId?: ObjectID | undefined,
     ): Promise<TeamMember> {
       const member: TeamMember = new TeamMember();
       member.projectId = projectId;
-      member.teamId = teamId;
+      member.teamId = toTeamId || teamId;
       member.userId = userId;
 
       return await TeamMemberService.create({
         data: member,
         props: projectAdminProps(currentPlan),
       });
+    }
+
+    // The same from the invite form, which names the person by email.
+    async function inviteByEmail(email: string): Promise<TeamMember> {
+      const member: TeamMember = new TeamMember();
+      member.projectId = projectId;
+      member.teamId = teamId;
+
+      return await TeamMemberService.create({
+        data: member,
+        props: projectAdminProps(PlanType.Growth),
+        miscDataProps: { email: email },
+      });
+    }
+
+    async function membershipsInProject(): Promise<number> {
+      return await count("TeamMember");
     }
 
     // A first sign-in through the project's SSO: hooks skipped, as SSO.ts does.
@@ -833,6 +1001,212 @@ describePostgres("a project's plan limits, on a migrated Postgres", () => {
         refusal: Errors.TeamMemberService.LIMIT_REACHED,
       });
       expect(await peopleInProject()).toBe(3);
+    }, 120000);
+
+    test("with one seat left, people already in the project all join another team at the same moment, and only one newcomer gets the seat", async () => {
+      await insertProject({ plan: "growth", seatLimit: 7 });
+      await insertTeam();
+      const people: Array<ObjectID> = await insertPeople(6);
+      const newcomers: Array<ObjectID> = [];
+      for (let index: number = 0; index < 6; index++) {
+        newcomers.push(await newPerson(index));
+      }
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        holdAt: TeamMemberService,
+        create: (index: number) => {
+          // Even: someone in the project, to the second team. Odd: someone new.
+          return index % 2 === 0
+            ? invite(people[index / 2]!, PlanType.Growth, secondTeamId)
+            : invite(newcomers[(index - 1) / 2]!, PlanType.Growth);
+        },
+      });
+
+      expect(outcome.created).toBe(7);
+      expect(outcome.refusals).toEqual(
+        Array.from({ length: 5 }, () => {
+          return Errors.TeamMemberService.LIMIT_REACHED;
+        }),
+      );
+      expect(await peopleInProject()).toBe(7);
+      expect(await membershipsInProject()).toBe(13);
+      expect(
+        await count(
+          "TeamMember",
+          `AND "teamId" = '${secondTeamId.toString()}'`,
+        ),
+      ).toBe(6);
+    }, 120000);
+
+    test("at the limit, people already in the project join another team and every newcomer is refused before anything is prepared", async () => {
+      await insertProject({ plan: "growth", seatLimit: 6 });
+      await insertTeam();
+      const people: Array<ObjectID> = await insertPeople(6);
+      const newcomers: Array<ObjectID> = [];
+      for (let index: number = 0; index < 6; index++) {
+        newcomers.push(await newPerson(index));
+      }
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        create: (index: number) => {
+          return index % 2 === 0
+            ? invite(people[index / 2]!, PlanType.Growth, secondTeamId)
+            : invite(newcomers[(index - 1) / 2]!, PlanType.Growth);
+        },
+      });
+
+      expect(outcome.created).toBe(6);
+      expect(outcome.refusals).toEqual(
+        Array.from({ length: 6 }, () => {
+          return Errors.TeamMemberService.LIMIT_REACHED;
+        }),
+      );
+      expect(await peopleInProject()).toBe(6);
+      expect(await membershipsInProject()).toBe(12);
+    }, 120000);
+
+    test("someone new added to two teams at the same moment, with one seat left, takes that one seat on both", async () => {
+      await insertProject({ plan: "growth", seatLimit: 3 });
+      await insertTeam();
+      await insertPeople(2);
+      const newcomer: ObjectID = await newPerson(0);
+
+      const outcome: Outcome = await createAtOnce({
+        count: 2,
+        holdAt: TeamMemberService,
+        create: (index: number) => {
+          return invite(
+            newcomer,
+            PlanType.Growth,
+            index === 0 ? teamId : secondTeamId,
+          );
+        },
+      });
+
+      expect(outcome).toEqual({ created: 2, refusals: [] });
+      expect(await peopleInProject()).toBe(3);
+      expect(await membershipsInProject()).toBe(4);
+    }, 120000);
+
+    test("people are counted, not memberships: with everyone on two teams and one seat left, exactly one of twelve is added", async () => {
+      await insertProject({ plan: "growth", seatLimit: 4 });
+      await insertTeam();
+      await insertPeople(3, { onBothTeams: true });
+      const people: Array<ObjectID> = [];
+      for (let index: number = 0; index < RACING_CREATES; index++) {
+        people.push(await newPerson(index));
+      }
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        holdAt: TeamMemberService,
+        create: (index: number) => {
+          return invite(people[index]!, PlanType.Growth);
+        },
+      });
+
+      expectOutcome(outcome, {
+        created: 1,
+        refusal: Errors.TeamMemberService.LIMIT_REACHED,
+      });
+      expect(await peopleInProject()).toBe(4);
+    }, 120000);
+
+    test("invitations by email to people with no account yet, at the same moment, with one seat left: exactly one is added", async () => {
+      await insertProject({ plan: "growth", seatLimit: 3 });
+      await insertTeam();
+      await insertPeople(2);
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        create: (index: number) => {
+          return inviteByEmail(
+            `newcomer-${index}-${projectId.toString()}@example.com`,
+          );
+        },
+      });
+
+      expectOutcome(outcome, {
+        created: 1,
+        refusal: Errors.TeamMemberService.LIMIT_REACHED,
+      });
+      expect(await peopleInProject()).toBe(3);
+    }, 120000);
+
+    test("invitations and first SSO sign-ins at the same moment share the seats left: exactly two are added", async () => {
+      await insertProject({ plan: "growth", seatLimit: 4 });
+      await insertTeam();
+      await insertPeople(2);
+      const people: Array<ObjectID> = [];
+      for (let index: number = 0; index < RACING_CREATES; index++) {
+        people.push(await newPerson(index));
+      }
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        create: (index: number) => {
+          return index % 2 === 0
+            ? invite(people[index]!, PlanType.Growth)
+            : joinThroughSso(people[index]!);
+        },
+      });
+
+      expectOutcome(outcome, {
+        created: 2,
+        refusal: Errors.TeamMemberService.LIMIT_REACHED,
+      });
+      expect(await peopleInProject()).toBe(4);
+    }, 120000);
+
+    test("the Free plan's one person is its owner: every invitation is refused, and the owner joins another team", async () => {
+      await insertProject({ plan: "free" });
+      await insertTeam();
+      await insertPeople(1);
+      const people: Array<ObjectID> = [];
+      for (let index: number = 0; index < RACING_CREATES - 1; index++) {
+        people.push(await newPerson(index));
+      }
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        create: (index: number) => {
+          return index === 0
+            ? invite(adminId, PlanType.Free, secondTeamId)
+            : invite(people[index - 1]!, PlanType.Free);
+        },
+      });
+
+      expectOutcome(outcome, {
+        created: 1,
+        refusal: Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN,
+      });
+      expect(await peopleInProject()).toBe(1);
+      expect(await membershipsInProject()).toBe(2);
+    }, 120000);
+
+    test("a Free plan project with nobody in it yet: of twelve invitations that all passed the early count, exactly one is added", async () => {
+      await insertProject({ plan: "free" });
+      await insertTeam();
+      const people: Array<ObjectID> = [];
+      for (let index: number = 0; index < RACING_CREATES; index++) {
+        people.push(await newPerson(index));
+      }
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        holdAt: TeamMemberService,
+        create: (index: number) => {
+          return invite(people[index]!, PlanType.Free);
+        },
+      });
+
+      expectOutcome(outcome, {
+        created: 1,
+        refusal: Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN,
+      });
+      expect(await peopleInProject()).toBe(1);
     }, 120000);
 
     test("a project with no seat limit is held to nothing: every invitation is added", async () => {
