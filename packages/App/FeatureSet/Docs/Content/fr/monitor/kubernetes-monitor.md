@@ -107,7 +107,7 @@ Ces moniteurs évaluent toujours la **Metric Value** – la valeur de la requêt
 | Somme | Somme de toutes les valeurs |
 | Maximum Value | Valeur la plus élevée de la fenêtre de temps |
 | Minimum Value | Valeur la plus basse de la fenêtre de temps |
-| All Values | Toutes les valeurs doivent correspondre au critère |
+| All Values | Toutes les valeurs doivent correspondre au critère et couvrir toute la fenêtre de temps |
 | Any Value | Au moins une valeur doit correspondre |
 
 ### Conditions

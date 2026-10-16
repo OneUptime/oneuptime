@@ -275,9 +275,24 @@ export default function LoginScreen(): React.JSX.Element {
         />
       </View>
 
-      <AuthDivider label="Other ways to sign in" />
+      {/*
+       * The other ways in, under "or", in the order and words of the web
+       * sign-in page: single sign-on, then a passkey, last, so that what a
+       * passkey attempt says - its progress, a cancel, an error, and "New to
+       * passkeys?" - sits right under the button that started it.
+       */}
+      <AuthDivider label="or" />
 
       <View testID="alternative-sign-in" style={{ gap: spacing.md }}>
+        <GradientButton
+          testID="sso-sign-in"
+          label="Sign in with SSO"
+          onPress={handleSSOLogin}
+          variant="secondary"
+          icon="shield-checkmark-outline"
+          disabled={isBusy}
+        />
+
         <GradientButton
           testID="passkey-sign-in"
           label={
@@ -330,14 +345,6 @@ export default function LoginScreen(): React.JSX.Element {
         {passkeyNotice ? (
           <AuthNotice tone="neutral" live message={passkeyNotice} />
         ) : null}
-
-        <GradientButton
-          label="Sign in with SSO"
-          onPress={handleSSOLogin}
-          variant="secondary"
-          icon="shield-checkmark-outline"
-          disabled={isBusy}
-        />
       </View>
 
       <View style={{ marginTop: spacing.xs }}>

@@ -218,7 +218,7 @@ Et kriterium sammenligner en av monitorens spørringer eller formler med en ters
 | Felt | Hva det gjør |
 | --- | --- |
 | **Metrikk** | Spørringen eller formelen som sjekkes, etter variabelnavnet. |
-| **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver verdi må stemme) eller **Any Value** (én er nok). |
+| **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver verdi må stemme, i hele vinduet) eller **Any Value** (én er nok). |
 | **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
 | **Threshold** | Verdien det sammenlignes med. Ved siden av står en enhetsliste når metrikken har en enhet. Vises ikke for anomalibetingelser. |
 | **Følsomhet** | Bare for anomalibetingelser. **Low** (4σ), **Medium** (3σ, standard) eller **High** (2σ). |

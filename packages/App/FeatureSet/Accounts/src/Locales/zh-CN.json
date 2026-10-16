@@ -13,7 +13,8 @@
     "confirmPassword": "确认密码",
     "newPassword": "新密码",
     "code": "代码",
-    "yourCompany": "您的公司"
+    "yourCompany": "您的公司",
+    "or": "或"
   },
   "language": {
     "label": "语言",
@@ -50,7 +51,7 @@
     "subtitle": "使用密码、组织的单点登录（SSO）或通行密钥。",
     "submitButton": "登录",
     "forgotPassword": "忘记密码？",
-    "useSso": "改用单点登录（SSO）",
+    "signInWithSso": "使用 SSO 登录",
     "signInWithMicrosoft": "使用 Microsoft 登录",
     "noAccountPrompt": "没有账户？",
     "registerLink": "注册。",
@@ -146,7 +147,7 @@
     "title": "使用 SSO 登录",
     "subtitle": "使用您的 SSO 提供商登录以访问您的账户。",
     "submitButton": "使用 SSO 登录",
-    "useUsernameInstead": "改用用户名和密码。",
+    "signInWithPassword": "使用密码登录",
     "noAccountPrompt": "没有账户？",
     "registerLink": "注册。",
     "selectProjectTitle": "选择项目",

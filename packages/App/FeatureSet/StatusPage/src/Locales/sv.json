@@ -264,7 +264,8 @@
       "loginPrompt": "Logga in för att se {{statusPageName}}",
       "forgotPassword": "Glömt lösenord?",
       "submit": "Logga in",
-      "useSSO": "Använd single sign-on (SSO) istället"
+      "or": "eller",
+      "logInWithSso": "Logga in med SSO"
     },
     "sso": {
       "title": "Logga in med SSO",

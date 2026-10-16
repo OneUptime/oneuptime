@@ -13,7 +13,8 @@
     "confirmPassword": "تأیید رمز عبور",
     "newPassword": "رمز عبور جدید",
     "code": "کد",
-    "yourCompany": "شرکت شما"
+    "yourCompany": "شرکت شما",
+    "or": "یا"
   },
   "language": {
     "label": "زبان",
@@ -50,7 +51,7 @@
     "subtitle": "از رمز عبور، ورود یکپارچه (SSO) سازمان خود یا کلید عبور استفاده کنید.",
     "submitButton": "ورود",
     "forgotPassword": "رمز عبور را فراموش کرده‌اید؟",
-    "useSso": "به‌جای آن از ورود یکپارچه (SSO) استفاده کنید",
+    "signInWithSso": "ورود با SSO",
     "signInWithMicrosoft": "ورود با Microsoft",
     "noAccountPrompt": "حساب کاربری ندارید؟",
     "registerLink": "ثبت‌نام کنید.",
@@ -146,7 +147,7 @@
     "title": "ورود با SSO",
     "subtitle": "برای دسترسی به حساب خود با ارائه‌دهنده SSO وارد شوید.",
     "submitButton": "ورود با SSO",
-    "useUsernameInstead": "به‌جای آن از نام کاربری و رمز عبور استفاده کنید.",
+    "signInWithPassword": "ورود با رمز عبور",
     "noAccountPrompt": "حساب کاربری ندارید؟",
     "registerLink": "ثبت‌نام کنید.",
     "selectProjectTitle": "انتخاب پروژه",

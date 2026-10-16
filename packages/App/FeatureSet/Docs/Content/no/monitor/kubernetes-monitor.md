@@ -107,7 +107,7 @@ Disse monitorene evaluerer alltid **Metric Value** – verdien av den konfigurer
 | Sum | Summen av alle verdier |
 | Maximum Value | Høyeste verdi i tidsvinduet |
 | Minimum Value | Laveste verdi i tidsvinduet |
-| All Values | Alle verdier må samsvare med kriteriet |
+| All Values | Alle verdier må samsvare med kriteriet og dekke hele tidsvinduet |
 | Any Value | Minst én verdi må samsvare |
 
 ### Betingelser

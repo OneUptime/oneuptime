@@ -9,6 +9,7 @@ import ServerException from "../../../Types/Exception/ServerException";
 import logger from "../Logger";
 import MonitorCriteriaEvaluator from "./MonitorCriteriaEvaluator";
 import { CriteriaFilterMatchHistoryReads } from "./Criteria/CriteriaFilterMatchHistory";
+import CriteriaInEffect from "./CriteriaInEffect";
 import MonitorLogUtil from "./MonitorLogUtil";
 import MonitorMetricUtil from "./MonitorMetricUtil";
 import DataToProcess from "./DataToProcess";
@@ -837,6 +838,12 @@ export default class MonitorResourceUtil {
          */
         recordMatchHistory: true,
         matchHistoryReads: matchHistoryReads,
+        /*
+         * What this monitor's criteria have already opened, read only if an
+         * "All Values" metric series is waiting for a full window: a series
+         * whose alert is open keeps being judged on its data points.
+         */
+        criteriaInEffect: CriteriaInEffect.forMonitor(monitor),
       });
 
       // Check probe agreement for probe-based monitors

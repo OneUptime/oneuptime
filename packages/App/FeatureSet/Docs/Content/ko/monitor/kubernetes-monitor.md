@@ -107,7 +107,7 @@ flowchart LR
 | 합계 | 모든 값의 합 |
 | Maximum Value | 기간 중 가장 높은 값 |
 | Minimum Value | 기간 중 가장 낮은 값 |
-| All Values | 모든 값이 기준과 일치해야 함 |
+| All Values | 모든 값이 기준과 일치하고 기간 전체를 채워야 함 |
 | Any Value | 하나 이상의 값이 일치하면 됨 |
 
 ### 조건

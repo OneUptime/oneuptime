@@ -264,7 +264,8 @@
       "loginPrompt": "Por favor, faça login para ver {{statusPageName}}",
       "forgotPassword": "Esqueceu a senha?",
       "submit": "Entrar",
-      "useSSO": "Usar login único (SSO) em vez disso"
+      "or": "ou",
+      "logInWithSso": "Entrar com SSO"
     },
     "sso": {
       "title": "Entrar com SSO",

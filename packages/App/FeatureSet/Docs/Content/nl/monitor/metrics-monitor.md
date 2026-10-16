@@ -106,11 +106,12 @@ Hoe langer het bereik, hoe breder elk tijdsinterval, dus één datapunt staat vo
 | Som | de som van de datapunten |
 | Maximum Value | het hoogste datapunt |
 | Minimum Value | het laagste datapunt |
-| All Values | elk datapunt: ze moeten allemaal aan de voorwaarde voldoen |
+| All Values | elk datapunt: ze moeten allemaal aan de voorwaarde voldoen en het hele tijdsbereik dekken |
 | Any Value | elk datapunt: het is genoeg als er één aan de voorwaarde voldoet |
 
 - **Criteria van boven naar beneden.** Bij een monitor zonder Group By beslist het eerste criterium dat overeenkomt, dus zet het ernstigste bovenaan. Een gegroepeerde monitor controleert elk criterium voor elke reeks (zie [De evaluatie van criteria verschilt](#de-evaluatie-van-criteria-verschilt)).
 - **Geen gegevens is niet nul.** Wanneer de query in het tijdsbereik geen datapunten oplevert, doet een criterium wat zijn instelling **Als geen gegevens** zegt, onder **Meer velden**: **Ignore** (de standaard: het criterium komt niet overeen), **Treat As Zero** of **Trigger**.
+- **All Values heeft het hele tijdsbereik nodig.** Een reeks voldoet pas aan een criterium met **All Values** als haar datapunten het tijdsbereik dekken, van het begin tot nu, zonder een gat van meer dan één ontbrekend datapunt. Komen alle gegevens van de monitor te laat binnen, zoals die van CloudWatch, dan neemt het nieuwste datapunt de plaats in van nu. Een host, container of deployment die net gegevens begint te sturen, of die een tijd stil was, wacht tot er gegevens voor een heel tijdsbereik zijn, en het evaluatielogboek laat zien hoe ver het is: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. Een reeks waarvan de waarschuwing of het incident al open is, wordt alleen op haar datapunten beoordeeld, zodat een kort gat in haar gegevens die niet oplost. Stuurt de metriek minder vaak gegevens dan het tijdsbereik lang is, dan telt een los datapunt voor het hele bereik zodra het een paar minuten oud is; om te beoordelen hoe lang een waarde aanhoudt, moet het tijdsbereik minstens twee meldintervallen lang zijn.
 - **De onderbreking van OneUptime zelf is geen stilte.** Zolang het tijdsbereik tijd bevat waarin OneUptime zelf geen gegevens ontving (het startte opnieuw, werd geüpgraded of werkte een achterstand weg), wacht de controle: de status verandert niet, en er wordt geen incident of waarschuwing geopend of opgelost, wat **Als geen gegevens** ook zegt. Zie [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Criteria
@@ -197,7 +198,7 @@ De waarden van het groeperingsattribuut zijn ook beschikbaar als [templatevariab
 ## Problemen oplossen
 
 :::details De grafiek toont een overschrijding, maar de monitor waarschuwde niet
-Controleer eerst de **Aggregatie** van het criterium: **All Values** komt alleen overeen wanneer elk datapunt in het tijdsbereik de drempel overschrijdt, en **Gemiddelde** vlakt een korte piek af. Controleer daarna of de **Metriek** van het criterium de query of formule is die u bedoelt (`a` is niet de formule `c`), en of de drempel in de eenheid staat die u denkt.
+Controleer eerst de **Aggregatie** van het criterium: **All Values** komt alleen overeen wanneer elk datapunt in het tijdsbereik de drempel overschrijdt, en **Gemiddelde** vlakt een korte piek af. **All Values** wacht ook tot een reeks gegevens voor het hele tijdsbereik heeft, dus een host of deployment die net gegevens begint te sturen, wordt nog niet beoordeeld. Controleer daarna of de **Metriek** van het criterium de query of formule is die u bedoelt (`a` is niet de formule `c`), en of de drempel in de eenheid staat die u denkt.
 :::
 
 :::details De metriek kwam niet meer binnen en er gebeurde niets
