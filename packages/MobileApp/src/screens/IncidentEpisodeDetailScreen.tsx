@@ -54,6 +54,7 @@ import NotesSection from "../components/NotesSection";
 import RootCauseCard from "../components/RootCauseCard";
 import MarkdownContent from "../components/MarkdownContent";
 import { useHaptics } from "../hooks/useHaptics";
+import { usePassOnAction, type PassOnControls } from "../hooks/usePassOnAction";
 
 type Props = NativeStackScreenProps<
   IncidentsStackParamList,
@@ -100,6 +101,18 @@ export default function IncidentEpisodeDetailScreen({
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [submittingNote, setSubmittingNote] = useState(false);
 
+  // "Pass it on", for the person an on-call policy is paging about it.
+  const passOn: PassOnControls = usePassOnAction({
+    projectId,
+    recordType: "incident-episode",
+    recordId: episodeId,
+    recordLabel: "incident episode",
+    // Passing it on is news on the feed and the state timeline.
+    onPassedOn: () => {
+      return Promise.allSettled([refetchFeed(), refetchTimeline()]);
+    },
+  });
+
   const { refreshing, onRefresh } = useRefresh(async () => {
     await Promise.allSettled([
       refetchEpisode(),
@@ -107,6 +120,7 @@ export default function IncidentEpisodeDetailScreen({
       refetchTimeline(),
       refetchFeed(),
       refetchNotes(),
+      passOn.refetch(),
     ]);
   });
 
@@ -326,6 +340,10 @@ export default function IncidentEpisodeDetailScreen({
       },
     });
   }
+  // Somebody being paged about it who cannot take it hands it on.
+  if (!isResolved && !isAcknowledged && passOn.action) {
+    actions.push(passOn.action);
+  }
 
   const stage: ResponseStage = getResponseStage(isResolved, isAcknowledged);
   const guidanceMessage: string =
@@ -386,7 +404,7 @@ export default function IncidentEpisodeDetailScreen({
         {actions.length > 0 ? (
           <ResponseActions
             actions={actions}
-            busy={changingState}
+            busy={changingState || passOn.passingOn}
             style={{ marginBottom: 0 }}
           />
         ) : null}

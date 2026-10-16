@@ -1,4 +1,6 @@
 import UserMiddleware from "../Middleware/UserAuthorization";
+import UserService from "../Services/UserService";
+import logger from "../Utils/Logger";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -19,8 +21,11 @@ import {
   OnCallPageRecordType,
   OnCallPassOnAnswer,
   OnCallPassOnRecordAnswer,
+  getOnCallPassOnRefusalSentence,
+  getOnCallPassOnSentence,
   isOnCallPageRecordType,
 } from "../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import User from "../../Models/DatabaseModels/User";
 
 /*
  * "CAN'T TAKE IT? PASS IT ON" FROM THE DASHBOARD AND THE MOBILE APP
@@ -38,8 +43,36 @@ import {
  * Only ever the caller's own pages, in the project they are signed in to:
  * there is nothing to send but the record, and nobody can pass on anybody
  * else's page.
+ *
+ * Each page and each answer also carries `sentence`: what it does or did,
+ * as the server words it everywhere else (the confirm page, a call), with
+ * times in the caller's own time zone. The mobile app shows it as it is.
  */
 const router: ExpressRouter = Express.getRouter();
+
+/*
+ * The caller's own time zone, for "If nobody acknowledges by 5:28 AM ...".
+ * Without one - or when it cannot be read - times are the server's, as in
+ * the messages that paged them.
+ */
+const getCallerTimezone: (
+  userId: ObjectID,
+) => Promise<string | undefined> = async (
+  userId: ObjectID,
+): Promise<string | undefined> => {
+  try {
+    const user: User | null = await UserService.findOneById({
+      id: userId,
+      select: { timezone: true },
+      props: { isRoot: true },
+    });
+
+    return user?.timezone?.toString() || undefined;
+  } catch (err) {
+    logger.error(err);
+    return undefined;
+  }
+};
 
 // The record type and id in the path, checked before anything is read.
 const readRecord: (req: ExpressRequest) => {
@@ -68,9 +101,10 @@ const readRecord: (req: ExpressRequest) => {
 };
 
 // The signed-in person and their project, or a refusal.
-const readCaller: (
-  props: DatabaseCommonInteractionProps,
-) => { userId: ObjectID; projectId: ObjectID } = (
+const readCaller: (props: DatabaseCommonInteractionProps) => {
+  userId: ObjectID;
+  projectId: ObjectID;
+} = (
   props: DatabaseCommonInteractionProps,
 ): { userId: ObjectID; projectId: ObjectID } => {
   const projectId: ObjectID = CommonAPI.assertAuthenticatedProjectMember(props);
@@ -107,7 +141,19 @@ router.get(
           recordId: record.recordId,
         });
 
-      const answer: OnCallOpenPagesAnswer = { pages: pages };
+      const timezone: string | undefined =
+        pages.length > 0 ? await getCallerTimezone(caller.userId) : undefined;
+
+      const answer: OnCallOpenPagesAnswer = {
+        pages: pages.map((page: OnCallOpenPage): OnCallOpenPage => {
+          return {
+            ...page,
+            sentence: getOnCallPassOnSentence(page.preview, {
+              timezone: timezone,
+            }),
+          };
+        }),
+      };
 
       Response.setNoCacheHeaders(res);
 
@@ -152,7 +198,24 @@ router.post(
           recordId: record.recordId,
         });
 
-      const answer: OnCallPassOnRecordAnswer = { answers: answers };
+      const timezone: string | undefined =
+        answers.length > 0 ? await getCallerTimezone(caller.userId) : undefined;
+
+      const answer: OnCallPassOnRecordAnswer = {
+        answers: answers.map(
+          (passOnAnswer: OnCallPassOnAnswer): OnCallPassOnAnswer => {
+            return {
+              ...passOnAnswer,
+              sentence:
+                passOnAnswer.passedOn && passOnAnswer.result
+                  ? getOnCallPassOnSentence(passOnAnswer.result, {
+                      timezone: timezone,
+                    })
+                  : getOnCallPassOnRefusalSentence(passOnAnswer),
+            };
+          },
+        ),
+      };
 
       Response.setNoCacheHeaders(res);
 

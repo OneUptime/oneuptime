@@ -21,7 +21,9 @@ import {
   OnCallPassOnAnswer,
   OnCallPassOnOutcome,
   OnCallPassOnRefusal,
+  getOnCallPassOnSentence,
 } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import Timezone from "../../../Types/Timezone";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -66,6 +68,26 @@ type PassOn = (data: Arguments) => Promise<Array<OnCallPassOnAnswer>>;
 
 const mockRead: Mock<Read> = jest.fn<Read>();
 const mockPassOn: Mock<PassOn> = jest.fn<PassOn>();
+
+type FindUser = (data: {
+  id: ObjectID;
+  select: Record<string, unknown>;
+  props: { isRoot?: boolean };
+}) => Promise<{ timezone?: Timezone } | null>;
+
+const mockFindUser: Mock<FindUser> = jest.fn<FindUser>();
+
+// The caller's own time zone, for the times in the sentences.
+jest.mock("../../../Server/Services/UserService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: (...args: Parameters<FindUser>) => {
+        return mockFindUser(...args);
+      },
+    },
+  };
+});
 
 jest.mock("../../../Server/Utils/OnCall/OnCallPagePassOn", () => {
   return {
@@ -144,8 +166,9 @@ describe("the pass-on routes", () => {
   let userId: ObjectID;
 
   beforeAll(async () => {
-    const router: any = (await import("../../../Server/API/OnCallPagePassOnAPI"))
-      .default;
+    const router: any = (
+      await import("../../../Server/API/OnCallPagePassOnAPI")
+    ).default;
     const { expressErrorHandler } = await import(
       "../../../Server/Utils/StartServer"
     );
@@ -173,6 +196,8 @@ describe("the pass-on routes", () => {
   beforeEach(() => {
     mockRead.mockReset();
     mockPassOn.mockReset();
+    mockFindUser.mockReset();
+    mockFindUser.mockResolvedValue({ timezone: Timezone.EuropeBerlin });
     projectId = ObjectID.generate();
     userId = ObjectID.generate();
   });
@@ -229,9 +254,69 @@ describe("the pass-on routes", () => {
               nextRule: { order: 2, name: "Level 2" },
               ruleCount: 2,
             },
+            // As the server words it everywhere, in the caller's time zone.
+            sentence: getOnCallPassOnSentence(PAGE.preview, {
+              timezone: Timezone.EuropeBerlin,
+            }),
           },
         ],
       });
+    });
+
+    test("the sentence's time is the caller's own, not the server's", async () => {
+      mockRead.mockResolvedValue([PAGE]);
+
+      const response: ProbeResponse = await call({
+        method: "GET",
+        path: `/incident/${INCIDENT_ID}`,
+      });
+
+      const sentence: string = (
+        response.body as { pages: Array<{ sentence: string }> }
+      ).pages[0]!.sentence;
+
+      expect(sentence).toContain(
+        "Bob Smith is still being paged. If nobody acknowledges by ",
+      );
+      expect(sentence).toContain(", escalation rule 2 of 2 (Level 2) is next.");
+      // 03:30 UTC is 05:30 in Berlin in October.
+      expect(sentence).toContain("5:30");
+      expect(sentence).not.toContain("3:30");
+
+      const asked: Parameters<FindUser>[0] = mockFindUser.mock.calls[0]![0];
+
+      expect(asked.id.toString()).toBe(userId.toString());
+      expect(asked.select).toEqual({ timezone: true });
+    });
+
+    test("without a time zone of their own, or when it cannot be read, it is the server's", async () => {
+      const serverTime: string = getOnCallPassOnSentence(PAGE.preview, {});
+
+      mockRead.mockResolvedValue([PAGE]);
+      mockFindUser.mockResolvedValue({});
+
+      const unset: ProbeResponse = await call({
+        method: "GET",
+        path: `/incident/${INCIDENT_ID}`,
+      });
+
+      expect(
+        (unset.body as { pages: Array<{ sentence: string }> }).pages[0]!
+          .sentence,
+      ).toBe(serverTime);
+
+      mockFindUser.mockRejectedValue(new Error("database is down"));
+
+      const failed: ProbeResponse = await call({
+        method: "GET",
+        path: `/incident/${INCIDENT_ID}`,
+      });
+
+      expect(failed.status).toBe(200);
+      expect(
+        (failed.body as { pages: Array<{ sentence: string }> }).pages[0]!
+          .sentence,
+      ).toBe(serverTime);
     });
 
     test("asks only about the signed-in person, in the project they are signed in to", async () => {
@@ -256,6 +341,8 @@ describe("the pass-on routes", () => {
       });
 
       expect(response.body).toEqual({ pages: [] });
+      // Every visit by somebody not paged: nothing more is read.
+      expect(mockFindUser).not.toHaveBeenCalled();
     });
 
     test.each(Object.values(OnCallPageRecordType))(
@@ -293,9 +380,13 @@ describe("the pass-on routes", () => {
 
       expect(response.status).toBe(200);
       expect(
-        (response.body as { answers: Array<{ passedOn: boolean }> })
-          .answers[0]!.passedOn,
+        (response.body as { answers: Array<{ passedOn: boolean }> }).answers[0]!
+          .passedOn,
       ).toBe(true);
+      expect(
+        (response.body as { answers: Array<{ sentence: string }> }).answers[0]!
+          .sentence,
+      ).toBe("Escalation rule 2 of 2 (Level 2) is paging Carl Diaz now.");
 
       const asked: Arguments = mockPassOn.mock.calls[0]![0];
 
@@ -314,8 +405,36 @@ describe("the pass-on routes", () => {
       });
 
       expect(response.body).toEqual({
-        answers: [{ passedOn: false, refusal: "NotPaged" }],
+        answers: [
+          {
+            passedOn: false,
+            refusal: "NotPaged",
+            sentence: "You are not being paged about this right now.",
+          },
+        ],
       });
+    });
+
+    test("names who acknowledged it meanwhile", async () => {
+      mockPassOn.mockResolvedValue([
+        {
+          passedOn: false,
+          refusal: OnCallPassOnRefusal.RecordAcknowledged,
+          acknowledgedByName: "Ana Lopez",
+        },
+      ]);
+
+      const response: ProbeResponse = await call({
+        method: "POST",
+        path: `/incident/${INCIDENT_ID}`,
+      });
+
+      expect(
+        (response.body as { answers: Array<{ sentence: string }> }).answers[0]!
+          .sentence,
+      ).toBe(
+        "It was already acknowledged by Ana Lopez, so there is nothing to pass on.",
+      );
     });
   });
 

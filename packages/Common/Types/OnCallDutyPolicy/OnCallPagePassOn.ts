@@ -224,23 +224,32 @@ export interface OnCallPassOnAnswer {
    * "Incident INC-42 was already acknowledged by Ana Lopez."
    */
   acknowledgedByName?: string | undefined;
+  /*
+   * The API's answer only: what came of it, or why not, as the server words
+   * it in English (getOnCallPassOnSentence / getOnCallPassOnRefusalSentence)
+   * with times in the person's own time zone. The mobile app shows it as it
+   * is; the Dashboard words the result in the reader's language instead.
+   */
+  sentence?: string | undefined;
 }
 
 // One page a person can pass on, and what passing it on would do.
 export interface OnCallOpenPage {
   executionLogId: string;
   preview: OnCallPassOnResult;
+  // The API's answer only: the preview as the server words it (see above).
+  sentence?: string | undefined;
 }
 
 /*
- * The Dashboard's GET answer: the signed-in person's open pages about the
- * record (empty when there is nothing to pass on).
+ * The GET answer of the Dashboard and the mobile app: the signed-in person's
+ * open pages about the record (empty when there is nothing to pass on).
  */
 export interface OnCallOpenPagesAnswer {
   pages: Array<OnCallOpenPage>;
 }
 
-// The Dashboard's POST answer: one answer per page that was passed on.
+// The POST answer: one answer per page that was passed on.
 export interface OnCallPassOnRecordAnswer {
   answers: Array<OnCallPassOnAnswer>;
 }
