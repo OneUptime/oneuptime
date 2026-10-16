@@ -270,7 +270,7 @@ Et kriterium sammenligner en av monitorens spørringer eller formler med en ters
 | --- | --- |
 | **Metrikk** | Spørringen eller formelen som skal sjekkes, etter variabelnavnet. |
 | **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver verdi må samsvare) eller **Any Value** (én er nok). |
-| **Betingelse** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** eller **Equal To** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
+| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
 | **Threshold** | Verdien det sammenlignes med. En enhetsliste står ved siden av når metrikken har en enhet. Vises ikke for anomalibetingelser. |
 | **Følsomhet** | Bare anomalibetingelser. **Lav** (4σ), **Middels** (3σ, standarden) eller **Høy** (2σ). |
 | **Grunnlinjevindu** | Bare anomalibetingelser. 14 dager (standarden), 28, 60 eller 90 dagers historikk. |
@@ -280,11 +280,11 @@ Anomalibetingelser sammenligner hver verdi med den samme timen i uken i grunnlin
 
 Noen kriterier å starte med:
 
-- **En vert er mettet:** `vcenter.host.cpu.utilization`, Gjennomsnitt, gruppert etter `resource.vcenter.host.name`, **Greater Than** `90`, over de siste 5 minuttene.
-- **En datastore er i ferd med å bli full:** `vcenter.datastore.disk.utilization`, Gjennomsnitt, gruppert etter `resource.vcenter.datastore.name`, **Greater Than** `80`.
-- **En klynge mistet en vert:** `vcenter.cluster.host.count` filtrert til `effective = false`, Maksimum, gruppert etter `resource.vcenter.cluster.name`, **Greater Than** `0`.
-- **Færre VM-er kjører enn forventet:** `vcenter.cluster.vm.count` filtrert til `power_state = on` og `resource.vcenter.cluster.name = Production`, Sum, **Less Than** antallet du forventer.
-- **En VM blir swappet av verten:** `vcenter.vm.memory.swapped`, Maksimum, gruppert etter `resource.vcenter.vm.name`, **Greater Than** `0`.
+- **En vert er mettet:** `vcenter.host.cpu.utilization`, Gjennomsnitt, gruppert etter `resource.vcenter.host.name`, **Større enn** `90`, over de siste 5 minuttene.
+- **En datastore er i ferd med å bli full:** `vcenter.datastore.disk.utilization`, Gjennomsnitt, gruppert etter `resource.vcenter.datastore.name`, **Større enn** `80`.
+- **En klynge mistet en vert:** `vcenter.cluster.host.count` filtrert til `effective = false`, Maksimum, gruppert etter `resource.vcenter.cluster.name`, **Større enn** `0`.
+- **Færre VM-er kjører enn forventet:** `vcenter.cluster.vm.count` filtrert til `power_state = on` og `resource.vcenter.cluster.name = Production`, Sum, **Mindre enn** antallet du forventer.
+- **En VM blir swappet av verten:** `vcenter.vm.memory.swapped`, Maksimum, gruppert etter `resource.vcenter.vm.name`, **Større enn** `0`.
 
 ### Standardkriterier
 

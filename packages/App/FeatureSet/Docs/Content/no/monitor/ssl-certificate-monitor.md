@@ -77,8 +77,8 @@ Kriterier avgjør når sertifikatet regnes som i orden, redusert eller feil, og 
 | **Is Not A Valid Certificate** | **Sann**, **Usann** | Det motsatte av **Is Valid Certificate**: **Sann** når sertifikatet ikke består de sjekkene eller ikke kunne sjekkes. |
 | **Is Expired Certificate** | **Sann**, **Usann** | Sertifikatets utløpsdato er passert. |
 | **Is Self Signed Certificate** | **Sann**, **Usann** | Sertifikatet, eller ett i kjeden, er selvsignert. |
-| **Expires In Days** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Dager til sertifikatet utløper. |
-| **Expires In Hours** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Timer til sertifikatet utløper. |
+| **Expires In Days** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Dager til sertifikatet utløper. |
+| **Expires In Hours** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** | Timer til sertifikatet utløper. |
 
 **Expires In Days** teller hele dager: et sertifikat som utløper om 14 dager og 20 timer, har 14 dager igjen. **Expires In Hours** teller hele timer på samme måte.
 
@@ -102,7 +102,7 @@ For å bli varslet tidligere endrer du verdien til filteret **Expires In Days** 
 Monitorer som ble opprettet før OneUptime innførte dette varselet, har ikke noe kriterium "utløper snart". Slik legger du det til:
 
 1. Åpne **Konfigurasjon → Kriterier** på monitoren, og klikk på **Rediger Overvåkingskriterier**.
-2. Klikk på **Legg til kriterier**. Sett filteret til **Is Valid Certificate** / **Sann**, klikk på **Legg til filter**, og sett det andre til **Expires In Days** / **Less Than Or Equal To** / `14`. La **Samsvarsbetingelse** stå på **Alle** (den vises under filtrene så snart det er to).
+2. Klikk på **Legg til kriterier**. Sett filteret til **Is Valid Certificate** / **Sann**, klikk på **Legg til filter**, og sett det andre til **Expires In Days** / **Mindre enn eller lik** / `14`. La **Samsvarsbetingelse** stå på **Alle** (den vises under filtrene så snart det er to).
 3. Slå på **Når filtre samsvarer, opprett et varsel.** under **Handlinger**, og la **Når filtre samsvarer, endre overvåkerstatus.** være slått av, så det oppretter et varsel og ikke endrer monitorens status.
 4. Dra det nye kriteriet over kriteriet som merker monitoren som tilkoblet, og lagre så.
 :::
@@ -111,8 +111,8 @@ Monitorer som ble opprettet før OneUptime innførte dette varselet, har ikke no
 
 | Mål | Filter | Betingelse | Verdi |
 | --- | --- | --- | --- |
-| Varsle en måned i forveien | **Expires In Days** | **Less Than Or Equal To** | `30` |
-| Tilkall noen den siste dagen | **Expires In Hours** | **Less Than** | `24` |
+| Varsle en måned i forveien | **Expires In Days** | **Mindre enn eller lik** | `30` |
+| Tilkall noen den siste dagen | **Expires In Hours** | **Mindre enn** | `24` |
 | Frakoblet først når sertifikatet er utløpt | **Is Expired Certificate** | **Sann** | — |
 | Marker et selvsignert sertifikat | **Is Self Signed Certificate** | **Sann** | — |
 

@@ -143,11 +143,11 @@ Kriterier avgör när webbplatsen räknas som online, försämrad eller offline,
 | Filter | Villkor | Vad det kontrollerar |
 | --- | --- | --- |
 | **Is Online** | **Sant**, **Falskt** | Om webbplatsen svarade alls, oavsett statuskod. |
-| **Statuskod för svar** | **Equal To**, **Not Equal To**, **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | HTTP-statuskoden. |
-| **Svarstid (i ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Hur lång tid begäran tog, omdirigeringar inräknade. |
-| **Svarstext** | **Innehåller**, **Not Contains** | Text i svarets kropp. Jämförelsen skiljer på versaler och gemener. |
-| **Response Header** | **Innehåller**, **Not Contains** | Om svaret har ett huvud med det här namnet. Ange namnet med gemener, som `x-cache`. |
-| **Response Header Value** | **Innehåller**, **Not Contains** | Om ett huvud har exakt det här värdet, jämfört med gemener, som `no-store`. |
+| **Statuskod för svar** | **Lika med**, **Inte lika med**, **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | HTTP-statuskoden. |
+| **Svarstid (i ms)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Hur lång tid begäran tog, omdirigeringar inräknade. |
+| **Svarstext** | **Innehåller**, **Innehåller inte** | Text i svarets kropp. Jämförelsen skiljer på versaler och gemener. |
+| **Response Header** | **Innehåller**, **Innehåller inte** | Om svaret har ett huvud med det här namnet. Ange namnet med gemener, som `x-cache`. |
+| **Response Header Value** | **Innehåller**, **Innehåller inte** | Om ett huvud har exakt det här värdet, jämfört med gemener, som `no-store`. |
 | **JavaScript Expression** | **Evaluates To True** | Ett uttryck över svaret. Se [JavaScript-uttryck](/docs/monitor/javascript-expression). |
 | **Is Request Timeout** | **Sant**, **Falskt** | Om begäran nådde tidsgränsen vid varje försök. |
 
@@ -164,7 +164,7 @@ En ny webbplatsmonitor börjar med två kriterier, så den fungerar utan att du 
 
 I listan över kriterier är de namngivna efter monitorn: _Check if (name) is offline_ och _Check if (name) is online_.
 
-En sida som svarar `204 No Content`, eller en omdirigering du bevakar med **Följ inte omdirigeringar** påslaget, räknas alltså som uppe. Om bara en statuskod betyder frisk för dig ändrar du båda kriterierna på monitorns sida **Konfiguration → Kriterier**: till exempel **Statuskod för svar** / **Equal To** / `200` i online-kriteriet och **Not Equal To** / `200` i offline-kriteriet, i stället för de två statuskodsfilter som vart och ett har.
+En sida som svarar `204 No Content`, eller en omdirigering du bevakar med **Följ inte omdirigeringar** påslaget, räknas alltså som uppe. Om bara en statuskod betyder frisk för dig ändrar du båda kriterierna på monitorns sida **Konfiguration → Kriterier**: till exempel **Statuskod för svar** / **Lika med** / `200` i online-kriteriet och **Inte lika med** / `200` i offline-kriteriet, i stället för de två statuskodsfilter som vart och ett har.
 
 Kriterier kontrolleras uppifrån och ned, och det första som matchar avgör vad som händer.
 
@@ -200,10 +200,10 @@ Gör fönstret längre än övervakningsintervallet så att det rymmer flera kon
 
 | Mål | Filter | Villkor | Värde |
 | --- | --- | --- | --- |
-| Markera webbplatsen som försämrad när den är långsam | **Svarstid (i ms)** | **Greater Than** | `3000` |
-| Fånga en felsida som levereras med `200` | **Svarstext** | **Not Contains** | `Welcome` |
+| Markera webbplatsen som försämrad när den är långsam | **Svarstid (i ms)** | **Större än** | `3000` |
+| Fånga en felsida som levereras med `200` | **Svarstext** | **Innehåller inte** | `Welcome` |
 | Kontrollera att ett CDN-huvud finns | **Response Header** | **Innehåller** | `x-cache` |
-| Godta bara `200` som frisk | **Statuskod för svar** | **Equal To** | `200` |
+| Godta bara `200` som frisk | **Statuskod för svar** | **Lika med** | `200` |
 
 För att ta dig igenom en omstart slår du på **Utvärdera dessa kriterier över en tidsperiod** för filtret på svarstexten och väljer **All Values** över 15 minuter.
 

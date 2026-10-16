@@ -270,7 +270,7 @@ vSAN のあるクラスター、その中のホスト、vSAN データストア�
 | --- | --- |
 | **メトリクス** | 確認するクエリまたは数式 (変数名で指定)。 |
 | **集計** | ウィンドウ内の値を一つの答えにする方法: **平均**、**合計**、**Maximum Value**、**Minimum Value**、**All Values** (すべての値が一致する必要があります)、**Any Value** (一つで十分です)。 |
-| **条件** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To**、**Equal To**、または異常の条件: **Anomalously High**、**Anomalously Low**、**Anomalous**。 |
+| **条件** | **より大きい**、**より小さい**、**以上**、**以下**、**等しい**、または異常の条件: **Anomalously High**、**Anomalously Low**、**Anomalous**。 |
 | **しきい値** | 比較する値。メトリクスに単位があるときは、横に単位の一覧が表示されます。異常の条件では表示されません。 |
 | **感度** | 異常の条件のみ。**低** (4σ)、**中** (3σ、デフォルト)、**高** (2σ)。 |
 | **ベースラインウィンドウ** | 異常の条件のみ。14 日 (デフォルト)、28 日、60 日、90 日の履歴。 |
@@ -280,11 +280,11 @@ vSAN のあるクラスター、その中のホスト、vSAN データストア�
 
 最初に使える条件の例:
 
-- **ホストが飽和している:** `vcenter.host.cpu.utilization`、平均、`resource.vcenter.host.name` でグループ化、**Greater Than** `90`、過去 5 分。
-- **データストアがいっぱいになりつつある:** `vcenter.datastore.disk.utilization`、平均、`resource.vcenter.datastore.name` でグループ化、**Greater Than** `80`。
-- **クラスターがホストを失った:** `vcenter.cluster.host.count` を `effective = false` に絞り込み、最大、`resource.vcenter.cluster.name` でグループ化、**Greater Than** `0`。
-- **実行中の VM が想定より少ない:** `vcenter.cluster.vm.count` を `power_state = on` と `resource.vcenter.cluster.name = Production` に絞り込み、合計、**Less Than** 想定している数。
-- **VM がホストにスワップされている:** `vcenter.vm.memory.swapped`、最大、`resource.vcenter.vm.name` でグループ化、**Greater Than** `0`。
+- **ホストが飽和している:** `vcenter.host.cpu.utilization`、平均、`resource.vcenter.host.name` でグループ化、**より大きい** `90`、過去 5 分。
+- **データストアがいっぱいになりつつある:** `vcenter.datastore.disk.utilization`、平均、`resource.vcenter.datastore.name` でグループ化、**より大きい** `80`。
+- **クラスターがホストを失った:** `vcenter.cluster.host.count` を `effective = false` に絞り込み、最大、`resource.vcenter.cluster.name` でグループ化、**より大きい** `0`。
+- **実行中の VM が想定より少ない:** `vcenter.cluster.vm.count` を `power_state = on` と `resource.vcenter.cluster.name = Production` に絞り込み、合計、**より小さい** 想定している数。
+- **VM がホストにスワップされている:** `vcenter.vm.memory.swapped`、最大、`resource.vcenter.vm.name` でグループ化、**より大きい** `0`。
 
 ### デフォルトの条件
 

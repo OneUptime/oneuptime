@@ -112,7 +112,7 @@ Ces moniteurs évaluent toujours la **Metric Value** – la valeur de la requêt
 
 ### Conditions
 
-Les seuils statiques sont comparés au **Threshold** que vous saisissez : **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** et **Equal To**.
+Les seuils statiques sont comparés au **Threshold** que vous saisissez : **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** et **Égal à**.
 
 La détection d'anomalies par rapport à une référence n'a pas besoin de seuil. Choisissez l'une de ces conditions, et le formulaire affiche **Sensibilité** et **Fenêtre de référence** à la place :
 

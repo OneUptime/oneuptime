@@ -112,7 +112,7 @@ Questi monitor valutano sempre il **Metric Value**: il valore della query di met
 
 ### Condizioni
 
-Le soglie statiche vengono confrontate con il **Threshold** che inserite: **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** ed **Equal To**.
+Le soglie statiche vengono confrontate con il **Threshold** che inserite: **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** ed **Uguale a**.
 
 Il rilevamento delle anomalie rispetto a una baseline non richiede soglie. Scegliete una di queste condizioni, e il modulo mostra invece **Sensibilità** e **Finestra di riferimento**:
 

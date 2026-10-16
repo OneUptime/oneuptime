@@ -100,11 +100,11 @@ Os critérios de um monitor de logs têm um único **Tipo de filtro**: **Log Cou
 
 | Condição do filtro | Corresponde quando a contagem de logs está… |
 | --- | --- |
-| **Greater Than** | acima do valor |
-| **Greater Than Or Equal To** | no valor ou acima |
-| **Less Than** | abaixo do valor |
-| **Less Than Or Equal To** | no valor ou abaixo |
-| **Equal To** | exatamente no valor |
+| **Maior que** | acima do valor |
+| **Maior ou igual a** | no valor ou acima |
+| **Menor que** | abaixo do valor |
+| **Menor ou igual a** | no valor ou abaixo |
+| **Igual a** | exatamente no valor |
 | **Anomalously High** | acima da faixa esperada para esta hora da semana |
 | **Anomalously Low** | abaixo dessa faixa |
 | **Anomalous** | fora dessa faixa, em qualquer direção |
@@ -115,11 +115,11 @@ Um novo monitor de logs começa com estes critérios:
 
 | Critério | Filtro | Efeito |
 | --- | --- | --- |
-| Check if … is offline | **Log Count** **Equal To** `0` | Coloca o monitor offline e declara um incidente, resolvido automaticamente |
-| Check if … is online | **Log Count** **Greater Than** `0` | Coloca o monitor online |
+| Check if … is offline | **Log Count** **Igual a** `0` | Coloca o monitor offline e declara um incidente, resolvido automaticamente |
+| Check if … is online | **Log Count** **Maior que** `0` | Coloca o monitor online |
 
 > [!TIP]
-> Para alertar sobre erros em vez de silêncio, defina **Severidade do Registro** como **Erro** e mude o critério offline para **Log Count** **Greater Than** o número de erros que você tolera na janela.
+> Para alertar sobre erros em vez de silêncio, defina **Severidade do Registro** como **Erro** e mude o critério offline para **Log Count** **Maior que** o número de erros que você tolera na janela.
 
 ## Exemplo prático: um pico de erros
 
@@ -128,8 +128,8 @@ Você quer um incidente quando o serviço de checkout registra mais de 50 erros 
 - **Severidade do Registro**: **Erro**
 - **Monitorar Registros por (tempo)**: **Últimos 5 minutos**
 - **Filtrar por serviço de telemetria**: `checkout`
-- Critério 1: **Log Count** **Greater Than** `50`: colocar o monitor offline e declarar um incidente
-- Critério 2: **Log Count** **Less Than Or Equal To** `50`: colocar o monitor online
+- Critério 1: **Log Count** **Maior que** `50`: colocar o monitor offline e declarar um incidente
+- Critério 2: **Log Count** **Menor ou igual a** `50`: colocar o monitor online
 
 Quatro avaliações consecutivas:
 
@@ -200,7 +200,7 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 2. Defina **Monitorar Registros que incluem este texto** como `terminated` e **Monitorar Registros por (tempo)** como **Últimos 5 minutos**.
 3. Em **Mais campos**, adicione o filtro de atributo `log_component` = `IPSec`.
 4. Em **Group by Attributes**, adicione `con_name`.
-5. Adicione um critério com o filtro **Log Count** **Greater Than** `0` que crie um alerta ou um incidente com o título `IPsec tunnel {{con_name}} terminated`.
+5. Adicione um critério com o filtro **Log Count** **Maior que** `0` que crie um alerta ou um incidente com o título `IPsec tunnel {{con_name}} terminated`.
 :::
 
 Cada túnel que registra um encerramento agora recebe seu próprio alerta (`IPsec tunnel HQ-Branch1 terminated`, `IPsec tunnel Branch2 terminated`), e cada um se resolve por conta própria.
@@ -219,7 +219,7 @@ O valor de cada atributo de Group By é uma [variável de modelo](/docs/monitor/
 ### A avaliação dos critérios é diferente
 
 - **Todos os critérios são avaliados**, como em um monitor de métricas agrupado, então grupos diferentes podem atender a critérios diferentes ao mesmo tempo. Um grupo que atende a dois critérios ainda recebe um só alerta, o do primeiro; por isso, ordene os critérios do mais grave para o menos grave.
-- **Um grupo só existe se registrou algo na janela de tempo.** Por isso, os critérios **Equal To 0** e **Less Than** só disparam para grupos que registraram pelo menos uma vez; para alertar quando os logs param de chegar por completo, use um monitor sem Group By.
+- **Um grupo só existe se registrou algo na janela de tempo.** Por isso, os critérios **Igual a 0** e **Menor que** só disparam para grupos que registraram pelo menos uma vez; para alertar quando os logs param de chegar por completo, use um monitor sem Group By.
 - **A detecção de anomalias** (**Anomalously High**, **Anomalously Low**, **Anomalous**) não é avaliada por grupo (sua linha de base cobre o monitor inteiro), então esses filtros nunca correspondem em um monitor agrupado.
 - O status do monitor segue o primeiro critério que qualquer grupo atende. Quando nenhum grupo atende a nenhum critério, o monitor volta ao seu status padrão.
 
@@ -230,7 +230,7 @@ A contagem foi 0, então os filtros não correspondem a nenhum dos logs que o se
 :::
 
 :::details Houve um pico, mas nada alertou
-Os critérios são verificados de cima para baixo e a primeira correspondência decide. Um critério amplo acima do que você esperava, como **Log Count** **Greater Than** `0`, corresponde primeiro e interrompe o resto. Coloque o critério mais grave no topo.
+Os critérios são verificados de cima para baixo e a primeira correspondência decide. Um critério amplo acima do que você esperava, como **Log Count** **Maior que** `0`, corresponde primeiro e interrompe o resto. Coloque o critério mais grave no topo.
 :::
 
 :::details Um critério de anomalia nunca dispara

@@ -368,8 +368,8 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 | 过滤器类型 | 检查的内容 |
 |---|---|
 | **Database Is Online** | 数据库是否可访问，以及探测查询是否成功。这是监视器创建时自带的离线条件，也是唯一反映可访问性的检查。 |
-| **Database Metric** | 选择一个指标，然后进行比较：Greater Than、Less Than、Greater Than Or Equal To、Less Than Or Equal To、Equal To 或 Not Equal To。指标选择器只提供所选引擎能产生的指标，所以你无法构建一个永远不会满足的条件（有一个例外：为 Microsoft SQL Server 提供的 Replication 指标在 Azure SQL Database 上从不收集）。如果某次检查没有收集到该指标——组失败了，或者引擎不报告它——过滤器不会匹配，也不会作为“false”匹配：它会被跳过。权限问题不会呼叫任何人。 |
-| **Database Collection Error** | 这次检查的收集问题摘要，每个不可用的组一条“组: 消息”。在它不为空时发出警报，可以发现可见性的丢失；也可以用 Contains 盯住某个特定的组。 |
+| **Database Metric** | 选择一个指标，然后进行比较：大于、小于、大于或等于、小于或等于、等于或不等于。指标选择器只提供所选引擎能产生的指标，所以你无法构建一个永远不会满足的条件（有一个例外：为 Microsoft SQL Server 提供的 Replication 指标在 Azure SQL Database 上从不收集）。如果某次检查没有收集到该指标——组失败了，或者引擎不报告它——过滤器不会匹配，也不会作为“false”匹配：它会被跳过。权限问题不会呼叫任何人。 |
+| **Database Collection Error** | 这次检查的收集问题摘要，每个不可用的组一条“组: 消息”。在它不为空时发出警报，可以发现可见性的丢失；也可以用“包含”盯住某个特定的组。 |
 | **JavaScript Expression** | 完全控制。参见 [JavaScript 表达式](/docs/monitor/javascript-expression)。 |
 
 阈值是整数。请写 `90`，而不是 `90.5`——百分比和秒数都按整数比较。

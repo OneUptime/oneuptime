@@ -198,7 +198,7 @@ Een nieuwe monitor voor inkomende verzoeken wordt gemaakt met twee criteria die 
 | Criterium | Filtertype | Filtervoorwaarde | Waarde | Effect |
 | -------- | ------------ | ---------------- | ------- | -------------------------------------------- |
 | Offline  | Verzoeklichaam | Bevat | `error` | Markeert de monitor als offline, opent een incident |
-| Online   | Verzoeklichaam | Not Contains | `error` | Markeert de monitor als online |
+| Online   | Verzoeklichaam | Bevat niet | `error` | Markeert de monitor als online |
 
 Dit past bij het gangbare geval waarin de afzender zijn eigen gezondheid in de payload meldt: een verzoek waarvan de body `error` noemt, zet de monitor offline, en het volgende verzoek zonder dat woord brengt hem weer online en lost het incident op. Een verzoek helemaal zonder body telt als "bevat geen `error`", dus een kale heartbeat-aanroep houdt de monitor online.
 
@@ -224,7 +224,7 @@ Elk filtertype heeft zijn eigen voorwaarden:
 | Filtertype | Voorwaarden |
 | --- | --- |
 | **Incoming Request** | **Recieved In Minutes**: binnen het opgegeven aantal minuten is een verzoek ontvangen. **Not Recieved In Minutes**: binnen het opgegeven aantal minuten is geen verzoek ontvangen. (Het dashboard spelt ze zo.) |
-| **Verzoeklichaam**, **Request Header**, **Request Header Value** | **Bevat** en **Not Contains** |
+| **Verzoeklichaam**, **Request Header**, **Request Header Value** | **Bevat** en **Bevat niet** |
 | **JavaScript Expression** | **Evaluates To True** |
 
 > [!NOTE]
@@ -251,7 +251,7 @@ Object-bodies worden vergeleken als compacte JSON zonder spaties, dus een filter
 | **Waarde** | `"status":"degraded"` |
 
 > [!IMPORTANT]
-> Zet de dodemansknop **boven** de standaardcriteria. Criteria worden van boven af getoetst, en het eerste dat overeenkomt, beslist. De controle op de achtergrond leest het laatste verzoek opnieuw, dus het standaard online-criterium ("Request Body Not Contains `error`") blijft ermee overeenkomen, en een criterium eronder komt nooit aan de beurt. **Criteria toevoegen** voegt een criterium onderaan toe: sleep het omhoog.
+> Zet de dodemansknop **boven** de standaardcriteria. Criteria worden van boven af getoetst, en het eerste dat overeenkomt, beslist. De controle op de achtergrond leest het laatste verzoek opnieuw, dus het standaard online-criterium ("Verzoeklichaam Bevat niet `error`") blijft ermee overeenkomen, en een criterium eronder komt nooit aan de beurt. **Criteria toevoegen** voegt een criterium onderaan toe: sleep het omhoog.
 
 > [!WARNING]
 > Een monitor wordt alleen op de achtergrond opnieuw getoetst als ten minste één van zijn criteria **Incoming Request** controleert. Een monitor waarvan de criteria alleen het verzoeklichaam, Request Header of een JavaScript-expressie controleren, wordt getoetst als er een verzoek binnenkomt en op geen ander moment, dus hij kan nooit vanzelf offline gaan. Wilt u een alarm bij een ontbrekende heartbeat, dan hebt u een criterium **Incoming Request** nodig.

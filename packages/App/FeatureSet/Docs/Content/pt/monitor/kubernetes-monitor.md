@@ -112,7 +112,7 @@ Esses monitores sempre avaliam o **Metric Value** – o valor da consulta de mé
 
 ### Condições
 
-Limites estáticos são comparados com o **Threshold** que você informa: **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** e **Equal To**.
+Limites estáticos são comparados com o **Threshold** que você informa: **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** e **Igual a**.
 
 A detecção de anomalias por linha de base não precisa de limite. Escolha uma destas condições, e o formulário mostra **Sensibilidade** e **Janela de linha de base** no lugar:
 

@@ -90,12 +90,12 @@ Los criterios de un monitor de perfiles tienen un único filtro, **Profile Count
 
 | Condición de filtro | Coincide cuando el recuento de perfiles está… |
 | --- | --- |
-| **Greater Than** | por encima del valor |
-| **Greater Than Or Equal To** | en el valor o por encima |
-| **Less Than** | por debajo del valor |
-| **Less Than Or Equal To** | en el valor o por debajo |
-| **Equal To** | exactamente en el valor |
-| **Not Equal To** | en cualquier valor menos ese |
+| **Mayor que** | por encima del valor |
+| **Mayor o igual que** | en el valor o por encima |
+| **Menor que** | por debajo del valor |
+| **Menor o igual que** | en el valor o por debajo |
+| **Igual a** | exactamente en el valor |
+| **Distinto de** | en cualquier valor menos ese |
 
 Los recuentos de perfiles no tienen condiciones de anomalía: no hay ninguna referencia con la que compararlos.
 
@@ -104,8 +104,8 @@ Los recuentos de perfiles no tienen condiciones de anomalía: no hay ninguna ref
 El servicio de checkout ejecuta un SDK de Pyroscope que sube perfiles de CPU. Quieres un incidente cuando dejan de llegar durante cinco minutos:
 
 - `profileTypes`: `["cpu"]`, `telemetryServiceIds`: el servicio de checkout, `lastXSecondsOfProfiles`: `300`
-- Criterio 1: **Profile Count** **Equal To** `0`: poner el monitor fuera de línea y declarar un incidente
-- Criterio 2: **Profile Count** **Greater Than** `0`: poner el monitor en línea
+- Criterio 1: **Profile Count** **Igual a** `0`: poner el monitor fuera de línea y declarar un incidente
+- Criterio 2: **Profile Count** **Mayor que** `0`: poner el monitor en línea
 
 Mientras el SDK sube datos, cada evaluación cuenta algunos perfiles y el criterio 2 mantiene el monitor en línea. Cuando el servicio se despliega sin el SDK, el recuento baja a 0 cinco minutos después de la última subida, coincide el criterio 1 y se declara el incidente. La primera subida tras la corrección vuelve a llevar el recuento por encima de 0, y el incidente se resuelve solo si **Resolver incidente automáticamente** está activado para él.
 

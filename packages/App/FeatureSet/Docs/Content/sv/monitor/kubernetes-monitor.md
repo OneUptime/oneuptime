@@ -112,7 +112,7 @@ De här monitorerna utvärderar alltid **Metric Value** – värdet av den konfi
 
 ### Villkor
 
-Statiska trösklar jämförs med det **Threshold** du anger: **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** och **Equal To**.
+Statiska trösklar jämförs med det **Threshold** du anger: **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** och **Lika med**.
 
 Avvikelseidentifiering mot en baslinje behöver ingen tröskel. Välj ett av de här villkoren så visar formuläret i stället **Känslighet** och **Baslinjefönster**:
 

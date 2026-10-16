@@ -106,13 +106,13 @@ Kriterier afgør, hvornår domænet tæller som i orden eller fejlbehæftet, og 
 | --- | --- | --- |
 | **Is Online** | **Sand**, **Falsk** | Om selve registreringsopslaget lykkedes. |
 | **Is Request Timeout** | **Sand**, **Falsk** | Om opslaget fik timeout ved hvert forsøg. |
-| **Domain Expires In Days** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Dage, indtil registreringen udløber, rundet op til en hel dag. |
+| **Domain Expires In Days** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Dage, indtil registreringen udløber, rundet op til en hel dag. |
 | **Domain Is Expired** | **Sand**, **Falsk** | Om udløbsdatoen er passeret. |
-| **Domain Registrar** | **Indeholder**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | Registratorens navn. |
-| **Domain Name Server** | **Indeholder**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | Domænets navneservere. Matcher, når én af dem matcher. |
-| **Domain Status Code** | **Indeholder**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | Domænets EPP-statuskoder. Matcher, når én af dem matcher. |
+| **Domain Registrar** | **Indeholder**, **Indeholder ikke**, **Starter med**, **Slutter med**, **Lig med**, **Ikke lig med** | Registratorens navn. |
+| **Domain Name Server** | **Indeholder**, **Indeholder ikke**, **Starter med**, **Slutter med**, **Lig med**, **Ikke lig med** | Domænets navneservere. Matcher, når én af dem matcher. |
+| **Domain Status Code** | **Indeholder**, **Indeholder ikke**, **Starter med**, **Slutter med**, **Lig med**, **Ikke lig med** | Domænets EPP-statuskoder. Matcher, når én af dem matcher. |
 
-Statuskoder ensrettes til deres EPP-navne (`clientTransferProhibited`), uanset hvilken protokol der svarede, så et kriterium bliver ved med at matche, når **Auto** skifter mellem RDAP og WHOIS. Registratorers _navne_ er det, den svarende tjeneste offentliggør, og kan variere en smule mellem de to protokoller, så foretræk **Indeholder** frem for **Equal To** i et kriterium med **Domain Registrar**.
+Statuskoder ensrettes til deres EPP-navne (`clientTransferProhibited`), uanset hvilken protokol der svarede, så et kriterium bliver ved med at matche, når **Auto** skifter mellem RDAP og WHOIS. Registratorers _navne_ er det, den svarende tjeneste offentliggør, og kan variere en smule mellem de to protokoller, så foretræk **Indeholder** frem for **Lig med** i et kriterium med **Domain Registrar**.
 
 Datoer ensrettes til ISO 8601. En dato, som et register offentliggør i en form, der ikke kan fortolkes, udelades i stedet for at blive gemt, så et udløbskriterium ikke kan afgøre noget og ikke matcher, i stedet for i al stilhed at svare "ikke udløbet" for evigt.
 
@@ -136,7 +136,7 @@ For at blive advaret tidligere skal du ændre værdien af filteret **Domain Expi
 Monitorer, der blev oprettet, før OneUptime indførte denne advarsel, har intet kriterium "udløber snart". Sådan tilføjer du det:
 
 1. Åbn **Konfiguration → Kriterier** på monitoren, og klik på **Rediger Overvågningskriterier**.
-2. Klik på **Tilføj kriterier**. Sæt dets filter til **Domain Is Expired** / **Falsk**, klik på **Tilføj filter**, og sæt det andet til **Domain Expires In Days** / **Less Than Or Equal To** / `30`. Lad **Matchbetingelse** stå på **Alle** (den vises under filtrene, så snart der er to).
+2. Klik på **Tilføj kriterier**. Sæt dets filter til **Domain Is Expired** / **Falsk**, klik på **Tilføj filter**, og sæt det andet til **Domain Expires In Days** / **Mindre end eller lig med** / `30`. Lad **Matchbetingelse** stå på **Alle** (den vises under filtrene, så snart der er to).
 3. Slå **Når filtre matcher, oprettes en advarsel.** til under **Handlinger**, og lad **Når filtre matcher, ændres overvågningsstatus.** være slået fra, så det opretter en advarsel og ikke ændrer monitorens status.
 4. Træk det nye kriterium op over det kriterium, der markerer monitoren som online, og gem derefter.
 :::
@@ -145,20 +145,20 @@ Monitorer, der blev oprettet, før OneUptime indførte denne advarsel, har intet
 
 | Mål | Filter | Betingelse | Værdi |
 | --- | --- | --- | --- |
-| Advar, når domænet udløber inden for 30 dage (et standardkriterium) | **Domain Expires In Days** | **Less Than Or Equal To** | `30` |
+| Advar, når domænet udløber inden for 30 dage (et standardkriterium) | **Domain Expires In Days** | **Mindre end eller lig med** | `30` |
 | Offline, når domænet er udløbet | **Domain Is Expired** | **Sand** | — |
 | Offline, når registreringen ikke kan læses | **Is Online** | **Falsk** | — |
-| Advar, når navneserverne ændres | **Domain Name Server** | **Not Contains** | `ns1.example.com` |
-| Advar, når domænet er låst op for overførsel | **Domain Status Code** | **Not Contains** | `clientTransferProhibited` |
+| Advar, når navneserverne ændres | **Domain Name Server** | **Indeholder ikke** | `ns1.example.com` |
+| Advar, når domænet er låst op for overførsel | **Domain Status Code** | **Indeholder ikke** | `clientTransferProhibited` |
 
-**Domain Name Server** og **Domain Status Code** matcher, når _en hvilken som helst_ enkelt værdi matcher, så **Not Contains** matcher, så snart én navneserver eller én statuskode ikke indeholder teksten.
+**Domain Name Server** og **Domain Status Code** matcher, når _en hvilken som helst_ enkelt værdi matcher, så **Indeholder ikke** matcher, så snart én navneserver eller én statuskode ikke indeholder teksten.
 
 ## Bedste praksis
 
 1. **Giv dig selv tid til at forny** — Standardadvarslen kommer 30 dage før udløb. Hvis fornyelsen kræver godkendelser eller en betaling, der tager længere tid, så hæv den til 60 dage.
 2. **Dæk mislykkede opslag** — Tag et filter **Is Online** / **Falsk** med i dit offline-kriterium, så en registrering, der ikke kan læses, ikke forveksles med en sund. Nye monitorer har det i deres standardkriterier; en monitor, der blev oprettet, før det kom med, skal have det tilføjet i hånden. For at komme igennem en WHOIS-server, der en gang imellem begrænser sonden, skal du sætte flueben i **Evaluér disse kriterier over en periode** under det filter og vælge **All Values**: domænet går så først offline, når hvert opslag i vinduet er mislykket.
 3. **Overvåg alle vigtige domæner** — Tag primære domæner, separat registrerede underdomæner og alle domæner, der bruges til e-mail eller API'er, med.
-4. **Hold øje med skift af registrator** — Tilføj et kriterium med **Domain Registrar** / **Not Contains** / navnet på din registrator for at opdage en uautoriseret overførsel.
+4. **Hold øje med skift af registrator** — Tilføj et kriterium med **Domain Registrar** / **Indeholder ikke** / navnet på din registrator for at opdage en uautoriseret overførsel.
 
 ## Fejlfinding
 

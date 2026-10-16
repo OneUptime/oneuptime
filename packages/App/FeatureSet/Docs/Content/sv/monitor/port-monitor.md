@@ -109,9 +109,9 @@ Kriterier avgör när porten räknas som online, försämrad eller offline, och 
 | Filter | Villkor | Vad det kontrollerar |
 | --- | --- | --- |
 | **Is Online** | **Sant**, **Falskt** | Om porten tog emot en anslutning. |
-| **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Hela anslutningstiden, inklusive DNS-uppslaget för ett värdnamn. |
-| **Port DNS Lookup Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | DNS-uppslaget före det första TCP-försöket. Det har inget värde när målet är en IP-adress. |
-| **Port TCP Connect Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Från det första TCP-försöket tills anslutningen tas emot, inklusive växling mellan IPv6 och IPv4. |
+| **Total Connection Time (DNS + TCP) (in ms)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Hela anslutningstiden, inklusive DNS-uppslaget för ett värdnamn. |
+| **Port DNS Lookup Time (in ms)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | DNS-uppslaget före det första TCP-försöket. Det har inget värde när målet är en IP-adress. |
+| **Port TCP Connect Time (in ms)** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** | Från det första TCP-försöket tills anslutningen tas emot, inklusive växling mellan IPv6 och IPv4. |
 | **Is Request Timeout** | **Sant**, **Falskt** | Om DNS-uppslaget eller TCP-anslutningen överskred tidsgränsen vid varje försök. |
 
 Ett kriterium för DNS-uppslagstid har inget att utvärdera när målet är en IP-adress. För kriterier som måste fungera med både värdnamn och IP-adresser använder du totaltiden eller TCP-anslutningstiden.
@@ -156,10 +156,10 @@ Gör fönstret längre än övervakningsintervallet så att det rymmer flera kon
 | Mål | Filter | Villkor | Värde |
 | --- | --- | --- | --- |
 | Offline när porten är stängd | **Is Online** | **Falskt** | — |
-| Larma när anslutningen är långsam | **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than** | `500` |
-| Markera tjänsten som försämrad när den är långsam att ansluta | **Total Connection Time (DNS + TCP) (in ms)** | **Greater Than** | `200` |
-| Larma när DNS är långsam | **Port DNS Lookup Time (in ms)** | **Greater Than** | `100` |
-| Larma när TCP-handskakningen är långsam | **Port TCP Connect Time (in ms)** | **Greater Than** | `250` |
+| Larma när anslutningen är långsam | **Total Connection Time (DNS + TCP) (in ms)** | **Större än** | `500` |
+| Markera tjänsten som försämrad när den är långsam att ansluta | **Total Connection Time (DNS + TCP) (in ms)** | **Större än** | `200` |
+| Larma när DNS är långsam | **Port DNS Lookup Time (in ms)** | **Större än** | `100` |
+| Larma när TCP-handskakningen är långsam | **Port TCP Connect Time (in ms)** | **Större än** | `250` |
 
 ## Felsökning
 

@@ -169,7 +169,7 @@ Erstellen Sie einen Monitor vom Typ **Metriken** (siehe [Metriken-Überwachung](
 1. **Metrikabfrage:** `sdwan.gateway.latency.ms`, Aggregation **Durchschnitt**, **Gruppieren nach** `gw_name` und `profile_name`.
 2. **Rollierendes Zeitfenster:** Letzte 15 Minuten. Die Firewall meldet alle paar Minuten, das Fenster enthält also mehrere Punkte pro Gateway.
 3. **Aggregationsstrategie:** **All Values** – jeder Punkt im Fenster muss die Schwelle überschreiten, sodass eine einzelne langsame Zusammenfassung niemanden alarmiert. Verwenden Sie stattdessen **Durchschnitt**, um bei einem hohen Durchschnitt zu warnen.
-4. **Kriterien:** Metric value **Greater Than** `150` öffnet eine Warnung.
+4. **Kriterien:** Metric value **Größer als** `150` öffnet eine Warnung.
 5. Verwenden Sie optional die Gruppierungswerte im Titel der Warnung, z. B. `SD-WAN latency high on {{gw_name}} ({{profile_name}})`.
 
 Mit gesetzter Gruppierung ist jedes Gateway eine eigene Reihe: Wird WAN2 langsam, öffnet sich eine Warnung nur für WAN2, und sie löst sich von selbst, wenn sich WAN2 erholt – siehe [Warnungen pro Reihe](/docs/monitor/metrics-monitor#warnungen-pro-reihe-group-by).

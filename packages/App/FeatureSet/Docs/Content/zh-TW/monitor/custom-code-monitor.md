@@ -177,15 +177,15 @@ return {
 
 | 篩選器類型 | 檢查內容 | 篩選條件 |
 | --- | --- | --- |
-| **錯誤** | 指令碼擲回的錯誤（如果有）。 | 包含、Not Contains、Equal To、Not Equal To、Is Empty、Is Not Empty |
-| **Result Value** | 指令碼傳回的 `data`。如果它是數字，就以數字比較。 | 同上，另加 Greater Than、Less Than、Greater Than Or Equal To、Less Than Or Equal To、是、否 |
+| **錯誤** | 指令碼擲回的錯誤（如果有）。 | 包含、不包含、等於、不等於、為空、不為空 |
+| **Result Value** | 指令碼傳回的 `data`。如果它是數字，就以數字比較。 | 同上，另加：大於、小於、大於或等於、小於或等於、是、否 |
 | **執行時間（毫秒）** | 指令碼執行了多久。 | 數值比較 |
 
 預設條件會在 **錯誤** 為空時將監測器標示為上線，不為空時標示為離線，並附帶一個事件，指令碼再次成功時該事件會自動解決。在事件和警示範本中，這次執行可以用 `{{result}}`、`{{scriptError}}`、`{{logMessages}}` 和 `{{executionTimeInMs}}` 參照：請參閱 [事件與警示範本](/docs/monitor/incident-alert-templating)。
 
 ### 依傳回的資料發出警示
 
-指令碼以 `data` 傳回的內容就是監測器的 **Result Value**，條件可以對它進行比較，例如 _Result Value is Equal To `UP`_。
+指令碼以 `data` 傳回的內容就是監測器的 **Result Value**，條件可以對它進行比較，例如 _Result Value 等於 `UP`_。
 
 當 `data` 是物件或陣列時，在 Result Value 篩選器上填寫 **欄位路徑（選填）**，就能只比較其中一個欄位，而不是整個值。巢狀欄位使用點號，陣列項目使用 `[n]`：
 
@@ -204,16 +204,16 @@ return {
 
 | 欄位路徑 | 比較的值 | 條件範例 |
 | --- | --- | --- |
-| `status` | `"UP"` | Not Equal To `UP` |
-| `cpu_busy_percent` | `42` | Greater Than `90` |
+| `status` | `"UP"` | 不等於 `UP` |
+| `cpu_busy_percent` | `42` | 大於 `90` |
 | `healthy` | `true` | 否 |
-| `checks[0].latency` | `12` | Greater Than `500` |
+| `checks[0].latency` | `12` | 大於 `500` |
 
 每個要檢查的欄位各加入一個篩選器；每個篩選器都可以有自己的條件和值。
 
 - 要比較整個值（例如指令碼只傳回一個數字或字串），請把欄位路徑留空。
-- Greater Than、Less Than 和其他數值條件只會符合數字，因此請把欄位傳回為 `42`，而不是 `"42"`。是和否只會符合布林值。
-- 傳回資料中不存在的欄位（缺少的鍵，或超出陣列結尾的索引）會以空值比較：**Is Empty** 會符合它，其他條件都不會。
+- 大於、小於和其他數值條件只會符合數字，因此請把欄位傳回為 `42`，而不是 `"42"`。是和否只會符合布林值。
+- 傳回資料中不存在的欄位（缺少的鍵，或超出陣列結尾的索引）會以空值比較：**為空** 會符合它，其他條件都不會。
 - 名稱中含有點號的欄位無法透過路徑存取。
 - 在 Terraform 中，篩選器的 `custom_code_monitor_options` 用來設定欄位路徑：請參閱 [監控步驟](/docs/terraform/monitor-steps#比較指令碼結果中的某個欄位)。
 

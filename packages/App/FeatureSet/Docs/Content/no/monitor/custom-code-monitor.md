@@ -177,15 +177,15 @@ Kriteriene til en monitor med egendefinert kode kan sjekke:
 
 | Filtertype | Hva den sjekker | Filtervilkår |
 | --- | --- | --- |
-| **Feil** | Feilen skriptet kastet, hvis noen. | Inneholder, Not Contains, Equal To, Not Equal To, Is Empty, Is Not Empty |
-| **Result Value** | `data` som skriptet returnerte. Sammenlignes som et tall når det er et. | De samme, pluss Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To, Sann og Usann |
+| **Feil** | Feilen skriptet kastet, hvis noen. | Inneholder, Inneholder ikke, Lik, Ikke lik, Er tom, Er ikke tom |
+| **Result Value** | `data` som skriptet returnerte. Sammenlignes som et tall når det er et. | De samme, pluss Større enn, Mindre enn, Større enn eller lik, Mindre enn eller lik, Sann og Usann |
 | **Kjøretid (i ms)** | Hvor lenge skriptet kjørte. | Numeriske sammenligninger |
 
 Standardkriteriene markerer monitoren som online når **Feil** er tom, og som frakoblet — med en hendelse som løser seg selv når skriptet lykkes igjen — når den ikke er det. I hendelses- og varslingsmaler er kjøringen tilgjengelig som `{{result}}`, `{{scriptError}}`, `{{logMessages}}` og `{{executionTimeInMs}}`: se [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating).
 
 ### Varsling på de returnerte dataene
 
-Det skriptet returnerer som `data`, er monitorens **Result Value**, og et kriterium kan sammenligne det — for eksempel _Result Value is Equal To `UP`_.
+Det skriptet returnerer som `data`, er monitorens **Result Value**, og et kriterium kan sammenligne det — for eksempel _Result Value er Lik `UP`_.
 
 Når `data` er et objekt eller en matrise, fyller du inn **Feltsti (valgfritt)** på Result Value-filteret for å sammenligne ett felt i stedet for hele verdien. Bruk punktum for nestede felt og `[n]` for elementer i en matrise:
 
@@ -204,16 +204,16 @@ return {
 
 | Feltsti | Sammenligner | Eksempel på vilkår |
 | --- | --- | --- |
-| `status` | `"UP"` | Not Equal To `UP` |
-| `cpu_busy_percent` | `42` | Greater Than `90` |
+| `status` | `"UP"` | Ikke lik `UP` |
+| `cpu_busy_percent` | `42` | Større enn `90` |
 | `healthy` | `true` | Usann |
-| `checks[0].latency` | `12` | Greater Than `500` |
+| `checks[0].latency` | `12` | Større enn `500` |
 
 Legg til ett filter per felt du vil sjekke; hvert filter kan ha sitt eget vilkår og sin egen verdi.
 
 - La feltstien stå tom for å sammenligne hele verdien, som for et skript som returnerer ett enkelt tall eller én enkelt streng.
-- Greater Than, Less Than og de andre tallvilkårene samsvarer bare med et tall, så returner et felt som `42`, ikke `"42"`. Sann og Usann samsvarer bare med en boolsk verdi.
-- Et felt som ikke finnes i de returnerte dataene — en manglende nøkkel eller en matriseindeks forbi slutten — sammenlignes som tomt: **Is Empty** samsvarer med det, og ingen andre vilkår gjør det.
+- Større enn, Mindre enn og de andre tallvilkårene samsvarer bare med et tall, så returner et felt som `42`, ikke `"42"`. Sann og Usann samsvarer bare med en boolsk verdi.
+- Et felt som ikke finnes i de returnerte dataene — en manglende nøkkel eller en matriseindeks forbi slutten — sammenlignes som tomt: **Er tom** samsvarer med det, og ingen andre vilkår gjør det.
 - Et felt med punktum i navnet kan ikke nås med en sti.
 - I Terraform setter filterets `custom_code_monitor_options` feltstien: se [Monitortrinn](/docs/terraform/monitor-steps#sammenligne-ett-felt-i-resultatet-fra-et-skript).
 

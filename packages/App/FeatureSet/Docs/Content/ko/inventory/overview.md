@@ -101,7 +101,7 @@ OneUptime이 스스로는 결코 볼 수 없는 것을 항목으로 추가하면
 직접 추가할 수 있는 유형은 세 가지입니다.
 
 - `external.service`(**External Service**): 서드파티 API 또는 SaaS 의존성.
-- `external.database`(**External Database**): OneUptime이 모델링할 수 있는 서버가 아닌 데이터베이스. 데이터베이스 서버는 자체 호스팅이든 관리형이든, PostgreSQL부터 Snowflake까지, 대신 **Databases → Database 만들기**에서 추가합니다([데이터베이스](/docs/telemetry/databases)). 그 레코드는 같은 주소를 가리키는 트레이스, 컨테이너, 엔진 메트릭과 연결되지만 인벤토리 항목은 그렇지 않으며, 같은 서버를 두 방식으로 모두 추가하면 서로 연결되지 않은 레코드 두 개가 남습니다.
+- `external.database`(**External Database**): OneUptime이 모델링할 수 있는 서버가 아닌 데이터베이스. 데이터베이스 서버는 자체 호스팅이든 관리형이든, PostgreSQL부터 Snowflake까지, 대신 **Databases → 데이터베이스 만들기**에서 추가합니다([데이터베이스](/docs/telemetry/databases)). 그 레코드는 같은 주소를 가리키는 트레이스, 컨테이너, 엔진 메트릭과 연결되지만 인벤토리 항목은 그렇지 않으며, 같은 서버를 두 방식으로 모두 추가하면 서로 연결되지 않은 레코드 두 개가 남습니다.
 - `appliance`(**Appliance**): 에이전트가 없는 하드웨어나 소프트웨어.
 
 이 제한은 중복을 막습니다. 호스트처럼 OneUptime이 관찰할 수 있는 유형의 항목을 직접 만들면 입력한 이름으로 키가 정해지지만, 같은 머신의 검색된 항목은 머신이 보고하는 속성으로 키가 정해집니다. 둘은 결코 합쳐지지 않으므로 같은 호스트가 목록에 영원히 두 번 남게 됩니다.

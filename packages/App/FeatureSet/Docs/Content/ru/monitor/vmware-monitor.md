@@ -270,7 +270,7 @@ OneUptime поставляет 23 шаблона для типичных про�
 | --- | --- |
 | **Метрика** | Запрос или формула для проверки, по имени переменной. |
 | **Агрегация** | Как значения в окне превращаются в один ответ: **Среднее**, **Сумма**, **Maximum Value**, **Minimum Value**, **All Values** (каждое значение должно совпасть) или **Any Value** (достаточно одного). |
-| **Условие** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** или **Equal To** — или условие аномалии: **Anomalously High**, **Anomalously Low** или **Anomalous**. |
+| **Условие** | **Больше**, **Меньше**, **Больше или равно**, **Меньше или равно** или **Равно** — или условие аномалии: **Anomalously High**, **Anomalously Low** или **Anomalous**. |
 | **Threshold** | Значение, с которым идёт сравнение. Рядом есть список единиц, если у метрики есть единица. Не показывается для условий аномалии. |
 | **Чувствительность** | Только условия аномалии. **Низкий** (4σ), **Средний** (3σ, по умолчанию) или **Высокий** (2σ). |
 | **Окно базовой линии** | Только условия аномалии. 14 дней (по умолчанию), 28, 60 или 90 дней истории. |
@@ -280,11 +280,11 @@ OneUptime поставляет 23 шаблона для типичных про�
 
 Несколько критериев для начала:
 
-- **Хост перегружен:** `vcenter.host.cpu.utilization`, Среднее, с группировкой по `resource.vcenter.host.name`, **Greater Than** `90`, за последние 5 минут.
-- **Хранилище данных заполняется:** `vcenter.datastore.disk.utilization`, Среднее, с группировкой по `resource.vcenter.datastore.name`, **Greater Than** `80`.
-- **Кластер потерял хост:** `vcenter.cluster.host.count` с фильтром `effective = false`, Максимум, с группировкой по `resource.vcenter.cluster.name`, **Greater Than** `0`.
-- **Работает меньше ВМ, чем ожидалось:** `vcenter.cluster.vm.count` с фильтрами `power_state = on` и `resource.vcenter.cluster.name = Production`, Сумма, **Less Than** ожидаемое вами число.
-- **Хост выгружает ВМ в подкачку:** `vcenter.vm.memory.swapped`, Максимум, с группировкой по `resource.vcenter.vm.name`, **Greater Than** `0`.
+- **Хост перегружен:** `vcenter.host.cpu.utilization`, Среднее, с группировкой по `resource.vcenter.host.name`, **Больше** `90`, за последние 5 минут.
+- **Хранилище данных заполняется:** `vcenter.datastore.disk.utilization`, Среднее, с группировкой по `resource.vcenter.datastore.name`, **Больше** `80`.
+- **Кластер потерял хост:** `vcenter.cluster.host.count` с фильтром `effective = false`, Максимум, с группировкой по `resource.vcenter.cluster.name`, **Больше** `0`.
+- **Работает меньше ВМ, чем ожидалось:** `vcenter.cluster.vm.count` с фильтрами `power_state = on` и `resource.vcenter.cluster.name = Production`, Сумма, **Меньше** ожидаемое вами число.
+- **Хост выгружает ВМ в подкачку:** `vcenter.vm.memory.swapped`, Максимум, с группировкой по `resource.vcenter.vm.name`, **Больше** `0`.
 
 ### Критерии по умолчанию
 

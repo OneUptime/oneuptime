@@ -119,11 +119,11 @@ Questi monitor valutano sempre il **Metric Value**: il valore aggregato della qu
 
 | Condizione | Corrisponde quando il valore è… |
 | --- | --- |
-| **Greater Than** | sopra la soglia |
-| **Greater Than Or Equal To** | pari alla soglia o superiore |
-| **Less Than** | sotto la soglia |
-| **Less Than Or Equal To** | pari alla soglia o inferiore |
-| **Equal To** | esattamente la soglia |
+| **Maggiore di** | sopra la soglia |
+| **Maggiore o uguale a** | pari alla soglia o superiore |
+| **Minore di** | sotto la soglia |
+| **Minore o uguale a** | pari alla soglia o inferiore |
+| **Uguale a** | esattamente la soglia |
 | **Anomalously High** | sopra l'intervallo atteso per quest'ora della settimana |
 | **Anomalously Low** | sotto quell'intervallo |
 | **Anomalous** | fuori da quell'intervallo, in un senso o nell'altro |
@@ -134,8 +134,8 @@ Un nuovo monitor metriche parte con due criteri sulla sua prima query, entrambi 
 
 | Criterio | Condizione | Effetto |
 | --- | --- | --- |
-| Check if … is offline | **Equal To** `0` | Mette il monitor offline e dichiara un incidente, risolto automaticamente |
-| Check if … is online | **Greater Than** `0` | Mette il monitor online |
+| Check if … is offline | **Uguale a** `0` | Mette il monitor offline e dichiara un incidente, risolto automaticamente |
+| Check if … is online | **Maggiore di** `0` | Mette il monitor online |
 
 > [!NOTE]
 > Il criterio offline scatta su un valore riportato pari a 0, non sul silenzio. Per essere avvisati quando una metrica smette di arrivare, impostate il suo **Se nessun dato** su **Trigger**.
@@ -148,7 +148,7 @@ Volete un incidente quando la coda di checkout resta profonda. La query `a` è i
 | --- | --- | --- | --- | --- | --- |
 | `a` | 640 | 980 | 1.500 | 1.620 | 1.100 |
 
-Un criterio con **Metrica** `a`, **Condizione** **Greater Than** e **Threshold** `1000` dà una risposta diversa per ogni **Aggregazione**:
+Un criterio con **Metrica** `a`, **Condizione** **Maggiore di** e **Threshold** `1000` dà una risposta diversa per ogni **Aggregazione**:
 
 | Aggregazione | Confrontato con 1.000 | Corrisponde? |
 | --- | --- | --- |

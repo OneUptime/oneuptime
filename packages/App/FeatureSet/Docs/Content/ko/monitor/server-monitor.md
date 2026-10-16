@@ -159,7 +159,7 @@ Linux와 macOS에서는 `sudo`로, Windows에서는 관리자 권한의 **명령
 | 필터 유형 | 확인하는 내용 | 필터 조건 |
 | --- | --- | --- |
 | Is Online | 에이전트가 최근(기본값은 최근 3분 이내)에 보고했는지 | 참, 거짓 |
-| CPU Usage (in %) | 전체 CPU 사용률 | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| CPU Usage (in %) | 전체 CPU 사용률 | 보다 큼, 보다 작음, 이상, 이하 |
 | Memory Usage (in %) | 사용 중인 메모리 | CPU와 같음 |
 | Disk Usage (in %) | **디스크 경로** 에 지정한 디스크의 사용률 | CPU와 같음 |
 | Swap Usage (in %) | 사용 중인 스왑 | CPU와 같음 |
@@ -195,10 +195,10 @@ Linux와 macOS에서는 `sudo`로, Windows에서는 관리자 권한의 **명령
 | 목표 | 필터 유형 | 필터 조건 | 값 |
 | --- | --- | --- | --- |
 | 에이전트가 보고를 멈추면 서버를 오프라인으로 표시 | Is Online | 거짓 | — |
-| CPU 사용률이 90%를 넘으면 알림 | CPU Usage (in %) | Greater Than | `90` |
-| 루트 디스크가 85% 넘게 차면 알림 | Disk Usage (in %), **디스크 경로** `/` | Greater Than | `85` |
-| 85% 넘게 찬 디스크마다 하나씩 알림 | Disk Usage (in %), **디스크 경로** `*` | Greater Than | `85` |
-| 메모리 사용률이 80%를 넘으면 알림 | Memory Usage (in %) | Greater Than | `80` |
+| CPU 사용률이 90%를 넘으면 알림 | CPU Usage (in %) | 보다 큼 | `90` |
+| 루트 디스크가 85% 넘게 차면 알림 | Disk Usage (in %), **디스크 경로** `/` | 보다 큼 | `85` |
+| 85% 넘게 찬 디스크마다 하나씩 알림 | Disk Usage (in %), **디스크 경로** `*` | 보다 큼 | `85` |
+| 메모리 사용률이 80%를 넘으면 알림 | Memory Usage (in %) | 보다 큼 | `80` |
 | nginx가 멈추면 알림 | Server Process Name | Is Not Executing | `nginx` |
 
 ## 문제 해결

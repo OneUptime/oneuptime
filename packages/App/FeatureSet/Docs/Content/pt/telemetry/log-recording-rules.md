@@ -169,7 +169,7 @@ Crie um monitor de **Métricas** (veja [Monitor de métricas](/docs/monitor/metr
 1. **Consulta de métrica:** `sdwan.gateway.latency.ms`, agregação **Média**, **Agrupar Por** `gw_name` e `profile_name`.
 2. **Janela de tempo móvel:** Past 15 Minutes. O firewall informa a cada poucos minutos, então a janela contém vários pontos por gateway.
 3. **Estratégia de agregação:** **All Values**: todos os pontos da janela precisam ultrapassar o limite, para que um único resumo lento não acione ninguém. Use **Média** em vez disso para alertar sobre uma média alta.
-4. **Critérios:** Metric value **Greater Than** `150` abre um alerta.
+4. **Critérios:** Metric value **Maior que** `150` abre um alerta.
 5. Se quiser, use os valores de agrupamento no título do alerta, por exemplo `SD-WAN latency high on {{gw_name}} ({{profile_name}})`.
 
 Com o agrupamento definido, cada gateway é uma série própria: se o WAN2 ficar lento, abre-se um alerta só para o WAN2, que se resolve sozinho quando o WAN2 se recupera. Veja [Alertas por série](/docs/monitor/metrics-monitor#alertas-por-série-group-by).

@@ -198,7 +198,7 @@ Invoke-RestMethod -Method Post `
 | 條件 | 篩選器類型 | 篩選條件 | 值 | 效果 |
 | -------- | ------------ | ---------------- | ------- | -------------------------------------------- |
 | Offline  | 請求內文 | 包含 | `error` | 將監測器標示為離線，開啟一個事件 |
-| Online   | 請求內文 | Not Contains | `error` | 將監測器標示為上線 |
+| Online   | 請求內文 | 不包含 | `error` | 將監測器標示為上線 |
 
 這適合傳送端在酬載中回報自身健康狀況的常見情況：請求內文提到 `error` 的請求會讓監測器下線，下一個不含該字的請求會讓監測器恢復上線並解決事件。完全沒有請求內文的請求算作「不包含 `error`」，因此單純的心跳呼叫會讓監測器保持上線。
 
@@ -224,7 +224,7 @@ Invoke-RestMethod -Method Post `
 | 篩選器類型 | 條件 |
 | --- | --- |
 | **Incoming Request** | **Recieved In Minutes** —— 在指定的分鐘數內收到了請求。**Not Recieved In Minutes** —— 在指定的分鐘數內沒有收到請求。（儀表板就是這樣拼寫的。） |
-| **請求內文**、**Request Header**、**Request Header Value** | **包含** 和 **Not Contains** |
+| **請求內文**、**Request Header**、**Request Header Value** | **包含** 和 **不包含** |
 | **JavaScript Expression** | **Evaluates To True** |
 
 > [!NOTE]
@@ -251,7 +251,7 @@ Invoke-RestMethod -Method Post `
 | **值** | `"status":"degraded"` |
 
 > [!IMPORTANT]
-> 把失效開關放在預設條件 **之上**。條件是由上往下檢查，第一個符合的條件說了算。背景檢查會重新讀取最後一個請求，因此預設的上線條件（"Request Body Not Contains `error`"）會一直符合它，排在它下面的條件永遠輪不到。**新增條件準則** 會把條件加到最底部：請把它拖上去。
+> 把失效開關放在預設條件 **之上**。條件是由上往下檢查，第一個符合的條件說了算。背景檢查會重新讀取最後一個請求，因此預設的上線條件（"請求內文 不包含 `error`"）會一直符合它，排在它下面的條件永遠輪不到。**新增條件準則** 會把條件加到最底部：請把它拖上去。
 
 > [!WARNING]
 > 只有當監測器至少有一個條件檢查 **Incoming Request** 時，它才會在背景重新評估。條件只檢查請求內文、Request Header 或 JavaScript 運算式的監測器，只會在請求送達時評估，其他時候都不會，因此它永遠不會自行下線。如果你需要心跳缺失的警報，就需要一個 **Incoming Request** 條件。

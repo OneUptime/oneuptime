@@ -263,7 +263,7 @@ OneUptime 提供 18 個範本——11 個用於 FlashArray，7 個用於 FlashBl
 | --- | --- |
 | **指標** | 要檢查的查詢或公式，依其變數名稱。 |
 | **彙總** | 視窗中的值如何變成一個答案：**平均**、**總和**、**Maximum Value**、**Minimum Value**、**All Values**(每個值都必須相符)或 **Any Value**(一個就夠)。 |
-| **條件** | **Greater Than**、**Less Than**、**Greater Than Or Equal To**、**Less Than Or Equal To** 或 **Equal To**——或者一個異常條件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
+| **條件** | **大於**、**小於**、**大於或等於**、**小於或等於** 或 **等於**——或者一個異常條件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
 | **Threshold** | 用於比較的值。指標有單位時，旁邊會有一份單位清單。異常條件不會顯示此欄位。 |
 | **敏感度** | 僅限異常條件。**低**(4σ)、**中**(3σ，預設)或 **高**(2σ)。 |
 | **基準視窗** | 僅限異常條件。14 天(預設)、28、60 或 90 天的歷史。 |
@@ -273,10 +273,10 @@ OneUptime 提供 18 個範本——11 個用於 FlashArray，7 個用於 FlashBl
 
 一些可以作為起點的條件：
 
-- **某個磁碟區變慢：** `purefa_volume_performance_latency_usec` 篩選到 `dimension=usec_per_read_op`，平均，依 `name` 分組，**Greater Than** `2000`，過去 10 分鐘。
-- **陣列即將寫滿：** `purefa_array_space_utilization`，最大值，**Greater Than** `85`，過去 15 分鐘。
-- **某台主機只透過一個控制器運作：** `purefa_host_connectivity_info` 篩選到 `status=critical`，最大值，依 `host` 分組，**Greater Than** `0`。
-- **某個 FlashBlade 檔案系統幾乎已滿：** `purefb_file_systems_space_bytes` 篩選到 `space=available_ratio`，最小值，依 `name` 分組，**Less Than** `0.05`。
+- **某個磁碟區變慢：** `purefa_volume_performance_latency_usec` 篩選到 `dimension=usec_per_read_op`，平均，依 `name` 分組，**大於** `2000`，過去 10 分鐘。
+- **陣列即將寫滿：** `purefa_array_space_utilization`，最大值，**大於** `85`，過去 15 分鐘。
+- **某台主機只透過一個控制器運作：** `purefa_host_connectivity_info` 篩選到 `status=critical`，最大值，依 `host` 分組，**大於** `0`。
+- **某個 FlashBlade 檔案系統幾乎已滿：** `purefb_file_systems_space_bytes` 篩選到 `space=available_ratio`，最小值，依 `name` 分組，**小於** `0.05`。
 
 ### 預設條件
 

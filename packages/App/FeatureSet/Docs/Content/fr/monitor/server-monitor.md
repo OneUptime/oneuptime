@@ -159,7 +159,7 @@ Les critères décident quand le moniteur est en ligne, dégradé ou hors ligne,
 | Type de filtre | Ce qu'il vérifie | Conditions de filtre |
 | --- | --- | --- |
 | Is Online | Si l'agent a envoyé un rapport récemment (dans les 3 dernières minutes, par défaut) | Vrai, Faux |
-| CPU Usage (in %) | Utilisation globale du CPU | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
+| CPU Usage (in %) | Utilisation globale du CPU | Supérieur à, Inférieur à, Supérieur ou égal à, Inférieur ou égal à |
 | Memory Usage (in %) | Mémoire utilisée | Comme pour le CPU |
 | Disk Usage (in %) | Utilisation du disque indiqué dans **Chemin du disque** | Comme pour le CPU |
 | Swap Usage (in %) | Swap utilisé | Comme pour le CPU |
@@ -195,10 +195,10 @@ Les critères décident quand le moniteur est en ligne, dégradé ou hors ligne,
 | Objectif | Type de filtre | Condition de filtre | Valeur |
 | --- | --- | --- | --- |
 | Marquer le serveur hors ligne quand l'agent cesse d'envoyer des rapports | Is Online | Faux | — |
-| Alerter quand l'utilisation du CPU dépasse 90 % | CPU Usage (in %) | Greater Than | `90` |
-| Alerter quand le disque racine est plein à plus de 85 % | Disk Usage (in %), **Chemin du disque** `/` | Greater Than | `85` |
-| Alerter pour tout disque plein à plus de 85 %, une alerte par disque | Disk Usage (in %), **Chemin du disque** `*` | Greater Than | `85` |
-| Alerter quand l'utilisation de la mémoire dépasse 80 % | Memory Usage (in %) | Greater Than | `80` |
+| Alerter quand l'utilisation du CPU dépasse 90 % | CPU Usage (in %) | Supérieur à | `90` |
+| Alerter quand le disque racine est plein à plus de 85 % | Disk Usage (in %), **Chemin du disque** `/` | Supérieur à | `85` |
+| Alerter pour tout disque plein à plus de 85 %, une alerte par disque | Disk Usage (in %), **Chemin du disque** `*` | Supérieur à | `85` |
+| Alerter quand l'utilisation de la mémoire dépasse 80 % | Memory Usage (in %) | Supérieur à | `80` |
 | Alerter quand nginx cesse de tourner | Server Process Name | Is Not Executing | `nginx` |
 
 ## Dépannage

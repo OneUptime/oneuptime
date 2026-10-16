@@ -119,10 +119,10 @@ flowchart TB
 | نوع فیلتر | آنچه بررسی می‌کند | شرط‌های فیلتر |
 | --- | --- | --- |
 | **External Status Page Is Online** | آیا صفحه وضعیت در دسترس است و داده وضعیت برمی‌گرداند | درست یا نادرست |
-| **External Status Page Overall Status** | وضعیت کلی‌ای که صفحه گزارش می‌دهد | Equal To، Not Equal To، شامل است، Not Contains، Starts With، Ends With |
-| **External Status Page Component Status** | وضعیت مؤلفه‌های درون دامنه (با رعایت فیلترهای گروه مؤلفه / نام مؤلفه): عملیاتی، Under Maintenance، Degraded Performance، Partial Outage، Major Outage یا Full Outage | Equal To، Not Equal To، شامل است، Not Contains، Starts With، Ends With |
-| **External Status Page Active Incidents** | شمار حادثه‌های فعال کنونی گزارش‌شده در صفحه وضعیت (وقتی فیلتری تنظیم شده باشد، محدود به گروه مؤلفه / مؤلفه) | Equal To، Not Equal To، و مقایسه‌های عددی |
-| **External Status Page Response Time (in ms)** | گرفتن داده‌های صفحه وضعیت چه مدت طول می‌کشد | Greater Than، Less Than، Greater Than Or Equal To، Less Than Or Equal To |
+| **External Status Page Overall Status** | وضعیت کلی‌ای که صفحه گزارش می‌دهد | برابر با، نابرابر با، شامل است، شامل نیست، شروع می‌شود با، تمام می‌شود با |
+| **External Status Page Component Status** | وضعیت مؤلفه‌های درون دامنه (با رعایت فیلترهای گروه مؤلفه / نام مؤلفه): عملیاتی، Under Maintenance، Degraded Performance، Partial Outage، Major Outage یا Full Outage | برابر با، نابرابر با، شامل است، شامل نیست، شروع می‌شود با، تمام می‌شود با |
+| **External Status Page Active Incidents** | شمار حادثه‌های فعال کنونی گزارش‌شده در صفحه وضعیت (وقتی فیلتری تنظیم شده باشد، محدود به گروه مؤلفه / مؤلفه) | برابر با، نابرابر با، و مقایسه‌های عددی |
+| **External Status Page Response Time (in ms)** | گرفتن داده‌های صفحه وضعیت چه مدت طول می‌کشد | بزرگ‌تر از، کوچک‌تر از، بزرگ‌تر یا برابر با، کوچک‌تر یا برابر با |
 
 وضعیت کلی همان چیزی است که صفحه می‌گوید، پس مقدارهایش از ارائه‌دهنده‌ای به ارائه‌دهنده دیگر فرق می‌کند: یک Atlassian Statuspage توضیح خودش را گزارش می‌دهد، مانند `All Systems Operational`؛ یک خوراک `operational` یا `degraded_performance` را گزارش می‌دهد؛ بررسی دسترس‌پذیری `reachable` یا `unreachable` را گزارش می‌دهد. این مقایسه‌ها به بزرگی و کوچکی حروف حساس‌اند. برای هشدار درباره قطعی‌ها، **External Status Page Active Incidents** و **External Status Page Component Status** معمولاً قابل‌اعتمادترند.
 

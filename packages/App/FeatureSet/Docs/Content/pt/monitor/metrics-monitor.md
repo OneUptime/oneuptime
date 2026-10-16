@@ -119,11 +119,11 @@ Estes monitores sempre avaliam o **Metric Value**: o valor agregado da consulta 
 
 | Condição | Corresponde quando o valor está… |
 | --- | --- |
-| **Greater Than** | acima do limite |
-| **Greater Than Or Equal To** | no limite ou acima |
-| **Less Than** | abaixo do limite |
-| **Less Than Or Equal To** | no limite ou abaixo |
-| **Equal To** | exatamente no limite |
+| **Maior que** | acima do limite |
+| **Maior ou igual a** | no limite ou acima |
+| **Menor que** | abaixo do limite |
+| **Menor ou igual a** | no limite ou abaixo |
+| **Igual a** | exatamente no limite |
 | **Anomalously High** | acima da faixa esperada para esta hora da semana |
 | **Anomalously Low** | abaixo dessa faixa |
 | **Anomalous** | fora dessa faixa, em qualquer direção |
@@ -134,8 +134,8 @@ Um novo monitor de métricas começa com dois critérios na sua primeira consult
 
 | Critério | Condição | Efeito |
 | --- | --- | --- |
-| Check if … is offline | **Equal To** `0` | Coloca o monitor offline e declara um incidente, resolvido automaticamente |
-| Check if … is online | **Greater Than** `0` | Coloca o monitor online |
+| Check if … is offline | **Igual a** `0` | Coloca o monitor offline e declara um incidente, resolvido automaticamente |
+| Check if … is online | **Maior que** `0` | Coloca o monitor online |
 
 > [!NOTE]
 > O critério offline dispara com um valor informado de 0, não com o silêncio. Para receber um alerta quando uma métrica para de chegar, defina o **Se não houver dados** dela como **Trigger**.
@@ -148,7 +148,7 @@ Você quer um incidente quando a fila de checkout continua longa. A consulta `a`
 | --- | --- | --- | --- | --- | --- |
 | `a` | 640 | 980 | 1.500 | 1.620 | 1.100 |
 
-Um critério com **Métrica** `a`, **Condição** **Greater Than** e **Threshold** `1000` dá uma resposta diferente para cada **Agregação**:
+Um critério com **Métrica** `a`, **Condição** **Maior que** e **Threshold** `1000` dá uma resposta diferente para cada **Agregação**:
 
 | Agregação | Comparado com 1.000 | Corresponde? |
 | --- | --- | --- |

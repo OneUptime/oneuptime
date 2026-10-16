@@ -96,12 +96,12 @@ Criteria bepalen wanneer de naam telt als online, verminderd of offline, en of d
 | Filter | Voorwaarden | Wat het controleert |
 | --- | --- | --- |
 | **DNS Is Online** | **Waar**, **Onwaar** | Of de query minstens één record van het type heeft teruggegeven. |
-| **DNS Response Time (in ms)** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** | Hoe lang de query duurde. |
+| **DNS Response Time (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Hoe lang de query duurde. |
 | **DNS Record Exists** | **Waar**, **Onwaar** | Of er een record van het type terugkwam. |
-| **DNS Record Value** | **Bevat**, **Not Contains**, **Starts With**, **Ends With**, **Equal To**, **Not Equal To** | De waarden van de records. Het filter komt overeen wanneer één record overeenkomt. |
+| **DNS Record Value** | **Bevat**, **Bevat niet**, **Begint met**, **Eindigt op**, **Gelijk aan**, **Niet gelijk aan** | De waarden van de records. Het filter komt overeen wanneer één record overeenkomt. |
 | **DNSSEC Is Valid** | **Waar**, **Onwaar** | Of een validerende resolver de AD-vlag op het antwoord zet. |
 
-**DNS Record Value** komt overeen wanneer _een willekeurig_ record overeenkomt. Met meerdere `A`-records komt **Equal To** `93.184.216.34` overeen wanneer een ervan dat adres is, en komt **Not Equal To** overeen wanneer een ervan dat niet is.
+**DNS Record Value** komt overeen wanneer _een willekeurig_ record overeenkomt. Met meerdere `A`-records komt **Gelijk aan** `93.184.216.34` overeen wanneer een ervan dat adres is, en komt **Niet gelijk aan** overeen wanneer een ervan dat niet is.
 
 **DNSSEC Is Valid** vraagt de server bij **DNS-server (optioneel)**, op zijn **Poort**, of Google Public DNS (`8.8.8.8`) wanneer dat veld leeg is, dus de server die u instelt moet DNSSEC valideren. Het filter heeft geen waarde, en komt in geen enkele richting overeen, wanneer de sonde die controle niet kan uitvoeren. Voor een volledige controle van een ondertekende zone gebruikt u een [DNSSEC-monitor](/docs/monitor/dnssec-monitor).
 
@@ -141,9 +141,9 @@ Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenk
 | Doel | Filter | Voorwaarde | Waarde |
 | --- | --- | --- | --- |
 | Offline wanneer de naam niet meer wordt omgezet | **DNS Is Online** | **Onwaar** | — |
-| Waarschuwen wanneer het enige `A`-record van een naam verandert | **DNS Record Value** | **Not Equal To** | `93.184.216.34` |
-| Waarschuwen wanneer een `MX`-record buiten uw domein wijst | **DNS Record Value** | **Not Contains** | `example.com` |
-| DNS als verminderd markeren wanneer het traag is | **DNS Response Time (in ms)** | **Greater Than** | `500` |
+| Waarschuwen wanneer het enige `A`-record van een naam verandert | **DNS Record Value** | **Niet gelijk aan** | `93.184.216.34` |
+| Waarschuwen wanneer een `MX`-record buiten uw domein wijst | **DNS Record Value** | **Bevat niet** | `example.com` |
+| DNS als verminderd markeren wanneer het traag is | **DNS Response Time (in ms)** | **Groter dan** | `500` |
 | Waarschuwen wanneer de DNSSEC-validatie mislukt | **DNSSEC Is Valid** | **Onwaar** | — |
 
 ## Problemen oplossen
@@ -156,11 +156,11 @@ dig @8.8.8.8 example.com A
 ```
 :::
 
-:::details Een criterium met Not Equal To gaat af terwijl het juiste adres er is
-**DNS Record Value** komt overeen wanneer één record overeenkomt. Met meerdere records gaat **Not Equal To** af zodra een ervan afwijkt. Om te controleren dat een bepaalde waarde tussen de records staat, vertrouwt u op de volgorde van de criteria, want het eerste dat overeenkomt wint:
+:::details Een criterium met Niet gelijk aan gaat af terwijl het juiste adres er is
+**DNS Record Value** komt overeen wanneer één record overeenkomt. Met meerdere records gaat **Niet gelijk aan** af zodra een ervan afwijkt. Om te controleren dat een bepaalde waarde tussen de records staat, vertrouwt u op de volgorde van de criteria, want het eerste dat overeenkomt wint:
 
 1. Houd het standaard offline-criterium bovenaan: **DNS Is Online** / **Onwaar**.
-2. Voeg daaronder een criterium toe met **DNS Record Value** / **Equal To** / de verwachte waarde, dat de monitor als **Operationeel** markeert.
+2. Voeg daaronder een criterium toe met **DNS Record Value** / **Gelijk aan** / de verwachte waarde, dat de monitor als **Operationeel** markeert.
 3. Voeg daaronder een criterium toe met **DNS Is Online** / **Waar**, dat de monitor als **Offline** markeert en een incident meldt. Het komt alleen overeen met antwoorden die de waarde niet hebben.
 :::
 

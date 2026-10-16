@@ -88,7 +88,7 @@ I primi due sono nell'elenco di **Crea avviso**; per il terzo, apri uno dei suoi
 
 ### Trap
 
-Ogni notifica Sophos è lo stesso trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), con l'evento come testo in `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Per avvisare su un tipo di evento, combina **SNMP Trap Received (Trap OID)** Equal To `1.3.6.1.4.1.2604.5.1.8.1.1` con **SNMP Trap Varbind Value** su quel varbind, Contains `IPSec` per esempio. Imposta la destinazione dei trap del firewall su SNMP v2c: il ricevitore di trap della sonda accetta trap v1 e v2c.
+Ogni notifica Sophos è lo stesso trap, `sfosNotification` (`1.3.6.1.4.1.2604.5.1.8.1.1`), con l'evento come testo in `sfosTrapMessage` (`1.3.6.1.4.1.2604.5.1.8.1.2`). Per avvisare su un tipo di evento, combina **SNMP Trap Received (Trap OID)** Uguale a `1.3.6.1.4.1.2604.5.1.8.1.1` con **SNMP Trap Varbind Value** su quel varbind, Contiene `IPSec` per esempio. Imposta la destinazione dei trap del firewall su SNMP v2c: il ricevitore di trap della sonda accetta trap v1 e v2c.
 
 ## Extreme Networks (EXOS / Switch Engine e Fabric Engine / VOSS)
 
@@ -130,9 +130,9 @@ Avvisi utili, tutti sulla tabella `wifi_radios` con Row `*`, così ogni radio av
 | Avviso | Criterio |
 | --- | --- |
 | Una radio spenta | **SNMP Table Row Is Unhealthy**, parte degli avvisi consigliati |
-| Potenza di trasmissione cambiata | **SNMP Table Value**, colonna TX Power, Not Equal To la potenza che hai pianificato |
-| Una radio affollata | **SNMP Table Value**, colonna Clients, Greater Than il tuo limite |
-| Un canale rumoroso | **SNMP Table Value**, colonna Noise Floor, Greater Than `-80` |
+| Potenza di trasmissione cambiata | **SNMP Table Value**, colonna TX Power, Diverso da la potenza che hai pianificato |
+| Una radio affollata | **SNMP Table Value**, colonna Clients, Maggiore di il tuo limite |
+| Un canale rumoroso | **SNMP Table Value**, colonna Noise Floor, Maggiore di `-80` |
 
 Ogni valore numerico delle radio è anche una metrica (`oneuptime.monitor.snmp.table.value`, una serie per radio e colonna), quindi canale, potenza e client si possono tracciare nel tempo su una dashboard; un canale che continua a cambiare è il DFS al lavoro.
 
