@@ -144,7 +144,11 @@ export function getYearlySavingPercent(plan: SubscriptionPlan): number {
     return 0;
   }
 
-  return Math.floor(((monthly - yearlyPerMonth) / monthly) * 100);
+  /*
+   * Multiplied before it is divided: (100 - 71) / 100 * 100 is
+   * 28.999999999999996 in floating point, which would round down to 28.
+   */
+  return Math.floor(((monthly - yearlyPerMonth) * 100) / monthly);
 }
 
 /*
