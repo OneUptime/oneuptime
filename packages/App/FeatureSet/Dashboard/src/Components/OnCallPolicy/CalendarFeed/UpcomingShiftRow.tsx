@@ -1,8 +1,5 @@
 import { NO_BREAK_SPACE } from "./FeedStatusPanel";
-import {
-  UpcomingShiftSpan,
-  getCoverWindowForSpan,
-} from "./UpcomingShiftSpans";
+import { UpcomingShiftSpan, getCoverWindowForSpan } from "./UpcomingShiftSpans";
 import {
   ShiftDateTile,
   formatShiftDateTime,
@@ -307,10 +304,7 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
 
     when = (
       <>
-        <span
-          className="font-semibold"
-          data-testid="upcoming-shift-day-label"
-        >
+        <span className="font-semibold" data-testid="upcoming-shift-day-label">
           {getShiftDayLabel(span.start, clock)}
         </span>
         {SEPARATOR}
@@ -364,9 +358,7 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
             {props.showLayerName && span.layerName && (
               <>
                 {SEPARATOR}
-                <span data-testid="upcoming-shift-layer">
-                  {span.layerName}
-                </span>
+                <span data-testid="upcoming-shift-layer">{span.layerName}</span>
               </>
             )}
             {props.showProjectName && span.projectName && (

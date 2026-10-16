@@ -368,6 +368,7 @@ export const isUpcomingShiftsFoldable: (total: number) => boolean = (
   total: number,
 ): boolean => {
   return (
-    total - UPCOMING_SHIFTS_SHOWN_AT_FIRST >= UPCOMING_SHIFTS_FOLD_MINIMUM_HIDDEN
+    total - UPCOMING_SHIFTS_SHOWN_AT_FIRST >=
+    UPCOMING_SHIFTS_FOLD_MINIMUM_HIDDEN
   );
 };

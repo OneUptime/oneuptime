@@ -91,10 +91,10 @@ const DAY: number = 24 * HOUR;
 const NOW: Date = new Date("2026-10-14T15:00:00.000Z");
 
 // Intl writes a no-break space (or a narrow one) in some languages.
-const NO_BREAK_SPACES: RegExp = /[  ]/g;
+const NO_BREAK_SPACES: RegExp = /[\u202f\u00a0]/g;
 
 // Any digit outside ASCII: Persian, Arabic-Indic, Devanagari.
-const NON_LATIN_DIGIT: RegExp = /[٠-٩۰-۹०-९]/u;
+const NON_LATIN_DIGIT: RegExp = /[\u0660-\u0669\u06f0-\u06f9\u0966-\u096f]/u;
 
 function plain(text: string | null | undefined): string {
   return (text || "").replace(NO_BREAK_SPACES, " ");
@@ -212,7 +212,9 @@ beforeEach(() => {
     "",
     `/dashboard/${PROJECT}/user-settings/calendar-feed`,
   );
-  jest.spyOn(OneUptimeDate, "getUserPrefers12HourFormat").mockReturnValue(false);
+  jest
+    .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+    .mockReturnValue(false);
 });
 
 afterEach(() => {
@@ -278,7 +280,9 @@ describe("in the reader's zone, not the browser's", () => {
     expect(text(now, "upcoming-shift-tile")).toBe("Oct15");
     // Tomorrow 09:00 UTC is 18:00 today in Tokyo.
     expect(text(tomorrow, "upcoming-shift-day-label")).toBe("Today");
-    expect(text(tomorrow, "upcoming-shift-times")).toBe("18:00 – Fri, Oct 16, 02:00");
+    expect(text(tomorrow, "upcoming-shift-times")).toBe(
+      "18:00 – Fri, Oct 16, 02:00",
+    );
   });
 });
 
@@ -312,7 +316,9 @@ describe("across the end of summer time", () => {
     );
     expect(text(turn, "upcoming-shift-length")).toBe("1 day");
     expect(
-      plain(within(turn).getByTestId("upcoming-shift-when").getAttribute("title")),
+      plain(
+        within(turn).getByTestId("upcoming-shift-when").getAttribute("title"),
+      ),
     ).toBe(
       "Saturday, October 24, 2026 at 17:20 BST – Sunday, October 25, 2026 at 17:20 GMT",
     );
@@ -358,7 +364,9 @@ describe("in German", () => {
     expect(text(tomorrow, "upcoming-shift-length")).toBe("8 Stunden");
     expect(within(tomorrow).getByText("Vertretung finden")).toBeInTheDocument();
 
-    expect(plain(screen.getByTestId("upcoming-shifts-footer").textContent)).toBe(
+    expect(
+      plain(screen.getByTestId("upcoming-shifts-footer").textContent),
+    ).toBe(
       DE[
         "Only schedule shifts are listed. If an escalation policy names you or your team directly, it can page you at any time."
       ],
@@ -390,12 +398,9 @@ describe("in German", () => {
       );
     }
 
-    const [row] = (await renderIn(
-      german,
-      Timezone.EuropeBerlin,
-      turns,
-      1,
-    )) as [HTMLElement];
+    const [row] = (await renderIn(german, Timezone.EuropeBerlin, turns, 1)) as [
+      HTMLElement,
+    ];
 
     expect(text(row, "upcoming-shift-times")).toBe(
       "mindestens bis Sa., 14. Nov., 15:00",
@@ -438,9 +443,9 @@ describe("where a row's line may break", () => {
       1,
     )) as [HTMLElement];
 
-    expect(
-      within(today).getByTestId("upcoming-shift-times").textContent,
-    ).toBe(`bis${NO_BREAK_SPACE}23:00`);
+    expect(within(today).getByTestId("upcoming-shift-times").textContent).toBe(
+      `bis${NO_BREAK_SPACE}23:00`,
+    );
 
     cleanup();
 

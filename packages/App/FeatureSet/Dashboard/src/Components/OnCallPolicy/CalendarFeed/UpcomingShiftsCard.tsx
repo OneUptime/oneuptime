@@ -82,8 +82,9 @@ const UpcomingShiftsCard: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
   const [response, setResponse] = useState<MyShiftsResponse | null>(null);
   // The window the shown shifts were asked for.
-  const [askedWindow, setAskedWindow] =
-    useState<UpcomingShiftsWindow | null>(null);
+  const [askedWindow, setAskedWindow] = useState<UpcomingShiftsWindow | null>(
+    null,
+  );
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
   const now: Date = props.now || OneUptimeDate.getCurrentDate();
@@ -109,8 +110,7 @@ const UpcomingShiftsCard: FunctionComponent<ComponentProps> = (
       const asked: UpcomingShiftsWindow = getUpcomingShiftsWindow(
         props.now || OneUptimeDate.getCurrentDate(),
       );
-      const result: MyShiftsResponse =
-        await CalendarFeedAPI.getMyShifts(asked);
+      const result: MyShiftsResponse = await CalendarFeedAPI.getMyShifts(asked);
       setResponse(result);
       setAskedWindow(asked);
     } catch (err) {
@@ -290,7 +290,10 @@ const UpcomingShiftsCard: FunctionComponent<ComponentProps> = (
     >
       <div data-testid="upcoming-shifts">
         {body}
-        <FeedCardFooter icon={IconProp.Info} dataTestId="upcoming-shifts-footer">
+        <FeedCardFooter
+          icon={IconProp.Info}
+          dataTestId="upcoming-shifts-footer"
+        >
           {translator.translateText(STANDING_ASSIGNMENTS_COPY)}
         </FeedCardFooter>
       </div>

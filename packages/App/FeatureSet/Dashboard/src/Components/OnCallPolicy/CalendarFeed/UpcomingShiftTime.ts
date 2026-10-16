@@ -444,10 +444,7 @@ export const roundShiftLength: (
     return { days: days, hours: hours, minutes: 0 };
   }
 
-  if (
-    options?.isTimeLeft &&
-    length.hours >= TIME_LEFT_WHOLE_HOURS_FROM
-  ) {
+  if (options?.isTimeLeft && length.hours >= TIME_LEFT_WHOLE_HOURS_FROM) {
     const hours: number = length.hours + (length.minutes >= 30 ? 1 : 0);
 
     return hours >= 24
@@ -494,11 +491,11 @@ const unitFormatCache: Map<string, UnitFormatter | null> = new Map<
   UnitFormatter | null
 >();
 
-const formatUnit: (value: number, unit: LengthUnit, locale: string) => string = (
+const formatUnit: (
   value: number,
   unit: LengthUnit,
   locale: string,
-): string => {
+) => string = (value: number, unit: LengthUnit, locale: string): string => {
   const key: string = `${locale}|${unit}`;
 
   if (!unitFormatCache.has(key)) {

@@ -316,14 +316,15 @@ test.describe("a mixed month on a laptop", () => {
     // A week of daily turns on Database is one row.
     await expect(rows(page).nth(3)).toContainText("Database");
 
-    await expect(rows(page).nth(4).getByTestId("upcoming-shift-policy")).toHaveText(
-      "Only on policy Checkout",
-    );
+    await expect(
+      rows(page).nth(4).getByTestId("upcoming-shift-policy"),
+    ).toHaveText("Only on policy Checkout");
 
     // Layers with names of their own are named; "Layer 1" is never shown.
-    expect(await textsOf(page.getByTestId("upcoming-shift-layer"))).toEqual(
-      ["Weekdays", "Weekend"],
-    );
+    expect(await textsOf(page.getByTestId("upcoming-shift-layer"))).toEqual([
+      "Weekdays",
+      "Weekend",
+    ]);
     await expect(card(page)).not.toContainText("Layer 1");
     await expect(page.getByTestId("upcoming-shifts-list")).not.toContainText(
       "SYSNETIX DEMO",
@@ -368,7 +369,9 @@ test.describe("a mixed month on a laptop", () => {
     }
 
     expect(new Set(tileXs).size).toBe(1);
-    expect(Math.max(...lengthRights) - Math.min(...lengthRights)).toBeLessThanOrEqual(1);
+    expect(
+      Math.max(...lengthRights) - Math.min(...lengthRights),
+    ).toBeLessThanOrEqual(1);
   });
 
   test("Refresh reads again with the rows on screen: no loader, nothing jumps", async ({
@@ -737,14 +740,16 @@ test.describe("in other languages", () => {
       await expect(now.getByTestId("upcoming-shift-length")).toHaveText(
         "Noch 6 Stunden",
       );
-      await expect(now.getByRole("link", { name: "Vertretung finden" })).toBeVisible();
+      await expect(
+        now.getByRole("link", { name: "Vertretung finden" }),
+      ).toBeVisible();
 
-      await expect(rows(page).nth(1).getByTestId("upcoming-shift-when")).toHaveText(
-        "Morgen · 11:00 – 19:00",
-      );
-      await expect(rows(page).nth(1).getByTestId("upcoming-shift-tile")).toHaveText(
-        "Okt15",
-      );
+      await expect(
+        rows(page).nth(1).getByTestId("upcoming-shift-when"),
+      ).toHaveText("Morgen · 11:00 – 19:00");
+      await expect(
+        rows(page).nth(1).getByTestId("upcoming-shift-tile"),
+      ).toHaveText("Okt15");
 
       await screenshot(page, "mixed-de");
     });
@@ -764,9 +769,9 @@ test.describe("in other languages", () => {
       await expect(page.getByTestId("upcoming-shifts-fold")).toHaveText(
         "Показать ещё смены (17)",
       );
-      await expect(rows(page).nth(1).getByTestId("upcoming-shift-length")).toHaveText(
-        "8 часов",
-      );
+      await expect(
+        rows(page).nth(1).getByTestId("upcoming-shift-length"),
+      ).toHaveText("8 часов");
       expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
 
       await screenshot(page, "weekdays-ru-390");
@@ -785,12 +790,12 @@ test.describe("in other languages", () => {
 
       await expect(rows(page)).toHaveCount(8);
       await expect(card(page)).toContainText("今後のシフト");
-      await expect(rows(page).first().getByTestId("upcoming-shift-when")).toHaveText(
-        "現在のオンコール · 6:00 まで",
-      );
-      await expect(rows(page).nth(1).getByTestId("upcoming-shift-when")).toHaveText(
-        "今日 · 18:00 – 10月16日(金) 2:00",
-      );
+      await expect(
+        rows(page).first().getByTestId("upcoming-shift-when"),
+      ).toHaveText("現在のオンコール · 6:00 まで");
+      await expect(
+        rows(page).nth(1).getByTestId("upcoming-shift-when"),
+      ).toHaveText("今日 · 18:00 – 10月16日(金) 2:00");
 
       await screenshot(page, "mixed-ja");
     });

@@ -594,9 +594,9 @@ describe("UpcomingShiftsCard", () => {
 
     expect(row).toHaveAttribute("data-on-call-now", "true");
     expect(row).toHaveAttribute("data-may-continue", "true");
-    expect(within(row).getByTestId("upcoming-shift-day-label")).toHaveTextContent(
-      "On call now",
-    );
+    expect(
+      within(row).getByTestId("upcoming-shift-day-label"),
+    ).toHaveTextContent("On call now");
     expect(within(row).getByTestId("upcoming-shift-times")).toHaveTextContent(
       "until at least Fri, Nov 13, 16:20",
     );
@@ -644,26 +644,26 @@ describe("UpcomingShiftsCard", () => {
     const [tomorrow, night] = rows() as [HTMLElement, HTMLElement];
 
     expect(tomorrow).toHaveAttribute("data-on-call-now", "false");
-    expect(within(tomorrow).getByTestId("upcoming-shift-tile")).toHaveTextContent(
-      "Oct15",
-    );
+    expect(
+      within(tomorrow).getByTestId("upcoming-shift-tile"),
+    ).toHaveTextContent("Oct15");
     expect(
       within(tomorrow).getByTestId("upcoming-shift-day-label"),
     ).toHaveTextContent("Tomorrow");
-    expect(within(tomorrow).getByTestId("upcoming-shift-times")).toHaveTextContent(
-      "10:00 – 18:00",
-    );
-    expect(within(tomorrow).getByTestId("upcoming-shift-length")).toHaveTextContent(
-      "8 hours",
-    );
+    expect(
+      within(tomorrow).getByTestId("upcoming-shift-times"),
+    ).toHaveTextContent("10:00 – 18:00");
+    expect(
+      within(tomorrow).getByTestId("upcoming-shift-length"),
+    ).toHaveTextContent("8 hours");
 
     // 23:00 Saturday to 07:00 Sunday in London: the end says its day.
     expect(within(night).getByTestId("upcoming-shift-tile")).toHaveTextContent(
       "Oct17",
     );
-    expect(within(night).getByTestId("upcoming-shift-day-label")).toHaveTextContent(
-      "Saturday",
-    );
+    expect(
+      within(night).getByTestId("upcoming-shift-day-label"),
+    ).toHaveTextContent("Saturday");
     expect(within(night).getByTestId("upcoming-shift-times")).toHaveTextContent(
       "23:00 – Sun, Oct 18, 07:00",
     );
@@ -709,17 +709,17 @@ describe("UpcomingShiftsCard", () => {
 
     const [cover, variant] = rows() as [HTMLElement, HTMLElement];
 
-    expect(within(cover).getByTestId("upcoming-shift-covering")).toHaveTextContent(
-      "Covering for Bob",
-    );
+    expect(
+      within(cover).getByTestId("upcoming-shift-covering"),
+    ).toHaveTextContent("Covering for Bob");
     expect(within(cover).queryByText("Get cover")).toBeNull();
 
-    expect(within(variant).getByTestId("upcoming-shift-policy")).toHaveTextContent(
-      "Only on policy Checkout",
-    );
-    expect(within(variant).getByTestId("upcoming-shift-layer")).toHaveTextContent(
-      "Weekdays",
-    );
+    expect(
+      within(variant).getByTestId("upcoming-shift-policy"),
+    ).toHaveTextContent("Only on policy Checkout");
+    expect(
+      within(variant).getByTestId("upcoming-shift-layer"),
+    ).toHaveTextContent("Weekdays");
   });
 
   test("touching shifts of two layers stay two rows, each named by its layer", async () => {
@@ -748,7 +748,9 @@ describe("UpcomingShiftsCard", () => {
 
     expect(
       rows().map((row: HTMLElement): string => {
-        return within(row).getByTestId("upcoming-shift-layer").textContent || "";
+        return (
+          within(row).getByTestId("upcoming-shift-layer").textContent || ""
+        );
       }),
     ).toEqual(["Layer 1", "Layer 2"]);
   });
@@ -788,7 +790,9 @@ describe("UpcomingShiftsCard", () => {
 
     render(<UpcomingShiftsCard now={OCTOBER} />);
 
-    const empty: HTMLElement = await screen.findByTestId("upcoming-shifts-empty");
+    const empty: HTMLElement = await screen.findByTestId(
+      "upcoming-shifts-empty",
+    );
 
     expect(empty).toHaveTextContent("No shifts in the next 30 days");
     expect(empty).toHaveTextContent(
@@ -827,7 +831,10 @@ describe("UpcomingShiftsCard", () => {
   });
 
   test("a truncated answer is flagged above the list", async () => {
-    serve([shift({ shiftKey: "only", start: at(DAY), end: at(DAY + HOUR) })], true);
+    serve(
+      [shift({ shiftKey: "only", start: at(DAY), end: at(DAY + HOUR) })],
+      true,
+    );
 
     render(<UpcomingShiftsCard now={OCTOBER} />);
 
@@ -874,12 +881,19 @@ describe("UpcomingShiftsCard", () => {
 
     getMock
       .mockResolvedValueOnce(
-        ok(myShiftsJson([shift({ shiftKey: "first", start: at(DAY), end: at(DAY + HOUR) })], false)),
+        ok(
+          myShiftsJson(
+            [shift({ shiftKey: "first", start: at(DAY), end: at(DAY + HOUR) })],
+            false,
+          ),
+        ),
       )
       .mockImplementationOnce((): Promise<HTTPResponse<JSONObject>> => {
-        return new Promise((resolve: (value: HTTPResponse<JSONObject>) => void) => {
-          answer = resolve;
-        });
+        return new Promise(
+          (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+            answer = resolve;
+          },
+        );
       });
 
     render(<UpcomingShiftsCard now={OCTOBER} />);
@@ -930,7 +944,9 @@ describe("UpcomingShiftsCard", () => {
 
     render(<UpcomingShiftsCard now={OCTOBER} />);
 
-    expect(await screen.findByTestId("upcoming-shifts-loading")).toBeInTheDocument();
+    expect(
+      await screen.findByTestId("upcoming-shifts-loading"),
+    ).toBeInTheDocument();
     expect(rows()).toHaveLength(0);
   });
 

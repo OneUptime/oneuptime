@@ -43,7 +43,9 @@ export const UPCOMING_SHIFTS_SCENARIOS = [
 function utcDayAt(now, days, hours, minutes) {
   const day = new Date(now);
   day.setUTCHours(0, 0, 0, 0);
-  return new Date(day.getTime() + days * DAY + hours * HOUR + (minutes || 0) * MINUTE);
+  return new Date(
+    day.getTime() + days * DAY + hours * HOUR + (minutes || 0) * MINUTE,
+  );
 }
 
 export function buildUpcomingShifts(scenario, data) {
@@ -55,7 +57,9 @@ export function buildUpcomingShifts(scenario, data) {
     const scheduleId = (fields && fields.scheduleId) || data.scheduleId;
     return {
       shiftKey: `${scheduleId}:${Math.floor(start.getTime() / 1000)}${
-        fields && fields.policyVariantOf ? `:${fields.policyVariantOf.policyId}` : ""
+        fields && fields.policyVariantOf
+          ? `:${fields.policyVariantOf.policyId}`
+          : ""
       }`,
       contentHash: `hash-${sequence}`,
       projectId: data.projectId,
@@ -175,7 +179,10 @@ export function buildUpcomingShifts(scenario, data) {
           continue;
         }
         const end = utcDayAt(now, days, 17);
-        if (end.getTime() <= now.getTime() || start.getTime() >= now.getTime() + 30 * DAY) {
+        if (
+          end.getTime() <= now.getTime() ||
+          start.getTime() >= now.getTime() + 30 * DAY
+        ) {
           continue;
         }
         shifts.push(shift(start, end, { scheduleName: "Support hours" }));
@@ -204,7 +211,11 @@ export function buildUpcomingShifts(scenario, data) {
       const shifts = [];
       for (let index = 0; index < handOffs.length - 1; index++) {
         shifts.push(
-          shift(new Date(handOffs[index]), new Date(handOffs[index + 1]), london),
+          shift(
+            new Date(handOffs[index]),
+            new Date(handOffs[index + 1]),
+            london,
+          ),
         );
       }
       // An eight-hour night across the change: nine hours on the wall clock's word.

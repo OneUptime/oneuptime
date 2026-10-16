@@ -14,7 +14,11 @@ import {
   shouldShowProjectNames,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/UpcomingShiftSpans";
 import { getUpcomingShiftsWindow } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedUtil";
-import { MaterializedShiftJson } from "../../../Types/OnCallDutyPolicy/MaterializedShift";
+import {
+  MaterializedShiftJson,
+  MaterializedShiftOverrideJson,
+  MaterializedShiftPolicyVariant,
+} from "../../../Types/OnCallDutyPolicy/MaterializedShift";
 import { UserOverrideCoverWindow } from "../../../Types/OnCallDutyPolicy/UserOverrideCoverRequest";
 
 /*
@@ -114,12 +118,12 @@ const coveringFor: (
   name: string,
   start: number,
   end: number,
-) => MaterializedShiftJson["override"] = (
+) => MaterializedShiftOverrideJson = (
   userId: string,
   name: string,
   start: number,
   end: number,
-): MaterializedShiftJson["override"] => {
+): MaterializedShiftOverrideJson => {
   return {
     originalUserId: userId,
     originalUserName: name,
@@ -330,14 +334,15 @@ describe("back-to-back shifts read as one stretch on call", () => {
   });
 
   test("a shift that exists only on one policy joins only that policy's shifts", () => {
-    const variant: (policyId: string) => MaterializedShiftJson["policyVariantOf"] =
-      (policyId: string): MaterializedShiftJson["policyVariantOf"] => {
-        return {
-          policyId: policyId,
-          policyName: policyId === POLICY ? "Checkout" : "Billing",
-          globalUserId: BOB,
-        };
+    const variant: (policyId: string) => MaterializedShiftPolicyVariant = (
+      policyId: string,
+    ): MaterializedShiftPolicyVariant => {
+      return {
+        policyId: policyId,
+        policyName: policyId === POLICY ? "Checkout" : "Billing",
+        globalUserId: BOB,
       };
+    };
 
     const plainThenVariant: Array<UpcomingShiftSpan> = buildUpcomingShiftSpans(
       [
@@ -402,10 +407,7 @@ describe("back-to-back shifts read as one stretch on call", () => {
     };
 
     const spans: Array<UpcomingShiftSpan> = buildUpcomingShiftSpans(
-      [
-        ...turns(DAY, DAY, 3),
-        ...turns(DAY + 12 * HOUR, DAY, 3, database),
-      ],
+      [...turns(DAY, DAY, 3), ...turns(DAY + 12 * HOUR, DAY, 3, database)],
       NOW,
     );
 
@@ -476,9 +478,7 @@ describe("what is upcoming", () => {
   test("a key the server sent twice is one shift", () => {
     const twice: MaterializedShiftJson = shift({ shiftKey: "same" });
 
-    expect(buildUpcomingShiftSpans([twice, { ...twice }], NOW)).toHaveLength(
-      1,
-    );
+    expect(buildUpcomingShiftSpans([twice, { ...twice }], NOW)).toHaveLength(1);
     expect(
       buildUpcomingShiftSpans([twice, { ...twice }], NOW)[0]!.shifts,
     ).toHaveLength(1);

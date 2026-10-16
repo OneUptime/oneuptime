@@ -28,7 +28,7 @@ import { FeedClock } from "../../../UI/Components/Feed/FeedTime";
  */
 
 // Intl writes a no-break space (or a narrow one) in some languages.
-const NO_BREAK_SPACES: RegExp = /[  ]/g;
+const NO_BREAK_SPACES: RegExp = /[\u202f\u00a0]/g;
 
 function plain(text: string): string {
   return text.replace(NO_BREAK_SPACES, " ");
@@ -247,14 +247,21 @@ describe("times", () => {
 });
 
 describe("how long a span lasts", () => {
-  const length: (start: string, end: string, timezone?: string) => ShiftLength =
-    (start: string, end: string, timezone?: string): ShiftLength => {
-      return getShiftLength({
-        start: new Date(start),
-        end: new Date(end),
-        timezone: timezone || "Europe/London",
-      });
-    };
+  const length: (
+    start: string,
+    end: string,
+    timezone?: string,
+  ) => ShiftLength = (
+    start: string,
+    end: string,
+    timezone?: string,
+  ): ShiftLength => {
+    return getShiftLength({
+      start: new Date(start),
+      end: new Date(end),
+      timezone: timezone || "Europe/London",
+    });
+  };
 
   test("hours and minutes within a day", () => {
     expect(length("2026-10-15T09:00:00Z", "2026-10-15T17:00:00Z")).toEqual({
@@ -477,12 +484,18 @@ describe("a length as it is said", () => {
   });
 });
 
+// What the test below reads from a fresh copy of the module.
+interface ShiftTimeModule {
+  formatShiftLength: (length: ShiftLength, language: string) => string;
+}
+
 describe("an engine without the unit and list formats", () => {
   test("writes lengths in English words rather than bare numbers", () => {
     jest.isolateModules(() => {
       const realNumberFormat: typeof Intl.NumberFormat = Intl.NumberFormat;
-      const realListFormat: unknown = (Intl as unknown as { ListFormat: unknown })
-        .ListFormat;
+      const realListFormat: unknown = (
+        Intl as unknown as { ListFormat: unknown }
+      ).ListFormat;
 
       /*
        * An older engine ignores style: "unit" and writes the bare number;
@@ -509,9 +522,8 @@ describe("an engine without the unit and list formats", () => {
       });
 
       try {
-        const isolated: {
-          formatShiftLength: (length: ShiftLength, language: string) => string;
-        } = require("../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/UpcomingShiftTime");
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+        const isolated: ShiftTimeModule = require("../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/UpcomingShiftTime");
 
         expect(
           isolated.formatShiftLength({ days: 1, hours: 6, minutes: 0 }, "de"),
