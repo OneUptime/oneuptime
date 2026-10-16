@@ -4,9 +4,24 @@ import useTranslator from "../../../Utils/UseTranslator";
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
 import { FacetValueState } from "../FacetSelection";
+import {
+  formatExactFacetCount,
+  formatFacetCount,
+  isFacetCountShortened,
+} from "../FacetCount";
 
 // Every row, so a page or a test can find one and read its state.
 export const FACET_VALUE_ROW_TEST_ID: string = "facet-value-row";
+
+// The count (or the dash of a count that was not taken) at the row's end.
+export const FACET_VALUE_COUNT_TEST_ID: string = "facet-value-count";
+
+/*
+ * The count's column: one width for every row, which every shortened count
+ * fits, so the bars and counts of a section line up whatever they hold.
+ */
+export const FACET_COUNT_COLUMN_CLASS: string =
+  "w-7 flex-none text-right font-mono text-[10px]";
 
 export interface TelemetryFacetValueRowProps {
   value: string;
@@ -55,6 +70,10 @@ export interface TelemetryFacetValueRowProps {
  * a red minus and struck through, and a click on it takes the exclusion off,
  * so whatever a row shows, clicking it undoes it. A value the page itself
  * filters on is shown checked and left alone.
+ *
+ * The row spends its width on the value's name: the count is shortened
+ * (2.4M, its full figure on hover), and the exclude button takes the count's
+ * place while the row is hovered rather than keeping a column of its own.
  */
 const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
   props: TelemetryFacetValueRowProps,
@@ -79,6 +98,18 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
   const isZeroCount: boolean =
     props.count === 0 && !isFiltering && !props.isCountUnknown;
 
+  /*
+   * The exclude button lies over the count rather than beside it, so the
+   * name keeps that width on every row: it shows while the row is hovered,
+   * and for good once pressed - an excluded value counts nothing anyway.
+   */
+  const hasExcludeButton: boolean = Boolean(props.onExclude) && !isLocked;
+  const countVisibility: string = !hasExcludeButton
+    ? ""
+    : isExcluded
+      ? " invisible"
+      : " group-hover/row:invisible";
+
   const title: string = isLocked
     ? translator.translateTemplate("Set by this page: {{value}}", {
         value: displayLabel,
@@ -100,9 +131,12 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
     { value: displayLabel },
   );
 
+  const isShortened: boolean = isFacetCountShortened(props.count);
+  const exactCount: string = formatExactFacetCount(props.count);
+
   return (
     <div
-      className="group flex items-center gap-2 py-0.5"
+      className="group/row group relative flex items-center gap-2 py-0.5"
       data-testid={FACET_VALUE_ROW_TEST_ID}
       data-value={props.value}
       data-state={state}
@@ -116,7 +150,7 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
          */
         aria-checked={isIncluded ? "true" : isExcluded ? "mixed" : "false"}
         aria-disabled={isLocked ? true : undefined}
-        className={`flex min-w-0 flex-1 items-center gap-2 rounded px-1.5 py-0.5 text-left transition-colors ${
+        className={`flex min-w-0 flex-1 items-center gap-2 rounded px-1.5 py-0.5 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
           isLocked
             ? "cursor-default bg-gray-50 ring-1 ring-gray-200"
             : isIncluded
@@ -191,7 +225,7 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
          * rather than a dash it may read as nothing, or as "minus".
          */
         <span
-          className="min-w-[2rem] text-right font-mono text-[10px] text-gray-400"
+          className={`${FACET_COUNT_COLUMN_CLASS} text-gray-400${countVisibility}`}
           title={translator.translateText("Not counted")}
           data-testid="facet-count-unknown"
         >
@@ -201,8 +235,8 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
           </span>
         </span>
       ) : (
-        <div className="flex items-center gap-1.5">
-          <div className="w-12">
+        <div className="flex flex-none items-center gap-1.5">
+          <div className="w-10">
             <div className="h-1.5 w-full rounded-full bg-gray-100">
               <div
                 className={`h-1.5 rounded-full transition-all ${isIncluded ? "opacity-100" : "opacity-70"}`}
@@ -217,7 +251,7 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
             </div>
           </div>
           <span
-            className={`min-w-[2rem] text-right font-mono text-[10px] tabular-nums ${
+            className={`${FACET_COUNT_COLUMN_CLASS} tabular-nums ${
               isLocked
                 ? "font-medium text-gray-500"
                 : isIncluded
@@ -230,54 +264,57 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
                     isZeroCount || isExcluded
                     ? "text-gray-400 opacity-60"
                     : "text-gray-400"
-            }`}
+            }${countVisibility}`}
+            title={isShortened ? exactCount : undefined}
+            data-testid={FACET_VALUE_COUNT_TEST_ID}
           >
-            {props.count.toLocaleString()}
+            {isShortened ? (
+              /*
+               * 2.4M on screen; the full count for a screen reader, and on
+               * hover.
+               */
+              <>
+                <span aria-hidden="true">{formatFacetCount(props.count)}</span>
+                <span className="sr-only">{exactCount}</span>
+              </>
+            ) : (
+              exactCount
+            )}
           </span>
         </div>
       )}
 
-      {props.onExclude && (
-        /*
-         * The button's place is kept while it is hidden - and on a locked
-         * row, which has none - so the counts of the row under the pointer
-         * stay in line with every other row's.
-         */
-        <span className="flex h-5 w-5 flex-none items-center justify-center">
-          {!isLocked && (
-            <button
-              type="button"
-              aria-pressed={isExcluded}
-              className={
-                isExcluded
-                  ? "flex h-5 w-5 items-center justify-center rounded bg-red-50 text-red-600 ring-1 ring-red-200 transition-colors hover:text-red-700"
-                  : "flex h-5 w-5 items-center justify-center rounded text-[10px] text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 group-[:not(:hover)]:hidden"
-              }
-              onClick={(e: React.MouseEvent) => {
-                e.stopPropagation();
+      {hasExcludeButton && (
+        <span className="absolute inset-y-0 right-0 flex items-center">
+          <button
+            type="button"
+            aria-pressed={isExcluded}
+            className={
+              isExcluded
+                ? "flex h-5 w-5 items-center justify-center rounded bg-red-50 text-red-600 ring-1 ring-red-200 transition-colors hover:text-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                : "flex h-5 w-5 items-center justify-center rounded text-[10px] text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 group-[:not(:hover)]:hidden"
+            }
+            onClick={(e: React.MouseEvent) => {
+              e.stopPropagation();
 
-                if (isExcluded) {
-                  props.onClear(props.value);
-                  return;
-                }
-
-                props.onExclude?.(props.value);
-              }}
-              title={
-                isExcluded
-                  ? translator.translateTemplate(
-                      "Remove exclusion: {{value}}",
-                      {
-                        value: displayLabel,
-                      },
-                    )
-                  : excludeLabel
+              if (isExcluded) {
+                props.onClear(props.value);
+                return;
               }
-              aria-label={excludeLabel}
-            >
-              <Icon icon={IconProp.Minus} className="h-3 w-3" />
-            </button>
-          )}
+
+              props.onExclude?.(props.value);
+            }}
+            title={
+              isExcluded
+                ? translator.translateTemplate("Remove exclusion: {{value}}", {
+                    value: displayLabel,
+                  })
+                : excludeLabel
+            }
+            aria-label={excludeLabel}
+          >
+            <Icon icon={IconProp.MinusCircle} className="h-3.5 w-3.5" />
+          </button>
         </span>
       )}
     </div>
