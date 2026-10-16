@@ -30066,5 +30066,14 @@
   "Reading the alert timeline": "Leser varselets tidslinje",
   "Reading the incident timeline": "Leser hendelsens tidslinje",
   "Searching past incidents": "Søker i tidligere hendelser",
-  "Ranked by": "Sortert etter"
+  "Ranked by": "Sortert etter",
+  "If checked, only the incident's owner users and the members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "Hvis avmerket, kan bare hendelsens eierbrukere og medlemmene av dens eierteam (i tillegg til prosjektadministratorer og eiere) se denne hendelsen. Private hendelser skjules automatisk fra alle statussider, og det kan ikke legges til offentlige notater på dem.",
+  "If enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "Hvis aktivert, kan bare hendelsens eierbrukere og medlemmer av dens eierteam (i tillegg til prosjektadministratorer og eiere) se denne hendelsen. Private hendelser skjules automatisk fra alle statussider, og det kan ikke legges til offentlige notater på dem.",
+  "When enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "Når aktivert, kan bare hendelsens eierbrukere og medlemmer av dens eierteam (i tillegg til prosjektadministratorer og -eiere) se denne hendelsen. Private hendelser skjules automatisk fra alle statussider, og det kan ikke legges til offentlige notater på dem.",
+  "This episode is private, so public notes cannot be added to it. Use a private note.": "Denne episoden er privat, så det kan ikke legges til offentlige notater på den. Bruk et privat notat.",
+  "This incident is private, so public notes cannot be added to it. Use a private note.": "Denne hendelsen er privat, så det kan ikke legges til offentlige notater på den. Bruk et privat notat.",
+  "Customer-facing updates about this episode. While it is private, no status page shows them.": "Oppdateringer til kunder om denne episoden. Så lenge den er privat, viser ingen statusside dem.",
+  "Customer-facing updates about this incident. While it is private, no status page shows them.": "Oppdateringer til kunder om denne hendelsen. Så lenge den er privat, viser ingen statusside dem.",
+  "Not shown while this episode is private": "Vises ikke så lenge denne episoden er privat",
+  "Not shown while this incident is private": "Vises ikke så lenge denne hendelsen er privat"
 }

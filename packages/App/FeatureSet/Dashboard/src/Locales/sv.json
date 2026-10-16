@@ -30066,5 +30066,14 @@
   "Reading the alert timeline": "Läser larmets tidslinje",
   "Reading the incident timeline": "Läser incidentens tidslinje",
   "Searching past incidents": "Söker bland tidigare incidenter",
-  "Ranked by": "Sorterat efter"
+  "Ranked by": "Sorterat efter",
+  "If checked, only the incident's owner users and the members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "Om markerat kan endast incidentens ägaranvändare och medlemmarna i dess ägarteam (plus projektadministratörer och ägare) visa denna incident. Privata incidenter döljs automatiskt från alla statussidor, och det går inte att lägga till offentliga anteckningar på dem.",
+  "If enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "Om aktiverat kan endast incidentens ägaranvändare och medlemmarna i dess ägarteam (plus projektadministratörer och ägare) visa denna incident. Privata incidenter döljs automatiskt från alla statussidor, och det går inte att lägga till offentliga anteckningar på dem.",
+  "When enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "När detta är aktiverat kan endast incidentens ägaranvändare och medlemmar i dess ägarteam (samt projektadministratörer och ägare) se denna incident. Privata incidenter döljs automatiskt från alla statussidor, och det går inte att lägga till offentliga anteckningar på dem.",
+  "This episode is private, so public notes cannot be added to it. Use a private note.": "Den här episoden är privat, så det går inte att lägga till offentliga anteckningar på den. Använd en privat anteckning.",
+  "This incident is private, so public notes cannot be added to it. Use a private note.": "Den här incidenten är privat, så det går inte att lägga till offentliga anteckningar på den. Använd en privat anteckning.",
+  "Customer-facing updates about this episode. While it is private, no status page shows them.": "Uppdateringar till kunder om den här episoden. Så länge den är privat visar ingen statussida dem.",
+  "Customer-facing updates about this incident. While it is private, no status page shows them.": "Uppdateringar till kunder om den här incidenten. Så länge den är privat visar ingen statussida dem.",
+  "Not shown while this episode is private": "Visas inte så länge den här episoden är privat",
+  "Not shown while this incident is private": "Visas inte så länge den här incidenten är privat"
 }

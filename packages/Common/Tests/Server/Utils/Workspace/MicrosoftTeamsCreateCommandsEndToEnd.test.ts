@@ -9,6 +9,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubPrivateRecords } from "../../TestingUtils/PrivateRecords";
 import type { SpyInstance } from "jest-mock";
 import http from "http";
 import type { AddressInfo } from "net";
@@ -209,6 +210,7 @@ import ProjectService from "../../../../Server/Services/ProjectService";
 import AlertEpisodeInternalNoteService from "../../../../Server/Services/AlertEpisodeInternalNoteService";
 import AlertInternalNoteService from "../../../../Server/Services/AlertInternalNoteService";
 import IncidentEpisodeInternalNoteService from "../../../../Server/Services/IncidentEpisodeInternalNoteService";
+import IncidentInternalNoteService from "../../../../Server/Services/IncidentInternalNoteService";
 import IncidentPublicNoteService from "../../../../Server/Services/IncidentPublicNoteService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import IncidentSeverityService from "../../../../Server/Services/IncidentSeverityService";
@@ -226,6 +228,7 @@ import AlertEpisodeInternalNote from "../../../../Models/DatabaseModels/AlertEpi
 import AlertInternalNote from "../../../../Models/DatabaseModels/AlertInternalNote";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentEpisodeInternalNote from "../../../../Models/DatabaseModels/IncidentEpisodeInternalNote";
+import IncidentInternalNote from "../../../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentPublicNote from "../../../../Models/DatabaseModels/IncidentPublicNote";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
@@ -1613,6 +1616,16 @@ afterEach(() => {
 });
 
 // ---- Tests ----
+
+/*
+ * A public note asked for in a chat - a 📣, an Add Note form - first asks
+ * whether its incident or episode is private, which takes no public notes
+ * (WorkspaceReactionNote.getNoteTypeSavedAs, WorkspaceNoteForm): none of
+ * these is.
+ */
+beforeEach((): void => {
+  stubPrivateRecords();
+});
 
 describe("harness: MicrosoftTeamsUtil runs on the real botbuilder stack", () => {
   test("botbuilder is the real package, not the moduleNameMapper stub, and processBotActivity uses the injected adapter", () => {
@@ -5198,5 +5211,168 @@ describe("a card's button, pressed in a channel (customer feedback #1)", () => {
       text: "This button no longer works. Open the record in OneUptime instead.",
       connectUrl: null,
     });
+  });
+});
+
+/*
+ * ADD NOTE ON A PRIVATE INCIDENT, THROUGH THE REAL BOTBUILDER STACK.
+ *
+ * A private incident takes no public notes (Types/StatusPage/
+ * PrivateRecordPublicNotes): it is on no status page and told to no
+ * subscriber. So its Add Note card asks for no kind: it is "Add Private
+ * Note", says why in one line, and sends a private note. A card sent before
+ * the incident was made private can still send "public": that note is added
+ * as a private note - the member's words are kept, for the people who can
+ * see the incident - and the one answer says what it became, and why.
+ */
+describe("Add Note on a private incident: one kind of note, and the card says why", () => {
+  const INCIDENT_ID: string = ObjectID.generate().toString();
+  const NOTE: string = "Payroll export paused; nothing left the building.";
+  const PRIVATE_LINE: string =
+    "🔒 This incident is private, so this note is private too: only the people who can see the incident can read it.";
+
+  function pressAddNote(): Promise<Array<DeliveryRecord>> {
+    return deliverLikeTeams(
+      buildCardSubmitActivity({
+        id: nextActivityId("private-add-note"),
+        replyToId: `msg-incident-card-${nextActivityId("card")}`,
+        value: {
+          action: MicrosoftTeamsIncidentActionType.ViewAddIncidentNote,
+          actionValue: INCIDENT_ID,
+        },
+      }),
+    );
+  }
+
+  function submitNote(data: {
+    formId: string;
+    noteType: string;
+  }): Promise<Array<DeliveryRecord>> {
+    return deliverLikeTeams(
+      buildCardSubmitActivity({
+        id: nextActivityId("private-add-note-submit"),
+        replyToId: data.formId,
+        // What Teams sends: the Submit's data, and the note typed in.
+        value: {
+          action: MicrosoftTeamsIncidentActionType.SubmitIncidentNote,
+          actionValue: INCIDENT_ID,
+          noteType: data.noteType,
+          note: NOTE,
+        },
+      }),
+    );
+  }
+
+  function stubNoteWrites(): {
+    privateAdd: SpyInstance<typeof IncidentInternalNoteService.addNote>;
+    publicAdd: SpyInstance<typeof IncidentPublicNoteService.addNote>;
+  } {
+    return {
+      privateAdd: jest
+        .spyOn(IncidentInternalNoteService, "addNote")
+        .mockResolvedValue(new IncidentInternalNote()),
+      publicAdd: jest
+        .spyOn(IncidentPublicNoteService, "addNote")
+        .mockResolvedValue(new IncidentPublicNote()),
+    };
+  }
+
+  beforeEach(() => {
+    stubPrivateRecords([INCIDENT_ID]);
+  });
+
+  test("the card is 'Add Private Note': one line says why, no Note Type to pick, and its Submit sends a private note", async () => {
+    const view: TeamsView = viewOf(await pressAddNote());
+
+    expect(view.httpStatuses).toEqual([200]);
+    expect(labelsOf(view.bubbles)).toEqual(["Add Private Note"]);
+
+    const card: JSONObject = cardOf(view.bubbles[0]);
+
+    expect(getTextBlocks(card)).toEqual(["Add Private Note", PRIVATE_LINE]);
+    expect(getElement(card, "noteType")).toBeUndefined();
+    expect(getElement(card, "note")).toMatchObject({
+      type: "Input.Text",
+      isMultiline: true,
+    });
+    expect(getSubmitData(card)).toEqual({
+      action: MicrosoftTeamsIncidentActionType.SubmitIncidentNote,
+      actionValue: INCIDENT_ID,
+      noteType: "private",
+    });
+    expect(JSON.stringify(card)).not.toContain("Status Page");
+  });
+
+  test("an incident that is not private gets the card as always: Public Note or Private Note", async () => {
+    stubPrivateRecords();
+
+    const view: TeamsView = viewOf(await pressAddNote());
+    const card: JSONObject = cardOf(view.bubbles[0]);
+
+    expect(labelsOf(view.bubbles)).toEqual(["Add Incident Note"]);
+    expect(getChoiceValues(card, "noteType")).toEqual(["public", "private"]);
+    expect(getSubmitData(card)).toEqual({
+      action: MicrosoftTeamsIncidentActionType.SubmitIncidentNote,
+      actionValue: INCIDENT_ID,
+    });
+  });
+
+  test("submitted, it adds a private note, as the member, confirmed once, and the card is removed", async () => {
+    const { privateAdd, publicAdd } = stubNoteWrites();
+    const formId: string = `msg-form-${nextActivityId("private-note")}`;
+
+    const view: TeamsView = viewOf(
+      await submitNote({ formId: formId, noteType: "private" }),
+    );
+
+    expect(view.httpStatuses).toEqual([200]);
+    expect(publicAdd).not.toHaveBeenCalled();
+    expect(privateAdd).toHaveBeenCalledTimes(1);
+    expect(privateAdd.mock.calls[0]![0]).toMatchObject({
+      note: NOTE,
+      props: { userId: ONEUPTIME_USER_ID },
+    });
+    expect(String(privateAdd.mock.calls[0]![0].incidentId)).toBe(INCIDENT_ID);
+    expect(labelsOf(view.bubbles)).toEqual(["✅ Note added successfully."]);
+    expect(labelsOf(view.deletes)).toEqual([formId]);
+  });
+
+  test("a card sent before the incident was made private, sent with Public Note: added as a private note, and the one answer says what it became and why", async () => {
+    const { privateAdd, publicAdd } = stubNoteWrites();
+    // The incident, as the member reads it for the answer.
+    jest
+      .spyOn(WorkspaceMemberActions, "findEventForMember")
+      .mockImplementation((async (data: { event: WorkspaceEvent }) => {
+        return {
+          record: new Incident(),
+          event: {
+            type: data.event.type,
+            id: data.event.id,
+            projectId: projectId,
+            currentStateId: undefined,
+            number: 42,
+            numberWithPrefix: "INC-42",
+          },
+        };
+      }) as never);
+    const formId: string = `msg-form-${nextActivityId("stale-public-note")}`;
+
+    const view: TeamsView = viewOf(
+      await submitNote({ formId: formId, noteType: "public" }),
+    );
+
+    expect(view.httpStatuses).toEqual([200]);
+    // Never a public note: the incident is private now.
+    expect(publicAdd).not.toHaveBeenCalled();
+    expect(privateAdd).toHaveBeenCalledTimes(1);
+    expect(privateAdd.mock.calls[0]![0]).toMatchObject({ note: NOTE });
+
+    // One answer, not "Note added successfully": what it became, and why.
+    expect(view.bubbles).toHaveLength(1);
+    expect(answersOf(view.bubbles)).toEqual([
+      `📄 You added a private note to **[Incident INC-42](${dashboardLink(`/incidents/${INCIDENT_ID}`)})**. The incident is private, so public notes cannot be added to it.`,
+    ]);
+    expect(labelsOf(view.deletes)).toEqual([formId]);
+    expect(loggedErrors).toEqual([]);
   });
 });

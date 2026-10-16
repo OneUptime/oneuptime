@@ -27,6 +27,7 @@ import Permission, {
 import UserType from "../../../Types/UserType";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import User from "../../../Models/DatabaseModels/User";
+import Incident from "../../../Models/DatabaseModels/Incident";
 import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
@@ -1027,5 +1028,232 @@ describe("somebody not connected who pins a message", () => {
       "Your Slack account is connected to OneUptime. This message is already saved as a note on Incident INC-8",
     );
     expect(privateNotes.inserts).toHaveLength(1);
+  });
+});
+
+/*
+ * A 📣 IN A PRIVATE INCIDENT'S CHANNEL.
+ *
+ * A private incident takes no public notes (Types/StatusPage/
+ * PrivateRecordPublicNotes): a public note on it reaches no status page and
+ * no subscriber, and the server refuses one. A 📣 there - Slack's own
+ * reaction_added, through the real router and the real note services - is
+ * saved as a private note, the message's files and images kept as a
+ * private note keeps them, and the one confirmation in its thread says why.
+ * Somebody not connected is asked to save it as a private note, and once
+ * they connect it is saved so.
+ */
+describe("a 📣 in a private incident's channel", () => {
+  const PRIVATELY_SAVED_CONFIRMATION: string = `${PRIVATE_CONFIRMATION} The incident is private, so public notes cannot be added to it.`;
+
+  // Incident INC-8 is private.
+  beforeEach(() => {
+    getJestSpyOn(IncidentService, "findOneBy").mockImplementation(
+      (async (options: {
+        query: { _id?: unknown };
+      }): Promise<Incident | null> => {
+        if (String(options.query._id) !== INCIDENT_ID.toString()) {
+          return null;
+        }
+
+        const incident: Incident = new Incident();
+        incident._id = INCIDENT_ID.toString();
+        incident.projectId = PROJECT_ID;
+        incident.isPrivate = true;
+        return incident;
+      }) as never,
+    );
+  });
+
+  test("saves the message as a private note, and says why in its thread", async () => {
+    const messageTs: string = wrote({
+      user: AIDIL,
+      minutesAgo: 30,
+      text: "Database failover complete; error rates are back to normal.",
+    });
+
+    expect(await deliver(reacted(NITIN, "mega", messageTs))).toBe(200);
+    await until((): boolean => {
+      return writes().length >= 1;
+    }, "the confirmation");
+    await settle();
+
+    // No public note at all: a private one, Aidil's words, saved by Nitin.
+    expect(publicNotes.inserts).toHaveLength(0);
+    expect(privateNotes.inserts).toHaveLength(1);
+
+    const note: StoredRow = privateNotes.inserts[0]!;
+    const postedAt: Date = new Date(Number(messageTs.split(".")[0]) * 1000);
+
+    expect(note["note"]).toBe(
+      "Database failover complete; error rates are back to normal.",
+    );
+    expect(String(note["createdByUserId"])).toBe(NITIN_ID.toString());
+    // Filed when Aidil wrote it, as a private note is.
+    expect(note["postedAt"]).toEqual(postedAt);
+    expect(String(feed[0]!["feedInfoInMarkdown"])).toContain(
+      "posted **private note** for this [Incident INC-8]",
+    );
+
+    // One reply, in the message's thread: what it became, and why.
+    expect(writes()).toHaveLength(1);
+    expect(writes()[0]!.data).toEqual({
+      channel: INC_CHANNEL,
+      thread_ts: messageTs,
+      text: PRIVATELY_SAVED_CONFIRMATION,
+      unfurl_links: false,
+      unfurl_media: false,
+    });
+    expect(String(writes()[0]!.data["text"])).not.toContain("status page");
+  });
+
+  test("a 📣 on a message of only an image keeps the image, as a private note does", async () => {
+    const messageTs: string = wrote({ user: AIDIL, minutesAgo: 12 });
+    const message: JSONObject = channelMessages[channelMessages.length - 1]!;
+
+    message["text"] = "";
+    message["blocks"] = [];
+    message["files"] = [
+      {
+        id: "F0P99",
+        name: "p99-latency.png",
+        title: "p99-latency.png",
+        mimetype: "image/png",
+        permalink: "https://acme.slack.com/files/U0AIDIL/F0P99/p99-latency.png",
+      },
+    ];
+
+    await deliver(reacted(NITIN, "mega", messageTs));
+    await until((): boolean => {
+      return writes().length >= 1;
+    }, "the confirmation");
+    await settle();
+
+    // Not refused for having only files: a private note keeps them.
+    expect(publicNotes.inserts).toHaveLength(0);
+    expect(privateNotes.inserts).toHaveLength(1);
+    expect(String(privateNotes.inserts[0]!["note"])).toContain(
+      "https://acme.slack.com/files/U0AIDIL/F0P99/p99-latency.png",
+    );
+    expect(writes()[0]!.data["text"]).toBe(PRIVATELY_SAVED_CONFIRMATION);
+  });
+
+  test("a 📣 and a 📌 on the same message save it once", async () => {
+    const messageTs: string = wrote({ user: AIDIL, minutesAgo: 5 });
+
+    await deliver(reacted(NITIN, "mega", messageTs));
+    await until((): boolean => {
+      return writes().length >= 1;
+    }, "the confirmation");
+    await deliver(reacted(NITIN, "pushpin", messageTs));
+    await deliver(pinned(NITIN, messageTs));
+    await settle();
+
+    expect(privateNotes.inserts).toHaveLength(1);
+    expect(publicNotes.inserts).toHaveLength(0);
+    expect(writes()).toHaveLength(1);
+  });
+
+  test("a 📌 there is a private note, confirmed as always", async () => {
+    const messageTs: string = wrote({ user: AIDIL, minutesAgo: 5 });
+
+    await deliver(pinned(NITIN, messageTs));
+    await until((): boolean => {
+      return writes().length >= 1;
+    }, "the confirmation");
+    await settle();
+
+    expect(privateNotes.inserts).toHaveLength(1);
+    expect(writes()[0]!.data["text"]).toBe(PRIVATE_CONFIRMATION);
+  });
+
+  test("somebody not connected is asked to save it as a private note, and connecting saves it so", async () => {
+    const messageTs: string = wrote({ user: AIDIL, minutesAgo: 40 });
+
+    await deliver(reacted(CAROL, "mega", messageTs));
+    await until((): boolean => {
+      return writes().length >= 1;
+    }, "the Connect prompt");
+    await settle();
+
+    const prompt: SlackCall = writes()[0]!;
+
+    expect(prompt.method).toBe("chat.postEphemeral");
+    expect(prompt.data["text"]).toBe(
+      "Connect your Slack account to save the message you reacted to as a private note on this incident",
+    );
+
+    const token: string = CONNECT_TOKEN.exec(
+      JSON.stringify(prompt.data["blocks"]),
+    )![1]!;
+
+    linked.set(CAROL, CAROL_ID);
+    slackCalls = [];
+
+    const result: WorkspaceConnectCompletionResult =
+      await WorkspaceConnectCompletion.complete({
+        request: (await WorkspaceConnectRequest.take(token))!,
+        userId: CAROL_ID,
+      });
+
+    expect(result).toEqual({
+      outcome: ConnectRequestOutcome.Done,
+      answer: {
+        markdown: `✅ **Your Slack account is connected to OneUptime.** You saved the message as a private note on **[Incident INC-8](${INCIDENT_LINK})**.`,
+        text: "Your Slack account is connected to OneUptime. You saved the message as a private note on Incident INC-8",
+      },
+    });
+    expect(publicNotes.inserts).toHaveLength(0);
+    expect(privateNotes.inserts).toHaveLength(1);
+    expect(writes()[0]!.data["text"]).toBe(PRIVATELY_SAVED_CONFIRMATION);
+  });
+
+  test("an incident made private after somebody was asked to connect is saved private when they do", async () => {
+    // Public when Carol reacts...
+    getJestSpyOn(IncidentService, "findOneBy").mockResolvedValue(null);
+
+    const messageTs: string = wrote({ user: AIDIL, minutesAgo: 40 });
+
+    await deliver(reacted(CAROL, "mega", messageTs));
+    await until((): boolean => {
+      return writes().length >= 1;
+    }, "the Connect prompt");
+    await settle();
+
+    expect(writes()[0]!.data["text"]).toBe(
+      "Connect your Slack account to save the message you reacted to as a public note on this incident",
+    );
+
+    const token: string = CONNECT_TOKEN.exec(
+      JSON.stringify(writes()[0]!.data["blocks"]),
+    )![1]!;
+
+    // ...and private by the time she connects.
+    getJestSpyOn(IncidentService, "findOneBy").mockImplementation(
+      (async (options: {
+        query: { _id?: unknown };
+      }): Promise<Incident | null> => {
+        const incident: Incident = new Incident();
+        incident._id = String(options.query._id);
+        incident.isPrivate = true;
+        return incident;
+      }) as never,
+    );
+
+    linked.set(CAROL, CAROL_ID);
+    slackCalls = [];
+
+    const result: WorkspaceConnectCompletionResult =
+      await WorkspaceConnectCompletion.complete({
+        request: (await WorkspaceConnectRequest.take(token))!,
+        userId: CAROL_ID,
+      });
+
+    expect(result.answer.text).toBe(
+      "Your Slack account is connected to OneUptime. You saved the message as a private note on Incident INC-8",
+    );
+    expect(publicNotes.inserts).toHaveLength(0);
+    expect(privateNotes.inserts).toHaveLength(1);
+    expect(writes()[0]!.data["text"]).toBe(PRIVATELY_SAVED_CONFIRMATION);
   });
 });

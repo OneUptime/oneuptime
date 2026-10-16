@@ -30066,5 +30066,14 @@
   "Reading the alert timeline": "Lendo a linha do tempo do alerta",
   "Reading the incident timeline": "Lendo a linha do tempo do incidente",
   "Searching past incidents": "Pesquisando incidentes anteriores",
-  "Ranked by": "Ordenado por"
+  "Ranked by": "Ordenado por",
+  "If checked, only the incident's owner users and the members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "Se marcado, apenas os usuários proprietários do incidente e os membros de suas equipes proprietárias (além dos administradores e proprietários do projeto) podem visualizar este incidente. Incidentes privados são automaticamente ocultados de todas as páginas de status, e não é possível adicionar notas públicas a eles.",
+  "If enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "Se habilitado, apenas os usuários proprietários do incidente e os membros de suas equipes proprietárias (além dos administradores e proprietários do projeto) podem visualizar este incidente. Incidentes privados são automaticamente ocultados de todas as páginas de status, e não é possível adicionar notas públicas a eles.",
+  "When enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "Quando habilitado, apenas os usuários proprietários do incidente e os membros de suas equipes proprietárias (além dos administradores e proprietários do projeto) podem visualizar este incidente. Incidentes privados são automaticamente ocultados de todas as páginas de status, e não é possível adicionar notas públicas a eles.",
+  "This episode is private, so public notes cannot be added to it. Use a private note.": "Este episódio é privado, por isso não é possível adicionar notas públicas a ele. Use uma nota privada.",
+  "This incident is private, so public notes cannot be added to it. Use a private note.": "Este incidente é privado, por isso não é possível adicionar notas públicas a ele. Use uma nota privada.",
+  "Customer-facing updates about this episode. While it is private, no status page shows them.": "Atualizações para os clientes sobre este episódio. Enquanto ele for privado, nenhuma página de status as mostra.",
+  "Customer-facing updates about this incident. While it is private, no status page shows them.": "Atualizações para os clientes sobre este incidente. Enquanto ele for privado, nenhuma página de status as mostra.",
+  "Not shown while this episode is private": "Não exibida enquanto este episódio for privado",
+  "Not shown while this incident is private": "Não exibida enquanto este incidente for privado"
 }

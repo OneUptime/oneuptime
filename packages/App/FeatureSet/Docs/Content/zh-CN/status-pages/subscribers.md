@@ -238,7 +238,7 @@ flowchart TB
 
 事件片段会在 `shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated` 中记录创建时是否通知了订阅者。用 **创建片段** 按钮或通过 **分组规则** 创建的片段会打开它；API 请求可以在把它设为 `false` 的情况下创建片段。
 
-在创建时把它设为 `false` 的片段上，新的公开备注会以关闭 **Notify status page subscribers** 的状态开始，下方有一行说明原因，这适用于片段的 **公开备注** 页面，以及 **片段动态** 上打开同一个备注编辑器的 **Add Public Note**。你仍然可以勾选它。没有明确选择而发布的备注也遵循同样的设置：Slack 备注、工作流，以及省略了 `shouldStatusPageSubscribersBeNotifiedOnNoteCreated` 的 API 请求。明确的 `true` 或 `false` 总会被保留。只有这项设置起作用：与事件不同，把片段设为私密不会改变复选框的初始状态。
+在创建时把它设为 `false` 的片段上，新的公开备注会以关闭 **Notify status page subscribers** 的状态开始，下方有一行说明原因，这适用于片段的 **公开备注** 页面，以及 **片段动态** 上打开同一个备注编辑器的 **Add Public Note**。你仍然可以勾选它。没有明确选择而发布的备注也遵循同样的设置：Slack 备注、工作流，以及省略了 `shouldStatusPageSubscribersBeNotifiedOnNoteCreated` 的 API 请求。明确的 `true` 或 `false` 总会被保留。只有这项设置起作用。私密片段完全不能添加公开备注：参见[私密事件只能添加私密备注](/docs/incidents/notes-owners-and-feed#私密事件只能添加私密备注)。
 
 这只涉及公开备注。片段的状态变化（**确认**、**解决** 和自动解决）仍然会通知订阅者，因为片段的状态变化对话框和其 **状态时间线** 页面上的表单都没有 **通知状态页订阅者** 复选框。
 

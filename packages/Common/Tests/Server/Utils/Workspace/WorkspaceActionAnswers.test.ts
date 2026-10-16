@@ -37,6 +37,7 @@ import URL from "../../../../Types/API/URL";
 import Name from "../../../../Types/Name";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
+import { WorkspaceNoteType } from "../../../../Types/Workspace/WorkspaceNoteReaction";
 
 /*
  * WHAT A BUTTON IN SLACK OR MICROSOFT TEAMS ANSWERS - WORD FOR WORD.
@@ -569,6 +570,46 @@ describe("what a press asks to be connected for", () => {
     ).toBe(
       "save the message you reacted to as a private note on this incident",
     );
+  });
+
+  /*
+   * A private incident takes no public notes (Types/StatusPage/
+   * PrivateRecordPublicNotes): a 📣 there is saved as a private note, and
+   * the prompt to connect says so - never that it goes to the status page.
+   */
+  test.each([WorkspaceType.Slack, WorkspaceType.MicrosoftTeams])(
+    "a 📣 on a private incident, in %s: asked to save it as the private note it becomes",
+    (workspaceType: WorkspaceType) => {
+      expect(
+        WorkspaceActionAnswers.getPendingActionPurpose({
+          kind: WorkspacePendingActionKind.SavePublicNote,
+          eventType: WorkspaceEventType.Incident,
+          workspaceType: workspaceType,
+          noteSavedAs: WorkspaceNoteType.Private,
+        }),
+      ).toBe(
+        "save the message you reacted to as a private note on this incident",
+      );
+    },
+  );
+
+  test("a 📣 saved as it asks is a public note, as always; a pin is a private note whatever it is saved as", () => {
+    expect(
+      WorkspaceActionAnswers.getPendingActionPurpose({
+        kind: WorkspacePendingActionKind.SavePublicNote,
+        eventType: WorkspaceEventType.Incident,
+        workspaceType: WorkspaceType.Slack,
+        noteSavedAs: WorkspaceNoteType.Public,
+      }),
+    ).toBe("save the message you reacted to as a public note on this incident");
+    expect(
+      WorkspaceActionAnswers.getPendingActionPurpose({
+        kind: WorkspacePendingActionKind.SavePrivateNote,
+        eventType: WorkspaceEventType.Incident,
+        workspaceType: WorkspaceType.Slack,
+        noteSavedAs: WorkspaceNoteType.Private,
+      }),
+    ).toBe("save the message you pinned as a private note on this incident");
   });
 });
 

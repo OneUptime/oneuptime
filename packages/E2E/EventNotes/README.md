@@ -47,6 +47,7 @@ Query parameters, parsed once per page load:
 | `?role=`      | `owner` (default, a master admin), `viewer` (reads, cannot write) or `member` (a Project Member, through the real permission checks) |
 | `?templates=` | `some` (default), `none` or `many`                                                                                                   |
 | `?quiet=1`    | incident #1042 was declared without notifying subscribers                                                                            |
+| `?private=1`  | incident #1042 and incident episode #12 are private: their public notes pages take no new public note                                |
 | `?fail=`      | comma separated: `list`, `create`, `update`, `delete`, `resend`, `templates`, `ai`                                                   |
 | `?theme=`     | `dark` adds `html.dark`                                                                                                              |
 

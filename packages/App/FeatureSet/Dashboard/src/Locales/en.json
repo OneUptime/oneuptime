@@ -30066,5 +30066,14 @@
   "Reading the alert timeline": "Reading the alert timeline",
   "Reading the incident timeline": "Reading the incident timeline",
   "Searching past incidents": "Searching past incidents",
-  "Ranked by": "Ranked by"
+  "Ranked by": "Ranked by",
+  "If checked, only the incident's owner users and the members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "If checked, only the incident's owner users and the members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.",
+  "If enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "If enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.",
+  "When enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "When enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.",
+  "This episode is private, so public notes cannot be added to it. Use a private note.": "This episode is private, so public notes cannot be added to it. Use a private note.",
+  "This incident is private, so public notes cannot be added to it. Use a private note.": "This incident is private, so public notes cannot be added to it. Use a private note.",
+  "Customer-facing updates about this episode. While it is private, no status page shows them.": "Customer-facing updates about this episode. While it is private, no status page shows them.",
+  "Customer-facing updates about this incident. While it is private, no status page shows them.": "Customer-facing updates about this incident. While it is private, no status page shows them.",
+  "Not shown while this episode is private": "Not shown while this episode is private",
+  "Not shown while this incident is private": "Not shown while this incident is private"
 }
