@@ -11,6 +11,7 @@ import AwsMarketplaceAPI, {
 import {
   MarketplaceActivationError,
   MarketplaceUsageRecord,
+  MarketplaceUsageResult,
 } from "../../../../Server/Utils/Marketplace/MarketplaceAdapter";
 import MarketplaceApiError from "../../../../Server/Utils/Marketplace/MarketplaceApiError";
 import { beforeEach, describe, expect, it } from "@jest/globals";
@@ -239,14 +240,44 @@ describe("AwsMarketplaceAdapter", () => {
       expect(adapter.keepsOneReportPerHour).toBe(true);
     });
 
-    it("counts a record AWS already has as sent", async () => {
+    /*
+     * AWS answers the same record sent again as it did the first time, so a
+     * report whose answer was lost counts as sent when AWS says Success.
+     */
+    it("counts the same record sent again as sent: AWS answers it Success", async () => {
+      api.batchMeterUsage.mockResolvedValue([
+        { status: "Success", meteringRecordId: "mr-1" },
+      ]);
+
+      await adapter.reportUsage(purchase(), USAGE_RECORD);
+      await expect(
+        adapter.reportUsage(purchase(), USAGE_RECORD),
+      ).resolves.toEqual({ outcome: "accepted", externalReportId: "mr-1" });
+    });
+
+    /*
+     * DuplicateRecord is AWS saying it already metered a record with another
+     * quantity for this license, dimension and hour - and bills that one.
+     * This report is lost, so it is refused, and the reporter marks it Failed
+     * and logs it as not billed, rather than counting it as sent.
+     */
+    it("refuses a record AWS answers DuplicateRecord: another record of the hour was billed instead", async () => {
       api.batchMeterUsage.mockResolvedValue([
         { status: "DuplicateRecord", meteringRecordId: null },
       ]);
 
-      await expect(
-        adapter.reportUsage(purchase(), USAGE_RECORD),
-      ).resolves.toEqual({ outcome: "accepted", externalReportId: undefined });
+      const result: MarketplaceUsageResult = await adapter.reportUsage(
+        purchase(),
+        USAGE_RECORD,
+      );
+
+      expect(result).toEqual({
+        outcome: "rejected",
+        error:
+          "AWS already billed another record for this license in this hour (DuplicateRecord).",
+      });
+      // The buyer is still subscribed: nothing to read back.
+      expect(result.isPurchaseInactive).toBeUndefined();
     });
 
     it("says the purchase is inactive when AWS says the buyer is not subscribed", async () => {

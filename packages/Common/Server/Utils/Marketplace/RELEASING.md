@@ -535,7 +535,12 @@ Marketplace".
   An hourly report that would land in a final report's hour - after a project
   delete that failed, or a purchase linked again within the hour - waits for
   the next hour, and bills the whole time since. Google Cloud counts each
-  report by its own ID, and is never held back.
+  report by its own ID, and is never held back. A report sent again is taken
+  as it was the first time (AWS answers `Success`; Microsoft answers
+  `Duplicate` with the event it kept, of the same quantity). One that lands in
+  an hour where the marketplace already has a different record anyway (AWS
+  `DuplicateRecord`; a Microsoft `Duplicate` whose kept event has another
+  quantity) is marked `Failed` and logged as "was NOT billed".
 - **Moving a marketplace customer back to card billing** is not built: today
   it is a master-admin job (clear `billingMarketplace`, give the project card
   subscriptions through Change Plan once a card is added).

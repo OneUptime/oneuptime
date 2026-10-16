@@ -18,6 +18,7 @@ import MarketplaceAdapter, {
 import MarketplaceApiError from "../MarketplaceApiError";
 import MarketplaceConfig from "../MarketplaceConfig";
 import AzureMarketplaceAPI, {
+  AzureAcceptedUsageEvent,
   AzureSaasSubscription,
   AzureUsageEventResult,
 } from "./AzureMarketplaceAPI";
@@ -245,11 +246,12 @@ export default class AzureMarketplaceAdapter implements MarketplaceAdapter {
 
     switch (result.status) {
       case "Accepted":
-      case "Duplicate":
         return {
           outcome: "accepted",
           externalReportId: result.usageEventId || undefined,
         };
+      case "Duplicate":
+        return AzureMarketplaceAdapter.readDuplicate(result, record);
       case "ResourceNotActive":
         return {
           outcome: "rejected",
@@ -267,5 +269,37 @@ export default class AzureMarketplaceAdapter implements MarketplaceAdapter {
           error: `Microsoft refused the event: ${result.status}${result.errorCode ? ` (${result.errorCode})` : ""}`,
         };
     }
+  }
+
+  /*
+   * Microsoft keeps one event per subscription, dimension and hour, and
+   * answers any other for that hour "Duplicate", with the event it kept. The
+   * same quantity is this report sent again after an answer that was lost:
+   * Microsoft has it. Another quantity is another report filed in the same
+   * hour: Microsoft bills that one, and this one is lost. When Microsoft
+   * leaves out the event it kept, the report is taken as sent again, as it
+   * almost always is.
+   */
+  private static readDuplicate(
+    result: AzureUsageEventResult,
+    record: MarketplaceUsageRecord,
+  ): MarketplaceUsageResult {
+    const kept: AzureAcceptedUsageEvent | undefined = result.acceptedEvent;
+
+    if (
+      kept &&
+      kept.quantity !== null &&
+      Math.abs(kept.quantity - record.quantity) > 1e-6
+    ) {
+      return {
+        outcome: "rejected",
+        error: `Microsoft already has another usage event for this hour (${kept.quantity} units${kept.usageEventId ? `, event ${kept.usageEventId}` : ""}).`,
+      };
+    }
+
+    return {
+      outcome: "accepted",
+      externalReportId: kept?.usageEventId || result.usageEventId || undefined,
+    };
   }
 }
