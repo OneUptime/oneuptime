@@ -71,11 +71,20 @@ import {
   getRuleCriteriaTableConfiguration,
   RuleCriteriaTableConfiguration,
 } from "../RuleCriteria/RuleCriteriaModelTable";
+import { RuleCriteriaSubject } from "../../../Types/Rules/RuleCriteriaSubject";
 
 export interface ComponentProps<TBaseModel extends BaseModel>
   extends BaseTableProps<TBaseModel> {
   modelAPI?: typeof ModelAPI | undefined;
   enableJsonImportExport?: boolean | undefined;
+  /*
+   * What a table of rules about several kinds of record holds - the AI and
+   * runbook rules, one table per kind (RuleCriteriaSubject): its form asks
+   * "All incidents" or "Only incidents that match conditions", and a rule
+   * with no conditions reads "All incidents" in its Match Criteria column.
+   * Every other rule table is named by its model.
+   */
+  ruleCriteriaSubject?: RuleCriteriaSubject | undefined;
 }
 
 const ModelTable: <TBaseModel extends BaseModel>(
@@ -168,6 +177,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
       filters: props.filters,
       selectMoreFields: props.selectMoreFields,
       helpContent: props.helpContent,
+      subject: props.ruleCriteriaSubject,
     });
 
   if (props.enableJsonImportExport) {
@@ -395,6 +405,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
                   // A colour picked for a new row is one no row uses yet.
                   existingItems:
                     modalType === ModalType.Create ? existingItems : undefined,
+                  ruleCriteriaSubject: props.ruleCriteriaSubject,
                 }}
                 modelIdToEdit={modelIdToEdit}
               />

@@ -4,6 +4,7 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { RuleCriteriaSubject } from "Common/Types/Rules/RuleCriteriaSubject";
 import {
   FoldedSectionItem,
   foldedSectionItem,
@@ -81,6 +82,18 @@ export enum AiLane {
   Incident = "Incident",
   Alert = "Alert",
 }
+
+/*
+ * What a lane's investigation and remediation rules apply to: "All
+ * incidents" or "Only incidents that match conditions" (RuleCriteriaSubject).
+ * One table of rules holds both lanes, so the page names them.
+ */
+export const AI_LANE_RULE_CRITERIA_SUBJECTS: Readonly<
+  Record<AiLane, RuleCriteriaSubject>
+> = {
+  [AiLane.Incident]: RuleCriteriaSubject.Incidents,
+  [AiLane.Alert]: RuleCriteriaSubject.Alerts,
+};
 
 // The Project columns behind the incident and alert pages' switches.
 export type AiLaneSwitchColumn =

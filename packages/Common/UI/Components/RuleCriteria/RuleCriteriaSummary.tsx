@@ -5,7 +5,12 @@ import RuleCriteria, {
   RuleCriteriaFilter,
 } from "../../../Types/Rules/RuleCriteria";
 import { isRuleCriteriaConditionRequired } from "../../../Types/Rules/RuleCriteriaFieldRegistry";
+import {
+  resolveRuleCriteriaSubject,
+  RuleCriteriaSubject,
+} from "../../../Types/Rules/RuleCriteriaSubject";
 import { isValidRuleCriteria } from "../../../Utils/Rules/RuleCriteriaMatcher";
+import useTranslateValue from "../../Utils/Translation";
 import React, { ReactElement } from "react";
 import Field from "../Forms/Types/Field";
 import {
@@ -14,15 +19,24 @@ import {
   getRuleCriteriaFieldTitle,
   getRuleCriteriaOperatorLabel,
 } from "./RuleCriteriaFields";
+import { getRuleCriteriaSubjectCopy } from "./RuleCriteriaSubjectCopy";
 
 export interface RuleCriteriaSummaryData<TEntity> {
   fields: Array<Field<TEntity>>;
   item: TEntity;
+  /*
+   * The records the rule is for, when its table says (a table of rules
+   * about several kinds of record). Otherwise the rule's model says.
+   */
+  subject?: RuleCriteriaSubject | null | undefined;
 }
 
-// What a rule with no conditions does, which depends on the kind of rule.
-export const RULE_CRITERIA_SUMMARY_MATCHES_EVERYTHING: string =
-  "Matches everything (no conditions)";
+/*
+ * What a rule with no conditions does, which depends on the kind of rule: a
+ * rule that needs a condition matches nothing; any other applies to all of
+ * its records, and says so as its form's choice does - "All incidents"
+ * (RuleCriteriaSubjectCopy), or "Everything" for a rule nothing names.
+ */
 export const RULE_CRITERIA_SUMMARY_MATCHES_NOTHING: string =
   "Matches nothing (no conditions)";
 export const RULE_CRITERIA_SUMMARY_INVALID: string = "Invalid match criteria";
@@ -60,15 +74,48 @@ function getCriteria<TEntity>(
   });
 }
 
-function getEmptySummary<TEntity>(item: TEntity): string {
+function getTableName<TEntity>(item: TEntity): string | null {
   const tableName: unknown = (item as unknown as { tableName?: unknown })
     .tableName;
 
-  return isRuleCriteriaConditionRequired(
-    typeof tableName === "string" ? tableName : null,
-  )
-    ? RULE_CRITERIA_SUMMARY_MATCHES_NOTHING
-    : RULE_CRITERIA_SUMMARY_MATCHES_EVERYTHING;
+  return typeof tableName === "string" ? tableName : null;
+}
+
+function getEmptySummary<TEntity>(
+  data: RuleCriteriaSummaryData<TEntity>,
+): string {
+  const tableName: string | null = getTableName(data.item);
+
+  if (isRuleCriteriaConditionRequired(tableName)) {
+    return RULE_CRITERIA_SUMMARY_MATCHES_NOTHING;
+  }
+
+  return getRuleCriteriaSubjectCopy(
+    resolveRuleCriteriaSubject({
+      modelName: tableName,
+      subject: data.subject,
+    }),
+  ).all;
+}
+
+/*
+ * Whether the summary is a rule's "no conditions" sentence - a phrase of
+ * the locale files, looked up where it is shown - rather than its
+ * conditions, which are the page's own names and values.
+ */
+function isEmptySummary<TEntity>(
+  data: RuleCriteriaSummaryData<TEntity>,
+): boolean {
+  const configuredCriteria: unknown = (
+    data.item as unknown as Record<string, unknown>
+  )["criteria"];
+  const criteria: RuleCriteria | null = getCriteria(data);
+
+  if (!criteria) {
+    return configuredCriteria === undefined || configuredCriteria === null;
+  }
+
+  return criteria.filters.length === 0;
 }
 
 export function getRuleCriteriaSummaryText<TEntity>(
@@ -84,11 +131,11 @@ export function getRuleCriteriaSummaryText<TEntity>(
   if (!criteria) {
     return configuredCriteria !== undefined && configuredCriteria !== null
       ? RULE_CRITERIA_SUMMARY_INVALID
-      : getEmptySummary(data.item);
+      : getEmptySummary(data);
   }
 
   if (criteria.filters.length === 0) {
-    return getEmptySummary(data.item);
+    return getEmptySummary(data);
   }
 
   const filters: Array<string> = criteria.filters.map(
@@ -125,11 +172,19 @@ const RuleCriteriaSummary: <TEntity extends BaseModel>(
 ) => ReactElement = <TEntity extends BaseModel>(
   props: RuleCriteriaSummaryData<TEntity>,
 ): ReactElement => {
-  const { fields, item } = props;
-  const summary: string = getRuleCriteriaSummaryText({ fields, item });
+  const { translateString } = useTranslateValue();
+  const english: string = getRuleCriteriaSummaryText(props);
+  // "All incidents" is the form's own answer, so it reads as the form does.
+  const summary: string = isEmptySummary(props)
+    ? translateString(english) ?? english
+    : english;
 
   return (
-    <span className="text-sm text-gray-700" title={summary}>
+    <span
+      className="text-sm text-gray-700"
+      title={summary}
+      data-testid="rule-criteria-summary"
+    >
       {summary}
     </span>
   );

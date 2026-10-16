@@ -9,6 +9,11 @@ import {
   Translator,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import { RuleCriteriaSubject } from "Common/Types/Rules/RuleCriteriaSubject";
+import {
+  getRuleCriteriaSubjectCopy,
+  RuleCriteriaSubjectCopy,
+} from "Common/UI/Components/RuleCriteria/RuleCriteriaSubjectCopy";
 import { formatNameList } from "../../AiAccess/AiAccessModes";
 
 /*
@@ -82,29 +87,36 @@ export const NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS: ByEventType = {
   ),
 };
 
-// Under the Add Condition button, while there is none.
-export const NO_CONDITIONS_YET_SENTENCES: ByEventType = {
-  [NotificationRuleEventType.Incident]: translationKey(
-    "No conditions: the rule is for every incident.",
-  ),
-  [NotificationRuleEventType.Alert]: translationKey(
-    "No conditions: the rule is for every alert.",
-  ),
-  [NotificationRuleEventType.IncidentEpisode]: translationKey(
-    "No conditions: the rule is for every incident episode.",
-  ),
-  [NotificationRuleEventType.AlertEpisode]: translationKey(
-    "No conditions: the rule is for every alert episode.",
-  ),
-  [NotificationRuleEventType.ScheduledMaintenance]: translationKey(
-    "No conditions: the rule is for every scheduled maintenance event.",
-  ),
-  [NotificationRuleEventType.Monitor]: translationKey(
-    "No conditions: the rule is for every monitor.",
-  ),
-  [NotificationRuleEventType.OnCallDutyPolicy]: translationKey(
-    "No conditions: the rule is for every on-call policy.",
-  ),
+/*
+ * What the Conditions step asks first, under "Which incidents": every
+ * record of the rule's kind, or only those its conditions match - "All
+ * incidents" / "Only incidents that match conditions", the words every
+ * other rule's conditions are asked with (RuleCriteriaSubjectCopy). A new
+ * rule starts on the first. It said "No conditions: the rule is for every
+ * incident." under an Add Condition button, and people added a condition
+ * they did not want.
+ */
+export const NOTIFICATION_RULE_SUBJECTS: Readonly<
+  Record<NotificationRuleEventType, RuleCriteriaSubject>
+> = {
+  [NotificationRuleEventType.Incident]: RuleCriteriaSubject.Incidents,
+  [NotificationRuleEventType.Alert]: RuleCriteriaSubject.Alerts,
+  [NotificationRuleEventType.IncidentEpisode]:
+    RuleCriteriaSubject.IncidentEpisodes,
+  [NotificationRuleEventType.AlertEpisode]: RuleCriteriaSubject.AlertEpisodes,
+  [NotificationRuleEventType.ScheduledMaintenance]:
+    RuleCriteriaSubject.ScheduledMaintenanceEvents,
+  [NotificationRuleEventType.Monitor]: RuleCriteriaSubject.Monitors,
+  [NotificationRuleEventType.OnCallDutyPolicy]:
+    RuleCriteriaSubject.OnCallPolicies,
+};
+
+export const getNotificationRuleAppliesTo: (
+  eventType: NotificationRuleEventType,
+) => RuleCriteriaSubjectCopy = (
+  eventType: NotificationRuleEventType,
+): RuleCriteriaSubjectCopy => {
+  return getRuleCriteriaSubjectCopy(NOTIFICATION_RULE_SUBJECTS[eventType]);
 };
 
 /*

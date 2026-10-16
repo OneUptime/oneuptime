@@ -3,6 +3,10 @@ import RuleBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Rule
 import Select from "../../../Types/BaseDatabase/Select";
 import { RuleCriteriaOperator } from "../../../Types/Rules/RuleCriteria";
 import { isRuleCriteriaConditionRequired } from "../../../Types/Rules/RuleCriteriaFieldRegistry";
+import {
+  resolveRuleCriteriaSubject,
+  RuleCriteriaSubject,
+} from "../../../Types/Rules/RuleCriteriaSubject";
 import React from "react";
 import type { ModelField } from "../Forms/ModelForm";
 import type Field from "../Forms/Types/Field";
@@ -22,6 +26,10 @@ import {
 import RuleCriteriaSummary, {
   getRuleCriteriaSummaryText,
 } from "./RuleCriteriaSummary";
+import {
+  getRuleCriteriaSubjectCopy,
+  RuleCriteriaSubjectCopy,
+} from "./RuleCriteriaSubjectCopy";
 
 export interface RuleCriteriaTableConfiguration<TEntity extends BaseModel> {
   columns: Columns<TEntity>;
@@ -39,12 +47,27 @@ export interface RuleCriteriaTableHelpContent {
 /*
  * The help panel's "Match Criteria" section, written for the conditions the
  * page's fields actually offer. Each line names the operators exactly as the
- * builder labels them.
+ * builder labels them, and the choice above them exactly as the form asks
+ * it ("All incidents" / "Only incidents that match conditions"). The help
+ * panel is English, as the rest of the page's help is.
  */
+const HELP_MATCH_LINES: string = `- **Match all (AND)** — every condition must be true.
+- **Match any (OR)** — at least one condition must be true.`;
+
 const HELP_COMBINE_LINES: string = `Add one or more conditions, then choose how they are combined:
 
-- **Match all (AND)** — every condition must be true.
-- **Match any (OR)** — at least one condition must be true.`;
+${HELP_MATCH_LINES}`;
+
+function getHelpChoiceLines(copy: RuleCriteriaSubjectCopy): string {
+  return `Choose what the rule applies to:
+
+- **${copy.all}** — the rule has no conditions. A new rule starts here.
+- **${copy.matching}** — the rule has one or more conditions.
+
+With two or more conditions, choose how they are combined:
+
+${HELP_MATCH_LINES}`;
+}
 
 const HELP_OPERATOR_INTRO: string =
   "Each condition compares one field. Only the operators that fit the field are offered:";
@@ -59,8 +82,6 @@ const HELP_ADDRESS_RANGE_LINE: string =
 const HELP_LIST_LINE: string =
   "- **Lists** — Has any of, Has all of or Has none of the selected values.";
 
-const HELP_EMPTY_MATCHES_EVERYTHING: string =
-  "A rule with no conditions applies to everything.";
 const HELP_EMPTY_NEEDS_CONDITION: string =
   "This kind of rule needs at least one condition: with none, it would match nothing.";
 
@@ -68,6 +89,8 @@ export function getRuleCriteriaHelpSectionBody<TEntity>(data: {
   // The page's match fields; without them every kind of operator is listed.
   fields?: Array<Field<TEntity>> | undefined;
   requiresCondition?: boolean | undefined;
+  // The rule's records, for the choice's words: "All incidents".
+  subject?: RuleCriteriaSubject | null | undefined;
 }): string {
   const fields: Array<Field<TEntity>> = data.fields || [];
   const listsEverything: boolean = fields.length === 0;
@@ -108,12 +131,17 @@ export function getRuleCriteriaHelpSectionBody<TEntity>(data: {
     return line.length > 0;
   });
 
+  if (data.requiresCondition) {
+    return [
+      HELP_COMBINE_LINES,
+      [HELP_OPERATOR_INTRO, "", ...operatorLines].join("\n"),
+      HELP_EMPTY_NEEDS_CONDITION,
+    ].join("\n\n");
+  }
+
   return [
-    HELP_COMBINE_LINES,
+    getHelpChoiceLines(getRuleCriteriaSubjectCopy(data.subject)),
     [HELP_OPERATOR_INTRO, "", ...operatorLines].join("\n"),
-    data.requiresCondition
-      ? HELP_EMPTY_NEEDS_CONDITION
-      : HELP_EMPTY_MATCHES_EVERYTHING,
   ].join("\n\n");
 }
 
@@ -208,6 +236,8 @@ export function getRuleCriteriaTableConfiguration<
   filters: Array<Filter<TEntity>>;
   selectMoreFields?: Select<TEntity> | undefined;
   helpContent?: RuleCriteriaTableHelpContent | undefined;
+  // The table's records, for a table of rules about several kinds of record.
+  subject?: RuleCriteriaSubject | null | undefined;
 }): RuleCriteriaTableConfiguration<TEntity> {
   const legacyFields: Array<ModelField<TEntity>> = data.formFields
     ? getLegacyRuleCriteriaFields(data.formFields)
@@ -253,12 +283,19 @@ export function getRuleCriteriaTableConfiguration<
     disableSort: true,
     wrapContent: true,
     getElement: (item: TEntity) => {
-      return <RuleCriteriaSummary fields={legacyFields} item={item} />;
+      return (
+        <RuleCriteriaSummary
+          fields={legacyFields}
+          item={item}
+          subject={data.subject}
+        />
+      );
     },
     getExportValue: (item: TEntity): string => {
       return getRuleCriteriaSummaryText({
         fields: legacyFields,
         item: item,
+        subject: data.subject,
       });
     },
   };
@@ -290,6 +327,10 @@ export function getRuleCriteriaTableConfiguration<
         requiresCondition: isRuleCriteriaConditionRequired(
           data.model.tableName,
         ),
+        subject: resolveRuleCriteriaSubject({
+          modelName: data.model.tableName,
+          subject: data.subject,
+        }),
       }),
     ),
   };
