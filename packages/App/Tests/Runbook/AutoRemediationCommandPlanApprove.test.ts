@@ -193,7 +193,7 @@ const DISMISS_ROUTE: string = "/auto-remediation/dismiss";
 
 // What the approve route answers, word for word, while the project has AI off.
 const AI_DISABLED_REFUSAL: string =
-  "AI is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI Features, or dismiss the suggestion.";
+  "AI is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI → AI Features, or dismiss the suggestion.";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -590,7 +590,7 @@ describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
           .message;
         expect(message).toBe(AI_DISABLED_REFUSAL);
         // The switch lives on the page every install shows.
-        expect(message).toContain("Project Settings → AI Features");
+        expect(message).toContain("Project Settings → AI → AI Features");
         expect(message).not.toContain("AI Credits");
         // Neither retired switch is named any more.
         expect(message).not.toContain("auto-remediation");

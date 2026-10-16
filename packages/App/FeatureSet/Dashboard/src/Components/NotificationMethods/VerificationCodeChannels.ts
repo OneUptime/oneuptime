@@ -74,7 +74,7 @@ const SMS_COPY: Omit<
   sendCodeButtonText: translationKey("Send a new code"),
   sendingCodeButtonText: translationKey("Sending…"),
   notArrivedHint: translationKey(
-    "Texts can take a minute to arrive. If it does not come, Project Settings > Notification Logs shows what happened to it.",
+    "Texts can take a minute to arrive. If it does not come, Project Settings > Notifications > Notification Logs shows what happened to it.",
   ),
 };
 
@@ -98,7 +98,7 @@ const VERIFICATION_CODE_CHANNELS: Readonly<
     sendCodeButtonText: translationKey("Send a new code"),
     sendingCodeButtonText: translationKey("Sending…"),
     notArrivedHint: translationKey(
-      "Emails can take a few minutes, and sometimes land in spam. If it does not come, Project Settings > Notification Logs shows what happened to it.",
+      "Emails can take a few minutes, and sometimes land in spam. If it does not come, Project Settings > Notifications > Notification Logs shows what happened to it.",
     ),
   },
   [VerificationCodeChannel.SMS]: {
@@ -145,7 +145,7 @@ const VERIFICATION_CODE_CHANNELS: Readonly<
     sendCodeButtonText: translationKey("Send a new code"),
     sendingCodeButtonText: translationKey("Sending…"),
     notArrivedHint: translationKey(
-      "If it does not come, Project Settings > Notification Logs shows what happened to it.",
+      "If it does not come, Project Settings > Notifications > Notification Logs shows what happened to it.",
     ),
   },
   [VerificationCodeChannel.IncomingCallNumber]: {

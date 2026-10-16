@@ -71,7 +71,7 @@ export default class ActiveMonitorLimit {
 
   // Where to change the plan, as the dashboard's settings menu names it.
   public static readonly BILLING_SETTINGS: string =
-    "Project Settings > Billing";
+    "Project Settings > Billing and Invoices > Billing";
 
   /*
    * The limit a project's plan holds it to: the lower of its own (a plan

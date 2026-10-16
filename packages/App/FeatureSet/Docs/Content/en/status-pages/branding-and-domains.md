@@ -153,7 +153,7 @@ flowchart TB
 
 ### Before you start
 
-- **The parent domain must be verified.** The **Domain** dropdown lists only the domains verified under **Project Settings → Domains**, where you prove you own a domain with a TXT record. The **Add a domain** link beside the field opens that page in a new tab.
+- **The parent domain must be verified.** The **Domain** dropdown lists only the domains verified under **Project Settings → Advanced → Domains**, where you prove you own a domain with a TXT record. The **Add a domain** link beside the field opens that page in a new tab.
 - **Your installation needs a status page CNAME record.** OneUptime Cloud has one. On a self-hosted installation, set it to a hostname that points at your OneUptime server (an A record), and make sure the server answers on port 80, where Let's Encrypt checks it. Without it, the card and the **DNS Setup** dialog say "Custom Domains not enabled for this OneUptime installation" instead of showing a record.
 
 :::tabs

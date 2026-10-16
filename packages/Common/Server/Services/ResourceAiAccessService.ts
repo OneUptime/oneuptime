@@ -583,7 +583,7 @@ export class ResourceAiAccessServiceClass {
       gaps.push({
         code: "ai_disabled_for_project",
         title: "AI is disabled for this project",
-        nextStep: "Enable AI under Project Settings → AI Features.",
+        nextStep: "Enable AI under Project Settings → AI → AI Features.",
         blocksInvestigation: true,
         blocksRemediation: true,
       });

@@ -890,7 +890,7 @@ describe("POST /slack/command: /oneuptime and the words after it", () => {
       expect(urlsOf(calls)).toEqual([RESPONSE_URL]);
       expect(calls[0]!.data).toEqual({
         response_type: "ephemeral",
-        text: "AI features are disabled for this project. Enable them in Project Settings → AI Features. Run `/oneuptime help` to see the other commands.\n",
+        text: "AI features are disabled for this project. Enable them in Project Settings → AI → AI Features. Run `/oneuptime help` to see the other commands.\n",
       });
       expect(assistantQuestions).toEqual([]);
     });

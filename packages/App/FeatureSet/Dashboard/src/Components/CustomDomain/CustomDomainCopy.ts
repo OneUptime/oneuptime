@@ -266,7 +266,7 @@ export const CustomDomainCopy: {
     "Custom Domains not enabled for this OneUptime installation. Please contact your server admin to enable this feature.",
   ),
   domainFieldDescription: translationKey(
-    "Only domains verified in Project Settings → Domains are listed.",
+    "Only domains verified in Project Settings → Advanced → Domains are listed.",
   ),
   domainFieldSideLink: translationKey("Add a domain"),
   advancedSummaryFreeCertificate: translationKey(

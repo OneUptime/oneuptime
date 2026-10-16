@@ -278,7 +278,7 @@ const PAGES: Array<MoreSettingsPage> = [
     tableCount: 2,
   },
   {
-    name: "Project Settings -> AI Features",
+    name: "Project Settings -> AI -> AI Features",
     path: `/dashboard/${PROJECT_ID}/settings/ai-features`,
     element: (): ReactElement => {
       return <AIFeatures {...PAGE_PROPS} />;
@@ -289,7 +289,7 @@ const PAGES: Array<MoreSettingsPage> = [
     tableCount: 0,
   },
   {
-    name: "Project Settings -> API Keys -> a key",
+    name: "Project Settings -> Advanced -> API Keys -> a key",
     path: `/dashboard/${PROJECT_ID}/settings/api-keys/${RECORD_ID}`,
     element: (): ReactElement => {
       return <APIKeyView {...PAGE_PROPS} />;

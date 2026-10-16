@@ -866,7 +866,7 @@ Stringi ancora di più se serve: alza `minSeverity` a `ERROR`, aggiungi `metrics
 
 ### Misura l'effetto
 
-L'utilizzo della telemetria viene conteggiato per giorno, quindi controlla l'andamento in **Impostazioni del progetto → Cronologia utilizzo** per un giorno o due: non cambia nel momento in cui applichi una modifica. Cambia un'impostazione alla volta (log disattivati, poi l'intervallo alzato, poi eBPF snellito) così da capire cosa ha fatto ciascuna, invece di ridurre tutto in una volta e perdere un monitor su cui contavi.
+L'utilizzo della telemetria viene conteggiato per giorno, quindi controlla l'andamento in **Impostazioni del progetto → Fatturazione e fatture → Cronologia utilizzo** per un giorno o due: non cambia nel momento in cui applichi una modifica. Cambia un'impostazione alla volta (log disattivati, poi l'intervallo alzato, poi eBPF snellito) così da capire cosa ha fatto ciascuna, invece di ridurre tutto in una volta e perdere un monitor su cui contavi.
 
 ## Risoluzione dei problemi
 

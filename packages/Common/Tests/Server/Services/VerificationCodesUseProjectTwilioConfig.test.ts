@@ -40,7 +40,7 @@ jest.mock("../../../Server/Utils/Logger", () => {
  * EVERY VERIFICATION CODE A PROJECT MEMBER IS SENT GOES THROUGH THE
  * PROJECT'S DEFAULT TWILIO CONFIG.
  *
- * Project Settings -> Notification Settings says that SMS and calls to the
+ * Project Settings -> Notifications -> Notification Settings says that SMS and calls to the
  * people in a project - phone verification included - go through the
  * project's default Twilio config, and a project's first config now becomes
  * that default. The SMS and call codes did; the code that verifies a number

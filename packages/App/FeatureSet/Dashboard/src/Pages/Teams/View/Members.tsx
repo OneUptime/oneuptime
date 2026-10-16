@@ -84,7 +84,7 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
       {isPushGroupsManaged && (
         <Banner
           title="Team membership is managed by SCIM Push Groups"
-          description="Add and remove this team's members in your identity provider. To change them here instead, turn off Push Groups in Settings > SCIM."
+          description="Add and remove this team's members in your identity provider. To change them here instead, turn off Push Groups in Project Settings > Security > SCIM."
         />
       )}
 

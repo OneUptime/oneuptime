@@ -95,7 +95,7 @@ Une fois vérifié, le tableau de bord est accessible à la fois sur votre domai
 Cliquez sur **Créer : Domaine du tableau de bord**. La boîte de dialogue tient sur une page :
 
 - **Sous-domaine** : le libellé seul, avec l'exemple `dashboard (leave blank for root)`. Saisissez seulement `dashboard`, pas le nom d'hôte complet. Laissez-le vide ou saisissez `@` pour utiliser le domaine racine (apex).
-- **Domaine** : les domaines vérifiés sous **Paramètres du projet → Domaines**, où vous prouvez qu'un domaine vous appartient avec un enregistrement TXT. Un domaine que vous n'avez pas vérifié n'est pas listé, car il serait refusé. Le lien **Ajouter un domaine** à côté du champ ouvre cette page dans un nouvel onglet.
+- **Domaine** : les domaines vérifiés sous **Paramètres du projet → Avancé → Domaines**, où vous prouvez qu'un domaine vous appartient avec un enregistrement TXT. Un domaine que vous n'avez pas vérifié n'est pas listé, car il serait refusé. Le lien **Ajouter un domaine** à côté du champ ouvre cette page dans un nouvel onglet.
 - **Plus de champs** : replié. Tant qu'il est replié, son en-tête indique quel certificat le domaine utilisera : « Nous émettons un certificat SSL gratuit pour ce domaine et le renouvelons automatiquement. » Ouvrez-le seulement pour utiliser votre propre certificat (voir plus bas).
 
 Cliquez sur **Créer : Domaine du tableau de bord**. La boîte de dialogue se ferme et la **Configuration DNS** du nouveau domaine s'ouvre. Le nom complet d'un domaine est fixé quand vous l'ajoutez : **Modifier** ne change donc que son certificat. Pour utiliser un autre sous-domaine, ajoutez ce domaine et supprimez l'ancien.

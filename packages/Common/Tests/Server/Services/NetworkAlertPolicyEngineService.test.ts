@@ -1284,7 +1284,7 @@ describe("the plan check", () => {
     expect(monitorCreateMock).not.toHaveBeenCalled();
     expect(context.isStopped).toBe(true);
     expect(context.planException).toBe(
-      "This project has reached the Free plan's limit of 10 active monitors, so no more can be added. Upgrade the plan in Project Settings > Billing to add more. Manual monitors do not count towards the limit; monitors that are turned off or archived do. Alert policies provision the rest of their monitors on the next sync once there is room.",
+      "This project has reached the Free plan's limit of 10 active monitors, so no more can be added. Upgrade the plan in Project Settings > Billing and Invoices > Billing to add more. Manual monitors do not count towards the limit; monitors that are turned off or archived do. Alert policies provision the rest of their monitors on the next sync once there is room.",
     );
   });
 

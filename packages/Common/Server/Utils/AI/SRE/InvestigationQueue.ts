@@ -209,8 +209,8 @@ export default class AIInvestigationQueue {
     }
 
     /*
-     * The project's own daily AI limits (Project Settings → AI Features →
-     * More settings), a ceiling over every lane: once one is reached every
+     * The project's own daily AI limits (Project Settings → AI → AI
+     * Features → More settings), a ceiling over every lane: once one is reached every
      * model call is refused until midnight UTC, so recording intent now
      * would only queue a run that fails or expires. Fails open (the model
      * call still enforces the limits).

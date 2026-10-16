@@ -27,7 +27,7 @@ flowchart TB
 
 - **Ett OneUptime-projekt och rätten att skapa det du för över.** Projektägare och projektadministratörer kan föra över allt. Andra roller kan också köra en import och föra över de typer av poster de får skapa. Resten visas som inte överfört, med orsaken.
 - **En Uptime-API-token från Better Stack.** Använd en teambaserad Uptime-token: den läser det teamets monitorer, heartbeats och statussidor. Importen skriver aldrig till Better Stack.
-- **En betalningsmetod, i OneUptime Cloud.** Monitorer som kör kontroller faktureras efter användning, även med abonnemanget Free, så lägg till en under **Projektinställningar** > **Fakturering** innan du importerar. Utan en visas de monitorerna som inte överförda.
+- **En betalningsmetod, i OneUptime Cloud.** Monitorer som kör kontroller faktureras efter användning, även med abonnemanget Free, så lägg till en under **Projektinställningar** > **Fakturering och fakturor** > **Fakturering** innan du importerar. Utan en visas de monitorerna som inte överförda.
 
 ## Importera ditt Better Stack-konto
 

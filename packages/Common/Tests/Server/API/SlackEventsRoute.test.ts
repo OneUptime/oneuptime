@@ -1226,7 +1226,7 @@ describe("@mentions are answered wherever they are", () => {
       threadPost(
         OPS,
         notificationTs,
-        "AI features are disabled for this project. Enable them in Project Settings → AI Features.",
+        "AI features are disabled for this project. Enable them in Project Settings → AI → AI Features.",
       ),
     ]);
     expect(assistantCalls).toEqual([]);
@@ -1789,7 +1789,7 @@ describe("direct messages to the app", () => {
  */
 describe("help in a direct message: the commands, with or without AI", () => {
   const AI_OFF: string =
-    "AI features are disabled for this project. Enable them in Project Settings → AI Features.";
+    "AI features are disabled for this project. Enable them in Project Settings → AI → AI Features.";
 
   function helpText(): string {
     return SlackDirectMessageHelp.getAnswerText();

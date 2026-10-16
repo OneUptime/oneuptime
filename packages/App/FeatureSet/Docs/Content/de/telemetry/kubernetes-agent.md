@@ -866,7 +866,7 @@ Verschärfen Sie bei Bedarf: Erhöhen Sie `minSeverity` auf `ERROR`, fügen Sie 
 
 ### Die Wirkung messen
 
-Die Telemetrienutzung wird pro Tag gezählt; prüfen Sie den Verlauf daher über ein, zwei Tage unter **Projekteinstellungen → Nutzungsverlauf**: Er bewegt sich nicht in dem Moment, in dem Sie eine Änderung anwenden. Ändern Sie jeweils eine Einstellung (Logs aus, dann das Intervall hoch, dann eBPF reduziert), damit Sie sehen, was jede bewirkt hat, statt alles auf einmal herunterzuregeln und einen Monitor zu verlieren, auf den Sie sich verlassen haben.
+Die Telemetrienutzung wird pro Tag gezählt; prüfen Sie den Verlauf daher über ein, zwei Tage unter **Projekteinstellungen → Abrechnung und Rechnungen → Nutzungsverlauf**: Er bewegt sich nicht in dem Moment, in dem Sie eine Änderung anwenden. Ändern Sie jeweils eine Einstellung (Logs aus, dann das Intervall hoch, dann eBPF reduziert), damit Sie sehen, was jede bewirkt hat, statt alles auf einmal herunterzuregeln und einen Monitor zu verlieren, auf den Sie sich verlassen haben.
 
 ## Fehlerbehebung
 

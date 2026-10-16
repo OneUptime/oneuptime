@@ -153,7 +153,7 @@ flowchart TB
 
 ### Avant de commencer
 
-- **Le domaine parent doit être vérifié.** La liste déroulante **Domaine** ne propose que les domaines vérifiés sous **Paramètres du projet → Domaines**, où vous prouvez qu'un domaine vous appartient avec un enregistrement TXT. Le lien **Ajouter un domaine** à côté du champ ouvre cette page dans un nouvel onglet.
+- **Le domaine parent doit être vérifié.** La liste déroulante **Domaine** ne propose que les domaines vérifiés sous **Paramètres du projet → Avancé → Domaines**, où vous prouvez qu'un domaine vous appartient avec un enregistrement TXT. Le lien **Ajouter un domaine** à côté du champ ouvre cette page dans un nouvel onglet.
 - **Votre installation a besoin d'un enregistrement CNAME pour les pages de statut.** OneUptime Cloud en a un. Sur une installation auto-hébergée, faites-le pointer vers un nom d'hôte qui pointe lui-même vers votre serveur OneUptime (un enregistrement A), et assurez-vous que le serveur répond sur le port 80, où Let's Encrypt le vérifie. Sans lui, la carte et la boîte de dialogue **Configuration DNS** indiquent « Custom Domains not enabled for this OneUptime installation » au lieu d'afficher un enregistrement.
 
 :::tabs

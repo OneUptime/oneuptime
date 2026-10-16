@@ -27,7 +27,7 @@ flowchart TB
 
 - **A OneUptime project, and the right to create what you bring over.** Project Owners and Project Admins can bring everything over. Other roles can run an import too, and bring over the kinds of records they may create. Everything else is shown as not brought over, with the reason.
 - **A StatusCake API key.** The import never writes to StatusCake.
-- **A payment method, on OneUptime Cloud.** Monitors that run checks are billed as they are used, even on the Free plan, so add one under **Project Settings** > **Billing** before you import. Without one, those monitors are shown as not brought over.
+- **A payment method, on OneUptime Cloud.** Monitors that run checks are billed as they are used, even on the Free plan, so add one under **Project Settings** > **Billing and Invoices** > **Billing** before you import. Without one, those monitors are shown as not brought over.
 
 ## Import your StatusCake account
 

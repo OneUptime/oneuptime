@@ -666,7 +666,7 @@ describe.each(
         ).toEqual([`${product.reviewSettings} → ${settingsHref}`]);
       });
 
-      test("a skip because the project reached its own daily AI limit points at Project Settings → AI Features", async () => {
+      test("a skip because the project reached its own daily AI limit points at Project Settings → AI → AI Features", async () => {
         serve(
           ok(
             withInsights(product, [skipped("project_daily_limit_reached", 3)]),
@@ -684,7 +684,7 @@ describe.each(
         expect(
           linksIn(within(item).getByTestId("ai-insights-next-step-link")),
         ).toEqual([
-          `Go to Project Settings → AI Features → ${pathOf(PageMap.SETTINGS_AI_FEATURES)}`,
+          `Go to Project Settings → AI → AI Features → ${pathOf(PageMap.SETTINGS_AI_FEATURES)}`,
         ]);
       });
 

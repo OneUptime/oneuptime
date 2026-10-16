@@ -255,7 +255,7 @@ describe("an SMS the Notification service does not send", () => {
         `SMS not sent: ${getProjectNotificationChannelOffMessage(ProjectNotificationChannel.SMS)}`,
       );
       expect((error as BadDataException).message).toBe(
-        "SMS not sent: SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notification Settings.",
+        "SMS not sent: SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Settings.",
       );
       // The tenant's setting, not a defect.
       expect(declaredErrorClass(error)).toEqual({
@@ -312,7 +312,7 @@ describe("an SMS the Notification service does not send", () => {
 
       expect(call[0]).toEqual(PROJECT_ID);
       expect(body).toContain(
-        "This SMS was not sent. SMS is off in this project. If it should be on, turn it on in Project Settings &gt; Notification Settings.",
+        "This SMS was not sent. SMS is off in this project. If it should be on, turn it on in Project Settings &gt; Notifications &gt; Notification Settings.",
       );
       expect(body).toContain(`<a href="${link}">${link}</a>`);
       expect(body).not.toContain("Please enable");
@@ -340,7 +340,7 @@ describe("an SMS the Notification service does not send", () => {
         })}`,
       );
       expect((error as BadDataException).message).toBe(
-        "SMS not sent: This project's balance is used up. A project owner or someone with Manage Billing can add balance in Project Settings > Notification Settings.",
+        "SMS not sent: This project's balance is used up. A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
       );
       expect(createMessage).not.toHaveBeenCalled();
       expect(loggedRows()).toHaveLength(1);
@@ -355,7 +355,7 @@ describe("an SMS the Notification service does not send", () => {
       );
 
       expect((error as BadDataException).message).toBe(
-        "SMS not sent: This project's balance (0.01 USD) is less than this SMS costs (0.10 USD). A project owner or someone with Manage Billing can add balance in Project Settings > Notification Settings.",
+        "SMS not sent: This project's balance (0.01 USD) is less than this SMS costs (0.10 USD). A project owner or someone with Manage Billing can add balance in Project Settings > Notifications > Notification Settings.",
       );
       expect(createMessage).not.toHaveBeenCalled();
       expect(loggedRows()[0]!.status).toBe(SmsStatus.LowBalance);

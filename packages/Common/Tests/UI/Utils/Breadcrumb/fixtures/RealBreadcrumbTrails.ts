@@ -2659,7 +2659,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getSettingsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/settings/microsoft-teams-integration",
-    titles: ["Project", "Settings", "Microsoft Teams Integration"],
+    titles: ["Project", "Settings", "Microsoft Teams"],
   },
   {
     getter: "getSettingsBreadcrumbs",
@@ -2679,7 +2679,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getSettingsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/settings/slack-integration",
-    titles: ["Project", "Settings", "Slack Integration"],
+    titles: ["Project", "Settings", "Slack"],
   },
   {
     getter: "getSettingsBreadcrumbs",
@@ -3251,7 +3251,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getUserSettingsBreadcrumbs",
     pagePattern:
       "/dashboard/:projectId/user-settings/microsoft-teams-integration",
-    titles: ["Project", "User Settings", "Microsoft Teams Integration"],
+    titles: ["Project", "User Settings", "Microsoft Teams"],
   },
   {
     getter: "getUserSettingsBreadcrumbs",
@@ -3281,7 +3281,7 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getUserSettingsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/user-settings/slack-integration",
-    titles: ["Project", "User Settings", "Slack Integration"],
+    titles: ["Project", "User Settings", "Slack"],
   },
   {
     getter: "getUsersBreadcrumbs",

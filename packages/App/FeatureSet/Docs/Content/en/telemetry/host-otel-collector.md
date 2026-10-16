@@ -1133,7 +1133,7 @@ service:
 Add a `logs` pipeline back, with a narrow `filelog` or `journald` receiver, when you need it.
 
 > [!CAUTION]
-> Watch what you cut. A log monitor needs its logs to arrive, so filtering out a severity or a channel silences the monitors that watch it, and the Host alert templates need the `*.utilization` metrics. Trim the data you do not act on, not the data a monitor watches, and check the drop under **Project Settings → Usage History** a day or two later (usage is counted per day) before you pull the next lever.
+> Watch what you cut. A log monitor needs its logs to arrive, so filtering out a severity or a channel silences the monitors that watch it, and the Host alert templates need the `*.utilization` metrics. Trim the data you do not act on, not the data a monitor watches, and check the drop under **Project Settings → Billing and Invoices → Usage History** a day or two later (usage is counted per day) before you pull the next lever.
 
 ## Self-hosted OneUptime and proxies
 

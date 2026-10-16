@@ -240,7 +240,7 @@
     "accessWriteDescription": "查看数据并进行更改：确认和解决事件与警报、添加备注，以及创建、更新或删除资源。",
     "accessReadTitle": "只读",
     "accessReadDescription": "查看事件、警报、监视器、状态页和遥测数据。不能更改任何内容。",
-    "permissionsNote": "客户端以您的身份执行操作，所能做的事绝不会超出您本人在此项目中的权限。您可以随时前往“项目设置 > MCP 服务器”断开它的连接。",
+    "permissionsNote": "客户端以您的身份执行操作，所能做的事绝不会超出您本人在此项目中的权限。您可以随时前往“项目设置 > 人工智能 > MCP 服务器”断开它的连接。",
     "authorizeButton": "授权",
     "denyButton": "取消",
     "redirecting": "正在返回 {{clientName}}...",
@@ -286,7 +286,7 @@
       "bought_from_reseller": "{{name}} – 由经销商计费"
     },
     "nothingToChoose": "您的项目均无法使用此购买，并且您无法在此服务器上创建项目。请联系此购买所要支付项目的所有者，由其完成设置。",
-    "billingNote": "您的套餐和用量将按 oneuptime.com/pricing 上的价格通过 {{marketplace}} 计费。您可以随时在“项目设置 → 账单”中更改套餐。",
+    "billingNote": "您的套餐和用量将按 oneuptime.com/pricing 上的价格通过 {{marketplace}} 计费。您可以随时在“项目设置 → 账单和发票 → 账单”中更改套餐。",
     "submitButton": "设置购买",
     "notNowButton": "暂不设置",
     "redirecting": "购买已设置完成。正在前往您的项目…",

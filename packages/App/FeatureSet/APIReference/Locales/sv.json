@@ -98,7 +98,7 @@
       "title": "Autentisering",
       "intro": "Du måste autentisera dina förfrågningar för att komma åt någon av slutpunkterna i OneUptime-API:et. I den här guiden tittar vi på hur autentisering fungerar. OneUptime erbjuder ett sätt att autentisera dina API-förfrågningar - genom att använda en API Key.",
       "generateApiKey": "Generera en API Key",
-      "generateApiKeyBody": "Gå till <strong>Projektinställningar</strong> > <strong>API Keys</strong>. Skapa en ny API Key. Observera: Nya API Keys har inga tilldelade behörigheter, så du måste tilldela en behörighet innan du kan använda den.",
+      "generateApiKeyBody": "Gå till <strong>Projektinställningar</strong> > <strong>Avancerad</strong> > <strong>API-nycklar</strong>. Skapa en ny API Key. Observera: Nya API Keys har inga tilldelade behörigheter, så du måste tilldela en behörighet innan du kan använda den.",
       "readMorePermissions": "Läs mer om behörigheter",
       "projectId": "Projekt-ID",
       "projectIdBody": "Gå till <strong>Projektinställningar</strong> > <strong>Projekt</strong>. Du bör se ditt projekt-ID där.",
@@ -132,7 +132,7 @@
       "metaDescription": "Lär dig hur behörigheter fungerar med OneUptime",
       "badge": "Guide",
       "title": "Behörigheter",
-      "intro": "Din API-token behöver behörigheter för att skapa, uppdatera, läsa eller ta bort någon resurs. Om du inte har behörigheter att göra en förfrågan kommer en <code>4xx</code>-status att skickas som svar. Du kan hantera behörigheter för din API Key i Projektinställningar > API Keys.",
+      "intro": "Din API-token behöver behörigheter för att skapa, uppdatera, läsa eller ta bort någon resurs. Om du inte har behörigheter att göra en förfrågan kommer en <code>4xx</code>-status att skickas som svar. Du kan hantera behörigheter för din API Key i Projektinställningar > Avancerad > API-nycklar.",
       "jumpToCategory": "Hoppa till en kategori"
     },
     "errors": {

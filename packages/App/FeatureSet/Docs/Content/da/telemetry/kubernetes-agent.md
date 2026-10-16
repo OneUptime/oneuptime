@@ -866,7 +866,7 @@ Stram yderligere op efter behov: hæv `minSeverity` til `ERROR`, føj `metrics` 
 
 ### Mål effekten
 
-Telemetriforbrug tælles pr. dag, så kontrollér udviklingen under **Projektindstillinger → Brugshistorik** over en dag eller to: den rykker sig ikke i det øjeblik, du anvender en ændring. Skift én indstilling ad gangen (logs fra, derefter intervallet op, derefter eBPF begrænset), så du kan se, hvad hver enkelt gjorde, i stedet for at skrue alt ned på én gang og miste en monitor, du var afhængig af.
+Telemetriforbrug tælles pr. dag, så kontrollér udviklingen under **Projektindstillinger → Fakturering og fakturaer → Brugshistorik** over en dag eller to: den rykker sig ikke i det øjeblik, du anvender en ændring. Skift én indstilling ad gangen (logs fra, derefter intervallet op, derefter eBPF begrænset), så du kan se, hvad hver enkelt gjorde, i stedet for at skrue alt ned på én gang og miste en monitor, du var afhængig af.
 
 ## Fejlfinding
 

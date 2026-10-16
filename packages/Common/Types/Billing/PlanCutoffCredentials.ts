@@ -96,7 +96,7 @@ export const getCredentialsStoppedByMove: (data: {
 export const getApiKeysStoppedMessage: (planName: string) => string = (
   planName: string,
 ): string => {
-  return `API keys need the ${planName} plan. This project's plan does not include them, so its API keys stopped working. The keys are kept: upgrade the project to ${planName} in Project Settings > Billing and they work again.`;
+  return `API keys need the ${planName} plan. This project's plan does not include them, so its API keys stopped working. The keys are kept: upgrade the project to ${planName} in Project Settings > Billing and Invoices > Billing and they work again.`;
 };
 
 /*
@@ -107,7 +107,7 @@ export const getApiKeysStoppedMessage: (planName: string) => string = (
 export const getScimStoppedMessage: (planName: string) => string = (
   planName: string,
 ): string => {
-  return `SCIM provisioning needs the ${planName} plan. This project's plan does not include it, so its SCIM connections can only remove people: requests that add or change people or groups are refused. The connections are kept: upgrade the project to ${planName} in Project Settings > Billing and they work fully again.`;
+  return `SCIM provisioning needs the ${planName} plan. This project's plan does not include it, so its SCIM connections can only remove people: requests that add or change people or groups are refused. The connections are kept: upgrade the project to ${planName} in Project Settings > Billing and Invoices > Billing and they work fully again.`;
 };
 
 // The message for one of the tables, by name.

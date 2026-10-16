@@ -24,7 +24,7 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
 configure({ asyncUtilTimeout: 15000 });
 
 /*
- * Project Settings > Video Calls, rendered for real - the provider gallery,
+ * Project Settings > Workspace > Video Calls, rendered for real - the provider gallery,
  * the connections table (a real ModelTable), and the connection form with
  * its setup guide and test meeting - with only the API, the permissions and
  * the signed-in user stubbed.

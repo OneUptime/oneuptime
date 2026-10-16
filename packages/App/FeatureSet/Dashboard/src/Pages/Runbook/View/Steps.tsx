@@ -2046,7 +2046,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               />
                                               <p className="text-xs text-gray-500 mt-1.5">
                                                 {translator.translateText(
-                                                  "Runs on the LLM provider selected below (Settings › AI › LLM Providers). Calls are metered like any other AI feature. Pair with “Require approval” below to have a human review the AI’s answer before the next step runs.",
+                                                  "Runs on the LLM provider selected below (Project Settings › AI › LLM Providers). Calls are metered like any other AI feature. Pair with “Require approval” below to have a human review the AI’s answer before the next step runs.",
                                                 )}
                                               </p>
                                               <div className="mt-2">

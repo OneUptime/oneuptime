@@ -27,7 +27,7 @@ flowchart TB
 
 - **Un proyecto de OneUptime y el derecho a crear lo que traes.** Los propietarios y administradores del proyecto pueden traerlo todo. Otros roles también pueden ejecutar una importación y traer los tipos de registros que pueden crear. Lo demás se muestra como no traído, con el motivo.
 - **Un archivo de Uptime Kuma.** En Uptime Kuma 1, la copia de seguridad JSON contiene cada monitor con sus ajustes. Uptime Kuma 2 no tiene copia de seguridad, así que guarda su página de métricas: indica el nombre, el tipo y la dirección de cada monitor, pero no cada cuánto se comprueba ni qué busca.
-- **Un método de pago, en OneUptime Cloud.** Los monitores que hacen comprobaciones se cobran según su uso, incluso en el plan Free, así que añade uno en **Ajustes del proyecto** > **Facturación** antes de importar. Sin él, esos monitores se muestran como no traídos.
+- **Un método de pago, en OneUptime Cloud.** Los monitores que hacen comprobaciones se cobran según su uso, incluso en el plan Free, así que añade uno en **Ajustes del proyecto** > **Facturación y facturas** > **Facturación** antes de importar. Sin él, esos monitores se muestran como no traídos.
 
 ## Importa tus monitores de Uptime Kuma
 

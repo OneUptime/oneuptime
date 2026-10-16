@@ -1977,7 +1977,7 @@ export default class RemediationExecutionRunner {
 
     // === false: the column is NOT NULL DEFAULT true (see Project.enableAi).
     if (!project || project.enableAi === false) {
-      return "AI was disabled for this project before the run started (Project Settings → AI Features) — nothing was run or proposed.";
+      return "AI was disabled for this project before the run started (Project Settings → AI → AI Features) — nothing was run or proposed.";
     }
 
     return null;

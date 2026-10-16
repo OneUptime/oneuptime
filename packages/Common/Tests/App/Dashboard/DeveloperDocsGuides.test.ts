@@ -191,7 +191,7 @@ describe("the Incidents list's Terraform page (the maintainer's screenshot)", ()
     const markdown: string = guide.steps[0]?.markdown || "";
 
     expect(markdown).toContain(
-      `[Project Settings → API Keys](${API_KEYS_URL})`,
+      `[Project Settings → Advanced → API Keys](${API_KEYS_URL})`,
     );
     expect(markdown).toContain("permission to manage incidents");
     expect(markdown).toContain('export ONEUPTIME_API_KEY="your-api-key"');

@@ -331,7 +331,7 @@ export default class ZoomMeetingClient {
     ) {
       if (host.isSignIn) {
         return new BadDataException(
-          `Zoom no longer has the user ${host.label} that OneUptime signed in as. Reconnect Zoom in Project Settings > Video Calls. (${summary})`,
+          `Zoom no longer has the user ${host.label} that OneUptime signed in as. Reconnect Zoom in Project Settings > Workspace > Video Calls. (${summary})`,
         );
       }
 
@@ -346,7 +346,7 @@ export default class ZoomMeetingClient {
     ) {
       if (host.isSignIn) {
         return new BadDataException(
-          `Zoom no longer accepts OneUptime's sign-in for ${host.label}. Reconnect Zoom in Project Settings > Video Calls. (${summary})`,
+          `Zoom no longer accepts OneUptime's sign-in for ${host.label}. Reconnect Zoom in Project Settings > Workspace > Video Calls. (${summary})`,
         );
       }
 

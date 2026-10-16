@@ -4810,7 +4810,7 @@ function sendThreadMessage(body) {
   if (failures.has("conversation-send") || !thread) {
     throw fail(
       400,
-      "AI is turned off for this project. Turn it on in Project Settings → AI Features, then ask again.",
+      "AI is turned off for this project. Turn it on in Project Settings → AI → AI Features, then ask again.",
     );
   }
 
