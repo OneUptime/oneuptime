@@ -12,6 +12,7 @@ import Permission, {
   PermissionHelper,
   PermissionProps,
 } from "../../../Types/Permission";
+import { PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE } from "../../../Types/Team/CustomRole";
 import {
   CardSelectOption,
   CardSelectOptionGroup,
@@ -148,6 +149,51 @@ describe("the role cards", () => {
   });
 });
 
+/*
+ * A custom role's Add Role shows these cards without Project Owner, which no
+ * role holds: left out of its group, and nothing else changes.
+ */
+describe("the role cards without some roles", () => {
+  test("leave each one out of its group, and keep the rest in order", () => {
+    const groups: Array<CardSelectOptionGroup> = getRoleCardSelectOptions({
+      excludeRoles: PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE,
+    });
+    const all: Array<CardSelectOptionGroup> = getRoleCardSelectOptions();
+
+    expect(PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE).toEqual([
+      Permission.ProjectOwner,
+    ]);
+    expect(valuesOf(groups[0]!)).toEqual([Permission.ProjectAdmin]);
+    expect(
+      groups.map((group: CardSelectOptionGroup): string => {
+        return group.label;
+      }),
+    ).toEqual(["Owner", "Project Roles", "Administration", "Domain Roles"]);
+    for (let index: number = 1; index < all.length; index++) {
+      expect(groups[index]).toEqual(all[index]);
+    }
+  });
+
+  test("a group left with no role is not shown", () => {
+    const groups: Array<CardSelectOptionGroup> = getRoleCardSelectOptions({
+      excludeRoles: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    });
+
+    expect(
+      groups.map((group: CardSelectOptionGroup): string => {
+        return group.label;
+      }),
+    ).toEqual(["Project Roles", "Administration", "Domain Roles"]);
+  });
+
+  test("no filter, or an empty one, is every role", () => {
+    expect(getRoleCardSelectOptions({ excludeRoles: [] })).toEqual(
+      getRoleCardSelectOptions(),
+    );
+    expect(getRoleCardSelectOptions({})).toEqual(getRoleCardSelectOptions());
+  });
+});
+
 describe("every Add Role uses this one list", () => {
   test("a team's permissions", () => {
     const source: string = fs.readFileSync(
@@ -170,6 +216,24 @@ describe("every Add Role uses this one list", () => {
     expect(source).toContain("cardSelectOptions: getRoleCardSelectOptions()");
   });
 
+  test("a custom role's permissions, and the roles a new custom role starts with", () => {
+    for (const file of [
+      "Components/CustomRole/CustomRolePermissionTable.tsx",
+      "Components/CustomRole/CustomRoleCreateForm.ts",
+    ]) {
+      // Read as one line, so a wrap the formatter picks does not matter.
+      const source: string = fs
+        .readFileSync(path.join(DASHBOARD_SRC, file), "utf8")
+        .split(/\s+/)
+        .join(" ");
+
+      expect(source).toContain(
+        "getRoleCardSelectOptions({ excludeRoles: PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE, })",
+      );
+      expect(source).not.toContain("getRolePermissionProps");
+    }
+  });
+
   /*
    * The roles read the same wherever they are picked: a plain grid under
    * their four headings, which is how the maintainer keeps a team's
@@ -180,6 +244,7 @@ describe("every Add Role uses this one list", () => {
   test.each([
     ["a team's", "Components/Team/TeamPermissionTable.tsx"],
     ["an API key's", "Components/ApiKey/ApiKeyPermissionTable.tsx"],
+    ["a custom role's", "Components/CustomRole/CustomRolePermissionTable.tsx"],
   ])("%s Add Role is the same plain grid", (_name: string, file: string) => {
     const source: string = fs.readFileSync(
       path.join(DASHBOARD_SRC, file),

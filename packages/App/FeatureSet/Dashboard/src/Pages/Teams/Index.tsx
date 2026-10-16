@@ -5,7 +5,7 @@ import PageComponentProps from "../PageComponentProps";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -15,10 +15,23 @@ import useCustomFieldFacets from "../../Components/CustomFields/useCustomFieldFa
 import {
   ROLE_ACCESS_FIELD_KEY,
   RoleAccessHolder,
+  getCustomRoleAccessValue,
+  getRoleAccessCustomRoleId,
   getRoleAccessOptionsForCurrentUser,
   getRoleAccessRole,
+  giveCustomRoleAccess,
   giveRoleAccess,
 } from "../../Components/Permission/RoleAccess";
+import {
+  CustomRoleSummary,
+  getCustomRoleCardSelectOption,
+  loadCustomRoleGrants,
+  loadCustomRoles,
+} from "../../Components/CustomRole/CustomRoleOptions";
+import GrantablePermission, {
+  TeamPermissionGrant,
+} from "Common/UI/Utils/GrantablePermission";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import RoleAccessNotice from "../../Components/Permission/RoleAccessNotice";
 import {
   getNewTeamPage,
@@ -35,6 +48,7 @@ import React, {
   FunctionComponent,
   MutableRefObject,
   ReactElement,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -79,18 +93,91 @@ export const getTeamDeleteDisabledReason: (team: Team) => string | undefined = (
     : undefined;
 };
 
+/*
+ * What a new team starts with, picked under Access: a built-in role, one of
+ * the project's custom roles, or nothing (Choose permissions later).
+ */
+interface PendingAccess {
+  role: Permission | null;
+  customRoleId: string | null;
+}
+
+const NO_ACCESS: PendingAccess = { role: null, customRoleId: null };
+
 const Teams: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  /*
+   * The project's custom roles this user could give a team - every
+   * permission in each one being one they may hand on - as Access cards.
+   * Read once, after the page opens: null until then, and none for someone
+   * who may not read them.
+   */
+  const [customRoleOptions, setCustomRoleOptions] =
+    useState<Array<CardSelectOption> | null>(null);
+
+  useEffect(() => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (!projectId) {
+      setCustomRoleOptions([]);
+      return;
+    }
+
+    Promise.all([
+      loadCustomRoles({ projectId: projectId }),
+      loadCustomRoleGrants({ projectId: projectId }),
+    ])
+      .then(
+        ([roles, grants]: [
+          Array<CustomRoleSummary>,
+          Map<string, Array<TeamPermissionGrant>>,
+        ]) => {
+          setCustomRoleOptions(
+            roles
+              .filter((role: CustomRoleSummary): boolean => {
+                /*
+                 * A role that holds nothing yet gives a new team nothing,
+                 * as Choose permissions later does: it is given from the
+                 * team's page once it holds something.
+                 */
+                return (
+                  role.permissionCount > 0 &&
+                  GrantablePermission.canCurrentUserGrantTeam(
+                    grants.get(role.id) || [],
+                  )
+                );
+              })
+              .map((role: CustomRoleSummary): CardSelectOption => {
+                return getCustomRoleCardSelectOption(translator, role, {
+                  value: getCustomRoleAccessValue(role.id),
+                  saysItIsCustom: true,
+                });
+              }),
+          );
+        },
+      )
+      .catch(() => {
+        // Roles the user may not read are roles Create Team can't offer.
+        setCustomRoleOptions([]);
+      });
+  }, []);
+
   /*
    * The Access cards this user may pick from: the roles they may hand on,
-   * then Choose permissions later. Empty for someone who may not add
-   * permissions to a team, who is then not asked. Read once.
+   * the custom roles they could give, then Choose permissions later. Empty
+   * for someone who may not add permissions to a team, who is then not
+   * asked.
    */
   const accessOptions: Array<CardSelectOption> =
     useMemo((): Array<CardSelectOption> => {
-      return getRoleAccessOptionsForCurrentUser(RoleAccessHolder.Team);
-    }, []);
+      return getRoleAccessOptionsForCurrentUser(
+        RoleAccessHolder.Team,
+        customRoleOptions,
+      );
+    }, [customRoleOptions]);
 
   /*
    * Name, Access and, folded under Advanced, the description
@@ -109,8 +196,8 @@ const Teams: FunctionComponent<PageComponentProps> = (
    * form is submitted and used once the team exists; cleared as it is used,
    * so a later team never inherits it.
    */
-  const pendingAccessRole: MutableRefObject<Permission | null> =
-    useRef<Permission | null>(null);
+  const pendingAccess: MutableRefObject<PendingAccess> =
+    useRef<PendingAccess>(NO_ACCESS);
 
   const [accessNotice, setAccessNotice] = useState<AccessNotice | null>(null);
 
@@ -240,9 +327,12 @@ const Teams: FunctionComponent<PageComponentProps> = (
           _miscDataProps: JSONObject,
           formValues: JSONObject,
         ): Promise<Team> => {
-          pendingAccessRole.current = getRoleAccessRole(
-            formValues[ROLE_ACCESS_FIELD_KEY],
-          );
+          pendingAccess.current = {
+            role: getRoleAccessRole(formValues[ROLE_ACCESS_FIELD_KEY]),
+            customRoleId: getRoleAccessCustomRoleId(
+              formValues[ROLE_ACCESS_FIELD_KEY],
+            ),
+          };
 
           return item;
         }}
@@ -250,8 +340,9 @@ const Teams: FunctionComponent<PageComponentProps> = (
           createdTeam: Team,
           modalType?: ModalType,
         ): Promise<Team> => {
-          const role: Permission | null = pendingAccessRole.current;
-          pendingAccessRole.current = null;
+          const access: PendingAccess = pendingAccess.current;
+          pendingAccess.current = NO_ACCESS;
+          const role: Permission | null = access.role;
 
           if (modalType !== ModalType.Create || !createdTeam.id) {
             return createdTeam;
@@ -259,14 +350,22 @@ const Teams: FunctionComponent<PageComponentProps> = (
 
           const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-          if (role && projectId) {
+          if ((role || access.customRoleId) && projectId) {
             try {
-              await giveRoleAccess({
-                holder: RoleAccessHolder.Team,
-                holderId: createdTeam.id,
-                projectId: projectId,
-                role: role,
-              });
+              if (access.customRoleId) {
+                await giveCustomRoleAccess({
+                  teamId: createdTeam.id,
+                  projectId: projectId,
+                  customRoleId: new ObjectID(access.customRoleId),
+                });
+              } else if (role) {
+                await giveRoleAccess({
+                  holder: RoleAccessHolder.Team,
+                  holderId: createdTeam.id,
+                  projectId: projectId,
+                  role: role,
+                });
+              }
             } catch (err) {
               /*
                * The team exists and stays: say so, say why it has no
@@ -295,6 +394,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
               teamId: createdTeam.id,
               page: getNewTeamPage({
                 role: role,
+                customRoleId: access.customRoleId,
                 wasAccessAsked: accessOptions.length > 0,
               }),
             }),

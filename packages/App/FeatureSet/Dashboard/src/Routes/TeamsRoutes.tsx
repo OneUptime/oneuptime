@@ -2,6 +2,8 @@ import ComponentProps from "../Pages/PageComponentProps";
 import TeamsLayout from "../Pages/Teams/Layout";
 import TeamsIndex from "../Pages/Teams/Index";
 import TeamCustomFields from "../Pages/Teams/CustomFields";
+import TeamRoles from "../Pages/Teams/Roles";
+import TeamRoleView from "../Pages/Teams/RoleView";
 
 import TeamsViewLayout from "../Pages/Teams/View/Layout";
 import TeamsViewIndex from "../Pages/Teams/View/Index";
@@ -137,6 +139,26 @@ const TeamsRoutes: FunctionComponent<ComponentProps> = (
             <TeamCustomFields
               {...props}
               pageRoute={RouteMap[PageMap.TEAM_CUSTOM_FIELDS] as Route}
+            />
+          }
+        />
+
+        {/* The project's custom roles and the built-in ones, and a role's own page. */}
+        <PageRoute
+          path={TeamsRoutePath[PageMap.TEAM_ROLES] || ""}
+          element={
+            <TeamRoles
+              {...props}
+              pageRoute={RouteMap[PageMap.TEAM_ROLES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={TeamsRoutePath[PageMap.TEAM_ROLE_VIEW] || ""}
+          element={
+            <TeamRoleView
+              {...props}
+              pageRoute={RouteMap[PageMap.TEAM_ROLE_VIEW] as Route}
             />
           }
         />

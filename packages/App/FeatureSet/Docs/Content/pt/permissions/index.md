@@ -37,6 +37,7 @@ flowchart TB
 | Equipe | Um grupo com nome dentro de um projeto que carrega permissões. |
 | Membro da equipe | Um usuário que foi convidado para uma equipe e aceitou. |
 | Permissão | Uma capacidade única, por ex. `CreateProjectMonitor`, ou uma função que agrupa muitas, por ex. `MonitorAdmin`. |
+| Função personalizada | Um conjunto de permissões que você nomeia uma vez e dá a equipes. |
 | Escopo | Até onde vai uma permissão concedida: todos os recursos, só os próprios ou só os rotulados. |
 | Proprietário | Um usuário ou equipe marcado como responsável por um recurso específico. |
 | Rótulo | Uma marca que você coloca nos recursos, usada para restringir permissões e para organizar. |
@@ -131,6 +132,24 @@ Uma permissão para alterar ou excluir algo só alcança o que você também pod
 Essas também são as chaves que você usa ao criar chaves de API, e as que a API e o provedor Terraform esperam.
 
 A lista completa está na [Referência de permissões](/docs/permissions/reference).
+
+### Funções personalizadas
+
+Uma função personalizada é um conjunto de permissões que você nomeia uma vez e dá a equipes: por exemplo, um «Responsável por incidentes» feito de `IncidentMember`, `AlertMember` e `OnCallViewer`, ou um «Líder de equipe». Cada equipe a que você a dá recebe as mesmas permissões, e você as altera para todas essas equipes em um só lugar. No OneUptime Cloud, as funções personalizadas exigem o plano Scale, como alterar as permissões de uma equipe.
+
+:::steps
+1. Abra **Equipes** no menu **Produtos**, em **Configurações**, depois **Funções**, e clique em **Criar: Função personalizada**.
+2. Digite o **Nome** dela e escolha em **Permissões** as funções integradas que ela reúne, para cada recurso do projeto. A descrição fica em **Mais campos**.
+3. Crie a função. Ela abre na sua página, onde **Adicionar função** adiciona outra função integrada e **Adicionar permissão** (no menu **⋯** do cartão) uma permissão avulsa, cada uma com um escopo e rótulos, como em uma equipe.
+4. Clique em **Dar a uma equipe** em **Equipes com esta função**. A página **Permissões** de uma equipe também tem **Adicionar função personalizada**, e **Criar equipe** oferece em **Acesso** as funções personalizadas que você poderia dar.
+:::
+
+- Os membros de uma equipe recebem cada permissão das funções personalizadas dela, com o mesmo escopo e os mesmos rótulos, exatamente como se a equipe as tivesse. Um bloqueio na equipe continua vencendo.
+- Uma função continua ligada às equipes que a têm: uma alteração nela chega a todas na hora, e a página da função diz quantas equipes e pessoas são. **Remover** tira a função de uma equipe. Excluir a própria função tira as permissões dela de cada equipe que a tem; as equipes mantêm seus membros e suas outras funções e permissões.
+- Você só pode pôr em uma função, e dar como função a uma equipe, o que poderia dar à equipe diretamente: uma função com uma permissão que você não tem com o mesmo escopo ou um mais amplo é recusada, e a recusa nomeia a permissão. Uma função nunca contém `ProjectOwner`, e **Owners** e **Admin** nunca recebem uma.
+- A página **Permissões** de uma equipe lista as funções personalizadas dela acima das permissões próprias. O que uma função dá é alterado na página da função, não na da equipe.
+- Chaves de API não recebem funções personalizadas. Uma chave serve a uma única integração, então dê a ela exatamente as permissões de que precisa na página dela.
+- As funções integradas aparecem em **Funções integradas**, no fim da página **Funções**.
 
 ### Permitir e bloquear
 

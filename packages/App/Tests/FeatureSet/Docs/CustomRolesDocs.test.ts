@@ -1,0 +1,298 @@
+import ApiKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
+import CustomRole from "Common/Models/DatabaseModels/CustomRole";
+import CustomRolePermission from "Common/Models/DatabaseModels/CustomRolePermission";
+import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Entities from "Common/Models/DatabaseModels/Index";
+import TeamCustomRole from "Common/Models/DatabaseModels/TeamCustomRole";
+import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
+import Permission, {
+  PermissionHelper,
+  PermissionProps,
+} from "Common/Types/Permission";
+import {
+  isPermissionAllowedInCustomRole,
+  PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE,
+} from "Common/Types/Team/CustomRole";
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
+
+/*
+ * CUSTOM ROLES ON USERS, TEAMS & PERMISSIONS: what the docs say about them
+ * is what the product does.
+ *
+ * The section (Permissions > Custom roles) walks through making a role and
+ * giving it to teams, then says how a role behaves. Each claim is held here
+ * to the code that makes it true, so a change to the product that would
+ * leave the docs behind fails here:
+ *
+ *   - the example role is one the Create Custom Role form can make: built-in
+ *     roles a custom role may hold;
+ *   - a role never holds Project Owner (PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE);
+ *   - custom roles take the plan changing a team's permissions takes;
+ *   - API keys take no custom role: no key model points at one;
+ *   - every button and page the steps name is drawn by the Dashboard with
+ *     that English label.
+ *
+ * Every docs language has the section, on the line the English page has it
+ * (PermissionsAndSelfHostedDocsTranslations holds the rest of each
+ * translation, label by label).
+ */
+
+const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
+const CONTENT_DIR: string = path.join(REPO_ROOT, "App/FeatureSet/Docs/Content");
+const DASHBOARD_SRC: string = path.join(
+  REPO_ROOT,
+  "App/FeatureSet/Dashboard/src",
+);
+const PAGE: string = "permissions/index.md";
+
+const EXAMPLE_ROLES: Array<Permission> = [
+  Permission.IncidentMember,
+  Permission.AlertMember,
+  Permission.OnCallViewer,
+];
+
+function readPage(language: string): string {
+  return fs.readFileSync(path.join(CONTENT_DIR, language, PAGE), "utf8");
+}
+
+function readSource(file: string): string {
+  return fs.readFileSync(path.join(DASHBOARD_SRC, file), "utf8");
+}
+
+// The English section, from its heading to the next heading of its level.
+function englishSection(): string {
+  const page: string = readPage("en");
+  const start: number = page.indexOf("\n### Custom roles\n");
+
+  expect(start).toBeGreaterThan(0);
+
+  const end: number = page.indexOf("\n### ", start + 1);
+
+  return page.slice(start, end);
+}
+
+// The line (0-based) the English page starts the section on.
+function sectionLine(): number {
+  return readPage("en").split("\n").indexOf("### Custom roles");
+}
+
+describe("the custom roles section", () => {
+  test("sits under Permissions, after the granular permissions", () => {
+    const page: string = readPage("en");
+
+    expect(page.indexOf("### Granular permissions")).toBeLessThan(
+      page.indexOf("### Custom roles"),
+    );
+    expect(page.indexOf("### Custom roles")).toBeLessThan(
+      page.indexOf("### Allow and block"),
+    );
+    expect(page).toContain(
+      "| Custom role | A set of permissions you name once and give to teams. |",
+    );
+  });
+
+  test.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(
+    "%s: has it, on the English page's line, with the same permissions named in code",
+    (language: string) => {
+      const lines: Array<string> = readPage(language).split("\n");
+      const start: number = sectionLine();
+      const end: number = lines.findIndex(
+        (line: string, index: number): boolean => {
+          return index > start && line.startsWith("### ");
+        },
+      );
+      const section: string = lines.slice(start, end).join("\n");
+
+      expect(lines[start]).toMatch(/^### \S/);
+      expect(section.match(/`[^`]+`/g)).toEqual([
+        "`IncidentMember`",
+        "`AlertMember`",
+        "`OnCallViewer`",
+        "`ProjectOwner`",
+      ]);
+    },
+  );
+});
+
+describe("what the section says", () => {
+  test("its example is made of built-in roles a custom role may hold", () => {
+    const roles: Array<Permission> =
+      PermissionHelper.getRolePermissionProps().map(
+        (props: PermissionProps): Permission => {
+          return props.permission;
+        },
+      );
+
+    for (const role of EXAMPLE_ROLES) {
+      expect(roles).toContain(role);
+      expect(isPermissionAllowedInCustomRole(role)).toBe(true);
+    }
+  });
+
+  test("a role never holds Project Owner", () => {
+    expect(PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE).toEqual([
+      Permission.ProjectOwner,
+    ]);
+    expect(isPermissionAllowedInCustomRole(Permission.ProjectOwner)).toBe(
+      false,
+    );
+    expect(englishSection()).toContain("A role never holds `ProjectOwner`");
+  });
+
+  test("custom roles take the plan changing a team's permissions takes", () => {
+    const teamPlan: PlanType | null =
+      new TeamPermission().getCreateBillingPlan();
+
+    expect(teamPlan).toBe(PlanType.Scale);
+
+    for (const model of [
+      new CustomRole(),
+      new CustomRolePermission(),
+      new TeamCustomRole(),
+    ]) {
+      expect(model.getCreateBillingPlan()).toBe(teamPlan);
+    }
+
+    expect(englishSection()).toContain(
+      "On OneUptime Cloud, custom roles need the Scale plan, as changing a team's permissions does.",
+    );
+  });
+
+  test("API keys take no custom role: no key model points at one", () => {
+    const pointingAtARole: Array<string> = Entities.map(
+      (modelType: { new (): DatabaseBaseModel }): DatabaseBaseModel => {
+        return new modelType();
+      },
+    )
+      .filter((model: DatabaseBaseModel): boolean => {
+        return model.getTableColumns().columns.includes("customRoleId");
+      })
+      .map((model: DatabaseBaseModel): string => {
+        return model.tableName || "";
+      })
+      .sort();
+
+    expect(pointingAtARole).toEqual([
+      "CustomRolePermission",
+      "TeamCustomRole",
+      "TeamPermission",
+    ]);
+    expect(
+      new ApiKeyPermission().getTableColumns().columns.includes("customRoleId"),
+    ).toBe(false);
+    expect(englishSection()).toContain("API keys do not take custom roles.");
+  });
+
+  test("a role's permissions are changed on the role, not on a team: a team's copy refuses a change", () => {
+    const service: string = fs.readFileSync(
+      path.join(REPO_ROOT, "Common/Server/Services/TeamPermissionService.ts"),
+      "utf8",
+    );
+
+    expect(service).toContain("assertNoRoleCopies");
+    expect(englishSection()).toContain(
+      "What a role gives is changed on the role's page, not on the team's.",
+    );
+  });
+});
+
+describe("the labels the steps name", () => {
+  /*
+   * Each bold label of the section, with the Dashboard source that draws it
+   * - so a renamed button fails here, not in a reader's hands.
+   */
+  const DRAWN_BY: ReadonlyArray<{
+    label: string;
+    file: string;
+    source: string;
+  }> = [
+    {
+      label: "Roles",
+      file: "Pages/Teams/SideMenu.tsx",
+      source: 'title: "Roles"',
+    },
+    {
+      // The Roles table's create button: "Create" and its singular name.
+      label: "Create Custom Role",
+      file: "Pages/Teams/Roles.tsx",
+      source: 'singularName="Custom Role"',
+    },
+    {
+      label: "Name",
+      file: "Components/CustomRole/CustomRoleCreateForm.ts",
+      source: 'title: "Name"',
+    },
+    {
+      label: "Permissions",
+      file: "Components/CustomRole/CustomRoleCreateForm.ts",
+      source: 'title: "Permissions"',
+    },
+    {
+      label: "Add Role",
+      file: "Components/CustomRole/CustomRolePermissionTable.tsx",
+      source: 'title: "Add Role"',
+    },
+    {
+      label: "Add Permission",
+      file: "Components/CustomRole/CustomRolePermissionTable.tsx",
+      source: 'title: "Add Permission"',
+    },
+    {
+      label: "Give to a Team",
+      file: "Components/CustomRole/CustomRoleTeamsTable.tsx",
+      source: 'title: "Give to a Team"',
+    },
+    {
+      label: "Teams with this Role",
+      file: "Components/CustomRole/CustomRoleTeamsTable.tsx",
+      source: 'title: "Teams with this Role"',
+    },
+    {
+      label: "Remove",
+      file: "Components/CustomRole/CustomRoleTeamsTable.tsx",
+      source: 'deleteButtonText="Remove"',
+    },
+    {
+      label: "Add Custom Role",
+      file: "Components/Team/TeamCustomRoleTable.tsx",
+      source: 'title: "Add Custom Role"',
+    },
+    {
+      label: "Built-in Roles",
+      file: "Components/CustomRole/BuiltInRolesCard.tsx",
+      source: 'title="Built-in Roles"',
+    },
+  ];
+
+  test.each(DRAWN_BY)(
+    "$label is in the section, and drawn by $file",
+    (entry: { label: string; file: string; source: string }) => {
+      expect(englishSection()).toContain(`**${entry.label}**`);
+      expect(readSource(entry.file)).toContain(entry.source);
+    },
+  );
+
+  test("the description is folded under More fields, as the form folds it", () => {
+    const form: string = readSource(
+      "Components/CustomRole/CustomRoleCreateForm.ts",
+    );
+
+    expect(form).toContain("collapsibleSection: advanced");
+    expect(englishSection()).toContain(
+      "The description is under **More fields**.",
+    );
+  });
+
+  test("Create Team offers the custom roles under Access", () => {
+    const teams: string = readSource("Pages/Teams/Index.tsx");
+
+    expect(teams).toContain("getCustomRoleAccessValue(role.id)");
+    expect(englishSection()).toContain(
+      "**Create Team** offers the custom roles you could give under **Access**",
+    );
+  });
+});

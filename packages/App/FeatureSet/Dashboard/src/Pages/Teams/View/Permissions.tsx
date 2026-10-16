@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import TeamCustomRoleTable from "../../../Components/Team/TeamCustomRoleTable";
 import TeamPermissionTable, {
   PermissionType,
 } from "../../../Components/Team/TeamPermissionTable";
@@ -14,8 +15,9 @@ import React, {
 } from "react";
 
 /*
- * A team's Permissions page: what its members can do, then - folded under
- * More settings - what they can never do.
+ * A team's Permissions page: the custom roles it is given (shown once the
+ * project has a custom role), what its members can do on top of them, then
+ * - folded under More settings - what they can never do.
  *
  * Block permissions had a page of their own, next to Permissions in the
  * team's menu and as prominent as what the team can do, though few teams
@@ -35,6 +37,12 @@ const TeamViewPermissions: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
+      {/*
+       * The custom roles it is given, once the project has any: what a
+       * change to a role changes for this team.
+       */}
+      <TeamCustomRoleTable teamId={modelId} />
+
       {/* What the team's members can do: a role, or single permissions. */}
       <TeamPermissionTable
         teamId={modelId}
