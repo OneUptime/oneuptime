@@ -89,19 +89,25 @@ Agents: these are maintainer decisions and company facts. Never guess them,
 never type banking or tax details, and never press a final publish / go live /
 submit button without a maintainer's explicit go-ahead in chat.
 
-- **Where OneUptime Cloud runs matters.** OneUptime Cloud is hosted on
-  **Google Cloud (United States)**. So:
-  - **Google Cloud Marketplace** purchases can count toward the buyer's Google
-    Cloud commitment - the strongest reason buyers use a marketplace.
-  - **AWS Marketplace** lists SaaS hosted anywhere (since May 2025), but only
-    products deployed 100% on AWS count toward a buyer's AWS spend commitment
-    and get the "Deployed on AWS" badge.
+- **Nothing here may depend on where OneUptime Cloud runs.** It runs on
+  Google Cloud today and is moving to OneUptime's own data centre; the
+  `oneuptime-k8s` Google Cloud project will be deleted. The integration only
+  calls the marketplaces' APIs over the internet, so it works from anywhere,
+  and the listings must not claim a cloud OneUptime will not be on:
+  - **Google Cloud Marketplace**: the listing lives in a Google Cloud project
+    of its own (`oneuptime-marketplace`), never in `oneuptime-k8s`. Whether a
+    purchase counts toward a buyer's Google Cloud commitment is Google's rule
+    for the product, not something to promise in the listing.
+  - **AWS Marketplace** lists SaaS hosted anywhere (since May 2025). Only
+    products deployed on AWS get the "Deployed on AWS" badge and count toward
+    a buyer's AWS spend commitment, so OneUptime's listing has neither.
   - **Microsoft Marketplace** requires a transactable SaaS offer to be
     "primarily platformed on Azure" to be **purchasable in the Azure portal**
-    and Azure-benefit (MACC) eligible. A SaaS not on Azure can still be listed
-    and sold on Microsoft Marketplace if it integrates with or extends a
-    Microsoft product (OneUptime's Microsoft Teams app and Sign in with
-    Microsoft) - certification policy 1000.1. Expect the reviewer to ask.
+    and Azure-benefit (MACC) eligible, so OneUptime's is neither. A SaaS not
+    on Azure can still be listed and sold on Microsoft Marketplace if it
+    integrates with or extends a Microsoft product (OneUptime's Microsoft
+    Teams app and Sign in with Microsoft) - certification policy 1000.1.
+    Expect the reviewer to ask.
 - **Fees:** each marketplace keeps a share of every sale (about 3% for SaaS on
   all three at the time of writing - check each marketplace's current terms).
 - **Company facts** (from the Slack and Teams guides): **HackerBay, Inc.**,
@@ -233,13 +239,18 @@ The URLs each marketplace asks for (production):
 
 ## Google Cloud Marketplace
 
-Start here: OneUptime runs on Google Cloud, so this listing brings the most.
+The listing, its service account, its Pub/Sub subscription and its Service
+Control service live in a Google Cloud project made for the listing,
+`oneuptime-marketplace` - never `oneuptime-k8s`, which hosts OneUptime Cloud
+today and will be deleted when OneUptime moves to its own data centre. Nothing
+in the integration depends on where OneUptime Cloud runs.
 
 1. **Become a Google Cloud Marketplace partner** (maintainer). Join Google
    Cloud Partner Advantage, accept the Cloud Marketplace agreements, and set up
-   the payments profile Producer Portal asks for. Pick or create a Google Cloud
-   project for the listing (for example `oneuptime-marketplace`); Producer Portal
-   is at `https://console.cloud.google.com/producer-portal?project=<project>`.
+   the payments profile Producer Portal asks for. Create the
+   `oneuptime-marketplace` project (with a billing account that will outlive
+   the move); Producer Portal is at
+   `https://console.cloud.google.com/producer-portal?project=oneuptime-marketplace`.
 2. **Create the product**: a SaaS product, "integrated with Google Cloud"
    (Google Cloud bills it).
 3. **Pricing**: usage-based, one metric, `usage_units`, unit "unit", USD 0.01
@@ -252,7 +263,7 @@ Start here: OneUptime runs on Google Cloud, so this listing brings the most.
    table above; **Enable SSO login: No** (OneUptime has its own sign-in). The
    product's domain is `oneuptime.com` - the sign-up JWT's audience.
 5. **Technical integration > Backend**: create one service account (for
-   example `marketplace@<project>.iam.gserviceaccount.com`) and link it in
+   example `marketplace@oneuptime-marketplace.iam.gserviceaccount.com`) and link it in
    Producer Portal for the **Procurement API**, **Pub/Sub** and **Service
    Control** (grant it `roles/servicemanagement.serviceController` there).
    Create a JSON key for it: that is `GOOGLE_CLOUD_MARKETPLACE_SERVICE_ACCOUNT_KEY`.
@@ -262,12 +273,12 @@ Start here: OneUptime runs on Google Cloud, so this listing brings the most.
    token for a push service account:
 
    ```bash
-   gcloud iam service-accounts create marketplace-pubsub-push --project=<project>
+   gcloud iam service-accounts create marketplace-pubsub-push --project=oneuptime-marketplace
    gcloud pubsub subscriptions create oneuptime-marketplace-events \
-     --project=<project> \
+     --project=oneuptime-marketplace \
      --topic=projects/cloudcommerceproc-prod/topics/<partner ID> \
      --push-endpoint=https://oneuptime.com/api/marketplace/google-cloud/events \
-     --push-auth-service-account=marketplace-pubsub-push@<project>.iam.gserviceaccount.com \
+     --push-auth-service-account=marketplace-pubsub-push@oneuptime-marketplace.iam.gserviceaccount.com \
      --ack-deadline=60
    ```
 
