@@ -72,6 +72,7 @@ jest.mock("../../../UI/Utils/Project", () => {
   };
 });
 
+import { HOME_ROW_CARD_BODY_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HomeRowCard";
 import UpcomingMaintenance, {
   formatCalendarPart,
   UPCOMING_MAINTENANCE_LIMIT,
@@ -351,6 +352,51 @@ describe("the card", () => {
     await renderCard();
 
     expect(screen.getByTestId("home-upcoming-loading")).toBeInTheDocument();
+  });
+
+  /*
+   * The placeholders used to sit right under the description, and the
+   * divider appeared with the windows. Now they sit under the divider the
+   * windows are listed under, as the cards beside them in Home's row do
+   * while they load, and the body starts where those cards start theirs.
+   */
+  test("the placeholders and the windows sit under the same divider, where the row's other cards start their lists", async () => {
+    const bodyOfCard: () => HTMLElement = (): HTMLElement => {
+      return screen
+        .getByTestId("home-upcoming-maintenance")
+        .querySelector(
+          '[data-testid="card"] > div > div > div:last-child',
+        ) as HTMLElement;
+    };
+
+    getListMock.mockImplementation(() => {
+      return new Promise(() => {
+        // never answered
+      });
+    });
+    await renderCard();
+
+    const loading: HTMLElement = screen.getByTestId("home-upcoming-loading");
+
+    expect(bodyOfCard().firstElementChild).toBe(loading);
+    expect(loading).toHaveClass("border-t", "border-gray-100");
+    expect(bodyOfCard()).toHaveClass(
+      ...HOME_ROW_CARD_BODY_CLASS_NAME.split(" "),
+    );
+
+    cleanup();
+    getListMock.mockImplementation(() => {
+      return Promise.resolve({ data: events, count: 2, skip: 0, limit: 3 });
+    });
+    await renderCard();
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("home-upcoming-row")).toHaveLength(2);
+    });
+    expect(bodyOfCard().firstElementChild).toHaveClass(
+      "border-t",
+      "border-gray-100",
+    );
   });
 });
 

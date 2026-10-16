@@ -21,7 +21,7 @@ flowchart TB
     pay --> call["Span: de betaal-<br/>provider aanroepen"]
 ```
 
-Elke rij van de verkenner is een span, dus een drukke service vult de lijst met zijn databasequery's en interne aanroepen. Om één rij per verzoek te tonen, kiest u in de zijbalk **Root spans** onder **Span Type**.
+Elke rij van de verkenner is een span, dus een drukke service vult de lijst met zijn databasequery's en interne aanroepen. Om één rij per verzoek te tonen, kiest u in de zijbalk **Root spans** onder **Span-type**.
 
 De verkenner heeft vier tabbladen:
 
@@ -54,7 +54,7 @@ Typ een zoekopdracht en druk op Enter, bijvoorbeeld `service:checkout status:err
 
 ### Beperken met filters
 
-Klik op een waarde in de zijbalk **Filters** om die als chip toe te voegen. De zijbalk filtert op **Service**, op de host, het cluster of de andere bron die de span stuurde, op **Status**, **Span Type**, **Heeft uitzondering**, **Span-soort**, **Span-naam**, **Service Instance** en **Naam van de host**.
+Klik op een waarde in de zijbalk **Filters** om die als chip toe te voegen. De zijbalk filtert op **Service**, op de host, het cluster of de andere bron die de span stuurde, op **Status**, **Span-type**, **Heeft uitzondering**, **Span-soort**, **Span-naam**, **Service Instance** en **Naam van de host**.
 
 ### Een span openen
 
@@ -135,7 +135,7 @@ Ze noemen een ouder-span die OneUptime niet heeft ontvangen, vaak omdat de servi
 :::
 
 :::details De lijst toont veel meer rijen dan verzoeken
-Elke rij is een span, geen verzoek. Kies in de zijbalk **Root spans** onder **Span Type** om één rij per verzoek te tonen.
+Elke rij is een span, geen verzoek. Kies in de zijbalk **Root spans** onder **Span-type** om één rij per verzoek te tonen.
 :::
 
 ## Volgende stappen

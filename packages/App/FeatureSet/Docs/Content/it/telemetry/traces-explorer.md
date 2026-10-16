@@ -21,7 +21,7 @@ flowchart TB
     pay --> call["Span: chiamare il<br/>fornitore di pagamenti"]
 ```
 
-Ogni riga dell'esploratore è uno span, quindi un servizio molto attivo riempie l'elenco con le sue query al database e le sue chiamate interne. Per elencare una riga per richiesta, scegliete **Root spans** sotto **Span Type** nella barra laterale.
+Ogni riga dell'esploratore è uno span, quindi un servizio molto attivo riempie l'elenco con le sue query al database e le sue chiamate interne. Per elencare una riga per richiesta, scegliete **Root spans** sotto **Categoria di span** nella barra laterale.
 
 L'esploratore ha quattro schede:
 
@@ -54,7 +54,7 @@ Digitate una query e premete Invio, ad esempio `service:checkout status:error du
 
 ### Restringere con i filtri
 
-Fate clic su un valore nella barra laterale **Filtri** per aggiungerlo come chip. La barra laterale filtra per **Servizio**, per l'host, il cluster o l'altra risorsa che ha inviato lo span, per **Stato**, **Span Type**, **Ha eccezione**, **Tipo di span**, **Nome dello span**, **Service Instance** e **Nome dell'host**.
+Fate clic su un valore nella barra laterale **Filtri** per aggiungerlo come chip. La barra laterale filtra per **Servizio**, per l'host, il cluster o l'altra risorsa che ha inviato lo span, per **Stato**, **Categoria di span**, **Ha eccezione**, **Tipo di span**, **Nome dello span**, **Service Instance** e **Nome dell'host**.
 
 ### Aprire uno span
 
@@ -135,7 +135,7 @@ Indicano uno span padre che OneUptime non ha ricevuto, spesso perché il servizi
 :::
 
 :::details L'elenco mostra molte più righe che richieste
-Ogni riga è uno span, non una richiesta. Scegliete **Root spans** sotto **Span Type** nella barra laterale per elencare una riga per richiesta.
+Ogni riga è uno span, non una richiesta. Scegliete **Root spans** sotto **Categoria di span** nella barra laterale per elencare una riga per richiesta.
 :::
 
 ## Passaggi successivi

@@ -21,7 +21,7 @@ flowchart TB
     pay --> call["Span : appeler le<br/>prestataire de paiement"]
 ```
 
-Chaque ligne de l'explorateur est un span : un service très sollicité remplit donc la liste de ses requêtes en base et de ses appels internes. Pour lister une ligne par requête, choisissez **Root spans** sous **Span Type** dans la barre latérale.
+Chaque ligne de l'explorateur est un span : un service très sollicité remplit donc la liste de ses requêtes en base et de ses appels internes. Pour lister une ligne par requête, choisissez **Root spans** sous **Catégorie de span** dans la barre latérale.
 
 L'explorateur a quatre onglets :
 
@@ -54,7 +54,7 @@ Tapez une requête et appuyez sur Entrée, par exemple `service:checkout status:
 
 ### Affiner avec des filtres
 
-Cliquez sur une valeur de la barre latérale **Filtres** pour l'ajouter comme puce. La barre latérale filtre par **Service**, par l'hôte, le cluster ou l'autre ressource qui a envoyé le span, par **Statut**, **Span Type**, **Possède une exception**, **Type de span**, **Nom du span**, **Service Instance** et **Nom de l'hôte**.
+Cliquez sur une valeur de la barre latérale **Filtres** pour l'ajouter comme puce. La barre latérale filtre par **Service**, par l'hôte, le cluster ou l'autre ressource qui a envoyé le span, par **Statut**, **Catégorie de span**, **Possède une exception**, **Type de span**, **Nom du span**, **Service Instance** et **Nom de l'hôte**.
 
 ### Ouvrir un span
 
@@ -135,7 +135,7 @@ Ils nomment un span parent que OneUptime n'a pas reçu, souvent parce que le ser
 :::
 
 :::details La liste montre bien plus de lignes que de requêtes
-Chaque ligne est un span, pas une requête. Choisissez **Root spans** sous **Span Type** dans la barre latérale pour lister une ligne par requête.
+Chaque ligne est un span, pas une requête. Choisissez **Root spans** sous **Catégorie de span** dans la barre latérale pour lister une ligne par requête.
 :::
 
 ## Étapes suivantes
