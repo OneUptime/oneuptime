@@ -768,10 +768,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       it("names each Next steps card by its page's nav title in this language", () => {
         const translated: string = readPage(language, entry.page);
         const nextSteps: Array<string> = cardLines(
-          translated.slice(
-            translated.lastIndexOf("\n## "),
-            translated.length,
-          ),
+          translated.slice(translated.lastIndexOf("\n## "), translated.length),
         );
         const englishNextSteps: Array<string> = cardLines(
           english.slice(english.lastIndexOf("\n## Next steps\n")),
@@ -782,9 +779,11 @@ describe.each(LANGUAGES)("%s", (language: string) => {
         englishNextSteps.forEach((line: string, index: number): void => {
           const englishTitle: string = line.slice(3, line.indexOf("]("));
 
-          expect(nextSteps[index]?.startsWith(
-            `- [${navTitle(language, englishTitle)}](`,
-          )).toBe(true);
+          expect(
+            nextSteps[index]?.startsWith(
+              `- [${navTitle(language, englishTitle)}](`,
+            ),
+          ).toBe(true);
         });
       });
 
@@ -961,9 +960,9 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("name every link's anchor by the heading in the English heading's place, in the reader's language", () => {
-    expect(
-      expectedLink("en", CRITERIA_AND_STATUSES, "#monitor-statuses"),
-    ).toBe("#monitor-statuses");
+    expect(expectedLink("en", CRITERIA_AND_STATUSES, "#monitor-statuses")).toBe(
+      "#monitor-statuses",
+    );
     // An anchor that names no heading is kept as written, not made "#null".
     expect(expectedLink("fa", POSTMORTEMS, "#no-such-heading")).toBe(
       "#no-such-heading",
