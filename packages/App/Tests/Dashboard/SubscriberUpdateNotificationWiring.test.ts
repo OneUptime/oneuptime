@@ -201,7 +201,7 @@ describe("the shared notes feed", () => {
   test("offers the notify-about-this-update checkbox on the edit form of a public note only, to whoever may notify about an edit", () => {
     // A public note, and the permission to post a notifying note too.
     expect(feed).toContain(
-      'const canNotifyAboutEdit: boolean = isPublic && createGate.isAllowed && canWrite("shouldStatusPageSubscribersBeNotifiedOnNoteCreated", "create") && canWrite("subscriberNotificationStatusOnNoteUpdated", "update");',
+      'const canNotifyAboutEdit: boolean = isPublic && !isPrivateEvent && createGate.isAllowed && canWrite("shouldStatusPageSubscribersBeNotifiedOnNoteCreated", "create") && canWrite("subscriberNotificationStatusOnNoteUpdated", "update");',
     );
     expect(feed).toContain(
       "const updateNotifyOption: NotifyOption | undefined = canNotifyAboutEdit ? { title: SubscriberUpdateNotification.formFieldTitle,",

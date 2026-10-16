@@ -194,7 +194,7 @@ describe("incident episode feed public note", () => {
 
   test("builds the dialog's public note from the episode's kind, with that default", () => {
     expect(source).toContain(
-      'const noteActions: FeedNoteActions = useFeedNoteActions({ keyPrefix: "incident-episode", publicNoteKind: getIncidentEpisodePublicNoteKind({ incidentEpisodeId: props.incidentEpisodeId, isNotifyingByDefault: notifySubscribersByDefault, }), privateNoteKind: getIncidentEpisodePrivateNoteKind({ incidentEpisodeId: props.incidentEpisodeId, }),',
+      'const noteActions: FeedNoteActions = useFeedNoteActions({ keyPrefix: "incident-episode", publicNoteKind: getIncidentEpisodePublicNoteKind({ incidentEpisodeId: props.incidentEpisodeId, isNotifyingByDefault: notifySubscribersByDefault, isPrivate: props.isPrivate, }), privateNoteKind: getIncidentEpisodePrivateNoteKind({ incidentEpisodeId: props.incidentEpisodeId, }),',
     );
   });
 
@@ -244,6 +244,7 @@ describePublicNotesTab({
     INCIDENT_HELPER_CALL,
     INCIDENT_QUIET_DESCRIPTION_REFERENCE,
   ],
+  canBePrivate: true,
 });
 
 describeSharedPublicNoteWiring();

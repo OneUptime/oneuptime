@@ -38,6 +38,13 @@ interface BulkTableCase {
   noteTemplateModelType: string;
   // The note the change posts, offered only to someone who may create it.
   noteModelType: string;
+  /*
+   * The table's events can be private, and a private one takes no public
+   * notes (Common/Types/StatusPage/PrivateRecordPublicNotes): each change is
+   * built per event (buildIncidentBulkStateChange), the note going as a
+   * private note, notifying nobody, on a private one.
+   */
+  isPerEventPrivacy?: boolean | undefined;
 }
 
 const BULK_TABLES: Array<BulkTableCase> = [
@@ -51,6 +58,7 @@ const BULK_TABLES: Array<BulkTableCase> = [
     notifiesStatusPageSubscribers: true,
     noteTemplateModelType: "IncidentNoteTemplate",
     noteModelType: "IncidentPublicNote",
+    isPerEventPrivacy: true,
   },
   {
     name: "Alerts",
@@ -149,14 +157,28 @@ describe("bulk change-state modal offers a note on every event table", () => {
     (bulkTable: BulkTableCase) => {
       const source: string = readSource(...bulkTable.component);
 
+      expect(source).toContain(
+        `ModelAPI.create<${bulkTable.timelineModelType}>(`,
+      );
+
+      if (bulkTable.isPerEventPrivacy) {
+        // Read with each event, and the change built for it.
+        expect(source).toContain(
+          "currentIncidentState: { order: true, name: true, }, isPrivate: true,",
+        );
+        expect(source).toContain(
+          "const change: IncidentBulkStateChange = buildIncidentBulkStateChange( { isPrivate: !PrivateRecordPublicNotes.takesPublicNotes( fetchedIncident, ), note: data.note, shouldStatusPageSubscribersBeNotified: data.shouldStatusPageSubscribersBeNotified, }, );",
+        );
+        expect(source).toContain("miscDataProps: change.miscDataProps,");
+        expect(source).not.toContain("buildBulkStateChangeMiscDataProps");
+        return;
+      }
+
       expect(source).toContain("buildBulkStateChangeMiscDataProps({");
       expect(source).toContain(
         `noteType: BulkStateChangeNoteType.${bulkTable.noteType},`,
       );
       expect(source).toContain("note: data.note,");
-      expect(source).toContain(
-        `ModelAPI.create<${bulkTable.timelineModelType}>(`,
-      );
       expect(source).toContain("miscDataProps: miscDataProps,");
     },
   );
@@ -169,7 +191,9 @@ describe("bulk change-state modal offers a note on every event table", () => {
       if (bulkTable.notifiesStatusPageSubscribers) {
         expect(source).toContain("showNotifyStatusPageSubscribers={true}");
         expect(source).toContain(
-          "stateTimeline.shouldStatusPageSubscribersBeNotified = data.shouldStatusPageSubscribersBeNotified ?? true;",
+          bulkTable.isPerEventPrivacy
+            ? "stateTimeline.shouldStatusPageSubscribersBeNotified = change.shouldStatusPageSubscribersBeNotified;"
+            : "stateTimeline.shouldStatusPageSubscribersBeNotified = data.shouldStatusPageSubscribersBeNotified ?? true;",
         );
       } else {
         expect(source).not.toContain("showNotifyStatusPageSubscribers");

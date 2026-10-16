@@ -29989,5 +29989,12 @@
   "On Call Duty Policy Labels": "On Call Duty Policy Labels",
   "On Call Duty Policy Name": "On Call Duty Policy Name",
   "Starts With": "Starts With",
-  "Also invites {{names}} when the channel is created.": "Also invites {{names}} when the channel is created."
+  "Also invites {{names}} when the channel is created.": "Also invites {{names}} when the channel is created.",
+  "If checked, only the incident's owner users and the members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "If checked, only the incident's owner users and the members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.",
+  "If enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "If enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.",
+  "When enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "When enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.",
+  "This episode is private, so no status page shows it or its public notes.": "This episode is private, so no status page shows it or its public notes.",
+  "This episode is private, so public notes cannot be added to it. Use a private note.": "This episode is private, so public notes cannot be added to it. Use a private note.",
+  "This incident is private, so no status page shows it or its public notes.": "This incident is private, so no status page shows it or its public notes.",
+  "This incident is private, so public notes cannot be added to it. Use a private note.": "This incident is private, so public notes cannot be added to it. Use a private note."
 }

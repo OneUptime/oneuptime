@@ -108,7 +108,18 @@ export interface PublicNotesTabCase {
   audienceSummary?: string | undefined;
   // A neighbour's helper call and wording, easy to copy over by mistake.
   foreignReferences?: Array<string> | undefined;
+  /*
+   * The event can be private (incidents and incident episodes): a private
+   * one takes no public notes (Common/Types/StatusPage/
+   * PrivateRecordPublicNotes). The tab reads whether it is, through the
+   * shared rule, and the kind says so to the feed (isPrivateEvent). Left
+   * out for an event that cannot be private, whose tab must not ask.
+   */
+  canBePrivate?: boolean | undefined;
 }
+
+export const PRIVATE_RULE_IMPORT: string =
+  'import PrivateRecordPublicNotes from "Common/Types/StatusPage/PrivateRecordPublicNotes";';
 
 export function describePublicNotesTab(tab: PublicNotesTabCase): void {
   describe(`${tab.eventName} Public Notes tab`, () => {
@@ -137,12 +148,36 @@ export function describePublicNotesTab(tab: PublicNotesTabCase): void {
         new RegExp(`<EventNotes<${tab.noteModel}>[\\s\\S]*?\\/>`),
       )?.[0] || "";
 
-    test(`loads only the ${tab.eventName}'s own notify setting`, () => {
+    test(`loads only the ${tab.eventName}'s own notify setting${tab.canBePrivate ? ", and whether it is private" : ""}`, () => {
       expect(lookup).not.toBe("");
       expect(lookup).toContain(`modelType: ${tab.parentModel},`);
       expect(lookup).toContain("id: modelId,");
-      expect(lookup).toContain(`select: { ${tab.parentFlag}: true, },`);
+      expect(lookup).toContain(
+        tab.canBePrivate
+          ? `select: { ${tab.parentFlag}: true, isPrivate: true, },`
+          : `select: { ${tab.parentFlag}: true, },`,
+      );
     });
+
+    test(
+      tab.canBePrivate
+        ? `reads whether the ${tab.eventName} is private by the shared rule, which takes no public notes`
+        : `never asks whether the ${tab.eventName} is private: it cannot be`,
+      () => {
+        if (tab.canBePrivate) {
+          expect(source).toContain(PRIVATE_RULE_IMPORT);
+          expect(lookup).toContain(
+            `resolveIsPrivate: (${tab.resolveArgument}: ${tab.parentModel} | null): boolean => { return !PrivateRecordPublicNotes.takesPublicNotes(${tab.resolveArgument}); },`,
+          );
+          expect(kind).toContain("isPrivateEvent: data.isPrivate === true,");
+          return;
+        }
+
+        expect(source).not.toContain("isPrivate");
+        expect(source).not.toContain("PrivateRecordPublicNotes");
+        expect(kind).not.toContain("isPrivateEvent");
+      },
+    );
 
     test("derives the default from the shared helper", () => {
       expect(source).toContain(HELPER_IMPORT);
@@ -176,7 +211,7 @@ export function describePublicNotesTab(tab: PublicNotesTabCase): void {
     test("hands the feed this event's public note kind, built from the default", () => {
       expect(feed).not.toBe("");
       expect(feed).toBe(
-        `<EventNotes<${tab.noteModel}> key={modelId.toString()} {...${tab.kindFunction}({ ${tab.parentIdField}: modelId, isNotifyingByDefault, })} currentProject={props.currentProject} />`,
+        `<EventNotes<${tab.noteModel}> key={modelId.toString()} {...${tab.kindFunction}({ ${tab.parentIdField}: modelId, isNotifyingByDefault,${tab.canBePrivate ? " isPrivate," : ""} })} currentProject={props.currentProject} />`,
       );
       expect(source).toContain(
         `import { ${tab.kindFunction} } from "../../../Components/EventNotes/NoteKinds/`,
@@ -269,20 +304,20 @@ export function describeSharedPublicNoteWiring(): void {
     test("reloads the setting per event and drops a stale answer", () => {
       expect(source).toContain("let isStale: boolean = false;");
       expect(source).toContain(
-        'if (!isStale) { setLoaded({ id, isNotifyingByDefault: props.resolve(parent), error: "", }); }',
+        'if (!isStale) { setLoaded({ id, isNotifyingByDefault: props.resolve(parent), isPrivate: props.resolveIsPrivate ? props.resolveIsPrivate(parent) : false, error: "", }); }',
       );
       expect(source).toContain("return () => { isStale = true; }; }, [id]);");
     });
 
     test("never pairs one event with another event's answer", () => {
       expect(source).toContain(
-        'if (!loaded || loaded.id !== id) { return { isNotifyingByDefault: null, error: "" }; }',
+        'if (!loaded || loaded.id !== id) { return { isNotifyingByDefault: null, isPrivate: false, error: "" }; }',
       );
     });
 
     test("turns a failed load into a readable error rather than a default", () => {
       expect(source).toContain(
-        "if (!isStale) { setLoaded({ id, isNotifyingByDefault: null, error: API.getFriendlyMessage(err), }); }",
+        "if (!isStale) { setLoaded({ id, isNotifyingByDefault: null, isPrivate: false, error: API.getFriendlyMessage(err), }); }",
       );
     });
   });

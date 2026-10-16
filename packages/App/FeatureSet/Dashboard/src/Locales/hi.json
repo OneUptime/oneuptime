@@ -29989,5 +29989,12 @@
   "On Call Duty Policy Labels": "ऑन-कॉल नीति लेबल",
   "On Call Duty Policy Name": "ऑन-कॉल नीति का नाम",
   "Starts With": "से शुरू होता है",
-  "Also invites {{names}} when the channel is created.": "चैनल बनाते समय {{names}} को भी आमंत्रित करता है।"
+  "Also invites {{names}} when the channel is created.": "चैनल बनाते समय {{names}} को भी आमंत्रित करता है।",
+  "If checked, only the incident's owner users and the members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "यदि चेक किया गया है, तो केवल घटना के स्वामी उपयोगकर्ता और उसकी स्वामी टीमों के सदस्य (साथ ही प्रोजेक्ट एडमिन और स्वामी) ही इस घटना को देख सकते हैं। निजी घटनाएं सभी स्थिति पृष्ठों से स्वचालित रूप से छिपा दी जाती हैं, और उनमें सार्वजनिक नोट नहीं जोड़े जा सकते।",
+  "If enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "यदि सक्षम है, तो केवल घटना के स्वामी उपयोगकर्ता और उसकी स्वामी टीमों के सदस्य (साथ ही प्रोजेक्ट एडमिन और स्वामी) ही इस घटना को देख सकते हैं। निजी घटनाएं सभी स्थिति पृष्ठों से स्वचालित रूप से छिपा दी जाती हैं, और उनमें सार्वजनिक नोट नहीं जोड़े जा सकते।",
+  "When enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages, and public notes cannot be added to them.": "सक्षम होने पर, केवल घटना के स्वामी उपयोगकर्ता और इसकी स्वामी टीमों के सदस्य (साथ ही प्रोजेक्ट एडमिन और स्वामी) ही इस घटना को देख सकते हैं। निजी घटनाएं सभी स्थिति पृष्ठों से स्वचालित रूप से छिपा दी जाती हैं, और उनमें सार्वजनिक नोट नहीं जोड़े जा सकते।",
+  "This episode is private, so no status page shows it or its public notes.": "यह एपिसोड निजी है, इसलिए कोई भी स्थिति पृष्ठ इसे या इसके सार्वजनिक नोट नहीं दिखाता।",
+  "This episode is private, so public notes cannot be added to it. Use a private note.": "यह एपिसोड निजी है, इसलिए इसमें सार्वजनिक नोट नहीं जोड़े जा सकते। निजी नोट का उपयोग करें।",
+  "This incident is private, so no status page shows it or its public notes.": "यह घटना निजी है, इसलिए कोई भी स्थिति पृष्ठ इसे या इसके सार्वजनिक नोट नहीं दिखाता।",
+  "This incident is private, so public notes cannot be added to it. Use a private note.": "यह घटना निजी है, इसलिए इसमें सार्वजनिक नोट नहीं जोड़े जा सकते। निजी नोट का उपयोग करें।"
 }

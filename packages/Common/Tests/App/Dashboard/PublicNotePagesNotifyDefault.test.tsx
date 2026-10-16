@@ -54,6 +54,8 @@ type RecordedFeedProps = {
       | undefined;
     resend?: { audience?: ReactElement | undefined } | undefined;
   };
+  // A private incident or episode takes no public notes.
+  isPrivateEvent?: boolean | undefined;
 };
 
 let feedRenders: Array<RecordedFeedProps> = [];
@@ -166,6 +168,12 @@ interface PublicNotePageCase {
    * lets through.
    */
   hasAudienceSummary: boolean;
+  /*
+   * Whether the event can be private - incidents and incident episodes -
+   * and so whether the page reads its Private switch: a private one takes
+   * no public notes (PrivateRecordPublicNotes).
+   */
+  canBePrivate: boolean;
 }
 
 const PAGES: Array<PublicNotePageCase> = [
@@ -181,6 +189,7 @@ const PAGES: Array<PublicNotePageCase> = [
     eventNoun: "incident",
     attachmentApiPath: "/incident-public-note/attachment",
     hasAudienceSummary: true,
+    canBePrivate: true,
   },
   {
     name: "scheduled maintenance event",
@@ -194,6 +203,7 @@ const PAGES: Array<PublicNotePageCase> = [
     eventNoun: "scheduled maintenance event",
     attachmentApiPath: "/scheduled-maintenance-public-note/attachment",
     hasAudienceSummary: false,
+    canBePrivate: false,
   },
   {
     name: "incident episode",
@@ -207,6 +217,7 @@ const PAGES: Array<PublicNotePageCase> = [
     eventNoun: "episode",
     attachmentApiPath: "/incident-episode-public-note/attachment",
     hasAudienceSummary: false,
+    canBePrivate: true,
   },
 ];
 
@@ -259,11 +270,18 @@ afterEach(() => {
 });
 
 describe.each(PAGES)("$name public notes page", (page: PublicNotePageCase) => {
-  function buildParent(id: string, notified: boolean | undefined): BaseModel {
+  function buildParent(
+    id: string,
+    notified: boolean | undefined,
+    isPrivate?: boolean | undefined,
+  ): BaseModel {
     const parent: BaseModel = new page.parentModel();
     parent._id = id;
     if (notified !== undefined) {
       (parent as unknown as Record<string, unknown>)[page.flag] = notified;
+    }
+    if (isPrivate !== undefined) {
+      (parent as unknown as Record<string, unknown>)["isPrivate"] = isPrivate;
     }
     return parent;
   }
@@ -307,10 +325,13 @@ describe.each(PAGES)("$name public notes page", (page: PublicNotePageCase) => {
 
   async function renderFor(
     notified: boolean | undefined,
+    isPrivate?: boolean | undefined,
   ): Promise<RenderResult> {
     getItemMock.mockImplementation((...args: Array<unknown>) => {
       const request: ItemRequest = args[0] as ItemRequest;
-      return Promise.resolve(buildParent(request.id!.toString(), notified));
+      return Promise.resolve(
+        buildParent(request.id!.toString(), notified, isPrivate),
+      );
     });
     const view: RenderResult = render(element());
     await screen.findByTestId("event-notes-feed");
@@ -327,13 +348,17 @@ describe.each(PAGES)("$name public notes page", (page: PublicNotePageCase) => {
   }
 
   describe("loading the event's notify setting", () => {
-    test("asks once, by the event in the route, for only that event's flag", async () => {
+    test("asks once, by the event in the route, for only that event's flag - and whether it is private, where it can be", async () => {
       await renderFor(false);
 
       const requests: Array<ItemRequest> = parentRequests();
       expect(requests).toHaveLength(1);
       expect(requests[0]!.id?.toString()).toBe(EVENT_ID);
-      expect(requests[0]!.select).toEqual({ [page.flag]: true });
+      expect(requests[0]!.select).toEqual(
+        page.canBePrivate
+          ? { [page.flag]: true, isPrivate: true }
+          : { [page.flag]: true },
+      );
     });
 
     test("shows a loader and no feed until the event has loaded", async () => {
@@ -493,6 +518,81 @@ describe.each(PAGES)("$name public notes page", (page: PublicNotePageCase) => {
       await screen.findByTestId("event-notes-feed");
 
       expect(feed().subscriberNotifications?.isNotifyingByDefault).toBe(true);
+    });
+  });
+
+  /*
+   * A private incident or episode takes no public notes
+   * (Common/Types/StatusPage/PrivateRecordPublicNotes): the page tells its
+   * feed so, and the feed keeps the notes it has, says why there are no new
+   * ones, and offers the private notes instead (EventNotes).
+   */
+  describe("whether the event is private", () => {
+    if (!page.canBePrivate) {
+      test("is never asked: the event cannot be private, and its public notes are offered as always", async () => {
+        await renderFor(true, true);
+
+        expect(parentRequests()[0]!.select).not.toHaveProperty("isPrivate");
+        expect(Boolean(feed().isPrivateEvent)).toBe(false);
+      });
+      return;
+    }
+
+    test("a private one gets a feed that takes no public notes", async () => {
+      await renderFor(true, true);
+
+      expect(feed().isPrivateEvent).toBe(true);
+      // Still this event's public notes: the ones it already has are shown.
+      expect(feed().modelType).toBe(page.noteModel);
+      expect(feed().visibility).toBe("public");
+    });
+
+    test.each([
+      ["that is not private", false],
+      ["whose Private switch was never set", undefined],
+    ])(
+      "one %s takes public notes as always",
+      async (_label: string, isPrivate: boolean | undefined) => {
+        await renderFor(true, isPrivate);
+
+        expect(feed().isPrivateEvent).toBe(false);
+      },
+    );
+
+    test("one the lookup does not find is not called private", async () => {
+      getItemMock.mockReturnValue(Promise.resolve(null));
+      render(element());
+      await screen.findByTestId("event-notes-feed");
+
+      expect(feed().isPrivateEvent).toBe(false);
+    });
+
+    test("the answer belongs to the event on the page: moving to a public event after a private one takes public notes again", async () => {
+      getItemMock.mockImplementation((...args: Array<unknown>) => {
+        const request: ItemRequest = args[0] as ItemRequest;
+        const id: string = request.id!.toString();
+        return Promise.resolve(buildParent(id, true, id === EVENT_ID));
+      });
+
+      const view: RenderResult = render(element());
+      await screen.findByTestId("event-notes-feed");
+      await waitFor(() => {
+        expect(feed().isPrivateEvent).toBe(true);
+      });
+
+      currentEventId = OTHER_EVENT_ID;
+      view.rerender(element());
+
+      await waitFor(() => {
+        expect(feed().parentId.toString()).toBe(OTHER_EVENT_ID);
+      });
+      expect(feed().isPrivateEvent).toBe(false);
+      // No feed of the next event was ever drawn as private.
+      for (const props of feedRenders) {
+        if (props.parentId.toString() === OTHER_EVENT_ID) {
+          expect(props.isPrivateEvent).toBe(false);
+        }
+      }
     });
   });
 

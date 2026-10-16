@@ -7,6 +7,7 @@ import { NoteTemplateVariables } from "Common/Utils/Incident/IncidentNoteTemplat
 import GenerateFromAIModal from "Common/UI/Components/AI/GenerateFromAIModal";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Link from "Common/UI/Components/Link/Link";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
@@ -43,6 +44,10 @@ import NoteComposer, {
 } from "./NoteComposer";
 import NoteTemplateMenu, { NoteTemplateOption } from "./NoteTemplateMenu";
 import { loadNoteTemplateOptions } from "./NoteTemplateOptions";
+import {
+  PRIVATE_EVENT_PRIVATE_NOTE_ACTION,
+  getPrivateEventPublicNoteRefusal,
+} from "./PrivateEventNotesCopy";
 
 /*
  * Where the composer is drawn.
@@ -114,6 +119,27 @@ export function getNoteCreateGate(modelType: {
 }
 
 /*
+ * The same, for one kind of note on one event: a private incident or
+ * episode takes no public notes (EventNoteKind.isPrivateEvent), so its
+ * "Add Public Note" is locked with why, whatever the permissions say - the
+ * server refuses one with the same words.
+ */
+export function getNoteKindCreateGate(
+  kind: EventNoteKind<BaseModel>,
+  translator?: Translator | undefined,
+): NoteCreateGate {
+  if (kind.isPrivateEvent && kind.visibility === "public") {
+    return {
+      isShown: true,
+      isDisabled: true,
+      tooltip: getPrivateEventPublicNoteRefusal(kind.eventNoun, translator),
+    };
+  }
+
+  return getNoteCreateGate(kind.modelType);
+}
+
+/*
  * Writing a new note on an incident, alert, scheduled maintenance event or
  * episode: the draft, Templates (their {{placeholders}} filled with the
  * event's values), Draft with AI, attachments, the posting time, and - on a
@@ -170,6 +196,16 @@ function EventNoteComposer<TNote extends BaseModel>(
     model,
     ModelAction.Create,
   );
+
+  /*
+   * Why no note of this kind is written here: a private incident or episode
+   * takes no public notes. Said where the composer would be, with the way to
+   * the event's private notes; null for every other event.
+   */
+  const privateEventReason: string | null =
+    kind.isPrivateEvent && kind.visibility === "public"
+      ? getPrivateEventPublicNoteRefusal(kind.eventNoun, translator)
+      : null;
 
   const isCreateAttachmentsEnabled: boolean =
     Boolean(kind.attachmentApiPath) && canWrite("attachments");
@@ -436,6 +472,39 @@ function EventNoteComposer<TNote extends BaseModel>(
     );
   };
 
+  /*
+   * Where the composer would be on a private incident or episode: why it
+   * takes no public notes, and - where the event's private notes are - the
+   * way there.
+   */
+  const getPrivateEventMessage: (reason: string) => ReactElement = (
+    reason: string,
+  ): ReactElement => {
+    return (
+      <div
+        className="flex flex-col gap-3 rounded-xl border border-dashed border-gray-300 bg-white px-4 py-3 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between"
+        data-testid="note-composer-private-event"
+      >
+        <div className="flex min-w-0 items-start gap-3">
+          <Icon
+            icon={IconProp.Lock}
+            className="mt-0.5 h-4 w-4 shrink-0 text-gray-400"
+          />
+          <span>{reason}</span>
+        </div>
+        {kind.siblingRoute && (
+          <Link
+            to={kind.siblingRoute}
+            className="inline-flex h-8 shrink-0 items-center gap-1.5 self-start rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 sm:self-auto"
+          >
+            <Icon icon={IconProp.Lock} className="h-4 w-4 text-amber-600" />
+            <span>{tx(PRIVATE_EVENT_PRIVATE_NOTE_ACTION)}</span>
+          </Link>
+        )}
+      </div>
+    );
+  };
+
   const getNoteComposer: () => ReactElement = (): ReactElement => {
     return (
       <NoteComposer
@@ -475,6 +544,10 @@ function EventNoteComposer<TNote extends BaseModel>(
   };
 
   const getComposer: () => ReactElement | null = (): ReactElement | null => {
+    if (privateEventReason) {
+      return getPrivateEventMessage(privateEventReason);
+    }
+
     if (!createGate.isAllowed) {
       if (!createGate.disabledReason) {
         return null;
@@ -517,7 +590,7 @@ function EventNoteComposer<TNote extends BaseModel>(
   const getDialog: (title: string) => ReactElement = (
     title: string,
   ): ReactElement => {
-    const canPost: boolean = createGate.isAllowed;
+    const canPost: boolean = createGate.isAllowed && !privateEventReason;
 
     return (
       <Modal
@@ -539,13 +612,15 @@ function EventNoteComposer<TNote extends BaseModel>(
         <div ref={dialogBodyRef} data-testid="note-composer-dialog">
           {canPost
             ? getNoteComposer()
-            : getLockedMessage(
-                createGate.disabledReason ||
-                  PermissionGate.getMissingPermissionMessage(
-                    model,
-                    ModelAction.Create,
-                  ),
-              )}
+            : privateEventReason
+              ? getPrivateEventMessage(privateEventReason)
+              : getLockedMessage(
+                  createGate.disabledReason ||
+                    PermissionGate.getMissingPermissionMessage(
+                      model,
+                      ModelAction.Create,
+                    ),
+                )}
         </div>
       </Modal>
     );

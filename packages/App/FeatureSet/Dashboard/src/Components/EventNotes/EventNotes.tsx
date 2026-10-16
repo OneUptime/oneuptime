@@ -60,6 +60,7 @@ import { EventNoteKind } from "./EventNoteKind";
 import NotesVisibilitySwitch from "./NotesVisibilitySwitch";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getPrivateEventPublicNotesDescription } from "./PrivateEventNotesCopy";
 
 /*
  * What the page hands the notes feed: the kind of note it shows, from the
@@ -118,6 +119,13 @@ function EventNotes<TNote extends BaseModel>(
   }, [props.modelType]);
 
   const isPublic: boolean = props.visibility === "public";
+  /*
+   * A private incident's or episode's public notes: the ones it already
+   * has, read and edited as any are, but no new ones - its composer says
+   * why, with the way to its private notes - and nothing offered that
+   * tells subscribers, whom a private event never reaches.
+   */
+  const isPrivateEvent: boolean = isPublic && Boolean(props.isPrivateEvent);
   // What the viewer holds, blocks included.
   const heldPermissions: HeldPermissions = PermissionGate.getHeldPermissions();
   const isMasterAdmin: boolean = User.isMasterAdmin();
@@ -164,6 +172,7 @@ function EventNotes<TNote extends BaseModel>(
    */
   const canResendPostedNotification: boolean =
     isPublic &&
+    !isPrivateEvent &&
     editGate.isShown &&
     !editGate.isDisabled &&
     createGate.isAllowed &&
@@ -180,6 +189,7 @@ function EventNotes<TNote extends BaseModel>(
    */
   const canNotifyAboutEdit: boolean =
     isPublic &&
+    !isPrivateEvent &&
     createGate.isAllowed &&
     canWrite("shouldStatusPageSubscribersBeNotifiedOnNoteCreated", "create") &&
     canWrite("subscriberNotificationStatusOnNoteUpdated", "update");
@@ -613,7 +623,7 @@ function EventNotes<TNote extends BaseModel>(
           <p className="mt-1 max-w-md text-sm text-gray-500">
             {tx(copy.emptyDescription)}
           </p>
-          {createGate.isAllowed && !isComposerOpen && (
+          {createGate.isAllowed && !isComposerOpen && !isPrivateEvent && (
             <button
               type="button"
               onClick={openComposer}
@@ -745,6 +755,19 @@ function EventNotes<TNote extends BaseModel>(
     !loadError &&
     (notes.length > 0 || isSearching || searchInput.length > 0);
 
+  /*
+   * A private event with no public notes has nothing to list: the composer's
+   * place already says why it takes none, so no empty feed is drawn under it.
+   */
+  const showFeed: boolean = !(
+    isPrivateEvent &&
+    !isLoading &&
+    !loadError &&
+    notes.length === 0 &&
+    !isSearching &&
+    searchInput.length === 0
+  );
+
   return (
     <div className="space-y-4" data-testid="event-notes">
       <section
@@ -774,8 +797,16 @@ function EventNotes<TNote extends BaseModel>(
                   </span>
                 )}
               </h2>
-              <p className="mt-1 max-w-2xl text-sm text-gray-500">
-                {tx(copy.description)}
+              <p
+                className="mt-1 max-w-2xl text-sm text-gray-500"
+                data-testid="notes-description"
+              >
+                {isPrivateEvent
+                  ? getPrivateEventPublicNotesDescription(
+                      props.eventNoun,
+                      translator,
+                    )
+                  : tx(copy.description)}
               </p>
             </div>
           </div>
@@ -844,6 +875,7 @@ function EventNotes<TNote extends BaseModel>(
         </div>
       )}
 
+      {showFeed && (
       <section
         className="rounded-xl border border-gray-200 bg-white shadow-sm"
         data-testid="notes-feed"
@@ -908,6 +940,7 @@ function EventNotes<TNote extends BaseModel>(
         )}
         <div className="px-4 py-5 sm:px-5">{getFeedBody()}</div>
       </section>
+      )}
     </div>
   );
 }
