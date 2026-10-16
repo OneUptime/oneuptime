@@ -79,6 +79,8 @@ export const PRODUCTS_MENU_ITEM_KEYS: Readonly<Record<string, string>> = {
   Exceptions: "navbar.items.exceptionsTitle",
   // The Scheduled Maintenance pages open their product from the Essentials.
   "Scheduled Maintenance": "navbar.items.scheduledMaintenanceTitle",
+  // The Topology page opens its product from the Observability group.
+  Topology: "navbar.items.topologyTitle",
 };
 
 /*
