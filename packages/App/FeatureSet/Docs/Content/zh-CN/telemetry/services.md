@@ -25,6 +25,7 @@ flowchart TB
 
 - **名称就是服务的身份。** 比较时不区分大小写，所以 `Checkout-API` 和 `checkout-api` 是同一个服务。新的 `service.name` 会产生一个新服务。
 - **容器会自己命名。** 来自 Docker 和 Podman 代理的遥测如果没有 `service.name`，服务会以其容器命名。
+- **摄取密钥可以指定服务。** 使用设置了 **Pinned Service Name** 的密钥发送的 OpenTelemetry 数据，无论其 `service.name` 是什么，都会归入该名称的服务。
 - **浏览器和手机不是服务。** 来自浏览器或移动应用的遥测属于 [RUM 应用](/docs/rum/applications)。
 - **标签可以随遥测一起到达。** 名为 `oneuptime.label.<name>` 的资源属性会为服务添加标签 `<name>:<value>`，例如 `oneuptime.label.team=payments` 会添加 `team:payments`。
 

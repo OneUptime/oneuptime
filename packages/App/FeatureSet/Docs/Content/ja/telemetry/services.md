@@ -25,6 +25,7 @@ flowchart TB
 
 - **名前がサービスの識別子です。** 大文字と小文字を区別せずに比較されるため、`Checkout-API` と `checkout-api` は 1 つのサービスです。新しい `service.name` は新しいサービスになります。
 - **コンテナは自分で名乗ります。** Docker と Podman のエージェントからのテレメトリに `service.name` がない場合、サービスにはそのコンテナの名前が付きます。
+- **取り込みキーでサービスを固定できます。** **固定されたサービス名** が設定されたキーで送った OpenTelemetry のデータは、`service.name` が何であってもその名前のサービスに振り分けられます。
 - **ブラウザーやスマートフォンはサービスではありません。** ブラウザーやモバイルアプリからのテレメトリは、代わりに [RUM アプリケーション](/docs/rum/applications) に属します。
 - **ラベルはテレメトリと一緒に届くことがあります。** `oneuptime.label.<name>` という名前のリソース属性は、サービスにラベル `<name>:<value>` を追加します。たとえば `oneuptime.label.team=payments` なら `team:payments` になります。
 

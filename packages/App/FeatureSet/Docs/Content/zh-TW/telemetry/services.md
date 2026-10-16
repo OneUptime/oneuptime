@@ -25,6 +25,7 @@ flowchart TB
 
 - **名稱就是服務的身分。** 比較時不區分大小寫，所以 `Checkout-API` 和 `checkout-api` 是同一個服務。新的 `service.name` 會產生一個新服務。
 - **容器會自己命名。** 來自 Docker 和 Podman 代理程式的遙測如果沒有 `service.name`，服務會以其容器命名。
+- **擷取金鑰可以指定服務。** 使用設定了 **Pinned Service Name** 的金鑰傳送的 OpenTelemetry 資料，無論其 `service.name` 為何，都會歸入該名稱的服務。
 - **瀏覽器和手機不是服務。** 來自瀏覽器或行動應用程式的遙測屬於 [RUM 應用程式](/docs/rum/applications)。
 - **標籤可以隨遙測一起到達。** 名為 `oneuptime.label.<name>` 的資源屬性會為服務新增標籤 `<name>:<value>`，例如 `oneuptime.label.team=payments` 會新增 `team:payments`。
 

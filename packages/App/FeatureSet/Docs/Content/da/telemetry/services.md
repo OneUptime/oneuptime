@@ -25,6 +25,7 @@ flowchart TB
 
 - **Navnet er tjenestens identitet.** Store og små bogstaver betyder ikke noget i sammenligningen, så `Checkout-API` og `checkout-api` er én tjeneste. Et nyt `service.name` starter en ny tjeneste.
 - **Containere navngiver sig selv.** Telemetri fra Docker- og Podman-agenterne navngiver en tjeneste efter dens container, når den ikke har et `service.name`.
+- **En indtagelsesnøgle kan bestemme tjenesten.** OpenTelemetry-data, der sendes med en nøgle med et **Pinned Service Name**, lægges under det navn, uanset hvad deres `service.name` siger.
 - **Browsere og telefoner er ikke tjenester.** Telemetri fra en browser eller en mobilapp hører i stedet til en [RUM-applikation](/docs/rum/applications).
 - **Etiketter kan følge med telemetrien.** En ressourceattribut med navnet `oneuptime.label.<name>` giver tjenesten etiketten `<name>:<value>`, for eksempel `oneuptime.label.team=payments` for `team:payments`.
 

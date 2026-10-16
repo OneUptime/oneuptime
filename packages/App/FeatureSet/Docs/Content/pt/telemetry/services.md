@@ -25,6 +25,7 @@ flowchart TB
 
 - **O nome é a identidade do serviço.** A comparação ignora maiúsculas e minúsculas, então `Checkout-API` e `checkout-api` são um único serviço. Um novo `service.name` inicia um novo serviço.
 - **Os contêineres se nomeiam sozinhos.** A telemetria dos agentes Docker e Podman nomeia um serviço com o nome do contêiner quando ela não tem `service.name`.
+- **Uma chave de ingestão pode fixar o serviço.** Os dados do OpenTelemetry enviados com uma chave que tem um **Pinned Service Name** são arquivados sob esse nome, seja qual for o seu `service.name`.
 - **Navegadores e celulares não são serviços.** A telemetria de um navegador ou de um aplicativo móvel pertence a uma [aplicação RUM](/docs/rum/applications).
 - **Os rótulos podem vir com a telemetria.** Um atributo de recurso chamado `oneuptime.label.<name>` adiciona o rótulo `<name>:<value>` ao serviço, como `oneuptime.label.team=payments` para `team:payments`.
 

@@ -38,7 +38,7 @@ import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import { PerformanceFindingType } from "Common/Types/AI/CodeFixTaskContext";
-import { JSONArray } from "Common/Types/JSON";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import ErrorClass, {
   NON_ACTIONABLE_ERROR_CLASSES,
@@ -56,6 +56,7 @@ import { INTERACTIVE_READ_TIME_LIMIT } from "Common/Server/Utils/AnalyticsDataba
 import { normalizeExceptionText } from "Common/Server/Utils/Telemetry/ExceptionSanitizer";
 import LogExceptionExtractor from "Common/Server/Utils/Telemetry/LogExceptionExtractor";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
+import PinServiceName from "Common/Server/Utils/Telemetry/PinServiceName";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -399,6 +400,44 @@ describe("Service Catalog (telemetry/services)", () => {
     );
     expect(page).toContain(
       "Telemetry from a browser or a mobile app belongs to a [RUM application](/docs/rum/applications) instead.",
+    );
+  });
+
+  it("files the OpenTelemetry data a key with a Pinned Service Name sends under that name", () => {
+    const attributes: JSONArray = [
+      { key: "service.name", value: { stringValue: "payments-api" } },
+      { key: "host.name", value: { stringValue: "web-1" } },
+    ];
+    const body: JSONObject = {
+      resourceSpans: [{ resource: { attributes: attributes } }],
+      resourceLogs: [{ resource: { attributes: [...attributes] } }],
+    };
+
+    expect(PinServiceName.pinInPlace(body, "storefront")).toBe(2);
+
+    for (const container of ["resourceSpans", "resourceLogs"]) {
+      const resource: JSONObject = (
+        (body[container] as Array<JSONObject>)[0] as JSONObject
+      )["resource"] as JSONObject;
+      const serviceName: JSONObject | undefined = (
+        resource["attributes"] as Array<JSONObject>
+      ).find((attribute: JSONObject): boolean => {
+        return attribute["key"] === "service.name";
+      });
+
+      expect({
+        container,
+        name: (serviceName?.["value"] as JSONObject | undefined)?.[
+          "stringValue"
+        ],
+      }).toEqual({ container, name: "storefront" });
+    }
+
+    expect(
+      readDashboardSource("Components/Telemetry/IngestionKeyForm.ts"),
+    ).toContain('title: "Pinned Service Name",');
+    expect(page).toContain(
+      "**An ingestion key can name the service.** OpenTelemetry data sent with a key that has a **Pinned Service Name** is filed under that name, whatever its `service.name` says.",
     );
   });
 

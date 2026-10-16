@@ -93,6 +93,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
   [SERVICES]: [
     "The name is the service's identity.",
     "Containers name themselves.",
+    "An ingestion key can name the service.",
     "Browsers and phones are not services.",
     "Labels can come with the telemetry.",
     "Telemetry arriving",
