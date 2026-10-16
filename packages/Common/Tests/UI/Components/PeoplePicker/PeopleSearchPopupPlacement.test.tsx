@@ -12,6 +12,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import React, { ReactElement, useState } from "react";
@@ -60,10 +61,17 @@ import User from "../../../../Models/DatabaseModels/User";
 import Email from "../../../../Types/Email";
 import Name from "../../../../Types/Name";
 import PeoplePicker from "../../../../UI/Components/PeoplePicker/PeoplePicker";
+import PeopleSearchPopup, {
+  ComponentProps as PeopleSearchPopupProps,
+} from "../../../../UI/Components/PeoplePicker/PeopleSearchPopup";
 import {
   PeoplePickerKind,
   PeoplePickerValue,
 } from "../../../../UI/Components/PeoplePicker/PeoplePickerTypes";
+import {
+  AnchoredFieldPopup,
+  AnchoredFieldPopupPosition,
+} from "../../../../UI/Types/UseAnchoredFieldPopup";
 
 function makeUser(id: string, name: string): User {
   const user: User = new User();
@@ -205,5 +213,75 @@ describe("the people search list's placement", () => {
     for (const call of scrollCalls) {
       expect(call.dialogVisibility).toBe("visible");
     }
+  });
+
+  /*
+   * In a browser the rows can arrive before the list is placed at its
+   * button (a quick answer, a button low on the page). Until it is placed,
+   * nothing in it may scroll the page: no row into view, no focus.
+   */
+  test("scrolls no row into view and takes no focus while it waits to be placed", async () => {
+    const openWithPosition: (
+      position: AnchoredFieldPopupPosition | null,
+    ) => AnchoredFieldPopup = (
+      position: AnchoredFieldPopupPosition | null,
+    ): AnchoredFieldPopup => {
+      return {
+        isPopupOpen: true,
+        popupPosition: position,
+        popupRef: { current: null },
+        popupId: "people-search-placement",
+        portalTarget: document.body,
+      } as unknown as AnchoredFieldPopup;
+    };
+
+    const props: Omit<PeopleSearchPopupProps, "popup"> = {
+      kinds: [PeoplePickerKind.User],
+      selectedKeys: new Set<string>(),
+      selectionMode: "add",
+      onPick: (): void => {},
+      ariaLabel: "Add people",
+    };
+
+    const { rerender } = render(
+      <PeopleSearchPopup popup={openWithPosition(null)} {...props} />,
+    );
+
+    // Hidden until placed: found among what is hidden.
+    const dialog: HTMLElement = await screen.findByRole("dialog", {
+      hidden: true,
+    });
+    await within(dialog).findAllByRole("option", { hidden: true });
+
+    expect(dialog.style.visibility).toBe("hidden");
+    expect(scrollCalls).toEqual([]);
+    expect(
+      focusCalls.filter((call: FocusCall) => {
+        return call.testId === "people-search-input";
+      }),
+    ).toEqual([]);
+
+    rerender(
+      <PeopleSearchPopup
+        popup={openWithPosition({
+          top: 120,
+          bottom: undefined,
+          left: 40,
+          maxHeight: 380,
+          width: 320,
+        })}
+        {...props}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(scrollCalls.length).toBeGreaterThan(0);
+    });
+
+    for (const call of scrollCalls) {
+      expect(call.dialogVisibility).toBe("visible");
+    }
+
+    expect(screen.getByTestId("people-search-input")).toHaveFocus();
   });
 });
