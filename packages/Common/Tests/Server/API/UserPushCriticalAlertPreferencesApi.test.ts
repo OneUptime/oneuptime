@@ -791,13 +791,20 @@ describe("POST /user-push/register with an alarm and volume", () => {
     expect(created().criticalAlertVolume).toBe(25);
   });
 
-  test("a phone already registered here is answered as before, and nothing is created", async () => {
+  test("a phone already registered here: nothing is created, and the device takes the alarm the phone restates", async () => {
     lookup.mockResolvedValue({
       _id: EXISTING_DEVICE_ID.toString(),
       id: EXISTING_DEVICE_ID,
       isVerified: true,
       deviceType: PushDeviceType.iOS,
+      isCriticalAlertEnabled: true,
+      criticalAlertSound: CriticalAlertSound.Default,
+      criticalAlertVolume: 100,
     } as never);
+
+    const update: SpyInstance<typeof UserPushService.updateOneBy> = jest
+      .spyOn(UserPushService, "updateOneBy")
+      .mockResolvedValue(1);
 
     const answer: Answer = await call(
       URI,
@@ -808,6 +815,12 @@ describe("POST /user-push/register with an alarm and volume", () => {
       true,
     );
     expect(create).not.toHaveBeenCalled();
+
+    // UserPushRegistrationRestatesCriticalAlerts.test.ts covers the rest.
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update.mock.calls[0]![0].data).toEqual({
+      criticalAlertSound: CriticalAlertSound.Siren,
+    });
   });
 
   describe("a phone with a new token that says which it had before", () => {
@@ -980,7 +993,11 @@ describe("POST /user-push/:deviceId/test-notification plays the device's alarm",
       const answer: Answer = await call(URI, testRequest());
 
       expect(answer).toEqual({
-        json: { success: true, message: "Test notification sent successfully" },
+        json: {
+          success: true,
+          message: "Test notification sent successfully",
+          isCriticalAlert: true,
+        },
       });
 
       const request: PushNotificationRequest = send.mock.calls[0]![0];

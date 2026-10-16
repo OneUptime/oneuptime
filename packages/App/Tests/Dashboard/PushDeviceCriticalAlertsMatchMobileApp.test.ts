@@ -76,7 +76,30 @@ const USE_CRITICAL_ALERTS: string = read(
   "hooks",
   "useCriticalAlerts.ts",
 );
+const CRITICAL_ALERTS_REPORT: string = read(
+  MOBILE_APP,
+  "src",
+  "notifications",
+  "criticalAlertsReport.ts",
+);
+const USE_PUSH_NOTIFICATIONS: string = read(
+  MOBILE_APP,
+  "src",
+  "hooks",
+  "usePushNotifications.ts",
+);
 const APP_README: string = read(MOBILE_APP, "README.md");
+
+// The source of one exported function of a file, to the next export.
+function exportedFunction(source: string, name: string): string {
+  const start: number = source.indexOf(`export async function ${name}(`);
+
+  expect(start).toBeGreaterThan(-1);
+
+  const next: number = source.indexOf("\nexport ", start + 1);
+
+  return source.slice(start, next === -1 ? undefined : next);
+}
 
 // What the steps say, with the app's labels where the dialog draws them.
 function filled(template: string): string {
@@ -211,13 +234,16 @@ describe("the steps follow what the app does on each platform", () => {
     const stopsWhenRefused: number = setEnabled.indexOf(
       "status.availability !== CriticalAlertAvailability.Granted",
     );
-    const saves: number = setEnabled.indexOf(
-      "setCriticalAlertsEnabledOnServer(",
-    );
+    const saves: number = setEnabled.indexOf("saveCriticalAlertsChoice(");
 
     expect(asks).toBeGreaterThan(-1);
     expect(stopsWhenRefused).toBeGreaterThan(asks);
     expect(saves).toBeGreaterThan(stopsWhenRefused);
+
+    // ...and saving it is telling the server.
+    expect(
+      exportedFunction(CRITICAL_ALERTS_REPORT, "saveCriticalAlertsChoice"),
+    ).toContain("setCriticalAlertsEnabledOnServer(");
 
     expect(CRITICAL_ALERT_STEPS[PushDevicePlatform.IOS].map(filled)).toEqual([
       "Open OneUptime On-Call on this iPhone or iPad and tap Settings.",
@@ -238,17 +264,19 @@ describe("the steps follow what the app does on each platform", () => {
      * never reached. So the responder turns it on again.
      */
     expect(USE_CRITICAL_ALERTS).toContain(
-      "storedPreference &&\n            status.availability === CriticalAlertAvailability.Granted",
+      "isCriticalAlertsEffective({\n            isChosen: storedPreference,\n            availability: status.availability,",
+    );
+    expect(CRITICAL_ALERTS_REPORT).toContain(
+      "data.isChosen && data.availability === CriticalAlertAvailability.Granted",
     );
 
-    const setEnabled: string = USE_CRITICAL_ALERTS.slice(
-      USE_CRITICAL_ALERTS.indexOf("const setEnabled:"),
+    const save: string = exportedFunction(
+      CRITICAL_ALERTS_REPORT,
+      "saveCriticalAlertsChoice",
     );
 
-    expect(
-      setEnabled.indexOf("setCriticalAlertsEnabledOnServer("),
-    ).toBeLessThan(
-      setEnabled.indexOf("await storeCriticalAlertsEnabled(enabled);"),
+    expect(save.indexOf("setCriticalAlertsEnabledOnServer(")).toBeLessThan(
+      save.indexOf("await storeCriticalAlertsEnabled(isEnabled);"),
     );
 
     expect(
@@ -472,12 +500,110 @@ describe("the card shows a status because the server leaves nothing to change he
     );
   });
 
-  test("a test notification to a phone with critical alerts on is sent as a critical alert", () => {
+  test("a test notification to a phone with critical alerts on is sent as a critical alert, and the answer says how it went", () => {
     const api: string = read(COMMON, "Server", "API", "UserPushAPI.ts");
 
     expect(api).toContain(
-      "const isCriticalAlert: boolean = Boolean(\n              device.isCriticalAlertEnabled,\n            );",
+      "const isCriticalAlert: boolean = isTestNotificationCritical(device);",
+    );
+    expect(api).toContain(
+      "isExpoPushDeviceType(device.deviceType) &&\n    Boolean(device.isCriticalAlertEnabled)",
     );
     expect(api).toContain("testMessage.isCriticalAlert = isCriticalAlert;");
+    // The Dashboard's dialog words this answer (readTestNotificationIsCritical).
+    expect(api).toContain("isCriticalAlert: isCriticalAlert,");
+  });
+});
+
+/*
+ * The column says what the phone will really do because the phone says it.
+ * The maintainer turned critical alerts off on an iPhone and the column went
+ * on reading "On": the app told the server only its switch, and only when it
+ * moved, and a device already registered kept what it was created with.
+ * These hold the two sides of the fix to each other.
+ */
+describe("the column follows the phone because the app tells the server", () => {
+  test("registration sends what the phone will do - the switch AND the phone's permission - not the switch alone", () => {
+    expect(USE_PUSH_NOTIFICATIONS).toContain(
+      "const isCriticalAlertEnabled: boolean = (await readCriticalAlerts())\n        .isEffective;",
+    );
+    expect(USE_PUSH_NOTIFICATIONS).not.toContain(
+      "await getCriticalAlertsEnabled()",
+    );
+    expect(USE_PUSH_NOTIFICATIONS).toContain(
+      "isCriticalAlertEnabled: isCriticalAlertEnabled,",
+    );
+  });
+
+  test("the app tells the server again after every registration, and on every return to it", () => {
+    const afterRegistering: number = USE_PUSH_NOTIFICATIONS.indexOf(
+      "await reportCriticalAlerts(",
+    );
+
+    expect(afterRegistering).toBeGreaterThan(
+      USE_PUSH_NOTIFICATIONS.indexOf("for (const project of projectList)"),
+    );
+
+    // A return too soon to register again still reports a change.
+    const listener: string = USE_PUSH_NOTIFICATIONS.slice(
+      USE_PUSH_NOTIFICATIONS.indexOf("FOREGROUND_REGISTRATION_INTERVAL_MS\n"),
+    );
+
+    expect(listener.indexOf("void reportCriticalAlerts();")).toBeGreaterThan(
+      -1,
+    );
+    expect(listener.indexOf("void reportCriticalAlerts();")).toBeLessThan(
+      listener.indexOf("setReturnsToForeground("),
+    );
+
+    // ...and so does the Settings screen, whenever it reads the OS.
+    expect(USE_CRITICAL_ALERTS).toContain("void reportCriticalAlerts();");
+  });
+
+  test("the server writes what a re-registering phone restates onto the device it already has", () => {
+    const api: string = read(COMMON, "Server", "API", "UserPushAPI.ts");
+    const existing: string = api.slice(api.indexOf("if (existingDevice) {"));
+
+    expect(existing.indexOf("this.service.restateCriticalAlertChoices(")).toBeGreaterThan(-1);
+    expect(existing.indexOf("this.service.restateCriticalAlertChoices(")).toBeLessThan(
+      existing.indexOf("return Response.sendJsonObjectResponse("),
+    );
+    expect(existing).toContain("readStatedCriticalAlertFlag(");
+  });
+
+  test("the app knows the server's words for a phone it has no device for, so it waits for the registration that makes one", () => {
+    const service: string = read(
+      COMMON,
+      "Server",
+      "Services",
+      "UserPushService.ts",
+    );
+    const appMessage: string = stringConstant(
+      CRITICAL_ALERTS_REPORT,
+      "NO_REGISTERED_DEVICE_MESSAGE",
+    );
+
+    expect(appMessage).toBe(
+      "No registered device was found for this device token.",
+    );
+    expect(service).toContain(`"${appMessage}"`);
+  });
+
+  test("the column's (i) says the app updates it whenever it is opened, as the app does", () => {
+    const card: string = read(
+      REPOSITORY,
+      "packages",
+      "App",
+      "FeatureSet",
+      "Dashboard",
+      "src",
+      "Components",
+      "NotificationMethods",
+      "Push.tsx",
+    );
+
+    expect(card).toContain(
+      "Set in the OneUptime On-Call mobile app, which updates it here each time it's opened.",
+    );
   });
 });

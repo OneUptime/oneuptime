@@ -1290,3 +1290,229 @@ describe("a test notification says what it did on that device", () => {
     );
   });
 });
+
+/*
+ * The maintainer's report: the phone had critical alerts off, the list
+ * still said On, and the test's dialog said "Sent to iPhone 14 Pro Max as a
+ * critical alert: it rings even when the phone is on silent". The dialog
+ * worded the list as it was read. The server now says how the test went
+ * (isCriticalAlert), the dialog words that, and when it differs from the
+ * row the list is read again, so the row says the same.
+ */
+describe("a test notification says what the server sent, not what the list showed", () => {
+  // What the server answers about each device's test, by device id.
+  let answers: Map<string, boolean>;
+
+  beforeEach(() => {
+    answers = new Map<string, boolean>();
+
+    postMock.mockImplementation(async (request: any): Promise<unknown> => {
+      const url: string = request.url.toString();
+
+      for (const [deviceId, isCriticalAlert] of answers) {
+        if (url.endsWith(`/user-push/${deviceId}/test-notification`)) {
+          return new HTTPResponse<JSONObject>(
+            200,
+            {
+              success: true,
+              message: "Test notification sent successfully",
+              isCriticalAlert: isCriticalAlert,
+            },
+            {},
+          );
+        }
+      }
+
+      if (url.endsWith("/test-notification")) {
+        // A server from before the answer said how the test went.
+        return new HTTPResponse<JSONObject>(
+          200,
+          { success: true, message: "Test notification sent successfully" },
+          {},
+        );
+      }
+
+      throw new Error(`Unexpected POST ${url}`);
+    });
+  });
+
+  async function sendTestTo(deviceName: string): Promise<HTMLElement> {
+    fireEvent.click(
+      within(await rowOf(deviceName)).getByRole("button", {
+        name: "Test Notification",
+      }),
+    );
+
+    return await screen.findByTestId("confirm-modal-description");
+  }
+
+  function footerButtons(): Array<string> {
+    return Array.from(
+      within(screen.getByTestId("modal-footer")).getAllByRole("button"),
+    ).map((button: HTMLElement): string => {
+      return button.textContent || "";
+    });
+  }
+
+  test("the phone turned them off since the list was read: an ordinary push, how to turn them on, and the row catches up", async () => {
+    devices = [PIXEL_ON()];
+
+    render(<PushMethods />);
+
+    expect((await statusOf("Pixel 10")).getAttribute("data-state")).toBe("on");
+    const readsBefore: number = deviceListReads().length;
+
+    // The phone's app reported off; the list on screen has not been read since.
+    answers.set(PIXEL_ID, false);
+    devices = [
+      device({
+        id: PIXEL_ID,
+        name: "Pixel 10",
+        type: PushDeviceType.Android,
+        isCriticalAlertEnabled: false,
+      }),
+    ];
+
+    const description: HTMLElement = await sendTestTo("Pixel 10");
+
+    expect(description).toHaveTextContent(
+      "Sent to Pixel 10. It follows the phone's sound settings, so a phone on silent or in Do Not Disturb stays quiet. Turn on critical alerts to have on-call pages ring through.",
+    );
+    expect(description).not.toHaveTextContent("as a critical alert");
+    expect(footerButtons()).toEqual(["Close", "How to turn on"]);
+
+    // The list is read again, and the row says Off like the dialog.
+    await waitFor(() => {
+      expect(deviceListReads().length).toBe(readsBefore + 1);
+    });
+
+    fireEvent.click(screen.getByTestId("modal-footer-close-button"));
+
+    await waitFor(async () => {
+      expect((await statusOf("Pixel 10")).getAttribute("data-state")).toBe(
+        "off",
+      );
+    });
+  });
+
+  test("the phone turned them on since: a critical alert, and the row catches up", async () => {
+    devices = [IPHONE_OFF()];
+
+    render(<PushMethods />);
+
+    expect(
+      (await statusOf("iPhone 15 Pro")).getAttribute("data-state"),
+    ).toBe("off");
+    const readsBefore: number = deviceListReads().length;
+
+    answers.set(IPHONE_ID, true);
+    devices = [
+      device({
+        id: IPHONE_ID,
+        name: "iPhone 15 Pro",
+        type: PushDeviceType.iOS,
+        isCriticalAlertEnabled: true,
+      }),
+    ];
+
+    expect(await sendTestTo("iPhone 15 Pro")).toHaveTextContent(
+      "Sent to iPhone 15 Pro as a critical alert: it rings even when the phone is on silent or in Do Not Disturb, as an on-call page would.",
+    );
+    // Nothing to turn on: the dialog only closes.
+    expect(footerButtons()).toEqual(["Close"]);
+
+    await waitFor(() => {
+      expect(deviceListReads().length).toBe(readsBefore + 1);
+    });
+
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(async () => {
+      expect(
+        (await statusOf("iPhone 15 Pro")).getAttribute("data-state"),
+      ).toBe("on");
+    });
+  });
+
+  test("the answer agrees with the list: the list is not read again", async () => {
+    devices = [PIXEL_ON()];
+    answers.set(PIXEL_ID, true);
+
+    render(<PushMethods />);
+
+    await rowOf("Pixel 10");
+    const readsBefore: number = deviceListReads().length;
+
+    expect(await sendTestTo("Pixel 10")).toHaveTextContent(
+      "Sent to Pixel 10 as a critical alert",
+    );
+
+    // Give a read that should not happen the time to happen.
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 50);
+    });
+
+    expect(deviceListReads().length).toBe(readsBefore);
+  });
+
+  test("a server that does not say how the test went: the list decides, as before", async () => {
+    devices = [PIXEL_ON(), IPHONE_OFF()];
+
+    render(<PushMethods />);
+
+    expect(await sendTestTo("Pixel 10")).toHaveTextContent(
+      "Sent to Pixel 10 as a critical alert",
+    );
+
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("modal")).toBeNull();
+    });
+
+    expect(await sendTestTo("iPhone 15 Pro")).toHaveTextContent(
+      "Sent to iPhone 15 Pro. It follows the phone's sound settings",
+    );
+  });
+
+  test("a browser's dialog is a browser's, whatever the answer says", async () => {
+    devices = [PIXEL_ON(), CHROME()];
+    answers.set(CHROME_ID, true);
+
+    render(<PushMethods />);
+
+    await rowOf("Chrome on macOS");
+    const readsBefore: number = deviceListReads().length;
+
+    const description: HTMLElement = await sendTestTo("Chrome on macOS");
+
+    expect(description).toHaveTextContent(
+      "Sent to Chrome on macOS. If it doesn't appear, check that this site may show notifications in that browser",
+    );
+    expect(description).not.toHaveTextContent("critical alert");
+    expect(footerButtons()).toEqual(["Close"]);
+    expect(deviceListReads().length).toBe(readsBefore);
+  });
+
+  test("the column's (i) says the app keeps it up to date", async () => {
+    devices = [PIXEL_ON()];
+
+    render(<PushMethods />);
+
+    await rowOf("Pixel 10");
+
+    const header: HTMLElement = screen.getByRole("columnheader", {
+      name: "Critical Alerts",
+    });
+
+    fireEvent.mouseEnter(
+      within(header).getByRole("button", { name: "About Critical Alerts" }),
+    );
+
+    expect(
+      await screen.findByText(
+        "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Set in the OneUptime On-Call mobile app, which updates it here each time it's opened. Browsers can't override a device's ringer.",
+      ),
+    ).toBeInTheDocument();
+  });
+});

@@ -240,6 +240,12 @@ describe("POST /user-push/register", () => {
 
     lookup = jest.spyOn(UserPushService, "findOneBy").mockResolvedValue(null);
 
+    /*
+     * A phone's registration restates its critical alerts onto a device it
+     * already has (UserPushRegistrationRestatesCriticalAlerts.test.ts).
+     */
+    jest.spyOn(UserPushService, "updateOneBy").mockResolvedValue(1);
+
     create = jest
       .spyOn(UserPushService, "create")
       .mockImplementation((async (data: { data: JSONObject }) => {
@@ -508,6 +514,8 @@ describe("POST /user-push/register", () => {
             deviceId: EXISTING_DEVICE_ID.toString(),
             alreadyRegistered: true,
             isVerified: true,
+            // As the phone restated it.
+            isCriticalAlertEnabled: true,
           },
         });
         expect(verifyAgain).toHaveBeenCalledTimes(1);
@@ -615,6 +623,7 @@ describe("POST /user-push/register", () => {
           deviceId: NEW_DEVICE_ID.toString(),
           alreadyRegistered: false,
           isVerified: true,
+          isCriticalAlertEnabled: true,
         },
       });
     });
@@ -834,6 +843,7 @@ describe("POST /user-push/register", () => {
             deviceId: EXISTING_DEVICE_ID.toString(),
             alreadyRegistered: true,
             isVerified: true,
+            isCriticalAlertEnabled: true,
           },
         });
 
@@ -935,6 +945,7 @@ describe("POST /user-push/register", () => {
           deviceId: NEW_DEVICE_ID.toString(),
           alreadyRegistered: false,
           isVerified: true,
+          isCriticalAlertEnabled: true,
         },
       });
     });

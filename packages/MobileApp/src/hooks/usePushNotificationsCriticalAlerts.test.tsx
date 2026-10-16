@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
+import { Platform } from "react-native";
 import { renderHook, waitFor } from "@testing-library/react-native";
 import { usePushNotifications } from "./usePushNotifications";
 import * as pushDeviceApi from "../api/pushDevice";
@@ -52,6 +53,13 @@ jest.mock("./useProject", () => {
 function registerSpy(): jest.SpyInstance {
   return pushDeviceApi.registerPushDevice as unknown as jest.SpyInstance;
 }
+
+// The platform this project runs as; a test that changes it puts it back.
+const PROJECT_PLATFORM: string = Platform.OS;
+
+afterEach(() => {
+  (Platform as unknown as { OS: string }).OS = PROJECT_PLATFORM;
+});
 
 /*
  * The phone's system allows critical alerts: iOS reports the permission,
@@ -107,6 +115,75 @@ describe("Push registration restates the critical alert preference", () => {
       expect(
         (call[0] as { isCriticalAlertEnabled: boolean }).isCriticalAlertEnabled,
       ).toBe(true);
+    }
+  });
+
+  /*
+   * What the phone will really do, not the switch alone: the maintainer
+   * turned critical alerts off in a way that left the switch's stored choice
+   * on, and every registration went on telling the server "on".
+   */
+  test("sends false for every project when iOS no longer allows critical alerts, whatever the switch was", async () => {
+    (Platform as unknown as { OS: string }).OS = "ios";
+    await setCriticalAlertsEnabled(true);
+    jest.spyOn(Notifications, "getPermissionsAsync").mockResolvedValue({
+      status: "granted",
+      ios: { allowsCriticalAlerts: false },
+    } as never);
+
+    await renderHook(() => {
+      return usePushNotifications(null);
+    });
+
+    await waitFor(() => {
+      expect(registerSpy()).toHaveBeenCalledTimes(2);
+    });
+
+    for (const call of registerSpy().mock.calls) {
+      expect(
+        (call[0] as { isCriticalAlertEnabled: boolean }).isCriticalAlertEnabled,
+      ).toBe(false);
+    }
+  });
+
+  test("sends false for every project when Android's critical channel cannot ring through Do Not Disturb", async () => {
+    (Platform as unknown as { OS: string }).OS = "android";
+    await setCriticalAlertsEnabled(true);
+    jest
+      .spyOn(Notifications, "setNotificationChannelAsync")
+      .mockResolvedValue({ bypassDnd: false } as never);
+
+    await renderHook(() => {
+      return usePushNotifications(null);
+    });
+
+    await waitFor(() => {
+      expect(registerSpy()).toHaveBeenCalledTimes(2);
+    });
+
+    for (const call of registerSpy().mock.calls) {
+      expect(
+        (call[0] as { isCriticalAlertEnabled: boolean }).isCriticalAlertEnabled,
+      ).toBe(false);
+    }
+  });
+
+  test("sends false when the switch is off, though the phone would allow it", async () => {
+    await setCriticalAlertsEnabled(false);
+    allowCriticalAlertsOnThePhone();
+
+    await renderHook(() => {
+      return usePushNotifications(null);
+    });
+
+    await waitFor(() => {
+      expect(registerSpy()).toHaveBeenCalledTimes(2);
+    });
+
+    for (const call of registerSpy().mock.calls) {
+      expect(
+        (call[0] as { isCriticalAlertEnabled: boolean }).isCriticalAlertEnabled,
+      ).toBe(false);
     }
   });
 

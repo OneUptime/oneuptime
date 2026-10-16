@@ -156,6 +156,75 @@ describe("registerPushDevice carries the critical alert opt-in", () => {
   });
 });
 
+/*
+ * A server that restates a phone's choices on registration says what the
+ * device holds afterwards; the app then needs to send nothing more. An older
+ * server says nothing, and the app tells it outright.
+ */
+describe("registerPushDevice says what the server holds", () => {
+  beforeEach(() => {
+    postSpy().mockClear();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test.each([[true], [false]])(
+    "the server says its device holds %s",
+    async (isCriticalAlertEnabled: boolean) => {
+      postSpy().mockResolvedValue({
+        data: {
+          success: true,
+          alreadyRegistered: true,
+          isCriticalAlertEnabled: isCriticalAlertEnabled,
+        },
+      } as never);
+
+      expect(
+        await registerPushDevice({
+          deviceToken: "ExponentPushToken[abc]",
+          projectId: "project-1",
+          isCriticalAlertEnabled: isCriticalAlertEnabled,
+        }),
+      ).toEqual({ isCriticalAlertEnabled: isCriticalAlertEnabled });
+    },
+  );
+
+  test.each([
+    ["a server from before it said", { success: true }],
+    ["a value that is not a boolean", { isCriticalAlertEnabled: "true" }],
+    ["no body", undefined],
+  ])("%s: nothing said", async (_name: string, data: unknown) => {
+    postSpy().mockResolvedValue({ data: data } as never);
+
+    expect(
+      await registerPushDevice({
+        deviceToken: "ExponentPushToken[abc]",
+        projectId: "project-1",
+        isCriticalAlertEnabled: true,
+      }),
+    ).toEqual({});
+  });
+
+  test('an older server\'s "already registered" refusal says nothing either', async () => {
+    postSpy().mockRejectedValue({
+      response: {
+        status: 400,
+        data: { message: "This device is already registered" },
+      },
+    } as never);
+
+    expect(
+      await registerPushDevice({
+        deviceToken: "ExponentPushToken[abc]",
+        projectId: "project-1",
+        isCriticalAlertEnabled: true,
+      }),
+    ).toBeUndefined();
+  });
+});
+
 describe("setCriticalAlertsEnabledOnServer", () => {
   beforeEach(() => {
     postSpy().mockClear();
