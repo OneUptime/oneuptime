@@ -47,11 +47,14 @@ jobs:
           path: ${{ runner.temp }}/cli-package/*.tgz
           if-no-files-found: error
           retention-days: 1
+          # A re-run of this job replaces the tarball of the attempt before,
+          # rather than failing on an artifact of the same name.
+          overwrite: true
       - run: cd packages/CLI && npm run test
 
-  # Every CLI published from 10.0.5 to 14.0.61 died at start with "Cannot find
-  # module 'Common/Models/DatabaseModels/Index'" (#4872), because no job ran
-  # the package npm publishes. This installs that package as a customer does
+  # Every CLI published from 10.0.5 until #4872 was fixed died at start with
+  # "Cannot find module 'Common/Models/DatabaseModels/Index'", because no job
+  # ran the package npm publishes. This installs that package as a customer does
   # - globally, into an empty prefix, with an empty npm cache and no network -
   # on each Node.js line the CLI supports (package.json engines) below the
   # Node.js 26 of the job above, whose Tests/PackagedCli does the same and

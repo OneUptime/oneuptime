@@ -1,3 +1,4 @@
+import { build as buildWithEsbuild, BuildOptions, Metafile } from "esbuild";
 import * as fs from "fs";
 import { builtinModules } from "module";
 import * as os from "os";
@@ -218,6 +219,196 @@ describe("the bundle's build options", () => {
   });
 });
 
+/*
+ * esbuild emits no decorator metadata: tsc's emitDecoratorMetadata, which
+ * records each property's design:type, has no esbuild equivalent. typeorm's
+ * @Column and @PrimaryColumn guess a column's type from that metadata when
+ * the column names none, and throw ColumnTypeUndefinedError as the model
+ * class loads when there is nothing to guess from. Such a model works under
+ * ts-node, which emits the metadata, and kills the bundled CLI at start,
+ * before even --version. So every column of every model the bundle holds
+ * names its type.
+ */
+describe("the models the bundle holds", () => {
+  const TYPE_GUESSING_DECORATORS: Array<string> = ["Column", "PrimaryColumn"];
+
+  interface ColumnScan {
+    files: number;
+    columns: number;
+    withoutType: Array<string>;
+  }
+
+  // The decorators a file imports from typeorm, by their local name.
+  function typeormImports(source: ts.SourceFile): Map<string, string> {
+    const imported: Map<string, string> = new Map<string, string>();
+
+    for (const statement of source.statements) {
+      if (
+        !ts.isImportDeclaration(statement) ||
+        !ts.isStringLiteral(statement.moduleSpecifier) ||
+        statement.moduleSpecifier.text !== "typeorm"
+      ) {
+        continue;
+      }
+
+      const bindings: ts.NamedImportBindings | undefined =
+        statement.importClause?.namedBindings;
+
+      if (bindings && ts.isNamedImports(bindings)) {
+        for (const element of bindings.elements) {
+          imported.set(
+            element.name.text,
+            (element.propertyName || element.name).text,
+          );
+        }
+      }
+    }
+
+    return imported;
+  }
+
+  // A column names its type as @Column("varchar"), @Column(ColumnType.X, ...) or @Column({ type: ... }).
+  function namesItsType(call: ts.CallExpression): boolean {
+    const first: ts.Expression | undefined = call.arguments[0];
+
+    if (!first) {
+      return false;
+    }
+
+    if (!ts.isObjectLiteralExpression(first)) {
+      return true;
+    }
+
+    return first.properties.some((property: ts.ObjectLiteralElementLike) => {
+      return (
+        (ts.isPropertyAssignment(property) ||
+          ts.isShorthandPropertyAssignment(property)) &&
+        ts.isIdentifier(property.name) &&
+        property.name.text === "type"
+      );
+    });
+  }
+
+  function scanColumns(files: Array<string>): ColumnScan {
+    const scan: ColumnScan = { files: 0, columns: 0, withoutType: [] };
+
+    for (const file of files) {
+      const source: ts.SourceFile = ts.createSourceFile(
+        file,
+        fs.readFileSync(file, "utf-8"),
+        ts.ScriptTarget.Latest,
+        true,
+      );
+      const imported: Map<string, string> = typeormImports(source);
+
+      scan.files += 1;
+
+      const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+        if (
+          ts.isDecorator(node) &&
+          ts.isCallExpression(node.expression) &&
+          ts.isIdentifier(node.expression.expression) &&
+          TYPE_GUESSING_DECORATORS.includes(
+            imported.get(node.expression.expression.text) || "",
+          )
+        ) {
+          scan.columns += 1;
+
+          if (!namesItsType(node.expression)) {
+            const { line } = source.getLineAndCharacterOfPosition(
+              node.getStart(source),
+            );
+            scan.withoutType.push(
+              `${path.relative(CLI_ROOT, file).split(path.sep).join("/")}:${line + 1}`,
+            );
+          }
+        }
+
+        ts.forEachChild(node, visit);
+      };
+
+      visit(source);
+    }
+
+    return scan;
+  }
+
+  it("name the type of every typeorm column, which the bundle cannot guess", async () => {
+    const options: BuildOptions = {
+      ...(BuildConfig.createBuildOptions({
+        outputDirectory: path.join(os.tmpdir(), "oneuptime-cli-unwritten"),
+      }) as unknown as BuildOptions),
+      write: false,
+      logLevel: "silent",
+    };
+    const metafile: Metafile = (await buildWithEsbuild(options))
+      .metafile as Metafile;
+    const ourSources: Array<string> = Object.keys(metafile.inputs)
+      .map((input: string): string => {
+        return path.resolve(CLI_ROOT, input);
+      })
+      .filter((file: string): boolean => {
+        return (
+          file.endsWith(".ts") && !file.split(path.sep).includes("node_modules")
+        );
+      });
+    const scan: ColumnScan = scanColumns(ourSources);
+
+    // Every database model is in the bundle, so this is thousands of columns.
+    expect(scan.files).toBeGreaterThan(400);
+    expect(scan.columns).toBeGreaterThan(1000);
+    expect(scan.withoutType).toEqual([]);
+  }, 120000);
+
+  it("finds a column that leaves its type to the metadata, however typeorm's decorator is imported", () => {
+    const directory: string = fs.mkdtempSync(
+      path.join(os.tmpdir(), "oneuptime-cli-columns-"),
+    );
+    const model: string = path.join(directory, "Model.ts");
+
+    try {
+      fs.writeFileSync(
+        model,
+        [
+          'import { Column as TypeOrmColumn, Entity, PrimaryColumn } from "typeorm";',
+          'import TableColumn from "./TableColumn";',
+          "",
+          '@Entity({ name: "Example" })',
+          "export default class Example {",
+          '  @PrimaryColumn({ type: "uuid" })',
+          "  public id?: string = undefined;",
+          "",
+          '  @TypeOrmColumn("varchar")',
+          "  public byPosition?: string = undefined;",
+          "",
+          '  @TypeOrmColumn({ type: "text", nullable: true })',
+          "  public byOption?: string = undefined;",
+          "",
+          "  @TableColumn({ title: 'Not typeorm, never a column here' })",
+          "  @TypeOrmColumn({ nullable: true })",
+          "  public guessed?: string = undefined;",
+          "",
+          "  @TypeOrmColumn()",
+          "  public alsoGuessed?: number = undefined;",
+          "}",
+          "",
+        ].join("\n"),
+      );
+
+      const scan: ColumnScan = scanColumns([model]);
+
+      expect(scan.columns).toBe(5);
+      expect(
+        scan.withoutType.map((entry: string): string => {
+          return entry.slice(entry.lastIndexOf(":") + 1);
+        }),
+      ).toEqual(["16", "19"]);
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("packageDirectoryOf", () => {
   const root: string = path.join(path.sep, "work", "app");
 
@@ -419,6 +610,72 @@ describe("bundledPackages", () => {
     expect(textsOf("delta")).toEqual(["Delta", "Delta MIT"]);
     expect(textsOf("gamma")).toEqual([]);
   });
+
+  /*
+   * The CLI's node_modules and Common's can hold the same release (both had
+   * supports-color 7.2.0 and has-flag 4.0.0), and the bundle then holds both
+   * copies. The license file names the release once.
+   */
+  it("lists a release installed in two places once, with each distinct license text, and keeps other versions apart", () => {
+    writePackage(
+      path.join(root, "cli", "node_modules", "epsilon"),
+      { name: "epsilon", version: "7.2.0", license: "MIT" },
+      { "index.js": "", LICENSE: "Epsilon MIT" },
+    );
+    writePackage(
+      path.join(root, "common", "node_modules", "epsilon"),
+      { name: "epsilon", version: "7.2.0", license: "MIT" },
+      { "index.js": "", LICENSE: "Epsilon MIT", NOTICE: "Epsilon notice" },
+    );
+    writePackage(
+      path.join(
+        root,
+        "common",
+        "node_modules",
+        "zeta",
+        "node_modules",
+        "epsilon",
+      ),
+      { name: "epsilon", version: "8.0.0", license: "MIT" },
+      { "index.js": "", LICENSE: "Epsilon 8 MIT" },
+    );
+
+    const packages: Array<BundledPackage> = BuildConfig.bundledPackages(
+      {
+        inputs: {
+          "common/node_modules/epsilon/index.js": {},
+          "common/node_modules/zeta/node_modules/epsilon/index.js": {},
+          "cli/node_modules/epsilon/index.js": {},
+        },
+      },
+      root,
+    );
+
+    expect(packages).toEqual([
+      {
+        name: "epsilon",
+        version: "7.2.0",
+        license: "MIT",
+        // The first directory in path order, whatever order esbuild read them in.
+        directory: path.join(root, "cli", "node_modules", "epsilon"),
+        licenseTexts: ["Epsilon MIT", "Epsilon notice"],
+      },
+      {
+        name: "epsilon",
+        version: "8.0.0",
+        license: "MIT",
+        directory: path.join(
+          root,
+          "common",
+          "node_modules",
+          "zeta",
+          "node_modules",
+          "epsilon",
+        ),
+        licenseTexts: ["Epsilon 8 MIT"],
+      },
+    ]);
+  });
 });
 
 describe("renderLicenses", () => {
@@ -587,6 +844,8 @@ describe("CLI Test", () => {
     expect(pack).toBeGreaterThan(-1);
     expect(upload).toBeGreaterThan(pack);
     expect(tests).toBeGreaterThan(upload);
+    // A re-run of the job uploads the same name again.
+    expect(workflow.slice(upload, tests)).toContain("overwrite: true");
   });
 
   it("runs the packed CLI on every Node.js line from the oldest engines allows up to the tests' own", () => {

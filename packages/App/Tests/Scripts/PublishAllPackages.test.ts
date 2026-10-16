@@ -8,6 +8,24 @@ const SOURCE: string = fs.readFileSync(
   "utf8",
 );
 
+// sed run as a command, as in `sed -i ...` or `... && sed -i ...`.
+const SED_COMMAND: RegExp = /(?:^|[\s;&|(])sed\s/;
+
+// npm's ignore-scripts, as a flag, a config key or an environment variable.
+const IGNORE_SCRIPTS: RegExp = /ignore[-_]scripts/i;
+
+/*
+ * A command that rewrites a package's Common dependency, as the two `sed -i`
+ * lines #4872 removed did: they swapped the CLI's link to ../Common for
+ * npm:@oneuptime/common@<version>. Other sed edits stay allowed.
+ */
+function rewritesCommonLink(line: string): boolean {
+  return (
+    line.includes("npm:@oneuptime/common") ||
+    (SED_COMMAND.test(line) && line.includes("Common"))
+  );
+}
+
 describe("PublishAllPackages", () => {
   it("publishes the React Native recorder after Common is available", () => {
     const waitEnd: number = SOURCE.indexOf(
@@ -167,13 +185,33 @@ describe("PublishAllPackages", () => {
       },
     );
 
+    expect(commands.filter(rewritesCommonLink)).toEqual([]);
+  });
+
+  it("knows the rewrite this script used to make, and lets other edits be", () => {
+    // The two lines #4872 removed, as they were.
     expect(
-      commands.filter((line: string): boolean => {
-        return (
-          line.includes("npm:@oneuptime/common") || line.includes("sed -i")
-        );
-      }),
-    ).toEqual([]);
+      rewritesCommonLink(
+        'sed -i "s/\\"Common\\": \\"file:..\\/Common\\"/\\"Common\\": \\"npm:@oneuptime\\/common@$package_version\\"/g" package.json',
+      ),
+    ).toBe(true);
+    expect(
+      rewritesCommonLink(
+        'sed -i "s/\\"Common\\": \\"npm:@oneuptime\\/common@latest\\"/\\"Common\\": \\"npm:@oneuptime\\/common@$package_version\\"/g" package.json',
+      ),
+    ).toBe(true);
+    // Either half alone is enough.
+    expect(
+      rewritesCommonLink(
+        "npm pkg set dependencies.Common=npm:@oneuptime/common@1.0.0",
+      ),
+    ).toBe(true);
+    expect(rewritesCommonLink("sed -i 's/Common/x/' package.json")).toBe(true);
+    // The release may still use sed for anything else.
+    expect(rewritesCommonLink('sed -i "s/beta/stable/" CHANGELOG.md')).toBe(
+      false,
+    );
+    expect(rewritesCommonLink('publish_to_npm "packages/Common"')).toBe(false);
   });
 
   /*
@@ -189,7 +227,12 @@ describe("PublishAllPackages", () => {
     );
 
     expect(publishLines).toEqual(["        npm publish --access public"]);
-    expect(SOURCE).not.toContain("--ignore-scripts");
+    // Neither the flag nor npm config (ignore-scripts, npm_config_ignore_scripts), on any command line.
+    expect(
+      SOURCE.split("\n").filter((line: string): boolean => {
+        return !line.trim().startsWith("#") && IGNORE_SCRIPTS.test(line);
+      }),
+    ).toEqual([]);
 
     const cli: {
       scripts: Record<string, string>;

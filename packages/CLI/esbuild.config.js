@@ -102,6 +102,12 @@ function createBuildOptions(settings) {
      * experimentalDecorators esbuild then compiles the models' decorators as
      * standard ones, and the bundle dies on the first typeorm decorator it
      * runs ("Cannot read properties of undefined (reading 'constructor')").
+     *
+     * esbuild never emits decorator metadata (emitDecoratorMetadata's
+     * design:type), so a typeorm column that leaves its type to be guessed
+     * from it kills the bundle at start with ColumnTypeUndefinedError, while
+     * the sources run. Tests/BundleBuild holds every column of every model
+     * the bundle holds to naming its type.
      */
     tsconfig: path.join(CLI_ROOT, "tsconfig.json"),
     // Class names as written: Common prints and serializes some of them.
@@ -165,23 +171,30 @@ function licenseOf(manifest) {
 
 /**
  * The third-party packages a build put into the bundle: every input under a
- * node_modules directory, by the package it belongs to.
+ * node_modules directory, by the package it belongs to. A release installed
+ * in two places (the CLI's node_modules and Common's both hold
+ * supports-color 7.2.0, for one) is one entry, under the first directory in
+ * path order, with each distinct license text it ships.
  * @param {{ inputs: Record<string, unknown> }} metafile - esbuild's metafile
  * @param {string} [workingDirectory] - what the metafile's paths are relative to
  * @returns {Array<{ name: string, version: string, license: string, directory: string, licenseTexts: Array<string> }>}
- *   one entry per package directory, by name then version
+ *   one entry per package name and version, by name then version
  */
 function bundledPackages(metafile, workingDirectory) {
   const root = workingDirectory || CLI_ROOT;
-  const byDirectory = new Map();
+  const directories = new Set();
 
   for (const input of Object.keys(metafile.inputs)) {
     const directory = packageDirectoryOf(path.resolve(root, input));
 
-    if (!directory || byDirectory.has(directory)) {
-      continue;
+    if (directory) {
+      directories.add(directory);
     }
+  }
 
+  const byRelease = new Map();
+
+  for (const directory of [...directories].sort()) {
     const manifest = JSON.parse(
       fs.readFileSync(path.join(directory, "package.json"), "utf8"),
     );
@@ -203,7 +216,20 @@ function bundledPackages(metafile, workingDirectory) {
         return fs.readFileSync(path.join(directory, name), "utf8").trim();
       });
 
-    byDirectory.set(directory, {
+    const release = `${manifest.name}@${manifest.version}`;
+    const listed = byRelease.get(release);
+
+    if (listed) {
+      for (const text of licenseTexts) {
+        if (!listed.licenseTexts.includes(text)) {
+          listed.licenseTexts.push(text);
+        }
+      }
+
+      continue;
+    }
+
+    byRelease.set(release, {
       name: manifest.name,
       version: manifest.version,
       license: licenseOf(manifest),
@@ -212,16 +238,12 @@ function bundledPackages(metafile, workingDirectory) {
     });
   }
 
-  return [...byDirectory.values()].sort((a, b) => {
+  return [...byRelease.values()].sort((a, b) => {
     if (a.name !== b.name) {
       return a.name < b.name ? -1 : 1;
     }
 
-    if (a.version !== b.version) {
-      return a.version < b.version ? -1 : 1;
-    }
-
-    return a.directory < b.directory ? -1 : 1;
+    return a.version < b.version ? -1 : 1;
   });
 }
 

@@ -845,6 +845,8 @@ describe("THIRD-PARTY-LICENSES.txt", () => {
         return `${entry.name}@${entry.version}`;
       }),
     );
+    // Once each, though the CLI's node_modules and Common's share releases.
+    expect(new Set(listed).size).toBe(listed.length);
 
     for (const name of ["typeorm", "axios", "commander", "chalk"]) {
       expect(
