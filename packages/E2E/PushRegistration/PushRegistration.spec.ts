@@ -1584,7 +1584,10 @@ test.describe("critical alerts in the device list", () => {
       page.getByTestId("modal-footer").getByRole("button"),
     ).toHaveText(["Close", "How to turn on"]);
 
-    await screenshot(page, "critical-alerts-test-sent-turned-off-since-synthetic");
+    await screenshot(
+      page,
+      "critical-alerts-test-sent-turned-off-since-synthetic",
+    );
 
     await page
       .getByTestId("modal-footer")
@@ -1592,10 +1595,7 @@ test.describe("critical alerts in the device list", () => {
       .click();
 
     await expect(page.getByTestId("modal")).toHaveCount(0);
-    await expect(status(page, "Pixel 10")).toHaveAttribute(
-      "data-state",
-      "off",
-    );
+    await expect(status(page, "Pixel 10")).toHaveAttribute("data-state", "off");
     expect(await listReads(page)).toBeGreaterThan(readsBefore);
   });
 

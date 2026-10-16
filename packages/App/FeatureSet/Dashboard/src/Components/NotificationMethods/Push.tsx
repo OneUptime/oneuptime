@@ -533,8 +533,9 @@ const Push: () => JSX.Element = (): ReactElement => {
               onCompleteAction: VoidFunction,
               onError: ErrorFunction,
             ) => {
-              const result: TestNotificationResult =
-                await sendTestNotification(item._id!.toString());
+              const result: TestNotificationResult = await sendTestNotification(
+                item._id!.toString(),
+              );
 
               onCompleteAction();
 

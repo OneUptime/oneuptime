@@ -1088,7 +1088,6 @@ describe("useCriticalAlerts on Android answers for the alarm the responder chose
   });
 });
 
-
 /*
  * The maintainer turned critical alerts off. The app showed them off; the
  * Dashboard went on saying "On", and a test sent from it claimed to ring
@@ -1104,7 +1103,9 @@ describe("useCriticalAlerts tells the server what the phone will do", () => {
   const NO_DEVICE: unknown = {
     response: {
       status: 400,
-      data: { message: "No registered device was found for this device token." },
+      data: {
+        message: "No registered device was found for this device token.",
+      },
     },
   };
 

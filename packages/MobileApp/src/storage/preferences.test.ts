@@ -129,7 +129,10 @@ describe("the record of what the server was told", () => {
     ["an empty token", JSON.stringify({ deviceToken: "", isEnabled: true })],
     [
       "a state that is not a boolean",
-      JSON.stringify({ deviceToken: "ExponentPushToken[x]", isEnabled: "true" }),
+      JSON.stringify({
+        deviceToken: "ExponentPushToken[x]",
+        isEnabled: "true",
+      }),
     ],
     ["a list", JSON.stringify([{ deviceToken: "x", isEnabled: true }])],
     ["null", "null"],
@@ -152,7 +155,8 @@ describe("the record of what the server was told", () => {
   });
 
   test("forgetting nothing does not touch storage", async () => {
-    const removeItem: jest.Mock = AsyncStorage.removeItem as unknown as jest.Mock;
+    const removeItem: jest.Mock =
+      AsyncStorage.removeItem as unknown as jest.Mock;
     removeItem.mockClear();
 
     await clearCriticalAlertsReport();

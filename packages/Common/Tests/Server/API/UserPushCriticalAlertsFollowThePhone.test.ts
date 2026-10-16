@@ -161,7 +161,9 @@ async function callRoute(uri: string, req: OneUptimeRequest): Promise<Answer> {
 describe("the phone's report decides the page, the test and the list", () => {
   // The one device row, as the database holds it.
   let device: UserPush;
-  let sendPush: SpyInstance<typeof PushNotificationService.sendPushNotification>;
+  let sendPush: SpyInstance<
+    typeof PushNotificationService.sendPushNotification
+  >;
 
   beforeAll(() => {
     mockRouter.routes.length = 0;
@@ -194,13 +196,16 @@ describe("the phone's report decides the page, the test and the list", () => {
     jest.spyOn(UserPushService, "findBy").mockImplementation((async () => {
       return [device];
     }) as never);
-    jest.spyOn(UserPushService, "updateOneBy").mockImplementation((async (
-      updateBy: { query: { _id: string }; data: Record<string, unknown> },
-    ) => {
-      expect(updateBy.query._id).toBe(DEVICE_ID.toString());
-      Object.assign(device, updateBy.data);
-      return 1;
-    }) as never);
+    jest
+      .spyOn(UserPushService, "updateOneBy")
+      .mockImplementation((async (updateBy: {
+        query: { _id: string };
+        data: Record<string, unknown>;
+      }) => {
+        expect(updateBy.query._id).toBe(DEVICE_ID.toString());
+        Object.assign(device, updateBy.data);
+        return 1;
+      }) as never);
 
     jest
       .spyOn(ProjectMembership, "getMemberUserIds")
@@ -252,7 +257,9 @@ describe("the phone's report decides the page, the test and the list", () => {
   });
 
   // The phone registers the device it already has, as the app does on start.
-  async function phoneRegisters(isCriticalAlertEnabled: boolean): Promise<void> {
+  async function phoneRegisters(
+    isCriticalAlertEnabled: boolean,
+  ): Promise<void> {
     const answer: Answer = await callRoute(
       "/user-push/register",
       request({
@@ -266,9 +273,9 @@ describe("the phone's report decides the page, the test and the list", () => {
       }),
     );
 
-    expect((answer as { json: JSONObject }).json["isCriticalAlertEnabled"]).toBe(
-      isCriticalAlertEnabled,
-    );
+    expect(
+      (answer as { json: JSONObject }).json["isCriticalAlertEnabled"],
+    ).toBe(isCriticalAlertEnabled);
   }
 
   // The phone reports a change, as the app does on coming back to it.
@@ -280,9 +287,9 @@ describe("the phone's report decides the page, the test and the list", () => {
       }),
     );
 
-    expect((answer as { json: JSONObject }).json["isCriticalAlertEnabled"]).toBe(
-      isEnabled,
-    );
+    expect(
+      (answer as { json: JSONObject }).json["isCriticalAlertEnabled"],
+    ).toBe(isEnabled);
   }
 
   // An on-call page from a rule at the default level, Critical.

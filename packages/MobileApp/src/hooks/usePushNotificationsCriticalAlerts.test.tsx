@@ -67,12 +67,10 @@ afterEach(() => {
  * bypass. Both are set, so the test reads the same on either platform.
  */
 function allowCriticalAlertsOnThePhone(): void {
-  jest
-    .spyOn(Notifications, "getPermissionsAsync")
-    .mockResolvedValue({
-      status: "granted",
-      ios: { allowsCriticalAlerts: true },
-    } as never);
+  jest.spyOn(Notifications, "getPermissionsAsync").mockResolvedValue({
+    status: "granted",
+    ios: { allowsCriticalAlerts: true },
+  } as never);
   jest
     .spyOn(Notifications, "setNotificationChannelAsync")
     .mockResolvedValue({ bypassDnd: true } as never);

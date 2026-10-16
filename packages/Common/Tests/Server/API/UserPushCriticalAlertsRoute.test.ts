@@ -197,9 +197,9 @@ describe("POST /user-push/critical-alerts", () => {
       isEnabled: true,
     });
 
-    expect((answer as { json: JSONObject }).json["isCriticalAlertEnabled"]).toBe(
-      true,
-    );
+    expect(
+      (answer as { json: JSONObject }).json["isCriticalAlertEnabled"],
+    ).toBe(true);
     expect(Array.from(stored.values())).toEqual([true, true]);
   });
 

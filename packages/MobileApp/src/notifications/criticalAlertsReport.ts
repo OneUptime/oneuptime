@@ -68,9 +68,10 @@ export function isCriticalAlertsEffective(data: {
 export async function readCriticalAlerts(): Promise<CriticalAlertsReading> {
   const sound: CriticalAlertSoundIdValue = await getCriticalAlertSound();
 
-  const [status, isChosen]: [CriticalAlertStatus, boolean] = await Promise.all(
-    [getCriticalAlertStatus({ sound: sound }), getCriticalAlertsEnabled()],
-  );
+  const [status, isChosen]: [CriticalAlertStatus, boolean] = await Promise.all([
+    getCriticalAlertStatus({ sound: sound }),
+    getCriticalAlertsEnabled(),
+  ]);
 
   return {
     isChosen: isChosen,

@@ -122,9 +122,9 @@ describe("unregisterPushToken forgets what the server was told about critical al
 
     await unregisterPushToken();
 
-    expect(await AsyncStorage.getItem("oneuptime_critical_alerts_enabled")).toBe(
-      "true",
-    );
+    expect(
+      await AsyncStorage.getItem("oneuptime_critical_alerts_enabled"),
+    ).toBe("true");
   });
 });
 

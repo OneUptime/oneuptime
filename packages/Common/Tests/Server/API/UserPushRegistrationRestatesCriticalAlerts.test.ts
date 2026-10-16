@@ -321,9 +321,9 @@ describe("POST /user-push/register restates a phone's critical alert choices", (
     );
 
     expect(writes()).toEqual([{ isCriticalAlertEnabled: true }]);
-    expect((answer as { json: JSONObject }).json["isCriticalAlertEnabled"]).toBe(
-      true,
-    );
+    expect(
+      (answer as { json: JSONObject }).json["isCriticalAlertEnabled"],
+    ).toBe(true);
   });
 
   test.each([[true], [false]])(
@@ -591,12 +591,10 @@ describe("POST /user-push/register restates a phone's critical alert choices", (
     });
 
     test("a phone that took over its old token's device says what the renewal wrote", async () => {
-      jest
-        .spyOn(UserPushService, "renewExpoPushDevice")
-        .mockResolvedValue({
-          _id: DEVICE_ID.toString(),
-          id: DEVICE_ID,
-        } as never);
+      jest.spyOn(UserPushService, "renewExpoPushDevice").mockResolvedValue({
+        _id: DEVICE_ID.toString(),
+        id: DEVICE_ID,
+      } as never);
 
       const answer: Answer = await register(
         phoneRegistration({

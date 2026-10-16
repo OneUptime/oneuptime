@@ -1400,9 +1400,9 @@ describe("a test notification says what the server sent, not what the list showe
 
     render(<PushMethods />);
 
-    expect(
-      (await statusOf("iPhone 15 Pro")).getAttribute("data-state"),
-    ).toBe("off");
+    expect((await statusOf("iPhone 15 Pro")).getAttribute("data-state")).toBe(
+      "off",
+    );
     const readsBefore: number = deviceListReads().length;
 
     answers.set(IPHONE_ID, true);
@@ -1428,9 +1428,9 @@ describe("a test notification says what the server sent, not what the list showe
     fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
 
     await waitFor(async () => {
-      expect(
-        (await statusOf("iPhone 15 Pro")).getAttribute("data-state"),
-      ).toBe("on");
+      expect((await statusOf("iPhone 15 Pro")).getAttribute("data-state")).toBe(
+        "on",
+      );
     });
   });
 

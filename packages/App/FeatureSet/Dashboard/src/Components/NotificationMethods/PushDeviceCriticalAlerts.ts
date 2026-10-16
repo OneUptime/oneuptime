@@ -109,7 +109,9 @@ export function getCriticalAlertDeviceState(
  * when the test is sent. null when the answer does not say, as a server from
  * before it did.
  */
-export function readTestNotificationIsCritical(answer: unknown): boolean | null {
+export function readTestNotificationIsCritical(
+  answer: unknown,
+): boolean | null {
   if (!answer || typeof answer !== "object" || Array.isArray(answer)) {
     return null;
   }

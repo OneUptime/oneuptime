@@ -564,10 +564,12 @@ describe("the column follows the phone because the app tells the server", () => 
     const api: string = read(COMMON, "Server", "API", "UserPushAPI.ts");
     const existing: string = api.slice(api.indexOf("if (existingDevice) {"));
 
-    expect(existing.indexOf("this.service.restateCriticalAlertChoices(")).toBeGreaterThan(-1);
-    expect(existing.indexOf("this.service.restateCriticalAlertChoices(")).toBeLessThan(
-      existing.indexOf("return Response.sendJsonObjectResponse("),
-    );
+    expect(
+      existing.indexOf("this.service.restateCriticalAlertChoices("),
+    ).toBeGreaterThan(-1);
+    expect(
+      existing.indexOf("this.service.restateCriticalAlertChoices("),
+    ).toBeLessThan(existing.indexOf("return Response.sendJsonObjectResponse("));
     expect(existing).toContain("readStatedCriticalAlertFlag(");
   });
 

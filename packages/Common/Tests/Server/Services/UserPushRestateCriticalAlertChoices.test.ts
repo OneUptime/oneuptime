@@ -91,9 +91,11 @@ describe("UserPushService.restateCriticalAlertChoices", () => {
         stated: { isCriticalAlertEnabled: true },
       });
 
-    expect(updates.map((call: UpdateCall) => call.data)).toEqual([
-      { isCriticalAlertEnabled: true },
-    ]);
+    expect(
+      updates.map((call: UpdateCall) => {
+        return call.data;
+      }),
+    ).toEqual([{ isCriticalAlertEnabled: true }]);
     expect(choices.isCriticalAlertEnabled).toBe(true);
   });
 
@@ -137,9 +139,11 @@ describe("UserPushService.restateCriticalAlertChoices", () => {
       },
     });
 
-    expect(updates.map((call: UpdateCall) => call.data)).toEqual([
-      { criticalAlertSound: CriticalAlertSound.SmokeAlarm },
-    ]);
+    expect(
+      updates.map((call: UpdateCall) => {
+        return call.data;
+      }),
+    ).toEqual([{ criticalAlertSound: CriticalAlertSound.SmokeAlarm }]);
   });
 
   test("only what differs is written: the volume alone", async () => {
@@ -148,9 +152,11 @@ describe("UserPushService.restateCriticalAlertChoices", () => {
       stated: { criticalAlertVolume: 75 },
     });
 
-    expect(updates.map((call: UpdateCall) => call.data)).toEqual([
-      { criticalAlertVolume: 75 },
-    ]);
+    expect(
+      updates.map((call: UpdateCall) => {
+        return call.data;
+      }),
+    ).toEqual([{ criticalAlertVolume: 75 }]);
   });
 
   test("everything that differs goes in one write, and the answer is the device after it", async () => {

@@ -261,15 +261,17 @@ describe("POST /user-push/:deviceId/test-notification says whether it went as a 
   test("the answer is the device as it is when the test is sent: it is read for this test", async () => {
     let reads: number = 0;
 
-    jest.spyOn(UserPushService, "findOneById").mockImplementation((async (
-      findBy: { select: Record<string, unknown> },
-    ) => {
-      reads++;
-      expect(findBy.select["isCriticalAlertEnabled"]).toBe(true);
-      expect(findBy.select["deviceType"]).toBe(true);
-      // The app reported off a moment ago.
-      return { ...device, isCriticalAlertEnabled: reads > 1 ? false : true };
-    }) as never);
+    jest
+      .spyOn(UserPushService, "findOneById")
+      .mockImplementation((async (findBy: {
+        select: Record<string, unknown>;
+      }) => {
+        reads++;
+        expect(findBy.select["isCriticalAlertEnabled"]).toBe(true);
+        expect(findBy.select["deviceType"]).toBe(true);
+        // The app reported off a moment ago.
+        return { ...device, isCriticalAlertEnabled: !(reads > 1) };
+      }) as never);
 
     const first: Answer = await sendTestNotification();
     const second: Answer = await sendTestNotification();
