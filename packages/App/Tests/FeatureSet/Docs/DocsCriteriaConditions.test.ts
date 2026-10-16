@@ -275,7 +275,7 @@ describe("the reader, on the shapes the pages have", () => {
 
   it("leaves code alone, inline and fenced, and keeps the page's line numbers past a code block", () => {
     const markdown: string = [
-      "Set `filter_type = \"Greater Than\"` in Terraform.",
+      'Set `filter_type = "Greater Than"` in Terraform.',
       "```hcl",
       'filter_type = "Less Than"',
       "Is Empty",

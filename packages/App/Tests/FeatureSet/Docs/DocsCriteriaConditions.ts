@@ -204,8 +204,7 @@ export function englishConditionsOn(
       const bold: boolean =
         text.slice(found.start - BOLD_MARKER.length, found.start) ===
           BOLD_MARKER &&
-        text.slice(found.end, found.end + BOLD_MARKER.length) ===
-          BOLD_MARKER &&
+        text.slice(found.end, found.end + BOLD_MARKER.length) === BOLD_MARKER &&
         spans.includes(found.name);
 
       if (!bold && BOLD_ONLY_CONDITIONS.includes(found.name)) {

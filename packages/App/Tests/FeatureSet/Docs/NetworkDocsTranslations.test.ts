@@ -166,7 +166,9 @@ interface WrittenCriteria {
 }
 
 const WRITTEN_CRITERIA: Record<string, Array<WrittenCriteria>> = {
-  [DEVICE]: [{ column: "Noise Floor", condition: "Greater Than", value: "-80" }],
+  [DEVICE]: [
+    { column: "Noise Floor", condition: "Greater Than", value: "-80" },
+  ],
 };
 
 // A written-out criteria, as a page in this language writes it.

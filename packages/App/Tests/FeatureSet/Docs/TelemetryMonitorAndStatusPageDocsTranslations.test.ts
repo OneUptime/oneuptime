@@ -623,12 +623,12 @@ function fillPlaceholders(
   return filled;
 }
 
-// A template label as this language's locale draws it, with the page's placeholders.
 // A condition with its value, as a page in this language writes it.
 function writtenOut(language: string, entry: ConditionWithValue): string {
   return `${drawnActionLabel(language, entry.condition)} ${entry.value}`;
 }
 
+// A template label as this language's locale draws it, with the page's placeholders.
 function drawnTemplate(language: string, entry: TemplateLabel): string {
   return fillPlaceholders(flatLabel(language, entry.key), entry.values);
 }
@@ -1504,7 +1504,10 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("write a condition out with its value: the condition drawn, the value as typed", () => {
-    const equalToZero: ConditionWithValue = { condition: "Equal To", value: "0" };
+    const equalToZero: ConditionWithValue = {
+      condition: "Equal To",
+      value: "0",
+    };
 
     expect(writtenOut("en", equalToZero)).toBe("Equal To 0");
     expect(writtenOut("de", equalToZero)).toBe(
