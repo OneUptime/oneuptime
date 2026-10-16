@@ -85,6 +85,7 @@ import {
   WorkspaceModalBlock,
   WorkspacePayloadMarkdown,
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
+import { DropdownOption } from "../../../../../UI/Components/Dropdown/Dropdown";
 
 /*
  * EVERY SLACK BUTTON AND FORM THAT CHANGES A RECORD, PRESSED BY THE MEMBER
@@ -1651,8 +1652,8 @@ describe.each(PRIVATE_RECORD_NOTE_KINDS)(
       ).toEqual(["WorkspaceDropdownBlock", "WorkspaceTextAreaBlock"]);
       expect(
         (modal.blocks[0] as WorkspaceDropdownBlock).options.map(
-          (option: { value: string }): string => {
-            return option.value;
+          (option: DropdownOption): string => {
+            return String(option.value);
           },
         ),
       ).toEqual(["public", "private"]);

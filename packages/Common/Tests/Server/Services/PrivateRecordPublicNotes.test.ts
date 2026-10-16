@@ -146,8 +146,11 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-// One kind of public note, on the record that can be private.
-interface PublicNoteCase {
+/*
+ * One kind of public note, on the record that can be private. A type, not
+ * an interface: describe.each wants a Record<string, unknown> row.
+ */
+type PublicNoteCase = {
   name: string;
   service: unknown;
   refusal: string;
@@ -155,7 +158,7 @@ interface PublicNoteCase {
   readRecord: (isPrivate: () => boolean | null | undefined) => MockFunction;
   buildNote: () => IncidentPublicNote | IncidentEpisodePublicNote;
   addNote: (props: DatabaseCommonInteractionProps) => Promise<void>;
-}
+};
 
 /*
  * The note services' create, with the save and the success hooks answered:

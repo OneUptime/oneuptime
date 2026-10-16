@@ -18,6 +18,7 @@ import { PrivateRecordKind } from "../../../../Types/StatusPage/PrivateRecordPub
 import {
   WorkspaceDropdownBlock,
   WorkspaceMessageBlock,
+  WorkspacePayloadMarkdown,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import { WorkspaceNoteType } from "../../../../Types/Workspace/WorkspaceNoteReaction";
 import {
@@ -148,7 +149,7 @@ describe("WorkspaceNoteForm.getSlackForm", () => {
       });
 
     expect(form.title).toBe("Add Private Note");
-    expect((form.blocks[0] as { text: string }).text).toBe(
+    expect((form.blocks[0] as WorkspacePayloadMarkdown).text).toBe(
       "🔒 This incident episode is private, so this note is private too: only the people who can see the incident episode can read it.",
     );
   });

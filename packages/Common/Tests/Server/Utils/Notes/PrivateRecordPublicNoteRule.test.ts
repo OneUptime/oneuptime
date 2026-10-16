@@ -10,7 +10,7 @@ import PrivateRecordPublicNotes, {
   PrivateRecordKind,
 } from "../../../../Types/StatusPage/PrivateRecordPublicNotes";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import type { SpiedFunction } from "jest-mock";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * The one rule every way a public note is made asks: a private incident or
@@ -92,7 +92,7 @@ describe("PrivateRecordPublicNoteRule.assertRecordTakesPublicNotes", () => {
 
 describe("PrivateRecordPublicNoteRule.isPrivate", () => {
   test("reads the incident as OneUptime, in its project, and only its Private switch", async () => {
-    const findOneBy: SpiedFunction<typeof IncidentService.findOneBy> = jest
+    const findOneBy: SpyInstance<typeof IncidentService.findOneBy> = jest
       .spyOn(IncidentService, "findOneBy")
       .mockResolvedValue(incident(true));
 
@@ -116,9 +116,9 @@ describe("PrivateRecordPublicNoteRule.isPrivate", () => {
   });
 
   test("reads an episode from its own table", async () => {
-    const incidentRead: SpiedFunction<typeof IncidentService.findOneBy> =
+    const incidentRead: SpyInstance<typeof IncidentService.findOneBy> =
       jest.spyOn(IncidentService, "findOneBy");
-    const episodeRead: SpiedFunction<typeof IncidentEpisodeService.findOneBy> =
+    const episodeRead: SpyInstance<typeof IncidentEpisodeService.findOneBy> =
       jest
         .spyOn(IncidentEpisodeService, "findOneBy")
         .mockResolvedValue(episode(true));
@@ -140,7 +140,7 @@ describe("PrivateRecordPublicNoteRule.isPrivate", () => {
   });
 
   test("reads by id alone when no project is named", async () => {
-    const findOneBy: SpiedFunction<typeof IncidentService.findOneBy> = jest
+    const findOneBy: SpyInstance<typeof IncidentService.findOneBy> = jest
       .spyOn(IncidentService, "findOneBy")
       .mockResolvedValue(incident(false));
 
