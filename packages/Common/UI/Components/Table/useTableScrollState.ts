@@ -60,8 +60,9 @@ const SCROLLING_OVERFLOW_VALUES: Array<string> = [
 ];
 
 /*
- * Whether the table's box, or anything between it and the page, scrolls or
- * hides its overflow. Exported for its tests.
+ * Whether an element, or anything between it and the page, scrolls or hides
+ * its overflow - asked of the table's box's parent (the box's own sideways
+ * scroll is the hook's). Exported for its tests.
  */
 export const isInsideScrollingBox: (element: Element | null) => boolean = (
   element: Element | null,
@@ -163,7 +164,22 @@ const useTableScrollState: (data: {
       const box: HTMLElement | null = data.scrollRef.current;
       const table: HTMLElement | null = data.tableRef.current;
 
-      if (!box || !table) {
+      if (!box) {
+        return;
+      }
+
+      /*
+       * No table drawn - a phone shows its rows as cards: nothing scrolls
+       * sideways. A reading the desktop layout left behind would otherwise
+       * keep the cards in a sideways scroll box of their own.
+       */
+      if (!table) {
+        setState((current: TableScrollState): TableScrollState => {
+          return current.isOverflowing
+            ? { isOverflowing: false, canStickHeader: current.canStickHeader }
+            : current;
+        });
+
         return;
       }
 
@@ -207,8 +223,15 @@ const useTableScrollState: (data: {
         });
       }
 
+      /*
+       * Read from the box's parent up: the box's own sideways scroll is this
+       * hook's doing (Table gives it overflow-x-auto while the rows
+       * overflow), so a table that scrolled sideways and fits again - the
+       * window made wider - would otherwise be taken for one inside a
+       * scrolling box, and its header would never stick again.
+       */
       const canStickHeader: boolean =
-        !isOverflowing && !isInsideScrollingBox(box);
+        !isOverflowing && !isInsideScrollingBox(box.parentElement);
 
       setState((current: TableScrollState): TableScrollState => {
         if (

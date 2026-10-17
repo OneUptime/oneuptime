@@ -122,6 +122,8 @@ interface ProbeProps {
   tableWidth: number;
   boxWidth: number;
   boxStyle?: React.CSSProperties | undefined;
+  // False draws no table in the box, as a phone draws its rows as cards.
+  hasTable?: boolean | undefined;
   onState: (state: TableScrollState) => void;
 }
 
@@ -135,10 +137,12 @@ function Probe(props: ProbeProps): ReactElement {
   const tableRef: React.MutableRefObject<HTMLTableElement | null> =
     useRef<HTMLTableElement | null>(null);
 
+  const hasTable: boolean = props.hasTable !== false;
+
   const state: TableScrollState = useTableScrollState({
     scrollRef: scrollRef as React.RefObject<HTMLElement>,
     tableRef: tableRef as React.RefObject<HTMLElement>,
-    watch: [props.tableWidth, props.boxWidth],
+    watch: [props.tableWidth, props.boxWidth, hasTable],
   });
 
   props.onState(state);
@@ -154,20 +158,24 @@ function Probe(props: ProbeProps): ReactElement {
         }
       }}
     >
-      <table
-        ref={(element: HTMLTableElement | null) => {
-          tableRef.current = element;
-          if (element) {
-            setWidth(element, props.tableWidth);
-          }
-        }}
-      >
-        <tbody>
-          <tr>
-            <td>{state.isOverflowing ? "overflowing" : "fits"}</td>
-          </tr>
-        </tbody>
-      </table>
+      {hasTable ? (
+        <table
+          ref={(element: HTMLTableElement | null) => {
+            tableRef.current = element;
+            if (element) {
+              setWidth(element, props.tableWidth);
+            }
+          }}
+        >
+          <tbody>
+            <tr>
+              <td>{state.isOverflowing ? "overflowing" : "fits"}</td>
+            </tr>
+          </tbody>
+        </table>
+      ) : (
+        <div>{state.isOverflowing ? "overflowing" : "fits"}</div>
+      )}
     </div>
   );
 }
@@ -232,6 +240,58 @@ describe("useTableScrollState", () => {
       isOverflowing: false,
       canStickHeader: false,
     });
+  });
+
+  test("a table that scrolled sideways and fits again sticks its header again: its own box's sideways scroll is the hook's, not a scrolling box around it", () => {
+    const states: Array<TableScrollState> = [];
+
+    /*
+     * The box still has the overflow-x-auto Table gave it while the rows
+     * overflowed, when the wider window is measured.
+     */
+    render(
+      <Probe
+        tableWidth={1100}
+        boxWidth={1200}
+        boxStyle={{ overflowX: "auto" }}
+        onState={(state: TableScrollState) => {
+          states.push(state);
+        }}
+      />,
+    );
+
+    expect(states[states.length - 1]).toEqual({
+      isOverflowing: false,
+      canStickHeader: true,
+    });
+  });
+
+  test("on a phone, with no table drawn, nothing scrolls sideways - a reading the desktop rows left is not kept", () => {
+    const states: Array<TableScrollState> = [];
+    const onState: (state: TableScrollState) => void = (
+      state: TableScrollState,
+    ): void => {
+      states.push(state);
+    };
+
+    const { rerender } = render(
+      <Probe tableWidth={1986} boxWidth={1214} onState={onState} />,
+    );
+
+    expect(states[states.length - 1]?.isOverflowing).toBe(true);
+
+    // The window narrows to a phone's: the rows are drawn as cards.
+    rerender(
+      <Probe
+        tableWidth={1986}
+        boxWidth={340}
+        hasTable={false}
+        onState={onState}
+      />,
+    );
+
+    expect(states[states.length - 1]?.isOverflowing).toBe(false);
+    expect(screen.getByText("fits")).toBeInTheDocument();
   });
 
   test("measures again when the window changes size (where ResizeObserver is missing, as in jsdom)", () => {
