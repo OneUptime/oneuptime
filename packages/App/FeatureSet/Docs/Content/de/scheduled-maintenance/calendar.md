@@ -22,7 +22,7 @@ flowchart TB
 
 Öffnen Sie **Geplante Wartung → Alle Ereignisse**. Am rechten Ende der Filterleiste wechseln **Liste** und **Kalender** zwischen der Tabelle der Ereignisse und einem Kalender davon. Ihr Browser merkt sich die Wahl, sodass die Seite beim nächsten Mal mit dem Kalender öffnet.
 
-- Der Kalender öffnet mit diesem Monat, der heutige Tag ist markiert. **Monat**, **Woche** und **Tag** ändern, wie viel er zeigt, und **Zurück**, **Weiter** und **Heute** bewegen ihn. Die Zeiten stehen in Ihrer eigenen Zeitzone.
+- Der Kalender öffnet mit diesem Monat, der heutige Tag ist markiert. **Monat**, **Woche** und **Tag** ändern, wie viel er zeigt; blättern Sie mit den Pfeilen und kehren Sie mit **Heute** zurück. Die Zeiten stehen in Ihrer eigenen Zeitzone.
 - Jedes Ereignis ist ein Block in der Farbe seines Zustands, und die Farben der Zustände sind unter dem Kalender benannt. Klicken Sie auf ein Ereignis, um es zu öffnen.
 - Die Filter über dem Kalender wirken wie in der Liste: Wählen Sie einen Zustand, ein Label oder einen Eigentümer, um nur diese Ereignisse zu sehen.
 - Ein Tag, der noch bevorsteht, zeigt ein **+**, wenn Sie auf seine Woche zeigen. Es öffnet **Geplantes Wartungsereignis erstellen** mit **Beginnt am** an diesem Tag, zu der Stunde, die das Formular heute wählen würde. Sie sehen es nur, wenn Sie Ereignisse erstellen dürfen.
@@ -63,16 +63,16 @@ Der Link zeigt jedes Ereignis des Projekts, daher zeigt der Dialog ihn nur Perso
 | --- | --- |
 | Den Link kopieren | Jeder, der jedes geplante Wartungsereignis des Projekts lesen darf |
 | **Link veröffentlichen** | Jeder, der außerdem geplante Wartungsereignisse erstellen darf |
-| **Link neu erzeugen**, **Link ausschalten** | Jeder, der außerdem geplante Wartungsereignisse bearbeiten darf |
+| **Link neu erzeugen**, **Link deaktivieren** | Jeder, der außerdem geplante Wartungsereignisse bearbeiten darf |
 
 ### Den Link verwalten
 
-**Link neu erzeugen** und **Link ausschalten** stehen im Menü **⋯** oben im Dialog.
+**Link neu erzeugen** und **Link deaktivieren** stehen im Menü **⋯** oben im Dialog.
 
 | Aktion | Was passiert |
 | --- | --- |
 | **Link neu erzeugen** | Erzeugt einen neuen Link. 30 Tage lang liefert der alte einen leeren Kalender, damit die Apps, die ihn halten, ihre Kopie leeren; danach wird er nicht mehr gefunden. Abonnieren Sie erneut mit dem neuen Link. |
-| **Link ausschalten** | Behält den Link, aber er liefert einen leeren Kalender bis **Link einschalten**. |
+| **Link deaktivieren** | Behält den Link, aber er liefert einen leeren Kalender bis **Link aktivieren**. |
 
 Der Kalender enthält jedes Ereignis von 90 Tagen zurück bis ein Jahr voraus, bis zu 1.000 Ereignisse.
 
@@ -106,7 +106,7 @@ Kalender-Apps lesen einen abonnierten Link nach ihrem eigenen Zeitplan. Google K
 ## Fehlerbehebung
 
 :::details Die Kalender-App zeigt keine neuen Ereignisse mehr
-Der Link wurde neu erzeugt oder ausgeschaltet: Öffnen Sie **Kalender abonnieren**, um seinen Status zu sehen. Ein neu erzeugter Link muss mit dem neuen Link erneut abonniert werden; ein ausgeschalteter Link kommt mit **Link einschalten** zurück.
+Der Link wurde neu erzeugt oder deaktiviert: Öffnen Sie **Kalender abonnieren**, um seinen Status zu sehen. Ein neu erzeugter Link muss mit dem neuen Link erneut abonniert werden; ein deaktivierter Link kommt mit **Link aktivieren** zurück.
 :::
 
 :::details Google Kalender kann den Link nicht hinzufügen

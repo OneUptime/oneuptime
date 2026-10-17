@@ -22,7 +22,7 @@ flowchart TB
 
 Ouvrez **Maintenance planifiée → Tous les événements**. À l'extrémité droite de la barre de filtres, **Liste** et **Calendrier** basculent entre le tableau des événements et un calendrier de ceux-ci. Votre navigateur retient ce choix, et la page s'ouvre donc sur le calendrier la fois suivante.
 
-- Le calendrier s'ouvre sur le mois en cours, avec aujourd'hui mis en évidence. **Mois**, **Semaine** et **Jour** changent ce qu'il montre, et **Retour**, **Suivant** et **Aujourd'hui** le font défiler. Les heures sont dans votre propre fuseau horaire.
+- Le calendrier s'ouvre sur le mois en cours, avec aujourd'hui mis en évidence. **Mois**, **Semaine** et **Jour** changent ce qu'il montre ; naviguez avec les flèches et revenez avec **Aujourd'hui**. Les heures sont dans votre propre fuseau horaire.
 - Chaque événement est un bloc de la couleur de son état, et les couleurs des états sont nommées sous le calendrier. Cliquez sur un événement pour l'ouvrir.
 - Les filtres au-dessus du calendrier fonctionnent comme sur la liste : choisissez un état, une étiquette ou un propriétaire pour ne voir que ces événements.
 - Un jour encore à venir affiche un **+** quand vous pointez sa semaine. Il ouvre **Créer un événement de maintenance planifiée** avec **Commence le** à ce jour, à l'heure que le formulaire choisirait aujourd'hui. Vous ne le voyez que si vous pouvez créer des événements.

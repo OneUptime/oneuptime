@@ -169,6 +169,25 @@ describe("the calendar view", () => {
 
   it("offers a month, a week and a day, opening on the month", () => {
     expect(PAGE).toContain("**Month**, **Week** and **Day**");
+
+    /*
+     * The toolbar is Today and two arrows (Common's CalendarToolbar), as
+     * the on-call schedule timeline's - the page says it the same way.
+     */
+    expect(PAGE).toContain("move with the arrows and return with **Today**.");
+    expect(PAGE).not.toContain("**Back**");
+
+    const toolbar: string = readCommonSource(
+      "UI/Components/Calendar/CalendarToolbar.tsx",
+    );
+
+    expect(toolbar).toContain("IconProp.ChevronLeft");
+    expect(toolbar).toContain("IconProp.ChevronRight");
+    expect(toolbar).toContain('navigate("TODAY")');
+    expect(toolbar).toContain('translationKey("Next month")');
+    expect(readCommonSource("UI/Components/Calendar/Calendar.tsx")).toContain(
+      'today: translator.translateText("Today")',
+    );
     expect(CALENDAR_CARD).toContain(
       "defaultCalendarView={DefaultCalendarView.Month}",
     );
@@ -251,20 +270,27 @@ describe("the team's calendar link", () => {
     expect(EVENTS_TABLE).toContain("[...cardbuttons, subscribeButton]");
   });
 
-  it("is published, copied, regenerated and turned off with the buttons the page names", () => {
+  it("is published, copied, regenerated and disabled with the buttons the page names", () => {
     for (const label of [
       "Publish link",
       "Regenerate link",
-      "Turn off link",
-      "Turn on link",
+      "Disable link",
+      "Enable link",
     ]) {
       expect(PAGE).toContain(`**${label}**`);
       expect(SUBSCRIBE_MODAL).toContain(`"${label}"`);
     }
 
-    // Regenerate and Turn off sit in the dialog's ⋯ (the manage menu).
+    // The on-call links' words, which the Status panel answers with too.
+    expect(PAGE).not.toContain("Turn off link");
+    expect(PAGE).not.toContain("Turn on link");
+    expect(readDashboardSource(`${FEED_DIR}/FeedStatusPanel.tsx`)).toContain(
+      'title="Enable link"',
+    );
+
+    // Regenerate and Disable sit in the dialog's ⋯ (the manage menu).
     expect(PAGE).toContain(
-      "**Regenerate link** and **Turn off link** are in the **⋯** menu at the top of the dialog.",
+      "**Regenerate link** and **Disable link** are in the **⋯** menu at the top of the dialog.",
     );
     expect(SUBSCRIBE_MODAL).toContain("getFeedManageMenuButtons");
     expect(SUBSCRIBE_MODAL).toContain("rightElement=");
@@ -321,7 +347,7 @@ describe("the team's calendar link", () => {
       return [...permissions].sort();
     };
 
-    // Who may publish is who may create an event; regenerate and turn off, edit one.
+    // Who may publish is who may create an event; regenerate and disable, edit one.
     expect(PAGE).toContain(
       "| **Publish link** | Anyone who can also create scheduled maintenance events |",
     );
@@ -329,7 +355,7 @@ describe("the team's calendar link", () => {
       sorted(event.createRecordPermissions),
     );
     expect(PAGE).toContain(
-      "| **Regenerate link**, **Turn off link** | Anyone who can also edit scheduled maintenance events |",
+      "| **Regenerate link**, **Disable link** | Anyone who can also edit scheduled maintenance events |",
     );
     expect(sorted(feed.updateRecordPermissions)).toEqual(
       sorted(event.updateRecordPermissions),

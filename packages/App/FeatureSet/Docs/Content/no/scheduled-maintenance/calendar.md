@@ -22,7 +22,7 @@ flowchart TB
 
 Åpne **Planlagt vedlikehold → Alle hendelser**. Lengst til høyre i filterlinjen bytter **Liste** og **Kalender** mellom tabellen over hendelser og en kalender med dem. Nettleseren husker valget, så siden åpner med kalenderen neste gang.
 
-- Kalenderen åpner på denne måneden, med dagen i dag markert. **Måned**, **Uke** og **Dag** endrer hvor mye den viser, og **Tilbake**, **Neste** og **I dag** flytter deg rundt i den. Tidene står i din egen tidssone.
+- Kalenderen åpner på denne måneden, med dagen i dag markert. **Måned**, **Uke** og **Dag** endrer hvor mye den viser; bla med pilene, og gå tilbake med **I dag**. Tidene står i din egen tidssone.
 - Hver hendelse er en blokk i fargen til tilstanden sin, og fargene til tilstandene er navngitt under kalenderen. Klikk på en hendelse for å åpne den.
 - Filtrene over kalenderen virker som på listen: velg en tilstand, en etikett eller en eier for å se bare de hendelsene.
 - En dag som ennå ikke har kommet, viser et **+** når du peker på uken dens. Det åpner **Opprett planlagt vedlikeholdshendelse** med **Begynner den** på den dagen, i den timen skjemaet ville valgt i dag. Du ser det bare hvis du kan opprette hendelser.
@@ -63,16 +63,16 @@ Lenken viser hver hendelse i prosjektet, så dialogen viser den bare til persone
 | --- | --- |
 | Kopiere lenken | Alle som kan lese hver planlagte vedlikeholdshendelse i prosjektet |
 | **Publiser lenke** | Alle som også kan opprette planlagte vedlikeholdshendelser |
-| **Generer lenke på nytt**, **Slå av lenke** | Alle som også kan redigere planlagte vedlikeholdshendelser |
+| **Generer lenke på nytt**, **Deaktiver lenke** | Alle som også kan redigere planlagte vedlikeholdshendelser |
 
 ### Administrer lenken
 
-**Generer lenke på nytt** og **Slå av lenke** ligger i menyen **⋯** øverst i dialogen.
+**Generer lenke på nytt** og **Deaktiver lenke** ligger i menyen **⋯** øverst i dialogen.
 
 | Handling | Hva som skjer |
 | --- | --- |
 | **Generer lenke på nytt** | Lager en ny lenke. I 30 dager leverer den gamle en tom kalender, så appene som har den, tømmer kopien sin; deretter finnes den ikke. Abonner på nytt med den nye lenken. |
-| **Slå av lenke** | Beholder lenken, men den leverer en tom kalender frem til **Slå på lenke**. |
+| **Deaktiver lenke** | Beholder lenken, men den leverer en tom kalender frem til **Aktiver lenke**. |
 
 Kalenderen inneholder hver hendelse fra 90 dager tilbake til ett år frem, opptil 1 000 hendelser.
 
@@ -106,7 +106,7 @@ Kalenderapper leser en abonnert lenke etter sin egen tidsplan. Google Kalender g
 ## Feilsøking
 
 :::details Kalenderappen viser ikke lenger nye hendelser
-Lenken er generert på nytt eller slått av: åpne **Abonner på kalender** for å se statusen. En lenke som er generert på nytt, må abonneres på igjen med den nye lenken; en lenke som er slått av, kommer tilbake med **Slå på lenke**.
+Lenken er generert på nytt eller deaktivert: åpne **Abonner på kalender** for å se statusen. En lenke som er generert på nytt, må abonneres på igjen med den nye lenken; en deaktivert lenke kommer tilbake med **Aktiver lenke**.
 :::
 
 :::details Google Kalender kan ikke legge til lenken

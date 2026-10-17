@@ -22,7 +22,7 @@ flowchart TB
 
 Open **Geplande onderhoud → Alle gebeurtenissen**. Rechts in de filterbalk wisselen **Lijst** en **Agenda** tussen de tabel met gebeurtenissen en een agenda ervan. Je browser onthoudt de keuze, zodat de pagina de volgende keer met de agenda opent.
 
-- De agenda opent op deze maand, met vandaag gemarkeerd. **Maand**, **Week** en **Dag** bepalen hoeveel hij toont, en met **Terug**, **Volgende** en **Vandaag** blader je erdoor. De tijden staan in je eigen tijdzone.
+- De agenda opent op deze maand, met vandaag gemarkeerd. **Maand**, **Week** en **Dag** bepalen hoeveel hij toont; blader met de pijlen en ga terug met **Vandaag**. De tijden staan in je eigen tijdzone.
 - Elke gebeurtenis is een blok in de kleur van haar status, en de kleuren van de statussen staan onder de agenda. Klik op een gebeurtenis om haar te openen.
 - De filters boven de agenda werken zoals in de lijst: kies een status, een label of een eigenaar om alleen die gebeurtenissen te zien.
 - Een dag die nog moet komen toont een **+** als je naar zijn week wijst. Die opent **Geplande onderhoudsgebeurtenis aanmaken** met **Begint op** op die dag, op het uur dat het formulier vandaag zou kiezen. Je ziet hem alleen als je gebeurtenissen mag aanmaken.

@@ -22,7 +22,7 @@ flowchart TB
 
 Åbn **Planlagt vedligeholdelse → Alle begivenheder**. I højre ende af filterlinjen skifter **Liste** og **Kalender** mellem tabellen over begivenheder og en kalender med dem. Din browser husker valget, så siden åbner med kalenderen næste gang.
 
-- Kalenderen åbner på denne måned, med dagen i dag markeret. **Måned**, **Uge** og **Dag** ændrer, hvor meget den viser, og **Tilbage**, **Næste** og **I dag** flytter rundt i den. Tidspunkterne står i din egen tidszone.
+- Kalenderen åbner på denne måned, med dagen i dag markeret. **Måned**, **Uge** og **Dag** ændrer, hvor meget den viser; flyt med pilene, og vend tilbage med **I dag**. Tidspunkterne står i din egen tidszone.
 - Hver begivenhed er en blok i farven på dens tilstand, og tilstandenes farver er navngivet under kalenderen. Klik på en begivenhed for at åbne den.
 - Filtrene over kalenderen virker som på listen: vælg en tilstand, en etiket eller en ejer for kun at se de begivenheder.
 - En dag, der endnu ikke er kommet, viser et **+**, når du peger på dens uge. Det åbner **Opret planlagt vedligeholdelseshændelse** med **Begynder den** på den dag, i den time, formularen ville vælge i dag. Du ser det kun, hvis du må oprette begivenheder.
@@ -63,16 +63,16 @@ Linket viser hver begivenhed i projektet, så dialogen viser det kun til persone
 | --- | --- |
 | Kopiere linket | Alle, der kan læse hver planlagt vedligeholdelsesbegivenhed i projektet |
 | **Udgiv link** | Alle, der også kan oprette planlagte vedligeholdelsesbegivenheder |
-| **Generér link igen**, **Slå link fra** | Alle, der også kan redigere planlagte vedligeholdelsesbegivenheder |
+| **Generér link igen**, **Deaktivér link** | Alle, der også kan redigere planlagte vedligeholdelsesbegivenheder |
 
 ### Administrer linket
 
-**Generér link igen** og **Slå link fra** ligger i menuen **⋯** øverst i dialogen.
+**Generér link igen** og **Deaktivér link** ligger i menuen **⋯** øverst i dialogen.
 
 | Handling | Hvad der sker |
 | --- | --- |
 | **Generér link igen** | Laver et nyt link. I 30 dage leverer det gamle en tom kalender, så de apps, der har det, rydder deres kopi; derefter findes det ikke. Abonner igen med det nye link. |
-| **Slå link fra** | Beholder linket, men det leverer en tom kalender indtil **Slå link til**. |
+| **Deaktivér link** | Beholder linket, men det leverer en tom kalender indtil **Aktivér link**. |
 
 Kalenderen indeholder hver begivenhed fra 90 dage tilbage til et år frem, op til 1.000 begivenheder.
 
@@ -106,7 +106,7 @@ Kalenderapps læser et abonneret link efter deres egen tidsplan. Google Kalender
 ## Fejlfinding
 
 :::details Kalenderappen viser ikke længere nye begivenheder
-Linket er genereret igen eller slået fra: åbn **Abonner på kalender** for at se dets status. Et link, der er genereret igen, skal abonneres på igen med det nye link; et link, der er slået fra, kommer tilbage med **Slå link til**.
+Linket er genereret igen eller deaktiveret: åbn **Abonner på kalender** for at se dets status. Et link, der er genereret igen, skal abonneres på igen med det nye link; et deaktiveret link kommer tilbage med **Aktivér link**.
 :::
 
 :::details Google Kalender kan ikke tilføje linket

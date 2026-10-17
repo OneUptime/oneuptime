@@ -22,7 +22,7 @@ flowchart TB
 
 Öppna **Schemalagt underhåll → Alla händelser**. Längst till höger i filterfältet växlar **Lista** och **Kalender** mellan tabellen med händelser och en kalender med dem. Webbläsaren kommer ihåg valet, så sidan öppnas med kalendern nästa gång.
 
-- Kalendern öppnas på den här månaden, med dagens datum markerat. **Månad**, **Vecka** och **Dag** ändrar hur mycket den visar, och **Tillbaka**, **Nästa** och **Idag** flyttar dig i den. Tiderna visas i din egen tidszon.
+- Kalendern öppnas på den här månaden, med dagens datum markerat. **Månad**, **Vecka** och **Dag** ändrar hur mycket den visar; bläddra med pilarna och gå tillbaka med **Idag**. Tiderna visas i din egen tidszon.
 - Varje händelse är ett block i färgen för dess tillstånd, och tillståndens färger namnges under kalendern. Klicka på en händelse för att öppna den.
 - Filtren ovanför kalendern fungerar som i listan: välj ett tillstånd, en etikett eller en ägare för att bara se de händelserna.
 - En dag som ännu inte har kommit visar ett **+** när du pekar på dess vecka. Det öppnar **Skapa schemalagt underhållsevenemang** med **Börjar den** på den dagen, vid den timme formuläret skulle välja i dag. Du ser det bara om du får skapa händelser.
@@ -63,16 +63,16 @@ Länken visar varje händelse i projektet, så dialogen visar den bara för pers
 | --- | --- |
 | Kopiera länken | Alla som kan läsa varje schemalagd underhållshändelse i projektet |
 | **Publicera länk** | Alla som också kan skapa schemalagda underhållshändelser |
-| **Skapa länken på nytt**, **Stäng av länk** | Alla som också kan redigera schemalagda underhållshändelser |
+| **Skapa länken på nytt**, **Inaktivera länk** | Alla som också kan redigera schemalagda underhållshändelser |
 
 ### Hantera länken
 
-**Skapa länken på nytt** och **Stäng av länk** finns i menyn **⋯** högst upp i dialogen.
+**Skapa länken på nytt** och **Inaktivera länk** finns i menyn **⋯** högst upp i dialogen.
 
 | Åtgärd | Vad som händer |
 | --- | --- |
 | **Skapa länken på nytt** | Skapar en ny länk. I 30 dagar levererar den gamla en tom kalender, så att apparna som har den rensar sin kopia; därefter hittas den inte. Prenumerera igen med den nya länken. |
-| **Stäng av länk** | Behåller länken, men den levererar en tom kalender tills **Slå på länk**. |
+| **Inaktivera länk** | Behåller länken, men den levererar en tom kalender tills **Aktivera länk**. |
 
 Kalendern innehåller varje händelse från 90 dagar bakåt till ett år framåt, upp till 1 000 händelser.
 
@@ -106,7 +106,7 @@ Kalenderappar läser en prenumererad länk enligt sitt eget schema. Google Kalen
 ## Felsökning
 
 :::details Kalenderappen visar inte längre nya händelser
-Länken har skapats på nytt eller stängts av: öppna **Prenumerera på kalender** för att se dess status. En länk som har skapats på nytt måste prenumereras på igen med den nya länken; en länk som är avstängd kommer tillbaka med **Slå på länk**.
+Länken har skapats på nytt eller inaktiverats: öppna **Prenumerera på kalender** för att se dess status. En länk som har skapats på nytt måste prenumereras på igen med den nya länken; en inaktiverad länk kommer tillbaka med **Aktivera länk**.
 :::
 
 :::details Google Kalender kan inte lägga till länken

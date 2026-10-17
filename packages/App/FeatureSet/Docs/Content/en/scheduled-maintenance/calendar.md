@@ -22,7 +22,7 @@ flowchart TB
 
 Open **Scheduled Maintenance → All Events**. At the right end of the filter bar, **List** and **Calendar** switch between the table of events and a calendar of them. Your browser remembers the choice, so the page opens on the calendar the next time.
 
-- The calendar opens on this month, with today marked. **Month**, **Week** and **Day** change how much it shows, and **Back**, **Next** and **Today** move through it. Times are in your own time zone.
+- The calendar opens on this month, with today marked. **Month**, **Week** and **Day** change how much it shows; move with the arrows and return with **Today**. Times are in your own time zone.
 - Each event is a block in the colour of its state, and the states' colours are named under the calendar. Click an event to open it.
 - The filters above the calendar work as they do on the list: pick a state, a label or an owner to see only those events.
 - A day that is still to come shows a **+** when you point at its week. It opens **Create Scheduled Maintenance Event** with **Starts At** on that day, at the hour the form would pick today. You see it only if you can create events.
@@ -63,16 +63,16 @@ The link shows every event of the project, so the dialog shows it only to people
 | --- | --- |
 | Copy the link | Anyone who can read every scheduled maintenance event of the project |
 | **Publish link** | Anyone who can also create scheduled maintenance events |
-| **Regenerate link**, **Turn off link** | Anyone who can also edit scheduled maintenance events |
+| **Regenerate link**, **Disable link** | Anyone who can also edit scheduled maintenance events |
 
 ### Manage the link
 
-**Regenerate link** and **Turn off link** are in the **⋯** menu at the top of the dialog.
+**Regenerate link** and **Disable link** are in the **⋯** menu at the top of the dialog.
 
 | Action | What happens |
 | --- | --- |
 | **Regenerate link** | Makes a new link. For 30 days the old one serves an empty calendar, so the apps that hold it clear their copy; after that it is not found. Subscribe again with the new link. |
-| **Turn off link** | Keeps the link, but it serves an empty calendar until **Turn on link**. |
+| **Disable link** | Keeps the link, but it serves an empty calendar until **Enable link**. |
 
 The calendar holds every event from 90 days back to a year ahead, up to 1,000 events.
 
@@ -106,7 +106,7 @@ Calendar apps read a subscribed link on their own schedule. Google Calendar does
 ## Troubleshooting
 
 :::details The calendar app stopped showing new events
-The link was regenerated or turned off: open **Subscribe to calendar** to see its status. A regenerated link needs subscribing again with the new link; a link that is turned off comes back with **Turn on link**.
+The link was regenerated or disabled: open **Subscribe to calendar** to see its status. A regenerated link needs subscribing again with the new link; a disabled link comes back with **Enable link**.
 :::
 
 :::details Google Calendar cannot add the link

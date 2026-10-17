@@ -22,7 +22,7 @@ flowchart TB
 
 Abre **Mantenimiento programado → Todos los eventos**. En el extremo derecho de la barra de filtros, **Lista** y **Calendario** cambian entre la tabla de eventos y un calendario de ellos. Tu navegador recuerda la elección, así que la página se abre en el calendario la próxima vez.
 
-- El calendario se abre en este mes, con el día de hoy marcado. **Mes**, **Semana** y **Día** cambian cuánto muestra, y **Atrás**, **Siguiente** y **Hoy** lo recorren. Las horas están en tu propia zona horaria.
+- El calendario se abre en este mes, con el día de hoy marcado. **Mes**, **Semana** y **Día** cambian cuánto muestra; muévete con las flechas y vuelve con **Hoy**. Las horas están en tu propia zona horaria.
 - Cada evento es un bloque del color de su estado, y los colores de los estados se nombran debajo del calendario. Haz clic en un evento para abrirlo.
 - Los filtros sobre el calendario funcionan como en la lista: elige un estado, una etiqueta o un propietario para ver solo esos eventos.
 - Un día que aún está por llegar muestra un **+** cuando señalas su semana. Abre **Crear evento de mantenimiento programado** con **Comienza en** ese día, a la hora que el formulario elegiría hoy. Solo lo ves si puedes crear eventos.
