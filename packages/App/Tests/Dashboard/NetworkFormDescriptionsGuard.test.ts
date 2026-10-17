@@ -1,4 +1,4 @@
-import { describe, expect, test } from "@jest/globals";
+import { describe, expect, jest, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
@@ -31,6 +31,18 @@ import ts from "typescript";
 
 const FIELD_LIMIT: number = 150;
 const CARD_LIMIT: number = 210;
+
+// A TypeScript source file.
+const SOURCE_FILE: RegExp = /\.tsx?$/;
+// A call that marks an English key: translationKey(...), however imported.
+const TRANSLATION_KEY_CALL: RegExp = /translationKey$/;
+// A form field's fieldType, as opposed to a table column's FieldType.
+const FORM_FIELD_TYPE: RegExp = /FormFieldSchemaType\./;
+// Common's models, as the Dashboard imports them.
+const COMMON_PREFIX: RegExp = /^Common\//;
+// The switch the scan method's two cards replaced, and the help under it.
+const OLD_SNMP_SWITCH: RegExp =
+  /Check SNMP on hosts|turn (SNMP|it) off for a ping/i;
 
 const DASHBOARD_SRC: string = path.join(
   __dirname,
@@ -79,7 +91,7 @@ function listFiles(root: string): Array<string> {
 
     if (entry.isDirectory()) {
       found.push(...listFiles(child));
-    } else if (/\.tsx?$/.test(entry.name)) {
+    } else if (SOURCE_FILE.test(entry.name)) {
       found.push(path.join(DASHBOARD_SRC, child));
     }
   }
@@ -234,7 +246,7 @@ function textsOf(
   }
 
   if (ts.isCallExpression(node)) {
-    if (/translationKey$/.test(node.expression.getText())) {
+    if (TRANSLATION_KEY_CALL.test(node.expression.getText())) {
       return textsOf(file, node.arguments[0], depth + 1);
     }
 
@@ -367,10 +379,9 @@ function loadModel(file: string, identifier: string): ModelClass | null {
   if (!models.has(imported.specifier)) {
     const modulePath: string = path.join(
       COMMON_DIR,
-      imported.specifier.replace(/^Common\//, ""),
+      imported.specifier.replace(COMMON_PREFIX, ""),
     );
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const loaded: { default?: ModelClass } = require(modulePath);
+    const loaded: { default?: ModelClass } = jest.requireActual(modulePath);
     models.set(imported.specifier, loaded.default || null);
   }
 
@@ -410,7 +421,7 @@ function collect(): Array<FoundText> {
               }
             }
 
-            const isFormField: boolean = /FormFieldSchemaType\./.test(
+            const isFormField: boolean = FORM_FIELD_TYPE.test(
               properties.get("fieldType")!.getText(),
             );
             const field: ts.Expression | undefined = properties.get("field");
@@ -576,10 +587,7 @@ describe("the Network product's descriptions are short", () => {
   test("nothing on screen names the old SNMP switch", () => {
     const naming: Array<string> = found
       .filter((item: FoundText): boolean => {
-        return (
-          item.kind !== "column" &&
-          /Check SNMP on hosts|turn (SNMP|it) off for a ping/i.test(item.text)
-        );
+        return item.kind !== "column" && OLD_SNMP_SWITCH.test(item.text);
       })
       .map((item: FoundText): string => {
         return `${item.where}: ${item.text}`;
