@@ -115,6 +115,9 @@ describe("CookieUtil.getGlobalSSOToken - payload", () => {
     expect(payload["isGeneralLogin"]).toBe(false);
     expect(payload["ssoProviderId"]).toBe(ssoProviderId.toString());
     expect(payload["ssoProviderType"]).toBe(SsoProviderType.GlobalSSO);
+    // It says it is an SSO sign-in, and names no session: it is none.
+    expect(payload["purpose"]).toBe(JsonWebTokenPurpose.SsoSignIn);
+    expect(payload["sessionId"]).toBeUndefined();
   });
 
   test("carries NO projectId binding - that is what makes it global", () => {

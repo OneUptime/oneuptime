@@ -105,7 +105,9 @@ if (
  * it records what reached it.
  */
 
-const MEMBER_ID: ObjectID = new ObjectID("5e5e5e5e-5e5e-4e5e-8e5e-5e5e5e5e5e5e");
+const MEMBER_ID: ObjectID = new ObjectID(
+  "5e5e5e5e-5e5e-4e5e-8e5e-5e5e5e5e5e5e",
+);
 
 // A project that requires SSO to sign in, with its own SAML and OIDC providers.
 const PROJECT_REQUIRING_SSO: ObjectID = new ObjectID(
@@ -309,15 +311,10 @@ function memberPermissionIn(projectId: ObjectID): UserTenantAccessPermission {
     _type: "UserTenantAccessPermission",
     projectId: projectId,
     permissions: [
+      // A member reads the project's labels.
       {
         _type: "UserPermission",
         permission: Permission.ProjectMember,
-        labelIds: [],
-        isBlockPermission: false,
-      },
-      {
-        _type: "UserPermission",
-        permission: Permission.ReadLabel,
         labelIds: [],
         isBlockPermission: false,
       },
@@ -349,7 +346,9 @@ beforeAll(async () => {
   jest
     .spyOn(ProjectService, "getRequireSsoWithSsoProviderId")
     .mockResolvedValue(null as never);
-  jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false as never);
+  jest
+    .spyOn(ProjectService, "isProjectBlocked")
+    .mockResolvedValue(false as never);
   jest
     .spyOn(GlobalConfigService, "getRequireSsoForLogin")
     .mockResolvedValue(false as never);

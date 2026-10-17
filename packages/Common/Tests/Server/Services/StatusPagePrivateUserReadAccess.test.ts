@@ -4,7 +4,9 @@ import StatusPageService from "../../../Server/Services/StatusPageService";
 import StatusPagePrivateUserSessionService from "../../../Server/Services/StatusPagePrivateUserSessionService";
 import CookieUtil from "../../../Server/Utils/Cookie";
 import { ExpressRequest } from "../../../Server/Utils/Express";
-import JSONWebToken, { PURPOSE_CLAIM } from "../../../Server/Utils/JsonWebToken";
+import JSONWebToken, {
+  PURPOSE_CLAIM,
+} from "../../../Server/Utils/JsonWebToken";
 import logger from "../../../Server/Utils/Logger";
 import User from "../../../Models/DatabaseModels/User";
 import Email from "../../../Types/Email";

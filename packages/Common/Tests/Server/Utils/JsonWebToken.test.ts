@@ -1,6 +1,8 @@
 import CookieUtil from "../../../Server/Utils/Cookie";
 import { ExpressResponse } from "../../../Server/Utils/Express";
-import JSONWebToken, { PURPOSE_CLAIM } from "../../../Server/Utils/JsonWebToken";
+import JSONWebToken, {
+  PURPOSE_CLAIM,
+} from "../../../Server/Utils/JsonWebToken";
 import OnCallPageLinkToken from "../../../Server/Utils/OnCall/OnCallPageLinkToken";
 import TokenSigningKey from "../../../Server/Utils/TokenSigningKey";
 import StatusPagePrivateUser from "../../../Models/DatabaseModels/StatusPagePrivateUser";
@@ -671,29 +673,65 @@ const TOKEN_KINDS: Array<TokenKind> = [
   },
 ];
 
-describe("what a token is for: each kind is read as what it is, and as nothing else", () => {
-  test.each(TOKEN_KINDS)(
+describe("every token that names a person says what it is for, where it is made", () => {
+  test.each([
+    {
+      name: "a session",
+      kind: TOKEN_KINDS[0]!,
+      purpose: JsonWebTokenPurpose.UserSession,
+    },
+    {
+      name: "a project SSO sign-in",
+      kind: TOKEN_KINDS[1]!,
+      purpose: JsonWebTokenPurpose.SsoSignIn,
+    },
+    {
+      name: "a Global SSO sign-in",
+      kind: TOKEN_KINDS[3]!,
+      purpose: JsonWebTokenPurpose.SsoSignIn,
+    },
+    {
+      name: "a status page private user's session",
+      kind: TOKEN_KINDS[5]!,
+      purpose: JsonWebTokenPurpose.StatusPageSession,
+    },
+  ])(
     "$name",
-    ({ token, readAs }: TokenKind) => {
-      const value: string = token();
-
-      for (const purpose of ALL_PURPOSES) {
-        const reads: boolean = ((): boolean => {
-          try {
-            JSONWebToken.decode(value, purpose);
-            return true;
-          } catch {
-            return false;
-          }
-        })();
-
-        expect({ purpose, reads }).toEqual({
-          purpose,
-          reads: purpose === readAs,
-        });
-      }
+    ({
+      kind,
+      purpose,
+    }: {
+      kind: TokenKind;
+      purpose: JsonWebTokenPurpose;
+    }) => {
+      expect(kind.readAs).toBe(purpose);
+      expect(JSONWebToken.decodeJsonPayload(kind.token())[PURPOSE_CLAIM]).toBe(
+        purpose,
+      );
     },
   );
+});
+
+describe("what a token is for: each kind is read as what it is, and as nothing else", () => {
+  test.each(TOKEN_KINDS)("$name", ({ token, readAs }: TokenKind) => {
+    const value: string = token();
+
+    for (const purpose of ALL_PURPOSES) {
+      const reads: boolean = ((): boolean => {
+        try {
+          JSONWebToken.decode(value, purpose);
+          return true;
+        } catch {
+          return false;
+        }
+      })();
+
+      expect({ purpose, reads }).toEqual({
+        purpose,
+        reads: purpose === readAs,
+      });
+    }
+  });
 
   test("an SSO sign-in is never read as a session, whichever kind of provider gave it", () => {
     for (const providerType of Object.values(SsoProviderType)) {
@@ -774,10 +812,7 @@ describe("JSONWebToken.isFor", () => {
     ]) {
       expect({
         claims: refused,
-        isSession: JSONWebToken.isFor(
-          refused,
-          JsonWebTokenPurpose.UserSession,
-        ),
+        isSession: JSONWebToken.isFor(refused, JsonWebTokenPurpose.UserSession),
       }).toEqual({ claims: refused, isSession: false });
     }
   });
@@ -837,7 +872,10 @@ describe("JSONWebToken.isFor", () => {
 
   test("a status page's session says it is one and names its status page", () => {
     expect(
-      JSONWebToken.isFor(statusPageClaims, JsonWebTokenPurpose.StatusPageSession),
+      JSONWebToken.isFor(
+        statusPageClaims,
+        JsonWebTokenPurpose.StatusPageSession,
+      ),
     ).toBe(true);
 
     for (const refused of [

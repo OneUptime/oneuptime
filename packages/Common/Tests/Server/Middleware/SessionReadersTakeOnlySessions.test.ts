@@ -15,7 +15,9 @@ import {
   NextFunction,
   OneUptimeRequest,
 } from "../../../Server/Utils/Express";
-import JSONWebToken, { PURPOSE_CLAIM } from "../../../Server/Utils/JsonWebToken";
+import JSONWebToken, {
+  PURPOSE_CLAIM,
+} from "../../../Server/Utils/JsonWebToken";
 import logger from "../../../Server/Utils/Logger";
 import {
   NOT_A_MASTER_ADMIN_MESSAGE,
@@ -229,7 +231,9 @@ function requestWith(
     query: {},
     body: {},
     cookies: {
-      ...(carrier === "cookie" ? { [CookieUtil.getUserTokenKey()]: token } : {}),
+      ...(carrier === "cookie"
+        ? { [CookieUtil.getUserTokenKey()]: token }
+        : {}),
       ...(extra.cookies || {}),
     },
     headers: {
@@ -317,9 +321,7 @@ beforeEach(() => {
     false,
   );
   getJestSpyOn(UserService, "updateLastActive").mockResolvedValue(undefined);
-  getJestSpyOn(ProjectService, "updateLastActive").mockResolvedValue(
-    undefined,
-  );
+  getJestSpyOn(ProjectService, "updateLastActive").mockResolvedValue(undefined);
   getJestSpyOn(ProjectService, "getRequireSsoForLogin").mockResolvedValue(
     false,
   );
@@ -648,8 +650,10 @@ describe("the SSO readers take only SSO sign-ins", () => {
           headers: slot.headers,
         }) as ExpressRequest;
 
-        expect({ slot: slot.name, tokens: UserMiddleware.getSsoTokens(req) })
-          .toEqual({ slot: slot.name, tokens: {} });
+        expect({
+          slot: slot.name,
+          tokens: UserMiddleware.getSsoTokens(req),
+        }).toEqual({ slot: slot.name, tokens: {} });
         expect({
           slot: slot.name,
           global: UserMiddleware.getGlobalSsoTokenData(req),

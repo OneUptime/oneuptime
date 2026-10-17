@@ -48,9 +48,9 @@ export default class CookieUtil {
    * the cookie flow (web) and the deep-link flow (mobile) so the token shape
    * stays identical.
    *
-   * It is an SSO sign-in (JsonWebTokenPurpose.SsoSignIn), never a session:
-   * it counts only next to a session of the same person, which every sign-in
-   * that gives one also gives.
+   * It is an SSO sign-in (JsonWebTokenPurpose.SsoSignIn) and never a
+   * session: a project that requires SSO reads it only next to a session of
+   * the same person, which the same sign-in hands out.
    */
   @CaptureSpan()
   public static getSSOToken(data: {

@@ -207,9 +207,11 @@ jest.mock("Common/Server/Services/GlobalSsoProjectService", () => {
       findBy: (): Promise<unknown> => {
         return Promise.resolve([
           {
-            projectId: new (jest.requireActual("Common/Types/ObjectID") as {
-              default: typeof ObjectID;
-            }).default("2bcd0000-0000-4000-8000-0000000000a1"),
+            projectId: new (
+              jest.requireActual("Common/Types/ObjectID") as {
+                default: typeof ObjectID;
+              }
+            ).default("2bcd0000-0000-4000-8000-0000000000a1"),
             teams: [],
           },
         ]);
@@ -301,7 +303,9 @@ function handlerFor(router: ExpressRouter, path: string): RequestHandler {
   ).stack;
 
   const layer: RouteLayer | undefined = layers.find((candidate: RouteLayer) => {
-    return candidate.route?.path === path && Boolean(candidate.route.methods["post"]);
+    return (
+      candidate.route?.path === path && Boolean(candidate.route.methods["post"])
+    );
   });
 
   if (!layer?.route) {
@@ -387,7 +391,10 @@ interface SignIn {
 }
 
 // Signs in through the flow's Reply URL, from a browser or from the mobile app.
-async function signIn(flow: Flow, from: "browser" | "mobile app"): Promise<SignIn> {
+async function signIn(
+  flow: Flow,
+  from: "browser" | "mobile app",
+): Promise<SignIn> {
   const cookies: Dictionary<string> = {};
   const resRedirect: jest.Mock = jest.fn();
 
@@ -422,13 +429,9 @@ async function signIn(flow: Flow, from: "browser" | "mobile app"): Promise<SignI
 
   let nextError: unknown = undefined;
 
-  await (handlerFor(flow.router, flow.path)(
-    req,
-    res,
-    (err?: unknown): void => {
-      nextError = err;
-    },
-  ) as unknown as Promise<void>);
+  await (handlerFor(flow.router, flow.path)(req, res, (err?: unknown): void => {
+    nextError = err;
+  }) as unknown as Promise<void>);
 
   expect(nextError).toBeUndefined();
   expect(sendErrorResponse).not.toHaveBeenCalled();
@@ -459,7 +462,9 @@ function requestCarrying(
     query: {},
     body: {},
     cookies: {
-      ...(carrier === "cookie" ? { [CookieUtil.getUserTokenKey()]: token } : {}),
+      ...(carrier === "cookie"
+        ? { [CookieUtil.getUserTokenKey()]: token }
+        : {}),
       ...(extra.cookies || {}),
     },
     headers: {

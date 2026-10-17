@@ -5,6 +5,7 @@ import VerificationEmailResendToken, {
 import TokenSigningKey from "Common/Server/Utils/TokenSigningKey";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import Email from "Common/Types/Email";
+import { JSONObject } from "Common/Types/JSON";
 import JsonWebTokenPurpose from "Common/Types/JsonWebTokenPurpose";
 import ObjectID from "Common/Types/ObjectID";
 import crypto from "crypto";
@@ -744,7 +745,7 @@ describe("it is not a session", () => {
      * they name, so this is the token a careless implementation would be one
      * claim away from handing an unverified user.
      */
-    const claims: Record<string, unknown> = {
+    const claims: JSONObject = {
       userId: USER_ID,
       email: USER_EMAIL,
       v: 1,
@@ -753,10 +754,7 @@ describe("it is not a session", () => {
       i: NOW_MS,
       x: NOW_MS + EXPIRY_MS,
     };
-    const sessionShaped: string = JSONWebToken.signJsonPayload(
-      claims,
-      60 * 60,
-    );
+    const sessionShaped: string = JSONWebToken.signJsonPayload(claims, 60 * 60);
     const session: string = JSONWebToken.signJsonPayload(
       {
         ...claims,

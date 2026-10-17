@@ -202,8 +202,7 @@ interface Scan {
 
 function lineOf(sourceFile: ts.SourceFile, node: ts.Node): number {
   return (
-    sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line +
-    1
+    sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1
   );
 }
 
@@ -443,7 +442,9 @@ describe("each kind of token is signed only where it is made", () => {
         }
 
         signingMethod =
-          ancestor && ts.isIdentifier(ancestor.name) ? ancestor.name.text : null;
+          ancestor && ts.isIdentifier(ancestor.name)
+            ? ancestor.name.text
+            : null;
       }
     });
 
@@ -489,8 +490,6 @@ describe("the guard reads what it should", () => {
   });
 
   test("the purposes it knows are the ones JsonWebTokenPurpose has", () => {
-    expect([...PURPOSE_NAMES].sort()).toEqual(
-      [...Object.keys(SIGNERS)].sort(),
-    );
+    expect([...PURPOSE_NAMES].sort()).toEqual([...Object.keys(SIGNERS)].sort());
   });
 });
