@@ -173,9 +173,9 @@ describe("MonitorStepProbeStatusMonitorUtil", () => {
         SINGAPORE,
       ]),
     ).toEqual([SINGAPORE]);
-    expect(MonitorStepProbeStatusMonitorUtil.normalizeProbeIds(undefined)).toEqual(
-      [],
-    );
+    expect(
+      MonitorStepProbeStatusMonitorUtil.normalizeProbeIds(undefined),
+    ).toEqual([]);
     expect(
       MonitorStepProbeStatusMonitorUtil.normalizeProbeIds(FRANKFURT),
     ).toEqual([]);
@@ -292,7 +292,10 @@ describe("the Probe Status checks", () => {
   });
 
   test("take a number to compare with", () => {
-    for (const checkOn of [CheckOn.ConnectedProbes, CheckOn.DisconnectedProbes]) {
+    for (const checkOn of [
+      CheckOn.ConnectedProbes,
+      CheckOn.DisconnectedProbes,
+    ]) {
       expect(
         CriteriaFilterUtil.hasValueField({
           checkOn: checkOn,
@@ -303,7 +306,10 @@ describe("the Probe Status checks", () => {
   });
 
   test("can be judged over a window, the tunable hold-down", () => {
-    for (const checkOn of [CheckOn.ConnectedProbes, CheckOn.DisconnectedProbes]) {
+    for (const checkOn of [
+      CheckOn.ConnectedProbes,
+      CheckOn.DisconnectedProbes,
+    ]) {
       expect(
         CriteriaFilterUtil.isEvaluateOverTimeFilter(
           checkOn,
@@ -457,7 +463,9 @@ describe("a Probe Status monitor template", () => {
   test("can leave the probes to each monitor made from it", () => {
     expect(
       MonitorTemplateSyncFieldUtil.getFields(MonitorType.ProbeStatus),
-    ).toEqual([{ path: "probeStatusMonitor.probeIds", label: "Probes to watch" }]);
+    ).toEqual([
+      { path: "probeStatusMonitor.probeIds", label: "Probes to watch" },
+    ]);
     expect(
       MonitorTemplateSyncFieldUtil.parse(
         ["probeStatusMonitor.probeIds"],

@@ -10,10 +10,7 @@ import Dictionary from "../../../../Types/Dictionary";
 import { JSONObject } from "../../../../Types/JSON";
 import JSONFunctions from "../../../../Types/JSONFunctions";
 import { MetricPointType } from "../../../../Models/AnalyticsModels/Metric";
-import {
-  CheckOn,
-  FilterType,
-} from "../../../../Types/Monitor/CriteriaFilter";
+import { CheckOn, FilterType } from "../../../../Types/Monitor/CriteriaFilter";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorMetricType from "../../../../Types/Monitor/MonitorMetricType";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
@@ -107,9 +104,7 @@ function monitor(): Monitor {
 }
 
 describe("template variables of a Probe Status monitor", () => {
-  function storageMap(
-    dataToProcess: ProbeStatusMonitorResponse,
-  ): JSONObject {
+  function storageMap(dataToProcess: ProbeStatusMonitorResponse): JSONObject {
     return MonitorTemplateUtil.buildTemplateStorageMap({
       monitorType: MonitorType.ProbeStatus,
       dataToProcess: dataToProcess,
@@ -183,12 +178,11 @@ describe("template variables of a Probe Status monitor", () => {
       }),
     ).toBe("Probe disconnected: Singapore");
 
-    const description: string = MonitorTemplateUtil.processMarkdownTemplateString(
-      {
+    const description: string =
+      MonitorTemplateUtil.processMarkdownTemplateString({
         value: offline.data!.incidents[0]!.description,
         storageMap: map,
-      },
-    );
+      });
 
     expect(description).toContain("Singapore");
     expect(description).toContain("three minutes");
@@ -200,9 +194,11 @@ describe("template variables of a Probe Status monitor", () => {
       evaluation([probe("Probe [x](http://evil.example)", false)]),
     );
 
-    const description: string = MonitorTemplateUtil.processMarkdownTemplateString(
-      { value: "{{probeStatusSummary}}", storageMap: map },
-    );
+    const description: string =
+      MonitorTemplateUtil.processMarkdownTemplateString({
+        value: "{{probeStatusSummary}}",
+        storageMap: map,
+      });
 
     expect(description).toContain("is disconnected.");
     expect(description).not.toContain("](http");
@@ -249,7 +245,11 @@ describe("explaining a Probe Status check", () => {
   function explain(checkOn: CheckOn): string | null {
     return MonitorCriteriaObservationBuilder.describeFilterObservation({
       monitor: monitor(),
-      criteriaFilter: { checkOn: checkOn, filterType: FilterType.GreaterThan, value: 0 },
+      criteriaFilter: {
+        checkOn: checkOn,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+      },
       dataToProcess: singaporeDown,
       monitorStep: new MonitorStep(),
     });

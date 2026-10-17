@@ -1513,7 +1513,8 @@ export default class MonitorMetricUtil {
         probeName: undefined,
         metricName: MonitorMetricType.ConnectedProbes,
         value: probeStatusResponse.connectedProbeCount,
-        description: "How many of the probes this monitor watches are connected",
+        description:
+          "How many of the probes this monitor watches are connected",
         unit: "probes",
         metricPointType: MetricPointType.Gauge,
         metricRows: metricRows,

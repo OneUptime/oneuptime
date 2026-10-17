@@ -24,6 +24,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import type { MockInstance } from "jest-mock";
 
 /*
  * A Probe Status monitor is judged by the server, not by a probe, so nothing
@@ -124,10 +125,10 @@ async function waitFor(predicate: () => boolean): Promise<void> {
 // Every step of the follow-up work, in the order it ran.
 const calls: Array<string> = [];
 let storedMonitor: Monitor;
-let evaluate: jest.SpiedFunction<
+let evaluate: MockInstance<
   typeof ProbeStatusMonitorEvaluator.evaluateMonitorById
 >;
-let loggedErrors: jest.SpiedFunction<typeof logger.error>;
+let loggedErrors: MockInstance<typeof logger.error>;
 
 beforeEach(() => {
   calls.length = 0;
@@ -158,12 +159,14 @@ beforeEach(() => {
   jest
     .spyOn(service, "addProbesToMonitor" as never)
     .mockResolvedValue(undefined as never);
-  jest.spyOn(service, "changeMonitorStatus" as never).mockImplementation((async (
-    _projectId: ObjectID,
-    monitorIds: Array<ObjectID>,
-  ): Promise<void> => {
-    calls.push(`first status ${monitorIds[0]!.toString()}`);
-  }) as never);
+  jest
+    .spyOn(service, "changeMonitorStatus" as never)
+    .mockImplementation((async (
+      _projectId: ObjectID,
+      monitorIds: Array<ObjectID>,
+    ): Promise<void> => {
+      calls.push(`first status ${monitorIds[0]!.toString()}`);
+    }) as never);
   jest
     .spyOn(service, "refreshMonitorProbeStatus" as never)
     .mockImplementation((async (): Promise<void> => {
@@ -262,8 +265,7 @@ describe("MonitorService: a Probe Status monitor is judged as soon as it is crea
     expect(
       loggedErrors.mock.calls.some((call: Array<unknown>): boolean => {
         return (
-          call[0] instanceof Error &&
-          call[0].message === "probe table locked"
+          call[0] instanceof Error && call[0].message === "probe table locked"
         );
       }),
     ).toBe(true);
@@ -326,8 +328,7 @@ describe("MonitorService: changing the probes a Probe Status monitor watches jud
     expect(
       loggedErrors.mock.calls.some((call: Array<unknown>): boolean => {
         return (
-          call[0] instanceof Error &&
-          call[0].message === "probe table locked"
+          call[0] instanceof Error && call[0].message === "probe table locked"
         );
       }),
     ).toBe(true);

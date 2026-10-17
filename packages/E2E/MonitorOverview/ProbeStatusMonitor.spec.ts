@@ -33,7 +33,18 @@ const CREATED_MONITOR_ID: string = "70000000-0000-4000-8000-000000000100";
 const MONITOR_ID: string = "70000000-0000-4000-8000-000000000010";
 const MONITOR_PATH: string = `${DASHBOARD}/monitors/${MONITOR_ID}`;
 
-const PROBES: Record<string, { id: string; name: string }> = {
+interface FixtureProbe {
+  id: string;
+  name: string;
+}
+
+// The fixture's probes (Fixture.js PROBE_DEFINITIONS and GLOBAL_PROBE).
+const PROBES: {
+  frankfurt: FixtureProbe;
+  virginia: FixtureProbe;
+  singapore: FixtureProbe;
+  selfHosted: FixtureProbe;
+} = {
   frankfurt: {
     id: "73000000-0000-4000-8000-000000000001",
     name: "Frankfurt (eu-central-1)",
@@ -228,7 +239,9 @@ test.describe("a Probe Status monitor's overview", () => {
     }
 
     // The evaluation that decided it, under the probes.
-    await expect(summaryCard).toContainText("Check if every probe is connected");
+    await expect(summaryCard).toContainText(
+      "Check if every probe is connected",
+    );
 
     await screenshot(page, "probe-status-overview-operational");
   });
@@ -256,7 +269,9 @@ test.describe("a Probe Status monitor's overview", () => {
     await expect(card(page, "Monitor Summary")).toContainText(
       "Check if a probe is disconnected",
     );
-    await expect(page.getByText("Probe disconnected: Singapore (ap-southeast-1)").first()).toBeVisible({
+    await expect(
+      page.getByText("Probe disconnected: Singapore (ap-southeast-1)").first(),
+    ).toBeVisible({
       timeout: 30000,
     });
 
@@ -326,10 +341,10 @@ test.describe("its Monitoring Logs", () => {
 
     await logs.getByText("View Summary").first().click();
     const modal: Locator = page.getByRole("dialog");
-    await expect(modal.getByTestId("probe-status-monitor-summary")).toBeVisible();
-    await expect(probeRows(modal).nth(0)).toContainText(
-      PROBES.singapore!.name,
-    );
+    await expect(
+      modal.getByTestId("probe-status-monitor-summary"),
+    ).toBeVisible();
+    await expect(probeRows(modal).nth(0)).toContainText(PROBES.singapore!.name);
     await expect(probeRows(modal).nth(0)).toContainText("Disconnected");
     await screenshot(page, "probe-status-logs-summary");
   });

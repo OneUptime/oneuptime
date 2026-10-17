@@ -875,7 +875,8 @@ const MONITOR_DEFINITIONS = {
   "probe-status": {
     number: 10,
     name: "Probe health",
-    description: "Opens an incident when a probe our monitors run on goes offline.",
+    description:
+      "Opens an incident when a probe our monitors run on goes offline.",
     monitorType: MonitorType.ProbeStatus,
     interval: undefined,
     labels: [labels.platform],
@@ -1066,8 +1067,10 @@ function probeStatusLogBody(data) {
       probeName: probeDefinition.name,
       isGlobalProbe: false,
       isConnected,
-      lastAliveAt: (isConnected ? ago(20 * SECOND) : ago(15 * MINUTE))
-        .toISOString(),
+      lastAliveAt: (isConnected
+        ? ago(20 * SECOND)
+        : ago(15 * MINUTE)
+      ).toISOString(),
     };
   });
   const connectedProbeCount = probes.filter((probe) => {

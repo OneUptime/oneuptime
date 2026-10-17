@@ -164,7 +164,7 @@ const ProbeStatusMonitorStepForm: FunctionComponent<ComponentProps> = (
       (group: ProbeStatusProbeOptionGroup): DropdownOptionGroup => {
         return {
           // The picker shows a group's heading as given; options it translates.
-          label: translator.translateText(group.label),
+          label: translator.translateText(group.label) || group.label,
           options: group.options.map(
             (option: ProbeStatusProbeOption): DropdownOption => {
               return { value: option.value, label: option.label };
@@ -198,9 +198,8 @@ const ProbeStatusMonitorStepForm: FunctionComponent<ComponentProps> = (
 
           props.onChange({
             ...props.monitorStepProbeStatusMonitor,
-            probeIds: MonitorStepProbeStatusMonitorUtil.normalizeProbeIds(
-              probeIds,
-            ),
+            probeIds:
+              MonitorStepProbeStatusMonitorUtil.normalizeProbeIds(probeIds),
           });
         }}
       />

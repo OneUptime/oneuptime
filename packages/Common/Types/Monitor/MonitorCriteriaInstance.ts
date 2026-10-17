@@ -1983,9 +1983,10 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         incidents: [
           {
             title: MonitorCriteriaInstance.PROBE_DISCONNECTED_TITLE,
-            description: MonitorCriteriaInstance.getProbeDisconnectedDescription(
-              arg.monitorName,
-            ),
+            description:
+              MonitorCriteriaInstance.getProbeDisconnectedDescription(
+                arg.monitorName,
+              ),
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -1998,9 +1999,10 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         alerts: [
           {
             title: MonitorCriteriaInstance.PROBE_DISCONNECTED_TITLE,
-            description: MonitorCriteriaInstance.getProbeDisconnectedDescription(
-              arg.monitorName,
-            ),
+            description:
+              MonitorCriteriaInstance.getProbeDisconnectedDescription(
+                arg.monitorName,
+              ),
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),

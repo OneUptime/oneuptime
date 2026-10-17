@@ -6,7 +6,9 @@ import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
-import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import ActionButtonSchema, {
+  ActionButtonPlacement,
+} from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -37,7 +39,6 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import {
   getMonitorThisProbeRoute,
   MONITOR_THIS_PROBE_ICON,

@@ -44,10 +44,7 @@ import MonitorStepViewModel, {
   MonitorStepViewValue,
   MonitorStepViewValueType,
 } from "../../../Utils/MonitorStepViewModel";
-import {
-  translationKey,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
@@ -85,24 +82,25 @@ const fieldTypeByValueType: Record<MonitorStepViewValueType, FieldType> = {
 // A probe the step names that no probe list holds any more.
 const DELETED_PROBE_NAME: string = translationKey("Deleted probe");
 
-const getWatchedProbeIds: (rows: Array<MonitorStepViewRow>) => Array<string> =
-  (rows: Array<MonitorStepViewRow>): Array<string> => {
-    const ids: Array<string> = [];
+const getWatchedProbeIds: (rows: Array<MonitorStepViewRow>) => Array<string> = (
+  rows: Array<MonitorStepViewRow>,
+): Array<string> => {
+  const ids: Array<string> = [];
 
-    for (const row of rows) {
-      if (row.valueType !== MonitorStepViewValueType.Probes) {
-        continue;
-      }
-
-      for (const id of (row.value as Array<string> | undefined) || []) {
-        if (id && !ids.includes(id)) {
-          ids.push(id);
-        }
-      }
+  for (const row of rows) {
+    if (row.valueType !== MonitorStepViewValueType.Probes) {
+      continue;
     }
 
-    return ids;
-  };
+    for (const id of (row.value as Array<string> | undefined) || []) {
+      if (id && !ids.includes(id)) {
+        ids.push(id);
+      }
+    }
+  }
+
+  return ids;
+};
 
 const getTelemetryServiceIds: (
   rows: Array<MonitorStepViewRow>,
@@ -338,15 +336,15 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     }
 
     if (row.valueType === MonitorStepViewValueType.Probes) {
-      item[row.key] = (
-        (row.value as Array<string> | undefined) || []
-      ).map((probeId: string): string => {
-        return (
-          probeNamesById.get(probeId.toLowerCase()) ||
-          translator.translateText(DELETED_PROBE_NAME) ||
-          DELETED_PROBE_NAME
-        );
-      });
+      item[row.key] = ((row.value as Array<string> | undefined) || []).map(
+        (probeId: string): string => {
+          return (
+            probeNamesById.get(probeId.toLowerCase()) ||
+            translator.translateText(DELETED_PROBE_NAME) ||
+            DELETED_PROBE_NAME
+          );
+        },
+      );
 
       fields.push({
         key: row.key,

@@ -139,9 +139,7 @@ const ACTIVE_PROJECT_QUERY: Record<string, unknown> = {
 
 function monitorNumber(index: number): Monitor {
   const monitor: Monitor = new Monitor(
-    new ObjectID(
-      `76000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
-    ),
+    new ObjectID(`76000000-0000-4000-8000-${String(index).padStart(12, "0")}`),
   );
   monitor.monitorType = MonitorType.ProbeStatus;
   return monitor;

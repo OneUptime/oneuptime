@@ -1,6 +1,13 @@
 import "@testing-library/jest-dom";
 import { render, screen, within } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import * as React from "react";
 import OneUptimeDate from "../../../Types/Date";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
@@ -100,7 +107,10 @@ function rowNames(): Array<string> {
   return rows().map((row: HTMLElement): string => {
     return within(row).getByText(
       (_content: string, element: Element | null): boolean => {
-        return element?.tagName === "SPAN" && element.className.includes("break-words");
+        return (
+          element?.tagName === "SPAN" &&
+          element.className.includes("break-words")
+        );
       },
     ).textContent as string;
   });
@@ -200,10 +210,14 @@ describe("ProbeStatusMonitorView", () => {
 
   it("says nothing about missing probes when none are missing", () => {
     render(
-      <ProbeStatusMonitorView probeStatusMonitorResponse={response([FRANKFURT])} />,
+      <ProbeStatusMonitorView
+        probeStatusMonitorResponse={response([FRANKFURT])}
+      />,
     );
 
-    expect(screen.queryByTestId("probe-status-monitor-missing-probes")).toBeNull();
+    expect(
+      screen.queryByTestId("probe-status-monitor-missing-probes"),
+    ).toBeNull();
   });
 
   it("shows no time it does not have", () => {
@@ -215,9 +229,9 @@ describe("ProbeStatusMonitorView", () => {
       />,
     );
 
-    expect(screen.getByTestId("probe-status-monitor-summary")).not.toHaveTextContent(
-      "1970",
-    );
+    expect(
+      screen.getByTestId("probe-status-monitor-summary"),
+    ).not.toHaveTextContent("1970");
   });
 });
 
@@ -231,7 +245,9 @@ describe("SummaryInfo for a Probe Status monitor", () => {
       />,
     );
 
-    expect(screen.getByTestId("probe-status-monitor-summary")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("probe-status-monitor-summary"),
+    ).toBeInTheDocument();
     expect(rowNames()).toEqual(["Singapore", "Frankfurt"]);
     expect(
       screen.getAllByText("Check if a probe is disconnected").length,
@@ -264,11 +280,12 @@ describe("SummaryInfo for a Probe Status monitor", () => {
       });
 
     // Through the jsonb column and back over the API, as the browser reads it.
-    const readBack: MonitorSummarySnapshot = MonitorSummarySnapshotUtil.deserialize(
-      JSON.parse(
-        JSON.stringify(MonitorSummarySnapshotUtil.serialize(snapshot)),
-      ) as JSONObject,
-    )!;
+    const readBack: MonitorSummarySnapshot =
+      MonitorSummarySnapshotUtil.deserialize(
+        JSON.parse(
+          JSON.stringify(MonitorSummarySnapshotUtil.serialize(snapshot)),
+        ) as JSONObject,
+      )!;
 
     const props: MonitorSummaryInfoProps =
       MonitorSummarySnapshotUtil.toSummaryInfoProps(readBack);
@@ -276,23 +293,24 @@ describe("SummaryInfo for a Probe Status monitor", () => {
     render(<SummaryInfo {...props} />);
 
     expect(rowNames()).toEqual(["Singapore", "Frankfurt"]);
-    expect(screen.getByTestId("probe-status-monitor-summary")).toHaveTextContent(
-      "1 of 2",
-    );
+    expect(
+      screen.getByTestId("probe-status-monitor-summary"),
+    ).toHaveTextContent("1 of 2");
   });
 
   it("a Monitoring Logs row shows the probes it evaluated, from the stored body", () => {
-    const props: MonitorSummaryInfoProps = MonitorLogSummaryUtil.toSummaryInfoProps({
-      monitorType: MonitorType.ProbeStatus,
-      // As MonitorLogUtil stores it: a plain JSON round trip.
-      logBody: JSON.parse(
-        JSON.stringify({
-          ...response([FRANKFURT, BASEMENT]),
-          evaluationSummary: EVALUATION_SUMMARY,
-        }),
-      ) as JSONObject,
-      monitoredAt: CHECKED_AT,
-    });
+    const props: MonitorSummaryInfoProps =
+      MonitorLogSummaryUtil.toSummaryInfoProps({
+        monitorType: MonitorType.ProbeStatus,
+        // As MonitorLogUtil stores it: a plain JSON round trip.
+        logBody: JSON.parse(
+          JSON.stringify({
+            ...response([FRANKFURT, BASEMENT]),
+            evaluationSummary: EVALUATION_SUMMARY,
+          }),
+        ) as JSONObject,
+        monitoredAt: CHECKED_AT,
+      });
 
     render(<SummaryInfo {...props} />);
 

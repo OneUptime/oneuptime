@@ -79,9 +79,10 @@ describe("ProbeStatusMonitorUtil.isConnected", () => {
 
 describe("ProbeStatusMonitorUtil.buildResponse", () => {
   test("names the step, the monitor and when it was checked", () => {
-    const response: ProbeStatusMonitorResponse = build([FRANKFURT], [
-      probe(FRANKFURT, "Frankfurt", ProbeConnectionStatus.Connected),
-    ]);
+    const response: ProbeStatusMonitorResponse = build(
+      [FRANKFURT],
+      [probe(FRANKFURT, "Frankfurt", ProbeConnectionStatus.Connected)],
+    );
 
     expect(response.projectId.toString()).toBe(PROJECT_ID.toString());
     expect(response.monitorId.toString()).toBe(MONITOR_ID.toString());
@@ -202,9 +203,9 @@ describe("ProbeStatusMonitorUtil.describe", () => {
   );
 
   test("one probe, connected or not, by name", () => {
-    expect(ProbeStatusMonitorUtil.describe(build([FRANKFURT], [connected]))).toBe(
-      "Frankfurt is connected.",
-    );
+    expect(
+      ProbeStatusMonitorUtil.describe(build([FRANKFURT], [connected])),
+    ).toBe("Frankfurt is connected.");
     expect(
       ProbeStatusMonitorUtil.describe(
         build(
@@ -277,12 +278,10 @@ describe("ProbeStatusMonitorUtil helpers", () => {
       "Frankfurt, Singapore",
     );
     expect(ProbeStatusMonitorUtil.joinProbeNames([])).toBe("");
-    expect(ProbeStatusMonitorUtil.getConnectedProbes(response)).toHaveLength(
-      2,
+    expect(ProbeStatusMonitorUtil.getConnectedProbes(response)).toHaveLength(2);
+    expect(ProbeStatusMonitorUtil.getDisconnectedProbes(response)).toHaveLength(
+      0,
     );
-    expect(
-      ProbeStatusMonitorUtil.getDisconnectedProbes(response),
-    ).toHaveLength(0);
   });
 
   test("counts in words", () => {
@@ -312,9 +311,9 @@ describe("ProbeStatusMonitorUtil helpers", () => {
       VIRGINIA,
     ]);
     expect(ProbeStatusMonitorUtil.getWatchedProbeIds(undefined)).toEqual([]);
-    expect(ProbeStatusMonitorUtil.getWatchedProbeIds(new MonitorSteps())).toEqual(
-      [],
-    );
+    expect(
+      ProbeStatusMonitorUtil.getWatchedProbeIds(new MonitorSteps()),
+    ).toEqual([]);
   });
 });
 
@@ -331,9 +330,7 @@ describe("ProbeStatusMonitorUtil.parseResponse", () => {
     );
 
     const parsed: ProbeStatusMonitorResponse | null =
-      ProbeStatusMonitorUtil.parseResponse(
-        JSON.parse(JSON.stringify(stored)),
-      );
+      ProbeStatusMonitorUtil.parseResponse(JSON.parse(JSON.stringify(stored)));
 
     expect(parsed).not.toBeNull();
     expect(parsed!.monitorId.toString()).toBe(MONITOR_ID.toString());

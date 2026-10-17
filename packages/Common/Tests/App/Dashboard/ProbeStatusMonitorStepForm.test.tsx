@@ -176,7 +176,9 @@ describe("ProbeStatusMonitorStepForm", () => {
 
     expect(await picked()).toEqual(["Office LAN", "Deleted probe"]);
 
-    fireEvent.click(screen.getByRole("button", { name: "Remove Deleted probe" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remove Deleted probe" }),
+    );
 
     await waitFor(() => {
       expect(changes[changes.length - 1]).toEqual({ probeIds: [OFFICE_ID] });
@@ -220,7 +222,9 @@ describe("ProbeStatusMonitorStepForm", () => {
   });
 
   test("probes that cannot be loaded say why, and nothing is filled in", async () => {
-    mockGetAllProbes.mockRejectedValue(new Error("Network unreachable") as never);
+    mockGetAllProbes.mockRejectedValue(
+      new Error("Network unreachable") as never,
+    );
 
     render(<Harness probeIds={[]} />);
 

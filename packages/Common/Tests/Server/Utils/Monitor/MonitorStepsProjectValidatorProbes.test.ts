@@ -8,7 +8,15 @@ import { JSONObject } from "../../../../Types/JSON";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
 import ObjectID from "../../../../Types/ObjectID";
-import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
+import type { MockInstance } from "jest-mock";
 
 /*
  * Which probes a Probe Status monitor may watch: the ones its monitors could
@@ -47,9 +55,7 @@ function probe(id: string): Probe {
   return item;
 }
 
-let attachable: jest.SpiedFunction<
-  typeof ProbeService.getProbesAttachableToProject
->;
+let attachable: MockInstance<typeof ProbeService.getProbesAttachableToProject>;
 
 beforeEach(() => {
   // The probes this project may use: its own, and the global one.
@@ -88,9 +94,9 @@ describe("MonitorStepsReferenceExtractor.extractWatchedProbeIds", () => {
       [GLOBAL_PROBE.toUpperCase(), FOREIGN_PROBE],
     );
 
-    expect(MonitorStepsReferenceExtractor.extractWatchedProbeIds(steps)).toEqual(
-      [OWN_PROBE, GLOBAL_PROBE, FOREIGN_PROBE],
-    );
+    expect(
+      MonitorStepsReferenceExtractor.extractWatchedProbeIds(steps),
+    ).toEqual([OWN_PROBE, GLOBAL_PROBE, FOREIGN_PROBE]);
     expect(
       MonitorStepsReferenceExtractor.extractWatchedProbeIds(
         JSON.parse(JSON.stringify(steps.toJSON())) as JSONObject,
@@ -124,9 +130,9 @@ describe("MonitorStepsReferenceExtractor.extractWatchedProbeIds", () => {
       defaultMonitorStatusId: undefined,
     };
 
-    expect(MonitorStepsReferenceExtractor.extractWatchedProbeIds(steps)).toEqual(
-      [],
-    );
+    expect(
+      MonitorStepsReferenceExtractor.extractWatchedProbeIds(steps),
+    ).toEqual([]);
     expect(MonitorStepsReferenceExtractor.extractWatchedProbeIds(null)).toEqual(
       [],
     );

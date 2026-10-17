@@ -2900,7 +2900,9 @@ describe("MonitorOverviewPresentationUtil Probe Status monitors", () => {
   it("one probe is one probe", () => {
     expect(
       fact(
-        build(probeStatus({ monitorSteps: watchingSteps([WATCHED_PROBE_IDS[0]!]) })),
+        build(
+          probeStatus({ monitorSteps: watchingSteps([WATCHED_PROBE_IDS[0]!]) }),
+        ),
         "probes",
       ).value,
     ).toBe("1 probe");
@@ -2938,7 +2940,10 @@ describe("MonitorOverviewPresentationUtil Probe Status monitors", () => {
 
     expect(
       build(
-        probeStatus({ latestEvaluationAt: undefined, evaluationStatus: "loading" }),
+        probeStatus({
+          latestEvaluationAt: undefined,
+          evaluationStatus: "loading",
+        }),
       ).pulse,
     ).toEqual({
       label: "Last evaluated",
@@ -3001,7 +3006,9 @@ describe("MonitorOverviewPresentationUtil Probe Status monitors", () => {
       probeStatus({ createdAt: secondsAgo(30), latestEvaluationAt: undefined }),
     );
 
-    expect(presentation.runState).toBe(MonitorOverviewRunState.AwaitingFirstData);
+    expect(presentation.runState).toBe(
+      MonitorOverviewRunState.AwaitingFirstData,
+    );
     expect(presentation.badge).toEqual({
       text: "Waiting for data",
       tone: "info",

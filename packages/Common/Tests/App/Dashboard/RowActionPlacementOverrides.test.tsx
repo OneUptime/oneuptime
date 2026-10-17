@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { MockInstance } from "jest-mock";
 import {
   cleanup,
   fireEvent,
@@ -593,7 +594,7 @@ describe("Custom probes: Show ID and Key is never the row's button", () => {
   test("Monitor this probe opens Create Monitor on a Probe Status monitor watching that probe", async () => {
     signInAsOwner();
 
-    const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+    const navigate: MockInstance<typeof Navigation.navigate> = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation(() => {
         return undefined;

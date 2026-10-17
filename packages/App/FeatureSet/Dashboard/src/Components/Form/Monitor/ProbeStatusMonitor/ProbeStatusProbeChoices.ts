@@ -44,10 +44,15 @@ export const NO_LONGER_AVAILABLE_GROUP_LABEL: string = translationKey(
 );
 export const DELETED_PROBE_LABEL: string = translationKey("Deleted probe");
 
-const byName: (a: ProbeStatusProbeChoice, b: ProbeStatusProbeChoice) => number =
-  (a: ProbeStatusProbeChoice, b: ProbeStatusProbeChoice): number => {
-    return a.name.localeCompare(b.name) || a.id.localeCompare(b.id);
-  };
+const byName: (
+  a: ProbeStatusProbeChoice,
+  b: ProbeStatusProbeChoice,
+) => number = (
+  a: ProbeStatusProbeChoice,
+  b: ProbeStatusProbeChoice,
+): number => {
+  return a.name.localeCompare(b.name) || a.id.localeCompare(b.id);
+};
 
 export default class ProbeStatusProbeChoices {
   /*
@@ -88,11 +93,11 @@ export default class ProbeStatusProbeChoices {
     );
 
     if (customProbes.length > 0) {
-      return customProbes.sort(byName).map(
-        (probe: ProbeStatusProbeChoice): string => {
+      return customProbes
+        .sort(byName)
+        .map((probe: ProbeStatusProbeChoice): string => {
           return probe.id;
-        },
-      );
+        });
     }
 
     if (data.isBillingEnabled) {
@@ -120,10 +125,13 @@ export default class ProbeStatusProbeChoices {
     probes: Array<ProbeStatusProbeChoice>;
     selectedProbeIds: Array<string>;
   }): Array<ProbeStatusProbeOptionGroup> {
-    const toOption: (probe: ProbeStatusProbeChoice) => ProbeStatusProbeOption =
-      (probe: ProbeStatusProbeChoice): ProbeStatusProbeOption => {
-        return { value: probe.id, label: probe.name };
-      };
+    const toOption: (
+      probe: ProbeStatusProbeChoice,
+    ) => ProbeStatusProbeOption = (
+      probe: ProbeStatusProbeChoice,
+    ): ProbeStatusProbeOption => {
+      return { value: probe.id, label: probe.name };
+    };
 
     const groups: Array<ProbeStatusProbeOptionGroup> = [
       {

@@ -12,6 +12,7 @@ import ProbeStatusMonitorResponse, {
 import ProbeMonitorResponse from "../../../../../Types/Probe/ProbeMonitorResponse";
 import ObjectID from "../../../../../Types/ObjectID";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { MockInstance } from "jest-mock";
 
 /*
  * A Probe Status monitor's criteria: Connected Probes and Disconnected
@@ -121,7 +122,11 @@ describe("ProbeStatusMonitorCriteria: Disconnected Probes", () => {
     expect(
       await evaluate(
         oneDown,
-        filter(CheckOn.DisconnectedProbes, FilterType.GreaterThanOrEqualTo, "1"),
+        filter(
+          CheckOn.DisconnectedProbes,
+          FilterType.GreaterThanOrEqualTo,
+          "1",
+        ),
       ),
     ).not.toBeNull();
     expect(
@@ -171,7 +176,10 @@ describe("ProbeStatusMonitorCriteria: Connected Probes", () => {
     expect(result).not.toBeNull();
     expect(result).toContain("Connected Probes");
     expect(
-      await evaluate(allUp, filter(CheckOn.ConnectedProbes, FilterType.LessThan, 2)),
+      await evaluate(
+        allUp,
+        filter(CheckOn.ConnectedProbes, FilterType.LessThan, 2),
+      ),
     ).toBeNull();
   });
 
@@ -194,10 +202,16 @@ describe("ProbeStatusMonitorCriteria: Connected Probes", () => {
 describe("ProbeStatusMonitorCriteria: what it does not judge", () => {
   test("a check of another monitor type is not claimed", async () => {
     expect(
-      await evaluate(oneDown, filter(CheckOn.IsOnline, FilterType.False, undefined)),
+      await evaluate(
+        oneDown,
+        filter(CheckOn.IsOnline, FilterType.False, undefined),
+      ),
     ).toBeNull();
     expect(
-      await evaluate(oneDown, filter(CheckOn.ResponseTime, FilterType.GreaterThan, 0)),
+      await evaluate(
+        oneDown,
+        filter(CheckOn.ResponseTime, FilterType.GreaterThan, 0),
+      ),
     ).toBeNull();
   });
 
@@ -259,7 +273,7 @@ describe("ProbeStatusMonitorCriteria over a window", () => {
   };
 
   test("asks for the window of the monitor this evaluation belongs to", async () => {
-    const spy: jest.SpiedFunction<
+    const spy: MockInstance<
       typeof EvaluateOverTime.getOverTimeValueForCriteriaFilter
     > = jest
       .spyOn(EvaluateOverTime, "getOverTimeValueForCriteriaFilter")
@@ -282,7 +296,7 @@ describe("ProbeStatusMonitorCriteria over a window", () => {
   });
 
   test("a monitor without an interval of its own is sized as the every-minute sweep it gets", async () => {
-    const spy: jest.SpiedFunction<
+    const spy: MockInstance<
       typeof EvaluateOverTime.getOverTimeValueForCriteriaFilter
     > = jest
       .spyOn(EvaluateOverTime, "getOverTimeValueForCriteriaFilter")
@@ -334,7 +348,7 @@ describe("ProbeStatusMonitorCriteria over a window", () => {
   });
 
   test("without a window, this evaluation's own count decides", async () => {
-    const spy: jest.SpiedFunction<
+    const spy: MockInstance<
       typeof EvaluateOverTime.getOverTimeValueForCriteriaFilter
     > = jest.spyOn(EvaluateOverTime, "getOverTimeValueForCriteriaFilter");
 
@@ -348,7 +362,9 @@ describe("ProbeStatusMonitorCriteria over a window", () => {
     // Called, but it returns before reading anything.
     const result: Awaited<
       ReturnType<typeof EvaluateOverTime.getOverTimeValueForCriteriaFilter>
-    > = await spy.mock.results[0]!.value;
+    > = await (spy.mock.results[0]!.value as ReturnType<
+      typeof EvaluateOverTime.getOverTimeValueForCriteriaFilter
+    >);
     expect(result).toEqual({ earlyReturn: null, value: undefined });
   });
 });

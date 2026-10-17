@@ -64,15 +64,14 @@ export default class ProbeStatusMonitorEvaluator {
     projectId: ObjectID;
     probeIds: Array<string>;
   }): Promise<Array<Probe>> {
-    const probeIds: Array<ObjectID> = MonitorStepProbeStatusMonitorUtil.normalizeProbeIds(
-      data.probeIds,
-    )
-      .filter((probeId: string): boolean => {
-        return ObjectID.isValidUUID(probeId);
-      })
-      .map((probeId: string): ObjectID => {
-        return new ObjectID(probeId);
-      });
+    const probeIds: Array<ObjectID> =
+      MonitorStepProbeStatusMonitorUtil.normalizeProbeIds(data.probeIds)
+        .filter((probeId: string): boolean => {
+          return ObjectID.isValidUUID(probeId);
+        })
+        .map((probeId: string): ObjectID => {
+          return new ObjectID(probeId);
+        });
 
     if (probeIds.length === 0) {
       return [];
@@ -195,7 +194,10 @@ export default class ProbeStatusMonitorEvaluator {
    */
   @CaptureSpan()
   public static async evaluateMonitor(monitor: Monitor): Promise<void> {
-    if (monitor.monitorType && monitor.monitorType !== MonitorType.ProbeStatus) {
+    if (
+      monitor.monitorType &&
+      monitor.monitorType !== MonitorType.ProbeStatus
+    ) {
       return;
     }
 

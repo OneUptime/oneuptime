@@ -1902,8 +1902,9 @@ export default class MonitorOverviewPresentationUtil {
         break;
 
       case MonitorOverviewFamily.ProbeStatus: {
-        const watchedCount: number =
-          ProbeStatusMonitorUtil.getWatchedProbeIds(input.monitorSteps).length;
+        const watchedCount: number = ProbeStatusMonitorUtil.getWatchedProbeIds(
+          input.monitorSteps,
+        ).length;
 
         facts.push(
           watchedCount > 0

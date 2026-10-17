@@ -133,7 +133,9 @@ export default class ProbeStatusMonitorUtil {
    * body, a snapshot stored on an incident - or null when it is not one.
    * Every field is read defensively: the JSON may come from an older build.
    */
-  public static parseResponse(value: unknown): ProbeStatusMonitorResponse | null {
+  public static parseResponse(
+    value: unknown,
+  ): ProbeStatusMonitorResponse | null {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
       return null;
     }

@@ -72,7 +72,9 @@ function makeProbe(
   const probe: Probe = new Probe();
   probe._id = id;
   probe.name = name;
-  probe.connectionStatus = status;
+  if (status) {
+    probe.connectionStatus = status;
+  }
   probe.isGlobalProbe = isGlobalProbe;
   probe.lastAlive = new Date("2026-09-21T11:59:30.000Z");
   return probe;
@@ -210,7 +212,11 @@ describe("findWatchableProbes", () => {
       global: [],
       byProject: {
         [OTHER_PROJECT_ID.toString()]: [
-          makeProbe(SINGAPORE, "Someone else's", ProbeConnectionStatus.Connected),
+          makeProbe(
+            SINGAPORE,
+            "Someone else's",
+            ProbeConnectionStatus.Connected,
+          ),
         ],
       },
     });
@@ -270,7 +276,12 @@ describe("buildResponses", () => {
   beforeEach(() => {
     serveProbes({
       global: [
-        makeProbe(GLOBAL, "Self-hosted probe", ProbeConnectionStatus.Connected, true),
+        makeProbe(
+          GLOBAL,
+          "Self-hosted probe",
+          ProbeConnectionStatus.Connected,
+          true,
+        ),
       ],
       byProject: {
         [PROJECT_ID.toString()]: [
@@ -339,8 +350,11 @@ describe("buildResponses", () => {
   });
 
   test("a monitor with no id or no project is not evaluated", async () => {
-    const monitor: Monitor = makeMonitor({ steps: [stepWatching([FRANKFURT])] });
-    monitor.projectId = undefined;
+    const monitor: Monitor = makeMonitor({
+      steps: [stepWatching([FRANKFURT])],
+    });
+    (monitor as unknown as { projectId: ObjectID | undefined }).projectId =
+      undefined;
 
     expect(
       await ProbeStatusMonitorEvaluator.buildResponses({ monitor: monitor }),
@@ -418,7 +432,9 @@ describe("evaluateMonitorById", () => {
         ],
       },
     });
-    const monitor: Monitor = makeMonitor({ steps: [stepWatching([FRANKFURT])] });
+    const monitor: Monitor = makeMonitor({
+      steps: [stepWatching([FRANKFURT])],
+    });
     const findOneById: jest.SpyInstance<any, any> = getJestSpyOn(
       MonitorService,
       "findOneById",
@@ -487,9 +503,9 @@ describe("findMonitorsWatchingProbe", () => {
       expect.objectContaining(MonitorService.getEnabledMonitorQuery()),
     );
     // Active projects only (its operators carry random parameter names).
-    expect(Object.keys(args.query.project as object).sort()).toEqual(
-      Object.keys(ProjectService.getActiveProjectStatusQuery()).sort(),
-    );
+    expect(
+      Object.keys(args.query.project as Record<string, unknown>).sort(),
+    ).toEqual(Object.keys(ProjectService.getActiveProjectStatusQuery()).sort());
     expect(args.select).toBe(ProbeStatusMonitorEvaluator.MONITOR_SELECT);
   });
 
