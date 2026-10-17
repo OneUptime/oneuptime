@@ -367,6 +367,14 @@ export const TABLE_MOBILE_ROW_CLASS_NAME: string =
   "bg-white px-5 py-4 transition-colors duration-150";
 
 /*
+ * A ticked card: its light indigo wash in place of the white, not on top
+ * of it - in the dark theme bg-white is painted with !important, and the
+ * wash written beside it never showed.
+ */
+export const TABLE_MOBILE_SELECTED_ROW_CLASS_NAME: string =
+  "bg-indigo-50 px-5 py-4 transition-colors duration-150";
+
+/*
  * The box the table is drawn in reaches the card's edges, as a card's ruled
  * body does (Card/CardSurface's CARD_RULED_BODY_CLASS_NAME): through the
  * card's padding, 20px on a phone and 24px from md up. Its rows' ends pad

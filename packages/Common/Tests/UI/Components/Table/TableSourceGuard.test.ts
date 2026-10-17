@@ -80,6 +80,28 @@ describe("a table in the dark theme", () => {
     expect(scan.filesWithTemplatedColour).toEqual([]);
   });
 
+  test("a ticked row's wash is opaque in the dark theme, so the stuck Actions cell that takes it hides the cells passing under it", () => {
+    const theme: string = readRaw("Styles/Theme.css");
+    const start: number = theme.indexOf(
+      'html.dark tr[data-selected="true"].bg-indigo-50 {',
+    );
+
+    expect(start).toBeGreaterThan(-1);
+
+    const rule: string = theme.slice(start, theme.indexOf("}", start));
+
+    // Mixed over the card's surface: no alpha left in it.
+    expect(rule).toContain("color-mix(");
+    expect(rule).toContain("var(--ou-surface-primary)");
+    // The row the rule names is the one TableRow marks as ticked.
+    expect(readCode("Components/Table/TableRow.tsx")).toContain(
+      'data-selected={props.isItemSelected ? "true" : undefined}',
+    );
+    expect(readCode("Components/Table/TableLayout.ts")).toContain(
+      '"bg-indigo-50 transition-colors duration-150"',
+    );
+  });
+
   test("the shadow the Actions column casts over passing cells is darkened for a dark row", () => {
     const layout: string = readCode("Components/Table/TableLayout.ts");
     const theme: string = readRaw("Styles/Theme.css");

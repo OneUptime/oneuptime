@@ -24,6 +24,7 @@ import {
   TABLE_MOBILE_FIELD_NAME_CLASS_NAME,
   TABLE_MOBILE_FIELD_VALUE_CLASS_NAME,
   TABLE_MOBILE_ROW_CLASS_NAME,
+  TABLE_MOBILE_SELECTED_ROW_CLASS_NAME,
   TABLE_PRIMARY_CELL_TEXT_CLASS_NAME,
   TABLE_ROW_CLASS_NAME,
   TABLE_ROW_RULE_CLASS_NAME,
@@ -515,6 +516,27 @@ describe("the table reaches its card's edges, on a phone too", () => {
     // From md up the row's first cell does so at 24px, as before.
     expect(getTableCellPaddingClassName({ isFirst: true, isLast: false })).toBe(
       "pl-6 pr-3",
+    );
+  });
+});
+
+describe("a ticked card on a phone", () => {
+  test("its wash takes the white's place, with the card's own padding", () => {
+    const selected: Array<string> = tokens(
+      TABLE_MOBILE_SELECTED_ROW_CLASS_NAME,
+    );
+
+    expect(selected).toContain("bg-indigo-50");
+    // bg-white is painted with !important in the dark theme: never both.
+    expect(selected).not.toContain("bg-white");
+    expect(
+      selected.filter((token: string): boolean => {
+        return token !== "bg-indigo-50";
+      }),
+    ).toEqual(
+      tokens(TABLE_MOBILE_ROW_CLASS_NAME).filter((token: string): boolean => {
+        return token !== "bg-white";
+      }),
     );
   });
 });

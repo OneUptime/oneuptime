@@ -20,6 +20,7 @@ import {
   TABLE_MOBILE_FIELD_NAME_CLASS_NAME,
   TABLE_MOBILE_FIELD_VALUE_CLASS_NAME,
   TABLE_MOBILE_ROW_CLASS_NAME,
+  TABLE_MOBILE_SELECTED_ROW_CLASS_NAME,
   TABLE_ROW_CLASS_NAME,
   TABLE_ROW_RULE_CLASS_NAME,
   TABLE_SELECT_CELL_CLASS_NAME,
@@ -342,8 +343,9 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
             {...provided?.draggableProps}
             ref={provided?.innerRef}
             className={[
-              TABLE_MOBILE_ROW_CLASS_NAME,
-              props.isItemSelected ? "bg-indigo-50" : "",
+              props.isItemSelected
+                ? TABLE_MOBILE_SELECTED_ROW_CLASS_NAME
+                : TABLE_MOBILE_ROW_CLASS_NAME,
               isClickable
                 ? `${TABLE_CLICKABLE_ROW_CLASS_NAME} active:bg-gray-100`
                 : "",
@@ -358,7 +360,16 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
              * line above its fields rather than stacking a line each.
              */}
             {props.enableDragAndDrop || props.isBulkActionsEnabled ? (
-              <div className="mb-3 -ml-1 flex items-center gap-2">
+              /*
+               * -ml-1 lines the grip's dots up with the fields' words, its
+               * hit area being wider than they are; a select box alone
+               * lines up as it is.
+               */
+              <div
+                className={`mb-3 flex items-center gap-2${
+                  props.enableDragAndDrop ? " -ml-1" : ""
+                }`}
+              >
                 {props.enableDragAndDrop ? getDragHandle(provided) : <></>}
                 {props.isBulkActionsEnabled ? getBulkSelectCheckbox() : <></>}
               </div>

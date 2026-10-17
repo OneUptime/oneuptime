@@ -18,6 +18,8 @@ import {
   TABLE_CLASS_NAME,
   TABLE_CLICKABLE_ROW_CLASS_NAME,
   TABLE_MOBILE_FIELD_CLASS_NAME,
+  TABLE_MOBILE_ROW_CLASS_NAME,
+  TABLE_MOBILE_SELECTED_ROW_CLASS_NAME,
   TABLE_HEADER_CELL_CLASS_NAME,
   TABLE_PRIMARY_CELL_TEXT_CLASS_NAME,
   TABLE_ROW_CLASS_NAME,
@@ -916,9 +918,47 @@ describe("on a phone", () => {
     setViewportWidth(390);
     renderTable({ withBulkActions: true, selected: [ROWS[0]!] });
 
-    expect(
-      document.querySelector<HTMLElement>("#redesign-table-body > div"),
-    ).toHaveClass("bg-indigo-50");
+    const cards: Array<HTMLElement> = Array.from(
+      document.querySelectorAll<HTMLElement>("#redesign-table-body > div"),
+    );
+
+    expect(cards[0]).toHaveClass("bg-indigo-50");
+    /*
+     * In place of the white, not on top of it: the dark theme paints
+     * bg-white with !important, and a wash beside it never showed.
+     */
+    expect(cards[0]!.className).toContain(
+      TABLE_MOBILE_SELECTED_ROW_CLASS_NAME,
+    );
+    expect(cards[0]).not.toHaveClass("bg-white");
+    expect(cards[1]!.className).toContain(TABLE_MOBILE_ROW_CLASS_NAME);
+    expect(cards[1]).not.toHaveClass("bg-indigo-50");
+  });
+
+  test("a card's select box lines up with its words; only a drag grip, wider than its dots, is drawn 4px out", () => {
+    setViewportWidth(390);
+    renderTable({ withBulkActions: true });
+
+    const controls: () => HTMLElement = (): HTMLElement => {
+      const box: HTMLElement = document
+        .querySelector<HTMLElement>("#redesign-table-body > div")!
+        .querySelector<HTMLElement>("input[type=checkbox]")!;
+      let node: HTMLElement = box;
+
+      while (node.parentElement && !node.className.includes("mb-3")) {
+        node = node.parentElement;
+      }
+
+      return node;
+    };
+
+    expect(controls()).toHaveClass("mb-3", "flex");
+    expect(controls()).not.toHaveClass("-ml-1");
+
+    cleanup();
+    renderTable({ withBulkActions: true, enableDragAndDrop: true });
+
+    expect(controls()).toHaveClass("-ml-1");
   });
 });
 
