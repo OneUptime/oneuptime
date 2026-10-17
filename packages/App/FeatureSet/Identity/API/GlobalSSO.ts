@@ -1,5 +1,11 @@
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
 import SSOUtil, { VerifiedSamlResponse } from "../Utils/SSO";
+import SamlAssertionOneTimeUse, {
+  SamlProviderKind,
+} from "../Utils/SamlAssertionOneTimeUse";
+import SamlServiceProviders, {
+  SamlServiceProvider,
+} from "../Utils/SamlServiceProvider";
 import {
   buildMobileSsoSuccessUrl,
   clearMobileSsoIntentCookie,
@@ -26,7 +32,6 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
-import { Host, HttpProtocol } from "Common/Server/EnvironmentConfig";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import GlobalSSOService from "Common/Server/Services/GlobalSsoService";
 import GlobalSSOProjectService from "Common/Server/Services/GlobalSsoProjectService";
@@ -181,14 +186,14 @@ router.get(
         setMobileSsoIntentCookie(res, globalSso.id!);
       }
 
+      // The same Entity ID and Reply URL the response is held to.
+      const serviceProvider: SamlServiceProvider =
+        SamlServiceProviders.forGlobalSso({ globalSsoId: globalSso.id! });
+
       const samlRequestUrl: URL = SSOUtil.createSAMLRequestUrl({
-        acsUrl: URL.fromString(
-          `${HttpProtocol}${Host}/identity/global-idp-login/${globalSso.id?.toString()}`,
-        ),
+        acsUrl: URL.fromString(serviceProvider.replyUrl),
         signOnUrl: globalSso.signOnURL!,
-        issuerUrl: URL.fromString(
-          `${HttpProtocol}${Host}/global-sso/${globalSso.id?.toString()}`,
-        ),
+        issuerUrl: URL.fromString(serviceProvider.entityId),
       });
 
       if (isMobileRequest) {
@@ -389,6 +394,7 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
       );
     }
 
+    let verifiedSaml: VerifiedSamlResponse;
     let issuerUrl: string = "";
     let email: Email | null = null;
     let fullName: Name | null = null;
@@ -398,11 +404,13 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
        * Verify the signature AND extract the identity from the SAME
        * cryptographically verified assertion. This single call defends against
        * XML Signature Wrapping - see SSOUtil.getSamlResponseFromXML and
-       * GitHub issues #2949 and #2981.
+       * GitHub issues #2949 and #2981 - and refuses a response made for
+       * anything but this provider, or outside its time.
        */
-      const verifiedSaml: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
+      verifiedSaml = SSOUtil.getSamlResponseFromXML(
         samlResponse,
         globalSso.publicCertificate,
+        SamlServiceProviders.forGlobalSso({ globalSsoId: globalSsoId }),
       );
 
       issuerUrl = verifiedSaml.issuerUrl;
@@ -460,6 +468,41 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
         res,
         new BadRequestException("Issuer URL does not match"),
       );
+    }
+
+    /*
+     * One sign-in per response: a response posted again - kept from an
+     * earlier sign-in, or sent twice - is refused before anyone is looked
+     * up, created, added to a project or signed in.
+     */
+    try {
+      await SamlAssertionOneTimeUse.claim({
+        providerKind: SamlProviderKind.GlobalSso,
+        providerId: globalSsoId,
+        assertion: verifiedSaml,
+      });
+    } catch (err: unknown) {
+      logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+
+      // Both answers are written for the person signing in.
+      if (
+        respondToMobileSsoFailure({
+          res,
+          isMobileRequest,
+          error: "invalid_assertion",
+          errorDescription:
+            err instanceof Exception
+              ? err.message
+              : "We could not verify the response from your identity provider. Please try again.",
+        })
+      ) {
+        return;
+      }
+
+      if (err instanceof Exception) {
+        return Response.sendErrorResponse(req, res, err);
+      }
+      return Response.sendErrorResponse(req, res, new ServerException());
     }
 
     // Resolve attached projects. No attachment => "default-all" mode.

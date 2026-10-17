@@ -238,9 +238,32 @@ jest.mock("../../../FeatureSet/Identity/Utils/SSO", () => {
           issuerUrl: "https://idp.example.com/metadata",
           email: new identity.default("new.person@example.com"),
           name: null,
+          assertionId: "_assertion",
+          acceptableUntil: new Date(Date.now() + 5 * 60 * 1000),
         };
       },
       createSAMLRequestUrl: jest.fn(),
+    },
+  };
+});
+
+/*
+ * Every response is taken as used for the first time. A response posted
+ * twice is SamlSignInRoutes.test.ts's subject, not this suite's.
+ */
+jest.mock("../../../FeatureSet/Identity/Utils/SamlAssertionOneTimeUse", () => {
+  const actual: typeof import("../../../FeatureSet/Identity/Utils/SamlAssertionOneTimeUse") =
+    jest.requireActual(
+      "../../../FeatureSet/Identity/Utils/SamlAssertionOneTimeUse",
+    ) as typeof import("../../../FeatureSet/Identity/Utils/SamlAssertionOneTimeUse");
+
+  return {
+    ...actual,
+    __esModule: true,
+    default: {
+      claim: (): Promise<void> => {
+        return Promise.resolve();
+      },
     },
   };
 });

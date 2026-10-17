@@ -114,3 +114,190 @@ export function signElementAfterIssuer(
 export function toBase64(xml: string): string {
   return Buffer.from(xml).toString("base64");
 }
+
+/*
+ * ---------------------------------------------------------------------------
+ * A whole SAML Response, shaped like the ones identity providers send.
+ *
+ * Besides who signed it and who it names, a response says who it is for (the
+ * Audience, the Recipient and the Destination) and when it may be used
+ * (IssueInstant, NotBefore, NotOnOrAfter). Every one of those is an option
+ * here, so a test can move exactly one of them. `null` leaves a part out.
+ * ---------------------------------------------------------------------------
+ */
+
+export const SAML_BEARER_METHOD: string =
+  "urn:oasis:names:tc:SAML:2.0:cm:bearer";
+
+export const MS_DISPLAY_NAME_CLAIM: string =
+  "http://schemas.microsoft.com/identity/claims/displayname";
+
+const MINUTE_IN_MS: number = 60 * 1000;
+
+export function samlTime(date: Date): string {
+  return date.toISOString();
+}
+
+export function minutesAfter(date: Date, minutes: number): Date {
+  return new Date(date.getTime() + minutes * MINUTE_IN_MS);
+}
+
+export interface SamlSubjectConfirmationOptions {
+  method?: string | undefined;
+  // null: a SubjectConfirmation with no SubjectConfirmationData.
+  data?:
+    | {
+        recipient?: string | null | undefined;
+        notBefore?: Date | null | undefined;
+        notOnOrAfter?: Date | null | undefined;
+        inResponseTo?: string | null | undefined;
+      }
+    | null
+    | undefined;
+}
+
+export interface SamlResponseOptions {
+  issuer: string;
+  email: string;
+  // When the identity provider made the assertion.
+  issuedAt: Date;
+  /*
+   * Who the assertion is for: each inner list is one <AudienceRestriction>.
+   * [] sends a <Conditions> with no audience at all.
+   */
+  audienceRestrictions: Array<Array<string>>;
+  // The Reply URL the response was sent to (null leaves the Recipient out).
+  recipient: string | null;
+  destination?: string | null | undefined;
+  inResponseTo?: string | null | undefined;
+  responseId?: string | undefined;
+  assertionId?: string | null | undefined;
+  // An IssueInstant other than `issuedAt`, written as is (null leaves it out).
+  rawIssueInstant?: string | null | undefined;
+  conditionsNotBefore?: Date | null | undefined;
+  conditionsNotOnOrAfter?: Date | null | undefined;
+  subjectNotOnOrAfter?: Date | null | undefined;
+  // Replaces the default single bearer SubjectConfirmation.
+  subjectConfirmations?: Array<SamlSubjectConfirmationOptions> | undefined;
+  // Replaces the whole <Conditions> element ("" leaves it out).
+  rawConditions?: string | undefined;
+  displayName?: string | null | undefined;
+}
+
+function attribute(name: string, value: string | null | undefined): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return ` ${name}="${value}"`;
+}
+
+function timeAttribute(name: string, value: Date | null | undefined): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return attribute(name, samlTime(value));
+}
+
+function subjectConfirmationXml(
+  confirmation: SamlSubjectConfirmationOptions,
+): string {
+  const method: string = confirmation.method ?? SAML_BEARER_METHOD;
+
+  if (confirmation.data === null) {
+    return `<saml:SubjectConfirmation Method="${method}"/>`;
+  }
+
+  const data: NonNullable<SamlSubjectConfirmationOptions["data"]> =
+    confirmation.data ?? {};
+
+  return `<saml:SubjectConfirmation Method="${method}"><saml:SubjectConfirmationData${attribute(
+    "InResponseTo",
+    data.inResponseTo,
+  )}${timeAttribute("NotBefore", data.notBefore)}${timeAttribute(
+    "NotOnOrAfter",
+    data.notOnOrAfter,
+  )}${attribute("Recipient", data.recipient)}/></saml:SubjectConfirmation>`;
+}
+
+export function buildSamlResponse(options: SamlResponseOptions): string {
+  const issuedAt: Date = options.issuedAt;
+  const issueInstant: string | null =
+    options.rawIssueInstant === undefined
+      ? samlTime(issuedAt)
+      : options.rawIssueInstant;
+
+  const assertionId: string | null =
+    options.assertionId === undefined
+      ? `_assertion_${issuedAt.getTime()}`
+      : options.assertionId;
+
+  const inResponseTo: string | null | undefined = options.inResponseTo;
+
+  const subjectConfirmations: Array<SamlSubjectConfirmationOptions> =
+    options.subjectConfirmations ?? [
+      {
+        data: {
+          recipient: options.recipient,
+          notOnOrAfter:
+            options.subjectNotOnOrAfter === undefined
+              ? minutesAfter(issuedAt, 5)
+              : options.subjectNotOnOrAfter,
+          inResponseTo: inResponseTo,
+        },
+      },
+    ];
+
+  const conditions: string =
+    options.rawConditions !== undefined
+      ? options.rawConditions
+      : `<saml:Conditions${timeAttribute(
+          "NotBefore",
+          options.conditionsNotBefore === undefined
+            ? minutesAfter(issuedAt, -5)
+            : options.conditionsNotBefore,
+        )}${timeAttribute(
+          "NotOnOrAfter",
+          options.conditionsNotOnOrAfter === undefined
+            ? minutesAfter(issuedAt, 5)
+            : options.conditionsNotOnOrAfter,
+        )}>${options.audienceRestrictions
+          .map((audiences: Array<string>): string => {
+            return `<saml:AudienceRestriction>${audiences
+              .map((audience: string): string => {
+                return `<saml:Audience>${audience}</saml:Audience>`;
+              })
+              .join("")}</saml:AudienceRestriction>`;
+          })
+          .join("")}</saml:Conditions>`;
+
+  const attributeStatement: string =
+    options.displayName === null || options.displayName === undefined
+      ? ""
+      : `<saml:AttributeStatement><saml:Attribute Name="${MS_DISPLAY_NAME_CLAIM}"><saml:AttributeValue>${options.displayName}</saml:AttributeValue></saml:Attribute></saml:AttributeStatement>`;
+
+  return `<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="${
+    options.responseId ?? `_response_${issuedAt.getTime()}`
+  }" Version="2.0" IssueInstant="${samlTime(issuedAt)}"${attribute(
+    "Destination",
+    options.destination,
+  )}${attribute(
+    "InResponseTo",
+    inResponseTo,
+  )}><saml:Issuer>${options.issuer}</saml:Issuer><samlp:Status><samlp:StatusCode Value="${SAML_STATUS_SUCCESS}"/></samlp:Status><saml:Assertion${attribute(
+    "ID",
+    assertionId,
+  )} Version="2.0"${attribute(
+    "IssueInstant",
+    issueInstant,
+  )}><saml:Issuer>${options.issuer}</saml:Issuer><saml:Subject><saml:NameID Format="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress">${
+    options.email
+  }</saml:NameID>${subjectConfirmations
+    .map(subjectConfirmationXml)
+    .join(
+      "",
+    )}</saml:Subject>${conditions}<saml:AuthnStatement AuthnInstant="${samlTime(
+    issuedAt,
+  )}"><saml:AuthnContext><saml:AuthnContextClassRef>urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport</saml:AuthnContextClassRef></saml:AuthnContext></saml:AuthnStatement>${attributeStatement}</saml:Assertion></samlp:Response>`;
+}

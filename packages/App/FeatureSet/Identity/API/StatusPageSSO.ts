@@ -1,4 +1,10 @@
 import SSOUtil, { VerifiedSamlResponse } from "../Utils/SSO";
+import SamlAssertionOneTimeUse, {
+  SamlProviderKind,
+} from "../Utils/SamlAssertionOneTimeUse";
+import SamlServiceProviders, {
+  SamlServiceProvider,
+} from "../Utils/SamlServiceProvider";
 import URL from "Common/Types/API/URL";
 import Email from "Common/Types/Email";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
@@ -6,7 +12,6 @@ import Exception from "Common/Types/Exception/Exception";
 import ServerException from "Common/Types/Exception/ServerException";
 import HashedString from "Common/Types/HashedString";
 import ObjectID from "Common/Types/ObjectID";
-import { Host, HttpProtocol } from "Common/Server/EnvironmentConfig";
 import StatusPagePrivateUserService from "Common/Server/Services/StatusPagePrivateUserService";
 import StatusPagePrivateUserSessionService, {
   SessionMetadata as StatusPageSessionMetadata,
@@ -106,14 +111,17 @@ router.get(
         );
       }
 
+      // The same Entity ID and Reply URL the response is held to.
+      const serviceProvider: SamlServiceProvider =
+        SamlServiceProviders.forStatusPageSso({
+          statusPageId: statusPageSSO.statusPageId!,
+          statusPageSsoId: statusPageSSO.id!,
+        });
+
       const samlRequestUrl: URL = SSOUtil.createSAMLRequestUrl({
-        acsUrl: URL.fromString(
-          `${HttpProtocol}${Host}/identity/status-page-idp-login/${statusPageSSO.statusPageId?.toString()}/${statusPageSSO.id?.toString()}`,
-        ),
+        acsUrl: URL.fromString(serviceProvider.replyUrl),
         signOnUrl: statusPageSSO.signOnURL!,
-        issuerUrl: URL.fromString(
-          `${HttpProtocol}${Host}/${statusPageSSO.statusPageId?.toString()}/${statusPageSSO.id?.toString()}`,
-        ),
+        issuerUrl: URL.fromString(serviceProvider.entityId),
       });
 
       return Response.redirect(req, res, samlRequestUrl);
@@ -138,6 +146,7 @@ router.post(
         "base64",
       ).toString();
 
+      let verifiedSaml: VerifiedSamlResponse;
       let issuerUrl: string = "";
       let email: Email | null = null;
 
@@ -229,13 +238,17 @@ router.post(
          * Verify the signature AND extract the identity from the SAME
          * cryptographically verified assertion. This single call defends against
          * XML Signature Wrapping - see SSOUtil.getSamlResponseFromXML and
-         * GitHub issues #2949 and #2981.
+         * GitHub issues #2949 and #2981 - and refuses a response made for
+         * anything but this provider, or outside its time.
          */
-        const verifiedSaml: VerifiedSamlResponse =
-          SSOUtil.getSamlResponseFromXML(
-            samlResponse,
-            statusPageSSO.publicCertificate,
-          );
+        verifiedSaml = SSOUtil.getSamlResponseFromXML(
+          samlResponse,
+          statusPageSSO.publicCertificate,
+          SamlServiceProviders.forStatusPageSso({
+            statusPageId: statusPageId,
+            statusPageSsoId: req.params["statusPageSsoId"],
+          }),
+        );
 
         issuerUrl = verifiedSaml.issuerUrl;
         email = verifiedSaml.email;
@@ -253,6 +266,24 @@ router.post(
           res,
           new BadRequestException("Issuer URL does not match"),
         );
+      }
+
+      /*
+       * One sign-in per response: a response posted again - kept from an
+       * earlier sign-in, or sent twice - is refused before any private user
+       * is looked up, created or signed in.
+       */
+      try {
+        await SamlAssertionOneTimeUse.claim({
+          providerKind: SamlProviderKind.StatusPageSso,
+          providerId: req.params["statusPageSsoId"],
+          assertion: verifiedSaml,
+        });
+      } catch (err: unknown) {
+        if (err instanceof Exception) {
+          return Response.sendErrorResponse(req, res, err);
+        }
+        return Response.sendErrorResponse(req, res, new ServerException());
       }
 
       // Check if he already belongs to the project, If he does - then log in.
