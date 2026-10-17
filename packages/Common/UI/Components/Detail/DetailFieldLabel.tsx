@@ -19,8 +19,18 @@ import React, { FunctionComponent, ReactElement } from "react";
  * <label>s - still finds it.
  */
 
+// The name's reading size, unless a field asks for its own.
+export const DETAIL_FIELD_LABEL_SIZE_CLASS_NAME: string = "text-sm";
+
+type GetDetailFieldLabelClassNameFunction = (sizeClassName: string) => string;
+
+export const getDetailFieldLabelClassName: GetDetailFieldLabelClassNameFunction =
+  (sizeClassName: string): string => {
+    return `flex-wrap items-center gap-x-2 gap-y-0.5 ${sizeClassName} font-medium leading-5 text-gray-500`;
+  };
+
 export const DETAIL_FIELD_LABEL_CLASS_NAME: string =
-  "flex-wrap items-center gap-x-2 gap-y-0.5 text-sm font-medium leading-5 text-gray-500";
+  getDetailFieldLabelClassName(DETAIL_FIELD_LABEL_SIZE_CLASS_NAME);
 
 export const DETAIL_FIELD_DESCRIPTION_CLASS_NAME: string =
   "text-xs leading-5 text-gray-500";
@@ -50,12 +60,9 @@ const DetailFieldLabel: FunctionComponent<ComponentProps> = (
   );
   const alignClassName: string = props.alignClassName || "flex justify-start";
 
-  const labelClassName: string = props.sizeClassName
-    ? DETAIL_FIELD_LABEL_CLASS_NAME.replace(
-        "text-sm ",
-        `${props.sizeClassName} `,
-      )
-    : DETAIL_FIELD_LABEL_CLASS_NAME;
+  const labelClassName: string = getDetailFieldLabelClassName(
+    props.sizeClassName || DETAIL_FIELD_LABEL_SIZE_CLASS_NAME,
+  );
 
   return (
     <div className="space-y-1">
