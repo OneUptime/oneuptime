@@ -129,7 +129,27 @@
     "noneDescription": "No scheduled events posted for this status page.",
     "scheduledAt": "Scheduled at ",
     "report": "Scheduled Event Report",
-    "notFound": "No scheduled event found for this status page."
+    "notFound": "No scheduled event found for this status page.",
+    "calendar": {
+      "subscribe": "Subscribe to calendar",
+      "subscribeTitle": "Subscribe to scheduled maintenance",
+      "subscribeDescription": "Get this page's scheduled maintenance in your calendar app. It keeps itself up to date.",
+      "eventTitle": "Add to calendar",
+      "eventDescription": "Add this maintenance event to your calendar app.",
+      "addToCalendar": "Add to calendar",
+      "addHeading": "Add to your calendar",
+      "google": "Google Calendar",
+      "googleHint": "Opens Google Calendar in a new tab",
+      "device": "Apple Calendar / Outlook",
+      "deviceHint": "Opens the calendar app on this device",
+      "deviceFileHint": "Downloads the event for the calendar app on this device",
+      "copyHeading": "Or copy the link",
+      "copyHint": "Paste it into any calendar app that can subscribe to a calendar by URL.",
+      "copy": "Copy link",
+      "copied": "Copied!",
+      "done": "Done",
+      "refreshNote": "Calendar apps check for changes on their own schedule, so an update can take a few hours to appear."
+    }
   },
   "subscribe": {
     "title": "Subscribe",

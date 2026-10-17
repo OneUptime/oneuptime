@@ -112,6 +112,7 @@ import { AddTeamPermissionCustomRoleLinks1803150000000 } from "./1803150000000-A
 import { AddLimitRecordsToOneEpisode1803200000000 } from "./1803200000000-AddLimitRecordsToOneEpisode";
 import { AddStatusPageTheme1803250000000 } from "./1803250000000-AddStatusPageTheme";
 import { AddWorkflowWebhookSigningSecret1803400000000 } from "./1803400000000-AddWorkflowWebhookSigningSecret";
+import { AddScheduledMaintenanceCalendarFeed1803450000000 } from "./1803450000000-AddScheduledMaintenanceCalendarFeed";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1426,4 +1427,5 @@ export default [
   AddLimitRecordsToOneEpisode1803200000000,
   AddStatusPageTheme1803250000000,
   AddWorkflowWebhookSigningSecret1803400000000,
+  AddScheduledMaintenanceCalendarFeed1803450000000,
 ];

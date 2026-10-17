@@ -246,6 +246,7 @@ jobs:
               test-custom-roles-ui
               test-sign-in-options-ui
               test-status-page-theme-ui
+              test-maintenance-calendar-ui
               test-detail-cards-ui
     steps:
       - uses: actions/checkout@v4
@@ -387,6 +388,8 @@ jobs:
             output/playwright/sign-in-options-ui/test-results
             output/playwright/status-page-theme-ui/*.png
             output/playwright/status-page-theme-ui/test-results
+            output/playwright/maintenance-calendar-ui/*.png
+            output/playwright/maintenance-calendar-ui/test-results
             output/playwright/detail-cards-ui/*.png
             output/playwright/detail-cards-ui/test-results
           retention-days: 7

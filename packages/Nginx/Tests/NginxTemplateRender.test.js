@@ -432,7 +432,7 @@ test(
     const rendered = render(baseEnvironment());
 
     const locationHeader =
-      "location ~ ^/api/on-call-calendar/(user|schedule|project)/ {";
+      "location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {";
 
     assert.equal(rendered.split(locationHeader).length - 1, 3);
     assert.equal((rendered.match(/^\s*access_log off;/gm) || []).length, 3);

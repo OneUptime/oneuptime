@@ -1,10 +1,11 @@
 {
   "baseline": {
-    "keys": 30172,
-    "untranslated": 17207
+    "keys": 30323,
+    "untranslated": 17180
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
+    "Agenda",
     "App",
     "Budget",
     "Client",

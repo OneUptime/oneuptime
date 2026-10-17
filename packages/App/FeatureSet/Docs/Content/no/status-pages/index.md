@@ -213,11 +213,13 @@ Under **Flere innstillinger** på **Tilgang** begrenser seksjonen **IP-tillatels
 
 ## Det innebygde merket og RSS-strømmen
 
-To måter å vise status andre steder enn på selve siden.
+Tre måter å vise status andre steder enn på selve siden.
 
 **Innebygd statusmerke.** Under **Statussider → siden din → Avansert → Innebygd status** slår du på **Aktiver innebygd statusmerke** (`enableEmbeddedOverallStatus`, av som standard), og klikker deretter på **Regenerer token** på kortet **Sikkerhetstoken** for å gi merket et token (`embeddedOverallStatusToken`). Merket leveres fra `/api/status-page/badge/<status-page-id>?token=<token>`, og skjermen viser det i **Badge-forhåndsvisning** med utdrag du kan kopiere, slik at du kan sette den gjeldende samlede statusen inn i dokumentasjonen din, bunnteksten i appen din eller en markedsføringsside.
 
 **RSS-strøm.** Hver statusside leverer `/rss`: en strøm med tittelen "{sidetittel} Updates", med **Sidetittel** angitt under **Merkevare**, eller sidens navn hvis den ikke har noen, og der elementene begynner med `Incident: `, `Announcement: ` og `Scheduled Maintenance: `. Nyttig for dem som heller vil hente oppdateringene dine inn i en strømleser eller en chatbot enn å abonnere via e-post.
+
+**Vedlikeholdskalender.** Hver statusside leverer også `/maintenance.ics`: det planlagte vedlikeholdet den viser, som en kalender Google Kalender, Apple Kalender eller Outlook kan abonnere på. Besøkende legger den til med **Abonner på kalender** på sidens side **Planlagte hendelser**, og én enkelt hendelse med **Legg til i kalender** på hendelsens egen side. Kalenderen til en privat side er tom, siden en kalenderapp ikke kan logge inn. Se [Vedlikeholdskalender](/docs/scheduled-maintenance/calendar#kalenderen-til-en-statusside).
 
 Hvis du heller vil hente dataene selv, bygger statussiden på offentlige lese-endepunkter for oversikten, hendelsene, de planlagte vedlikeholdshendelsene, kunngjøringene og episodene: se [Offentlig API](/docs/status-pages/public-api).
 

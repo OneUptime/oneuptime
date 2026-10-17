@@ -139,7 +139,7 @@ Klicka på **Create Status Page Group**. Gruppen visas i navigatorn, redo för m
 
 De två fälten är **Gruppnamn** (`name`) och **Parent Group** (`parentStatusPageGroupId`). De två hopfällda sektionerna innehåller resten:
 
-- **Layout**: dess hopfällda rubrik säger **List** eller **Grid**. Den innehåller **Visningsläge** och ett rutnäts axlar (se [Listlayout eller rutnätslayout](#listlayout-eller-rutnätslayout)), och den öppnas av sig själv på en rutnätsgrupp.
+- **Layout**: dess hopfällda rubrik säger **Lista** eller **Grid**. Den innehåller **Visningsläge** och ett rutnäts axlar (se [Listlayout eller rutnätslayout](#listlayout-eller-rutnätslayout)), och den öppnas av sig själv på en rutnätsgrupp.
 - **Fler fält**: gruppnivåns varianter av resursalternativen:
   - **Gruppbeskrivning** (`description`): valfri markdown, visas under rubriken. En bild i den visas för alla besökare.
   - **Expandera på statussidan som standard** (`isExpandedByDefault`): på som standard; avgör om sektionen börjar öppen eller hopfälld för besökare.
@@ -171,7 +171,7 @@ Sektionen **Layout** i gruppformuläret anger gruppens **Visningsläge** (`viewM
 
 | Om du vill… | Välj |
 | --------------- | ---- |
-| Visa en enkel lodrät lista över tjänster, en per rad | **List** (standard) |
+| Visa en enkel lodrät lista över tjänster, en per rad | **Lista** (standard) |
 | Visa samma tjänst i flera regioner eller hyresgäster som en matris | **Grid** |
 
 Välj **Grid** så visas ytterligare fyra fält:

@@ -213,11 +213,13 @@ En **Más ajustes** de **Acceso**, la sección **Lista de IP permitidas** (la co
 
 ## La insignia incrustable y el feed RSS
 
-Dos formas de mostrar el estado en otro sitio que no sea la propia página.
+Tres formas de mostrar el estado en otro sitio que no sea la propia página.
 
 **Insignia de estado incrustada.** En **Páginas de estado → tu página → Avanzado → Estado incrustado**, activa **Habilitar insignia de estado incrustada** (`enableEmbeddedOverallStatus`, desactivado por defecto) y después haz clic en **Regenerar token** en la tarjeta **Token de seguridad** para dar a la insignia su token (`embeddedOverallStatusToken`). La insignia se sirve desde `/api/status-page/badge/<status-page-id>?token=<token>`, y la pantalla la muestra en **Vista previa del distintivo** con fragmentos para copiar, para que puedas poner el estado general actual en tu documentación, en el pie de página de tu aplicación o en una página de marketing.
 
 **Feed RSS.** Cada página de estado sirve `/rss`: un feed titulado "{título de la página} Updates", con el **Título de la página** definido en **Marca**, o su nombre si no tiene, y cuyos elementos empiezan por `Incident: `, `Announcement: ` y `Scheduled Maintenance: `. Útil para quien prefiere llevar tus actualizaciones a un lector o a un chatbot en lugar de suscribirse por correo electrónico.
+
+**Calendario de mantenimiento.** Cada página de estado sirve también `/maintenance.ics`: el mantenimiento programado que muestra, como un calendario al que Google Calendar, el Calendario de Apple u Outlook pueden suscribirse. Los visitantes lo añaden con **Suscribirse al calendario** en la página **Eventos programados**, y un solo evento con **Añadir al calendario** en la propia página del evento. El calendario de una página privada está vacío, porque una aplicación de calendario no puede iniciar sesión. Consulta [Calendario de mantenimiento](/docs/scheduled-maintenance/calendar#el-calendario-de-una-página-de-estado).
 
 Si prefieres obtener los datos tú mismo, la página de estado se apoya en endpoints públicos de lectura para el resumen, los incidentes, los eventos de mantenimiento programado, los anuncios y los episodios: consulta [API pública](/docs/status-pages/public-api).
 

@@ -246,7 +246,7 @@ OneUptime ख़ुद ताज़ा डेटा देता है: कि�
 OneUptime का अपना Nginx फ़ीड अनुरोधों को अपने लॉग से बाहर रखता है:
 
 ```nginx title="default.conf.template"
-location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {
     access_log off;
     error_log /dev/null crit;
     proxy_max_temp_file_size 0;

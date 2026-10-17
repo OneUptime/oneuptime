@@ -441,8 +441,14 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   fieldType: FormFieldSchemaType.DateTime,
                   required: true,
                   placeholder: "Pick Date and Time",
+                  /*
+                   * Or the day the Calendar view's + was pressed on
+                   * (?startsAt=, ScheduledMaintenanceCalendar).
+                   */
                   getDefaultValue: (): string => {
-                    return getDefaultMaintenanceStartsAt();
+                    return getDefaultMaintenanceStartsAt(
+                      Navigation.getQueryStringByName("startsAt"),
+                    );
                   },
                   onChange: moveMaintenanceEndWithStart,
                 },
