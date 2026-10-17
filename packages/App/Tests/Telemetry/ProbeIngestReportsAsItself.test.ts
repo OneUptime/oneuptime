@@ -558,7 +558,9 @@ for (const route of RESULT_ROUTES) {
     });
 
     test("a result that is not an object is no result", async () => {
-      for (const probeMonitorResponse of ["a result", 42, [checkResult()]]) {
+      const notResults: Array<unknown> = ["a result", 42, [checkResult()]];
+
+      for (const probeMonitorResponse of notResults) {
         jest.clearAllMocks();
 
         await callEndpoint(
