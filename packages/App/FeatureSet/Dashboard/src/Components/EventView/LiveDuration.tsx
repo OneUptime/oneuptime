@@ -1,4 +1,6 @@
 import OneUptimeDate from "Common/Types/Date";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -6,8 +8,11 @@ import React, {
   useState,
 } from "react";
 import {
+  EventDurationPart,
+  LESS_THAN_A_MINUTE,
   TABLE_DURATION_MAX_UNITS,
-  getEventDurationText,
+  formatEventDurationParts,
+  getEventDurationParts,
 } from "../../Utils/EventDuration";
 
 export interface ComponentProps {
@@ -23,6 +28,7 @@ export interface ComponentProps {
 const LiveDuration: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [now, setNow] = useState<Date>(OneUptimeDate.getCurrentDate());
 
   useEffect(() => {
@@ -41,12 +47,30 @@ const LiveDuration: FunctionComponent<ComponentProps> = (
 
   const endDate: Date = props.endDate || now;
 
-  const text: string = getEventDurationText(props.startDate, endDate);
+  /*
+   * In the reader's language: "10 Tage, 23 Stunden", "10 jours et 23
+   * heures" - a German or French list read "10 days, 23 hours".
+   */
+  const getText: (maxUnits?: number | undefined) => string = (
+    maxUnits?: number | undefined,
+  ): string => {
+    const parts: Array<EventDurationPart> = getEventDurationParts(
+      props.startDate,
+      endDate,
+      maxUnits ? { maxUnits: maxUnits } : undefined,
+    );
+
+    if (parts.length === 0) {
+      return translator.translateText(LESS_THAN_A_MINUTE) || LESS_THAN_A_MINUTE;
+    }
+
+    return formatEventDurationParts(parts, translator.language);
+  };
+
+  const text: string = getText();
 
   if (props.isCompact) {
-    const compactText: string = getEventDurationText(props.startDate, endDate, {
-      maxUnits: TABLE_DURATION_MAX_UNITS,
-    });
+    const compactText: string = getText(TABLE_DURATION_MAX_UNITS);
 
     return (
       <span

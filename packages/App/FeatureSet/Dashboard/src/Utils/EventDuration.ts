@@ -14,6 +14,17 @@ export interface EventStateTimelineDate {
 const MINUTES_PER_HOUR: number = 60;
 const MINUTES_PER_DAY: number = 24 * MINUTES_PER_HOUR;
 
+// What a duration under a minute is called (translated by the Dashboard).
+export const LESS_THAN_A_MINUTE: string = "less than a minute";
+
+export type EventDurationUnit = "day" | "hour" | "minute";
+
+// One unit of a duration: "23 hours" is { count: 23, unit: "hour" }.
+export interface EventDurationPart {
+  count: number;
+  unit: EventDurationUnit;
+}
+
 function formatDurationUnit(count: number, unit: string): string {
   return `${count} ${unit}${count === 1 ? "" : "s"}`;
 }
@@ -55,13 +66,40 @@ export function getEventDurationText(
   endDate: Date,
   options?: EventDurationTextOptions | undefined,
 ): string {
+  const parts: Array<EventDurationPart> = getEventDurationParts(
+    startDate,
+    endDate,
+    options,
+  );
+
+  if (parts.length === 0) {
+    return LESS_THAN_A_MINUTE;
+  }
+
+  return parts
+    .map((part: EventDurationPart): string => {
+      return formatDurationUnit(part.count, part.unit);
+    })
+    .join(", ");
+}
+
+/*
+ * The units getEventDurationText says, largest first: none for less than a
+ * minute, and with maxUnits only the largest ones. For a caller that says
+ * them in the reader's own words (formatEventDurationParts).
+ */
+export function getEventDurationParts(
+  startDate: Date,
+  endDate: Date,
+  options?: EventDurationTextOptions | undefined,
+): Array<EventDurationPart> {
   const minutes: number = OneUptimeDate.getDifferenceInMinutes(
     endDate,
     startDate,
   );
 
   if (minutes < 1) {
-    return "less than a minute";
+    return [];
   }
 
   const days: number = Math.floor(minutes / MINUTES_PER_DAY);
@@ -69,27 +107,103 @@ export function getEventDurationText(
     (minutes % MINUTES_PER_DAY) / MINUTES_PER_HOUR,
   );
   const remainingMinutes: number = minutes % MINUTES_PER_HOUR;
-  const parts: Array<string> = [];
+  const parts: Array<EventDurationPart> = [];
 
   if (days > 0) {
-    parts.push(formatDurationUnit(days, "day"));
+    parts.push({ count: days, unit: "day" });
   }
 
   if (hours > 0) {
-    parts.push(formatDurationUnit(hours, "hour"));
+    parts.push({ count: hours, unit: "hour" });
   }
 
   if (remainingMinutes > 0) {
-    parts.push(formatDurationUnit(remainingMinutes, "minute"));
+    parts.push({ count: remainingMinutes, unit: "minute" });
   }
 
   const maxUnits: number | undefined = options?.maxUnits;
 
   if (maxUnits !== undefined && maxUnits >= 1 && parts.length > maxUnits) {
-    return parts.slice(0, Math.floor(maxUnits)).join(", ");
+    return parts.slice(0, Math.floor(maxUnits));
   }
 
-  return parts.join(", ");
+  return parts;
+}
+
+/*
+ * Intl's unit style and list, typed by the parts used here: the Dashboard
+ * compiles against an ES2017 library, which has neither.
+ */
+interface DurationUnitFormatter {
+  format: (value: number) => string;
+}
+
+interface DurationListFormatter {
+  format: (items: Array<string>) => string;
+}
+
+type DurationListFormatConstructor = new (
+  locale: string,
+  options: { type: "unit"; style: "long" },
+) => DurationListFormatter;
+
+/*
+ * A duration's units in the reader's language, with the language's own unit
+ * names, plurals and list: "10 Tage, 23 Stunden", "10 jours et 23 heures",
+ * "10 дней 23 часа", "10 日 23 時間". English, an empty list, or an engine
+ * without Intl's unit style: the English text getEventDurationText writes,
+ * word for word. Less than a minute (no parts) is the caller's to say: it is
+ * a phrase to translate, not a unit.
+ */
+export function formatEventDurationParts(
+  parts: Array<EventDurationPart>,
+  language: string | undefined,
+): string {
+  const english: string = parts
+    .map((part: EventDurationPart): string => {
+      return formatDurationUnit(part.count, part.unit);
+    })
+    .join(", ");
+
+  if (!language || language === "en" || language.startsWith("en-")) {
+    return english;
+  }
+
+  try {
+    const words: Array<string> = [];
+
+    for (const part of parts) {
+      const formatter: DurationUnitFormatter = new Intl.NumberFormat(language, {
+        style: "unit",
+        unit: part.unit,
+        unitDisplay: "long",
+      } as Intl.NumberFormatOptions);
+      const word: string = formatter.format(part.count);
+
+      // An engine without the unit style writes the bare number.
+      if (word === part.count.toLocaleString(language)) {
+        return english;
+      }
+
+      words.push(word);
+    }
+
+    const ListFormat: DurationListFormatConstructor | undefined = (
+      Intl as unknown as {
+        ListFormat?: DurationListFormatConstructor | undefined;
+      }
+    ).ListFormat;
+
+    if (!ListFormat || words.length < 2) {
+      return words.join(", ");
+    }
+
+    return new ListFormat(language, { type: "unit", style: "long" }).format(
+      words,
+    );
+  } catch {
+    return english;
+  }
 }
 
 /**

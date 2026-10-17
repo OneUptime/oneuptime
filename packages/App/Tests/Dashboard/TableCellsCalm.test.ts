@@ -1,7 +1,11 @@
 import fs from "fs";
 import path from "path";
 import {
+  EventDurationPart,
+  LESS_THAN_A_MINUTE,
   TABLE_DURATION_MAX_UNITS,
+  formatEventDurationParts,
+  getEventDurationParts,
   getEventDurationText,
 } from "../../FeatureSet/Dashboard/src/Utils/EventDuration";
 import { FACET_FILTER_BAR_CLASS_NAME } from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipStyles";
@@ -113,11 +117,15 @@ describe("a table's Duration says its two largest units", () => {
     );
 
     expect(source).toContain("isCompact?: boolean | undefined;");
-    // However the call is laid out on its lines.
-    expect(source).toMatch(
-      /getEventDurationText\(props\.startDate, endDate, \{ maxUnits: TABLE_DURATION_MAX_UNITS,? \}\)/,
+    expect(source).toContain(
+      "const compactText: string = getText(TABLE_DURATION_MAX_UNITS);",
     );
     expect(source).toContain("title={compactText === text ? undefined : text}");
+    // In the reader's language: its units, and its words for under a minute.
+    expect(source).toContain(
+      "return formatEventDurationParts(parts, translator.language);",
+    );
+    expect(source).toContain("translator.translateText(LESS_THAN_A_MINUTE)");
   });
 
   test.each([
@@ -213,5 +221,114 @@ describe("the facet chips sit on the card", () => {
       "rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm",
     );
     expect(source).not.toContain("h-5 w-px bg-gray-200");
+  });
+});
+
+describe("a Duration in the reader's language", () => {
+  /*
+   * The Duration was English in every language - "1 day, 7 hours" under
+   * "Dauer" in a German list. LiveDuration now says its units with Intl's
+   * own unit names, plurals and list for the reader's language, and keeps
+   * the English text word for word in English.
+   */
+  const START: Date = new Date("2026-10-05T06:04:00.000Z");
+  const MINUTE: number = 60 * 1000;
+  const HOUR: number = 60 * MINUTE;
+  const DAY: number = 24 * HOUR;
+
+  type PartsFunction = (
+    milliseconds: number,
+    maxUnits?: number | undefined,
+  ) => Array<EventDurationPart>;
+
+  const partsOf: PartsFunction = (
+    milliseconds: number,
+    maxUnits?: number | undefined,
+  ): Array<EventDurationPart> => {
+    return getEventDurationParts(
+      START,
+      new Date(START.getTime() + milliseconds),
+      maxUnits ? { maxUnits: maxUnits } : undefined,
+    );
+  };
+
+  test("the units, largest first; none under a minute; at most maxUnits", () => {
+    expect(partsOf(10 * DAY + 23 * HOUR + 31 * MINUTE)).toEqual([
+      { count: 10, unit: "day" },
+      { count: 23, unit: "hour" },
+      { count: 31, unit: "minute" },
+    ]);
+    expect(partsOf(10 * DAY + 23 * HOUR + 31 * MINUTE, 2)).toEqual([
+      { count: 10, unit: "day" },
+      { count: 23, unit: "hour" },
+    ]);
+    expect(partsOf(DAY + MINUTE)).toEqual([
+      { count: 1, unit: "day" },
+      { count: 1, unit: "minute" },
+    ]);
+    expect(partsOf(30 * 1000)).toEqual([]);
+    expect(LESS_THAN_A_MINUTE).toBe("less than a minute");
+  });
+
+  test.each([
+    [10 * DAY + 23 * HOUR + 31 * MINUTE],
+    [DAY + HOUR],
+    [2 * HOUR + 5 * MINUTE],
+    [45 * MINUTE],
+    [45 * DAY],
+  ])(
+    "in English it is getEventDurationText's text, word for word (%i ms)",
+    (milliseconds: number) => {
+      const end: Date = new Date(START.getTime() + milliseconds);
+
+      for (const language of [undefined, "en", "en-GB"]) {
+        expect(
+          formatEventDurationParts(getEventDurationParts(START, end), language),
+        ).toBe(getEventDurationText(START, end));
+      }
+    },
+  );
+
+  test.each([
+    ["de", 10 * DAY + 23 * HOUR, "10 Tage, 23 Stunden"],
+    ["de", DAY + HOUR, "1 Tag, 1 Stunde"],
+    // French keeps a number and its unit together with a no-break space.
+    ["fr", 10 * DAY + 23 * HOUR, "10\u00a0jours et 23\u00a0heures"],
+    ["es", 2 * HOUR + 5 * MINUTE, "2 horas y 5 minutos"],
+    // Russian's own plurals, which a translated "{{count}} days" cannot say.
+    ["ru", 21 * DAY, "21 день"],
+    ["ru", 10 * DAY + 23 * HOUR, "10 дней 23 часа"],
+    ["ja", 10 * DAY + 23 * HOUR, "10 日 23 時間"],
+    ["zh-CN", 2 * HOUR + 5 * MINUTE, "2小时5分钟"],
+  ])(
+    "in %s, %i ms reads %s",
+    (language: string, milliseconds: number, text: string) => {
+      expect(formatEventDurationParts(partsOf(milliseconds, 2), language)).toBe(
+        text,
+      );
+    },
+  );
+
+  test("an engine without Intl's unit style keeps the English text", () => {
+    const original: typeof Intl.NumberFormat = Intl.NumberFormat;
+
+    // Such an engine ignores the unit and writes the bare number.
+    (Intl as unknown as { NumberFormat: unknown }).NumberFormat = function (
+      locale: string,
+    ): { format: (value: number) => string } {
+      return {
+        format: (value: number): string => {
+          return value.toLocaleString(locale);
+        },
+      };
+    };
+
+    try {
+      expect(
+        formatEventDurationParts(partsOf(10 * DAY + 23 * HOUR, 2), "de"),
+      ).toBe("10 days, 23 hours");
+    } finally {
+      (Intl as unknown as { NumberFormat: unknown }).NumberFormat = original;
+    }
   });
 });
