@@ -128,6 +128,21 @@
   color: #374151; /* gray-700 */
 }
 
+/* A day's header in the month view with an action beside its number
+   (Calendar's renderDayAction): the action at the left of the cell, the
+   number where react-big-calendar puts it, at the right. */
+.oneuptime-calendar .oneuptime-calendar-date-header {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 1.5rem;
+}
+
+.oneuptime-calendar .oneuptime-calendar-date-header > .rbc-button-link,
+.oneuptime-calendar .oneuptime-calendar-date-header > span {
+  margin-left: auto;
+}
+
 .oneuptime-calendar .rbc-date-cell.rbc-now {
   color: #4f46e5; /* indigo-600 */
   font-weight: 600;

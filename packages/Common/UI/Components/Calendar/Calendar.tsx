@@ -3,17 +3,23 @@ import CalendarEvent from "../../../Types/Calendar/CalendarEvent";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
 import StartAndEndTime from "../../../Types/Time/StartAndEndTime";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import { StyledDayEvent, layoutDayEvents } from "./CalendarDayLayout";
 import moment from "moment-timezone";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import {
   Calendar,
+  Components,
   Culture,
+  DateHeaderProps,
   DateLocalizer,
   DateRange,
   DayLayoutFunction,
+  EventProps,
   EventPropGetter,
   Formats,
+  Messages,
   momentLocalizer,
   View,
 } from "react-big-calendar";
@@ -127,6 +133,24 @@ export interface ComponentProps {
    */
   getNow?: (() => Date) | undefined;
   onRangeChange: (startAndEndTime: StartAndEndTime) => void;
+  /*
+   * The views the toolbar offers, in its order. Defaults to month, week, day
+   * and agenda.
+   */
+  views?: Array<DefaultCalendarView> | undefined;
+  // A click on an event's block.
+  onEventClick?: ((event: CalendarEvent) => void) | undefined;
+  /*
+   * What an event's block shows instead of its title: an element a keyboard
+   * reaches, such as a link to the event. react-big-calendar draws the block
+   * itself as a div no keyboard can focus.
+   */
+  renderEventContent?: ((event: CalendarEvent) => ReactElement) | undefined;
+  /*
+   * Something beside a day's number in the month view - a button that
+   * schedules something on that day. Null for a day without one.
+   */
+  renderDayAction?: ((date: Date) => ReactElement | null) | undefined;
 }
 
 export enum DefaultCalendarView {
@@ -138,9 +162,112 @@ export enum DefaultCalendarView {
 
 const CALENDAR_VIEWS: View[] = ["month", "week", "day", "agenda"];
 
+/*
+ * The toolbar's words and the "+2 more" of a full month cell, in the
+ * reader's language. react-big-calendar writes them in English otherwise.
+ */
+export const getCalendarMessages: (
+  translator: Translator,
+) => Messages<CalendarEvent> = (
+  translator: Translator,
+): Messages<CalendarEvent> => {
+  return {
+    today: translator.translateText("Today"),
+    previous: translator.translateText("Back"),
+    next: translator.translateText("Next"),
+    month: translator.translateText("Month"),
+    week: translator.translateText("Week"),
+    day: translator.translateText("Day"),
+    agenda: translator.translateText("Agenda"),
+    date: translator.translateText("Date"),
+    time: translator.translateText("Time"),
+    event: translator.translateText("Event"),
+    allDay: translator.translateText("All day"),
+    noEventsInRange: translator.translateText(
+      "There are no events in this range.",
+    ),
+    showMore: (count: number): string => {
+      return translator.translatePlural(
+        { one: "+{{count}} more", other: "+{{count}} more" },
+        count,
+      );
+    },
+  };
+};
+
 const CalendarElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  const messages: Messages<CalendarEvent> = useMemo(() => {
+    return getCalendarMessages(translator);
+  }, [translator]);
+
+  /*
+   * The pieces a caller replaces: an event's content, and the header of a
+   * month view's day. Rebuilt only when the caller's renderers change, so
+   * react-big-calendar does not remount every cell on each render.
+   */
+  const components: Components<CalendarEvent> = useMemo(() => {
+    const replaced: Components<CalendarEvent> = {};
+
+    const renderEventContent:
+      | ((event: CalendarEvent) => ReactElement)
+      | undefined = props.renderEventContent;
+
+    if (renderEventContent) {
+      replaced.event = (eventProps: EventProps<CalendarEvent>) => {
+        return renderEventContent(eventProps.event);
+      };
+    }
+
+    const renderDayAction: ((date: Date) => ReactElement | null) | undefined =
+      props.renderDayAction;
+
+    if (renderDayAction) {
+      replaced.month = {
+        dateHeader: (headerProps: DateHeaderProps) => {
+          const action: ReactElement | null = headerProps.isOffRange
+            ? null
+            : renderDayAction(headerProps.date);
+
+          /*
+           * The day's number is react-big-calendar's own button (it opens
+           * the day), at the cell's right edge as before; the action sits
+           * at its left.
+           */
+          return (
+            <div className="oneuptime-calendar-date-header">
+              {action}
+              {headerProps.drilldownView ? (
+                <button
+                  type="button"
+                  className="rbc-button-link"
+                  onClick={headerProps.onDrillDown}
+                >
+                  {headerProps.label}
+                </button>
+              ) : (
+                <span>{headerProps.label}</span>
+              )}
+            </div>
+          );
+        },
+      };
+    }
+
+    return replaced;
+  }, [props.renderEventContent, props.renderDayAction]);
+
+  const views: Array<View> = useMemo(() => {
+    return props.views && props.views.length > 0
+      ? props.views.map((view: DefaultCalendarView): View => {
+          return view as View;
+        })
+      : CALENDAR_VIEWS;
+  }, [props.views]);
+
   const { defaultDate } = useMemo(() => {
     return {
       defaultDate: props.defaultDate || OneUptimeDate.getCurrentDate(),
@@ -243,8 +370,17 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
         formats={CALENDAR_FORMATS}
         dayLayoutAlgorithm={dayLayoutAlgorithm}
         {...(props.getNow ? { getNow: props.getNow } : {})}
+        {...(props.onEventClick
+          ? {
+              onSelectEvent: (event: CalendarEvent): void => {
+                props.onEventClick?.(event);
+              },
+            }
+          : {})}
+        components={components}
+        messages={messages}
         showMultiDayTimes
-        views={CALENDAR_VIEWS}
+        views={views}
         defaultView={props.defaultCalendarView || "week"}
         eventPropGetter={eventStyleGetter}
         tooltipAccessor={eventTooltipGetter}
