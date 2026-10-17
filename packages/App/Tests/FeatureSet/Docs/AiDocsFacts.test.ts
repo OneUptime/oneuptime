@@ -1280,6 +1280,38 @@ describe("AI SRE and the infrastructure AI agents", () => {
     );
   });
 
+  /*
+   * The incident's conversation is a terminal the person asking steers: its
+   * read-only kubectl and infrastructure commands reach only the linked
+   * clusters and resources that person may view. The thread keeps those
+   * alone, with the asking person's props (or the deciding person's on a
+   * paused answer), before it builds the turn's tools.
+   */
+  it("says the conversation's commands reach only the clusters and resources the person asking may view, as the thread builds them", () => {
+    const thread: string = flat(
+      readRepoFile("Common/Server/Utils/AI/SRE/InvestigationThread.ts"),
+    );
+    const threadService: string = flat(
+      readRepoFile("Common/Server/Utils/AI/SRE/InvestigationThreadService.ts"),
+    );
+
+    expect(thread).toContain(
+      "await KubernetesClusterAiAccessService.getStatusesViewableBy({ props: data.props,",
+    );
+    expect(thread).toContain(
+      "await ResourceAiAccessService.getStatusesViewableBy({ props: data.props,",
+    );
+    expect(threadService).toContain("props: data.turn.props,");
+
+    const conversation: string = flat(
+      englishSection(AI_SRE, "## Talk to OneUptime AI about the incident"),
+    );
+
+    expect(conversation).toContain(
+      "(and runs read-only kubectl or infrastructure commands where it has access, on the clusters and resources you may view)",
+    );
+  });
+
   it("says the resource AI agent asks for work every 3 seconds, as its loop does", () => {
     const config: string = fs.readFileSync(
       path.join(PACKAGES_DIR, "..", "agents/ResourceAIAgent/Config.ts"),
