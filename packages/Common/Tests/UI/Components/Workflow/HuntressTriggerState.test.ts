@@ -10,8 +10,9 @@ import {
   isWaitingForHuntress,
 } from "../../../../UI/Components/Workflow/HuntressTriggerState";
 import StandardWebhookSignature from "../../../../Server/Utils/Webhook/StandardWebhookSignature";
+import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
+import { drawHuntressSigningSecret } from "../../../Types/Huntress/HuntressWebhookFixtures";
 import { describe, expect, test } from "@jest/globals";
-import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 
@@ -147,9 +148,11 @@ describe("where the trigger stands", () => {
 
 describe("a pasted signing secret, looked at before it is sent", () => {
   test("one Huntress issues passes, as the server would take it", () => {
+    const random: SeededRandom = seededRandom(1510);
+
     for (const secret of [
-      `whsec_${crypto.randomBytes(24).toString("base64")}`,
-      `  whsec_${crypto.randomBytes(32).toString("base64")}  `,
+      drawHuntressSigningSecret(random),
+      `  ${drawHuntressSigningSecret(random, 32)}  `,
     ]) {
       expect(getHuntressSigningSecretProblem(secret)).toBeNull();
       expect(StandardWebhookSignature.isValidSecret(secret.trim())).toBe(true);

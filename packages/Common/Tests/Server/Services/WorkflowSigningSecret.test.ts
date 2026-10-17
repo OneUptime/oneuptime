@@ -23,7 +23,8 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import API from "../../../Utils/API";
-import crypto from "crypto";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
+import { drawHuntressSigningSecret } from "../../Types/Huntress/HuntressWebhookFixtures";
 import {
   afterEach,
   beforeEach,
@@ -49,8 +50,10 @@ const WORKFLOW_ID: ObjectID = new ObjectID(
   "6ba7b810-9dad-41d1-80b4-00c04fd430c8",
 );
 
+const random: SeededRandom = seededRandom(5310);
+
 function svixSecret(): string {
-  return `whsec_${crypto.randomBytes(24).toString("base64")}`;
+  return drawHuntressSigningSecret(random);
 }
 
 interface Hooks {
@@ -65,7 +68,11 @@ interface Hooks {
 // The protected hooks, as DatabaseService calls them.
 const hooks: Hooks = WorkflowService as unknown as Hooks;
 
-let cleared: Array<{ id: string; data: JSONObject; skip?: boolean }>;
+let cleared: Array<{
+  id: string;
+  data: JSONObject;
+  skip: boolean | undefined;
+}>;
 
 beforeEach(() => {
   cleared = [];
@@ -117,7 +124,9 @@ async function update(data: JSONObject): Promise<OnUpdate<Workflow>> {
     query: { _id: WORKFLOW_ID.toString() },
     data: data as never,
     props: { isRoot: true },
-  } as UpdateBy<Workflow>);
+    limit: 1,
+    skip: 0,
+  });
 }
 
 describe("reading a pasted secret", () => {

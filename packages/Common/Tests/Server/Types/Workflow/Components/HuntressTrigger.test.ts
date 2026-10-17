@@ -50,9 +50,11 @@ import {
 } from "../../../../../Types/Workflow/HuntressTrigger";
 import { parseHuntressWebhook } from "../../../../../Types/Huntress/HuntressWebhook";
 import {
+  drawHuntressSigningSecret,
   getHuntressCommentBody,
   getHuntressIncidentReportBody,
 } from "../../../../Types/Huntress/HuntressWebhookFixtures";
+import { seededRandom } from "../../../../Helpers/SeededRandom";
 import {
   afterAll,
   afterEach,
@@ -63,7 +65,6 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import crypto from "crypto";
 import express from "express";
 import http from "http";
 import { AddressInfo } from "net";
@@ -103,7 +104,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 );
 const WORKFLOW_ID: string = "20000000-0000-4000-8000-000000000001";
 const SECRET_KEY: string = "40000000-0000-4000-8000-000000000001";
-const SECRET: string = `whsec_${crypto.randomBytes(24).toString("base64")}`;
+const SECRET: string = drawHuntressSigningSecret(seededRandom(1106));
 
 const SEVERITY_IDS: Array<string> = [
   "50000000-0000-4000-8000-000000000001",

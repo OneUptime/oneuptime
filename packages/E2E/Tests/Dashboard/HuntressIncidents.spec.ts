@@ -16,7 +16,6 @@ import {
   HUNTRESS_TRIGGER_COMPONENT_ID,
   buildHuntressIncidentWorkflowGraph,
 } from "Common/Types/Workflow/Templates";
-import crypto from "crypto";
 import {
   gotoProjectPage,
   registerAndCreateProject,
@@ -80,8 +79,13 @@ const INCIDENT_TIMEOUT_MS: number = 120000;
 const ON_CALL_TIMEOUT_MS: number = 120000;
 const RESOLVE_TIMEOUT_MS: number = 120000;
 
-// A secret as Huntress shows it under View Signing Secret.
-const SIGNING_SECRET: string = `whsec_${crypto.randomBytes(24).toString("base64")}`;
+// A secret as Huntress shows it under View Signing Secret: whsec_ and base64.
+const SIGNING_SECRET: string = `whsec_${Buffer.from(
+  "huntress-e2e-signing-secret",
+).toString("base64")}`;
+
+// How many deliveries were posted, for each one's own svix-id.
+let deliveriesPosted: number = 0;
 
 const REPORT_ID: number = 1234;
 const SKIPPED_REPORT_ID: number = 5678;
@@ -167,8 +171,11 @@ test.describe("Huntress incident report -> workflow -> incident -> on-call -> re
     signed?: boolean | undefined;
   }): Promise<Delivery> => {
     const raw: string = JSON.stringify(data.body);
+    deliveriesPosted++;
+
+    // Each event its own id, as Huntress gives them; a resent one keeps its own.
     const messageId: string =
-      data.messageId || `msg_${crypto.randomBytes(12).toString("hex")}`;
+      data.messageId || `msg_huntress_e2e_${deliveriesPosted}`;
     const timestamp: string = String(Math.floor(Date.now() / 1000));
 
     const headers: Record<string, string> = {

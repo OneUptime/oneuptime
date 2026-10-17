@@ -73,7 +73,8 @@ import { ConditionOperator } from "../../../../Types/Workflow/Components/Conditi
 import { PAGE_ARGUMENT_IDS } from "../../../../Types/Workflow/Components/OnCallPageSettings";
 import { HuntressTriggerSetting } from "../../../../Types/Workflow/HuntressTrigger";
 import { HUNTRESS_REPORT_ID_CUSTOM_FIELD } from "../../../../Types/Workflow/Templates";
-import crypto from "crypto";
+import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
+import { drawHuntressSigningSecret } from "../../../Types/Huntress/HuntressWebhookFixtures";
 import {
   afterEach,
   beforeEach,
@@ -112,8 +113,10 @@ const INCIDENT_2: string = "60000000-0000-4000-8000-000000000002";
 const USER_1: string = "70000000-0000-4000-8000-000000000001";
 const NOW: Date = new Date("2026-10-15T12:00:00.000Z");
 
+const random: SeededRandom = seededRandom(4116);
+
 function svixSecret(): string {
-  return `whsec_${crypto.randomBytes(24).toString("base64")}`;
+  return drawHuntressSigningSecret(random);
 }
 
 function connectionRow(

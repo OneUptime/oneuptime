@@ -8,7 +8,12 @@ import Workflow from "Common/Models/DatabaseModels/Workflow";
 import Redis from "Common/Server/Infrastructure/Redis";
 import WorkflowService from "Common/Server/Services/WorkflowService";
 import { ExecuteWorkflowType } from "Common/Server/Types/Workflow/TriggerCode";
-import { ExpressRouter } from "Common/Server/Utils/Express";
+import {
+  ExpressApplication,
+  ExpressJson,
+  ExpressRouter,
+  createExpressApp,
+} from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import {
   expressErrorHandler,
@@ -17,6 +22,8 @@ import {
 import StandardWebhookSignature from "Common/Server/Utils/Webhook/StandardWebhookSignature";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { HUNTRESS_WEBHOOK_ROUTE } from "Common/Types/Huntress/HuntressWebhook";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
+import { drawHuntressSigningSecret } from "Common/Tests/Types/Huntress/HuntressWebhookFixtures";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ComponentID from "Common/Types/Workflow/ComponentID";
@@ -34,8 +41,6 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import crypto from "crypto";
-import express from "express";
 import fs from "fs";
 import http from "http";
 import { AddressInfo } from "net";
@@ -73,7 +78,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 );
 // A connection's id, which its workflow's key is.
 const CONNECTION_ID: string = "20000000-0000-4000-8000-000000000001";
-const SECRET: string = `whsec_${crypto.randomBytes(24).toString("base64")}`;
+const SECRET: string = drawHuntressSigningSecret(seededRandom(7638));
 
 let workflowEnabled: boolean;
 let queued: Array<ExecuteWorkflowType>;
@@ -180,8 +185,8 @@ describe("POST /api/huntress/webhook/:secretkey", () => {
   let port: number;
 
   beforeAll(async () => {
-    const app: express.Express = express();
-    app.use(express.json(jsonBodyParserOptions));
+    const app: ExpressApplication = createExpressApp();
+    app.use(ExpressJson(jsonBodyParserOptions));
 
     // Mounted as the workflow feature set mounts it.
     const router: ExpressRouter = new HuntressLegacyWebhookAPI().router;

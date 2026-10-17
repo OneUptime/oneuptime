@@ -46,13 +46,14 @@ import {
   HuntressTriggerValue,
 } from "../../../../Types/Workflow/HuntressTrigger";
 import {
+  drawHuntressSigningSecret,
   getHuntressAccountNoticeBody,
   getHuntressClosedBody,
   getHuntressCommentBody,
   getHuntressEscalationBody,
   getHuntressIncidentReportBody,
 } from "../../../Types/Huntress/HuntressWebhookFixtures";
-import crypto from "crypto";
+import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import { SpyInstance } from "jest-mock";
 import {
   afterEach,
@@ -83,7 +84,9 @@ const WORKFLOW_ID: string = "20000000-0000-4000-8000-000000000001";
 const OTHER_WORKFLOW_ID: string = "20000000-0000-4000-8000-000000000002";
 const SECRET_KEY: string = "40000000-0000-4000-8000-000000000001";
 const OTHER_SECRET_KEY: string = "40000000-0000-4000-8000-000000000002";
-const SECRET: string = `whsec_${crypto.randomBytes(24).toString("base64")}`;
+const random: SeededRandom = seededRandom(8603);
+
+const SECRET: string = drawHuntressSigningSecret(random);
 const NOW: Date = new Date("2026-10-09T10:00:00.000Z");
 const TIMESTAMP: string = String(Math.floor(NOW.getTime() / 1000));
 
@@ -366,7 +369,7 @@ describe("the signature", () => {
     const body: string = reportBody();
     const answer: HuntressWebhookAnswer = await deliver(body, {
       headers: signedHeaders(body, {
-        secret: `whsec_${crypto.randomBytes(24).toString("base64")}`,
+        secret: drawHuntressSigningSecret(random),
       }),
     });
 
@@ -690,7 +693,7 @@ describe("Only These Organizations", () => {
     const body: string = reportBody();
     const answer: HuntressWebhookAnswer = await deliver(body, {
       headers: signedHeaders(body, {
-        secret: `whsec_${crypto.randomBytes(24).toString("base64")}`,
+        secret: drawHuntressSigningSecret(random),
       }),
     });
 
@@ -940,7 +943,7 @@ describe("isOrganizationWatched", () => {
     ]) {
       expect(
         HuntressWebhookHandler.isOrganizationWatched(
-          { triggerArguments: triggerArguments as JSONObject | undefined },
+          { triggerArguments: triggerArguments } as never,
           event as never,
         ),
       ).toBe(true);
