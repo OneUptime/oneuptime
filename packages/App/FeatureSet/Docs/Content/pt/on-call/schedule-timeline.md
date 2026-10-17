@@ -42,7 +42,7 @@ Abaixo da grade, **On call this week** (**On call this month** na visualização
 
 ## Mude o período e o fuso horário
 
-- Alterne entre **Week** e **Month**, navegue com as setas e volte com **Today**.
+- Alterne entre **Semana** e **Mês**, navegue com as setas e volte com **Hoje**.
 - Os horários aparecem no seu próprio fuso horário. O botão de fuso horário abre **View timeline in timezone**, que mostra a linha do tempo em qualquer outro fuso sem mudar quem está de plantão: cada agendamento continua passando o turno no próprio fuso horário.
 - A linha do tempo cobre 180 dias para trás e 365 dias para frente.
 

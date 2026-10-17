@@ -42,7 +42,7 @@ Under rutnätet visar **On call this week** (**On call this month** i månadsvyn
 
 ## Ändra period och tidszon
 
-- Växla mellan **Week** och **Month**, bläddra med pilarna och gå tillbaka med **Today**.
+- Växla mellan **Vecka** och **Månad**, bläddra med pilarna och gå tillbaka med **Idag**.
 - Tider visas i din egen tidszon. Tidszonsknappen öppnar **View timeline in timezone**, som visar tidslinjen i vilken annan zon som helst utan att ändra när någon har jour: varje schema lämnar fortfarande över i sin egen tidszon.
 - Tidslinjen täcker 180 dagar bakåt och 365 dagar framåt.
 

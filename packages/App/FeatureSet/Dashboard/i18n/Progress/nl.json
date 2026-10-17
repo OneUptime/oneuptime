@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 30348,
-    "untranslated": 17250
+    "untranslated": 17247
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -55,6 +55,7 @@
     "Tunnel",
     "VMware vCenter",
     "Website",
+    "Week",
     "agent {{version}}",
     "cluster",
     "host",

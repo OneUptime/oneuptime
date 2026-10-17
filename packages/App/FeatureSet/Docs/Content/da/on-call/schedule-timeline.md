@@ -42,7 +42,7 @@ Under gitteret viser **On call this week** (**On call this month** i månedsvisn
 
 ## Skift periode og tidszone
 
-- Skift mellem **Week** og **Month**, flyt med pilene, og vend tilbage med **Today**.
+- Skift mellem **Uge** og **Måned**, flyt med pilene, og vend tilbage med **I dag**.
 - Tider vises i din egen tidszone. Tidszoneknappen åbner **View timeline in timezone**, som viser tidslinjen i en hvilken som helst anden zone uden at ændre, hvornår nogen har vagt: hver vagtplan overdrager stadig i sin egen tidszone.
 - Tidslinjen dækker 180 dage tilbage og 365 dage frem.
 

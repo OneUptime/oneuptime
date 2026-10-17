@@ -42,7 +42,7 @@ Sous la grille, **On call this week** (**On call this month** dans la vue mensue
 
 ## Changer la période et le fuseau horaire
 
-- Basculez entre **Week** et **Mois**, naviguez avec les flèches et revenez avec **Today**.
+- Basculez entre **Semaine** et **Mois**, naviguez avec les flèches et revenez avec **Aujourd'hui**.
 - Les heures s'affichent dans votre propre fuseau horaire. Le bouton de fuseau horaire ouvre **View timeline in timezone**, qui affiche la chronologie dans n'importe quel autre fuseau sans changer qui est d'astreinte : chaque planning continue de faire ses passations dans son propre fuseau.
 - La chronologie couvre 180 jours en arrière et 365 jours en avant.
 
