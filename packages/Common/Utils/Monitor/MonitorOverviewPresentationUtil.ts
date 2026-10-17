@@ -18,6 +18,7 @@ import MonitorOverviewFamilyUtil, {
 } from "./MonitorOverviewFamily";
 import { MonitorOverviewProbeSummary } from "./MonitorOverviewProbeUtil";
 import MonitorStatusHistoryUtil from "./MonitorStatusHistoryUtil";
+import ProbeStatusMonitorUtil from "./ProbeStatusMonitorUtil";
 import MonitorOverviewTargetUtil, {
   MonitorOverviewTarget,
 } from "./MonitorOverviewTargetUtil";
@@ -1116,6 +1117,9 @@ export default class MonitorOverviewPresentationUtil {
          * monitor, it says only that none happened in the last day.
          */
         return data.evaluationLog === "never";
+      case MonitorOverviewFamily.ProbeStatus:
+        // Its evaluations leave a trace only in the log, as a device's do.
+        return data.evaluationLog === "never";
       default:
         // Manual monitors are never evaluated.
         return false;
@@ -1328,6 +1332,22 @@ export default class MonitorOverviewPresentationUtil {
             "No poll or trap from this device has been evaluated in the last day, so the status shown is the last one recorded.";
         }
 
+        /*
+         * Evaluated every minute, so a day with nothing in the log means
+         * there was nothing to evaluate: every probe it watches was deleted.
+         */
+        if (
+          context.family === MonitorOverviewFamily.ProbeStatus &&
+          context.evaluationLog === "expired"
+        ) {
+          running.explanation =
+            "Not evaluated in the last day. The probes this monitor watches may have been deleted: pick probes again under Criteria. The status shown is the last one recorded.";
+          running.callToAction = {
+            text: "Pick probes",
+            linkKey: "criteria",
+          };
+        }
+
         return running;
       }
     }
@@ -1423,6 +1443,9 @@ export default class MonitorOverviewPresentationUtil {
       headline = "Waiting for the first poll";
       explanation =
         "No poll or trap from this device has been evaluated yet. Check that a probe is assigned to poll it.";
+    } else if (context.family === MonitorOverviewFamily.ProbeStatus) {
+      explanation =
+        "This monitor checks the probes it watches every minute. The first result arrives within a minute or two.";
     } else if (input.monitorType === MonitorType.IncomingRequest) {
       headline = "Waiting for the first heartbeat";
       explanation =
@@ -1645,6 +1668,30 @@ export default class MonitorOverviewPresentationUtil {
         };
       }
 
+      case MonitorOverviewFamily.ProbeStatus: {
+        let emptyText: string = "Not evaluated yet";
+
+        if (context.evaluationStatus === "loading") {
+          emptyText = "Loading…";
+        } else if (context.evaluationLog === "expired") {
+          emptyText = NOT_EVALUATED_IN_LOG_TEXT;
+        }
+
+        // Evaluated by the server every minute: that is its schedule.
+        return {
+          label: "Last evaluated",
+          at:
+            context.evaluationStatus === "loaded"
+              ? input.latestEvaluationAt
+              : undefined,
+          emptyText: emptyText,
+          cadenceText: isScheduled ? "Every minute" : undefined,
+          isUnavailable:
+            context.evaluationStatus === "error" ||
+            context.evaluationStatus === "forbidden",
+        };
+      }
+
       default:
         return {
           label: null,
@@ -1829,6 +1876,34 @@ export default class MonitorOverviewPresentationUtil {
           value: "On every poll and matching trap",
         });
         break;
+
+      case MonitorOverviewFamily.ProbeStatus: {
+        const watchedCount: number =
+          ProbeStatusMonitorUtil.getWatchedProbeIds(input.monitorSteps).length;
+
+        facts.push(
+          watchedCount > 0
+            ? {
+                key: "probes",
+                label: "Watches",
+                value: pluralize(watchedCount, "probe", "probes"),
+                linkKey: "criteria",
+              }
+            : {
+                key: "probes",
+                label: "Watches",
+                value: "No probes picked",
+                isMuted: true,
+                linkKey: "criteria",
+              },
+        );
+        facts.push({
+          key: "evaluates",
+          label: "Evaluates",
+          value: "Every minute",
+        });
+        break;
+      }
 
       default:
         facts.push({

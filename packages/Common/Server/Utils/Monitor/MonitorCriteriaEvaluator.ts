@@ -42,6 +42,7 @@ import NtpMonitorUtil from "../../../Types/Monitor/NtpMonitor/NtpMonitorUtil";
 import SqlMonitorCriteria from "./Criteria/SqlMonitorCriteria";
 import DatabaseMonitorCriteria from "./Criteria/DatabaseMonitorCriteria";
 import ExternalStatusPageMonitorCriteria from "./Criteria/ExternalStatusPageMonitorCriteria";
+import ProbeStatusMonitorCriteria from "./Criteria/ProbeStatusMonitorCriteria";
 import MonitorCriteriaMessageBuilder from "./MonitorCriteriaMessageBuilder";
 import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
 import MonitorCriteriaMessageFormatter from "./MonitorCriteriaMessageFormatter";
@@ -1823,6 +1824,18 @@ ${contextBlock}
 
       if (externalStatusPageResult) {
         return externalStatusPageResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.ProbeStatus) {
+      const probeStatusResult: string | null =
+        await ProbeStatusMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (probeStatusResult) {
+        return probeStatusResult;
       }
     }
 

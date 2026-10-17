@@ -224,6 +224,17 @@ export enum CheckOn {
   ExternalStatusPageComponentStatus = "External Status Page Component Status",
   ExternalStatusPageActiveIncidents = "External Status Page Active Incidents",
   ExternalStatusPageResponseTime = "External Status Page Response Time (in ms)",
+
+  /*
+   * Probe Status monitors: how many of the probes a monitor watches are
+   * Connected, and how many are Disconnected - nothing heard from them for
+   * three minutes (Probe:UpdateConnectionStatus). Counts rather than a
+   * yes/no, so one monitor can watch several probes and alert when any of
+   * them, or more than you can spare, is gone. Stored in monitor criteria;
+   * never rename one.
+   */
+  ConnectedProbes = "Connected Probes",
+  DisconnectedProbes = "Disconnected Probes",
 }
 
 export interface ServerMonitorOptions {

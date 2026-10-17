@@ -1,0 +1,96 @@
+import DataToProcess from "../DataToProcess";
+import CompareCriteria from "./CompareCriteria";
+import {
+  CheckOn,
+  CriteriaFilter,
+} from "../../../../Types/Monitor/CriteriaFilter";
+import ProbeStatusMonitorResponse from "../../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
+import ProbeStatusMonitorUtil from "../../../../Utils/Monitor/ProbeStatusMonitorUtil";
+import CaptureSpan from "../../Telemetry/CaptureSpan";
+
+/*
+ * The criteria of a Probe Status monitor: how many of the probes it watches
+ * are connected, and how many are not, compared with the filter's number.
+ * Both are counts, so "Disconnected Probes is greater than 0" is "a probe is
+ * down" and "Connected Probes is less than 2" is "fewer than two are left".
+ */
+export default class ProbeStatusMonitorCriteria {
+  public static getResponse(
+    dataToProcess: DataToProcess,
+  ): ProbeStatusMonitorResponse | null {
+    const response: ProbeStatusMonitorResponse =
+      dataToProcess as ProbeStatusMonitorResponse;
+
+    if (
+      !response ||
+      !Array.isArray(response.probes) ||
+      typeof response.connectedProbeCount !== "number" ||
+      typeof response.disconnectedProbeCount !== "number"
+    ) {
+      return null;
+    }
+
+    return response;
+  }
+
+  public static getValue(input: {
+    response: ProbeStatusMonitorResponse;
+    checkOn: CheckOn;
+  }): number | null {
+    if (input.checkOn === CheckOn.ConnectedProbes) {
+      return input.response.connectedProbeCount;
+    }
+
+    if (input.checkOn === CheckOn.DisconnectedProbes) {
+      return input.response.disconnectedProbeCount;
+    }
+
+    return null;
+  }
+
+  @CaptureSpan()
+  public static async isMonitorInstanceCriteriaFilterMet(input: {
+    dataToProcess: DataToProcess;
+    criteriaFilter: CriteriaFilter;
+  }): Promise<string | null> {
+    const response: ProbeStatusMonitorResponse | null =
+      ProbeStatusMonitorCriteria.getResponse(input.dataToProcess);
+
+    if (!response) {
+      return null;
+    }
+
+    const value: number | null = ProbeStatusMonitorCriteria.getValue({
+      response: response,
+      checkOn: input.criteriaFilter.checkOn,
+    });
+
+    if (value === null) {
+      return null;
+    }
+
+    const threshold: number | null = CompareCriteria.convertToNumber(
+      input.criteriaFilter.value as string | number | undefined,
+    );
+
+    if (threshold === null) {
+      return null;
+    }
+
+    const comparison: string | null = CompareCriteria.compareCriteriaNumbers({
+      value: value,
+      threshold: threshold,
+      criteriaFilter: input.criteriaFilter,
+    });
+
+    if (!comparison) {
+      return null;
+    }
+
+    /*
+     * The comparison says which number crossed which line; the sentence
+     * after it says which probes, which is what the person paged needs.
+     */
+    return `${comparison} ${ProbeStatusMonitorUtil.describe(response)}`;
+  }
+}
